@@ -30,7 +30,7 @@ export async function createSession(userId: string) {
   const token = randomBytes(32).toString("base64url");
   const expiresAt = new Date(Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000);
 
-  run(
+  await run(
     "INSERT INTO sessions (id, token_hash, user_id, expires_at, created_at) VALUES (?, ?, ?, ?, ?)",
     crypto.randomUUID(),
     hashToken(token),
@@ -53,7 +53,7 @@ export async function clearSession() {
   const cookieStore = await cookies();
   const token = cookieStore.get(COOKIE_NAME)?.value;
   if (token) {
-    run("DELETE FROM sessions WHERE token_hash = ?", hashToken(token));
+    await run("DELETE FROM sessions WHERE token_hash = ?", hashToken(token));
   }
 
   cookieStore.delete(COOKIE_NAME);
@@ -66,7 +66,7 @@ export async function getCurrentUser() {
     return null;
   }
 
-  const session = one<{
+  const session = await one<{
     id: string;
     user_id: string;
     expires_at: string;
@@ -82,7 +82,7 @@ export async function getCurrentUser() {
 
   if (!session || new Date(session.expires_at) < new Date()) {
     if (session) {
-      run("DELETE FROM sessions WHERE id = ?", session.id);
+      await run("DELETE FROM sessions WHERE id = ?", session.id);
     }
     return null;
   }

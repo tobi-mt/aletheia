@@ -6,7 +6,7 @@ import type { Mode } from "@/lib/wisdom-data";
 export async function GET() {
   try {
     const user = await requireUser();
-    const entries = many<{
+    const entries = await many<{
       id: string;
       title: string;
       body: string;
@@ -56,7 +56,7 @@ export async function POST(request: Request) {
       createdAt: new Date().toISOString(),
     };
 
-    run(
+    await run(
       `INSERT INTO journal_entries
        (id, user_id, title, body, mode, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,

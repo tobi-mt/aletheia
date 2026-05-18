@@ -1,113 +1,149 @@
-import { mkdirSync } from "node:fs";
-import path from "node:path";
-import { DatabaseSync } from "node:sqlite";
+import { Pool } from "pg";
 import { wisdomEntries } from "@/lib/wisdom-data";
 
-const dataDir = path.join(process.cwd(), "data");
-mkdirSync(dataDir, { recursive: true });
+const connectionString = process.env.DATABASE_URL;
 
-const dbPath = process.env.SQLITE_PATH || path.join(dataDir, "aletheia.sqlite");
-const globalForDb = globalThis as unknown as { aletheiaDb?: DatabaseSync };
-
-export const db = globalForDb.aletheiaDb ?? new DatabaseSync(dbPath);
-
-if (process.env.NODE_ENV !== "production") {
-  globalForDb.aletheiaDb = db;
+if (!connectionString) {
+  throw new Error("DATABASE_URL is required. Set it to your Neon Postgres connection string.");
 }
 
-db.exec(`
-  PRAGMA journal_mode = WAL;
-  PRAGMA foreign_keys = ON;
+const globalForDb = globalThis as unknown as {
+  aletheiaPool?: Pool;
+  aletheiaDbReady?: Promise<void>;
+};
 
-  CREATE TABLE IF NOT EXISTS users (
-    id TEXT PRIMARY KEY,
-    email TEXT NOT NULL UNIQUE,
-    name TEXT,
-    password_hash TEXT NOT NULL,
-    created_at TEXT NOT NULL
-  );
+export const pool =
+  globalForDb.aletheiaPool ??
+  new Pool({
+    connectionString,
+    ssl: connectionString.includes("sslmode=require")
+      ? { rejectUnauthorized: false }
+      : undefined,
+    max: 5,
+  });
 
-  CREATE TABLE IF NOT EXISTS sessions (
-    id TEXT PRIMARY KEY,
-    token_hash TEXT NOT NULL UNIQUE,
-    user_id TEXT NOT NULL,
-    expires_at TEXT NOT NULL,
-    created_at TEXT NOT NULL,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-  );
+if (process.env.NODE_ENV !== "production") {
+  globalForDb.aletheiaPool = pool;
+}
 
-  CREATE TABLE IF NOT EXISTS wisdom_entries (
-    id TEXT PRIMARY KEY,
-    theme TEXT NOT NULL,
-    scripture TEXT NOT NULL UNIQUE,
-    principle TEXT NOT NULL,
-    context TEXT NOT NULL,
-    application TEXT NOT NULL,
-    keywords TEXT NOT NULL,
-    emotions TEXT NOT NULL,
-    questions TEXT NOT NULL,
-    created_at TEXT NOT NULL,
-    updated_at TEXT NOT NULL
-  );
+function postgresParams(sql: string) {
+  let index = 0;
+  return sql.replace(/\?/g, () => `$${++index}`);
+}
 
-  CREATE TABLE IF NOT EXISTS chat_messages (
-    id TEXT PRIMARY KEY,
-    user_id TEXT NOT NULL,
-    role TEXT NOT NULL,
-    mode TEXT NOT NULL,
-    content TEXT NOT NULL,
-    sources TEXT,
-    created_at TEXT NOT NULL,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-  );
+async function initializeDatabase() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY,
+      email TEXT NOT NULL UNIQUE,
+      name TEXT,
+      password_hash TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL
+    );
 
-  CREATE TABLE IF NOT EXISTS journal_entries (
-    id TEXT PRIMARY KEY,
-    user_id TEXT NOT NULL,
-    title TEXT NOT NULL,
-    body TEXT NOT NULL,
-    mode TEXT NOT NULL,
-    created_at TEXT NOT NULL,
-    updated_at TEXT NOT NULL,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-  );
-`);
+    CREATE TABLE IF NOT EXISTS sessions (
+      id TEXT PRIMARY KEY,
+      token_hash TEXT NOT NULL UNIQUE,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      expires_at TIMESTAMPTZ NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL
+    );
 
-const wisdomCount = db.prepare("SELECT COUNT(*) as count FROM wisdom_entries").get()
-  ?.count as number | undefined;
+    CREATE TABLE IF NOT EXISTS wisdom_entries (
+      id TEXT PRIMARY KEY,
+      theme TEXT NOT NULL,
+      scripture TEXT NOT NULL UNIQUE,
+      principle TEXT NOT NULL,
+      context TEXT NOT NULL,
+      application TEXT NOT NULL,
+      keywords JSONB NOT NULL,
+      emotions JSONB NOT NULL,
+      questions JSONB NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL,
+      updated_at TIMESTAMPTZ NOT NULL
+    );
 
-if (!wisdomCount) {
-  const insert = db.prepare(`
-    INSERT INTO wisdom_entries (
-      id, theme, scripture, principle, context, application, keywords, emotions, questions, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    CREATE TABLE IF NOT EXISTS chat_messages (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      role TEXT NOT NULL,
+      mode TEXT NOT NULL,
+      content TEXT NOT NULL,
+      sources JSONB,
+      created_at TIMESTAMPTZ NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS journal_entries (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      title TEXT NOT NULL,
+      body TEXT NOT NULL,
+      mode TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL,
+      updated_at TIMESTAMPTZ NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS sessions_token_hash_idx ON sessions(token_hash);
+    CREATE INDEX IF NOT EXISTS chat_messages_user_created_idx ON chat_messages(user_id, created_at);
+    CREATE INDEX IF NOT EXISTS journal_entries_user_created_idx ON journal_entries(user_id, created_at DESC);
   `);
+
+  const { rows } = await pool.query<{ count: string }>(
+    "SELECT COUNT(*) as count FROM wisdom_entries"
+  );
+
+  if (Number(rows[0]?.count ?? 0) > 0) {
+    return;
+  }
+
   const now = new Date().toISOString();
   for (const entry of wisdomEntries) {
-    insert.run(
-      crypto.randomUUID(),
-      entry.theme,
-      entry.scripture,
-      entry.principle,
-      entry.context,
-      entry.application,
-      JSON.stringify(entry.keywords),
-      JSON.stringify(entry.emotions),
-      JSON.stringify(entry.questions),
-      now,
-      now
+    await pool.query(
+      `INSERT INTO wisdom_entries (
+        id, theme, scripture, principle, context, application, keywords, emotions, questions, created_at, updated_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, $8::jsonb, $9::jsonb, $10, $11)
+      ON CONFLICT (scripture) DO NOTHING`,
+      [
+        crypto.randomUUID(),
+        entry.theme,
+        entry.scripture,
+        entry.principle,
+        entry.context,
+        entry.application,
+        JSON.stringify(entry.keywords),
+        JSON.stringify(entry.emotions),
+        JSON.stringify(entry.questions),
+        now,
+        now,
+      ]
     );
   }
 }
 
-export function one<T extends Record<string, unknown>>(sql: string, ...params: unknown[]) {
-  return db.prepare(sql).get(...params) as T | undefined;
+export async function ensureDbReady() {
+  globalForDb.aletheiaDbReady ??= initializeDatabase();
+  return globalForDb.aletheiaDbReady;
 }
 
-export function many<T extends Record<string, unknown>>(sql: string, ...params: unknown[]) {
-  return db.prepare(sql).all(...params) as T[];
+export async function one<T extends Record<string, unknown>>(
+  sql: string,
+  ...params: unknown[]
+) {
+  await ensureDbReady();
+  const result = await pool.query(postgresParams(sql), params);
+  return result.rows[0] as T | undefined;
 }
 
-export function run(sql: string, ...params: unknown[]) {
-  return db.prepare(sql).run(...params);
+export async function many<T extends Record<string, unknown>>(
+  sql: string,
+  ...params: unknown[]
+) {
+  await ensureDbReady();
+  const result = await pool.query(postgresParams(sql), params);
+  return result.rows as T[];
+}
+
+export async function run(sql: string, ...params: unknown[]) {
+  await ensureDbReady();
+  return pool.query(postgresParams(sql), params);
 }

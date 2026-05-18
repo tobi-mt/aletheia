@@ -19,7 +19,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const existing = one("SELECT id FROM users WHERE email = ?", email);
+  const existing = await one("SELECT id FROM users WHERE email = ?", email);
   if (existing) {
     return NextResponse.json({ error: "An account already exists for this email." }, { status: 409 });
   }
@@ -30,7 +30,7 @@ export async function POST(request: Request) {
     name: body.name?.trim() || null,
   };
 
-  run(
+  await run(
     "INSERT INTO users (id, email, name, password_hash, created_at) VALUES (?, ?, ?, ?, ?)",
     user.id,
     user.email,

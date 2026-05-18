@@ -11,12 +11,12 @@ export async function GET() {
     return NextResponse.json({ messages: [] });
   }
 
-  const messages = many<{
+  const messages = await many<{
     id: string;
     role: string;
     mode: string;
     content: string;
-    sources: string | null;
+    sources: unknown[] | null;
     created_at: string;
   }>(
     `SELECT id, role, mode, content, sources, created_at
@@ -33,7 +33,7 @@ export async function GET() {
       role: message.role,
       text: message.content,
       mode: message.mode,
-      sources: message.sources ? JSON.parse(message.sources) : undefined,
+      sources: message.sources ?? undefined,
       createdAt: message.created_at,
     })),
   });
@@ -60,7 +60,7 @@ export async function POST(request: Request) {
 
   if (user) {
     const now = new Date().toISOString();
-    run(
+    await run(
       "INSERT INTO chat_messages (id, user_id, role, mode, content, sources, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
       crypto.randomUUID(),
       user.id,
@@ -70,7 +70,7 @@ export async function POST(request: Request) {
       null,
       now
     );
-    run(
+    await run(
       "INSERT INTO chat_messages (id, user_id, role, mode, content, sources, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
       crypto.randomUUID(),
       user.id,

@@ -10,7 +10,7 @@ export async function DELETE(
     const user = await requireUser();
     const { id } = await context.params;
 
-    run("DELETE FROM journal_entries WHERE id = ? AND user_id = ?", id, user.id);
+    await run("DELETE FROM journal_entries WHERE id = ? AND user_id = ?", id, user.id);
 
     return NextResponse.json({ ok: true });
   } catch {

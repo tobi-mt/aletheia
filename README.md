@@ -7,7 +7,7 @@ AI-powered biblical wisdom for money, work, stewardship, generosity, and reflect
 - Conversational Wisdom Companion backed by a curated local wisdom library
 - Server-side `/api/chat` route with retrieval-first OpenAI generation
 - First-party email/password auth with httpOnly session cookies
-- SQLite persistence for users, sessions, chat history, wisdom entries, and journal entries
+- Neon/Postgres persistence for users, sessions, chat history, wisdom entries, and journal entries
 - Wisdom Check decision tool with pace, counsel, and grounding signals
 - Searchable Biblical Wisdom Library
 - Reflection Journal synced to the database for signed-in users
@@ -20,13 +20,15 @@ AI-powered biblical wisdom for money, work, stewardship, generosity, and reflect
 Copy `.env.example` to `.env`:
 
 ```bash
-SQLITE_PATH="./data/aletheia.sqlite"
+DATABASE_URL="postgresql://USER:PASSWORD@HOST/neondb?sslmode=require&channel_binding=require"
 OPENAI_API_KEY=""
 OPENAI_MODEL="gpt-5.4-mini"
 SESSION_COOKIE_NAME="aletheia_session"
 ```
 
 Without `OPENAI_API_KEY`, the server still performs retrieval and returns a deterministic grounded fallback response. With `OPENAI_API_KEY`, `/api/chat` calls OpenAI server-side after retrieving curated biblical wisdom sources.
+
+The database adapter creates required tables and seeds the curated wisdom entries automatically on first API access. For Railway, set the same variables in the service's Variables tab and redeploy.
 
 ## Run Locally
 

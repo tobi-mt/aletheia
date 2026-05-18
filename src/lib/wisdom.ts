@@ -10,12 +10,16 @@ type WisdomRow = {
   principle: string;
   context: string;
   application: string;
-  keywords: string;
-  emotions: string;
-  questions: string;
+  keywords: string[] | string;
+  emotions: string[] | string;
+  questions: string[] | string;
 };
 
-function decodeList(value: string) {
+function decodeList(value: string[] | string) {
+  if (Array.isArray(value)) {
+    return value.map(String);
+  }
+
   try {
     const parsed = JSON.parse(value) as unknown;
     return Array.isArray(parsed) ? parsed.map(String) : [];
@@ -39,8 +43,10 @@ function fromRow(row: WisdomRow): WisdomSource {
 }
 
 export async function getWisdomEntries() {
-  return many<WisdomRow>(
+  return (
+    await many<WisdomRow>(
     "SELECT * FROM wisdom_entries ORDER BY theme ASC, scripture ASC"
+    )
   ).map(fromRow);
 }
 
