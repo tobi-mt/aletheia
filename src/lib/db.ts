@@ -12,15 +12,25 @@ const globalForDb = globalThis as unknown as {
   aletheiaDbReady?: Promise<void>;
 };
 
+function poolConfig(url: string) {
+  const parsed = new URL(url);
+  const sslMode = parsed.searchParams.get("sslmode");
+  const needsSsl =
+    Boolean(sslMode && sslMode !== "disable") || parsed.hostname.includes("neon.tech");
+
+  parsed.searchParams.delete("sslmode");
+  parsed.searchParams.delete("channel_binding");
+
+  return {
+    connectionString: parsed.toString(),
+    ssl: needsSsl ? true : undefined,
+    max: 5,
+  };
+}
+
 export const pool =
   globalForDb.aletheiaPool ??
-  new Pool({
-    connectionString,
-    ssl: connectionString.includes("sslmode=require")
-      ? { rejectUnauthorized: false }
-      : undefined,
-    max: 5,
-  });
+  new Pool(poolConfig(connectionString));
 
 if (process.env.NODE_ENV !== "production") {
   globalForDb.aletheiaPool = pool;

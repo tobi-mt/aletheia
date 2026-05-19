@@ -36,6 +36,7 @@ import type { Mode } from "@/lib/wisdom-data";
 
 type View = "companion" | "decisions" | "check" | "library" | "journal";
 type AuthMode = "login" | "register";
+type AuthStatus = "checking" | "guest" | "signing-in" | "signed-in" | "signing-out";
 
 type User = {
   id: string;
@@ -359,8 +360,10 @@ export function AletheiaApp() {
   const [authEmail, setAuthEmail] = useState("");
   const [authPassword, setAuthPassword] = useState("");
   const [authError, setAuthError] = useState("");
+  const [authStatus, setAuthStatus] = useState<AuthStatus>("checking");
+  const [googleAuthAvailable, setGoogleAuthAvailable] = useState(false);
   const [isWorking, setIsWorking] = useState(false);
-  const [statusMessage, setStatusMessage] = useState("Guest mode: chat works, sign in to sync history and journal.");
+  const [statusMessage, setStatusMessage] = useState("Checking your sign-in status...");
   const [notificationStatus, setNotificationStatus] = useState("Checking notification support...");
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [notificationsConfigured, setNotificationsConfigured] = useState(false);
@@ -384,11 +387,20 @@ export function AletheiaApp() {
 
   useEffect(() => {
     async function loadSession() {
-      const response = await fetch("/api/auth/me");
+      setAuthStatus("checking");
+      const [response, providersResponse] = await Promise.all([
+        fetch("/api/auth/me"),
+        fetch("/api/auth/providers").catch(() => null),
+      ]);
+      if (providersResponse?.ok) {
+        const providers = (await providersResponse.json()) as Record<string, unknown>;
+        setGoogleAuthAvailable(Boolean(providers.google));
+      }
       const data = (await response.json()) as { user: User | null };
       setUser(data.user);
 
       if (data.user) {
+        setAuthStatus("signed-in");
         setStatusMessage("Signed in. Conversations and reflections sync to the local database.");
         const [chatResponse, journalResponse, notificationResponse, decisionsResponse, counselResponse, rulesResponse] = await Promise.all([
           fetch("/api/chat"),
@@ -432,10 +444,21 @@ export function AletheiaApp() {
         setRulesOfLife(rulesData.rules ?? []);
         setNotificationsConfigured(Boolean(notificationData.configured));
         setNotificationsEnabled(Boolean(notificationData.enabled));
+      } else {
+        const params = new URLSearchParams(window.location.search);
+        setAuthStatus("guest");
+        setStatusMessage("Guest mode is active. Sign in to sync decisions, journal, notifications, and rules.");
+        if (params.get("auth") === "oauth_failed") {
+          setAuthError("Google sign-in did not finish. Please try again.");
+          window.history.replaceState({}, "", window.location.pathname);
+        }
       }
     }
 
-    loadSession().catch(() => setStatusMessage("Backend unavailable. Guest mode is still usable."));
+    loadSession().catch(() => {
+      setAuthStatus("guest");
+      setStatusMessage("Backend unavailable. Guest mode is still usable.");
+    });
   }, []);
 
   useEffect(() => {
@@ -577,6 +600,7 @@ export function AletheiaApp() {
   async function handleAuth(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsWorking(true);
+    setAuthStatus("signing-in");
     setAuthError("");
 
     try {
@@ -594,12 +618,14 @@ export function AletheiaApp() {
         throw new Error(data.error ?? "Authentication failed.");
       }
       setUser(data.user);
+      setAuthStatus("signed-in");
       setAuthPassword("");
       setStatusMessage("Signed in. Conversations and reflections now sync to the database.");
       const journalResponse = await fetch("/api/journal");
       const journalData = (await journalResponse.json()) as { entries?: JournalEntry[] };
       setJournalEntries(journalData.entries ?? []);
     } catch (error) {
+      setAuthStatus("guest");
       setAuthError(error instanceof Error ? error.message : "Authentication failed.");
     } finally {
       setIsWorking(false);
@@ -607,13 +633,28 @@ export function AletheiaApp() {
   }
 
   async function logout() {
+    setAuthStatus("signing-out");
     await fetch("/api/auth/logout", { method: "POST" });
     await authSignOut({ redirect: false }).catch(() => undefined);
     setUser(null);
+    setAuthStatus("guest");
     setMessages(defaultMessages);
     setJournalEntries([]);
     setNotificationsEnabled(false);
     setStatusMessage("Signed out. Guest mode is active.");
+  }
+
+  async function handleGoogleSignIn() {
+    if (!googleAuthAvailable) {
+      setAuthError("Google sign-in is not configured yet. You can still sign in with email.");
+      return;
+    }
+    setAuthStatus("signing-in");
+    setAuthError("");
+    setStatusMessage("Opening Google sign-in...");
+    await authSignIn("google", {
+      redirectTo: "/api/auth/oauth/complete?next=/",
+    });
   }
 
   async function enableNotifications() {
@@ -1095,9 +1136,12 @@ export function AletheiaApp() {
             password={authPassword}
             setPassword={setAuthPassword}
             error={authError}
+            authStatus={authStatus}
+            googleAuthAvailable={googleAuthAvailable}
             status={statusMessage}
             isWorking={isWorking}
             onSubmit={handleAuth}
+            onGoogleSignIn={handleGoogleSignIn}
             onLogout={logout}
           />
 
@@ -1282,9 +1326,12 @@ function AuthPanel({
   password,
   setPassword,
   error,
+  authStatus,
+  googleAuthAvailable,
   status,
   isWorking,
   onSubmit,
+  onGoogleSignIn,
   onLogout,
 }: {
   user: User | null;
@@ -1297,13 +1344,42 @@ function AuthPanel({
   password: string;
   setPassword: (value: string) => void;
   error: string;
+  authStatus: AuthStatus;
+  googleAuthAvailable: boolean;
   status: string;
   isWorking: boolean;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  onGoogleSignIn: () => void;
   onLogout: () => void;
 }) {
+  const authBusy = isWorking || authStatus === "checking" || authStatus === "signing-in" || authStatus === "signing-out";
+  const statusLabel =
+    authStatus === "checking"
+      ? "Checking session"
+      : authStatus === "signing-in"
+        ? "Signing in"
+        : authStatus === "signing-out"
+          ? "Signing out"
+          : user
+            ? "Signed in"
+            : "Guest";
+
   return (
     <section className="mb-5 rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">Account</p>
+        <span
+          className={`rounded-md px-2 py-1 text-xs font-semibold ${
+            user
+              ? "bg-[#edf7f1] text-[#245443]"
+              : authBusy
+                ? "bg-[#fff8dc] text-[#866a24]"
+                : "bg-[#edf2ee] text-[#52635a]"
+          }`}
+        >
+          {statusLabel}
+        </span>
+      </div>
       {user ? (
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -1314,9 +1390,10 @@ function AuthPanel({
           </div>
           <button
             onClick={onLogout}
-            className="h-10 rounded-md border border-[#c9d5cd] bg-white/70 px-4 text-sm font-semibold text-[#405049] transition hover:bg-white"
+            disabled={authBusy}
+            className="h-10 rounded-md border border-[#c9d5cd] bg-white/70 px-4 text-sm font-semibold text-[#405049] transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Sign out
+            {authStatus === "signing-out" ? "Signing out..." : "Sign out"}
           </button>
         </div>
       ) : (
@@ -1326,26 +1403,27 @@ function AuthPanel({
               Sign in for sync
             </p>
             <p className="mt-1 text-sm leading-6 text-[#5b6a61]">
-              {status} Use Google or email. Password sessions use httpOnly cookies.
+              {status} {googleAuthAvailable ? "Use Google or email." : "Use email to continue."} Password sessions use httpOnly cookies.
             </p>
           </div>
           <div className="grid gap-3">
-            <button
-              type="button"
-              onClick={() => {
-                authSignIn("google", {
-                  redirectTo: "/api/auth/oauth/complete?next=/",
-                });
-              }}
-              className="inline-flex h-10 items-center justify-center rounded-md border border-[#c9d5cd] bg-white/78 px-4 text-sm font-semibold text-[#203a35] transition hover:bg-white"
-            >
-              Continue with Google
-            </button>
-            <div className="flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.14em] text-[#718077]">
-              <span className="h-px flex-1 bg-[#d8e1db]" />
-              Email
-              <span className="h-px flex-1 bg-[#d8e1db]" />
-            </div>
+            {googleAuthAvailable ? (
+              <>
+                <button
+                  type="button"
+                  onClick={onGoogleSignIn}
+                  disabled={authBusy}
+                  className="inline-flex h-10 items-center justify-center rounded-md border border-[#c9d5cd] bg-white/78 px-4 text-sm font-semibold text-[#203a35] transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {authStatus === "signing-in" ? "Opening Google..." : "Continue with Google"}
+                </button>
+                <div className="flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.14em] text-[#718077]">
+                  <span className="h-px flex-1 bg-[#d8e1db]" />
+                  Email
+                  <span className="h-px flex-1 bg-[#d8e1db]" />
+                </div>
+              </>
+            ) : null}
             <form onSubmit={onSubmit} className="grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
             {authMode === "register" ? (
               <input
@@ -1370,10 +1448,10 @@ function AuthPanel({
               type="password"
             />
             <button
-              disabled={isWorking}
-              className="h-10 rounded-md bg-[#203a35] px-4 text-sm font-semibold text-[#f8f5e8] disabled:opacity-60"
+              disabled={authBusy}
+              className="h-10 rounded-md bg-[#203a35] px-4 text-sm font-semibold text-[#f8f5e8] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {authMode === "register" ? "Create" : "Sign in"}
+              {authStatus === "signing-in" ? "Working..." : authMode === "register" ? "Create" : "Sign in"}
             </button>
             <div className="sm:col-span-full flex flex-wrap items-center gap-3">
               <button
