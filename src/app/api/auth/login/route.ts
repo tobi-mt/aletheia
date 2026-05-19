@@ -1,8 +1,21 @@
 import { NextResponse } from "next/server";
 import { createSession, verifyPassword } from "@/lib/auth";
 import { one } from "@/lib/db";
+import { checkRateLimit, getClientIdentity, rateLimitHeaders } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
+  const rateLimit = await checkRateLimit(await getClientIdentity(), {
+    namespace: "auth-login",
+    limit: 10,
+    windowMs: 10 * 60 * 1000,
+  });
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { error: "Too many sign-in attempts. Please wait a few minutes." },
+      { status: 429, headers: rateLimitHeaders(rateLimit) }
+    );
+  }
+
   const body = (await request.json()) as {
     email?: string;
     password?: string;
@@ -33,5 +46,5 @@ export async function POST(request: Request) {
       email: user.email,
       name: user.name,
     },
-  });
+  }, { headers: rateLimitHeaders(rateLimit) });
 }

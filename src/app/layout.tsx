@@ -13,10 +13,29 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+  ),
   title: "Aletheia | Biblical Wisdom for Money and Work",
   description:
     "A calm AI-powered wisdom companion for stewardship, work, generosity, and thoughtful financial decisions.",
   applicationName: "Aletheia",
+  manifest: "/manifest.webmanifest",
+  openGraph: {
+    title: "Aletheia",
+    description:
+      "AI-powered biblical wisdom for money, work, and stewardship.",
+    siteName: "Aletheia",
+    type: "website",
+    images: [
+      {
+        url: "/brand/aletheia-app-icon-512.png",
+        width: 512,
+        height: 512,
+        alt: "Aletheia app icon",
+      },
+    ],
+  },
   icons: {
     icon: [
       {
@@ -36,7 +55,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     title: "Aletheia",
-    statusBarStyle: "black-translucent",
+    statusBarStyle: "default",
   },
   formatDetection: {
     telephone: false,

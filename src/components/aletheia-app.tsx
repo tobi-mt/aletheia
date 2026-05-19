@@ -606,7 +606,7 @@ export function AletheiaApp() {
             <section className="rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/72 p-5 shadow-sm">
               <div className="mb-5 inline-flex w-fit items-center gap-2 rounded-md border border-[#c0cec5] bg-[#fbfcf8]/80 px-3 py-2 text-xs font-medium uppercase tracking-[0.18em] text-[#866a24]">
                 <Sparkles size={14} />
-                Launchable MVP
+                Wisdom for real decisions
               </div>
               <h1 className="max-w-3xl text-4xl font-semibold leading-tight tracking-normal text-[#171917] sm:text-5xl">
                 Biblical wisdom for money, work, and stewardship.

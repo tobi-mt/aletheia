@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { many, run } from "@/lib/db";
 import { generateWisdomResponse } from "@/lib/openai";
+import { checkRateLimit, getClientIdentity, rateLimitHeaders } from "@/lib/rate-limit";
 import { composeFallbackResponse, retrieveWisdom } from "@/lib/wisdom";
 import type { Mode } from "@/lib/wisdom-data";
 
@@ -40,6 +41,20 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const user = await getCurrentUser();
+  const identity = user?.id ?? (await getClientIdentity());
+  const rateLimit = await checkRateLimit(identity, {
+    namespace: user ? "chat-user" : "chat-guest",
+    limit: user ? 60 : 12,
+    windowMs: 60 * 60 * 1000,
+  });
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { error: "Aletheia needs a short pause before answering more questions." },
+      { status: 429, headers: rateLimitHeaders(rateLimit) }
+    );
+  }
+
   const body = (await request.json()) as {
     message?: string;
     mode?: Mode;
@@ -52,7 +67,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Message is required." }, { status: 400 });
   }
 
-  const user = await getCurrentUser();
   const sources = await retrieveWisdom(message, mode, 3);
   const aiText =
     (await generateWisdomResponse({ question: message, mode, sources })) ??
@@ -82,21 +96,24 @@ export async function POST(request: Request) {
     );
   }
 
-  return NextResponse.json({
-    userMessage: {
-      id: crypto.randomUUID(),
-      role: "user",
-      text: message,
-      mode,
+  return NextResponse.json(
+    {
+      userMessage: {
+        id: crypto.randomUUID(),
+        role: "user",
+        text: message,
+        mode,
+      },
+      reply: {
+        id: crypto.randomUUID(),
+        role: "aletheia",
+        text: aiText,
+        mode,
+        sources,
+      },
+      persisted: Boolean(user),
+      usedOpenAI: Boolean(process.env.OPENAI_API_KEY),
     },
-    reply: {
-      id: crypto.randomUUID(),
-      role: "aletheia",
-      text: aiText,
-      mode,
-      sources,
-    },
-    persisted: Boolean(user),
-    usedOpenAI: Boolean(process.env.OPENAI_API_KEY),
-  });
+    { headers: rateLimitHeaders(rateLimit) }
+  );
 }

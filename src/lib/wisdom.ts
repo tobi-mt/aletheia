@@ -95,23 +95,27 @@ export async function retrieveWisdom(query: string, mode: Mode, limit = 3) {
 export function composeFallbackResponse(question: string, sources: WisdomSource[]) {
   const primary = sources[0] ?? wisdomEntries[0];
   const secondary = sources[1] ?? wisdomEntries[2];
+  const asksAboutDebt = /debt|borrow|loan|credit/i.test(question);
+  const asksAboutWork = /job|career|business|startup|quit|leave|work/i.test(question);
+  const asksAboutGreed = /greed|wealth|rich|money|comparison|contentment/i.test(question);
+
+  const opening = asksAboutDebt
+    ? "That is worth slowing down for. Debt is not automatically wrong, but it can quietly reduce freedom if it is taken on from pressure, fear, or speed."
+    : asksAboutWork
+      ? "That kind of decision can carry both hope and weight. It makes sense to want clarity without forcing yourself into a rushed yes or no."
+      : asksAboutGreed
+        ? "That is a very human question. Wanting to build responsibly is not the same as being greedy, but the heart can drift if money becomes a source of identity or security."
+        : `It makes sense to bring care to this. Your question touches ${primary.theme.toLowerCase()}, and it deserves more than a rushed answer.`;
 
   return [
-    "Reflection",
-    `It makes sense to bring care to this. Your question touches ${primary.theme.toLowerCase()}, and it deserves more than a rushed answer or a fear-driven reaction.`,
+    opening,
     "",
-    "Biblical Wisdom",
-    `${primary.scripture} points toward this principle: ${primary.principle} ${secondary.scripture} adds a second guardrail: ${secondary.principle}`,
+    `${primary.scripture} gives a helpful anchor here: ${primary.principle.toLowerCase()} In ordinary life, that means ${primary.application.toLowerCase()}`,
     "",
-    "Practical Perspective",
-    `${primary.application} This is wisdom support, not financial, legal, or investment advice, so any high-stakes decision should also be reviewed with qualified counsel.`,
+    `${secondary.scripture} adds another layer: ${secondary.principle.toLowerCase()} So a wise next step is not to ask, "Can I make this work?" only, but also, "What kind of person will this decision train me to become?"`,
     "",
-    "Reflection Questions",
-    `1. ${primary.questions[0]}`,
-    `2. ${primary.questions[1]}`,
-    `3. ${secondary.questions[0]}`,
+    `A few questions may help: ${primary.questions[0]} ${primary.questions[1]} ${secondary.questions[0]}`,
     "",
-    "Gentle Reminder",
-    "You do not need to force clarity through urgency. Slow, honest, well-counseled obedience is often the most fruitful path.",
+    "This is wisdom support, not financial or legal advice. If the stakes are significant, bring the numbers and the plan to someone qualified and trustworthy before you act.",
   ].join("\n");
 }
