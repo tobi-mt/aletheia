@@ -28,9 +28,28 @@ import {
   Bell,
   Clock3,
   FileText,
+  Globe2,
+  Languages,
+  Mic,
+  MicOff,
   Users,
+  Volume2,
 } from "lucide-react";
 import { buildDecisionSummary, detectPatterns, scoreDecision } from "@/lib/decision-intelligence";
+import {
+  bibleTranslations,
+  defaultPreferences,
+  languageCopy,
+  languages,
+  localizedDailyWisdom,
+  localizedWisdomLibraryNote,
+  normalizePreferences,
+  regions,
+  type BibleTranslation,
+  type LanguageCode,
+  type RegionCode,
+  type UserPreferences,
+} from "@/lib/localization";
 import { modeProfiles, type ModeProfile } from "@/lib/mode-profiles";
 import type { Mode } from "@/lib/wisdom-data";
 
@@ -44,6 +63,19 @@ type User = {
   email: string;
   name: string | null;
 };
+
+function storedPreferences() {
+  if (typeof window === "undefined") {
+    return defaultPreferences;
+  }
+
+  try {
+    const saved = window.localStorage.getItem("aletheia_preferences");
+    return saved ? normalizePreferences(JSON.parse(saved) as Partial<UserPreferences>) : defaultPreferences;
+  } catch {
+    return defaultPreferences;
+  }
+}
 
 function analyticsId(storage: Storage, key: string) {
   try {
@@ -400,6 +432,10 @@ export function AletheiaApp() {
   const [authError, setAuthError] = useState("");
   const [authStatus, setAuthStatus] = useState<AuthStatus>("checking");
   const [googleAuthAvailable, setGoogleAuthAvailable] = useState(false);
+  const [preferences, setPreferences] = useState<UserPreferences>(storedPreferences);
+  const [preferencesStatus, setPreferencesStatus] = useState("Language settings are ready.");
+  const [isListening, setIsListening] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const [isWorking, setIsWorking] = useState(false);
   const [statusMessage, setStatusMessage] = useState("Checking your sign-in status...");
   const [notificationStatus, setNotificationStatus] = useState("Checking notification support...");
@@ -455,13 +491,14 @@ export function AletheiaApp() {
       if (data.user) {
         setAuthStatus("signed-in");
         setStatusMessage("Signed in. Conversations and reflections sync to the local database.");
-        const [chatResponse, journalResponse, notificationResponse, decisionsResponse, counselResponse, rulesResponse] = await Promise.all([
+        const [chatResponse, journalResponse, notificationResponse, decisionsResponse, counselResponse, rulesResponse, preferencesResponse] = await Promise.all([
           fetch("/api/chat"),
           fetch("/api/journal"),
           fetch("/api/notifications/status"),
           fetch("/api/decisions"),
           fetch("/api/counsel"),
           fetch("/api/rules"),
+          fetch("/api/preferences"),
         ]);
         const chatData = (await chatResponse.json()) as { messages?: ChatMessage[] };
         const journalData = (await journalResponse.json()) as { entries?: JournalEntry[] };
@@ -476,6 +513,7 @@ export function AletheiaApp() {
         };
         const counselData = (await counselResponse.json()) as { contacts?: CounselContact[] };
         const rulesData = (await rulesResponse.json()) as { rules?: RuleOfLife[] };
+        const preferencesData = (await preferencesResponse.json()) as { preferences?: UserPreferences };
         if (chatData.messages?.length) {
           setMessages([
             defaultMessages[0],
@@ -495,6 +533,10 @@ export function AletheiaApp() {
         }
         setCounselContacts(counselData.contacts ?? []);
         setRulesOfLife(rulesData.rules ?? []);
+        if (preferencesData.preferences) {
+          setPreferences(preferencesData.preferences);
+          window.localStorage.setItem("aletheia_preferences", JSON.stringify(preferencesData.preferences));
+        }
         setNotificationsConfigured(Boolean(notificationData.configured));
         setNotificationsEnabled(Boolean(notificationData.enabled));
       } else {
@@ -574,8 +616,12 @@ export function AletheiaApp() {
     return searchWisdom(librarySearch, mode, wisdomEntries.length);
   }, [librarySearch, mode]);
 
-  const daily = todayWisdom();
+  const dailyEntry = todayWisdom();
+  const daily = localizedDailyWisdom(dailyEntry, mode, preferences);
   const activeMode = modeProfiles[mode];
+  const activeLanguage = languages[preferences.language];
+  const activeRegion = regions[preferences.region];
+  const copy = languageCopy[preferences.language] ?? languageCopy.en;
   const decisionResult = useMemo(() => {
     if (!decision.trim()) {
       return null;
@@ -597,6 +643,93 @@ export function AletheiaApp() {
     trackClientEvent("wisdom_mode_selected", { mode: nextMode });
   }
 
+  async function updatePreferences(patch: Partial<UserPreferences>) {
+    const next = { ...preferences, ...patch };
+    setPreferences(next);
+    setPreferencesStatus(user ? "Saving language settings..." : "Saved on this device. Sign in to sync language settings.");
+    try {
+      window.localStorage.setItem("aletheia_preferences", JSON.stringify(next));
+    } catch {
+      // Preferences still work in memory if local storage is unavailable.
+    }
+
+    if (user) {
+      const response = await fetch("/api/preferences", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(next),
+      });
+      setPreferencesStatus(response.ok ? "Language settings saved." : "Could not sync language settings yet.");
+    }
+  }
+
+  function startVoiceInput() {
+    const browserWindow = window as typeof window & {
+      SpeechRecognition?: new () => {
+        lang: string;
+        interimResults: boolean;
+        maxAlternatives: number;
+        onresult: ((event: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null;
+        onerror: (() => void) | null;
+        onend: (() => void) | null;
+        start: () => void;
+      };
+      webkitSpeechRecognition?: new () => {
+        lang: string;
+        interimResults: boolean;
+        maxAlternatives: number;
+        onresult: ((event: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null;
+        onerror: (() => void) | null;
+        onend: (() => void) | null;
+        start: () => void;
+      };
+    };
+    const SpeechRecognition =
+      browserWindow.SpeechRecognition || browserWindow.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      setPreferencesStatus("Voice input is not supported in this browser yet.");
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = activeLanguage.speech;
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+    setIsListening(true);
+    recognition.onresult = (event) => {
+      const transcript = event.results[0]?.[0]?.transcript;
+      if (transcript) {
+        setQuery((current) => `${current}${current ? " " : ""}${transcript}`.trim());
+      }
+    };
+    recognition.onerror = () => setPreferencesStatus("Voice input stopped before Aletheia could hear clearly.");
+    recognition.onend = () => setIsListening(false);
+    recognition.start();
+  }
+
+  function speakLatestAletheiaReply() {
+    if (!("speechSynthesis" in window)) {
+      setPreferencesStatus("Voice output is not supported in this browser yet.");
+      return;
+    }
+    if (isSpeaking) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+      return;
+    }
+    const latest = [...messages].reverse().find((message) => message.role === "aletheia");
+    if (!latest) {
+      return;
+    }
+    const utterance = new SpeechSynthesisUtterance(latest.text);
+    utterance.lang = activeLanguage.speech;
+    utterance.rate = 0.92;
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+    setIsSpeaking(true);
+    window.speechSynthesis.speak(utterance);
+  }
+
   async function handleAsk(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const trimmed = query.trim();
@@ -605,7 +738,7 @@ export function AletheiaApp() {
     }
 
     if (!user) {
-      trackClientEvent("chat_question_sent", { mode, persisted: false });
+      trackClientEvent("chat_question_sent", { mode, language: preferences.language, region: preferences.region, persisted: false });
     }
 
     const userMessage: ChatMessage = { id: crypto.randomUUID(), role: "user", text: trimmed };
@@ -621,7 +754,7 @@ export function AletheiaApp() {
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: trimmed, mode }),
+        body: JSON.stringify({ message: trimmed, mode, preferences }),
       });
       const data = (await response.json()) as {
         reply?: ChatMessage;
@@ -1177,13 +1310,14 @@ export function AletheiaApp() {
             <section className="min-w-0 rounded-xl border border-[#c9d5cd] bg-[#203a35] p-4 text-[#f8f5e8] shadow-sm sm:p-5">
               <div className="mb-4 flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#d0ad55]">Daily Wisdom</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#d0ad55]">{daily.label}</p>
                   <h2 className="mt-1 text-xl font-semibold">{daily.theme}</h2>
                 </div>
                 <Sprout size={22} />
               </div>
               <p className="text-sm font-semibold text-[#f3e8bd]">{daily.scripture}</p>
               <p className="mt-3 text-sm leading-6 text-[#e7eee8]">{daily.principle}</p>
+              <p className="mt-3 rounded-md border border-white/10 bg-white/7 p-3 text-sm leading-6 text-[#edf4ee]">{daily.practice}</p>
             </section>
           </div>
 
@@ -1217,6 +1351,14 @@ export function AletheiaApp() {
             onDisable={disableNotifications}
           />
 
+          <PreferencesPanel
+            preferences={preferences}
+            status={preferencesStatus}
+            copy={copy}
+            activeRegion={activeRegion}
+            onChange={updatePreferences}
+          />
+
           <AnimatePresence mode="wait">
             {activeView === "companion" ? (
               <Screen key="companion">
@@ -1224,11 +1366,17 @@ export function AletheiaApp() {
                   messages={messages}
                   mode={mode}
                   modeProfile={activeMode}
+                  preferences={preferences}
+                  copy={copy}
                   query={query}
                   setQuery={setQuery}
                   onAsk={handleAsk}
                   onPrompt={setQuery}
+                  onListen={startVoiceInput}
+                  onSpeak={speakLatestAletheiaReply}
                   isWorking={isWorking}
+                  isListening={isListening}
+                  isSpeaking={isSpeaking}
                 />
               </Screen>
             ) : null}
@@ -1278,7 +1426,7 @@ export function AletheiaApp() {
             ) : null}
             {activeView === "library" ? (
               <Screen key="library">
-                <LibraryPanel entries={filteredEntries} search={librarySearch} setSearch={setLibrarySearch} mode={mode} />
+                <LibraryPanel entries={filteredEntries} search={librarySearch} setSearch={setLibrarySearch} mode={mode} preferences={preferences} />
               </Screen>
             ) : null}
             {activeView === "journal" ? (
@@ -1590,24 +1738,129 @@ function NotificationPanel({
   );
 }
 
+function PreferencesPanel({
+  preferences,
+  status,
+  copy,
+  activeRegion,
+  onChange,
+}: {
+  preferences: UserPreferences;
+  status: string;
+  copy: (typeof languageCopy)[LanguageCode];
+  activeRegion: (typeof regions)[RegionCode];
+  onChange: (patch: Partial<UserPreferences>) => void;
+}) {
+  return (
+    <section className="mb-5 rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm">
+      <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
+        <div className="flex items-start gap-3">
+          <div className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-md bg-[#edf2ee] text-[#203a35]">
+            <Languages size={17} />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-[#203a35]">Language and region</p>
+            <p className="mt-1 text-sm leading-6 text-[#5b6a61]">{copy.onboarding}</p>
+            <p className="mt-2 text-xs leading-5 text-[#718077]">{status}</p>
+          </div>
+        </div>
+
+        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+          <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#52635a]">
+            Language
+            <select
+              value={preferences.language}
+              onChange={(event) => onChange({ language: event.target.value as LanguageCode })}
+              className="mt-2 h-10 w-full rounded-md border border-[#c9d5cd] bg-white/78 px-3 text-sm normal-case tracking-normal text-[#203a35] outline-none"
+            >
+              {Object.entries(languages).map(([code, language]) => (
+                <option key={code} value={code}>
+                  {language.nativeName}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#52635a]">
+            Region
+            <select
+              value={preferences.region}
+              onChange={(event) => onChange({ region: event.target.value as RegionCode })}
+              className="mt-2 h-10 w-full rounded-md border border-[#c9d5cd] bg-white/78 px-3 text-sm normal-case tracking-normal text-[#203a35] outline-none"
+            >
+              {Object.entries(regions).map(([code, region]) => (
+                <option key={code} value={code}>
+                  {region.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#52635a]">
+            Bible
+            <select
+              value={preferences.bibleTranslation}
+              onChange={(event) => onChange({ bibleTranslation: event.target.value as BibleTranslation })}
+              className="mt-2 h-10 w-full rounded-md border border-[#c9d5cd] bg-white/78 px-3 text-sm normal-case tracking-normal text-[#203a35] outline-none"
+            >
+              {Object.entries(bibleTranslations).map(([code, translation]) => (
+                <option key={code} value={code}>
+                  {code} - {translation.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex h-full items-end gap-2 rounded-md border border-[#d8e1db] bg-white/54 px-3 py-2 text-sm font-semibold text-[#405049]">
+            <input
+              type="checkbox"
+              checked={preferences.voiceEnabled}
+              onChange={(event) => onChange({ voiceEnabled: event.target.checked })}
+              className="size-4 accent-[#203a35]"
+            />
+            Voice controls
+          </label>
+        </div>
+      </div>
+      <div className="mt-3 grid gap-2 text-xs leading-5 text-[#607067] md:grid-cols-3">
+        <p className="rounded-md border border-[#d8e1db] bg-white/50 p-3">{copy.translationFallback}</p>
+        <p className="rounded-md border border-[#d8e1db] bg-white/50 p-3">{copy.regionHint}</p>
+        <p className="rounded-md border border-[#d8e1db] bg-white/50 p-3">
+          <Globe2 className="mr-1 inline align-[-2px]" size={14} />
+          {activeRegion.example}
+        </p>
+      </div>
+    </section>
+  );
+}
+
 function CompanionPanel({
   messages,
   mode,
   modeProfile,
+  preferences,
+  copy,
   query,
   setQuery,
   onAsk,
   onPrompt,
+  onListen,
+  onSpeak,
   isWorking,
+  isListening,
+  isSpeaking,
 }: {
   messages: ChatMessage[];
   mode: Mode;
   modeProfile: ModeProfile;
+  preferences: UserPreferences;
+  copy: (typeof languageCopy)[LanguageCode];
   query: string;
   setQuery: (value: string) => void;
   onAsk: (event: FormEvent<HTMLFormElement>) => void;
   onPrompt: (value: string) => void;
+  onListen: () => void;
+  onSpeak: () => void;
   isWorking: boolean;
+  isListening: boolean;
+  isSpeaking: boolean;
 }) {
   return (
     <div className="grid min-w-0 gap-4 xl:grid-cols-[1fr_320px]">
@@ -1620,7 +1873,12 @@ function CompanionPanel({
             </div>
             <p className="mt-1 text-sm leading-5 text-[#5a685f]">{modeProfile.intent}</p>
           </div>
-          <span className="w-fit rounded-md bg-[#edf2ee] px-2 py-1 text-xs font-semibold text-[#52635a]">{mode} lens</span>
+          <div className="flex flex-wrap gap-2">
+            <span className="w-fit rounded-md bg-[#edf2ee] px-2 py-1 text-xs font-semibold text-[#52635a]">{mode} lens</span>
+            <span className="w-fit rounded-md bg-[#f5edda] px-2 py-1 text-xs font-semibold text-[#72591f]">
+              {languages[preferences.language].nativeName} · {preferences.bibleTranslation}
+            </span>
+          </div>
         </div>
 
         <div className="max-h-[560px] space-y-4 overflow-y-auto p-3 sm:p-4">
@@ -1652,13 +1910,34 @@ function CompanionPanel({
             <textarea
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder={`Ask in ${mode} mode: ${modeProfile.focus.toLowerCase()}...`}
+              placeholder={`${copy.askPlaceholder} ${modeProfile.focus.toLowerCase()}...`}
               className="min-h-20 flex-1 resize-none rounded-lg border border-[#c9d5cd] bg-white/80 px-3 py-3 text-sm leading-6 outline-none transition placeholder:text-[#8b968e] focus:border-[#203a35]"
             />
+            {preferences.voiceEnabled ? (
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-1">
+                <button
+                  type="button"
+                  onClick={onListen}
+                  className="grid h-11 place-items-center rounded-lg border border-[#c9d5cd] bg-white/78 px-3 text-[#203a35] transition hover:bg-white"
+                  aria-label="Use voice input"
+                >
+                  {isListening ? <MicOff size={18} /> : <Mic size={18} />}
+                </button>
+                <button
+                  type="button"
+                  onClick={onSpeak}
+                  className="grid h-11 place-items-center rounded-lg border border-[#c9d5cd] bg-white/78 px-3 text-[#203a35] transition hover:bg-white"
+                  aria-label="Read latest response aloud"
+                >
+                  <Volume2 size={18} className={isSpeaking ? "text-[#866a24]" : undefined} />
+                </button>
+              </div>
+            ) : null}
             <button disabled={isWorking} className="grid h-11 w-full shrink-0 place-items-center rounded-lg bg-[#203a35] text-[#f8f5e8] shadow-lg shadow-[#203a35]/15 transition hover:bg-[#284b43] disabled:opacity-60 sm:size-12 sm:w-auto" aria-label="Send question">
               <Send size={18} />
             </button>
           </div>
+          {preferences.voiceEnabled ? <p className="mt-2 text-xs leading-5 text-[#718077]">{copy.voiceHint}</p> : null}
         </form>
       </section>
 
@@ -2213,7 +2492,19 @@ function Signal({ active, label }: { active: boolean; label: string }) {
   );
 }
 
-function LibraryPanel({ entries, search, setSearch, mode }: { entries: WisdomEntry[]; search: string; setSearch: (value: string) => void; mode: Mode }) {
+function LibraryPanel({
+  entries,
+  search,
+  setSearch,
+  mode,
+  preferences,
+}: {
+  entries: WisdomEntry[];
+  search: string;
+  setSearch: (value: string) => void;
+  mode: Mode;
+  preferences: UserPreferences;
+}) {
   return (
     <section className="min-w-0 rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm sm:p-5">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -2222,7 +2513,9 @@ function LibraryPanel({ entries, search, setSearch, mode }: { entries: WisdomEnt
             <BookOpen size={20} />
             Wisdom Library
           </div>
-          <p className="mt-2 text-sm leading-6 text-[#5b6a61]">A curated MVP knowledge base for biblical wisdom retrieval.</p>
+          <p className="mt-2 text-sm leading-6 text-[#5b6a61]">
+            A curated wisdom base with language-aware application notes and public-domain translation labels.
+          </p>
         </div>
         <label className="relative w-full md:max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#68766d]" size={17} />
@@ -2244,6 +2537,9 @@ function LibraryPanel({ entries, search, setSearch, mode }: { entries: WisdomEnt
             </div>
             <p className="text-sm font-semibold leading-6 text-[#2e3933]">{entry.principle}</p>
             <p className="mt-3 text-sm leading-6 text-[#59675f]">{entry.application}</p>
+            <p className="mt-3 rounded-md border border-[#d8e1db] bg-[#fbfcf8] p-3 text-xs leading-5 text-[#607067]">
+              {localizedWisdomLibraryNote(entry, preferences)}
+            </p>
           </article>
         ))}
       </div>

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { trackServerEvent } from "@/lib/analytics";
 import { many, run } from "@/lib/db";
+import { defaultPreferences, normalizePreferences, type UserPreferences } from "@/lib/localization";
 import { generateWisdomResponse } from "@/lib/openai";
 import { checkRateLimit, getClientIdentity, rateLimitHeaders } from "@/lib/rate-limit";
 import { composeModeAwareFallbackResponse, retrieveWisdom } from "@/lib/wisdom";
@@ -59,10 +60,12 @@ export async function POST(request: Request) {
   const body = (await request.json()) as {
     message?: string;
     mode?: Mode;
+    preferences?: Partial<UserPreferences>;
   };
 
   const message = body.message?.trim();
   const mode = body.mode ?? "Money";
+  const preferences = normalizePreferences(body.preferences ?? defaultPreferences);
 
   if (!message) {
     return NextResponse.json({ error: "Message is required." }, { status: 400 });
@@ -70,8 +73,8 @@ export async function POST(request: Request) {
 
   const sources = await retrieveWisdom(message, mode, 3);
   const aiText =
-    (await generateWisdomResponse({ question: message, mode, sources })) ??
-    composeModeAwareFallbackResponse(message, mode, sources);
+    (await generateWisdomResponse({ question: message, mode, sources, preferences })) ??
+    composeModeAwareFallbackResponse(message, mode, sources, preferences);
 
   if (user) {
     const now = new Date().toISOString();
@@ -103,6 +106,8 @@ export async function POST(request: Request) {
       eventName: "chat_question_sent",
       metadata: {
         mode,
+        language: preferences.language,
+        region: preferences.region,
         persisted: true,
         usedOpenAI: Boolean(process.env.OPENAI_API_KEY),
         sourceCount: sources.length,

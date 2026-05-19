@@ -1,4 +1,5 @@
 import { many } from "@/lib/db";
+import { defaultPreferences, languages, regions, type UserPreferences } from "@/lib/localization";
 import { modeProfiles } from "@/lib/mode-profiles";
 import { Mode, wisdomEntries, WisdomEntryData } from "@/lib/wisdom-data";
 
@@ -134,13 +135,18 @@ export function composeFallbackResponse(question: string, sources: WisdomSource[
 export function composeModeAwareFallbackResponse(
   question: string,
   mode: Mode,
-  sources: WisdomSource[]
+  sources: WisdomSource[],
+  preferences: UserPreferences = defaultPreferences
 ) {
   const profile = modeProfiles[mode];
   const base = composeFallbackResponse(question, sources);
+  const language = languages[preferences.language] ?? languages.en;
+  const region = regions[preferences.region] ?? regions.global;
 
   return [
     base,
+    "",
+    `Preference note: respond for ${language.name} readers, with examples sensitive to ${region.label}. Scripture references are labeled with ${preferences.bibleTranslation}; if a public-domain localized verse text is not available, use the reference and explain the principle plainly.`,
     "",
     `Because you are in ${mode} mode, I would look at this through ${profile.lens.toLowerCase()}`,
     "",

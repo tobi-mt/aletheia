@@ -165,6 +165,16 @@ async function initializeDatabase() {
       updated_at TIMESTAMPTZ NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS user_preferences (
+      user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+      language TEXT NOT NULL DEFAULT 'en',
+      region TEXT NOT NULL DEFAULT 'global',
+      bible_translation TEXT NOT NULL DEFAULT 'WEB',
+      voice_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+      created_at TIMESTAMPTZ NOT NULL,
+      updated_at TIMESTAMPTZ NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS analytics_events (
       id TEXT PRIMARY KEY,
       user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
@@ -189,6 +199,7 @@ async function initializeDatabase() {
     CREATE INDEX IF NOT EXISTS wisdom_decisions_user_updated_idx ON wisdom_decisions(user_id, updated_at DESC);
     CREATE INDEX IF NOT EXISTS decision_events_user_created_idx ON decision_events(user_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS rule_of_life_entries_user_idx ON rule_of_life_entries(user_id);
+    CREATE INDEX IF NOT EXISTS user_preferences_language_idx ON user_preferences(language, region);
     CREATE INDEX IF NOT EXISTS analytics_events_created_idx ON analytics_events(created_at DESC);
     CREATE INDEX IF NOT EXISTS analytics_events_name_created_idx ON analytics_events(event_name, created_at DESC);
     CREATE INDEX IF NOT EXISTS analytics_events_user_created_idx ON analytics_events(user_id, created_at DESC);

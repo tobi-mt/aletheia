@@ -15,6 +15,7 @@ AI-powered biblical wisdom for money, work, stewardship, generosity, and reflect
 - Searchable Biblical Wisdom Library
 - Reflection Journal synced to the database for signed-in users
 - Opt-in daily wisdom Web Push notifications
+- Multilingual preferences for language, region, public-domain Bible translation label, localized daily wisdom, and browser voice controls
 - Mobile-first responsive PWA shell
 - Production-only service worker with offline app-shell caching
 - Installable PWA manifest and Aletheia app icons
@@ -161,6 +162,17 @@ Authorization: Bearer YOUR_NOTIFICATION_CRON_SECRET
 ```
 
 The current implementation sends only to users whose preferred notification hour matches the current UTC hour and avoids repeat sends within 20 hours.
+
+## Multilingual Layer
+
+Aletheia supports user preferences for:
+
+- preferred language: English, Spanish, French, Portuguese, German, Yoruba
+- region context: global, United States, United Kingdom, Europe, Nigeria, Brazil, Latin America
+- public-domain Bible translation label: WEB, KJV, ASV
+- browser voice input/output when supported
+
+The AI prompt receives these preferences and adapts language, regional examples, and scripture-reference labels. If a safe public-domain localized scripture text is not available, Aletheia keeps the scripture reference accurate and falls back to English/reference-only wording rather than inventing translation text.
 
 ## PWA Notes
 

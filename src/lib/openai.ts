@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { defaultPreferences, promptPreferenceContext, type UserPreferences } from "@/lib/localization";
 import { modeProfiles } from "@/lib/mode-profiles";
 import type { Mode } from "@/lib/wisdom-data";
 import type { WisdomSource } from "@/lib/wisdom";
@@ -11,10 +12,12 @@ export async function generateWisdomResponse({
   question,
   mode,
   sources,
+  preferences = defaultPreferences,
 }: {
   question: string;
   mode: Mode;
   sources: WisdomSource[];
+  preferences?: UserPreferences;
 }) {
   if (!client) {
     return null;
@@ -57,6 +60,9 @@ ${profile.maturitySignals.map((signal) => `- ${signal}`).join("\n")}
 Mode response moves:
 ${profile.responseMoves.map((move) => `- ${move}`).join("\n")}
 
+User localization preferences:
+${promptPreferenceContext(preferences)}
+
 Retrieved sources:
 ${context}
 
@@ -67,6 +73,9 @@ Write a human response that feels personal and grounded. Requirements:
 - Start with a brief empathetic acknowledgment.
 - Weave in the most relevant scripture reference(s) from the retrieved sources naturally.
 - Explain what the biblical principle means in ordinary life today.
+- Write in the preferred response language unless the user's question clearly asks for another language.
+- Adapt examples to the user's region without pretending to know local law, tax, or regulated financial details.
+- Honor the preferred Bible translation as a reference label. Do not quote verse text unless it is supplied in the retrieved sources.
 - Use the selected mode as a real diagnostic lens. Name the most likely tension, blind spot, or maturity signal when it fits.
 - Give practical next steps without sounding like financial advice.
 - Ask 1-3 reflection questions only if they genuinely help.

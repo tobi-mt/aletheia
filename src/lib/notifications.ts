@@ -1,13 +1,19 @@
 import webpush, { PushSubscription } from "web-push";
 import { many, run } from "@/lib/db";
+import { localizedDailyWisdom, normalizePreferences, type BibleTranslation, type LanguageCode, type RegionCode } from "@/lib/localization";
 import { getWisdomEntries } from "@/lib/wisdom";
 
 type PushRow = {
   id: string;
+  user_id: string;
   endpoint: string;
   p256dh: string;
   auth: string;
   preferred_hour: number;
+  language: string | null;
+  region: string | null;
+  bible_translation: string | null;
+  voice_enabled: boolean | null;
 };
 
 export function getVapidPublicKey() {
@@ -34,15 +40,22 @@ export function configureWebPush() {
   webpush.setVapidDetails(subject, publicKey, privateKey);
 }
 
-function dailyNotificationPayload() {
+function dailyNotificationPayload(row: PushRow) {
   return getWisdomEntries().then((entries) => {
     const index = new Date().getDate() % entries.length;
     const wisdom = entries[index];
+    const preferences = normalizePreferences({
+      language: row.language as LanguageCode,
+      region: row.region as RegionCode,
+      bibleTranslation: row.bible_translation as BibleTranslation,
+      voiceEnabled: Boolean(row.voice_enabled),
+    });
+    const daily = localizedDailyWisdom(wisdom, "Money", preferences);
     return {
-      title: `Today: ${wisdom.theme}`,
-      body: wisdom.principle,
+      title: `${daily.label}: ${wisdom.theme}`,
+      body: daily.practice || daily.principle,
       url: "/",
-      scripture: wisdom.scripture,
+      scripture: daily.scripture,
     };
   });
 }
@@ -53,18 +66,20 @@ export async function sendDailyWisdomNotifications() {
   const now = new Date();
   const currentHour = now.getUTCHours();
   const rows = await many<PushRow>(
-    `SELECT id, endpoint, p256dh, auth, preferred_hour
+    `SELECT push_subscriptions.id, push_subscriptions.user_id, endpoint, p256dh, auth, preferred_hour,
+            user_preferences.language, user_preferences.region, user_preferences.bible_translation, user_preferences.voice_enabled
      FROM push_subscriptions
+     LEFT JOIN user_preferences ON user_preferences.user_id = push_subscriptions.user_id
      WHERE enabled = TRUE
        AND preferred_hour = ?
        AND (last_sent_at IS NULL OR last_sent_at < NOW() - INTERVAL '20 hours')`,
     currentHour
   );
-  const payload = JSON.stringify(await dailyNotificationPayload());
   let sent = 0;
   let failed = 0;
 
   for (const row of rows) {
+    const payload = JSON.stringify(await dailyNotificationPayload(row));
     const subscription: PushSubscription = {
       endpoint: row.endpoint,
       keys: {
