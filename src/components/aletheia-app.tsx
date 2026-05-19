@@ -3,12 +3,11 @@
 import { AnimatePresence, motion } from "framer-motion";
 import Image from "next/image";
 import { signIn as authSignIn, signOut as authSignOut } from "next-auth/react";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, type RefObject, useEffect, useMemo, useRef, useState } from "react";
 import {
   BookOpen,
   BriefcaseBusiness,
   Check,
-  ChevronRight,
   Compass,
   Feather,
   HandHeart,
@@ -34,6 +33,7 @@ import {
   MicOff,
   Users,
   Volume2,
+  X,
 } from "lucide-react";
 import { buildDecisionSummary, detectPatterns, scoreDecision } from "@/lib/decision-intelligence";
 import {
@@ -45,6 +45,7 @@ import {
   localizedWisdomLibraryNote,
   normalizePreferences,
   regions,
+  scriptureQuickReads,
   type BibleTranslation,
   type LanguageCode,
   type RegionCode,
@@ -112,6 +113,15 @@ function trackClientEvent(eventName: string, metadata: AnalyticsMetadata = {}) {
     body: JSON.stringify(payload),
     keepalive: true,
   }).catch(() => undefined);
+}
+
+function cleanDisplayText(text: string) {
+  return text
+    .replace(/\*\*(.*?)\*\*/g, "$1")
+    .replace(/__(.*?)__/g, "$1")
+    .replace(/^#{1,6}\s+/gm, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 }
 
 type WisdomEntry = {
@@ -436,6 +446,7 @@ export function AletheiaApp() {
   const [preferencesStatus, setPreferencesStatus] = useState("Language settings are ready.");
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [selectedScripture, setSelectedScripture] = useState<string | null>(null);
   const [isWorking, setIsWorking] = useState(false);
   const [statusMessage, setStatusMessage] = useState("Checking your sign-in status...");
   const [notificationStatus, setNotificationStatus] = useState("Checking notification support...");
@@ -458,6 +469,7 @@ export function AletheiaApp() {
   const [counselName, setCounselName] = useState("");
   const [counselRole, setCounselRole] = useState("mentor");
   const [ruleText, setRuleText] = useState("");
+  const preferencesRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     const openedKey = "aletheia_app_opened_tracked";
@@ -643,6 +655,11 @@ export function AletheiaApp() {
     trackClientEvent("wisdom_mode_selected", { mode: nextMode });
   }
 
+  function revealPreferences() {
+    preferencesRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    setPreferencesStatus("Language, region, Bible translation, and voice are here.");
+  }
+
   async function updatePreferences(patch: Partial<UserPreferences>) {
     const next = { ...preferences, ...patch };
     setPreferences(next);
@@ -721,7 +738,7 @@ export function AletheiaApp() {
     if (!latest) {
       return;
     }
-    const utterance = new SpeechSynthesisUtterance(latest.text);
+    const utterance = new SpeechSynthesisUtterance(cleanDisplayText(latest.text));
     utterance.lang = activeLanguage.speech;
     utterance.rate = 0.92;
     utterance.onend = () => setIsSpeaking(false);
@@ -730,9 +747,11 @@ export function AletheiaApp() {
     window.speechSynthesis.speak(utterance);
   }
 
-  async function handleAsk(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const trimmed = query.trim();
+  async function askAletheia(rawQuestion: string) {
+    if (isWorking) {
+      return;
+    }
+    const trimmed = rawQuestion.trim();
     if (!trimmed) {
       return;
     }
@@ -790,6 +809,11 @@ export function AletheiaApp() {
     } finally {
       setIsWorking(false);
     }
+  }
+
+  async function handleAsk(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    await askAletheia(query);
   }
 
   async function handleAuth(event: FormEvent<HTMLFormElement>) {
@@ -1224,6 +1248,14 @@ export function AletheiaApp() {
               </span>
             ) : null}
             <button
+              className="inline-flex h-10 items-center gap-2 rounded-md border border-[#bdcbc2] bg-[#fbfcf8]/70 px-3 text-xs font-semibold text-[#213a35] shadow-sm transition hover:bg-white"
+              onClick={revealPreferences}
+            >
+              <Languages size={15} />
+              <span className="hidden sm:inline">{languages[preferences.language].nativeName}</span>
+              <span>{preferences.bibleTranslation}</span>
+            </button>
+            <button
               className="grid size-10 place-items-center rounded-md border border-[#bdcbc2] bg-[#fbfcf8]/70 text-[#213a35] shadow-sm transition hover:bg-white"
               aria-label={user ? "Open account" : "Open guest dashboard"}
               onClick={() => setActiveView("companion")}
@@ -1315,7 +1347,13 @@ export function AletheiaApp() {
                 </div>
                 <Sprout size={22} />
               </div>
-              <p className="text-sm font-semibold text-[#f3e8bd]">{daily.scripture}</p>
+              <button
+                type="button"
+                onClick={() => setSelectedScripture(dailyEntry.scripture)}
+                className="text-left text-sm font-semibold text-[#f3e8bd] underline decoration-[#d0ad55]/50 underline-offset-4 transition hover:text-white"
+              >
+                {daily.scripture}
+              </button>
               <p className="mt-3 text-sm leading-6 text-[#e7eee8]">{daily.principle}</p>
               <p className="mt-3 rounded-md border border-white/10 bg-white/7 p-3 text-sm leading-6 text-[#edf4ee]">{daily.practice}</p>
             </section>
@@ -1352,6 +1390,7 @@ export function AletheiaApp() {
           />
 
           <PreferencesPanel
+            panelRef={preferencesRef}
             preferences={preferences}
             status={preferencesStatus}
             copy={copy}
@@ -1371,12 +1410,13 @@ export function AletheiaApp() {
                   query={query}
                   setQuery={setQuery}
                   onAsk={handleAsk}
-                  onPrompt={setQuery}
+                  onPrompt={askAletheia}
                   onListen={startVoiceInput}
                   onSpeak={speakLatestAletheiaReply}
                   isWorking={isWorking}
                   isListening={isListening}
                   isSpeaking={isSpeaking}
+                  onScriptureOpen={setSelectedScripture}
                 />
               </Screen>
             ) : null}
@@ -1426,7 +1466,14 @@ export function AletheiaApp() {
             ) : null}
             {activeView === "library" ? (
               <Screen key="library">
-                <LibraryPanel entries={filteredEntries} search={librarySearch} setSearch={setLibrarySearch} mode={mode} preferences={preferences} />
+                <LibraryPanel
+                  entries={filteredEntries}
+                  search={librarySearch}
+                  setSearch={setLibrarySearch}
+                  mode={mode}
+                  preferences={preferences}
+                  onScriptureOpen={setSelectedScripture}
+                />
               </Screen>
             ) : null}
             {activeView === "journal" ? (
@@ -1456,6 +1503,8 @@ export function AletheiaApp() {
           <MobileNav active={activeView === "journal"} icon={Feather} label="Journal" onClick={() => setActiveView("journal")} />
         </div>
       </div>
+
+      <ScriptureModal scripture={selectedScripture} onClose={() => setSelectedScripture(null)} />
     </main>
   );
 }
@@ -1738,13 +1787,53 @@ function NotificationPanel({
   );
 }
 
+function ScriptureModal({ scripture, onClose }: { scripture: string | null; onClose: () => void }) {
+  if (!scripture) {
+    return null;
+  }
+
+  const quickRead = scriptureQuickReads[scripture];
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-end bg-[#101814]/45 p-3 backdrop-blur-sm sm:place-items-center">
+      <section className="w-full max-w-lg rounded-xl border border-[#c9d5cd] bg-[#fbfcf8] p-4 shadow-2xl sm:p-5">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">Scripture quick read</p>
+            <h2 className="mt-2 text-xl font-semibold text-[#203a35]">{scripture}</h2>
+            <p className="mt-1 text-sm text-[#607067]">
+              {quickRead ? `${quickRead.label} · ${quickRead.translation}` : "Curated wisdom reference"}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="grid size-9 shrink-0 place-items-center rounded-md border border-[#c9d5cd] bg-white/78 text-[#405049] transition hover:bg-white"
+            aria-label="Close scripture quick read"
+          >
+            <X size={17} />
+          </button>
+        </div>
+        <p className="mt-4 rounded-lg border border-[#d8e1db] bg-white/70 p-4 text-sm leading-7 text-[#303832]">
+          {quickRead?.text ?? "This reference is part of Aletheia’s curated wisdom library. The app only surfaces known references and avoids inventing verse text."}
+        </p>
+        <p className="mt-3 text-xs leading-5 text-[#718077]">
+          For longer passages, Aletheia shows a concise public-domain reading or summary so the decision flow stays focused.
+        </p>
+      </section>
+    </div>
+  );
+}
+
 function PreferencesPanel({
+  panelRef,
   preferences,
   status,
   copy,
   activeRegion,
   onChange,
 }: {
+  panelRef: RefObject<HTMLElement | null>;
   preferences: UserPreferences;
   status: string;
   copy: (typeof languageCopy)[LanguageCode];
@@ -1752,7 +1841,7 @@ function PreferencesPanel({
   onChange: (patch: Partial<UserPreferences>) => void;
 }) {
   return (
-    <section className="mb-5 rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm">
+    <section ref={panelRef} className="mb-5 scroll-mt-24 rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm">
       <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
         <div className="flex items-start gap-3">
           <div className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-md bg-[#edf2ee] text-[#203a35]">
@@ -1843,6 +1932,7 @@ function CompanionPanel({
   onPrompt,
   onListen,
   onSpeak,
+  onScriptureOpen,
   isWorking,
   isListening,
   isSpeaking,
@@ -1855,16 +1945,24 @@ function CompanionPanel({
   query: string;
   setQuery: (value: string) => void;
   onAsk: (event: FormEvent<HTMLFormElement>) => void;
-  onPrompt: (value: string) => void;
+  onPrompt: (value: string) => void | Promise<void>;
   onListen: () => void;
   onSpeak: () => void;
+  onScriptureOpen: (scripture: string) => void;
   isWorking: boolean;
   isListening: boolean;
   isSpeaking: boolean;
 }) {
+  const bottomRef = useRef<HTMLDivElement | null>(null);
+  const panelRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [messages]);
+
   return (
     <div className="grid min-w-0 gap-4 xl:grid-cols-[1fr_320px]">
-      <section className="min-w-0 rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 shadow-sm">
+      <section ref={panelRef} className="min-w-0 scroll-mt-24 rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 shadow-sm">
         <div className="flex flex-col gap-3 border-b border-[#d8e1db] px-3 py-3 sm:px-4 md:flex-row md:items-center md:justify-between">
           <div>
             <div className="flex items-center gap-2 font-semibold text-[#203a35]">
@@ -1891,18 +1989,24 @@ function CompanionPanel({
                   : "max-w-3xl border-[#d8e1db] bg-white/72 text-[#303832]"
               }`}
             >
-              <pre className="whitespace-pre-wrap font-sans text-sm leading-6">{message.text}</pre>
+              <pre className="whitespace-pre-wrap font-sans text-sm leading-6">{cleanDisplayText(message.text)}</pre>
               {message.sources?.length ? (
                 <div className="mt-4 flex flex-wrap gap-2">
                   {message.sources.map((source) => (
-                    <span key={source.scripture} className="rounded-md border border-[#d8e1db] bg-[#fbfcf8] px-2 py-1 text-xs font-semibold text-[#68766d]">
+                    <button
+                      type="button"
+                      key={source.scripture}
+                      onClick={() => onScriptureOpen(source.scripture)}
+                      className="rounded-md border border-[#d8e1db] bg-[#fbfcf8] px-2 py-1 text-xs font-semibold text-[#68766d] transition hover:border-[#203a35] hover:text-[#203a35]"
+                    >
                       {source.scripture}
-                    </span>
+                    </button>
                   ))}
                 </div>
               ) : null}
             </article>
           ))}
+          <div ref={bottomRef} />
         </div>
 
         <form onSubmit={onAsk} className="border-t border-[#d8e1db] p-3">
@@ -1978,12 +2082,20 @@ function CompanionPanel({
           <div className="mt-3 space-y-2">
             {modeProfile.prompts.map((prompt) => (
               <button
+                type="button"
                 key={prompt}
-                onClick={() => onPrompt(prompt)}
-                className="flex w-full items-center justify-between gap-3 rounded-md border border-[#d8e1db] bg-white/64 px-3 py-3 text-left text-sm font-medium text-[#45534b] transition hover:bg-white"
+                onClick={() => {
+                  panelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+                  void onPrompt(prompt);
+                }}
+                disabled={isWorking}
+                className="flex w-full items-center justify-between gap-3 rounded-md border border-[#d8e1db] bg-white/64 px-3 py-3 text-left text-sm font-medium text-[#45534b] transition hover:border-[#203a35] hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {prompt}
-                <ChevronRight size={15} />
+                <span>
+                  <span className="block">{prompt}</span>
+                  <span className="mt-1 block text-xs font-semibold text-[#866a24]">Ask now</span>
+                </span>
+                <Send size={15} />
               </button>
             ))}
           </div>
@@ -2498,12 +2610,14 @@ function LibraryPanel({
   setSearch,
   mode,
   preferences,
+  onScriptureOpen,
 }: {
   entries: WisdomEntry[];
   search: string;
   setSearch: (value: string) => void;
   mode: Mode;
   preferences: UserPreferences;
+  onScriptureOpen: (scripture: string) => void;
 }) {
   return (
     <section className="min-w-0 rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm sm:p-5">
@@ -2533,7 +2647,13 @@ function LibraryPanel({
           <article key={entry.scripture} className="rounded-lg border border-[#d8e1db] bg-white/68 p-4">
             <div className="mb-3 flex flex-wrap items-center gap-2">
               <span className="rounded-md bg-[#edf2ee] px-2 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-[#52635a]">{entry.theme}</span>
-              <span className="text-sm font-semibold text-[#203a35]">{entry.scripture}</span>
+              <button
+                type="button"
+                onClick={() => onScriptureOpen(entry.scripture)}
+                className="text-left text-sm font-semibold text-[#203a35] underline decoration-[#b9c7bf] underline-offset-4 transition hover:text-[#866a24]"
+              >
+                {entry.scripture}
+              </button>
             </div>
             <p className="text-sm font-semibold leading-6 text-[#2e3933]">{entry.principle}</p>
             <p className="mt-3 text-sm leading-6 text-[#59675f]">{entry.application}</p>

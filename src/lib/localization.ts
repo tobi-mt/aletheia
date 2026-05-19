@@ -80,6 +80,56 @@ export const bibleTranslations: Record<BibleTranslation, { label: string; note: 
   },
 };
 
+export const scriptureQuickReads: Record<
+  string,
+  { translation: BibleTranslation; label: string; text: string }
+> = {
+  "Matthew 25:14-30": {
+    translation: "WEB",
+    label: "Selected reading",
+    text:
+      "A man entrusted his servants with different amounts while he traveled. Two servants acted faithfully with what they were given; one hid what was entrusted out of fear. The master praised faithful stewardship and held the fearful servant accountable.",
+  },
+  "Proverbs 22:7": {
+    translation: "WEB",
+    label: "World English Bible",
+    text: "The rich rule over the poor. The borrower is servant to the lender.",
+  },
+  "Philippians 4:11-13": {
+    translation: "WEB",
+    label: "World English Bible",
+    text:
+      "Not that I speak because of lack, for I have learned in whatever state I am, to be content in it. I know how to be humbled, and I know also how to abound. In everything and in all things I have learned the secret both to be filled and to be hungry, both to abound and to be in need. I can do all things through Christ, who strengthens me.",
+  },
+  "Proverbs 15:22": {
+    translation: "WEB",
+    label: "World English Bible",
+    text: "Where there is no counsel, plans fail; but in a multitude of counselors they are established.",
+  },
+  "Luke 14:28": {
+    translation: "WEB",
+    label: "World English Bible",
+    text: "For which of you, desiring to build a tower, doesn’t first sit down and count the cost, to see if he has enough to complete it?",
+  },
+  "2 Corinthians 9:6-8": {
+    translation: "WEB",
+    label: "World English Bible",
+    text:
+      "He who sows sparingly will also reap sparingly. He who sows bountifully will also reap bountifully. Let each man give according as he has determined in his heart, not grudgingly or under compulsion, for God loves a cheerful giver. God is able to make all grace abound to you, that you may always have all sufficiency in everything, and may abound to every good work.",
+  },
+  "Proverbs 21:5": {
+    translation: "WEB",
+    label: "World English Bible",
+    text: "The plans of the diligent surely lead to profit; and everyone who is hasty surely rushes to poverty.",
+  },
+  "Matthew 6:25-34": {
+    translation: "WEB",
+    label: "Selected reading",
+    text:
+      "Jesus teaches his listeners not to be consumed by anxious striving over food, drink, clothing, or tomorrow. He calls them to seek God’s Kingdom and righteousness first, and to live today with trust rather than rehearsing tomorrow’s trouble.",
+  },
+};
+
 export const languageCopy: Record<
   LanguageCode,
   {
