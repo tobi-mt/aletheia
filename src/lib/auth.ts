@@ -16,6 +16,10 @@ export function hashPassword(password: string) {
 }
 
 export function verifyPassword(password: string, stored: string) {
+  if (stored.startsWith("oauth:")) {
+    return false;
+  }
+
   const [salt, hash] = stored.split(":");
   if (!salt || !hash) {
     return false;
@@ -24,6 +28,48 @@ export function verifyPassword(password: string, stored: string) {
   const candidate = pbkdf2Sync(password, salt, 210_000, 32, "sha256");
   const expected = Buffer.from(hash, "hex");
   return expected.length === candidate.length && timingSafeEqual(candidate, expected);
+}
+
+export async function getOrCreateOAuthUser({
+  email,
+  name,
+  provider,
+}: {
+  email: string;
+  name: string | null;
+  provider: string;
+}) {
+  const normalizedEmail = email.trim().toLowerCase();
+  const existing = await one<{
+    id: string;
+    email: string;
+    name: string | null;
+  }>("SELECT id, email, name FROM users WHERE email = ?", normalizedEmail);
+
+  if (existing) {
+    if (!existing.name && name) {
+      await run("UPDATE users SET name = ? WHERE id = ?", name, existing.id);
+      return { ...existing, name };
+    }
+    return existing;
+  }
+
+  const user = {
+    id: crypto.randomUUID(),
+    email: normalizedEmail,
+    name,
+  };
+
+  await run(
+    "INSERT INTO users (id, email, name, password_hash, created_at) VALUES (?, ?, ?, ?, ?)",
+    user.id,
+    user.email,
+    user.name,
+    `oauth:${provider}`,
+    new Date().toISOString()
+  );
+
+  return user;
 }
 
 export async function createSession(userId: string) {

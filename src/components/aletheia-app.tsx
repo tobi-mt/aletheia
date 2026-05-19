@@ -2,6 +2,7 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import Image from "next/image";
+import { signIn as authSignIn, signOut as authSignOut } from "next-auth/react";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
   BookOpen,
@@ -607,6 +608,7 @@ export function AletheiaApp() {
 
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" });
+    await authSignOut({ redirect: false }).catch(() => undefined);
     setUser(null);
     setMessages(defaultMessages);
     setJournalEntries([]);
@@ -1321,13 +1323,30 @@ function AuthPanel({
         <div className="grid gap-4 xl:grid-cols-[0.85fr_1.15fr]">
           <div>
             <p className="text-sm font-semibold text-[#203a35]">
-              Create an account for sync
+              Sign in for sync
             </p>
             <p className="mt-1 text-sm leading-6 text-[#5b6a61]">
-              {status} Passwords are hashed locally and sessions use httpOnly cookies.
+              {status} Use Google or email. Password sessions use httpOnly cookies.
             </p>
           </div>
-          <form onSubmit={onSubmit} className="grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
+          <div className="grid gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                authSignIn("google", {
+                  redirectTo: "/api/auth/oauth/complete?next=/",
+                });
+              }}
+              className="inline-flex h-10 items-center justify-center rounded-md border border-[#c9d5cd] bg-white/78 px-4 text-sm font-semibold text-[#203a35] transition hover:bg-white"
+            >
+              Continue with Google
+            </button>
+            <div className="flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.14em] text-[#718077]">
+              <span className="h-px flex-1 bg-[#d8e1db]" />
+              Email
+              <span className="h-px flex-1 bg-[#d8e1db]" />
+            </div>
+            <form onSubmit={onSubmit} className="grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
             {authMode === "register" ? (
               <input
                 value={name}
@@ -1366,7 +1385,8 @@ function AuthPanel({
               </button>
               {error ? <span className="text-sm font-medium text-[#8c3f28]">{error}</span> : null}
             </div>
-          </form>
+            </form>
+          </div>
         </div>
       )}
     </section>

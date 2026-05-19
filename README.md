@@ -7,6 +7,7 @@ AI-powered biblical wisdom for money, work, stewardship, generosity, and reflect
 - Conversational Wisdom Companion backed by a curated local wisdom library
 - Server-side `/api/chat` route with retrieval-first OpenAI generation
 - First-party email/password auth with httpOnly session cookies
+- Auth.js Google OAuth bridge into Aletheia-owned user/session tables
 - Neon/Postgres persistence for users, sessions, chat history, wisdom entries, and journal entries
 - DB-backed rate limiting for auth and chat endpoints
 - Wisdom Check decision tool with pace, counsel, and grounding signals
@@ -27,6 +28,11 @@ OPENAI_API_KEY=""
 OPENAI_MODEL="gpt-5.4-mini"
 SESSION_COOKIE_NAME="aletheia_session"
 NEXT_PUBLIC_APP_URL="https://your-production-domain"
+AUTH_SECRET=""
+AUTH_TRUST_HOST="true"
+AUTH_URL="https://your-production-domain"
+AUTH_GOOGLE_ID=""
+AUTH_GOOGLE_SECRET=""
 NEXT_PUBLIC_VAPID_PUBLIC_KEY=""
 VAPID_PUBLIC_KEY=""
 VAPID_PRIVATE_KEY=""
@@ -43,6 +49,7 @@ The database adapter creates required tables and seeds the curated wisdom entrie
 - Set `DATABASE_URL` to the Neon pooled connection string.
 - Set `OPENAI_API_KEY` server-side only.
 - Set `NEXT_PUBLIC_APP_URL` to the Railway/custom production URL.
+- Set `AUTH_SECRET`, `AUTH_URL`, `AUTH_TRUST_HOST`, `AUTH_GOOGLE_ID`, and `AUTH_GOOGLE_SECRET` for Google sign-in.
 - Set VAPID keys for daily wisdom push notifications.
 - Set `NOTIFICATION_CRON_SECRET` and use it from your Railway scheduled job.
 - Use `npm run build` as the build command.
@@ -68,6 +75,32 @@ npm run start -- -p 3001
 Open [http://localhost:3001](http://localhost:3001).
 
 The service worker is registered only in production so local development does not get stuck behind stale cached bundles.
+
+## Google Sign-In With Auth.js
+
+Generate an Auth.js secret:
+
+```bash
+openssl rand -base64 32
+```
+
+Create a Google OAuth client in Google Cloud Console:
+
+- Application type: Web application
+- Authorized JavaScript origin: `https://aletheia.mirrortalkpodcast.com`
+- Authorized redirect URI: `https://aletheia.mirrortalkpodcast.com/api/auth/callback/google`
+
+Set these Railway variables on the Aletheia web service:
+
+```bash
+AUTH_SECRET="generated-secret"
+AUTH_TRUST_HOST="true"
+AUTH_URL="https://aletheia.mirrortalkpodcast.com"
+AUTH_GOOGLE_ID="google-client-id"
+AUTH_GOOGLE_SECRET="google-client-secret"
+```
+
+Google OAuth users are bridged into Aletheia's own `users` and `sessions` tables after successful sign-in, so journals, decisions, notifications, and rules stay owned by the app database.
 
 ## Daily Wisdom Notifications
 
