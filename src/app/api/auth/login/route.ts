@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createSession, verifyPassword } from "@/lib/auth";
+import { trackServerEvent } from "@/lib/analytics";
 import { one } from "@/lib/db";
 import { checkRateLimit, getClientIdentity, rateLimitHeaders } from "@/lib/rate-limit";
 
@@ -39,6 +40,11 @@ export async function POST(request: Request) {
   }
 
   await createSession(user.id);
+  await trackServerEvent({
+    userId: user.id,
+    eventName: "auth_email_login_success",
+    metadata: { method: "email" },
+  });
 
   return NextResponse.json({
     user: {

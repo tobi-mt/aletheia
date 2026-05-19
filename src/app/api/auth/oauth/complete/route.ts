@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { createSession, getOrCreateOAuthUser } from "@/lib/auth";
+import { trackServerEvent } from "@/lib/analytics";
 
 export async function GET(request: NextRequest) {
   const session = await auth();
@@ -17,6 +18,11 @@ export async function GET(request: NextRequest) {
     provider: "google",
   });
   await createSession(user.id);
+  await trackServerEvent({
+    userId: user.id,
+    eventName: "auth_google_success",
+    metadata: { method: "google" },
+  });
 
   const requestedNext = request.nextUrl.searchParams.get("next") || "/";
   const next = requestedNext.startsWith("/") && !requestedNext.startsWith("//") ? requestedNext : "/";

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import { trackServerEvent } from "@/lib/analytics";
 import { buildDecisionSummary, scoreDecision } from "@/lib/decision-intelligence";
 import { many, one, run } from "@/lib/db";
 import { retrieveWisdom } from "@/lib/wisdom";
@@ -153,6 +154,16 @@ export async function PATCH(request: Request, { params }: Params) {
       now
     );
   }
+  await trackServerEvent({
+    userId: user.id,
+    eventName: "decision_updated",
+    metadata: {
+      mode: current.mode,
+      readiness: signals.readiness,
+      status,
+      waiting: Boolean(waitingUntil),
+    },
+  });
 
   const rows = await many(
     "SELECT * FROM wisdom_decisions WHERE id = ? AND user_id = ?",

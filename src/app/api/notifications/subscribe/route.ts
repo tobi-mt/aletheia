@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth";
+import { trackServerEvent } from "@/lib/analytics";
 import { run } from "@/lib/db";
 import { isPushConfigured } from "@/lib/notifications";
 
@@ -60,6 +61,11 @@ export async function POST(request: Request) {
       now,
       now
     );
+    await trackServerEvent({
+      userId: user.id,
+      eventName: "notification_enabled",
+      metadata: { preferredHour },
+    });
 
     return NextResponse.json({ ok: true });
   } catch {

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import { trackServerEvent } from "@/lib/analytics";
 import { many, run } from "@/lib/db";
 
 type CounselRow = {
@@ -68,6 +69,11 @@ export async function POST(request: Request) {
     now,
     now
   );
+  await trackServerEvent({
+    userId: user.id,
+    eventName: "counsel_contact_created",
+    metadata: { role },
+  });
 
   return NextResponse.json({ contact });
 }

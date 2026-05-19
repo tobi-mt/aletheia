@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import { trackServerEvent } from "@/lib/analytics";
 import { many, run } from "@/lib/db";
 import { generateWisdomResponse } from "@/lib/openai";
 import { checkRateLimit, getClientIdentity, rateLimitHeaders } from "@/lib/rate-limit";
@@ -94,6 +95,19 @@ export async function POST(request: Request) {
       JSON.stringify(sources),
       now
     );
+  }
+
+  if (user) {
+    await trackServerEvent({
+      userId: user.id,
+      eventName: "chat_question_sent",
+      metadata: {
+        mode,
+        persisted: true,
+        usedOpenAI: Boolean(process.env.OPENAI_API_KEY),
+        sourceCount: sources.length,
+      },
+    });
   }
 
   return NextResponse.json(

@@ -37,12 +37,50 @@ import type { Mode } from "@/lib/wisdom-data";
 type View = "companion" | "decisions" | "check" | "library" | "journal";
 type AuthMode = "login" | "register";
 type AuthStatus = "checking" | "guest" | "signing-in" | "signed-in" | "signing-out";
+type AnalyticsMetadata = Record<string, string | number | boolean | null>;
 
 type User = {
   id: string;
   email: string;
   name: string | null;
 };
+
+function analyticsId(storage: Storage, key: string) {
+  try {
+    const existing = storage.getItem(key);
+    if (existing) {
+      return existing;
+    }
+    const next = crypto.randomUUID();
+    storage.setItem(key, next);
+    return next;
+  } catch {
+    return crypto.randomUUID();
+  }
+}
+
+function trackClientEvent(eventName: string, metadata: AnalyticsMetadata = {}) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  const payload = {
+    eventName,
+    anonId: analyticsId(window.localStorage, "aletheia_anon_id"),
+    sessionId: analyticsId(window.sessionStorage, "aletheia_session_id"),
+    path: window.location.pathname,
+    referrer: document.referrer || null,
+    source: new URLSearchParams(window.location.search).get("utm_source"),
+    metadata,
+  };
+
+  fetch("/api/analytics/events", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+    keepalive: true,
+  }).catch(() => undefined);
+}
 
 type WisdomEntry = {
   theme: string;
@@ -386,6 +424,21 @@ export function AletheiaApp() {
   const [ruleText, setRuleText] = useState("");
 
   useEffect(() => {
+    const openedKey = "aletheia_app_opened_tracked";
+    try {
+      if (window.sessionStorage.getItem(openedKey)) {
+        return;
+      }
+      window.sessionStorage.setItem(openedKey, "true");
+    } catch {
+      // If storage is unavailable, still record the open with an ephemeral ID.
+    }
+    trackClientEvent("app_opened", {
+      standalone: window.matchMedia("(display-mode: standalone)").matches,
+    });
+  }, []);
+
+  useEffect(() => {
     async function loadSession() {
       setAuthStatus("checking");
       const [response, providersResponse] = await Promise.all([
@@ -539,11 +592,20 @@ export function AletheiaApp() {
     return { sources, readiness, hasUrgency, hasCounsel };
   }, [decision, emotion, timeframe, mode]);
 
+  function handleModeChange(nextMode: Mode) {
+    setMode(nextMode);
+    trackClientEvent("wisdom_mode_selected", { mode: nextMode });
+  }
+
   async function handleAsk(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const trimmed = query.trim();
     if (!trimmed) {
       return;
+    }
+
+    if (!user) {
+      trackClientEvent("chat_question_sent", { mode, persisted: false });
     }
 
     const userMessage: ChatMessage = { id: crypto.randomUUID(), role: "user", text: trimmed };
@@ -1061,7 +1123,7 @@ export function AletheiaApp() {
               </div>
               <div className="space-y-2">
                 {modes.map((item) => (
-                  <ModeButton key={item.label} item={item} active={mode === item.label} onClick={() => setMode(item.label)} />
+                  <ModeButton key={item.label} item={item} active={mode === item.label} onClick={() => handleModeChange(item.label)} />
                 ))}
               </div>
               <div className="mt-4 rounded-lg border border-white/10 bg-white/8 p-3">
@@ -1089,7 +1151,7 @@ export function AletheiaApp() {
                 {modes.map((item) => (
                   <button
                     key={item.label}
-                    onClick={() => setMode(item.label)}
+                    onClick={() => handleModeChange(item.label)}
                     className={`flex min-w-0 items-center gap-2 rounded-md border px-2 py-2 text-left text-xs font-semibold sm:text-sm ${
                       mode === item.label
                         ? "border-[#203a35] bg-[#203a35] text-[#f8f5e8]"

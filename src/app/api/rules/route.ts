@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import { trackServerEvent } from "@/lib/analytics";
 import { many, run } from "@/lib/db";
 import type { Mode } from "@/lib/wisdom-data";
 
@@ -59,6 +60,11 @@ export async function POST(request: Request) {
     now,
     now
   );
+  await trackServerEvent({
+    userId: user.id,
+    eventName: "rule_created",
+    metadata: { mode },
+  });
 
   return NextResponse.json({ rule });
 }

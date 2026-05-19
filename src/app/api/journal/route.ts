@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth";
+import { trackServerEvent } from "@/lib/analytics";
 import { many, run } from "@/lib/db";
 import type { Mode } from "@/lib/wisdom-data";
 
@@ -68,6 +69,11 @@ export async function POST(request: Request) {
       entry.createdAt,
       entry.createdAt
     );
+    await trackServerEvent({
+      userId: user.id,
+      eventName: "journal_entry_created",
+      metadata: { mode: entry.mode },
+    });
 
     return NextResponse.json({
       entry: {

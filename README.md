@@ -9,6 +9,7 @@ AI-powered biblical wisdom for money, work, stewardship, generosity, and reflect
 - First-party email/password auth with httpOnly session cookies
 - Auth.js Google OAuth bridge into Aletheia-owned user/session tables
 - Neon/Postgres persistence for users, sessions, chat history, wisdom entries, and journal entries
+- First-party privacy-conscious analytics events stored in the app database
 - DB-backed rate limiting for auth and chat endpoints
 - Wisdom Check decision tool with pace, counsel, and grounding signals
 - Searchable Biblical Wisdom Library
@@ -38,6 +39,7 @@ VAPID_PUBLIC_KEY=""
 VAPID_PRIVATE_KEY=""
 VAPID_SUBJECT="mailto:hello@mirrortalkpodcast.com"
 NOTIFICATION_CRON_SECRET=""
+ANALYTICS_ADMIN_SECRET=""
 ```
 
 Without `OPENAI_API_KEY`, the server still performs retrieval and returns a deterministic grounded fallback response. With `OPENAI_API_KEY`, `/api/chat` calls OpenAI server-side after retrieving curated biblical wisdom sources.
@@ -52,6 +54,7 @@ The database adapter creates required tables and seeds the curated wisdom entrie
 - Set `AUTH_SECRET`, `AUTH_URL`, `AUTH_TRUST_HOST`, `AUTH_GOOGLE_ID`, and `AUTH_GOOGLE_SECRET` for Google sign-in.
 - Set VAPID keys for daily wisdom push notifications.
 - Set `NOTIFICATION_CRON_SECRET` and use it from your Railway scheduled job.
+- Set `ANALYTICS_ADMIN_SECRET` to protect aggregate analytics exports.
 - Use `npm run build` as the build command.
 - Use `npm run start` as the start command.
 - Redeploy after changing variables.
@@ -101,6 +104,29 @@ AUTH_GOOGLE_SECRET="google-client-secret"
 ```
 
 Google OAuth users are bridged into Aletheia's own `users` and `sessions` tables after successful sign-in, so journals, decisions, notifications, and rules stay owned by the app database.
+
+## First-Party Analytics
+
+Aletheia stores product analytics in its own `analytics_events` table. Events intentionally avoid private content: no chat question text, no journal text, no decision pressure, no counsel names, and no rule text.
+
+Tracked examples:
+
+- app opens
+- wisdom mode selection
+- sign-in and registration success
+- chat questions sent
+- journal entries created
+- decisions created or updated
+- counsel contacts created
+- rules created
+- notifications enabled
+
+Read aggregate analytics with:
+
+```bash
+curl -H "Authorization: Bearer YOUR_ANALYTICS_ADMIN_SECRET" \
+  https://aletheia.mirrortalkpodcast.com/api/analytics/summary
+```
 
 ## Daily Wisdom Notifications
 
