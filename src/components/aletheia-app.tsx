@@ -628,10 +628,10 @@ export function AletheiaApp() {
   }
 
   return (
-    <main className="min-h-screen overflow-hidden bg-[#eef2ef] text-[#171917]">
+    <main className="min-h-screen overflow-x-hidden bg-[#eef2ef] text-[#171917]">
       <div className="fixed inset-0 -z-10 bg-[radial-gradient(circle_at_18%_0%,rgba(201,177,123,0.16),transparent_24%),radial-gradient(circle_at_92%_16%,rgba(64,101,96,0.14),transparent_24%),linear-gradient(180deg,#f4f6f2_0%,#e4ebe6_100%)]" />
 
-      <nav className="sticky top-0 z-30 border-b border-[#c9d5cd]/70 bg-[#eef2ef]/88 px-4 py-3 backdrop-blur-xl">
+      <nav className="sticky top-0 z-30 border-b border-[#c9d5cd]/70 bg-[#eef2ef]/88 px-3 py-3 backdrop-blur-xl sm:px-4">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3">
           <button
             className="flex min-w-0 items-center gap-3 text-left"
@@ -649,7 +649,7 @@ export function AletheiaApp() {
               />
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-semibold uppercase tracking-[0.22em] text-[#405049]">Aletheia</p>
+              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#405049] sm:tracking-[0.22em]">Aletheia</p>
               <p className="truncate text-xs text-[#66746b]">Wisdom for stewardship</p>
             </div>
           </button>
@@ -679,7 +679,7 @@ export function AletheiaApp() {
         </div>
       </nav>
 
-      <div className="mx-auto grid max-w-7xl gap-5 px-4 py-5 lg:grid-cols-[280px_1fr] lg:py-6">
+      <div className="mx-auto grid max-w-7xl gap-4 px-3 pb-28 pt-4 sm:px-4 sm:py-5 lg:grid-cols-[280px_1fr] lg:py-6">
         <aside className="hidden lg:block">
           <div className="sticky top-24 space-y-4">
             <section className="rounded-lg border border-[#c9d5cd] bg-[#fbfcf8]/76 p-4 shadow-sm">
@@ -709,24 +709,24 @@ export function AletheiaApp() {
         </aside>
 
         <section className="min-w-0">
-          <div className="mb-5 grid gap-4 xl:grid-cols-[1fr_360px]">
-            <section className="rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/72 p-5 shadow-sm">
-              <div className="mb-5 inline-flex w-fit items-center gap-2 rounded-md border border-[#c0cec5] bg-[#fbfcf8]/80 px-3 py-2 text-xs font-medium uppercase tracking-[0.18em] text-[#866a24]">
+          <div className="mb-4 grid gap-3 sm:mb-5 sm:gap-4 xl:grid-cols-[1fr_360px]">
+            <section className="min-w-0 rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/72 p-4 shadow-sm sm:p-5">
+              <div className="mb-4 inline-flex w-fit max-w-full items-center gap-2 rounded-md border border-[#c0cec5] bg-[#fbfcf8]/80 px-3 py-2 text-[11px] font-medium uppercase tracking-[0.12em] text-[#866a24] sm:mb-5 sm:text-xs sm:tracking-[0.18em]">
                 <Sparkles size={14} />
                 Wisdom for real decisions
               </div>
-              <h1 className="max-w-3xl text-4xl font-semibold leading-tight tracking-normal text-[#171917] sm:text-5xl">
+              <h1 className="max-w-3xl text-[2rem] font-semibold leading-[1.08] tracking-normal text-[#171917] sm:text-5xl sm:leading-tight">
                 Biblical wisdom for money, work, and stewardship.
               </h1>
-              <p className="mt-4 max-w-2xl text-base leading-7 text-[#505a52]">
+              <p className="mt-4 max-w-2xl text-sm leading-6 text-[#505a52] sm:text-base sm:leading-7">
                 Ask a real question, run a decision through a Wisdom Check, search the curated library, and keep private reflections on this device.
               </p>
-              <div className="mt-5 flex gap-2 overflow-x-auto pb-1 lg:hidden">
+              <div className="mt-5 grid grid-cols-2 gap-2 lg:hidden">
                 {modes.map((item) => (
                   <button
                     key={item.label}
                     onClick={() => setMode(item.label)}
-                    className={`inline-flex shrink-0 items-center gap-2 rounded-md border px-3 py-2 text-sm font-semibold ${
+                    className={`inline-flex min-w-0 items-center justify-center gap-2 rounded-md border px-2 py-2 text-xs font-semibold sm:text-sm ${
                       mode === item.label
                         ? "border-[#203a35] bg-[#203a35] text-[#f8f5e8]"
                         : "border-[#c9d5cd] bg-[#fbfcf8]/78 text-[#405049]"
@@ -739,7 +739,7 @@ export function AletheiaApp() {
               </div>
             </section>
 
-            <section className="rounded-xl border border-[#c9d5cd] bg-[#203a35] p-5 text-[#f8f5e8] shadow-sm">
+            <section className="min-w-0 rounded-xl border border-[#c9d5cd] bg-[#203a35] p-4 text-[#f8f5e8] shadow-sm sm:p-5">
               <div className="mb-4 flex items-center justify-between">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#d0ad55]">Daily Wisdom</p>
@@ -821,7 +821,7 @@ export function AletheiaApp() {
         </section>
       </div>
 
-      <div className="fixed inset-x-3 bottom-3 z-40 rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/92 p-1 shadow-2xl shadow-[#1f2a24]/12 backdrop-blur md:hidden">
+      <div className="fixed inset-x-2 bottom-2 z-40 rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/92 p-1 shadow-2xl shadow-[#1f2a24]/12 backdrop-blur sm:inset-x-3 sm:bottom-3 md:hidden">
         <div className="grid grid-cols-4 gap-1">
           <MobileNav active={activeView === "companion"} icon={MessageCircle} label="Ask" onClick={() => setActiveView("companion")} />
           <MobileNav active={activeView === "check"} icon={Scale} label="Check" onClick={() => setActiveView("check")} />
@@ -1077,9 +1077,9 @@ function CompanionPanel({
   isWorking: boolean;
 }) {
   return (
-    <div className="grid gap-4 xl:grid-cols-[1fr_320px]">
-      <section className="rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 shadow-sm">
-        <div className="flex items-center justify-between border-b border-[#d8e1db] px-4 py-3">
+    <div className="grid min-w-0 gap-4 xl:grid-cols-[1fr_320px]">
+      <section className="min-w-0 rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 shadow-sm">
+        <div className="flex items-center justify-between gap-3 border-b border-[#d8e1db] px-3 py-3 sm:px-4">
           <div className="flex items-center gap-2 font-semibold text-[#203a35]">
             <MessageCircle size={18} />
             Wisdom Companion
@@ -1087,11 +1087,11 @@ function CompanionPanel({
           <span className="rounded-md bg-[#edf2ee] px-2 py-1 text-xs font-semibold text-[#52635a]">{mode}</span>
         </div>
 
-        <div className="max-h-[560px] space-y-4 overflow-y-auto p-4">
+        <div className="max-h-[560px] space-y-4 overflow-y-auto p-3 sm:p-4">
           {messages.map((message) => (
             <article
               key={message.id}
-              className={`rounded-lg border p-4 ${
+              className={`min-w-0 rounded-lg border p-3 sm:p-4 ${
                 message.role === "user"
                   ? "ml-auto max-w-2xl border-[#203a35]/10 bg-[#203a35] text-[#f8f5e8]"
                   : "max-w-3xl border-[#d8e1db] bg-white/72 text-[#303832]"
@@ -1112,14 +1112,14 @@ function CompanionPanel({
         </div>
 
         <form onSubmit={onAsk} className="border-t border-[#d8e1db] p-3">
-          <div className="flex gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row">
             <textarea
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Ask about debt, career, investing, generosity, anxiety, or a decision..."
               className="min-h-20 flex-1 resize-none rounded-lg border border-[#c9d5cd] bg-white/80 px-3 py-3 text-sm leading-6 outline-none transition placeholder:text-[#8b968e] focus:border-[#203a35]"
             />
-            <button disabled={isWorking} className="grid size-12 shrink-0 place-items-center rounded-lg bg-[#203a35] text-[#f8f5e8] shadow-lg shadow-[#203a35]/15 transition hover:bg-[#284b43] disabled:opacity-60" aria-label="Send question">
+            <button disabled={isWorking} className="grid h-11 w-full shrink-0 place-items-center rounded-lg bg-[#203a35] text-[#f8f5e8] shadow-lg shadow-[#203a35]/15 transition hover:bg-[#284b43] disabled:opacity-60 sm:size-12 sm:w-auto" aria-label="Send question">
               <Send size={18} />
             </button>
           </div>
@@ -1173,7 +1173,7 @@ function WisdomCheck({
 }) {
   return (
     <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
-      <section className="rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-5 shadow-sm">
+      <section className="min-w-0 rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm sm:p-5">
         <div className="mb-5 flex items-center gap-2 text-xl font-semibold text-[#203a35]">
           <Scale size={20} />
           Wisdom Check
@@ -1212,7 +1212,7 @@ function WisdomCheck({
         </div>
       </section>
 
-      <section className="rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-5 shadow-sm">
+      <section className="min-w-0 rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm sm:p-5">
         <h2 className="text-xl font-semibold text-[#203a35]">Discernment readout</h2>
         {result ? (
           <div className="mt-5 space-y-4">
@@ -1266,7 +1266,7 @@ function Signal({ active, label }: { active: boolean; label: string }) {
 
 function LibraryPanel({ entries, search, setSearch, mode }: { entries: WisdomEntry[]; search: string; setSearch: (value: string) => void; mode: Mode }) {
   return (
-    <section className="rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-5 shadow-sm">
+    <section className="min-w-0 rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm sm:p-5">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <div className="flex items-center gap-2 text-xl font-semibold text-[#203a35]">
@@ -1286,7 +1286,7 @@ function LibraryPanel({ entries, search, setSearch, mode }: { entries: WisdomEnt
         </label>
       </div>
 
-      <div className="mt-5 grid gap-3 lg:grid-cols-2">
+      <div className="mt-5 grid min-w-0 gap-3 lg:grid-cols-2">
         {entries.map((entry) => (
           <article key={entry.scripture} className="rounded-lg border border-[#d8e1db] bg-white/68 p-4">
             <div className="mb-3 flex flex-wrap items-center gap-2">
@@ -1322,8 +1322,8 @@ function JournalPanel({
   onDelete: (id: string) => void;
 }) {
   return (
-    <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
-      <section className="rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-5 shadow-sm">
+    <div className="grid min-w-0 gap-4 xl:grid-cols-[0.9fr_1.1fr]">
+      <section className="min-w-0 rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm sm:p-5">
         <div className="mb-5 flex items-center gap-2 text-xl font-semibold text-[#203a35]">
           <Feather size={20} />
           Reflection Journal
@@ -1346,7 +1346,7 @@ function JournalPanel({
         </button>
       </section>
 
-      <section className="rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-5 shadow-sm">
+      <section className="min-w-0 rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm sm:p-5">
         <h2 className="text-xl font-semibold text-[#203a35]">Saved reflections</h2>
         <div className="mt-4 space-y-3">
           {entries.length ? (
