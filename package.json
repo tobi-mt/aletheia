@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "notify:daily": "node scripts/send-daily-notifications.mjs",
     "push:keys": "web-push generate-vapid-keys"
   },
   "dependencies": {

@@ -1,4 +1,5 @@
 import { many } from "@/lib/db";
+import { modeProfiles } from "@/lib/mode-profiles";
 import { Mode, wisdomEntries, WisdomEntryData } from "@/lib/wisdom-data";
 
 export type WisdomSource = WisdomEntryData & { id?: string };
@@ -13,6 +14,13 @@ type WisdomRow = {
   keywords: string[] | string;
   emotions: string[] | string;
   questions: string[] | string;
+};
+
+const modeTerms: Record<Mode, string[]> = {
+  Money: ["money", "debt", "stewardship", "contentment", "saving", "investing", "risk", "wealth"],
+  Work: ["work", "job", "career", "business", "counsel", "diligence", "cost", "planning"],
+  Purpose: ["purpose", "identity", "direction", "discernment", "peace", "anxiety", "motives", "calling"],
+  Generosity: ["generosity", "give", "giving", "charity", "willing", "sustainable", "stewardship", "guilt"],
 };
 
 function decodeList(value: string[] | string) {
@@ -79,7 +87,10 @@ export function searchWisdomEntries(
         (score, word) => score + (haystack.includes(word) ? 1 : 0),
         0
       );
-      const modeScore = haystack.includes(mode.toLowerCase()) ? 2 : 0;
+      const modeScore = modeTerms[mode].reduce(
+        (score, term) => score + (haystack.includes(term) ? 2 : 0),
+        haystack.includes(mode.toLowerCase()) ? 2 : 0
+      );
       return { entry, score: themeScore + exactKeywordScore + keywordScore + modeScore };
     })
     .sort((a, b) => b.score - a.score)
@@ -117,5 +128,24 @@ export function composeFallbackResponse(question: string, sources: WisdomSource[
     `A few questions may help: ${primary.questions[0]} ${primary.questions[1]} ${secondary.questions[0]}`,
     "",
     "This is wisdom support, not financial or legal advice. If the stakes are significant, bring the numbers and the plan to someone qualified and trustworthy before you act.",
+  ].join("\n");
+}
+
+export function composeModeAwareFallbackResponse(
+  question: string,
+  mode: Mode,
+  sources: WisdomSource[]
+) {
+  const profile = modeProfiles[mode];
+  const base = composeFallbackResponse(question, sources);
+
+  return [
+    base,
+    "",
+    `Because you are in ${mode} mode, I would look at this through ${profile.lens.toLowerCase()}`,
+    "",
+    `The deeper diagnostic is: ${profile.diagnosticTracks[0]} ${profile.diagnosticTracks[1]}`,
+    "",
+    `A possible blind spot to watch: ${profile.blindSpots[0].toLowerCase()}. A maturity signal would be this: ${profile.maturitySignals[0].toLowerCase()}.`,
   ].join("\n");
 }

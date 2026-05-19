@@ -104,12 +104,67 @@ async function initializeDatabase() {
       updated_at TIMESTAMPTZ NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS counsel_contacts (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      role TEXT NOT NULL,
+      notes TEXT,
+      created_at TIMESTAMPTZ NOT NULL,
+      updated_at TIMESTAMPTZ NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS wisdom_decisions (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      title TEXT NOT NULL,
+      mode TEXT NOT NULL,
+      pressure TEXT NOT NULL,
+      initial_emotion TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'discerning',
+      readiness INTEGER NOT NULL DEFAULT 45,
+      counsel_sought BOOLEAN NOT NULL DEFAULT FALSE,
+      cost_counted BOOLEAN NOT NULL DEFAULT FALSE,
+      alignment_clear BOOLEAN NOT NULL DEFAULT FALSE,
+      reversible_step BOOLEAN NOT NULL DEFAULT FALSE,
+      peace_over_urgency BOOLEAN NOT NULL DEFAULT FALSE,
+      waiting_until TIMESTAMPTZ,
+      summary TEXT,
+      final_decision TEXT,
+      learning TEXT,
+      created_at TIMESTAMPTZ NOT NULL,
+      updated_at TIMESTAMPTZ NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS decision_events (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      decision_id TEXT REFERENCES wisdom_decisions(id) ON DELETE CASCADE,
+      event_type TEXT NOT NULL,
+      body TEXT NOT NULL,
+      mode TEXT,
+      created_at TIMESTAMPTZ NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS rule_of_life_entries (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      mode TEXT NOT NULL,
+      principle TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL,
+      updated_at TIMESTAMPTZ NOT NULL
+    );
+
     CREATE INDEX IF NOT EXISTS sessions_token_hash_idx ON sessions(token_hash);
     CREATE INDEX IF NOT EXISTS chat_messages_user_created_idx ON chat_messages(user_id, created_at);
     CREATE INDEX IF NOT EXISTS journal_entries_user_created_idx ON journal_entries(user_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS rate_limits_reset_idx ON rate_limits(reset_at);
     CREATE INDEX IF NOT EXISTS push_subscriptions_user_idx ON push_subscriptions(user_id);
     CREATE INDEX IF NOT EXISTS push_subscriptions_enabled_idx ON push_subscriptions(enabled, preferred_hour);
+    CREATE INDEX IF NOT EXISTS counsel_contacts_user_idx ON counsel_contacts(user_id);
+    CREATE INDEX IF NOT EXISTS wisdom_decisions_user_updated_idx ON wisdom_decisions(user_id, updated_at DESC);
+    CREATE INDEX IF NOT EXISTS decision_events_user_created_idx ON decision_events(user_id, created_at DESC);
+    CREATE INDEX IF NOT EXISTS rule_of_life_entries_user_idx ON rule_of_life_entries(user_id);
   `);
 
   const { rows } = await pool.query<{ count: string }>(

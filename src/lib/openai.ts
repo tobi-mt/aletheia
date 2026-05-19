@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { modeProfiles } from "@/lib/mode-profiles";
 import type { Mode } from "@/lib/wisdom-data";
 import type { WisdomSource } from "@/lib/wisdom";
 
@@ -20,6 +21,7 @@ export async function generateWisdomResponse({
   }
 
   const model = process.env.OPENAI_MODEL || "gpt-5.4-mini";
+  const profile = modeProfiles[mode];
   const context = sources
     .map(
       (source, index) => `Source ${index + 1}
@@ -43,6 +45,17 @@ Reflection questions: ${source.questions.join(" | ")}`
       {
         role: "user",
         content: `Mode: ${mode}
+Mode intent: ${profile.intent}
+Mode lens: ${profile.lens}
+Mode guidance: ${profile.promptCue}
+Mode diagnostic tracks:
+${profile.diagnosticTracks.map((track) => `- ${track}`).join("\n")}
+Likely blind spots:
+${profile.blindSpots.map((spot) => `- ${spot}`).join("\n")}
+Maturity signals:
+${profile.maturitySignals.map((signal) => `- ${signal}`).join("\n")}
+Mode response moves:
+${profile.responseMoves.map((move) => `- ${move}`).join("\n")}
 
 Retrieved sources:
 ${context}
@@ -54,6 +67,7 @@ Write a human response that feels personal and grounded. Requirements:
 - Start with a brief empathetic acknowledgment.
 - Weave in the most relevant scripture reference(s) from the retrieved sources naturally.
 - Explain what the biblical principle means in ordinary life today.
+- Use the selected mode as a real diagnostic lens. Name the most likely tension, blind spot, or maturity signal when it fits.
 - Give practical next steps without sounding like financial advice.
 - Ask 1-3 reflection questions only if they genuinely help.
 - Keep the response concise unless the question is complex.

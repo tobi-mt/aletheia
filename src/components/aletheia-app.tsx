@@ -25,10 +25,15 @@ import {
   Trash2,
   WifiOff,
   Bell,
+  Clock3,
+  FileText,
+  Users,
 } from "lucide-react";
+import { buildDecisionSummary, detectPatterns, scoreDecision } from "@/lib/decision-intelligence";
+import { modeProfiles, type ModeProfile } from "@/lib/mode-profiles";
+import type { Mode } from "@/lib/wisdom-data";
 
-type Mode = "Money" | "Work" | "Purpose" | "Generosity";
-type View = "companion" | "check" | "library" | "journal";
+type View = "companion" | "decisions" | "check" | "library" | "journal";
 type AuthMode = "login" | "register";
 
 type User = {
@@ -60,6 +65,58 @@ type JournalEntry = {
   title: string;
   body: string;
   mode: Mode;
+  createdAt: string;
+};
+
+type WisdomDecision = {
+  id: string;
+  title: string;
+  mode: Mode;
+  pressure: string;
+  initialEmotion: string;
+  status: string;
+  readiness: number;
+  counselSought: boolean;
+  costCounted: boolean;
+  alignmentClear: boolean;
+  reversibleStep: boolean;
+  peaceOverUrgency: boolean;
+  waitingUntil: string | null;
+  summary: string | null;
+  finalDecision: string | null;
+  learning: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type DecisionEvent = {
+  id: string;
+  decisionId: string | null;
+  eventType: string;
+  body: string;
+  mode: Mode | null;
+  createdAt: string;
+};
+
+type TimelineInsight = {
+  activeCount: number;
+  daysDiscerning: number;
+  patterns: string[];
+  gentleObservation: string;
+};
+
+type CounselContact = {
+  id: string;
+  name: string;
+  role: string;
+  notes: string | null;
+  createdAt: string;
+};
+
+type RuleOfLife = {
+  id: string;
+  mode: Mode;
+  principle: string;
   createdAt: string;
 };
 
@@ -194,19 +251,19 @@ const wisdomEntries: WisdomEntry[] = [
   },
 ];
 
-const prompts = [
-  "Should I leave my stable job?",
-  "How do I build wealth without greed?",
-  "What does wisdom say about debt?",
-  "How do I recover after financial failure?",
+const modes: { label: Mode; icon: typeof PiggyBank; copy: string }[] = [
+  { label: "Money", icon: PiggyBank, copy: modeProfiles.Money.focus },
+  { label: "Work", icon: BriefcaseBusiness, copy: modeProfiles.Work.focus },
+  { label: "Purpose", icon: Compass, copy: modeProfiles.Purpose.focus },
+  { label: "Generosity", icon: HandHeart, copy: modeProfiles.Generosity.focus },
 ];
 
-const modes: { label: Mode; icon: typeof PiggyBank; copy: string }[] = [
-  { label: "Money", icon: PiggyBank, copy: "Budgeting, debt, investing, contentment" },
-  { label: "Work", icon: BriefcaseBusiness, copy: "Career, calling, leadership, business" },
-  { label: "Purpose", icon: Compass, copy: "Discernment, identity, long-term direction" },
-  { label: "Generosity", icon: HandHeart, copy: "Giving, sustainability, cheerful service" },
-];
+const modeTerms: Record<Mode, string[]> = {
+  Money: ["money", "debt", "stewardship", "contentment", "saving", "investing", "risk", "wealth"],
+  Work: ["work", "job", "career", "business", "counsel", "diligence", "cost", "planning"],
+  Purpose: ["purpose", "identity", "direction", "discernment", "peace", "anxiety", "motives", "calling"],
+  Generosity: ["generosity", "give", "giving", "charity", "willing", "sustainable", "stewardship", "guilt"],
+};
 
 const defaultMessages: ChatMessage[] = [
   {
@@ -238,7 +295,10 @@ function searchWisdom(query: string, mode: Mode, limit = 3) {
         0
       );
       const keywordScore = words.reduce((score, word) => score + (haystack.includes(word) ? 1 : 0), 0);
-      const modeScore = haystack.includes(mode.toLowerCase()) ? 2 : 0;
+      const modeScore = modeTerms[mode].reduce(
+        (score, term) => score + (haystack.includes(term) ? 2 : 0),
+        haystack.includes(mode.toLowerCase()) ? 2 : 0
+      );
       return { entry, score: themeScore + exactKeywordScore + keywordScore + modeScore };
     })
     .sort((a, b) => b.score - a.score)
@@ -304,6 +364,22 @@ export function AletheiaApp() {
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [notificationsConfigured, setNotificationsConfigured] = useState(false);
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>("default");
+  const [wisdomDecisions, setWisdomDecisions] = useState<WisdomDecision[]>([]);
+  const [decisionEvents, setDecisionEvents] = useState<DecisionEvent[]>([]);
+  const [timelineInsight, setTimelineInsight] = useState<TimelineInsight>({
+    activeCount: 0,
+    daysDiscerning: 0,
+    patterns: [],
+    gentleObservation: "Your timeline is ready to track decisions, patterns, counsel, and learning.",
+  });
+  const [counselContacts, setCounselContacts] = useState<CounselContact[]>([]);
+  const [rulesOfLife, setRulesOfLife] = useState<RuleOfLife[]>([]);
+  const [decisionTitle, setDecisionTitle] = useState("");
+  const [decisionPressure, setDecisionPressure] = useState("");
+  const [decisionEmotion, setDecisionEmotion] = useState("uncertain");
+  const [counselName, setCounselName] = useState("");
+  const [counselRole, setCounselRole] = useState("mentor");
+  const [ruleText, setRuleText] = useState("");
 
   useEffect(() => {
     async function loadSession() {
@@ -313,10 +389,13 @@ export function AletheiaApp() {
 
       if (data.user) {
         setStatusMessage("Signed in. Conversations and reflections sync to the local database.");
-        const [chatResponse, journalResponse, notificationResponse] = await Promise.all([
+        const [chatResponse, journalResponse, notificationResponse, decisionsResponse, counselResponse, rulesResponse] = await Promise.all([
           fetch("/api/chat"),
           fetch("/api/journal"),
           fetch("/api/notifications/status"),
+          fetch("/api/decisions"),
+          fetch("/api/counsel"),
+          fetch("/api/rules"),
         ]);
         const chatData = (await chatResponse.json()) as { messages?: ChatMessage[] };
         const journalData = (await journalResponse.json()) as { entries?: JournalEntry[] };
@@ -324,6 +403,13 @@ export function AletheiaApp() {
           configured?: boolean;
           enabled?: boolean;
         };
+        const decisionsData = (await decisionsResponse.json()) as {
+          decisions?: WisdomDecision[];
+          events?: DecisionEvent[];
+          insight?: TimelineInsight;
+        };
+        const counselData = (await counselResponse.json()) as { contacts?: CounselContact[] };
+        const rulesData = (await rulesResponse.json()) as { rules?: RuleOfLife[] };
         if (chatData.messages?.length) {
           setMessages([
             defaultMessages[0],
@@ -336,6 +422,13 @@ export function AletheiaApp() {
         if (journalData.entries) {
           setJournalEntries(journalData.entries);
         }
+        setWisdomDecisions(decisionsData.decisions ?? []);
+        setDecisionEvents(decisionsData.events ?? []);
+        if (decisionsData.insight) {
+          setTimelineInsight(decisionsData.insight);
+        }
+        setCounselContacts(counselData.contacts ?? []);
+        setRulesOfLife(rulesData.rules ?? []);
         setNotificationsConfigured(Boolean(notificationData.configured));
         setNotificationsEnabled(Boolean(notificationData.enabled));
       }
@@ -405,6 +498,7 @@ export function AletheiaApp() {
   }, [librarySearch, mode]);
 
   const daily = todayWisdom();
+  const activeMode = modeProfiles[mode];
   const decisionResult = useMemo(() => {
     if (!decision.trim()) {
       return null;
@@ -627,6 +721,228 @@ export function AletheiaApp() {
     setJournalEntries((current) => current.filter((entry) => entry.id !== id));
   }
 
+  function refreshLocalTimeline(decisions: WisdomDecision[], events: DecisionEvent[]) {
+    const combined = [
+      ...decisions.map((item) => `${item.title} ${item.pressure} ${item.initialEmotion}`),
+      ...events.map((event) => event.body),
+    ].join(" ");
+    const patterns = detectPatterns(combined);
+    const active = decisions.filter((item) => item.status === "discerning");
+    setTimelineInsight({
+      activeCount: active.length,
+      daysDiscerning: active.length ? 1 : 0,
+      patterns,
+      gentleObservation: patterns.includes("urgency")
+        ? "Urgency appears in your recent decisions. That does not make the desire wrong, but speed may be clouding wisdom."
+        : patterns.includes("comparison")
+          ? "Comparison appears in your recent reflections. It may help to define enough before choosing more."
+          : active.length
+            ? `You are carrying ${active.length} active decision${active.length === 1 ? "" : "s"}. Keep the next faithful step small and visible.`
+            : "Your timeline is ready to track decisions, patterns, counsel, and learning.",
+    });
+  }
+
+  async function createDecision(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const title = decisionTitle.trim();
+    const pressure = decisionPressure.trim();
+    if (!title || !pressure) {
+      return;
+    }
+
+    if (user) {
+      const response = await fetch("/api/decisions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, pressure, emotion: decisionEmotion, mode }),
+      });
+      const data = (await response.json()) as { decision?: WisdomDecision };
+      if (data.decision) {
+        setWisdomDecisions((current) => [data.decision!, ...current]);
+        setDecisionEvents((current) => [
+          {
+            id: crypto.randomUUID(),
+            decisionId: data.decision!.id,
+            eventType: "created",
+            body: `Started discerning: ${title}`,
+            mode,
+            createdAt: new Date().toISOString(),
+          },
+          ...current,
+        ]);
+      }
+    } else {
+      const sources = searchWisdom(`${title} ${pressure} ${decisionEmotion}`, mode, 3);
+      const signals = scoreDecision({
+        pressure,
+        emotion: decisionEmotion,
+        counselSought: false,
+        costCounted: false,
+        alignmentClear: false,
+        reversibleStep: false,
+        peaceOverUrgency: false,
+      });
+      const now = new Date().toISOString();
+      const localDecision: WisdomDecision = {
+        id: crypto.randomUUID(),
+        title,
+        mode,
+        pressure,
+        initialEmotion: decisionEmotion,
+        status: "discerning",
+        readiness: signals.readiness,
+        counselSought: false,
+        costCounted: false,
+        alignmentClear: false,
+        reversibleStep: false,
+        peaceOverUrgency: false,
+        waitingUntil: null,
+        summary: buildDecisionSummary({ title, mode, pressure, emotion: decisionEmotion, sources, signals }),
+        finalDecision: null,
+        learning: null,
+        createdAt: now,
+        updatedAt: now,
+      };
+      const localEvent = {
+        id: crypto.randomUUID(),
+        decisionId: localDecision.id,
+        eventType: "created",
+        body: `Started discerning: ${title}`,
+        mode,
+        createdAt: now,
+      };
+      const nextDecisions = [localDecision, ...wisdomDecisions];
+      const nextEvents = [localEvent, ...decisionEvents];
+      setWisdomDecisions(nextDecisions);
+      setDecisionEvents(nextEvents);
+      refreshLocalTimeline(nextDecisions, nextEvents);
+      setStatusMessage("Decision saved for this session. Sign in to persist decision memory.");
+    }
+
+    setDecisionTitle("");
+    setDecisionPressure("");
+  }
+
+  async function updateDecision(id: string, patch: Partial<WisdomDecision> & { waitingDays?: number | null; event?: string }) {
+    const current = wisdomDecisions.find((item) => item.id === id);
+    if (!current) {
+      return;
+    }
+
+    if (user) {
+      const response = await fetch(`/api/decisions/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(patch),
+      });
+      if (!response.ok) {
+        return;
+      }
+    }
+
+    const waitingUntil =
+      typeof patch.waitingDays === "number" && patch.waitingDays > 0
+        ? new Date(Date.now() + patch.waitingDays * 86400000).toISOString()
+        : patch.waitingDays === null
+          ? null
+          : current.waitingUntil;
+    const updated = wisdomDecisions.map((item) => {
+      if (item.id !== id) {
+        return item;
+      }
+      const next = { ...item, ...patch, waitingUntil, updatedAt: new Date().toISOString() };
+      const sources = searchWisdom(`${next.title} ${next.pressure} ${next.initialEmotion}`, next.mode, 3);
+      const signals = scoreDecision({
+        pressure: next.pressure,
+        emotion: next.initialEmotion,
+        counselSought: Boolean(next.counselSought),
+        costCounted: Boolean(next.costCounted),
+        alignmentClear: Boolean(next.alignmentClear),
+        reversibleStep: Boolean(next.reversibleStep),
+        peaceOverUrgency: Boolean(next.peaceOverUrgency),
+      });
+      return {
+        ...next,
+        readiness: signals.readiness,
+        summary: buildDecisionSummary({
+          title: next.title,
+          mode: next.mode,
+          pressure: next.pressure,
+          emotion: next.initialEmotion,
+          sources,
+          signals,
+        }),
+      };
+    });
+    const eventBody = patch.event ?? (patch.waitingDays ? `Entered waiting mode for ${patch.waitingDays} day${patch.waitingDays === 1 ? "" : "s"}.` : "");
+    const events = eventBody
+      ? [
+          {
+            id: crypto.randomUUID(),
+            decisionId: id,
+            eventType: "update",
+            body: eventBody,
+            mode: current.mode,
+            createdAt: new Date().toISOString(),
+          },
+          ...decisionEvents,
+        ]
+      : decisionEvents;
+    setWisdomDecisions(updated);
+    setDecisionEvents(events);
+    refreshLocalTimeline(updated, events);
+  }
+
+  async function addCounselContact(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const name = counselName.trim();
+    if (!name) {
+      return;
+    }
+    if (user) {
+      const response = await fetch("/api/counsel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, role: counselRole }),
+      });
+      const data = (await response.json()) as { contact?: CounselContact };
+      if (data.contact) {
+        setCounselContacts((current) => [data.contact!, ...current]);
+      }
+    } else {
+      setCounselContacts((current) => [
+        { id: crypto.randomUUID(), name, role: counselRole, notes: null, createdAt: new Date().toISOString() },
+        ...current,
+      ]);
+    }
+    setCounselName("");
+  }
+
+  async function addRuleOfLife(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const principle = ruleText.trim();
+    if (!principle) {
+      return;
+    }
+    if (user) {
+      const response = await fetch("/api/rules", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ principle, mode }),
+      });
+      const data = (await response.json()) as { rule?: RuleOfLife };
+      if (data.rule) {
+        setRulesOfLife((current) => [data.rule!, ...current]);
+      }
+    } else {
+      setRulesOfLife((current) => [
+        { id: crypto.randomUUID(), mode, principle, createdAt: new Date().toISOString() },
+        ...current,
+      ]);
+    }
+    setRuleText("");
+  }
+
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#eef2ef] text-[#171917]">
       <div className="fixed inset-0 -z-10 bg-[radial-gradient(circle_at_18%_0%,rgba(201,177,123,0.16),transparent_24%),radial-gradient(circle_at_92%_16%,rgba(64,101,96,0.14),transparent_24%),linear-gradient(180deg,#f4f6f2_0%,#e4ebe6_100%)]" />
@@ -656,6 +972,7 @@ export function AletheiaApp() {
 
           <div className="hidden items-center gap-1 rounded-lg border border-[#c9d5cd] bg-[#fbfcf8]/72 p-1 shadow-sm md:flex">
             <NavButton active={activeView === "companion"} icon={MessageCircle} label="Companion" onClick={() => setActiveView("companion")} />
+            <NavButton active={activeView === "decisions"} icon={FileText} label="Decisions" onClick={() => setActiveView("decisions")} />
             <NavButton active={activeView === "check"} icon={Scale} label="Wisdom Check" onClick={() => setActiveView("check")} />
             <NavButton active={activeView === "library"} icon={BookOpen} label="Library" onClick={() => setActiveView("library")} />
             <NavButton active={activeView === "journal"} icon={Feather} label="Journal" onClick={() => setActiveView("journal")} />
@@ -704,6 +1021,10 @@ export function AletheiaApp() {
                   <ModeButton key={item.label} item={item} active={mode === item.label} onClick={() => setMode(item.label)} />
                 ))}
               </div>
+              <div className="mt-4 rounded-lg border border-white/10 bg-white/8 p-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#d0ad55]">Current lens</p>
+                <p className="mt-2 text-sm leading-6 text-[#e7eee8]">{activeMode.intent}</p>
+              </div>
             </section>
           </div>
         </aside>
@@ -726,16 +1047,25 @@ export function AletheiaApp() {
                   <button
                     key={item.label}
                     onClick={() => setMode(item.label)}
-                    className={`inline-flex min-w-0 items-center justify-center gap-2 rounded-md border px-2 py-2 text-xs font-semibold sm:text-sm ${
+                    className={`flex min-w-0 items-center gap-2 rounded-md border px-2 py-2 text-left text-xs font-semibold sm:text-sm ${
                       mode === item.label
                         ? "border-[#203a35] bg-[#203a35] text-[#f8f5e8]"
                         : "border-[#c9d5cd] bg-[#fbfcf8]/78 text-[#405049]"
                     }`}
                   >
-                    <item.icon size={15} />
-                    {item.label}
+                    <item.icon className="shrink-0" size={15} />
+                    <span className="min-w-0">
+                      <span className="block">{item.label}</span>
+                      <span className={`mt-0.5 block truncate text-[10px] font-medium ${mode === item.label ? "text-[#dfe8df]" : "text-[#6d7a71]"}`}>
+                        {modeProfiles[item.label].intent}
+                      </span>
+                    </span>
                   </button>
                 ))}
+              </div>
+              <div className="mt-3 rounded-lg border border-[#d8e1db] bg-white/62 p-3 lg:hidden">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#866a24]">{mode} mode changes the lens</p>
+                <p className="mt-2 text-sm leading-6 text-[#4f5f56]">{activeMode.useWhen}</p>
               </div>
             </section>
 
@@ -782,7 +1112,16 @@ export function AletheiaApp() {
           <AnimatePresence mode="wait">
             {activeView === "companion" ? (
               <Screen key="companion">
-                <CompanionPanel messages={messages} mode={mode} query={query} setQuery={setQuery} onAsk={handleAsk} onPrompt={setQuery} isWorking={isWorking} />
+                <CompanionPanel
+                  messages={messages}
+                  mode={mode}
+                  modeProfile={activeMode}
+                  query={query}
+                  setQuery={setQuery}
+                  onAsk={handleAsk}
+                  onPrompt={setQuery}
+                  isWorking={isWorking}
+                />
               </Screen>
             ) : null}
             {activeView === "check" ? (
@@ -795,6 +1134,37 @@ export function AletheiaApp() {
                   timeframe={timeframe}
                   setTimeframe={setTimeframe}
                   result={decisionResult}
+                  mode={mode}
+                  modeProfile={activeMode}
+                />
+              </Screen>
+            ) : null}
+            {activeView === "decisions" ? (
+              <Screen key="decisions">
+                <DecisionCompanionPanel
+                  mode={mode}
+                  modeProfile={activeMode}
+                  decisions={wisdomDecisions}
+                  events={decisionEvents}
+                  insight={timelineInsight}
+                  counselContacts={counselContacts}
+                  rules={rulesOfLife}
+                  title={decisionTitle}
+                  pressure={decisionPressure}
+                  emotion={decisionEmotion}
+                  counselName={counselName}
+                  counselRole={counselRole}
+                  ruleText={ruleText}
+                  setTitle={setDecisionTitle}
+                  setPressure={setDecisionPressure}
+                  setEmotion={setDecisionEmotion}
+                  setCounselName={setCounselName}
+                  setCounselRole={setCounselRole}
+                  setRuleText={setRuleText}
+                  onCreateDecision={createDecision}
+                  onUpdateDecision={updateDecision}
+                  onAddCounsel={addCounselContact}
+                  onAddRule={addRuleOfLife}
                 />
               </Screen>
             ) : null}
@@ -822,8 +1192,9 @@ export function AletheiaApp() {
       </div>
 
       <div className="fixed inset-x-2 bottom-2 z-40 rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/92 p-1 shadow-2xl shadow-[#1f2a24]/12 backdrop-blur sm:inset-x-3 sm:bottom-3 md:hidden">
-        <div className="grid grid-cols-4 gap-1">
+        <div className="grid grid-cols-5 gap-1">
           <MobileNav active={activeView === "companion"} icon={MessageCircle} label="Ask" onClick={() => setActiveView("companion")} />
+          <MobileNav active={activeView === "decisions"} icon={FileText} label="Decide" onClick={() => setActiveView("decisions")} />
           <MobileNav active={activeView === "check"} icon={Scale} label="Check" onClick={() => setActiveView("check")} />
           <MobileNav active={activeView === "library"} icon={BookOpen} label="Library" onClick={() => setActiveView("library")} />
           <MobileNav active={activeView === "journal"} icon={Feather} label="Journal" onClick={() => setActiveView("journal")} />
@@ -1062,6 +1433,7 @@ function NotificationPanel({
 function CompanionPanel({
   messages,
   mode,
+  modeProfile,
   query,
   setQuery,
   onAsk,
@@ -1070,6 +1442,7 @@ function CompanionPanel({
 }: {
   messages: ChatMessage[];
   mode: Mode;
+  modeProfile: ModeProfile;
   query: string;
   setQuery: (value: string) => void;
   onAsk: (event: FormEvent<HTMLFormElement>) => void;
@@ -1079,12 +1452,15 @@ function CompanionPanel({
   return (
     <div className="grid min-w-0 gap-4 xl:grid-cols-[1fr_320px]">
       <section className="min-w-0 rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 shadow-sm">
-        <div className="flex items-center justify-between gap-3 border-b border-[#d8e1db] px-3 py-3 sm:px-4">
-          <div className="flex items-center gap-2 font-semibold text-[#203a35]">
-            <MessageCircle size={18} />
-            Wisdom Companion
+        <div className="flex flex-col gap-3 border-b border-[#d8e1db] px-3 py-3 sm:px-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <div className="flex items-center gap-2 font-semibold text-[#203a35]">
+              <MessageCircle size={18} />
+              Wisdom Companion
+            </div>
+            <p className="mt-1 text-sm leading-5 text-[#5a685f]">{modeProfile.intent}</p>
           </div>
-          <span className="rounded-md bg-[#edf2ee] px-2 py-1 text-xs font-semibold text-[#52635a]">{mode}</span>
+          <span className="w-fit rounded-md bg-[#edf2ee] px-2 py-1 text-xs font-semibold text-[#52635a]">{mode} lens</span>
         </div>
 
         <div className="max-h-[560px] space-y-4 overflow-y-auto p-3 sm:p-4">
@@ -1116,7 +1492,7 @@ function CompanionPanel({
             <textarea
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Ask about debt, career, investing, generosity, anxiety, or a decision..."
+              placeholder={`Ask in ${mode} mode: ${modeProfile.focus.toLowerCase()}...`}
               className="min-h-20 flex-1 resize-none rounded-lg border border-[#c9d5cd] bg-white/80 px-3 py-3 text-sm leading-6 outline-none transition placeholder:text-[#8b968e] focus:border-[#203a35]"
             />
             <button disabled={isWorking} className="grid h-11 w-full shrink-0 place-items-center rounded-lg bg-[#203a35] text-[#f8f5e8] shadow-lg shadow-[#203a35]/15 transition hover:bg-[#284b43] disabled:opacity-60 sm:size-12 sm:w-auto" aria-label="Send question">
@@ -1128,9 +1504,40 @@ function CompanionPanel({
 
       <aside className="space-y-4">
         <section className="rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm">
-          <h2 className="font-semibold text-[#203a35]">Try a real question</h2>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">What this mode is for</p>
+          <h2 className="mt-2 font-semibold text-[#203a35]">{modeProfile.label}: {modeProfile.intent}</h2>
+          <p className="mt-2 text-sm leading-6 text-[#55645b]">{modeProfile.useWhen}</p>
+          <p className="mt-3 rounded-lg border border-[#d8e1db] bg-white/64 p-3 text-sm leading-6 text-[#45534b]">
+            {modeProfile.lens}
+          </p>
+        </section>
+
+        <section className="rounded-xl border border-[#c9d5cd] bg-[#203a35] p-4 text-[#f8f5e8] shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#d0ad55]">Deep checks</p>
+          <div className="mt-3 space-y-3">
+            {modeProfile.diagnosticTracks.slice(0, 3).map((track) => (
+              <div key={track} className="rounded-lg border border-white/10 bg-white/7 p-3">
+                <p className="text-sm leading-6 text-[#edf4ee]">{track}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">Blind spots</p>
+          <ul className="mt-3 space-y-2 text-sm leading-6 text-[#55645b]">
+            {modeProfile.blindSpots.slice(0, 3).map((spot) => (
+              <li key={spot} className="rounded-lg border border-[#d8e1db] bg-white/60 px-3 py-2">
+                {spot}
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section className="rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm">
+          <h2 className="font-semibold text-[#203a35]">Try a {mode.toLowerCase()} question</h2>
           <div className="mt-3 space-y-2">
-            {prompts.map((prompt) => (
+            {modeProfile.prompts.map((prompt) => (
               <button
                 key={prompt}
                 onClick={() => onPrompt(prompt)}
@@ -1144,13 +1551,369 @@ function CompanionPanel({
         </section>
 
         <section className="rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm">
-          <h2 className="font-semibold text-[#203a35]">Safety posture</h2>
-          <p className="mt-2 text-sm leading-6 text-[#55645b]">
-            Aletheia gives reflective wisdom, not financial advice. It refuses outcome promises and grounds references in the local wisdom library.
-          </p>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">Maturity signals</p>
+          <ul className="mt-3 space-y-2 text-sm leading-6 text-[#55645b]">
+            {modeProfile.maturitySignals.slice(0, 3).map((signal) => (
+              <li key={signal} className="flex gap-2">
+                <Check className="mt-1 shrink-0 text-[#2d5d4c]" size={15} />
+                <span>{signal}</span>
+              </li>
+            ))}
+          </ul>
         </section>
       </aside>
     </div>
+  );
+}
+
+function DecisionCompanionPanel({
+  mode,
+  modeProfile,
+  decisions,
+  events,
+  insight,
+  counselContacts,
+  rules,
+  title,
+  pressure,
+  emotion,
+  counselName,
+  counselRole,
+  ruleText,
+  setTitle,
+  setPressure,
+  setEmotion,
+  setCounselName,
+  setCounselRole,
+  setRuleText,
+  onCreateDecision,
+  onUpdateDecision,
+  onAddCounsel,
+  onAddRule,
+}: {
+  mode: Mode;
+  modeProfile: ModeProfile;
+  decisions: WisdomDecision[];
+  events: DecisionEvent[];
+  insight: TimelineInsight;
+  counselContacts: CounselContact[];
+  rules: RuleOfLife[];
+  title: string;
+  pressure: string;
+  emotion: string;
+  counselName: string;
+  counselRole: string;
+  ruleText: string;
+  setTitle: (value: string) => void;
+  setPressure: (value: string) => void;
+  setEmotion: (value: string) => void;
+  setCounselName: (value: string) => void;
+  setCounselRole: (value: string) => void;
+  setRuleText: (value: string) => void;
+  onCreateDecision: (event: FormEvent<HTMLFormElement>) => void;
+  onUpdateDecision: (id: string, patch: Partial<WisdomDecision> & { waitingDays?: number | null; event?: string }) => void;
+  onAddCounsel: (event: FormEvent<HTMLFormElement>) => void;
+  onAddRule: (event: FormEvent<HTMLFormElement>) => void;
+}) {
+  const activeDecisions = decisions.filter((decision) => decision.status !== "closed");
+  const selectedDecision = decisions[0];
+  const modeRules = rules.filter((rule) => rule.mode === mode);
+
+  return (
+    <div className="grid min-w-0 gap-4 xl:grid-cols-[1fr_340px]">
+      <section className="space-y-4">
+        <section className="rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm sm:p-5">
+          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">Decision Companion</p>
+              <h2 className="mt-2 text-2xl font-semibold text-[#203a35]">Track the decision until wisdom has had time to work.</h2>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-[#55645b]">
+                Memory, counsel, waiting, summary export, and a calm readiness signal for major choices.
+              </p>
+            </div>
+            <span className="w-fit rounded-md bg-[#edf2ee] px-3 py-2 text-xs font-semibold text-[#52635a]">{mode} lens</span>
+          </div>
+
+          <form onSubmit={onCreateDecision} className="mt-5 grid gap-3 lg:grid-cols-[1fr_1.2fr_auto]">
+            <input
+              value={title}
+              onChange={(event) => setTitle(event.target.value)}
+              className="h-11 rounded-lg border border-[#c9d5cd] bg-white/78 px-3 text-sm outline-none focus:border-[#203a35]"
+              placeholder="Decision title"
+            />
+            <input
+              value={pressure}
+              onChange={(event) => setPressure(event.target.value)}
+              className="h-11 rounded-lg border border-[#c9d5cd] bg-white/78 px-3 text-sm outline-none focus:border-[#203a35]"
+              placeholder="What pressure, fear, or hope is attached?"
+            />
+            <select
+              value={emotion}
+              onChange={(event) => setEmotion(event.target.value)}
+              className="h-11 rounded-lg border border-[#c9d5cd] bg-white/78 px-3 text-sm outline-none focus:border-[#203a35]"
+              aria-label="Initial emotion"
+            >
+              <option>uncertain</option>
+              <option>anxious</option>
+              <option>excited</option>
+              <option>pressured</option>
+              <option>peaceful</option>
+            </select>
+            <button className="h-11 rounded-lg bg-[#203a35] px-4 text-sm font-semibold text-[#f8f5e8] lg:col-span-full">
+              Start decision memory
+            </button>
+          </form>
+        </section>
+
+        <section className="grid gap-4 md:grid-cols-3">
+          <TimelineStat icon={Clock3} label="Active decisions" value={String(activeDecisions.length)} />
+          <TimelineStat icon={Sparkles} label="Days discerning" value={String(insight.daysDiscerning)} />
+          <TimelineStat icon={ShieldCheck} label="Patterns noticed" value={String(insight.patterns.length)} />
+        </section>
+
+        <section className="rounded-xl border border-[#c9d5cd] bg-[#203a35] p-4 text-[#f8f5e8] shadow-sm sm:p-5">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#d0ad55]">Wisdom Timeline</p>
+          <p className="mt-3 text-sm leading-6 text-[#edf4ee]">{insight.gentleObservation}</p>
+          <div className="mt-4 space-y-3">
+            {events.slice(0, 5).map((event) => (
+              <div key={event.id} className="rounded-lg border border-white/10 bg-white/7 p-3">
+                <p className="text-sm leading-6 text-[#edf4ee]">{event.body}</p>
+                <p className="mt-1 text-xs text-[#b8c8bd]">{new Date(event.createdAt).toLocaleDateString()}</p>
+              </div>
+            ))}
+            {!events.length ? <p className="text-sm leading-6 text-[#cddbd1]">Start a decision to begin your wisdom timeline.</p> : null}
+          </div>
+        </section>
+
+        <section className="space-y-3">
+          {decisions.map((decision) => (
+            <DecisionCard key={decision.id} decision={decision} modeProfile={modeProfiles[decision.mode]} onUpdate={onUpdateDecision} />
+          ))}
+          {!decisions.length ? (
+            <div className="rounded-xl border border-dashed border-[#c9d5cd] p-6 text-sm leading-6 text-[#617067]">
+              No decision memory yet. Add the first decision above and Aletheia will track pressure, wisdom anchors, waiting, counsel, and learning.
+            </div>
+          ) : null}
+        </section>
+      </section>
+
+      <aside className="space-y-4">
+        <section className="rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">Counsel Circle</p>
+          <form onSubmit={onAddCounsel} className="mt-3 grid gap-2">
+            <input
+              value={counselName}
+              onChange={(event) => setCounselName(event.target.value)}
+              className="h-10 rounded-md border border-[#c9d5cd] bg-white/78 px-3 text-sm outline-none"
+              placeholder="Name"
+            />
+            <select
+              value={counselRole}
+              onChange={(event) => setCounselRole(event.target.value)}
+              className="h-10 rounded-md border border-[#c9d5cd] bg-white/78 px-3 text-sm outline-none"
+            >
+              <option>spouse</option>
+              <option>mentor</option>
+              <option>pastor</option>
+              <option>advisor</option>
+              <option>friend</option>
+            </select>
+            <button className="h-10 rounded-md bg-[#203a35] px-3 text-sm font-semibold text-[#f8f5e8]">Add counsel</button>
+          </form>
+          <div className="mt-3 space-y-2">
+            {counselContacts.slice(0, 5).map((contact) => (
+              <div key={contact.id} className="flex items-center gap-2 rounded-lg border border-[#d8e1db] bg-white/64 p-3">
+                <Users size={16} className="text-[#405049]" />
+                <div>
+                  <p className="text-sm font-semibold text-[#203a35]">{contact.name}</p>
+                  <p className="text-xs uppercase tracking-[0.12em] text-[#718077]">{contact.role}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">Rule of Life</p>
+          <form onSubmit={onAddRule} className="mt-3 grid gap-2">
+            <textarea
+              value={ruleText}
+              onChange={(event) => setRuleText(event.target.value)}
+              className="min-h-20 resize-none rounded-md border border-[#c9d5cd] bg-white/78 px-3 py-2 text-sm leading-6 outline-none"
+              placeholder="I do not make career decisions without counsel."
+            />
+            <button className="h-10 rounded-md bg-[#203a35] px-3 text-sm font-semibold text-[#f8f5e8]">Save principle</button>
+          </form>
+          <div className="mt-3 space-y-2">
+            {modeRules.slice(0, 4).map((rule) => (
+              <p key={rule.id} className="rounded-lg border border-[#d8e1db] bg-white/64 p-3 text-sm leading-6 text-[#45534b]">
+                {rule.principle}
+              </p>
+            ))}
+          </div>
+        </section>
+
+        <section className="rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">Scripture integrity</p>
+          <ul className="mt-3 space-y-2 text-sm leading-6 text-[#55645b]">
+            <li>References come from the curated wisdom library.</li>
+            <li>No financial outcomes or divine predictions.</li>
+            <li>Prosperity-gospel framing is refused.</li>
+            <li>High-stakes choices are pointed toward qualified counsel.</li>
+          </ul>
+        </section>
+
+        <section className="rounded-xl border border-[#c9d5cd] bg-[#203a35] p-4 text-[#f8f5e8] shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#d0ad55]">Premium daily wisdom</p>
+          <p className="mt-3 text-sm font-semibold text-[#f3e8bd]">{modeProfile.practices[0]}</p>
+          <p className="mt-2 text-sm leading-6 text-[#edf4ee]">A tiny practice for today, shaped by the active wisdom mode.</p>
+        </section>
+
+        {selectedDecision?.summary ? (
+          <section className="rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">Decision Summary Export</p>
+            <textarea readOnly value={selectedDecision.summary} className="mt-3 max-h-56 min-h-40 w-full resize-none rounded-md border border-[#c9d5cd] bg-white/78 p-3 text-xs leading-5 text-[#405049]" />
+          </section>
+        ) : null}
+      </aside>
+    </div>
+  );
+}
+
+function TimelineStat({ icon: Icon, label, value }: { icon: typeof Clock3; label: string; value: string }) {
+  return (
+    <div className="rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#866a24]">{label}</p>
+        <Icon size={17} className="text-[#405049]" />
+      </div>
+      <p className="mt-3 text-3xl font-semibold text-[#203a35]">{value}</p>
+    </div>
+  );
+}
+
+function DecisionCard({
+  decision,
+  modeProfile,
+  onUpdate,
+}: {
+  decision: WisdomDecision;
+  modeProfile: ModeProfile;
+  onUpdate: (id: string, patch: Partial<WisdomDecision> & { waitingDays?: number | null; event?: string }) => void;
+}) {
+  const [noteDraft, setNoteDraft] = useState("");
+  const [finalDecisionDraft, setFinalDecisionDraft] = useState(decision.finalDecision ?? "");
+  const [learningDraft, setLearningDraft] = useState(decision.learning ?? "");
+  const waiting = decision.waitingUntil ? new Date(decision.waitingUntil) : null;
+  const waitingText = waiting ? `Waiting until ${waiting.toLocaleDateString()}` : null;
+  return (
+    <article className="rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm sm:p-5">
+      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded-md bg-[#edf2ee] px-2 py-1 text-xs font-semibold text-[#52635a]">{decision.mode}</span>
+            <span className="rounded-md bg-white/70 px-2 py-1 text-xs font-semibold text-[#866a24]">{decision.status}</span>
+            {waitingText ? <span className="rounded-md bg-[#fff8dc] px-2 py-1 text-xs font-semibold text-[#866a24]">{waitingText}</span> : null}
+          </div>
+          <h3 className="mt-3 text-xl font-semibold text-[#203a35]">{decision.title}</h3>
+          <p className="mt-2 text-sm leading-6 text-[#55645b]">{decision.pressure}</p>
+        </div>
+        <div className="min-w-28 rounded-lg border border-[#d8e1db] bg-white/70 p-3 text-center">
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#718077]">Readiness</p>
+          <p className="mt-1 text-2xl font-semibold text-[#203a35]">{decision.readiness}%</p>
+        </div>
+      </div>
+
+      <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+        <DecisionToggle active={decision.counselSought} label="Counsel" onClick={() => onUpdate(decision.id, { counselSought: !decision.counselSought, event: "Counsel status changed." })} />
+        <DecisionToggle active={decision.costCounted} label="Cost" onClick={() => onUpdate(decision.id, { costCounted: !decision.costCounted, event: "Cost counting updated." })} />
+        <DecisionToggle active={decision.alignmentClear} label="Values" onClick={() => onUpdate(decision.id, { alignmentClear: !decision.alignmentClear, event: "Values alignment updated." })} />
+        <DecisionToggle active={decision.reversibleStep} label="Reversible" onClick={() => onUpdate(decision.id, { reversibleStep: !decision.reversibleStep, event: "Reversibility updated." })} />
+        <DecisionToggle active={decision.peaceOverUrgency} label="Peace" onClick={() => onUpdate(decision.id, { peaceOverUrgency: !decision.peaceOverUrgency, event: "Peace over urgency updated." })} />
+      </div>
+
+      <div className="mt-4 grid gap-3 md:grid-cols-[1fr_auto] md:items-center">
+        <p className="text-sm leading-6 text-[#55645b]">{modeProfile.diagnosticTracks[0]}</p>
+        <div className="flex flex-wrap gap-2">
+          {[1, 3, 7, 30].map((days) => (
+            <button key={days} onClick={() => onUpdate(decision.id, { waitingDays: days })} className="rounded-md border border-[#c9d5cd] bg-white/70 px-3 py-2 text-xs font-semibold text-[#405049]">
+              Wait {days}d
+            </button>
+          ))}
+          <button onClick={() => onUpdate(decision.id, { status: "closed", event: "Decision closed with learning recorded." })} className="rounded-md bg-[#203a35] px-3 py-2 text-xs font-semibold text-[#f8f5e8]">
+            Close
+          </button>
+        </div>
+      </div>
+
+      <div className="mt-4 grid gap-3 lg:grid-cols-2">
+        <div className="rounded-lg border border-[#d8e1db] bg-white/64 p-3">
+          <label className="text-xs font-semibold uppercase tracking-[0.14em] text-[#866a24]">
+            What changed?
+          </label>
+          <textarea
+            value={noteDraft}
+            onChange={(event) => setNoteDraft(event.target.value)}
+            className="mt-2 min-h-20 w-full resize-none rounded-md border border-[#c9d5cd] bg-white/80 p-3 text-sm leading-6 outline-none"
+            placeholder="Prayer, counsel, facts, time, or emotion shifted..."
+          />
+          <button
+            onClick={() => {
+              if (!noteDraft.trim()) return;
+              onUpdate(decision.id, { event: noteDraft.trim() });
+              setNoteDraft("");
+            }}
+            className="mt-2 h-9 rounded-md border border-[#c9d5cd] bg-white/80 px-3 text-xs font-semibold text-[#405049]"
+          >
+            Add timeline note
+          </button>
+        </div>
+
+        <div className="rounded-lg border border-[#d8e1db] bg-white/64 p-3">
+          <label className="text-xs font-semibold uppercase tracking-[0.14em] text-[#866a24]">
+            Outcome and learning
+          </label>
+          <input
+            value={finalDecisionDraft}
+            onChange={(event) => setFinalDecisionDraft(event.target.value)}
+            className="mt-2 h-10 w-full rounded-md border border-[#c9d5cd] bg-white/80 px-3 text-sm outline-none"
+            placeholder="Final decision"
+          />
+          <textarea
+            value={learningDraft}
+            onChange={(event) => setLearningDraft(event.target.value)}
+            className="mt-2 min-h-16 w-full resize-none rounded-md border border-[#c9d5cd] bg-white/80 p-3 text-sm leading-6 outline-none"
+            placeholder="What did you learn?"
+          />
+          <button
+            onClick={() =>
+              onUpdate(decision.id, {
+                finalDecision: finalDecisionDraft,
+                learning: learningDraft,
+                status: "closed",
+                event: "Recorded final decision and learning.",
+              })
+            }
+            className="mt-2 h-9 rounded-md bg-[#203a35] px-3 text-xs font-semibold text-[#f8f5e8]"
+          >
+            Save outcome
+          </button>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function DecisionToggle({ active, label, onClick }: { active: boolean; label: string; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`rounded-lg border px-3 py-2 text-sm font-semibold transition ${
+        active ? "border-[#b8d0c2] bg-[#edf7f1] text-[#245443]" : "border-[#d8e1db] bg-white/64 text-[#607067]"
+      }`}
+    >
+      {label}
+    </button>
   );
 }
 
@@ -1162,6 +1925,8 @@ function WisdomCheck({
   timeframe,
   setTimeframe,
   result,
+  mode,
+  modeProfile,
 }: {
   decision: string;
   setDecision: (value: string) => void;
@@ -1170,6 +1935,8 @@ function WisdomCheck({
   timeframe: string;
   setTimeframe: (value: string) => void;
   result: { sources: WisdomEntry[]; readiness: number; hasUrgency: boolean; hasCounsel: boolean } | null;
+  mode: Mode;
+  modeProfile: ModeProfile;
 }) {
   return (
     <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
@@ -1177,6 +1944,10 @@ function WisdomCheck({
         <div className="mb-5 flex items-center gap-2 text-xl font-semibold text-[#203a35]">
           <Scale size={20} />
           Wisdom Check
+        </div>
+        <div className="mb-5 rounded-lg border border-[#d8e1db] bg-white/62 p-3">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">{mode} discernment lens</p>
+          <p className="mt-2 text-sm leading-6 text-[#55645b]">{modeProfile.intent}</p>
         </div>
         <label className="text-sm font-semibold text-[#405049]" htmlFor="decision">
           Decision or pressure
@@ -1237,6 +2008,24 @@ function WisdomCheck({
               <p className="mt-2 text-sm leading-6 text-[#505a52]">
                 {result.sources[0]?.scripture}: {result.sources[0]?.principle}
               </p>
+            </div>
+            <div className="rounded-lg border border-[#d8e1db] bg-[#203a35] p-4 text-[#f8f5e8]">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#d0ad55]">{mode} diagnostic</p>
+              <ul className="mt-3 space-y-2 text-sm leading-6 text-[#edf4ee]">
+                {modeProfile.diagnosticTracks.slice(0, 2).map((track) => (
+                  <li key={track}>{track}</li>
+                ))}
+              </ul>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="rounded-lg border border-[#d8e1db] bg-white/70 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8a6c25]">Watch for</p>
+                <p className="mt-2 text-sm leading-6 text-[#505a52]">{modeProfile.blindSpots[0]}</p>
+              </div>
+              <div className="rounded-lg border border-[#d8e1db] bg-white/70 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8a6c25]">Practice</p>
+                <p className="mt-2 text-sm leading-6 text-[#505a52]">{modeProfile.practices[0]}</p>
+              </div>
             </div>
             <div className="rounded-lg border border-[#d8e1db] bg-white/70 p-4">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8a6c25]">Next faithful action</p>

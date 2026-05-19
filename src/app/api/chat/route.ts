@@ -3,7 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { many, run } from "@/lib/db";
 import { generateWisdomResponse } from "@/lib/openai";
 import { checkRateLimit, getClientIdentity, rateLimitHeaders } from "@/lib/rate-limit";
-import { composeFallbackResponse, retrieveWisdom } from "@/lib/wisdom";
+import { composeModeAwareFallbackResponse, retrieveWisdom } from "@/lib/wisdom";
 import type { Mode } from "@/lib/wisdom-data";
 
 export async function GET() {
@@ -70,7 +70,7 @@ export async function POST(request: Request) {
   const sources = await retrieveWisdom(message, mode, 3);
   const aiText =
     (await generateWisdomResponse({ question: message, mode, sources })) ??
-    composeFallbackResponse(message, sources);
+    composeModeAwareFallbackResponse(message, mode, sources);
 
   if (user) {
     const now = new Date().toISOString();

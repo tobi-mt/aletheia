@@ -1,0 +1,64 @@
+import { NextResponse } from "next/server";
+import { getCurrentUser } from "@/lib/auth";
+import { many, run } from "@/lib/db";
+import type { Mode } from "@/lib/wisdom-data";
+
+type RuleRow = {
+  id: string;
+  mode: Mode;
+  principle: string;
+  created_at: string;
+};
+
+export async function GET() {
+  const user = await getCurrentUser();
+  if (!user) {
+    return NextResponse.json({ rules: [] });
+  }
+
+  const rules = await many<RuleRow>(
+    `SELECT id, mode, principle, created_at
+     FROM rule_of_life_entries
+     WHERE user_id = ?
+     ORDER BY created_at DESC`,
+    user.id
+  );
+
+  return NextResponse.json({
+    rules: rules.map((rule) => ({
+      id: rule.id,
+      mode: rule.mode,
+      principle: rule.principle,
+      createdAt: rule.created_at,
+    })),
+  });
+}
+
+export async function POST(request: Request) {
+  const user = await getCurrentUser();
+  if (!user) {
+    return NextResponse.json({ error: "Sign in to save rules of life." }, { status: 401 });
+  }
+
+  const body = (await request.json()) as { mode?: Mode; principle?: string };
+  const principle = body.principle?.trim();
+  const mode = body.mode ?? "Money";
+  if (!principle) {
+    return NextResponse.json({ error: "Principle is required." }, { status: 400 });
+  }
+
+  const now = new Date().toISOString();
+  const rule = { id: crypto.randomUUID(), mode, principle, createdAt: now };
+  await run(
+    `INSERT INTO rule_of_life_entries (id, user_id, mode, principle, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    rule.id,
+    user.id,
+    mode,
+    principle,
+    now,
+    now
+  );
+
+  return NextResponse.json({ rule });
+}
