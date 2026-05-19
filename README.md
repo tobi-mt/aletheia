@@ -12,6 +12,7 @@ AI-powered biblical wisdom for money, work, stewardship, generosity, and reflect
 - Wisdom Check decision tool with pace, counsel, and grounding signals
 - Searchable Biblical Wisdom Library
 - Reflection Journal synced to the database for signed-in users
+- Opt-in daily wisdom Web Push notifications
 - Mobile-first responsive PWA shell
 - Production-only service worker with offline app-shell caching
 - Installable PWA manifest and Aletheia app icons
@@ -26,6 +27,11 @@ OPENAI_API_KEY=""
 OPENAI_MODEL="gpt-5.4-mini"
 SESSION_COOKIE_NAME="aletheia_session"
 NEXT_PUBLIC_APP_URL="https://your-production-domain"
+NEXT_PUBLIC_VAPID_PUBLIC_KEY=""
+VAPID_PUBLIC_KEY=""
+VAPID_PRIVATE_KEY=""
+VAPID_SUBJECT="mailto:hello@mirrortalkpodcast.com"
+NOTIFICATION_CRON_SECRET=""
 ```
 
 Without `OPENAI_API_KEY`, the server still performs retrieval and returns a deterministic grounded fallback response. With `OPENAI_API_KEY`, `/api/chat` calls OpenAI server-side after retrieving curated biblical wisdom sources.
@@ -37,6 +43,8 @@ The database adapter creates required tables and seeds the curated wisdom entrie
 - Set `DATABASE_URL` to the Neon pooled connection string.
 - Set `OPENAI_API_KEY` server-side only.
 - Set `NEXT_PUBLIC_APP_URL` to the Railway/custom production URL.
+- Set VAPID keys for daily wisdom push notifications.
+- Set `NOTIFICATION_CRON_SECRET` and use it from your Railway scheduled job.
 - Use `npm run build` as the build command.
 - Use `npm run start` as the start command.
 - Redeploy after changing variables.
@@ -60,6 +68,40 @@ npm run start -- -p 3001
 Open [http://localhost:3001](http://localhost:3001).
 
 The service worker is registered only in production so local development does not get stuck behind stale cached bundles.
+
+## Daily Wisdom Notifications
+
+Generate Web Push VAPID keys:
+
+```bash
+npm run push:keys
+```
+
+Set the generated keys in Railway:
+
+```bash
+NEXT_PUBLIC_VAPID_PUBLIC_KEY="..."
+VAPID_PUBLIC_KEY="..."
+VAPID_PRIVATE_KEY="..."
+VAPID_SUBJECT="mailto:hello@mirrortalkpodcast.com"
+NOTIFICATION_CRON_SECRET="a-long-random-secret"
+```
+
+Users must be signed in and opt in from inside Aletheia. iOS users need to install the PWA to the Home Screen before Web Push is available.
+
+Create a Railway scheduled job that sends a POST request to:
+
+```text
+https://aletheia.mirrortalkpodcast.com/api/notifications/daily
+```
+
+with this header:
+
+```text
+Authorization: Bearer YOUR_NOTIFICATION_CRON_SECRET
+```
+
+The current implementation sends only to users whose preferred notification hour matches the current UTC hour and avoids repeat sends within 20 hours.
 
 ## PWA Notes
 

@@ -1,4 +1,4 @@
-const CACHE_NAME = "aletheia-v2";
+const CACHE_NAME = "aletheia-v3";
 const APP_SHELL = [
   "/",
   "/manifest.webmanifest",
@@ -61,6 +61,45 @@ self.addEventListener("fetch", (event) => {
           return response;
         })
         .catch(() => cached);
+    })
+  );
+});
+
+self.addEventListener("push", (event) => {
+  const fallback = {
+    title: "Aletheia",
+    body: "A short wisdom reflection is ready.",
+    url: "/",
+  };
+  const data = event.data ? event.data.json() : fallback;
+  const title = data.title || fallback.title;
+  const options = {
+    body: data.body || fallback.body,
+    icon: "/brand/aletheia-app-icon-192.png",
+    badge: "/brand/aletheia-app-icon-192.png",
+    data: {
+      url: data.url || "/",
+      scripture: data.scripture,
+    },
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = event.notification.data?.url || "/";
+
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
+      for (const client of clients) {
+        if ("focus" in client) {
+          client.navigate(url);
+          return client.focus();
+        }
+      }
+
+      return self.clients.openWindow(url);
     })
   );
 });

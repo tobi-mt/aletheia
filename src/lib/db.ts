@@ -90,10 +90,26 @@ async function initializeDatabase() {
       updated_at TIMESTAMPTZ NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS push_subscriptions (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      endpoint TEXT NOT NULL UNIQUE,
+      p256dh TEXT NOT NULL,
+      auth TEXT NOT NULL,
+      user_agent TEXT,
+      enabled BOOLEAN NOT NULL DEFAULT TRUE,
+      preferred_hour INTEGER NOT NULL DEFAULT 8,
+      last_sent_at TIMESTAMPTZ,
+      created_at TIMESTAMPTZ NOT NULL,
+      updated_at TIMESTAMPTZ NOT NULL
+    );
+
     CREATE INDEX IF NOT EXISTS sessions_token_hash_idx ON sessions(token_hash);
     CREATE INDEX IF NOT EXISTS chat_messages_user_created_idx ON chat_messages(user_id, created_at);
     CREATE INDEX IF NOT EXISTS journal_entries_user_created_idx ON journal_entries(user_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS rate_limits_reset_idx ON rate_limits(reset_at);
+    CREATE INDEX IF NOT EXISTS push_subscriptions_user_idx ON push_subscriptions(user_id);
+    CREATE INDEX IF NOT EXISTS push_subscriptions_enabled_idx ON push_subscriptions(enabled, preferred_hour);
   `);
 
   const { rows } = await pool.query<{ count: string }>(

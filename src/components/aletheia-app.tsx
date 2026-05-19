@@ -24,6 +24,7 @@ import {
   Sprout,
   Trash2,
   WifiOff,
+  Bell,
 } from "lucide-react";
 
 type Mode = "Money" | "Work" | "Purpose" | "Generosity";
@@ -299,6 +300,10 @@ export function AletheiaApp() {
   const [authError, setAuthError] = useState("");
   const [isWorking, setIsWorking] = useState(false);
   const [statusMessage, setStatusMessage] = useState("Guest mode: chat works, sign in to sync history and journal.");
+  const [notificationStatus, setNotificationStatus] = useState("Checking notification support...");
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [notificationsConfigured, setNotificationsConfigured] = useState(false);
+  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>("default");
 
   useEffect(() => {
     async function loadSession() {
@@ -308,12 +313,17 @@ export function AletheiaApp() {
 
       if (data.user) {
         setStatusMessage("Signed in. Conversations and reflections sync to the local database.");
-        const [chatResponse, journalResponse] = await Promise.all([
+        const [chatResponse, journalResponse, notificationResponse] = await Promise.all([
           fetch("/api/chat"),
           fetch("/api/journal"),
+          fetch("/api/notifications/status"),
         ]);
         const chatData = (await chatResponse.json()) as { messages?: ChatMessage[] };
         const journalData = (await journalResponse.json()) as { entries?: JournalEntry[] };
+        const notificationData = (await notificationResponse.json()) as {
+          configured?: boolean;
+          enabled?: boolean;
+        };
         if (chatData.messages?.length) {
           setMessages([
             defaultMessages[0],
@@ -326,6 +336,8 @@ export function AletheiaApp() {
         if (journalData.entries) {
           setJournalEntries(journalData.entries);
         }
+        setNotificationsConfigured(Boolean(notificationData.configured));
+        setNotificationsEnabled(Boolean(notificationData.enabled));
       }
     }
 
@@ -345,7 +357,6 @@ export function AletheiaApp() {
           .catch(() => undefined);
       }
     }
-
     const updateOnline = () => setIsOnline(navigator.onLine);
     updateOnline();
     window.addEventListener("online", updateOnline);
@@ -355,6 +366,36 @@ export function AletheiaApp() {
       window.removeEventListener("offline", updateOnline);
     };
   }, []);
+
+  useEffect(() => {
+    async function loadNotificationStatus() {
+      if ("Notification" in window) {
+        setNotificationPermission(Notification.permission);
+      } else {
+        setNotificationStatus("This browser does not support notifications.");
+      }
+      const response = await fetch("/api/notifications/status");
+      const data = (await response.json()) as {
+        configured?: boolean;
+        enabled?: boolean;
+      };
+      setNotificationsConfigured(Boolean(data.configured));
+      setNotificationsEnabled(Boolean(data.enabled));
+      if (!data.configured) {
+        setNotificationStatus("Notifications need VAPID keys before they can be enabled.");
+      } else if (!user) {
+        setNotificationStatus("Sign in to enable daily wisdom notifications.");
+      } else if (data.enabled) {
+        setNotificationStatus("Daily wisdom notifications are enabled.");
+      } else {
+        setNotificationStatus("Get one quiet daily wisdom reflection on this device.");
+      }
+    }
+
+    loadNotificationStatus().catch(() =>
+      setNotificationStatus("Notification status could not be loaded.")
+    );
+  }, [user]);
 
   const filteredEntries = useMemo(() => {
     if (!librarySearch.trim()) {
@@ -475,7 +516,73 @@ export function AletheiaApp() {
     setUser(null);
     setMessages(defaultMessages);
     setJournalEntries([]);
+    setNotificationsEnabled(false);
     setStatusMessage("Signed out. Guest mode is active.");
+  }
+
+  async function enableNotifications() {
+    if (!user) {
+      setNotificationStatus("Sign in first, then enable notifications.");
+      return;
+    }
+    if (!notificationsConfigured) {
+      setNotificationStatus("Notifications are not configured on the server yet.");
+      return;
+    }
+    if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
+      setNotificationStatus("This browser does not support web push notifications.");
+      return;
+    }
+
+    const permission = await Notification.requestPermission();
+    setNotificationPermission(permission);
+    if (permission !== "granted") {
+      setNotificationStatus("Notifications were not enabled. You can allow them later in browser settings.");
+      return;
+    }
+
+    const keyResponse = await fetch("/api/notifications/key");
+    const keyData = (await keyResponse.json()) as { publicKey?: string };
+    if (!keyData.publicKey) {
+      setNotificationStatus("Notifications are missing a public key.");
+      return;
+    }
+
+    const registration = await navigator.serviceWorker.register("/sw.js");
+    const subscription = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(keyData.publicKey),
+    });
+    const preferredHour = 8;
+    const response = await fetch("/api/notifications/subscribe", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ subscription, preferredHour }),
+    });
+    if (!response.ok) {
+      setNotificationStatus("Could not save notification preference.");
+      return;
+    }
+
+    setNotificationsEnabled(true);
+    setNotificationStatus("Daily wisdom notifications are enabled for this device.");
+  }
+
+  async function disableNotifications() {
+    if ("serviceWorker" in navigator) {
+      const registration = await navigator.serviceWorker.getRegistration();
+      const subscription = await registration?.pushManager.getSubscription();
+      await subscription?.unsubscribe();
+      await fetch("/api/notifications/unsubscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ endpoint: subscription?.endpoint }),
+      });
+    } else {
+      await fetch("/api/notifications/unsubscribe", { method: "POST" });
+    }
+    setNotificationsEnabled(false);
+    setNotificationStatus("Daily wisdom notifications are turned off for this device.");
   }
 
   async function saveReflection() {
@@ -662,6 +769,16 @@ export function AletheiaApp() {
             onLogout={logout}
           />
 
+          <NotificationPanel
+            user={user}
+            enabled={notificationsEnabled}
+            configured={notificationsConfigured}
+            permission={notificationPermission}
+            status={notificationStatus}
+            onEnable={enableNotifications}
+            onDisable={disableNotifications}
+          />
+
           <AnimatePresence mode="wait">
             {activeView === "companion" ? (
               <Screen key="companion">
@@ -774,6 +891,13 @@ function ModeButton({ item, active, onClick }: { item: (typeof modes)[number]; a
   );
 }
 
+function urlBase64ToUint8Array(value: string) {
+  const padding = "=".repeat((4 - (value.length % 4)) % 4);
+  const base64 = (value + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = window.atob(base64);
+  return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0)));
+}
+
 function AuthPanel({
   user,
   authMode,
@@ -874,6 +998,63 @@ function AuthPanel({
           </form>
         </div>
       )}
+    </section>
+  );
+}
+
+function NotificationPanel({
+  user,
+  enabled,
+  configured,
+  permission,
+  status,
+  onEnable,
+  onDisable,
+}: {
+  user: User | null;
+  enabled: boolean;
+  configured: boolean;
+  permission: NotificationPermission;
+  status: string;
+  onEnable: () => void;
+  onDisable: () => void;
+}) {
+  const unsupported =
+    typeof window !== "undefined" &&
+    (!("Notification" in window) || !("serviceWorker" in navigator) || !("PushManager" in window));
+  const disabled = !user || !configured || unsupported || permission === "denied";
+
+  return (
+    <section className="mb-5 rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-start gap-3">
+          <div className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-md bg-[#edf2ee] text-[#203a35]">
+            <Bell size={17} />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-[#203a35]">Daily wisdom notifications</p>
+            <p className="mt-1 text-sm leading-6 text-[#5b6a61]">
+              {status}
+            </p>
+          </div>
+        </div>
+        {enabled ? (
+          <button
+            onClick={onDisable}
+            className="h-10 rounded-md border border-[#c9d5cd] bg-white/70 px-4 text-sm font-semibold text-[#405049] transition hover:bg-white"
+          >
+            Turn off
+          </button>
+        ) : (
+          <button
+            onClick={onEnable}
+            disabled={disabled}
+            className="h-10 rounded-md bg-[#203a35] px-4 text-sm font-semibold text-[#f8f5e8] transition hover:bg-[#284b43] disabled:cursor-not-allowed disabled:opacity-55"
+          >
+            Enable
+          </button>
+        )}
+      </div>
     </section>
   );
 }
