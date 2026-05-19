@@ -19,5 +19,6 @@ export async function GET(request: NextRequest) {
 
   const requestedNext = request.nextUrl.searchParams.get("next") || "/";
   const next = requestedNext.startsWith("/") && !requestedNext.startsWith("//") ? requestedNext : "/";
-  return NextResponse.redirect(new URL(next, request.url));
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.AUTH_URL || request.url;
+  return NextResponse.redirect(new URL(next, appUrl));
 }
