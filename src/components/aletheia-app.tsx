@@ -518,6 +518,7 @@ export function AletheiaApp() {
   const [authEmail, setAuthEmail] = useState("");
   const [authPassword, setAuthPassword] = useState("");
   const [authError, setAuthError] = useState("");
+  const [authNotice, setAuthNotice] = useState("");
   const [authStatus, setAuthStatus] = useState<AuthStatus>("checking");
   const [googleAuthAvailable, setGoogleAuthAvailable] = useState(false);
   const [preferences, setPreferences] = useState<UserPreferences>(storedPreferences);
@@ -554,6 +555,60 @@ export function AletheiaApp() {
   const preferencesRef = useRef<HTMLElement | null>(null);
   const workspaceRef = useRef<HTMLElement | null>(null);
 
+  async function loadSignedInWorkspace(signedInUser: User) {
+    const [chatResponse, journalResponse, notificationResponse, decisionsResponse, counselResponse, rulesResponse, preferencesResponse] = await Promise.all([
+      fetch("/api/chat"),
+      fetch("/api/journal"),
+      fetch("/api/notifications/status"),
+      fetch("/api/decisions"),
+      fetch("/api/counsel"),
+      fetch("/api/rules"),
+      fetch("/api/preferences"),
+    ]);
+    const chatData = (await chatResponse.json()) as { messages?: ChatMessage[] };
+    const journalData = (await journalResponse.json()) as { entries?: JournalEntry[] };
+    const notificationData = (await notificationResponse.json()) as {
+      configured?: boolean;
+      enabled?: boolean;
+    };
+    const decisionsData = (await decisionsResponse.json()) as {
+      decisions?: WisdomDecision[];
+      events?: DecisionEvent[];
+      insight?: TimelineInsight;
+    };
+    const counselData = (await counselResponse.json()) as { contacts?: CounselContact[] };
+    const rulesData = (await rulesResponse.json()) as { rules?: RuleOfLife[] };
+    const preferencesData = (await preferencesResponse.json()) as { preferences?: UserPreferences };
+
+    setUser(signedInUser);
+    setAuthStatus("signed-in");
+    if (chatData.messages?.length) {
+      setMessages([
+        defaultMessages[0],
+        ...chatData.messages.map<ChatMessage>((message) => ({
+          ...message,
+          role: message.role === "user" ? "user" : "aletheia",
+        })),
+      ]);
+    }
+    if (journalData.entries) {
+      setJournalEntries(journalData.entries);
+    }
+    setWisdomDecisions(decisionsData.decisions ?? []);
+    setDecisionEvents(decisionsData.events ?? []);
+    if (decisionsData.insight) {
+      setTimelineInsight(decisionsData.insight);
+    }
+    setCounselContacts(counselData.contacts ?? []);
+    setRulesOfLife(rulesData.rules ?? []);
+    if (preferencesData.preferences) {
+      setPreferences(preferencesData.preferences);
+      window.localStorage.setItem("aletheia_preferences", JSON.stringify(preferencesData.preferences));
+    }
+    setNotificationsConfigured(Boolean(notificationData.configured));
+    setNotificationsEnabled(Boolean(notificationData.enabled));
+  }
+
   useEffect(() => {
     const openedKey = "aletheia_app_opened_tracked";
     try {
@@ -581,65 +636,29 @@ export function AletheiaApp() {
         setGoogleAuthAvailable(Boolean(providers.google));
       }
       const data = (await response.json()) as { user: User | null };
-      setUser(data.user);
+      const params = new URLSearchParams(window.location.search);
 
       if (data.user) {
-        setAuthStatus("signed-in");
-        setStatusMessage("Signed in. Conversations and reflections sync to the local database.");
-        const [chatResponse, journalResponse, notificationResponse, decisionsResponse, counselResponse, rulesResponse, preferencesResponse] = await Promise.all([
-          fetch("/api/chat"),
-          fetch("/api/journal"),
-          fetch("/api/notifications/status"),
-          fetch("/api/decisions"),
-          fetch("/api/counsel"),
-          fetch("/api/rules"),
-          fetch("/api/preferences"),
-        ]);
-        const chatData = (await chatResponse.json()) as { messages?: ChatMessage[] };
-        const journalData = (await journalResponse.json()) as { entries?: JournalEntry[] };
-        const notificationData = (await notificationResponse.json()) as {
-          configured?: boolean;
-          enabled?: boolean;
-        };
-        const decisionsData = (await decisionsResponse.json()) as {
-          decisions?: WisdomDecision[];
-          events?: DecisionEvent[];
-          insight?: TimelineInsight;
-        };
-        const counselData = (await counselResponse.json()) as { contacts?: CounselContact[] };
-        const rulesData = (await rulesResponse.json()) as { rules?: RuleOfLife[] };
-        const preferencesData = (await preferencesResponse.json()) as { preferences?: UserPreferences };
-        if (chatData.messages?.length) {
-          setMessages([
-            defaultMessages[0],
-            ...chatData.messages.map<ChatMessage>((message) => ({
-              ...message,
-              role: message.role === "user" ? "user" : "aletheia",
-            })),
-          ]);
+        await loadSignedInWorkspace(data.user);
+        const signedInMessage = params.get("auth") === "google_success"
+          ? "Google sign-in successful. Sync is active."
+          : "Signed in. Conversations and reflections sync to the database.";
+        setStatusMessage(signedInMessage);
+        setAuthNotice(params.get("auth") === "google_success" ? signedInMessage : "");
+        if (params.get("view") === "account" || params.get("auth") === "google_success") {
+          setActiveView("account");
+          setShowOnboarding(false);
+          window.history.replaceState({}, "", window.location.pathname);
         }
-        if (journalData.entries) {
-          setJournalEntries(journalData.entries);
-        }
-        setWisdomDecisions(decisionsData.decisions ?? []);
-        setDecisionEvents(decisionsData.events ?? []);
-        if (decisionsData.insight) {
-          setTimelineInsight(decisionsData.insight);
-        }
-        setCounselContacts(counselData.contacts ?? []);
-        setRulesOfLife(rulesData.rules ?? []);
-        if (preferencesData.preferences) {
-          setPreferences(preferencesData.preferences);
-          window.localStorage.setItem("aletheia_preferences", JSON.stringify(preferencesData.preferences));
-        }
-        setNotificationsConfigured(Boolean(notificationData.configured));
-        setNotificationsEnabled(Boolean(notificationData.enabled));
       } else {
-        const params = new URLSearchParams(window.location.search);
+        setUser(null);
         setAuthStatus("guest");
         setStatusMessage("Guest mode is active. Sign in to sync decisions, journal, notifications, and rules.");
         if (params.get("auth") === "oauth_failed") {
           setAuthError("Google sign-in did not finish. Please try again.");
+          setAuthNotice("");
+          setActiveView("account");
+          setShowOnboarding(false);
           window.history.replaceState({}, "", window.location.pathname);
         }
       }
@@ -1020,6 +1039,7 @@ export function AletheiaApp() {
     setIsWorking(true);
     setAuthStatus("signing-in");
     setAuthError("");
+    setAuthNotice(authMode === "register" ? "Creating your Aletheia account..." : "Signing you in...");
 
     try {
       const response = await fetch(`/api/auth/${authMode}`, {
@@ -1035,16 +1055,19 @@ export function AletheiaApp() {
       if (!response.ok || !data.user) {
         throw new Error(data.error ?? "Authentication failed.");
       }
-      setUser(data.user);
-      setAuthStatus("signed-in");
       setAuthPassword("");
-      setStatusMessage("Signed in. Conversations and reflections now sync to the database.");
-      const journalResponse = await fetch("/api/journal");
-      const journalData = (await journalResponse.json()) as { entries?: JournalEntry[] };
-      setJournalEntries(journalData.entries ?? []);
+      await loadSignedInWorkspace(data.user);
+      const successMessage = authMode === "register"
+        ? "Account created. You are signed in and sync is active."
+        : "Sign-in successful. Sync is active.";
+      setStatusMessage(successMessage);
+      setAuthNotice(successMessage);
+      setActiveView("account");
+      setShowOnboarding(false);
     } catch (error) {
       setAuthStatus("guest");
       setAuthError(error instanceof Error ? error.message : "Authentication failed.");
+      setAuthNotice("");
     } finally {
       setIsWorking(false);
     }
@@ -1052,10 +1075,12 @@ export function AletheiaApp() {
 
   async function logout() {
     setAuthStatus("signing-out");
+    setAuthNotice("Signing out...");
     await fetch("/api/auth/logout", { method: "POST" });
     await authSignOut({ redirect: false }).catch(() => undefined);
     setUser(null);
     setAuthStatus("guest");
+    setAuthNotice("Signed out. Guest mode is active.");
     setMessages(defaultMessages);
     setJournalEntries([]);
     setNotificationsEnabled(false);
@@ -1065,13 +1090,15 @@ export function AletheiaApp() {
   async function handleGoogleSignIn() {
     if (!googleAuthAvailable) {
       setAuthError("Google sign-in is not configured yet. You can still sign in with email.");
+      setAuthNotice("");
       return;
     }
     setAuthStatus("signing-in");
     setAuthError("");
-    setStatusMessage("Opening Google sign-in...");
+    setAuthNotice("Opening Google sign-in. You will return to Account when it finishes.");
+    setStatusMessage("Opening Google sign-in. You will return to Account when it finishes.");
     await authSignIn("google", {
-      redirectTo: "/api/auth/oauth/complete?next=/",
+      redirectTo: "/api/auth/oauth/complete?next=%2F%3Fauth%3Dgoogle_success%26view%3Daccount",
     });
   }
 
@@ -1615,7 +1642,11 @@ export function AletheiaApp() {
                 <AccountPanel
                   user={user}
                   authMode={authMode}
-                  setAuthMode={setAuthMode}
+                  setAuthMode={(value) => {
+                    setAuthMode(value);
+                    setAuthError("");
+                    setAuthNotice("");
+                  }}
                   name={authName}
                   setName={setAuthName}
                   email={authEmail}
@@ -1623,6 +1654,7 @@ export function AletheiaApp() {
                   password={authPassword}
                   setPassword={setAuthPassword}
                   error={authError}
+                  notice={authNotice}
                   authStatus={authStatus}
                   googleAuthAvailable={googleAuthAvailable}
                   status={statusMessage}
@@ -2130,6 +2162,7 @@ function AccountPanel({
   password,
   setPassword,
   error,
+  notice,
   authStatus,
   googleAuthAvailable,
   status,
@@ -2166,6 +2199,7 @@ function AccountPanel({
   password: string;
   setPassword: (value: string) => void;
   error: string;
+  notice: string;
   authStatus: AuthStatus;
   googleAuthAvailable: boolean;
   status: string;
@@ -2234,6 +2268,7 @@ function AccountPanel({
           password={password}
           setPassword={setPassword}
           error={error}
+          notice={notice}
           authStatus={authStatus}
           googleAuthAvailable={googleAuthAvailable}
           status={status}
@@ -2482,6 +2517,7 @@ function AuthPanel({
   password,
   setPassword,
   error,
+  notice,
   authStatus,
   googleAuthAvailable,
   status,
@@ -2500,6 +2536,7 @@ function AuthPanel({
   password: string;
   setPassword: (value: string) => void;
   error: string;
+  notice: string;
   authStatus: AuthStatus;
   googleAuthAvailable: boolean;
   status: string;
@@ -2536,6 +2573,22 @@ function AuthPanel({
           {statusLabel}
         </span>
       </div>
+      {notice ? (
+        <div
+          role="status"
+          className="mb-3 rounded-lg border border-[#b8d0c2] bg-[#edf7f1] px-3 py-2 text-sm font-medium leading-6 text-[#245443]"
+        >
+          {notice}
+        </div>
+      ) : null}
+      {error ? (
+        <div
+          role="alert"
+          className="mb-3 rounded-lg border border-[#e0c3b7] bg-[#fff6f1] px-3 py-2 text-sm font-medium leading-6 text-[#8c3f28]"
+        >
+          {error}
+        </div>
+      ) : null}
       {user ? (
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -2617,7 +2670,6 @@ function AuthPanel({
               >
                 {authMode === "register" ? "I already have an account" : "Create a new account"}
               </button>
-              {error ? <span className="text-sm font-medium text-[#8c3f28]">{error}</span> : null}
             </div>
             </form>
           </div>
