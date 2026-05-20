@@ -1901,7 +1901,7 @@ function OnboardingModal({
                   const translation = bibleTranslations[code];
                   return (
                   <option key={code} value={code}>
-                    {translation.language === preferences.language ? "Recommended" : "Fallback"} · {code} - {translation.label}
+                    {translation.language === preferences.language ? "Available" : "English fallback"} · {code} - {translation.label}
                   </option>
                   );
                 })}
@@ -2830,7 +2830,7 @@ function PreferencesPanel({
                 const translation = bibleTranslations[code];
                 return (
                 <option key={code} value={code}>
-                  {translation.language === preferences.language ? "Recommended" : "Fallback"} · {code} - {translation.label}
+                  {translation.language === preferences.language ? "Available" : "English fallback"} · {code} - {translation.label}
                 </option>
                 );
               })}

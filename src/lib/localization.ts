@@ -123,7 +123,7 @@ export function bibleTranslationOptionsForLanguage(language: LanguageCode): Bibl
     .map(([code]) => code as BibleTranslation);
 
   const englishFallbacks: BibleTranslation[] = ["WEB", "KJV", "ASV"];
-  return [...new Set([...localized, ...englishFallbacks])];
+  return localized.length ? localized : englishFallbacks;
 }
 
 export type ScriptureRead = {
@@ -446,10 +446,14 @@ export const localizedDailyPractices: Record<LanguageCode, Partial<Record<Mode, 
 export function normalizePreferences(input: Partial<UserPreferences> = {}): UserPreferences {
   const language = input.language && input.language in languages ? input.language : defaultPreferences.language;
   const region = input.region && input.region in regions ? input.region : defaultPreferences.region;
-  const bibleTranslation =
+  const requestedBibleTranslation =
     input.bibleTranslation && input.bibleTranslation in bibleTranslations
       ? input.bibleTranslation
       : defaultBibleTranslationForLanguage(language);
+  const options = bibleTranslationOptionsForLanguage(language);
+  const bibleTranslation = options.includes(requestedBibleTranslation)
+    ? requestedBibleTranslation
+    : defaultBibleTranslationForLanguage(language);
 
   return {
     language,
