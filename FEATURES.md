@@ -1,4 +1,4 @@
-# Aletheia Features
+# Aletheia Features (Idea date: 18.05.2026)
 
 Aletheia is an AI-powered biblical wisdom companion for money, work, purpose, generosity, stewardship, and major life decisions.
 
