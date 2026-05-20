@@ -43,10 +43,10 @@ import {
   languageCopy,
   languages,
   localizedDailyWisdom,
+  localizedScriptureRead,
   localizedWisdomLibraryNote,
   normalizePreferences,
   regions,
-  scriptureQuickReads,
   type BibleTranslation,
   type LanguageCode,
   type RegionCode,
@@ -1673,7 +1673,7 @@ export function AletheiaApp() {
         onOpenAccount={openAccountFlow}
         onComplete={completeOnboarding}
       />
-      <ScriptureModal scripture={selectedScripture} onClose={() => setSelectedScripture(null)} />
+      <ScriptureModal scripture={selectedScripture} preferences={preferences} onClose={() => setSelectedScripture(null)} />
     </main>
   );
 }
@@ -2666,13 +2666,23 @@ function NotificationPanel({
   );
 }
 
-function ScriptureModal({ scripture, onClose }: { scripture: string | null; onClose: () => void }) {
+function ScriptureModal({
+  scripture,
+  preferences,
+  onClose,
+}: {
+  scripture: string | null;
+  preferences: UserPreferences;
+  onClose: () => void;
+}) {
   if (!scripture) {
     return null;
   }
 
-  const quickRead = scriptureQuickReads[scripture];
+  const quickRead = localizedScriptureRead(scripture, preferences);
+  const selectedLanguage = languages[preferences.language] ?? languages.en;
   const wisdomEntry = wisdomEntries.find((entry) => entry.scripture === scripture);
+  const isLocalized = quickRead.availableLanguage === preferences.language;
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-end bg-[#101814]/45 p-3 backdrop-blur-sm sm:place-items-center">
@@ -2682,7 +2692,7 @@ function ScriptureModal({ scripture, onClose }: { scripture: string | null; onCl
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">Scripture quick read</p>
             <h2 className="mt-2 text-xl font-semibold text-[#203a35]">{scripture}</h2>
             <p className="mt-1 text-sm text-[#607067]">
-              {quickRead ? `${quickRead.label} · ${quickRead.translation}` : "Curated wisdom reference"}
+              {quickRead.label} · {quickRead.translation}
             </p>
           </div>
           <button
@@ -2695,8 +2705,13 @@ function ScriptureModal({ scripture, onClose }: { scripture: string | null; onCl
           </button>
         </div>
         <p className="mt-4 rounded-lg border border-[#d8e1db] bg-white/70 p-4 text-sm leading-7 text-[#303832]">
-          {quickRead?.text ?? "This reference is part of Aletheia’s curated wisdom library. The app only surfaces known references and avoids inventing verse text."}
+          {quickRead.text}
         </p>
+        {!isLocalized ? (
+          <p className="mt-3 rounded-lg border border-[#d8e1db] bg-[#f4f6ef] p-3 text-xs leading-5 text-[#607067]">
+            A public-domain {selectedLanguage.name} reading is not available for this passage yet, so Aletheia is showing the safest curated reading available and keeping the reference exact.
+          </p>
+        ) : null}
         <div className="mt-3 grid gap-3 md:grid-cols-2">
           <div className="rounded-lg border border-[#d8e1db] bg-white/64 p-4">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">Context</p>

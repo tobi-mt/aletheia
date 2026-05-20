@@ -82,6 +82,13 @@ export const bibleTranslations: Record<BibleTranslation, { label: string; note: 
   },
 };
 
+export type ScriptureRead = {
+  translation: string;
+  label: string;
+  text: string;
+  availableLanguage: LanguageCode;
+};
+
 export const scriptureQuickReads: Record<
   string,
   { translation: BibleTranslation; label: string; text: string }
@@ -131,6 +138,138 @@ export const scriptureQuickReads: Record<
       "Jesus teaches his listeners not to be consumed by anxious striving over food, drink, clothing, or tomorrow. He calls them to seek God’s Kingdom and righteousness first, and to live today with trust rather than rehearsing tomorrow’s trouble.",
   },
 };
+
+const localizedScriptureReads: Partial<Record<LanguageCode, Record<string, ScriptureRead>>> = {
+  es: {
+    "Proverbs 22:7": {
+      translation: "RV1909",
+      label: "Reina-Valera 1909",
+      availableLanguage: "es",
+      text: "El rico se enseñorea de los pobres; y el que toma prestado, siervo es del que presta.",
+    },
+    "Proverbs 15:22": {
+      translation: "RV1909",
+      label: "Reina-Valera 1909",
+      availableLanguage: "es",
+      text: "Los pensamientos son frustrados donde no hay consejo; mas en la multitud de consejeros se afirman.",
+    },
+    "Luke 14:28": {
+      translation: "RV1909",
+      label: "Reina-Valera 1909",
+      availableLanguage: "es",
+      text: "Jesús enseña a contar el costo antes de comenzar una torre: la sabiduría se sienta primero, mira los recursos y evita compromisos impulsivos.",
+    },
+    "Proverbs 21:5": {
+      translation: "RV1909",
+      label: "Reina-Valera 1909",
+      availableLanguage: "es",
+      text: "Los pensamientos del solícito ciertamente tienden a abundancia; mas todo presuroso, indefectiblemente a pobreza.",
+    },
+  },
+  fr: {
+    "Proverbs 22:7": {
+      translation: "LSG1910",
+      label: "Louis Segond 1910",
+      availableLanguage: "fr",
+      text: "Le riche domine sur les pauvres, et celui qui emprunte est l'esclave de celui qui prête.",
+    },
+    "Proverbs 15:22": {
+      translation: "LSG1910",
+      label: "Louis Segond 1910",
+      availableLanguage: "fr",
+      text: "Les projets échouent, faute d'une assemblée qui délibère; mais ils réussissent quand il y a de nombreux conseillers.",
+    },
+    "Luke 14:28": {
+      translation: "LSG1910",
+      label: "Louis Segond 1910",
+      availableLanguage: "fr",
+      text: "Jésus invite à s'asseoir d'abord pour calculer la dépense avant de bâtir une tour. La sagesse compte le coût avant l'engagement.",
+    },
+    "Proverbs 21:5": {
+      translation: "LSG1910",
+      label: "Louis Segond 1910",
+      availableLanguage: "fr",
+      text: "Les projets de l'homme diligent ne mènent qu'à l'abondance, mais celui qui agit avec précipitation n'arrive qu'à la disette.",
+    },
+  },
+  pt: {
+    "Proverbs 22:7": {
+      translation: "Almeida",
+      label: "Almeida public-domain reading",
+      availableLanguage: "pt",
+      text: "O rico domina sobre os pobres, e o que toma emprestado é servo do que empresta.",
+    },
+    "Proverbs 15:22": {
+      translation: "Almeida",
+      label: "Almeida public-domain reading",
+      availableLanguage: "pt",
+      text: "Onde não há conselho, frustram-se os projetos; mas com a multidão de conselheiros se estabelecem.",
+    },
+    "Luke 14:28": {
+      translation: "Almeida",
+      label: "Almeida public-domain reading",
+      availableLanguage: "pt",
+      text: "Jesus ensina a sentar primeiro e calcular o custo antes de construir uma torre. A sabedoria conta o preço antes do compromisso.",
+    },
+    "Proverbs 21:5": {
+      translation: "Almeida",
+      label: "Almeida public-domain reading",
+      availableLanguage: "pt",
+      text: "Os planos do diligente conduzem à abundância; mas todo precipitado se apressa para a pobreza.",
+    },
+  },
+  de: {
+    "Proverbs 22:7": {
+      translation: "LUTH1912",
+      label: "Lutherbibel 1912",
+      availableLanguage: "de",
+      text: "Der Reiche herrscht über die Armen; und wer borgt, ist des Leihers Knecht.",
+    },
+    "Proverbs 15:22": {
+      translation: "LUTH1912",
+      label: "Lutherbibel 1912",
+      availableLanguage: "de",
+      text: "Die Anschläge werden zunichte, wo nicht Rat ist; wo aber viel Ratgeber sind, bestehen sie.",
+    },
+    "Luke 14:28": {
+      translation: "LUTH1912",
+      label: "Lutherbibel 1912",
+      availableLanguage: "de",
+      text: "Jesus fragt, wer einen Turm bauen will, ohne sich zuerst hinzusetzen und die Kosten zu überschlagen. Weisheit zählt den Preis vor der Verpflichtung.",
+    },
+    "Proverbs 21:5": {
+      translation: "LUTH1912",
+      label: "Lutherbibel 1912",
+      availableLanguage: "de",
+      text: "Die Anschläge eines Fleißigen bringen Überfluss; wer aber allzu rasch ist, dem wird's mangeln.",
+    },
+  },
+};
+
+export function localizedScriptureRead(scripture: string, preferences: UserPreferences): ScriptureRead {
+  const localized = localizedScriptureReads[preferences.language]?.[scripture];
+  if (localized) {
+    return localized;
+  }
+
+  const fallback = scriptureQuickReads[scripture];
+  return {
+    translation: fallback?.translation ?? preferences.bibleTranslation,
+    label: fallback?.label ?? "Curated wisdom reference",
+    text:
+      fallback?.text ??
+      "This reference is part of Aletheia's curated wisdom library. The app only surfaces known references and avoids inventing verse text.",
+    availableLanguage: "en",
+  };
+}
+
+export function scriptureTranslationLabel(scripture: string, preferences: UserPreferences) {
+  const localized = localizedScriptureReads[preferences.language]?.[scripture];
+  if (localized) {
+    return `${localized.translation} ${languages[preferences.language].name}`;
+  }
+  return preferences.bibleTranslation;
+}
 
 export const languageCopy: Record<
   LanguageCode,
@@ -290,7 +429,7 @@ export function localizedDailyWisdom(
   return {
     label: copy.dailyLabel,
     theme: entry.theme,
-    scripture: `${entry.scripture} (${preferences.bibleTranslation})`,
+    scripture: `${entry.scripture} (${scriptureTranslationLabel(entry.scripture, preferences)})`,
     principle: preferences.language === "en" ? entry.principle : practice,
     practice,
     translationNote: copy.translationFallback,
@@ -299,7 +438,7 @@ export function localizedDailyWisdom(
 
 export function localizedWisdomLibraryNote(entry: WisdomEntryData, preferences: UserPreferences) {
   const region = regions[preferences.region] ?? regions.global;
-  const translation = preferences.bibleTranslation;
+  const translation = scriptureTranslationLabel(entry.scripture, preferences);
 
   const notes: Record<LanguageCode, string> = {
     en: `Use ${entry.scripture} with the ${translation} reference label, then apply it with ${region.label} realities in view.`,
@@ -324,6 +463,7 @@ export function promptPreferenceContext(preferences: UserPreferences) {
     `Preferred response language: ${language.name} (${language.nativeName}).`,
     `Region context: ${region.label}. ${region.example}`,
     `Preferred Bible translation: ${preferences.bibleTranslation} - ${translation.label}.`,
+    "When a curated public-domain scripture reading is available in the user's chosen language, use that language label and keep the reference exact.",
     "If the requested language does not have a safe public-domain scripture text available, keep scripture references accurate and translate only the explanation around the reference.",
   ].join("\n");
 }

@@ -118,6 +118,7 @@ After a meaningful answer, Aletheia can help the user take the next wise step.
 - Scripture chips in answers
 - Scripture quick-read modal
 - Public-domain scripture text or concise summaries where appropriate
+- Selected-language scripture quick reads when a safe public-domain text is available
 - Context shown for scripture references
 - “Why this matters here” explanation
 - Related wisdom principle shown in the scripture modal
@@ -189,6 +190,7 @@ After a meaningful answer, Aletheia can help the user take the next wise step.
 - Igbo
 - Hausa
 - Localized daily wisdom labels and practices
+- Localized scripture quick reads for supported public-domain passages
 - Localized onboarding copy
 - Localized placeholders and voice hints
 - Region-aware examples for global, United States, United Kingdom, Europe, Nigeria, Brazil, and Latin America
