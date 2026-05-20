@@ -1565,7 +1565,7 @@ export function AletheiaApp() {
           </button>
 
           <div className="hidden items-center gap-1 rounded-lg border border-[#c9d5cd] bg-[#fbfcf8]/72 p-1 shadow-sm md:flex">
-            <NavButton active={activeView === "companion"} icon={MessageCircle} label="Companion" onClick={() => showView("companion")} />
+            <NavButton active={activeView === "companion"} icon={Home} label="Home" onClick={() => showView("companion")} />
             <NavButton active={activeView === "decisions"} icon={FileText} label="Decisions" onClick={() => showView("decisions")} />
             <NavButton active={activeView === "reflect"} icon={Feather} label="Reflect" onClick={() => showView("reflect")} />
             <NavButton active={activeView === "library"} icon={BookOpen} label="Library" onClick={() => showView("library")} />
@@ -1632,28 +1632,27 @@ export function AletheiaApp() {
         </aside>
 
         <section className="min-w-0">
-          <HomeDashboard
-            mode={mode}
-            modeProfile={activeMode}
-            daily={daily}
-            dailyEntry={dailyEntry}
-            activeDecision={activeDecision}
-            user={user}
-            notificationsEnabled={notificationsEnabled}
-            todayPattern={todayPattern}
-            onModeChange={handleModeChange}
-            onScriptureOpen={setSelectedScripture}
-            onContinueDecision={continueDecisionFlow}
-            onReflectToday={reflectOnToday}
-            onAsk={askFromDashboard}
-            onReviewPattern={reviewPatternFlow}
-            onOpenAccount={openAccountFlow}
-          />
-
           <section ref={workspaceRef} className="scroll-mt-24">
             <AnimatePresence mode="wait">
               {activeView === "companion" ? (
                 <Screen key="companion">
+                <HomeDashboard
+                  mode={mode}
+                  modeProfile={activeMode}
+                  daily={daily}
+                  dailyEntry={dailyEntry}
+                  activeDecision={activeDecision}
+                  user={user}
+                  notificationsEnabled={notificationsEnabled}
+                  todayPattern={todayPattern}
+                  onModeChange={handleModeChange}
+                  onScriptureOpen={setSelectedScripture}
+                  onContinueDecision={continueDecisionFlow}
+                  onReflectToday={reflectOnToday}
+                  onAsk={askFromDashboard}
+                  onReviewPattern={reviewPatternFlow}
+                  onOpenAccount={openAccountFlow}
+                />
                 <CompanionPanel
                   messages={messages}
                   mode={mode}
@@ -1796,7 +1795,7 @@ export function AletheiaApp() {
 
       <div className="fixed inset-x-2 bottom-2 z-40 rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/92 p-1 shadow-2xl shadow-[#1f2a24]/12 backdrop-blur sm:inset-x-3 sm:bottom-3 md:hidden">
         <div className="grid grid-cols-5 gap-1">
-          <MobileNav active={activeView === "companion"} icon={MessageCircle} label="Ask" onClick={() => showView("companion")} />
+          <MobileNav active={activeView === "companion"} icon={Home} label="Home" onClick={() => showView("companion")} />
           <MobileNav active={activeView === "decisions"} icon={FileText} label="Decide" onClick={() => showView("decisions")} />
           <MobileNav active={activeView === "reflect"} icon={Feather} label="Reflect" onClick={() => showView("reflect")} />
           <MobileNav active={activeView === "library"} icon={BookOpen} label="Library" onClick={() => showView("library")} />
@@ -2283,6 +2282,41 @@ function RhythmItem({ label, body }: { label: string; body: string }) {
   );
 }
 
+function ContextualNextAction({
+  eyebrow,
+  title,
+  body,
+  actionLabel,
+  onAction,
+}: {
+  eyebrow: string;
+  title: string;
+  body: string;
+  actionLabel?: string;
+  onAction?: () => void;
+}) {
+  return (
+    <section className="rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm sm:p-5">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">{eyebrow}</p>
+          <h2 className="mt-2 text-xl font-semibold text-[#203a35]">{title}</h2>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-[#55645b]">{body}</p>
+        </div>
+        {actionLabel && onAction ? (
+          <button
+            type="button"
+            onClick={onAction}
+            className="h-10 rounded-md bg-[#203a35] px-4 text-sm font-semibold text-[#f8f5e8] shadow-sm"
+          >
+            {actionLabel}
+          </button>
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
 function AccountPanel({
   user,
   authMode,
@@ -2369,10 +2403,25 @@ function AccountPanel({
     { label: "7 days of wisdom practice", active: false },
   ];
   const hasFormationMilestone = badges.some((badge) => badge.active);
+  const accountNextTitle = user
+    ? notificationsEnabled
+      ? "Review sync and formation"
+      : "Enable daily wisdom notifications"
+    : "Sign in to make Aletheia portable";
+  const accountNextBody = user
+    ? notificationsEnabled
+      ? "Your account is active. Review preferences, history, and formation milestones when you need to."
+      : "Sync is active. Turn on one quiet daily wisdom prompt if this device should receive it."
+    : "Use Google or email to sync decisions, reflections, preferences, counsel, and notifications across devices.";
 
   return (
     <div className="grid min-w-0 gap-4 xl:grid-cols-[1fr_340px]">
       <section className="space-y-4">
+        <ContextualNextAction
+          eyebrow="Next in Account"
+          title={accountNextTitle}
+          body={accountNextBody}
+        />
         <section className="rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm sm:p-5">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">Account</p>
           <h2 className="mt-2 text-2xl font-semibold text-[#203a35]">Your Aletheia space</h2>
@@ -3559,10 +3608,19 @@ function DecisionCompanionPanel({
   const activeDecisions = decisions.filter((decision) => decision.status !== "closed");
   const selectedDecision = decisions[0];
   const modeRules = rules.filter((rule) => rule.mode === mode);
+  const decisionNextTitle = selectedDecision ? `Continue: ${selectedDecision.title}` : "Name the decision under pressure";
+  const decisionNextBody = selectedDecision
+    ? "Update counsel, cost, waiting, and peace signals so the decision has a real timeline."
+    : "Start with one decision and the pressure attached to it. Aletheia will track wisdom, counsel, and readiness over time.";
 
   return (
     <div className="grid min-w-0 gap-4 xl:grid-cols-[1fr_340px]">
       <section className="space-y-4">
+        <ContextualNextAction
+          eyebrow="Next in Decisions"
+          title={decisionNextTitle}
+          body={decisionNextBody}
+        />
         <section className="rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm sm:p-5">
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div>
@@ -4061,8 +4119,20 @@ function ReflectPanel({
   onSave: () => void;
   onDelete: (id: string) => void;
 }) {
+  const reflectNextTitle = body.trim() || decision.trim() ? "Finish the reflection in front of you" : "Begin with one honest sentence";
+  const reflectNextBody = body.trim() || decision.trim()
+    ? "Save what you are noticing while the insight is still fresh."
+    : "Use Wisdom Check for a quick discernment scan, or write what you notice about money, work, fear, generosity, or pace.";
+
   return (
     <div className="min-w-0 space-y-4">
+      <ContextualNextAction
+        eyebrow="Next in Reflect"
+        title={reflectNextTitle}
+        body={reflectNextBody}
+        actionLabel={body.trim() ? "Save reflection" : undefined}
+        onAction={body.trim() ? onSave : undefined}
+      />
       <section className="rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm sm:p-5">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">Reflect</p>
         <h2 className="mt-2 text-2xl font-semibold text-[#203a35]">Discernment and reflection in one quiet place</h2>
@@ -4121,51 +4191,63 @@ function LibraryPanel({
   preferences: UserPreferences;
   onScriptureOpen: (scripture: string) => void;
 }) {
-  return (
-    <section className="min-w-0 rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm sm:p-5">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <div className="flex items-center gap-2 text-xl font-semibold text-[#203a35]">
-            <BookOpen size={20} />
-            Wisdom Library
-          </div>
-          <p className="mt-2 text-sm leading-6 text-[#5b6a61]">
-            A curated wisdom base with language-aware application notes and public-domain translation labels.
-          </p>
-        </div>
-        <label className="relative w-full md:max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#68766d]" size={17} />
-          <input
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            className="h-11 w-full rounded-lg border border-[#c9d5cd] bg-white/78 pl-10 pr-3 text-sm outline-none focus:border-[#203a35]"
-            placeholder={`Search ${mode.toLowerCase()} wisdom...`}
-          />
-        </label>
-      </div>
+  const libraryNextTitle = search.trim() ? `Review ${entries.length} matching wisdom anchor${entries.length === 1 ? "" : "s"}` : "Search one wisdom theme";
+  const libraryNextBody = search.trim()
+    ? "Open a scripture reference to read the passage context and why it matters here."
+    : "Try stewardship, debt, contentment, counsel, cost, generosity, anxiety, or diligence.";
 
-      <div className="mt-5 grid min-w-0 gap-3 lg:grid-cols-2">
-        {entries.map((entry) => (
-          <article key={entry.scripture} className="rounded-lg border border-[#d8e1db] bg-white/68 p-4">
-            <div className="mb-3 flex flex-wrap items-center gap-2">
-              <span className="rounded-md bg-[#edf2ee] px-2 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-[#52635a]">{entry.theme}</span>
-              <button
-                type="button"
-                onClick={() => onScriptureOpen(entry.scripture)}
-                className="text-left text-sm font-semibold text-[#203a35] underline decoration-[#b9c7bf] underline-offset-4 transition hover:text-[#866a24]"
-              >
-                {entry.scripture}
-              </button>
+  return (
+    <div className="min-w-0 space-y-4">
+      <ContextualNextAction
+        eyebrow="Next in Library"
+        title={libraryNextTitle}
+        body={libraryNextBody}
+      />
+      <section className="min-w-0 rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm sm:p-5">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <div className="flex items-center gap-2 text-xl font-semibold text-[#203a35]">
+              <BookOpen size={20} />
+              Wisdom Library
             </div>
-            <p className="text-sm font-semibold leading-6 text-[#2e3933]">{entry.principle}</p>
-            <p className="mt-3 text-sm leading-6 text-[#59675f]">{entry.application}</p>
-            <p className="mt-3 rounded-md border border-[#d8e1db] bg-[#fbfcf8] p-3 text-xs leading-5 text-[#607067]">
-              {localizedWisdomLibraryNote(entry, preferences)}
+            <p className="mt-2 text-sm leading-6 text-[#5b6a61]">
+              A curated wisdom base with language-aware application notes and public-domain translation labels.
             </p>
-          </article>
-        ))}
-      </div>
-    </section>
+          </div>
+          <label className="relative w-full md:max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#68766d]" size={17} />
+            <input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              className="h-11 w-full rounded-lg border border-[#c9d5cd] bg-white/78 pl-10 pr-3 text-sm outline-none focus:border-[#203a35]"
+              placeholder={`Search ${mode.toLowerCase()} wisdom...`}
+            />
+          </label>
+        </div>
+
+        <div className="mt-5 grid min-w-0 gap-3 lg:grid-cols-2">
+          {entries.map((entry) => (
+            <article key={entry.scripture} className="rounded-lg border border-[#d8e1db] bg-white/68 p-4">
+              <div className="mb-3 flex flex-wrap items-center gap-2">
+                <span className="rounded-md bg-[#edf2ee] px-2 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-[#52635a]">{entry.theme}</span>
+                <button
+                  type="button"
+                  onClick={() => onScriptureOpen(entry.scripture)}
+                  className="text-left text-sm font-semibold text-[#203a35] underline decoration-[#b9c7bf] underline-offset-4 transition hover:text-[#866a24]"
+                >
+                  {entry.scripture}
+                </button>
+              </div>
+              <p className="text-sm font-semibold leading-6 text-[#2e3933]">{entry.principle}</p>
+              <p className="mt-3 text-sm leading-6 text-[#59675f]">{entry.application}</p>
+              <p className="mt-3 rounded-md border border-[#d8e1db] bg-[#fbfcf8] p-3 text-xs leading-5 text-[#607067]">
+                {localizedWisdomLibraryNote(entry, preferences)}
+              </p>
+            </article>
+          ))}
+        </div>
+      </section>
+    </div>
   );
 }
 
