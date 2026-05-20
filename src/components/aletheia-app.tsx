@@ -1598,7 +1598,7 @@ export function AletheiaApp() {
         </div>
       </nav>
 
-      <div className="mx-auto grid max-w-7xl gap-4 px-3 pb-28 pt-4 sm:px-4 sm:py-5 lg:grid-cols-[280px_1fr] lg:py-6">
+      <div className="mx-auto grid max-w-7xl gap-4 px-3 pb-[calc(6.5rem+env(safe-area-inset-bottom))] pt-4 sm:px-4 sm:py-5 lg:grid-cols-[280px_1fr] lg:py-6">
         <aside className="hidden lg:block">
           <div className="sticky top-24 space-y-4">
             <section className="rounded-lg border border-[#c9d5cd] bg-[#fbfcf8]/76 p-4 shadow-sm">
@@ -1793,8 +1793,8 @@ export function AletheiaApp() {
         </section>
       </div>
 
-      <div className="fixed inset-x-2 bottom-2 z-40 rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/92 p-1 shadow-2xl shadow-[#1f2a24]/12 backdrop-blur sm:inset-x-3 sm:bottom-3 md:hidden">
-        <div className="grid grid-cols-5 gap-1">
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[#c9d5cd] bg-[#fbfcf8]/95 px-2 pt-1 pb-[calc(0.45rem+env(safe-area-inset-bottom))] shadow-[0_-10px_28px_rgba(31,42,36,0.08)] backdrop-blur-xl md:hidden">
+        <div className="mx-auto grid max-w-md grid-cols-5 gap-1">
           <MobileNav active={activeView === "companion"} icon={Home} label="Home" onClick={() => showView("companion")} />
           <MobileNav active={activeView === "decisions"} icon={FileText} label="Decide" onClick={() => showView("decisions")} />
           <MobileNav active={activeView === "reflect"} icon={Feather} label="Reflect" onClick={() => showView("reflect")} />
@@ -3223,7 +3223,7 @@ function CompanionPanel({
           <div ref={bottomRef} />
         </div>
 
-        <form onSubmit={onAsk} className="sticky bottom-20 z-10 border-t border-[#d8e1db] bg-[#fbfcf8]/94 p-3 backdrop-blur md:bottom-0">
+        <form onSubmit={onAsk} className="sticky bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-10 border-t border-[#d8e1db] bg-[#fbfcf8]/94 p-3 backdrop-blur md:bottom-0">
           <div className="flex flex-col gap-2 sm:flex-row">
             <textarea
               value={query}
@@ -3782,9 +3782,9 @@ function DecisionCompanionPanel({
         </section>
 
         <section className="rounded-xl border border-[#c9d5cd] bg-[#203a35] p-4 text-[#f8f5e8] shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#d0ad55]">Premium daily wisdom</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#d0ad55]">Decision practice</p>
           <p className="mt-3 text-sm font-semibold text-[#f3e8bd]">{modeProfile.practices[0]}</p>
-          <p className="mt-2 text-sm leading-6 text-[#edf4ee]">A tiny practice for today, shaped by the active wisdom mode.</p>
+          <p className="mt-2 text-sm leading-6 text-[#edf4ee]">A small practice for the decision you are carrying, shaped by the active wisdom mode.</p>
         </section>
 
         {selectedDecision?.summary ? (
