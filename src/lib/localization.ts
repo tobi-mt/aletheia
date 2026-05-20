@@ -2,7 +2,7 @@ import type { Mode, WisdomEntryData } from "@/lib/wisdom-data";
 
 export type LanguageCode = "en" | "es" | "fr" | "pt" | "de" | "yo" | "ig" | "ha";
 export type RegionCode = "global" | "us" | "uk" | "eu" | "ng" | "br" | "latam";
-export type BibleTranslation = "WEB" | "KJV" | "ASV";
+export type BibleTranslation = "WEB" | "KJV" | "ASV" | "RV1909" | "LSG1910" | "AA" | "LUTH1912";
 
 export type UserPreferences = {
   language: LanguageCode;
@@ -67,20 +67,64 @@ export const regions: Record<RegionCode, { label: string; example: string; curre
   },
 };
 
-export const bibleTranslations: Record<BibleTranslation, { label: string; note: string }> = {
+export const bibleTranslations: Record<BibleTranslation, { label: string; note: string; language: LanguageCode }> = {
   WEB: {
     label: "World English Bible",
+    language: "en",
     note: "Public domain English translation. Default for scripture quotation if verse text is later added.",
   },
   KJV: {
     label: "King James Version",
+    language: "en",
     note: "Public domain English translation with traditional phrasing.",
   },
   ASV: {
     label: "American Standard Version",
+    language: "en",
     note: "Public domain English translation with formal phrasing.",
   },
+  RV1909: {
+    label: "Reina-Valera 1909",
+    language: "es",
+    note: "Public-domain Spanish option used where Aletheia has curated quick reads.",
+  },
+  LSG1910: {
+    label: "Louis Segond 1910",
+    language: "fr",
+    note: "Public-domain French option used where Aletheia has curated quick reads.",
+  },
+  AA: {
+    label: "Almeida Atualizada",
+    language: "pt",
+    note: "Public-domain Portuguese option used where Aletheia has curated quick reads.",
+  },
+  LUTH1912: {
+    label: "Lutherbibel 1912",
+    language: "de",
+    note: "Public-domain German option used where Aletheia has curated quick reads.",
+  },
 };
+
+const languageDefaultBibleTranslations: Partial<Record<LanguageCode, BibleTranslation>> = {
+  en: "WEB",
+  es: "RV1909",
+  fr: "LSG1910",
+  pt: "AA",
+  de: "LUTH1912",
+};
+
+export function defaultBibleTranslationForLanguage(language: LanguageCode): BibleTranslation {
+  return languageDefaultBibleTranslations[language] ?? defaultPreferences.bibleTranslation;
+}
+
+export function bibleTranslationOptionsForLanguage(language: LanguageCode): BibleTranslation[] {
+  const localized = Object.entries(bibleTranslations)
+    .filter(([, translation]) => translation.language === language)
+    .map(([code]) => code as BibleTranslation);
+
+  const englishFallbacks: BibleTranslation[] = ["WEB", "KJV", "ASV"];
+  return [...new Set([...localized, ...englishFallbacks])];
+}
 
 export type ScriptureRead = {
   translation: string;
@@ -139,8 +183,8 @@ export const scriptureQuickReads: Record<
   },
 };
 
-const localizedScriptureReads: Partial<Record<LanguageCode, Record<string, ScriptureRead>>> = {
-  es: {
+const localizedScriptureReads: Partial<Record<BibleTranslation, Record<string, ScriptureRead>>> = {
+  RV1909: {
     "Proverbs 22:7": {
       translation: "RV1909",
       label: "Reina-Valera 1909",
@@ -166,7 +210,7 @@ const localizedScriptureReads: Partial<Record<LanguageCode, Record<string, Scrip
       text: "Los pensamientos del solícito ciertamente tienden a abundancia; mas todo presuroso, indefectiblemente a pobreza.",
     },
   },
-  fr: {
+  LSG1910: {
     "Proverbs 22:7": {
       translation: "LSG1910",
       label: "Louis Segond 1910",
@@ -192,33 +236,33 @@ const localizedScriptureReads: Partial<Record<LanguageCode, Record<string, Scrip
       text: "Les projets de l'homme diligent ne mènent qu'à l'abondance, mais celui qui agit avec précipitation n'arrive qu'à la disette.",
     },
   },
-  pt: {
+  AA: {
     "Proverbs 22:7": {
-      translation: "Almeida",
-      label: "Almeida public-domain reading",
+      translation: "AA",
+      label: "Almeida Atualizada",
       availableLanguage: "pt",
       text: "O rico domina sobre os pobres, e o que toma emprestado é servo do que empresta.",
     },
     "Proverbs 15:22": {
-      translation: "Almeida",
-      label: "Almeida public-domain reading",
+      translation: "AA",
+      label: "Almeida Atualizada",
       availableLanguage: "pt",
       text: "Onde não há conselho, frustram-se os projetos; mas com a multidão de conselheiros se estabelecem.",
     },
     "Luke 14:28": {
-      translation: "Almeida",
-      label: "Almeida public-domain reading",
+      translation: "AA",
+      label: "Almeida Atualizada",
       availableLanguage: "pt",
       text: "Jesus ensina a sentar primeiro e calcular o custo antes de construir uma torre. A sabedoria conta o preço antes do compromisso.",
     },
     "Proverbs 21:5": {
-      translation: "Almeida",
-      label: "Almeida public-domain reading",
+      translation: "AA",
+      label: "Almeida Atualizada",
       availableLanguage: "pt",
       text: "Os planos do diligente conduzem à abundância; mas todo precipitado se apressa para a pobreza.",
     },
   },
-  de: {
+  LUTH1912: {
     "Proverbs 22:7": {
       translation: "LUTH1912",
       label: "Lutherbibel 1912",
@@ -247,7 +291,7 @@ const localizedScriptureReads: Partial<Record<LanguageCode, Record<string, Scrip
 };
 
 export function localizedScriptureRead(scripture: string, preferences: UserPreferences): ScriptureRead {
-  const localized = localizedScriptureReads[preferences.language]?.[scripture];
+  const localized = localizedScriptureReads[preferences.bibleTranslation]?.[scripture];
   if (localized) {
     return localized;
   }
@@ -264,9 +308,9 @@ export function localizedScriptureRead(scripture: string, preferences: UserPrefe
 }
 
 export function scriptureTranslationLabel(scripture: string, preferences: UserPreferences) {
-  const localized = localizedScriptureReads[preferences.language]?.[scripture];
+  const localized = localizedScriptureReads[preferences.bibleTranslation]?.[scripture];
   if (localized) {
-    return `${localized.translation} ${languages[preferences.language].name}`;
+    return `${localized.translation} ${languages[localized.availableLanguage].name}`;
   }
   return preferences.bibleTranslation;
 }
@@ -405,7 +449,7 @@ export function normalizePreferences(input: Partial<UserPreferences> = {}): User
   const bibleTranslation =
     input.bibleTranslation && input.bibleTranslation in bibleTranslations
       ? input.bibleTranslation
-      : defaultPreferences.bibleTranslation;
+      : defaultBibleTranslationForLanguage(language);
 
   return {
     language,

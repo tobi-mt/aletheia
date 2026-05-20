@@ -39,7 +39,9 @@ import {
 import { buildDecisionSummary, detectPatterns, scoreDecision } from "@/lib/decision-intelligence";
 import {
   bibleTranslations,
+  bibleTranslationOptionsForLanguage,
   defaultPreferences,
+  defaultBibleTranslationForLanguage,
   languageCopy,
   languages,
   localizedDailyWisdom,
@@ -63,6 +65,13 @@ type ShareChannel = "native" | "copy" | "whatsapp" | "facebook" | "x" | "linkedi
 
 const ALETHEIA_SHARE_URL = "https://aletheia.mirrortalkpodcast.com?ref=share";
 const ALETHEIA_SHARE_TEXT = "Aletheia is a calm AI-powered biblical wisdom companion for money, work, and stewardship.";
+
+function preferencePatchForLanguage(language: LanguageCode): Partial<UserPreferences> {
+  return {
+    language,
+    bibleTranslation: defaultBibleTranslationForLanguage(language),
+  };
+}
 
 type User = {
   id: string;
@@ -1778,6 +1787,9 @@ function OnboardingModal({
     return null;
   }
 
+  const bibleOptions = bibleTranslationOptionsForLanguage(preferences.language);
+  const selectedTranslation = bibleTranslations[preferences.bibleTranslation];
+
   return (
     <div className="fixed inset-0 z-50 grid place-items-end bg-[#101814]/45 p-3 backdrop-blur-sm sm:place-items-center">
       <section className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-xl border border-[#c9d5cd] bg-[#fbfcf8] p-4 shadow-2xl sm:p-5">
@@ -1868,7 +1880,7 @@ function OnboardingModal({
               Language
               <select
                 value={preferences.language}
-                onChange={(event) => onPreferenceChange({ language: event.target.value as LanguageCode })}
+                onChange={(event) => onPreferenceChange(preferencePatchForLanguage(event.target.value as LanguageCode))}
                 className="mt-2 h-10 w-full rounded-md border border-[#c9d5cd] bg-white/78 px-3 text-sm normal-case tracking-normal text-[#203a35] outline-none"
               >
                 {Object.entries(languages).map(([code, language]) => (
@@ -1885,12 +1897,18 @@ function OnboardingModal({
                 onChange={(event) => onPreferenceChange({ bibleTranslation: event.target.value as BibleTranslation })}
                 className="mt-2 h-10 w-full rounded-md border border-[#c9d5cd] bg-white/78 px-3 text-sm normal-case tracking-normal text-[#203a35] outline-none"
               >
-                {Object.entries(bibleTranslations).map(([code, translation]) => (
+                {bibleOptions.map((code) => {
+                  const translation = bibleTranslations[code];
+                  return (
                   <option key={code} value={code}>
-                    {code} - {translation.label}
+                    {translation.language === preferences.language ? "Recommended" : "Fallback"} · {code} - {translation.label}
                   </option>
-                ))}
+                  );
+                })}
               </select>
+              <span className="mt-1 block text-[11px] normal-case leading-4 tracking-normal text-[#718077]">
+                {selectedTranslation?.note}
+              </span>
             </label>
             <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#52635a]">
               Region
@@ -2755,6 +2773,9 @@ function PreferencesPanel({
   activeRegion: (typeof regions)[RegionCode];
   onChange: (patch: Partial<UserPreferences>) => void;
 }) {
+  const bibleOptions = bibleTranslationOptionsForLanguage(preferences.language);
+  const selectedTranslation = bibleTranslations[preferences.bibleTranslation];
+
   return (
     <section ref={panelRef} className="mb-5 scroll-mt-24 rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm">
       <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
@@ -2774,7 +2795,7 @@ function PreferencesPanel({
             Language
             <select
               value={preferences.language}
-              onChange={(event) => onChange({ language: event.target.value as LanguageCode })}
+              onChange={(event) => onChange(preferencePatchForLanguage(event.target.value as LanguageCode))}
               className="mt-2 h-10 w-full rounded-md border border-[#c9d5cd] bg-white/78 px-3 text-sm normal-case tracking-normal text-[#203a35] outline-none"
             >
               {Object.entries(languages).map(([code, language]) => (
@@ -2805,12 +2826,18 @@ function PreferencesPanel({
               onChange={(event) => onChange({ bibleTranslation: event.target.value as BibleTranslation })}
               className="mt-2 h-10 w-full rounded-md border border-[#c9d5cd] bg-white/78 px-3 text-sm normal-case tracking-normal text-[#203a35] outline-none"
             >
-              {Object.entries(bibleTranslations).map(([code, translation]) => (
+              {bibleOptions.map((code) => {
+                const translation = bibleTranslations[code];
+                return (
                 <option key={code} value={code}>
-                  {code} - {translation.label}
+                  {translation.language === preferences.language ? "Recommended" : "Fallback"} · {code} - {translation.label}
                 </option>
-              ))}
+                );
+              })}
             </select>
+            <span className="mt-1 block text-[11px] normal-case leading-4 tracking-normal text-[#718077]">
+              {selectedTranslation?.note}
+            </span>
           </label>
           <label className="flex h-full items-end gap-2 rounded-md border border-[#d8e1db] bg-white/54 px-3 py-2 text-sm font-semibold text-[#405049]">
             <input
