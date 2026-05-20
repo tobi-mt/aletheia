@@ -3,6 +3,8 @@ import { many, run } from "@/lib/db";
 
 const ALLOWED_EVENTS = new Set([
   "app_opened",
+  "answer_feedback",
+  "app_shared",
   "auth_email_login_success",
   "auth_email_register_success",
   "auth_google_success",

@@ -72,8 +72,54 @@ export async function POST(request: Request) {
   }
 
   const sources = await retrieveWisdom(message, mode, 3);
+  let memoryContext = "";
+  if (user) {
+    const [decisions, rules, journals] = await Promise.all([
+      many<{ title: string; mode: string; pressure: string; status: string; updated_at: string }>(
+        `SELECT title, mode, pressure, status, updated_at
+         FROM wisdom_decisions
+         WHERE user_id = ?
+         ORDER BY updated_at DESC
+         LIMIT 5`,
+        user.id
+      ),
+      many<{ mode: string; principle: string }>(
+        `SELECT mode, principle
+         FROM rule_of_life_entries
+         WHERE user_id = ?
+         ORDER BY updated_at DESC
+         LIMIT 5`,
+        user.id
+      ),
+      many<{ title: string; body: string; mode: string; created_at: string }>(
+        `SELECT title, body, mode, created_at
+         FROM journal_entries
+         WHERE user_id = ?
+         ORDER BY created_at DESC
+         LIMIT 3`,
+        user.id
+      ),
+    ]);
+    memoryContext = [
+      decisions.length
+        ? `Active/recent decisions:\n${decisions
+            .map((decision) => `- ${decision.title} (${decision.mode}, ${decision.status}): ${decision.pressure.slice(0, 220)}`)
+            .join("\n")}`
+        : "",
+      rules.length
+        ? `Rules of life:\n${rules.map((rule) => `- ${rule.mode}: ${rule.principle.slice(0, 180)}`).join("\n")}`
+        : "",
+      journals.length
+        ? `Recent reflections:\n${journals
+            .map((journal) => `- ${journal.title} (${journal.mode}): ${journal.body.slice(0, 180)}`)
+            .join("\n")}`
+        : "",
+    ]
+      .filter(Boolean)
+      .join("\n\n");
+  }
   const aiText =
-    (await generateWisdomResponse({ question: message, mode, sources, preferences })) ??
+    (await generateWisdomResponse({ question: message, mode, sources, preferences, memoryContext })) ??
     composeModeAwareFallbackResponse(message, mode, sources, preferences);
 
   if (user) {

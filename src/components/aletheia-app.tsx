@@ -514,6 +514,9 @@ export function AletheiaApp() {
   const [preferences, setPreferences] = useState<UserPreferences>(storedPreferences);
   const [preferencesStatus, setPreferencesStatus] = useState("Language settings are ready.");
   const [showOnboarding, setShowOnboarding] = useState(shouldShowOnboarding);
+  const [onboardingConcern, setOnboardingConcern] = useState("");
+  const [onboardingTone, setOnboardingTone] = useState("gentle");
+  const [faithFamiliarity, setFaithFamiliarity] = useState("familiar");
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [selectedScripture, setSelectedScripture] = useState<string | null>(null);
@@ -749,6 +752,13 @@ export function AletheiaApp() {
     } catch {
       // Onboarding can still close if storage is unavailable.
     }
+    if (onboardingConcern.trim()) {
+      setQuery(
+        `I am carrying this right now: ${onboardingConcern.trim()}. Please guide me with a ${onboardingTone} tone. My faith familiarity is ${faithFamiliarity}.`
+      );
+      showView("companion");
+      setStatusMessage("A personal starting question is ready in the companion.");
+    }
     setShowOnboarding(false);
   }
 
@@ -799,6 +809,11 @@ export function AletheiaApp() {
         setStatusMessage(ALETHEIA_SHARE_URL);
       }
     }
+  }
+
+  function recordAnswerFeedback(value: string, placement: string) {
+    trackClientEvent("answer_feedback", { value, placement, mode });
+    setStatusMessage("Thank you. Aletheia will use feedback like this to become wiser and clearer.");
   }
 
   function trackDecisionFromExchange(exchange: ConversationExchange) {
@@ -1519,6 +1534,7 @@ export function AletheiaApp() {
                   onCreateCounselSummary={draftCounselSummaryFromExchange}
                   onWait={waitFromExchange}
                   onShare={(channel) => shareAletheia(channel, "answer")}
+                  onFeedback={(value) => recordAnswerFeedback(value, "answer")}
                 />
                 </Screen>
               ) : null}
@@ -1645,6 +1661,12 @@ export function AletheiaApp() {
         open={showOnboarding}
         mode={mode}
         preferences={preferences}
+        concern={onboardingConcern}
+        setConcern={setOnboardingConcern}
+        tone={onboardingTone}
+        setTone={setOnboardingTone}
+        faithFamiliarity={faithFamiliarity}
+        setFaithFamiliarity={setFaithFamiliarity}
         notificationsEnabled={notificationsEnabled}
         onModeChange={handleModeChange}
         onPreferenceChange={updatePreferences}
@@ -1725,6 +1747,12 @@ function OnboardingModal({
   open,
   mode,
   preferences,
+  concern,
+  setConcern,
+  tone,
+  setTone,
+  faithFamiliarity,
+  setFaithFamiliarity,
   notificationsEnabled,
   onModeChange,
   onPreferenceChange,
@@ -1734,6 +1762,12 @@ function OnboardingModal({
   open: boolean;
   mode: Mode;
   preferences: UserPreferences;
+  concern: string;
+  setConcern: (value: string) => void;
+  tone: string;
+  setTone: (value: string) => void;
+  faithFamiliarity: string;
+  setFaithFamiliarity: (value: string) => void;
   notificationsEnabled: boolean;
   onModeChange: (mode: Mode) => void;
   onPreferenceChange: (patch: Partial<UserPreferences>) => void;
@@ -1787,6 +1821,45 @@ function OnboardingModal({
                   </span>
                 </button>
               ))}
+            </div>
+          </section>
+
+          <section className="rounded-lg border border-[#d8e1db] bg-white/62 p-3">
+            <label className="text-sm font-semibold text-[#203a35]">
+              What are you carrying right now?
+              <textarea
+                value={concern}
+                onChange={(event) => setConcern(event.target.value)}
+                className="mt-2 min-h-20 w-full resize-none rounded-md border border-[#c9d5cd] bg-white/78 px-3 py-2 text-sm leading-6 outline-none"
+                placeholder="Money stress, a career decision, generosity pressure, purpose uncertainty..."
+              />
+            </label>
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#52635a]">
+                Tone
+                <select
+                  value={tone}
+                  onChange={(event) => setTone(event.target.value)}
+                  className="mt-2 h-10 w-full rounded-md border border-[#c9d5cd] bg-white/78 px-3 text-sm normal-case tracking-normal text-[#203a35] outline-none"
+                >
+                  <option value="gentle">Gentle</option>
+                  <option value="direct">Direct</option>
+                  <option value="strategic">Strategic</option>
+                  <option value="reflective">Reflective</option>
+                </select>
+              </label>
+              <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#52635a]">
+                Faith familiarity
+                <select
+                  value={faithFamiliarity}
+                  onChange={(event) => setFaithFamiliarity(event.target.value)}
+                  className="mt-2 h-10 w-full rounded-md border border-[#c9d5cd] bg-white/78 px-3 text-sm normal-case tracking-normal text-[#203a35] outline-none"
+                >
+                  <option value="new">New to biblical wisdom</option>
+                  <option value="familiar">Familiar</option>
+                  <option value="deep">Deeply familiar</option>
+                </select>
+              </label>
             </div>
           </section>
 
@@ -2016,6 +2089,15 @@ function DashboardAction({
         <span className={`mt-1 line-clamp-2 block text-xs leading-5 ${primary ? "text-[#dfe8df]" : "text-[#607067]"}`}>{body}</span>
       </span>
     </button>
+  );
+}
+
+function RhythmItem({ label, body }: { label: string; body: string }) {
+  return (
+    <div className="rounded-lg border border-[#d8e1db] bg-white/62 p-3">
+      <p className="text-sm font-semibold text-[#203a35]">{label}</p>
+      <p className="mt-1 text-xs leading-5 text-[#607067]">{body}</p>
+    </div>
   );
 }
 
@@ -2757,6 +2839,7 @@ function CompanionPanel({
   onCreateCounselSummary,
   onWait,
   onShare,
+  onFeedback,
   isWorking,
   isListening,
   isSpeaking,
@@ -2779,6 +2862,7 @@ function CompanionPanel({
   onCreateCounselSummary: (exchange: ConversationExchange) => void;
   onWait: (exchange: ConversationExchange) => void;
   onShare: (channel: ShareChannel) => void;
+  onFeedback: (value: string) => void;
   isWorking: boolean;
   isListening: boolean;
   isSpeaking: boolean;
@@ -2826,6 +2910,7 @@ function CompanionPanel({
               onCreateCounselSummary={onCreateCounselSummary}
               onWait={onWait}
               onShare={onShare}
+              onFeedback={onFeedback}
             />
           ) : null}
 
@@ -2966,6 +3051,8 @@ function CompanionPanel({
             ))}
           </ul>
         </section>
+
+        <TrustLayerPanel />
       </aside>
     </div>
   );
@@ -2998,6 +3085,28 @@ function ScriptureChips({
   );
 }
 
+function TrustLayerPanel() {
+  return (
+    <section className="rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm">
+      <div className="flex items-center gap-2">
+        <ShieldCheck size={17} className="text-[#203a35]" />
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">Trust layer</p>
+      </div>
+      <div className="mt-3 space-y-3 text-sm leading-6 text-[#55645b]">
+        <p className="rounded-lg border border-[#d8e1db] bg-white/64 p-3">
+          Scripture references come from Aletheia’s curated wisdom library. If a verse appears, you can tap it to see context and why it matters.
+        </p>
+        <p className="rounded-lg border border-[#d8e1db] bg-white/64 p-3">
+          Aletheia will not promise outcomes, predict markets, claim divine certainty, or replace qualified financial, legal, tax, medical, or pastoral counsel.
+        </p>
+        <p className="rounded-lg border border-[#d8e1db] bg-white/64 p-3">
+          Signed-in memory helps continuity across decisions, reflections, counsel, and rules of life. It should make guidance more personal without exposing private details unnecessarily.
+        </p>
+      </div>
+    </section>
+  );
+}
+
 function CurrentCounselCard({
   exchange,
   mode,
@@ -3009,6 +3118,7 @@ function CurrentCounselCard({
   onCreateCounselSummary,
   onWait,
   onShare,
+  onFeedback,
 }: {
   exchange: ConversationExchange;
   mode: Mode;
@@ -3020,6 +3130,7 @@ function CurrentCounselCard({
   onCreateCounselSummary: (exchange: ConversationExchange) => void;
   onWait: (exchange: ConversationExchange) => void;
   onShare: (channel: ShareChannel) => void;
+  onFeedback: (value: string) => void;
 }) {
   const question = exchange.question?.text;
   const isThinking = exchange.answer.id === "thinking";
@@ -3057,6 +3168,7 @@ function CurrentCounselCard({
             <CounselAction label="Create counsel summary" onClick={() => onCreateCounselSummary(exchange)} />
             <CounselAction label="Wait 3 days" onClick={() => onWait(exchange)} />
           </div>
+          <AnswerFeedback onFeedback={onFeedback} />
           <div className="mt-3 rounded-lg border border-[#d8e1db] bg-[#fbfcf8]/76 p-3">
             <p className="text-sm font-semibold text-[#203a35]">Share Aletheia with someone who may benefit from this kind of counsel.</p>
             <p className="mt-1 text-xs leading-5 text-[#718077]">
@@ -3074,6 +3186,33 @@ function CurrentCounselCard({
         </>
       ) : null}
     </section>
+  );
+}
+
+function AnswerFeedback({ onFeedback }: { onFeedback: (value: string) => void }) {
+  const items = [
+    ["helpful", "Helpful"],
+    ["too_vague", "Too vague"],
+    ["too_preachy", "Too preachy"],
+    ["not_relevant", "Not relevant"],
+  ] as const;
+
+  return (
+    <div className="mt-3 rounded-lg border border-[#d8e1db] bg-white/60 p-3">
+      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#866a24]">Was this counsel useful?</p>
+      <div className="mt-2 flex flex-wrap gap-2">
+        {items.map(([value, label]) => (
+          <button
+            key={value}
+            type="button"
+            onClick={() => onFeedback(value)}
+            className="h-8 rounded-md border border-[#c9d5cd] bg-white/80 px-3 text-xs font-semibold text-[#405049] transition hover:bg-white"
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -3271,6 +3410,15 @@ function DecisionCompanionPanel({
             </div>
           ) : null}
         </section>
+
+        <section className="rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">Formation rhythm</p>
+          <div className="mt-3 grid gap-2">
+            <RhythmItem label="3-minute morning reflection" body="Name the pressure before the day names it for you." />
+            <RhythmItem label="Evening examen" body="Review one money or work moment with honesty, not shame." />
+            <RhythmItem label="Weekly pattern review" body="Notice repeated urgency, comparison, fear, or overgiving." />
+          </div>
+        </section>
       </section>
 
       <aside className="space-y-4">
@@ -3358,6 +3506,9 @@ function DecisionCompanionPanel({
         {selectedDecision?.summary ? (
           <section className="rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">Decision Summary Export</p>
+            <p className="mt-2 text-sm leading-6 text-[#55645b]">
+              Mentor-ready summary with decision, pressure, wisdom anchors, risks, counsel questions, and next faithful step. Review it before sharing.
+            </p>
             <textarea readOnly value={selectedDecision.summary} className="mt-3 max-h-56 min-h-40 w-full resize-none rounded-md border border-[#c9d5cd] bg-white/78 p-3 text-xs leading-5 text-[#405049]" />
           </section>
         ) : null}
@@ -3484,6 +3635,25 @@ function DecisionCard({
           >
             Save outcome
           </button>
+        </div>
+      </div>
+
+      <div className="mt-4 rounded-lg border border-[#d8e1db] bg-white/64 p-3">
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#866a24]">Revisit rhythm</p>
+        <p className="mt-2 text-sm leading-6 text-[#55645b]">
+          Wisdom often gets clearer after facts, counsel, prayer, and time. Schedule a light review point without turning it into pressure.
+        </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {[7, 30, 90].map((days) => (
+            <button
+              key={days}
+              type="button"
+              onClick={() => onUpdate(decision.id, { event: `Scheduled an outcome review for ${days} days from now.` })}
+              className="rounded-md border border-[#c9d5cd] bg-white/80 px-3 py-2 text-xs font-semibold text-[#405049] transition hover:bg-white"
+            >
+              Review in {days}d
+            </button>
+          ))}
         </div>
       </div>
     </article>

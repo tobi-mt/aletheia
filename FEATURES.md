@@ -16,6 +16,10 @@ It is designed to feel calm, premium, emotionally intelligent, spiritually groun
 - Suggested prompts for common money, work, purpose, and generosity questions
 - Voice input for asking questions when supported by the browser
 - Voice output for reading the latest Aletheia response aloud
+- Answer feedback buttons: helpful, too vague, too preachy, and not relevant
+- Signed-in memory can use active decisions, recent reflections, and rules of life for continuity
+- Stronger emotional discernment for urgency, fear, shame, and pressure
+- Stronger refusal behavior for predictions, guaranteed outcomes, harmful requests, fraud, tax evasion, and manipulative giving
 
 ## Wisdom Modes
 
@@ -49,7 +53,9 @@ Aletheia includes distinct wisdom modes that change how guidance is interpreted 
 - Wisdom timeline for changes, learning, counsel, and patterns over time
 - Calm readiness indicator instead of gamified scoring
 - Waiting mode options for 1, 3, 7, and 30 days
+- Outcome review prompts for 7, 30, and 90 days
 - Decision summary export area
+- Mentor-ready decision summary with privacy review before sharing
 - Outcome and learning capture after the decision is made
 - Decision history
 - Ability to continue a decision from a chat answer
@@ -161,6 +167,9 @@ After a meaningful answer, Aletheia can help the user take the next wise step.
 ## Preferences
 
 - Preferred language
+- Preferred onboarding tone
+- Faith familiarity context during onboarding
+- “What are you carrying right now?” starting prompt
 - Life context / region
 - Preferred Bible translation
 - Voice controls
@@ -215,6 +224,7 @@ Calm milestones are included as signs of formation, not childish gamification.
 - Privacy-conscious event tracking
 - Tracks product usage without storing private chat, journal, decision pressure, counsel names, or rule text
 - Supports understanding unique usage, engagement, mode selection, questions asked, decisions created, reflections saved, and notifications enabled
+- Tracks answer feedback and app sharing without storing private answer text
 - Protected aggregate analytics endpoint
 
 ## PWA Experience
@@ -241,6 +251,17 @@ Calm milestones are included as signs of formation, not childish gamification.
 - Avoids emotional manipulation
 - Uses curated biblical wisdom rather than hallucinated references
 - Keeps the experience calm, reflective, and non-judgmental
+- Visible trust layer explaining source integrity, advice boundaries, and plain-English privacy/model behavior
+- Tap-to-read scripture context and “why this matters here”
+
+## Retention Rhythm
+
+- 3-minute morning reflection
+- Evening examen for money and work moments
+- Weekly pattern review
+- Decision waiting check-ins
+- Continue-where-you-left-off dashboard actions
+- Streak-free formation language
 
 ## Technical Features
 
