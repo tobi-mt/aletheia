@@ -62,6 +62,13 @@ type AuthMode = "login" | "register";
 type AuthStatus = "checking" | "guest" | "signing-in" | "signed-in" | "signing-out";
 type AnalyticsMetadata = Record<string, string | number | boolean | null>;
 type ShareChannel = "native" | "copy" | "whatsapp" | "facebook" | "x" | "linkedin" | "email" | "sms";
+type WorkflowTone = "info" | "success" | "warning" | "error";
+type WorkflowNoticeState = {
+  id: string;
+  title: string;
+  body: string;
+  tone: WorkflowTone;
+};
 
 const ALETHEIA_SHARE_URL = "https://aletheia.mirrortalkpodcast.com?ref=share";
 const ALETHEIA_SHARE_TEXT = "Aletheia is a calm AI-powered biblical wisdom companion for money, work, and stewardship.";
@@ -532,6 +539,7 @@ export function AletheiaApp() {
   const [selectedScripture, setSelectedScripture] = useState<string | null>(null);
   const [isWorking, setIsWorking] = useState(false);
   const [statusMessage, setStatusMessage] = useState("Checking your sign-in status...");
+  const [workflowNotice, setWorkflowNotice] = useState<WorkflowNoticeState | null>(null);
   const [notificationStatus, setNotificationStatus] = useState("Checking notification support...");
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [notificationsConfigured, setNotificationsConfigured] = useState(false);
@@ -554,6 +562,23 @@ export function AletheiaApp() {
   const [ruleText, setRuleText] = useState("");
   const preferencesRef = useRef<HTMLElement | null>(null);
   const workspaceRef = useRef<HTMLElement | null>(null);
+
+  function announceWorkflow(title: string, body: string, tone: WorkflowTone = "info") {
+    setWorkflowNotice({
+      id: crypto.randomUUID(),
+      title,
+      body,
+      tone,
+    });
+  }
+
+  useEffect(() => {
+    if (!workflowNotice) {
+      return;
+    }
+    const timeout = window.setTimeout(() => setWorkflowNotice(null), 6500);
+    return () => window.clearTimeout(timeout);
+  }, [workflowNotice]);
 
   async function loadSignedInWorkspace(signedInUser: User) {
     const [chatResponse, journalResponse, notificationResponse, decisionsResponse, counselResponse, rulesResponse, preferencesResponse] = await Promise.all([
@@ -769,6 +794,7 @@ export function AletheiaApp() {
   function revealPreferences() {
     showView("account");
     setPreferencesStatus("Language, region, Bible translation, and voice are in Account.");
+    announceWorkflow("Preferences opened", "Language, region, Bible translation, and voice are all managed in Account.", "info");
     window.requestAnimationFrame(() => {
       preferencesRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
     });
@@ -786,26 +812,33 @@ export function AletheiaApp() {
       );
       showView("companion");
       setStatusMessage("A personal starting question is ready in the companion.");
+      announceWorkflow("Starting path prepared", "Your first question is ready in the Companion input. Send it when you are ready.", "success");
+    } else {
+      announceWorkflow("Setup saved", "Your preferences are ready. Start with a question, a decision, or today's reflection.", "success");
     }
     setShowOnboarding(false);
   }
 
   function continueDecisionFlow() {
     showView("decisions");
+    announceWorkflow("Decision companion opened", "Continue the decision with pressure, counsel, cost, and the next faithful step in view.", "info");
   }
 
   function reflectOnToday() {
     setJournalTitle(`${daily.theme} reflection`);
     setJournalBody(`${daily.practice}\n\nWhat I notice today:\n`);
     showView("reflect");
+    announceWorkflow("Reflection prepared", "Today's wisdom has been placed into Reflect so you can respond quietly.", "success");
   }
 
   function askFromDashboard() {
     showView("companion");
+    announceWorkflow("Companion ready", "Ask the question as plainly as you can. Aletheia will slow it down with you.", "info");
   }
 
   function reviewPatternFlow() {
     showView("decisions");
+    announceWorkflow("Timeline opened", "Look for recurring pressure, fear, comparison, counsel, and clarity over time.", "info");
   }
 
   function openAccountFlow() {
@@ -822,9 +855,11 @@ export function AletheiaApp() {
           url: ALETHEIA_SHARE_URL,
         });
         setStatusMessage("Aletheia share sheet opened.");
+        announceWorkflow("Share sheet opened", "Only the Aletheia app link is shared. Your private content stays private.", "success");
         return;
       } catch {
         setStatusMessage("Share cancelled. You can still copy the link.");
+        announceWorkflow("Share cancelled", "Nothing was shared. You can still copy the app link if you want.", "info");
         return;
       }
     }
@@ -833,8 +868,10 @@ export function AletheiaApp() {
       try {
         await navigator.clipboard.writeText(ALETHEIA_SHARE_URL);
         setStatusMessage("Aletheia link copied.");
+        announceWorkflow("Link copied", "Only the public Aletheia invite link was copied.", "success");
       } catch {
         setStatusMessage(ALETHEIA_SHARE_URL);
+        announceWorkflow("Copy unavailable", "The invite link is shown in the status message so you can share it manually.", "warning");
       }
     }
   }
@@ -842,6 +879,7 @@ export function AletheiaApp() {
   function recordAnswerFeedback(value: string, placement: string) {
     trackClientEvent("answer_feedback", { value, placement, mode });
     setStatusMessage("Thank you. Aletheia will use feedback like this to become wiser and clearer.");
+    announceWorkflow("Feedback saved", "Thank you. This helps shape clearer, wiser responses.", "success");
   }
 
   function trackDecisionFromExchange(exchange: ConversationExchange) {
@@ -854,6 +892,7 @@ export function AletheiaApp() {
     setDecisionPressure(question);
     setDecisionEmotion("uncertain");
     showView("decisions");
+    announceWorkflow("Decision draft started", "Aletheia moved the question into Decision Companion so it can be tracked over time.", "success");
   }
 
   function draftReflectionFromExchange(exchange: ConversationExchange) {
@@ -862,12 +901,14 @@ export function AletheiaApp() {
     setJournalTitle(`Reflection: ${question.slice(0, 70)}`);
     setJournalBody(`Question:\n${question}\n\nAletheia counsel:\n${answer}\n\nWhat I notice:\n`);
     showView("reflect");
+    announceWorkflow("Reflection draft prepared", "The question and counsel are ready in Reflect. Add what you are noticing.", "success");
   }
 
   function draftCounselSummaryFromExchange(exchange: ConversationExchange) {
     const question = cleanDisplayText(exchange.question?.text ?? "");
     setQuery(`Create a concise counsel summary I can share with a trusted person about this decision: ${question}`);
     showView("companion");
+    announceWorkflow("Counsel summary queued", "The Companion input now asks for a mentor-ready summary. Send it when ready.", "success");
   }
 
   function waitFromExchange(exchange: ConversationExchange) {
@@ -876,6 +917,7 @@ export function AletheiaApp() {
     setDecisionPressure(`${question}\n\nSuggested waiting rhythm: wait 3 days, seek counsel, count the cost, and revisit with less urgency.`);
     setDecisionEmotion("pressured");
     showView("decisions");
+    announceWorkflow("Waiting rhythm prepared", "A 3-day waiting path was drafted in Decision Companion.", "success");
   }
 
   async function updatePreferences(patch: Partial<UserPreferences>) {
@@ -894,7 +936,15 @@ export function AletheiaApp() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(next),
       });
-      setPreferencesStatus(response.ok ? "Language settings saved." : "Could not sync language settings yet.");
+      const saved = response.ok;
+      setPreferencesStatus(saved ? "Language settings saved." : "Could not sync language settings yet.");
+      announceWorkflow(
+        saved ? "Preferences synced" : "Preferences saved locally",
+        saved ? "Your language, region, Bible translation, and voice settings are synced." : "The app kept the setting on this device, but sync did not complete.",
+        saved ? "success" : "warning"
+      );
+    } else {
+      announceWorkflow("Preferences saved", "These settings are saved on this device. Sign in to sync them across devices.", "success");
     }
   }
 
@@ -923,6 +973,7 @@ export function AletheiaApp() {
       browserWindow.SpeechRecognition || browserWindow.webkitSpeechRecognition;
     if (!SpeechRecognition) {
       setPreferencesStatus("Voice input is not supported in this browser yet.");
+      announceWorkflow("Voice input unavailable", "This browser does not support speech recognition yet.", "warning");
       return;
     }
 
@@ -935,9 +986,13 @@ export function AletheiaApp() {
       const transcript = event.results[0]?.[0]?.transcript;
       if (transcript) {
         setQuery((current) => `${current}${current ? " " : ""}${transcript}`.trim());
+        announceWorkflow("Voice captured", "The spoken text was added to the Companion input.", "success");
       }
     };
-    recognition.onerror = () => setPreferencesStatus("Voice input stopped before Aletheia could hear clearly.");
+    recognition.onerror = () => {
+      setPreferencesStatus("Voice input stopped before Aletheia could hear clearly.");
+      announceWorkflow("Voice input stopped", "Aletheia could not hear clearly. You can try again or type the question.", "warning");
+    };
     recognition.onend = () => setIsListening(false);
     recognition.start();
   }
@@ -945,11 +1000,13 @@ export function AletheiaApp() {
   function speakLatestAletheiaReply() {
     if (!("speechSynthesis" in window)) {
       setPreferencesStatus("Voice output is not supported in this browser yet.");
+      announceWorkflow("Voice output unavailable", "This browser does not support spoken playback yet.", "warning");
       return;
     }
     if (isSpeaking) {
       window.speechSynthesis.cancel();
       setIsSpeaking(false);
+      announceWorkflow("Voice stopped", "Spoken playback has been stopped.", "info");
       return;
     }
     const latest = [...messages].reverse().find((message) => message.role === "aletheia");
@@ -962,6 +1019,7 @@ export function AletheiaApp() {
     utterance.onend = () => setIsSpeaking(false);
     utterance.onerror = () => setIsSpeaking(false);
     setIsSpeaking(true);
+    announceWorkflow("Reading aloud", "Aletheia is reading the latest response in your selected language voice when available.", "info");
     window.speechSynthesis.speak(utterance);
   }
 
@@ -971,6 +1029,7 @@ export function AletheiaApp() {
     }
     const trimmed = rawQuestion.trim();
     if (!trimmed) {
+      announceWorkflow("Ask a question first", "Type or choose a question so Aletheia has something concrete to work with.", "warning");
       return;
     }
 
@@ -980,6 +1039,7 @@ export function AletheiaApp() {
 
     const userMessage: ChatMessage = { id: crypto.randomUUID(), role: "user", text: trimmed };
     setIsWorking(true);
+    announceWorkflow("Question sent", "Aletheia is retrieving grounded wisdom and preparing a response.", "info");
     setMessages((current) => [
       ...current,
       userMessage,
@@ -1005,15 +1065,16 @@ export function AletheiaApp() {
       setMessages((current) =>
         current.map((message) => (message.id === "thinking" ? data.reply! : message))
       );
-      setStatusMessage(
+      const responseMessage =
         data.persisted
           ? data.usedOpenAI
             ? "Answered with server-side OpenAI/RAG and saved to your account."
             : "Answered with server-side retrieval fallback and saved to your account."
           : data.usedOpenAI
             ? "Answered with server-side OpenAI/RAG. Sign in to save history."
-            : "Answered with server-side retrieval fallback. Add OPENAI_API_KEY for generated AI responses."
-      );
+            : "Answered with server-side retrieval fallback. Add OPENAI_API_KEY for generated AI responses.";
+      setStatusMessage(responseMessage);
+      announceWorkflow("Answer ready", responseMessage, "success");
     } catch {
       const fallback = composeResponse(trimmed, mode);
       setMessages((current) =>
@@ -1024,6 +1085,7 @@ export function AletheiaApp() {
         )
       );
       setStatusMessage("Used offline fallback because the server route was unavailable.");
+      announceWorkflow("Offline answer ready", "The server was unavailable, so Aletheia used its local fallback wisdom.", "warning");
     } finally {
       setIsWorking(false);
     }
@@ -1062,12 +1124,15 @@ export function AletheiaApp() {
         : "Sign-in successful. Sync is active.";
       setStatusMessage(successMessage);
       setAuthNotice(successMessage);
+      announceWorkflow(authMode === "register" ? "Account created" : "Signed in", successMessage, "success");
       setActiveView("account");
       setShowOnboarding(false);
     } catch (error) {
       setAuthStatus("guest");
-      setAuthError(error instanceof Error ? error.message : "Authentication failed.");
+      const message = error instanceof Error ? error.message : "Authentication failed.";
+      setAuthError(message);
       setAuthNotice("");
+      announceWorkflow("Sign-in did not finish", message, "error");
     } finally {
       setIsWorking(false);
     }
@@ -1085,18 +1150,21 @@ export function AletheiaApp() {
     setJournalEntries([]);
     setNotificationsEnabled(false);
     setStatusMessage("Signed out. Guest mode is active.");
+    announceWorkflow("Signed out", "Guest mode is active. You can still use Aletheia on this device.", "info");
   }
 
   async function handleGoogleSignIn() {
     if (!googleAuthAvailable) {
       setAuthError("Google sign-in is not configured yet. You can still sign in with email.");
       setAuthNotice("");
+      announceWorkflow("Google unavailable", "Google sign-in is not configured yet. Email sign-in is available.", "warning");
       return;
     }
     setAuthStatus("signing-in");
     setAuthError("");
     setAuthNotice("Opening Google sign-in. You will return to Account when it finishes.");
     setStatusMessage("Opening Google sign-in. You will return to Account when it finishes.");
+    announceWorkflow("Opening Google", "You will return to the Account tab after sign-in completes.", "info");
     await authSignIn("google", {
       redirectTo: "/api/auth/oauth/complete?next=%2F%3Fauth%3Dgoogle_success%26view%3Daccount",
     });
@@ -1105,14 +1173,17 @@ export function AletheiaApp() {
   async function enableNotifications() {
     if (!user) {
       setNotificationStatus("Sign in first, then enable notifications.");
+      announceWorkflow("Sign in required", "Daily wisdom notifications can be enabled after sign-in.", "warning");
       return;
     }
     if (!notificationsConfigured) {
       setNotificationStatus("Notifications are not configured on the server yet.");
+      announceWorkflow("Notifications not configured", "The server is missing notification keys or settings.", "warning");
       return;
     }
     if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
       setNotificationStatus("This browser does not support web push notifications.");
+      announceWorkflow("Notifications unavailable", "This browser does not support web push notifications.", "warning");
       return;
     }
 
@@ -1120,6 +1191,7 @@ export function AletheiaApp() {
     setNotificationPermission(permission);
     if (permission !== "granted") {
       setNotificationStatus("Notifications were not enabled. You can allow them later in browser settings.");
+      announceWorkflow("Notifications not enabled", "You can allow notifications later in your browser settings.", "warning");
       return;
     }
 
@@ -1127,6 +1199,7 @@ export function AletheiaApp() {
     const keyData = (await keyResponse.json()) as { publicKey?: string };
     if (!keyData.publicKey) {
       setNotificationStatus("Notifications are missing a public key.");
+      announceWorkflow("Notification key missing", "The server did not provide a VAPID public key.", "error");
       return;
     }
 
@@ -1143,11 +1216,13 @@ export function AletheiaApp() {
     });
     if (!response.ok) {
       setNotificationStatus("Could not save notification preference.");
+      announceWorkflow("Notification sync failed", "Permission was granted, but the subscription could not be saved.", "error");
       return;
     }
 
     setNotificationsEnabled(true);
     setNotificationStatus("Daily wisdom notifications are enabled for this device.");
+    announceWorkflow("Notifications enabled", "This device is subscribed to daily wisdom notifications.", "success");
   }
 
   async function disableNotifications() {
@@ -1165,12 +1240,14 @@ export function AletheiaApp() {
     }
     setNotificationsEnabled(false);
     setNotificationStatus("Daily wisdom notifications are turned off for this device.");
+    announceWorkflow("Notifications off", "Daily wisdom notifications are turned off for this device.", "info");
   }
 
   async function saveReflection() {
     const title = journalTitle.trim() || `${mode} reflection`;
     const body = journalBody.trim();
     if (!body) {
+      announceWorkflow("Write the reflection first", "Add a few honest lines before saving.", "warning");
       return;
     }
 
@@ -1183,6 +1260,7 @@ export function AletheiaApp() {
       const data = (await response.json()) as { entry?: JournalEntry };
       if (data.entry) {
         setJournalEntries((current) => [data.entry!, ...current]);
+        announceWorkflow("Reflection saved", "Your reflection is synced to your account.", "success");
       }
     } else {
       setJournalEntries((current) => [
@@ -1196,6 +1274,7 @@ export function AletheiaApp() {
         ...current,
       ]);
       setStatusMessage("Reflection saved for this session. Sign in to persist it to the database.");
+      announceWorkflow("Reflection saved locally", "This reflection is kept for this session. Sign in to sync it.", "success");
     }
 
     setJournalTitle("");
@@ -1207,6 +1286,7 @@ export function AletheiaApp() {
       await fetch(`/api/journal/${id}`, { method: "DELETE" });
     }
     setJournalEntries((current) => current.filter((entry) => entry.id !== id));
+    announceWorkflow("Reflection deleted", "The journal entry was removed.", "info");
   }
 
   function refreshLocalTimeline(decisions: WisdomDecision[], events: DecisionEvent[]) {
@@ -1235,6 +1315,7 @@ export function AletheiaApp() {
     const title = decisionTitle.trim();
     const pressure = decisionPressure.trim();
     if (!title || !pressure) {
+      announceWorkflow("Name the decision and pressure", "Aletheia needs both the decision and the pressure around it before tracking.", "warning");
       return;
     }
 
@@ -1258,6 +1339,7 @@ export function AletheiaApp() {
           },
           ...current,
         ]);
+        announceWorkflow("Decision tracked", "The decision is now in your Decision Companion timeline.", "success");
       }
     } else {
       const sources = searchWisdom(`${title} ${pressure} ${decisionEmotion}`, mode, 3);
@@ -1305,6 +1387,7 @@ export function AletheiaApp() {
       setDecisionEvents(nextEvents);
       refreshLocalTimeline(nextDecisions, nextEvents);
       setStatusMessage("Decision saved for this session. Sign in to persist decision memory.");
+      announceWorkflow("Decision tracked locally", "The decision is tracked on this device. Sign in to sync decision memory.", "success");
     }
 
     setDecisionTitle("");
@@ -1324,6 +1407,7 @@ export function AletheiaApp() {
         body: JSON.stringify(patch),
       });
       if (!response.ok) {
+        announceWorkflow("Decision update failed", "The change could not be saved. Please try again.", "error");
         return;
       }
     }
@@ -1379,12 +1463,14 @@ export function AletheiaApp() {
     setWisdomDecisions(updated);
     setDecisionEvents(events);
     refreshLocalTimeline(updated, events);
+    announceWorkflow("Decision updated", eventBody || "The decision signals were updated.", "success");
   }
 
   async function addCounselContact(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const name = counselName.trim();
     if (!name) {
+      announceWorkflow("Add a name first", "Name the trusted person before adding them to your Counsel Circle.", "warning");
       return;
     }
     if (user) {
@@ -1396,12 +1482,14 @@ export function AletheiaApp() {
       const data = (await response.json()) as { contact?: CounselContact };
       if (data.contact) {
         setCounselContacts((current) => [data.contact!, ...current]);
+        announceWorkflow("Counsel added", `${data.contact.name} was added to your Counsel Circle.`, "success");
       }
     } else {
       setCounselContacts((current) => [
         { id: crypto.randomUUID(), name, role: counselRole, notes: null, createdAt: new Date().toISOString() },
         ...current,
       ]);
+      announceWorkflow("Counsel added locally", `${name} was added on this device. Sign in to sync your Counsel Circle.`, "success");
     }
     setCounselName("");
   }
@@ -1410,6 +1498,7 @@ export function AletheiaApp() {
     event.preventDefault();
     const principle = ruleText.trim();
     if (!principle) {
+      announceWorkflow("Write a principle first", "Add one personal rule of life before saving.", "warning");
       return;
     }
     if (user) {
@@ -1421,12 +1510,14 @@ export function AletheiaApp() {
       const data = (await response.json()) as { rule?: RuleOfLife };
       if (data.rule) {
         setRulesOfLife((current) => [data.rule!, ...current]);
+        announceWorkflow("Rule of life saved", "This principle is now part of your formation record.", "success");
       }
     } else {
       setRulesOfLife((current) => [
         { id: crypto.randomUUID(), mode, principle, createdAt: new Date().toISOString() },
         ...current,
       ]);
+      announceWorkflow("Rule saved locally", "This principle is saved on this device. Sign in to sync it.", "success");
     }
     setRuleText("");
   }
@@ -1434,6 +1525,7 @@ export function AletheiaApp() {
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#eef2ef] text-[#171917]">
       <div className="fixed inset-0 -z-10 bg-[radial-gradient(circle_at_18%_0%,rgba(201,177,123,0.16),transparent_24%),radial-gradient(circle_at_92%_16%,rgba(64,101,96,0.14),transparent_24%),linear-gradient(180deg,#f4f6f2_0%,#e4ebe6_100%)]" />
+      <WorkflowNotice notice={workflowNotice} onClose={() => setWorkflowNotice(null)} />
 
       <nav className="sticky top-0 z-30 border-b border-[#c9d5cd]/70 bg-[#eef2ef]/88 px-3 py-3 backdrop-blur-xl sm:px-4">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3">
@@ -1774,6 +1866,46 @@ function ModeButton({ item, active, onClick }: { item: (typeof modes)[number]; a
         <span className="mt-1 block text-xs leading-5 text-[#dbe4dd]">{item.copy}</span>
       </span>
     </button>
+  );
+}
+
+function WorkflowNotice({
+  notice,
+  onClose,
+}: {
+  notice: WorkflowNoticeState | null;
+  onClose: () => void;
+}) {
+  if (!notice) {
+    return null;
+  }
+
+  const toneClass: Record<WorkflowTone, string> = {
+    success: "border-[#b8d0c2] bg-[#edf7f1] text-[#245443]",
+    info: "border-[#c9d5cd] bg-[#fbfcf8] text-[#203a35]",
+    warning: "border-[#ead8a4] bg-[#fff8dc] text-[#866a24]",
+    error: "border-[#e0c3b7] bg-[#fff6f1] text-[#8c3f28]",
+  };
+
+  return (
+    <div className="fixed inset-x-3 bottom-24 z-50 sm:bottom-auto sm:left-auto sm:right-4 sm:top-24 sm:w-[360px]" role="status" aria-live="polite">
+      <div className={`rounded-xl border p-4 shadow-xl shadow-[#203a35]/12 backdrop-blur ${toneClass[notice.tone]}`}>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold">{notice.title}</p>
+            <p className="mt-1 text-sm leading-6 opacity-85">{notice.body}</p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="grid size-8 shrink-0 place-items-center rounded-md bg-white/45 transition hover:bg-white/70"
+            aria-label="Dismiss workflow notice"
+          >
+            <X size={15} />
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
