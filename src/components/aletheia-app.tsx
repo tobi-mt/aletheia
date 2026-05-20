@@ -105,7 +105,11 @@ function shouldShowOnboarding() {
   }
 
   try {
-    return window.localStorage.getItem("aletheia_onboarding_complete") !== "yes";
+    const completed = window.localStorage.getItem("aletheia_onboarding_complete") === "yes";
+    const hasPreferences = Boolean(window.localStorage.getItem("aletheia_preferences"));
+    const hasAnonId = Boolean(window.localStorage.getItem("aletheia_anon_id"));
+    const hasOpenedThisSession = Boolean(window.sessionStorage.getItem("aletheia_app_opened_tracked"));
+    return !completed && !hasPreferences && !hasAnonId && !hasOpenedThisSession;
   } catch {
     return false;
   }
@@ -670,9 +674,14 @@ export function AletheiaApp() {
           : "Signed in. Conversations and reflections sync to the database.";
         setStatusMessage(signedInMessage);
         setAuthNotice(params.get("auth") === "google_success" ? signedInMessage : "");
+        try {
+          window.localStorage.setItem("aletheia_onboarding_complete", "yes");
+        } catch {
+          // Signed-in users should not be blocked by local onboarding storage.
+        }
+        setShowOnboarding(false);
         if (params.get("view") === "account" || params.get("auth") === "google_success") {
           setActiveView("account");
-          setShowOnboarding(false);
           window.history.replaceState({}, "", window.location.pathname);
         }
       } else {
@@ -1125,6 +1134,11 @@ export function AletheiaApp() {
       setStatusMessage(successMessage);
       setAuthNotice(successMessage);
       announceWorkflow(authMode === "register" ? "Account created" : "Signed in", successMessage, "success");
+      try {
+        window.localStorage.setItem("aletheia_onboarding_complete", "yes");
+      } catch {
+        // Auth still succeeds if local onboarding storage is unavailable.
+      }
       setActiveView("account");
       setShowOnboarding(false);
     } catch (error) {
@@ -1803,7 +1817,6 @@ export function AletheiaApp() {
         notificationsEnabled={notificationsEnabled}
         onModeChange={handleModeChange}
         onPreferenceChange={updatePreferences}
-        onOpenAccount={openAccountFlow}
         onComplete={completeOnboarding}
       />
       <ScriptureModal scripture={selectedScripture} preferences={preferences} onClose={() => setSelectedScripture(null)} />
@@ -1929,7 +1942,6 @@ function OnboardingModal({
   notificationsEnabled,
   onModeChange,
   onPreferenceChange,
-  onOpenAccount,
   onComplete,
 }: {
   open: boolean;
@@ -1944,7 +1956,6 @@ function OnboardingModal({
   notificationsEnabled: boolean;
   onModeChange: (mode: Mode) => void;
   onPreferenceChange: (patch: Partial<UserPreferences>) => void;
-  onOpenAccount: () => void;
   onComplete: () => void;
 }) {
   if (!open) {
@@ -2091,24 +2102,13 @@ function OnboardingModal({
           </section>
 
           <section className="rounded-lg border border-[#d8e1db] bg-white/62 p-3">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="text-sm font-semibold text-[#203a35]">Daily wisdom notification</p>
-                <p className="mt-1 text-sm leading-6 text-[#607067]">
-                  {notificationsEnabled ? "Already enabled." : "Enable this from Account after sign-in."}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  onOpenAccount();
-                  onComplete();
-                }}
-                className="h-10 rounded-md border border-[#c9d5cd] bg-white/78 px-4 text-sm font-semibold text-[#405049] transition hover:bg-white"
-              >
-                Open Account
-              </button>
-            </div>
+            <p className="text-sm font-semibold text-[#203a35]">Account and notifications live in Account.</p>
+            <p className="mt-1 text-sm leading-6 text-[#607067]">
+              After you enter Aletheia, use the Account tab to sign in, sync your history, and turn on daily wisdom notifications.
+            </p>
+            <p className="mt-2 text-xs leading-5 text-[#718077]">
+              {notificationsEnabled ? "Notifications are already enabled on this device." : "Notifications are optional and can be enabled only after sign-in."}
+            </p>
           </section>
         </div>
 
