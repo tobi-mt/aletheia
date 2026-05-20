@@ -19,6 +19,7 @@ import {
   Scale,
   Search,
   Send,
+  Share2,
   ShieldCheck,
   Sparkles,
   Sprout,
@@ -58,6 +59,10 @@ type View = "companion" | "decisions" | "reflect" | "library" | "account";
 type AuthMode = "login" | "register";
 type AuthStatus = "checking" | "guest" | "signing-in" | "signed-in" | "signing-out";
 type AnalyticsMetadata = Record<string, string | number | boolean | null>;
+type ShareChannel = "native" | "copy" | "whatsapp" | "facebook" | "x" | "linkedin" | "email" | "sms";
+
+const ALETHEIA_SHARE_URL = "https://aletheia.mirrortalkpodcast.com?ref=share";
+const ALETHEIA_SHARE_TEXT = "Aletheia is a calm AI-powered biblical wisdom companion for money, work, and stewardship.";
 
 type User = {
   id: string;
@@ -125,6 +130,29 @@ function trackClientEvent(eventName: string, metadata: AnalyticsMetadata = {}) {
     body: JSON.stringify(payload),
     keepalive: true,
   }).catch(() => undefined);
+}
+
+function sharePlatformUrl(channel: ShareChannel) {
+  const encodedUrl = encodeURIComponent(ALETHEIA_SHARE_URL);
+  const encodedText = encodeURIComponent(ALETHEIA_SHARE_TEXT);
+  const encodedTitle = encodeURIComponent("Aletheia");
+
+  switch (channel) {
+    case "whatsapp":
+      return `https://wa.me/?text=${encodedText}%20${encodedUrl}`;
+    case "facebook":
+      return `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`;
+    case "x":
+      return `https://twitter.com/intent/tweet?text=${encodedText}&url=${encodedUrl}`;
+    case "linkedin":
+      return `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`;
+    case "email":
+      return `mailto:?subject=${encodedTitle}&body=${encodedText}%0A%0A${encodedUrl}`;
+    case "sms":
+      return `sms:?&body=${encodedText}%20${encodedUrl}`;
+    default:
+      return ALETHEIA_SHARE_URL;
+  }
 }
 
 function cleanDisplayText(text: string) {
@@ -744,6 +772,33 @@ export function AletheiaApp() {
 
   function openAccountFlow() {
     showView("account");
+  }
+
+  async function shareAletheia(channel: ShareChannel, placement: string) {
+    trackClientEvent("app_shared", { channel, placement });
+    if (channel === "native" && navigator.share) {
+      try {
+        await navigator.share({
+          title: "Aletheia",
+          text: ALETHEIA_SHARE_TEXT,
+          url: ALETHEIA_SHARE_URL,
+        });
+        setStatusMessage("Aletheia share sheet opened.");
+        return;
+      } catch {
+        setStatusMessage("Share cancelled. You can still copy the link.");
+        return;
+      }
+    }
+
+    if (channel === "copy" || channel === "native") {
+      try {
+        await navigator.clipboard.writeText(ALETHEIA_SHARE_URL);
+        setStatusMessage("Aletheia link copied.");
+      } catch {
+        setStatusMessage(ALETHEIA_SHARE_URL);
+      }
+    }
   }
 
   function trackDecisionFromExchange(exchange: ConversationExchange) {
@@ -1463,6 +1518,7 @@ export function AletheiaApp() {
                   onDraftReflection={draftReflectionFromExchange}
                   onCreateCounselSummary={draftCounselSummaryFromExchange}
                   onWait={waitFromExchange}
+                  onShare={(channel) => shareAletheia(channel, "answer")}
                 />
                 </Screen>
               ) : null}
@@ -1566,6 +1622,7 @@ export function AletheiaApp() {
                   journalEntries={journalEntries}
                   counselContacts={counselContacts}
                   rules={rulesOfLife}
+                  onShare={(channel, placement) => shareAletheia(channel, placement)}
                 />
                 </Screen>
               ) : null}
@@ -1997,6 +2054,7 @@ function AccountPanel({
   journalEntries,
   counselContacts,
   rules,
+  onShare,
 }: {
   user: User | null;
   authMode: AuthMode;
@@ -2032,6 +2090,7 @@ function AccountPanel({
   journalEntries: JournalEntry[];
   counselContacts: CounselContact[];
   rules: RuleOfLife[];
+  onShare: (channel: ShareChannel, placement: string) => void;
 }) {
   const exchanges = conversationExchanges(messages).filter((exchange) => exchange.question);
   const badges = [
@@ -2043,6 +2102,7 @@ function AccountPanel({
     { label: "Notifications enabled", active: notificationsEnabled },
     { label: "7 days of wisdom practice", active: false },
   ];
+  const hasFormationMilestone = badges.some((badge) => badge.active);
 
   return (
     <div className="grid min-w-0 gap-4 xl:grid-cols-[1fr_340px]">
@@ -2101,6 +2161,8 @@ function AccountPanel({
           onEnable={onEnableNotifications}
           onDisable={onDisableNotifications}
         />
+
+        <ShareInviteCard placement="account" onShare={onShare} />
       </section>
 
       <aside className="space-y-4">
@@ -2138,6 +2200,9 @@ function AccountPanel({
           <p className="mt-3 text-xs leading-5 text-[#cddbd1]">
             These are quiet signs of formation, not points to chase. The first milestone usually begins with saving one reflection.
           </p>
+          {hasFormationMilestone ? (
+            <ShareMilestonePrompt onShare={(channel) => onShare(channel, "milestone")} />
+          ) : null}
         </section>
       </aside>
     </div>
@@ -2149,6 +2214,102 @@ function AccountStat({ label, value }: { label: string; value: string }) {
     <div className="rounded-lg border border-[#d8e1db] bg-white/64 p-3">
       <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#718077]">{label}</p>
       <p className="mt-2 text-2xl font-semibold text-[#203a35]">{value}</p>
+    </div>
+  );
+}
+
+function ShareInviteCard({
+  placement,
+  onShare,
+}: {
+  placement: string;
+  onShare: (channel: ShareChannel, placement: string) => void;
+}) {
+  return (
+    <section className="rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm sm:p-5">
+      <div className="flex items-start gap-3">
+        <div className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-md bg-[#edf2ee] text-[#203a35]">
+          <Share2 size={17} />
+        </div>
+        <div>
+          <p className="text-sm font-semibold text-[#203a35]">Invite someone</p>
+          <p className="mt-1 text-sm leading-6 text-[#5b6a61]">
+            Invite someone who may need wisdom for money, work, or stewardship.
+          </p>
+          <p className="mt-1 text-xs leading-5 text-[#718077]">
+            This shares only the Aletheia app link, not your private questions or reflections.
+          </p>
+        </div>
+      </div>
+      <ShareActions placement={placement} onShare={onShare} />
+    </section>
+  );
+}
+
+function ShareMilestonePrompt({ onShare }: { onShare: (channel: ShareChannel) => void }) {
+  return (
+    <div className="mt-4 rounded-lg border border-white/10 bg-white/8 p-3">
+      <p className="text-sm font-semibold text-[#f8f5e8]">Know someone making a major decision?</p>
+      <p className="mt-1 text-xs leading-5 text-[#cddbd1]">
+        You can invite them to Aletheia without sharing anything private from your account.
+      </p>
+      <button
+        type="button"
+        onClick={() => onShare("native")}
+        className="mt-3 inline-flex h-9 items-center gap-2 rounded-md bg-[#f8f5e8] px-3 text-xs font-semibold text-[#203a35]"
+      >
+        <Share2 size={14} />
+        Share Aletheia
+      </button>
+    </div>
+  );
+}
+
+function ShareActions({
+  placement,
+  onShare,
+}: {
+  placement: string;
+  onShare: (channel: ShareChannel, placement: string) => void;
+}) {
+  const platforms: { label: string; channel: ShareChannel }[] = [
+    { label: "WhatsApp", channel: "whatsapp" },
+    { label: "Facebook", channel: "facebook" },
+    { label: "X / Twitter", channel: "x" },
+    { label: "LinkedIn", channel: "linkedin" },
+    { label: "Email", channel: "email" },
+    { label: "SMS", channel: "sms" },
+  ];
+
+  return (
+    <div className="mt-4 flex flex-wrap gap-2">
+      <button
+        type="button"
+        onClick={() => onShare("native", placement)}
+        className="inline-flex h-9 items-center gap-2 rounded-md bg-[#203a35] px-3 text-xs font-semibold text-[#f8f5e8] shadow-sm"
+      >
+        <Share2 size={14} />
+        Share Aletheia
+      </button>
+      <button
+        type="button"
+        onClick={() => onShare("copy", placement)}
+        className="h-9 rounded-md border border-[#c9d5cd] bg-white/70 px-3 text-xs font-semibold text-[#405049] transition hover:bg-white"
+      >
+        Copy link
+      </button>
+      {platforms.map((platform) => (
+        <a
+          key={platform.channel}
+          href={sharePlatformUrl(platform.channel)}
+          target={platform.channel === "email" || platform.channel === "sms" ? undefined : "_blank"}
+          rel={platform.channel === "email" || platform.channel === "sms" ? undefined : "noreferrer"}
+          onClick={() => onShare(platform.channel, placement)}
+          className="inline-flex h-9 items-center rounded-md border border-[#c9d5cd] bg-white/70 px-3 text-xs font-semibold text-[#405049] transition hover:bg-white"
+        >
+          {platform.label}
+        </a>
+      ))}
     </div>
   );
 }
@@ -2595,6 +2756,7 @@ function CompanionPanel({
   onDraftReflection,
   onCreateCounselSummary,
   onWait,
+  onShare,
   isWorking,
   isListening,
   isSpeaking,
@@ -2616,6 +2778,7 @@ function CompanionPanel({
   onDraftReflection: (exchange: ConversationExchange) => void;
   onCreateCounselSummary: (exchange: ConversationExchange) => void;
   onWait: (exchange: ConversationExchange) => void;
+  onShare: (channel: ShareChannel) => void;
   isWorking: boolean;
   isListening: boolean;
   isSpeaking: boolean;
@@ -2662,6 +2825,7 @@ function CompanionPanel({
               onDraftReflection={onDraftReflection}
               onCreateCounselSummary={onCreateCounselSummary}
               onWait={onWait}
+              onShare={onShare}
             />
           ) : null}
 
@@ -2844,6 +3008,7 @@ function CurrentCounselCard({
   onDraftReflection,
   onCreateCounselSummary,
   onWait,
+  onShare,
 }: {
   exchange: ConversationExchange;
   mode: Mode;
@@ -2854,6 +3019,7 @@ function CurrentCounselCard({
   onDraftReflection: (exchange: ConversationExchange) => void;
   onCreateCounselSummary: (exchange: ConversationExchange) => void;
   onWait: (exchange: ConversationExchange) => void;
+  onShare: (channel: ShareChannel) => void;
 }) {
   const question = exchange.question?.text;
   const isThinking = exchange.answer.id === "thinking";
@@ -2884,12 +3050,28 @@ function CurrentCounselCard({
         <ScriptureChips sources={exchange.answer.sources} onScriptureOpen={onScriptureOpen} />
       </article>
       {showDecisionActions ? (
-        <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-          <CounselAction label="Track this decision" onClick={() => onTrackDecision(exchange)} />
-          <CounselAction label="Save as reflection" onClick={() => onDraftReflection(exchange)} />
-          <CounselAction label="Create counsel summary" onClick={() => onCreateCounselSummary(exchange)} />
-          <CounselAction label="Wait 3 days" onClick={() => onWait(exchange)} />
-        </div>
+        <>
+          <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+            <CounselAction label="Track this decision" onClick={() => onTrackDecision(exchange)} />
+            <CounselAction label="Save as reflection" onClick={() => onDraftReflection(exchange)} />
+            <CounselAction label="Create counsel summary" onClick={() => onCreateCounselSummary(exchange)} />
+            <CounselAction label="Wait 3 days" onClick={() => onWait(exchange)} />
+          </div>
+          <div className="mt-3 rounded-lg border border-[#d8e1db] bg-[#fbfcf8]/76 p-3">
+            <p className="text-sm font-semibold text-[#203a35]">Share Aletheia with someone who may benefit from this kind of counsel.</p>
+            <p className="mt-1 text-xs leading-5 text-[#718077]">
+              This shares the app link only, not your question or Aletheia’s private answer.
+            </p>
+            <button
+              type="button"
+              onClick={() => onShare("native")}
+              className="mt-3 inline-flex h-9 items-center gap-2 rounded-md border border-[#c9d5cd] bg-white/80 px-3 text-xs font-semibold text-[#405049] transition hover:bg-white"
+            >
+              <Share2 size={14} />
+              Share Aletheia
+            </button>
+          </div>
+        </>
       ) : null}
     </section>
   );
