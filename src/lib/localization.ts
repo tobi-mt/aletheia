@@ -1,6 +1,6 @@
 import type { Mode, WisdomEntryData } from "@/lib/wisdom-data";
 
-export type LanguageCode = "en" | "es" | "fr" | "pt" | "de" | "yo";
+export type LanguageCode = "en" | "es" | "fr" | "pt" | "de" | "yo" | "ig" | "ha";
 export type RegionCode = "global" | "us" | "uk" | "eu" | "ng" | "br" | "latam";
 export type BibleTranslation = "WEB" | "KJV" | "ASV";
 
@@ -25,6 +25,8 @@ export const languages: Record<LanguageCode, { name: string; nativeName: string;
   pt: { name: "Portuguese", nativeName: "Português", speech: "pt-BR", direction: "ltr" },
   de: { name: "German", nativeName: "Deutsch", speech: "de-DE", direction: "ltr" },
   yo: { name: "Yoruba", nativeName: "Yorùbá", speech: "yo-NG", direction: "ltr" },
+  ig: { name: "Igbo", nativeName: "Igbo", speech: "ig-NG", direction: "ltr" },
+  ha: { name: "Hausa", nativeName: "Hausa", speech: "ha-NG", direction: "ltr" },
 };
 
 export const regions: Record<RegionCode, { label: string; example: string; currency: string }> = {
@@ -189,6 +191,22 @@ export const languageCopy: Record<
     askPlaceholder: "Béèrè pẹ̀lú ọgbọ́n, kì í ṣe pẹ̀lú ìkánjú...",
     regionHint: "Àpẹẹrẹ yóò rántí agbègbè rẹ, ṣùgbọ́n kò rọ́pò ìmọ̀ràn amọ̀ja.",
   },
+  ig: {
+    onboarding: "Họrọ otu Aletheia ga-esi gwa gị okwu: asụsụ, mpaghara, ntụgharị Baịbụl, na olu.",
+    dailyLabel: "Amamihe kwa ụbọchị",
+    translationFallback: "A ga-eji ntụaka Baịbụl dị nchebe; ma ọ bụrụ na ntụgharị adịghị, anyị alaghachi n'Bekee.",
+    voiceHint: "Jiri olu mee mkparịta ụka dị nwayọọ ma ọ bụrụ na browser gị kwadoro ya.",
+    askPlaceholder: "Jụọ n'amamihe, ọ bụghị n'ịgba ọsọ...",
+    regionHint: "Ihe atụ ga-elebara mpaghara gị anya, ma ọ naghị dochie ndụmọdụ ọkachamara.",
+  },
+  ha: {
+    onboarding: "Zaɓi yadda Aletheia za ta yi magana da kai: harshe, yanki, fassarar Littafi Mai Tsarki, da murya.",
+    dailyLabel: "Hikima ta yau",
+    translationFallback: "Za mu yi amfani da nassoshin Littafi Mai Tsarki masu aminci; idan babu fassara, za mu koma Turanci.",
+    voiceHint: "Yi amfani da murya don tattaunawa a hankali idan browser ɗinka ya goyi baya.",
+    askPlaceholder: "Tambaya da hikima, ba da gaggawa ba...",
+    regionHint: "Misalai za su dace da yankinka, amma ba su maye gurbin shawarar ƙwararre ba.",
+  },
 };
 
 export const localizedDailyPractices: Record<LanguageCode, Partial<Record<Mode, string>>> = {
@@ -227,6 +245,18 @@ export const localizedDailyPractices: Record<LanguageCode, Partial<Record<Mode, 
     Work: "Lónìí, yan ìgbésẹ̀ olóòtítọ́ tó kàn kí o tó lé ohun tó ń yanilẹ́nu.",
     Purpose: "Lónìí, jẹ́ kí àlàáfíà ṣètò ìyára ìmọ̀ràn rẹ.",
     Generosity: "Lónìí, fúnni látinú ìdánilójú, kì í ṣe ẹ̀bi.",
+  },
+  ig: {
+    Money: "Taa, achụla naanị karịa. Kọwaa ihe zuru ezu.",
+    Work: "Taa, họrọ nzọụkwụ kwesịrị ntụkwasị obi tupu ihe na-adọrọ mmasị.",
+    Purpose: "Taa, ka udo duzie ọsọ nghọta gị.",
+    Generosity: "Taa, nye site n'ikwere, ọ bụghị site n'ikpe ọmụma.",
+  },
+  ha: {
+    Money: "Yau, kada ka bi ƙarin abu kawai. Ka bayyana abin da ya isa.",
+    Work: "Yau, zaɓi mataki mai aminci kafin abin burgewa.",
+    Purpose: "Yau, bari salama ta tsara saurin fahimtarka.",
+    Generosity: "Yau, ka bayar da tabbaci, ba saboda laifi ba.",
   },
 };
 
@@ -278,6 +308,8 @@ export function localizedWisdomLibraryNote(entry: WisdomEntryData, preferences: 
     pt: `Use ${entry.scripture} com a referência ${translation}, aplicando o princípio à realidade de ${region.label}.`,
     de: `Nutze ${entry.scripture} mit der Referenz ${translation} und wende das Prinzip im Kontext von ${region.label} an.`,
     yo: `Lo ${entry.scripture} pẹ̀lú ìtọ́kasí ${translation}, kí o sì fi sí ìṣe ní agbègbè ${region.label}.`,
+    ig: `Jiri ${entry.scripture} na ntụaka ${translation}, tinye ụkpụrụ ya n'ọrụ n'ọnọdụ ${region.label}.`,
+    ha: `Yi amfani da ${entry.scripture} tare da alamar ${translation}, sannan ka aiwatar da ƙa'idar a yanayin ${region.label}.`,
   };
 
   return notes[preferences.language] ?? notes.en;

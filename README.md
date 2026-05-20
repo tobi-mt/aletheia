@@ -167,7 +167,7 @@ The current implementation sends only to users whose preferred notification hour
 
 Aletheia supports user preferences for:
 
-- preferred language: English, Spanish, French, Portuguese, German, Yoruba
+- preferred language: English, Spanish, French, Portuguese, German, Yoruba, Igbo, Hausa
 - region context: global, United States, United Kingdom, Europe, Nigeria, Brazil, Latin America
 - public-domain Bible translation label: WEB, KJV, ASV
 - browser voice input/output when supported

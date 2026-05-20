@@ -124,6 +124,28 @@ function cleanDisplayText(text: string) {
     .trim();
 }
 
+function conversationExchanges(messages: ChatMessage[]) {
+  const exchanges: ConversationExchange[] = [];
+  let pendingQuestion: ChatMessage | null = null;
+
+  for (const message of messages) {
+    if (message.role === "user") {
+      pendingQuestion = message;
+      continue;
+    }
+
+    exchanges.push({
+      id: `${pendingQuestion?.id ?? "welcome"}-${message.id}`,
+      question: pendingQuestion,
+      answer: message,
+      createdLabel: pendingQuestion ? "Earlier counsel" : "Welcome",
+    });
+    pendingQuestion = null;
+  }
+
+  return exchanges;
+}
+
 type WisdomEntry = {
   theme: string;
   scripture: string;
@@ -140,6 +162,13 @@ type ChatMessage = {
   role: "user" | "aletheia";
   text: string;
   sources?: WisdomEntry[];
+};
+
+type ConversationExchange = {
+  id: string;
+  question: ChatMessage | null;
+  answer: ChatMessage;
+  createdLabel: string;
 };
 
 type JournalEntry = {
@@ -1411,6 +1440,7 @@ export function AletheiaApp() {
                   setQuery={setQuery}
                   onAsk={handleAsk}
                   onPrompt={askAletheia}
+                  onDraftPrompt={setQuery}
                   onListen={startVoiceInput}
                   onSpeak={speakLatestAletheiaReply}
                   isWorking={isWorking}
@@ -1930,6 +1960,7 @@ function CompanionPanel({
   setQuery,
   onAsk,
   onPrompt,
+  onDraftPrompt,
   onListen,
   onSpeak,
   onScriptureOpen,
@@ -1946,6 +1977,7 @@ function CompanionPanel({
   setQuery: (value: string) => void;
   onAsk: (event: FormEvent<HTMLFormElement>) => void;
   onPrompt: (value: string) => void | Promise<void>;
+  onDraftPrompt: (value: string) => void;
   onListen: () => void;
   onSpeak: () => void;
   onScriptureOpen: (scripture: string) => void;
@@ -1955,6 +1987,10 @@ function CompanionPanel({
 }) {
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const panelRef = useRef<HTMLElement | null>(null);
+  const [expandedHistoryId, setExpandedHistoryId] = useState<string | null>(null);
+  const exchanges = conversationExchanges(messages);
+  const currentExchange = exchanges[exchanges.length - 1] ?? null;
+  const history = exchanges.slice(0, -1).reverse();
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -1979,33 +2015,42 @@ function CompanionPanel({
           </div>
         </div>
 
-        <div className="max-h-[560px] space-y-4 overflow-y-auto p-3 sm:p-4">
-          {messages.map((message) => (
-            <article
-              key={message.id}
-              className={`min-w-0 rounded-lg border p-3 sm:p-4 ${
-                message.role === "user"
-                  ? "ml-auto max-w-2xl border-[#203a35]/10 bg-[#203a35] text-[#f8f5e8]"
-                  : "max-w-3xl border-[#d8e1db] bg-white/72 text-[#303832]"
-              }`}
-            >
-              <pre className="whitespace-pre-wrap font-sans text-sm leading-6">{cleanDisplayText(message.text)}</pre>
-              {message.sources?.length ? (
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {message.sources.map((source) => (
-                    <button
-                      type="button"
-                      key={source.scripture}
-                      onClick={() => onScriptureOpen(source.scripture)}
-                      className="rounded-md border border-[#d8e1db] bg-[#fbfcf8] px-2 py-1 text-xs font-semibold text-[#68766d] transition hover:border-[#203a35] hover:text-[#203a35]"
-                    >
-                      {source.scripture}
-                    </button>
-                  ))}
+        <div className="max-h-[620px] space-y-4 overflow-y-auto p-3 sm:p-4">
+          {currentExchange ? (
+            <CurrentCounselCard exchange={currentExchange} isWorking={isWorking} onScriptureOpen={onScriptureOpen} />
+          ) : null}
+
+          {history.length ? (
+            <section className="rounded-xl border border-[#d8e1db] bg-white/58 p-3 sm:p-4">
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">Conversation history</p>
+                  <p className="mt-1 text-sm leading-6 text-[#607067]">
+                    Older counsel is kept quiet so the current question stays clear.
+                  </p>
                 </div>
-              ) : null}
-            </article>
-          ))}
+                <span className="w-fit rounded-md bg-[#edf2ee] px-2 py-1 text-xs font-semibold text-[#52635a]">
+                  {history.length} saved
+                </span>
+              </div>
+              <div className="mt-3 space-y-2">
+                {history.map((exchange) => (
+                  <HistoryExchange
+                    key={exchange.id}
+                    exchange={exchange}
+                    expanded={expandedHistoryId === exchange.id}
+                    onToggle={() => setExpandedHistoryId((current) => (current === exchange.id ? null : exchange.id))}
+                    onContinue={() => {
+                      if (!exchange.question) return;
+                      onDraftPrompt(`Continue from this: ${cleanDisplayText(exchange.question.text)}`);
+                      panelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+                    }}
+                    onScriptureOpen={onScriptureOpen}
+                  />
+                ))}
+              </div>
+            </section>
+          ) : null}
           <div ref={bottomRef} />
         </div>
 
@@ -2114,6 +2159,123 @@ function CompanionPanel({
         </section>
       </aside>
     </div>
+  );
+}
+
+function ScriptureChips({
+  sources,
+  onScriptureOpen,
+}: {
+  sources?: WisdomEntry[];
+  onScriptureOpen: (scripture: string) => void;
+}) {
+  if (!sources?.length) {
+    return null;
+  }
+
+  return (
+    <div className="mt-4 flex flex-wrap gap-2">
+      {sources.map((source) => (
+        <button
+          type="button"
+          key={source.scripture}
+          onClick={() => onScriptureOpen(source.scripture)}
+          className="rounded-md border border-[#d8e1db] bg-[#fbfcf8] px-2 py-1 text-xs font-semibold text-[#68766d] transition hover:border-[#203a35] hover:text-[#203a35]"
+        >
+          {source.scripture}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function CurrentCounselCard({
+  exchange,
+  isWorking,
+  onScriptureOpen,
+}: {
+  exchange: ConversationExchange;
+  isWorking: boolean;
+  onScriptureOpen: (scripture: string) => void;
+}) {
+  const question = exchange.question?.text;
+  const isThinking = exchange.answer.id === "thinking";
+
+  return (
+    <section className="rounded-xl border border-[#c9d5cd] bg-white/72 p-3 shadow-sm sm:p-4">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">
+          {question ? "Current counsel" : "Start here"}
+        </p>
+        <span className={`rounded-md px-2 py-1 text-xs font-semibold ${isThinking || isWorking ? "bg-[#fff8dc] text-[#866a24]" : "bg-[#edf7f1] text-[#245443]"}`}>
+          {isThinking || isWorking ? "Listening" : "Ready"}
+        </span>
+      </div>
+      {question ? (
+        <div className="rounded-lg bg-[#203a35] p-3 text-[#f8f5e8]">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#d0ad55]">Your question</p>
+          <p className="mt-2 text-sm leading-6">{cleanDisplayText(question)}</p>
+        </div>
+      ) : null}
+      <article className="mt-3 rounded-lg border border-[#d8e1db] bg-[#fbfcf8]/80 p-3 sm:p-4">
+        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#866a24]">Aletheia</p>
+        <pre className="whitespace-pre-wrap font-sans text-sm leading-6 text-[#303832]">{cleanDisplayText(exchange.answer.text)}</pre>
+        <ScriptureChips sources={exchange.answer.sources} onScriptureOpen={onScriptureOpen} />
+      </article>
+    </section>
+  );
+}
+
+function HistoryExchange({
+  exchange,
+  expanded,
+  onToggle,
+  onContinue,
+  onScriptureOpen,
+}: {
+  exchange: ConversationExchange;
+  expanded: boolean;
+  onToggle: () => void;
+  onContinue: () => void;
+  onScriptureOpen: (scripture: string) => void;
+}) {
+  const title = exchange.question?.text ?? "Welcome guidance";
+  const preview = cleanDisplayText(exchange.answer.text).slice(0, 120);
+
+  return (
+    <article className="rounded-lg border border-[#d8e1db] bg-[#fbfcf8]/76">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="flex w-full items-start justify-between gap-3 p-3 text-left transition hover:bg-white/70"
+      >
+        <span className="min-w-0">
+          <span className="block truncate text-sm font-semibold text-[#203a35]">{cleanDisplayText(title)}</span>
+          <span className="mt-1 block line-clamp-2 text-xs leading-5 text-[#607067]">{preview}</span>
+        </span>
+        <span className="shrink-0 rounded-md bg-[#edf2ee] px-2 py-1 text-xs font-semibold text-[#52635a]">
+          {expanded ? "Hide" : "Read"}
+        </span>
+      </button>
+      {expanded ? (
+        <div className="border-t border-[#d8e1db] p-3">
+          {exchange.question ? (
+            <p className="rounded-md bg-[#203a35] p-3 text-sm leading-6 text-[#f8f5e8]">{cleanDisplayText(exchange.question.text)}</p>
+          ) : null}
+          <pre className="mt-3 whitespace-pre-wrap font-sans text-sm leading-6 text-[#303832]">{cleanDisplayText(exchange.answer.text)}</pre>
+          <ScriptureChips sources={exchange.answer.sources} onScriptureOpen={onScriptureOpen} />
+          {exchange.question ? (
+            <button
+              type="button"
+              onClick={onContinue}
+              className="mt-3 h-9 rounded-md border border-[#c9d5cd] bg-white/78 px-3 text-xs font-semibold text-[#405049] transition hover:bg-white"
+            >
+              Continue from this
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+    </article>
   );
 }
 
