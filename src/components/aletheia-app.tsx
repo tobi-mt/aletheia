@@ -54,7 +54,7 @@ import {
 import { modeProfiles, type ModeProfile } from "@/lib/mode-profiles";
 import type { Mode } from "@/lib/wisdom-data";
 
-type View = "companion" | "decisions" | "check" | "library" | "journal";
+type View = "companion" | "decisions" | "reflect" | "library" | "account";
 type AuthMode = "login" | "register";
 type AuthStatus = "checking" | "guest" | "signing-in" | "signed-in" | "signing-out";
 type AnalyticsMetadata = Record<string, string | number | boolean | null>;
@@ -499,6 +499,7 @@ export function AletheiaApp() {
   const [counselRole, setCounselRole] = useState("mentor");
   const [ruleText, setRuleText] = useState("");
   const preferencesRef = useRef<HTMLElement | null>(null);
+  const workspaceRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     const openedKey = "aletheia_app_opened_tracked";
@@ -684,9 +685,19 @@ export function AletheiaApp() {
     trackClientEvent("wisdom_mode_selected", { mode: nextMode });
   }
 
+  function showView(view: View) {
+    setActiveView(view);
+    window.requestAnimationFrame(() => {
+      workspaceRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }
+
   function revealPreferences() {
-    preferencesRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-    setPreferencesStatus("Language, region, Bible translation, and voice are here.");
+    showView("account");
+    setPreferencesStatus("Language, region, Bible translation, and voice are in Account.");
+    window.requestAnimationFrame(() => {
+      preferencesRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
   }
 
   async function updatePreferences(patch: Partial<UserPreferences>) {
@@ -1242,7 +1253,7 @@ export function AletheiaApp() {
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3">
           <button
             className="flex min-w-0 items-center gap-3 text-left"
-            onClick={() => setActiveView("companion")}
+            onClick={() => showView("companion")}
             aria-label="Go to Aletheia home"
           >
             <div className="relative size-11 shrink-0 overflow-hidden rounded-lg border border-[#c4d0c8] bg-[#eef1ea] shadow-sm">
@@ -1262,11 +1273,11 @@ export function AletheiaApp() {
           </button>
 
           <div className="hidden items-center gap-1 rounded-lg border border-[#c9d5cd] bg-[#fbfcf8]/72 p-1 shadow-sm md:flex">
-            <NavButton active={activeView === "companion"} icon={MessageCircle} label="Companion" onClick={() => setActiveView("companion")} />
-            <NavButton active={activeView === "decisions"} icon={FileText} label="Decisions" onClick={() => setActiveView("decisions")} />
-            <NavButton active={activeView === "check"} icon={Scale} label="Wisdom Check" onClick={() => setActiveView("check")} />
-            <NavButton active={activeView === "library"} icon={BookOpen} label="Library" onClick={() => setActiveView("library")} />
-            <NavButton active={activeView === "journal"} icon={Feather} label="Journal" onClick={() => setActiveView("journal")} />
+            <NavButton active={activeView === "companion"} icon={MessageCircle} label="Companion" onClick={() => showView("companion")} />
+            <NavButton active={activeView === "decisions"} icon={FileText} label="Decisions" onClick={() => showView("decisions")} />
+            <NavButton active={activeView === "reflect"} icon={Feather} label="Reflect" onClick={() => showView("reflect")} />
+            <NavButton active={activeView === "library"} icon={BookOpen} label="Library" onClick={() => showView("library")} />
+            <NavButton active={activeView === "account"} icon={Users} label="Account" onClick={() => showView("account")} />
           </div>
 
           <div className="flex items-center gap-2">
@@ -1287,7 +1298,7 @@ export function AletheiaApp() {
             <button
               className="grid size-10 place-items-center rounded-md border border-[#bdcbc2] bg-[#fbfcf8]/70 text-[#213a35] shadow-sm transition hover:bg-white"
               aria-label={user ? "Open account" : "Open guest dashboard"}
-              onClick={() => setActiveView("companion")}
+              onClick={() => showView("companion")}
             >
               <Home size={18} />
             </button>
@@ -1388,48 +1399,10 @@ export function AletheiaApp() {
             </section>
           </div>
 
-          <AuthPanel
-            user={user}
-            authMode={authMode}
-            setAuthMode={setAuthMode}
-            name={authName}
-            setName={setAuthName}
-            email={authEmail}
-            setEmail={setAuthEmail}
-            password={authPassword}
-            setPassword={setAuthPassword}
-            error={authError}
-            authStatus={authStatus}
-            googleAuthAvailable={googleAuthAvailable}
-            status={statusMessage}
-            isWorking={isWorking}
-            onSubmit={handleAuth}
-            onGoogleSignIn={handleGoogleSignIn}
-            onLogout={logout}
-          />
-
-          <NotificationPanel
-            user={user}
-            enabled={notificationsEnabled}
-            configured={notificationsConfigured}
-            permission={notificationPermission}
-            status={notificationStatus}
-            onEnable={enableNotifications}
-            onDisable={disableNotifications}
-          />
-
-          <PreferencesPanel
-            panelRef={preferencesRef}
-            preferences={preferences}
-            status={preferencesStatus}
-            copy={copy}
-            activeRegion={activeRegion}
-            onChange={updatePreferences}
-          />
-
-          <AnimatePresence mode="wait">
-            {activeView === "companion" ? (
-              <Screen key="companion">
+          <section ref={workspaceRef} className="scroll-mt-24">
+            <AnimatePresence mode="wait">
+              {activeView === "companion" ? (
+                <Screen key="companion">
                 <CompanionPanel
                   messages={messages}
                   mode={mode}
@@ -1448,25 +1421,10 @@ export function AletheiaApp() {
                   isSpeaking={isSpeaking}
                   onScriptureOpen={setSelectedScripture}
                 />
-              </Screen>
-            ) : null}
-            {activeView === "check" ? (
-              <Screen key="check">
-                <WisdomCheck
-                  decision={decision}
-                  setDecision={setDecision}
-                  emotion={emotion}
-                  setEmotion={setEmotion}
-                  timeframe={timeframe}
-                  setTimeframe={setTimeframe}
-                  result={decisionResult}
-                  mode={mode}
-                  modeProfile={activeMode}
-                />
-              </Screen>
-            ) : null}
-            {activeView === "decisions" ? (
-              <Screen key="decisions">
+                </Screen>
+              ) : null}
+              {activeView === "decisions" ? (
+                <Screen key="decisions">
                 <DecisionCompanionPanel
                   mode={mode}
                   modeProfile={activeMode}
@@ -1492,10 +1450,32 @@ export function AletheiaApp() {
                   onAddCounsel={addCounselContact}
                   onAddRule={addRuleOfLife}
                 />
-              </Screen>
-            ) : null}
-            {activeView === "library" ? (
-              <Screen key="library">
+                </Screen>
+              ) : null}
+              {activeView === "reflect" ? (
+                <Screen key="reflect">
+                <ReflectPanel
+                  decision={decision}
+                  setDecision={setDecision}
+                  emotion={emotion}
+                  setEmotion={setEmotion}
+                  timeframe={timeframe}
+                  setTimeframe={setTimeframe}
+                  result={decisionResult}
+                  mode={mode}
+                  modeProfile={activeMode}
+                  entries={journalEntries}
+                  title={journalTitle}
+                  body={journalBody}
+                  setTitle={setJournalTitle}
+                  setBody={setJournalBody}
+                  onSave={saveReflection}
+                  onDelete={deleteJournalEntry}
+                />
+                </Screen>
+              ) : null}
+              {activeView === "library" ? (
+                <Screen key="library">
                 <LibraryPanel
                   entries={filteredEntries}
                   search={librarySearch}
@@ -1504,33 +1484,60 @@ export function AletheiaApp() {
                   preferences={preferences}
                   onScriptureOpen={setSelectedScripture}
                 />
-              </Screen>
-            ) : null}
-            {activeView === "journal" ? (
-              <Screen key="journal">
-                <JournalPanel
-                  entries={journalEntries}
-                  title={journalTitle}
-                  body={journalBody}
-                  mode={mode}
-                  setTitle={setJournalTitle}
-                  setBody={setJournalBody}
-                  onSave={saveReflection}
-                  onDelete={deleteJournalEntry}
+                </Screen>
+              ) : null}
+              {activeView === "account" ? (
+                <Screen key="account">
+                <AccountPanel
+                  user={user}
+                  authMode={authMode}
+                  setAuthMode={setAuthMode}
+                  name={authName}
+                  setName={setAuthName}
+                  email={authEmail}
+                  setEmail={setAuthEmail}
+                  password={authPassword}
+                  setPassword={setAuthPassword}
+                  error={authError}
+                  authStatus={authStatus}
+                  googleAuthAvailable={googleAuthAvailable}
+                  status={statusMessage}
+                  isWorking={isWorking}
+                  onSubmit={handleAuth}
+                  onGoogleSignIn={handleGoogleSignIn}
+                  onLogout={logout}
+                  preferencesRef={preferencesRef}
+                  preferences={preferences}
+                  preferencesStatus={preferencesStatus}
+                  copy={copy}
+                  activeRegion={activeRegion}
+                  onPreferenceChange={updatePreferences}
+                  notificationsEnabled={notificationsEnabled}
+                  notificationsConfigured={notificationsConfigured}
+                  notificationPermission={notificationPermission}
+                  notificationStatus={notificationStatus}
+                  onEnableNotifications={enableNotifications}
+                  onDisableNotifications={disableNotifications}
+                  messages={messages}
+                  decisions={wisdomDecisions}
+                  journalEntries={journalEntries}
+                  counselContacts={counselContacts}
+                  rules={rulesOfLife}
                 />
-              </Screen>
-            ) : null}
-          </AnimatePresence>
+                </Screen>
+              ) : null}
+            </AnimatePresence>
+          </section>
         </section>
       </div>
 
       <div className="fixed inset-x-2 bottom-2 z-40 rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/92 p-1 shadow-2xl shadow-[#1f2a24]/12 backdrop-blur sm:inset-x-3 sm:bottom-3 md:hidden">
         <div className="grid grid-cols-5 gap-1">
-          <MobileNav active={activeView === "companion"} icon={MessageCircle} label="Ask" onClick={() => setActiveView("companion")} />
-          <MobileNav active={activeView === "decisions"} icon={FileText} label="Decide" onClick={() => setActiveView("decisions")} />
-          <MobileNav active={activeView === "check"} icon={Scale} label="Check" onClick={() => setActiveView("check")} />
-          <MobileNav active={activeView === "library"} icon={BookOpen} label="Library" onClick={() => setActiveView("library")} />
-          <MobileNav active={activeView === "journal"} icon={Feather} label="Journal" onClick={() => setActiveView("journal")} />
+          <MobileNav active={activeView === "companion"} icon={MessageCircle} label="Ask" onClick={() => showView("companion")} />
+          <MobileNav active={activeView === "decisions"} icon={FileText} label="Decide" onClick={() => showView("decisions")} />
+          <MobileNav active={activeView === "reflect"} icon={Feather} label="Reflect" onClick={() => showView("reflect")} />
+          <MobileNav active={activeView === "library"} icon={BookOpen} label="Library" onClick={() => showView("library")} />
+          <MobileNav active={activeView === "account"} icon={Users} label="Account" onClick={() => showView("account")} />
         </div>
       </div>
 
@@ -1602,6 +1609,184 @@ function urlBase64ToUint8Array(value: string) {
   const base64 = (value + padding).replace(/-/g, "+").replace(/_/g, "/");
   const rawData = window.atob(base64);
   return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0)));
+}
+
+function AccountPanel({
+  user,
+  authMode,
+  setAuthMode,
+  name,
+  setName,
+  email,
+  setEmail,
+  password,
+  setPassword,
+  error,
+  authStatus,
+  googleAuthAvailable,
+  status,
+  isWorking,
+  onSubmit,
+  onGoogleSignIn,
+  onLogout,
+  preferencesRef,
+  preferences,
+  preferencesStatus,
+  copy,
+  activeRegion,
+  onPreferenceChange,
+  notificationsEnabled,
+  notificationsConfigured,
+  notificationPermission,
+  notificationStatus,
+  onEnableNotifications,
+  onDisableNotifications,
+  messages,
+  decisions,
+  journalEntries,
+  counselContacts,
+  rules,
+}: {
+  user: User | null;
+  authMode: AuthMode;
+  setAuthMode: (value: AuthMode) => void;
+  name: string;
+  setName: (value: string) => void;
+  email: string;
+  setEmail: (value: string) => void;
+  password: string;
+  setPassword: (value: string) => void;
+  error: string;
+  authStatus: AuthStatus;
+  googleAuthAvailable: boolean;
+  status: string;
+  isWorking: boolean;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  onGoogleSignIn: () => void;
+  onLogout: () => void;
+  preferencesRef: RefObject<HTMLElement | null>;
+  preferences: UserPreferences;
+  preferencesStatus: string;
+  copy: (typeof languageCopy)[LanguageCode];
+  activeRegion: (typeof regions)[RegionCode];
+  onPreferenceChange: (patch: Partial<UserPreferences>) => void;
+  notificationsEnabled: boolean;
+  notificationsConfigured: boolean;
+  notificationPermission: NotificationPermission;
+  notificationStatus: string;
+  onEnableNotifications: () => void;
+  onDisableNotifications: () => void;
+  messages: ChatMessage[];
+  decisions: WisdomDecision[];
+  journalEntries: JournalEntry[];
+  counselContacts: CounselContact[];
+  rules: RuleOfLife[];
+}) {
+  const exchanges = conversationExchanges(messages).filter((exchange) => exchange.question);
+  const badges = [
+    { label: "First reflection saved", active: journalEntries.length > 0 },
+    { label: "First decision tracked", active: decisions.length > 0 },
+    { label: "Sought counsel", active: counselContacts.length > 0 || decisions.some((decision) => decision.counselSought) },
+    { label: "Waiting mode used", active: decisions.some((decision) => Boolean(decision.waitingUntil)) },
+    { label: "Rule of life created", active: rules.length > 0 },
+    { label: "Notifications enabled", active: notificationsEnabled },
+    { label: "7 days of wisdom practice", active: false },
+  ];
+
+  return (
+    <div className="grid min-w-0 gap-4 xl:grid-cols-[1fr_340px]">
+      <section className="space-y-4">
+        <section className="rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm sm:p-5">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">Account</p>
+          <h2 className="mt-2 text-2xl font-semibold text-[#203a35]">Your Aletheia space</h2>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-[#55645b]">
+            Manage sign-in, sync, language, notifications, history, and formation milestones without crowding the wisdom companion.
+          </p>
+        </section>
+
+        <AuthPanel
+          user={user}
+          authMode={authMode}
+          setAuthMode={setAuthMode}
+          name={name}
+          setName={setName}
+          email={email}
+          setEmail={setEmail}
+          password={password}
+          setPassword={setPassword}
+          error={error}
+          authStatus={authStatus}
+          googleAuthAvailable={googleAuthAvailable}
+          status={status}
+          isWorking={isWorking}
+          onSubmit={onSubmit}
+          onGoogleSignIn={onGoogleSignIn}
+          onLogout={onLogout}
+        />
+
+        <PreferencesPanel
+          panelRef={preferencesRef}
+          preferences={preferences}
+          status={preferencesStatus}
+          copy={copy}
+          activeRegion={activeRegion}
+          onChange={onPreferenceChange}
+        />
+
+        <NotificationPanel
+          user={user}
+          enabled={notificationsEnabled}
+          configured={notificationsConfigured}
+          permission={notificationPermission}
+          status={notificationStatus}
+          onEnable={onEnableNotifications}
+          onDisable={onDisableNotifications}
+        />
+      </section>
+
+      <aside className="space-y-4">
+        <section className="rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">History</p>
+          <div className="mt-3 grid gap-3">
+            <AccountStat label="Conversations" value={String(exchanges.length)} />
+            <AccountStat label="Decisions" value={String(decisions.length)} />
+            <AccountStat label="Journal entries" value={String(journalEntries.length)} />
+          </div>
+        </section>
+
+        <section className="rounded-xl border border-[#c9d5cd] bg-[#203a35] p-4 text-[#f8f5e8] shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#d0ad55]">Badges / Formation</p>
+          <div className="mt-3 space-y-2">
+            {badges.map((badge) => (
+              <div
+                key={badge.label}
+                className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm ${
+                  badge.active
+                    ? "border-[#d0ad55]/35 bg-white/10 text-[#f8f5e8]"
+                    : "border-white/10 bg-white/5 text-[#b8c8bd]"
+                }`}
+              >
+                <Check size={15} className={badge.active ? "text-[#d0ad55]" : "text-[#7d8b83]"} />
+                <span>{badge.label}</span>
+              </div>
+            ))}
+          </div>
+          <p className="mt-3 text-xs leading-5 text-[#cddbd1]">
+            These are quiet signs of formation, not points to chase.
+          </p>
+        </section>
+      </aside>
+    </div>
+  );
+}
+
+function AccountStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-[#d8e1db] bg-white/64 p-3">
+      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#718077]">{label}</p>
+      <p className="mt-2 text-2xl font-semibold text-[#203a35]">{value}</p>
+    </div>
+  );
 }
 
 function AuthPanel({
@@ -2753,6 +2938,77 @@ function WisdomCheck({
           </div>
         )}
       </section>
+    </div>
+  );
+}
+
+function ReflectPanel({
+  decision,
+  setDecision,
+  emotion,
+  setEmotion,
+  timeframe,
+  setTimeframe,
+  result,
+  mode,
+  modeProfile,
+  entries,
+  title,
+  body,
+  setTitle,
+  setBody,
+  onSave,
+  onDelete,
+}: {
+  decision: string;
+  setDecision: (value: string) => void;
+  emotion: string;
+  setEmotion: (value: string) => void;
+  timeframe: string;
+  setTimeframe: (value: string) => void;
+  result: { sources: WisdomEntry[]; readiness: number; hasUrgency: boolean; hasCounsel: boolean } | null;
+  mode: Mode;
+  modeProfile: ModeProfile;
+  entries: JournalEntry[];
+  title: string;
+  body: string;
+  setTitle: (value: string) => void;
+  setBody: (value: string) => void;
+  onSave: () => void;
+  onDelete: (id: string) => void;
+}) {
+  return (
+    <div className="min-w-0 space-y-4">
+      <section className="rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm sm:p-5">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">Reflect</p>
+        <h2 className="mt-2 text-2xl font-semibold text-[#203a35]">Discernment and reflection in one quiet place</h2>
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-[#55645b]">
+          Use Wisdom Check to slow a decision down, then save what you notice before the moment passes.
+        </p>
+      </section>
+
+      <WisdomCheck
+        decision={decision}
+        setDecision={setDecision}
+        emotion={emotion}
+        setEmotion={setEmotion}
+        timeframe={timeframe}
+        setTimeframe={setTimeframe}
+        result={result}
+        mode={mode}
+        modeProfile={modeProfile}
+      />
+
+      <JournalPanel
+        entries={entries}
+        title={title}
+        body={body}
+        mode={mode}
+        setTitle={setTitle}
+        setBody={setBody}
+        onSave={onSave}
+        onDelete={onDelete}
+      />
     </div>
   );
 }
