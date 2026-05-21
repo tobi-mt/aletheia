@@ -41,6 +41,7 @@ import {
   bibleTranslations,
   bibleTranslationOptionsForLanguage,
   canonicalScriptureReference,
+  curatedScriptureReferences,
   defaultPreferences,
   defaultBibleTranslationForLanguage,
   languageCopy,
@@ -4236,9 +4237,31 @@ function ScriptureChips({
   );
 }
 
-const scriptureReferences = wisdomEntries
-  .map((entry) => entry.scripture)
-  .sort((a, b) => b.length - a.length);
+const scriptureBookPattern = Array.from(
+  new Set(curatedScriptureReferences.map((reference) => reference.replace(/\s+\d+:\d+(?:[-–—]\d+)?$/, "")))
+)
+  .sort((a, b) => b.length - a.length)
+  .map((book) => book.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+  .join("|");
+const scriptureTextReferencePattern = new RegExp(
+  `\\b(?:${scriptureBookPattern})\\s+\\d+:\\d+(?:\\s*[-–—]\\s*\\d+)?\\b`,
+  "g"
+);
+
+function scriptureTextMatches(text: string) {
+  return [...text.matchAll(scriptureTextReferencePattern)]
+    .map((match) => {
+      const label = match[0];
+      const canonical = canonicalScriptureReference(label);
+      return {
+        label,
+        scripture: canonical,
+        index: match.index ?? 0,
+      };
+    })
+    .filter((match) => curatedScriptureReferences.includes(match.scripture))
+    .sort((a, b) => a.index - b.index);
+}
 
 function ScriptureLinkedText({
   text,
@@ -4248,14 +4271,7 @@ function ScriptureLinkedText({
   onScriptureOpen: (scripture: string) => void;
 }) {
   const cleaned = cleanDisplayText(text);
-  const matches = scriptureReferences
-    .flatMap((scripture) =>
-      [...cleaned.matchAll(new RegExp(scripture.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g"))].map((match) => ({
-        scripture,
-        index: match.index ?? 0,
-      }))
-    )
-    .sort((a, b) => a.index - b.index);
+  const matches = scriptureTextMatches(cleaned);
 
   if (!matches.length) {
     return <p className="whitespace-pre-wrap text-sm leading-6 text-[#303832]">{cleaned}</p>;
@@ -4272,15 +4288,15 @@ function ScriptureLinkedText({
     }
     nodes.push(
       <button
-        key={`${match.scripture}-${position}-${match.index}`}
+        key={`${match.label}-${position}-${match.index}`}
         type="button"
-        onClick={() => onScriptureOpen(match.scripture)}
+        onClick={() => onScriptureOpen(match.label)}
         className="mx-0.5 rounded-md bg-[#edf2ee] px-1.5 py-0.5 font-semibold text-[#203a35] underline decoration-[#b8c8bd] decoration-1 underline-offset-2 transition hover:bg-[#dfe8df]"
       >
-        {match.scripture}
+        {match.label}
       </button>
     );
-    cursor = match.index + match.scripture.length;
+    cursor = match.index + match.label.length;
   });
   if (cursor < cleaned.length) {
     nodes.push(cleaned.slice(cursor));

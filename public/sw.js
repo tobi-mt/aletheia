@@ -1,4 +1,4 @@
-const CACHE_NAME = "aletheia-v5";
+const CACHE_NAME = "aletheia-v6";
 const APP_SHELL = [
   "/",
   "/manifest.webmanifest",
@@ -39,6 +39,11 @@ self.addEventListener("fetch", (event) => {
 
   const url = new URL(request.url);
   if (url.pathname.startsWith("/api/")) {
+    event.respondWith(fetch(request));
+    return;
+  }
+
+  if (url.pathname.startsWith("/_next/")) {
     event.respondWith(fetch(request));
     return;
   }

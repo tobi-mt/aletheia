@@ -183,6 +183,8 @@ export const scriptureQuickReads: Record<
   },
 };
 
+export const curatedScriptureReferences = Object.keys(scriptureQuickReads).sort((a, b) => b.length - a.length);
+
 const localizedScriptureReads: Partial<Record<BibleTranslation, Record<string, ScriptureRead>>> = {
   KJV: {
     "Matthew 25:14-30": {
@@ -344,8 +346,13 @@ const localizedScriptureReads: Partial<Record<BibleTranslation, Record<string, S
   },
 };
 
+function normalizeScriptureReference(reference: string) {
+  return reference.replace(/[–—]/g, "-").replace(/\s+/g, " ").trim();
+}
+
 function parseScriptureReference(reference: string) {
-  const match = reference.match(/^(.+?)\s+(\d+):(\d+)(?:-(\d+))?$/);
+  const normalized = normalizeScriptureReference(reference);
+  const match = normalized.match(/^(.+?)\s+(\d+):(\d+)(?:\s*-\s*(\d+))?$/);
   if (!match) {
     return null;
   }
@@ -355,7 +362,7 @@ function parseScriptureReference(reference: string) {
     return null;
   }
   return {
-    book: match[1].trim().toLowerCase(),
+    book: match[1].trim().toLowerCase().replace(/\s+/g, " "),
     chapter: Number(match[2]),
     start: Math.min(start, end),
     end: Math.max(start, end),
@@ -363,16 +370,20 @@ function parseScriptureReference(reference: string) {
 }
 
 export function canonicalScriptureReference(scripture: string) {
-  if (scriptureQuickReads[scripture]) {
-    return scripture;
+  const normalizedScripture = normalizeScriptureReference(scripture);
+  const exactReference = curatedScriptureReferences.find(
+    (reference) => normalizeScriptureReference(reference).toLowerCase() === normalizedScripture.toLowerCase()
+  );
+  if (exactReference) {
+    return exactReference;
   }
 
-  const requested = parseScriptureReference(scripture);
+  const requested = parseScriptureReference(normalizedScripture);
   if (!requested) {
     return scripture;
   }
 
-  const overlappingReference = Object.keys(scriptureQuickReads).find((candidate) => {
+  const overlappingReference = curatedScriptureReferences.find((candidate) => {
     const parsed = parseScriptureReference(candidate);
     if (!parsed) {
       return false;
@@ -407,12 +418,14 @@ export function localizedScriptureRead(scripture: string, preferences: UserPrefe
 }
 
 export function scriptureTranslationLabel(scripture: string, preferences: UserPreferences) {
-  const canonical = canonicalScriptureReference(scripture);
-  const localized = localizedScriptureReads[preferences.bibleTranslation]?.[canonical];
-  if (localized) {
-    return `${localized.translation} ${languages[localized.availableLanguage].name}`;
-  }
-  return preferences.bibleTranslation;
+  const read = localizedScriptureRead(scripture, preferences);
+  const language = languages[read.availableLanguage] ?? languages.en;
+  const fallbackLabel =
+    read.translation === preferences.bibleTranslation && read.availableLanguage === preferences.language
+      ? ""
+      : " fallback";
+
+  return `${read.translation} ${language.name}${fallbackLabel}`;
 }
 
 export const languageCopy: Record<
