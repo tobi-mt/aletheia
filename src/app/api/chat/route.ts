@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { trackServerEvent } from "@/lib/analytics";
 import { many, run } from "@/lib/db";
 import { defaultPreferences, normalizePreferences, type UserPreferences } from "@/lib/localization";
+import { manualContextSummary, normalizeManualContext, type ManualContextProfile } from "@/lib/manual-context";
 import { generateWisdomResponse } from "@/lib/openai";
 import { checkRateLimit, getClientIdentity, rateLimitHeaders } from "@/lib/rate-limit";
 import { composeModeAwareFallbackResponse, retrieveWisdom } from "@/lib/wisdom";
@@ -61,6 +62,7 @@ export async function POST(request: Request) {
     message?: string;
     mode?: Mode;
     preferences?: Partial<UserPreferences>;
+    manualContext?: Partial<ManualContextProfile>;
   };
 
   const message = body.message?.trim();
@@ -73,8 +75,9 @@ export async function POST(request: Request) {
 
   const sources = await retrieveWisdom(message, mode, 3);
   let memoryContext = "";
+  const guestManualContext = normalizeManualContext(body.manualContext ?? {});
   if (user) {
-    const [decisions, rules, journals] = await Promise.all([
+    const [decisions, rules, journals, manualContextRows] = await Promise.all([
       many<{ title: string; mode: string; pressure: string; status: string; updated_at: string }>(
         `SELECT title, mode, pressure, status, updated_at
          FROM wisdom_decisions
@@ -99,8 +102,35 @@ export async function POST(request: Request) {
          LIMIT 3`,
         user.id
       ),
+      many<{
+        health_context: string;
+        finance_context: string;
+        work_context: string;
+        obligations: string;
+        goals: string;
+        boundaries: string;
+        use_in_answers: boolean;
+      }>(
+        `SELECT health_context, finance_context, work_context, obligations, goals, boundaries, use_in_answers
+         FROM user_manual_context
+         WHERE user_id = ?
+         LIMIT 1`,
+        user.id
+      ),
     ]);
+    const manualContext = manualContextRows[0]
+      ? normalizeManualContext({
+          healthContext: manualContextRows[0].health_context,
+          financeContext: manualContextRows[0].finance_context,
+          workContext: manualContextRows[0].work_context,
+          obligations: manualContextRows[0].obligations,
+          goals: manualContextRows[0].goals,
+          boundaries: manualContextRows[0].boundaries,
+          useInAnswers: manualContextRows[0].use_in_answers,
+        })
+      : null;
     memoryContext = [
+      manualContextSummary(manualContext) ? `User-provided manual context:\n${manualContextSummary(manualContext)}` : "",
       decisions.length
         ? `Active/recent decisions:\n${decisions
             .map((decision) => `- ${decision.title} (${decision.mode}, ${decision.status}): ${decision.pressure.slice(0, 220)}`)
@@ -117,6 +147,11 @@ export async function POST(request: Request) {
     ]
       .filter(Boolean)
       .join("\n\n");
+  } else {
+    const guestContext = manualContextSummary(guestManualContext);
+    memoryContext = guestContext
+      ? `User-provided manual context from this device:\n${guestContext}`
+      : "";
   }
   const aiText =
     (await generateWisdomResponse({ question: message, mode, sources, preferences, memoryContext })) ??

@@ -55,6 +55,7 @@ import {
   type UserPreferences,
 } from "@/lib/localization";
 import { modeProfiles, type ModeProfile } from "@/lib/mode-profiles";
+import { defaultManualContext, manualContextHasContent, normalizeManualContext, type ManualContextProfile } from "@/lib/manual-context";
 import type { Mode } from "@/lib/wisdom-data";
 
 type View = "companion" | "decisions" | "reflect" | "library" | "account";
@@ -72,6 +73,7 @@ type WorkflowNoticeState = {
 
 const ALETHEIA_SHARE_URL = "https://aletheia.mirrortalkpodcast.com?ref=share";
 const ALETHEIA_SHARE_TEXT = "Aletheia is a calm AI-powered biblical wisdom companion for money, work, and stewardship.";
+const MANUAL_CONTEXT_STORAGE_KEY = "aletheia_manual_context";
 
 function preferencePatchForLanguage(language: LanguageCode): Partial<UserPreferences> {
   return {
@@ -96,6 +98,19 @@ function storedPreferences() {
     return saved ? normalizePreferences(JSON.parse(saved) as Partial<UserPreferences>) : defaultPreferences;
   } catch {
     return defaultPreferences;
+  }
+}
+
+function storedManualContext() {
+  if (typeof window === "undefined") {
+    return defaultManualContext;
+  }
+
+  try {
+    const saved = window.localStorage.getItem(MANUAL_CONTEXT_STORAGE_KEY);
+    return saved ? normalizeManualContext(JSON.parse(saved) as Partial<ManualContextProfile>) : defaultManualContext;
+  } catch {
+    return defaultManualContext;
   }
 }
 
@@ -571,6 +586,8 @@ export function AletheiaApp() {
   const [googleAuthAvailable, setGoogleAuthAvailable] = useState(false);
   const [preferences, setPreferences] = useState<UserPreferences>(storedPreferences);
   const [preferencesStatus, setPreferencesStatus] = useState("Language settings are ready.");
+  const [manualContext, setManualContext] = useState<ManualContextProfile>(storedManualContext);
+  const [manualContextStatus, setManualContextStatus] = useState("Manual context is private and optional.");
   const [showOnboarding, setShowOnboarding] = useState(shouldShowOnboarding);
   const [onboardingConcern, setOnboardingConcern] = useState("");
   const [onboardingTone, setOnboardingTone] = useState("gentle");
@@ -630,7 +647,7 @@ export function AletheiaApp() {
   }, [workflowNotice]);
 
   async function loadSignedInWorkspace(signedInUser: User) {
-    const [chatResponse, journalResponse, notificationResponse, decisionsResponse, counselResponse, rulesResponse, preferencesResponse] = await Promise.all([
+    const [chatResponse, journalResponse, notificationResponse, decisionsResponse, counselResponse, rulesResponse, preferencesResponse, contextResponse] = await Promise.all([
       fetch("/api/chat"),
       fetch("/api/journal"),
       fetch("/api/notifications/status"),
@@ -638,6 +655,7 @@ export function AletheiaApp() {
       fetch("/api/counsel"),
       fetch("/api/rules"),
       fetch("/api/preferences"),
+      fetch("/api/context"),
     ]);
     const chatData = (await chatResponse.json()) as { messages?: ChatMessage[] };
     const journalData = (await journalResponse.json()) as { entries?: JournalEntry[] };
@@ -653,6 +671,7 @@ export function AletheiaApp() {
     const counselData = (await counselResponse.json()) as { contacts?: CounselContact[] };
     const rulesData = (await rulesResponse.json()) as { rules?: RuleOfLife[] };
     const preferencesData = (await preferencesResponse.json()) as { preferences?: UserPreferences };
+    const contextData = (await contextResponse.json()) as { context?: ManualContextProfile };
 
     setUser(signedInUser);
     setAuthStatus("signed-in");
@@ -678,6 +697,11 @@ export function AletheiaApp() {
     if (preferencesData.preferences) {
       setPreferences(preferencesData.preferences);
       window.localStorage.setItem("aletheia_preferences", JSON.stringify(preferencesData.preferences));
+    }
+    if (contextData.context) {
+      const nextContext = normalizeManualContext(contextData.context);
+      setManualContext(nextContext);
+      window.localStorage.setItem(MANUAL_CONTEXT_STORAGE_KEY, JSON.stringify(nextContext));
     }
     setNotificationsConfigured(Boolean(notificationData.configured));
     setNotificationsEnabled(Boolean(notificationData.enabled));
@@ -1065,6 +1089,46 @@ export function AletheiaApp() {
     }
   }
 
+  async function updateManualContext(patch: Partial<ManualContextProfile>) {
+    const next = normalizeManualContext({ ...manualContext, ...patch });
+    setManualContext(next);
+    setManualContextStatus(user ? "Saving manual context..." : "Saved on this device. Sign in to sync it.");
+    try {
+      window.localStorage.setItem(MANUAL_CONTEXT_STORAGE_KEY, JSON.stringify(next));
+    } catch {
+      // Manual context still works in memory if local storage is unavailable.
+    }
+
+    if (user) {
+      try {
+        const response = await fetch("/api/context", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(next),
+        });
+        const data = (await response.json()) as { context?: ManualContextProfile; persisted?: boolean };
+        if (data.context) {
+          const savedContext = normalizeManualContext(data.context);
+          setManualContext(savedContext);
+          window.localStorage.setItem(MANUAL_CONTEXT_STORAGE_KEY, JSON.stringify(savedContext));
+        }
+        setManualContextStatus(data.persisted ? "Manual context is synced to your account." : "Manual context stayed on this device.");
+        announceWorkflow(
+          data.persisted ? "Context synced" : "Context saved locally",
+          data.persisted
+            ? "Aletheia can use this context only because you allowed it."
+            : "Your context is saved on this device. Sign in to sync it.",
+          data.persisted ? "success" : "warning"
+        );
+      } catch {
+        setManualContextStatus("Manual context stayed on this device, but sync did not complete.");
+        announceWorkflow("Context saved locally", "Sync did not complete, but your manual context stayed on this device.", "warning");
+      }
+    } else {
+      announceWorkflow("Context saved locally", "Sign in to sync manual context across devices.", "success");
+    }
+  }
+
   function startVoiceInput() {
     const browserWindow = window as typeof window & {
       SpeechRecognition?: new () => {
@@ -1183,7 +1247,7 @@ export function AletheiaApp() {
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: trimmed, mode, preferences }),
+        body: JSON.stringify({ message: trimmed, mode, preferences, manualContext }),
       });
       const data = (await response.json()) as {
         reply?: ChatMessage;
@@ -2039,9 +2103,12 @@ export function AletheiaApp() {
                   preferencesRef={preferencesRef}
                   preferences={preferences}
                   preferencesStatus={preferencesStatus}
+                  manualContext={manualContext}
+                  manualContextStatus={manualContextStatus}
                   copy={copy}
                   activeRegion={activeRegion}
                   onPreferenceChange={updatePreferences}
+                  onManualContextChange={updateManualContext}
                   notificationsEnabled={notificationsEnabled}
                   notificationsConfigured={notificationsConfigured}
                   notificationPermission={notificationPermission}
@@ -2622,9 +2689,12 @@ function AccountPanel({
   preferencesRef,
   preferences,
   preferencesStatus,
+  manualContext,
+  manualContextStatus,
   copy,
   activeRegion,
   onPreferenceChange,
+  onManualContextChange,
   notificationsEnabled,
   notificationsConfigured,
   notificationPermission,
@@ -2659,9 +2729,12 @@ function AccountPanel({
   preferencesRef: RefObject<HTMLElement | null>;
   preferences: UserPreferences;
   preferencesStatus: string;
+  manualContext: ManualContextProfile;
+  manualContextStatus: string;
   copy: (typeof languageCopy)[LanguageCode];
   activeRegion: (typeof regions)[RegionCode];
   onPreferenceChange: (patch: Partial<UserPreferences>) => void;
+  onManualContextChange: (patch: Partial<ManualContextProfile>) => void;
   notificationsEnabled: boolean;
   notificationsConfigured: boolean;
   notificationPermission: NotificationPermission;
@@ -2749,6 +2822,13 @@ function AccountPanel({
           copy={copy}
           activeRegion={activeRegion}
           onChange={onPreferenceChange}
+        />
+
+        <ManualContextPanel
+          user={user}
+          context={manualContext}
+          status={manualContextStatus}
+          onChange={onManualContextChange}
         />
 
         <NotificationPanel
@@ -2877,6 +2957,132 @@ function InstallGuideCard({ compact = false }: { compact?: boolean }) {
       <p className="mt-3 text-xs leading-5 text-[#718077]">
         On iPhone and iPad, daily web push notifications are most reliable after Aletheia is added to the Home Screen.
       </p>
+    </section>
+  );
+}
+
+function ManualContextPanel({
+  user,
+  context,
+  status,
+  onChange,
+}: {
+  user: User | null;
+  context: ManualContextProfile;
+  status: string;
+  onChange: (patch: Partial<ManualContextProfile>) => void;
+}) {
+  const [draft, setDraft] = useState(context);
+  useEffect(() => {
+    window.setTimeout(() => setDraft(context), 0);
+  }, [context]);
+  const hasContent = manualContextHasContent(draft);
+  const fields: Array<{
+    key: keyof Pick<ManualContextProfile, "healthContext" | "financeContext" | "workContext" | "obligations" | "goals" | "boundaries">;
+    label: string;
+    placeholder: string;
+  }> = [
+    {
+      key: "healthContext",
+      label: "Health and body rhythms",
+      placeholder: "Steps, sleep, energy, fitness goals, medical limits you want Aletheia to consider...",
+    },
+    {
+      key: "financeContext",
+      label: "Money context",
+      placeholder: "Income rhythm, spending pressure, debts, savings goals, family support, giving commitments...",
+    },
+    {
+      key: "workContext",
+      label: "Work and vocation",
+      placeholder: "Role, workload, calling questions, business stage, salary pressure, leadership responsibilities...",
+    },
+    {
+      key: "obligations",
+      label: "Responsibilities",
+      placeholder: "Dependents, family obligations, community responsibilities, caregiving, school fees...",
+    },
+    {
+      key: "goals",
+      label: "Goals",
+      placeholder: "What you are working toward in health, money, work, generosity, discipline, or peace...",
+    },
+    {
+      key: "boundaries",
+      label: "Boundaries",
+      placeholder: "What Aletheia should not assume, mention, overemphasize, or use unless you ask...",
+    },
+  ];
+
+  return (
+    <section className="rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm sm:p-5">
+      <div className="grid gap-4 xl:grid-cols-[0.8fr_1.2fr]">
+        <div className="flex items-start gap-3">
+          <div className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-md bg-[#edf2ee] text-[#203a35]">
+            <ShieldCheck size={17} />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-[#203a35]">Manual Context Vault</p>
+            <p className="mt-1 text-sm leading-6 text-[#5b6a61]">
+              Add only the health, money, work, and life context you want Aletheia to consider. No external apps are connected.
+            </p>
+            <p className="mt-2 text-xs leading-5 text-[#718077]">{status}</p>
+          </div>
+        </div>
+
+        <form
+          className="space-y-3"
+          onSubmit={(event) => {
+            event.preventDefault();
+            onChange(draft);
+          }}
+        >
+          <label className="flex items-start gap-3 rounded-lg border border-[#d8e1db] bg-white/64 p-3 text-sm text-[#405049]">
+            <input
+              type="checkbox"
+              checked={draft.useInAnswers}
+              onChange={(event) => setDraft((current) => ({ ...current, useInAnswers: event.target.checked }))}
+              className="mt-1 size-4 rounded border-[#9fb0a6]"
+            />
+            <span>
+              <span className="block font-semibold text-[#203a35]">Allow Aletheia to use this context in answers</span>
+              <span className="mt-1 block text-xs leading-5 text-[#718077]">
+                Turn this off anytime. Saved context remains private and will not shape responses while off.
+              </span>
+            </span>
+          </label>
+
+          <div className="grid gap-3 md:grid-cols-2">
+            {fields.map((field) => (
+              <label key={field.key} className="text-xs font-semibold uppercase tracking-[0.12em] text-[#52635a]">
+                {field.label}
+                <textarea
+                  value={draft[field.key]}
+                  onChange={(event) => setDraft((current) => ({ ...current, [field.key]: event.target.value }))}
+                  className="mt-2 min-h-24 w-full resize-none rounded-md border border-[#c9d5cd] bg-white/78 px-3 py-2 text-sm normal-case leading-6 tracking-normal text-[#203a35] outline-none focus:border-[#203a35]"
+                  placeholder={field.placeholder}
+                />
+              </label>
+            ))}
+          </div>
+
+          <div className="rounded-lg border border-[#d8e1db] bg-white/64 p-3 text-xs leading-5 text-[#607067]">
+            <p className="font-semibold text-[#203a35]">Privacy posture</p>
+            <p className="mt-1">
+              This is manual, optional, and scoped to your account or this device. Aletheia does not connect to Apple Watch, banks, payroll, or medical systems here.
+            </p>
+            <p className="mt-1">
+              {user
+                ? "Signed-in context can sync across devices."
+                : "Guest context stays on this device until you sign in."}{" "}
+              {hasContent ? "You can delete any field by clearing it." : "Nothing has been added yet."}
+            </p>
+          </div>
+          <button className="h-10 rounded-md bg-[#203a35] px-4 text-sm font-semibold text-[#f8f5e8]">
+            Save manual context
+          </button>
+        </form>
+      </div>
     </section>
   );
 }
