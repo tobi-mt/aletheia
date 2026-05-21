@@ -2,6 +2,7 @@ import webpush, { PushSubscription } from "web-push";
 import { many, run } from "@/lib/db";
 import { localizedDailyWisdom, normalizePreferences, type BibleTranslation, type LanguageCode, type RegionCode } from "@/lib/localization";
 import { getWisdomEntries } from "@/lib/wisdom";
+import type { Mode } from "@/lib/wisdom-data";
 
 type PushRow = {
   id: string;
@@ -62,7 +63,10 @@ function dailyNotificationPayload(row: PushRow) {
       bibleTranslation: row.bible_translation as BibleTranslation,
       voiceEnabled: Boolean(row.voice_enabled),
     });
-    const daily = localizedDailyWisdom(wisdom, "Money", preferences);
+    const dailyMode: Mode = ["Money", "Work", "Purpose", "Generosity"].includes(wisdom.theme)
+      ? (wisdom.theme as Mode)
+      : "Money";
+    const daily = localizedDailyWisdom(wisdom, dailyMode, preferences);
     return {
       title: `${daily.label}: ${wisdom.theme}`,
       body: daily.practice || daily.principle,

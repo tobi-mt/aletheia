@@ -568,7 +568,8 @@ function composeResponse(question: string, mode: Mode) {
 }
 
 function todayWisdom() {
-  const index = new Date().getDate() % wisdomEntries.length;
+  const dayNumber = Math.floor(Date.now() / 86400000);
+  const index = dayNumber % wisdomEntries.length;
   return wisdomEntries[index];
 }
 
@@ -636,6 +637,7 @@ export function AletheiaApp() {
   const [counselInviteToken, setCounselInviteToken] = useState<string | null>(null);
   const [counselInvitePreview, setCounselInvitePreview] = useState<CounselInvitePreview | null>(null);
   const [counselInviteStatus, setCounselInviteStatus] = useState("");
+  const [answerFocusId, setAnswerFocusId] = useState<string | null>(null);
   const [ruleText, setRuleText] = useState("");
   const preferencesRef = useRef<HTMLElement | null>(null);
   const workspaceRef = useRef<HTMLElement | null>(null);
@@ -913,7 +915,10 @@ export function AletheiaApp() {
   }, [librarySearch, mode]);
 
   const dailyEntry = todayWisdom();
-  const daily = localizedDailyWisdom(dailyEntry, mode, preferences);
+  const dailyMode = modes.some((item) => item.label === dailyEntry.theme)
+    ? (dailyEntry.theme as Mode)
+    : mode;
+  const daily = localizedDailyWisdom(dailyEntry, dailyMode, preferences);
   const activeMode = modeProfiles[mode];
   const activeLanguage = languages[preferences.language];
   const activeRegion = regions[preferences.region];
@@ -986,11 +991,6 @@ export function AletheiaApp() {
     setJournalBody(`${daily.practice}\n\nWhat I notice today:\n`);
     showView("reflect");
     announceWorkflow("Reflection prepared", "Today's wisdom has been placed into Reflect so you can respond quietly.", "success");
-  }
-
-  function askFromDashboard() {
-    showView("companion");
-    announceWorkflow("Companion ready", "Ask the question as plainly as you can. Aletheia will slow it down with you.", "info");
   }
 
   function reviewPatternFlow() {
@@ -1285,6 +1285,7 @@ export function AletheiaApp() {
       setMessages((current) =>
         current.map((message) => (message.id === "thinking" ? data.reply! : message))
       );
+      setAnswerFocusId(data.reply.id);
       const responseMessage =
         data.persisted
           ? data.usedOpenAI
@@ -1304,6 +1305,7 @@ export function AletheiaApp() {
             : message
         )
       );
+      setAnswerFocusId("offline-fallback");
       setStatusMessage("Used offline fallback because the server route was unavailable.");
       announceWorkflow("Offline answer ready", "The server was unavailable, so Aletheia used its local fallback wisdom.", "warning");
     } finally {
@@ -2025,6 +2027,8 @@ export function AletheiaApp() {
                   isWorking={isWorking}
                   isListening={isListening}
                   isSpeaking={isSpeaking}
+                  answerFocusId={answerFocusId}
+                  onAnswerFocused={() => setAnswerFocusId(null)}
                   onScriptureOpen={setSelectedScripture}
                   onTrackDecision={trackDecisionFromExchange}
                   onDraftReflection={draftReflectionFromExchange}
@@ -2035,19 +2039,15 @@ export function AletheiaApp() {
                   onFeedback={(value) => recordAnswerFeedback(value, "answer")}
                 />
                 <HomeDashboard
-                  mode={mode}
-                  modeProfile={activeMode}
                   daily={daily}
                   dailyEntry={dailyEntry}
                   activeDecision={activeDecision}
                   user={user}
                   notificationsEnabled={notificationsEnabled}
                   todayPattern={todayPattern}
-                  onModeChange={handleModeChange}
                   onScriptureOpen={setSelectedScripture}
                   onContinueDecision={continueDecisionFlow}
                   onReflectToday={reflectOnToday}
-                  onAsk={askFromDashboard}
                   onReviewPattern={reviewPatternFlow}
                   onOpenAccount={openAccountFlow}
                 />
@@ -2531,35 +2531,27 @@ function OnboardingModal({
 }
 
 function HomeDashboard({
-  mode,
-  modeProfile,
   daily,
   dailyEntry,
   activeDecision,
   user,
   notificationsEnabled,
   todayPattern,
-  onModeChange,
   onScriptureOpen,
   onContinueDecision,
   onReflectToday,
-  onAsk,
   onReviewPattern,
   onOpenAccount,
 }: {
-  mode: Mode;
-  modeProfile: ModeProfile;
   daily: ReturnType<typeof localizedDailyWisdom>;
   dailyEntry: WisdomEntry;
   activeDecision: WisdomDecision | null;
   user: User | null;
   notificationsEnabled: boolean;
   todayPattern: string;
-  onModeChange: (mode: Mode) => void;
   onScriptureOpen: (scripture: string) => void;
   onContinueDecision: () => void;
   onReflectToday: () => void;
-  onAsk: () => void;
   onReviewPattern: () => void;
   onOpenAccount: () => void;
 }) {
@@ -2572,8 +2564,8 @@ function HomeDashboard({
     : { label: user ? "Enable notifications" : "Enable sync", body: user ? "Receive one quiet daily wisdom prompt." : "Sign in to keep decisions and reflections across devices.", onClick: onOpenAccount };
 
   return (
-    <div className="mt-4 grid gap-3 sm:mt-5 sm:gap-4 xl:grid-cols-[1fr_360px]">
-      <section className="min-w-0 rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm sm:p-5">
+    <div className="mt-4 grid gap-3 sm:mt-5 sm:gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(300px,0.65fr)]">
+      <section className="min-w-0 rounded-lg border border-[#d7e0da] bg-[#fbfcf8]/72 p-4 shadow-sm sm:p-5">
         <div className="mb-4 inline-flex w-fit max-w-full items-center gap-2 rounded-md border border-[#c0cec5] bg-white/60 px-3 py-2 text-[11px] font-medium uppercase tracking-[0.12em] text-[#866a24] sm:text-xs sm:tracking-[0.18em]">
           <Sparkles size={14} />
           Today’s rhythm
@@ -2588,58 +2580,29 @@ function HomeDashboard({
         <div className="mt-5 grid gap-3 md:grid-cols-2">
           <DashboardAction icon={Compass} label={primaryAction.label} body={primaryAction.body} primary onClick={primaryAction.onClick} />
           <DashboardAction icon={Feather} label="Reflect on today" body={daily.practice} onClick={onReflectToday} />
-          <DashboardAction icon={MessageCircle} label="Ask Aletheia" body={`${mode} mode is focused on ${modeProfile.focus.toLowerCase()}.`} onClick={onAsk} />
           <DashboardAction icon={ShieldCheck} label={secondaryAction.label} body={secondaryAction.body} onClick={secondaryAction.onClick} />
-        </div>
-
-        <div className="mt-5 grid grid-cols-2 gap-2 lg:hidden">
-          {modes.map((item) => (
-            <button
-              key={item.label}
-              onClick={() => onModeChange(item.label)}
-              className={`flex min-w-0 items-center gap-2 rounded-md border px-2 py-2 text-left text-xs font-semibold sm:text-sm ${
-                mode === item.label
-                  ? "border-[#203a35] bg-[#203a35] text-[#f8f5e8]"
-                  : "border-[#c9d5cd] bg-white/62 text-[#405049]"
-              }`}
-            >
-              <item.icon className="shrink-0" size={15} />
-              <span className="min-w-0">
-                <span className="block">{item.label}</span>
-                <span className={`mt-0.5 block truncate text-[10px] font-medium ${mode === item.label ? "text-[#dfe8df]" : "text-[#6d7a71]"}`}>
-                  {modeProfiles[item.label].intent}
-                </span>
-              </span>
-            </button>
-          ))}
         </div>
       </section>
 
-      <section className="min-w-0 rounded-xl border border-[#c9d5cd] bg-[#203a35] p-4 text-[#f8f5e8] shadow-sm sm:p-5">
+      <section className="min-w-0 rounded-lg border border-[#d7e0da] bg-[#fbfcf8]/78 p-4 text-[#203a35] shadow-sm sm:p-5">
         <div className="mb-4 flex items-center justify-between gap-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#d0ad55]">{daily.label}</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#866a24]">{daily.label}</p>
             <h2 className="mt-1 text-xl font-semibold">{daily.theme}</h2>
           </div>
-          <Sprout size={22} />
+          <Sprout size={22} className="text-[#2d5d4c]" />
         </div>
         <button
           type="button"
           onClick={() => onScriptureOpen(dailyEntry.scripture)}
-          className="text-left text-sm font-semibold text-[#f3e8bd] underline decoration-[#d0ad55]/50 underline-offset-4 transition hover:text-white"
+          className="text-left text-sm font-semibold text-[#72591f] underline decoration-[#d0ad55]/50 underline-offset-4 transition hover:text-[#203a35]"
         >
           {daily.scripture}
         </button>
-        <p className="mt-3 text-sm leading-6 text-[#e7eee8]">{daily.principle}</p>
-        <div className="mt-3 rounded-md border border-white/10 bg-white/7 p-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#d0ad55]">Tiny practice</p>
-          <p className="mt-2 text-sm leading-6 text-[#edf4ee]">{daily.practice}</p>
-        </div>
-        <div className="mt-3 rounded-md border border-white/10 bg-white/7 p-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#d0ad55]">Mode lens</p>
-          <p className="mt-2 text-sm leading-6 text-[#edf4ee]">
-            {mode} mode is focusing on {modeProfile.lens.toLowerCase()}
-          </p>
+        <p className="mt-3 text-sm leading-6 text-[#55645b]">{daily.principle}</p>
+        <div className="mt-3 rounded-md border border-[#d8e1db] bg-white/62 p-3">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">Tiny practice</p>
+          <p className="mt-2 text-sm leading-6 text-[#45534b]">{daily.practice}</p>
         </div>
       </section>
     </div>
@@ -3982,6 +3945,8 @@ function CompanionPanel({
   isWorking,
   isListening,
   isSpeaking,
+  answerFocusId,
+  onAnswerFocused,
 }: {
   messages: ChatMessage[];
   mode: Mode;
@@ -4006,6 +3971,8 @@ function CompanionPanel({
   isWorking: boolean;
   isListening: boolean;
   isSpeaking: boolean;
+  answerFocusId: string | null;
+  onAnswerFocused: () => void;
 }) {
   const panelRef = useRef<HTMLElement | null>(null);
   const currentCounselRef = useRef<HTMLDivElement | null>(null);
@@ -4016,13 +3983,14 @@ function CompanionPanel({
   const hasCounselSurface = Boolean(currentExchange || history.length);
 
   useEffect(() => {
-    if (!currentExchange?.question) {
+    if (!answerFocusId || !currentExchange?.question) {
       return;
     }
     window.setTimeout(() => {
       currentCounselRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      onAnswerFocused();
     }, 60);
-  }, [currentExchange?.id, currentExchange?.answer.id, currentExchange?.question]);
+  }, [answerFocusId, currentExchange?.id, currentExchange?.answer.id, currentExchange?.question, onAnswerFocused]);
 
   return (
     <div className="space-y-4">
