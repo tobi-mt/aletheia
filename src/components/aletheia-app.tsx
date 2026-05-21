@@ -917,7 +917,7 @@ export function AletheiaApp() {
     }
     if (onboardingConcern.trim()) {
       setQuery(
-        `I am carrying this right now: ${onboardingConcern.trim()}. Please guide me with a ${onboardingTone} tone. My faith familiarity is ${faithFamiliarity}.`
+        `I am seeking wisdom for this right now: ${onboardingConcern.trim()}. Please guide me with a ${onboardingTone} tone. My faith familiarity is ${faithFamiliarity}.`
       );
       showView("companion");
       setStatusMessage("A personal starting question is ready in the companion.");
@@ -1018,6 +1018,14 @@ export function AletheiaApp() {
     setQuery(`Create a concise counsel summary I can share with a trusted person about this decision: ${question}`);
     showView("companion");
     announceWorkflow("Counsel summary queued", "The Companion input now asks for a mentor-ready summary. Send it when ready.", "success");
+  }
+
+  function goDeeperFromExchange(exchange: ConversationExchange) {
+    const question = cleanDisplayText(exchange.question?.text ?? "this counsel");
+    setQuery(
+      `Please go deeper on this in a practical, understandable way. Add more context, examples, blind spots, scripture context, and one next faithful step: ${question}`
+    );
+    announceWorkflow("Deeper follow-up ready", "The Companion input now asks Aletheia to expand the counsel with more depth and practical clarity.", "success");
   }
 
   function waitFromExchange(exchange: ConversationExchange) {
@@ -1122,13 +1130,28 @@ export function AletheiaApp() {
     if (!latest) {
       return;
     }
-    const utterance = new SpeechSynthesisUtterance(cleanDisplayText(latest.text));
+    speakText(latest.text, "Aletheia is reading the latest response in your selected language voice when available.");
+  }
+
+  function speakText(text: string, notice = "Aletheia is reading this aloud in your selected language voice when available.") {
+    if (!("speechSynthesis" in window)) {
+      setPreferencesStatus("Voice output is not supported in this browser yet.");
+      announceWorkflow("Voice output unavailable", "This browser does not support spoken playback yet.", "warning");
+      return;
+    }
+    if (isSpeaking) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+      announceWorkflow("Voice stopped", "Spoken playback has been stopped.", "info");
+      return;
+    }
+    const utterance = new SpeechSynthesisUtterance(cleanDisplayText(text));
     utterance.lang = activeLanguage.speech;
     utterance.rate = 0.92;
     utterance.onend = () => setIsSpeaking(false);
     utterance.onerror = () => setIsSpeaking(false);
     setIsSpeaking(true);
-    announceWorkflow("Reading aloud", "Aletheia is reading the latest response in your selected language voice when available.", "info");
+    announceWorkflow("Reading aloud", notice, "info");
     window.speechSynthesis.speak(utterance);
   }
 
@@ -1903,6 +1926,7 @@ export function AletheiaApp() {
                   onTrackDecision={trackDecisionFromExchange}
                   onDraftReflection={draftReflectionFromExchange}
                   onCreateCounselSummary={draftCounselSummaryFromExchange}
+                  onGoDeeper={goDeeperFromExchange}
                   onWait={waitFromExchange}
                   onShare={(channel) => shareAletheia(channel, "answer")}
                   onFeedback={(value) => recordAnswerFeedback(value, "answer")}
@@ -1946,7 +1970,10 @@ export function AletheiaApp() {
                   onAddCounsel={addCounselContact}
                   onShareCounselInvite={shareCounselInvite}
                   onShareDecisionWithCounsel={shareDecisionWithCounsel}
+                  onSpeakText={speakText}
+                  isSpeaking={isSpeaking}
                   onAddRule={addRuleOfLife}
+                  onScriptureOpen={setSelectedScripture}
                 />
                 </Screen>
               ) : null}
@@ -2266,12 +2293,12 @@ function OnboardingModal({
 
           <section className="rounded-lg border border-[#d8e1db] bg-white/62 p-3">
             <label className="text-sm font-semibold text-[#203a35]">
-              What are you carrying right now?
+              What are you seeking wisdom for?
               <textarea
                 value={concern}
                 onChange={(event) => setConcern(event.target.value)}
                 className="mt-2 min-h-20 w-full resize-none rounded-md border border-[#c9d5cd] bg-white/78 px-3 py-2 text-sm leading-6 outline-none"
-                placeholder="Money stress, a career decision, generosity pressure, purpose uncertainty..."
+                placeholder="Money stress, a career decision, generosity pressure, purpose uncertainty, or something you are bearing..."
               />
             </label>
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
@@ -2363,6 +2390,8 @@ function OnboardingModal({
               {notificationsEnabled ? "Notifications are already enabled on this device." : "Notifications are optional and can be enabled only after sign-in."}
             </p>
           </section>
+
+          <InstallGuideCard compact />
         </div>
 
         <button
@@ -2732,6 +2761,8 @@ function AccountPanel({
           onDisable={onDisableNotifications}
         />
 
+        <InstallGuideCard />
+
         <ShareInviteCard placement="account" onShare={onShare} />
       </section>
 
@@ -2785,6 +2816,68 @@ function AccountStat({ label, value }: { label: string; value: string }) {
       <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#718077]">{label}</p>
       <p className="mt-2 text-2xl font-semibold text-[#203a35]">{value}</p>
     </div>
+  );
+}
+
+function InstallGuideCard({ compact = false }: { compact?: boolean }) {
+  const [installState, setInstallState] = useState({
+    standalone: false,
+    platform: "desktop" as "ios" | "android" | "desktop",
+  });
+
+  useEffect(() => {
+    window.setTimeout(() => {
+      const userAgent = navigator.userAgent.toLowerCase();
+      const isStandalone =
+        window.matchMedia("(display-mode: standalone)").matches ||
+        (navigator as Navigator & { standalone?: boolean }).standalone === true;
+      const platform = /iphone|ipad|ipod/.test(userAgent)
+        ? "ios"
+        : /android/.test(userAgent)
+          ? "android"
+          : "desktop";
+      setInstallState({ standalone: isStandalone, platform });
+    }, 0);
+  }, []);
+
+  const steps =
+    installState.platform === "ios"
+      ? ["Open Aletheia in Safari.", "Tap Share.", "Choose Add to Home Screen."]
+      : installState.platform === "android"
+        ? ["Open Aletheia in Chrome.", "Tap the menu.", "Choose Install app or Add to Home screen."]
+        : ["Open Aletheia in Chrome, Edge, or Safari.", "Use the install icon in the address bar or browser menu.", "Launch it from your dock, desktop, or apps folder."];
+
+  return (
+    <section className={`rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 shadow-sm ${compact ? "p-3" : "p-4 sm:p-5"}`}>
+      <div className="flex items-start gap-3">
+        <div className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-md bg-[#edf2ee] text-[#203a35]">
+          <Home size={17} />
+        </div>
+        <div>
+          <p className="text-sm font-semibold text-[#203a35]">
+            {installState.standalone ? "Aletheia is installed on this device" : "Install Aletheia on your home screen"}
+          </p>
+          <p className="mt-1 text-sm leading-6 text-[#5b6a61]">
+            {installState.standalone
+              ? "You are already using the app-like experience."
+              : "Turn the website into an app icon so it opens full-screen and feels native."}
+          </p>
+        </div>
+      </div>
+      {!installState.standalone ? (
+        <ol className={`mt-3 grid gap-2 text-sm leading-6 text-[#55645b] ${compact ? "" : "sm:grid-cols-3"}`}>
+          {steps.map((step, index) => (
+            <li key={step} className="rounded-lg border border-[#d8e1db] bg-white/64 p-3">
+              <span className="mb-1 block text-xs font-semibold uppercase tracking-[0.14em] text-[#866a24]">Step {index + 1}</span>
+              {step}
+            </li>
+          ))}
+        </ol>
+      ) : null}
+      <p className="mt-3 text-xs leading-5 text-[#718077]">
+        On iPhone and iPad, daily web push notifications are most reliable after Aletheia is added to the Home Screen.
+      </p>
+    </section>
   );
 }
 
@@ -3238,7 +3331,7 @@ function ScriptureModal({
           </p>
         </div>
         <p className="mt-3 text-xs leading-5 text-[#718077]">
-          For longer passages, Aletheia shows a concise public-domain reading or summary so the decision flow stays focused.
+          When Aletheia has a curated public-domain reading in your chosen translation, it shows that reading. Otherwise it uses a concise, clearly marked wisdom summary and keeps the reference exact.
         </p>
       </section>
     </div>
@@ -3491,6 +3584,7 @@ function CompanionPanel({
   onTrackDecision,
   onDraftReflection,
   onCreateCounselSummary,
+  onGoDeeper,
   onWait,
   onShare,
   onFeedback,
@@ -3514,6 +3608,7 @@ function CompanionPanel({
   onTrackDecision: (exchange: ConversationExchange) => void;
   onDraftReflection: (exchange: ConversationExchange) => void;
   onCreateCounselSummary: (exchange: ConversationExchange) => void;
+  onGoDeeper: (exchange: ConversationExchange) => void;
   onWait: (exchange: ConversationExchange) => void;
   onShare: (channel: ShareChannel) => void;
   onFeedback: (value: string) => void;
@@ -3562,6 +3657,7 @@ function CompanionPanel({
               onTrackDecision={onTrackDecision}
               onDraftReflection={onDraftReflection}
               onCreateCounselSummary={onCreateCounselSummary}
+              onGoDeeper={onGoDeeper}
               onWait={onWait}
               onShare={onShare}
               onFeedback={onFeedback}
@@ -3739,6 +3835,59 @@ function ScriptureChips({
   );
 }
 
+const scriptureReferences = wisdomEntries
+  .map((entry) => entry.scripture)
+  .sort((a, b) => b.length - a.length);
+
+function ScriptureLinkedText({
+  text,
+  onScriptureOpen,
+}: {
+  text: string;
+  onScriptureOpen: (scripture: string) => void;
+}) {
+  const cleaned = cleanDisplayText(text);
+  const matches = scriptureReferences
+    .flatMap((scripture) =>
+      [...cleaned.matchAll(new RegExp(scripture.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g"))].map((match) => ({
+        scripture,
+        index: match.index ?? 0,
+      }))
+    )
+    .sort((a, b) => a.index - b.index);
+
+  if (!matches.length) {
+    return <p className="whitespace-pre-wrap text-sm leading-6 text-[#303832]">{cleaned}</p>;
+  }
+
+  const nodes: React.ReactNode[] = [];
+  let cursor = 0;
+  matches.forEach((match, position) => {
+    if (match.index < cursor) {
+      return;
+    }
+    if (match.index > cursor) {
+      nodes.push(cleaned.slice(cursor, match.index));
+    }
+    nodes.push(
+      <button
+        key={`${match.scripture}-${position}-${match.index}`}
+        type="button"
+        onClick={() => onScriptureOpen(match.scripture)}
+        className="mx-0.5 rounded-md bg-[#edf2ee] px-1.5 py-0.5 font-semibold text-[#203a35] underline decoration-[#b8c8bd] decoration-1 underline-offset-2 transition hover:bg-[#dfe8df]"
+      >
+        {match.scripture}
+      </button>
+    );
+    cursor = match.index + match.scripture.length;
+  });
+  if (cursor < cleaned.length) {
+    nodes.push(cleaned.slice(cursor));
+  }
+
+  return <p className="whitespace-pre-wrap text-sm leading-6 text-[#303832]">{nodes}</p>;
+}
+
 function TrustLayerPanel() {
   return (
     <section className="rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm">
@@ -3756,6 +3905,9 @@ function TrustLayerPanel() {
         <p className="rounded-lg border border-[#d8e1db] bg-white/64 p-3">
           Signed-in memory helps continuity across decisions, reflections, counsel, and rules of life. It should make guidance more personal without exposing private details unnecessarily.
         </p>
+        <p className="rounded-lg border border-[#d8e1db] bg-white/64 p-3">
+          Future health, finance, or device integrations should be permission-by-permission, off by default, and limited to the exact data the user chooses to connect.
+        </p>
       </div>
     </section>
   );
@@ -3770,6 +3922,7 @@ function CurrentCounselCard({
   onTrackDecision,
   onDraftReflection,
   onCreateCounselSummary,
+  onGoDeeper,
   onWait,
   onShare,
   onFeedback,
@@ -3782,6 +3935,7 @@ function CurrentCounselCard({
   onTrackDecision: (exchange: ConversationExchange) => void;
   onDraftReflection: (exchange: ConversationExchange) => void;
   onCreateCounselSummary: (exchange: ConversationExchange) => void;
+  onGoDeeper: (exchange: ConversationExchange) => void;
   onWait: (exchange: ConversationExchange) => void;
   onShare: (channel: ShareChannel) => void;
   onFeedback: (value: string) => void;
@@ -3811,15 +3965,16 @@ function CurrentCounselCard({
         <p className="mb-3 rounded-md border border-[#d8e1db] bg-white/70 p-3 text-xs leading-5 text-[#607067]">
           {mode} mode is shaping this counsel around {modeProfile.lens.toLowerCase()}
         </p>
-        <pre className="whitespace-pre-wrap font-sans text-sm leading-6 text-[#303832]">{cleanDisplayText(exchange.answer.text)}</pre>
+        <ScriptureLinkedText text={exchange.answer.text} onScriptureOpen={onScriptureOpen} />
         <ScriptureChips sources={exchange.answer.sources} onScriptureOpen={onScriptureOpen} />
       </article>
       {showDecisionActions ? (
         <>
-          <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
             <CounselAction label="Track this decision" onClick={() => onTrackDecision(exchange)} />
             <CounselAction label="Save as reflection" onClick={() => onDraftReflection(exchange)} />
             <CounselAction label="Create counsel summary" onClick={() => onCreateCounselSummary(exchange)} />
+            <CounselAction label="Go deeper" onClick={() => onGoDeeper(exchange)} />
             <CounselAction label="Wait 3 days" onClick={() => onWait(exchange)} />
           </div>
           <AnswerFeedback onFeedback={onFeedback} />
@@ -3846,6 +4001,7 @@ function CurrentCounselCard({
 function AnswerFeedback({ onFeedback }: { onFeedback: (value: string) => void }) {
   const items = [
     ["helpful", "Helpful"],
+    ["mildly_helpful", "Mildly helpful"],
     ["too_vague", "Too vague"],
     ["too_preachy", "Too preachy"],
     ["not_relevant", "Not relevant"],
@@ -3918,7 +4074,9 @@ function HistoryExchange({
           {exchange.question ? (
             <p className="rounded-md bg-[#203a35] p-3 text-sm leading-6 text-[#f8f5e8]">{cleanDisplayText(exchange.question.text)}</p>
           ) : null}
-          <pre className="mt-3 whitespace-pre-wrap font-sans text-sm leading-6 text-[#303832]">{cleanDisplayText(exchange.answer.text)}</pre>
+          <div className="mt-3">
+            <ScriptureLinkedText text={exchange.answer.text} onScriptureOpen={onScriptureOpen} />
+          </div>
           <ScriptureChips sources={exchange.answer.sources} onScriptureOpen={onScriptureOpen} />
           {exchange.question ? (
             <button
@@ -3970,7 +4128,10 @@ function DecisionCompanionPanel({
   onAddCounsel,
   onShareCounselInvite,
   onShareDecisionWithCounsel,
+  onSpeakText,
+  isSpeaking,
   onAddRule,
+  onScriptureOpen,
 }: {
   mode: Mode;
   modeProfile: ModeProfile;
@@ -4006,7 +4167,10 @@ function DecisionCompanionPanel({
   onAddCounsel: (event: FormEvent<HTMLFormElement>) => void;
   onShareCounselInvite: (channel?: ShareChannel) => void;
   onShareDecisionWithCounsel: (contactId: string, decisionId: string) => void;
+  onSpeakText: (text: string, notice?: string) => void;
+  isSpeaking: boolean;
   onAddRule: (event: FormEvent<HTMLFormElement>) => void;
+  onScriptureOpen: (scripture: string) => void;
 }) {
   const activeDecisions = decisions.filter((decision) => decision.status !== "closed");
   const selectedDecision = decisions[0];
@@ -4289,11 +4453,23 @@ function DecisionCompanionPanel({
 
         {selectedDecision?.summary ? (
           <section className="rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">Decision Summary Export</p>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">Decision Summary Export</p>
+              <button
+                type="button"
+                onClick={() => onSpeakText(selectedDecision.summary || "", "Aletheia is reading the decision summary aloud.")}
+                className="inline-flex h-9 items-center gap-2 rounded-md border border-[#c9d5cd] bg-white/78 px-3 text-xs font-semibold text-[#405049] transition hover:bg-white"
+              >
+                <Volume2 size={14} className={isSpeaking ? "text-[#866a24]" : undefined} />
+                {isSpeaking ? "Stop" : "Read aloud"}
+              </button>
+            </div>
             <p className="mt-2 text-sm leading-6 text-[#55645b]">
               Mentor-ready summary with decision, pressure, wisdom anchors, risks, counsel questions, and next faithful step. Review it before sharing.
             </p>
-            <textarea readOnly value={selectedDecision.summary} className="mt-3 max-h-56 min-h-40 w-full resize-none rounded-md border border-[#c9d5cd] bg-white/78 p-3 text-xs leading-5 text-[#405049]" />
+            <div className="mt-3 max-h-80 min-h-40 overflow-y-auto rounded-md border border-[#c9d5cd] bg-white/78 p-3">
+              <ScriptureLinkedText text={selectedDecision.summary} onScriptureOpen={onScriptureOpen} />
+            </div>
           </section>
         ) : null}
       </aside>

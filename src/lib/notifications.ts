@@ -20,18 +20,30 @@ export function getVapidPublicKey() {
   return process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || process.env.VAPID_PUBLIC_KEY || "";
 }
 
+export function getVapidSubject() {
+  const subject = process.env.VAPID_SUBJECT?.trim();
+  if (subject) {
+    return subject;
+  }
+  const claimEmail = process.env.VAPID_CLAIM_EMAIL?.trim();
+  if (!claimEmail) {
+    return "";
+  }
+  return claimEmail.startsWith("mailto:") ? claimEmail : `mailto:${claimEmail}`;
+}
+
 export function isPushConfigured() {
   return Boolean(
     getVapidPublicKey() &&
       process.env.VAPID_PRIVATE_KEY &&
-      process.env.VAPID_SUBJECT
+      getVapidSubject()
   );
 }
 
 export function configureWebPush() {
   const publicKey = getVapidPublicKey();
   const privateKey = process.env.VAPID_PRIVATE_KEY;
-  const subject = process.env.VAPID_SUBJECT;
+  const subject = getVapidSubject();
 
   if (!publicKey || !privateKey || !subject) {
     throw new Error("Web Push is not configured. Add VAPID keys to the environment.");

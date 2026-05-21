@@ -184,6 +184,60 @@ export const scriptureQuickReads: Record<
 };
 
 const localizedScriptureReads: Partial<Record<BibleTranslation, Record<string, ScriptureRead>>> = {
+  KJV: {
+    "Matthew 25:14-30": {
+      translation: "KJV",
+      label: "King James Version",
+      availableLanguage: "en",
+      text:
+        "For the kingdom of heaven is as a man travelling into a far country, who called his own servants, and delivered unto them his goods. And unto one he gave five talents, to another two, and to another one; to every man according to his several ability; and straightway took his journey. Then he that had received the five talents went and traded with the same, and made them other five talents. And likewise he that had received two, he also gained other two. But he that had received one went and digged in the earth, and hid his lord's money. After a long time the lord of those servants cometh, and reckoneth with them. And so he that had received five talents came and brought other five talents, saying, Lord, thou deliveredst unto me five talents: behold, I have gained beside them five talents more. His lord said unto him, Well done, thou good and faithful servant: thou hast been faithful over a few things, I will make thee ruler over many things: enter thou into the joy of thy lord. He also that had received two talents came and said, Lord, thou deliveredst unto me two talents: behold, I have gained two other talents beside them. His lord said unto him, Well done, good and faithful servant; thou hast been faithful over a few things, I will make thee ruler over many things: enter thou into the joy of thy lord. Then he which had received the one talent came and said, Lord, I knew thee that thou art an hard man, reaping where thou hast not sown, and gathering where thou hast not strawed: And I was afraid, and went and hid thy talent in the earth: lo, there thou hast that is thine. His lord answered and said unto him, Thou wicked and slothful servant, thou knewest that I reap where I sowed not, and gather where I have not strawed: Thou oughtest therefore to have put my money to the exchangers, and then at my coming I should have received mine own with usury. Take therefore the talent from him, and give it unto him which hath ten talents. For unto every one that hath shall be given, and he shall have abundance: but from him that hath not shall be taken away even that which he hath. And cast ye the unprofitable servant into outer darkness: there shall be weeping and gnashing of teeth.",
+    },
+    "Proverbs 22:7": {
+      translation: "KJV",
+      label: "King James Version",
+      availableLanguage: "en",
+      text: "The rich ruleth over the poor, and the borrower is servant to the lender.",
+    },
+    "Philippians 4:11-13": {
+      translation: "KJV",
+      label: "King James Version",
+      availableLanguage: "en",
+      text:
+        "Not that I speak in respect of want: for I have learned, in whatsoever state I am, therewith to be content. I know both how to be abased, and I know how to abound: every where and in all things I am instructed both to be full and to be hungry, both to abound and to suffer need. I can do all things through Christ which strengtheneth me.",
+    },
+    "Proverbs 15:22": {
+      translation: "KJV",
+      label: "King James Version",
+      availableLanguage: "en",
+      text: "Without counsel purposes are disappointed: but in the multitude of counsellors they are established.",
+    },
+    "Luke 14:28": {
+      translation: "KJV",
+      label: "King James Version",
+      availableLanguage: "en",
+      text: "For which of you, intending to build a tower, sitteth not down first, and counteth the cost, whether he have sufficient to finish it?",
+    },
+    "2 Corinthians 9:6-8": {
+      translation: "KJV",
+      label: "King James Version",
+      availableLanguage: "en",
+      text:
+        "But this I say, He which soweth sparingly shall reap also sparingly; and he which soweth bountifully shall reap also bountifully. Every man according as he purposeth in his heart, so let him give; not grudgingly, or of necessity: for God loveth a cheerful giver. And God is able to make all grace abound toward you; that ye, always having all sufficiency in all things, may abound to every good work.",
+    },
+    "Proverbs 21:5": {
+      translation: "KJV",
+      label: "King James Version",
+      availableLanguage: "en",
+      text: "The thoughts of the diligent tend only to plenteousness; but of every one that is hasty only to want.",
+    },
+    "Matthew 6:25-34": {
+      translation: "KJV",
+      label: "King James Version",
+      availableLanguage: "en",
+      text:
+        "Therefore I say unto you, Take no thought for your life, what ye shall eat, or what ye shall drink; nor yet for your body, what ye shall put on. Is not the life more than meat, and the body than raiment? Behold the fowls of the air: for they sow not, neither do they reap, nor gather into barns; yet your heavenly Father feedeth them. Are ye not much better than they? Which of you by taking thought can add one cubit unto his stature? And why take ye thought for raiment? Consider the lilies of the field, how they grow; they toil not, neither do they spin: And yet I say unto you, That even Solomon in all his glory was not arrayed like one of these. Wherefore, if God so clothe the grass of the field, which to day is, and to morrow is cast into the oven, shall he not much more clothe you, O ye of little faith? Therefore take no thought, saying, What shall we eat? or, What shall we drink? or, Wherewithal shall we be clothed? For after all these things do the Gentiles seek: for your heavenly Father knoweth that ye have need of all these things. But seek ye first the kingdom of God, and his righteousness; and all these things shall be added unto you. Take therefore no thought for the morrow: for the morrow shall take thought for the things of itself. Sufficient unto the day is the evil thereof.",
+    },
+  },
   RV1909: {
     "Proverbs 22:7": {
       translation: "RV1909",
