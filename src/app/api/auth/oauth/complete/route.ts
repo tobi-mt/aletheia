@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { createSession, getOrCreateOAuthUser } from "@/lib/auth";
+import { createSession, getOrCreateOAuthUser, recordUserLogin } from "@/lib/auth";
 import { trackServerEvent } from "@/lib/analytics";
 
 export async function GET(request: NextRequest) {
@@ -12,11 +12,14 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL("/?auth=oauth_failed", appUrl));
   }
 
-  const user = await getOrCreateOAuthUser({
+  const { user, isNewUser } = await getOrCreateOAuthUser({
     email,
     name: session?.user?.name ?? null,
     provider: "google",
   });
+  if (!isNewUser) {
+    await recordUserLogin(user.id);
+  }
   await createSession(user.id);
   await trackServerEvent({
     userId: user.id,
@@ -26,5 +29,8 @@ export async function GET(request: NextRequest) {
 
   const requestedNext = request.nextUrl.searchParams.get("next") || "/";
   const next = requestedNext.startsWith("/") && !requestedNext.startsWith("//") ? requestedNext : "/";
-  return NextResponse.redirect(new URL(next, appUrl));
+  const redirectUrl = new URL(next, appUrl);
+  redirectUrl.searchParams.set("auth", isNewUser ? "google_new" : "google_returning");
+  redirectUrl.searchParams.set("view", "account");
+  return NextResponse.redirect(redirectUrl);
 }

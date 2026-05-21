@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import { defaultPreferences, promptPreferenceContext, type UserPreferences } from "@/lib/localization";
+import { defaultPreferences, localizedScriptureRead, promptPreferenceContext, type UserPreferences } from "@/lib/localization";
 import { modeProfiles } from "@/lib/mode-profiles";
 import type { Mode } from "@/lib/wisdom-data";
 import type { WisdomSource } from "@/lib/wisdom";
@@ -28,15 +28,18 @@ export async function generateWisdomResponse({
   const model = process.env.OPENAI_MODEL || "gpt-5.4-mini";
   const profile = modeProfiles[mode];
   const context = sources
-    .map(
-      (source, index) => `Source ${index + 1}
+    .map((source, index) => {
+      const scriptureRead = localizedScriptureRead(source.scripture, preferences);
+      return `Source ${index + 1}
 Theme: ${source.theme}
 Scripture: ${source.scripture}
+Selected translation reading: ${scriptureRead.label} (${scriptureRead.translation})
+Available reading text: ${scriptureRead.text}
 Principle: ${source.principle}
 Context: ${source.context}
 Modern application: ${source.application}
-Reflection questions: ${source.questions.join(" | ")}`
-    )
+Reflection questions: ${source.questions.join(" | ")}`;
+    })
     .join("\n\n");
 
   const response = await client.responses.create({
@@ -80,7 +83,7 @@ Write a human response that feels personal and grounded. Requirements:
 - Explain what the biblical principle means in ordinary life today.
 - Write in the preferred response language unless the user's question clearly asks for another language.
 - Adapt examples to the user's region without pretending to know local law, tax, or regulated financial details.
-- Honor the preferred Bible translation as a reference label. Do not quote verse text unless it is supplied in the retrieved sources.
+- Honor the preferred Bible translation. When selected translation reading text is supplied in the retrieved sources, use that wording if you quote or paraphrase the passage. If only fallback reading text is available, clearly keep the exact reference and explain the principle without pretending the selected translation text is available.
 - Use the selected mode as a real diagnostic lens. Name the most likely tension, blind spot, or maturity signal when it fits.
 - Give practical next steps without sounding like financial advice.
 - When memory context is available, use it quietly and only when relevant. Do not overstate certainty or expose private memory unnecessarily.

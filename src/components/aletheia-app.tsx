@@ -86,6 +86,9 @@ type User = {
   id: string;
   email: string;
   name: string | null;
+  loginCount?: number;
+  lastSeenAt?: string | null;
+  createdAt?: string;
 };
 
 function storedPreferences() {
@@ -738,18 +741,22 @@ export function AletheiaApp() {
 
       if (data.user) {
         await loadSignedInWorkspace(data.user);
-        const signedInMessage = params.get("auth") === "google_success"
-          ? "Google sign-in successful. Sync is active."
-          : "Signed in. Conversations and reflections sync to the database.";
+        const firstName = data.user.name?.split(" ")[0] || data.user.email.split("@")[0];
+        const signedInMessage =
+          params.get("auth") === "google_new"
+            ? `Welcome to Aletheia, ${firstName}. Your account is ready and sync is active.`
+            : params.get("auth") === "google_returning" || (data.user.loginCount ?? 0) > 1
+              ? `Welcome back, ${firstName}. Your Aletheia memory is ready.`
+              : "Signed in. Conversations and reflections sync to the database.";
         setStatusMessage(signedInMessage);
-        setAuthNotice(params.get("auth") === "google_success" ? signedInMessage : "");
+        setAuthNotice(params.get("auth")?.startsWith("google_") ? signedInMessage : "");
         try {
           window.localStorage.setItem("aletheia_onboarding_complete", "yes");
         } catch {
           // Signed-in users should not be blocked by local onboarding storage.
         }
         setShowOnboarding(false);
-        if (params.get("view") === "account" || params.get("auth") === "google_success") {
+        if (params.get("view") === "account" || params.get("auth")?.startsWith("google_")) {
           setActiveView("account");
           window.history.replaceState({}, "", window.location.pathname);
         }
@@ -1309,15 +1316,18 @@ export function AletheiaApp() {
           password: authPassword,
         }),
       });
-      const data = (await response.json()) as { user?: User; error?: string };
+      const data = (await response.json()) as { user?: User; error?: string; isNewUser?: boolean; welcomeMessage?: string };
       if (!response.ok || !data.user) {
         throw new Error(data.error ?? "Authentication failed.");
       }
       setAuthPassword("");
       await loadSignedInWorkspace(data.user);
-      const successMessage = authMode === "register"
-        ? "Account created. You are signed in and sync is active."
-        : "Sign-in successful. Sync is active.";
+      const firstName = data.user.name?.split(" ")[0] || data.user.email.split("@")[0];
+      const successMessage =
+        data.welcomeMessage ??
+        (authMode === "register"
+          ? `Welcome to Aletheia, ${firstName}. Your account is ready and sync is active.`
+          : `Welcome back, ${firstName}. Your Aletheia memory is ready.`);
       setStatusMessage(successMessage);
       setAuthNotice(successMessage);
       announceWorkflow(authMode === "register" ? "Account created" : "Signed in", successMessage, "success");
@@ -1333,6 +1343,10 @@ export function AletheiaApp() {
       const message = error instanceof Error ? error.message : "Authentication failed.";
       setAuthError(message);
       setAuthNotice("");
+      if (message.toLowerCase().includes("already exists")) {
+        setAuthMode("login");
+        setAuthNotice("That email already has an Aletheia account. Sign in below to continue.");
+      }
       announceWorkflow("Sign-in did not finish", message, "error");
     } finally {
       setIsWorking(false);
@@ -1568,7 +1582,7 @@ export function AletheiaApp() {
         reversibleStep: false,
         peaceOverUrgency: false,
         waitingUntil: null,
-        summary: buildDecisionSummary({ title, mode, pressure, emotion: decisionEmotion, sources, signals }),
+        summary: buildDecisionSummary({ title, mode, pressure, emotion: decisionEmotion, sources, signals, preferences }),
         finalDecision: null,
         learning: null,
         createdAt: now,
@@ -1644,6 +1658,7 @@ export function AletheiaApp() {
           emotion: next.initialEmotion,
           sources,
           signals,
+          preferences,
         }),
       };
     });
@@ -3317,17 +3332,19 @@ function AccountStatusCard({
   onLogout: () => void;
 }) {
   const signedIn = Boolean(user);
+  const firstName = user?.name?.split(" ")[0] || user?.email.split("@")[0];
+  const isReturning = (user?.loginCount ?? 0) > 1;
   return (
     <section className="rounded-xl border border-[#c9d5cd] bg-white/70 p-4 shadow-sm sm:p-5">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">Profile</p>
           <h3 className="mt-2 text-xl font-semibold text-[#203a35]">
-            {signedIn ? `Signed in as ${user?.name || user?.email}` : "Guest mode"}
+            {signedIn ? `${isReturning ? "Welcome back" : "Welcome"}, ${firstName}` : "Guest mode"}
           </h3>
           <p className="mt-2 text-sm leading-6 text-[#55645b]">
             {signedIn
-              ? "Sync is active for decisions, reflections, counsel, rules, and preferences."
+              ? `Signed in as ${user?.email}. Sync is active for decisions, reflections, counsel, rules, and preferences.`
               : "Sign in to sync your wisdom history across devices and enable daily notifications."}
           </p>
         </div>
@@ -3978,6 +3995,7 @@ function CompanionPanel({
               exchange={currentExchange}
               mode={mode}
               modeProfile={modeProfile}
+              preferences={preferences}
               isWorking={isWorking}
               onScriptureOpen={onScriptureOpen}
               onTrackDecision={onTrackDecision}
@@ -4008,6 +4026,7 @@ function CompanionPanel({
                   <HistoryExchange
                     key={exchange.id}
                     exchange={exchange}
+                    preferences={preferences}
                     expanded={expandedHistoryId === exchange.id}
                     onToggle={() => setExpandedHistoryId((current) => (current === exchange.id ? null : exchange.id))}
                     onContinue={() => {
@@ -4136,9 +4155,11 @@ function CompanionPanel({
 
 function ScriptureChips({
   sources,
+  preferences,
   onScriptureOpen,
 }: {
   sources?: WisdomEntry[];
+  preferences: UserPreferences;
   onScriptureOpen: (scripture: string) => void;
 }) {
   if (!sources?.length) {
@@ -4154,7 +4175,7 @@ function ScriptureChips({
           onClick={() => onScriptureOpen(source.scripture)}
           className="rounded-md border border-[#d8e1db] bg-[#fbfcf8] px-2 py-1 text-xs font-semibold text-[#68766d] transition hover:border-[#203a35] hover:text-[#203a35]"
         >
-          {source.scripture}
+          {source.scripture} · {localizedScriptureRead(source.scripture, preferences).translation}
         </button>
       ))}
     </div>
@@ -4243,6 +4264,7 @@ function CurrentCounselCard({
   exchange,
   mode,
   modeProfile,
+  preferences,
   isWorking,
   onScriptureOpen,
   onTrackDecision,
@@ -4256,6 +4278,7 @@ function CurrentCounselCard({
   exchange: ConversationExchange;
   mode: Mode;
   modeProfile: ModeProfile;
+  preferences: UserPreferences;
   isWorking: boolean;
   onScriptureOpen: (scripture: string) => void;
   onTrackDecision: (exchange: ConversationExchange) => void;
@@ -4292,7 +4315,7 @@ function CurrentCounselCard({
           {mode} mode is shaping this counsel around {modeProfile.lens.toLowerCase()}
         </p>
         <ScriptureLinkedText text={exchange.answer.text} onScriptureOpen={onScriptureOpen} />
-        <ScriptureChips sources={exchange.answer.sources} onScriptureOpen={onScriptureOpen} />
+        <ScriptureChips sources={exchange.answer.sources} preferences={preferences} onScriptureOpen={onScriptureOpen} />
       </article>
       {showDecisionActions ? (
         <>
@@ -4366,12 +4389,14 @@ function CounselAction({ label, onClick }: { label: string; onClick: () => void 
 
 function HistoryExchange({
   exchange,
+  preferences,
   expanded,
   onToggle,
   onContinue,
   onScriptureOpen,
 }: {
   exchange: ConversationExchange;
+  preferences: UserPreferences;
   expanded: boolean;
   onToggle: () => void;
   onContinue: () => void;
@@ -4403,7 +4428,7 @@ function HistoryExchange({
           <div className="mt-3">
             <ScriptureLinkedText text={exchange.answer.text} onScriptureOpen={onScriptureOpen} />
           </div>
-          <ScriptureChips sources={exchange.answer.sources} onScriptureOpen={onScriptureOpen} />
+          <ScriptureChips sources={exchange.answer.sources} preferences={preferences} onScriptureOpen={onScriptureOpen} />
           {exchange.question ? (
             <button
               type="button"

@@ -45,11 +45,13 @@ export async function POST(request: Request) {
   };
 
   await run(
-    "INSERT INTO users (id, email, name, password_hash, created_at) VALUES (?, ?, ?, ?, ?)",
+    "INSERT INTO users (id, email, name, password_hash, last_seen_at, login_count, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
     user.id,
     user.email,
     user.name,
     hashPassword(password),
+    new Date().toISOString(),
+    1,
     new Date().toISOString()
   );
 
@@ -65,6 +67,9 @@ export async function POST(request: Request) {
       id: user.id,
       email: user.email,
       name: user.name,
+      loginCount: 1,
     },
+    isNewUser: true,
+    welcomeMessage: "Welcome to Aletheia. Your account is ready and sync is active.",
   }, { headers: rateLimitHeaders(rateLimit) });
 }

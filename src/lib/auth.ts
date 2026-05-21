@@ -49,9 +49,9 @@ export async function getOrCreateOAuthUser({
   if (existing) {
     if (!existing.name && name) {
       await run("UPDATE users SET name = ? WHERE id = ?", name, existing.id);
-      return { ...existing, name };
+      return { user: { ...existing, name }, isNewUser: false };
     }
-    return existing;
+    return { user: existing, isNewUser: false };
   }
 
   const user = {
@@ -61,15 +61,25 @@ export async function getOrCreateOAuthUser({
   };
 
   await run(
-    "INSERT INTO users (id, email, name, password_hash, created_at) VALUES (?, ?, ?, ?, ?)",
+    "INSERT INTO users (id, email, name, password_hash, last_seen_at, login_count, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
     user.id,
     user.email,
     user.name,
     `oauth:${provider}`,
+    new Date().toISOString(),
+    1,
     new Date().toISOString()
   );
 
-  return user;
+  return { user, isNewUser: true };
+}
+
+export async function recordUserLogin(userId: string) {
+  await run(
+    "UPDATE users SET last_seen_at = ?, login_count = COALESCE(login_count, 0) + 1 WHERE id = ?",
+    new Date().toISOString(),
+    userId
+  );
 }
 
 export async function createSession(userId: string) {
@@ -118,8 +128,12 @@ export async function getCurrentUser() {
     expires_at: string;
     email: string;
     name: string | null;
+    login_count: number;
+    last_seen_at: string | null;
+    created_at: string;
   }>(
-    `SELECT sessions.id, sessions.user_id, sessions.expires_at, users.email, users.name
+    `SELECT sessions.id, sessions.user_id, sessions.expires_at, users.email, users.name,
+            users.login_count, users.last_seen_at, users.created_at
      FROM sessions
      JOIN users ON users.id = sessions.user_id
      WHERE sessions.token_hash = ?`,
@@ -137,6 +151,9 @@ export async function getCurrentUser() {
     id: session.user_id,
     email: session.email,
     name: session.name,
+    loginCount: session.login_count ?? 0,
+    lastSeenAt: session.last_seen_at,
+    createdAt: session.created_at,
   };
 }
 

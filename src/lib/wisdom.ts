@@ -1,5 +1,12 @@
 import { many } from "@/lib/db";
-import { defaultPreferences, languages, regions, type UserPreferences } from "@/lib/localization";
+import {
+  defaultPreferences,
+  languages,
+  localizedScriptureRead,
+  regions,
+  scriptureTranslationLabel,
+  type UserPreferences,
+} from "@/lib/localization";
 import { modeProfiles } from "@/lib/mode-profiles";
 import { Mode, wisdomEntries, WisdomEntryData } from "@/lib/wisdom-data";
 
@@ -104,9 +111,19 @@ export async function retrieveWisdom(query: string, mode: Mode, limit = 3) {
   return searchWisdomEntries(entries, query, mode, limit);
 }
 
-export function composeFallbackResponse(question: string, sources: WisdomSource[]) {
+function sourceReference(source: WisdomSource, preferences: UserPreferences) {
+  return `${source.scripture} (${scriptureTranslationLabel(source.scripture, preferences)})`;
+}
+
+export function composeFallbackResponse(
+  question: string,
+  sources: WisdomSource[],
+  preferences: UserPreferences = defaultPreferences
+) {
   const primary = sources[0] ?? wisdomEntries[0];
   const secondary = sources[1] ?? wisdomEntries[2];
+  const primaryRead = localizedScriptureRead(primary.scripture, preferences);
+  const secondaryRead = localizedScriptureRead(secondary.scripture, preferences);
   const asksAboutDebt = /debt|borrow|loan|credit/i.test(question);
   const asksAboutWork = /job|career|business|startup|quit|leave|work/i.test(question);
   const asksAboutGreed = /greed|wealth|rich|money|comparison|contentment/i.test(question);
@@ -122,9 +139,13 @@ export function composeFallbackResponse(question: string, sources: WisdomSource[
   return [
     opening,
     "",
-    `${primary.scripture} gives a helpful anchor here: ${primary.principle.toLowerCase()} In ordinary life, that means ${primary.application.toLowerCase()}`,
+    `${sourceReference(primary, preferences)} gives a helpful anchor here: ${primary.principle.toLowerCase()} In ordinary life, that means ${primary.application.toLowerCase()}`,
     "",
-    `${secondary.scripture} adds another layer: ${secondary.principle.toLowerCase()} So a wise next step is not to ask, "Can I make this work?" only, but also, "What kind of person will this decision train me to become?"`,
+    `Selected reading: ${primaryRead.text}`,
+    "",
+    `${sourceReference(secondary, preferences)} adds another layer: ${secondary.principle.toLowerCase()} So a wise next step is not to ask, "Can I make this work?" only, but also, "What kind of person will this decision train me to become?"`,
+    "",
+    `Second reading: ${secondaryRead.text}`,
     "",
     `A few questions may help: ${primary.questions[0]} ${primary.questions[1]} ${secondary.questions[0]}`,
     "",
@@ -139,14 +160,15 @@ export function composeModeAwareFallbackResponse(
   preferences: UserPreferences = defaultPreferences
 ) {
   const profile = modeProfiles[mode];
-  const base = composeFallbackResponse(question, sources);
+  const base = composeFallbackResponse(question, sources, preferences);
   const language = languages[preferences.language] ?? languages.en;
   const region = regions[preferences.region] ?? regions.global;
+  const primary = sources[0] ?? wisdomEntries[0];
 
   return [
     base,
     "",
-    `Preference note: respond for ${language.name} readers, with examples sensitive to ${region.label}. Scripture references are labeled with ${preferences.bibleTranslation}; if a public-domain localized verse text is not available, use the reference and explain the principle plainly.`,
+    `Preference note: respond for ${language.name} readers, with examples sensitive to ${region.label}. Scripture references use ${sourceReference(primary, preferences)} where curated text is available; otherwise use the reference and explain the principle plainly.`,
     "",
     `Because you are in ${mode} mode, I would look at this through ${profile.lens.toLowerCase()}`,
     "",

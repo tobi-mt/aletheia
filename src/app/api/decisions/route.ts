@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { trackServerEvent } from "@/lib/analytics";
 import { buildDecisionSummary, detectPatterns, scoreDecision } from "@/lib/decision-intelligence";
-import { many, run } from "@/lib/db";
+import { many, one, run } from "@/lib/db";
+import { defaultPreferences, normalizePreferences, type UserPreferences } from "@/lib/localization";
 import { retrieveWisdom } from "@/lib/wisdom";
 import type { Mode } from "@/lib/wisdom-data";
 
@@ -35,6 +36,31 @@ type EventRow = {
   mode: Mode | null;
   created_at: string;
 };
+
+async function getUserPreferences(userId: string): Promise<UserPreferences> {
+  const row = await one<{
+    language: string;
+    region: string;
+    bible_translation: string;
+    voice_enabled: boolean;
+  }>(
+    `SELECT language, region, bible_translation, voice_enabled
+     FROM user_preferences
+     WHERE user_id = ?`,
+    userId
+  );
+
+  return normalizePreferences(
+    row
+      ? {
+          language: row.language as UserPreferences["language"],
+          region: row.region as UserPreferences["region"],
+          bibleTranslation: row.bible_translation as UserPreferences["bibleTranslation"],
+          voiceEnabled: row.voice_enabled,
+        }
+      : defaultPreferences
+  );
+}
 
 function mapDecision(row: DecisionRow) {
   return {
@@ -153,7 +179,8 @@ export async function POST(request: Request) {
     peaceOverUrgency: false,
   });
   const sources = await retrieveWisdom(`${title} ${pressure} ${emotion}`, mode, 3);
-  const summary = buildDecisionSummary({ title, mode, pressure, emotion, sources, signals });
+  const preferences = await getUserPreferences(user.id);
+  const summary = buildDecisionSummary({ title, mode, pressure, emotion, sources, signals, preferences });
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
 
