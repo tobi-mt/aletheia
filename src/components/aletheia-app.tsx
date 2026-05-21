@@ -2977,41 +2977,50 @@ function ManualContextPanel({
     window.setTimeout(() => setDraft(context), 0);
   }, [context]);
   const hasContent = manualContextHasContent(draft);
-  const fields: Array<{
-    key: keyof Pick<ManualContextProfile, "healthContext" | "financeContext" | "workContext" | "obligations" | "goals" | "boundaries">;
+  const longFields: Array<{
+    key: keyof Pick<
+      ManualContextProfile,
+      "financeContext" | "workContext" | "healthContext" | "obligations" | "goals" | "boundaries" | "enoughDefinition" | "mustNotSacrifice"
+    >;
     label: string;
     placeholder: string;
   }> = [
-    {
-      key: "healthContext",
-      label: "Health and body rhythms",
-      placeholder: "Steps, sleep, energy, fitness goals, medical limits you want Aletheia to consider...",
-    },
-    {
-      key: "financeContext",
-      label: "Money context",
-      placeholder: "Income rhythm, spending pressure, debts, savings goals, family support, giving commitments...",
-    },
-    {
-      key: "workContext",
-      label: "Work and vocation",
-      placeholder: "Role, workload, calling questions, business stage, salary pressure, leadership responsibilities...",
-    },
-    {
-      key: "obligations",
-      label: "Responsibilities",
-      placeholder: "Dependents, family obligations, community responsibilities, caregiving, school fees...",
-    },
-    {
-      key: "goals",
-      label: "Goals",
-      placeholder: "What you are working toward in health, money, work, generosity, discipline, or peace...",
-    },
-    {
-      key: "boundaries",
-      label: "Boundaries",
-      placeholder: "What Aletheia should not assume, mention, overemphasize, or use unless you ask...",
-    },
+    { key: "financeContext", label: "Money context", placeholder: "Current pressure, obligations, giving posture, spending tension..." },
+    { key: "workContext", label: "Work context", placeholder: "Role, workload, calling tension, business stage, leadership strain..." },
+    { key: "healthContext", label: "Health context", placeholder: "Energy pattern, limits, sleep rhythm, recovery factors..." },
+    { key: "obligations", label: "Responsibilities", placeholder: "Dependents, caregiving, family obligations, community load..." },
+    { key: "goals", label: "Current goals", placeholder: "What you are trying to build with money, work, and life..." },
+    { key: "enoughDefinition", label: "Definition of enough", placeholder: "What 'enough' means in this season..." },
+    { key: "mustNotSacrifice", label: "Must not sacrifice", placeholder: "Peace, integrity, family time, Sabbath, health..." },
+    { key: "boundaries", label: "Guidance boundaries", placeholder: "What Aletheia should avoid assuming or overemphasizing..." },
+  ];
+  const moneyNumberFields: Array<{ key: keyof Pick<ManualContextProfile, "monthlyIncome" | "fixedExpenses" | "debtPayments" | "savingsBufferMonths" | "givingTargetPercent" | "financialDependents">; label: string; step?: string }> = [
+    { key: "monthlyIncome", label: "Monthly income" },
+    { key: "fixedExpenses", label: "Fixed monthly expenses" },
+    { key: "debtPayments", label: "Monthly debt payments" },
+    { key: "savingsBufferMonths", label: "Savings buffer (months)", step: "0.1" },
+    { key: "givingTargetPercent", label: "Giving target (%)", step: "0.1" },
+    { key: "financialDependents", label: "Financial dependents", step: "1" },
+  ];
+  const lifeNumberFields: Array<{ key: keyof Pick<ManualContextProfile, "workHoursPerWeek" | "commuteHoursPerWeek" | "sleepHours" | "exerciseSessionsPerWeek" | "timeWithLovedOnesHoursPerWeek" | "timeWithCommunityHoursPerWeek">; label: string; step?: string }> = [
+    { key: "workHoursPerWeek", label: "Work hours per week", step: "0.5" },
+    { key: "commuteHoursPerWeek", label: "Commute hours per week", step: "0.5" },
+    { key: "sleepHours", label: "Sleep hours (avg/day)", step: "0.1" },
+    { key: "exerciseSessionsPerWeek", label: "Exercise sessions/week", step: "1" },
+    { key: "timeWithLovedOnesHoursPerWeek", label: "Hours with loved ones/week", step: "0.5" },
+    { key: "timeWithCommunityHoursPerWeek", label: "Hours with community/week", step: "0.5" },
+  ];
+  const signalFields: Array<{ key: keyof Pick<ManualContextProfile, "stressLevel" | "energyDrainLevel" | "urgencyLevel" | "supportLevel">; label: string }> = [
+    { key: "stressLevel", label: "Stress (0-10)" },
+    { key: "energyDrainLevel", label: "Energy drain (0-10)" },
+    { key: "urgencyLevel", label: "Urgency pressure (0-10)" },
+    { key: "supportLevel", label: "Support strength (0-10)" },
+  ];
+  const preferenceFields: Array<{ key: keyof Pick<ManualContextProfile, "riskTolerance" | "waitingPreference" | "counselCadence" | "successDefinition">; label: string; placeholder: string }> = [
+    { key: "riskTolerance", label: "Risk tolerance", placeholder: "Conservative, moderate, aggressive, depends on season..." },
+    { key: "waitingPreference", label: "Waiting preference", placeholder: "24h, 3 days, 7 days, 30 days for major decisions..." },
+    { key: "counselCadence", label: "Counsel rhythm", placeholder: "Who I check with and how often..." },
+    { key: "successDefinition", label: "Definition of success", placeholder: "How I measure faithful success, not just outcomes..." },
   ];
 
   return (
@@ -3052,8 +3061,119 @@ function ManualContextPanel({
             </span>
           </label>
 
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="flex items-start gap-3 rounded-lg border border-[#d8e1db] bg-white/64 p-3 text-sm text-[#405049]">
+              <input type="checkbox" checked={draft.useMoneyInAnswers} onChange={(event) => setDraft((current) => ({ ...current, useMoneyInAnswers: event.target.checked }))} className="mt-1 size-4 rounded border-[#9fb0a6]" />
+              <span className="font-semibold text-[#203a35]">Use money context in answers</span>
+            </label>
+            <label className="flex items-start gap-3 rounded-lg border border-[#d8e1db] bg-white/64 p-3 text-sm text-[#405049]">
+              <input type="checkbox" checked={draft.useWorkInAnswers} onChange={(event) => setDraft((current) => ({ ...current, useWorkInAnswers: event.target.checked }))} className="mt-1 size-4 rounded border-[#9fb0a6]" />
+              <span className="font-semibold text-[#203a35]">Use work context in answers</span>
+            </label>
+            <label className="flex items-start gap-3 rounded-lg border border-[#d8e1db] bg-white/64 p-3 text-sm text-[#405049]">
+              <input type="checkbox" checked={draft.useHealthInAnswers} onChange={(event) => setDraft((current) => ({ ...current, useHealthInAnswers: event.target.checked }))} className="mt-1 size-4 rounded border-[#9fb0a6]" />
+              <span className="font-semibold text-[#203a35]">Use health rhythm in answers</span>
+            </label>
+            <label className="flex items-start gap-3 rounded-lg border border-[#d8e1db] bg-white/64 p-3 text-sm text-[#405049]">
+              <input type="checkbox" checked={draft.useRelationshipsInAnswers} onChange={(event) => setDraft((current) => ({ ...current, useRelationshipsInAnswers: event.target.checked }))} className="mt-1 size-4 rounded border-[#9fb0a6]" />
+              <span className="font-semibold text-[#203a35]">Use relationships context in answers</span>
+            </label>
+            <label className="flex items-start gap-3 rounded-lg border border-[#d8e1db] bg-white/64 p-3 text-sm text-[#405049] sm:col-span-2">
+              <input type="checkbox" checked={draft.useValuesInAnswers} onChange={(event) => setDraft((current) => ({ ...current, useValuesInAnswers: event.target.checked }))} className="mt-1 size-4 rounded border-[#9fb0a6]" />
+              <span className="font-semibold text-[#203a35]">Use values, risk, and counsel preferences in answers</span>
+            </label>
+          </div>
+
+          <div className="space-y-3 rounded-lg border border-[#d8e1db] bg-white/64 p-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#52635a]">Money signals</p>
+            <div className="grid gap-3 md:grid-cols-2">
+              {moneyNumberFields.map((field) => (
+                <label key={field.key} className="text-xs font-semibold uppercase tracking-[0.12em] text-[#52635a]">
+                  {field.label}
+                  <input
+                    inputMode="decimal"
+                    type="number"
+                    step={field.step ?? "0.01"}
+                    value={draft[field.key] ?? ""}
+                    onChange={(event) =>
+                      setDraft((current) => ({
+                        ...current,
+                        [field.key]: event.target.value === "" ? null : Number(event.target.value),
+                      }))
+                    }
+                    className="mt-2 h-10 w-full rounded-md border border-[#c9d5cd] bg-white/78 px-3 text-sm normal-case tracking-normal text-[#203a35] outline-none focus:border-[#203a35]"
+                  />
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-3 rounded-lg border border-[#d8e1db] bg-white/64 p-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#52635a]">Life rhythms</p>
+            <div className="grid gap-3 md:grid-cols-2">
+              {lifeNumberFields.map((field) => (
+                <label key={field.key} className="text-xs font-semibold uppercase tracking-[0.12em] text-[#52635a]">
+                  {field.label}
+                  <input
+                    inputMode="decimal"
+                    type="number"
+                    step={field.step ?? "0.1"}
+                    value={draft[field.key] ?? ""}
+                    onChange={(event) =>
+                      setDraft((current) => ({
+                        ...current,
+                        [field.key]: event.target.value === "" ? null : Number(event.target.value),
+                      }))
+                    }
+                    className="mt-2 h-10 w-full rounded-md border border-[#c9d5cd] bg-white/78 px-3 text-sm normal-case tracking-normal text-[#203a35] outline-none focus:border-[#203a35]"
+                  />
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-3 rounded-lg border border-[#d8e1db] bg-white/64 p-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#52635a]">Discernment signals</p>
+            <div className="grid gap-3 md:grid-cols-2">
+              {signalFields.map((field) => (
+                <label key={field.key} className="text-xs font-semibold uppercase tracking-[0.12em] text-[#52635a]">
+                  {field.label}
+                  <input
+                    inputMode="numeric"
+                    type="number"
+                    min={0}
+                    max={10}
+                    step="1"
+                    value={draft[field.key] ?? ""}
+                    onChange={(event) =>
+                      setDraft((current) => ({
+                        ...current,
+                        [field.key]: event.target.value === "" ? null : Number(event.target.value),
+                      }))
+                    }
+                    className="mt-2 h-10 w-full rounded-md border border-[#c9d5cd] bg-white/78 px-3 text-sm normal-case tracking-normal text-[#203a35] outline-none focus:border-[#203a35]"
+                  />
+                </label>
+              ))}
+            </div>
+          </div>
+
           <div className="grid gap-3 md:grid-cols-2">
-            {fields.map((field) => (
+            {preferenceFields.map((field) => (
+              <label key={field.key} className="text-xs font-semibold uppercase tracking-[0.12em] text-[#52635a]">
+                {field.label}
+                <input
+                  value={draft[field.key]}
+                  onChange={(event) => setDraft((current) => ({ ...current, [field.key]: event.target.value }))}
+                  className="mt-2 h-10 w-full rounded-md border border-[#c9d5cd] bg-white/78 px-3 text-sm normal-case tracking-normal text-[#203a35] outline-none focus:border-[#203a35]"
+                  placeholder={field.placeholder}
+                />
+              </label>
+            ))}
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-2">
+            {longFields.map((field) => (
               <label key={field.key} className="text-xs font-semibold uppercase tracking-[0.12em] text-[#52635a]">
                 {field.label}
                 <textarea

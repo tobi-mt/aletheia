@@ -10,6 +10,7 @@ type ContextRow = {
   obligations: string;
   goals: string;
   boundaries: string;
+  context_json: unknown;
   use_in_answers: boolean;
 };
 
@@ -17,14 +18,20 @@ function mapRow(row: ContextRow | undefined): ManualContextProfile {
   if (!row) {
     return defaultManualContext;
   }
+  const contextFromJson =
+    row.context_json && typeof row.context_json === "object"
+      ? (row.context_json as Partial<ManualContextProfile>)
+      : {};
   return normalizeManualContext({
-    healthContext: row.health_context,
-    financeContext: row.finance_context,
-    workContext: row.work_context,
-    obligations: row.obligations,
-    goals: row.goals,
-    boundaries: row.boundaries,
-    useInAnswers: row.use_in_answers,
+    ...contextFromJson,
+    // Backward-compatible fallback from legacy columns
+    healthContext: contextFromJson.healthContext ?? row.health_context,
+    financeContext: contextFromJson.financeContext ?? row.finance_context,
+    workContext: contextFromJson.workContext ?? row.work_context,
+    obligations: contextFromJson.obligations ?? row.obligations,
+    goals: contextFromJson.goals ?? row.goals,
+    boundaries: contextFromJson.boundaries ?? row.boundaries,
+    useInAnswers: contextFromJson.useInAnswers ?? row.use_in_answers,
   });
 }
 
@@ -35,7 +42,7 @@ export async function GET() {
   }
 
   const row = await one<ContextRow>(
-    `SELECT health_context, finance_context, work_context, obligations, goals, boundaries, use_in_answers
+    `SELECT health_context, finance_context, work_context, obligations, goals, boundaries, context_json, use_in_answers
      FROM user_manual_context
      WHERE user_id = ?`,
     user.id
@@ -57,8 +64,8 @@ export async function PUT(request: Request) {
   await run(
     `INSERT INTO user_manual_context (
       user_id, health_context, finance_context, work_context, obligations, goals, boundaries,
-      use_in_answers, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      context_json, use_in_answers, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?::jsonb, ?, ?, ?)
     ON CONFLICT (user_id)
     DO UPDATE SET
       health_context = EXCLUDED.health_context,
@@ -67,6 +74,7 @@ export async function PUT(request: Request) {
       obligations = EXCLUDED.obligations,
       goals = EXCLUDED.goals,
       boundaries = EXCLUDED.boundaries,
+      context_json = EXCLUDED.context_json,
       use_in_answers = EXCLUDED.use_in_answers,
       updated_at = EXCLUDED.updated_at`,
     user.id,
@@ -76,6 +84,7 @@ export async function PUT(request: Request) {
     context.obligations,
     context.goals,
     context.boundaries,
+    JSON.stringify(context),
     context.useInAnswers,
     now,
     now

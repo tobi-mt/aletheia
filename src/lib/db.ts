@@ -215,10 +215,13 @@ async function initializeDatabase() {
       obligations TEXT NOT NULL DEFAULT '',
       goals TEXT NOT NULL DEFAULT '',
       boundaries TEXT NOT NULL DEFAULT '',
+      context_json JSONB NOT NULL DEFAULT '{}'::jsonb,
       use_in_answers BOOLEAN NOT NULL DEFAULT TRUE,
       created_at TIMESTAMPTZ NOT NULL,
       updated_at TIMESTAMPTZ NOT NULL
     );
+
+    ALTER TABLE user_manual_context ADD COLUMN IF NOT EXISTS context_json JSONB NOT NULL DEFAULT '{}'::jsonb;
 
     CREATE TABLE IF NOT EXISTS analytics_events (
       id TEXT PRIMARY KEY,

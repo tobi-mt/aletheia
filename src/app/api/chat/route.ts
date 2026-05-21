@@ -109,24 +109,31 @@ export async function POST(request: Request) {
         obligations: string;
         goals: string;
         boundaries: string;
+        context_json: unknown;
         use_in_answers: boolean;
       }>(
-        `SELECT health_context, finance_context, work_context, obligations, goals, boundaries, use_in_answers
+        `SELECT health_context, finance_context, work_context, obligations, goals, boundaries, context_json, use_in_answers
          FROM user_manual_context
          WHERE user_id = ?
          LIMIT 1`,
         user.id
       ),
     ]);
-    const manualContext = manualContextRows[0]
+    const contextRow = manualContextRows[0];
+    const contextFromJson =
+      contextRow && contextRow.context_json && typeof contextRow.context_json === "object"
+        ? (contextRow.context_json as Partial<ManualContextProfile>)
+        : {};
+    const manualContext = contextRow
       ? normalizeManualContext({
-          healthContext: manualContextRows[0].health_context,
-          financeContext: manualContextRows[0].finance_context,
-          workContext: manualContextRows[0].work_context,
-          obligations: manualContextRows[0].obligations,
-          goals: manualContextRows[0].goals,
-          boundaries: manualContextRows[0].boundaries,
-          useInAnswers: manualContextRows[0].use_in_answers,
+          ...contextFromJson,
+          healthContext: contextFromJson.healthContext ?? contextRow.health_context,
+          financeContext: contextFromJson.financeContext ?? contextRow.finance_context,
+          workContext: contextFromJson.workContext ?? contextRow.work_context,
+          obligations: contextFromJson.obligations ?? contextRow.obligations,
+          goals: contextFromJson.goals ?? contextRow.goals,
+          boundaries: contextFromJson.boundaries ?? contextRow.boundaries,
+          useInAnswers: contextFromJson.useInAnswers ?? contextRow.use_in_answers,
         })
       : null;
     memoryContext = [
