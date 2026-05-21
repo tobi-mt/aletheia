@@ -170,6 +170,13 @@ function trackClientEvent(eventName: string, metadata: AnalyticsMetadata = {}) {
   }).catch(() => undefined);
 }
 
+async function getReliableServiceWorkerRegistration() {
+  const existing = await navigator.serviceWorker.getRegistration("/");
+  const registration = existing ?? (await navigator.serviceWorker.register("/sw.js", { scope: "/" }));
+  registration.update().catch(() => undefined);
+  return navigator.serviceWorker.ready;
+}
+
 function sharePlatformUrl(channel: ShareChannel) {
   const encodedUrl = encodeURIComponent(ALETHEIA_SHARE_URL);
   const encodedText = encodeURIComponent(ALETHEIA_SHARE_TEXT);
@@ -605,6 +612,7 @@ export function AletheiaApp() {
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [notificationsConfigured, setNotificationsConfigured] = useState(false);
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>("default");
+  const [notificationBusy, setNotificationBusy] = useState(false);
   const [wisdomDecisions, setWisdomDecisions] = useState<WisdomDecision[]>([]);
   const [decisionEvents, setDecisionEvents] = useState<DecisionEvent[]>([]);
   const [timelineInsight, setTimelineInsight] = useState<TimelineInsight>({
@@ -870,14 +878,23 @@ export function AletheiaApp() {
         configured?: boolean;
         enabled?: boolean;
       };
+      const localSubscription =
+        "serviceWorker" in navigator && "PushManager" in window
+          ? await navigator.serviceWorker
+              .getRegistration("/")
+              .then((registration) => registration?.pushManager.getSubscription())
+              .catch(() => null)
+          : null;
       setNotificationsConfigured(Boolean(data.configured));
-      setNotificationsEnabled(Boolean(data.enabled));
+      setNotificationsEnabled(Boolean(data.enabled && localSubscription));
       if (!data.configured) {
         setNotificationStatus("Notifications need VAPID keys before they can be enabled.");
       } else if (!user) {
         setNotificationStatus("Sign in to enable daily wisdom notifications.");
-      } else if (data.enabled) {
+      } else if (data.enabled && localSubscription) {
         setNotificationStatus("Daily wisdom notifications are enabled.");
+      } else if (data.enabled) {
+        setNotificationStatus("Notifications are enabled on your account. Enable them on this device too.");
       } else {
         setNotificationStatus("Get one quiet daily wisdom reflection on this device.");
       }
@@ -1386,6 +1403,9 @@ export function AletheiaApp() {
   }
 
   async function enableNotifications() {
+    if (notificationBusy) {
+      return;
+    }
     if (!user) {
       setNotificationStatus("Sign in first, then enable notifications.");
       announceWorkflow("Sign in required", "Daily wisdom notifications can be enabled after sign-in.", "warning");
@@ -1402,56 +1422,77 @@ export function AletheiaApp() {
       return;
     }
 
-    const permission = await Notification.requestPermission();
-    setNotificationPermission(permission);
-    if (permission !== "granted") {
-      setNotificationStatus("Notifications were not enabled. You can allow them later in browser settings.");
-      announceWorkflow("Notifications not enabled", "You can allow notifications later in your browser settings.", "warning");
-      return;
-    }
+    setNotificationBusy(true);
+    setNotificationStatus("Preparing this device for daily wisdom notifications...");
+    try {
+      const permission = Notification.permission === "granted" ? "granted" : await Notification.requestPermission();
+      setNotificationPermission(permission);
+      if (permission !== "granted") {
+        setNotificationStatus("Notifications were not enabled. You can allow them later in browser settings.");
+        announceWorkflow("Notifications not enabled", "You can allow notifications later in your browser settings.", "warning");
+        return;
+      }
 
-    const keyResponse = await fetch("/api/notifications/key");
-    const keyData = (await keyResponse.json()) as { publicKey?: string };
-    if (!keyData.publicKey) {
-      setNotificationStatus("Notifications are missing a public key.");
-      announceWorkflow("Notification key missing", "The server did not provide a VAPID public key.", "error");
-      return;
-    }
+      const keyResponse = await fetch("/api/notifications/key", { cache: "no-store" });
+      const keyData = (await keyResponse.json()) as { publicKey?: string };
+      if (!keyData.publicKey) {
+        setNotificationStatus("Notifications are missing a public key.");
+        announceWorkflow("Notification key missing", "The server did not provide a VAPID public key.", "error");
+        return;
+      }
 
-    const registration = await navigator.serviceWorker.register("/sw.js");
-    const subscription = await registration.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(keyData.publicKey),
-    });
-    const preferredHour = 8;
-    const response = await fetch("/api/notifications/subscribe", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ subscription, preferredHour }),
-    });
-    if (!response.ok) {
-      setNotificationStatus("Could not save notification preference.");
-      announceWorkflow("Notification sync failed", "Permission was granted, but the subscription could not be saved.", "error");
-      return;
-    }
+      const registration = await getReliableServiceWorkerRegistration();
+      let subscription = await registration.pushManager.getSubscription();
+      if (!subscription) {
+        subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(keyData.publicKey),
+        });
+      }
+      const preferredHour = 8;
+      const response = await fetch("/api/notifications/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subscription, preferredHour }),
+      });
+      if (!response.ok) {
+        setNotificationStatus("Could not save notification preference.");
+        announceWorkflow("Notification sync failed", "Permission was granted, but the subscription could not be saved.", "error");
+        return;
+      }
 
-    setNotificationsEnabled(true);
-    setNotificationStatus("Daily wisdom notifications are enabled for this device.");
-    announceWorkflow("Notifications enabled", "This device is subscribed to daily wisdom notifications.", "success");
+      setNotificationsEnabled(true);
+      setNotificationStatus("Daily wisdom notifications are enabled for this device.");
+      announceWorkflow("Notifications enabled", "This device is subscribed to daily wisdom notifications.", "success");
+    } catch {
+      setNotificationsEnabled(false);
+      setNotificationStatus("Notifications could not be enabled on this device. Please try again.");
+      announceWorkflow("Notification setup failed", "Aletheia could not finish device subscription. Please try again.", "error");
+    } finally {
+      setNotificationBusy(false);
+    }
   }
 
   async function disableNotifications() {
-    if ("serviceWorker" in navigator) {
-      const registration = await navigator.serviceWorker.getRegistration();
-      const subscription = await registration?.pushManager.getSubscription();
-      await subscription?.unsubscribe();
-      await fetch("/api/notifications/unsubscribe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ endpoint: subscription?.endpoint }),
-      });
-    } else {
-      await fetch("/api/notifications/unsubscribe", { method: "POST" });
+    if (notificationBusy) {
+      return;
+    }
+    setNotificationBusy(true);
+    try {
+      if ("serviceWorker" in navigator) {
+        const registration = await navigator.serviceWorker.getRegistration("/");
+        const subscription = await registration?.pushManager.getSubscription();
+        await subscription?.unsubscribe();
+        await fetch("/api/notifications/unsubscribe", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ endpoint: subscription?.endpoint }),
+        });
+      } else {
+        await fetch("/api/notifications/unsubscribe", { method: "POST" });
+      }
+    } finally {
+      setNotificationBusy(false);
     }
     setNotificationsEnabled(false);
     setNotificationStatus("Daily wisdom notifications are turned off for this device.");
@@ -2128,6 +2169,7 @@ export function AletheiaApp() {
                   notificationsConfigured={notificationsConfigured}
                   notificationPermission={notificationPermission}
                   notificationStatus={notificationStatus}
+                  notificationBusy={notificationBusy}
                   onEnableNotifications={enableNotifications}
                   onDisableNotifications={disableNotifications}
                   messages={messages}
@@ -2714,6 +2756,7 @@ function AccountPanel({
   notificationsConfigured,
   notificationPermission,
   notificationStatus,
+  notificationBusy,
   onEnableNotifications,
   onDisableNotifications,
   messages,
@@ -2754,6 +2797,7 @@ function AccountPanel({
   notificationsConfigured: boolean;
   notificationPermission: NotificationPermission;
   notificationStatus: string;
+  notificationBusy: boolean;
   onEnableNotifications: () => void;
   onDisableNotifications: () => void;
   messages: ChatMessage[];
@@ -2852,6 +2896,7 @@ function AccountPanel({
           configured={notificationsConfigured}
           permission={notificationPermission}
           status={notificationStatus}
+          busy={notificationBusy}
           onEnable={onEnableNotifications}
           onDisable={onDisableNotifications}
         />
@@ -3556,6 +3601,7 @@ function NotificationPanel({
   configured,
   permission,
   status,
+  busy,
   onEnable,
   onDisable,
 }: {
@@ -3564,13 +3610,14 @@ function NotificationPanel({
   configured: boolean;
   permission: NotificationPermission;
   status: string;
+  busy: boolean;
   onEnable: () => void;
   onDisable: () => void;
 }) {
   const unsupported =
     typeof window !== "undefined" &&
     (!("Notification" in window) || !("serviceWorker" in navigator) || !("PushManager" in window));
-  const disabled = !user || !configured || unsupported || permission === "denied";
+  const disabled = busy || !user || !configured || unsupported || permission === "denied";
 
   return (
     <section className="mb-5 rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm">
@@ -3589,9 +3636,10 @@ function NotificationPanel({
         {enabled ? (
           <button
             onClick={onDisable}
-            className="h-10 rounded-md border border-[#c9d5cd] bg-white/70 px-4 text-sm font-semibold text-[#405049] transition hover:bg-white"
+            disabled={busy}
+            className="h-10 rounded-md border border-[#c9d5cd] bg-white/70 px-4 text-sm font-semibold text-[#405049] transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Turn off
+            {busy ? "Updating..." : "Turn off"}
           </button>
         ) : (
           <button
@@ -3599,7 +3647,7 @@ function NotificationPanel({
             disabled={disabled}
             className="h-10 rounded-md bg-[#203a35] px-4 text-sm font-semibold text-[#f8f5e8] transition hover:bg-[#284b43] disabled:cursor-not-allowed disabled:opacity-55"
           >
-            Enable
+            {busy ? "Enabling..." : "Enable"}
           </button>
         )}
       </div>
@@ -3959,16 +4007,21 @@ function CompanionPanel({
   isListening: boolean;
   isSpeaking: boolean;
 }) {
-  const bottomRef = useRef<HTMLDivElement | null>(null);
   const panelRef = useRef<HTMLElement | null>(null);
+  const currentCounselRef = useRef<HTMLDivElement | null>(null);
   const [expandedHistoryId, setExpandedHistoryId] = useState<string | null>(null);
   const exchanges = conversationExchanges(messages);
   const currentExchange = exchanges[exchanges.length - 1] ?? null;
   const history = exchanges.slice(0, -1).reverse();
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [messages]);
+    if (!currentExchange?.question) {
+      return;
+    }
+    window.setTimeout(() => {
+      currentCounselRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 60);
+  }, [currentExchange?.id, currentExchange?.answer.id, currentExchange?.question]);
 
   return (
     <div className="grid min-w-0 gap-4 xl:grid-cols-[1fr_320px]">
@@ -3989,23 +4042,25 @@ function CompanionPanel({
           </div>
         </div>
 
-        <div className="max-h-[620px] space-y-4 overflow-y-auto p-3 sm:p-4">
+        <div className="space-y-4 p-3 sm:p-4">
           {currentExchange ? (
-            <CurrentCounselCard
-              exchange={currentExchange}
-              mode={mode}
-              modeProfile={modeProfile}
-              preferences={preferences}
-              isWorking={isWorking}
-              onScriptureOpen={onScriptureOpen}
-              onTrackDecision={onTrackDecision}
-              onDraftReflection={onDraftReflection}
-              onCreateCounselSummary={onCreateCounselSummary}
-              onGoDeeper={onGoDeeper}
-              onWait={onWait}
-              onShare={onShare}
-              onFeedback={onFeedback}
-            />
+            <div ref={currentCounselRef} className="scroll-mt-24">
+              <CurrentCounselCard
+                exchange={currentExchange}
+                mode={mode}
+                modeProfile={modeProfile}
+                preferences={preferences}
+                isWorking={isWorking}
+                onScriptureOpen={onScriptureOpen}
+                onTrackDecision={onTrackDecision}
+                onDraftReflection={onDraftReflection}
+                onCreateCounselSummary={onCreateCounselSummary}
+                onGoDeeper={onGoDeeper}
+                onWait={onWait}
+                onShare={onShare}
+                onFeedback={onFeedback}
+              />
+            </div>
           ) : null}
 
           {history.length ? (
@@ -4040,7 +4095,6 @@ function CompanionPanel({
               </div>
             </section>
           ) : null}
-          <div ref={bottomRef} />
         </div>
 
         <form onSubmit={onAsk} className="sticky bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-10 border-t border-[#d8e1db] bg-[#fbfcf8]/94 p-3 backdrop-blur md:bottom-0">
