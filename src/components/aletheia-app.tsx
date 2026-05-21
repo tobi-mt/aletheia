@@ -2009,23 +2009,6 @@ export function AletheiaApp() {
             <AnimatePresence mode="wait">
               {activeView === "companion" ? (
                 <Screen key="companion">
-                <HomeDashboard
-                  mode={mode}
-                  modeProfile={activeMode}
-                  daily={daily}
-                  dailyEntry={dailyEntry}
-                  activeDecision={activeDecision}
-                  user={user}
-                  notificationsEnabled={notificationsEnabled}
-                  todayPattern={todayPattern}
-                  onModeChange={handleModeChange}
-                  onScriptureOpen={setSelectedScripture}
-                  onContinueDecision={continueDecisionFlow}
-                  onReflectToday={reflectOnToday}
-                  onAsk={askFromDashboard}
-                  onReviewPattern={reviewPatternFlow}
-                  onOpenAccount={openAccountFlow}
-                />
                 <CompanionPanel
                   messages={messages}
                   mode={mode}
@@ -2050,6 +2033,23 @@ export function AletheiaApp() {
                   onWait={waitFromExchange}
                   onShare={(channel) => shareAletheia(channel, "answer")}
                   onFeedback={(value) => recordAnswerFeedback(value, "answer")}
+                />
+                <HomeDashboard
+                  mode={mode}
+                  modeProfile={activeMode}
+                  daily={daily}
+                  dailyEntry={dailyEntry}
+                  activeDecision={activeDecision}
+                  user={user}
+                  notificationsEnabled={notificationsEnabled}
+                  todayPattern={todayPattern}
+                  onModeChange={handleModeChange}
+                  onScriptureOpen={setSelectedScripture}
+                  onContinueDecision={continueDecisionFlow}
+                  onReflectToday={reflectOnToday}
+                  onAsk={askFromDashboard}
+                  onReviewPattern={reviewPatternFlow}
+                  onOpenAccount={openAccountFlow}
                 />
                 </Screen>
               ) : null}
@@ -2572,17 +2572,17 @@ function HomeDashboard({
     : { label: user ? "Enable notifications" : "Enable sync", body: user ? "Receive one quiet daily wisdom prompt." : "Sign in to keep decisions and reflections across devices.", onClick: onOpenAccount };
 
   return (
-    <div className="mb-4 grid gap-3 sm:mb-5 sm:gap-4 xl:grid-cols-[1fr_360px]">
+    <div className="mt-4 grid gap-3 sm:mt-5 sm:gap-4 xl:grid-cols-[1fr_360px]">
       <section className="min-w-0 rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm sm:p-5">
         <div className="mb-4 inline-flex w-fit max-w-full items-center gap-2 rounded-md border border-[#c0cec5] bg-white/60 px-3 py-2 text-[11px] font-medium uppercase tracking-[0.12em] text-[#866a24] sm:text-xs sm:tracking-[0.18em]">
           <Sparkles size={14} />
-          Today in Aletheia
+          Today’s rhythm
         </div>
-        <h1 className="max-w-3xl text-[2rem] font-semibold leading-[1.08] tracking-normal text-[#171917] sm:text-5xl sm:leading-tight">
+        <h2 className="max-w-3xl text-2xl font-semibold leading-tight tracking-normal text-[#171917] sm:text-3xl">
           What should I do next?
-        </h1>
+        </h2>
         <p className="mt-4 max-w-2xl text-sm leading-6 text-[#505a52] sm:text-base sm:leading-7">
-          A calm path for today: continue what matters, reflect before reacting, or ask one honest question.
+          A calm path after your question: continue what matters, reflect before reacting, or review one gentle pattern.
         </p>
 
         <div className="mt-5 grid gap-3 md:grid-cols-2">
@@ -4028,11 +4028,13 @@ function CompanionPanel({
       <section ref={panelRef} className="min-w-0 scroll-mt-24 rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 shadow-sm">
         <div className="flex flex-col gap-3 border-b border-[#d8e1db] px-3 py-3 sm:px-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <div className="flex items-center gap-2 font-semibold text-[#203a35]">
+            <div className="flex items-center gap-2 text-lg font-semibold text-[#203a35]">
               <MessageCircle size={18} />
-              Wisdom Companion
+              Ask Aletheia
             </div>
-            <p className="mt-1 text-sm leading-5 text-[#5a685f]">{modeProfile.intent}</p>
+            <p className="mt-1 text-sm leading-5 text-[#5a685f]">
+              Start with one honest question. The rest of the page can wait.
+            </p>
           </div>
           <div className="flex flex-wrap gap-2">
             <span className="w-fit rounded-md bg-[#edf2ee] px-2 py-1 text-xs font-semibold text-[#52635a]">{mode} lens</span>
@@ -4041,6 +4043,53 @@ function CompanionPanel({
             </span>
           </div>
         </div>
+
+        <form onSubmit={onAsk} className="border-b border-[#d8e1db] bg-[#f8faf6]/88 p-3 sm:p-4">
+          <div className="rounded-xl border border-[#c4d2ca] bg-white/86 p-3 shadow-sm">
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">Your question</p>
+              <span className="rounded-md bg-[#edf2ee] px-2 py-1 text-xs font-semibold text-[#52635a]">
+                {modeProfile.focus}
+              </span>
+            </div>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <textarea
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder={`${copy.askPlaceholder} ${modeProfile.focus.toLowerCase()}...`}
+                className="min-h-24 flex-1 resize-none rounded-lg border border-[#c9d5cd] bg-white px-3 py-3 text-base leading-6 outline-none transition placeholder:text-[#8b968e] focus:border-[#203a35] sm:text-sm"
+              />
+              {preferences.voiceEnabled ? (
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-1">
+                  <button
+                    type="button"
+                    onClick={onListen}
+                    className="grid h-11 place-items-center rounded-lg border border-[#c9d5cd] bg-white/78 px-3 text-[#203a35] transition hover:bg-white"
+                    aria-label="Use voice input"
+                  >
+                    {isListening ? <MicOff size={18} /> : <Mic size={18} />}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onSpeak}
+                    className="grid h-11 place-items-center rounded-lg border border-[#c9d5cd] bg-white/78 px-3 text-[#203a35] transition hover:bg-white"
+                    aria-label="Read latest response aloud"
+                  >
+                    <Volume2 size={18} className={isSpeaking ? "text-[#866a24]" : undefined} />
+                  </button>
+                </div>
+              ) : null}
+              <button
+                disabled={isWorking}
+                className="inline-flex h-11 w-full shrink-0 items-center justify-center gap-2 rounded-lg bg-[#203a35] px-4 text-sm font-semibold text-[#f8f5e8] shadow-lg shadow-[#203a35]/15 transition hover:bg-[#284b43] disabled:opacity-60 sm:w-auto"
+              >
+                <Send size={17} />
+                Ask
+              </button>
+            </div>
+            {preferences.voiceEnabled ? <p className="mt-2 text-xs leading-5 text-[#718077]">{copy.voiceHint}</p> : null}
+          </div>
+        </form>
 
         <div className="space-y-4 p-3 sm:p-4">
           {currentExchange ? (
@@ -4096,41 +4145,6 @@ function CompanionPanel({
             </section>
           ) : null}
         </div>
-
-        <form onSubmit={onAsk} className="sticky bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-10 border-t border-[#d8e1db] bg-[#fbfcf8]/94 p-3 backdrop-blur md:bottom-0">
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <textarea
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder={`${copy.askPlaceholder} ${modeProfile.focus.toLowerCase()}...`}
-              className="min-h-20 flex-1 resize-none rounded-lg border border-[#c9d5cd] bg-white/80 px-3 py-3 text-sm leading-6 outline-none transition placeholder:text-[#8b968e] focus:border-[#203a35]"
-            />
-            {preferences.voiceEnabled ? (
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-1">
-                <button
-                  type="button"
-                  onClick={onListen}
-                  className="grid h-11 place-items-center rounded-lg border border-[#c9d5cd] bg-white/78 px-3 text-[#203a35] transition hover:bg-white"
-                  aria-label="Use voice input"
-                >
-                  {isListening ? <MicOff size={18} /> : <Mic size={18} />}
-                </button>
-                <button
-                  type="button"
-                  onClick={onSpeak}
-                  className="grid h-11 place-items-center rounded-lg border border-[#c9d5cd] bg-white/78 px-3 text-[#203a35] transition hover:bg-white"
-                  aria-label="Read latest response aloud"
-                >
-                  <Volume2 size={18} className={isSpeaking ? "text-[#866a24]" : undefined} />
-                </button>
-              </div>
-            ) : null}
-            <button disabled={isWorking} className="grid h-11 w-full shrink-0 place-items-center rounded-lg bg-[#203a35] text-[#f8f5e8] shadow-lg shadow-[#203a35]/15 transition hover:bg-[#284b43] disabled:opacity-60 sm:size-12 sm:w-auto" aria-label="Send question">
-              <Send size={18} />
-            </button>
-          </div>
-          {preferences.voiceEnabled ? <p className="mt-2 text-xs leading-5 text-[#718077]">{copy.voiceHint}</p> : null}
-        </form>
       </section>
 
       <aside className="space-y-4">
