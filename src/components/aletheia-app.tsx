@@ -40,6 +40,7 @@ import { buildDecisionSummary, detectPatterns, scoreDecision } from "@/lib/decis
 import {
   bibleTranslations,
   bibleTranslationOptionsForLanguage,
+  canonicalScriptureReference,
   defaultPreferences,
   defaultBibleTranslationForLanguage,
   languageCopy,
@@ -3632,9 +3633,11 @@ function ScriptureModal({
   }
 
   const quickRead = localizedScriptureRead(scripture, preferences);
+  const canonicalScripture = canonicalScriptureReference(scripture);
   const selectedLanguage = languages[preferences.language] ?? languages.en;
-  const wisdomEntry = wisdomEntries.find((entry) => entry.scripture === scripture);
+  const wisdomEntry = wisdomEntries.find((entry) => entry.scripture === canonicalScripture);
   const isLocalized = quickRead.availableLanguage === preferences.language;
+  const usesCanonicalRange = canonicalScripture !== scripture;
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-end bg-[#101814]/45 p-3 backdrop-blur-sm sm:place-items-center">
@@ -3646,6 +3649,11 @@ function ScriptureModal({
             <p className="mt-1 text-sm text-[#607067]">
               {quickRead.label} · {quickRead.translation}
             </p>
+            {usesCanonicalRange ? (
+              <p className="mt-1 text-xs leading-5 text-[#718077]">
+                Shown from Aletheia’s curated range: {canonicalScripture}
+              </p>
+            ) : null}
           </div>
           <button
             type="button"

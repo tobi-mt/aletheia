@@ -344,13 +344,58 @@ const localizedScriptureReads: Partial<Record<BibleTranslation, Record<string, S
   },
 };
 
+function parseScriptureReference(reference: string) {
+  const match = reference.match(/^(.+?)\s+(\d+):(\d+)(?:-(\d+))?$/);
+  if (!match) {
+    return null;
+  }
+  const start = Number(match[3]);
+  const end = match[4] ? Number(match[4]) : start;
+  if (!Number.isFinite(start) || !Number.isFinite(end)) {
+    return null;
+  }
+  return {
+    book: match[1].trim().toLowerCase(),
+    chapter: Number(match[2]),
+    start: Math.min(start, end),
+    end: Math.max(start, end),
+  };
+}
+
+export function canonicalScriptureReference(scripture: string) {
+  if (scriptureQuickReads[scripture]) {
+    return scripture;
+  }
+
+  const requested = parseScriptureReference(scripture);
+  if (!requested) {
+    return scripture;
+  }
+
+  const overlappingReference = Object.keys(scriptureQuickReads).find((candidate) => {
+    const parsed = parseScriptureReference(candidate);
+    if (!parsed) {
+      return false;
+    }
+    return (
+      parsed.book === requested.book &&
+      parsed.chapter === requested.chapter &&
+      requested.start <= parsed.end &&
+      requested.end >= parsed.start
+    );
+  });
+
+  return overlappingReference ?? scripture;
+}
+
 export function localizedScriptureRead(scripture: string, preferences: UserPreferences): ScriptureRead {
-  const localized = localizedScriptureReads[preferences.bibleTranslation]?.[scripture];
+  const canonical = canonicalScriptureReference(scripture);
+  const localized = localizedScriptureReads[preferences.bibleTranslation]?.[canonical];
   if (localized) {
     return localized;
   }
 
-  const fallback = scriptureQuickReads[scripture];
+  const fallback = scriptureQuickReads[canonical];
   return {
     translation: fallback?.translation ?? preferences.bibleTranslation,
     label: fallback?.label ?? "Curated wisdom reference",
@@ -362,7 +407,8 @@ export function localizedScriptureRead(scripture: string, preferences: UserPrefe
 }
 
 export function scriptureTranslationLabel(scripture: string, preferences: UserPreferences) {
-  const localized = localizedScriptureReads[preferences.bibleTranslation]?.[scripture];
+  const canonical = canonicalScriptureReference(scripture);
+  const localized = localizedScriptureReads[preferences.bibleTranslation]?.[canonical];
   if (localized) {
     return `${localized.translation} ${languages[localized.availableLanguage].name}`;
   }
