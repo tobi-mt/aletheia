@@ -2018,8 +2018,8 @@ export function AletheiaApp() {
                   query={query}
                   setQuery={setQuery}
                   onAsk={handleAsk}
-                  onPrompt={askAletheia}
                   onDraftPrompt={setQuery}
+                  onModeChange={handleModeChange}
                   onListen={startVoiceInput}
                   onSpeak={speakLatestAletheiaReply}
                   isWorking={isWorking}
@@ -3967,8 +3967,8 @@ function CompanionPanel({
   query,
   setQuery,
   onAsk,
-  onPrompt,
   onDraftPrompt,
+  onModeChange,
   onListen,
   onSpeak,
   onScriptureOpen,
@@ -3991,8 +3991,8 @@ function CompanionPanel({
   query: string;
   setQuery: (value: string) => void;
   onAsk: (event: FormEvent<HTMLFormElement>) => void;
-  onPrompt: (value: string) => void | Promise<void>;
   onDraftPrompt: (value: string) => void;
+  onModeChange: (mode: Mode) => void;
   onListen: () => void;
   onSpeak: () => void;
   onScriptureOpen: (scripture: string) => void;
@@ -4013,6 +4013,7 @@ function CompanionPanel({
   const exchanges = conversationExchanges(messages);
   const currentExchange = exchanges[exchanges.length - 1] ?? null;
   const history = exchanges.slice(0, -1).reverse();
+  const hasCounselSurface = Boolean(currentExchange || history.length);
 
   useEffect(() => {
     if (!currentExchange?.question) {
@@ -4052,6 +4053,22 @@ function CompanionPanel({
                 {modeProfile.focus}
               </span>
             </div>
+            <div className="mb-3 flex gap-1 overflow-x-auto pb-1">
+              {modes.map((item) => (
+                <button
+                  key={item.label}
+                  type="button"
+                  onClick={() => onModeChange(item.label)}
+                  className={`shrink-0 rounded-md border px-3 py-1.5 text-xs font-semibold transition ${
+                    mode === item.label
+                      ? "border-[#203a35] bg-[#203a35] text-[#f8f5e8]"
+                      : "border-[#d8e1db] bg-[#fbfcf8] text-[#52635a] hover:border-[#203a35]"
+                  }`}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
             <div className="flex flex-col gap-3 sm:flex-row">
               <textarea
                 value={query}
@@ -4087,11 +4104,25 @@ function CompanionPanel({
                 {isWorking ? "Listening..." : "Ask"}
               </button>
             </div>
+            <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+              {modeProfile.prompts.slice(0, 3).map((prompt) => (
+                <button
+                  key={prompt}
+                  type="button"
+                  onClick={() => onDraftPrompt(prompt)}
+                  disabled={isWorking}
+                  className="shrink-0 rounded-md border border-[#d8e1db] bg-[#fbfcf8] px-3 py-2 text-left text-xs font-semibold leading-5 text-[#52635a] transition hover:border-[#203a35] hover:bg-white disabled:opacity-60"
+                >
+                  {prompt}
+                </button>
+              ))}
+            </div>
             {preferences.voiceEnabled ? <p className="mt-2 text-xs leading-5 text-[#718077]">{copy.voiceHint}</p> : null}
           </div>
         </form>
       </section>
 
+      {hasCounselSurface ? (
       <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
         <section className="min-w-0 rounded-xl border border-[#d7e0da] bg-[#fbfcf8]/74 p-3 shadow-sm sm:p-4">
           {currentExchange ? (
@@ -4180,30 +4211,6 @@ function CompanionPanel({
           </ul>
         </section>
 
-        <section className="rounded-lg border border-[#d7e0da] bg-[#fbfcf8]/72 p-4 shadow-sm">
-          <h2 className="font-semibold text-[#203a35]">Try a {mode.toLowerCase()} question</h2>
-          <div className="mt-3 space-y-2">
-            {modeProfile.prompts.map((prompt) => (
-              <button
-                type="button"
-                key={prompt}
-                onClick={() => {
-                  panelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-                  void onPrompt(prompt);
-                }}
-                disabled={isWorking}
-                className="flex w-full items-center justify-between gap-3 rounded-md border border-[#d8e1db] bg-white/64 px-3 py-3 text-left text-sm font-medium text-[#45534b] transition hover:border-[#203a35] hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <span>
-                  <span className="block">{prompt}</span>
-                  <span className="mt-1 block text-xs font-semibold text-[#866a24]">Ask now</span>
-                </span>
-                <Send size={15} />
-              </button>
-            ))}
-          </div>
-        </section>
-
         <section className="rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">Maturity signals</p>
           <ul className="mt-3 space-y-2 text-sm leading-6 text-[#55645b]">
@@ -4219,6 +4226,7 @@ function CompanionPanel({
         <TrustLayerPanel />
         </aside>
       </div>
+      ) : null}
     </div>
   );
 }
