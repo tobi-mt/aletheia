@@ -119,10 +119,25 @@ async function initializeDatabase() {
       user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       name TEXT NOT NULL,
       role TEXT NOT NULL,
+      contact TEXT,
       notes TEXT,
+      invite_token_hash TEXT UNIQUE,
+      invite_status TEXT NOT NULL DEFAULT 'pending',
+      can_view_summaries BOOLEAN NOT NULL DEFAULT TRUE,
+      can_comment_on_decisions BOOLEAN NOT NULL DEFAULT FALSE,
+      can_receive_checkins BOOLEAN NOT NULL DEFAULT FALSE,
+      accepted_at TIMESTAMPTZ,
       created_at TIMESTAMPTZ NOT NULL,
       updated_at TIMESTAMPTZ NOT NULL
     );
+
+    ALTER TABLE counsel_contacts ADD COLUMN IF NOT EXISTS contact TEXT;
+    ALTER TABLE counsel_contacts ADD COLUMN IF NOT EXISTS invite_token_hash TEXT UNIQUE;
+    ALTER TABLE counsel_contacts ADD COLUMN IF NOT EXISTS invite_status TEXT NOT NULL DEFAULT 'pending';
+    ALTER TABLE counsel_contacts ADD COLUMN IF NOT EXISTS can_view_summaries BOOLEAN NOT NULL DEFAULT TRUE;
+    ALTER TABLE counsel_contacts ADD COLUMN IF NOT EXISTS can_comment_on_decisions BOOLEAN NOT NULL DEFAULT FALSE;
+    ALTER TABLE counsel_contacts ADD COLUMN IF NOT EXISTS can_receive_checkins BOOLEAN NOT NULL DEFAULT FALSE;
+    ALTER TABLE counsel_contacts ADD COLUMN IF NOT EXISTS accepted_at TIMESTAMPTZ;
 
     CREATE TABLE IF NOT EXISTS wisdom_decisions (
       id TEXT PRIMARY KEY,
@@ -153,6 +168,23 @@ async function initializeDatabase() {
       event_type TEXT NOT NULL,
       body TEXT NOT NULL,
       mode TEXT,
+      created_at TIMESTAMPTZ NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS counsel_shared_decisions (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      contact_id TEXT NOT NULL REFERENCES counsel_contacts(id) ON DELETE CASCADE,
+      decision_id TEXT NOT NULL REFERENCES wisdom_decisions(id) ON DELETE CASCADE,
+      created_at TIMESTAMPTZ NOT NULL,
+      UNIQUE(contact_id, decision_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS counsel_comments (
+      id TEXT PRIMARY KEY,
+      contact_id TEXT NOT NULL REFERENCES counsel_contacts(id) ON DELETE CASCADE,
+      decision_id TEXT NOT NULL REFERENCES wisdom_decisions(id) ON DELETE CASCADE,
+      body TEXT NOT NULL,
       created_at TIMESTAMPTZ NOT NULL
     );
 
@@ -196,6 +228,10 @@ async function initializeDatabase() {
     CREATE INDEX IF NOT EXISTS push_subscriptions_user_idx ON push_subscriptions(user_id);
     CREATE INDEX IF NOT EXISTS push_subscriptions_enabled_idx ON push_subscriptions(enabled, preferred_hour);
     CREATE INDEX IF NOT EXISTS counsel_contacts_user_idx ON counsel_contacts(user_id);
+    CREATE INDEX IF NOT EXISTS counsel_contacts_invite_hash_idx ON counsel_contacts(invite_token_hash);
+    CREATE INDEX IF NOT EXISTS counsel_shared_decisions_user_idx ON counsel_shared_decisions(user_id, created_at DESC);
+    CREATE INDEX IF NOT EXISTS counsel_shared_decisions_contact_idx ON counsel_shared_decisions(contact_id, created_at DESC);
+    CREATE INDEX IF NOT EXISTS counsel_comments_contact_decision_idx ON counsel_comments(contact_id, decision_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS wisdom_decisions_user_updated_idx ON wisdom_decisions(user_id, updated_at DESC);
     CREATE INDEX IF NOT EXISTS decision_events_user_created_idx ON decision_events(user_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS rule_of_life_entries_user_idx ON rule_of_life_entries(user_id);

@@ -280,9 +280,46 @@ type CounselContact = {
   id: string;
   name: string;
   role: string;
+  contact: string | null;
   notes: string | null;
+  inviteStatus: "pending" | "accepted" | "not_sent";
+  canViewSummaries: boolean;
+  canCommentOnDecisions: boolean;
+  canReceiveCheckins: boolean;
+  acceptedAt: string | null;
+  emailSent?: boolean;
+  emailError?: string | null;
   createdAt: string;
 };
+
+type CounselInvitePreview = {
+  invite: {
+    name: string;
+    role: string;
+    status: "pending" | "accepted";
+    acceptedAt: string | null;
+    permissions: {
+      canViewSummaries: boolean;
+      canCommentOnDecisions: boolean;
+      canReceiveCheckins: boolean;
+    };
+  };
+  sharedDecisions: Array<{
+    id: string;
+    title: string;
+    mode: string;
+    status: string;
+    readiness: number;
+    summary: string | null;
+    waitingUntil: string | null;
+    sharedAt: string;
+    comments: Array<{ id: string; body: string; createdAt: string }>;
+  }>;
+};
+
+function isCounselInvitePreview(value: CounselInvitePreview | { error?: string }): value is CounselInvitePreview {
+  return "invite" in value && "sharedDecisions" in value;
+}
 
 type RuleOfLife = {
   id: string;
@@ -563,6 +600,14 @@ export function AletheiaApp() {
   const [decisionEmotion, setDecisionEmotion] = useState("uncertain");
   const [counselName, setCounselName] = useState("");
   const [counselRole, setCounselRole] = useState("mentor");
+  const [counselContactValue, setCounselContactValue] = useState("");
+  const [counselCanViewSummaries, setCounselCanViewSummaries] = useState(true);
+  const [counselCanComment, setCounselCanComment] = useState(false);
+  const [counselCanReceiveCheckins, setCounselCanReceiveCheckins] = useState(false);
+  const [latestCounselInvite, setLatestCounselInvite] = useState<{ name: string; url: string } | null>(null);
+  const [counselInviteToken, setCounselInviteToken] = useState<string | null>(null);
+  const [counselInvitePreview, setCounselInvitePreview] = useState<CounselInvitePreview | null>(null);
+  const [counselInviteStatus, setCounselInviteStatus] = useState("");
   const [ruleText, setRuleText] = useState("");
   const preferencesRef = useRef<HTMLElement | null>(null);
   const workspaceRef = useRef<HTMLElement | null>(null);
@@ -705,9 +750,64 @@ export function AletheiaApp() {
   }, []);
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get("counselInvite");
+    if (!token) {
+      return;
+    }
+    Promise.resolve().then(() => {
+      setCounselInviteToken(token);
+      setCounselInviteStatus("Loading private counsel invite...");
+      fetch(`/api/counsel/invite/${encodeURIComponent(token)}`)
+        .then(async (response) => {
+          const data = (await response.json()) as CounselInvitePreview | { error?: string };
+          if (!response.ok || !isCounselInvitePreview(data)) {
+            throw new Error("error" in data ? data.error : "Invite could not be loaded.");
+          }
+          setCounselInvitePreview(data);
+          setCounselInviteStatus("");
+          window.history.replaceState({}, "", window.location.pathname);
+        })
+        .catch(() => {
+          setCounselInviteStatus("This counsel invite could not be opened. Ask for a fresh private link.");
+        });
+    });
+  }, []);
+
+  useEffect(() => {
     if ("serviceWorker" in navigator) {
       if (process.env.NODE_ENV === "production") {
-        navigator.serviceWorker.register("/sw.js").catch(() => undefined);
+        let refreshing = false;
+        navigator.serviceWorker.addEventListener("controllerchange", () => {
+          if (refreshing) {
+            return;
+          }
+          refreshing = true;
+          window.location.reload();
+        });
+        navigator.serviceWorker
+          .register("/sw.js")
+          .then((registration) => {
+            registration.update().catch(() => undefined);
+            registration.addEventListener("updatefound", () => {
+              const worker = registration.installing;
+              if (!worker) {
+                return;
+              }
+              worker.addEventListener("statechange", () => {
+                if (worker.state === "installed" && navigator.serviceWorker.controller) {
+                  worker.postMessage({ type: "SKIP_WAITING" });
+                }
+              });
+            });
+            const updateWhenVisible = () => {
+              if (document.visibilityState === "visible") {
+                registration.update().catch(() => undefined);
+              }
+            };
+            document.addEventListener("visibilitychange", updateWhenVisible);
+          })
+          .catch(() => undefined);
       } else {
         navigator.serviceWorker
           .getRegistrations()
@@ -1491,21 +1591,151 @@ export function AletheiaApp() {
       const response = await fetch("/api/counsel", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, role: counselRole }),
+        body: JSON.stringify({
+          name,
+          role: counselRole,
+          contact: counselContactValue,
+          canViewSummaries: counselCanViewSummaries,
+          canCommentOnDecisions: counselCanComment,
+          canReceiveCheckins: counselCanReceiveCheckins,
+        }),
       });
-      const data = (await response.json()) as { contact?: CounselContact };
+      const data = (await response.json()) as { contact?: CounselContact; inviteUrl?: string; error?: string };
       if (data.contact) {
         setCounselContacts((current) => [data.contact!, ...current]);
-        announceWorkflow("Counsel added", `${data.contact.name} was added to your Counsel Circle.`, "success");
+        if (data.inviteUrl) {
+          setLatestCounselInvite({ name: data.contact.name, url: data.inviteUrl });
+        }
+        announceWorkflow(
+          data.contact.emailSent ? "Private invite emailed" : "Private invite created",
+          data.contact.emailSent
+            ? `${data.contact.name} was emailed a private invite. They still only see summaries you explicitly share.`
+            : data.contact.emailError
+              ? `The private link is ready, but email was not sent: ${data.contact.emailError}`
+              : `${data.contact.name} can only see decision summaries you explicitly share.`,
+          data.contact.emailError ? "warning" : "success"
+        );
+      } else if (data.error) {
+        announceWorkflow("Counsel invite not created", data.error, "error");
       }
     } else {
       setCounselContacts((current) => [
-        { id: crypto.randomUUID(), name, role: counselRole, notes: null, createdAt: new Date().toISOString() },
+        {
+          id: crypto.randomUUID(),
+          name,
+          role: counselRole,
+          contact: counselContactValue.trim() || null,
+          notes: null,
+          inviteStatus: "not_sent",
+          canViewSummaries: counselCanViewSummaries,
+          canCommentOnDecisions: counselCanComment,
+          canReceiveCheckins: counselCanReceiveCheckins,
+          acceptedAt: null,
+          emailSent: false,
+          emailError: null,
+          createdAt: new Date().toISOString(),
+        },
         ...current,
       ]);
-      announceWorkflow("Counsel added locally", `${name} was added on this device. Sign in to sync your Counsel Circle.`, "success");
+      announceWorkflow("Counsel added locally", "Sign in to create private invite links and share selected decision summaries.", "success");
     }
     setCounselName("");
+    setCounselContactValue("");
+    setCounselCanViewSummaries(true);
+    setCounselCanComment(false);
+    setCounselCanReceiveCheckins(false);
+  }
+
+  async function shareCounselInvite(channel: ShareChannel = "native") {
+    if (!latestCounselInvite) {
+      return;
+    }
+    const text = `${latestCounselInvite.name}, I would value your counsel through Aletheia. This private link only shows what I explicitly share: ${latestCounselInvite.url}`;
+    if (channel === "native" && navigator.share) {
+      await navigator.share({ title: "Aletheia counsel invite", text, url: latestCounselInvite.url }).catch(() => undefined);
+      return;
+    }
+    if (channel === "copy" || channel === "native") {
+      await navigator.clipboard.writeText(latestCounselInvite.url).catch(() => undefined);
+      announceWorkflow("Invite link copied", "Share it only with the counselor you intended to invite.", "success");
+      return;
+    }
+    const encodedText = encodeURIComponent(text);
+    const encodedUrl = encodeURIComponent(latestCounselInvite.url);
+    const hrefs: Record<Exclude<ShareChannel, "native" | "copy">, string> = {
+      whatsapp: `https://wa.me/?text=${encodedText}`,
+      facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
+      x: `https://twitter.com/intent/tweet?text=${encodedText}`,
+      linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`,
+      email: `mailto:?subject=${encodeURIComponent("Aletheia counsel invite")}&body=${encodedText}`,
+      sms: `sms:?&body=${encodedText}`,
+    };
+    window.open(hrefs[channel], "_blank", "noopener,noreferrer");
+  }
+
+  async function shareDecisionWithCounsel(contactId: string, decisionId: string) {
+    const response = await fetch("/api/counsel/share", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ contactId, decisionId }),
+    });
+    const data = (await response.json()) as { ok?: boolean; error?: string };
+    if (response.ok && data.ok) {
+      setWisdomDecisions((current) =>
+        current.map((decision) =>
+          decision.id === decisionId ? { ...decision, counselSought: true, updatedAt: new Date().toISOString() } : decision
+        )
+      );
+      announceWorkflow("Summary shared", "Only this decision summary was shared. Chats and journal entries remain private.", "success");
+    } else {
+      announceWorkflow("Summary not shared", data.error || "The summary could not be shared.", "error");
+    }
+  }
+
+  async function acceptCounselInvite() {
+    if (!counselInviteToken) {
+      return;
+    }
+    setCounselInviteStatus("Accepting invite...");
+    const response = await fetch(`/api/counsel/invite/${encodeURIComponent(counselInviteToken)}`, {
+      method: "POST",
+    });
+    const data = (await response.json()) as CounselInvitePreview | { error?: string };
+    if (response.ok && isCounselInvitePreview(data)) {
+      setCounselInvitePreview(data);
+      setCounselInviteStatus("Invite accepted. You can now view shared summaries.");
+    } else {
+      setCounselInviteStatus("This invite could not be accepted.");
+    }
+  }
+
+  async function addCounselInviteComment(decisionId: string, body: string) {
+    if (!counselInviteToken) {
+      return;
+    }
+    const response = await fetch(`/api/counsel/invite/${encodeURIComponent(counselInviteToken)}/comments`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ decisionId, body }),
+    });
+    const data = (await response.json()) as { comment?: { id: string; body: string; createdAt: string }; error?: string };
+    if (response.ok && data.comment) {
+      setCounselInvitePreview((current) =>
+        current
+          ? {
+              ...current,
+              sharedDecisions: current.sharedDecisions.map((decision) =>
+                decision.id === decisionId
+                  ? { ...decision, comments: [data.comment!, ...decision.comments] }
+                  : decision
+              ),
+            }
+          : current
+      );
+      setCounselInviteStatus("Comment shared privately with the person who invited you.");
+    } else {
+      setCounselInviteStatus(data.error || "Comment could not be shared.");
+    }
   }
 
   async function addRuleOfLife(event: FormEvent<HTMLFormElement>) {
@@ -1694,16 +1924,28 @@ export function AletheiaApp() {
                   emotion={decisionEmotion}
                   counselName={counselName}
                   counselRole={counselRole}
+                  counselContactValue={counselContactValue}
+                  counselCanViewSummaries={counselCanViewSummaries}
+                  counselCanComment={counselCanComment}
+                  counselCanReceiveCheckins={counselCanReceiveCheckins}
+                  latestCounselInvite={latestCounselInvite}
+                  userSignedIn={Boolean(user)}
                   ruleText={ruleText}
                   setTitle={setDecisionTitle}
                   setPressure={setDecisionPressure}
                   setEmotion={setDecisionEmotion}
                   setCounselName={setCounselName}
                   setCounselRole={setCounselRole}
+                  setCounselContactValue={setCounselContactValue}
+                  setCounselCanViewSummaries={setCounselCanViewSummaries}
+                  setCounselCanComment={setCounselCanComment}
+                  setCounselCanReceiveCheckins={setCounselCanReceiveCheckins}
                   setRuleText={setRuleText}
                   onCreateDecision={createDecision}
                   onUpdateDecision={updateDecision}
                   onAddCounsel={addCounselContact}
+                  onShareCounselInvite={shareCounselInvite}
+                  onShareDecisionWithCounsel={shareDecisionWithCounsel}
                   onAddRule={addRuleOfLife}
                 />
                 </Screen>
@@ -1817,6 +2059,18 @@ export function AletheiaApp() {
         onModeChange={handleModeChange}
         onPreferenceChange={updatePreferences}
         onComplete={completeOnboarding}
+      />
+      <CounselInviteModal
+        token={counselInviteToken}
+        preview={counselInvitePreview}
+        status={counselInviteStatus}
+        onAccept={acceptCounselInvite}
+        onComment={addCounselInviteComment}
+        onClose={() => {
+          setCounselInviteToken(null);
+          setCounselInvitePreview(null);
+          setCounselInviteStatus("");
+        }}
       />
       <ScriptureModal scripture={selectedScripture} preferences={preferences} onClose={() => setSelectedScripture(null)} />
     </main>
@@ -2991,6 +3245,131 @@ function ScriptureModal({
   );
 }
 
+function CounselInviteModal({
+  token,
+  preview,
+  status,
+  onAccept,
+  onComment,
+  onClose,
+}: {
+  token: string | null;
+  preview: CounselInvitePreview | null;
+  status: string;
+  onAccept: () => void;
+  onComment: (decisionId: string, body: string) => void;
+  onClose: () => void;
+}) {
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
+  if (!token) {
+    return null;
+  }
+  const accepted = preview?.invite.status === "accepted";
+  const canComment = Boolean(preview?.invite.permissions.canCommentOnDecisions);
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-end bg-[#0d1714]/42 p-3 backdrop-blur-sm sm:place-items-center">
+      <section className="max-h-[88vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-[#c9d5cd] bg-[#fbfcf8] p-5 shadow-2xl">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#866a24]">Private Counsel Invite</p>
+            <h2 className="mt-2 text-2xl font-semibold text-[#203a35]">
+              {preview ? `Counsel request for ${preview.invite.name}` : "Opening invite..."}
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-[#607067]">
+              This link never gives access to private chats, journals, or unshared decisions. You only see summaries intentionally shared with you.
+            </p>
+          </div>
+          <button className="grid size-9 place-items-center rounded-md border border-[#c9d5cd]" onClick={onClose} aria-label="Close invite">
+            <X size={17} />
+          </button>
+        </div>
+
+        {status ? <p className="mt-4 rounded-lg border border-[#d8e1db] bg-white/70 p-3 text-sm text-[#405049]">{status}</p> : null}
+
+        {preview ? (
+          <>
+            <div className="mt-4 grid gap-2 rounded-xl border border-[#d8e1db] bg-white/70 p-4 text-sm text-[#405049]">
+              <p>
+                <span className="font-semibold text-[#203a35]">Role:</span> {preview.invite.role}
+              </p>
+              <p>
+                <span className="font-semibold text-[#203a35]">Status:</span> {accepted ? "Accepted" : "Waiting for acceptance"}
+              </p>
+              <div className="flex flex-wrap gap-2 pt-1 text-xs font-semibold uppercase tracking-[0.08em]">
+                {preview.invite.permissions.canViewSummaries ? <span className="rounded bg-[#edf2ee] px-2 py-1">summaries only</span> : null}
+                {preview.invite.permissions.canCommentOnDecisions ? <span className="rounded bg-[#edf2ee] px-2 py-1">comments allowed</span> : null}
+                {preview.invite.permissions.canReceiveCheckins ? <span className="rounded bg-[#edf2ee] px-2 py-1">waiting check-ins</span> : null}
+              </div>
+            </div>
+
+            {!accepted ? (
+              <button className="mt-4 h-11 w-full rounded-lg bg-[#203a35] px-4 text-sm font-semibold text-[#f8f5e8]" onClick={onAccept}>
+                Accept private counsel invite
+              </button>
+            ) : (
+              <div className="mt-4 space-y-3">
+                {preview.sharedDecisions.map((decision) => (
+                  <article key={decision.id} className="rounded-xl border border-[#d8e1db] bg-white/72 p-4">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <p className="text-sm font-semibold text-[#203a35]">{decision.title}</p>
+                        <p className="mt-1 text-xs uppercase tracking-[0.12em] text-[#718077]">
+                          {decision.mode} · readiness {decision.readiness}/100
+                        </p>
+                      </div>
+                      <span className="w-fit rounded-md bg-[#edf2ee] px-2 py-1 text-xs font-semibold text-[#405049]">{decision.status}</span>
+                    </div>
+                    <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-[#55645b]">
+                      {decision.summary || "The user shared this decision, but a summary has not been generated yet."}
+                    </p>
+                    {decision.comments.length ? (
+                      <div className="mt-3 space-y-2">
+                        {decision.comments.map((comment) => (
+                          <p key={comment.id} className="rounded-lg border border-[#d8e1db] bg-[#fbfcf8] p-3 text-sm leading-6 text-[#405049]">
+                            {comment.body}
+                          </p>
+                        ))}
+                      </div>
+                    ) : null}
+                    {canComment ? (
+                      <form
+                        className="mt-3 grid gap-2"
+                        onSubmit={(event) => {
+                          event.preventDefault();
+                          const body = drafts[decision.id]?.trim();
+                          if (!body) {
+                            return;
+                          }
+                          onComment(decision.id, body);
+                          setDrafts((current) => ({ ...current, [decision.id]: "" }));
+                        }}
+                      >
+                        <textarea
+                          value={drafts[decision.id] ?? ""}
+                          onChange={(event) => setDrafts((current) => ({ ...current, [decision.id]: event.target.value }))}
+                          className="min-h-24 resize-none rounded-lg border border-[#c9d5cd] bg-white px-3 py-2 text-sm leading-6 outline-none focus:border-[#203a35]"
+                          placeholder="Offer counsel, questions, or cautions for this shared decision."
+                        />
+                        <button className="h-10 rounded-md bg-[#203a35] px-3 text-sm font-semibold text-[#f8f5e8]">Send private comment</button>
+                      </form>
+                    ) : null}
+                  </article>
+                ))}
+                {!preview.sharedDecisions.length ? (
+                  <p className="rounded-xl border border-dashed border-[#c9d5cd] p-4 text-sm leading-6 text-[#607067]">
+                    No decision summaries have been shared with this invite yet.
+                  </p>
+                ) : null}
+              </div>
+            )}
+          </>
+        ) : null}
+      </section>
+    </div>
+  );
+}
+
 function PreferencesPanel({
   panelRef,
   preferences,
@@ -3569,16 +3948,28 @@ function DecisionCompanionPanel({
   emotion,
   counselName,
   counselRole,
+  counselContactValue,
+  counselCanViewSummaries,
+  counselCanComment,
+  counselCanReceiveCheckins,
+  latestCounselInvite,
+  userSignedIn,
   ruleText,
   setTitle,
   setPressure,
   setEmotion,
   setCounselName,
   setCounselRole,
+  setCounselContactValue,
+  setCounselCanViewSummaries,
+  setCounselCanComment,
+  setCounselCanReceiveCheckins,
   setRuleText,
   onCreateDecision,
   onUpdateDecision,
   onAddCounsel,
+  onShareCounselInvite,
+  onShareDecisionWithCounsel,
   onAddRule,
 }: {
   mode: Mode;
@@ -3593,16 +3984,28 @@ function DecisionCompanionPanel({
   emotion: string;
   counselName: string;
   counselRole: string;
+  counselContactValue: string;
+  counselCanViewSummaries: boolean;
+  counselCanComment: boolean;
+  counselCanReceiveCheckins: boolean;
+  latestCounselInvite: { name: string; url: string } | null;
+  userSignedIn: boolean;
   ruleText: string;
   setTitle: (value: string) => void;
   setPressure: (value: string) => void;
   setEmotion: (value: string) => void;
   setCounselName: (value: string) => void;
   setCounselRole: (value: string) => void;
+  setCounselContactValue: (value: string) => void;
+  setCounselCanViewSummaries: (value: boolean) => void;
+  setCounselCanComment: (value: boolean) => void;
+  setCounselCanReceiveCheckins: (value: boolean) => void;
   setRuleText: (value: string) => void;
   onCreateDecision: (event: FormEvent<HTMLFormElement>) => void;
   onUpdateDecision: (id: string, patch: Partial<WisdomDecision> & { waitingDays?: number | null; event?: string }) => void;
   onAddCounsel: (event: FormEvent<HTMLFormElement>) => void;
+  onShareCounselInvite: (channel?: ShareChannel) => void;
+  onShareDecisionWithCounsel: (contactId: string, decisionId: string) => void;
   onAddRule: (event: FormEvent<HTMLFormElement>) => void;
 }) {
   const activeDecisions = decisions.filter((decision) => decision.status !== "closed");
@@ -3708,12 +4111,21 @@ function DecisionCompanionPanel({
       <aside className="space-y-4">
         <section className="rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">Counsel Circle</p>
+          <p className="mt-2 text-sm leading-6 text-[#607067]">
+            Invite trusted people privately. They see only the decision summaries you choose to share.
+          </p>
           <form onSubmit={onAddCounsel} className="mt-3 grid gap-2">
             <input
               value={counselName}
               onChange={(event) => setCounselName(event.target.value)}
               className="h-10 rounded-md border border-[#c9d5cd] bg-white/78 px-3 text-sm outline-none"
               placeholder="Name"
+            />
+            <input
+              value={counselContactValue}
+              onChange={(event) => setCounselContactValue(event.target.value)}
+              className="h-10 rounded-md border border-[#c9d5cd] bg-white/78 px-3 text-sm outline-none"
+              placeholder="Email or phone, optional"
             />
             <select
               value={counselRole}
@@ -3726,16 +4138,104 @@ function DecisionCompanionPanel({
               <option>advisor</option>
               <option>friend</option>
             </select>
-            <button className="h-10 rounded-md bg-[#203a35] px-3 text-sm font-semibold text-[#f8f5e8]">Add counsel</button>
+            <div className="space-y-2 rounded-lg border border-[#d8e1db] bg-white/64 p-3 text-sm text-[#405049]">
+              <PermissionToggle
+                checked={counselCanViewSummaries}
+                label="Can view selected decision summaries"
+                onChange={setCounselCanViewSummaries}
+              />
+              <PermissionToggle
+                checked={counselCanComment}
+                label="Can comment on shared decisions"
+                onChange={setCounselCanComment}
+              />
+              <PermissionToggle
+                checked={counselCanReceiveCheckins}
+                label="Can receive waiting-mode check-ins"
+                onChange={setCounselCanReceiveCheckins}
+              />
+            </div>
+            <p className="rounded-lg border border-[#d8e1db] bg-white/64 p-3 text-xs leading-5 text-[#607067]">
+              Private chats, journal entries, and unshared decisions are never visible to counselors by default.
+            </p>
+            <button className="h-10 rounded-md bg-[#203a35] px-3 text-sm font-semibold text-[#f8f5e8]">
+              {userSignedIn ? "Create private invite" : "Add locally"}
+            </button>
           </form>
+          {latestCounselInvite ? (
+            <div className="mt-3 rounded-lg border border-[#c9d5cd] bg-[#eef2ef] p-3">
+              <p className="text-sm font-semibold text-[#203a35]">Invite ready for {latestCounselInvite.name}</p>
+              <p className="mt-1 break-all text-xs leading-5 text-[#607067]">{latestCounselInvite.url}</p>
+              {counselContacts[0]?.name === latestCounselInvite.name && counselContacts[0]?.emailSent ? (
+                <p className="mt-2 rounded-md bg-[#edf7f1] px-2 py-1 text-xs font-semibold text-[#245443]">
+                  Email sent. The private link is also here as a fallback.
+                </p>
+              ) : null}
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  className="rounded-md border border-[#c9d5cd] px-3 py-2 text-xs font-semibold text-[#203a35]"
+                  onClick={() => onShareCounselInvite("copy")}
+                  type="button"
+                >
+                  Copy link
+                </button>
+                <button
+                  className="rounded-md bg-[#203a35] px-3 py-2 text-xs font-semibold text-[#f8f5e8]"
+                  onClick={() => onShareCounselInvite("native")}
+                  type="button"
+                >
+                  Share invite
+                </button>
+                <button
+                  className="rounded-md border border-[#c9d5cd] px-3 py-2 text-xs font-semibold text-[#203a35]"
+                  onClick={() => onShareCounselInvite("email")}
+                  type="button"
+                >
+                  Email
+                </button>
+                <button
+                  className="rounded-md border border-[#c9d5cd] px-3 py-2 text-xs font-semibold text-[#203a35]"
+                  onClick={() => onShareCounselInvite("sms")}
+                  type="button"
+                >
+                  SMS
+                </button>
+                <button
+                  className="rounded-md border border-[#c9d5cd] px-3 py-2 text-xs font-semibold text-[#203a35]"
+                  onClick={() => onShareCounselInvite("whatsapp")}
+                  type="button"
+                >
+                  WhatsApp
+                </button>
+              </div>
+            </div>
+          ) : null}
           <div className="mt-3 space-y-2">
             {counselContacts.slice(0, 5).map((contact) => (
-              <div key={contact.id} className="flex items-center gap-2 rounded-lg border border-[#d8e1db] bg-white/64 p-3">
-                <Users size={16} className="text-[#405049]" />
-                <div>
-                  <p className="text-sm font-semibold text-[#203a35]">{contact.name}</p>
-                  <p className="text-xs uppercase tracking-[0.12em] text-[#718077]">{contact.role}</p>
+              <div key={contact.id} className="rounded-lg border border-[#d8e1db] bg-white/64 p-3">
+                <div className="flex items-center gap-2">
+                  <Users size={16} className="text-[#405049]" />
+                  <div>
+                    <p className="text-sm font-semibold text-[#203a35]">{contact.name}</p>
+                    <p className="text-xs uppercase tracking-[0.12em] text-[#718077]">
+                      {contact.role} · {contact.inviteStatus === "accepted" ? "accepted" : contact.inviteStatus === "pending" ? "invited" : "local"}
+                    </p>
+                  </div>
                 </div>
+                <div className="mt-2 flex flex-wrap gap-1 text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-[#607067]">
+                  {contact.canViewSummaries ? <span className="rounded bg-[#edf2ee] px-2 py-1">summaries</span> : null}
+                  {contact.canCommentOnDecisions ? <span className="rounded bg-[#edf2ee] px-2 py-1">comments</span> : null}
+                  {contact.canReceiveCheckins ? <span className="rounded bg-[#edf2ee] px-2 py-1">check-ins</span> : null}
+                </div>
+                {selectedDecision && contact.canViewSummaries ? (
+                  <button
+                    type="button"
+                    className="mt-3 w-full rounded-md border border-[#c9d5cd] px-3 py-2 text-xs font-semibold text-[#203a35]"
+                    onClick={() => onShareDecisionWithCounsel(contact.id, selectedDecision.id)}
+                  >
+                    Share current summary only
+                  </button>
+                ) : null}
               </div>
             ))}
             {!counselContacts.length ? (
@@ -3810,6 +4310,28 @@ function TimelineStat({ icon: Icon, label, value }: { icon: typeof Clock3; label
       </div>
       <p className="mt-3 text-3xl font-semibold text-[#203a35]">{value}</p>
     </div>
+  );
+}
+
+function PermissionToggle({
+  checked,
+  label,
+  onChange,
+}: {
+  checked: boolean;
+  label: string;
+  onChange: (value: boolean) => void;
+}) {
+  return (
+    <label className="flex items-start gap-2">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(event) => onChange(event.target.checked)}
+        className="mt-1 size-4 rounded border-[#9fb0a6]"
+      />
+      <span>{label}</span>
+    </label>
   );
 }
 

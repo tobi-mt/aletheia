@@ -10,6 +10,7 @@ const ALLOWED_EVENTS = new Set([
   "auth_google_success",
   "chat_question_sent",
   "counsel_contact_created",
+  "counsel_decision_shared",
   "decision_created",
   "decision_updated",
   "journal_entry_created",
