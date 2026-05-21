@@ -1971,10 +1971,10 @@ export function AletheiaApp() {
         </div>
       </nav>
 
-      <div className="mx-auto grid max-w-7xl gap-4 px-3 pb-[calc(6.5rem+env(safe-area-inset-bottom))] pt-4 sm:px-4 sm:py-5 lg:grid-cols-[280px_1fr] lg:py-6">
+      <div className="mx-auto grid max-w-7xl gap-5 px-3 pb-[calc(6.5rem+env(safe-area-inset-bottom))] pt-4 sm:px-4 sm:py-5 lg:grid-cols-[260px_1fr] lg:py-6">
         <aside className="hidden lg:block">
           <div className="sticky top-24 space-y-4">
-            <section className="rounded-lg border border-[#c9d5cd] bg-[#fbfcf8]/76 p-4 shadow-sm">
+            <section className="rounded-lg border border-[#d7e0da] bg-[#fbfcf8]/70 p-4 shadow-sm">
               <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#866a24]">
                 <ShieldCheck size={14} />
                 Guardrails
@@ -1986,7 +1986,7 @@ export function AletheiaApp() {
               </ul>
             </section>
 
-            <section className="rounded-lg border border-[#c9d5cd] bg-[#203a35] p-4 text-[#f8f5e8] shadow-sm">
+            <section className="rounded-lg border border-[#1d332e] bg-[#203a35] p-4 text-[#f8f5e8] shadow-sm">
               <div className="mb-4 flex items-center justify-between">
                 <h2 className="font-semibold">Wisdom mode</h2>
                 <Moon size={17} className="text-[#d0ad55]" />
@@ -2246,7 +2246,7 @@ function NavButton({ active, icon: Icon, label, onClick }: { active: boolean; ic
     <button
       onClick={onClick}
       className={`inline-flex h-9 items-center gap-2 rounded-md px-3 text-sm font-semibold transition ${
-        active ? "bg-[#203a35] text-[#f8f5e8]" : "text-[#4f5f56] hover:bg-[#edf2ee]"
+        active ? "bg-[#203a35] text-[#f8f5e8] shadow-sm" : "text-[#4f5f56] hover:bg-[#edf2ee]"
       }`}
     >
       <Icon size={15} />
@@ -2259,8 +2259,8 @@ function MobileNav({ active, icon: Icon, label, onClick }: { active: boolean; ic
   return (
     <button
       onClick={onClick}
-      className={`flex h-12 flex-col items-center justify-center gap-1 rounded-lg text-[11px] font-semibold transition ${
-        active ? "bg-[#203a35] text-[#f8f5e8]" : "text-[#52635a]"
+      className={`flex h-12 flex-col items-center justify-center gap-1 rounded-md text-[11px] font-semibold transition ${
+        active ? "bg-[#203a35] text-[#f8f5e8] shadow-sm" : "text-[#52635a]"
       }`}
     >
       <Icon size={17} />
@@ -2663,7 +2663,7 @@ function DashboardAction({
     <button
       type="button"
       onClick={onClick}
-      className={`flex min-w-0 items-start gap-3 rounded-lg border p-3 text-left transition ${
+      className={`flex min-w-0 items-start gap-3 rounded-md border p-3 text-left transition ${
         primary
           ? "border-[#203a35] bg-[#203a35] text-[#f8f5e8] shadow-lg shadow-[#203a35]/12"
           : "border-[#d8e1db] bg-white/62 text-[#203a35] hover:border-[#203a35] hover:bg-white"
@@ -2906,8 +2906,8 @@ function AccountPanel({
         <ShareInviteCard placement="account" onShare={onShare} />
       </section>
 
-      <aside className="space-y-4">
-        <section className="rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm">
+        <aside className="space-y-4">
+        <section className="rounded-lg border border-[#d7e0da] bg-[#fbfcf8]/72 p-4 shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">History</p>
           <div className="mt-3 grid gap-3">
             <AccountStat label="Conversations" value={String(exchanges.length)} />
@@ -2921,7 +2921,7 @@ function AccountPanel({
           ) : null}
         </section>
 
-        <section className="rounded-xl border border-[#c9d5cd] bg-[#203a35] p-4 text-[#f8f5e8] shadow-sm">
+        <section className="rounded-lg border border-[#1d332e] bg-[#203a35] p-4 text-[#f8f5e8] shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#d0ad55]">Badges / Formation</p>
           <div className="mt-3 space-y-2">
             {badges.map((badge) => (
@@ -4024,40 +4024,40 @@ function CompanionPanel({
   }, [currentExchange?.id, currentExchange?.answer.id, currentExchange?.question]);
 
   return (
-    <div className="grid min-w-0 gap-4 xl:grid-cols-[1fr_320px]">
-      <section ref={panelRef} className="min-w-0 scroll-mt-24 rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 shadow-sm">
-        <div className="flex flex-col gap-3 border-b border-[#d8e1db] px-3 py-3 sm:px-4 md:flex-row md:items-center md:justify-between">
+    <div className="space-y-4">
+      <section ref={panelRef} className="min-w-0 scroll-mt-24 overflow-hidden rounded-xl border border-[#c8d5cc] bg-[#fbfcf8]/86 shadow-[0_18px_45px_rgba(33,58,53,0.08)]">
+        <div className="flex flex-col gap-3 border-b border-[#d8e1db] bg-white/40 px-3 py-3 sm:px-5 sm:py-4 md:flex-row md:items-center md:justify-between">
           <div>
             <div className="flex items-center gap-2 text-lg font-semibold text-[#203a35]">
               <MessageCircle size={18} />
               Ask Aletheia
             </div>
             <p className="mt-1 text-sm leading-5 text-[#5a685f]">
-              Start with one honest question. The rest of the page can wait.
+              Start with one honest question. Aletheia will slow the moment down and help you discern clearly.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <span className="w-fit rounded-md bg-[#edf2ee] px-2 py-1 text-xs font-semibold text-[#52635a]">{mode} lens</span>
-            <span className="w-fit rounded-md bg-[#f5edda] px-2 py-1 text-xs font-semibold text-[#72591f]">
+            <span className="w-fit rounded-md border border-[#d7e0da] bg-[#edf2ee] px-2 py-1 text-xs font-semibold text-[#52635a]">{mode} lens</span>
+            <span className="w-fit rounded-md border border-[#eadfbd] bg-[#f5edda] px-2 py-1 text-xs font-semibold text-[#72591f]">
               {languages[preferences.language].nativeName} · {preferences.bibleTranslation}
             </span>
           </div>
         </div>
 
-        <form onSubmit={onAsk} className="border-b border-[#d8e1db] bg-[#f8faf6]/88 p-3 sm:p-4">
-          <div className="rounded-xl border border-[#c4d2ca] bg-white/86 p-3 shadow-sm">
-            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+        <form onSubmit={onAsk} className="bg-[#f8faf6]/88 p-3 sm:p-5">
+          <div className="rounded-lg border border-[#c4d2ca] bg-white/92 p-3 shadow-sm sm:p-4">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">Your question</p>
-              <span className="rounded-md bg-[#edf2ee] px-2 py-1 text-xs font-semibold text-[#52635a]">
+              <span className="rounded-md border border-[#d7e0da] bg-[#edf2ee] px-2 py-1 text-xs font-semibold text-[#52635a]">
                 {modeProfile.focus}
               </span>
             </div>
-            <div className="flex flex-col gap-2 sm:flex-row">
+            <div className="flex flex-col gap-3 sm:flex-row">
               <textarea
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder={`${copy.askPlaceholder} ${modeProfile.focus.toLowerCase()}...`}
-                className="min-h-24 flex-1 resize-none rounded-lg border border-[#c9d5cd] bg-white px-3 py-3 text-base leading-6 outline-none transition placeholder:text-[#8b968e] focus:border-[#203a35] sm:text-sm"
+                className="min-h-28 flex-1 resize-none rounded-md border border-[#c9d5cd] bg-white px-3 py-3 text-base leading-6 text-[#203a35] outline-none transition placeholder:text-[#8b968e] focus:border-[#203a35] focus:shadow-[0_0_0_3px_rgba(32,58,53,0.08)] sm:text-sm"
               />
               {preferences.voiceEnabled ? (
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-1">
@@ -4081,17 +4081,19 @@ function CompanionPanel({
               ) : null}
               <button
                 disabled={isWorking}
-                className="inline-flex h-11 w-full shrink-0 items-center justify-center gap-2 rounded-lg bg-[#203a35] px-4 text-sm font-semibold text-[#f8f5e8] shadow-lg shadow-[#203a35]/15 transition hover:bg-[#284b43] disabled:opacity-60 sm:w-auto"
+                className="inline-flex h-11 w-full shrink-0 items-center justify-center gap-2 rounded-md bg-[#203a35] px-5 text-sm font-semibold text-[#f8f5e8] shadow-lg shadow-[#203a35]/15 transition hover:bg-[#284b43] disabled:opacity-60 sm:w-auto"
               >
                 <Send size={17} />
-                Ask
+                {isWorking ? "Listening..." : "Ask"}
               </button>
             </div>
             {preferences.voiceEnabled ? <p className="mt-2 text-xs leading-5 text-[#718077]">{copy.voiceHint}</p> : null}
           </div>
         </form>
+      </section>
 
-        <div className="space-y-4 p-3 sm:p-4">
+      <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <section className="min-w-0 rounded-xl border border-[#d7e0da] bg-[#fbfcf8]/74 p-3 shadow-sm sm:p-4">
           {currentExchange ? (
             <div ref={currentCounselRef} className="scroll-mt-24">
               <CurrentCounselCard
@@ -4113,7 +4115,7 @@ function CompanionPanel({
           ) : null}
 
           {history.length ? (
-            <section className="rounded-xl border border-[#d8e1db] bg-white/58 p-3 sm:p-4">
+            <section className="mt-4 rounded-lg border border-[#d8e1db] bg-white/58 p-3 sm:p-4">
               <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">Conversation history</p>
@@ -4144,11 +4146,10 @@ function CompanionPanel({
               </div>
             </section>
           ) : null}
-        </div>
-      </section>
+        </section>
 
       <aside className="space-y-4">
-        <section className="rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm">
+        <section className="rounded-lg border border-[#d7e0da] bg-[#fbfcf8]/72 p-4 shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">What this mode is for</p>
           <h2 className="mt-2 font-semibold text-[#203a35]">{modeProfile.label}: {modeProfile.intent}</h2>
           <p className="mt-2 text-sm leading-6 text-[#55645b]">{modeProfile.useWhen}</p>
@@ -4168,7 +4169,7 @@ function CompanionPanel({
           </div>
         </section>
 
-        <section className="rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm">
+        <section className="rounded-lg border border-[#d7e0da] bg-[#fbfcf8]/72 p-4 shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">Blind spots</p>
           <ul className="mt-3 space-y-2 text-sm leading-6 text-[#55645b]">
             {modeProfile.blindSpots.slice(0, 3).map((spot) => (
@@ -4179,7 +4180,7 @@ function CompanionPanel({
           </ul>
         </section>
 
-        <section className="rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm">
+        <section className="rounded-lg border border-[#d7e0da] bg-[#fbfcf8]/72 p-4 shadow-sm">
           <h2 className="font-semibold text-[#203a35]">Try a {mode.toLowerCase()} question</h2>
           <div className="mt-3 space-y-2">
             {modeProfile.prompts.map((prompt) => (
@@ -4216,7 +4217,8 @@ function CompanionPanel({
         </section>
 
         <TrustLayerPanel />
-      </aside>
+        </aside>
+      </div>
     </div>
   );
 }
@@ -4362,7 +4364,7 @@ function CurrentCounselCard({
   const showDecisionActions = Boolean(question) && !isThinking;
 
   return (
-    <section className="rounded-xl border border-[#c9d5cd] bg-white/72 p-3 shadow-sm sm:p-4">
+    <section className="rounded-lg border border-[#d7e0da] bg-white/76 p-3 shadow-sm sm:p-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">
           {question ? "Current counsel" : "Start here"}
@@ -4372,12 +4374,12 @@ function CurrentCounselCard({
         </span>
       </div>
       {question ? (
-        <div className="rounded-lg bg-[#203a35] p-3 text-[#f8f5e8]">
+        <div className="rounded-md bg-[#203a35] p-3 text-[#f8f5e8]">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#d0ad55]">Your question</p>
           <p className="mt-2 text-sm leading-6">{cleanDisplayText(question)}</p>
         </div>
       ) : null}
-      <article className="mt-3 rounded-lg border border-[#d8e1db] bg-[#fbfcf8]/80 p-3 sm:p-4">
+      <article className="mt-3 rounded-md border border-[#d8e1db] bg-[#fbfcf8]/84 p-3 sm:p-4">
         <p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#866a24]">Aletheia</p>
         <p className="mb-3 rounded-md border border-[#d8e1db] bg-white/70 p-3 text-xs leading-5 text-[#607067]">
           {mode} mode is shaping this counsel around {modeProfile.lens.toLowerCase()}
@@ -4395,7 +4397,7 @@ function CurrentCounselCard({
             <CounselAction label="Wait 3 days" onClick={() => onWait(exchange)} />
           </div>
           <AnswerFeedback onFeedback={onFeedback} />
-          <div className="mt-3 rounded-lg border border-[#d8e1db] bg-[#fbfcf8]/76 p-3">
+          <div className="mt-3 rounded-md border border-[#d8e1db] bg-[#fbfcf8]/76 p-3">
             <p className="text-sm font-semibold text-[#203a35]">Share Aletheia with someone who may benefit from this kind of counsel.</p>
             <p className="mt-1 text-xs leading-5 text-[#718077]">
               This shares the app link only, not your question or Aletheia’s private answer.
