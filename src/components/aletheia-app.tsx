@@ -2360,14 +2360,17 @@ export function AletheiaApp() {
                 {ui.offline}
               </span>
             ) : null}
-            <label className="inline-flex h-10 items-center gap-1 rounded-md border border-[#bdcbc2] bg-[#fbfcf8]/70 px-2 text-xs font-semibold text-[#213a35] shadow-sm transition hover:bg-white">
-              <span aria-hidden="true" className="text-base leading-none">{languageFlags[preferences.language]}</span>
+            <label
+              className="relative grid size-10 shrink-0 place-items-center overflow-hidden rounded-md border border-[#bdcbc2] bg-[#fbfcf8]/70 text-[#213a35] shadow-sm transition hover:bg-white"
+              title={`${ui.languageSelect}: ${languages[preferences.language].nativeName}`}
+            >
+              <span aria-hidden="true" className="text-lg leading-none">{languageFlags[preferences.language]}</span>
               <span className="sr-only">{ui.languageSelect}</span>
               <select
                 value={preferences.language}
                 aria-label={ui.languageSelect}
                 onChange={(event) => updatePreferences(preferencePatchForLanguage(event.target.value as LanguageCode))}
-                className="max-w-[7.5rem] bg-transparent text-xs font-semibold outline-none"
+                className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
               >
                 {Object.entries(languages).map(([code, language]) => (
                   <option key={code} value={code}>
@@ -2376,14 +2379,17 @@ export function AletheiaApp() {
                 ))}
               </select>
             </label>
-            <label className="inline-flex h-10 items-center gap-1 rounded-md border border-[#bdcbc2] bg-[#fbfcf8]/70 px-2 text-xs font-semibold text-[#213a35] shadow-sm transition hover:bg-white">
-              <BookOpen size={14} />
+            <label
+              className="relative grid size-10 shrink-0 place-items-center overflow-hidden rounded-md border border-[#bdcbc2] bg-[#fbfcf8]/70 text-[#213a35] shadow-sm transition hover:bg-white"
+              title={`${ui.bibleSelect}: ${preferences.bibleTranslation}`}
+            >
+              <BookOpen size={18} aria-hidden="true" />
               <span className="sr-only">{ui.bibleSelect}</span>
               <select
                 value={preferences.bibleTranslation}
                 aria-label={ui.bibleSelect}
                 onChange={(event) => updatePreferences({ bibleTranslation: event.target.value as BibleTranslation })}
-                className="max-w-[6rem] bg-transparent text-xs font-semibold outline-none"
+                className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
               >
                 {topBibleOptions.map((code) => (
                   <option key={code} value={code}>

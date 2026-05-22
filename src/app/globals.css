@@ -9,12 +9,15 @@ html[data-theme="dark"] {
   color-scheme: dark;
   --background: #0f1514;
   --foreground: #e8efea;
-  --dark-surface: rgba(20, 28, 27, 0.9);
-  --dark-surface-2: rgba(16, 23, 22, 0.88);
-  --dark-stroke: rgba(133, 160, 149, 0.28);
-  --dark-gold: #c9ab64;
-  --dark-text: #deebe4;
-  --dark-muted: #9eb3a9;
+  --dark-surface: rgba(20, 29, 27, 0.94);
+  --dark-surface-2: rgba(13, 21, 19, 0.95);
+  --dark-surface-3: rgba(31, 48, 43, 0.92);
+  --dark-stroke: rgba(159, 184, 173, 0.34);
+  --dark-stroke-strong: rgba(184, 209, 197, 0.48);
+  --dark-gold: #d7bd77;
+  --dark-text: #edf6f1;
+  --dark-muted: #c3d2ca;
+  --dark-soft: #a8bab1;
 }
 
 @theme inline {
@@ -42,24 +45,72 @@ body {
 .theme-dark-root [class*="bg-[#fbfcf8]"],
 .theme-dark-root [class*="bg-[#fbfcf8]/"],
 .theme-dark-root [class*="bg-white/"],
-.theme-dark-root [class*="bg-[#eef2ef]"] {
+.theme-dark-root [class*="bg-[#eef2ef]"],
+.theme-dark-root [class*="bg-[#f8faf6]"],
+.theme-dark-root [class*="bg-[#f8faf6]/"],
+.theme-dark-root [class*="bg-[#f4f6ef]"],
+.theme-dark-root [class*="bg-[#fff6f1]"],
+.theme-dark-root [class*="bg-[#edf7f1]"] {
   background-color: var(--dark-surface) !important;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 8px 20px rgba(0, 0, 0, 0.18);
 }
 
+.theme-dark-root [class*="bg-white"],
+.theme-dark-root [class*="bg-[#eef1ea]"] {
+  background-color: var(--dark-surface) !important;
+}
+
+.theme-dark-root [class*="shadow-[#203a35]"],
+.theme-dark-root [class*="shadow-sm"],
+.theme-dark-root [class*="shadow-md"],
+.theme-dark-root [class*="shadow-lg"],
+.theme-dark-root [class*="shadow-xl"] {
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.045) !important;
+}
+
 .theme-dark-root [class*="text-[#203a35]"],
+.theme-dark-root [class*="text-[#213a35]"],
 .theme-dark-root [class*="text-[#405049]"],
 .theme-dark-root [class*="text-[#505a52]"],
 .theme-dark-root [class*="text-[#55645b]"],
+.theme-dark-root [class*="text-[#5b6a61]"],
 .theme-dark-root [class*="text-[#607067]"],
-.theme-dark-root [class*="text-[#68766d]"] {
+.theme-dark-root [class*="text-[#617067]"],
+.theme-dark-root [class*="text-[#68766d]"],
+.theme-dark-root [class*="text-[#2e3933]"],
+.theme-dark-root [class*="text-[#303832]"],
+.theme-dark-root [class*="text-[#45534b]"],
+.theme-dark-root [class*="text-[#171917]"] {
   color: var(--dark-text) !important;
+}
+
+.theme-dark-root [class*="text-[#52635a]"],
+.theme-dark-root [class*="text-[#4f5f56]"],
+.theme-dark-root [class*="text-[#395148]"],
+.theme-dark-root [class*="text-[#59675f]"],
+.theme-dark-root [class*="text-[#66746b]"],
+.theme-dark-root [class*="text-[#718077]"],
+.theme-dark-root [class*="text-[#8b968e]"] {
+  color: var(--dark-muted) !important;
+}
+
+.theme-dark-root [class*="text-[#245443]"] {
+  color: #bfe7d3 !important;
+}
+
+.theme-dark-root [class*="text-[#8c3f28]"] {
+  color: #f0b7a5 !important;
 }
 
 .theme-dark-root [class*="border-[#c9d5cd]"],
 .theme-dark-root [class*="border-[#d8e1db]"],
 .theme-dark-root [class*="border-[#d7e0da]"],
-.theme-dark-root [class*="border-[#bdcbc2]"] {
+.theme-dark-root [class*="border-[#bdcbc2]"],
+.theme-dark-root [class*="border-[#c8d5cc]"],
+.theme-dark-root [class*="border-[#c4d2ca]"],
+.theme-dark-root [class*="border-[#cad6cf]"],
+.theme-dark-root [class*="border-[#c0cec5]"],
+.theme-dark-root [class*="border-[#b8d0c2]"] {
   border-color: var(--dark-stroke) !important;
 }
 
@@ -70,7 +121,9 @@ body {
 
 .theme-dark-root [class*="text-[#866a24]"],
 .theme-dark-root [class*="text-[#d0ad55]"],
-.theme-dark-root [class*="text-[#72591f]"] {
+.theme-dark-root [class*="text-[#72591f]"],
+.theme-dark-root [class*="text-[#8a6c25]"],
+.theme-dark-root [class*="text-[#f3e8bd]"] {
   color: var(--dark-gold) !important;
 }
 
@@ -88,7 +141,7 @@ body {
 .theme-dark-root textarea,
 .theme-dark-root select {
   background-color: var(--dark-surface-2) !important;
-  border-color: rgba(128, 155, 145, 0.32) !important;
+  border-color: var(--dark-stroke-strong) !important;
   color: #e2eee8 !important;
 }
 
@@ -99,12 +152,36 @@ body {
 
 .theme-dark-root [class*="bg-[#edf2ee]"],
 .theme-dark-root [class*="bg-[#f5edda]"],
-.theme-dark-root [class*="bg-[#fff8dc]"] {
-  background: rgba(52, 69, 63, 0.7) !important;
+.theme-dark-root [class*="bg-[#fff8dc]"],
+.theme-dark-root [class*="bg-[#dde6df]"],
+.theme-dark-root [class*="bg-[#e4ebe6]"] {
+  background: var(--dark-surface-3) !important;
 }
 
 .theme-dark-root [class*="bg-[#203a35]"] [class*="text-[#f8f5e8]"] {
   color: #eff6f1 !important;
+}
+
+.theme-dark-root [class*="bg-[#203a35]"] {
+  color: #f4fbf6 !important;
+}
+
+.theme-dark-root [class*="bg-[#203a35]"] p,
+.theme-dark-root [class*="bg-[#203a35]"] span,
+.theme-dark-root [class*="bg-[#203a35]"] li {
+  color: inherit;
+}
+
+.theme-dark-root [class*="border-dashed"] {
+  border-color: rgba(164, 190, 178, 0.42) !important;
+}
+
+.theme-dark-root [class*="accent-[#203a35]"] {
+  accent-color: #d7bd77;
+}
+
+.theme-dark-root details {
+  background: rgba(15, 23, 21, 0.8) !important;
 }
 
 .theme-dark-root .editorial-sidebar {
