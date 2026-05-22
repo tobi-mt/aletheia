@@ -131,6 +131,7 @@ export type ScriptureRead = {
   label: string;
   text: string;
   availableLanguage: LanguageCode;
+  kind?: "translation" | "summary";
 };
 
 export const scriptureQuickReads: Record<
@@ -403,10 +404,21 @@ export function localizedScriptureRead(scripture: string, preferences: UserPrefe
   const canonical = canonicalScriptureReference(scripture);
   const localized = localizedScriptureReads[preferences.bibleTranslation]?.[canonical];
   if (localized) {
-    return localized;
+    return { ...localized, kind: "translation" };
   }
 
   const fallback = scriptureQuickReads[canonical];
+  const preferredTranslation = bibleTranslations[preferences.bibleTranslation] ?? bibleTranslations.WEB;
+  if (fallback && preferences.bibleTranslation !== fallback.translation) {
+    return {
+      translation: preferences.bibleTranslation,
+      label: `${preferredTranslation.label} summary`,
+      text: fallback.text,
+      availableLanguage: "en",
+      kind: "summary",
+    };
+  }
+
   return {
     translation: fallback?.translation ?? preferences.bibleTranslation,
     label: fallback?.label ?? "Curated wisdom reference",
@@ -414,12 +426,16 @@ export function localizedScriptureRead(scripture: string, preferences: UserPrefe
       fallback?.text ??
       "This reference is part of Aletheia's curated wisdom library. The app only surfaces known references and avoids inventing verse text.",
     availableLanguage: "en",
+    kind: fallback?.label === "Selected reading" ? "summary" : "translation",
   };
 }
 
 export function scriptureTranslationLabel(scripture: string, preferences: UserPreferences) {
   const read = localizedScriptureRead(scripture, preferences);
   const language = languages[read.availableLanguage] ?? languages.en;
+  if (read.kind === "summary") {
+    return `${read.translation} summary`;
+  }
   const fallbackLabel =
     read.translation === preferences.bibleTranslation && read.availableLanguage === preferences.language
       ? ""

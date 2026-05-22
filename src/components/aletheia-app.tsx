@@ -77,6 +77,292 @@ const ALETHEIA_SHARE_URL = "https://aletheia.mirrortalkpodcast.com?ref=share";
 const ALETHEIA_SHARE_TEXT = "Aletheia is a calm AI-powered biblical wisdom companion for money, work, and stewardship.";
 const MANUAL_CONTEXT_STORAGE_KEY = "aletheia_manual_context";
 
+const languageFlags: Record<LanguageCode, string> = {
+  en: "🇺🇸",
+  es: "🇪🇸",
+  fr: "🇫🇷",
+  pt: "🇧🇷",
+  de: "🇩🇪",
+  yo: "🇳🇬",
+  ig: "🇳🇬",
+  ha: "🇳🇬",
+};
+
+const uiText: Record<
+  LanguageCode,
+  {
+    nav: Record<View, string>;
+    decideShort: string;
+    guardrails: string;
+    guardrailItems: string[];
+    wisdomMode: string;
+    currentLens: string;
+    offline: string;
+    languageSelect: string;
+    bibleSelect: string;
+    account: string;
+    askTitle: string;
+    askIntro: string;
+    yourQuestion: string;
+    askButton: string;
+    startHere: string;
+    ready: string;
+    whatModeFor: string;
+    deepChecks: string;
+    blindSpots: string;
+    maturitySignals: string;
+    trustLayer: string;
+    preferencesTitle: string;
+    language: string;
+    region: string;
+    bible: string;
+    voiceControls: string;
+    available: string;
+    englishFallback: string;
+  }
+> = {
+  en: {
+    nav: { companion: "Home", decisions: "Decisions", reflect: "Reflect", library: "Library", account: "Account" },
+    decideShort: "Decide",
+    guardrails: "Guardrails",
+    guardrailItems: ["Never predicts financial outcomes.", "Never invents scripture references.", "Encourages counsel for high-stakes choices."],
+    wisdomMode: "Wisdom mode",
+    currentLens: "Current lens",
+    offline: "Offline",
+    languageSelect: "Change language",
+    bibleSelect: "Change Bible translation",
+    account: "Account",
+    askTitle: "Ask Aletheia",
+    askIntro: "Start with one honest question. Aletheia will slow the moment down and help you discern clearly.",
+    yourQuestion: "Your question",
+    askButton: "Ask",
+    startHere: "Start here",
+    ready: "Ready",
+    whatModeFor: "What this mode is for",
+    deepChecks: "Deep checks",
+    blindSpots: "Blind spots",
+    maturitySignals: "Maturity signals",
+    trustLayer: "Trust layer",
+    preferencesTitle: "Language and region",
+    language: "Language",
+    region: "Region",
+    bible: "Bible",
+    voiceControls: "Voice controls",
+    available: "Available",
+    englishFallback: "English fallback",
+  },
+  es: {
+    nav: { companion: "Inicio", decisions: "Decisiones", reflect: "Reflexión", library: "Biblioteca", account: "Cuenta" },
+    decideShort: "Decidir",
+    guardrails: "Límites",
+    guardrailItems: ["Nunca predice resultados financieros.", "Nunca inventa referencias bíblicas.", "Anima a buscar consejo en decisiones importantes."],
+    wisdomMode: "Modo de sabiduría",
+    currentLens: "Enfoque actual",
+    offline: "Sin conexión",
+    languageSelect: "Cambiar idioma",
+    bibleSelect: "Cambiar traducción bíblica",
+    account: "Cuenta",
+    askTitle: "Pregunta a Aletheia",
+    askIntro: "Empieza con una pregunta honesta. Aletheia ayuda a bajar la prisa y discernir con claridad.",
+    yourQuestion: "Tu pregunta",
+    askButton: "Preguntar",
+    startHere: "Empieza aquí",
+    ready: "Listo",
+    whatModeFor: "Para qué sirve este modo",
+    deepChecks: "Revisiones profundas",
+    blindSpots: "Puntos ciegos",
+    maturitySignals: "Señales de madurez",
+    trustLayer: "Capa de confianza",
+    preferencesTitle: "Idioma y región",
+    language: "Idioma",
+    region: "Región",
+    bible: "Biblia",
+    voiceControls: "Controles de voz",
+    available: "Disponible",
+    englishFallback: "Recurso en inglés",
+  },
+  fr: {
+    nav: { companion: "Accueil", decisions: "Décisions", reflect: "Réflexion", library: "Bibliothèque", account: "Compte" },
+    decideShort: "Décider",
+    guardrails: "Garde-fous",
+    guardrailItems: ["Ne prédit jamais les résultats financiers.", "N’invente jamais de références bibliques.", "Encourage le conseil pour les choix importants."],
+    wisdomMode: "Mode sagesse",
+    currentLens: "Angle actuel",
+    offline: "Hors ligne",
+    languageSelect: "Changer de langue",
+    bibleSelect: "Changer de traduction biblique",
+    account: "Compte",
+    askTitle: "Demander à Aletheia",
+    askIntro: "Commence par une question honnête. Aletheia ralentit le moment et aide à discerner clairement.",
+    yourQuestion: "Ta question",
+    askButton: "Demander",
+    startHere: "Commencer ici",
+    ready: "Prêt",
+    whatModeFor: "À quoi sert ce mode",
+    deepChecks: "Vérifications profondes",
+    blindSpots: "Angles morts",
+    maturitySignals: "Signes de maturité",
+    trustLayer: "Couche de confiance",
+    preferencesTitle: "Langue et région",
+    language: "Langue",
+    region: "Région",
+    bible: "Bible",
+    voiceControls: "Commandes vocales",
+    available: "Disponible",
+    englishFallback: "Repli anglais",
+  },
+  pt: {
+    nav: { companion: "Início", decisions: "Decisões", reflect: "Refletir", library: "Biblioteca", account: "Conta" },
+    decideShort: "Decidir",
+    guardrails: "Limites",
+    guardrailItems: ["Nunca prevê resultados financeiros.", "Nunca inventa referências bíblicas.", "Incentiva conselho em escolhas importantes."],
+    wisdomMode: "Modo de sabedoria",
+    currentLens: "Lente atual",
+    offline: "Offline",
+    languageSelect: "Mudar idioma",
+    bibleSelect: "Mudar tradução bíblica",
+    account: "Conta",
+    askTitle: "Pergunte à Aletheia",
+    askIntro: "Comece com uma pergunta honesta. Aletheia ajuda a desacelerar e discernir com clareza.",
+    yourQuestion: "Sua pergunta",
+    askButton: "Perguntar",
+    startHere: "Comece aqui",
+    ready: "Pronto",
+    whatModeFor: "Para que serve este modo",
+    deepChecks: "Verificações profundas",
+    blindSpots: "Pontos cegos",
+    maturitySignals: "Sinais de maturidade",
+    trustLayer: "Camada de confiança",
+    preferencesTitle: "Idioma e região",
+    language: "Idioma",
+    region: "Região",
+    bible: "Bíblia",
+    voiceControls: "Controles de voz",
+    available: "Disponível",
+    englishFallback: "Recurso em inglês",
+  },
+  de: {
+    nav: { companion: "Start", decisions: "Entscheidungen", reflect: "Reflektieren", library: "Bibliothek", account: "Konto" },
+    decideShort: "Entscheiden",
+    guardrails: "Leitplanken",
+    guardrailItems: ["Sagt keine finanziellen Ergebnisse voraus.", "Erfindet keine Bibelstellen.", "Ermutigt bei wichtigen Entscheidungen zu Rat."],
+    wisdomMode: "Weisheitsmodus",
+    currentLens: "Aktuelle Perspektive",
+    offline: "Offline",
+    languageSelect: "Sprache ändern",
+    bibleSelect: "Bibelübersetzung ändern",
+    account: "Konto",
+    askTitle: "Aletheia fragen",
+    askIntro: "Beginne mit einer ehrlichen Frage. Aletheia verlangsamt den Moment und hilft dir klarer zu prüfen.",
+    yourQuestion: "Deine Frage",
+    askButton: "Fragen",
+    startHere: "Hier beginnen",
+    ready: "Bereit",
+    whatModeFor: "Wofür dieser Modus ist",
+    deepChecks: "Tiefe Prüfungen",
+    blindSpots: "Blinde Flecken",
+    maturitySignals: "Reifezeichen",
+    trustLayer: "Vertrauensebene",
+    preferencesTitle: "Sprache und Region",
+    language: "Sprache",
+    region: "Region",
+    bible: "Bibel",
+    voiceControls: "Sprachsteuerung",
+    available: "Verfügbar",
+    englishFallback: "Englischer Rückgriff",
+  },
+  yo: {
+    nav: { companion: "Ilé", decisions: "Ìpinnu", reflect: "Ìrònú", library: "Ilé ìkàwé", account: "Àkọọlẹ" },
+    decideShort: "Pinnu",
+    guardrails: "Ààlà",
+    guardrailItems: ["Kì í sọ abajade owó di àsọtẹ́lẹ̀.", "Kì í dá ìtọ́kasí Bíbélì sílẹ̀.", "Ó gba níyànjú láti wá ìmọ̀ràn fún ìpinnu ńlá."],
+    wisdomMode: "Ipo ọgbọ́n",
+    currentLens: "Ìwòye lọwọlọwọ",
+    offline: "Ko si nẹ́tíwọ́ọ̀kì",
+    languageSelect: "Yí èdè padà",
+    bibleSelect: "Yí ìtumọ̀ Bíbélì padà",
+    account: "Àkọọlẹ",
+    askTitle: "Béèrè lọ́wọ́ Aletheia",
+    askIntro: "Bẹrẹ pẹ̀lú ìbéèrè olóòtítọ́ kan. Aletheia máa ràn ọ́ lọ́wọ́ láti dákẹ́ kí o sì mọ̀ ìtọnisọna.",
+    yourQuestion: "Ìbéèrè rẹ",
+    askButton: "Béèrè",
+    startHere: "Bẹrẹ níbí",
+    ready: "Ṣetán",
+    whatModeFor: "Ohun tí ipo yìí wúlò fún",
+    deepChecks: "Àyẹ̀wò jinlẹ̀",
+    blindSpots: "Àwọn ibi tí a lè má rí",
+    maturitySignals: "Àmì ìdagbasoke",
+    trustLayer: "Ìpele ìgbẹ́kẹ̀lé",
+    preferencesTitle: "Èdè àti agbègbè",
+    language: "Èdè",
+    region: "Agbègbè",
+    bible: "Bíbélì",
+    voiceControls: "Ìṣàkóso ohùn",
+    available: "Wà",
+    englishFallback: "Ìpadà sí Gẹ̀ẹ́sì",
+  },
+  ig: {
+    nav: { companion: "Ụlọ", decisions: "Mkpebi", reflect: "Tụgharịa uche", library: "Ọba akwụkwọ", account: "Akaụntụ" },
+    decideShort: "Kpebie",
+    guardrails: "Oke nche",
+    guardrailItems: ["Anaghị ebu amụma nsonaazụ ego.", "Anaghị emepụta ntụaka Baịbụl.", "Na-agba ume ịchọ ndụmọdụ maka mkpebi dị mkpa."],
+    wisdomMode: "Ụdị amamihe",
+    currentLens: "Anya ugbu a",
+    offline: "Enweghị njikọ",
+    languageSelect: "Gbanwee asụsụ",
+    bibleSelect: "Gbanwee ntụgharị Baịbụl",
+    account: "Akaụntụ",
+    askTitle: "Jụọ Aletheia",
+    askIntro: "Malite na otu ajụjụ eziokwu. Aletheia na-enyere gị belata ngwa ngwa ma ghọta nke ọma.",
+    yourQuestion: "Ajụjụ gị",
+    askButton: "Jụọ",
+    startHere: "Bido ebe a",
+    ready: "Njikere",
+    whatModeFor: "Ihe ụdị a bara uru",
+    deepChecks: "Nlele miri emi",
+    blindSpots: "Ihe nwere ike ifu anya",
+    maturitySignals: "Ihe ngosi ntozu",
+    trustLayer: "Ogo ntụkwasị obi",
+    preferencesTitle: "Asụsụ na mpaghara",
+    language: "Asụsụ",
+    region: "Mpaghara",
+    bible: "Baịbụl",
+    voiceControls: "Njikwa olu",
+    available: "Dị",
+    englishFallback: "Laghachi n'Bekee",
+  },
+  ha: {
+    nav: { companion: "Gida", decisions: "Shawara", reflect: "Tunani", library: "Laburare", account: "Asusu" },
+    decideShort: "Yanke",
+    guardrails: "Iyakoki",
+    guardrailItems: ["Ba ya hango sakamakon kudi.", "Ba ya kirkirar nassoshin Littafi Mai Tsarki.", "Yana karfafa neman shawara a manyan zabi."],
+    wisdomMode: "Yanayin hikima",
+    currentLens: "Duban yanzu",
+    offline: "Babu intanet",
+    languageSelect: "Canza harshe",
+    bibleSelect: "Canza fassarar Littafi",
+    account: "Asusu",
+    askTitle: "Tambayi Aletheia",
+    askIntro: "Fara da tambaya ta gaskiya. Aletheia za ta rage gaggawa ta taimaka maka fahimta.",
+    yourQuestion: "Tambayarka",
+    askButton: "Tambaya",
+    startHere: "Fara a nan",
+    ready: "Shirye",
+    whatModeFor: "Amfanin wannan yanayi",
+    deepChecks: "Bincike mai zurfi",
+    blindSpots: "Abubuwan da ka iya boye",
+    maturitySignals: "Alamun balaga",
+    trustLayer: "Matakin amincewa",
+    preferencesTitle: "Harshe da yanki",
+    language: "Harshe",
+    region: "Yanki",
+    bible: "Littafi",
+    voiceControls: "Sarrafa murya",
+    available: "Akwai",
+    englishFallback: "Komawa Turanci",
+  },
+};
+
 function preferencePatchForLanguage(language: LanguageCode): Partial<UserPreferences> {
   return {
     language,
@@ -925,6 +1211,8 @@ export function AletheiaApp() {
   const activeLanguage = languages[preferences.language];
   const activeRegion = regions[preferences.region];
   const copy = languageCopy[preferences.language] ?? languageCopy.en;
+  const ui = uiText[preferences.language] ?? uiText.en;
+  const topBibleOptions = bibleTranslationOptionsForLanguage(preferences.language);
   const activeDecision = wisdomDecisions.find((item) => item.status !== "closed") ?? wisdomDecisions[0] ?? null;
   const todayPattern = timelineInsight.patterns[0] ?? activeMode.blindSpots[0];
   const decisionResult = useMemo(() => {
@@ -952,15 +1240,6 @@ export function AletheiaApp() {
     setActiveView(view);
     window.requestAnimationFrame(() => {
       workspaceRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
-  }
-
-  function revealPreferences() {
-    showView("account");
-    setPreferencesStatus("Language, region, Bible translation, and voice are in Account.");
-    announceWorkflow("Preferences opened", "Language, region, Bible translation, and voice are all managed in Account.", "info");
-    window.requestAnimationFrame(() => {
-      preferencesRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
     });
   }
 
@@ -1942,28 +2221,52 @@ export function AletheiaApp() {
           </button>
 
           <div className="hidden items-center gap-1 rounded-lg border border-[#c9d5cd] bg-[#fbfcf8]/72 p-1 shadow-sm md:flex">
-            <NavButton active={activeView === "companion"} icon={Home} label="Home" onClick={() => showView("companion")} />
-            <NavButton active={activeView === "decisions"} icon={FileText} label="Decisions" onClick={() => showView("decisions")} />
-            <NavButton active={activeView === "reflect"} icon={Feather} label="Reflect" onClick={() => showView("reflect")} />
-            <NavButton active={activeView === "library"} icon={BookOpen} label="Library" onClick={() => showView("library")} />
-            <NavButton active={activeView === "account"} icon={Users} label="Account" onClick={() => showView("account")} />
+            <NavButton active={activeView === "companion"} icon={Home} label={ui.nav.companion} onClick={() => showView("companion")} />
+            <NavButton active={activeView === "decisions"} icon={FileText} label={ui.nav.decisions} onClick={() => showView("decisions")} />
+            <NavButton active={activeView === "reflect"} icon={Feather} label={ui.nav.reflect} onClick={() => showView("reflect")} />
+            <NavButton active={activeView === "library"} icon={BookOpen} label={ui.nav.library} onClick={() => showView("library")} />
+            <NavButton active={activeView === "account"} icon={Users} label={ui.nav.account} onClick={() => showView("account")} />
           </div>
 
           <div className="flex items-center gap-2">
             {!isOnline ? (
               <span className="hidden items-center gap-2 rounded-md border border-[#d5b7a9] bg-[#fff5ef] px-3 py-2 text-xs font-medium text-[#8c3f28] sm:inline-flex">
                 <WifiOff size={14} />
-                Offline
+                {ui.offline}
               </span>
             ) : null}
-            <button
-              className="inline-flex h-10 items-center gap-2 rounded-md border border-[#bdcbc2] bg-[#fbfcf8]/70 px-3 text-xs font-semibold text-[#213a35] shadow-sm transition hover:bg-white"
-              onClick={revealPreferences}
-            >
-              <Languages size={15} />
-              <span className="hidden sm:inline">{languages[preferences.language].nativeName}</span>
-              <span>{preferences.bibleTranslation}</span>
-            </button>
+            <label className="inline-flex h-10 items-center gap-1 rounded-md border border-[#bdcbc2] bg-[#fbfcf8]/70 px-2 text-xs font-semibold text-[#213a35] shadow-sm transition hover:bg-white">
+              <span aria-hidden="true" className="text-base leading-none">{languageFlags[preferences.language]}</span>
+              <span className="sr-only">{ui.languageSelect}</span>
+              <select
+                value={preferences.language}
+                aria-label={ui.languageSelect}
+                onChange={(event) => updatePreferences(preferencePatchForLanguage(event.target.value as LanguageCode))}
+                className="max-w-[7.5rem] bg-transparent text-xs font-semibold outline-none"
+              >
+                {Object.entries(languages).map(([code, language]) => (
+                  <option key={code} value={code}>
+                    {language.nativeName}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="inline-flex h-10 items-center gap-1 rounded-md border border-[#bdcbc2] bg-[#fbfcf8]/70 px-2 text-xs font-semibold text-[#213a35] shadow-sm transition hover:bg-white">
+              <BookOpen size={14} />
+              <span className="sr-only">{ui.bibleSelect}</span>
+              <select
+                value={preferences.bibleTranslation}
+                aria-label={ui.bibleSelect}
+                onChange={(event) => updatePreferences({ bibleTranslation: event.target.value as BibleTranslation })}
+                className="max-w-[6rem] bg-transparent text-xs font-semibold outline-none"
+              >
+                {topBibleOptions.map((code) => (
+                  <option key={code} value={code}>
+                    {code}
+                  </option>
+                ))}
+              </select>
+            </label>
             <button
               className="grid size-10 place-items-center rounded-md border border-[#bdcbc2] bg-[#fbfcf8]/70 text-[#213a35] shadow-sm transition hover:bg-white"
               aria-label={user ? "Open account" : "Open guest dashboard"}
@@ -1981,18 +2284,18 @@ export function AletheiaApp() {
             <section className="rounded-lg border border-[#d7e0da] bg-[#fbfcf8]/70 p-4 shadow-sm">
               <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#866a24]">
                 <ShieldCheck size={14} />
-                Guardrails
+                {ui.guardrails}
               </div>
               <ul className="space-y-2 text-sm leading-6 text-[#505a52]">
-                <li>Never predicts financial outcomes.</li>
-                <li>Never invents scripture references.</li>
-                <li>Encourages counsel for high-stakes choices.</li>
+                {ui.guardrailItems.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
               </ul>
             </section>
 
             <section className="rounded-lg border border-[#1d332e] bg-[#203a35] p-4 text-[#f8f5e8] shadow-sm">
               <div className="mb-4 flex items-center justify-between">
-                <h2 className="font-semibold">Wisdom mode</h2>
+                <h2 className="font-semibold">{ui.wisdomMode}</h2>
                 <Moon size={17} className="text-[#d0ad55]" />
               </div>
               <div className="space-y-2">
@@ -2001,7 +2304,7 @@ export function AletheiaApp() {
                 ))}
               </div>
               <div className="mt-4 rounded-lg border border-white/10 bg-white/8 p-3">
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#d0ad55]">Current lens</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#d0ad55]">{ui.currentLens}</p>
                 <p className="mt-2 text-sm leading-6 text-[#e7eee8]">{activeMode.intent}</p>
               </div>
             </section>
@@ -2019,6 +2322,7 @@ export function AletheiaApp() {
                   modeProfile={activeMode}
                   preferences={preferences}
                   copy={copy}
+                  ui={ui}
                   query={query}
                   setQuery={setQuery}
                   onAsk={handleAsk}
@@ -2161,6 +2465,7 @@ export function AletheiaApp() {
                   preferencesRef={preferencesRef}
                   preferences={preferences}
                   preferencesStatus={preferencesStatus}
+                  ui={ui}
                   manualContext={manualContext}
                   manualContextStatus={manualContextStatus}
                   copy={copy}
@@ -2190,11 +2495,11 @@ export function AletheiaApp() {
 
       <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[#c9d5cd] bg-[#fbfcf8]/95 px-2 pt-1 pb-[calc(0.45rem+env(safe-area-inset-bottom))] shadow-[0_-10px_28px_rgba(31,42,36,0.08)] backdrop-blur-xl md:hidden">
         <div className="mx-auto grid max-w-md grid-cols-5 gap-1">
-          <MobileNav active={activeView === "companion"} icon={Home} label="Home" onClick={() => showView("companion")} />
-          <MobileNav active={activeView === "decisions"} icon={FileText} label="Decide" onClick={() => showView("decisions")} />
-          <MobileNav active={activeView === "reflect"} icon={Feather} label="Reflect" onClick={() => showView("reflect")} />
-          <MobileNav active={activeView === "library"} icon={BookOpen} label="Library" onClick={() => showView("library")} />
-          <MobileNav active={activeView === "account"} icon={Users} label="Account" onClick={() => showView("account")} />
+          <MobileNav active={activeView === "companion"} icon={Home} label={ui.nav.companion} onClick={() => showView("companion")} />
+          <MobileNav active={activeView === "decisions"} icon={FileText} label={ui.decideShort} onClick={() => showView("decisions")} />
+          <MobileNav active={activeView === "reflect"} icon={Feather} label={ui.nav.reflect} onClick={() => showView("reflect")} />
+          <MobileNav active={activeView === "library"} icon={BookOpen} label={ui.nav.library} onClick={() => showView("library")} />
+          <MobileNav active={activeView === "account"} icon={Users} label={ui.nav.account} onClick={() => showView("account")} />
         </div>
       </div>
 
@@ -2711,6 +3016,7 @@ function AccountPanel({
   preferencesRef,
   preferences,
   preferencesStatus,
+  ui,
   manualContext,
   manualContextStatus,
   copy,
@@ -2752,6 +3058,7 @@ function AccountPanel({
   preferencesRef: RefObject<HTMLElement | null>;
   preferences: UserPreferences;
   preferencesStatus: string;
+  ui: (typeof uiText)[LanguageCode];
   manualContext: ManualContextProfile;
   manualContextStatus: string;
   copy: (typeof languageCopy)[LanguageCode];
@@ -2843,6 +3150,7 @@ function AccountPanel({
           panelRef={preferencesRef}
           preferences={preferences}
           status={preferencesStatus}
+          ui={ui}
           copy={copy}
           activeRegion={activeRegion}
           onChange={onPreferenceChange}
@@ -3639,6 +3947,7 @@ function ScriptureModal({
   const wisdomEntry = wisdomEntries.find((entry) => entry.scripture === canonicalScripture);
   const isLocalized = quickRead.availableLanguage === preferences.language;
   const usesCanonicalRange = canonicalScripture !== scripture;
+  const isSummary = quickRead.kind === "summary";
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-end bg-[#101814]/45 p-3 backdrop-blur-sm sm:place-items-center">
@@ -3668,7 +3977,11 @@ function ScriptureModal({
         <p className="mt-4 rounded-lg border border-[#d8e1db] bg-white/70 p-4 text-sm leading-7 text-[#303832]">
           {quickRead.text}
         </p>
-        {!isLocalized ? (
+        {isSummary ? (
+          <p className="mt-3 rounded-lg border border-[#d8e1db] bg-[#f4f6ef] p-3 text-xs leading-5 text-[#607067]">
+            Full public-domain verse text is not curated for {quickRead.translation} here yet, so Aletheia is showing a clearly marked summary instead of switching you to another Bible translation.
+          </p>
+        ) : !isLocalized ? (
           <p className="mt-3 rounded-lg border border-[#d8e1db] bg-[#f4f6ef] p-3 text-xs leading-5 text-[#607067]">
             A public-domain {selectedLanguage.name} reading is not available for this passage yet, so Aletheia is showing the safest curated reading available and keeping the reference exact.
           </p>
@@ -3830,6 +4143,7 @@ function PreferencesPanel({
   panelRef,
   preferences,
   status,
+  ui,
   copy,
   activeRegion,
   onChange,
@@ -3837,6 +4151,7 @@ function PreferencesPanel({
   panelRef: RefObject<HTMLElement | null>;
   preferences: UserPreferences;
   status: string;
+  ui: (typeof uiText)[LanguageCode];
   copy: (typeof languageCopy)[LanguageCode];
   activeRegion: (typeof regions)[RegionCode];
   onChange: (patch: Partial<UserPreferences>) => void;
@@ -3852,7 +4167,7 @@ function PreferencesPanel({
             <Languages size={17} />
           </div>
           <div>
-            <p className="text-sm font-semibold text-[#203a35]">Language and region</p>
+            <p className="text-sm font-semibold text-[#203a35]">{ui.preferencesTitle}</p>
             <p className="mt-1 text-sm leading-6 text-[#5b6a61]">{copy.onboarding}</p>
             <p className="mt-2 text-xs leading-5 text-[#718077]">{status}</p>
           </div>
@@ -3860,7 +4175,7 @@ function PreferencesPanel({
 
         <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
           <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#52635a]">
-            Language
+            {ui.language}
             <select
               value={preferences.language}
               onChange={(event) => onChange(preferencePatchForLanguage(event.target.value as LanguageCode))}
@@ -3874,7 +4189,7 @@ function PreferencesPanel({
             </select>
           </label>
           <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#52635a]">
-            Region
+            {ui.region}
             <select
               value={preferences.region}
               onChange={(event) => onChange({ region: event.target.value as RegionCode })}
@@ -3888,7 +4203,7 @@ function PreferencesPanel({
             </select>
           </label>
           <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#52635a]">
-            Bible
+            {ui.bible}
             <select
               value={preferences.bibleTranslation}
               onChange={(event) => onChange({ bibleTranslation: event.target.value as BibleTranslation })}
@@ -3898,7 +4213,7 @@ function PreferencesPanel({
                 const translation = bibleTranslations[code];
                 return (
                 <option key={code} value={code}>
-                  {translation.language === preferences.language ? "Available" : "English fallback"} · {code} - {translation.label}
+                  {translation.language === preferences.language ? ui.available : ui.englishFallback} · {code} - {translation.label}
                 </option>
                 );
               })}
@@ -3914,7 +4229,7 @@ function PreferencesPanel({
               onChange={(event) => onChange({ voiceEnabled: event.target.checked })}
               className="size-4 accent-[#203a35]"
             />
-            Voice controls
+            {ui.voiceControls}
           </label>
         </div>
       </div>
@@ -3936,6 +4251,7 @@ function CompanionPanel({
   modeProfile,
   preferences,
   copy,
+  ui,
   query,
   setQuery,
   onAsk,
@@ -3962,6 +4278,7 @@ function CompanionPanel({
   modeProfile: ModeProfile;
   preferences: UserPreferences;
   copy: (typeof languageCopy)[LanguageCode];
+  ui: (typeof uiText)[LanguageCode];
   query: string;
   setQuery: (value: string) => void;
   onAsk: (event: FormEvent<HTMLFormElement>) => void;
@@ -4008,10 +4325,10 @@ function CompanionPanel({
           <div>
             <div className="flex items-center gap-2 text-lg font-semibold text-[#203a35]">
               <MessageCircle size={18} />
-              Ask Aletheia
+              {ui.askTitle}
             </div>
             <p className="mt-1 text-sm leading-5 text-[#5a685f]">
-              Start with one honest question. Aletheia will slow the moment down and help you discern clearly.
+              {ui.askIntro}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -4025,7 +4342,7 @@ function CompanionPanel({
         <form onSubmit={onAsk} className="bg-[#f8faf6]/88 p-3 sm:p-5">
           <div className="rounded-lg border border-[#c4d2ca] bg-white/92 p-3 shadow-sm sm:p-4">
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">Your question</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">{ui.yourQuestion}</p>
               <span className="rounded-md border border-[#d7e0da] bg-[#edf2ee] px-2 py-1 text-xs font-semibold text-[#52635a]">
                 {modeProfile.focus}
               </span>
@@ -4078,7 +4395,7 @@ function CompanionPanel({
                 className="inline-flex h-11 w-full shrink-0 items-center justify-center gap-2 rounded-md bg-[#203a35] px-5 text-sm font-semibold text-[#f8f5e8] shadow-lg shadow-[#203a35]/15 transition hover:bg-[#284b43] disabled:opacity-60 sm:w-auto"
               >
                 <Send size={17} />
-                {isWorking ? "Listening..." : "Ask"}
+                {isWorking ? "..." : ui.askButton}
               </button>
             </div>
             <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
@@ -4109,6 +4426,7 @@ function CompanionPanel({
                 mode={mode}
                 modeProfile={modeProfile}
                 preferences={preferences}
+                ui={ui}
                 isWorking={isWorking}
                 onScriptureOpen={onScriptureOpen}
                 onTrackDecision={onTrackDecision}
@@ -4158,7 +4476,7 @@ function CompanionPanel({
 
       <aside className="space-y-4">
         <section className="rounded-lg border border-[#d7e0da] bg-[#fbfcf8]/72 p-4 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">What this mode is for</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">{ui.whatModeFor}</p>
           <h2 className="mt-2 font-semibold text-[#203a35]">{modeProfile.label}: {modeProfile.intent}</h2>
           <p className="mt-2 text-sm leading-6 text-[#55645b]">{modeProfile.useWhen}</p>
           <p className="mt-3 rounded-lg border border-[#d8e1db] bg-white/64 p-3 text-sm leading-6 text-[#45534b]">
@@ -4167,7 +4485,7 @@ function CompanionPanel({
         </section>
 
         <section className="rounded-xl border border-[#c9d5cd] bg-[#203a35] p-4 text-[#f8f5e8] shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#d0ad55]">Deep checks</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#d0ad55]">{ui.deepChecks}</p>
           <div className="mt-3 space-y-3">
             {modeProfile.diagnosticTracks.slice(0, 3).map((track) => (
               <div key={track} className="rounded-lg border border-white/10 bg-white/7 p-3">
@@ -4178,7 +4496,7 @@ function CompanionPanel({
         </section>
 
         <section className="rounded-lg border border-[#d7e0da] bg-[#fbfcf8]/72 p-4 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">Blind spots</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">{ui.blindSpots}</p>
           <ul className="mt-3 space-y-2 text-sm leading-6 text-[#55645b]">
             {modeProfile.blindSpots.slice(0, 3).map((spot) => (
               <li key={spot} className="rounded-lg border border-[#d8e1db] bg-white/60 px-3 py-2">
@@ -4189,7 +4507,7 @@ function CompanionPanel({
         </section>
 
         <section className="rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">Maturity signals</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">{ui.maturitySignals}</p>
           <ul className="mt-3 space-y-2 text-sm leading-6 text-[#55645b]">
             {modeProfile.maturitySignals.slice(0, 3).map((signal) => (
               <li key={signal} className="flex gap-2">
@@ -4200,7 +4518,7 @@ function CompanionPanel({
           </ul>
         </section>
 
-        <TrustLayerPanel />
+        <TrustLayerPanel ui={ui} />
         </aside>
       </div>
       ) : null}
@@ -4305,12 +4623,12 @@ function ScriptureLinkedText({
   return <p className="whitespace-pre-wrap text-sm leading-6 text-[#303832]">{nodes}</p>;
 }
 
-function TrustLayerPanel() {
+function TrustLayerPanel({ ui }: { ui: (typeof uiText)[LanguageCode] }) {
   return (
     <section className="rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm">
       <div className="flex items-center gap-2">
         <ShieldCheck size={17} className="text-[#203a35]" />
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">Trust layer</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">{ui.trustLayer}</p>
       </div>
       <div className="mt-3 space-y-3 text-sm leading-6 text-[#55645b]">
         <p className="rounded-lg border border-[#d8e1db] bg-white/64 p-3">
@@ -4335,6 +4653,7 @@ function CurrentCounselCard({
   mode,
   modeProfile,
   preferences,
+  ui,
   isWorking,
   onScriptureOpen,
   onTrackDecision,
@@ -4349,6 +4668,7 @@ function CurrentCounselCard({
   mode: Mode;
   modeProfile: ModeProfile;
   preferences: UserPreferences;
+  ui: (typeof uiText)[LanguageCode];
   isWorking: boolean;
   onScriptureOpen: (scripture: string) => void;
   onTrackDecision: (exchange: ConversationExchange) => void;
@@ -4367,10 +4687,10 @@ function CurrentCounselCard({
     <section className="rounded-lg border border-[#d7e0da] bg-white/76 p-3 shadow-sm sm:p-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">
-          {question ? "Current counsel" : "Start here"}
+          {question ? "Current counsel" : ui.startHere}
         </p>
         <span className={`rounded-md px-2 py-1 text-xs font-semibold ${isThinking || isWorking ? "bg-[#fff8dc] text-[#866a24]" : "bg-[#edf7f1] text-[#245443]"}`}>
-          {isThinking || isWorking ? "Listening" : "Ready"}
+          {isThinking || isWorking ? "..." : ui.ready}
         </span>
       </div>
       {question ? (
