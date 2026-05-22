@@ -14,6 +14,8 @@ import {
   Home,
   MessageCircle,
   Moon,
+  Sun,
+  Monitor,
   PiggyBank,
   Plus,
   Scale,
@@ -66,6 +68,8 @@ type AuthStatus = "checking" | "guest" | "signing-in" | "signed-in" | "signing-o
 type AnalyticsMetadata = Record<string, string | number | boolean | null>;
 type ShareChannel = "native" | "copy" | "whatsapp" | "facebook" | "x" | "linkedin" | "email" | "sms";
 type WorkflowTone = "info" | "success" | "warning" | "error";
+type ThemePreference = "classic" | "dark" | "system";
+type ResolvedTheme = "classic" | "dark";
 type WorkflowNoticeState = {
   id: string;
   title: string;
@@ -76,6 +80,7 @@ type WorkflowNoticeState = {
 const ALETHEIA_SHARE_URL = "https://aletheia.mirrortalkpodcast.com?ref=share";
 const ALETHEIA_SHARE_TEXT = "Aletheia is a calm AI-powered biblical wisdom companion for money, work, and stewardship.";
 const MANUAL_CONTEXT_STORAGE_KEY = "aletheia_manual_context";
+const THEME_STORAGE_KEY = "aletheia_theme_preference";
 
 const languageFlags: Record<LanguageCode, string> = {
   en: "🇺🇸",
@@ -111,6 +116,10 @@ const uiText: Record<
     deepChecks: string;
     blindSpots: string;
     maturitySignals: string;
+    modeGuidance: string;
+    showDetails: string;
+    hideDetails: string;
+    modeGuidancePreview: string;
     trustLayer: string;
     preferencesTitle: string;
     language: string;
@@ -142,6 +151,10 @@ const uiText: Record<
     deepChecks: "Deep checks",
     blindSpots: "Blind spots",
     maturitySignals: "Maturity signals",
+    modeGuidance: "Mode guidance",
+    showDetails: "Show details",
+    hideDetails: "Hide details",
+    modeGuidancePreview: "Keep this view focused. Expand when you want deeper checks, blind spots, and maturity signals.",
     trustLayer: "Trust layer",
     preferencesTitle: "Language and region",
     language: "Language",
@@ -172,6 +185,10 @@ const uiText: Record<
     deepChecks: "Revisiones profundas",
     blindSpots: "Puntos ciegos",
     maturitySignals: "Señales de madurez",
+    modeGuidance: "Guía del modo",
+    showDetails: "Mostrar detalles",
+    hideDetails: "Ocultar detalles",
+    modeGuidancePreview: "Mantén esta vista enfocada. Expande cuando quieras revisar señales profundas, puntos ciegos y madurez.",
     trustLayer: "Capa de confianza",
     preferencesTitle: "Idioma y región",
     language: "Idioma",
@@ -202,6 +219,10 @@ const uiText: Record<
     deepChecks: "Vérifications profondes",
     blindSpots: "Angles morts",
     maturitySignals: "Signes de maturité",
+    modeGuidance: "Repères du mode",
+    showDetails: "Afficher les détails",
+    hideDetails: "Masquer les détails",
+    modeGuidancePreview: "Garde cette vue concentrée. Déploie-la pour voir les vérifications profondes, angles morts et signes de maturité.",
     trustLayer: "Couche de confiance",
     preferencesTitle: "Langue et région",
     language: "Langue",
@@ -232,6 +253,10 @@ const uiText: Record<
     deepChecks: "Verificações profundas",
     blindSpots: "Pontos cegos",
     maturitySignals: "Sinais de maturidade",
+    modeGuidance: "Guia do modo",
+    showDetails: "Mostrar detalhes",
+    hideDetails: "Ocultar detalhes",
+    modeGuidancePreview: "Mantenha esta visão focada. Expanda quando quiser ver verificações profundas, pontos cegos e sinais de maturidade.",
     trustLayer: "Camada de confiança",
     preferencesTitle: "Idioma e região",
     language: "Idioma",
@@ -262,6 +287,10 @@ const uiText: Record<
     deepChecks: "Tiefe Prüfungen",
     blindSpots: "Blinde Flecken",
     maturitySignals: "Reifezeichen",
+    modeGuidance: "Modus-Hinweise",
+    showDetails: "Details zeigen",
+    hideDetails: "Details ausblenden",
+    modeGuidancePreview: "Halte diese Ansicht fokussiert. Erweitere sie, wenn du tiefere Prüfungen, blinde Flecken und Reifezeichen sehen möchtest.",
     trustLayer: "Vertrauensebene",
     preferencesTitle: "Sprache und Region",
     language: "Sprache",
@@ -292,6 +321,10 @@ const uiText: Record<
     deepChecks: "Àyẹ̀wò jinlẹ̀",
     blindSpots: "Àwọn ibi tí a lè má rí",
     maturitySignals: "Àmì ìdagbasoke",
+    modeGuidance: "Ìtọ́nisọ́nà ipo",
+    showDetails: "Fi àlàyé hàn",
+    hideDetails: "Pa àlàyé mọ́",
+    modeGuidancePreview: "Jẹ́ kí ojú-ìwòye yìí dojú kọ ohun pàtàkì. Ṣí i síi nígbà tí o bá fẹ́ àyẹ̀wò jinlẹ̀, ibi tí a lè má rí, àti àmì ìdagbasoke.",
     trustLayer: "Ìpele ìgbẹ́kẹ̀lé",
     preferencesTitle: "Èdè àti agbègbè",
     language: "Èdè",
@@ -322,6 +355,10 @@ const uiText: Record<
     deepChecks: "Nlele miri emi",
     blindSpots: "Ihe nwere ike ifu anya",
     maturitySignals: "Ihe ngosi ntozu",
+    modeGuidance: "Nduzi ụdị",
+    showDetails: "Gosi nkọwa",
+    hideDetails: "Zoo nkọwa",
+    modeGuidancePreview: "Debe echiche a ka ọ dị mfe. Mepee ya mgbe ịchọrọ nlele miri emi, ihe nwere ike ifu anya, na ihe ngosi ntozu.",
     trustLayer: "Ogo ntụkwasị obi",
     preferencesTitle: "Asụsụ na mpaghara",
     language: "Asụsụ",
@@ -352,6 +389,10 @@ const uiText: Record<
     deepChecks: "Bincike mai zurfi",
     blindSpots: "Abubuwan da ka iya boye",
     maturitySignals: "Alamun balaga",
+    modeGuidance: "Jagorar yanayi",
+    showDetails: "Nuna bayani",
+    hideDetails: "Boyar da bayani",
+    modeGuidancePreview: "Ka wannan kallo ya kasance mai sauki. Bude shi idan kana son bincike mai zurfi, abubuwan da ka iya boye, da alamun balaga.",
     trustLayer: "Matakin amincewa",
     preferencesTitle: "Harshe da yanki",
     language: "Harshe",
@@ -403,6 +444,21 @@ function storedManualContext() {
   } catch {
     return defaultManualContext;
   }
+}
+
+function storedThemePreference(): ThemePreference {
+  if (typeof window === "undefined") {
+    return "system";
+  }
+  try {
+    const value = window.localStorage.getItem(THEME_STORAGE_KEY);
+    if (value === "classic" || value === "dark" || value === "system") {
+      return value;
+    }
+  } catch {
+    // Fall through to system.
+  }
+  return "system";
 }
 
 function shouldShowOnboarding() {
@@ -887,6 +943,8 @@ export function AletheiaApp() {
   const [preferencesStatus, setPreferencesStatus] = useState("Language settings are ready.");
   const [manualContext, setManualContext] = useState<ManualContextProfile>(storedManualContext);
   const [manualContextStatus, setManualContextStatus] = useState("Manual context is private and optional.");
+  const [themePreference, setThemePreference] = useState<ThemePreference>(storedThemePreference);
+  const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>("classic");
   const [showOnboarding, setShowOnboarding] = useState(shouldShowOnboarding);
   const [onboardingConcern, setOnboardingConcern] = useState("");
   const [onboardingTone, setOnboardingTone] = useState("gentle");
@@ -946,6 +1004,24 @@ export function AletheiaApp() {
     const timeout = window.setTimeout(() => setWorkflowNotice(null), 6500);
     return () => window.clearTimeout(timeout);
   }, [workflowNotice]);
+
+  useEffect(() => {
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+    const applyTheme = () => {
+      const next = themePreference === "system" ? (media.matches ? "dark" : "classic") : themePreference;
+      setResolvedTheme(next);
+      document.documentElement.dataset.theme = next;
+    };
+
+    applyTheme();
+    media.addEventListener("change", applyTheme);
+    try {
+      window.localStorage.setItem(THEME_STORAGE_KEY, themePreference);
+    } catch {
+      // Ignore storage errors.
+    }
+    return () => media.removeEventListener("change", applyTheme);
+  }, [themePreference]);
 
   async function loadSignedInWorkspace(signedInUser: User) {
     const [chatResponse, journalResponse, notificationResponse, decisionsResponse, counselResponse, rulesResponse, preferencesResponse, contextResponse] = await Promise.all([
@@ -2193,8 +2269,14 @@ export function AletheiaApp() {
   }
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-[#eef2ef] text-[#171917]">
-      <div className="fixed inset-0 -z-10 bg-[radial-gradient(circle_at_18%_0%,rgba(201,177,123,0.16),transparent_24%),radial-gradient(circle_at_92%_16%,rgba(64,101,96,0.14),transparent_24%),linear-gradient(180deg,#f4f6f2_0%,#e4ebe6_100%)]" />
+    <main className={`min-h-screen overflow-x-hidden bg-[#eef2ef] text-[#171917] ${resolvedTheme === "dark" ? "theme-dark-root" : ""}`}>
+      <div
+        className={`fixed inset-0 -z-10 ${
+          resolvedTheme === "dark"
+            ? "bg-[radial-gradient(circle_at_18%_0%,rgba(194,162,88,0.18),transparent_26%),radial-gradient(circle_at_92%_14%,rgba(73,122,107,0.22),transparent_25%),linear-gradient(180deg,#0e1514_0%,#090f0e_100%)]"
+            : "bg-[radial-gradient(circle_at_18%_0%,rgba(201,177,123,0.16),transparent_24%),radial-gradient(circle_at_92%_16%,rgba(64,101,96,0.14),transparent_24%),linear-gradient(180deg,#f4f6f2_0%,#e4ebe6_100%)]"
+        }`}
+      />
       <WorkflowNotice notice={workflowNotice} onClose={() => setWorkflowNotice(null)} />
 
       <nav className="sticky top-0 z-30 border-b border-[#c9d5cd]/70 bg-[#eef2ef]/88 px-3 py-3 backdrop-blur-xl sm:px-4">
@@ -2470,7 +2552,9 @@ export function AletheiaApp() {
                   manualContextStatus={manualContextStatus}
                   copy={copy}
                   activeRegion={activeRegion}
+                  themePreference={themePreference}
                   onPreferenceChange={updatePreferences}
+                  onThemePreferenceChange={setThemePreference}
                   onManualContextChange={updateManualContext}
                   notificationsEnabled={notificationsEnabled}
                   notificationsConfigured={notificationsConfigured}
@@ -2588,6 +2672,28 @@ function ModeButton({ item, active, onClick }: { item: (typeof modes)[number]; a
       <span>
         <span className="block text-sm font-semibold">{item.label}</span>
         <span className="mt-1 block text-xs leading-5 text-[#dbe4dd]">{item.copy}</span>
+      </span>
+    </button>
+  );
+}
+
+function ModeLensCard({ item, active, onClick }: { item: (typeof modes)[number]; active: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex items-start gap-3 rounded-md border p-3 text-left transition ${
+        active
+          ? "border-[#203a35] bg-[#203a35] text-[#f8f5e8] shadow-md"
+          : "border-[#d8e1db] bg-[#fbfcf8] text-[#203a35] hover:border-[#203a35] hover:bg-white"
+      }`}
+    >
+      <span className={`mt-0.5 grid size-8 shrink-0 place-items-center rounded-md ${active ? "bg-white/12 text-[#d0ad55]" : "bg-[#edf2ee] text-[#203a35]"}`}>
+        <item.icon size={16} />
+      </span>
+      <span className="min-w-0">
+        <span className="block text-sm font-semibold">{item.label}</span>
+        <span className={`mt-1 block text-xs leading-5 ${active ? "text-[#dbe6df]" : "text-[#607067]"}`}>{item.copy}</span>
       </span>
     </button>
   );
@@ -3021,7 +3127,9 @@ function AccountPanel({
   manualContextStatus,
   copy,
   activeRegion,
+  themePreference,
   onPreferenceChange,
+  onThemePreferenceChange,
   onManualContextChange,
   notificationsEnabled,
   notificationsConfigured,
@@ -3063,7 +3171,9 @@ function AccountPanel({
   manualContextStatus: string;
   copy: (typeof languageCopy)[LanguageCode];
   activeRegion: (typeof regions)[RegionCode];
+  themePreference: ThemePreference;
   onPreferenceChange: (patch: Partial<UserPreferences>) => void;
+  onThemePreferenceChange: (value: ThemePreference) => void;
   onManualContextChange: (patch: Partial<ManualContextProfile>) => void;
   notificationsEnabled: boolean;
   notificationsConfigured: boolean;
@@ -3154,6 +3264,8 @@ function AccountPanel({
           copy={copy}
           activeRegion={activeRegion}
           onChange={onPreferenceChange}
+          themePreference={themePreference}
+          onThemePreferenceChange={onThemePreferenceChange}
         />
 
         <ManualContextPanel
@@ -3327,27 +3439,27 @@ function ManualContextPanel({
     { key: "mustNotSacrifice", label: "Must not sacrifice", placeholder: "Peace, integrity, family time, Sabbath, health..." },
     { key: "boundaries", label: "Guidance boundaries", placeholder: "What Aletheia should avoid assuming or overemphasizing..." },
   ];
-  const moneyNumberFields: Array<{ key: keyof Pick<ManualContextProfile, "monthlyIncome" | "fixedExpenses" | "debtPayments" | "savingsBufferMonths" | "givingTargetPercent" | "financialDependents">; label: string; step?: string }> = [
-    { key: "monthlyIncome", label: "Monthly income" },
-    { key: "fixedExpenses", label: "Fixed monthly expenses" },
-    { key: "debtPayments", label: "Monthly debt payments" },
-    { key: "savingsBufferMonths", label: "Savings buffer (months)", step: "0.1" },
-    { key: "givingTargetPercent", label: "Giving target (%)", step: "0.1" },
-    { key: "financialDependents", label: "Financial dependents", step: "1" },
+  const moneyNumberFields: Array<{ key: keyof Pick<ManualContextProfile, "monthlyIncome" | "fixedExpenses" | "debtPayments" | "savingsBufferMonths" | "givingTargetPercent" | "financialDependents">; label: string; step?: number; min: number; max: number }> = [
+    { key: "monthlyIncome", label: "Monthly income", step: 100, min: 0, max: 50000 },
+    { key: "fixedExpenses", label: "Fixed monthly expenses", step: 100, min: 0, max: 50000 },
+    { key: "debtPayments", label: "Monthly debt payments", step: 50, min: 0, max: 20000 },
+    { key: "savingsBufferMonths", label: "Savings buffer (months)", step: 0.1, min: 0, max: 60 },
+    { key: "givingTargetPercent", label: "Giving target (%)", step: 0.5, min: 0, max: 100 },
+    { key: "financialDependents", label: "Financial dependents", step: 1, min: 0, max: 20 },
   ];
-  const lifeNumberFields: Array<{ key: keyof Pick<ManualContextProfile, "workHoursPerWeek" | "commuteHoursPerWeek" | "sleepHours" | "exerciseSessionsPerWeek" | "timeWithLovedOnesHoursPerWeek" | "timeWithCommunityHoursPerWeek">; label: string; step?: string }> = [
-    { key: "workHoursPerWeek", label: "Work hours per week", step: "0.5" },
-    { key: "commuteHoursPerWeek", label: "Commute hours per week", step: "0.5" },
-    { key: "sleepHours", label: "Sleep hours (avg/day)", step: "0.1" },
-    { key: "exerciseSessionsPerWeek", label: "Exercise sessions/week", step: "1" },
-    { key: "timeWithLovedOnesHoursPerWeek", label: "Hours with loved ones/week", step: "0.5" },
-    { key: "timeWithCommunityHoursPerWeek", label: "Hours with community/week", step: "0.5" },
+  const lifeNumberFields: Array<{ key: keyof Pick<ManualContextProfile, "workHoursPerWeek" | "commuteHoursPerWeek" | "sleepHours" | "exerciseSessionsPerWeek" | "timeWithLovedOnesHoursPerWeek" | "timeWithCommunityHoursPerWeek">; label: string; step?: number; min: number; max: number }> = [
+    { key: "workHoursPerWeek", label: "Work hours per week", step: 0.5, min: 0, max: 120 },
+    { key: "commuteHoursPerWeek", label: "Commute hours per week", step: 0.5, min: 0, max: 60 },
+    { key: "sleepHours", label: "Sleep hours (avg/day)", step: 0.1, min: 0, max: 24 },
+    { key: "exerciseSessionsPerWeek", label: "Exercise sessions/week", step: 1, min: 0, max: 30 },
+    { key: "timeWithLovedOnesHoursPerWeek", label: "Hours with loved ones/week", step: 0.5, min: 0, max: 120 },
+    { key: "timeWithCommunityHoursPerWeek", label: "Hours with community/week", step: 0.5, min: 0, max: 120 },
   ];
-  const signalFields: Array<{ key: keyof Pick<ManualContextProfile, "stressLevel" | "energyDrainLevel" | "urgencyLevel" | "supportLevel">; label: string }> = [
-    { key: "stressLevel", label: "Stress (0-10)" },
-    { key: "energyDrainLevel", label: "Energy drain (0-10)" },
-    { key: "urgencyLevel", label: "Urgency pressure (0-10)" },
-    { key: "supportLevel", label: "Support strength (0-10)" },
+  const signalFields: Array<{ key: keyof Pick<ManualContextProfile, "stressLevel" | "energyDrainLevel" | "urgencyLevel" | "supportLevel">; label: string; min: number; max: number }> = [
+    { key: "stressLevel", label: "Stress (0-10)", min: 0, max: 10 },
+    { key: "energyDrainLevel", label: "Energy drain (0-10)", min: 0, max: 10 },
+    { key: "urgencyLevel", label: "Urgency pressure (0-10)", min: 0, max: 10 },
+    { key: "supportLevel", label: "Support strength (0-10)", min: 0, max: 10 },
   ];
   const preferenceFields: Array<{ key: keyof Pick<ManualContextProfile, "riskTolerance" | "waitingPreference" | "counselCadence" | "successDefinition">; label: string; placeholder: string }> = [
     { key: "riskTolerance", label: "Risk tolerance", placeholder: "Conservative, moderate, aggressive, depends on season..." },
@@ -3421,22 +3533,15 @@ function ManualContextPanel({
             <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#52635a]">Money signals</p>
             <div className="grid gap-3 md:grid-cols-2">
               {moneyNumberFields.map((field) => (
-                <label key={field.key} className="text-xs font-semibold uppercase tracking-[0.12em] text-[#52635a]">
-                  {field.label}
-                  <input
-                    inputMode="decimal"
-                    type="number"
-                    step={field.step ?? "0.01"}
-                    value={draft[field.key] ?? ""}
-                    onChange={(event) =>
-                      setDraft((current) => ({
-                        ...current,
-                        [field.key]: event.target.value === "" ? null : Number(event.target.value),
-                      }))
-                    }
-                    className="mt-2 h-10 w-full rounded-md border border-[#c9d5cd] bg-white/78 px-3 text-sm normal-case tracking-normal text-[#203a35] outline-none focus:border-[#203a35]"
-                  />
-                </label>
+                <RangeField
+                  key={field.key}
+                  label={field.label}
+                  value={draft[field.key]}
+                  min={field.min}
+                  max={field.max}
+                  step={field.step ?? 1}
+                  onChange={(value) => setDraft((current) => ({ ...current, [field.key]: value }))}
+                />
               ))}
             </div>
           </div>
@@ -3445,22 +3550,15 @@ function ManualContextPanel({
             <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#52635a]">Life rhythms</p>
             <div className="grid gap-3 md:grid-cols-2">
               {lifeNumberFields.map((field) => (
-                <label key={field.key} className="text-xs font-semibold uppercase tracking-[0.12em] text-[#52635a]">
-                  {field.label}
-                  <input
-                    inputMode="decimal"
-                    type="number"
-                    step={field.step ?? "0.1"}
-                    value={draft[field.key] ?? ""}
-                    onChange={(event) =>
-                      setDraft((current) => ({
-                        ...current,
-                        [field.key]: event.target.value === "" ? null : Number(event.target.value),
-                      }))
-                    }
-                    className="mt-2 h-10 w-full rounded-md border border-[#c9d5cd] bg-white/78 px-3 text-sm normal-case tracking-normal text-[#203a35] outline-none focus:border-[#203a35]"
-                  />
-                </label>
+                <RangeField
+                  key={field.key}
+                  label={field.label}
+                  value={draft[field.key]}
+                  min={field.min}
+                  max={field.max}
+                  step={field.step ?? 1}
+                  onChange={(value) => setDraft((current) => ({ ...current, [field.key]: value }))}
+                />
               ))}
             </div>
           </div>
@@ -3469,24 +3567,15 @@ function ManualContextPanel({
             <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#52635a]">Discernment signals</p>
             <div className="grid gap-3 md:grid-cols-2">
               {signalFields.map((field) => (
-                <label key={field.key} className="text-xs font-semibold uppercase tracking-[0.12em] text-[#52635a]">
-                  {field.label}
-                  <input
-                    inputMode="numeric"
-                    type="number"
-                    min={0}
-                    max={10}
-                    step="1"
-                    value={draft[field.key] ?? ""}
-                    onChange={(event) =>
-                      setDraft((current) => ({
-                        ...current,
-                        [field.key]: event.target.value === "" ? null : Number(event.target.value),
-                      }))
-                    }
-                    className="mt-2 h-10 w-full rounded-md border border-[#c9d5cd] bg-white/78 px-3 text-sm normal-case tracking-normal text-[#203a35] outline-none focus:border-[#203a35]"
-                  />
-                </label>
+                <RangeField
+                  key={field.key}
+                  label={field.label}
+                  value={draft[field.key]}
+                  min={field.min}
+                  max={field.max}
+                  step={1}
+                  onChange={(value) => setDraft((current) => ({ ...current, [field.key]: value }))}
+                />
               ))}
             </div>
           </div>
@@ -4147,6 +4236,8 @@ function PreferencesPanel({
   copy,
   activeRegion,
   onChange,
+  themePreference,
+  onThemePreferenceChange,
 }: {
   panelRef: RefObject<HTMLElement | null>;
   preferences: UserPreferences;
@@ -4155,6 +4246,8 @@ function PreferencesPanel({
   copy: (typeof languageCopy)[LanguageCode];
   activeRegion: (typeof regions)[RegionCode];
   onChange: (patch: Partial<UserPreferences>) => void;
+  themePreference: ThemePreference;
+  onThemePreferenceChange: (value: ThemePreference) => void;
 }) {
   const bibleOptions = bibleTranslationOptionsForLanguage(preferences.language);
   const selectedTranslation = bibleTranslations[preferences.bibleTranslation];
@@ -4233,6 +4326,29 @@ function PreferencesPanel({
           </label>
         </div>
       </div>
+      <div className="mt-3 rounded-md border border-[#d8e1db] bg-white/58 p-3">
+        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#52635a]">Appearance</p>
+        <div className="mt-2 inline-flex gap-2 rounded-md border border-[#c9d5cd] bg-white/72 p-1">
+          <ThemeOptionButton
+            icon={Sun}
+            label="Classic"
+            active={themePreference === "classic"}
+            onClick={() => onThemePreferenceChange("classic")}
+          />
+          <ThemeOptionButton
+            icon={Moon}
+            label="Dark"
+            active={themePreference === "dark"}
+            onClick={() => onThemePreferenceChange("dark")}
+          />
+          <ThemeOptionButton
+            icon={Monitor}
+            label="System"
+            active={themePreference === "system"}
+            onClick={() => onThemePreferenceChange("system")}
+          />
+        </div>
+      </div>
       <div className="mt-3 grid gap-2 text-xs leading-5 text-[#607067] md:grid-cols-3">
         <p className="rounded-md border border-[#d8e1db] bg-white/50 p-3">{copy.translationFallback}</p>
         <p className="rounded-md border border-[#d8e1db] bg-white/50 p-3">{copy.regionHint}</p>
@@ -4303,6 +4419,7 @@ function CompanionPanel({
   const panelRef = useRef<HTMLElement | null>(null);
   const currentCounselRef = useRef<HTMLDivElement | null>(null);
   const [expandedHistoryId, setExpandedHistoryId] = useState<string | null>(null);
+  const [showSidebarDeep, setShowSidebarDeep] = useState(false);
   const exchanges = conversationExchanges(messages);
   const currentExchange = exchanges[exchanges.length - 1] ?? null;
   const history = exchanges.slice(0, -1).reverse();
@@ -4332,8 +4449,8 @@ function CompanionPanel({
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <span className="w-fit rounded-md border border-[#d7e0da] bg-[#edf2ee] px-2 py-1 text-xs font-semibold text-[#52635a]">{mode} lens</span>
-            <span className="w-fit rounded-md border border-[#eadfbd] bg-[#f5edda] px-2 py-1 text-xs font-semibold text-[#72591f]">
+            <span className="w-fit rounded-sm bg-[#edf2ee] px-2 py-1 text-xs font-semibold text-[#52635a]">{mode} lens</span>
+            <span className="w-fit rounded-sm bg-[#f5edda] px-2 py-1 text-xs font-semibold text-[#72591f]">
               {languages[preferences.language].nativeName} · {preferences.bibleTranslation}
             </span>
           </div>
@@ -4343,24 +4460,18 @@ function CompanionPanel({
           <div className="rounded-lg border border-[#c4d2ca] bg-white/92 p-3 shadow-sm sm:p-4">
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">{ui.yourQuestion}</p>
-              <span className="rounded-md border border-[#d7e0da] bg-[#edf2ee] px-2 py-1 text-xs font-semibold text-[#52635a]">
+              <span className="rounded-sm bg-[#edf2ee] px-2 py-1 text-xs font-semibold text-[#52635a]">
                 {modeProfile.focus}
               </span>
             </div>
-            <div className="mb-3 flex gap-1 overflow-x-auto pb-1">
+            <div className="mb-3 grid gap-2 sm:grid-cols-2">
               {modes.map((item) => (
-                <button
+                <ModeLensCard
                   key={item.label}
-                  type="button"
+                  item={item}
+                  active={mode === item.label}
                   onClick={() => onModeChange(item.label)}
-                  className={`shrink-0 rounded-md border px-3 py-1.5 text-xs font-semibold transition ${
-                    mode === item.label
-                      ? "border-[#203a35] bg-[#203a35] text-[#f8f5e8]"
-                      : "border-[#d8e1db] bg-[#fbfcf8] text-[#52635a] hover:border-[#203a35]"
-                  }`}
-                >
-                  {item.label}
-                </button>
+                />
               ))}
             </div>
             <div className="flex flex-col gap-3 sm:flex-row">
@@ -4405,7 +4516,7 @@ function CompanionPanel({
                   type="button"
                   onClick={() => onDraftPrompt(prompt)}
                   disabled={isWorking}
-                  className="shrink-0 rounded-md border border-[#d8e1db] bg-[#fbfcf8] px-3 py-2 text-left text-xs font-semibold leading-5 text-[#52635a] transition hover:border-[#203a35] hover:bg-white disabled:opacity-60"
+                  className="shrink-0 rounded-md border border-[#cad6cf] bg-white px-3 py-2 text-left text-xs font-semibold leading-5 text-[#395148] shadow-sm transition hover:border-[#203a35] hover:shadow disabled:opacity-60"
                 >
                   {prompt}
                 </button>
@@ -4449,7 +4560,7 @@ function CompanionPanel({
                     Older counsel is kept quiet so the current question stays clear.
                   </p>
                 </div>
-                <span className="w-fit rounded-md bg-[#edf2ee] px-2 py-1 text-xs font-semibold text-[#52635a]">
+                <span className="w-fit rounded-sm bg-[#edf2ee] px-2 py-1 text-xs font-semibold text-[#52635a]">
                   {history.length} saved
                 </span>
               </div>
@@ -4475,7 +4586,7 @@ function CompanionPanel({
         </section>
 
       <aside className="space-y-4">
-        <section className="rounded-lg border border-[#d7e0da] bg-[#fbfcf8]/72 p-4 shadow-sm">
+        <section className="editorial-sidebar rounded-lg border border-[#d7e0da] bg-[#fbfcf8]/72 p-4 shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">{ui.whatModeFor}</p>
           <h2 className="mt-2 font-semibold text-[#203a35]">{modeProfile.label}: {modeProfile.intent}</h2>
           <p className="mt-2 text-sm leading-6 text-[#55645b]">{modeProfile.useWhen}</p>
@@ -4484,38 +4595,52 @@ function CompanionPanel({
           </p>
         </section>
 
-        <section className="rounded-xl border border-[#c9d5cd] bg-[#203a35] p-4 text-[#f8f5e8] shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#d0ad55]">{ui.deepChecks}</p>
-          <div className="mt-3 space-y-3">
-            {modeProfile.diagnosticTracks.slice(0, 3).map((track) => (
-              <div key={track} className="rounded-lg border border-white/10 bg-white/7 p-3">
-                <p className="text-sm leading-6 text-[#edf4ee]">{track}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section className="rounded-lg border border-[#d7e0da] bg-[#fbfcf8]/72 p-4 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">{ui.blindSpots}</p>
-          <ul className="mt-3 space-y-2 text-sm leading-6 text-[#55645b]">
-            {modeProfile.blindSpots.slice(0, 3).map((spot) => (
-              <li key={spot} className="rounded-lg border border-[#d8e1db] bg-white/60 px-3 py-2">
-                {spot}
-              </li>
-            ))}
-          </ul>
-        </section>
-
         <section className="rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">{ui.maturitySignals}</p>
-          <ul className="mt-3 space-y-2 text-sm leading-6 text-[#55645b]">
-            {modeProfile.maturitySignals.slice(0, 3).map((signal) => (
-              <li key={signal} className="flex gap-2">
-                <Check className="mt-1 shrink-0 text-[#2d5d4c]" size={15} />
-                <span>{signal}</span>
-              </li>
-            ))}
-          </ul>
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">{ui.modeGuidance}</p>
+            <button
+              type="button"
+              onClick={() => setShowSidebarDeep((v) => !v)}
+              className="rounded-md border border-[#c9d5cd] bg-white/78 px-2 py-1 text-[11px] font-semibold text-[#405049] transition hover:bg-white"
+            >
+              {showSidebarDeep ? ui.hideDetails : ui.showDetails}
+            </button>
+          </div>
+          {showSidebarDeep ? (
+            <div className="mt-3 space-y-3 editorial-sidebar">
+              <div className="rounded-lg border border-[#d8e1db] bg-white/60 p-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#866a24]">{ui.deepChecks}</p>
+                <div className="mt-2 space-y-2 text-sm leading-6 text-[#55645b]">
+                  {modeProfile.diagnosticTracks.slice(0, 3).map((track) => (
+                    <p key={track}>{track}</p>
+                  ))}
+                </div>
+              </div>
+              <div className="rounded-lg border border-[#d8e1db] bg-white/60 p-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#866a24]">{ui.blindSpots}</p>
+                <ul className="mt-2 space-y-2 text-sm leading-6 text-[#55645b]">
+                  {modeProfile.blindSpots.slice(0, 3).map((spot) => (
+                    <li key={spot}>{spot}</li>
+                  ))}
+                </ul>
+              </div>
+              <div className="rounded-lg border border-[#d8e1db] bg-white/60 p-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#866a24]">{ui.maturitySignals}</p>
+                <ul className="mt-2 space-y-2 text-sm leading-6 text-[#55645b]">
+                  {modeProfile.maturitySignals.slice(0, 3).map((signal) => (
+                    <li key={signal} className="flex gap-2">
+                      <Check className="mt-1 shrink-0 text-[#2d5d4c]" size={15} />
+                      <span>{signal}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          ) : (
+            <p className="mt-2 text-sm leading-6 text-[#607067]">
+              {ui.modeGuidancePreview}
+            </p>
+          )}
         </section>
 
         <TrustLayerPanel ui={ui} />
@@ -4648,6 +4773,79 @@ function TrustLayerPanel({ ui }: { ui: (typeof uiText)[LanguageCode] }) {
   );
 }
 
+function ThemeOptionButton({
+  icon: Icon,
+  label,
+  active,
+  onClick,
+}: {
+  icon: typeof Sun;
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`inline-flex h-9 items-center gap-2 rounded-md px-3 text-xs font-semibold transition ${
+        active ? "bg-[#203a35] text-[#f8f5e8]" : "bg-white/70 text-[#405049] hover:bg-white"
+      }`}
+    >
+      <Icon size={14} />
+      {label}
+    </button>
+  );
+}
+
+function RangeField({
+  label,
+  value,
+  min,
+  max,
+  step,
+  onChange,
+}: {
+  label: string;
+  value: number | null;
+  min: number;
+  max: number;
+  step: number;
+  onChange: (value: number | null) => void;
+}) {
+  const shown = value === null ? min : value;
+  return (
+    <label className="rounded-md border border-[#d8e1db] bg-white/72 px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#52635a]">
+      <span className="flex items-center justify-between gap-2">
+        <span>{label}</span>
+        <span className="rounded-md bg-[#edf2ee] px-2 py-1 text-[10px] font-semibold tracking-[0.08em] text-[#405049]">
+          {value === null ? "Not set" : String(value)}
+        </span>
+      </span>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={shown}
+        onChange={(event) => onChange(Number(event.target.value))}
+        className="mt-2 h-2 w-full cursor-pointer appearance-none rounded-full bg-[#d6e0da] accent-[#203a35]"
+      />
+      <input
+        inputMode="decimal"
+        type="number"
+        min={min}
+        max={max}
+        step={step}
+        value={value ?? ""}
+        placeholder="Not set"
+        onChange={(event) => onChange(event.target.value === "" ? null : Number(event.target.value))}
+        className="mt-2 h-9 w-full rounded-md border border-[#c9d5cd] bg-white px-3 text-sm normal-case tracking-normal text-[#203a35] outline-none focus:border-[#203a35]"
+      />
+    </label>
+  );
+}
+
 function CurrentCounselCard({
   exchange,
   mode,
@@ -4699,12 +4897,14 @@ function CurrentCounselCard({
           <p className="mt-2 text-sm leading-6">{cleanDisplayText(question)}</p>
         </div>
       ) : null}
-      <article className="mt-3 rounded-md border border-[#d8e1db] bg-[#fbfcf8]/84 p-3 sm:p-4">
+      <article className="editorial-counsel mt-3 rounded-md border border-[#d8e1db] bg-[#fbfcf8]/84 p-3 sm:p-4">
         <p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#866a24]">Aletheia</p>
         <p className="mb-3 rounded-md border border-[#d8e1db] bg-white/70 p-3 text-xs leading-5 text-[#607067]">
           {mode} mode is shaping this counsel around {modeProfile.lens.toLowerCase()}
         </p>
-        <ScriptureLinkedText text={exchange.answer.text} onScriptureOpen={onScriptureOpen} />
+        <div className="calm-prose">
+          <ScriptureLinkedText text={exchange.answer.text} onScriptureOpen={onScriptureOpen} />
+        </div>
         <ScriptureChips sources={exchange.answer.sources} preferences={preferences} onScriptureOpen={onScriptureOpen} />
       </article>
       {showDecisionActions ? (
