@@ -9,6 +9,39 @@ import { checkRateLimit, getClientIdentity, rateLimitHeaders } from "@/lib/rate-
 import { composeModeAwareFallbackResponse, retrieveWisdom } from "@/lib/wisdom";
 import type { Mode } from "@/lib/wisdom-data";
 
+function compactMemorySummary({
+  decisions,
+  journals,
+  feedbackGuidance,
+}: {
+  decisions: Array<{ title: string; mode: string; pressure: string; status: string }>;
+  journals: Array<{ title: string; mode: string }>;
+  feedbackGuidance: string[];
+}) {
+  const text = decisions.map((decision) => `${decision.title} ${decision.pressure}`).join(" ").toLowerCase();
+  const patterns = [
+    text.match(/career|job|work|business|calling|startup|quit|leave/) ? "career pressure" : "",
+    text.match(/compare|comparison|behind|envy/) ? "financial comparison" : "",
+    text.match(/urgent|rush|now|quick|pressure/) ? "urgency" : "",
+    text.match(/debt|invest|house|salary|income|budget/) ? "money stewardship" : "",
+    text.match(/give|help|family|support|generosity/) ? "generosity and boundaries" : "",
+  ].filter(Boolean);
+  const activeModes = Array.from(new Set(decisions.slice(0, 5).map((decision) => decision.mode))).join(", ");
+  const reflectionModes = Array.from(new Set(journals.slice(0, 5).map((journal) => journal.mode))).join(", ");
+
+  return [
+    decisions.length
+      ? `User-safe continuity summary: user has ${decisions.length} recent decision${decisions.length === 1 ? "" : "s"}${activeModes ? ` across ${activeModes}` : ""}. Recurring themes appear to include ${patterns.length ? patterns.join(", ") : "discernment under pressure"}.`
+      : "",
+    journals.length
+      ? `Reflection pattern: ${journals.length} recent reflection${journals.length === 1 ? "" : "s"}${reflectionModes ? ` touching ${reflectionModes}` : ""}. Do not quote journal content unless the user provides it in this chat.`
+      : "",
+    feedbackGuidance.length ? `Answer style feedback: ${feedbackGuidance.join(" ")}` : "",
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
 export async function GET() {
   const user = await getCurrentUser();
   if (!user) {
@@ -77,7 +110,7 @@ export async function POST(request: Request) {
   let memoryContext = "";
   const guestManualContext = normalizeManualContext(body.manualContext ?? {});
   if (user) {
-    const [decisions, rules, journals, manualContextRows] = await Promise.all([
+    const [decisions, rules, journals, manualContextRows, memoryRows] = await Promise.all([
       many<{ title: string; mode: string; pressure: string; status: string; updated_at: string }>(
         `SELECT title, mode, pressure, status, updated_at
          FROM wisdom_decisions
@@ -94,12 +127,12 @@ export async function POST(request: Request) {
          LIMIT 5`,
         user.id
       ),
-      many<{ title: string; body: string; mode: string; created_at: string }>(
-        `SELECT title, body, mode, created_at
+      many<{ title: string; mode: string; created_at: string }>(
+        `SELECT title, mode, created_at
          FROM journal_entries
          WHERE user_id = ?
          ORDER BY created_at DESC
-         LIMIT 3`,
+         LIMIT 8`,
         user.id
       ),
       many<{
@@ -114,6 +147,13 @@ export async function POST(request: Request) {
       }>(
         `SELECT health_context, finance_context, work_context, obligations, goals, boundaries, context_json, use_in_answers
          FROM user_manual_context
+         WHERE user_id = ?
+         LIMIT 1`,
+        user.id
+      ),
+      many<{ summary: string; answer_preferences: { guidance?: string[] } | null }>(
+        `SELECT summary, answer_preferences
+         FROM user_memory_summaries
          WHERE user_id = ?
          LIMIT 1`,
         user.id
@@ -136,7 +176,14 @@ export async function POST(request: Request) {
           useInAnswers: contextFromJson.useInAnswers ?? contextRow.use_in_answers,
         })
       : null;
+    const memoryRow = memoryRows[0];
+    const feedbackGuidance = Array.isArray(memoryRow?.answer_preferences?.guidance)
+      ? memoryRow.answer_preferences.guidance
+      : [];
+    const safeSummary = compactMemorySummary({ decisions, journals, feedbackGuidance });
     memoryContext = [
+      memoryRow?.summary ? `Saved user-safe memory:\n${memoryRow.summary}` : "",
+      safeSummary,
       manualContextSummary(manualContext) ? `User-provided manual context:\n${manualContextSummary(manualContext)}` : "",
       decisions.length
         ? `Active/recent decisions:\n${decisions
@@ -145,11 +192,6 @@ export async function POST(request: Request) {
         : "",
       rules.length
         ? `Rules of life:\n${rules.map((rule) => `- ${rule.mode}: ${rule.principle.slice(0, 180)}`).join("\n")}`
-        : "",
-      journals.length
-        ? `Recent reflections:\n${journals
-            .map((journal) => `- ${journal.title} (${journal.mode}): ${journal.body.slice(0, 180)}`)
-            .join("\n")}`
         : "",
     ]
       .filter(Boolean)

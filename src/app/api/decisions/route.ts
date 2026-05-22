@@ -21,6 +21,8 @@ type DecisionRow = {
   reversible_step: boolean;
   peace_over_urgency: boolean;
   waiting_until: string | null;
+  revisit_at: string | null;
+  outcome_review_at: string | null;
   summary: string | null;
   final_decision: string | null;
   learning: string | null;
@@ -77,12 +79,52 @@ function mapDecision(row: DecisionRow) {
     reversibleStep: row.reversible_step,
     peaceOverUrgency: row.peace_over_urgency,
     waitingUntil: row.waiting_until,
+    revisitAt: row.revisit_at,
+    outcomeReviewAt: row.outcome_review_at,
     summary: row.summary,
     finalDecision: row.final_decision,
     learning: row.learning,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
+}
+
+async function refreshUserMemorySummary(userId: string) {
+  const decisions = await many<{ title: string; mode: string; pressure: string; status: string }>(
+    `SELECT title, mode, pressure, status
+     FROM wisdom_decisions
+     WHERE user_id = ?
+     ORDER BY updated_at DESC
+     LIMIT 12`,
+    userId
+  );
+  const active = decisions.filter((decision) => decision.status !== "closed");
+  const combined = decisions.map((decision) => `${decision.title} ${decision.pressure}`).join(" ").toLowerCase();
+  const themes = [
+    combined.match(/career|job|work|business|calling|quit|leave/) ? "career pressure" : "",
+    combined.match(/money|debt|invest|house|salary|budget|income/) ? "money stewardship" : "",
+    combined.match(/compare|comparison|behind|envy/) ? "financial comparison" : "",
+    combined.match(/give|help|family|support|generosity/) ? "generosity and boundaries" : "",
+    combined.match(/urgent|rush|quick|pressure|now/) ? "urgency under pressure" : "",
+  ].filter(Boolean);
+  const summary = active.length
+    ? `User is actively discerning ${active.length} major decision${active.length === 1 ? "" : "s"}. Recurring themes: ${themes.length ? themes.join(", ") : "clarity, counsel, cost, and next faithful steps"}. Use this as a concise continuity signal, not as full private history.`
+    : decisions.length
+      ? `User has prior decision history. Recurring themes: ${themes.length ? themes.join(", ") : "discernment, stewardship, and reflection"}. Use lightly and only when relevant.`
+      : "";
+
+  if (!summary) {
+    return;
+  }
+  await run(
+    `INSERT INTO user_memory_summaries (user_id, summary, updated_at)
+     VALUES (?, ?, ?)
+     ON CONFLICT (user_id)
+     DO UPDATE SET summary = EXCLUDED.summary, updated_at = EXCLUDED.updated_at`,
+    userId,
+    summary,
+    new Date().toISOString()
+  );
 }
 
 function timelineInsight(decisions: DecisionRow[], events: EventRow[]) {
@@ -215,6 +257,7 @@ export async function POST(request: Request) {
     eventName: "decision_created",
     metadata: { mode, readiness: signals.readiness, emotion },
   });
+  await refreshUserMemorySummary(user.id);
 
   return NextResponse.json({
     decision: {
@@ -231,6 +274,8 @@ export async function POST(request: Request) {
       reversibleStep: false,
       peaceOverUrgency: false,
       waitingUntil: null,
+      revisitAt: null,
+      outcomeReviewAt: null,
       summary,
       finalDecision: null,
       learning: null,

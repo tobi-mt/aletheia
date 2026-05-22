@@ -622,6 +622,8 @@ type WisdomDecision = {
   reversibleStep: boolean;
   peaceOverUrgency: boolean;
   waitingUntil: string | null;
+  revisitAt?: string | null;
+  outcomeReviewAt?: string | null;
   summary: string | null;
   finalDecision: string | null;
   learning: string | null;
@@ -1359,6 +1361,12 @@ export function AletheiaApp() {
     showView("account");
   }
 
+  function askOneQuestionFlow() {
+    showView("companion");
+    setQuery((current) => current || modeProfiles[mode].prompts[0]);
+    announceWorkflow("Question ready", "Aletheia prepared a focused starting question. Adjust it or send it as it is.", "success");
+  }
+
   async function shareAletheia(channel: ShareChannel, placement: string) {
     trackClientEvent("app_shared", { channel, placement });
     if (channel === "native" && navigator.share) {
@@ -1392,6 +1400,11 @@ export function AletheiaApp() {
 
   function recordAnswerFeedback(value: string, placement: string) {
     trackClientEvent("answer_feedback", { value, placement, mode });
+    fetch("/api/feedback", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ value, placement, mode }),
+    }).catch(() => undefined);
     setStatusMessage("Thank you. Aletheia will use feedback like this to become wiser and clearer.");
     announceWorkflow("Feedback saved", "Thank you. This helps shape clearer, wiser responses.", "success");
   }
@@ -1982,6 +1995,8 @@ export function AletheiaApp() {
         reversibleStep: false,
         peaceOverUrgency: false,
         waitingUntil: null,
+        revisitAt: null,
+        outcomeReviewAt: null,
         summary: buildDecisionSummary({ title, mode, pressure, emotion: decisionEmotion, sources, signals, preferences }),
         finalDecision: null,
         learning: null,
@@ -2009,7 +2024,15 @@ export function AletheiaApp() {
     setDecisionPressure("");
   }
 
-  async function updateDecision(id: string, patch: Partial<WisdomDecision> & { waitingDays?: number | null; event?: string }) {
+  async function updateDecision(
+    id: string,
+    patch: Partial<WisdomDecision> & {
+      waitingDays?: number | null;
+      revisitDays?: number | null;
+      outcomeReviewDays?: number | null;
+      event?: string;
+    }
+  ) {
     const current = wisdomDecisions.find((item) => item.id === id);
     if (!current) {
       return;
@@ -2033,11 +2056,23 @@ export function AletheiaApp() {
         : patch.waitingDays === null
           ? null
           : current.waitingUntil;
+    const revisitAt =
+      typeof patch.revisitDays === "number" && patch.revisitDays > 0
+        ? new Date(Date.now() + patch.revisitDays * 86400000).toISOString()
+        : patch.revisitDays === null
+          ? null
+          : current.revisitAt;
+    const outcomeReviewAt =
+      typeof patch.outcomeReviewDays === "number" && patch.outcomeReviewDays > 0
+        ? new Date(Date.now() + patch.outcomeReviewDays * 86400000).toISOString()
+        : patch.outcomeReviewDays === null
+          ? null
+          : current.outcomeReviewAt;
     const updated = wisdomDecisions.map((item) => {
       if (item.id !== id) {
         return item;
       }
-      const next = { ...item, ...patch, waitingUntil, updatedAt: new Date().toISOString() };
+      const next = { ...item, ...patch, waitingUntil, revisitAt, outcomeReviewAt, updatedAt: new Date().toISOString() };
       const sources = searchWisdom(`${next.title} ${next.pressure} ${next.initialEmotion}`, next.mode, 3);
       const signals = scoreDecision({
         pressure: next.pressure,
@@ -2062,7 +2097,15 @@ export function AletheiaApp() {
         }),
       };
     });
-    const eventBody = patch.event ?? (patch.waitingDays ? `Entered waiting mode for ${patch.waitingDays} day${patch.waitingDays === 1 ? "" : "s"}.` : "");
+    const eventBody =
+      patch.event ??
+      (patch.waitingDays
+        ? `Entered waiting mode for ${patch.waitingDays} day${patch.waitingDays === 1 ? "" : "s"}.`
+        : patch.revisitDays
+          ? `Scheduled a decision revisit for ${patch.revisitDays} day${patch.revisitDays === 1 ? "" : "s"} from now.`
+          : patch.outcomeReviewDays
+            ? `Scheduled an outcome review for ${patch.outcomeReviewDays} days from now.`
+            : "");
     const events = eventBody
       ? [
           {
@@ -2398,6 +2441,20 @@ export function AletheiaApp() {
             <AnimatePresence mode="wait">
               {activeView === "companion" ? (
                 <Screen key="companion">
+                <HomeDashboard
+                  daily={daily}
+                  dailyEntry={dailyEntry}
+                  activeDecision={activeDecision}
+                  user={user}
+                  notificationsEnabled={notificationsEnabled}
+                  todayPattern={todayPattern}
+                  onScriptureOpen={setSelectedScripture}
+                  onContinueDecision={continueDecisionFlow}
+                  onReflectToday={reflectOnToday}
+                  onReviewPattern={reviewPatternFlow}
+                  onOpenAccount={openAccountFlow}
+                  onAskOneQuestion={askOneQuestionFlow}
+                />
                 <CompanionPanel
                   messages={messages}
                   mode={mode}
@@ -2425,19 +2482,6 @@ export function AletheiaApp() {
                   onWait={waitFromExchange}
                   onShare={(channel) => shareAletheia(channel, "answer")}
                   onFeedback={(value) => recordAnswerFeedback(value, "answer")}
-                />
-                <HomeDashboard
-                  daily={daily}
-                  dailyEntry={dailyEntry}
-                  activeDecision={activeDecision}
-                  user={user}
-                  notificationsEnabled={notificationsEnabled}
-                  todayPattern={todayPattern}
-                  onScriptureOpen={setSelectedScripture}
-                  onContinueDecision={continueDecisionFlow}
-                  onReflectToday={reflectOnToday}
-                  onReviewPattern={reviewPatternFlow}
-                  onOpenAccount={openAccountFlow}
                 />
                 </Screen>
               ) : null}
@@ -2955,6 +2999,7 @@ function HomeDashboard({
   onReflectToday,
   onReviewPattern,
   onOpenAccount,
+  onAskOneQuestion,
 }: {
   daily: ReturnType<typeof localizedDailyWisdom>;
   dailyEntry: WisdomEntry;
@@ -2967,37 +3012,47 @@ function HomeDashboard({
   onReflectToday: () => void;
   onReviewPattern: () => void;
   onOpenAccount: () => void;
+  onAskOneQuestion: () => void;
 }) {
   const primaryAction = activeDecision
-    ? { label: "Continue a decision", body: activeDecision.title, onClick: onContinueDecision }
-    : { label: "Start a decision", body: "Name one choice that deserves prayer, facts, counsel, and time.", onClick: onContinueDecision };
+    ? { label: "Continue this decision", body: activeDecision.title, onClick: onContinueDecision, icon: Compass }
+    : { label: "Ask one question", body: "Start with the pressure or decision you are carrying right now.", onClick: onAskOneQuestion, icon: MessageCircle };
 
-  const secondaryAction = user && notificationsEnabled
-    ? { label: "Review a pattern", body: todayPattern, onClick: onReviewPattern }
-    : { label: user ? "Enable notifications" : "Enable sync", body: user ? "Receive one quiet daily wisdom prompt." : "Sign in to keep decisions and reflections across devices.", onClick: onOpenAccount };
+  const secondaryActions = [
+    { label: "Reflect on today", body: daily.practice, onClick: onReflectToday, icon: Feather },
+    user && notificationsEnabled
+      ? { label: "Review a pattern", body: todayPattern, onClick: onReviewPattern, icon: ShieldCheck }
+      : { label: user ? "Enable notifications" : "Enable sync", body: user ? "Receive one quiet daily wisdom prompt." : "Keep decisions and reflections across devices.", onClick: onOpenAccount, icon: Bell },
+    activeDecision
+      ? { label: "Ask a new question", body: "The Companion input and wisdom modes are just below.", onClick: onAskOneQuestion, icon: MessageCircle }
+      : { label: "Start a decision", body: "Track a high-stakes choice over time.", onClick: onContinueDecision, icon: Compass },
+  ];
 
   return (
-    <div className="mt-4 grid gap-3 sm:mt-5 sm:gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(300px,0.65fr)]">
-      <section className="min-w-0 rounded-lg border border-[#d7e0da] bg-[#fbfcf8]/72 p-4 shadow-sm sm:p-5">
+    <div className="grid gap-3 sm:gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
+      <section className="min-w-0 rounded-xl border border-[#d7e0da] bg-[#fbfcf8]/78 p-4 shadow-sm sm:p-5">
         <div className="mb-4 inline-flex w-fit max-w-full items-center gap-2 rounded-md border border-[#c0cec5] bg-white/60 px-3 py-2 text-[11px] font-medium uppercase tracking-[0.12em] text-[#866a24] sm:text-xs sm:tracking-[0.18em]">
           <Sparkles size={14} />
-          Today’s rhythm
+          Personalized priority
         </div>
-        <h2 className="max-w-3xl text-2xl font-semibold leading-tight tracking-normal text-[#171917] sm:text-3xl">
+        <h1 className="max-w-3xl text-2xl font-semibold leading-tight tracking-normal text-[#171917] sm:text-3xl">
           What should I do next?
-        </h2>
+        </h1>
         <p className="mt-4 max-w-2xl text-sm leading-6 text-[#505a52] sm:text-base sm:leading-7">
-          A calm path after your question: continue what matters, reflect before reacting, or review one gentle pattern.
+          Aletheia is choosing one wise next action first. The ask field and mode controls stay directly below when you want to begin something new.
         </p>
 
-        <div className="mt-5 grid gap-3 md:grid-cols-2">
-          <DashboardAction icon={Compass} label={primaryAction.label} body={primaryAction.body} primary onClick={primaryAction.onClick} />
-          <DashboardAction icon={Feather} label="Reflect on today" body={daily.practice} onClick={onReflectToday} />
-          <DashboardAction icon={ShieldCheck} label={secondaryAction.label} body={secondaryAction.body} onClick={secondaryAction.onClick} />
+        <div className="mt-5">
+          <DashboardAction icon={primaryAction.icon} label={primaryAction.label} body={primaryAction.body} primary onClick={primaryAction.onClick} />
+        </div>
+        <div className="mt-3 grid gap-2 md:grid-cols-3">
+          {secondaryActions.map((action) => (
+            <DashboardAction key={action.label} icon={action.icon} label={action.label} body={action.body} onClick={action.onClick} compact />
+          ))}
         </div>
       </section>
 
-      <section className="min-w-0 rounded-lg border border-[#d7e0da] bg-[#fbfcf8]/78 p-4 text-[#203a35] shadow-sm sm:p-5">
+      <section className="min-w-0 rounded-xl border border-[#d7e0da] bg-[#fbfcf8]/78 p-4 text-[#203a35] shadow-sm sm:p-5">
         <div className="mb-4 flex items-center justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#866a24]">{daily.label}</p>
@@ -3027,19 +3082,21 @@ function DashboardAction({
   label,
   body,
   primary = false,
+  compact = false,
   onClick,
 }: {
   icon: typeof Compass;
   label: string;
   body: string;
   primary?: boolean;
+  compact?: boolean;
   onClick: () => void;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`flex min-w-0 items-start gap-3 rounded-md border p-3 text-left transition ${
+      className={`flex min-w-0 items-start gap-3 rounded-md border text-left transition ${compact ? "p-3" : "p-4"} ${
         primary
           ? "border-[#203a35] bg-[#203a35] text-[#f8f5e8] shadow-lg shadow-[#203a35]/12"
           : "border-[#d8e1db] bg-white/62 text-[#203a35] hover:border-[#203a35] hover:bg-white"
@@ -3049,7 +3106,7 @@ function DashboardAction({
         <Icon size={16} />
       </span>
       <span className="min-w-0">
-        <span className="block text-sm font-semibold">{label}</span>
+        <span className={`${primary ? "text-base" : "text-sm"} block font-semibold`}>{label}</span>
         <span className={`mt-1 line-clamp-2 block text-xs leading-5 ${primary ? "text-[#dfe8df]" : "text-[#607067]"}`}>{body}</span>
       </span>
     </button>
@@ -3306,6 +3363,8 @@ function AccountPanel({
           ) : null}
         </section>
 
+        <TrustCenterCard />
+
         <section className="rounded-lg border border-[#1d332e] bg-[#203a35] p-4 text-[#f8f5e8] shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#d0ad55]">Badges / Formation</p>
           <div className="mt-3 space-y-2">
@@ -3332,6 +3391,44 @@ function AccountPanel({
         </section>
       </aside>
     </div>
+  );
+}
+
+function TrustCenterCard() {
+  const items = [
+    {
+      label: "What Aletheia will never do",
+      body: "It will not promise financial outcomes, predict markets, claim divine certainty, pressure giving, or replace qualified financial, legal, tax, medical, or pastoral counsel.",
+    },
+    {
+      label: "How scripture is sourced",
+      body: "References come from the curated wisdom library. If verse text is not available in the chosen public-domain translation, Aletheia clearly marks the fallback or summary.",
+    },
+    {
+      label: "What data is saved",
+      body: "Signed-in users can sync conversations, decisions, reflections, preferences, counsel contacts, rules of life, notification status, and optional manual context.",
+    },
+    {
+      label: "Delete and export posture",
+      body: "Private sharing is explicit. Decision summaries can be shared with mentors, but chats and journals are not shared by default. Full export/delete controls should be a dedicated production settings flow before scale.",
+    },
+  ];
+
+  return (
+    <section className="rounded-lg border border-[#d7e0da] bg-[#fbfcf8]/72 p-4 shadow-sm">
+      <div className="flex items-center gap-2">
+        <ShieldCheck size={17} className="text-[#203a35]" />
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">Trust Center</p>
+      </div>
+      <div className="mt-3 space-y-2">
+        {items.map((item) => (
+          <details key={item.label} className="rounded-lg border border-[#d8e1db] bg-white/64 p-3">
+            <summary className="cursor-pointer text-sm font-semibold text-[#203a35]">{item.label}</summary>
+            <p className="mt-2 text-sm leading-6 text-[#607067]">{item.body}</p>
+          </details>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -5104,7 +5201,15 @@ function DecisionCompanionPanel({
   setCounselCanReceiveCheckins: (value: boolean) => void;
   setRuleText: (value: string) => void;
   onCreateDecision: (event: FormEvent<HTMLFormElement>) => void;
-  onUpdateDecision: (id: string, patch: Partial<WisdomDecision> & { waitingDays?: number | null; event?: string }) => void;
+  onUpdateDecision: (
+    id: string,
+    patch: Partial<WisdomDecision> & {
+      waitingDays?: number | null;
+      revisitDays?: number | null;
+      outcomeReviewDays?: number | null;
+      event?: string;
+    }
+  ) => void;
   onAddCounsel: (event: FormEvent<HTMLFormElement>) => void;
   onShareCounselInvite: (channel?: ShareChannel) => void;
   onShareDecisionWithCounsel: (contactId: string, decisionId: string) => void;
@@ -5459,13 +5564,25 @@ function DecisionCard({
 }: {
   decision: WisdomDecision;
   modeProfile: ModeProfile;
-  onUpdate: (id: string, patch: Partial<WisdomDecision> & { waitingDays?: number | null; event?: string }) => void;
+  onUpdate: (
+    id: string,
+    patch: Partial<WisdomDecision> & {
+      waitingDays?: number | null;
+      revisitDays?: number | null;
+      outcomeReviewDays?: number | null;
+      event?: string;
+    }
+  ) => void;
 }) {
   const [noteDraft, setNoteDraft] = useState("");
   const [finalDecisionDraft, setFinalDecisionDraft] = useState(decision.finalDecision ?? "");
   const [learningDraft, setLearningDraft] = useState(decision.learning ?? "");
   const waiting = decision.waitingUntil ? new Date(decision.waitingUntil) : null;
+  const revisit = decision.revisitAt ? new Date(decision.revisitAt) : null;
+  const outcomeReview = decision.outcomeReviewAt ? new Date(decision.outcomeReviewAt) : null;
   const waitingText = waiting ? `Waiting until ${waiting.toLocaleDateString()}` : null;
+  const revisitText = revisit ? `Revisit ${revisit.toLocaleDateString()}` : null;
+  const outcomeText = outcomeReview ? `Outcome review ${outcomeReview.toLocaleDateString()}` : null;
   return (
     <article className="rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm sm:p-5">
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
@@ -5474,6 +5591,8 @@ function DecisionCard({
             <span className="rounded-md bg-[#edf2ee] px-2 py-1 text-xs font-semibold text-[#52635a]">{decision.mode}</span>
             <span className="rounded-md bg-white/70 px-2 py-1 text-xs font-semibold text-[#866a24]">{decision.status}</span>
             {waitingText ? <span className="rounded-md bg-[#fff8dc] px-2 py-1 text-xs font-semibold text-[#866a24]">{waitingText}</span> : null}
+            {revisitText ? <span className="rounded-md bg-[#edf7f1] px-2 py-1 text-xs font-semibold text-[#245443]">{revisitText}</span> : null}
+            {outcomeText ? <span className="rounded-md bg-[#edf2ee] px-2 py-1 text-xs font-semibold text-[#52635a]">{outcomeText}</span> : null}
           </div>
           <h3 className="mt-3 text-xl font-semibold text-[#203a35]">{decision.title}</h3>
           <p className="mt-2 text-sm leading-6 text-[#55645b]">{decision.pressure}</p>
@@ -5571,10 +5690,20 @@ function DecisionCard({
             <button
               key={days}
               type="button"
-              onClick={() => onUpdate(decision.id, { event: `Scheduled an outcome review for ${days} days from now.` })}
+              onClick={() => onUpdate(decision.id, { revisitDays: days })}
               className="rounded-md border border-[#c9d5cd] bg-white/80 px-3 py-2 text-xs font-semibold text-[#405049] transition hover:bg-white"
             >
-              Review in {days}d
+              Revisit in {days}d
+            </button>
+          ))}
+          {[7, 30, 90].map((days) => (
+            <button
+              key={`outcome-${days}`}
+              type="button"
+              onClick={() => onUpdate(decision.id, { outcomeReviewDays: days })}
+              className="rounded-md border border-[#c9d5cd] bg-white/80 px-3 py-2 text-xs font-semibold text-[#405049] transition hover:bg-white"
+            >
+              Outcome {days}d
             </button>
           ))}
         </div>

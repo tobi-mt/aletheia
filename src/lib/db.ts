@@ -159,12 +159,17 @@ async function initializeDatabase() {
       reversible_step BOOLEAN NOT NULL DEFAULT FALSE,
       peace_over_urgency BOOLEAN NOT NULL DEFAULT FALSE,
       waiting_until TIMESTAMPTZ,
+      revisit_at TIMESTAMPTZ,
+      outcome_review_at TIMESTAMPTZ,
       summary TEXT,
       final_decision TEXT,
       learning TEXT,
       created_at TIMESTAMPTZ NOT NULL,
       updated_at TIMESTAMPTZ NOT NULL
     );
+
+    ALTER TABLE wisdom_decisions ADD COLUMN IF NOT EXISTS revisit_at TIMESTAMPTZ;
+    ALTER TABLE wisdom_decisions ADD COLUMN IF NOT EXISTS outcome_review_at TIMESTAMPTZ;
 
     CREATE TABLE IF NOT EXISTS decision_events (
       id TEXT PRIMARY KEY,
@@ -228,6 +233,22 @@ async function initializeDatabase() {
 
     ALTER TABLE user_manual_context ADD COLUMN IF NOT EXISTS context_json JSONB NOT NULL DEFAULT '{}'::jsonb;
 
+    CREATE TABLE IF NOT EXISTS user_memory_summaries (
+      user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+      summary TEXT NOT NULL DEFAULT '',
+      answer_preferences JSONB NOT NULL DEFAULT '{}'::jsonb,
+      updated_at TIMESTAMPTZ NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS answer_feedback (
+      id TEXT PRIMARY KEY,
+      user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
+      value TEXT NOT NULL,
+      mode TEXT,
+      placement TEXT,
+      created_at TIMESTAMPTZ NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS analytics_events (
       id TEXT PRIMARY KEY,
       user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
@@ -258,6 +279,10 @@ async function initializeDatabase() {
     CREATE INDEX IF NOT EXISTS rule_of_life_entries_user_idx ON rule_of_life_entries(user_id);
     CREATE INDEX IF NOT EXISTS user_preferences_language_idx ON user_preferences(language, region);
     CREATE INDEX IF NOT EXISTS user_manual_context_updated_idx ON user_manual_context(updated_at DESC);
+    CREATE INDEX IF NOT EXISTS user_memory_summaries_updated_idx ON user_memory_summaries(updated_at DESC);
+    CREATE INDEX IF NOT EXISTS answer_feedback_user_created_idx ON answer_feedback(user_id, created_at DESC);
+    CREATE INDEX IF NOT EXISTS wisdom_decisions_revisit_idx ON wisdom_decisions(user_id, revisit_at);
+    CREATE INDEX IF NOT EXISTS wisdom_decisions_outcome_review_idx ON wisdom_decisions(user_id, outcome_review_at);
     CREATE INDEX IF NOT EXISTS analytics_events_created_idx ON analytics_events(created_at DESC);
     CREATE INDEX IF NOT EXISTS analytics_events_name_created_idx ON analytics_events(event_name, created_at DESC);
     CREATE INDEX IF NOT EXISTS analytics_events_user_created_idx ON analytics_events(user_id, created_at DESC);
