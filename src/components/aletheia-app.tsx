@@ -140,6 +140,8 @@ const uiText: Record<
     reviewPattern?: string;
     enableNotifications?: string;
     enableSync?: string;
+    notificationPromptBody?: string;
+    syncDevicesBody?: string;
     startDecision?: string;
     startDecisionBody?: string;
     tinyPractice?: string;
@@ -170,6 +172,11 @@ const uiText: Record<
     formationNote?: string;
     milestoneShareTitle?: string;
     milestoneShareBody?: string;
+    welcomeCounsel?: string;
+    trustScriptureBody?: string;
+    trustBoundaryBody?: string;
+    trustMemoryBody?: string;
+    trustConnectedDataBody?: string;
   }
 > = {
   en: {
@@ -217,6 +224,8 @@ const uiText: Record<
     reviewPattern: "Review a pattern",
     enableNotifications: "Enable notifications",
     enableSync: "Enable sync",
+    notificationPromptBody: "Receive one quiet daily wisdom prompt.",
+    syncDevicesBody: "Keep decisions and reflections across devices.",
     startDecision: "Start a decision",
     startDecisionBody: "Track a high-stakes choice over time.",
     tinyPractice: "Tiny practice",
@@ -247,6 +256,16 @@ const uiText: Record<
     formationNote: "These are quiet signs of formation, not points to chase. The first milestone usually begins with saving one reflection.",
     milestoneShareTitle: "Know someone making a major decision?",
     milestoneShareBody: "You can invite them to Aletheia without sharing anything private from your account.",
+    welcomeCounsel:
+      "Bring a real decision, pressure, or money question. I will answer from the curated wisdom library, with emotional clarity and no financial promises.",
+    trustScriptureBody:
+      "Scripture references come from Aletheia’s curated wisdom library. If a verse appears, you can tap it to see context and why it matters.",
+    trustBoundaryBody:
+      "Aletheia will not promise outcomes, predict markets, claim divine certainty, or replace qualified financial, legal, tax, medical, or pastoral counsel.",
+    trustMemoryBody:
+      "Signed-in memory helps continuity across decisions, reflections, counsel, and rules of life. It should make guidance more personal without exposing private details unnecessarily.",
+    trustConnectedDataBody:
+      "Future health, finance, or device integrations should be permission-by-permission, off by default, and limited to the exact data the user chooses to connect.",
   },
   es: {
     nav: { companion: "Inicio", decisions: "Decisiones", reflect: "Reflexión", library: "Biblioteca", account: "Cuenta" },
@@ -459,6 +478,60 @@ const uiText: Record<
     voiceControls: "Ìṣàkóso ohùn",
     available: "Wà",
     englishFallback: "Ìpadà sí Gẹ̀ẹ́sì",
+    personalizedPriority: "Ohun pàtàkì fún ọ",
+    whatNext: "Kí ni mo yẹ kí n ṣe lẹ́yìn èyí?",
+    whatNextBody: "Aletheia ń yan ìgbésẹ̀ ọgbọ́n kan kọ́kọ́. Apoti ìbéèrè àti àwọn ipo ọgbọ́n wà ní isalẹ nígbà tí o bá fẹ́ bẹ̀rẹ̀ ohun tuntun.",
+    continueDecision: "Tẹ̀síwájú pẹ̀lú ìpinnu yìí",
+    askOneQuestion: "Béèrè ìbéèrè kan",
+    askOneQuestionBody: "Bẹrẹ pẹ̀lú ìpinnu tàbí ìrù tí o ń gbé báyìí.",
+    askNewQuestion: "Béèrè ìbéèrè tuntun",
+    askNewQuestionBody: "Apoti Companion àti àwọn ipo ọgbọ́n wà ní isalẹ.",
+    reflectToday: "Ronú lónìí",
+    reviewPattern: "Ṣàyẹ̀wò àwòṣe kan",
+    enableNotifications: "Tan ìfitónilétí sí",
+    enableSync: "Tan ìmúpọ̀ sí",
+    notificationPromptBody: "Gba ìrántí ọgbọ́n ojoojúmọ́ kan ní ìdákẹ́jẹ.",
+    syncDevicesBody: "Jẹ́ kí àwọn ìpinnu àti ìrònú rẹ wà lórí gbogbo ẹrọ rẹ.",
+    startDecision: "Bẹrẹ ìpinnu kan",
+    startDecisionBody: "Tọ́pa ìpinnu pàtàkì kan nípasẹ̀ àkókò.",
+    tinyPractice: "Ìṣe kékeré",
+    currentCounsel: "Ìmọ̀ràn lọwọlọwọ",
+    modeShapesCounsel: "ń wo ìmọ̀ràn yìí láti",
+    trackThisDecision: "Tọ́pa ìpinnu yìí",
+    saveAsReflection: "Fi pamọ́ gẹ́gẹ́ bí ìrònú",
+    createCounselSummary: "Ṣẹ̀dá àkótán fún olùdámọ̀ràn",
+    goDeeper: "Lọ jinlẹ̀ síi",
+    waitThreeDays: "Dúró ọjọ́ mẹ́ta",
+    shareAnswerPrompt: "Pin Aletheia pẹ̀lú ẹni tí irú ìmọ̀ràn yìí lè ràn lọ́wọ́.",
+    sharePrivacyNote: "Èyí máa pin ọna asopọ app nìkan, kì í ṣe ìbéèrè rẹ tàbí ìdáhùn ikọ̀kọ̀.",
+    shareAletheia: "Pin Aletheia",
+    feedbackQuestion: "Ṣé ìmọ̀ràn yìí wúlò?",
+    feedbackHelpful: "Ó wúlò",
+    feedbackMildlyHelpful: "Ó wúlò díẹ̀",
+    feedbackTooVague: "Ó ṣòro láti lóye",
+    feedbackTooPreachy: "Ó dà bí ìwàásù jù",
+    feedbackNotRelevant: "Kò bá a mu",
+    badgesFormation: "Àwọn àmì ìdagbasoke",
+    firstReflectionSaved: "Ìrònú àkọ́kọ́ ti fipamọ́",
+    firstDecisionTracked: "Ìpinnu àkọ́kọ́ ti tọ́pa",
+    soughtCounsel: "Wá ìmọ̀ràn",
+    waitingModeUsed: "Ipo ìdúró ti lo",
+    ruleOfLifeCreated: "Ofin ìgbé-ayé ti dá",
+    notificationsEnabled: "Ìfitónilétí ti tan",
+    sevenDaysPractice: "Ọjọ́ méje ti ìṣe ọgbọ́n",
+    formationNote: "Ìwọ̀nyí jẹ́ àmì ìdagbasoke pẹ̀lẹ́, kì í ṣe àmì ìdíje. Ìgbésẹ̀ àkọ́kọ́ sábà máa ń bẹ̀rẹ̀ pẹ̀lú fífi ìrònú kan pamọ́.",
+    milestoneShareTitle: "Ṣé o mọ ẹni tí ó ń ṣe ìpinnu pàtàkì?",
+    milestoneShareBody: "O lè pè é sí Aletheia láì pin ohunkóhun ikọ̀kọ̀ láti àkọọlẹ rẹ.",
+    welcomeCounsel:
+      "Mú ìpinnu gidi, ìrù, tàbí ìbéèrè owó wá. Èmi yóò dáhùn láti inú ilé ìkàwé ọgbọ́n tí a ṣètò, pẹ̀lú ìmọ̀lára tó mọ́ àti láì ṣe ìlérí owó.",
+    trustScriptureBody:
+      "Àwọn ìtọ́kasí Bíbélì wá láti inú ilé ìkàwé ọgbọ́n Aletheia. Bí ẹsẹ kan bá hàn, o lè tẹ̀ ẹ́ láti rí àyíká rẹ àti ìdí tí ó fi ṣe pàtàkì.",
+    trustBoundaryBody:
+      "Aletheia kì í ṣe ìlérí abajade, kì í sọ ọjà di àsọtẹ́lẹ̀, kì í sọ ìdánilójú Ọlọ́run tí kò sí, kì í sì rọ́pò ìmọ̀ràn amọ̀ja nípa owó, òfin, owó-orí, ìlera, tàbí ìtọ́sọ́nà olùṣọ́.",
+    trustMemoryBody:
+      "Ìrántí fún ẹni tí ó wọlé ń ran ìpinnu, ìrònú, ìmọ̀ràn, àti òfin ìgbé-ayé lọwọ láti tẹ̀síwájú. Ó yẹ kí ìtọ́sọ́nà jẹ́ ti ara ẹni láì ṣí ìkọ̀kọ̀ sílẹ̀ láìnídí.",
+    trustConnectedDataBody:
+      "Ìsopọ̀ ọjọ́ iwájú sí ìlera, owó, tàbí ẹrọ gbọdọ̀ jẹ́ pẹ̀lú àṣẹ kọọkan, pa a sílẹ̀ ní ìbẹ̀rẹ̀, kí ó sì lo data gangan tí olumulo yan nìkan.",
   },
   ig: {
     nav: { companion: "Ụlọ", decisions: "Mkpebi", reflect: "Tụgharịa uche", library: "Ọba akwụkwọ", account: "Akaụntụ" },
@@ -956,12 +1029,110 @@ const wisdomEntries: WisdomEntry[] = [
   },
 ];
 
-const modes: { label: Mode; icon: typeof PiggyBank; copy: string }[] = [
+type ModeCard = { label: Mode; icon: typeof PiggyBank; copy: string; displayLabel?: string };
+type DisplayModeProfile = ModeProfile & { displayLabel?: string };
+
+const modes: ModeCard[] = [
   { label: "Money", icon: PiggyBank, copy: modeProfiles.Money.focus },
   { label: "Work", icon: BriefcaseBusiness, copy: modeProfiles.Work.focus },
   { label: "Purpose", icon: Compass, copy: modeProfiles.Purpose.focus },
   { label: "Generosity", icon: HandHeart, copy: modeProfiles.Generosity.focus },
 ];
+
+const modeDisplayLabels: Partial<Record<LanguageCode, Record<Mode, string>>> = {
+  yo: {
+    Money: "Owó",
+    Work: "Iṣẹ́",
+    Purpose: "Ìdí",
+    Generosity: "Ìfẹ́ fúnni",
+  },
+  de: {
+    Money: "Geld",
+    Work: "Arbeit",
+    Purpose: "Sinn",
+    Generosity: "Großzügigkeit",
+  },
+};
+
+const localizedModeProfiles: Partial<Record<LanguageCode, Partial<Record<Mode, Partial<ModeProfile>>>>> = {
+  yo: {
+    Money: {
+      intent: "Ṣe ìtọ́jú ohun tí a fi lé ọ lọ́wọ́ pẹ̀lú àlàáfíà àti ìmọ̀.",
+      focus: "Ìṣètò owó, gbèsè, ìfipamọ́, ìdókòwò, ìtẹ́lọ́run",
+      useWhen: "Lo fún ináwó, gbèsè, ìfipamọ́, ìdókòwò, àníyàn owó, tàbí fífi ara wé ẹlòmíì.",
+      lens: "Ìwòye ìtọ́jú: òmìnira, ohun tó tó, sùúrù, ewu, àti ojúṣe olóòtítọ́.",
+      diagnosticTracks: [
+        "Òmìnira: ṣé yíyàn yìí máa pọ̀ síi tàbí dín àwọn àṣàyàn ọgbọ́n lọ́la kù?",
+        "Ohun tó tó: ṣé ìfẹ́ náà mọ́, tàbí fífi ara wé ẹlòmíì ló ń ṣètò ibi-afẹ́?",
+        "Ewu: kí ló lè lọ dáadáa, kí ló lè kuna, àti ṣé mo ti ka iye owó rẹ dáadáa?",
+      ],
+      blindSpots: [
+        "Dídapọ̀ ìgbàgbọ́ mọ́ ìdánilójú owó",
+        "Pípè ìfọkànsìn ìgbé-ayé ní àìní",
+        "Rí agbára gbèsè bí ìyọ̀nda",
+      ],
+      maturitySignals: [
+        "Ètò náà ṣi dára lẹ́yìn ìdúró",
+        "Àwọn nọ́ńbà hàn gbangba, wọn kò ṣòro",
+        "Ìmọ̀ràn ti dán àwọn ìròyìn inú rẹ wò",
+      ],
+      practices: [
+        "Darúkọ ohun tó tó fún àsìkò yìí",
+        "Kọ ètò sísan gbèsè, ìfipamọ́, tàbí fífúnni sílẹ̀ kedere",
+        "Dúró títí di ọ̀la kí o tó ná owó tí kò rọrùn láti yí padà",
+      ],
+      prompts: [
+        "Báwo ni mo ṣe lè kọ ọrọ̀ láì jẹ́ kí ìwọra darí mi?",
+        "Kí ni ọgbọ́n sọ nípa gbèsè?",
+        "Báwo ni mo ṣe lè dá fífi ara mi wé ẹlòmíì dúró nípa owó?",
+      ],
+    },
+    Work: {
+      intent: "Ṣàyẹ̀wò iṣẹ́, ìpè, olórí, àti ìfẹ́ṣọ́nà tó péye.",
+      focus: "Ìyípadà iṣẹ́, olórí, òwò, ìrẹ̀wẹ̀sì, ìpè",
+      useWhen: "Lo fún ìpinnu iṣẹ́, ìmọ̀ràn òwò, ìfọkànsìn olórí, ìrẹ̀wẹ̀sì, tàbí ìfẹ́ṣọ́nà.",
+      lens: "Ìwòye ìpè: aápọn tó dára, ìmọ̀ràn, kika iye, iṣẹ́ ìránṣẹ́, àti ìyára tó péye.",
+      prompts: ["Ṣé kí n fi iṣẹ́ mi tó dúró ṣinṣin sílẹ̀?", "Báwo ni mo ṣe mọ̀ pé ìfẹ́ṣọ́nà mi dára?", "Ṣé kí n bẹ̀rẹ̀ òwò yìí báyìí?"],
+    },
+    Purpose: {
+      intent: "Dákẹ́ kí o ṣàyẹ̀wò ẹni tí ìpinnu yìí ń dá sílẹ̀.",
+      focus: "Ìdánimọ̀, ìtọ́sọ́nà, àníyàn, iye, ìmọ̀ pípẹ́",
+      useWhen: "Lo nígbà tí ìbéèrè gidi jẹ́ ìdánimọ̀, ìtọ́sọ́nà, àlàáfíà, àsìkò, tàbí iye.",
+      lens: "Ìwòye ìmòye: ìdánimọ̀, àlàáfíà, ìdí inú, sùúrù, àti ìgbésẹ̀ olóòtítọ́ tó kàn.",
+      prompts: ["Báwo ni mo ṣe lè pinnu nígbà tí kò yé mi?", "Bí mo bá ń lé aṣeyọrí fún ìdí tí kò dára ńkọ?", "Báwo ni mo ṣe lè rí àlàáfíà nípa ìgbésẹ̀ tó kàn?"],
+    },
+    Generosity: {
+      intent: "Fúnni ní òmìnira láì jẹ́ ẹ̀bi, ìfọkànsìn, tàbí ìṣeré.",
+      focus: "Fífúnni, ìrànwọ́ ẹbí, iṣẹ́ àánú, ààlà, ìtẹ̀síwájú",
+      useWhen: "Lo fún fífúnni, ìrànwọ́ ẹbí, ààlà, tàbí ìfẹ́ fúnni tó lè tẹ̀síwájú.",
+      lens: "Ìwòye ìfẹ́ fúnni: ìfẹ́ ọkàn, ìtẹ̀síwájú, ayọ̀, ọgbọ́n, àti ìfẹ́ láì fi ipa múni.",
+      prompts: ["Báwo ni mo ṣe lè fúnni láì jẹ́ ẹ̀bi tàbí ìfọkànsìn?", "Ṣé kí n tún ran ẹbí lọ́wọ́ nípa owó?", "Ìfẹ́ fúnni mélòó ni ó le tẹ̀síwájú fún mi?"],
+    },
+  },
+};
+
+function modeDisplayLabel(mode: Mode, language: LanguageCode) {
+  return modeDisplayLabels[language]?.[mode] ?? mode;
+}
+
+function localizedModeProfile(mode: Mode, language: LanguageCode): DisplayModeProfile {
+  return {
+    ...modeProfiles[mode],
+    ...localizedModeProfiles[language]?.[mode],
+    displayLabel: modeDisplayLabel(mode, language),
+  };
+}
+
+function localizedModeCards(language: LanguageCode): ModeCard[] {
+  return modes.map((item) => {
+    const profile = localizedModeProfile(item.label, language);
+    return {
+      ...item,
+      copy: profile.focus,
+      displayLabel: profile.displayLabel,
+    };
+  });
+}
 
 const modeTerms: Record<Mode, string[]> = {
   Money: ["money", "debt", "stewardship", "contentment", "saving", "investing", "risk", "wealth"],
@@ -1411,7 +1582,8 @@ export function AletheiaApp() {
     ? (dailyEntry.theme as Mode)
     : mode;
   const daily = localizedDailyWisdom(dailyEntry, dailyMode, preferences);
-  const activeMode = modeProfiles[mode];
+  const activeMode = localizedModeProfile(mode, preferences.language);
+  const activeModeCards = localizedModeCards(preferences.language);
   const activeLanguage = languages[preferences.language];
   const activeRegion = regions[preferences.region];
   const copy = languageCopy[preferences.language] ?? languageCopy.en;
@@ -1447,10 +1619,24 @@ export function AletheiaApp() {
     });
   }
 
-  function scrollToSection(id: string) {
+  function scrollToSection(id: string, attempt = 0) {
     window.setTimeout(() => {
-      document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 90);
+      const target = document.getElementById(id);
+      if (target) {
+        target.scrollIntoView({ behavior: "smooth", block: "start" });
+        if (id === "companion-ask") {
+          window.setTimeout(() => {
+            const input = document.getElementById("companion-question-input") as HTMLTextAreaElement | null;
+            input?.focus();
+            input?.scrollIntoView({ behavior: "smooth", block: "center" });
+          }, 220);
+        }
+        return;
+      }
+      if (attempt < 6) {
+        scrollToSection(id, attempt + 1);
+      }
+    }, attempt ? 140 : 90);
   }
 
   function completeOnboarding() {
@@ -2566,7 +2752,7 @@ export function AletheiaApp() {
                 <Moon size={17} className="text-[#d0ad55]" />
               </div>
               <div className="space-y-2">
-                {modes.map((item) => (
+                {activeModeCards.map((item) => (
                   <ModeButton key={item.label} item={item} active={mode === item.label} onClick={() => handleModeChange(item.label)} />
                 ))}
               </div>
@@ -2602,6 +2788,7 @@ export function AletheiaApp() {
                   messages={messages}
                   mode={mode}
                   modeProfile={activeMode}
+                  modeCards={activeModeCards}
                   preferences={preferences}
                   copy={copy}
                   ui={ui}
@@ -2857,7 +3044,7 @@ function ModeButton({ item, active, onClick }: { item: (typeof modes)[number]; a
     >
       <item.icon className="mt-0.5 shrink-0" size={17} />
       <span>
-        <span className="block text-sm font-semibold">{item.label}</span>
+        <span className="block text-sm font-semibold">{item.displayLabel ?? item.label}</span>
         <span className="mt-1 block text-xs leading-5 text-[#dbe4dd]">{item.copy}</span>
       </span>
     </button>
@@ -2879,7 +3066,7 @@ function ModeLensCard({ item, active, onClick }: { item: (typeof modes)[number];
         <item.icon size={16} />
       </span>
       <span className="min-w-0">
-        <span className="block text-sm font-semibold">{item.label}</span>
+        <span className="block text-sm font-semibold">{item.displayLabel ?? item.label}</span>
         <span className={`mt-1 block text-xs leading-5 ${active ? "text-[#dbe6df]" : "text-[#607067]"}`}>{item.copy}</span>
       </span>
     </button>
@@ -3168,7 +3355,7 @@ function HomeDashboard({
     { label: text.reflectToday!, body: daily.practice, onClick: onReflectToday, icon: Feather },
     user && notificationsEnabled
       ? { label: text.reviewPattern!, body: todayPattern, onClick: onReviewPattern, icon: ShieldCheck }
-      : { label: user ? text.enableNotifications! : text.enableSync!, body: user ? "Receive one quiet daily wisdom prompt." : "Keep decisions and reflections across devices.", onClick: onOpenAccount, icon: Bell },
+      : { label: user ? text.enableNotifications! : text.enableSync!, body: user ? text.notificationPromptBody! : text.syncDevicesBody!, onClick: onOpenAccount, icon: Bell },
     activeDecision
       ? { label: text.askNewQuestion!, body: text.askNewQuestionBody!, onClick: onAskOneQuestion, icon: MessageCircle }
       : { label: text.startDecision!, body: text.startDecisionBody!, onClick: onContinueDecision, icon: Compass },
@@ -3439,26 +3626,26 @@ function AccountPanel({
           onLogout={onLogout}
         />
 
-        <AuthPanel
-          user={user}
-          authMode={authMode}
-          setAuthMode={setAuthMode}
-          name={name}
-          setName={setName}
-          email={email}
-          setEmail={setEmail}
-          password={password}
-          setPassword={setPassword}
-          error={error}
-          notice={notice}
-          authStatus={authStatus}
-          googleAuthAvailable={googleAuthAvailable}
-          status={status}
-          isWorking={isWorking}
-          onSubmit={onSubmit}
-          onGoogleSignIn={onGoogleSignIn}
-          onLogout={onLogout}
-        />
+        {!user ? (
+          <AuthPanel
+            authMode={authMode}
+            setAuthMode={setAuthMode}
+            name={name}
+            setName={setName}
+            email={email}
+            setEmail={setEmail}
+            password={password}
+            setPassword={setPassword}
+            error={error}
+            notice={notice}
+            authStatus={authStatus}
+            googleAuthAvailable={googleAuthAvailable}
+            status={status}
+            isWorking={isWorking}
+            onSubmit={onSubmit}
+            onGoogleSignIn={onGoogleSignIn}
+          />
+        ) : null}
 
         <PreferencesPanel
           panelRef={preferencesRef}
@@ -4030,7 +4217,6 @@ function AccountSignal({ label, value, active }: { label: string; value: string;
 }
 
 function AuthPanel({
-  user,
   authMode,
   setAuthMode,
   name,
@@ -4047,9 +4233,7 @@ function AuthPanel({
   isWorking,
   onSubmit,
   onGoogleSignIn,
-  onLogout,
 }: {
-  user: User | null;
   authMode: AuthMode;
   setAuthMode: (value: AuthMode) => void;
   name: string;
@@ -4066,7 +4250,6 @@ function AuthPanel({
   isWorking: boolean;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onGoogleSignIn: () => void;
-  onLogout: () => void;
 }) {
   const authBusy = isWorking || authStatus === "checking" || authStatus === "signing-in" || authStatus === "signing-out";
   const statusLabel =
@@ -4076,9 +4259,7 @@ function AuthPanel({
         ? "Signing in"
         : authStatus === "signing-out"
           ? "Signing out"
-          : user
-            ? "Signed in"
-            : "Guest";
+          : "Guest";
 
   return (
     <section className="mb-5 rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm">
@@ -4086,11 +4267,9 @@ function AuthPanel({
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">Account</p>
         <span
           className={`rounded-md px-2 py-1 text-xs font-semibold ${
-            user
-              ? "bg-[#edf7f1] text-[#245443]"
-              : authBusy
-                ? "bg-[#fff8dc] text-[#866a24]"
-                : "bg-[#edf2ee] text-[#52635a]"
+            authBusy
+              ? "bg-[#fff8dc] text-[#866a24]"
+              : "bg-[#edf2ee] text-[#52635a]"
           }`}
         >
           {statusLabel}
@@ -4112,24 +4291,7 @@ function AuthPanel({
           {error}
         </div>
       ) : null}
-      {user ? (
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-sm font-semibold text-[#203a35]">
-              Signed in as {user.name || user.email}
-            </p>
-            <p className="mt-1 text-sm leading-6 text-[#5b6a61]">{status}</p>
-          </div>
-          <button
-            onClick={onLogout}
-            disabled={authBusy}
-            className="h-10 rounded-md border border-[#c9d5cd] bg-white/70 px-4 text-sm font-semibold text-[#405049] transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {authStatus === "signing-out" ? "Signing out..." : "Sign out"}
-          </button>
-        </div>
-      ) : (
-        <div className="grid gap-4 xl:grid-cols-[0.85fr_1.15fr]">
+      <div className="grid gap-4 xl:grid-cols-[0.85fr_1.15fr]">
           <div>
             <p className="text-sm font-semibold text-[#203a35]">
               Sign in for sync
@@ -4196,8 +4358,7 @@ function AuthPanel({
             </div>
             </form>
           </div>
-        </div>
-      )}
+      </div>
     </section>
   );
 }
@@ -4225,6 +4386,15 @@ function NotificationPanel({
     typeof window !== "undefined" &&
     (!("Notification" in window) || !("serviceWorker" in navigator) || !("PushManager" in window));
   const disabled = busy || !user || !configured || unsupported || permission === "denied";
+  const displayStatus = !user
+    ? "Sign in to enable daily wisdom notifications."
+    : !configured
+      ? "Notifications need VAPID keys before they can be enabled."
+      : unsupported
+        ? "This browser does not support web push notifications. Try the installed PWA or a modern mobile browser."
+        : permission === "denied"
+          ? "Notifications are blocked for this site. Enable them in your browser settings to continue."
+          : status;
 
   return (
     <section className="mb-5 rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm">
@@ -4236,7 +4406,7 @@ function NotificationPanel({
           <div>
             <p className="text-sm font-semibold text-[#203a35]">Daily wisdom notifications</p>
             <p className="mt-1 text-sm leading-6 text-[#5b6a61]">
-              {status}
+              {displayStatus}
             </p>
           </div>
         </div>
@@ -4610,6 +4780,7 @@ function CompanionPanel({
   messages,
   mode,
   modeProfile,
+  modeCards,
   preferences,
   copy,
   ui,
@@ -4636,7 +4807,8 @@ function CompanionPanel({
 }: {
   messages: ChatMessage[];
   mode: Mode;
-  modeProfile: ModeProfile;
+  modeProfile: DisplayModeProfile;
+  modeCards: ModeCard[];
   preferences: UserPreferences;
   copy: (typeof languageCopy)[LanguageCode];
   ui: (typeof uiText)[LanguageCode];
@@ -4694,7 +4866,9 @@ function CompanionPanel({
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <span className="w-fit rounded-sm bg-[#edf2ee] px-2 py-1 text-xs font-semibold text-[#52635a]">{mode} lens</span>
+            <span className="w-fit rounded-sm bg-[#edf2ee] px-2 py-1 text-xs font-semibold text-[#52635a]">
+              {modeProfile.displayLabel ?? mode} lens
+            </span>
             <span className="w-fit rounded-sm bg-[#f5edda] px-2 py-1 text-xs font-semibold text-[#72591f]">
               {languages[preferences.language].nativeName} · {preferences.bibleTranslation}
             </span>
@@ -4710,7 +4884,7 @@ function CompanionPanel({
               </span>
             </div>
             <div className="mb-3 grid gap-2 sm:grid-cols-2">
-              {modes.map((item) => (
+              {modeCards.map((item) => (
                 <ModeLensCard
                   key={item.label}
                   item={item}
@@ -4721,6 +4895,7 @@ function CompanionPanel({
             </div>
             <div className="flex flex-col gap-3 sm:flex-row">
               <textarea
+                id="companion-question-input"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder={`${copy.askPlaceholder} ${modeProfile.focus.toLowerCase()}...`}
@@ -4833,7 +5008,7 @@ function CompanionPanel({
       <aside className="space-y-4">
         <section className="editorial-sidebar rounded-lg border border-[#d7e0da] bg-[#fbfcf8]/72 p-4 shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">{ui.whatModeFor}</p>
-          <h2 className="mt-2 font-semibold text-[#203a35]">{modeProfile.label}: {modeProfile.intent}</h2>
+          <h2 className="mt-2 font-semibold text-[#203a35]">{modeProfile.displayLabel ?? modeProfile.label}: {modeProfile.intent}</h2>
           <p className="mt-2 text-sm leading-6 text-[#55645b]">{modeProfile.useWhen}</p>
           <p className="mt-3 rounded-lg border border-[#d8e1db] bg-white/64 p-3 text-sm leading-6 text-[#45534b]">
             {modeProfile.lens}
@@ -5002,16 +5177,16 @@ function TrustLayerPanel({ ui }: { ui: (typeof uiText)[LanguageCode] }) {
       </div>
       <div className="mt-3 space-y-3 text-sm leading-6 text-[#55645b]">
         <p className="rounded-lg border border-[#d8e1db] bg-white/64 p-3">
-          Scripture references come from Aletheia’s curated wisdom library. If a verse appears, you can tap it to see context and why it matters.
+          {ui.trustScriptureBody ?? uiText.en.trustScriptureBody}
         </p>
         <p className="rounded-lg border border-[#d8e1db] bg-white/64 p-3">
-          Aletheia will not promise outcomes, predict markets, claim divine certainty, or replace qualified financial, legal, tax, medical, or pastoral counsel.
+          {ui.trustBoundaryBody ?? uiText.en.trustBoundaryBody}
         </p>
         <p className="rounded-lg border border-[#d8e1db] bg-white/64 p-3">
-          Signed-in memory helps continuity across decisions, reflections, counsel, and rules of life. It should make guidance more personal without exposing private details unnecessarily.
+          {ui.trustMemoryBody ?? uiText.en.trustMemoryBody}
         </p>
         <p className="rounded-lg border border-[#d8e1db] bg-white/64 p-3">
-          Future health, finance, or device integrations should be permission-by-permission, off by default, and limited to the exact data the user chooses to connect.
+          {ui.trustConnectedDataBody ?? uiText.en.trustConnectedDataBody}
         </p>
       </div>
     </section>
@@ -5109,7 +5284,7 @@ function CurrentCounselCard({
 }: {
   exchange: ConversationExchange;
   mode: Mode;
-  modeProfile: ModeProfile;
+  modeProfile: DisplayModeProfile;
   preferences: UserPreferences;
   ui: (typeof uiText)[LanguageCode];
   isWorking: boolean;
@@ -5126,6 +5301,7 @@ function CurrentCounselCard({
   const question = exchange.question?.text;
   const isThinking = exchange.answer.id === "thinking";
   const showDecisionActions = Boolean(question) && !isThinking;
+  const answerText = exchange.answer.id === "welcome" ? text.welcomeCounsel! : exchange.answer.text;
 
   return (
     <section className="rounded-lg border border-[#d7e0da] bg-white/76 p-3 shadow-sm sm:p-4">
@@ -5146,10 +5322,10 @@ function CurrentCounselCard({
       <article className="editorial-counsel mt-3 rounded-md border border-[#d8e1db] bg-[#fbfcf8]/84 p-3 sm:p-4">
         <p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#866a24]">Aletheia</p>
         <p className="mb-3 rounded-md border border-[#d8e1db] bg-white/70 p-3 text-xs leading-5 text-[#607067]">
-          {mode} {text.modeShapesCounsel} {modeProfile.lens.toLowerCase()}
+          {modeProfile.displayLabel ?? mode} {text.modeShapesCounsel} {modeProfile.lens.toLowerCase()}
         </p>
         <div className="calm-prose">
-          <ScriptureLinkedText text={exchange.answer.text} onScriptureOpen={onScriptureOpen} />
+          <ScriptureLinkedText text={answerText} onScriptureOpen={onScriptureOpen} />
         </div>
         <ScriptureChips sources={exchange.answer.sources} preferences={preferences} onScriptureOpen={onScriptureOpen} />
       </article>

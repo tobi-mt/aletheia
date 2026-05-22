@@ -572,6 +572,29 @@ export const localizedDailyPractices: Record<LanguageCode, Partial<Record<Mode, 
   },
 };
 
+const localizedWisdomThemes: Partial<Record<LanguageCode, Record<string, string>>> = {
+  yo: {
+    Stewardship: "Ìtọ́jú ohun tí a fi lé wa lọ́wọ́",
+    Debt: "Gbèsè",
+    Contentment: "Ìtẹ́lọ́run",
+    Counsel: "Ìmọ̀ràn",
+    "Cost Counting": "Kíka iye",
+    Generosity: "Ìfẹ́ fúnni",
+    Diligence: "Ìfarabalẹ̀ iṣẹ́",
+    "Provision and Anxiety": "Ìpèsè àti àníyàn",
+  },
+  de: {
+    Stewardship: "Verantwortliche Verwaltung",
+    Debt: "Schulden",
+    Contentment: "Genügsamkeit",
+    Counsel: "Rat",
+    "Cost Counting": "Kosten prüfen",
+    Generosity: "Großzügigkeit",
+    Diligence: "Sorgfalt",
+    "Provision and Anxiety": "Versorgung und Sorge",
+  },
+};
+
 export function normalizePreferences(input: Partial<UserPreferences> = {}): UserPreferences {
   const language = input.language && input.language in languages ? input.language : defaultPreferences.language;
   const region = input.region && input.region in regions ? input.region : defaultPreferences.region;
@@ -605,7 +628,7 @@ export function localizedDailyWisdom(
 
   return {
     label: copy.dailyLabel,
-    theme: entry.theme,
+    theme: localizedWisdomThemes[preferences.language]?.[entry.theme] ?? entry.theme,
     scripture: `${entry.scripture} (${scriptureTranslationLabel(entry.scripture, preferences)})`,
     principle: preferences.language === "en" ? entry.principle : practice,
     practice,
