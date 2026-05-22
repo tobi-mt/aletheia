@@ -21,6 +21,9 @@ export async function POST(request: Request) {
         };
       };
       preferredHour?: number;
+      preferredLocalHour?: number;
+      preferredTimezone?: string;
+      deliveryStrategy?: string;
     };
 
     const endpoint = body.subscription?.endpoint;
@@ -29,6 +32,15 @@ export async function POST(request: Request) {
     const preferredHour = Number.isInteger(body.preferredHour)
       ? Math.min(23, Math.max(0, body.preferredHour ?? 8))
       : 8;
+    const preferredLocalHour = Number.isInteger(body.preferredLocalHour)
+      ? Math.min(23, Math.max(0, body.preferredLocalHour ?? 8))
+      : 8;
+    const preferredTimezone = typeof body.preferredTimezone === "string" && body.preferredTimezone.trim()
+      ? body.preferredTimezone.trim().slice(0, 80)
+      : "UTC";
+    const deliveryStrategy = typeof body.deliveryStrategy === "string" && body.deliveryStrategy.trim()
+      ? body.deliveryStrategy.trim().slice(0, 40)
+      : "morning";
 
     if (!endpoint || !p256dh || !auth) {
       return NextResponse.json({ error: "Invalid push subscription." }, { status: 400 });
@@ -40,8 +52,9 @@ export async function POST(request: Request) {
 
     await run(
       `INSERT INTO push_subscriptions (
-        id, user_id, endpoint, p256dh, auth, user_agent, enabled, preferred_hour, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, TRUE, ?, ?, ?)
+        id, user_id, endpoint, p256dh, auth, user_agent, enabled, preferred_hour,
+        preferred_local_hour, preferred_timezone, delivery_strategy, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, TRUE, ?, ?, ?, ?, ?, ?)
       ON CONFLICT (endpoint)
       DO UPDATE SET
         user_id = EXCLUDED.user_id,
@@ -50,6 +63,9 @@ export async function POST(request: Request) {
         user_agent = EXCLUDED.user_agent,
         enabled = TRUE,
         preferred_hour = EXCLUDED.preferred_hour,
+        preferred_local_hour = EXCLUDED.preferred_local_hour,
+        preferred_timezone = EXCLUDED.preferred_timezone,
+        delivery_strategy = EXCLUDED.delivery_strategy,
         updated_at = EXCLUDED.updated_at`,
       crypto.randomUUID(),
       user.id,
@@ -58,13 +74,16 @@ export async function POST(request: Request) {
       auth,
       userAgent,
       preferredHour,
+      preferredLocalHour,
+      preferredTimezone,
+      deliveryStrategy,
       now,
       now
     );
     await trackServerEvent({
       userId: user.id,
       eventName: "notification_enabled",
-      metadata: { preferredHour },
+      metadata: { preferredHour, preferredLocalHour, preferredTimezone, deliveryStrategy },
     });
 
     return NextResponse.json({ ok: true });

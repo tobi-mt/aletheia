@@ -114,10 +114,17 @@ async function initializeDatabase() {
       user_agent TEXT,
       enabled BOOLEAN NOT NULL DEFAULT TRUE,
       preferred_hour INTEGER NOT NULL DEFAULT 8,
+      preferred_local_hour INTEGER NOT NULL DEFAULT 8,
+      preferred_timezone TEXT NOT NULL DEFAULT 'UTC',
+      delivery_strategy TEXT NOT NULL DEFAULT 'morning',
       last_sent_at TIMESTAMPTZ,
       created_at TIMESTAMPTZ NOT NULL,
       updated_at TIMESTAMPTZ NOT NULL
     );
+
+    ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS preferred_local_hour INTEGER NOT NULL DEFAULT 8;
+    ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS preferred_timezone TEXT NOT NULL DEFAULT 'UTC';
+    ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS delivery_strategy TEXT NOT NULL DEFAULT 'morning';
 
     CREATE TABLE IF NOT EXISTS counsel_contacts (
       id TEXT PRIMARY KEY,

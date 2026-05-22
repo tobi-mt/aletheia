@@ -76,11 +76,21 @@ type WorkflowNoticeState = {
   body: string;
   tone: WorkflowTone;
 };
+type NotificationTiming = {
+  preferredLocalHour: number;
+  preferredTimezone: string;
+  deliveryStrategy: "morning" | "midday" | "evening" | "custom";
+};
 
 const ALETHEIA_SHARE_URL = "https://aletheia.mirrortalkpodcast.com?ref=share";
 const ALETHEIA_SHARE_TEXT = "Aletheia is a calm AI-powered biblical wisdom companion for money, work, and stewardship.";
 const MANUAL_CONTEXT_STORAGE_KEY = "aletheia_manual_context";
 const THEME_STORAGE_KEY = "aletheia_theme_preference";
+const DEFAULT_NOTIFICATION_TIMING: NotificationTiming = {
+  preferredLocalHour: 8,
+  preferredTimezone: "UTC",
+  deliveryStrategy: "morning",
+};
 
 const languageFlags: Record<LanguageCode, string> = {
   en: "🇺🇸",
@@ -752,6 +762,33 @@ function cleanDisplayText(text: string) {
     .trim();
 }
 
+function browserTimezone() {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+  } catch {
+    return "UTC";
+  }
+}
+
+function localHourToUtcHour(localHour: number) {
+  const timezoneOffsetHours = Math.round(new Date().getTimezoneOffset() / 60);
+  return (localHour + timezoneOffsetHours + 24) % 24;
+}
+
+function notificationHourForStrategy(strategy: NotificationTiming["deliveryStrategy"], fallback: number) {
+  if (strategy === "morning") return 8;
+  if (strategy === "midday") return 12;
+  if (strategy === "evening") return 19;
+  return fallback;
+}
+
+function notificationTimeLabel(hour: number) {
+  const normalized = Math.min(23, Math.max(0, hour));
+  const suffix = normalized >= 12 ? "PM" : "AM";
+  const hour12 = normalized % 12 || 12;
+  return `${hour12}:00 ${suffix}`;
+}
+
 function conversationExchanges(messages: ChatMessage[]) {
   const exchanges: ConversationExchange[] = [];
   let pendingQuestion: ChatMessage | null = null;
@@ -797,6 +834,13 @@ type ConversationExchange = {
   question: ChatMessage | null;
   answer: ChatMessage;
   createdLabel: string;
+};
+
+type CounselSummaryDraft = {
+  id: string;
+  title: string;
+  body: string;
+  createdAt: string;
 };
 
 type JournalEntry = {
@@ -1259,6 +1303,10 @@ export function AletheiaApp() {
   const [notificationsConfigured, setNotificationsConfigured] = useState(false);
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>("default");
   const [notificationBusy, setNotificationBusy] = useState(false);
+  const [notificationTiming, setNotificationTiming] = useState<NotificationTiming>(() => ({
+    ...DEFAULT_NOTIFICATION_TIMING,
+    preferredTimezone: typeof window === "undefined" ? "UTC" : browserTimezone(),
+  }));
   const [wisdomDecisions, setWisdomDecisions] = useState<WisdomDecision[]>([]);
   const [decisionEvents, setDecisionEvents] = useState<DecisionEvent[]>([]);
   const [timelineInsight, setTimelineInsight] = useState<TimelineInsight>({
@@ -1282,6 +1330,7 @@ export function AletheiaApp() {
   const [counselInviteToken, setCounselInviteToken] = useState<string | null>(null);
   const [counselInvitePreview, setCounselInvitePreview] = useState<CounselInvitePreview | null>(null);
   const [counselInviteStatus, setCounselInviteStatus] = useState("");
+  const [counselSummaryDraft, setCounselSummaryDraft] = useState<CounselSummaryDraft | null>(null);
   const [answerFocusId, setAnswerFocusId] = useState<string | null>(null);
   const [ruleText, setRuleText] = useState("");
   const preferencesRef = useRef<HTMLElement | null>(null);
@@ -1542,6 +1591,9 @@ export function AletheiaApp() {
       const data = (await response.json()) as {
         configured?: boolean;
         enabled?: boolean;
+        preferredLocalHour?: number;
+        preferredTimezone?: string;
+        deliveryStrategy?: NotificationTiming["deliveryStrategy"];
       };
       const localSubscription =
         "serviceWorker" in navigator && "PushManager" in window
@@ -1552,12 +1604,17 @@ export function AletheiaApp() {
           : null;
       setNotificationsConfigured(Boolean(data.configured));
       setNotificationsEnabled(Boolean(data.enabled && localSubscription));
+      setNotificationTiming((current) => ({
+        preferredLocalHour: Number.isInteger(data.preferredLocalHour) ? Number(data.preferredLocalHour) : current.preferredLocalHour,
+        preferredTimezone: data.preferredTimezone || current.preferredTimezone || browserTimezone(),
+        deliveryStrategy: data.deliveryStrategy || current.deliveryStrategy,
+      }));
       if (!data.configured) {
         setNotificationStatus("Notifications need VAPID keys before they can be enabled.");
       } else if (!user) {
         setNotificationStatus("Sign in to enable daily wisdom notifications.");
       } else if (data.enabled && localSubscription) {
-        setNotificationStatus("Daily wisdom notifications are enabled.");
+        setNotificationStatus(`Daily wisdom notifications are enabled around ${notificationTimeLabel(data.preferredLocalHour ?? 8)} local time.`);
       } else if (data.enabled) {
         setNotificationStatus("Notifications are enabled on your account. Enable them on this device too.");
       } else {
@@ -1751,11 +1808,42 @@ export function AletheiaApp() {
   }
 
   function draftCounselSummaryFromExchange(exchange: ConversationExchange) {
-    const question = cleanDisplayText(exchange.question?.text ?? "");
-    setQuery(`Create a concise counsel summary I can share with a trusted person about this decision: ${question}`);
-    showView("companion");
-    scrollToSection("companion-ask");
-    announceWorkflow("Counsel summary queued", "The Companion input now asks for a mentor-ready summary. Send it when ready.", "success");
+    const question = cleanDisplayText(exchange.question?.text ?? "Recent counsel");
+    const answer = cleanDisplayText(exchange.answer.text);
+    const sources = (exchange.answer.sources ?? []).map((source) => ({
+      ...source,
+      modern_application: source.application,
+      emotional_context: source.emotions,
+    }));
+    const signals = scoreDecision({
+      pressure: `${question}\n\n${answer}`,
+      emotion: "uncertain",
+      counselSought: counselContacts.length > 0,
+      costCounted: /cost|budget|risk|time|debt|income|expense/i.test(`${question} ${answer}`),
+      alignmentClear: /values|calling|steward|wisdom|faithful|peace/i.test(`${question} ${answer}`),
+      reversibleStep: /small|next step|test|wait|pause|experiment/i.test(answer),
+      peaceOverUrgency: !/urgent|rush|panic|asap|immediately/i.test(question),
+    });
+    const body = buildDecisionSummary({
+      title: question.slice(0, 90),
+      mode,
+      pressure: question,
+      emotion: "uncertain",
+      sources,
+      signals,
+      preferences,
+    });
+    setCounselSummaryDraft({
+      id: crypto.randomUUID(),
+      title: question.slice(0, 90),
+      body,
+      createdAt: new Date().toISOString(),
+    });
+    setDecisionTitle((current) => current || question.slice(0, 90));
+    setDecisionPressure((current) => current || question);
+    showView("decisions");
+    scrollToSection("counsel-circle");
+    announceWorkflow("Counsel summary created", "A mentor-ready summary is waiting in Counsel Circle. Share only when you choose.", "success");
   }
 
   function goDeeperFromExchange(exchange: ConversationExchange) {
@@ -2143,12 +2231,14 @@ export function AletheiaApp() {
           applicationServerKey: urlBase64ToUint8Array(keyData.publicKey),
         });
       }
-      const preferredHour = 8;
-      const response = await fetch("/api/notifications/subscribe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ subscription, preferredHour }),
-      });
+      const preferredLocalHour = notificationTiming.preferredLocalHour;
+      const preferredTimezone = notificationTiming.preferredTimezone || browserTimezone();
+      const preferredHour = localHourToUtcHour(preferredLocalHour);
+      const response = await saveNotificationSubscription(subscription, {
+        ...notificationTiming,
+        preferredLocalHour,
+        preferredTimezone,
+      }, preferredHour);
       if (!response.ok) {
         setNotificationStatus("Could not save notification preference.");
         announceWorkflow("Notification sync failed", "Permission was granted, but the subscription could not be saved.", "error");
@@ -2156,8 +2246,9 @@ export function AletheiaApp() {
       }
 
       setNotificationsEnabled(true);
-      setNotificationStatus("Daily wisdom notifications are enabled for this device.");
-      announceWorkflow("Notifications enabled", "This device is subscribed to daily wisdom notifications.", "success");
+      setNotificationTiming((current) => ({ ...current, preferredTimezone }));
+      setNotificationStatus(`Daily wisdom notifications are enabled around ${notificationTimeLabel(preferredLocalHour)} local time.`);
+      announceWorkflow("Notifications enabled", `This device is subscribed around ${notificationTimeLabel(preferredLocalHour)} local time.`, "success");
     } catch {
       setNotificationsEnabled(false);
       setNotificationStatus("Notifications could not be enabled on this device. Please try again.");
@@ -2191,6 +2282,60 @@ export function AletheiaApp() {
     setNotificationsEnabled(false);
     setNotificationStatus("Daily wisdom notifications are turned off for this device.");
     announceWorkflow("Notifications off", "Daily wisdom notifications are turned off for this device.", "info");
+  }
+
+  async function saveNotificationSubscription(
+    subscription: PushSubscription,
+    timing: NotificationTiming,
+    preferredHour = localHourToUtcHour(timing.preferredLocalHour)
+  ) {
+    return fetch("/api/notifications/subscribe", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        subscription,
+        preferredHour,
+        preferredLocalHour: timing.preferredLocalHour,
+        preferredTimezone: timing.preferredTimezone,
+        deliveryStrategy: timing.deliveryStrategy,
+      }),
+    });
+  }
+
+  async function updateNotificationTiming(patch: Partial<NotificationTiming>) {
+    const nextStrategy = patch.deliveryStrategy ?? notificationTiming.deliveryStrategy;
+    const nextHour = patch.preferredLocalHour ?? notificationHourForStrategy(nextStrategy, notificationTiming.preferredLocalHour);
+    const nextTiming: NotificationTiming = {
+      preferredLocalHour: Math.min(23, Math.max(0, nextHour)),
+      preferredTimezone: patch.preferredTimezone ?? notificationTiming.preferredTimezone ?? browserTimezone(),
+      deliveryStrategy: nextStrategy,
+    };
+    setNotificationTiming(nextTiming);
+    setNotificationStatus(`Daily wisdom will be aimed around ${notificationTimeLabel(nextTiming.preferredLocalHour)} local time.`);
+    if (!notificationsEnabled || notificationBusy) {
+      return;
+    }
+    try {
+      setNotificationBusy(true);
+      const registration = await getReliableServiceWorkerRegistration();
+      const subscription = await registration.pushManager.getSubscription();
+      if (!subscription) {
+        setNotificationsEnabled(false);
+        setNotificationStatus("This device needs to enable notifications again before timing can sync.");
+        return;
+      }
+      const response = await saveNotificationSubscription(subscription, nextTiming);
+      if (!response.ok) {
+        setNotificationStatus("Timing changed here, but could not sync to the server yet.");
+        return;
+      }
+      setNotificationStatus(`Daily wisdom timing saved for around ${notificationTimeLabel(nextTiming.preferredLocalHour)} local time.`);
+      announceWorkflow("Notification timing saved", `Daily wisdom is now aimed around ${notificationTimeLabel(nextTiming.preferredLocalHour)} local time.`, "success");
+    } catch {
+      setNotificationStatus("Timing changed here, but could not sync to the server yet.");
+    } finally {
+      setNotificationBusy(false);
+    }
   }
 
   async function saveReflection() {
@@ -2824,6 +2969,7 @@ export function AletheiaApp() {
                   events={decisionEvents}
                   insight={timelineInsight}
                   counselContacts={counselContacts}
+                  counselSummaryDraft={counselSummaryDraft}
                   rules={rulesOfLife}
                   title={decisionTitle}
                   pressure={decisionPressure}
@@ -2935,6 +3081,8 @@ export function AletheiaApp() {
                   notificationPermission={notificationPermission}
                   notificationStatus={notificationStatus}
                   notificationBusy={notificationBusy}
+                  notificationTiming={notificationTiming}
+                  onNotificationTimingChange={updateNotificationTiming}
                   onEnableNotifications={enableNotifications}
                   onDisableNotifications={disableNotifications}
                   messages={messages}
@@ -3526,6 +3674,8 @@ function AccountPanel({
   notificationPermission,
   notificationStatus,
   notificationBusy,
+  notificationTiming,
+  onNotificationTimingChange,
   onEnableNotifications,
   onDisableNotifications,
   messages,
@@ -3570,6 +3720,8 @@ function AccountPanel({
   notificationPermission: NotificationPermission;
   notificationStatus: string;
   notificationBusy: boolean;
+  notificationTiming: NotificationTiming;
+  onNotificationTimingChange: (patch: Partial<NotificationTiming>) => void;
   onEnableNotifications: () => void;
   onDisableNotifications: () => void;
   messages: ChatMessage[];
@@ -3673,6 +3825,8 @@ function AccountPanel({
           permission={notificationPermission}
           status={notificationStatus}
           busy={notificationBusy}
+          timing={notificationTiming}
+          onTimingChange={onNotificationTimingChange}
           onEnable={onEnableNotifications}
           onDisable={onDisableNotifications}
         />
@@ -4370,6 +4524,8 @@ function NotificationPanel({
   permission,
   status,
   busy,
+  timing,
+  onTimingChange,
   onEnable,
   onDisable,
 }: {
@@ -4379,6 +4535,8 @@ function NotificationPanel({
   permission: NotificationPermission;
   status: string;
   busy: boolean;
+  timing: NotificationTiming;
+  onTimingChange: (patch: Partial<NotificationTiming>) => void;
   onEnable: () => void;
   onDisable: () => void;
 }) {
@@ -4427,6 +4585,44 @@ function NotificationPanel({
             {busy ? "Enabling..." : "Enable"}
           </button>
         )}
+      </div>
+      <div className="mt-4 rounded-lg border border-[#d8e1db] bg-white/58 p-3">
+        <div className="grid gap-3 sm:grid-cols-[1fr_1fr]">
+          <label className="text-xs font-semibold uppercase tracking-[0.14em] text-[#718077]">
+            Delivery rhythm
+            <select
+              value={timing.deliveryStrategy}
+              onChange={(event) =>
+                onTimingChange({ deliveryStrategy: event.target.value as NotificationTiming["deliveryStrategy"] })
+              }
+              className="mt-2 h-10 w-full rounded-md border border-[#c9d5cd] bg-white/82 px-3 text-sm normal-case tracking-normal text-[#203a35] outline-none focus:border-[#203a35]"
+            >
+              <option value="morning">Morning</option>
+              <option value="midday">Midday</option>
+              <option value="evening">Evening</option>
+              <option value="custom">Custom</option>
+            </select>
+          </label>
+          <label className="text-xs font-semibold uppercase tracking-[0.14em] text-[#718077]">
+            Local time
+            <select
+              value={timing.preferredLocalHour}
+              onChange={(event) =>
+                onTimingChange({ preferredLocalHour: Number(event.target.value), deliveryStrategy: "custom" })
+              }
+              className="mt-2 h-10 w-full rounded-md border border-[#c9d5cd] bg-white/82 px-3 text-sm normal-case tracking-normal text-[#203a35] outline-none focus:border-[#203a35]"
+            >
+              {Array.from({ length: 18 }, (_, index) => index + 5).map((hour) => (
+                <option key={hour} value={hour}>
+                  {notificationTimeLabel(hour)}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <p className="mt-3 text-xs leading-5 text-[#607067]">
+          Aletheia uses your device timezone ({timing.preferredTimezone || "local timezone"}) so daily wisdom arrives near your chosen local time.
+        </p>
       </div>
     </section>
   );
@@ -5464,6 +5660,7 @@ function DecisionCompanionPanel({
   events,
   insight,
   counselContacts,
+  counselSummaryDraft,
   rules,
   title,
   pressure,
@@ -5503,6 +5700,7 @@ function DecisionCompanionPanel({
   events: DecisionEvent[];
   insight: TimelineInsight;
   counselContacts: CounselContact[];
+  counselSummaryDraft: CounselSummaryDraft | null;
   rules: RuleOfLife[];
   title: string;
   pressure: string;
@@ -5645,11 +5843,23 @@ function DecisionCompanionPanel({
       </section>
 
       <aside className="space-y-4">
-        <section className="rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm">
+        <section id="counsel-circle" className="scroll-mt-24 rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">Counsel Circle</p>
           <p className="mt-2 text-sm leading-6 text-[#607067]">
             Invite trusted people privately. They see only the decision summaries you choose to share.
           </p>
+          {counselSummaryDraft ? (
+            <div className="mt-3 rounded-lg border border-[#d0ad55]/50 bg-[#fff8dc]/70 p-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#866a24]">Summary ready</p>
+              <p className="mt-2 text-sm font-semibold text-[#203a35]">{counselSummaryDraft.title}</p>
+              <pre className="mt-3 max-h-72 overflow-auto whitespace-pre-wrap rounded-md border border-[#d8e1db] bg-white/72 p-3 text-xs leading-5 text-[#405049]">
+                {counselSummaryDraft.body}
+              </pre>
+              <p className="mt-2 text-xs leading-5 text-[#607067]">
+                This summary is private until you copy it or share a selected decision with someone in your Counsel Circle.
+              </p>
+            </div>
+          ) : null}
           <form onSubmit={onAddCounsel} className="mt-3 grid gap-2">
             <input
               value={counselName}

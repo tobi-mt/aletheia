@@ -11,6 +11,9 @@ type PushRow = {
   p256dh: string;
   auth: string;
   preferred_hour: number;
+  preferred_local_hour: number | null;
+  preferred_timezone: string | null;
+  delivery_strategy: string | null;
   language: string | null;
   region: string | null;
   bible_translation: string | null;
@@ -76,6 +79,28 @@ function dailyNotificationPayload(row: PushRow) {
   });
 }
 
+function localHourForTimezone(date: Date, timezone: string | null | undefined) {
+  const safeTimezone = timezone || "UTC";
+  try {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: safeTimezone,
+      hour: "2-digit",
+      hour12: false,
+    }).formatToParts(date);
+    const hour = Number(parts.find((part) => part.type === "hour")?.value ?? date.getUTCHours());
+    return hour === 24 ? 0 : hour;
+  } catch {
+    return date.getUTCHours();
+  }
+}
+
+function shouldSendAtLocalHour(row: PushRow, now: Date) {
+  const preferredLocalHour = Number.isInteger(row.preferred_local_hour)
+    ? Math.min(23, Math.max(0, Number(row.preferred_local_hour)))
+    : Math.min(23, Math.max(0, Number(row.preferred_hour ?? 8)));
+  return localHourForTimezone(now, row.preferred_timezone) === preferredLocalHour;
+}
+
 export async function sendDailyWisdomNotifications() {
   configureWebPush();
 
@@ -83,18 +108,18 @@ export async function sendDailyWisdomNotifications() {
   const currentHour = now.getUTCHours();
   const rows = await many<PushRow>(
     `SELECT push_subscriptions.id, push_subscriptions.user_id, endpoint, p256dh, auth, preferred_hour,
+            preferred_local_hour, preferred_timezone, delivery_strategy,
             user_preferences.language, user_preferences.region, user_preferences.bible_translation, user_preferences.voice_enabled
      FROM push_subscriptions
      LEFT JOIN user_preferences ON user_preferences.user_id = push_subscriptions.user_id
      WHERE enabled = TRUE
-       AND preferred_hour = ?
        AND (last_sent_at IS NULL OR last_sent_at < NOW() - INTERVAL '20 hours')`,
-    currentHour
   );
+  const dueRows = rows.filter((row) => shouldSendAtLocalHour(row, now));
   let sent = 0;
   let failed = 0;
 
-  for (const row of rows) {
+  for (const row of dueRows) {
     const payload = JSON.stringify(await dailyNotificationPayload(row));
     const subscription: PushSubscription = {
       endpoint: row.endpoint,
@@ -126,7 +151,7 @@ export async function sendDailyWisdomNotifications() {
   }
 
   return {
-    attempted: rows.length,
+    attempted: dueRows.length,
     sent,
     failed,
     hour: currentHour,
