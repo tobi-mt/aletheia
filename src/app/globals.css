@@ -184,6 +184,18 @@ body {
   background: rgba(15, 23, 21, 0.8) !important;
 }
 
+.theme-dark-root [class*="bg-[#f8f5e8]"] {
+  background: #f4ead1 !important;
+  color: #17221f !important;
+  border-color: rgba(244, 234, 209, 0.65) !important;
+}
+
+.theme-dark-root [class*="bg-[#f8f5e8]"] *,
+.theme-dark-root [class*="bg-[#f8f5e8]"] [class*="text-[#203a35]"],
+.theme-dark-root [class*="bg-[#f8f5e8]"] [class*="text-[#405049]"] {
+  color: #17221f !important;
+}
+
 .theme-dark-root .editorial-sidebar {
   color: #d8e5df;
 }

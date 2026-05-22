@@ -128,6 +128,48 @@ const uiText: Record<
     voiceControls: string;
     available: string;
     englishFallback: string;
+    personalizedPriority?: string;
+    whatNext?: string;
+    whatNextBody?: string;
+    continueDecision?: string;
+    askOneQuestion?: string;
+    askOneQuestionBody?: string;
+    askNewQuestion?: string;
+    askNewQuestionBody?: string;
+    reflectToday?: string;
+    reviewPattern?: string;
+    enableNotifications?: string;
+    enableSync?: string;
+    startDecision?: string;
+    startDecisionBody?: string;
+    tinyPractice?: string;
+    currentCounsel?: string;
+    modeShapesCounsel?: string;
+    trackThisDecision?: string;
+    saveAsReflection?: string;
+    createCounselSummary?: string;
+    goDeeper?: string;
+    waitThreeDays?: string;
+    shareAnswerPrompt?: string;
+    sharePrivacyNote?: string;
+    shareAletheia?: string;
+    feedbackQuestion?: string;
+    feedbackHelpful?: string;
+    feedbackMildlyHelpful?: string;
+    feedbackTooVague?: string;
+    feedbackTooPreachy?: string;
+    feedbackNotRelevant?: string;
+    badgesFormation?: string;
+    firstReflectionSaved?: string;
+    firstDecisionTracked?: string;
+    soughtCounsel?: string;
+    waitingModeUsed?: string;
+    ruleOfLifeCreated?: string;
+    notificationsEnabled?: string;
+    sevenDaysPractice?: string;
+    formationNote?: string;
+    milestoneShareTitle?: string;
+    milestoneShareBody?: string;
   }
 > = {
   en: {
@@ -163,6 +205,48 @@ const uiText: Record<
     voiceControls: "Voice controls",
     available: "Available",
     englishFallback: "English fallback",
+    personalizedPriority: "Personalized priority",
+    whatNext: "What should I do next?",
+    whatNextBody: "Aletheia is choosing one wise next action first. The ask field and mode controls stay directly below when you want to begin something new.",
+    continueDecision: "Continue this decision",
+    askOneQuestion: "Ask one question",
+    askOneQuestionBody: "Start with the pressure or decision you are carrying right now.",
+    askNewQuestion: "Ask a new question",
+    askNewQuestionBody: "The Companion input and wisdom modes are just below.",
+    reflectToday: "Reflect on today",
+    reviewPattern: "Review a pattern",
+    enableNotifications: "Enable notifications",
+    enableSync: "Enable sync",
+    startDecision: "Start a decision",
+    startDecisionBody: "Track a high-stakes choice over time.",
+    tinyPractice: "Tiny practice",
+    currentCounsel: "Current counsel",
+    modeShapesCounsel: "mode is shaping this counsel around",
+    trackThisDecision: "Track this decision",
+    saveAsReflection: "Save as reflection",
+    createCounselSummary: "Create counsel summary",
+    goDeeper: "Go deeper",
+    waitThreeDays: "Wait 3 days",
+    shareAnswerPrompt: "Share Aletheia with someone who may benefit from this kind of counsel.",
+    sharePrivacyNote: "This shares the app link only, not your question or Aletheia’s private answer.",
+    shareAletheia: "Share Aletheia",
+    feedbackQuestion: "Was this counsel useful?",
+    feedbackHelpful: "Helpful",
+    feedbackMildlyHelpful: "Mildly helpful",
+    feedbackTooVague: "Too vague",
+    feedbackTooPreachy: "Too preachy",
+    feedbackNotRelevant: "Not relevant",
+    badgesFormation: "Badges / Formation",
+    firstReflectionSaved: "First reflection saved",
+    firstDecisionTracked: "First decision tracked",
+    soughtCounsel: "Sought counsel",
+    waitingModeUsed: "Waiting mode used",
+    ruleOfLifeCreated: "Rule of life created",
+    notificationsEnabled: "Notifications enabled",
+    sevenDaysPractice: "7 days of wisdom practice",
+    formationNote: "These are quiet signs of formation, not points to chase. The first milestone usually begins with saving one reflection.",
+    milestoneShareTitle: "Know someone making a major decision?",
+    milestoneShareBody: "You can invite them to Aletheia without sharing anything private from your account.",
   },
   es: {
     nav: { companion: "Inicio", decisions: "Decisiones", reflect: "Reflexión", library: "Biblioteca", account: "Cuenta" },
@@ -299,6 +383,48 @@ const uiText: Record<
     voiceControls: "Sprachsteuerung",
     available: "Verfügbar",
     englishFallback: "Englischer Rückgriff",
+    personalizedPriority: "Persönliche Priorität",
+    whatNext: "Was sollte ich als Nächstes tun?",
+    whatNextBody: "Aletheia zeigt zuerst einen weisen nächsten Schritt. Das Fragefeld und die Modi bleiben direkt darunter erreichbar.",
+    continueDecision: "Diese Entscheidung fortsetzen",
+    askOneQuestion: "Eine Frage stellen",
+    askOneQuestionBody: "Beginne mit dem Druck oder der Entscheidung, die du gerade trägst.",
+    askNewQuestion: "Neue Frage stellen",
+    askNewQuestionBody: "Das Fragefeld und die Weisheitsmodi sind direkt darunter.",
+    reflectToday: "Heute reflektieren",
+    reviewPattern: "Muster prüfen",
+    enableNotifications: "Benachrichtigungen aktivieren",
+    enableSync: "Synchronisierung aktivieren",
+    startDecision: "Entscheidung beginnen",
+    startDecisionBody: "Verfolge eine wichtige Entscheidung über Zeit.",
+    tinyPractice: "Kleine Übung",
+    currentCounsel: "Aktueller Rat",
+    modeShapesCounsel: "Modus prägt diesen Rat mit der Perspektive",
+    trackThisDecision: "Diese Entscheidung verfolgen",
+    saveAsReflection: "Als Reflexion speichern",
+    createCounselSummary: "Zusammenfassung für Ratgeber erstellen",
+    goDeeper: "Tiefer gehen",
+    waitThreeDays: "3 Tage warten",
+    shareAnswerPrompt: "Teile Aletheia mit jemandem, dem diese Art von Rat helfen könnte.",
+    sharePrivacyNote: "Dabei wird nur der App-Link geteilt, nicht deine Frage oder private Antwort.",
+    shareAletheia: "Aletheia teilen",
+    feedbackQuestion: "War dieser Rat hilfreich?",
+    feedbackHelpful: "Hilfreich",
+    feedbackMildlyHelpful: "Etwas hilfreich",
+    feedbackTooVague: "Zu vage",
+    feedbackTooPreachy: "Zu predigend",
+    feedbackNotRelevant: "Nicht passend",
+    badgesFormation: "Meilensteine / Formung",
+    firstReflectionSaved: "Erste Reflexion gespeichert",
+    firstDecisionTracked: "Erste Entscheidung verfolgt",
+    soughtCounsel: "Rat gesucht",
+    waitingModeUsed: "Wartemodus genutzt",
+    ruleOfLifeCreated: "Lebensregel erstellt",
+    notificationsEnabled: "Benachrichtigungen aktiviert",
+    sevenDaysPractice: "7 Tage Weisheitspraxis",
+    formationNote: "Das sind ruhige Zeichen von Formung, keine Punktejagd. Der erste Meilenstein beginnt meist mit einer gespeicherten Reflexion.",
+    milestoneShareTitle: "Kennst du jemanden vor einer wichtigen Entscheidung?",
+    milestoneShareBody: "Du kannst Aletheia empfehlen, ohne private Inhalte aus deinem Konto zu teilen.",
   },
   yo: {
     nav: { companion: "Ilé", decisions: "Ìpinnu", reflect: "Ìrònú", library: "Ilé ìkàwé", account: "Àkọọlẹ" },
@@ -1321,6 +1447,12 @@ export function AletheiaApp() {
     });
   }
 
+  function scrollToSection(id: string) {
+    window.setTimeout(() => {
+      document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 90);
+  }
+
   function completeOnboarding() {
     try {
       window.localStorage.setItem("aletheia_onboarding_complete", "yes");
@@ -1364,6 +1496,7 @@ export function AletheiaApp() {
   function askOneQuestionFlow() {
     showView("companion");
     setQuery((current) => current || modeProfiles[mode].prompts[0]);
+    scrollToSection("companion-ask");
     announceWorkflow("Question ready", "Aletheia prepared a focused starting question. Adjust it or send it as it is.", "success");
   }
 
@@ -1435,6 +1568,7 @@ export function AletheiaApp() {
     const question = cleanDisplayText(exchange.question?.text ?? "");
     setQuery(`Create a concise counsel summary I can share with a trusted person about this decision: ${question}`);
     showView("companion");
+    scrollToSection("companion-ask");
     announceWorkflow("Counsel summary queued", "The Companion input now asks for a mentor-ready summary. Send it when ready.", "success");
   }
 
@@ -1443,6 +1577,8 @@ export function AletheiaApp() {
     setQuery(
       `Please go deeper on this in a practical, understandable way. Add more context, examples, blind spots, scripture context, and one next faithful step: ${question}`
     );
+    showView("companion");
+    scrollToSection("companion-ask");
     announceWorkflow("Deeper follow-up ready", "The Companion input now asks Aletheia to expand the counsel with more depth and practical clarity.", "success");
   }
 
@@ -2452,6 +2588,7 @@ export function AletheiaApp() {
                   dailyEntry={dailyEntry}
                   activeDecision={activeDecision}
                   user={user}
+                  ui={ui}
                   notificationsEnabled={notificationsEnabled}
                   todayPattern={todayPattern}
                   onScriptureOpen={setSelectedScripture}
@@ -2998,6 +3135,7 @@ function HomeDashboard({
   dailyEntry,
   activeDecision,
   user,
+  ui,
   notificationsEnabled,
   todayPattern,
   onScriptureOpen,
@@ -3011,6 +3149,7 @@ function HomeDashboard({
   dailyEntry: WisdomEntry;
   activeDecision: WisdomDecision | null;
   user: User | null;
+  ui: (typeof uiText)[LanguageCode];
   notificationsEnabled: boolean;
   todayPattern: string;
   onScriptureOpen: (scripture: string) => void;
@@ -3020,18 +3159,19 @@ function HomeDashboard({
   onOpenAccount: () => void;
   onAskOneQuestion: () => void;
 }) {
+  const text = { ...uiText.en, ...ui };
   const primaryAction = activeDecision
-    ? { label: "Continue this decision", body: activeDecision.title, onClick: onContinueDecision, icon: Compass }
-    : { label: "Ask one question", body: "Start with the pressure or decision you are carrying right now.", onClick: onAskOneQuestion, icon: MessageCircle };
+    ? { label: text.continueDecision!, body: activeDecision.title, onClick: onContinueDecision, icon: Compass }
+    : { label: text.askOneQuestion!, body: text.askOneQuestionBody!, onClick: onAskOneQuestion, icon: MessageCircle };
 
   const secondaryActions = [
-    { label: "Reflect on today", body: daily.practice, onClick: onReflectToday, icon: Feather },
+    { label: text.reflectToday!, body: daily.practice, onClick: onReflectToday, icon: Feather },
     user && notificationsEnabled
-      ? { label: "Review a pattern", body: todayPattern, onClick: onReviewPattern, icon: ShieldCheck }
-      : { label: user ? "Enable notifications" : "Enable sync", body: user ? "Receive one quiet daily wisdom prompt." : "Keep decisions and reflections across devices.", onClick: onOpenAccount, icon: Bell },
+      ? { label: text.reviewPattern!, body: todayPattern, onClick: onReviewPattern, icon: ShieldCheck }
+      : { label: user ? text.enableNotifications! : text.enableSync!, body: user ? "Receive one quiet daily wisdom prompt." : "Keep decisions and reflections across devices.", onClick: onOpenAccount, icon: Bell },
     activeDecision
-      ? { label: "Ask a new question", body: "The Companion input and wisdom modes are just below.", onClick: onAskOneQuestion, icon: MessageCircle }
-      : { label: "Start a decision", body: "Track a high-stakes choice over time.", onClick: onContinueDecision, icon: Compass },
+      ? { label: text.askNewQuestion!, body: text.askNewQuestionBody!, onClick: onAskOneQuestion, icon: MessageCircle }
+      : { label: text.startDecision!, body: text.startDecisionBody!, onClick: onContinueDecision, icon: Compass },
   ];
 
   return (
@@ -3039,13 +3179,13 @@ function HomeDashboard({
       <section className="min-w-0 rounded-xl border border-[#d7e0da] bg-[#fbfcf8]/78 p-4 shadow-sm sm:p-5">
         <div className="mb-4 inline-flex w-fit max-w-full items-center gap-2 rounded-md border border-[#c0cec5] bg-white/60 px-3 py-2 text-[11px] font-medium uppercase tracking-[0.12em] text-[#866a24] sm:text-xs sm:tracking-[0.18em]">
           <Sparkles size={14} />
-          Personalized priority
+          {text.personalizedPriority}
         </div>
         <h1 className="max-w-3xl text-2xl font-semibold leading-tight tracking-normal text-[#171917] sm:text-3xl">
-          What should I do next?
+          {text.whatNext}
         </h1>
         <p className="mt-4 max-w-2xl text-sm leading-6 text-[#505a52] sm:text-base sm:leading-7">
-          Aletheia is choosing one wise next action first. The ask field and mode controls stay directly below when you want to begin something new.
+          {text.whatNextBody}
         </p>
 
         <div className="mt-5">
@@ -3075,7 +3215,7 @@ function HomeDashboard({
         </button>
         <p className="mt-3 text-sm leading-6 text-[#55645b]">{daily.principle}</p>
         <div className="mt-3 rounded-md border border-[#d8e1db] bg-white/62 p-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">Tiny practice</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">{text.tinyPractice}</p>
           <p className="mt-2 text-sm leading-6 text-[#45534b]">{daily.practice}</p>
         </div>
       </section>
@@ -3252,15 +3392,16 @@ function AccountPanel({
   rules: RuleOfLife[];
   onShare: (channel: ShareChannel, placement: string) => void;
 }) {
+  const text = { ...uiText.en, ...ui };
   const exchanges = conversationExchanges(messages).filter((exchange) => exchange.question);
   const badges = [
-    { label: "First reflection saved", active: journalEntries.length > 0 },
-    { label: "First decision tracked", active: decisions.length > 0 },
-    { label: "Sought counsel", active: counselContacts.length > 0 || decisions.some((decision) => decision.counselSought) },
-    { label: "Waiting mode used", active: decisions.some((decision) => Boolean(decision.waitingUntil)) },
-    { label: "Rule of life created", active: rules.length > 0 },
-    { label: "Notifications enabled", active: notificationsEnabled },
-    { label: "7 days of wisdom practice", active: false },
+    { label: text.firstReflectionSaved!, active: journalEntries.length > 0 },
+    { label: text.firstDecisionTracked!, active: decisions.length > 0 },
+    { label: text.soughtCounsel!, active: counselContacts.length > 0 || decisions.some((decision) => decision.counselSought) },
+    { label: text.waitingModeUsed!, active: decisions.some((decision) => Boolean(decision.waitingUntil)) },
+    { label: text.ruleOfLifeCreated!, active: rules.length > 0 },
+    { label: text.notificationsEnabled!, active: notificationsEnabled },
+    { label: text.sevenDaysPractice!, active: false },
   ];
   const hasFormationMilestone = badges.some((badge) => badge.active);
   const accountNextTitle = user
@@ -3372,7 +3513,7 @@ function AccountPanel({
         <TrustCenterCard />
 
         <section className="rounded-lg border border-[#1d332e] bg-[#203a35] p-4 text-[#f8f5e8] shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#d0ad55]">Badges / Formation</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#d0ad55]">{text.badgesFormation}</p>
           <div className="mt-3 space-y-2">
             {badges.map((badge) => (
               <div
@@ -3389,10 +3530,10 @@ function AccountPanel({
             ))}
           </div>
           <p className="mt-3 text-xs leading-5 text-[#cddbd1]">
-            These are quiet signs of formation, not points to chase. The first milestone usually begins with saving one reflection.
+            {text.formationNote}
           </p>
           {hasFormationMilestone ? (
-            <ShareMilestonePrompt onShare={(channel) => onShare(channel, "milestone")} />
+            <ShareMilestonePrompt ui={ui} onShare={(channel) => onShare(channel, "milestone")} />
           ) : null}
         </section>
       </aside>
@@ -3760,12 +3901,13 @@ function ShareInviteCard({
   );
 }
 
-function ShareMilestonePrompt({ onShare }: { onShare: (channel: ShareChannel) => void }) {
+function ShareMilestonePrompt({ ui, onShare }: { ui: (typeof uiText)[LanguageCode]; onShare: (channel: ShareChannel) => void }) {
+  const text = { ...uiText.en, ...ui };
   return (
     <div className="mt-4 rounded-lg border border-white/10 bg-white/8 p-3">
-      <p className="text-sm font-semibold text-[#f8f5e8]">Know someone making a major decision?</p>
+      <p className="text-sm font-semibold text-[#f8f5e8]">{text.milestoneShareTitle}</p>
       <p className="mt-1 text-xs leading-5 text-[#cddbd1]">
-        You can invite them to Aletheia without sharing anything private from your account.
+        {text.milestoneShareBody}
       </p>
       <button
         type="button"
@@ -3773,7 +3915,7 @@ function ShareMilestonePrompt({ onShare }: { onShare: (channel: ShareChannel) =>
         className="mt-3 inline-flex h-9 items-center gap-2 rounded-md bg-[#f8f5e8] px-3 text-xs font-semibold text-[#203a35]"
       >
         <Share2 size={14} />
-        Share Aletheia
+        {text.shareAletheia}
       </button>
     </div>
   );
@@ -4540,7 +4682,7 @@ function CompanionPanel({
 
   return (
     <div className="space-y-4">
-      <section ref={panelRef} className="min-w-0 scroll-mt-24 overflow-hidden rounded-xl border border-[#c8d5cc] bg-[#fbfcf8]/86 shadow-[0_18px_45px_rgba(33,58,53,0.08)]">
+      <section id="companion-ask" ref={panelRef} className="min-w-0 scroll-mt-24 overflow-hidden rounded-xl border border-[#c8d5cc] bg-[#fbfcf8]/86 shadow-[0_18px_45px_rgba(33,58,53,0.08)]">
         <div className="flex flex-col gap-3 border-b border-[#d8e1db] bg-white/40 px-3 py-3 sm:px-5 sm:py-4 md:flex-row md:items-center md:justify-between">
           <div>
             <div className="flex items-center gap-2 text-lg font-semibold text-[#203a35]">
@@ -4980,6 +5122,7 @@ function CurrentCounselCard({
   onShare: (channel: ShareChannel) => void;
   onFeedback: (value: string) => void;
 }) {
+  const text = { ...uiText.en, ...ui };
   const question = exchange.question?.text;
   const isThinking = exchange.answer.id === "thinking";
   const showDecisionActions = Boolean(question) && !isThinking;
@@ -4988,7 +5131,7 @@ function CurrentCounselCard({
     <section className="rounded-lg border border-[#d7e0da] bg-white/76 p-3 shadow-sm sm:p-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">
-          {question ? "Current counsel" : ui.startHere}
+          {question ? text.currentCounsel : ui.startHere}
         </p>
         <span className={`rounded-md px-2 py-1 text-xs font-semibold ${isThinking || isWorking ? "bg-[#fff8dc] text-[#866a24]" : "bg-[#edf7f1] text-[#245443]"}`}>
           {isThinking || isWorking ? "..." : ui.ready}
@@ -4996,14 +5139,14 @@ function CurrentCounselCard({
       </div>
       {question ? (
         <div className="rounded-md bg-[#203a35] p-3 text-[#f8f5e8]">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#d0ad55]">Your question</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#d0ad55]">{ui.yourQuestion}</p>
           <p className="mt-2 text-sm leading-6">{cleanDisplayText(question)}</p>
         </div>
       ) : null}
       <article className="editorial-counsel mt-3 rounded-md border border-[#d8e1db] bg-[#fbfcf8]/84 p-3 sm:p-4">
         <p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#866a24]">Aletheia</p>
         <p className="mb-3 rounded-md border border-[#d8e1db] bg-white/70 p-3 text-xs leading-5 text-[#607067]">
-          {mode} mode is shaping this counsel around {modeProfile.lens.toLowerCase()}
+          {mode} {text.modeShapesCounsel} {modeProfile.lens.toLowerCase()}
         </p>
         <div className="calm-prose">
           <ScriptureLinkedText text={exchange.answer.text} onScriptureOpen={onScriptureOpen} />
@@ -5013,17 +5156,17 @@ function CurrentCounselCard({
       {showDecisionActions ? (
         <>
           <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
-            <CounselAction label="Track this decision" onClick={() => onTrackDecision(exchange)} />
-            <CounselAction label="Save as reflection" onClick={() => onDraftReflection(exchange)} />
-            <CounselAction label="Create counsel summary" onClick={() => onCreateCounselSummary(exchange)} />
-            <CounselAction label="Go deeper" onClick={() => onGoDeeper(exchange)} />
-            <CounselAction label="Wait 3 days" onClick={() => onWait(exchange)} />
+            <CounselAction label={text.trackThisDecision!} onClick={() => onTrackDecision(exchange)} />
+            <CounselAction label={text.saveAsReflection!} onClick={() => onDraftReflection(exchange)} />
+            <CounselAction label={text.createCounselSummary!} onClick={() => onCreateCounselSummary(exchange)} />
+            <CounselAction label={text.goDeeper!} onClick={() => onGoDeeper(exchange)} />
+            <CounselAction label={text.waitThreeDays!} onClick={() => onWait(exchange)} />
           </div>
-          <AnswerFeedback onFeedback={onFeedback} />
+          <AnswerFeedback ui={ui} onFeedback={onFeedback} />
           <div className="mt-3 rounded-md border border-[#d8e1db] bg-[#fbfcf8]/76 p-3">
-            <p className="text-sm font-semibold text-[#203a35]">Share Aletheia with someone who may benefit from this kind of counsel.</p>
+            <p className="text-sm font-semibold text-[#203a35]">{text.shareAnswerPrompt}</p>
             <p className="mt-1 text-xs leading-5 text-[#718077]">
-              This shares the app link only, not your question or Aletheia’s private answer.
+              {text.sharePrivacyNote}
             </p>
             <button
               type="button"
@@ -5031,7 +5174,7 @@ function CurrentCounselCard({
               className="mt-3 inline-flex h-9 items-center gap-2 rounded-md border border-[#c9d5cd] bg-white/80 px-3 text-xs font-semibold text-[#405049] transition hover:bg-white"
             >
               <Share2 size={14} />
-              Share Aletheia
+              {text.shareAletheia}
             </button>
           </div>
         </>
@@ -5040,18 +5183,19 @@ function CurrentCounselCard({
   );
 }
 
-function AnswerFeedback({ onFeedback }: { onFeedback: (value: string) => void }) {
+function AnswerFeedback({ ui, onFeedback }: { ui: (typeof uiText)[LanguageCode]; onFeedback: (value: string) => void }) {
+  const text = { ...uiText.en, ...ui };
   const items = [
-    ["helpful", "Helpful"],
-    ["mildly_helpful", "Mildly helpful"],
-    ["too_vague", "Too vague"],
-    ["too_preachy", "Too preachy"],
-    ["not_relevant", "Not relevant"],
+    ["helpful", text.feedbackHelpful!],
+    ["mildly_helpful", text.feedbackMildlyHelpful!],
+    ["too_vague", text.feedbackTooVague!],
+    ["too_preachy", text.feedbackTooPreachy!],
+    ["not_relevant", text.feedbackNotRelevant!],
   ] as const;
 
   return (
     <div className="mt-3 rounded-lg border border-[#d8e1db] bg-white/60 p-3">
-      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#866a24]">Was this counsel useful?</p>
+      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#866a24]">{text.feedbackQuestion}</p>
       <div className="mt-2 flex flex-wrap gap-2">
         {items.map(([value, label]) => (
           <button
