@@ -3392,7 +3392,7 @@ function NavButton({ active, icon: Icon, label, onClick }: { active: boolean; ic
   return (
     <button
       onClick={onClick}
-      className={`inline-flex h-9 items-center gap-2 rounded-md px-3 text-sm font-semibold transition ${
+      className={`inline-flex h-11 items-center gap-2 rounded-md px-3 text-sm font-semibold transition ${
         active ? "bg-[#203a35] text-[#f8f5e8] shadow-sm" : "text-[#4f5f56] hover:bg-[#edf2ee]"
       }`}
     >
@@ -3487,7 +3487,7 @@ function WorkflowNotice({
                   notice.action!.onClick();
                   onClose();
                 }}
-                className="mt-3 h-9 rounded-md bg-[#203a35] px-4 text-xs font-semibold text-[#f8f5e8] transition hover:bg-[#2e564d]"
+                className="mt-3 h-11 rounded-md bg-[#203a35] px-4 text-xs font-semibold text-[#f8f5e8] transition hover:bg-[#2e564d]"
               >
                 {notice.action.label}
               </button>
@@ -4501,7 +4501,7 @@ function ShareMilestonePrompt({ ui, onShare }: { ui: (typeof uiText)[LanguageCod
       <button
         type="button"
         onClick={() => onShare("native")}
-        className="mt-3 inline-flex h-9 items-center gap-2 rounded-md bg-[#f8f5e8] px-3 text-xs font-semibold text-[#203a35]"
+        className="mt-3 inline-flex h-11 items-center gap-2 rounded-md bg-[#f8f5e8] px-3 text-xs font-semibold text-[#203a35]"
       >
         <Share2 size={14} />
         {text.shareAletheia}
@@ -4531,7 +4531,7 @@ function ShareActions({
       <button
         type="button"
         onClick={() => onShare("native", placement)}
-        className="inline-flex h-9 items-center gap-2 rounded-md bg-[#203a35] px-3 text-xs font-semibold text-[#f8f5e8] shadow-sm"
+        className="inline-flex h-11 items-center gap-2 rounded-md bg-[#203a35] px-3 text-xs font-semibold text-[#f8f5e8] shadow-sm"
       >
         <Share2 size={14} />
         Share Aletheia
@@ -4539,7 +4539,7 @@ function ShareActions({
       <button
         type="button"
         onClick={() => onShare("copy", placement)}
-        className="h-9 rounded-md border border-[#c9d5cd] bg-white/70 px-3 text-xs font-semibold text-[#405049] transition hover:bg-white"
+        className="h-11 rounded-md border border-[#c9d5cd] bg-white/70 px-3 text-xs font-semibold text-[#405049] transition hover:bg-white"
       >
         Copy link
       </button>
@@ -4550,7 +4550,7 @@ function ShareActions({
           target={platform.channel === "email" || platform.channel === "sms" ? undefined : "_blank"}
           rel={platform.channel === "email" || platform.channel === "sms" ? undefined : "noreferrer"}
           onClick={() => onShare(platform.channel, placement)}
-          className="inline-flex h-9 items-center rounded-md border border-[#c9d5cd] bg-white/70 px-3 text-xs font-semibold text-[#405049] transition hover:bg-white"
+          className="inline-flex h-11 items-center rounded-md border border-[#c9d5cd] bg-white/70 px-3 text-xs font-semibold text-[#405049] transition hover:bg-white"
         >
           {platform.label}
         </a>
@@ -5396,7 +5396,7 @@ function CompanionPanel({
                   type="button"
                   onClick={() => onDraftPrompt(prompt)}
                   disabled={isWorking}
-                  className="shrink-0 rounded-md border border-[#cad6cf] bg-white px-3 py-2 text-left text-xs font-semibold leading-5 text-[#395148] shadow-sm transition hover:border-[#203a35] hover:shadow disabled:opacity-60"
+                  className="shrink-0 rounded-md border border-[#cad6cf] bg-white px-3 py-3 text-left text-xs font-semibold leading-5 text-[#395148] shadow-sm transition hover:border-[#203a35] hover:shadow disabled:opacity-60"
                 >
                   {prompt}
                 </button>
@@ -5669,7 +5669,7 @@ function ThemeOptionButton({
     <button
       type="button"
       onClick={onClick}
-      className={`inline-flex h-9 items-center gap-2 rounded-md px-3 text-xs font-semibold transition ${
+      className={`inline-flex h-11 items-center gap-2 rounded-md px-3 text-xs font-semibold transition ${
         active ? "bg-[#203a35] text-[#f8f5e8]" : "bg-white/70 text-[#405049] hover:bg-white"
       }`}
     >
@@ -5721,7 +5721,7 @@ function RangeField({
         value={value ?? ""}
         placeholder="Not set"
         onChange={(event) => onChange(event.target.value === "" ? null : Number(event.target.value))}
-        className="mt-2 h-9 w-full rounded-md border border-[#c9d5cd] bg-white px-3 text-sm normal-case tracking-normal text-[#203a35] outline-none focus:border-[#203a35]"
+        className="mt-2 min-h-11 w-full rounded-md border border-[#c9d5cd] bg-white px-3 py-2 text-sm normal-case tracking-normal text-[#203a35] outline-none focus:border-[#203a35]"
       />
     </label>
   );
@@ -5808,7 +5808,7 @@ function CurrentCounselCard({
             <button
               type="button"
               onClick={() => onShare("native")}
-              className="mt-3 inline-flex h-9 items-center gap-2 rounded-md border border-[#c9d5cd] bg-white/80 px-3 text-xs font-semibold text-[#405049] transition hover:bg-white"
+              className="mt-3 inline-flex h-11 items-center gap-2 rounded-md border border-[#c9d5cd] bg-white/80 px-3 text-xs font-semibold text-[#405049] transition hover:bg-white"
             >
               <Share2 size={14} />
               {text.shareAletheia}
@@ -5907,7 +5907,7 @@ function HistoryExchange({
             <button
               type="button"
               onClick={onContinue}
-              className="mt-3 h-9 rounded-md border border-[#c9d5cd] bg-white/78 px-3 text-xs font-semibold text-[#405049] transition hover:bg-white"
+              className="mt-3 h-11 rounded-md border border-[#c9d5cd] bg-white/78 px-3 text-xs font-semibold text-[#405049] transition hover:bg-white"
             >
               Continue from this
             </button>
@@ -6320,7 +6320,7 @@ function DecisionCompanionPanel({
               <button
                 type="button"
                 onClick={() => onSpeakText(selectedDecision.summary || "", "Aletheia is reading the decision summary aloud.")}
-                className="inline-flex h-9 items-center gap-2 rounded-md border border-[#c9d5cd] bg-white/78 px-3 text-xs font-semibold text-[#405049] transition hover:bg-white"
+                className="inline-flex h-11 items-center gap-2 rounded-md border border-[#c9d5cd] bg-white/78 px-3 text-xs font-semibold text-[#405049] transition hover:bg-white"
               >
                 <Volume2 size={14} className={isSpeaking ? "text-[#866a24]" : undefined} />
                 {isSpeaking ? "Stop" : "Read aloud"}
@@ -6458,7 +6458,7 @@ function DecisionCard({
               onUpdate(decision.id, { event: noteDraft.trim() });
               setNoteDraft("");
             }}
-            className="mt-2 h-9 rounded-md border border-[#c9d5cd] bg-white/80 px-3 text-xs font-semibold text-[#405049]"
+            className="mt-2 h-11 rounded-md border border-[#c9d5cd] bg-white/80 px-3 text-xs font-semibold text-[#405049]"
           >
             Add timeline note
           </button>
@@ -6489,7 +6489,7 @@ function DecisionCard({
                 event: "Recorded final decision and learning.",
               })
             }
-            className="mt-2 h-9 rounded-md bg-[#203a35] px-3 text-xs font-semibold text-[#f8f5e8]"
+            className="mt-2 h-11 rounded-md bg-[#203a35] px-3 text-xs font-semibold text-[#f8f5e8]"
           >
             Save outcome
           </button>
