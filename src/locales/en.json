@@ -90,6 +90,52 @@
   "trustBoundaryBody": "Aletheia will not promise outcomes, predict markets, claim divine certainty, or replace qualified financial, legal, tax, medical, or pastoral counsel.",
   "trustMemoryBody": "Signed-in memory helps continuity across decisions, reflections, counsel, and rules of life. It should make guidance more personal without exposing private details unnecessarily.",
   "trustConnectedDataBody": "Future health, finance, or device integrations should be permission-by-permission, off by default, and limited to the exact data the user chooses to connect.",
+  "modes": {
+    "money": {
+      "label": "Money",
+      "intent": "Steward resources with peace and clarity.",
+      "focus": "Budgeting, debt, saving, investing, contentment",
+      "useWhen": "Use for spending, debt, saving, investing, financial anxiety, or comparison.",
+      "prompts": [
+        "How do I build wealth without greed?",
+        "What does wisdom say about debt?",
+        "How do I stop comparing myself financially?"
+      ]
+    },
+    "work": {
+      "label": "Work",
+      "intent": "Discern work, calling, leadership, and sustainable ambition.",
+      "focus": "Career moves, leadership, business, burnout, vocation",
+      "useWhen": "Use for job decisions, business ideas, leadership pressure, burnout, or ambition.",
+      "prompts": [
+        "Should I leave my stable job?",
+        "How do I know if ambition is healthy?",
+        "Should I start this business now?"
+      ]
+    },
+    "purpose": {
+      "label": "Purpose",
+      "intent": "Slow down and discern the person this decision forms.",
+      "focus": "Identity, direction, anxiety, values, long-term clarity",
+      "useWhen": "Use when the real question is identity, direction, peace, timing, or values.",
+      "prompts": [
+        "How do I make a decision when I feel unclear?",
+        "What if I am chasing success for the wrong reasons?",
+        "How do I find peace about my next step?"
+      ]
+    },
+    "generosity": {
+      "label": "Generosity",
+      "intent": "Give freely without guilt, pressure, or performance.",
+      "focus": "Giving, family support, charity, boundaries, sustainability",
+      "useWhen": "Use for giving, tithing, helping family, boundaries, or sustainable generosity.",
+      "prompts": [
+        "How do I give without guilt or pressure?",
+        "Should I help family financially again?",
+        "How much generosity is sustainable for me?"
+      ]
+    }
+  },
   "notifications": {
     "startingPathPrepared": "Starting path prepared",
     "startingPathPreparedBody": "Your first question is ready in the Companion input. Send it when you are ready.",

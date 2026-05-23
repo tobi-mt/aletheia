@@ -89,8 +89,52 @@
   "trustScriptureBody": "Nrụtụ aka Akwụkwọ Nsọ sitere n'ọba akwụkwọ amamihe ahaziri ahazi Aletheia. Ọ bụrụ na amaokwu apụta, ị nwere ike ịmetụ ya aka ka ị hụ ọnọdụ yana ihe kpatara o ji dị mkpa.",
   "trustBoundaryBody": "Aletheia agaghị ekwe nkwa nsonaazụ, amachaghị ahịa, kwupụta ijide n'aka Chineke, ma ọ bụ dochie ndụmọdụ ọkachamara ego, iwu, ụtụ isi, ahụike ma ọ bụ ndị ụkọchukwu.",
   "trustMemoryBody": "Ebe nchekwa ejikọtara na-enyere aka na nkwụsi ike n'etiti mkpebi, ntụgharị uche, ndụmọdụ na iwu ndụ. O kwesịrị ime ka ntụzịaka bụrụ nke onwe karịa n'ekpugheghị nkọwa nzuzo n'efu.",
-  "trustConnectedDataBody": "Njikọta ahụike, ego ma ọ bụ ngwaọrụ n'ọdịnihu kwesịrị ịbụ ikike site na ikike, gbanyụọ na ndabere ma bụrụ naanị data ọ bụla onye ọrụ ahọrọ ịjikọ.",
-  "notifications": {
+  "trustConnectedDataBody": "Njikọta ahụike, ego ma ọ bụ ngwaọrụ n'ọdịnihu kwesịrị ịbụ ikike site na ikike, gbanyụọ na ndabere ma bụrụ naanị data ọ bụla onye ọrụ ahọrọ ịjikọ.",  "modes": {
+    "money": {
+      "label": "Ego",
+      "intent": "Ṅọchie ihe onwunwe na udo na nghọta.",
+      "focus": "Atụmatụ ego, ụgwọ, nchekwa, itinye ego, afọ ojuju",
+      "useWhen": "Jiri maka mmefu, ụgwọ, nchekwa, itinye ego, nchegbu ego, ma ọ bụ ntụnyere.",
+      "prompts": [
+        "Kedu ka m ga-esi wuo akụ n'enweghị oke ọchịchọ?",
+        "Gịnị ka amamihe na-ekwu banyere ụgwọ?",
+        "Kedu ka m ga-esi kwụsị ịtụnyere onwe m n'ego?"
+      ]
+    },
+    "work": {
+      "label": "Ọrụ",
+      "intent": "Ghọta ọrụ, oku, ndu, na oke ọchịchọ na-adịgide.",
+      "focus": "Mgbanwe ọrụ, ndu, azụmahịa, ike gwụrụ, oku",
+      "useWhen": "Jiri maka mkpebi ọrụ, echiche azụmahịa, nrụgide ndu, ike gwụrụ, ma ọ bụ oke ọchịchọ.",
+      "prompts": [
+        "M kwesịrị ịhapụ ọrụ m kwụsiri ike?",
+        "Kedu ka m ga-esi mara ma oke ọchịchọ m dị mma?",
+        "M kwesịrị ịmalite azụmahịa a ugbu a?"
+      ]
+    },
+    "purpose": {
+      "label": "Nzube",
+      "intent": "Gbadata wee ghọta onye mkpebi a na-akpụ.",
+      "focus": "Njirimara, ntụzi aka, nchegbu, ụkpụrụ, nghọta ogologo oge",
+      "useWhen": "Jiri mgbe ajụjụ n'ezie bụ njirimara, ntụzi aka, udo, oge, ma ọ bụ ụkpụrụ.",
+      "prompts": [
+        "Kedu ka m ga-esi mee mkpebi mgbe m na-enweghị nghọta?",
+        "Ọ bụrụ na m na-achụ ihe ịga nke ọma n'ihi ebumnuche na-ezighi ezi?",
+        "Kedu ka m ga-esi nweta udo banyere nzọụkwụ m na-esote?"
+      ]
+    },
+    "generosity": {
+      "label": "Mmesapụ aka",
+      "intent": "Nye n'efu n'enweghị ikpe ọmụma, nrụgide, ma ọ bụ ngosipụta.",
+      "focus": "Inye, nkwado ezinụlọ, ebere, oke, nkwado",
+      "useWhen": "Jiri maka inye, ụtụ iri, inyere ezinụlọ aka, oke, ma ọ bụ mmesapụ aka na-adịgide.",
+      "prompts": [
+        "Kedu ka m ga-esi nye n'enweghị ikpe ọmụma ma ọ bụ nrụgide?",
+        "M kwesịrị inyere ezinụlọ m aka n'ego ọzọ?",
+        "Oke mmesapụ aka ole na-adịgide maka m?"
+      ]
+    }
+  },  "notifications": {
     "startingPathPrepared": "Ụzọ mmalite ejikere",
     "startingPathPreparedBody": "Ajụjụ mbụ gị adịla njikere na mpaghara Companion. Ziga mgbe ị dị njikere.",
     "setupSaved": "Nchịkọta echekwara",

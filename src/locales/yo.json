@@ -90,6 +90,52 @@
   "trustBoundaryBody": "Aletheia kì í ṣe ìlérí abajade, kì í sọ ọjà di àsọtẹ́lẹ̀, kì í sọ ìdánilójú Ọlọ́run tí kò sí, kì í sì rọ́pò ìmọ̀ràn amọ̀ja nípa owó, òfin, owó-orí, ìlera, tàbí ìtọ́sọ́nà olùṣọ́.",
   "trustMemoryBody": "Ìrántí fún ẹni tí ó wọlé ń ran ìpinnu, ìrònú, ìmọ̀ràn, àti òfin ìgbé-ayé lọwọ láti tẹ̀síwájú. Ó yẹ kí ìtọ́sọ́nà jẹ́ ti ara ẹni láì ṣí ìkọ̀kọ̀ sílẹ̀ láìnídí.",
   "trustConnectedDataBody": "Ìsopọ̀ ọjọ́ iwájú sí ìlera, owó, tàbí ẹrọ gbọdọ̀ jẹ́ pẹ̀lú àṣẹ kọọkan, pa a sílẹ̀ ní ìbẹ̀rẹ̀, kí ó sì lo data gangan tí olumulo yan nìkan.",
+  "modes": {
+    "money": {
+      "label": "Owó",
+      "intent": "Ṣàkóso ohun ìní pẹ̀lú àláàfíà àti ìmọ̀.",
+      "focus": "Ètò ìnáwó, gbèsè, ìfipamọ́, ìdókòwò, ìtẹ́lọ́rùn",
+      "useWhen": "Lò fún ìnáwó, gbèsè, ìfipamọ́, ìdókòwò, ìbànújẹ́ owó, tàbí ìfiwéra.",
+      "prompts": [
+        "Báwo ni mo ṣe lè kọ́ ọrọ̀ láìsí ọ̀kànjúwà?",
+        "Kí ni ọgbọ́n sọ nípa gbèsè?",
+        "Báwo ni mo ṣe lè dẹ́kun fiwéra ara mi ní ti owó?"
+      ]
+    },
+    "work": {
+      "label": "Iṣẹ́",
+      "intent": "Mọ̀ iṣẹ́, ìpè, ìdarí, àti èròǹgbà tó dúró pẹ́.",
+      "focus": "Ìyípadà iṣẹ́, ìdarí, iṣòwò, àárẹ̀, ìpè",
+      "useWhen": "Lò fún ìpinnu iṣẹ́, èrò iṣòwò, títẹ̀ ìdarí, àárẹ̀, tàbí èròǹgbà.",
+      "prompts": [
+        "Ṣé mo yẹ kí n fi iṣẹ́ ìdánilójú mi sílẹ̀?",
+        "Báwo ni mo ṣe lè mọ̀ bí èròǹgbà ṣe dára?",
+        "Ṣé mo yẹ kí n bẹ̀rẹ̀ iṣòwò yìí báyìí?"
+      ]
+    },
+    "purpose": {
+      "label": "Ìdí",
+      "intent": "Fara balẹ̀ kí o mọ̀ ẹni tí ìpinnu yìí ń mọ.",
+      "focus": "Ìdánimọ̀, ọ̀nà, ìbànújẹ́, àwọn iye, ìmọ̀ ìgbà pípẹ́",
+      "useWhen": "Lò nígbà tí ìbéèrè gidi jẹ́ ìdánimọ̀, ọ̀nà, àláàfíà, àkókò, tàbí àwọn iye.",
+      "prompts": [
+        "Báwo ni mo ṣe lè ṣe ìpinnu nígbà tí n kò rí gbangba?",
+        "Ṣé bí mo bá ń wá àṣeyọrí fún ìdí tí kò tọ́?",
+        "Báwo ni mo ṣe lè rí àláàfíà nípa ìgbésẹ̀ mi tó tẹ̀le?"
+      ]
+    },
+    "generosity": {
+      "label": "Ọ̀fẹ́",
+      "intent": "Fi fún ni láìsí ẹ̀bi, títẹ̀, tàbí ìṣe àfihàn.",
+      "focus": "Fífún, ìrànlọ́wọ́ ìdílé, ìfàánú, àwọn àálà, àìdúró pẹ́",
+      "useWhen": "Lò fún fífún, ìdámẹ́wàá, ìranwọ́ ìdílé, àwọn àálà, tàbí ọ̀fẹ́ tó dúró pẹ́.",
+      "prompts": [
+        "Báwo ni mo ṣe lè fún láìsí ẹ̀bi tàbí títẹ̀?",
+        "Ṣé mo yẹ kí n ran ìdílé mi lọ́wọ́ ní owó lẹ́ẹ̀kan sí i?",
+        "Ìwọ̀n ọ̀fẹ́ wo ni ó dúró pẹ́ fún mi?"
+      ]
+    }
+  },
   "notifications": {
     "startingPathPrepared": "Ọ̀nà ìbẹ̀rẹ̀ ti ṣetán",
     "startingPathPreparedBody": "Ìbéèrè àkọ́kọ́ rẹ ti ṣetán nínú ààyè Alágbàpọ̀. Fí ránṣẹ́ nígbà tí o bá ṣetán.",

@@ -5,11 +5,35 @@
 
 import type { LanguageCode } from './localization';
 
+// Statically import all translation files
+import enTranslations from '@/locales/en.json';
+import esTranslations from '@/locales/es.json';
+import frTranslations from '@/locales/fr.json';
+import ptTranslations from '@/locales/pt.json';
+import deTranslations from '@/locales/de.json';
+import yoTranslations from '@/locales/yo.json';
+import igTranslations from '@/locales/ig.json';
+import haTranslations from '@/locales/ha.json';
+
 export type TranslationKey = keyof typeof import('@/locales/en.json');
 
 export interface TranslationData {
   [key: string]: string | string[] | TranslationData;
 }
+
+/**
+ * Map of all available translations
+ */
+const translationMap: Record<LanguageCode, TranslationData> = {
+  en: enTranslations,
+  es: esTranslations,
+  fr: frTranslations,
+  pt: ptTranslations,
+  de: deTranslations,
+  yo: yoTranslations,
+  ig: igTranslations,
+  ha: haTranslations,
+};
 
 /**
  * In-memory cache for loaded translations
@@ -18,18 +42,17 @@ export interface TranslationData {
 const translationCache = new Map<LanguageCode, TranslationData>();
 
 /**
- * Load translation file for a specific language (with caching)
+ * Load translation file for a specific language (with caching) - Synchronous version
  */
-export async function loadTranslations(language: LanguageCode): Promise<TranslationData> {
+export function loadTranslationsSync(language: LanguageCode): TranslationData {
   // Check cache first
   if (translationCache.has(language)) {
     return translationCache.get(language)!;
   }
 
   try {
-    // Dynamic import based on language
-    const translations = await import(`@/locales/${language}.json`);
-    const data = translations.default || translations;
+    // Get translation data from static imports
+    const data = translationMap[language] || translationMap.en;
     
     // Cache the loaded translations
     translationCache.set(language, data);
@@ -42,11 +65,17 @@ export async function loadTranslations(language: LanguageCode): Promise<Translat
       return translationCache.get('en')!;
     }
     
-    const fallback = await import('@/locales/en.json');
-    const data = fallback.default || fallback;
+    const data = translationMap.en;
     translationCache.set('en', data);
     return data;
   }
+}
+
+/**
+ * Load translation file for a specific language (with caching) - Async version for compatibility
+ */
+export async function loadTranslations(language: LanguageCode): Promise<TranslationData> {
+  return loadTranslationsSync(language);
 }
 
 /**
@@ -73,16 +102,22 @@ export function getTranslation(
 }
 
 /**
- * Merge translations with English fallback
+ * Load translations with English fallback - Synchronous version
+ * Ensures all keys have values even if target language is incomplete
+ */
+export function loadTranslationsWithFallbackSync(language: LanguageCode): TranslationData {
+  const targetTranslations = loadTranslationsSync(language);
+  const englishTranslations = loadTranslationsSync('en');
+  
+  return mergeTranslations(englishTranslations, targetTranslations);
+}
+
+/**
+ * Load translations with English fallback - Async version for compatibility
  * Ensures all keys have values even if target language is incomplete
  */
 export async function loadTranslationsWithFallback(language: LanguageCode): Promise<TranslationData> {
-  const [targetTranslations, englishTranslations] = await Promise.all([
-    loadTranslations(language),
-    loadTranslations('en'),
-  ]);
-  
-  return mergeTranslations(englishTranslations, targetTranslations);
+  return loadTranslationsWithFallbackSync(language);
 }
 
 /**

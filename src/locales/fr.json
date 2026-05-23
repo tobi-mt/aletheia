@@ -89,8 +89,52 @@
   "trustScriptureBody": "Les références bibliques proviennent de la bibliothèque de sagesse curée d'Aletheia. Si un verset apparaît, tu peux le toucher pour voir le contexte et pourquoi il est important.",
   "trustBoundaryBody": "Aletheia ne promettra pas de résultats, ne prédira pas les marchés, ne revendiquera pas de certitude divine, ni ne remplacera les conseils qualifiés financiers, juridiques, fiscaux, médicaux ou pastoraux.",
   "trustMemoryBody": "La mémoire connectée aide à la continuité entre les décisions, réflexions, conseils et règles de vie. Elle devrait rendre les conseils plus personnels sans exposer les détails privés inutilement.",
-  "trustConnectedDataBody": "Les futures intégrations de santé, finance ou appareil devraient être permission par permission, désactivées par défaut et limitées aux données exactes que l'utilisateur choisit de connecter.",
-  "notifications": {
+  "trustConnectedDataBody": "Les futures intégrations de santé, finance ou appareil devraient être permission par permission, désactivées par défaut et limitées aux données exactes que l'utilisateur choisit de connecter.",  "modes": {
+    "money": {
+      "label": "Argent",
+      "intent": "Gérer les ressources avec paix et clarté.",
+      "focus": "Budget, dettes, épargne, investissement, contentement",
+      "useWhen": "Utiliser pour les dépenses, dettes, épargne, investissement, anxiété financière ou comparaison.",
+      "prompts": [
+        "Comment construire de la richesse sans cupidité?",
+        "Que dit la sagesse sur les dettes?",
+        "Comment arrêter de me comparer financièrement?"
+      ]
+    },
+    "work": {
+      "label": "Travail",
+      "intent": "Discerner le travail, la vocation, le leadership et l'ambition durable.",
+      "focus": "Changements de carrière, leadership, affaires, épuisement, vocation",
+      "useWhen": "Utiliser pour les décisions professionnelles, idées d'affaires, pression de leadership, épuisement ou ambition.",
+      "prompts": [
+        "Devrais-je quitter mon emploi stable?",
+        "Comment savoir si mon ambition est saine?",
+        "Devrais-je lancer cette entreprise maintenant?"
+      ]
+    },
+    "purpose": {
+      "label": "But",
+      "intent": "Ralentir et discerner la personne que cette décision forme.",
+      "focus": "Identité, direction, anxiété, valeurs, clarté à long terme",
+      "useWhen": "Utiliser quand la vraie question est l'identité, la direction, la paix, le timing ou les valeurs.",
+      "prompts": [
+        "Comment prendre une décision quand je me sens incertain?",
+        "Et si je poursuivais le succès pour les mauvaises raisons?",
+        "Comment trouver la paix sur ma prochaine étape?"
+      ]
+    },
+    "generosity": {
+      "label": "Générosité",
+      "intent": "Donner librement sans culpabilité, pression ou performance.",
+      "focus": "Don, soutien familial, charité, limites, durabilité",
+      "useWhen": "Utiliser pour donner, dîme, aider la famille, limites ou générosité durable.",
+      "prompts": [
+        "Comment donner sans culpabilité ou pression?",
+        "Devrais-je aider financièrement ma famille à nouveau?",
+        "Quelle générosité est durable pour moi?"
+      ]
+    }
+  },  "notifications": {
     "startingPathPrepared": "Chemin de départ préparé",
     "startingPathPreparedBody": "Ta première question est prête dans le champ Companion. Envoie-la quand tu es prêt.",
     "setupSaved": "Configuration sauvegardée",

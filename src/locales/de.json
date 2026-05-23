@@ -90,6 +90,52 @@
   "trustBoundaryBody": "Aletheia wird keine Ergebnisse versprechen, keine Märkte vorhersagen, keine göttliche Gewissheit behaupten oder qualifizierte finanzielle, rechtliche, steuerliche, medizinische oder pastorale Beratung ersetzen.",
   "trustMemoryBody": "Angemeldetes Gedächtnis hilft bei der Kontinuität über Entscheidungen, Reflexionen, Rat und Lebensregeln. Es sollte Führung persönlicher machen, ohne private Details unnötig offenzulegen.",
   "trustConnectedDataBody": "Zukünftige Gesundheits-, Finanz- oder Geräteintegrationen sollten Erlaubnis für Erlaubnis sein, standardmäßig deaktiviert und auf die exakten Daten beschränkt, die der Benutzer zu verbinden wählt.",
+  "modes": {
+    "money": {
+      "label": "Geld",
+      "intent": "Ressourcen mit Frieden und Klarheit verwalten.",
+      "focus": "Budgetierung, Schulden, Sparen, Investieren, Zufriedenheit",
+      "useWhen": "Verwenden für Ausgaben, Schulden, Sparen, Investieren, finanzielle Sorgen oder Vergleiche.",
+      "prompts": [
+        "Wie baue ich Vermögen ohne Gier auf?",
+        "Was sagt die Weisheit über Schulden?",
+        "Wie höre ich auf, mich finanziell zu vergleichen?"
+      ]
+    },
+    "work": {
+      "label": "Arbeit",
+      "intent": "Arbeit, Berufung, Führung und nachhaltige Ambition erkennen.",
+      "focus": "Karrierewechsel, Führung, Geschäft, Burnout, Berufung",
+      "useWhen": "Verwenden für Jobentscheidungen, Geschäftsideen, Führungsdruck, Burnout oder Ambition.",
+      "prompts": [
+        "Sollte ich meinen sicheren Job aufgeben?",
+        "Wie erkenne ich, ob meine Ambition gesund ist?",
+        "Sollte ich dieses Geschäft jetzt starten?"
+      ]
+    },
+    "purpose": {
+      "label": "Sinn",
+      "intent": "Verlangsamen und erkennen, welche Person diese Entscheidung formt.",
+      "focus": "Identität, Richtung, Angst, Werte, langfristige Klarheit",
+      "useWhen": "Verwenden, wenn die eigentliche Frage Identität, Richtung, Frieden, Timing oder Werte ist.",
+      "prompts": [
+        "Wie treffe ich eine Entscheidung, wenn ich mich unklar fühle?",
+        "Was, wenn ich Erfolg aus den falschen Gründen verfolge?",
+        "Wie finde ich Frieden über meinen nächsten Schritt?"
+      ]
+    },
+    "generosity": {
+      "label": "Großzügigkeit",
+      "intent": "Frei geben ohne Schuld, Druck oder Performance.",
+      "focus": "Geben, Familienunterstützung, Wohltätigkeit, Grenzen, Nachhaltigkeit",
+      "useWhen": "Verwenden für Geben, Zehnten, Familie helfen, Grenzen oder nachhaltige Großzügigkeit.",
+      "prompts": [
+        "Wie gebe ich ohne Schuld oder Druck?",
+        "Sollte ich meiner Familie finanziell wieder helfen?",
+        "Wie viel Großzügigkeit ist für mich nachhaltig?"
+      ]
+    }
+  },
   "notifications": {
     "startingPathPrepared": "Startpfad vorbereitet",
     "startingPathPreparedBody": "Deine erste Frage ist im Companion-Feld bereit. Sende sie, wenn du bereit bist.",

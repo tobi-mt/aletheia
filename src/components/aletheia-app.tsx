@@ -61,7 +61,7 @@ import {
 import { modeProfiles, type ModeProfile } from "@/lib/mode-profiles";
 import { defaultManualContext, manualContextHasContent, normalizeManualContext, type ManualContextProfile } from "@/lib/manual-context";
 import type { Mode } from "@/lib/wisdom-data";
-import { loadTranslationsWithFallback, getTranslation, type TranslationData } from "@/lib/translations";
+import { loadTranslationsWithFallback, loadTranslationsWithFallbackSync, getTranslation, type TranslationData } from "@/lib/translations";
 
 type View = "companion" | "decisions" | "reflect" | "library" | "account";
 type AuthMode = "login" | "register";
@@ -1173,12 +1173,16 @@ function localizedModeProfile(mode: Mode, language: LanguageCode): DisplayModePr
   };
 }
 
-function localizedModeCards(language: LanguageCode): ModeCard[] {
+function localizedModeCards(language: LanguageCode, translations: TranslationData): ModeCard[] {
   return modes.map((item) => {
     const profile = localizedModeProfile(item.label, language);
+    const modeKey = item.label.toLowerCase();
+    const translatedFocus = getTranslation(translations, `modes.${modeKey}.focus`, profile.focus);
+    const focusString = Array.isArray(translatedFocus) ? translatedFocus.join(', ') : translatedFocus;
+    
     return {
       ...item,
-      copy: profile.focus,
+      copy: focusString,
       displayLabel: profile.displayLabel,
     };
   });
@@ -1339,7 +1343,12 @@ export function AletheiaApp() {
   const [counselSummaryDraft, setCounselSummaryDraft] = useState<CounselSummaryDraft | null>(null);
   const [answerFocusId, setAnswerFocusId] = useState<string | null>(null);
   const [ruleText, setRuleText] = useState("");
-  const [translations, setTranslations] = useState<TranslationData>({});
+  
+  // Load translations synchronously using useMemo to ensure they're available immediately
+  const translations = useMemo(() => {
+    return loadTranslationsWithFallbackSync(preferences.language);
+  }, [preferences.language]);
+  
   const preferencesRef = useRef<HTMLElement | null>(null);
   const workspaceRef = useRef<HTMLElement | null>(null);
 
@@ -1475,15 +1484,6 @@ export function AletheiaApp() {
     const timeout = window.setTimeout(() => setWorkflowNotice(null), 6500);
     return () => window.clearTimeout(timeout);
   }, [workflowNotice]);
-
-  // Load translations when language changes
-  useEffect(() => {
-    loadTranslationsWithFallback(preferences.language)
-      .then(setTranslations)
-      .catch(() => {
-        console.warn(`Failed to load translations for ${preferences.language}`);
-      });
-  }, [preferences.language]);
 
   useEffect(() => {
     const media = window.matchMedia("(prefers-color-scheme: dark)");
@@ -1810,7 +1810,7 @@ export function AletheiaApp() {
     : mode;
   const daily = localizedDailyWisdom(dailyEntry, dailyMode, preferences);
   const activeMode = localizedModeProfile(mode, preferences.language);
-  const activeModeCards = localizedModeCards(preferences.language);
+  const activeModeCards = localizedModeCards(preferences.language, translations);
   const activeLanguage = languages[preferences.language];
   const activeRegion = regions[preferences.region];
   const copy = languageCopy[preferences.language] ?? languageCopy.en;
@@ -1818,6 +1818,30 @@ export function AletheiaApp() {
   const topBibleOptions = bibleTranslationOptionsForLanguage(preferences.language);
   const activeDecision = wisdomDecisions.find((item) => item.status !== "closed") ?? wisdomDecisions[0] ?? null;
   const todayPattern = timelineInsight.patterns[0] ?? activeMode.blindSpots[0];
+
+  // Get translated mode-specific content
+  const modeKey = mode.toLowerCase();
+  const translatedMode = {
+    label: ts(`modes.${modeKey}.label`, activeMode.displayLabel ?? activeMode.label),
+    intent: ts(`modes.${modeKey}.intent`, activeMode.intent),
+    focus: ts(`modes.${modeKey}.focus`, activeMode.focus),
+    useWhen: ts(`modes.${modeKey}.useWhen`, activeMode.useWhen),
+    prompts: [
+      ts(`modes.${modeKey}.prompts.0`, activeMode.prompts[0] ?? ""),
+      ts(`modes.${modeKey}.prompts.1`, activeMode.prompts[1] ?? ""),
+      ts(`modes.${modeKey}.prompts.2`, activeMode.prompts[2] ?? ""),
+    ].filter(Boolean),
+  };
+
+  // Create modeProfile that merges activeMode with translated content
+  const modeProfile = {
+    ...activeMode,
+    label: translatedMode.label,
+    intent: translatedMode.intent,
+    focus: translatedMode.focus,
+    useWhen: translatedMode.useWhen,
+    prompts: translatedMode.prompts,
+  };
   const decisionResult = useMemo(() => {
     if (!decision.trim()) {
       return null;

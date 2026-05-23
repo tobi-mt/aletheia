@@ -90,6 +90,52 @@
   "trustBoundaryBody": "Aletheia ba zai yi alkawarin sakamako ba, ba zai yi hasashen kasuwanni ba, ba zai yi iƙirarin tabbacin Allah ba, ko kuma ya maye gurbin shawara ta ƙwararru na kuɗi, doka, haraji, likita ko na limamin coci.",
   "trustMemoryBody": "Ƙwaƙwalwar ajiya da aka haɗa tana taimakawa daidaituwa tsakanin shawara, tunani, shawara da ƙa'idodin rayuwa. Ya kamata ya sanya jagora ta zama ta sirri fiye ba tare da fallasa cikakkun bayanai na sirri ba tare da buƙata ba.",
   "trustConnectedDataBody": "Haɗin lafiya, kuɗi ko na'ura na gaba yakamata su kasance izini-zuwa-izini, kashe a tsohuwa kuma iyakance ga ainihin bayanan da mai amfani ya zaɓa don haɗawa.",
+  "modes": {
+    "money": {
+      "label": "Kuɗi",
+      "intent": "Kula da albarkatu tare da zaman lafiya da bayyanawa.",
+      "focus": "Kasafin kuɗi, bashi, ajiya, saka hannun jari, gamsuwa",
+      "useWhen": "Yi amfani don kashe kuɗi, bashi, ajiya, saka hannun jari, damuwar kuɗi, ko kwatanta.",
+      "prompts": [
+        "Yaya zan gina dukiya ba tare da kwadayi ba?",
+        "Me hikima ke cewa game da bashi?",
+        "Yaya zan daina kwatanta kaina ta hanyar kuɗi?"
+      ]
+    },
+    "work": {
+      "label": "Aiki",
+      "intent": "Gane aiki, kira, jagoranci, da buri mai dorewa.",
+      "focus": "Canje-canjen sana'a, jagoranci, kasuwanci, gajiya, kira",
+      "useWhen": "Yi amfani don yanke shawarar aiki, ra'ayoyin kasuwanci, matsin jagoranci, gajiya, ko buri.",
+      "prompts": [
+        "Shin ya kamata in bar aikin da na tsaya da ƙarfi?",
+        "Ta yaya zan san ko burina yana da lafiya?",
+        "Shin ya kamata in fara wannan kasuwancin yanzu?"
+      ]
+    },
+    "purpose": {
+      "label": "Manufa",
+      "intent": "Rage saurin kuma gane mutumin da wannan shawarar ke tsarawa.",
+      "focus": "Ainihi, alkibla, damuwa, dabi'u, bayyananwa na dogon lokaci",
+      "useWhen": "Yi amfani lokacin da tambayar ainihi ta kasance ainihi, alkibla, zaman lafiya, lokaci, ko dabi'u.",
+      "prompts": [
+        "Yaya zan yi shawara lokacin da na ji ban sani ba?",
+        "Idan ina bin nasara saboda dalilin da ba daidai ba?",
+        "Yaya zan sami zaman lafiya game da matakin na na gaba?"
+      ]
+    },
+    "generosity": {
+      "label": "Karimci",
+      "intent": "Bayarwa cikin 'yanci ba tare da laifi, matsin lamba, ko nuna ba.",
+      "focus": "Bayarwa, tallafin iyali, sadaka, iyaka, dorewa",
+      "useWhen": "Yi amfani don bayarwa, zaka, taimakawa iyali, iyaka, ko karimci mai dorewa.",
+      "prompts": [
+        "Yaya zan bayar ba tare da laifi ko matsin lamba ba?",
+        "Shin ya kamata in sake taimakawa iyalina da kuɗi?",
+        "Nawa karimci ya dace da ni?"
+      ]
+    }
+  },
   "notifications": {
     "startingPathPrepared": "Hanyar farawa a shirye",
     "startingPathPreparedBody": "Tambayar ku ta farko a shirye take a yankin Abokin tafiya. Aika lokacin da kuka shirya.",

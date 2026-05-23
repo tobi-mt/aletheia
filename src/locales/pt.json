@@ -90,6 +90,52 @@
   "trustBoundaryBody": "Aletheia não prometerá resultados, não preverá mercados, não afirmará certeza divina, nem substituirá o conselho qualificado financeiro, legal, fiscal, médico ou pastoral.",
   "trustMemoryBody": "A memória conectada ajuda na continuidade entre decisões, reflexões, conselho e regras de vida. Deve tornar a orientação mais pessoal sem expor detalhes privados desnecessariamente.",
   "trustConnectedDataBody": "Futuras integrações de saúde, finanças ou dispositivos devem ser permissão por permissão, desativadas por padrão e limitadas aos dados exatos que o usuário escolher conectar.",
+  "modes": {
+    "money": {
+      "label": "Dinheiro",
+      "intent": "Administrar recursos com paz e clareza.",
+      "focus": "Orçamento, dívidas, poupança, investimento, contentamento",
+      "useWhen": "Usar para gastos, dívidas, poupança, investimento, ansiedade financeira ou comparação.",
+      "prompts": [
+        "Como construir riqueza sem ganância?",
+        "O que a sabedoria diz sobre dívidas?",
+        "Como parar de me comparar financeiramente?"
+      ]
+    },
+    "work": {
+      "label": "Trabalho",
+      "intent": "Discernir o trabalho, o chamado, a liderança e a ambição sustentável.",
+      "focus": "Mudanças de carreira, liderança, negócios, esgotamento, vocação",
+      "useWhen": "Usar para decisões de trabalho, ideias de negócio, pressão de liderança, esgotamento ou ambição.",
+      "prompts": [
+        "Devo deixar meu emprego estável?",
+        "Como sei se minha ambição é saudável?",
+        "Devo iniciar este negócio agora?"
+      ]
+    },
+    "purpose": {
+      "label": "Propósito",
+      "intent": "Desacelerar e discernir a pessoa que esta decisão forma.",
+      "focus": "Identidade, direção, ansiedade, valores, clareza a longo prazo",
+      "useWhen": "Usar quando a pergunta real for identidade, direção, paz, momento ou valores.",
+      "prompts": [
+        "Como tomar uma decisão quando me sinto incerto?",
+        "E se estou perseguindo sucesso pelas razões erradas?",
+        "Como encontrar paz sobre meu próximo passo?"
+      ]
+    },
+    "generosity": {
+      "label": "Generosidade",
+      "intent": "Dar livremente sem culpa, pressão ou desempenho.",
+      "focus": "Doar, apoio familiar, caridade, limites, sustentabilidade",
+      "useWhen": "Usar para doar, dízimo, ajudar a família, limites ou generosidade sustentável.",
+      "prompts": [
+        "Como doar sem culpa ou pressão?",
+        "Devo ajudar minha família financeiramente novamente?",
+        "Quanta generosidade é sustentável para mim?"
+      ]
+    }
+  },
   "notifications": {
     "startingPathPrepared": "Caminho inicial preparado",
     "startingPathPreparedBody": "Sua primeira pergunta está pronta no campo Companion. Envie quando estiver pronto.",
