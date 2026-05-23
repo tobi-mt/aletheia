@@ -61,6 +61,7 @@ import {
 import { modeProfiles, type ModeProfile } from "@/lib/mode-profiles";
 import { defaultManualContext, manualContextHasContent, normalizeManualContext, type ManualContextProfile } from "@/lib/manual-context";
 import type { Mode } from "@/lib/wisdom-data";
+import { loadTranslationsWithFallback, getTranslation, type TranslationData } from "@/lib/translations";
 
 type View = "companion" | "decisions" | "reflect" | "library" | "account";
 type AuthMode = "login" | "register";
@@ -75,6 +76,10 @@ type WorkflowNoticeState = {
   title: string;
   body: string;
   tone: WorkflowTone;
+  action?: {
+    label: string;
+    onClick: () => void;
+  };
 };
 type NotificationTiming = {
   preferredLocalHour: number;
@@ -86,6 +91,7 @@ const ALETHEIA_SHARE_URL = "https://aletheia.mirrortalkpodcast.com?ref=share";
 const ALETHEIA_SHARE_TEXT = "Aletheia is a calm AI-powered biblical wisdom companion for money, work, and stewardship.";
 const MANUAL_CONTEXT_STORAGE_KEY = "aletheia_manual_context";
 const THEME_STORAGE_KEY = "aletheia_theme_preference";
+const COUNSEL_STATUS_TRACKING_KEY = "aletheia_counsel_status_tracking";
 const DEFAULT_NOTIFICATION_TIMING: NotificationTiming = {
   preferredLocalHour: 8,
   preferredTimezone: "UTC",
@@ -1333,15 +1339,132 @@ export function AletheiaApp() {
   const [counselSummaryDraft, setCounselSummaryDraft] = useState<CounselSummaryDraft | null>(null);
   const [answerFocusId, setAnswerFocusId] = useState<string | null>(null);
   const [ruleText, setRuleText] = useState("");
+  const [translations, setTranslations] = useState<TranslationData>({});
   const preferencesRef = useRef<HTMLElement | null>(null);
   const workspaceRef = useRef<HTMLElement | null>(null);
 
-  function announceWorkflow(title: string, body: string, tone: WorkflowTone = "info") {
+  // Translation helper function
+  const t = (key: string, fallback?: string): string | string[] => {
+    return getTranslation(translations, key, fallback || key);
+  };
+
+  // String-only translation helper (for notification titles/bodies)
+  const ts = (key: string, fallback?: string): string => {
+    const result = getTranslation(translations, key, fallback || key);
+    return Array.isArray(result) ? result.join(', ') : result;
+  };
+
+  // Build ui object from translations for backward compatibility
+  const buildUiFromTranslations = (trans: TranslationData) => {
+    if (!trans || Object.keys(trans).length === 0) {
+      // Return fallback to uiText.en if translations not loaded yet
+      return uiText.en;
+    }
+    
+    // Helper to ensure string type
+    const getString = (key: string, fallback: string): string => {
+      const result = getTranslation(trans, key, fallback);
+      return Array.isArray(result) ? result.join(', ') : result;
+    };
+    
+    return {
+      nav: {
+        companion: getString('nav.companion', 'Home'),
+        decisions: getString('nav.decisions', 'Decisions'),
+        reflect: getString('nav.reflect', 'Reflect'),
+        library: getString('nav.library', 'Library'),
+        account: getString('nav.account', 'Account'),
+      },
+      decideShort: getString('nav.decideShort', 'Decide'),
+      guardrails: getString('guardrails', 'Guardrails'),
+      guardrailItems: (getTranslation(trans, 'guardrailItems', '') || []) as string[],
+      wisdomMode: getString('wisdomMode', 'Wisdom mode'),
+      currentLens: getString('currentLens', 'Current lens'),
+      offline: getString('offline', 'Offline'),
+      languageSelect: getString('languageSelect', 'Change language'),
+      bibleSelect: getString('bibleSelect', 'Change Bible translation'),
+      account: getString('account', 'Account'),
+      askTitle: getString('askTitle', 'Ask Aletheia'),
+      askIntro: getString('askIntro', 'Start with one honest question.'),
+      yourQuestion: getString('yourQuestion', 'Your question'),
+      askButton: getString('askButton', 'Ask'),
+      startHere: getString('startHere', 'Start here'),
+      ready: getString('ready', 'Ready'),
+      whatModeFor: getString('whatModeFor', 'What this mode is for'),
+      deepChecks: getString('deepChecks', 'Deep checks'),
+      blindSpots: getString('blindSpots', 'Blind spots'),
+      maturitySignals: getString('maturitySignals', 'Maturity signals'),
+      modeGuidance: getString('modeGuidance', 'Mode guidance'),
+      showDetails: getString('showDetails', 'Show details'),
+      hideDetails: getString('hideDetails', 'Hide details'),
+      modeGuidancePreview: getString('modeGuidancePreview', ''),
+      trustLayer: getString('trustLayer', 'Trust layer'),
+      preferencesTitle: getString('preferencesTitle', 'Language and region'),
+      language: getString('language', 'Language'),
+      region: getString('region', 'Region'),
+      bible: getString('bible', 'Bible'),
+      voiceControls: getString('voiceControls', 'Voice controls'),
+      available: getString('available', 'Available'),
+      englishFallback: getString('englishFallback', 'English fallback'),
+      personalizedPriority: getString('personalizedPriority', 'Personalized priority'),
+      whatNext: getString('whatNext', 'What should I do next?'),
+      whatNextBody: getString('whatNextBody', ''),
+      continueDecision: getString('continueDecision', 'Continue this decision'),
+      askOneQuestion: getString('askOneQuestion', 'Ask one question'),
+      askOneQuestionBody: getString('askOneQuestionBody', ''),
+      askNewQuestion: getString('askNewQuestion', 'Ask a new question'),
+      askNewQuestionBody: getString('askNewQuestionBody', ''),
+      reflectToday: getString('reflectToday', 'Reflect on today'),
+      reviewPattern: getString('reviewPattern', 'Review a pattern'),
+      enableNotifications: getString('enableNotifications', 'Enable notifications'),
+      enableSync: getString('enableSync', 'Enable sync'),
+      notificationPromptBody: getString('notificationPromptBody', ''),
+      syncDevicesBody: getString('syncDevicesBody', ''),
+      startDecision: getString('startDecision', 'Start a decision'),
+      startDecisionBody: getString('startDecisionBody', ''),
+      tinyPractice: getString('tinyPractice', 'Tiny practice'),
+      currentCounsel: getString('currentCounsel', 'Current counsel'),
+      modeShapesCounsel: getString('modeShapesCounsel', 'mode is shaping this counsel around'),
+      trackThisDecision: getString('trackThisDecision', 'Track this decision'),
+      saveAsReflection: getString('saveAsReflection', 'Save as reflection'),
+      createCounselSummary: getString('createCounselSummary', 'Create counsel summary'),
+      goDeeper: getString('goDeeper', 'Go deeper'),
+      waitThreeDays: getString('waitThreeDays', 'Wait 3 days'),
+      shareAnswerPrompt: getString('shareAnswerPrompt', ''),
+      sharePrivacyNote: getString('sharePrivacyNote', ''),
+      shareAletheia: getString('shareAletheia', 'Share Aletheia'),
+      feedbackQuestion: getString('feedbackQuestion', 'Was this counsel useful?'),
+      feedbackHelpful: getString('feedbackHelpful', 'Helpful'),
+      feedbackMildlyHelpful: getString('feedbackMildlyHelpful', 'Mildly helpful'),
+      feedbackTooVague: getString('feedbackTooVague', 'Too vague'),
+      feedbackTooPreachy: getString('feedbackTooPreachy', 'Too preachy'),
+      feedbackNotRelevant: getString('feedbackNotRelevant', 'Not relevant'),
+      badgesFormation: getString('badgesFormation', 'Badges / Formation'),
+      firstReflectionSaved: getString('firstReflectionSaved', 'First reflection saved'),
+      firstDecisionTracked: getString('firstDecisionTracked', 'First decision tracked'),
+      soughtCounsel: getString('soughtCounsel', 'Sought counsel'),
+      waitingModeUsed: getString('waitingModeUsed', 'Waiting mode used'),
+      ruleOfLifeCreated: getString('ruleOfLifeCreated', 'Rule of life created'),
+      notificationsEnabled: getString('notificationsEnabled', 'Notifications enabled'),
+      sevenDaysPractice: getString('sevenDaysPractice', '7 days of wisdom practice'),
+      formationNote: getString('formationNote', ''),
+      milestoneShareTitle: getString('milestoneShareTitle', ''),
+      milestoneShareBody: getString('milestoneShareBody', ''),
+      welcomeCounsel: getString('welcomeCounsel', ''),
+      trustScriptureBody: getString('trustScriptureBody', ''),
+      trustBoundaryBody: getString('trustBoundaryBody', ''),
+      trustMemoryBody: getString('trustMemoryBody', ''),
+      trustConnectedDataBody: getString('trustConnectedDataBody', ''),
+    };
+  };
+
+  function announceWorkflow(title: string, body: string, tone: WorkflowTone = "info", action?: { label: string; onClick: () => void }) {
     setWorkflowNotice({
       id: crypto.randomUUID(),
       title,
       body,
       tone,
+      action,
     });
   }
 
@@ -1352,6 +1475,15 @@ export function AletheiaApp() {
     const timeout = window.setTimeout(() => setWorkflowNotice(null), 6500);
     return () => window.clearTimeout(timeout);
   }, [workflowNotice]);
+
+  // Load translations when language changes
+  useEffect(() => {
+    loadTranslationsWithFallback(preferences.language)
+      .then(setTranslations)
+      .catch(() => {
+        console.warn(`Failed to load translations for ${preferences.language}`);
+      });
+  }, [preferences.language]);
 
   useEffect(() => {
     const media = window.matchMedia("(prefers-color-scheme: dark)");
@@ -1485,7 +1617,7 @@ export function AletheiaApp() {
       } else {
         setUser(null);
         setAuthStatus("guest");
-        setStatusMessage("Guest mode is active. Sign in to sync decisions, journal, notifications, and rules.");
+        setStatusMessage(ts('status.guestMode'));
         if (params.get("auth") === "oauth_failed") {
           setAuthError("Google sign-in did not finish. Please try again.");
           setAuthNotice("");
@@ -1498,7 +1630,7 @@ export function AletheiaApp() {
 
     loadSession().catch(() => {
       setAuthStatus("guest");
-      setStatusMessage("Backend unavailable. Guest mode is still usable.");
+      setStatusMessage(ts('status.backendUnavailable'));
     });
   }, []);
 
@@ -1627,6 +1759,44 @@ export function AletheiaApp() {
     );
   }, [user]);
 
+  // Detect newly accepted counsel invites
+  useEffect(() => {
+    if (counselContacts.length === 0 || wisdomDecisions.length === 0) {
+      return;
+    }
+    
+    const previousStatusJson = window.localStorage.getItem(COUNSEL_STATUS_TRACKING_KEY);
+    const previousStatus: Record<string, string> = previousStatusJson ? JSON.parse(previousStatusJson) : {};
+    
+    const newlyAccepted = counselContacts.filter(
+      (contact) => contact.inviteStatus === "accepted" && previousStatus[contact.id] === "pending"
+    );
+    
+    // Update tracked statuses
+    const currentStatus: Record<string, string> = {};
+    counselContacts.forEach((contact) => {
+      currentStatus[contact.id] = contact.inviteStatus;
+    });
+    window.localStorage.setItem(COUNSEL_STATUS_TRACKING_KEY, JSON.stringify(currentStatus));
+    
+    // Show notification for first newly accepted contact
+    if (newlyAccepted.length > 0) {
+      const contact = newlyAccepted[0];
+      const decisionCount = wisdomDecisions.length;
+      announceWorkflow(
+        `🎉 ${contact.name} accepted your invite!`,
+        `${contact.name} can view summaries you share. You have ${decisionCount} ${decisionCount === 1 ? "decision" : "decisions"}.`,
+        "success",
+        {
+          label: "Share decisions",
+          onClick: () => {
+            setActiveView("decisions");
+          },
+        }
+      );
+    }
+  }, [counselContacts, wisdomDecisions]);
+
   const filteredEntries = useMemo(() => {
     if (!librarySearch.trim()) {
       return wisdomEntries;
@@ -1644,7 +1814,7 @@ export function AletheiaApp() {
   const activeLanguage = languages[preferences.language];
   const activeRegion = regions[preferences.region];
   const copy = languageCopy[preferences.language] ?? languageCopy.en;
-  const ui = uiText[preferences.language] ?? uiText.en;
+  const ui = buildUiFromTranslations(translations);
   const topBibleOptions = bibleTranslationOptionsForLanguage(preferences.language);
   const activeDecision = wisdomDecisions.find((item) => item.status !== "closed") ?? wisdomDecisions[0] ?? null;
   const todayPattern = timelineInsight.patterns[0] ?? activeMode.blindSpots[0];
@@ -1707,29 +1877,29 @@ export function AletheiaApp() {
         `I am seeking wisdom for this right now: ${onboardingConcern.trim()}. Please guide me with a ${onboardingTone} tone. My faith familiarity is ${faithFamiliarity}.`
       );
       showView("companion");
-      setStatusMessage("A personal starting question is ready in the companion.");
-      announceWorkflow("Starting path prepared", "Your first question is ready in the Companion input. Send it when you are ready.", "success");
+      setStatusMessage(ts('status.startingQuestionReady'));
+      announceWorkflow(ts('notifications.startingPathPrepared'), ts('notifications.startingPathPreparedBody'), "success");
     } else {
-      announceWorkflow("Setup saved", "Your preferences are ready. Start with a question, a decision, or today's reflection.", "success");
+      announceWorkflow(ts('notifications.setupSaved'), ts('notifications.setupSavedBody'), "success");
     }
     setShowOnboarding(false);
   }
 
   function continueDecisionFlow() {
     showView("decisions");
-    announceWorkflow("Decision companion opened", "Continue the decision with pressure, counsel, cost, and the next faithful step in view.", "info");
+    announceWorkflow(ts('notifications.decisionCompanionOpened'), ts('notifications.decisionCompanionOpenedBody'), "info");
   }
 
   function reflectOnToday() {
     setJournalTitle(`${daily.theme} reflection`);
     setJournalBody(`${daily.practice}\n\nWhat I notice today:\n`);
     showView("reflect");
-    announceWorkflow("Reflection prepared", "Today's wisdom has been placed into Reflect so you can respond quietly.", "success");
+    announceWorkflow(ts('notifications.reflectionPrepared'), ts('notifications.reflectionPreparedBody'), "success");
   }
 
   function reviewPatternFlow() {
     showView("decisions");
-    announceWorkflow("Timeline opened", "Look for recurring pressure, fear, comparison, counsel, and clarity over time.", "info");
+    announceWorkflow(ts('notifications.timelineOpened'), ts('notifications.timelineOpenedBody'), "info");
   }
 
   function openAccountFlow() {
@@ -1740,7 +1910,7 @@ export function AletheiaApp() {
     showView("companion");
     setQuery((current) => current || modeProfiles[mode].prompts[0]);
     scrollToSection("companion-ask");
-    announceWorkflow("Question ready", "Aletheia prepared a focused starting question. Adjust it or send it as it is.", "success");
+    announceWorkflow(ts('notifications.questionReady'), ts('notifications.questionReadyBody'), "success");
   }
 
   async function shareAletheia(channel: ShareChannel, placement: string) {
@@ -1752,12 +1922,12 @@ export function AletheiaApp() {
           text: ALETHEIA_SHARE_TEXT,
           url: ALETHEIA_SHARE_URL,
         });
-        setStatusMessage("Aletheia share sheet opened.");
-        announceWorkflow("Share sheet opened", "Only the Aletheia app link is shared. Your private content stays private.", "success");
+        setStatusMessage(ts('status.shareSheetOpened'));
+        announceWorkflow(ts('notifications.shareSheetOpened'), ts('notifications.shareSheetOpenedBody'), "success");
         return;
       } catch {
-        setStatusMessage("Share cancelled. You can still copy the link.");
-        announceWorkflow("Share cancelled", "Nothing was shared. You can still copy the app link if you want.", "info");
+        setStatusMessage(ts('status.shareCancelled'));
+        announceWorkflow(ts('notifications.shareCancelled'), ts('notifications.shareCancelledBody'), "info");
         return;
       }
     }
@@ -1765,11 +1935,11 @@ export function AletheiaApp() {
     if (channel === "copy" || channel === "native") {
       try {
         await navigator.clipboard.writeText(ALETHEIA_SHARE_URL);
-        setStatusMessage("Aletheia link copied.");
-        announceWorkflow("Link copied", "Only the public Aletheia invite link was copied.", "success");
+        setStatusMessage(ts('status.linkCopied'));
+        announceWorkflow(ts('notifications.linkCopied'), ts('notifications.linkCopiedBody'), "success");
       } catch {
         setStatusMessage(ALETHEIA_SHARE_URL);
-        announceWorkflow("Copy unavailable", "The invite link is shown in the status message so you can share it manually.", "warning");
+        announceWorkflow(ts('notifications.copyUnavailable'), ts('notifications.copyUnavailableBody'), "warning");
       }
     }
   }
@@ -1781,8 +1951,8 @@ export function AletheiaApp() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ value, placement, mode }),
     }).catch(() => undefined);
-    setStatusMessage("Thank you. Aletheia will use feedback like this to become wiser and clearer.");
-    announceWorkflow("Feedback saved", "Thank you. This helps shape clearer, wiser responses.", "success");
+    setStatusMessage(ts('status.feedbackReceived'));
+    announceWorkflow(ts('notifications.feedbackSaved'), ts('notifications.feedbackSavedBody'), "success");
   }
 
   function trackDecisionFromExchange(exchange: ConversationExchange) {
@@ -1795,7 +1965,7 @@ export function AletheiaApp() {
     setDecisionPressure(question);
     setDecisionEmotion("uncertain");
     showView("decisions");
-    announceWorkflow("Decision draft started", "Aletheia moved the question into Decision Companion so it can be tracked over time.", "success");
+    announceWorkflow(ts('notifications.decisionDraftStarted'), ts('notifications.decisionDraftStartedBody'), "success");
   }
 
   function draftReflectionFromExchange(exchange: ConversationExchange) {
@@ -1804,7 +1974,7 @@ export function AletheiaApp() {
     setJournalTitle(`Reflection: ${question.slice(0, 70)}`);
     setJournalBody(`Question:\n${question}\n\nAletheia counsel:\n${answer}\n\nWhat I notice:\n`);
     showView("reflect");
-    announceWorkflow("Reflection draft prepared", "The question and counsel are ready in Reflect. Add what you are noticing.", "success");
+    announceWorkflow(ts('notifications.reflectionDraftPrepared'), ts('notifications.reflectionDraftPreparedBody'), "success");
   }
 
   function draftCounselSummaryFromExchange(exchange: ConversationExchange) {
@@ -1843,7 +2013,7 @@ export function AletheiaApp() {
     setDecisionPressure((current) => current || question);
     showView("decisions");
     scrollToSection("counsel-circle");
-    announceWorkflow("Counsel summary created", "A mentor-ready summary is waiting in Counsel Circle. Share only when you choose.", "success");
+    announceWorkflow(ts('notifications.counselSummaryCreated'), ts('notifications.counselSummaryCreatedBody'), "success");
   }
 
   function goDeeperFromExchange(exchange: ConversationExchange) {
@@ -1853,7 +2023,7 @@ export function AletheiaApp() {
     );
     showView("companion");
     scrollToSection("companion-ask");
-    announceWorkflow("Deeper follow-up ready", "The Companion input now asks Aletheia to expand the counsel with more depth and practical clarity.", "success");
+    announceWorkflow(ts('notifications.deeperFollowUpReady'), ts('notifications.deeperFollowUpReadyBody'), "success");
   }
 
   function waitFromExchange(exchange: ConversationExchange) {
@@ -1862,7 +2032,7 @@ export function AletheiaApp() {
     setDecisionPressure(`${question}\n\nSuggested waiting rhythm: wait 3 days, seek counsel, count the cost, and revisit with less urgency.`);
     setDecisionEmotion("pressured");
     showView("decisions");
-    announceWorkflow("Waiting rhythm prepared", "A 3-day waiting path was drafted in Decision Companion.", "success");
+    announceWorkflow(ts('notifications.waitingRhythmPrepared'), ts('notifications.waitingRhythmPreparedBody'), "success");
   }
 
   async function updatePreferences(patch: Partial<UserPreferences>) {
@@ -1884,12 +2054,12 @@ export function AletheiaApp() {
       const saved = response.ok;
       setPreferencesStatus(saved ? "Language settings saved." : "Could not sync language settings yet.");
       announceWorkflow(
-        saved ? "Preferences synced" : "Preferences saved locally",
-        saved ? "Your language, region, Bible translation, and voice settings are synced." : "The app kept the setting on this device, but sync did not complete.",
+        saved ? ts('notifications.preferencesSynced') : ts('notifications.preferencesSavedLocally'),
+        saved ? ts('notifications.preferencesSyncedBody') : ts('notifications.preferencesSavedLocallyBody'),
         saved ? "success" : "warning"
       );
     } else {
-      announceWorkflow("Preferences saved", "These settings are saved on this device. Sign in to sync them across devices.", "success");
+      announceWorkflow(ts('notifications.preferencesSaved'), ts('notifications.preferencesSavedBody'), "success");
     }
   }
 
@@ -1918,18 +2088,18 @@ export function AletheiaApp() {
         }
         setManualContextStatus(data.persisted ? "Manual context is synced to your account." : "Manual context stayed on this device.");
         announceWorkflow(
-          data.persisted ? "Context synced" : "Context saved locally",
+          data.persisted ? ts('notifications.contextSynced') : ts('notifications.contextSavedLocally'),
           data.persisted
-            ? "Aletheia can use this context only because you allowed it."
-            : "Your context is saved on this device. Sign in to sync it.",
+            ? ts('notifications.contextSyncedBody')
+            : ts('notifications.contextSavedLocallyBodyAccount'),
           data.persisted ? "success" : "warning"
         );
       } catch {
         setManualContextStatus("Manual context stayed on this device, but sync did not complete.");
-        announceWorkflow("Context saved locally", "Sync did not complete, but your manual context stayed on this device.", "warning");
+        announceWorkflow(ts('notifications.contextSavedLocally'), ts('notifications.contextSavedLocallyBodySync'), "warning");
       }
     } else {
-      announceWorkflow("Context saved locally", "Sign in to sync manual context across devices.", "success");
+      announceWorkflow(ts('notifications.contextSavedLocally'), ts('notifications.contextSavedLocallyBodySignIn'), "success");
     }
   }
 
@@ -1958,7 +2128,7 @@ export function AletheiaApp() {
       browserWindow.SpeechRecognition || browserWindow.webkitSpeechRecognition;
     if (!SpeechRecognition) {
       setPreferencesStatus("Voice input is not supported in this browser yet.");
-      announceWorkflow("Voice input unavailable", "This browser does not support speech recognition yet.", "warning");
+      announceWorkflow(ts('notifications.voiceInputUnavailable'), ts('notifications.voiceInputUnavailableBody'), "warning");
       return;
     }
 
@@ -1971,12 +2141,12 @@ export function AletheiaApp() {
       const transcript = event.results[0]?.[0]?.transcript;
       if (transcript) {
         setQuery((current) => `${current}${current ? " " : ""}${transcript}`.trim());
-        announceWorkflow("Voice captured", "The spoken text was added to the Companion input.", "success");
+        announceWorkflow(ts('notifications.voiceCaptured'), ts('notifications.voiceCapturedBody'), "success");
       }
     };
     recognition.onerror = () => {
       setPreferencesStatus("Voice input stopped before Aletheia could hear clearly.");
-      announceWorkflow("Voice input stopped", "Aletheia could not hear clearly. You can try again or type the question.", "warning");
+      announceWorkflow(ts('notifications.voiceInputStopped'), ts('notifications.voiceInputStoppedBody'), "warning");
     };
     recognition.onend = () => setIsListening(false);
     recognition.start();
@@ -1985,13 +2155,13 @@ export function AletheiaApp() {
   function speakLatestAletheiaReply() {
     if (!("speechSynthesis" in window)) {
       setPreferencesStatus("Voice output is not supported in this browser yet.");
-      announceWorkflow("Voice output unavailable", "This browser does not support spoken playback yet.", "warning");
+      announceWorkflow(ts('notifications.voiceOutputUnavailable'), ts('notifications.voiceOutputUnavailableBody'), "warning");
       return;
     }
     if (isSpeaking) {
       window.speechSynthesis.cancel();
       setIsSpeaking(false);
-      announceWorkflow("Voice stopped", "Spoken playback has been stopped.", "info");
+      announceWorkflow(ts('notifications.voiceStopped'), ts('notifications.voiceStoppedBody'), "info");
       return;
     }
     const latest = [...messages].reverse().find((message) => message.role === "aletheia");
@@ -2004,13 +2174,13 @@ export function AletheiaApp() {
   function speakText(text: string, notice = "Aletheia is reading this aloud in your selected language voice when available.") {
     if (!("speechSynthesis" in window)) {
       setPreferencesStatus("Voice output is not supported in this browser yet.");
-      announceWorkflow("Voice output unavailable", "This browser does not support spoken playback yet.", "warning");
+      announceWorkflow(ts('notifications.voiceOutputUnavailable'), ts('notifications.voiceOutputUnavailableBody'), "warning");
       return;
     }
     if (isSpeaking) {
       window.speechSynthesis.cancel();
       setIsSpeaking(false);
-      announceWorkflow("Voice stopped", "Spoken playback has been stopped.", "info");
+      announceWorkflow(ts('notifications.voiceStopped'), ts('notifications.voiceStoppedBody'), "info");
       return;
     }
     const utterance = new SpeechSynthesisUtterance(cleanDisplayText(text));
@@ -2019,7 +2189,7 @@ export function AletheiaApp() {
     utterance.onend = () => setIsSpeaking(false);
     utterance.onerror = () => setIsSpeaking(false);
     setIsSpeaking(true);
-    announceWorkflow("Reading aloud", notice, "info");
+    announceWorkflow(ts('notifications.readingAloud'), notice, "info");
     window.speechSynthesis.speak(utterance);
   }
 
@@ -2029,7 +2199,7 @@ export function AletheiaApp() {
     }
     const trimmed = rawQuestion.trim();
     if (!trimmed) {
-      announceWorkflow("Ask a question first", "Type or choose a question so Aletheia has something concrete to work with.", "warning");
+      announceWorkflow(ts('notifications.askQuestionFirst'), ts('notifications.askQuestionFirstBody'), "warning");
       return;
     }
 
@@ -2039,7 +2209,7 @@ export function AletheiaApp() {
 
     const userMessage: ChatMessage = { id: crypto.randomUUID(), role: "user", text: trimmed };
     setIsWorking(true);
-    announceWorkflow("Question sent", "Aletheia is retrieving grounded wisdom and preparing a response.", "info");
+    announceWorkflow(ts('notifications.questionSent'), ts('notifications.questionSentBody'), "info");
     setMessages((current) => [
       ...current,
       userMessage,
@@ -2075,7 +2245,7 @@ export function AletheiaApp() {
             ? "Answered with server-side OpenAI/RAG. Sign in to save history."
             : "Answered with server-side retrieval fallback. Add OPENAI_API_KEY for generated AI responses.";
       setStatusMessage(responseMessage);
-      announceWorkflow("Answer ready", responseMessage, "success");
+      announceWorkflow(ts('notifications.answerReady'), responseMessage, "success");
     } catch {
       const fallback = composeResponse(trimmed, mode);
       setMessages((current) =>
@@ -2086,8 +2256,8 @@ export function AletheiaApp() {
         )
       );
       setAnswerFocusId("offline-fallback");
-      setStatusMessage("Used offline fallback because the server route was unavailable.");
-      announceWorkflow("Offline answer ready", "The server was unavailable, so Aletheia used its local fallback wisdom.", "warning");
+      setStatusMessage(ts('status.offlineFallback'));
+      announceWorkflow(ts('notifications.offlineAnswerReady'), ts('notifications.offlineAnswerReadyBody'), "warning");
     } finally {
       setIsWorking(false);
     }
@@ -2129,7 +2299,7 @@ export function AletheiaApp() {
           : `Welcome back, ${firstName}. Your Aletheia memory is ready.`);
       setStatusMessage(successMessage);
       setAuthNotice(successMessage);
-      announceWorkflow(authMode === "register" ? "Account created" : "Signed in", successMessage, "success");
+      announceWorkflow(authMode === "register" ? ts('notifications.accountCreated') : ts('notifications.signedIn'), successMessage, "success");
       try {
         window.localStorage.setItem("aletheia_onboarding_complete", "yes");
       } catch {
@@ -2146,7 +2316,7 @@ export function AletheiaApp() {
         setAuthMode("login");
         setAuthNotice("That email already has an Aletheia account. Sign in below to continue.");
       }
-      announceWorkflow("Sign-in did not finish", message, "error");
+      announceWorkflow(ts('notifications.signInNotFinish'), message, "error");
     } finally {
       setIsWorking(false);
     }
@@ -2163,22 +2333,22 @@ export function AletheiaApp() {
     setMessages(defaultMessages);
     setJournalEntries([]);
     setNotificationsEnabled(false);
-    setStatusMessage("Signed out. Guest mode is active.");
-    announceWorkflow("Signed out", "Guest mode is active. You can still use Aletheia on this device.", "info");
+    setStatusMessage(ts('status.signedOutGuest'));
+    announceWorkflow(ts('notifications.signedOut'), ts('notifications.signedOutBody'), "info");
   }
 
   async function handleGoogleSignIn() {
     if (!googleAuthAvailable) {
       setAuthError("Google sign-in is not configured yet. You can still sign in with email.");
       setAuthNotice("");
-      announceWorkflow("Google unavailable", "Google sign-in is not configured yet. Email sign-in is available.", "warning");
+      announceWorkflow(ts('notifications.googleUnavailable'), ts('notifications.googleUnavailableBody'), "warning");
       return;
     }
     setAuthStatus("signing-in");
     setAuthError("");
     setAuthNotice("Opening Google sign-in. You will return to Account when it finishes.");
-    setStatusMessage("Opening Google sign-in. You will return to Account when it finishes.");
-    announceWorkflow("Opening Google", "You will return to the Account tab after sign-in completes.", "info");
+    setStatusMessage(ts('status.openingGoogleSignIn'));
+    announceWorkflow(ts('notifications.openingGoogle'), ts('notifications.openingGoogleBody'), "info");
     await authSignIn("google", {
       redirectTo: "/api/auth/oauth/complete?next=%2F%3Fauth%3Dgoogle_success%26view%3Daccount",
     });
@@ -2190,17 +2360,17 @@ export function AletheiaApp() {
     }
     if (!user) {
       setNotificationStatus("Sign in first, then enable notifications.");
-      announceWorkflow("Sign in required", "Daily wisdom notifications can be enabled after sign-in.", "warning");
+      announceWorkflow(ts('notifications.signInRequired'), ts('notifications.signInRequiredBody'), "warning");
       return;
     }
     if (!notificationsConfigured) {
       setNotificationStatus("Notifications are not configured on the server yet.");
-      announceWorkflow("Notifications not configured", "The server is missing notification keys or settings.", "warning");
+      announceWorkflow(ts('notifications.notificationsNotConfigured'), ts('notifications.notificationsNotConfiguredBody'), "warning");
       return;
     }
     if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
       setNotificationStatus("This browser does not support web push notifications.");
-      announceWorkflow("Notifications unavailable", "This browser does not support web push notifications.", "warning");
+      announceWorkflow(ts('notifications.notificationsUnavailable'), ts('notifications.notificationsUnavailableBody'), "warning");
       return;
     }
 
@@ -2211,7 +2381,7 @@ export function AletheiaApp() {
       setNotificationPermission(permission);
       if (permission !== "granted") {
         setNotificationStatus("Notifications were not enabled. You can allow them later in browser settings.");
-        announceWorkflow("Notifications not enabled", "You can allow notifications later in your browser settings.", "warning");
+        announceWorkflow(ts('notifications.notificationsNotEnabled'), ts('notifications.notificationsNotEnabledBody'), "warning");
         return;
       }
 
@@ -2219,7 +2389,7 @@ export function AletheiaApp() {
       const keyData = (await keyResponse.json()) as { publicKey?: string };
       if (!keyData.publicKey) {
         setNotificationStatus("Notifications are missing a public key.");
-        announceWorkflow("Notification key missing", "The server did not provide a VAPID public key.", "error");
+        announceWorkflow(ts('notifications.notificationKeyMissing'), ts('notifications.notificationKeyMissingBody'), "error");
         return;
       }
 
@@ -2234,25 +2404,24 @@ export function AletheiaApp() {
       const preferredLocalHour = notificationTiming.preferredLocalHour;
       const preferredTimezone = notificationTiming.preferredTimezone || browserTimezone();
       const preferredHour = localHourToUtcHour(preferredLocalHour);
-      const response = await saveNotificationSubscription(subscription, {
-        ...notificationTiming,
+      const response = await saveNotificationSubscription(subscription, {        ...notificationTiming,
         preferredLocalHour,
         preferredTimezone,
       }, preferredHour);
       if (!response.ok) {
         setNotificationStatus("Could not save notification preference.");
-        announceWorkflow("Notification sync failed", "Permission was granted, but the subscription could not be saved.", "error");
+        announceWorkflow(ts('notifications.notificationSyncFailed'), ts('notifications.notificationSyncFailedBody'), "error");
         return;
       }
 
       setNotificationsEnabled(true);
       setNotificationTiming((current) => ({ ...current, preferredTimezone }));
       setNotificationStatus(`Daily wisdom notifications are enabled around ${notificationTimeLabel(preferredLocalHour)} local time.`);
-      announceWorkflow("Notifications enabled", `This device is subscribed around ${notificationTimeLabel(preferredLocalHour)} local time.`, "success");
+      announceWorkflow(ts('notifications.notificationsEnabled'), ts('notifications.notificationsEnabledBodyTime').replace('{time}', notificationTimeLabel(preferredLocalHour)), "success");
     } catch {
       setNotificationsEnabled(false);
       setNotificationStatus("Notifications could not be enabled on this device. Please try again.");
-      announceWorkflow("Notification setup failed", "Aletheia could not finish device subscription. Please try again.", "error");
+      announceWorkflow(ts('notifications.notificationSetupFailed'), ts('notifications.notificationSetupFailedBody'), "error");
     } finally {
       setNotificationBusy(false);
     }
@@ -2281,7 +2450,7 @@ export function AletheiaApp() {
     }
     setNotificationsEnabled(false);
     setNotificationStatus("Daily wisdom notifications are turned off for this device.");
-    announceWorkflow("Notifications off", "Daily wisdom notifications are turned off for this device.", "info");
+    announceWorkflow(ts('notifications.notificationsOff'), ts('notifications.notificationsOffBody'), "info");
   }
 
   async function saveNotificationSubscription(
@@ -2330,7 +2499,7 @@ export function AletheiaApp() {
         return;
       }
       setNotificationStatus(`Daily wisdom timing saved for around ${notificationTimeLabel(nextTiming.preferredLocalHour)} local time.`);
-      announceWorkflow("Notification timing saved", `Daily wisdom is now aimed around ${notificationTimeLabel(nextTiming.preferredLocalHour)} local time.`, "success");
+      announceWorkflow(ts('notifications.notificationTimingSaved'), `Daily wisdom is now aimed around ${notificationTimeLabel(nextTiming.preferredLocalHour)} local time.`, "success");
     } catch {
       setNotificationStatus("Timing changed here, but could not sync to the server yet.");
     } finally {
@@ -2342,7 +2511,7 @@ export function AletheiaApp() {
     const title = journalTitle.trim() || `${mode} reflection`;
     const body = journalBody.trim();
     if (!body) {
-      announceWorkflow("Write the reflection first", "Add a few honest lines before saving.", "warning");
+      announceWorkflow(ts('notifications.writeReflectionFirst'), ts('notifications.writeReflectionFirstBody'), "warning");
       return;
     }
 
@@ -2355,7 +2524,7 @@ export function AletheiaApp() {
       const data = (await response.json()) as { entry?: JournalEntry };
       if (data.entry) {
         setJournalEntries((current) => [data.entry!, ...current]);
-        announceWorkflow("Reflection saved", "Your reflection is synced to your account.", "success");
+        announceWorkflow(ts('notifications.reflectionSaved'), ts('notifications.reflectionSavedBody'), "success");
       }
     } else {
       setJournalEntries((current) => [
@@ -2368,8 +2537,8 @@ export function AletheiaApp() {
         },
         ...current,
       ]);
-      setStatusMessage("Reflection saved for this session. Sign in to persist it to the database.");
-      announceWorkflow("Reflection saved locally", "This reflection is kept for this session. Sign in to sync it.", "success");
+      setStatusMessage(ts('status.reflectionSavedSession'));
+      announceWorkflow(ts('notifications.reflectionSavedLocally'), ts('notifications.reflectionSavedLocallyBody'), "success");
     }
 
     setJournalTitle("");
@@ -2381,7 +2550,7 @@ export function AletheiaApp() {
       await fetch(`/api/journal/${id}`, { method: "DELETE" });
     }
     setJournalEntries((current) => current.filter((entry) => entry.id !== id));
-    announceWorkflow("Reflection deleted", "The journal entry was removed.", "info");
+    announceWorkflow(ts('notifications.reflectionDeleted'), ts('notifications.reflectionDeletedBody'), "info");
   }
 
   function refreshLocalTimeline(decisions: WisdomDecision[], events: DecisionEvent[]) {
@@ -2410,7 +2579,7 @@ export function AletheiaApp() {
     const title = decisionTitle.trim();
     const pressure = decisionPressure.trim();
     if (!title || !pressure) {
-      announceWorkflow("Name the decision and pressure", "Aletheia needs both the decision and the pressure around it before tracking.", "warning");
+      announceWorkflow(ts('notifications.nameDecisionPressure'), ts('notifications.nameDecisionPressureBody'), "warning");
       return;
     }
 
@@ -2434,7 +2603,7 @@ export function AletheiaApp() {
           },
           ...current,
         ]);
-        announceWorkflow("Decision tracked", "The decision is now in your Decision Companion timeline.", "success");
+        announceWorkflow(ts('notifications.decisionTracked'), ts('notifications.decisionTrackedBody'), "success");
       }
     } else {
       const sources = searchWisdom(`${title} ${pressure} ${decisionEmotion}`, mode, 3);
@@ -2483,8 +2652,8 @@ export function AletheiaApp() {
       setWisdomDecisions(nextDecisions);
       setDecisionEvents(nextEvents);
       refreshLocalTimeline(nextDecisions, nextEvents);
-      setStatusMessage("Decision saved for this session. Sign in to persist decision memory.");
-      announceWorkflow("Decision tracked locally", "The decision is tracked on this device. Sign in to sync decision memory.", "success");
+      setStatusMessage(ts('status.decisionSavedSession'));
+      announceWorkflow(ts('notifications.decisionTrackedLocally'), ts('notifications.decisionTrackedLocallyBody'), "success");
     }
 
     setDecisionTitle("");
@@ -2512,7 +2681,7 @@ export function AletheiaApp() {
         body: JSON.stringify(patch),
       });
       if (!response.ok) {
-        announceWorkflow("Decision update failed", "The change could not be saved. Please try again.", "error");
+        announceWorkflow(ts('notifications.decisionUpdateFailed'), ts('notifications.decisionUpdateFailedBody'), "error");
         return;
       }
     }
@@ -2589,14 +2758,14 @@ export function AletheiaApp() {
     setWisdomDecisions(updated);
     setDecisionEvents(events);
     refreshLocalTimeline(updated, events);
-    announceWorkflow("Decision updated", eventBody || "The decision signals were updated.", "success");
+    announceWorkflow(ts('notifications.decisionUpdated'), eventBody || "The decision signals were updated.", "success");
   }
 
   async function addCounselContact(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const name = counselName.trim();
     if (!name) {
-      announceWorkflow("Add a name first", "Name the trusted person before adding them to your Counsel Circle.", "warning");
+      announceWorkflow(ts('notifications.addNameFirst'), ts('notifications.addNameFirstBody'), "warning");
       return;
     }
     if (user) {
@@ -2619,16 +2788,16 @@ export function AletheiaApp() {
           setLatestCounselInvite({ name: data.contact.name, url: data.inviteUrl });
         }
         announceWorkflow(
-          data.contact.emailSent ? "Private invite emailed" : "Private invite created",
+          data.contact.emailSent ? ts('notifications.privateInviteEmailed') : ts('notifications.privateInviteCreated'),
           data.contact.emailSent
-            ? `${data.contact.name} was emailed a private invite. They still only see summaries you explicitly share.`
+            ? ts('notifications.privateInviteEmailedBody').replace('{name}', data.contact.name)
             : data.contact.emailError
-              ? `The private link is ready, but email was not sent: ${data.contact.emailError}`
-              : `${data.contact.name} can only see decision summaries you explicitly share.`,
+              ? ts('notifications.privateInviteCreatedBodyEmailError').replace('{error}', data.contact.emailError)
+              : ts('notifications.privateInviteCreatedBody').replace('{name}', data.contact.name),
           data.contact.emailError ? "warning" : "success"
         );
       } else if (data.error) {
-        announceWorkflow("Counsel invite not created", data.error, "error");
+        announceWorkflow(ts('notifications.counselInviteNotCreated'), data.error, "error");
       }
     } else {
       setCounselContacts((current) => [
@@ -2649,7 +2818,7 @@ export function AletheiaApp() {
         },
         ...current,
       ]);
-      announceWorkflow("Counsel added locally", "Sign in to create private invite links and share selected decision summaries.", "success");
+      announceWorkflow(ts('notifications.counselAddedLocally'), ts('notifications.counselAddedLocallyBody'), "success");
     }
     setCounselName("");
     setCounselContactValue("");
@@ -2669,7 +2838,7 @@ export function AletheiaApp() {
     }
     if (channel === "copy" || channel === "native") {
       await navigator.clipboard.writeText(latestCounselInvite.url).catch(() => undefined);
-      announceWorkflow("Invite link copied", "Share it only with the counselor you intended to invite.", "success");
+      announceWorkflow(ts('notifications.inviteLinkCopied'), ts('notifications.inviteLinkCopiedBody'), "success");
       return;
     }
     const encodedText = encodeURIComponent(text);
@@ -2686,6 +2855,9 @@ export function AletheiaApp() {
   }
 
   async function shareDecisionWithCounsel(contactId: string, decisionId: string) {
+    const contact = counselContacts.find((c) => c.id === contactId);
+    const contactName = contact?.name || "this contact";
+    
     const response = await fetch("/api/counsel/share", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -2698,9 +2870,64 @@ export function AletheiaApp() {
           decision.id === decisionId ? { ...decision, counselSought: true, updatedAt: new Date().toISOString() } : decision
         )
       );
-      announceWorkflow("Summary shared", "Only this decision summary was shared. Chats and journal entries remain private.", "success");
+      
+      const totalDecisions = wisdomDecisions.length;
+      const hasMoreDecisions = totalDecisions > 1;
+      const bodyMessage = hasMoreDecisions
+        ? `${contactName} can now view this decision summary. You have ${totalDecisions - 1} more ${totalDecisions === 2 ? "decision" : "decisions"} that can be shared.`
+        : `${contactName} can now view this decision summary. Chats and journal entries remain private.`;
+      
+      announceWorkflow(
+        ts('notifications.summaryShared'),
+        bodyMessage,
+        "success",
+        hasMoreDecisions
+          ? {
+              label: "Share more",
+              onClick: () => {
+                // Keep user on decisions view
+                setActiveView("decisions");
+              },
+            }
+          : undefined
+      );
     } else {
-      announceWorkflow("Summary not shared", data.error || "The summary could not be shared.", "error");
+      announceWorkflow(ts('notifications.summariesNotShared'), data.error || "The summary could not be shared.", "error");
+    }
+  }
+
+  async function bulkShareDecisionsWithCounsel(contactId: string, decisionIds: string[]) {
+    const contact = counselContacts.find((c) => c.id === contactId);
+    const contactName = contact?.name || "this contact";
+    
+    if (decisionIds.length === 0) {
+      announceWorkflow(ts('notifications.noDecisionsToShare'), ts('notifications.noDecisionsToShareBody'), "warning");
+      return;
+    }
+    
+    const response = await fetch("/api/counsel/share/bulk", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ contactId, decisionIds }),
+    });
+    const data = (await response.json()) as { ok?: boolean; sharedCount?: number; error?: string };
+    
+    if (response.ok && data.ok) {
+      // Mark all shared decisions as counselSought
+      setWisdomDecisions((current) =>
+        current.map((decision) =>
+          decisionIds.includes(decision.id) ? { ...decision, counselSought: true, updatedAt: new Date().toISOString() } : decision
+        )
+      );
+      
+      const count = data.sharedCount ?? decisionIds.length;
+      announceWorkflow(
+        `${count} ${count === 1 ? "summary" : ts('notifications.summariesShared')}`,
+        `${contactName} can now view ${count} decision ${count === 1 ? "summary" : "summaries"}. Chats and journal entries remain private.`,
+        "success"
+      );
+    } else {
+      announceWorkflow(ts('notifications.summariesNotShared'), data.error || "The summaries could not be shared.", "error");
     }
   }
 
@@ -2754,7 +2981,7 @@ export function AletheiaApp() {
     event.preventDefault();
     const principle = ruleText.trim();
     if (!principle) {
-      announceWorkflow("Write a principle first", "Add one personal rule of life before saving.", "warning");
+      announceWorkflow(ts('notifications.writePrincipleFirst'), ts('notifications.writePrincipleFirstBody'), "warning");
       return;
     }
     if (user) {
@@ -2766,14 +2993,14 @@ export function AletheiaApp() {
       const data = (await response.json()) as { rule?: RuleOfLife };
       if (data.rule) {
         setRulesOfLife((current) => [data.rule!, ...current]);
-        announceWorkflow("Rule of life saved", "This principle is now part of your formation record.", "success");
+        announceWorkflow(ts('notifications.ruleOfLifeSaved'), ts('notifications.ruleOfLifeSavedBody'), "success");
       }
     } else {
       setRulesOfLife((current) => [
         { id: crypto.randomUUID(), mode, principle, createdAt: new Date().toISOString() },
         ...current,
       ]);
-      announceWorkflow("Rule saved locally", "This principle is saved on this device. Sign in to sync it.", "success");
+      announceWorkflow(ts('notifications.ruleSavedLocally'), ts('notifications.ruleSavedLocallyBody'), "success");
     }
     setRuleText("");
   }
@@ -2830,8 +3057,9 @@ export function AletheiaApp() {
             <label
               className="relative grid size-10 shrink-0 place-items-center overflow-hidden rounded-md border border-[#bdcbc2] bg-[#fbfcf8]/70 text-[#213a35] shadow-sm transition hover:bg-white"
               title={`${ui.languageSelect}: ${languages[preferences.language].nativeName}`}
+              suppressHydrationWarning
             >
-              <span aria-hidden="true" className="text-lg leading-none">{languageFlags[preferences.language]}</span>
+              <span aria-hidden="true" className="text-lg leading-none" suppressHydrationWarning>{languageFlags[preferences.language]}</span>
               <span className="sr-only">{ui.languageSelect}</span>
               <select
                 value={preferences.language}
@@ -2849,6 +3077,7 @@ export function AletheiaApp() {
             <label
               className="relative grid size-10 shrink-0 place-items-center overflow-hidden rounded-md border border-[#bdcbc2] bg-[#fbfcf8]/70 text-[#213a35] shadow-sm transition hover:bg-white"
               title={`${ui.bibleSelect}: ${preferences.bibleTranslation}`}
+              suppressHydrationWarning
             >
               <BookOpen size={18} aria-hidden="true" />
               <span className="sr-only">{ui.bibleSelect}</span>
@@ -2858,11 +3087,15 @@ export function AletheiaApp() {
                 onChange={(event) => updatePreferences({ bibleTranslation: event.target.value as BibleTranslation })}
                 className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
               >
-                {topBibleOptions.map((code) => (
-                  <option key={code} value={code}>
-                    {code}
-                  </option>
-                ))}
+                {topBibleOptions.map((code) => {
+                  const translation = bibleTranslations[code];
+                  const languageName = languages[translation.language].nativeName;
+                  return (
+                    <option key={code} value={code}>
+                      {languageName} · {translation.label}
+                    </option>
+                  );
+                })}
               </select>
             </label>
             <button
@@ -2998,6 +3231,7 @@ export function AletheiaApp() {
                   onAddCounsel={addCounselContact}
                   onShareCounselInvite={shareCounselInvite}
                   onShareDecisionWithCounsel={shareDecisionWithCounsel}
+                  onBulkShareDecisionsWithCounsel={bulkShareDecisionsWithCounsel}
                   onSpeakText={speakText}
                   isSpeaking={isSpeaking}
                   onAddRule={addRuleOfLife}
@@ -3246,6 +3480,18 @@ function WorkflowNotice({
           <div className="min-w-0">
             <p className="text-sm font-semibold">{notice.title}</p>
             <p className="mt-1 text-sm leading-6 opacity-85">{notice.body}</p>
+            {notice.action ? (
+              <button
+                type="button"
+                onClick={() => {
+                  notice.action!.onClick();
+                  onClose();
+                }}
+                className="mt-3 h-9 rounded-md bg-[#203a35] px-4 text-xs font-semibold text-[#f8f5e8] transition hover:bg-[#2e564d]"
+              >
+                {notice.action.label}
+              </button>
+            ) : null}
           </div>
           <button
             type="button"
@@ -3413,9 +3659,10 @@ function OnboardingModal({
               >
                 {bibleOptions.map((code) => {
                   const translation = bibleTranslations[code];
+                  const languageName = languages[translation.language].nativeName;
                   return (
                   <option key={code} value={code}>
-                    {translation.language === preferences.language ? "Available" : "English fallback"} · {code} - {translation.label}
+                    {languageName} · {translation.label}
                   </option>
                   );
                 })}
@@ -3536,8 +3783,8 @@ function HomeDashboard({
       <section className="min-w-0 rounded-xl border border-[#d7e0da] bg-[#fbfcf8]/78 p-4 text-[#203a35] shadow-sm sm:p-5">
         <div className="mb-4 flex items-center justify-between gap-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#866a24]">{daily.label}</p>
-            <h2 className="mt-1 text-xl font-semibold">{daily.theme}</h2>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#866a24]" suppressHydrationWarning>{daily.label}</p>
+            <h2 className="mt-1 text-xl font-semibold" suppressHydrationWarning>{daily.theme}</h2>
           </div>
           <Sprout size={22} className="text-[#2d5d4c]" />
         </div>
@@ -3545,13 +3792,14 @@ function HomeDashboard({
           type="button"
           onClick={() => onScriptureOpen(dailyEntry.scripture)}
           className="text-left text-sm font-semibold text-[#72591f] underline decoration-[#d0ad55]/50 underline-offset-4 transition hover:text-[#203a35]"
+          suppressHydrationWarning
         >
           {daily.scripture}
         </button>
-        <p className="mt-3 text-sm leading-6 text-[#55645b]">{daily.principle}</p>
+        <p className="mt-3 text-sm leading-6 text-[#55645b]" suppressHydrationWarning>{daily.principle}</p>
         <div className="mt-3 rounded-md border border-[#d8e1db] bg-white/62 p-3">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">{text.tinyPractice}</p>
-          <p className="mt-2 text-sm leading-6 text-[#45534b]">{daily.practice}</p>
+          <p className="mt-2 text-sm leading-6 text-[#45534b]" suppressHydrationWarning>{daily.practice}</p>
         </div>
       </section>
     </div>
@@ -4826,9 +5074,24 @@ function CounselInviteModal({
                   </article>
                 ))}
                 {!preview.sharedDecisions.length ? (
-                  <p className="rounded-xl border border-dashed border-[#c9d5cd] p-4 text-sm leading-6 text-[#607067]">
-                    No decision summaries have been shared with this invite yet.
-                  </p>
+                  <div className="rounded-xl border border-[#d8e1db] bg-white/70 p-5">
+                    <div className="flex items-start gap-3">
+                      <div className="grid size-10 shrink-0 place-items-center rounded-md bg-[#edf2ee] text-[#405049]">
+                        <Users size={18} />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-[#203a35]">You're connected!</p>
+                        <p className="mt-2 text-sm leading-6 text-[#607067]">
+                          {preview.invite.name} hasn't shared any decision summaries yet. They'll appear here when they choose to share them with you from their Decisions tab.
+                        </p>
+                        {preview.invite.permissions.canCommentOnDecisions ? (
+                          <p className="mt-2 text-sm leading-6 text-[#607067]">
+                            Once they share decisions, you'll be able to leave comments offering your counsel, questions, or cautions.
+                          </p>
+                        ) : null}
+                      </div>
+                    </div>
+                  </div>
                 ) : null}
               </div>
             )}
@@ -4915,9 +5178,10 @@ function PreferencesPanel({
             >
               {bibleOptions.map((code) => {
                 const translation = bibleTranslations[code];
+                const languageName = languages[translation.language].nativeName;
                 return (
                 <option key={code} value={code}>
-                  {translation.language === preferences.language ? ui.available : ui.englishFallback} · {code} - {translation.label}
+                  {languageName} · {translation.label}
                 </option>
                 );
               })}
@@ -5062,10 +5326,10 @@ function CompanionPanel({
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <span className="w-fit rounded-sm bg-[#edf2ee] px-2 py-1 text-xs font-semibold text-[#52635a]">
+            <span className="w-fit rounded-sm bg-[#edf2ee] px-2 py-1 text-xs font-semibold text-[#52635a]" suppressHydrationWarning>
               {modeProfile.displayLabel ?? mode} lens
             </span>
-            <span className="w-fit rounded-sm bg-[#f5edda] px-2 py-1 text-xs font-semibold text-[#72591f]">
+            <span className="w-fit rounded-sm bg-[#f5edda] px-2 py-1 text-xs font-semibold text-[#72591f]" suppressHydrationWarning>
               {languages[preferences.language].nativeName} · {preferences.bibleTranslation}
             </span>
           </div>
@@ -5288,6 +5552,7 @@ function ScriptureChips({
           key={source.scripture}
           onClick={() => onScriptureOpen(source.scripture)}
           className="rounded-md border border-[#d8e1db] bg-[#fbfcf8] px-2 py-1 text-xs font-semibold text-[#68766d] transition hover:border-[#203a35] hover:text-[#203a35]"
+          suppressHydrationWarning
         >
           {source.scripture} · {localizedScriptureRead(source.scripture, preferences).translation}
         </button>
@@ -5689,6 +5954,7 @@ function DecisionCompanionPanel({
   onAddCounsel,
   onShareCounselInvite,
   onShareDecisionWithCounsel,
+  onBulkShareDecisionsWithCounsel,
   onSpeakText,
   isSpeaking,
   onAddRule,
@@ -5737,6 +6003,7 @@ function DecisionCompanionPanel({
   onAddCounsel: (event: FormEvent<HTMLFormElement>) => void;
   onShareCounselInvite: (channel?: ShareChannel) => void;
   onShareDecisionWithCounsel: (contactId: string, decisionId: string) => void;
+  onBulkShareDecisionsWithCounsel: (contactId: string, decisionIds: string[]) => void;
   onSpeakText: (text: string, notice?: string) => void;
   isSpeaking: boolean;
   onAddRule: (event: FormEvent<HTMLFormElement>) => void;
@@ -5865,7 +6132,7 @@ function DecisionCompanionPanel({
               value={counselName}
               onChange={(event) => setCounselName(event.target.value)}
               className="h-10 rounded-md border border-[#c9d5cd] bg-white/78 px-3 text-sm outline-none"
-              placeholder="Name"
+              placeholder="name"
             />
             <input
               value={counselContactValue}
@@ -5973,14 +6240,27 @@ function DecisionCompanionPanel({
                   {contact.canCommentOnDecisions ? <span className="rounded bg-[#edf2ee] px-2 py-1">comments</span> : null}
                   {contact.canReceiveCheckins ? <span className="rounded bg-[#edf2ee] px-2 py-1">check-ins</span> : null}
                 </div>
-                {selectedDecision && contact.canViewSummaries ? (
-                  <button
-                    type="button"
-                    className="mt-3 w-full rounded-md border border-[#c9d5cd] px-3 py-2 text-xs font-semibold text-[#203a35]"
-                    onClick={() => onShareDecisionWithCounsel(contact.id, selectedDecision.id)}
-                  >
-                    Share current summary only
-                  </button>
+                {contact.canViewSummaries && decisions.length > 0 ? (
+                  <div className="mt-3 grid gap-2">
+                    {selectedDecision ? (
+                      <button
+                        type="button"
+                        className="w-full rounded-md border border-[#c9d5cd] px-3 py-2 text-xs font-semibold text-[#203a35] transition hover:bg-white"
+                        onClick={() => onShareDecisionWithCounsel(contact.id, selectedDecision.id)}
+                      >
+                        Share current summary only
+                      </button>
+                    ) : null}
+                    {decisions.length > 1 || (decisions.length === 1 && !selectedDecision) ? (
+                      <button
+                        type="button"
+                        className="w-full rounded-md bg-[#203a35] px-3 py-2 text-xs font-semibold text-[#f8f5e8] transition hover:bg-[#2e564d]"
+                        onClick={() => onBulkShareDecisionsWithCounsel(contact.id, decisions.map((d) => d.id))}
+                      >
+                        Share all decisions ({decisions.length})
+                      </button>
+                    ) : null}
+                  </div>
                 ) : null}
               </div>
             ))}

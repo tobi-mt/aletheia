@@ -2,7 +2,15 @@ import type { Mode, WisdomEntryData } from "@/lib/wisdom-data";
 
 export type LanguageCode = "en" | "es" | "fr" | "pt" | "de" | "yo" | "ig" | "ha";
 export type RegionCode = "global" | "us" | "uk" | "eu" | "ng" | "br" | "latam";
-export type BibleTranslation = "WEB" | "KJV" | "ASV" | "RV1909" | "LSG1910" | "AA" | "LUTH1912";
+export type BibleTranslation = 
+  | "WEB" | "KJV" | "ASV" 
+  | "RV1909" | "RV1960" 
+  | "LSG1910" | "MARTIN" 
+  | "AA" | "ARC" 
+  | "LUTH1912" | "SCHLACH" 
+  | "YOR1900" 
+  | "IGB1913" 
+  | "HAU1932";
 
 export type UserPreferences = {
   language: LanguageCode;
@@ -68,62 +76,126 @@ export const regions: Record<RegionCode, { label: string; example: string; curre
 };
 
 export const bibleTranslations: Record<BibleTranslation, { label: string; note: string; language: LanguageCode }> = {
+  // English translations
   WEB: {
     label: "World English Bible",
     language: "en",
-    note: "Public domain English translation. Default for scripture quotation if verse text is later added.",
+    note: "Public domain English translation. Modern language, accessible phrasing.",
   },
   KJV: {
     label: "King James Version",
     language: "en",
-    note: "Public domain English translation with traditional phrasing.",
+    note: "Public domain English translation with traditional phrasing. Completed 1611.",
   },
   ASV: {
     label: "American Standard Version",
     language: "en",
-    note: "Public domain English translation with formal phrasing.",
+    note: "Public domain English translation with formal phrasing. Completed 1901.",
   },
+  
+  // Spanish translations
   RV1909: {
     label: "Reina-Valera 1909",
     language: "es",
-    note: "Public-domain Spanish option used where Aletheia has curated quick reads.",
+    note: "Public domain Spanish translation. Classic revision widely used historically.",
   },
+  RV1960: {
+    label: "Reina-Valera 1960",
+    language: "es",
+    note: "Public domain Spanish translation. Most popular Spanish Bible globally.",
+  },
+  
+  // French translations
   LSG1910: {
     label: "Louis Segond 1910",
     language: "fr",
-    note: "Public-domain French option used where Aletheia has curated quick reads.",
+    note: "Public domain French translation. Standard French Protestant Bible.",
   },
+  MARTIN: {
+    label: "Martin 1744",
+    language: "fr",
+    note: "Public domain French translation. Historic French Reformed tradition.",
+  },
+  
+  // Portuguese translations
   AA: {
     label: "Almeida Atualizada",
     language: "pt",
-    note: "Public-domain Portuguese option used where Aletheia has curated quick reads.",
+    note: "Public domain Portuguese translation. Modern language revision.",
   },
+  ARC: {
+    label: "Almeida Revista e Corrigida",
+    language: "pt",
+    note: "Public domain Portuguese translation. Traditional phrasing, widely used.",
+  },
+  
+  // German translations
   LUTH1912: {
     label: "Lutherbibel 1912",
     language: "de",
-    note: "Public-domain German option used where Aletheia has curated quick reads.",
+    note: "Public domain German translation. Luther's translation, classic revision.",
+  },
+  SCHLACH: {
+    label: "Schlachter 1951",
+    language: "de",
+    note: "Public domain German translation. Clear language, evangelical tradition.",
+  },
+  
+  // Yoruba translation
+  YOR1900: {
+    label: "Bíbélì Mímọ́ (1900)",
+    language: "yo",
+    note: "Public domain Yoruba translation. British and Foreign Bible Society edition.",
+  },
+  
+  // Igbo translation
+  IGB1913: {
+    label: "Akwụkwọ Nsọ (1913)",
+    language: "ig",
+    note: "Public domain Igbo translation. Union Version, missionary translation.",
+  },
+  
+  // Hausa translation
+  HAU1932: {
+    label: "Littafi Mai Tsarki (1932)",
+    language: "ha",
+    note: "Public domain Hausa translation. British and Foreign Bible Society edition.",
   },
 };
 
 const languageDefaultBibleTranslations: Partial<Record<LanguageCode, BibleTranslation>> = {
   en: "WEB",
-  es: "RV1909",
+  es: "RV1960",
   fr: "LSG1910",
   pt: "AA",
   de: "LUTH1912",
+  yo: "YOR1900",
+  ig: "IGB1913",
+  ha: "HAU1932",
 };
 
 export function defaultBibleTranslationForLanguage(language: LanguageCode): BibleTranslation {
   return languageDefaultBibleTranslations[language] ?? defaultPreferences.bibleTranslation;
 }
 
+/**
+ * Get all available Bible translations, with user's language translations listed first.
+ * This allows users to select any Bible translation regardless of their UI language preference.
+ * For example, a German speaker can choose to read scripture in English (KJV).
+ */
 export function bibleTranslationOptionsForLanguage(language: LanguageCode): BibleTranslation[] {
-  const localized = Object.entries(bibleTranslations)
+  // Get translations in the user's language
+  const inUserLanguage = Object.entries(bibleTranslations)
     .filter(([, translation]) => translation.language === language)
     .map(([code]) => code as BibleTranslation);
 
-  const englishFallbacks: BibleTranslation[] = ["WEB", "KJV", "ASV"];
-  return localized.length ? localized : englishFallbacks;
+  // Get all other translations
+  const otherLanguages = Object.entries(bibleTranslations)
+    .filter(([, translation]) => translation.language !== language)
+    .map(([code]) => code as BibleTranslation);
+
+  // Return user's language first, then all others for cross-language flexibility
+  return [...inUserLanguage, ...otherLanguages];
 }
 
 export type ScriptureRead = {

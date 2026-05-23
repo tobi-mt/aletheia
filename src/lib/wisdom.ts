@@ -95,10 +95,12 @@ export function searchWisdomEntries(
         (score, word) => score + (haystack.includes(word) ? 1 : 0),
         0
       );
-      const modeScore = modeTerms[mode].reduce(
-        (score, term) => score + (haystack.includes(term) ? 2 : 0),
-        haystack.includes(mode.toLowerCase()) ? 2 : 0
-      );
+      const modeScore = modeTerms[mode]
+        ? modeTerms[mode].reduce(
+            (score, term) => score + (haystack.includes(term) ? 2 : 0),
+            haystack.includes(mode.toLowerCase()) ? 2 : 0
+          )
+        : 0;
       return { entry, score: themeScore + exactKeywordScore + keywordScore + modeScore };
     })
     .sort((a, b) => b.score - a.score)

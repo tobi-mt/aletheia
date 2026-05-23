@@ -1,0 +1,9 @@
+{
+  "notificationPromptBody": "[TODO: Translate] Receive one quiet daily wisdom prompt.",
+  "syncDevicesBody": "[TODO: Translate] Keep decisions and reflections across devices.",
+  "welcomeCounsel": "[TODO: Translate] Bring a real decision, pressure, or money question. I will answer from the curated wisdom library, with emotional clarity and no financial promises.",
+  "trustScriptureBody": "[TODO: Translate] Scripture references come from Aletheia's curated wisdom library. If a verse appears, you can tap it to see context and why it matters.",
+  "trustBoundaryBody": "[TODO: Translate] Aletheia will not promise outcomes, predict markets, claim divine certainty, or replace qualified financial, legal, tax, medical, or pastoral counsel.",
+  "trustMemoryBody": "[TODO: Translate] Signed-in memory helps continuity across decisions, reflections, counsel, and rules of life. It should make guidance more personal without exposing private details unnecessarily.",
+  "trustConnectedDataBody": "[TODO: Translate] Future health, finance, or device integrations should be permission-by-permission, off by default, and limited to the exact data the user chooses to connect."
+}
