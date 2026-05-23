@@ -1834,9 +1834,9 @@ export function AletheiaApp() {
   };
 
   // Create modeProfile that merges activeMode with translated content
-  const modeProfile = {
+  const modeProfile: DisplayModeProfile = {
     ...activeMode,
-    label: translatedMode.label,
+    displayLabel: translatedMode.label,
     intent: translatedMode.intent,
     focus: translatedMode.focus,
     useWhen: translatedMode.useWhen,
@@ -3189,7 +3189,7 @@ export function AletheiaApp() {
                 <CompanionPanel
                   messages={messages}
                   mode={mode}
-                  modeProfile={activeMode}
+                  modeProfile={modeProfile}
                   modeCards={activeModeCards}
                   preferences={preferences}
                   copy={copy}
@@ -5985,7 +5985,7 @@ function DecisionCompanionPanel({
   onScriptureOpen,
 }: {
   mode: Mode;
-  modeProfile: ModeProfile;
+  modeProfile: DisplayModeProfile;
   decisions: WisdomDecision[];
   events: DecisionEvent[];
   insight: TimelineInsight;
@@ -6058,7 +6058,7 @@ function DecisionCompanionPanel({
                 Memory, counsel, waiting, summary export, and a calm readiness signal for major choices.
               </p>
             </div>
-            <span className="w-fit rounded-md bg-[#edf2ee] px-3 py-2 text-xs font-semibold text-[#52635a]">{mode} lens</span>
+            <span className="w-fit rounded-md bg-[#edf2ee] px-3 py-2 text-xs font-semibold text-[#52635a]">{modeProfile.displayLabel ?? modeProfile.label} lens</span>
           </div>
 
           <form onSubmit={onCreateDecision} className="mt-5 grid gap-3 lg:grid-cols-[1fr_1.2fr_auto]">
@@ -6584,7 +6584,7 @@ function WisdomCheck({
   setTimeframe: (value: string) => void;
   result: { sources: WisdomEntry[]; readiness: number; hasUrgency: boolean; hasCounsel: boolean } | null;
   mode: Mode;
-  modeProfile: ModeProfile;
+  modeProfile: DisplayModeProfile;
 }) {
   return (
     <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
@@ -6594,7 +6594,7 @@ function WisdomCheck({
           Wisdom Check
         </div>
         <div className="mb-5 rounded-lg border border-[#d8e1db] bg-white/62 p-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">{mode} discernment lens</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">{modeProfile.displayLabel ?? modeProfile.label} discernment lens</p>
           <p className="mt-2 text-sm leading-6 text-[#55645b]">{modeProfile.intent}</p>
         </div>
         <label className="text-sm font-semibold text-[#405049]" htmlFor="decision">
