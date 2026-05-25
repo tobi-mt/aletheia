@@ -1648,7 +1648,7 @@ export function AletheiaApp() {
 
   useEffect(() => {
     async function loadSession() {
-      setAuthStatus("checking");
+      // authStatus is already "checking" from initial state - no need to set it again
       const [response, providersResponse] = await Promise.all([
         fetch("/api/auth/me"),
         fetch("/api/auth/providers").catch(() => null),
@@ -3457,7 +3457,7 @@ export function AletheiaApp() {
       </div>
 
       <OnboardingModal
-        open={showOnboarding && authStatus !== "checking"}
+        open={showOnboarding}
         mode={mode}
         preferences={preferences}
         concern={onboardingConcern}
@@ -6201,7 +6201,7 @@ function DecisionCompanionPanel({
     : "Start with one decision and the pressure attached to it. Aletheia will track wisdom, counsel, and readiness over time.";
 
   return (
-    <div className="grid min-w-0 gap-4 xl:grid-cols-[1fr_340px]">
+    <div className="min-w-0 space-y-4 xl:grid xl:gap-4 xl:space-y-0 xl:grid-cols-[1fr_340px]">
       <section className="space-y-4">
         <ContextualNextAction
           eyebrow="Next in Decisions"
