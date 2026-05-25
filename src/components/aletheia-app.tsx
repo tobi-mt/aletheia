@@ -2149,8 +2149,11 @@ export function AletheiaApp() {
     }
 
     // Load translations with the new preferences for notification
-    const nextTranslations = loadTranslationsWithFallbackSync(next);
-    const getNextTranslation = (key: string, fallback: string) => getTranslation(nextTranslations, key, fallback);
+    const nextTranslations = loadTranslationsWithFallbackSync(next.language);
+    const getNextTranslation = (key: string, fallback: string) => {
+      const result = getTranslation(nextTranslations, key, fallback);
+      return Array.isArray(result) ? result.join(', ') : result;
+    };
 
     if (user) {
       const response = await fetch("/api/preferences", {
@@ -3310,6 +3313,9 @@ export function AletheiaApp() {
                   insight={timelineInsight}
                   counselContacts={counselContacts}
                   counselSummaryDraft={counselSummaryDraft}
+                  setCounselSummaryDraft={setCounselSummaryDraft}
+                  announceWorkflow={announceWorkflow}
+                  ts={ts}
                   rules={rulesOfLife}
                   title={decisionTitle}
                   pressure={decisionPressure}
@@ -6097,6 +6103,9 @@ function DecisionCompanionPanel({
   insight,
   counselContacts,
   counselSummaryDraft,
+  setCounselSummaryDraft,
+  announceWorkflow,
+  ts,
   rules,
   title,
   pressure,
@@ -6138,6 +6147,9 @@ function DecisionCompanionPanel({
   insight: TimelineInsight;
   counselContacts: CounselContact[];
   counselSummaryDraft: CounselSummaryDraft | null;
+  setCounselSummaryDraft: (value: CounselSummaryDraft | null) => void;
+  announceWorkflow: (title: string, body: string, tone?: WorkflowTone, action?: { label: string; onClick: () => void }) => void;
+  ts: (key: string, fallback?: string) => string;
   rules: RuleOfLife[];
   title: string;
   pressure: string;
