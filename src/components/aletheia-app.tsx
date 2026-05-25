@@ -4278,6 +4278,24 @@ function AccountPanel({
 
         <TrustCenterCard />
 
+        <section className="rounded-lg border border-[#d7e0da] bg-[#fbfcf8]/72 p-4 shadow-sm">
+          <div className="flex items-center gap-2">
+            <ShieldCheck size={17} className="text-[#203a35]" />
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">Our Boundaries</p>
+          </div>
+          <ul className="mt-3 space-y-2 text-sm leading-6 text-[#505a52]">
+            {ui.guardrailItems.map((item) => (
+              <li key={item} className="flex items-start gap-2">
+                <span className="mt-1 text-[#866a24]">•</span>
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-3 text-xs leading-5 text-[#607067]">
+            These constraints protect you from harmful AI advice and keep Aletheia faithful to its purpose.
+          </p>
+        </section>
+
         <section className="rounded-lg border border-[#1d332e] bg-[#203a35] p-4 text-[#f8f5e8] shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#d0ad55]">{text.badgesFormation}</p>
           <div className="mt-3 space-y-2">
@@ -4478,6 +4496,13 @@ function ManualContextPanel({
     { key: "successDefinition", label: "Definition of success", placeholder: "How I measure faithful success, not just outcomes..." },
   ];
 
+  // Check if sections have content to determine if they should auto-expand
+  const hasMoneySignals = moneyNumberFields.some(field => (draft[field.key] ?? 0) > 0);
+  const hasLifeRhythms = lifeNumberFields.some(field => (draft[field.key] ?? 0) > 0);
+  const hasSignals = signalFields.some(field => (draft[field.key] ?? 0) > 0);
+  const hasPreferences = preferenceFields.some(field => (draft[field.key] ?? '').trim().length > 0);
+  const hasLongFields = longFields.some(field => (draft[field.key] ?? '').trim().length > 0);
+
   return (
     <section className="rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm sm:p-5">
       <div className="grid gap-4 xl:grid-cols-[0.8fr_1.2fr]">
@@ -4539,84 +4564,110 @@ function ManualContextPanel({
             </label>
           </div>
 
-          <div className="space-y-3 rounded-lg border border-[#d8e1db] bg-white/64 p-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#52635a]">Money signals</p>
-            <div className="grid gap-3 md:grid-cols-2">
-              {moneyNumberFields.map((field) => (
-                <RangeField
-                  key={field.key}
-                  label={field.label}
-                  value={draft[field.key]}
-                  min={field.min}
-                  max={field.max}
-                  step={field.step ?? 1}
-                  onChange={(value) => setDraft((current) => ({ ...current, [field.key]: value }))}
-                />
-              ))}
+          <details open={hasMoneySignals} className="group rounded-lg border border-[#d8e1db] bg-white/64">
+            <summary className="cursor-pointer p-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#52635a] transition hover:bg-white/80">
+              Money signals {hasMoneySignals ? "✓" : ""}
+            </summary>
+            <div className="space-y-3 border-t border-[#d8e1db]/50 p-3">
+              <div className="grid gap-3 md:grid-cols-2">
+                {moneyNumberFields.map((field) => (
+                  <RangeField
+                    key={field.key}
+                    label={field.label}
+                    value={draft[field.key]}
+                    min={field.min}
+                    max={field.max}
+                    step={field.step ?? 1}
+                    onChange={(value) => setDraft((current) => ({ ...current, [field.key]: value }))}
+                  />
+                ))}
+              </div>
             </div>
-          </div>
+          </details>
 
-          <div className="space-y-3 rounded-lg border border-[#d8e1db] bg-white/64 p-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#52635a]">Life rhythms</p>
-            <div className="grid gap-3 md:grid-cols-2">
-              {lifeNumberFields.map((field) => (
-                <RangeField
-                  key={field.key}
-                  label={field.label}
-                  value={draft[field.key]}
-                  min={field.min}
-                  max={field.max}
-                  step={field.step ?? 1}
-                  onChange={(value) => setDraft((current) => ({ ...current, [field.key]: value }))}
-                />
-              ))}
+          <details open={hasLifeRhythms} className="group rounded-lg border border-[#d8e1db] bg-white/64">
+            <summary className="cursor-pointer p-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#52635a] transition hover:bg-white/80">
+              Life rhythms {hasLifeRhythms ? "✓" : ""}
+            </summary>
+            <div className="space-y-3 border-t border-[#d8e1db]/50 p-3">
+              <div className="grid gap-3 md:grid-cols-2">
+                {lifeNumberFields.map((field) => (
+                  <RangeField
+                    key={field.key}
+                    label={field.label}
+                    value={draft[field.key]}
+                    min={field.min}
+                    max={field.max}
+                    step={field.step ?? 1}
+                    onChange={(value) => setDraft((current) => ({ ...current, [field.key]: value }))}
+                  />
+                ))}
+              </div>
             </div>
-          </div>
+          </details>
 
-          <div className="space-y-3 rounded-lg border border-[#d8e1db] bg-white/64 p-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#52635a]">Discernment signals</p>
-            <div className="grid gap-3 md:grid-cols-2">
-              {signalFields.map((field) => (
-                <RangeField
-                  key={field.key}
-                  label={field.label}
-                  value={draft[field.key]}
-                  min={field.min}
-                  max={field.max}
-                  step={1}
-                  onChange={(value) => setDraft((current) => ({ ...current, [field.key]: value }))}
-                />
-              ))}
+          <details open={hasSignals} className="group rounded-lg border border-[#d8e1db] bg-white/64">
+            <summary className="cursor-pointer p-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#52635a] transition hover:bg-white/80">
+              Discernment signals {hasSignals ? "✓" : ""}
+            </summary>
+            <div className="space-y-3 border-t border-[#d8e1db]/50 p-3">
+              <div className="grid gap-3 md:grid-cols-2">
+                {signalFields.map((field) => (
+                  <RangeField
+                    key={field.key}
+                    label={field.label}
+                    value={draft[field.key]}
+                    min={field.min}
+                    max={field.max}
+                    step={1}
+                    onChange={(value) => setDraft((current) => ({ ...current, [field.key]: value }))}
+                  />
+                ))}
+              </div>
             </div>
-          </div>
+          </details>
 
-          <div className="grid gap-3 md:grid-cols-2">
-            {preferenceFields.map((field) => (
-              <label key={field.key} className="text-xs font-semibold uppercase tracking-[0.12em] text-[#52635a]">
-                {field.label}
-                <input
-                  value={draft[field.key]}
-                  onChange={(event) => setDraft((current) => ({ ...current, [field.key]: event.target.value }))}
-                  className="mt-2 h-10 w-full rounded-md border border-[#c9d5cd] bg-white/78 px-3 text-sm normal-case tracking-normal text-[#203a35] outline-none focus:border-[#203a35]"
-                  placeholder={field.placeholder}
-                />
-              </label>
-            ))}
-          </div>
+          <details open={hasPreferences} className="group rounded-lg border border-[#d8e1db] bg-white/64">
+            <summary className="cursor-pointer p-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#52635a] transition hover:bg-white/80">
+              Risk, waiting & counsel preferences {hasPreferences ? "✓" : ""}
+            </summary>
+            <div className="space-y-3 border-t border-[#d8e1db]/50 p-3">
+              <div className="grid gap-3 md:grid-cols-2">
+                {preferenceFields.map((field) => (
+                  <label key={field.key} className="text-xs font-semibold uppercase tracking-[0.12em] text-[#52635a]">
+                    {field.label}
+                    <input
+                      value={draft[field.key]}
+                      onChange={(event) => setDraft((current) => ({ ...current, [field.key]: event.target.value }))}
+                      className="mt-2 h-10 w-full rounded-md border border-[#c9d5cd] bg-white/78 px-3 text-sm normal-case tracking-normal text-[#203a35] outline-none focus:border-[#203a35]"
+                      placeholder={field.placeholder}
+                    />
+                  </label>
+                ))}
+              </div>
+            </div>
+          </details>
 
-          <div className="grid gap-3 md:grid-cols-2">
-            {longFields.map((field) => (
-              <label key={field.key} className="text-xs font-semibold uppercase tracking-[0.12em] text-[#52635a]">
-                {field.label}
-                <textarea
-                  value={draft[field.key]}
-                  onChange={(event) => setDraft((current) => ({ ...current, [field.key]: event.target.value }))}
-                  className="mt-2 min-h-24 w-full resize-none rounded-md border border-[#c9d5cd] bg-white/78 px-3 py-2 text-sm normal-case leading-6 tracking-normal text-[#203a35] outline-none focus:border-[#203a35]"
-                  placeholder={field.placeholder}
-                />
-              </label>
-            ))}
-          </div>
+          <details open={hasLongFields} className="group rounded-lg border border-[#d8e1db] bg-white/64">
+            <summary className="cursor-pointer p-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#52635a] transition hover:bg-white/80">
+              Context descriptions {hasLongFields ? "✓" : ""}
+            </summary>
+            <div className="space-y-3 border-t border-[#d8e1db]/50 p-3">
+              <div className="grid gap-3 md:grid-cols-2">
+                {longFields.map((field) => (
+                  <label key={field.key} className="text-xs font-semibold uppercase tracking-[0.12em] text-[#52635a]">
+                    {field.label}
+                    <textarea
+                      value={draft[field.key]}
+                      onChange={(event) => setDraft((current) => ({ ...current, [field.key]: event.target.value }))}
+                      className="mt-2 min-h-24 w-full resize-none rounded-md border border-[#c9d5cd] bg-white/78 px-3 py-2 text-sm normal-case leading-6 tracking-normal text-[#203a35] outline-none focus:border-[#203a35]"
+                      placeholder={field.placeholder}
+                    />
+                  </label>
+                ))}
+              </div>
+            </div>
+          </details>
 
           <div className="rounded-lg border border-[#d8e1db] bg-white/64 p-3 text-xs leading-5 text-[#607067]">
             <p className="font-semibold text-[#203a35]">Privacy posture</p>
@@ -6203,6 +6254,35 @@ function DecisionCompanionPanel({
   return (
     <div className="min-w-0 space-y-4 xl:grid xl:gap-4 xl:space-y-0 xl:grid-cols-[1fr_340px]">
       <section className="space-y-4">
+        {counselSummaryDraft ? (
+          <div className="rounded-lg border border-[#d0ad55]/50 bg-[#fff8dc]/70 p-3 xl:hidden">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#866a24]">Counsel summary ready</p>
+                <p className="mt-1 text-sm font-semibold text-[#203a35]">{counselSummaryDraft.title}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setCounselSummaryDraft(null);
+                  announceWorkflow(
+                    ts('notifications.counselSummaryCleared'),
+                    ts('notifications.counselSummaryClearedBody'),
+                    "info"
+                  );
+                }}
+                className="grid size-8 shrink-0 place-items-center rounded-md border border-[#c9d5cd] bg-white/78 text-[#607067] transition hover:bg-white hover:text-[#203a35]"
+                aria-label="Clear counsel summary"
+                title="Clear summary"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <p className="mt-2 text-xs text-[#866a24]">
+              Scroll down to Counsel Circle to view full summary and share with your counsel.
+            </p>
+          </div>
+        ) : null}
         <ContextualNextAction
           eyebrow="Next in Decisions"
           title={decisionNextTitle}
