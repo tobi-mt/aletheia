@@ -684,9 +684,9 @@ function shouldShowOnboarding() {
   try {
     const completed = window.localStorage.getItem("aletheia_onboarding_complete") === "yes";
     const hasPreferences = Boolean(window.localStorage.getItem("aletheia_preferences"));
-    const hasAnonId = Boolean(window.localStorage.getItem("aletheia_anon_id"));
-    const hasOpenedThisSession = Boolean(window.sessionStorage.getItem("aletheia_app_opened_tracked"));
-    return !completed && !hasPreferences && !hasAnonId && !hasOpenedThisSession;
+    // Don't check hasAnonId - it's auto-created by analytics, not user-initiated
+    // Don't check sessionStorage - it's cleared on hard refresh, causing onboarding to disappear
+    return !completed && !hasPreferences;
   } catch {
     return false;
   }
