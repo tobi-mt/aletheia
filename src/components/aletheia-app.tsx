@@ -692,6 +692,72 @@ function shouldShowOnboarding() {
   }
 }
 
+type FeatureDiscovery = {
+  askedQuestion: boolean;
+  trackedDecision: boolean;
+  savedReflection: boolean;
+  addedCounsel: boolean;
+  createdRule: boolean;
+  changedMode: boolean;
+};
+
+function loadFeatureDiscovery(): FeatureDiscovery {
+  if (typeof window === "undefined") {
+    return {
+      askedQuestion: false,
+      trackedDecision: false,
+      savedReflection: false,
+      addedCounsel: false,
+      createdRule: false,
+      changedMode: false,
+    };
+  }
+
+  try {
+    const saved = window.localStorage.getItem("aletheia_feature_discovery");
+    if (saved) {
+      return JSON.parse(saved) as FeatureDiscovery;
+    }
+  } catch {
+    // Fall through to default
+  }
+
+  return {
+    askedQuestion: false,
+    trackedDecision: false,
+    savedReflection: false,
+    addedCounsel: false,
+    createdRule: false,
+    changedMode: false,
+  };
+}
+
+function saveFeatureDiscovery(discovery: FeatureDiscovery) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem("aletheia_feature_discovery", JSON.stringify(discovery));
+  } catch {
+    // Feature discovery is a nice-to-have; ignore errors
+  }
+}
+
+function daysSinceDate(isoDate: string | null): number {
+  if (!isoDate) {
+    return -1;
+  }
+  try {
+    const date = new Date(isoDate);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    return Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  } catch {
+    return -1;
+  }
+}
+
 function analyticsId(storage: Storage, key: string) {
   try {
     const existing = storage.getItem(key);
@@ -1343,6 +1409,7 @@ export function AletheiaApp() {
   const [counselSummaryDraft, setCounselSummaryDraft] = useState<CounselSummaryDraft | null>(null);
   const [answerFocusId, setAnswerFocusId] = useState<string | null>(null);
   const [ruleText, setRuleText] = useState("");
+  const [featureDiscovery, setFeatureDiscovery] = useState<FeatureDiscovery>(loadFeatureDiscovery);
   
   // Load translations synchronously using useMemo to ensure they're available immediately
   const translations = useMemo(() => {
@@ -2002,6 +2069,18 @@ export function AletheiaApp() {
   }
 
   function draftCounselSummaryFromExchange(exchange: ConversationExchange) {
+    // Check if a summary draft already exists for this exchange
+    if (counselSummaryDraft) {
+      announceWorkflow(
+        ts('notifications.counselSummaryExists'),
+        ts('notifications.counselSummaryExistsBody'),
+        "info"
+      );
+      showView("decisions");
+      scrollToSection("counsel-circle");
+      return;
+    }
+
     const question = cleanDisplayText(exchange.question?.text ?? "Recent counsel");
     const answer = cleanDisplayText(exchange.answer.text);
     const sources = (exchange.answer.sources ?? []).map((source) => ({
@@ -2069,6 +2148,10 @@ export function AletheiaApp() {
       // Preferences still work in memory if local storage is unavailable.
     }
 
+    // Load translations with the new preferences for notification
+    const nextTranslations = loadTranslationsWithFallbackSync(next);
+    const getNextTranslation = (key: string, fallback: string) => getTranslation(nextTranslations, key, fallback);
+
     if (user) {
       const response = await fetch("/api/preferences", {
         method: "PUT",
@@ -2078,12 +2161,12 @@ export function AletheiaApp() {
       const saved = response.ok;
       setPreferencesStatus(saved ? "Language settings saved." : "Could not sync language settings yet.");
       announceWorkflow(
-        saved ? ts('notifications.preferencesSynced') : ts('notifications.preferencesSavedLocally'),
-        saved ? ts('notifications.preferencesSyncedBody') : ts('notifications.preferencesSavedLocallyBody'),
+        saved ? getNextTranslation('notifications.preferencesSynced', 'Language settings synced') : getNextTranslation('notifications.preferencesSavedLocally', 'Language settings saved locally'),
+        saved ? getNextTranslation('notifications.preferencesSyncedBody', 'Your language preferences are now synced across devices.') : getNextTranslation('notifications.preferencesSavedLocallyBody', 'Your language preferences are saved on this device.'),
         saved ? "success" : "warning"
       );
     } else {
-      announceWorkflow(ts('notifications.preferencesSaved'), ts('notifications.preferencesSavedBody'), "success");
+      announceWorkflow(getNextTranslation('notifications.preferencesSaved', 'Language settings saved'), getNextTranslation('notifications.preferencesSavedBody', 'Your language preferences are saved on this device.'), "success");
     }
   }
 
@@ -3368,7 +3451,7 @@ export function AletheiaApp() {
       </div>
 
       <OnboardingModal
-        open={showOnboarding}
+        open={showOnboarding && authStatus !== "checking"}
         mode={mode}
         preferences={preferences}
         concern={onboardingConcern}
@@ -4015,6 +4098,39 @@ function AccountPanel({
     { label: text.sevenDaysPractice!, active: false },
   ];
   const hasFormationMilestone = badges.some((badge) => badge.active);
+
+  // Calculate engagement metrics
+  const latestJournal = journalEntries[0];
+  const latestDecision = decisions[0];
+  const daysSinceReflection = latestJournal ? daysSinceDate(latestJournal.createdAt) : -1;
+  const daysSinceDecision = latestDecision ? daysSinceDate(latestDecision.updatedAt) : -1;
+  const hasRecentActivity = daysSinceReflection >= 0 && daysSinceReflection <= 7;
+  
+  // Engagement prompt logic
+  let engagementPrompt = null;
+  if (journalEntries.length > 0 && daysSinceReflection > 7) {
+    engagementPrompt = {
+      title: "Time for reflection?",
+      body: `It's been ${daysSinceReflection} day${daysSinceReflection === 1 ? '' : 's'} since your last reflection. Even a small moment of noticing can bring clarity.`,
+      action: "Reflect now",
+      view: "reflect" as View,
+    };
+  } else if (decisions.length > 0 && daysSinceDecision > 14 && decisions.some(d => d.status === "discerning")) {
+    engagementPrompt = {
+      title: "Decision check-in",
+      body: `Your active decisions might benefit from a fresh review. Has counsel, time, or clarity shifted anything?`,
+      action: "Review decisions",
+      view: "decisions" as View,
+    };
+  } else if (messages.length > 3 && daysSinceReflection > 14) {
+    engagementPrompt = {
+      title: "Wisdom in practice",
+      body: "You've asked thoughtful questions. Consider turning one conversation into a reflection or rule of life.",
+      action: "Reflect",
+      view: "reflect" as View,
+    };
+  }
+  
   const accountNextTitle = user
     ? notificationsEnabled
       ? "Review sync and formation"
@@ -4116,6 +4232,37 @@ function AccountPanel({
             <AccountStat label="Decisions" value={String(decisions.length)} />
             <AccountStat label="Journal entries" value={String(journalEntries.length)} />
           </div>
+          {(daysSinceReflection >= 0 || daysSinceDecision >= 0) && user ? (
+            <div className="mt-3 rounded-lg border border-[#d8e1db] bg-white/58 p-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#718077]">Engagement</p>
+              <div className="mt-2 space-y-1.5 text-sm text-[#55645b]">
+                {daysSinceReflection >= 0 ? (
+                  <p>
+                    {daysSinceReflection === 0 ? (
+                      <><span className="font-semibold text-[#245443]">Reflected today</span> — practice is active</>
+                    ) : daysSinceReflection === 1 ? (
+                      <>Last reflection was <span className="font-semibold">yesterday</span></>
+                    ) : daysSinceReflection <= 7 ? (
+                      <>Last reflection <span className="font-semibold">{daysSinceReflection} days ago</span></>
+                    ) : (
+                      <>It's been <span className="font-semibold text-[#866a24]">{daysSinceReflection} days</span> since last reflection</>
+                    )}
+                  </p>
+                ) : null}
+                {daysSinceDecision >= 0 && decisions.some(d => d.status === "discerning") ? (
+                  <p>
+                    {daysSinceDecision === 0 ? (
+                      <>Active decision <span className="font-semibold text-[#245443]">updated today</span></>
+                    ) : daysSinceDecision <= 7 ? (
+                      <>Decision reviewed <span className="font-semibold">{daysSinceDecision} day{daysSinceDecision === 1 ? '' : 's'} ago</span></>
+                    ) : (
+                      <>Decision last reviewed <span className="font-semibold text-[#866a24]">{daysSinceDecision} days ago</span></>
+                    )}
+                  </p>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
           {!exchanges.length && !decisions.length && !journalEntries.length ? (
             <p className="mt-3 rounded-lg border border-dashed border-[#c9d5cd] p-3 text-sm leading-6 text-[#607067]">
               Start with one honest question or one decision under pressure. Aletheia will keep the record quiet and useful.
@@ -6141,7 +6288,25 @@ function DecisionCompanionPanel({
           </p>
           {counselSummaryDraft ? (
             <div className="mt-3 rounded-lg border border-[#d0ad55]/50 bg-[#fff8dc]/70 p-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#866a24]">Summary ready</p>
+              <div className="flex items-start justify-between gap-2">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#866a24]">Summary ready</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCounselSummaryDraft(null);
+                    announceWorkflow(
+                      ts('notifications.counselSummaryCleared'),
+                      ts('notifications.counselSummaryClearedBody'),
+                      "info"
+                    );
+                  }}
+                  className="grid size-7 shrink-0 place-items-center rounded-md border border-[#c9d5cd] bg-white/78 text-[#607067] transition hover:bg-white hover:text-[#203a35]"
+                  aria-label="Clear counsel summary"
+                  title="Clear summary"
+                >
+                  <X size={14} />
+                </button>
+              </div>
               <p className="mt-2 text-sm font-semibold text-[#203a35]">{counselSummaryDraft.title}</p>
               <pre className="mt-3 max-h-72 overflow-auto whitespace-pre-wrap rounded-md border border-[#d8e1db] bg-white/72 p-3 text-xs leading-5 text-[#405049]">
                 {counselSummaryDraft.body}
@@ -6265,23 +6430,30 @@ function DecisionCompanionPanel({
                   {contact.canReceiveCheckins ? <span className="rounded bg-[#edf2ee] px-2 py-1">check-ins</span> : null}
                 </div>
                 {contact.canViewSummaries && decisions.length > 0 ? (
-                  <div className="mt-3 grid gap-2">
-                    {selectedDecision ? (
-                      <button
-                        type="button"
-                        className="w-full rounded-md border border-[#c9d5cd] px-3 py-2 text-xs font-semibold text-[#203a35] transition hover:bg-white"
-                        onClick={() => onShareDecisionWithCounsel(contact.id, selectedDecision.id)}
-                      >
-                        Share current summary only
-                      </button>
-                    ) : null}
-                    {decisions.length > 1 || (decisions.length === 1 && !selectedDecision) ? (
+                  <div className="mt-3 space-y-2">
+                    <p className="text-xs font-semibold text-[#607067]">Share decisions:</p>
+                    <div className="max-h-48 space-y-1 overflow-y-auto rounded-md border border-[#d8e1db] bg-white/50 p-2">
+                      {decisions.map((decision) => (
+                        <button
+                          key={decision.id}
+                          type="button"
+                          className="flex w-full items-start gap-2 rounded border border-[#c9d5cd] bg-white/80 px-2 py-2 text-left text-xs transition hover:border-[#203a35] hover:bg-white"
+                          onClick={() => onShareDecisionWithCounsel(contact.id, decision.id)}
+                        >
+                          <span className="mt-0.5 shrink-0 rounded bg-[#edf2ee] px-1.5 py-0.5 text-[0.65rem] font-semibold text-[#52635a]">
+                            {decision.mode}
+                          </span>
+                          <span className="min-w-0 flex-1 truncate font-medium text-[#203a35]">{decision.title}</span>
+                        </button>
+                      ))}
+                    </div>
+                    {decisions.length > 1 ? (
                       <button
                         type="button"
                         className="w-full rounded-md bg-[#203a35] px-3 py-2 text-xs font-semibold text-[#f8f5e8] transition hover:bg-[#2e564d]"
                         onClick={() => onBulkShareDecisionsWithCounsel(contact.id, decisions.map((d) => d.id))}
                       >
-                        Share all decisions ({decisions.length})
+                        Share all {decisions.length} decisions
                       </button>
                     ) : null}
                   </div>
