@@ -71,6 +71,181 @@ type ShareChannel = "native" | "copy" | "whatsapp" | "facebook" | "x" | "linkedi
 type WorkflowTone = "info" | "success" | "warning" | "error";
 type ThemePreference = "classic" | "dark" | "warm" | "ocean" | "forest" | "sunset" | "system";
 type ResolvedTheme = "classic" | "dark" | "warm" | "ocean" | "forest" | "sunset";
+type ThemeColors = {
+  // Primary action colors
+  primary: string;
+  primaryHover: string;
+  primaryText: string;
+  
+  // Background colors
+  bgMain: string;
+  bgGradient: string;
+  bgCard: string;
+  bgCardElevated: string;
+  bgInput: string;
+  bgNav: string;
+  bgNavBorder: string;
+  
+  // Text colors
+  textPrimary: string;
+  textSecondary: string;
+  textMuted: string;
+  textOnPrimary: string;
+  
+  // Border colors
+  borderLight: string;
+  borderMedium: string;
+  borderStrong: string;
+  
+  // Accent colors
+  accentGold: string;
+  accentLight: string;
+  
+  // Interactive states
+  hoverBg: string;
+  activeBg: string;
+};
+
+const themeColors: Record<ResolvedTheme, ThemeColors> = {
+  classic: {
+    primary: "#203a35",
+    primaryHover: "#2e564d",
+    primaryText: "#f8f5e8",
+    bgMain: "#eef2ef",
+    bgGradient: "bg-[radial-gradient(circle_at_18%_0%,rgba(201,177,123,0.16),transparent_24%),radial-gradient(circle_at_92%_16%,rgba(64,101,96,0.14),transparent_24%),linear-gradient(180deg,#f4f6f2_0%,#e4ebe6_100%)]",
+    bgCard: "#fbfcf8",
+    bgCardElevated: "rgba(251, 252, 248, 0.78)",
+    bgInput: "rgba(255, 255, 255, 0.78)",
+    bgNav: "rgba(238, 242, 239, 0.88)",
+    bgNavBorder: "rgba(201, 213, 205, 0.7)",
+    textPrimary: "#203a35",
+    textSecondary: "#55645b",
+    textMuted: "#718077",
+    textOnPrimary: "#f8f5e8",
+    borderLight: "#d8e1db",
+    borderMedium: "#c9d5cd",
+    borderStrong: "#b8c9bf",
+    accentGold: "#866a24",
+    accentLight: "#d0ad55",
+    hoverBg: "#edf2ee",
+    activeBg: "rgba(32, 58, 53, 0.08)",
+  },
+  dark: {
+    primary: "#d0ad55",
+    primaryHover: "#e0bd65",
+    primaryText: "#0e1514",
+    bgMain: "#0e1514",
+    bgGradient: "bg-[radial-gradient(circle_at_18%_0%,rgba(194,162,88,0.18),transparent_26%),radial-gradient(circle_at_92%_14%,rgba(73,122,107,0.22),transparent_25%),linear-gradient(180deg,#0e1514_0%,#090f0e_100%)]",
+    bgCard: "#1a2622",
+    bgCardElevated: "rgba(26, 38, 34, 0.85)",
+    bgInput: "rgba(32, 48, 44, 0.78)",
+    bgNav: "rgba(14, 21, 20, 0.88)",
+    bgNavBorder: "rgba(42, 58, 54, 0.7)",
+    textPrimary: "#f8f5e8",
+    textSecondary: "#cddbd1",
+    textMuted: "#99aba1",
+    textOnPrimary: "#0e1514",
+    borderLight: "#2a3a36",
+    borderMedium: "#3a4a46",
+    borderStrong: "#4a5a56",
+    accentGold: "#d0ad55",
+    accentLight: "#e0bd65",
+    hoverBg: "rgba(208, 173, 85, 0.12)",
+    activeBg: "rgba(208, 173, 85, 0.18)",
+  },
+  warm: {
+    primary: "#a65a3a",
+    primaryHover: "#b66a4a",
+    primaryText: "#fef8f4",
+    bgMain: "#faf6f1",
+    bgGradient: "bg-[radial-gradient(circle_at_18%_0%,rgba(220,180,140,0.20),transparent_26%),radial-gradient(circle_at_92%_14%,rgba(200,160,120,0.18),transparent_25%),linear-gradient(180deg,#faf6f1_0%,#f4ede4_100%)]",
+    bgCard: "#fef9f5",
+    bgCardElevated: "rgba(254, 249, 245, 0.82)",
+    bgInput: "rgba(255, 252, 248, 0.85)",
+    bgNav: "rgba(250, 246, 241, 0.88)",
+    bgNavBorder: "rgba(217, 196, 181, 0.7)",
+    textPrimary: "#4a2818",
+    textSecondary: "#6b4830",
+    textMuted: "#8b6850",
+    textOnPrimary: "#fef8f4",
+    borderLight: "#e8d5c5",
+    borderMedium: "#d9c4b5",
+    borderStrong: "#c9b4a5",
+    accentGold: "#b8763a",
+    accentLight: "#d0946e",
+    hoverBg: "#f5ebe1",
+    activeBg: "rgba(166, 90, 58, 0.08)",
+  },
+  ocean: {
+    primary: "#2a5a7a",
+    primaryHover: "#3a6a8a",
+    primaryText: "#f4f8fa",
+    bgMain: "#f1f6fa",
+    bgGradient: "bg-[radial-gradient(circle_at_18%_0%,rgba(140,180,220,0.18),transparent_26%),radial-gradient(circle_at_92%_14%,rgba(100,140,180,0.20),transparent_25%),linear-gradient(180deg,#f1f6fa_0%,#e4ecf4_100%)]",
+    bgCard: "#f8fbfd",
+    bgCardElevated: "rgba(248, 251, 253, 0.82)",
+    bgInput: "rgba(255, 255, 255, 0.85)",
+    bgNav: "rgba(241, 246, 250, 0.88)",
+    bgNavBorder: "rgba(181, 201, 217, 0.7)",
+    textPrimary: "#1a3a4a",
+    textSecondary: "#3a5a6a",
+    textMuted: "#5a7a8a",
+    textOnPrimary: "#f4f8fa",
+    borderLight: "#d5e5ed",
+    borderMedium: "#b5c9d9",
+    borderStrong: "#95b9c9",
+    accentGold: "#4a7a9a",
+    accentLight: "#6e94d0",
+    hoverBg: "#e8f2f8",
+    activeBg: "rgba(42, 90, 122, 0.08)",
+  },
+  forest: {
+    primary: "#2a5a3a",
+    primaryHover: "#3a6a4a",
+    primaryText: "#f4f8f4",
+    bgMain: "#f1f6f1",
+    bgGradient: "bg-[radial-gradient(circle_at_18%_0%,rgba(140,180,140,0.20),transparent_26%),radial-gradient(circle_at_92%_14%,rgba(100,140,100,0.18),transparent_25%),linear-gradient(180deg,#f1f6f1_0%,#e4ede4_100%)]",
+    bgCard: "#f8fbf8",
+    bgCardElevated: "rgba(248, 251, 248, 0.82)",
+    bgInput: "rgba(255, 255, 255, 0.85)",
+    bgNav: "rgba(241, 246, 241, 0.88)",
+    bgNavBorder: "rgba(184, 201, 181, 0.7)",
+    textPrimary: "#1a3a2a",
+    textSecondary: "#3a5a4a",
+    textMuted: "#5a7a6a",
+    textOnPrimary: "#f4f8f4",
+    borderLight: "#d5e5d5",
+    borderMedium: "#b8c9b5",
+    borderStrong: "#98b995",
+    accentGold: "#4a7a5a",
+    accentLight: "#6ed094",
+    hoverBg: "#e8f2e8",
+    activeBg: "rgba(42, 90, 58, 0.08)",
+  },
+  sunset: {
+    primary: "#8a3a5a",
+    primaryHover: "#9a4a6a",
+    primaryText: "#fef4f8",
+    bgMain: "#faf1f6",
+    bgGradient: "bg-[radial-gradient(circle_at_18%_0%,rgba(220,140,180,0.20),transparent_26%),radial-gradient(circle_at_92%_14%,rgba(200,120,160,0.18),transparent_25%),linear-gradient(180deg,#faf1f6_0%,#f4e4ec_100%)]",
+    bgCard: "#fef5f9",
+    bgCardElevated: "rgba(254, 245, 249, 0.82)",
+    bgInput: "rgba(255, 250, 253, 0.85)",
+    bgNav: "rgba(250, 241, 246, 0.88)",
+    bgNavBorder: "rgba(217, 181, 201, 0.7)",
+    textPrimary: "#4a1a3a",
+    textSecondary: "#6a3a5a",
+    textMuted: "#8a5a7a",
+    textOnPrimary: "#fef4f8",
+    borderLight: "#e8d5e5",
+    borderMedium: "#d9b5c9",
+    borderStrong: "#c995b9",
+    accentGold: "#a85a7a",
+    accentLight: "#d06e94",
+    hoverBg: "#f5e8f2",
+    activeBg: "rgba(138, 58, 90, 0.08)",
+  },
+};
 type WorkflowNoticeState = {
   id: string;
   title: string;
@@ -1385,6 +1560,7 @@ export function AletheiaApp() {
   const [manualContextStatus, setManualContextStatus] = useState("Manual context is private and optional.");
   const [themePreference, setThemePreference] = useState<ThemePreference>(storedThemePreference);
   const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>("classic");
+  const theme = themeColors[resolvedTheme];
   const [showOnboarding, setShowOnboarding] = useState(shouldShowOnboarding);
   const [onboardingConcern, setOnboardingConcern] = useState("");
   const [onboardingTone, setOnboardingTone] = useState("gentle");
@@ -1594,6 +1770,65 @@ export function AletheiaApp() {
     });
   }
 
+  // Load and prioritize high-quality voices
+  useEffect(() => {
+    if (!("speechSynthesis" in window)) {
+      return;
+    }
+
+    const loadVoices = () => {
+      const voices = window.speechSynthesis.getVoices();
+      const currentLanguage = languages[preferences.language];
+      
+      // Filter and prioritize pleasant, natural-sounding voices
+      const prioritizeVoice = (voice: SpeechSynthesisVoice): number => {
+        let score = 0;
+        const nameLower = voice.name.toLowerCase();
+        const isLocal = voice.localService;
+        
+        // Prioritize premium/enhanced voices (often sound better)
+        if (nameLower.includes('enhanced') || nameLower.includes('premium')) score += 50;
+        if (nameLower.includes('neural') || nameLower.includes('natural')) score += 40;
+        
+        // Prioritize specific high-quality voices
+        if (nameLower.includes('samantha') || nameLower.includes('alex') || 
+            nameLower.includes('karen') || nameLower.includes('daniel')) score += 30;
+        if (nameLower.includes('fiona') || nameLower.includes('moira') ||
+            nameLower.includes('tessa') || nameLower.includes('ava')) score += 25;
+        
+        // Prefer local voices (usually higher quality)
+        if (isLocal) score += 20;
+        
+        // Prefer voices with specific quality indicators
+        if (nameLower.includes('compact') || nameLower.includes('quality')) score += 15;
+        
+        return score;
+      };
+      
+      // Sort voices by quality score (highest first)
+      const sortedVoices = voices
+        .filter(v => v.lang.startsWith(currentLanguage.speech.slice(0, 2)))
+        .sort((a, b) => prioritizeVoice(b) - prioritizeVoice(a));
+      
+      // Include all voices if language-specific filter is too restrictive
+      const finalVoices = sortedVoices.length > 0 ? sortedVoices : voices;
+      
+      setAvailableVoices(finalVoices);
+      
+      // Auto-select the best voice if none selected
+      if (!selectedVoice && finalVoices.length > 0) {
+        setSelectedVoice(finalVoices[0].voiceURI);
+      }
+    };
+
+    loadVoices();
+    window.speechSynthesis.addEventListener('voiceschanged', loadVoices);
+    
+    return () => {
+      window.speechSynthesis.removeEventListener('voiceschanged', loadVoices);
+    };
+  }, [preferences.language, selectedVoice]);
+
   useEffect(() => {
     if (!workflowNotice) {
       return;
@@ -1619,6 +1854,19 @@ export function AletheiaApp() {
     }
     return () => media.removeEventListener("change", applyTheme);
   }, [themePreference]);
+
+  // Update PWA theme-color meta tag dynamically for status bar
+  useEffect(() => {
+    const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+    if (metaThemeColor) {
+      metaThemeColor.setAttribute('content', theme.primary);
+    } else {
+      const meta = document.createElement('meta');
+      meta.name = 'theme-color';
+      meta.content = theme.primary;
+      document.head.appendChild(meta);
+    }
+  }, [theme.primary]);
 
   async function loadSignedInWorkspace(signedInUser: User) {
     const [chatResponse, journalResponse, notificationResponse, decisionsResponse, counselResponse, rulesResponse, preferencesResponse, contextResponse] = await Promise.all([
@@ -2418,7 +2666,11 @@ export function AletheiaApp() {
     const cleanText = cleanDisplayText(text);
     const utterance = new SpeechSynthesisUtterance(cleanText);
     utterance.lang = activeLanguage.speech;
-    utterance.rate = 0.92;
+    
+    // Optimize for pleasant, natural listening experience
+    utterance.rate = 0.88;      // Slightly slower for clarity and warmth
+    utterance.pitch = 1.08;     // Slightly higher for pleasant, friendly tone
+    utterance.volume = 0.95;    // Clear but not overwhelming
     
     // Apply selected voice
     if (selectedVoice && availableVoices.length > 0) {
@@ -3316,51 +3568,20 @@ export function AletheiaApp() {
   }
 
   return (
-    <main className={`min-h-screen overflow-x-hidden text-[#171917] ${
-      resolvedTheme === "dark" ? "theme-dark-root bg-[#0e1514]" : 
-      resolvedTheme === "warm" ? "theme-warm-root bg-[#faf6f1]" :
-      resolvedTheme === "ocean" ? "theme-ocean-root bg-[#f1f6fa]" :
-      resolvedTheme === "forest" ? "theme-forest-root bg-[#f1f6f1]" :
-      resolvedTheme === "sunset" ? "theme-sunset-root bg-[#faf1f6]" :
-      "bg-[#eef2ef]"
-    }`}>
+    <main className="min-h-screen overflow-x-hidden" style={{ backgroundColor: theme.bgMain, color: theme.textPrimary }}>
       <div
-        className={`fixed inset-0 -z-10 ${
-          resolvedTheme === "dark"
-            ? "bg-[radial-gradient(circle_at_18%_0%,rgba(194,162,88,0.18),transparent_26%),radial-gradient(circle_at_92%_14%,rgba(73,122,107,0.22),transparent_25%),linear-gradient(180deg,#0e1514_0%,#090f0e_100%)]"
-            : resolvedTheme === "warm"
-            ? "bg-[radial-gradient(circle_at_18%_0%,rgba(220,180,140,0.20),transparent_26%),radial-gradient(circle_at_92%_14%,rgba(200,160,120,0.18),transparent_25%),linear-gradient(180deg,#faf6f1_0%,#f4ede4_100%)]"
-            : resolvedTheme === "ocean"
-            ? "bg-[radial-gradient(circle_at_18%_0%,rgba(140,180,220,0.18),transparent_26%),radial-gradient(circle_at_92%_14%,rgba(100,140,180,0.20),transparent_25%),linear-gradient(180deg,#f1f6fa_0%,#e4ecf4_100%)]"
-            : resolvedTheme === "forest"
-            ? "bg-[radial-gradient(circle_at_18%_0%,rgba(140,180,140,0.20),transparent_26%),radial-gradient(circle_at_92%_14%,rgba(100,140,100,0.18),transparent_25%),linear-gradient(180deg,#f1f6f1_0%,#e4ede4_100%)]"
-            : resolvedTheme === "sunset"
-            ? "bg-[radial-gradient(circle_at_18%_0%,rgba(220,140,180,0.20),transparent_26%),radial-gradient(circle_at_92%_14%,rgba(200,120,160,0.18),transparent_25%),linear-gradient(180deg,#faf1f6_0%,#f4e4ec_100%)]"
-            : "bg-[radial-gradient(circle_at_18%_0%,rgba(201,177,123,0.16),transparent_24%),radial-gradient(circle_at_92%_16%,rgba(64,101,96,0.14),transparent_24%),linear-gradient(180deg,#f4f6f2_0%,#e4ebe6_100%)]"
-        }`}
+        className={`fixed inset-0 -z-10 ${theme.bgGradient}`}
       />
-      <WorkflowNotice notice={workflowNotice} onClose={() => setWorkflowNotice(null)} />
+      <WorkflowNotice notice={workflowNotice} onClose={() => setWorkflowNotice(null)} theme={theme} />
 
-      <nav className={`sticky top-0 z-30 border-b px-3 py-3 backdrop-blur-xl sm:px-4 ${
-        resolvedTheme === "dark" 
-          ? "border-[#2a3a36]/70 bg-[#0e1514]/88" 
-          : resolvedTheme === "warm"
-          ? "border-[#d9c4b5]/70 bg-[#faf6f1]/88"
-          : resolvedTheme === "ocean"
-          ? "border-[#b5c9d9]/70 bg-[#f1f6fa]/88"
-          : resolvedTheme === "forest"
-          ? "border-[#b8c9b5]/70 bg-[#f1f6f1]/88"
-          : resolvedTheme === "sunset"
-          ? "border-[#d9b5c9]/70 bg-[#faf1f6]/88"
-          : "border-[#c9d5cd]/70 bg-[#eef2ef]/88"
-      }`}>
+      <nav className="sticky top-0 z-30 border-b px-3 py-3 backdrop-blur-xl sm:px-4" style={{ borderColor: theme.bgNavBorder, backgroundColor: theme.bgNav }}>
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3">
           <button
             className="flex min-w-0 items-center gap-3 text-left"
             onClick={() => showView("companion")}
             aria-label="Go to Aletheia home"
           >
-            <div className="relative size-11 shrink-0 overflow-hidden rounded-lg border border-[#c4d0c8] bg-[#eef1ea] shadow-sm">
+            <div className="relative size-11 shrink-0 overflow-hidden rounded-lg border shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
               <Image
                 src="/brand/aletheia-app-icon-192.png"
                 alt=""
@@ -3371,28 +3592,29 @@ export function AletheiaApp() {
               />
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#405049] sm:tracking-[0.22em]">Aletheia</p>
-              <p className="truncate text-xs text-[#66746b]">Wisdom for stewardship</p>
+              <p className="text-sm font-semibold uppercase tracking-[0.18em] sm:tracking-[0.22em]" style={{ color: theme.textPrimary }}>Aletheia</p>
+              <p className="truncate text-xs" style={{ color: theme.textSecondary }}>Wisdom for stewardship</p>
             </div>
           </button>
 
-          <div className="hidden items-center gap-1 rounded-lg border border-[#c9d5cd] bg-[#fbfcf8]/72 p-1 shadow-sm md:flex">
-            <NavButton active={activeView === "companion"} icon={Home} label={ui.nav.companion} onClick={() => showView("companion")} />
-            <NavButton active={activeView === "decisions"} icon={FileText} label={ui.nav.decisions} onClick={() => showView("decisions")} />
-            <NavButton active={activeView === "reflect"} icon={Feather} label={ui.nav.reflect} onClick={() => showView("reflect")} />
-            <NavButton active={activeView === "library"} icon={BookOpen} label={ui.nav.library} onClick={() => showView("library")} />
-            <NavButton active={activeView === "account"} icon={Users} label={ui.nav.account} onClick={() => showView("account")} />
+          <div className="hidden items-center gap-1 rounded-lg border p-1 shadow-sm md:flex" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
+            <NavButton active={activeView === "companion"} icon={Home} label={ui.nav.companion} onClick={() => showView("companion")} theme={theme} />
+            <NavButton active={activeView === "decisions"} icon={FileText} label={ui.nav.decisions} onClick={() => showView("decisions")} theme={theme} />
+            <NavButton active={activeView === "reflect"} icon={Feather} label={ui.nav.reflect} onClick={() => showView("reflect")} theme={theme} />
+            <NavButton active={activeView === "library"} icon={BookOpen} label={ui.nav.library} onClick={() => showView("library")} theme={theme} />
+            <NavButton active={activeView === "account"} icon={Users} label={ui.nav.account} onClick={() => showView("account")} theme={theme} />
           </div>
 
           <div className="flex items-center gap-2">
             {!isOnline ? (
-              <span className="hidden items-center gap-2 rounded-md border border-[#d5b7a9] bg-[#fff5ef] px-3 py-2 text-xs font-medium text-[#8c3f28] sm:inline-flex">
+              <span className="hidden items-center gap-2 rounded-md border px-3 py-2 text-xs font-medium sm:inline-flex" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}>
                 <WifiOff size={14} />
                 {ui.offline}
               </span>
             ) : null}
             <label
-              className="relative grid size-10 shrink-0 place-items-center overflow-hidden rounded-md border border-[#bdcbc2] bg-[#fbfcf8]/70 text-[#213a35] shadow-sm transition hover:bg-white"
+              className="relative grid size-10 shrink-0 place-items-center overflow-hidden rounded-md border shadow-sm transition"
+              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textPrimary }}
               title={`${ui.languageSelect}: ${languages[preferences.language].nativeName}`}
               suppressHydrationWarning
             >
@@ -3412,7 +3634,8 @@ export function AletheiaApp() {
               </select>
             </label>
             <label
-              className="relative grid size-10 shrink-0 place-items-center overflow-hidden rounded-md border border-[#bdcbc2] bg-[#fbfcf8]/70 text-[#213a35] shadow-sm transition hover:bg-white"
+              className="relative grid size-10 shrink-0 place-items-center overflow-hidden rounded-md border shadow-sm transition"
+              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textPrimary }}
               title={`${ui.bibleSelect}: ${preferences.bibleTranslation}`}
               suppressHydrationWarning
             >
@@ -3436,7 +3659,8 @@ export function AletheiaApp() {
               </select>
             </label>
             <button
-              className="grid size-10 place-items-center rounded-md border border-[#bdcbc2] bg-[#fbfcf8]/70 text-[#213a35] shadow-sm transition hover:bg-white"
+              className="grid size-10 place-items-center rounded-md border shadow-sm transition"
+              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textPrimary }}
               aria-label={user ? "Open account" : "Open guest dashboard"}
               onClick={() => showView("companion")}
             >
@@ -3449,31 +3673,31 @@ export function AletheiaApp() {
       <div className="mx-auto grid max-w-7xl gap-5 px-3 pb-[calc(6.5rem+env(safe-area-inset-bottom))] pt-4 sm:px-4 sm:py-5 lg:grid-cols-[260px_1fr] lg:py-6">
         <aside className="hidden lg:block">
           <div className="sticky top-24 space-y-4">
-            <section className="rounded-lg border border-[#d7e0da] bg-[#fbfcf8]/70 p-4 shadow-sm">
-              <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#866a24]">
+            <section className="rounded-lg border p-4 shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+              <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
                 <ShieldCheck size={14} />
                 {ui.guardrails}
               </div>
-              <ul className="space-y-2 text-sm leading-6 text-[#505a52]">
+              <ul className="space-y-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
                 {ui.guardrailItems.map((item) => (
                   <li key={item}>{item}</li>
                 ))}
               </ul>
             </section>
 
-            <section className="rounded-lg border border-[#1d332e] bg-[#203a35] p-4 text-[#f8f5e8] shadow-sm">
+            <section className="rounded-lg border p-4 shadow-sm" style={{ borderColor: theme.borderStrong, backgroundColor: theme.primary, color: theme.textOnPrimary }}>
               <div className="mb-4 flex items-center justify-between">
                 <h2 className="font-semibold">{ui.wisdomMode}</h2>
-                <Moon size={17} className="text-[#d0ad55]" />
+                <Moon size={17} style={{ color: theme.accentGold }} />
               </div>
               <div className="space-y-2">
                 {activeModeCards.map((item) => (
-                  <ModeButton key={item.label} item={item} active={mode === item.label} onClick={() => handleModeChange(item.label)} />
+                  <ModeButton key={item.label} item={item} active={mode === item.label} onClick={() => handleModeChange(item.label)} theme={theme} />
                 ))}
               </div>
-              <div className="mt-4 rounded-lg border border-white/10 bg-white/8 p-3">
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#d0ad55]">{ui.currentLens}</p>
-                <p className="mt-2 text-sm leading-6 text-[#e7eee8]">{activeMode.intent}</p>
+              <div className="rounded-lg border p-3" style={{ borderColor: theme.borderMedium + '33', backgroundColor: theme.bgCardElevated }}>
+                <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ui.currentLens}</p>
+                <p className="mt-2 text-sm leading-6" style={{ color: theme.textOnPrimary }}>{activeMode.intent}</p>
               </div>
             </section>
           </div>
@@ -3498,6 +3722,7 @@ export function AletheiaApp() {
                   onReviewPattern={reviewPatternFlow}
                   onOpenAccount={openAccountFlow}
                   onAskOneQuestion={askOneQuestionFlow}
+                  theme={theme}
                 />
                 <CompanionPanel
                   messages={messages}
@@ -3530,6 +3755,7 @@ export function AletheiaApp() {
                   onWait={waitFromExchange}
                   onShare={(channel) => shareAletheia(channel, "answer")}
                   onFeedback={(value) => recordAnswerFeedback(value, "answer")}
+                  theme={theme}
                 />
                 </Screen>
               ) : null}
@@ -3580,6 +3806,7 @@ export function AletheiaApp() {
                   isSpeaking={isSpeaking}
                   onAddRule={addRuleOfLife}
                   onScriptureOpen={setSelectedScripture}
+                  theme={theme}
                 />
                 </Screen>
               ) : null}
@@ -3602,6 +3829,7 @@ export function AletheiaApp() {
                   setBody={setJournalBody}
                   onSave={saveReflection}
                   onDelete={deleteJournalEntry}
+                  theme={theme}
                 />
                 </Screen>
               ) : null}
@@ -3614,6 +3842,7 @@ export function AletheiaApp() {
                   mode={mode}
                   preferences={preferences}
                   onScriptureOpen={setSelectedScripture}
+                  theme={theme}
                 />
                 </Screen>
               ) : null}
@@ -3672,6 +3901,7 @@ export function AletheiaApp() {
                   availableVoices={availableVoices}
                   selectedVoice={selectedVoice}
                   onVoiceChange={setSelectedVoice}
+                  theme={theme}
                 />
                 </Screen>
               ) : null}
@@ -3680,13 +3910,13 @@ export function AletheiaApp() {
         </section>
       </div>
 
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[#c9d5cd] bg-[#fbfcf8]/95 px-2 pt-1 pb-[calc(0.45rem+env(safe-area-inset-bottom))] shadow-[0_-10px_28px_rgba(31,42,36,0.08)] backdrop-blur-xl md:hidden">
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t px-2 pt-1 pb-[calc(0.45rem+env(safe-area-inset-bottom))] shadow-[0_-10px_28px_rgba(31,42,36,0.08)] backdrop-blur-xl md:hidden" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgNav }}>
         <div className="mx-auto grid max-w-md grid-cols-5 gap-1">
-          <MobileNav active={activeView === "companion"} icon={Home} label={ui.nav.companion} onClick={() => showView("companion")} />
-          <MobileNav active={activeView === "decisions"} icon={FileText} label={ui.decideShort} onClick={() => showView("decisions")} />
-          <MobileNav active={activeView === "reflect"} icon={Feather} label={ui.nav.reflect} onClick={() => showView("reflect")} />
-          <MobileNav active={activeView === "library"} icon={BookOpen} label={ui.nav.library} onClick={() => showView("library")} />
-          <MobileNav active={activeView === "account"} icon={Users} label={ui.nav.account} onClick={() => showView("account")} />
+          <MobileNav active={activeView === "companion"} icon={Home} label={ui.nav.companion} onClick={() => showView("companion")} theme={theme} />
+          <MobileNav active={activeView === "decisions"} icon={FileText} label={ui.decideShort} onClick={() => showView("decisions")} theme={theme} />
+          <MobileNav active={activeView === "reflect"} icon={Feather} label={ui.nav.reflect} onClick={() => showView("reflect")} theme={theme} />
+          <MobileNav active={activeView === "library"} icon={BookOpen} label={ui.nav.library} onClick={() => showView("library")} theme={theme} />
+          <MobileNav active={activeView === "account"} icon={Users} label={ui.nav.account} onClick={() => showView("account")} theme={theme} />
         </div>
       </div>
 
@@ -3704,8 +3934,10 @@ export function AletheiaApp() {
         onModeChange={handleModeChange}
         onPreferenceChange={updatePreferences}
         onComplete={completeOnboarding}
+        theme={theme}
       />
       <CounselInviteModal
+        theme={theme}
         token={counselInviteToken}
         preview={counselInvitePreview}
         status={counselInviteStatus}
@@ -3717,7 +3949,7 @@ export function AletheiaApp() {
           setCounselInviteStatus("");
         }}
       />
-      <ScriptureModal scripture={selectedScripture} preferences={preferences} onClose={() => setSelectedScripture(null)} />
+      <ScriptureModal theme={theme} scripture={selectedScripture} preferences={preferences} onClose={() => setSelectedScripture(null)} />
     </main>
   );
 }
@@ -3735,13 +3967,17 @@ function Screen({ children }: { children: React.ReactNode }) {
   );
 }
 
-function NavButton({ active, icon: Icon, label, onClick }: { active: boolean; icon: typeof Home; label: string; onClick: () => void }) {
+function NavButton({ active, icon: Icon, label, onClick, theme }: { active: boolean; icon: typeof Home; label: string; onClick: () => void; theme: ThemeColors }) {
   return (
     <button
       onClick={onClick}
-      className={`inline-flex h-11 items-center gap-2 rounded-md px-3 text-sm font-semibold transition ${
-        active ? "bg-[#203a35] text-[#f8f5e8] shadow-sm" : "text-[#4f5f56] hover:bg-[#edf2ee]"
-      }`}
+      className="inline-flex h-11 items-center gap-2 rounded-md px-3 text-sm font-semibold transition"
+      style={{
+        backgroundColor: active ? theme.primary : 'transparent',
+        color: active ? theme.textOnPrimary : theme.textSecondary,
+      }}
+      onMouseEnter={(e) => !active && (e.currentTarget.style.backgroundColor = theme.hoverBg)}
+      onMouseLeave={(e) => !active && (e.currentTarget.style.backgroundColor = 'transparent')}
     >
       <Icon size={15} />
       {label}
@@ -3749,13 +3985,15 @@ function NavButton({ active, icon: Icon, label, onClick }: { active: boolean; ic
   );
 }
 
-function MobileNav({ active, icon: Icon, label, onClick }: { active: boolean; icon: typeof Home; label: string; onClick: () => void }) {
+function MobileNav({ active, icon: Icon, label, onClick, theme }: { active: boolean; icon: typeof Home; label: string; onClick: () => void; theme: ThemeColors }) {
   return (
     <button
       onClick={onClick}
-      className={`flex h-12 flex-col items-center justify-center gap-1 rounded-md text-[11px] font-semibold transition ${
-        active ? "bg-[#203a35] text-[#f8f5e8] shadow-sm" : "text-[#52635a]"
-      }`}
+      className="flex h-12 flex-col items-center justify-center gap-1 rounded-md text-[11px] font-semibold transition"
+      style={{
+        backgroundColor: active ? theme.primary : 'transparent',
+        color: active ? theme.textOnPrimary : theme.textMuted,
+      }}
     >
       <Icon size={17} />
       {label}
@@ -3763,40 +4001,53 @@ function MobileNav({ active, icon: Icon, label, onClick }: { active: boolean; ic
   );
 }
 
-function ModeButton({ item, active, onClick }: { item: (typeof modes)[number]; active: boolean; onClick: () => void }) {
+function ModeButton({ item, active, onClick, theme }: { item: (typeof modes)[number]; active: boolean; onClick: () => void; theme: ThemeColors }) {
   return (
     <button
       onClick={onClick}
-      className={`flex w-full items-start gap-3 rounded-md border p-3 text-left transition ${
-        active ? "border-[#d0ad55]/45 bg-white/12" : "border-white/10 bg-white/5 hover:bg-white/10"
-      }`}
+      className="flex w-full items-start gap-3 rounded-md border p-3 text-left transition"
+      style={{
+        borderColor: active ? theme.accentLight + '60' : theme.borderMedium + '30',
+        backgroundColor: active ? theme.activeBg : theme.borderMedium + '15',
+      }}
+      onMouseEnter={(e) => !active && (e.currentTarget.style.backgroundColor = theme.hoverBg)}
+      onMouseLeave={(e) => !active && (e.currentTarget.style.backgroundColor = theme.borderMedium + '15')}
     >
-      <item.icon className="mt-0.5 shrink-0" size={17} />
+      <item.icon className="mt-0.5 shrink-0" size={17} style={{ color: theme.textPrimary }} />
       <span>
         <span className="block text-sm font-semibold">{item.displayLabel ?? item.label}</span>
-        <span className="mt-1 block text-xs leading-5 text-[#dbe4dd]">{item.copy}</span>
+        <span className="mt-1 block text-xs leading-5" style={{ color: theme.textSecondary }}>{item.copy}</span>
       </span>
     </button>
   );
 }
 
-function ModeLensCard({ item, active, onClick }: { item: (typeof modes)[number]; active: boolean; onClick: () => void }) {
+function ModeLensCard({ item, active, onClick, theme }: { item: (typeof modes)[number]; active: boolean; onClick: () => void; theme: ThemeColors }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`flex items-start gap-3 rounded-md border p-3 text-left transition ${
-        active
-          ? "border-[#203a35] bg-[#203a35] text-[#f8f5e8] shadow-md"
-          : "border-[#d8e1db] bg-[#fbfcf8] text-[#203a35] hover:border-[#203a35] hover:bg-white"
-      }`}
+      className="flex items-start gap-3 rounded-md border p-3 text-left transition"
+      style={{
+        borderColor: active ? theme.primary : theme.borderLight,
+        backgroundColor: active ? theme.primary : theme.bgCard,
+        color: active ? theme.textOnPrimary : theme.textPrimary,
+      }}
+      onMouseEnter={(e) => !active && (e.currentTarget.style.borderColor = theme.primary) && (e.currentTarget.style.backgroundColor = theme.bgCardElevated)}
+      onMouseLeave={(e) => !active && (e.currentTarget.style.borderColor = theme.borderLight) && (e.currentTarget.style.backgroundColor = theme.bgCard)}
     >
-      <span className={`mt-0.5 grid size-8 shrink-0 place-items-center rounded-md ${active ? "bg-white/12 text-[#d0ad55]" : "bg-[#edf2ee] text-[#203a35]"}`}>
-        <item.icon size={16} />
+      <span
+        className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-md"
+        style={{
+          backgroundColor: active ? 'rgba(255,255,255,0.12)' : theme.bgInput,
+          color: active ? theme.accentGold : theme.textPrimary,
+        }}
+      >
+        <item.icon size={16} style={{ color: active ? 'rgba(255, 255, 255, 0.95)' : theme.textPrimary }} />
       </span>
       <span className="min-w-0">
         <span className="block text-sm font-semibold">{item.displayLabel ?? item.label}</span>
-        <span className={`mt-1 block text-xs leading-5 ${active ? "text-[#dbe6df]" : "text-[#607067]"}`}>{item.copy}</span>
+        <span className="mt-1 block text-xs leading-5" style={{ color: active ? theme.textOnPrimary : theme.textSecondary }}>{item.copy}</span>
       </span>
     </button>
   );
@@ -3805,24 +4056,34 @@ function ModeLensCard({ item, active, onClick }: { item: (typeof modes)[number];
 function WorkflowNotice({
   notice,
   onClose,
+  theme,
 }: {
   notice: WorkflowNoticeState | null;
   onClose: () => void;
+  theme: ThemeColors;
 }) {
   if (!notice) {
     return null;
   }
 
-  const toneClass: Record<WorkflowTone, string> = {
-    success: "border-[#b8d0c2] bg-[#edf7f1] text-[#245443]",
-    info: "border-[#c9d5cd] bg-[#fbfcf8] text-[#203a35]",
-    warning: "border-[#ead8a4] bg-[#fff8dc] text-[#866a24]",
-    error: "border-[#e0c3b7] bg-[#fff6f1] text-[#8c3f28]",
+  const getToneColors = (tone: WorkflowTone) => {
+    switch (tone) {
+      case "success":
+        return { border: "#b8d0c2", bg: "#edf7f1", text: "#245443" };
+      case "warning":
+        return { border: "#ead8a4", bg: "#fff8dc", text: "#866a24" };
+      case "error":
+        return { border: "#e0c3b7", bg: "#fff6f1", text: "#8c3f28" };
+      default: // info
+        return { border: theme.borderMedium, bg: theme.bgCard, text: theme.textPrimary };
+    }
   };
+
+  const colors = getToneColors(notice.tone);
 
   return (
     <div className="fixed inset-x-3 bottom-24 z-50 sm:bottom-auto sm:left-auto sm:right-4 sm:top-24 sm:w-[360px]" role="status" aria-live="polite">
-      <div className={`rounded-xl border p-4 shadow-xl shadow-[#203a35]/12 backdrop-blur ${toneClass[notice.tone]}`}>
+      <div className="rounded-xl border p-4 shadow-xl backdrop-blur" style={{ borderColor: colors.border, backgroundColor: colors.bg, color: colors.text }}>
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="text-sm font-semibold">{notice.title}</p>
@@ -3834,7 +4095,8 @@ function WorkflowNotice({
                   notice.action!.onClick();
                   onClose();
                 }}
-                className="mt-3 h-11 rounded-md bg-[#203a35] px-4 text-xs font-semibold text-[#f8f5e8] transition hover:bg-[#2e564d]"
+                className="mt-3 h-11 rounded-md px-4 text-xs font-semibold transition"
+                style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
               >
                 {notice.action.label}
               </button>
@@ -3875,6 +4137,7 @@ function OnboardingModal({
   onModeChange,
   onPreferenceChange,
   onComplete,
+  theme,
 }: {
   open: boolean;
   mode: Mode;
@@ -3889,6 +4152,7 @@ function OnboardingModal({
   onModeChange: (mode: Mode) => void;
   onPreferenceChange: (patch: Partial<UserPreferences>) => void;
   onComplete: () => void;
+  theme: ThemeColors;
 }) {
   if (!open) {
     return null;
@@ -3898,20 +4162,21 @@ function OnboardingModal({
   const selectedTranslation = bibleTranslations[preferences.bibleTranslation];
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-end bg-[#101814]/45 p-3 backdrop-blur-sm sm:place-items-center">
-      <section className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-xl border border-[#c9d5cd] bg-[#fbfcf8] p-4 shadow-2xl sm:p-5">
+    <div className="fixed inset-0 z-50 grid place-items-end p-3 backdrop-blur-sm sm:place-items-center" style={{ backgroundColor: theme.primary + '75' }}>
+      <section className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-xl border p-4 shadow-2xl sm:p-5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">Begin quietly</p>
-            <h2 className="mt-2 text-2xl font-semibold text-[#203a35]">Make Aletheia feel like it knows your context.</h2>
-            <p className="mt-2 text-sm leading-6 text-[#55645b]">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>Begin quietly</p>
+            <h2 className="mt-2 text-2xl font-semibold" style={{ color: theme.textPrimary }}>Make Aletheia feel like it knows your context.</h2>
+            <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
               Choose the lens and settings for your first few sessions. You can change everything later in Account.
             </p>
           </div>
           <button
             type="button"
             onClick={onComplete}
-            className="grid size-9 shrink-0 place-items-center rounded-md border border-[#c9d5cd] bg-white/78 text-[#405049] transition hover:bg-white"
+            className="grid size-9 shrink-0 place-items-center rounded-md border transition"
+            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
             aria-label="Close onboarding"
           >
             <X size={17} />
@@ -3920,46 +4185,47 @@ function OnboardingModal({
 
         <div className="mt-5 space-y-4">
           <section>
-            <p className="text-sm font-semibold text-[#203a35]">What brings you here?</p>
+            <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>What brings you here?</p>
             <div className="mt-2 grid grid-cols-2 gap-2">
               {modes.map((item) => (
                 <button
                   type="button"
                   key={item.label}
                   onClick={() => onModeChange(item.label)}
-                  className={`flex min-w-0 items-start gap-2 rounded-lg border p-3 text-left transition ${
-                    mode === item.label
-                      ? "border-[#203a35] bg-[#203a35] text-[#f8f5e8]"
-                      : "border-[#d8e1db] bg-white/64 text-[#203a35] hover:bg-white"
-                  }`}
+                  className="flex min-w-0 items-start gap-2 rounded-lg border p-3 text-left transition"
+                  style={mode === item.label
+                    ? { borderColor: theme.primary, backgroundColor: theme.primary, color: theme.textOnPrimary }
+                    : { borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
                 >
-                  <item.icon className="mt-0.5 shrink-0" size={16} />
+                  <item.icon className="mt-0.5 shrink-0" size={16} style={{ color: mode === item.label ? 'rgba(255, 255, 255, 0.95)' : theme.textPrimary }} />
                   <span>
                     <span className="block text-sm font-semibold">{item.label}</span>
-                    <span className={`mt-1 line-clamp-2 block text-xs leading-5 ${mode === item.label ? "text-[#dfe8df]" : "text-[#607067]"}`}>{item.copy}</span>
+                    <span className="mt-1 line-clamp-2 block text-xs leading-5 opacity-85">{item.copy}</span>
                   </span>
                 </button>
               ))}
             </div>
           </section>
 
-          <section className="rounded-lg border border-[#d8e1db] bg-white/62 p-3">
-            <label className="text-sm font-semibold text-[#203a35]">
+          <section className="rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+            <label className="text-sm font-semibold" style={{ color: theme.textPrimary }}>
               What are you seeking wisdom for?
               <textarea
                 value={concern}
                 onChange={(event) => setConcern(event.target.value)}
-                className="mt-2 min-h-20 w-full resize-none rounded-md border border-[#c9d5cd] bg-white/78 px-3 py-2 text-sm leading-6 outline-none"
+                className="mt-2 min-h-20 w-full resize-none rounded-md border px-3 py-2 text-sm leading-6 outline-none"
+                style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
                 placeholder="Money stress, a career decision, generosity pressure, purpose uncertainty, or something you are bearing..."
               />
             </label>
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
-              <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#52635a]">
+              <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
                 Tone
                 <select
                   value={tone}
                   onChange={(event) => setTone(event.target.value)}
-                  className="mt-2 h-10 w-full rounded-md border border-[#c9d5cd] bg-white/78 px-3 text-sm normal-case tracking-normal text-[#203a35] outline-none"
+                  className="mt-2 h-10 w-full rounded-md border px-3 text-sm normal-case tracking-normal outline-none"
+                  style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
                 >
                   <option value="gentle">Gentle</option>
                   <option value="direct">Direct</option>
@@ -3967,12 +4233,13 @@ function OnboardingModal({
                   <option value="reflective">Reflective</option>
                 </select>
               </label>
-              <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#52635a]">
+              <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
                 Faith familiarity
                 <select
                   value={faithFamiliarity}
                   onChange={(event) => setFaithFamiliarity(event.target.value)}
-                  className="mt-2 h-10 w-full rounded-md border border-[#c9d5cd] bg-white/78 px-3 text-sm normal-case tracking-normal text-[#203a35] outline-none"
+                  className="mt-2 h-10 w-full rounded-md border px-3 text-sm normal-case tracking-normal outline-none"
+                  style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
                 >
                   <option value="new">New to biblical wisdom</option>
                   <option value="familiar">Familiar</option>
@@ -3983,12 +4250,13 @@ function OnboardingModal({
           </section>
 
           <section className="grid gap-3 sm:grid-cols-3">
-            <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#52635a]">
+            <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
               Language
               <select
                 value={preferences.language}
                 onChange={(event) => onPreferenceChange(preferencePatchForLanguage(event.target.value as LanguageCode))}
-                className="mt-2 h-10 w-full rounded-md border border-[#c9d5cd] bg-white/78 px-3 text-sm normal-case tracking-normal text-[#203a35] outline-none"
+                className="mt-2 h-10 w-full rounded-md border px-3 text-sm normal-case tracking-normal outline-none"
+                style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
               >
                 {Object.entries(languages).map(([code, language]) => (
                   <option key={code} value={code}>
@@ -3997,12 +4265,13 @@ function OnboardingModal({
                 ))}
               </select>
             </label>
-            <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#52635a]">
+            <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
               Bible
               <select
                 value={preferences.bibleTranslation}
                 onChange={(event) => onPreferenceChange({ bibleTranslation: event.target.value as BibleTranslation })}
-                className="mt-2 h-10 w-full rounded-md border border-[#c9d5cd] bg-white/78 px-3 text-sm normal-case tracking-normal text-[#203a35] outline-none"
+                className="mt-2 h-10 w-full rounded-md border px-3 text-sm normal-case tracking-normal outline-none"
+                style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
               >
                 {bibleOptions.map((code) => {
                   const translation = bibleTranslations[code];
@@ -4011,19 +4280,20 @@ function OnboardingModal({
                   <option key={code} value={code}>
                     {languageName} · {translation.label}
                   </option>
-                  );
+                  );  
                 })}
               </select>
-              <span className="mt-1 block text-[11px] normal-case leading-4 tracking-normal text-[#718077]">
+              <span className="mt-1 block text-[11px] normal-case leading-4 tracking-normal" style={{ color: theme.textSecondary }}>
                 {selectedTranslation?.note}
               </span>
             </label>
-            <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#52635a]">
+            <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
               Region
               <select
                 value={preferences.region}
                 onChange={(event) => onPreferenceChange({ region: event.target.value as RegionCode })}
-                className="mt-2 h-10 w-full rounded-md border border-[#c9d5cd] bg-white/78 px-3 text-sm normal-case tracking-normal text-[#203a35] outline-none"
+                className="mt-2 h-10 w-full rounded-md border px-3 text-sm normal-case tracking-normal outline-none"
+                style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
               >
                 {Object.entries(regions).map(([code, region]) => (
                   <option key={code} value={code}>
@@ -4034,23 +4304,24 @@ function OnboardingModal({
             </label>
           </section>
 
-          <section className="rounded-lg border border-[#d8e1db] bg-white/62 p-3">
-            <p className="text-sm font-semibold text-[#203a35]">Account and notifications live in Account.</p>
-            <p className="mt-1 text-sm leading-6 text-[#607067]">
+          <section className="rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+            <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>Account and notifications live in Account.</p>
+            <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
               After you enter Aletheia, use the Account tab to sign in, sync your history, and turn on daily wisdom notifications.
             </p>
-            <p className="mt-2 text-xs leading-5 text-[#718077]">
+            <p className="mt-2 text-xs leading-5" style={{ color: theme.textSecondary }}>
               {notificationsEnabled ? "Notifications are already enabled on this device." : "Notifications are optional and can be enabled only after sign-in."}
             </p>
           </section>
 
-          <InstallGuideCard compact />
+          <InstallGuideCard theme={theme} compact />
         </div>
 
         <button
           type="button"
           onClick={onComplete}
-          className="mt-5 h-11 w-full rounded-md bg-[#203a35] px-4 text-sm font-semibold text-[#f8f5e8] shadow-lg shadow-[#203a35]/15"
+          className="mt-5 h-11 w-full rounded-md px-4 text-sm font-semibold shadow-lg"
+          style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
         >
           Enter Aletheia
         </button>
@@ -4073,6 +4344,7 @@ function HomeDashboard({
   onReviewPattern,
   onOpenAccount,
   onAskOneQuestion,
+  theme,
 }: {
   daily: ReturnType<typeof localizedDailyWisdom>;
   dailyEntry: WisdomEntry;
@@ -4087,6 +4359,7 @@ function HomeDashboard({
   onReviewPattern: () => void;
   onOpenAccount: () => void;
   onAskOneQuestion: () => void;
+  theme: ThemeColors;
 }) {
   const text = { ...uiText.en, ...ui };
   const primaryAction = activeDecision
@@ -4105,48 +4378,49 @@ function HomeDashboard({
 
   return (
     <div className="grid gap-3 sm:gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
-      <section className="min-w-0 rounded-xl border border-[#d7e0da] bg-[#fbfcf8]/78 p-4 shadow-sm sm:p-5">
-        <div className="mb-4 inline-flex w-fit max-w-full items-center gap-2 rounded-md border border-[#c0cec5] bg-white/60 px-3 py-2 text-[11px] font-medium uppercase tracking-[0.12em] text-[#866a24] sm:text-xs sm:tracking-[0.18em]">
+      <section className="min-w-0 rounded-xl border p-4 shadow-sm sm:p-5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+        <div className="mb-4 inline-flex w-fit max-w-full items-center gap-2 rounded-md border px-3 py-2 text-[11px] font-medium uppercase tracking-[0.12em] sm:text-xs sm:tracking-[0.18em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.accentGold }}>
           <Sparkles size={14} />
           {text.personalizedPriority}
         </div>
-        <h1 className="max-w-3xl text-2xl font-semibold leading-tight tracking-normal text-[#171917] sm:text-3xl">
+        <h1 className="max-w-3xl text-2xl font-semibold leading-tight tracking-normal sm:text-3xl" style={{ color: theme.textPrimary }}>
           {text.whatNext}
         </h1>
-        <p className="mt-4 max-w-2xl text-sm leading-6 text-[#505a52] sm:text-base sm:leading-7">
+        <p className="mt-4 max-w-2xl text-sm leading-6 sm:text-base sm:leading-7" style={{ color: theme.textSecondary }}>
           {text.whatNextBody}
         </p>
 
         <div className="mt-5">
-          <DashboardAction icon={primaryAction.icon} label={primaryAction.label} body={primaryAction.body} primary onClick={primaryAction.onClick} />
+          <DashboardAction icon={primaryAction.icon} label={primaryAction.label} body={primaryAction.body} primary onClick={primaryAction.onClick} theme={theme} />
         </div>
         <div className="mt-3 grid gap-2 md:grid-cols-3">
           {secondaryActions.map((action) => (
-            <DashboardAction key={action.label} icon={action.icon} label={action.label} body={action.body} onClick={action.onClick} compact />
+            <DashboardAction key={action.label} icon={action.icon} label={action.label} body={action.body} onClick={action.onClick} compact theme={theme} />
           ))}
         </div>
       </section>
 
-      <section className="min-w-0 rounded-xl border border-[#d7e0da] bg-[#fbfcf8]/78 p-4 text-[#203a35] shadow-sm sm:p-5">
+      <section className="min-w-0 rounded-xl border p-4 shadow-sm sm:p-5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textPrimary }}>
         <div className="mb-4 flex items-center justify-between gap-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#866a24]" suppressHydrationWarning>{daily.label}</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }} suppressHydrationWarning>{daily.label}</p>
             <h2 className="mt-1 text-xl font-semibold" suppressHydrationWarning>{daily.theme}</h2>
           </div>
-          <Sprout size={22} className="text-[#2d5d4c]" />
+          <Sprout size={22} style={{ color: theme.primary }} />
         </div>
         <button
           type="button"
           onClick={() => onScriptureOpen(dailyEntry.scripture)}
-          className="text-left text-sm font-semibold text-[#72591f] underline decoration-[#d0ad55]/50 underline-offset-4 transition hover:text-[#203a35]"
+          className="text-left text-sm font-semibold underline underline-offset-4 transition"
+          style={{ color: theme.accentGold, textDecorationColor: theme.accentGold + '80' }}
           suppressHydrationWarning
         >
           {daily.scripture}
         </button>
-        <p className="mt-3 text-sm leading-6 text-[#55645b]" suppressHydrationWarning>{daily.principle}</p>
-        <div className="mt-3 rounded-md border border-[#d8e1db] bg-white/62 p-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">{text.tinyPractice}</p>
-          <p className="mt-2 text-sm leading-6 text-[#45534b]" suppressHydrationWarning>{daily.practice}</p>
+        <p className="mt-3 text-sm leading-6" style={{ color: theme.textSecondary }} suppressHydrationWarning>{daily.principle}</p>
+        <div className="mt-3 rounded-md border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{text.tinyPractice}</p>
+          <p className="mt-2 text-sm leading-6" style={{ color: theme.textPrimary }} suppressHydrationWarning>{daily.practice}</p>
         </div>
       </section>
     </div>
@@ -4160,6 +4434,7 @@ function DashboardAction({
   primary = false,
   compact = false,
   onClick,
+  theme,
 }: {
   icon: typeof Compass;
   label: string;
@@ -4167,33 +4442,33 @@ function DashboardAction({
   primary?: boolean;
   compact?: boolean;
   onClick: () => void;
+  theme: ThemeColors;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`flex min-w-0 items-start gap-3 rounded-md border text-left transition ${compact ? "p-3" : "p-4"} ${
-        primary
-          ? "border-[#203a35] bg-[#203a35] text-[#f8f5e8] shadow-lg shadow-[#203a35]/12"
-          : "border-[#d8e1db] bg-white/62 text-[#203a35] hover:border-[#203a35] hover:bg-white"
-      }`}
+      className={`flex min-w-0 items-start gap-3 rounded-md border text-left transition ${compact ? "p-3" : "p-4"}`}
+      style={primary
+        ? { borderColor: theme.primary, backgroundColor: theme.primary, color: theme.textOnPrimary }
+        : { borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
     >
-      <span className={`mt-0.5 grid size-8 shrink-0 place-items-center rounded-md ${primary ? "bg-white/10 text-[#d0ad55]" : "bg-[#edf2ee] text-[#203a35]"}`}>
+      <span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-md" style={primary ? { backgroundColor: theme.bgCardElevated, color: theme.accentGold } : { backgroundColor: theme.bgInput, color: theme.textPrimary }}>
         <Icon size={16} />
       </span>
       <span className="min-w-0">
         <span className={`${primary ? "text-base" : "text-sm"} block font-semibold`}>{label}</span>
-        <span className={`mt-1 line-clamp-2 block text-xs leading-5 ${primary ? "text-[#dfe8df]" : "text-[#607067]"}`}>{body}</span>
+        <span className="mt-1 line-clamp-2 block text-xs leading-5 opacity-80">{body}</span>
       </span>
     </button>
   );
 }
 
-function RhythmItem({ label, body }: { label: string; body: string }) {
+function RhythmItem({ label, body, theme }: { label: string; body: string; theme: ThemeColors }) {
   return (
-    <div className="rounded-lg border border-[#d8e1db] bg-white/62 p-3">
-      <p className="text-sm font-semibold text-[#203a35]">{label}</p>
-      <p className="mt-1 text-xs leading-5 text-[#607067]">{body}</p>
+    <div className="rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+      <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{label}</p>
+      <p className="mt-1 text-xs leading-5" style={{ color: theme.textSecondary }}>{body}</p>
     </div>
   );
 }
@@ -4204,26 +4479,29 @@ function ContextualNextAction({
   body,
   actionLabel,
   onAction,
+  theme,
 }: {
   eyebrow: string;
   title: string;
   body: string;
   actionLabel?: string;
   onAction?: () => void;
+  theme: ThemeColors;
 }) {
   return (
-    <section className="rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm sm:p-5">
+    <section className="rounded-xl border p-4 shadow-sm sm:p-5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">{eyebrow}</p>
-          <h2 className="mt-2 text-xl font-semibold text-[#203a35]">{title}</h2>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-[#55645b]">{body}</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{eyebrow}</p>
+          <h2 className="mt-2 text-xl font-semibold" style={{ color: theme.textPrimary }}>{title}</h2>
+          <p className="mt-2 max-w-2xl text-sm leading-6" style={{ color: theme.textSecondary }}>{body}</p>
         </div>
         {actionLabel && onAction ? (
           <button
             type="button"
             onClick={onAction}
-            className="h-10 rounded-md bg-[#203a35] px-4 text-sm font-semibold text-[#f8f5e8] shadow-sm"
+            className="h-10 rounded-md px-4 text-sm font-semibold shadow-sm"
+            style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
           >
             {actionLabel}
           </button>
@@ -4282,6 +4560,7 @@ function AccountPanel({
   availableVoices,
   selectedVoice,
   onVoiceChange,
+  theme,
 }: {
   user: User | null;
   authMode: AuthMode;
@@ -4331,6 +4610,7 @@ function AccountPanel({
   availableVoices: SpeechSynthesisVoice[];
   selectedVoice: string | null;
   onVoiceChange: (voiceURI: string) => void;
+  theme: ThemeColors;
 }) {
   const text = { ...uiText.en, ...ui };
   const exchanges = conversationExchanges(messages).filter((exchange) => exchange.question);
@@ -4395,16 +4675,18 @@ function AccountPanel({
           eyebrow="Next in Account"
           title={accountNextTitle}
           body={accountNextBody}
+          theme={theme}
         />
-        <section className="rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm sm:p-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">Account</p>
-          <h2 className="mt-2 text-2xl font-semibold text-[#203a35]">Your Aletheia space</h2>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-[#55645b]">
+        <section className="rounded-xl border p-4 shadow-sm sm:p-5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>Account</p>
+          <h2 className="mt-2 text-2xl font-semibold" style={{ color: theme.textPrimary }}>Your Aletheia space</h2>
+          <p className="mt-2 max-w-2xl text-sm leading-6" style={{ color: theme.textSecondary }}>
             Manage sign-in, sync, language, notifications, history, and formation milestones without crowding the wisdom companion.
           </p>
         </section>
 
         <AccountStatusCard
+          theme={theme}
           user={user}
           authStatus={authStatus}
           notificationsEnabled={notificationsEnabled}
@@ -4414,6 +4696,7 @@ function AccountPanel({
 
         {!user ? (
           <AuthPanel
+            theme={theme}
             authMode={authMode}
             setAuthMode={setAuthMode}
             name={name}
@@ -4446,8 +4729,10 @@ function AccountPanel({
           availableVoices={availableVoices}
           selectedVoice={selectedVoice}
           onVoiceChange={onVoiceChange}
+          theme={theme}
         />
         <ManualContextPanel
+          theme={theme}
           user={user}
           context={manualContext}
           status={manualContextStatus}
@@ -4455,6 +4740,7 @@ function AccountPanel({
         />
 
         <NotificationPanel
+          theme={theme}
           user={user}
           enabled={notificationsEnabled}
           configured={notificationsConfigured}
@@ -4467,44 +4753,44 @@ function AccountPanel({
           onDisable={onDisableNotifications}
         />
 
-        <InstallGuideCard />
+        <InstallGuideCard theme={theme} />
 
-        <ShareInviteCard placement="account" onShare={onShare} />
+        <ShareInviteCard theme={theme} placement="account" onShare={onShare} />
       </section>
 
         <aside className="space-y-4">
-        <section className="rounded-lg border border-[#d7e0da] bg-[#fbfcf8]/72 p-4 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">History</p>
+        <section className="rounded-lg border p-4 shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>History</p>
           <div className="mt-3 grid gap-3">
-            <AccountStat label="Conversations" value={String(exchanges.length)} />
-            <AccountStat label="Decisions" value={String(decisions.length)} />
-            <AccountStat label="Journal entries" value={String(journalEntries.length)} />
+            <AccountStat label="Conversations" value={String(exchanges.length)} theme={theme} />
+            <AccountStat label="Decisions" value={String(decisions.length)} theme={theme} />
+            <AccountStat label="Journal entries" value={String(journalEntries.length)} theme={theme} />
           </div>
           {(daysSinceReflection >= 0 || daysSinceDecision >= 0) && user ? (
-            <div className="mt-3 rounded-lg border border-[#d8e1db] bg-white/58 p-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#718077]">Engagement</p>
-              <div className="mt-2 space-y-1.5 text-sm text-[#55645b]">
+            <div className="mt-3 rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textSecondary }}>Engagement</p>
+              <div className="mt-2 space-y-1.5 text-sm" style={{ color: theme.textSecondary }}>
                 {daysSinceReflection >= 0 ? (
                   <p>
                     {daysSinceReflection === 0 ? (
-                      <><span className="font-semibold text-[#245443]">Reflected today</span> — practice is active</>
+                      <><span className="font-semibold" style={{ color: theme.primary }}>Reflected today</span> — practice is active</>
                     ) : daysSinceReflection === 1 ? (
                       <>Last reflection was <span className="font-semibold">yesterday</span></>
                     ) : daysSinceReflection <= 7 ? (
                       <>Last reflection <span className="font-semibold">{daysSinceReflection} days ago</span></>
                     ) : (
-                      <>It's been <span className="font-semibold text-[#866a24]">{daysSinceReflection} days</span> since last reflection</>
+                      <>It's been <span className="font-semibold" style={{ color: theme.accentGold }}>{daysSinceReflection} days</span> since last reflection</>
                     )}
                   </p>
                 ) : null}
                 {daysSinceDecision >= 0 && decisions.some(d => d.status === "discerning") ? (
                   <p>
                     {daysSinceDecision === 0 ? (
-                      <>Active decision <span className="font-semibold text-[#245443]">updated today</span></>
+                      <>Active decision <span className="font-semibold" style={{ color: theme.primary }}>updated today</span></>
                     ) : daysSinceDecision <= 7 ? (
                       <>Decision reviewed <span className="font-semibold">{daysSinceDecision} day{daysSinceDecision === 1 ? '' : 's'} ago</span></>
                     ) : (
-                      <>Decision last reviewed <span className="font-semibold text-[#866a24]">{daysSinceDecision} days ago</span></>
+                      <>Decision last reviewed <span className="font-semibold" style={{ color: theme.accentGold }}>{daysSinceDecision} days ago</span></>
                     )}
                   </p>
                 ) : null}
@@ -4512,54 +4798,53 @@ function AccountPanel({
             </div>
           ) : null}
           {!exchanges.length && !decisions.length && !journalEntries.length ? (
-            <p className="mt-3 rounded-lg border border-dashed border-[#c9d5cd] p-3 text-sm leading-6 text-[#607067]">
+            <p className="mt-3 rounded-lg border border-dashed p-3 text-sm leading-6" style={{ borderColor: theme.borderMedium, color: theme.textSecondary }}>
               Start with one honest question or one decision under pressure. Aletheia will keep the record quiet and useful.
             </p>
           ) : null}
         </section>
 
-        <TrustCenterCard />
+        <TrustCenterCard theme={theme} />
 
-        <section className="rounded-lg border border-[#d7e0da] bg-[#fbfcf8]/72 p-4 shadow-sm">
+        <section className="rounded-lg border p-4 shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
           <div className="flex items-center gap-2">
-            <ShieldCheck size={17} className="text-[#203a35]" />
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">Our Boundaries</p>
+            <ShieldCheck size={17} style={{ color: theme.primary }} />
+            <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>Our Boundaries</p>
           </div>
-          <ul className="mt-3 space-y-2 text-sm leading-6 text-[#505a52]">
+          <ul className="mt-3 space-y-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
             {ui.guardrailItems.map((item) => (
               <li key={item} className="flex items-start gap-2">
-                <span className="mt-1 text-[#866a24]">•</span>
+                <span className="mt-1" style={{ color: theme.accentGold }}>•</span>
                 <span>{item}</span>
               </li>
             ))}
           </ul>
-          <p className="mt-3 text-xs leading-5 text-[#607067]">
+          <p className="mt-3 text-xs leading-5" style={{ color: theme.textSecondary }}>
             These constraints protect you from harmful AI advice and keep Aletheia faithful to its purpose.
           </p>
         </section>
 
-        <section className="rounded-lg border border-[#1d332e] bg-[#203a35] p-4 text-[#f8f5e8] shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#d0ad55]">{text.badgesFormation}</p>
+        <section className="rounded-lg border p-4 shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{text.badgesFormation}</p>
           <div className="mt-3 space-y-2">
             {badges.map((badge) => (
               <div
                 key={badge.label}
-                className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm ${
-                  badge.active
-                    ? "border-[#d0ad55]/35 bg-white/10 text-[#f8f5e8]"
-                    : "border-white/10 bg-white/5 text-[#b8c8bd]"
-                }`}
+                className="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm"
+                style={badge.active
+                  ? { borderColor: theme.primary, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }
+                  : { borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary, opacity: 0.7 }}
               >
-                <Check size={15} className={badge.active ? "text-[#d0ad55]" : "text-[#7d8b83]"} />
+                <Check size={15} style={{ color: badge.active ? theme.primary : theme.textSecondary, opacity: badge.active ? 1 : 0.6 }} />
                 <span>{badge.label}</span>
               </div>
             ))}
           </div>
-          <p className="mt-3 text-xs leading-5 text-[#cddbd1]">
+          <p className="mt-3 text-xs leading-5" style={{ color: theme.textSecondary }}>
             {text.formationNote}
           </p>
           {hasFormationMilestone ? (
-            <ShareMilestonePrompt ui={ui} onShare={(channel) => onShare(channel, "milestone")} />
+            <ShareMilestonePrompt theme={theme} ui={ui} onShare={(channel) => onShare(channel, "milestone")} />
           ) : null}
         </section>
       </aside>
@@ -4567,7 +4852,7 @@ function AccountPanel({
   );
 }
 
-function TrustCenterCard() {
+function TrustCenterCard({ theme }: { theme: ThemeColors }) {
   const items = [
     {
       label: "What Aletheia will never do",
@@ -4588,16 +4873,16 @@ function TrustCenterCard() {
   ];
 
   return (
-    <section className="rounded-lg border border-[#d7e0da] bg-[#fbfcf8]/72 p-4 shadow-sm">
+    <section className="rounded-lg border p-4 shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
       <div className="flex items-center gap-2">
-        <ShieldCheck size={17} className="text-[#203a35]" />
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">Trust Center</p>
+        <ShieldCheck size={17} style={{ color: theme.primary }} />
+        <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>Trust Center</p>
       </div>
       <div className="mt-3 space-y-2">
         {items.map((item) => (
-          <details key={item.label} className="rounded-lg border border-[#d8e1db] bg-white/64 p-3">
-            <summary className="cursor-pointer text-sm font-semibold text-[#203a35]">{item.label}</summary>
-            <p className="mt-2 text-sm leading-6 text-[#607067]">{item.body}</p>
+          <details key={item.label} className="rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+            <summary className="cursor-pointer text-sm font-semibold" style={{ color: theme.textPrimary }}>{item.label}</summary>
+            <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>{item.body}</p>
           </details>
         ))}
       </div>
@@ -4605,16 +4890,16 @@ function TrustCenterCard() {
   );
 }
 
-function AccountStat({ label, value }: { label: string; value: string }) {
+function AccountStat({ label, value, theme }: { label: string; value: string; theme: ThemeColors }) {
   return (
-    <div className="rounded-lg border border-[#d8e1db] bg-white/64 p-3">
-      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#718077]">{label}</p>
-      <p className="mt-2 text-2xl font-semibold text-[#203a35]">{value}</p>
+    <div className="rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+      <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textSecondary }}>{label}</p>
+      <p className="mt-2 text-2xl font-semibold" style={{ color: theme.textPrimary }}>{value}</p>
     </div>
   );
 }
 
-function InstallGuideCard({ compact = false }: { compact?: boolean }) {
+function InstallGuideCard({ theme, compact = false }: { theme: ThemeColors; compact?: boolean }) {
   const [installState, setInstallState] = useState({
     standalone: false,
     platform: "desktop" as "ios" | "android" | "desktop",
@@ -4643,16 +4928,16 @@ function InstallGuideCard({ compact = false }: { compact?: boolean }) {
         : ["Open Aletheia in Chrome, Edge, or Safari.", "Use the install icon in the address bar or browser menu.", "Launch it from your dock, desktop, or apps folder."];
 
   return (
-    <section className={`rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 shadow-sm ${compact ? "p-3" : "p-4 sm:p-5"}`}>
+    <section className={`rounded-xl shadow-sm ${compact ? "p-3" : "p-4 sm:p-5"}`} style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
       <div className="flex items-start gap-3">
-        <div className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-md bg-[#edf2ee] text-[#203a35]">
+        <div className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-md" style={{ backgroundColor: theme.bgInput, color: theme.primary }}>
           <Home size={17} />
         </div>
         <div>
-          <p className="text-sm font-semibold text-[#203a35]">
+          <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>
             {installState.standalone ? "Aletheia is installed on this device" : "Install Aletheia on your home screen"}
           </p>
-          <p className="mt-1 text-sm leading-6 text-[#5b6a61]">
+          <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
             {installState.standalone
               ? "You are already using the app-like experience."
               : "Turn the website into an app icon so it opens full-screen and feels native."}
@@ -4660,16 +4945,16 @@ function InstallGuideCard({ compact = false }: { compact?: boolean }) {
         </div>
       </div>
       {!installState.standalone ? (
-        <ol className={`mt-3 grid gap-2 text-sm leading-6 text-[#55645b] ${compact ? "" : "sm:grid-cols-3"}`}>
+        <ol className={`mt-3 grid gap-2 text-sm leading-6 ${compact ? "" : "sm:grid-cols-3"}`} style={{ color: theme.textSecondary }}>
           {steps.map((step, index) => (
-            <li key={step} className="rounded-lg border border-[#d8e1db] bg-white/64 p-3">
-              <span className="mb-1 block text-xs font-semibold uppercase tracking-[0.14em] text-[#866a24]">Step {index + 1}</span>
+            <li key={step} className="rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
+              <span className="mb-1 block text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>Step {index + 1}</span>
               {step}
             </li>
           ))}
         </ol>
       ) : null}
-      <p className="mt-3 text-xs leading-5 text-[#718077]">
+      <p className="mt-3 text-xs leading-5" style={{ color: theme.textMuted }}>
         On iPhone and iPad, daily web push notifications are most reliable after Aletheia is added to the Home Screen.
       </p>
     </section>
@@ -4677,11 +4962,13 @@ function InstallGuideCard({ compact = false }: { compact?: boolean }) {
 }
 
 function ManualContextPanel({
+  theme,
   user,
   context,
   status,
   onChange,
 }: {
+  theme: ThemeColors;
   user: User | null;
   context: ManualContextProfile;
   status: string;
@@ -4746,18 +5033,18 @@ function ManualContextPanel({
   const hasLongFields = longFields.some(field => (draft[field.key] ?? '').trim().length > 0);
 
   return (
-    <section className="rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm sm:p-5">
+    <section className="rounded-xl p-4 shadow-sm sm:p-5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
       <div className="grid gap-4 xl:grid-cols-[0.8fr_1.2fr]">
         <div className="flex items-start gap-3">
-          <div className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-md bg-[#edf2ee] text-[#203a35]">
+          <div className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-md" style={{ backgroundColor: theme.bgInput, color: theme.primary }}>
             <ShieldCheck size={17} />
           </div>
           <div>
-            <p className="text-sm font-semibold text-[#203a35]">Manual Context Vault</p>
-            <p className="mt-1 text-sm leading-6 text-[#5b6a61]">
+            <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>Manual Context Vault</p>
+            <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
               Add only the health, money, work, and life context you want Aletheia to consider. No external apps are connected.
             </p>
-            <p className="mt-2 text-xs leading-5 text-[#718077]">{status}</p>
+            <p className="mt-2 text-xs leading-5" style={{ color: theme.textSecondary }}>{status}</p>
           </div>
         </div>
 
@@ -4768,49 +5055,50 @@ function ManualContextPanel({
             onChange(draft);
           }}
         >
-          <label className="flex items-start gap-3 rounded-lg border border-[#d8e1db] bg-white/64 p-3 text-sm text-[#405049]">
+          <label className="flex items-start gap-3 rounded-lg border p-3 text-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
             <input
               type="checkbox"
               checked={draft.useInAnswers}
               onChange={(event) => setDraft((current) => ({ ...current, useInAnswers: event.target.checked }))}
-              className="mt-1 size-4 rounded border-[#9fb0a6]"
+              className="mt-1 size-4 rounded"
+              style={{ borderColor: theme.borderMedium }}
             />
             <span>
-              <span className="block font-semibold text-[#203a35]">Allow Aletheia to use this context in answers</span>
-              <span className="mt-1 block text-xs leading-5 text-[#718077]">
+              <span className="block font-semibold" style={{ color: theme.textPrimary }}>Allow Aletheia to use this context in answers</span>
+              <span className="mt-1 block text-xs leading-5" style={{ color: theme.textSecondary }}>
                 Turn this off anytime. Saved context remains private and will not shape responses while off.
               </span>
             </span>
           </label>
 
           <div className="grid gap-3 sm:grid-cols-2">
-            <label className="flex items-start gap-3 rounded-lg border border-[#d8e1db] bg-white/64 p-3 text-sm text-[#405049]">
-              <input type="checkbox" checked={draft.useMoneyInAnswers} onChange={(event) => setDraft((current) => ({ ...current, useMoneyInAnswers: event.target.checked }))} className="mt-1 size-4 rounded border-[#9fb0a6]" />
-              <span className="font-semibold text-[#203a35]">Use money context in answers</span>
+            <label className="flex items-start gap-3 rounded-lg border p-3 text-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
+              <input type="checkbox" checked={draft.useMoneyInAnswers} onChange={(event) => setDraft((current) => ({ ...current, useMoneyInAnswers: event.target.checked }))} className="mt-1 size-4 rounded" style={{ borderColor: theme.borderMedium }} />
+              <span className="font-semibold" style={{ color: theme.textPrimary }}>Use money context in answers</span>
             </label>
-            <label className="flex items-start gap-3 rounded-lg border border-[#d8e1db] bg-white/64 p-3 text-sm text-[#405049]">
-              <input type="checkbox" checked={draft.useWorkInAnswers} onChange={(event) => setDraft((current) => ({ ...current, useWorkInAnswers: event.target.checked }))} className="mt-1 size-4 rounded border-[#9fb0a6]" />
-              <span className="font-semibold text-[#203a35]">Use work context in answers</span>
+            <label className="flex items-start gap-3 rounded-lg border p-3 text-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
+              <input type="checkbox" checked={draft.useWorkInAnswers} onChange={(event) => setDraft((current) => ({ ...current, useWorkInAnswers: event.target.checked }))} className="mt-1 size-4 rounded" style={{ borderColor: theme.borderMedium }} />
+              <span className="font-semibold" style={{ color: theme.textPrimary }}>Use work context in answers</span>
             </label>
-            <label className="flex items-start gap-3 rounded-lg border border-[#d8e1db] bg-white/64 p-3 text-sm text-[#405049]">
-              <input type="checkbox" checked={draft.useHealthInAnswers} onChange={(event) => setDraft((current) => ({ ...current, useHealthInAnswers: event.target.checked }))} className="mt-1 size-4 rounded border-[#9fb0a6]" />
-              <span className="font-semibold text-[#203a35]">Use health rhythm in answers</span>
+            <label className="flex items-start gap-3 rounded-lg border p-3 text-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
+              <input type="checkbox" checked={draft.useHealthInAnswers} onChange={(event) => setDraft((current) => ({ ...current, useHealthInAnswers: event.target.checked }))} className="mt-1 size-4 rounded" style={{ borderColor: theme.borderMedium }} />
+              <span className="font-semibold" style={{ color: theme.textPrimary }}>Use health rhythm in answers</span>
             </label>
-            <label className="flex items-start gap-3 rounded-lg border border-[#d8e1db] bg-white/64 p-3 text-sm text-[#405049]">
-              <input type="checkbox" checked={draft.useRelationshipsInAnswers} onChange={(event) => setDraft((current) => ({ ...current, useRelationshipsInAnswers: event.target.checked }))} className="mt-1 size-4 rounded border-[#9fb0a6]" />
-              <span className="font-semibold text-[#203a35]">Use relationships context in answers</span>
+            <label className="flex items-start gap-3 rounded-lg border p-3 text-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
+              <input type="checkbox" checked={draft.useRelationshipsInAnswers} onChange={(event) => setDraft((current) => ({ ...current, useRelationshipsInAnswers: event.target.checked }))} className="mt-1 size-4 rounded" style={{ borderColor: theme.borderMedium }} />
+              <span className="font-semibold" style={{ color: theme.textPrimary }}>Use relationships context in answers</span>
             </label>
-            <label className="flex items-start gap-3 rounded-lg border border-[#d8e1db] bg-white/64 p-3 text-sm text-[#405049] sm:col-span-2">
-              <input type="checkbox" checked={draft.useValuesInAnswers} onChange={(event) => setDraft((current) => ({ ...current, useValuesInAnswers: event.target.checked }))} className="mt-1 size-4 rounded border-[#9fb0a6]" />
-              <span className="font-semibold text-[#203a35]">Use values, risk, and counsel preferences in answers</span>
+            <label className="flex items-start gap-3 rounded-lg border p-3 text-sm sm:col-span-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
+              <input type="checkbox" checked={draft.useValuesInAnswers} onChange={(event) => setDraft((current) => ({ ...current, useValuesInAnswers: event.target.checked }))} className="mt-1 size-4 rounded" style={{ borderColor: theme.borderMedium }} />
+              <span className="font-semibold" style={{ color: theme.textPrimary }}>Use values, risk, and counsel preferences in answers</span>
             </label>
           </div>
 
-          <details open={hasMoneySignals} className="group rounded-lg border border-[#d8e1db] bg-white/64">
-            <summary className="cursor-pointer p-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#52635a] transition hover:bg-white/80">
+          <details open={hasMoneySignals} className="group rounded-lg border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+            <summary className="cursor-pointer p-3 text-xs font-semibold uppercase tracking-[0.12em] transition" style={{ color: theme.textSecondary }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.bgCard} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
               Money signals {hasMoneySignals ? "✓" : ""}
             </summary>
-            <div className="space-y-3 border-t border-[#d8e1db]/50 p-3">
+            <div className="space-y-3 border-t p-3" style={{ borderColor: theme.borderLight }}>
               <div className="grid gap-3 md:grid-cols-2">
                 {moneyNumberFields.map((field) => (
                   <RangeField
@@ -4821,17 +5109,18 @@ function ManualContextPanel({
                     max={field.max}
                     step={field.step ?? 1}
                     onChange={(value) => setDraft((current) => ({ ...current, [field.key]: value }))}
+                    theme={theme}
                   />
                 ))}
               </div>
             </div>
           </details>
 
-          <details open={hasLifeRhythms} className="group rounded-lg border border-[#d8e1db] bg-white/64">
-            <summary className="cursor-pointer p-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#52635a] transition hover:bg-white/80">
+          <details open={hasLifeRhythms} className="group rounded-lg border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+            <summary className="cursor-pointer p-3 text-xs font-semibold uppercase tracking-[0.12em] transition" style={{ color: theme.textSecondary }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.bgCard} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
               Life rhythms {hasLifeRhythms ? "✓" : ""}
             </summary>
-            <div className="space-y-3 border-t border-[#d8e1db]/50 p-3">
+            <div className="space-y-3 border-t p-3" style={{ borderColor: theme.borderLight }}>
               <div className="grid gap-3 md:grid-cols-2">
                 {lifeNumberFields.map((field) => (
                   <RangeField
@@ -4842,17 +5131,18 @@ function ManualContextPanel({
                     max={field.max}
                     step={field.step ?? 1}
                     onChange={(value) => setDraft((current) => ({ ...current, [field.key]: value }))}
+                    theme={theme}
                   />
                 ))}
               </div>
             </div>
           </details>
 
-          <details open={hasSignals} className="group rounded-lg border border-[#d8e1db] bg-white/64">
-            <summary className="cursor-pointer p-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#52635a] transition hover:bg-white/80">
+          <details open={hasSignals} className="group rounded-lg border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+            <summary className="cursor-pointer p-3 text-xs font-semibold uppercase tracking-[0.12em] transition" style={{ color: theme.textSecondary }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.bgCard} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
               Discernment signals {hasSignals ? "✓" : ""}
             </summary>
-            <div className="space-y-3 border-t border-[#d8e1db]/50 p-3">
+            <div className="space-y-3 border-t p-3" style={{ borderColor: theme.borderLight }}>
               <div className="grid gap-3 md:grid-cols-2">
                 {signalFields.map((field) => (
                   <RangeField
@@ -4863,25 +5153,27 @@ function ManualContextPanel({
                     max={field.max}
                     step={1}
                     onChange={(value) => setDraft((current) => ({ ...current, [field.key]: value }))}
+                    theme={theme}
                   />
                 ))}
               </div>
             </div>
           </details>
 
-          <details open={hasPreferences} className="group rounded-lg border border-[#d8e1db] bg-white/64">
-            <summary className="cursor-pointer p-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#52635a] transition hover:bg-white/80">
+          <details open={hasPreferences} className="group rounded-lg border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+            <summary className="cursor-pointer p-3 text-xs font-semibold uppercase tracking-[0.12em] transition" style={{ color: theme.textSecondary }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.bgCard} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
               Risk, waiting & counsel preferences {hasPreferences ? "✓" : ""}
             </summary>
-            <div className="space-y-3 border-t border-[#d8e1db]/50 p-3">
+            <div className="space-y-3 border-t p-3" style={{ borderColor: theme.borderLight }}>
               <div className="grid gap-3 md:grid-cols-2">
                 {preferenceFields.map((field) => (
-                  <label key={field.key} className="text-xs font-semibold uppercase tracking-[0.12em] text-[#52635a]">
+                  <label key={field.key} className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
                     {field.label}
                     <input
                       value={draft[field.key]}
                       onChange={(event) => setDraft((current) => ({ ...current, [field.key]: event.target.value }))}
-                      className="mt-2 h-10 w-full rounded-md border border-[#c9d5cd] bg-white/78 px-3 text-sm normal-case tracking-normal text-[#203a35] outline-none focus:border-[#203a35]"
+                      className="mt-2 h-10 w-full rounded-md border px-3 text-sm normal-case tracking-normal outline-none"
+                      style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
                       placeholder={field.placeholder}
                     />
                   </label>
@@ -4890,19 +5182,20 @@ function ManualContextPanel({
             </div>
           </details>
 
-          <details open={hasLongFields} className="group rounded-lg border border-[#d8e1db] bg-white/64">
-            <summary className="cursor-pointer p-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#52635a] transition hover:bg-white/80">
+          <details open={hasLongFields} className="group rounded-lg border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+            <summary className="cursor-pointer p-3 text-xs font-semibold uppercase tracking-[0.12em] transition" style={{ color: theme.textSecondary }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.bgCard} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
               Context descriptions {hasLongFields ? "✓" : ""}
             </summary>
-            <div className="space-y-3 border-t border-[#d8e1db]/50 p-3">
+            <div className="space-y-3 border-t p-3" style={{ borderColor: theme.borderLight }}>
               <div className="grid gap-3 md:grid-cols-2">
                 {longFields.map((field) => (
-                  <label key={field.key} className="text-xs font-semibold uppercase tracking-[0.12em] text-[#52635a]">
+                  <label key={field.key} className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
                     {field.label}
                     <textarea
                       value={draft[field.key]}
                       onChange={(event) => setDraft((current) => ({ ...current, [field.key]: event.target.value }))}
-                      className="mt-2 min-h-24 w-full resize-none rounded-md border border-[#c9d5cd] bg-white/78 px-3 py-2 text-sm normal-case leading-6 tracking-normal text-[#203a35] outline-none focus:border-[#203a35]"
+                      className="mt-2 min-h-24 w-full resize-none rounded-md border px-3 py-2 text-sm normal-case leading-6 tracking-normal outline-none"
+                      style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
                       placeholder={field.placeholder}
                     />
                   </label>
@@ -4911,8 +5204,8 @@ function ManualContextPanel({
             </div>
           </details>
 
-          <div className="rounded-lg border border-[#d8e1db] bg-white/64 p-3 text-xs leading-5 text-[#607067]">
-            <p className="font-semibold text-[#203a35]">Privacy posture</p>
+          <div className="rounded-lg border p-3 text-xs leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
+            <p className="font-semibold" style={{ color: theme.textPrimary }}>Privacy posture</p>
             <p className="mt-1">
               This is manual, optional, and scoped to your account or this device. Aletheia does not connect to Apple Watch, banks, payroll, or medical systems here.
             </p>
@@ -4923,7 +5216,7 @@ function ManualContextPanel({
               {hasContent ? "You can delete any field by clearing it." : "Nothing has been added yet."}
             </p>
           </div>
-          <button className="h-10 rounded-md bg-[#203a35] px-4 text-sm font-semibold text-[#f8f5e8]">
+          <button className="h-10 rounded-md px-4 text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>
             Save manual context
           </button>
         </form>
@@ -4933,45 +5226,48 @@ function ManualContextPanel({
 }
 
 function ShareInviteCard({
+  theme,
   placement,
   onShare,
 }: {
+  theme: ThemeColors;
   placement: string;
   onShare: (channel: ShareChannel, placement: string) => void;
 }) {
   return (
-    <section className="rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm sm:p-5">
+    <section className="rounded-xl p-4 shadow-sm sm:p-5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
       <div className="flex items-start gap-3">
-        <div className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-md bg-[#edf2ee] text-[#203a35]">
+        <div className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-md" style={{ backgroundColor: theme.bgInput, color: theme.primary }}>
           <Share2 size={17} />
         </div>
         <div>
-          <p className="text-sm font-semibold text-[#203a35]">Invite someone</p>
-          <p className="mt-1 text-sm leading-6 text-[#5b6a61]">
+          <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>Invite someone</p>
+          <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
             Invite someone who may need wisdom for money, work, or stewardship.
           </p>
-          <p className="mt-1 text-xs leading-5 text-[#718077]">
+          <p className="mt-1 text-xs leading-5" style={{ color: theme.textSecondary }}>
             This shares only the Aletheia app link, not your private questions or reflections.
           </p>
         </div>
       </div>
-      <ShareActions placement={placement} onShare={onShare} />
+      <ShareActions theme={theme} placement={placement} onShare={onShare} />
     </section>
   );
 }
 
-function ShareMilestonePrompt({ ui, onShare }: { ui: (typeof uiText)[LanguageCode]; onShare: (channel: ShareChannel) => void }) {
+function ShareMilestonePrompt({ theme, ui, onShare }: { theme: ThemeColors; ui: (typeof uiText)[LanguageCode]; onShare: (channel: ShareChannel) => void }) {
   const text = { ...uiText.en, ...ui };
   return (
     <div className="mt-4 rounded-lg border border-white/10 bg-white/8 p-3">
-      <p className="text-sm font-semibold text-[#f8f5e8]">{text.milestoneShareTitle}</p>
-      <p className="mt-1 text-xs leading-5 text-[#cddbd1]">
+      <p className="text-sm font-semibold" style={{ color: theme.textOnPrimary }}>{text.milestoneShareTitle}</p>
+      <p className="mt-1 text-xs leading-5" style={{ color: theme.textMuted }}>
         {text.milestoneShareBody}
       </p>
       <button
         type="button"
         onClick={() => onShare("native")}
-        className="mt-3 inline-flex h-11 items-center gap-2 rounded-md bg-[#f8f5e8] px-3 text-xs font-semibold text-[#203a35]"
+        className="mt-3 inline-flex h-11 items-center gap-2 rounded-md px-3 text-xs font-semibold"
+        style={{ backgroundColor: theme.bgCardElevated, color: theme.primary }}
       >
         <Share2 size={14} />
         {text.shareAletheia}
@@ -4981,9 +5277,11 @@ function ShareMilestonePrompt({ ui, onShare }: { ui: (typeof uiText)[LanguageCod
 }
 
 function ShareActions({
+  theme,
   placement,
   onShare,
 }: {
+  theme: ThemeColors;
   placement: string;
   onShare: (channel: ShareChannel, placement: string) => void;
 }) {
@@ -5001,7 +5299,8 @@ function ShareActions({
       <button
         type="button"
         onClick={() => onShare("native", placement)}
-        className="inline-flex h-11 items-center gap-2 rounded-md bg-[#203a35] px-3 text-xs font-semibold text-[#f8f5e8] shadow-sm"
+        className="inline-flex h-11 items-center gap-2 rounded-md px-3 text-xs font-semibold shadow-sm"
+        style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
       >
         <Share2 size={14} />
         Share Aletheia
@@ -5009,7 +5308,8 @@ function ShareActions({
       <button
         type="button"
         onClick={() => onShare("copy", placement)}
-        className="h-11 rounded-md border border-[#c9d5cd] bg-white/70 px-3 text-xs font-semibold text-[#405049] transition hover:bg-white"
+        className="h-11 rounded-md border px-3 text-xs font-semibold transition"
+        style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}
       >
         Copy link
       </button>
@@ -5020,7 +5320,8 @@ function ShareActions({
           target={platform.channel === "email" || platform.channel === "sms" ? undefined : "_blank"}
           rel={platform.channel === "email" || platform.channel === "sms" ? undefined : "noreferrer"}
           onClick={() => onShare(platform.channel, placement)}
-          className="inline-flex h-11 items-center rounded-md border border-[#c9d5cd] bg-white/70 px-3 text-xs font-semibold text-[#405049] transition hover:bg-white"
+          className="inline-flex h-11 items-center rounded-md border px-3 text-xs font-semibold transition"
+          style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}
         >
           {platform.label}
         </a>
@@ -5030,12 +5331,14 @@ function ShareActions({
 }
 
 function AccountStatusCard({
+  theme,
   user,
   authStatus,
   notificationsEnabled,
   notificationStatus,
   onLogout,
 }: {
+  theme: ThemeColors;
   user: User | null;
   authStatus: AuthStatus;
   notificationsEnabled: boolean;
@@ -5046,14 +5349,14 @@ function AccountStatusCard({
   const firstName = user?.name?.split(" ")[0] || user?.email.split("@")[0];
   const isReturning = (user?.loginCount ?? 0) > 1;
   return (
-    <section className="rounded-xl border border-[#c9d5cd] bg-white/70 p-4 shadow-sm sm:p-5">
+    <section className="rounded-xl border p-4 shadow-sm sm:p-5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">Profile</p>
-          <h3 className="mt-2 text-xl font-semibold text-[#203a35]">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>Profile</p>
+          <h3 className="mt-2 text-xl font-semibold" style={{ color: theme.textPrimary }}>
             {signedIn ? `${isReturning ? "Welcome back" : "Welcome"}, ${firstName}` : "Guest mode"}
           </h3>
-          <p className="mt-2 text-sm leading-6 text-[#55645b]">
+          <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
             {signedIn
               ? `Signed in as ${user?.email}. Sync is active for decisions, reflections, counsel, rules, and preferences.`
               : "Sign in to sync your wisdom history across devices and enable daily notifications."}
@@ -5064,31 +5367,36 @@ function AccountStatusCard({
             type="button"
             onClick={onLogout}
             disabled={authStatus === "signing-out"}
-            className="h-10 rounded-md border border-[#c9d5cd] bg-[#fbfcf8]/78 px-4 text-sm font-semibold text-[#405049] transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+            className="h-10 rounded-md border px-4 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60"
+            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textSecondary }}
           >
             {authStatus === "signing-out" ? "Signing out..." : "Sign out"}
           </button>
         ) : null}
       </div>
       <div className="mt-4 grid gap-3 sm:grid-cols-3">
-        <AccountSignal label="Sync" value={signedIn ? "Active" : "Guest only"} active={signedIn} />
-        <AccountSignal label="Last synced" value={signedIn ? "This session" : "Not synced"} active={signedIn} />
-        <AccountSignal label="Notifications" value={notificationsEnabled ? "Enabled" : notificationStatus} active={notificationsEnabled} />
+        <AccountSignal label="Sync" value={signedIn ? "Active" : "Guest only"} active={signedIn} theme={theme} />
+        <AccountSignal label="Last synced" value={signedIn ? "This session" : "Not synced"} active={signedIn} theme={theme} />
+        <AccountSignal label="Notifications" value={notificationsEnabled ? "Enabled" : notificationStatus} active={notificationsEnabled} theme={theme} />
       </div>
     </section>
   );
 }
 
-function AccountSignal({ label, value, active }: { label: string; value: string; active: boolean }) {
+function AccountSignal({ label, value, active, theme }: { label: string; value: string; active: boolean; theme: ThemeColors }) {
   return (
-    <div className={`rounded-lg border p-3 ${active ? "border-[#b8d0c2] bg-[#edf7f1]" : "border-[#d8e1db] bg-[#fbfcf8]/78"}`}>
-      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#718077]">{label}</p>
-      <p className="mt-2 text-sm font-semibold leading-5 text-[#203a35]">{value}</p>
+    <div className="rounded-lg border p-3" style={{ 
+      borderColor: active ? theme.accentLight : theme.borderLight, 
+      backgroundColor: active ? theme.bgCardElevated : theme.bgCard 
+    }}>
+      <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textSecondary }}>{label}</p>
+      <p className="mt-2 text-sm font-semibold leading-5" style={{ color: theme.textPrimary }}>{value}</p>
     </div>
   );
 }
 
 function AuthPanel({
+  theme,
   authMode,
   setAuthMode,
   name,
@@ -5106,6 +5414,7 @@ function AuthPanel({
   onSubmit,
   onGoogleSignIn,
 }: {
+  theme: ThemeColors;
   authMode: AuthMode;
   setAuthMode: (value: AuthMode) => void;
   name: string;
@@ -5134,15 +5443,15 @@ function AuthPanel({
           : "Guest";
 
   return (
-    <section className="mb-5 rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm">
+    <section className="mb-5 rounded-xl border p-4 shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">Account</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>Account</p>
         <span
-          className={`rounded-md px-2 py-1 text-xs font-semibold ${
-            authBusy
-              ? "bg-[#fff8dc] text-[#866a24]"
-              : "bg-[#edf2ee] text-[#52635a]"
-          }`}
+          className="rounded-md px-2 py-1 text-xs font-semibold"
+          style={{
+            backgroundColor: authBusy ? theme.accentLight : theme.bgCardElevated,
+            color: authBusy ? theme.accentGold : theme.textSecondary
+          }}
         >
           {statusLabel}
         </span>
@@ -5150,7 +5459,8 @@ function AuthPanel({
       {notice ? (
         <div
           role="status"
-          className="mb-3 rounded-lg border border-[#b8d0c2] bg-[#edf7f1] px-3 py-2 text-sm font-medium leading-6 text-[#245443]"
+          className="mb-3 rounded-lg border px-3 py-2 text-sm font-medium leading-6"
+          style={{ borderColor: theme.primary, backgroundColor: theme.bgCardElevated, color: theme.primary }}
         >
           {notice}
         </div>
@@ -5158,17 +5468,18 @@ function AuthPanel({
       {error ? (
         <div
           role="alert"
-          className="mb-3 rounded-lg border border-[#e0c3b7] bg-[#fff6f1] px-3 py-2 text-sm font-medium leading-6 text-[#8c3f28]"
+          className="mb-3 rounded-lg border px-3 py-2 text-sm font-medium leading-6"
+          style={{ borderColor: '#e0c3b7', backgroundColor: '#fff6f1', color: '#8c3f28' }}
         >
           {error}
         </div>
       ) : null}
       <div className="grid gap-4 xl:grid-cols-[0.85fr_1.15fr]">
           <div>
-            <p className="text-sm font-semibold text-[#203a35]">
+            <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>
               Sign in for sync
             </p>
-            <p className="mt-1 text-sm leading-6 text-[#5b6a61]">
+            <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
               {status} {googleAuthAvailable ? "Use Google or email." : "Use email to continue."} Password sessions use httpOnly cookies.
             </p>
           </div>
@@ -5179,14 +5490,15 @@ function AuthPanel({
                   type="button"
                   onClick={onGoogleSignIn}
                   disabled={authBusy}
-                  className="inline-flex h-10 items-center justify-center rounded-md border border-[#c9d5cd] bg-white/78 px-4 text-sm font-semibold text-[#203a35] transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex h-10 items-center justify-center rounded-md border px-4 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60"
+                  style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
                 >
                   {authStatus === "signing-in" ? "Opening Google..." : "Continue with Google"}
                 </button>
-                <div className="flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.14em] text-[#718077]">
-                  <span className="h-px flex-1 bg-[#d8e1db]" />
+                <div className="flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
+                  <span className="h-px flex-1" style={{ backgroundColor: theme.borderLight }} />
                   Email
-                  <span className="h-px flex-1 bg-[#d8e1db]" />
+                  <span className="h-px flex-1" style={{ backgroundColor: theme.borderLight }} />
                 </div>
               </>
             ) : null}
@@ -5195,27 +5507,31 @@ function AuthPanel({
               <input
                 value={name}
                 onChange={(event) => setName(event.target.value)}
-                className="h-10 rounded-md border border-[#c9d5cd] bg-white/78 px-3 text-sm outline-none focus:border-[#203a35]"
+                className="h-10 rounded-md border px-3 text-sm outline-none"
+                style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
                 placeholder="Name"
               />
             ) : null}
             <input
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              className="h-10 rounded-md border border-[#c9d5cd] bg-white/78 px-3 text-sm outline-none focus:border-[#203a35]"
+              className="h-10 rounded-md border px-3 text-sm outline-none"
+              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
               placeholder="Email"
               type="email"
             />
             <input
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              className="h-10 rounded-md border border-[#c9d5cd] bg-white/78 px-3 text-sm outline-none focus:border-[#203a35]"
+              className="h-10 rounded-md border px-3 text-sm outline-none"
+              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
               placeholder="Password"
               type="password"
             />
             <button
               disabled={authBusy}
-              className="h-10 rounded-md bg-[#203a35] px-4 text-sm font-semibold text-[#f8f5e8] disabled:cursor-not-allowed disabled:opacity-60"
+              className="h-10 rounded-md px-4 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+              style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
             >
               {authStatus === "signing-in" ? "Working..." : authMode === "register" ? "Create" : "Sign in"}
             </button>
@@ -5223,7 +5539,8 @@ function AuthPanel({
               <button
                 type="button"
                 onClick={() => setAuthMode(authMode === "register" ? "login" : "register")}
-                className="text-sm font-semibold text-[#405049] underline-offset-4 hover:underline"
+                className="text-sm font-semibold underline-offset-4 hover:underline"
+                style={{ color: theme.textSecondary }}
               >
                 {authMode === "register" ? "I already have an account" : "Create a new account"}
               </button>
@@ -5236,6 +5553,7 @@ function AuthPanel({
 }
 
 function NotificationPanel({
+  theme,
   user,
   enabled,
   configured,
@@ -5247,6 +5565,7 @@ function NotificationPanel({
   onEnable,
   onDisable,
 }: {
+  theme: ThemeColors;
   user: User | null;
   enabled: boolean;
   configured: boolean;
@@ -5273,15 +5592,15 @@ function NotificationPanel({
           : status;
 
   return (
-    <section className="mb-5 rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm">
+    <section className="mb-5 rounded-xl border p-4 shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-start gap-3">
-          <div className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-md bg-[#edf2ee] text-[#203a35]">
+          <div className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-md" style={{ backgroundColor: theme.bgInput, color: theme.primary }}>
             <Bell size={17} />
           </div>
           <div>
-            <p className="text-sm font-semibold text-[#203a35]">Daily wisdom notifications</p>
-            <p className="mt-1 text-sm leading-6 text-[#5b6a61]">
+            <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>Daily wisdom notifications</p>
+            <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
               {displayStatus}
             </p>
           </div>
@@ -5290,7 +5609,8 @@ function NotificationPanel({
           <button
             onClick={onDisable}
             disabled={busy}
-            className="h-10 rounded-md border border-[#c9d5cd] bg-white/70 px-4 text-sm font-semibold text-[#405049] transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+            className="h-10 rounded-md border px-4 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60"
+            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}
           >
             {busy ? "Updating..." : "Turn off"}
           </button>
@@ -5298,22 +5618,24 @@ function NotificationPanel({
           <button
             onClick={onEnable}
             disabled={disabled}
-            className="h-10 rounded-md bg-[#203a35] px-4 text-sm font-semibold text-[#f8f5e8] transition hover:bg-[#284b43] disabled:cursor-not-allowed disabled:opacity-55"
+            className="h-10 rounded-md px-4 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-55"
+            style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
           >
             {busy ? "Enabling..." : "Enable"}
           </button>
         )}
       </div>
-      <div className="mt-4 rounded-lg border border-[#d8e1db] bg-white/58 p-3">
+      <div className="mt-4 rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
         <div className="grid gap-3 sm:grid-cols-[1fr_1fr]">
-          <label className="text-xs font-semibold uppercase tracking-[0.14em] text-[#718077]">
+          <label className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
             Delivery rhythm
             <select
               value={timing.deliveryStrategy}
               onChange={(event) =>
                 onTimingChange({ deliveryStrategy: event.target.value as NotificationTiming["deliveryStrategy"] })
               }
-              className="mt-2 h-10 w-full rounded-md border border-[#c9d5cd] bg-white/82 px-3 text-sm normal-case tracking-normal text-[#203a35] outline-none focus:border-[#203a35]"
+              className="mt-2 h-10 w-full rounded-md border px-3 text-sm normal-case tracking-normal outline-none"
+              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
             >
               <option value="morning">Morning</option>
               <option value="midday">Midday</option>
@@ -5321,14 +5643,15 @@ function NotificationPanel({
               <option value="custom">Custom</option>
             </select>
           </label>
-          <label className="text-xs font-semibold uppercase tracking-[0.14em] text-[#718077]">
+          <label className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
             Local time
             <select
               value={timing.preferredLocalHour}
               onChange={(event) =>
                 onTimingChange({ preferredLocalHour: Number(event.target.value), deliveryStrategy: "custom" })
               }
-              className="mt-2 h-10 w-full rounded-md border border-[#c9d5cd] bg-white/82 px-3 text-sm normal-case tracking-normal text-[#203a35] outline-none focus:border-[#203a35]"
+              className="mt-2 h-10 w-full rounded-md border px-3 text-sm normal-case tracking-normal outline-none"
+              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
             >
               {Array.from({ length: 18 }, (_, index) => index + 5).map((hour) => (
                 <option key={hour} value={hour}>
@@ -5338,7 +5661,7 @@ function NotificationPanel({
             </select>
           </label>
         </div>
-        <p className="mt-3 text-xs leading-5 text-[#607067]">
+        <p className="mt-3 text-xs leading-5" style={{ color: theme.textSecondary }}>
           Aletheia uses your device timezone ({timing.preferredTimezone || "local timezone"}) so daily wisdom arrives near your chosen local time.
         </p>
       </div>
@@ -5347,10 +5670,12 @@ function NotificationPanel({
 }
 
 function ScriptureModal({
+  theme,
   scripture,
   preferences,
   onClose,
 }: {
+  theme: ThemeColors;
   scripture: string | null;
   preferences: UserPreferences;
   onClose: () => void;
@@ -5368,12 +5693,12 @@ function ScriptureModal({
   const isSummary = quickRead.kind === "summary";
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-end bg-[#101814]/45 p-3 backdrop-blur-sm sm:place-items-center">
-      <section className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl border border-[#c9d5cd] bg-[#fbfcf8] p-4 shadow-2xl sm:p-5">
+    <div className="fixed inset-0 z-50 grid place-items-end p-3 backdrop-blur-sm sm:place-items-center" style={{ backgroundColor: 'rgba(16, 24, 20, 0.45)' }}>
+      <section className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl border p-4 shadow-2xl sm:p-5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">Scripture quick read</p>
-            <h2 className="mt-2 text-xl font-semibold text-[#203a35]">{scripture}</h2>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>Scripture quick read</p>
+            <h2 className="mt-2 text-xl font-semibold" style={{ color: theme.textPrimary }}>{scripture}</h2>
             <p className="mt-1 text-sm text-[#607067]">
               {quickRead.label} · {quickRead.translation}
             </p>
@@ -5386,21 +5711,22 @@ function ScriptureModal({
           <button
             type="button"
             onClick={onClose}
-            className="grid size-9 shrink-0 place-items-center rounded-md border border-[#c9d5cd] bg-white/78 text-[#405049] transition hover:bg-white"
+            className="grid size-9 shrink-0 place-items-center rounded-md border transition"
+            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
             aria-label="Close scripture quick read"
           >
             <X size={17} />
           </button>
         </div>
-        <p className="mt-4 rounded-lg border border-[#d8e1db] bg-white/70 p-4 text-sm leading-7 text-[#303832]">
+        <p className="mt-4 rounded-lg border bg-white/70 p-4 text-sm leading-7" style={{ borderColor: theme.borderLight, color: theme.textPrimary }}>
           {quickRead.text}
         </p>
         {isSummary ? (
-          <p className="mt-3 rounded-lg border border-[#d8e1db] bg-[#f4f6ef] p-3 text-xs leading-5 text-[#607067]">
+          <p className="mt-3 rounded-lg border p-3 text-xs leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
             Full public-domain verse text is not curated for {quickRead.translation} here yet, so Aletheia is showing a clearly marked summary instead of switching you to another Bible translation.
           </p>
         ) : !isLocalized ? (
-          <p className="mt-3 rounded-lg border border-[#d8e1db] bg-[#f4f6ef] p-3 text-xs leading-5 text-[#607067]">
+          <p className="mt-3 rounded-lg border p-3 text-xs leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
             A public-domain {selectedLanguage.name} reading is not available for this passage yet, so Aletheia is showing the safest curated reading available and keeping the reference exact.
           </p>
         ) : null}
@@ -5418,13 +5744,13 @@ function ScriptureModal({
             </p>
           </div>
         </div>
-        <div className="mt-3 rounded-lg border border-[#d8e1db] bg-[#203a35] p-4 text-[#f8f5e8]">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#d0ad55]">Related principle</p>
-          <p className="mt-2 text-sm leading-6 text-[#edf4ee]">
+        <div className="mt-3 rounded-lg border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.primary, color: theme.textOnPrimary }}>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>Related principle</p>
+          <p className="mt-2 text-sm leading-6" style={{ color: theme.textOnPrimary }}>
             {wisdomEntry?.principle ?? "Aletheia only surfaces known references and avoids invented verse text."}
           </p>
         </div>
-        <p className="mt-3 text-xs leading-5 text-[#718077]">
+        <p className="mt-3 text-xs leading-5" style={{ color: theme.textMuted }}>
           When Aletheia has a curated public-domain reading in your chosen translation, it shows that reading. Otherwise it uses a concise, clearly marked wisdom summary and keeps the reference exact.
         </p>
       </section>
@@ -5433,6 +5759,7 @@ function ScriptureModal({
 }
 
 function CounselInviteModal({
+  theme,
   token,
   preview,
   status,
@@ -5440,6 +5767,7 @@ function CounselInviteModal({
   onComment,
   onClose,
 }: {
+  theme: ThemeColors;
   token: string | null;
   preview: CounselInvitePreview | null;
   status: string;
@@ -5455,65 +5783,65 @@ function CounselInviteModal({
   const canComment = Boolean(preview?.invite.permissions.canCommentOnDecisions);
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-end bg-[#0d1714]/42 p-3 backdrop-blur-sm sm:place-items-center">
-      <section className="max-h-[88vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-[#c9d5cd] bg-[#fbfcf8] p-5 shadow-2xl">
+    <div className="fixed inset-0 z-50 grid place-items-end p-3 backdrop-blur-sm sm:place-items-center" style={{ backgroundColor: 'rgba(13, 23, 20, 0.42)' }}>
+      <section className="max-h-[88vh] w-full max-w-2xl overflow-y-auto rounded-2xl border p-5 shadow-2xl" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#866a24]">Private Counsel Invite</p>
-            <h2 className="mt-2 text-2xl font-semibold text-[#203a35]">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>Private Counsel Invite</p>
+            <h2 className="mt-2 text-2xl font-semibold" style={{ color: theme.textPrimary }}>
               {preview ? `Counsel request for ${preview.invite.name}` : "Opening invite..."}
             </h2>
-            <p className="mt-2 text-sm leading-6 text-[#607067]">
+            <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
               This link never gives access to private chats, journals, or unshared decisions. You only see summaries intentionally shared with you.
             </p>
           </div>
-          <button className="grid size-9 place-items-center rounded-md border border-[#c9d5cd]" onClick={onClose} aria-label="Close invite">
+          <button className="grid size-9 place-items-center rounded-md border" style={{ borderColor: theme.borderMedium }} onClick={onClose} aria-label="Close invite">
             <X size={17} />
           </button>
         </div>
 
-        {status ? <p className="mt-4 rounded-lg border border-[#d8e1db] bg-white/70 p-3 text-sm text-[#405049]">{status}</p> : null}
+        {status ? <p className="mt-4 rounded-lg border bg-white/70 p-3 text-sm" style={{ borderColor: theme.borderLight, color: theme.textSecondary }}>{status}</p> : null}
 
         {preview ? (
           <>
-            <div className="mt-4 grid gap-2 rounded-xl border border-[#d8e1db] bg-white/70 p-4 text-sm text-[#405049]">
+            <div className="mt-4 grid gap-2 rounded-xl border bg-white/70 p-4 text-sm" style={{ borderColor: theme.borderLight, color: theme.textSecondary }}>
               <p>
-                <span className="font-semibold text-[#203a35]">Role:</span> {preview.invite.role}
+                <span className="font-semibold" style={{ color: theme.textPrimary }}>Role:</span> {preview.invite.role}
               </p>
               <p>
-                <span className="font-semibold text-[#203a35]">Status:</span> {accepted ? "Accepted" : "Waiting for acceptance"}
+                <span className="font-semibold" style={{ color: theme.textPrimary }}>Status:</span> {accepted ? "Accepted" : "Waiting for acceptance"}
               </p>
               <div className="flex flex-wrap gap-2 pt-1 text-xs font-semibold uppercase tracking-[0.08em]">
-                {preview.invite.permissions.canViewSummaries ? <span className="rounded bg-[#edf2ee] px-2 py-1">summaries only</span> : null}
-                {preview.invite.permissions.canCommentOnDecisions ? <span className="rounded bg-[#edf2ee] px-2 py-1">comments allowed</span> : null}
-                {preview.invite.permissions.canReceiveCheckins ? <span className="rounded bg-[#edf2ee] px-2 py-1">waiting check-ins</span> : null}
+                {preview.invite.permissions.canViewSummaries ? <span className="rounded px-2 py-1" style={{ backgroundColor: theme.bgCardElevated }}>summaries only</span> : null}
+                {preview.invite.permissions.canCommentOnDecisions ? <span className="rounded px-2 py-1" style={{ backgroundColor: theme.bgCardElevated }}>comments allowed</span> : null}
+                {preview.invite.permissions.canReceiveCheckins ? <span className="rounded px-2 py-1" style={{ backgroundColor: theme.bgCardElevated }}>waiting check-ins</span> : null}
               </div>
             </div>
 
             {!accepted ? (
-              <button className="mt-4 h-11 w-full rounded-lg bg-[#203a35] px-4 text-sm font-semibold text-[#f8f5e8]" onClick={onAccept}>
+              <button className="mt-4 h-11 w-full rounded-lg px-4 text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }} onClick={onAccept}>
                 Accept private counsel invite
               </button>
             ) : (
               <div className="mt-4 space-y-3">
                 {preview.sharedDecisions.map((decision) => (
-                  <article key={decision.id} className="rounded-xl border border-[#d8e1db] bg-white/72 p-4">
+                  <article key={decision.id} className="rounded-xl border bg-white/72 p-4" style={{ borderColor: theme.borderLight }}>
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                       <div>
-                        <p className="text-sm font-semibold text-[#203a35]">{decision.title}</p>
-                        <p className="mt-1 text-xs uppercase tracking-[0.12em] text-[#718077]">
+                        <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{decision.title}</p>
+                        <p className="mt-1 text-xs uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
                           {decision.mode} · readiness {decision.readiness}/100
                         </p>
                       </div>
-                      <span className="w-fit rounded-md bg-[#edf2ee] px-2 py-1 text-xs font-semibold text-[#405049]">{decision.status}</span>
+                      <span className="w-fit rounded-md px-2 py-1 text-xs font-semibold" style={{ backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>{decision.status}</span>
                     </div>
-                    <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-[#55645b]">
+                    <p className="mt-3 whitespace-pre-wrap text-sm leading-6" style={{ color: theme.textSecondary }}>
                       {decision.summary || "The user shared this decision, but a summary has not been generated yet."}
                     </p>
                     {decision.comments.length ? (
                       <div className="mt-3 space-y-2">
                         {decision.comments.map((comment) => (
-                          <p key={comment.id} className="rounded-lg border border-[#d8e1db] bg-[#fbfcf8] p-3 text-sm leading-6 text-[#405049]">
+                          <p key={comment.id} className="rounded-lg border p-3 text-sm leading-6" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textSecondary }}>
                             {comment.body}
                           </p>
                         ))}
@@ -5535,27 +5863,28 @@ function CounselInviteModal({
                         <textarea
                           value={drafts[decision.id] ?? ""}
                           onChange={(event) => setDrafts((current) => ({ ...current, [decision.id]: event.target.value }))}
-                          className="min-h-24 resize-none rounded-lg border border-[#c9d5cd] bg-white px-3 py-2 text-sm leading-6 outline-none focus:border-[#203a35]"
+                          className="min-h-24 resize-none rounded-lg border px-3 py-2 text-sm leading-6 outline-none"
+                          style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
                           placeholder="Offer counsel, questions, or cautions for this shared decision."
                         />
-                        <button className="h-10 rounded-md bg-[#203a35] px-3 text-sm font-semibold text-[#f8f5e8]">Send private comment</button>
+                        <button className="h-10 rounded-md px-3 text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>Send private comment</button>
                       </form>
                     ) : null}
                   </article>
                 ))}
                 {!preview.sharedDecisions.length ? (
-                  <div className="rounded-xl border border-[#d8e1db] bg-white/70 p-5">
+                  <div className="rounded-xl border bg-white/70 p-5" style={{ borderColor: theme.borderLight }}>
                     <div className="flex items-start gap-3">
-                      <div className="grid size-10 shrink-0 place-items-center rounded-md bg-[#edf2ee] text-[#405049]">
+                      <div className="grid size-10 shrink-0 place-items-center rounded-md" style={{ backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
                         <Users size={18} />
                       </div>
                       <div>
-                        <p className="font-semibold text-[#203a35]">You're connected!</p>
-                        <p className="mt-2 text-sm leading-6 text-[#607067]">
+                        <p className="font-semibold" style={{ color: theme.textPrimary }}>You're connected!</p>
+                        <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
                           {preview.invite.name} hasn't shared any decision summaries yet. They'll appear here when they choose to share them with you from their Decisions tab.
                         </p>
                         {preview.invite.permissions.canCommentOnDecisions ? (
-                          <p className="mt-2 text-sm leading-6 text-[#607067]">
+                          <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
                             Once they share decisions, you'll be able to leave comments offering your counsel, questions, or cautions.
                           </p>
                         ) : null}
@@ -5585,6 +5914,7 @@ function PreferencesPanel({
   availableVoices,
   selectedVoice,
   onVoiceChange,
+  theme,
 }: {
   panelRef: RefObject<HTMLElement | null>;
   preferences: UserPreferences;
@@ -5598,31 +5928,33 @@ function PreferencesPanel({
   availableVoices: SpeechSynthesisVoice[];
   selectedVoice: string | null;
   onVoiceChange: (voiceURI: string) => void;
+  theme: ThemeColors;
 }) {
   const bibleOptions = bibleTranslationOptionsForLanguage(preferences.language);
   const selectedTranslation = bibleTranslations[preferences.bibleTranslation];
 
   return (
-    <section ref={panelRef} className="mb-5 scroll-mt-24 rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm">
+    <section ref={panelRef} className="mb-5 scroll-mt-24 rounded-xl border p-4 shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
       <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
         <div className="flex items-start gap-3">
-          <div className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-md bg-[#edf2ee] text-[#203a35]">
+          <div className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-md" style={{ backgroundColor: theme.bgInput, color: theme.primary }}>
             <Languages size={17} />
           </div>
           <div>
-            <p className="text-sm font-semibold text-[#203a35]">{ui.preferencesTitle}</p>
-            <p className="mt-1 text-sm leading-6 text-[#5b6a61]">{copy.onboarding}</p>
-            <p className="mt-2 text-xs leading-5 text-[#718077]">{status}</p>
+            <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{ui.preferencesTitle}</p>
+            <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>{copy.onboarding}</p>
+            <p className="mt-2 text-xs leading-5" style={{ color: theme.textSecondary }}>{status}</p>
           </div>
         </div>
 
         <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-          <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#52635a]">
+          <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
             {ui.language}
             <select
               value={preferences.language}
               onChange={(event) => onChange(preferencePatchForLanguage(event.target.value as LanguageCode))}
-              className="mt-2 h-10 w-full rounded-md border border-[#c9d5cd] bg-white/78 px-3 text-sm normal-case tracking-normal text-[#203a35] outline-none"
+              className="mt-2 h-10 w-full rounded-md border px-3 text-sm normal-case tracking-normal outline-none"
+              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
             >
               {Object.entries(languages).map(([code, language]) => (
                 <option key={code} value={code}>
@@ -5631,12 +5963,13 @@ function PreferencesPanel({
               ))}
             </select>
           </label>
-          <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#52635a]">
+          <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
             {ui.region}
             <select
               value={preferences.region}
               onChange={(event) => onChange({ region: event.target.value as RegionCode })}
-              className="mt-2 h-10 w-full rounded-md border border-[#c9d5cd] bg-white/78 px-3 text-sm normal-case tracking-normal text-[#203a35] outline-none"
+              className="mt-2 h-10 w-full rounded-md border px-3 text-sm normal-case tracking-normal outline-none"
+              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
             >
               {Object.entries(regions).map(([code, region]) => (
                 <option key={code} value={code}>
@@ -5645,12 +5978,13 @@ function PreferencesPanel({
               ))}
             </select>
           </label>
-          <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#52635a]">
+          <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
             {ui.bible}
             <select
               value={preferences.bibleTranslation}
               onChange={(event) => onChange({ bibleTranslation: event.target.value as BibleTranslation })}
-              className="mt-2 h-10 w-full rounded-md border border-[#c9d5cd] bg-white/78 px-3 text-sm normal-case tracking-normal text-[#203a35] outline-none"
+              className="mt-2 h-10 w-full rounded-md border px-3 text-sm normal-case tracking-normal outline-none"
+              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
             >
               {bibleOptions.map((code) => {
                 const translation = bibleTranslations[code];
@@ -5662,97 +5996,113 @@ function PreferencesPanel({
                 );
               })}
             </select>
-            <span className="mt-1 block text-[11px] normal-case leading-4 tracking-normal text-[#718077]">
+            <span className="mt-1 block text-[11px] normal-case leading-4 tracking-normal" style={{ color: theme.textSecondary }}>
               {selectedTranslation?.note}
             </span>
           </label>
-          <label className="flex h-full items-end gap-2 rounded-md border border-[#d8e1db] bg-white/54 px-3 py-2 text-sm font-semibold text-[#405049]">
+          <label className="flex h-full items-end gap-2 rounded-md border px-3 py-2 text-sm font-semibold" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}>
             <input
               type="checkbox"
               checked={preferences.voiceEnabled}
               onChange={(event) => onChange({ voiceEnabled: event.target.checked })}
-              className="size-4 accent-[#203a35]"
+              className="size-4"
+              style={{ accentColor: theme.primary }}
             />
             {ui.voiceControls}
           </label>
         </div>
         {preferences.voiceEnabled && availableVoices.length > 0 ? (
           <div className="mt-3">
-            <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#52635a]">
+            <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
               Voice selection
               <select
                 value={selectedVoice || ""}
                 onChange={(event) => onVoiceChange(event.target.value)}
-                className="mt-2 h-10 w-full rounded-md border border-[#c9d5cd] bg-white/78 px-3 text-sm normal-case tracking-normal text-[#203a35] outline-none"
+                className="mt-2 h-10 w-full rounded-md border px-3 text-sm normal-case tracking-normal outline-none"
+                style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
               >
-                {availableVoices.map((voice) => (
-                  <option key={voice.voiceURI} value={voice.voiceURI}>
-                    {voice.name} ({voice.lang}){voice.localService ? " - Local" : ""}
-                  </option>
-                ))}
+                {availableVoices.map((voice) => {
+                  const isEnhanced = voice.name.toLowerCase().includes('enhanced') || 
+                                   voice.name.toLowerCase().includes('premium') ||
+                                   voice.name.toLowerCase().includes('neural');
+                  return (
+                    <option key={voice.voiceURI} value={voice.voiceURI}>
+                      {isEnhanced ? '✨ ' : ''}{voice.name} ({voice.lang}){voice.localService ? " ⭐" : ""}
+                    </option>
+                  );
+                })}
               </select>
-              <span className="mt-1 block text-[11px] normal-case leading-4 tracking-normal text-[#718077]">
-                Choose a voice for reading text aloud. Local voices work offline.
+              <span className="mt-1 block text-[11px] normal-case leading-4 tracking-normal" style={{ color: theme.textSecondary }}>
+                Premium voices (✨) sound more natural. Offline voices (⭐) work without internet.
               </span>
             </label>
           </div>
         ) : null}
       </div>
-      <div className="mt-3 rounded-md border border-[#d8e1db] bg-white/58 p-3">
-        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#52635a]">Appearance</p>
+      <div className="mt-3 rounded-md border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+        <p className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>Appearance</p>
         <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-4">
           <ThemeOptionButton
             icon={Sun}
             label="Classic"
             active={themePreference === "classic"}
             onClick={() => onThemePreferenceChange("classic")}
+            color="#203a35"
+            theme={theme}
           />
           <ThemeOptionButton
             icon={Moon}
             label="Dark"
             active={themePreference === "dark"}
             onClick={() => onThemePreferenceChange("dark")}
+            color="#1a2f3a"
+            theme={theme}
           />
           <ThemeOptionButton
             icon={Sun}
             label="Warm"
             active={themePreference === "warm"}
             onClick={() => onThemePreferenceChange("warm")}
-            color="#d0946e"
+            color="#8b5a3c"
+            theme={theme}
           />
           <ThemeOptionButton
             icon={Sun}
             label="Ocean"
             active={themePreference === "ocean"}
             onClick={() => onThemePreferenceChange("ocean")}
-            color="#6e94d0"
+            color="#2d5a7b"
+            theme={theme}
           />
           <ThemeOptionButton
             icon={Sun}
             label="Forest"
             active={themePreference === "forest"}
             onClick={() => onThemePreferenceChange("forest")}
-            color="#6ed094"
+            color="#2d6b4a"
+            theme={theme}
           />
           <ThemeOptionButton
             icon={Sun}
             label="Sunset"
             active={themePreference === "sunset"}
             onClick={() => onThemePreferenceChange("sunset")}
-            color="#d06e94"
+            color="#8b3a52"
+            theme={theme}
           />
           <ThemeOptionButton
             icon={Monitor}
             label="System"
             active={themePreference === "system"}
             onClick={() => onThemePreferenceChange("system")}
+            theme={theme}
           />
         </div>
       </div>
-      <div className="mt-3 grid gap-2 text-xs leading-5 text-[#607067] md:grid-cols-3">
-        <p className="rounded-md border border-[#d8e1db] bg-white/50 p-3">{copy.translationFallback}</p>
-        <p className="rounded-md border border-[#d8e1db] bg-white/50 p-3">{copy.regionHint}</p>
-        <p className="rounded-md border border-[#d8e1db] bg-white/50 p-3">
+      <div className="mt-3 grid gap-2 text-xs leading-5 md:grid-cols-3" style={{ color: theme.textSecondary }}>
+        <p className="rounded-md border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>{copy.translationFallback}</p>
+        <p className="rounded-md border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>{copy.regionHint}</p>
+        <p className="rounded-md border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
           <Globe2 className="mr-1 inline align-[-2px]" size={14} />
           {activeRegion.example}
         </p>
@@ -5792,6 +6142,7 @@ function CompanionPanel({
   speechProgress,
   answerFocusId,
   onAnswerFocused,
+  theme,
 }: {
   messages: ChatMessage[];
   mode: Mode;
@@ -5823,6 +6174,7 @@ function CompanionPanel({
   speechProgress: number;
   answerFocusId: string | null;
   onAnswerFocused: () => void;
+  theme: ThemeColors;
 }) {
   const panelRef = useRef<HTMLElement | null>(null);
   const currentCounselRef = useRef<HTMLDivElement | null>(null);
@@ -5845,10 +6197,10 @@ function CompanionPanel({
 
   return (
     <div className="space-y-4">
-      <section id="companion-ask" ref={panelRef} className="min-w-0 scroll-mt-24 overflow-hidden rounded-xl border border-[#c8d5cc] bg-[#fbfcf8]/86 shadow-[0_18px_45px_rgba(33,58,53,0.08)]">
-        <div className="flex flex-col gap-3 border-b border-[#d8e1db] bg-white/40 px-3 py-3 sm:px-5 sm:py-4 md:flex-row md:items-center md:justify-between">
+      <section id="companion-ask" ref={panelRef} className="min-w-0 scroll-mt-24 overflow-hidden rounded-xl border shadow-[0_18px_45px_rgba(33,58,53,0.08)]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+        <div className="flex flex-col gap-3 border-b px-3 py-3 sm:px-5 sm:py-4 md:flex-row md:items-center md:justify-between" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
           <div>
-            <div className="flex items-center gap-2 text-lg font-semibold text-[#203a35]">
+            <div className="flex items-center gap-2 text-lg font-semibold" style={{ color: theme.textPrimary }}>
               <MessageCircle size={18} />
               {ui.askTitle}
             </div>
@@ -5857,20 +6209,20 @@ function CompanionPanel({
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <span className="w-fit rounded-sm bg-[#edf2ee] px-2 py-1 text-xs font-semibold text-[#52635a]" suppressHydrationWarning>
+            <span className="w-fit rounded-sm px-2 py-1 text-xs font-semibold" style={{ backgroundColor: theme.bgInput, color: theme.textPrimary }} suppressHydrationWarning>
               {modeProfile.displayLabel ?? mode} lens
             </span>
-            <span className="w-fit rounded-sm bg-[#f5edda] px-2 py-1 text-xs font-semibold text-[#72591f]" suppressHydrationWarning>
+            <span className="w-fit rounded-sm px-2 py-1 text-xs font-semibold" style={{ backgroundColor: theme.accentGold + '20', color: theme.accentGold }} suppressHydrationWarning>
               {languages[preferences.language].nativeName} · {preferences.bibleTranslation}
             </span>
           </div>
         </div>
 
-        <form onSubmit={onAsk} className="bg-[#f8faf6]/88 p-3 sm:p-5">
-          <div className="rounded-lg border border-[#c4d2ca] bg-white/92 p-3 shadow-sm sm:p-4">
+        <form onSubmit={onAsk} className="p-3 sm:p-5" style={{ backgroundColor: theme.bgMain + 'E0' }}>
+          <div className="rounded-lg border p-3 shadow-sm sm:p-4" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">{ui.yourQuestion}</p>
-              <span className="rounded-sm bg-[#edf2ee] px-2 py-1 text-xs font-semibold text-[#52635a]">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ui.yourQuestion}</p>
+              <span className="rounded-sm px-2 py-1 text-xs font-semibold" style={{ backgroundColor: theme.bgInput, color: theme.textMuted }}>
                 {modeProfile.focus}
               </span>
             </div>
@@ -5881,6 +6233,7 @@ function CompanionPanel({
                   item={item}
                   active={mode === item.label}
                   onClick={() => onModeChange(item.label)}
+                  theme={theme}
                 />
               ))}
             </div>
@@ -5890,13 +6243,27 @@ function CompanionPanel({
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder={`${copy.askPlaceholder} ${modeProfile.focus.toLowerCase()}...`}
-                className="min-h-28 flex-1 resize-none rounded-md border border-[#c9d5cd] bg-white px-3 py-3 text-base leading-6 text-[#203a35] outline-none transition placeholder:text-[#8b968e] focus:border-[#203a35] focus:shadow-[0_0_0_3px_rgba(32,58,53,0.08)] sm:text-sm"
+                className="min-h-28 flex-1 resize-none rounded-md border px-3 py-3 text-base leading-6 outline-none transition sm:text-sm"
+                style={{
+                  borderColor: theme.borderMedium,
+                  backgroundColor: theme.bgInput,
+                  color: theme.textPrimary,
+                }}
+                onFocus={(e) => e.currentTarget.style.borderColor = theme.primary}
+                onBlur={(e) => e.currentTarget.style.borderColor = theme.borderMedium}
               />
               {preferences.voiceEnabled ? (
                 <button
                   type="button"
                   onClick={onListen}
-                  className="grid h-11 w-11 shrink-0 place-items-center rounded-lg border border-[#c9d5cd] bg-white/78 px-3 text-[#203a35] transition hover:bg-white sm:w-auto"
+                  className="grid h-11 w-11 shrink-0 place-items-center rounded-lg border px-3 transition sm:w-auto"
+                  style={{
+                    borderColor: theme.borderMedium,
+                    backgroundColor: theme.bgInput,
+                    color: theme.textPrimary,
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.bgCardElevated}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = theme.bgInput}
                   aria-label={isListening ? "Stop voice input" : "Use voice input"}
                   title={isListening ? "Stop dictating" : "Tap to dictate your question"}
                 >
@@ -5905,7 +6272,13 @@ function CompanionPanel({
               ) : null}
               <button
                 disabled={isWorking}
-                className="inline-flex h-11 w-full shrink-0 items-center justify-center gap-2 rounded-md bg-[#203a35] px-5 text-sm font-semibold text-[#f8f5e8] shadow-lg shadow-[#203a35]/15 transition hover:bg-[#284b43] disabled:opacity-60 sm:w-auto"
+                className="inline-flex h-11 w-full shrink-0 items-center justify-center gap-2 rounded-md px-5 text-sm font-semibold shadow-lg transition disabled:opacity-60 sm:w-auto"
+                style={{
+                  backgroundColor: theme.primary,
+                  color: theme.textOnPrimary,
+                }}
+                onMouseEnter={(e) => !isWorking && (e.currentTarget.style.backgroundColor = theme.primaryHover)}
+                onMouseLeave={(e) => !isWorking && (e.currentTarget.style.backgroundColor = theme.primary)}
               >
                 <Send size={17} />
                 {isWorking ? "..." : ui.askButton}
@@ -5918,23 +6291,37 @@ function CompanionPanel({
                   type="button"
                   onClick={() => onDraftPrompt(prompt)}
                   disabled={isWorking}
-                  className="shrink-0 rounded-md border border-[#cad6cf] bg-white px-3 py-3 text-left text-xs font-semibold leading-5 text-[#395148] shadow-sm transition hover:border-[#203a35] hover:shadow disabled:opacity-60"
+                  className="shrink-0 rounded-md border px-3 py-3 text-left text-xs font-semibold leading-5 shadow-sm transition disabled:opacity-60"
+                  style={{
+                    borderColor: theme.borderMedium,
+                    backgroundColor: theme.bgCard,
+                    color: theme.textPrimary,
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = theme.primary;
+                    e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = theme.borderMedium;
+                    e.currentTarget.style.boxShadow = '0 1px 2px 0 rgba(0, 0, 0, 0.05)';
+                  }}
                 >
                   {prompt}
                 </button>
               ))}
             </div>
-            {preferences.voiceEnabled ? <p className="mt-2 text-xs leading-5 text-[#718077]">{copy.voiceHint}</p> : null}
+            {preferences.voiceEnabled ? <p className="mt-2 text-xs leading-5" style={{ color: theme.textMuted }}>{copy.voiceHint}</p> : null}
           </div>
         </form>
       </section>
 
       {hasCounselSurface ? (
       <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
-        <section className="min-w-0 rounded-xl border border-[#d7e0da] bg-[#fbfcf8]/74 p-3 shadow-sm sm:p-4">
+        <section className="min-w-0 rounded-xl border p-3 shadow-sm sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
           {currentExchange ? (
             <div ref={currentCounselRef} className="scroll-mt-24">
               <CurrentCounselCard
+                theme={theme}
                 exchange={currentExchange}
                 mode={mode}
                 modeProfile={modeProfile}
@@ -5959,15 +6346,15 @@ function CompanionPanel({
           ) : null}
 
           {history.length ? (
-            <section className="mt-4 rounded-lg border border-[#d8e1db] bg-white/58 p-3 sm:p-4">
+            <section className="mt-4 rounded-lg border p-3 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
               <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">Conversation history</p>
-                  <p className="mt-1 text-sm leading-6 text-[#607067]">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>Conversation history</p>
+                  <p className="mt-1 text-sm leading-6" style={{ color: theme.textMuted }}>
                     Older counsel is kept quiet so the current question stays clear.
                   </p>
                 </div>
-                <span className="w-fit rounded-sm bg-[#edf2ee] px-2 py-1 text-xs font-semibold text-[#52635a]">
+                <span className="w-fit rounded-sm px-2 py-1 text-xs font-semibold" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>
                   {history.length} saved
                 </span>
               </div>
@@ -5975,6 +6362,7 @@ function CompanionPanel({
                 {history.map((exchange) => (
                   <HistoryExchange
                     key={exchange.id}
+                    theme={theme}
                     exchange={exchange}
                     preferences={preferences}
                     expanded={expandedHistoryId === exchange.id}
@@ -5993,50 +6381,51 @@ function CompanionPanel({
         </section>
 
       <aside className="space-y-4">
-        <section className="editorial-sidebar rounded-lg border border-[#d7e0da] bg-[#fbfcf8]/72 p-4 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">{ui.whatModeFor}</p>
-          <h2 className="mt-2 font-semibold text-[#203a35]">{modeProfile.displayLabel ?? modeProfile.label}: {modeProfile.intent}</h2>
-          <p className="mt-2 text-sm leading-6 text-[#55645b]">{modeProfile.useWhen}</p>
-          <p className="mt-3 rounded-lg border border-[#d8e1db] bg-white/64 p-3 text-sm leading-6 text-[#45534b]">
+        <section className="editorial-sidebar rounded-lg border p-4 shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ui.whatModeFor}</p>
+          <h2 className="mt-2 font-semibold" style={{ color: theme.textPrimary }}>{modeProfile.displayLabel ?? modeProfile.label}: {modeProfile.intent}</h2>
+          <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>{modeProfile.useWhen}</p>
+          <p className="mt-3 rounded-lg border p-3 text-sm leading-6" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
             {modeProfile.lens}
           </p>
         </section>
 
-        <section className="rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm">
+        <section className="rounded-xl border p-4 shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
           <div className="flex items-center justify-between gap-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">{ui.modeGuidance}</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ui.modeGuidance}</p>
             <button
               type="button"
               onClick={() => setShowSidebarDeep((v) => !v)}
-              className="rounded-md border border-[#c9d5cd] bg-white/78 px-2 py-1 text-[11px] font-semibold text-[#405049] transition hover:bg-white"
+              className="rounded-md border px-2 py-1 text-[11px] font-semibold transition"
+              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
             >
               {showSidebarDeep ? ui.hideDetails : ui.showDetails}
             </button>
           </div>
           {showSidebarDeep ? (
             <div className="mt-3 space-y-3 editorial-sidebar">
-              <div className="rounded-lg border border-[#d8e1db] bg-white/60 p-3">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#866a24]">{ui.deepChecks}</p>
-                <div className="mt-2 space-y-2 text-sm leading-6 text-[#55645b]">
+              <div className="rounded-lg border p-3" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{ui.deepChecks}</p>
+                <div className="mt-2 space-y-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
                   {modeProfile.diagnosticTracks.slice(0, 3).map((track) => (
                     <p key={track}>{track}</p>
                   ))}
                 </div>
               </div>
-              <div className="rounded-lg border border-[#d8e1db] bg-white/60 p-3">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#866a24]">{ui.blindSpots}</p>
-                <ul className="mt-2 space-y-2 text-sm leading-6 text-[#55645b]">
+              <div className="rounded-lg border p-3" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{ui.blindSpots}</p>
+                <ul className="mt-2 space-y-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
                   {modeProfile.blindSpots.slice(0, 3).map((spot) => (
                     <li key={spot}>{spot}</li>
                   ))}
                 </ul>
               </div>
-              <div className="rounded-lg border border-[#d8e1db] bg-white/60 p-3">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#866a24]">{ui.maturitySignals}</p>
-                <ul className="mt-2 space-y-2 text-sm leading-6 text-[#55645b]">
+              <div className="rounded-lg border p-3" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{ui.maturitySignals}</p>
+                <ul className="mt-2 space-y-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
                   {modeProfile.maturitySignals.slice(0, 3).map((signal) => (
                     <li key={signal} className="flex gap-2">
-                      <Check className="mt-1 shrink-0 text-[#2d5d4c]" size={15} />
+                      <Check className="mt-1 shrink-0" style={{ color: theme.primary }} size={15} />
                       <span>{signal}</span>
                     </li>
                   ))}
@@ -6044,13 +6433,13 @@ function CompanionPanel({
               </div>
             </div>
           ) : (
-            <p className="mt-2 text-sm leading-6 text-[#607067]">
+            <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
               {ui.modeGuidancePreview}
             </p>
           )}
         </section>
 
-        <TrustLayerPanel ui={ui} />
+        <TrustLayerPanel theme={theme} ui={ui} />
         </aside>
       </div>
       ) : null}
@@ -6059,10 +6448,12 @@ function CompanionPanel({
 }
 
 function ScriptureChips({
+  theme,
   sources,
   preferences,
   onScriptureOpen,
 }: {
+  theme: ThemeColors;
   sources?: WisdomEntry[];
   preferences: UserPreferences;
   onScriptureOpen: (scripture: string) => void;
@@ -6078,7 +6469,8 @@ function ScriptureChips({
           type="button"
           key={source.scripture}
           onClick={() => onScriptureOpen(source.scripture)}
-          className="rounded-md border border-[#d8e1db] bg-[#fbfcf8] px-2 py-1 text-xs font-semibold text-[#68766d] transition hover:border-[#203a35] hover:text-[#203a35]"
+          className="rounded-md border px-2 py-1 text-xs font-semibold transition"
+          style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textSecondary }}
           suppressHydrationWarning
         >
           {source.scripture} · {localizedScriptureRead(source.scripture, preferences).translation}
@@ -6115,9 +6507,11 @@ function scriptureTextMatches(text: string) {
 }
 
 function ScriptureLinkedText({
+  theme,
   text,
   onScriptureOpen,
 }: {
+  theme: ThemeColors;
   text: string;
   onScriptureOpen: (scripture: string) => void;
 }) {
@@ -6125,7 +6519,7 @@ function ScriptureLinkedText({
   const matches = scriptureTextMatches(cleaned);
 
   if (!matches.length) {
-    return <p className="whitespace-pre-wrap text-sm leading-6 text-[#303832]">{cleaned}</p>;
+    return <p className="whitespace-pre-wrap text-sm leading-6" style={{ color: theme.textPrimary }}>{cleaned}</p>;
   }
 
   const nodes: React.ReactNode[] = [];
@@ -6142,7 +6536,8 @@ function ScriptureLinkedText({
         key={`${match.label}-${position}-${match.index}`}
         type="button"
         onClick={() => onScriptureOpen(match.label)}
-        className="mx-0.5 rounded-md bg-[#edf2ee] px-1.5 py-0.5 font-semibold text-[#203a35] underline decoration-[#b8c8bd] decoration-1 underline-offset-2 transition hover:bg-[#dfe8df]"
+        className="mx-0.5 rounded-md px-1.5 py-0.5 font-semibold underline decoration-1 underline-offset-2 transition"
+        style={{ backgroundColor: theme.bgInput, color: theme.textPrimary }}
       >
         {match.label}
       </button>
@@ -6153,27 +6548,27 @@ function ScriptureLinkedText({
     nodes.push(cleaned.slice(cursor));
   }
 
-  return <p className="whitespace-pre-wrap text-sm leading-6 text-[#303832]">{nodes}</p>;
+  return <p className="whitespace-pre-wrap text-sm leading-6" style={{ color: theme.textPrimary }}>{nodes}</p>;
 }
 
-function TrustLayerPanel({ ui }: { ui: (typeof uiText)[LanguageCode] }) {
+function TrustLayerPanel({ theme, ui }: { theme: ThemeColors; ui: (typeof uiText)[LanguageCode] }) {
   return (
-    <section className="rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm">
+    <section className="rounded-xl border p-4 shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
       <div className="flex items-center gap-2">
-        <ShieldCheck size={17} className="text-[#203a35]" />
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">{ui.trustLayer}</p>
+        <ShieldCheck size={17} style={{ color: theme.primary }} />
+        <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ui.trustLayer}</p>
       </div>
-      <div className="mt-3 space-y-3 text-sm leading-6 text-[#55645b]">
-        <p className="rounded-lg border border-[#d8e1db] bg-white/64 p-3">
+      <div className="mt-3 space-y-3 text-sm leading-6" style={{ color: theme.textSecondary }}>
+        <p className="rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
           {ui.trustScriptureBody ?? uiText.en.trustScriptureBody}
         </p>
-        <p className="rounded-lg border border-[#d8e1db] bg-white/64 p-3">
+        <p className="rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
           {ui.trustBoundaryBody ?? uiText.en.trustBoundaryBody}
         </p>
-        <p className="rounded-lg border border-[#d8e1db] bg-white/64 p-3">
+        <p className="rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
           {ui.trustMemoryBody ?? uiText.en.trustMemoryBody}
         </p>
-        <p className="rounded-lg border border-[#d8e1db] bg-white/64 p-3">
+        <p className="rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
           {ui.trustConnectedDataBody ?? uiText.en.trustConnectedDataBody}
         </p>
       </div>
@@ -6187,20 +6582,42 @@ function ThemeOptionButton({
   active,
   onClick,
   color,
+  theme,
 }: {
   icon: typeof Sun;
   label: string;
   active: boolean;
   onClick: () => void;
   color?: string;
+  theme: ThemeColors;
 }) {
+  // Use the theme color for active state, or the color prop
+  const activeColor = color || theme.primary;
+  
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`inline-flex h-11 items-center gap-2 rounded-md px-3 text-xs font-semibold transition ${
-        active ? "bg-[#203a35] text-[#f8f5e8]" : "bg-white/70 text-[#405049] hover:bg-white"
-      }`}
+      className="inline-flex h-11 items-center gap-2 rounded-md px-3 text-xs font-semibold transition"
+      style={{
+        backgroundColor: active ? activeColor : theme.bgInput,
+        color: active ? (color ? '#f8f5e8' : theme.textOnPrimary) : theme.textPrimary,
+        borderWidth: active ? '2px' : '1px',
+        borderStyle: 'solid',
+        borderColor: active ? theme.accentGold : theme.borderMedium,
+      }}
+      onMouseEnter={(e) => {
+        if (!active) {
+          e.currentTarget.style.backgroundColor = theme.bgCardElevated;
+          e.currentTarget.style.borderColor = theme.borderStrong;
+        }
+      }}
+      onMouseLeave={(e) => {
+        if (!active) {
+          e.currentTarget.style.backgroundColor = theme.bgInput;
+          e.currentTarget.style.borderColor = theme.borderMedium;
+        }
+      }}
     >
       <Icon size={14} style={color && !active ? { color } : undefined} />
       {label}
@@ -6215,6 +6632,7 @@ function RangeField({
   max,
   step,
   onChange,
+  theme,
 }: {
   label: string;
   value: number | null;
@@ -6222,13 +6640,14 @@ function RangeField({
   max: number;
   step: number;
   onChange: (value: number | null) => void;
+  theme: ThemeColors;
 }) {
   const shown = value === null ? min : value;
   return (
-    <label className="rounded-md border border-[#d8e1db] bg-white/72 px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#52635a]">
+    <label className="rounded-md border px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
       <span className="flex items-center justify-between gap-2">
         <span>{label}</span>
-        <span className="rounded-md bg-[#edf2ee] px-2 py-1 text-[10px] font-semibold tracking-[0.08em] text-[#405049]">
+        <span className="rounded-md px-2 py-1 text-[10px] font-semibold tracking-[0.08em]" style={{ backgroundColor: theme.bgInput, color: theme.textPrimary }}>
           {value === null ? "Not set" : String(value)}
         </span>
       </span>
@@ -6239,7 +6658,8 @@ function RangeField({
         step={step}
         value={shown}
         onChange={(event) => onChange(Number(event.target.value))}
-        className="mt-2 h-2 w-full cursor-pointer appearance-none rounded-full bg-[#d6e0da] accent-[#203a35]"
+        className="mt-2 h-2 w-full cursor-pointer appearance-none rounded-full"
+        style={{ backgroundColor: theme.borderMedium, accentColor: theme.primary }}
       />
       <input
         inputMode="decimal"
@@ -6250,13 +6670,17 @@ function RangeField({
         value={value ?? ""}
         placeholder="Not set"
         onChange={(event) => onChange(event.target.value === "" ? null : Number(event.target.value))}
-        className="mt-2 min-h-11 w-full rounded-md border border-[#c9d5cd] bg-white px-3 py-2 text-sm normal-case tracking-normal text-[#203a35] outline-none focus:border-[#203a35]"
+        className="mt-2 min-h-11 w-full rounded-md border px-3 py-2 text-sm normal-case tracking-normal outline-none"
+        style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+        onFocus={(e) => e.currentTarget.style.borderColor = theme.primary}
+        onBlur={(e) => e.currentTarget.style.borderColor = theme.borderMedium}
       />
     </label>
   );
 }
 
 function CurrentCounselCard({
+  theme,
   exchange,
   mode,
   modeProfile,
@@ -6277,6 +6701,7 @@ function CurrentCounselCard({
   onShare,
   onFeedback,
 }: {
+  theme: ThemeColors;
   exchange: ConversationExchange;
   mode: Mode;
   modeProfile: DisplayModeProfile;
@@ -6304,44 +6729,46 @@ function CurrentCounselCard({
   const answerText = exchange.answer.id === "welcome" ? text.welcomeCounsel! : exchange.answer.text;
 
   return (
-    <section className="rounded-lg border border-[#d7e0da] bg-white/76 p-3 shadow-sm sm:p-4">
+    <section className="rounded-lg border p-3 shadow-sm sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
           {question ? text.currentCounsel : ui.startHere}
         </p>
-        <span className={`rounded-md px-2 py-1 text-xs font-semibold ${isThinking || isWorking ? "bg-[#fff8dc] text-[#866a24]" : "bg-[#edf7f1] text-[#245443]"}`}>
+        <span className="rounded-md px-2 py-1 text-xs font-semibold" style={{ backgroundColor: isThinking || isWorking ? theme.bgCardElevated : theme.bgInput, color: isThinking || isWorking ? theme.accentGold : theme.textSecondary }}>
           {isThinking || isWorking ? "..." : ui.ready}
         </span>
       </div>
       {question ? (
-        <div className="rounded-md bg-[#203a35] p-3 text-[#f8f5e8]">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#d0ad55]">{ui.yourQuestion}</p>
+        <div className="rounded-md p-3" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{ui.yourQuestion}</p>
           <p className="mt-2 text-sm leading-6">{cleanDisplayText(question)}</p>
         </div>
       ) : null}
-      <article className="editorial-counsel mt-3 rounded-md border border-[#d8e1db] bg-[#fbfcf8]/84 p-3 sm:p-4">
+      <article className="editorial-counsel mt-3 rounded-md border p-3 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
         <div className="mb-2 flex items-center justify-between gap-2">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#866a24]">Aletheia</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>Aletheia</p>
           {preferences.voiceEnabled && !isThinking ? (
             <div className="flex items-center gap-2">
               {isSpeaking && speechProgress > 0 ? (
-                <span className="text-xs text-[#718077]">{speechProgress}%</span>
+                <span className="text-xs" style={{ color: theme.textMuted }}>{speechProgress}%</span>
               ) : null}
               <button
                 type="button"
                 onClick={onSpeak}
-                className="inline-flex h-8 items-center gap-1.5 rounded-md border border-[#c9d5cd] bg-white/78 px-2.5 text-xs font-semibold text-[#405049] transition hover:bg-white"
+                className="inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-xs font-semibold transition"
+                style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
                 aria-label={isSpeaking ? "Stop reading aloud" : "Read answer aloud"}
                 title={isSpeaking ? "Stop" : "Listen to this answer"}
               >
-                <Volume2 size={14} className={isSpeaking ? "text-[#866a24]" : undefined} />
+                <Volume2 size={14} style={isSpeaking ? { color: theme.accentGold } : undefined} />
                 {isSpeaking ? "Stop" : "Read aloud"}
               </button>
               {isSpeaking ? (
                 <button
                   type="button"
                   onClick={onTogglePause}
-                  className="inline-flex h-8 items-center gap-1.5 rounded-md border border-[#c9d5cd] bg-white/78 px-2.5 text-xs font-semibold text-[#405049] transition hover:bg-white"
+                  className="inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-xs font-semibold transition"
+                  style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
                   aria-label={speechPaused ? "Resume reading" : "Pause reading"}
                   title={speechPaused ? "Resume" : "Pause"}
                 >
@@ -6351,13 +6778,13 @@ function CurrentCounselCard({
             </div>
           ) : null}
         </div>
-        <p className="mb-3 rounded-md border border-[#d8e1db] bg-white/70 p-3 text-xs leading-5 text-[#607067]">
+        <p className="mb-3 rounded-md border p-3 text-xs leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
           {modeProfile.displayLabel ?? mode} {text.modeShapesCounsel} {modeProfile.lens.toLowerCase()}
         </p>
-        <div className="calm-prose">
-          <ScriptureLinkedText text={answerText} onScriptureOpen={onScriptureOpen} />
+        <div className="calm-prose" style={{ color: theme.textPrimary }}>
+          <ScriptureLinkedText theme={theme} text={answerText} onScriptureOpen={onScriptureOpen} />
         </div>
-        <ScriptureChips sources={exchange.answer.sources} preferences={preferences} onScriptureOpen={onScriptureOpen} />
+        <ScriptureChips theme={theme} sources={exchange.answer.sources} preferences={preferences} onScriptureOpen={onScriptureOpen} />
       </article>
       {showDecisionActions ? (
         <>
@@ -6369,15 +6796,16 @@ function CurrentCounselCard({
             <CounselAction label={text.waitThreeDays!} onClick={() => onWait(exchange)} />
           </div>
           <AnswerFeedback ui={ui} onFeedback={onFeedback} />
-          <div className="mt-3 rounded-md border border-[#d8e1db] bg-[#fbfcf8]/76 p-3">
-            <p className="text-sm font-semibold text-[#203a35]">{text.shareAnswerPrompt}</p>
-            <p className="mt-1 text-xs leading-5 text-[#718077]">
+          <div className="mt-3 rounded-md border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+            <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{text.shareAnswerPrompt}</p>
+            <p className="mt-1 text-xs leading-5" style={{ color: theme.textSecondary }}>
               {text.sharePrivacyNote}
             </p>
             <button
               type="button"
               onClick={() => onShare("native")}
-              className="mt-3 inline-flex h-11 items-center gap-2 rounded-md border border-[#c9d5cd] bg-white/80 px-3 text-xs font-semibold text-[#405049] transition hover:bg-white"
+              className="mt-3 inline-flex h-11 items-center gap-2 rounded-md border px-3 text-xs font-semibold transition"
+              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
             >
               <Share2 size={14} />
               {text.shareAletheia}
@@ -6431,6 +6859,7 @@ function CounselAction({ label, onClick }: { label: string; onClick: () => void 
 }
 
 function HistoryExchange({
+  theme,
   exchange,
   preferences,
   expanded,
@@ -6438,6 +6867,7 @@ function HistoryExchange({
   onContinue,
   onScriptureOpen,
 }: {
+  theme: ThemeColors;
   exchange: ConversationExchange;
   preferences: UserPreferences;
   expanded: boolean;
@@ -6449,34 +6879,35 @@ function HistoryExchange({
   const preview = cleanDisplayText(exchange.answer.text).slice(0, 120);
 
   return (
-    <article className="rounded-lg border border-[#d8e1db] bg-[#fbfcf8]/76">
+    <article className="rounded-lg border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
       <button
         type="button"
         onClick={onToggle}
-        className="flex w-full items-start justify-between gap-3 p-3 text-left transition hover:bg-white/70"
+        className="flex w-full items-start justify-between gap-3 p-3 text-left transition"
       >
         <span className="min-w-0">
-          <span className="block truncate text-sm font-semibold text-[#203a35]">{cleanDisplayText(title)}</span>
-          <span className="mt-1 block line-clamp-2 text-xs leading-5 text-[#607067]">{preview}</span>
+          <span className="block truncate text-sm font-semibold" style={{ color: theme.textPrimary }}>{cleanDisplayText(title)}</span>
+          <span className="mt-1 block line-clamp-2 text-xs leading-5" style={{ color: theme.textMuted }}>{preview}</span>
         </span>
-        <span className="shrink-0 rounded-md bg-[#edf2ee] px-2 py-1 text-xs font-semibold text-[#52635a]">
+        <span className="shrink-0 rounded-md px-2 py-1 text-xs font-semibold" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>
           {expanded ? "Hide" : "Read"}
         </span>
       </button>
       {expanded ? (
-        <div className="border-t border-[#d8e1db] p-3">
+        <div className="border-t p-3" style={{ borderColor: theme.borderLight }}>
           {exchange.question ? (
-            <p className="rounded-md bg-[#203a35] p-3 text-sm leading-6 text-[#f8f5e8]">{cleanDisplayText(exchange.question.text)}</p>
+            <p className="rounded-md p-3 text-sm leading-6" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>{cleanDisplayText(exchange.question.text)}</p>
           ) : null}
           <div className="mt-3">
-            <ScriptureLinkedText text={exchange.answer.text} onScriptureOpen={onScriptureOpen} />
+            <ScriptureLinkedText theme={theme} text={exchange.answer.text} onScriptureOpen={onScriptureOpen} />
           </div>
-          <ScriptureChips sources={exchange.answer.sources} preferences={preferences} onScriptureOpen={onScriptureOpen} />
+          <ScriptureChips theme={theme} sources={exchange.answer.sources} preferences={preferences} onScriptureOpen={onScriptureOpen} />
           {exchange.question ? (
             <button
               type="button"
               onClick={onContinue}
-              className="mt-3 h-11 rounded-md border border-[#c9d5cd] bg-white/78 px-3 text-xs font-semibold text-[#405049] transition hover:bg-white"
+              className="mt-3 h-11 rounded-md border px-3 text-xs font-semibold transition"
+              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
             >
               Continue from this
             </button>
@@ -6532,6 +6963,7 @@ function DecisionCompanionPanel({
   isSpeaking,
   onAddRule,
   onScriptureOpen,
+  theme,
 }: {
   mode: Mode;
   modeProfile: DisplayModeProfile;
@@ -6585,6 +7017,7 @@ function DecisionCompanionPanel({
   isSpeaking: boolean;
   onAddRule: (event: FormEvent<HTMLFormElement>) => void;
   onScriptureOpen: (scripture: string) => void;
+  theme: ThemeColors;
 }) {
   const activeDecisions = decisions.filter((decision) => decision.status !== "closed");
   const selectedDecision = decisions[0];
@@ -6598,11 +7031,11 @@ function DecisionCompanionPanel({
     <div className="min-w-0 space-y-4 xl:grid xl:gap-4 xl:space-y-0 xl:grid-cols-[1fr_340px]">
       <section className="space-y-4">
         {counselSummaryDraft ? (
-          <section className="rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm xl:hidden">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">Counsel Circle</p>
-            <div className="mt-3 rounded-lg border border-[#d0ad55]/50 bg-[#fff8dc]/70 p-3">
+          <section className="rounded-xl border p-4 shadow-sm xl:hidden" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>Counsel Circle</p>
+            <div className="mt-3 rounded-lg border p-3" style={{ borderColor: theme.accentGold + '80', backgroundColor: theme.bgCardElevated }}>
               <div className="flex items-start justify-between gap-2">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#866a24]">Summary ready</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>Summary ready</p>
                 <button
                   type="button"
                   onClick={() => {
@@ -6615,18 +7048,19 @@ function DecisionCompanionPanel({
                       );
                     }
                   }}
-                  className="grid size-9 shrink-0 place-items-center rounded-md border-2 border-[#c9d5cd] bg-white text-[#cc4444] transition hover:border-[#cc4444] hover:bg-[#fff5f5]"
+                  className="grid size-9 shrink-0 place-items-center rounded-md border-2 transition"
+                  style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: '#cc4444' }}
                   aria-label="Delete counsel summary"
                   title="Delete summary"
                 >
                   <X size={18} />
                 </button>
               </div>
-              <p className="mt-2 text-sm font-semibold text-[#203a35]">{counselSummaryDraft.title}</p>
-              <pre className="mt-3 max-h-72 overflow-auto whitespace-pre-wrap rounded-md border border-[#d8e1db] bg-white/72 p-3 text-xs leading-5 text-[#405049]">
+              <p className="mt-2 text-sm font-semibold" style={{ color: theme.textPrimary }}>{counselSummaryDraft.title}</p>
+              <pre className="mt-3 max-h-72 overflow-auto whitespace-pre-wrap rounded-md border p-3 text-xs leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
                 {counselSummaryDraft.body}
               </pre>
-              <p className="mt-2 text-xs leading-5 text-[#607067]">
+              <p className="mt-2 text-xs leading-5" style={{ color: theme.textSecondary }}>
                 This summary is private until you copy it or share a selected decision with someone in your Counsel Circle.
               </p>
             </div>
@@ -6636,36 +7070,40 @@ function DecisionCompanionPanel({
           eyebrow="Next in Decisions"
           title={decisionNextTitle}
           body={decisionNextBody}
+          theme={theme}
         />
-        <section className="rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm sm:p-5">
+        <section className="rounded-xl border p-4 shadow-sm sm:p-5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">Decision Companion</p>
-              <h2 className="mt-2 text-2xl font-semibold text-[#203a35]">Track the decision until wisdom has had time to work.</h2>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-[#55645b]">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>Decision Companion</p>
+              <h2 className="mt-2 text-2xl font-semibold" style={{ color: theme.textPrimary }}>Track the decision until wisdom has had time to work.</h2>
+              <p className="mt-2 max-w-2xl text-sm leading-6" style={{ color: theme.textSecondary }}>
                 Memory, counsel, waiting, summary export, and a calm readiness signal for major choices.
               </p>
             </div>
-            <span className="w-fit rounded-md bg-[#edf2ee] px-3 py-2 text-xs font-semibold text-[#52635a]">{modeProfile.displayLabel ?? modeProfile.label} lens</span>
+            <span className="w-fit rounded-md px-3 py-2 text-xs font-semibold" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>{modeProfile.displayLabel ?? modeProfile.label} lens</span>
           </div>
 
           <form onSubmit={onCreateDecision} className="mt-5 grid gap-3 lg:grid-cols-[1fr_1.2fr_auto]">
             <input
               value={title}
               onChange={(event) => setTitle(event.target.value)}
-              className="h-11 rounded-lg border border-[#c9d5cd] bg-white/78 px-3 text-sm outline-none focus:border-[#203a35]"
+              className="h-11 rounded-lg border px-3 text-sm outline-none"
+              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
               placeholder="Decision title"
             />
             <input
               value={pressure}
               onChange={(event) => setPressure(event.target.value)}
-              className="h-11 rounded-lg border border-[#c9d5cd] bg-white/78 px-3 text-sm outline-none focus:border-[#203a35]"
+              className="h-11 rounded-lg border px-3 text-sm outline-none"
+              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
               placeholder="What pressure, fear, or hope is attached?"
             />
             <select
               value={emotion}
               onChange={(event) => setEmotion(event.target.value)}
-              className="h-11 rounded-lg border border-[#c9d5cd] bg-white/78 px-3 text-sm outline-none focus:border-[#203a35]"
+              className="h-11 rounded-lg border px-3 text-sm outline-none"
+              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
               aria-label="Initial emotion"
             >
               <option>uncertain</option>
@@ -6674,63 +7112,63 @@ function DecisionCompanionPanel({
               <option>pressured</option>
               <option>peaceful</option>
             </select>
-            <button className="h-11 rounded-lg bg-[#203a35] px-4 text-sm font-semibold text-[#f8f5e8] lg:col-span-full">
+            <button className="h-11 rounded-lg px-4 text-sm font-semibold lg:col-span-full" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>
               Start decision memory
             </button>
           </form>
         </section>
 
         <section className="grid gap-4 md:grid-cols-3">
-          <TimelineStat icon={Clock3} label="Active decisions" value={String(activeDecisions.length)} />
-          <TimelineStat icon={Sparkles} label="Days discerning" value={String(insight.daysDiscerning)} />
-          <TimelineStat icon={ShieldCheck} label="Patterns noticed" value={String(insight.patterns.length)} />
+          <TimelineStat icon={Clock3} label="Active decisions" value={String(activeDecisions.length)} theme={theme} />
+          <TimelineStat icon={Sparkles} label="Days discerning" value={String(insight.daysDiscerning)} theme={theme} />
+          <TimelineStat icon={ShieldCheck} label="Patterns noticed" value={String(insight.patterns.length)} theme={theme} />
         </section>
 
-        <section className="rounded-xl border border-[#c9d5cd] bg-[#203a35] p-4 text-[#f8f5e8] shadow-sm sm:p-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#d0ad55]">Wisdom Timeline</p>
-          <p className="mt-3 text-sm leading-6 text-[#edf4ee]">{insight.gentleObservation}</p>
+        <section className="rounded-xl border p-4 shadow-sm sm:p-5" style={{ backgroundColor: theme.primary, borderColor: theme.borderMedium, color: theme.textOnPrimary }}>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textOnPrimary, opacity: 0.9 }}>Wisdom Timeline</p>
+          <p className="mt-3 text-sm leading-6" style={{ color: theme.textOnPrimary }}>{insight.gentleObservation}</p>
           <div className="mt-4 space-y-3">
             {events.slice(0, 5).map((event) => (
               <div key={event.id} className="rounded-lg border border-white/10 bg-white/7 p-3">
-                <p className="text-sm leading-6 text-[#edf4ee]">{event.body}</p>
-                <p className="mt-1 text-xs text-[#b8c8bd]">{new Date(event.createdAt).toLocaleDateString()}</p>
+                <p className="text-sm leading-6" style={{ color: theme.textOnPrimary }}>{event.body}</p>
+                <p className="mt-1 text-xs" style={{ color: theme.textOnPrimary, opacity: 0.7 }}>{new Date(event.createdAt).toLocaleDateString()}</p>
               </div>
             ))}
-            {!events.length ? <p className="text-sm leading-6 text-[#cddbd1]">Start a decision to begin your wisdom timeline.</p> : null}
+            {!events.length ? <p className="text-sm leading-6" style={{ color: theme.textOnPrimary }}>Start a decision to begin your wisdom timeline.</p> : null}
           </div>
         </section>
 
         <section className="space-y-3">
           {decisions.map((decision) => (
-            <DecisionCard key={decision.id} decision={decision} modeProfile={modeProfiles[decision.mode]} onUpdate={onUpdateDecision} onDelete={onDeleteDecision} />
+            <DecisionCard key={decision.id} decision={decision} modeProfile={modeProfiles[decision.mode]} onUpdate={onUpdateDecision} onDelete={onDeleteDecision} theme={theme} />
           ))}
           {!decisions.length ? (
-            <div className="rounded-xl border border-dashed border-[#c9d5cd] p-6 text-sm leading-6 text-[#617067]">
+            <div className="rounded-xl border border-dashed p-6 text-sm leading-6" style={{ borderColor: theme.borderMedium, color: theme.textSecondary }}>
               No decision memory yet. Add the first decision above and Aletheia will track pressure, wisdom anchors, waiting, counsel, and learning.
             </div>
           ) : null}
         </section>
 
-        <section className="rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">Formation rhythm</p>
+        <section className="rounded-xl border p-4 shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>Formation rhythm</p>
           <div className="mt-3 grid gap-2">
-            <RhythmItem label="3-minute morning reflection" body="Name the pressure before the day names it for you." />
-            <RhythmItem label="Evening examen" body="Review one money or work moment with honesty, not shame." />
-            <RhythmItem label="Weekly pattern review" body="Notice repeated urgency, comparison, fear, or overgiving." />
+            <RhythmItem label="3-minute morning reflection" body="Name the pressure before the day names it for you." theme={theme} />
+            <RhythmItem label="Evening examen" body="Review one money or work moment with honesty, not shame." theme={theme} />
+            <RhythmItem label="Weekly pattern review" body="Notice repeated urgency, comparison, fear, or overgiving." theme={theme} />
           </div>
         </section>
       </section>
 
       <aside className="space-y-4">
-        <section id="counsel-circle" className="scroll-mt-24 rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">Counsel Circle</p>
-          <p className="mt-2 text-sm leading-6 text-[#607067]">
+        <section id="counsel-circle" className="scroll-mt-24 rounded-xl border p-4 shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>Counsel Circle</p>
+          <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
             Invite trusted people privately. They see only the decision summaries you choose to share.
           </p>
           {counselSummaryDraft ? (
-            <div className="mt-3 rounded-lg border border-[#d0ad55]/50 bg-[#fff8dc]/70 p-3">
+            <div className="mt-3 rounded-lg border p-3" style={{ borderColor: theme.accentGold, backgroundColor: theme.bgCardElevated }}>
               <div className="flex items-start justify-between gap-2">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#866a24]">Summary ready</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>Summary ready</p>
                 <button
                   type="button"
                   onClick={() => {
@@ -6743,18 +7181,19 @@ function DecisionCompanionPanel({
                       );
                     }
                   }}
-                  className="grid size-9 shrink-0 place-items-center rounded-md border-2 border-[#c9d5cd] bg-white text-[#cc4444] transition hover:border-[#cc4444] hover:bg-[#fff5f5]"
+                  className="grid size-9 shrink-0 place-items-center rounded-md border-2 transition"
+                  style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: '#cc4444' }}
                   aria-label="Delete counsel summary"
                   title="Delete summary"
                 >
                   <X size={18} />
                 </button>
               </div>
-              <p className="mt-2 text-sm font-semibold text-[#203a35]">{counselSummaryDraft.title}</p>
-              <pre className="mt-3 max-h-72 overflow-auto whitespace-pre-wrap rounded-md border border-[#d8e1db] bg-white/72 p-3 text-xs leading-5 text-[#405049]">
+              <p className="mt-2 text-sm font-semibold" style={{ color: theme.textPrimary }}>{counselSummaryDraft.title}</p>
+              <pre className="mt-3 max-h-72 overflow-auto whitespace-pre-wrap rounded-md border p-3 text-xs leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
                 {counselSummaryDraft.body}
               </pre>
-              <p className="mt-2 text-xs leading-5 text-[#607067]">
+              <p className="mt-2 text-xs leading-5" style={{ color: theme.textSecondary }}>
                 This summary is private until you copy it or share a selected decision with someone in your Counsel Circle.
               </p>
             </div>
@@ -6763,19 +7202,22 @@ function DecisionCompanionPanel({
             <input
               value={counselName}
               onChange={(event) => setCounselName(event.target.value)}
-              className="h-10 rounded-md border border-[#c9d5cd] bg-white/78 px-3 text-sm outline-none"
+              className="h-10 rounded-md border px-3 text-sm outline-none"
+              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
               placeholder="name"
             />
             <input
               value={counselContactValue}
               onChange={(event) => setCounselContactValue(event.target.value)}
-              className="h-10 rounded-md border border-[#c9d5cd] bg-white/78 px-3 text-sm outline-none"
+              className="h-10 rounded-md border px-3 text-sm outline-none"
+              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
               placeholder="Email or phone, optional"
             />
             <select
               value={counselRole}
               onChange={(event) => setCounselRole(event.target.value)}
-              className="h-10 rounded-md border border-[#c9d5cd] bg-white/78 px-3 text-sm outline-none"
+              className="h-10 rounded-md border px-3 text-sm outline-none"
+              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
             >
               <option>spouse</option>
               <option>mentor</option>
@@ -6783,7 +7225,7 @@ function DecisionCompanionPanel({
               <option>advisor</option>
               <option>friend</option>
             </select>
-            <div className="space-y-2 rounded-lg border border-[#d8e1db] bg-white/64 p-3 text-sm text-[#405049]">
+            <div className="space-y-2 rounded-lg border p-3 text-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
               <PermissionToggle
                 checked={counselCanViewSummaries}
                 label="Can view selected decision summaries"
@@ -6800,19 +7242,19 @@ function DecisionCompanionPanel({
                 onChange={setCounselCanReceiveCheckins}
               />
             </div>
-            <p className="rounded-lg border border-[#d8e1db] bg-white/64 p-3 text-xs leading-5 text-[#607067]">
+            <p className="rounded-lg border p-3 text-xs leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
               Private chats, journal entries, and unshared decisions are never visible to counselors by default.
             </p>
-            <button className="h-10 rounded-md bg-[#203a35] px-3 text-sm font-semibold text-[#f8f5e8]">
+            <button className="h-10 rounded-md px-3 text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>
               {userSignedIn ? "Create private invite" : "Add locally"}
             </button>
           </form>
           {latestCounselInvite ? (
-            <div className="mt-3 rounded-lg border border-[#c9d5cd] bg-[#eef2ef] p-3">
-              <p className="text-sm font-semibold text-[#203a35]">Invite ready for {latestCounselInvite.name}</p>
-              <p className="mt-1 break-all text-xs leading-5 text-[#607067]">{latestCounselInvite.url}</p>
+            <div className="mt-3 rounded-lg border p-3" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
+              <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>Invite ready for {latestCounselInvite.name}</p>
+              <p className="mt-1 break-all text-xs leading-5" style={{ color: theme.textSecondary }}>{latestCounselInvite.url}</p>
               {counselContacts[0]?.name === latestCounselInvite.name && counselContacts[0]?.emailSent ? (
-                <p className="mt-2 rounded-md bg-[#edf7f1] px-2 py-1 text-xs font-semibold text-[#245443]">
+                <p className="mt-2 rounded-md px-2 py-1 text-xs font-semibold" style={{ backgroundColor: theme.bgCardElevated, color: theme.primary }}>
                   Email sent. The private link is also here as a fallback.
                 </p>
               ) : null}
@@ -6825,28 +7267,32 @@ function DecisionCompanionPanel({
                   Copy link
                 </button>
                 <button
-                  className="rounded-md bg-[#203a35] px-3 py-2 text-xs font-semibold text-[#f8f5e8]"
+                  className="rounded-md px-3 py-2 text-xs font-semibold"
+                  style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
                   onClick={() => onShareCounselInvite("native")}
                   type="button"
                 >
                   Share invite
                 </button>
                 <button
-                  className="rounded-md border border-[#c9d5cd] px-3 py-2 text-xs font-semibold text-[#203a35]"
+                  className="rounded-md border px-3 py-2 text-xs font-semibold"
+                  style={{ borderColor: theme.borderMedium, color: theme.textPrimary }}
                   onClick={() => onShareCounselInvite("email")}
                   type="button"
                 >
                   Email
                 </button>
                 <button
-                  className="rounded-md border border-[#c9d5cd] px-3 py-2 text-xs font-semibold text-[#203a35]"
+                  className="rounded-md border px-3 py-2 text-xs font-semibold"
+                  style={{ borderColor: theme.borderMedium, color: theme.textPrimary }}
                   onClick={() => onShareCounselInvite("sms")}
                   type="button"
                 >
                   SMS
                 </button>
                 <button
-                  className="rounded-md border border-[#c9d5cd] px-3 py-2 text-xs font-semibold text-[#203a35]"
+                  className="rounded-md border px-3 py-2 text-xs font-semibold"
+                  style={{ borderColor: theme.borderMedium, color: theme.textPrimary }}
                   onClick={() => onShareCounselInvite("whatsapp")}
                   type="button"
                 >
@@ -6857,43 +7303,56 @@ function DecisionCompanionPanel({
           ) : null}
           <div className="mt-3 space-y-2">
             {counselContacts.slice(0, 5).map((contact) => (
-              <div key={contact.id} className="rounded-lg border border-[#d8e1db] bg-white/64 p-3">
+              <div key={contact.id} className="rounded-lg border p-3" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
                 <div className="flex items-center gap-2">
-                  <Users size={16} className="text-[#405049]" />
+                  <Users size={16} style={{ color: theme.textSecondary }} />
                   <div>
-                    <p className="text-sm font-semibold text-[#203a35]">{contact.name}</p>
-                    <p className="text-xs uppercase tracking-[0.12em] text-[#718077]">
+                    <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{contact.name}</p>
+                    <p className="text-xs uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
                       {contact.role} · {contact.inviteStatus === "accepted" ? "accepted" : contact.inviteStatus === "pending" ? "invited" : "local"}
                     </p>
                   </div>
                 </div>
-                <div className="mt-2 flex flex-wrap gap-1 text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-[#607067]">
-                  {contact.canViewSummaries ? <span className="rounded bg-[#edf2ee] px-2 py-1">summaries</span> : null}
-                  {contact.canCommentOnDecisions ? <span className="rounded bg-[#edf2ee] px-2 py-1">comments</span> : null}
-                  {contact.canReceiveCheckins ? <span className="rounded bg-[#edf2ee] px-2 py-1">check-ins</span> : null}
+                <div className="mt-2 flex flex-wrap gap-1 text-[0.68rem] font-semibold uppercase tracking-[0.08em]" style={{ color: theme.textSecondary }}>
+                  {contact.canViewSummaries ? <span className="rounded px-2 py-1" style={{ backgroundColor: theme.bgCardElevated }}>summaries</span> : null}
+                  {contact.canCommentOnDecisions ? <span className="rounded px-2 py-1" style={{ backgroundColor: theme.bgCardElevated }}>comments</span> : null}
+                  {contact.canReceiveCheckins ? <span className="rounded px-2 py-1" style={{ backgroundColor: theme.bgCardElevated }}>check-ins</span> : null}
                 </div>
                 {contact.canViewSummaries && decisions.length > 0 ? (
                   <div className="mt-3 space-y-2">
-                    <p className="text-xs font-semibold text-[#607067]">Share decisions:</p>
-                    <div className="max-h-48 space-y-1 overflow-y-auto rounded-md border border-[#d8e1db] bg-white/50 p-2">
+                    <p className="text-xs font-semibold" style={{ color: theme.textSecondary }}>Share decisions:</p>
+                    <div className="max-h-48 space-y-1 overflow-y-auto rounded-md border p-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
                       {decisions.map((decision) => (
                         <button
                           key={decision.id}
                           type="button"
-                          className="flex w-full items-start gap-2 rounded border border-[#c9d5cd] bg-white/80 px-2 py-2 text-left text-xs transition hover:border-[#203a35] hover:bg-white"
+                          className="flex w-full items-start gap-2 rounded border px-2 py-2 text-left text-xs transition"
+                          style={{
+                            borderColor: theme.borderMedium,
+                            backgroundColor: theme.bgCard,
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.borderColor = theme.primary;
+                            e.currentTarget.style.backgroundColor = theme.bgCardElevated;
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.borderColor = theme.borderMedium;
+                            e.currentTarget.style.backgroundColor = theme.bgCard;
+                          }}
                           onClick={() => onShareDecisionWithCounsel(contact.id, decision.id)}
                         >
-                          <span className="mt-0.5 shrink-0 rounded bg-[#edf2ee] px-1.5 py-0.5 text-[0.65rem] font-semibold text-[#52635a]">
+                          <span className="mt-0.5 shrink-0 rounded px-1.5 py-0.5 text-[0.65rem] font-semibold" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>
                             {decision.mode}
                           </span>
-                          <span className="min-w-0 flex-1 truncate font-medium text-[#203a35]">{decision.title}</span>
+                          <span className="min-w-0 flex-1 truncate font-medium" style={{ color: theme.textPrimary }}>{decision.title}</span>
                         </button>
                       ))}
                     </div>
                     {decisions.length > 1 ? (
                       <button
                         type="button"
-                        className="w-full rounded-md bg-[#203a35] px-3 py-2 text-xs font-semibold text-[#f8f5e8] transition hover:bg-[#2e564d]"
+                        className="w-full rounded-md px-3 py-2 text-xs font-semibold transition"
+                        style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
                         onClick={() => onBulkShareDecisionsWithCounsel(contact.id, decisions.map((d) => d.id))}
                       >
                         Share all {decisions.length} decisions
@@ -6904,41 +7363,42 @@ function DecisionCompanionPanel({
               </div>
             ))}
             {!counselContacts.length ? (
-              <p className="rounded-lg border border-dashed border-[#c9d5cd] p-3 text-sm leading-6 text-[#607067]">
+              <p className="rounded-lg border border-dashed p-3 text-sm leading-6" style={{ borderColor: theme.borderMedium, color: theme.textSecondary }}>
                 Add one trusted person before the next high-stakes decision.
               </p>
             ) : null}
           </div>
         </section>
 
-        <section className="rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">Rule of Life</p>
+        <section className="rounded-xl border p-4 shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>Rule of Life</p>
           <form onSubmit={onAddRule} className="mt-3 grid gap-2">
             <textarea
               value={ruleText}
               onChange={(event) => setRuleText(event.target.value)}
-              className="min-h-20 resize-none rounded-md border border-[#c9d5cd] bg-white/78 px-3 py-2 text-sm leading-6 outline-none"
+              className="min-h-20 resize-none rounded-md border px-3 py-2 text-sm leading-6 outline-none"
+              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
               placeholder="I do not make career decisions without counsel."
             />
-            <button className="h-10 rounded-md bg-[#203a35] px-3 text-sm font-semibold text-[#f8f5e8]">Save principle</button>
+            <button className="h-10 rounded-md px-3 text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>Save principle</button>
           </form>
           <div className="mt-3 space-y-2">
             {modeRules.slice(0, 4).map((rule) => (
-              <p key={rule.id} className="rounded-lg border border-[#d8e1db] bg-white/64 p-3 text-sm leading-6 text-[#45534b]">
+              <p key={rule.id} className="rounded-lg border p-3 text-sm leading-6" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
                 {rule.principle}
               </p>
             ))}
             {!modeRules.length ? (
-              <p className="rounded-lg border border-dashed border-[#c9d5cd] p-3 text-sm leading-6 text-[#607067]">
+              <p className="rounded-lg border border-dashed p-3 text-sm leading-6" style={{ borderColor: theme.borderMedium, color: theme.textSecondary }}>
                 Write one principle you want to live by before pressure arrives.
               </p>
             ) : null}
           </div>
         </section>
 
-        <section className="rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">Scripture integrity</p>
-          <ul className="mt-3 space-y-2 text-sm leading-6 text-[#55645b]">
+        <section className="rounded-xl border p-4 shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>Scripture integrity</p>
+          <ul className="mt-3 space-y-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
             <li>References come from the curated wisdom library.</li>
             <li>No financial outcomes or divine predictions.</li>
             <li>Prosperity-gospel framing is refused.</li>
@@ -6946,30 +7406,37 @@ function DecisionCompanionPanel({
           </ul>
         </section>
 
-        <section className="rounded-xl border border-[#c9d5cd] bg-[#203a35] p-4 text-[#f8f5e8] shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#d0ad55]">Decision practice</p>
-          <p className="mt-3 text-sm font-semibold text-[#f3e8bd]">{modeProfile.practices[0]}</p>
-          <p className="mt-2 text-sm leading-6 text-[#edf4ee]">A small practice for the decision you are carrying, shaped by the active wisdom mode.</p>
+        <section className="rounded-xl border p-4 shadow-sm" style={{ backgroundColor: theme.primary, borderColor: theme.borderMedium, color: theme.textOnPrimary }}>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textOnPrimary, opacity: 0.9 }}>Decision practice</p>
+          <p className="mt-3 text-sm font-semibold" style={{ color: theme.textOnPrimary }}>{modeProfile.practices[0]}</p>
+          <p className="mt-2 text-sm leading-6" style={{ color: theme.textOnPrimary }}>A small practice for the decision you are carrying, shaped by the active wisdom mode.</p>
         </section>
 
         {selectedDecision?.summary ? (
-          <section className="rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm">
+          <section className="rounded-xl border p-4 shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">Decision Summary Export</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>Decision Summary Export</p>
               <button
                 type="button"
                 onClick={() => onSpeakText(selectedDecision.summary || "", "Aletheia is reading the decision summary aloud.")}
-                className="inline-flex h-11 items-center gap-2 rounded-md border border-[#c9d5cd] bg-white/78 px-3 text-xs font-semibold text-[#405049] transition hover:bg-white"
+                className="inline-flex h-11 items-center gap-2 rounded-md border px-3 text-xs font-semibold transition"
+                style={{
+                  borderColor: theme.borderMedium,
+                  backgroundColor: theme.bgInput,
+                  color: theme.textPrimary,
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.bgCardElevated}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = theme.bgInput}
               >
-                <Volume2 size={14} className={isSpeaking ? "text-[#866a24]" : undefined} />
+                <Volume2 size={14} style={{ color: isSpeaking ? theme.accentGold : 'inherit' }} />
                 {isSpeaking ? "Stop" : "Read aloud"}
               </button>
             </div>
-            <p className="mt-2 text-sm leading-6 text-[#55645b]">
+            <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
               Mentor-ready summary with decision, pressure, wisdom anchors, risks, counsel questions, and next faithful step. Review it before sharing.
             </p>
-            <div className="mt-3 max-h-80 min-h-40 overflow-y-auto rounded-md border border-[#c9d5cd] bg-white/78 p-3">
-              <ScriptureLinkedText text={selectedDecision.summary} onScriptureOpen={onScriptureOpen} />
+            <div className="mt-3 max-h-80 min-h-40 overflow-y-auto rounded-md border p-3" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput }}>
+              <ScriptureLinkedText theme={theme} text={selectedDecision.summary} onScriptureOpen={onScriptureOpen} />
             </div>
           </section>
         ) : null}
@@ -6978,14 +7445,14 @@ function DecisionCompanionPanel({
   );
 }
 
-function TimelineStat({ icon: Icon, label, value }: { icon: typeof Clock3; label: string; value: string }) {
+function TimelineStat({ icon: Icon, label, value, theme }: { icon: typeof Clock3; label: string; value: string; theme: ThemeColors }) {
   return (
-    <div className="rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm">
+    <div className="rounded-xl border p-4 shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
       <div className="flex items-center justify-between">
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#866a24]">{label}</p>
-        <Icon size={17} className="text-[#405049]" />
+        <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{label}</p>
+        <Icon size={17} style={{ color: theme.textSecondary }} />
       </div>
-      <p className="mt-3 text-3xl font-semibold text-[#203a35]">{value}</p>
+      <p className="mt-3 text-3xl font-semibold" style={{ color: theme.textPrimary }}>{value}</p>
     </div>
   );
 }
@@ -7017,6 +7484,7 @@ function DecisionCard({
   modeProfile,
   onUpdate,
   onDelete,
+  theme,
 }: {
   decision: WisdomDecision;
   modeProfile: ModeProfile;
@@ -7030,6 +7498,7 @@ function DecisionCard({
     }
   ) => void;
   onDelete: (id: string) => void;
+  theme: ThemeColors;
 }) {
   const [noteDraft, setNoteDraft] = useState("");
   const [finalDecisionDraft, setFinalDecisionDraft] = useState(decision.finalDecision ?? "");
@@ -7041,28 +7510,41 @@ function DecisionCard({
   const revisitText = revisit ? `Revisit ${revisit.toLocaleDateString()}` : null;
   const outcomeText = outcomeReview ? `Outcome review ${outcomeReview.toLocaleDateString()}` : null;
   return (
-    <article className="rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm sm:p-5">
+    <article className="rounded-xl border p-4 shadow-sm sm:p-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div className="flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-md bg-[#edf2ee] px-2 py-1 text-xs font-semibold text-[#52635a]">{decision.mode}</span>
-            <span className="rounded-md bg-white/70 px-2 py-1 text-xs font-semibold text-[#866a24]">{decision.status}</span>
-            {waitingText ? <span className="rounded-md bg-[#fff8dc] px-2 py-1 text-xs font-semibold text-[#866a24]">{waitingText}</span> : null}
-            {revisitText ? <span className="rounded-md bg-[#edf7f1] px-2 py-1 text-xs font-semibold text-[#245443]">{revisitText}</span> : null}
-            {outcomeText ? <span className="rounded-md bg-[#edf2ee] px-2 py-1 text-xs font-semibold text-[#52635a]">{outcomeText}</span> : null}
+            <span className="rounded-md px-2 py-1 text-xs font-semibold" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>{decision.mode}</span>
+            <span className="rounded-md px-2 py-1 text-xs font-semibold" style={{ backgroundColor: theme.bgCardElevated, color: theme.accentGold }}>{decision.status}</span>
+            {waitingText ? <span className="rounded-md px-2 py-1 text-xs font-semibold" style={{ backgroundColor: theme.bgCardElevated, color: theme.accentGold }}>{waitingText}</span> : null}
+            {revisitText ? <span className="rounded-md px-2 py-1 text-xs font-semibold" style={{ backgroundColor: theme.bgInput, color: theme.primary }}>{revisitText}</span> : null}
+            {outcomeText ? <span className="rounded-md px-2 py-1 text-xs font-semibold" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>{outcomeText}</span> : null}
           </div>
-          <h3 className="mt-3 text-xl font-semibold text-[#203a35]">{decision.title}</h3>
-          <p className="mt-2 text-sm leading-6 text-[#55645b]">{decision.pressure}</p>
+          <h3 className="mt-3 text-xl font-semibold" style={{ color: theme.textPrimary }}>{decision.title}</h3>
+          <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>{decision.pressure}</p>
         </div>
         <div className="flex shrink-0 gap-2">
-          <div className="min-w-28 rounded-lg border border-[#d8e1db] bg-white/70 p-3 text-center">
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#718077]">Readiness</p>
-            <p className="mt-1 text-2xl font-semibold text-[#203a35]">{decision.readiness}%</p>
+          <div className="min-w-28 rounded-lg border p-3 text-center" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+            <p className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>Readiness</p>
+            <p className="mt-1 text-2xl font-semibold" style={{ color: theme.textPrimary }}>{decision.readiness}%</p>
           </div>
           <button
             type="button"
             onClick={() => onDelete(decision.id)}
-            className="grid size-11 shrink-0 place-items-center self-start rounded-lg border-2 border-[#c9d5cd] bg-white text-[#cc4444] transition hover:border-[#cc4444] hover:bg-[#fff5f5]"
+            className="grid size-11 shrink-0 place-items-center self-start rounded-lg border-2 transition"
+            style={{
+              borderColor: theme.borderMedium,
+              backgroundColor: theme.bgCard,
+              color: '#cc4444',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = '#cc4444';
+              e.currentTarget.style.backgroundColor = '#fff5f5';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = theme.borderMedium;
+              e.currentTarget.style.backgroundColor = theme.bgCard;
+            }}
             aria-label="Delete decision"
             title="Delete this decision"
           >
@@ -7072,18 +7554,18 @@ function DecisionCard({
       </div>
 
       <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
-        <DecisionToggle active={decision.counselSought} label="Counsel" onClick={() => onUpdate(decision.id, { counselSought: !decision.counselSought, event: "Counsel status changed." })} />
-        <DecisionToggle active={decision.costCounted} label="Cost" onClick={() => onUpdate(decision.id, { costCounted: !decision.costCounted, event: "Cost counting updated." })} />
-        <DecisionToggle active={decision.alignmentClear} label="Values" onClick={() => onUpdate(decision.id, { alignmentClear: !decision.alignmentClear, event: "Values alignment updated." })} />
-        <DecisionToggle active={decision.reversibleStep} label="Reversible" onClick={() => onUpdate(decision.id, { reversibleStep: !decision.reversibleStep, event: "Reversibility updated." })} />
-        <DecisionToggle active={decision.peaceOverUrgency} label="Peace" onClick={() => onUpdate(decision.id, { peaceOverUrgency: !decision.peaceOverUrgency, event: "Peace over urgency updated." })} />
+        <DecisionToggle active={decision.counselSought} label="Counsel" onClick={() => onUpdate(decision.id, { counselSought: !decision.counselSought, event: "Counsel status changed." })} theme={theme} />
+        <DecisionToggle active={decision.costCounted} label="Cost" onClick={() => onUpdate(decision.id, { costCounted: !decision.costCounted, event: "Cost counting updated." })} theme={theme} />
+        <DecisionToggle active={decision.alignmentClear} label="Values" onClick={() => onUpdate(decision.id, { alignmentClear: !decision.alignmentClear, event: "Values alignment updated." })} theme={theme} />
+        <DecisionToggle active={decision.reversibleStep} label="Reversible" onClick={() => onUpdate(decision.id, { reversibleStep: !decision.reversibleStep, event: "Reversibility updated." })} theme={theme} />
+        <DecisionToggle active={decision.peaceOverUrgency} label="Peace" onClick={() => onUpdate(decision.id, { peaceOverUrgency: !decision.peaceOverUrgency, event: "Peace over urgency updated." })} theme={theme} />
       </div>
 
       <div className="mt-4 grid gap-3 md:grid-cols-[1fr_auto] md:items-center">
-        <p className="text-sm leading-6 text-[#55645b]">{modeProfile.diagnosticTracks[0]}</p>
+        <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>{modeProfile.diagnosticTracks[0]}</p>
         <div className="flex flex-wrap gap-2">
           {[1, 3, 7, 30].map((days) => (
-            <button key={days} onClick={() => onUpdate(decision.id, { waitingDays: days })} className="rounded-md border border-[#c9d5cd] bg-white/70 px-3 py-2 text-xs font-semibold text-[#405049]">
+            <button key={days} onClick={() => onUpdate(decision.id, { waitingDays: days })} className="rounded-md border px-3 py-2 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}>
               Wait {days}d
             </button>
           ))}
@@ -7091,21 +7573,22 @@ function DecisionCard({
             if (window.confirm('Are you sure you want to close this decision? You can still view it in the timeline, but it will no longer appear in active decisions.')) {
               onUpdate(decision.id, { status: "closed", event: "Decision closed with learning recorded." });
             }
-          }} className="rounded-md bg-[#203a35] px-3 py-2 text-xs font-semibold text-[#f8f5e8]">
+          }} className="rounded-md px-3 py-2 text-xs font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>
             Close
           </button>
         </div>
       </div>
 
       <div className="mt-4 grid gap-3 lg:grid-cols-2">
-        <div className="rounded-lg border border-[#d8e1db] bg-white/64 p-3">
-          <label className="text-xs font-semibold uppercase tracking-[0.14em] text-[#866a24]">
+        <div className="rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+          <label className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
             What changed?
           </label>
           <textarea
             value={noteDraft}
             onChange={(event) => setNoteDraft(event.target.value)}
-            className="mt-2 min-h-20 w-full resize-none rounded-md border border-[#c9d5cd] bg-white/80 p-3 text-sm leading-6 outline-none"
+            className="mt-2 min-h-20 w-full resize-none rounded-md border p-3 text-sm leading-6 outline-none"
+            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
             placeholder="Prayer, counsel, facts, time, or emotion shifted..."
           />
           <button
@@ -7114,26 +7597,29 @@ function DecisionCard({
               onUpdate(decision.id, { event: noteDraft.trim() });
               setNoteDraft("");
             }}
-            className="mt-2 h-11 rounded-md border border-[#c9d5cd] bg-white/80 px-3 text-xs font-semibold text-[#405049]"
+            className="mt-2 h-11 rounded-md border px-3 text-xs font-semibold"
+            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
           >
             Add timeline note
           </button>
         </div>
 
-        <div className="rounded-lg border border-[#d8e1db] bg-white/64 p-3">
-          <label className="text-xs font-semibold uppercase tracking-[0.14em] text-[#866a24]">
+        <div className="rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+          <label className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
             Outcome and learning
           </label>
           <input
             value={finalDecisionDraft}
             onChange={(event) => setFinalDecisionDraft(event.target.value)}
-            className="mt-2 h-10 w-full rounded-md border border-[#c9d5cd] bg-white/80 px-3 text-sm outline-none"
+            className="mt-2 h-10 w-full rounded-md border px-3 text-sm outline-none"
+            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
             placeholder="Final decision"
           />
           <textarea
             value={learningDraft}
             onChange={(event) => setLearningDraft(event.target.value)}
-            className="mt-2 min-h-16 w-full resize-none rounded-md border border-[#c9d5cd] bg-white/80 p-3 text-sm leading-6 outline-none"
+            className="mt-2 min-h-16 w-full resize-none rounded-md border p-3 text-sm leading-6 outline-none"
+            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
             placeholder="What did you learn?"
           />
           <button
@@ -7145,16 +7631,17 @@ function DecisionCard({
                 event: "Recorded final decision and learning.",
               })
             }
-            className="mt-2 h-11 rounded-md bg-[#203a35] px-3 text-xs font-semibold text-[#f8f5e8]"
+            className="mt-2 h-11 rounded-md px-3 text-xs font-semibold"
+            style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
           >
             Save outcome
           </button>
         </div>
       </div>
 
-      <div className="mt-4 rounded-lg border border-[#d8e1db] bg-white/64 p-3">
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#866a24]">Revisit rhythm</p>
-        <p className="mt-2 text-sm leading-6 text-[#55645b]">
+      <div className="mt-4 rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+        <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>Revisit rhythm</p>
+        <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
           Wisdom often gets clearer after facts, counsel, prayer, and time. Schedule a light review point without turning it into pressure.
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
@@ -7163,7 +7650,10 @@ function DecisionCard({
               key={days}
               type="button"
               onClick={() => onUpdate(decision.id, { revisitDays: days })}
-              className="rounded-md border border-[#c9d5cd] bg-white/80 px-3 py-2 text-xs font-semibold text-[#405049] transition hover:bg-white"
+              className="rounded-md border px-3 py-2 text-xs font-semibold transition"
+              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.bgCardElevated}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = theme.bgInput}
             >
               Revisit in {days}d
             </button>
@@ -7173,7 +7663,10 @@ function DecisionCard({
               key={`outcome-${days}`}
               type="button"
               onClick={() => onUpdate(decision.id, { outcomeReviewDays: days })}
-              className="rounded-md border border-[#c9d5cd] bg-white/80 px-3 py-2 text-xs font-semibold text-[#405049] transition hover:bg-white"
+              className="rounded-md border px-3 py-2 text-xs font-semibold transition"
+              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.bgCardElevated}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = theme.bgInput}
             >
               Outcome {days}d
             </button>
@@ -7184,13 +7677,16 @@ function DecisionCard({
   );
 }
 
-function DecisionToggle({ active, label, onClick }: { active: boolean; label: string; onClick: () => void }) {
+function DecisionToggle({ active, label, onClick, theme }: { active: boolean; label: string; onClick: () => void; theme: ThemeColors }) {
   return (
     <button
       onClick={onClick}
-      className={`rounded-lg border px-3 py-2 text-sm font-semibold transition ${
-        active ? "border-[#b8d0c2] bg-[#edf7f1] text-[#245443]" : "border-[#d8e1db] bg-white/64 text-[#607067]"
-      }`}
+      className="rounded-lg border px-3 py-2 text-sm font-semibold transition"
+      style={{
+        borderColor: active ? theme.primary : theme.borderMedium,
+        backgroundColor: active ? theme.bgCardElevated : theme.bgInput,
+        color: active ? theme.primary : theme.textSecondary,
+      }}
     >
       {label}
     </button>
@@ -7207,6 +7703,7 @@ function WisdomCheck({
   result,
   mode,
   modeProfile,
+  theme,
 }: {
   decision: string;
   setDecision: (value: string) => void;
@@ -7217,33 +7714,41 @@ function WisdomCheck({
   result: { sources: WisdomEntry[]; readiness: number; hasUrgency: boolean; hasCounsel: boolean } | null;
   mode: Mode;
   modeProfile: DisplayModeProfile;
+  theme: ThemeColors;
 }) {
   return (
     <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
-      <section className="min-w-0 rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm sm:p-5">
-        <div className="mb-5 flex items-center gap-2 text-xl font-semibold text-[#203a35]">
+      <section className="min-w-0 rounded-xl border p-4 shadow-sm sm:p-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+        <div className="mb-5 flex items-center gap-2 text-xl font-semibold" style={{ color: theme.textPrimary }}>
           <Scale size={20} />
           Wisdom Check
         </div>
-        <div className="mb-5 rounded-lg border border-[#d8e1db] bg-white/62 p-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">{modeProfile.displayLabel ?? modeProfile.label} discernment lens</p>
-          <p className="mt-2 text-sm leading-6 text-[#55645b]">{modeProfile.intent}</p>
+        <div className="mb-5 rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{modeProfile.displayLabel ?? modeProfile.label} discernment lens</p>
+          <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>{modeProfile.intent}</p>
         </div>
-        <label className="text-sm font-semibold text-[#405049]" htmlFor="decision">
+        <label className="text-sm font-semibold" htmlFor="decision" style={{ color: theme.textPrimary }}>
           Decision or pressure
         </label>
         <textarea
           id="decision"
           value={decision}
           onChange={(event) => setDecision(event.target.value)}
-          className="mt-2 min-h-36 w-full resize-none rounded-lg border border-[#c9d5cd] bg-white/78 px-3 py-3 text-sm leading-6 outline-none focus:border-[#203a35]"
+          className="mt-2 min-h-36 w-full resize-none rounded-lg border px-3 py-3 text-sm leading-6 outline-none"
           placeholder="Example: I want to leave my job and start consulting, but I am worried about income stability."
+          style={{
+            borderColor: theme.borderMedium,
+            backgroundColor: theme.bgInput,
+            color: theme.textPrimary,
+          }}
+          onFocus={(e) => e.currentTarget.style.borderColor = theme.primary}
+          onBlur={(e) => e.currentTarget.style.borderColor = theme.borderMedium}
         />
 
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          <label className="text-sm font-semibold text-[#405049]">
+          <label className="text-sm font-semibold" style={{ color: theme.textPrimary }}>
             Current emotion
-            <select value={emotion} onChange={(event) => setEmotion(event.target.value)} className="mt-2 h-11 w-full rounded-md border border-[#c9d5cd] bg-white/78 px-3 text-sm outline-none">
+            <select value={emotion} onChange={(event) => setEmotion(event.target.value)} className="mt-2 h-11 w-full rounded-md border px-3 text-sm outline-none" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}>
               <option>uncertain</option>
               <option>anxious</option>
               <option>excited</option>
@@ -7251,9 +7756,9 @@ function WisdomCheck({
               <option>peaceful</option>
             </select>
           </label>
-          <label className="text-sm font-semibold text-[#405049]">
+          <label className="text-sm font-semibold" style={{ color: theme.textPrimary }}>
             Time horizon
-            <select value={timeframe} onChange={(event) => setTimeframe(event.target.value)} className="mt-2 h-11 w-full rounded-md border border-[#c9d5cd] bg-white/78 px-3 text-sm outline-none">
+            <select value={timeframe} onChange={(event) => setTimeframe(event.target.value)} className="mt-2 h-11 w-full rounded-md border px-3 text-sm outline-none" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}>
               <option>Long-term</option>
               <option>Next 90 days</option>
               <option>This month</option>
@@ -7263,59 +7768,60 @@ function WisdomCheck({
         </div>
       </section>
 
-      <section className="min-w-0 rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm sm:p-5">
-        <h2 className="text-xl font-semibold text-[#203a35]">Discernment readout</h2>
+      <section className="min-w-0 rounded-xl border p-4 shadow-sm sm:p-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+        <h2 className="text-xl font-semibold" style={{ color: theme.textPrimary }}>Discernment readout</h2>
         {result ? (
           <div className="mt-5 space-y-4">
             <div>
-              <div className="mb-2 flex items-center justify-between text-sm font-semibold text-[#405049]">
+              <div className="mb-2 flex items-center justify-between text-sm font-semibold" style={{ color: theme.textPrimary }}>
                 <span>Readiness signal</span>
                 <span>{result.readiness}%</span>
               </div>
-              <div className="h-3 overflow-hidden rounded-full bg-[#dde6df]">
-                <div className="h-full rounded-full bg-[#203a35]" style={{ width: `${result.readiness}%` }} />
+              <div className="h-3 overflow-hidden rounded-full" style={{ backgroundColor: theme.borderLight }}>
+                <div className="h-full rounded-full" style={{ width: `${result.readiness}%`, backgroundColor: theme.primary }} />
               </div>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
-              <Signal active={!result.hasUrgency} label="Pace is calm enough" />
+              <Signal active={!result.hasUrgency} label="Pace is calm enough" theme={theme} />
               <Signal
                 active={result.hasCounsel}
                 label={result.hasCounsel ? "Counsel is visible" : "Counsel still needed"}
+                theme={theme}
               />
             </div>
-            <div className="rounded-lg border border-[#d8e1db] bg-white/70 p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8a6c25]">Grounding</p>
-              <p className="mt-2 text-sm leading-6 text-[#505a52]">
+            <div className="rounded-lg border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>Grounding</p>
+              <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
                 {result.sources[0]?.scripture}: {result.sources[0]?.principle}
               </p>
             </div>
-            <div className="rounded-lg border border-[#d8e1db] bg-[#203a35] p-4 text-[#f8f5e8]">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#d0ad55]">{mode} diagnostic</p>
-              <ul className="mt-3 space-y-2 text-sm leading-6 text-[#edf4ee]">
+            <div className="rounded-lg border p-4" style={{ backgroundColor: theme.primary, borderColor: theme.borderMedium, color: theme.textOnPrimary }}>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.textOnPrimary, opacity: 0.9 }}>{mode} diagnostic</p>
+              <ul className="mt-3 space-y-2 text-sm leading-6" style={{ color: theme.textOnPrimary }}>
                 {modeProfile.diagnosticTracks.slice(0, 2).map((track) => (
                   <li key={track}>{track}</li>
                 ))}
               </ul>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-lg border border-[#d8e1db] bg-white/70 p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8a6c25]">Watch for</p>
-                <p className="mt-2 text-sm leading-6 text-[#505a52]">{modeProfile.blindSpots[0]}</p>
+              <div className="rounded-lg border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>Watch for</p>
+                <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>{modeProfile.blindSpots[0]}</p>
               </div>
-              <div className="rounded-lg border border-[#d8e1db] bg-white/70 p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8a6c25]">Practice</p>
-                <p className="mt-2 text-sm leading-6 text-[#505a52]">{modeProfile.practices[0]}</p>
+              <div className="rounded-lg border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>Practice</p>
+                <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>{modeProfile.practices[0]}</p>
               </div>
             </div>
-            <div className="rounded-lg border border-[#d8e1db] bg-white/70 p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8a6c25]">Next faithful action</p>
-              <p className="mt-2 text-sm leading-6 text-[#505a52]">
+            <div className="rounded-lg border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>Next faithful action</p>
+              <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
                 Name the smallest reversible step, show the plan to one wise person, and wait until the emotional pressure lowers before making an irreversible move.
               </p>
             </div>
           </div>
         ) : (
-          <div className="mt-5 rounded-lg border border-dashed border-[#c9d5cd] p-6 text-sm leading-6 text-[#617067]">
+          <div className="mt-5 rounded-lg border border-dashed p-6 text-sm leading-6" style={{ borderColor: theme.borderMedium, color: theme.textSecondary }}>
             Write a decision on the left. Aletheia will turn it into a reflective readout grounded in the wisdom library.
           </div>
         )}
@@ -7341,6 +7847,7 @@ function ReflectPanel({
   setBody,
   onSave,
   onDelete,
+  theme,
 }: {
   decision: string;
   setDecision: (value: string) => void;
@@ -7358,6 +7865,7 @@ function ReflectPanel({
   setBody: (value: string) => void;
   onSave: () => void;
   onDelete: (id: string) => void;
+  theme: ThemeColors;
 }) {
   const reflectNextTitle = body.trim() || decision.trim() ? "Finish the reflection in front of you" : "Begin with one honest sentence";
   const reflectNextBody = body.trim() || decision.trim()
@@ -7372,11 +7880,12 @@ function ReflectPanel({
         body={reflectNextBody}
         actionLabel={body.trim() ? "Save reflection" : undefined}
         onAction={body.trim() ? onSave : undefined}
+        theme={theme}
       />
-      <section className="rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm sm:p-5">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">Reflect</p>
-        <h2 className="mt-2 text-2xl font-semibold text-[#203a35]">Discernment and reflection in one quiet place</h2>
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-[#55645b]">
+      <section className="rounded-xl border p-4 shadow-sm sm:p-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+        <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>Reflect</p>
+        <h2 className="mt-2 text-2xl font-semibold" style={{ color: theme.textPrimary }}>Discernment and reflection in one quiet place</h2>
+        <p className="mt-2 max-w-2xl text-sm leading-6" style={{ color: theme.textSecondary }}>
           Use Wisdom Check to slow a decision down, then save what you notice before the moment passes.
         </p>
       </section>
@@ -7391,6 +7900,7 @@ function ReflectPanel({
         result={result}
         mode={mode}
         modeProfile={modeProfile}
+        theme={theme}
       />
 
       <JournalPanel
@@ -7402,14 +7912,22 @@ function ReflectPanel({
         setBody={setBody}
         onSave={onSave}
         onDelete={onDelete}
+        theme={theme}
       />
     </div>
   );
 }
 
-function Signal({ active, label }: { active: boolean; label: string }) {
+function Signal({ active, label, theme }: { active: boolean; label: string; theme: ThemeColors }) {
   return (
-    <div className={`flex items-center gap-2 rounded-lg border p-3 text-sm font-semibold ${active ? "border-[#b8d0c2] bg-[#edf7f1] text-[#245443]" : "border-[#e0c3b7] bg-[#fff6f1] text-[#8c3f28]"}`}>
+    <div
+      className="flex items-center gap-2 rounded-lg border p-3 text-sm font-semibold"
+      style={{
+        borderColor: active ? theme.primary : theme.borderMedium,
+        backgroundColor: active ? theme.bgCardElevated : theme.bgInput,
+        color: active ? theme.textPrimary : theme.textSecondary,
+      }}
+    >
       <Check size={16} />
       {label}
     </div>
@@ -7423,6 +7941,7 @@ function LibraryPanel({
   mode,
   preferences,
   onScriptureOpen,
+  theme,
 }: {
   entries: WisdomEntry[];
   search: string;
@@ -7430,6 +7949,7 @@ function LibraryPanel({
   mode: Mode;
   preferences: UserPreferences;
   onScriptureOpen: (scripture: string) => void;
+  theme: ThemeColors;
 }) {
   const libraryNextTitle = search.trim() ? `Review ${entries.length} matching wisdom anchor${entries.length === 1 ? "" : "s"}` : "Search one wisdom theme";
   const libraryNextBody = search.trim()
@@ -7442,45 +7962,59 @@ function LibraryPanel({
         eyebrow="Next in Library"
         title={libraryNextTitle}
         body={libraryNextBody}
+        theme={theme}
       />
-      <section className="min-w-0 rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm sm:p-5">
+      <section className="min-w-0 rounded-xl border p-4 shadow-sm sm:p-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <div className="flex items-center gap-2 text-xl font-semibold text-[#203a35]">
+            <div className="flex items-center gap-2 text-xl font-semibold" style={{ color: theme.textPrimary }}>
               <BookOpen size={20} />
               Wisdom Library
             </div>
-            <p className="mt-2 text-sm leading-6 text-[#5b6a61]">
+            <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
               A curated wisdom base with language-aware application notes and public-domain translation labels.
             </p>
           </div>
           <label className="relative w-full md:max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#68766d]" size={17} />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2" size={17} style={{ color: theme.textMuted }} />
             <input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              className="h-11 w-full rounded-lg border border-[#c9d5cd] bg-white/78 pl-10 pr-3 text-sm outline-none focus:border-[#203a35]"
+              className="h-11 w-full rounded-lg border px-3 pl-10 pr-3 text-sm outline-none"
               placeholder={`Search ${mode.toLowerCase()} wisdom...`}
+              style={{
+                borderColor: theme.borderMedium,
+                backgroundColor: theme.bgInput,
+                color: theme.textPrimary,
+              }}
+              onFocus={(e) => e.currentTarget.style.borderColor = theme.primary}
+              onBlur={(e) => e.currentTarget.style.borderColor = theme.borderMedium}
             />
           </label>
         </div>
 
         <div className="mt-5 grid min-w-0 gap-3 lg:grid-cols-2">
           {entries.map((entry) => (
-            <article key={entry.scripture} className="rounded-lg border border-[#d8e1db] bg-white/68 p-4">
+            <article key={entry.scripture} className="rounded-lg border p-4" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
               <div className="mb-3 flex flex-wrap items-center gap-2">
-                <span className="rounded-md bg-[#edf2ee] px-2 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-[#52635a]">{entry.theme}</span>
+                <span className="rounded-md px-2 py-1 text-xs font-semibold uppercase tracking-[0.14em]" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>{entry.theme}</span>
                 <button
                   type="button"
                   onClick={() => onScriptureOpen(entry.scripture)}
-                  className="text-left text-sm font-semibold text-[#203a35] underline decoration-[#b9c7bf] underline-offset-4 transition hover:text-[#866a24]"
+                  className="text-left text-sm font-semibold underline underline-offset-4 transition"
+                  style={{
+                    color: theme.textPrimary,
+                    textDecorationColor: theme.borderMedium,
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.color = theme.accentGold}
+                  onMouseLeave={(e) => e.currentTarget.style.color = theme.textPrimary}
                 >
                   {entry.scripture}
                 </button>
               </div>
-              <p className="text-sm font-semibold leading-6 text-[#2e3933]">{entry.principle}</p>
-              <p className="mt-3 text-sm leading-6 text-[#59675f]">{entry.application}</p>
-              <p className="mt-3 rounded-md border border-[#d8e1db] bg-[#fbfcf8] p-3 text-xs leading-5 text-[#607067]">
+              <p className="text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>{entry.principle}</p>
+              <p className="mt-3 text-sm leading-6" style={{ color: theme.textSecondary }}>{entry.application}</p>
+              <p className="mt-3 rounded-md border p-3 text-xs leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textMuted }}>
                 {localizedWisdomLibraryNote(entry, preferences)}
               </p>
             </article>
@@ -7500,6 +8034,7 @@ function JournalPanel({
   setBody,
   onSave,
   onDelete,
+  theme,
 }: {
   entries: JournalEntry[];
   title: string;
@@ -7509,42 +8044,57 @@ function JournalPanel({
   setBody: (value: string) => void;
   onSave: () => void;
   onDelete: (id: string) => void;
+  theme: ThemeColors;
 }) {
   return (
     <div className="grid min-w-0 gap-4 xl:grid-cols-[0.9fr_1.1fr]">
-      <section className="min-w-0 rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm sm:p-5">
-        <div className="mb-5 flex items-center gap-2 text-xl font-semibold text-[#203a35]">
+      <section className="min-w-0 rounded-xl border p-4 shadow-sm sm:p-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+        <div className="mb-5 flex items-center gap-2 text-xl font-semibold" style={{ color: theme.textPrimary }}>
           <Feather size={20} />
           Reflection Journal
         </div>
         <input
           value={title}
           onChange={(event) => setTitle(event.target.value)}
-          className="h-11 w-full rounded-lg border border-[#c9d5cd] bg-white/78 px-3 text-sm outline-none focus:border-[#203a35]"
+          className="h-11 w-full rounded-lg border px-3 text-sm outline-none"
           placeholder="Reflection title"
+          style={{
+            borderColor: theme.borderMedium,
+            backgroundColor: theme.bgInput,
+            color: theme.textPrimary,
+          }}
+          onFocus={(e) => e.currentTarget.style.borderColor = theme.primary}
+          onBlur={(e) => e.currentTarget.style.borderColor = theme.borderMedium}
         />
         <textarea
           value={body}
           onChange={(event) => setBody(event.target.value)}
-          className="mt-3 min-h-48 w-full resize-none rounded-lg border border-[#c9d5cd] bg-white/78 px-3 py-3 text-sm leading-6 outline-none focus:border-[#203a35]"
+          className="mt-3 min-h-48 w-full resize-none rounded-lg border px-3 py-3 text-sm leading-6 outline-none"
           placeholder="What are you noticing about motives, fear, generosity, work, or pace?"
+          style={{
+            borderColor: theme.borderMedium,
+            backgroundColor: theme.bgInput,
+            color: theme.textPrimary,
+          }}
+          onFocus={(e) => e.currentTarget.style.borderColor = theme.primary}
+          onBlur={(e) => e.currentTarget.style.borderColor = theme.borderMedium}
         />
-        <button onClick={onSave} className="mt-3 inline-flex h-11 items-center justify-center gap-2 rounded-md bg-[#203a35] px-4 text-sm font-semibold text-[#f8f5e8] shadow-lg shadow-[#203a35]/15">
+        <button onClick={onSave} className="mt-3 inline-flex h-11 items-center justify-center gap-2 rounded-md px-4 text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary, boxShadow: `0 10px 15px -3px ${theme.primary}15` }}>
           <Plus size={16} />
           Save reflection
         </button>
       </section>
 
-      <section className="min-w-0 rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm sm:p-5">
-        <h2 className="text-xl font-semibold text-[#203a35]">Saved reflections</h2>
+      <section className="min-w-0 rounded-xl border p-4 shadow-sm sm:p-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+        <h2 className="text-xl font-semibold" style={{ color: theme.textPrimary }}>Saved reflections</h2>
         <div className="mt-4 space-y-3">
           {entries.length ? (
             entries.map((entry) => (
-              <article key={entry.id} className="rounded-lg border border-[#d8e1db] bg-white/68 p-4">
+              <article key={entry.id} className="rounded-lg border p-4" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="font-semibold text-[#203a35]">{entry.title}</p>
-                    <p className="mt-1 text-xs font-semibold uppercase tracking-[0.14em] text-[#8a6c25]">
+                    <p className="font-semibold" style={{ color: theme.textPrimary }}>{entry.title}</p>
+                    <p className="mt-1 text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
                       {entry.mode} - {new Date(entry.createdAt).toLocaleDateString()}
                     </p>
                   </div>
@@ -7552,20 +8102,20 @@ function JournalPanel({
                     if (window.confirm('Are you sure you want to delete this journal entry? This cannot be undone.')) {
                       onDelete(entry.id);
                     }
-                  }} className="grid size-9 shrink-0 place-items-center rounded-md border border-[#d8e1db] text-[#68766d] hover:bg-[#edf2ee]" aria-label={`Delete ${entry.title}`}>
+                  }} className="grid size-9 shrink-0 place-items-center rounded-md border" aria-label={`Delete ${entry.title}`} style={{ borderColor: theme.borderMedium, color: theme.textMuted }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.bgInput} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
                     <Trash2 size={15} />
                   </button>
                 </div>
-                <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-[#505a52]">{entry.body}</p>
+                <p className="mt-3 whitespace-pre-wrap text-sm leading-6" style={{ color: theme.textSecondary }}>{entry.body}</p>
               </article>
             ))
           ) : (
-            <div className="rounded-lg border border-dashed border-[#c9d5cd] p-6 text-sm leading-6 text-[#617067]">
+            <div className="rounded-lg border border-dashed p-6 text-sm leading-6" style={{ borderColor: theme.borderMedium, color: theme.textMuted }}>
               No reflections yet. Save one from the form to keep a private record on this device.
             </div>
           )}
         </div>
-        <p className="mt-4 text-xs leading-5 text-[#718077]">Currently active mode: {mode}</p>
+        <p className="mt-4 text-xs leading-5" style={{ color: theme.textMuted }}>Currently active mode: {mode}</p>
       </section>
     </div>
   );
