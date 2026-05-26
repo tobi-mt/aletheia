@@ -234,6 +234,8 @@
     "reflectionSavedLocallyBody": "This reflection is kept for this session. Sign in to sync it.",
     "reflectionDeleted": "Reflection deleted",
     "reflectionDeletedBody": "The journal entry was removed.",
+    "decisionDeleted": "Decision deleted",
+    "decisionDeletedBody": "The decision and all its timeline events were removed.",
     "nameDecisionPressure": "Name the decision and pressure",
     "nameDecisionPressureBody": "Aletheia needs both the decision and the pressure around it before tracking.",
     "decisionTracked": "Decision tracked",

@@ -1337,7 +1337,28 @@ function todayWisdom() {
 }
 
 export function AletheiaApp() {
-  const [activeView, setActiveView] = useState<View>("companion");
+  const storedActiveView = typeof window !== "undefined" ? (() => {
+    try {
+      const stored = window.localStorage.getItem("aletheia-active-view");
+      if (stored && ["companion", "decisions", "reflect", "library", "account"].includes(stored)) {
+        return stored as View;
+      }
+    } catch {
+      // ignore errors
+    }
+    return "companion" as View;
+  })() : "companion" as View;
+  
+  const [activeView, setActiveViewState] = useState<View>(storedActiveView);
+  
+  // Wrapper to persist active view
+  const setActiveView = (view: View) => {
+    setActiveViewState(view);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("aletheia-active-view", view);
+    }
+  };
+  
   const [mode, setMode] = useState<Mode>("Money");
   const [query, setQuery] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>(defaultMessages);
@@ -2955,6 +2976,27 @@ export function AletheiaApp() {
     announceWorkflow(ts('notifications.decisionUpdated'), eventBody || "The decision signals were updated.", "success");
   }
 
+  async function deleteDecision(id: string) {
+    const decision = wisdomDecisions.find((d) => d.id === id);
+    if (!decision) return;
+    
+    if (!window.confirm(`Delete "${decision.title}"?\n\nThis will permanently remove this decision and all its timeline events. This cannot be undone.`)) {
+      return;
+    }
+    
+    if (user) {
+      const response = await fetch(`/api/decisions/${id}`, { method: "DELETE" });
+      if (!response.ok) {
+        announceWorkflow(ts('notifications.decisionUpdateFailed'), "Could not delete decision.", "error");
+        return;
+      }
+    }
+    
+    setWisdomDecisions((current) => current.filter((d) => d.id !== id));
+    setDecisionEvents((current) => current.filter((e) => e.decisionId !== id));
+    announceWorkflow(ts('notifications.decisionDeleted'), ts('notifications.decisionDeletedBody'), "info");
+  }
+
   async function addCounselContact(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const name = counselName.trim();
@@ -3436,6 +3478,7 @@ export function AletheiaApp() {
                   setRuleText={setRuleText}
                   onCreateDecision={createDecision}
                   onUpdateDecision={updateDecision}
+                  onDeleteDecision={deleteDecision}
                   onAddCounsel={addCounselContact}
                   onShareCounselInvite={shareCounselInvite}
                   onShareDecisionWithCounsel={shareDecisionWithCounsel}
@@ -6288,6 +6331,7 @@ function DecisionCompanionPanel({
   setRuleText,
   onCreateDecision,
   onUpdateDecision,
+  onDeleteDecision,
   onAddCounsel,
   onShareCounselInvite,
   onShareDecisionWithCounsel,
@@ -6340,6 +6384,7 @@ function DecisionCompanionPanel({
       event?: string;
     }
   ) => void;
+  onDeleteDecision: (id: string) => void;
   onAddCounsel: (event: FormEvent<HTMLFormElement>) => void;
   onShareCounselInvite: (channel?: ShareChannel) => void;
   onShareDecisionWithCounsel: (contactId: string, decisionId: string) => void;
@@ -6378,11 +6423,11 @@ function DecisionCompanionPanel({
                       );
                     }
                   }}
-                  className="grid size-7 shrink-0 place-items-center rounded-md border border-[#c9d5cd] bg-white/78 text-[#607067] transition hover:bg-white hover:text-[#203a35]"
+                  className="grid size-9 shrink-0 place-items-center rounded-md border-2 border-[#c9d5cd] bg-white text-[#cc4444] transition hover:border-[#cc4444] hover:bg-[#fff5f5]"
                   aria-label="Delete counsel summary"
                   title="Delete summary"
                 >
-                  <X size={14} />
+                  <X size={18} />
                 </button>
               </div>
               <p className="mt-2 text-sm font-semibold text-[#203a35]">{counselSummaryDraft.title}</p>
@@ -6465,7 +6510,7 @@ function DecisionCompanionPanel({
 
         <section className="space-y-3">
           {decisions.map((decision) => (
-            <DecisionCard key={decision.id} decision={decision} modeProfile={modeProfiles[decision.mode]} onUpdate={onUpdateDecision} />
+            <DecisionCard key={decision.id} decision={decision} modeProfile={modeProfiles[decision.mode]} onUpdate={onUpdateDecision} onDelete={onDeleteDecision} />
           ))}
           {!decisions.length ? (
             <div className="rounded-xl border border-dashed border-[#c9d5cd] p-6 text-sm leading-6 text-[#617067]">
@@ -6506,11 +6551,11 @@ function DecisionCompanionPanel({
                       );
                     }
                   }}
-                  className="grid size-7 shrink-0 place-items-center rounded-md border border-[#c9d5cd] bg-white/78 text-[#607067] transition hover:bg-white hover:text-[#203a35]"
-                  aria-label="Clear counsel summary"
-                  title="Clear summary"
+                  className="grid size-9 shrink-0 place-items-center rounded-md border-2 border-[#c9d5cd] bg-white text-[#cc4444] transition hover:border-[#cc4444] hover:bg-[#fff5f5]"
+                  aria-label="Delete counsel summary"
+                  title="Delete summary"
                 >
-                  <X size={14} />
+                  <X size={18} />
                 </button>
               </div>
               <p className="mt-2 text-sm font-semibold text-[#203a35]">{counselSummaryDraft.title}</p>
@@ -6779,6 +6824,7 @@ function DecisionCard({
   decision,
   modeProfile,
   onUpdate,
+  onDelete,
 }: {
   decision: WisdomDecision;
   modeProfile: ModeProfile;
@@ -6791,6 +6837,7 @@ function DecisionCard({
       event?: string;
     }
   ) => void;
+  onDelete: (id: string) => void;
 }) {
   const [noteDraft, setNoteDraft] = useState("");
   const [finalDecisionDraft, setFinalDecisionDraft] = useState(decision.finalDecision ?? "");
@@ -6804,7 +6851,7 @@ function DecisionCard({
   return (
     <article className="rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm sm:p-5">
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-        <div>
+        <div className="flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <span className="rounded-md bg-[#edf2ee] px-2 py-1 text-xs font-semibold text-[#52635a]">{decision.mode}</span>
             <span className="rounded-md bg-white/70 px-2 py-1 text-xs font-semibold text-[#866a24]">{decision.status}</span>
@@ -6815,9 +6862,20 @@ function DecisionCard({
           <h3 className="mt-3 text-xl font-semibold text-[#203a35]">{decision.title}</h3>
           <p className="mt-2 text-sm leading-6 text-[#55645b]">{decision.pressure}</p>
         </div>
-        <div className="min-w-28 rounded-lg border border-[#d8e1db] bg-white/70 p-3 text-center">
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#718077]">Readiness</p>
-          <p className="mt-1 text-2xl font-semibold text-[#203a35]">{decision.readiness}%</p>
+        <div className="flex shrink-0 gap-2">
+          <div className="min-w-28 rounded-lg border border-[#d8e1db] bg-white/70 p-3 text-center">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#718077]">Readiness</p>
+            <p className="mt-1 text-2xl font-semibold text-[#203a35]">{decision.readiness}%</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => onDelete(decision.id)}
+            className="grid size-11 shrink-0 place-items-center self-start rounded-lg border-2 border-[#c9d5cd] bg-white text-[#cc4444] transition hover:border-[#cc4444] hover:bg-[#fff5f5]"
+            aria-label="Delete decision"
+            title="Delete this decision"
+          >
+            <Trash2 size={18} />
+          </button>
         </div>
       </div>
 

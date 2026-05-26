@@ -234,6 +234,8 @@
     "reflectionSavedLocallyBody": "Diese Reflexion wird für diese Sitzung behalten. Melde dich an, um sie zu synchronisieren.",
     "reflectionDeleted": "Reflexion gelöscht",
     "reflectionDeletedBody": "Der Journaleintrag wurde entfernt.",
+    "decisionDeleted": "Entscheidung gelöscht",
+    "decisionDeletedBody": "Die Entscheidung und alle zugehörigen Zeitachsen-Ereignisse wurden entfernt.",
     "nameDecisionPressure": "Benenne die Entscheidung und den Druck",
     "nameDecisionPressureBody": "Aletheia benötigt sowohl die Entscheidung als auch den Druck darum, bevor sie verfolgt wird.",
     "decisionTracked": "Entscheidung verfolgt",

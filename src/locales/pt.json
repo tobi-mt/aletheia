@@ -234,6 +234,8 @@
     "reflectionSavedLocallyBody": "Esta reflexão é mantida para esta sessão. Entre para sincronizá-la.",
     "reflectionDeleted": "Reflexão excluída",
     "reflectionDeletedBody": "A entrada do diário foi removida.",
+    "decisionDeleted": "Decisão excluída",
+    "decisionDeletedBody": "A decisão e todos os seus eventos da linha do tempo foram removidos.",
     "nameDecisionPressure": "Nomeie a decisão e a pressão",
     "nameDecisionPressureBody": "Aletheia precisa tanto da decisão quanto da pressão em torno dela antes de rastrear.",
     "decisionTracked": "Decisão rastreada",

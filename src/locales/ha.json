@@ -234,6 +234,8 @@
     "reflectionSavedLocallyBody": "Wannan tunani yana nan don wannan lokaci. Shiga don daidaitawa.",
     "reflectionDeleted": "An share tunani",
     "reflectionDeletedBody": "An cire rikodin littafin tunawa.",
+    "decisionDeleted": "An share shawara",
+    "decisionDeletedBody": "An cire shawara da duk abubuwan da suka faru a lokacinta.",
     "nameDecisionPressure": "Sanya sunan shawara da matsin lamba",
     "nameDecisionPressureBody": "Aletheia tana buƙatar shawara da matsin lamba da ke kewaye da ita kafin a bi ta.",
     "decisionTracked": "An bi shawara",
