@@ -1370,6 +1370,7 @@ export function AletheiaApp() {
   const [faithFamiliarity, setFaithFamiliarity] = useState("familiar");
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [voiceRecognition, setVoiceRecognition] = useState<{ stop: () => void } | null>(null);
   const [selectedScripture, setSelectedScripture] = useState<string | null>(null);
   const [isWorking, setIsWorking] = useState(false);
   const [statusMessage, setStatusMessage] = useState("Checking your sign-in status...");
@@ -1406,7 +1407,30 @@ export function AletheiaApp() {
   const [counselInviteToken, setCounselInviteToken] = useState<string | null>(null);
   const [counselInvitePreview, setCounselInvitePreview] = useState<CounselInvitePreview | null>(null);
   const [counselInviteStatus, setCounselInviteStatus] = useState("");
-  const [counselSummaryDraft, setCounselSummaryDraft] = useState<CounselSummaryDraft | null>(null);
+  
+  const storedCounselSummary = typeof window !== "undefined" ? (() => {
+    try {
+      const stored = window.localStorage.getItem("aletheia-counsel-summary-draft");
+      return stored ? JSON.parse(stored) as CounselSummaryDraft : null;
+    } catch {
+      return null;
+    }
+  })() : null;
+  
+  const [counselSummaryDraft, setCounselSummaryDraftState] = useState<CounselSummaryDraft | null>(storedCounselSummary);
+  
+  // Wrapper function that persists to localStorage
+  const setCounselSummaryDraft = (value: CounselSummaryDraft | null) => {
+    setCounselSummaryDraftState(value);
+    if (typeof window !== "undefined") {
+      if (value) {
+        window.localStorage.setItem("aletheia-counsel-summary-draft", JSON.stringify(value));
+      } else {
+        window.localStorage.removeItem("aletheia-counsel-summary-draft");
+      }
+    }
+  };
+  
   const [answerFocusId, setAnswerFocusId] = useState<string | null>(null);
   const [ruleText, setRuleText] = useState("");
   const [featureDiscovery, setFeatureDiscovery] = useState<FeatureDiscovery>(loadFeatureDiscovery);
@@ -2214,24 +2238,37 @@ export function AletheiaApp() {
   }
 
   function startVoiceInput() {
+    // If already listening, stop it
+    if (isListening && voiceRecognition) {
+      voiceRecognition.stop();
+      setIsListening(false);
+      setVoiceRecognition(null);
+      announceWorkflow(ts('notifications.voiceStopped'), ts('notifications.voiceStoppedBody'), "info");
+      return;
+    }
+    
     const browserWindow = window as typeof window & {
       SpeechRecognition?: new () => {
         lang: string;
         interimResults: boolean;
+        continuous: boolean;
         maxAlternatives: number;
-        onresult: ((event: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null;
+        onresult: ((event: { results: ArrayLike<ArrayLike<{ transcript: string }>>; resultIndex: number }) => void) | null;
         onerror: (() => void) | null;
         onend: (() => void) | null;
         start: () => void;
+        stop: () => void;
       };
       webkitSpeechRecognition?: new () => {
         lang: string;
         interimResults: boolean;
+        continuous: boolean;
         maxAlternatives: number;
-        onresult: ((event: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null;
+        onresult: ((event: { results: ArrayLike<ArrayLike<{ transcript: string }>>; resultIndex: number }) => void) | null;
         onerror: (() => void) | null;
         onend: (() => void) | null;
         start: () => void;
+        stop: () => void;
       };
     };
     const SpeechRecognition =
@@ -2244,22 +2281,63 @@ export function AletheiaApp() {
 
     const recognition = new SpeechRecognition();
     recognition.lang = activeLanguage.speech;
-    recognition.interimResults = false;
+    recognition.interimResults = true; // Enable progressive text display
+    recognition.continuous = true; // Keep listening until stopped
     recognition.maxAlternatives = 1;
     setIsListening(true);
+    
+    // Auto-stop after 1 minute of inactivity
+    let inactivityTimer: ReturnType<typeof setTimeout> | null = null;
+    const resetInactivityTimer = () => {
+      if (inactivityTimer) clearTimeout(inactivityTimer);
+      inactivityTimer = setTimeout(() => {
+        recognition.stop();
+        announceWorkflow(ts('notifications.voiceInputStopped'), "Voice input stopped after 1 minute of inactivity.", "info");
+      }, 60000); // 1 minute
+    };
+    
+    resetInactivityTimer();
+    
     recognition.onresult = (event) => {
-      const transcript = event.results[0]?.[0]?.transcript;
-      if (transcript) {
-        setQuery((current) => `${current}${current ? " " : ""}${transcript}`.trim());
-        announceWorkflow(ts('notifications.voiceCaptured'), ts('notifications.voiceCapturedBody'), "success");
+      resetInactivityTimer(); // Reset timer on each result
+      
+      // Process results progressively
+      let finalTranscript = "";
+      let interimTranscript = "";
+      
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const result = event.results[i];
+        const transcript = result[0]?.transcript || "";
+        
+        if (result[0] && "isFinal" in result[0] && (result[0] as { isFinal: boolean }).isFinal) {
+          finalTranscript += transcript + " ";
+        } else {
+          interimTranscript += transcript;
+        }
+      }
+      
+      if (finalTranscript) {
+        setQuery((current) => `${current}${current ? " " : ""}${finalTranscript}`.trim());
+      } else if (interimTranscript) {
+        // Show interim text in the textarea (user can see it being transcribed)
+        const currentBase = query.split("[...]")[0].trim();
+        setQuery(`${currentBase}${currentBase ? " " : ""}[...] ${interimTranscript}`);
       }
     };
     recognition.onerror = () => {
+      if (inactivityTimer) clearTimeout(inactivityTimer);
       setPreferencesStatus("Voice input stopped before Aletheia could hear clearly.");
       announceWorkflow(ts('notifications.voiceInputStopped'), ts('notifications.voiceInputStoppedBody'), "warning");
     };
-    recognition.onend = () => setIsListening(false);
+    recognition.onend = () => {
+      if (inactivityTimer) clearTimeout(inactivityTimer);
+      setIsListening(false);
+      setVoiceRecognition(null);
+      // Clean up interim markers
+      setQuery((current) => current.replace(/\[\.\.\.\]\s*/g, "").trim());
+    };
     recognition.start();
+    setVoiceRecognition(recognition);
   }
 
   function speakLatestAletheiaReply() {
@@ -5607,24 +5685,15 @@ function CompanionPanel({
                 className="min-h-28 flex-1 resize-none rounded-md border border-[#c9d5cd] bg-white px-3 py-3 text-base leading-6 text-[#203a35] outline-none transition placeholder:text-[#8b968e] focus:border-[#203a35] focus:shadow-[0_0_0_3px_rgba(32,58,53,0.08)] sm:text-sm"
               />
               {preferences.voiceEnabled ? (
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-1">
-                  <button
-                    type="button"
-                    onClick={onListen}
-                    className="grid h-11 place-items-center rounded-lg border border-[#c9d5cd] bg-white/78 px-3 text-[#203a35] transition hover:bg-white"
-                    aria-label="Use voice input"
-                  >
-                    {isListening ? <MicOff size={18} /> : <Mic size={18} />}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={onSpeak}
-                    className="grid h-11 place-items-center rounded-lg border border-[#c9d5cd] bg-white/78 px-3 text-[#203a35] transition hover:bg-white"
-                    aria-label="Read latest response aloud"
-                  >
-                    <Volume2 size={18} className={isSpeaking ? "text-[#866a24]" : undefined} />
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={onListen}
+                  className="grid h-11 w-11 shrink-0 place-items-center rounded-lg border border-[#c9d5cd] bg-white/78 px-3 text-[#203a35] transition hover:bg-white sm:w-auto"
+                  aria-label={isListening ? "Stop voice input" : "Use voice input"}
+                  title={isListening ? "Stop dictating" : "Tap to dictate your question"}
+                >
+                  {isListening ? <MicOff size={18} /> : <Mic size={18} />}
+                </button>
               ) : null}
               <button
                 disabled={isWorking}
@@ -5664,6 +5733,8 @@ function CompanionPanel({
                 preferences={preferences}
                 ui={ui}
                 isWorking={isWorking}
+                isSpeaking={isSpeaking}
+                onSpeak={onSpeak}
                 onScriptureOpen={onScriptureOpen}
                 onTrackDecision={onTrackDecision}
                 onDraftReflection={onDraftReflection}
@@ -5979,6 +6050,8 @@ function CurrentCounselCard({
   preferences,
   ui,
   isWorking,
+  isSpeaking,
+  onSpeak,
   onScriptureOpen,
   onTrackDecision,
   onDraftReflection,
@@ -5994,6 +6067,8 @@ function CurrentCounselCard({
   preferences: UserPreferences;
   ui: (typeof uiText)[LanguageCode];
   isWorking: boolean;
+  isSpeaking: boolean;
+  onSpeak: () => void;
   onScriptureOpen: (scripture: string) => void;
   onTrackDecision: (exchange: ConversationExchange) => void;
   onDraftReflection: (exchange: ConversationExchange) => void;
@@ -6026,7 +6101,21 @@ function CurrentCounselCard({
         </div>
       ) : null}
       <article className="editorial-counsel mt-3 rounded-md border border-[#d8e1db] bg-[#fbfcf8]/84 p-3 sm:p-4">
-        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#866a24]">Aletheia</p>
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#866a24]">Aletheia</p>
+          {preferences.voiceEnabled && !isThinking ? (
+            <button
+              type="button"
+              onClick={onSpeak}
+              className="inline-flex h-8 items-center gap-1.5 rounded-md border border-[#c9d5cd] bg-white/78 px-2.5 text-xs font-semibold text-[#405049] transition hover:bg-white"
+              aria-label={isSpeaking ? "Stop reading aloud" : "Read answer aloud"}
+              title={isSpeaking ? "Stop" : "Listen to this answer"}
+            >
+              <Volume2 size={14} className={isSpeaking ? "text-[#866a24]" : undefined} />
+              {isSpeaking ? "Stop" : "Read aloud"}
+            </button>
+          ) : null}
+        </div>
         <p className="mb-3 rounded-md border border-[#d8e1db] bg-white/70 p-3 text-xs leading-5 text-[#607067]">
           {modeProfile.displayLabel ?? mode} {text.modeShapesCounsel} {modeProfile.lens.toLowerCase()}
         </p>
@@ -6272,39 +6361,39 @@ function DecisionCompanionPanel({
     <div className="min-w-0 space-y-4 xl:grid xl:gap-4 xl:space-y-0 xl:grid-cols-[1fr_340px]">
       <section className="space-y-4">
         {counselSummaryDraft ? (
-          <div className="rounded-lg border border-[#d0ad55]/50 bg-[#fff8dc]/70 p-3 xl:hidden">
-            <div className="flex items-start justify-between gap-2">
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#866a24]">Counsel summary ready</p>
-              <button
-                type="button"
-                onClick={() => {
-                  if (window.confirm('Are you sure you want to delete this counsel summary? This cannot be undone.')) {
-                    setCounselSummaryDraft(null);
-                    announceWorkflow(
-                      ts('notifications.counselSummaryCleared'),
-                      ts('notifications.counselSummaryClearedBody'),
-                      "info"
-                    );
-                  }
-                }}
-                className="grid size-8 shrink-0 place-items-center rounded-md border border-[#c9d5cd] bg-white/78 text-[#607067] transition hover:bg-white hover:text-[#203a35]"
-                aria-label="Delete counsel summary"
-                title="Delete summary"
-              >
-                <X size={16} />
-              </button>
-            </div>
-            <p className="mt-2 text-sm font-semibold text-[#203a35]">{counselSummaryDraft.title}</p>
-            <details className="mt-2">
-              <summary className="cursor-pointer text-xs font-semibold text-[#866a24]">Show full summary</summary>
-              <pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap rounded-md border border-[#d8e1db] bg-white/72 p-2 text-xs leading-5 text-[#405049]">
+          <section className="rounded-xl border border-[#c9d5cd] bg-[#fbfcf8]/78 p-4 shadow-sm xl:hidden">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">Counsel Circle</p>
+            <div className="mt-3 rounded-lg border border-[#d0ad55]/50 bg-[#fff8dc]/70 p-3">
+              <div className="flex items-start justify-between gap-2">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#866a24]">Summary ready</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (window.confirm('Are you sure you want to delete this counsel summary? This cannot be undone.')) {
+                      setCounselSummaryDraft(null);
+                      announceWorkflow(
+                        ts('notifications.counselSummaryCleared'),
+                        ts('notifications.counselSummaryClearedBody'),
+                        "info"
+                      );
+                    }
+                  }}
+                  className="grid size-7 shrink-0 place-items-center rounded-md border border-[#c9d5cd] bg-white/78 text-[#607067] transition hover:bg-white hover:text-[#203a35]"
+                  aria-label="Delete counsel summary"
+                  title="Delete summary"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+              <p className="mt-2 text-sm font-semibold text-[#203a35]">{counselSummaryDraft.title}</p>
+              <pre className="mt-3 max-h-72 overflow-auto whitespace-pre-wrap rounded-md border border-[#d8e1db] bg-white/72 p-3 text-xs leading-5 text-[#405049]">
                 {counselSummaryDraft.body}
               </pre>
-            </details>
-            <p className="mt-2 text-xs text-[#866a24]">
-              Scroll to Counsel Circle below to share this summary with your counsel contacts.
-            </p>
-          </div>
+              <p className="mt-2 text-xs leading-5 text-[#607067]">
+                This summary is private until you copy it or share a selected decision with someone in your Counsel Circle.
+              </p>
+            </div>
+          </section>
         ) : null}
         <ContextualNextAction
           eyebrow="Next in Decisions"
