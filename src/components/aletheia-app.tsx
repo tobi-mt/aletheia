@@ -2433,6 +2433,9 @@ export function AletheiaApp() {
   }
 
   async function logout() {
+    if (!window.confirm('Are you sure you want to sign out? Any unsaved local data will be cleared from this device.')) {
+      return;
+    }
     setAuthStatus("signing-out");
     setAuthNotice("Signing out...");
     await fetch("/api/auth/logout", { method: "POST" });
@@ -2539,6 +2542,9 @@ export function AletheiaApp() {
 
   async function disableNotifications() {
     if (notificationBusy) {
+      return;
+    }
+    if (!window.confirm('Are you sure you want to turn off daily wisdom notifications? You will no longer receive gentle reminders for reflection.')) {
       return;
     }
     setNotificationBusy(true);
@@ -2967,6 +2973,12 @@ export function AletheiaApp() {
   async function shareDecisionWithCounsel(contactId: string, decisionId: string) {
     const contact = counselContacts.find((c) => c.id === contactId);
     const contactName = contact?.name || "this contact";
+    const decision = wisdomDecisions.find((d) => d.id === decisionId);
+    const decisionTitle = decision?.title || "this decision";
+    
+    if (!window.confirm(`Share "${decisionTitle}" with ${contactName}?\n\nThey will be able to view the decision summary you've created. Your private journal entries and chats remain private.`)) {
+      return;
+    }
     
     const response = await fetch("/api/counsel/share", {
       method: "POST",
@@ -3012,6 +3024,11 @@ export function AletheiaApp() {
     
     if (decisionIds.length === 0) {
       announceWorkflow(ts('notifications.noDecisionsToShare'), ts('notifications.noDecisionsToShareBody'), "warning");
+      return;
+    }
+    
+    const count = decisionIds.length;
+    if (!window.confirm(`Share ${count} ${count === 1 ? "decision" : "decisions"} with ${contactName}?\n\nThey will be able to view decision summaries. Your private journal entries and chats remain private.`)) {
       return;
     }
     
@@ -6257,29 +6274,35 @@ function DecisionCompanionPanel({
         {counselSummaryDraft ? (
           <div className="rounded-lg border border-[#d0ad55]/50 bg-[#fff8dc]/70 p-3 xl:hidden">
             <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0 flex-1">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#866a24]">Counsel summary ready</p>
-                <p className="mt-1 text-sm font-semibold text-[#203a35]">{counselSummaryDraft.title}</p>
-              </div>
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#866a24]">Counsel summary ready</p>
               <button
                 type="button"
                 onClick={() => {
-                  setCounselSummaryDraft(null);
-                  announceWorkflow(
-                    ts('notifications.counselSummaryCleared'),
-                    ts('notifications.counselSummaryClearedBody'),
-                    "info"
-                  );
+                  if (window.confirm('Are you sure you want to delete this counsel summary? This cannot be undone.')) {
+                    setCounselSummaryDraft(null);
+                    announceWorkflow(
+                      ts('notifications.counselSummaryCleared'),
+                      ts('notifications.counselSummaryClearedBody'),
+                      "info"
+                    );
+                  }
                 }}
                 className="grid size-8 shrink-0 place-items-center rounded-md border border-[#c9d5cd] bg-white/78 text-[#607067] transition hover:bg-white hover:text-[#203a35]"
-                aria-label="Clear counsel summary"
-                title="Clear summary"
+                aria-label="Delete counsel summary"
+                title="Delete summary"
               >
                 <X size={16} />
               </button>
             </div>
+            <p className="mt-2 text-sm font-semibold text-[#203a35]">{counselSummaryDraft.title}</p>
+            <details className="mt-2">
+              <summary className="cursor-pointer text-xs font-semibold text-[#866a24]">Show full summary</summary>
+              <pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap rounded-md border border-[#d8e1db] bg-white/72 p-2 text-xs leading-5 text-[#405049]">
+                {counselSummaryDraft.body}
+              </pre>
+            </details>
             <p className="mt-2 text-xs text-[#866a24]">
-              Scroll down to Counsel Circle to view full summary and share with your counsel.
+              Scroll to Counsel Circle below to share this summary with your counsel contacts.
             </p>
           </div>
         ) : null}
@@ -6385,12 +6408,14 @@ function DecisionCompanionPanel({
                 <button
                   type="button"
                   onClick={() => {
-                    setCounselSummaryDraft(null);
-                    announceWorkflow(
-                      ts('notifications.counselSummaryCleared'),
-                      ts('notifications.counselSummaryClearedBody'),
-                      "info"
-                    );
+                    if (window.confirm('Are you sure you want to delete this counsel summary? This cannot be undone.')) {
+                      setCounselSummaryDraft(null);
+                      announceWorkflow(
+                        ts('notifications.counselSummaryCleared'),
+                        ts('notifications.counselSummaryClearedBody'),
+                        "info"
+                      );
+                    }
                   }}
                   className="grid size-7 shrink-0 place-items-center rounded-md border border-[#c9d5cd] bg-white/78 text-[#607067] transition hover:bg-white hover:text-[#203a35]"
                   aria-label="Clear counsel summary"
@@ -6723,7 +6748,11 @@ function DecisionCard({
               Wait {days}d
             </button>
           ))}
-          <button onClick={() => onUpdate(decision.id, { status: "closed", event: "Decision closed with learning recorded." })} className="rounded-md bg-[#203a35] px-3 py-2 text-xs font-semibold text-[#f8f5e8]">
+          <button onClick={() => {
+            if (window.confirm('Are you sure you want to close this decision? You can still view it in the timeline, but it will no longer appear in active decisions.')) {
+              onUpdate(decision.id, { status: "closed", event: "Decision closed with learning recorded." });
+            }
+          }} className="rounded-md bg-[#203a35] px-3 py-2 text-xs font-semibold text-[#f8f5e8]">
             Close
           </button>
         </div>
@@ -7180,7 +7209,11 @@ function JournalPanel({
                       {entry.mode} - {new Date(entry.createdAt).toLocaleDateString()}
                     </p>
                   </div>
-                  <button onClick={() => onDelete(entry.id)} className="grid size-9 shrink-0 place-items-center rounded-md border border-[#d8e1db] text-[#68766d] hover:bg-[#edf2ee]" aria-label={`Delete ${entry.title}`}>
+                  <button onClick={() => {
+                    if (window.confirm('Are you sure you want to delete this journal entry? This cannot be undone.')) {
+                      onDelete(entry.id);
+                    }
+                  }} className="grid size-9 shrink-0 place-items-center rounded-md border border-[#d8e1db] text-[#68766d] hover:bg-[#edf2ee]" aria-label={`Delete ${entry.title}`}>
                     <Trash2 size={15} />
                   </button>
                 </div>
