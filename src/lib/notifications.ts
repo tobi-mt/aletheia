@@ -56,27 +56,25 @@ export function configureWebPush() {
   webpush.setVapidDetails(subject, publicKey, privateKey);
 }
 
-function dailyNotificationPayload(row: PushRow) {
-  return getWisdomEntries().then((entries) => {
-    const index = new Date().getDate() % entries.length;
-    const wisdom = entries[index];
-    const preferences = normalizePreferences({
-      language: row.language as LanguageCode,
-      region: row.region as RegionCode,
-      bibleTranslation: row.bible_translation as BibleTranslation,
-      voiceEnabled: Boolean(row.voice_enabled),
-    });
-    const dailyMode: Mode = ["Money", "Work", "Purpose", "Generosity"].includes(wisdom.theme)
-      ? (wisdom.theme as Mode)
-      : "Money";
-    const daily = localizedDailyWisdom(wisdom, dailyMode, preferences);
-    return {
-      title: `${daily.label}: ${wisdom.theme}`,
-      body: daily.practice || daily.principle,
-      url: "/",
-      scripture: daily.scripture,
-    };
+function dailyNotificationPayload(row: PushRow, wisdomEntries: Awaited<ReturnType<typeof getWisdomEntries>>) {
+  const index = new Date().getDate() % wisdomEntries.length;
+  const wisdom = wisdomEntries[index];
+  const preferences = normalizePreferences({
+    language: row.language as LanguageCode,
+    region: row.region as RegionCode,
+    bibleTranslation: row.bible_translation as BibleTranslation,
+    voiceEnabled: Boolean(row.voice_enabled),
   });
+  const dailyMode: Mode = ["Money", "Work", "Purpose", "Generosity"].includes(wisdom.theme)
+    ? (wisdom.theme as Mode)
+    : "Money";
+  const daily = localizedDailyWisdom(wisdom, dailyMode, preferences);
+  return {
+    title: `${daily.label}: ${wisdom.theme}`,
+    body: daily.practice || daily.principle,
+    url: "/",
+    scripture: daily.scripture,
+  };
 }
 
 function localHourForTimezone(date: Date, timezone: string | null | undefined) {
@@ -106,6 +104,10 @@ export async function sendDailyWisdomNotifications() {
 
   const now = new Date();
   const currentHour = now.getUTCHours();
+  
+  // Fetch wisdom entries once for all notifications
+  const wisdomEntries = await getWisdomEntries();
+  
   const rows = await many<PushRow>(
     `SELECT push_subscriptions.id, push_subscriptions.user_id, endpoint, p256dh, auth, preferred_hour,
             preferred_local_hour, preferred_timezone, delivery_strategy,
@@ -119,35 +121,50 @@ export async function sendDailyWisdomNotifications() {
   let sent = 0;
   let failed = 0;
 
-  for (const row of dueRows) {
-    const payload = JSON.stringify(await dailyNotificationPayload(row));
-    const subscription: PushSubscription = {
-      endpoint: row.endpoint,
-      keys: {
-        p256dh: row.p256dh,
-        auth: row.auth,
-      },
-    };
+  // Process notifications in parallel with concurrency limit
+  const BATCH_SIZE = 10;
+  for (let i = 0; i < dueRows.length; i += BATCH_SIZE) {
+    const batch = dueRows.slice(i, i + BATCH_SIZE);
+    
+    await Promise.allSettled(
+      batch.map(async (row) => {
+        const payload = JSON.stringify(dailyNotificationPayload(row, wisdomEntries));
+        const subscription: PushSubscription = {
+          endpoint: row.endpoint,
+          keys: {
+            p256dh: row.p256dh,
+            auth: row.auth,
+          },
+        };
 
-    try {
-      await webpush.sendNotification(subscription, payload);
-      await run(
-        "UPDATE push_subscriptions SET last_sent_at = ?, updated_at = ? WHERE id = ?",
-        now.toISOString(),
-        now.toISOString(),
-        row.id
-      );
-      sent += 1;
-    } catch (error) {
-      failed += 1;
-      const statusCode =
-        typeof error === "object" && error && "statusCode" in error
-          ? Number(error.statusCode)
-          : 0;
-      if (statusCode === 404 || statusCode === 410) {
-        await run("DELETE FROM push_subscriptions WHERE id = ?", row.id);
-      }
-    }
+        try {
+          // Add timeout to individual push notifications
+          const sendPromise = webpush.sendNotification(subscription, payload);
+          const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error("Push notification timeout")), 10000)
+          );
+          
+          await Promise.race([sendPromise, timeoutPromise]);
+          
+          await run(
+            "UPDATE push_subscriptions SET last_sent_at = ?, updated_at = ? WHERE id = ?",
+            now.toISOString(),
+            now.toISOString(),
+            row.id
+          );
+          sent += 1;
+        } catch (error) {
+          failed += 1;
+          const statusCode =
+            typeof error === "object" && error && "statusCode" in error
+              ? Number(error.statusCode)
+              : 0;
+          if (statusCode === 404 || statusCode === 410) {
+            await run("DELETE FROM push_subscriptions WHERE id = ?", row.id);
+          }
+        }
+      })
+    );
   }
 
   return {

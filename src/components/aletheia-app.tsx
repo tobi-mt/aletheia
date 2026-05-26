@@ -69,8 +69,8 @@ type AuthStatus = "checking" | "guest" | "signing-in" | "signed-in" | "signing-o
 type AnalyticsMetadata = Record<string, string | number | boolean | null>;
 type ShareChannel = "native" | "copy" | "whatsapp" | "facebook" | "x" | "linkedin" | "email" | "sms";
 type WorkflowTone = "info" | "success" | "warning" | "error";
-type ThemePreference = "classic" | "dark" | "system";
-type ResolvedTheme = "classic" | "dark";
+type ThemePreference = "classic" | "dark" | "warm" | "ocean" | "forest" | "sunset" | "system";
+type ResolvedTheme = "classic" | "dark" | "warm" | "ocean" | "forest" | "sunset";
 type WorkflowNoticeState = {
   id: string;
   title: string;
@@ -667,7 +667,7 @@ function storedThemePreference(): ThemePreference {
   }
   try {
     const value = window.localStorage.getItem(THEME_STORAGE_KEY);
-    if (value === "classic" || value === "dark" || value === "system") {
+    if (value === "classic" || value === "dark" || value === "warm" || value === "ocean" || value === "forest" || value === "sunset" || value === "system") {
       return value;
     }
   } catch {
@@ -1391,6 +1391,11 @@ export function AletheiaApp() {
   const [faithFamiliarity, setFaithFamiliarity] = useState("familiar");
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [speechPaused, setSpeechPaused] = useState(false);
+  const [speechProgress, setSpeechProgress] = useState(0);
+  const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [selectedVoice, setSelectedVoice] = useState<string | null>(null);
+  const [currentUtterance, setCurrentUtterance] = useState<SpeechSynthesisUtterance | null>(null);
   const [voiceRecognition, setVoiceRecognition] = useState<{ stop: () => void } | null>(null);
   const [selectedScripture, setSelectedScripture] = useState<string | null>(null);
   const [isWorking, setIsWorking] = useState(false);
@@ -2380,6 +2385,20 @@ export function AletheiaApp() {
     speakText(latest.text, "Aletheia is reading the latest response in your selected language voice when available.");
   }
 
+  function toggleSpeechPause() {
+    if (!("speechSynthesis" in window)) return;
+    
+    if (window.speechSynthesis.paused) {
+      window.speechSynthesis.resume();
+      setSpeechPaused(false);
+      announceWorkflow(ts('notifications.readingResumed'), 'Reading resumed', "info");
+    } else if (isSpeaking) {
+      window.speechSynthesis.pause();
+      setSpeechPaused(true);
+      announceWorkflow(ts('notifications.readingPaused'), 'Reading paused', "info");
+    }
+  }
+
   function speakText(text: string, notice = "Aletheia is reading this aloud in your selected language voice when available.") {
     if (!("speechSynthesis" in window)) {
       setPreferencesStatus("Voice output is not supported in this browser yet.");
@@ -2389,17 +2408,61 @@ export function AletheiaApp() {
     if (isSpeaking) {
       window.speechSynthesis.cancel();
       setIsSpeaking(false);
+      setSpeechPaused(false);
+      setSpeechProgress(0);
+      setCurrentUtterance(null);
       announceWorkflow(ts('notifications.voiceStopped'), ts('notifications.voiceStoppedBody'), "info");
       return;
     }
-    const utterance = new SpeechSynthesisUtterance(cleanDisplayText(text));
+    
+    const cleanText = cleanDisplayText(text);
+    const utterance = new SpeechSynthesisUtterance(cleanText);
     utterance.lang = activeLanguage.speech;
     utterance.rate = 0.92;
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = () => setIsSpeaking(false);
+    
+    // Apply selected voice
+    if (selectedVoice && availableVoices.length > 0) {
+      const voice = availableVoices.find(v => v.voiceURI === selectedVoice);
+      if (voice) {
+        utterance.voice = voice;
+      }
+    }
+    
+    // Track progress
+    utterance.onboundary = (event) => {
+      if (event.charIndex !== undefined) {
+        const progress = Math.floor((event.charIndex / cleanText.length) * 100);
+        setSpeechProgress(progress);
+      }
+    };
+    
+    utterance.onend = () => {
+      setIsSpeaking(false);
+      setSpeechPaused(false);
+      setSpeechProgress(0);
+      setCurrentUtterance(null);
+    };
+    
+    utterance.onerror = () => {
+      setIsSpeaking(false);
+      setSpeechPaused(false);
+      setSpeechProgress(0);
+      setCurrentUtterance(null);
+    };
+    
+    setCurrentUtterance(utterance);
     setIsSpeaking(true);
+    setSpeechProgress(0);
     announceWorkflow(ts('notifications.readingAloud'), notice, "info");
     window.speechSynthesis.speak(utterance);
+    
+    // Wake lock to prevent screen sleep during reading (if supported)
+    if ('wakeLock' in navigator) {
+      (navigator as Navigator & { wakeLock: { request: (type: string) => Promise<{ release: () => void }> } })
+        .wakeLock.request('screen').catch(() => {
+          // Wake lock not supported or denied, continue anyway
+        });
+    }
   }
 
   async function askAletheia(rawQuestion: string) {
@@ -3253,17 +3316,44 @@ export function AletheiaApp() {
   }
 
   return (
-    <main className={`min-h-screen overflow-x-hidden bg-[#eef2ef] text-[#171917] ${resolvedTheme === "dark" ? "theme-dark-root" : ""}`}>
+    <main className={`min-h-screen overflow-x-hidden text-[#171917] ${
+      resolvedTheme === "dark" ? "theme-dark-root bg-[#0e1514]" : 
+      resolvedTheme === "warm" ? "theme-warm-root bg-[#faf6f1]" :
+      resolvedTheme === "ocean" ? "theme-ocean-root bg-[#f1f6fa]" :
+      resolvedTheme === "forest" ? "theme-forest-root bg-[#f1f6f1]" :
+      resolvedTheme === "sunset" ? "theme-sunset-root bg-[#faf1f6]" :
+      "bg-[#eef2ef]"
+    }`}>
       <div
         className={`fixed inset-0 -z-10 ${
           resolvedTheme === "dark"
             ? "bg-[radial-gradient(circle_at_18%_0%,rgba(194,162,88,0.18),transparent_26%),radial-gradient(circle_at_92%_14%,rgba(73,122,107,0.22),transparent_25%),linear-gradient(180deg,#0e1514_0%,#090f0e_100%)]"
+            : resolvedTheme === "warm"
+            ? "bg-[radial-gradient(circle_at_18%_0%,rgba(220,180,140,0.20),transparent_26%),radial-gradient(circle_at_92%_14%,rgba(200,160,120,0.18),transparent_25%),linear-gradient(180deg,#faf6f1_0%,#f4ede4_100%)]"
+            : resolvedTheme === "ocean"
+            ? "bg-[radial-gradient(circle_at_18%_0%,rgba(140,180,220,0.18),transparent_26%),radial-gradient(circle_at_92%_14%,rgba(100,140,180,0.20),transparent_25%),linear-gradient(180deg,#f1f6fa_0%,#e4ecf4_100%)]"
+            : resolvedTheme === "forest"
+            ? "bg-[radial-gradient(circle_at_18%_0%,rgba(140,180,140,0.20),transparent_26%),radial-gradient(circle_at_92%_14%,rgba(100,140,100,0.18),transparent_25%),linear-gradient(180deg,#f1f6f1_0%,#e4ede4_100%)]"
+            : resolvedTheme === "sunset"
+            ? "bg-[radial-gradient(circle_at_18%_0%,rgba(220,140,180,0.20),transparent_26%),radial-gradient(circle_at_92%_14%,rgba(200,120,160,0.18),transparent_25%),linear-gradient(180deg,#faf1f6_0%,#f4e4ec_100%)]"
             : "bg-[radial-gradient(circle_at_18%_0%,rgba(201,177,123,0.16),transparent_24%),radial-gradient(circle_at_92%_16%,rgba(64,101,96,0.14),transparent_24%),linear-gradient(180deg,#f4f6f2_0%,#e4ebe6_100%)]"
         }`}
       />
       <WorkflowNotice notice={workflowNotice} onClose={() => setWorkflowNotice(null)} />
 
-      <nav className="sticky top-0 z-30 border-b border-[#c9d5cd]/70 bg-[#eef2ef]/88 px-3 py-3 backdrop-blur-xl sm:px-4">
+      <nav className={`sticky top-0 z-30 border-b px-3 py-3 backdrop-blur-xl sm:px-4 ${
+        resolvedTheme === "dark" 
+          ? "border-[#2a3a36]/70 bg-[#0e1514]/88" 
+          : resolvedTheme === "warm"
+          ? "border-[#d9c4b5]/70 bg-[#faf6f1]/88"
+          : resolvedTheme === "ocean"
+          ? "border-[#b5c9d9]/70 bg-[#f1f6fa]/88"
+          : resolvedTheme === "forest"
+          ? "border-[#b8c9b5]/70 bg-[#f1f6f1]/88"
+          : resolvedTheme === "sunset"
+          ? "border-[#d9b5c9]/70 bg-[#faf1f6]/88"
+          : "border-[#c9d5cd]/70 bg-[#eef2ef]/88"
+      }`}>
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3">
           <button
             className="flex min-w-0 items-center gap-3 text-left"
@@ -3424,9 +3514,12 @@ export function AletheiaApp() {
                   onModeChange={handleModeChange}
                   onListen={startVoiceInput}
                   onSpeak={speakLatestAletheiaReply}
+                  onTogglePause={toggleSpeechPause}
                   isWorking={isWorking}
                   isListening={isListening}
                   isSpeaking={isSpeaking}
+                  speechPaused={speechPaused}
+                  speechProgress={speechProgress}
                   answerFocusId={answerFocusId}
                   onAnswerFocused={() => setAnswerFocusId(null)}
                   onScriptureOpen={setSelectedScripture}
@@ -3576,6 +3669,9 @@ export function AletheiaApp() {
                   counselContacts={counselContacts}
                   rules={rulesOfLife}
                   onShare={(channel, placement) => shareAletheia(channel, placement)}
+                  availableVoices={availableVoices}
+                  selectedVoice={selectedVoice}
+                  onVoiceChange={setSelectedVoice}
                 />
                 </Screen>
               ) : null}
@@ -4183,6 +4279,9 @@ function AccountPanel({
   counselContacts,
   rules,
   onShare,
+  availableVoices,
+  selectedVoice,
+  onVoiceChange,
 }: {
   user: User | null;
   authMode: AuthMode;
@@ -4229,6 +4328,9 @@ function AccountPanel({
   counselContacts: CounselContact[];
   rules: RuleOfLife[];
   onShare: (channel: ShareChannel, placement: string) => void;
+  availableVoices: SpeechSynthesisVoice[];
+  selectedVoice: string | null;
+  onVoiceChange: (voiceURI: string) => void;
 }) {
   const text = { ...uiText.en, ...ui };
   const exchanges = conversationExchanges(messages).filter((exchange) => exchange.question);
@@ -4341,8 +4443,10 @@ function AccountPanel({
           onChange={onPreferenceChange}
           themePreference={themePreference}
           onThemePreferenceChange={onThemePreferenceChange}
+          availableVoices={availableVoices}
+          selectedVoice={selectedVoice}
+          onVoiceChange={onVoiceChange}
         />
-
         <ManualContextPanel
           user={user}
           context={manualContext}
@@ -5478,6 +5582,9 @@ function PreferencesPanel({
   onChange,
   themePreference,
   onThemePreferenceChange,
+  availableVoices,
+  selectedVoice,
+  onVoiceChange,
 }: {
   panelRef: RefObject<HTMLElement | null>;
   preferences: UserPreferences;
@@ -5488,6 +5595,9 @@ function PreferencesPanel({
   onChange: (patch: Partial<UserPreferences>) => void;
   themePreference: ThemePreference;
   onThemePreferenceChange: (value: ThemePreference) => void;
+  availableVoices: SpeechSynthesisVoice[];
+  selectedVoice: string | null;
+  onVoiceChange: (voiceURI: string) => void;
 }) {
   const bibleOptions = bibleTranslationOptionsForLanguage(preferences.language);
   const selectedTranslation = bibleTranslations[preferences.bibleTranslation];
@@ -5566,10 +5676,31 @@ function PreferencesPanel({
             {ui.voiceControls}
           </label>
         </div>
+        {preferences.voiceEnabled && availableVoices.length > 0 ? (
+          <div className="mt-3">
+            <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#52635a]">
+              Voice selection
+              <select
+                value={selectedVoice || ""}
+                onChange={(event) => onVoiceChange(event.target.value)}
+                className="mt-2 h-10 w-full rounded-md border border-[#c9d5cd] bg-white/78 px-3 text-sm normal-case tracking-normal text-[#203a35] outline-none"
+              >
+                {availableVoices.map((voice) => (
+                  <option key={voice.voiceURI} value={voice.voiceURI}>
+                    {voice.name} ({voice.lang}){voice.localService ? " - Local" : ""}
+                  </option>
+                ))}
+              </select>
+              <span className="mt-1 block text-[11px] normal-case leading-4 tracking-normal text-[#718077]">
+                Choose a voice for reading text aloud. Local voices work offline.
+              </span>
+            </label>
+          </div>
+        ) : null}
       </div>
       <div className="mt-3 rounded-md border border-[#d8e1db] bg-white/58 p-3">
         <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#52635a]">Appearance</p>
-        <div className="mt-2 inline-flex gap-2 rounded-md border border-[#c9d5cd] bg-white/72 p-1">
+        <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-4">
           <ThemeOptionButton
             icon={Sun}
             label="Classic"
@@ -5581,6 +5712,34 @@ function PreferencesPanel({
             label="Dark"
             active={themePreference === "dark"}
             onClick={() => onThemePreferenceChange("dark")}
+          />
+          <ThemeOptionButton
+            icon={Sun}
+            label="Warm"
+            active={themePreference === "warm"}
+            onClick={() => onThemePreferenceChange("warm")}
+            color="#d0946e"
+          />
+          <ThemeOptionButton
+            icon={Sun}
+            label="Ocean"
+            active={themePreference === "ocean"}
+            onClick={() => onThemePreferenceChange("ocean")}
+            color="#6e94d0"
+          />
+          <ThemeOptionButton
+            icon={Sun}
+            label="Forest"
+            active={themePreference === "forest"}
+            onClick={() => onThemePreferenceChange("forest")}
+            color="#6ed094"
+          />
+          <ThemeOptionButton
+            icon={Sun}
+            label="Sunset"
+            active={themePreference === "sunset"}
+            onClick={() => onThemePreferenceChange("sunset")}
+            color="#d06e94"
           />
           <ThemeOptionButton
             icon={Monitor}
@@ -5617,6 +5776,7 @@ function CompanionPanel({
   onModeChange,
   onListen,
   onSpeak,
+  onTogglePause,
   onScriptureOpen,
   onTrackDecision,
   onDraftReflection,
@@ -5628,6 +5788,8 @@ function CompanionPanel({
   isWorking,
   isListening,
   isSpeaking,
+  speechPaused,
+  speechProgress,
   answerFocusId,
   onAnswerFocused,
 }: {
@@ -5645,6 +5807,7 @@ function CompanionPanel({
   onModeChange: (mode: Mode) => void;
   onListen: () => void;
   onSpeak: () => void;
+  onTogglePause: () => void;
   onScriptureOpen: (scripture: string) => void;
   onTrackDecision: (exchange: ConversationExchange) => void;
   onDraftReflection: (exchange: ConversationExchange) => void;
@@ -5656,6 +5819,8 @@ function CompanionPanel({
   isWorking: boolean;
   isListening: boolean;
   isSpeaking: boolean;
+  speechPaused: boolean;
+  speechProgress: number;
   answerFocusId: string | null;
   onAnswerFocused: () => void;
 }) {
@@ -5777,7 +5942,10 @@ function CompanionPanel({
                 ui={ui}
                 isWorking={isWorking}
                 isSpeaking={isSpeaking}
+                speechPaused={speechPaused}
+                speechProgress={speechProgress}
                 onSpeak={onSpeak}
+                onTogglePause={onTogglePause}
                 onScriptureOpen={onScriptureOpen}
                 onTrackDecision={onTrackDecision}
                 onDraftReflection={onDraftReflection}
@@ -6018,11 +6186,13 @@ function ThemeOptionButton({
   label,
   active,
   onClick,
+  color,
 }: {
   icon: typeof Sun;
   label: string;
   active: boolean;
   onClick: () => void;
+  color?: string;
 }) {
   return (
     <button
@@ -6032,7 +6202,7 @@ function ThemeOptionButton({
         active ? "bg-[#203a35] text-[#f8f5e8]" : "bg-white/70 text-[#405049] hover:bg-white"
       }`}
     >
-      <Icon size={14} />
+      <Icon size={14} style={color && !active ? { color } : undefined} />
       {label}
     </button>
   );
@@ -6094,7 +6264,10 @@ function CurrentCounselCard({
   ui,
   isWorking,
   isSpeaking,
+  speechPaused,
+  speechProgress,
   onSpeak,
+  onTogglePause,
   onScriptureOpen,
   onTrackDecision,
   onDraftReflection,
@@ -6111,7 +6284,10 @@ function CurrentCounselCard({
   ui: (typeof uiText)[LanguageCode];
   isWorking: boolean;
   isSpeaking: boolean;
+  speechPaused: boolean;
+  speechProgress: number;
   onSpeak: () => void;
+  onTogglePause: () => void;
   onScriptureOpen: (scripture: string) => void;
   onTrackDecision: (exchange: ConversationExchange) => void;
   onDraftReflection: (exchange: ConversationExchange) => void;
@@ -6147,16 +6323,32 @@ function CurrentCounselCard({
         <div className="mb-2 flex items-center justify-between gap-2">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#866a24]">Aletheia</p>
           {preferences.voiceEnabled && !isThinking ? (
-            <button
-              type="button"
-              onClick={onSpeak}
-              className="inline-flex h-8 items-center gap-1.5 rounded-md border border-[#c9d5cd] bg-white/78 px-2.5 text-xs font-semibold text-[#405049] transition hover:bg-white"
-              aria-label={isSpeaking ? "Stop reading aloud" : "Read answer aloud"}
-              title={isSpeaking ? "Stop" : "Listen to this answer"}
-            >
-              <Volume2 size={14} className={isSpeaking ? "text-[#866a24]" : undefined} />
-              {isSpeaking ? "Stop" : "Read aloud"}
-            </button>
+            <div className="flex items-center gap-2">
+              {isSpeaking && speechProgress > 0 ? (
+                <span className="text-xs text-[#718077]">{speechProgress}%</span>
+              ) : null}
+              <button
+                type="button"
+                onClick={onSpeak}
+                className="inline-flex h-8 items-center gap-1.5 rounded-md border border-[#c9d5cd] bg-white/78 px-2.5 text-xs font-semibold text-[#405049] transition hover:bg-white"
+                aria-label={isSpeaking ? "Stop reading aloud" : "Read answer aloud"}
+                title={isSpeaking ? "Stop" : "Listen to this answer"}
+              >
+                <Volume2 size={14} className={isSpeaking ? "text-[#866a24]" : undefined} />
+                {isSpeaking ? "Stop" : "Read aloud"}
+              </button>
+              {isSpeaking ? (
+                <button
+                  type="button"
+                  onClick={onTogglePause}
+                  className="inline-flex h-8 items-center gap-1.5 rounded-md border border-[#c9d5cd] bg-white/78 px-2.5 text-xs font-semibold text-[#405049] transition hover:bg-white"
+                  aria-label={speechPaused ? "Resume reading" : "Pause reading"}
+                  title={speechPaused ? "Resume" : "Pause"}
+                >
+                  {speechPaused ? "Resume" : "Pause"}
+                </button>
+              ) : null}
+            </div>
           ) : null}
         </div>
         <p className="mb-3 rounded-md border border-[#d8e1db] bg-white/70 p-3 text-xs leading-5 text-[#607067]">
