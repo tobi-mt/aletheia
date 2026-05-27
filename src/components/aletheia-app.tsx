@@ -5699,11 +5699,11 @@ function ScriptureModal({
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>Scripture quick read</p>
             <h2 className="mt-2 text-xl font-semibold" style={{ color: theme.textPrimary }}>{scripture}</h2>
-            <p className="mt-1 text-sm text-[#607067]">
+            <p className="mt-1 text-sm" style={{ color: theme.textSecondary }}>
               {quickRead.label} · {quickRead.translation}
             </p>
             {usesCanonicalRange ? (
-              <p className="mt-1 text-xs leading-5 text-[#718077]">
+              <p className="mt-1 text-xs leading-5" style={{ color: theme.textSecondary }}>
                 Shown from Aletheia’s curated range: {canonicalScripture}
               </p>
             ) : null}
@@ -5731,15 +5731,15 @@ function ScriptureModal({
           </p>
         ) : null}
         <div className="mt-3 grid gap-3 md:grid-cols-2">
-          <div className="rounded-lg border border-[#d8e1db] bg-white/64 p-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">Context</p>
-            <p className="mt-2 text-sm leading-6 text-[#505a52]">
+          <div className="rounded-lg border p-4" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>Context</p>
+            <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
               {wisdomEntry?.context ?? "This reference is shown because it belongs to Aletheia’s curated wisdom library."}
             </p>
           </div>
-          <div className="rounded-lg border border-[#d8e1db] bg-white/64 p-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#866a24]">Why it matters here</p>
-            <p className="mt-2 text-sm leading-6 text-[#505a52]">
+          <div className="rounded-lg border p-4" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>Why it matters here</p>
+            <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
               {wisdomEntry?.application ?? "Use it as a wisdom anchor, not as a prediction or pressure tactic."}
             </p>
           </div>
@@ -6204,7 +6204,7 @@ function CompanionPanel({
               <MessageCircle size={18} />
               {ui.askTitle}
             </div>
-            <p className="mt-1 text-sm leading-5 text-[#5a685f]">
+            <p className="mt-1 text-sm leading-5" style={{ color: theme.textSecondary }}>
               {ui.askIntro}
             </p>
           </div>
@@ -7262,7 +7262,7 @@ function DecisionCompanionPanel({
               ) : null}
               <div className="mt-3 flex flex-wrap gap-2">
                 <button
-                  className="rounded-md border border-[#c9d5cd] px-3 py-2 text-xs font-semibold text-[#203a35]"
+                  className="rounded-md border px-3 py-2 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
                   onClick={() => onShareCounselInvite("copy")}
                   type="button"
                 >
