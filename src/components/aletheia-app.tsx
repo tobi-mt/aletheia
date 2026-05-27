@@ -1859,14 +1859,14 @@ export function AletheiaApp() {
   useEffect(() => {
     const metaThemeColor = document.querySelector('meta[name="theme-color"]');
     if (metaThemeColor) {
-      metaThemeColor.setAttribute('content', theme.primary);
+      metaThemeColor.setAttribute('content', theme.bgMain);
     } else {
       const meta = document.createElement('meta');
       meta.name = 'theme-color';
-      meta.content = theme.primary;
+      meta.content = theme.bgMain;
       document.head.appendChild(meta);
     }
-  }, [theme.primary]);
+  }, [theme.bgMain]);
 
   async function loadSignedInWorkspace(signedInUser: User) {
     const [chatResponse, journalResponse, notificationResponse, decisionsResponse, counselResponse, rulesResponse, preferencesResponse, contextResponse] = await Promise.all([
@@ -5258,16 +5258,16 @@ function ShareInviteCard({
 function ShareMilestonePrompt({ theme, ui, onShare }: { theme: ThemeColors; ui: (typeof uiText)[LanguageCode]; onShare: (channel: ShareChannel) => void }) {
   const text = { ...uiText.en, ...ui };
   return (
-    <div className="mt-4 rounded-lg border border-white/10 bg-white/8 p-3">
-      <p className="text-sm font-semibold" style={{ color: theme.textOnPrimary }}>{text.milestoneShareTitle}</p>
-      <p className="mt-1 text-xs leading-5" style={{ color: theme.textMuted }}>
+    <div className="mt-4 rounded-lg border p-3" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
+      <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{text.milestoneShareTitle}</p>
+      <p className="mt-1 text-xs leading-5" style={{ color: theme.textSecondary }}>
         {text.milestoneShareBody}
       </p>
       <button
         type="button"
         onClick={() => onShare("native")}
-        className="mt-3 inline-flex h-11 items-center gap-2 rounded-md px-3 text-xs font-semibold"
-        style={{ backgroundColor: theme.bgCardElevated, color: theme.primary }}
+        className="mt-3 inline-flex h-11 items-center gap-2 rounded-md border px-3 text-xs font-semibold transition"
+        style={{ backgroundColor: theme.bgInput, borderColor: theme.borderMedium, color: theme.textPrimary }}
       >
         <Share2 size={14} />
         {text.shareAletheia}
@@ -6789,13 +6789,13 @@ function CurrentCounselCard({
       {showDecisionActions ? (
         <>
           <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
-            <CounselAction label={text.trackThisDecision!} onClick={() => onTrackDecision(exchange)} />
-            <CounselAction label={text.saveAsReflection!} onClick={() => onDraftReflection(exchange)} />
-            <CounselAction label={text.createCounselSummary!} onClick={() => onCreateCounselSummary(exchange)} />
-            <CounselAction label={text.goDeeper!} onClick={() => onGoDeeper(exchange)} />
-            <CounselAction label={text.waitThreeDays!} onClick={() => onWait(exchange)} />
+            <CounselAction theme={theme} label={text.trackThisDecision!} onClick={() => onTrackDecision(exchange)} />
+            <CounselAction theme={theme} label={text.saveAsReflection!} onClick={() => onDraftReflection(exchange)} />
+            <CounselAction theme={theme} label={text.createCounselSummary!} onClick={() => onCreateCounselSummary(exchange)} />
+            <CounselAction theme={theme} label={text.goDeeper!} onClick={() => onGoDeeper(exchange)} />
+            <CounselAction theme={theme} label={text.waitThreeDays!} onClick={() => onWait(exchange)} />
           </div>
-          <AnswerFeedback ui={ui} onFeedback={onFeedback} />
+          <AnswerFeedback theme={theme} ui={ui} onFeedback={onFeedback} />
           <div className="mt-3 rounded-md border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
             <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{text.shareAnswerPrompt}</p>
             <p className="mt-1 text-xs leading-5" style={{ color: theme.textSecondary }}>
@@ -6817,7 +6817,7 @@ function CurrentCounselCard({
   );
 }
 
-function AnswerFeedback({ ui, onFeedback }: { ui: (typeof uiText)[LanguageCode]; onFeedback: (value: string) => void }) {
+function AnswerFeedback({ theme, ui, onFeedback }: { theme: ThemeColors; ui: (typeof uiText)[LanguageCode]; onFeedback: (value: string) => void }) {
   const text = { ...uiText.en, ...ui };
   const items = [
     ["helpful", text.feedbackHelpful!],
@@ -6828,15 +6828,16 @@ function AnswerFeedback({ ui, onFeedback }: { ui: (typeof uiText)[LanguageCode];
   ] as const;
 
   return (
-    <div className="mt-3 rounded-lg border border-[#d8e1db] bg-white/60 p-3">
-      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#866a24]">{text.feedbackQuestion}</p>
+    <div className="mt-3 rounded-lg border p-3" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
+      <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{text.feedbackQuestion}</p>
       <div className="mt-2 flex flex-wrap gap-2">
         {items.map(([value, label]) => (
           <button
             key={value}
             type="button"
             onClick={() => onFeedback(value)}
-            className="h-8 rounded-md border border-[#c9d5cd] bg-white/80 px-3 text-xs font-semibold text-[#405049] transition hover:bg-white"
+            className="h-8 rounded-md border px-3 text-xs font-semibold transition"
+            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
           >
             {label}
           </button>
@@ -6846,12 +6847,13 @@ function AnswerFeedback({ ui, onFeedback }: { ui: (typeof uiText)[LanguageCode];
   );
 }
 
-function CounselAction({ label, onClick }: { label: string; onClick: () => void }) {
+function CounselAction({ theme, label, onClick }: { theme: ThemeColors; label: string; onClick: () => void }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="rounded-md border border-[#c9d5cd] bg-white/70 px-3 py-2 text-xs font-semibold text-[#405049] transition hover:border-[#203a35] hover:bg-white"
+      className="rounded-md border px-3 py-2 text-xs font-semibold transition"
+      style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
     >
       {label}
     </button>
