@@ -116,8 +116,8 @@ const themeColors: Record<ResolvedTheme, ThemeColors> = {
     bgMain: "#eef2ef",
     bgGradient: "bg-[radial-gradient(circle_at_18%_0%,rgba(201,177,123,0.16),transparent_24%),radial-gradient(circle_at_92%_16%,rgba(64,101,96,0.14),transparent_24%),linear-gradient(180deg,#f4f6f2_0%,#e4ebe6_100%)]",
     bgCard: "#fbfcf8",
-    bgCardElevated: "rgba(251, 252, 248, 0.78)",
-    bgInput: "rgba(255, 255, 255, 0.78)",
+    bgCardElevated: "#f4f7f2",
+    bgInput: "#ffffff",
     bgNav: "rgba(238, 242, 239, 0.88)",
     bgNavBorder: "rgba(201, 213, 205, 0.7)",
     textPrimary: "#203a35",
@@ -139,8 +139,8 @@ const themeColors: Record<ResolvedTheme, ThemeColors> = {
     bgMain: "#0e1514",
     bgGradient: "bg-[radial-gradient(circle_at_18%_0%,rgba(194,162,88,0.18),transparent_26%),radial-gradient(circle_at_92%_14%,rgba(73,122,107,0.22),transparent_25%),linear-gradient(180deg,#0e1514_0%,#090f0e_100%)]",
     bgCard: "#1a2622",
-    bgCardElevated: "rgba(26, 38, 34, 0.85)",
-    bgInput: "rgba(32, 48, 44, 0.78)",
+    bgCardElevated: "#20302c",
+    bgInput: "#14211e",
     bgNav: "rgba(14, 21, 20, 0.88)",
     bgNavBorder: "rgba(42, 58, 54, 0.7)",
     textPrimary: "#f8f5e8",
@@ -162,8 +162,8 @@ const themeColors: Record<ResolvedTheme, ThemeColors> = {
     bgMain: "#faf6f1",
     bgGradient: "bg-[radial-gradient(circle_at_18%_0%,rgba(220,180,140,0.20),transparent_26%),radial-gradient(circle_at_92%_14%,rgba(200,160,120,0.18),transparent_25%),linear-gradient(180deg,#faf6f1_0%,#f4ede4_100%)]",
     bgCard: "#fef9f5",
-    bgCardElevated: "rgba(254, 249, 245, 0.82)",
-    bgInput: "rgba(255, 252, 248, 0.85)",
+    bgCardElevated: "#f8eee6",
+    bgInput: "#fffaf5",
     bgNav: "rgba(250, 246, 241, 0.88)",
     bgNavBorder: "rgba(217, 196, 181, 0.7)",
     textPrimary: "#4a2818",
@@ -185,8 +185,8 @@ const themeColors: Record<ResolvedTheme, ThemeColors> = {
     bgMain: "#f1f6fa",
     bgGradient: "bg-[radial-gradient(circle_at_18%_0%,rgba(140,180,220,0.18),transparent_26%),radial-gradient(circle_at_92%_14%,rgba(100,140,180,0.20),transparent_25%),linear-gradient(180deg,#f1f6fa_0%,#e4ecf4_100%)]",
     bgCard: "#f8fbfd",
-    bgCardElevated: "rgba(248, 251, 253, 0.82)",
-    bgInput: "rgba(255, 255, 255, 0.85)",
+    bgCardElevated: "#eef6fb",
+    bgInput: "#ffffff",
     bgNav: "rgba(241, 246, 250, 0.88)",
     bgNavBorder: "rgba(181, 201, 217, 0.7)",
     textPrimary: "#1a3a4a",
@@ -208,8 +208,8 @@ const themeColors: Record<ResolvedTheme, ThemeColors> = {
     bgMain: "#f1f6f1",
     bgGradient: "bg-[radial-gradient(circle_at_18%_0%,rgba(140,180,140,0.20),transparent_26%),radial-gradient(circle_at_92%_14%,rgba(100,140,100,0.18),transparent_25%),linear-gradient(180deg,#f1f6f1_0%,#e4ede4_100%)]",
     bgCard: "#f8fbf8",
-    bgCardElevated: "rgba(248, 251, 248, 0.82)",
-    bgInput: "rgba(255, 255, 255, 0.85)",
+    bgCardElevated: "#eef8ef",
+    bgInput: "#ffffff",
     bgNav: "rgba(241, 246, 241, 0.88)",
     bgNavBorder: "rgba(184, 201, 181, 0.7)",
     textPrimary: "#1a3a2a",
@@ -231,8 +231,8 @@ const themeColors: Record<ResolvedTheme, ThemeColors> = {
     bgMain: "#faf1f6",
     bgGradient: "bg-[radial-gradient(circle_at_18%_0%,rgba(220,140,180,0.20),transparent_26%),radial-gradient(circle_at_92%_14%,rgba(200,120,160,0.18),transparent_25%),linear-gradient(180deg,#faf1f6_0%,#f4e4ec_100%)]",
     bgCard: "#fef5f9",
-    bgCardElevated: "rgba(254, 245, 249, 0.82)",
-    bgInput: "rgba(255, 250, 253, 0.85)",
+    bgCardElevated: "#f9eaf2",
+    bgInput: "#fffafd",
     bgNav: "rgba(250, 241, 246, 0.88)",
     bgNavBorder: "rgba(217, 181, 201, 0.7)",
     textPrimary: "#4a1a3a",
@@ -270,6 +270,7 @@ const MANUAL_CONTEXT_STORAGE_KEY = "aletheia_manual_context";
 const THEME_STORAGE_KEY = "aletheia_theme_preference";
 const VOICE_STORAGE_KEY = "aletheia_selected_voice";
 const COUNSEL_STATUS_TRACKING_KEY = "aletheia_counsel_status_tracking";
+const CARRY_TODAY_STORAGE_KEY = "aletheia_carry_today";
 const DEFAULT_NOTIFICATION_TIMING: NotificationTiming = {
   preferredLocalHour: 8,
   preferredTimezone: "UTC",
@@ -339,6 +340,15 @@ const uiText: Record<
     startDecision?: string;
     startDecisionBody?: string;
     tinyPractice?: string;
+    todaysCompanion?: string;
+    todayPrefix?: string;
+    wisdomPrinciple?: string;
+    reflectionQuestion?: string;
+    carryThisToday?: string;
+    carryWithMe?: string;
+    askAboutThis?: string;
+    saveToRuleOfLife?: string;
+    carryingToday?: string;
     currentCounsel?: string;
     modeShapesCounsel?: string;
     trackThisDecision?: string;
@@ -423,6 +433,15 @@ const uiText: Record<
     startDecision: "Start a decision",
     startDecisionBody: "Track a high-stakes choice over time.",
     tinyPractice: "Tiny practice",
+    todaysCompanion: "Today's companion",
+    todayPrefix: "Today",
+    wisdomPrinciple: "Wisdom principle",
+    reflectionQuestion: "Question",
+    carryThisToday: "Carry this today",
+    carryWithMe: "Carry with me",
+    askAboutThis: "Ask about this",
+    saveToRuleOfLife: "Save to Rule of Life",
+    carryingToday: "Carrying today",
     currentCounsel: "Current counsel",
     modeShapesCounsel: "mode is shaping this counsel around",
     trackThisDecision: "Track this decision",
@@ -494,6 +513,16 @@ const uiText: Record<
     voiceControls: "Controles de voz",
     available: "Disponible",
     englishFallback: "Recurso en inglés",
+    todaysCompanion: "Compañero de hoy",
+    todayPrefix: "Hoy",
+    wisdomPrinciple: "Principio de sabiduría",
+    tinyPractice: "Práctica breve",
+    reflectionQuestion: "Pregunta",
+    carryThisToday: "Lleva esto hoy",
+    carryWithMe: "Llevar conmigo",
+    askAboutThis: "Preguntar sobre esto",
+    saveToRuleOfLife: "Guardar como regla de vida",
+    carryingToday: "Llevando hoy",
   },
   fr: {
     nav: { companion: "Accueil", decisions: "Décisions", reflect: "Réflexion", library: "Bibliothèque", account: "Compte" },
@@ -528,6 +557,16 @@ const uiText: Record<
     voiceControls: "Commandes vocales",
     available: "Disponible",
     englishFallback: "Repli anglais",
+    todaysCompanion: "Compagnon du jour",
+    todayPrefix: "Aujourd'hui",
+    wisdomPrinciple: "Principe de sagesse",
+    tinyPractice: "Petite pratique",
+    reflectionQuestion: "Question",
+    carryThisToday: "À porter aujourd'hui",
+    carryWithMe: "Porter avec moi",
+    askAboutThis: "Questionner cela",
+    saveToRuleOfLife: "Ajouter à ma règle de vie",
+    carryingToday: "Porté aujourd'hui",
   },
   pt: {
     nav: { companion: "Início", decisions: "Decisões", reflect: "Refletir", library: "Biblioteca", account: "Conta" },
@@ -562,6 +601,16 @@ const uiText: Record<
     voiceControls: "Controles de voz",
     available: "Disponível",
     englishFallback: "Recurso em inglês",
+    todaysCompanion: "Companheiro de hoje",
+    todayPrefix: "Hoje",
+    wisdomPrinciple: "Princípio de sabedoria",
+    tinyPractice: "Pequena prática",
+    reflectionQuestion: "Pergunta",
+    carryThisToday: "Leve isto hoje",
+    carryWithMe: "Levar comigo",
+    askAboutThis: "Perguntar sobre isto",
+    saveToRuleOfLife: "Salvar como regra de vida",
+    carryingToday: "Levando hoje",
   },
   de: {
     nav: { companion: "Start", decisions: "Entscheidungen", reflect: "Reflektieren", library: "Bibliothek", account: "Konto" },
@@ -611,6 +660,15 @@ const uiText: Record<
     startDecision: "Entscheidung beginnen",
     startDecisionBody: "Verfolge eine wichtige Entscheidung über Zeit.",
     tinyPractice: "Kleine Übung",
+    todaysCompanion: "Begleiter für heute",
+    todayPrefix: "Heute",
+    wisdomPrinciple: "Weisheitsprinzip",
+    reflectionQuestion: "Frage",
+    carryThisToday: "Heute mitnehmen",
+    carryWithMe: "Mitnehmen",
+    askAboutThis: "Dazu fragen",
+    saveToRuleOfLife: "Als Lebensregel speichern",
+    carryingToday: "Heute trägst du",
     currentCounsel: "Aktueller Rat",
     modeShapesCounsel: "Modus prägt diesen Rat mit der Perspektive",
     trackThisDecision: "Diese Entscheidung verfolgen",
@@ -689,6 +747,15 @@ const uiText: Record<
     startDecision: "Bẹrẹ ìpinnu kan",
     startDecisionBody: "Tọ́pa ìpinnu pàtàkì kan nípasẹ̀ àkókò.",
     tinyPractice: "Ìṣe kékeré",
+    todaysCompanion: "Alábàákẹ́gbẹ́ oni",
+    todayPrefix: "Lónìí",
+    wisdomPrinciple: "Ìlànà ọgbọ́n",
+    reflectionQuestion: "Ìbéèrè",
+    carryThisToday: "Gbé èyí lọ lónìí",
+    carryWithMe: "Gbé e pẹ̀lú mi",
+    askAboutThis: "Béèrè nípa èyí",
+    saveToRuleOfLife: "Fi sí Ofin ìgbé-ayé",
+    carryingToday: "Ohun tí o ń gbé lónìí",
     currentCounsel: "Ìmọ̀ràn lọwọlọwọ",
     modeShapesCounsel: "ń wo ìmọ̀ràn yìí láti",
     trackThisDecision: "Tọ́pa ìpinnu yìí",
@@ -760,6 +827,16 @@ const uiText: Record<
     voiceControls: "Njikwa olu",
     available: "Dị",
     englishFallback: "Laghachi n'Bekee",
+    todaysCompanion: "Enyi nke taa",
+    todayPrefix: "Taa",
+    wisdomPrinciple: "Ụkpụrụ amamihe",
+    tinyPractice: "Omume nta",
+    reflectionQuestion: "Ajụjụ",
+    carryThisToday: "Buru nke a taa",
+    carryWithMe: "Buru ya na m",
+    askAboutThis: "Jụọ maka nke a",
+    saveToRuleOfLife: "Chekwaa dị ka iwu ndụ",
+    carryingToday: "Ihe ị na-ebu taa",
   },
   ha: {
     nav: { companion: "Gida", decisions: "Shawara", reflect: "Tunani", library: "Laburare", account: "Asusu" },
@@ -794,6 +871,16 @@ const uiText: Record<
     voiceControls: "Sarrafa murya",
     available: "Akwai",
     englishFallback: "Komawa Turanci",
+    todaysCompanion: "Abokin yau",
+    todayPrefix: "Yau",
+    wisdomPrinciple: "Ka'idar hikima",
+    tinyPractice: "Karamin aiki",
+    reflectionQuestion: "Tambaya",
+    carryThisToday: "Rike wannan yau",
+    carryWithMe: "Rike tare da ni",
+    askAboutThis: "Tambaya game da wannan",
+    saveToRuleOfLife: "Ajiye a matsayin ka'idar rayuwa",
+    carryingToday: "Abin da kake rike da shi yau",
   },
 };
 
@@ -867,12 +954,16 @@ function storedVoicePreference() {
 
 function voiceQualityScore(voice: SpeechSynthesisVoice, languagePrefix: string) {
   const name = voice.name.toLowerCase();
+  const noveltyVoicePattern =
+    /novelty|bells|bad news|bubbles|cellos|good news|hysterical|organ|trinoids|whisper|zarvox|boing|bahh|pipe|jester|superstar|wobble|seifenblasen|schlechte neuigkeiten|gute neuigkeiten|flüstern|fluestern|hysterisch|orgel|glocken|blasen|celli/i;
+  if (noveltyVoicePattern.test(voice.name)) {
+    return -999;
+  }
   let score = voice.lang.toLowerCase().startsWith(languagePrefix) ? 80 : 0;
   if (voice.localService) score += 25;
-  if (name.includes("enhanced") || name.includes("neural") || name.includes("natural")) score += 45;
-  if (/(samantha|alex|ava|daniel|karen|moira|fiona|tessa|arthur|martha|susan|serena|siri)/i.test(voice.name)) score += 28;
-  if (name.includes("compact")) score -= 35;
-  if (/(novelty|bells|bad news|bubbles|cellos|good news|hysterical|organ|trinoids|whisper|zarvox)/i.test(voice.name)) score -= 100;
+  if (name.includes("enhanced") || name.includes("neural") || name.includes("natural") || name.includes("premium")) score += 45;
+  if (/(samantha|alex|ava|daniel|karen|moira|fiona|tessa|arthur|martha|susan|serena|siri|anna|markus|yannick|amelie|thomas|paulina|jorge|mónica|monica|luciana|felipe)/i.test(voice.name)) score += 28;
+  if (name.includes("compact")) score -= 40;
   return score;
 }
 
@@ -880,15 +971,14 @@ function curatedVoicesForLanguage(voices: SpeechSynthesisVoice[], speechCode: st
   const languagePrefix = speechCode.slice(0, 2).toLowerCase();
   const scored = voices
     .map((voice) => ({ voice, score: voiceQualityScore(voice, languagePrefix) }))
-    .filter(({ score }) => score > 0)
+    .filter(({ score, voice }) => score >= 80 && !voice.name.toLowerCase().includes("compact"))
     .sort((a, b) => b.score - a.score);
   const languageMatches = scored.filter(({ voice }) => voice.lang.toLowerCase().startsWith(languagePrefix));
-  return (languageMatches.length ? languageMatches : scored).slice(0, 12).map(({ voice }) => voice);
+  return (languageMatches.length ? languageMatches : scored).slice(0, 4).map(({ voice }) => voice);
 }
 
 function voiceLabel(voice: SpeechSynthesisVoice) {
-  const service = voice.localService ? "device" : "online";
-  return `${voice.name} (${voice.lang}, ${service})`;
+  return `${voice.name} · ${voice.lang}`;
 }
 
 function shouldShowOnboarding() {
@@ -1128,6 +1218,20 @@ type CounselSummaryDraft = {
   title: string;
   body: string;
   createdAt: string;
+};
+
+type CarryToday = {
+  date: string;
+  phrase: string;
+};
+
+type TodayCompanionCard = {
+  title: string;
+  opening: string;
+  principle: string;
+  practice: string;
+  question: string;
+  carryPhrase: string;
 };
 
 type JournalEntry = {
@@ -1551,6 +1655,73 @@ function todayWisdom() {
   return wisdomEntries[index];
 }
 
+function localTodayKey() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function storedCarryToday(): CarryToday | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(CARRY_TODAY_STORAGE_KEY) || "null") as CarryToday | null;
+    return parsed?.date === localTodayKey() && parsed.phrase ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function companionCardFromDaily({
+  daily,
+  entry,
+  pattern,
+  language,
+}: {
+  daily: ReturnType<typeof localizedDailyWisdom>;
+  entry: WisdomEntry;
+  pattern: string;
+  language: LanguageCode;
+}): TodayCompanionCard {
+  const theme = daily.theme || entry.theme;
+  const questions: Partial<Record<LanguageCode, string>> = {
+    en: entry.questions[0] || "Where is wisdom asking me to slow down today?",
+    de: "Wo lädt Weisheit mich heute ein, langsamer zu werden?",
+    yo: "Níbo ni ọgbọ́n ń pè mí láti dákẹ́ lónìí?",
+    ig: "Ebee ka amamihe na-akpọ m ka m belata ọsọ taa?",
+    ha: "Ina hikima ke kiran ni in rage gaggawa yau?",
+    fr: "Où la sagesse m'invite-t-elle à ralentir aujourd'hui ?",
+    es: "¿Dónde me invita la sabiduría a bajar el ritmo hoy?",
+    pt: "Onde a sabedoria me convida a desacelerar hoje?",
+  };
+  const shortQuestion = questions[language] ?? questions.en!;
+  const openings: Partial<Record<LanguageCode, string>> = {
+    en: "You do not have to decide from pressure today.",
+    de: "Du musst heute nicht aus Druck heraus entscheiden.",
+    yo: "O ko ni lati pinnu lati inu titẹ loni.",
+    ig: "I gaghị eme mkpebi site n'ike nrụgide taa.",
+    ha: "Ba lallai ne ka yanke shawara daga matsin lamba yau ba.",
+    fr: "Tu n'as pas besoin de décider sous pression aujourd'hui.",
+    es: "No tienes que decidir desde la presión hoy.",
+    pt: "Hoje, você não precisa decidir sob pressão.",
+  };
+  const carryPhrase =
+    language === "en" && pattern && pattern.length < 72
+      ? `Notice ${pattern.toLowerCase()} before it drives the decision.`
+      : daily.practice.replace(/\.$/, ".");
+  return {
+    title: theme,
+    opening: openings[language] ?? openings.en!,
+    principle: daily.principle,
+    practice: daily.practice,
+    question: shortQuestion,
+    carryPhrase,
+  };
+}
+
 export function AletheiaApp() {
   const storedActiveView = typeof window !== "undefined" ? (() => {
     try {
@@ -1610,6 +1781,7 @@ export function AletheiaApp() {
   const [speechPaused, setSpeechPaused] = useState(false);
   const [speechProgress, setSpeechProgress] = useState(0);
   const [readingLabel, setReadingLabel] = useState("Aletheia reading");
+  const [carryToday, setCarryToday] = useState<CarryToday | null>(storedCarryToday);
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [selectedVoice, setSelectedVoice] = useState<string | null>(storedVoicePreference);
   const [currentUtterance, setCurrentUtterance] = useState<SpeechSynthesisUtterance | null>(null);
@@ -1699,9 +1871,10 @@ export function AletheiaApp() {
 
   // Build ui object from translations for backward compatibility
   const buildUiFromTranslations = (trans: TranslationData) => {
+    const languageFallback = uiText[preferences.language] ?? uiText.en;
     if (!trans || Object.keys(trans).length === 0) {
       // Return fallback to uiText.en if translations not loaded yet
-      return uiText.en;
+      return languageFallback;
     }
     
     // Helper to ensure string type
@@ -1766,6 +1939,15 @@ export function AletheiaApp() {
       startDecision: getString('startDecision', 'Start a decision'),
       startDecisionBody: getString('startDecisionBody', ''),
       tinyPractice: getString('tinyPractice', 'Tiny practice'),
+      todaysCompanion: getString('todaysCompanion', languageFallback.todaysCompanion ?? "Today's companion"),
+      todayPrefix: getString('todayPrefix', languageFallback.todayPrefix ?? 'Today'),
+      wisdomPrinciple: getString('wisdomPrinciple', languageFallback.wisdomPrinciple ?? 'Wisdom principle'),
+      reflectionQuestion: getString('reflectionQuestion', languageFallback.reflectionQuestion ?? 'Question'),
+      carryThisToday: getString('carryThisToday', languageFallback.carryThisToday ?? 'Carry this today'),
+      carryWithMe: getString('carryWithMe', languageFallback.carryWithMe ?? 'Carry with me'),
+      askAboutThis: getString('askAboutThis', languageFallback.askAboutThis ?? 'Ask about this'),
+      saveToRuleOfLife: getString('saveToRuleOfLife', languageFallback.saveToRuleOfLife ?? 'Save to Rule of Life'),
+      carryingToday: getString('carryingToday', languageFallback.carryingToday ?? 'Carrying today'),
       currentCounsel: getString('currentCounsel', 'Current counsel'),
       modeShapesCounsel: getString('modeShapesCounsel', 'mode is shaping this counsel around'),
       trackThisDecision: getString('trackThisDecision', 'Track this decision'),
@@ -2214,6 +2396,7 @@ export function AletheiaApp() {
   const topBibleOptions = bibleTranslationOptionsForLanguage(preferences.language);
   const activeDecision = wisdomDecisions.find((item) => item.status !== "closed") ?? wisdomDecisions[0] ?? null;
   const todayPattern = timelineInsight.patterns[0] ?? activeMode.blindSpots[0];
+  const todayCompanionCard = companionCardFromDaily({ daily, entry: dailyEntry, pattern: todayPattern, language: preferences.language });
 
   // Get translated mode-specific content
   const modeKey = mode.toLowerCase();
@@ -2331,6 +2514,39 @@ export function AletheiaApp() {
     setQuery((current) => current || modeProfiles[mode].prompts[0]);
     scrollToSection("companion-ask");
     announceWorkflow(ts('notifications.questionReady'), ts('notifications.questionReadyBody'), "success");
+  }
+
+  function carryCompanionCard(card: TodayCompanionCard) {
+    const next = { date: localTodayKey(), phrase: card.carryPhrase };
+    setCarryToday(next);
+    try {
+      window.localStorage.setItem(CARRY_TODAY_STORAGE_KEY, JSON.stringify(next));
+    } catch {
+      // The carry phrase can still stay visible for this session.
+    }
+    announceWorkflow("Carried for today", `"${card.carryPhrase}" is pinned on Home for today.`, "success");
+  }
+
+  function askAboutCompanionCard(card: TodayCompanionCard) {
+    setQuery(`Help me reflect on this today: ${card.question}`);
+    showView("companion");
+    scrollToSection("companion-ask");
+    announceWorkflow("Question prepared", "Aletheia placed today’s question in the Companion input.", "success");
+  }
+
+  function reflectOnCompanionCard(card: TodayCompanionCard) {
+    setJournalTitle(`Today: ${card.title}`);
+    setJournalBody(
+      `${card.opening}\n\nPrinciple:\n${card.principle}\n\nTiny practice:\n${card.practice}\n\nQuestion:\n${card.question}\n\nWhat I notice today:\n`
+    );
+    showView("reflect");
+    announceWorkflow("Reflection prepared", "Today’s card is ready in Reflect.", "success");
+  }
+
+  function saveCompanionRule(card: TodayCompanionCard) {
+    setRuleText(card.carryPhrase);
+    showView("decisions");
+    announceWorkflow("Rule drafted", "The carry phrase is ready as a Rule of Life. Review and save it when it feels true.", "success");
   }
 
   async function shareAletheia(channel: ShareChannel, placement: string) {
@@ -2668,11 +2884,9 @@ export function AletheiaApp() {
     if (window.speechSynthesis.paused) {
       window.speechSynthesis.resume();
       setSpeechPaused(false);
-      announceWorkflow(ts('notifications.readingResumed'), 'Reading resumed', "info");
     } else if (isSpeaking) {
       window.speechSynthesis.pause();
       setSpeechPaused(true);
-      announceWorkflow(ts('notifications.readingPaused'), 'Reading paused', "info");
     }
   }
 
@@ -2744,11 +2958,7 @@ export function AletheiaApp() {
     setIsSpeaking(true);
     setReadingLabel(label);
     setSpeechProgress(0);
-    announceWorkflow(
-      ts('notifications.readingAloud'),
-      `${notice} Browser speech may pause when the app is minimized; a native/audio voice layer is needed for true background playback.`,
-      "info"
-    );
+    setStatusMessage(notice);
     window.speechSynthesis.speak(utterance);
     
     // Wake lock to prevent screen sleep during reading (if supported)
@@ -3615,7 +3825,12 @@ export function AletheiaApp() {
       <div
         className={`fixed inset-0 -z-10 ${theme.bgGradient}`}
       />
-      <WorkflowNotice notice={workflowNotice} onClose={() => setWorkflowNotice(null)} theme={theme} />
+      <WorkflowNotice
+        notice={workflowNotice}
+        onClose={() => setWorkflowNotice(null)}
+        theme={theme}
+        readerOpen={isSpeaking || speechPaused}
+      />
 
       <nav className="sticky top-0 z-30 border-b px-3 py-3 backdrop-blur-xl sm:px-4" style={{ borderColor: theme.bgNavBorder, backgroundColor: theme.bgNav }}>
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3">
@@ -3759,12 +3974,19 @@ export function AletheiaApp() {
                   ui={ui}
                   notificationsEnabled={notificationsEnabled}
                   todayPattern={todayPattern}
+                  companionCard={todayCompanionCard}
+                  carryToday={carryToday}
                   onScriptureOpen={setSelectedScripture}
                   onContinueDecision={continueDecisionFlow}
                   onReflectToday={reflectOnToday}
                   onReviewPattern={reviewPatternFlow}
                   onOpenAccount={openAccountFlow}
                   onAskOneQuestion={askOneQuestionFlow}
+                  onCarryToday={carryCompanionCard}
+                  onReflectCard={reflectOnCompanionCard}
+                  onAskAboutCard={askAboutCompanionCard}
+                  onSaveCardAsRule={saveCompanionRule}
+                  onShareCard={() => shareAletheia("native", "today_companion_card")}
                   theme={theme}
                 />
                 <CompanionPanel
@@ -4076,7 +4298,7 @@ function ReadingPlayer({
   const safeProgress = Math.min(100, Math.max(0, progress || 0));
   return (
     <section
-      className="fixed inset-x-3 bottom-[calc(4.6rem+env(safe-area-inset-bottom))] z-50 mx-auto max-w-2xl rounded-xl border p-3 shadow-2xl backdrop-blur-xl md:bottom-5"
+      className="fixed inset-x-3 bottom-[calc(4.6rem+env(safe-area-inset-bottom))] z-[55] mx-auto max-w-2xl rounded-xl border p-3 shadow-2xl backdrop-blur-xl md:bottom-5"
       style={{
         borderColor: theme.borderStrong,
         backgroundColor: theme.bgCard,
@@ -4186,10 +4408,12 @@ function WorkflowNotice({
   notice,
   onClose,
   theme,
+  readerOpen,
 }: {
   notice: WorkflowNoticeState | null;
   onClose: () => void;
   theme: ThemeColors;
+  readerOpen: boolean;
 }) {
   if (!notice) {
     return null;
@@ -4198,11 +4422,11 @@ function WorkflowNotice({
   const getToneColors = (tone: WorkflowTone) => {
     switch (tone) {
       case "success":
-        return { border: "#b8d0c2", bg: "#edf7f1", text: "#245443" };
+        return { border: theme.primary, bg: theme.bgCard, text: theme.textPrimary };
       case "warning":
-        return { border: "#ead8a4", bg: "#fff8dc", text: "#866a24" };
+        return { border: theme.accentGold, bg: theme.bgCard, text: theme.textPrimary };
       case "error":
-        return { border: "#e0c3b7", bg: "#fff6f1", text: "#8c3f28" };
+        return { border: "#b85d45", bg: theme.bgCard, text: theme.textPrimary };
       default: // info
         return { border: theme.borderMedium, bg: theme.bgCard, text: theme.textPrimary };
     }
@@ -4211,7 +4435,13 @@ function WorkflowNotice({
   const colors = getToneColors(notice.tone);
 
   return (
-    <div className="fixed inset-x-3 bottom-24 z-50 sm:bottom-auto sm:left-auto sm:right-4 sm:top-24 sm:w-[360px]" role="status" aria-live="polite">
+    <div
+      className={`fixed inset-x-3 z-50 sm:bottom-auto sm:left-auto sm:right-4 sm:top-24 sm:w-[360px] ${
+        readerOpen ? "bottom-[calc(13rem+env(safe-area-inset-bottom))]" : "bottom-24"
+      }`}
+      role="status"
+      aria-live="polite"
+    >
       <div className="rounded-xl border p-4 shadow-xl backdrop-blur" style={{ borderColor: colors.border, backgroundColor: colors.bg, color: colors.text }}>
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
@@ -4234,7 +4464,8 @@ function WorkflowNotice({
           <button
             type="button"
             onClick={onClose}
-            className="grid size-8 shrink-0 place-items-center rounded-md bg-white/45 transition hover:bg-white/70"
+            className="grid size-8 shrink-0 place-items-center rounded-md border transition"
+            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
             aria-label="Dismiss workflow notice"
           >
             <X size={15} />
@@ -4467,12 +4698,19 @@ function HomeDashboard({
   ui,
   notificationsEnabled,
   todayPattern,
+  companionCard,
+  carryToday,
   onScriptureOpen,
   onContinueDecision,
   onReflectToday,
   onReviewPattern,
   onOpenAccount,
   onAskOneQuestion,
+  onCarryToday,
+  onReflectCard,
+  onAskAboutCard,
+  onSaveCardAsRule,
+  onShareCard,
   theme,
 }: {
   daily: ReturnType<typeof localizedDailyWisdom>;
@@ -4482,12 +4720,19 @@ function HomeDashboard({
   ui: (typeof uiText)[LanguageCode];
   notificationsEnabled: boolean;
   todayPattern: string;
+  companionCard: TodayCompanionCard;
+  carryToday: CarryToday | null;
   onScriptureOpen: (scripture: string) => void;
   onContinueDecision: () => void;
   onReflectToday: () => void;
   onReviewPattern: () => void;
   onOpenAccount: () => void;
   onAskOneQuestion: () => void;
+  onCarryToday: (card: TodayCompanionCard) => void;
+  onReflectCard: (card: TodayCompanionCard) => void;
+  onAskAboutCard: (card: TodayCompanionCard) => void;
+  onSaveCardAsRule: (card: TodayCompanionCard) => void;
+  onShareCard: () => void;
   theme: ThemeColors;
 }) {
   const text = { ...uiText.en, ...ui };
@@ -4508,6 +4753,12 @@ function HomeDashboard({
   return (
     <div className="grid gap-3 sm:gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
       <section className="min-w-0 rounded-xl border p-4 shadow-sm sm:p-5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+        {carryToday ? (
+          <div className="mb-4 rounded-lg border px-3 py-2 text-sm leading-6" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}>
+            <span className="font-semibold" style={{ color: theme.accentGold }}>{text.carryingToday}:</span>{" "}
+            <span suppressHydrationWarning>&ldquo;{carryToday.phrase}&rdquo;</span>
+          </div>
+        ) : null}
         <div className="mb-4 inline-flex w-fit max-w-full items-center gap-2 rounded-md border px-3 py-2 text-[11px] font-medium uppercase tracking-[0.12em] sm:text-xs sm:tracking-[0.18em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.accentGold }}>
           <Sparkles size={14} />
           {text.personalizedPriority}
@@ -4532,11 +4783,12 @@ function HomeDashboard({
       <section className="min-w-0 rounded-xl border p-4 shadow-sm sm:p-5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textPrimary }}>
         <div className="mb-4 flex items-center justify-between gap-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }} suppressHydrationWarning>{daily.label}</p>
-            <h2 className="mt-1 text-xl font-semibold" suppressHydrationWarning>{daily.theme}</h2>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }} suppressHydrationWarning>{text.todaysCompanion}</p>
+            <h2 className="mt-1 text-xl font-semibold" suppressHydrationWarning>{text.todayPrefix}: {companionCard.title}</h2>
           </div>
           <Sprout size={22} style={{ color: theme.primary }} />
         </div>
+        <p className="text-sm leading-6" style={{ color: theme.textSecondary }} suppressHydrationWarning>{companionCard.opening}</p>
         <button
           type="button"
           onClick={() => onScriptureOpen(dailyEntry.scripture)}
@@ -4546,13 +4798,61 @@ function HomeDashboard({
         >
           {daily.scripture}
         </button>
-        <p className="mt-3 text-sm leading-6" style={{ color: theme.textSecondary }} suppressHydrationWarning>{daily.principle}</p>
         <div className="mt-3 rounded-md border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{text.wisdomPrinciple}</p>
+          <p className="mt-2 text-sm leading-6" style={{ color: theme.textPrimary }} suppressHydrationWarning>{companionCard.principle}</p>
+        </div>
+        <div className="mt-3 rounded-md border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
           <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{text.tinyPractice}</p>
-          <p className="mt-2 text-sm leading-6" style={{ color: theme.textPrimary }} suppressHydrationWarning>{daily.practice}</p>
+          <p className="mt-2 text-sm leading-6" style={{ color: theme.textPrimary }} suppressHydrationWarning>{companionCard.practice}</p>
+        </div>
+        <div className="mt-3 rounded-md border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{text.reflectionQuestion}</p>
+          <p className="mt-2 text-sm leading-6" style={{ color: theme.textPrimary }} suppressHydrationWarning>{companionCard.question}</p>
+        </div>
+        <div className="mt-3 rounded-md border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.primary, color: theme.textOnPrimary }}>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentLight }}>{text.carryThisToday}</p>
+          <p className="mt-2 text-sm font-semibold leading-6" suppressHydrationWarning>&ldquo;{companionCard.carryPhrase}&rdquo;</p>
+        </div>
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <CompanionCardAction icon={Check} label={text.carryWithMe!} onClick={() => onCarryToday(companionCard)} theme={theme} primary />
+          <CompanionCardAction icon={Feather} label={text.reflectToday!} onClick={() => onReflectCard(companionCard)} theme={theme} />
+          <CompanionCardAction icon={MessageCircle} label={text.askAboutThis!} onClick={() => onAskAboutCard(companionCard)} theme={theme} />
+          <CompanionCardAction icon={Plus} label={text.saveToRuleOfLife!} onClick={() => onSaveCardAsRule(companionCard)} theme={theme} />
+          <div className="col-span-2">
+            <CompanionCardAction icon={Share2} label={text.shareAletheia!} onClick={onShareCard} theme={theme} />
+          </div>
         </div>
       </section>
     </div>
+  );
+}
+
+function CompanionCardAction({
+  icon: Icon,
+  label,
+  onClick,
+  theme,
+  primary = false,
+}: {
+  icon: typeof Compass;
+  label: string;
+  onClick: () => void;
+  theme: ThemeColors;
+  primary?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex min-h-10 items-center justify-center gap-2 rounded-md border px-3 py-2 text-center text-xs font-semibold transition sm:text-sm"
+      style={primary
+        ? { borderColor: theme.primary, backgroundColor: theme.primary, color: theme.textOnPrimary }
+        : { borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
+    >
+      <Icon size={15} />
+      <span>{label}</span>
+    </button>
   );
 }
 
@@ -6130,7 +6430,7 @@ function PreferencesPanel({
         {preferences.voiceEnabled && availableVoices.length > 0 ? (
           <div className="mt-3">
             <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
-              Voice selection
+              Reading voice
               <select
                 value={selectedVoice || ""}
                 onChange={(event) => onVoiceChange(event.target.value)}
@@ -6144,10 +6444,14 @@ function PreferencesPanel({
                 ))}
               </select>
               <span className="mt-1 block text-[11px] normal-case leading-4 tracking-normal" style={{ color: theme.textSecondary }}>
-                These are voices supplied by your device or browser. For long-form background audio, Aletheia will need a future native or generated-audio voice layer.
+                Aletheia shows only a short curated set of human-sounding device voices. Sound-effect voices are hidden.
               </span>
             </label>
           </div>
+        ) : preferences.voiceEnabled ? (
+          <p className="mt-3 rounded-md border p-3 text-xs leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
+            No suitable human-sounding reading voice was found for this language on this device.
+          </p>
         ) : null}
       </div>
       <div className="mt-3 rounded-md border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
