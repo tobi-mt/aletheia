@@ -55,7 +55,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     title: "Aletheia",
-    statusBarStyle: "black-translucent",
+    statusBarStyle: "default",
   },
   formatDetection: {
     telephone: false,
@@ -66,6 +66,10 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#eef2ef" },
+    { media: "(prefers-color-scheme: dark)", color: "#0e1514" },
+  ],
 };
 
 export default function RootLayout({

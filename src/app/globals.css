@@ -45,26 +45,34 @@ html[data-theme="sunset"] {
   --font-mono: var(--font-geist-mono);
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  overflow-x: hidden;
-  -webkit-text-size-adjust: 100%;
-  text-size-adjust: 100%;
-}
-
-html,
-body {
+html {
   min-height: 100%;
   min-height: 100dvh;
   background: var(--pwa-status-background);
 }
 
 body {
-  padding-top: env(safe-area-inset-top);
-  padding-left: env(safe-area-inset-left);
-  padding-right: env(safe-area-inset-right);
-  padding-bottom: env(safe-area-inset-bottom);
+  min-height: 100%;
+  min-height: 100dvh;
+  background: var(--pwa-status-background);
+  color: var(--foreground);
+  overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* iOS PWA safe area handling - ensure background extends into status bar */
+@supports (padding: env(safe-area-inset-top)) {
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: env(safe-area-inset-top);
+    background: var(--pwa-status-background);
+    z-index: 9999;
+  }
 }
 
 .theme-dark-root {
