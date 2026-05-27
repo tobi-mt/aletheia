@@ -22,8 +22,10 @@ const COMPONENT_FILE = path.join(PROJECT_ROOT, 'src/components/aletheia-app.tsx'
 const LOCALES_DIR = path.join(PROJECT_ROOT, 'src/locales');
 const REPORTS_DIR = path.join(PROJECT_ROOT, 'translation-reports');
 
+type TranslationValue = string | string[] | TranslationData;
+
 interface TranslationData {
-  [key: string]: any;
+  [key: string]: TranslationValue;
 }
 
 interface LanguageCoverage {
@@ -78,8 +80,15 @@ function getAllTranslationKeys(data: TranslationData, prefix = ''): string[] {
 /**
  * Get value from nested object using dot notation
  */
-function getNestedValue(obj: any, path: string): any {
-  return path.split('.').reduce((current, part) => current?.[part], obj);
+function getNestedValue(obj: TranslationData, path: string): TranslationValue | undefined {
+  let current: TranslationValue | undefined = obj;
+  for (const part of path.split('.')) {
+    if (!current || typeof current !== 'object' || Array.isArray(current)) {
+      return undefined;
+    }
+    current = current[part];
+  }
+  return current;
 }
 
 /**
@@ -288,18 +297,21 @@ async function main() {
     const coverage = coverageData.find((c) => c.language === LANGUAGE_NAMES[langCode]);
     
     if (coverage && coverage.missingKeys.length > 0) {
-      const template: any = {};
+      const template: TranslationData = {};
       coverage.missingKeys.forEach((key) => {
         const enValue = getNestedValue(masterTranslation, key);
         const keys = key.split('.');
-        let current = template;
+        let current: TranslationData = template;
         
         keys.forEach((k, i) => {
           if (i === keys.length - 1) {
             current[k] = `[TODO: Translate] ${enValue}`;
           } else {
-            current[k] = current[k] || {};
-            current = current[k];
+            const next = current[k];
+            if (!next || typeof next !== 'object' || Array.isArray(next)) {
+              current[k] = {};
+            }
+            current = current[k] as TranslationData;
           }
         });
       });

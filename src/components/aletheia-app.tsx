@@ -3829,7 +3829,7 @@ export function AletheiaApp() {
   }
 
   return (
-    <main className="min-h-screen overflow-x-hidden" style={{ backgroundColor: theme.bgMain, color: theme.textPrimary, minHeight: '100dvh' }}>
+    <main className={`min-h-screen overflow-x-hidden ${resolvedTheme === "dark" ? "theme-dark-root" : ""}`} style={{ backgroundColor: theme.bgMain, color: theme.textPrimary, minHeight: '100dvh' }}>
       <div
         className={`fixed inset-0 -z-10 ${theme.bgGradient}`}
         style={{ backgroundColor: theme.bgMain }}
@@ -3844,11 +3844,11 @@ export function AletheiaApp() {
       <nav className="sticky top-0 z-30 border-b px-3 py-3 backdrop-blur-xl sm:px-4" style={{ borderColor: theme.bgNavBorder, backgroundColor: theme.bgNav }}>
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3">
           <button
-            className="flex min-w-0 items-center gap-3 text-left"
+            className="app-brand-button flex min-w-0 items-center gap-3 text-left"
             onClick={() => showView("companion")}
             aria-label="Go to Aletheia home"
           >
-            <div className="relative size-11 shrink-0 overflow-hidden rounded-lg border shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
+            <div className="app-brand-logo relative size-11 shrink-0 overflow-hidden rounded-lg border shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
               <Image
                 src="/brand/aletheia-app-icon-192.png"
                 alt=""
@@ -3858,7 +3858,7 @@ export function AletheiaApp() {
                 className="object-cover"
               />
             </div>
-            <div className="min-w-0">
+            <div className="app-brand-copy min-w-0">
               <p className="text-sm font-semibold uppercase tracking-[0.18em] sm:tracking-[0.22em]" style={{ color: theme.textPrimary }}>Aletheia</p>
               <p className="truncate text-xs" style={{ color: theme.textSecondary }}>Wisdom for stewardship</p>
             </div>
@@ -3880,7 +3880,7 @@ export function AletheiaApp() {
               </span>
             ) : null}
             <label
-              className="relative grid size-10 shrink-0 place-items-center overflow-hidden rounded-md border shadow-sm transition"
+              className="app-chrome-control relative grid size-10 shrink-0 place-items-center overflow-hidden rounded-md border shadow-sm transition"
               style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textPrimary }}
               title={`${ui.languageSelect}: ${languages[preferences.language].nativeName}`}
               suppressHydrationWarning
@@ -3901,7 +3901,7 @@ export function AletheiaApp() {
               </select>
             </label>
             <label
-              className="relative grid size-10 shrink-0 place-items-center overflow-hidden rounded-md border shadow-sm transition"
+              className="app-chrome-control relative grid size-10 shrink-0 place-items-center overflow-hidden rounded-md border shadow-sm transition"
               style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textPrimary }}
               title={`${ui.bibleSelect}: ${preferences.bibleTranslation}`}
               suppressHydrationWarning
@@ -3926,7 +3926,7 @@ export function AletheiaApp() {
               </select>
             </label>
             <button
-              className="grid size-10 place-items-center rounded-md border shadow-sm transition"
+              className="app-chrome-control grid size-10 place-items-center rounded-md border shadow-sm transition"
               style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textPrimary }}
               aria-label={user ? "Open account" : "Open guest dashboard"}
               onClick={() => showView("companion")}
@@ -3937,7 +3937,7 @@ export function AletheiaApp() {
         </div>
       </nav>
 
-      <div className="mx-auto grid max-w-7xl gap-5 px-3 pb-[calc(6.5rem+env(safe-area-inset-bottom))] pt-4 sm:px-4 sm:py-5 lg:grid-cols-[260px_1fr] lg:py-6">
+      <div className="mx-auto grid max-w-7xl gap-5 px-3 pb-[calc(6.5rem+env(safe-area-inset-bottom))] pt-4 sm:px-4 sm:pt-5 lg:grid-cols-[260px_1fr] lg:py-6">
         <aside className="hidden lg:block">
           <div className="sticky top-24 space-y-4">
             <section className="rounded-lg border p-4 shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
@@ -4196,7 +4196,7 @@ export function AletheiaApp() {
         />
       ) : null}
 
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t px-2 pt-1 pb-[calc(0.45rem+env(safe-area-inset-bottom))] shadow-[0_-10px_28px_rgba(31,42,36,0.08)] backdrop-blur-xl md:hidden" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgNav }}>
+      <div className="app-bottom-nav fixed inset-x-0 bottom-0 z-40 border-t px-2 pt-1 pb-[calc(0.45rem+env(safe-area-inset-bottom))] shadow-[0_-10px_28px_rgba(31,42,36,0.08)] backdrop-blur-xl md:hidden" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgNav }}>
         <div className="mx-auto grid max-w-md grid-cols-5 gap-1">
           <MobileNav active={activeView === "companion"} icon={Home} label={ui.nav.companion} onClick={() => showView("companion")} theme={theme} />
           <MobileNav active={activeView === "decisions"} icon={FileText} label={ui.decideShort} onClick={() => showView("decisions")} theme={theme} />
@@ -4275,14 +4275,14 @@ function MobileNav({ active, icon: Icon, label, onClick, theme }: { active: bool
   return (
     <button
       onClick={onClick}
-      className="flex h-12 flex-col items-center justify-center gap-1 rounded-md text-[11px] font-semibold transition"
+      className="flex h-12 min-w-0 flex-col items-center justify-center gap-1 rounded-md px-1 text-[10px] font-semibold transition sm:text-[11px]"
       style={{
         backgroundColor: active ? theme.primary : 'transparent',
         color: active ? theme.textOnPrimary : theme.textMuted,
       }}
     >
       <Icon size={17} />
-      {label}
+      <span className="max-w-full truncate leading-none">{label}</span>
     </button>
   );
 }
@@ -4367,16 +4367,17 @@ function ModeButton({ item, active, onClick, theme }: { item: (typeof modes)[num
       onClick={onClick}
       className="flex w-full items-start gap-3 rounded-md border p-3 text-left transition"
       style={{
-        borderColor: active ? theme.accentLight + '60' : theme.borderMedium + '30',
-        backgroundColor: active ? theme.activeBg : theme.borderMedium + '15',
+        borderColor: active ? theme.accentLight : theme.borderMedium + '40',
+        backgroundColor: active ? theme.bgCardElevated : theme.borderMedium + '15',
+        color: active ? theme.textPrimary : theme.textOnPrimary,
       }}
       onMouseEnter={(e) => !active && (e.currentTarget.style.backgroundColor = theme.hoverBg)}
       onMouseLeave={(e) => !active && (e.currentTarget.style.backgroundColor = theme.borderMedium + '15')}
     >
-      <item.icon className="mt-0.5 shrink-0" size={17} style={{ color: theme.textPrimary }} />
+      <item.icon className="mt-0.5 shrink-0" size={17} style={{ color: active ? theme.accentGold : theme.textOnPrimary }} />
       <span>
         <span className="block text-sm font-semibold">{item.displayLabel ?? item.label}</span>
-        <span className="mt-1 block text-xs leading-5" style={{ color: theme.textSecondary }}>{item.copy}</span>
+        <span className="mt-1 block text-xs leading-5" style={{ color: active ? theme.textSecondary : theme.textOnPrimary, opacity: active ? 1 : 0.88 }}>{item.copy}</span>
       </span>
     </button>
   );
@@ -4413,6 +4414,58 @@ function ModeLensCard({ item, active, onClick, theme }: { item: (typeof modes)[n
   );
 }
 
+function ModeIntelligenceStrip({
+  modeProfile,
+  ui,
+  theme,
+}: {
+  modeProfile: DisplayModeProfile;
+  ui: (typeof uiText)[LanguageCode];
+  theme: ThemeColors;
+}) {
+  const items = [
+    {
+      label: ui.currentLens,
+      value: modeProfile.lens,
+      icon: Scale,
+    },
+    {
+      label: ui.blindSpots,
+      value: modeProfile.blindSpots[0],
+      icon: ShieldCheck,
+    },
+    {
+      label: ui.tinyPractice ?? uiText.en.tinyPractice,
+      value: modeProfile.practices[0],
+      icon: Feather,
+    },
+  ];
+
+  return (
+    <section
+      className="mb-3 grid gap-2 rounded-lg border p-2 sm:grid-cols-3"
+      style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}
+      aria-label={`${modeProfile.displayLabel ?? modeProfile.label} intelligence`}
+    >
+      {items.map((item) => (
+        <div key={item.label} className="min-w-0 rounded-md border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+          <div className="flex items-center gap-2">
+            <span className="grid size-7 shrink-0 place-items-center rounded-md" style={{ backgroundColor: theme.bgCardElevated, color: theme.accentGold }}>
+              <item.icon size={14} />
+            </span>
+            <p className="min-w-0 truncate text-[0.68rem] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
+              {item.label}
+            </p>
+          </div>
+          <p className="mt-2 line-clamp-3 text-xs leading-5" style={{ color: theme.textSecondary }}>
+            {item.value}
+          </p>
+        </div>
+      ))}
+    </section>
+  );
+}
+
 function WorkflowNotice({
   notice,
   onClose,
@@ -4445,7 +4498,7 @@ function WorkflowNotice({
 
   return (
     <div
-      className={`fixed inset-x-3 z-50 sm:bottom-auto sm:left-auto sm:right-4 sm:top-24 sm:w-[360px] ${
+      className={`fixed inset-x-3 z-50 md:bottom-auto md:left-auto md:right-4 md:top-24 md:w-[360px] ${
         readerOpen ? "bottom-[calc(13rem+env(safe-area-inset-bottom))]" : "bottom-24"
       }`}
       role="status"
@@ -4782,7 +4835,7 @@ function HomeDashboard({
         <div className="mt-5">
           <DashboardAction icon={primaryAction.icon} label={primaryAction.label} body={primaryAction.body} primary onClick={primaryAction.onClick} theme={theme} />
         </div>
-        <div className="mt-3 grid gap-2 md:grid-cols-3">
+        <div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-3">
           {secondaryActions.map((action) => (
             <DashboardAction key={action.label} icon={action.icon} label={action.label} body={action.body} onClick={action.onClick} compact theme={theme} />
           ))}
@@ -4896,7 +4949,7 @@ function DashboardAction({
       </span>
       <span className="min-w-0">
         <span className={`${primary ? "text-base" : "text-sm"} block font-semibold`}>{label}</span>
-        <span className="mt-1 line-clamp-2 block text-xs leading-5 opacity-80">{body}</span>
+        <span className={`${compact ? "home-secondary-action-body " : ""}mt-1 line-clamp-2 block text-xs leading-5 opacity-80`}>{body}</span>
       </span>
     </button>
   );
@@ -6636,7 +6689,7 @@ function CompanionPanel({
             <span className="w-fit rounded-sm px-2 py-1 text-xs font-semibold" style={{ backgroundColor: theme.bgInput, color: theme.textPrimary }} suppressHydrationWarning>
               {modeProfile.displayLabel ?? mode} lens
             </span>
-            <span className="w-fit rounded-sm px-2 py-1 text-xs font-semibold" style={{ backgroundColor: theme.accentGold + '20', color: theme.accentGold }} suppressHydrationWarning>
+            <span className="w-fit rounded-sm border px-2 py-1 text-xs font-semibold" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }} suppressHydrationWarning>
               {languages[preferences.language].nativeName} · {preferences.bibleTranslation}
             </span>
           </div>
@@ -6661,6 +6714,7 @@ function CompanionPanel({
                 />
               ))}
             </div>
+            <ModeIntelligenceStrip modeProfile={modeProfile} ui={ui} theme={theme} />
             <div className="flex flex-col gap-3 sm:flex-row">
               <textarea
                 id="companion-question-input"

@@ -268,9 +268,68 @@ body {
   letter-spacing: 0.005em;
 }
 
+.theme-dark-root .app-chrome-control,
+.theme-dark-root .app-bottom-nav {
+  background-color: rgba(20, 32, 29, 0.94) !important;
+  border-color: rgba(154, 182, 170, 0.34) !important;
+  color: #eef7f2 !important;
+}
+
+.theme-dark-root .app-bottom-nav button:not([style*="background-color: rgb(40, 71, 63)"]) {
+  color: #b6c8bf !important;
+}
+
+.theme-dark-root .app-bottom-nav button[style*="background-color: rgb(40, 71, 63)"] {
+  color: #fbf7e9 !important;
+}
+
+html[data-theme="dark"] main.theme-dark-root .app-chrome-control {
+  background: #1a2622 !important;
+  background-color: #1a2622 !important;
+  border-color: #3a4a46 !important;
+  color: #f8f5e8 !important;
+}
+
 ::selection {
   background: #b9c9bf;
   color: #101512;
+}
+
+@media (max-width: 380px) {
+  .app-brand-button {
+    gap: 0.55rem;
+  }
+
+  .app-brand-logo {
+    width: 2.35rem;
+    height: 2.35rem;
+  }
+
+  .app-brand-copy p:first-child {
+    font-size: 0.78rem;
+    letter-spacing: 0.16em;
+  }
+
+  .app-brand-copy p:last-child {
+    max-width: 7.2rem;
+  }
+
+  .app-chrome-control {
+    width: 2.35rem;
+    height: 2.35rem;
+  }
+}
+
+@media (max-width: 420px) {
+  .home-secondary-action-body {
+    display: none;
+  }
+}
+
+@media (max-width: 340px) {
+  .app-brand-copy p:last-child {
+    display: none;
+  }
 }
 
 @media (max-width: 767px) and (pointer: coarse) {

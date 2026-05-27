@@ -21,6 +21,8 @@ export interface TranslationData {
   [key: string]: string | string[] | TranslationData;
 }
 
+type TranslationValue = string | string[] | TranslationData;
+
 /**
  * Map of all available translations
  */
@@ -88,17 +90,21 @@ export function getTranslation(
   fallback?: string
 ): string | string[] {
   const keys = key.split('.');
-  let value: any = translations;
+  let value: TranslationValue | undefined = translations;
   
   for (const k of keys) {
-    if (value && typeof value === 'object') {
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
       value = value[k];
     } else {
       return fallback || key;
     }
   }
   
-  return value !== undefined && value !== null ? value : fallback || key;
+  if (typeof value === 'string' || Array.isArray(value)) {
+    return value;
+  }
+
+  return fallback || key;
 }
 
 /**
