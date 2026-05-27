@@ -14,6 +14,8 @@ import {
   Home,
   MessageCircle,
   Moon,
+  Pause,
+  Play,
   Sun,
   Monitor,
   PiggyBank,
@@ -131,9 +133,9 @@ const themeColors: Record<ResolvedTheme, ThemeColors> = {
     activeBg: "rgba(32, 58, 53, 0.08)",
   },
   dark: {
-    primary: "#d0ad55",
-    primaryHover: "#e0bd65",
-    primaryText: "#0e1514",
+    primary: "#28473f",
+    primaryHover: "#335f54",
+    primaryText: "#f8f5e8",
     bgMain: "#0e1514",
     bgGradient: "bg-[radial-gradient(circle_at_18%_0%,rgba(194,162,88,0.18),transparent_26%),radial-gradient(circle_at_92%_14%,rgba(73,122,107,0.22),transparent_25%),linear-gradient(180deg,#0e1514_0%,#090f0e_100%)]",
     bgCard: "#1a2622",
@@ -144,7 +146,7 @@ const themeColors: Record<ResolvedTheme, ThemeColors> = {
     textPrimary: "#f8f5e8",
     textSecondary: "#cddbd1",
     textMuted: "#99aba1",
-    textOnPrimary: "#0e1514",
+    textOnPrimary: "#f8f5e8",
     borderLight: "#2a3a36",
     borderMedium: "#3a4a46",
     borderStrong: "#4a5a56",
@@ -266,6 +268,7 @@ const ALETHEIA_SHARE_URL = "https://aletheia.mirrortalkpodcast.com?ref=share";
 const ALETHEIA_SHARE_TEXT = "Aletheia is a calm AI-powered biblical wisdom companion for money, work, and stewardship.";
 const MANUAL_CONTEXT_STORAGE_KEY = "aletheia_manual_context";
 const THEME_STORAGE_KEY = "aletheia_theme_preference";
+const VOICE_STORAGE_KEY = "aletheia_selected_voice";
 const COUNSEL_STATUS_TRACKING_KEY = "aletheia_counsel_status_tracking";
 const DEFAULT_NOTIFICATION_TIMING: NotificationTiming = {
   preferredLocalHour: 8,
@@ -849,6 +852,43 @@ function storedThemePreference(): ThemePreference {
     // Fall through to system.
   }
   return "system";
+}
+
+function storedVoicePreference() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+  try {
+    return window.localStorage.getItem(VOICE_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function voiceQualityScore(voice: SpeechSynthesisVoice, languagePrefix: string) {
+  const name = voice.name.toLowerCase();
+  let score = voice.lang.toLowerCase().startsWith(languagePrefix) ? 80 : 0;
+  if (voice.localService) score += 25;
+  if (name.includes("enhanced") || name.includes("neural") || name.includes("natural")) score += 45;
+  if (/(samantha|alex|ava|daniel|karen|moira|fiona|tessa|arthur|martha|susan|serena|siri)/i.test(voice.name)) score += 28;
+  if (name.includes("compact")) score -= 35;
+  if (/(novelty|bells|bad news|bubbles|cellos|good news|hysterical|organ|trinoids|whisper|zarvox)/i.test(voice.name)) score -= 100;
+  return score;
+}
+
+function curatedVoicesForLanguage(voices: SpeechSynthesisVoice[], speechCode: string) {
+  const languagePrefix = speechCode.slice(0, 2).toLowerCase();
+  const scored = voices
+    .map((voice) => ({ voice, score: voiceQualityScore(voice, languagePrefix) }))
+    .filter(({ score }) => score > 0)
+    .sort((a, b) => b.score - a.score);
+  const languageMatches = scored.filter(({ voice }) => voice.lang.toLowerCase().startsWith(languagePrefix));
+  return (languageMatches.length ? languageMatches : scored).slice(0, 12).map(({ voice }) => voice);
+}
+
+function voiceLabel(voice: SpeechSynthesisVoice) {
+  const service = voice.localService ? "device" : "online";
+  return `${voice.name} (${voice.lang}, ${service})`;
 }
 
 function shouldShowOnboarding() {
@@ -1569,8 +1609,9 @@ export function AletheiaApp() {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [speechPaused, setSpeechPaused] = useState(false);
   const [speechProgress, setSpeechProgress] = useState(0);
+  const [readingLabel, setReadingLabel] = useState("Aletheia reading");
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
-  const [selectedVoice, setSelectedVoice] = useState<string | null>(null);
+  const [selectedVoice, setSelectedVoice] = useState<string | null>(storedVoicePreference);
   const [currentUtterance, setCurrentUtterance] = useState<SpeechSynthesisUtterance | null>(null);
   const [voiceRecognition, setVoiceRecognition] = useState<{ stop: () => void } | null>(null);
   const [selectedScripture, setSelectedScripture] = useState<string | null>(null);
@@ -1770,7 +1811,7 @@ export function AletheiaApp() {
     });
   }
 
-  // Load and prioritize high-quality voices
+  // Load and prioritize browser voices that are least likely to sound harsh.
   useEffect(() => {
     if (!("speechSynthesis" in window)) {
       return;
@@ -1779,44 +1820,14 @@ export function AletheiaApp() {
     const loadVoices = () => {
       const voices = window.speechSynthesis.getVoices();
       const currentLanguage = languages[preferences.language];
-      
-      // Filter and prioritize pleasant, natural-sounding voices
-      const prioritizeVoice = (voice: SpeechSynthesisVoice): number => {
-        let score = 0;
-        const nameLower = voice.name.toLowerCase();
-        const isLocal = voice.localService;
-        
-        // Prioritize premium/enhanced voices (often sound better)
-        if (nameLower.includes('enhanced') || nameLower.includes('premium')) score += 50;
-        if (nameLower.includes('neural') || nameLower.includes('natural')) score += 40;
-        
-        // Prioritize specific high-quality voices
-        if (nameLower.includes('samantha') || nameLower.includes('alex') || 
-            nameLower.includes('karen') || nameLower.includes('daniel')) score += 30;
-        if (nameLower.includes('fiona') || nameLower.includes('moira') ||
-            nameLower.includes('tessa') || nameLower.includes('ava')) score += 25;
-        
-        // Prefer local voices (usually higher quality)
-        if (isLocal) score += 20;
-        
-        // Prefer voices with specific quality indicators
-        if (nameLower.includes('compact') || nameLower.includes('quality')) score += 15;
-        
-        return score;
-      };
-      
-      // Sort voices by quality score (highest first)
-      const sortedVoices = voices
-        .filter(v => v.lang.startsWith(currentLanguage.speech.slice(0, 2)))
-        .sort((a, b) => prioritizeVoice(b) - prioritizeVoice(a));
-      
-      // Include all voices if language-specific filter is too restrictive
-      const finalVoices = sortedVoices.length > 0 ? sortedVoices : voices;
+      const finalVoices = curatedVoicesForLanguage(voices, currentLanguage.speech);
       
       setAvailableVoices(finalVoices);
       
-      // Auto-select the best voice if none selected
-      if (!selectedVoice && finalVoices.length > 0) {
+      if (selectedVoice && finalVoices.some((voice) => voice.voiceURI === selectedVoice)) {
+        return;
+      }
+      if (finalVoices.length > 0) {
         setSelectedVoice(finalVoices[0].voiceURI);
       }
     };
@@ -1828,6 +1839,16 @@ export function AletheiaApp() {
       window.speechSynthesis.removeEventListener('voiceschanged', loadVoices);
     };
   }, [preferences.language, selectedVoice]);
+
+  useEffect(() => {
+    try {
+      if (selectedVoice) {
+        window.localStorage.setItem(VOICE_STORAGE_KEY, selectedVoice);
+      }
+    } catch {
+      // Voice selection can still work for this session.
+    }
+  }, [selectedVoice]);
 
   useEffect(() => {
     if (!workflowNotice) {
@@ -1857,16 +1878,24 @@ export function AletheiaApp() {
 
   // Update PWA theme-color meta tag dynamically for status bar
   useEffect(() => {
+    const statusColor = resolvedTheme === "dark" ? "#0e1514" : theme.bgMain;
     const metaThemeColor = document.querySelector('meta[name="theme-color"]');
     if (metaThemeColor) {
-      metaThemeColor.setAttribute('content', theme.bgMain);
+      metaThemeColor.setAttribute('content', statusColor);
     } else {
       const meta = document.createElement('meta');
       meta.name = 'theme-color';
-      meta.content = theme.bgMain;
+      meta.content = statusColor;
       document.head.appendChild(meta);
     }
-  }, [theme.bgMain]);
+    let appleStatusBar = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
+    if (!appleStatusBar) {
+      appleStatusBar = document.createElement("meta");
+      appleStatusBar.setAttribute("name", "apple-mobile-web-app-status-bar-style");
+      document.head.appendChild(appleStatusBar);
+    }
+    appleStatusBar.setAttribute("content", resolvedTheme === "dark" ? "black-translucent" : "default");
+  }, [resolvedTheme, theme.bgMain]);
 
   async function loadSignedInWorkspace(signedInUser: User) {
     const [chatResponse, journalResponse, notificationResponse, decisionsResponse, counselResponse, rulesResponse, preferencesResponse, contextResponse] = await Promise.all([
@@ -2103,7 +2132,7 @@ export function AletheiaApp() {
       setNotificationsEnabled(Boolean(data.enabled && localSubscription));
       setNotificationTiming((current) => ({
         preferredLocalHour: Number.isInteger(data.preferredLocalHour) ? Number(data.preferredLocalHour) : current.preferredLocalHour,
-        preferredTimezone: data.preferredTimezone || current.preferredTimezone || browserTimezone(),
+        preferredTimezone: data.enabled ? data.preferredTimezone || current.preferredTimezone || browserTimezone() : browserTimezone(),
         deliveryStrategy: data.deliveryStrategy || current.deliveryStrategy,
       }));
       if (!data.configured) {
@@ -2148,17 +2177,19 @@ export function AletheiaApp() {
     if (newlyAccepted.length > 0) {
       const contact = newlyAccepted[0];
       const decisionCount = wisdomDecisions.length;
-      announceWorkflow(
-        `🎉 ${contact.name} accepted your invite!`,
-        `${contact.name} can view summaries you share. You have ${decisionCount} ${decisionCount === 1 ? "decision" : "decisions"}.`,
-        "success",
-        {
-          label: "Share decisions",
-          onClick: () => {
-            setActiveView("decisions");
-          },
-        }
-      );
+      window.setTimeout(() => {
+        announceWorkflow(
+          `${contact.name} accepted your invite`,
+          `${contact.name} can view summaries you share. You have ${decisionCount} ${decisionCount === 1 ? "decision" : "decisions"}.`,
+          "success",
+          {
+            label: "Share decisions",
+            onClick: () => {
+              setActiveView("decisions");
+            },
+          }
+        );
+      }, 0);
     }
   }, [counselContacts, wisdomDecisions]);
 
@@ -2621,16 +2652,14 @@ export function AletheiaApp() {
       return;
     }
     if (isSpeaking) {
-      window.speechSynthesis.cancel();
-      setIsSpeaking(false);
-      announceWorkflow(ts('notifications.voiceStopped'), ts('notifications.voiceStoppedBody'), "info");
+      stopSpeech();
       return;
     }
     const latest = [...messages].reverse().find((message) => message.role === "aletheia");
     if (!latest) {
       return;
     }
-    speakText(latest.text, "Aletheia is reading the latest response in your selected language voice when available.");
+    speakText(latest.text, "Aletheia is reading the latest response in your selected language voice when available.", "Current counsel");
   }
 
   function toggleSpeechPause() {
@@ -2647,19 +2676,29 @@ export function AletheiaApp() {
     }
   }
 
-  function speakText(text: string, notice = "Aletheia is reading this aloud in your selected language voice when available.") {
+  function stopSpeech() {
+    if ("speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
+    setIsSpeaking(false);
+    setSpeechPaused(false);
+    setSpeechProgress(0);
+    setCurrentUtterance(null);
+    announceWorkflow(ts('notifications.voiceStopped'), ts('notifications.voiceStoppedBody'), "info");
+  }
+
+  function speakText(
+    text: string,
+    notice = "Aletheia is reading this aloud in your selected language voice when available.",
+    label = "Aletheia reading"
+  ) {
     if (!("speechSynthesis" in window)) {
       setPreferencesStatus("Voice output is not supported in this browser yet.");
       announceWorkflow(ts('notifications.voiceOutputUnavailable'), ts('notifications.voiceOutputUnavailableBody'), "warning");
       return;
     }
     if (isSpeaking) {
-      window.speechSynthesis.cancel();
-      setIsSpeaking(false);
-      setSpeechPaused(false);
-      setSpeechProgress(0);
-      setCurrentUtterance(null);
-      announceWorkflow(ts('notifications.voiceStopped'), ts('notifications.voiceStoppedBody'), "info");
+      stopSpeech();
       return;
     }
     
@@ -2667,10 +2706,9 @@ export function AletheiaApp() {
     const utterance = new SpeechSynthesisUtterance(cleanText);
     utterance.lang = activeLanguage.speech;
     
-    // Optimize for pleasant, natural listening experience
-    utterance.rate = 0.88;      // Slightly slower for clarity and warmth
-    utterance.pitch = 1.08;     // Slightly higher for pleasant, friendly tone
-    utterance.volume = 0.95;    // Clear but not overwhelming
+    utterance.rate = 0.82;
+    utterance.pitch = 1;
+    utterance.volume = 1;
     
     // Apply selected voice
     if (selectedVoice && availableVoices.length > 0) {
@@ -2704,8 +2742,13 @@ export function AletheiaApp() {
     
     setCurrentUtterance(utterance);
     setIsSpeaking(true);
+    setReadingLabel(label);
     setSpeechProgress(0);
-    announceWorkflow(ts('notifications.readingAloud'), notice, "info");
+    announceWorkflow(
+      ts('notifications.readingAloud'),
+      `${notice} Browser speech may pause when the app is minimized; a native/audio voice layer is needed for true background playback.`,
+      "info"
+    );
     window.speechSynthesis.speak(utterance);
     
     // Wake lock to prevent screen sleep during reading (if supported)
@@ -3910,6 +3953,18 @@ export function AletheiaApp() {
         </section>
       </div>
 
+      {(isSpeaking || speechPaused) ? (
+        <ReadingPlayer
+          theme={theme}
+          label={readingLabel}
+          progress={speechProgress}
+          paused={speechPaused}
+          voiceName={availableVoices.find((voice) => voice.voiceURI === selectedVoice)?.name}
+          onTogglePause={toggleSpeechPause}
+          onStop={stopSpeech}
+        />
+      ) : null}
+
       <div className="fixed inset-x-0 bottom-0 z-40 border-t px-2 pt-1 pb-[calc(0.45rem+env(safe-area-inset-bottom))] shadow-[0_-10px_28px_rgba(31,42,36,0.08)] backdrop-blur-xl md:hidden" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgNav }}>
         <div className="mx-auto grid max-w-md grid-cols-5 gap-1">
           <MobileNav active={activeView === "companion"} icon={Home} label={ui.nav.companion} onClick={() => showView("companion")} theme={theme} />
@@ -3998,6 +4053,80 @@ function MobileNav({ active, icon: Icon, label, onClick, theme }: { active: bool
       <Icon size={17} />
       {label}
     </button>
+  );
+}
+
+function ReadingPlayer({
+  theme,
+  label,
+  progress,
+  paused,
+  voiceName,
+  onTogglePause,
+  onStop,
+}: {
+  theme: ThemeColors;
+  label: string;
+  progress: number;
+  paused: boolean;
+  voiceName?: string;
+  onTogglePause: () => void;
+  onStop: () => void;
+}) {
+  const safeProgress = Math.min(100, Math.max(0, progress || 0));
+  return (
+    <section
+      className="fixed inset-x-3 bottom-[calc(4.6rem+env(safe-area-inset-bottom))] z-50 mx-auto max-w-2xl rounded-xl border p-3 shadow-2xl backdrop-blur-xl md:bottom-5"
+      style={{
+        borderColor: theme.borderStrong,
+        backgroundColor: theme.bgCard,
+        color: theme.textPrimary,
+      }}
+      aria-label="Reading player"
+    >
+      <div className="flex items-center gap-3">
+        <div className="grid size-10 shrink-0 place-items-center rounded-md" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>
+          <Volume2 size={18} />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold">{label}</p>
+              <p className="truncate text-xs" style={{ color: theme.textSecondary }}>
+                {voiceName ? `Reading with ${voiceName}` : "Reading with device voice"}
+              </p>
+            </div>
+            <span className="text-xs font-semibold" style={{ color: theme.textMuted }}>
+              {safeProgress}%
+            </span>
+          </div>
+          <div className="mt-2 h-1.5 overflow-hidden rounded-full" style={{ backgroundColor: theme.borderLight }}>
+            <div className="h-full rounded-full transition-all" style={{ width: `${safeProgress}%`, backgroundColor: theme.accentGold }} />
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={onTogglePause}
+          className="grid size-10 shrink-0 place-items-center rounded-md border transition"
+          style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+          aria-label={paused ? "Resume reading" : "Pause reading"}
+        >
+          {paused ? <Play size={17} /> : <Pause size={17} />}
+        </button>
+        <button
+          type="button"
+          onClick={onStop}
+          className="grid size-10 shrink-0 place-items-center rounded-md border transition"
+          style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+          aria-label="Stop reading"
+        >
+          <X size={17} />
+        </button>
+      </div>
+      <p className="mt-2 text-xs leading-5" style={{ color: theme.textMuted }}>
+        Browser reading may pause if the app is minimized. A future generated-audio mode can use this same player for background playback.
+      </p>
+    </section>
   );
 }
 
@@ -4779,7 +4908,7 @@ function AccountPanel({
                     ) : daysSinceReflection <= 7 ? (
                       <>Last reflection <span className="font-semibold">{daysSinceReflection} days ago</span></>
                     ) : (
-                      <>It's been <span className="font-semibold" style={{ color: theme.accentGold }}>{daysSinceReflection} days</span> since last reflection</>
+                      <>It has been <span className="font-semibold" style={{ color: theme.accentGold }}>{daysSinceReflection} days</span> since last reflection</>
                     )}
                   </p>
                 ) : null}
@@ -5449,8 +5578,8 @@ function AuthPanel({
         <span
           className="rounded-md px-2 py-1 text-xs font-semibold"
           style={{
-            backgroundColor: authBusy ? theme.accentLight : theme.bgCardElevated,
-            color: authBusy ? theme.accentGold : theme.textSecondary
+            backgroundColor: authBusy ? theme.primary : theme.bgCardElevated,
+            color: authBusy ? theme.textOnPrimary : theme.textSecondary
           }}
         >
           {statusLabel}
@@ -5626,25 +5755,9 @@ function NotificationPanel({
         )}
       </div>
       <div className="mt-4 rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
-        <div className="grid gap-3 sm:grid-cols-[1fr_1fr]">
+        <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
           <label className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
-            Delivery rhythm
-            <select
-              value={timing.deliveryStrategy}
-              onChange={(event) =>
-                onTimingChange({ deliveryStrategy: event.target.value as NotificationTiming["deliveryStrategy"] })
-              }
-              className="mt-2 h-10 w-full rounded-md border px-3 text-sm normal-case tracking-normal outline-none"
-              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
-            >
-              <option value="morning">Morning</option>
-              <option value="midday">Midday</option>
-              <option value="evening">Evening</option>
-              <option value="custom">Custom</option>
-            </select>
-          </label>
-          <label className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
-            Local time
+            Daily delivery time
             <select
               value={timing.preferredLocalHour}
               onChange={(event) =>
@@ -5660,9 +5773,12 @@ function NotificationPanel({
               ))}
             </select>
           </label>
+          <div className="rounded-md border px-3 py-2 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
+            {timing.preferredTimezone || "Local timezone"}
+          </div>
         </div>
         <p className="mt-3 text-xs leading-5" style={{ color: theme.textSecondary }}>
-          Aletheia uses your device timezone ({timing.preferredTimezone || "local timezone"}) so daily wisdom arrives near your chosen local time.
+          Daily wisdom is sent once per day after this local time. The server now catches missed exact hours, so an hourly Railway cron is enough.
         </p>
       </div>
     </section>
@@ -5879,13 +5995,13 @@ function CounselInviteModal({
                         <Users size={18} />
                       </div>
                       <div>
-                        <p className="font-semibold" style={{ color: theme.textPrimary }}>You're connected!</p>
+                        <p className="font-semibold" style={{ color: theme.textPrimary }}>You are connected!</p>
                         <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
-                          {preview.invite.name} hasn't shared any decision summaries yet. They'll appear here when they choose to share them with you from their Decisions tab.
+                          {preview.invite.name} has not shared any decision summaries yet. They will appear here when they choose to share them with you from their Decisions tab.
                         </p>
                         {preview.invite.permissions.canCommentOnDecisions ? (
                           <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
-                            Once they share decisions, you'll be able to leave comments offering your counsel, questions, or cautions.
+                            Once they share decisions, you will be able to leave comments offering your counsel, questions, or cautions.
                           </p>
                         ) : null}
                       </div>
@@ -6021,19 +6137,14 @@ function PreferencesPanel({
                 className="mt-2 h-10 w-full rounded-md border px-3 text-sm normal-case tracking-normal outline-none"
                 style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
               >
-                {availableVoices.map((voice) => {
-                  const isEnhanced = voice.name.toLowerCase().includes('enhanced') || 
-                                   voice.name.toLowerCase().includes('premium') ||
-                                   voice.name.toLowerCase().includes('neural');
-                  return (
-                    <option key={voice.voiceURI} value={voice.voiceURI}>
-                      {isEnhanced ? '✨ ' : ''}{voice.name} ({voice.lang}){voice.localService ? " ⭐" : ""}
-                    </option>
-                  );
-                })}
+                {availableVoices.map((voice) => (
+                  <option key={voice.voiceURI} value={voice.voiceURI}>
+                    {voiceLabel(voice)}
+                  </option>
+                ))}
               </select>
               <span className="mt-1 block text-[11px] normal-case leading-4 tracking-normal" style={{ color: theme.textSecondary }}>
-                Premium voices (✨) sound more natural. Offline voices (⭐) work without internet.
+                These are voices supplied by your device or browser. For long-form background audio, Aletheia will need a future native or generated-audio voice layer.
               </span>
             </label>
           </div>
@@ -7015,7 +7126,7 @@ function DecisionCompanionPanel({
   onShareCounselInvite: (channel?: ShareChannel) => void;
   onShareDecisionWithCounsel: (contactId: string, decisionId: string) => void;
   onBulkShareDecisionsWithCounsel: (contactId: string, decisionIds: string[]) => void;
-  onSpeakText: (text: string, notice?: string) => void;
+  onSpeakText: (text: string, notice?: string, label?: string) => void;
   isSpeaking: boolean;
   onAddRule: (event: FormEvent<HTMLFormElement>) => void;
   onScriptureOpen: (scripture: string) => void;
@@ -7420,7 +7531,7 @@ function DecisionCompanionPanel({
               <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>Decision Summary Export</p>
               <button
                 type="button"
-                onClick={() => onSpeakText(selectedDecision.summary || "", "Aletheia is reading the decision summary aloud.")}
+                onClick={() => onSpeakText(selectedDecision.summary || "", "Aletheia is reading the decision summary aloud.", "Decision summary")}
                 className="inline-flex h-11 items-center gap-2 rounded-md border px-3 text-xs font-semibold transition"
                 style={{
                   borderColor: theme.borderMedium,

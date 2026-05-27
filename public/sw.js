@@ -1,4 +1,4 @@
-const CACHE_NAME = "aletheia-v7";
+const CACHE_NAME = "aletheia-v8";
 const APP_SHELL = [
   "/",
   "/manifest.webmanifest",
@@ -88,6 +88,9 @@ self.addEventListener("push", (event) => {
     body: data.body || fallback.body,
     icon: "/brand/aletheia-app-icon-192.png",
     badge: "/brand/aletheia-app-icon-192.png",
+    tag: "aletheia-daily-wisdom",
+    renotify: false,
+    requireInteraction: false,
     data: {
       url: data.url || "/",
       scripture: data.scripture,

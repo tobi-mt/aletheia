@@ -65,7 +65,8 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  // themeColor is set dynamically in the component based on selected theme
+  viewportFit: "cover",
+  themeColor: "#0e1514",
 };
 
 export default function RootLayout({

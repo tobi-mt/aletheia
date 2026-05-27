@@ -3,6 +3,7 @@
 :root {
   --background: #eef2ef;
   --foreground: #171917;
+  --pwa-status-background: #eef2ef;
 }
 
 html[data-theme="dark"] {
@@ -18,6 +19,7 @@ html[data-theme="dark"] {
   --dark-text: #edf6f1;
   --dark-muted: #c3d2ca;
   --dark-soft: #a8bab1;
+  --pwa-status-background: #0e1514;
 }
 
 @theme inline {
@@ -33,6 +35,12 @@ body {
   overflow-x: hidden;
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+}
+
+html,
+body {
+  min-height: 100%;
+  background: var(--pwa-status-background);
 }
 
 .theme-dark-root {
@@ -125,6 +133,13 @@ body {
 .theme-dark-root [class*="text-[#8a6c25]"],
 .theme-dark-root [class*="text-[#f3e8bd]"] {
   color: var(--dark-gold) !important;
+}
+
+.theme-dark-root [style*="background-color: rgb(208, 173, 85)"],
+.theme-dark-root [style*="background-color:#d0ad55"],
+.theme-dark-root [style*="background-color: #d0ad55"] {
+  background-color: #28473f !important;
+  color: #f8f5e8 !important;
 }
 
 .theme-dark-root button[class*="bg-[#203a35]"] {

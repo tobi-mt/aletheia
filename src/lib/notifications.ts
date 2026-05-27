@@ -14,6 +14,7 @@ type PushRow = {
   preferred_local_hour: number | null;
   preferred_timezone: string | null;
   delivery_strategy: string | null;
+  last_sent_at: string | null;
   language: string | null;
   region: string | null;
   bible_translation: string | null;
@@ -92,11 +93,33 @@ function localHourForTimezone(date: Date, timezone: string | null | undefined) {
   }
 }
 
+function localDateForTimezone(date: Date, timezone: string | null | undefined) {
+  const safeTimezone = timezone || "UTC";
+  try {
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone: safeTimezone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(date);
+  } catch {
+    return date.toISOString().slice(0, 10);
+  }
+}
+
 function shouldSendAtLocalHour(row: PushRow, now: Date) {
   const preferredLocalHour = Number.isInteger(row.preferred_local_hour)
     ? Math.min(23, Math.max(0, Number(row.preferred_local_hour)))
     : Math.min(23, Math.max(0, Number(row.preferred_hour ?? 8)));
-  return localHourForTimezone(now, row.preferred_timezone) === preferredLocalHour;
+  const localHour = localHourForTimezone(now, row.preferred_timezone);
+  const alreadySentToday =
+    row.last_sent_at &&
+    localDateForTimezone(new Date(row.last_sent_at), row.preferred_timezone) ===
+      localDateForTimezone(now, row.preferred_timezone);
+  if (alreadySentToday) {
+    return false;
+  }
+  return localHour >= preferredLocalHour && localHour <= 22;
 }
 
 export async function sendDailyWisdomNotifications() {
@@ -109,7 +132,7 @@ export async function sendDailyWisdomNotifications() {
   const wisdomEntries = await getWisdomEntries();
   
   const rows = await many<PushRow>(
-    `SELECT push_subscriptions.id, push_subscriptions.user_id, endpoint, p256dh, auth, preferred_hour,
+    `SELECT push_subscriptions.id, push_subscriptions.user_id, endpoint, p256dh, auth, preferred_hour, last_sent_at,
             preferred_local_hour, preferred_timezone, delivery_strategy,
             user_preferences.language, user_preferences.region, user_preferences.bible_translation, user_preferences.voice_enabled
      FROM push_subscriptions
@@ -171,6 +194,8 @@ export async function sendDailyWisdomNotifications() {
     attempted: dueRows.length,
     sent,
     failed,
+    scanned: rows.length,
+    skipped: rows.length - dueRows.length,
     hour: currentHour,
   };
 }
