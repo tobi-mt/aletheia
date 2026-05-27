@@ -2061,6 +2061,8 @@ export function AletheiaApp() {
   // Update PWA theme-color meta tag dynamically for status bar
   useEffect(() => {
     const statusColor = resolvedTheme === "dark" ? "#0e1514" : theme.bgMain;
+    
+    // Update meta theme-color
     const metaThemeColor = document.querySelector('meta[name="theme-color"]');
     if (metaThemeColor) {
       metaThemeColor.setAttribute('content', statusColor);
@@ -2070,13 +2072,19 @@ export function AletheiaApp() {
       meta.content = statusColor;
       document.head.appendChild(meta);
     }
+    
+    // Update apple status bar style
     let appleStatusBar = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
     if (!appleStatusBar) {
       appleStatusBar = document.createElement("meta");
       appleStatusBar.setAttribute("name", "apple-mobile-web-app-status-bar-style");
       document.head.appendChild(appleStatusBar);
     }
-    appleStatusBar.setAttribute("content", resolvedTheme === "dark" ? "black-translucent" : "default");
+    appleStatusBar.setAttribute("content", "black-translucent");
+    
+    // Update html and body background colors for PWA safe area
+    document.documentElement.style.backgroundColor = statusColor;
+    document.body.style.backgroundColor = statusColor;
   }, [resolvedTheme, theme.bgMain]);
 
   async function loadSignedInWorkspace(signedInUser: User) {
@@ -3821,9 +3829,10 @@ export function AletheiaApp() {
   }
 
   return (
-    <main className="min-h-screen overflow-x-hidden" style={{ backgroundColor: theme.bgMain, color: theme.textPrimary }}>
+    <main className="min-h-screen overflow-x-hidden" style={{ backgroundColor: theme.bgMain, color: theme.textPrimary, minHeight: '100dvh' }}>
       <div
         className={`fixed inset-0 -z-10 ${theme.bgGradient}`}
+        style={{ backgroundColor: theme.bgMain }}
       />
       <WorkflowNotice
         notice={workflowNotice}

@@ -6,11 +6,11 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: "Aletheia",
     description:
       "Biblical wisdom for stewardship, work, generosity, and thoughtful financial decisions.",
-    start_url: "/",
+    start_url: "/?pwa=true&v=2",
     scope: "/",
     display: "standalone",
-    background_color: "#0e1514",
-    theme_color: "#0e1514",
+    background_color: "#eef2ef",
+    theme_color: "#eef2ef",
     orientation: "portrait",
     categories: ["finance", "lifestyle", "productivity"],
     icons: [
