@@ -83,10 +83,9 @@ body {
 
 :root {
   --aletheia-safe-top-extra: 0px;
-  --aletheia-mobile-top-reserve: clamp(52px, 7.5vh, 76px);
 }
 
-/* Individual chrome elements own safe-area spacing so sticky bars do not collide with mobile status areas. */
+/* The app does not draw underneath iOS status chrome. Keep spacing simple and deterministic. */
 @supports (padding: env(safe-area-inset-top)) {
   body {
     padding-top: 0;
@@ -107,20 +106,6 @@ body {
 @supports (padding: constant(safe-area-inset-top)) {
   .app-top-nav {
     padding-top: calc(0.75rem + max(constant(safe-area-inset-top), var(--aletheia-safe-top-extra)));
-  }
-}
-
-@media (max-width: 767px) {
-  .app-top-nav {
-    padding-top: calc(0.75rem + var(--aletheia-mobile-top-reserve));
-  }
-}
-
-@supports (padding-top: max(0px, 1px)) {
-  @media (max-width: 767px) {
-    .app-top-nav {
-      padding-top: calc(0.75rem + max(env(safe-area-inset-top, 0px), var(--aletheia-safe-top-extra), var(--aletheia-mobile-top-reserve)));
-    }
   }
 }
 

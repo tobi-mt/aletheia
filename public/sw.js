@@ -1,4 +1,4 @@
-const CACHE_NAME = "aletheia-v8";
+const CACHE_NAME = "aletheia-v9";
 const APP_SHELL = [
   "/",
   "/manifest.webmanifest",

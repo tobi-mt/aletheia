@@ -55,7 +55,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     title: "Aletheia",
-    statusBarStyle: "black-translucent",
+    statusBarStyle: "black",
   },
   formatDetection: {
     telephone: false,
@@ -82,9 +82,9 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-      style={{ backgroundColor: "#eef2ef" }}
+      style={{ backgroundColor: "#0e1514" }}
     >
-      <body className="min-h-full flex flex-col" style={{ backgroundColor: "#eef2ef" }}>
+      <body className="min-h-full flex flex-col">
         {children}
       </body>
     </html>
