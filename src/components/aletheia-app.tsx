@@ -2124,8 +2124,17 @@ export function AletheiaApp() {
         window.matchMedia("(display-mode: standalone)").matches ||
         Boolean((window.navigator as Navigator & { standalone?: boolean }).standalone);
       const isMobile = window.innerWidth < 768;
-      const viewportTop = Math.max(0, Math.round(window.visualViewport?.offsetTop ?? 0));
+      const viewport = window.visualViewport;
+      const viewportTop = Math.max(0, Math.round(viewport?.offsetTop ?? 0));
+      const viewportWidth = Math.round(viewport?.width ?? window.innerWidth);
+      const viewportHeight = Math.round(viewport?.height ?? window.innerHeight);
+      const shortSide = Math.min(viewportWidth, viewportHeight);
+      const longSide = Math.max(viewportWidth, viewportHeight);
+      const dynamicStandaloneReserve = standalone && isMobile
+        ? Math.round(Math.min(104, Math.max(64, shortSide * 0.18, longSide * 0.105)))
+        : 0;
       document.documentElement.style.setProperty("--aletheia-safe-top-extra", `${viewportTop}px`);
+      document.documentElement.style.setProperty("--aletheia-standalone-top-reserve", `${dynamicStandaloneReserve}px`);
       document.documentElement.classList.toggle("aletheia-standalone-pwa", standalone);
       document.documentElement.classList.toggle("aletheia-mobile-viewport", isMobile);
     };
