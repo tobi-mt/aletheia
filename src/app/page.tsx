@@ -1,5 +1,5 @@
-import { AletheiaApp } from "@/components/aletheia-app";
+import HomeClientShell from "@/components/home-client-shell";
 
 export default function Home() {
-  return <AletheiaApp />;
+  return <HomeClientShell />;
 }

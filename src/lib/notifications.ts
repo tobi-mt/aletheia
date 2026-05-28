@@ -1,5 +1,5 @@
 import webpush, { PushSubscription } from "web-push";
-import { many, run } from "@/lib/db";
+import { many, one, run } from "@/lib/db";
 import { localizedDailyWisdom, normalizePreferences, type BibleTranslation, type LanguageCode, type RegionCode } from "@/lib/localization";
 import { getWisdomEntries } from "@/lib/wisdom";
 import type { Mode } from "@/lib/wisdom-data";
@@ -19,6 +19,21 @@ type PushRow = {
   region: string | null;
   bible_translation: string | null;
   voice_enabled: boolean | null;
+};
+
+const DAILY_UNAUTHORIZED_METRIC_KEY = "daily_unauthorized_hits";
+
+type MetricRow = {
+  metric_value: string | number;
+};
+
+export type NotificationHealthSnapshot = {
+  enabledSubscriptions: number;
+  dueNow: number;
+  scanned: number;
+  unauthorizedHits: number;
+  hourUtc: number;
+  generatedAt: string;
 };
 
 export function getVapidPublicKey() {
@@ -119,7 +134,20 @@ function shouldSendAtLocalHour(row: PushRow, now: Date) {
   if (alreadySentToday) {
     return false;
   }
-  return localHour >= preferredLocalHour && localHour <= 22;
+
+  // Primary path: deliver in the intended local-day window.
+  const inPreferredWindow = localHour >= preferredLocalHour && localHour <= 22;
+  if (inPreferredWindow) {
+    return true;
+  }
+
+  // Catch-up path: if the scheduler runs outside user windows (for example, once daily
+  // at a fixed UTC hour), still deliver at most once per local day instead of skipping forever.
+  if (!row.last_sent_at) {
+    return true;
+  }
+  const hoursSinceLastSent = (now.getTime() - new Date(row.last_sent_at).getTime()) / 3_600_000;
+  return hoursSinceLastSent >= 23;
 }
 
 export async function sendDailyWisdomNotifications() {
@@ -141,6 +169,13 @@ export async function sendDailyWisdomNotifications() {
        AND (last_sent_at IS NULL OR last_sent_at < NOW() - INTERVAL '20 hours')`,
   );
   const dueRows = rows.filter((row) => shouldSendAtLocalHour(row, now));
+  const catchupRows = dueRows.filter((row) => {
+    const preferredLocalHour = Number.isInteger(row.preferred_local_hour)
+      ? Math.min(23, Math.max(0, Number(row.preferred_local_hour)))
+      : Math.min(23, Math.max(0, Number(row.preferred_hour ?? 8)));
+    const localHour = localHourForTimezone(now, row.preferred_timezone);
+    return !(localHour >= preferredLocalHour && localHour <= 22);
+  });
   let sent = 0;
   let failed = 0;
 
@@ -196,6 +231,74 @@ export async function sendDailyWisdomNotifications() {
     failed,
     scanned: rows.length,
     skipped: rows.length - dueRows.length,
+    catchupAttempted: catchupRows.length,
     hour: currentHour,
+  };
+}
+
+async function incrementNotificationMetric(metricKey: string, delta = 1) {
+  await run(
+    `CREATE TABLE IF NOT EXISTS notification_metrics (
+       metric_key TEXT PRIMARY KEY,
+       metric_value BIGINT NOT NULL DEFAULT 0,
+       updated_at TIMESTAMPTZ NOT NULL
+     )`
+  );
+  const now = new Date().toISOString();
+  await run(
+    `INSERT INTO notification_metrics (metric_key, metric_value, updated_at)
+     VALUES (?, ?, ?)
+     ON CONFLICT (metric_key)
+     DO UPDATE SET
+       metric_value = notification_metrics.metric_value + EXCLUDED.metric_value,
+       updated_at = EXCLUDED.updated_at`,
+    metricKey,
+    delta,
+    now
+  );
+}
+
+async function notificationMetricValue(metricKey: string) {
+  await run(
+    `CREATE TABLE IF NOT EXISTS notification_metrics (
+       metric_key TEXT PRIMARY KEY,
+       metric_value BIGINT NOT NULL DEFAULT 0,
+       updated_at TIMESTAMPTZ NOT NULL
+     )`
+  );
+  const row = await one<MetricRow>(
+    `SELECT metric_value
+     FROM notification_metrics
+     WHERE metric_key = ?`,
+    metricKey
+  );
+  return Number(row?.metric_value ?? 0);
+}
+
+export async function recordDailyNotificationUnauthorizedHit() {
+  await incrementNotificationMetric(DAILY_UNAUTHORIZED_METRIC_KEY, 1);
+}
+
+export async function getNotificationHealthSnapshot(): Promise<NotificationHealthSnapshot> {
+  const now = new Date();
+  const rows = await many<PushRow>(
+    `SELECT push_subscriptions.id, push_subscriptions.user_id, endpoint, p256dh, auth, preferred_hour, last_sent_at,
+            preferred_local_hour, preferred_timezone, delivery_strategy,
+            user_preferences.language, user_preferences.region, user_preferences.bible_translation, user_preferences.voice_enabled
+     FROM push_subscriptions
+     LEFT JOIN user_preferences ON user_preferences.user_id = push_subscriptions.user_id
+     WHERE enabled = TRUE`,
+  );
+
+  const dueNow = rows.filter((row) => shouldSendAtLocalHour(row, now)).length;
+  const unauthorizedHits = await notificationMetricValue(DAILY_UNAUTHORIZED_METRIC_KEY);
+
+  return {
+    enabledSubscriptions: rows.length,
+    dueNow,
+    scanned: rows.length,
+    unauthorizedHits,
+    hourUtc: now.getUTCHours(),
+    generatedAt: now.toISOString(),
   };
 }

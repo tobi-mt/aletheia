@@ -40,6 +40,7 @@ VAPID_PUBLIC_KEY=""
 VAPID_PRIVATE_KEY=""
 VAPID_SUBJECT="mailto:hello@mirrortalkpodcast.com"
 NOTIFICATION_CRON_SECRET=""
+NOTIFICATION_HEALTH_SECRET=""
 ANALYTICS_ADMIN_SECRET=""
 ```
 
@@ -113,14 +114,19 @@ Aletheia stores product analytics in its own `analytics_events` table. Events in
 Tracked examples:
 
 - app opens
+- app view changes (Home, Decisions, Reflect, Library, Account)
 - wisdom mode selection
 - sign-in and registration success
+- sign-out
 - chat questions sent
 - journal entries created
 - decisions created or updated
 - counsel contacts created
+- counsel decision bulk share
 - rules created
 - notifications enabled
+- notifications disabled and timing changes
+- local-only guest actions (reflections, decisions, counsel contacts, rules)
 
 Read aggregate analytics with:
 
@@ -128,6 +134,20 @@ Read aggregate analytics with:
 curl -H "Authorization: Bearer YOUR_ANALYTICS_ADMIN_SECRET" \
   https://aletheia.mirrortalkpodcast.com/api/analytics/summary
 ```
+
+The summary response includes high-level usage and product insight blocks:
+
+- `overview` (users, sessions, event volume)
+- `events30d` and `modes30d`
+- `daily14d`
+- `features30d` (feature adoption by unique people)
+- `funnel30d` (open -> auth -> ask -> decide -> notifications)
+- `feedback30d`
+- `views30d`
+- `acquisitionSources30d`
+- `paths30d`
+- `hourlyUsage30d`
+- `retentionWeekly` (weekly signup cohorts with 7-day retention)
 
 ## Daily Wisdom Notifications
 
@@ -162,6 +182,51 @@ Authorization: Bearer YOUR_NOTIFICATION_CRON_SECRET
 ```
 
 The current implementation sends only to users whose preferred notification hour matches the current UTC hour and avoids repeat sends within 20 hours.
+
+### Notifications Health Endpoint
+
+Use a lightweight health endpoint for monitoring notification delivery state:
+
+```text
+GET /api/notifications/health
+```
+
+Authentication options (any one):
+
+```text
+Authorization: Bearer YOUR_NOTIFICATION_HEALTH_SECRET
+```
+
+```text
+x-health-secret: YOUR_NOTIFICATION_HEALTH_SECRET
+```
+
+```text
+?secret=YOUR_NOTIFICATION_HEALTH_SECRET
+```
+
+If `NOTIFICATION_HEALTH_SECRET` is not set, the endpoint falls back to `NOTIFICATION_CRON_SECRET`.
+
+Live snapshot response includes:
+
+- `enabledSubscriptions`
+- `dueNow`
+- `unauthorizedHits`
+- `scanned`
+- `hourUtc`
+
+Readiness-only check (no DB scan):
+
+```text
+GET /api/notifications/health?scope=readiness
+```
+
+Example:
+
+```bash
+curl -H "Authorization: Bearer YOUR_NOTIFICATION_CRON_SECRET" \
+  https://aletheia.mirrortalkpodcast.com/api/notifications/health
+```
 
 ## Multilingual Layer
 

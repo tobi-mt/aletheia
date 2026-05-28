@@ -1124,6 +1124,10 @@ function trackClientEvent(eventName: string, metadata: AnalyticsMetadata = {}) {
   }).catch(() => undefined);
 }
 
+function trackAuthFailure(metadata: AnalyticsMetadata) {
+  trackClientEvent("auth_failure", metadata);
+}
+
 async function getReliableServiceWorkerRegistration() {
   const existing = await navigator.serviceWorker.getRegistration("/");
   const registration = existing ?? (await navigator.serviceWorker.register("/sw.js", { scope: "/" }));
@@ -1786,23 +1790,16 @@ function companionCardFromDaily({
 }
 
 export function AletheiaApp() {
-  const storedActiveView = typeof window !== "undefined" ? (() => {
-    try {
-      const stored = window.localStorage.getItem("aletheia-active-view");
-      if (stored && ["companion", "decisions", "reflect", "library", "account"].includes(stored)) {
-        return stored as View;
+  const [activeView, setActiveViewState] = useState<View>("companion");
+  
+  // Wrapper to persist active view and track navigation usage.
+  const setActiveView = (view: View, source = "navigation") => {
+    setActiveViewState((current) => {
+      if (current !== view) {
+        trackClientEvent("app_view_changed", { from_view: current, to_view: view, source });
       }
-    } catch {
-      // ignore errors
-    }
-    return "companion" as View;
-  })() : "companion" as View;
-  
-  const [activeView, setActiveViewState] = useState<View>(storedActiveView);
-  
-  // Wrapper to persist active view
-  const setActiveView = (view: View) => {
-    setActiveViewState(view);
+      return view;
+    });
     if (typeof window !== "undefined") {
       window.localStorage.setItem("aletheia-active-view", view);
     }
@@ -1883,16 +1880,7 @@ export function AletheiaApp() {
   const [counselInvitePreview, setCounselInvitePreview] = useState<CounselInvitePreview | null>(null);
   const [counselInviteStatus, setCounselInviteStatus] = useState("");
   
-  const storedCounselSummary = typeof window !== "undefined" ? (() => {
-    try {
-      const stored = window.localStorage.getItem("aletheia-counsel-summary-draft");
-      return stored ? JSON.parse(stored) as CounselSummaryDraft : null;
-    } catch {
-      return null;
-    }
-  })() : null;
-  
-  const [counselSummaryDraft, setCounselSummaryDraftState] = useState<CounselSummaryDraft | null>(storedCounselSummary);
+  const [counselSummaryDraft, setCounselSummaryDraftState] = useState<CounselSummaryDraft | null>(null);
   
   // Wrapper function that persists to localStorage
   const setCounselSummaryDraft = (value: CounselSummaryDraft | null) => {
@@ -1917,6 +1905,8 @@ export function AletheiaApp() {
   
   const preferencesRef = useRef<HTMLElement | null>(null);
   const workspaceRef = useRef<HTMLElement | null>(null);
+  const topNavRef = useRef<HTMLElement | null>(null);
+  const bottomNavRef = useRef<HTMLDivElement | null>(null);
 
   // Translation helper function
   const t = (key: string, fallback?: string): string | string[] => {
@@ -2053,6 +2043,90 @@ export function AletheiaApp() {
     });
   }
 
+  function getFriendlyAuthError(params: URLSearchParams) {
+    const oauthReason = params.get("reason");
+    const authError = params.get("error");
+
+    if (oauthReason === "missing_profile") {
+      return "Google sign-in did not return your email address. Please try again or use email below instead.";
+    }
+    if (oauthReason === "server_error") {
+      return "Google sign-in reached Aletheia, but we could not finish it right now. Please try again in a moment or use email below instead.";
+    }
+
+    switch (authError) {
+      case "OAuthSignin":
+      case "OAuthCallbackError":
+      case "CallbackRouteError":
+        return "Google sign-in could not be completed. Please try again. If it keeps failing, use email below instead.";
+      case "AccessDenied":
+        return "Google sign-in was canceled before it finished. You can try again or use email below instead.";
+      case "Configuration":
+        return "Google sign-in is temporarily unavailable. You can still continue with email below.";
+      default:
+        return params.get("auth") === "oauth_failed"
+          ? "Google sign-in did not finish. Please try again or use email below instead."
+          : null;
+    }
+  }
+
+  function getAuthFailureAnalytics(params: URLSearchParams): AnalyticsMetadata | null {
+    const oauthReason = params.get("reason");
+    const authError = params.get("error");
+
+    if (oauthReason === "missing_profile") {
+      return {
+        method: "google",
+        flow: "oauth_complete",
+        category: "provider_failure",
+        reason: "missing_profile",
+      };
+    }
+    if (oauthReason === "server_error") {
+      return {
+        method: "google",
+        flow: "oauth_complete",
+        category: "backend_fault",
+        reason: "server_error",
+      };
+    }
+
+    switch (authError) {
+      case "AccessDenied":
+        return {
+          method: "google",
+          flow: "oauth_start",
+          category: "canceled",
+          reason: "access_denied",
+        };
+      case "OAuthSignin":
+      case "OAuthCallbackError":
+      case "CallbackRouteError":
+        return {
+          method: "google",
+          flow: "oauth_start",
+          category: "provider_failure",
+          reason: authError,
+        };
+      case "Configuration":
+        return {
+          method: "google",
+          flow: "oauth_start",
+          category: "backend_fault",
+          reason: "configuration",
+        };
+      default:
+        return params.get("auth") === "oauth_failed"
+          ? {
+              method: "google",
+              flow: "oauth_complete",
+              category: "provider_failure",
+              reason: oauthReason ?? authError ?? "oauth_failed",
+            }
+          : null;
+    }
+  }
+
   // Load and prioritize browser voices that are least likely to sound harsh.
   useEffect(() => {
     if (!("speechSynthesis" in window)) {
@@ -2126,8 +2200,9 @@ export function AletheiaApp() {
       const shortestSide = Math.min(viewportWidth, viewportHeight);
       const isTablet = viewportWidth >= 768 || shortestSide >= 768;
       const isFoldClass = !isTablet && viewportWidth >= 600 && viewportWidth < 768 && viewportHeight >= 700;
-      const isSmallPhone = !isTablet && !isFoldClass && shortestSide <= 700;
-      const isLargePhone = !isTablet && !isFoldClass && shortestSide >= 820;
+      const isSmallPhone = !isTablet && !isFoldClass && viewportWidth <= 390;
+      const isLargePhone = !isTablet && !isFoldClass && viewportWidth >= 400;
+      const isRegularPhone = !isTablet && !isFoldClass && !isSmallPhone && !isLargePhone;
       const deviceFamily = isTablet ? "tablet" : isFoldClass ? "fold" : isSmallPhone ? "small-phone" : isLargePhone ? "large-phone" : "regular-phone";
       const topReserve = isTablet
         ? 0
@@ -2147,11 +2222,20 @@ export function AletheiaApp() {
             : isLargePhone
               ? Math.round(Math.max(10, Math.min(20, shortestSide * 0.02)))
               : Math.round(Math.max(14, Math.min(24, shortestSide * 0.03)));
-      const bottomNavGap = isTablet ? 0 : isSmallPhone ? 1.08 : isFoldClass ? 0.7 : isLargePhone ? 0.55 : 0.78;
-      const bottomNavPadY = isTablet ? 0 : isSmallPhone ? 0.72 : isFoldClass ? 0.58 : isLargePhone ? 0.5 : 0.62;
-      const bottomNavPadX = isTablet ? 0 : isSmallPhone ? 0.95 : isFoldClass ? 0.82 : isLargePhone ? 0.75 : 0.85;
-      const bottomNavRadius = isTablet ? 0 : isSmallPhone ? 1.55 : isFoldClass ? 1.7 : isLargePhone ? 1.95 : 1.75;
+      const bottomNavGap = isTablet ? 0 : isSmallPhone ? 1.08 : isFoldClass ? 0.7 : isLargePhone ? 0.58 : 0.78;
+      const bottomNavPadY = isTablet ? 0 : isSmallPhone ? 0.72 : isFoldClass ? 0.58 : isLargePhone ? 0.52 : 0.62;
+      const bottomNavPadX = isTablet ? 0 : isSmallPhone ? 0.95 : isFoldClass ? 0.82 : isLargePhone ? 0.78 : 0.85;
+      const bottomNavRadius = isTablet ? 0 : isSmallPhone ? 1.55 : isFoldClass ? 1.7 : isLargePhone ? 1.9 : 1.75;
       const bottomNavWidth = isFoldClass ? "min(calc(100vw - 1.5rem), 38rem)" : "min(calc(100vw - 1.5rem), 28rem)";
+      const noticeBottomOffset = isTablet
+        ? 0
+        : isSmallPhone
+          ? 11
+          : isFoldClass
+            ? 11.25
+            : isLargePhone
+              ? 11.5
+              : 10.5;
 
       document.documentElement.style.setProperty("--aletheia-top-reserve", `${topReserve}px`);
       document.documentElement.style.setProperty("--aletheia-bottom-reserve", `${bottomReserve}px`);
@@ -2160,6 +2244,7 @@ export function AletheiaApp() {
       document.documentElement.style.setProperty("--aletheia-bottom-nav-pad-x", `${bottomNavPadX}`);
       document.documentElement.style.setProperty("--aletheia-bottom-nav-radius", `${bottomNavRadius}`);
       document.documentElement.style.setProperty("--aletheia-bottom-nav-width", bottomNavWidth);
+      document.documentElement.style.setProperty("--aletheia-notice-bottom-offset", `${noticeBottomOffset}`);
       document.documentElement.dataset.deviceFamily = deviceFamily;
     };
 
@@ -2173,6 +2258,56 @@ export function AletheiaApp() {
       window.removeEventListener("orientationchange", updateViewportChrome);
       window.visualViewport?.removeEventListener("resize", updateViewportChrome);
       window.visualViewport?.removeEventListener("scroll", updateViewportChrome);
+    };
+  }, []);
+
+  useEffect(() => {
+    const nav = bottomNavRef.current;
+    if (!nav) {
+      return;
+    }
+
+    const updateBottomNavSpace = () => {
+      const navHeight = Math.max(0, Math.ceil(nav.getBoundingClientRect().height));
+      const reservedSpace = navHeight > 0 ? navHeight + 28 : 136;
+      document.documentElement.style.setProperty("--aletheia-bottom-nav-space", `${reservedSpace}px`);
+    };
+
+    updateBottomNavSpace();
+    const resizeObserver = new ResizeObserver(updateBottomNavSpace);
+    resizeObserver.observe(nav);
+    window.addEventListener("resize", updateBottomNavSpace);
+    window.addEventListener("orientationchange", updateBottomNavSpace);
+
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener("resize", updateBottomNavSpace);
+      window.removeEventListener("orientationchange", updateBottomNavSpace);
+    };
+  }, []);
+
+  useEffect(() => {
+    const nav = topNavRef.current;
+    if (!nav) {
+      return;
+    }
+
+    const updateTopNavSpace = () => {
+      const navBottom = Math.max(0, Math.ceil(nav.getBoundingClientRect().bottom));
+      const reservedSpace = navBottom > 0 ? navBottom + 3 : 99;
+      document.documentElement.style.setProperty("--aletheia-top-nav-space", `${reservedSpace}px`);
+    };
+
+    updateTopNavSpace();
+    const resizeObserver = new ResizeObserver(updateTopNavSpace);
+    resizeObserver.observe(nav);
+    window.addEventListener("resize", updateTopNavSpace);
+    window.addEventListener("orientationchange", updateTopNavSpace);
+
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener("resize", updateTopNavSpace);
+      window.removeEventListener("orientationchange", updateTopNavSpace);
     };
   }, []);
 
@@ -2202,6 +2337,9 @@ export function AletheiaApp() {
     // Update html and body background colors for PWA safe area
     document.documentElement.style.backgroundColor = statusColor;
     document.body.style.backgroundColor = statusColor;
+    document.documentElement.style.setProperty("--aletheia-glass-top", theme.bgNav);
+    document.documentElement.style.setProperty("--aletheia-glass-bottom", theme.bgNav);
+    document.documentElement.style.setProperty("--aletheia-glass-edge", theme.bgNavBorder);
   }, [resolvedTheme, theme.bgMain]);
 
   async function loadSignedInWorkspace(signedInUser: User) {
@@ -2294,6 +2432,29 @@ export function AletheiaApp() {
   }, []);
 
   useEffect(() => {
+    const supportsScrollRestoration = "scrollRestoration" in window.history;
+    const previousScrollRestoration = supportsScrollRestoration ? window.history.scrollRestoration : null;
+    if (supportsScrollRestoration) {
+      window.history.scrollRestoration = "manual";
+    }
+
+    const resetToTop = () => {
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    };
+
+    // Run after layout effects/paint to avoid hydration-time jumps.
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(resetToTop);
+    });
+
+    return () => {
+      if (supportsScrollRestoration && previousScrollRestoration) {
+        window.history.scrollRestoration = previousScrollRestoration;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     async function loadSession() {
       // authStatus is already "checking" from initial state - no need to set it again
       const [response, providersResponse] = await Promise.all([
@@ -2331,12 +2492,18 @@ export function AletheiaApp() {
       } else {
         setUser(null);
         setAuthStatus("guest");
-        setStatusMessage(ts('status.guestMode'));
-        if (params.get("auth") === "oauth_failed") {
-          setAuthError("Google sign-in did not finish. Please try again.");
+        const authFailureMessage = getFriendlyAuthError(params);
+        const authFailureAnalytics = getAuthFailureAnalytics(params);
+        setStatusMessage(authFailureMessage ?? ts('status.guestMode'));
+        if (authFailureMessage) {
+          if (authFailureAnalytics) {
+            trackAuthFailure(authFailureAnalytics);
+          }
+          setAuthError(authFailureMessage);
           setAuthNotice("");
           setActiveView("account");
           setShowOnboarding(false);
+          announceWorkflow(ts('notifications.signInNotFinish'), authFailureMessage, "error");
           window.history.replaceState({}, "", window.location.pathname);
         }
       }
@@ -2588,7 +2755,7 @@ export function AletheiaApp() {
   }
 
   function showView(view: View) {
-    setActiveView(view);
+    setActiveView(view, "show_view");
     window.requestAnimationFrame(() => {
       workspaceRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
@@ -3232,12 +3399,35 @@ export function AletheiaApp() {
     } catch (error) {
       setAuthStatus("guest");
       const message = error instanceof Error ? error.message : "Authentication failed.";
+      const failureMetadata: AnalyticsMetadata = {
+        method: "email",
+        flow: authMode,
+        category: "backend_fault",
+        reason: "client_fetch_failed",
+      };
       setAuthError(message);
       setAuthNotice("");
+      setStatusMessage(message);
       if (message.toLowerCase().includes("already exists")) {
+        failureMetadata.category = "validation";
+        failureMetadata.reason = "account_exists";
         setAuthMode("login");
         setAuthNotice("That email already has an Aletheia account. Sign in below to continue.");
+        setStatusMessage("That account already exists. Sign in below to continue.");
+      } else if (message.toLowerCase().includes("invalid email or password")) {
+        failureMetadata.category = "bad_credentials";
+        failureMetadata.reason = "invalid_credentials";
+      } else if (message.toLowerCase().includes("too many")) {
+        failureMetadata.category = "rate_limit";
+        failureMetadata.reason = "too_many_attempts";
+      } else if (message.toLowerCase().includes("temporarily unavailable")) {
+        failureMetadata.category = "backend_fault";
+        failureMetadata.reason = "server_error";
+      } else if (message.toLowerCase().includes("valid email") || message.toLowerCase().includes("required")) {
+        failureMetadata.category = "validation";
+        failureMetadata.reason = authMode === "register" ? "invalid_input" : "missing_credentials";
       }
+      trackAuthFailure(failureMetadata);
       announceWorkflow(ts('notifications.signInNotFinish'), message, "error");
     } finally {
       setIsWorking(false);
@@ -3249,6 +3439,7 @@ export function AletheiaApp() {
       return;
     }
     setAuthStatus("signing-out");
+    trackClientEvent("auth_logout", { hadUser: Boolean(user) });
     setAuthNotice("Signing out...");
     await fetch("/api/auth/logout", { method: "POST" });
     await authSignOut({ redirect: false }).catch(() => undefined);
@@ -3274,9 +3465,26 @@ export function AletheiaApp() {
     setAuthNotice("Opening Google sign-in. You will return to Account when it finishes.");
     setStatusMessage(ts('status.openingGoogleSignIn'));
     announceWorkflow(ts('notifications.openingGoogle'), ts('notifications.openingGoogleBody'), "info");
-    await authSignIn("google", {
-      redirectTo: "/api/auth/oauth/complete?next=%2F%3Fauth%3Dgoogle_success%26view%3Daccount",
-    });
+    try {
+      await authSignIn("google", {
+        redirectTo: "/api/auth/oauth/complete?next=%2F%3Fauth%3Dgoogle_success%26view%3Daccount",
+      });
+    } catch (error) {
+      const message = error instanceof Error
+        ? "Google sign-in could not be started. Please try again or use email below instead."
+        : "Google sign-in could not be started. Please try again or use email below instead.";
+      trackAuthFailure({
+        method: "google",
+        flow: "oauth_start",
+        category: "provider_failure",
+        reason: "start_failed",
+      });
+      setAuthStatus("guest");
+      setAuthError(message);
+      setAuthNotice("");
+      setStatusMessage(message);
+      announceWorkflow(ts('notifications.signInNotFinish'), message, "error");
+    }
   }
 
   async function enableNotifications() {
@@ -3379,6 +3587,10 @@ export function AletheiaApp() {
       setNotificationBusy(false);
     }
     setNotificationsEnabled(false);
+    trackClientEvent("notification_disabled", {
+      hadPermission: notificationPermission === "granted",
+      wasEnabled: true,
+    });
     setNotificationStatus("Daily wisdom notifications are turned off for this device.");
     announceWorkflow(ts('notifications.notificationsOff'), ts('notifications.notificationsOffBody'), "info");
   }
@@ -3423,6 +3635,12 @@ export function AletheiaApp() {
     };
     setNotificationTiming(nextTiming);
     persistNotificationTiming(nextTiming);
+    trackClientEvent("notification_timing_updated", {
+      strategy: nextTiming.deliveryStrategy,
+      localHour: nextTiming.preferredLocalHour,
+      timezone: nextTiming.preferredTimezone,
+      notificationsEnabled,
+    });
     setNotificationStatus("Daily wisdom time saved on this device.");
     if (!user || notificationBusy) {
       return;
@@ -3480,6 +3698,7 @@ export function AletheiaApp() {
         announceWorkflow(ts('notifications.reflectionSaved'), ts('notifications.reflectionSavedBody'), "success");
       }
     } else {
+      trackClientEvent("journal_entry_created_local", { mode });
       setJournalEntries((current) => [
         {
           id: crypto.randomUUID(),
@@ -3559,6 +3778,7 @@ export function AletheiaApp() {
         announceWorkflow(ts('notifications.decisionTracked'), ts('notifications.decisionTrackedBody'), "success");
       }
     } else {
+      trackClientEvent("decision_created_local", { mode, emotion: decisionEmotion });
       const sources = searchWisdom(`${title} ${pressure} ${decisionEmotion}`, mode, 3);
       const signals = scoreDecision({
         pressure,
@@ -3774,6 +3994,7 @@ export function AletheiaApp() {
         announceWorkflow(ts('notifications.counselInviteNotCreated'), data.error, "error");
       }
     } else {
+      trackClientEvent("counsel_contact_added_local", { role: counselRole });
       setCounselContacts((current) => [
         {
           id: crypto.randomUUID(),
@@ -3981,6 +4202,7 @@ export function AletheiaApp() {
         announceWorkflow(ts('notifications.ruleOfLifeSaved'), ts('notifications.ruleOfLifeSavedBody'), "success");
       }
     } else {
+      trackClientEvent("rule_created_local", { mode });
       setRulesOfLife((current) => [
         { id: crypto.randomUUID(), mode, principle, createdAt: new Date().toISOString() },
         ...current,
@@ -3996,6 +4218,48 @@ export function AletheiaApp() {
         className={`fixed inset-0 -z-10 ${theme.bgGradient}`}
         style={{ backgroundColor: theme.bgMain }}
       />
+      <div
+        className="pointer-events-none fixed inset-x-0 top-0 z-[22] backdrop-blur-2xl backdrop-saturate-200 md:hidden"
+        style={{
+          height: "calc(var(--aletheia-top-nav-space, calc(max(env(safe-area-inset-top, 0px), var(--aletheia-top-reserve, 0px)) + 5.7rem)) + 0.2rem)",
+          backgroundColor: resolvedTheme === "black"
+            ? "rgba(7, 10, 8, 0.18)"
+            : resolvedTheme === "dark"
+              ? "rgba(14, 21, 20, 0.16)"
+              : resolvedTheme === "warm"
+                ? "rgba(250, 246, 241, 0.2)"
+                : resolvedTheme === "ocean"
+                  ? "rgba(241, 246, 250, 0.2)"
+                  : resolvedTheme === "forest"
+                    ? "rgba(241, 246, 241, 0.2)"
+                    : resolvedTheme === "sunset"
+                      ? "rgba(250, 241, 246, 0.2)"
+                      : "rgba(238, 242, 239, 0.2)",
+          backgroundImage: resolvedTheme === "black"
+            ? "linear-gradient(180deg, rgba(214, 180, 93, 0.1) 0%, rgba(214, 180, 93, 0.02) 55%, rgba(0, 0, 0, 0) 100%)"
+            : resolvedTheme === "dark"
+              ? "linear-gradient(180deg, rgba(208, 173, 85, 0.08) 0%, rgba(255, 255, 255, 0.03) 55%, rgba(0, 0, 0, 0) 100%)"
+              : "linear-gradient(180deg, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0.08) 55%, rgba(0, 0, 0, 0) 100%)",
+          boxShadow: `inset 0 -1px 0 color-mix(in srgb, ${theme.bgNavBorder} 88%, transparent)`,
+          WebkitBackdropFilter: "blur(34px) saturate(190%)",
+          backdropFilter: "blur(34px) saturate(190%)",
+        }}
+      />
+      <div
+        className="pointer-events-none fixed inset-x-0 bottom-0 z-[35] backdrop-blur-2xl backdrop-saturate-150 md:hidden"
+        style={{
+          height: "max(5rem, calc(var(--aletheia-bottom-nav-space, 8.5rem) * 0.9))",
+          backgroundColor: "rgba(255, 255, 255, 0.05)",
+          backgroundImage: resolvedTheme === "black"
+            ? "linear-gradient(0deg, rgba(214, 180, 93, 0.08) 0%, rgba(214, 180, 93, 0.03) 48%, rgba(0, 0, 0, 0) 100%)"
+            : resolvedTheme === "dark"
+              ? "linear-gradient(0deg, rgba(208, 173, 85, 0.07) 0%, rgba(255, 255, 255, 0.03) 48%, rgba(0, 0, 0, 0) 100%)"
+              : "linear-gradient(0deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.04) 48%, rgba(0, 0, 0, 0) 100%)",
+          boxShadow: `inset 0 1px 0 ${theme.bgNavBorder}`,
+          WebkitBackdropFilter: "blur(34px) saturate(190%)",
+          backdropFilter: "blur(34px) saturate(190%)",
+        }}
+      />
       <WorkflowNotice
         notice={workflowNotice}
         onClose={() => setWorkflowNotice(null)}
@@ -4003,7 +4267,19 @@ export function AletheiaApp() {
         readerOpen={isSpeaking || speechPaused}
       />
 
-      <nav className="app-top-nav sticky top-0 z-30 border-b px-3 pb-3 backdrop-blur-xl sm:px-4" style={{ borderColor: theme.bgNavBorder, backgroundColor: theme.bgNav }}>
+      <nav ref={topNavRef} className="app-top-nav fixed inset-x-0 z-50 border-b px-3 pb-3 backdrop-blur-2xl sm:px-4" style={{ borderColor: theme.bgNavBorder, backgroundColor: resolvedTheme === "black"
+        ? "rgba(7, 10, 8, 0.28)"
+        : resolvedTheme === "dark"
+          ? "rgba(14, 21, 20, 0.24)"
+          : resolvedTheme === "warm"
+            ? "rgba(250, 246, 241, 0.28)"
+            : resolvedTheme === "ocean"
+              ? "rgba(241, 246, 250, 0.28)"
+              : resolvedTheme === "forest"
+                ? "rgba(241, 246, 241, 0.28)"
+                : resolvedTheme === "sunset"
+                  ? "rgba(250, 241, 246, 0.28)"
+                  : "rgba(238, 242, 239, 0.28)", top: "max(env(safe-area-inset-top, 0px), var(--aletheia-top-reserve))" }}>
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3">
           <button
             className="app-brand-button flex min-w-0 items-center gap-3 text-left"
@@ -4099,7 +4375,7 @@ export function AletheiaApp() {
         </div>
       </nav>
 
-      <div className="mx-auto grid max-w-7xl gap-5 px-3 pb-[calc(8.5rem+env(safe-area-inset-bottom))] pt-4 sm:px-4 sm:pt-5 lg:grid-cols-[260px_1fr] lg:py-6">
+      <div className="mx-auto grid max-w-7xl gap-5 px-3 pt-4 sm:px-4 sm:pt-5 lg:grid-cols-[260px_1fr] lg:py-6" style={{ paddingBottom: "calc(var(--aletheia-bottom-nav-space, 8.5rem) + env(safe-area-inset-bottom))" }}>
         <aside className="hidden lg:block">
           <div className="sticky top-24 space-y-4">
             <section className="rounded-lg border p-4 shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
@@ -4358,9 +4634,21 @@ export function AletheiaApp() {
         />
       ) : null}
 
-      <div className="app-bottom-nav fixed left-1/2 z-40 -translate-x-1/2 border shadow-[0_18px_40px_rgba(31,42,36,0.18)] backdrop-blur-2xl backdrop-saturate-150 md:hidden" style={{
+      <div ref={bottomNavRef} className="app-bottom-nav fixed left-1/2 z-40 -translate-x-1/2 overflow-hidden border shadow-[0_18px_40px_rgba(31,42,36,0.18)] backdrop-blur-2xl backdrop-saturate-150 md:hidden" style={{
         borderColor: theme.bgNavBorder,
-        backgroundColor: theme.bgNav,
+        backgroundColor: resolvedTheme === "black"
+          ? "rgba(7, 10, 8, 0.28)"
+          : resolvedTheme === "dark"
+            ? "rgba(14, 21, 20, 0.24)"
+            : resolvedTheme === "warm"
+              ? "rgba(250, 246, 241, 0.22)"
+              : resolvedTheme === "ocean"
+                ? "rgba(241, 246, 250, 0.22)"
+                : resolvedTheme === "forest"
+                  ? "rgba(241, 246, 241, 0.22)"
+                  : resolvedTheme === "sunset"
+                    ? "rgba(250, 241, 246, 0.22)"
+                    : "rgba(238, 242, 239, 0.22)",
         width: "var(--aletheia-bottom-nav-width, min(calc(100vw - 1.5rem), 28rem))",
         bottom: "calc(var(--aletheia-bottom-nav-gap, 0.75) * 1rem + env(safe-area-inset-bottom))",
         borderRadius: "calc(var(--aletheia-bottom-nav-radius, 1.75) * 1rem)",
@@ -4670,9 +4958,10 @@ function WorkflowNotice({
 
   return (
     <div
-      className={`fixed inset-x-3 z-50 md:bottom-auto md:left-auto md:right-4 md:top-24 md:w-[360px] ${
-        readerOpen ? "bottom-[calc(13rem+env(safe-area-inset-bottom))]" : "bottom-24"
-      }`}
+      className="fixed inset-x-3 z-50 md:bottom-auto md:left-auto md:right-4 md:top-24 md:w-[360px]"
+      style={{
+        top: `calc(max(env(safe-area-inset-top, 0px), var(--aletheia-top-reserve, 0px)) + ${readerOpen ? "6.5rem" : "5rem"})`,
+      }}
       role="status"
       aria-live="polite"
     >

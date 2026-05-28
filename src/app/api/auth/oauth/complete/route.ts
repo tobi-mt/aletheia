@@ -3,34 +3,68 @@ import { auth } from "@/auth";
 import { createSession, getOrCreateOAuthUser, recordUserLogin } from "@/lib/auth";
 import { trackServerEvent } from "@/lib/analytics";
 
+function oauthFailureRedirect(appUrl: string, reason: string) {
+  const redirectUrl = new URL("/", appUrl);
+  redirectUrl.searchParams.set("view", "account");
+  redirectUrl.searchParams.set("auth", "oauth_failed");
+  redirectUrl.searchParams.set("reason", reason);
+  return NextResponse.redirect(redirectUrl);
+}
+
 export async function GET(request: NextRequest) {
-  const session = await auth();
-  const email = session?.user?.email?.trim().toLowerCase();
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.AUTH_URL || request.url;
 
-  if (!email) {
-    return NextResponse.redirect(new URL("/?auth=oauth_failed", appUrl));
-  }
+  try {
+    const session = await auth();
+    const email = session?.user?.email?.trim().toLowerCase();
 
-  const { user, isNewUser } = await getOrCreateOAuthUser({
-    email,
-    name: session?.user?.name ?? null,
-    provider: "google",
-  });
-  if (!isNewUser) {
-    await recordUserLogin(user.id);
-  }
-  await createSession(user.id);
-  await trackServerEvent({
-    userId: user.id,
-    eventName: "auth_google_success",
-    metadata: { method: "google" },
-  });
+    if (!email) {
+      await trackServerEvent({
+        eventName: "auth_failure",
+        path: "/api/auth/oauth/complete",
+        metadata: {
+          method: "google",
+          flow: "oauth_complete",
+          category: "provider_failure",
+          reason: "missing_profile",
+        },
+      });
+      return oauthFailureRedirect(appUrl, "missing_profile");
+    }
 
-  const requestedNext = request.nextUrl.searchParams.get("next") || "/";
-  const next = requestedNext.startsWith("/") && !requestedNext.startsWith("//") ? requestedNext : "/";
-  const redirectUrl = new URL(next, appUrl);
-  redirectUrl.searchParams.set("auth", isNewUser ? "google_new" : "google_returning");
-  redirectUrl.searchParams.set("view", "account");
-  return NextResponse.redirect(redirectUrl);
+    const { user, isNewUser } = await getOrCreateOAuthUser({
+      email,
+      name: session?.user?.name ?? null,
+      provider: "google",
+    });
+    if (!isNewUser) {
+      await recordUserLogin(user.id);
+    }
+    await createSession(user.id);
+    await trackServerEvent({
+      userId: user.id,
+      eventName: "auth_google_success",
+      metadata: { method: "google" },
+    });
+
+    const requestedNext = request.nextUrl.searchParams.get("next") || "/";
+    const next = requestedNext.startsWith("/") && !requestedNext.startsWith("//") ? requestedNext : "/";
+    const redirectUrl = new URL(next, appUrl);
+    redirectUrl.searchParams.set("auth", isNewUser ? "google_new" : "google_returning");
+    redirectUrl.searchParams.set("view", "account");
+    return NextResponse.redirect(redirectUrl);
+  } catch (error) {
+    console.error("Google auth completion failed:", error);
+    await trackServerEvent({
+      eventName: "auth_failure",
+      path: "/api/auth/oauth/complete",
+      metadata: {
+        method: "google",
+        flow: "oauth_complete",
+        category: "backend_fault",
+        reason: "server_error",
+      },
+    });
+    return oauthFailureRedirect(appUrl, "server_error");
+  }
 }
