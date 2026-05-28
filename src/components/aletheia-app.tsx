@@ -2119,22 +2119,60 @@ export function AletheiaApp() {
   }, [themePreference]);
 
   useEffect(() => {
-    const updateSafeTop = () => {
+    const updateViewportChrome = () => {
       const viewport = window.visualViewport;
-      const viewportTop = Math.max(0, Math.round(viewport?.offsetTop ?? 0));
-      document.documentElement.style.setProperty("--aletheia-safe-top-extra", `${viewportTop}px`);
+      const viewportWidth = Math.max(0, Math.round(viewport?.width ?? window.innerWidth));
+      const viewportHeight = Math.max(0, Math.round(viewport?.height ?? window.innerHeight));
+      const shortestSide = Math.min(viewportWidth, viewportHeight);
+      const isTablet = viewportWidth >= 768 || shortestSide >= 768;
+      const isFoldClass = !isTablet && viewportWidth >= 600 && viewportWidth < 768 && viewportHeight >= 700;
+      const isSmallPhone = !isTablet && !isFoldClass && shortestSide <= 700;
+      const isLargePhone = !isTablet && !isFoldClass && shortestSide >= 820;
+      const deviceFamily = isTablet ? "tablet" : isFoldClass ? "fold" : isSmallPhone ? "small-phone" : isLargePhone ? "large-phone" : "regular-phone";
+      const topReserve = isTablet
+        ? 0
+        : isSmallPhone
+          ? Math.round(Math.max(20, Math.min(32, shortestSide * 0.04)))
+          : isFoldClass
+            ? Math.round(Math.max(16, Math.min(26, shortestSide * 0.024)))
+            : isLargePhone
+              ? Math.round(Math.max(10, Math.min(18, shortestSide * 0.018)))
+              : Math.round(Math.max(14, Math.min(24, shortestSide * 0.028)));
+      const bottomReserve = isTablet
+        ? 0
+        : isSmallPhone
+          ? Math.round(Math.max(20, Math.min(32, shortestSide * 0.042)))
+          : isFoldClass
+            ? Math.round(Math.max(16, Math.min(26, shortestSide * 0.026)))
+            : isLargePhone
+              ? Math.round(Math.max(10, Math.min(20, shortestSide * 0.02)))
+              : Math.round(Math.max(14, Math.min(24, shortestSide * 0.03)));
+      const bottomNavGap = isTablet ? 0 : isSmallPhone ? 1.08 : isFoldClass ? 0.7 : isLargePhone ? 0.55 : 0.78;
+      const bottomNavPadY = isTablet ? 0 : isSmallPhone ? 0.72 : isFoldClass ? 0.58 : isLargePhone ? 0.5 : 0.62;
+      const bottomNavPadX = isTablet ? 0 : isSmallPhone ? 0.95 : isFoldClass ? 0.82 : isLargePhone ? 0.75 : 0.85;
+      const bottomNavRadius = isTablet ? 0 : isSmallPhone ? 1.55 : isFoldClass ? 1.7 : isLargePhone ? 1.95 : 1.75;
+      const bottomNavWidth = isFoldClass ? "min(calc(100vw - 1.5rem), 38rem)" : "min(calc(100vw - 1.5rem), 28rem)";
+
+      document.documentElement.style.setProperty("--aletheia-top-reserve", `${topReserve}px`);
+      document.documentElement.style.setProperty("--aletheia-bottom-reserve", `${bottomReserve}px`);
+      document.documentElement.style.setProperty("--aletheia-bottom-nav-gap", `${bottomNavGap}`);
+      document.documentElement.style.setProperty("--aletheia-bottom-nav-pad-y", `${bottomNavPadY}`);
+      document.documentElement.style.setProperty("--aletheia-bottom-nav-pad-x", `${bottomNavPadX}`);
+      document.documentElement.style.setProperty("--aletheia-bottom-nav-radius", `${bottomNavRadius}`);
+      document.documentElement.style.setProperty("--aletheia-bottom-nav-width", bottomNavWidth);
+      document.documentElement.dataset.deviceFamily = deviceFamily;
     };
 
-    updateSafeTop();
-    window.addEventListener("resize", updateSafeTop);
-    window.addEventListener("orientationchange", updateSafeTop);
-    window.visualViewport?.addEventListener("resize", updateSafeTop);
-    window.visualViewport?.addEventListener("scroll", updateSafeTop);
+    updateViewportChrome();
+    window.addEventListener("resize", updateViewportChrome);
+    window.addEventListener("orientationchange", updateViewportChrome);
+    window.visualViewport?.addEventListener("resize", updateViewportChrome);
+    window.visualViewport?.addEventListener("scroll", updateViewportChrome);
     return () => {
-      window.removeEventListener("resize", updateSafeTop);
-      window.removeEventListener("orientationchange", updateSafeTop);
-      window.visualViewport?.removeEventListener("resize", updateSafeTop);
-      window.visualViewport?.removeEventListener("scroll", updateSafeTop);
+      window.removeEventListener("resize", updateViewportChrome);
+      window.removeEventListener("orientationchange", updateViewportChrome);
+      window.visualViewport?.removeEventListener("resize", updateViewportChrome);
+      window.visualViewport?.removeEventListener("scroll", updateViewportChrome);
     };
   }, []);
 
@@ -3953,7 +3991,7 @@ export function AletheiaApp() {
   }
 
   return (
-    <main className={`min-h-screen overflow-x-hidden ${resolvedTheme === "dark" || resolvedTheme === "black" ? "theme-dark-root" : ""}`} style={{ backgroundColor: theme.bgMain, color: theme.textPrimary, minHeight: '100dvh' }}>
+    <main className={`app-shell min-h-screen overflow-x-hidden ${resolvedTheme === "dark" || resolvedTheme === "black" ? "theme-dark-root" : ""}`} style={{ backgroundColor: theme.bgMain, color: theme.textPrimary, minHeight: '100dvh' }}>
       <div
         className={`fixed inset-0 -z-10 ${theme.bgGradient}`}
         style={{ backgroundColor: theme.bgMain }}
@@ -4061,7 +4099,7 @@ export function AletheiaApp() {
         </div>
       </nav>
 
-      <div className="mx-auto grid max-w-7xl gap-5 px-3 pb-[calc(6.5rem+env(safe-area-inset-bottom))] pt-4 sm:px-4 sm:pt-5 lg:grid-cols-[260px_1fr] lg:py-6">
+      <div className="mx-auto grid max-w-7xl gap-5 px-3 pb-[calc(8.5rem+env(safe-area-inset-bottom))] pt-4 sm:px-4 sm:pt-5 lg:grid-cols-[260px_1fr] lg:py-6">
         <aside className="hidden lg:block">
           <div className="sticky top-24 space-y-4">
             <section className="rounded-lg border p-4 shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
@@ -4320,8 +4358,15 @@ export function AletheiaApp() {
         />
       ) : null}
 
-      <div className="app-bottom-nav fixed inset-x-0 bottom-0 z-40 border-t px-2 pt-1 pb-[calc(0.45rem+env(safe-area-inset-bottom))] shadow-[0_-10px_28px_rgba(31,42,36,0.08)] backdrop-blur-xl md:hidden" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgNav }}>
-        <div className="mx-auto grid max-w-md grid-cols-5 gap-1">
+      <div className="app-bottom-nav fixed left-1/2 z-40 -translate-x-1/2 border shadow-[0_18px_40px_rgba(31,42,36,0.18)] backdrop-blur-2xl backdrop-saturate-150 md:hidden" style={{
+        borderColor: theme.bgNavBorder,
+        backgroundColor: theme.bgNav,
+        width: "var(--aletheia-bottom-nav-width, min(calc(100vw - 1.5rem), 28rem))",
+        bottom: "calc(var(--aletheia-bottom-nav-gap, 0.75) * 1rem + env(safe-area-inset-bottom))",
+        borderRadius: "calc(var(--aletheia-bottom-nav-radius, 1.75) * 1rem)",
+        padding: "calc(var(--aletheia-bottom-nav-pad-y, 0.6) * 1rem) calc(var(--aletheia-bottom-nav-pad-x, 0.85) * 1rem)",
+      }}>
+        <div className="grid grid-cols-5 gap-1">
           <MobileNav active={activeView === "companion"} icon={Home} label={ui.nav.companion} onClick={() => showView("companion")} theme={theme} />
           <MobileNav active={activeView === "decisions"} icon={FileText} label={ui.decideShort} onClick={() => showView("decisions")} theme={theme} />
           <MobileNav active={activeView === "reflect"} icon={Feather} label={ui.nav.reflect} onClick={() => showView("reflect")} theme={theme} />
@@ -4399,11 +4444,14 @@ function MobileNav({ active, icon: Icon, label, onClick, theme }: { active: bool
   return (
     <button
       onClick={onClick}
-      className="flex h-12 min-w-0 flex-col items-center justify-center gap-1 rounded-md px-1 text-[10px] font-semibold transition sm:text-[11px]"
+      className="flex h-12 min-w-0 flex-col items-center justify-center gap-1 rounded-[1.1rem] px-1 text-[10px] font-semibold transition duration-200 sm:text-[11px]"
       style={{
         backgroundColor: active ? theme.primary : 'transparent',
+        boxShadow: active ? "0 8px 18px rgba(0, 0, 0, 0.18)" : "none",
         color: active ? theme.textOnPrimary : theme.textSecondary,
       }}
+      onMouseEnter={(event) => !active && (event.currentTarget.style.backgroundColor = theme.hoverBg)}
+      onMouseLeave={(event) => !active && (event.currentTarget.style.backgroundColor = 'transparent')}
     >
       <Icon size={17} />
       <span className="max-w-full truncate leading-none">{label}</span>

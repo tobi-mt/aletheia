@@ -83,30 +83,46 @@ body {
 
 :root {
   --aletheia-safe-top-extra: 0px;
+  --aletheia-top-reserve: 0px;
+  --aletheia-bottom-reserve: 0px;
 }
 
-/* The app does not draw underneath iOS status chrome. Keep spacing simple and deterministic. */
-@supports (padding: env(safe-area-inset-top)) {
-  body {
-    padding-top: 0;
-    padding-bottom: 0;
-  }
+.app-shell {
+  padding-top: max(env(safe-area-inset-top, 0px), var(--aletheia-top-reserve));
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), var(--aletheia-bottom-reserve));
 }
 
 .app-top-nav {
-  padding-top: calc(0.75rem + var(--aletheia-safe-top-extra));
+  padding-top: clamp(0.7rem, 1.4vw, 0.9rem);
 }
 
-@supports (padding-top: max(0px, 1px)) {
-  .app-top-nav {
-    padding-top: calc(0.75rem + max(env(safe-area-inset-top, 0px), var(--aletheia-safe-top-extra), 0px));
-  }
+.app-brand-button {
+  gap: clamp(0.45rem, 1.3vw, 0.75rem);
+  min-width: 0;
 }
 
-@supports (padding: constant(safe-area-inset-top)) {
-  .app-top-nav {
-    padding-top: calc(0.75rem + max(constant(safe-area-inset-top), var(--aletheia-safe-top-extra)));
-  }
+.app-brand-logo {
+  width: clamp(2.2rem, 7vw, 2.75rem);
+  height: clamp(2.2rem, 7vw, 2.75rem);
+}
+
+.app-brand-copy {
+  min-width: 0;
+  max-width: min(12rem, 48vw);
+}
+
+.app-brand-copy p:first-child {
+  font-size: clamp(0.75rem, 2.2vw, 0.875rem);
+  letter-spacing: clamp(0.14em, 0.42vw, 0.22em);
+}
+
+.app-brand-copy p:last-child {
+  max-width: min(12rem, 46vw);
+}
+
+.app-chrome-control {
+  width: clamp(2.25rem, 7vw, 2.5rem);
+  height: clamp(2.25rem, 7vw, 2.5rem);
 }
 
 .theme-dark-root {
@@ -344,15 +360,6 @@ html[data-theme="black"] main.theme-dark-root .app-bottom-nav button:not([style*
 }
 
 @media (max-width: 380px) {
-  .app-brand-button {
-    gap: 0.55rem;
-  }
-
-  .app-brand-logo {
-    width: 2.35rem;
-    height: 2.35rem;
-  }
-
   .app-brand-copy p:first-child {
     font-size: 0.78rem;
     letter-spacing: 0.16em;
@@ -365,6 +372,16 @@ html[data-theme="black"] main.theme-dark-root .app-bottom-nav button:not([style*
   .app-chrome-control {
     width: 2.35rem;
     height: 2.35rem;
+  }
+}
+
+@media (max-width: 480px) and (orientation: portrait) {
+  .app-top-nav {
+    padding-top: 0.65rem;
+  }
+
+  .app-brand-copy p:last-child {
+    max-width: 7.75rem;
   }
 }
 
