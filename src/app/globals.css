@@ -22,6 +22,22 @@ html[data-theme="dark"] {
   --pwa-status-background: #0e1514;
 }
 
+html[data-theme="black"] {
+  color-scheme: dark;
+  --background: #050605;
+  --foreground: #fbf7e9;
+  --dark-surface: rgba(11, 15, 13, 0.96);
+  --dark-surface-2: rgba(7, 10, 8, 0.98);
+  --dark-surface-3: rgba(16, 23, 19, 0.95);
+  --dark-stroke: rgba(208, 173, 85, 0.26);
+  --dark-stroke-strong: rgba(208, 173, 85, 0.44);
+  --dark-gold: #d6b45d;
+  --dark-text: #fbf7e9;
+  --dark-muted: #d8d0bd;
+  --dark-soft: #a89f8d;
+  --pwa-status-background: #050605;
+}
+
 html[data-theme="warm"] {
   --pwa-status-background: #faf6f1;
 }
@@ -65,11 +81,11 @@ body {
   padding: 0;
 }
 
-/* iOS PWA safe area handling */
+/* Individual chrome elements own safe-area spacing so sticky bars do not collide with mobile status areas. */
 @supports (padding: env(safe-area-inset-top)) {
   body {
-    padding-top: env(safe-area-inset-top);
-    padding-bottom: env(safe-area-inset-bottom);
+    padding-top: 0;
+    padding-bottom: 0;
   }
 }
 
@@ -165,9 +181,9 @@ body {
   color: var(--dark-gold) !important;
 }
 
-.theme-dark-root [style*="background-color: rgb(208, 173, 85)"],
-.theme-dark-root [style*="background-color:#d0ad55"],
-.theme-dark-root [style*="background-color: #d0ad55"] {
+html[data-theme="dark"] .theme-dark-root [style*="background-color: rgb(208, 173, 85)"],
+html[data-theme="dark"] .theme-dark-root [style*="background-color:#d0ad55"],
+html[data-theme="dark"] .theme-dark-root [style*="background-color: #d0ad55"] {
   background-color: #28473f !important;
   color: #f8f5e8 !important;
 }
@@ -271,12 +287,12 @@ body {
 .theme-dark-root .app-chrome-control,
 .theme-dark-root .app-bottom-nav {
   background-color: rgba(20, 32, 29, 0.94) !important;
-  border-color: rgba(154, 182, 170, 0.34) !important;
+  border-color: rgba(215, 189, 119, 0.38) !important;
   color: #eef7f2 !important;
 }
 
 .theme-dark-root .app-bottom-nav button:not([style*="background-color: rgb(40, 71, 63)"]) {
-  color: #b6c8bf !important;
+  color: #cddbd1 !important;
 }
 
 .theme-dark-root .app-bottom-nav button[style*="background-color: rgb(40, 71, 63)"] {
@@ -286,8 +302,20 @@ body {
 html[data-theme="dark"] main.theme-dark-root .app-chrome-control {
   background: #1a2622 !important;
   background-color: #1a2622 !important;
-  border-color: #3a4a46 !important;
+  border-color: #7a6130 !important;
   color: #f8f5e8 !important;
+}
+
+html[data-theme="black"] main.theme-dark-root .app-chrome-control,
+html[data-theme="black"] main.theme-dark-root .app-bottom-nav {
+  background: rgba(7, 10, 8, 0.96) !important;
+  background-color: rgba(7, 10, 8, 0.96) !important;
+  border-color: rgba(214, 180, 93, 0.45) !important;
+  color: #fbf7e9 !important;
+}
+
+html[data-theme="black"] main.theme-dark-root .app-bottom-nav button:not([style*="background-color: rgb(208, 173, 85)"]) {
+  color: #d8d0bd !important;
 }
 
 ::selection {

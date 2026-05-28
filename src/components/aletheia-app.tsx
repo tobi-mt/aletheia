@@ -3,7 +3,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import Image from "next/image";
 import { signIn as authSignIn, signOut as authSignOut } from "next-auth/react";
-import { FormEvent, type RefObject, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, type ReactNode, type RefObject, useEffect, useMemo, useRef, useState } from "react";
 import {
   BookOpen,
   BriefcaseBusiness,
@@ -71,8 +71,8 @@ type AuthStatus = "checking" | "guest" | "signing-in" | "signed-in" | "signing-o
 type AnalyticsMetadata = Record<string, string | number | boolean | null>;
 type ShareChannel = "native" | "copy" | "whatsapp" | "facebook" | "x" | "linkedin" | "email" | "sms";
 type WorkflowTone = "info" | "success" | "warning" | "error";
-type ThemePreference = "classic" | "dark" | "warm" | "ocean" | "forest" | "sunset" | "system";
-type ResolvedTheme = "classic" | "dark" | "warm" | "ocean" | "forest" | "sunset";
+type ThemePreference = "classic" | "dark" | "black" | "warm" | "ocean" | "forest" | "sunset" | "system";
+type ResolvedTheme = "classic" | "dark" | "black" | "warm" | "ocean" | "forest" | "sunset";
 type ThemeColors = {
   // Primary action colors
   primary: string;
@@ -142,18 +142,41 @@ const themeColors: Record<ResolvedTheme, ThemeColors> = {
     bgCardElevated: "#20302c",
     bgInput: "#14211e",
     bgNav: "rgba(14, 21, 20, 0.88)",
-    bgNavBorder: "rgba(42, 58, 54, 0.7)",
+    bgNavBorder: "rgba(157, 126, 56, 0.42)",
     textPrimary: "#f8f5e8",
     textSecondary: "#cddbd1",
     textMuted: "#99aba1",
     textOnPrimary: "#f8f5e8",
-    borderLight: "#2a3a36",
-    borderMedium: "#3a4a46",
-    borderStrong: "#4a5a56",
+    borderLight: "#4a4027",
+    borderMedium: "#6a5529",
+    borderStrong: "#8a6b2f",
     accentGold: "#d0ad55",
     accentLight: "#e0bd65",
     hoverBg: "rgba(208, 173, 85, 0.12)",
     activeBg: "rgba(208, 173, 85, 0.18)",
+  },
+  black: {
+    primary: "#d0ad55",
+    primaryHover: "#e0bd65",
+    primaryText: "#0a0b0a",
+    bgMain: "#050605",
+    bgGradient: "bg-[radial-gradient(circle_at_18%_0%,rgba(208,173,85,0.12),transparent_24%),radial-gradient(circle_at_92%_16%,rgba(47,79,70,0.16),transparent_25%),linear-gradient(180deg,#050605_0%,#000000_100%)]",
+    bgCard: "#0b0f0d",
+    bgCardElevated: "#101713",
+    bgInput: "#070a08",
+    bgNav: "rgba(5, 6, 5, 0.92)",
+    bgNavBorder: "rgba(208, 173, 85, 0.34)",
+    textPrimary: "#fbf7e9",
+    textSecondary: "#d8d0bd",
+    textMuted: "#a89f8d",
+    textOnPrimary: "#0a0b0a",
+    borderLight: "#3c321c",
+    borderMedium: "#5d4922",
+    borderStrong: "#8a6b2f",
+    accentGold: "#d6b45d",
+    accentLight: "#f0d58b",
+    hoverBg: "rgba(214, 180, 93, 0.12)",
+    activeBg: "rgba(214, 180, 93, 0.2)",
   },
   warm: {
     primary: "#a65a3a",
@@ -269,6 +292,7 @@ const ALETHEIA_SHARE_TEXT = "Aletheia is a calm AI-powered biblical wisdom compa
 const MANUAL_CONTEXT_STORAGE_KEY = "aletheia_manual_context";
 const THEME_STORAGE_KEY = "aletheia_theme_preference";
 const VOICE_STORAGE_KEY = "aletheia_selected_voice";
+const NOTIFICATION_TIMING_STORAGE_KEY = "aletheia_notification_timing";
 const COUNSEL_STATUS_TRACKING_KEY = "aletheia_counsel_status_tracking";
 const CARRY_TODAY_STORAGE_KEY = "aletheia_carry_today";
 const DEFAULT_NOTIFICATION_TIMING: NotificationTiming = {
@@ -932,7 +956,7 @@ function storedThemePreference(): ThemePreference {
   }
   try {
     const value = window.localStorage.getItem(THEME_STORAGE_KEY);
-    if (value === "classic" || value === "dark" || value === "warm" || value === "ocean" || value === "forest" || value === "sunset" || value === "system") {
+    if (value === "classic" || value === "dark" || value === "black" || value === "warm" || value === "ocean" || value === "forest" || value === "sunset" || value === "system") {
       return value;
     }
   } catch {
@@ -1164,6 +1188,45 @@ function notificationTimeLabel(hour: number) {
   const suffix = normalized >= 12 ? "PM" : "AM";
   const hour12 = normalized % 12 || 12;
   return `${hour12}:00 ${suffix}`;
+}
+
+function normalizeNotificationTiming(value?: Partial<NotificationTiming> | null): NotificationTiming {
+  const strategy = value?.deliveryStrategy;
+  const deliveryStrategy: NotificationTiming["deliveryStrategy"] =
+    strategy === "morning" || strategy === "midday" || strategy === "evening" || strategy === "custom"
+      ? strategy
+      : DEFAULT_NOTIFICATION_TIMING.deliveryStrategy;
+  const rawHour = Number.isInteger(value?.preferredLocalHour)
+    ? Number(value?.preferredLocalHour)
+    : notificationHourForStrategy(deliveryStrategy, DEFAULT_NOTIFICATION_TIMING.preferredLocalHour);
+  return {
+    preferredLocalHour: Math.min(23, Math.max(0, rawHour)),
+    preferredTimezone: value?.preferredTimezone || (typeof window === "undefined" ? "UTC" : browserTimezone()),
+    deliveryStrategy,
+  };
+}
+
+function storedNotificationTiming(): NotificationTiming {
+  if (typeof window === "undefined") {
+    return DEFAULT_NOTIFICATION_TIMING;
+  }
+  try {
+    const saved = window.localStorage.getItem(NOTIFICATION_TIMING_STORAGE_KEY);
+    return normalizeNotificationTiming(saved ? (JSON.parse(saved) as Partial<NotificationTiming>) : { preferredTimezone: browserTimezone() });
+  } catch {
+    return normalizeNotificationTiming({ preferredTimezone: browserTimezone() });
+  }
+}
+
+function persistNotificationTiming(timing: NotificationTiming) {
+  if (typeof window === "undefined") {
+    return;
+  }
+  try {
+    window.localStorage.setItem(NOTIFICATION_TIMING_STORAGE_KEY, JSON.stringify(timing));
+  } catch {
+    // Timing remains active for this session if storage is unavailable.
+  }
 }
 
 function conversationExchanges(messages: ChatMessage[]) {
@@ -1795,10 +1858,7 @@ export function AletheiaApp() {
   const [notificationsConfigured, setNotificationsConfigured] = useState(false);
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>("default");
   const [notificationBusy, setNotificationBusy] = useState(false);
-  const [notificationTiming, setNotificationTiming] = useState<NotificationTiming>(() => ({
-    ...DEFAULT_NOTIFICATION_TIMING,
-    preferredTimezone: typeof window === "undefined" ? "UTC" : browserTimezone(),
-  }));
+  const [notificationTiming, setNotificationTiming] = useState<NotificationTiming>(storedNotificationTiming);
   const [wisdomDecisions, setWisdomDecisions] = useState<WisdomDecision[]>([]);
   const [decisionEvents, setDecisionEvents] = useState<DecisionEvent[]>([]);
   const [timelineInsight, setTimelineInsight] = useState<TimelineInsight>({
@@ -2103,6 +2163,9 @@ export function AletheiaApp() {
     const notificationData = (await notificationResponse.json()) as {
       configured?: boolean;
       enabled?: boolean;
+      preferredLocalHour?: number;
+      preferredTimezone?: string;
+      deliveryStrategy?: NotificationTiming["deliveryStrategy"];
     };
     const decisionsData = (await decisionsResponse.json()) as {
       decisions?: WisdomDecision[];
@@ -2146,6 +2209,15 @@ export function AletheiaApp() {
     }
     setNotificationsConfigured(Boolean(notificationData.configured));
     setNotificationsEnabled(Boolean(notificationData.enabled));
+    if (notificationData.enabled) {
+      const nextTiming = normalizeNotificationTiming({
+        preferredLocalHour: notificationData.preferredLocalHour,
+        preferredTimezone: notificationData.preferredTimezone,
+        deliveryStrategy: notificationData.deliveryStrategy,
+      });
+      setNotificationTiming(nextTiming);
+      persistNotificationTiming(nextTiming);
+    }
   }
 
   useEffect(() => {
@@ -2320,17 +2392,23 @@ export function AletheiaApp() {
           : null;
       setNotificationsConfigured(Boolean(data.configured));
       setNotificationsEnabled(Boolean(data.enabled && localSubscription));
-      setNotificationTiming((current) => ({
-        preferredLocalHour: Number.isInteger(data.preferredLocalHour) ? Number(data.preferredLocalHour) : current.preferredLocalHour,
-        preferredTimezone: data.enabled ? data.preferredTimezone || current.preferredTimezone || browserTimezone() : browserTimezone(),
-        deliveryStrategy: data.deliveryStrategy || current.deliveryStrategy,
-      }));
+      setNotificationTiming((current) => {
+        const nextTiming = data.enabled
+          ? normalizeNotificationTiming({
+              preferredLocalHour: data.preferredLocalHour,
+              preferredTimezone: data.preferredTimezone,
+              deliveryStrategy: data.deliveryStrategy,
+            })
+          : normalizeNotificationTiming(current);
+        persistNotificationTiming(nextTiming);
+        return nextTiming;
+      });
       if (!data.configured) {
         setNotificationStatus("Notifications need VAPID keys before they can be enabled.");
       } else if (!user) {
         setNotificationStatus("Sign in to enable daily wisdom notifications.");
       } else if (data.enabled && localSubscription) {
-        setNotificationStatus(`Daily wisdom notifications are enabled around ${notificationTimeLabel(data.preferredLocalHour ?? 8)} local time.`);
+        setNotificationStatus("Daily wisdom notifications are enabled.");
       } else if (data.enabled) {
         setNotificationStatus("Notifications are enabled on your account. Enable them on this device too.");
       } else {
@@ -3203,8 +3281,10 @@ export function AletheiaApp() {
       }
 
       setNotificationsEnabled(true);
-      setNotificationTiming((current) => ({ ...current, preferredTimezone }));
-      setNotificationStatus(`Daily wisdom notifications are enabled around ${notificationTimeLabel(preferredLocalHour)} local time.`);
+      const nextTiming = normalizeNotificationTiming({ ...notificationTiming, preferredLocalHour, preferredTimezone });
+      setNotificationTiming(nextTiming);
+      persistNotificationTiming(nextTiming);
+      setNotificationStatus("Daily wisdom notifications are enabled.");
       announceWorkflow(ts('notifications.notificationsEnabled'), ts('notifications.notificationsEnabledBodyTime').replace('{time}', notificationTimeLabel(preferredLocalHour)), "success");
     } catch {
       setNotificationsEnabled(false);
@@ -3271,7 +3351,8 @@ export function AletheiaApp() {
       deliveryStrategy: nextStrategy,
     };
     setNotificationTiming(nextTiming);
-    setNotificationStatus(`Daily wisdom will be aimed around ${notificationTimeLabel(nextTiming.preferredLocalHour)} local time.`);
+    persistNotificationTiming(nextTiming);
+    setNotificationStatus("Daily wisdom time saved on this device.");
     if (!notificationsEnabled || notificationBusy) {
       return;
     }
@@ -3289,7 +3370,7 @@ export function AletheiaApp() {
         setNotificationStatus("Timing changed here, but could not sync to the server yet.");
         return;
       }
-      setNotificationStatus(`Daily wisdom timing saved for around ${notificationTimeLabel(nextTiming.preferredLocalHour)} local time.`);
+      setNotificationStatus("Daily wisdom timing synced.");
       announceWorkflow(ts('notifications.notificationTimingSaved'), `Daily wisdom is now aimed around ${notificationTimeLabel(nextTiming.preferredLocalHour)} local time.`, "success");
     } catch {
       setNotificationStatus("Timing changed here, but could not sync to the server yet.");
@@ -3829,7 +3910,7 @@ export function AletheiaApp() {
   }
 
   return (
-    <main className={`min-h-screen overflow-x-hidden ${resolvedTheme === "dark" ? "theme-dark-root" : ""}`} style={{ backgroundColor: theme.bgMain, color: theme.textPrimary, minHeight: '100dvh' }}>
+    <main className={`min-h-screen overflow-x-hidden ${resolvedTheme === "dark" || resolvedTheme === "black" ? "theme-dark-root" : ""}`} style={{ backgroundColor: theme.bgMain, color: theme.textPrimary, minHeight: '100dvh' }}>
       <div
         className={`fixed inset-0 -z-10 ${theme.bgGradient}`}
         style={{ backgroundColor: theme.bgMain }}
@@ -3841,7 +3922,7 @@ export function AletheiaApp() {
         readerOpen={isSpeaking || speechPaused}
       />
 
-      <nav className="sticky top-0 z-30 border-b px-3 py-3 backdrop-blur-xl sm:px-4" style={{ borderColor: theme.bgNavBorder, backgroundColor: theme.bgNav }}>
+      <nav className="sticky top-0 z-30 border-b px-3 pb-3 pt-[calc(0.75rem+env(safe-area-inset-top))] backdrop-blur-xl sm:px-4" style={{ borderColor: theme.bgNavBorder, backgroundColor: theme.bgNav }}>
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3">
           <button
             className="app-brand-button flex min-w-0 items-center gap-3 text-left"
@@ -3955,7 +4036,7 @@ export function AletheiaApp() {
             <section className="rounded-lg border p-4 shadow-sm" style={{ borderColor: theme.borderStrong, backgroundColor: theme.primary, color: theme.textOnPrimary }}>
               <div className="mb-4 flex items-center justify-between">
                 <h2 className="font-semibold">{ui.wisdomMode}</h2>
-                <Moon size={17} style={{ color: theme.accentGold }} />
+                <Moon size={17} style={{ color: theme.textOnPrimary }} />
               </div>
               <div className="space-y-2">
                 {activeModeCards.map((item) => (
@@ -3963,7 +4044,7 @@ export function AletheiaApp() {
                 ))}
               </div>
               <div className="rounded-lg border p-3" style={{ borderColor: theme.borderMedium + '33', backgroundColor: theme.bgCardElevated }}>
-                <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ui.currentLens}</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textOnPrimary }}>{ui.currentLens}</p>
                 <p className="mt-2 text-sm leading-6" style={{ color: theme.textOnPrimary }}>{activeMode.intent}</p>
               </div>
             </section>
@@ -4278,7 +4359,7 @@ function MobileNav({ active, icon: Icon, label, onClick, theme }: { active: bool
       className="flex h-12 min-w-0 flex-col items-center justify-center gap-1 rounded-md px-1 text-[10px] font-semibold transition sm:text-[11px]"
       style={{
         backgroundColor: active ? theme.primary : 'transparent',
-        color: active ? theme.textOnPrimary : theme.textMuted,
+        color: active ? theme.textOnPrimary : theme.textSecondary,
       }}
     >
       <Icon size={17} />
@@ -4836,8 +4917,10 @@ function HomeDashboard({
           <DashboardAction icon={primaryAction.icon} label={primaryAction.label} body={primaryAction.body} primary onClick={primaryAction.onClick} theme={theme} />
         </div>
         <div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-3">
-          {secondaryActions.map((action) => (
-            <DashboardAction key={action.label} icon={action.icon} label={action.label} body={action.body} onClick={action.onClick} compact theme={theme} />
+          {secondaryActions.map((action, index) => (
+            <div key={action.label} className={index === secondaryActions.length - 1 ? "col-span-2 md:col-span-1" : ""}>
+              <DashboardAction icon={action.icon} label={action.label} body={action.body} onClick={action.onClick} compact theme={theme} />
+            </div>
           ))}
         </div>
       </section>
@@ -4864,18 +4947,25 @@ function HomeDashboard({
           <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{text.wisdomPrinciple}</p>
           <p className="mt-2 text-sm leading-6" style={{ color: theme.textPrimary }} suppressHydrationWarning>{companionCard.principle}</p>
         </div>
-        <div className="mt-3 rounded-md border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{text.tinyPractice}</p>
-          <p className="mt-2 text-sm leading-6" style={{ color: theme.textPrimary }} suppressHydrationWarning>{companionCard.practice}</p>
-        </div>
-        <div className="mt-3 rounded-md border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{text.reflectionQuestion}</p>
-          <p className="mt-2 text-sm leading-6" style={{ color: theme.textPrimary }} suppressHydrationWarning>{companionCard.question}</p>
-        </div>
         <div className="mt-3 rounded-md border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.primary, color: theme.textOnPrimary }}>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentLight }}>{text.carryThisToday}</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textOnPrimary }}>{text.carryThisToday}</p>
           <p className="mt-2 text-sm font-semibold leading-6" suppressHydrationWarning>&ldquo;{companionCard.carryPhrase}&rdquo;</p>
         </div>
+        <details className="mt-3 rounded-md border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
+          <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+            {text.showDetails}
+          </summary>
+          <div className="mt-3 grid gap-3">
+            <div className="rounded-md border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{text.tinyPractice}</p>
+              <p className="mt-2 text-sm leading-6" style={{ color: theme.textPrimary }} suppressHydrationWarning>{companionCard.practice}</p>
+            </div>
+            <div className="rounded-md border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{text.reflectionQuestion}</p>
+              <p className="mt-2 text-sm leading-6" style={{ color: theme.textPrimary }} suppressHydrationWarning>{companionCard.question}</p>
+            </div>
+          </div>
+        </details>
         <div className="mt-3 grid grid-cols-2 gap-2">
           <CompanionCardAction icon={Check} label={text.carryWithMe!} onClick={() => onCarryToday(companionCard)} theme={theme} primary />
           <CompanionCardAction icon={Feather} label={text.reflectToday!} onClick={() => onReflectCard(companionCard)} theme={theme} />
@@ -4939,7 +5029,7 @@ function DashboardAction({
     <button
       type="button"
       onClick={onClick}
-      className={`flex min-w-0 items-start gap-3 rounded-md border text-left transition ${compact ? "p-3" : "p-4"}`}
+      className={`flex h-full w-full min-w-0 items-start gap-3 rounded-md border text-left transition ${compact ? "p-3" : "p-4"}`}
       style={primary
         ? { borderColor: theme.primary, backgroundColor: theme.primary, color: theme.textOnPrimary }
         : { borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
@@ -4998,6 +5088,52 @@ function ContextualNextAction({
           </button>
         ) : null}
       </div>
+    </section>
+  );
+}
+
+function DisclosureSection({
+  title,
+  summary,
+  eyebrow,
+  defaultOpen = false,
+  children,
+  theme,
+}: {
+  title: string;
+  summary?: string;
+  eyebrow?: string;
+  defaultOpen?: boolean;
+  children: ReactNode;
+  theme: ThemeColors;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+
+  return (
+    <section className="rounded-xl border shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        className="flex w-full items-start justify-between gap-3 p-4 text-left sm:p-5"
+      >
+        <span className="min-w-0">
+          {eyebrow ? (
+            <span className="block text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{eyebrow}</span>
+          ) : null}
+          <span className="mt-1 block text-lg font-semibold" style={{ color: theme.textPrimary }}>{title}</span>
+          {summary ? (
+            <span className="mt-1 block text-sm leading-6" style={{ color: theme.textSecondary }}>{summary}</span>
+          ) : null}
+        </span>
+        <span className="shrink-0 rounded-md border px-2 py-1 text-[11px] font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+          {open ? "Hide details" : "Show details"}
+        </span>
+      </button>
+      {open ? (
+        <div className="border-t p-4 sm:p-5" style={{ borderColor: theme.borderLight }}>
+          {children}
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -5159,8 +5295,16 @@ function AccountPanel({
       : "Sync is active. Turn on one quiet daily wisdom prompt if this device should receive it."
     : "Use Google or email to sync decisions, reflections, preferences, counsel, and notifications across devices.";
 
+  const completedMilestones = badges.filter((badge) => badge.active).length;
+  const contextAreas = [
+    manualContextHasContent(manualContext),
+    Boolean(manualContext.monthlyIncome || manualContext.fixedExpenses || manualContext.debtPayments || manualContext.savingsBufferMonths),
+    Boolean(manualContext.workHoursPerWeek || manualContext.workContext),
+    Boolean(manualContext.sleepHours || manualContext.exerciseSessionsPerWeek || manualContext.healthContext),
+  ].filter(Boolean).length;
+
   return (
-    <div className="grid min-w-0 gap-4 xl:grid-cols-[1fr_340px]">
+    <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
       <section className="space-y-4">
         <ContextualNextAction
           eyebrow="Next in Account"
@@ -5176,81 +5320,117 @@ function AccountPanel({
           </p>
         </section>
 
-        <AccountStatusCard
+        <DisclosureSection
+          title={user ? `Signed in as ${user.name || user.email}` : "Sign in or continue as guest"}
+          summary={user ? `Sync active. ${notificationsEnabled ? "Notifications enabled." : "Notifications not enabled yet."}` : "Google and email sign-in keep history, preferences, decisions, and notifications portable."}
+          eyebrow="Profile"
+          defaultOpen
           theme={theme}
-          user={user}
-          authStatus={authStatus}
-          notificationsEnabled={notificationsEnabled}
-          notificationStatus={notificationStatus}
-          onLogout={onLogout}
-        />
+        >
+          <div className="space-y-4">
+            <AccountStatusCard
+              theme={theme}
+              user={user}
+              authStatus={authStatus}
+              notificationsEnabled={notificationsEnabled}
+              notificationStatus={notificationStatus}
+              onLogout={onLogout}
+            />
+            {!user ? (
+              <AuthPanel
+                theme={theme}
+                authMode={authMode}
+                setAuthMode={setAuthMode}
+                name={name}
+                setName={setName}
+                email={email}
+                setEmail={setEmail}
+                password={password}
+                setPassword={setPassword}
+                error={error}
+                notice={notice}
+                authStatus={authStatus}
+                googleAuthAvailable={googleAuthAvailable}
+                status={status}
+                isWorking={isWorking}
+                onSubmit={onSubmit}
+                onGoogleSignIn={onGoogleSignIn}
+              />
+            ) : null}
+          </div>
+        </DisclosureSection>
 
-        {!user ? (
-          <AuthPanel
+        <DisclosureSection
+          title={`${languages[preferences.language].nativeName} · ${preferences.bibleTranslation} · ${themePreference}`}
+          summary="Language, Bible translation, appearance, region, and voice stay here so the Companion stays calm."
+          eyebrow="Preferences"
+          theme={theme}
+        >
+          <PreferencesPanel
+            panelRef={preferencesRef}
+            preferences={preferences}
+            status={preferencesStatus}
+            ui={ui}
+            copy={copy}
+            activeRegion={activeRegion}
+            onChange={onPreferenceChange}
+            themePreference={themePreference}
+            onThemePreferenceChange={onThemePreferenceChange}
+            availableVoices={availableVoices}
+            selectedVoice={selectedVoice}
+            onVoiceChange={onVoiceChange}
             theme={theme}
-            authMode={authMode}
-            setAuthMode={setAuthMode}
-            name={name}
-            setName={setName}
-            email={email}
-            setEmail={setEmail}
-            password={password}
-            setPassword={setPassword}
-            error={error}
-            notice={notice}
-            authStatus={authStatus}
-            googleAuthAvailable={googleAuthAvailable}
-            status={status}
-            isWorking={isWorking}
-            onSubmit={onSubmit}
-            onGoogleSignIn={onGoogleSignIn}
           />
-        ) : null}
+        </DisclosureSection>
 
-        <PreferencesPanel
-          panelRef={preferencesRef}
-          preferences={preferences}
-          status={preferencesStatus}
-          ui={ui}
-          copy={copy}
-          activeRegion={activeRegion}
-          onChange={onPreferenceChange}
-          themePreference={themePreference}
-          onThemePreferenceChange={onThemePreferenceChange}
-          availableVoices={availableVoices}
-          selectedVoice={selectedVoice}
-          onVoiceChange={onVoiceChange}
+        <DisclosureSection
+          title={manualContext.useInAnswers ? `Context active · ${contextAreas} area${contextAreas === 1 ? "" : "s"} added` : "Context paused"}
+          summary="Manual context is optional and private. Add only what should shape Aletheia’s counsel."
+          eyebrow="Manual Context Vault"
           theme={theme}
-        />
-        <ManualContextPanel
+        >
+          <ManualContextPanel
+            theme={theme}
+            user={user}
+            context={manualContext}
+            status={manualContextStatus}
+            onChange={onManualContextChange}
+          />
+        </DisclosureSection>
+
+        <DisclosureSection
+          title={notificationsEnabled ? `Daily wisdom enabled · ${notificationTimeLabel(notificationTiming.preferredLocalHour)}` : "Daily wisdom notifications"}
+          summary={notificationsEnabled ? "Aletheia will use your saved local timing preference." : "Turn on one quiet daily prompt when this device is ready."}
+          eyebrow="Notifications"
           theme={theme}
-          user={user}
-          context={manualContext}
-          status={manualContextStatus}
-          onChange={onManualContextChange}
-        />
+        >
+          <NotificationPanel
+            theme={theme}
+            user={user}
+            enabled={notificationsEnabled}
+            configured={notificationsConfigured}
+            permission={notificationPermission}
+            status={notificationStatus}
+            busy={notificationBusy}
+            timing={notificationTiming}
+            onTimingChange={onNotificationTimingChange}
+            onEnable={onEnableNotifications}
+            onDisable={onDisableNotifications}
+          />
+        </DisclosureSection>
 
-        <NotificationPanel
-          theme={theme}
-          user={user}
-          enabled={notificationsEnabled}
-          configured={notificationsConfigured}
-          permission={notificationPermission}
-          status={notificationStatus}
-          busy={notificationBusy}
-          timing={notificationTiming}
-          onTimingChange={onNotificationTimingChange}
-          onEnable={onEnableNotifications}
-          onDisable={onDisableNotifications}
-        />
+        <DisclosureSection title="Add Aletheia to your home screen" summary="Install instructions are tucked away until someone needs the app-like setup." eyebrow="Install Aletheia" theme={theme}>
+          <InstallGuideCard theme={theme} compact />
+        </DisclosureSection>
 
-        <InstallGuideCard theme={theme} />
-
-        <ShareInviteCard theme={theme} placement="account" onShare={onShare} />
+        <DisclosureSection title="Invite someone privately" summary="Share only the Aletheia link, never private questions, journals, or counsel by default." eyebrow="Invite Someone" theme={theme}>
+          <ShareInviteCard theme={theme} placement="account" onShare={onShare} />
+        </DisclosureSection>
       </section>
 
         <aside className="space-y-4">
-        <section className="rounded-lg border p-4 shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+        <DisclosureSection title={`${exchanges.length} conversations · ${decisions.length} decisions · ${journalEntries.length} reflections`} summary="History stays collapsed until you want to review what has been saved." eyebrow="History" theme={theme}>
+        <section>
           <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>History</p>
           <div className="mt-3 grid gap-3">
             <AccountStat label="Conversations" value={String(exchanges.length)} theme={theme} />
@@ -5294,10 +5474,14 @@ function AccountPanel({
             </p>
           ) : null}
         </section>
+        </DisclosureSection>
 
-        <TrustCenterCard theme={theme} />
+        <DisclosureSection title="Trust and privacy posture" summary="Boundaries, scripture sourcing, saved data, and sharing posture are available without flooding the page." eyebrow="Trust & Privacy" theme={theme}>
+          <TrustCenterCard theme={theme} />
+        </DisclosureSection>
 
-        <section className="rounded-lg border p-4 shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+        <DisclosureSection title="Aletheia’s guardrails" summary="The app’s safety boundaries remain visible when needed, not constantly in the way." eyebrow="Our Boundaries" theme={theme}>
+        <section>
           <div className="flex items-center gap-2">
             <ShieldCheck size={17} style={{ color: theme.primary }} />
             <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>Our Boundaries</p>
@@ -5314,8 +5498,10 @@ function AccountPanel({
             These constraints protect you from harmful AI advice and keep Aletheia faithful to its purpose.
           </p>
         </section>
+        </DisclosureSection>
 
-        <section className="rounded-lg border p-4 shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+        <DisclosureSection title={`Formation: ${completedMilestones} quiet milestone${completedMilestones === 1 ? "" : "s"}`} summary="Formation is a calm record of practice, not a scoreboard." eyebrow={text.badgesFormation} theme={theme}>
+        <section>
           <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{text.badgesFormation}</p>
           <div className="mt-3 space-y-2">
             {badges.map((badge) => (
@@ -5338,6 +5524,7 @@ function AccountPanel({
             <ShareMilestonePrompt theme={theme} ui={ui} onShare={(channel) => onShare(channel, "milestone")} />
           ) : null}
         </section>
+        </DisclosureSection>
       </aside>
     </div>
   );
@@ -5518,10 +5705,18 @@ function ManualContextPanel({
 
   // Check if sections have content to determine if they should auto-expand
   const hasMoneySignals = moneyNumberFields.some(field => (draft[field.key] ?? 0) > 0);
-  const hasLifeRhythms = lifeNumberFields.some(field => (draft[field.key] ?? 0) > 0);
   const hasSignals = signalFields.some(field => (draft[field.key] ?? 0) > 0);
   const hasPreferences = preferenceFields.some(field => (draft[field.key] ?? '').trim().length > 0);
   const hasLongFields = longFields.some(field => (draft[field.key] ?? '').trim().length > 0);
+  const activeContextSections = [hasMoneySignals, Boolean(draft.workContext || draft.workHoursPerWeek), Boolean(draft.healthContext || draft.sleepHours || draft.exerciseSessionsPerWeek), Boolean(draft.obligations || draft.timeWithLovedOnesHoursPerWeek || draft.timeWithCommunityHoursPerWeek), hasSignals || hasLongFields, hasPreferences].filter(Boolean).length;
+  const sectionSummary = {
+    money: `Income ${draft.monthlyIncome ? "added" : "not added"} · savings ${draft.savingsBufferMonths ? "added" : "not added"} · debt ${draft.debtPayments ? "added" : "not added"}`,
+    work: `Work rhythm ${draft.workHoursPerWeek ? `${draft.workHoursPerWeek}h/week` : "not added"} · context ${draft.workContext ? "added" : "not added"}`,
+    health: `Sleep ${draft.sleepHours ? `${draft.sleepHours}h` : "not added"} · exercise ${draft.exerciseSessionsPerWeek ? `${draft.exerciseSessionsPerWeek}/week` : "not added"}`,
+    relationships: `Loved ones ${draft.timeWithLovedOnesHoursPerWeek ? `${draft.timeWithLovedOnesHoursPerWeek}h/week` : "not added"} · obligations ${draft.obligations ? "added" : "not added"}`,
+    values: `Stress ${draft.stressLevel ?? "not added"} · urgency ${draft.urgencyLevel ?? "not added"} · enough ${draft.enoughDefinition ? "defined" : "not defined"}`,
+    counsel: `Risk ${draft.riskTolerance ? "added" : "not added"} · waiting ${draft.waitingPreference ? "added" : "not added"} · counsel ${draft.counselCadence ? "added" : "not added"}`,
+  };
 
   return (
     <section className="rounded-xl p-4 shadow-sm sm:p-5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
@@ -5546,6 +5741,18 @@ function ManualContextPanel({
             onChange(draft);
           }}
         >
+          <div className="rounded-lg border p-4" style={{ borderColor: theme.borderMedium, backgroundColor: draft.useInAnswers ? theme.activeBg : theme.bgCardElevated }}>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
+              {draft.useInAnswers ? "Context is active" : "Context is paused"}
+            </p>
+            <p className="mt-2 text-2xl font-semibold" style={{ color: theme.textPrimary }}>
+              {activeContextSections} area{activeContextSections === 1 ? "" : "s"} added
+            </p>
+            <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
+              Aletheia will use only the enabled areas below when shaping counsel.
+            </p>
+          </div>
+
           <label className="flex items-start gap-3 rounded-lg border p-3 text-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
             <input
               type="checkbox"
@@ -5585,9 +5792,9 @@ function ManualContextPanel({
             </label>
           </div>
 
-          <details open={hasMoneySignals} className="group rounded-lg border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+          <details className="group rounded-lg border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
             <summary className="cursor-pointer p-3 text-xs font-semibold uppercase tracking-[0.12em] transition" style={{ color: theme.textSecondary }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.bgCard} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
-              Money signals {hasMoneySignals ? "✓" : ""}
+              Money picture {hasMoneySignals ? "✓" : ""}<span className="mt-1 block normal-case tracking-normal" style={{ color: theme.textMuted }}>{sectionSummary.money}</span>
             </summary>
             <div className="space-y-3 border-t p-3" style={{ borderColor: theme.borderLight }}>
               <div className="grid gap-3 md:grid-cols-2">
@@ -5607,9 +5814,9 @@ function ManualContextPanel({
             </div>
           </details>
 
-          <details open={hasLifeRhythms} className="group rounded-lg border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+          <details className="group rounded-lg border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
             <summary className="cursor-pointer p-3 text-xs font-semibold uppercase tracking-[0.12em] transition" style={{ color: theme.textSecondary }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.bgCard} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
-              Life rhythms {hasLifeRhythms ? "✓" : ""}
+              Work rhythm {draft.workContext || draft.workHoursPerWeek ? "✓" : ""}<span className="mt-1 block normal-case tracking-normal" style={{ color: theme.textMuted }}>{sectionSummary.work}</span>
             </summary>
             <div className="space-y-3 border-t p-3" style={{ borderColor: theme.borderLight }}>
               <div className="grid gap-3 md:grid-cols-2">
@@ -5629,9 +5836,9 @@ function ManualContextPanel({
             </div>
           </details>
 
-          <details open={hasSignals} className="group rounded-lg border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+          <details className="group rounded-lg border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
             <summary className="cursor-pointer p-3 text-xs font-semibold uppercase tracking-[0.12em] transition" style={{ color: theme.textSecondary }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.bgCard} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
-              Discernment signals {hasSignals ? "✓" : ""}
+              Values and risk posture {hasSignals ? "✓" : ""}<span className="mt-1 block normal-case tracking-normal" style={{ color: theme.textMuted }}>{sectionSummary.values}</span>
             </summary>
             <div className="space-y-3 border-t p-3" style={{ borderColor: theme.borderLight }}>
               <div className="grid gap-3 md:grid-cols-2">
@@ -5651,9 +5858,9 @@ function ManualContextPanel({
             </div>
           </details>
 
-          <details open={hasPreferences} className="group rounded-lg border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+          <details className="group rounded-lg border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
             <summary className="cursor-pointer p-3 text-xs font-semibold uppercase tracking-[0.12em] transition" style={{ color: theme.textSecondary }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.bgCard} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
-              Risk, waiting & counsel preferences {hasPreferences ? "✓" : ""}
+              Counsel preferences {hasPreferences ? "✓" : ""}<span className="mt-1 block normal-case tracking-normal" style={{ color: theme.textMuted }}>{sectionSummary.counsel}</span>
             </summary>
             <div className="space-y-3 border-t p-3" style={{ borderColor: theme.borderLight }}>
               <div className="grid gap-3 md:grid-cols-2">
@@ -5673,9 +5880,9 @@ function ManualContextPanel({
             </div>
           </details>
 
-          <details open={hasLongFields} className="group rounded-lg border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+          <details className="group rounded-lg border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
             <summary className="cursor-pointer p-3 text-xs font-semibold uppercase tracking-[0.12em] transition" style={{ color: theme.textSecondary }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.bgCard} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
-              Context descriptions {hasLongFields ? "✓" : ""}
+              Health and relationships {hasLongFields ? "✓" : ""}<span className="mt-1 block normal-case tracking-normal" style={{ color: theme.textMuted }}>{sectionSummary.health} · {sectionSummary.relationships}</span>
             </summary>
             <div className="space-y-3 border-t p-3" style={{ borderColor: theme.borderLight }}>
               <div className="grid gap-3 md:grid-cols-2">
@@ -6139,9 +6346,6 @@ function NotificationPanel({
             {timing.preferredTimezone || "Local timezone"}
           </div>
         </div>
-        <p className="mt-3 text-xs leading-5" style={{ color: theme.textSecondary }}>
-          Daily wisdom is sent once per day after this local time. The server now catches missed exact hours, so an hourly Railway cron is enough.
-        </p>
       </div>
     </section>
   );
@@ -6223,7 +6427,7 @@ function ScriptureModal({
           </div>
         </div>
         <div className="mt-3 rounded-lg border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.primary, color: theme.textOnPrimary }}>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>Related principle</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textOnPrimary }}>Related principle</p>
           <p className="mt-2 text-sm leading-6" style={{ color: theme.textOnPrimary }}>
             {wisdomEntry?.principle ?? "Aletheia only surfaces known references and avoids invented verse text."}
           </p>
@@ -6425,7 +6629,7 @@ function PreferencesPanel({
           </div>
         </div>
 
-        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
           <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
             {ui.language}
             <select
@@ -6436,22 +6640,7 @@ function PreferencesPanel({
             >
               {Object.entries(languages).map(([code, language]) => (
                 <option key={code} value={code}>
-                  {language.nativeName}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
-            {ui.region}
-            <select
-              value={preferences.region}
-              onChange={(event) => onChange({ region: event.target.value as RegionCode })}
-              className="mt-2 h-10 w-full rounded-md border px-3 text-sm normal-case tracking-normal outline-none"
-              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-            >
-              {Object.entries(regions).map(([code, region]) => (
-                <option key={code} value={code}>
-                  {region.label}
+              {language.nativeName}
                 </option>
               ))}
             </select>
@@ -6478,7 +6667,47 @@ function PreferencesPanel({
               {selectedTranslation?.note}
             </span>
           </label>
-          <label className="flex h-full items-end gap-2 rounded-md border px-3 py-2 text-sm font-semibold" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}>
+          <div className="rounded-md border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+            <p className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>Appearance</p>
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              <ThemeOptionButton icon={Sun} label="Classic" active={themePreference === "classic"} onClick={() => onThemePreferenceChange("classic")} color="#203a35" theme={theme} />
+              <ThemeOptionButton icon={Moon} label="Dark" active={themePreference === "dark"} onClick={() => onThemePreferenceChange("dark")} color="#d0ad55" theme={theme} />
+              <ThemeOptionButton icon={Moon} label="Black" active={themePreference === "black"} onClick={() => onThemePreferenceChange("black")} color="#0b0f0d" theme={theme} />
+              <ThemeOptionButton icon={Monitor} label="System" active={themePreference === "system"} onClick={() => onThemePreferenceChange("system")} theme={theme} />
+            </div>
+          </div>
+        </div>
+      </div>
+      <details className="mt-3 rounded-md border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+        <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
+          Advanced preferences · {activeRegion.label} · {preferences.voiceEnabled ? "voice on" : "voice off"}
+        </summary>
+        <div className="mt-3 grid gap-3 md:grid-cols-2">
+          <div className="rounded-md border p-3 md:col-span-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
+            <p className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>More themes</p>
+            <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-4">
+              <ThemeOptionButton icon={Sun} label="Warm" active={themePreference === "warm"} onClick={() => onThemePreferenceChange("warm")} color="#8b5a3c" theme={theme} />
+              <ThemeOptionButton icon={Sun} label="Ocean" active={themePreference === "ocean"} onClick={() => onThemePreferenceChange("ocean")} color="#2d5a7b" theme={theme} />
+              <ThemeOptionButton icon={Sun} label="Forest" active={themePreference === "forest"} onClick={() => onThemePreferenceChange("forest")} color="#2d6b4a" theme={theme} />
+              <ThemeOptionButton icon={Sun} label="Sunset" active={themePreference === "sunset"} onClick={() => onThemePreferenceChange("sunset")} color="#8b3a52" theme={theme} />
+            </div>
+          </div>
+          <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
+            {ui.region}
+            <select
+              value={preferences.region}
+              onChange={(event) => onChange({ region: event.target.value as RegionCode })}
+              className="mt-2 h-10 w-full rounded-md border px-3 text-sm normal-case tracking-normal outline-none"
+              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+            >
+              {Object.entries(regions).map(([code, region]) => (
+                <option key={code} value={code}>
+                  {region.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex h-full items-end gap-2 rounded-md border px-3 py-2 text-sm font-semibold" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textPrimary }}>
             <input
               type="checkbox"
               checked={preferences.voiceEnabled}
@@ -6511,71 +6740,11 @@ function PreferencesPanel({
             </label>
           </div>
         ) : preferences.voiceEnabled ? (
-          <p className="mt-3 rounded-md border p-3 text-xs leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
+          <p className="mt-3 rounded-md border p-3 text-xs leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
             No suitable human-sounding reading voice was found for this language on this device.
           </p>
         ) : null}
-      </div>
-      <div className="mt-3 rounded-md border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-        <p className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>Appearance</p>
-        <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-4">
-          <ThemeOptionButton
-            icon={Sun}
-            label="Classic"
-            active={themePreference === "classic"}
-            onClick={() => onThemePreferenceChange("classic")}
-            color="#203a35"
-            theme={theme}
-          />
-          <ThemeOptionButton
-            icon={Moon}
-            label="Dark"
-            active={themePreference === "dark"}
-            onClick={() => onThemePreferenceChange("dark")}
-            color="#1a2f3a"
-            theme={theme}
-          />
-          <ThemeOptionButton
-            icon={Sun}
-            label="Warm"
-            active={themePreference === "warm"}
-            onClick={() => onThemePreferenceChange("warm")}
-            color="#8b5a3c"
-            theme={theme}
-          />
-          <ThemeOptionButton
-            icon={Sun}
-            label="Ocean"
-            active={themePreference === "ocean"}
-            onClick={() => onThemePreferenceChange("ocean")}
-            color="#2d5a7b"
-            theme={theme}
-          />
-          <ThemeOptionButton
-            icon={Sun}
-            label="Forest"
-            active={themePreference === "forest"}
-            onClick={() => onThemePreferenceChange("forest")}
-            color="#2d6b4a"
-            theme={theme}
-          />
-          <ThemeOptionButton
-            icon={Sun}
-            label="Sunset"
-            active={themePreference === "sunset"}
-            onClick={() => onThemePreferenceChange("sunset")}
-            color="#8b3a52"
-            theme={theme}
-          />
-          <ThemeOptionButton
-            icon={Monitor}
-            label="System"
-            active={themePreference === "system"}
-            onClick={() => onThemePreferenceChange("system")}
-            theme={theme}
-          />
-        </div>
-      </div>
+      </details>
       <div className="mt-3 grid gap-2 text-xs leading-5 md:grid-cols-3" style={{ color: theme.textSecondary }}>
         <p className="rounded-md border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>{copy.translationFallback}</p>
         <p className="rounded-md border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>{copy.regionHint}</p>
@@ -6657,6 +6826,8 @@ function CompanionPanel({
   const currentCounselRef = useRef<HTMLDivElement | null>(null);
   const [expandedHistoryId, setExpandedHistoryId] = useState<string | null>(null);
   const [showSidebarDeep, setShowSidebarDeep] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const [showModeChoices, setShowModeChoices] = useState(false);
   const exchanges = conversationExchanges(messages);
   const currentExchange = exchanges[exchanges.length - 1] ?? null;
   const history = exchanges.slice(0, -1).reverse();
@@ -6703,18 +6874,45 @@ function CompanionPanel({
                 {modeProfile.focus}
               </span>
             </div>
-            <div className="mb-3 grid gap-2 sm:grid-cols-2">
-              {modeCards.map((item) => (
-                <ModeLensCard
-                  key={item.label}
-                  item={item}
-                  active={mode === item.label}
-                  onClick={() => onModeChange(item.label)}
-                  theme={theme}
-                />
-              ))}
-            </div>
-            <ModeIntelligenceStrip modeProfile={modeProfile} ui={ui} theme={theme} />
+            <button
+              type="button"
+              onClick={() => setShowModeChoices((value) => !value)}
+              className="mb-3 flex w-full items-start justify-between gap-3 rounded-lg border p-3 text-left"
+              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+            >
+              <span>
+                <span className="block text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{ui.currentLens}</span>
+                <span className="mt-1 block text-sm font-semibold">{modeProfile.displayLabel ?? mode}</span>
+                <span className="mt-1 block text-xs leading-5" style={{ color: theme.textSecondary }}>{modeProfile.focus}</span>
+              </span>
+              <span className="rounded-md border px-2 py-1 text-[11px] font-semibold" style={{ borderColor: theme.borderMedium, color: theme.textSecondary }}>
+                {showModeChoices ? ui.hideDetails : "Change"}
+              </span>
+            </button>
+            {showModeChoices ? (
+              <div className="mb-3 grid gap-2 sm:grid-cols-2">
+                {modeCards.map((item) => (
+                  <ModeLensCard
+                    key={item.label}
+                    item={item}
+                    active={mode === item.label}
+                    onClick={() => {
+                      onModeChange(item.label);
+                      setShowModeChoices(false);
+                    }}
+                    theme={theme}
+                  />
+                ))}
+              </div>
+            ) : null}
+            <details className="mb-3 rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
+              <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
+                {ui.modeGuidance}
+              </summary>
+              <div className="mt-3">
+                <ModeIntelligenceStrip modeProfile={modeProfile} ui={ui} theme={theme} />
+              </div>
+            </details>
             <div className="flex flex-col gap-3 sm:flex-row">
               <textarea
                 id="companion-question-input"
@@ -6832,11 +7030,21 @@ function CompanionPanel({
                     Older counsel is kept quiet so the current question stays clear.
                   </p>
                 </div>
-                <span className="w-fit rounded-sm px-2 py-1 text-xs font-semibold" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-                  {history.length} saved
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="w-fit rounded-sm px-2 py-1 text-xs font-semibold" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                    {history.length} saved
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowHistory((value) => !value)}
+                    className="rounded-md border px-2 py-1 text-[11px] font-semibold transition"
+                    style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
+                  >
+                    {showHistory ? ui.hideDetails : ui.showDetails}
+                  </button>
+                </div>
               </div>
-              <div className="mt-3 space-y-2">
+              {showHistory ? <div className="mt-3 space-y-2">
                 {history.map((exchange) => (
                   <HistoryExchange
                     key={exchange.id}
@@ -6853,21 +7061,12 @@ function CompanionPanel({
                     onScriptureOpen={onScriptureOpen}
                   />
                 ))}
-              </div>
+              </div> : null}
             </section>
           ) : null}
         </section>
 
       <aside className="space-y-4">
-        <section className="editorial-sidebar rounded-lg border p-4 shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ui.whatModeFor}</p>
-          <h2 className="mt-2 font-semibold" style={{ color: theme.textPrimary }}>{modeProfile.displayLabel ?? modeProfile.label}: {modeProfile.intent}</h2>
-          <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>{modeProfile.useWhen}</p>
-          <p className="mt-3 rounded-lg border p-3 text-sm leading-6" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
-            {modeProfile.lens}
-          </p>
-        </section>
-
         <section className="rounded-xl border p-4 shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
           <div className="flex items-center justify-between gap-3">
             <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ui.modeGuidance}</p>
@@ -6882,6 +7081,11 @@ function CompanionPanel({
           </div>
           {showSidebarDeep ? (
             <div className="mt-3 space-y-3 editorial-sidebar">
+              <div className="rounded-lg border p-3" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
+                <h2 className="font-semibold" style={{ color: theme.textPrimary }}>{modeProfile.displayLabel ?? modeProfile.label}: {modeProfile.intent}</h2>
+                <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>{modeProfile.useWhen}</p>
+                <p className="mt-3 text-sm leading-6" style={{ color: theme.textSecondary }}>{modeProfile.lens}</p>
+              </div>
               <div className="rounded-lg border p-3" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
                 <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{ui.deepChecks}</p>
                 <div className="mt-2 space-y-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
@@ -6911,9 +7115,10 @@ function CompanionPanel({
               </div>
             </div>
           ) : (
-            <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
-              {ui.modeGuidancePreview}
-            </p>
+            <div className="mt-2 space-y-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
+              <p>{modeProfile.intent}</p>
+              <p>{ui.modeGuidancePreview}</p>
+            </div>
           )}
         </section>
 
@@ -7030,16 +7235,27 @@ function ScriptureLinkedText({
 }
 
 function TrustLayerPanel({ theme, ui }: { theme: ThemeColors; ui: (typeof uiText)[LanguageCode] }) {
+  const [open, setOpen] = useState(false);
   return (
     <section className="rounded-xl border p-4 shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
-      <div className="flex items-center gap-2">
-        <ShieldCheck size={17} style={{ color: theme.primary }} />
-        <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ui.trustLayer}</p>
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <ShieldCheck size={17} style={{ color: theme.primary }} />
+          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ui.trustLayer}</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setOpen((value) => !value)}
+          className="rounded-md border px-2 py-1 text-[11px] font-semibold transition"
+          style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
+        >
+          {open ? ui.hideDetails : ui.showDetails}
+        </button>
       </div>
-      <div className="mt-3 space-y-3 text-sm leading-6" style={{ color: theme.textSecondary }}>
-        <p className="rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
-          {ui.trustScriptureBody ?? uiText.en.trustScriptureBody}
-        </p>
+      <p className="mt-3 rounded-lg border p-3 text-sm leading-6" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+        {ui.trustScriptureBody ?? uiText.en.trustScriptureBody}
+      </p>
+      {open ? <div className="mt-3 space-y-3 text-sm leading-6" style={{ color: theme.textSecondary }}>
         <p className="rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
           {ui.trustBoundaryBody ?? uiText.en.trustBoundaryBody}
         </p>
@@ -7049,7 +7265,7 @@ function TrustLayerPanel({ theme, ui }: { theme: ThemeColors; ui: (typeof uiText
         <p className="rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
           {ui.trustConnectedDataBody ?? uiText.en.trustConnectedDataBody}
         </p>
-      </div>
+      </div> : null}
     </section>
   );
 }
@@ -7218,7 +7434,7 @@ function CurrentCounselCard({
       </div>
       {question ? (
         <div className="rounded-md p-3" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>
-          <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{ui.yourQuestion}</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textOnPrimary }}>{ui.yourQuestion}</p>
           <p className="mt-2 text-sm leading-6">{cleanDisplayText(question)}</p>
         </div>
       ) : null}
@@ -7256,9 +7472,14 @@ function CurrentCounselCard({
             </div>
           ) : null}
         </div>
-        <p className="mb-3 rounded-md border p-3 text-xs leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
-          {modeProfile.displayLabel ?? mode} {text.modeShapesCounsel} {modeProfile.lens.toLowerCase()}
-        </p>
+        <details className="mb-3 rounded-md border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
+          <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
+            {modeProfile.displayLabel ?? mode} lens
+          </summary>
+          <p className="mt-2 text-xs leading-5">
+            {modeProfile.displayLabel ?? mode} {text.modeShapesCounsel} {modeProfile.lens.toLowerCase()}
+          </p>
+        </details>
         <div className="calm-prose" style={{ color: theme.textPrimary }}>
           <ScriptureLinkedText theme={theme} text={answerText} onScriptureOpen={onScriptureOpen} />
         </div>
@@ -7266,29 +7487,36 @@ function CurrentCounselCard({
       </article>
       {showDecisionActions ? (
         <>
-          <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
+          <div className="mt-3 grid gap-2 sm:grid-cols-3">
             <CounselAction theme={theme} label={text.trackThisDecision!} onClick={() => onTrackDecision(exchange)} />
             <CounselAction theme={theme} label={text.saveAsReflection!} onClick={() => onDraftReflection(exchange)} />
             <CounselAction theme={theme} label={text.createCounselSummary!} onClick={() => onCreateCounselSummary(exchange)} />
-            <CounselAction theme={theme} label={text.goDeeper!} onClick={() => onGoDeeper(exchange)} />
-            <CounselAction theme={theme} label={text.waitThreeDays!} onClick={() => onWait(exchange)} />
           </div>
-          <AnswerFeedback theme={theme} ui={ui} onFeedback={onFeedback} />
-          <div className="mt-3 rounded-md border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-            <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{text.shareAnswerPrompt}</p>
-            <p className="mt-1 text-xs leading-5" style={{ color: theme.textSecondary }}>
-              {text.sharePrivacyNote}
-            </p>
-            <button
-              type="button"
-              onClick={() => onShare("native")}
-              className="mt-3 inline-flex h-11 items-center gap-2 rounded-md border px-3 text-xs font-semibold transition"
-              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-            >
-              <Share2 size={14} />
-              {text.shareAletheia}
-            </button>
-          </div>
+          <details className="mt-3 rounded-md border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+            <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
+              More counsel options
+            </summary>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              <CounselAction theme={theme} label={text.goDeeper!} onClick={() => onGoDeeper(exchange)} />
+              <CounselAction theme={theme} label={text.waitThreeDays!} onClick={() => onWait(exchange)} />
+            </div>
+            <AnswerFeedback theme={theme} ui={ui} onFeedback={onFeedback} />
+            <div className="mt-3 rounded-md border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+              <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{text.shareAnswerPrompt}</p>
+              <p className="mt-1 text-xs leading-5" style={{ color: theme.textSecondary }}>
+                {text.sharePrivacyNote}
+              </p>
+              <button
+                type="button"
+                onClick={() => onShare("native")}
+                className="mt-3 inline-flex h-11 items-center gap-2 rounded-md border px-3 text-xs font-semibold transition"
+                style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+              >
+                <Share2 size={14} />
+                {text.shareAletheia}
+              </button>
+            </div>
+          </details>
         </>
       ) : null}
     </section>
@@ -7604,20 +7832,23 @@ function DecisionCompanionPanel({
           <TimelineStat icon={ShieldCheck} label="Patterns noticed" value={String(insight.patterns.length)} theme={theme} />
         </section>
 
-        <section className="rounded-xl border p-4 shadow-sm sm:p-5" style={{ backgroundColor: theme.primary, borderColor: theme.borderMedium, color: theme.textOnPrimary }}>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textOnPrimary, opacity: 0.9 }}>Wisdom Timeline</p>
-          <p className="mt-3 text-sm leading-6" style={{ color: theme.textOnPrimary }}>{insight.gentleObservation}</p>
-          <div className="mt-4 space-y-3">
-            {events.slice(0, 5).map((event) => (
-              <div key={event.id} className="rounded-lg border border-white/10 bg-white/7 p-3">
-                <p className="text-sm leading-6" style={{ color: theme.textOnPrimary }}>{event.body}</p>
-                <p className="mt-1 text-xs" style={{ color: theme.textOnPrimary, opacity: 0.7 }}>{new Date(event.createdAt).toLocaleDateString()}</p>
-              </div>
-            ))}
-            {!events.length ? <p className="text-sm leading-6" style={{ color: theme.textOnPrimary }}>Start a decision to begin your wisdom timeline.</p> : null}
-          </div>
-        </section>
+        <DisclosureSection title="Wisdom timeline" summary={insight.gentleObservation} eyebrow={`${events.length} event${events.length === 1 ? "" : "s"} recorded`} theme={theme}>
+          <section className="rounded-xl border p-4 shadow-sm sm:p-5" style={{ backgroundColor: theme.primary, borderColor: theme.borderMedium, color: theme.textOnPrimary }}>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textOnPrimary, opacity: 0.9 }}>Wisdom Timeline</p>
+            <p className="mt-3 text-sm leading-6" style={{ color: theme.textOnPrimary }}>{insight.gentleObservation}</p>
+            <div className="mt-4 space-y-3">
+              {events.slice(0, 5).map((event) => (
+                <div key={event.id} className="rounded-lg border border-white/10 bg-white/7 p-3">
+                  <p className="text-sm leading-6" style={{ color: theme.textOnPrimary }}>{event.body}</p>
+                  <p className="mt-1 text-xs" style={{ color: theme.textOnPrimary, opacity: 0.7 }}>{new Date(event.createdAt).toLocaleDateString()}</p>
+                </div>
+              ))}
+              {!events.length ? <p className="text-sm leading-6" style={{ color: theme.textOnPrimary }}>Start a decision to begin your wisdom timeline.</p> : null}
+            </div>
+          </section>
+        </DisclosureSection>
 
+        <DisclosureSection title="Decision archive and readiness details" summary={decisions.length ? `${decisions.length} decision${decisions.length === 1 ? "" : "s"} saved. Open when you want the full list.` : "No decision memory yet. Start one above when pressure needs time and counsel."} eyebrow="Decision memory" defaultOpen={decisions.length > 0 && decisions.length < 2} theme={theme}>
         <section className="space-y-3">
           {decisions.map((decision) => (
             <DecisionCard key={decision.id} decision={decision} modeProfile={modeProfiles[decision.mode]} onUpdate={onUpdateDecision} onDelete={onDeleteDecision} theme={theme} />
@@ -7628,8 +7859,10 @@ function DecisionCompanionPanel({
             </div>
           ) : null}
         </section>
+        </DisclosureSection>
 
-        <section className="rounded-xl border p-4 shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+        <DisclosureSection title="Formation rhythm" summary="Morning reflection, evening examen, and weekly pattern review stay available without dominating the decision page." eyebrow="Rhythm" theme={theme}>
+        <section>
           <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>Formation rhythm</p>
           <div className="mt-3 grid gap-2">
             <RhythmItem label="3-minute morning reflection" body="Name the pressure before the day names it for you." theme={theme} />
@@ -7637,10 +7870,12 @@ function DecisionCompanionPanel({
             <RhythmItem label="Weekly pattern review" body="Notice repeated urgency, comparison, fear, or overgiving." theme={theme} />
           </div>
         </section>
+        </DisclosureSection>
       </section>
 
       <aside className="space-y-4">
-        <section id="counsel-circle" className="scroll-mt-24 rounded-xl border p-4 shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+        <DisclosureSection title={`Counsel Circle · ${counselContacts.length} trusted voice${counselContacts.length === 1 ? "" : "s"}`} summary="Private invites and sharing controls are explicit. No one sees chats, journals, or decisions unless shared." eyebrow="Counsel" defaultOpen={Boolean(counselSummaryDraft)} theme={theme}>
+        <section id="counsel-circle" className="scroll-mt-24">
           <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>Counsel Circle</p>
           <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
             Invite trusted people privately. They see only the decision summaries you choose to share.
@@ -7849,8 +8084,10 @@ function DecisionCompanionPanel({
             ) : null}
           </div>
         </section>
+        </DisclosureSection>
 
-        <section className="rounded-xl border p-4 shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+        <DisclosureSection title={`Rule of Life · ${modeRules.length} principle${modeRules.length === 1 ? "" : "s"}`} summary="Personal principles stay close, but collapsed until you are shaping a decision." eyebrow="Rule of Life" theme={theme}>
+        <section>
           <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>Rule of Life</p>
           <form onSubmit={onAddRule} className="mt-3 grid gap-2">
             <textarea
@@ -7875,8 +8112,10 @@ function DecisionCompanionPanel({
             ) : null}
           </div>
         </section>
+        </DisclosureSection>
 
-        <section className="rounded-xl border p-4 shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+        <DisclosureSection title="Scripture integrity" summary="Grounding rules and guardrails are available without crowding the decision flow." eyebrow="Trust" theme={theme}>
+        <section>
           <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>Scripture integrity</p>
           <ul className="mt-3 space-y-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
             <li>References come from the curated wisdom library.</li>
@@ -7885,6 +8124,7 @@ function DecisionCompanionPanel({
             <li>High-stakes choices are pointed toward qualified counsel.</li>
           </ul>
         </section>
+        </DisclosureSection>
 
         <section className="rounded-xl border p-4 shadow-sm" style={{ backgroundColor: theme.primary, borderColor: theme.borderMedium, color: theme.textOnPrimary }}>
           <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textOnPrimary, opacity: 0.9 }}>Decision practice</p>
@@ -8038,7 +8278,9 @@ function DecisionCard({
         <DecisionToggle active={decision.costCounted} label="Cost" onClick={() => onUpdate(decision.id, { costCounted: !decision.costCounted, event: "Cost counting updated." })} theme={theme} />
         <DecisionToggle active={decision.alignmentClear} label="Values" onClick={() => onUpdate(decision.id, { alignmentClear: !decision.alignmentClear, event: "Values alignment updated." })} theme={theme} />
         <DecisionToggle active={decision.reversibleStep} label="Reversible" onClick={() => onUpdate(decision.id, { reversibleStep: !decision.reversibleStep, event: "Reversibility updated." })} theme={theme} />
-        <DecisionToggle active={decision.peaceOverUrgency} label="Peace" onClick={() => onUpdate(decision.id, { peaceOverUrgency: !decision.peaceOverUrgency, event: "Peace over urgency updated." })} theme={theme} />
+        <div className="sm:col-span-2 lg:col-span-1">
+          <DecisionToggle active={decision.peaceOverUrgency} label="Peace" onClick={() => onUpdate(decision.id, { peaceOverUrgency: !decision.peaceOverUrgency, event: "Peace over urgency updated." })} theme={theme} />
+        </div>
       </div>
 
       <div className="mt-4 grid gap-3 md:grid-cols-[1fr_auto] md:items-center">
@@ -8161,7 +8403,7 @@ function DecisionToggle({ active, label, onClick, theme }: { active: boolean; la
   return (
     <button
       onClick={onClick}
-      className="rounded-lg border px-3 py-2 text-sm font-semibold transition"
+      className="h-full w-full rounded-lg border px-3 py-2 text-sm font-semibold transition"
       style={{
         borderColor: active ? theme.primary : theme.borderMedium,
         backgroundColor: active ? theme.bgCardElevated : theme.bgInput,
@@ -8370,18 +8612,26 @@ function ReflectPanel({
         </p>
       </section>
 
-      <WisdomCheck
-        decision={decision}
-        setDecision={setDecision}
-        emotion={emotion}
-        setEmotion={setEmotion}
-        timeframe={timeframe}
-        setTimeframe={setTimeframe}
-        result={result}
-        mode={mode}
-        modeProfile={modeProfile}
+      <DisclosureSection
+        title="Wisdom Check"
+        summary={result ? `Readiness ${result.readiness}/100 · ${result.hasUrgency ? "urgency noticed" : "pressure looks slower"}` : "Open when a decision needs a quick discernment scan."}
+        eyebrow="Decision scan"
+        defaultOpen={Boolean(decision.trim())}
         theme={theme}
-      />
+      >
+        <WisdomCheck
+          decision={decision}
+          setDecision={setDecision}
+          emotion={emotion}
+          setEmotion={setEmotion}
+          timeframe={timeframe}
+          setTimeframe={setTimeframe}
+          result={result}
+          mode={mode}
+          modeProfile={modeProfile}
+          theme={theme}
+        />
+      </DisclosureSection>
 
       <JournalPanel
         entries={entries}
@@ -8435,6 +8685,8 @@ function LibraryPanel({
   const libraryNextBody = search.trim()
     ? "Open a scripture reference to read the passage context and why it matters here."
     : "Try stewardship, debt, contentment, counsel, cost, generosity, anxiety, or diligence.";
+  const visibleEntries = entries.slice(0, search.trim() ? entries.length : 4);
+  const remainingEntries = entries.slice(4);
 
   return (
     <div className="min-w-0 space-y-4">
@@ -8474,8 +8726,12 @@ function LibraryPanel({
         </div>
 
         <div className="mt-5 grid min-w-0 gap-3 lg:grid-cols-2">
-          {entries.map((entry) => (
-            <article key={entry.scripture} className="rounded-lg border p-4" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
+          {visibleEntries.map((entry, index) => (
+            <article
+              key={entry.scripture}
+              className={`rounded-lg border p-4 ${visibleEntries.length % 2 === 1 && index === visibleEntries.length - 1 ? "lg:col-span-2" : ""}`}
+              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}
+            >
               <div className="mb-3 flex flex-wrap items-center gap-2">
                 <span className="rounded-md px-2 py-1 text-xs font-semibold uppercase tracking-[0.14em]" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>{entry.theme}</span>
                 <button
@@ -8500,6 +8756,36 @@ function LibraryPanel({
             </article>
           ))}
         </div>
+        {!search.trim() && remainingEntries.length > 0 ? (
+          <details className="mt-4 rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
+            <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
+              Full wisdom library · {remainingEntries.length} more anchors
+            </summary>
+            <div className="mt-3 grid min-w-0 gap-3 lg:grid-cols-2">
+              {remainingEntries.map((entry, index) => (
+                <article
+                  key={entry.scripture}
+                  className={`rounded-lg border p-4 ${remainingEntries.length % 2 === 1 && index === remainingEntries.length - 1 ? "lg:col-span-2" : ""}`}
+                  style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}
+                >
+                  <div className="mb-3 flex flex-wrap items-center gap-2">
+                    <span className="rounded-md px-2 py-1 text-xs font-semibold uppercase tracking-[0.14em]" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>{entry.theme}</span>
+                    <button
+                      type="button"
+                      onClick={() => onScriptureOpen(entry.scripture)}
+                      className="text-left text-sm font-semibold underline underline-offset-4 transition"
+                      style={{ color: theme.textPrimary, textDecorationColor: theme.borderMedium }}
+                    >
+                      {entry.scripture}
+                    </button>
+                  </div>
+                  <p className="text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>{entry.principle}</p>
+                  <p className="mt-3 text-sm leading-6" style={{ color: theme.textSecondary }}>{entry.application}</p>
+                </article>
+              ))}
+            </div>
+          </details>
+        ) : null}
       </section>
     </div>
   );
@@ -8565,7 +8851,8 @@ function JournalPanel({
         </button>
       </section>
 
-      <section className="min-w-0 rounded-xl border p-4 shadow-sm sm:p-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+      <DisclosureSection title={`${entries.length} saved reflection${entries.length === 1 ? "" : "s"}`} summary={entries.length ? "Open your past reflections when you want to review growth." : "Past reflections will stay here once saved."} eyebrow="Reflection history" theme={theme}>
+      <section className="min-w-0">
         <h2 className="text-xl font-semibold" style={{ color: theme.textPrimary }}>Saved reflections</h2>
         <div className="mt-4 space-y-3">
           {entries.length ? (
@@ -8597,6 +8884,7 @@ function JournalPanel({
         </div>
         <p className="mt-4 text-xs leading-5" style={{ color: theme.textMuted }}>Currently active mode: {mode}</p>
       </section>
+      </DisclosureSection>
     </div>
   );
 }
