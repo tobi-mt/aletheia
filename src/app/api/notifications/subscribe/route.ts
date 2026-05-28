@@ -80,6 +80,44 @@ export async function POST(request: Request) {
       now,
       now
     );
+
+    await run(
+      `INSERT INTO user_preferences (
+         user_id, notification_preferred_local_hour, notification_preferred_timezone,
+         notification_delivery_strategy, notification_timing_updated_at, created_at, updated_at
+       ) VALUES (?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT (user_id)
+       DO UPDATE SET
+         notification_preferred_local_hour = EXCLUDED.notification_preferred_local_hour,
+         notification_preferred_timezone = EXCLUDED.notification_preferred_timezone,
+         notification_delivery_strategy = EXCLUDED.notification_delivery_strategy,
+         notification_timing_updated_at = EXCLUDED.notification_timing_updated_at,
+         updated_at = EXCLUDED.updated_at`,
+      user.id,
+      preferredLocalHour,
+      preferredTimezone,
+      deliveryStrategy,
+      now,
+      now,
+      now
+    );
+
+    await run(
+      `UPDATE push_subscriptions
+       SET preferred_hour = ?,
+           preferred_local_hour = ?,
+           preferred_timezone = ?,
+           delivery_strategy = ?,
+           updated_at = ?
+       WHERE user_id = ? AND enabled = TRUE`,
+      preferredHour,
+      preferredLocalHour,
+      preferredTimezone,
+      deliveryStrategy,
+      now,
+      user.id
+    );
+
     await trackServerEvent({
       userId: user.id,
       eventName: "notification_enabled",

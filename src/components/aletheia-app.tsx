@@ -2140,7 +2140,7 @@ export function AletheiaApp() {
       appleStatusBar.setAttribute("name", "apple-mobile-web-app-status-bar-style");
       document.head.appendChild(appleStatusBar);
     }
-    appleStatusBar.setAttribute("content", "black-translucent");
+    appleStatusBar.setAttribute("content", resolvedTheme === "dark" || resolvedTheme === "black" ? "black" : "default");
     
     // Update html and body background colors for PWA safe area
     document.documentElement.style.backgroundColor = statusColor;
@@ -2163,6 +2163,7 @@ export function AletheiaApp() {
     const notificationData = (await notificationResponse.json()) as {
       configured?: boolean;
       enabled?: boolean;
+      timingConfigured?: boolean;
       preferredLocalHour?: number;
       preferredTimezone?: string;
       deliveryStrategy?: NotificationTiming["deliveryStrategy"];
@@ -2209,7 +2210,7 @@ export function AletheiaApp() {
     }
     setNotificationsConfigured(Boolean(notificationData.configured));
     setNotificationsEnabled(Boolean(notificationData.enabled));
-    if (notificationData.enabled) {
+    if (notificationData.enabled || notificationData.timingConfigured) {
       const nextTiming = normalizeNotificationTiming({
         preferredLocalHour: notificationData.preferredLocalHour,
         preferredTimezone: notificationData.preferredTimezone,
@@ -2379,6 +2380,7 @@ export function AletheiaApp() {
       const data = (await response.json()) as {
         configured?: boolean;
         enabled?: boolean;
+        timingConfigured?: boolean;
         preferredLocalHour?: number;
         preferredTimezone?: string;
         deliveryStrategy?: NotificationTiming["deliveryStrategy"];
@@ -2393,7 +2395,7 @@ export function AletheiaApp() {
       setNotificationsConfigured(Boolean(data.configured));
       setNotificationsEnabled(Boolean(data.enabled && localSubscription));
       setNotificationTiming((current) => {
-        const nextTiming = data.enabled
+        const nextTiming = data.enabled || data.timingConfigured
           ? normalizeNotificationTiming({
               preferredLocalHour: data.preferredLocalHour,
               preferredTimezone: data.preferredTimezone,
@@ -3342,6 +3344,18 @@ export function AletheiaApp() {
     });
   }
 
+  async function saveNotificationTimingPreference(timing: NotificationTiming) {
+    return fetch("/api/notifications/status", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        preferredLocalHour: timing.preferredLocalHour,
+        preferredTimezone: timing.preferredTimezone,
+        deliveryStrategy: timing.deliveryStrategy,
+      }),
+    });
+  }
+
   async function updateNotificationTiming(patch: Partial<NotificationTiming>) {
     const nextStrategy = patch.deliveryStrategy ?? notificationTiming.deliveryStrategy;
     const nextHour = patch.preferredLocalHour ?? notificationHourForStrategy(nextStrategy, notificationTiming.preferredLocalHour);
@@ -3353,11 +3367,21 @@ export function AletheiaApp() {
     setNotificationTiming(nextTiming);
     persistNotificationTiming(nextTiming);
     setNotificationStatus("Daily wisdom time saved on this device.");
-    if (!notificationsEnabled || notificationBusy) {
+    if (!user || notificationBusy) {
       return;
     }
     try {
       setNotificationBusy(true);
+      const timingResponse = await saveNotificationTimingPreference(nextTiming);
+      if (!timingResponse.ok) {
+        setNotificationStatus("Timing changed here, but could not sync to the server yet.");
+        return;
+      }
+      if (!notificationsEnabled) {
+        setNotificationStatus("Daily wisdom timing synced. Enable notifications when this device is ready.");
+        announceWorkflow(ts('notifications.notificationTimingSaved'), `Daily wisdom is now aimed around ${notificationTimeLabel(nextTiming.preferredLocalHour)} local time.`, "success");
+        return;
+      }
       const registration = await getReliableServiceWorkerRegistration();
       const subscription = await registration.pushManager.getSubscription();
       if (!subscription) {
@@ -3922,7 +3946,7 @@ export function AletheiaApp() {
         readerOpen={isSpeaking || speechPaused}
       />
 
-      <nav className="sticky top-0 z-30 border-b px-3 pb-3 pt-[calc(0.75rem+env(safe-area-inset-top))] backdrop-blur-xl sm:px-4" style={{ borderColor: theme.bgNavBorder, backgroundColor: theme.bgNav }}>
+      <nav className="app-top-nav sticky top-0 z-30 border-b px-3 pb-3 backdrop-blur-xl sm:px-4" style={{ borderColor: theme.bgNavBorder, backgroundColor: theme.bgNav }}>
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3">
           <button
             className="app-brand-button flex min-w-0 items-center gap-3 text-left"

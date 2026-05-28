@@ -220,9 +220,18 @@ async function initializeDatabase() {
       region TEXT NOT NULL DEFAULT 'global',
       bible_translation TEXT NOT NULL DEFAULT 'WEB',
       voice_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+      notification_preferred_local_hour INTEGER NOT NULL DEFAULT 8,
+      notification_preferred_timezone TEXT NOT NULL DEFAULT 'UTC',
+      notification_delivery_strategy TEXT NOT NULL DEFAULT 'morning',
+      notification_timing_updated_at TIMESTAMPTZ,
       created_at TIMESTAMPTZ NOT NULL,
       updated_at TIMESTAMPTZ NOT NULL
     );
+
+    ALTER TABLE user_preferences ADD COLUMN IF NOT EXISTS notification_preferred_local_hour INTEGER NOT NULL DEFAULT 8;
+    ALTER TABLE user_preferences ADD COLUMN IF NOT EXISTS notification_preferred_timezone TEXT NOT NULL DEFAULT 'UTC';
+    ALTER TABLE user_preferences ADD COLUMN IF NOT EXISTS notification_delivery_strategy TEXT NOT NULL DEFAULT 'morning';
+    ALTER TABLE user_preferences ADD COLUMN IF NOT EXISTS notification_timing_updated_at TIMESTAMPTZ;
 
     CREATE TABLE IF NOT EXISTS user_manual_context (
       user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,

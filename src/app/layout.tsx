@@ -61,8 +61,7 @@ export const metadata: Metadata = {
     telephone: false,
   },
   other: {
-    // Force iOS to respect theme changes
-    "apple-mobile-web-app-status-bar-style": "black-translucent",
+    "apple-mobile-web-app-status-bar-style": "default",
   },
 };
 

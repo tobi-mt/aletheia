@@ -89,6 +89,22 @@ body {
   }
 }
 
+.app-top-nav {
+  padding-top: max(0.75rem, calc(0.75rem + env(safe-area-inset-top)));
+}
+
+@supports (padding: constant(safe-area-inset-top)) {
+  .app-top-nav {
+    padding-top: calc(0.75rem + constant(safe-area-inset-top));
+  }
+}
+
+@media all and (display-mode: standalone) {
+  .app-top-nav {
+    padding-top: max(2.75rem, calc(0.75rem + env(safe-area-inset-top)));
+  }
+}
+
 .theme-dark-root {
   background: radial-gradient(circle at 20% 0%, rgba(163, 140, 91, 0.15), transparent 26%),
     radial-gradient(circle at 90% 10%, rgba(72, 111, 101, 0.2), transparent 22%),
