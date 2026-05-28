@@ -2118,7 +2118,31 @@ export function AletheiaApp() {
     return () => media.removeEventListener("change", applyTheme);
   }, [themePreference]);
 
-  // Update PWA theme-color meta tag dynamically for status bar
+  useEffect(() => {
+    const updateSafeTop = () => {
+      const standalone =
+        window.matchMedia("(display-mode: standalone)").matches ||
+        Boolean((window.navigator as Navigator & { standalone?: boolean }).standalone);
+      const isMobile = window.innerWidth < 768;
+      const viewportTop = Math.max(0, Math.round(window.visualViewport?.offsetTop ?? 0));
+      const reservedTop = standalone && isMobile ? Math.max(44, viewportTop) : viewportTop;
+      document.documentElement.style.setProperty("--aletheia-safe-top-extra", `${reservedTop}px`);
+    };
+
+    updateSafeTop();
+    window.addEventListener("resize", updateSafeTop);
+    window.addEventListener("orientationchange", updateSafeTop);
+    window.visualViewport?.addEventListener("resize", updateSafeTop);
+    window.visualViewport?.addEventListener("scroll", updateSafeTop);
+    return () => {
+      window.removeEventListener("resize", updateSafeTop);
+      window.removeEventListener("orientationchange", updateSafeTop);
+      window.visualViewport?.removeEventListener("resize", updateSafeTop);
+      window.visualViewport?.removeEventListener("scroll", updateSafeTop);
+    };
+  }, []);
+
+  // Update PWA theme-color without changing iOS status-bar layout mode.
   useEffect(() => {
     const statusColor = resolvedTheme === "dark" ? "#0e1514" : theme.bgMain;
     
@@ -2132,15 +2156,14 @@ export function AletheiaApp() {
       meta.content = statusColor;
       document.head.appendChild(meta);
     }
-    
-    // Update apple status bar style
-    let appleStatusBar = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
-    if (!appleStatusBar) {
-      appleStatusBar = document.createElement("meta");
-      appleStatusBar.setAttribute("name", "apple-mobile-web-app-status-bar-style");
-      document.head.appendChild(appleStatusBar);
-    }
-    appleStatusBar.setAttribute("content", resolvedTheme === "dark" || resolvedTheme === "black" ? "black" : "default");
+    const appleStatusBars = document.querySelectorAll('meta[name="apple-mobile-web-app-status-bar-style"]');
+    appleStatusBars.forEach((tag, index) => {
+      if (index === 0) {
+        tag.setAttribute("content", "default");
+      } else {
+        tag.remove();
+      }
+    });
     
     // Update html and body background colors for PWA safe area
     document.documentElement.style.backgroundColor = statusColor;
