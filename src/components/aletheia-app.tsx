@@ -2120,8 +2120,14 @@ export function AletheiaApp() {
 
   useEffect(() => {
     const updateSafeTop = () => {
+      const standalone =
+        window.matchMedia("(display-mode: standalone)").matches ||
+        Boolean((window.navigator as Navigator & { standalone?: boolean }).standalone);
+      const isMobile = window.innerWidth < 768;
       const viewportTop = Math.max(0, Math.round(window.visualViewport?.offsetTop ?? 0));
       document.documentElement.style.setProperty("--aletheia-safe-top-extra", `${viewportTop}px`);
+      document.documentElement.classList.toggle("aletheia-standalone-pwa", standalone);
+      document.documentElement.classList.toggle("aletheia-mobile-viewport", isMobile);
     };
 
     updateSafeTop();
