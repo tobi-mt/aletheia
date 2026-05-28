@@ -99,9 +99,21 @@ body {
   }
 }
 
+@media (max-width: 767px) {
+  .app-top-nav {
+    padding-top: max(4.75rem, calc(1rem + env(safe-area-inset-top)));
+  }
+}
+
 @media all and (display-mode: standalone) {
   .app-top-nav {
-    padding-top: max(2.75rem, calc(0.75rem + env(safe-area-inset-top)));
+    padding-top: max(5.75rem, calc(1.25rem + env(safe-area-inset-top)));
+  }
+}
+
+@media all and (display-mode: standalone) and (max-width: 767px) {
+  .app-top-nav {
+    padding-top: max(6.25rem, calc(1.25rem + env(safe-area-inset-top)));
   }
 }
 

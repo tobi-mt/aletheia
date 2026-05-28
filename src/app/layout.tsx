@@ -55,13 +55,10 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     title: "Aletheia",
-    statusBarStyle: "black-translucent",
+    statusBarStyle: "default",
   },
   formatDetection: {
     telephone: false,
-  },
-  other: {
-    "apple-mobile-web-app-status-bar-style": "default",
   },
 };
 
