@@ -55,7 +55,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     title: "Aletheia",
-    statusBarStyle: "default",
+    statusBarStyle: "black-translucent",
   },
   formatDetection: {
     telephone: false,

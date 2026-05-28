@@ -2120,13 +2120,8 @@ export function AletheiaApp() {
 
   useEffect(() => {
     const updateSafeTop = () => {
-      const standalone =
-        window.matchMedia("(display-mode: standalone)").matches ||
-        Boolean((window.navigator as Navigator & { standalone?: boolean }).standalone);
-      const isMobile = window.innerWidth < 768;
       const viewportTop = Math.max(0, Math.round(window.visualViewport?.offsetTop ?? 0));
-      const reservedTop = standalone && isMobile ? Math.max(44, viewportTop) : viewportTop;
-      document.documentElement.style.setProperty("--aletheia-safe-top-extra", `${reservedTop}px`);
+      document.documentElement.style.setProperty("--aletheia-safe-top-extra", `${viewportTop}px`);
     };
 
     updateSafeTop();
@@ -2142,7 +2137,7 @@ export function AletheiaApp() {
     };
   }, []);
 
-  // Update PWA theme-color without changing iOS status-bar layout mode.
+  // Update PWA theme-color while keeping iOS in one stable translucent status-bar mode.
   useEffect(() => {
     const statusColor = resolvedTheme === "dark" ? "#0e1514" : theme.bgMain;
     
@@ -2159,7 +2154,7 @@ export function AletheiaApp() {
     const appleStatusBars = document.querySelectorAll('meta[name="apple-mobile-web-app-status-bar-style"]');
     appleStatusBars.forEach((tag, index) => {
       if (index === 0) {
-        tag.setAttribute("content", "default");
+        tag.setAttribute("content", "black-translucent");
       } else {
         tag.remove();
       }
