@@ -983,26 +983,43 @@ function voiceQualityScore(voice: SpeechSynthesisVoice, languagePrefix: string) 
   if (noveltyVoicePattern.test(voice.name)) {
     return -999;
   }
-  let score = voice.lang.toLowerCase().startsWith(languagePrefix) ? 80 : 0;
-  if (voice.localService) score += 25;
-  if (name.includes("enhanced") || name.includes("neural") || name.includes("natural") || name.includes("premium")) score += 45;
-  if (/(samantha|alex|ava|daniel|karen|moira|fiona|tessa|arthur|martha|susan|serena|siri|anna|markus|yannick|amelie|thomas|paulina|jorge|mónica|monica|luciana|felipe)/i.test(voice.name)) score += 28;
-  if (name.includes("compact")) score -= 40;
+  let score = voice.lang.toLowerCase().startsWith(languagePrefix) ? 90 : 0;
+  if (voice.default) score += 45;
+  if (voice.localService) score += 20;
+  if (name.includes("enhanced") || name.includes("neural") || name.includes("natural") || name.includes("premium") || name.includes("high quality")) score += 50;
+  if (/(samantha|alex|ava|daniel|karen|moira|fiona|tessa|arthur|martha|susan|serena|siri|anna|markus|yannick|amelie|thomas|paulina|jorge|mónica|monica|luciana|felipe|zoe|victoria|allison|tom|diego|paul|luca|camila)/i.test(voice.name)) score += 28;
+  if (name.includes("compact") || name.includes("desktop") || name.includes("espeak") || name.includes("festival") || name.includes("legacy")) score -= 55;
   return score;
 }
 
 function curatedVoicesForLanguage(voices: SpeechSynthesisVoice[], speechCode: string) {
   const languagePrefix = speechCode.slice(0, 2).toLowerCase();
-  const scored = voices
+  const deduped = Array.from(new Map(voices.map((voice) => [`${voice.voiceURI}|${voice.name}|${voice.lang}`, voice])).values());
+  const scored = deduped
     .map((voice) => ({ voice, score: voiceQualityScore(voice, languagePrefix) }))
-    .filter(({ score, voice }) => score >= 80 && !voice.name.toLowerCase().includes("compact"))
+    .filter(({ score }) => score >= 35)
     .sort((a, b) => b.score - a.score);
   const languageMatches = scored.filter(({ voice }) => voice.lang.toLowerCase().startsWith(languagePrefix));
-  return (languageMatches.length ? languageMatches : scored).slice(0, 4).map(({ voice }) => voice);
+  return (languageMatches.length ? languageMatches : scored).slice(0, 8).map(({ voice }) => voice);
 }
 
 function voiceLabel(voice: SpeechSynthesisVoice) {
   return `${voice.name} · ${voice.lang}`;
+}
+
+const speechPacingProfiles: Record<LanguageCode, { rate: number; pitch: number }> = {
+  en: { rate: 0.9, pitch: 1 },
+  es: { rate: 0.92, pitch: 0.98 },
+  fr: { rate: 0.9, pitch: 0.96 },
+  pt: { rate: 0.94, pitch: 0.98 },
+  de: { rate: 0.88, pitch: 0.95 },
+  yo: { rate: 0.82, pitch: 1.02 },
+  ig: { rate: 0.84, pitch: 1.02 },
+  ha: { rate: 0.86, pitch: 1 },
+};
+
+function speechPacingForLanguage(languageCode: LanguageCode) {
+  return speechPacingProfiles[languageCode] ?? speechPacingProfiles.en;
 }
 
 function shouldShowOnboarding() {
@@ -1825,14 +1842,14 @@ export function AletheiaApp() {
   const [authNotice, setAuthNotice] = useState("");
   const [authStatus, setAuthStatus] = useState<AuthStatus>("checking");
   const [googleAuthAvailable, setGoogleAuthAvailable] = useState(false);
-  const [preferences, setPreferences] = useState<UserPreferences>(storedPreferences);
+  const [preferences, setPreferences] = useState<UserPreferences>(defaultPreferences);
   const [preferencesStatus, setPreferencesStatus] = useState("Language settings are ready.");
-  const [manualContext, setManualContext] = useState<ManualContextProfile>(storedManualContext);
+  const [manualContext, setManualContext] = useState<ManualContextProfile>(defaultManualContext);
   const [manualContextStatus, setManualContextStatus] = useState("Manual context is private and optional.");
-  const [themePreference, setThemePreference] = useState<ThemePreference>(storedThemePreference);
+  const [themePreference, setThemePreference] = useState<ThemePreference>("system");
   const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>("classic");
   const theme = themeColors[resolvedTheme];
-  const [showOnboarding, setShowOnboarding] = useState(shouldShowOnboarding);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboardingConcern, setOnboardingConcern] = useState("");
   const [onboardingTone, setOnboardingTone] = useState("gentle");
   const [faithFamiliarity, setFaithFamiliarity] = useState("familiar");
@@ -1841,9 +1858,9 @@ export function AletheiaApp() {
   const [speechPaused, setSpeechPaused] = useState(false);
   const [speechProgress, setSpeechProgress] = useState(0);
   const [readingLabel, setReadingLabel] = useState("Aletheia reading");
-  const [carryToday, setCarryToday] = useState<CarryToday | null>(storedCarryToday);
+  const [carryToday, setCarryToday] = useState<CarryToday | null>(null);
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
-  const [selectedVoice, setSelectedVoice] = useState<string | null>(storedVoicePreference);
+  const [selectedVoice, setSelectedVoice] = useState<string | null>(null);
   const [currentUtterance, setCurrentUtterance] = useState<SpeechSynthesisUtterance | null>(null);
   const [voiceRecognition, setVoiceRecognition] = useState<{ stop: () => void } | null>(null);
   const [selectedScripture, setSelectedScripture] = useState<string | null>(null);
@@ -1855,7 +1872,7 @@ export function AletheiaApp() {
   const [notificationsConfigured, setNotificationsConfigured] = useState(false);
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>("default");
   const [notificationBusy, setNotificationBusy] = useState(false);
-  const [notificationTiming, setNotificationTiming] = useState<NotificationTiming>(storedNotificationTiming);
+  const [notificationTiming, setNotificationTiming] = useState<NotificationTiming>(DEFAULT_NOTIFICATION_TIMING);
   const [wisdomDecisions, setWisdomDecisions] = useState<WisdomDecision[]>([]);
   const [decisionEvents, setDecisionEvents] = useState<DecisionEvent[]>([]);
   const [timelineInsight, setTimelineInsight] = useState<TimelineInsight>({
@@ -1896,7 +1913,14 @@ export function AletheiaApp() {
   
   const [answerFocusId, setAnswerFocusId] = useState<string | null>(null);
   const [ruleText, setRuleText] = useState("");
-  const [featureDiscovery, setFeatureDiscovery] = useState<FeatureDiscovery>(loadFeatureDiscovery);
+  const [featureDiscovery, setFeatureDiscovery] = useState<FeatureDiscovery>({
+    askedQuestion: false,
+    trackedDecision: false,
+    savedReflection: false,
+    addedCounsel: false,
+    createdRule: false,
+    changedMode: false,
+  });
   
   // Load translations synchronously using useMemo to ensure they're available immediately
   const translations = useMemo(() => {
@@ -1907,6 +1931,27 @@ export function AletheiaApp() {
   const workspaceRef = useRef<HTMLElement | null>(null);
   const topNavRef = useRef<HTMLElement | null>(null);
   const bottomNavRef = useRef<HTMLDivElement | null>(null);
+
+  // Hydration-safe restore of client-only persisted state.
+  useEffect(() => {
+    setPreferences(storedPreferences());
+    setManualContext(storedManualContext());
+    setThemePreference(storedThemePreference());
+    setShowOnboarding(shouldShowOnboarding());
+    setCarryToday(storedCarryToday());
+    setSelectedVoice(storedVoicePreference());
+    setNotificationTiming(storedNotificationTiming());
+    setFeatureDiscovery(loadFeatureDiscovery());
+
+    try {
+      const storedView = window.localStorage.getItem("aletheia-active-view") as View | null;
+      if (storedView && ["companion", "decisions", "reflect", "library", "account"].includes(storedView)) {
+        setActiveViewState(storedView);
+      }
+    } catch {
+      // Keep deterministic defaults if storage is unavailable.
+    }
+  }, []);
 
   // Translation helper function
   const t = (key: string, fallback?: string): string | string[] => {
@@ -2139,13 +2184,13 @@ export function AletheiaApp() {
       const finalVoices = curatedVoicesForLanguage(voices, currentLanguage.speech);
       
       setAvailableVoices(finalVoices);
-      
-      if (selectedVoice && finalVoices.some((voice) => voice.voiceURI === selectedVoice)) {
-        return;
-      }
-      if (finalVoices.length > 0) {
-        setSelectedVoice(finalVoices[0].voiceURI);
-      }
+
+      setSelectedVoice((current) => {
+        if (!current) {
+          return null;
+        }
+        return finalVoices.some((voice) => voice.voiceURI === current) ? current : null;
+      });
     };
 
     loadVoices();
@@ -2154,12 +2199,14 @@ export function AletheiaApp() {
     return () => {
       window.speechSynthesis.removeEventListener('voiceschanged', loadVoices);
     };
-  }, [preferences.language, selectedVoice]);
+  }, [preferences.language]);
 
   useEffect(() => {
     try {
       if (selectedVoice) {
         window.localStorage.setItem(VOICE_STORAGE_KEY, selectedVoice);
+      } else {
+        window.localStorage.removeItem(VOICE_STORAGE_KEY);
       }
     } catch {
       // Voice selection can still work for this session.
@@ -2295,19 +2342,37 @@ export function AletheiaApp() {
     const updateTopNavSpace = () => {
       const navBottom = Math.max(0, Math.ceil(nav.getBoundingClientRect().bottom));
       const reservedSpace = navBottom > 0 ? navBottom + 3 : 99;
-      document.documentElement.style.setProperty("--aletheia-top-nav-space", `${reservedSpace}px`);
+      const glassHeight = navBottom > 0 ? Math.max(56, navBottom - 10) : 88;
+      document.documentElement.style.setProperty(
+        "--aletheia-top-nav-space",
+        `max(${reservedSpace}px, calc(max(env(safe-area-inset-top, 0px), var(--aletheia-top-reserve, 0px)) + 5.35rem))`
+      );
+      document.documentElement.style.setProperty(
+        "--aletheia-top-glass-height",
+        `max(${glassHeight}px, calc(max(env(safe-area-inset-top, 0px), var(--aletheia-top-reserve, 0px)) + 4.3rem))`
+      );
     };
 
     updateTopNavSpace();
+    window.requestAnimationFrame(updateTopNavSpace);
+    window.requestAnimationFrame(() => window.requestAnimationFrame(updateTopNavSpace));
     const resizeObserver = new ResizeObserver(updateTopNavSpace);
     resizeObserver.observe(nav);
     window.addEventListener("resize", updateTopNavSpace);
     window.addEventListener("orientationchange", updateTopNavSpace);
+    window.visualViewport?.addEventListener("resize", updateTopNavSpace);
+    window.visualViewport?.addEventListener("scroll", updateTopNavSpace);
+    document.addEventListener("visibilitychange", updateTopNavSpace);
+    window.addEventListener("pageshow", updateTopNavSpace);
 
     return () => {
       resizeObserver.disconnect();
       window.removeEventListener("resize", updateTopNavSpace);
       window.removeEventListener("orientationchange", updateTopNavSpace);
+      window.visualViewport?.removeEventListener("resize", updateTopNavSpace);
+      window.visualViewport?.removeEventListener("scroll", updateTopNavSpace);
+      document.removeEventListener("visibilitychange", updateTopNavSpace);
+      window.removeEventListener("pageshow", updateTopNavSpace);
     };
   }, []);
 
@@ -3231,16 +3296,21 @@ export function AletheiaApp() {
     const cleanText = cleanDisplayText(text);
     const utterance = new SpeechSynthesisUtterance(cleanText);
     utterance.lang = activeLanguage.speech;
-    
-    utterance.rate = 0.82;
-    utterance.pitch = 1;
+
+    const pacing = speechPacingForLanguage(preferences.language);
+    utterance.rate = pacing.rate;
+    utterance.pitch = pacing.pitch;
     utterance.volume = 1;
-    
+
     // Apply selected voice
     if (selectedVoice && availableVoices.length > 0) {
       const voice = availableVoices.find(v => v.voiceURI === selectedVoice);
       if (voice) {
         utterance.voice = voice;
+        if (/(compact|desktop|espeak|festival|legacy)/i.test(voice.name)) {
+          utterance.rate = Math.max(0.72, pacing.rate - 0.06);
+          utterance.pitch = Math.max(0.85, pacing.pitch - 0.02);
+        }
       }
     }
     
@@ -3626,6 +3696,11 @@ export function AletheiaApp() {
   }
 
   async function updateNotificationTiming(patch: Partial<NotificationTiming>) {
+    if (notificationBusy) {
+      setNotificationStatus("Still saving your previous timing change. Please wait a moment and try again.");
+      return;
+    }
+
     const nextStrategy = patch.deliveryStrategy ?? notificationTiming.deliveryStrategy;
     const nextHour = patch.preferredLocalHour ?? notificationHourForStrategy(nextStrategy, notificationTiming.preferredLocalHour);
     const nextTiming: NotificationTiming = {
@@ -3642,7 +3717,7 @@ export function AletheiaApp() {
       notificationsEnabled,
     });
     setNotificationStatus("Daily wisdom time saved on this device.");
-    if (!user || notificationBusy) {
+    if (!user) {
       return;
     }
     try {
@@ -4221,7 +4296,7 @@ export function AletheiaApp() {
       <div
         className="pointer-events-none fixed inset-x-0 top-0 z-[22] backdrop-blur-2xl backdrop-saturate-200 md:hidden"
         style={{
-          height: "calc(var(--aletheia-top-nav-space, calc(max(env(safe-area-inset-top, 0px), var(--aletheia-top-reserve, 0px)) + 5.7rem)) + 0.2rem)",
+          height: "calc(var(--aletheia-top-glass-height, calc(max(env(safe-area-inset-top, 0px), var(--aletheia-top-reserve, 0px)) + 4.85rem)) + 0.2rem)",
           backgroundColor: resolvedTheme === "black"
             ? "rgba(7, 10, 8, 0.18)"
             : resolvedTheme === "dark"
@@ -4612,7 +4687,7 @@ export function AletheiaApp() {
                   onShare={(channel, placement) => shareAletheia(channel, placement)}
                   availableVoices={availableVoices}
                   selectedVoice={selectedVoice}
-                  onVoiceChange={setSelectedVoice}
+                  onVoiceChange={(voiceURI) => setSelectedVoice(voiceURI)}
                   theme={theme}
                 />
                 </Screen>
@@ -5616,7 +5691,7 @@ function AccountPanel({
   onShare: (channel: ShareChannel, placement: string) => void;
   availableVoices: SpeechSynthesisVoice[];
   selectedVoice: string | null;
-  onVoiceChange: (voiceURI: string) => void;
+  onVoiceChange: (voiceURI: string | null) => void;
   theme: ThemeColors;
 }) {
   const text = { ...uiText.en, ...ui };
@@ -6709,10 +6784,11 @@ function NotificationPanel({
             Daily delivery time
             <select
               value={timing.preferredLocalHour}
+              disabled={busy || !user}
               onChange={(event) =>
                 onTimingChange({ preferredLocalHour: Number(event.target.value), deliveryStrategy: "custom" })
               }
-              className="mt-2 h-10 w-full rounded-md border px-3 text-sm normal-case tracking-normal outline-none"
+              className="mt-2 h-10 w-full rounded-md border px-3 text-sm normal-case tracking-normal outline-none disabled:cursor-not-allowed disabled:opacity-70"
               style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
             >
               {Array.from({ length: 18 }, (_, index) => index + 5).map((hour) => (
@@ -6989,7 +7065,7 @@ function PreferencesPanel({
   onThemePreferenceChange: (value: ThemePreference) => void;
   availableVoices: SpeechSynthesisVoice[];
   selectedVoice: string | null;
-  onVoiceChange: (voiceURI: string) => void;
+  onVoiceChange: (voiceURI: string | null) => void;
   theme: ThemeColors;
 }) {
   const bibleOptions = bibleTranslationOptionsForLanguage(preferences.language);
@@ -7104,10 +7180,11 @@ function PreferencesPanel({
               Reading voice
               <select
                 value={selectedVoice || ""}
-                onChange={(event) => onVoiceChange(event.target.value)}
+                onChange={(event) => onVoiceChange(event.target.value || null)}
                 className="mt-2 h-10 w-full rounded-md border px-3 text-sm normal-case tracking-normal outline-none"
                 style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
               >
+                <option value="">Device default (recommended)</option>
                 {availableVoices.map((voice) => (
                   <option key={voice.voiceURI} value={voice.voiceURI}>
                     {voiceLabel(voice)}
