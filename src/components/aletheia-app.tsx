@@ -2120,9 +2120,6 @@ export function AletheiaApp() {
 
   useEffect(() => {
     const updateSafeTop = () => {
-      const standalone =
-        window.matchMedia("(display-mode: standalone)").matches ||
-        Boolean((window.navigator as Navigator & { standalone?: boolean }).standalone);
       const isMobile = window.innerWidth < 768;
       const viewport = window.visualViewport;
       const viewportTop = Math.max(0, Math.round(viewport?.offsetTop ?? 0));
@@ -2130,12 +2127,11 @@ export function AletheiaApp() {
       const viewportHeight = Math.round(viewport?.height ?? window.innerHeight);
       const shortSide = Math.min(viewportWidth, viewportHeight);
       const longSide = Math.max(viewportWidth, viewportHeight);
-      const dynamicStandaloneReserve = standalone && isMobile
-        ? Math.round(Math.min(104, Math.max(64, shortSide * 0.18, longSide * 0.105)))
+      const dynamicMobileReserve = isMobile
+        ? Math.round(Math.min(76, Math.max(52, shortSide * 0.14, longSide * 0.075)))
         : 0;
       document.documentElement.style.setProperty("--aletheia-safe-top-extra", `${viewportTop}px`);
-      document.documentElement.style.setProperty("--aletheia-standalone-top-reserve", `${dynamicStandaloneReserve}px`);
-      document.documentElement.classList.toggle("aletheia-standalone-pwa", standalone);
+      document.documentElement.style.setProperty("--aletheia-mobile-top-reserve", `${dynamicMobileReserve}px`);
       document.documentElement.classList.toggle("aletheia-mobile-viewport", isMobile);
     };
 
