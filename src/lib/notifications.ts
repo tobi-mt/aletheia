@@ -135,19 +135,7 @@ function shouldSendAtLocalHour(row: PushRow, now: Date) {
     return false;
   }
 
-  // Primary path: deliver in the intended local-day window.
-  const inPreferredWindow = localHour >= preferredLocalHour && localHour <= 22;
-  if (inPreferredWindow) {
-    return true;
-  }
-
-  // Catch-up path: if the scheduler runs outside user windows (for example, once daily
-  // at a fixed UTC hour), still deliver at most once per local day instead of skipping forever.
-  if (!row.last_sent_at) {
-    return true;
-  }
-  const hoursSinceLastSent = (now.getTime() - new Date(row.last_sent_at).getTime()) / 3_600_000;
-  return hoursSinceLastSent >= 23;
+  return localHour === preferredLocalHour;
 }
 
 function shouldDeleteBrokenSubscription(error: unknown) {
@@ -190,17 +178,9 @@ export async function sendDailyWisdomNotifications() {
             user_preferences.language, user_preferences.region, user_preferences.bible_translation, user_preferences.voice_enabled
      FROM push_subscriptions
      LEFT JOIN user_preferences ON user_preferences.user_id = push_subscriptions.user_id
-     WHERE enabled = TRUE
-       AND (last_sent_at IS NULL OR last_sent_at < NOW() - INTERVAL '20 hours')`,
+     WHERE enabled = TRUE`,
   );
   const dueRows = rows.filter((row) => shouldSendAtLocalHour(row, now));
-  const catchupRows = dueRows.filter((row) => {
-    const preferredLocalHour = Number.isInteger(row.preferred_local_hour)
-      ? Math.min(23, Math.max(0, Number(row.preferred_local_hour)))
-      : Math.min(23, Math.max(0, Number(row.preferred_hour ?? 8)));
-    const localHour = localHourForTimezone(now, row.preferred_timezone);
-    return !(localHour >= preferredLocalHour && localHour <= 22);
-  });
   let sent = 0;
   let failed = 0;
 
@@ -252,7 +232,7 @@ export async function sendDailyWisdomNotifications() {
     failed,
     scanned: rows.length,
     skipped: rows.length - dueRows.length,
-    catchupAttempted: catchupRows.length,
+    catchupAttempted: 0,
     hour: currentHour,
   };
 }
