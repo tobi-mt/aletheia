@@ -2010,23 +2010,26 @@ export function AletheiaApp() {
 
   // Hydration-safe restore of client-only persisted state.
   useEffect(() => {
-    setPreferences(storedPreferences());
-    setManualContext(storedManualContext());
-    setThemePreference(storedThemePreference());
-    setShowOnboarding(shouldShowOnboarding());
-    setCarryToday(storedCarryToday());
-    setSelectedVoice(storedVoicePreference());
-    setNotificationTiming(storedNotificationTiming());
-    setFeatureDiscovery(loadFeatureDiscovery());
+    const restoreId = window.requestAnimationFrame(() => {
+      setPreferences(storedPreferences());
+      setManualContext(storedManualContext());
+      setThemePreference(storedThemePreference());
+      setShowOnboarding(shouldShowOnboarding());
+      setCarryToday(storedCarryToday());
+      setSelectedVoice(storedVoicePreference());
+      setNotificationTiming(storedNotificationTiming());
+      setFeatureDiscovery(loadFeatureDiscovery());
 
-    try {
-      const storedView = window.localStorage.getItem("aletheia-active-view") as View | null;
-      if (storedView && ["companion", "decisions", "reflect", "library", "account"].includes(storedView)) {
-        setActiveViewState(storedView);
+      try {
+        const storedView = window.localStorage.getItem("aletheia-active-view") as View | null;
+        if (storedView && ["companion", "decisions", "reflect", "library", "account"].includes(storedView)) {
+          setActiveViewState(storedView);
+        }
+      } catch {
+        // Keep deterministic defaults if storage is unavailable.
       }
-    } catch {
-      // Keep deterministic defaults if storage is unavailable.
-    }
+    });
+    return () => window.cancelAnimationFrame(restoreId);
   }, []);
 
   // Translation helper function
@@ -5460,8 +5463,15 @@ function OnboardingModal({
   const selectedTranslation = bibleTranslations[preferences.bibleTranslation];
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-end p-3 backdrop-blur-sm sm:place-items-center" style={{ backgroundColor: theme.primary + '75' }}>
-      <section className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-xl border p-4 shadow-2xl sm:p-5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+    <div className="fixed inset-0 z-50 grid min-w-0 place-items-end overflow-x-hidden p-3 backdrop-blur-sm sm:place-items-center" style={{ backgroundColor: theme.primary + '75' }}>
+      <section
+        className="box-border max-h-[92vh] min-w-0 overflow-x-hidden overflow-y-auto rounded-xl border p-4 shadow-2xl sm:p-5"
+        style={{
+          borderColor: theme.borderMedium,
+          backgroundColor: theme.bgCard,
+          width: "min(100%, calc(100vw - 1.5rem), 42rem)",
+        }}
+      >
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>Begin quietly</p>
@@ -5484,7 +5494,7 @@ function OnboardingModal({
         <div className="mt-5 space-y-4">
           <section>
             <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>What brings you here?</p>
-            <div className="mt-2 grid grid-cols-2 gap-2">
+            <div className="mt-2 grid min-w-0 grid-cols-2 gap-2">
               {modes.map((item) => (
                 <button
                   type="button"
@@ -5496,9 +5506,9 @@ function OnboardingModal({
                     : { borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
                 >
                   <item.icon className="mt-0.5 shrink-0" size={16} style={{ color: mode === item.label ? 'rgba(255, 255, 255, 0.95)' : theme.textPrimary }} />
-                  <span>
+                  <span className="min-w-0">
                     <span className="block text-sm font-semibold">{item.label}</span>
-                    <span className="mt-1 line-clamp-2 block text-xs leading-5 opacity-85">{item.copy}</span>
+                    <span className="mt-1 line-clamp-2 block text-xs leading-5 opacity-85 break-words">{item.copy}</span>
                   </span>
                 </button>
               ))}
