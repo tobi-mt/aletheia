@@ -84,18 +84,21 @@ body {
 :root {
   --aletheia-safe-top-extra: 0px;
   --aletheia-top-reserve: 20px;
-  --aletheia-top-overlap-correction: 0px;
   --aletheia-bottom-reserve: 12px;
-  --aletheia-top-nav-space: calc(max(env(safe-area-inset-top, 0px), var(--aletheia-top-reserve)) + 6.5rem);
-  --aletheia-top-glass-height: calc(max(env(safe-area-inset-top, 0px), var(--aletheia-top-reserve)) + 5.7rem);
+  --aletheia-top-nav-space: calc(max(env(safe-area-inset-top, 0px), var(--aletheia-top-reserve)) + 5.6rem);
+  --aletheia-top-glass-height: calc(max(env(safe-area-inset-top, 0px), var(--aletheia-top-reserve)) + 5.1rem);
   --aletheia-bottom-nav-space: calc(max(env(safe-area-inset-bottom, 0px), var(--aletheia-bottom-reserve)) + 8.3rem);
 }
 
 .app-shell {
   position: relative;
   isolation: isolate;
-  padding-top: calc(var(--aletheia-top-nav-space) + var(--aletheia-top-overlap-correction, 0px) + clamp(0.35rem, 1.2vw, 0.7rem));
+  padding-top: calc(var(--aletheia-top-nav-space) + clamp(0.45rem, 1.2vw, 0.85rem));
   padding-bottom: max(env(safe-area-inset-bottom, 0px), var(--aletheia-bottom-reserve));
+}
+
+.app-shell [id] {
+  scroll-margin-top: calc(var(--aletheia-top-nav-space) + 1rem);
 }
 
 .app-shell::before,
@@ -125,7 +128,7 @@ body {
 }
 
 .app-top-nav {
-  padding-top: clamp(0.7rem, 1.4vw, 0.9rem);
+  padding-top: calc(max(env(safe-area-inset-top, 0px), var(--aletheia-top-reserve)) + clamp(0.7rem, 1.4vw, 0.9rem));
 }
 
 .app-brand-button {
@@ -424,11 +427,19 @@ html[data-theme="black"] main.theme-dark-root .app-bottom-nav button:not([style*
 
 @media (max-width: 480px) and (orientation: portrait) {
   .app-top-nav {
-    padding-top: 0.65rem;
+    padding-top: calc(max(env(safe-area-inset-top, 0px), var(--aletheia-top-reserve)) + 0.65rem);
   }
 
   .app-brand-copy p:last-child {
     max-width: 7.75rem;
+  }
+}
+
+@media (min-width: 768px) {
+  :root {
+    --aletheia-top-reserve: 0px;
+    --aletheia-top-nav-space: calc(env(safe-area-inset-top, 0px) + 5.6rem);
+    --aletheia-top-glass-height: calc(env(safe-area-inset-top, 0px) + 5.1rem);
   }
 }
 

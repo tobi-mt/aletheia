@@ -1920,6 +1920,7 @@ export function AletheiaApp() {
   const [preferencesStatus, setPreferencesStatus] = useState("Language settings are ready.");
   const [manualContext, setManualContext] = useState<ManualContextProfile>(defaultManualContext);
   const [manualContextStatus, setManualContextStatus] = useState("Manual context is private and optional.");
+  const [clientStateRestored, setClientStateRestored] = useState(false);
   const [themePreference, setThemePreference] = useState<ThemePreference>("system");
   const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>("classic");
   const theme = themeColors[resolvedTheme];
@@ -2004,7 +2005,6 @@ export function AletheiaApp() {
   
   const preferencesRef = useRef<HTMLElement | null>(null);
   const workspaceRef = useRef<HTMLElement | null>(null);
-  const topNavRef = useRef<HTMLElement | null>(null);
   const bottomNavRef = useRef<HTMLDivElement | null>(null);
   const updateRefreshTimeoutRef = useRef<number | null>(null);
 
@@ -2019,6 +2019,7 @@ export function AletheiaApp() {
       setSelectedVoice(storedVoicePreference());
       setNotificationTiming(storedNotificationTiming());
       setFeatureDiscovery(loadFeatureDiscovery());
+      setClientStateRestored(true);
 
       try {
         const storedView = window.localStorage.getItem("aletheia-active-view") as View | null;
@@ -2310,13 +2311,15 @@ export function AletheiaApp() {
 
     applyTheme();
     media.addEventListener("change", applyTheme);
-    try {
-      window.localStorage.setItem(THEME_STORAGE_KEY, themePreference);
-    } catch {
-      // Ignore storage errors.
+    if (clientStateRestored) {
+      try {
+        window.localStorage.setItem(THEME_STORAGE_KEY, themePreference);
+      } catch {
+        // Ignore storage errors.
+      }
     }
     return () => media.removeEventListener("change", applyTheme);
-  }, [themePreference]);
+  }, [clientStateRestored, themePreference]);
 
   useLayoutEffect(() => {
     const updateViewportChrome = () => {
@@ -2330,15 +2333,6 @@ export function AletheiaApp() {
       const isLargePhone = !isTablet && !isFoldClass && viewportWidth >= 400;
       const isRegularPhone = !isTablet && !isFoldClass && !isSmallPhone && !isLargePhone;
       const deviceFamily = isTablet ? "tablet" : isFoldClass ? "fold" : isSmallPhone ? "small-phone" : isLargePhone ? "large-phone" : "regular-phone";
-      const topReserve = isTablet
-        ? 0
-        : isSmallPhone
-          ? Math.round(Math.max(20, Math.min(32, shortestSide * 0.04)))
-          : isFoldClass
-            ? Math.round(Math.max(16, Math.min(26, shortestSide * 0.024)))
-            : isLargePhone
-              ? Math.round(Math.max(10, Math.min(18, shortestSide * 0.018)))
-              : Math.round(Math.max(14, Math.min(24, shortestSide * 0.028)));
       const bottomReserve = isTablet
         ? 0
         : isSmallPhone
@@ -2363,7 +2357,6 @@ export function AletheiaApp() {
               ? 11.5
               : 10.5;
 
-      document.documentElement.style.setProperty("--aletheia-top-reserve", `${topReserve}px`);
       document.documentElement.style.setProperty("--aletheia-bottom-reserve", `${bottomReserve}px`);
       document.documentElement.style.setProperty("--aletheia-bottom-nav-gap", `${bottomNavGap}`);
       document.documentElement.style.setProperty("--aletheia-bottom-nav-pad-y", `${bottomNavPadY}`);
@@ -2409,93 +2402,6 @@ export function AletheiaApp() {
       resizeObserver.disconnect();
       window.removeEventListener("resize", updateBottomNavSpace);
       window.removeEventListener("orientationchange", updateBottomNavSpace);
-    };
-  }, []);
-
-  useLayoutEffect(() => {
-    const nav = topNavRef.current;
-    const workspace = workspaceRef.current;
-    if (!nav) {
-      return;
-    }
-
-    const applyTopOverlapGuard = () => {
-      if (!workspace) {
-        document.documentElement.style.setProperty("--aletheia-top-overlap-correction", "0px");
-        return;
-      }
-
-      const navBottom = Math.max(0, Math.ceil(nav.getBoundingClientRect().bottom));
-      const candidates = Array.from(
-        workspace.querySelectorAll("h1, h2, h3, section, article, form, [data-overlap-anchor]")
-      ) as HTMLElement[];
-
-      let firstTop = Number.POSITIVE_INFINITY;
-      for (const candidate of candidates) {
-        const rect = candidate.getBoundingClientRect();
-        if (rect.height <= 8 || rect.bottom <= 0 || rect.width <= 0) {
-          continue;
-        }
-        firstTop = Math.min(firstTop, rect.top);
-      }
-
-      if (!Number.isFinite(firstTop)) {
-        document.documentElement.style.setProperty("--aletheia-top-overlap-correction", "0px");
-        return;
-      }
-
-      const overlap = Math.max(0, Math.ceil(navBottom + 10 - firstTop));
-      const correction = Math.min(128, overlap);
-      document.documentElement.style.setProperty("--aletheia-top-overlap-correction", `${correction}px`);
-    };
-
-    const updateTopNavSpace = () => {
-      const navBottom = Math.max(0, Math.ceil(nav.getBoundingClientRect().bottom));
-      const reservedSpace = navBottom > 0 ? Math.max(navBottom + 16, 124) : 124;
-      const glassHeight = navBottom > 0 ? Math.max(navBottom + 6, 96) : 96;
-      document.documentElement.style.setProperty("--aletheia-top-nav-space", `${reservedSpace}px`);
-      document.documentElement.style.setProperty("--aletheia-top-glass-height", `${glassHeight}px`);
-      window.requestAnimationFrame(applyTopOverlapGuard);
-    };
-
-    updateTopNavSpace();
-    window.requestAnimationFrame(updateTopNavSpace);
-    window.requestAnimationFrame(() => window.requestAnimationFrame(updateTopNavSpace));
-    const updateTimeoutOne = window.setTimeout(updateTopNavSpace, 120);
-    const updateTimeoutTwo = window.setTimeout(updateTopNavSpace, 320);
-    document.fonts?.ready.then(updateTopNavSpace).catch(() => undefined);
-    const resizeObserver = new ResizeObserver(updateTopNavSpace);
-    resizeObserver.observe(nav);
-    const workspaceObserver = workspace ? new ResizeObserver(updateTopNavSpace) : null;
-    if (workspaceObserver && workspace) {
-      workspaceObserver.observe(workspace);
-    }
-    const mutationObserver = workspace
-      ? new MutationObserver(() => window.requestAnimationFrame(updateTopNavSpace))
-      : null;
-    if (mutationObserver && workspace) {
-      mutationObserver.observe(workspace, { childList: true, subtree: true, attributes: true });
-    }
-    window.addEventListener("resize", updateTopNavSpace);
-    window.addEventListener("orientationchange", updateTopNavSpace);
-    window.visualViewport?.addEventListener("resize", updateTopNavSpace);
-    window.visualViewport?.addEventListener("scroll", updateTopNavSpace);
-    document.addEventListener("visibilitychange", updateTopNavSpace);
-    window.addEventListener("pageshow", updateTopNavSpace);
-
-    return () => {
-      window.clearTimeout(updateTimeoutOne);
-      window.clearTimeout(updateTimeoutTwo);
-      resizeObserver.disconnect();
-      workspaceObserver?.disconnect();
-      mutationObserver?.disconnect();
-      window.removeEventListener("resize", updateTopNavSpace);
-      window.removeEventListener("orientationchange", updateTopNavSpace);
-      window.visualViewport?.removeEventListener("resize", updateTopNavSpace);
-      window.visualViewport?.removeEventListener("scroll", updateTopNavSpace);
-      document.removeEventListener("visibilitychange", updateTopNavSpace);
-      window.removeEventListener("pageshow", updateTopNavSpace);
-      document.documentElement.style.setProperty("--aletheia-top-overlap-correction", "0px");
     };
   }, []);
 
@@ -3072,7 +2978,7 @@ export function AletheiaApp() {
   function showView(view: View) {
     setActiveView(view, "show_view");
     window.requestAnimationFrame(() => {
-      workspaceRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      window.scrollTo({ top: 0, behavior: "auto" });
     });
   }
 
@@ -4606,7 +4512,7 @@ export function AletheiaApp() {
         readerOpen={isSpeaking || speechPaused}
       />
 
-      <nav ref={topNavRef} className="app-top-nav fixed inset-x-0 z-50 border-b px-3 pb-3 backdrop-blur-2xl sm:px-4" style={{ borderColor: theme.bgNavBorder, backgroundColor: resolvedTheme === "black"
+      <nav className="app-top-nav fixed inset-x-0 z-50 border-b px-3 pb-3 backdrop-blur-2xl sm:px-4" style={{ borderColor: theme.bgNavBorder, backgroundColor: resolvedTheme === "black"
         ? "rgba(7, 10, 8, 0.28)"
         : resolvedTheme === "dark"
           ? "rgba(14, 21, 20, 0.24)"
@@ -4618,7 +4524,7 @@ export function AletheiaApp() {
                 ? "rgba(241, 246, 241, 0.28)"
                 : resolvedTheme === "sunset"
                   ? "rgba(250, 241, 246, 0.28)"
-                  : "rgba(238, 242, 239, 0.28)", top: "max(env(safe-area-inset-top, 0px), var(--aletheia-top-reserve))" }}>
+                  : "rgba(238, 242, 239, 0.28)", top: 0 }}>
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3">
           <button
             className="app-brand-button flex min-w-0 items-center gap-3 text-left"
