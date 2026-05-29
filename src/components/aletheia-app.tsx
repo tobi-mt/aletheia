@@ -1211,6 +1211,14 @@ function notificationTimeLabel(hour: number) {
   return `${hour12}:00 ${suffix}`;
 }
 
+function shouldFallbackToBrowserTimezone(preferredTimezone: string | undefined, hasExplicitTiming: boolean | undefined) {
+  if (hasExplicitTiming) {
+    return false;
+  }
+  const normalized = preferredTimezone?.trim().toUpperCase();
+  return !normalized || normalized === "UTC";
+}
+
 function normalizeNotificationTiming(value?: Partial<NotificationTiming> | null): NotificationTiming {
   const strategy = value?.deliveryStrategy;
   const deliveryStrategy: NotificationTiming["deliveryStrategy"] =
@@ -2424,6 +2432,7 @@ export function AletheiaApp() {
       configured?: boolean;
       enabled?: boolean;
       timingConfigured?: boolean;
+      hasExplicitTiming?: boolean;
       preferredLocalHour?: number;
       preferredTimezone?: string;
       deliveryStrategy?: NotificationTiming["deliveryStrategy"];
@@ -2471,13 +2480,22 @@ export function AletheiaApp() {
     setNotificationsConfigured(Boolean(notificationData.configured));
     setNotificationsEnabled(Boolean(notificationData.enabled));
     if (notificationData.enabled || notificationData.timingConfigured) {
+      const effectiveTimezone = shouldFallbackToBrowserTimezone(
+        notificationData.preferredTimezone,
+        notificationData.hasExplicitTiming
+      )
+        ? browserTimezone()
+        : notificationData.preferredTimezone;
       const nextTiming = normalizeNotificationTiming({
         preferredLocalHour: notificationData.preferredLocalHour,
-        preferredTimezone: notificationData.preferredTimezone,
+        preferredTimezone: effectiveTimezone,
         deliveryStrategy: notificationData.deliveryStrategy,
       });
       setNotificationTiming(nextTiming);
       persistNotificationTiming(nextTiming);
+      if (shouldFallbackToBrowserTimezone(notificationData.preferredTimezone, notificationData.hasExplicitTiming)) {
+        void saveNotificationTimingPreference(nextTiming).catch(() => undefined);
+      }
     }
   }
 
@@ -2670,6 +2688,7 @@ export function AletheiaApp() {
         configured?: boolean;
         enabled?: boolean;
         timingConfigured?: boolean;
+        hasExplicitTiming?: boolean;
         preferredLocalHour?: number;
         preferredTimezone?: string;
         deliveryStrategy?: NotificationTiming["deliveryStrategy"];
@@ -2684,16 +2703,27 @@ export function AletheiaApp() {
       setNotificationsConfigured(Boolean(data.configured));
       setNotificationsEnabled(Boolean(data.enabled && localSubscription));
       setNotificationTiming((current) => {
+        const effectiveTimezone = shouldFallbackToBrowserTimezone(data.preferredTimezone, data.hasExplicitTiming)
+          ? browserTimezone()
+          : data.preferredTimezone;
         const nextTiming = data.enabled || data.timingConfigured
           ? normalizeNotificationTiming({
               preferredLocalHour: data.preferredLocalHour,
-              preferredTimezone: data.preferredTimezone,
+              preferredTimezone: effectiveTimezone,
               deliveryStrategy: data.deliveryStrategy,
             })
-          : normalizeNotificationTiming(current);
+          : normalizeNotificationTiming({ ...current, preferredTimezone: browserTimezone() });
         persistNotificationTiming(nextTiming);
         return nextTiming;
       });
+      if ((data.enabled || data.timingConfigured) && shouldFallbackToBrowserTimezone(data.preferredTimezone, data.hasExplicitTiming)) {
+        const fallbackTiming = normalizeNotificationTiming({
+          preferredLocalHour: data.preferredLocalHour,
+          preferredTimezone: browserTimezone(),
+          deliveryStrategy: data.deliveryStrategy,
+        });
+        void saveNotificationTimingPreference(fallbackTiming).catch(() => undefined);
+      }
       if (!data.configured) {
         setNotificationStatus("Notifications need VAPID keys before they can be enabled.");
       } else if (!user) {

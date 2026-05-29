@@ -31,6 +31,7 @@ export async function GET() {
       configured: isPushConfigured(),
       enabled: false,
       subscriptions: 0,
+      hasExplicitTiming: false,
     });
   }
 
@@ -88,6 +89,7 @@ export async function GET() {
     enabled: Number(row?.count ?? 0) > 0,
     subscriptions: Number(row?.count ?? 0),
     timingConfigured: hasAccountTiming || Number(row?.count ?? 0) > 0,
+    hasExplicitTiming: hasAccountTiming,
     preferredLocalHour: preferredLocalHour ?? 8,
     preferredTimezone: preferredTimezone ?? "UTC",
     deliveryStrategy: deliveryStrategy ?? "morning",
