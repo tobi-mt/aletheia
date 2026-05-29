@@ -37,6 +37,10 @@ export async function POST(request: Request) {
     value?: string;
     mode?: Mode;
     placement?: string;
+    language?: string;
+    topic?: string;
+    emotional_tone?: string;
+    decision_like?: boolean;
   };
   const value = body.value?.trim() ?? "";
   if (!feedbackValues.has(value)) {
@@ -78,7 +82,15 @@ export async function POST(request: Request) {
     await trackServerEvent({
       userId: user.id,
       eventName: "answer_feedback",
-      metadata: { value, mode: body.mode ?? null, placement: body.placement ?? null },
+      metadata: {
+        value,
+        mode: body.mode ?? null,
+        placement: body.placement ?? null,
+        language: body.language?.slice(0, 20) ?? null,
+        topic: body.topic?.slice(0, 40) ?? null,
+        emotional_tone: body.emotional_tone?.slice(0, 40) ?? null,
+        decision_like: Boolean(body.decision_like),
+      },
     });
 
     return NextResponse.json({ ok: true, answerPreferences });

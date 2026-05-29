@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { trackEvent } from "@/lib/analytics";
 import { recordDailyNotificationUnauthorizedHit, sendDailyWisdomNotifications } from "@/lib/notifications";
 
 // Allow longer execution time for notification processing
@@ -27,6 +28,18 @@ async function runDailyNotifications(request: Request) {
   }
 
   const result = await sendDailyWisdomNotifications();
+  await trackEvent({
+    eventName: "notification_daily_checked",
+    source: "cron",
+    metadata: {
+      attempted: result.attempted,
+      sent: result.sent,
+      failed: result.failed,
+      skipped: result.skipped,
+      scanned: result.scanned,
+      hour: result.hour,
+    },
+  }).catch(() => undefined);
   return NextResponse.json(result);
 }
 

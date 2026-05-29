@@ -30,12 +30,66 @@ type HourlyUsageRow = {
   unique_people: number;
 };
 
+type TopicRow = {
+  topic: string;
+  count: number;
+  unique_people: number;
+  helpful_rate: number;
+};
+
+type EmotionalToneRow = {
+  emotional_tone: string;
+  count: number;
+  decision_like_count: number;
+};
+
+type FeedbackByModeRow = {
+  mode: string;
+  value: string;
+  count: number;
+};
+
+type JourneyRateRow = {
+  metric: string;
+  numerator: number;
+  denominator: number;
+  rate: number;
+};
+
+type DistributionRow = {
+  count: number;
+  unique_people: number;
+};
+
+type LanguageRow = DistributionRow & {
+  language: string;
+};
+
+type ThemeRow = DistributionRow & {
+  theme: string;
+};
+
+type FrictionRow = {
+  area: string;
+  count: number;
+  unique_people: number;
+};
+
 type AnalyticsPayload = {
   overview: Record<string, number>;
+  events30d: Array<{ event_name: string; count: number; unique_people: number }>;
   funnel30d: FunnelStage[];
   features30d: FeatureRow[];
   retentionWeekly: RetentionRow[];
   hourlyUsage30d: HourlyUsageRow[];
+  feedback30d: Array<{ value: string; count: number }>;
+  topics30d: TopicRow[];
+  emotionalTones30d: EmotionalToneRow[];
+  feedbackByMode30d: FeedbackByModeRow[];
+  journeyRates30d: JourneyRateRow[];
+  languageDistribution30d: LanguageRow[];
+  themeDistribution30d: ThemeRow[];
+  frictionSignals30d: FrictionRow[];
 };
 
 const SECRET_KEY = "aletheia_analytics_admin_secret";
@@ -201,6 +255,31 @@ export default function InternalAnalyticsDashboardPage() {
           </article>
         </section>
 
+        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 className="text-lg font-semibold">Core Wisdom Loop (30d)</h2>
+              <p className="text-sm text-slate-600">Open app → ask/reflect/decide → save insight → revisit or share.</p>
+            </div>
+            <p className="text-xs text-slate-500">Privacy-first: broad signals, not private content.</p>
+          </div>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {(payload?.journeyRates30d ?? []).map((row) => (
+              <article key={row.metric} className="rounded-xl border border-slate-200 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm font-medium text-slate-800">{formatFeatureName(row.metric)}</p>
+                  <p className="text-xl font-semibold text-slate-950">{row.rate}%</p>
+                </div>
+                <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-200">
+                  <div className="h-full rounded-full bg-emerald-600" style={{ width: `${Math.max(2, Math.min(100, row.rate))}%` }} />
+                </div>
+                <p className="mt-2 text-xs text-slate-500">{row.numerator} of {row.denominator} active people</p>
+              </article>
+            ))}
+            {payload && payload.journeyRates30d.length === 0 ? <p className="text-sm text-slate-500">No journey data yet.</p> : null}
+          </div>
+        </section>
+
         <section className="grid gap-6 lg:grid-cols-2">
           <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <h2 className="text-lg font-semibold">Funnel (30d)</h2>
@@ -246,6 +325,112 @@ export default function InternalAnalyticsDashboardPage() {
                 );
               })}
               {payload && payload.features30d.length === 0 ? <p className="text-sm text-slate-500">No feature data yet.</p> : null}
+            </div>
+          </article>
+        </section>
+
+        <section className="grid gap-6 lg:grid-cols-3">
+          <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h2 className="text-lg font-semibold">Top User Topics</h2>
+            <div className="mt-4 space-y-3">
+              {(payload?.topics30d ?? []).map((row) => (
+                <div key={row.topic} className="rounded-xl border border-slate-100 p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="font-medium text-slate-800">{formatFeatureName(row.topic)}</p>
+                    <p className="text-sm text-slate-600">{row.unique_people} people</p>
+                  </div>
+                  <p className="mt-1 text-xs text-slate-500">{row.count} questions/events | {row.helpful_rate}% helpful feedback</p>
+                </div>
+              ))}
+              {payload && payload.topics30d.length === 0 ? <p className="text-sm text-slate-500">No topic data yet.</p> : null}
+            </div>
+          </article>
+
+          <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h2 className="text-lg font-semibold">Emotional Pressure</h2>
+            <div className="mt-4 space-y-3">
+              {(payload?.emotionalTones30d ?? []).map((row) => (
+                <div key={row.emotional_tone} className="rounded-xl border border-slate-100 p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="font-medium text-slate-800">{formatFeatureName(row.emotional_tone)}</p>
+                    <p className="text-sm text-slate-600">{row.count}</p>
+                  </div>
+                  <p className="mt-1 text-xs text-slate-500">{row.decision_like_count} decision-like questions</p>
+                </div>
+              ))}
+              {payload && payload.emotionalTones30d.length === 0 ? <p className="text-sm text-slate-500">No emotional tone data yet.</p> : null}
+            </div>
+          </article>
+
+          <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h2 className="text-lg font-semibold">Answer Quality</h2>
+            <div className="mt-4 space-y-3">
+              {(payload?.feedback30d ?? []).map((row) => (
+                <div key={row.value} className="flex items-center justify-between rounded-xl border border-slate-100 p-3">
+                  <p className="font-medium text-slate-800">{formatFeatureName(row.value)}</p>
+                  <p className="text-sm text-slate-600">{row.count}</p>
+                </div>
+              ))}
+              {payload && payload.feedback30d.length === 0 ? <p className="text-sm text-slate-500">No feedback yet.</p> : null}
+            </div>
+          </article>
+        </section>
+
+        <section className="grid gap-6 lg:grid-cols-3">
+          <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h2 className="text-lg font-semibold">Feedback By Mode</h2>
+            <div className="mt-4 max-h-80 space-y-2 overflow-auto pr-1">
+              {(payload?.feedbackByMode30d ?? []).map((row) => (
+                <div key={`${row.mode}-${row.value}`} className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm">
+                  <span className="font-medium text-slate-800">{row.mode} · {formatFeatureName(row.value)}</span>
+                  <span className="text-slate-600">{row.count}</span>
+                </div>
+              ))}
+              {payload && payload.feedbackByMode30d.length === 0 ? <p className="text-sm text-slate-500">No mode feedback yet.</p> : null}
+            </div>
+          </article>
+
+          <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h2 className="text-lg font-semibold">Language / Theme</h2>
+            <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
+              <div>
+                <p className="text-xs font-semibold uppercase text-slate-500">Languages</p>
+                <div className="mt-2 space-y-2">
+                  {(payload?.languageDistribution30d ?? []).slice(0, 6).map((row) => (
+                    <div key={row.language} className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm">
+                      <span>{row.language}</span>
+                      <span>{row.unique_people}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase text-slate-500">Themes</p>
+                <div className="mt-2 space-y-2">
+                  {(payload?.themeDistribution30d ?? []).slice(0, 6).map((row) => (
+                    <div key={row.theme} className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm">
+                      <span>{formatFeatureName(row.theme)}</span>
+                      <span>{row.unique_people}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h2 className="text-lg font-semibold">Friction Signals</h2>
+            <div className="mt-4 space-y-3">
+              {(payload?.frictionSignals30d ?? []).map((row) => (
+                <div key={row.area} className="rounded-xl border border-slate-100 p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="font-medium text-slate-800">{formatFeatureName(row.area)}</p>
+                    <p className="text-sm text-slate-600">{row.count}</p>
+                  </div>
+                  <p className="mt-1 text-xs text-slate-500">{row.unique_people} affected people/devices</p>
+                </div>
+              ))}
+              {payload && payload.frictionSignals30d.length === 0 ? <p className="text-sm text-slate-500">No friction signals yet.</p> : null}
             </div>
           </article>
         </section>

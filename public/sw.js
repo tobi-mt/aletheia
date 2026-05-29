@@ -1,4 +1,4 @@
-const CACHE_NAME = "aletheia-v17";
+const CACHE_NAME = "aletheia-v18";
 const APP_SHELL = [
   "/",
   "/manifest.webmanifest",
@@ -105,7 +105,21 @@ self.addEventListener("notificationclick", (event) => {
   const url = event.notification.data?.url || "/";
 
   event.waitUntil(
-    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
+    Promise.allSettled([
+      fetch("/api/analytics/events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          eventName: "notification_clicked",
+          path: url,
+          source: "web_push",
+          metadata: {
+            tag: event.notification.tag || null,
+            scripture: event.notification.data?.scripture || null,
+          },
+        }),
+      }),
+      self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
       for (const client of clients) {
         if ("focus" in client) {
           client.navigate(url);
@@ -114,6 +128,7 @@ self.addEventListener("notificationclick", (event) => {
       }
 
       return self.clients.openWindow(url);
-    })
+      }),
+    ])
   );
 });

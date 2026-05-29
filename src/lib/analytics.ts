@@ -3,31 +3,53 @@ import { many, run } from "@/lib/db";
 
 const ALLOWED_EVENTS = new Set([
   "app_opened",
+  "app_installed",
   "app_update_overlay_shown",
   "app_update_refresh_landed",
   "app_view_changed",
   "answer_feedback",
+  "answer_followup_asked",
+  "answer_saved_or_acted",
+  "answer_abandoned_after_generation",
   "app_shared",
+  "auth_signin_started",
   "auth_failure",
   "auth_email_login_success",
   "auth_email_register_success",
   "auth_google_success",
   "auth_logout",
+  "bible_translation_changed",
   "chat_question_sent",
+  "question_asked",
   "counsel_contact_added_local",
   "counsel_contact_created",
+  "counsel_summary_created",
   "counsel_decision_shared",
   "counsel_decisions_bulk_shared",
   "decision_created_local",
   "decision_created",
+  "decision_revisited",
   "decision_updated",
+  "disclosure_section_toggled",
+  "error_seen",
   "journal_entry_created_local",
   "journal_entry_created",
+  "language_changed",
   "notification_disabled",
+  "notification_daily_checked",
   "notification_enabled",
+  "notification_enable_failed",
+  "notification_clicked",
   "notification_timing_updated",
+  "onboarding_completed",
+  "pwa_install_prompt_available",
+  "read_aloud_started",
   "rule_created",
   "rule_created_local",
+  "scripture_opened",
+  "share_started",
+  "theme_changed",
+  "today_card_carried",
   "wisdom_mode_selected",
 ]);
 
@@ -109,6 +131,13 @@ export async function analyticsSummary() {
     hourlyRows,
     retentionRows,
     authFailureRows,
+    topicRows,
+    emotionRows,
+    feedbackByModeRows,
+    journeyRateRows,
+    languageRows,
+    themeRows,
+    frictionRows,
   ] = await Promise.all([
     many<{ metric: string; value: number }>(
       `SELECT 'registered_users' AS metric, COUNT(*)::int AS value FROM users
@@ -180,13 +209,18 @@ export async function analyticsSummary() {
        ),
        feature_map(feature, event_name) AS (
          VALUES
-           ('chat_questions', 'chat_question_sent'),
+           ('questions_asked', 'question_asked'),
            ('mode_switches', 'wisdom_mode_selected'),
            ('decisions_started', 'decision_created'),
+           ('decision_revisits', 'decision_revisited'),
            ('reflections_saved', 'journal_entry_created'),
            ('counsel_contacts', 'counsel_contact_created'),
+           ('counsel_summaries', 'counsel_summary_created'),
            ('rules_created', 'rule_created'),
            ('notifications_enabled', 'notification_enabled'),
+           ('read_aloud', 'read_aloud_started'),
+           ('scripture_opened', 'scripture_opened'),
+           ('today_card_carried', 'today_card_carried'),
            ('app_shares', 'app_shared')
        )
        SELECT feature_map.feature,
@@ -211,9 +245,12 @@ export async function analyticsSummary() {
            ('authenticated', 'auth_email_login_success', 2),
            ('authenticated', 'auth_email_register_success', 2),
            ('authenticated', 'auth_google_success', 2),
-           ('asked_question', 'chat_question_sent', 3),
-           ('started_decision', 'decision_created', 4),
-           ('enabled_notifications', 'notification_enabled', 5)
+           ('completed_onboarding', 'onboarding_completed', 2),
+           ('asked_question', 'question_asked', 3),
+           ('saved_reflection', 'journal_entry_created', 4),
+           ('started_decision', 'decision_created', 5),
+           ('enabled_notifications', 'notification_enabled', 6),
+           ('shared_or_invited', 'app_shared', 7)
        )
        SELECT funnel.stage,
               MIN(funnel.stage_order)::int AS stage_order,
@@ -315,6 +352,120 @@ export async function analyticsSummary() {
        GROUP BY metadata->>'method', metadata->>'flow', metadata->>'category', metadata->>'reason'
        ORDER BY count DESC, unique_people DESC, method ASC, flow ASC, category ASC, reason ASC`
     ),
+    many<{ topic: string; count: number; unique_people: number; helpful_rate: number }>(
+      `WITH questions AS (
+         SELECT COALESCE(metadata->>'topic', 'unknown') AS topic,
+                COALESCE(user_id, anon_id, session_id) AS person_id
+         FROM analytics_events
+         WHERE event_name IN ('question_asked', 'chat_question_sent')
+           AND created_at >= now() - interval '30 days'
+       ),
+       feedback AS (
+         SELECT COALESCE(metadata->>'topic', 'unknown') AS topic,
+                COUNT(*) FILTER (WHERE metadata->>'value' IN ('helpful', 'mildly_helpful'))::int AS positive,
+                COUNT(*)::int AS total
+         FROM analytics_events
+         WHERE event_name = 'answer_feedback'
+           AND created_at >= now() - interval '30 days'
+         GROUP BY COALESCE(metadata->>'topic', 'unknown')
+       )
+       SELECT questions.topic,
+              COUNT(*)::int AS count,
+              COUNT(DISTINCT questions.person_id)::int AS unique_people,
+              COALESCE(ROUND((100.0 * feedback.positive / NULLIF(feedback.total, 0))::numeric, 1), 0)::double precision AS helpful_rate
+       FROM questions
+       LEFT JOIN feedback ON feedback.topic = questions.topic
+       GROUP BY questions.topic, feedback.positive, feedback.total
+       ORDER BY count DESC`
+    ),
+    many<{ emotional_tone: string; count: number; decision_like_count: number }>(
+      `SELECT COALESCE(metadata->>'emotional_tone', 'unknown') AS emotional_tone,
+              COUNT(*)::int AS count,
+              COUNT(*) FILTER (WHERE metadata->>'decision_like' = 'true')::int AS decision_like_count
+       FROM analytics_events
+       WHERE event_name IN ('question_asked', 'chat_question_sent')
+         AND created_at >= now() - interval '30 days'
+       GROUP BY COALESCE(metadata->>'emotional_tone', 'unknown')
+       ORDER BY count DESC`
+    ),
+    many<{ mode: string; value: string; count: number }>(
+      `SELECT COALESCE(metadata->>'mode', 'unknown') AS mode,
+              COALESCE(metadata->>'value', 'unknown') AS value,
+              COUNT(*)::int AS count
+       FROM analytics_events
+       WHERE event_name = 'answer_feedback'
+         AND created_at >= now() - interval '30 days'
+       GROUP BY COALESCE(metadata->>'mode', 'unknown'), COALESCE(metadata->>'value', 'unknown')
+       ORDER BY mode ASC, count DESC`
+    ),
+    many<{ metric: string; numerator: number; denominator: number; rate: number }>(
+      `WITH people AS (
+         SELECT COALESCE(user_id, anon_id, session_id) AS person_id,
+                BOOL_OR(event_name = 'app_opened') AS opened,
+                BOOL_OR(event_name = 'onboarding_completed') AS onboarded,
+                BOOL_OR(event_name IN ('question_asked', 'chat_question_sent')) AS asked,
+                BOOL_OR(event_name IN ('journal_entry_created', 'journal_entry_created_local')) AS reflected,
+                BOOL_OR(event_name IN ('decision_created', 'decision_created_local')) AS decided,
+                BOOL_OR(event_name = 'notification_enabled') AS notified,
+                BOOL_OR(event_name IN ('app_shared', 'share_started')) AS shared
+         FROM analytics_events
+         WHERE created_at >= now() - interval '30 days'
+           AND COALESCE(user_id, anon_id, session_id) IS NOT NULL
+         GROUP BY COALESCE(user_id, anon_id, session_id)
+       ),
+       metrics(metric, numerator, denominator) AS (
+         VALUES
+           ('onboarding_completion', (SELECT COUNT(*)::int FROM people WHERE onboarded), (SELECT COUNT(*)::int FROM people WHERE opened)),
+           ('first_question_conversion', (SELECT COUNT(*)::int FROM people WHERE asked), (SELECT COUNT(*)::int FROM people WHERE opened)),
+           ('reflection_save_rate', (SELECT COUNT(*)::int FROM people WHERE reflected), (SELECT COUNT(*)::int FROM people WHERE opened)),
+           ('decision_start_rate', (SELECT COUNT(*)::int FROM people WHERE decided), (SELECT COUNT(*)::int FROM people WHERE opened)),
+           ('notification_opt_in_rate', (SELECT COUNT(*)::int FROM people WHERE notified), (SELECT COUNT(*)::int FROM people WHERE opened)),
+           ('share_invite_rate', (SELECT COUNT(*)::int FROM people WHERE shared), (SELECT COUNT(*)::int FROM people WHERE opened))
+       )
+       SELECT metric,
+              numerator,
+              denominator,
+              COALESCE(ROUND((100.0 * numerator / NULLIF(denominator, 0))::numeric, 1), 0)::double precision AS rate
+       FROM metrics`
+    ),
+    many<{ language: string; count: number; unique_people: number }>(
+      `SELECT COALESCE(metadata->>'language', 'unknown') AS language,
+              COUNT(*)::int AS count,
+              COUNT(DISTINCT COALESCE(user_id, anon_id, session_id))::int AS unique_people
+       FROM analytics_events
+       WHERE event_name IN ('language_changed', 'question_asked', 'chat_question_sent')
+         AND created_at >= now() - interval '30 days'
+       GROUP BY COALESCE(metadata->>'language', 'unknown')
+       ORDER BY unique_people DESC, count DESC`
+    ),
+    many<{ theme: string; count: number; unique_people: number }>(
+      `SELECT COALESCE(metadata->>'theme', 'unknown') AS theme,
+              COUNT(*)::int AS count,
+              COUNT(DISTINCT COALESCE(user_id, anon_id, session_id))::int AS unique_people
+       FROM analytics_events
+       WHERE event_name = 'theme_changed'
+         AND created_at >= now() - interval '30 days'
+       GROUP BY COALESCE(metadata->>'theme', 'unknown')
+       ORDER BY unique_people DESC, count DESC`
+    ),
+    many<{ area: string; count: number; unique_people: number }>(
+      `SELECT CASE
+                WHEN event_name IN ('auth_failure', 'notification_enable_failed', 'error_seen') THEN 'failures'
+                WHEN event_name = 'notification_daily_checked' AND metadata->>'failed' <> '0' THEN 'notification_delivery_failed'
+                WHEN event_name = 'disclosure_section_toggled' THEN 'section_expansion'
+                WHEN event_name = 'app_view_changed' AND metadata->>'to_view' = 'account' THEN 'account_reopens'
+                WHEN event_name = 'pwa_install_prompt_available' THEN 'install_prompt_seen'
+                WHEN event_name = 'app_update_refresh_landed' THEN 'pwa_update_applied'
+                ELSE event_name
+              END AS area,
+              COUNT(*)::int AS count,
+              COUNT(DISTINCT COALESCE(user_id, anon_id, session_id))::int AS unique_people
+       FROM analytics_events
+       WHERE created_at >= now() - interval '30 days'
+         AND event_name IN ('auth_failure', 'notification_enable_failed', 'error_seen', 'notification_daily_checked', 'disclosure_section_toggled', 'app_view_changed', 'pwa_install_prompt_available', 'app_update_refresh_landed')
+       GROUP BY area
+       ORDER BY count DESC`
+    ),
   ]);
 
   const funnelSorted = [...funnelRows].sort((a, b) => a.stage_order - b.stage_order);
@@ -343,6 +494,13 @@ export async function analyticsSummary() {
     hourlyUsage30d: hourlyRows,
     retentionWeekly: retentionRows,
     authFailures30d: authFailureRows,
+    topics30d: topicRows,
+    emotionalTones30d: emotionRows,
+    feedbackByMode30d: feedbackByModeRows,
+    journeyRates30d: journeyRateRows,
+    languageDistribution30d: languageRows,
+    themeDistribution30d: themeRows,
+    frictionSignals30d: frictionRows,
   };
 }
 

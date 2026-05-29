@@ -63,6 +63,7 @@ import {
 import { modeProfiles, type ModeProfile } from "@/lib/mode-profiles";
 import { defaultManualContext, manualContextHasContent, normalizeManualContext, type ManualContextProfile } from "@/lib/manual-context";
 import type { Mode } from "@/lib/wisdom-data";
+import { analyticsQuestionMetadata } from "@/lib/analytics-taxonomy";
 import { loadTranslationsWithFallback, loadTranslationsWithFallbackSync, getTranslation, type TranslationData } from "@/lib/translations";
 
 type View = "companion" | "decisions" | "reflect" | "library" | "account";
@@ -2537,6 +2538,26 @@ export function AletheiaApp() {
   }, []);
 
   useEffect(() => {
+    const onBeforeInstallPrompt = () => {
+      trackClientEvent("pwa_install_prompt_available", {
+        standalone: window.matchMedia("(display-mode: standalone)").matches,
+      });
+    };
+    const onAppInstalled = () => {
+      trackClientEvent("app_installed", {
+        standalone: true,
+      });
+    };
+
+    window.addEventListener("beforeinstallprompt", onBeforeInstallPrompt);
+    window.addEventListener("appinstalled", onAppInstalled);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", onBeforeInstallPrompt);
+      window.removeEventListener("appinstalled", onAppInstalled);
+    };
+  }, []);
+
+  useEffect(() => {
     if (process.env.NODE_ENV !== "production") {
       return;
     }
@@ -2975,6 +2996,24 @@ export function AletheiaApp() {
     trackClientEvent("wisdom_mode_selected", { mode: nextMode });
   }
 
+  function updateThemePreference(nextTheme: ThemePreference) {
+    setThemePreference(nextTheme);
+    trackClientEvent("theme_changed", {
+      theme: nextTheme,
+      previous_theme: themePreference,
+    });
+  }
+
+  function openScripture(scripture: string) {
+    setSelectedScripture(scripture);
+    trackClientEvent("scripture_opened", {
+      scripture: canonicalScriptureReference(scripture),
+      bibleTranslation: preferences.bibleTranslation,
+      language: preferences.language,
+      mode,
+    });
+  }
+
   function showView(view: View) {
     setActiveView(view, "show_view");
     window.requestAnimationFrame(() => {
@@ -3018,6 +3057,16 @@ export function AletheiaApp() {
     } else {
       announceWorkflow(ts('notifications.setupSaved'), ts('notifications.setupSavedBody'), "success");
     }
+    trackClientEvent("onboarding_completed", {
+      mode,
+      language: preferences.language,
+      region: preferences.region,
+      bibleTranslation: preferences.bibleTranslation,
+      tone: onboardingTone,
+      faithFamiliarity,
+      hasConcern: Boolean(onboardingConcern.trim()),
+      ...analyticsQuestionMetadata(onboardingConcern, mode),
+    });
     setShowOnboarding(false);
   }
 
@@ -3057,6 +3106,11 @@ export function AletheiaApp() {
     } catch {
       // The carry phrase can still stay visible for this session.
     }
+    trackClientEvent("today_card_carried", {
+      mode,
+      topic: daily.theme.toLowerCase(),
+      language: preferences.language,
+    });
     announceWorkflow("Carried for today", `"${card.carryPhrase}" is pinned on Home for today.`, "success");
   }
 
@@ -3083,6 +3137,7 @@ export function AletheiaApp() {
   }
 
   async function shareAletheia(channel: ShareChannel, placement: string) {
+    trackClientEvent("share_started", { channel, placement });
     trackClientEvent("app_shared", { channel, placement });
     if (channel === "native" && navigator.share) {
       try {
@@ -3114,11 +3169,21 @@ export function AletheiaApp() {
   }
 
   function recordAnswerFeedback(value: string, placement: string) {
-    trackClientEvent("answer_feedback", { value, placement, mode });
+    const latestQuestion = [...messages].reverse().find((message) => message.role === "user")?.text ?? "";
+    const feedbackMetadata = {
+      value,
+      placement,
+      mode,
+      language: preferences.language,
+      ...analyticsQuestionMetadata(latestQuestion, mode),
+    };
+    if (!user) {
+      trackClientEvent("answer_feedback", feedbackMetadata);
+    }
     fetch("/api/feedback", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ value, placement, mode }),
+      body: JSON.stringify(feedbackMetadata),
     }).catch(() => undefined);
     setStatusMessage(ts('status.feedbackReceived'));
     announceWorkflow(ts('notifications.feedbackSaved'), ts('notifications.feedbackSavedBody'), "success");
@@ -3133,6 +3198,7 @@ export function AletheiaApp() {
     setDecisionTitle(question.slice(0, 90));
     setDecisionPressure(question);
     setDecisionEmotion("uncertain");
+    trackClientEvent("answer_saved_or_acted", { action: "track_decision", mode, ...analyticsQuestionMetadata(question, mode) });
     showView("decisions");
     announceWorkflow(ts('notifications.decisionDraftStarted'), ts('notifications.decisionDraftStartedBody'), "success");
   }
@@ -3142,6 +3208,7 @@ export function AletheiaApp() {
     const answer = cleanDisplayText(exchange.answer.text);
     setJournalTitle(`Reflection: ${question.slice(0, 70)}`);
     setJournalBody(`Question:\n${question}\n\nAletheia counsel:\n${answer}\n\nWhat I notice:\n`);
+    trackClientEvent("answer_saved_or_acted", { action: "draft_reflection", mode, ...analyticsQuestionMetadata(question, mode) });
     showView("reflect");
     announceWorkflow(ts('notifications.reflectionDraftPrepared'), ts('notifications.reflectionDraftPreparedBody'), "success");
   }
@@ -3149,6 +3216,7 @@ export function AletheiaApp() {
   function draftCounselSummaryFromExchange(exchange: ConversationExchange) {
     // Check if a summary draft already exists for this exchange
     if (counselSummaryDraft) {
+      trackClientEvent("counsel_summary_created", { mode, duplicate: true });
       announceWorkflow(
         ts('notifications.counselSummaryExists'),
         ts('notifications.counselSummaryExistsBody'),
@@ -3192,6 +3260,8 @@ export function AletheiaApp() {
     });
     setDecisionTitle((current) => current || question.slice(0, 90));
     setDecisionPressure((current) => current || question);
+    trackClientEvent("counsel_summary_created", { mode, ...analyticsQuestionMetadata(question, mode) });
+    trackClientEvent("answer_saved_or_acted", { action: "create_counsel_summary", mode, ...analyticsQuestionMetadata(question, mode) });
     showView("decisions");
     scrollToSection("counsel-circle");
     announceWorkflow(ts('notifications.counselSummaryCreated'), ts('notifications.counselSummaryCreatedBody'), "success");
@@ -3202,6 +3272,7 @@ export function AletheiaApp() {
     setQuery(
       `Please go deeper on this in a practical, understandable way. Add more context, examples, blind spots, scripture context, and one next faithful step: ${question}`
     );
+    trackClientEvent("answer_followup_asked", { mode, kind: "go_deeper", ...analyticsQuestionMetadata(question, mode) });
     showView("companion");
     scrollToSection("companion-ask");
     announceWorkflow(ts('notifications.deeperFollowUpReady'), ts('notifications.deeperFollowUpReadyBody'), "success");
@@ -3212,12 +3283,27 @@ export function AletheiaApp() {
     setDecisionTitle(question ? question.slice(0, 90) : "Decision waiting period");
     setDecisionPressure(`${question}\n\nSuggested waiting rhythm: wait 3 days, seek counsel, count the cost, and revisit with less urgency.`);
     setDecisionEmotion("pressured");
+    trackClientEvent("answer_saved_or_acted", { action: "waiting_mode", mode, ...analyticsQuestionMetadata(question, mode) });
     showView("decisions");
     announceWorkflow(ts('notifications.waitingRhythmPrepared'), ts('notifications.waitingRhythmPreparedBody'), "success");
   }
 
   async function updatePreferences(patch: Partial<UserPreferences>) {
     const next = { ...preferences, ...patch };
+    if (patch.language && patch.language !== preferences.language) {
+      trackClientEvent("language_changed", {
+        language: patch.language,
+        previous_language: preferences.language,
+        bibleTranslation: next.bibleTranslation,
+      });
+    }
+    if (patch.bibleTranslation && patch.bibleTranslation !== preferences.bibleTranslation) {
+      trackClientEvent("bible_translation_changed", {
+        bibleTranslation: patch.bibleTranslation,
+        previous_bibleTranslation: preferences.bibleTranslation,
+        language: next.language,
+      });
+    }
     setPreferences(next);
     setPreferencesStatus(user ? "Saving language settings..." : "Saved on this device. Sign in to sync language settings.");
     try {
@@ -3450,6 +3536,13 @@ export function AletheiaApp() {
     }
     
     const cleanText = cleanDisplayText(text);
+    trackClientEvent("read_aloud_started", {
+      label,
+      mode,
+      language: preferences.language,
+      voiceSelected: Boolean(selectedVoice),
+      textLength: cleanText.length,
+    });
     const utterance = new SpeechSynthesisUtterance(cleanText);
     utterance.lang = activeLanguage.speech;
 
@@ -3518,8 +3611,21 @@ export function AletheiaApp() {
       return;
     }
 
+    const questionAnalytics = {
+      mode,
+      language: preferences.language,
+      region: preferences.region,
+      persisted: Boolean(user),
+      followup: messages.some((message) => message.role === "aletheia"),
+      ...analyticsQuestionMetadata(trimmed, mode),
+    };
+    trackClientEvent("question_asked", questionAnalytics);
+    if (questionAnalytics.followup) {
+      trackClientEvent("answer_followup_asked", { ...questionAnalytics, kind: "typed_followup" });
+    }
+
     if (!user) {
-      trackClientEvent("chat_question_sent", { mode, language: preferences.language, region: preferences.region, persisted: false });
+      trackClientEvent("chat_question_sent", questionAnalytics);
     }
 
     const userMessage: ChatMessage = { id: crypto.randomUUID(), role: "user", text: trimmed };
@@ -3562,6 +3668,12 @@ export function AletheiaApp() {
       setStatusMessage(responseMessage);
       announceWorkflow(ts('notifications.answerReady'), responseMessage, "success");
     } catch {
+      trackClientEvent("error_seen", {
+        area: "chat",
+        kind: "answer_generation_failed",
+        mode,
+        ...analyticsQuestionMetadata(trimmed, mode),
+      });
       const fallback = composeResponse(trimmed, mode);
       setMessages((current) =>
         current.map((message) =>
@@ -3585,6 +3697,7 @@ export function AletheiaApp() {
 
   async function handleAuth(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    trackClientEvent("auth_signin_started", { method: "email", flow: authMode });
     setIsWorking(true);
     setAuthStatus("signing-in");
     setAuthError("");
@@ -3687,6 +3800,7 @@ export function AletheiaApp() {
       return;
     }
     setAuthStatus("signing-in");
+    trackClientEvent("auth_signin_started", { method: "google", flow: "oauth_start" });
     setAuthError("");
     setAuthNotice("Opening Google sign-in. You will return to Account when it finishes.");
     setStatusMessage(ts('status.openingGoogleSignIn'));
@@ -3739,6 +3853,7 @@ export function AletheiaApp() {
       const permission = Notification.permission === "granted" ? "granted" : await Notification.requestPermission();
       setNotificationPermission(permission);
       if (permission !== "granted") {
+        trackClientEvent("notification_enable_failed", { reason: "permission_denied", permission });
         setNotificationStatus("Notifications were not enabled. You can allow them later in browser settings.");
         announceWorkflow(ts('notifications.notificationsNotEnabled'), ts('notifications.notificationsNotEnabledBody'), "warning");
         return;
@@ -3747,6 +3862,7 @@ export function AletheiaApp() {
       const keyResponse = await fetch("/api/notifications/key", { cache: "no-store" });
       const keyData = (await keyResponse.json()) as { publicKey?: string };
       if (!keyData.publicKey) {
+        trackClientEvent("notification_enable_failed", { reason: "missing_public_key" });
         setNotificationStatus("Notifications are missing a public key.");
         announceWorkflow(ts('notifications.notificationKeyMissing'), ts('notifications.notificationKeyMissingBody'), "error");
         return;
@@ -3770,6 +3886,7 @@ export function AletheiaApp() {
         preferredTimezone,
       }, preferredHour);
       if (!response.ok) {
+        trackClientEvent("notification_enable_failed", { reason: "subscription_save_failed" });
         setNotificationStatus("Could not save notification preference.");
         announceWorkflow(ts('notifications.notificationSyncFailed'), ts('notifications.notificationSyncFailedBody'), "error");
         return;
@@ -3786,6 +3903,7 @@ export function AletheiaApp() {
       setNotificationStatus("Daily wisdom notifications are enabled.");
       announceWorkflow(ts('notifications.notificationsEnabled'), ts('notifications.notificationsEnabledBodyTime').replace('{time}', notificationTimeLabel(preferredLocalHour)), "success");
     } catch {
+      trackClientEvent("notification_enable_failed", { reason: "client_exception" });
       setNotificationsEnabled(false);
       setNotificationStatus("Notifications could not be enabled on this device. Please try again.");
       announceWorkflow(ts('notifications.notificationSetupFailed'), ts('notifications.notificationSetupFailedBody'), "error");
@@ -3940,6 +4058,7 @@ export function AletheiaApp() {
       const data = (await response.json()) as { entry?: JournalEntry };
       if (data.entry) {
         setJournalEntries((current) => [data.entry!, ...current]);
+        trackClientEvent("journal_entry_created", { mode, source: "reflect_tab" });
         announceWorkflow(ts('notifications.reflectionSaved'), ts('notifications.reflectionSavedBody'), "success");
       }
     } else {
@@ -4009,6 +4128,7 @@ export function AletheiaApp() {
       const data = (await response.json()) as { decision?: WisdomDecision };
       if (data.decision) {
         setWisdomDecisions((current) => [data.decision!, ...current]);
+        trackClientEvent("decision_created", { mode, emotion: decisionEmotion, source: "decision_tab" });
         setDecisionEvents((current) => [
           {
             id: crypto.randomUUID(),
@@ -4101,6 +4221,14 @@ export function AletheiaApp() {
       if (!response.ok) {
         announceWorkflow(ts('notifications.decisionUpdateFailed'), ts('notifications.decisionUpdateFailedBody'), "error");
         return;
+      }
+      if (patch.revisitDays || patch.outcomeReviewDays || patch.waitingDays) {
+        trackClientEvent("decision_revisited", {
+          mode: current.mode,
+          waitingDays: patch.waitingDays ?? null,
+          revisitDays: patch.revisitDays ?? null,
+          outcomeReviewDays: patch.outcomeReviewDays ?? null,
+        });
       }
     }
 
@@ -4444,6 +4572,7 @@ export function AletheiaApp() {
       const data = (await response.json()) as { rule?: RuleOfLife };
       if (data.rule) {
         setRulesOfLife((current) => [data.rule!, ...current]);
+        trackClientEvent("rule_created", { mode });
         announceWorkflow(ts('notifications.ruleOfLifeSaved'), ts('notifications.ruleOfLifeSavedBody'), "success");
       }
     } else {
@@ -4668,7 +4797,7 @@ export function AletheiaApp() {
                   todayPattern={todayPattern}
                   companionCard={todayCompanionCard}
                   carryToday={carryToday}
-                  onScriptureOpen={setSelectedScripture}
+                  onScriptureOpen={openScripture}
                   onContinueDecision={continueDecisionFlow}
                   onReflectToday={reflectOnToday}
                   onReviewPattern={reviewPatternFlow}
@@ -4704,7 +4833,7 @@ export function AletheiaApp() {
                   speechProgress={speechProgress}
                   answerFocusId={answerFocusId}
                   onAnswerFocused={() => setAnswerFocusId(null)}
-                  onScriptureOpen={setSelectedScripture}
+                  onScriptureOpen={openScripture}
                   onTrackDecision={trackDecisionFromExchange}
                   onDraftReflection={draftReflectionFromExchange}
                   onCreateCounselSummary={draftCounselSummaryFromExchange}
@@ -4762,7 +4891,7 @@ export function AletheiaApp() {
                   onSpeakText={speakText}
                   isSpeaking={isSpeaking}
                   onAddRule={addRuleOfLife}
-                  onScriptureOpen={setSelectedScripture}
+                  onScriptureOpen={openScripture}
                   theme={theme}
                 />
                 </Screen>
@@ -4798,7 +4927,7 @@ export function AletheiaApp() {
                   setSearch={setLibrarySearch}
                   mode={mode}
                   preferences={preferences}
-                  onScriptureOpen={setSelectedScripture}
+                  onScriptureOpen={openScripture}
                   theme={theme}
                 />
                 </Screen>
@@ -4838,7 +4967,7 @@ export function AletheiaApp() {
                   activeRegion={activeRegion}
                   themePreference={themePreference}
                   onPreferenceChange={updatePreferences}
-                  onThemePreferenceChange={setThemePreference}
+                  onThemePreferenceChange={updateThemePreference}
                   onManualContextChange={updateManualContext}
                   notificationsEnabled={notificationsEnabled}
                   notificationsConfigured={notificationsConfigured}
@@ -5824,7 +5953,17 @@ function DisclosureSection({
     <section className="min-w-0 max-w-full overflow-hidden rounded-xl border shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
       <button
         type="button"
-        onClick={() => setOpen((value) => !value)}
+        onClick={() => {
+          setOpen((value) => {
+            const next = !value;
+            trackClientEvent("disclosure_section_toggled", {
+              section: title,
+              opened: next,
+              eyebrow: eyebrow ?? null,
+            });
+            return next;
+          });
+        }}
         className="flex w-full min-w-0 flex-wrap items-start justify-between gap-3 p-4 text-left sm:p-5"
       >
         <span className="min-w-0">

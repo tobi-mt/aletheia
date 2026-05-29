@@ -7,6 +7,7 @@ import { manualContextSummary, normalizeManualContext, type ManualContextProfile
 import { generateWisdomResponse } from "@/lib/openai";
 import { checkRateLimit, getClientIdentity, rateLimitHeaders } from "@/lib/rate-limit";
 import { composeModeAwareFallbackResponse, retrieveWisdom } from "@/lib/wisdom";
+import { analyticsQuestionMetadata } from "@/lib/analytics-taxonomy";
 import type { Mode } from "@/lib/wisdom-data";
 
 function compactMemorySummary({
@@ -231,17 +232,19 @@ export async function POST(request: Request) {
   }
 
   if (user) {
+    const analyticsMetadata = {
+      mode,
+      language: preferences.language,
+      region: preferences.region,
+      persisted: true,
+      usedOpenAI: Boolean(process.env.OPENAI_API_KEY),
+      sourceCount: sources.length,
+      ...analyticsQuestionMetadata(message, mode),
+    };
     await trackServerEvent({
       userId: user.id,
       eventName: "chat_question_sent",
-      metadata: {
-        mode,
-        language: preferences.language,
-        region: preferences.region,
-        persisted: true,
-        usedOpenAI: Boolean(process.env.OPENAI_API_KEY),
-        sourceCount: sources.length,
-      },
+      metadata: analyticsMetadata,
     });
   }
 
