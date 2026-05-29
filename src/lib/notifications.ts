@@ -1,4 +1,5 @@
 import webpush, { PushSubscription } from "web-push";
+import { createECDH, timingSafeEqual } from "node:crypto";
 import { many, one, run } from "@/lib/db";
 import { localizedDailyWisdom, normalizePreferences, type BibleTranslation, type LanguageCode, type RegionCode } from "@/lib/localization";
 import { getWisdomEntries } from "@/lib/wisdom";
@@ -48,6 +49,46 @@ export function getVapidPublicKey() {
   return process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || process.env.VAPID_PUBLIC_KEY || "";
 }
 
+function decodeBase64Url(value: string) {
+  return Buffer.from(value.replace(/-/g, "+").replace(/_/g, "/"), "base64");
+}
+
+export function getVapidKeyPairStatus() {
+  const publicKey = getVapidPublicKey().trim();
+  const privateKey = process.env.VAPID_PRIVATE_KEY?.trim() || "";
+  const subject = getVapidSubject();
+
+  if (!publicKey || !privateKey || !subject) {
+    return {
+      configured: false,
+      keyPairValid: false,
+      reason: "missing_vapid_env",
+    };
+  }
+
+  try {
+    const ecdh = createECDH("prime256v1");
+    ecdh.setPrivateKey(decodeBase64Url(privateKey));
+    const derivedPublicKey = ecdh.getPublicKey();
+    const configuredPublicKey = decodeBase64Url(publicKey);
+    const keyPairValid =
+      configuredPublicKey.length === derivedPublicKey.length &&
+      timingSafeEqual(configuredPublicKey, derivedPublicKey);
+
+    return {
+      configured: true,
+      keyPairValid,
+      reason: keyPairValid ? "ok" : "public_private_mismatch",
+    };
+  } catch {
+    return {
+      configured: true,
+      keyPairValid: false,
+      reason: "invalid_vapid_key_format",
+    };
+  }
+}
+
 export function getVapidSubject() {
   const subject = process.env.VAPID_SUBJECT?.trim();
   if (subject) {
@@ -61,11 +102,8 @@ export function getVapidSubject() {
 }
 
 export function isPushConfigured() {
-  return Boolean(
-    getVapidPublicKey() &&
-      process.env.VAPID_PRIVATE_KEY &&
-      getVapidSubject()
-  );
+  const status = getVapidKeyPairStatus();
+  return status.configured && status.keyPairValid;
 }
 
 export function configureWebPush() {

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getNotificationHealthSnapshot } from "@/lib/notifications";
+import { getNotificationHealthSnapshot, getVapidKeyPairStatus } from "@/lib/notifications";
 
 export const dynamic = "force-dynamic";
 
@@ -39,6 +39,7 @@ export async function GET(request: Request) {
   const scope = scopeFromRequest(request);
 
   if (scope === "readiness") {
+    const vapidStatus = getVapidKeyPairStatus();
     return NextResponse.json({
       ok: true,
       configured: {
@@ -46,7 +47,9 @@ export async function GET(request: Request) {
         vapidPublicKey: Boolean((process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || process.env.VAPID_PUBLIC_KEY || "").trim()),
         vapidPrivateKey: Boolean(process.env.VAPID_PRIVATE_KEY?.trim()),
         vapidSubject: Boolean((process.env.VAPID_SUBJECT || process.env.VAPID_CLAIM_EMAIL || "").trim()),
+        vapidKeyPairValid: vapidStatus.keyPairValid,
       },
+      vapidReason: vapidStatus.reason,
       generatedAt: new Date().toISOString(),
     });
   }
