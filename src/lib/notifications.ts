@@ -150,6 +150,31 @@ function shouldSendAtLocalHour(row: PushRow, now: Date) {
   return hoursSinceLastSent >= 23;
 }
 
+function shouldDeleteBrokenSubscription(error: unknown) {
+  if (typeof error !== "object" || !error) {
+    return false;
+  }
+
+  const statusCode = "statusCode" in error ? Number((error as { statusCode?: unknown }).statusCode) : 0;
+  if (statusCode === 404 || statusCode === 410) {
+    return true;
+  }
+
+  const body = "body" in error ? String((error as { body?: unknown }).body ?? "") : "";
+  const message = "message" in error ? String((error as { message?: unknown }).message ?? "") : "";
+  const details = `${body} ${message}`.toLowerCase();
+
+  // Subscriptions created with a different VAPID key pair can never recover.
+  if (details.includes("vapidpkhashmismatch")) {
+    return true;
+  }
+  if (details.includes("vapid credentials") && details.includes("do not correspond")) {
+    return true;
+  }
+
+  return false;
+}
+
 export async function sendDailyWisdomNotifications() {
   configureWebPush();
 
@@ -213,11 +238,7 @@ export async function sendDailyWisdomNotifications() {
           sent += 1;
         } catch (error) {
           failed += 1;
-          const statusCode =
-            typeof error === "object" && error && "statusCode" in error
-              ? Number(error.statusCode)
-              : 0;
-          if (statusCode === 404 || statusCode === 410) {
+          if (shouldDeleteBrokenSubscription(error)) {
             await run("DELETE FROM push_subscriptions WHERE id = ?", row.id);
           }
         }

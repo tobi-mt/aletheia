@@ -3,6 +3,8 @@ import { many, run } from "@/lib/db";
 
 const ALLOWED_EVENTS = new Set([
   "app_opened",
+  "app_update_overlay_shown",
+  "app_update_refresh_landed",
   "app_view_changed",
   "answer_feedback",
   "app_shared",
@@ -341,5 +343,129 @@ export async function analyticsSummary() {
     hourlyUsage30d: hourlyRows,
     retentionWeekly: retentionRows,
     authFailures30d: authFailureRows,
+  };
+}
+
+type UpdateRolloutOverviewRow = {
+  shown_count: number;
+  landed_count: number;
+  shown_unique_cycles: number;
+  landed_unique_cycles: number;
+  landed_matched_cycles: number;
+};
+
+type UpdateRolloutLatencyRow = {
+  samples: number;
+  avg_elapsed_ms: number;
+  p50_elapsed_ms: number;
+  p95_elapsed_ms: number;
+};
+
+type UpdateRolloutHourlyRow = {
+  hour_utc: number;
+  shown: number;
+  landed: number;
+};
+
+export async function updateRolloutSummary(windowHours = 24) {
+  const boundedWindowHours = Math.min(24 * 14, Math.max(1, Math.floor(windowHours)));
+
+  const [overview, latency, hourly] = await Promise.all([
+    many<UpdateRolloutOverviewRow>(
+      `WITH scoped AS (
+         SELECT event_name, metadata
+         FROM analytics_events
+         WHERE created_at >= now() - (? * interval '1 hour')
+           AND event_name IN ('app_update_overlay_shown', 'app_update_refresh_landed')
+       ),
+       shown AS (
+         SELECT metadata->>'cycle_id' AS cycle_id
+         FROM scoped
+         WHERE event_name = 'app_update_overlay_shown'
+       ),
+       landed AS (
+         SELECT metadata->>'cycle_id' AS cycle_id
+         FROM scoped
+         WHERE event_name = 'app_update_refresh_landed'
+       )
+       SELECT
+         (SELECT COUNT(*)::int FROM shown) AS shown_count,
+         (SELECT COUNT(*)::int FROM landed) AS landed_count,
+         (SELECT COUNT(DISTINCT cycle_id)::int FROM shown WHERE cycle_id IS NOT NULL AND cycle_id <> '') AS shown_unique_cycles,
+         (SELECT COUNT(DISTINCT cycle_id)::int FROM landed WHERE cycle_id IS NOT NULL AND cycle_id <> '') AS landed_unique_cycles,
+         (SELECT COUNT(DISTINCT landed.cycle_id)::int
+            FROM landed
+            JOIN shown ON shown.cycle_id = landed.cycle_id
+           WHERE landed.cycle_id IS NOT NULL AND landed.cycle_id <> '') AS landed_matched_cycles`,
+      boundedWindowHours
+    ),
+    many<UpdateRolloutLatencyRow>(
+      `SELECT
+         COUNT(*)::int AS samples,
+         COALESCE(ROUND(AVG((metadata->>'elapsed_ms')::numeric), 2), 0)::double precision AS avg_elapsed_ms,
+         COALESCE(PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY (metadata->>'elapsed_ms')::numeric), 0)::double precision AS p50_elapsed_ms,
+         COALESCE(PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY (metadata->>'elapsed_ms')::numeric), 0)::double precision AS p95_elapsed_ms
+       FROM analytics_events
+       WHERE event_name = 'app_update_refresh_landed'
+         AND created_at >= now() - (? * interval '1 hour')
+         AND metadata->>'elapsed_ms' ~ '^[0-9]+(\\.[0-9]+)?$'`,
+      boundedWindowHours
+    ),
+    many<UpdateRolloutHourlyRow>(
+      `SELECT
+         EXTRACT(HOUR FROM created_at)::int AS hour_utc,
+         COUNT(*) FILTER (WHERE event_name = 'app_update_overlay_shown')::int AS shown,
+         COUNT(*) FILTER (WHERE event_name = 'app_update_refresh_landed')::int AS landed
+       FROM analytics_events
+       WHERE event_name IN ('app_update_overlay_shown', 'app_update_refresh_landed')
+         AND created_at >= now() - (? * interval '1 hour')
+       GROUP BY EXTRACT(HOUR FROM created_at)
+       ORDER BY hour_utc ASC`,
+      boundedWindowHours
+    ),
+  ]);
+
+  const overviewRow = overview[0] ?? {
+    shown_count: 0,
+    landed_count: 0,
+    shown_unique_cycles: 0,
+    landed_unique_cycles: 0,
+    landed_matched_cycles: 0,
+  };
+  const latencyRow = latency[0] ?? {
+    samples: 0,
+    avg_elapsed_ms: 0,
+    p50_elapsed_ms: 0,
+    p95_elapsed_ms: 0,
+  };
+
+  const landedPerShown = overviewRow.shown_count > 0
+    ? Number((overviewRow.landed_count / overviewRow.shown_count).toFixed(4))
+    : 0;
+  const cycleMatchRate = overviewRow.shown_unique_cycles > 0
+    ? Number((overviewRow.landed_matched_cycles / overviewRow.shown_unique_cycles).toFixed(4))
+    : 0;
+
+  return {
+    windowHours: boundedWindowHours,
+    generatedAt: new Date().toISOString(),
+    events: {
+      shown: overviewRow.shown_count,
+      landed: overviewRow.landed_count,
+      landedPerShown,
+    },
+    cycles: {
+      shownUnique: overviewRow.shown_unique_cycles,
+      landedUnique: overviewRow.landed_unique_cycles,
+      matched: overviewRow.landed_matched_cycles,
+      matchRate: cycleMatchRate,
+    },
+    latencyMs: {
+      samples: latencyRow.samples,
+      average: latencyRow.avg_elapsed_ms,
+      p50: latencyRow.p50_elapsed_ms,
+      p95: latencyRow.p95_elapsed_ms,
+    },
+    hourly,
   };
 }

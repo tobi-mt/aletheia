@@ -6,6 +6,7 @@ import { isPushConfigured } from "@/lib/notifications";
 function normalizeTiming(body: {
   preferredLocalHour?: unknown;
   preferredTimezone?: unknown;
+  timezoneMode?: unknown;
   deliveryStrategy?: unknown;
 }) {
   const deliveryStrategy =
@@ -20,8 +21,9 @@ function normalizeTiming(body: {
     typeof body.preferredTimezone === "string" && body.preferredTimezone.trim()
       ? body.preferredTimezone.trim().slice(0, 80)
       : "UTC";
+  const timezoneMode = body.timezoneMode === "manual" ? "manual" : "auto";
 
-  return { preferredLocalHour, preferredTimezone, deliveryStrategy };
+  return { preferredLocalHour, preferredTimezone, timezoneMode, deliveryStrategy };
 }
 
 export async function GET() {
@@ -32,6 +34,7 @@ export async function GET() {
       enabled: false,
       subscriptions: 0,
       hasExplicitTiming: false,
+      timezoneMode: "auto",
     });
   }
 
@@ -39,14 +42,16 @@ export async function GET() {
     count: string;
     preferred_local_hour: number | null;
     preferred_timezone: string | null;
+     timezone_mode: string | null;
     delivery_strategy: string | null;
     notification_preferred_local_hour: number | null;
     notification_preferred_timezone: string | null;
+     notification_timezone_mode: string | null;
     notification_delivery_strategy: string | null;
     notification_timing_updated_at: string | null;
   }>(
     `WITH latest_subscription AS (
-       SELECT preferred_local_hour, preferred_timezone, delivery_strategy
+       SELECT preferred_local_hour, preferred_timezone, timezone_mode, delivery_strategy
        FROM push_subscriptions
        WHERE user_id = ? AND enabled = TRUE
        ORDER BY updated_at DESC
@@ -60,9 +65,11 @@ export async function GET() {
      SELECT subscription_count.count,
             latest_subscription.preferred_local_hour,
             latest_subscription.preferred_timezone,
+           latest_subscription.timezone_mode,
             latest_subscription.delivery_strategy,
             user_preferences.notification_preferred_local_hour,
             user_preferences.notification_preferred_timezone,
+           user_preferences.notification_timezone_mode,
             user_preferences.notification_delivery_strategy,
             user_preferences.notification_timing_updated_at
      FROM subscription_count
@@ -80,6 +87,9 @@ export async function GET() {
   const preferredTimezone = hasAccountTiming
     ? row?.notification_preferred_timezone
     : row?.preferred_timezone;
+  const timezoneMode = hasAccountTiming
+    ? row?.notification_timezone_mode
+    : row?.timezone_mode;
   const deliveryStrategy = hasAccountTiming
     ? row?.notification_delivery_strategy
     : row?.delivery_strategy;
@@ -92,6 +102,7 @@ export async function GET() {
     hasExplicitTiming: hasAccountTiming,
     preferredLocalHour: preferredLocalHour ?? 8,
     preferredTimezone: preferredTimezone ?? "UTC",
+    timezoneMode: timezoneMode === "manual" ? "manual" : "auto",
     deliveryStrategy: deliveryStrategy ?? "morning",
   });
 }
@@ -109,18 +120,20 @@ export async function POST(request: Request) {
   await run(
     `INSERT INTO user_preferences (
        user_id, notification_preferred_local_hour, notification_preferred_timezone,
-       notification_delivery_strategy, notification_timing_updated_at, created_at, updated_at
-     ) VALUES (?, ?, ?, ?, ?, ?, ?)
+       notification_timezone_mode, notification_delivery_strategy, notification_timing_updated_at, created_at, updated_at
+     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT (user_id)
      DO UPDATE SET
        notification_preferred_local_hour = EXCLUDED.notification_preferred_local_hour,
        notification_preferred_timezone = EXCLUDED.notification_preferred_timezone,
+       notification_timezone_mode = EXCLUDED.notification_timezone_mode,
        notification_delivery_strategy = EXCLUDED.notification_delivery_strategy,
        notification_timing_updated_at = EXCLUDED.notification_timing_updated_at,
        updated_at = EXCLUDED.updated_at`,
     user.id,
     timing.preferredLocalHour,
     timing.preferredTimezone,
+    timing.timezoneMode,
     timing.deliveryStrategy,
     now,
     now,
@@ -132,12 +145,14 @@ export async function POST(request: Request) {
      SET preferred_hour = ?,
          preferred_local_hour = ?,
          preferred_timezone = ?,
+         timezone_mode = ?,
          delivery_strategy = ?,
          updated_at = ?
      WHERE user_id = ? AND enabled = TRUE`,
     preferredHour,
     timing.preferredLocalHour,
     timing.preferredTimezone,
+    timing.timezoneMode,
     timing.deliveryStrategy,
     now,
     user.id

@@ -79,7 +79,7 @@ export async function sendEmail(input: EmailInput): Promise<EmailResult> {
         headers: {
           Authorization: `Bearer ${resendApiKey}`,
           "Content-Type": "application/json",
-          "User-Agent": "aletheia/0.1.0",
+          "User-Agent": "aletheia/0.1.1",
         },
         body: JSON.stringify(payload),
       });

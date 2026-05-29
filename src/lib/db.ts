@@ -116,6 +116,7 @@ async function initializeDatabase() {
       preferred_hour INTEGER NOT NULL DEFAULT 8,
       preferred_local_hour INTEGER NOT NULL DEFAULT 8,
       preferred_timezone TEXT NOT NULL DEFAULT 'UTC',
+      timezone_mode TEXT NOT NULL DEFAULT 'auto',
       delivery_strategy TEXT NOT NULL DEFAULT 'morning',
       last_sent_at TIMESTAMPTZ,
       created_at TIMESTAMPTZ NOT NULL,
@@ -124,6 +125,7 @@ async function initializeDatabase() {
 
     ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS preferred_local_hour INTEGER NOT NULL DEFAULT 8;
     ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS preferred_timezone TEXT NOT NULL DEFAULT 'UTC';
+    ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS timezone_mode TEXT NOT NULL DEFAULT 'auto';
     ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS delivery_strategy TEXT NOT NULL DEFAULT 'morning';
 
     CREATE TABLE IF NOT EXISTS counsel_contacts (
@@ -222,6 +224,7 @@ async function initializeDatabase() {
       voice_enabled BOOLEAN NOT NULL DEFAULT FALSE,
       notification_preferred_local_hour INTEGER NOT NULL DEFAULT 8,
       notification_preferred_timezone TEXT NOT NULL DEFAULT 'UTC',
+      notification_timezone_mode TEXT NOT NULL DEFAULT 'auto',
       notification_delivery_strategy TEXT NOT NULL DEFAULT 'morning',
       notification_timing_updated_at TIMESTAMPTZ,
       created_at TIMESTAMPTZ NOT NULL,
@@ -230,6 +233,7 @@ async function initializeDatabase() {
 
     ALTER TABLE user_preferences ADD COLUMN IF NOT EXISTS notification_preferred_local_hour INTEGER NOT NULL DEFAULT 8;
     ALTER TABLE user_preferences ADD COLUMN IF NOT EXISTS notification_preferred_timezone TEXT NOT NULL DEFAULT 'UTC';
+    ALTER TABLE user_preferences ADD COLUMN IF NOT EXISTS notification_timezone_mode TEXT NOT NULL DEFAULT 'auto';
     ALTER TABLE user_preferences ADD COLUMN IF NOT EXISTS notification_delivery_strategy TEXT NOT NULL DEFAULT 'morning';
     ALTER TABLE user_preferences ADD COLUMN IF NOT EXISTS notification_timing_updated_at TIMESTAMPTZ;
 

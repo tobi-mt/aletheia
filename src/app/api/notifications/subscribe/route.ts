@@ -23,6 +23,7 @@ export async function POST(request: Request) {
       preferredHour?: number;
       preferredLocalHour?: number;
       preferredTimezone?: string;
+      timezoneMode?: string;
       deliveryStrategy?: string;
     };
 
@@ -38,6 +39,7 @@ export async function POST(request: Request) {
     const preferredTimezone = typeof body.preferredTimezone === "string" && body.preferredTimezone.trim()
       ? body.preferredTimezone.trim().slice(0, 80)
       : "UTC";
+    const timezoneMode = body.timezoneMode === "manual" ? "manual" : "auto";
     const deliveryStrategy = typeof body.deliveryStrategy === "string" && body.deliveryStrategy.trim()
       ? body.deliveryStrategy.trim().slice(0, 40)
       : "morning";
@@ -53,8 +55,8 @@ export async function POST(request: Request) {
     await run(
       `INSERT INTO push_subscriptions (
         id, user_id, endpoint, p256dh, auth, user_agent, enabled, preferred_hour,
-        preferred_local_hour, preferred_timezone, delivery_strategy, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, TRUE, ?, ?, ?, ?, ?, ?)
+        preferred_local_hour, preferred_timezone, timezone_mode, delivery_strategy, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, TRUE, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT (endpoint)
       DO UPDATE SET
         user_id = EXCLUDED.user_id,
@@ -65,6 +67,7 @@ export async function POST(request: Request) {
         preferred_hour = EXCLUDED.preferred_hour,
         preferred_local_hour = EXCLUDED.preferred_local_hour,
         preferred_timezone = EXCLUDED.preferred_timezone,
+        timezone_mode = EXCLUDED.timezone_mode,
         delivery_strategy = EXCLUDED.delivery_strategy,
         updated_at = EXCLUDED.updated_at`,
       crypto.randomUUID(),
@@ -76,6 +79,7 @@ export async function POST(request: Request) {
       preferredHour,
       preferredLocalHour,
       preferredTimezone,
+      timezoneMode,
       deliveryStrategy,
       now,
       now
@@ -84,18 +88,20 @@ export async function POST(request: Request) {
     await run(
       `INSERT INTO user_preferences (
          user_id, notification_preferred_local_hour, notification_preferred_timezone,
-         notification_delivery_strategy, notification_timing_updated_at, created_at, updated_at
-       ) VALUES (?, ?, ?, ?, ?, ?, ?)
+         notification_timezone_mode, notification_delivery_strategy, notification_timing_updated_at, created_at, updated_at
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT (user_id)
        DO UPDATE SET
          notification_preferred_local_hour = EXCLUDED.notification_preferred_local_hour,
          notification_preferred_timezone = EXCLUDED.notification_preferred_timezone,
+         notification_timezone_mode = EXCLUDED.notification_timezone_mode,
          notification_delivery_strategy = EXCLUDED.notification_delivery_strategy,
          notification_timing_updated_at = EXCLUDED.notification_timing_updated_at,
          updated_at = EXCLUDED.updated_at`,
       user.id,
       preferredLocalHour,
       preferredTimezone,
+      timezoneMode,
       deliveryStrategy,
       now,
       now,
@@ -107,12 +113,14 @@ export async function POST(request: Request) {
        SET preferred_hour = ?,
            preferred_local_hour = ?,
            preferred_timezone = ?,
+           timezone_mode = ?,
            delivery_strategy = ?,
            updated_at = ?
        WHERE user_id = ? AND enabled = TRUE`,
       preferredHour,
       preferredLocalHour,
       preferredTimezone,
+        timezoneMode,
       deliveryStrategy,
       now,
       user.id
@@ -121,7 +129,7 @@ export async function POST(request: Request) {
     await trackServerEvent({
       userId: user.id,
       eventName: "notification_enabled",
-      metadata: { preferredHour, preferredLocalHour, preferredTimezone, deliveryStrategy },
+      metadata: { preferredHour, preferredLocalHour, preferredTimezone, timezoneMode, deliveryStrategy },
     });
 
     return NextResponse.json({ ok: true });

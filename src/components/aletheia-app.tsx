@@ -284,6 +284,7 @@ type WorkflowNoticeState = {
 type NotificationTiming = {
   preferredLocalHour: number;
   preferredTimezone: string;
+  timezoneMode: "auto" | "manual";
   deliveryStrategy: "morning" | "midday" | "evening" | "custom";
 };
 
@@ -295,9 +296,11 @@ const VOICE_STORAGE_KEY = "aletheia_selected_voice";
 const NOTIFICATION_TIMING_STORAGE_KEY = "aletheia_notification_timing";
 const COUNSEL_STATUS_TRACKING_KEY = "aletheia_counsel_status_tracking";
 const CARRY_TODAY_STORAGE_KEY = "aletheia_carry_today";
+const UPDATE_REFRESH_PENDING_KEY = "aletheia_update_refresh_pending";
 const DEFAULT_NOTIFICATION_TIMING: NotificationTiming = {
   preferredLocalHour: 8,
   preferredTimezone: "UTC",
+  timezoneMode: "auto",
   deliveryStrategy: "morning",
 };
 
@@ -1147,7 +1150,12 @@ function trackAuthFailure(metadata: AnalyticsMetadata) {
 
 async function getReliableServiceWorkerRegistration() {
   const existing = await navigator.serviceWorker.getRegistration("/");
-  const registration = existing ?? (await navigator.serviceWorker.register("/sw.js", { scope: "/" }));
+  const registration =
+    existing ??
+    (await navigator.serviceWorker.register("/sw.js", {
+      scope: "/",
+      updateViaCache: "none",
+    }));
   registration.update().catch(() => undefined);
   return navigator.serviceWorker.ready;
 }
@@ -1211,7 +1219,60 @@ function notificationTimeLabel(hour: number) {
   return `${hour12}:00 ${suffix}`;
 }
 
-function shouldFallbackToBrowserTimezone(preferredTimezone: string | undefined, hasExplicitTiming: boolean | undefined) {
+function notificationTimezoneOptions(currentTimezone?: string) {
+  const fallbackZones = [
+    "UTC",
+    "Europe/Berlin",
+    "Europe/London",
+    "Europe/Paris",
+    "Europe/Madrid",
+    "Europe/Rome",
+    "Europe/Lisbon",
+    "Europe/Amsterdam",
+    "Europe/Warsaw",
+    "Europe/Kiev",
+    "Africa/Lagos",
+    "Africa/Johannesburg",
+    "America/New_York",
+    "America/Chicago",
+    "America/Denver",
+    "America/Los_Angeles",
+    "America/Toronto",
+    "America/Sao_Paulo",
+    "Asia/Jerusalem",
+    "Asia/Dubai",
+    "Asia/Kolkata",
+    "Asia/Singapore",
+    "Asia/Tokyo",
+    "Australia/Sydney",
+    "Pacific/Auckland",
+  ];
+
+  const intlWithSupportedValues = Intl as typeof Intl & {
+    supportedValuesOf?: (key: string) => string[];
+  };
+  const knownTimezones = typeof intlWithSupportedValues.supportedValuesOf === "function"
+    ? intlWithSupportedValues.supportedValuesOf("timeZone")
+    : fallbackZones;
+
+  const preferred = currentTimezone?.trim() || "";
+  const detected = browserTimezone();
+  const topChoices = [preferred, detected, "UTC", "Europe/Berlin"].filter(Boolean);
+
+  return Array.from(new Set([...topChoices, ...knownTimezones]));
+}
+
+function shouldFallbackToBrowserTimezone(
+  preferredTimezone: string | undefined,
+  hasExplicitTiming: boolean | undefined,
+  timezoneMode: string | undefined
+) {
+  if (timezoneMode === "auto") {
+    return true;
+  }
+  if (timezoneMode === "manual") {
+    return false;
+  }
   if (hasExplicitTiming) {
     return false;
   }
@@ -1228,9 +1289,14 @@ function normalizeNotificationTiming(value?: Partial<NotificationTiming> | null)
   const rawHour = Number.isInteger(value?.preferredLocalHour)
     ? Number(value?.preferredLocalHour)
     : notificationHourForStrategy(deliveryStrategy, DEFAULT_NOTIFICATION_TIMING.preferredLocalHour);
+  const timezoneMode: NotificationTiming["timezoneMode"] = value?.timezoneMode === "manual" ? "manual" : "auto";
+  const preferredTimezone = timezoneMode === "auto"
+    ? (typeof window === "undefined" ? "UTC" : browserTimezone())
+    : value?.preferredTimezone || (typeof window === "undefined" ? "UTC" : browserTimezone());
   return {
     preferredLocalHour: Math.min(23, Math.max(0, rawHour)),
-    preferredTimezone: value?.preferredTimezone || (typeof window === "undefined" ? "UTC" : browserTimezone()),
+    preferredTimezone,
+    timezoneMode,
     deliveryStrategy,
   };
 }
@@ -1878,6 +1944,7 @@ export function AletheiaApp() {
   const [notificationStatus, setNotificationStatus] = useState("Checking notification support...");
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [notificationsConfigured, setNotificationsConfigured] = useState(false);
+  const [isRefreshingForUpdate, setIsRefreshingForUpdate] = useState(false);
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>("default");
   const [notificationBusy, setNotificationBusy] = useState(false);
   const [notificationTiming, setNotificationTiming] = useState<NotificationTiming>(DEFAULT_NOTIFICATION_TIMING);
@@ -1939,6 +2006,7 @@ export function AletheiaApp() {
   const workspaceRef = useRef<HTMLElement | null>(null);
   const topNavRef = useRef<HTMLElement | null>(null);
   const bottomNavRef = useRef<HTMLDivElement | null>(null);
+  const updateRefreshTimeoutRef = useRef<number | null>(null);
 
   // Hydration-safe restore of client-only persisted state.
   useEffect(() => {
@@ -2435,6 +2503,7 @@ export function AletheiaApp() {
       hasExplicitTiming?: boolean;
       preferredLocalHour?: number;
       preferredTimezone?: string;
+      timezoneMode?: NotificationTiming["timezoneMode"];
       deliveryStrategy?: NotificationTiming["deliveryStrategy"];
     };
     const decisionsData = (await decisionsResponse.json()) as {
@@ -2480,20 +2549,20 @@ export function AletheiaApp() {
     setNotificationsConfigured(Boolean(notificationData.configured));
     setNotificationsEnabled(Boolean(notificationData.enabled));
     if (notificationData.enabled || notificationData.timingConfigured) {
-      const effectiveTimezone = shouldFallbackToBrowserTimezone(
+      const useDeviceTimezone = shouldFallbackToBrowserTimezone(
         notificationData.preferredTimezone,
-        notificationData.hasExplicitTiming
-      )
-        ? browserTimezone()
-        : notificationData.preferredTimezone;
+        notificationData.hasExplicitTiming,
+        notificationData.timezoneMode
+      );
       const nextTiming = normalizeNotificationTiming({
         preferredLocalHour: notificationData.preferredLocalHour,
-        preferredTimezone: effectiveTimezone,
+        preferredTimezone: useDeviceTimezone ? browserTimezone() : notificationData.preferredTimezone,
+        timezoneMode: useDeviceTimezone ? "auto" : (notificationData.timezoneMode ?? "manual"),
         deliveryStrategy: notificationData.deliveryStrategy,
       });
       setNotificationTiming(nextTiming);
       persistNotificationTiming(nextTiming);
-      if (shouldFallbackToBrowserTimezone(notificationData.preferredTimezone, notificationData.hasExplicitTiming)) {
+      if (useDeviceTimezone) {
         void saveNotificationTimingPreference(nextTiming).catch(() => undefined);
       }
     }
@@ -2512,6 +2581,34 @@ export function AletheiaApp() {
     trackClientEvent("app_opened", {
       standalone: window.matchMedia("(display-mode: standalone)").matches,
     });
+  }, []);
+
+  useEffect(() => {
+    if (process.env.NODE_ENV !== "production") {
+      return;
+    }
+
+    try {
+      const raw = window.sessionStorage.getItem(UPDATE_REFRESH_PENDING_KEY);
+      if (!raw) {
+        return;
+      }
+
+      window.sessionStorage.removeItem(UPDATE_REFRESH_PENDING_KEY);
+      const parsed = JSON.parse(raw) as { cycleId?: string; shownAt?: number };
+      const elapsedMs =
+        typeof parsed.shownAt === "number" && Number.isFinite(parsed.shownAt)
+          ? Math.max(0, Date.now() - parsed.shownAt)
+          : null;
+
+      trackClientEvent("app_update_refresh_landed", {
+        cycle_id: parsed.cycleId ?? "unknown",
+        elapsed_ms: elapsedMs,
+        overlay_seen: true,
+      });
+    } catch {
+      // Ignore malformed storage and continue app startup.
+    }
   }, []);
 
   useEffect(() => {
@@ -2624,18 +2721,46 @@ export function AletheiaApp() {
   }, []);
 
   useEffect(() => {
+    let swCleanup: (() => void) | null = null;
     if ("serviceWorker" in navigator) {
       if (process.env.NODE_ENV === "production") {
         let refreshing = false;
-        navigator.serviceWorker.addEventListener("controllerchange", () => {
+        let visibilityListener: (() => void) | null = null;
+        const handleControllerChange = () => {
           if (refreshing) {
             return;
           }
           refreshing = true;
-          window.location.reload();
-        });
+          const cycleId = crypto.randomUUID();
+          try {
+            window.sessionStorage.setItem(
+              UPDATE_REFRESH_PENDING_KEY,
+              JSON.stringify({
+                cycleId,
+                shownAt: Date.now(),
+              })
+            );
+          } catch {
+            // Continue even if storage is unavailable.
+          }
+
+          trackClientEvent("app_update_overlay_shown", {
+            cycle_id: cycleId,
+            reload_delay_ms: 1300,
+            trigger: "service_worker_controllerchange",
+          });
+          setIsRefreshingForUpdate(true);
+          if (updateRefreshTimeoutRef.current !== null) {
+            window.clearTimeout(updateRefreshTimeoutRef.current);
+          }
+          updateRefreshTimeoutRef.current = window.setTimeout(() => {
+            window.location.reload();
+          }, 1300);
+        };
+
+        navigator.serviceWorker.addEventListener("controllerchange", handleControllerChange);
         navigator.serviceWorker
-          .register("/sw.js")
+          .register("/sw.js", { updateViaCache: "none" })
           .then((registration) => {
             registration.update().catch(() => undefined);
             registration.addEventListener("updatefound", () => {
@@ -2654,9 +2779,16 @@ export function AletheiaApp() {
                 registration.update().catch(() => undefined);
               }
             };
+            visibilityListener = updateWhenVisible;
             document.addEventListener("visibilitychange", updateWhenVisible);
           })
           .catch(() => undefined);
+        swCleanup = () => {
+          navigator.serviceWorker.removeEventListener("controllerchange", handleControllerChange);
+          if (visibilityListener) {
+            document.removeEventListener("visibilitychange", visibilityListener);
+          }
+        };
       } else {
         navigator.serviceWorker
           .getRegistrations()
@@ -2671,8 +2803,14 @@ export function AletheiaApp() {
     window.addEventListener("online", updateOnline);
     window.addEventListener("offline", updateOnline);
     return () => {
+      if (swCleanup) {
+        swCleanup();
+      }
       window.removeEventListener("online", updateOnline);
       window.removeEventListener("offline", updateOnline);
+      if (updateRefreshTimeoutRef.current !== null) {
+        window.clearTimeout(updateRefreshTimeoutRef.current);
+      }
     };
   }, []);
 
@@ -2691,6 +2829,7 @@ export function AletheiaApp() {
         hasExplicitTiming?: boolean;
         preferredLocalHour?: number;
         preferredTimezone?: string;
+        timezoneMode?: NotificationTiming["timezoneMode"];
         deliveryStrategy?: NotificationTiming["deliveryStrategy"];
       };
       const localSubscription =
@@ -2703,23 +2842,27 @@ export function AletheiaApp() {
       setNotificationsConfigured(Boolean(data.configured));
       setNotificationsEnabled(Boolean(data.enabled && localSubscription));
       setNotificationTiming((current) => {
-        const effectiveTimezone = shouldFallbackToBrowserTimezone(data.preferredTimezone, data.hasExplicitTiming)
-          ? browserTimezone()
-          : data.preferredTimezone;
+        const useDeviceTimezone = shouldFallbackToBrowserTimezone(
+          data.preferredTimezone,
+          data.hasExplicitTiming,
+          data.timezoneMode
+        );
         const nextTiming = data.enabled || data.timingConfigured
           ? normalizeNotificationTiming({
               preferredLocalHour: data.preferredLocalHour,
-              preferredTimezone: effectiveTimezone,
+              preferredTimezone: useDeviceTimezone ? browserTimezone() : data.preferredTimezone,
+              timezoneMode: useDeviceTimezone ? "auto" : (data.timezoneMode ?? "manual"),
               deliveryStrategy: data.deliveryStrategy,
             })
-          : normalizeNotificationTiming({ ...current, preferredTimezone: browserTimezone() });
+          : normalizeNotificationTiming({ ...current, preferredTimezone: browserTimezone(), timezoneMode: "auto" });
         persistNotificationTiming(nextTiming);
         return nextTiming;
       });
-      if ((data.enabled || data.timingConfigured) && shouldFallbackToBrowserTimezone(data.preferredTimezone, data.hasExplicitTiming)) {
+      if ((data.enabled || data.timingConfigured) && shouldFallbackToBrowserTimezone(data.preferredTimezone, data.hasExplicitTiming, data.timezoneMode)) {
         const fallbackTiming = normalizeNotificationTiming({
           preferredLocalHour: data.preferredLocalHour,
           preferredTimezone: browserTimezone(),
+          timezoneMode: "auto",
           deliveryStrategy: data.deliveryStrategy,
         });
         void saveNotificationTimingPreference(fallbackTiming).catch(() => undefined);
@@ -2732,6 +2875,8 @@ export function AletheiaApp() {
         setNotificationStatus("Daily wisdom notifications are enabled.");
       } else if (data.enabled) {
         setNotificationStatus("Notifications are enabled on your account. Enable them on this device too.");
+      } else if (data.timingConfigured || Notification.permission === "granted") {
+        setNotificationStatus("Notifications need to be re-enabled on this device.");
       } else {
         setNotificationStatus("Get one quiet daily wisdom reflection on this device.");
       }
@@ -2741,6 +2886,34 @@ export function AletheiaApp() {
       setNotificationStatus("Notification status could not be loaded.")
     );
   }, [user]);
+
+  useEffect(() => {
+    if (notificationTiming.timezoneMode !== "auto") {
+      return;
+    }
+
+    const syncDeviceTimezone = () => {
+      if (document.visibilityState === "hidden") {
+        return;
+      }
+      const detectedTimezone = browserTimezone();
+      if (detectedTimezone === notificationTiming.preferredTimezone) {
+        return;
+      }
+      void updateNotificationTiming({
+        timezoneMode: "auto",
+        preferredTimezone: detectedTimezone,
+      });
+    };
+
+    window.addEventListener("focus", syncDeviceTimezone);
+    document.addEventListener("visibilitychange", syncDeviceTimezone);
+
+    return () => {
+      window.removeEventListener("focus", syncDeviceTimezone);
+      document.removeEventListener("visibilitychange", syncDeviceTimezone);
+    };
+  }, [notificationTiming.timezoneMode, notificationTiming.preferredTimezone, notificationBusy, user]);
 
   // Detect newly accepted counsel invites
   useEffect(() => {
@@ -3635,7 +3808,9 @@ export function AletheiaApp() {
         });
       }
       const preferredLocalHour = notificationTiming.preferredLocalHour;
-      const preferredTimezone = notificationTiming.preferredTimezone || browserTimezone();
+      const preferredTimezone = notificationTiming.timezoneMode === "auto"
+        ? browserTimezone()
+        : (notificationTiming.preferredTimezone || browserTimezone());
       const preferredHour = localHourToUtcHour(preferredLocalHour);
       const response = await saveNotificationSubscription(subscription, {        ...notificationTiming,
         preferredLocalHour,
@@ -3648,7 +3823,11 @@ export function AletheiaApp() {
       }
 
       setNotificationsEnabled(true);
-      const nextTiming = normalizeNotificationTiming({ ...notificationTiming, preferredLocalHour, preferredTimezone });
+      const nextTiming = normalizeNotificationTiming({
+        ...notificationTiming,
+        preferredLocalHour,
+        preferredTimezone,
+      });
       setNotificationTiming(nextTiming);
       persistNotificationTiming(nextTiming);
       setNotificationStatus("Daily wisdom notifications are enabled.");
@@ -3708,6 +3887,7 @@ export function AletheiaApp() {
         preferredHour,
         preferredLocalHour: timing.preferredLocalHour,
         preferredTimezone: timing.preferredTimezone,
+        timezoneMode: timing.timezoneMode,
         deliveryStrategy: timing.deliveryStrategy,
       }),
     });
@@ -3720,6 +3900,7 @@ export function AletheiaApp() {
       body: JSON.stringify({
         preferredLocalHour: timing.preferredLocalHour,
         preferredTimezone: timing.preferredTimezone,
+        timezoneMode: timing.timezoneMode,
         deliveryStrategy: timing.deliveryStrategy,
       }),
     });
@@ -3733,9 +3914,14 @@ export function AletheiaApp() {
 
     const nextStrategy = patch.deliveryStrategy ?? notificationTiming.deliveryStrategy;
     const nextHour = patch.preferredLocalHour ?? notificationHourForStrategy(nextStrategy, notificationTiming.preferredLocalHour);
+    const nextTimezoneMode: NotificationTiming["timezoneMode"] = patch.timezoneMode ?? notificationTiming.timezoneMode;
     const nextTiming: NotificationTiming = {
       preferredLocalHour: Math.min(23, Math.max(0, nextHour)),
-      preferredTimezone: patch.preferredTimezone ?? notificationTiming.preferredTimezone ?? browserTimezone(),
+      preferredTimezone:
+        nextTimezoneMode === "auto"
+          ? browserTimezone()
+          : (patch.preferredTimezone ?? notificationTiming.preferredTimezone ?? browserTimezone()),
+      timezoneMode: nextTimezoneMode,
       deliveryStrategy: nextStrategy,
     };
     setNotificationTiming(nextTiming);
@@ -3744,6 +3930,7 @@ export function AletheiaApp() {
       strategy: nextTiming.deliveryStrategy,
       localHour: nextTiming.preferredLocalHour,
       timezone: nextTiming.preferredTimezone,
+      timezoneMode: nextTiming.timezoneMode,
       notificationsEnabled,
     });
     setNotificationStatus("Daily wisdom time saved on this device.");
@@ -4798,6 +4985,85 @@ export function AletheiaApp() {
         }}
       />
       <ScriptureModal theme={theme} scripture={selectedScripture} preferences={preferences} onClose={() => setSelectedScripture(null)} />
+
+      <AnimatePresence>
+        {isRefreshingForUpdate ? (
+          <motion.div
+            key="app-update-refresh-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="fixed inset-0 z-[120]"
+            style={{
+              background: resolvedTheme === "black"
+                ? "radial-gradient(circle at 20% 10%, rgba(214, 180, 93, 0.24), rgba(0, 0, 0, 0) 52%), linear-gradient(140deg, rgba(7, 10, 8, 0.96), rgba(10, 15, 12, 0.94))"
+                : resolvedTheme === "dark"
+                  ? "radial-gradient(circle at 20% 10%, rgba(208, 173, 85, 0.24), rgba(0, 0, 0, 0) 52%), linear-gradient(140deg, rgba(14, 21, 20, 0.95), rgba(18, 28, 25, 0.92))"
+                  : "radial-gradient(circle at 20% 10%, rgba(74, 118, 105, 0.25), rgba(238, 242, 239, 0) 52%), linear-gradient(140deg, rgba(238, 242, 239, 0.95), rgba(226, 236, 231, 0.92))",
+              backdropFilter: "blur(14px) saturate(130%)",
+              WebkitBackdropFilter: "blur(14px) saturate(130%)",
+            }}
+            role="status"
+            aria-live="polite"
+          >
+            <div className="flex h-full items-center justify-center px-6">
+              <motion.div
+                initial={{ y: 10, opacity: 0, scale: 0.98 }}
+                animate={{ y: 0, opacity: 1, scale: 1 }}
+                transition={{ duration: 0.32, ease: "easeOut" }}
+                className="w-full max-w-sm rounded-3xl border px-7 py-8 text-center shadow-[0_28px_80px_rgba(12,20,16,0.26)]"
+                style={{
+                  borderColor: theme.borderStrong,
+                  backgroundColor: resolvedTheme === "black"
+                    ? "rgba(8, 12, 10, 0.86)"
+                    : resolvedTheme === "dark"
+                      ? "rgba(17, 27, 24, 0.84)"
+                      : "rgba(245, 250, 247, 0.84)",
+                }}
+              >
+                <motion.div
+                  className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-2xl border"
+                  style={{ borderColor: theme.borderStrong, backgroundColor: theme.bgCardElevated }}
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1.6, ease: "linear", repeat: Number.POSITIVE_INFINITY }}
+                >
+                  <div className="relative h-14 w-14 overflow-hidden rounded-xl">
+                    <Image
+                      src="/brand/aletheia-app-icon-192.png"
+                      alt="Aletheia"
+                      fill
+                      sizes="56px"
+                      className="object-cover"
+                      priority
+                    />
+                  </div>
+                </motion.div>
+                <p className="text-[0.69rem] font-semibold uppercase tracking-[0.24em]" style={{ color: theme.textSecondary }}>
+                  Aletheia
+                </p>
+                <p className="mt-1 text-sm" style={{ color: theme.textSecondary }}>
+                  Wisdom for stewardship
+                </p>
+                <p className="mt-4 text-base font-semibold" style={{ color: theme.textPrimary }}>
+                  App updated, refreshing...
+                </p>
+                <motion.div
+                  className="mx-auto mt-4 h-1.5 w-28 overflow-hidden rounded-full"
+                  style={{ backgroundColor: theme.borderMedium }}
+                >
+                  <motion.div
+                    className="h-full rounded-full"
+                    style={{ backgroundColor: theme.borderStrong }}
+                    animate={{ x: ["-100%", "120%"] }}
+                    transition={{ duration: 0.9, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
+                  />
+                </motion.div>
+              </motion.div>
+            </div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
     </main>
   );
 }
@@ -6760,6 +7026,10 @@ function NotificationPanel({
   onEnable: () => void;
   onDisable: () => void;
 }) {
+  const timezoneOptions = useMemo(
+    () => notificationTimezoneOptions(timing.preferredTimezone),
+    [timing.preferredTimezone]
+  );
   const unsupported =
     typeof window !== "undefined" &&
     (!("Notification" in window) || !("serviceWorker" in navigator) || !("PushManager" in window));
@@ -6809,7 +7079,7 @@ function NotificationPanel({
         )}
       </div>
       <div className="mt-4 rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
-        <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+        <div className="grid gap-3 sm:grid-cols-2 sm:items-end">
           <label className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
             Daily delivery time
             <select
@@ -6828,9 +7098,51 @@ function NotificationPanel({
               ))}
             </select>
           </label>
-          <div className="rounded-md border px-3 py-2 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
-            {timing.preferredTimezone || "Local timezone"}
-          </div>
+          {timing.timezoneMode === "auto" ? (
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
+                Timezone
+              </p>
+              <div className="mt-2 flex h-10 items-center justify-between rounded-md border px-3" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
+                <span className="truncate text-sm">Using device timezone: {timing.preferredTimezone || browserTimezone()}</span>
+                <button
+                  type="button"
+                  disabled={busy || !user}
+                  onClick={() => onTimingChange({ timezoneMode: "manual", preferredTimezone: timing.preferredTimezone || browserTimezone() })}
+                  className="ml-3 text-xs font-semibold underline-offset-4 hover:underline disabled:cursor-not-allowed disabled:opacity-60"
+                  style={{ color: theme.primary }}
+                >
+                  Edit
+                </button>
+              </div>
+            </div>
+          ) : (
+            <label className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
+              Timezone
+              <select
+                value={timing.preferredTimezone || browserTimezone()}
+                disabled={busy || !user}
+                onChange={(event) => onTimingChange({ preferredTimezone: event.target.value, timezoneMode: "manual" })}
+                className="mt-2 h-10 w-full rounded-md border px-3 text-sm normal-case tracking-normal outline-none disabled:cursor-not-allowed disabled:opacity-70"
+                style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
+              >
+                {timezoneOptions.map((timezone) => (
+                  <option key={timezone} value={timezone}>
+                    {timezone}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                disabled={busy || !user}
+                onClick={() => onTimingChange({ timezoneMode: "auto", preferredTimezone: browserTimezone() })}
+                className="mt-2 text-xs font-semibold underline-offset-4 hover:underline disabled:cursor-not-allowed disabled:opacity-60"
+                style={{ color: theme.primary }}
+              >
+                Use device timezone automatically
+              </button>
+            </label>
+          )}
         </div>
       </div>
     </section>
