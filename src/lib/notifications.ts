@@ -27,6 +27,14 @@ type MetricRow = {
   metric_value: string | number;
 };
 
+type PushFailureSample = {
+  id: string;
+  userId: string;
+  statusCode: number | null;
+  reason: string;
+  deleted: boolean;
+};
+
 export type NotificationHealthSnapshot = {
   enabledSubscriptions: number;
   dueNow: number;
@@ -163,6 +171,33 @@ function shouldDeleteBrokenSubscription(error: unknown) {
   return false;
 }
 
+function summarizePushFailure(error: unknown, row: PushRow, deleted: boolean): PushFailureSample {
+  const statusCode =
+    typeof error === "object" && error && "statusCode" in error
+      ? Number((error as { statusCode?: unknown }).statusCode) || null
+      : null;
+  const body =
+    typeof error === "object" && error && "body" in error
+      ? String((error as { body?: unknown }).body ?? "")
+      : "";
+  const message =
+    typeof error === "object" && error && "message" in error
+      ? String((error as { message?: unknown }).message ?? "")
+      : String(error ?? "Unknown push error");
+  const reason = `${statusCode ? `${statusCode}: ` : ""}${body || message}`
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 240);
+
+  return {
+    id: row.id,
+    userId: row.user_id,
+    statusCode,
+    reason: reason || "Unknown push error",
+    deleted,
+  };
+}
+
 export async function sendDailyWisdomNotifications() {
   configureWebPush();
 
@@ -183,6 +218,7 @@ export async function sendDailyWisdomNotifications() {
   const dueRows = rows.filter((row) => shouldSendAtLocalHour(row, now));
   let sent = 0;
   let failed = 0;
+  const failureSamples: PushFailureSample[] = [];
 
   // Process notifications in parallel with concurrency limit
   const BATCH_SIZE = 10;
@@ -218,7 +254,13 @@ export async function sendDailyWisdomNotifications() {
           sent += 1;
         } catch (error) {
           failed += 1;
-          if (shouldDeleteBrokenSubscription(error)) {
+          const deleted = shouldDeleteBrokenSubscription(error);
+          const failure = summarizePushFailure(error, row, deleted);
+          failureSamples.push(failure);
+          console.warn(
+            `Daily notification failed: subscription=${failure.id} user=${failure.userId} status=${failure.statusCode ?? "n/a"} deleted=${failure.deleted} reason=${failure.reason}`
+          );
+          if (deleted) {
             await run("DELETE FROM push_subscriptions WHERE id = ?", row.id);
           }
         }
@@ -234,6 +276,7 @@ export async function sendDailyWisdomNotifications() {
     skipped: rows.length - dueRows.length,
     catchupAttempted: 0,
     hour: currentHour,
+    failureSamples: failureSamples.slice(0, 5),
   };
 }
 

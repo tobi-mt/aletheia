@@ -55,6 +55,14 @@ try {
     console.log(
       `✓ Daily notifications checked. attempted=${attempted} sent=${sent} failed=${failed} skipped=${skipped} scanned=${scanned} utcHour=${hour}`
     );
+    if (Array.isArray(result.failureSamples) && result.failureSamples.length) {
+      console.log("Failure samples:");
+      for (const sample of result.failureSamples) {
+        console.log(
+          `- subscription=${sample.id} user=${sample.userId} status=${sample.statusCode ?? "n/a"} deleted=${sample.deleted ? "yes" : "no"} reason=${sample.reason}`
+        );
+      }
+    }
     if (attempted === 0) {
       console.log("No users were due in this hourly run.");
     }
