@@ -36,8 +36,32 @@ try {
     throw new Error(`Notification request failed with ${response.status}: ${body}`);
   }
 
-  console.log("✓ Daily notifications sent successfully");
-  console.log(body);
+  let result = null;
+  if (body.trim()) {
+    try {
+      result = JSON.parse(body);
+    } catch {
+      // Keep the raw body below if the endpoint ever returns non-JSON text.
+    }
+  }
+
+  if (result && typeof result === "object") {
+    const attempted = Number(result.attempted ?? 0);
+    const sent = Number(result.sent ?? 0);
+    const failed = Number(result.failed ?? 0);
+    const skipped = Number(result.skipped ?? 0);
+    const scanned = Number(result.scanned ?? 0);
+    const hour = Number(result.hour ?? new Date().getUTCHours());
+    console.log(
+      `✓ Daily notifications checked. attempted=${attempted} sent=${sent} failed=${failed} skipped=${skipped} scanned=${scanned} utcHour=${hour}`
+    );
+    if (attempted === 0) {
+      console.log("No users were due in this hourly run.");
+    }
+  } else {
+    console.log("✓ Daily notifications checked.");
+    console.log(body.trim() || "Endpoint returned an empty response body.");
+  }
 } catch (error) {
   clearTimeout(timeoutId);
   
