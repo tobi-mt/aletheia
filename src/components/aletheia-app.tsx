@@ -3827,103 +3827,6 @@ export function AletheiaApp() {
     announceWorkflow(ts('notifications.notificationsOff'), ts('notifications.notificationsOffBody'), "info");
   }
 
-  async function sendTestNotification() {
-    if (notificationBusy) {
-      return;
-    }
-    if (!user) {
-      setNotificationStatus("Sign in first, then send a test notification.");
-      announceWorkflow(ts('notifications.signInRequired'), ts('notifications.signInRequiredBody'), "warning");
-      return;
-    }
-    if (!notificationsConfigured) {
-      setNotificationStatus("Notifications are not configured on the server yet.");
-      announceWorkflow(ts('notifications.notificationsNotConfigured'), ts('notifications.notificationsNotConfiguredBody'), "warning");
-      return;
-    }
-    if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
-      setNotificationStatus("This browser does not support web push notifications.");
-      announceWorkflow(ts('notifications.notificationsUnavailable'), ts('notifications.notificationsUnavailableBody'), "warning");
-      return;
-    }
-
-    setNotificationBusy(true);
-    setNotificationStatus("Sending a test notification to this device...");
-    try {
-      const permission = Notification.permission === "granted" ? "granted" : await Notification.requestPermission();
-      setNotificationPermission(permission);
-      if (permission !== "granted") {
-        setNotificationStatus("Notifications were not enabled. Allow notifications before sending a test.");
-        announceWorkflow(ts('notifications.notificationsNotEnabled'), ts('notifications.notificationsNotEnabledBody'), "warning");
-        return;
-      }
-
-      const keyResponse = await fetch("/api/notifications/key", { cache: "no-store" });
-      const keyData = (await keyResponse.json()) as { publicKey?: string };
-      if (!keyData.publicKey) {
-        setNotificationStatus("Notifications are missing a public key.");
-        announceWorkflow(ts('notifications.notificationKeyMissing'), ts('notifications.notificationKeyMissingBody'), "error");
-        return;
-      }
-
-      const registration = await getReliableServiceWorkerRegistration();
-      const existingSubscription = await registration.pushManager.getSubscription();
-      await existingSubscription?.unsubscribe().catch(() => undefined);
-      const subscription = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(keyData.publicKey),
-      });
-      const preferredLocalHour = notificationTiming.preferredLocalHour;
-      const preferredTimezone = notificationTiming.timezoneMode === "auto"
-        ? browserTimezone()
-        : (notificationTiming.preferredTimezone || browserTimezone());
-      const preferredHour = localHourToUtcHour(preferredLocalHour);
-      const nextTiming = normalizeNotificationTiming({
-        ...notificationTiming,
-        preferredLocalHour,
-        preferredTimezone,
-      });
-      const saveResponse = await saveNotificationSubscription(subscription, nextTiming, preferredHour);
-      if (!saveResponse.ok) {
-        setNotificationStatus("Could not refresh this device subscription before the test.");
-        announceWorkflow(ts('notifications.notificationSyncFailed'), ts('notifications.notificationSyncFailedBody'), "error");
-        return;
-      }
-
-      setNotificationsEnabled(true);
-      setNotificationTiming(nextTiming);
-      persistNotificationTiming(nextTiming);
-
-      const testResponse = await fetch("/api/notifications/test", { method: "POST" });
-      const result = (await testResponse.json().catch(() => null)) as {
-        attempted?: number;
-        sent?: number;
-        failed?: number;
-        failureSamples?: { reason?: string }[];
-        error?: string;
-      } | null;
-      if (!testResponse.ok) {
-        setNotificationStatus(result?.error || "The test notification could not be sent.");
-        announceWorkflow("Test notification failed", result?.error || "Aletheia could not send the test notification.", "error");
-        return;
-      }
-      if ((result?.sent ?? 0) > 0) {
-        setNotificationStatus("Test notification sent. Check this device now.");
-        announceWorkflow("Test notification sent", "Aletheia sent a test notification to this device.", "success");
-        return;
-      }
-      const reason = result?.failureSamples?.[0]?.reason;
-      setNotificationStatus(reason ? `Test failed: ${reason}` : "The test notification was attempted but did not send.");
-      announceWorkflow("Test notification failed", reason || "Aletheia attempted the test, but the push service rejected it.", "error");
-    } catch {
-      setNotificationsEnabled(false);
-      setNotificationStatus("The test notification could not be sent. Please try turning notifications off and on again.");
-      announceWorkflow("Test notification failed", "Aletheia could not complete the test notification.", "error");
-    } finally {
-      setNotificationBusy(false);
-    }
-  }
-
   async function saveNotificationSubscription(
     subscription: PushSubscription,
     timing: NotificationTiming,
@@ -4946,7 +4849,6 @@ export function AletheiaApp() {
                   onNotificationTimingChange={updateNotificationTiming}
                   onEnableNotifications={enableNotifications}
                   onDisableNotifications={disableNotifications}
-                  onSendTestNotification={sendTestNotification}
                   messages={messages}
                   decisions={wisdomDecisions}
                   journalEntries={journalEntries}
@@ -5987,7 +5889,6 @@ function AccountPanel({
   onNotificationTimingChange,
   onEnableNotifications,
   onDisableNotifications,
-  onSendTestNotification,
   messages,
   decisions,
   journalEntries,
@@ -6038,7 +5939,6 @@ function AccountPanel({
   onNotificationTimingChange: (patch: Partial<NotificationTiming>) => void;
   onEnableNotifications: () => void;
   onDisableNotifications: () => void;
-  onSendTestNotification: () => void;
   messages: ChatMessage[];
   decisions: WisdomDecision[];
   journalEntries: JournalEntry[];
@@ -6227,7 +6127,6 @@ function AccountPanel({
             onTimingChange={onNotificationTimingChange}
             onEnable={onEnableNotifications}
             onDisable={onDisableNotifications}
-            onSendTest={onSendTestNotification}
           />
         </DisclosureSection>
 
@@ -7074,7 +6973,6 @@ function NotificationPanel({
   onTimingChange,
   onEnable,
   onDisable,
-  onSendTest,
 }: {
   theme: ThemeColors;
   user: User | null;
@@ -7087,7 +6985,6 @@ function NotificationPanel({
   onTimingChange: (patch: Partial<NotificationTiming>) => void;
   onEnable: () => void;
   onDisable: () => void;
-  onSendTest: () => void;
 }) {
   const timezoneOptions = useMemo(
     () => notificationTimezoneOptions(timing.preferredTimezone),
@@ -7122,24 +7019,14 @@ function NotificationPanel({
           </div>
         </div>
         {enabled ? (
-          <div className="grid gap-2 min-[360px]:grid-cols-2 sm:flex sm:flex-wrap sm:justify-end">
-            <button
-              onClick={onSendTest}
-              disabled={disabled}
-              className="h-10 rounded-md px-4 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60"
-              style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
-            >
-              {busy ? "Sending..." : "Send test"}
-            </button>
-            <button
-              onClick={onDisable}
-              disabled={busy}
-              className="h-10 rounded-md border px-4 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60"
-              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}
-            >
-              {busy ? "Updating..." : "Turn off"}
-            </button>
-          </div>
+          <button
+            onClick={onDisable}
+            disabled={busy}
+            className="h-10 rounded-md border px-4 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60"
+            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}
+          >
+            {busy ? "Updating..." : "Turn off"}
+          </button>
         ) : (
           <button
             onClick={onEnable}
