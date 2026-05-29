@@ -3,7 +3,7 @@
 :root {
   --background: #eef2ef;
   --foreground: #171917;
-  --pwa-status-background: #eef2ef;
+  --pwa-status-background: #0b100f;
 }
 
 html[data-theme="dark"] {

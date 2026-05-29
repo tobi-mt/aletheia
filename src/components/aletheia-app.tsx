@@ -2406,7 +2406,7 @@ export function AletheiaApp() {
     };
   }, []);
 
-  // Update PWA theme-color while keeping iOS in a non-translucent status-bar mode.
+  // Keep iOS installed-PWA chrome transparent so our themed header owns the safe area.
   useEffect(() => {
     const statusColor = resolvedTheme === "dark" ? "#0e1514" : theme.bgMain;
     
@@ -2423,7 +2423,7 @@ export function AletheiaApp() {
     const appleStatusBars = document.querySelectorAll('meta[name="apple-mobile-web-app-status-bar-style"]');
     appleStatusBars.forEach((tag, index) => {
       if (index === 0) {
-        tag.setAttribute("content", "black");
+        tag.setAttribute("content", "black-translucent");
       } else {
         tag.remove();
       }
@@ -2435,7 +2435,7 @@ export function AletheiaApp() {
     document.documentElement.style.setProperty("--aletheia-glass-top", theme.bgNav);
     document.documentElement.style.setProperty("--aletheia-glass-bottom", theme.bgNav);
     document.documentElement.style.setProperty("--aletheia-glass-edge", theme.bgNavBorder);
-  }, [resolvedTheme, theme.bgMain]);
+  }, [resolvedTheme, theme.bgMain, theme.bgNav, theme.bgNavBorder]);
 
   async function loadSignedInWorkspace(signedInUser: User) {
     const [chatResponse, journalResponse, notificationResponse, decisionsResponse, counselResponse, rulesResponse, preferencesResponse, contextResponse] = await Promise.all([
