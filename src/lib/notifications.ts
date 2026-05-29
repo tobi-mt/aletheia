@@ -198,36 +198,22 @@ function summarizePushFailure(error: unknown, row: PushRow, deleted: boolean): P
   };
 }
 
-export async function sendDailyWisdomNotifications() {
-  configureWebPush();
-
-  const now = new Date();
-  const currentHour = now.getUTCHours();
-  
-  // Fetch wisdom entries once for all notifications
-  const wisdomEntries = await getWisdomEntries();
-  
-  const rows = await many<PushRow>(
-    `SELECT push_subscriptions.id, push_subscriptions.user_id, endpoint, p256dh, auth, preferred_hour, last_sent_at,
-            preferred_local_hour, preferred_timezone, delivery_strategy,
-            user_preferences.language, user_preferences.region, user_preferences.bible_translation, user_preferences.voice_enabled
-     FROM push_subscriptions
-     LEFT JOIN user_preferences ON user_preferences.user_id = push_subscriptions.user_id
-     WHERE enabled = TRUE`,
-  );
-  const dueRows = rows.filter((row) => shouldSendAtLocalHour(row, now));
+async function sendPushRows(
+  rows: PushRow[],
+  payloadForRow: (row: PushRow) => string,
+  { updateLastSent = true }: { updateLastSent?: boolean } = {}
+) {
   let sent = 0;
   let failed = 0;
   const failureSamples: PushFailureSample[] = [];
+  const now = new Date();
 
-  // Process notifications in parallel with concurrency limit
   const BATCH_SIZE = 10;
-  for (let i = 0; i < dueRows.length; i += BATCH_SIZE) {
-    const batch = dueRows.slice(i, i + BATCH_SIZE);
-    
+  for (let i = 0; i < rows.length; i += BATCH_SIZE) {
+    const batch = rows.slice(i, i + BATCH_SIZE);
+
     await Promise.allSettled(
       batch.map(async (row) => {
-        const payload = JSON.stringify(dailyNotificationPayload(row, wisdomEntries));
         const subscription: PushSubscription = {
           endpoint: row.endpoint,
           keys: {
@@ -237,20 +223,21 @@ export async function sendDailyWisdomNotifications() {
         };
 
         try {
-          // Add timeout to individual push notifications
-          const sendPromise = webpush.sendNotification(subscription, payload);
+          const sendPromise = webpush.sendNotification(subscription, payloadForRow(row));
           const timeoutPromise = new Promise((_, reject) =>
             setTimeout(() => reject(new Error("Push notification timeout")), 10000)
           );
-          
+
           await Promise.race([sendPromise, timeoutPromise]);
-          
-          await run(
-            "UPDATE push_subscriptions SET last_sent_at = ?, updated_at = ? WHERE id = ?",
-            now.toISOString(),
-            now.toISOString(),
-            row.id
-          );
+
+          if (updateLastSent) {
+            await run(
+              "UPDATE push_subscriptions SET last_sent_at = ?, updated_at = ? WHERE id = ?",
+              now.toISOString(),
+              now.toISOString(),
+              row.id
+            );
+          }
           sent += 1;
         } catch (error) {
           failed += 1;
@@ -258,7 +245,7 @@ export async function sendDailyWisdomNotifications() {
           const failure = summarizePushFailure(error, row, deleted);
           failureSamples.push(failure);
           console.warn(
-            `Daily notification failed: subscription=${failure.id} user=${failure.userId} status=${failure.statusCode ?? "n/a"} deleted=${failure.deleted} reason=${failure.reason}`
+            `Push notification failed: subscription=${failure.id} user=${failure.userId} status=${failure.statusCode ?? "n/a"} deleted=${failure.deleted} reason=${failure.reason}`
           );
           if (deleted) {
             await run("DELETE FROM push_subscriptions WHERE id = ?", row.id);
@@ -268,6 +255,31 @@ export async function sendDailyWisdomNotifications() {
     );
   }
 
+  return { sent, failed, failureSamples };
+}
+
+export async function sendDailyWisdomNotifications() {
+  configureWebPush();
+
+  const now = new Date();
+  const currentHour = now.getUTCHours();
+
+  // Fetch wisdom entries once for all notifications
+  const wisdomEntries = await getWisdomEntries();
+
+  const rows = await many<PushRow>(
+    `SELECT push_subscriptions.id, push_subscriptions.user_id, endpoint, p256dh, auth, preferred_hour, last_sent_at,
+            preferred_local_hour, preferred_timezone, delivery_strategy,
+            user_preferences.language, user_preferences.region, user_preferences.bible_translation, user_preferences.voice_enabled
+     FROM push_subscriptions
+     LEFT JOIN user_preferences ON user_preferences.user_id = push_subscriptions.user_id
+     WHERE enabled = TRUE`,
+  );
+  const dueRows = rows.filter((row) => shouldSendAtLocalHour(row, now));
+  const { sent, failed, failureSamples } = await sendPushRows(dueRows, (row) =>
+    JSON.stringify(dailyNotificationPayload(row, wisdomEntries))
+  );
+
   return {
     attempted: dueRows.length,
     sent,
@@ -276,6 +288,42 @@ export async function sendDailyWisdomNotifications() {
     skipped: rows.length - dueRows.length,
     catchupAttempted: 0,
     hour: currentHour,
+    failureSamples: failureSamples.slice(0, 5),
+  };
+}
+
+export async function sendTestWisdomNotification(userId: string) {
+  configureWebPush();
+
+  const rows = await many<PushRow>(
+    `SELECT push_subscriptions.id, push_subscriptions.user_id, endpoint, p256dh, auth, preferred_hour, last_sent_at,
+            preferred_local_hour, preferred_timezone, delivery_strategy,
+            user_preferences.language, user_preferences.region, user_preferences.bible_translation, user_preferences.voice_enabled
+     FROM push_subscriptions
+     LEFT JOIN user_preferences ON user_preferences.user_id = push_subscriptions.user_id
+     WHERE enabled = TRUE AND push_subscriptions.user_id = ?`,
+    userId
+  );
+
+  const { sent, failed, failureSamples } = await sendPushRows(
+    rows,
+    () =>
+      JSON.stringify({
+        title: "Aletheia test",
+        body: "Your daily wisdom notifications can reach this device.",
+        url: "/",
+        scripture: "Proverbs 3:5-6",
+        test: true,
+      }),
+    { updateLastSent: false }
+  );
+
+  return {
+    attempted: rows.length,
+    sent,
+    failed,
+    scanned: rows.length,
+    skipped: 0,
     failureSamples: failureSamples.slice(0, 5),
   };
 }
