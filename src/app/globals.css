@@ -83,17 +83,17 @@ body {
 
 :root {
   --aletheia-safe-top-extra: 0px;
-  --aletheia-top-reserve: 0px;
-  --aletheia-bottom-reserve: 0px;
-  --aletheia-top-nav-space: calc(max(env(safe-area-inset-top, 0px), var(--aletheia-top-reserve)) + 5.35rem);
-  --aletheia-top-glass-height: calc(max(env(safe-area-inset-top, 0px), var(--aletheia-top-reserve)) + 4.85rem);
+  --aletheia-top-reserve: 20px;
+  --aletheia-bottom-reserve: 12px;
+  --aletheia-top-nav-space: calc(max(env(safe-area-inset-top, 0px), var(--aletheia-top-reserve)) + 5.85rem);
+  --aletheia-top-glass-height: calc(max(env(safe-area-inset-top, 0px), var(--aletheia-top-reserve)) + 5.2rem);
   --aletheia-bottom-nav-space: calc(max(env(safe-area-inset-bottom, 0px), var(--aletheia-bottom-reserve)) + 8.3rem);
 }
 
 .app-shell {
   position: relative;
   isolation: isolate;
-  padding-top: var(--aletheia-top-nav-space);
+  padding-top: calc(var(--aletheia-top-nav-space) + clamp(0.35rem, 1.2vw, 0.7rem));
   padding-bottom: max(env(safe-area-inset-bottom, 0px), var(--aletheia-bottom-reserve));
 }
 
@@ -130,6 +130,7 @@ body {
 .app-brand-button {
   gap: clamp(0.45rem, 1.3vw, 0.75rem);
   min-width: 0;
+  min-height: 2.75rem;
 }
 
 .app-brand-logo {
@@ -152,8 +153,27 @@ body {
 }
 
 .app-chrome-control {
-  width: clamp(2.25rem, 7vw, 2.5rem);
-  height: clamp(2.25rem, 7vw, 2.5rem);
+  width: max(44px, clamp(2.75rem, 7vw, 2.9rem)) !important;
+  height: max(44px, clamp(2.75rem, 7vw, 2.9rem)) !important;
+  min-width: 44px;
+  min-height: 44px;
+}
+
+@media (pointer: coarse) {
+  .app-shell button,
+  .app-shell [role="button"],
+  .app-shell summary,
+  .app-shell select,
+  .app-shell input:not([type="checkbox"]):not([type="radio"]),
+  .app-shell textarea {
+    min-height: 44px;
+  }
+
+  .app-shell button,
+  .app-shell [role="button"],
+  .app-chrome-control {
+    min-width: 44px;
+  }
 }
 
 .theme-dark-root {
@@ -398,11 +418,6 @@ html[data-theme="black"] main.theme-dark-root .app-bottom-nav button:not([style*
 
   .app-brand-copy p:last-child {
     max-width: 7.2rem;
-  }
-
-  .app-chrome-control {
-    width: 2.35rem;
-    height: 2.35rem;
   }
 }
 

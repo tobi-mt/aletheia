@@ -1,14 +1,14 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { useEffect, useState } from "react";
 import { AletheiaApp } from "@/components/aletheia-app";
 
 export default function HomeClientShell() {
-  const mounted = useSyncExternalStore(
-    () => () => undefined,
-    () => true,
-    () => false
-  );
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   if (!mounted) {
     return (

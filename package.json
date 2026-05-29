@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "ui:regression": "node scripts/ui-regression.mjs",
     "notify:daily": "node scripts/send-daily-notifications.mjs",
     "push:keys": "web-push generate-vapid-keys"
   },
@@ -34,6 +35,7 @@
     "@types/web-push": "^3.6.4",
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
+    "playwright": "^1.54.2",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

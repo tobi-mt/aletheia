@@ -3,7 +3,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import Image from "next/image";
 import { signIn as authSignIn, signOut as authSignOut } from "next-auth/react";
-import { FormEvent, type ReactNode, type RefObject, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, type ReactNode, type RefObject, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   BookOpen,
   BriefcaseBusiness,
@@ -2239,7 +2239,7 @@ export function AletheiaApp() {
     return () => media.removeEventListener("change", applyTheme);
   }, [themePreference]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const updateViewportChrome = () => {
       const viewport = window.visualViewport;
       const viewportWidth = Math.max(0, Math.round(viewport?.width ?? window.innerWidth));
@@ -2333,7 +2333,7 @@ export function AletheiaApp() {
     };
   }, []);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const nav = topNavRef.current;
     if (!nav) {
       return;
@@ -2341,7 +2341,7 @@ export function AletheiaApp() {
 
     const updateTopNavSpace = () => {
       const navBottom = Math.max(0, Math.ceil(nav.getBoundingClientRect().bottom));
-      const reservedSpace = navBottom > 0 ? navBottom + 3 : 99;
+      const reservedSpace = navBottom > 0 ? navBottom + 12 : 112;
       const glassHeight = navBottom > 0 ? Math.max(56, navBottom - 10) : 88;
       document.documentElement.style.setProperty(
         "--aletheia-top-nav-space",
@@ -4393,7 +4393,7 @@ export function AletheiaApp() {
               </span>
             ) : null}
             <label
-              className="app-chrome-control relative grid size-10 shrink-0 place-items-center overflow-hidden rounded-md border shadow-sm transition"
+              className="app-chrome-control relative grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-md border shadow-sm transition"
               style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textPrimary }}
               title={`${ui.languageSelect}: ${languages[preferences.language].nativeName}`}
               suppressHydrationWarning
@@ -4414,7 +4414,7 @@ export function AletheiaApp() {
               </select>
             </label>
             <label
-              className="app-chrome-control relative grid size-10 shrink-0 place-items-center overflow-hidden rounded-md border shadow-sm transition"
+              className="app-chrome-control relative grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-md border shadow-sm transition"
               style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textPrimary }}
               title={`${ui.bibleSelect}: ${preferences.bibleTranslation}`}
               suppressHydrationWarning
@@ -4439,7 +4439,7 @@ export function AletheiaApp() {
               </select>
             </label>
             <button
-              className="app-chrome-control grid size-10 place-items-center rounded-md border shadow-sm transition"
+              className="app-chrome-control grid h-11 w-11 place-items-center rounded-md border shadow-sm transition"
               style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textPrimary }}
               aria-label={user ? "Open account" : "Open guest dashboard"}
               onClick={() => showView("companion")}
@@ -6692,7 +6692,7 @@ function AuthPanel({
               <button
                 type="button"
                 onClick={() => setAuthMode(authMode === "register" ? "login" : "register")}
-                className="text-sm font-semibold underline-offset-4 hover:underline"
+                className="inline-flex min-h-10 items-center rounded-md px-2 text-sm font-semibold underline-offset-4 transition hover:underline"
                 style={{ color: theme.textSecondary }}
               >
                 {authMode === "register" ? "I already have an account" : "Create a new account"}
@@ -7370,7 +7370,7 @@ function CompanionPanel({
                 <ModeIntelligenceStrip modeProfile={modeProfile} ui={ui} theme={theme} />
               </div>
             </details>
-            <div className="flex flex-col gap-3 sm:flex-row">
+            <div className="flex flex-col gap-3">
               <textarea
                 id="companion-question-input"
                 value={query}
@@ -7385,37 +7385,39 @@ function CompanionPanel({
                 onFocus={(e) => e.currentTarget.style.borderColor = theme.primary}
                 onBlur={(e) => e.currentTarget.style.borderColor = theme.borderMedium}
               />
-              {preferences.voiceEnabled ? (
+              <div className="flex items-stretch gap-2">
+                {preferences.voiceEnabled ? (
+                  <button
+                    type="button"
+                    onClick={onListen}
+                    className="grid h-11 w-11 shrink-0 place-items-center rounded-lg border px-3 transition"
+                    style={{
+                      borderColor: theme.borderMedium,
+                      backgroundColor: theme.bgInput,
+                      color: theme.textPrimary,
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.bgCardElevated}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = theme.bgInput}
+                    aria-label={isListening ? "Stop voice input" : "Use voice input"}
+                    title={isListening ? "Stop dictating" : "Tap to dictate your question"}
+                  >
+                    {isListening ? <MicOff size={18} /> : <Mic size={18} />}
+                  </button>
+                ) : null}
                 <button
-                  type="button"
-                  onClick={onListen}
-                  className="grid h-11 w-11 shrink-0 place-items-center rounded-lg border px-3 transition sm:w-auto"
+                  disabled={isWorking}
+                  className="inline-flex h-11 min-w-0 flex-1 items-center justify-center gap-2 rounded-md px-5 text-sm font-semibold shadow-lg transition disabled:opacity-60 sm:flex-none"
                   style={{
-                    borderColor: theme.borderMedium,
-                    backgroundColor: theme.bgInput,
-                    color: theme.textPrimary,
+                    backgroundColor: theme.primary,
+                    color: theme.textOnPrimary,
                   }}
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.bgCardElevated}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = theme.bgInput}
-                  aria-label={isListening ? "Stop voice input" : "Use voice input"}
-                  title={isListening ? "Stop dictating" : "Tap to dictate your question"}
+                  onMouseEnter={(e) => !isWorking && (e.currentTarget.style.backgroundColor = theme.primaryHover)}
+                  onMouseLeave={(e) => !isWorking && (e.currentTarget.style.backgroundColor = theme.primary)}
                 >
-                  {isListening ? <MicOff size={18} /> : <Mic size={18} />}
+                  <Send size={17} />
+                  {isWorking ? "..." : ui.askButton}
                 </button>
-              ) : null}
-              <button
-                disabled={isWorking}
-                className="inline-flex h-11 w-full shrink-0 items-center justify-center gap-2 rounded-md px-5 text-sm font-semibold shadow-lg transition disabled:opacity-60 sm:w-auto"
-                style={{
-                  backgroundColor: theme.primary,
-                  color: theme.textOnPrimary,
-                }}
-                onMouseEnter={(e) => !isWorking && (e.currentTarget.style.backgroundColor = theme.primaryHover)}
-                onMouseLeave={(e) => !isWorking && (e.currentTarget.style.backgroundColor = theme.primary)}
-              >
-                <Send size={17} />
-                {isWorking ? "..." : ui.askButton}
-              </button>
+              </div>
             </div>
             <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
               {modeProfile.prompts.slice(0, 3).map((prompt) => (
