@@ -84,16 +84,17 @@ body {
 :root {
   --aletheia-safe-top-extra: 0px;
   --aletheia-top-reserve: 20px;
+  --aletheia-top-overlap-correction: 0px;
   --aletheia-bottom-reserve: 12px;
-  --aletheia-top-nav-space: calc(max(env(safe-area-inset-top, 0px), var(--aletheia-top-reserve)) + 5.85rem);
-  --aletheia-top-glass-height: calc(max(env(safe-area-inset-top, 0px), var(--aletheia-top-reserve)) + 5.2rem);
+  --aletheia-top-nav-space: calc(max(env(safe-area-inset-top, 0px), var(--aletheia-top-reserve)) + 6.5rem);
+  --aletheia-top-glass-height: calc(max(env(safe-area-inset-top, 0px), var(--aletheia-top-reserve)) + 5.7rem);
   --aletheia-bottom-nav-space: calc(max(env(safe-area-inset-bottom, 0px), var(--aletheia-bottom-reserve)) + 8.3rem);
 }
 
 .app-shell {
   position: relative;
   isolation: isolate;
-  padding-top: calc(var(--aletheia-top-nav-space) + clamp(0.35rem, 1.2vw, 0.7rem));
+  padding-top: calc(var(--aletheia-top-nav-space) + var(--aletheia-top-overlap-correction, 0px) + clamp(0.35rem, 1.2vw, 0.7rem));
   padding-bottom: max(env(safe-area-inset-bottom, 0px), var(--aletheia-bottom-reserve));
 }
 

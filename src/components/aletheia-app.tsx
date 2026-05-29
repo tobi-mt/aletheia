@@ -2411,29 +2411,68 @@ export function AletheiaApp() {
 
   useLayoutEffect(() => {
     const nav = topNavRef.current;
+    const workspace = workspaceRef.current;
     if (!nav) {
       return;
     }
 
+    const applyTopOverlapGuard = () => {
+      if (!workspace) {
+        document.documentElement.style.setProperty("--aletheia-top-overlap-correction", "0px");
+        return;
+      }
+
+      const navBottom = Math.max(0, Math.ceil(nav.getBoundingClientRect().bottom));
+      const candidates = Array.from(
+        workspace.querySelectorAll("h1, h2, h3, section, article, form, [data-overlap-anchor]")
+      ) as HTMLElement[];
+
+      let firstTop = Number.POSITIVE_INFINITY;
+      for (const candidate of candidates) {
+        const rect = candidate.getBoundingClientRect();
+        if (rect.height <= 8 || rect.bottom <= 0 || rect.width <= 0) {
+          continue;
+        }
+        firstTop = Math.min(firstTop, rect.top);
+      }
+
+      if (!Number.isFinite(firstTop)) {
+        document.documentElement.style.setProperty("--aletheia-top-overlap-correction", "0px");
+        return;
+      }
+
+      const overlap = Math.max(0, Math.ceil(navBottom + 10 - firstTop));
+      const correction = Math.min(128, overlap);
+      document.documentElement.style.setProperty("--aletheia-top-overlap-correction", `${correction}px`);
+    };
+
     const updateTopNavSpace = () => {
       const navBottom = Math.max(0, Math.ceil(nav.getBoundingClientRect().bottom));
-      const reservedSpace = navBottom > 0 ? navBottom + 12 : 112;
-      const glassHeight = navBottom > 0 ? Math.max(56, navBottom - 10) : 88;
-      document.documentElement.style.setProperty(
-        "--aletheia-top-nav-space",
-        `max(${reservedSpace}px, calc(max(env(safe-area-inset-top, 0px), var(--aletheia-top-reserve, 0px)) + 5.35rem))`
-      );
-      document.documentElement.style.setProperty(
-        "--aletheia-top-glass-height",
-        `max(${glassHeight}px, calc(max(env(safe-area-inset-top, 0px), var(--aletheia-top-reserve, 0px)) + 4.3rem))`
-      );
+      const reservedSpace = navBottom > 0 ? Math.max(navBottom + 16, 124) : 124;
+      const glassHeight = navBottom > 0 ? Math.max(navBottom + 6, 96) : 96;
+      document.documentElement.style.setProperty("--aletheia-top-nav-space", `${reservedSpace}px`);
+      document.documentElement.style.setProperty("--aletheia-top-glass-height", `${glassHeight}px`);
+      window.requestAnimationFrame(applyTopOverlapGuard);
     };
 
     updateTopNavSpace();
     window.requestAnimationFrame(updateTopNavSpace);
     window.requestAnimationFrame(() => window.requestAnimationFrame(updateTopNavSpace));
+    const updateTimeoutOne = window.setTimeout(updateTopNavSpace, 120);
+    const updateTimeoutTwo = window.setTimeout(updateTopNavSpace, 320);
+    document.fonts?.ready.then(updateTopNavSpace).catch(() => undefined);
     const resizeObserver = new ResizeObserver(updateTopNavSpace);
     resizeObserver.observe(nav);
+    const workspaceObserver = workspace ? new ResizeObserver(updateTopNavSpace) : null;
+    if (workspaceObserver && workspace) {
+      workspaceObserver.observe(workspace);
+    }
+    const mutationObserver = workspace
+      ? new MutationObserver(() => window.requestAnimationFrame(updateTopNavSpace))
+      : null;
+    if (mutationObserver && workspace) {
+      mutationObserver.observe(workspace, { childList: true, subtree: true, attributes: true });
+    }
     window.addEventListener("resize", updateTopNavSpace);
     window.addEventListener("orientationchange", updateTopNavSpace);
     window.visualViewport?.addEventListener("resize", updateTopNavSpace);
@@ -2442,13 +2481,18 @@ export function AletheiaApp() {
     window.addEventListener("pageshow", updateTopNavSpace);
 
     return () => {
+      window.clearTimeout(updateTimeoutOne);
+      window.clearTimeout(updateTimeoutTwo);
       resizeObserver.disconnect();
+      workspaceObserver?.disconnect();
+      mutationObserver?.disconnect();
       window.removeEventListener("resize", updateTopNavSpace);
       window.removeEventListener("orientationchange", updateTopNavSpace);
       window.visualViewport?.removeEventListener("resize", updateTopNavSpace);
       window.visualViewport?.removeEventListener("scroll", updateTopNavSpace);
       document.removeEventListener("visibilitychange", updateTopNavSpace);
       window.removeEventListener("pageshow", updateTopNavSpace);
+      document.documentElement.style.setProperty("--aletheia-top-overlap-correction", "0px");
     };
   }, []);
 

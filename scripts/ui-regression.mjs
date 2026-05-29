@@ -181,6 +181,11 @@ async function preparePage(page) {
   });
   await page.reload({ waitUntil: 'networkidle' });
   await page.waitForTimeout(220);
+  await page.waitForFunction(
+    () => !document.querySelector('[data-testid="app-launch-splash"]'),
+    undefined,
+    { timeout: 9000 }
+  ).catch(() => undefined);
 }
 
 async function checkGlobalLayout(page) {
@@ -301,44 +306,63 @@ async function checkHome(page, mobile) {
 
 async function checkAccount(page, mobile) {
   await clickTab(page, 'Account', mobile);
-  const initial = await page.evaluate((marker) => {
-    const markerVisible = document.body.innerText.includes(marker);
-    const profileButton = Array.from(document.querySelectorAll('button')).find((button) => {
-      const text = (button.textContent || '').toLowerCase();
-      return text.includes('profile') && text.includes('details');
-    });
-    return {
-      markerVisible,
-      canToggle: profileButton instanceof HTMLButtonElement,
-      before: profileButton instanceof HTMLButtonElement ? profileButton.textContent || '' : '',
-    };
-  }, markers.Account);
-
-  if (initial.canToggle) {
-    await page.evaluate(() => {
+  let initial = { markerVisible: false, canToggle: false, before: '' };
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    initial = await page.evaluate((marker) => {
+      const markerVisible = document.body.innerText.includes(marker);
       const profileButton = Array.from(document.querySelectorAll('button')).find((button) => {
         const text = (button.textContent || '').toLowerCase();
         return text.includes('profile') && text.includes('details');
       });
-      if (profileButton instanceof HTMLButtonElement) {
-        profileButton.click();
-      }
-    });
-    await page.waitForTimeout(180);
+      return {
+        markerVisible,
+        canToggle: profileButton instanceof HTMLButtonElement,
+        before: profileButton instanceof HTMLButtonElement ? profileButton.textContent || '' : '',
+      };
+    }, markers.Account);
+    if (initial.markerVisible && initial.canToggle) {
+      break;
+    }
+    await page.waitForTimeout(140);
   }
 
-  const after = await page.evaluate(() => {
+  if (!initial.canToggle) {
+    return {
+      markerVisible: initial.markerVisible,
+      extraPass: false,
+      pass: false,
+    };
+  }
+
+  await page.evaluate(() => {
     const profileButton = Array.from(document.querySelectorAll('button')).find((button) => {
       const text = (button.textContent || '').toLowerCase();
       return text.includes('profile') && text.includes('details');
     });
-    return profileButton instanceof HTMLButtonElement ? profileButton.textContent || '' : '';
+    if (profileButton instanceof HTMLButtonElement) {
+      profileButton.click();
+    }
   });
+
+  let after = '';
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    after = await page.evaluate(() => {
+      const profileButton = Array.from(document.querySelectorAll('button')).find((button) => {
+        const text = (button.textContent || '').toLowerCase();
+        return text.includes('profile') && text.includes('details');
+      });
+      return profileButton instanceof HTMLButtonElement ? profileButton.textContent || '' : '';
+    });
+    if (after && after !== initial.before) {
+      break;
+    }
+    await page.waitForTimeout(120);
+  }
 
   return {
     markerVisible: initial.markerVisible,
-    extraPass: initial.canToggle && initial.before !== after,
-    pass: initial.markerVisible && initial.canToggle && initial.before !== after,
+    extraPass: initial.before !== after,
+    pass: initial.markerVisible && initial.before !== after,
   };
 }
 
