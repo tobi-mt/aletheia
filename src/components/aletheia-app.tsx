@@ -5821,11 +5821,11 @@ function DisclosureSection({
   const [open, setOpen] = useState(defaultOpen);
 
   return (
-    <section className="rounded-xl border shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+    <section className="min-w-0 max-w-full overflow-hidden rounded-xl border shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        className="flex w-full items-start justify-between gap-3 p-4 text-left sm:p-5"
+        className="flex w-full min-w-0 flex-wrap items-start justify-between gap-3 p-4 text-left sm:p-5"
       >
         <span className="min-w-0">
           {eyebrow ? (
@@ -5841,7 +5841,7 @@ function DisclosureSection({
         </span>
       </button>
       {open ? (
-        <div className="border-t p-4 sm:p-5" style={{ borderColor: theme.borderLight }}>
+        <div className="min-w-0 max-w-full overflow-x-clip border-t p-4 sm:p-5" style={{ borderColor: theme.borderLight }}>
           {children}
         </div>
       ) : null}
@@ -6015,8 +6015,8 @@ function AccountPanel({
   ].filter(Boolean).length;
 
   return (
-    <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
-      <section className="space-y-4">
+    <div className="grid min-w-0 max-w-full gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
+      <section className="min-w-0 space-y-4">
         <ContextualNextAction
           eyebrow="Next in Account"
           title={accountNextTitle}
@@ -6139,7 +6139,7 @@ function AccountPanel({
         </DisclosureSection>
       </section>
 
-        <aside className="space-y-4">
+        <aside className="min-w-0 space-y-4">
         <DisclosureSection title={`${exchanges.length} conversations · ${decisions.length} decisions · ${journalEntries.length} reflections`} summary="History stays collapsed until you want to review what has been saved." eyebrow="History" theme={theme}>
         <section>
           <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>History</p>
@@ -6644,12 +6644,12 @@ function ShareInviteCard({
   onShare: (channel: ShareChannel, placement: string) => void;
 }) {
   return (
-    <section className="rounded-xl p-4 shadow-sm sm:p-5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
-      <div className="flex items-start gap-3">
+    <section className="min-w-0 max-w-full rounded-xl p-4 shadow-sm sm:p-5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+      <div className="flex min-w-0 items-start gap-3">
         <div className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-md" style={{ backgroundColor: theme.bgInput, color: theme.primary }}>
           <Share2 size={17} />
         </div>
-        <div>
+        <div className="min-w-0">
           <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>Invite someone</p>
           <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
             Invite someone who may need wisdom for money, work, or stewardship.
@@ -6704,11 +6704,11 @@ function ShareActions({
   ];
 
   return (
-    <div className="mt-4 flex flex-wrap gap-2">
+    <div className="mt-4 grid min-w-0 grid-cols-1 gap-2 min-[360px]:grid-cols-2 sm:flex sm:flex-wrap">
       <button
         type="button"
         onClick={() => onShare("native", placement)}
-        className="inline-flex h-11 items-center gap-2 rounded-md px-3 text-xs font-semibold shadow-sm"
+        className="inline-flex h-11 min-w-0 items-center justify-center gap-2 rounded-md px-3 text-xs font-semibold shadow-sm"
         style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
       >
         <Share2 size={14} />
@@ -6717,7 +6717,7 @@ function ShareActions({
       <button
         type="button"
         onClick={() => onShare("copy", placement)}
-        className="h-11 rounded-md border px-3 text-xs font-semibold transition"
+        className="h-11 min-w-0 rounded-md border px-3 text-xs font-semibold transition"
         style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}
       >
         Copy link
@@ -6729,7 +6729,7 @@ function ShareActions({
           target={platform.channel === "email" || platform.channel === "sms" ? undefined : "_blank"}
           rel={platform.channel === "email" || platform.channel === "sms" ? undefined : "noreferrer"}
           onClick={() => onShare(platform.channel, placement)}
-          className="inline-flex h-11 items-center rounded-md border px-3 text-xs font-semibold transition"
+          className="inline-flex h-11 min-w-0 items-center justify-center rounded-md border px-3 text-center text-xs font-semibold transition"
           style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}
         >
           {platform.label}

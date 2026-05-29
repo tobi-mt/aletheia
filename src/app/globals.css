@@ -101,6 +101,18 @@ body {
   scroll-margin-top: calc(var(--aletheia-top-nav-space) + 1rem);
 }
 
+.app-shell :where(.grid > *, .flex > *, section, aside, article, form, fieldset) {
+  min-width: 0;
+}
+
+.app-shell :where(section, aside, article, form, fieldset, img, video, canvas, table) {
+  max-width: 100%;
+}
+
+.app-shell :where(h1, h2, h3, h4, p, li, label, span, button, a) {
+  overflow-wrap: break-word;
+}
+
 .app-shell::before,
 .app-shell::after {
   content: "";
