@@ -1,8 +1,36 @@
 # Aletheia Features (Idea date: 18.05.2026)
 
-Aletheia is an AI-powered biblical wisdom companion for money, work, purpose, generosity, stewardship, and major life decisions.
+Aletheia is a calm, premium, AI-powered biblical wisdom companion for money, work, purpose, generosity, stewardship, and major life decisions.
 
-It is designed to feel calm, premium, emotionally intelligent, spiritually grounded, and practically useful.
+It is designed to feel emotionally intelligent, spiritually grounded, and practically useful, while helping people move from pressure to clarity and from clarity to action.
+
+## Why People Use Aletheia
+
+- It turns overwhelming questions into calm, wise next steps.
+- It gives biblically grounded guidance without sounding preachy or robotic.
+- It helps users think clearly about money, work, purpose, and generosity in one place.
+- It keeps meaningful answers visible instead of burying them in a noisy chat history.
+- It remembers the user’s decisions, reflections, and trusted counsel when they sign in.
+- It supports daily formation through small practices, reminders, and follow-up actions.
+- It works as a companion on mobile and desktop, so wisdom is always close at hand.
+
+## Core Advantages
+
+- Calm experience that reduces noise, anxiety, and decision fatigue.
+- Premium interface that feels intentional, focused, and trustworthy.
+- Spiritual depth rooted in curated biblical wisdom rather than generic advice.
+- Practical guidance that includes reflection, counsel, and concrete next steps.
+- Continuity across sessions for signed-in users through sync, memory, and history.
+- Privacy-conscious design that avoids exposing private questions, answers, or reflections when sharing.
+- Multilingual support so the app can serve users across different regions and languages.
+- PWA and mobile-first behavior so the app feels like a real companion, not just a web page.
+
+## What Makes It Different
+
+- Not just a chat app: it includes dashboards, journaling, decisions, counsel, rules of life, and notifications.
+- Not just scripture lookup: it applies wisdom to real choices with context and discernment.
+- Not just self-help: it keeps faith, integrity, and formation at the center.
+- Not just an AI assistant: it is designed around habits, memory, and long-term growth.
 
 ## Wisdom Companion
 

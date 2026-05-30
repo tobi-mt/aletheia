@@ -1339,12 +1339,17 @@ function conversationExchanges(messages: ChatMessage[]) {
       id: `${pendingQuestion?.id ?? "welcome"}-${message.id}`,
       question: pendingQuestion,
       answer: message,
+      mode: resolveExchangeMode(pendingQuestion, message),
       createdLabel: pendingQuestion ? "Earlier counsel" : "Welcome",
     });
     pendingQuestion = null;
   }
 
   return exchanges;
+}
+
+function resolveExchangeMode(question: ChatMessage | null, answer: ChatMessage): Mode {
+  return question?.mode ?? answer.mode ?? "Money";
 }
 
 type WisdomEntry = {
@@ -1361,6 +1366,7 @@ type WisdomEntry = {
 type ChatMessage = {
   id: string;
   role: "user" | "aletheia";
+  mode?: Mode;
   text: string;
   sources?: WisdomEntry[];
 };
@@ -1369,6 +1375,7 @@ type ConversationExchange = {
   id: string;
   question: ChatMessage | null;
   answer: ChatMessage;
+  mode: Mode;
   createdLabel: string;
 };
 
@@ -3697,13 +3704,13 @@ export function AletheiaApp() {
       trackClientEvent("chat_question_sent", questionAnalytics);
     }
 
-    const userMessage: ChatMessage = { id: crypto.randomUUID(), role: "user", text: trimmed };
+    const userMessage: ChatMessage = { id: crypto.randomUUID(), role: "user", mode, text: trimmed };
     setIsWorking(true);
     announceWorkflow(ts('notifications.questionSent'), ts('notifications.questionSentBody'), "info");
     setMessages((current) => [
       ...current,
       userMessage,
-      { id: "thinking", role: "aletheia", text: "Retrieving grounded wisdom..." },
+      { id: "thinking", role: "aletheia", mode, text: "Retrieving grounded wisdom..." },
     ]);
     setQuery("");
 
@@ -3747,7 +3754,7 @@ export function AletheiaApp() {
       setMessages((current) =>
         current.map((message) =>
           message.id === "thinking"
-            ? { id: crypto.randomUUID(), role: "aletheia", text: fallback.text, sources: fallback.sources }
+            ? { id: crypto.randomUUID(), role: "aletheia", mode, text: fallback.text, sources: fallback.sources }
             : message
         )
       );
@@ -7979,8 +7986,6 @@ function CompanionPanel({
               <CurrentCounselCard
                 theme={theme}
                 exchange={currentExchange}
-                mode={mode}
-                modeProfile={modeProfile}
                 preferences={preferences}
                 ui={ui}
                 isWorking={isWorking}
@@ -8031,6 +8036,7 @@ function CompanionPanel({
                     theme={theme}
                     exchange={exchange}
                     preferences={preferences}
+                    ui={ui}
                     expanded={expandedHistoryId === exchange.id}
                     onToggle={() => setExpandedHistoryId((current) => (current === exchange.id ? null : exchange.id))}
                     onContinue={() => {
@@ -8356,8 +8362,6 @@ function RangeField({
 function CurrentCounselCard({
   theme,
   exchange,
-  mode,
-  modeProfile,
   preferences,
   ui,
   isWorking,
@@ -8377,8 +8381,6 @@ function CurrentCounselCard({
 }: {
   theme: ThemeColors;
   exchange: ConversationExchange;
-  mode: Mode;
-  modeProfile: DisplayModeProfile;
   preferences: UserPreferences;
   ui: (typeof uiText)[LanguageCode];
   isWorking: boolean;
@@ -8398,6 +8400,8 @@ function CurrentCounselCard({
 }) {
   const text = { ...uiText.en, ...ui };
   const question = exchange.question?.text;
+  const exchangeMode = exchange.mode;
+  const exchangeModeProfile = localizedModeProfile(exchangeMode, preferences.language);
   const isThinking = exchange.answer.id === "thinking";
   const showDecisionActions = Boolean(question) && !isThinking;
   const answerText = exchange.answer.id === "welcome" ? text.welcomeCounsel! : exchange.answer.text;
@@ -8454,10 +8458,10 @@ function CurrentCounselCard({
         </div>
         <details className="mb-3 rounded-md border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
           <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
-            {modeProfile.displayLabel ?? mode} lens
+            {ui.wisdomMode}: {exchangeModeProfile.displayLabel ?? exchangeMode} lens
           </summary>
           <p className="mt-2 text-xs leading-5">
-            {modeProfile.displayLabel ?? mode} {text.modeShapesCounsel} {modeProfile.lens.toLowerCase()}
+            {exchangeModeProfile.displayLabel ?? exchangeMode} {text.modeShapesCounsel} {exchangeModeProfile.lens.toLowerCase()}
           </p>
         </details>
         <div className="calm-prose" style={{ color: theme.textPrimary }}>
@@ -8550,6 +8554,7 @@ function HistoryExchange({
   theme,
   exchange,
   preferences,
+  ui,
   expanded,
   onToggle,
   onContinue,
@@ -8558,6 +8563,7 @@ function HistoryExchange({
   theme: ThemeColors;
   exchange: ConversationExchange;
   preferences: UserPreferences;
+  ui: (typeof uiText)[LanguageCode];
   expanded: boolean;
   onToggle: () => void;
   onContinue: () => void;
@@ -8565,6 +8571,7 @@ function HistoryExchange({
 }) {
   const title = exchange.question?.text ?? "Welcome guidance";
   const preview = cleanDisplayText(exchange.answer.text).slice(0, 120);
+  const exchangeModeProfile = localizedModeProfile(exchange.mode, preferences.language);
 
   return (
     <article className="rounded-lg border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
@@ -8575,6 +8582,9 @@ function HistoryExchange({
       >
         <span className="min-w-0">
           <span className="block truncate text-sm font-semibold" style={{ color: theme.textPrimary }}>{cleanDisplayText(title)}</span>
+          <span className="mt-1 inline-flex rounded-md px-2 py-1 text-[11px] font-semibold" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+            {ui.currentLens}: {exchangeModeProfile.displayLabel ?? exchange.mode}
+          </span>
           <span className="mt-1 block line-clamp-2 text-xs leading-5" style={{ color: theme.textMuted }}>{preview}</span>
         </span>
         <span className="shrink-0 rounded-md px-2 py-1 text-xs font-semibold" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>
