@@ -22,6 +22,26 @@ type PushRow = {
   voice_enabled: boolean | null;
 };
 
+type DueDecisionReminderRow = {
+  id: string;
+  user_id: string;
+  title: string;
+  waiting_until: string | null;
+  revisit_at: string | null;
+  waiting_due: boolean;
+  revisit_due: boolean;
+};
+
+type ReminderKind = "waiting" | "revisit";
+
+type DueDecisionReminder = {
+  decisionId: string;
+  userId: string;
+  title: string;
+  kind: ReminderKind;
+  dueAt: string;
+};
+
 const DAILY_UNAUTHORIZED_METRIC_KEY = "daily_unauthorized_hits";
 
 type MetricRow = {
@@ -119,7 +139,7 @@ export function configureWebPush() {
 }
 
 function dailyNotificationPayload(row: PushRow, wisdomEntries: Awaited<ReturnType<typeof getWisdomEntries>>) {
-  const index = new Date().getDate() % wisdomEntries.length;
+  const index = dailyWisdomIndex(row, wisdomEntries.length, new Date());
   const wisdom = wisdomEntries[index];
   const preferences = normalizePreferences({
     language: row.language as LanguageCode,
@@ -131,11 +151,87 @@ function dailyNotificationPayload(row: PushRow, wisdomEntries: Awaited<ReturnTyp
     ? (wisdom.theme as Mode)
     : "Money";
   const daily = localizedDailyWisdom(wisdom, dailyMode, preferences);
+  const body = buildDailyNotificationBody(
+    row.delivery_strategy,
+    daily.practice || daily.principle
+  );
   return {
     title: `${daily.label}: ${wisdom.theme}`,
-    body: daily.practice || daily.principle,
+    body,
     url: "/?source=notification&focus=today",
     scripture: daily.scripture,
+    tag: "aletheia-daily-wisdom",
+  };
+}
+
+function stableHash(value: string) {
+  let hash = 0;
+  for (let i = 0; i < value.length; i += 1) {
+    hash = (hash * 31 + value.charCodeAt(i)) >>> 0;
+  }
+  return hash;
+}
+
+function dailyWisdomIndex(row: PushRow, size: number, now: Date) {
+  if (size <= 1) {
+    return 0;
+  }
+  const dateSeed = localDateForTimezone(now, row.preferred_timezone);
+  const seed = `${row.user_id}:${dateSeed}`;
+  return stableHash(seed) % size;
+}
+
+function compactNotificationCopy(copy: string, max = 140) {
+  const cleaned = copy.replace(/\s+/g, " ").trim();
+  if (cleaned.length <= max) {
+    return cleaned;
+  }
+  return `${cleaned.slice(0, Math.max(0, max - 1)).trimEnd()}…`;
+}
+
+function buildDailyNotificationBody(strategy: string | null, reflection: string) {
+  const prompt =
+    strategy === "evening"
+      ? "Close your day with this wisdom."
+      : strategy === "midday"
+        ? "Pause and reset your focus."
+        : "Begin with a grounded step.";
+  const content = compactNotificationCopy(reflection, 118);
+  return `${prompt} ${content}`;
+}
+
+function selectReminderForUser(reminders: DueDecisionReminder[]) {
+  const sorted = [...reminders].sort((a, b) => {
+    const aTime = Date.parse(a.dueAt);
+    const bTime = Date.parse(b.dueAt);
+    if (aTime !== bTime) {
+      return aTime - bTime;
+    }
+    if (a.kind === b.kind) {
+      return 0;
+    }
+    return a.kind === "waiting" ? -1 : 1;
+  });
+
+  return sorted[0] || null;
+}
+
+function followupNotificationPayload(reminder: DueDecisionReminder) {
+  const trimmedTitle = reminder.title.replace(/\s+/g, " ").trim();
+  const title =
+    reminder.kind === "waiting"
+      ? "Waiting period complete"
+      : "Time to revisit your decision";
+  const body =
+    reminder.kind === "waiting"
+      ? `Your waiting period has ended for \"${trimmedTitle}\". Revisit with calm clarity.`
+      : `Your revisit time arrived for \"${trimmedTitle}\". Return and choose your next faithful step.`;
+
+  return {
+    title,
+    body: compactNotificationCopy(body, 140),
+    url: "/?source=notification&focus=today",
+    tag: `aletheia-decision-${reminder.kind}-${reminder.decisionId}`,
   };
 }
 
@@ -296,6 +392,75 @@ async function sendPushRows(
   return { sent, failed, failureSamples };
 }
 
+async function findDueDecisionReminders() {
+  const rows = await many<DueDecisionReminderRow>(
+    `SELECT
+       id,
+       user_id,
+       title,
+       waiting_until,
+       revisit_at,
+       (waiting_until IS NOT NULL AND waiting_until <= NOW() AND (waiting_notified_at IS NULL OR waiting_notified_at < waiting_until)) AS waiting_due,
+       (revisit_at IS NOT NULL AND revisit_at <= NOW() AND (revisit_notified_at IS NULL OR revisit_notified_at < revisit_at)) AS revisit_due
+     FROM wisdom_decisions
+     WHERE status <> 'closed'
+       AND (
+         (waiting_until IS NOT NULL AND waiting_until <= NOW() AND (waiting_notified_at IS NULL OR waiting_notified_at < waiting_until))
+         OR
+         (revisit_at IS NOT NULL AND revisit_at <= NOW() AND (revisit_notified_at IS NULL OR revisit_notified_at < revisit_at))
+       )`
+  );
+
+  const reminders: DueDecisionReminder[] = [];
+  for (const row of rows) {
+    if (row.waiting_due && row.waiting_until) {
+      reminders.push({
+        decisionId: row.id,
+        userId: row.user_id,
+        title: row.title,
+        kind: "waiting",
+        dueAt: row.waiting_until,
+      });
+    }
+    if (row.revisit_due && row.revisit_at) {
+      reminders.push({
+        decisionId: row.id,
+        userId: row.user_id,
+        title: row.title,
+        kind: "revisit",
+        dueAt: row.revisit_at,
+      });
+    }
+  }
+
+  return reminders;
+}
+
+async function markDecisionReminderNotified(reminder: DueDecisionReminder, deliveredAtIso: string) {
+  if (reminder.kind === "waiting") {
+    await run(
+      `UPDATE wisdom_decisions
+       SET waiting_notified_at = ?, updated_at = ?
+       WHERE id = ? AND user_id = ?`,
+      deliveredAtIso,
+      deliveredAtIso,
+      reminder.decisionId,
+      reminder.userId
+    );
+    return;
+  }
+
+  await run(
+    `UPDATE wisdom_decisions
+     SET revisit_notified_at = ?, updated_at = ?
+     WHERE id = ? AND user_id = ?`,
+    deliveredAtIso,
+    deliveredAtIso,
+    reminder.decisionId,
+    reminder.userId
+  );
+}
+
 export async function sendDailyWisdomNotifications() {
   configureWebPush();
 
@@ -313,20 +478,70 @@ export async function sendDailyWisdomNotifications() {
      LEFT JOIN user_preferences ON user_preferences.user_id = push_subscriptions.user_id
      WHERE enabled = TRUE`,
   );
-  const dueRows = rows.filter((row) => shouldSendAtLocalHour(row, now));
+
+  const reminders = await findDueDecisionReminders();
+  const remindersByUser = new Map<string, DueDecisionReminder[]>();
+  for (const reminder of reminders) {
+    const bucket = remindersByUser.get(reminder.userId);
+    if (bucket) {
+      bucket.push(reminder);
+    } else {
+      remindersByUser.set(reminder.userId, [reminder]);
+    }
+  }
+
+  const selectedReminders = new Map<string, DueDecisionReminder>();
+  for (const [userId, userReminders] of remindersByUser.entries()) {
+    const selected = selectReminderForUser(userReminders);
+    if (selected) {
+      selectedReminders.set(userId, selected);
+    }
+  }
+
+  let followupAttempted = 0;
+  let followupSent = 0;
+  let followupFailed = 0;
+  const followupFailureSamples: PushFailureSample[] = [];
+  let followupDecisionsNotified = 0;
+  const followupUsers = new Set(selectedReminders.keys());
+
+  for (const [userId, reminder] of selectedReminders.entries()) {
+    const userRows = rows.filter((row) => row.user_id === userId);
+    if (!userRows.length) {
+      continue;
+    }
+
+    followupAttempted += userRows.length;
+    const result = await sendPushRows(
+      userRows,
+      () => JSON.stringify(followupNotificationPayload(reminder))
+    );
+    followupSent += result.sent;
+    followupFailed += result.failed;
+    followupFailureSamples.push(...result.failureSamples);
+
+    if (result.sent > 0) {
+      await markDecisionReminderNotified(reminder, now.toISOString());
+      followupDecisionsNotified += 1;
+    }
+  }
+
+  const dueRows = rows.filter((row) => !followupUsers.has(row.user_id) && shouldSendAtLocalHour(row, now));
   const { sent, failed, failureSamples } = await sendPushRows(dueRows, (row) =>
     JSON.stringify(dailyNotificationPayload(row, wisdomEntries))
   );
 
   return {
-    attempted: dueRows.length,
-    sent,
-    failed,
+    attempted: dueRows.length + followupAttempted,
+    sent: sent + followupSent,
+    failed: failed + followupFailed,
     scanned: rows.length,
-    skipped: rows.length - dueRows.length,
+    skipped: Math.max(0, rows.length - dueRows.length - followupAttempted),
     catchupAttempted: 0,
     hour: currentHour,
-    failureSamples: failureSamples.slice(0, 5),
+    followupAttempted,
+    followupDecisionsNotified,
+    failureSamples: [...followupFailureSamples, ...failureSamples].slice(0, 5),
   };
 }
 

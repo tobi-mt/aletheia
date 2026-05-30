@@ -88,7 +88,7 @@ self.addEventListener("push", (event) => {
     body: data.body || fallback.body,
     icon: "/brand/aletheia-app-icon-192.png",
     badge: "/brand/aletheia-app-icon-192.png",
-    tag: "aletheia-daily-wisdom",
+    tag: data.tag || "aletheia-daily-wisdom",
     renotify: false,
     requireInteraction: false,
     data: {

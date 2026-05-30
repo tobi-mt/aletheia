@@ -52,8 +52,10 @@ try {
     const skipped = Number(result.skipped ?? 0);
     const scanned = Number(result.scanned ?? 0);
     const hour = Number(result.hour ?? new Date().getUTCHours());
+    const followupAttempted = Number(result.followupAttempted ?? 0);
+    const followupDecisionsNotified = Number(result.followupDecisionsNotified ?? 0);
     console.log(
-      `✓ Daily notifications checked. attempted=${attempted} sent=${sent} failed=${failed} skipped=${skipped} scanned=${scanned} utcHour=${hour}`
+      `✓ Daily notifications checked. attempted=${attempted} sent=${sent} failed=${failed} skipped=${skipped} scanned=${scanned} utcHour=${hour} followupAttempted=${followupAttempted} followupDecisionsNotified=${followupDecisionsNotified}`
     );
     if (Array.isArray(result.failureSamples) && result.failureSamples.length) {
       console.log("Failure samples:");

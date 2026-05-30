@@ -169,6 +169,8 @@ async function initializeDatabase() {
       peace_over_urgency BOOLEAN NOT NULL DEFAULT FALSE,
       waiting_until TIMESTAMPTZ,
       revisit_at TIMESTAMPTZ,
+      waiting_notified_at TIMESTAMPTZ,
+      revisit_notified_at TIMESTAMPTZ,
       outcome_review_at TIMESTAMPTZ,
       summary TEXT,
       final_decision TEXT,
@@ -178,6 +180,8 @@ async function initializeDatabase() {
     );
 
     ALTER TABLE wisdom_decisions ADD COLUMN IF NOT EXISTS revisit_at TIMESTAMPTZ;
+    ALTER TABLE wisdom_decisions ADD COLUMN IF NOT EXISTS waiting_notified_at TIMESTAMPTZ;
+    ALTER TABLE wisdom_decisions ADD COLUMN IF NOT EXISTS revisit_notified_at TIMESTAMPTZ;
     ALTER TABLE wisdom_decisions ADD COLUMN IF NOT EXISTS outcome_review_at TIMESTAMPTZ;
 
     CREATE TABLE IF NOT EXISTS decision_events (
@@ -308,6 +312,8 @@ async function initializeDatabase() {
     CREATE INDEX IF NOT EXISTS user_memory_summaries_updated_idx ON user_memory_summaries(updated_at DESC);
     CREATE INDEX IF NOT EXISTS answer_feedback_user_created_idx ON answer_feedback(user_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS wisdom_decisions_revisit_idx ON wisdom_decisions(user_id, revisit_at);
+    CREATE INDEX IF NOT EXISTS wisdom_decisions_waiting_due_idx ON wisdom_decisions(user_id, waiting_until, waiting_notified_at);
+    CREATE INDEX IF NOT EXISTS wisdom_decisions_revisit_due_idx ON wisdom_decisions(user_id, revisit_at, revisit_notified_at);
     CREATE INDEX IF NOT EXISTS wisdom_decisions_outcome_review_idx ON wisdom_decisions(user_id, outcome_review_at);
     CREATE INDEX IF NOT EXISTS analytics_events_created_idx ON analytics_events(created_at DESC);
     CREATE INDEX IF NOT EXISTS analytics_events_name_created_idx ON analytics_events(event_name, created_at DESC);
