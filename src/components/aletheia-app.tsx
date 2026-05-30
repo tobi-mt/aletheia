@@ -9025,42 +9025,6 @@ function DecisionCompanionPanel({
   return (
     <div className="min-w-0 space-y-4 xl:grid xl:gap-4 xl:space-y-0 xl:grid-cols-[1fr_340px]">
       <section className="space-y-4">
-        {counselSummaryDraft ? (
-          <section className="rounded-xl border p-4 shadow-sm xl:hidden" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
-            <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>Counsel Circle</p>
-            <div className="mt-3 rounded-lg border p-3" style={{ borderColor: theme.accentGold + '80', backgroundColor: theme.bgCardElevated }}>
-              <div className="flex items-start justify-between gap-2">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>Summary ready</p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (window.confirm('Are you sure you want to delete this counsel summary? This cannot be undone.')) {
-                      setCounselSummaryDraft(null);
-                      announceWorkflow(
-                        ts('notifications.counselSummaryCleared'),
-                        ts('notifications.counselSummaryClearedBody'),
-                        "info"
-                      );
-                    }
-                  }}
-                  className="grid size-9 shrink-0 place-items-center rounded-md border-2 transition"
-                  style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: '#cc4444' }}
-                  aria-label="Delete counsel summary"
-                  title="Delete summary"
-                >
-                  <X size={18} />
-                </button>
-              </div>
-              <p className="mt-2 text-sm font-semibold" style={{ color: theme.textPrimary }}>{counselSummaryDraft.title}</p>
-              <pre className="mt-3 max-h-72 overflow-auto whitespace-pre-wrap rounded-md border p-3 text-xs leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-                {counselSummaryDraft.body}
-              </pre>
-              <p className="mt-2 text-xs leading-5" style={{ color: theme.textSecondary }}>
-                This summary is private until you copy it or share a selected decision with someone in your Counsel Circle.
-              </p>
-            </div>
-          </section>
-        ) : null}
         <ContextualNextAction
           eyebrow="Next in Decisions"
           title={decisionNextTitle}
