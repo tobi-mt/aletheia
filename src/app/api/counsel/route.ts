@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { trackServerEvent } from "@/lib/analytics";
 import { counselInviteUrl, createCounselInviteToken, hashCounselInviteToken } from "@/lib/counsel-invites";
-import { many, run } from "@/lib/db";
+import { many, one, pool, run } from "@/lib/db";
 import { counselInviteEmail, emailConfigured, isEmailAddress, sendEmail } from "@/lib/email";
 
 type CounselRow = {
@@ -146,4 +146,77 @@ export async function POST(request: Request) {
   }
 
   return NextResponse.json({ contact, inviteUrl });
+}
+
+export async function DELETE(request: Request) {
+  const user = await getCurrentUser();
+  if (!user) {
+    return NextResponse.json({ error: "Sign in to manage your counsel circle." }, { status: 401 });
+  }
+
+  const url = new URL(request.url);
+  let contactId = url.searchParams.get("contactId")?.trim() || "";
+
+  if (!contactId) {
+    const body = (await request.json().catch(() => ({}))) as { contactId?: string };
+    contactId = body.contactId?.trim() || "";
+  }
+
+  if (!contactId) {
+    return NextResponse.json({ error: "Contact is required." }, { status: 400 });
+  }
+
+  const contact = await one<Pick<CounselRow, "id" | "name" | "role" | "invite_status">>(
+    "SELECT id, name, role, invite_status FROM counsel_contacts WHERE id = ? AND user_id = ?",
+    contactId,
+    user.id
+  );
+
+  if (!contact) {
+    return NextResponse.json({ error: "Contact not found." }, { status: 404 });
+  }
+
+  const client = await pool.connect();
+  let revokedSharedCount = 0;
+  let revokedCommentCount = 0;
+  try {
+    await client.query("BEGIN");
+
+    const sharedResult = await client.query(
+      "DELETE FROM counsel_shared_decisions WHERE contact_id = $1 AND user_id = $2",
+      [contactId, user.id]
+    );
+    revokedSharedCount = sharedResult.rowCount ?? 0;
+
+    const commentResult = await client.query("DELETE FROM counsel_comments WHERE contact_id = $1", [contactId]);
+    revokedCommentCount = commentResult.rowCount ?? 0;
+
+    await client.query("DELETE FROM counsel_contacts WHERE id = $1 AND user_id = $2", [contactId, user.id]);
+
+    await client.query("COMMIT");
+  } catch (error) {
+    await client.query("ROLLBACK");
+    console.error("Failed to remove counsel contact", error);
+    return NextResponse.json({ error: "Could not remove this counsel contact." }, { status: 500 });
+  } finally {
+    client.release();
+  }
+
+  await trackServerEvent({
+    userId: user.id,
+    eventName: "counsel_contact_removed",
+    metadata: {
+      role: contact.role,
+      inviteStatus: contact.invite_status,
+      revokedSharedCount,
+      revokedCommentCount,
+    },
+  });
+
+  return NextResponse.json({
+    ok: true,
+    removedContactId: contactId,
+    revokedSharedCount,
+    revokedCommentCount,
+  });
 }

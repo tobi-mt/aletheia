@@ -1193,6 +1193,35 @@ function cleanDisplayText(text: string) {
     .trim();
 }
 
+function formatNextDecisionTitle(title: string, maxLength = 112) {
+  const cleaned = cleanDisplayText(title).replace(/\s+/g, " ");
+  if (!cleaned) {
+    return "Continue";
+  }
+  if (cleaned.length <= maxLength) {
+    return `Continue: ${cleaned}`;
+  }
+  const minLength = Math.max(56, Math.floor(maxLength * 0.58));
+  const previewWindow = cleaned.slice(0, maxLength + 1);
+
+  let sentenceBreak = -1;
+  for (const mark of [".", "?", "!", ";", ":"]) {
+    sentenceBreak = Math.max(sentenceBreak, previewWindow.lastIndexOf(mark));
+  }
+  if (sentenceBreak >= minLength - 1) {
+    return `Continue: ${previewWindow.slice(0, sentenceBreak + 1).trimEnd()}`;
+  }
+
+  const phraseBreak = previewWindow.lastIndexOf(",");
+  if (phraseBreak >= Math.floor(maxLength * 0.72)) {
+    return `Continue: ${previewWindow.slice(0, phraseBreak).trimEnd()}...`;
+  }
+
+  const wordBreak = previewWindow.lastIndexOf(" ");
+  const cutoff = wordBreak >= minLength ? wordBreak : maxLength;
+  return `Continue: ${cleaned.slice(0, cutoff).trimEnd()}...`;
+}
+
 function browserTimezone() {
   try {
     return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
@@ -1486,6 +1515,11 @@ type CounselInvitePreview = {
     sharedAt: string;
     comments: Array<{ id: string; body: string; createdAt: string }>;
   }>;
+};
+
+type CounselRemovalConfirmationState = {
+  contactId: string;
+  contactName: string;
 };
 
 function isCounselInvitePreview(value: CounselInvitePreview | { error?: string }): value is CounselInvitePreview {
@@ -1980,6 +2014,8 @@ export function AletheiaApp() {
   const [counselInviteToken, setCounselInviteToken] = useState<string | null>(null);
   const [counselInvitePreview, setCounselInvitePreview] = useState<CounselInvitePreview | null>(null);
   const [counselInviteStatus, setCounselInviteStatus] = useState("");
+  const [counselRemovalPrompt, setCounselRemovalPrompt] = useState<CounselRemovalConfirmationState | null>(null);
+  const [isRemovingCounselContact, setIsRemovingCounselContact] = useState(false);
   
   const [counselSummaryDraft, setCounselSummaryDraftState] = useState<CounselSummaryDraft | null>(null);
   
@@ -3271,7 +3307,7 @@ export function AletheiaApp() {
       showView("decisions");
       return;
     }
-    setDecisionTitle(question.slice(0, 90));
+    setDecisionTitle(question);
     setDecisionPressure(question);
     setDecisionEmotion("uncertain");
     trackClientEvent("answer_saved_or_acted", { action: "track_decision", mode, ...analyticsQuestionMetadata(question, mode) });
@@ -3320,7 +3356,7 @@ export function AletheiaApp() {
       peaceOverUrgency: !/urgent|rush|panic|asap|immediately/i.test(question),
     });
     const body = buildDecisionSummary({
-      title: question.slice(0, 90),
+      title: question,
       mode,
       pressure: question,
       emotion: "uncertain",
@@ -3330,11 +3366,11 @@ export function AletheiaApp() {
     });
     setCounselSummaryDraft({
       id: crypto.randomUUID(),
-      title: question.slice(0, 90),
+      title: question,
       body,
       createdAt: new Date().toISOString(),
     });
-    setDecisionTitle((current) => current || question.slice(0, 90));
+    setDecisionTitle((current) => current || question);
     setDecisionPressure((current) => current || question);
     trackClientEvent("counsel_summary_created", { mode, ...analyticsQuestionMetadata(question, mode) });
     trackClientEvent("answer_saved_or_acted", { action: "create_counsel_summary", mode, ...analyticsQuestionMetadata(question, mode) });
@@ -3356,7 +3392,7 @@ export function AletheiaApp() {
 
   function waitFromExchange(exchange: ConversationExchange) {
     const question = cleanDisplayText(exchange.question?.text ?? "");
-    setDecisionTitle(question ? question.slice(0, 90) : "Decision waiting period");
+    setDecisionTitle(question ? question : "Decision waiting period");
     setDecisionPressure(`${question}\n\nSuggested waiting rhythm: wait 3 days, seek counsel, count the cost, and revisit with less urgency.`);
     setDecisionEmotion("pressured");
     trackClientEvent("answer_saved_or_acted", { action: "waiting_mode", mode, ...analyticsQuestionMetadata(question, mode) });
@@ -4586,6 +4622,92 @@ export function AletheiaApp() {
     }
   }
 
+  async function finalizeCounselContactRemoval(contactId: string, contactName: string) {
+    if (user) {
+      const response = await fetch(`/api/counsel?contactId=${encodeURIComponent(contactId)}`, {
+        method: "DELETE",
+      });
+      const data = (await response.json().catch(() => ({}))) as {
+        ok?: boolean;
+        revokedSharedCount?: number;
+        revokedCommentCount?: number;
+        error?: string;
+      };
+
+      if (!response.ok || !data.ok) {
+        announceWorkflow(
+          ts("notifications.counselNotRemoved", "Could not remove contact"),
+          data.error || ts("notifications.counselNotRemovedBody", "Please try again."),
+          "error"
+        );
+        return;
+      }
+
+      setCounselContacts((current) => current.filter((item) => item.id !== contactId));
+      if (latestCounselInvite?.name === contactName) {
+        setLatestCounselInvite(null);
+      }
+      announceWorkflow(
+        ts("notifications.counselRemoved", "Counsel contact removed"),
+        `${contactName} was removed. ${data.revokedSharedCount ?? 0} shared ${data.revokedSharedCount === 1 ? "decision" : "decisions"} and ${data.revokedCommentCount ?? 0} counsel ${data.revokedCommentCount === 1 ? "comment" : "comments"} were revoked.`,
+        "success"
+      );
+      return;
+    }
+
+    setCounselContacts((current) => current.filter((item) => item.id !== contactId));
+    if (latestCounselInvite?.name === contactName) {
+      setLatestCounselInvite(null);
+    }
+    announceWorkflow(
+      ts("notifications.counselRemovedLocally", "Counsel contact removed locally"),
+      ts("notifications.counselRemovedLocallyBody", "The contact was removed from this device."),
+      "success"
+    );
+  }
+
+  async function confirmCounselContactRemoval(typedValue: string) {
+    if (!counselRemovalPrompt) {
+      return;
+    }
+
+    const matchesConfirmation = typedValue.trim().toUpperCase() === "REMOVE";
+    if (!matchesConfirmation) {
+      setCounselRemovalPrompt(null);
+      announceWorkflow(
+        ts("notifications.counselRemovalCancelled", "Removal cancelled"),
+        ts("notifications.counselRemovalCancelledBody", "Final confirmation did not match. No changes were made."),
+        "info"
+      );
+      return;
+    }
+
+    const pending = counselRemovalPrompt;
+    setIsRemovingCounselContact(true);
+    setCounselRemovalPrompt(null);
+    try {
+      await finalizeCounselContactRemoval(pending.contactId, pending.contactName);
+    } finally {
+      setIsRemovingCounselContact(false);
+    }
+  }
+
+  async function removeCounselContact(contactId: string) {
+    if (isRemovingCounselContact) {
+      return;
+    }
+    const contact = counselContacts.find((item) => item.id === contactId);
+    if (!contact) {
+      return;
+    }
+
+    if (!window.confirm(`Remove ${contact.name} from your Counsel Circle?\n\nThey will no longer be able to view future shared summaries.`)) {
+      return;
+    }
+
+    setCounselRemovalPrompt({ contactId: contact.id, contactName: contact.name });
+  }
+
   async function acceptCounselInvite() {
     if (!counselInviteToken) {
       return;
@@ -4965,6 +5087,7 @@ export function AletheiaApp() {
                   onShareCounselInvite={shareCounselInvite}
                   onShareDecisionWithCounsel={shareDecisionWithCounsel}
                   onBulkShareDecisionsWithCounsel={bulkShareDecisionsWithCounsel}
+                  onRemoveCounselContact={removeCounselContact}
                   onSpeakText={speakText}
                   isSpeaking={isSpeaking}
                   onAddRule={addRuleOfLife}
@@ -5142,6 +5265,13 @@ export function AletheiaApp() {
           setCounselInvitePreview(null);
           setCounselInviteStatus("");
         }}
+      />
+      <CounselRemovalConfirmModal
+        theme={theme}
+        pending={counselRemovalPrompt}
+        isWorking={isRemovingCounselContact}
+        onCancel={() => setCounselRemovalPrompt(null)}
+        onConfirm={confirmCounselContactRemoval}
       />
       <ScriptureModal theme={theme} scripture={selectedScripture} preferences={preferences} onClose={() => setSelectedScripture(null)} />
 
@@ -6021,6 +6151,7 @@ function DisclosureSection({
   summary,
   eyebrow,
   defaultOpen = false,
+  compactCollapsed = false,
   children,
   theme,
 }: {
@@ -6028,10 +6159,12 @@ function DisclosureSection({
   summary?: string;
   eyebrow?: string;
   defaultOpen?: boolean;
+  compactCollapsed?: boolean;
   children: ReactNode;
   theme: ThemeColors;
 }) {
   const [open, setOpen] = useState(defaultOpen);
+  const useCompactClosedState = compactCollapsed && !open;
 
   return (
     <section className="min-w-0 max-w-full overflow-hidden rounded-xl border shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
@@ -6048,18 +6181,20 @@ function DisclosureSection({
             return next;
           });
         }}
-        className="flex w-full min-w-0 flex-wrap items-start justify-between gap-3 p-4 text-left sm:p-5"
+        className={useCompactClosedState
+          ? "flex w-full min-w-0 flex-wrap items-start justify-between gap-2 p-3 text-left sm:p-3.5"
+          : "flex w-full min-w-0 flex-wrap items-start justify-between gap-3 p-4 text-left sm:p-5"}
       >
         <span className="min-w-0">
           {eyebrow ? (
             <span className="block text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{eyebrow}</span>
           ) : null}
-          <span className="mt-1 block text-lg font-semibold" style={{ color: theme.textPrimary }}>{title}</span>
+          <span className={useCompactClosedState ? "mt-1 block text-base font-semibold" : "mt-1 block text-lg font-semibold"} style={{ color: theme.textPrimary }}>{title}</span>
           {summary ? (
-            <span className="mt-1 block text-sm leading-6" style={{ color: theme.textSecondary }}>{summary}</span>
+            <span className={useCompactClosedState ? "mt-1 block text-sm leading-5" : "mt-1 block text-sm leading-6"} style={{ color: theme.textSecondary }}>{summary}</span>
           ) : null}
         </span>
-        <span className="shrink-0 rounded-md border px-2 py-1 text-[11px] font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+        <span className={useCompactClosedState ? "shrink-0 rounded-md border px-2 py-1 text-[10px] font-semibold" : "shrink-0 rounded-md border px-2 py-1 text-[11px] font-semibold"} style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
           {open ? "Hide details" : "Show details"}
         </span>
       </button>
@@ -6258,7 +6393,8 @@ function AccountPanel({
           title={user ? `Signed in as ${user.name || user.email}` : "Sign in or continue as guest"}
           summary={user ? `Sync active. ${notificationsEnabled ? "Notifications enabled." : "Notifications not enabled yet."}` : "Google and email sign-in keep history, preferences, decisions, and notifications portable."}
           eyebrow="Profile"
-          defaultOpen
+          defaultOpen={Boolean(user)}
+          compactCollapsed
           theme={theme}
         >
           <div className="space-y-4">
@@ -6298,6 +6434,7 @@ function AccountPanel({
           title={`${languages[preferences.language].nativeName} · ${preferences.bibleTranslation} · ${themePreference}`}
           summary="Language, Bible translation, appearance, region, and voice stay here so the Companion stays calm."
           eyebrow="Preferences"
+          compactCollapsed
           theme={theme}
         >
           <PreferencesPanel
@@ -6321,6 +6458,7 @@ function AccountPanel({
           title={manualContext.useInAnswers ? `Context active · ${contextAreas} area${contextAreas === 1 ? "" : "s"} added` : "Context paused"}
           summary="Manual context is optional and private. Add only what should shape Aletheia’s counsel."
           eyebrow="Manual Context Vault"
+          compactCollapsed
           theme={theme}
         >
           <ManualContextPanel
@@ -6336,6 +6474,7 @@ function AccountPanel({
           title={notificationsEnabled ? `Daily wisdom enabled · ${notificationTimeLabel(notificationTiming.preferredLocalHour)}` : "Daily wisdom notifications"}
           summary={notificationsEnabled ? "Aletheia will use your saved local timing preference." : "Turn on one quiet daily prompt when this device is ready."}
           eyebrow="Notifications"
+          compactCollapsed
           theme={theme}
         >
           <NotificationPanel
@@ -6353,17 +6492,17 @@ function AccountPanel({
           />
         </DisclosureSection>
 
-        <DisclosureSection title="Add Aletheia to your home screen" summary="Install instructions are tucked away until someone needs the app-like setup." eyebrow="Install Aletheia" theme={theme}>
+        <DisclosureSection title="Add Aletheia to your home screen" summary="Install instructions are tucked away until someone needs the app-like setup." eyebrow="Install Aletheia" compactCollapsed theme={theme}>
           <InstallGuideCard theme={theme} compact />
         </DisclosureSection>
 
-        <DisclosureSection title="Invite someone privately" summary="Share only the Aletheia link, never private questions, journals, or counsel by default." eyebrow="Invite Someone" theme={theme}>
+        <DisclosureSection title="Invite someone privately" summary="Share only the Aletheia link, never private questions, journals, or counsel by default." eyebrow="Invite Someone" compactCollapsed theme={theme}>
           <ShareInviteCard theme={theme} placement="account" onShare={onShare} />
         </DisclosureSection>
       </section>
 
         <aside className="min-w-0 space-y-4">
-        <DisclosureSection title={`${exchanges.length} conversations · ${decisions.length} decisions · ${journalEntries.length} reflections`} summary="History stays collapsed until you want to review what has been saved." eyebrow="History" theme={theme}>
+        <DisclosureSection title={`${exchanges.length} conversations · ${decisions.length} decisions · ${journalEntries.length} reflections`} summary="History stays collapsed until you want to review what has been saved." eyebrow="History" compactCollapsed theme={theme}>
         <section>
           <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>History</p>
           <div className="mt-3 grid gap-3">
@@ -6410,11 +6549,11 @@ function AccountPanel({
         </section>
         </DisclosureSection>
 
-        <DisclosureSection title="Trust and privacy posture" summary="Boundaries, scripture sourcing, saved data, and sharing posture are available without flooding the page." eyebrow="Trust & Privacy" theme={theme}>
+        <DisclosureSection title="Trust and privacy posture" summary="Boundaries, scripture sourcing, saved data, and sharing posture are available without flooding the page." eyebrow="Trust & Privacy" compactCollapsed theme={theme}>
           <TrustCenterCard theme={theme} />
         </DisclosureSection>
 
-        <DisclosureSection title="Aletheia’s guardrails" summary="The app’s safety boundaries remain visible when needed, not constantly in the way." eyebrow="Our Boundaries" theme={theme}>
+        <DisclosureSection title="Aletheia’s guardrails" summary="The app’s safety boundaries remain visible when needed, not constantly in the way." eyebrow="Our Boundaries" compactCollapsed theme={theme}>
         <section>
           <div className="flex items-center gap-2">
             <ShieldCheck size={17} style={{ color: theme.primary }} />
@@ -6434,7 +6573,7 @@ function AccountPanel({
         </section>
         </DisclosureSection>
 
-        <DisclosureSection title={`Formation: ${completedMilestones} quiet milestone${completedMilestones === 1 ? "" : "s"}`} summary="Formation is a calm record of practice, not a scoreboard." eyebrow={text.badgesFormation} theme={theme}>
+        <DisclosureSection title={`Formation: ${completedMilestones} quiet milestone${completedMilestones === 1 ? "" : "s"}`} summary="Formation is a calm record of practice, not a scoreboard." eyebrow={text.badgesFormation} compactCollapsed theme={theme}>
         <section>
           <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{text.badgesFormation}</p>
           <div className="mt-3 space-y-2">
@@ -7564,6 +7703,103 @@ function CounselInviteModal({
   );
 }
 
+function CounselRemovalConfirmModal({
+  theme,
+  pending,
+  isWorking,
+  onCancel,
+  onConfirm,
+}: {
+  theme: ThemeColors;
+  pending: CounselRemovalConfirmationState | null;
+  isWorking: boolean;
+  onCancel: () => void;
+  onConfirm: (typedValue: string) => unknown;
+}) {
+  const [typedValue, setTypedValue] = useState("");
+
+  useEffect(() => {
+    if (pending) {
+      setTypedValue("");
+    }
+  }, [pending]);
+
+  if (!pending) {
+    return null;
+  }
+
+  const confirmationWord = "REMOVE";
+  const canConfirm = typedValue.trim().toUpperCase() === confirmationWord && !isWorking;
+
+  return (
+    <div className="fixed inset-0 z-[70] grid place-items-end p-3 backdrop-blur-sm sm:place-items-center" style={{ backgroundColor: "rgba(13, 23, 20, 0.45)" }}>
+      <section className="w-full max-w-lg rounded-2xl border p-5 shadow-2xl" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>Final confirmation action</p>
+            <h2 className="mt-2 text-xl font-semibold" style={{ color: theme.textPrimary }}>Remove {pending.contactName} from Counsel Circle</h2>
+            <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
+              Type <span className="font-semibold" style={{ color: theme.textPrimary }}>{confirmationWord}</span> to permanently remove this contact and revoke shared access.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onCancel}
+            className="grid size-9 shrink-0 place-items-center rounded-md border transition"
+            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+            aria-label="Close confirmation"
+          >
+            <X size={17} />
+          </button>
+        </div>
+
+        <form
+          className="mt-4 grid gap-3"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (!canConfirm) {
+              return;
+            }
+            onConfirm(typedValue);
+          }}
+        >
+          <input
+            value={typedValue}
+            onChange={(event) => setTypedValue(event.target.value)}
+            className="h-11 rounded-md border px-3 text-sm outline-none"
+            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+            placeholder={`Type ${confirmationWord}`}
+            autoFocus
+          />
+          <div className="flex flex-wrap justify-end gap-2">
+            <button
+              type="button"
+              onClick={onCancel}
+              className="h-10 rounded-md border px-4 text-sm font-semibold"
+              style={{ borderColor: theme.borderMedium, color: theme.textPrimary, backgroundColor: theme.bgInput }}
+              disabled={isWorking}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="h-10 rounded-md px-4 text-sm font-semibold"
+              style={{
+                backgroundColor: canConfirm ? theme.primary : theme.borderMedium,
+                color: theme.textOnPrimary,
+                opacity: canConfirm ? 1 : 0.7,
+              }}
+              disabled={!canConfirm}
+            >
+              {isWorking ? "Removing..." : "Confirm removal"}
+            </button>
+          </div>
+        </form>
+      </section>
+    </div>
+  );
+}
+
 function PreferencesPanel({
   panelRef,
   preferences,
@@ -8053,13 +8289,13 @@ function CompanionPanel({
         </section>
 
       <aside className="space-y-4">
-        <section className="rounded-xl border p-4 shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+        <section className={`rounded-xl border shadow-sm ${showSidebarDeep ? "p-4" : "p-3"}`} style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
           <div className="flex items-center justify-between gap-3">
             <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ui.modeGuidance}</p>
             <button
               type="button"
               onClick={() => setShowSidebarDeep((v) => !v)}
-              className="rounded-md border px-2 py-1 text-[11px] font-semibold transition"
+              className="rounded-md border px-2 py-1 text-[10px] font-semibold transition"
               style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
             >
               {showSidebarDeep ? ui.hideDetails : ui.showDetails}
@@ -8101,9 +8337,8 @@ function CompanionPanel({
               </div>
             </div>
           ) : (
-            <div className="mt-2 space-y-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
-              <p>{modeProfile.intent}</p>
-              <p>{ui.modeGuidancePreview}</p>
+            <div className="mt-2" style={{ color: theme.textSecondary }}>
+              <p className="text-sm leading-5">{modeProfile.intent}</p>
             </div>
           )}
         </section>
@@ -8405,6 +8640,7 @@ function CurrentCounselCard({
   const isThinking = exchange.answer.id === "thinking";
   const showDecisionActions = Boolean(question) && !isThinking;
   const answerText = exchange.answer.id === "welcome" ? text.welcomeCounsel! : exchange.answer.text;
+  const [isCounselLensOpen, setIsCounselLensOpen] = useState(false);
 
   return (
     <section className="rounded-lg border p-3 shadow-sm sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
@@ -8456,14 +8692,34 @@ function CurrentCounselCard({
             </div>
           ) : null}
         </div>
-        <details className="mb-3 rounded-md border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
-          <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
-            {ui.wisdomMode}: {exchangeModeProfile.displayLabel ?? exchangeMode} lens
-          </summary>
-          <p className="mt-2 text-xs leading-5">
-            {exchangeModeProfile.displayLabel ?? exchangeMode} {text.modeShapesCounsel} {exchangeModeProfile.lens.toLowerCase()}
-          </p>
-        </details>
+        <div
+          className={`mb-3 rounded-md border ${isCounselLensOpen ? "p-3" : "px-3 py-2"}`}
+          style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}
+        >
+          <button
+            type="button"
+            onClick={() => setIsCounselLensOpen((value) => !value)}
+            className="flex w-full items-center justify-between gap-3 text-left"
+            aria-expanded={isCounselLensOpen}
+          >
+            <span className="min-w-0">
+              <span className="block text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
+                {ui.wisdomMode}
+              </span>
+              <span className="mt-1 block text-sm font-semibold" style={{ color: theme.textPrimary }}>
+                {exchangeModeProfile.displayLabel ?? exchangeMode} lens
+              </span>
+            </span>
+            <span className="shrink-0 rounded-md border px-2 py-1 text-[11px] font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+              {isCounselLensOpen ? ui.hideDetails : ui.showDetails}
+            </span>
+          </button>
+          {isCounselLensOpen ? (
+            <p className="mt-2 text-xs leading-5">
+              {exchangeModeProfile.displayLabel ?? exchangeMode} {text.modeShapesCounsel} {exchangeModeProfile.lens.toLowerCase()}
+            </p>
+          ) : null}
+        </div>
         <div className="calm-prose" style={{ color: theme.textPrimary }}>
           <ScriptureLinkedText theme={theme} text={answerText} onScriptureOpen={onScriptureOpen} />
         </div>
@@ -8657,6 +8913,7 @@ function DecisionCompanionPanel({
   onShareCounselInvite,
   onShareDecisionWithCounsel,
   onBulkShareDecisionsWithCounsel,
+  onRemoveCounselContact,
   onSpeakText,
   isSpeaking,
   onAddRule,
@@ -8711,6 +8968,7 @@ function DecisionCompanionPanel({
   onShareCounselInvite: (channel?: ShareChannel) => void;
   onShareDecisionWithCounsel: (contactId: string, decisionId: string) => void;
   onBulkShareDecisionsWithCounsel: (contactId: string, decisionIds: string[]) => void;
+  onRemoveCounselContact: (contactId: string) => void;
   onSpeakText: (text: string, notice?: string, label?: string) => void;
   isSpeaking: boolean;
   onAddRule: (event: FormEvent<HTMLFormElement>) => void;
@@ -8720,7 +8978,7 @@ function DecisionCompanionPanel({
   const activeDecisions = decisions.filter((decision) => decision.status !== "closed");
   const selectedDecision = decisions[0];
   const modeRules = rules.filter((rule) => rule.mode === mode);
-  const decisionNextTitle = selectedDecision ? `Continue: ${selectedDecision.title}` : "Name the decision under pressure";
+  const decisionNextTitle = selectedDecision ? formatNextDecisionTitle(selectedDecision.title) : "Name the decision under pressure";
   const decisionNextBody = selectedDecision
     ? "Update counsel, cost, waiting, and peace signals so the decision has a real timeline."
     : "Start with one decision and the pressure attached to it. Aletheia will track wisdom, counsel, and readiness over time.";
@@ -8822,7 +9080,7 @@ function DecisionCompanionPanel({
           <TimelineStat icon={ShieldCheck} label="Patterns noticed" value={String(insight.patterns.length)} theme={theme} />
         </section>
 
-        <DisclosureSection title="Wisdom timeline" summary={insight.gentleObservation} eyebrow={`${events.length} event${events.length === 1 ? "" : "s"} recorded`} theme={theme}>
+        <DisclosureSection title="Wisdom timeline" summary={insight.gentleObservation} eyebrow={`${events.length} event${events.length === 1 ? "" : "s"} recorded`} compactCollapsed theme={theme}>
           <section className="rounded-xl border p-4 shadow-sm sm:p-5" style={{ backgroundColor: theme.primary, borderColor: theme.borderMedium, color: theme.textOnPrimary }}>
             <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textOnPrimary, opacity: 0.9 }}>Wisdom Timeline</p>
             <p className="mt-3 text-sm leading-6" style={{ color: theme.textOnPrimary }}>{insight.gentleObservation}</p>
@@ -8838,7 +9096,7 @@ function DecisionCompanionPanel({
           </section>
         </DisclosureSection>
 
-        <DisclosureSection title="Decision archive and readiness details" summary={decisions.length ? `${decisions.length} decision${decisions.length === 1 ? "" : "s"} saved. Open when you want the full list.` : "No decision memory yet. Start one above when pressure needs time and counsel."} eyebrow="Decision memory" defaultOpen={decisions.length > 0 && decisions.length < 2} theme={theme}>
+        <DisclosureSection title="Decision archive and readiness details" summary={decisions.length ? `${decisions.length} decision${decisions.length === 1 ? "" : "s"} saved. Open when you want the full list.` : "No decision memory yet. Start one above when pressure needs time and counsel."} eyebrow="Decision memory" defaultOpen={decisions.length > 0 && decisions.length < 2} compactCollapsed theme={theme}>
         <section className="space-y-3">
           {decisions.map((decision) => (
             <DecisionCard key={decision.id} decision={decision} modeProfile={modeProfiles[decision.mode]} onUpdate={onUpdateDecision} onDelete={onDeleteDecision} theme={theme} />
@@ -8851,7 +9109,7 @@ function DecisionCompanionPanel({
         </section>
         </DisclosureSection>
 
-        <DisclosureSection title="Formation rhythm" summary="Morning reflection, evening examen, and weekly pattern review stay available without dominating the decision page." eyebrow="Rhythm" theme={theme}>
+        <DisclosureSection title="Formation rhythm" summary="Morning reflection, evening examen, and weekly pattern review stay available without dominating the decision page." eyebrow="Rhythm" compactCollapsed theme={theme}>
         <section>
           <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>Formation rhythm</p>
           <div className="mt-3 grid gap-2">
@@ -8864,7 +9122,7 @@ function DecisionCompanionPanel({
       </section>
 
       <aside className="space-y-4">
-        <DisclosureSection title={`Counsel Circle · ${counselContacts.length} trusted voice${counselContacts.length === 1 ? "" : "s"}`} summary="Private invites and sharing controls are explicit. No one sees chats, journals, or decisions unless shared." eyebrow="Counsel" defaultOpen={Boolean(counselSummaryDraft)} theme={theme}>
+        <DisclosureSection title={`Counsel Circle · ${counselContacts.length} trusted voice${counselContacts.length === 1 ? "" : "s"}`} summary="Private invites and sharing controls are explicit. No one sees chats, journals, or decisions unless shared." eyebrow="Counsel" defaultOpen={Boolean(counselSummaryDraft)} compactCollapsed theme={theme}>
         <section id="counsel-circle" className="scroll-mt-24">
           <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>Counsel Circle</p>
           <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
@@ -9009,14 +9267,34 @@ function DecisionCompanionPanel({
           <div className="mt-3 space-y-2">
             {counselContacts.slice(0, 5).map((contact) => (
               <div key={contact.id} className="rounded-lg border p-3" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
-                <div className="flex items-center gap-2">
-                  <Users size={16} style={{ color: theme.textSecondary }} />
-                  <div>
-                    <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{contact.name}</p>
-                    <p className="text-xs uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
-                      {contact.role} · {contact.inviteStatus === "accepted" ? "accepted" : contact.inviteStatus === "pending" ? "invited" : "local"}
-                    </p>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <Users size={16} style={{ color: theme.textSecondary }} />
+                    <div>
+                      <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{contact.name}</p>
+                      <p className="text-xs uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
+                        {contact.role} · {contact.inviteStatus === "accepted" ? "accepted" : contact.inviteStatus === "pending" ? "invited" : "local"}
+                      </p>
+                    </div>
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => onRemoveCounselContact(contact.id)}
+                    className="grid size-8 place-items-center rounded-md border transition"
+                    style={{ borderColor: theme.borderMedium, color: theme.textMuted, backgroundColor: "transparent" }}
+                    onMouseEnter={(event) => {
+                      event.currentTarget.style.backgroundColor = theme.bgInput;
+                      event.currentTarget.style.borderColor = theme.borderStrong;
+                    }}
+                    onMouseLeave={(event) => {
+                      event.currentTarget.style.backgroundColor = "transparent";
+                      event.currentTarget.style.borderColor = theme.borderMedium;
+                    }}
+                    aria-label={`Remove ${contact.name} from Counsel Circle`}
+                    title="Remove from Counsel Circle"
+                  >
+                    <Trash2 size={16} />
+                  </button>
                 </div>
                 <div className="mt-2 flex flex-wrap gap-1 text-[0.68rem] font-semibold uppercase tracking-[0.08em]" style={{ color: theme.textSecondary }}>
                   {contact.canViewSummaries ? <span className="rounded px-2 py-1" style={{ backgroundColor: theme.bgCardElevated }}>summaries</span> : null}
@@ -9076,7 +9354,7 @@ function DecisionCompanionPanel({
         </section>
         </DisclosureSection>
 
-        <DisclosureSection title={`Rule of Life · ${modeRules.length} principle${modeRules.length === 1 ? "" : "s"}`} summary="Personal principles stay close, but collapsed until you are shaping a decision." eyebrow="Rule of Life" theme={theme}>
+        <DisclosureSection title={`Rule of Life · ${modeRules.length} principle${modeRules.length === 1 ? "" : "s"}`} summary="Personal principles stay close, but collapsed until you are shaping a decision." eyebrow="Rule of Life" compactCollapsed theme={theme}>
         <section>
           <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>Rule of Life</p>
           <form onSubmit={onAddRule} className="mt-3 grid gap-2">
@@ -9104,7 +9382,7 @@ function DecisionCompanionPanel({
         </section>
         </DisclosureSection>
 
-        <DisclosureSection title="Scripture integrity" summary="Grounding rules and guardrails are available without crowding the decision flow." eyebrow="Trust" theme={theme}>
+        <DisclosureSection title="Scripture integrity" summary="Grounding rules and guardrails are available without crowding the decision flow." eyebrow="Trust" compactCollapsed theme={theme}>
         <section>
           <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>Scripture integrity</p>
           <ul className="mt-3 space-y-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
