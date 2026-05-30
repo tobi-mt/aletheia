@@ -7860,7 +7860,10 @@ function CompanionPanel({
                 <span className="mt-1 block text-sm font-semibold">{modeProfile.displayLabel ?? mode}</span>
                 <span className="mt-1 block text-xs leading-5" style={{ color: theme.textSecondary }}>{modeProfile.focus}</span>
               </span>
-              <span className="rounded-md border px-2 py-1 text-[11px] font-semibold" style={{ borderColor: theme.borderMedium, color: theme.textSecondary }}>
+              <span
+                className={`shrink-0 rounded-md border px-2 py-1 text-[11px] font-semibold ${showModeChoices ? "text-center leading-4 whitespace-normal" : "whitespace-nowrap"}`}
+                style={{ borderColor: theme.borderMedium, color: theme.textSecondary }}
+              >
                 {showModeChoices ? ui.hideDetails : "Change"}
               </span>
             </button>
