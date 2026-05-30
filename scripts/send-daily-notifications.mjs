@@ -14,36 +14,132 @@ if (!appUrl) {
 
 console.log(`Sending daily notifications to: ${appUrl}`);
 
-// Create an AbortController with timeout
-const controller = new AbortController();
-const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+const REQUEST_TIMEOUT_MS = Number(process.env.NOTIFICATION_REQUEST_TIMEOUT_MS ?? 30000);
+const MAX_ATTEMPTS = Math.max(1, Number(process.env.NOTIFICATION_REQUEST_RETRIES ?? 3));
+const BASE_RETRY_DELAY_MS = Number(process.env.NOTIFICATION_RETRY_DELAY_MS ?? 1500);
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function normalizeErrorMessage(error) {
+  if (!error || typeof error !== "object") {
+    return String(error ?? "Unknown error");
+  }
+
+  const baseMessage = "message" in error ? String(error.message ?? "Unknown error") : "Unknown error";
+  const cause = "cause" in error && error.cause && typeof error.cause === "object" ? error.cause : null;
+  const code = cause && "code" in cause ? String(cause.code ?? "") : "";
+  const reason = cause && "message" in cause ? String(cause.message ?? "") : "";
+
+  if (code && reason) {
+    return `${baseMessage} (${code}: ${reason})`;
+  }
+  if (code) {
+    return `${baseMessage} (${code})`;
+  }
+  return baseMessage;
+}
+
+function isRetryableError(error) {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+
+  if (error.name === "AbortError") {
+    return true;
+  }
+
+  const cause = "cause" in error && error.cause && typeof error.cause === "object" ? error.cause : null;
+  const code = cause && "code" in cause ? String(cause.code ?? "") : "";
+  return [
+    "ECONNRESET",
+    "ECONNREFUSED",
+    "ENOTFOUND",
+    "EAI_AGAIN",
+    "ETIMEDOUT",
+    "UND_ERR_CONNECT_TIMEOUT",
+    "UND_ERR_HEADERS_TIMEOUT",
+    "UND_ERR_BODY_TIMEOUT",
+  ].includes(code);
+}
+
+function parseResultBody(body) {
+  if (!body.trim()) {
+    return null;
+  }
+  try {
+    return JSON.parse(body);
+  } catch {
+    return null;
+  }
+}
+
+async function requestDailyNotifications(attempt) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+  try {
+    const response = await fetch(appUrl, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${secret}`,
+        "Content-Type": "application/json",
+      },
+      signal: controller.signal,
+    });
+
+    const body = await response.text();
+    const result = parseResultBody(body);
+
+    if (!response.ok) {
+      const error = new Error(`Notification request failed with ${response.status}: ${body}`);
+      const retryable = response.status >= 500 || response.status === 429;
+      throw Object.assign(error, { retryable });
+    }
+
+    return { body, result };
+  } catch (error) {
+    if (error.name === "AbortError") {
+      const timeoutError = new Error(
+        `Request timed out after ${REQUEST_TIMEOUT_MS}ms on attempt ${attempt}/${MAX_ATTEMPTS}. URL: ${appUrl}.`
+      );
+      throw Object.assign(timeoutError, { retryable: true });
+    }
+
+    const retryable =
+      (typeof error === "object" && error && "retryable" in error && Boolean(error.retryable)) ||
+      isRetryableError(error);
+    throw Object.assign(new Error(normalizeErrorMessage(error)), { retryable });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
 
 try {
-  const response = await fetch(appUrl, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${secret}`,
-      "Content-Type": "application/json",
-    },
-    signal: controller.signal,
-  });
+  let payload = null;
 
-  clearTimeout(timeoutId);
-
-  const body = await response.text();
-
-  if (!response.ok) {
-    throw new Error(`Notification request failed with ${response.status}: ${body}`);
-  }
-
-  let result = null;
-  if (body.trim()) {
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
     try {
-      result = JSON.parse(body);
-    } catch {
-      // Keep the raw body below if the endpoint ever returns non-JSON text.
+      payload = await requestDailyNotifications(attempt);
+      break;
+    } catch (error) {
+      const retryable = typeof error === "object" && error && "retryable" in error && Boolean(error.retryable);
+      const finalAttempt = attempt === MAX_ATTEMPTS;
+
+      if (!retryable || finalAttempt) {
+        throw error;
+      }
+
+      const delayMs = BASE_RETRY_DELAY_MS * attempt;
+      console.warn(
+        `Notification request attempt ${attempt}/${MAX_ATTEMPTS} failed (${error.message}). Retrying in ${delayMs}ms...`
+      );
+      await sleep(delayMs);
     }
   }
+
+  const { body, result } = payload ?? { body: "", result: null };
 
   if (result && typeof result === "object") {
     const attempted = Number(result.attempted ?? 0);
@@ -73,11 +169,5 @@ try {
     console.log(body.trim() || "Endpoint returned an empty response body.");
   }
 } catch (error) {
-  clearTimeout(timeoutId);
-  
-  if (error.name === 'AbortError') {
-    throw new Error(`Request timed out after 30 seconds. URL: ${appUrl}. Check if the server is running and reachable.`);
-  }
-  
-  throw new Error(`Failed to send notifications: ${error.message}`);
+  throw new Error(`Failed to send notifications after ${MAX_ATTEMPTS} attempt(s): ${normalizeErrorMessage(error)}`);
 }
