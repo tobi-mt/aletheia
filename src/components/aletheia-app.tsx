@@ -1998,6 +1998,7 @@ export function AletheiaApp() {
     createdRule: false,
     changedMode: false,
   });
+  const [pendingNotificationFocus, setPendingNotificationFocus] = useState(false);
   
   // Load translations synchronously using useMemo to ensure they're available immediately
   const translations = useMemo(() => {
@@ -2008,10 +2009,14 @@ export function AletheiaApp() {
   const workspaceRef = useRef<HTMLElement | null>(null);
   const bottomNavRef = useRef<HTMLDivElement | null>(null);
   const updateRefreshTimeoutRef = useRef<number | null>(null);
+  const notificationFocusHandledRef = useRef(false);
 
   // Hydration-safe restore of client-only persisted state.
   useEffect(() => {
     const restoreId = window.requestAnimationFrame(() => {
+      const params = new URLSearchParams(window.location.search);
+      const shouldHonorNotificationFocus =
+        params.get("source") === "notification" && params.get("focus") === "today";
       setPreferences(storedPreferences());
       setManualContext(storedManualContext());
       setThemePreference(storedThemePreference());
@@ -2024,7 +2029,7 @@ export function AletheiaApp() {
 
       try {
         const storedView = window.localStorage.getItem("aletheia-active-view") as View | null;
-        if (storedView && ["companion", "decisions", "reflect", "library", "account"].includes(storedView)) {
+        if (!shouldHonorNotificationFocus && storedView && ["companion", "decisions", "reflect", "library", "account"].includes(storedView)) {
           setActiveViewState(storedView);
         }
       } catch {
@@ -2380,6 +2385,67 @@ export function AletheiaApp() {
       window.visualViewport?.removeEventListener("scroll", updateViewportChrome);
     };
   }, []);
+
+  useEffect(() => {
+    if (notificationFocusHandledRef.current) {
+      return;
+    }
+    if (!clientStateRestored) {
+      return;
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("source") !== "notification" || params.get("focus") !== "today") {
+      return;
+    }
+
+    notificationFocusHandledRef.current = true;
+    window.requestAnimationFrame(() => {
+      setShowOnboarding(false);
+      setActiveView("companion", "notification_click");
+      setStatusMessage("Today's wisdom is ready.");
+      announceWorkflow("Today's wisdom is ready", "Aletheia opened the daily companion card for you.", "success");
+      window.history.replaceState({}, "", window.location.pathname);
+      setPendingNotificationFocus(true);
+    });
+  }, [clientStateRestored]);
+
+  useEffect(() => {
+    if (!pendingNotificationFocus || activeView !== "companion" || showOnboarding) {
+      return;
+    }
+
+    let settled = false;
+    const focusTodayCard = () => {
+      const target = document.getElementById("today-companion-card");
+      if (!target) {
+        return false;
+      }
+      const topNav = document.querySelector(".app-top-nav");
+      const topOffset = topNav instanceof HTMLElement ? topNav.getBoundingClientRect().height + 18 : 112;
+      const top = Math.max(0, window.scrollY + target.getBoundingClientRect().top - topOffset);
+      target.focus({ preventScroll: true });
+      window.scrollTo({ top, behavior: "smooth" });
+      return true;
+    };
+
+    const timers = [0, 180, 720, 1400, 2600, 3600, 5200].map((delay) =>
+      window.setTimeout(() => {
+        if (settled) {
+          return;
+        }
+        const focused = focusTodayCard();
+        if (focused && delay >= 1400) {
+          settled = true;
+        }
+      }, delay)
+    );
+
+    return () => {
+      settled = true;
+      timers.forEach((timer) => window.clearTimeout(timer));
+    };
+  }, [activeView, pendingNotificationFocus, showOnboarding]);
 
   useEffect(() => {
     const nav = bottomNavRef.current;
@@ -3025,6 +3091,9 @@ export function AletheiaApp() {
     window.setTimeout(() => {
       const target = document.getElementById(id);
       if (target) {
+        if (id === "today-companion-card") {
+          target.focus({ preventScroll: true });
+        }
         target.scrollIntoView({ behavior: "smooth", block: "start" });
         if (id === "companion-ask") {
           window.setTimeout(() => {
@@ -4797,6 +4866,7 @@ export function AletheiaApp() {
                   todayPattern={todayPattern}
                   companionCard={todayCompanionCard}
                   carryToday={carryToday}
+                  prioritizeToday={pendingNotificationFocus}
                   onScriptureOpen={openScripture}
                   onContinueDecision={continueDecisionFlow}
                   onReflectToday={reflectOnToday}
@@ -5683,6 +5753,7 @@ function HomeDashboard({
   todayPattern,
   companionCard,
   carryToday,
+  prioritizeToday,
   onScriptureOpen,
   onContinueDecision,
   onReflectToday,
@@ -5705,6 +5776,7 @@ function HomeDashboard({
   todayPattern: string;
   companionCard: TodayCompanionCard;
   carryToday: CarryToday | null;
+  prioritizeToday: boolean;
   onScriptureOpen: (scripture: string) => void;
   onContinueDecision: () => void;
   onReflectToday: () => void;
@@ -5735,7 +5807,7 @@ function HomeDashboard({
 
   return (
     <div className="grid gap-3 sm:gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
-      <section className="min-w-0 rounded-xl border p-4 shadow-sm sm:p-5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+      <section className={`min-w-0 rounded-xl border p-4 shadow-sm sm:p-5 ${prioritizeToday ? "order-2" : "order-1"}`} style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
         {carryToday ? (
           <div className="mb-4 rounded-lg border px-3 py-2 text-sm leading-6" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}>
             <span className="font-semibold" style={{ color: theme.accentGold }}>{text.carryingToday}:</span>{" "}
@@ -5765,7 +5837,12 @@ function HomeDashboard({
         </div>
       </section>
 
-      <section className="min-w-0 rounded-xl border p-4 shadow-sm sm:p-5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textPrimary }}>
+      <section
+        id="today-companion-card"
+        tabIndex={-1}
+        className={`min-w-0 scroll-mt-28 rounded-xl border p-4 shadow-sm outline-none sm:p-5 ${prioritizeToday ? "order-1" : "order-2"}`}
+        style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textPrimary }}
+      >
         <div className="mb-4 flex items-center justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }} suppressHydrationWarning>{text.todaysCompanion}</p>

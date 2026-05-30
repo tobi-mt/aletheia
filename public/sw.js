@@ -1,4 +1,4 @@
-const CACHE_NAME = "aletheia-v19";
+const CACHE_NAME = "aletheia-v20";
 const APP_SHELL = [
   "/",
   "/manifest.webmanifest",
@@ -80,7 +80,7 @@ self.addEventListener("push", (event) => {
   const fallback = {
     title: "Aletheia",
     body: "A short wisdom reflection is ready.",
-    url: "/",
+    url: "/?source=notification&focus=today",
   };
   const data = event.data ? event.data.json() : fallback;
   const title = data.title || fallback.title;

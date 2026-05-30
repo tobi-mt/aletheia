@@ -134,7 +134,7 @@ function dailyNotificationPayload(row: PushRow, wisdomEntries: Awaited<ReturnTyp
   return {
     title: `${daily.label}: ${wisdom.theme}`,
     body: daily.practice || daily.principle,
-    url: "/",
+    url: "/?source=notification&focus=today",
     scripture: daily.scripture,
   };
 }
