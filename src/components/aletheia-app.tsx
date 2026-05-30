@@ -351,6 +351,11 @@ const uiText: Record<
     voiceControls: string;
     available: string;
     englishFallback: string;
+    greetingMorning?: string;
+    greetingAfternoon?: string;
+    greetingEvening?: string;
+    greetingFallback?: string;
+    greetingIntent?: string;
     personalizedPriority?: string;
     whatNext?: string;
     whatNextBody?: string;
@@ -444,6 +449,11 @@ const uiText: Record<
     voiceControls: "Voice controls",
     available: "Available",
     englishFallback: "English fallback",
+    greetingMorning: "Good morning",
+    greetingAfternoon: "Good afternoon",
+    greetingEvening: "Good evening",
+    greetingFallback: "Welcome back",
+    greetingIntent: "Let's choose one wise next step today.",
     personalizedPriority: "Personalized priority",
     whatNext: "What should I do next?",
     whatNextBody: "Aletheia is choosing one wise next action first. The ask field and mode controls stay directly below when you want to begin something new.",
@@ -2146,6 +2156,11 @@ export function AletheiaApp() {
       voiceControls: getString('voiceControls', 'Voice controls'),
       available: getString('available', 'Available'),
       englishFallback: getString('englishFallback', 'English fallback'),
+      greetingMorning: getString('greetingMorning', languageFallback.greetingMorning ?? 'Good morning'),
+      greetingAfternoon: getString('greetingAfternoon', languageFallback.greetingAfternoon ?? 'Good afternoon'),
+      greetingEvening: getString('greetingEvening', languageFallback.greetingEvening ?? 'Good evening'),
+      greetingFallback: getString('greetingFallback', languageFallback.greetingFallback ?? 'Welcome back'),
+      greetingIntent: getString('greetingIntent', languageFallback.greetingIntent ?? "Let's choose one wise next step today."),
       personalizedPriority: getString('personalizedPriority', 'Personalized priority'),
       whatNext: getString('whatNext', 'What should I do next?'),
       whatNextBody: getString('whatNextBody', ''),
@@ -5928,6 +5943,22 @@ function HomeDashboard({
   theme: ThemeColors;
 }) {
   const text = { ...uiText.en, ...ui };
+  const [greeting, setGreeting] = useState(text.greetingFallback || "Welcome back");
+
+  useEffect(() => {
+    const now = new Date();
+    const hour = now.getHours();
+    const baseGreeting =
+      hour < 12
+        ? text.greetingMorning || "Good morning"
+        : hour < 18
+          ? text.greetingAfternoon || "Good afternoon"
+          : text.greetingEvening || "Good evening";
+
+    const firstName = user?.name?.trim().split(/\s+/)[0] || "";
+    setGreeting(firstName ? `${baseGreeting}, ${firstName}` : baseGreeting);
+  }, [text.greetingMorning, text.greetingAfternoon, text.greetingEvening, user?.name]);
+
   const primaryAction = activeDecision
     ? { label: text.continueDecision!, body: activeDecision.title, onClick: onContinueDecision, icon: Compass }
     : { label: text.askOneQuestion!, body: text.askOneQuestionBody!, onClick: onAskOneQuestion, icon: MessageCircle };
@@ -5951,6 +5982,14 @@ function HomeDashboard({
             <span suppressHydrationWarning>&ldquo;{carryToday.phrase}&rdquo;</span>
           </div>
         ) : null}
+        <div className="mb-3">
+          <p className="text-base font-semibold tracking-tight sm:text-lg" style={{ color: theme.textPrimary }} suppressHydrationWarning>
+            {greeting}
+          </p>
+          <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }} suppressHydrationWarning>
+            {text.greetingIntent || "Let's choose one wise next step today."}
+          </p>
+        </div>
         <div className="mb-4 inline-flex w-fit max-w-full items-center gap-2 rounded-md border px-3 py-2 text-[11px] font-medium uppercase tracking-[0.12em] sm:text-xs sm:tracking-[0.18em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.accentGold }}>
           <Sparkles size={14} />
           {text.personalizedPriority}
