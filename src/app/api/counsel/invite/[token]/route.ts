@@ -8,6 +8,7 @@ type ContactRow = {
   id: string;
   name: string;
   role: string;
+  avatar_url: string | null;
   invite_status: string;
   can_view_summaries: boolean;
   can_comment_on_decisions: boolean;
@@ -35,7 +36,7 @@ type CommentRow = {
 
 async function findContact(token: string) {
   return one<ContactRow>(
-    `SELECT id, name, role, invite_status, can_view_summaries, can_comment_on_decisions,
+    `SELECT id, name, role, avatar_url, invite_status, can_view_summaries, can_comment_on_decisions,
             can_receive_checkins, accepted_at
      FROM counsel_contacts
      WHERE invite_token_hash = ?`,
@@ -71,6 +72,7 @@ function publicPayload(contact: ContactRow, decisions: SharedDecisionRow[], comm
     invite: {
       name: contact.name,
       role: contact.role,
+      avatarUrl: contact.avatar_url,
       status: contact.invite_status,
       acceptedAt: contact.accepted_at,
       permissions: {

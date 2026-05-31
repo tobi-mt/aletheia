@@ -54,9 +54,10 @@ export async function POST(request: Request) {
       id: string;
       email: string;
       name: string | null;
+      avatar_url: string | null;
       password_hash: string;
       login_count: number;
-    }>("SELECT id, email, name, password_hash, login_count FROM users WHERE email = ?", email);
+    }>("SELECT id, email, name, avatar_url, password_hash, login_count FROM users WHERE email = ?", email);
     if (!user || !verifyPassword(password, user.password_hash)) {
       await trackServerEvent({
         eventName: "auth_failure",
@@ -84,6 +85,7 @@ export async function POST(request: Request) {
         id: user.id,
         email: user.email,
         name: user.name,
+        avatarUrl: user.avatar_url,
         loginCount: (user.login_count ?? 0) + 1,
       },
       isNewUser: false,

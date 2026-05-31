@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { trackServerEvent } from "@/lib/analytics";
+import { normalizeAvatarUrl } from "@/lib/avatars";
 import { counselInviteUrl, createCounselInviteToken, hashCounselInviteToken } from "@/lib/counsel-invites";
 import { many, one, pool, run } from "@/lib/db";
 import { counselInviteEmail, emailConfigured, isEmailAddress, sendEmail } from "@/lib/email";
@@ -9,6 +10,7 @@ type CounselRow = {
   id: string;
   name: string;
   role: string;
+  avatar_url: string | null;
   contact: string | null;
   notes: string | null;
   invite_status: string;
@@ -26,7 +28,7 @@ export async function GET() {
   }
 
   const contacts = await many<CounselRow>(
-    `SELECT id, name, role, contact, notes, invite_status, can_view_summaries,
+    `SELECT id, name, role, avatar_url, contact, notes, invite_status, can_view_summaries,
             can_comment_on_decisions, can_receive_checkins, accepted_at, created_at
      FROM counsel_contacts
      WHERE user_id = ?
@@ -39,6 +41,7 @@ export async function GET() {
       id: contact.id,
       name: contact.name,
       role: contact.role,
+      avatarUrl: contact.avatar_url,
       contact: contact.contact,
       notes: contact.notes,
       inviteStatus: contact.invite_status,
@@ -60,6 +63,7 @@ export async function POST(request: Request) {
   const body = (await request.json()) as {
     name?: string;
     role?: string;
+    avatarUrl?: string;
     contact?: string;
     notes?: string;
     canViewSummaries?: boolean;
@@ -68,6 +72,13 @@ export async function POST(request: Request) {
   };
   const name = body.name?.trim().slice(0, 120);
   const role = (body.role?.trim() || "mentor").slice(0, 80);
+  const avatarUrl = normalizeAvatarUrl(body.avatarUrl?.trim() ?? "") ?? null;
+  if (body.avatarUrl?.trim() && !avatarUrl) {
+    return NextResponse.json(
+      { error: "Use a valid HTTPS image URL for the counselor avatar." },
+      { status: 400 }
+    );
+  }
   const contactValue = body.contact?.trim().slice(0, 180) || null;
   const notes = body.notes?.trim().slice(0, 500) || null;
   const canViewSummaries = body.canViewSummaries !== false;
@@ -84,6 +95,7 @@ export async function POST(request: Request) {
     id: crypto.randomUUID(),
     name,
     role,
+    avatarUrl,
     contact: contactValue,
     notes,
     inviteStatus: "pending",
@@ -97,15 +109,16 @@ export async function POST(request: Request) {
   };
   await run(
     `INSERT INTO counsel_contacts (
-      id, user_id, name, role, contact, notes, invite_token_hash, invite_status,
+      id, user_id, name, role, avatar_url, contact, notes, invite_token_hash, invite_status,
       can_view_summaries, can_comment_on_decisions, can_receive_checkins,
       created_at, updated_at
     )
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     contact.id,
     user.id,
     name,
     role,
+    avatarUrl,
     contactValue,
     notes,
     hashCounselInviteToken(token),

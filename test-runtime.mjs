@@ -289,7 +289,6 @@ await test('Handles invalid mode gracefully', async () => {
 // Test 8: Performance Check
 testSection('8. Performance & Response Times');
 
-const startTime = Date.now();
 await test('Chat responds within reasonable time', async () => {
   const testStart = Date.now();
   const response = await fetch(`${BASE_URL}/api/chat`, {

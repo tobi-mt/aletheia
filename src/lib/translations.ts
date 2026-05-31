@@ -59,7 +59,7 @@ export function loadTranslationsSync(language: LanguageCode): TranslationData {
     // Cache the loaded translations
     translationCache.set(language, data);
     return data;
-  } catch (error) {
+  } catch {
     console.warn(`Failed to load translations for ${language}, falling back to English`);
     
     // Check cache for English fallback

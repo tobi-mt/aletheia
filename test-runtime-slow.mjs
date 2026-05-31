@@ -263,7 +263,6 @@ testSection('5. Response Time Performance');
 
 await sleep(3000); // Wait 3s before final request
 
-const startTime = Date.now();
 await test('Chat responds within reasonable time', async () => {
   const testStart = Date.now();
   const response = await fetch(`${BASE_URL}/api/chat`, {

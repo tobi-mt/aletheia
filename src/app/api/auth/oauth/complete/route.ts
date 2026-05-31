@@ -35,6 +35,7 @@ export async function GET(request: NextRequest) {
     const { user, isNewUser } = await getOrCreateOAuthUser({
       email,
       name: session?.user?.name ?? null,
+      avatarUrl: session?.user?.image ?? null,
       provider: "google",
     });
     if (!isNewUser) {

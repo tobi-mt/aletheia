@@ -100,7 +100,8 @@ function analyzeCoverage(masterLang: TranslationData, targetLang: TranslationDat
   
   for (const key of allKeys) {
     const value = getNestedValue(targetLang, key);
-    if (value === undefined || value === null || value === '') {
+    const isTodoMarker = typeof value === 'string' && value.trim().startsWith('[TODO: Translate]');
+    if (value === undefined || value === null || value === '' || isTodoMarker) {
       missingKeys.push(key);
     }
   }
@@ -120,6 +121,18 @@ function analyzeCoverage(masterLang: TranslationData, targetLang: TranslationDat
 function findHardCodedStrings(content: string): HardCodedString[] {
   const hardCoded: HardCodedString[] = [];
   const lines = content.split('\n');
+
+  const isTypeOnlyFalsePositive = (line: string, value: string, category: HardCodedString['category']): boolean => {
+    if (category !== 'label') {
+      return false;
+    }
+
+    if (value !== 'Promise') {
+      return false;
+    }
+
+    return /(?:=>|:)\s*Promise\s*</.test(line);
+  };
   
   // Patterns to look for
   const patterns = [
@@ -146,6 +159,7 @@ function findHardCodedStrings(content: string): HardCodedString[] {
           !string.includes('{') && 
           !string.includes('import') &&
           !string.includes('const') &&
+          !isTypeOnlyFalsePositive(line, string, category) &&
           string.length > 5 &&
           /[a-z]/.test(string) // Contains lowercase (not just constants)
         ) {
@@ -239,6 +253,14 @@ async function main() {
       console.log(`✓ Created directory: ${dir}`);
     }
   });
+
+  // Clear stale missing templates so reports always reflect the latest analysis.
+  const staleMissingTemplates = fs
+    .readdirSync(REPORTS_DIR)
+    .filter((name) => /-missing\.json$/.test(name));
+  staleMissingTemplates.forEach((name) => {
+    fs.unlinkSync(path.join(REPORTS_DIR, name));
+  });
   
   // Load English translation as master
   const enPath = path.join(LOCALES_DIR, 'en.json');
@@ -292,8 +314,7 @@ async function main() {
   
   for (const langCode of LANGUAGES) {
     if (langCode === 'en') continue;
-    
-    const langPath = path.join(LOCALES_DIR, `${langCode}.json`);
+
     const coverage = coverageData.find((c) => c.language === LANGUAGE_NAMES[langCode]);
     
     if (coverage && coverage.missingKeys.length > 0) {

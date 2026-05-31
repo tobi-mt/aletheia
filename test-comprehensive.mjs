@@ -46,20 +46,6 @@ function assert(condition, message) {
   }
 }
 
-function assertDeepEqual(actual, expected, message) {
-  testsRun++;
-  const isEqual = JSON.stringify(actual) === JSON.stringify(expected);
-  if (isEqual) {
-    testsPassed++;
-    log(`  ✓ ${message}`, 'green');
-  } else {
-    testsFailed++;
-    log(`  ✗ ${message}`, 'red');
-    log(`    Expected: ${JSON.stringify(expected)}`, 'yellow');
-    log(`    Got: ${JSON.stringify(actual)}`, 'yellow');
-  }
-}
-
 // Test 1: Translation Files Integrity
 testSection('1. Translation Files Integrity');
 

@@ -47,6 +47,7 @@ async function initializeDatabase() {
       id TEXT PRIMARY KEY,
       email TEXT NOT NULL UNIQUE,
       name TEXT,
+      avatar_url TEXT,
       password_hash TEXT NOT NULL,
       last_seen_at TIMESTAMPTZ,
       login_count INTEGER NOT NULL DEFAULT 0,
@@ -55,6 +56,7 @@ async function initializeDatabase() {
 
     ALTER TABLE users ADD COLUMN IF NOT EXISTS last_seen_at TIMESTAMPTZ;
     ALTER TABLE users ADD COLUMN IF NOT EXISTS login_count INTEGER NOT NULL DEFAULT 0;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url TEXT;
 
     CREATE TABLE IF NOT EXISTS sessions (
       id TEXT PRIMARY KEY,
@@ -133,6 +135,7 @@ async function initializeDatabase() {
       user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       name TEXT NOT NULL,
       role TEXT NOT NULL,
+      avatar_url TEXT,
       contact TEXT,
       notes TEXT,
       invite_token_hash TEXT UNIQUE,
@@ -146,6 +149,7 @@ async function initializeDatabase() {
     );
 
     ALTER TABLE counsel_contacts ADD COLUMN IF NOT EXISTS contact TEXT;
+    ALTER TABLE counsel_contacts ADD COLUMN IF NOT EXISTS avatar_url TEXT;
     ALTER TABLE counsel_contacts ADD COLUMN IF NOT EXISTS invite_token_hash TEXT UNIQUE;
     ALTER TABLE counsel_contacts ADD COLUMN IF NOT EXISTS invite_status TEXT NOT NULL DEFAULT 'pending';
     ALTER TABLE counsel_contacts ADD COLUMN IF NOT EXISTS can_view_summaries BOOLEAN NOT NULL DEFAULT TRUE;
