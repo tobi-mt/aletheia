@@ -3,7 +3,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import Image from "next/image";
 import { signIn as authSignIn, signOut as authSignOut } from "next-auth/react";
-import { FormEvent, type ReactNode, type RefObject, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { ChangeEvent, FormEvent, type ReactNode, type RefObject, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   BookOpen,
   BriefcaseBusiness,
@@ -52,6 +52,7 @@ import {
   languages,
   localizedDailyWisdom,
   localizedScriptureRead,
+  localizedWisdomLibraryEntry,
   localizedWisdomLibraryNote,
   normalizePreferences,
   regions,
@@ -64,7 +65,7 @@ import { modeProfiles, type ModeProfile } from "@/lib/mode-profiles";
 import { defaultManualContext, manualContextHasContent, normalizeManualContext, type ManualContextProfile } from "@/lib/manual-context";
 import type { Mode } from "@/lib/wisdom-data";
 import { analyticsQuestionMetadata } from "@/lib/analytics-taxonomy";
-import { defaultAvatarDataUrl, normalizeAvatarUrl } from "@/lib/avatars";
+import { curatedAvatarOptions, defaultAvatarDataUrl, normalizeAvatarUrl } from "@/lib/avatars";
 import { loadTranslationsWithFallbackSync, getTranslation, type TranslationData } from "@/lib/translations";
 
 type View = "companion" | "decisions" | "reflect" | "library" | "account";
@@ -299,6 +300,7 @@ const NOTIFICATION_TIMING_STORAGE_KEY = "aletheia_notification_timing";
 const COUNSEL_STATUS_TRACKING_KEY = "aletheia_counsel_status_tracking";
 const CARRY_TODAY_STORAGE_KEY = "aletheia_carry_today";
 const UPDATE_REFRESH_PENDING_KEY = "aletheia_update_refresh_pending";
+const FOCUS_INTENTIONS_STORAGE_KEY = "aletheia_focus_intentions";
 const DEFAULT_NOTIFICATION_TIMING: NotificationTiming = {
   preferredLocalHour: 8,
   preferredTimezone: "UTC",
@@ -316,6 +318,69 @@ const languageFlags: Record<LanguageCode, string> = {
   ig: "🇳🇬",
   ha: "🇳🇬",
 };
+
+type FocusIntentionKey =
+  | "reduce_anxiety"
+  | "improve_stewardship"
+  | "wait_with_peace"
+  | "build_consistency"
+  | "seek_counsel";
+
+const focusIntentionLibrary: Array<{
+  key: FocusIntentionKey;
+  label: string;
+  companionPrompt: string;
+  decisionsPrompt: string;
+}> = [
+  {
+    key: "reduce_anxiety",
+    label: "Reduce anxiety",
+    companionPrompt: "Help me move from anxiety to steady trust in this situation.",
+    decisionsPrompt: "What is one calmer next step I can take before making this decision?",
+  },
+  {
+    key: "improve_stewardship",
+    label: "Improve stewardship",
+    companionPrompt: "How can I practice faithful stewardship with today's money and work choices?",
+    decisionsPrompt: "Which option best reflects faithful stewardship over comfort or image?",
+  },
+  {
+    key: "wait_with_peace",
+    label: "Wait with peace",
+    companionPrompt: "Guide me to wait with peace instead of urgency in this pressure.",
+    decisionsPrompt: "How long should I wait before acting so I can discern with peace?",
+  },
+  {
+    key: "build_consistency",
+    label: "Build consistency",
+    companionPrompt: "Give me one small daily rhythm to stay consistent this week.",
+    decisionsPrompt: "What repeatable step can keep this decision process consistent over time?",
+  },
+  {
+    key: "seek_counsel",
+    label: "Seek counsel wisely",
+    companionPrompt: "Who should I invite into counsel for this decision, and what should I ask them?",
+    decisionsPrompt: "What counsel checkpoint should I set before finalizing this decision?",
+  },
+];
+
+function focusIntentionLabels(keys: string[] | undefined | null) {
+  const safeKeys = Array.isArray(keys) ? keys : [];
+  const lookup = new Map(focusIntentionLibrary.map((item) => [item.key, item.label]));
+  return safeKeys.map((key) => lookup.get(key as FocusIntentionKey)).filter(Boolean) as string[];
+}
+
+function focusIntentionPrompt(keys: string[] | undefined | null, surface: "companion" | "decisions") {
+  const safeKeys = Array.isArray(keys) ? keys : [];
+  for (const key of safeKeys) {
+    const found = focusIntentionLibrary.find((item) => item.key === key);
+    if (!found) {
+      continue;
+    }
+    return surface === "companion" ? found.companionPrompt : found.decisionsPrompt;
+  }
+  return "";
+}
 
 const uiText: Record<
   LanguageCode,
@@ -341,6 +406,7 @@ const uiText: Record<
     blindSpots: string;
     maturitySignals: string;
     modeGuidance: string;
+    change: string;
     showDetails: string;
     hideDetails: string;
     modeGuidancePreview: string;
@@ -415,6 +481,52 @@ const uiText: Record<
     trustBoundaryBody?: string;
     trustMemoryBody?: string;
     trustConnectedDataBody?: string;
+    accountNextEyebrow?: string;
+    accountNextReviewSyncFormation?: string;
+    accountNextSignInPortable?: string;
+    accountNextActiveBody?: string;
+    accountNextSyncBody?: string;
+    accountNextGuestBody?: string;
+    accountManageSummary?: string;
+    accountSignedInAs?: string;
+    accountSignInOrGuest?: string;
+    accountSyncActive?: string;
+    accountNotificationsNotEnabled?: string;
+    accountGuestSummary?: string;
+    accountPreferencesEyebrow?: string;
+    accountPreferencesSummary?: string;
+    accountContextActive?: string;
+    accountContextPaused?: string;
+    accountArea?: string;
+    accountAreas?: string;
+    accountAdded?: string;
+    accountManualContextSummary?: string;
+    accountDailyWisdomEnabled?: string;
+    accountNotificationsSummaryEnabled?: string;
+    accountNotificationsSummaryDisabled?: string;
+    accountInstallTitle?: string;
+    accountInstallSummary?: string;
+    accountInstallEyebrow?: string;
+    accountInviteTitle?: string;
+    accountInviteSummary?: string;
+    accountInviteEyebrow?: string;
+    accountHistoryConversations?: string;
+    accountHistoryDecisions?: string;
+    accountHistoryReflections?: string;
+    accountHistorySummary?: string;
+    accountStatConversations?: string;
+    accountStatDecisions?: string;
+    accountStatJournalEntries?: string;
+    accountHistoryEmptyBody?: string;
+    accountTrustPostureTitle?: string;
+    accountTrustPostureSummary?: string;
+    accountBoundariesTitle?: string;
+    accountBoundariesSummary?: string;
+    accountBoundariesBody?: string;
+    accountFormationPrefix?: string;
+    accountQuietMilestoneSingular?: string;
+    accountQuietMilestonePlural?: string;
+    accountFormationSummary?: string;
   }
 > = {
   en: {
@@ -439,6 +551,7 @@ const uiText: Record<
     blindSpots: "Blind spots",
     maturitySignals: "Maturity signals",
     modeGuidance: "Mode guidance",
+    change: "Change",
     showDetails: "Show details",
     hideDetails: "Hide details",
     modeGuidancePreview: "Keep this view focused. Expand when you want deeper checks, blind spots, and maturity signals.",
@@ -518,6 +631,52 @@ const uiText: Record<
       "Signed-in memory helps continuity across decisions, reflections, counsel, and rules of life. It should make guidance more personal without exposing private details unnecessarily.",
     trustConnectedDataBody:
       "Future health, finance, or device integrations should be permission-by-permission, off by default, and limited to the exact data the user chooses to connect.",
+    accountNextEyebrow: "Next in Account",
+    accountNextReviewSyncFormation: "Review sync and formation",
+    accountNextSignInPortable: "Sign in to make Aletheia portable",
+    accountNextActiveBody: "Your account is active. Review preferences, history, and formation milestones when you need to.",
+    accountNextSyncBody: "Sync is active. Turn on one quiet daily wisdom prompt if this device should receive it.",
+    accountNextGuestBody: "Use Google or email to sync decisions, reflections, preferences, counsel, and notifications across devices.",
+    accountManageSummary: "Manage sign-in, sync, language, notifications, history, and formation milestones without crowding the wisdom companion.",
+    accountSignedInAs: "Signed in as",
+    accountSignInOrGuest: "Sign in or continue as guest",
+    accountSyncActive: "Sync active.",
+    accountNotificationsNotEnabled: "Notifications not enabled yet.",
+    accountGuestSummary: "Google and email sign-in keep history, preferences, decisions, and notifications portable.",
+    accountPreferencesEyebrow: "Preferences",
+    accountPreferencesSummary: "Language, Bible translation, appearance, region, and voice stay here so the Companion stays calm.",
+    accountContextActive: "Context active",
+    accountContextPaused: "Context paused",
+    accountArea: "area",
+    accountAreas: "areas",
+    accountAdded: "added",
+    accountManualContextSummary: "Manual context is optional and private. Add only what should shape Aletheia's counsel.",
+    accountDailyWisdomEnabled: "Daily wisdom enabled",
+    accountNotificationsSummaryEnabled: "Aletheia will use your saved local timing preference.",
+    accountNotificationsSummaryDisabled: "Turn on one quiet daily prompt when this device is ready.",
+    accountInstallTitle: "Add Aletheia to your home screen",
+    accountInstallSummary: "Install instructions are tucked away until someone needs the app-like setup.",
+    accountInstallEyebrow: "Install Aletheia",
+    accountInviteTitle: "Invite someone privately",
+    accountInviteSummary: "Share only the Aletheia link, never private questions, journals, or counsel by default.",
+    accountInviteEyebrow: "Invite Someone",
+    accountHistoryConversations: "conversations",
+    accountHistoryDecisions: "decisions",
+    accountHistoryReflections: "reflections",
+    accountHistorySummary: "History stays collapsed until you want to review what has been saved.",
+    accountStatConversations: "Conversations",
+    accountStatDecisions: "Decisions",
+    accountStatJournalEntries: "Journal entries",
+    accountHistoryEmptyBody: "Start with one honest question or one decision under pressure. Aletheia will keep the record quiet and useful.",
+    accountTrustPostureTitle: "Trust and privacy posture",
+    accountTrustPostureSummary: "Boundaries, scripture sourcing, saved data, and sharing posture are available without flooding the page.",
+    accountBoundariesTitle: "Aletheia's guardrails",
+    accountBoundariesSummary: "The app's safety boundaries remain visible when needed, not constantly in the way.",
+    accountBoundariesBody: "These constraints protect you from harmful AI advice and keep Aletheia faithful to its purpose.",
+    accountFormationPrefix: "Formation",
+    accountQuietMilestoneSingular: "quiet milestone",
+    accountQuietMilestonePlural: "quiet milestones",
+    accountFormationSummary: "Formation is a calm record of practice, not a scoreboard.",
   },
   es: {
     nav: { companion: "Inicio", decisions: "Decisiones", reflect: "Reflexión", library: "Biblioteca", account: "Cuenta" },
@@ -541,6 +700,7 @@ const uiText: Record<
     blindSpots: "Puntos ciegos",
     maturitySignals: "Señales de madurez",
     modeGuidance: "Guía del modo",
+    change: "Cambiar",
     showDetails: "Mostrar detalles",
     hideDetails: "Ocultar detalles",
     modeGuidancePreview: "Mantén esta vista enfocada. Expande cuando quieras revisar señales profundas, puntos ciegos y madurez.",
@@ -562,6 +722,52 @@ const uiText: Record<
     askAboutThis: "Preguntar sobre esto",
     saveToRuleOfLife: "Guardar como regla de vida",
     carryingToday: "Llevando hoy",
+    accountNextEyebrow: "Siguiente en Cuenta",
+    accountNextReviewSyncFormation: "Revisar sincronización y formación",
+    accountNextSignInPortable: "Inicia sesión para hacer Aletheia portátil",
+    accountNextActiveBody: "Tu cuenta está activa. Revisa preferencias, historial y formación cuando lo necesites.",
+    accountNextSyncBody: "La sincronización está activa. Activa una notificación diaria tranquila si este dispositivo debe recibirla.",
+    accountNextGuestBody: "Usa Google o correo para sincronizar decisiones, reflexiones, preferencias, consejería y notificaciones entre dispositivos.",
+    accountManageSummary: "Gestiona inicio de sesión, sincronización, idioma, notificaciones, historial y formación sin saturar al acompañante de sabiduría.",
+    accountSignedInAs: "Sesión iniciada como",
+    accountSignInOrGuest: "Inicia sesión o continúa como invitado",
+    accountSyncActive: "Sincronización activa.",
+    accountNotificationsNotEnabled: "Notificaciones aún no activadas.",
+    accountGuestSummary: "El inicio de sesión con Google y correo mantiene portátil tu historial, preferencias, decisiones y notificaciones.",
+    accountPreferencesEyebrow: "Preferencias",
+    accountPreferencesSummary: "Idioma, traducción bíblica, apariencia, región y voz se quedan aquí para que el Acompañante se mantenga sereno.",
+    accountContextActive: "Contexto activo",
+    accountContextPaused: "Contexto en pausa",
+    accountArea: "área",
+    accountAreas: "áreas",
+    accountAdded: "agregadas",
+    accountManualContextSummary: "El contexto manual es opcional y privado. Agrega solo lo que deba moldear el consejo de Aletheia.",
+    accountDailyWisdomEnabled: "Sabiduría diaria activada",
+    accountNotificationsSummaryEnabled: "Aletheia usará tu preferencia de horario local guardada.",
+    accountNotificationsSummaryDisabled: "Activa un aviso diario tranquilo cuando este dispositivo esté listo.",
+    accountInstallTitle: "Agrega Aletheia a tu pantalla de inicio",
+    accountInstallSummary: "Las instrucciones de instalación quedan ocultas hasta que alguien necesite la configuración tipo app.",
+    accountInstallEyebrow: "Instalar Aletheia",
+    accountInviteTitle: "Invita a alguien en privado",
+    accountInviteSummary: "Comparte solo el enlace de Aletheia; nunca preguntas privadas, diarios o consejos por defecto.",
+    accountInviteEyebrow: "Invitar a alguien",
+    accountHistoryConversations: "conversaciones",
+    accountHistoryDecisions: "decisiones",
+    accountHistoryReflections: "reflexiones",
+    accountHistorySummary: "El historial se mantiene plegado hasta que quieras revisar lo guardado.",
+    accountStatConversations: "Conversaciones",
+    accountStatDecisions: "Decisiones",
+    accountStatJournalEntries: "Entradas de diario",
+    accountHistoryEmptyBody: "Empieza con una pregunta honesta o una decisión bajo presión. Aletheia mantendrá el registro sobrio y útil.",
+    accountTrustPostureTitle: "Postura de confianza y privacidad",
+    accountTrustPostureSummary: "Límites, fuentes bíblicas, datos guardados y postura de compartición están disponibles sin saturar la página.",
+    accountBoundariesTitle: "Límites de Aletheia",
+    accountBoundariesSummary: "Los límites de seguridad de la app se mantienen visibles cuando hacen falta, sin estorbar constantemente.",
+    accountBoundariesBody: "Estas restricciones te protegen de consejos dañinos de IA y mantienen a Aletheia fiel a su propósito.",
+    accountFormationPrefix: "Formación",
+    accountQuietMilestoneSingular: "hito sereno",
+    accountQuietMilestonePlural: "hitos serenos",
+    accountFormationSummary: "La formación es un registro sereno de práctica, no un marcador.",
   },
   fr: {
     nav: { companion: "Accueil", decisions: "Décisions", reflect: "Réflexion", library: "Bibliothèque", account: "Compte" },
@@ -585,6 +791,7 @@ const uiText: Record<
     blindSpots: "Angles morts",
     maturitySignals: "Signes de maturité",
     modeGuidance: "Repères du mode",
+    change: "Changer",
     showDetails: "Afficher les détails",
     hideDetails: "Masquer les détails",
     modeGuidancePreview: "Garde cette vue concentrée. Déploie-la pour voir les vérifications profondes, angles morts et signes de maturité.",
@@ -606,6 +813,52 @@ const uiText: Record<
     askAboutThis: "Questionner cela",
     saveToRuleOfLife: "Ajouter à ma règle de vie",
     carryingToday: "Porté aujourd'hui",
+    accountNextEyebrow: "À venir dans Compte",
+    accountNextReviewSyncFormation: "Vérifier la synchronisation et la formation",
+    accountNextSignInPortable: "Connectez-vous pour rendre Aletheia portable",
+    accountNextActiveBody: "Votre compte est actif. Consultez préférences, historique et jalons de formation quand nécessaire.",
+    accountNextSyncBody: "La synchronisation est active. Activez une invite quotidienne discrète si cet appareil doit la recevoir.",
+    accountNextGuestBody: "Utilisez Google ou l'e-mail pour synchroniser décisions, réflexions, préférences, conseil et notifications entre appareils.",
+    accountManageSummary: "Gérez connexion, synchronisation, langue, notifications, historique et jalons de formation sans encombrer le compagnon de sagesse.",
+    accountSignedInAs: "Connecté en tant que",
+    accountSignInOrGuest: "Se connecter ou continuer en invité",
+    accountSyncActive: "Synchronisation active.",
+    accountNotificationsNotEnabled: "Notifications pas encore activées.",
+    accountGuestSummary: "La connexion Google et e-mail garde votre historique, vos préférences, vos décisions et notifications portables.",
+    accountPreferencesEyebrow: "Préférences",
+    accountPreferencesSummary: "Langue, traduction biblique, apparence, région et voix restent ici pour garder le Compagnon apaisé.",
+    accountContextActive: "Contexte actif",
+    accountContextPaused: "Contexte en pause",
+    accountArea: "zone",
+    accountAreas: "zones",
+    accountAdded: "ajoutées",
+    accountManualContextSummary: "Le contexte manuel est optionnel et privé. Ajoutez seulement ce qui doit façonner le conseil d'Aletheia.",
+    accountDailyWisdomEnabled: "Sagesse quotidienne activée",
+    accountNotificationsSummaryEnabled: "Aletheia utilisera votre préférence horaire locale enregistrée.",
+    accountNotificationsSummaryDisabled: "Activez une invite quotidienne discrète quand cet appareil est prêt.",
+    accountInstallTitle: "Ajouter Aletheia à l'écran d'accueil",
+    accountInstallSummary: "Les instructions d'installation restent discrètes jusqu'au moment où elles sont utiles.",
+    accountInstallEyebrow: "Installer Aletheia",
+    accountInviteTitle: "Inviter quelqu'un en privé",
+    accountInviteSummary: "Partagez uniquement le lien Aletheia, jamais les questions privées, journaux ou conseils par défaut.",
+    accountInviteEyebrow: "Inviter quelqu'un",
+    accountHistoryConversations: "conversations",
+    accountHistoryDecisions: "décisions",
+    accountHistoryReflections: "réflexions",
+    accountHistorySummary: "L'historique reste replié jusqu'au moment où vous voulez revoir ce qui est enregistré.",
+    accountStatConversations: "Conversations",
+    accountStatDecisions: "Décisions",
+    accountStatJournalEntries: "Entrées de journal",
+    accountHistoryEmptyBody: "Commencez par une question honnête ou une décision sous pression. Aletheia gardera l'historique sobre et utile.",
+    accountTrustPostureTitle: "Posture confiance et confidentialité",
+    accountTrustPostureSummary: "Limites, sources scripturaires, données enregistrées et posture de partage restent accessibles sans surcharger la page.",
+    accountBoundariesTitle: "Garde-fous d'Aletheia",
+    accountBoundariesSummary: "Les limites de sécurité de l'app restent visibles au besoin, sans gêner en permanence.",
+    accountBoundariesBody: "Ces limites vous protègent des conseils IA nuisibles et gardent Aletheia fidèle à sa mission.",
+    accountFormationPrefix: "Formation",
+    accountQuietMilestoneSingular: "jalon discret",
+    accountQuietMilestonePlural: "jalons discrets",
+    accountFormationSummary: "La formation est un suivi serein de la pratique, pas un tableau de score.",
   },
   pt: {
     nav: { companion: "Início", decisions: "Decisões", reflect: "Refletir", library: "Biblioteca", account: "Conta" },
@@ -629,6 +882,7 @@ const uiText: Record<
     blindSpots: "Pontos cegos",
     maturitySignals: "Sinais de maturidade",
     modeGuidance: "Guia do modo",
+    change: "Alterar",
     showDetails: "Mostrar detalhes",
     hideDetails: "Ocultar detalhes",
     modeGuidancePreview: "Mantenha esta visão focada. Expanda quando quiser ver verificações profundas, pontos cegos e sinais de maturidade.",
@@ -640,6 +894,27 @@ const uiText: Record<
     voiceControls: "Controles de voz",
     available: "Disponível",
     englishFallback: "Recurso em inglês",
+    greetingMorning: "Bom dia",
+    greetingAfternoon: "Boa tarde",
+    greetingEvening: "Boa noite",
+    greetingFallback: "Bem-vindo de volta",
+    greetingIntent: "Vamos escolher um próximo passo sábio hoje.",
+    personalizedPriority: "Prioridade personalizada",
+    whatNext: "O que devo fazer a seguir?",
+    whatNextBody: "Aletheia escolhe primeiro uma ação sábia. O campo de pergunta e os controles de modo ficam logo abaixo quando você quiser começar algo novo.",
+    continueDecision: "Continuar com esta decisão",
+    askOneQuestion: "Fazer uma pergunta",
+    askOneQuestionBody: "Comece com a pressão ou decisão que você está carregando agora.",
+    askNewQuestion: "Fazer uma nova pergunta",
+    askNewQuestionBody: "O campo Companion e os modos de sabedoria estão logo abaixo.",
+    reflectToday: "Refletir sobre hoje",
+    reviewPattern: "Revisar um padrão",
+    enableNotifications: "Ativar notificações",
+    enableSync: "Ativar sincronização",
+    notificationPromptBody: "Receba um lembrete diário de sabedoria em silêncio.",
+    syncDevicesBody: "Mantenha decisões e reflexões em todos os dispositivos.",
+    startDecision: "Iniciar uma decisão",
+    startDecisionBody: "Rastreie uma escolha importante ao longo do tempo.",
     todaysCompanion: "Companheiro de hoje",
     todayPrefix: "Hoje",
     wisdomPrinciple: "Princípio de sabedoria",
@@ -650,6 +925,89 @@ const uiText: Record<
     askAboutThis: "Perguntar sobre isto",
     saveToRuleOfLife: "Salvar como regra de vida",
     carryingToday: "Levando hoje",
+    currentCounsel: "Conselho atual",
+    modeShapesCounsel: "está moldando este conselho em torno de",
+    trackThisDecision: "Rastrear esta decisão",
+    saveAsReflection: "Salvar como reflexão",
+    createCounselSummary: "Criar resumo para conselheiro",
+    goDeeper: "Aprofundar mais",
+    waitThreeDays: "Esperar 3 dias",
+    shareAnswerPrompt: "Compartilhe Aletheia com alguém que possa se beneficiar deste tipo de conselho.",
+    sharePrivacyNote: "Isso compartilha apenas o link do app, não sua pergunta nem a resposta privada de Aletheia.",
+    shareAletheia: "Compartilhar Aletheia",
+    feedbackQuestion: "Este conselho foi útil?",
+    feedbackHelpful: "Útil",
+    feedbackMildlyHelpful: "Um pouco útil",
+    feedbackTooVague: "Muito vago",
+    feedbackTooPreachy: "Muito pregador",
+    feedbackNotRelevant: "Não relevante",
+    badgesFormation: "Distintivos / Formação",
+    firstReflectionSaved: "Primeira reflexão salva",
+    firstDecisionTracked: "Primeira decisão rastreada",
+    soughtCounsel: "Buscou conselho",
+    waitingModeUsed: "Modo de espera usado",
+    ruleOfLifeCreated: "Regra de vida criada",
+    notificationsEnabled: "Notificações ativadas",
+    sevenDaysPractice: "7 dias de prática de sabedoria",
+    formationNote: "Estes são sinais silenciosos de formação, não pontos a perseguir. O primeiro marco geralmente começa salvando uma reflexão.",
+    milestoneShareTitle: "Conhece alguém tomando uma decisão importante?",
+    milestoneShareBody: "Você pode convidá-los para Aletheia sem compartilhar nada privado de sua conta.",
+    welcomeCounsel:
+      "Traga uma decisão real, pressão ou pergunta sobre dinheiro. Responderei da biblioteca de sabedoria curada, com clareza emocional e sem promessas financeiras.",
+    trustScriptureBody:
+      "As referências bíblicas vêm da biblioteca de sabedoria curada de Aletheia. Se um versículo aparecer, você pode tocá-lo para ver o contexto e por que importa.",
+    trustBoundaryBody:
+      "Aletheia não prometerá resultados, não preverá mercados, não afirmará certeza divina, nem substituirá o conselho qualificado financeiro, legal, fiscal, médico ou pastoral.",
+    trustMemoryBody:
+      "A memória conectada ajuda na continuidade entre decisões, reflexões, conselho e regras de vida. Deve tornar a orientação mais pessoal sem expor detalhes privados desnecessariamente.",
+    trustConnectedDataBody:
+      "Futuras integrações de saúde, finanças ou dispositivos devem ser permissão por permissão, desativadas por padrão e limitadas aos dados exatos que o usuário escolher conectar.",
+    accountNextEyebrow: "A seguir na Conta",
+    accountNextReviewSyncFormation: "Rever sincronização e formação",
+    accountNextSignInPortable: "Entre para levar Aletheia com você",
+    accountNextActiveBody: "Sua conta está ativa. Revise preferências, histórico e marcos de formação quando precisar.",
+    accountNextSyncBody: "A sincronização está ativa. Ative um lembrete diário discreto de sabedoria se este dispositivo deve recebê-lo.",
+    accountNextGuestBody: "Use Google ou email para sincronizar decisões, reflexões, preferências, conselhos e notificações entre dispositivos.",
+    accountManageSummary: "Gerencie login, sincronização, idioma, notificações, histórico e marcos de formação sem lotar o companheiro de sabedoria.",
+    accountSignedInAs: "Conectado como",
+    accountSignInOrGuest: "Entrar ou continuar como convidado",
+    accountSyncActive: "Sincronização ativa.",
+    accountNotificationsNotEnabled: "Notificações ainda não ativadas.",
+    accountGuestSummary: "O login por Google e email mantém histórico, preferências, decisões e notificações portáteis.",
+    accountPreferencesEyebrow: "Preferências",
+    accountPreferencesSummary: "Idioma, tradução bíblica, aparência, região e voz ficam aqui para que o Companheiro permaneça sereno.",
+    accountContextActive: "Contexto ativo",
+    accountContextPaused: "Contexto pausado",
+    accountArea: "área",
+    accountAreas: "áreas",
+    accountAdded: "adicionadas",
+    accountManualContextSummary: "O contexto manual é opcional e privado. Adicione apenas o que deve moldar o conselho da Aletheia.",
+    accountDailyWisdomEnabled: "Sabedoria diária ativada",
+    accountNotificationsSummaryEnabled: "Aletheia usará sua preferência local de horário já salva.",
+    accountNotificationsSummaryDisabled: "Ative um lembrete diário discreto quando este dispositivo estiver pronto.",
+    accountInstallTitle: "Adicione Aletheia à tela inicial",
+    accountInstallSummary: "As instruções de instalação ficam discretas até alguém precisar da experiência de app.",
+    accountInstallEyebrow: "Instalar Aletheia",
+    accountInviteTitle: "Convide alguém em privado",
+    accountInviteSummary: "Compartilhe apenas o link da Aletheia, nunca perguntas privadas, diários ou conselhos por padrão.",
+    accountInviteEyebrow: "Convidar alguém",
+    accountHistoryConversations: "conversas",
+    accountHistoryDecisions: "decisões",
+    accountHistoryReflections: "reflexões",
+    accountHistorySummary: "O histórico permanece recolhido até você querer revisar o que foi salvo.",
+    accountStatConversations: "Conversas",
+    accountStatDecisions: "Decisões",
+    accountStatJournalEntries: "Entradas de diário",
+    accountHistoryEmptyBody: "Comece com uma pergunta honesta ou uma decisão sob pressão. Aletheia manterá o registro sóbrio e útil.",
+    accountTrustPostureTitle: "Postura de confiança e privacidade",
+    accountTrustPostureSummary: "Limites, origem das escrituras, dados salvos e postura de compartilhamento ficam disponíveis sem sobrecarregar a página.",
+    accountBoundariesTitle: "Limites de proteção da Aletheia",
+    accountBoundariesSummary: "Os limites de segurança do app ficam visíveis quando necessários, sem atrapalhar o tempo todo.",
+    accountBoundariesBody: "Essas restrições protegem você de conselhos nocivos de IA e mantêm Aletheia fiel ao seu propósito.",
+    accountFormationPrefix: "Formação",
+    accountQuietMilestoneSingular: "marco silencioso",
+    accountQuietMilestonePlural: "marcos silenciosos",
+    accountFormationSummary: "A formação é um registro calmo de prática, não um placar.",
   },
   de: {
     nav: { companion: "Start", decisions: "Entscheidungen", reflect: "Reflektieren", library: "Bibliothek", account: "Konto" },
@@ -673,6 +1031,7 @@ const uiText: Record<
     blindSpots: "Blinde Flecken",
     maturitySignals: "Reifezeichen",
     modeGuidance: "Modus-Hinweise",
+    change: "Ändern",
     showDetails: "Details zeigen",
     hideDetails: "Details ausblenden",
     modeGuidancePreview: "Halte diese Ansicht fokussiert. Erweitere sie, wenn du tiefere Prüfungen, blinde Flecken und Reifezeichen sehen möchtest.",
@@ -735,6 +1094,52 @@ const uiText: Record<
     formationNote: "Das sind ruhige Zeichen von Formung, keine Punktejagd. Der erste Meilenstein beginnt meist mit einer gespeicherten Reflexion.",
     milestoneShareTitle: "Kennst du jemanden vor einer wichtigen Entscheidung?",
     milestoneShareBody: "Du kannst Aletheia empfehlen, ohne private Inhalte aus deinem Konto zu teilen.",
+    accountNextEyebrow: "Als Nächstes im Konto",
+    accountNextReviewSyncFormation: "Synchronisierung und Formung prüfen",
+    accountNextSignInPortable: "Melde dich an, um Aletheia mobil mitzunehmen",
+    accountNextActiveBody: "Dein Konto ist aktiv. Prüfe bei Bedarf Einstellungen, Verlauf und Formungs-Meilensteine.",
+    accountNextSyncBody: "Synchronisierung ist aktiv. Aktiviere einen ruhigen täglichen Impuls, wenn dieses Gerät ihn erhalten soll.",
+    accountNextGuestBody: "Nutze Google oder E-Mail, um Entscheidungen, Reflexionen, Einstellungen, Beratung und Benachrichtigungen geräteübergreifend zu synchronisieren.",
+    accountManageSummary: "Verwalte Anmeldung, Synchronisierung, Sprache, Benachrichtigungen, Verlauf und Formungs-Meilensteine, ohne den Weisheitsbegleiter zu überladen.",
+    accountSignedInAs: "Angemeldet als",
+    accountSignInOrGuest: "Anmelden oder als Gast fortfahren",
+    accountSyncActive: "Synchronisierung aktiv.",
+    accountNotificationsNotEnabled: "Benachrichtigungen noch nicht aktiviert.",
+    accountGuestSummary: "Google- und E-Mail-Anmeldung halten Verlauf, Einstellungen, Entscheidungen und Benachrichtigungen portabel.",
+    accountPreferencesEyebrow: "Einstellungen",
+    accountPreferencesSummary: "Sprache, Bibelübersetzung, Erscheinungsbild, Region und Stimme bleiben hier, damit der Begleiter ruhig bleibt.",
+    accountContextActive: "Kontext aktiv",
+    accountContextPaused: "Kontext pausiert",
+    accountArea: "Bereich",
+    accountAreas: "Bereiche",
+    accountAdded: "hinzugefügt",
+    accountManualContextSummary: "Manueller Kontext ist optional und privat. Füge nur hinzu, was Aletheias Beratung prägen soll.",
+    accountDailyWisdomEnabled: "Tägliche Weisheit aktiviert",
+    accountNotificationsSummaryEnabled: "Aletheia verwendet deine gespeicherte lokale Zeitpräferenz.",
+    accountNotificationsSummaryDisabled: "Aktiviere einen ruhigen täglichen Impuls, wenn dieses Gerät bereit ist.",
+    accountInstallTitle: "Aletheia zum Startbildschirm hinzufügen",
+    accountInstallSummary: "Installationshinweise bleiben kompakt, bis jemand die app-ähnliche Einrichtung braucht.",
+    accountInstallEyebrow: "Aletheia installieren",
+    accountInviteTitle: "Jemanden privat einladen",
+    accountInviteSummary: "Teile nur den Aletheia-Link, niemals standardmäßig private Fragen, Journale oder Beratung.",
+    accountInviteEyebrow: "Jemanden einladen",
+    accountHistoryConversations: "Gespräche",
+    accountHistoryDecisions: "Entscheidungen",
+    accountHistoryReflections: "Reflexionen",
+    accountHistorySummary: "Der Verlauf bleibt eingeklappt, bis du Gespeichertes ansehen willst.",
+    accountStatConversations: "Gespräche",
+    accountStatDecisions: "Entscheidungen",
+    accountStatJournalEntries: "Journaleinträge",
+    accountHistoryEmptyBody: "Starte mit einer ehrlichen Frage oder einer Entscheidung unter Druck. Aletheia hält den Verlauf ruhig und nützlich.",
+    accountTrustPostureTitle: "Vertrauens- und Datenschutzhaltung",
+    accountTrustPostureSummary: "Grenzen, Schriftquellen, gespeicherte Daten und Freigabehaltung sind verfügbar, ohne die Seite zu überladen.",
+    accountBoundariesTitle: "Aletheias Leitplanken",
+    accountBoundariesSummary: "Die Sicherheitsgrenzen der App bleiben sichtbar, wenn sie gebraucht werden, ohne ständig im Weg zu sein.",
+    accountBoundariesBody: "Diese Grenzen schützen dich vor schädlichen KI-Ratschlägen und halten Aletheia seiner Aufgabe treu.",
+    accountFormationPrefix: "Formung",
+    accountQuietMilestoneSingular: "ruhiger Meilenstein",
+    accountQuietMilestonePlural: "ruhige Meilensteine",
+    accountFormationSummary: "Formung ist ein ruhiger Praxisverlauf, keine Punktetafel.",
   },
   yo: {
     nav: { companion: "Ilé", decisions: "Ìpinnu", reflect: "Ìrònú", library: "Ilé ìkàwé", account: "Àkọọlẹ" },
@@ -758,6 +1163,7 @@ const uiText: Record<
     blindSpots: "Àwọn ibi tí a lè má rí",
     maturitySignals: "Àmì ìdagbasoke",
     modeGuidance: "Ìtọ́nisọ́nà ipo",
+    change: "Yí padà",
     showDetails: "Fi àlàyé hàn",
     hideDetails: "Pa àlàyé mọ́",
     modeGuidancePreview: "Jẹ́ kí ojú-ìwòye yìí dojú kọ ohun pàtàkì. Ṣí i síi nígbà tí o bá fẹ́ àyẹ̀wò jinlẹ̀, ibi tí a lè má rí, àti àmì ìdagbasoke.",
@@ -769,6 +1175,11 @@ const uiText: Record<
     voiceControls: "Ìṣàkóso ohùn",
     available: "Wà",
     englishFallback: "Ìpadà sí Gẹ̀ẹ́sì",
+    greetingMorning: "Ẹ káàrọ̀",
+    greetingAfternoon: "Ẹ káàsán",
+    greetingEvening: "Ẹ káalẹ́",
+    greetingFallback: "Ẹ ku àbọ̀",
+    greetingIntent: "Ẹ jẹ́ ká yan ìgbésẹ̀ ọgbọ́n tó tẹ̀lé lónìí.",
     personalizedPriority: "Ohun pàtàkì fún ọ",
     whatNext: "Kí ni mo yẹ kí n ṣe lẹ́yìn èyí?",
     whatNextBody: "Aletheia ń yan ìgbésẹ̀ ọgbọ́n kan kọ́kọ́. Apoti ìbéèrè àti àwọn ipo ọgbọ́n wà ní isalẹ nígbà tí o bá fẹ́ bẹ̀rẹ̀ ohun tuntun.",
@@ -832,6 +1243,52 @@ const uiText: Record<
       "Ìrántí fún ẹni tí ó wọlé ń ran ìpinnu, ìrònú, ìmọ̀ràn, àti òfin ìgbé-ayé lọwọ láti tẹ̀síwájú. Ó yẹ kí ìtọ́sọ́nà jẹ́ ti ara ẹni láì ṣí ìkọ̀kọ̀ sílẹ̀ láìnídí.",
     trustConnectedDataBody:
       "Ìsopọ̀ ọjọ́ iwájú sí ìlera, owó, tàbí ẹrọ gbọdọ̀ jẹ́ pẹ̀lú àṣẹ kọọkan, pa a sílẹ̀ ní ìbẹ̀rẹ̀, kí ó sì lo data gangan tí olumulo yan nìkan.",
+    accountNextEyebrow: "Ohun tó tẹ̀lé nínú Àkọọ́lẹ̀",
+    accountNextReviewSyncFormation: "Ṣàyẹ̀wò ìmúpọ̀ àti ìdàgbàsókè",
+    accountNextSignInPortable: "Wọlé láti mú Aletheia bá ọ lọ",
+    accountNextActiveBody: "Àkọọ́lẹ̀ rẹ ti ṣiṣẹ́. Ṣàyẹ̀wò àwọn ìfẹ́ràn, ìtàn àti àwọn àmì ìdàgbàsókè nígbà tí o bá nílò rẹ.",
+    accountNextSyncBody: "Ìmúpọ̀ ti ṣiṣẹ́. Tan ìrántí ọgbọ́n ojoojúmọ́ pẹ̀lẹ́ sílẹ̀ bí ẹ̀rọ yìí yẹ kí ó máa gba a.",
+    accountNextGuestBody: "Lo Google tàbí ímẹ̀ìlì láti mú àwọn ìpinnu, ìrònú, àwọn ìfẹ́ràn, ìmọ̀ràn àti ìfitónilétí pọ̀ láàárín àwọn ẹ̀rọ.",
+    accountManageSummary: "Ṣàkóso ìwọlé, ìmúpọ̀, èdè, ìfitónilétí, ìtàn àti àwọn àmì ìdàgbàsókè láì kó ìdàrúdàpọ̀ bá alábàákẹ́gbẹ́ ọgbọ́n.",
+    accountSignedInAs: "Ti wọlé gẹ́gẹ́ bí",
+    accountSignInOrGuest: "Wọlé tàbí tẹ̀síwájú gẹ́gẹ́ bí àlejò",
+    accountSyncActive: "Ìmúpọ̀ ti ṣiṣẹ́.",
+    accountNotificationsNotEnabled: "Ìfitónilétí kò tíì ṣiṣẹ́.",
+    accountGuestSummary: "Ìwọlé Google àti ímẹ̀ìlì ń jẹ́ kí ìtàn, àwọn ìfẹ́ràn, àwọn ìpinnu àti ìfitónilétí rẹ rọrùn láti mú lọ sí ibòmíì.",
+    accountPreferencesEyebrow: "Àwọn ìfẹ́ràn",
+    accountPreferencesSummary: "Èdè, ìtumọ̀ Bíbélì, ìrísí, agbègbè àti ohùn wà níbí kí Alábàákẹ́gbẹ́ lè dúró ní ìdákẹ́jẹ.",
+    accountContextActive: "Àyíká ti ṣiṣẹ́",
+    accountContextPaused: "Àyíká ti dúró",
+    accountArea: "àgbègbè",
+    accountAreas: "àwọn àgbègbè",
+    accountAdded: "tí a fikún",
+    accountManualContextSummary: "Àyíká ọwọ́ jẹ́ àṣàyàn àti ìkọ̀kọ̀. Ṣàfikún ohun tí ó yẹ kó ṣàkóso ìmọ̀ràn Aletheia nìkan.",
+    accountDailyWisdomEnabled: "Ọgbọ́n ojoojúmọ́ ti ṣiṣẹ́",
+    accountNotificationsSummaryEnabled: "Aletheia yóò lo àṣàyàn àkókò ìbílẹ̀ tí o ti fipamọ́.",
+    accountNotificationsSummaryDisabled: "Tan ìrántí ojoojúmọ́ pẹ̀lẹ́ sílẹ̀ nígbà tí ẹ̀rọ yìí bá ti ṣetán.",
+    accountInstallTitle: "Ṣàfikún Aletheia sí ojú ìbẹ̀rẹ̀ rẹ",
+    accountInstallSummary: "Àwọn ìtọ́nisọ́nà fifi sori ẹrọ wà ní ìdákẹ́jẹ títí ẹnikan fi nílò ìrírí bí app.",
+    accountInstallEyebrow: "Fi Aletheia sori ẹrọ",
+    accountInviteTitle: "Pe ẹnikan ní ìkọ̀kọ̀",
+    accountInviteSummary: "Pin ọna asopọ Aletheia nìkan, kì í ṣe àwọn ìbéèrè ìkọ̀kọ̀, ìwé ìrònú tàbí ìmọ̀ràn ní àìtẹ̀sí.",
+    accountInviteEyebrow: "Pe ẹnikan",
+    accountHistoryConversations: "àwọn ìjíròrò",
+    accountHistoryDecisions: "àwọn ìpinnu",
+    accountHistoryReflections: "àwọn ìrònú",
+    accountHistorySummary: "Ìtàn máa ń dúró ní fífi pa mọ́ títí o fi fẹ́ wo ohun tí a ti fipamọ́.",
+    accountStatConversations: "Àwọn ìjíròrò",
+    accountStatDecisions: "Àwọn ìpinnu",
+    accountStatJournalEntries: "Àwọn ìforúkọsílẹ̀ ìwé ìrònú",
+    accountHistoryEmptyBody: "Bẹ̀rẹ̀ pẹ̀lú ìbéèrè olóòtítọ́ kan tàbí ìpinnu kan lábẹ́ títẹ. Aletheia yóò jẹ́ kí àkọọ́lẹ̀ náà dájú, ṣinṣin, kí ó sì wúlò.",
+    accountTrustPostureTitle: "Ìpo ìgbẹ́kẹ̀lé àti ìkọ̀kọ̀",
+    accountTrustPostureSummary: "Àwọn ààlà, ibi tí ìtọọ́kasí mímọ́ ti wá, data tí a fipamọ́ àti ìlànà pínpín wà ní mímọ̀ láì kó àkúnya bá ojú-ìwé.",
+    accountBoundariesTitle: "Àwọn ààlà Aletheia",
+    accountBoundariesSummary: "Àwọn ààlà ààbò app náà wà ní mímọ̀ nígbà tí a bá nílò wọn, kì í sì í di ọ lójú ní gbogbo ìgbà.",
+    accountBoundariesBody: "Àwọn ìdènà wọ̀nyí ń dáàbò bo ọ kúrò nínú ìmọ̀ràn AI tó lè ṣàkóbá, wọ́n sì ń jẹ́ kí Aletheia dúró ṣinṣin sí ìdí rẹ.",
+    accountFormationPrefix: "Ìdàgbàsókè",
+    accountQuietMilestoneSingular: "àmì ìdàgbàsókè pẹ̀lẹ́ kan",
+    accountQuietMilestonePlural: "àwọn àmì ìdàgbàsókè pẹ̀lẹ́",
+    accountFormationSummary: "Ìdàgbàsókè jẹ́ àkọọ́lẹ̀ ìdákẹ́jẹ ti ìṣe, kì í ṣe pátákó amì-ẹ̀yẹ.",
   },
   ig: {
     nav: { companion: "Ụlọ", decisions: "Mkpebi", reflect: "Tụgharịa uche", library: "Ọba akwụkwọ", account: "Akaụntụ" },
@@ -855,6 +1312,7 @@ const uiText: Record<
     blindSpots: "Ihe nwere ike ifu anya",
     maturitySignals: "Ihe ngosi ntozu",
     modeGuidance: "Nduzi ụdị",
+    change: "Gbanwee",
     showDetails: "Gosi nkọwa",
     hideDetails: "Zoo nkọwa",
     modeGuidancePreview: "Debe echiche a ka ọ dị mfe. Mepee ya mgbe ịchọrọ nlele miri emi, ihe nwere ike ifu anya, na ihe ngosi ntozu.",
@@ -866,6 +1324,27 @@ const uiText: Record<
     voiceControls: "Njikwa olu",
     available: "Dị",
     englishFallback: "Laghachi n'Bekee",
+    greetingMorning: "Ụtụtụ ọma",
+    greetingAfternoon: "Ehihie ọma",
+    greetingEvening: "Mgbede ọma",
+    greetingFallback: "Nnọọ ọzọ",
+    greetingIntent: "Ka anyị họrọ otu nzọụkwụ amamihe ọzọ taa.",
+    personalizedPriority: "Ihe kacha mkpa nye gị",
+    whatNext: "Gịnị ka m kwesịrị ime ugbu a?",
+    whatNextBody: "Aletheia na-ahọrọ ihe amamihe ka ọ bụrụ nke mbụ. Ebe ajụjụ na njikwa ụdị dị n'okpuru mgbe ịchọrọ ịmalite ihe ọhụrụ.",
+    continueDecision: "Gaa n'ihu na mkpebi a",
+    askOneQuestion: "Jụọ otu ajụjụ",
+    askOneQuestionBody: "Malite site n'ọnọdụ nsogbu ma ọ bụ mkpebi ị na-ebu ugbu a.",
+    askNewQuestion: "Jụọ ajụjụ ọhụrụ",
+    askNewQuestionBody: "Ebe ntinye ajụjụ na ụdị amamihe dị n'okpuru.",
+    reflectToday: "Tụgharịa uche na taa",
+    reviewPattern: "Lelee usoro",
+    enableNotifications: "Gbanye ọkwa ozi",
+    enableSync: "Gbanye mmekọrịta",
+    notificationPromptBody: "Nata otu ụbọchị niile mgbasa ozi amamihe dị jụụ.",
+    syncDevicesBody: "Jide mkpebi na ntụgharị uche gị n'ụdị ngwaọrụ niile.",
+    startDecision: "Malite mkpebi",
+    startDecisionBody: "Soro nhọrọ dị mkpa n'oge.",
     todaysCompanion: "Enyi nke taa",
     todayPrefix: "Taa",
     wisdomPrinciple: "Ụkpụrụ amamihe",
@@ -876,6 +1355,89 @@ const uiText: Record<
     askAboutThis: "Jụọ maka nke a",
     saveToRuleOfLife: "Chekwaa dị ka iwu ndụ",
     carryingToday: "Ihe ị na-ebu taa",
+    currentCounsel: "Ndụmọdụ ugbu a",
+    modeShapesCounsel: "na-akpụ ndụmọdụ a gburugburu",
+    trackThisDecision: "Soro mkpebi a",
+    saveAsReflection: "Chekwaa dịka ntụgharị uche",
+    createCounselSummary: "Mepụta nchịkọta ndụmọdụ",
+    goDeeper: "Gaa n'ime",
+    waitThreeDays: "Chere ụbọchị 3",
+    shareAnswerPrompt: "Kekọrịta Aletheia na onye nwere ike irite uru site n'ụdị ndụmọdụ a.",
+    sharePrivacyNote: "Nke a na-ekekọrịta naanị njikọ ngwa ahụ, ọ bụghị ajụjụ gị ma ọ bụ azịza nzuzo Aletheia.",
+    shareAletheia: "Kekọrịta Aletheia",
+    feedbackQuestion: "Ndụmọdụ a ọ bara uru?",
+    feedbackHelpful: "Bara uru",
+    feedbackMildlyHelpful: "Bara uru ntakịrị",
+    feedbackTooVague: "Adịghị doro anya",
+    feedbackTooPreachy: "Na-akụzi nke ukwuu",
+    feedbackNotRelevant: "Adịghị mkpa",
+    badgesFormation: "Akara / Nhazi",
+    firstReflectionSaved: "Ntụgharị uche mbụ echekwara",
+    firstDecisionTracked: "Mkpebi mbụ esochiri",
+    soughtCounsel: "Chọrọ ndụmọdụ",
+    waitingModeUsed: "Jiri ụdị ichere",
+    ruleOfLifeCreated: "Iwu ndụ emepụtara",
+    notificationsEnabled: "Gbanyere ọkwa ozi",
+    sevenDaysPractice: "Ụbọchị 7 nke omume amamihe",
+    formationNote: "Ndị a bụ akara nhazi dị jụụ, ọ bụghị isi ihe ị ga-achụ. Nkume njedebe mbụ na-amalitekarị site na ịchekwa otu ntụgharị uche.",
+    milestoneShareTitle: "Ị maara onye na-eme mkpebi dị mkpa?",
+    milestoneShareBody: "Ị nwere ike ịkpọ ha ka ha bịa Aletheia n'ekekọtaghị ihe ọ bụla nzuzo site na akaụntụ gị.",
+    welcomeCounsel:
+      "Weta mkpebi n'ezie, nrụgide ma ọ bụ ajụjụ ego. Aga m aza site n'ọba akwụkwọ amamihe ahaziri ahazi, na-enwe nkọwa mmetụta uche ma ọ bụghị nkwa ego.",
+    trustScriptureBody:
+      "Nrụtụ aka Akwụkwọ Nsọ sitere n'ọba akwụkwọ amamihe ahaziri ahazi Aletheia. Ọ bụrụ na amaokwu apụta, ị nwere ike ịmetụ ya aka ka ị hụ ọnọdụ yana ihe kpatara o ji dị mkpa.",
+    trustBoundaryBody:
+      "Aletheia agaghị ekwe nkwa nsonaazụ, amachaghị ahịa, kwupụta ijide n'aka Chineke, ma ọ bụ dochie ndụmọdụ ọkachamara ego, iwu, ụtụ isi, ahụike ma ọ bụ ndị ụkọchukwu.",
+    trustMemoryBody:
+      "Ebe nchekwa ejikọtara na-enyere aka na nkwụsi ike n'etiti mkpebi, ntụgharị uche, ndụmọdụ na iwu ndụ. O kwesịrị ime ka ntụzịaka bụrụ nke onwe karịa n'ekpugheghị nkọwa nzuzo n'efu.",
+    trustConnectedDataBody:
+      "Njikọta ahụike, ego ma ọ bụ ngwaọrụ n'ọdịnihu kwesịrị ịbụ ikike site na ikike, gbanyụọ na ndabere ma bụrụ naanị data ọ bụla onye ọrụ ahọrọ ịjikọ.",
+    accountNextEyebrow: "Ihe na-esote n'Akaụntụ",
+    accountNextReviewSyncFormation: "Lelee mmekọrịta na nhazi",
+    accountNextSignInPortable: "Banye ka Aletheia nwee ike iso gị gafee ngwaọrụ",
+    accountNextActiveBody: "Akaụntụ gị na-arụ ọrụ. Lelee mmasị, akụkọ na nkume nhazi mgbe ịchọrọ ya.",
+    accountNextSyncBody: "Mmekọrịta na-arụ ọrụ. Gbanwuo otu mkpali amamihe dị jụụ kwa ụbọchị ma ọ bụrụ na ngwaọrụ a kwesịrị ịnata ya.",
+    accountNextGuestBody: "Jiri Google ma ọ bụ email mekọrịta mkpebi, ntụgharị uche, mmasị, ndụmọdụ na ọkwa ozi n'ofe ngwaọrụ.",
+    accountManageSummary: "Jikwaa nbanye, mmekọrịta, asụsụ, ọkwa ozi, akụkọ na nkume nhazi na-enweghị imeju Onye Amamihe.",
+    accountSignedInAs: "Ị banyere dị ka",
+    accountSignInOrGuest: "Banye ma ọ bụ gaa n'ihu dịka ọbịa",
+    accountSyncActive: "Mmekọrịta na-arụ ọrụ.",
+    accountNotificationsNotEnabled: "Ọkwa ozi agbanyebeghị.",
+    accountGuestSummary: "Nbanye Google na email na-eme ka akụkọ, mmasị, mkpebi na ọkwa ozi bụrụ ihe a na-eburu n'ebe ọ bụla.",
+    accountPreferencesEyebrow: "Mmasị",
+    accountPreferencesSummary: "Asụsụ, ntụgharị Baịbụl, ọdịdị, mpaghara na olu nọ ebe a ka Enyi wee dị jụụ.",
+    accountContextActive: "Ọnọdụ na-arụ ọrụ",
+    accountContextPaused: "Ọnọdụ kwụsịrị nwa oge",
+    accountArea: "mpaghara",
+    accountAreas: "mpaghara",
+    accountAdded: "agbakwunyere",
+    accountManualContextSummary: "Ọnọdụ aka bụ nhọrọ ma bụrụ nke nzuzo. Tinye naanị ihe kwesịrị ịkpụzi ndụmọdụ Aletheia.",
+    accountDailyWisdomEnabled: "Amamihe kwa ụbọchị agbanyere",
+    accountNotificationsSummaryEnabled: "Aletheia ga-eji mmasị oge obodo ị chekwara.",
+    accountNotificationsSummaryDisabled: "Gbanwuo otu mkpali dị jụụ kwa ụbọchị mgbe ngwaọrụ a dị njikere.",
+    accountInstallTitle: "Tinye Aletheia na ihuenyo ụlọ gị",
+    accountInstallSummary: "Ntuziaka itinye na-anọ nwayọọ ruo mgbe mmadụ chọrọ ahụmịhe dịka app.",
+    accountInstallEyebrow: "Tinye Aletheia",
+    accountInviteTitle: "Kpọọ mmadụ na nzuzo",
+    accountInviteSummary: "Kekọrịta naanị njikọ Aletheia, ọ bụghị ajụjụ nzuzo, akwụkwọ ncheta ma ọ bụ ndụmọdụ n'usoro ndabara.",
+    accountInviteEyebrow: "Kpọọ mmadụ",
+    accountHistoryConversations: "mkparịta ụka",
+    accountHistoryDecisions: "mkpebi",
+    accountHistoryReflections: "ntụgharị uche",
+    accountHistorySummary: "Akụkọ ihe mere eme na-anọ mechiri emechi ruo mgbe ịchọrọ ilegharị ihe echekwara anya.",
+    accountStatConversations: "Mkparịta ụka",
+    accountStatDecisions: "Mkpebi",
+    accountStatJournalEntries: "Ndenye akwụkwọ ncheta",
+    accountHistoryEmptyBody: "Malite na otu ajụjụ eziokwu ma ọ bụ otu mkpebi dị n'okpuru nrụgide. Aletheia ga-eme ka ndekọ ahụ dị jụụ ma baa uru.",
+    accountTrustPostureTitle: "Ọnọdụ ntụkwasị obi na nzuzo",
+    accountTrustPostureSummary: "Ókè, ebe Akwụkwọ Nsọ si bịa, data echekwara na ụzọ e si ekekọrịta dị ebe a n'enweghị ibu arọ n'ahụ ibe ahụ.",
+    accountBoundariesTitle: "Ókè nche Aletheia",
+    accountBoundariesSummary: "Ókè nche nchekwa app ahụ na-anọ na anya mgbe achọrọ ha, ọ bụghị igbochi mgbe niile.",
+    accountBoundariesBody: "Mgbochi ndị a na-echebe gị pụọ na ndụmọdụ AI nwere ike imerụ ahụ ma na-edobe Aletheia n'ikwesị ntụkwasị obi nye ebumnuche ya.",
+    accountFormationPrefix: "Nhazi",
+    accountQuietMilestoneSingular: "nkume nhazi dị jụụ",
+    accountQuietMilestonePlural: "nkume nhazi dị jụụ",
+    accountFormationSummary: "Nhazi bụ ndekọ dị jụụ nke omume, ọ bụghị tebụl akara.",
   },
   ha: {
     nav: { companion: "Gida", decisions: "Shawara", reflect: "Tunani", library: "Laburare", account: "Asusu" },
@@ -899,6 +1461,7 @@ const uiText: Record<
     blindSpots: "Abubuwan da ka iya boye",
     maturitySignals: "Alamun balaga",
     modeGuidance: "Jagorar yanayi",
+    change: "Canza",
     showDetails: "Nuna bayani",
     hideDetails: "Boyar da bayani",
     modeGuidancePreview: "Ka wannan kallo ya kasance mai sauki. Bude shi idan kana son bincike mai zurfi, abubuwan da ka iya boye, da alamun balaga.",
@@ -910,6 +1473,27 @@ const uiText: Record<
     voiceControls: "Sarrafa murya",
     available: "Akwai",
     englishFallback: "Komawa Turanci",
+    greetingMorning: "Ina kwana",
+    greetingAfternoon: "Ina wuni",
+    greetingEvening: "Barka da yamma",
+    greetingFallback: "Barka da dawowa",
+    greetingIntent: "Mu zabi mataki na hikima na gaba yau.",
+    personalizedPriority: "Fifikon ku",
+    whatNext: "Me zan yi a yanzu?",
+    whatNextBody: "Aletheia tana zaɓar aiki na hikima da farko. Filin tambaya da sarrafa yanayi suna a ƙasa lokacin da kuke son fara sabon abu.",
+    continueDecision: "Ci gaba da wannan shawarar",
+    askOneQuestion: "Yi tambaya ɗaya",
+    askOneQuestionBody: "Fara da matsin lamba ko shawarar da kuke ɗauka a yanzu.",
+    askNewQuestion: "Yi sabuwar tambaya",
+    askNewQuestionBody: "Filin Companion da salon hikima suna a ƙasa.",
+    reflectToday: "Yi tunani a yau",
+    reviewPattern: "Bincika tsari",
+    enableNotifications: "Kunna sanarwa",
+    enableSync: "Kunna haɗin kai",
+    notificationPromptBody: "Karɓi ƙarfafawa na hikima na yau da kullun a hankali.",
+    syncDevicesBody: "Ajiye shawara da tunani a dukkan na'urori.",
+    startDecision: "Fara shawara",
+    startDecisionBody: "Bi zaɓi mai mahimmanci a lokaci.",
     todaysCompanion: "Abokin yau",
     todayPrefix: "Yau",
     wisdomPrinciple: "Ka'idar hikima",
@@ -920,6 +1504,89 @@ const uiText: Record<
     askAboutThis: "Tambaya game da wannan",
     saveToRuleOfLife: "Ajiye a matsayin ka'idar rayuwa",
     carryingToday: "Abin da kake rike da shi yau",
+    currentCounsel: "Shawarar yanzu",
+    modeShapesCounsel: "yana tsara wannan shawarar dangane da",
+    trackThisDecision: "Bi wannan shawarar",
+    saveAsReflection: "Adana azaman tunani",
+    createCounselSummary: "Ƙirƙiri taƙaitaccen shawara",
+    goDeeper: "Je mai zurfi",
+    waitThreeDays: "Jira kwanaki 3",
+    shareAnswerPrompt: "Raba Aletheia da wanda zai iya amfana da irin wannan shawarar.",
+    sharePrivacyNote: "Wannan yana raba mahaɗin app kawai, ba tambayar ku ko amsar sirri ta Aletheia ba.",
+    shareAletheia: "Raba Aletheia",
+    feedbackQuestion: "Wannan shawarar ta taimaka?",
+    feedbackHelpful: "Mai taimako",
+    feedbackMildlyHelpful: "Yana taimakawa kaɗan",
+    feedbackTooVague: "Ba a fayyace ba",
+    feedbackTooPreachy: "Wa'azi da yawa",
+    feedbackNotRelevant: "Ba ya dacewa",
+    badgesFormation: "Tambari / Tsarawa",
+    firstReflectionSaved: "Tunani na farko an adana",
+    firstDecisionTracked: "Shawara ta farko an bi",
+    soughtCounsel: "Neman shawara",
+    waitingModeUsed: "An yi amfani da yanayin jira",
+    ruleOfLifeCreated: "An ƙirƙiri ƙa'idar rayuwa",
+    notificationsEnabled: "An kunna sanarwa",
+    sevenDaysPractice: "Kwanaki 7 na aikin hikima",
+    formationNote: "Waɗannan alamomi ne na hankali na tsarawa, ba maki da za a bi ba. Alamar farko yawanci tana farawa da adana tunani ɗaya.",
+    milestoneShareTitle: "Kun san wanda ke yin muhimmiyar shawara?",
+    milestoneShareBody: "Kuna iya gayyatonsu zuwa Aletheia ba tare da raba wani abu mai sirri daga asusunku ba.",
+    welcomeCounsel:
+      "Kawo shawara ta gaske, matsin lamba ko tambayar kuɗi. Zan amsa daga ɗakin karatu na hikima da aka tsara, tare da fayyace motsin rai kuma ba tare da alkawuran kuɗi ba.",
+    trustScriptureBody:
+      "Nassoshi na Littafi Mai Tsarki sun fito ne daga ɗakin karatu na hikima na Aletheia. Idan aya ta bayyana, zaku iya danna ta don ganin mahallin da dalilin da ya sa yake da muhimmanci.",
+    trustBoundaryBody:
+      "Aletheia ba zai yi alkawarin sakamako ba, ba zai yi hasashen kasuwanni ba, ba zai yi iƙirarin tabbacin Allah ba, ko kuma ya maye gurbin shawara ta ƙwararru na kuɗi, doka, haraji, likita ko na limamin coci.",
+    trustMemoryBody:
+      "Ƙwaƙwalwar ajiya da aka haɗa tana taimakawa daidaituwa tsakanin shawara, tunani, shawara da ƙa'idodin rayuwa. Ya kamata ya sanya jagora ta zama ta sirri fiye ba tare da fallasa cikakkun bayanai na sirri ba tare da buƙata ba.",
+    trustConnectedDataBody:
+      "Haɗin lafiya, kuɗi ko na'ura na gaba yakamata su kasance izini-zuwa-izini, kashe a tsohuwa kuma iyakance ga ainihin bayanan da mai amfani ya zaɓa don haɗawa.",
+    accountNextEyebrow: "Na gaba a Asusu",
+    accountNextReviewSyncFormation: "Duba daidaitawa da tsarawa",
+    accountNextSignInPortable: "Shiga domin ka rika daukar Aletheia tare da kai",
+    accountNextActiveBody: "Asusunka yana aiki. Duba abubuwan da ka fi so, tarihi da matakan tsarawa idan kana bukata.",
+    accountNextSyncBody: "Daidaitawa tana aiki. Kunna dan karamin tunasarwar hikima ta yau idan wannan na'ura ya kamata ta karbe ta.",
+    accountNextGuestBody: "Yi amfani da Google ko imel don daidaita shawarwari, tunani, abubuwan da ka fi so, nasiha da sanarwa a tsakanin na'urori.",
+    accountManageSummary: "Sarrafa shiga, daidaitawa, harshe, sanarwa, tarihi da matakan tsarawa ba tare da cunkushe abokin hikima ba.",
+    accountSignedInAs: "An shiga a matsayin",
+    accountSignInOrGuest: "Shiga ko ci gaba a matsayin bako",
+    accountSyncActive: "Daidaitawa tana aiki.",
+    accountNotificationsNotEnabled: "Ba a kunna sanarwa ba tukuna.",
+    accountGuestSummary: "Shiga da Google da imel yana sa tarihinka, abubuwan da ka fi so, shawarwari da sanarwa su kasance masu saukin dauka a ko'ina.",
+    accountPreferencesEyebrow: "Abubuwan da aka fi so",
+    accountPreferencesSummary: "Harshe, fassarar Littafi, bayyanar fuska, yanki da murya suna nan domin Aboki ya zauna cikin natsuwa.",
+    accountContextActive: "Mahalli yana aiki",
+    accountContextPaused: "An dakatar da mahalli",
+    accountArea: "fanni",
+    accountAreas: "fannoni",
+    accountAdded: "an kara",
+    accountManualContextSummary: "Mahallin hannu na zabi ne kuma na sirri ne. Kara kawai abin da ya kamata ya tsara nasihohin Aletheia.",
+    accountDailyWisdomEnabled: "An kunna hikimar yau da kullum",
+    accountNotificationsSummaryEnabled: "Aletheia za ta yi amfani da zabin lokacinka na gida da aka riga aka ajiye.",
+    accountNotificationsSummaryDisabled: "Kunna dan karamin tunasarwar yau da kullum idan wannan na'ura ta shirya.",
+    accountInstallTitle: "Saka Aletheia a allon gida",
+    accountInstallSummary: "Umarnin shigarwa suna zaune a hankali har sai wani ya bukaci tsarin kama da app.",
+    accountInstallEyebrow: "Saka Aletheia",
+    accountInviteTitle: "Gayyaci wani a boye",
+    accountInviteSummary: "Raba hanyar Aletheia kadai, ba tambayoyin sirri ba, ba rubutun tunani ba, ba kuma nasiha ta tsohuwa ba.",
+    accountInviteEyebrow: "Gayyaci wani",
+    accountHistoryConversations: "tattaunawa",
+    accountHistoryDecisions: "shawarwari",
+    accountHistoryReflections: "tunani",
+    accountHistorySummary: "Tarihi yana nan a dunkule har sai kana son duba abin da aka ajiye.",
+    accountStatConversations: "Tattaunawa",
+    accountStatDecisions: "Shawarwari",
+    accountStatJournalEntries: "Rubuce-rubucen tunani",
+    accountHistoryEmptyBody: "Fara da tambaya ta gaskiya daya ko shawara daya a karkashin matsin lamba. Aletheia za ta sa bayanin ya kasance cikin natsuwa kuma mai amfani.",
+    accountTrustPostureTitle: "Matsayin amincewa da sirri",
+    accountTrustPostureSummary: "Iyakoki, tushen nassosi, bayanan da aka ajiye da yadda ake rabawa suna samuwa ba tare da cika shafin da yawa ba.",
+    accountBoundariesTitle: "Iyakokin kariyar Aletheia",
+    accountBoundariesSummary: "Iyakokin tsaron app suna nan a bayyane idan an bukace su, ba tare da zama cikas kullum ba.",
+    accountBoundariesBody: "Wadannan takurawa suna kare ka daga nasihohin AI masu cutarwa kuma suna sa Aletheia ta kasance mai aminci ga manufarta.",
+    accountFormationPrefix: "Tsarawa",
+    accountQuietMilestoneSingular: "matakin tsarawa mai nutsuwa",
+    accountQuietMilestonePlural: "matakan tsarawa masu nutsuwa",
+    accountFormationSummary: "Tsarawa rikodi ne mai natsuwa na aiki, ba allon maki ba.",
   },
 };
 
@@ -1672,11 +2339,29 @@ const modes: ModeCard[] = [
 ];
 
 const modeDisplayLabels: Partial<Record<LanguageCode, Record<Mode, string>>> = {
+  pt: {
+    Money: "Dinheiro",
+    Work: "Trabalho",
+    Purpose: "Propósito",
+    Generosity: "Generosidade",
+  },
   yo: {
     Money: "Owó",
     Work: "Iṣẹ́",
     Purpose: "Ìdí",
-    Generosity: "Ìfẹ́ fúnni",
+    Generosity: "Ọ̀fẹ́",
+  },
+  ig: {
+    Money: "Ego",
+    Work: "Ọrụ",
+    Purpose: "Nzube",
+    Generosity: "Mmesapụ aka",
+  },
+  ha: {
+    Money: "Kuɗi",
+    Work: "Aiki",
+    Purpose: "Manufa",
+    Generosity: "Karimci",
   },
   de: {
     Money: "Geld",
@@ -1745,6 +2430,415 @@ const localizedModeProfiles: Partial<Record<LanguageCode, Partial<Record<Mode, P
 
 function modeDisplayLabel(mode: Mode, language: LanguageCode) {
   return modeDisplayLabels[language]?.[mode] ?? mode;
+}
+
+const wisdomThemeDisplayLabels: Partial<Record<LanguageCode, Record<string, string>>> = {
+  pt: {
+    Stewardship: "Mordomia",
+    Debt: "Dívida",
+    Contentment: "Contentamento",
+    Counsel: "Conselho",
+    "Cost Counting": "Cálculo do custo",
+    Generosity: "Generosidade",
+    Diligence: "Diligência",
+    "Provision and Anxiety": "Provisão e ansiedade",
+  },
+  yo: {
+    Stewardship: "Ìtọ́jú",
+    Debt: "Gbèsè",
+    Contentment: "Ìtẹ́lọ́rùn",
+    Counsel: "Ìmọ̀ràn",
+    "Cost Counting": "Kíka iye owó",
+    Generosity: "Ọ̀fẹ́",
+    Diligence: "Ìsapá",
+    "Provision and Anxiety": "Ipèsè àti àníyàn",
+  },
+  ig: {
+    Stewardship: "Nlekọta",
+    Debt: "Ụgwọ",
+    Contentment: "Afọ ojuju",
+    Counsel: "Ndụmọdụ",
+    "Cost Counting": "Ịgụ ụgwọ",
+    Generosity: "Mmesapụ aka",
+    Diligence: "Ịrụsi ọrụ ike",
+    "Provision and Anxiety": "Nlekọta na nchegbu",
+  },
+  ha: {
+    Stewardship: "Kulawa",
+    Debt: "Bashi",
+    Contentment: "Gamsuwa",
+    Counsel: "Shawara",
+    "Cost Counting": "Lissafin kuɗi",
+    Generosity: "Karimci",
+    Diligence: "Naci",
+    "Provision and Anxiety": "Tanadi da damuwa",
+  },
+};
+
+function isMode(value: string): value is Mode {
+  return value === "Money" || value === "Work" || value === "Purpose" || value === "Generosity";
+}
+
+function modeTranslationKey(mode: Mode) {
+  return `modes.${mode.toLowerCase()}.label`;
+}
+
+function localizedModeLabel(mode: Mode, language: LanguageCode, translations?: TranslationData): string {
+  const fallback = modeDisplayLabel(mode, language);
+  if (!translations) {
+    return fallback;
+  }
+
+  const translated = getTranslation(translations, modeTranslationKey(mode), fallback);
+  return Array.isArray(translated) ? translated.join(', ') : translated;
+}
+
+function localizedWisdomThemeLabel(theme: string, language: LanguageCode) {
+  if (isMode(theme)) {
+    return modeDisplayLabel(theme, language);
+  }
+  return wisdomThemeDisplayLabels[language]?.[theme] ?? theme;
+}
+
+type RuntimePanelCopy = {
+  timelineReady: string;
+  nextInDecisions: string;
+  decisionNextTitleDefault: string;
+  decisionNextBodyActive: string;
+  decisionNextBodyEmpty: string;
+  decisionCompanionHeading: string;
+  decisionCompanionSub: string;
+  ruleOfLife: string;
+  ruleOfLifePrincipleSingular: string;
+  ruleOfLifePrinciplePlural: string;
+  ruleOfLifeSummary: string;
+  decisionPracticeLine: string;
+  nextInReflect: string;
+  reflectNextTitleDefault: string;
+  reflectNextTitleActive: string;
+  reflectNextBodyDefault: string;
+  reflectNextBodyActive: string;
+  reflectIntro: string;
+  wisdomCheck: string;
+  wisdomCheckSummaryDefault: string;
+  wisdomCheckUrgency: string;
+  wisdomCheckSlower: string;
+  decisionScan: string;
+  reflectionHistory: string;
+  savedReflectionSingular: string;
+  savedReflectionPlural: string;
+  reflectionHistorySummaryActive: string;
+  reflectionHistorySummaryDefault: string;
+  nextInLibrary: string;
+  libraryNextTitleDefault: string;
+  libraryNextBodySearch: string;
+  libraryTryPrefix: string;
+  libraryDescription: string;
+  fullWisdomLibrary: string;
+  moreAnchors: string;
+};
+
+const runtimePanelCopy: Record<LanguageCode, RuntimePanelCopy> = {
+  en: {
+    timelineReady: "Your timeline is ready to track decisions, patterns, counsel, and learning.",
+    nextInDecisions: "Next in Decisions",
+    decisionNextTitleDefault: "Name the decision under pressure",
+    decisionNextBodyActive: "Update counsel, cost, waiting, and peace signals so the decision has a real timeline.",
+    decisionNextBodyEmpty: "Start with one decision and the pressure attached to it. Aletheia will track wisdom, counsel, and readiness over time.",
+    decisionCompanionHeading: "Track the decision until wisdom has had time to work.",
+    decisionCompanionSub: "Memory, counsel, waiting, summary export, and a calm readiness signal for major choices.",
+    ruleOfLife: "Rule of Life",
+    ruleOfLifePrincipleSingular: "principle",
+    ruleOfLifePrinciplePlural: "principles",
+    ruleOfLifeSummary: "Personal principles stay close, but collapsed until you are shaping a decision.",
+    decisionPracticeLine: "Name what is enough for this season",
+    nextInReflect: "Next in Reflect",
+    reflectNextTitleDefault: "Begin with one honest sentence",
+    reflectNextTitleActive: "Finish the reflection in front of you",
+    reflectNextBodyDefault: "Use Wisdom Check for a quick discernment scan, or write what you notice about money, work, fear, generosity, or pace.",
+    reflectNextBodyActive: "Save what you are noticing while the insight is still fresh.",
+    reflectIntro: "Use Wisdom Check to slow a decision down, then save what you notice before the moment passes.",
+    wisdomCheck: "Wisdom Check",
+    wisdomCheckSummaryDefault: "Open when a decision needs a quick discernment scan.",
+    wisdomCheckUrgency: "urgency noticed",
+    wisdomCheckSlower: "pressure looks slower",
+    decisionScan: "Decision scan",
+    reflectionHistory: "Reflection history",
+    savedReflectionSingular: "saved reflection",
+    savedReflectionPlural: "saved reflections",
+    reflectionHistorySummaryActive: "Open your past reflections when you want to review growth.",
+    reflectionHistorySummaryDefault: "Past reflections will stay here once saved.",
+    nextInLibrary: "Next in Library",
+    libraryNextTitleDefault: "Search one wisdom theme",
+    libraryNextBodySearch: "Open a scripture reference to read the passage context and why it matters here.",
+    libraryTryPrefix: "Try",
+    libraryDescription: "A curated wisdom base with language-aware application notes and public-domain translation labels.",
+    fullWisdomLibrary: "Full wisdom library",
+    moreAnchors: "more anchors",
+  },
+  es: {
+    timelineReady: "Tu linea de tiempo esta lista para seguir decisiones, patrones, consejo y aprendizaje.",
+    nextInDecisions: "Siguiente en Decisiones",
+    decisionNextTitleDefault: "Nombra la decision bajo presion",
+    decisionNextBodyActive: "Actualiza consejo, costo, espera y paz para que la decision tenga una linea de tiempo real.",
+    decisionNextBodyEmpty: "Empieza con una decision y la presion asociada. Aletheia seguira sabiduria, consejo y preparacion con el tiempo.",
+    decisionCompanionHeading: "Sigue la decision hasta que la sabiduria tenga tiempo de obrar.",
+    decisionCompanionSub: "Memoria, consejo, espera, exportacion de resumen y una senal tranquila de preparacion para decisiones importantes.",
+    ruleOfLife: "Regla de vida",
+    ruleOfLifePrincipleSingular: "principio",
+    ruleOfLifePrinciplePlural: "principios",
+    ruleOfLifeSummary: "Los principios personales quedan cerca, pero colapsados hasta que estes moldeando una decision.",
+    decisionPracticeLine: "Nombra lo que es suficiente para esta temporada",
+    nextInReflect: "Siguiente en Reflexion",
+    reflectNextTitleDefault: "Comienza con una frase honesta",
+    reflectNextTitleActive: "Termina la reflexion frente a ti",
+    reflectNextBodyDefault: "Usa Chequeo de sabiduria para un escaneo rapido de discernimiento, o escribe lo que notas sobre dinero, trabajo, temor, generosidad o ritmo.",
+    reflectNextBodyActive: "Guarda lo que estas notando mientras la intuicion aun esta fresca.",
+    reflectIntro: "Usa Chequeo de sabiduria para bajar el ritmo de una decision, luego guarda lo que notas antes de que pase el momento.",
+    wisdomCheck: "Chequeo de sabiduria",
+    wisdomCheckSummaryDefault: "Abre cuando una decision necesite un escaneo rapido de discernimiento.",
+    wisdomCheckUrgency: "urgencia detectada",
+    wisdomCheckSlower: "la presion parece mas calmada",
+    decisionScan: "Escaneo de decision",
+    reflectionHistory: "Historial de reflexion",
+    savedReflectionSingular: "reflexion guardada",
+    savedReflectionPlural: "reflexiones guardadas",
+    reflectionHistorySummaryActive: "Abre tus reflexiones pasadas cuando quieras revisar crecimiento.",
+    reflectionHistorySummaryDefault: "Las reflexiones pasadas quedaran aqui una vez guardadas.",
+    nextInLibrary: "Siguiente en Biblioteca",
+    libraryNextTitleDefault: "Busca un tema de sabiduria",
+    libraryNextBodySearch: "Abre una referencia biblica para leer el contexto del pasaje y por que importa aqui.",
+    libraryTryPrefix: "Prueba",
+    libraryDescription: "Una base de sabiduria curada con notas de aplicacion segun idioma y etiquetas de traduccion de dominio publico.",
+    fullWisdomLibrary: "Biblioteca completa de sabiduria",
+    moreAnchors: "anclas mas",
+  },
+  fr: {
+    timelineReady: "Votre chronologie est prete a suivre decisions, motifs, conseil et apprentissage.",
+    nextInDecisions: "Suite dans Decisions",
+    decisionNextTitleDefault: "Nommez la decision sous pression",
+    decisionNextBodyActive: "Mettez a jour conseil, cout, attente et paix pour donner une vraie chronologie a la decision.",
+    decisionNextBodyEmpty: "Commencez avec une decision et la pression associee. Aletheia suivra sagesse, conseil et preparation dans le temps.",
+    decisionCompanionHeading: "Suivez la decision jusqu'a ce que la sagesse ait le temps d'agir.",
+    decisionCompanionSub: "Memoire, conseil, attente, export de resume et signal calme de preparation pour les grands choix.",
+    ruleOfLife: "Regle de vie",
+    ruleOfLifePrincipleSingular: "principe",
+    ruleOfLifePrinciplePlural: "principes",
+    ruleOfLifeSummary: "Les principes personnels restent proches, mais reduits tant que vous ne faconnez pas une decision.",
+    decisionPracticeLine: "Nomme ce qui est suffisant pour cette saison",
+    nextInReflect: "Suite dans Reflexion",
+    reflectNextTitleDefault: "Commencez par une phrase honnete",
+    reflectNextTitleActive: "Terminez la reflexion devant vous",
+    reflectNextBodyDefault: "Utilisez Verification de sagesse pour un scan rapide de discernement, ou ecrivez ce que vous remarquez sur l'argent, le travail, la peur, la generosite ou le rythme.",
+    reflectNextBodyActive: "Enregistrez ce que vous remarquez pendant que l'intuition est encore fraiche.",
+    reflectIntro: "Utilisez Verification de sagesse pour ralentir une decision, puis enregistrez ce que vous remarquez avant que le moment ne passe.",
+    wisdomCheck: "Verification de sagesse",
+    wisdomCheckSummaryDefault: "Ouvrez quand une decision a besoin d'un scan rapide de discernement.",
+    wisdomCheckUrgency: "urgence detectee",
+    wisdomCheckSlower: "la pression semble plus calme",
+    decisionScan: "Scan de decision",
+    reflectionHistory: "Historique de reflexion",
+    savedReflectionSingular: "reflexion enregistree",
+    savedReflectionPlural: "reflexions enregistrees",
+    reflectionHistorySummaryActive: "Ouvrez vos reflexions passees quand vous voulez revoir la croissance.",
+    reflectionHistorySummaryDefault: "Les reflexions passees resteront ici une fois enregistrees.",
+    nextInLibrary: "Suite dans Bibliotheque",
+    libraryNextTitleDefault: "Recherchez un theme de sagesse",
+    libraryNextBodySearch: "Ouvrez une reference biblique pour lire le contexte du passage et pourquoi cela compte ici.",
+    libraryTryPrefix: "Essayez",
+    libraryDescription: "Une base de sagesse choisie avec des notes d'application selon la langue et des etiquettes de traduction du domaine public.",
+    fullWisdomLibrary: "Bibliotheque complete de sagesse",
+    moreAnchors: "ancrages de plus",
+  },
+  pt: {
+    timelineReady: "Sua linha do tempo esta pronta para acompanhar decisoes, padroes, conselho e aprendizado.",
+    nextInDecisions: "Proximo em Decisoes",
+    decisionNextTitleDefault: "Nomeie a decisao sob pressao",
+    decisionNextBodyActive: "Atualize conselho, custo, espera e paz para que a decisao tenha uma linha do tempo real.",
+    decisionNextBodyEmpty: "Comece com uma decisao e a pressao ligada a ela. Aletheia vai acompanhar sabedoria, conselho e prontidao ao longo do tempo.",
+    decisionCompanionHeading: "Acompanhe a decisao ate que a sabedoria tenha tempo para agir.",
+    decisionCompanionSub: "Memoria, conselho, espera, exportacao de resumo e um sinal calmo de prontidao para escolhas importantes.",
+    ruleOfLife: "Regra de vida",
+    ruleOfLifePrincipleSingular: "principio",
+    ruleOfLifePrinciplePlural: "principios",
+    ruleOfLifeSummary: "Principios pessoais ficam por perto, mas recolhidos ate voce estar moldando uma decisao.",
+    decisionPracticeLine: "Nomeie o que e suficiente para esta temporada",
+    nextInReflect: "Proximo em Reflexao",
+    reflectNextTitleDefault: "Comece com uma frase honesta",
+    reflectNextTitleActive: "Conclua a reflexao diante de voce",
+    reflectNextBodyDefault: "Use Verificacao de sabedoria para um exame rapido de discernimento, ou escreva o que voce percebe sobre dinheiro, trabalho, medo, generosidade ou ritmo.",
+    reflectNextBodyActive: "Salve o que voce esta percebendo enquanto o insight ainda esta fresco.",
+    reflectIntro: "Use Verificacao de sabedoria para desacelerar uma decisao e salve o que voce percebe antes que o momento passe.",
+    wisdomCheck: "Verificacao de sabedoria",
+    wisdomCheckSummaryDefault: "Abra quando uma decisao precisar de um exame rapido de discernimento.",
+    wisdomCheckUrgency: "urgencia percebida",
+    wisdomCheckSlower: "a pressao parece mais calma",
+    decisionScan: "Exame de decisao",
+    reflectionHistory: "Historico de reflexao",
+    savedReflectionSingular: "reflexao salva",
+    savedReflectionPlural: "reflexoes salvas",
+    reflectionHistorySummaryActive: "Abra reflexoes passadas quando quiser revisar crescimento.",
+    reflectionHistorySummaryDefault: "Reflexoes passadas ficarao aqui apos salvar.",
+    nextInLibrary: "Proximo na Biblioteca",
+    libraryNextTitleDefault: "Pesquise um tema de sabedoria",
+    libraryNextBodySearch: "Abra uma referencia biblica para ler o contexto da passagem e por que ela importa aqui.",
+    libraryTryPrefix: "Tente",
+    libraryDescription: "Uma base de sabedoria curada com notas de aplicacao por idioma e rotulos de traducoes em dominio publico.",
+    fullWisdomLibrary: "Biblioteca completa de sabedoria",
+    moreAnchors: "ancoras a mais",
+  },
+  de: {
+    timelineReady: "Deine Zeitleiste ist bereit, Entscheidungen, Muster, Rat und Lernen zu verfolgen.",
+    nextInDecisions: "Als Nächstes in Entscheidungen",
+    decisionNextTitleDefault: "Benenne die Entscheidung unter Druck",
+    decisionNextBodyActive: "Aktualisiere Rat, Kosten, Warten und Frieden, damit die Entscheidung eine echte Zeitleiste hat.",
+    decisionNextBodyEmpty: "Beginne mit einer Entscheidung und dem dazugehörigen Druck. Aletheia verfolgt Weisheit, Rat und Bereitschaft über die Zeit.",
+    decisionCompanionHeading: "Verfolge die Entscheidung, bis Weisheit Zeit hatte zu wirken.",
+    decisionCompanionSub: "Speicher, Rat, Warten, Zusammenfassungsexport und ein ruhiges Bereitschaftssignal für große Entscheidungen.",
+    ruleOfLife: "Lebensregel",
+    ruleOfLifePrincipleSingular: "Prinzip",
+    ruleOfLifePrinciplePlural: "Prinzipien",
+    ruleOfLifeSummary: "Persönliche Prinzipien bleiben nah, aber eingeklappt, bis du eine Entscheidung formst.",
+    decisionPracticeLine: "Benenne, was fur diese Saison genug ist",
+    nextInReflect: "Als Nächstes in Reflexion",
+    reflectNextTitleDefault: "Beginne mit einem ehrlichen Satz",
+    reflectNextTitleActive: "Beende die Reflexion vor dir",
+    reflectNextBodyDefault: "Nutze Weisheitscheck fur einen schnellen Unterscheidungs-Scan oder schreibe auf, was du uber Geld, Arbeit, Angst, Großzugigkeit oder Tempo bemerkst.",
+    reflectNextBodyActive: "Speichere, was du bemerkst, solange die Einsicht noch frisch ist.",
+    reflectIntro: "Nutze Weisheitscheck, um eine Entscheidung zu verlangsamen, und speichere dann, was du bemerkst, bevor der Moment vergeht.",
+    wisdomCheck: "Weisheitscheck",
+    wisdomCheckSummaryDefault: "Öffne es, wenn eine Entscheidung einen schnellen Unterscheidungs-Scan braucht.",
+    wisdomCheckUrgency: "Dringlichkeit erkannt",
+    wisdomCheckSlower: "Druck wirkt ruhiger",
+    decisionScan: "Entscheidungs-Scan",
+    reflectionHistory: "Reflexionsverlauf",
+    savedReflectionSingular: "gespeicherte Reflexion",
+    savedReflectionPlural: "gespeicherte Reflexionen",
+    reflectionHistorySummaryActive: "Öffne vergangene Reflexionen, wenn du Wachstum prüfen willst.",
+    reflectionHistorySummaryDefault: "Vergangene Reflexionen bleiben hier, sobald sie gespeichert sind.",
+    nextInLibrary: "Als Nächstes in Bibliothek",
+    libraryNextTitleDefault: "Suche ein Weisheitsthema",
+    libraryNextBodySearch: "Öffne eine Bibelstelle, um den Kontext der Passage und ihre Bedeutung hier zu sehen.",
+    libraryTryPrefix: "Versuche",
+    libraryDescription: "Eine kuratierte Weisheitsbasis mit sprachsensiblen Anwendungshinweisen und Labels für gemeinfreie Übersetzungen.",
+    fullWisdomLibrary: "Vollständige Weisheitsbibliothek",
+    moreAnchors: "weitere Anker",
+  },
+  yo: {
+    timelineReady: "Ago-akoko re ti setan lati tele ipinnu, ilana, imooran ati eko.",
+    nextInDecisions: "Eto to nbo ninu Ipinnu",
+    decisionNextTitleDefault: "So ipinnu to wa labẹ titẹ",
+    decisionNextBodyActive: "Tun imoaran, iye owo, idaduro ati alaafia se ki ipinnu naa ni itan-akoko gidi.",
+    decisionNextBodyEmpty: "Bere pelu ipinnu kan ati titẹ to so mọ ọ. Aletheia yoo maa tele ogbon, imoaran ati imurasile lori akoko.",
+    decisionCompanionHeading: "Tele ipinnu naa titi ogbon yoo fi ni akoko lati sise.",
+    decisionCompanionSub: "Irántí, imoaran, idaduro, gbigbejade akosile ati ami imurasile idakẹjẹ fun awon yiyan pataki.",
+    ruleOfLife: "Ofin Igbesiaye",
+    ruleOfLifePrincipleSingular: "ilana",
+    ruleOfLifePrinciplePlural: "awon ilana",
+    ruleOfLifeSummary: "Awon ilana ara eni wa nitosi, sugbon won wa ni pipade titi ti o fi n se agbekale ipinnu.",
+    decisionPracticeLine: "So ohun to to fun asiko yi",
+    nextInReflect: "Eto to nbo ninu Ironu",
+    reflectNextTitleDefault: "Bere pelu gbolohun otito kan",
+    reflectNextTitleActive: "Pari ironu to wa niwaju re",
+    reflectNextBodyDefault: "Lo Ayewo ogbon fun ayewo iyara, tabi ko ohun ti o n ri nipa owo, ise, iberu, ofe ati iyara.",
+    reflectNextBodyActive: "Fi ohun ti o n ri pamọ nigba ti imo naa tun n gbona.",
+    reflectIntro: "Lo Ayewo ogbon lati din iyara ipinnu ku, ki o si fi ohun ti o n ri pamọ ki akoko naa to lo.",
+    wisdomCheck: "Ayewo ogbon",
+    wisdomCheckSummaryDefault: "Si i nigba ti ipinnu ba nilo ayewo iyara.",
+    wisdomCheckUrgency: "a ti ri ijakule iyara",
+    wisdomCheckSlower: "titẹ naa dabi pe o rọra",
+    decisionScan: "Ayewo ipinnu",
+    reflectionHistory: "Itan ironu",
+    savedReflectionSingular: "ironu ti a fipamo",
+    savedReflectionPlural: "awon ironu ti a fipamo",
+    reflectionHistorySummaryActive: "Si awon ironu tele nigba ti o ba fe tun wo idagbasoke.",
+    reflectionHistorySummaryDefault: "Awon ironu tele yoo wa nibi nigbati a ba fipamo won.",
+    nextInLibrary: "Eto to nbo ninu Ile-ikawe",
+    libraryNextTitleDefault: "Wa koko-oro ogbon kan",
+    libraryNextBodySearch: "Si itọkasi iwe-mimo kan lati ka ayika gbolohun ati idi to fi se pataki nibi.",
+    libraryTryPrefix: "Gbiyanju",
+    libraryDescription: "Ibi-ipamọ ogbon ti a yan pẹlu awon alaye ohun elo to ba ede mu ati awon aami itumọ agbegbe gbangba.",
+    fullWisdomLibrary: "Ile-ikawe ogbon kikun",
+    moreAnchors: "awon oran afikun",
+  },
+  ig: {
+    timelineReady: "Usoro oge gi di njikere iso mkpebi, usoro, nduzi na omumu.",
+    nextInDecisions: "Ihe na-esote na Mkpebi",
+    decisionNextTitleDefault: "Kowa mkpebi di n'okpuru nrụgide",
+    decisionNextBodyActive: "Megharia nduzi, onu ahia, ichere na udo ka mkpebi nwee usoro oge eziokwu.",
+    decisionNextBodyEmpty: "Bido na mkpebi otu na nrụgide ya. Aletheia ga-eso amamihe, nduzi na njikere n'oge.",
+    decisionCompanionHeading: "Soro mkpebi ahu ruo mgbe amamihe nwere oge isoro oru.",
+    decisionCompanionSub: "Ncheta, nduzi, ichere, ibupu nchikota, na akara njikere di juru nwayoo maka nhọrọ di mkpa.",
+    ruleOfLife: "Iwu Ndụ",
+    ruleOfLifePrincipleSingular: "usoro",
+    ruleOfLifePrinciplePlural: "usoro",
+    ruleOfLifeSummary: "Uzo ndu onwe onye na-anọ nso, mana a na-emechi ha ruo mgbe i na-akpụ mkpebi.",
+    decisionPracticeLine: "Kowa ihe zuru ezu maka oge a",
+    nextInReflect: "Ihe na-esote na Ntụgharị uche",
+    reflectNextTitleDefault: "Bido na ahiriokwu eziokwu otu",
+    reflectNextTitleActive: "Mechaa ntughari uche di n'ihu gi",
+    reflectNextBodyDefault: "Jiri Nyocha amamihe maka nyocha ngwa ngwa, ma obu dee ihe i na-ahuta gbasara ego, oru, egwu, mmesa aka, ma obu ije.",
+    reflectNextBodyActive: "Chekwaa ihe i na-ahuta mgbe nghota ka di ohuru.",
+    reflectIntro: "Jiri Nyocha amamihe mee ka mkpebi jupụta nwayoo, wee chekwaa ihe i na-ahuta tupu oge gafee.",
+    wisdomCheck: "Nyocha amamihe",
+    wisdomCheckSummaryDefault: "Mepee ya mgbe mkpebi choro nyocha ngwa ngwa.",
+    wisdomCheckUrgency: "a huru ngwa ngwa",
+    wisdomCheckSlower: "nrụgide yiri ka o na-ala nwayoo",
+    decisionScan: "Nyocha mkpebi",
+    reflectionHistory: "Akuko ntughari uche",
+    savedReflectionSingular: "ntughari uche echekwara",
+    savedReflectionPlural: "ntughari uche echekwara",
+    reflectionHistorySummaryActive: "Meghee ntughari uche gara aga mgbe ichoro ilele uto.",
+    reflectionHistorySummaryDefault: "Ntughari uche gara aga ga-anoro ebe a mgbe echekwara ya.",
+    nextInLibrary: "Ihe na-esote na Oba Akwukwo",
+    libraryNextTitleDefault: "Chọọ isiokwu amamihe otu",
+    libraryNextBodySearch: "Meghee akwukwo nso bibul ka i gụọ gburugburu amaokwu na ihe kpatara o ji di mkpa n'ebe a.",
+    libraryTryPrefix: "Gbalịa",
+    libraryDescription: "Ogige amamihe ahọpụtara nwere ihe omume dabere na asusu na akara ntughari nke ndi mmadu nile.",
+    fullWisdomLibrary: "Oba akwukwo amamihe zuru oke",
+    moreAnchors: "mkporo ozo",
+  },
+  ha: {
+    timelineReady: "Jadawalin lokacinka ya shirya don bin shawarwari, tsari, shawara da koyo.",
+    nextInDecisions: "Na gaba a Shawara",
+    decisionNextTitleDefault: "Sanya sunan shawarar da ke karkashin matsin lamba",
+    decisionNextBodyActive: "Sabunta shawara, kudi, jira da salama domin shawarar ta samu jadawalin lokaci na gaskiya.",
+    decisionNextBodyEmpty: "Fara da shawara daya da matsin da ke tattare da ita. Aletheia za ta bi hikima, shawara da shirye-shirye a tsawon lokaci.",
+    decisionCompanionHeading: "Bi shawarar har sai hikima ta samu lokacin aiki.",
+    decisionCompanionSub: "Ƙwaƙwalwa, shawara, jira, fitar da takaitawa, da alamar shirye-shirye mai nutsuwa don manyan zaɓuɓɓuka.",
+    ruleOfLife: "Ka'idar Rayuwa",
+    ruleOfLifePrincipleSingular: "ka'ida",
+    ruleOfLifePrinciplePlural: "ka'idoji",
+    ruleOfLifeSummary: "Ka'idojin mutum suna nan kusa, amma a rufe suke har sai kana tsara shawara.",
+    decisionPracticeLine: "Sanya sunan abin da ya isa ga wannan kakar",
+    nextInReflect: "Na gaba a Tunani",
+    reflectNextTitleDefault: "Fara da jimla guda daya mai gaskiya",
+    reflectNextTitleActive: "Kammala tunanin da ke gabanka",
+    reflectNextBodyDefault: "Yi amfani da Duba hikima don duba gaggawa, ko rubuta abin da kake lura da shi game da kuɗi, aiki, tsoro, karimci ko sauri.",
+    reflectNextBodyActive: "Ajiye abin da kake lura da shi yayin da fahimtar ke sabo.",
+    reflectIntro: "Yi amfani da Duba hikima don rage saurin shawara, sannan ka ajiye abin da ka lura da shi kafin lokacin ya wuce.",
+    wisdomCheck: "Duba hikima",
+    wisdomCheckSummaryDefault: "Buɗe shi idan shawara na bukatar dubawa cikin sauri.",
+    wisdomCheckUrgency: "an lura da gaggawa",
+    wisdomCheckSlower: "matsin lamba ya yi sanyi",
+    decisionScan: "Duba shawara",
+    reflectionHistory: "Tarihin tunani",
+    savedReflectionSingular: "tunanin da aka ajiye",
+    savedReflectionPlural: "tunanin da aka ajiye",
+    reflectionHistorySummaryActive: "Buɗe tunanin da suka gabata idan kana son duba ci gaba.",
+    reflectionHistorySummaryDefault: "Tunanin da suka gabata za su tsaya a nan bayan an ajiye su.",
+    nextInLibrary: "Na gaba a Laburare",
+    libraryNextTitleDefault: "Nemi jigon hikima guda",
+    libraryNextBodySearch: "Buɗe nassin Littafi Mai Tsarki don karanta mahallin ayar da dalilin muhimmancinsa a nan.",
+    libraryTryPrefix: "Gwada",
+    libraryDescription: "Tarin hikima da aka tace tare da bayanan amfani masu la'akari da harshe da alamun fassarar yankin jama'a.",
+    fullWisdomLibrary: "Cikakken laburaren hikima",
+    moreAnchors: "ƙarin ginshiƙai",
+  },
+};
+
+function runtimeCopyFor(language: LanguageCode): RuntimePanelCopy {
+  return runtimePanelCopy[language] ?? runtimePanelCopy.en;
 }
 
 function localizedModeProfile(mode: Mode, language: LanguageCode): DisplayModeProfile {
@@ -1923,7 +3017,7 @@ export function AletheiaApp() {
   const [activeView, setActiveViewState] = useState<View>("companion");
   
   // Wrapper to persist active view and track navigation usage.
-  const setActiveView = (view: View, source = "navigation") => {
+  const setActiveView = useCallback((view: View, source = "navigation") => {
     setActiveViewState((current) => {
       if (current !== view) {
         trackClientEvent("app_view_changed", { from_view: current, to_view: view, source });
@@ -1933,7 +3027,7 @@ export function AletheiaApp() {
     if (typeof window !== "undefined") {
       window.localStorage.setItem("aletheia-active-view", view);
     }
-  };
+  }, []);
   
   const [mode, setMode] = useState<Mode>("Money");
   const [query, setQuery] = useState("");
@@ -1994,13 +3088,14 @@ export function AletheiaApp() {
     activeCount: 0,
     daysDiscerning: 0,
     patterns: [],
-    gentleObservation: "Your timeline is ready to track decisions, patterns, counsel, and learning.",
+    gentleObservation: runtimeCopyFor(defaultPreferences.language).timelineReady,
   });
   const [counselContacts, setCounselContacts] = useState<CounselContact[]>([]);
   const [rulesOfLife, setRulesOfLife] = useState<RuleOfLife[]>([]);
   const [decisionTitle, setDecisionTitle] = useState("");
   const [decisionPressure, setDecisionPressure] = useState("");
   const [decisionEmotion, setDecisionEmotion] = useState("uncertain");
+  const [focusIntentions, setFocusIntentions] = useState<string[]>([]);
   const [counselName, setCounselName] = useState("");
   const [counselRole, setCounselRole] = useState("mentor");
   const [counselAvatarUrl, setCounselAvatarUrl] = useState("");
@@ -2032,13 +3127,25 @@ export function AletheiaApp() {
   const [answerFocusId, setAnswerFocusId] = useState<string | null>(null);
   const [ruleText, setRuleText] = useState("");
   const [pendingNotificationFocus, setPendingNotificationFocus] = useState(false);
+
+  useEffect(() => {
+    window.setTimeout(() => {
+      try {
+        const saved = JSON.parse(window.localStorage.getItem(FOCUS_INTENTIONS_STORAGE_KEY) || "[]") as string[];
+        if (Array.isArray(saved)) {
+          setFocusIntentions(saved.filter((value) => typeof value === "string").slice(0, 3));
+        }
+      } catch {
+        // Personalization defaults to empty when stored value is invalid.
+      }
+    }, 0);
+  }, []);
   
   // Load translations synchronously using useMemo to ensure they're available immediately
   const translations = useMemo(() => {
     return loadTranslationsWithFallbackSync(preferences.language);
   }, [preferences.language]);
   
-  const preferencesRef = useRef<HTMLElement | null>(null);
   const workspaceRef = useRef<HTMLElement | null>(null);
   const bottomNavRef = useRef<HTMLDivElement | null>(null);
   const updateRefreshTimeoutRef = useRef<number | null>(null);
@@ -2079,7 +3186,10 @@ export function AletheiaApp() {
 
   // Build ui object from translations for backward compatibility
   const buildUiFromTranslations = (trans: TranslationData) => {
-    const languageFallback = uiText[preferences.language] ?? uiText.en;
+    const languageFallback = {
+      ...uiText.en,
+      ...(uiText[preferences.language] ?? {}),
+    };
     if (!trans || Object.keys(trans).length === 0) {
       // Return fallback to uiText.en if translations not loaded yet
       return languageFallback;
@@ -2119,6 +3229,7 @@ export function AletheiaApp() {
       blindSpots: getString('blindSpots', 'Blind spots'),
       maturitySignals: getString('maturitySignals', 'Maturity signals'),
       modeGuidance: getString('modeGuidance', 'Mode guidance'),
+      change: getString('change', languageFallback.change ?? 'Change'),
       showDetails: getString('showDetails', 'Show details'),
       hideDetails: getString('hideDetails', 'Hide details'),
       modeGuidancePreview: getString('modeGuidancePreview', ''),
@@ -2193,10 +3304,56 @@ export function AletheiaApp() {
       trustBoundaryBody: getString('trustBoundaryBody', ''),
       trustMemoryBody: getString('trustMemoryBody', ''),
       trustConnectedDataBody: getString('trustConnectedDataBody', ''),
+      accountNextEyebrow: getString('accountNextEyebrow', languageFallback.accountNextEyebrow ?? 'Next in Account'),
+      accountNextReviewSyncFormation: getString('accountNextReviewSyncFormation', languageFallback.accountNextReviewSyncFormation ?? 'Review sync and formation'),
+      accountNextSignInPortable: getString('accountNextSignInPortable', languageFallback.accountNextSignInPortable ?? 'Sign in to make Aletheia portable'),
+      accountNextActiveBody: getString('accountNextActiveBody', languageFallback.accountNextActiveBody ?? ''),
+      accountNextSyncBody: getString('accountNextSyncBody', languageFallback.accountNextSyncBody ?? ''),
+      accountNextGuestBody: getString('accountNextGuestBody', languageFallback.accountNextGuestBody ?? ''),
+      accountManageSummary: getString('accountManageSummary', languageFallback.accountManageSummary ?? ''),
+      accountSignedInAs: getString('accountSignedInAs', languageFallback.accountSignedInAs ?? 'Signed in as'),
+      accountSignInOrGuest: getString('accountSignInOrGuest', languageFallback.accountSignInOrGuest ?? 'Sign in or continue as guest'),
+      accountSyncActive: getString('accountSyncActive', languageFallback.accountSyncActive ?? 'Sync active.'),
+      accountNotificationsNotEnabled: getString('accountNotificationsNotEnabled', languageFallback.accountNotificationsNotEnabled ?? 'Notifications not enabled yet.'),
+      accountGuestSummary: getString('accountGuestSummary', languageFallback.accountGuestSummary ?? ''),
+      accountPreferencesEyebrow: getString('accountPreferencesEyebrow', languageFallback.accountPreferencesEyebrow ?? 'Preferences'),
+      accountPreferencesSummary: getString('accountPreferencesSummary', languageFallback.accountPreferencesSummary ?? ''),
+      accountContextActive: getString('accountContextActive', languageFallback.accountContextActive ?? 'Context active'),
+      accountContextPaused: getString('accountContextPaused', languageFallback.accountContextPaused ?? 'Context paused'),
+      accountArea: getString('accountArea', languageFallback.accountArea ?? 'area'),
+      accountAreas: getString('accountAreas', languageFallback.accountAreas ?? 'areas'),
+      accountAdded: getString('accountAdded', languageFallback.accountAdded ?? 'added'),
+      accountManualContextSummary: getString('accountManualContextSummary', languageFallback.accountManualContextSummary ?? ''),
+      accountDailyWisdomEnabled: getString('accountDailyWisdomEnabled', languageFallback.accountDailyWisdomEnabled ?? 'Daily wisdom enabled'),
+      accountNotificationsSummaryEnabled: getString('accountNotificationsSummaryEnabled', languageFallback.accountNotificationsSummaryEnabled ?? ''),
+      accountNotificationsSummaryDisabled: getString('accountNotificationsSummaryDisabled', languageFallback.accountNotificationsSummaryDisabled ?? ''),
+      accountInstallTitle: getString('accountInstallTitle', languageFallback.accountInstallTitle ?? 'Add Aletheia to your home screen'),
+      accountInstallSummary: getString('accountInstallSummary', languageFallback.accountInstallSummary ?? ''),
+      accountInstallEyebrow: getString('accountInstallEyebrow', languageFallback.accountInstallEyebrow ?? 'Install Aletheia'),
+      accountInviteTitle: getString('accountInviteTitle', languageFallback.accountInviteTitle ?? 'Invite someone privately'),
+      accountInviteSummary: getString('accountInviteSummary', languageFallback.accountInviteSummary ?? ''),
+      accountInviteEyebrow: getString('accountInviteEyebrow', languageFallback.accountInviteEyebrow ?? 'Invite Someone'),
+      accountHistoryConversations: getString('accountHistoryConversations', languageFallback.accountHistoryConversations ?? 'conversations'),
+      accountHistoryDecisions: getString('accountHistoryDecisions', languageFallback.accountHistoryDecisions ?? 'decisions'),
+      accountHistoryReflections: getString('accountHistoryReflections', languageFallback.accountHistoryReflections ?? 'reflections'),
+      accountHistorySummary: getString('accountHistorySummary', languageFallback.accountHistorySummary ?? ''),
+      accountStatConversations: getString('accountStatConversations', languageFallback.accountStatConversations ?? 'Conversations'),
+      accountStatDecisions: getString('accountStatDecisions', languageFallback.accountStatDecisions ?? 'Decisions'),
+      accountStatJournalEntries: getString('accountStatJournalEntries', languageFallback.accountStatJournalEntries ?? 'Journal entries'),
+      accountHistoryEmptyBody: getString('accountHistoryEmptyBody', languageFallback.accountHistoryEmptyBody ?? ''),
+      accountTrustPostureTitle: getString('accountTrustPostureTitle', languageFallback.accountTrustPostureTitle ?? 'Trust and privacy posture'),
+      accountTrustPostureSummary: getString('accountTrustPostureSummary', languageFallback.accountTrustPostureSummary ?? ''),
+      accountBoundariesTitle: getString('accountBoundariesTitle', languageFallback.accountBoundariesTitle ?? "Aletheia's guardrails"),
+      accountBoundariesSummary: getString('accountBoundariesSummary', languageFallback.accountBoundariesSummary ?? ''),
+      accountBoundariesBody: getString('accountBoundariesBody', languageFallback.accountBoundariesBody ?? ''),
+      accountFormationPrefix: getString('accountFormationPrefix', languageFallback.accountFormationPrefix ?? 'Formation'),
+      accountQuietMilestoneSingular: getString('accountQuietMilestoneSingular', languageFallback.accountQuietMilestoneSingular ?? 'quiet milestone'),
+      accountQuietMilestonePlural: getString('accountQuietMilestonePlural', languageFallback.accountQuietMilestonePlural ?? 'quiet milestones'),
+      accountFormationSummary: getString('accountFormationSummary', languageFallback.accountFormationSummary ?? ''),
     };
   };
 
-  function announceWorkflow(title: string, body: string, tone: WorkflowTone = "info", action?: { label: string; onClick: () => void }) {
+  const announceWorkflow = useCallback((title: string, body: string, tone: WorkflowTone = "info", action?: { label: string; onClick: () => void }) => {
     setWorkflowNotice({
       id: crypto.randomUUID(),
       title,
@@ -2204,7 +3361,7 @@ export function AletheiaApp() {
       tone,
       action,
     });
-  }
+  }, []);
 
   function getFriendlyAuthError(params: URLSearchParams) {
     const oauthReason = params.get("reason");
@@ -2439,7 +3596,7 @@ export function AletheiaApp() {
       window.history.replaceState({}, "", window.location.pathname);
       setPendingNotificationFocus(true);
     });
-  }, [clientStateRestored, ts]);
+  }, [announceWorkflow, clientStateRestored, setActiveView, ts]);
 
   useEffect(() => {
     if (!pendingNotificationFocus || activeView !== "companion" || showOnboarding) {
@@ -2764,7 +3921,7 @@ export function AletheiaApp() {
       setAuthStatus("guest");
       setStatusMessage(ts('status.backendUnavailable'));
     });
-  }, [loadSignedInWorkspace, ts]);
+  }, [announceWorkflow, loadSignedInWorkspace, setActiveView, ts]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -3026,7 +4183,7 @@ export function AletheiaApp() {
         );
       }, 0);
     }
-  }, [counselContacts, wisdomDecisions]);
+  }, [announceWorkflow, counselContacts, setActiveView, wisdomDecisions]);
 
   const filteredEntries = useMemo(() => {
     if (!librarySearch.trim()) {
@@ -3043,7 +4200,6 @@ export function AletheiaApp() {
   const activeMode = localizedModeProfile(mode, preferences.language);
   const activeModeCards = localizedModeCards(preferences.language, translations);
   const activeLanguage = languages[preferences.language];
-  const activeRegion = regions[preferences.region];
   const copy = languageCopy[preferences.language] ?? languageCopy.en;
   const ui = buildUiFromTranslations(translations);
   const topBibleOptions = bibleTranslationOptionsForLanguage(preferences.language);
@@ -3178,7 +4334,7 @@ export function AletheiaApp() {
   }
 
   function reflectOnToday() {
-    setJournalTitle(`${daily.theme} reflection`);
+    setJournalTitle(`${localizedWisdomThemeLabel(daily.theme, preferences.language)} ${ts('labels.reflection', 'reflection')}`);
     setJournalBody(`${daily.practice}\n\nWhat I notice today:\n`);
     showView("reflect");
     announceWorkflow(ts('notifications.reflectionPrepared'), ts('notifications.reflectionPreparedBody'), "success");
@@ -3195,7 +4351,7 @@ export function AletheiaApp() {
 
   function askOneQuestionFlow() {
     showView("companion");
-    setQuery((current) => current || modeProfiles[mode].prompts[0]);
+    setQuery((current) => current || localizedModeProfile(mode, preferences.language).prompts[0]);
     scrollToSection("companion-ask");
     announceWorkflow(ts('notifications.questionReady'), ts('notifications.questionReadyBody'), "success");
   }
@@ -3479,6 +4635,38 @@ export function AletheiaApp() {
     }
   }
 
+  function updateFocusIntentions(nextValues: string[]) {
+    const trimmed = nextValues.slice(0, 3);
+    setFocusIntentions(trimmed);
+    try {
+      window.localStorage.setItem(FOCUS_INTENTIONS_STORAGE_KEY, JSON.stringify(trimmed));
+    } catch {
+      // Keep in-memory values when storage is unavailable.
+    }
+  }
+
+  function clearLocalPersonalization() {
+    setFocusIntentions([]);
+    setSelectedVoice(null);
+    setThemePreference("system");
+    setNotificationTiming(DEFAULT_NOTIFICATION_TIMING);
+    setCarryToday(null);
+    setManualContext(defaultManualContext);
+    setCounselSummaryDraft(null);
+    try {
+      window.localStorage.removeItem(FOCUS_INTENTIONS_STORAGE_KEY);
+      window.localStorage.removeItem(VOICE_STORAGE_KEY);
+      window.localStorage.removeItem(THEME_STORAGE_KEY);
+      window.localStorage.removeItem(NOTIFICATION_TIMING_STORAGE_KEY);
+      window.localStorage.removeItem(CARRY_TODAY_STORAGE_KEY);
+      window.localStorage.removeItem(MANUAL_CONTEXT_STORAGE_KEY);
+      window.localStorage.removeItem("aletheia-counsel-summary-draft");
+    } catch {
+      // In-memory reset still gives immediate safety.
+    }
+    announceWorkflow("Local personalization cleared", "Theme, voice, local context, timing, and focus intentions were reset on this device.", "success");
+  }
+
   function startVoiceInput() {
     // If already listening, stop it
     if (isListening && voiceRecognition) {
@@ -3744,7 +4932,7 @@ export function AletheiaApp() {
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: trimmed, mode, preferences, manualContext }),
+        body: JSON.stringify({ message: trimmed, mode, preferences, manualContext, focusIntentions }),
       });
       const data = (await response.json()) as {
         reply?: ChatMessage;
@@ -3939,7 +5127,7 @@ export function AletheiaApp() {
     if (rawAvatarUrl && !normalizeAvatarUrl(rawAvatarUrl)) {
       announceWorkflow(
         "Profile update",
-        "Use a valid HTTPS image URL. For local testing, http://localhost is allowed.",
+        "Use a valid image. You can upload from your gallery or keep the default avatar.",
         "warning"
       );
       return;
@@ -4223,6 +5411,7 @@ export function AletheiaApp() {
   }
 
   function refreshLocalTimeline(decisions: WisdomDecision[], events: DecisionEvent[]) {
+    const runtime = runtimeCopyFor(preferences.language);
     const combined = [
       ...decisions.map((item) => `${item.title} ${item.pressure} ${item.initialEmotion}`),
       ...events.map((event) => event.body),
@@ -4239,7 +5428,7 @@ export function AletheiaApp() {
           ? "Comparison appears in your recent reflections. It may help to define enough before choosing more."
           : active.length
             ? `You are carrying ${active.length} active decision${active.length === 1 ? "" : "s"}. Keep the next faithful step small and visible.`
-            : "Your timeline is ready to track decisions, patterns, counsel, and learning.",
+            : runtime.timelineReady,
     });
   }
 
@@ -5006,7 +6195,7 @@ export function AletheiaApp() {
 
         <section className="min-w-0">
           <section ref={workspaceRef} className="scroll-mt-24">
-            <AnimatePresence mode="wait">
+            <>
               {activeView === "companion" ? (
                 <Screen key="companion">
                 <HomeDashboard
@@ -5043,6 +6232,7 @@ export function AletheiaApp() {
                   copy={copy}
                   ui={ui}
                   query={query}
+                  focusIntentions={focusIntentions}
                   setQuery={setQuery}
                   onAsk={handleAsk}
                   onDraftPrompt={setQuery}
@@ -5068,10 +6258,10 @@ export function AletheiaApp() {
                   theme={theme}
                 />
                 </Screen>
-              ) : null}
-              {activeView === "decisions" ? (
+              ) : activeView === "decisions" ? (
                 <Screen key="decisions">
                 <DecisionCompanionPanel
+                  language={preferences.language}
                   mode={mode}
                   modeProfile={activeMode}
                   decisions={wisdomDecisions}
@@ -5086,6 +6276,7 @@ export function AletheiaApp() {
                   title={decisionTitle}
                   pressure={decisionPressure}
                   emotion={decisionEmotion}
+                  focusIntentions={focusIntentions}
                   counselName={counselName}
                   counselRole={counselRole}
                   counselAvatarUrl={counselAvatarUrl}
@@ -5122,10 +6313,10 @@ export function AletheiaApp() {
                   theme={theme}
                 />
                 </Screen>
-              ) : null}
-              {activeView === "reflect" ? (
+              ) : activeView === "reflect" ? (
                 <Screen key="reflect">
                 <ReflectPanel
+                  language={preferences.language}
                   decision={decision}
                   setDecision={setDecision}
                   emotion={emotion}
@@ -5146,8 +6337,7 @@ export function AletheiaApp() {
                   theme={theme}
                 />
                 </Screen>
-              ) : null}
-              {activeView === "library" ? (
+              ) : activeView === "library" ? (
                 <Screen key="library">
                 <LibraryPanel
                   entries={filteredEntries}
@@ -5160,8 +6350,7 @@ export function AletheiaApp() {
                   theme={theme}
                 />
                 </Screen>
-              ) : null}
-              {activeView === "account" ? (
+              ) : activeView === "account" ? (
                 <Screen key="account">
                 <AccountPanel
                   ts={ts}
@@ -5188,21 +6377,16 @@ export function AletheiaApp() {
                   onGoogleSignIn={handleGoogleSignIn}
                   onLogout={logout}
                   onUpdateProfileAvatar={updateProfileAvatar}
-                  preferencesRef={preferencesRef}
                   preferences={preferences}
                   preferencesStatus={preferencesStatus}
                   ui={ui}
                   manualContext={manualContext}
                   manualContextStatus={manualContextStatus}
-                  copy={copy}
-                  activeRegion={activeRegion}
                   themePreference={themePreference}
                   onPreferenceChange={updatePreferences}
                   onThemePreferenceChange={updateThemePreference}
                   onManualContextChange={updateManualContext}
                   notificationsEnabled={notificationsEnabled}
-                  notificationsConfigured={notificationsConfigured}
-                  notificationPermission={notificationPermission}
                   notificationStatus={notificationStatus}
                   notificationBusy={notificationBusy}
                   notificationTiming={notificationTiming}
@@ -5218,11 +6402,15 @@ export function AletheiaApp() {
                   availableVoices={availableVoices}
                   selectedVoice={selectedVoice}
                   onVoiceChange={(voiceURI) => setSelectedVoice(voiceURI)}
+                  modeProfile={activeMode}
+                  focusIntentions={focusIntentions}
+                  onFocusIntentionsChange={updateFocusIntentions}
+                  onClearLocalPersonalization={clearLocalPersonalization}
                   theme={theme}
                 />
                 </Screen>
               ) : null}
-            </AnimatePresence>
+            </>
           </section>
         </section>
       </div>
@@ -6211,6 +7399,8 @@ function DisclosureSection({
   eyebrow,
   defaultOpen = false,
   compactCollapsed = false,
+  showDetailsLabel = "Show details",
+  hideDetailsLabel = "Hide details",
   children,
   theme,
 }: {
@@ -6219,6 +7409,8 @@ function DisclosureSection({
   eyebrow?: string;
   defaultOpen?: boolean;
   compactCollapsed?: boolean;
+  showDetailsLabel?: string;
+  hideDetailsLabel?: string;
   children: ReactNode;
   theme: ThemeColors;
 }) {
@@ -6254,7 +7446,7 @@ function DisclosureSection({
           ) : null}
         </span>
         <span className={useCompactClosedState ? "shrink-0 rounded-md border px-2 py-1 text-[10px] font-semibold" : "shrink-0 rounded-md border px-2 py-1 text-[11px] font-semibold"} style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-          {open ? "Hide details" : "Show details"}
+          {open ? hideDetailsLabel : showDetailsLabel}
         </span>
       </button>
       {open ? (
@@ -6287,21 +7479,16 @@ function AccountPanel({
   onGoogleSignIn,
   onLogout,
   onUpdateProfileAvatar,
-  preferencesRef,
   preferences,
   preferencesStatus,
   ui,
   manualContext,
   manualContextStatus,
-  copy,
-  activeRegion,
   themePreference,
   onPreferenceChange,
   onThemePreferenceChange,
   onManualContextChange,
   notificationsEnabled,
-  notificationsConfigured,
-  notificationPermission,
   notificationStatus,
   notificationBusy,
   notificationTiming,
@@ -6317,6 +7504,10 @@ function AccountPanel({
   availableVoices,
   selectedVoice,
   onVoiceChange,
+  modeProfile,
+  focusIntentions,
+  onFocusIntentionsChange,
+  onClearLocalPersonalization,
   theme,
 }: {
   ts: (key: string, fallback?: string) => string;
@@ -6339,21 +7530,16 @@ function AccountPanel({
   onGoogleSignIn: () => void;
   onLogout: () => void;
   onUpdateProfileAvatar: (avatarUrl: string) => Promise<void>;
-  preferencesRef: RefObject<HTMLElement | null>;
   preferences: UserPreferences;
   preferencesStatus: string;
   ui: (typeof uiText)[LanguageCode];
   manualContext: ManualContextProfile;
   manualContextStatus: string;
-  copy: (typeof languageCopy)[LanguageCode];
-  activeRegion: (typeof regions)[RegionCode];
   themePreference: ThemePreference;
   onPreferenceChange: (patch: Partial<UserPreferences>) => void;
   onThemePreferenceChange: (value: ThemePreference) => void;
   onManualContextChange: (patch: Partial<ManualContextProfile>) => void;
   notificationsEnabled: boolean;
-  notificationsConfigured: boolean;
-  notificationPermission: NotificationPermission;
   notificationStatus: string;
   notificationBusy: boolean;
   notificationTiming: NotificationTiming;
@@ -6369,6 +7555,10 @@ function AccountPanel({
   availableVoices: SpeechSynthesisVoice[];
   selectedVoice: string | null;
   onVoiceChange: (voiceURI: string | null) => void;
+  modeProfile: DisplayModeProfile;
+  focusIntentions: string[];
+  onFocusIntentionsChange: (values: string[]) => void;
+  onClearLocalPersonalization: () => void;
   theme: ThemeColors;
 }) {
   const text = { ...uiText.en, ...ui };
@@ -6390,18 +7580,22 @@ function AccountPanel({
   const daysSinceReflection = latestJournal ? daysSinceDate(latestJournal.createdAt) : -1;
   const daysSinceDecision = latestDecision ? daysSinceDate(latestDecision.updatedAt) : -1;
   
-  const accountNextTitle = user
-    ? notificationsEnabled
-      ? "Review sync and formation"
-      : "Enable daily wisdom notifications"
-    : "Sign in to make Aletheia portable";
-  const accountNextBody = user
-    ? notificationsEnabled
-      ? "Your account is active. Review preferences, history, and formation milestones when you need to."
-      : "Sync is active. Turn on one quiet daily wisdom prompt if this device should receive it."
-    : "Use Google or email to sync decisions, reflections, preferences, counsel, and notifications across devices.";
-
   const completedMilestones = badges.filter((badge) => badge.active).length;
+  const activeDecisionCount = decisions.filter((decision) => decision.status !== "closed").length;
+  const focusLabels = focusIntentionLabels(focusIntentions);
+  const currentHour = new Date().getHours();
+  const dayGreeting = currentHour < 12
+    ? ts('labels.goodMorning', 'Good morning')
+    : currentHour < 18
+      ? ts('labels.goodAfternoon', 'Good afternoon')
+      : ts('labels.goodEvening', 'Good evening');
+  const suggestedAction = !notificationsEnabled
+    ? ts('labels.accountSuggestedEnableNotifications', 'Turn on daily wisdom notifications for a calm daily prompt.')
+    : !focusIntentions.length
+      ? ts('labels.accountSuggestedPickFocus', 'Choose 2-3 focus intentions to personalize Companion and Decisions.')
+      : user
+        ? ts('labels.accountSuggestedReviewAvatarStudio', 'Review your Avatar Studio and preferences for this season.')
+        : ts('labels.accountSuggestedSignInSync', 'Sign in to sync your personalized setup across devices.');
   const contextAreas = [
     manualContextHasContent(manualContext),
     Boolean(manualContext.monthlyIncome || manualContext.fixedExpenses || manualContext.debtPayments || manualContext.savingsBufferMonths),
@@ -6412,26 +7606,34 @@ function AccountPanel({
   return (
     <div className="grid min-w-0 max-w-full gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
       <section className="min-w-0 space-y-4">
-        <ContextualNextAction
-          eyebrow="Next in Account"
-          title={accountNextTitle}
-          body={accountNextBody}
+        <TodayWithAletheiaCard
           theme={theme}
+          greeting={dayGreeting}
+          user={user}
+          modeLabel={modeProfile.displayLabel ?? modeProfile.label}
+          notificationSummary={notificationsEnabled ? ts('labels.enabled', 'Enabled') : notificationStatus}
+          suggestedAction={suggestedAction}
+          progressSignals={[
+            { label: ts('labels.decisionsInProgress', 'Decisions in progress'), value: String(activeDecisionCount) },
+            { label: ts('labels.reflectionsSaved', 'Reflections saved'), value: String(journalEntries.length) },
+            { label: ts('labels.counselContacts', 'Counsel contacts'), value: String(counselContacts.length) },
+          ]}
+          focusLabels={focusLabels}
+          ts={ts}
+          onJumpToCustomize={() => {
+            const target = document.getElementById("account-customize");
+            target?.scrollIntoView({ behavior: "smooth", block: "start" });
+          }}
         />
-        <section className="rounded-xl border p-4 shadow-sm sm:p-5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.accountTitle', 'Account')}</p>
-          <h2 className="mt-2 text-2xl font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.accountSubtitle', 'Your Aletheia space')}</h2>
-          <p className="mt-2 max-w-2xl text-sm leading-6" style={{ color: theme.textSecondary }}>
-            Manage sign-in, sync, language, notifications, history, and formation milestones without crowding the wisdom companion.
-          </p>
-        </section>
 
         <DisclosureSection
-          title={user ? `Signed in as ${user.name || user.email}` : "Sign in or continue as guest"}
-          summary={user ? `Sync active. ${notificationsEnabled ? "Notifications enabled." : "Notifications not enabled yet."}` : "Google and email sign-in keep history, preferences, decisions, and notifications portable."}
-          eyebrow="Profile"
+          title={user ? `${ts('labels.accountSignedInAs', text.accountSignedInAs ?? "Signed in as")} ${user.name || user.email}` : ts('labels.accountSignInOrGuest', text.accountSignInOrGuest ?? "Sign in or continue as guest")}
+          summary={user ? `${ts('labels.accountSyncActive', text.accountSyncActive ?? "Sync active.")} ${notificationsEnabled ? text.notificationsEnabled : ts('labels.accountNotificationsNotEnabled', text.accountNotificationsNotEnabled ?? "Notifications not enabled yet.")}` : ts('labels.accountGuestSummary', text.accountGuestSummary ?? "Google and email sign-in keep history, preferences, decisions, and notifications portable.")}
+          eyebrow={ts('labels.profileTitle', 'Profile')}
           defaultOpen={Boolean(user)}
           compactCollapsed
+          showDetailsLabel={text.showDetails}
+          hideDetailsLabel={text.hideDetails}
           theme={theme}
         >
           <div className="space-y-4">
@@ -6442,7 +7644,6 @@ function AccountPanel({
               notificationsEnabled={notificationsEnabled}
               notificationStatus={notificationStatus}
               onLogout={onLogout}
-              onUpdateProfileAvatar={onUpdateProfileAvatar}
               ts={ts}
             />
             {!user ? (
@@ -6471,35 +7672,46 @@ function AccountPanel({
         </DisclosureSection>
 
         <DisclosureSection
-          title={`${languages[preferences.language].nativeName} · ${preferences.bibleTranslation} · ${themePreference}`}
-          summary="Language, Bible translation, appearance, region, and voice stay here so the Companion stays calm."
-          eyebrow="Preferences"
+          title={ts('labels.customizeExperience', 'Customize your experience')}
+          summary={ts('labels.customizeExperienceSummary', 'Language, theme, voice, notification timing, and avatar update live here with immediate preview.')}
+          eyebrow={ts('labels.personalization', 'Personalization')}
           compactCollapsed
+          showDetailsLabel={text.showDetails}
+          hideDetailsLabel={text.hideDetails}
           theme={theme}
         >
-          <PreferencesPanel
-            panelRef={preferencesRef}
+          <CustomizationHubCard
+            theme={theme}
             ts={ts}
             preferences={preferences}
-            status={preferencesStatus}
-            ui={ui}
-            copy={copy}
-            activeRegion={activeRegion}
-            onChange={onPreferenceChange}
+            preferencesStatus={preferencesStatus}
             themePreference={themePreference}
-            onThemePreferenceChange={onThemePreferenceChange}
             availableVoices={availableVoices}
             selectedVoice={selectedVoice}
+            notificationsEnabled={notificationsEnabled}
+            notificationBusy={notificationBusy}
+            notificationStatus={notificationStatus}
+            notificationTiming={notificationTiming}
+            user={user}
+            onPreferenceChange={onPreferenceChange}
+            onThemePreferenceChange={onThemePreferenceChange}
             onVoiceChange={onVoiceChange}
-            theme={theme}
+            onNotificationTimingChange={onNotificationTimingChange}
+            onEnableNotifications={onEnableNotifications}
+            onDisableNotifications={onDisableNotifications}
+            onUpdateProfileAvatar={onUpdateProfileAvatar}
           />
         </DisclosureSection>
 
         <DisclosureSection
-          title={manualContext.useInAnswers ? `Context active · ${contextAreas} area${contextAreas === 1 ? "" : "s"} added` : "Context paused"}
-          summary="Manual context is optional and private. Add only what should shape Aletheia’s counsel."
-          eyebrow="Manual Context Vault"
+          title={manualContext.useInAnswers
+            ? `${ts('labels.accountContextActive', text.accountContextActive ?? "Context active")} · ${contextAreas} ${contextAreas === 1 ? ts('labels.accountArea', text.accountArea ?? "area") : ts('labels.accountAreas', text.accountAreas ?? "areas")} ${ts('labels.accountAdded', text.accountAdded ?? "added")}`
+            : ts('labels.accountContextPaused', text.accountContextPaused ?? "Context paused")}
+          summary={ts('labels.accountManualContextSummary', text.accountManualContextSummary ?? "Manual context is optional and private. Add only what should shape Aletheia's counsel.")}
+          eyebrow={ts('labels.manualContextTitle', 'Manual Context Vault')}
           compactCollapsed
+          showDetailsLabel={text.showDetails}
+          hideDetailsLabel={text.hideDetails}
           theme={theme}
         >
           <ManualContextPanel
@@ -6512,46 +7724,48 @@ function AccountPanel({
           />
         </DisclosureSection>
 
-        <DisclosureSection
-          title={notificationsEnabled ? `Daily wisdom enabled · ${notificationTimeLabel(notificationTiming.preferredLocalHour)}` : "Daily wisdom notifications"}
-          summary={notificationsEnabled ? "Aletheia will use your saved local timing preference." : "Turn on one quiet daily prompt when this device is ready."}
-          eyebrow="Notifications"
-          compactCollapsed
-          theme={theme}
-        >
-          <NotificationPanel
-            theme={theme}
-            ts={ts}
-            user={user}
-            enabled={notificationsEnabled}
-            configured={notificationsConfigured}
-            permission={notificationPermission}
-            status={notificationStatus}
-            busy={notificationBusy}
-            timing={notificationTiming}
-            onTimingChange={onNotificationTimingChange}
-            onEnable={onEnableNotifications}
-            onDisable={onDisableNotifications}
-          />
-        </DisclosureSection>
-
-        <DisclosureSection title="Add Aletheia to your home screen" summary="Install instructions are tucked away until someone needs the app-like setup." eyebrow="Install Aletheia" compactCollapsed theme={theme}>
+        <DisclosureSection title={ts('labels.accountInstallTitle', text.accountInstallTitle ?? "Add Aletheia to your home screen")} summary={ts('labels.accountInstallSummary', text.accountInstallSummary ?? "Install instructions are tucked away until someone needs the app-like setup.")} eyebrow={ts('labels.accountInstallEyebrow', text.accountInstallEyebrow ?? "Install Aletheia")} compactCollapsed showDetailsLabel={text.showDetails} hideDetailsLabel={text.hideDetails} theme={theme}>
           <InstallGuideCard theme={theme} compact />
         </DisclosureSection>
 
-        <DisclosureSection title="Invite someone privately" summary="Share only the Aletheia link, never private questions, journals, or counsel by default." eyebrow="Invite Someone" compactCollapsed theme={theme}>
+        <DisclosureSection title={ts('labels.accountInviteTitle', text.accountInviteTitle ?? "Invite someone privately")} summary={ts('labels.accountInviteSummary', text.accountInviteSummary ?? "Share only the Aletheia link, never private questions, journals, or counsel by default.")} eyebrow={ts('labels.accountInviteEyebrow', text.accountInviteEyebrow ?? "Invite Someone")} compactCollapsed showDetailsLabel={text.showDetails} hideDetailsLabel={text.hideDetails} theme={theme}>
           <ShareInviteCard theme={theme} ts={ts} placement="account" onShare={onShare} />
         </DisclosureSection>
       </section>
 
         <aside className="min-w-0 space-y-4">
-        <DisclosureSection title={`${exchanges.length} conversations · ${decisions.length} decisions · ${journalEntries.length} reflections`} summary="History stays collapsed until you want to review what has been saved." eyebrow="History" compactCollapsed theme={theme}>
+          <DisclosureSection
+            title={`${ts('labels.focusIntentions', 'Focus intentions')} · ${focusIntentions.length}/3 ${ts('labels.selected', 'selected')}`}
+            summary={ts('labels.focusIntentionsSummary', 'Pick 2 to 3 intentions to tune Companion and Decisions prompts.')}
+            eyebrow={ts('labels.formationFocus', 'Formation focus')}
+            compactCollapsed
+            showDetailsLabel={text.showDetails}
+            hideDetailsLabel={text.hideDetails}
+            theme={theme}
+          >
+            <FocusIntentionsCard
+              theme={theme}
+              ts={ts}
+              selected={focusIntentions}
+              onChange={onFocusIntentionsChange}
+            />
+          </DisclosureSection>
+
+        <DisclosureSection
+          title={`${exchanges.length} ${ts('labels.accountHistoryConversations', text.accountHistoryConversations ?? "conversations")} · ${decisions.length} ${ts('labels.accountHistoryDecisions', text.accountHistoryDecisions ?? "decisions")} · ${journalEntries.length} ${ts('labels.accountHistoryReflections', text.accountHistoryReflections ?? "reflections")}`}
+          summary={ts('labels.accountHistorySummary', text.accountHistorySummary ?? "History stays collapsed until you want to review what has been saved.")}
+          eyebrow={ts('labels.historyTitle', 'History')}
+          compactCollapsed
+          showDetailsLabel={text.showDetails}
+          hideDetailsLabel={text.hideDetails}
+          theme={theme}
+        >
         <section>
           <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.historyTitle', 'History')}</p>
           <div className="mt-3 grid gap-3">
-            <AccountStat label="Conversations" value={String(exchanges.length)} theme={theme} />
-            <AccountStat label="Decisions" value={String(decisions.length)} theme={theme} />
-            <AccountStat label="Journal entries" value={String(journalEntries.length)} theme={theme} />
+            <AccountStat label={ts('labels.accountStatConversations', text.accountStatConversations ?? "Conversations")} value={String(exchanges.length)} theme={theme} />
+            <AccountStat label={ts('labels.accountStatDecisions', text.accountStatDecisions ?? "Decisions")} value={String(decisions.length)} theme={theme} />
+            <AccountStat label={ts('labels.accountStatJournalEntries', text.accountStatJournalEntries ?? "Journal entries")} value={String(journalEntries.length)} theme={theme} />
           </div>
           {(daysSinceReflection >= 0 || daysSinceDecision >= 0) && user ? (
             <div className="mt-3 rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
@@ -6586,17 +7800,20 @@ function AccountPanel({
           ) : null}
           {!exchanges.length && !decisions.length && !journalEntries.length ? (
             <p className="mt-3 rounded-lg border border-dashed p-3 text-sm leading-6" style={{ borderColor: theme.borderMedium, color: theme.textSecondary }}>
-              Start with one honest question or one decision under pressure. Aletheia will keep the record quiet and useful.
+              {ts('labels.accountHistoryEmptyBody', text.accountHistoryEmptyBody ?? "Start with one honest question or one decision under pressure. Aletheia will keep the record quiet and useful.")}
             </p>
           ) : null}
         </section>
         </DisclosureSection>
 
-        <DisclosureSection title="Trust and privacy posture" summary="Boundaries, scripture sourcing, saved data, and sharing posture are available without flooding the page." eyebrow="Trust & Privacy" compactCollapsed theme={theme}>
-          <TrustCenterCard theme={theme} ts={ts} />
+        <DisclosureSection title={ts('labels.accountTrustPostureTitle', text.accountTrustPostureTitle ?? "Trust and privacy posture")} summary={ts('labels.accountTrustPostureSummary', text.accountTrustPostureSummary ?? "Boundaries, scripture sourcing, saved data, and sharing posture are available without flooding the page.")} eyebrow={ts('labels.privacyPosture', 'Privacy posture')} compactCollapsed showDetailsLabel={text.showDetails} hideDetailsLabel={text.hideDetails} theme={theme}>
+          <DataBoundariesCard theme={theme} ts={ts} user={user} onClearLocalPersonalization={onClearLocalPersonalization} />
+          <div className="mt-3">
+            <TrustCenterCard theme={theme} ts={ts} />
+          </div>
         </DisclosureSection>
 
-        <DisclosureSection title="Aletheia’s guardrails" summary="The app’s safety boundaries remain visible when needed, not constantly in the way." eyebrow="Our Boundaries" compactCollapsed theme={theme}>
+        <DisclosureSection title={ts('labels.accountBoundariesTitle', text.accountBoundariesTitle ?? "Aletheia's guardrails")} summary={ts('labels.accountBoundariesSummary', text.accountBoundariesSummary ?? "The app's safety boundaries remain visible when needed, not constantly in the way.")} eyebrow={ts('labels.ourBoundaries', 'Our Boundaries')} compactCollapsed showDetailsLabel={text.showDetails} hideDetailsLabel={text.hideDetails} theme={theme}>
         <section>
           <div className="flex items-center gap-2">
             <ShieldCheck size={17} style={{ color: theme.primary }} />
@@ -6611,12 +7828,12 @@ function AccountPanel({
             ))}
           </ul>
           <p className="mt-3 text-xs leading-5" style={{ color: theme.textSecondary }}>
-            These constraints protect you from harmful AI advice and keep Aletheia faithful to its purpose.
+            {ts('labels.accountBoundariesBody', text.accountBoundariesBody ?? "These constraints protect you from harmful AI advice and keep Aletheia faithful to its purpose.")}
           </p>
         </section>
         </DisclosureSection>
 
-        <DisclosureSection title={`Formation: ${completedMilestones} quiet milestone${completedMilestones === 1 ? "" : "s"}`} summary="Formation is a calm record of practice, not a scoreboard." eyebrow={text.badgesFormation} compactCollapsed theme={theme}>
+        <DisclosureSection title={`${ts('labels.accountFormationPrefix', text.accountFormationPrefix ?? "Formation")}: ${completedMilestones} ${completedMilestones === 1 ? ts('labels.accountQuietMilestoneSingular', text.accountQuietMilestoneSingular ?? "quiet milestone") : ts('labels.accountQuietMilestonePlural', text.accountQuietMilestonePlural ?? "quiet milestones")}`} summary={ts('labels.accountFormationSummary', text.accountFormationSummary ?? "Formation is a calm record of practice, not a scoreboard.")} eyebrow={ts('labels.badgesFormation', text.badgesFormation)} compactCollapsed showDetailsLabel={text.showDetails} hideDetailsLabel={text.hideDetails} theme={theme}>
         <section>
           <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{text.badgesFormation}</p>
           <div className="mt-3 space-y-2">
@@ -6646,23 +7863,349 @@ function AccountPanel({
   );
 }
 
+function TodayWithAletheiaCard({
+  theme,
+  greeting,
+  user,
+  modeLabel,
+  notificationSummary,
+  suggestedAction,
+  progressSignals,
+  focusLabels,
+  onJumpToCustomize,
+  ts,
+}: {
+  theme: ThemeColors;
+  greeting: string;
+  user: User | null;
+  modeLabel: string;
+  notificationSummary: string;
+  suggestedAction: string;
+  progressSignals: Array<{ label: string; value: string }>;
+  focusLabels: string[];
+  onJumpToCustomize: () => void;
+  ts: (key: string, fallback?: string) => string;
+}) {
+  const firstName = user?.name?.split(" ")[0] || user?.email.split("@")[0] || ts('labels.there', 'there');
+  const avatarSeed = user?.id ?? user?.email ?? "account-greeting";
+  const avatarLabel = user?.name || user?.email || ts('labels.accountProfile', 'Account profile');
+
+  return (
+    <section className="rounded-xl border p-4 shadow-sm sm:p-5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+      <div className="flex items-start gap-3">
+        <AvatarCircle
+          avatarUrl={user?.avatarUrl}
+          seed={avatarSeed}
+          label={avatarLabel}
+          size={52}
+          className="size-[52px] rounded-full border object-cover"
+        />
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.todayWithAletheia', 'Today with Aletheia')}</p>
+          <h2 className="mt-2 text-2xl font-semibold" style={{ color: theme.textPrimary }}>{greeting}, {firstName}</h2>
+        </div>
+      </div>
+      <div className="mt-3 grid gap-2 sm:grid-cols-2">
+        <div className="rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textSecondary }}>{ts('labels.currentMode', 'Current mode')}</p>
+          <p className="mt-2 text-sm font-semibold" style={{ color: theme.textPrimary }}>{modeLabel}</p>
+        </div>
+        <div className="rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textSecondary }}>{ts('labels.notifications', 'Notifications')}</p>
+          <p className="mt-2 text-sm font-semibold" style={{ color: theme.textPrimary }}>{notificationSummary}</p>
+        </div>
+      </div>
+      <div className="mt-3 grid gap-2 sm:grid-cols-3">
+        {progressSignals.map((item) => (
+          <div key={item.label} className="rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+            <p className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>{item.label}</p>
+            <p className="mt-2 text-xl font-semibold" style={{ color: theme.textPrimary }}>{item.value}</p>
+          </div>
+        ))}
+      </div>
+      {focusLabels.length ? (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {focusLabels.map((label) => (
+            <span key={label} className="rounded-md border px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+              {label}
+            </span>
+          ))}
+        </div>
+      ) : null}
+      <div className="mt-4 rounded-lg border p-3" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
+        <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{ts('labels.suggestedAction', 'Suggested action')}</p>
+        <p className="mt-2 text-sm leading-6" style={{ color: theme.textPrimary }}>{suggestedAction}</p>
+        <button
+          type="button"
+          className="mt-3 h-11 rounded-md px-4 text-sm font-semibold"
+          style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+          onClick={onJumpToCustomize}
+        >
+          {ts('labels.openCustomizationHub', 'Open customization hub')}
+        </button>
+      </div>
+    </section>
+  );
+}
+
+function CustomizationHubCard({
+  theme,
+  ts,
+  preferences,
+  preferencesStatus,
+  themePreference,
+  availableVoices,
+  selectedVoice,
+  notificationsEnabled,
+  notificationBusy,
+  notificationStatus,
+  notificationTiming,
+  user,
+  onPreferenceChange,
+  onThemePreferenceChange,
+  onVoiceChange,
+  onNotificationTimingChange,
+  onEnableNotifications,
+  onDisableNotifications,
+  onUpdateProfileAvatar,
+}: {
+  theme: ThemeColors;
+  ts: (key: string, fallback?: string) => string;
+  preferences: UserPreferences;
+  preferencesStatus: string;
+  themePreference: ThemePreference;
+  availableVoices: SpeechSynthesisVoice[];
+  selectedVoice: string | null;
+  notificationsEnabled: boolean;
+  notificationBusy: boolean;
+  notificationStatus: string;
+  notificationTiming: NotificationTiming;
+  user: User | null;
+  onPreferenceChange: (patch: Partial<UserPreferences>) => void;
+  onThemePreferenceChange: (value: ThemePreference) => void;
+  onVoiceChange: (voiceURI: string | null) => void;
+  onNotificationTimingChange: (patch: Partial<NotificationTiming>) => void;
+  onEnableNotifications: () => void;
+  onDisableNotifications: () => void;
+  onUpdateProfileAvatar: (avatarUrl: string) => Promise<void>;
+}) {
+  const themeOptions: ThemePreference[] = ["system", "classic", "dark", "black", "warm", "ocean", "forest", "sunset"];
+
+  return (
+    <section id="account-customize" className="space-y-4">
+      <section className="rounded-xl border p-4 shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
+            {ts('labels.language', 'Language')}
+            <select
+              value={preferences.language}
+              onChange={(event) => onPreferenceChange(preferencePatchForLanguage(event.target.value as LanguageCode))}
+              className="mt-2 h-11 w-full rounded-md border px-3 text-sm normal-case tracking-normal outline-none"
+              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+            >
+              {Object.entries(languages).map(([code, language]) => (
+                <option key={code} value={code}>{language.nativeName}</option>
+              ))}
+            </select>
+          </label>
+          <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
+            {ts('labels.theme', 'Theme')}
+            <select
+              value={themePreference}
+              onChange={(event) => onThemePreferenceChange(event.target.value as ThemePreference)}
+              className="mt-2 h-11 w-full rounded-md border px-3 text-sm normal-case tracking-normal outline-none"
+              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+            >
+              {themeOptions.map((option) => (
+                <option key={option} value={option}>{option}</option>
+              ))}
+            </select>
+          </label>
+          <label className="text-xs font-semibold uppercase tracking-[0.12em] sm:col-span-2" style={{ color: theme.textSecondary }}>
+            {ts('labels.voice', 'Voice')}
+            <select
+              value={selectedVoice || ""}
+              onChange={(event) => onVoiceChange(event.target.value || null)}
+              className="mt-2 h-11 w-full rounded-md border px-3 text-sm normal-case tracking-normal outline-none"
+              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+            >
+              <option value="">{ts('labels.deviceDefault', 'Device default')}</option>
+              {availableVoices.map((voice) => (
+                <option key={voice.voiceURI} value={voice.voiceURI}>{voiceLabel(voice)}</option>
+              ))}
+            </select>
+          </label>
+        </div>
+
+        <div className="mt-4 rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{ts('labels.notificationTiming', 'Notification timing')}</p>
+          <p className="mt-1 text-xs leading-5" style={{ color: theme.textSecondary }}>{notificationStatus}</p>
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+            <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
+              {ts('labels.dailyTime', 'Daily time')}
+              <select
+                value={notificationTiming.preferredLocalHour}
+                onChange={(event) => onNotificationTimingChange({ preferredLocalHour: Number(event.target.value), deliveryStrategy: "custom" })}
+                className="mt-2 h-11 w-full rounded-md border px-3 text-sm normal-case tracking-normal outline-none"
+                style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+              >
+                {Array.from({ length: 24 }).map((_, index) => (
+                  <option key={index} value={index}>{notificationTimeLabel(index)}</option>
+                ))}
+              </select>
+            </label>
+            <button
+              type="button"
+              className="h-11 rounded-md border px-4 text-sm font-semibold"
+              style={{ borderColor: theme.borderMedium, backgroundColor: notificationsEnabled ? theme.bgInput : theme.primary, color: notificationsEnabled ? theme.textPrimary : theme.textOnPrimary }}
+              onClick={notificationsEnabled ? onDisableNotifications : onEnableNotifications}
+              disabled={notificationBusy || !user}
+            >
+              {notificationsEnabled ? ts('labels.turnOff', 'Turn off') : ts('labels.enableNotifications', 'Enable notifications')}
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <AvatarStudioCard theme={theme} user={user} onUpdateProfileAvatar={onUpdateProfileAvatar} />
+
+      <details className="rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+        <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
+          {ts('labels.personalizationModel', 'Personalization model')}
+        </summary>
+        <p className="mt-3 text-sm leading-6" style={{ color: theme.textSecondary }}>
+          {ts('labels.personalizationModelBody', 'These controls are the canonical account settings. Top navigation language and Bible selectors are quick access to the same preferences.')}
+        </p>
+        <p className="mt-2 text-xs leading-5" style={{ color: theme.textSecondary }}>
+          {preferencesStatus}
+        </p>
+      </details>
+    </section>
+  );
+}
+
+function FocusIntentionsCard({
+  theme,
+  ts,
+  selected,
+  onChange,
+}: {
+  theme: ThemeColors;
+  ts: (key: string, fallback?: string) => string;
+  selected: string[];
+  onChange: (values: string[]) => void;
+}) {
+  return (
+    <section className="rounded-lg border p-4" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+      <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>{ts('labels.focusIntentionsHint', 'Pick up to three intentions. Aletheia uses these to shape prompt suggestions and guidance emphasis.')}</p>
+      <div className="mt-3 grid gap-2">
+        {focusIntentionLibrary.map((item) => {
+          const checked = selected.includes(item.key);
+          return (
+            <button
+              key={item.key}
+              type="button"
+              className="flex h-11 items-center justify-between rounded-md border px-3 text-sm font-semibold"
+              style={{
+                borderColor: checked ? theme.primary : theme.borderMedium,
+                backgroundColor: checked ? theme.activeBg : theme.bgInput,
+                color: theme.textPrimary,
+                opacity: !checked && selected.length >= 3 ? 0.6 : 1,
+              }}
+              onClick={() => {
+                if (checked) {
+                  onChange(selected.filter((value) => value !== item.key));
+                  return;
+                }
+                if (selected.length >= 3) {
+                  return;
+                }
+                onChange([...selected, item.key]);
+              }}
+            >
+              <span>{item.label}</span>
+              <span style={{ color: checked ? theme.primary : theme.textSecondary }}>{checked ? ts('labels.selected', 'Selected') : ts('labels.add', 'Add')}</span>
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function DataBoundariesCard({
+  theme,
+  ts,
+  user,
+  onClearLocalPersonalization,
+}: {
+  theme: ThemeColors;
+  ts: (key: string, fallback?: string) => string;
+  user: User | null;
+  onClearLocalPersonalization: () => void;
+}) {
+  return (
+    <section className="rounded-lg border p-4 shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+      <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.yourDataBoundaries', 'Your data boundaries')}</p>
+      <div className="mt-3 grid gap-2">
+        <div className="rounded-md border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+          <p className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>{ts('labels.whatSyncs', 'What syncs')}</p>
+          <p className="mt-1 text-sm leading-6" style={{ color: theme.textPrimary }}>{user ? ts('labels.whatSyncsSignedIn', 'Decisions, reflections, profile, preferences, and counsel circle sync with your account.') : ts('labels.whatSyncsGuest', 'Nothing syncs in guest mode until you sign in.')}</p>
+        </div>
+        <div className="rounded-md border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+          <p className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>{ts('labels.whatStaysLocal', 'What stays local')}</p>
+          <p className="mt-1 text-sm leading-6" style={{ color: theme.textPrimary }}>{ts('labels.whatStaysLocalBody', 'Device-specific voice, theme preference, local context drafts, and focus intentions stay local until changed.')}</p>
+        </div>
+      </div>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button
+          type="button"
+          className="h-11 rounded-md border px-4 text-sm font-semibold"
+          style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+          onClick={onClearLocalPersonalization}
+        >
+          {ts('labels.clearLocalPersonalization', 'Clear local personalization')}
+        </button>
+        <button
+          type="button"
+          className="h-11 rounded-md border px-4 text-sm font-semibold"
+          style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
+          disabled
+          title="Export controls are planned for production settings"
+        >
+          {ts('labels.exportDataComingSoon', 'Export data (coming soon)')}
+        </button>
+        <button
+          type="button"
+          className="h-11 rounded-md border px-4 text-sm font-semibold"
+          style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
+          disabled
+          title="Account delete controls are planned for production settings"
+        >
+          {ts('labels.deleteAccountComingSoon', 'Delete account (coming soon)')}
+        </button>
+      </div>
+    </section>
+  );
+}
+
 function TrustCenterCard({ theme, ts }: { theme: ThemeColors; ts: (key: string, fallback?: string) => string }) {
   const items = [
     {
-      label: "What Aletheia will never do",
-      body: "It will not promise financial outcomes, predict markets, claim divine certainty, pressure giving, or replace qualified financial, legal, tax, medical, or pastoral counsel.",
+      label: ts('labels.trustNeverDoTitle', 'What Aletheia will never do'),
+      body: ts('labels.trustNeverDoBody', 'It will not promise financial outcomes, predict markets, claim divine certainty, pressure giving, or replace qualified financial, legal, tax, medical, or pastoral counsel.'),
     },
     {
-      label: "How scripture is sourced",
-      body: "References come from the curated wisdom library. If verse text is not available in the chosen public-domain translation, Aletheia clearly marks the fallback or summary.",
+      label: ts('labels.trustScriptureSourceTitle', 'How scripture is sourced'),
+      body: ts('labels.trustScriptureSourceBody', 'References come from the curated wisdom library. If verse text is not available in the chosen public-domain translation, Aletheia clearly marks the fallback or summary.'),
     },
     {
-      label: "What data is saved",
-      body: "Signed-in users can sync conversations, decisions, reflections, preferences, counsel contacts, rules of life, notification status, and optional manual context.",
+      label: ts('labels.trustDataSavedTitle', 'What data is saved'),
+      body: ts('labels.trustDataSavedBody', 'Signed-in users can sync conversations, decisions, reflections, preferences, counsel contacts, rules of life, notification status, and optional manual context.'),
     },
     {
-      label: "Delete and export posture",
-      body: "Private sharing is explicit. Decision summaries can be shared with mentors, but chats and journals are not shared by default. Full export/delete controls should be a dedicated production settings flow before scale.",
+      label: ts('labels.trustDeleteExportTitle', 'Delete and export posture'),
+      body: ts('labels.trustDeleteExportBody', 'Private sharing is explicit. Decision summaries can be shared with mentors, but chats and journals are not shared by default. Full export/delete controls should be a dedicated production settings flow before scale.'),
     },
   ];
 
@@ -7151,6 +8694,105 @@ function ShareActions({
   );
 }
 
+function AvatarPickerModal({
+  theme,
+  open,
+  title,
+  subtitle,
+  currentAvatar,
+  onClose,
+  onPick,
+}: {
+  theme: ThemeColors;
+  open: boolean;
+  title: string;
+  subtitle: string;
+  currentAvatar: string;
+  onClose: () => void;
+  onPick: (avatarSrc: string) => void;
+}) {
+  if (!open) {
+    return null;
+  }
+
+  const surpriseAvatar = () => {
+    if (!curatedAvatarOptions.length) {
+      return;
+    }
+    const candidates = curatedAvatarOptions.filter((option) => option.src !== currentAvatar);
+    const pool = candidates.length ? candidates : curatedAvatarOptions;
+    const choice = pool[Math.floor(Math.random() * pool.length)];
+    if (choice) {
+      onPick(choice.src);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[70] grid place-items-end p-3 backdrop-blur-sm sm:place-items-center" style={{ backgroundColor: "rgba(13, 23, 20, 0.46)" }}>
+      <section className="max-h-[88vh] w-full max-w-3xl overflow-y-auto rounded-2xl border p-4 shadow-2xl sm:p-5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>Avatar Picker</p>
+            <h2 className="mt-2 text-xl font-semibold" style={{ color: theme.textPrimary }}>{title}</h2>
+            <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>{subtitle}</p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="grid size-9 shrink-0 place-items-center rounded-md border"
+            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+            aria-label="Close avatar picker"
+          >
+            <X size={17} />
+          </button>
+        </div>
+
+        <div className="mt-3 flex justify-end">
+          <button
+            type="button"
+            onClick={surpriseAvatar}
+            className="inline-flex h-9 items-center rounded-md border px-3 text-xs font-semibold transition"
+            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+          >
+            Surprise me
+          </button>
+        </div>
+
+        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+          {curatedAvatarOptions.map((option) => {
+            const selected = currentAvatar === option.src;
+            return (
+              <button
+                key={option.id}
+                type="button"
+                onClick={() => onPick(option.src)}
+                className="rounded-xl border p-2 text-left transition"
+                style={{
+                  borderColor: selected ? theme.accentLight : theme.borderMedium,
+                  backgroundColor: selected ? theme.activeBg : theme.bgCardElevated,
+                  color: theme.textPrimary,
+                }}
+                aria-label={`Pick ${option.name}`}
+              >
+                <Image
+                  src={option.src}
+                  alt={option.name}
+                  width={72}
+                  height={72}
+                  className="mx-auto size-[72px] rounded-xl border object-cover"
+                />
+                <p className="mt-2 truncate text-center text-[11px] font-semibold uppercase tracking-[0.08em]" style={{ color: theme.textSecondary }}>
+                  {option.name}
+                </p>
+              </button>
+            );
+          })}
+        </div>
+      </section>
+    </div>
+  );
+}
+
 function AccountStatusCard({
   theme,
   user,
@@ -7158,7 +8800,6 @@ function AccountStatusCard({
   notificationsEnabled,
   notificationStatus,
   onLogout,
-  onUpdateProfileAvatar,
   ts,
 }: {
   theme: ThemeColors;
@@ -7167,15 +8808,11 @@ function AccountStatusCard({
   notificationsEnabled: boolean;
   notificationStatus: string;
   onLogout: () => void;
-  onUpdateProfileAvatar: (avatarUrl: string) => Promise<void>;
   ts: (key: string, fallback?: string) => string;
 }) {
   const signedIn = Boolean(user);
   const firstName = user?.name?.split(" ")[0] || user?.email.split("@")[0];
   const isReturning = (user?.loginCount ?? 0) > 1;
-  const [savingAvatar, setSavingAvatar] = useState(false);
-  const avatarInputRef = useRef<HTMLInputElement | null>(null);
-
   const avatarSeed = user?.id ?? user?.email ?? "guest";
   const avatarLabel = user?.name || user?.email || "Guest";
 
@@ -7219,58 +8856,187 @@ function AccountStatusCard({
         <AccountSignal label="Last synced" value={signedIn ? "This session" : "Not synced"} active={signedIn} theme={theme} />
         <AccountSignal label="Notifications" value={notificationsEnabled ? "Enabled" : notificationStatus} active={notificationsEnabled} theme={theme} />
       </div>
-      {signedIn ? (
-        <form
-          className="mt-4 rounded-lg border p-3"
-          style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}
-          onSubmit={async (event) => {
-            event.preventDefault();
-            if (savingAvatar) {
-              return;
-            }
-            setSavingAvatar(true);
-            try {
-              await onUpdateProfileAvatar(avatarInputRef.current?.value ?? "");
-            } finally {
-              setSavingAvatar(false);
-            }
-          }}
-        >
-          <label className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textSecondary }}>
-            Profile image URL
-            <input
-              ref={avatarInputRef}
-              defaultValue={user?.avatarUrl ?? ""}
-              className="mt-2 h-10 w-full rounded-md border px-3 text-sm normal-case tracking-normal outline-none"
-              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-              placeholder={ts('placeholders.urlExample', 'https://...')}
-            />
-          </label>
-          <div className="mt-2 flex flex-wrap justify-end gap-2">
-            <button
-              type="button"
-              className="h-9 rounded-md border px-3 text-xs font-semibold"
-              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-              onClick={() => {
-                if (avatarInputRef.current) {
-                  avatarInputRef.current.value = "";
-                }
-              }}
-              disabled={savingAvatar}
-            >
-              Use default
-            </button>
-            <button
-              type="submit"
-              className="h-9 rounded-md px-3 text-xs font-semibold"
-              style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
-              disabled={savingAvatar}
-            >
-              {savingAvatar ? "Saving..." : "Save image"}
-            </button>
+    </section>
+  );
+}
+
+function AvatarStudioCard({
+  theme,
+  user,
+  onUpdateProfileAvatar,
+}: {
+  theme: ThemeColors;
+  user: User | null;
+  onUpdateProfileAvatar: (avatarUrl: string) => Promise<void>;
+}) {
+  const [savingAvatar, setSavingAvatar] = useState(false);
+  const [avatarDraft, setAvatarDraft] = useState(user?.avatarUrl ?? "");
+  const [avatarDraftStatus, setAvatarDraftStatus] = useState("");
+  const [avatarPickerOpen, setAvatarPickerOpen] = useState(false);
+  const [lastChangedAt, setLastChangedAt] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    window.setTimeout(() => {
+      setAvatarDraft(user?.avatarUrl ?? "");
+      setAvatarDraftStatus("");
+    }, 0);
+  }, [user?.avatarUrl]);
+
+  if (!user) {
+    return null;
+  }
+
+  async function optimizeAvatarFile(file: File): Promise<string> {
+    const imageBitmap = await createImageBitmap(file);
+    const maxSize = 512;
+    const scale = Math.min(1, maxSize / Math.max(imageBitmap.width, imageBitmap.height));
+    const width = Math.max(1, Math.round(imageBitmap.width * scale));
+    const height = Math.max(1, Math.round(imageBitmap.height * scale));
+
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext("2d");
+    if (!context) {
+      throw new Error("Image processing failed.");
+    }
+    context.imageSmoothingEnabled = true;
+    context.imageSmoothingQuality = "high";
+    context.drawImage(imageBitmap, 0, 0, width, height);
+    imageBitmap.close();
+
+    const dataUrl = canvas.toDataURL("image/webp", 0.86);
+    const normalized = normalizeAvatarUrl(dataUrl);
+    if (!normalized) {
+      throw new Error("The selected image is too large after optimization.");
+    }
+    return normalized;
+  }
+
+  async function onAvatarFileSelected(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+    setAvatarDraftStatus("");
+
+    const acceptedTypes = new Set(["image/png", "image/jpeg", "image/webp"]);
+    if (!acceptedTypes.has(file.type)) {
+      setAvatarDraftStatus("Use PNG, JPEG, or WEBP images.");
+      event.target.value = "";
+      return;
+    }
+    const maxBytes = 10 * 1024 * 1024;
+    if (file.size > maxBytes) {
+      setAvatarDraftStatus("Choose an image smaller than 10MB.");
+      event.target.value = "";
+      return;
+    }
+
+    try {
+      const optimized = await optimizeAvatarFile(file);
+      setAvatarDraft(optimized);
+      setAvatarDraftStatus("Photo selected. Save to update your profile image.");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Could not process this image.";
+      setAvatarDraftStatus(message);
+    } finally {
+      event.target.value = "";
+    }
+  }
+
+  const avatarSeed = user.id ?? user.email;
+  const avatarLabel = user.name || user.email;
+  const hasAvatarChanges = (avatarDraft ?? "") !== (user.avatarUrl ?? "");
+
+  return (
+    <section className="rounded-xl border p-4 shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <AvatarCircle avatarUrl={avatarDraft} seed={avatarSeed} label={avatarLabel} size={56} className="size-14 rounded-full border object-cover" />
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>Avatar Studio</p>
+            <p className="mt-1 text-sm font-semibold" style={{ color: theme.textPrimary }}>Personalize your profile identity</p>
+            <p className="text-xs leading-5" style={{ color: theme.textSecondary }}>Synced across signed-in devices. Gallery, curated picks, and Surprise me are all available.</p>
           </div>
-        </form>
-      ) : null}
+        </div>
+        {lastChangedAt ? (
+          <span className="rounded-md border px-2 py-1 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+            Last changed {new Date(lastChangedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+          </span>
+        ) : null}
+      </div>
+      <form
+        className="mt-4 rounded-lg border p-3"
+        style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}
+        onSubmit={async (event) => {
+          event.preventDefault();
+          if (savingAvatar || !hasAvatarChanges) {
+            return;
+          }
+          setSavingAvatar(true);
+          try {
+            await onUpdateProfileAvatar(avatarDraft);
+            setAvatarDraftStatus("Profile image updated.");
+            setLastChangedAt(new Date().toISOString());
+          } finally {
+            setSavingAvatar(false);
+          }
+        }}
+      >
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/png,image/jpeg,image/webp"
+          className="hidden"
+          onChange={onAvatarFileSelected}
+        />
+        {avatarDraftStatus ? (
+          <p className="mb-2 text-xs leading-5" style={{ color: theme.textSecondary }}>
+            {avatarDraftStatus}
+          </p>
+        ) : null}
+        <div className="flex flex-wrap gap-2">
+          <button type="button" className="h-11 rounded-md border px-4 text-sm font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={() => fileInputRef.current?.click()} disabled={savingAvatar}>Choose photo</button>
+          <button type="button" className="h-11 rounded-md border px-4 text-sm font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={() => setAvatarPickerOpen(true)} disabled={savingAvatar}>Pick fun avatar</button>
+          <button
+            type="button"
+            className="h-11 rounded-md border px-4 text-sm font-semibold"
+            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+            onClick={() => {
+              const available = curatedAvatarOptions.filter((option) => option.src !== avatarDraft);
+              const pool = available.length ? available : curatedAvatarOptions;
+              const picked = pool[Math.floor(Math.random() * pool.length)];
+              if (picked) {
+                setAvatarDraft(picked.src);
+                setAvatarDraftStatus("Surprise avatar selected. Save to apply.");
+              }
+            }}
+            disabled={savingAvatar}
+          >
+            Surprise me
+          </button>
+          <button type="button" className="h-11 rounded-md border px-4 text-sm font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={() => {
+            setAvatarDraft("");
+            setAvatarDraftStatus("Using default avatar. Save to apply.");
+          }} disabled={savingAvatar}>Use default</button>
+          <button type="submit" className="h-11 rounded-md px-4 text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }} disabled={savingAvatar || !hasAvatarChanges}>{savingAvatar ? "Saving..." : "Save avatar"}</button>
+        </div>
+      </form>
+      <AvatarPickerModal
+        theme={theme}
+        open={avatarPickerOpen}
+        title="Choose a profile avatar"
+        subtitle="Pick from curated, app-safe avatars or keep using your gallery upload."
+        currentAvatar={avatarDraft}
+        onClose={() => setAvatarPickerOpen(false)}
+        onPick={(avatarSrc) => {
+          setAvatarDraft(avatarSrc);
+          setAvatarDraftStatus("Avatar selected. Save to apply.");
+          setAvatarPickerOpen(false);
+        }}
+      />
     </section>
   );
 }
@@ -7446,6 +9212,7 @@ function AuthPanel({
   );
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function NotificationPanel({
   theme,
   ts,
@@ -7769,7 +9536,7 @@ function CounselInviteModal({
                       <div>
                         <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{decision.title}</p>
                         <p className="mt-1 text-xs uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
-                          {decision.mode} · readiness {decision.readiness}/100
+                          {(isMode(decision.mode) ? ts(modeTranslationKey(decision.mode), decision.mode) : decision.mode)} · readiness {decision.readiness}/100
                         </p>
                       </div>
                       <span className="w-fit rounded-md px-2 py-1 text-xs font-semibold" style={{ backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>{decision.status}</span>
@@ -7933,6 +9700,7 @@ function CounselRemovalConfirmModal({
   );
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function PreferencesPanel({
   panelRef,
   ts,
@@ -8120,6 +9888,7 @@ function CompanionPanel({
   copy,
   ui,
   query,
+  focusIntentions,
   setQuery,
   onAsk,
   onDraftPrompt,
@@ -8153,6 +9922,7 @@ function CompanionPanel({
   copy: (typeof languageCopy)[LanguageCode];
   ui: (typeof uiText)[LanguageCode];
   query: string;
+  focusIntentions: string[];
   setQuery: (value: string) => void;
   onAsk: (event: FormEvent<HTMLFormElement>) => void;
   onDraftPrompt: (value: string) => void;
@@ -8187,6 +9957,9 @@ function CompanionPanel({
   const currentExchange = exchanges[exchanges.length - 1] ?? null;
   const history = exchanges.slice(0, -1).reverse();
   const hasCounselSurface = Boolean(currentExchange || history.length);
+  const focusLabels = focusIntentionLabels(focusIntentions);
+  const suggestedFocusPrompt = focusIntentionPrompt(focusIntentions, "companion");
+  const promptChips = [suggestedFocusPrompt, ...modeProfile.prompts].filter(Boolean).slice(0, 3);
 
   useEffect(() => {
     if (!answerFocusId || !currentExchange?.question) {
@@ -8213,7 +9986,7 @@ function CompanionPanel({
           </div>
           <div className="flex flex-wrap gap-2">
             <span className="w-fit rounded-sm px-2 py-1 text-xs font-semibold" style={{ backgroundColor: theme.bgInput, color: theme.textPrimary }} suppressHydrationWarning>
-              {modeProfile.displayLabel ?? mode} lens
+              {ui.currentLens}: {modeProfile.displayLabel ?? mode}
             </span>
             <span className="w-fit rounded-sm border px-2 py-1 text-xs font-semibold" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }} suppressHydrationWarning>
               {languages[preferences.language].nativeName} · {preferences.bibleTranslation}
@@ -8229,6 +10002,15 @@ function CompanionPanel({
                 {modeProfile.focus}
               </span>
             </div>
+            {focusLabels.length ? (
+              <div className="mb-3 flex flex-wrap gap-2">
+                {focusLabels.map((label) => (
+                  <span key={label} className="rounded-md border px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                    {label}
+                  </span>
+                ))}
+              </div>
+            ) : null}
             <button
               type="button"
               onClick={() => setShowModeChoices((value) => !value)}
@@ -8244,7 +10026,7 @@ function CompanionPanel({
                 className={`shrink-0 rounded-md border px-2 py-1 text-[11px] font-semibold ${showModeChoices ? "text-center leading-4 whitespace-normal" : "whitespace-nowrap"}`}
                 style={{ borderColor: theme.borderMedium, color: theme.textSecondary }}
               >
-                {showModeChoices ? ui.hideDetails : "Change"}
+                {showModeChoices ? ui.hideDetails : (ui.change ?? "Change")}
               </span>
             </button>
             {showModeChoices ? (
@@ -8276,7 +10058,7 @@ function CompanionPanel({
                 id="companion-question-input"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder={`${copy.askPlaceholder} ${modeProfile.focus.toLowerCase()}...`}
+                placeholder={`${copy.askPlaceholder} ${(focusLabels[0] ?? modeProfile.focus).toLowerCase()}...`}
                 className="min-h-28 flex-1 resize-none rounded-md border px-3 py-3 text-base leading-6 outline-none transition sm:text-sm"
                 style={{
                   borderColor: theme.borderMedium,
@@ -8321,7 +10103,7 @@ function CompanionPanel({
               </div>
             </div>
             <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
-              {modeProfile.prompts.slice(0, 3).map((prompt) => (
+              {promptChips.map((prompt) => (
                 <button
                   key={prompt}
                   type="button"
@@ -8849,7 +10631,7 @@ function CurrentCounselCard({
                 {ui.wisdomMode}
               </span>
               <span className="mt-1 block text-sm font-semibold" style={{ color: theme.textPrimary }}>
-                {exchangeModeProfile.displayLabel ?? exchangeMode} lens
+                {ui.currentLens}: {exchangeModeProfile.displayLabel ?? exchangeMode}
               </span>
             </span>
             <span className="shrink-0 rounded-md border px-2 py-1 text-[11px] font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
@@ -9015,6 +10797,7 @@ function HistoryExchange({
 }
 
 function DecisionCompanionPanel({
+  language,
   mode,
   modeProfile,
   decisions,
@@ -9029,6 +10812,7 @@ function DecisionCompanionPanel({
   title,
   pressure,
   emotion,
+  focusIntentions,
   counselName,
   counselRole,
   counselAvatarUrl,
@@ -9064,6 +10848,7 @@ function DecisionCompanionPanel({
   onScriptureOpen,
   theme,
 }: {
+  language: LanguageCode;
   mode: Mode;
   modeProfile: DisplayModeProfile;
   decisions: WisdomDecision[];
@@ -9078,6 +10863,7 @@ function DecisionCompanionPanel({
   title: string;
   pressure: string;
   emotion: string;
+  focusIntentions: string[];
   counselName: string;
   counselRole: string;
   counselAvatarUrl: string;
@@ -9121,33 +10907,99 @@ function DecisionCompanionPanel({
   onScriptureOpen: (scripture: string) => void;
   theme: ThemeColors;
 }) {
+  const runtime = runtimeCopyFor(language);
+  const [counselAvatarStatus, setCounselAvatarStatus] = useState("");
+  const [counselAvatarPickerOpen, setCounselAvatarPickerOpen] = useState(false);
+  const counselAvatarFileInputRef = useRef<HTMLInputElement | null>(null);
   const activeDecisions = decisions.filter((decision) => decision.status !== "closed");
   const selectedDecision = decisions[0];
   const modeRules = rules.filter((rule) => rule.mode === mode);
-  const decisionNextTitle = selectedDecision ? formatNextDecisionTitle(selectedDecision.title) : "Name the decision under pressure";
+  const decisionNextTitle = selectedDecision ? formatNextDecisionTitle(selectedDecision.title) : runtime.decisionNextTitleDefault;
+  const decisionFocusPrompt = focusIntentionPrompt(focusIntentions, "decisions");
   const decisionNextBody = selectedDecision
-    ? "Update counsel, cost, waiting, and peace signals so the decision has a real timeline."
-    : "Start with one decision and the pressure attached to it. Aletheia will track wisdom, counsel, and readiness over time.";
+    ? runtime.decisionNextBodyActive
+    : runtime.decisionNextBodyEmpty;
+  const decisionNextBodyWithFocus = decisionFocusPrompt
+    ? `${decisionNextBody} ${decisionFocusPrompt}`
+    : decisionNextBody;
+
+  async function optimizeCounselAvatarFile(file: File): Promise<string> {
+    const imageBitmap = await createImageBitmap(file);
+    const maxSize = 512;
+    const scale = Math.min(1, maxSize / Math.max(imageBitmap.width, imageBitmap.height));
+    const width = Math.max(1, Math.round(imageBitmap.width * scale));
+    const height = Math.max(1, Math.round(imageBitmap.height * scale));
+
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext("2d");
+    if (!context) {
+      throw new Error("Image processing failed.");
+    }
+    context.imageSmoothingEnabled = true;
+    context.imageSmoothingQuality = "high";
+    context.drawImage(imageBitmap, 0, 0, width, height);
+    imageBitmap.close();
+
+    const dataUrl = canvas.toDataURL("image/webp", 0.86);
+    const normalized = normalizeAvatarUrl(dataUrl);
+    if (!normalized) {
+      throw new Error("The selected image is too large after optimization.");
+    }
+    return normalized;
+  }
+
+  async function onCounselAvatarFileSelected(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    const acceptedTypes = new Set(["image/png", "image/jpeg", "image/webp"]);
+    if (!acceptedTypes.has(file.type)) {
+      setCounselAvatarStatus("Use PNG, JPEG, or WEBP images.");
+      event.target.value = "";
+      return;
+    }
+    const maxBytes = 10 * 1024 * 1024;
+    if (file.size > maxBytes) {
+      setCounselAvatarStatus("Choose an image smaller than 10MB.");
+      event.target.value = "";
+      return;
+    }
+
+    try {
+      const optimized = await optimizeCounselAvatarFile(file);
+      setCounselAvatarUrl(optimized);
+      setCounselAvatarStatus("Photo selected for this counsel contact.");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Could not process this image.";
+      setCounselAvatarStatus(message);
+    } finally {
+      event.target.value = "";
+    }
+  }
 
   return (
     <div className="min-w-0 space-y-4 xl:grid xl:gap-4 xl:space-y-0 xl:grid-cols-[1fr_340px]">
       <section className="space-y-4">
         <ContextualNextAction
-          eyebrow="Next in Decisions"
+          eyebrow={runtime.nextInDecisions}
           title={decisionNextTitle}
-          body={decisionNextBody}
+          body={decisionNextBodyWithFocus}
           theme={theme}
         />
         <section className="rounded-xl border p-4 shadow-sm sm:p-5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.decisionCompanion', 'Decision Companion')}</p>
-              <h2 className="mt-2 text-2xl font-semibold" style={{ color: theme.textPrimary }}>Track the decision until wisdom has had time to work.</h2>
+              <h2 className="mt-2 text-2xl font-semibold" style={{ color: theme.textPrimary }}>{runtime.decisionCompanionHeading}</h2>
               <p className="mt-2 max-w-2xl text-sm leading-6" style={{ color: theme.textSecondary }}>
-                Memory, counsel, waiting, summary export, and a calm readiness signal for major choices.
+                {runtime.decisionCompanionSub}
               </p>
             </div>
-            <span className="w-fit rounded-md px-3 py-2 text-xs font-semibold" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>{modeProfile.displayLabel ?? modeProfile.label} lens</span>
+            <span className="w-fit rounded-md px-3 py-2 text-xs font-semibold" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>{modeProfile.displayLabel ?? modeProfile.label}</span>
           </div>
 
           <form onSubmit={onCreateDecision} className="mt-5 grid gap-3 lg:grid-cols-[1fr_1.2fr_auto]">
@@ -9170,13 +11022,13 @@ function DecisionCompanionPanel({
               onChange={(event) => setEmotion(event.target.value)}
               className="h-11 rounded-lg border px-3 text-sm outline-none"
               style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-              aria-label="Initial emotion"
+              aria-label={ts('labels.initialEmotion', 'Initial emotion')}
             >
-              <option>uncertain</option>
-              <option>anxious</option>
-              <option>excited</option>
-              <option>pressured</option>
-              <option>peaceful</option>
+              <option value="uncertain">{ts('emotion.uncertain', 'uncertain')}</option>
+              <option value="anxious">{ts('emotion.anxious', 'anxious')}</option>
+              <option value="excited">{ts('emotion.excited', 'excited')}</option>
+              <option value="pressured">{ts('emotion.pressured', 'pressured')}</option>
+              <option value="peaceful">{ts('emotion.peaceful', 'peaceful')}</option>
             </select>
             <button className="h-11 rounded-lg px-4 text-sm font-semibold lg:col-span-full" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>
               {ts('labels.startDecisionMemory', 'Start decision memory')}
@@ -9190,7 +11042,7 @@ function DecisionCompanionPanel({
           <TimelineStat icon={ShieldCheck} label={ts('labels.patternsNoticed', 'Patterns noticed')} value={String(insight.patterns.length)} theme={theme} />
         </section>
 
-        <DisclosureSection title={ts('labels.wisdomTimeline', 'Wisdom timeline')} summary={insight.gentleObservation} eyebrow={`${events.length} ${ts('labels.eventsRecorded', 'events recorded')}`} compactCollapsed theme={theme}>
+        <DisclosureSection title={ts('labels.wisdomTimeline', 'Wisdom timeline')} summary={events.length ? insight.gentleObservation : runtime.timelineReady} eyebrow={`${events.length} ${ts('labels.eventsRecorded', 'events recorded')}`} compactCollapsed showDetailsLabel={ts('showDetails', 'Show details')} hideDetailsLabel={ts('hideDetails', 'Hide details')} theme={theme}>
           <section className="rounded-xl border p-4 shadow-sm sm:p-5" style={{ backgroundColor: theme.primary, borderColor: theme.borderMedium, color: theme.textOnPrimary }}>
             <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textOnPrimary, opacity: 0.9 }}>{ts('labels.wisdomTimeline', 'Wisdom timeline')}</p>
             <p className="mt-3 text-sm leading-6" style={{ color: theme.textOnPrimary }}>{insight.gentleObservation}</p>
@@ -9206,10 +11058,10 @@ function DecisionCompanionPanel({
           </section>
         </DisclosureSection>
 
-        <DisclosureSection title={ts('labels.decisionArchiveReadiness', 'Decision archive and readiness details')} summary={decisions.length ? `${decisions.length} ${ts('labels.decisionsSavedOpenFullList', 'decisions saved. Open when you want the full list.')}` : ts('labels.noDecisionMemoryYet', 'No decision memory yet. Start one above when pressure needs time and counsel.')} eyebrow={ts('labels.decisionMemory', 'Decision memory')} defaultOpen={decisions.length > 0 && decisions.length < 2} compactCollapsed theme={theme}>
+        <DisclosureSection title={ts('labels.decisionArchiveReadiness', 'Decision archive and readiness details')} summary={decisions.length ? `${decisions.length} ${ts('labels.decisionsSavedOpenFullList', 'decisions saved. Open when you want the full list.')}` : ts('labels.noDecisionMemoryYet', 'No decision memory yet. Start one above when pressure needs time and counsel.')} eyebrow={ts('labels.decisionMemory', 'Decision memory')} defaultOpen={decisions.length > 0 && decisions.length < 2} compactCollapsed showDetailsLabel={ts('showDetails', 'Show details')} hideDetailsLabel={ts('hideDetails', 'Hide details')} theme={theme}>
         <section className="space-y-3">
           {decisions.map((decision) => (
-            <DecisionCard key={decision.id} decision={decision} modeProfile={modeProfiles[decision.mode]} onUpdate={onUpdateDecision} onDelete={onDeleteDecision} theme={theme} ts={ts} />
+            <DecisionCard key={decision.id} decision={decision} modeProfile={modeProfiles[decision.mode]} modeLabel={ts(modeTranslationKey(decision.mode), decision.mode)} onUpdate={onUpdateDecision} onDelete={onDeleteDecision} theme={theme} ts={ts} />
           ))}
           {!decisions.length ? (
             <div className="rounded-xl border border-dashed p-6 text-sm leading-6" style={{ borderColor: theme.borderMedium, color: theme.textSecondary }}>
@@ -9219,20 +11071,20 @@ function DecisionCompanionPanel({
         </section>
         </DisclosureSection>
 
-        <DisclosureSection title={ts('labels.formationRhythm', 'Formation rhythm')} summary={ts('labels.formationRhythmSummary', 'Morning reflection, evening examen, and weekly pattern review stay available without dominating the decision page.')} eyebrow={ts('labels.rhythm', 'Rhythm')} compactCollapsed theme={theme}>
+        <DisclosureSection title={ts('labels.formationRhythm', 'Formation rhythm')} summary={ts('labels.formationRhythmSummary', 'Morning reflection, evening examen, and weekly pattern review stay available without dominating the decision page.')} eyebrow={ts('labels.rhythm', 'Rhythm')} compactCollapsed showDetailsLabel={ts('showDetails', 'Show details')} hideDetailsLabel={ts('hideDetails', 'Hide details')} theme={theme}>
         <section>
           <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.formationRhythm', 'Formation rhythm')}</p>
           <div className="mt-3 grid gap-2">
-            <RhythmItem label="3-minute morning reflection" body="Name the pressure before the day names it for you." theme={theme} />
-            <RhythmItem label="Evening examen" body="Review one money or work moment with honesty, not shame." theme={theme} />
-            <RhythmItem label="Weekly pattern review" body="Notice repeated urgency, comparison, fear, or overgiving." theme={theme} />
+            <RhythmItem label={ts('labels.threeMinuteMorningReflection', '3-minute morning reflection')} body={ts('labels.namePressureBeforeDayNamesIt', 'Name the pressure before the day names it for you.')} theme={theme} />
+            <RhythmItem label={ts('labels.eveningExamen', 'Evening examen')} body={ts('labels.reviewMoneyWorkMomentHonestly', 'Review one money or work moment with honesty, not shame.')} theme={theme} />
+            <RhythmItem label={ts('labels.weeklyPatternReview', 'Weekly pattern review')} body={ts('labels.noticeRepeatedUrgencyComparison', 'Notice repeated urgency, comparison, fear, or overgiving.')} theme={theme} />
           </div>
         </section>
         </DisclosureSection>
       </section>
 
       <aside className="space-y-4">
-        <DisclosureSection title={`${ts('labels.counselCircle', 'Counsel Circle')} · ${counselContacts.length} ${ts('labels.trustedVoices', 'trusted voices')}`} summary={ts('labels.counselCircleSummary', 'Private invites and sharing controls are explicit. No one sees chats, journals, or decisions unless shared.')} eyebrow={ts('labels.counsel', 'Counsel')} defaultOpen={Boolean(counselSummaryDraft)} compactCollapsed theme={theme}>
+        <DisclosureSection title={`${ts('labels.counselCircle', 'Counsel Circle')} · ${counselContacts.length} ${ts('labels.trustedVoices', 'trusted voices')}`} summary={ts('labels.counselCircleSummary', 'Private invites and sharing controls are explicit. No one sees chats, journals, or decisions unless shared.')} eyebrow={ts('labels.counsel', 'Counsel')} defaultOpen={Boolean(counselSummaryDraft)} compactCollapsed showDetailsLabel={ts('showDetails', 'Show details')} hideDetailsLabel={ts('hideDetails', 'Hide details')} theme={theme}>
         <section id="counsel-circle" className="scroll-mt-24">
           <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.counselCircle', 'Counsel Circle')}</p>
           <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
@@ -9280,12 +11132,65 @@ function DecisionCompanionPanel({
               placeholder={ts('placeholders.name', 'Name')}
             />
             <input
-              value={counselAvatarUrl}
-              onChange={(event) => setCounselAvatarUrl(event.target.value)}
-              className="h-10 rounded-md border px-3 text-sm outline-none"
-              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-              placeholder={ts('placeholders.avatarUrlOptional', 'Avatar URL (optional)')}
+              ref={counselAvatarFileInputRef}
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              className="hidden"
+              onChange={onCounselAvatarFileSelected}
             />
+            <div className="rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+              <div className="flex items-center gap-3">
+                <AvatarCircle
+                  avatarUrl={counselAvatarUrl || null}
+                  seed={counselName || counselContactValue || "counsel-contact"}
+                  label={counselName || "Counsel contact"}
+                  size={34}
+                  className="size-[34px] rounded-full border object-cover"
+                />
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
+                    Counsel photo
+                  </p>
+                  <p className="text-xs leading-5" style={{ color: theme.textSecondary }}>
+                    Choose from gallery to personalize this contact.
+                  </p>
+                </div>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => counselAvatarFileInputRef.current?.click()}
+                  className="h-9 rounded-md border px-3 text-xs font-semibold"
+                  style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                >
+                  Choose photo
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCounselAvatarPickerOpen(true)}
+                  className="h-9 rounded-md border px-3 text-xs font-semibold"
+                  style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                >
+                  Pick fun avatar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCounselAvatarUrl("");
+                    setCounselAvatarStatus("Using default avatar for this contact.");
+                  }}
+                  className="h-9 rounded-md border px-3 text-xs font-semibold"
+                  style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                >
+                  Use default
+                </button>
+              </div>
+              {counselAvatarStatus ? (
+                <p className="mt-2 text-xs leading-5" style={{ color: theme.textSecondary }}>
+                  {counselAvatarStatus}
+                </p>
+              ) : null}
+            </div>
             <input
               value={counselContactValue}
               onChange={(event) => setCounselContactValue(event.target.value)}
@@ -9329,6 +11234,19 @@ function DecisionCompanionPanel({
               {userSignedIn ? ts('labels.createPrivateInvite', 'Create private invite') : ts('labels.addLocally', 'Add locally')}
             </button>
           </form>
+          <AvatarPickerModal
+            theme={theme}
+            open={counselAvatarPickerOpen}
+            title="Choose a counsel avatar"
+            subtitle="Pick a curated avatar for this contact, or use gallery upload."
+            currentAvatar={counselAvatarUrl}
+            onClose={() => setCounselAvatarPickerOpen(false)}
+            onPick={(avatarSrc) => {
+              setCounselAvatarUrl(avatarSrc);
+              setCounselAvatarStatus("Avatar selected for this counsel contact.");
+              setCounselAvatarPickerOpen(false);
+            }}
+          />
           {latestCounselInvite ? (
             <div className="mt-3 rounded-lg border p-3" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
               <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.inviteReadyFor', 'Invite ready for')} {latestCounselInvite.name}</p>
@@ -9448,7 +11366,7 @@ function DecisionCompanionPanel({
                           onClick={() => onShareDecisionWithCounsel(contact.id, decision.id)}
                         >
                           <span className="mt-0.5 shrink-0 rounded px-1.5 py-0.5 text-[0.65rem] font-semibold" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-                            {decision.mode}
+                            {isMode(decision.mode) ? ts(modeTranslationKey(decision.mode), decision.mode) : decision.mode}
                           </span>
                           <span className="min-w-0 flex-1 truncate font-medium" style={{ color: theme.textPrimary }}>{decision.title}</span>
                         </button>
@@ -9477,9 +11395,9 @@ function DecisionCompanionPanel({
         </section>
         </DisclosureSection>
 
-        <DisclosureSection title={`Rule of Life · ${modeRules.length} principle${modeRules.length === 1 ? "" : "s"}`} summary="Personal principles stay close, but collapsed until you are shaping a decision." eyebrow="Rule of Life" compactCollapsed theme={theme}>
+        <DisclosureSection title={`${runtime.ruleOfLife} · ${modeRules.length} ${modeRules.length === 1 ? runtime.ruleOfLifePrincipleSingular : runtime.ruleOfLifePrinciplePlural}`} summary={runtime.ruleOfLifeSummary} eyebrow={runtime.ruleOfLife} compactCollapsed showDetailsLabel={ts('showDetails', 'Show details')} hideDetailsLabel={ts('hideDetails', 'Hide details')} theme={theme}>
         <section>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.ruleOfLife', 'Rule of Life')}</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{runtime.ruleOfLife}</p>
           <form onSubmit={onAddRule} className="mt-3 grid gap-2">
             <textarea
               value={ruleText}
@@ -9517,7 +11435,7 @@ function DecisionCompanionPanel({
 
         <section className="rounded-xl border p-4 shadow-sm" style={{ backgroundColor: theme.primary, borderColor: theme.borderMedium, color: theme.textOnPrimary }}>
           <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textOnPrimary, opacity: 0.9 }}>{ts('labels.decisionPractice', 'Decision practice')}</p>
-          <p className="mt-3 text-sm font-semibold" style={{ color: theme.textOnPrimary }}>{modeProfile.practices[0]}</p>
+          <p className="mt-3 text-sm font-semibold" style={{ color: theme.textOnPrimary }}>{runtime.decisionPracticeLine}</p>
           <p className="mt-2 text-sm leading-6" style={{ color: theme.textOnPrimary }}>{ts('labels.smallPracticeForDecision', 'A small practice for the decision you are carrying, shaped by the active wisdom mode.')}</p>
         </section>
 
@@ -9591,6 +11509,7 @@ function PermissionToggle({
 function DecisionCard({
   decision,
   modeProfile,
+  modeLabel,
   onUpdate,
   onDelete,
   theme,
@@ -9598,6 +11517,7 @@ function DecisionCard({
 }: {
   decision: WisdomDecision;
   modeProfile: ModeProfile;
+  modeLabel: string;
   onUpdate: (
     id: string,
     patch: Partial<WisdomDecision> & {
@@ -9625,7 +11545,7 @@ function DecisionCard({
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div className="flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-md px-2 py-1 text-xs font-semibold" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>{decision.mode}</span>
+            <span className="rounded-md px-2 py-1 text-xs font-semibold" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>{modeLabel}</span>
             <span className="rounded-md px-2 py-1 text-xs font-semibold" style={{ backgroundColor: theme.bgCardElevated, color: theme.accentGold }}>{decision.status}</span>
             {waitingText ? <span className="rounded-md px-2 py-1 text-xs font-semibold" style={{ backgroundColor: theme.bgCardElevated, color: theme.accentGold }}>{waitingText}</span> : null}
             {revisitText ? <span className="rounded-md px-2 py-1 text-xs font-semibold" style={{ backgroundColor: theme.bgInput, color: theme.primary }}>{revisitText}</span> : null}
@@ -9839,7 +11759,7 @@ function WisdomCheck({
           Wisdom Check
         </div>
         <div className="mb-5 rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{modeProfile.displayLabel ?? modeProfile.label} discernment lens</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{modeProfile.displayLabel ?? modeProfile.label} · {ts('labels.discernmentReadout', 'Discernment readout')}</p>
           <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>{modeProfile.intent}</p>
         </div>
         <label className="text-sm font-semibold" htmlFor="decision" style={{ color: theme.textPrimary }}>
@@ -9864,11 +11784,11 @@ function WisdomCheck({
           <label className="text-sm font-semibold" style={{ color: theme.textPrimary }}>
             {ts('labels.currentEmotion', 'Current emotion')}
             <select value={emotion} onChange={(event) => setEmotion(event.target.value)} className="mt-2 h-11 w-full rounded-md border px-3 text-sm outline-none" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}>
-              <option>uncertain</option>
-              <option>anxious</option>
-              <option>excited</option>
-              <option>pressured</option>
-              <option>peaceful</option>
+              <option value="uncertain">{ts('emotion.uncertain', 'uncertain')}</option>
+              <option value="anxious">{ts('emotion.anxious', 'anxious')}</option>
+              <option value="excited">{ts('emotion.excited', 'excited')}</option>
+              <option value="pressured">{ts('emotion.pressured', 'pressured')}</option>
+              <option value="peaceful">{ts('emotion.peaceful', 'peaceful')}</option>
             </select>
           </label>
           <label className="text-sm font-semibold" style={{ color: theme.textPrimary }}>
@@ -9946,6 +11866,7 @@ function WisdomCheck({
 }
 
 function ReflectPanel({
+  language,
   decision,
   setDecision,
   emotion,
@@ -9965,6 +11886,7 @@ function ReflectPanel({
   onDelete,
   theme,
 }: {
+  language: LanguageCode;
   decision: string;
   setDecision: (value: string) => void;
   emotion: string;
@@ -9984,18 +11906,19 @@ function ReflectPanel({
   onDelete: (id: string) => void;
   theme: ThemeColors;
 }) {
-  const reflectNextTitle = body.trim() || decision.trim() ? "Finish the reflection in front of you" : "Begin with one honest sentence";
+  const runtime = runtimeCopyFor(language);
+  const reflectNextTitle = body.trim() || decision.trim() ? runtime.reflectNextTitleActive : runtime.reflectNextTitleDefault;
   const reflectNextBody = body.trim() || decision.trim()
-    ? "Save what you are noticing while the insight is still fresh."
-    : "Use Wisdom Check for a quick discernment scan, or write what you notice about money, work, fear, generosity, or pace.";
+    ? runtime.reflectNextBodyActive
+    : runtime.reflectNextBodyDefault;
 
   return (
     <div className="min-w-0 space-y-4">
       <ContextualNextAction
-        eyebrow="Next in Reflect"
+        eyebrow={runtime.nextInReflect}
         title={reflectNextTitle}
         body={reflectNextBody}
-        actionLabel={body.trim() ? "Save reflection" : undefined}
+        actionLabel={body.trim() ? ts('labels.saveReflection', 'Save reflection') : undefined}
         onAction={body.trim() ? onSave : undefined}
         theme={theme}
       />
@@ -10003,15 +11926,17 @@ function ReflectPanel({
         <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('nav.reflect', 'Reflect')}</p>
         <h2 className="mt-2 text-2xl font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.discernmentReflectionQuietPlace', 'Discernment and reflection in one quiet place')}</h2>
         <p className="mt-2 max-w-2xl text-sm leading-6" style={{ color: theme.textSecondary }}>
-          Use Wisdom Check to slow a decision down, then save what you notice before the moment passes.
+          {runtime.reflectIntro}
         </p>
       </section>
 
       <DisclosureSection
-        title="Wisdom Check"
-        summary={result ? `Readiness ${result.readiness}/100 · ${result.hasUrgency ? "urgency noticed" : "pressure looks slower"}` : "Open when a decision needs a quick discernment scan."}
-        eyebrow="Decision scan"
+        title={runtime.wisdomCheck}
+        summary={result ? `${ts('labels.readiness', 'Readiness')} ${result.readiness}/100 · ${result.hasUrgency ? runtime.wisdomCheckUrgency : runtime.wisdomCheckSlower}` : runtime.wisdomCheckSummaryDefault}
+        eyebrow={runtime.decisionScan}
         defaultOpen={Boolean(decision.trim())}
+        showDetailsLabel={ts('showDetails', 'Show details')}
+        hideDetailsLabel={ts('hideDetails', 'Hide details')}
         theme={theme}
       >
         <WisdomCheck
@@ -10033,6 +11958,7 @@ function ReflectPanel({
         entries={entries}
         title={title}
         body={body}
+        language={language}
         mode={mode}
         setTitle={setTitle}
         setBody={setBody}
@@ -10080,17 +12006,28 @@ function LibraryPanel({
   onScriptureOpen: (scripture: string) => void;
   theme: ThemeColors;
 }) {
-  const libraryNextTitle = search.trim() ? `Review ${entries.length} matching wisdom anchor${entries.length === 1 ? "" : "s"}` : "Search one wisdom theme";
+  const runtime = runtimeCopyFor(preferences.language);
+  const localizedModeSearchLabel = localizedModeLabel(mode, preferences.language).toLowerCase();
+  const libraryNextTitle = search.trim() ? `Review ${entries.length} matching wisdom anchor${entries.length === 1 ? "" : "s"}` : runtime.libraryNextTitleDefault;
   const libraryNextBody = search.trim()
-    ? "Open a scripture reference to read the passage context and why it matters here."
-    : "Try stewardship, debt, contentment, counsel, cost, generosity, anxiety, or diligence.";
+    ? runtime.libraryNextBodySearch
+    : `${runtime.libraryTryPrefix} ${[
+        "Stewardship",
+        "Debt",
+        "Contentment",
+        "Counsel",
+        "Cost Counting",
+        "Generosity",
+        "Provision and Anxiety",
+        "Diligence",
+      ].map((item) => localizedWisdomThemeLabel(item, preferences.language).toLowerCase()).join(', ')}.`;
   const visibleEntries = entries.slice(0, search.trim() ? entries.length : 4);
   const remainingEntries = entries.slice(4);
 
   return (
     <div className="min-w-0 space-y-4">
       <ContextualNextAction
-        eyebrow="Next in Library"
+        eyebrow={runtime.nextInLibrary}
         title={libraryNextTitle}
         body={libraryNextBody}
         theme={theme}
@@ -10103,7 +12040,7 @@ function LibraryPanel({
               {ts('labels.wisdomLibrary', 'Wisdom Library')}
             </div>
             <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
-              A curated wisdom base with language-aware application notes and public-domain translation labels.
+              {runtime.libraryDescription}
             </p>
           </div>
           <label className="relative w-full md:max-w-sm">
@@ -10112,7 +12049,7 @@ function LibraryPanel({
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               className="h-11 w-full rounded-lg border px-3 pl-10 pr-3 text-sm outline-none"
-              placeholder={`${ts('labels.search', 'Search')} ${mode.toLowerCase()} ${ts('labels.wisdom', 'wisdom')}...`}
+              placeholder={`${ts('labels.search', 'Search')} ${localizedModeSearchLabel} ${ts('labels.wisdom', 'wisdom')}...`}
               style={{
                 borderColor: theme.borderMedium,
                 backgroundColor: theme.bgInput,
@@ -10125,63 +12062,69 @@ function LibraryPanel({
         </div>
 
         <div className="mt-5 grid min-w-0 gap-3 lg:grid-cols-2">
-          {visibleEntries.map((entry, index) => (
-            <article
-              key={entry.scripture}
-              className={`rounded-lg border p-4 ${visibleEntries.length % 2 === 1 && index === visibleEntries.length - 1 ? "lg:col-span-2" : ""}`}
-              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}
-            >
-              <div className="mb-3 flex flex-wrap items-center gap-2">
-                <span className="rounded-md px-2 py-1 text-xs font-semibold uppercase tracking-[0.14em]" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>{entry.theme}</span>
-                <button
-                  type="button"
-                  onClick={() => onScriptureOpen(entry.scripture)}
-                  className="text-left text-sm font-semibold underline underline-offset-4 transition"
-                  style={{
-                    color: theme.textPrimary,
-                    textDecorationColor: theme.borderMedium,
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.color = theme.accentGold}
-                  onMouseLeave={(e) => e.currentTarget.style.color = theme.textPrimary}
-                >
-                  {entry.scripture}
-                </button>
-              </div>
-              <p className="text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>{entry.principle}</p>
-              <p className="mt-3 text-sm leading-6" style={{ color: theme.textSecondary }}>{entry.application}</p>
-              <p className="mt-3 rounded-md border p-3 text-xs leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textMuted }}>
-                {localizedWisdomLibraryNote(entry, preferences)}
-              </p>
-            </article>
-          ))}
+          {visibleEntries.map((entry, index) => {
+            const localizedEntry = localizedWisdomLibraryEntry(entry, preferences);
+            return (
+              <article
+                key={entry.scripture}
+                className={`rounded-lg border p-4 ${visibleEntries.length % 2 === 1 && index === visibleEntries.length - 1 ? "lg:col-span-2" : ""}`}
+                style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}
+              >
+                <div className="mb-3 flex flex-wrap items-center gap-2">
+                  <span className="rounded-md px-2 py-1 text-xs font-semibold uppercase tracking-[0.14em]" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>{localizedWisdomThemeLabel(entry.theme, preferences.language)}</span>
+                  <button
+                    type="button"
+                    onClick={() => onScriptureOpen(entry.scripture)}
+                    className="text-left text-sm font-semibold underline underline-offset-4 transition"
+                    style={{
+                      color: theme.textPrimary,
+                      textDecorationColor: theme.borderMedium,
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.color = theme.accentGold}
+                    onMouseLeave={(e) => e.currentTarget.style.color = theme.textPrimary}
+                  >
+                    {entry.scripture}
+                  </button>
+                </div>
+                <p className="text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>{localizedEntry.principle}</p>
+                <p className="mt-3 text-sm leading-6" style={{ color: theme.textSecondary }}>{localizedEntry.application}</p>
+                <p className="mt-3 rounded-md border p-3 text-xs leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textMuted }}>
+                  {localizedWisdomLibraryNote(entry, preferences)}
+                </p>
+              </article>
+            );
+          })}
         </div>
         {!search.trim() && remainingEntries.length > 0 ? (
           <details className="mt-4 rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
             <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
-              Full wisdom library · {remainingEntries.length} more anchors
+              {runtime.fullWisdomLibrary} · {remainingEntries.length} {runtime.moreAnchors}
             </summary>
             <div className="mt-3 grid min-w-0 gap-3 lg:grid-cols-2">
-              {remainingEntries.map((entry, index) => (
-                <article
-                  key={entry.scripture}
-                  className={`rounded-lg border p-4 ${remainingEntries.length % 2 === 1 && index === remainingEntries.length - 1 ? "lg:col-span-2" : ""}`}
-                  style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}
-                >
-                  <div className="mb-3 flex flex-wrap items-center gap-2">
-                    <span className="rounded-md px-2 py-1 text-xs font-semibold uppercase tracking-[0.14em]" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>{entry.theme}</span>
-                    <button
-                      type="button"
-                      onClick={() => onScriptureOpen(entry.scripture)}
-                      className="text-left text-sm font-semibold underline underline-offset-4 transition"
-                      style={{ color: theme.textPrimary, textDecorationColor: theme.borderMedium }}
-                    >
-                      {entry.scripture}
-                    </button>
-                  </div>
-                  <p className="text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>{entry.principle}</p>
-                  <p className="mt-3 text-sm leading-6" style={{ color: theme.textSecondary }}>{entry.application}</p>
-                </article>
-              ))}
+              {remainingEntries.map((entry, index) => {
+                const localizedEntry = localizedWisdomLibraryEntry(entry, preferences);
+                return (
+                  <article
+                    key={entry.scripture}
+                    className={`rounded-lg border p-4 ${remainingEntries.length % 2 === 1 && index === remainingEntries.length - 1 ? "lg:col-span-2" : ""}`}
+                    style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}
+                  >
+                    <div className="mb-3 flex flex-wrap items-center gap-2">
+                      <span className="rounded-md px-2 py-1 text-xs font-semibold uppercase tracking-[0.14em]" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>{localizedWisdomThemeLabel(entry.theme, preferences.language)}</span>
+                      <button
+                        type="button"
+                        onClick={() => onScriptureOpen(entry.scripture)}
+                        className="text-left text-sm font-semibold underline underline-offset-4 transition"
+                        style={{ color: theme.textPrimary, textDecorationColor: theme.borderMedium }}
+                      >
+                        {entry.scripture}
+                      </button>
+                    </div>
+                    <p className="text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>{localizedEntry.principle}</p>
+                    <p className="mt-3 text-sm leading-6" style={{ color: theme.textSecondary }}>{localizedEntry.application}</p>
+                  </article>
+                );
+              })}
             </div>
           </details>
         ) : null}
@@ -10194,6 +12137,7 @@ function JournalPanel({
   entries,
   title,
   body,
+  language,
   mode,
   setTitle,
   setBody,
@@ -10205,6 +12149,7 @@ function JournalPanel({
   entries: JournalEntry[];
   title: string;
   body: string;
+  language: LanguageCode;
   mode: Mode;
   setTitle: (value: string) => void;
   setBody: (value: string) => void;
@@ -10213,6 +12158,8 @@ function JournalPanel({
   ts: (key: string, fallback?: string) => string;
   theme: ThemeColors;
 }) {
+  const runtime = runtimeCopyFor(language);
+
   return (
     <div className="grid min-w-0 gap-4 xl:grid-cols-[0.9fr_1.1fr]">
       <section className="min-w-0 rounded-xl border p-4 shadow-sm sm:p-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
@@ -10252,7 +12199,7 @@ function JournalPanel({
         </button>
       </section>
 
-      <DisclosureSection title={`${entries.length} saved reflection${entries.length === 1 ? "" : "s"}`} summary={entries.length ? "Open your past reflections when you want to review growth." : "Past reflections will stay here once saved."} eyebrow="Reflection history" theme={theme}>
+      <DisclosureSection title={`${entries.length} ${entries.length === 1 ? runtime.savedReflectionSingular : runtime.savedReflectionPlural}`} summary={entries.length ? runtime.reflectionHistorySummaryActive : runtime.reflectionHistorySummaryDefault} eyebrow={runtime.reflectionHistory} showDetailsLabel={ts('showDetails', 'Show details')} hideDetailsLabel={ts('hideDetails', 'Hide details')} theme={theme}>
       <section className="min-w-0">
         <h2 className="text-xl font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.savedReflections', 'Saved reflections')}</h2>
         <div className="mt-4 space-y-3">

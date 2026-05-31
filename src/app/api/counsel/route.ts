@@ -75,7 +75,7 @@ export async function POST(request: Request) {
   const avatarUrl = normalizeAvatarUrl(body.avatarUrl?.trim() ?? "") ?? null;
   if (body.avatarUrl?.trim() && !avatarUrl) {
     return NextResponse.json(
-      { error: "Use a valid HTTPS image URL for the counselor avatar." },
+      { error: "Use a valid image for the counselor avatar. Curated picks, gallery uploads, and HTTPS image URLs are supported." },
       { status: 400 }
     );
   }

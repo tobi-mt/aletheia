@@ -24,7 +24,7 @@ export async function PUT(request: Request) {
 
   if (rawAvatar && !avatarUrl) {
     return NextResponse.json(
-      { error: "Use a valid HTTPS image URL. For local testing, http://localhost is allowed." },
+      { error: "Use a valid image. Curated picks, gallery uploads, and HTTPS image URLs are supported." },
       { status: 400 }
     );
   }

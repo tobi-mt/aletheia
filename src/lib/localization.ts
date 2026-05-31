@@ -481,10 +481,11 @@ export function localizedScriptureRead(scripture: string, preferences: UserPrefe
 
   const fallback = scriptureQuickReads[canonical];
   const preferredTranslation = bibleTranslations[preferences.bibleTranslation] ?? bibleTranslations.WEB;
+  const labelCopy = localizedScriptureLabelCopy[preferences.language] ?? localizedScriptureLabelCopy.en;
   if (fallback && preferences.bibleTranslation !== fallback.translation) {
     return {
       translation: preferences.bibleTranslation,
-      label: `${preferredTranslation.label} summary`,
+      label: `${preferredTranslation.label} ${labelCopy.summary}`,
       text: fallback.text,
       availableLanguage: "en",
       kind: "summary",
@@ -493,7 +494,7 @@ export function localizedScriptureRead(scripture: string, preferences: UserPrefe
 
   return {
     translation: fallback?.translation ?? preferences.bibleTranslation,
-    label: fallback?.label ?? "Curated wisdom reference",
+    label: fallback?.label ?? labelCopy.curatedReference,
     text:
       fallback?.text ??
       "This reference is part of Aletheia's curated wisdom library. The app only surfaces known references and avoids inventing verse text.",
@@ -505,13 +506,14 @@ export function localizedScriptureRead(scripture: string, preferences: UserPrefe
 export function scriptureTranslationLabel(scripture: string, preferences: UserPreferences) {
   const read = localizedScriptureRead(scripture, preferences);
   const language = languages[read.availableLanguage] ?? languages.en;
+  const labelCopy = localizedScriptureLabelCopy[preferences.language] ?? localizedScriptureLabelCopy.en;
   if (read.kind === "summary") {
-    return `${read.translation} summary`;
+    return `${read.translation} ${labelCopy.summary}`;
   }
   const fallbackLabel =
     read.translation === preferences.bibleTranslation && read.availableLanguage === preferences.language
       ? ""
-      : " fallback";
+      : ` ${labelCopy.fallback}`;
 
   return `${read.translation} ${language.name}${fallbackLabel}`;
 }
@@ -667,6 +669,80 @@ const localizedWisdomThemes: Partial<Record<LanguageCode, Record<string, string>
   },
 };
 
+const localizedScriptureLabelCopy: Record<LanguageCode, { summary: string; fallback: string; curatedReference: string }> = {
+  en: { summary: "summary", fallback: "fallback", curatedReference: "Curated wisdom reference" },
+  es: { summary: "resumen", fallback: "respaldo", curatedReference: "Referencia de sabiduria curada" },
+  fr: { summary: "resume", fallback: "repli", curatedReference: "Reference de sagesse selectionnee" },
+  pt: { summary: "resumo", fallback: "reserva", curatedReference: "Referencia de sabedoria curada" },
+  de: { summary: "Zusammenfassung", fallback: "Ersatz", curatedReference: "Kuratiertes Weisheitsreferenz" },
+  yo: { summary: "akotan", fallback: "afowose", curatedReference: "Itokasi ogbon ti a yan" },
+  ig: { summary: "nchikota", fallback: "ndabere", curatedReference: "Ntughari amamihe ahoputara" },
+  ha: { summary: "takaitawa", fallback: "madadi", curatedReference: "Nassin hikima da aka tace" },
+};
+
+const localizedRegionLabels: Partial<Record<LanguageCode, Partial<Record<RegionCode, string>>>> = {
+  es: { global: "Mundo" },
+  fr: { global: "Monde" },
+  pt: { global: "Global" },
+  de: { global: "Global" },
+  yo: { global: "Agbaye" },
+  ig: { global: "Uwa uwa" },
+  ha: { global: "Duniya" },
+};
+
+const localizedWisdomLibraryEntries: Partial<Record<LanguageCode, Record<string, { principle: string; application: string }>>> = {
+  ha: {
+    "Matthew 25:14-30": {
+      principle: "Ana tafiyar da abin da aka damka da aminci, jarumtaka da alhaki.",
+      application: "Ka dauki kudi, basira, lokaci da dama a matsayin amanar da aka ba ka. Ci gaba yana da muhimmanci, amma niyya, hakuri, jajircewa da alhaki ma suna da muhimmanci.",
+    },
+    "Proverbs 22:7": {
+      principle: "Bashi na iya rage yanci, don haka a yi mu'amala da shi cikin nutsuwa.",
+      application: "Kafin ka karbi bashi, ka duba ko yana da bukata, ikon biya, matsin zuciya, da ko nauyin yana goyon bayan kyakkyawan kulawar dukiya.",
+    },
+    "Philippians 4:11-13": {
+      principle: "Gamsuwa ana koyon ta ne ta wurin dogaro, ba ta wurin cikakkun yanayi ba.",
+      application: "Sau da yawa, zaman lafiyar kudi yana farawa da bayyana abin da ya isa, kin kwatanta kai da wasu, da gina halaye da ke rage tashin hankali.",
+    },
+    "Proverbs 15:22": {
+      principle: "Tsare-tsare sukan fi karfi idan an bincike su tare da tawali'u da shawara.",
+      application: "A manyan zabukan aiki, kudi ko kasuwanci, ka gayyaci mutanen da ke da hikima, gaskiya, kuma ba su dogara da kudin shawarar ka ba.",
+    },
+    "Luke 14:28": {
+      principle: "Aiki mai hikima yana lissafa farashi kafin daukar alkawari.",
+      application: "Kafin babban mataki na kasuwanci ko aiki, ka fayyace jari, musayar da za a yi, wajibai, lokaci, da karamin gwaji da za a iya juyawa.",
+    },
+    "2 Corinthians 9:6-8": {
+      principle: "Karimci yana fitowa ne daga yarda da tunani, ba tilastawa ko nuna wa jama'a ba.",
+      application: "Ka bayar daga tabbaci da tsari, ba daga laifi, matsin jama'a, ko son a gani kai mai tsarki ba.",
+    },
+    "Proverbs 21:5": {
+      principle: "Tsari mai dagewa yakan kai ga yalwa; gaggawa kuma yakan kai ga rashi.",
+      application: "Ka guji matakan kudi da hayaniya, fargaba ko gaggawa ke tuka su. Rubuta tsari, gwada zato, kuma ba da lokaci don shawara.",
+    },
+    "Matthew 6:25-34": {
+      principle: "Dogaro yana rage kokarin damuwa, amma har yanzu yana barin aiki na alhaki.",
+      application: "Raba tsari mai alhaki daga zagayen damuwa. Yi mataki mai aminci na gaba, sannan ka ki maimaita mafi munin zato akai-akai.",
+    },
+  },
+};
+
+function localizedRegionLabel(regionCode: RegionCode, language: LanguageCode) {
+  return localizedRegionLabels[language]?.[regionCode] ?? regions[regionCode]?.label ?? regions.global.label;
+}
+
+export function localizedWisdomLibraryEntry(entry: WisdomEntryData, preferences: UserPreferences): WisdomEntryData {
+  const localized = localizedWisdomLibraryEntries[preferences.language]?.[canonicalScriptureReference(entry.scripture)];
+  if (!localized) {
+    return entry;
+  }
+  return {
+    ...entry,
+    principle: localized.principle,
+    application: localized.application,
+  };
+}
+
 export function normalizePreferences(input: Partial<UserPreferences> = {}): UserPreferences {
   const language = input.language && input.language in languages ? input.language : defaultPreferences.language;
   const region = input.region && input.region in regions ? input.region : defaultPreferences.region;
@@ -709,18 +785,18 @@ export function localizedDailyWisdom(
 }
 
 export function localizedWisdomLibraryNote(entry: WisdomEntryData, preferences: UserPreferences) {
-  const region = regions[preferences.region] ?? regions.global;
+  const regionLabel = localizedRegionLabel(preferences.region, preferences.language);
   const translation = scriptureTranslationLabel(entry.scripture, preferences);
 
   const notes: Record<LanguageCode, string> = {
-    en: `Use ${entry.scripture} with the ${translation} reference label, then apply it with ${region.label} realities in view.`,
-    es: `Usa ${entry.scripture} con la referencia ${translation}, y aplica el principio considerando la realidad de ${region.label}.`,
-    fr: `Utilise ${entry.scripture} avec la référence ${translation}, puis applique le principe dans le contexte de ${region.label}.`,
-    pt: `Use ${entry.scripture} com a referência ${translation}, aplicando o princípio à realidade de ${region.label}.`,
-    de: `Nutze ${entry.scripture} mit der Referenz ${translation} und wende das Prinzip im Kontext von ${region.label} an.`,
-    yo: `Lo ${entry.scripture} pẹ̀lú ìtọ́kasí ${translation}, kí o sì fi sí ìṣe ní agbègbè ${region.label}.`,
-    ig: `Jiri ${entry.scripture} na ntụaka ${translation}, tinye ụkpụrụ ya n'ọrụ n'ọnọdụ ${region.label}.`,
-    ha: `Yi amfani da ${entry.scripture} tare da alamar ${translation}, sannan ka aiwatar da ƙa'idar a yanayin ${region.label}.`,
+    en: `Use ${entry.scripture} with the ${translation} reference label, then apply it with ${regionLabel} realities in view.`,
+    es: `Usa ${entry.scripture} con la referencia ${translation}, y aplica el principio considerando la realidad de ${regionLabel}.`,
+    fr: `Utilise ${entry.scripture} avec la référence ${translation}, puis applique le principe dans le contexte de ${regionLabel}.`,
+    pt: `Use ${entry.scripture} com a referência ${translation}, aplicando o princípio à realidade de ${regionLabel}.`,
+    de: `Nutze ${entry.scripture} mit der Referenz ${translation} und wende das Prinzip im Kontext von ${regionLabel} an.`,
+    yo: `Lo ${entry.scripture} pẹ̀lú ìtọ́kasí ${translation}, kí o sì fi sí ìṣe ní agbègbè ${regionLabel}.`,
+    ig: `Jiri ${entry.scripture} na ntụaka ${translation}, tinye ụkpụrụ ya n'ọrụ n'ọnọdụ ${regionLabel}.`,
+    ha: `Yi amfani da ${entry.scripture} tare da alamar ${translation}, sannan ka aiwatar da ƙa'idar a yanayin ${regionLabel}.`,
   };
 
   return notes[preferences.language] ?? notes.en;
