@@ -309,3 +309,9 @@ Calm milestones are included as signs of formation, not childish gamification.
 - First-party analytics endpoints
 - PWA manifest route
 - Production-ready Railway deployment path
+
+### Avatar Host Configuration
+
+- `AVATAR_IMAGE_HOSTS` supports comma-separated custom avatar/CDN hosts for remote image optimization.
+- Custom hosts are additive: they extend the built-in avatar host allowlist and do not replace it.
+- Built-in fallback host coverage includes common providers (for example GitHub, Google profile images, Gravatar, Discord, X/Twitter, and Pravatar).

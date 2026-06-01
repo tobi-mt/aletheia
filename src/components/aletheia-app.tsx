@@ -1630,6 +1630,7 @@ function AvatarCircle({
       width={size}
       height={size}
       className={className}
+      unoptimized
       onError={(event) => {
         const currentTarget = event.currentTarget;
         if (currentTarget.src !== fallback) {
@@ -8834,6 +8835,75 @@ function AvatarPickerModal({
   );
 }
 
+function AvatarUploadTipsModal({
+  theme,
+  open,
+  onClose,
+  onContinue,
+}: {
+  theme: ThemeColors;
+  open: boolean;
+  onClose: () => void;
+  onContinue: () => void;
+}) {
+  if (!open) {
+    return null;
+  }
+
+  return (
+    <div className="fixed inset-0 z-[70] grid place-items-end p-3 backdrop-blur-sm sm:place-items-center" style={{ backgroundColor: "rgba(13, 23, 20, 0.46)" }}>
+      <section className="w-full max-w-lg rounded-2xl border p-4 shadow-2xl sm:p-5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>Photo tips</p>
+            <h2 className="mt-2 text-xl font-semibold" style={{ color: theme.textPrimary }}>Upload a profile photo calmly</h2>
+            <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
+              Aletheia keeps this simple. Use one clear photo and save once it previews correctly.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="grid size-9 shrink-0 place-items-center rounded-md border"
+            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+            aria-label="Close photo tips"
+          >
+            <X size={17} />
+          </button>
+        </div>
+
+        <div className="mt-4 rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+          <ul className="space-y-1.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
+            <li>Supported formats: PNG, JPEG, WEBP.</li>
+            <li>Maximum file size: 10MB.</li>
+            <li>We auto-optimize to keep profile photos fast and consistent.</li>
+            <li>After choosing, tap Save avatar to apply it across signed-in devices.</li>
+          </ul>
+        </div>
+
+        <div className="mt-4 flex flex-wrap justify-end gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="h-10 rounded-md border px-4 text-sm font-semibold"
+            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
+          >
+            Maybe later
+          </button>
+          <button
+            type="button"
+            onClick={onContinue}
+            className="h-10 rounded-md px-4 text-sm font-semibold"
+            style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+          >
+            Continue to photo picker
+          </button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
 function AccountStatusCard({
   theme,
   user,
@@ -8914,8 +8984,20 @@ function AvatarStudioCard({
   const [avatarDraft, setAvatarDraft] = useState(user?.avatarUrl ?? "");
   const [avatarDraftStatus, setAvatarDraftStatus] = useState("");
   const [avatarPickerOpen, setAvatarPickerOpen] = useState(false);
+  const [avatarTipsOpen, setAvatarTipsOpen] = useState(false);
+  const [avatarTipsSeen, setAvatarTipsSeen] = useState(false);
   const [lastChangedAt, setLastChangedAt] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    window.setTimeout(() => {
+      try {
+        setAvatarTipsSeen(window.localStorage.getItem("aletheia_avatar_tips_seen") === "yes");
+      } catch {
+        // Tips can still display during this session if storage is unavailable.
+      }
+    }, 0);
+  }, []);
 
   useEffect(() => {
     window.setTimeout(() => {
@@ -8923,6 +9005,15 @@ function AvatarStudioCard({
       setAvatarDraftStatus("");
     }, 0);
   }, [user?.avatarUrl]);
+
+  const markAvatarTipsSeen = useCallback(() => {
+    setAvatarTipsSeen(true);
+    try {
+      window.localStorage.setItem("aletheia_avatar_tips_seen", "yes");
+    } catch {
+      // Continue even if local storage is unavailable.
+    }
+  }, []);
 
   if (!user) {
     return null;
@@ -9038,8 +9129,34 @@ function AvatarStudioCard({
             {avatarDraftStatus}
           </p>
         ) : null}
+        <p className="mb-2 text-xs leading-5" style={{ color: theme.textSecondary }}>
+          Supported: PNG, JPEG, WEBP up to 10MB. Use Photo tips for guidance.
+        </p>
         <div className="flex flex-wrap gap-2">
-          <button type="button" className="h-11 rounded-md border px-4 text-sm font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={() => fileInputRef.current?.click()} disabled={savingAvatar}>Choose photo</button>
+          <button
+            type="button"
+            className="h-11 rounded-md border px-4 text-sm font-semibold"
+            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+            onClick={() => {
+              if (avatarTipsSeen) {
+                fileInputRef.current?.click();
+                return;
+              }
+              setAvatarTipsOpen(true);
+            }}
+            disabled={savingAvatar}
+          >
+            Choose photo
+          </button>
+          <button
+            type="button"
+            className="h-11 rounded-md border px-4 text-sm font-semibold"
+            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+            onClick={() => setAvatarTipsOpen(true)}
+            disabled={savingAvatar}
+          >
+            Photo tips
+          </button>
           <button type="button" className="h-11 rounded-md border px-4 text-sm font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={() => setAvatarPickerOpen(true)} disabled={savingAvatar}>Pick fun avatar</button>
           <button
             type="button"
@@ -9076,6 +9193,16 @@ function AvatarStudioCard({
           setAvatarDraft(avatarSrc);
           setAvatarDraftStatus("Avatar selected. Save to apply.");
           setAvatarPickerOpen(false);
+        }}
+      />
+      <AvatarUploadTipsModal
+        theme={theme}
+        open={avatarTipsOpen}
+        onClose={() => setAvatarTipsOpen(false)}
+        onContinue={() => {
+          markAvatarTipsSeen();
+          setAvatarTipsOpen(false);
+          fileInputRef.current?.click();
         }}
       />
     </section>

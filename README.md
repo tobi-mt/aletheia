@@ -44,6 +44,21 @@ NOTIFICATION_HEALTH_SECRET=""
 ANALYTICS_ADMIN_SECRET=""
 ```
 
+### Avatar Image Hosts
+
+`AVATAR_IMAGE_HOSTS` is optional and lets you add extra remote hosts for avatar image optimization.
+
+- It **extends** the built-in avatar host allowlist; it does **not** replace it.
+- Values are comma-separated hosts or URLs.
+
+Example:
+
+```bash
+AVATAR_IMAGE_HOSTS="example-cdn.com,https://profile-images.myapp.com"
+```
+
+Built-in fallback hosts include common providers such as GitHub, Google profile images, Gravatar, Discord, X/Twitter, and Pravatar.
+
 Without `OPENAI_API_KEY`, the server still performs retrieval and returns a deterministic grounded fallback response. With `OPENAI_API_KEY`, `/api/chat` calls OpenAI server-side after retrieving curated biblical wisdom sources.
 
 The database adapter creates required tables and seeds the curated wisdom entries automatically on first API access. For Railway, set the same variables in the service's Variables tab and redeploy.
