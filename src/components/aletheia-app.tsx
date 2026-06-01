@@ -1630,6 +1630,7 @@ function AvatarCircle({
       width={size}
       height={size}
       className={className}
+      style={{ width: size, height: size }}
       unoptimized
       onError={(event) => {
         const currentTarget = event.currentTarget;
@@ -8757,11 +8758,13 @@ function AvatarPickerModal({
     return null;
   }
 
+  const normalizedCurrent = normalizeAvatarUrl(currentAvatar) ?? "";
+
   const surpriseAvatar = () => {
     if (!curatedAvatarOptions.length) {
       return;
     }
-    const candidates = curatedAvatarOptions.filter((option) => option.src !== currentAvatar);
+    const candidates = curatedAvatarOptions.filter((option) => (normalizeAvatarUrl(option.src) ?? option.src) !== normalizedCurrent);
     const pool = candidates.length ? candidates : curatedAvatarOptions;
     const choice = pool[Math.floor(Math.random() * pool.length)];
     if (choice) {
@@ -8802,7 +8805,7 @@ function AvatarPickerModal({
 
         <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
           {curatedAvatarOptions.map((option) => {
-            const selected = currentAvatar === option.src;
+            const selected = (normalizeAvatarUrl(option.src) ?? option.src) === normalizedCurrent;
             return (
               <button
                 key={option.id}
@@ -8838,11 +8841,15 @@ function AvatarPickerModal({
 function AvatarUploadTipsModal({
   theme,
   open,
+  optOut,
+  onOptOutChange,
   onClose,
   onContinue,
 }: {
   theme: ThemeColors;
   open: boolean;
+  optOut: boolean;
+  onOptOutChange: (optOut: boolean) => void;
   onClose: () => void;
   onContinue: () => void;
 }) {
@@ -8880,6 +8887,16 @@ function AvatarUploadTipsModal({
             <li>After choosing, tap Save avatar to apply it across signed-in devices.</li>
           </ul>
         </div>
+
+        <label className="mt-3 flex items-start gap-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
+          <input
+            type="checkbox"
+            checked={optOut}
+            onChange={(event) => onOptOutChange(event.target.checked)}
+            className="mt-1"
+          />
+          <span>Do not show these tips before choosing a photo.</span>
+        </label>
 
         <div className="mt-4 flex flex-wrap justify-end gap-2">
           <button
@@ -8985,14 +9002,14 @@ function AvatarStudioCard({
   const [avatarDraftStatus, setAvatarDraftStatus] = useState("");
   const [avatarPickerOpen, setAvatarPickerOpen] = useState(false);
   const [avatarTipsOpen, setAvatarTipsOpen] = useState(false);
-  const [avatarTipsSeen, setAvatarTipsSeen] = useState(false);
+  const [avatarTipsOptOut, setAvatarTipsOptOut] = useState(false);
   const [lastChangedAt, setLastChangedAt] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     window.setTimeout(() => {
       try {
-        setAvatarTipsSeen(window.localStorage.getItem("aletheia_avatar_tips_seen") === "yes");
+        setAvatarTipsOptOut(window.localStorage.getItem("aletheia_avatar_tips_opt_out") === "yes");
       } catch {
         // Tips can still display during this session if storage is unavailable.
       }
@@ -9001,15 +9018,15 @@ function AvatarStudioCard({
 
   useEffect(() => {
     window.setTimeout(() => {
-      setAvatarDraft(user?.avatarUrl ?? "");
+      setAvatarDraft(normalizeAvatarUrl(user?.avatarUrl ?? "") ?? "");
       setAvatarDraftStatus("");
     }, 0);
   }, [user?.avatarUrl]);
 
-  const markAvatarTipsSeen = useCallback(() => {
-    setAvatarTipsSeen(true);
+  const setAvatarTipsPreference = useCallback((optOut: boolean) => {
+    setAvatarTipsOptOut(optOut);
     try {
-      window.localStorage.setItem("aletheia_avatar_tips_seen", "yes");
+      window.localStorage.setItem("aletheia_avatar_tips_opt_out", optOut ? "yes" : "no");
     } catch {
       // Continue even if local storage is unavailable.
     }
@@ -9080,7 +9097,9 @@ function AvatarStudioCard({
 
   const avatarSeed = user.id ?? user.email;
   const avatarLabel = user.name || user.email;
-  const hasAvatarChanges = (avatarDraft ?? "") !== (user.avatarUrl ?? "");
+  const canonicalDraft = normalizeAvatarUrl(avatarDraft ?? "") ?? "";
+  const canonicalSaved = normalizeAvatarUrl(user.avatarUrl ?? "") ?? "";
+  const hasAvatarChanges = canonicalDraft !== canonicalSaved;
 
   return (
     <section className="rounded-xl border p-4 shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
@@ -9129,16 +9148,13 @@ function AvatarStudioCard({
             {avatarDraftStatus}
           </p>
         ) : null}
-        <p className="mb-2 text-xs leading-5" style={{ color: theme.textSecondary }}>
-          Supported: PNG, JPEG, WEBP up to 10MB. Use Photo tips for guidance.
-        </p>
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
             className="h-11 rounded-md border px-4 text-sm font-semibold"
             style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
             onClick={() => {
-              if (avatarTipsSeen) {
+              if (avatarTipsOptOut) {
                 fileInputRef.current?.click();
                 return;
               }
@@ -9148,26 +9164,17 @@ function AvatarStudioCard({
           >
             Choose photo
           </button>
-          <button
-            type="button"
-            className="h-11 rounded-md border px-4 text-sm font-semibold"
-            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-            onClick={() => setAvatarTipsOpen(true)}
-            disabled={savingAvatar}
-          >
-            Photo tips
-          </button>
           <button type="button" className="h-11 rounded-md border px-4 text-sm font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={() => setAvatarPickerOpen(true)} disabled={savingAvatar}>Pick fun avatar</button>
           <button
             type="button"
             className="h-11 rounded-md border px-4 text-sm font-semibold"
             style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
             onClick={() => {
-              const available = curatedAvatarOptions.filter((option) => option.src !== avatarDraft);
+              const available = curatedAvatarOptions.filter((option) => (normalizeAvatarUrl(option.src) ?? option.src) !== canonicalDraft);
               const pool = available.length ? available : curatedAvatarOptions;
               const picked = pool[Math.floor(Math.random() * pool.length)];
               if (picked) {
-                setAvatarDraft(picked.src);
+                setAvatarDraft(normalizeAvatarUrl(picked.src) ?? picked.src);
                 setAvatarDraftStatus("Surprise avatar selected. Save to apply.");
               }
             }}
@@ -9190,7 +9197,7 @@ function AvatarStudioCard({
         currentAvatar={avatarDraft}
         onClose={() => setAvatarPickerOpen(false)}
         onPick={(avatarSrc) => {
-          setAvatarDraft(avatarSrc);
+          setAvatarDraft(normalizeAvatarUrl(avatarSrc) ?? avatarSrc);
           setAvatarDraftStatus("Avatar selected. Save to apply.");
           setAvatarPickerOpen(false);
         }}
@@ -9198,9 +9205,10 @@ function AvatarStudioCard({
       <AvatarUploadTipsModal
         theme={theme}
         open={avatarTipsOpen}
+        optOut={avatarTipsOptOut}
+        onOptOutChange={setAvatarTipsPreference}
         onClose={() => setAvatarTipsOpen(false)}
         onContinue={() => {
-          markAvatarTipsSeen();
           setAvatarTipsOpen(false);
           fileInputRef.current?.click();
         }}
