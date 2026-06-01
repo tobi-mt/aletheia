@@ -221,7 +221,7 @@ export function defaultAvatarDataUrl(seed: string, label: string) {
       <stop offset='100%' stop-color='${bgTwo}'/>
     </linearGradient>
   </defs>
-  <rect width='96' height='96' rx='24' fill='url(#g)'/>
+  <circle cx='48' cy='48' r='48' fill='url(#g)'/>
   <text x='50%' y='54%' dominant-baseline='middle' text-anchor='middle' fill='white' font-size='34' font-family='system-ui, -apple-system, Segoe UI, sans-serif' font-weight='700'>${initials}</text>
 </svg>`;
 

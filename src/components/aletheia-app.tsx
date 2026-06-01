@@ -1624,23 +1624,27 @@ function AvatarCircle({
   const src = normalizeAvatarUrl(avatarUrl ?? "") ?? fallback;
 
   return (
-    <Image
-      src={src}
-      alt={label}
-      width={size}
-      height={size}
-      className={className}
-      style={{ width: size, height: size }}
-      unoptimized
-      onError={(event) => {
-        const currentTarget = event.currentTarget;
-        if (currentTarget.src !== fallback) {
-          currentTarget.src = fallback;
-        }
-      }}
-      loading="lazy"
-      referrerPolicy="no-referrer"
-    />
+    <div
+      className={`relative inline-flex shrink-0 overflow-hidden rounded-full ${className ?? ""}`.trim()}
+      style={{ width: size, height: size, minWidth: size, minHeight: size, borderRadius: "9999px" }}
+    >
+      <Image
+        src={src}
+        alt={label}
+        fill
+        sizes={`${size}px`}
+        className="h-full w-full object-cover"
+        unoptimized
+        onError={(event) => {
+          const currentTarget = event.currentTarget;
+          if (currentTarget.src !== fallback) {
+            currentTarget.src = fallback;
+          }
+        }}
+        loading="lazy"
+        referrerPolicy="no-referrer"
+      />
+    </div>
   );
 }
 
@@ -3872,7 +3876,7 @@ export function AletheiaApp() {
     async function loadSession() {
       // authStatus is already "checking" from initial state - no need to set it again
       const [response, providersResponse] = await Promise.all([
-        fetch("/api/auth/me"),
+        fetch("/api/auth/me", { cache: "no-store" }),
         fetch("/api/auth/providers").catch(() => null),
       ]);
       if (providersResponse?.ok) {
@@ -5158,6 +5162,25 @@ export function AletheiaApp() {
 
     const updatedUser: User = data.user;
     setUser((current) => (current ? { ...current, ...updatedUser, avatarUrl: updatedUser.avatarUrl ?? null } : updatedUser));
+
+    // Refresh from authoritative session state so all cards reflect the same avatar immediately.
+    try {
+      const meResponse = await fetch("/api/auth/me", { cache: "no-store" });
+      if (meResponse.ok) {
+        const meData = (await meResponse.json()) as { user?: User | null };
+        if (meData.user) {
+          const refreshedUser = meData.user;
+          setUser((current) =>
+            current
+              ? { ...current, ...refreshedUser, avatarUrl: refreshedUser.avatarUrl ?? null }
+              : refreshedUser
+          );
+        }
+      }
+    } catch {
+      // Keep optimistic avatar update if refresh fails.
+    }
+
     announceWorkflow(ts('notifications.profileUpdated', 'Profile updated'), ts('notifications.profileUpdatedBody', 'Profile picture updated.'), "success");
   }
 
