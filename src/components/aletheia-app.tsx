@@ -3136,6 +3136,7 @@ export function AletheiaApp() {
   const [answerFocusId, setAnswerFocusId] = useState<string | null>(null);
   const [ruleText, setRuleText] = useState("");
   const [pendingNotificationFocus, setPendingNotificationFocus] = useState(false);
+  const [pendingDecisionNotificationFocus, setPendingDecisionNotificationFocus] = useState<string | null>(null);
 
   useEffect(() => {
     window.setTimeout(() => {
@@ -3164,8 +3165,7 @@ export function AletheiaApp() {
   useEffect(() => {
     const restoreId = window.requestAnimationFrame(() => {
       const params = new URLSearchParams(window.location.search);
-      const shouldHonorNotificationFocus =
-        params.get("source") === "notification" && params.get("focus") === "today";
+      const shouldHonorNotificationFocus = params.get("source") === "notification";
       setPreferences(storedPreferences());
       setManualContext(storedManualContext());
       setThemePreference(storedThemePreference());
@@ -3594,18 +3594,34 @@ export function AletheiaApp() {
     }
 
     const params = new URLSearchParams(window.location.search);
-    if (params.get("source") !== "notification" || params.get("focus") !== "today") {
+    if (params.get("source") !== "notification") {
+      return;
+    }
+    const focus = params.get("focus");
+    const decisionId = params.get("decisionId");
+    if (focus !== "today" && !(focus === "decision" && decisionId)) {
       return;
     }
 
     notificationFocusHandledRef.current = true;
     window.requestAnimationFrame(() => {
       setShowOnboarding(false);
-      setActiveView("companion", "notification_click");
-      setStatusMessage(ts('status.todayWisdomReady', "Today's wisdom is ready."));
-      announceWorkflow(ts('notifications.todayWisdomReady', "Today's wisdom is ready"), ts('notifications.todayWisdomReadyBody', 'Aletheia opened the daily companion card for you.'), "success");
+      if (focus === "decision" && decisionId) {
+        setActiveView("decisions", "notification_click");
+        setStatusMessage(ts('status.decisionReminderReady', "Your decision reminder is ready."));
+        announceWorkflow(
+          ts('notifications.decisionReminderReady', "Decision reminder ready"),
+          ts('notifications.decisionReminderReadyBody', "Aletheia opened the decision this reminder is about."),
+          "success"
+        );
+        setPendingDecisionNotificationFocus(decisionId);
+      } else {
+        setActiveView("companion", "notification_click");
+        setStatusMessage(ts('status.todayWisdomReady', "Today's wisdom is ready."));
+        announceWorkflow(ts('notifications.todayWisdomReady', "Today's wisdom is ready"), ts('notifications.todayWisdomReadyBody', 'Aletheia opened the daily companion card for you.'), "success");
+        setPendingNotificationFocus(true);
+      }
       window.history.replaceState({}, "", window.location.pathname);
-      setPendingNotificationFocus(true);
     });
   }, [announceWorkflow, clientStateRestored, setActiveView, ts]);
 
@@ -3645,6 +3661,43 @@ export function AletheiaApp() {
       timers.forEach((timer) => window.clearTimeout(timer));
     };
   }, [activeView, pendingNotificationFocus, showOnboarding]);
+
+  useEffect(() => {
+    if (!pendingDecisionNotificationFocus || activeView !== "decisions" || showOnboarding) {
+      return;
+    }
+
+    let settled = false;
+    const focusDecisionCard = () => {
+      const target = document.getElementById(`decision-card-${pendingDecisionNotificationFocus}`);
+      if (!target) {
+        return false;
+      }
+      const topNav = document.querySelector(".app-top-nav");
+      const topOffset = topNav instanceof HTMLElement ? topNav.getBoundingClientRect().height + 18 : 112;
+      const top = Math.max(0, window.scrollY + target.getBoundingClientRect().top - topOffset);
+      target.focus({ preventScroll: true });
+      window.scrollTo({ top, behavior: "smooth" });
+      return true;
+    };
+
+    const timers = [0, 180, 720, 1400, 2600, 3600, 5200].map((delay) =>
+      window.setTimeout(() => {
+        if (settled) {
+          return;
+        }
+        const focused = focusDecisionCard();
+        if (focused && delay >= 1400) {
+          settled = true;
+        }
+      }, delay)
+    );
+
+    return () => {
+      settled = true;
+      timers.forEach((timer) => window.clearTimeout(timer));
+    };
+  }, [activeView, pendingDecisionNotificationFocus, showOnboarding]);
 
   useEffect(() => {
     const nav = bottomNavRef.current;
@@ -4078,8 +4131,16 @@ export function AletheiaApp() {
               .then((registration) => registration?.pushManager.getSubscription())
               .catch(() => null)
           : null;
+      let localSubscriptionUsesCurrentKey = true;
+      if (localSubscription && data.configured) {
+        const keyResponse = await fetch("/api/notifications/key", { cache: "no-store" }).catch(() => null);
+        const keyData = keyResponse?.ok ? ((await keyResponse.json()) as { publicKey?: string }) : {};
+        localSubscriptionUsesCurrentKey = keyData.publicKey
+          ? pushSubscriptionUsesPublicKey(localSubscription, keyData.publicKey)
+          : true;
+      }
       setNotificationsConfigured(Boolean(data.configured));
-      setNotificationsEnabled(Boolean(data.enabled && localSubscription));
+      setNotificationsEnabled(Boolean(data.enabled && localSubscription && localSubscriptionUsesCurrentKey));
       setNotificationTiming((current) => {
         const useDeviceTimezone = shouldFallbackToBrowserTimezone(
           data.preferredTimezone,
@@ -4110,8 +4171,10 @@ export function AletheiaApp() {
         setNotificationStatus("Notifications need VAPID keys before they can be enabled.");
       } else if (!user) {
         setNotificationStatus("Sign in to enable daily wisdom notifications.");
-      } else if (data.enabled && localSubscription) {
+      } else if (data.enabled && localSubscription && localSubscriptionUsesCurrentKey) {
         setNotificationStatus("Daily wisdom notifications are enabled.");
+      } else if (data.enabled && localSubscription && !localSubscriptionUsesCurrentKey) {
+        setNotificationStatus("Notifications need to be re-enabled on this device.");
       } else if (data.enabled) {
         setNotificationStatus("Notifications are enabled on your account. Enable them on this device too.");
       } else if (data.timingConfigured || Notification.permission === "granted") {
@@ -5227,6 +5290,10 @@ export function AletheiaApp() {
 
       const registration = await getReliableServiceWorkerRegistration();
       let subscription = await registration.pushManager.getSubscription();
+      if (subscription && !pushSubscriptionUsesPublicKey(subscription, keyData.publicKey)) {
+        await subscription.unsubscribe();
+        subscription = null;
+      }
       if (!subscription) {
         subscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,
@@ -5238,7 +5305,8 @@ export function AletheiaApp() {
         ? browserTimezone()
         : (notificationTiming.preferredTimezone || browserTimezone());
       const preferredHour = localHourToUtcHour(preferredLocalHour);
-      const response = await saveNotificationSubscription(subscription, {        ...notificationTiming,
+      const response = await saveNotificationSubscription(subscription, {
+        ...notificationTiming,
         preferredLocalHour,
         preferredTimezone,
       }, preferredHour);
@@ -6302,6 +6370,7 @@ export function AletheiaApp() {
                   mode={mode}
                   modeProfile={activeMode}
                   decisions={wisdomDecisions}
+                  focusedDecisionId={pendingDecisionNotificationFocus}
                   events={decisionEvents}
                   insight={timelineInsight}
                   counselContacts={counselContacts}
@@ -6924,6 +6993,23 @@ function urlBase64ToUint8Array(value: string) {
   const base64 = (value + padding).replace(/-/g, "+").replace(/_/g, "/");
   const rawData = window.atob(base64);
   return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0)));
+}
+
+function uint8ArrayToUrlBase64(value: ArrayBuffer | Uint8Array | null | undefined) {
+  if (!value) {
+    return "";
+  }
+  const bytes = value instanceof Uint8Array ? value : new Uint8Array(value);
+  let binary = "";
+  bytes.forEach((byte) => {
+    binary += String.fromCharCode(byte);
+  });
+  return window.btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+function pushSubscriptionUsesPublicKey(subscription: PushSubscription, publicKey: string) {
+  const options = subscription.options as PushSubscriptionOptions & { applicationServerKey?: ArrayBuffer | null };
+  return uint8ArrayToUrlBase64(options.applicationServerKey) === publicKey.replace(/=+$/, "");
 }
 
 function OnboardingModal({
@@ -11000,6 +11086,7 @@ function DecisionCompanionPanel({
   mode,
   modeProfile,
   decisions,
+  focusedDecisionId,
   events,
   insight,
   counselContacts,
@@ -11051,6 +11138,7 @@ function DecisionCompanionPanel({
   mode: Mode;
   modeProfile: DisplayModeProfile;
   decisions: WisdomDecision[];
+  focusedDecisionId: string | null;
   events: DecisionEvent[];
   insight: TimelineInsight;
   counselContacts: CounselContact[];
@@ -11257,10 +11345,10 @@ function DecisionCompanionPanel({
           </section>
         </DisclosureSection>
 
-        <DisclosureSection title={ts('labels.decisionArchiveReadiness', 'Decision archive and readiness details')} summary={decisions.length ? `${decisions.length} ${ts('labels.decisionsSavedOpenFullList', 'decisions saved. Open when you want the full list.')}` : ts('labels.noDecisionMemoryYet', 'No decision memory yet. Start one above when pressure needs time and counsel.')} eyebrow={ts('labels.decisionMemory', 'Decision memory')} defaultOpen={decisions.length > 0 && decisions.length < 2} compactCollapsed showDetailsLabel={ts('showDetails', 'Show details')} hideDetailsLabel={ts('hideDetails', 'Hide details')} theme={theme}>
+        <DisclosureSection title={ts('labels.decisionArchiveReadiness', 'Decision archive and readiness details')} summary={decisions.length ? `${decisions.length} ${ts('labels.decisionsSavedOpenFullList', 'decisions saved. Open when you want the full list.')}` : ts('labels.noDecisionMemoryYet', 'No decision memory yet. Start one above when pressure needs time and counsel.')} eyebrow={ts('labels.decisionMemory', 'Decision memory')} defaultOpen={Boolean(focusedDecisionId) || (decisions.length > 0 && decisions.length < 2)} compactCollapsed showDetailsLabel={ts('showDetails', 'Show details')} hideDetailsLabel={ts('hideDetails', 'Hide details')} theme={theme}>
         <section className="space-y-3">
           {decisions.map((decision) => (
-            <DecisionCard key={decision.id} decision={decision} modeProfile={modeProfiles[decision.mode]} modeLabel={ts(modeTranslationKey(decision.mode), decision.mode)} onUpdate={onUpdateDecision} onDelete={onDeleteDecision} theme={theme} ts={ts} />
+            <DecisionCard key={decision.id} decision={decision} highlighted={decision.id === focusedDecisionId} modeProfile={modeProfiles[decision.mode]} modeLabel={ts(modeTranslationKey(decision.mode), decision.mode)} onUpdate={onUpdateDecision} onDelete={onDeleteDecision} theme={theme} ts={ts} />
           ))}
           {!decisions.length ? (
             <div className="rounded-xl border border-dashed p-6 text-sm leading-6" style={{ borderColor: theme.borderMedium, color: theme.textSecondary }}>
@@ -11707,6 +11795,7 @@ function PermissionToggle({
 
 function DecisionCard({
   decision,
+  highlighted = false,
   modeProfile,
   modeLabel,
   onUpdate,
@@ -11715,6 +11804,7 @@ function DecisionCard({
   ts,
 }: {
   decision: WisdomDecision;
+  highlighted?: boolean;
   modeProfile: ModeProfile;
   modeLabel: string;
   onUpdate: (
@@ -11740,7 +11830,16 @@ function DecisionCard({
   const revisitText = revisit ? `Revisit ${revisit.toLocaleDateString()}` : null;
   const outcomeText = outcomeReview ? `Outcome review ${outcomeReview.toLocaleDateString()}` : null;
   return (
-    <article className="rounded-xl border p-4 shadow-sm sm:p-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+    <article
+      id={`decision-card-${decision.id}`}
+      tabIndex={-1}
+      className="rounded-xl border p-4 shadow-sm outline-none sm:p-5"
+      style={{
+        borderColor: highlighted ? theme.accentGold : theme.borderLight,
+        backgroundColor: highlighted ? theme.bgCardElevated : theme.bgCard,
+        boxShadow: highlighted ? `0 0 0 2px ${theme.accentGold}33` : undefined,
+      }}
+    >
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div className="flex-1">
           <div className="flex flex-wrap items-center gap-2">

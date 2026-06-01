@@ -230,8 +230,10 @@ function followupNotificationPayload(reminder: DueDecisionReminder) {
   return {
     title,
     body: compactNotificationCopy(body, 140),
-    url: "/?source=notification&focus=today",
+    url: `/?source=notification&focus=decision&decisionId=${encodeURIComponent(reminder.decisionId)}&kind=${reminder.kind}`,
     tag: `aletheia-decision-${reminder.kind}-${reminder.decisionId}`,
+    decisionId: reminder.decisionId,
+    reminderKind: reminder.kind,
   };
 }
 
@@ -564,7 +566,7 @@ export async function sendTestWisdomNotification(userId: string) {
       JSON.stringify({
         title: "Aletheia test",
         body: "Your daily wisdom notifications can reach this device.",
-        url: "/",
+        url: "/?source=notification&focus=today",
         scripture: "Proverbs 3:5-6",
         test: true,
       }),

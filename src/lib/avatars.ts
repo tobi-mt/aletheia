@@ -38,6 +38,17 @@ function isSafeCuratedAvatarSvgDataUrl(value: string) {
   return true;
 }
 
+function normalizeCuratedAvatarSvgDataUrl(value: string) {
+  if (!value.startsWith(SAFE_DATA_SVG_PREFIX) || value.length > MAX_AVATAR_SVG_DATA_URL_LENGTH) {
+    return null;
+  }
+
+  const encoded = value.slice(SAFE_DATA_SVG_PREFIX.length);
+  const decoded = safeDecodeURIComponent(encoded).trim();
+  const canonical = `${SAFE_DATA_SVG_PREFIX}${encodeURIComponent(decoded)}`;
+  return isSafeCuratedAvatarSvgDataUrl(canonical) ? canonical : null;
+}
+
 function safeDecodeURIComponent(value: string) {
   try {
     return decodeURIComponent(value);
@@ -73,13 +84,18 @@ export function normalizeAvatarUrl(value: unknown): string | null {
     return null;
   }
 
-  const trimmed = safeDecodeURIComponent(value.trim());
+  const trimmed = value.trim();
   if (!trimmed) {
     return null;
   }
 
-  if (isSafeRasterAvatarDataUrl(trimmed) || isSafeCuratedAvatarSvgDataUrl(trimmed)) {
+  if (isSafeRasterAvatarDataUrl(trimmed)) {
     return trimmed;
+  }
+
+  const curatedAvatar = normalizeCuratedAvatarSvgDataUrl(trimmed);
+  if (curatedAvatar) {
+    return curatedAvatar;
   }
 
   if (trimmed.length > MAX_AVATAR_URL_LENGTH) {

@@ -1,4 +1,4 @@
-const CACHE_NAME = "aletheia-v21";
+const CACHE_NAME = "aletheia-v22";
 const APP_SHELL = [
   "/",
   "/manifest.webmanifest",
@@ -94,6 +94,8 @@ self.addEventListener("push", (event) => {
     data: {
       url: data.url || "/",
       scripture: data.scripture,
+      decisionId: data.decisionId || null,
+      reminderKind: data.reminderKind || null,
     },
   };
 
@@ -103,6 +105,7 @@ self.addEventListener("push", (event) => {
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   const url = event.notification.data?.url || "/";
+  const targetUrl = new URL(url, self.location.origin).href;
 
   event.waitUntil(
     Promise.allSettled([
@@ -116,18 +119,20 @@ self.addEventListener("notificationclick", (event) => {
           metadata: {
             tag: event.notification.tag || null,
             scripture: event.notification.data?.scripture || null,
+            decisionId: event.notification.data?.decisionId || null,
+            reminderKind: event.notification.data?.reminderKind || null,
           },
         }),
       }),
       self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
       for (const client of clients) {
         if ("focus" in client) {
-          client.navigate(url);
+          client.navigate(targetUrl);
           return client.focus();
         }
       }
 
-      return self.clients.openWindow(url);
+      return self.clients.openWindow(targetUrl);
       }),
     ])
   );
