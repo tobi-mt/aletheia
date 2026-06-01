@@ -3083,6 +3083,8 @@ export function AletheiaApp() {
   const [statusMessage, setStatusMessage] = useState("Checking your sign-in status...");
   const [workflowNotice, setWorkflowNotice] = useState<WorkflowNoticeState | null>(null);
   const [notificationStatus, setNotificationStatus] = useState("Checking notification support...");
+  const [notificationAccountEnabled, setNotificationAccountEnabled] = useState(false);
+  const [notificationDeviceSubscribed, setNotificationDeviceSubscribed] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [notificationsConfigured, setNotificationsConfigured] = useState(false);
   const [isRefreshingForUpdate, setIsRefreshingForUpdate] = useState(false);
@@ -3599,7 +3601,7 @@ export function AletheiaApp() {
     }
     const focus = params.get("focus");
     const decisionId = params.get("decisionId");
-    if (focus !== "today" && !(focus === "decision" && decisionId)) {
+    if (focus !== "today" && focus !== "reflect" && focus !== "library" && !(focus === "decision" && decisionId)) {
       return;
     }
 
@@ -3615,6 +3617,22 @@ export function AletheiaApp() {
           "success"
         );
         setPendingDecisionNotificationFocus(decisionId);
+      } else if (focus === "reflect") {
+        setActiveView("reflect", "notification_click");
+        setStatusMessage(ts('status.reflectionReminderReady', "Your reflection prompt is ready."));
+        announceWorkflow(
+          ts('notifications.reflectionReminderReady', "Reflection prompt ready"),
+          ts('notifications.reflectionReminderReadyBody', "Aletheia opened Reflect so you can respond quietly."),
+          "success"
+        );
+      } else if (focus === "library") {
+        setActiveView("library", "notification_click");
+        setStatusMessage(ts('status.libraryWisdomReady', "A wisdom anchor is ready."));
+        announceWorkflow(
+          ts('notifications.libraryWisdomReady', "Wisdom anchor ready"),
+          ts('notifications.libraryWisdomReadyBody', "Aletheia opened the Library so you can read the scripture context."),
+          "success"
+        );
       } else {
         setActiveView("companion", "notification_click");
         setStatusMessage(ts('status.todayWisdomReady', "Today's wisdom is ready."));
@@ -4139,8 +4157,12 @@ export function AletheiaApp() {
           ? pushSubscriptionUsesPublicKey(localSubscription, keyData.publicKey)
           : true;
       }
+      const accountEnabled = Boolean(data.enabled);
+      const deviceSubscribed = Boolean(localSubscription && localSubscriptionUsesCurrentKey);
       setNotificationsConfigured(Boolean(data.configured));
-      setNotificationsEnabled(Boolean(data.enabled && localSubscription && localSubscriptionUsesCurrentKey));
+      setNotificationAccountEnabled(accountEnabled);
+      setNotificationDeviceSubscribed(deviceSubscribed);
+      setNotificationsEnabled(Boolean(accountEnabled && deviceSubscribed));
       setNotificationTiming((current) => {
         const useDeviceTimezone = shouldFallbackToBrowserTimezone(
           data.preferredTimezone,
@@ -4171,11 +4193,11 @@ export function AletheiaApp() {
         setNotificationStatus("Notifications need VAPID keys before they can be enabled.");
       } else if (!user) {
         setNotificationStatus("Sign in to enable daily wisdom notifications.");
-      } else if (data.enabled && localSubscription && localSubscriptionUsesCurrentKey) {
+      } else if (accountEnabled && deviceSubscribed) {
         setNotificationStatus("Daily wisdom notifications are enabled.");
-      } else if (data.enabled && localSubscription && !localSubscriptionUsesCurrentKey) {
+      } else if (accountEnabled && localSubscription && !localSubscriptionUsesCurrentKey) {
         setNotificationStatus("Notifications need to be re-enabled on this device.");
-      } else if (data.enabled) {
+      } else if (accountEnabled) {
         setNotificationStatus("Notifications are enabled on your account. Enable them on this device too.");
       } else if (data.timingConfigured || Notification.permission === "granted") {
         setNotificationStatus("Notifications need to be re-enabled on this device.");
@@ -4327,10 +4349,16 @@ export function AletheiaApp() {
 
   function updateThemePreference(nextTheme: ThemePreference) {
     setThemePreference(nextTheme);
+    setPreferencesStatus("Theme applied automatically.");
     trackClientEvent("theme_changed", {
       theme: nextTheme,
       previous_theme: themePreference,
     });
+  }
+
+  function updateVoicePreference(voiceURI: string | null) {
+    setSelectedVoice(voiceURI);
+    setPreferencesStatus(voiceURI ? "Voice preference applied on this device." : "Voice reset to device default.");
   }
 
   function openScripture(scripture: string) {
@@ -5195,7 +5223,7 @@ export function AletheiaApp() {
   async function updateProfileAvatar(avatarUrl: string) {
     if (!user) {
       announceWorkflow(ts('notifications.signInRequired'), ts('notifications.signInRequiredBody'), "warning");
-      return;
+      return false;
     }
 
     const rawAvatarUrl = avatarUrl.trim();
@@ -5205,7 +5233,7 @@ export function AletheiaApp() {
         "Use a valid image. You can upload from your gallery or keep the default avatar.",
         "warning"
       );
-      return;
+      return false;
     }
 
     const response = await fetch("/api/auth/profile", {
@@ -5216,11 +5244,11 @@ export function AletheiaApp() {
     const data = (await response.json()) as { user?: User; error?: string };
     if (!response.ok) {
       announceWorkflow("Profile update failed", data.error || "Could not update profile image.", "error");
-      return;
+      return false;
     }
     if (!data.user) {
       announceWorkflow("Profile update failed", "Could not update profile image.", "error");
-      return;
+      return false;
     }
 
     const updatedUser: User = data.user;
@@ -5245,6 +5273,7 @@ export function AletheiaApp() {
     }
 
     announceWorkflow(ts('notifications.profileUpdated', 'Profile updated'), ts('notifications.profileUpdatedBody', 'Profile picture updated.'), "success");
+    return true;
   }
 
   async function enableNotifications() {
@@ -5318,6 +5347,8 @@ export function AletheiaApp() {
       }
 
       setNotificationsEnabled(true);
+      setNotificationAccountEnabled(true);
+      setNotificationDeviceSubscribed(true);
       const nextTiming = normalizeNotificationTiming({
         ...notificationTiming,
         preferredLocalHour,
@@ -5330,6 +5361,7 @@ export function AletheiaApp() {
     } catch {
       trackClientEvent("notification_enable_failed", { reason: "client_exception" });
       setNotificationsEnabled(false);
+      setNotificationDeviceSubscribed(false);
       setNotificationStatus("Notifications could not be enabled on this device. Please try again.");
       announceWorkflow(ts('notifications.notificationSetupFailed'), ts('notifications.notificationSetupFailedBody'), "error");
     } finally {
@@ -5362,6 +5394,8 @@ export function AletheiaApp() {
       setNotificationBusy(false);
     }
     setNotificationsEnabled(false);
+    setNotificationAccountEnabled(false);
+    setNotificationDeviceSubscribed(false);
     trackClientEvent("notification_disabled", {
       hadPermission: notificationPermission === "granted",
       wasEnabled: true,
@@ -6493,6 +6527,8 @@ export function AletheiaApp() {
                   onThemePreferenceChange={updateThemePreference}
                   onManualContextChange={updateManualContext}
                   notificationsEnabled={notificationsEnabled}
+                  notificationAccountEnabled={notificationAccountEnabled}
+                  notificationDeviceSubscribed={notificationDeviceSubscribed}
                   notificationStatus={notificationStatus}
                   notificationBusy={notificationBusy}
                   notificationTiming={notificationTiming}
@@ -6507,7 +6543,7 @@ export function AletheiaApp() {
                   onShare={(channel, placement) => shareAletheia(channel, placement)}
                   availableVoices={availableVoices}
                   selectedVoice={selectedVoice}
-                  onVoiceChange={(voiceURI) => setSelectedVoice(voiceURI)}
+                  onVoiceChange={updateVoicePreference}
                   modeProfile={activeMode}
                   focusIntentions={focusIntentions}
                   onFocusIntentionsChange={updateFocusIntentions}
@@ -7630,6 +7666,8 @@ function AccountPanel({
   onThemePreferenceChange,
   onManualContextChange,
   notificationsEnabled,
+  notificationAccountEnabled,
+  notificationDeviceSubscribed,
   notificationStatus,
   notificationBusy,
   notificationTiming,
@@ -7670,7 +7708,7 @@ function AccountPanel({
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onGoogleSignIn: () => void;
   onLogout: () => void;
-  onUpdateProfileAvatar: (avatarUrl: string) => Promise<void>;
+  onUpdateProfileAvatar: (avatarUrl: string) => Promise<boolean>;
   preferences: UserPreferences;
   preferencesStatus: string;
   ui: (typeof uiText)[LanguageCode];
@@ -7681,6 +7719,8 @@ function AccountPanel({
   onThemePreferenceChange: (value: ThemePreference) => void;
   onManualContextChange: (patch: Partial<ManualContextProfile>) => void;
   notificationsEnabled: boolean;
+  notificationAccountEnabled: boolean;
+  notificationDeviceSubscribed: boolean;
   notificationStatus: string;
   notificationBusy: boolean;
   notificationTiming: NotificationTiming;
@@ -7744,6 +7784,15 @@ function AccountPanel({
     Boolean(manualContext.workHoursPerWeek || manualContext.workContext),
     Boolean(manualContext.sleepHours || manualContext.exerciseSessionsPerWeek || manualContext.healthContext),
   ].filter(Boolean).length;
+  const profileReadyItems = [
+    preferences.language ? ts('labels.language', 'language') : null,
+    preferences.bibleTranslation ? ts('labels.bible', 'Bible') : null,
+    themePreference ? ts('labels.theme', 'theme') : null,
+    notificationsEnabled ? ts('labels.notifications', 'notifications') : null,
+  ].filter(Boolean);
+  const profileReadyText = user
+    ? `Profile ready: ${profileReadyItems.join(", ")} set.`
+    : `Guest setup ready: ${profileReadyItems.join(", ")} set. Sign in to sync it.`;
 
   function jumpToCustomizationHub() {
     setCustomizationSectionOpen(true);
@@ -7775,6 +7824,11 @@ function AccountPanel({
           onJumpToCustomize={jumpToCustomizationHub}
         />
 
+        <div className="rounded-xl border px-4 py-3 text-sm leading-6 shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
+          <span className="font-semibold" style={{ color: theme.textPrimary }}>{profileReadyText}</span>
+          <span className="ml-2">{notificationsEnabled ? "This device is subscribed for daily wisdom." : notificationAccountEnabled ? "Notifications are account-enabled; this device still needs enabling." : "Notifications can be enabled when you are ready."}</span>
+        </div>
+
         <DisclosureSection
           title={user ? `${ts('labels.accountSignedInAs', text.accountSignedInAs ?? "Signed in as")} ${user.name || user.email}` : ts('labels.accountSignInOrGuest', text.accountSignInOrGuest ?? "Sign in or continue as guest")}
           summary={user ? `${ts('labels.accountSyncActive', text.accountSyncActive ?? "Sync active.")} ${notificationsEnabled ? text.notificationsEnabled : ts('labels.accountNotificationsNotEnabled', text.accountNotificationsNotEnabled ?? "Notifications not enabled yet.")}` : ts('labels.accountGuestSummary', text.accountGuestSummary ?? "Google and email sign-in keep history, preferences, decisions, and notifications portable.")}
@@ -7791,6 +7845,8 @@ function AccountPanel({
               user={user}
               authStatus={authStatus}
               notificationsEnabled={notificationsEnabled}
+              notificationAccountEnabled={notificationAccountEnabled}
+              notificationDeviceSubscribed={notificationDeviceSubscribed}
               notificationStatus={notificationStatus}
               onLogout={onLogout}
               ts={ts}
@@ -7841,6 +7897,8 @@ function AccountPanel({
             availableVoices={availableVoices}
             selectedVoice={selectedVoice}
             notificationsEnabled={notificationsEnabled}
+            notificationAccountEnabled={notificationAccountEnabled}
+            notificationDeviceSubscribed={notificationDeviceSubscribed}
             notificationBusy={notificationBusy}
             notificationStatus={notificationStatus}
             notificationTiming={notificationTiming}
@@ -8109,6 +8167,8 @@ function CustomizationHubCard({
   availableVoices,
   selectedVoice,
   notificationsEnabled,
+  notificationAccountEnabled,
+  notificationDeviceSubscribed,
   notificationBusy,
   notificationStatus,
   notificationTiming,
@@ -8129,6 +8189,8 @@ function CustomizationHubCard({
   availableVoices: SpeechSynthesisVoice[];
   selectedVoice: string | null;
   notificationsEnabled: boolean;
+  notificationAccountEnabled: boolean;
+  notificationDeviceSubscribed: boolean;
   notificationBusy: boolean;
   notificationStatus: string;
   notificationTiming: NotificationTiming;
@@ -8139,9 +8201,21 @@ function CustomizationHubCard({
   onNotificationTimingChange: (patch: Partial<NotificationTiming>) => void;
   onEnableNotifications: () => void;
   onDisableNotifications: () => void;
-  onUpdateProfileAvatar: (avatarUrl: string) => Promise<void>;
+  onUpdateProfileAvatar: (avatarUrl: string) => Promise<boolean>;
 }) {
   const themeOptions: ThemePreference[] = ["system", "classic", "dark", "black", "warm", "ocean", "forest", "sunset"];
+  const notificationHealthTitle = notificationsEnabled
+    ? "This device is subscribed"
+    : notificationAccountEnabled && !notificationDeviceSubscribed
+      ? "Account enabled, this device needs enabling"
+      : notificationAccountEnabled
+        ? "Notifications enabled on your account"
+        : "Notifications are off";
+  const notificationHealthBody = notificationsEnabled
+    ? "Daily wisdom can reach this device at your saved time."
+    : notificationAccountEnabled && !notificationDeviceSubscribed
+      ? "Your account has notifications on, but this browser/PWA needs a fresh device subscription."
+      : notificationStatus;
 
   return (
     <section id="account-customize" className="space-y-4">
@@ -8191,7 +8265,10 @@ function CustomizationHubCard({
 
         <div className="mt-4 rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
           <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{ts('labels.notificationTiming', 'Notification timing')}</p>
-          <p className="mt-1 text-xs leading-5" style={{ color: theme.textSecondary }}>{notificationStatus}</p>
+          <div className="mt-2 rounded-md border p-3" style={{ borderColor: notificationsEnabled ? theme.accentLight : theme.borderMedium, backgroundColor: theme.bgInput }}>
+            <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{notificationHealthTitle}</p>
+            <p className="mt-1 text-xs leading-5" style={{ color: theme.textSecondary }}>{notificationHealthBody}</p>
+          </div>
           <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
             <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
               {ts('labels.dailyTime', 'Daily time')}
@@ -8216,6 +8293,9 @@ function CustomizationHubCard({
               {notificationsEnabled ? ts('labels.turnOff', 'Turn off') : ts('labels.enableNotifications', 'Enable notifications')}
             </button>
           </div>
+          <p className="mt-2 text-xs leading-5" style={{ color: theme.textSecondary }}>
+            {ts('labels.autoApplySettings', 'Changes apply automatically. Aletheia confirms when they are saved.')}
+          </p>
         </div>
       </section>
 
@@ -8974,7 +9054,7 @@ function AvatarUploadTipsModal({
             <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>Photo tips</p>
             <h2 className="mt-2 text-xl font-semibold" style={{ color: theme.textPrimary }}>Upload a profile photo calmly</h2>
             <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
-              Aletheia keeps this simple. Use one clear photo and save once it previews correctly.
+              Aletheia keeps this simple. Use one clear photo and it applies as soon as it is ready.
             </p>
           </div>
           <button
@@ -8993,7 +9073,7 @@ function AvatarUploadTipsModal({
             <li>Supported formats: PNG, JPEG, WEBP.</li>
             <li>Maximum file size: 10MB.</li>
             <li>We auto-optimize to keep profile photos fast and consistent.</li>
-            <li>After choosing, tap Save avatar to apply it across signed-in devices.</li>
+            <li>After choosing, Aletheia applies it across signed-in devices.</li>
           </ul>
         </div>
 
@@ -9035,6 +9115,8 @@ function AccountStatusCard({
   user,
   authStatus,
   notificationsEnabled,
+  notificationAccountEnabled,
+  notificationDeviceSubscribed,
   notificationStatus,
   onLogout,
   ts,
@@ -9043,6 +9125,8 @@ function AccountStatusCard({
   user: User | null;
   authStatus: AuthStatus;
   notificationsEnabled: boolean;
+  notificationAccountEnabled: boolean;
+  notificationDeviceSubscribed: boolean;
   notificationStatus: string;
   onLogout: () => void;
   ts: (key: string, fallback?: string) => string;
@@ -9052,6 +9136,11 @@ function AccountStatusCard({
   const isReturning = (user?.loginCount ?? 0) > 1;
   const avatarSeed = user?.id ?? user?.email ?? "guest";
   const avatarLabel = user?.name || user?.email || "Guest";
+  const notificationHealth = notificationsEnabled
+    ? "This device is subscribed"
+    : notificationAccountEnabled && !notificationDeviceSubscribed
+      ? "Account enabled, this device not enabled"
+      : notificationStatus;
 
   return (
     <section className="rounded-xl border p-4 shadow-sm sm:p-5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
@@ -9091,7 +9180,7 @@ function AccountStatusCard({
       <div className="mt-4 grid gap-3 sm:grid-cols-3">
         <AccountSignal label="Sync" value={signedIn ? "Active" : "Guest only"} active={signedIn} theme={theme} />
         <AccountSignal label="Last synced" value={signedIn ? "This session" : "Not synced"} active={signedIn} theme={theme} />
-        <AccountSignal label="Notifications" value={notificationsEnabled ? "Enabled" : notificationStatus} active={notificationsEnabled} theme={theme} />
+        <AccountSignal label="Notifications" value={notificationHealth} active={notificationsEnabled} theme={theme} />
       </div>
     </section>
   );
@@ -9104,7 +9193,7 @@ function AvatarStudioCard({
 }: {
   theme: ThemeColors;
   user: User | null;
-  onUpdateProfileAvatar: (avatarUrl: string) => Promise<void>;
+  onUpdateProfileAvatar: (avatarUrl: string) => Promise<boolean>;
 }) {
   const [savingAvatar, setSavingAvatar] = useState(false);
   const [avatarDraft, setAvatarDraft] = useState(user?.avatarUrl ?? "");
@@ -9113,7 +9202,9 @@ function AvatarStudioCard({
   const [avatarTipsOpen, setAvatarTipsOpen] = useState(false);
   const [avatarTipsOptOut, setAvatarTipsOptOut] = useState(false);
   const [lastChangedAt, setLastChangedAt] = useState<string | null>(null);
+  const [avatarUndo, setAvatarUndo] = useState<{ previousAvatarUrl: string; label: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const avatarUndoTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
     window.setTimeout(() => {
@@ -9128,9 +9219,16 @@ function AvatarStudioCard({
   useEffect(() => {
     window.setTimeout(() => {
       setAvatarDraft(normalizeAvatarUrl(user?.avatarUrl ?? "") ?? "");
-      setAvatarDraftStatus("");
     }, 0);
   }, [user?.avatarUrl]);
+
+  useEffect(() => {
+    return () => {
+      if (avatarUndoTimeoutRef.current !== null) {
+        window.clearTimeout(avatarUndoTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const setAvatarTipsPreference = useCallback((optOut: boolean) => {
     setAvatarTipsOptOut(optOut);
@@ -9172,6 +9270,62 @@ function AvatarStudioCard({
     return normalized;
   }
 
+  async function applyAvatarChoice(
+    nextAvatarUrl: string,
+    pendingMessage: string,
+    successMessage = "Profile image updated.",
+    source: "curated" | "gallery" | "surprise" | "default" = "curated",
+    options: { allowUndo?: boolean } = {}
+  ) {
+    if (savingAvatar) {
+      return;
+    }
+
+    const normalized = normalizeAvatarUrl(nextAvatarUrl ?? "") ?? "";
+    const previousAvatarUrl = canonicalSaved;
+    if (nextAvatarUrl && !normalized) {
+      setAvatarDraftStatus("Use a valid image. You can upload from your gallery or keep the default avatar.");
+      return;
+    }
+
+    setAvatarDraft(normalized);
+    if (normalized === canonicalSaved) {
+      setAvatarDraftStatus(normalized ? "This avatar is already active." : "The default avatar is already active.");
+      return;
+    }
+
+    setSavingAvatar(true);
+    setAvatarDraftStatus(pendingMessage);
+    try {
+      const updated = await onUpdateProfileAvatar(normalized);
+      if (updated) {
+        setAvatarDraftStatus(successMessage);
+        setLastChangedAt(new Date().toISOString());
+        if (avatarUndoTimeoutRef.current !== null) {
+          window.clearTimeout(avatarUndoTimeoutRef.current);
+        }
+        if (options.allowUndo !== false && previousAvatarUrl !== normalized) {
+          setAvatarUndo({ previousAvatarUrl, label: successMessage.replace(/\.$/, "") });
+          avatarUndoTimeoutRef.current = window.setTimeout(() => {
+            setAvatarUndo(null);
+            avatarUndoTimeoutRef.current = null;
+          }, 6500);
+        }
+        trackClientEvent("avatar_updated", {
+          source,
+          hasAvatar: Boolean(normalized),
+          previousHadAvatar: Boolean(previousAvatarUrl),
+        });
+      } else {
+        setAvatarDraftStatus("Could not update the profile image. Please try again.");
+      }
+    } catch {
+      setAvatarDraftStatus("Could not update the profile image. Please try again.");
+    } finally {
+      setSavingAvatar(false);
+    }
+  }
+
   async function onAvatarFileSelected(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) {
@@ -9193,9 +9347,9 @@ function AvatarStudioCard({
     }
 
     try {
+      setAvatarDraftStatus("Preparing your photo...");
       const optimized = await optimizeAvatarFile(file);
-      setAvatarDraft(optimized);
-      setAvatarDraftStatus("Photo selected. Save to update your profile image.");
+      await applyAvatarChoice(optimized, "Applying your photo...", "Photo applied to your profile.", "gallery");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Could not process this image.";
       setAvatarDraftStatus(message);
@@ -9208,7 +9362,6 @@ function AvatarStudioCard({
   const avatarLabel = user.name || user.email;
   const canonicalDraft = normalizeAvatarUrl(avatarDraft ?? "") ?? "";
   const canonicalSaved = normalizeAvatarUrl(user.avatarUrl ?? "") ?? "";
-  const hasAvatarChanges = canonicalDraft !== canonicalSaved;
 
   return (
     <section className="rounded-xl border p-4 shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
@@ -9227,23 +9380,9 @@ function AvatarStudioCard({
           </span>
         ) : null}
       </div>
-      <form
+      <div
         className="mt-4 rounded-lg border p-3"
         style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}
-        onSubmit={async (event) => {
-          event.preventDefault();
-          if (savingAvatar || !hasAvatarChanges) {
-            return;
-          }
-          setSavingAvatar(true);
-          try {
-            await onUpdateProfileAvatar(avatarDraft);
-            setAvatarDraftStatus("Profile image updated.");
-            setLastChangedAt(new Date().toISOString());
-          } finally {
-            setSavingAvatar(false);
-          }
-        }}
       >
         <input
           ref={fileInputRef}
@@ -9256,6 +9395,30 @@ function AvatarStudioCard({
           <p className="mb-2 text-xs leading-5" style={{ color: theme.textSecondary }}>
             {avatarDraftStatus}
           </p>
+        ) : null}
+        {avatarUndo ? (
+          <div className="mb-3 flex flex-col gap-2 rounded-md border p-3 sm:flex-row sm:items-center sm:justify-between" style={{ borderColor: theme.accentLight, backgroundColor: theme.bgInput }}>
+            <p className="text-sm leading-5" style={{ color: theme.textPrimary }}>
+              {avatarUndo.label}. You can undo this for a moment.
+            </p>
+            <button
+              type="button"
+              className="h-9 rounded-md border px-3 text-sm font-semibold"
+              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textPrimary }}
+              disabled={savingAvatar}
+              onClick={() => {
+                const previousAvatarUrl = avatarUndo.previousAvatarUrl;
+                setAvatarUndo(null);
+                if (avatarUndoTimeoutRef.current !== null) {
+                  window.clearTimeout(avatarUndoTimeoutRef.current);
+                  avatarUndoTimeoutRef.current = null;
+                }
+                void applyAvatarChoice(previousAvatarUrl, "Restoring previous avatar...", "Previous avatar restored.", previousAvatarUrl ? "curated" : "default", { allowUndo: false });
+              }}
+            >
+              Undo
+            </button>
+          </div>
         ) : null}
         <div className="flex flex-wrap gap-2">
           <button
@@ -9283,8 +9446,7 @@ function AvatarStudioCard({
               const pool = available.length ? available : curatedAvatarOptions;
               const picked = pool[Math.floor(Math.random() * pool.length)];
               if (picked) {
-                setAvatarDraft(normalizeAvatarUrl(picked.src) ?? picked.src);
-                setAvatarDraftStatus("Surprise avatar selected. Save to apply.");
+                void applyAvatarChoice(normalizeAvatarUrl(picked.src) ?? picked.src, "Applying surprise avatar...", "Surprise avatar applied.", "surprise");
               }
             }}
             disabled={savingAvatar}
@@ -9292,12 +9454,15 @@ function AvatarStudioCard({
             Surprise me
           </button>
           <button type="button" className="h-11 rounded-md border px-4 text-sm font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={() => {
-            setAvatarDraft("");
-            setAvatarDraftStatus("Using default avatar. Save to apply.");
+            void applyAvatarChoice("", "Restoring default avatar...", "Default avatar applied.", "default");
           }} disabled={savingAvatar}>Use default</button>
-          <button type="submit" className="h-11 rounded-md px-4 text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }} disabled={savingAvatar || !hasAvatarChanges}>{savingAvatar ? "Saving..." : "Save avatar"}</button>
+          {savingAvatar ? (
+            <span className="flex h-11 items-center rounded-md px-4 text-sm font-semibold" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+              Applying...
+            </span>
+          ) : null}
         </div>
-      </form>
+      </div>
       <AvatarPickerModal
         theme={theme}
         open={avatarPickerOpen}
@@ -9306,9 +9471,8 @@ function AvatarStudioCard({
         currentAvatar={avatarDraft}
         onClose={() => setAvatarPickerOpen(false)}
         onPick={(avatarSrc) => {
-          setAvatarDraft(normalizeAvatarUrl(avatarSrc) ?? avatarSrc);
-          setAvatarDraftStatus("Avatar selected. Save to apply.");
           setAvatarPickerOpen(false);
+          void applyAvatarChoice(normalizeAvatarUrl(avatarSrc) ?? avatarSrc, "Applying avatar...", "Avatar applied to your profile.", "curated");
         }}
       />
       <AvatarUploadTipsModal

@@ -151,12 +151,10 @@ function dailyNotificationPayload(row: PushRow, wisdomEntries: Awaited<ReturnTyp
     ? (wisdom.theme as Mode)
     : "Money";
   const daily = localizedDailyWisdom(wisdom, dailyMode, preferences);
-  const body = buildDailyNotificationBody(
-    row.delivery_strategy,
-    daily.practice || daily.principle
-  );
+  const title = buildDailyNotificationTitle(daily.label, daily.principle, daily.theme);
+  const body = buildDailyNotificationBody(daily.practice, daily.scripture);
   return {
-    title: `${daily.label}: ${wisdom.theme}`,
+    title,
     body,
     url: "/?source=notification&focus=today",
     scripture: daily.scripture,
@@ -189,15 +187,18 @@ function compactNotificationCopy(copy: string, max = 140) {
   return `${cleaned.slice(0, Math.max(0, max - 1)).trimEnd()}…`;
 }
 
-function buildDailyNotificationBody(strategy: string | null, reflection: string) {
-  const prompt =
-    strategy === "evening"
-      ? "Close your day with this wisdom."
-      : strategy === "midday"
-        ? "Pause and reset your focus."
-        : "Begin with a grounded step.";
-  const content = compactNotificationCopy(reflection, 118);
-  return `${prompt} ${content}`;
+function buildDailyNotificationTitle(label: string, principle: string, theme: string) {
+  const cleanPrinciple = compactNotificationCopy(principle, 58);
+  return cleanPrinciple || `${label}: ${theme}`;
+}
+
+function buildDailyNotificationBody(practice: string, scripture: string) {
+  const cleanPractice = compactNotificationCopy(practice, 104);
+  const scriptureReference = compactNotificationCopy(scripture, 54);
+  if (!cleanPractice) {
+    return scriptureReference;
+  }
+  return compactNotificationCopy(`${cleanPractice} · ${scriptureReference}`, 165);
 }
 
 function selectReminderForUser(reminders: DueDecisionReminder[]) {
@@ -220,16 +221,16 @@ function followupNotificationPayload(reminder: DueDecisionReminder) {
   const trimmedTitle = reminder.title.replace(/\s+/g, " ").trim();
   const title =
     reminder.kind === "waiting"
-      ? "Waiting period complete"
-      : "Time to revisit your decision";
+      ? "Decision ready to revisit"
+      : "Decision check-in";
   const body =
     reminder.kind === "waiting"
-      ? `Your waiting period has ended for \"${trimmedTitle}\". Revisit with calm clarity.`
-      : `Your revisit time arrived for \"${trimmedTitle}\". Return and choose your next faithful step.`;
+      ? `“${compactNotificationCopy(trimmedTitle, 68)}” has had time to breathe. Reopen it and notice what changed.`
+      : `Return to “${compactNotificationCopy(trimmedTitle, 72)}”. What is clearer now than when you first carried it?`;
 
   return {
     title,
-    body: compactNotificationCopy(body, 140),
+    body: compactNotificationCopy(body, 156),
     url: `/?source=notification&focus=decision&decisionId=${encodeURIComponent(reminder.decisionId)}&kind=${reminder.kind}`,
     tag: `aletheia-decision-${reminder.kind}-${reminder.decisionId}`,
     decisionId: reminder.decisionId,
@@ -564,8 +565,8 @@ export async function sendTestWisdomNotification(userId: string) {
     rows,
     () =>
       JSON.stringify({
-        title: "Aletheia test",
-        body: "Your daily wisdom notifications can reach this device.",
+        title: "Aletheia notifications are ready",
+        body: "This device can receive daily wisdom and decision reminders.",
         url: "/?source=notification&focus=today",
         scripture: "Proverbs 3:5-6",
         test: true,

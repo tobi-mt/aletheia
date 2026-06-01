@@ -79,7 +79,7 @@ self.addEventListener("fetch", (event) => {
 self.addEventListener("push", (event) => {
   const fallback = {
     title: "Aletheia",
-    body: "A short wisdom reflection is ready.",
+    body: "A wisdom prompt is ready. Open Aletheia when you have a quiet moment.",
     url: "/?source=notification&focus=today",
   };
   const data = event.data ? event.data.json() : fallback;

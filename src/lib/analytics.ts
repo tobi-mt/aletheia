@@ -12,6 +12,7 @@ const ALLOWED_EVENTS = new Set([
   "answer_saved_or_acted",
   "answer_abandoned_after_generation",
   "app_shared",
+  "avatar_updated",
   "auth_signin_started",
   "auth_failure",
   "auth_email_login_success",
