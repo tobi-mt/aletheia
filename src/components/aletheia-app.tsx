@@ -2940,8 +2940,9 @@ function composeResponse(question: string, mode: Mode) {
   };
 }
 
-function todayWisdom() {
-  const dayNumber = Math.floor(Date.now() / 86400000);
+const STATIC_TODAY_DAY_NUMBER = 0;
+
+function todayWisdom(dayNumber = STATIC_TODAY_DAY_NUMBER) {
   const index = dayNumber % wisdomEntries.length;
   return wisdomEntries[index];
 }
@@ -3109,6 +3110,8 @@ export function AletheiaApp() {
   const [counselInviteStatus, setCounselInviteStatus] = useState("");
   const [counselRemovalPrompt, setCounselRemovalPrompt] = useState<CounselRemovalConfirmationState | null>(null);
   const [isRemovingCounselContact, setIsRemovingCounselContact] = useState(false);
+  const [currentLocalDayNumber, setCurrentLocalDayNumber] = useState<number | null>(null);
+  const [currentLocalHour, setCurrentLocalHour] = useState<number | null>(null);
   
   const [counselSummaryDraft, setCounselSummaryDraftState] = useState<CounselSummaryDraft | null>(null);
   
@@ -3164,6 +3167,8 @@ export function AletheiaApp() {
       setCarryToday(storedCarryToday());
       setSelectedVoice(storedVoicePreference());
       setNotificationTiming(storedNotificationTiming());
+      setCurrentLocalDayNumber(Math.floor(Date.now() / 86400000));
+      setCurrentLocalHour(new Date().getHours());
       setClientStateRestored(true);
 
       try {
@@ -3691,7 +3696,7 @@ export function AletheiaApp() {
     document.documentElement.style.setProperty("--aletheia-glass-edge", theme.bgNavBorder);
   }, [resolvedTheme, theme.bgMain, theme.bgNav, theme.bgNavBorder]);
 
-  const loadSignedInWorkspace = useCallback(async (signedInUser: User) => {
+  const loadSignedInWorkspace = useCallback(async () => {
     const [chatResponse, journalResponse, notificationResponse, decisionsResponse, counselResponse, rulesResponse, preferencesResponse, contextResponse] = await Promise.all([
       fetch("/api/chat"),
       fetch("/api/journal"),
@@ -3724,7 +3729,6 @@ export function AletheiaApp() {
     const preferencesData = (await preferencesResponse.json()) as { preferences?: UserPreferences };
     const contextData = (await contextResponse.json()) as { context?: ManualContextProfile };
 
-    setUser(signedInUser);
     setAuthStatus("signed-in");
     if (chatData.messages?.length) {
       setMessages([
@@ -3877,7 +3881,8 @@ export function AletheiaApp() {
       const params = new URLSearchParams(window.location.search);
 
       if (data.user) {
-        await loadSignedInWorkspace(data.user);
+        setUser(data.user);
+        await loadSignedInWorkspace();
         const firstName = data.user.name?.split(" ")[0] || data.user.email.split("@")[0];
         const signedInMessage =
           params.get("auth") === "google_new"
@@ -4192,7 +4197,7 @@ export function AletheiaApp() {
     return searchWisdom(librarySearch, mode, wisdomEntries.length);
   }, [librarySearch, mode]);
 
-  const dailyEntry = todayWisdom();
+  const dailyEntry = todayWisdom(currentLocalDayNumber ?? STATIC_TODAY_DAY_NUMBER);
   const dailyMode = modes.some((item) => item.label === dailyEntry.theme)
     ? (dailyEntry.theme as Mode)
     : mode;
@@ -5008,7 +5013,8 @@ export function AletheiaApp() {
         throw new Error(data.error ?? "Authentication failed.");
       }
       setAuthPassword("");
-      await loadSignedInWorkspace(data.user);
+      setUser(data.user);
+      await loadSignedInWorkspace();
       const firstName = data.user.name?.split(" ")[0] || data.user.email.split("@")[0];
       const successMessage =
         data.welcomeMessage ??
@@ -5139,12 +5145,17 @@ export function AletheiaApp() {
       body: JSON.stringify({ avatarUrl: rawAvatarUrl || null }),
     });
     const data = (await response.json()) as { user?: User; error?: string };
-    if (!response.ok || !data.user) {
+    if (!response.ok) {
       announceWorkflow("Profile update failed", data.error || "Could not update profile image.", "error");
       return;
     }
+    if (!data.user) {
+      announceWorkflow("Profile update failed", "Could not update profile image.", "error");
+      return;
+    }
 
-    setUser(data.user);
+    const updatedUser: User = data.user;
+    setUser((current) => (current ? { ...current, ...updatedUser, avatarUrl: updatedUser.avatarUrl ?? null } : updatedUser));
     announceWorkflow(ts('notifications.profileUpdated', 'Profile updated'), ts('notifications.profileUpdatedBody', 'Profile picture updated.'), "success");
   }
 
@@ -6201,6 +6212,7 @@ export function AletheiaApp() {
                 <HomeDashboard
                   daily={daily}
                   dailyEntry={dailyEntry}
+                  currentLocalHour={currentLocalHour}
                   activeDecision={activeDecision}
                   user={user}
                   ui={ui}
@@ -7108,6 +7120,7 @@ function OnboardingModal({
 function HomeDashboard({
   daily,
   dailyEntry,
+  currentLocalHour,
   activeDecision,
   user,
   ui,
@@ -7131,6 +7144,7 @@ function HomeDashboard({
 }: {
   daily: ReturnType<typeof localizedDailyWisdom>;
   dailyEntry: WisdomEntry;
+  currentLocalHour: number | null;
   activeDecision: WisdomDecision | null;
   user: User | null;
   ui: (typeof uiText)[LanguageCode];
@@ -7154,8 +7168,11 @@ function HomeDashboard({
 }) {
   const text = { ...uiText.en, ...ui };
   const greeting = useMemo(() => {
-    const now = new Date();
-    const hour = now.getHours();
+    if (currentLocalHour === null) {
+      return text.greetingFallback || "Welcome back";
+    }
+
+    const hour = currentLocalHour;
     const baseGreeting =
       hour < 12
         ? text.greetingMorning || "Good morning"
@@ -7164,8 +7181,8 @@ function HomeDashboard({
           : text.greetingEvening || "Good evening";
 
     const firstName = user?.name?.trim().split(/\s+/)[0] || "";
-            return firstName ? `${baseGreeting}, ${firstName}` : baseGreeting;
-  }, [text.greetingMorning, text.greetingAfternoon, text.greetingEvening, user?.name]);
+    return firstName ? `${baseGreeting}, ${firstName}` : baseGreeting;
+  }, [currentLocalHour, text.greetingAfternoon, text.greetingEvening, text.greetingFallback, text.greetingMorning, user?.name]);
 
   const primaryAction = activeDecision
     ? { label: text.continueDecision!, body: activeDecision.title, onClick: onContinueDecision, icon: Compass }
@@ -7397,6 +7414,9 @@ function DisclosureSection({
   title,
   summary,
   eyebrow,
+  sectionId,
+  isOpen,
+  onOpenChange,
   defaultOpen = false,
   compactCollapsed = false,
   showDetailsLabel = "Show details",
@@ -7407,6 +7427,9 @@ function DisclosureSection({
   title: string;
   summary?: string;
   eyebrow?: string;
+  sectionId?: string;
+  isOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
   defaultOpen?: boolean;
   compactCollapsed?: boolean;
   showDetailsLabel?: string;
@@ -7414,22 +7437,29 @@ function DisclosureSection({
   children: ReactNode;
   theme: ThemeColors;
 }) {
-  const [open, setOpen] = useState(defaultOpen);
+  const [internalOpen, setInternalOpen] = useState(defaultOpen);
+  const open = isOpen ?? internalOpen;
+  const setOpen = useCallback((next: boolean) => {
+    if (isOpen === undefined) {
+      setInternalOpen(next);
+    }
+    onOpenChange?.(next);
+  }, [isOpen, onOpenChange]);
   const useCompactClosedState = compactCollapsed && !open;
 
   return (
-    <section className="min-w-0 max-w-full overflow-hidden rounded-xl border shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+    <section id={sectionId} className="min-w-0 max-w-full overflow-hidden rounded-xl border shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
       <button
         type="button"
+        aria-expanded={open}
+        aria-controls={sectionId ? `${sectionId}-content` : undefined}
         onClick={() => {
-          setOpen((value) => {
-            const next = !value;
-            trackClientEvent("disclosure_section_toggled", {
-              section: title,
-              opened: next,
-              eyebrow: eyebrow ?? null,
-            });
-            return next;
+          const next = !open;
+          setOpen(next);
+          trackClientEvent("disclosure_section_toggled", {
+            section: title,
+            opened: next,
+            eyebrow: eyebrow ?? null,
           });
         }}
         className={useCompactClosedState
@@ -7450,7 +7480,7 @@ function DisclosureSection({
         </span>
       </button>
       {open ? (
-        <div className="min-w-0 max-w-full overflow-x-clip border-t p-4 sm:p-5" style={{ borderColor: theme.borderLight }}>
+        <div id={sectionId ? `${sectionId}-content` : undefined} className="min-w-0 max-w-full overflow-x-clip border-t p-4 sm:p-5" style={{ borderColor: theme.borderLight }}>
           {children}
         </div>
       ) : null}
@@ -7561,6 +7591,7 @@ function AccountPanel({
   onClearLocalPersonalization: () => void;
   theme: ThemeColors;
 }) {
+  const [customizationSectionOpen, setCustomizationSectionOpen] = useState(false);
   const text = { ...uiText.en, ...ui };
   const exchanges = conversationExchanges(messages).filter((exchange) => exchange.question);
   const badges = [
@@ -7603,6 +7634,16 @@ function AccountPanel({
     Boolean(manualContext.sleepHours || manualContext.exerciseSessionsPerWeek || manualContext.healthContext),
   ].filter(Boolean).length;
 
+  function jumpToCustomizationHub() {
+    setCustomizationSectionOpen(true);
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        const target = document.getElementById("account-customize-section");
+        target?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    });
+  }
+
   return (
     <div className="grid min-w-0 max-w-full gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
       <section className="min-w-0 space-y-4">
@@ -7620,10 +7661,7 @@ function AccountPanel({
           ]}
           focusLabels={focusLabels}
           ts={ts}
-          onJumpToCustomize={() => {
-            const target = document.getElementById("account-customize");
-            target?.scrollIntoView({ behavior: "smooth", block: "start" });
-          }}
+          onJumpToCustomize={jumpToCustomizationHub}
         />
 
         <DisclosureSection
@@ -7672,6 +7710,9 @@ function AccountPanel({
         </DisclosureSection>
 
         <DisclosureSection
+          sectionId="account-customize-section"
+          isOpen={customizationSectionOpen}
+          onOpenChange={setCustomizationSectionOpen}
           title={ts('labels.customizeExperience', 'Customize your experience')}
           summary={ts('labels.customizeExperienceSummary', 'Language, theme, voice, notification timing, and avatar update live here with immediate preview.')}
           eyebrow={ts('labels.personalization', 'Personalization')}

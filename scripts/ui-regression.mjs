@@ -33,7 +33,7 @@ const markers = {
   Decisions: 'Name the decision under pressure',
   Reflect: 'Begin with one honest sentence',
   Library: 'Search one wisdom theme',
-  Account: 'Sign in to make Aletheia portable',
+  Account: 'Open customization hub',
 };
 
 function color(code, text) {
@@ -312,7 +312,8 @@ async function checkAccount(page, mobile) {
       const markerVisible = document.body.innerText.includes(marker);
       const profileButton = Array.from(document.querySelectorAll('button')).find((button) => {
         const text = (button.textContent || '').toLowerCase();
-        return text.includes('profile') && text.includes('details');
+        const isAccountProfileDisclosure = text.includes('sign in or continue as guest') || text.includes('signed in as');
+        return isAccountProfileDisclosure && (text.includes('show details') || text.includes('hide details'));
       });
       return {
         markerVisible,
@@ -337,7 +338,8 @@ async function checkAccount(page, mobile) {
   await page.evaluate(() => {
     const profileButton = Array.from(document.querySelectorAll('button')).find((button) => {
       const text = (button.textContent || '').toLowerCase();
-      return text.includes('profile') && text.includes('details');
+      const isAccountProfileDisclosure = text.includes('sign in or continue as guest') || text.includes('signed in as');
+      return isAccountProfileDisclosure && (text.includes('show details') || text.includes('hide details'));
     });
     if (profileButton instanceof HTMLButtonElement) {
       profileButton.click();
@@ -345,15 +347,28 @@ async function checkAccount(page, mobile) {
   });
 
   let after = '';
+  let expandedContentVisible = false;
   for (let attempt = 0; attempt < 8; attempt += 1) {
-    after = await page.evaluate(() => {
+    ({ after, expandedContentVisible } = await page.evaluate(() => {
       const profileButton = Array.from(document.querySelectorAll('button')).find((button) => {
         const text = (button.textContent || '').toLowerCase();
-        return text.includes('profile') && text.includes('details');
+        const isAccountProfileDisclosure = text.includes('sign in or continue as guest') || text.includes('signed in as');
+        return isAccountProfileDisclosure && (text.includes('show details') || text.includes('hide details'));
       });
-      return profileButton instanceof HTMLButtonElement ? profileButton.textContent || '' : '';
-    });
-    if (after && after !== initial.before) {
+      const bodyText = document.body.innerText.toLowerCase();
+      return {
+        after: profileButton instanceof HTMLButtonElement ? profileButton.textContent || '' : '',
+        expandedContentVisible:
+          bodyText.includes('continue with google') ||
+          bodyText.includes('create your aletheia account') ||
+          bodyText.includes('guest mode is active') ||
+          bodyText.includes('i already have an account') ||
+          bodyText.includes('guest only') ||
+          bodyText.includes('sign out') ||
+          bodyText.includes('avatar studio'),
+      };
+    }));
+    if (after && after !== initial.before && expandedContentVisible) {
       break;
     }
     await page.waitForTimeout(120);
@@ -361,8 +376,8 @@ async function checkAccount(page, mobile) {
 
   return {
     markerVisible: initial.markerVisible,
-    extraPass: initial.before !== after,
-    pass: initial.markerVisible && initial.before !== after,
+    extraPass: initial.before !== after && expandedContentVisible,
+    pass: initial.markerVisible && initial.before !== after && expandedContentVisible,
   };
 }
 
