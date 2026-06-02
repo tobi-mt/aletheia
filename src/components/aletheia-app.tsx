@@ -3082,6 +3082,9 @@ export function AletheiaApp() {
   const [isWorking, setIsWorking] = useState(false);
   const [statusMessage, setStatusMessage] = useState("Checking your sign-in status...");
   const [workflowNotice, setWorkflowNotice] = useState<WorkflowNoticeState | null>(null);
+  const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
+  const [showReportIssueModal, setShowReportIssueModal] = useState(false);
+  const [accountActionBusy, setAccountActionBusy] = useState<"export" | "delete" | "report" | null>(null);
   const [notificationStatus, setNotificationStatus] = useState("Checking notification support...");
   const [notificationAccountEnabled, setNotificationAccountEnabled] = useState(false);
   const [notificationDeviceSubscribed, setNotificationDeviceSubscribed] = useState(false);
@@ -4767,6 +4770,103 @@ export function AletheiaApp() {
       // In-memory reset still gives immediate safety.
     }
     announceWorkflow("Local personalization cleared", "Theme, voice, local context, timing, and focus intentions were reset on this device.", "success");
+  }
+
+  async function exportAccountData() {
+    if (!user) {
+      announceWorkflow("Sign in required", "Sign in before exporting account data.", "warning");
+      return;
+    }
+    setAccountActionBusy("export");
+    try {
+      const response = await fetch("/api/account/export");
+      if (!response.ok) {
+        const data = (await response.json().catch(() => ({}))) as { error?: string };
+        throw new Error(data.error || "Export could not be prepared.");
+      }
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const filename = `aletheia-export-${new Date().toISOString().slice(0, 10)}.json`;
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      announceWorkflow("Export ready", "Your Aletheia data export has been downloaded as JSON.", "success");
+    } catch (error) {
+      announceWorkflow("Export failed", error instanceof Error ? error.message : "Could not export your data.", "error");
+    } finally {
+      setAccountActionBusy(null);
+    }
+  }
+
+  async function deleteAccount(confirmation: string) {
+    if (!user) {
+      announceWorkflow("Sign in required", "Sign in before deleting an account.", "warning");
+      return;
+    }
+    setAccountActionBusy("delete");
+    try {
+      const response = await fetch("/api/account/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirmation }),
+      });
+      const data = (await response.json().catch(() => ({}))) as { error?: string };
+      if (!response.ok) {
+        throw new Error(data.error || "Account could not be deleted.");
+      }
+      await authSignOut({ redirect: false }).catch(() => undefined);
+      setShowDeleteAccountModal(false);
+      setUser(null);
+      setAuthStatus("guest");
+      setMessages(defaultMessages);
+      setJournalEntries([]);
+      setWisdomDecisions([]);
+      setDecisionEvents([]);
+      setCounselContacts([]);
+      setRulesOfLife([]);
+      setNotificationsEnabled(false);
+      setNotificationAccountEnabled(false);
+      setNotificationDeviceSubscribed(false);
+      clearLocalPersonalization();
+      setActiveView("companion", "account_deleted");
+      announceWorkflow("Account deleted", "Your Aletheia account and synced private data have been deleted.", "success");
+    } catch (error) {
+      announceWorkflow("Delete failed", error instanceof Error ? error.message : "Could not delete your account.", "error");
+    } finally {
+      setAccountActionBusy(null);
+    }
+  }
+
+  async function reportIssue(category: string, message: string) {
+    setAccountActionBusy("report");
+    try {
+      const response = await fetch("/api/support/report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          category,
+          message,
+          path: window.location.pathname + window.location.search,
+          appView: activeView,
+          theme: resolvedTheme,
+          language: preferences.language,
+        }),
+      });
+      const data = (await response.json().catch(() => ({}))) as { error?: string };
+      if (!response.ok) {
+        throw new Error(data.error || "Report could not be sent.");
+      }
+      setShowReportIssueModal(false);
+      announceWorkflow("Report sent", "Thank you. Your issue report has been emailed to the Aletheia team.", "success");
+    } catch (error) {
+      announceWorkflow("Report failed", error instanceof Error ? error.message : "Could not send the report.", "error");
+    } finally {
+      setAccountActionBusy(null);
+    }
   }
 
   function startVoiceInput() {
@@ -6548,6 +6648,10 @@ export function AletheiaApp() {
                   focusIntentions={focusIntentions}
                   onFocusIntentionsChange={updateFocusIntentions}
                   onClearLocalPersonalization={clearLocalPersonalization}
+                  onExportData={exportAccountData}
+                  onRequestDeleteAccount={() => setShowDeleteAccountModal(true)}
+                  onReportIssue={() => setShowReportIssueModal(true)}
+                  accountActionBusy={accountActionBusy}
                   theme={theme}
                 />
                 </Screen>
@@ -6639,6 +6743,23 @@ export function AletheiaApp() {
         onConfirm={confirmCounselContactRemoval}
       />
       <ScriptureModal theme={theme} scripture={selectedScripture} preferences={preferences} ts={ts} onClose={() => setSelectedScripture(null)} />
+      <DeleteAccountModal
+        open={showDeleteAccountModal}
+        theme={theme}
+        ts={ts}
+        user={user}
+        isWorking={accountActionBusy === "delete"}
+        onCancel={() => setShowDeleteAccountModal(false)}
+        onConfirm={deleteAccount}
+      />
+      <ReportIssueModal
+        open={showReportIssueModal}
+        theme={theme}
+        ts={ts}
+        isWorking={accountActionBusy === "report"}
+        onCancel={() => setShowReportIssueModal(false)}
+        onSubmit={reportIssue}
+      />
 
       <AnimatePresence>
         {isRefreshingForUpdate ? (
@@ -7687,6 +7808,10 @@ function AccountPanel({
   focusIntentions,
   onFocusIntentionsChange,
   onClearLocalPersonalization,
+  onExportData,
+  onRequestDeleteAccount,
+  onReportIssue,
+  accountActionBusy,
   theme,
 }: {
   ts: (key: string, fallback?: string) => string;
@@ -7740,6 +7865,10 @@ function AccountPanel({
   focusIntentions: string[];
   onFocusIntentionsChange: (values: string[]) => void;
   onClearLocalPersonalization: () => void;
+  onExportData: () => void;
+  onRequestDeleteAccount: () => void;
+  onReportIssue: () => void;
+  accountActionBusy: "export" | "delete" | "report" | null;
   theme: ThemeColors;
 }) {
   const [customizationSectionOpen, setCustomizationSectionOpen] = useState(false);
@@ -8019,7 +8148,15 @@ function AccountPanel({
         </DisclosureSection>
 
         <DisclosureSection title={ts('labels.accountTrustPostureTitle', text.accountTrustPostureTitle ?? "Trust and privacy posture")} summary={ts('labels.accountTrustPostureSummary', text.accountTrustPostureSummary ?? "Boundaries, scripture sourcing, saved data, and sharing posture are available without flooding the page.")} eyebrow={ts('labels.privacyPosture', 'Privacy posture')} compactCollapsed showDetailsLabel={text.showDetails} hideDetailsLabel={text.hideDetails} theme={theme}>
-          <DataBoundariesCard theme={theme} ts={ts} user={user} onClearLocalPersonalization={onClearLocalPersonalization} />
+          <DataBoundariesCard
+            theme={theme}
+            ts={ts}
+            user={user}
+            onClearLocalPersonalization={onClearLocalPersonalization}
+            onExportData={onExportData}
+            onRequestDeleteAccount={onRequestDeleteAccount}
+            accountActionBusy={accountActionBusy}
+          />
           <div className="mt-3">
             <TrustCenterCard theme={theme} ts={ts} />
           </div>
@@ -8070,6 +8207,8 @@ function AccountPanel({
           ) : null}
         </section>
         </DisclosureSection>
+
+        <SupportReportCard theme={theme} ts={ts} onReportIssue={onReportIssue} />
       </aside>
     </div>
   );
@@ -8395,11 +8534,17 @@ function DataBoundariesCard({
   ts,
   user,
   onClearLocalPersonalization,
+  onExportData,
+  onRequestDeleteAccount,
+  accountActionBusy,
 }: {
   theme: ThemeColors;
   ts: (key: string, fallback?: string) => string;
   user: User | null;
   onClearLocalPersonalization: () => void;
+  onExportData: () => void;
+  onRequestDeleteAccount: () => void;
+  accountActionBusy: "export" | "delete" | "report" | null;
 }) {
   return (
     <section className="rounded-lg border p-4 shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
@@ -8426,21 +8571,61 @@ function DataBoundariesCard({
         <button
           type="button"
           className="h-11 rounded-md border px-4 text-sm font-semibold"
-          style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
-          disabled
-          title="Export controls are planned for production settings"
+          style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: user ? theme.textPrimary : theme.textSecondary, opacity: user ? 1 : 0.65 }}
+          disabled={!user || accountActionBusy === "export"}
+          onClick={onExportData}
         >
-          {ts('labels.exportDataComingSoon', 'Export data (coming soon)')}
+          {accountActionBusy === "export" ? ts('labels.preparingExport', 'Preparing export...') : ts('labels.exportData', 'Export data')}
         </button>
         <button
           type="button"
           className="h-11 rounded-md border px-4 text-sm font-semibold"
-          style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
-          disabled
-          title="Account delete controls are planned for production settings"
+          style={{ borderColor: theme.borderStrong, backgroundColor: theme.bgInput, color: user ? theme.textPrimary : theme.textSecondary, opacity: user ? 1 : 0.65 }}
+          disabled={!user || accountActionBusy === "delete"}
+          onClick={onRequestDeleteAccount}
         >
-          {ts('labels.deleteAccountComingSoon', 'Delete account (coming soon)')}
+          {ts('labels.deleteAccount', 'Delete account')}
         </button>
+      </div>
+      {!user ? (
+        <p className="mt-3 text-xs leading-5" style={{ color: theme.textSecondary }}>
+          {ts('labels.signInToExportDelete', 'Sign in to export or delete synced account data. Guest data remains on this device.')}
+        </p>
+      ) : null}
+    </section>
+  );
+}
+
+function SupportReportCard({
+  theme,
+  ts,
+  onReportIssue,
+}: {
+  theme: ThemeColors;
+  ts: (key: string, fallback?: string) => string;
+  onReportIssue: () => void;
+}) {
+  return (
+    <section className="rounded-lg border p-4 shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+      <div className="flex items-start gap-3">
+        <div className="grid size-10 shrink-0 place-items-center rounded-md" style={{ backgroundColor: theme.bgInput, color: theme.primary }}>
+          <MessageCircle size={18} />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.support', 'Support')}</p>
+          <h3 className="mt-2 text-lg font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.reportIssueTitle', 'Report an issue')}</h3>
+          <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
+            {ts('labels.reportIssueBody', 'Send feedback, a bug, or a confusing workflow. Private chats, journals, decisions, and manual context are not attached.')}
+          </p>
+          <button
+            type="button"
+            className="mt-3 h-11 rounded-md border px-4 text-sm font-semibold"
+            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+            onClick={onReportIssue}
+          >
+            {ts('labels.openReportIssue', 'Open report form')}
+          </button>
+        </div>
       </div>
     </section>
   );
@@ -9943,6 +10128,235 @@ function ScriptureModal({
         <p className="mt-3 text-xs leading-5" style={{ color: theme.textMuted }}>
           {ts('labels.curatedReadingOrSummary', 'When Aletheia has a curated public-domain reading in your chosen translation, it shows that reading. Otherwise it uses a concise, clearly marked wisdom summary and keeps the reference exact.')}
         </p>
+      </section>
+    </div>
+  );
+}
+
+function DeleteAccountModal({
+  open,
+  theme,
+  ts,
+  user,
+  isWorking,
+  onCancel,
+  onConfirm,
+}: {
+  open: boolean;
+  theme: ThemeColors;
+  ts: (key: string, fallback?: string) => string;
+  user: User | null;
+  isWorking: boolean;
+  onCancel: () => void;
+  onConfirm: (confirmation: string) => void;
+}) {
+  const [typedValue, setTypedValue] = useState("");
+
+  if (!open) {
+    return null;
+  }
+
+  const confirmationWord = "DELETE";
+  const canConfirm = typedValue.trim().toUpperCase() === confirmationWord && !isWorking;
+  const cancel = () => {
+    setTypedValue("");
+    onCancel();
+  };
+
+  return (
+    <div className="fixed inset-0 z-[70] grid place-items-end p-3 backdrop-blur-sm sm:place-items-center" style={{ backgroundColor: "rgba(13, 23, 20, 0.48)" }}>
+      <section className="w-full max-w-lg rounded-2xl border p-5 shadow-2xl" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.deleteAccount', 'Delete account')}</p>
+            <h2 className="mt-2 text-xl font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.deleteAccountTitle', 'Permanently delete your Aletheia account')}</h2>
+            <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
+              {ts('labels.deleteAccountBody', 'This removes your signed-in profile and synced private data, including decisions, reflections, counsel contacts, rules, preferences, notifications, and account sessions.')}
+            </p>
+            {user ? (
+              <p className="mt-2 text-xs leading-5" style={{ color: theme.textSecondary }}>
+                {ts('labels.account', 'Account')}: <span className="font-semibold" style={{ color: theme.textPrimary }}>{user.email}</span>
+              </p>
+            ) : null}
+          </div>
+          <button
+            type="button"
+            onClick={cancel}
+            className="grid size-9 shrink-0 place-items-center rounded-md border transition"
+            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+            aria-label={ts('labels.close', 'Close')}
+          >
+            <X size={17} />
+          </button>
+        </div>
+
+        <form
+          className="mt-4 grid gap-3"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (canConfirm) {
+              onConfirm(typedValue);
+            }
+          }}
+        >
+          <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
+            {ts('labels.typeDeleteToConfirm', 'Type DELETE to confirm')}
+            <input
+              value={typedValue}
+              onChange={(event) => setTypedValue(event.target.value)}
+              className="mt-2 h-11 w-full rounded-md border px-3 text-sm normal-case tracking-normal outline-none"
+              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+              placeholder={confirmationWord}
+              autoFocus
+            />
+          </label>
+          <div className="flex flex-wrap justify-end gap-2">
+            <button
+              type="button"
+              onClick={cancel}
+              className="h-10 rounded-md border px-4 text-sm font-semibold"
+              style={{ borderColor: theme.borderMedium, color: theme.textPrimary, backgroundColor: theme.bgInput }}
+              disabled={isWorking}
+            >
+              {ts('labels.cancel', 'Cancel')}
+            </button>
+            <button
+              type="submit"
+              className="h-10 rounded-md px-4 text-sm font-semibold"
+              style={{
+                backgroundColor: canConfirm ? theme.primary : theme.borderMedium,
+                color: theme.textOnPrimary,
+                opacity: canConfirm ? 1 : 0.7,
+              }}
+              disabled={!canConfirm}
+            >
+              {isWorking ? ts('labels.deleting', 'Deleting...') : ts('labels.deleteAccount', 'Delete account')}
+            </button>
+          </div>
+        </form>
+      </section>
+    </div>
+  );
+}
+
+function ReportIssueModal({
+  open,
+  theme,
+  ts,
+  isWorking,
+  onCancel,
+  onSubmit,
+}: {
+  open: boolean;
+  theme: ThemeColors;
+  ts: (key: string, fallback?: string) => string;
+  isWorking: boolean;
+  onCancel: () => void;
+  onSubmit: (category: string, message: string) => void;
+}) {
+  const [category, setCategory] = useState("Bug or broken workflow");
+  const [message, setMessage] = useState("");
+
+  if (!open) {
+    return null;
+  }
+
+  const canSubmit = message.trim().length >= 8 && !isWorking;
+  const categories = [
+    "Bug or broken workflow",
+    "Confusing experience",
+    "Incorrect scripture/context",
+    "Notification issue",
+    "Design/readability issue",
+    "General feedback",
+  ];
+  const reset = () => {
+    setCategory("Bug or broken workflow");
+    setMessage("");
+  };
+  const cancel = () => {
+    reset();
+    onCancel();
+  };
+
+  return (
+    <div className="fixed inset-0 z-[70] grid place-items-end p-3 backdrop-blur-sm sm:place-items-center" style={{ backgroundColor: "rgba(13, 23, 20, 0.48)" }}>
+      <section className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border p-5 shadow-2xl" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.reportIssueTitle', 'Report an issue')}</p>
+            <h2 className="mt-2 text-xl font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.helpImproveAletheia', 'Help improve Aletheia')}</h2>
+            <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
+              {ts('labels.reportIssuePrivacy', 'Only what you type here and basic app context are sent. Private chats, journals, decisions, and manual context are not attached.')}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={cancel}
+            className="grid size-9 shrink-0 place-items-center rounded-md border transition"
+            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+            aria-label={ts('labels.close', 'Close')}
+          >
+            <X size={17} />
+          </button>
+        </div>
+        <form
+          className="mt-4 grid gap-3"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (canSubmit) {
+              reset();
+              onSubmit(category, message);
+            }
+          }}
+        >
+          <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
+            {ts('labels.category', 'Category')}
+            <select
+              value={category}
+              onChange={(event) => setCategory(event.target.value)}
+              className="mt-2 h-11 w-full rounded-md border px-3 text-sm normal-case tracking-normal outline-none"
+              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+            >
+              {categories.map((item) => (
+                <option key={item} value={item}>{item}</option>
+              ))}
+            </select>
+          </label>
+          <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
+            {ts('labels.message', 'Message')}
+            <textarea
+              value={message}
+              onChange={(event) => setMessage(event.target.value)}
+              className="mt-2 min-h-36 w-full resize-none rounded-md border px-3 py-3 text-sm normal-case leading-6 tracking-normal outline-none"
+              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+              placeholder={ts('placeholders.reportIssue', 'Tell us what happened, what you expected, and where you noticed it.')}
+            />
+          </label>
+          <div className="flex flex-wrap justify-end gap-2">
+            <button
+              type="button"
+              onClick={cancel}
+              className="h-10 rounded-md border px-4 text-sm font-semibold"
+              style={{ borderColor: theme.borderMedium, color: theme.textPrimary, backgroundColor: theme.bgInput }}
+              disabled={isWorking}
+            >
+              {ts('labels.cancel', 'Cancel')}
+            </button>
+            <button
+              type="submit"
+              className="h-10 rounded-md px-4 text-sm font-semibold"
+              style={{
+                backgroundColor: canSubmit ? theme.primary : theme.borderMedium,
+                color: theme.textOnPrimary,
+                opacity: canSubmit ? 1 : 0.7,
+              }}
+              disabled={!canSubmit}
+            >
+              {isWorking ? ts('labels.sending', 'Sending...') : ts('labels.sendReport', 'Send report')}
+            </button>
+          </div>
+        </form>
       </section>
     </div>
   );
