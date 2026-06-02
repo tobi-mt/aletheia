@@ -45,7 +45,9 @@ It is designed to feel emotionally intelligent, spiritually grounded, and practi
 - Voice input for asking questions when supported by the browser
 - Voice output for reading the latest Aletheia response aloud
 - Answer feedback buttons: helpful, too vague, too preachy, and not relevant
+- Contextual personalization nudge after “too vague” feedback when the user has not added any manual context
 - Signed-in memory can use active decisions, recent reflections, and rules of life for continuity
+- Manual context can shape answers through strategic counsel signals rather than raw facts alone
 - Stronger emotional discernment for urgency, fear, shame, and pressure
 - Stronger refusal behavior for predictions, guaranteed outcomes, harmful requests, fraud, tax evasion, and manipulative giving
 
@@ -68,6 +70,7 @@ Aletheia includes distinct wisdom modes that change how guidance is interpreted 
 - Quick action to ask Aletheia
 - Quick action to review a recurring pattern
 - Sync and notification prompts when the user is not fully set up
+- Quiet personalization hint when the Manual Context Vault is empty
 - Today’s wisdom principle
 - Today’s scripture anchor
 - Tiny daily practice
@@ -240,13 +243,20 @@ After a meaningful answer, Aletheia can help the user take the next wise step.
 - Optional by default, private by default
 - User can pause or enable context usage in answers at any time
 - Fine-grained toggles for which context areas can shape answers (money, work, health, relationships, values)
+- Current-state and future-state tabs so Aletheia can understand both the user’s present reality and desired direction
+- One-click “Add one helpful detail” flow for users who want better personalization without filling out the full vault
 - Open-text context fields for health, finance, work, obligations, goals, and boundaries
+- Desired future-state fields for money posture, work rhythm, health rhythm, relationships/community, values posture, future goals, and future boundaries
 - Numeric context fields for practical realities (income, expenses, debt, savings buffer, work hours, stress, support, urgency, and related signals)
+- Future target fields for savings buffer, work hours, sleep, exercise, loved-ones time, community time, stress, urgency, and support
 - Values and discernment fields (risk tolerance, waiting preference, counsel cadence, definition of enough, definition of success, must-not-sacrifice boundaries)
+- Strategic counsel signals derived from the vault, including financial pressure, burnout, isolation, urgency, values, and future-state direction
+- Region signal from the user’s life-context preference so examples and assumptions fit the user’s setting without pretending to know local law, tax, or regulated advice
 - Works for guests on local device storage
 - Syncs to signed-in account when available
 - Graceful fallback if sync fails so context is not lost
-- Manual context summary is injected into counsel only when enabled by user controls
+- Manual context summary and strategic counsel signals are injected into counsel only when enabled by user controls
+- The AI is instructed to use context quietly and relevantly, without exposing private details unnecessarily or treating context as deterministic
 
 ## Multilingual Support
 

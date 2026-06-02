@@ -192,6 +192,30 @@ body {
   }
 }
 
+.app-shell input:not([type="checkbox"]):not([type="radio"]),
+.app-shell select,
+.app-shell textarea {
+  box-sizing: border-box;
+  max-width: 100%;
+  -webkit-appearance: none;
+  appearance: none;
+  caret-color: currentColor;
+  vertical-align: top;
+}
+
+.app-shell input:not([type="checkbox"]):not([type="radio"]),
+.app-shell select {
+  display: block;
+  line-height: normal;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.app-shell textarea {
+  display: block;
+  line-height: 1.5;
+}
+
 .theme-dark-root {
   background: radial-gradient(circle at 20% 0%, rgba(163, 140, 91, 0.15), transparent 26%),
     radial-gradient(circle at 90% 10%, rgba(72, 111, 101, 0.2), transparent 22%),
@@ -469,9 +493,13 @@ html[data-theme="black"] main.theme-dark-root .app-bottom-nav button:not([style*
 
 @media (max-width: 767px) and (pointer: coarse) {
   input:not([type="checkbox"]):not([type="radio"]),
-  select,
+  select {
+    font-size: 16px !important;
+    line-height: normal !important;
+  }
+
   textarea {
     font-size: 16px !important;
-    line-height: 1.5;
+    line-height: 1.5 !important;
   }
 }

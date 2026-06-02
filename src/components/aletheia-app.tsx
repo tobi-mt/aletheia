@@ -4549,6 +4549,15 @@ export function AletheiaApp() {
       body: JSON.stringify(feedbackMetadata),
     }).catch(() => undefined);
     setStatusMessage(ts('status.feedbackReceived'));
+    if (value === "too_vague" && !manualContextHasContent(manualContext)) {
+      announceWorkflow(
+        "Make future answers more specific",
+        "Add one detail about your current pressure, savings buffer, work rhythm, or support level.",
+        "info",
+        { label: "Add one detail", onClick: openAccountFlow }
+      );
+      return;
+    }
     announceWorkflow(ts('notifications.feedbackSaved'), ts('notifications.feedbackSavedBody'), "success");
   }
 
@@ -6447,6 +6456,7 @@ export function AletheiaApp() {
                   todayPattern={todayPattern}
                   companionCard={todayCompanionCard}
                   carryToday={carryToday}
+                  personalizationContextEmpty={!manualContextHasContent(manualContext)}
                   prioritizeToday={pendingNotificationFocus}
                   onScriptureOpen={openScripture}
                   onContinueDecision={continueDecisionFlow}
@@ -7396,6 +7406,7 @@ function HomeDashboard({
   todayPattern,
   companionCard,
   carryToday,
+  personalizationContextEmpty,
   prioritizeToday,
   onScriptureOpen,
   onContinueDecision,
@@ -7420,6 +7431,7 @@ function HomeDashboard({
   todayPattern: string;
   companionCard: TodayCompanionCard;
   carryToday: CarryToday | null;
+  personalizationContextEmpty: boolean;
   prioritizeToday: boolean;
   onScriptureOpen: (scripture: string) => void;
   onContinueDecision: () => void;
@@ -7493,6 +7505,17 @@ function HomeDashboard({
         <p className="mt-4 max-w-2xl text-sm leading-6 sm:text-base sm:leading-7" style={{ color: theme.textSecondary }}>
           {text.whatNextBody}
         </p>
+        {personalizationContextEmpty ? (
+          <button
+            type="button"
+            onClick={onOpenAccount}
+            className="mt-3 rounded-md border px-3 py-2 text-left text-xs font-semibold leading-5 transition"
+            style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}
+          >
+            <span style={{ color: theme.textPrimary }}>Want more personal counsel?</span>{" "}
+            Add one detail about money, work, or rhythm.
+          </button>
+        ) : null}
 
         <div className="mt-5">
           <DashboardAction icon={primaryAction.icon} label={primaryAction.label} body={primaryAction.body} primary onClick={primaryAction.onClick} theme={theme} />
@@ -8760,6 +8783,9 @@ function ManualContextPanel({
   onChange: (patch: Partial<ManualContextProfile>) => void;
 }) {
   const [draft, setDraft] = useState(context);
+  const [contextTab, setContextTab] = useState<"current" | "future">("current");
+  const [quickDetailType, setQuickDetailType] = useState<"financeContext" | "workContext" | "healthContext" | "obligations" | "boundaries" | "enoughDefinition">("financeContext");
+  const [quickDetail, setQuickDetail] = useState("");
   useEffect(() => {
     window.setTimeout(() => setDraft(context), 0);
   }, [context]);
@@ -8809,12 +8835,37 @@ function ManualContextPanel({
     { key: "counselCadence", label: "Counsel rhythm", placeholder: "Who I check with and how often..." },
     { key: "successDefinition", label: "Definition of success", placeholder: "How I measure faithful success, not just outcomes..." },
   ];
+  const futureNumberFields: Array<{ key: keyof Pick<ManualContextProfile, "targetSavingsBufferMonths" | "targetWorkHoursPerWeek" | "targetSleepHours" | "targetExerciseSessionsPerWeek" | "targetTimeWithLovedOnesHoursPerWeek" | "targetTimeWithCommunityHoursPerWeek" | "targetStressLevel" | "targetUrgencyLevel" | "targetSupportLevel">; label: string; step?: number; min: number; max: number }> = [
+    { key: "targetSavingsBufferMonths", label: "Target savings buffer", step: 0.1, min: 0, max: 60 },
+    { key: "targetWorkHoursPerWeek", label: "Target work hours/week", step: 0.5, min: 0, max: 120 },
+    { key: "targetSleepHours", label: "Target sleep hours/day", step: 0.1, min: 0, max: 24 },
+    { key: "targetExerciseSessionsPerWeek", label: "Target exercise/week", step: 1, min: 0, max: 30 },
+    { key: "targetTimeWithLovedOnesHoursPerWeek", label: "Target loved ones hours/week", step: 0.5, min: 0, max: 120 },
+    { key: "targetTimeWithCommunityHoursPerWeek", label: "Target community hours/week", step: 0.5, min: 0, max: 120 },
+    { key: "targetStressLevel", label: "Target stress (0-10)", step: 1, min: 0, max: 10 },
+    { key: "targetUrgencyLevel", label: "Target urgency (0-10)", step: 1, min: 0, max: 10 },
+    { key: "targetSupportLevel", label: "Target support (0-10)", step: 1, min: 0, max: 10 },
+  ];
+  const futureLongFields: Array<{
+    key: keyof Pick<ManualContextProfile, "futureFinanceContext" | "futureWorkContext" | "futureHealthContext" | "futureRelationshipsContext" | "futureValuesContext" | "futureGoals" | "futureBoundaries">;
+    label: string;
+    placeholder: string;
+  }> = [
+    { key: "futureFinanceContext", label: "Desired money posture", placeholder: "What a wiser, more peaceful money life would look like..." },
+    { key: "futureWorkContext", label: "Desired work rhythm", placeholder: "What sustainable, faithful work should feel like..." },
+    { key: "futureHealthContext", label: "Desired health rhythm", placeholder: "The energy, sleep, and recovery you want to move toward..." },
+    { key: "futureRelationshipsContext", label: "Desired relationships/community", placeholder: "The support, family rhythm, or community connection you want..." },
+    { key: "futureValuesContext", label: "Desired values posture", placeholder: "The kind of person your decisions should form you into..." },
+    { key: "futureGoals", label: "Future goals", placeholder: "What you are hoping to build over time..." },
+    { key: "futureBoundaries", label: "Future boundaries", placeholder: "What should remain protected as you grow..." },
+  ];
 
   // Check if sections have content to determine if they should auto-expand
   const hasMoneySignals = moneyNumberFields.some(field => (draft[field.key] ?? 0) > 0);
   const hasSignals = signalFields.some(field => (draft[field.key] ?? 0) > 0);
   const hasPreferences = preferenceFields.some(field => (draft[field.key] ?? '').trim().length > 0);
   const hasLongFields = longFields.some(field => (draft[field.key] ?? '').trim().length > 0);
+  const hasFutureState = futureNumberFields.some(field => draft[field.key] !== null) || futureLongFields.some(field => (draft[field.key] ?? '').trim().length > 0);
   const activeContextSections = [hasMoneySignals, Boolean(draft.workContext || draft.workHoursPerWeek), Boolean(draft.healthContext || draft.sleepHours || draft.exerciseSessionsPerWeek), Boolean(draft.obligations || draft.timeWithLovedOnesHoursPerWeek || draft.timeWithCommunityHoursPerWeek), hasSignals || hasLongFields, hasPreferences].filter(Boolean).length;
   const sectionSummary = {
     money: `Income ${draft.monthlyIncome ? "added" : "not added"} · savings ${draft.savingsBufferMonths ? "added" : "not added"} · debt ${draft.debtPayments ? "added" : "not added"}`,
@@ -8823,6 +8874,26 @@ function ManualContextPanel({
     relationships: `Loved ones ${draft.timeWithLovedOnesHoursPerWeek ? `${draft.timeWithLovedOnesHoursPerWeek}h/week` : "not added"} · obligations ${draft.obligations ? "added" : "not added"}`,
     values: `Stress ${draft.stressLevel ?? "not added"} · urgency ${draft.urgencyLevel ?? "not added"} · enough ${draft.enoughDefinition ? "defined" : "not defined"}`,
     counsel: `Risk ${draft.riskTolerance ? "added" : "not added"} · waiting ${draft.waitingPreference ? "added" : "not added"} · counsel ${draft.counselCadence ? "added" : "not added"}`,
+  };
+  const quickDetailOptions: Array<{ key: typeof quickDetailType; label: string; prompt: string }> = [
+    { key: "financeContext", label: "Money picture", prompt: "Example: My buffer is thin and I feel pressure to take bigger risks." },
+    { key: "workContext", label: "Work rhythm", prompt: "Example: I work long hours and feel called to change pace." },
+    { key: "healthContext", label: "Stress/sleep", prompt: "Example: Sleep has been low, so urgency feels louder than usual." },
+    { key: "obligations", label: "Family obligations", prompt: "Example: I support family members and need counsel that honors that." },
+    { key: "boundaries", label: "Boundaries", prompt: "Example: Do not encourage choices that sacrifice family peace." },
+    { key: "enoughDefinition", label: "Definition of enough", prompt: "Example: Enough means stability, generosity, and time with loved ones." },
+  ];
+  const applyQuickDetail = () => {
+    const value = quickDetail.trim();
+    if (!value) {
+      return;
+    }
+    setDraft((current) => ({
+      ...current,
+      [quickDetailType]: current[quickDetailType] ? `${current[quickDetailType]}\n${value}` : value,
+    }));
+    setQuickDetail("");
+    setContextTab("current");
   };
 
   return (
@@ -8858,6 +8929,51 @@ function ManualContextPanel({
             <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
               Aletheia will use only the enabled areas below when shaping counsel.
             </p>
+          </div>
+
+          <div className="rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>Add one helpful detail</p>
+            <p className="mt-1 text-xs leading-5" style={{ color: theme.textSecondary }}>
+              One honest detail is enough to make Aletheia’s counsel more personal.
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {quickDetailOptions.map((option) => {
+                const active = quickDetailType === option.key;
+                return (
+                  <button
+                    key={option.key}
+                    type="button"
+                    className="rounded-md border px-2.5 py-1.5 text-[11px] font-semibold"
+                    style={{
+                      borderColor: active ? theme.primary : theme.borderLight,
+                      backgroundColor: active ? theme.activeBg : theme.bgInput,
+                      color: active ? theme.textPrimary : theme.textSecondary,
+                    }}
+                    onClick={() => setQuickDetailType(option.key)}
+                  >
+                    {option.label}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+              <input
+                value={quickDetail}
+                onChange={(event) => setQuickDetail(event.target.value)}
+                className="h-11 min-w-0 flex-1 rounded-md border px-3 text-sm outline-none"
+                style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                placeholder={quickDetailOptions.find((option) => option.key === quickDetailType)?.prompt}
+              />
+              <button
+                type="button"
+                className="h-11 rounded-md px-4 text-sm font-semibold"
+                style={{ backgroundColor: theme.primary, color: theme.textOnPrimary, opacity: quickDetail.trim() ? 1 : 0.65 }}
+                disabled={!quickDetail.trim()}
+                onClick={applyQuickDetail}
+              >
+                Add detail
+              </button>
+            </div>
           </div>
 
           <label className="block rounded-lg border p-3 text-xs font-semibold uppercase tracking-[0.12em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
@@ -8916,6 +9032,33 @@ function ManualContextPanel({
             </label>
           </div>
 
+          <div className="grid grid-cols-2 gap-2 rounded-lg border p-1" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
+            {[
+              { key: "current" as const, label: "Current state", body: `${activeContextSections} active area${activeContextSections === 1 ? "" : "s"}` },
+              { key: "future" as const, label: "Future state", body: hasFutureState ? "Direction added" : "Not added yet" },
+            ].map((tab) => {
+              const active = contextTab === tab.key;
+              return (
+                <button
+                  key={tab.key}
+                  type="button"
+                  className="rounded-md px-3 py-2 text-left text-xs font-semibold transition"
+                  style={{
+                    backgroundColor: active ? theme.bgCardElevated : "transparent",
+                    color: active ? theme.textPrimary : theme.textSecondary,
+                    border: `1px solid ${active ? theme.borderMedium : "transparent"}`,
+                  }}
+                  onClick={() => setContextTab(tab.key)}
+                >
+                  <span className="block uppercase tracking-[0.12em]">{tab.label}</span>
+                  <span className="mt-1 block text-[11px] font-normal normal-case tracking-normal">{tab.body}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {contextTab === "current" ? (
+            <>
           <details className="group rounded-lg border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
             <summary className="cursor-pointer p-3 text-xs font-semibold uppercase tracking-[0.12em] transition" style={{ color: theme.textSecondary }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.bgCard} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
               Money picture {hasMoneySignals ? "✓" : ""}<span className="mt-1 block normal-case tracking-normal" style={{ color: theme.textMuted }}>{sectionSummary.money}</span>
@@ -9028,6 +9171,46 @@ function ManualContextPanel({
               </div>
             </div>
           </details>
+            </>
+          ) : (
+            <div className="space-y-3 rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>Desired future state</p>
+                <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                  Add the direction you want Aletheia to keep in view. Counsel will connect present choices to these desired rhythms without promising outcomes.
+                </p>
+              </div>
+              <div className="grid gap-3 md:grid-cols-2">
+                {futureNumberFields.map((field) => (
+                  <RangeField
+                    key={field.key}
+                    label={field.label}
+                    value={draft[field.key]}
+                    min={field.min}
+                    max={field.max}
+                    step={field.step ?? 1}
+                    onChange={(value) => setDraft((current) => ({ ...current, [field.key]: value }))}
+                    ts={ts}
+                    theme={theme}
+                  />
+                ))}
+              </div>
+              <div className="grid gap-3 md:grid-cols-2">
+                {futureLongFields.map((field) => (
+                  <label key={field.key} className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
+                    {field.label}
+                    <textarea
+                      value={draft[field.key]}
+                      onChange={(event) => setDraft((current) => ({ ...current, [field.key]: event.target.value }))}
+                      className="mt-2 min-h-24 w-full resize-none rounded-md border px-3 py-2 text-sm normal-case leading-6 tracking-normal outline-none"
+                      style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                      placeholder={field.placeholder}
+                    />
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="rounded-lg border p-3 text-xs leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
             <p className="font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.privacyPosture', 'Privacy posture')}</p>
