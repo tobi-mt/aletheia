@@ -7928,8 +7928,10 @@ function AccountPanel({
             theme={theme}
             ts={ts}
             user={user}
+            preferences={preferences}
             context={manualContext}
             status={manualContextStatus}
+            onPreferenceChange={onPreferenceChange}
             onChange={onManualContextChange}
           />
         </DisclosureSection>
@@ -8204,6 +8206,7 @@ function CustomizationHubCard({
   onUpdateProfileAvatar: (avatarUrl: string) => Promise<boolean>;
 }) {
   const themeOptions: ThemePreference[] = ["system", "classic", "dark", "black", "warm", "ocean", "forest", "sunset"];
+  const bibleOptions = bibleTranslationOptionsForLanguage(preferences.language);
   const notificationHealthTitle = notificationsEnabled
     ? "This device is subscribed"
     : notificationAccountEnabled && !notificationDeviceSubscribed
@@ -8247,6 +8250,37 @@ function CustomizationHubCard({
               ))}
             </select>
           </label>
+          <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
+            {ts('labels.bible', 'Bible')}
+            <select
+              value={preferences.bibleTranslation}
+              onChange={(event) => onPreferenceChange({ bibleTranslation: event.target.value as BibleTranslation })}
+              className="mt-2 h-11 w-full rounded-md border px-3 text-sm normal-case tracking-normal outline-none"
+              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+            >
+              {bibleOptions.map((code) => {
+                const translation = bibleTranslations[code];
+                return (
+                  <option key={code} value={code}>
+                    {translation.language === preferences.language ? "" : `${languages[translation.language].nativeName} · `}{translation.label}
+                  </option>
+                );
+              })}
+            </select>
+          </label>
+          <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
+            {ts('labels.region', 'Region')}
+            <select
+              value={preferences.region}
+              onChange={(event) => onPreferenceChange({ region: event.target.value as RegionCode })}
+              className="mt-2 h-11 w-full rounded-md border px-3 text-sm normal-case tracking-normal outline-none"
+              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+            >
+              {Object.entries(regions).map(([code, region]) => (
+                <option key={code} value={code}>{region.label}</option>
+              ))}
+            </select>
+          </label>
           <label className="text-xs font-semibold uppercase tracking-[0.12em] sm:col-span-2" style={{ color: theme.textSecondary }}>
             {ts('labels.voice', 'Voice')}
             <select
@@ -8262,6 +8296,9 @@ function CustomizationHubCard({
             </select>
           </label>
         </div>
+        <p className="mt-3 rounded-md border px-3 py-2 text-xs leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
+          {preferencesStatus}
+        </p>
 
         <div className="mt-4 rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
           <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{ts('labels.notificationTiming', 'Notification timing')}</p>
@@ -8300,18 +8337,6 @@ function CustomizationHubCard({
       </section>
 
       <AvatarStudioCard theme={theme} user={user} onUpdateProfileAvatar={onUpdateProfileAvatar} />
-
-      <details className="rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-        <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
-          {ts('labels.personalizationModel', 'Personalization model')}
-        </summary>
-        <p className="mt-3 text-sm leading-6" style={{ color: theme.textSecondary }}>
-          {ts('labels.personalizationModelBody', 'These controls are the canonical account settings. Top navigation language and Bible selectors are quick access to the same preferences.')}
-        </p>
-        <p className="mt-2 text-xs leading-5" style={{ color: theme.textSecondary }}>
-          {preferencesStatus}
-        </p>
-      </details>
     </section>
   );
 }
@@ -8534,15 +8559,19 @@ function ManualContextPanel({
   theme,
   ts,
   user,
+  preferences,
   context,
   status,
+  onPreferenceChange,
   onChange,
 }: {
   theme: ThemeColors;
   ts: (key: string, fallback?: string) => string;
   user: User | null;
+  preferences: UserPreferences;
   context: ManualContextProfile;
   status: string;
+  onPreferenceChange: (patch: Partial<UserPreferences>) => void;
   onChange: (patch: Partial<ManualContextProfile>) => void;
 }) {
   const [draft, setDraft] = useState(context);
@@ -8645,6 +8674,23 @@ function ManualContextPanel({
               Aletheia will use only the enabled areas below when shaping counsel.
             </p>
           </div>
+
+          <label className="block rounded-lg border p-3 text-xs font-semibold uppercase tracking-[0.12em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
+            {ts('labels.guidanceRegion', 'Guidance region')}
+            <select
+              value={preferences.region}
+              onChange={(event) => onPreferenceChange({ region: event.target.value as RegionCode })}
+              className="mt-2 h-10 w-full rounded-md border px-3 text-sm normal-case tracking-normal outline-none"
+              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+            >
+              {Object.entries(regions).map(([code, region]) => (
+                <option key={code} value={code}>{region.label}</option>
+              ))}
+            </select>
+            <span className="mt-2 block text-xs font-normal normal-case leading-5 tracking-normal" style={{ color: theme.textSecondary }}>
+              {regions[preferences.region]?.example ?? regions.global.example}
+            </span>
+          </label>
 
           <label className="flex items-start gap-3 rounded-lg border p-3 text-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
             <input
@@ -10929,38 +10975,77 @@ function RangeField({
   theme: ThemeColors;
 }) {
   const shown = value === null ? min : value;
+  const isSignalScale = min === 0 && max === 10 && step === 1;
+  if (isSignalScale) {
+    return (
+      <div className="rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>{label}</p>
+          <span className="rounded-md px-2 py-1 text-[10px] font-semibold tracking-[0.08em]" style={{ backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}>
+            {value === null ? ts('placeholders.notSet', 'Not set') : String(value)}
+          </span>
+        </div>
+        <div className="mt-3 grid grid-cols-6 gap-1 sm:grid-cols-11">
+          {Array.from({ length: 11 }, (_, index) => (
+            <button
+              key={index}
+              type="button"
+              className="h-8 rounded-md border text-xs font-semibold transition"
+              style={{
+                borderColor: value === index ? theme.primary : theme.borderLight,
+                backgroundColor: value === index ? theme.activeBg : theme.bgCard,
+                color: value === index ? theme.textPrimary : theme.textSecondary,
+              }}
+              onClick={() => onChange(value === index ? null : index)}
+            >
+              {index}
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <label className="rounded-md border px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
-      <span className="flex items-center justify-between gap-2">
-        <span>{label}</span>
-        <span className="rounded-md px-2 py-1 text-[10px] font-semibold tracking-[0.08em]" style={{ backgroundColor: theme.bgInput, color: theme.textPrimary }}>
+    <label className="rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+      <span className="flex items-center justify-between gap-3">
+        <span className="text-xs font-semibold uppercase tracking-[0.12em]">{label}</span>
+        <span className="rounded-md px-2 py-1 text-[10px] font-semibold tracking-[0.08em]" style={{ backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}>
           {value === null ? ts('placeholders.notSet', 'Not set') : String(value)}
         </span>
       </span>
-      <input
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={shown}
-        onChange={(event) => onChange(Number(event.target.value))}
-        className="mt-2 h-2 w-full cursor-pointer appearance-none rounded-full"
-        style={{ backgroundColor: theme.borderMedium, accentColor: theme.primary }}
-      />
-      <input
-        inputMode="decimal"
-        type="number"
-        min={min}
-        max={max}
-        step={step}
-        value={value ?? ""}
-        placeholder={ts('placeholders.notSet', 'Not set')}
-        onChange={(event) => onChange(event.target.value === "" ? null : Number(event.target.value))}
-        className="mt-2 min-h-11 w-full rounded-md border px-3 py-2 text-sm normal-case tracking-normal outline-none"
-        style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-        onFocus={(e) => e.currentTarget.style.borderColor = theme.primary}
-        onBlur={(e) => e.currentTarget.style.borderColor = theme.borderMedium}
-      />
+      <div className="mt-3 flex items-center gap-2">
+        <button
+          type="button"
+          className="grid size-10 shrink-0 place-items-center rounded-md border text-lg font-semibold"
+          style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textPrimary }}
+          onClick={() => onChange(value === null ? min : Math.max(min, Number((shown - step).toFixed(2))))}
+        >
+          -
+        </button>
+        <input
+          inputMode="decimal"
+          type="number"
+          min={min}
+          max={max}
+          step={step}
+          value={value ?? ""}
+          placeholder={ts('placeholders.notSet', 'Not set')}
+          onChange={(event) => onChange(event.target.value === "" ? null : Number(event.target.value))}
+          className="min-h-10 w-full rounded-md border px-3 py-2 text-sm normal-case tracking-normal outline-none"
+          style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textPrimary }}
+          onFocus={(e) => e.currentTarget.style.borderColor = theme.primary}
+          onBlur={(e) => e.currentTarget.style.borderColor = theme.borderMedium}
+        />
+        <button
+          type="button"
+          className="grid size-10 shrink-0 place-items-center rounded-md border text-lg font-semibold"
+          style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textPrimary }}
+          onClick={() => onChange(value === null ? min : Math.min(max, Number((shown + step).toFixed(2))))}
+        >
+          +
+        </button>
+      </div>
     </label>
   );
 }

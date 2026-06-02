@@ -280,7 +280,7 @@ function shouldSendAtLocalHour(row: PushRow, now: Date) {
     return false;
   }
 
-  return localHour === preferredLocalHour;
+  return localHour >= preferredLocalHour;
 }
 
 function shouldDeleteBrokenSubscription(error: unknown) {

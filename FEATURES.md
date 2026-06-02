@@ -169,6 +169,10 @@ After a meaningful answer, Aletheia can help the user take the next wise step.
 ## Account
 
 - Dedicated Account tab
+- Account customization hub with immediate preview
+- Central place to manage personalization, privacy posture, and sync state
+- Avatar/profile image update support
+- Avatar studio with curated presets and validated custom avatar URL support
 - Guest mode
 - Email sign-up
 - Email sign-in
@@ -179,7 +183,10 @@ After a meaningful answer, Aletheia can help the user take the next wise step.
 - Last synced status
 - Notification status
 - Account history summary
-- Preferences management
+- Clear local personalization control
+- Trust Center panel inside Account
+- Data boundaries panel describing what syncs and what stays local
+- Collapsible privacy-safe history review (conversations, decisions, reflections)
 - Formation milestones
 
 ## Persistence And Sync
@@ -196,33 +203,80 @@ After a meaningful answer, Aletheia can help the user take the next wise step.
 ## Preferences
 
 - Preferred language
-- Preferred onboarding tone
-- Faith familiarity context during onboarding
-- “What are you carrying right now?” starting prompt
+- Theme preference (system, classic, dark, black, warm, ocean, forest, sunset)
 - Life context / region
 - Preferred Bible translation
-- Voice controls
+- Voice preference (device default or selected installed voice)
+- Notification timing preference (local hour, timezone mode, timezone, delivery strategy)
 - Region-aware examples
 - Public-domain translation preference labels
 - Local fallback when signed out
 - Database sync when signed in
 
+## Onboarding Customization
+
+- Starting wisdom mode selection (Money, Work, Purpose, Generosity)
+- First concern prompt to personalize first-session guidance
+- Tone selection for early guidance (gentle, direct, strategic, reflective)
+- Faith familiarity selection (new to biblical wisdom, familiar, deeply familiar)
+- Language selection during onboarding
+- Bible translation selection during onboarding
+- Region selection during onboarding
+- Onboarding settings can be changed later in Account
+
+## Interface And Guidance Customization
+
+- Wisdom mode can be changed anytime to switch the active discernment lens
+- Quick language selector access from the main experience
+- Quick Bible translation selector access from the main experience
+- Focus intentions selection (up to 3) to shape prompt suggestions and guidance emphasis
+- Notification guidance state indicators (account-level vs device-level enablement)
+- Personalization model disclosure that explains canonical settings behavior
+- Local personalization reset for this device (theme, voice, notification timing, manual context drafts, carry-today state, and focus intentions)
+
+## Manual Context Vault Customization
+
+- Dedicated Manual Context Vault in Account
+- Optional by default, private by default
+- User can pause or enable context usage in answers at any time
+- Fine-grained toggles for which context areas can shape answers (money, work, health, relationships, values)
+- Open-text context fields for health, finance, work, obligations, goals, and boundaries
+- Numeric context fields for practical realities (income, expenses, debt, savings buffer, work hours, stress, support, urgency, and related signals)
+- Values and discernment fields (risk tolerance, waiting preference, counsel cadence, definition of enough, definition of success, must-not-sacrifice boundaries)
+- Works for guests on local device storage
+- Syncs to signed-in account when available
+- Graceful fallback if sync fails so context is not lost
+- Manual context summary is injected into counsel only when enabled by user controls
+
 ## Multilingual Support
 
-- English
-- Spanish
-- French
-- Portuguese
-- German
-- Yoruba
-- Igbo
-- Hausa
+- English (`en`)
+- Spanish (`es`)
+- French (`fr`)
+- Portuguese (`pt`)
+- German (`de`)
+- Yoruba (`yo`)
+- Igbo (`ig`)
+- Hausa (`ha`)
+- Native-language labels for language selection
 - Localized daily wisdom labels and practices
 - Localized scripture quick reads for supported public-domain passages
 - Localized onboarding copy
 - Localized placeholders and voice hints
 - Region-aware examples for global, United States, United Kingdom, Europe, Nigeria, Brazil, and Latin America
 - Safe fallback to English/reference-only wording when public-domain localized scripture text is unavailable
+- Cross-language Bible translation options so users can keep app UI in one language and read scripture in another
+
+## Privacy And Data Controls
+
+- Trust Center explains boundaries, scripture sourcing posture, and data-saving behavior in plain language
+- Private by default sharing posture: app link sharing does not expose private chats, journals, decisions, or reflections
+- Private counsel invites only expose explicitly shared summaries
+- Privacy-conscious analytics that avoid storing private answer text, private journal content, decision pressure details, counsel names, or rule text
+- Manual context is clearly labeled optional and private
+- Signed-in sync is explicit; local fallback remains available when signed out or when sync fails
+- Clear local personalization control available from Account
+- Export and account delete controls are intentionally gated as production-hardening items
 
 ## Notifications
 
