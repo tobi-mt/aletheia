@@ -426,6 +426,8 @@ const uiText: Record<
     personalizedPriority?: string;
     whatNext?: string;
     whatNextBody?: string;
+    personalizationNudgeTitle?: string;
+    personalizationNudgeBody?: string;
     continueDecision?: string;
     askOneQuestion?: string;
     askOneQuestionBody?: string;
@@ -571,6 +573,8 @@ const uiText: Record<
     personalizedPriority: "Personalized priority",
     whatNext: "What should I do next?",
     whatNextBody: "Aletheia is choosing one wise next action first. The ask field and mode controls stay directly below when you want to begin something new.",
+    personalizationNudgeTitle: "Want more personal counsel?",
+    personalizationNudgeBody: "Add one detail about money, work, or rhythm.",
     continueDecision: "Continue this decision",
     askOneQuestion: "Ask one question",
     askOneQuestionBody: "Start with the pressure or decision you are carrying right now.",
@@ -3225,7 +3229,7 @@ export function AletheiaApp() {
         library: getString('nav.library', 'Library'),
         account: getString('nav.account', 'Account'),
       },
-      decideShort: getString('nav.decideShort', 'Decide'),
+      decideShort: getString('decideShort', 'Decide'),
       guardrails: getString('guardrails', 'Guardrails'),
       guardrailItems: (getTranslation(trans, 'guardrailItems', '') || []) as string[],
       wisdomMode: getString('wisdomMode', 'Wisdom mode'),
@@ -3265,6 +3269,8 @@ export function AletheiaApp() {
       personalizedPriority: getString('personalizedPriority', 'Personalized priority'),
       whatNext: getString('whatNext', 'What should I do next?'),
       whatNextBody: getString('whatNextBody', ''),
+      personalizationNudgeTitle: getString('personalizationNudgeTitle', languageFallback.personalizationNudgeTitle ?? 'Want more personal counsel?'),
+      personalizationNudgeBody: getString('personalizationNudgeBody', languageFallback.personalizationNudgeBody ?? 'Add one detail about money, work, or rhythm.'),
       continueDecision: getString('continueDecision', 'Continue this decision'),
       askOneQuestion: getString('askOneQuestion', 'Ask one question'),
       askOneQuestionBody: getString('askOneQuestionBody', ''),
@@ -4132,7 +4138,7 @@ export function AletheiaApp() {
       if ("Notification" in window) {
         setNotificationPermission(Notification.permission);
       } else {
-        setNotificationStatus("This browser does not support notifications.");
+        setNotificationStatus(ts('notifications.notificationsUnavailableBody'));
       }
       const response = await fetch("/api/notifications/status");
       const data = (await response.json()) as {
@@ -4193,26 +4199,26 @@ export function AletheiaApp() {
         void saveNotificationTimingPreference(fallbackTiming).catch(() => undefined);
       }
       if (!data.configured) {
-        setNotificationStatus("Notifications need VAPID keys before they can be enabled.");
+        setNotificationStatus(ts('notifications.notificationsNotConfiguredBody'));
       } else if (!user) {
-        setNotificationStatus("Sign in to enable daily wisdom notifications.");
+        setNotificationStatus(ts('notifications.signInRequiredBody'));
       } else if (accountEnabled && deviceSubscribed) {
-        setNotificationStatus("Daily wisdom notifications are enabled.");
+        setNotificationStatus(ts('notifications.notificationsEnabledBody'));
       } else if (accountEnabled && localSubscription && !localSubscriptionUsesCurrentKey) {
-        setNotificationStatus("Notifications need to be re-enabled on this device.");
+        setNotificationStatus(ts('notifications.notificationsNeedReenableDevice', 'Notifications need to be re-enabled on this device.'));
       } else if (accountEnabled) {
-        setNotificationStatus("Notifications are enabled on your account. Enable them on this device too.");
+        setNotificationStatus(ts('notifications.accountEnabledDeviceOff', 'Notifications are enabled on your account. Enable them on this device too.'));
       } else if (data.timingConfigured || Notification.permission === "granted") {
-        setNotificationStatus("Notifications need to be re-enabled on this device.");
+        setNotificationStatus(ts('notifications.notificationsNeedReenableDevice', 'Notifications need to be re-enabled on this device.'));
       } else {
-        setNotificationStatus("Get one quiet daily wisdom reflection on this device.");
+        setNotificationStatus(ts('notifications.notificationsOptionalWhenReady', 'Get one quiet daily wisdom reflection on this device.'));
       }
     }
 
     loadNotificationStatus().catch(() =>
-      setNotificationStatus("Notification status could not be loaded.")
+      setNotificationStatus(ts('notifications.notificationStatusLoadFailed', 'Notification status could not be loaded.'))
     );
-  }, [user]);
+  }, [ts, user]);
 
   useEffect(() => {
     if (notificationTiming.timezoneMode !== "auto") {
@@ -4313,11 +4319,10 @@ export function AletheiaApp() {
     intent: ts(`modes.${modeKey}.intent`, activeMode.intent),
     focus: ts(`modes.${modeKey}.focus`, activeMode.focus),
     useWhen: ts(`modes.${modeKey}.useWhen`, activeMode.useWhen),
-    prompts: [
-      ts(`modes.${modeKey}.prompts.0`, activeMode.prompts[0] ?? ""),
-      ts(`modes.${modeKey}.prompts.1`, activeMode.prompts[1] ?? ""),
-      ts(`modes.${modeKey}.prompts.2`, activeMode.prompts[2] ?? ""),
-    ].filter(Boolean),
+    prompts: (() => {
+      const translatedPrompts = getTranslation(translations, `modes.${modeKey}.prompts`, "");
+      return Array.isArray(translatedPrompts) ? translatedPrompts.filter(Boolean) : activeMode.prompts;
+    })(),
   };
 
   // Create modeProfile that merges activeMode with translated content
@@ -4456,7 +4461,7 @@ export function AletheiaApp() {
 
   function askOneQuestionFlow() {
     showView("companion");
-    setQuery((current) => current || localizedModeProfile(mode, preferences.language).prompts[0]);
+    setQuery((current) => current || modeProfile.prompts[0]);
     scrollToSection("companion-ask");
     announceWorkflow(ts('notifications.questionReady'), ts('notifications.questionReadyBody'), "success");
   }
@@ -4551,10 +4556,10 @@ export function AletheiaApp() {
     setStatusMessage(ts('status.feedbackReceived'));
     if (value === "too_vague" && !manualContextHasContent(manualContext)) {
       announceWorkflow(
-        "Make future answers more specific",
-        "Add one detail about your current pressure, savings buffer, work rhythm, or support level.",
+        ts('personalization.tooVagueTitle', 'Make future answers more specific'),
+        ts('personalization.tooVagueBody', 'Add one detail about your current pressure, savings buffer, work rhythm, or support level.'),
         "info",
-        { label: "Add one detail", onClick: openAccountFlow }
+        { label: ts('personalization.addOneDetail', 'Add one detail'), onClick: openAccountFlow }
       );
       return;
     }
@@ -5390,23 +5395,23 @@ export function AletheiaApp() {
       return;
     }
     if (!user) {
-      setNotificationStatus("Sign in first, then enable notifications.");
+      setNotificationStatus(ts('notifications.signInRequiredBody'));
       announceWorkflow(ts('notifications.signInRequired'), ts('notifications.signInRequiredBody'), "warning");
       return;
     }
     if (!notificationsConfigured) {
-      setNotificationStatus("Notifications are not configured on the server yet.");
+      setNotificationStatus(ts('notifications.notificationsNotConfiguredBody'));
       announceWorkflow(ts('notifications.notificationsNotConfigured'), ts('notifications.notificationsNotConfiguredBody'), "warning");
       return;
     }
     if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
-      setNotificationStatus("This browser does not support web push notifications.");
+      setNotificationStatus(ts('notifications.notificationsUnavailableBody'));
       announceWorkflow(ts('notifications.notificationsUnavailable'), ts('notifications.notificationsUnavailableBody'), "warning");
       return;
     }
 
     setNotificationBusy(true);
-    setNotificationStatus("Preparing this device for daily wisdom notifications...");
+    setNotificationStatus(ts('notifications.preparingDeviceNotifications', 'Preparing this device for daily wisdom notifications...'));
     try {
       const permission = Notification.permission === "granted" ? "granted" : await Notification.requestPermission();
       setNotificationPermission(permission);
@@ -5465,7 +5470,7 @@ export function AletheiaApp() {
       });
       setNotificationTiming(nextTiming);
       persistNotificationTiming(nextTiming);
-      setNotificationStatus("Daily wisdom notifications are enabled.");
+      setNotificationStatus(ts('notifications.notificationsEnabledBody'));
       announceWorkflow(ts('notifications.notificationsEnabled'), ts('notifications.notificationsEnabledBodyTime').replace('{time}', notificationTimeLabel(preferredLocalHour)), "success");
     } catch {
       trackClientEvent("notification_enable_failed", { reason: "client_exception" });
@@ -5509,7 +5514,7 @@ export function AletheiaApp() {
       hadPermission: notificationPermission === "granted",
       wasEnabled: true,
     });
-    setNotificationStatus("Daily wisdom notifications are turned off for this device.");
+    setNotificationStatus(ts('notifications.notificationsOffBody'));
     announceWorkflow(ts('notifications.notificationsOff'), ts('notifications.notificationsOffBody'), "info");
   }
 
@@ -6715,6 +6720,7 @@ export function AletheiaApp() {
       <OnboardingModal
         open={showOnboarding}
         mode={mode}
+        modeCards={activeModeCards}
         preferences={preferences}
         ts={ts}
         concern={onboardingConcern}
@@ -7182,6 +7188,7 @@ function pushSubscriptionUsesPublicKey(subscription: PushSubscription, publicKey
 function OnboardingModal({
   open,
   mode,
+  modeCards,
   preferences,
   ts,
   concern,
@@ -7198,6 +7205,7 @@ function OnboardingModal({
 }: {
   open: boolean;
   mode: Mode;
+  modeCards: ModeCard[];
   preferences: UserPreferences;
   ts: (key: string, fallback?: string) => string;
   concern: string;
@@ -7252,7 +7260,7 @@ function OnboardingModal({
           <section>
             <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.whatBringsYou', 'What brings you here?')}</p>
             <div className="mt-2 grid min-w-0 grid-cols-2 gap-2">
-              {modes.map((item) => (
+              {modeCards.map((item) => (
                 <button
                   type="button"
                   key={item.label}
@@ -7264,7 +7272,7 @@ function OnboardingModal({
                 >
                   <item.icon className="mt-0.5 shrink-0" size={16} style={{ color: mode === item.label ? 'rgba(255, 255, 255, 0.95)' : theme.textPrimary }} />
                   <span className="min-w-0">
-                    <span className="block text-sm font-semibold">{item.label}</span>
+                    <span className="block text-sm font-semibold">{item.displayLabel ?? item.label}</span>
                     <span className="mt-1 line-clamp-2 block text-xs leading-5 opacity-85 break-words">{item.copy}</span>
                   </span>
                 </button>
@@ -7274,7 +7282,7 @@ function OnboardingModal({
 
           <section className="rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
             <label className="text-sm font-semibold" style={{ color: theme.textPrimary }}>
-              What are you seeking wisdom for?
+              {ts('labels.seekingWisdomFor', 'What are you seeking wisdom for?')}
               <textarea
                 value={concern}
                 onChange={(event) => setConcern(event.target.value)}
@@ -7285,7 +7293,7 @@ function OnboardingModal({
             </label>
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
               <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
-                Tone
+                {ts('labels.tone', 'Tone')}
                 <select
                   value={tone}
                   onChange={(event) => setTone(event.target.value)}
@@ -7299,7 +7307,7 @@ function OnboardingModal({
                 </select>
               </label>
               <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
-                Faith familiarity
+                {ts('labels.faithFamiliarity', 'Faith familiarity')}
                 <select
                   value={faithFamiliarity}
                   onChange={(event) => setFaithFamiliarity(event.target.value)}
@@ -7316,7 +7324,7 @@ function OnboardingModal({
 
           <section className="grid gap-3 sm:grid-cols-3">
             <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
-              Language
+              {ts('language', 'Language')}
               <select
                 value={preferences.language}
                 onChange={(event) => onPreferenceChange(preferencePatchForLanguage(event.target.value as LanguageCode))}
@@ -7331,7 +7339,7 @@ function OnboardingModal({
               </select>
             </label>
             <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
-              Bible
+              {ts('bible', 'Bible')}
               <select
                 value={preferences.bibleTranslation}
                 onChange={(event) => onPreferenceChange({ bibleTranslation: event.target.value as BibleTranslation })}
@@ -7353,7 +7361,7 @@ function OnboardingModal({
               </span>
             </label>
             <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
-              Region
+              {ts('region', 'Region')}
               <select
                 value={preferences.region}
                 onChange={(event) => onPreferenceChange({ region: event.target.value as RegionCode })}
@@ -7512,8 +7520,8 @@ function HomeDashboard({
             className="mt-3 rounded-md border px-3 py-2 text-left text-xs font-semibold leading-5 transition"
             style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}
           >
-            <span style={{ color: theme.textPrimary }}>Want more personal counsel?</span>{" "}
-            Add one detail about money, work, or rhythm.
+            <span style={{ color: theme.textPrimary }}>{text.personalizationNudgeTitle}</span>{" "}
+            {text.personalizationNudgeBody}
           </button>
         ) : null}
 
@@ -7943,8 +7951,8 @@ function AccountPanel({
     notificationsEnabled ? ts('labels.notifications', 'notifications') : null,
   ].filter(Boolean);
   const profileReadyText = user
-    ? `Profile ready: ${profileReadyItems.join(", ")} set.`
-    : `Guest setup ready: ${profileReadyItems.join(", ")} set. Sign in to sync it.`;
+    ? `${ts('labels.profileReady', 'Profile ready')}: ${profileReadyItems.join(", ")} ${ts('labels.set', 'set')}.`
+    : `${ts('labels.guestSetupReady', 'Guest setup ready')}: ${profileReadyItems.join(", ")} ${ts('labels.set', 'set')}. ${ts('labels.signInToSyncIt', 'Sign in to sync it.')}`;
 
   function jumpToCustomizationHub() {
     setCustomizationSectionOpen(true);
@@ -7978,7 +7986,7 @@ function AccountPanel({
 
         <div className="rounded-xl border px-4 py-3 text-sm leading-6 shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
           <span className="font-semibold" style={{ color: theme.textPrimary }}>{profileReadyText}</span>
-          <span className="ml-2">{notificationsEnabled ? "This device is subscribed for daily wisdom." : notificationAccountEnabled ? "Notifications are account-enabled; this device still needs enabling." : "Notifications can be enabled when you are ready."}</span>
+          <span className="ml-2">{notificationsEnabled ? ts('notifications.deviceSubscribed', 'This device is subscribed for daily wisdom.') : notificationAccountEnabled ? ts('notifications.accountEnabledDeviceOff', 'Notifications are account-enabled; this device still needs enabling.') : ts('notifications.notificationsOptionalWhenReady', 'Notifications can be enabled when you are ready.')}</span>
         </div>
 
         <DisclosureSection
@@ -8370,16 +8378,16 @@ function CustomizationHubCard({
   const themeOptions: ThemePreference[] = ["system", "classic", "dark", "black", "warm", "ocean", "forest", "sunset"];
   const bibleOptions = bibleTranslationOptionsForLanguage(preferences.language);
   const notificationHealthTitle = notificationsEnabled
-    ? "This device is subscribed"
+    ? ts('notifications.deviceSubscribed', 'This device is subscribed')
     : notificationAccountEnabled && !notificationDeviceSubscribed
-      ? "Account enabled, this device needs enabling"
+      ? ts('notifications.accountEnabledDeviceOff', 'Account enabled, this device needs enabling')
       : notificationAccountEnabled
-        ? "Notifications enabled on your account"
-        : "Notifications are off";
+        ? ts('notifications.accountEnabled', 'Notifications enabled on your account')
+        : ts('notifications.notificationsOff', 'Notifications are off');
   const notificationHealthBody = notificationsEnabled
-    ? "Daily wisdom can reach this device at your saved time."
+    ? ts('notifications.deviceSubscribedBody', 'Daily wisdom can reach this device at your saved time.')
     : notificationAccountEnabled && !notificationDeviceSubscribed
-      ? "Your account has notifications on, but this browser/PWA needs a fresh device subscription."
+      ? ts('notifications.accountEnabledDeviceOffBody', 'Your account has notifications on, but this browser/PWA needs a fresh device subscription.')
       : notificationStatus;
 
   return (
@@ -8498,7 +8506,7 @@ function CustomizationHubCard({
         </div>
       </section>
 
-      <AvatarStudioCard theme={theme} user={user} onUpdateProfileAvatar={onUpdateProfileAvatar} />
+      <AvatarStudioCard theme={theme} user={user} ts={ts} onUpdateProfileAvatar={onUpdateProfileAvatar} />
     </section>
   );
 }
@@ -8786,6 +8794,63 @@ function ManualContextPanel({
   const [contextTab, setContextTab] = useState<"current" | "future">("current");
   const [quickDetailType, setQuickDetailType] = useState<"financeContext" | "workContext" | "healthContext" | "obligations" | "boundaries" | "enoughDefinition">("financeContext");
   const [quickDetail, setQuickDetail] = useState("");
+  const manualCopy = {
+    title: ts('labels.manualContextTitle', 'Manual Context Vault'),
+    intro: ts('manualContext.intro', 'Add only the health, money, work, and life context you want Aletheia to consider. No external apps are connected.'),
+    active: ts('manualContext.active', 'Context is active'),
+    paused: ts('manualContext.paused', 'Context is paused'),
+    areaSingular: ts('manualContext.areaSingular', 'area'),
+    areaPlural: ts('manualContext.areaPlural', 'areas'),
+    added: ts('manualContext.added', 'added'),
+    areaSummary: ts('manualContext.areaSummary', 'Aletheia will use only the enabled areas below when shaping counsel.'),
+    quickTitle: ts('manualContext.quickTitle', 'Add one helpful detail'),
+    quickBody: ts('manualContext.quickBody', 'One honest detail is enough to make Aletheia’s counsel more personal.'),
+    addDetail: ts('manualContext.addDetail', 'Add detail'),
+    allowContextPrompt: ts('labels.allowContextPrompt', 'Allow Aletheia to use this context in answers'),
+    allowContextBody: ts('manualContext.allowContextBody', 'Turn this off anytime. Saved context remains private and will not shape responses while off.'),
+    useMoney: ts('labels.useMoneyContext', 'Use money context in answers'),
+    useWork: ts('labels.useWorkContext', 'Use work context in answers'),
+    useHealth: ts('labels.useHealthContext', 'Use health rhythm in answers'),
+    useRelationships: ts('labels.useRelationshipsContext', 'Use relationships context in answers'),
+    useValues: ts('manualContext.useValuesContext', 'Use values, risk, and counsel preferences in answers'),
+    currentState: ts('manualContext.currentState', 'Current state'),
+    futureState: ts('manualContext.futureState', 'Future state'),
+    activeArea: ts('manualContext.activeArea', 'active area'),
+    activeAreas: ts('manualContext.activeAreas', 'active areas'),
+    directionAdded: ts('manualContext.directionAdded', 'Direction added'),
+    notAddedYet: ts('manualContext.notAddedYet', 'Not added yet'),
+    moneyPicture: ts('manualContext.moneyPicture', 'Money picture'),
+    workRhythm: ts('manualContext.workRhythm', 'Work rhythm'),
+    valuesRiskPosture: ts('manualContext.valuesRiskPosture', 'Values and risk posture'),
+    counselPreferences: ts('manualContext.counselPreferences', 'Counsel preferences'),
+    healthRelationships: ts('manualContext.healthRelationships', 'Health and relationships'),
+    desiredFutureState: ts('manualContext.desiredFutureState', 'Desired future state'),
+    desiredFutureBody: ts('manualContext.desiredFutureBody', 'Add the direction you want Aletheia to keep in view. Counsel will connect present choices to these desired rhythms without promising outcomes.'),
+    privacyPosture: ts('labels.privacyPosture', 'Privacy posture'),
+    privacyBody: ts('manualContext.privacyBody', 'This is manual, optional, and scoped to your account or this device. Aletheia does not connect to Apple Watch, banks, payroll, or medical systems here.'),
+    signedInSync: ts('manualContext.signedInSync', 'Signed-in context can sync across devices.'),
+    guestSync: ts('manualContext.guestSync', 'Guest context stays on this device until you sign in.'),
+    clearFields: ts('manualContext.clearFields', 'You can delete any field by clearing it.'),
+    nothingAdded: ts('manualContext.nothingAdded', 'Nothing has been added yet.'),
+    saveManualContext: ts('manualContext.saveManualContext', 'Save manual context'),
+    incomeAdded: ts('manualContext.incomeAdded', 'Income added'),
+    incomeNotAdded: ts('manualContext.incomeNotAdded', 'Income not added'),
+    savingsAdded: ts('manualContext.savingsAdded', 'savings added'),
+    savingsNotAdded: ts('manualContext.savingsNotAdded', 'savings not added'),
+    debtAdded: ts('manualContext.debtAdded', 'debt added'),
+    debtNotAdded: ts('manualContext.debtNotAdded', 'debt not added'),
+    contextAdded: ts('manualContext.contextAdded', 'context added'),
+    contextNotAdded: ts('manualContext.contextNotAdded', 'context not added'),
+    notAdded: ts('manualContext.notAdded', 'not added'),
+    enoughDefined: ts('manualContext.enoughDefined', 'enough defined'),
+    enoughNotDefined: ts('manualContext.enoughNotDefined', 'enough not defined'),
+    riskAdded: ts('manualContext.riskAdded', 'risk added'),
+    riskNotAdded: ts('manualContext.riskNotAdded', 'risk not added'),
+    waitingAdded: ts('manualContext.waitingAdded', 'waiting added'),
+    waitingNotAdded: ts('manualContext.waitingNotAdded', 'waiting not added'),
+    counselAdded: ts('manualContext.counselAdded', 'counsel added'),
+    counselNotAdded: ts('manualContext.counselNotAdded', 'counsel not added'),
+  };
   useEffect(() => {
     window.setTimeout(() => setDraft(context), 0);
   }, [context]);
@@ -8798,66 +8863,66 @@ function ManualContextPanel({
     label: string;
     placeholder: string;
   }> = [
-    { key: "financeContext", label: "Money context", placeholder: "Current pressure, obligations, giving posture, spending tension..." },
-    { key: "workContext", label: "Work context", placeholder: "Role, workload, calling tension, business stage, leadership strain..." },
-    { key: "healthContext", label: "Health context", placeholder: "Energy pattern, limits, sleep rhythm, recovery factors..." },
-    { key: "obligations", label: "Responsibilities", placeholder: "Dependents, caregiving, family obligations, community load..." },
-    { key: "goals", label: "Current goals", placeholder: "What you are trying to build with money, work, and life..." },
-    { key: "enoughDefinition", label: "Definition of enough", placeholder: "What 'enough' means in this season..." },
-    { key: "mustNotSacrifice", label: "Must not sacrifice", placeholder: "Peace, integrity, family time, Sabbath, health..." },
-    { key: "boundaries", label: "Guidance boundaries", placeholder: "What Aletheia should avoid assuming or overemphasizing..." },
+    { key: "financeContext", label: ts('manualContext.financeContextLabel', 'Money context'), placeholder: ts('manualContext.financeContextPlaceholder', 'Current pressure, obligations, giving posture, spending tension...') },
+    { key: "workContext", label: ts('manualContext.workContextLabel', 'Work context'), placeholder: ts('manualContext.workContextPlaceholder', 'Role, workload, calling tension, business stage, leadership strain...') },
+    { key: "healthContext", label: ts('manualContext.healthContextLabel', 'Health context'), placeholder: ts('manualContext.healthContextPlaceholder', 'Energy pattern, limits, sleep rhythm, recovery factors...') },
+    { key: "obligations", label: ts('manualContext.obligationsLabel', 'Responsibilities'), placeholder: ts('manualContext.obligationsPlaceholder', 'Dependents, caregiving, family obligations, community load...') },
+    { key: "goals", label: ts('manualContext.goalsLabel', 'Current goals'), placeholder: ts('manualContext.goalsPlaceholder', 'What you are trying to build with money, work, and life...') },
+    { key: "enoughDefinition", label: ts('manualContext.enoughDefinitionLabel', 'Definition of enough'), placeholder: ts('manualContext.enoughDefinitionPlaceholder', "What 'enough' means in this season...") },
+    { key: "mustNotSacrifice", label: ts('manualContext.mustNotSacrificeLabel', 'Must not sacrifice'), placeholder: ts('manualContext.mustNotSacrificePlaceholder', 'Peace, integrity, family time, Sabbath, health...') },
+    { key: "boundaries", label: ts('manualContext.boundariesLabel', 'Guidance boundaries'), placeholder: ts('manualContext.boundariesPlaceholder', 'What Aletheia should avoid assuming or overemphasizing...') },
   ];
   const moneyNumberFields: Array<{ key: keyof Pick<ManualContextProfile, "monthlyIncome" | "fixedExpenses" | "debtPayments" | "savingsBufferMonths" | "givingTargetPercent" | "financialDependents">; label: string; step?: number; min: number; max: number }> = [
-    { key: "monthlyIncome", label: "Monthly income", step: 100, min: 0, max: 50000 },
-    { key: "fixedExpenses", label: "Fixed monthly expenses", step: 100, min: 0, max: 50000 },
-    { key: "debtPayments", label: "Monthly debt payments", step: 50, min: 0, max: 20000 },
-    { key: "savingsBufferMonths", label: "Savings buffer (months)", step: 0.1, min: 0, max: 60 },
-    { key: "givingTargetPercent", label: "Giving target (%)", step: 0.5, min: 0, max: 100 },
-    { key: "financialDependents", label: "Financial dependents", step: 1, min: 0, max: 20 },
+    { key: "monthlyIncome", label: ts('manualContext.monthlyIncome', 'Monthly income'), step: 100, min: 0, max: 50000 },
+    { key: "fixedExpenses", label: ts('manualContext.fixedExpenses', 'Fixed monthly expenses'), step: 100, min: 0, max: 50000 },
+    { key: "debtPayments", label: ts('manualContext.debtPayments', 'Monthly debt payments'), step: 50, min: 0, max: 20000 },
+    { key: "savingsBufferMonths", label: ts('manualContext.savingsBufferMonths', 'Savings buffer (months)'), step: 0.1, min: 0, max: 60 },
+    { key: "givingTargetPercent", label: ts('manualContext.givingTargetPercent', 'Giving target (%)'), step: 0.5, min: 0, max: 100 },
+    { key: "financialDependents", label: ts('manualContext.financialDependents', 'Financial dependents'), step: 1, min: 0, max: 20 },
   ];
   const lifeNumberFields: Array<{ key: keyof Pick<ManualContextProfile, "workHoursPerWeek" | "commuteHoursPerWeek" | "sleepHours" | "exerciseSessionsPerWeek" | "timeWithLovedOnesHoursPerWeek" | "timeWithCommunityHoursPerWeek">; label: string; step?: number; min: number; max: number }> = [
-    { key: "workHoursPerWeek", label: "Work hours per week", step: 0.5, min: 0, max: 120 },
-    { key: "commuteHoursPerWeek", label: "Commute hours per week", step: 0.5, min: 0, max: 60 },
-    { key: "sleepHours", label: "Sleep hours (avg/day)", step: 0.1, min: 0, max: 24 },
-    { key: "exerciseSessionsPerWeek", label: "Exercise sessions/week", step: 1, min: 0, max: 30 },
-    { key: "timeWithLovedOnesHoursPerWeek", label: "Hours with loved ones/week", step: 0.5, min: 0, max: 120 },
-    { key: "timeWithCommunityHoursPerWeek", label: "Hours with community/week", step: 0.5, min: 0, max: 120 },
+    { key: "workHoursPerWeek", label: ts('manualContext.workHoursPerWeek', 'Work hours per week'), step: 0.5, min: 0, max: 120 },
+    { key: "commuteHoursPerWeek", label: ts('manualContext.commuteHoursPerWeek', 'Commute hours per week'), step: 0.5, min: 0, max: 60 },
+    { key: "sleepHours", label: ts('manualContext.sleepHours', 'Sleep hours (avg/day)'), step: 0.1, min: 0, max: 24 },
+    { key: "exerciseSessionsPerWeek", label: ts('manualContext.exerciseSessionsPerWeek', 'Exercise sessions/week'), step: 1, min: 0, max: 30 },
+    { key: "timeWithLovedOnesHoursPerWeek", label: ts('manualContext.timeWithLovedOnesHoursPerWeek', 'Hours with loved ones/week'), step: 0.5, min: 0, max: 120 },
+    { key: "timeWithCommunityHoursPerWeek", label: ts('manualContext.timeWithCommunityHoursPerWeek', 'Hours with community/week'), step: 0.5, min: 0, max: 120 },
   ];
   const signalFields: Array<{ key: keyof Pick<ManualContextProfile, "stressLevel" | "energyDrainLevel" | "urgencyLevel" | "supportLevel">; label: string; min: number; max: number }> = [
-    { key: "stressLevel", label: "Stress (0-10)", min: 0, max: 10 },
-    { key: "energyDrainLevel", label: "Energy drain (0-10)", min: 0, max: 10 },
-    { key: "urgencyLevel", label: "Urgency pressure (0-10)", min: 0, max: 10 },
-    { key: "supportLevel", label: "Support strength (0-10)", min: 0, max: 10 },
+    { key: "stressLevel", label: ts('manualContext.stressLevel', 'Stress (0-10)'), min: 0, max: 10 },
+    { key: "energyDrainLevel", label: ts('manualContext.energyDrainLevel', 'Energy drain (0-10)'), min: 0, max: 10 },
+    { key: "urgencyLevel", label: ts('manualContext.urgencyLevel', 'Urgency pressure (0-10)'), min: 0, max: 10 },
+    { key: "supportLevel", label: ts('manualContext.supportLevel', 'Support strength (0-10)'), min: 0, max: 10 },
   ];
   const preferenceFields: Array<{ key: keyof Pick<ManualContextProfile, "riskTolerance" | "waitingPreference" | "counselCadence" | "successDefinition">; label: string; placeholder: string }> = [
-    { key: "riskTolerance", label: "Risk tolerance", placeholder: "Conservative, moderate, aggressive, depends on season..." },
-    { key: "waitingPreference", label: "Waiting preference", placeholder: "24h, 3 days, 7 days, 30 days for major decisions..." },
-    { key: "counselCadence", label: "Counsel rhythm", placeholder: "Who I check with and how often..." },
-    { key: "successDefinition", label: "Definition of success", placeholder: "How I measure faithful success, not just outcomes..." },
+    { key: "riskTolerance", label: ts('manualContext.riskTolerance', 'Risk tolerance'), placeholder: ts('manualContext.riskTolerancePlaceholder', 'Conservative, moderate, aggressive, depends on season...') },
+    { key: "waitingPreference", label: ts('manualContext.waitingPreference', 'Waiting preference'), placeholder: ts('manualContext.waitingPreferencePlaceholder', '24h, 3 days, 7 days, 30 days for major decisions...') },
+    { key: "counselCadence", label: ts('manualContext.counselCadence', 'Counsel rhythm'), placeholder: ts('manualContext.counselCadencePlaceholder', 'Who I check with and how often...') },
+    { key: "successDefinition", label: ts('manualContext.successDefinition', 'Definition of success'), placeholder: ts('manualContext.successDefinitionPlaceholder', 'How I measure faithful success, not just outcomes...') },
   ];
   const futureNumberFields: Array<{ key: keyof Pick<ManualContextProfile, "targetSavingsBufferMonths" | "targetWorkHoursPerWeek" | "targetSleepHours" | "targetExerciseSessionsPerWeek" | "targetTimeWithLovedOnesHoursPerWeek" | "targetTimeWithCommunityHoursPerWeek" | "targetStressLevel" | "targetUrgencyLevel" | "targetSupportLevel">; label: string; step?: number; min: number; max: number }> = [
-    { key: "targetSavingsBufferMonths", label: "Target savings buffer", step: 0.1, min: 0, max: 60 },
-    { key: "targetWorkHoursPerWeek", label: "Target work hours/week", step: 0.5, min: 0, max: 120 },
-    { key: "targetSleepHours", label: "Target sleep hours/day", step: 0.1, min: 0, max: 24 },
-    { key: "targetExerciseSessionsPerWeek", label: "Target exercise/week", step: 1, min: 0, max: 30 },
-    { key: "targetTimeWithLovedOnesHoursPerWeek", label: "Target loved ones hours/week", step: 0.5, min: 0, max: 120 },
-    { key: "targetTimeWithCommunityHoursPerWeek", label: "Target community hours/week", step: 0.5, min: 0, max: 120 },
-    { key: "targetStressLevel", label: "Target stress (0-10)", step: 1, min: 0, max: 10 },
-    { key: "targetUrgencyLevel", label: "Target urgency (0-10)", step: 1, min: 0, max: 10 },
-    { key: "targetSupportLevel", label: "Target support (0-10)", step: 1, min: 0, max: 10 },
+    { key: "targetSavingsBufferMonths", label: ts('manualContext.targetSavingsBufferMonths', 'Target savings buffer'), step: 0.1, min: 0, max: 60 },
+    { key: "targetWorkHoursPerWeek", label: ts('manualContext.targetWorkHoursPerWeek', 'Target work hours/week'), step: 0.5, min: 0, max: 120 },
+    { key: "targetSleepHours", label: ts('manualContext.targetSleepHours', 'Target sleep hours/day'), step: 0.1, min: 0, max: 24 },
+    { key: "targetExerciseSessionsPerWeek", label: ts('manualContext.targetExerciseSessionsPerWeek', 'Target exercise/week'), step: 1, min: 0, max: 30 },
+    { key: "targetTimeWithLovedOnesHoursPerWeek", label: ts('manualContext.targetTimeWithLovedOnesHoursPerWeek', 'Target loved ones hours/week'), step: 0.5, min: 0, max: 120 },
+    { key: "targetTimeWithCommunityHoursPerWeek", label: ts('manualContext.targetTimeWithCommunityHoursPerWeek', 'Target community hours/week'), step: 0.5, min: 0, max: 120 },
+    { key: "targetStressLevel", label: ts('manualContext.targetStressLevel', 'Target stress (0-10)'), step: 1, min: 0, max: 10 },
+    { key: "targetUrgencyLevel", label: ts('manualContext.targetUrgencyLevel', 'Target urgency (0-10)'), step: 1, min: 0, max: 10 },
+    { key: "targetSupportLevel", label: ts('manualContext.targetSupportLevel', 'Target support (0-10)'), step: 1, min: 0, max: 10 },
   ];
   const futureLongFields: Array<{
     key: keyof Pick<ManualContextProfile, "futureFinanceContext" | "futureWorkContext" | "futureHealthContext" | "futureRelationshipsContext" | "futureValuesContext" | "futureGoals" | "futureBoundaries">;
     label: string;
     placeholder: string;
   }> = [
-    { key: "futureFinanceContext", label: "Desired money posture", placeholder: "What a wiser, more peaceful money life would look like..." },
-    { key: "futureWorkContext", label: "Desired work rhythm", placeholder: "What sustainable, faithful work should feel like..." },
-    { key: "futureHealthContext", label: "Desired health rhythm", placeholder: "The energy, sleep, and recovery you want to move toward..." },
-    { key: "futureRelationshipsContext", label: "Desired relationships/community", placeholder: "The support, family rhythm, or community connection you want..." },
-    { key: "futureValuesContext", label: "Desired values posture", placeholder: "The kind of person your decisions should form you into..." },
-    { key: "futureGoals", label: "Future goals", placeholder: "What you are hoping to build over time..." },
-    { key: "futureBoundaries", label: "Future boundaries", placeholder: "What should remain protected as you grow..." },
+    { key: "futureFinanceContext", label: ts('manualContext.futureFinanceContext', 'Desired money posture'), placeholder: ts('manualContext.futureFinanceContextPlaceholder', 'What a wiser, more peaceful money life would look like...') },
+    { key: "futureWorkContext", label: ts('manualContext.futureWorkContext', 'Desired work rhythm'), placeholder: ts('manualContext.futureWorkContextPlaceholder', 'What sustainable, faithful work should feel like...') },
+    { key: "futureHealthContext", label: ts('manualContext.futureHealthContext', 'Desired health rhythm'), placeholder: ts('manualContext.futureHealthContextPlaceholder', 'The energy, sleep, and recovery you want to move toward...') },
+    { key: "futureRelationshipsContext", label: ts('manualContext.futureRelationshipsContext', 'Desired relationships/community'), placeholder: ts('manualContext.futureRelationshipsContextPlaceholder', 'The support, family rhythm, or community connection you want...') },
+    { key: "futureValuesContext", label: ts('manualContext.futureValuesContext', 'Desired values posture'), placeholder: ts('manualContext.futureValuesContextPlaceholder', 'The kind of person your decisions should form you into...') },
+    { key: "futureGoals", label: ts('manualContext.futureGoals', 'Future goals'), placeholder: ts('manualContext.futureGoalsPlaceholder', 'What you are hoping to build over time...') },
+    { key: "futureBoundaries", label: ts('manualContext.futureBoundaries', 'Future boundaries'), placeholder: ts('manualContext.futureBoundariesPlaceholder', 'What should remain protected as you grow...') },
   ];
 
   // Check if sections have content to determine if they should auto-expand
@@ -8868,20 +8933,20 @@ function ManualContextPanel({
   const hasFutureState = futureNumberFields.some(field => draft[field.key] !== null) || futureLongFields.some(field => (draft[field.key] ?? '').trim().length > 0);
   const activeContextSections = [hasMoneySignals, Boolean(draft.workContext || draft.workHoursPerWeek), Boolean(draft.healthContext || draft.sleepHours || draft.exerciseSessionsPerWeek), Boolean(draft.obligations || draft.timeWithLovedOnesHoursPerWeek || draft.timeWithCommunityHoursPerWeek), hasSignals || hasLongFields, hasPreferences].filter(Boolean).length;
   const sectionSummary = {
-    money: `Income ${draft.monthlyIncome ? "added" : "not added"} · savings ${draft.savingsBufferMonths ? "added" : "not added"} · debt ${draft.debtPayments ? "added" : "not added"}`,
-    work: `Work rhythm ${draft.workHoursPerWeek ? `${draft.workHoursPerWeek}h/week` : "not added"} · context ${draft.workContext ? "added" : "not added"}`,
-    health: `Sleep ${draft.sleepHours ? `${draft.sleepHours}h` : "not added"} · exercise ${draft.exerciseSessionsPerWeek ? `${draft.exerciseSessionsPerWeek}/week` : "not added"}`,
-    relationships: `Loved ones ${draft.timeWithLovedOnesHoursPerWeek ? `${draft.timeWithLovedOnesHoursPerWeek}h/week` : "not added"} · obligations ${draft.obligations ? "added" : "not added"}`,
-    values: `Stress ${draft.stressLevel ?? "not added"} · urgency ${draft.urgencyLevel ?? "not added"} · enough ${draft.enoughDefinition ? "defined" : "not defined"}`,
-    counsel: `Risk ${draft.riskTolerance ? "added" : "not added"} · waiting ${draft.waitingPreference ? "added" : "not added"} · counsel ${draft.counselCadence ? "added" : "not added"}`,
+    money: `${draft.monthlyIncome ? manualCopy.incomeAdded : manualCopy.incomeNotAdded} · ${draft.savingsBufferMonths ? manualCopy.savingsAdded : manualCopy.savingsNotAdded} · ${draft.debtPayments ? manualCopy.debtAdded : manualCopy.debtNotAdded}`,
+    work: `${manualCopy.workRhythm} ${draft.workHoursPerWeek ? `${draft.workHoursPerWeek}h/week` : manualCopy.notAdded} · ${draft.workContext ? manualCopy.contextAdded : manualCopy.contextNotAdded}`,
+    health: `${ts('manualContext.sleepSummary', 'Sleep')} ${draft.sleepHours ? `${draft.sleepHours}h` : manualCopy.notAdded} · ${ts('manualContext.exerciseSummary', 'exercise')} ${draft.exerciseSessionsPerWeek ? `${draft.exerciseSessionsPerWeek}/week` : manualCopy.notAdded}`,
+    relationships: `${ts('manualContext.lovedOnesSummary', 'Loved ones')} ${draft.timeWithLovedOnesHoursPerWeek ? `${draft.timeWithLovedOnesHoursPerWeek}h/week` : manualCopy.notAdded} · ${ts('manualContext.obligationsSummary', 'obligations')} ${draft.obligations ? manualCopy.added : manualCopy.notAdded}`,
+    values: `${ts('manualContext.stressSummary', 'Stress')} ${draft.stressLevel ?? manualCopy.notAdded} · ${ts('manualContext.urgencySummary', 'urgency')} ${draft.urgencyLevel ?? manualCopy.notAdded} · ${draft.enoughDefinition ? manualCopy.enoughDefined : manualCopy.enoughNotDefined}`,
+    counsel: `${draft.riskTolerance ? manualCopy.riskAdded : manualCopy.riskNotAdded} · ${draft.waitingPreference ? manualCopy.waitingAdded : manualCopy.waitingNotAdded} · ${draft.counselCadence ? manualCopy.counselAdded : manualCopy.counselNotAdded}`,
   };
   const quickDetailOptions: Array<{ key: typeof quickDetailType; label: string; prompt: string }> = [
-    { key: "financeContext", label: "Money picture", prompt: "Example: My buffer is thin and I feel pressure to take bigger risks." },
-    { key: "workContext", label: "Work rhythm", prompt: "Example: I work long hours and feel called to change pace." },
-    { key: "healthContext", label: "Stress/sleep", prompt: "Example: Sleep has been low, so urgency feels louder than usual." },
-    { key: "obligations", label: "Family obligations", prompt: "Example: I support family members and need counsel that honors that." },
-    { key: "boundaries", label: "Boundaries", prompt: "Example: Do not encourage choices that sacrifice family peace." },
-    { key: "enoughDefinition", label: "Definition of enough", prompt: "Example: Enough means stability, generosity, and time with loved ones." },
+    { key: "financeContext", label: manualCopy.moneyPicture, prompt: ts('manualContext.moneyPicturePrompt', 'Example: My buffer is thin and I feel pressure to take bigger risks.') },
+    { key: "workContext", label: manualCopy.workRhythm, prompt: ts('manualContext.workRhythmPrompt', 'Example: I work long hours and feel called to change pace.') },
+    { key: "healthContext", label: ts('manualContext.stressSleep', 'Stress/sleep'), prompt: ts('manualContext.stressSleepPrompt', 'Example: Sleep has been low, so urgency feels louder than usual.') },
+    { key: "obligations", label: ts('manualContext.familyObligations', 'Family obligations'), prompt: ts('manualContext.familyObligationsPrompt', 'Example: I support family members and need counsel that honors that.') },
+    { key: "boundaries", label: ts('manualContext.boundariesChip', 'Boundaries'), prompt: ts('manualContext.boundariesPrompt', 'Example: Do not encourage choices that sacrifice family peace.') },
+    { key: "enoughDefinition", label: ts('manualContext.enoughDefinitionLabel', 'Definition of enough'), prompt: ts('manualContext.enoughDefinitionPrompt', 'Example: Enough means stability, generosity, and time with loved ones.') },
   ];
   const applyQuickDetail = () => {
     const value = quickDetail.trim();
@@ -8904,9 +8969,9 @@ function ManualContextPanel({
             <ShieldCheck size={17} />
           </div>
           <div>
-            <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.manualContextTitle', 'Manual Context Vault')}</p>
+            <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{manualCopy.title}</p>
             <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
-              Add only the health, money, work, and life context you want Aletheia to consider. No external apps are connected.
+              {manualCopy.intro}
             </p>
             <p className="mt-2 text-xs leading-5" style={{ color: theme.textSecondary }}>{status}</p>
           </div>
@@ -8921,20 +8986,20 @@ function ManualContextPanel({
         >
           <div className="rounded-lg border p-4" style={{ borderColor: theme.borderMedium, backgroundColor: draft.useInAnswers ? theme.activeBg : theme.bgCardElevated }}>
             <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
-              {draft.useInAnswers ? "Context is active" : "Context is paused"}
+              {draft.useInAnswers ? manualCopy.active : manualCopy.paused}
             </p>
             <p className="mt-2 text-2xl font-semibold" style={{ color: theme.textPrimary }}>
-              {activeContextSections} area{activeContextSections === 1 ? "" : "s"} added
+              {activeContextSections} {activeContextSections === 1 ? manualCopy.areaSingular : manualCopy.areaPlural} {manualCopy.added}
             </p>
             <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
-              Aletheia will use only the enabled areas below when shaping counsel.
+              {manualCopy.areaSummary}
             </p>
           </div>
 
           <div className="rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-            <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>Add one helpful detail</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{manualCopy.quickTitle}</p>
             <p className="mt-1 text-xs leading-5" style={{ color: theme.textSecondary }}>
-              One honest detail is enough to make Aletheia’s counsel more personal.
+              {manualCopy.quickBody}
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
               {quickDetailOptions.map((option) => {
@@ -8971,7 +9036,7 @@ function ManualContextPanel({
                 disabled={!quickDetail.trim()}
                 onClick={applyQuickDetail}
               >
-                Add detail
+                {manualCopy.addDetail}
               </button>
             </div>
           </div>
@@ -9002,9 +9067,9 @@ function ManualContextPanel({
               style={{ borderColor: theme.borderMedium }}
             />
             <span>
-              <span className="block font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.allowContextPrompt', 'Allow Aletheia to use this context in answers')}</span>
+              <span className="block font-semibold" style={{ color: theme.textPrimary }}>{manualCopy.allowContextPrompt}</span>
               <span className="mt-1 block text-xs leading-5" style={{ color: theme.textSecondary }}>
-                Turn this off anytime. Saved context remains private and will not shape responses while off.
+                {manualCopy.allowContextBody}
               </span>
             </span>
           </label>
@@ -9012,30 +9077,30 @@ function ManualContextPanel({
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="flex items-start gap-3 rounded-lg border p-3 text-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
               <input type="checkbox" checked={draft.useMoneyInAnswers} onChange={(event) => setDraft((current) => ({ ...current, useMoneyInAnswers: event.target.checked }))} className="mt-1 size-4 rounded" style={{ borderColor: theme.borderMedium }} />
-              <span className="font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.useMoneyContext', 'Use money context in answers')}</span>
+              <span className="font-semibold" style={{ color: theme.textPrimary }}>{manualCopy.useMoney}</span>
             </label>
             <label className="flex items-start gap-3 rounded-lg border p-3 text-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
               <input type="checkbox" checked={draft.useWorkInAnswers} onChange={(event) => setDraft((current) => ({ ...current, useWorkInAnswers: event.target.checked }))} className="mt-1 size-4 rounded" style={{ borderColor: theme.borderMedium }} />
-              <span className="font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.useWorkContext', 'Use work context in answers')}</span>
+              <span className="font-semibold" style={{ color: theme.textPrimary }}>{manualCopy.useWork}</span>
             </label>
             <label className="flex items-start gap-3 rounded-lg border p-3 text-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
               <input type="checkbox" checked={draft.useHealthInAnswers} onChange={(event) => setDraft((current) => ({ ...current, useHealthInAnswers: event.target.checked }))} className="mt-1 size-4 rounded" style={{ borderColor: theme.borderMedium }} />
-              <span className="font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.useHealthContext', 'Use health rhythm in answers')}</span>
+              <span className="font-semibold" style={{ color: theme.textPrimary }}>{manualCopy.useHealth}</span>
             </label>
             <label className="flex items-start gap-3 rounded-lg border p-3 text-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
               <input type="checkbox" checked={draft.useRelationshipsInAnswers} onChange={(event) => setDraft((current) => ({ ...current, useRelationshipsInAnswers: event.target.checked }))} className="mt-1 size-4 rounded" style={{ borderColor: theme.borderMedium }} />
-              <span className="font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.useRelationshipsContext', 'Use relationships context in answers')}</span>
+              <span className="font-semibold" style={{ color: theme.textPrimary }}>{manualCopy.useRelationships}</span>
             </label>
             <label className="flex items-start gap-3 rounded-lg border p-3 text-sm sm:col-span-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
               <input type="checkbox" checked={draft.useValuesInAnswers} onChange={(event) => setDraft((current) => ({ ...current, useValuesInAnswers: event.target.checked }))} className="mt-1 size-4 rounded" style={{ borderColor: theme.borderMedium }} />
-              <span className="font-semibold" style={{ color: theme.textPrimary }}>Use values, risk, and counsel preferences in answers</span>
+              <span className="font-semibold" style={{ color: theme.textPrimary }}>{manualCopy.useValues}</span>
             </label>
           </div>
 
           <div className="grid grid-cols-2 gap-2 rounded-lg border p-1" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
             {[
-              { key: "current" as const, label: "Current state", body: `${activeContextSections} active area${activeContextSections === 1 ? "" : "s"}` },
-              { key: "future" as const, label: "Future state", body: hasFutureState ? "Direction added" : "Not added yet" },
+              { key: "current" as const, label: manualCopy.currentState, body: `${activeContextSections} ${activeContextSections === 1 ? manualCopy.activeArea : manualCopy.activeAreas}` },
+              { key: "future" as const, label: manualCopy.futureState, body: hasFutureState ? manualCopy.directionAdded : manualCopy.notAddedYet },
             ].map((tab) => {
               const active = contextTab === tab.key;
               return (
@@ -9061,7 +9126,7 @@ function ManualContextPanel({
             <>
           <details className="group rounded-lg border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
             <summary className="cursor-pointer p-3 text-xs font-semibold uppercase tracking-[0.12em] transition" style={{ color: theme.textSecondary }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.bgCard} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
-              Money picture {hasMoneySignals ? "✓" : ""}<span className="mt-1 block normal-case tracking-normal" style={{ color: theme.textMuted }}>{sectionSummary.money}</span>
+              {manualCopy.moneyPicture} {hasMoneySignals ? "✓" : ""}<span className="mt-1 block normal-case tracking-normal" style={{ color: theme.textMuted }}>{sectionSummary.money}</span>
             </summary>
             <div className="space-y-3 border-t p-3" style={{ borderColor: theme.borderLight }}>
               <div className="grid gap-3 md:grid-cols-2">
@@ -9084,7 +9149,7 @@ function ManualContextPanel({
 
           <details className="group rounded-lg border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
             <summary className="cursor-pointer p-3 text-xs font-semibold uppercase tracking-[0.12em] transition" style={{ color: theme.textSecondary }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.bgCard} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
-              Work rhythm {draft.workContext || draft.workHoursPerWeek ? "✓" : ""}<span className="mt-1 block normal-case tracking-normal" style={{ color: theme.textMuted }}>{sectionSummary.work}</span>
+              {manualCopy.workRhythm} {draft.workContext || draft.workHoursPerWeek ? "✓" : ""}<span className="mt-1 block normal-case tracking-normal" style={{ color: theme.textMuted }}>{sectionSummary.work}</span>
             </summary>
             <div className="space-y-3 border-t p-3" style={{ borderColor: theme.borderLight }}>
               <div className="grid gap-3 md:grid-cols-2">
@@ -9107,7 +9172,7 @@ function ManualContextPanel({
 
           <details className="group rounded-lg border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
             <summary className="cursor-pointer p-3 text-xs font-semibold uppercase tracking-[0.12em] transition" style={{ color: theme.textSecondary }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.bgCard} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
-              Values and risk posture {hasSignals ? "✓" : ""}<span className="mt-1 block normal-case tracking-normal" style={{ color: theme.textMuted }}>{sectionSummary.values}</span>
+              {manualCopy.valuesRiskPosture} {hasSignals ? "✓" : ""}<span className="mt-1 block normal-case tracking-normal" style={{ color: theme.textMuted }}>{sectionSummary.values}</span>
             </summary>
             <div className="space-y-3 border-t p-3" style={{ borderColor: theme.borderLight }}>
               <div className="grid gap-3 md:grid-cols-2">
@@ -9130,7 +9195,7 @@ function ManualContextPanel({
 
           <details className="group rounded-lg border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
             <summary className="cursor-pointer p-3 text-xs font-semibold uppercase tracking-[0.12em] transition" style={{ color: theme.textSecondary }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.bgCard} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
-              Counsel preferences {hasPreferences ? "✓" : ""}<span className="mt-1 block normal-case tracking-normal" style={{ color: theme.textMuted }}>{sectionSummary.counsel}</span>
+              {manualCopy.counselPreferences} {hasPreferences ? "✓" : ""}<span className="mt-1 block normal-case tracking-normal" style={{ color: theme.textMuted }}>{sectionSummary.counsel}</span>
             </summary>
             <div className="space-y-3 border-t p-3" style={{ borderColor: theme.borderLight }}>
               <div className="grid gap-3 md:grid-cols-2">
@@ -9152,7 +9217,7 @@ function ManualContextPanel({
 
           <details className="group rounded-lg border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
             <summary className="cursor-pointer p-3 text-xs font-semibold uppercase tracking-[0.12em] transition" style={{ color: theme.textSecondary }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.bgCard} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
-              Health and relationships {hasLongFields ? "✓" : ""}<span className="mt-1 block normal-case tracking-normal" style={{ color: theme.textMuted }}>{sectionSummary.health} · {sectionSummary.relationships}</span>
+              {manualCopy.healthRelationships} {hasLongFields ? "✓" : ""}<span className="mt-1 block normal-case tracking-normal" style={{ color: theme.textMuted }}>{sectionSummary.health} · {sectionSummary.relationships}</span>
             </summary>
             <div className="space-y-3 border-t p-3" style={{ borderColor: theme.borderLight }}>
               <div className="grid gap-3 md:grid-cols-2">
@@ -9175,9 +9240,9 @@ function ManualContextPanel({
           ) : (
             <div className="space-y-3 rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>Desired future state</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{manualCopy.desiredFutureState}</p>
                 <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
-                  Add the direction you want Aletheia to keep in view. Counsel will connect present choices to these desired rhythms without promising outcomes.
+                  {manualCopy.desiredFutureBody}
                 </p>
               </div>
               <div className="grid gap-3 md:grid-cols-2">
@@ -9213,19 +9278,19 @@ function ManualContextPanel({
           )}
 
           <div className="rounded-lg border p-3 text-xs leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
-            <p className="font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.privacyPosture', 'Privacy posture')}</p>
+            <p className="font-semibold" style={{ color: theme.textPrimary }}>{manualCopy.privacyPosture}</p>
             <p className="mt-1">
-              This is manual, optional, and scoped to your account or this device. Aletheia does not connect to Apple Watch, banks, payroll, or medical systems here.
+              {manualCopy.privacyBody}
             </p>
             <p className="mt-1">
               {user
-                ? "Signed-in context can sync across devices."
-                : "Guest context stays on this device until you sign in."}{" "}
-              {hasContent ? "You can delete any field by clearing it." : "Nothing has been added yet."}
+                ? manualCopy.signedInSync
+                : manualCopy.guestSync}{" "}
+              {hasContent ? manualCopy.clearFields : manualCopy.nothingAdded}
             </p>
           </div>
           <button className="h-10 rounded-md px-4 text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>
-            Save manual context
+            {manualCopy.saveManualContext}
           </button>
         </form>
       </div>
@@ -9260,7 +9325,7 @@ function ShareInviteCard({
           </p>
         </div>
       </div>
-      <ShareActions theme={theme} placement={placement} onShare={onShare} />
+      <ShareActions theme={theme} ts={ts} placement={placement} onShare={onShare} />
     </section>
   );
 }
@@ -9288,10 +9353,12 @@ function ShareMilestonePrompt({ theme, ui, onShare }: { theme: ThemeColors; ui: 
 
 function ShareActions({
   theme,
+  ts,
   placement,
   onShare,
 }: {
   theme: ThemeColors;
+  ts: (key: string, fallback?: string) => string;
   placement: string;
   onShare: (channel: ShareChannel, placement: string) => void;
 }) {
@@ -9313,7 +9380,7 @@ function ShareActions({
         style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
       >
         <Share2 size={14} />
-        Share Aletheia
+        {ts('share.shareAletheia', 'Share Aletheia')}
       </button>
       <button
         type="button"
@@ -9321,7 +9388,7 @@ function ShareActions({
         className="h-11 min-w-0 rounded-md border px-3 text-xs font-semibold transition"
         style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}
       >
-        Copy link
+        {ts('share.copyLink', 'Copy link')}
       </button>
       {platforms.map((platform) => (
         <a
@@ -9342,6 +9409,7 @@ function ShareActions({
 
 function AvatarPickerModal({
   theme,
+  ts,
   open,
   title,
   subtitle,
@@ -9350,6 +9418,7 @@ function AvatarPickerModal({
   onPick,
 }: {
   theme: ThemeColors;
+  ts: (key: string, fallback?: string) => string;
   open: boolean;
   title: string;
   subtitle: string;
@@ -9380,7 +9449,7 @@ function AvatarPickerModal({
       <section className="max-h-[88vh] w-full max-w-3xl overflow-y-auto rounded-2xl border p-4 shadow-2xl sm:p-5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>Avatar Picker</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('avatar.pickerEyebrow', 'Avatar Picker')}</p>
             <h2 className="mt-2 text-xl font-semibold" style={{ color: theme.textPrimary }}>{title}</h2>
             <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>{subtitle}</p>
           </div>
@@ -9389,7 +9458,7 @@ function AvatarPickerModal({
             onClick={onClose}
             className="grid size-9 shrink-0 place-items-center rounded-md border"
             style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-            aria-label="Close avatar picker"
+            aria-label={ts('avatar.closePicker', 'Close avatar picker')}
           >
             <X size={17} />
           </button>
@@ -9402,7 +9471,7 @@ function AvatarPickerModal({
             className="inline-flex h-9 items-center rounded-md border px-3 text-xs font-semibold transition"
             style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
           >
-            Surprise me
+            {ts('avatar.surpriseMe', 'Surprise me')}
           </button>
         </div>
 
@@ -9420,7 +9489,7 @@ function AvatarPickerModal({
                   backgroundColor: selected ? theme.activeBg : theme.bgCardElevated,
                   color: theme.textPrimary,
                 }}
-                aria-label={`Pick ${option.name}`}
+                aria-label={`${ts('avatar.pickAvatar', 'Pick avatar')}: ${option.name}`}
               >
                 <Image
                   src={option.src}
@@ -9443,6 +9512,7 @@ function AvatarPickerModal({
 
 function AvatarUploadTipsModal({
   theme,
+  ts,
   open,
   optOut,
   onOptOutChange,
@@ -9450,6 +9520,7 @@ function AvatarUploadTipsModal({
   onContinue,
 }: {
   theme: ThemeColors;
+  ts: (key: string, fallback?: string) => string;
   open: boolean;
   optOut: boolean;
   onOptOutChange: (optOut: boolean) => void;
@@ -9465,10 +9536,10 @@ function AvatarUploadTipsModal({
       <section className="w-full max-w-lg rounded-2xl border p-4 shadow-2xl sm:p-5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>Photo tips</p>
-            <h2 className="mt-2 text-xl font-semibold" style={{ color: theme.textPrimary }}>Upload a profile photo calmly</h2>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('avatar.photoTipsEyebrow', 'Photo tips')}</p>
+            <h2 className="mt-2 text-xl font-semibold" style={{ color: theme.textPrimary }}>{ts('avatar.photoTipsTitle', 'Upload a profile photo calmly')}</h2>
             <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
-              Aletheia keeps this simple. Use one clear photo and it applies as soon as it is ready.
+              {ts('avatar.photoTipsBody', 'Aletheia keeps this simple. Use one clear photo and it applies as soon as it is ready.')}
             </p>
           </div>
           <button
@@ -9476,7 +9547,7 @@ function AvatarUploadTipsModal({
             onClick={onClose}
             className="grid size-9 shrink-0 place-items-center rounded-md border"
             style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-            aria-label="Close photo tips"
+            aria-label={ts('avatar.closePhotoTips', 'Close photo tips')}
           >
             <X size={17} />
           </button>
@@ -9484,10 +9555,10 @@ function AvatarUploadTipsModal({
 
         <div className="mt-4 rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
           <ul className="space-y-1.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
-            <li>Supported formats: PNG, JPEG, WEBP.</li>
-            <li>Maximum file size: 10MB.</li>
-            <li>We auto-optimize to keep profile photos fast and consistent.</li>
-            <li>After choosing, Aletheia applies it across signed-in devices.</li>
+            <li>{ts('avatar.supportedFormats', 'Supported formats: PNG, JPEG, WEBP.')}</li>
+            <li>{ts('avatar.maxFileSize', 'Maximum file size: 10MB.')}</li>
+            <li>{ts('avatar.autoOptimize', 'We auto-optimize to keep profile photos fast and consistent.')}</li>
+            <li>{ts('avatar.autoApplyDevices', 'After choosing, Aletheia applies it across signed-in devices.')}</li>
           </ul>
         </div>
 
@@ -9498,7 +9569,7 @@ function AvatarUploadTipsModal({
             onChange={(event) => onOptOutChange(event.target.checked)}
             className="mt-1"
           />
-          <span>Do not show these tips before choosing a photo.</span>
+          <span>{ts('avatar.hideTips', 'Do not show these tips before choosing a photo.')}</span>
         </label>
 
         <div className="mt-4 flex flex-wrap justify-end gap-2">
@@ -9508,7 +9579,7 @@ function AvatarUploadTipsModal({
             className="h-10 rounded-md border px-4 text-sm font-semibold"
             style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
           >
-            Maybe later
+            {ts('labels.maybeLater', 'Maybe later')}
           </button>
           <button
             type="button"
@@ -9516,7 +9587,7 @@ function AvatarUploadTipsModal({
             className="h-10 rounded-md px-4 text-sm font-semibold"
             style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
           >
-            Continue to photo picker
+            {ts('avatar.continueToPicker', 'Continue to photo picker')}
           </button>
         </div>
       </section>
@@ -9549,11 +9620,11 @@ function AccountStatusCard({
   const firstName = user?.name?.split(" ")[0] || user?.email.split("@")[0];
   const isReturning = (user?.loginCount ?? 0) > 1;
   const avatarSeed = user?.id ?? user?.email ?? "guest";
-  const avatarLabel = user?.name || user?.email || "Guest";
+  const avatarLabel = user?.name || user?.email || ts('auth.guest', 'Guest');
   const notificationHealth = notificationsEnabled
-    ? "This device is subscribed"
+    ? ts('notifications.deviceSubscribed', 'This device is subscribed')
     : notificationAccountEnabled && !notificationDeviceSubscribed
-      ? "Account enabled, this device not enabled"
+      ? ts('notifications.accountEnabledDeviceOff', 'Account enabled, this device not enabled')
       : notificationStatus;
 
   return (
@@ -9570,12 +9641,12 @@ function AccountStatusCard({
           <div>
           <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.profileTitle', 'Profile')}</p>
           <h3 className="mt-2 text-xl font-semibold" style={{ color: theme.textPrimary }}>
-            {signedIn ? `${isReturning ? "Welcome back" : "Welcome"}, ${firstName}` : "Guest mode"}
+            {signedIn ? `${isReturning ? ts('auth.welcomeBack', 'Welcome back') : ts('auth.welcome', 'Welcome')}, ${firstName}` : ts('auth.guestMode', 'Guest mode')}
           </h3>
           <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
             {signedIn
-              ? `Signed in as ${user?.email}. Sync is active for decisions, reflections, counsel, rules, and preferences.`
-              : "Sign in to sync your wisdom history across devices and enable daily notifications."}
+              ? `${ts('auth.signedInAs', 'Signed in as')} ${user?.email}. ${ts('auth.syncActiveFull', 'Sync is active for decisions, reflections, counsel, rules, and preferences.')}`
+              : ts('auth.signInSyncHistory', 'Sign in to sync your wisdom history across devices and enable daily notifications.')}
           </p>
           </div>
         </div>
@@ -9587,14 +9658,14 @@ function AccountStatusCard({
             className="h-10 rounded-md border px-4 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60"
             style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textSecondary }}
           >
-            {authStatus === "signing-out" ? "Signing out..." : "Sign out"}
+            {authStatus === "signing-out" ? ts('auth.signingOut', 'Signing out...') : ts('auth.signOut', 'Sign out')}
           </button>
         ) : null}
       </div>
       <div className="mt-4 grid gap-3 sm:grid-cols-3">
-        <AccountSignal label="Sync" value={signedIn ? "Active" : "Guest only"} active={signedIn} theme={theme} />
-        <AccountSignal label="Last synced" value={signedIn ? "This session" : "Not synced"} active={signedIn} theme={theme} />
-        <AccountSignal label="Notifications" value={notificationHealth} active={notificationsEnabled} theme={theme} />
+        <AccountSignal label={ts('labels.sync', 'Sync')} value={signedIn ? ts('labels.active', 'Active') : ts('auth.guestOnly', 'Guest only')} active={signedIn} theme={theme} />
+        <AccountSignal label={ts('labels.lastSynced', 'Last synced')} value={signedIn ? ts('labels.thisSession', 'This session') : ts('labels.notSynced', 'Not synced')} active={signedIn} theme={theme} />
+        <AccountSignal label={ts('labels.notifications', 'Notifications')} value={notificationHealth} active={notificationsEnabled} theme={theme} />
       </div>
     </section>
   );
@@ -9603,10 +9674,12 @@ function AccountStatusCard({
 function AvatarStudioCard({
   theme,
   user,
+  ts,
   onUpdateProfileAvatar,
 }: {
   theme: ThemeColors;
   user: User | null;
+  ts: (key: string, fallback?: string) => string;
   onUpdateProfileAvatar: (avatarUrl: string) => Promise<boolean>;
 }) {
   const [savingAvatar, setSavingAvatar] = useState(false);
@@ -9669,7 +9742,7 @@ function AvatarStudioCard({
     canvas.height = height;
     const context = canvas.getContext("2d");
     if (!context) {
-      throw new Error("Image processing failed.");
+      throw new Error(ts('avatar.imageProcessingFailed', 'Image processing failed.'));
     }
     context.imageSmoothingEnabled = true;
     context.imageSmoothingQuality = "high";
@@ -9679,7 +9752,7 @@ function AvatarStudioCard({
     const dataUrl = canvas.toDataURL("image/webp", 0.86);
     const normalized = normalizeAvatarUrl(dataUrl);
     if (!normalized) {
-      throw new Error("The selected image is too large after optimization.");
+      throw new Error(ts('avatar.tooLargeAfterOptimization', 'The selected image is too large after optimization.'));
     }
     return normalized;
   }
@@ -9687,7 +9760,7 @@ function AvatarStudioCard({
   async function applyAvatarChoice(
     nextAvatarUrl: string,
     pendingMessage: string,
-    successMessage = "Profile image updated.",
+    successMessage = ts('avatar.profileImageUpdated', 'Profile image updated.'),
     source: "curated" | "gallery" | "surprise" | "default" = "curated",
     options: { allowUndo?: boolean } = {}
   ) {
@@ -9698,13 +9771,13 @@ function AvatarStudioCard({
     const normalized = normalizeAvatarUrl(nextAvatarUrl ?? "") ?? "";
     const previousAvatarUrl = canonicalSaved;
     if (nextAvatarUrl && !normalized) {
-      setAvatarDraftStatus("Use a valid image. You can upload from your gallery or keep the default avatar.");
+      setAvatarDraftStatus(ts('avatar.useValidImage', 'Use a valid image. You can upload from your gallery or keep the default avatar.'));
       return;
     }
 
     setAvatarDraft(normalized);
     if (normalized === canonicalSaved) {
-      setAvatarDraftStatus(normalized ? "This avatar is already active." : "The default avatar is already active.");
+      setAvatarDraftStatus(normalized ? ts('avatar.alreadyActive', 'This avatar is already active.') : ts('avatar.defaultAlreadyActive', 'The default avatar is already active.'));
       return;
     }
 
@@ -9731,10 +9804,10 @@ function AvatarStudioCard({
           previousHadAvatar: Boolean(previousAvatarUrl),
         });
       } else {
-        setAvatarDraftStatus("Could not update the profile image. Please try again.");
+        setAvatarDraftStatus(ts('avatar.updateFailed', 'Could not update the profile image. Please try again.'));
       }
     } catch {
-      setAvatarDraftStatus("Could not update the profile image. Please try again.");
+      setAvatarDraftStatus(ts('avatar.updateFailed', 'Could not update the profile image. Please try again.'));
     } finally {
       setSavingAvatar(false);
     }
@@ -9749,23 +9822,23 @@ function AvatarStudioCard({
 
     const acceptedTypes = new Set(["image/png", "image/jpeg", "image/webp"]);
     if (!acceptedTypes.has(file.type)) {
-      setAvatarDraftStatus("Use PNG, JPEG, or WEBP images.");
+      setAvatarDraftStatus(ts('avatar.useSupportedFormats', 'Use PNG, JPEG, or WEBP images.'));
       event.target.value = "";
       return;
     }
     const maxBytes = 10 * 1024 * 1024;
     if (file.size > maxBytes) {
-      setAvatarDraftStatus("Choose an image smaller than 10MB.");
+      setAvatarDraftStatus(ts('avatar.chooseSmallerImage', 'Choose an image smaller than 10MB.'));
       event.target.value = "";
       return;
     }
 
     try {
-      setAvatarDraftStatus("Preparing your photo...");
+      setAvatarDraftStatus(ts('avatar.preparingPhoto', 'Preparing your photo...'));
       const optimized = await optimizeAvatarFile(file);
-      await applyAvatarChoice(optimized, "Applying your photo...", "Photo applied to your profile.", "gallery");
+      await applyAvatarChoice(optimized, ts('avatar.applyingPhoto', 'Applying your photo...'), ts('avatar.photoApplied', 'Photo applied to your profile.'), "gallery");
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Could not process this image.";
+      const message = error instanceof Error ? error.message : ts('avatar.processFailed', 'Could not process this image.');
       setAvatarDraftStatus(message);
     } finally {
       event.target.value = "";
@@ -9783,14 +9856,14 @@ function AvatarStudioCard({
         <div className="flex items-center gap-3">
           <AvatarCircle avatarUrl={avatarDraft} seed={avatarSeed} label={avatarLabel} size={56} className="size-14 rounded-full border object-cover" />
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>Avatar Studio</p>
-            <p className="mt-1 text-sm font-semibold" style={{ color: theme.textPrimary }}>Personalize your profile identity</p>
-            <p className="text-xs leading-5" style={{ color: theme.textSecondary }}>Synced across signed-in devices. Gallery, curated picks, and Surprise me are all available.</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('avatar.studioEyebrow', 'Avatar Studio')}</p>
+            <p className="mt-1 text-sm font-semibold" style={{ color: theme.textPrimary }}>{ts('avatar.studioTitle', 'Personalize your profile identity')}</p>
+            <p className="text-xs leading-5" style={{ color: theme.textSecondary }}>{ts('avatar.studioBody', 'Synced across signed-in devices. Gallery, curated picks, and Surprise me are all available.')}</p>
           </div>
         </div>
         {lastChangedAt ? (
           <span className="rounded-md border px-2 py-1 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-            Last changed {new Date(lastChangedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+            {ts('avatar.lastChanged', 'Last changed')} {new Date(lastChangedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
           </span>
         ) : null}
       </div>
@@ -9813,7 +9886,7 @@ function AvatarStudioCard({
         {avatarUndo ? (
           <div className="mb-3 flex flex-col gap-2 rounded-md border p-3 sm:flex-row sm:items-center sm:justify-between" style={{ borderColor: theme.accentLight, backgroundColor: theme.bgInput }}>
             <p className="text-sm leading-5" style={{ color: theme.textPrimary }}>
-              {avatarUndo.label}. You can undo this for a moment.
+              {avatarUndo.label}. {ts('avatar.undoWindow', 'You can undo this for a moment.')}
             </p>
             <button
               type="button"
@@ -9827,10 +9900,10 @@ function AvatarStudioCard({
                   window.clearTimeout(avatarUndoTimeoutRef.current);
                   avatarUndoTimeoutRef.current = null;
                 }
-                void applyAvatarChoice(previousAvatarUrl, "Restoring previous avatar...", "Previous avatar restored.", previousAvatarUrl ? "curated" : "default", { allowUndo: false });
+                void applyAvatarChoice(previousAvatarUrl, ts('avatar.restoringPrevious', 'Restoring previous avatar...'), ts('avatar.previousRestored', 'Previous avatar restored.'), previousAvatarUrl ? "curated" : "default", { allowUndo: false });
               }}
             >
-              Undo
+              {ts('labels.undo', 'Undo')}
             </button>
           </div>
         ) : null}
@@ -9848,9 +9921,9 @@ function AvatarStudioCard({
             }}
             disabled={savingAvatar}
           >
-            Choose photo
+            {ts('avatar.choosePhoto', 'Choose photo')}
           </button>
-          <button type="button" className="h-11 rounded-md border px-4 text-sm font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={() => setAvatarPickerOpen(true)} disabled={savingAvatar}>Pick fun avatar</button>
+          <button type="button" className="h-11 rounded-md border px-4 text-sm font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={() => setAvatarPickerOpen(true)} disabled={savingAvatar}>{ts('avatar.pickFunAvatar', 'Pick fun avatar')}</button>
           <button
             type="button"
             className="h-11 rounded-md border px-4 text-sm font-semibold"
@@ -9860,37 +9933,39 @@ function AvatarStudioCard({
               const pool = available.length ? available : curatedAvatarOptions;
               const picked = pool[Math.floor(Math.random() * pool.length)];
               if (picked) {
-                void applyAvatarChoice(normalizeAvatarUrl(picked.src) ?? picked.src, "Applying surprise avatar...", "Surprise avatar applied.", "surprise");
+                void applyAvatarChoice(normalizeAvatarUrl(picked.src) ?? picked.src, ts('avatar.applyingSurprise', 'Applying surprise avatar...'), ts('avatar.surpriseApplied', 'Surprise avatar applied.'), "surprise");
               }
             }}
             disabled={savingAvatar}
           >
-            Surprise me
+            {ts('avatar.surpriseMe', 'Surprise me')}
           </button>
           <button type="button" className="h-11 rounded-md border px-4 text-sm font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={() => {
-            void applyAvatarChoice("", "Restoring default avatar...", "Default avatar applied.", "default");
-          }} disabled={savingAvatar}>Use default</button>
+            void applyAvatarChoice("", ts('avatar.restoringDefault', 'Restoring default avatar...'), ts('avatar.defaultApplied', 'Default avatar applied.'), "default");
+          }} disabled={savingAvatar}>{ts('avatar.useDefault', 'Use default')}</button>
           {savingAvatar ? (
             <span className="flex h-11 items-center rounded-md px-4 text-sm font-semibold" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-              Applying...
+              {ts('labels.applying', 'Applying...')}
             </span>
           ) : null}
         </div>
       </div>
       <AvatarPickerModal
         theme={theme}
+        ts={ts}
         open={avatarPickerOpen}
-        title="Choose a profile avatar"
-        subtitle="Pick from curated, app-safe avatars or keep using your gallery upload."
+        title={ts('avatar.chooseProfileAvatar', 'Choose a profile avatar')}
+        subtitle={ts('avatar.chooseProfileAvatarBody', 'Pick from curated, app-safe avatars or keep using your gallery upload.')}
         currentAvatar={avatarDraft}
         onClose={() => setAvatarPickerOpen(false)}
         onPick={(avatarSrc) => {
           setAvatarPickerOpen(false);
-          void applyAvatarChoice(normalizeAvatarUrl(avatarSrc) ?? avatarSrc, "Applying avatar...", "Avatar applied to your profile.", "curated");
+          void applyAvatarChoice(normalizeAvatarUrl(avatarSrc) ?? avatarSrc, ts('avatar.applyingAvatar', 'Applying avatar...'), ts('avatar.avatarApplied', 'Avatar applied to your profile.'), "curated");
         }}
       />
       <AvatarUploadTipsModal
         theme={theme}
+        ts={ts}
         open={avatarTipsOpen}
         optOut={avatarTipsOptOut}
         onOptOutChange={setAvatarTipsPreference}
@@ -10112,13 +10187,13 @@ function NotificationPanel({
     (!("Notification" in window) || !("serviceWorker" in navigator) || !("PushManager" in window));
   const disabled = busy || !user || !configured || unsupported || permission === "denied";
   const displayStatus = !user
-    ? "Sign in to enable daily wisdom notifications."
+    ? ts('notifications.signInRequiredBody')
     : !configured
-      ? "Notifications need VAPID keys before they can be enabled."
+      ? ts('notifications.notificationsNotConfiguredBody')
       : unsupported
-        ? "This browser does not support web push notifications. Try the installed PWA or a modern mobile browser."
+        ? ts('notifications.notificationsUnavailableBody')
         : permission === "denied"
-          ? "Notifications are blocked for this site. Enable them in your browser settings to continue."
+          ? ts('notifications.notificationsBlockedBody', 'Notifications are blocked for this site. Enable them in your browser settings to continue.')
           : status;
 
   return (
@@ -12369,14 +12444,15 @@ function DecisionCompanionPanel({
           </form>
           <AvatarPickerModal
             theme={theme}
+            ts={ts}
             open={counselAvatarPickerOpen}
-            title="Choose a counsel avatar"
-            subtitle="Pick a curated avatar for this contact, or use gallery upload."
+            title={ts('avatar.chooseCounselAvatar', 'Choose a counsel avatar')}
+            subtitle={ts('avatar.chooseCounselAvatarBody', 'Pick a curated avatar for this contact, or use gallery upload.')}
             currentAvatar={counselAvatarUrl}
             onClose={() => setCounselAvatarPickerOpen(false)}
             onPick={(avatarSrc) => {
               setCounselAvatarUrl(avatarSrc);
-              setCounselAvatarStatus("Avatar selected for this counsel contact.");
+              setCounselAvatarStatus(ts('avatar.counselAvatarSelected', 'Avatar selected for this counsel contact.'));
               setCounselAvatarPickerOpen(false);
             }}
           />

@@ -273,6 +273,8 @@ After a meaningful answer, Aletheia can help the user take the next wise step.
 - Localized scripture quick reads for supported public-domain passages
 - Localized onboarding copy
 - Localized placeholders and voice hints
+- Localized Account personalization, Manual Context Vault, avatar, sharing, and profile-status controls
+- Localization audit coverage for newly added UI surfaces so expanded settings do not fall back to English unintentionally
 - Region-aware examples for global, United States, United Kingdom, Europe, Nigeria, Brazil, and Latin America
 - Safe fallback to English/reference-only wording when public-domain localized scripture text is unavailable
 - Cross-language Bible translation options so users can keep app UI in one language and read scripture in another
