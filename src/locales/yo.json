@@ -685,7 +685,25 @@
     "profileReady": "Profaili ti ṣetan",
     "guestSetupReady": "Ìṣètò alejo ti ṣetan",
     "set": "ti ṣeto",
-    "signInToSyncIt": "Wọlé kí o lè muuṣiṣẹpọ̀ rẹ."
+    "signInToSyncIt": "Wọlé kí o lè muuṣiṣẹpọ̀ rẹ.",
+    "accountPersonalizationTitle": "Ìṣàdáni",
+    "accountPersonalizationSummary": "Èdè, akori, ohùn àti avatar ló ń dá bí Aletheia ṣe máa rí sí ọ.",
+    "accountLanguageBody": "Sọ ní èdè ọkàn rẹ.",
+    "accountThemeBody": "Yan àyè tó tù ú, tó sì rọrùn láti ka.",
+    "accountVoiceBody": "Gbọ́ ọgbọ́n pẹ̀lú ìtọ́jú àti kedere.",
+    "accountScriptureContentTitle": "Ìwé Mímọ́ àti Àkóónú",
+    "accountScriptureContentSummary": "Yan ìtumọ̀ Bíbélì àti àyíká ìgbésí-ayé fún àpẹẹrẹ àti kika.",
+    "accountScriptureContentEyebrow": "Ìwé Mímọ́ àti Àkóónú",
+    "bibleTranslation": "Ìtumọ̀ Bíbélì",
+    "regionContext": "Agbègbè / àyíká",
+    "accountBibleBody": "Ka Ìwé Mímọ́ ní ọ̀rọ̀ tó ń bá ọ sọ̀rọ̀.",
+    "accountRegionBody": "Mú àpẹẹrẹ àti ìmòràn bá ibi tí o wà mu.",
+    "accountPreferencesTitle": "Ìfẹ́ràn",
+    "accountPreferencesSummary": "Ìfitónilétí, ìpamọ́ àti kọ́ńtẹ́ẹ̀sì ọwọ́ wà ní ikọ̀kọ̀, o sì lè tún wọn ṣe.",
+    "accountPreferencesEyebrow": "Ìfẹ́ràn",
+    "accountSystemTitle": "Ẹrọ",
+    "accountSystemSummary": "Ìmúṣiṣẹpọ̀, ìṣàkóso data àti ìrànlọ́wọ́ wà papọ̀.",
+    "accountSystemEyebrow": "Ẹrọ"
   },
   "personalizationNudgeTitle": "Ṣe o fẹ́ ìmọ̀ràn tó mọ̀ ọ́ síi?",
   "personalizationNudgeBody": "Fi alaye kan kun nípa owó, iṣẹ́, tàbí ìlànà ìgbé-ayé.",
@@ -887,5 +905,15 @@
     "signingOut": "Àkọọlẹ̀",
     "signOut": "Àkọọlẹ̀",
     "guestOnly": "Àkọọlẹ̀"
+  },
+  "theme": {
+    "system": "Eto ẹrọ",
+    "classic": "Ayebaye",
+    "dark": "Dúdú fẹẹrẹ",
+    "black": "Dúdú gan",
+    "warm": "Gbona",
+    "ocean": "Òkun",
+    "forest": "Igbó",
+    "sunset": "Ìwọ̀-oòrùn"
   }
 }

@@ -33,7 +33,7 @@ const markers = {
   Decisions: 'Name the decision under pressure',
   Reflect: 'Begin with one honest sentence',
   Library: 'Search one wisdom theme',
-  Account: 'Open customization hub',
+  Account: 'Sign in or continue as guest',
 };
 
 function color(code, text) {

@@ -685,7 +685,25 @@
     "profileReady": "Profil bereit",
     "guestSetupReady": "Gasteinrichtung bereit",
     "set": "gesetzt",
-    "signInToSyncIt": "Melde dich an, um sie zu synchronisieren."
+    "signInToSyncIt": "Melde dich an, um sie zu synchronisieren.",
+    "accountPersonalizationTitle": "Personalisierung",
+    "accountPersonalizationSummary": "Sprache, Theme, Stimme und Avatar prägen, wie sich Aletheia für dich anfühlt.",
+    "accountLanguageBody": "Sprich in der Sprache deines Herzens.",
+    "accountThemeBody": "Wähle einen Raum, der ruhig und gut lesbar wirkt.",
+    "accountVoiceBody": "Höre Weisheit mit Sorgfalt und Klarheit.",
+    "accountScriptureContentTitle": "Schrift & Inhalte",
+    "accountScriptureContentSummary": "Wähle Bibelübersetzung und Lebenskontext für Beispiele und Schriftlesung.",
+    "accountScriptureContentEyebrow": "Schrift & Inhalte",
+    "bibleTranslation": "Bibelübersetzung",
+    "regionContext": "Region / Kontext",
+    "accountBibleBody": "Begegne der Schrift in Worten, die zu dir sprechen.",
+    "accountRegionBody": "Passe Beispiele und Rat an deinen Ort an.",
+    "accountPreferencesTitle": "Einstellungen",
+    "accountPreferencesSummary": "Benachrichtigungen, Privatsphäre und manueller Kontext bleiben privat und anpassbar.",
+    "accountPreferencesEyebrow": "Einstellungen",
+    "accountSystemTitle": "System",
+    "accountSystemSummary": "Synchronisierung, Datenkontrollen und Support-Aktionen bleiben zusammen.",
+    "accountSystemEyebrow": "System"
   },
   "personalizationNudgeTitle": "Möchtest du persönlicheren Rat?",
   "personalizationNudgeBody": "Füge ein Detail zu Geld, Arbeit oder Rhythmus hinzu.",
@@ -887,5 +905,15 @@
     "signingOut": "Abmeldung läuft...",
     "signOut": "Abmelden",
     "guestOnly": "Nur Gast"
+  },
+  "theme": {
+    "system": "System",
+    "classic": "Klassisch",
+    "dark": "Dunkel",
+    "black": "Schwarz",
+    "warm": "Warm",
+    "ocean": "Ozean",
+    "forest": "Wald",
+    "sunset": "Sonnenuntergang"
   }
 }

@@ -685,7 +685,25 @@
     "profileReady": "Profaịlụ dị njikere",
     "guestSetupReady": "Nhazi ọbịa dị njikere",
     "set": "edoziri",
-    "signInToSyncIt": "Banye ka ọ dakọrịta."
+    "signInToSyncIt": "Banye ka ọ dakọrịta.",
+    "accountPersonalizationTitle": "Nhazi nke onwe",
+    "accountPersonalizationSummary": "Asụsụ, isiokwu, olu na avatar na-akpụ ka Aletheia si dị gị.",
+    "accountLanguageBody": "Kwuo n’asụsụ obi gị.",
+    "accountThemeBody": "Họrọ ebe dị jụụ ma dị mfe ịgụ.",
+    "accountVoiceBody": "Nụrụ amamihe n’ụzọ doro anya ma nwee nlekọta.",
+    "accountScriptureContentTitle": "Akwụkwọ Nsọ na ọdịnaya",
+    "accountScriptureContentSummary": "Họrọ ntụgharị Baịbụl na ọnọdụ ndụ maka ihe atụ na ọgụgụ.",
+    "accountScriptureContentEyebrow": "Akwụkwọ Nsọ na ọdịnaya",
+    "bibleTranslation": "Ntụgharị Baịbụl",
+    "regionContext": "Mpaghara / ọnọdụ",
+    "accountBibleBody": "Gụọ Akwụkwọ Nsọ n’okwu na-agwa gị okwu.",
+    "accountRegionBody": "Mee ka ihe atụ na ndụmọdụ kwekọọ ebe ị nọ.",
+    "accountPreferencesTitle": "Mmasị",
+    "accountPreferencesSummary": "Amamọkwa, nzuzo na ọnọdụ aka na-anọ nzuzo ma na-agbanwe agbanwe.",
+    "accountPreferencesEyebrow": "Mmasị",
+    "accountSystemTitle": "Sistemụ",
+    "accountSystemSummary": "Mmekọrịta, njikwa data na nkwado na-anọkọ ọnụ.",
+    "accountSystemEyebrow": "Sistemụ"
   },
   "personalizationNudgeTitle": "Ị chọrọ ndụmọdụ ka ọ bụrụ nke onwe gị?",
   "personalizationNudgeBody": "Tinye otu nkọwa gbasara ego, ọrụ, ma ọ bụ rhythm ndụ.",
@@ -887,5 +905,15 @@
     "signingOut": "Akaụntụ",
     "signOut": "Akaụntụ",
     "guestOnly": "Akaụntụ"
+  },
+  "theme": {
+    "system": "Sistemụ",
+    "classic": "Klasik",
+    "dark": "Ọchịchịrị",
+    "black": "Oji",
+    "warm": "Ọkụ",
+    "ocean": "Oké osimiri",
+    "forest": "Ọhịa",
+    "sunset": "Ọdịda anyanwụ"
   }
 }

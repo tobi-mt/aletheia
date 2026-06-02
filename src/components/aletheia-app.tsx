@@ -1766,20 +1766,6 @@ function shouldShowOnboarding() {
   }
 }
 
-function daysSinceDate(isoDate: string | null): number {
-  if (!isoDate) {
-    return -1;
-  }
-  try {
-    const date = new Date(isoDate);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    return Math.floor(diffMs / (1000 * 60 * 60 * 24));
-  } catch {
-    return -1;
-  }
-}
-
 function analyticsId(storage: Storage, key: string) {
   try {
     const existing = storage.getItem(key);
@@ -4533,7 +4519,12 @@ export function AletheiaApp() {
         setStatusMessage(ALETHEIA_SHARE_URL);
         announceWorkflow(ts('notifications.copyUnavailable'), ts('notifications.copyUnavailableBody'), "warning");
       }
+      return;
     }
+
+    window.open(sharePlatformUrl(channel), "_blank", "noopener,noreferrer");
+    setStatusMessage(ts('status.shareSheetOpened'));
+    announceWorkflow(ts('notifications.shareSheetOpened'), ts('notifications.shareSheetOpenedBody'), "success");
   }
 
   function recordAnswerFeedback(value: string, placement: string) {
@@ -4751,16 +4742,6 @@ export function AletheiaApp() {
       }
     } else {
       announceWorkflow(ts('notifications.contextSavedLocally'), ts('notifications.contextSavedLocallyBodySignIn'), "success");
-    }
-  }
-
-  function updateFocusIntentions(nextValues: string[]) {
-    const trimmed = nextValues.slice(0, 3);
-    setFocusIntentions(trimmed);
-    try {
-      window.localStorage.setItem(FOCUS_INTENTIONS_STORAGE_KEY, JSON.stringify(trimmed));
-    } catch {
-      // Keep in-memory values when storage is unavailable.
     }
   }
 
@@ -6642,6 +6623,7 @@ export function AletheiaApp() {
                   onThemePreferenceChange={updateThemePreference}
                   onManualContextChange={updateManualContext}
                   notificationsEnabled={notificationsEnabled}
+                  notificationsConfigured={notificationsConfigured}
                   notificationAccountEnabled={notificationAccountEnabled}
                   notificationDeviceSubscribed={notificationDeviceSubscribed}
                   notificationStatus={notificationStatus}
@@ -6654,14 +6636,9 @@ export function AletheiaApp() {
                   decisions={wisdomDecisions}
                   journalEntries={journalEntries}
                   counselContacts={counselContacts}
-                  rules={rulesOfLife}
-                  onShare={(channel, placement) => shareAletheia(channel, placement)}
                   availableVoices={availableVoices}
                   selectedVoice={selectedVoice}
                   onVoiceChange={updateVoicePreference}
-                  modeProfile={activeMode}
-                  focusIntentions={focusIntentions}
-                  onFocusIntentionsChange={updateFocusIntentions}
                   onClearLocalPersonalization={clearLocalPersonalization}
                   onExportData={exportAccountData}
                   onRequestDeleteAccount={() => setShowDeleteAccountModal(true)}
@@ -7818,6 +7795,7 @@ function AccountPanel({
   onThemePreferenceChange,
   onManualContextChange,
   notificationsEnabled,
+  notificationsConfigured,
   notificationAccountEnabled,
   notificationDeviceSubscribed,
   notificationStatus,
@@ -7830,14 +7808,9 @@ function AccountPanel({
   decisions,
   journalEntries,
   counselContacts,
-  rules,
-  onShare,
   availableVoices,
   selectedVoice,
   onVoiceChange,
-  modeProfile,
-  focusIntentions,
-  onFocusIntentionsChange,
   onClearLocalPersonalization,
   onExportData,
   onRequestDeleteAccount,
@@ -7875,6 +7848,7 @@ function AccountPanel({
   onThemePreferenceChange: (value: ThemePreference) => void;
   onManualContextChange: (patch: Partial<ManualContextProfile>) => void;
   notificationsEnabled: boolean;
+  notificationsConfigured: boolean;
   notificationAccountEnabled: boolean;
   notificationDeviceSubscribed: boolean;
   notificationStatus: string;
@@ -7887,14 +7861,9 @@ function AccountPanel({
   decisions: WisdomDecision[];
   journalEntries: JournalEntry[];
   counselContacts: CounselContact[];
-  rules: RuleOfLife[];
-  onShare: (channel: ShareChannel, placement: string) => void;
   availableVoices: SpeechSynthesisVoice[];
   selectedVoice: string | null;
   onVoiceChange: (voiceURI: string | null) => void;
-  modeProfile: DisplayModeProfile;
-  focusIntentions: string[];
-  onFocusIntentionsChange: (values: string[]) => void;
   onClearLocalPersonalization: () => void;
   onExportData: () => void;
   onRequestDeleteAccount: () => void;
@@ -7902,42 +7871,9 @@ function AccountPanel({
   accountActionBusy: "export" | "delete" | "report" | null;
   theme: ThemeColors;
 }) {
-  const [customizationSectionOpen, setCustomizationSectionOpen] = useState(false);
   const text = { ...uiText.en, ...ui };
   const exchanges = conversationExchanges(messages).filter((exchange) => exchange.question);
-  const badges = [
-    { label: text.firstReflectionSaved!, active: journalEntries.length > 0 },
-    { label: text.firstDecisionTracked!, active: decisions.length > 0 },
-    { label: text.soughtCounsel!, active: counselContacts.length > 0 || decisions.some((decision) => decision.counselSought) },
-    { label: text.waitingModeUsed!, active: decisions.some((decision) => Boolean(decision.waitingUntil)) },
-    { label: text.ruleOfLifeCreated!, active: rules.length > 0 },
-    { label: text.notificationsEnabled!, active: notificationsEnabled },
-    { label: text.sevenDaysPractice!, active: false },
-  ];
-  const hasFormationMilestone = badges.some((badge) => badge.active);
-
-  // Calculate engagement metrics
-  const latestJournal = journalEntries[0];
-  const latestDecision = decisions[0];
-  const daysSinceReflection = latestJournal ? daysSinceDate(latestJournal.createdAt) : -1;
-  const daysSinceDecision = latestDecision ? daysSinceDate(latestDecision.updatedAt) : -1;
-  
-  const completedMilestones = badges.filter((badge) => badge.active).length;
   const activeDecisionCount = decisions.filter((decision) => decision.status !== "closed").length;
-  const focusLabels = focusIntentionLabels(focusIntentions);
-  const currentHour = new Date().getHours();
-  const dayGreeting = currentHour < 12
-    ? ts('labels.goodMorning', 'Good morning')
-    : currentHour < 18
-      ? ts('labels.goodAfternoon', 'Good afternoon')
-      : ts('labels.goodEvening', 'Good evening');
-  const suggestedAction = !notificationsEnabled
-    ? ts('labels.accountSuggestedEnableNotifications', 'Turn on daily wisdom notifications for a calm daily prompt.')
-    : !focusIntentions.length
-      ? ts('labels.accountSuggestedPickFocus', 'Choose 2-3 focus intentions to personalize Companion and Decisions.')
-      : user
-        ? ts('labels.accountSuggestedReviewAvatarStudio', 'Review your Avatar Studio and preferences for this season.')
-        : ts('labels.accountSuggestedSignInSync', 'Sign in to sync your personalized setup across devices.');
   const contextAreas = [
     manualContextHasContent(manualContext),
     Boolean(manualContext.monthlyIncome || manualContext.fixedExpenses || manualContext.debtPayments || manualContext.savingsBufferMonths),
@@ -7954,39 +7890,32 @@ function AccountPanel({
     ? `${ts('labels.profileReady', 'Profile ready')}: ${profileReadyItems.join(", ")} ${ts('labels.set', 'set')}.`
     : `${ts('labels.guestSetupReady', 'Guest setup ready')}: ${profileReadyItems.join(", ")} ${ts('labels.set', 'set')}. ${ts('labels.signInToSyncIt', 'Sign in to sync it.')}`;
 
-  function jumpToCustomizationHub() {
-    setCustomizationSectionOpen(true);
-    window.requestAnimationFrame(() => {
-      window.requestAnimationFrame(() => {
-        const target = document.getElementById("account-customize-section");
-        target?.scrollIntoView({ behavior: "smooth", block: "start" });
-      });
-    });
-  }
-
   return (
-    <div className="grid min-w-0 max-w-full gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
+    <div className="mx-auto grid min-w-0 max-w-3xl gap-4">
       <section className="min-w-0 space-y-4">
-        <TodayWithAletheiaCard
-          theme={theme}
-          greeting={dayGreeting}
-          user={user}
-          modeLabel={modeProfile.displayLabel ?? modeProfile.label}
-          notificationSummary={notificationsEnabled ? ts('labels.enabled', 'Enabled') : notificationStatus}
-          suggestedAction={suggestedAction}
-          progressSignals={[
-            { label: ts('labels.decisionsInProgress', 'Decisions in progress'), value: String(activeDecisionCount) },
-            { label: ts('labels.reflectionsSaved', 'Reflections saved'), value: String(journalEntries.length) },
-            { label: ts('labels.counselContacts', 'Counsel contacts'), value: String(counselContacts.length) },
-          ]}
-          focusLabels={focusLabels}
-          ts={ts}
-          onJumpToCustomize={jumpToCustomizationHub}
-        />
-
-        <div className="rounded-xl border px-4 py-3 text-sm leading-6 shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
+        <div className="rounded-xl border p-4 shadow-sm sm:p-5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+          <div className="flex items-start gap-3">
+            <AvatarCircle
+              avatarUrl={user?.avatarUrl}
+              seed={user?.id ?? user?.email ?? "account-profile"}
+              label={user?.name || user?.email || ts('labels.accountProfile', 'Account profile')}
+              size={56}
+              className="size-14 rounded-full border object-cover"
+            />
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.profileTitle', 'Profile')}</p>
+              <h2 className="mt-2 text-2xl font-semibold" style={{ color: theme.textPrimary }}>
+                {user ? `${ts('auth.welcomeBack', 'Welcome back')}, ${user.name?.split(" ")[0] || user.email.split("@")[0]}` : ts('labels.accountSignInOrGuest', 'Sign in or continue as guest')}
+              </h2>
+              <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                {user ? `${ts('labels.accountSyncActive', 'Sync active.')} ${notificationsEnabled ? text.notificationsEnabled : ts('labels.accountNotificationsNotEnabled', 'Notifications not enabled yet.')}` : ts('labels.accountGuestSummary', 'Google and email sign-in keep history, preferences, decisions, and notifications portable.')}
+              </p>
+            </div>
+          </div>
+          <div className="mt-4 rounded-lg border px-3 py-2 text-sm leading-6" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
           <span className="font-semibold" style={{ color: theme.textPrimary }}>{profileReadyText}</span>
           <span className="ml-2">{notificationsEnabled ? ts('notifications.deviceSubscribed', 'This device is subscribed for daily wisdom.') : notificationAccountEnabled ? ts('notifications.accountEnabledDeviceOff', 'Notifications are account-enabled; this device still needs enabling.') : ts('notifications.notificationsOptionalWhenReady', 'Notifications can be enabled when you are ready.')}</span>
+        </div>
         </div>
 
         <DisclosureSection
@@ -8037,18 +7966,15 @@ function AccountPanel({
         </DisclosureSection>
 
         <DisclosureSection
-          sectionId="account-customize-section"
-          isOpen={customizationSectionOpen}
-          onOpenChange={setCustomizationSectionOpen}
-          title={ts('labels.customizeExperience', 'Customize your experience')}
-          summary={ts('labels.customizeExperienceSummary', 'Language, theme, voice, notification timing, and avatar update live here with immediate preview.')}
+          title={ts('labels.accountPersonalizationTitle', 'Personalization')}
+          summary={ts('labels.accountPersonalizationSummary', 'Language, theme, voice, and avatar shape how Aletheia feels when you use it.')}
           eyebrow={ts('labels.personalization', 'Personalization')}
           compactCollapsed
           showDetailsLabel={text.showDetails}
           hideDetailsLabel={text.hideDetails}
           theme={theme}
         >
-          <CustomizationHubCard
+          <AccountPersonalizationPanel
             theme={theme}
             ts={ts}
             preferences={preferences}
@@ -8056,281 +7982,164 @@ function AccountPanel({
             themePreference={themePreference}
             availableVoices={availableVoices}
             selectedVoice={selectedVoice}
-            notificationsEnabled={notificationsEnabled}
-            notificationAccountEnabled={notificationAccountEnabled}
-            notificationDeviceSubscribed={notificationDeviceSubscribed}
-            notificationBusy={notificationBusy}
-            notificationStatus={notificationStatus}
-            notificationTiming={notificationTiming}
             user={user}
             onPreferenceChange={onPreferenceChange}
             onThemePreferenceChange={onThemePreferenceChange}
             onVoiceChange={onVoiceChange}
-            onNotificationTimingChange={onNotificationTimingChange}
-            onEnableNotifications={onEnableNotifications}
-            onDisableNotifications={onDisableNotifications}
             onUpdateProfileAvatar={onUpdateProfileAvatar}
           />
         </DisclosureSection>
 
         <DisclosureSection
-          title={manualContext.useInAnswers
-            ? `${ts('labels.accountContextActive', text.accountContextActive ?? "Context active")} · ${contextAreas} ${contextAreas === 1 ? ts('labels.accountArea', text.accountArea ?? "area") : ts('labels.accountAreas', text.accountAreas ?? "areas")} ${ts('labels.accountAdded', text.accountAdded ?? "added")}`
-            : ts('labels.accountContextPaused', text.accountContextPaused ?? "Context paused")}
-          summary={ts('labels.accountManualContextSummary', text.accountManualContextSummary ?? "Manual context is optional and private. Add only what should shape Aletheia's counsel.")}
-          eyebrow={ts('labels.manualContextTitle', 'Manual Context Vault')}
+          title={ts('labels.accountScriptureContentTitle', 'Scripture & Content')}
+          summary={ts('labels.accountScriptureContentSummary', 'Choose the Bible translation and life context that should shape examples and scripture reading.')}
+          eyebrow={ts('labels.accountScriptureContentEyebrow', 'Scripture & Content')}
           compactCollapsed
           showDetailsLabel={text.showDetails}
           hideDetailsLabel={text.hideDetails}
           theme={theme}
         >
-          <ManualContextPanel
+          <AccountScriptureContentPanel
             theme={theme}
             ts={ts}
-            user={user}
             preferences={preferences}
-            context={manualContext}
-            status={manualContextStatus}
             onPreferenceChange={onPreferenceChange}
-            onChange={onManualContextChange}
           />
         </DisclosureSection>
-
-        <DisclosureSection title={ts('labels.accountInstallTitle', text.accountInstallTitle ?? "Add Aletheia to your home screen")} summary={ts('labels.accountInstallSummary', text.accountInstallSummary ?? "Install instructions are tucked away until someone needs the app-like setup.")} eyebrow={ts('labels.accountInstallEyebrow', text.accountInstallEyebrow ?? "Install Aletheia")} compactCollapsed showDetailsLabel={text.showDetails} hideDetailsLabel={text.hideDetails} theme={theme}>
-          <InstallGuideCard theme={theme} compact />
-        </DisclosureSection>
-
-        <DisclosureSection title={ts('labels.accountInviteTitle', text.accountInviteTitle ?? "Invite someone privately")} summary={ts('labels.accountInviteSummary', text.accountInviteSummary ?? "Share only the Aletheia link, never private questions, journals, or counsel by default.")} eyebrow={ts('labels.accountInviteEyebrow', text.accountInviteEyebrow ?? "Invite Someone")} compactCollapsed showDetailsLabel={text.showDetails} hideDetailsLabel={text.hideDetails} theme={theme}>
-          <ShareInviteCard theme={theme} ts={ts} placement="account" onShare={onShare} />
-        </DisclosureSection>
-      </section>
-
-        <aside className="min-w-0 space-y-4">
-          <DisclosureSection
-            title={`${ts('labels.focusIntentions', 'Focus intentions')} · ${focusIntentions.length}/3 ${ts('labels.selected', 'selected')}`}
-            summary={ts('labels.focusIntentionsSummary', 'Pick 2 to 3 intentions to tune Companion and Decisions prompts.')}
-            eyebrow={ts('labels.formationFocus', 'Formation focus')}
-            compactCollapsed
-            showDetailsLabel={text.showDetails}
-            hideDetailsLabel={text.hideDetails}
-            theme={theme}
-          >
-            <FocusIntentionsCard
-              theme={theme}
-              ts={ts}
-              selected={focusIntentions}
-              onChange={onFocusIntentionsChange}
-            />
-          </DisclosureSection>
 
         <DisclosureSection
-          title={`${exchanges.length} ${ts('labels.accountHistoryConversations', text.accountHistoryConversations ?? "conversations")} · ${decisions.length} ${ts('labels.accountHistoryDecisions', text.accountHistoryDecisions ?? "decisions")} · ${journalEntries.length} ${ts('labels.accountHistoryReflections', text.accountHistoryReflections ?? "reflections")}`}
-          summary={ts('labels.accountHistorySummary', text.accountHistorySummary ?? "History stays collapsed until you want to review what has been saved.")}
-          eyebrow={ts('labels.historyTitle', 'History')}
+          title={ts('labels.accountPreferencesTitle', 'Preferences')}
+          summary={manualContext.useInAnswers
+            ? `${ts('labels.accountContextActive', text.accountContextActive ?? "Context active")} · ${contextAreas} ${contextAreas === 1 ? ts('labels.accountArea', text.accountArea ?? "area") : ts('labels.accountAreas', text.accountAreas ?? "areas")} ${ts('labels.accountAdded', text.accountAdded ?? "added")}`
+            : ts('labels.accountPreferencesSummary', 'Notifications, privacy posture, and manual context stay private and adjustable.')}
+          eyebrow={ts('labels.accountPreferencesEyebrow', 'Preferences')}
           compactCollapsed
           showDetailsLabel={text.showDetails}
           hideDetailsLabel={text.hideDetails}
           theme={theme}
         >
-        <section>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.historyTitle', 'History')}</p>
-          <div className="mt-3 grid gap-3">
-            <AccountStat label={ts('labels.accountStatConversations', text.accountStatConversations ?? "Conversations")} value={String(exchanges.length)} theme={theme} />
-            <AccountStat label={ts('labels.accountStatDecisions', text.accountStatDecisions ?? "Decisions")} value={String(decisions.length)} theme={theme} />
-            <AccountStat label={ts('labels.accountStatJournalEntries', text.accountStatJournalEntries ?? "Journal entries")} value={String(journalEntries.length)} theme={theme} />
-          </div>
-          {(daysSinceReflection >= 0 || daysSinceDecision >= 0) && user ? (
-            <div className="mt-3 rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-            <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textSecondary }}>{ts('labels.engagement', 'Engagement')}</p>
-              <div className="mt-2 space-y-1.5 text-sm" style={{ color: theme.textSecondary }}>
-                {daysSinceReflection >= 0 ? (
-                  <p>
-                    {daysSinceReflection === 0 ? (
-                      <><span className="font-semibold" style={{ color: theme.primary }}>{ts('labels.reflectedToday', 'Reflected today')}</span> — {ts('labels.practiceIsActive', 'practice is active')}</>
-                    ) : daysSinceReflection === 1 ? (
-                      <>{ts('labels.lastReflectionWas', 'Last reflection was')} <span className="font-semibold">{ts('labels.yesterday', 'yesterday')}</span></>
-                    ) : daysSinceReflection <= 7 ? (
-                      <>{ts('labels.lastReflection', 'Last reflection')} <span className="font-semibold">{daysSinceReflection} {ts('labels.daysAgo', 'days ago')}</span></>
-                    ) : (
-                      <>{ts('labels.itHasBeen', 'It has been')} <span className="font-semibold" style={{ color: theme.accentGold }}>{daysSinceReflection} {ts('labels.days', 'days')}</span> {ts('labels.sinceLastReflection', 'since last reflection')}</>
-                    )}
-                  </p>
-                ) : null}
-                {daysSinceDecision >= 0 && decisions.some(d => d.status === "discerning") ? (
-                  <p>
-                    {daysSinceDecision === 0 ? (
-                      <>{ts('labels.activeDecision', 'Active decision')} <span className="font-semibold" style={{ color: theme.primary }}>{ts('labels.updatedToday', 'updated today')}</span></>
-                    ) : daysSinceDecision <= 7 ? (
-                      <>{ts('labels.decisionReviewed', 'Decision reviewed')} <span className="font-semibold">{daysSinceDecision} {ts('labels.day', 'day')}{daysSinceDecision === 1 ? '' : 's'} {ts('labels.ago', 'ago')}</span></>
-                    ) : (
-                      <>{ts('labels.decisionLastReviewed', 'Decision last reviewed')} <span className="font-semibold" style={{ color: theme.accentGold }}>{daysSinceDecision} {ts('labels.daysAgo', 'days ago')}</span></>
-                    )}
-                  </p>
-                ) : null}
-              </div>
-            </div>
-          ) : null}
-          {!exchanges.length && !decisions.length && !journalEntries.length ? (
-            <p className="mt-3 rounded-lg border border-dashed p-3 text-sm leading-6" style={{ borderColor: theme.borderMedium, color: theme.textSecondary }}>
-              {ts('labels.accountHistoryEmptyBody', text.accountHistoryEmptyBody ?? "Start with one honest question or one decision under pressure. Aletheia will keep the record quiet and useful.")}
-            </p>
-          ) : null}
-        </section>
-        </DisclosureSection>
-
-        <DisclosureSection title={ts('labels.accountTrustPostureTitle', text.accountTrustPostureTitle ?? "Trust and privacy posture")} summary={ts('labels.accountTrustPostureSummary', text.accountTrustPostureSummary ?? "Boundaries, scripture sourcing, saved data, and sharing posture are available without flooding the page.")} eyebrow={ts('labels.privacyPosture', 'Privacy posture')} compactCollapsed showDetailsLabel={text.showDetails} hideDetailsLabel={text.hideDetails} theme={theme}>
-          <DataBoundariesCard
-            theme={theme}
-            ts={ts}
-            user={user}
-            onClearLocalPersonalization={onClearLocalPersonalization}
-            onExportData={onExportData}
-            onRequestDeleteAccount={onRequestDeleteAccount}
-            accountActionBusy={accountActionBusy}
-          />
-          <div className="mt-3">
+          <div className="space-y-4">
+            <NotificationPanel
+              theme={theme}
+              ts={ts}
+              user={user}
+              enabled={notificationsEnabled}
+              configured={notificationsConfigured}
+              permission={typeof window !== "undefined" && "Notification" in window ? Notification.permission : "default"}
+              status={notificationStatus}
+              busy={notificationBusy}
+              timing={notificationTiming}
+              onTimingChange={onNotificationTimingChange}
+              onEnable={onEnableNotifications}
+              onDisable={onDisableNotifications}
+            />
             <TrustCenterCard theme={theme} ts={ts} />
+            <ManualContextPanel
+              theme={theme}
+              ts={ts}
+              user={user}
+              preferences={preferences}
+              context={manualContext}
+              status={manualContextStatus}
+              onPreferenceChange={onPreferenceChange}
+              onChange={onManualContextChange}
+            />
           </div>
         </DisclosureSection>
 
-        <DisclosureSection title={ts('labels.accountBoundariesTitle', text.accountBoundariesTitle ?? "Aletheia's guardrails")} summary={ts('labels.accountBoundariesSummary', text.accountBoundariesSummary ?? "The app's safety boundaries remain visible when needed, not constantly in the way.")} eyebrow={ts('labels.ourBoundaries', 'Our Boundaries')} compactCollapsed showDetailsLabel={text.showDetails} hideDetailsLabel={text.hideDetails} theme={theme}>
-        <section>
-          <div className="flex items-center gap-2">
-            <ShieldCheck size={17} style={{ color: theme.primary }} />
-            <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.ourBoundaries', 'Our Boundaries')}</p>
+        <DisclosureSection
+          title={ts('labels.accountSystemTitle', 'System')}
+          summary={`${ts('labels.accountSystemSummary', 'Sync status, data controls, and support actions stay together.')} ${exchanges.length} ${ts('labels.accountHistoryConversations', text.accountHistoryConversations ?? "conversations")} · ${activeDecisionCount} ${ts('labels.accountHistoryDecisions', text.accountHistoryDecisions ?? "decisions")}`}
+          eyebrow={ts('labels.accountSystemEyebrow', 'System')}
+          compactCollapsed
+          showDetailsLabel={text.showDetails}
+          hideDetailsLabel={text.hideDetails}
+          theme={theme}
+        >
+          <div className="space-y-4">
+            <SystemStatusCard
+              theme={theme}
+              ts={ts}
+              user={user}
+              conversations={exchanges.length}
+              decisions={decisions.length}
+              reflections={journalEntries.length}
+              counselContacts={counselContacts.length}
+              notificationsEnabled={notificationsEnabled}
+            />
+            <DataBoundariesCard
+              theme={theme}
+              ts={ts}
+              user={user}
+              onClearLocalPersonalization={onClearLocalPersonalization}
+              onExportData={onExportData}
+              onRequestDeleteAccount={onRequestDeleteAccount}
+              accountActionBusy={accountActionBusy}
+            />
+            <SupportReportCard theme={theme} ts={ts} onReportIssue={onReportIssue} />
           </div>
-          <ul className="mt-3 space-y-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
-            {ui.guardrailItems.map((item) => (
-              <li key={item} className="flex items-start gap-2">
-                <span className="mt-1" style={{ color: theme.accentGold }}>•</span>
-                <span>{item}</span>
-              </li>
-            ))}
-          </ul>
-          <p className="mt-3 text-xs leading-5" style={{ color: theme.textSecondary }}>
-            {ts('labels.accountBoundariesBody', text.accountBoundariesBody ?? "These constraints protect you from harmful AI advice and keep Aletheia faithful to its purpose.")}
-          </p>
-        </section>
         </DisclosureSection>
-
-        <DisclosureSection title={`${ts('labels.accountFormationPrefix', text.accountFormationPrefix ?? "Formation")}: ${completedMilestones} ${completedMilestones === 1 ? ts('labels.accountQuietMilestoneSingular', text.accountQuietMilestoneSingular ?? "quiet milestone") : ts('labels.accountQuietMilestonePlural', text.accountQuietMilestonePlural ?? "quiet milestones")}`} summary={ts('labels.accountFormationSummary', text.accountFormationSummary ?? "Formation is a calm record of practice, not a scoreboard.")} eyebrow={ts('labels.badgesFormation', text.badgesFormation)} compactCollapsed showDetailsLabel={text.showDetails} hideDetailsLabel={text.hideDetails} theme={theme}>
-        <section>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{text.badgesFormation}</p>
-          <div className="mt-3 space-y-2">
-            {badges.map((badge) => (
-              <div
-                key={badge.label}
-                className="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm"
-                style={badge.active
-                  ? { borderColor: theme.primary, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }
-                  : { borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary, opacity: 0.7 }}
-              >
-                <Check size={15} style={{ color: badge.active ? theme.primary : theme.textSecondary, opacity: badge.active ? 1 : 0.6 }} />
-                <span>{badge.label}</span>
-              </div>
-            ))}
-          </div>
-          <p className="mt-3 text-xs leading-5" style={{ color: theme.textSecondary }}>
-            {text.formationNote}
-          </p>
-          {hasFormationMilestone ? (
-            <ShareMilestonePrompt theme={theme} ui={ui} onShare={(channel) => onShare(channel, "milestone")} />
-          ) : null}
-        </section>
-        </DisclosureSection>
-
-        <SupportReportCard theme={theme} ts={ts} onReportIssue={onReportIssue} />
-      </aside>
+      </section>
     </div>
   );
 }
 
-function TodayWithAletheiaCard({
+function AccountSettingRow({
+  icon: Icon,
+  label,
+  body,
+  control,
   theme,
-  greeting,
-  user,
-  modeLabel,
-  notificationSummary,
-  suggestedAction,
-  progressSignals,
-  focusLabels,
-  onJumpToCustomize,
-  ts,
 }: {
+  icon: typeof Globe2;
+  label: string;
+  body: string;
+  control: ReactNode;
   theme: ThemeColors;
-  greeting: string;
-  user: User | null;
-  modeLabel: string;
-  notificationSummary: string;
-  suggestedAction: string;
-  progressSignals: Array<{ label: string; value: string }>;
-  focusLabels: string[];
-  onJumpToCustomize: () => void;
-  ts: (key: string, fallback?: string) => string;
 }) {
-  const firstName = user?.name?.split(" ")[0] || user?.email.split("@")[0] || ts('labels.there', 'there');
-  const avatarSeed = user?.id ?? user?.email ?? "account-greeting";
-  const avatarLabel = user?.name || user?.email || ts('labels.accountProfile', 'Account profile');
-
   return (
-    <section className="rounded-xl border p-4 shadow-sm sm:p-5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+    <div className="rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
       <div className="flex items-start gap-3">
-        <AvatarCircle
-          avatarUrl={user?.avatarUrl}
-          seed={avatarSeed}
-          label={avatarLabel}
-          size={52}
-          className="size-[52px] rounded-full border object-cover"
-        />
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.todayWithAletheia', 'Today with Aletheia')}</p>
-          <h2 className="mt-2 text-2xl font-semibold" style={{ color: theme.textPrimary }}>{greeting}, {firstName}</h2>
+        <div className="grid size-9 shrink-0 place-items-center rounded-md" style={{ backgroundColor: theme.bgInput, color: theme.primary }}>
+          <Icon size={17} />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{label}</p>
+          <p className="mt-1 text-xs leading-5" style={{ color: theme.textSecondary }}>{body}</p>
+          <div className="mt-3">{control}</div>
         </div>
       </div>
-      <div className="mt-3 grid gap-2 sm:grid-cols-2">
-        <div className="rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-          <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textSecondary }}>{ts('labels.currentMode', 'Current mode')}</p>
-          <p className="mt-2 text-sm font-semibold" style={{ color: theme.textPrimary }}>{modeLabel}</p>
-        </div>
-        <div className="rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-          <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textSecondary }}>{ts('labels.notifications', 'Notifications')}</p>
-          <p className="mt-2 text-sm font-semibold" style={{ color: theme.textPrimary }}>{notificationSummary}</p>
-        </div>
-      </div>
-      <div className="mt-3 grid gap-2 sm:grid-cols-3">
-        {progressSignals.map((item) => (
-          <div key={item.label} className="rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-            <p className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>{item.label}</p>
-            <p className="mt-2 text-xl font-semibold" style={{ color: theme.textPrimary }}>{item.value}</p>
-          </div>
-        ))}
-      </div>
-      {focusLabels.length ? (
-        <div className="mt-3 flex flex-wrap gap-2">
-          {focusLabels.map((label) => (
-            <span key={label} className="rounded-md border px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-              {label}
-            </span>
-          ))}
-        </div>
-      ) : null}
-      <div className="mt-4 rounded-lg border p-3" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
-        <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{ts('labels.suggestedAction', 'Suggested action')}</p>
-        <p className="mt-2 text-sm leading-6" style={{ color: theme.textPrimary }}>{suggestedAction}</p>
-        <button
-          type="button"
-          className="mt-3 h-11 rounded-md px-4 text-sm font-semibold"
-          style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
-          onClick={onJumpToCustomize}
-        >
-          {ts('labels.openCustomizationHub', 'Open customization hub')}
-        </button>
-      </div>
-    </section>
+    </div>
   );
 }
 
-function CustomizationHubCard({
+function AccountSelect({
+  value,
+  onChange,
+  children,
+  theme,
+  ariaLabel,
+}: {
+  value: string | number;
+  onChange: (value: string) => void;
+  children: ReactNode;
+  theme: ThemeColors;
+  ariaLabel: string;
+}) {
+  return (
+    <select
+      aria-label={ariaLabel}
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+      className="h-11 w-full rounded-md border px-3 text-sm outline-none"
+      style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+    >
+      {children}
+    </select>
+  );
+}
+
+function AccountPersonalizationPanel({
   theme,
   ts,
   preferences,
@@ -8338,19 +8147,10 @@ function CustomizationHubCard({
   themePreference,
   availableVoices,
   selectedVoice,
-  notificationsEnabled,
-  notificationAccountEnabled,
-  notificationDeviceSubscribed,
-  notificationBusy,
-  notificationStatus,
-  notificationTiming,
   user,
   onPreferenceChange,
   onThemePreferenceChange,
   onVoiceChange,
-  onNotificationTimingChange,
-  onEnableNotifications,
-  onDisableNotifications,
   onUpdateProfileAvatar,
 }: {
   theme: ThemeColors;
@@ -8360,202 +8160,183 @@ function CustomizationHubCard({
   themePreference: ThemePreference;
   availableVoices: SpeechSynthesisVoice[];
   selectedVoice: string | null;
-  notificationsEnabled: boolean;
-  notificationAccountEnabled: boolean;
-  notificationDeviceSubscribed: boolean;
-  notificationBusy: boolean;
-  notificationStatus: string;
-  notificationTiming: NotificationTiming;
   user: User | null;
   onPreferenceChange: (patch: Partial<UserPreferences>) => void;
   onThemePreferenceChange: (value: ThemePreference) => void;
   onVoiceChange: (voiceURI: string | null) => void;
-  onNotificationTimingChange: (patch: Partial<NotificationTiming>) => void;
-  onEnableNotifications: () => void;
-  onDisableNotifications: () => void;
   onUpdateProfileAvatar: (avatarUrl: string) => Promise<boolean>;
 }) {
   const themeOptions: ThemePreference[] = ["system", "classic", "dark", "black", "warm", "ocean", "forest", "sunset"];
-  const bibleOptions = bibleTranslationOptionsForLanguage(preferences.language);
-  const notificationHealthTitle = notificationsEnabled
-    ? ts('notifications.deviceSubscribed', 'This device is subscribed')
-    : notificationAccountEnabled && !notificationDeviceSubscribed
-      ? ts('notifications.accountEnabledDeviceOff', 'Account enabled, this device needs enabling')
-      : notificationAccountEnabled
-        ? ts('notifications.accountEnabled', 'Notifications enabled on your account')
-        : ts('notifications.notificationsOff', 'Notifications are off');
-  const notificationHealthBody = notificationsEnabled
-    ? ts('notifications.deviceSubscribedBody', 'Daily wisdom can reach this device at your saved time.')
-    : notificationAccountEnabled && !notificationDeviceSubscribed
-      ? ts('notifications.accountEnabledDeviceOffBody', 'Your account has notifications on, but this browser/PWA needs a fresh device subscription.')
-      : notificationStatus;
 
   return (
-    <section id="account-customize" className="space-y-4">
-      <section className="rounded-xl border p-4 shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
-            {ts('labels.language', 'Language')}
-            <select
-              value={preferences.language}
-              onChange={(event) => onPreferenceChange(preferencePatchForLanguage(event.target.value as LanguageCode))}
-              className="mt-2 h-11 w-full rounded-md border px-3 text-sm normal-case tracking-normal outline-none"
-              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-            >
-              {Object.entries(languages).map(([code, language]) => (
-                <option key={code} value={code}>{language.nativeName}</option>
-              ))}
-            </select>
-          </label>
-          <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
-            {ts('labels.theme', 'Theme')}
-            <select
-              value={themePreference}
-              onChange={(event) => onThemePreferenceChange(event.target.value as ThemePreference)}
-              className="mt-2 h-11 w-full rounded-md border px-3 text-sm normal-case tracking-normal outline-none"
-              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-            >
-              {themeOptions.map((option) => (
-                <option key={option} value={option}>{option}</option>
-              ))}
-            </select>
-          </label>
-          <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
-            {ts('labels.bible', 'Bible')}
-            <select
-              value={preferences.bibleTranslation}
-              onChange={(event) => onPreferenceChange({ bibleTranslation: event.target.value as BibleTranslation })}
-              className="mt-2 h-11 w-full rounded-md border px-3 text-sm normal-case tracking-normal outline-none"
-              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-            >
-              {bibleOptions.map((code) => {
-                const translation = bibleTranslations[code];
-                return (
-                  <option key={code} value={code}>
-                    {translation.language === preferences.language ? "" : `${languages[translation.language].nativeName} · `}{translation.label}
-                  </option>
-                );
-              })}
-            </select>
-          </label>
-          <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
-            {ts('labels.region', 'Region')}
-            <select
-              value={preferences.region}
-              onChange={(event) => onPreferenceChange({ region: event.target.value as RegionCode })}
-              className="mt-2 h-11 w-full rounded-md border px-3 text-sm normal-case tracking-normal outline-none"
-              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-            >
-              {Object.entries(regions).map(([code, region]) => (
-                <option key={code} value={code}>{region.label}</option>
-              ))}
-            </select>
-          </label>
-          <label className="text-xs font-semibold uppercase tracking-[0.12em] sm:col-span-2" style={{ color: theme.textSecondary }}>
-            {ts('labels.voice', 'Voice')}
-            <select
-              value={selectedVoice || ""}
-              onChange={(event) => onVoiceChange(event.target.value || null)}
-              className="mt-2 h-11 w-full rounded-md border px-3 text-sm normal-case tracking-normal outline-none"
-              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-            >
-              <option value="">{ts('labels.deviceDefault', 'Device default')}</option>
-              {availableVoices.map((voice) => (
-                <option key={voice.voiceURI} value={voice.voiceURI}>{voiceLabel(voice)}</option>
-              ))}
-            </select>
-          </label>
-        </div>
-        <p className="mt-3 rounded-md border px-3 py-2 text-xs leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
-          {preferencesStatus}
-        </p>
-
-        <div className="mt-4 rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-          <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{ts('labels.notificationTiming', 'Notification timing')}</p>
-          <div className="mt-2 rounded-md border p-3" style={{ borderColor: notificationsEnabled ? theme.accentLight : theme.borderMedium, backgroundColor: theme.bgInput }}>
-            <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{notificationHealthTitle}</p>
-            <p className="mt-1 text-xs leading-5" style={{ color: theme.textSecondary }}>{notificationHealthBody}</p>
-          </div>
-          <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
-            <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
-              {ts('labels.dailyTime', 'Daily time')}
-              <select
-                value={notificationTiming.preferredLocalHour}
-                onChange={(event) => onNotificationTimingChange({ preferredLocalHour: Number(event.target.value), deliveryStrategy: "custom" })}
-                className="mt-2 h-11 w-full rounded-md border px-3 text-sm normal-case tracking-normal outline-none"
-                style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-              >
-                {Array.from({ length: 24 }).map((_, index) => (
-                  <option key={index} value={index}>{notificationTimeLabel(index)}</option>
-                ))}
-              </select>
-            </label>
-            <button
-              type="button"
-              className="h-11 rounded-md border px-4 text-sm font-semibold"
-              style={{ borderColor: theme.borderMedium, backgroundColor: notificationsEnabled ? theme.bgInput : theme.primary, color: notificationsEnabled ? theme.textPrimary : theme.textOnPrimary }}
-              onClick={notificationsEnabled ? onDisableNotifications : onEnableNotifications}
-              disabled={notificationBusy || !user}
-            >
-              {notificationsEnabled ? ts('labels.turnOff', 'Turn off') : ts('labels.enableNotifications', 'Enable notifications')}
-            </button>
-          </div>
-          <p className="mt-2 text-xs leading-5" style={{ color: theme.textSecondary }}>
-            {ts('labels.autoApplySettings', 'Changes apply automatically. Aletheia confirms when they are saved.')}
-          </p>
-        </div>
-      </section>
-
+    <section className="space-y-3">
+      <AccountSettingRow
+        icon={Languages}
+        label={ts('labels.language', 'Language')}
+        body={ts('labels.accountLanguageBody', "Speak your heart's language.")}
+        theme={theme}
+        control={(
+          <AccountSelect
+            ariaLabel={ts('languageSelect', 'Change language')}
+            value={preferences.language}
+            onChange={(value) => onPreferenceChange(preferencePatchForLanguage(value as LanguageCode))}
+            theme={theme}
+          >
+            {Object.entries(languages).map(([code, language]) => (
+              <option key={code} value={code}>{language.nativeName}</option>
+            ))}
+          </AccountSelect>
+        )}
+      />
+      <AccountSettingRow
+        icon={Sun}
+        label={ts('labels.theme', 'Theme')}
+        body={ts('labels.accountThemeBody', 'Choose a space that feels calm and readable.')}
+        theme={theme}
+        control={(
+          <AccountSelect
+            ariaLabel={ts('labels.theme', 'Theme')}
+            value={themePreference}
+            onChange={(value) => onThemePreferenceChange(value as ThemePreference)}
+            theme={theme}
+          >
+            {themeOptions.map((option) => (
+              <option key={option} value={option}>{ts(`theme.${option}`, option)}</option>
+            ))}
+          </AccountSelect>
+        )}
+      />
+      <AccountSettingRow
+        icon={Volume2}
+        label={ts('labels.voice', 'Voice')}
+        body={ts('labels.accountVoiceBody', 'Hear wisdom with care and clarity.')}
+        theme={theme}
+        control={(
+          <AccountSelect
+            ariaLabel={ts('labels.voice', 'Voice')}
+            value={selectedVoice || ""}
+            onChange={(value) => onVoiceChange(value || null)}
+            theme={theme}
+          >
+            <option value="">{ts('labels.deviceDefault', 'Device default')}</option>
+            {availableVoices.map((voice) => (
+              <option key={voice.voiceURI} value={voice.voiceURI}>{voiceLabel(voice)}</option>
+            ))}
+          </AccountSelect>
+        )}
+      />
+      <p className="rounded-md border px-3 py-2 text-xs leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
+        {preferencesStatus}
+      </p>
       <AvatarStudioCard theme={theme} user={user} ts={ts} onUpdateProfileAvatar={onUpdateProfileAvatar} />
     </section>
   );
 }
 
-function FocusIntentionsCard({
+function AccountScriptureContentPanel({
   theme,
   ts,
-  selected,
-  onChange,
+  preferences,
+  onPreferenceChange,
 }: {
   theme: ThemeColors;
   ts: (key: string, fallback?: string) => string;
-  selected: string[];
-  onChange: (values: string[]) => void;
+  preferences: UserPreferences;
+  onPreferenceChange: (patch: Partial<UserPreferences>) => void;
+}) {
+  const bibleOptions = bibleTranslationOptionsForLanguage(preferences.language);
+
+  return (
+    <section className="space-y-3">
+      <AccountSettingRow
+        icon={BookOpen}
+        label={ts('labels.bibleTranslation', 'Bible translation')}
+        body={ts('labels.accountBibleBody', 'Engage scripture in words that speak to you.')}
+        theme={theme}
+        control={(
+          <AccountSelect
+            ariaLabel={ts('bibleSelect', 'Change Bible translation')}
+            value={preferences.bibleTranslation}
+            onChange={(value) => onPreferenceChange({ bibleTranslation: value as BibleTranslation })}
+            theme={theme}
+          >
+            {bibleOptions.map((code) => {
+              const translation = bibleTranslations[code];
+              return (
+                <option key={code} value={code}>
+                  {translation.language === preferences.language ? "" : `${languages[translation.language].nativeName} · `}{translation.label}
+                </option>
+              );
+            })}
+          </AccountSelect>
+        )}
+      />
+      <AccountSettingRow
+        icon={Globe2}
+        label={ts('labels.regionContext', 'Region / context')}
+        body={ts('labels.accountRegionBody', 'Tailor examples and counsel to where you are.')}
+        theme={theme}
+        control={(
+          <AccountSelect
+            ariaLabel={ts('labels.region', 'Region')}
+            value={preferences.region}
+            onChange={(value) => onPreferenceChange({ region: value as RegionCode })}
+            theme={theme}
+          >
+            {Object.entries(regions).map(([code, region]) => (
+              <option key={code} value={code}>{region.label}</option>
+            ))}
+          </AccountSelect>
+        )}
+      />
+    </section>
+  );
+}
+
+function SystemStatusCard({
+  theme,
+  ts,
+  user,
+  conversations,
+  decisions,
+  reflections,
+  counselContacts,
+  notificationsEnabled,
+}: {
+  theme: ThemeColors;
+  ts: (key: string, fallback?: string) => string;
+  user: User | null;
+  conversations: number;
+  decisions: number;
+  reflections: number;
+  counselContacts: number;
+  notificationsEnabled: boolean;
 }) {
   return (
-    <section className="rounded-lg border p-4" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
-      <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>{ts('labels.focusIntentionsHint', 'Pick up to three intentions. Aletheia uses these to shape prompt suggestions and guidance emphasis.')}</p>
-      <div className="mt-3 grid gap-2">
-        {focusIntentionLibrary.map((item) => {
-          const checked = selected.includes(item.key);
-          return (
-            <button
-              key={item.key}
-              type="button"
-              className="flex h-11 items-center justify-between rounded-md border px-3 text-sm font-semibold"
-              style={{
-                borderColor: checked ? theme.primary : theme.borderMedium,
-                backgroundColor: checked ? theme.activeBg : theme.bgInput,
-                color: theme.textPrimary,
-                opacity: !checked && selected.length >= 3 ? 0.6 : 1,
-              }}
-              onClick={() => {
-                if (checked) {
-                  onChange(selected.filter((value) => value !== item.key));
-                  return;
-                }
-                if (selected.length >= 3) {
-                  return;
-                }
-                onChange([...selected, item.key]);
-              }}
-            >
-              <span>{item.label}</span>
-              <span style={{ color: checked ? theme.primary : theme.textSecondary }}>{checked ? ts('labels.selected', 'Selected') : ts('labels.add', 'Add')}</span>
-            </button>
-          );
-        })}
+    <section className="rounded-lg border p-4 shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+      <div className="flex items-center gap-3">
+        <div className="grid size-10 shrink-0 place-items-center rounded-md" style={{ backgroundColor: theme.bgInput, color: theme.primary }}>
+          <WifiOff size={18} />
+        </div>
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.sync', 'Sync')}</p>
+          <h3 className="mt-1 text-lg font-semibold" style={{ color: theme.textPrimary }}>
+            {user ? ts('labels.accountSyncActive', 'Sync active.') : ts('auth.guestMode', 'Guest mode')}
+          </h3>
+          <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
+            {user ? ts('labels.whatSyncsSignedIn', 'Decisions, reflections, profile, preferences, and counsel circle sync with your account.') : ts('labels.whatSyncsGuest', 'Nothing syncs in guest mode until you sign in.')}
+          </p>
+        </div>
       </div>
+      <div className="mt-4 grid gap-2 sm:grid-cols-2">
+        <AccountStat label={ts('labels.accountStatConversations', 'Conversations')} value={String(conversations)} theme={theme} />
+        <AccountStat label={ts('labels.accountStatDecisions', 'Decisions')} value={String(decisions)} theme={theme} />
+        <AccountStat label={ts('labels.accountStatJournalEntries', 'Journal entries')} value={String(reflections)} theme={theme} />
+        <AccountStat label={ts('labels.counselContacts', 'Counsel contacts')} value={String(counselContacts)} theme={theme} />
+      </div>
+      <p className="mt-3 rounded-md border px-3 py-2 text-xs leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
+        {notificationsEnabled ? ts('notifications.deviceSubscribed', 'This device is subscribed for daily wisdom.') : ts('notifications.notificationsOptionalWhenReady', 'Notifications can be enabled when you are ready.')}
+      </p>
     </section>
   );
 }
@@ -9295,115 +9076,6 @@ function ManualContextPanel({
         </form>
       </div>
     </section>
-  );
-}
-
-function ShareInviteCard({
-  theme,
-  ts,
-  placement,
-  onShare,
-}: {
-  theme: ThemeColors;
-  ts: (key: string, fallback?: string) => string;
-  placement: string;
-  onShare: (channel: ShareChannel, placement: string) => void;
-}) {
-  return (
-    <section className="min-w-0 max-w-full rounded-xl p-4 shadow-sm sm:p-5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
-      <div className="flex min-w-0 items-start gap-3">
-        <div className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-md" style={{ backgroundColor: theme.bgInput, color: theme.primary }}>
-          <Share2 size={17} />
-        </div>
-        <div className="min-w-0">
-          <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.inviteSomeone', 'Invite someone')}</p>
-          <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
-            Invite someone who may need wisdom for money, work, or stewardship.
-          </p>
-          <p className="mt-1 text-xs leading-5" style={{ color: theme.textSecondary }}>
-            This shares only the Aletheia app link, not your private questions or reflections.
-          </p>
-        </div>
-      </div>
-      <ShareActions theme={theme} ts={ts} placement={placement} onShare={onShare} />
-    </section>
-  );
-}
-
-function ShareMilestonePrompt({ theme, ui, onShare }: { theme: ThemeColors; ui: (typeof uiText)[LanguageCode]; onShare: (channel: ShareChannel) => void }) {
-  const text = { ...uiText.en, ...ui };
-  return (
-    <div className="mt-4 rounded-lg border p-3" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
-      <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{text.milestoneShareTitle}</p>
-      <p className="mt-1 text-xs leading-5" style={{ color: theme.textSecondary }}>
-        {text.milestoneShareBody}
-      </p>
-      <button
-        type="button"
-        onClick={() => onShare("native")}
-        className="mt-3 inline-flex h-11 items-center gap-2 rounded-md border px-3 text-xs font-semibold transition"
-        style={{ backgroundColor: theme.bgInput, borderColor: theme.borderMedium, color: theme.textPrimary }}
-      >
-        <Share2 size={14} />
-        {text.shareAletheia}
-      </button>
-    </div>
-  );
-}
-
-function ShareActions({
-  theme,
-  ts,
-  placement,
-  onShare,
-}: {
-  theme: ThemeColors;
-  ts: (key: string, fallback?: string) => string;
-  placement: string;
-  onShare: (channel: ShareChannel, placement: string) => void;
-}) {
-  const platforms: { label: string; channel: ShareChannel }[] = [
-    { label: "WhatsApp", channel: "whatsapp" },
-    { label: "Facebook", channel: "facebook" },
-    { label: "X / Twitter", channel: "x" },
-    { label: "LinkedIn", channel: "linkedin" },
-    { label: "Email", channel: "email" },
-    { label: "SMS", channel: "sms" },
-  ];
-
-  return (
-    <div className="mt-4 grid min-w-0 grid-cols-1 gap-2 min-[360px]:grid-cols-2 sm:flex sm:flex-wrap">
-      <button
-        type="button"
-        onClick={() => onShare("native", placement)}
-        className="inline-flex h-11 min-w-0 items-center justify-center gap-2 rounded-md px-3 text-xs font-semibold shadow-sm"
-        style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
-      >
-        <Share2 size={14} />
-        {ts('share.shareAletheia', 'Share Aletheia')}
-      </button>
-      <button
-        type="button"
-        onClick={() => onShare("copy", placement)}
-        className="h-11 min-w-0 rounded-md border px-3 text-xs font-semibold transition"
-        style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}
-      >
-        {ts('share.copyLink', 'Copy link')}
-      </button>
-      {platforms.map((platform) => (
-        <a
-          key={platform.channel}
-          href={sharePlatformUrl(platform.channel)}
-          target={platform.channel === "email" || platform.channel === "sms" ? undefined : "_blank"}
-          rel={platform.channel === "email" || platform.channel === "sms" ? undefined : "noreferrer"}
-          onClick={() => onShare(platform.channel, placement)}
-          className="inline-flex h-11 min-w-0 items-center justify-center rounded-md border px-3 text-center text-xs font-semibold transition"
-          style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}
-        >
-          {platform.label}
-        </a>
-      ))}
-    </div>
   );
 }
 
@@ -10150,7 +9822,6 @@ function AuthPanel({
   );
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function NotificationPanel({
   theme,
   ts,

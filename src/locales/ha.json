@@ -685,7 +685,25 @@
     "profileReady": "Bayanan asusu sun shirya",
     "guestSetupReady": "Saitin bako ya shirya",
     "set": "an saita",
-    "signInToSyncIt": "Shiga domin daidaita shi."
+    "signInToSyncIt": "Shiga domin daidaita shi.",
+    "accountPersonalizationTitle": "Keɓancewa",
+    "accountPersonalizationSummary": "Harshe, jigo, murya da avatar suna tsara yadda Aletheia take ji a gare ka.",
+    "accountLanguageBody": "Yi magana da harshen zuciyarka.",
+    "accountThemeBody": "Zaɓi wuri mai nutsuwa kuma mai sauƙin karatu.",
+    "accountVoiceBody": "Ji hikima cikin kulawa da bayyani.",
+    "accountScriptureContentTitle": "Nassi da abun ciki",
+    "accountScriptureContentSummary": "Zaɓi fassarar Littafi da mahallin rayuwa don misalai da karatu.",
+    "accountScriptureContentEyebrow": "Nassi da abun ciki",
+    "bibleTranslation": "Fassarar Littafi",
+    "regionContext": "Yanki / mahalli",
+    "accountBibleBody": "Karanta Nassi cikin kalmomin da ke magana da kai.",
+    "accountRegionBody": "Daidaita misalai da shawara da inda kake.",
+    "accountPreferencesTitle": "Zaɓuɓɓuka",
+    "accountPreferencesSummary": "Sanarwa, sirri da mahallin hannu suna zama sirri kuma ana iya gyarawa.",
+    "accountPreferencesEyebrow": "Zaɓuɓɓuka",
+    "accountSystemTitle": "Tsari",
+    "accountSystemSummary": "Daidaitawa, sarrafa bayanai da taimako suna tare.",
+    "accountSystemEyebrow": "Tsari"
   },
   "personalizationNudgeTitle": "Kana son shawara ta fi zama ta kanka?",
   "personalizationNudgeBody": "Ƙara bayani ɗaya game da kuɗi, aiki, ko tsarin rayuwa.",
@@ -887,5 +905,15 @@
     "signingOut": "Asusu",
     "signOut": "Asusu",
     "guestOnly": "Asusu"
+  },
+  "theme": {
+    "system": "Tsari",
+    "classic": "Na gargajiya",
+    "dark": "Duhu",
+    "black": "Baƙi",
+    "warm": "Dumi",
+    "ocean": "Teku",
+    "forest": "Daji",
+    "sunset": "Faɗuwar rana"
   }
 }

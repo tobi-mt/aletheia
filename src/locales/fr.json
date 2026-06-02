@@ -685,7 +685,25 @@
     "profileReady": "Profil prêt",
     "guestSetupReady": "Configuration invité prête",
     "set": "configuré",
-    "signInToSyncIt": "Connectez-vous pour la synchroniser."
+    "signInToSyncIt": "Connectez-vous pour la synchroniser.",
+    "accountPersonalizationTitle": "Personnalisation",
+    "accountPersonalizationSummary": "Langue, thème, voix et avatar façonnent la sensation d’Aletheia.",
+    "accountLanguageBody": "Parlez la langue de votre cœur.",
+    "accountThemeBody": "Choisissez un espace calme et lisible.",
+    "accountVoiceBody": "Écoutez la sagesse avec soin et clarté.",
+    "accountScriptureContentTitle": "Écriture et contenu",
+    "accountScriptureContentSummary": "Choisissez la traduction biblique et le contexte de vie pour les exemples et lectures.",
+    "accountScriptureContentEyebrow": "Écriture et contenu",
+    "bibleTranslation": "Traduction biblique",
+    "regionContext": "Région / contexte",
+    "accountBibleBody": "Approchez l’Écriture avec des mots qui vous parlent.",
+    "accountRegionBody": "Adaptez les exemples et conseils à votre lieu de vie.",
+    "accountPreferencesTitle": "Préférences",
+    "accountPreferencesSummary": "Notifications, posture de confidentialité et contexte manuel restent privés et ajustables.",
+    "accountPreferencesEyebrow": "Préférences",
+    "accountSystemTitle": "Système",
+    "accountSystemSummary": "Synchronisation, contrôles de données et support restent ensemble.",
+    "accountSystemEyebrow": "Système"
   },
   "personalizationNudgeTitle": "Vous voulez un conseil plus personnel ?",
   "personalizationNudgeBody": "Ajoutez un détail sur l’argent, le travail ou le rythme.",
@@ -888,5 +906,15 @@
     "signingOut": "Déconnexion...",
     "signOut": "Se déconnecter",
     "guestOnly": "Invité seulement"
+  },
+  "theme": {
+    "system": "Système",
+    "classic": "Classique",
+    "dark": "Sombre",
+    "black": "Noir",
+    "warm": "Chaud",
+    "ocean": "Océan",
+    "forest": "Forêt",
+    "sunset": "Coucher de soleil"
   }
 }

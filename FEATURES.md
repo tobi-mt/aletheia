@@ -172,8 +172,12 @@ After a meaningful answer, Aletheia can help the user take the next wise step.
 ## Account
 
 - Dedicated Account tab
-- Account customization hub with immediate preview
-- Central place to manage personalization, privacy posture, and sync state
+- Premium grouped Account screen built around Profile, Personalization, Scripture & Content, Preferences, and System
+- Profile card with sign-in state, sync status, notification/device health, and profile readiness
+- Personalization group for language, theme, voice, and avatar
+- Scripture & Content group for Bible translation and region/context
+- Preferences group for notifications, privacy posture, and Manual Context Vault
+- System group for sync status, export data, delete account, and report issue
 - Avatar/profile image update support
 - Avatar studio with curated presets and validated custom avatar URL support
 - Guest mode
@@ -189,8 +193,6 @@ After a meaningful answer, Aletheia can help the user take the next wise step.
 - Clear local personalization control
 - Trust Center panel inside Account
 - Data boundaries panel describing what syncs and what stays local
-- Collapsible privacy-safe history review (conversations, decisions, reflections)
-- Formation milestones
 
 ## Persistence And Sync
 

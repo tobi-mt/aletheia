@@ -685,7 +685,25 @@
     "profileReady": "Perfil pronto",
     "guestSetupReady": "Configuração de convidado pronta",
     "set": "definido",
-    "signInToSyncIt": "Entre para sincronizar."
+    "signInToSyncIt": "Entre para sincronizar.",
+    "accountPersonalizationTitle": "Personalização",
+    "accountPersonalizationSummary": "Idioma, tema, voz e avatar moldam como a Aletheia se sente para você.",
+    "accountLanguageBody": "Fale a linguagem do seu coração.",
+    "accountThemeBody": "Escolha um espaço calmo e legível.",
+    "accountVoiceBody": "Ouça sabedoria com cuidado e clareza.",
+    "accountScriptureContentTitle": "Escritura e conteúdo",
+    "accountScriptureContentSummary": "Escolha tradução bíblica e contexto de vida para exemplos e leitura.",
+    "accountScriptureContentEyebrow": "Escritura e conteúdo",
+    "bibleTranslation": "Tradução bíblica",
+    "regionContext": "Região / contexto",
+    "accountBibleBody": "Leia a Escritura em palavras que falam com você.",
+    "accountRegionBody": "Adapte exemplos e conselhos ao lugar onde você está.",
+    "accountPreferencesTitle": "Preferências",
+    "accountPreferencesSummary": "Notificações, privacidade e contexto manual ficam privados e ajustáveis.",
+    "accountPreferencesEyebrow": "Preferências",
+    "accountSystemTitle": "Sistema",
+    "accountSystemSummary": "Sincronização, controles de dados e suporte ficam juntos.",
+    "accountSystemEyebrow": "Sistema"
   },
   "personalizationNudgeTitle": "Quer um conselho mais pessoal?",
   "personalizationNudgeBody": "Adicione um detalhe sobre dinheiro, trabalho ou ritmo.",
@@ -887,5 +905,15 @@
     "signingOut": "Conta",
     "signOut": "Conta",
     "guestOnly": "Conta"
+  },
+  "theme": {
+    "system": "Sistema",
+    "classic": "Clássico",
+    "dark": "Escuro",
+    "black": "Preto",
+    "warm": "Quente",
+    "ocean": "Oceano",
+    "forest": "Floresta",
+    "sunset": "Pôr do sol"
   }
 }

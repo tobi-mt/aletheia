@@ -685,7 +685,25 @@
     "profileReady": "Profile ready",
     "guestSetupReady": "Guest setup ready",
     "set": "set",
-    "signInToSyncIt": "Sign in to sync it."
+    "signInToSyncIt": "Sign in to sync it.",
+    "accountPersonalizationTitle": "Personalization",
+    "accountPersonalizationSummary": "Language, theme, voice, and avatar shape how Aletheia feels when you use it.",
+    "accountLanguageBody": "Speak your heart's language.",
+    "accountThemeBody": "Choose a space that feels calm and readable.",
+    "accountVoiceBody": "Hear wisdom with care and clarity.",
+    "accountScriptureContentTitle": "Scripture & Content",
+    "accountScriptureContentSummary": "Choose the Bible translation and life context that should shape examples and scripture reading.",
+    "accountScriptureContentEyebrow": "Scripture & Content",
+    "bibleTranslation": "Bible translation",
+    "regionContext": "Region / context",
+    "accountBibleBody": "Engage scripture in words that speak to you.",
+    "accountRegionBody": "Tailor examples and counsel to where you are.",
+    "accountPreferencesTitle": "Preferences",
+    "accountPreferencesSummary": "Notifications, privacy posture, and manual context stay private and adjustable.",
+    "accountPreferencesEyebrow": "Preferences",
+    "accountSystemTitle": "System",
+    "accountSystemSummary": "Sync status, data controls, and support actions stay together.",
+    "accountSystemEyebrow": "System"
   },
   "personalizationNudgeTitle": "Want more personal counsel?",
   "personalizationNudgeBody": "Add one detail about money, work, or rhythm.",
@@ -887,5 +905,15 @@
     "signingOut": "Signing out...",
     "signOut": "Sign out",
     "guestOnly": "Guest only"
+  },
+  "theme": {
+    "system": "System",
+    "classic": "Classic",
+    "dark": "Dark",
+    "black": "Black",
+    "warm": "Warm",
+    "ocean": "Ocean",
+    "forest": "Forest",
+    "sunset": "Sunset"
   }
 }
