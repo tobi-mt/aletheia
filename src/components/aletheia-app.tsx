@@ -7880,49 +7880,14 @@ function AccountPanel({
     Boolean(manualContext.workHoursPerWeek || manualContext.workContext),
     Boolean(manualContext.sleepHours || manualContext.exerciseSessionsPerWeek || manualContext.healthContext),
   ].filter(Boolean).length;
-  const profileReadyItems = [
-    preferences.language ? ts('labels.language', 'language') : null,
-    preferences.bibleTranslation ? ts('labels.bible', 'Bible') : null,
-    themePreference ? ts('labels.theme', 'theme') : null,
-    notificationsEnabled ? ts('labels.notifications', 'notifications') : null,
-  ].filter(Boolean);
-  const profileReadyText = user
-    ? `${ts('labels.profileReady', 'Profile ready')}: ${profileReadyItems.join(", ")} ${ts('labels.set', 'set')}.`
-    : `${ts('labels.guestSetupReady', 'Guest setup ready')}: ${profileReadyItems.join(", ")} ${ts('labels.set', 'set')}. ${ts('labels.signInToSyncIt', 'Sign in to sync it.')}`;
 
   return (
     <div className="mx-auto grid min-w-0 max-w-3xl gap-4">
       <section className="min-w-0 space-y-4">
-        <div className="rounded-xl border p-4 shadow-sm sm:p-5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
-          <div className="flex items-start gap-3">
-            <AvatarCircle
-              avatarUrl={user?.avatarUrl}
-              seed={user?.id ?? user?.email ?? "account-profile"}
-              label={user?.name || user?.email || ts('labels.accountProfile', 'Account profile')}
-              size={56}
-              className="size-14 rounded-full border object-cover"
-            />
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.profileTitle', 'Profile')}</p>
-              <h2 className="mt-2 text-2xl font-semibold" style={{ color: theme.textPrimary }}>
-                {user ? `${ts('auth.welcomeBack', 'Welcome back')}, ${user.name?.split(" ")[0] || user.email.split("@")[0]}` : ts('labels.accountSignInOrGuest', 'Sign in or continue as guest')}
-              </h2>
-              <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
-                {user ? `${ts('labels.accountSyncActive', 'Sync active.')} ${notificationsEnabled ? text.notificationsEnabled : ts('labels.accountNotificationsNotEnabled', 'Notifications not enabled yet.')}` : ts('labels.accountGuestSummary', 'Google and email sign-in keep history, preferences, decisions, and notifications portable.')}
-              </p>
-            </div>
-          </div>
-          <div className="mt-4 rounded-lg border px-3 py-2 text-sm leading-6" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
-          <span className="font-semibold" style={{ color: theme.textPrimary }}>{profileReadyText}</span>
-          <span className="ml-2">{notificationsEnabled ? ts('notifications.deviceSubscribed', 'This device is subscribed for daily wisdom.') : notificationAccountEnabled ? ts('notifications.accountEnabledDeviceOff', 'Notifications are account-enabled; this device still needs enabling.') : ts('notifications.notificationsOptionalWhenReady', 'Notifications can be enabled when you are ready.')}</span>
-        </div>
-        </div>
-
         <DisclosureSection
           title={user ? `${ts('labels.accountSignedInAs', text.accountSignedInAs ?? "Signed in as")} ${user.name || user.email}` : ts('labels.accountSignInOrGuest', text.accountSignInOrGuest ?? "Sign in or continue as guest")}
           summary={user ? `${ts('labels.accountSyncActive', text.accountSyncActive ?? "Sync active.")} ${notificationsEnabled ? text.notificationsEnabled : ts('labels.accountNotificationsNotEnabled', text.accountNotificationsNotEnabled ?? "Notifications not enabled yet.")}` : ts('labels.accountGuestSummary', text.accountGuestSummary ?? "Google and email sign-in keep history, preferences, decisions, and notifications portable.")}
           eyebrow={ts('labels.profileTitle', 'Profile')}
-          defaultOpen={Boolean(user)}
           compactCollapsed
           showDetailsLabel={text.showDetails}
           hideDetailsLabel={text.hideDetails}
@@ -7967,7 +7932,7 @@ function AccountPanel({
 
         <DisclosureSection
           title={ts('labels.accountPersonalizationTitle', 'Personalization')}
-          summary={ts('labels.accountPersonalizationSummary', 'Language, theme, voice, and avatar shape how Aletheia feels when you use it.')}
+          summary={ts('labels.accountPersonalizationSummary', 'Language, Bible translation, theme, voice, and avatar shape how Aletheia feels when you use it.')}
           eyebrow={ts('labels.personalization', 'Personalization')}
           compactCollapsed
           showDetailsLabel={text.showDetails}
@@ -7991,60 +7956,51 @@ function AccountPanel({
         </DisclosureSection>
 
         <DisclosureSection
-          title={ts('labels.accountScriptureContentTitle', 'Scripture & Content')}
-          summary={ts('labels.accountScriptureContentSummary', 'Choose the Bible translation and life context that should shape examples and scripture reading.')}
-          eyebrow={ts('labels.accountScriptureContentEyebrow', 'Scripture & Content')}
+          title={ts('labels.dailyWisdomNotifications', 'Daily wisdom notifications')}
+          summary={notificationsEnabled ? ts('notifications.deviceSubscribed', 'This device is subscribed for daily wisdom.') : notificationStatus}
+          eyebrow={ts('labels.notifications', 'Notifications')}
           compactCollapsed
           showDetailsLabel={text.showDetails}
           hideDetailsLabel={text.hideDetails}
           theme={theme}
         >
-          <AccountScriptureContentPanel
+          <NotificationPanel
             theme={theme}
             ts={ts}
-            preferences={preferences}
-            onPreferenceChange={onPreferenceChange}
+            user={user}
+            enabled={notificationsEnabled}
+            configured={notificationsConfigured}
+            permission={typeof window !== "undefined" && "Notification" in window ? Notification.permission : "default"}
+            status={notificationStatus}
+            busy={notificationBusy}
+            timing={notificationTiming}
+            onTimingChange={onNotificationTimingChange}
+            onEnable={onEnableNotifications}
+            onDisable={onDisableNotifications}
           />
         </DisclosureSection>
 
         <DisclosureSection
-          title={ts('labels.accountPreferencesTitle', 'Preferences')}
+          title={ts('labels.manualContextTitle', 'Manual Context Vault')}
           summary={manualContext.useInAnswers
             ? `${ts('labels.accountContextActive', text.accountContextActive ?? "Context active")} · ${contextAreas} ${contextAreas === 1 ? ts('labels.accountArea', text.accountArea ?? "area") : ts('labels.accountAreas', text.accountAreas ?? "areas")} ${ts('labels.accountAdded', text.accountAdded ?? "added")}`
-            : ts('labels.accountPreferencesSummary', 'Notifications, privacy posture, and manual context stay private and adjustable.')}
-          eyebrow={ts('labels.accountPreferencesEyebrow', 'Preferences')}
+            : ts('manualContext.intro', 'Add only the health, money, work, and life context you want Aletheia to consider. No external apps are connected.')}
+          eyebrow={ts('labels.privacyPosture', 'Privacy posture')}
           compactCollapsed
           showDetailsLabel={text.showDetails}
           hideDetailsLabel={text.hideDetails}
           theme={theme}
         >
-          <div className="space-y-4">
-            <NotificationPanel
-              theme={theme}
-              ts={ts}
-              user={user}
-              enabled={notificationsEnabled}
-              configured={notificationsConfigured}
-              permission={typeof window !== "undefined" && "Notification" in window ? Notification.permission : "default"}
-              status={notificationStatus}
-              busy={notificationBusy}
-              timing={notificationTiming}
-              onTimingChange={onNotificationTimingChange}
-              onEnable={onEnableNotifications}
-              onDisable={onDisableNotifications}
-            />
-            <TrustCenterCard theme={theme} ts={ts} />
-            <ManualContextPanel
-              theme={theme}
-              ts={ts}
-              user={user}
-              preferences={preferences}
-              context={manualContext}
-              status={manualContextStatus}
-              onPreferenceChange={onPreferenceChange}
-              onChange={onManualContextChange}
-            />
-          </div>
+          <ManualContextPanel
+            theme={theme}
+            ts={ts}
+            user={user}
+            preferences={preferences}
+            context={manualContext}
+            status={manualContextStatus}
+            onPreferenceChange={onPreferenceChange}
+            onChange={onManualContextChange}
+          />
         </DisclosureSection>
 
         <DisclosureSection
@@ -8067,6 +8023,7 @@ function AccountPanel({
               counselContacts={counselContacts.length}
               notificationsEnabled={notificationsEnabled}
             />
+            <TrustCenterCard theme={theme} ts={ts} />
             <DataBoundariesCard
               theme={theme}
               ts={ts}
@@ -8167,6 +8124,7 @@ function AccountPersonalizationPanel({
   onUpdateProfileAvatar: (avatarUrl: string) => Promise<boolean>;
 }) {
   const themeOptions: ThemePreference[] = ["system", "classic", "dark", "black", "warm", "ocean", "forest", "sunset"];
+  const bibleOptions = bibleTranslationOptionsForLanguage(preferences.language);
 
   return (
     <section className="space-y-3">
@@ -8185,6 +8143,29 @@ function AccountPersonalizationPanel({
             {Object.entries(languages).map(([code, language]) => (
               <option key={code} value={code}>{language.nativeName}</option>
             ))}
+          </AccountSelect>
+        )}
+      />
+      <AccountSettingRow
+        icon={BookOpen}
+        label={ts('labels.bibleTranslation', 'Bible translation')}
+        body={ts('labels.accountBibleBody', 'Engage scripture in words that speak to you.')}
+        theme={theme}
+        control={(
+          <AccountSelect
+            ariaLabel={ts('bibleSelect', 'Change Bible translation')}
+            value={preferences.bibleTranslation}
+            onChange={(value) => onPreferenceChange({ bibleTranslation: value as BibleTranslation })}
+            theme={theme}
+          >
+            {bibleOptions.map((code) => {
+              const translation = bibleTranslations[code];
+              return (
+                <option key={code} value={code}>
+                  {translation.language === preferences.language ? "" : `${languages[translation.language].nativeName} · `}{translation.label}
+                </option>
+              );
+            })}
           </AccountSelect>
         )}
       />
@@ -8229,66 +8210,6 @@ function AccountPersonalizationPanel({
         {preferencesStatus}
       </p>
       <AvatarStudioCard theme={theme} user={user} ts={ts} onUpdateProfileAvatar={onUpdateProfileAvatar} />
-    </section>
-  );
-}
-
-function AccountScriptureContentPanel({
-  theme,
-  ts,
-  preferences,
-  onPreferenceChange,
-}: {
-  theme: ThemeColors;
-  ts: (key: string, fallback?: string) => string;
-  preferences: UserPreferences;
-  onPreferenceChange: (patch: Partial<UserPreferences>) => void;
-}) {
-  const bibleOptions = bibleTranslationOptionsForLanguage(preferences.language);
-
-  return (
-    <section className="space-y-3">
-      <AccountSettingRow
-        icon={BookOpen}
-        label={ts('labels.bibleTranslation', 'Bible translation')}
-        body={ts('labels.accountBibleBody', 'Engage scripture in words that speak to you.')}
-        theme={theme}
-        control={(
-          <AccountSelect
-            ariaLabel={ts('bibleSelect', 'Change Bible translation')}
-            value={preferences.bibleTranslation}
-            onChange={(value) => onPreferenceChange({ bibleTranslation: value as BibleTranslation })}
-            theme={theme}
-          >
-            {bibleOptions.map((code) => {
-              const translation = bibleTranslations[code];
-              return (
-                <option key={code} value={code}>
-                  {translation.language === preferences.language ? "" : `${languages[translation.language].nativeName} · `}{translation.label}
-                </option>
-              );
-            })}
-          </AccountSelect>
-        )}
-      />
-      <AccountSettingRow
-        icon={Globe2}
-        label={ts('labels.regionContext', 'Region / context')}
-        body={ts('labels.accountRegionBody', 'Tailor examples and counsel to where you are.')}
-        theme={theme}
-        control={(
-          <AccountSelect
-            ariaLabel={ts('labels.region', 'Region')}
-            value={preferences.region}
-            onChange={(value) => onPreferenceChange({ region: value as RegionCode })}
-            theme={theme}
-          >
-            {Object.entries(regions).map(([code, region]) => (
-              <option key={code} value={code}>{region.label}</option>
-            ))}
-          </AccountSelect>
-        )}
-      />
     </section>
   );
 }
@@ -8844,7 +8765,7 @@ function ManualContextPanel({
               type="checkbox"
               checked={draft.useInAnswers}
               onChange={(event) => setDraft((current) => ({ ...current, useInAnswers: event.target.checked }))}
-              className="mt-1 size-4 rounded"
+              className="mt-0.5 size-5 shrink-0 rounded"
               style={{ borderColor: theme.borderMedium }}
             />
             <span>
@@ -8857,23 +8778,23 @@ function ManualContextPanel({
 
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="flex items-start gap-3 rounded-lg border p-3 text-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
-              <input type="checkbox" checked={draft.useMoneyInAnswers} onChange={(event) => setDraft((current) => ({ ...current, useMoneyInAnswers: event.target.checked }))} className="mt-1 size-4 rounded" style={{ borderColor: theme.borderMedium }} />
+              <input type="checkbox" checked={draft.useMoneyInAnswers} onChange={(event) => setDraft((current) => ({ ...current, useMoneyInAnswers: event.target.checked }))} className="mt-0.5 size-5 shrink-0 rounded" style={{ borderColor: theme.borderMedium }} />
               <span className="font-semibold" style={{ color: theme.textPrimary }}>{manualCopy.useMoney}</span>
             </label>
             <label className="flex items-start gap-3 rounded-lg border p-3 text-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
-              <input type="checkbox" checked={draft.useWorkInAnswers} onChange={(event) => setDraft((current) => ({ ...current, useWorkInAnswers: event.target.checked }))} className="mt-1 size-4 rounded" style={{ borderColor: theme.borderMedium }} />
+              <input type="checkbox" checked={draft.useWorkInAnswers} onChange={(event) => setDraft((current) => ({ ...current, useWorkInAnswers: event.target.checked }))} className="mt-0.5 size-5 shrink-0 rounded" style={{ borderColor: theme.borderMedium }} />
               <span className="font-semibold" style={{ color: theme.textPrimary }}>{manualCopy.useWork}</span>
             </label>
             <label className="flex items-start gap-3 rounded-lg border p-3 text-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
-              <input type="checkbox" checked={draft.useHealthInAnswers} onChange={(event) => setDraft((current) => ({ ...current, useHealthInAnswers: event.target.checked }))} className="mt-1 size-4 rounded" style={{ borderColor: theme.borderMedium }} />
+              <input type="checkbox" checked={draft.useHealthInAnswers} onChange={(event) => setDraft((current) => ({ ...current, useHealthInAnswers: event.target.checked }))} className="mt-0.5 size-5 shrink-0 rounded" style={{ borderColor: theme.borderMedium }} />
               <span className="font-semibold" style={{ color: theme.textPrimary }}>{manualCopy.useHealth}</span>
             </label>
             <label className="flex items-start gap-3 rounded-lg border p-3 text-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
-              <input type="checkbox" checked={draft.useRelationshipsInAnswers} onChange={(event) => setDraft((current) => ({ ...current, useRelationshipsInAnswers: event.target.checked }))} className="mt-1 size-4 rounded" style={{ borderColor: theme.borderMedium }} />
+              <input type="checkbox" checked={draft.useRelationshipsInAnswers} onChange={(event) => setDraft((current) => ({ ...current, useRelationshipsInAnswers: event.target.checked }))} className="mt-0.5 size-5 shrink-0 rounded" style={{ borderColor: theme.borderMedium }} />
               <span className="font-semibold" style={{ color: theme.textPrimary }}>{manualCopy.useRelationships}</span>
             </label>
             <label className="flex items-start gap-3 rounded-lg border p-3 text-sm sm:col-span-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
-              <input type="checkbox" checked={draft.useValuesInAnswers} onChange={(event) => setDraft((current) => ({ ...current, useValuesInAnswers: event.target.checked }))} className="mt-1 size-4 rounded" style={{ borderColor: theme.borderMedium }} />
+              <input type="checkbox" checked={draft.useValuesInAnswers} onChange={(event) => setDraft((current) => ({ ...current, useValuesInAnswers: event.target.checked }))} className="mt-0.5 size-5 shrink-0 rounded" style={{ borderColor: theme.borderMedium }} />
               <span className="font-semibold" style={{ color: theme.textPrimary }}>{manualCopy.useValues}</span>
             </label>
           </div>
@@ -9547,7 +9468,22 @@ function AvatarStudioCard({
           ref={fileInputRef}
           type="file"
           accept="image/png,image/jpeg,image/webp"
-          className="hidden"
+          className="sr-only"
+          tabIndex={-1}
+          aria-hidden="true"
+          style={{
+            position: "absolute",
+            width: 1,
+            height: 1,
+            padding: 0,
+            margin: -1,
+            overflow: "hidden",
+            clip: "rect(0, 0, 0, 0)",
+            whiteSpace: "nowrap",
+            border: 0,
+            opacity: 0,
+            pointerEvents: "none",
+          }}
           onChange={onAvatarFileSelected}
         />
         {avatarDraftStatus ? (
@@ -9705,12 +9641,12 @@ function AuthPanel({
   const authBusy = isWorking || authStatus === "checking" || authStatus === "signing-in" || authStatus === "signing-out";
   const statusLabel =
     authStatus === "checking"
-      ? "Checking session"
+      ? ts('auth.checkingSession', 'Checking session')
       : authStatus === "signing-in"
-        ? "Signing in"
+        ? ts('auth.signingIn', 'Signing in')
         : authStatus === "signing-out"
-          ? "Signing out"
-          : "Guest";
+          ? ts('auth.signingOutShort', 'Signing out')
+          : ts('auth.guest', 'Guest');
 
   return (
     <section className="mb-5 rounded-xl border p-4 shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
@@ -9747,10 +9683,10 @@ function AuthPanel({
       <div className="grid gap-4 xl:grid-cols-[0.85fr_1.15fr]">
           <div>
             <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>
-              Sign in for sync
+              {ts('auth.signInForSync', 'Sign in for sync')}
             </p>
             <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
-              {status} {googleAuthAvailable ? "Use Google or email." : "Use email to continue."} Password sessions use httpOnly cookies.
+              {status} {googleAuthAvailable ? ts('auth.useGoogleOrEmail', 'Use Google or email.') : ts('auth.useEmailToContinue', 'Use email to continue.')} {ts('auth.httpOnlySessions', 'Password sessions use httpOnly cookies.')}
             </p>
           </div>
           <div className="grid gap-3">
@@ -9763,11 +9699,11 @@ function AuthPanel({
                   className="inline-flex h-10 items-center justify-center rounded-md border px-4 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60"
                   style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
                 >
-                  {authStatus === "signing-in" ? "Opening Google..." : "Continue with Google"}
+                  {authStatus === "signing-in" ? ts('auth.openingGoogle', 'Opening Google...') : ts('auth.continueWithGoogle', 'Continue with Google')}
                 </button>
                 <div className="flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
                   <span className="h-px flex-1" style={{ backgroundColor: theme.borderLight }} />
-                  Email
+                  {ts('placeholders.email', 'Email')}
                   <span className="h-px flex-1" style={{ backgroundColor: theme.borderLight }} />
                 </div>
               </>
@@ -9803,7 +9739,7 @@ function AuthPanel({
               className="h-10 rounded-md px-4 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
               style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
             >
-              {authStatus === "signing-in" ? "Working..." : authMode === "register" ? "Create" : "Sign in"}
+              {authStatus === "signing-in" ? ts('labels.working', 'Working...') : authMode === "register" ? ts('auth.create', 'Create') : ts('auth.signIn', 'Sign in')}
             </button>
             <div className="sm:col-span-full flex flex-wrap items-center gap-3">
               <button
@@ -9812,7 +9748,7 @@ function AuthPanel({
                 className="inline-flex min-h-10 items-center rounded-md px-2 text-sm font-semibold underline-offset-4 transition hover:underline"
                 style={{ color: theme.textSecondary }}
               >
-                {authMode === "register" ? "I already have an account" : "Create a new account"}
+                {authMode === "register" ? ts('auth.alreadyHaveAccount', 'I already have an account') : ts('auth.createNewAccount', 'Create a new account')}
               </button>
             </div>
             </form>
@@ -9888,7 +9824,7 @@ function NotificationPanel({
             className="h-10 rounded-md border px-4 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60"
             style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}
           >
-            {busy ? "Updating..." : "Turn off"}
+            {busy ? ts('labels.updating', 'Updating...') : ts('labels.turnOff', 'Turn off')}
           </button>
         ) : (
           <button
@@ -9897,14 +9833,14 @@ function NotificationPanel({
             className="h-10 rounded-md px-4 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-55"
             style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
           >
-            {busy ? "Enabling..." : "Enable"}
+            {busy ? ts('notifications.enabling', 'Enabling...') : ts('labels.enable', 'Enable')}
           </button>
         )}
       </div>
       <div className="mt-4 rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
         <div className="grid gap-3 sm:grid-cols-2 sm:items-end">
           <label className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
-            Daily delivery time
+            {ts('notifications.dailyDeliveryTime', 'Daily delivery time')}
             <select
               value={timing.preferredLocalHour}
               disabled={busy || !user}
@@ -9924,10 +9860,10 @@ function NotificationPanel({
           {timing.timezoneMode === "auto" ? (
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
-                Timezone
+                {ts('notifications.timezone', 'Timezone')}
               </p>
               <div className="mt-2 flex h-10 items-center justify-between rounded-md border px-3" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
-                <span className="truncate text-sm">Using device timezone: {timing.preferredTimezone || browserTimezone()}</span>
+                <span className="truncate text-sm">{ts('notifications.usingDeviceTimezone', 'Using device timezone')}: {timing.preferredTimezone || browserTimezone()}</span>
                 <button
                   type="button"
                   disabled={busy || !user}
@@ -9935,13 +9871,13 @@ function NotificationPanel({
                   className="ml-3 text-xs font-semibold underline-offset-4 hover:underline disabled:cursor-not-allowed disabled:opacity-60"
                   style={{ color: theme.primary }}
                 >
-                  Edit
+                  {ts('labels.edit', 'Edit')}
                 </button>
               </div>
             </div>
           ) : (
             <label className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
-              Timezone
+              {ts('notifications.timezone', 'Timezone')}
               <select
                 value={timing.preferredTimezone || browserTimezone()}
                 disabled={busy || !user}
@@ -9962,7 +9898,7 @@ function NotificationPanel({
                 className="mt-2 text-xs font-semibold underline-offset-4 hover:underline disabled:cursor-not-allowed disabled:opacity-60"
                 style={{ color: theme.primary }}
               >
-                Use device timezone automatically
+                {ts('notifications.useDeviceTimezoneAutomatically', 'Use device timezone automatically')}
               </button>
             </label>
           )}

@@ -302,7 +302,12 @@
     "accountEnabled": "Agbanyela amamọkwa na akaụntụ gị",
     "deviceSubscribedBody": "Amamihe kwa ụbọchị nwere ike iru ngwaọrụ a n’oge echekwara.",
     "accountEnabledDeviceOffBody": "Akaụntụ gị nwere amamọkwa, mana nchọgharị/PWA a chọrọ ndebanye ngwaọrụ ọhụrụ.",
-    "notificationStatusLoadFailed": "Enweghị ike ibunye ọnọdụ amamọkwa."
+    "notificationStatusLoadFailed": "Enweghị ike ibunye ọnọdụ amamọkwa.",
+    "dailyDeliveryTime": "Oge nnyefe kwa ụbọchị",
+    "enabling": "Na-eme ka ọ rụọ ọrụ...",
+    "timezone": "Mpaghara oge",
+    "useDeviceTimezoneAutomatically": "Jiri mpaghara oge ngwaọrụ na-akpaghị aka",
+    "usingDeviceTimezone": "Na-eji mpaghara oge ngwaọrụ"
   },
   "status": {
     "guestMode": "Ọnọdụ ọbịa na-arụ ọrụ. Banye ka ịmekọrịta mkpebi.",
@@ -687,7 +692,7 @@
     "set": "edoziri",
     "signInToSyncIt": "Banye ka ọ dakọrịta.",
     "accountPersonalizationTitle": "Nhazi nke onwe",
-    "accountPersonalizationSummary": "Asụsụ, isiokwu, olu na avatar na-akpụ ka Aletheia si dị gị.",
+    "accountPersonalizationSummary": "Asụsụ, ntụgharị Baịbụl, theme, olu na avatar na-akpụ otú Aletheia si dị gị.",
     "accountLanguageBody": "Kwuo n’asụsụ obi gị.",
     "accountThemeBody": "Họrọ ebe dị jụụ ma dị mfe ịgụ.",
     "accountVoiceBody": "Nụrụ amamihe n’ụzọ doro anya ma nwee nlekọta.",
@@ -703,7 +708,11 @@
     "accountPreferencesEyebrow": "Mmasị",
     "accountSystemTitle": "Sistemụ",
     "accountSystemSummary": "Mmekọrịta, njikwa data na nkwado na-anọkọ ọnụ.",
-    "accountSystemEyebrow": "Sistemụ"
+    "accountSystemEyebrow": "Sistemụ",
+    "edit": "Dezie",
+    "enable": "Mee ka ọ rụọ ọrụ",
+    "updating": "Na-emelite...",
+    "working": "Na-arụ ọrụ..."
   },
   "personalizationNudgeTitle": "Ị chọrọ ndụmọdụ ka ọ bụrụ nke onwe gị?",
   "personalizationNudgeBody": "Tinye otu nkọwa gbasara ego, ọrụ, ma ọ bụ rhythm ndụ.",
@@ -904,7 +913,20 @@
     "signInSyncHistory": "Akaụntụ",
     "signingOut": "Akaụntụ",
     "signOut": "Akaụntụ",
-    "guestOnly": "Akaụntụ"
+    "guestOnly": "Akaụntụ",
+    "alreadyHaveAccount": "Enweela m akaụntụ",
+    "checkingSession": "Na-enyocha nnọkọ",
+    "continueWithGoogle": "Gaa n’ihu na Google",
+    "create": "Mepụta",
+    "createNewAccount": "Mepụta akaụntụ ọhụrụ",
+    "httpOnlySessions": "Nnọkọ paswọọdụ na-eji kuki httpOnly.",
+    "openingGoogle": "Na-emepe Google...",
+    "signIn": "Banye",
+    "signInForSync": "Banye ka e nwee mmekọrịta",
+    "signingIn": "Na-abanye",
+    "signingOutShort": "Na-apụ",
+    "useEmailToContinue": "Jiri email gaa n’ihu.",
+    "useGoogleOrEmail": "Jiri Google ma ọ bụ email."
   },
   "theme": {
     "system": "Sistemụ",

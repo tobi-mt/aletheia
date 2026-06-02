@@ -302,7 +302,12 @@
     "accountEnabled": "Ìfitónilétí ti ṣiṣẹ́ lórí àkántì rẹ",
     "deviceSubscribedBody": "Ọgbọ́n ojoojúmọ́ lè dé ẹrọ yìí ní àkókò tí o fipamọ́.",
     "accountEnabledDeviceOffBody": "Àkántì rẹ ní ìfitónilétí, ṣùgbọ́n aṣàwákiri/PWA yìí nílò ìforúkọsílẹ̀ ẹrọ tuntun.",
-    "notificationStatusLoadFailed": "A kò lè kó ipo ìfitónilétí wá."
+    "notificationStatusLoadFailed": "A kò lè kó ipo ìfitónilétí wá.",
+    "dailyDeliveryTime": "Àkókò fífi ojoojúmọ́ ránṣẹ́",
+    "enabling": "Ń mú ṣiṣẹ́...",
+    "timezone": "Agbègbè àkókò",
+    "useDeviceTimezoneAutomatically": "Lo agbègbè àkókò ẹrọ laifọwọyi",
+    "usingDeviceTimezone": "Ń lo agbègbè àkókò ẹrọ"
   },
   "status": {
     "guestMode": "Ìpò àlejò ń ṣiṣẹ́. Wọlé láti fọ́kàn sọ́ àwọn ìpinnu.",
@@ -687,7 +692,7 @@
     "set": "ti ṣeto",
     "signInToSyncIt": "Wọlé kí o lè muuṣiṣẹpọ̀ rẹ.",
     "accountPersonalizationTitle": "Ìṣàdáni",
-    "accountPersonalizationSummary": "Èdè, akori, ohùn àti avatar ló ń dá bí Aletheia ṣe máa rí sí ọ.",
+    "accountPersonalizationSummary": "Èdè, ìtumọ̀ Bíbélì, theme, ohùn àti avatar ń dá bí Aletheia ṣe rí fún ọ.",
     "accountLanguageBody": "Sọ ní èdè ọkàn rẹ.",
     "accountThemeBody": "Yan àyè tó tù ú, tó sì rọrùn láti ka.",
     "accountVoiceBody": "Gbọ́ ọgbọ́n pẹ̀lú ìtọ́jú àti kedere.",
@@ -703,7 +708,11 @@
     "accountPreferencesEyebrow": "Ìfẹ́ràn",
     "accountSystemTitle": "Ẹrọ",
     "accountSystemSummary": "Ìmúṣiṣẹpọ̀, ìṣàkóso data àti ìrànlọ́wọ́ wà papọ̀.",
-    "accountSystemEyebrow": "Ẹrọ"
+    "accountSystemEyebrow": "Ẹrọ",
+    "edit": "Ṣàtúnṣe",
+    "enable": "Mú ṣiṣẹ́",
+    "updating": "Ń ṣe imudojuiwọn...",
+    "working": "Ń ṣiṣẹ́..."
   },
   "personalizationNudgeTitle": "Ṣe o fẹ́ ìmọ̀ràn tó mọ̀ ọ́ síi?",
   "personalizationNudgeBody": "Fi alaye kan kun nípa owó, iṣẹ́, tàbí ìlànà ìgbé-ayé.",
@@ -904,7 +913,20 @@
     "signInSyncHistory": "Àkọọlẹ̀",
     "signingOut": "Àkọọlẹ̀",
     "signOut": "Àkọọlẹ̀",
-    "guestOnly": "Àkọọlẹ̀"
+    "guestOnly": "Àkọọlẹ̀",
+    "alreadyHaveAccount": "Mo ti ní àkọọlẹ̀",
+    "checkingSession": "Ń ṣàyẹ̀wò ìpàdé",
+    "continueWithGoogle": "Tẹ̀síwájú pẹ̀lú Google",
+    "create": "Dá sílẹ̀",
+    "createNewAccount": "Dá àkọọlẹ̀ tuntun sílẹ̀",
+    "httpOnlySessions": "Àwọn ìpàdé ọ̀rọ̀ aṣínà ń lo cookies httpOnly.",
+    "openingGoogle": "Ń ṣí Google...",
+    "signIn": "Wọlé",
+    "signInForSync": "Wọlé fún ìṣàkóso pọ̀",
+    "signingIn": "Ń wọlé",
+    "signingOutShort": "Ń jáde",
+    "useEmailToContinue": "Lo ímeèlì láti tẹ̀síwájú.",
+    "useGoogleOrEmail": "Lo Google tàbí ímeèlì."
   },
   "theme": {
     "system": "Eto ẹrọ",

@@ -302,7 +302,12 @@
     "accountEnabled": "Notifications activées sur votre compte",
     "deviceSubscribedBody": "La sagesse quotidienne peut atteindre cet appareil à l’heure enregistrée.",
     "accountEnabledDeviceOffBody": "Votre compte a les notifications activées, mais ce navigateur/PWA doit être réabonné.",
-    "notificationStatusLoadFailed": "L’état des notifications n’a pas pu être chargé."
+    "notificationStatusLoadFailed": "L’état des notifications n’a pas pu être chargé.",
+    "dailyDeliveryTime": "Heure quotidienne d’envoi",
+    "enabling": "Activation...",
+    "timezone": "Fuseau horaire",
+    "useDeviceTimezoneAutomatically": "Utiliser automatiquement le fuseau horaire de l’appareil",
+    "usingDeviceTimezone": "Fuseau horaire de l’appareil utilisé"
   },
   "status": {
     "guestMode": "Mode invité actif. Connecte-toi pour synchroniser les décisions.",
@@ -687,7 +692,7 @@
     "set": "configuré",
     "signInToSyncIt": "Connectez-vous pour la synchroniser.",
     "accountPersonalizationTitle": "Personnalisation",
-    "accountPersonalizationSummary": "Langue, thème, voix et avatar façonnent la sensation d’Aletheia.",
+    "accountPersonalizationSummary": "Langue, traduction biblique, thème, voix et avatar façonnent l’expérience Aletheia.",
     "accountLanguageBody": "Parlez la langue de votre cœur.",
     "accountThemeBody": "Choisissez un espace calme et lisible.",
     "accountVoiceBody": "Écoutez la sagesse avec soin et clarté.",
@@ -703,7 +708,11 @@
     "accountPreferencesEyebrow": "Préférences",
     "accountSystemTitle": "Système",
     "accountSystemSummary": "Synchronisation, contrôles de données et support restent ensemble.",
-    "accountSystemEyebrow": "Système"
+    "accountSystemEyebrow": "Système",
+    "edit": "Modifier",
+    "enable": "Activer",
+    "updating": "Mise à jour...",
+    "working": "En cours..."
   },
   "personalizationNudgeTitle": "Vous voulez un conseil plus personnel ?",
   "personalizationNudgeBody": "Ajoutez un détail sur l’argent, le travail ou le rythme.",
@@ -905,7 +914,20 @@
     "signInSyncHistory": "Connectez-vous pour synchroniser votre historique de sagesse entre appareils et activer les notifications quotidiennes.",
     "signingOut": "Déconnexion...",
     "signOut": "Se déconnecter",
-    "guestOnly": "Invité seulement"
+    "guestOnly": "Invité seulement",
+    "alreadyHaveAccount": "J’ai déjà un compte",
+    "checkingSession": "Vérification de la session",
+    "continueWithGoogle": "Continuer avec Google",
+    "create": "Créer",
+    "createNewAccount": "Créer un nouveau compte",
+    "httpOnlySessions": "Les sessions par mot de passe utilisent des cookies httpOnly.",
+    "openingGoogle": "Ouverture de Google...",
+    "signIn": "Se connecter",
+    "signInForSync": "Connectez-vous pour synchroniser",
+    "signingIn": "Connexion en cours",
+    "signingOutShort": "Déconnexion",
+    "useEmailToContinue": "Utilisez l’e-mail pour continuer.",
+    "useGoogleOrEmail": "Utilisez Google ou l’e-mail."
   },
   "theme": {
     "system": "Système",

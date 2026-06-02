@@ -302,7 +302,12 @@
     "accountEnabled": "Notificações ativadas na sua conta",
     "deviceSubscribedBody": "A sabedoria diária pode chegar a este dispositivo no horário salvo.",
     "accountEnabledDeviceOffBody": "Sua conta tem notificações ativadas, mas este navegador/PWA precisa de uma nova assinatura do dispositivo.",
-    "notificationStatusLoadFailed": "Não foi possível carregar o status das notificações."
+    "notificationStatusLoadFailed": "Não foi possível carregar o status das notificações.",
+    "dailyDeliveryTime": "Horário diário de envio",
+    "enabling": "Ativando...",
+    "timezone": "Fuso horário",
+    "useDeviceTimezoneAutomatically": "Usar automaticamente o fuso horário do dispositivo",
+    "usingDeviceTimezone": "Usando fuso horário do dispositivo"
   },
   "status": {
     "guestMode": "Modo convidado ativo. Entre para sincronizar decisões.",
@@ -687,7 +692,7 @@
     "set": "definido",
     "signInToSyncIt": "Entre para sincronizar.",
     "accountPersonalizationTitle": "Personalização",
-    "accountPersonalizationSummary": "Idioma, tema, voz e avatar moldam como a Aletheia se sente para você.",
+    "accountPersonalizationSummary": "Idioma, tradução bíblica, tema, voz e avatar moldam como Aletheia se sente ao usar.",
     "accountLanguageBody": "Fale a linguagem do seu coração.",
     "accountThemeBody": "Escolha um espaço calmo e legível.",
     "accountVoiceBody": "Ouça sabedoria com cuidado e clareza.",
@@ -703,7 +708,11 @@
     "accountPreferencesEyebrow": "Preferências",
     "accountSystemTitle": "Sistema",
     "accountSystemSummary": "Sincronização, controles de dados e suporte ficam juntos.",
-    "accountSystemEyebrow": "Sistema"
+    "accountSystemEyebrow": "Sistema",
+    "edit": "Editar",
+    "enable": "Ativar",
+    "updating": "Atualizando...",
+    "working": "Trabalhando..."
   },
   "personalizationNudgeTitle": "Quer um conselho mais pessoal?",
   "personalizationNudgeBody": "Adicione um detalhe sobre dinheiro, trabalho ou ritmo.",
@@ -904,7 +913,20 @@
     "signInSyncHistory": "Conta",
     "signingOut": "Conta",
     "signOut": "Conta",
-    "guestOnly": "Conta"
+    "guestOnly": "Conta",
+    "alreadyHaveAccount": "Já tenho uma conta",
+    "checkingSession": "Verificando sessão",
+    "continueWithGoogle": "Continuar com Google",
+    "create": "Criar",
+    "createNewAccount": "Criar nova conta",
+    "httpOnlySessions": "Sessões com senha usam cookies httpOnly.",
+    "openingGoogle": "Abrindo Google...",
+    "signIn": "Entrar",
+    "signInForSync": "Entre para sincronizar",
+    "signingIn": "Entrando",
+    "signingOutShort": "Saindo",
+    "useEmailToContinue": "Use e-mail para continuar.",
+    "useGoogleOrEmail": "Use Google ou e-mail."
   },
   "theme": {
     "system": "Sistema",

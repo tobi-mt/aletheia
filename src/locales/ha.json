@@ -302,7 +302,12 @@
     "accountEnabled": "An kunna sanarwa a asusunka",
     "deviceSubscribedBody": "Hikima ta yau da kullum za ta iya isa wannan na’ura a lokacin da aka ajiye.",
     "accountEnabledDeviceOffBody": "Asusunka yana da sanarwa, amma wannan burauza/PWA na bukatar sabon rajistar na’ura.",
-    "notificationStatusLoadFailed": "Ba a iya loda matsayin sanarwa ba."
+    "notificationStatusLoadFailed": "Ba a iya loda matsayin sanarwa ba.",
+    "dailyDeliveryTime": "Lokacin isarwa na yau da kullum",
+    "enabling": "Ana kunnawa...",
+    "timezone": "Yankin lokaci",
+    "useDeviceTimezoneAutomatically": "Yi amfani da yankin lokacin na’ura ta atomatik",
+    "usingDeviceTimezone": "Ana amfani da yankin lokacin na’ura"
   },
   "status": {
     "guestMode": "Matsayin baƙo yana aiki. Shiga don daidaita shawara.",
@@ -687,7 +692,7 @@
     "set": "an saita",
     "signInToSyncIt": "Shiga domin daidaita shi.",
     "accountPersonalizationTitle": "Keɓancewa",
-    "accountPersonalizationSummary": "Harshe, jigo, murya da avatar suna tsara yadda Aletheia take ji a gare ka.",
+    "accountPersonalizationSummary": "Harshe, fassarar Littafi, theme, murya da avatar suna tsara yadda Aletheia take ji gare ka.",
     "accountLanguageBody": "Yi magana da harshen zuciyarka.",
     "accountThemeBody": "Zaɓi wuri mai nutsuwa kuma mai sauƙin karatu.",
     "accountVoiceBody": "Ji hikima cikin kulawa da bayyani.",
@@ -703,7 +708,11 @@
     "accountPreferencesEyebrow": "Zaɓuɓɓuka",
     "accountSystemTitle": "Tsari",
     "accountSystemSummary": "Daidaitawa, sarrafa bayanai da taimako suna tare.",
-    "accountSystemEyebrow": "Tsari"
+    "accountSystemEyebrow": "Tsari",
+    "edit": "Gyara",
+    "enable": "Kunna",
+    "updating": "Ana sabuntawa...",
+    "working": "Ana aiki..."
   },
   "personalizationNudgeTitle": "Kana son shawara ta fi zama ta kanka?",
   "personalizationNudgeBody": "Ƙara bayani ɗaya game da kuɗi, aiki, ko tsarin rayuwa.",
@@ -904,7 +913,20 @@
     "signInSyncHistory": "Asusu",
     "signingOut": "Asusu",
     "signOut": "Asusu",
-    "guestOnly": "Asusu"
+    "guestOnly": "Asusu",
+    "alreadyHaveAccount": "Ina da asusu tuni",
+    "checkingSession": "Ana duba zama",
+    "continueWithGoogle": "Ci gaba da Google",
+    "create": "Ƙirƙira",
+    "createNewAccount": "Ƙirƙiri sabon asusu",
+    "httpOnlySessions": "Zaman kalmar sirri na amfani da cookies httpOnly.",
+    "openingGoogle": "Ana buɗe Google...",
+    "signIn": "Shiga",
+    "signInForSync": "Shiga domin daidaitawa",
+    "signingIn": "Ana shiga",
+    "signingOutShort": "Ana fita",
+    "useEmailToContinue": "Yi amfani da imel domin ci gaba.",
+    "useGoogleOrEmail": "Yi amfani da Google ko imel."
   },
   "theme": {
     "system": "Tsari",

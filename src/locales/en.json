@@ -302,7 +302,12 @@
     "accountEnabled": "Notifications enabled on your account",
     "deviceSubscribedBody": "Daily wisdom can reach this device at your saved time.",
     "accountEnabledDeviceOffBody": "Your account has notifications on, but this browser/PWA needs a fresh device subscription.",
-    "notificationStatusLoadFailed": "Notification status could not be loaded."
+    "notificationStatusLoadFailed": "Notification status could not be loaded.",
+    "dailyDeliveryTime": "Daily delivery time",
+    "enabling": "Enabling...",
+    "timezone": "Timezone",
+    "useDeviceTimezoneAutomatically": "Use device timezone automatically",
+    "usingDeviceTimezone": "Using device timezone"
   },
   "status": {
     "guestMode": "Guest mode is active. Sign in to sync decisions.",
@@ -687,7 +692,7 @@
     "set": "set",
     "signInToSyncIt": "Sign in to sync it.",
     "accountPersonalizationTitle": "Personalization",
-    "accountPersonalizationSummary": "Language, theme, voice, and avatar shape how Aletheia feels when you use it.",
+    "accountPersonalizationSummary": "Language, Bible translation, theme, voice, and avatar shape how Aletheia feels when you use it.",
     "accountLanguageBody": "Speak your heart's language.",
     "accountThemeBody": "Choose a space that feels calm and readable.",
     "accountVoiceBody": "Hear wisdom with care and clarity.",
@@ -703,7 +708,11 @@
     "accountPreferencesEyebrow": "Preferences",
     "accountSystemTitle": "System",
     "accountSystemSummary": "Sync status, data controls, and support actions stay together.",
-    "accountSystemEyebrow": "System"
+    "accountSystemEyebrow": "System",
+    "edit": "Edit",
+    "enable": "Enable",
+    "updating": "Updating...",
+    "working": "Working..."
   },
   "personalizationNudgeTitle": "Want more personal counsel?",
   "personalizationNudgeBody": "Add one detail about money, work, or rhythm.",
@@ -904,7 +913,20 @@
     "signInSyncHistory": "Sign in to sync your wisdom history across devices and enable daily notifications.",
     "signingOut": "Signing out...",
     "signOut": "Sign out",
-    "guestOnly": "Guest only"
+    "guestOnly": "Guest only",
+    "alreadyHaveAccount": "I already have an account",
+    "checkingSession": "Checking session",
+    "continueWithGoogle": "Continue with Google",
+    "create": "Create",
+    "createNewAccount": "Create a new account",
+    "httpOnlySessions": "Password sessions use httpOnly cookies.",
+    "openingGoogle": "Opening Google...",
+    "signIn": "Sign in",
+    "signInForSync": "Sign in for sync",
+    "signingIn": "Signing in",
+    "signingOutShort": "Signing out",
+    "useEmailToContinue": "Use email to continue.",
+    "useGoogleOrEmail": "Use Google or email."
   },
   "theme": {
     "system": "System",

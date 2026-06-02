@@ -302,7 +302,12 @@
     "accountEnabled": "Benachrichtigungen sind in deinem Konto aktiviert",
     "deviceSubscribedBody": "Tägliche Weisheit kann dieses Gerät zur gespeicherten Zeit erreichen.",
     "accountEnabledDeviceOffBody": "Dein Konto hat Benachrichtigungen aktiviert, aber dieser Browser/PWA braucht eine neue Geräte-Anmeldung.",
-    "notificationStatusLoadFailed": "Benachrichtigungsstatus konnte nicht geladen werden."
+    "notificationStatusLoadFailed": "Benachrichtigungsstatus konnte nicht geladen werden.",
+    "dailyDeliveryTime": "Tägliche Lieferzeit",
+    "enabling": "Aktivierung...",
+    "timezone": "Zeitzone",
+    "useDeviceTimezoneAutomatically": "Geräte-Zeitzone automatisch verwenden",
+    "usingDeviceTimezone": "Geräte-Zeitzone wird verwendet"
   },
   "status": {
     "guestMode": "Gast-Modus aktiv. Melde dich an, um Entscheidungen zu synchronisieren.",
@@ -687,7 +692,7 @@
     "set": "gesetzt",
     "signInToSyncIt": "Melde dich an, um sie zu synchronisieren.",
     "accountPersonalizationTitle": "Personalisierung",
-    "accountPersonalizationSummary": "Sprache, Theme, Stimme und Avatar prägen, wie sich Aletheia für dich anfühlt.",
+    "accountPersonalizationSummary": "Sprache, Bibelübersetzung, Theme, Stimme und Avatar prägen, wie sich Aletheia für dich anfühlt.",
     "accountLanguageBody": "Sprich in der Sprache deines Herzens.",
     "accountThemeBody": "Wähle einen Raum, der ruhig und gut lesbar wirkt.",
     "accountVoiceBody": "Höre Weisheit mit Sorgfalt und Klarheit.",
@@ -703,7 +708,11 @@
     "accountPreferencesEyebrow": "Einstellungen",
     "accountSystemTitle": "System",
     "accountSystemSummary": "Synchronisierung, Datenkontrollen und Support-Aktionen bleiben zusammen.",
-    "accountSystemEyebrow": "System"
+    "accountSystemEyebrow": "System",
+    "edit": "Bearbeiten",
+    "enable": "Aktivieren",
+    "updating": "Aktualisierung...",
+    "working": "In Arbeit..."
   },
   "personalizationNudgeTitle": "Möchtest du persönlicheren Rat?",
   "personalizationNudgeBody": "Füge ein Detail zu Geld, Arbeit oder Rhythmus hinzu.",
@@ -904,7 +913,20 @@
     "signInSyncHistory": "Melde dich an, um deine Weisheitsgeschichte geräteübergreifend zu synchronisieren und tägliche Benachrichtigungen zu aktivieren.",
     "signingOut": "Abmeldung läuft...",
     "signOut": "Abmelden",
-    "guestOnly": "Nur Gast"
+    "guestOnly": "Nur Gast",
+    "alreadyHaveAccount": "Ich habe bereits ein Konto",
+    "checkingSession": "Sitzung wird geprüft",
+    "continueWithGoogle": "Mit Google fortfahren",
+    "create": "Erstellen",
+    "createNewAccount": "Neues Konto erstellen",
+    "httpOnlySessions": "Passwort-Sitzungen nutzen httpOnly-Cookies.",
+    "openingGoogle": "Google wird geöffnet...",
+    "signIn": "Anmelden",
+    "signInForSync": "Zum Synchronisieren anmelden",
+    "signingIn": "Anmeldung läuft",
+    "signingOutShort": "Abmeldung läuft",
+    "useEmailToContinue": "Nutze E-Mail, um fortzufahren.",
+    "useGoogleOrEmail": "Nutze Google oder E-Mail."
   },
   "theme": {
     "system": "System",
