@@ -30,6 +30,7 @@ type DueDecisionReminderRow = {
   revisit_at: string | null;
   waiting_due: boolean;
   revisit_due: boolean;
+  language: string | null;
 };
 
 type ReminderKind = "waiting" | "revisit";
@@ -40,6 +41,7 @@ type DueDecisionReminder = {
   title: string;
   kind: ReminderKind;
   dueAt: string;
+  language: LanguageCode;
 };
 
 const DAILY_UNAUTHORIZED_METRIC_KEY = "daily_unauthorized_hits";
@@ -139,7 +141,8 @@ export function configureWebPush() {
 }
 
 function dailyNotificationPayload(row: PushRow, wisdomEntries: Awaited<ReturnType<typeof getWisdomEntries>>) {
-  const index = dailyWisdomIndex(row, wisdomEntries.length, new Date());
+  const now = new Date();
+  const index = dailyWisdomIndex(row, wisdomEntries.length, now);
   const wisdom = wisdomEntries[index];
   const preferences = normalizePreferences({
     language: row.language as LanguageCode,
@@ -151,14 +154,18 @@ function dailyNotificationPayload(row: PushRow, wisdomEntries: Awaited<ReturnTyp
     ? (wisdom.theme as Mode)
     : "Money";
   const daily = localizedDailyWisdom(wisdom, dailyMode, preferences);
-  const title = buildDailyNotificationTitle(daily.label, daily.principle, daily.theme);
-  const body = buildDailyNotificationBody(daily.practice, daily.scripture);
+  const localDate = localDateForTimezone(now, row.preferred_timezone);
+  const variant = stableHash(`${row.user_id}:${localDate}:${daily.scripture}:${daily.theme}`) % 5;
+  const title = buildDailyNotificationTitle(daily.label, daily.principle, daily.theme, daily.practice, variant);
+  const body = buildDailyNotificationBody(daily.practice, daily.scripture, daily.principle, variant);
   return {
     title,
     body,
     url: "/?source=notification&focus=today",
     scripture: daily.scripture,
-    tag: "aletheia-daily-wisdom",
+    tag: `aletheia-daily-${notificationTagPart(localDate)}-${index}`,
+    notificationKind: "daily_wisdom",
+    wisdomTheme: wisdom.theme,
   };
 }
 
@@ -187,18 +194,42 @@ function compactNotificationCopy(copy: string, max = 140) {
   return `${cleaned.slice(0, Math.max(0, max - 1)).trimEnd()}…`;
 }
 
-function buildDailyNotificationTitle(label: string, principle: string, theme: string) {
-  const cleanPrinciple = compactNotificationCopy(principle, 58);
-  return cleanPrinciple || `${label}: ${theme}`;
+function notificationTagPart(value: string) {
+  return value.replace(/[^a-zA-Z0-9_-]+/g, "-").slice(0, 40) || "item";
 }
 
-function buildDailyNotificationBody(practice: string, scripture: string) {
+function buildDailyNotificationTitle(
+  label: string,
+  principle: string,
+  theme: string,
+  practice: string,
+  variant: number
+) {
+  const cleanPrinciple = compactNotificationCopy(principle, 62);
+  const cleanPractice = compactNotificationCopy(practice, 62);
+  const cleanTheme = compactNotificationCopy(theme, 44);
+  const titleOptions = [
+    `${label}: ${cleanTheme}`,
+    cleanPrinciple,
+    `${cleanTheme}: ${cleanPractice}`,
+    cleanPractice,
+    `${label}: ${cleanPrinciple}`,
+  ].filter(Boolean);
+  return compactNotificationCopy(titleOptions[variant % titleOptions.length] || `${label}: ${cleanTheme}`, 72);
+}
+
+function buildDailyNotificationBody(practice: string, scripture: string, principle: string, variant: number) {
   const cleanPractice = compactNotificationCopy(practice, 104);
+  const cleanPrinciple = compactNotificationCopy(principle, 104);
   const scriptureReference = compactNotificationCopy(scripture, 54);
-  if (!cleanPractice) {
-    return scriptureReference;
-  }
-  return compactNotificationCopy(`${cleanPractice} · ${scriptureReference}`, 165);
+  const bodyOptions = [
+    `${cleanPractice} · ${scriptureReference}`,
+    `${cleanPrinciple} · ${scriptureReference}`,
+    `${scriptureReference} · ${cleanPractice}`,
+    cleanPractice,
+    `${cleanPractice} · ${cleanPrinciple}`,
+  ].filter(Boolean);
+  return compactNotificationCopy(bodyOptions[variant % bodyOptions.length] || scriptureReference, 165);
 }
 
 function selectReminderForUser(reminders: DueDecisionReminder[]) {
@@ -217,24 +248,90 @@ function selectReminderForUser(reminders: DueDecisionReminder[]) {
   return sorted[0] || null;
 }
 
+function reminderCopyLanguage(language: LanguageCode) {
+  const copy: Record<LanguageCode, {
+    waitingTitles: string[];
+    revisitTitles: string[];
+    waitingBodies: string[];
+    revisitBodies: string[];
+  }> = {
+    en: {
+      waitingTitles: ["Time has helped this breathe", "Return to this decision calmly", "Your waiting period is ready"],
+      revisitTitles: ["What changed since last time?", "A decision worth reviewing", "Return with clearer eyes"],
+      waitingBodies: [
+        "has had time to breathe. Reopen it and notice what changed.",
+        "was waiting for a calmer look. What feels clearer now?",
+        "is ready for a next faithful step, not a rushed one.",
+      ],
+      revisitBodies: [
+        "What is clearer now than when you first carried it?",
+        "Revisit the pressure, counsel, cost, and peace around it.",
+        "Open the decision timeline and name what changed.",
+      ],
+    },
+    es: {
+      waitingTitles: ["El tiempo ayudó a esta decisión", "Vuelve con calma a esta decisión", "Tu espera ya está lista"],
+      revisitTitles: ["¿Qué cambió desde la última vez?", "Una decisión que merece revisión", "Vuelve con más claridad"],
+      waitingBodies: ["tuvo tiempo para respirar. Ábrela y nota qué cambió.", "esperaba una mirada más tranquila. ¿Qué está más claro ahora?", "está lista para un próximo paso fiel, no apresurado."],
+      revisitBodies: ["¿Qué está más claro ahora que cuando la llevabas al inicio?", "Revisa la presión, el consejo, el costo y la paz alrededor de ella.", "Abre la línea de tiempo y nombra qué cambió."],
+    },
+    fr: {
+      waitingTitles: ["Le temps a aidé cette décision", "Reviens-y avec calme", "Ton temps d’attente est prêt"],
+      revisitTitles: ["Qu’est-ce qui a changé ?", "Une décision à relire", "Reviens avec un regard plus clair"],
+      waitingBodies: ["a eu le temps de respirer. Rouvre-la et remarque ce qui a changé.", "attendait un regard plus calme. Qu’est-ce qui est plus clair maintenant ?", "est prête pour un prochain pas fidèle, pas précipité."],
+      revisitBodies: ["Qu’est-ce qui est plus clair qu’au début ?", "Relis la pression, le conseil, le coût et la paix autour d’elle.", "Ouvre la chronologie et nomme ce qui a changé."],
+    },
+    pt: {
+      waitingTitles: ["O tempo ajudou esta decisão", "Volte com calma a esta decisão", "Sua espera está pronta"],
+      revisitTitles: ["O que mudou desde a última vez?", "Uma decisão que merece revisão", "Volte com olhos mais claros"],
+      waitingBodies: ["teve tempo para respirar. Abra e perceba o que mudou.", "esperava um olhar mais calmo. O que ficou mais claro agora?", "está pronta para um próximo passo fiel, não apressado."],
+      revisitBodies: ["O que está mais claro agora do que no início?", "Revise a pressão, o conselho, o custo e a paz ao redor dela.", "Abra a linha do tempo e nomeie o que mudou."],
+    },
+    de: {
+      waitingTitles: ["Diese Entscheidung hatte Zeit", "Kehre ruhig zu dieser Entscheidung zurück", "Deine Wartezeit ist bereit"],
+      revisitTitles: ["Was hat sich seitdem verändert?", "Eine Entscheidung zum erneuten Prüfen", "Kehre mit klarerem Blick zurück"],
+      waitingBodies: ["hatte Zeit zu atmen. Öffne sie und bemerke, was sich verändert hat.", "wartete auf einen ruhigeren Blick. Was ist jetzt klarer?", "ist bereit für einen nächsten treuen Schritt, nicht für Eile."],
+      revisitBodies: ["Was ist klarer als am Anfang?", "Prüfe Druck, Rat, Kosten und Frieden rund um diese Entscheidung.", "Öffne die Zeitleiste und benenne, was sich verändert hat."],
+    },
+    yo: {
+      waitingTitles: ["Ìpinnu yìí ti ní àkókò", "Padà sí ìpinnu yìí pẹ̀lú ìfarabalẹ̀", "Àkókò ìdúró rẹ ti pé"],
+      revisitTitles: ["Kí ló yí padà látìgbà yẹn?", "Ìpinnu tó yẹ kí o tún wo", "Padà pẹ̀lú ojú tó mọ́"],
+      waitingBodies: ["ti ní àkókò láti mí. Ṣí i, kí o sì wo ohun tó yí padà.", "ń dúró de ìfarabalẹ̀. Kí ló ṣe kedere báyìí?", "ti ṣetan fún ìgbésẹ̀ olóòtítọ́ tó kàn, kì í ṣe ìkánjú."],
+      revisitBodies: ["Kí ni ó ṣe kedere ju ìgbà tí o kọ́kọ́ rù ú lọ?", "Tún wo ìkánjú, ìmọ̀ràn, iye, àti àlàáfíà tó yí i ká.", "Ṣí ìtàn ìpinnu náà, kí o sì sọ ohun tó yí padà."],
+    },
+    ig: {
+      waitingTitles: ["Mkpebi a enwetala oge", "Laghachi na mkpebi a nwayọọ", "Oge nchere gị eruola"],
+      revisitTitles: ["Gịnị gbanwere kemgbe ahụ?", "Mkpebi kwesịrị ileghachi anya", "Laghachi na anya doro anya"],
+      waitingBodies: ["enwetala oge iku ume. Mepee ya ma hụ ihe gbanwere.", "na-eche echiche dị jụụ. Gịnị ka doro anya ugbu a?", "dị njikere maka nzọụkwụ kwesịrị ntụkwasị obi, ọ bụghị ọsọ ọsọ."],
+      revisitBodies: ["Gịnị ka doro anya karịa mgbe mbụ ị bu ya?", "Legharịa nrụgide, ndụmọdụ, ọnụ ahịa, na udo gbara ya gburugburu.", "Mepee usoro oge mkpebi ahụ ma kpọọ ihe gbanwere aha."],
+    },
+    ha: {
+      waitingTitles: ["Wannan shawara ta samu lokaci", "Koma ga wannan shawara a hankali", "Lokacin jiran ka ya cika"],
+      revisitTitles: ["Me ya canza tun daga baya?", "Shawarar da ta cancanci dubawa", "Koma da ido mafi bayyana"],
+      waitingBodies: ["ta samu lokaci ta numfasa. Bude ta ka lura da abin da ya canza.", "tana jiran kallo mai natsuwa. Me ya fi bayyana yanzu?", "ta shirya don mataki mai aminci, ba gaggawa ba."],
+      revisitBodies: ["Me ya fi bayyana yanzu fiye da lokacin farko?", "Duba matsin lamba, shawara, farashi, da salama da ke kewaye da ita.", "Bude tarihin shawarar ka ambaci abin da ya canza."],
+    },
+  };
+
+  return copy[language] ?? copy.en;
+}
+
 function followupNotificationPayload(reminder: DueDecisionReminder) {
   const trimmedTitle = reminder.title.replace(/\s+/g, " ").trim();
-  const title =
-    reminder.kind === "waiting"
-      ? "Decision ready to revisit"
-      : "Decision check-in";
-  const body =
-    reminder.kind === "waiting"
-      ? `“${compactNotificationCopy(trimmedTitle, 68)}” has had time to breathe. Reopen it and notice what changed.`
-      : `Return to “${compactNotificationCopy(trimmedTitle, 72)}”. What is clearer now than when you first carried it?`;
+  const copy = reminderCopyLanguage(reminder.language);
+  const variant = stableHash(`${reminder.userId}:${reminder.decisionId}:${reminder.kind}:${reminder.dueAt}`) % 3;
+  const titleOptions = reminder.kind === "waiting" ? copy.waitingTitles : copy.revisitTitles;
+  const bodyOptions = reminder.kind === "waiting" ? copy.waitingBodies : copy.revisitBodies;
+  const body = `“${compactNotificationCopy(trimmedTitle, 68)}” ${bodyOptions[variant % bodyOptions.length]}`;
 
   return {
-    title,
+    title: compactNotificationCopy(titleOptions[variant % titleOptions.length], 72),
     body: compactNotificationCopy(body, 156),
     url: `/?source=notification&focus=decision&decisionId=${encodeURIComponent(reminder.decisionId)}&kind=${reminder.kind}`,
-    tag: `aletheia-decision-${reminder.kind}-${reminder.decisionId}`,
+    tag: `aletheia-decision-${reminder.kind}-${notificationTagPart(reminder.decisionId)}-${notificationTagPart(reminder.dueAt.slice(0, 10))}`,
     decisionId: reminder.decisionId,
     reminderKind: reminder.kind,
+    notificationKind: "decision_followup",
   };
 }
 
@@ -398,14 +495,16 @@ async function sendPushRows(
 async function findDueDecisionReminders() {
   const rows = await many<DueDecisionReminderRow>(
     `SELECT
-       id,
-       user_id,
-       title,
-       waiting_until,
-       revisit_at,
+       wisdom_decisions.id,
+       wisdom_decisions.user_id,
+       wisdom_decisions.title,
+       wisdom_decisions.waiting_until,
+       wisdom_decisions.revisit_at,
+       user_preferences.language,
        (waiting_until IS NOT NULL AND waiting_until <= NOW() AND (waiting_notified_at IS NULL OR waiting_notified_at < waiting_until)) AS waiting_due,
        (revisit_at IS NOT NULL AND revisit_at <= NOW() AND (revisit_notified_at IS NULL OR revisit_notified_at < revisit_at)) AS revisit_due
      FROM wisdom_decisions
+     LEFT JOIN user_preferences ON user_preferences.user_id = wisdom_decisions.user_id
      WHERE status <> 'closed'
        AND (
          (waiting_until IS NOT NULL AND waiting_until <= NOW() AND (waiting_notified_at IS NULL OR waiting_notified_at < waiting_until))
@@ -423,6 +522,7 @@ async function findDueDecisionReminders() {
         title: row.title,
         kind: "waiting",
         dueAt: row.waiting_until,
+        language: normalizePreferences({ language: row.language as LanguageCode }).language,
       });
     }
     if (row.revisit_due && row.revisit_at) {
@@ -432,6 +532,7 @@ async function findDueDecisionReminders() {
         title: row.title,
         kind: "revisit",
         dueAt: row.revisit_at,
+        language: normalizePreferences({ language: row.language as LanguageCode }).language,
       });
     }
   }

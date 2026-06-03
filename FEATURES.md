@@ -297,11 +297,15 @@ After a meaningful answer, Aletheia can help the user take the next wise step.
 
 - Opt-in daily wisdom notifications
 - Web Push support
+- Daily push copy is generated from the selected wisdom principle, practice, scripture, user language, and local date so notifications remain meaningful and varied
+- Daily notification tags include the local date and wisdom entry, helping each day feel distinct instead of replacing every prior daily message with the same tag
+- Decision waiting-mode and revisit notifications use distinct, premium reminder copy and deep-link back to the relevant decision card
 - Notification status inside Account
 - Enable and disable notification controls
 - Server endpoint for scheduled daily notification sending
 - VAPID key support
 - Signed-in user requirement for notification subscriptions
+- Notification click analytics include non-private notification kind and wisdom theme metadata
 - PWA-friendly notification flow
 
 ## Formation Milestones

@@ -82,7 +82,12 @@ self.addEventListener("push", (event) => {
     body: "A wisdom prompt is ready. Open Aletheia when you have a quiet moment.",
     url: "/?source=notification&focus=today",
   };
-  const data = event.data ? event.data.json() : fallback;
+  let data = fallback;
+  try {
+    data = event.data ? event.data.json() : fallback;
+  } catch {
+    data = fallback;
+  }
   const title = data.title || fallback.title;
   const options = {
     body: data.body || fallback.body,
@@ -96,6 +101,8 @@ self.addEventListener("push", (event) => {
       scripture: data.scripture,
       decisionId: data.decisionId || null,
       reminderKind: data.reminderKind || null,
+      notificationKind: data.notificationKind || null,
+      wisdomTheme: data.wisdomTheme || null,
     },
   };
 
@@ -121,6 +128,8 @@ self.addEventListener("notificationclick", (event) => {
             scripture: event.notification.data?.scripture || null,
             decisionId: event.notification.data?.decisionId || null,
             reminderKind: event.notification.data?.reminderKind || null,
+            notificationKind: event.notification.data?.notificationKind || null,
+            wisdomTheme: event.notification.data?.wisdomTheme || null,
           },
         }),
       }),
