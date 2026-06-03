@@ -139,6 +139,12 @@ After a meaningful answer, Aletheia can help the user take the next wise step.
 - Reflection deletion
 - Reflection drafts created from AI answers
 - Today’s wisdom can be turned into a reflection prompt
+- Gratitude Lens for visual gratitude practice using a user-selected or captured photo plus one grateful note
+- Gratitude photos stay local on the user’s device by default and are not synced to the account
+- Optional place/context field for gratitude moments without requesting GPS location
+- Private gratitude timeline for visual tracking of provision, beauty, and small mercies
+- Optional generated gratitude postcard that includes the selected image, note, date/time, and optional place
+- Gratitude postcards export/share only when the user explicitly chooses
 
 ## Biblical Wisdom Knowledge Engine
 

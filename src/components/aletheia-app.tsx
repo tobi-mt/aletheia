@@ -7,13 +7,16 @@ import { ChangeEvent, FormEvent, type ReactNode, type RefObject, useCallback, us
 import {
   BookOpen,
   BriefcaseBusiness,
+  Camera,
   Check,
   Compass,
   Copy,
+  Download,
   Feather,
   HandHeart,
   Home,
   Mail,
+  MapPin,
   MessageCircle,
   Moon,
   Pause,
@@ -303,6 +306,8 @@ const COUNSEL_STATUS_TRACKING_KEY = "aletheia_counsel_status_tracking";
 const CARRY_TODAY_STORAGE_KEY = "aletheia_carry_today";
 const UPDATE_REFRESH_PENDING_KEY = "aletheia_update_refresh_pending";
 const FOCUS_INTENTIONS_STORAGE_KEY = "aletheia_focus_intentions";
+const GRATITUDE_LENS_STORAGE_KEY = "aletheia_gratitude_lens";
+const MAX_GRATITUDE_ENTRIES = 12;
 const DEFAULT_NOTIFICATION_TIMING: NotificationTiming = {
   preferredLocalHour: 8,
   preferredTimezone: "UTC",
@@ -1714,6 +1719,169 @@ function storedVoicePreference() {
   }
 }
 
+function storedGratitudeEntries(): GratitudeEntry[] {
+  if (typeof window === "undefined") {
+    return [];
+  }
+  try {
+    const saved = window.localStorage.getItem(GRATITUDE_LENS_STORAGE_KEY);
+    const parsed = saved ? JSON.parse(saved) : [];
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+    return parsed
+      .filter((entry): entry is GratitudeEntry =>
+        Boolean(
+          entry &&
+            typeof entry.id === "string" &&
+            typeof entry.imageDataUrl === "string" &&
+            typeof entry.note === "string" &&
+            typeof entry.createdAt === "string"
+        )
+      )
+      .map((entry) => ({
+        ...entry,
+        place: typeof entry.place === "string" ? entry.place : "",
+      }))
+      .slice(0, MAX_GRATITUDE_ENTRIES);
+  } catch {
+    return [];
+  }
+}
+
+function persistGratitudeEntries(entries: GratitudeEntry[]) {
+  window.localStorage.setItem(GRATITUDE_LENS_STORAGE_KEY, JSON.stringify(entries.slice(0, MAX_GRATITUDE_ENTRIES)));
+}
+
+function imageFileToLocalDataUrl(file: File, maxDimension = 1400, quality = 0.82): Promise<string> {
+  return new Promise((resolve, reject) => {
+    if (!file.type.startsWith("image/")) {
+      reject(new Error("Selected file is not an image."));
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = document.createElement("img");
+      img.onload = () => {
+        const scale = Math.min(1, maxDimension / Math.max(img.naturalWidth, img.naturalHeight));
+        const width = Math.max(1, Math.round(img.naturalWidth * scale));
+        const height = Math.max(1, Math.round(img.naturalHeight * scale));
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const context = canvas.getContext("2d");
+        if (!context) {
+          reject(new Error("Could not prepare the image."));
+          return;
+        }
+        context.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      };
+      img.onerror = () => reject(new Error("Could not read the selected image."));
+      img.src = String(reader.result);
+    };
+    reader.onerror = () => reject(new Error("Could not read the selected image."));
+    reader.readAsDataURL(file);
+  });
+}
+
+function drawWrappedCanvasText(
+  context: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  y: number,
+  maxWidth: number,
+  lineHeight: number,
+  maxLines: number
+) {
+  const words = text.split(/\s+/).filter(Boolean);
+  const lines: string[] = [];
+  let line = "";
+  for (const word of words) {
+    const nextLine = line ? `${line} ${word}` : word;
+    if (context.measureText(nextLine).width > maxWidth && line) {
+      lines.push(line);
+      line = word;
+      if (lines.length === maxLines) {
+        break;
+      }
+    } else {
+      line = nextLine;
+    }
+  }
+  if (line && lines.length < maxLines) {
+    lines.push(line);
+  }
+  lines.slice(0, maxLines).forEach((lineText, index) => {
+    const suffix = index === maxLines - 1 && words.join(" ").length > lines.join(" ").length ? "..." : "";
+    context.fillText(`${lineText}${suffix}`, x, y + index * lineHeight);
+  });
+  return y + lines.length * lineHeight;
+}
+
+function createGratitudePostcardBlob(entry: GratitudeEntry, theme: ThemeColors, label: string, locale: string): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const canvas = document.createElement("canvas");
+    canvas.width = 1200;
+    canvas.height = 1600;
+    const context = canvas.getContext("2d");
+    if (!context) {
+      reject(new Error("Could not prepare postcard."));
+      return;
+    }
+    const img = document.createElement("img");
+    img.onload = () => {
+      context.fillStyle = theme.bgMain;
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      const imageHeight = 1000;
+      const scale = Math.max(canvas.width / img.naturalWidth, imageHeight / img.naturalHeight);
+      const drawWidth = img.naturalWidth * scale;
+      const drawHeight = img.naturalHeight * scale;
+      context.drawImage(img, (canvas.width - drawWidth) / 2, (imageHeight - drawHeight) / 2, drawWidth, drawHeight);
+      const gradient = context.createLinearGradient(0, 680, 0, 1600);
+      gradient.addColorStop(0, "rgba(13, 23, 20, 0)");
+      gradient.addColorStop(0.42, "rgba(13, 23, 20, 0.78)");
+      gradient.addColorStop(1, "rgba(13, 23, 20, 0.96)");
+      context.fillStyle = gradient;
+      context.fillRect(0, 0, canvas.width, canvas.height);
+
+      context.fillStyle = "#f8f5e8";
+      context.font = "700 46px Georgia, serif";
+      context.fillText("Aletheia", 80, 1120);
+      context.fillStyle = theme.accentLight;
+      context.font = "700 30px system-ui, sans-serif";
+      context.fillText(label.toLocaleUpperCase(locale), 80, 1180);
+
+      context.fillStyle = "#f8f5e8";
+      context.font = "600 60px Georgia, serif";
+      const afterNoteY = drawWrappedCanvasText(context, entry.note, 80, 1270, 1040, 76, 4);
+
+      context.fillStyle = "rgba(248, 245, 232, 0.78)";
+      context.font = "400 30px system-ui, sans-serif";
+      const details = [
+        new Date(entry.createdAt).toLocaleString(locale, { dateStyle: "medium", timeStyle: "short" }),
+        entry.place.trim(),
+      ].filter(Boolean).join(" · ");
+      if (details) {
+        drawWrappedCanvasText(context, details, 80, Math.min(afterNoteY + 56, 1510), 1040, 42, 2);
+      }
+
+      context.strokeStyle = theme.accentLight;
+      context.lineWidth = 4;
+      context.strokeRect(42, 42, canvas.width - 84, canvas.height - 84);
+      canvas.toBlob((blob) => {
+        if (blob) {
+          resolve(blob);
+        } else {
+          reject(new Error("Could not export postcard."));
+        }
+      }, "image/png", 0.95);
+    };
+    img.onerror = () => reject(new Error("Could not load gratitude image."));
+    img.src = entry.imageDataUrl;
+  });
+}
+
 function voiceQualityScore(voice: SpeechSynthesisVoice, languagePrefix: string) {
   const name = voice.name.toLowerCase();
   const noveltyVoicePattern =
@@ -2102,6 +2270,14 @@ type JournalEntry = {
   title: string;
   body: string;
   mode: Mode;
+  createdAt: string;
+};
+
+type GratitudeEntry = {
+  id: string;
+  imageDataUrl: string;
+  note: string;
+  place: string;
   createdAt: string;
 };
 
@@ -3046,6 +3222,7 @@ export function AletheiaApp() {
   const [journalTitle, setJournalTitle] = useState("");
   const [journalBody, setJournalBody] = useState("");
   const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([]);
+  const [gratitudeEntries, setGratitudeEntries] = useState<GratitudeEntry[]>([]);
   const [isOnline, setIsOnline] = useState(true);
   const [user, setUser] = useState<User | null>(null);
   const [authMode, setAuthMode] = useState<AuthMode>("register");
@@ -3177,6 +3354,7 @@ export function AletheiaApp() {
       setThemePreference(storedThemePreference());
       setShowOnboarding(shouldShowOnboarding());
       setCarryToday(storedCarryToday());
+      setGratitudeEntries(storedGratitudeEntries());
       setSelectedVoice(storedVoicePreference());
       setNotificationTiming(storedNotificationTiming());
       setCurrentLocalDayNumber(Math.floor(Date.now() / 86400000));
@@ -5674,6 +5852,106 @@ export function AletheiaApp() {
     announceWorkflow(ts('notifications.reflectionDeleted'), ts('notifications.reflectionDeletedBody'), "info");
   }
 
+  async function saveGratitudeEntry(file: File | null, note: string, place: string) {
+    const cleanNote = note.trim();
+    const cleanPlace = place.trim();
+    if (!file || !cleanNote) {
+      announceWorkflow(
+        ts('notifications.gratitudeNeedsPhotoAndNote', 'Add a photo and one grateful sentence'),
+        ts('notifications.gratitudeNeedsPhotoAndNoteBody', 'Gratitude Lens works best with one image and one honest line of thanks.'),
+        "warning"
+      );
+      return;
+    }
+    try {
+      const imageDataUrl = await imageFileToLocalDataUrl(file);
+      const entry: GratitudeEntry = {
+        id: crypto.randomUUID(),
+        imageDataUrl,
+        note: cleanNote.slice(0, 280),
+        place: cleanPlace.slice(0, 120),
+        createdAt: new Date().toISOString(),
+      };
+      const nextEntries = [entry, ...gratitudeEntries].slice(0, MAX_GRATITUDE_ENTRIES);
+      persistGratitudeEntries(nextEntries);
+      setGratitudeEntries(nextEntries);
+      trackClientEvent("gratitude_entry_created", { has_place: Boolean(cleanPlace), source: "reflect_tab" });
+      announceWorkflow(
+        ts('notifications.gratitudeSavedLocally', 'Gratitude saved locally'),
+        ts('notifications.gratitudeSavedLocallyBody', 'The image stayed on this device. Export or share only when you choose.'),
+        "success"
+      );
+    } catch (error) {
+      announceWorkflow(
+        ts('notifications.gratitudeSaveFailed', 'Gratitude could not be saved'),
+        error instanceof Error ? error.message : ts('notifications.gratitudeSaveFailedBody', 'Try a smaller image or a different photo.'),
+        "error"
+      );
+    }
+  }
+
+  function deleteGratitudeEntry(id: string) {
+    const nextEntries = gratitudeEntries.filter((entry) => entry.id !== id);
+    setGratitudeEntries(nextEntries);
+    try {
+      persistGratitudeEntries(nextEntries);
+    } catch {
+      // The UI still reflects the deletion even if storage is temporarily unavailable.
+    }
+    trackClientEvent("gratitude_entry_deleted", { source: "reflect_tab" });
+    announceWorkflow(
+      ts('notifications.gratitudeDeleted', 'Gratitude removed'),
+      ts('notifications.gratitudeDeletedBody', 'The local gratitude image was removed from this device.'),
+      "info"
+    );
+  }
+
+  async function shareGratitudePostcard(entry: GratitudeEntry) {
+    try {
+      const blob = await createGratitudePostcardBlob(
+        entry,
+        theme,
+        ts('labels.gratitudeLens', 'Gratitude Lens'),
+        preferences.language
+      );
+      const filename = `aletheia-gratitude-${entry.createdAt.slice(0, 10)}.png`;
+      const file = new File([blob], filename, { type: "image/png" });
+      const canShareFile =
+        typeof navigator !== "undefined" &&
+        "share" in navigator &&
+        "canShare" in navigator &&
+        navigator.canShare({ files: [file] });
+      if (canShareFile) {
+        await navigator.share({
+          title: ts('labels.gratitudePostcard', 'Gratitude postcard'),
+          text: ts('labels.gratitudePostcardShareText', 'A quiet gratitude moment from Aletheia.'),
+          files: [file],
+        });
+      } else {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+      }
+      trackClientEvent("gratitude_postcard_shared", { channel: canShareFile ? "native" : "download", source: "reflect_tab" });
+      announceWorkflow(
+        canShareFile ? ts('notifications.shareSheetOpened', 'Share sheet opened') : ts('notifications.gratitudePostcardDownloaded', 'Postcard downloaded'),
+        ts('notifications.gratitudePostcardReadyBody', 'Only the postcard image you chose was exported. Your other reflections stayed private.'),
+        "success"
+      );
+    } catch (error) {
+      announceWorkflow(
+        ts('notifications.gratitudePostcardFailed', 'Postcard could not be prepared'),
+        error instanceof Error ? error.message : ts('notifications.gratitudePostcardFailedBody', 'Try again with a different image.'),
+        "error"
+      );
+    }
+  }
+
   function refreshLocalTimeline(decisions: WisdomDecision[], events: DecisionEvent[]) {
     const runtime = runtimeCopyFor(preferences.language);
     const combined = [
@@ -6595,12 +6873,16 @@ export function AletheiaApp() {
                   modeProfile={activeMode}
                   ts={ts}
                   entries={journalEntries}
+                  gratitudeEntries={gratitudeEntries}
                   title={journalTitle}
                   body={journalBody}
                   setTitle={setJournalTitle}
                   setBody={setJournalBody}
                   onSave={saveReflection}
                   onDelete={deleteJournalEntry}
+                  onSaveGratitude={saveGratitudeEntry}
+                  onDeleteGratitude={deleteGratitudeEntry}
+                  onShareGratitudePostcard={shareGratitudePostcard}
                   theme={theme}
                 />
                 </Screen>
@@ -13293,12 +13575,16 @@ function ReflectPanel({
   modeProfile,
   ts,
   entries,
+  gratitudeEntries,
   title,
   body,
   setTitle,
   setBody,
   onSave,
   onDelete,
+  onSaveGratitude,
+  onDeleteGratitude,
+  onShareGratitudePostcard,
   theme,
 }: {
   language: LanguageCode;
@@ -13313,12 +13599,16 @@ function ReflectPanel({
   modeProfile: ModeProfile;
   ts: (key: string, fallback?: string) => string;
   entries: JournalEntry[];
+  gratitudeEntries: GratitudeEntry[];
   title: string;
   body: string;
   setTitle: (value: string) => void;
   setBody: (value: string) => void;
   onSave: () => void;
   onDelete: (id: string) => void;
+  onSaveGratitude: (file: File | null, note: string, place: string) => void;
+  onDeleteGratitude: (id: string) => void;
+  onShareGratitudePostcard: (entry: GratitudeEntry) => void;
   theme: ThemeColors;
 }) {
   const runtime = runtimeCopyFor(language);
@@ -13369,6 +13659,16 @@ function ReflectPanel({
         />
       </DisclosureSection>
 
+      <GratitudeLensPanel
+        entries={gratitudeEntries}
+        language={language}
+        ts={ts}
+        theme={theme}
+        onSave={onSaveGratitude}
+        onDelete={onDeleteGratitude}
+        onSharePostcard={onShareGratitudePostcard}
+      />
+
       <JournalPanel
         entries={entries}
         title={title}
@@ -13399,6 +13699,242 @@ function Signal({ active, label, theme }: { active: boolean; label: string; them
       <Check size={16} />
       {label}
     </div>
+  );
+}
+
+function GratitudeLensPanel({
+  entries,
+  language,
+  ts,
+  theme,
+  onSave,
+  onDelete,
+  onSharePostcard,
+}: {
+  entries: GratitudeEntry[];
+  language: LanguageCode;
+  ts: (key: string, fallback?: string) => string;
+  theme: ThemeColors;
+  onSave: (file: File | null, note: string, place: string) => void | Promise<void>;
+  onDelete: (id: string) => void;
+  onSharePostcard: (entry: GratitudeEntry) => void;
+}) {
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState("");
+  const [note, setNote] = useState("");
+  const [place, setPlace] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
+
+  const selectFile = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] ?? null;
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
+    setImageFile(file);
+    setPreviewUrl(file ? URL.createObjectURL(file) : "");
+  };
+
+  const resetForm = () => {
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
+    setImageFile(null);
+    setPreviewUrl("");
+    setNote("");
+    setPlace("");
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const submit = async () => {
+    if (!imageFile || !note.trim()) {
+      await onSave(imageFile, note, place);
+      return;
+    }
+    setIsSaving(true);
+    try {
+      await onSave(imageFile, note, place);
+      resetForm();
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const latestEntry = entries[0];
+  const summary = entries.length
+    ? `${entries.length} ${entries.length === 1 ? ts('labels.gratitudeMoment', 'gratitude moment') : ts('labels.gratitudeMoments', 'gratitude moments')} · ${ts('labels.localOnly', 'local only')}`
+    : ts('labels.gratitudeEmptySummary', 'Start with one image and one grateful sentence.');
+
+  return (
+    <DisclosureSection
+      title={ts('labels.gratitudeLens', 'Gratitude Lens')}
+      summary={summary}
+      eyebrow={ts('labels.visualGratitude', 'Visual gratitude')}
+      defaultOpen={entries.length === 0}
+      showDetailsLabel={ts('showDetails', 'Show details')}
+      hideDetailsLabel={ts('hideDetails', 'Hide details')}
+      theme={theme}
+    >
+      <section className="grid min-w-0 gap-4 xl:grid-cols-[0.95fr_1.05fr]">
+        <div className="rounded-xl border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+          <div className="flex items-start gap-3">
+            <div className="grid size-10 shrink-0 place-items-center rounded-md" style={{ backgroundColor: theme.bgInput, color: theme.primary }}>
+              <Camera size={18} />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.captureGratitude', 'Capture one moment of gratitude')}</h3>
+              <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                {ts('labels.gratitudeLensBody', 'Take or choose a photo, name what you are grateful for, and keep a private visual record of provision, beauty, and small mercies.')}
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-4 overflow-hidden rounded-xl border" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput }}>
+            {previewUrl ? (
+              <div className="relative aspect-[4/3] w-full">
+                <Image src={previewUrl} alt={ts('labels.gratitudePreview', 'Gratitude preview')} fill className="object-cover" unoptimized />
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="flex aspect-[4/3] w-full flex-col items-center justify-center gap-3 p-6 text-center"
+                style={{ color: theme.textSecondary }}
+              >
+                <Camera size={28} />
+                <span className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.chooseGratitudePhoto', 'Choose or take a photo')}</span>
+                <span className="max-w-xs text-xs leading-5">{ts('labels.gratitudePhotoPrivate', 'The image stays on this device unless you export or share a postcard.')}</span>
+              </button>
+            )}
+          </div>
+          <input ref={fileInputRef} type="file" accept="image/*" capture="environment" className="sr-only" onChange={selectFile} />
+
+          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="h-11 rounded-md border px-4 text-sm font-semibold"
+              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+            >
+              {previewUrl ? ts('labels.changePhoto', 'Change photo') : ts('labels.addPhoto', 'Add photo')}
+            </button>
+            <button
+              type="button"
+              onClick={resetForm}
+              className="h-11 rounded-md border px-4 text-sm font-semibold"
+              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textSecondary }}
+            >
+              {ts('labels.clear', 'Clear')}
+            </button>
+          </div>
+
+          <label className="mt-4 block text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
+            {ts('labels.gratefulFor', 'What are you grateful for?')}
+            <textarea
+              value={note}
+              onChange={(event) => setNote(event.target.value)}
+              maxLength={280}
+              className="mt-2 min-h-28 w-full resize-none rounded-lg border px-3 py-3 text-sm normal-case leading-6 tracking-normal outline-none"
+              placeholder={ts('placeholders.gratitudeNote', 'I am grateful for...')}
+              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+            />
+          </label>
+
+          <label className="mt-3 block text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
+            {ts('labels.placeOptional', 'Place (optional)')}
+            <div className="mt-2 flex items-center gap-2 rounded-lg border px-3" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput }}>
+              <MapPin size={16} style={{ color: theme.textMuted }} />
+              <input
+                value={place}
+                onChange={(event) => setPlace(event.target.value)}
+                maxLength={120}
+                className="h-11 min-w-0 flex-1 bg-transparent text-sm normal-case tracking-normal outline-none"
+                placeholder={ts('placeholders.gratitudePlace', 'Kitchen table, morning walk, office...')}
+                style={{ color: theme.textPrimary }}
+              />
+            </div>
+          </label>
+
+          <button
+            type="button"
+            onClick={submit}
+            disabled={isSaving}
+            className="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-md px-4 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-65"
+            style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+          >
+            <Plus size={16} />
+            {isSaving ? ts('labels.saving', 'Saving...') : ts('labels.saveGratitude', 'Save gratitude')}
+          </button>
+          <p className="mt-3 text-xs leading-5" style={{ color: theme.textMuted }}>
+            {ts('labels.gratitudePrivacyNote', 'Private by default: gratitude images are stored locally on this device and are not synced to your account.')}
+          </p>
+        </div>
+
+        <div className="rounded-xl border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.gratitudeTimeline', 'Gratitude timeline')}</p>
+              <h3 className="mt-1 text-lg font-semibold" style={{ color: theme.textPrimary }}>
+                {latestEntry ? ts('labels.latestGratitude', 'Latest gratitude') : ts('labels.noGratitudeYet', 'No gratitude moments yet')}
+              </h3>
+            </div>
+            <Sprout size={24} style={{ color: theme.primary }} />
+          </div>
+          <div className="mt-4 space-y-3">
+            {entries.length ? (
+              entries.map((entry) => (
+                <article key={entry.id} className="overflow-hidden rounded-xl border" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+                  <div className="relative aspect-[16/9] w-full">
+                    <Image src={entry.imageDataUrl} alt={entry.note} fill className="object-cover" unoptimized />
+                  </div>
+                  <div className="p-4">
+                    <p className="text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>{entry.note}</p>
+                    <p className="mt-2 text-xs leading-5" style={{ color: theme.textMuted }}>
+                      {new Date(entry.createdAt).toLocaleString(language, { dateStyle: "medium", timeStyle: "short" })}
+                      {entry.place ? ` · ${entry.place}` : ""}
+                    </p>
+                    <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_auto]">
+                      <button
+                        type="button"
+                        onClick={() => onSharePostcard(entry)}
+                        className="inline-flex h-10 items-center justify-center gap-2 rounded-md px-3 text-sm font-semibold"
+                        style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                      >
+                        <Download size={15} />
+                        {ts('labels.createPostcard', 'Create postcard')}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onDelete(entry.id)}
+                        className="inline-flex h-10 items-center justify-center gap-2 rounded-md border px-3 text-sm font-semibold"
+                        style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
+                      >
+                        <Trash2 size={15} />
+                        {ts('labels.delete', 'Delete')}
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              ))
+            ) : (
+              <div className="rounded-xl border border-dashed p-6 text-sm leading-6" style={{ borderColor: theme.borderMedium, color: theme.textSecondary }}>
+                {ts('labels.gratitudeTimelineEmpty', 'Take one quiet photo of something you do not want to take for granted. Aletheia will keep it here as a private visual rhythm.')}
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+    </DisclosureSection>
   );
 }
 
