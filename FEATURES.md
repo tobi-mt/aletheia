@@ -172,11 +172,12 @@ After a meaningful answer, Aletheia can help the user take the next wise step.
 ## Account
 
 - Dedicated Account tab
-- Premium grouped Account screen built around Profile, Personalization, Daily Wisdom Notifications, Manual Context Vault, and System
-- One Profile card with greeting, sign-in/sign-out, account state, sync state, and notification/device health
+- Premium grouped Account screen built around Profile, Personalization, Daily Wisdom Notifications, Manual Context Vault, Share Aletheia, and System
+- One Profile card with avatar/photo and personalized greeting in the default state, with sign-in, sync, and notification details available on expand
 - Personalization group for language, Bible translation, theme, voice, and avatar
 - Daily Wisdom Notifications card for push status, local delivery time, and timezone preference
 - Manual Context Vault card for region/context, privacy posture, and user-provided current/future state signals
+- Dedicated Share Aletheia card with native share, copy link, WhatsApp, Facebook, X / Twitter, LinkedIn, email, and SMS channels
 - System group for sync status, Trust Center, data boundaries, export data, delete account, and report issue
 - Avatar/profile image update support
 - Avatar studio with curated presets and validated custom avatar URL support

@@ -712,7 +712,8 @@
     "edit": "Gyara",
     "enable": "Kunna",
     "updating": "Ana sabuntawa...",
-    "working": "Ana aiki..."
+    "working": "Ana aiki...",
+    "accountDetails": "Bayanan asusu"
   },
   "personalizationNudgeTitle": "Kana son shawara ta fi zama ta kanka?",
   "personalizationNudgeBody": "Ƙara bayani ɗaya game da kuɗi, aiki, ko tsarin rayuwa.",
@@ -851,7 +852,18 @@
   },
   "share": {
     "shareAletheia": "Raba Aletheia",
-    "copyLink": "Kwafi mahaɗi"
+    "copyLink": "Kwafi mahaɗi",
+    "accountShareEyebrow": "Raba",
+    "accountShareTitle": "Gayyaci wani zuwa Aletheia",
+    "accountShareSummary": "Raba hanyar app ɗin a sirrance ta tashar da ta dace.",
+    "accountShareBodyTitle": "Gayyata da sirri",
+    "accountShareBody": "Ta tsohuwa, hanyar Aletheia kawai ake rabawa. Tambayoyi, jaridu, shawarwari da hukunci na sirri suna nan cikin asusun mai amfani.",
+    "whatsapp": "WhatsApp",
+    "facebook": "Facebook",
+    "xTwitter": "X / Twitter",
+    "linkedin": "LinkedIn",
+    "email": "Email",
+    "sms": "SMS"
   },
   "avatar": {
     "pickerEyebrow": "Avatar: an yi",

@@ -712,7 +712,8 @@
     "edit": "Edit",
     "enable": "Enable",
     "updating": "Updating...",
-    "working": "Working..."
+    "working": "Working...",
+    "accountDetails": "Account details"
   },
   "personalizationNudgeTitle": "Want more personal counsel?",
   "personalizationNudgeBody": "Add one detail about money, work, or rhythm.",
@@ -851,7 +852,18 @@
   },
   "share": {
     "shareAletheia": "Share Aletheia",
-    "copyLink": "Copy link"
+    "copyLink": "Copy link",
+    "accountShareEyebrow": "Share",
+    "accountShareTitle": "Invite someone to Aletheia",
+    "accountShareSummary": "Share the app link privately through the channel that fits the person.",
+    "accountShareBodyTitle": "Invite with privacy",
+    "accountShareBody": "Only Aletheia's app link is shared by default. Private questions, journals, decisions, and counsel stay inside the user's account.",
+    "whatsapp": "WhatsApp",
+    "facebook": "Facebook",
+    "xTwitter": "X / Twitter",
+    "linkedin": "LinkedIn",
+    "email": "Email",
+    "sms": "SMS"
   },
   "avatar": {
     "pickerEyebrow": "Avatar Picker",

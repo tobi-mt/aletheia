@@ -712,7 +712,8 @@
     "edit": "Ṣàtúnṣe",
     "enable": "Mú ṣiṣẹ́",
     "updating": "Ń ṣe imudojuiwọn...",
-    "working": "Ń ṣiṣẹ́..."
+    "working": "Ń ṣiṣẹ́...",
+    "accountDetails": "Àlàyé àkáǹtì"
   },
   "personalizationNudgeTitle": "Ṣe o fẹ́ ìmọ̀ràn tó mọ̀ ọ́ síi?",
   "personalizationNudgeBody": "Fi alaye kan kun nípa owó, iṣẹ́, tàbí ìlànà ìgbé-ayé.",
@@ -851,7 +852,18 @@
   },
   "share": {
     "shareAletheia": "Pin Aletheia",
-    "copyLink": "Da ọna asopọ kọ"
+    "copyLink": "Da ọna asopọ kọ",
+    "accountShareEyebrow": "Pín",
+    "accountShareTitle": "Pe ẹnìkan sí Aletheia",
+    "accountShareSummary": "Pín ìjápọ̀ app náà ní ikọ̀kọ̀ nípasẹ̀ ọ̀nà tó bá yẹ.",
+    "accountShareBodyTitle": "Pe pẹ̀lú ìpamọ́",
+    "accountShareBody": "Ní ìbẹ̀rẹ̀, ìjápọ̀ Aletheia nìkan ni a máa pín. Ìbéèrè, ìwé ìrántí, ìpinnu àti ìmọ̀ràn aládani máa wà nínú àkáǹtì olumulo.",
+    "whatsapp": "WhatsApp",
+    "facebook": "Facebook",
+    "xTwitter": "X / Twitter",
+    "linkedin": "LinkedIn",
+    "email": "Email",
+    "sms": "SMS"
   },
   "avatar": {
     "pickerEyebrow": "Àwòrán: ti ṣe",

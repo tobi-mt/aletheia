@@ -712,7 +712,8 @@
     "edit": "Bearbeiten",
     "enable": "Aktivieren",
     "updating": "Aktualisierung...",
-    "working": "In Arbeit..."
+    "working": "In Arbeit...",
+    "accountDetails": "Kontodetails"
   },
   "personalizationNudgeTitle": "Möchtest du persönlicheren Rat?",
   "personalizationNudgeBody": "Füge ein Detail zu Geld, Arbeit oder Rhythmus hinzu.",
@@ -851,7 +852,18 @@
   },
   "share": {
     "shareAletheia": "Aletheia teilen",
-    "copyLink": "Link kopieren"
+    "copyLink": "Link kopieren",
+    "accountShareEyebrow": "Teilen",
+    "accountShareTitle": "Jemanden zu Aletheia einladen",
+    "accountShareSummary": "Teile den App-Link privat über den passenden Kanal.",
+    "accountShareBodyTitle": "Mit Privatsphäre einladen",
+    "accountShareBody": "Standardmäßig wird nur der Aletheia-Link geteilt. Private Fragen, Journale, Entscheidungen und Ratschläge bleiben im Konto der Person.",
+    "whatsapp": "WhatsApp",
+    "facebook": "Facebook",
+    "xTwitter": "X / Twitter",
+    "linkedin": "LinkedIn",
+    "email": "E-Mail",
+    "sms": "SMS"
   },
   "avatar": {
     "pickerEyebrow": "Avatar-Auswahl",

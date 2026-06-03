@@ -9,9 +9,11 @@ import {
   BriefcaseBusiness,
   Check,
   Compass,
+  Copy,
   Feather,
   HandHeart,
   Home,
+  Mail,
   MessageCircle,
   Moon,
   Pause,
@@ -6643,6 +6645,7 @@ export function AletheiaApp() {
                   onExportData={exportAccountData}
                   onRequestDeleteAccount={() => setShowDeleteAccountModal(true)}
                   onReportIssue={() => setShowReportIssueModal(true)}
+                  onShare={(channel, placement) => shareAletheia(channel, placement)}
                   accountActionBusy={accountActionBusy}
                   theme={theme}
                 />
@@ -7690,6 +7693,7 @@ function DisclosureSection({
   title,
   summary,
   eyebrow,
+  headerContent,
   sectionId,
   isOpen,
   onOpenChange,
@@ -7703,6 +7707,7 @@ function DisclosureSection({
   title: string;
   summary?: string;
   eyebrow?: string;
+  headerContent?: ReactNode;
   sectionId?: string;
   isOpen?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -7742,14 +7747,18 @@ function DisclosureSection({
           ? "flex w-full min-w-0 flex-wrap items-start justify-between gap-2 p-3 text-left sm:p-3.5"
           : "flex w-full min-w-0 flex-wrap items-start justify-between gap-3 p-4 text-left sm:p-5"}
       >
-        <span className="min-w-0">
-          {eyebrow ? (
-            <span className="block text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{eyebrow}</span>
-          ) : null}
-          <span className={useCompactClosedState ? "mt-1 block text-base font-semibold" : "mt-1 block text-lg font-semibold"} style={{ color: theme.textPrimary }}>{title}</span>
-          {summary ? (
-            <span className={useCompactClosedState ? "mt-1 block text-sm leading-5" : "mt-1 block text-sm leading-6"} style={{ color: theme.textSecondary }}>{summary}</span>
-          ) : null}
+        <span className="min-w-0 flex-1">
+          {headerContent ? headerContent : (
+            <>
+              {eyebrow ? (
+                <span className="block text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{eyebrow}</span>
+              ) : null}
+              <span className={useCompactClosedState ? "mt-1 block text-base font-semibold" : "mt-1 block text-lg font-semibold"} style={{ color: theme.textPrimary }}>{title}</span>
+              {summary ? (
+                <span className={useCompactClosedState ? "mt-1 block text-sm leading-5" : "mt-1 block text-sm leading-6"} style={{ color: theme.textSecondary }}>{summary}</span>
+              ) : null}
+            </>
+          )}
         </span>
         <span className={useCompactClosedState ? "shrink-0 rounded-md border px-2 py-1 text-[10px] font-semibold" : "shrink-0 rounded-md border px-2 py-1 text-[11px] font-semibold"} style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
           {open ? hideDetailsLabel : showDetailsLabel}
@@ -7815,6 +7824,7 @@ function AccountPanel({
   onExportData,
   onRequestDeleteAccount,
   onReportIssue,
+  onShare,
   accountActionBusy,
   theme,
 }: {
@@ -7868,6 +7878,7 @@ function AccountPanel({
   onExportData: () => void;
   onRequestDeleteAccount: () => void;
   onReportIssue: () => void;
+  onShare: (channel: ShareChannel, placement: string) => void;
   accountActionBusy: "export" | "delete" | "report" | null;
   theme: ThemeColors;
 }) {
@@ -7880,14 +7891,37 @@ function AccountPanel({
     Boolean(manualContext.workHoursPerWeek || manualContext.workContext),
     Boolean(manualContext.sleepHours || manualContext.exerciseSessionsPerWeek || manualContext.healthContext),
   ].filter(Boolean).length;
+  const profileName = user?.name || user?.email || ts('auth.guest', 'Guest');
+  const profileFirstName = user?.name?.split(" ")[0] || user?.email?.split("@")[0];
+  const profileGreeting = user
+    ? `${ts('auth.welcomeBack', 'Welcome back')}, ${profileFirstName}`
+    : ts('labels.accountSignInOrGuest', text.accountSignInOrGuest ?? "Sign in or continue as guest");
+  const profileSummary = user
+    ? user.email
+    : ts('labels.accountGuestSummary', text.accountGuestSummary ?? "Google and email sign-in keep history, preferences, decisions, and notifications portable.");
 
   return (
     <div className="mx-auto grid min-w-0 max-w-3xl gap-4">
       <section className="min-w-0 space-y-4">
         <DisclosureSection
-          title={user ? `${ts('labels.accountSignedInAs', text.accountSignedInAs ?? "Signed in as")} ${user.name || user.email}` : ts('labels.accountSignInOrGuest', text.accountSignInOrGuest ?? "Sign in or continue as guest")}
-          summary={user ? `${ts('labels.accountSyncActive', text.accountSyncActive ?? "Sync active.")} ${notificationsEnabled ? text.notificationsEnabled : ts('labels.accountNotificationsNotEnabled', text.accountNotificationsNotEnabled ?? "Notifications not enabled yet.")}` : ts('labels.accountGuestSummary', text.accountGuestSummary ?? "Google and email sign-in keep history, preferences, decisions, and notifications portable.")}
-          eyebrow={ts('labels.profileTitle', 'Profile')}
+          title={profileGreeting}
+          summary={profileSummary}
+          headerContent={(
+            <span className="flex min-w-0 items-center gap-3">
+              <AvatarCircle
+                avatarUrl={user?.avatarUrl}
+                seed={user?.id ?? user?.email ?? "guest"}
+                label={profileName}
+                size={52}
+                className="size-12 rounded-full border object-cover"
+              />
+              <span className="min-w-0">
+                <span className="block text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.profileTitle', 'Profile')}</span>
+                <span className="mt-1 block truncate text-lg font-semibold" style={{ color: theme.textPrimary }}>{profileGreeting}</span>
+                <span className="mt-1 block truncate text-sm leading-5" style={{ color: theme.textSecondary }}>{profileSummary}</span>
+              </span>
+            </span>
+          )}
           compactCollapsed
           showDetailsLabel={text.showDetails}
           hideDetailsLabel={text.hideDetails}
@@ -7933,7 +7967,6 @@ function AccountPanel({
         <DisclosureSection
           title={ts('labels.accountPersonalizationTitle', 'Personalization')}
           summary={ts('labels.accountPersonalizationSummary', 'Language, Bible translation, theme, voice, and avatar shape how Aletheia feels when you use it.')}
-          eyebrow={ts('labels.personalization', 'Personalization')}
           compactCollapsed
           showDetailsLabel={text.showDetails}
           hideDetailsLabel={text.hideDetails}
@@ -7952,6 +7985,22 @@ function AccountPanel({
             onThemePreferenceChange={onThemePreferenceChange}
             onVoiceChange={onVoiceChange}
             onUpdateProfileAvatar={onUpdateProfileAvatar}
+          />
+        </DisclosureSection>
+
+        <DisclosureSection
+          title={ts('share.accountShareTitle', 'Invite someone to Aletheia')}
+          summary={ts('share.accountShareSummary', 'Share the app link privately through the channel that fits the person.')}
+          eyebrow={ts('share.accountShareEyebrow', 'Share')}
+          compactCollapsed
+          showDetailsLabel={text.showDetails}
+          hideDetailsLabel={text.hideDetails}
+          theme={theme}
+        >
+          <AccountShareCard
+            theme={theme}
+            ts={ts}
+            onShare={(channel) => onShare(channel, "account")}
           />
         </DisclosureSection>
 
@@ -8096,6 +8145,65 @@ function AccountSelect({
   );
 }
 
+function accountLabel(value: string) {
+  return value ? `${value.charAt(0).toLocaleUpperCase()}${value.slice(1)}` : value;
+}
+
+function AccountShareCard({
+  theme,
+  ts,
+  onShare,
+}: {
+  theme: ThemeColors;
+  ts: (key: string, fallback?: string) => string;
+  onShare: (channel: ShareChannel) => void;
+}) {
+  const shareActions: Array<{ channel: ShareChannel; label: string; icon: typeof Share2 }> = [
+    { channel: "native", label: ts('share.shareAletheia', 'Share Aletheia'), icon: Share2 },
+    { channel: "copy", label: ts('share.copyLink', 'Copy link'), icon: Copy },
+    { channel: "whatsapp", label: ts('share.whatsapp', 'WhatsApp'), icon: MessageCircle },
+    { channel: "facebook", label: ts('share.facebook', 'Facebook'), icon: Share2 },
+    { channel: "x", label: ts('share.xTwitter', 'X / Twitter'), icon: Share2 },
+    { channel: "linkedin", label: ts('share.linkedin', 'LinkedIn'), icon: Share2 },
+    { channel: "email", label: ts('share.email', 'Email'), icon: Mail },
+    { channel: "sms", label: ts('share.sms', 'SMS'), icon: MessageCircle },
+  ];
+
+  return (
+    <section className="space-y-4">
+      <div className="rounded-lg border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+        <div className="flex items-start gap-3">
+          <div className="grid size-10 shrink-0 place-items-center rounded-md" style={{ backgroundColor: theme.bgInput, color: theme.primary }}>
+            <Share2 size={18} />
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{ts('share.accountShareBodyTitle', 'Invite with privacy')}</p>
+            <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
+              {ts('share.accountShareBody', "Only Aletheia's app link is shared by default. Private questions, journals, decisions, and counsel stay inside the user's account.")}
+            </p>
+          </div>
+        </div>
+      </div>
+      <div className="grid gap-2 sm:grid-cols-2">
+        {shareActions.map(({ channel, label, icon: Icon }) => (
+          <button
+            key={channel}
+            type="button"
+            onClick={() => onShare(channel)}
+            className="flex min-h-12 items-center gap-3 rounded-md border px-3 py-2 text-left text-sm font-semibold transition"
+            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+          >
+            <span className="grid size-8 shrink-0 place-items-center rounded-md" style={{ backgroundColor: theme.bgCardElevated, color: theme.primary }}>
+              <Icon size={16} />
+            </span>
+            <span className="min-w-0 truncate">{label}</span>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function AccountPersonalizationPanel({
   theme,
   ts,
@@ -8130,7 +8238,7 @@ function AccountPersonalizationPanel({
     <section className="space-y-3">
       <AccountSettingRow
         icon={Languages}
-        label={ts('labels.language', 'Language')}
+        label={accountLabel(ts('labels.language', 'Language'))}
         body={ts('labels.accountLanguageBody', "Speak your heart's language.")}
         theme={theme}
         control={(
@@ -8171,7 +8279,7 @@ function AccountPersonalizationPanel({
       />
       <AccountSettingRow
         icon={Sun}
-        label={ts('labels.theme', 'Theme')}
+        label={accountLabel(ts('labels.theme', 'Theme'))}
         body={ts('labels.accountThemeBody', 'Choose a space that feels calm and readable.')}
         theme={theme}
         control={(
@@ -9210,10 +9318,6 @@ function AccountStatusCard({
   ts: (key: string, fallback?: string) => string;
 }) {
   const signedIn = Boolean(user);
-  const firstName = user?.name?.split(" ")[0] || user?.email.split("@")[0];
-  const isReturning = (user?.loginCount ?? 0) > 1;
-  const avatarSeed = user?.id ?? user?.email ?? "guest";
-  const avatarLabel = user?.name || user?.email || ts('auth.guest', 'Guest');
   const notificationHealth = notificationsEnabled
     ? ts('notifications.deviceSubscribed', 'This device is subscribed')
     : notificationAccountEnabled && !notificationDeviceSubscribed
@@ -9222,26 +9326,17 @@ function AccountStatusCard({
 
   return (
     <section className="rounded-xl border p-4 shadow-sm sm:p-5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div className="flex items-start gap-3">
-          <AvatarCircle
-            avatarUrl={user?.avatarUrl}
-            seed={avatarSeed}
-            label={avatarLabel}
-            size={48}
-            className="size-12 rounded-full border object-cover"
-          />
-          <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.profileTitle', 'Profile')}</p>
+      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+        <div className="min-w-0">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.accountDetails', 'Account details')}</p>
           <h3 className="mt-2 text-xl font-semibold" style={{ color: theme.textPrimary }}>
-            {signedIn ? `${isReturning ? ts('auth.welcomeBack', 'Welcome back') : ts('auth.welcome', 'Welcome')}, ${firstName}` : ts('auth.guestMode', 'Guest mode')}
+            {signedIn ? ts('auth.signedIn', 'Signed in') : ts('auth.guestMode', 'Guest mode')}
           </h3>
           <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
             {signedIn
               ? `${ts('auth.signedInAs', 'Signed in as')} ${user?.email}. ${ts('auth.syncActiveFull', 'Sync is active for decisions, reflections, counsel, rules, and preferences.')}`
               : ts('auth.signInSyncHistory', 'Sign in to sync your wisdom history across devices and enable daily notifications.')}
           </p>
-          </div>
         </div>
         {signedIn ? (
           <button

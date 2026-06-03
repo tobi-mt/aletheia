@@ -712,7 +712,8 @@
     "edit": "Dezie",
     "enable": "Mee ka ọ rụọ ọrụ",
     "updating": "Na-emelite...",
-    "working": "Na-arụ ọrụ..."
+    "working": "Na-arụ ọrụ...",
+    "accountDetails": "Nkọwa akaụntụ"
   },
   "personalizationNudgeTitle": "Ị chọrọ ndụmọdụ ka ọ bụrụ nke onwe gị?",
   "personalizationNudgeBody": "Tinye otu nkọwa gbasara ego, ọrụ, ma ọ bụ rhythm ndụ.",
@@ -851,7 +852,18 @@
   },
   "share": {
     "shareAletheia": "Kekọrịta Aletheia",
-    "copyLink": "Detuo njikọ"
+    "copyLink": "Detuo njikọ",
+    "accountShareEyebrow": "Kekọrịta",
+    "accountShareTitle": "Kpọọ mmadụ ka ọ jiri Aletheia",
+    "accountShareSummary": "Kekọrịta njikọ ngwa ahụ n’ụzọ nzuzo site n’ụzọ kwesịrị ekwesị.",
+    "accountShareBodyTitle": "Kpọọ mmadụ na nzuzo",
+    "accountShareBody": "Na ndabara, naanị njikọ Aletheia ka a na-ekekọrịta. Ajụjụ, ndekọ, mkpebi na ndụmọdụ nkeonwe na-anọ n’ime akaụntụ onye ọrụ.",
+    "whatsapp": "WhatsApp",
+    "facebook": "Facebook",
+    "xTwitter": "X / Twitter",
+    "linkedin": "LinkedIn",
+    "email": "Email",
+    "sms": "SMS"
   },
   "avatar": {
     "pickerEyebrow": "Avatar: emela",
