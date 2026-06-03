@@ -307,7 +307,9 @@
     "enabling": "Na-eme ka ọ rụọ ọrụ...",
     "timezone": "Mpaghara oge",
     "useDeviceTimezoneAutomatically": "Jiri mpaghara oge ngwaọrụ na-akpaghị aka",
-    "usingDeviceTimezone": "Na-eji mpaghara oge ngwaọrụ"
+    "usingDeviceTimezone": "Na-eji mpaghara oge ngwaọrụ",
+    "dailyWisdomSetFor": "Amamihe kwa ụbọchị edobere maka",
+    "savedLocalTimingPreference": "Aletheia ga-eji oge mpaghara ị chekwara."
   },
   "status": {
     "guestMode": "Ọnọdụ ọbịa na-arụ ọrụ. Banye ka ịmekọrịta mkpebi.",
@@ -713,7 +715,9 @@
     "enable": "Mee ka ọ rụọ ọrụ",
     "updating": "Na-emelite...",
     "working": "Na-arụ ọrụ...",
-    "accountDetails": "Nkọwa akaụntụ"
+    "accountDetails": "Nkọwa akaụntụ",
+    "deliveryRhythm": "Ụdị nnyefe",
+    "focusIntentionsSaved": "Ebumnobi ilekwasị anya etinyela onwe ya."
   },
   "personalizationNudgeTitle": "Ị chọrọ ndụmọdụ ka ọ bụrụ nke onwe gị?",
   "personalizationNudgeBody": "Tinye otu nkọwa gbasara ego, ọrụ, ma ọ bụ rhythm ndụ.",
@@ -949,5 +953,27 @@
     "ocean": "Oké osimiri",
     "forest": "Ọhịa",
     "sunset": "Ọdịda anyanwụ"
+  },
+  "focusIntentions": {
+    "reduce_anxiety": {
+      "label": "Belata nchegbu",
+      "body": "Si n’ nrụgide gaa n’ ntụkwasị obi dị jụụ tupu ime ihe."
+    },
+    "improve_stewardship": {
+      "label": "Mee nlekọta akụ ka mma",
+      "body": "Hazie ego na ọrụ n’ụzọ ibu ọrụ kwesịrị ntụkwasị obi."
+    },
+    "wait_with_peace": {
+      "label": "Chere n’udo",
+      "body": "Belata ngwa ngwa ka ekpere, eziokwu, na ndụmọdụ nwee ohere."
+    },
+    "build_consistency": {
+      "label": "Wulite ịdịgide",
+      "body": "Mee obere omume na-eme ka amamihe bụrụ ihe a na-eme ugboro ugboro."
+    },
+    "seek_counsel": {
+      "label": "Chọọ ndụmọdụ amamihe",
+      "body": "Kpọọ olu a tụkwasịrị obi tupu nnukwu nzọụkwụ."
+    }
   }
 }

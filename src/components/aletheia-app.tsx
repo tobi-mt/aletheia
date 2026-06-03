@@ -384,6 +384,14 @@ function focusIntentionPrompt(keys: string[] | undefined | null, surface: "compa
   return "";
 }
 
+function localizedFocusIntentions(ts: (key: string, fallback?: string) => string) {
+  return focusIntentionLibrary.map((item) => ({
+    ...item,
+    label: ts(`focusIntentions.${item.key}.label`, item.label),
+    body: ts(`focusIntentions.${item.key}.body`, item.companionPrompt),
+  }));
+}
+
 const uiText: Record<
   LanguageCode,
   {
@@ -4357,6 +4365,23 @@ export function AletheiaApp() {
     setPreferencesStatus(voiceURI ? "Voice preference applied on this device." : "Voice reset to device default.");
   }
 
+  function updateFocusIntentions(nextIntentions: string[]) {
+    const cleanIntentions = nextIntentions
+      .filter((value): value is FocusIntentionKey => focusIntentionLibrary.some((item) => item.key === value))
+      .slice(0, 3);
+    setFocusIntentions(cleanIntentions);
+    try {
+      window.localStorage.setItem(FOCUS_INTENTIONS_STORAGE_KEY, JSON.stringify(cleanIntentions));
+    } catch {
+      // Focus intentions remain in memory when local storage is unavailable.
+    }
+    trackClientEvent("focus_intentions_updated", {
+      count: cleanIntentions.length,
+      intentions: cleanIntentions.join(","),
+    });
+    setPreferencesStatus(ts('labels.focusIntentionsSaved', 'Focus intentions applied automatically.'));
+  }
+
   function openScripture(scripture: string) {
     setSelectedScripture(scripture);
     trackClientEvent("scripture_opened", {
@@ -6641,6 +6666,8 @@ export function AletheiaApp() {
                   availableVoices={availableVoices}
                   selectedVoice={selectedVoice}
                   onVoiceChange={updateVoicePreference}
+                  focusIntentions={focusIntentions}
+                  onFocusIntentionsChange={updateFocusIntentions}
                   onClearLocalPersonalization={clearLocalPersonalization}
                   onExportData={exportAccountData}
                   onRequestDeleteAccount={() => setShowDeleteAccountModal(true)}
@@ -7820,6 +7847,8 @@ function AccountPanel({
   availableVoices,
   selectedVoice,
   onVoiceChange,
+  focusIntentions,
+  onFocusIntentionsChange,
   onClearLocalPersonalization,
   onExportData,
   onRequestDeleteAccount,
@@ -7874,6 +7903,8 @@ function AccountPanel({
   availableVoices: SpeechSynthesisVoice[];
   selectedVoice: string | null;
   onVoiceChange: (voiceURI: string | null) => void;
+  focusIntentions: string[];
+  onFocusIntentionsChange: (intentions: string[]) => void;
   onClearLocalPersonalization: () => void;
   onExportData: () => void;
   onRequestDeleteAccount: () => void;
@@ -7981,9 +8012,11 @@ function AccountPanel({
             availableVoices={availableVoices}
             selectedVoice={selectedVoice}
             user={user}
+            focusIntentions={focusIntentions}
             onPreferenceChange={onPreferenceChange}
             onThemePreferenceChange={onThemePreferenceChange}
             onVoiceChange={onVoiceChange}
+            onFocusIntentionsChange={onFocusIntentionsChange}
             onUpdateProfileAvatar={onUpdateProfileAvatar}
           />
         </DisclosureSection>
@@ -8213,9 +8246,11 @@ function AccountPersonalizationPanel({
   availableVoices,
   selectedVoice,
   user,
+  focusIntentions,
   onPreferenceChange,
   onThemePreferenceChange,
   onVoiceChange,
+  onFocusIntentionsChange,
   onUpdateProfileAvatar,
 }: {
   theme: ThemeColors;
@@ -8226,12 +8261,13 @@ function AccountPersonalizationPanel({
   availableVoices: SpeechSynthesisVoice[];
   selectedVoice: string | null;
   user: User | null;
+  focusIntentions: string[];
   onPreferenceChange: (patch: Partial<UserPreferences>) => void;
   onThemePreferenceChange: (value: ThemePreference) => void;
   onVoiceChange: (voiceURI: string | null) => void;
+  onFocusIntentionsChange: (intentions: string[]) => void;
   onUpdateProfileAvatar: (avatarUrl: string) => Promise<boolean>;
 }) {
-  const themeOptions: ThemePreference[] = ["system", "classic", "dark", "black", "warm", "ocean", "forest", "sunset"];
   const bibleOptions = bibleTranslationOptionsForLanguage(preferences.language);
 
   return (
@@ -8283,16 +8319,12 @@ function AccountPersonalizationPanel({
         body={ts('labels.accountThemeBody', 'Choose a space that feels calm and readable.')}
         theme={theme}
         control={(
-          <AccountSelect
-            ariaLabel={ts('labels.theme', 'Theme')}
-            value={themePreference}
-            onChange={(value) => onThemePreferenceChange(value as ThemePreference)}
+          <ThemeSwatchGrid
             theme={theme}
-          >
-            {themeOptions.map((option) => (
-              <option key={option} value={option}>{ts(`theme.${option}`, option)}</option>
-            ))}
-          </AccountSelect>
+            ts={ts}
+            value={themePreference}
+            onChange={onThemePreferenceChange}
+          />
         )}
       />
       <AccountSettingRow
@@ -8314,10 +8346,145 @@ function AccountPersonalizationPanel({
           </AccountSelect>
         )}
       />
+      <FocusIntentionsCard
+        theme={theme}
+        ts={ts}
+        selected={focusIntentions}
+        onChange={onFocusIntentionsChange}
+      />
       <p className="rounded-md border px-3 py-2 text-xs leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
         {preferencesStatus}
       </p>
       <AvatarStudioCard theme={theme} user={user} ts={ts} onUpdateProfileAvatar={onUpdateProfileAvatar} />
+    </section>
+  );
+}
+
+function ThemeSwatchGrid({
+  theme,
+  ts,
+  value,
+  onChange,
+}: {
+  theme: ThemeColors;
+  ts: (key: string, fallback?: string) => string;
+  value: ThemePreference;
+  onChange: (value: ThemePreference) => void;
+}) {
+  const options: Array<{ key: ThemePreference; icon: typeof Sun; colors: string[] }> = [
+    { key: "system", icon: Monitor, colors: ["#f3efe4", "#1f342f", "#0b0f0d"] },
+    { key: "classic", icon: Sun, colors: ["#f6f2e8", "#d8c079", "#203a35"] },
+    { key: "dark", icon: Moon, colors: ["#10201c", "#d2b25c", "#f8f4e8"] },
+    { key: "black", icon: Moon, colors: ["#050706", "#cdb35f", "#ffffff"] },
+    { key: "warm", icon: Sun, colors: ["#fff4e8", "#b46a36", "#3f2418"] },
+    { key: "ocean", icon: Sun, colors: ["#eef8fb", "#408198", "#143441"] },
+    { key: "forest", icon: Sprout, colors: ["#eef7ef", "#477b55", "#173122"] },
+    { key: "sunset", icon: Sun, colors: ["#fff0f4", "#c66c45", "#5b2636"] },
+  ];
+
+  return (
+    <div className="grid gap-2 sm:grid-cols-2">
+      {options.map((option) => {
+        const active = value === option.key;
+        const Icon = option.icon;
+        return (
+          <button
+            key={option.key}
+            type="button"
+            onClick={() => onChange(option.key)}
+            className="flex min-h-12 items-center justify-between gap-3 rounded-md border px-3 py-2 text-left text-sm font-semibold transition"
+            style={{
+              borderColor: active ? theme.accentGold : theme.borderMedium,
+              backgroundColor: active ? theme.activeBg : theme.bgInput,
+              color: theme.textPrimary,
+              boxShadow: active ? `0 0 0 1px ${theme.accentGold}` : "none",
+            }}
+            aria-pressed={active}
+          >
+            <span className="flex min-w-0 items-center gap-2">
+              <span className="grid size-8 shrink-0 place-items-center rounded-md" style={{ backgroundColor: theme.bgCardElevated, color: active ? theme.accentGold : theme.textSecondary }}>
+                <Icon size={15} />
+              </span>
+              <span className="min-w-0 truncate">{ts(`theme.${option.key}`, option.key)}</span>
+            </span>
+            <span className="flex shrink-0 gap-1" aria-hidden="true">
+              {option.colors.map((color) => (
+                <span key={color} className="size-4 rounded-full border" style={{ backgroundColor: color, borderColor: active ? theme.accentGold : theme.borderLight }} />
+              ))}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function FocusIntentionsCard({
+  theme,
+  ts,
+  selected,
+  onChange,
+}: {
+  theme: ThemeColors;
+  ts: (key: string, fallback?: string) => string;
+  selected: string[];
+  onChange: (intentions: string[]) => void;
+}) {
+  const options = localizedFocusIntentions(ts);
+  const selectedSet = new Set(selected);
+
+  function toggle(key: FocusIntentionKey) {
+    const next = selectedSet.has(key)
+      ? selected.filter((item) => item !== key)
+      : [...selected, key].slice(0, 3);
+    onChange(next);
+  }
+
+  return (
+    <section className="rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+      <div className="flex items-start gap-3">
+        <div className="grid size-9 shrink-0 place-items-center rounded-md" style={{ backgroundColor: theme.bgInput, color: theme.primary }}>
+          <Sparkles size={17} />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.focusIntentions', 'Focus intentions')}</p>
+              <p className="mt-1 text-xs leading-5" style={{ color: theme.textSecondary }}>{ts('labels.focusIntentionsHint', 'Pick up to three intentions. Aletheia uses these to shape prompt suggestions and guidance emphasis.')}</p>
+            </div>
+            <span className="shrink-0 rounded-md border px-2 py-1 text-[11px] font-semibold" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+              {selected.length}/3 {ts('labels.selected', 'selected')}
+            </span>
+          </div>
+          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+            {options.map((option) => {
+              const active = selectedSet.has(option.key);
+              return (
+                <button
+                  key={option.key}
+                  type="button"
+                  onClick={() => toggle(option.key)}
+                  className="flex min-h-16 items-start gap-2 rounded-md border p-2.5 text-left transition"
+                  style={{
+                    borderColor: active ? theme.accentGold : theme.borderMedium,
+                    backgroundColor: active ? theme.activeBg : theme.bgInput,
+                    color: theme.textPrimary,
+                  }}
+                  aria-pressed={active}
+                >
+                  <span className="mt-0.5 grid size-6 shrink-0 place-items-center rounded-full border" style={{ borderColor: active ? theme.accentGold : theme.borderMedium, backgroundColor: active ? theme.primary : "transparent", color: active ? theme.textOnPrimary : theme.textSecondary }}>
+                    {active ? <Check size={13} /> : null}
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-sm font-semibold">{option.label}</span>
+                    <span className="mt-1 block text-xs leading-5" style={{ color: theme.textSecondary }}>{option.body}</span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
     </section>
   );
 }
@@ -8885,26 +9052,47 @@ function ManualContextPanel({
           </label>
 
           <div className="grid gap-3 sm:grid-cols-2">
-            <label className="flex items-start gap-3 rounded-lg border p-3 text-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
-              <input type="checkbox" checked={draft.useMoneyInAnswers} onChange={(event) => setDraft((current) => ({ ...current, useMoneyInAnswers: event.target.checked }))} className="mt-0.5 size-5 shrink-0 rounded" style={{ borderColor: theme.borderMedium }} />
-              <span className="font-semibold" style={{ color: theme.textPrimary }}>{manualCopy.useMoney}</span>
-            </label>
-            <label className="flex items-start gap-3 rounded-lg border p-3 text-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
-              <input type="checkbox" checked={draft.useWorkInAnswers} onChange={(event) => setDraft((current) => ({ ...current, useWorkInAnswers: event.target.checked }))} className="mt-0.5 size-5 shrink-0 rounded" style={{ borderColor: theme.borderMedium }} />
-              <span className="font-semibold" style={{ color: theme.textPrimary }}>{manualCopy.useWork}</span>
-            </label>
-            <label className="flex items-start gap-3 rounded-lg border p-3 text-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
-              <input type="checkbox" checked={draft.useHealthInAnswers} onChange={(event) => setDraft((current) => ({ ...current, useHealthInAnswers: event.target.checked }))} className="mt-0.5 size-5 shrink-0 rounded" style={{ borderColor: theme.borderMedium }} />
-              <span className="font-semibold" style={{ color: theme.textPrimary }}>{manualCopy.useHealth}</span>
-            </label>
-            <label className="flex items-start gap-3 rounded-lg border p-3 text-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
-              <input type="checkbox" checked={draft.useRelationshipsInAnswers} onChange={(event) => setDraft((current) => ({ ...current, useRelationshipsInAnswers: event.target.checked }))} className="mt-0.5 size-5 shrink-0 rounded" style={{ borderColor: theme.borderMedium }} />
-              <span className="font-semibold" style={{ color: theme.textPrimary }}>{manualCopy.useRelationships}</span>
-            </label>
-            <label className="flex items-start gap-3 rounded-lg border p-3 text-sm sm:col-span-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
-              <input type="checkbox" checked={draft.useValuesInAnswers} onChange={(event) => setDraft((current) => ({ ...current, useValuesInAnswers: event.target.checked }))} className="mt-0.5 size-5 shrink-0 rounded" style={{ borderColor: theme.borderMedium }} />
-              <span className="font-semibold" style={{ color: theme.textPrimary }}>{manualCopy.useValues}</span>
-            </label>
+            <ContextUseToggle
+              icon={PiggyBank}
+              label={manualCopy.useMoney}
+              body={sectionSummary.money}
+              checked={draft.useMoneyInAnswers}
+              theme={theme}
+              onChange={(checked) => setDraft((current) => ({ ...current, useMoneyInAnswers: checked }))}
+            />
+            <ContextUseToggle
+              icon={BriefcaseBusiness}
+              label={manualCopy.useWork}
+              body={sectionSummary.work}
+              checked={draft.useWorkInAnswers}
+              theme={theme}
+              onChange={(checked) => setDraft((current) => ({ ...current, useWorkInAnswers: checked }))}
+            />
+            <ContextUseToggle
+              icon={Sprout}
+              label={manualCopy.useHealth}
+              body={sectionSummary.health}
+              checked={draft.useHealthInAnswers}
+              theme={theme}
+              onChange={(checked) => setDraft((current) => ({ ...current, useHealthInAnswers: checked }))}
+            />
+            <ContextUseToggle
+              icon={Users}
+              label={manualCopy.useRelationships}
+              body={sectionSummary.relationships}
+              checked={draft.useRelationshipsInAnswers}
+              theme={theme}
+              onChange={(checked) => setDraft((current) => ({ ...current, useRelationshipsInAnswers: checked }))}
+            />
+            <ContextUseToggle
+              icon={ShieldCheck}
+              label={manualCopy.useValues}
+              body={sectionSummary.values}
+              checked={draft.useValuesInAnswers}
+              theme={theme}
+              onChange={(checked) => setDraft((current) => ({ ...current, useValuesInAnswers: checked }))}
+              wide
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-2 rounded-lg border p-1" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
@@ -9105,6 +9293,49 @@ function ManualContextPanel({
         </form>
       </div>
     </section>
+  );
+}
+
+function ContextUseToggle({
+  icon: Icon,
+  label,
+  body,
+  checked,
+  theme,
+  onChange,
+  wide = false,
+}: {
+  icon: typeof ShieldCheck;
+  label: string;
+  body: string;
+  checked: boolean;
+  theme: ThemeColors;
+  onChange: (checked: boolean) => void;
+  wide?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => onChange(!checked)}
+      className={`flex min-h-20 items-start gap-3 rounded-lg border p-3 text-left transition ${wide ? "sm:col-span-2" : ""}`}
+      style={{
+        borderColor: checked ? theme.accentGold : theme.borderLight,
+        backgroundColor: checked ? theme.activeBg : theme.bgCardElevated,
+        color: theme.textPrimary,
+      }}
+      aria-pressed={checked}
+    >
+      <span className="grid size-9 shrink-0 place-items-center rounded-md" style={{ backgroundColor: theme.bgInput, color: checked ? theme.accentGold : theme.textSecondary }}>
+        <Icon size={17} />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-semibold">{label}</span>
+        <span className="mt-1 block text-xs leading-5" style={{ color: theme.textSecondary }}>{body}</span>
+      </span>
+      <span className="grid size-7 shrink-0 place-items-center rounded-full border" style={{ borderColor: checked ? theme.accentGold : theme.borderMedium, backgroundColor: checked ? theme.primary : "transparent", color: checked ? theme.textOnPrimary : theme.textSecondary }}>
+        {checked ? <Check size={14} /> : null}
+      </span>
+    </button>
   );
 }
 
@@ -9897,6 +10128,12 @@ function NotificationPanel({
         : permission === "denied"
           ? ts('notifications.notificationsBlockedBody', 'Notifications are blocked for this site. Enable them in your browser settings to continue.')
           : status;
+  const deliveryOptions: Array<{ value: NotificationTiming["deliveryStrategy"]; label: string }> = [
+    { value: "morning", label: ts('labels.morning', 'Morning') },
+    { value: "midday", label: ts('labels.midday', 'Midday') },
+    { value: "evening", label: ts('labels.evening', 'Evening') },
+    { value: "custom", label: ts('labels.custom', 'Custom') },
+  ];
 
   return (
     <section className="mb-5 rounded-xl border p-4 shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
@@ -9933,7 +10170,27 @@ function NotificationPanel({
         )}
       </div>
       <div className="mt-4 rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
+        <div className="mb-3 rounded-md border px-3 py-2 text-sm leading-6" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
+          <span className="font-semibold" style={{ color: theme.textPrimary }}>
+            {ts('notifications.dailyWisdomSetFor', 'Daily wisdom is set for')} {notificationTimeLabel(timing.preferredLocalHour)}.
+          </span>{" "}
+          {ts('notifications.savedLocalTimingPreference', 'Aletheia will use your saved local timing preference.')}
+        </div>
         <div className="grid gap-3 sm:grid-cols-2 sm:items-end">
+          <label className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
+            {ts('labels.deliveryRhythm', 'Delivery rhythm')}
+            <select
+              value={timing.deliveryStrategy}
+              disabled={busy || !user}
+              onChange={(event) => onTimingChange({ deliveryStrategy: event.target.value as NotificationTiming["deliveryStrategy"] })}
+              className="mt-2 h-10 w-full rounded-md border px-3 text-sm normal-case tracking-normal outline-none disabled:cursor-not-allowed disabled:opacity-70"
+              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
+            >
+              {deliveryOptions.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
+          </label>
           <label className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
             {ts('notifications.dailyDeliveryTime', 'Daily delivery time')}
             <select

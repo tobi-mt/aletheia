@@ -307,7 +307,9 @@
     "enabling": "Ana kunnawa...",
     "timezone": "Yankin lokaci",
     "useDeviceTimezoneAutomatically": "Yi amfani da yankin lokacin na’ura ta atomatik",
-    "usingDeviceTimezone": "Ana amfani da yankin lokacin na’ura"
+    "usingDeviceTimezone": "Ana amfani da yankin lokacin na’ura",
+    "dailyWisdomSetFor": "An sa hikimar yau da kullum a",
+    "savedLocalTimingPreference": "Aletheia za ta yi amfani da zaɓin lokacin gida da ka ajiye."
   },
   "status": {
     "guestMode": "Matsayin baƙo yana aiki. Shiga don daidaita shawara.",
@@ -713,7 +715,9 @@
     "enable": "Kunna",
     "updating": "Ana sabuntawa...",
     "working": "Ana aiki...",
-    "accountDetails": "Bayanan asusu"
+    "accountDetails": "Bayanan asusu",
+    "deliveryRhythm": "Salon isarwa",
+    "focusIntentionsSaved": "An yi amfani da niyyoyin mayar da hankali ta atomatik."
   },
   "personalizationNudgeTitle": "Kana son shawara ta fi zama ta kanka?",
   "personalizationNudgeBody": "Ƙara bayani ɗaya game da kuɗi, aiki, ko tsarin rayuwa.",
@@ -949,5 +953,27 @@
     "ocean": "Teku",
     "forest": "Daji",
     "sunset": "Faɗuwar rana"
+  },
+  "focusIntentions": {
+    "reduce_anxiety": {
+      "label": "Rage damuwa",
+      "body": "Motsa daga matsin lamba zuwa natsuwar dogaro kafin aiki."
+    },
+    "improve_stewardship": {
+      "label": "Inganta riƙon amana",
+      "body": "Daidaita kuɗi da aiki da alhakin aminci."
+    },
+    "wait_with_peace": {
+      "label": "Jira cikin salama",
+      "body": "Rage gaggawa domin addu’a, hujjoji, da shawara su samu wuri."
+    },
+    "build_consistency": {
+      "label": "Gina daidaito",
+      "body": "Yi ƙananan al’adu da ke sa hikima ta maimaitu."
+    },
+    "seek_counsel": {
+      "label": "Nemi shawara cikin hikima",
+      "body": "Gayyaci amintaccen murya kafin babban mataki."
+    }
   }
 }

@@ -307,7 +307,9 @@
     "enabling": "Ativando...",
     "timezone": "Fuso horário",
     "useDeviceTimezoneAutomatically": "Usar automaticamente o fuso horário do dispositivo",
-    "usingDeviceTimezone": "Usando fuso horário do dispositivo"
+    "usingDeviceTimezone": "Usando fuso horário do dispositivo",
+    "dailyWisdomSetFor": "A sabedoria diária está definida para",
+    "savedLocalTimingPreference": "Aletheia usará sua preferência de horário local salva."
   },
   "status": {
     "guestMode": "Modo convidado ativo. Entre para sincronizar decisões.",
@@ -713,7 +715,9 @@
     "enable": "Ativar",
     "updating": "Atualizando...",
     "working": "Trabalhando...",
-    "accountDetails": "Detalhes da conta"
+    "accountDetails": "Detalhes da conta",
+    "deliveryRhythm": "Ritmo de envio",
+    "focusIntentionsSaved": "Intenções de foco aplicadas automaticamente."
   },
   "personalizationNudgeTitle": "Quer um conselho mais pessoal?",
   "personalizationNudgeBody": "Adicione um detalhe sobre dinheiro, trabalho ou ritmo.",
@@ -949,5 +953,27 @@
     "ocean": "Oceano",
     "forest": "Floresta",
     "sunset": "Pôr do sol"
+  },
+  "focusIntentions": {
+    "reduce_anxiety": {
+      "label": "Reduzir ansiedade",
+      "body": "Sair da pressão para uma confiança mais calma antes de agir."
+    },
+    "improve_stewardship": {
+      "label": "Melhorar mordomia",
+      "body": "Moldar escolhas de dinheiro e trabalho com responsabilidade fiel."
+    },
+    "wait_with_peace": {
+      "label": "Esperar em paz",
+      "body": "Diminuir a urgência e abrir espaço para oração, fatos e conselho."
+    },
+    "build_consistency": {
+      "label": "Construir constância",
+      "body": "Praticar pequenos ritmos que tornam a sabedoria repetível."
+    },
+    "seek_counsel": {
+      "label": "Buscar conselho sábio",
+      "body": "Convidar uma voz confiável antes de um passo importante."
+    }
   }
 }

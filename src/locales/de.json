@@ -307,7 +307,9 @@
     "enabling": "Aktivierung...",
     "timezone": "Zeitzone",
     "useDeviceTimezoneAutomatically": "Geräte-Zeitzone automatisch verwenden",
-    "usingDeviceTimezone": "Geräte-Zeitzone wird verwendet"
+    "usingDeviceTimezone": "Geräte-Zeitzone wird verwendet",
+    "dailyWisdomSetFor": "Tägliche Weisheit ist eingestellt auf",
+    "savedLocalTimingPreference": "Aletheia nutzt deine gespeicherte lokale Zeitpräferenz."
   },
   "status": {
     "guestMode": "Gast-Modus aktiv. Melde dich an, um Entscheidungen zu synchronisieren.",
@@ -713,7 +715,9 @@
     "enable": "Aktivieren",
     "updating": "Aktualisierung...",
     "working": "In Arbeit...",
-    "accountDetails": "Kontodetails"
+    "accountDetails": "Kontodetails",
+    "deliveryRhythm": "Lieferrhythmus",
+    "focusIntentionsSaved": "Fokusabsichten automatisch angewendet."
   },
   "personalizationNudgeTitle": "Möchtest du persönlicheren Rat?",
   "personalizationNudgeBody": "Füge ein Detail zu Geld, Arbeit oder Rhythmus hinzu.",
@@ -949,5 +953,27 @@
     "ocean": "Ozean",
     "forest": "Wald",
     "sunset": "Sonnenuntergang"
+  },
+  "focusIntentions": {
+    "reduce_anxiety": {
+      "label": "Angst verringern",
+      "body": "Vom Druck zu ruhigerem Vertrauen kommen, bevor du handelst."
+    },
+    "improve_stewardship": {
+      "label": "Stewardship verbessern",
+      "body": "Geld- und Arbeitsentscheidungen an treuer Verantwortung ausrichten."
+    },
+    "wait_with_peace": {
+      "label": "In Frieden warten",
+      "body": "Eile verlangsamen und Raum für Gebet, Fakten und Rat schaffen."
+    },
+    "build_consistency": {
+      "label": "Beständigkeit aufbauen",
+      "body": "Kleine Rhythmen üben, die Weisheit wiederholbar machen."
+    },
+    "seek_counsel": {
+      "label": "Rat weise suchen",
+      "body": "Vor einem großen Schritt die richtige vertraute Stimme einladen."
+    }
   }
 }

@@ -307,7 +307,9 @@
     "enabling": "Activation...",
     "timezone": "Fuseau horaire",
     "useDeviceTimezoneAutomatically": "Utiliser automatiquement le fuseau horaire de l’appareil",
-    "usingDeviceTimezone": "Fuseau horaire de l’appareil utilisé"
+    "usingDeviceTimezone": "Fuseau horaire de l’appareil utilisé",
+    "dailyWisdomSetFor": "La sagesse quotidienne est prévue pour",
+    "savedLocalTimingPreference": "Aletheia utilisera votre préférence horaire locale enregistrée."
   },
   "status": {
     "guestMode": "Mode invité actif. Connecte-toi pour synchroniser les décisions.",
@@ -713,7 +715,9 @@
     "enable": "Activer",
     "updating": "Mise à jour...",
     "working": "En cours...",
-    "accountDetails": "Détails du compte"
+    "accountDetails": "Détails du compte",
+    "deliveryRhythm": "Rythme d’envoi",
+    "focusIntentionsSaved": "Intentions de focus appliquées automatiquement."
   },
   "personalizationNudgeTitle": "Vous voulez un conseil plus personnel ?",
   "personalizationNudgeBody": "Ajoutez un détail sur l’argent, le travail ou le rythme.",
@@ -950,5 +954,27 @@
     "ocean": "Océan",
     "forest": "Forêt",
     "sunset": "Coucher de soleil"
+  },
+  "focusIntentions": {
+    "reduce_anxiety": {
+      "label": "Réduire l’anxiété",
+      "body": "Passer de la pression à une confiance plus calme avant d’agir."
+    },
+    "improve_stewardship": {
+      "label": "Améliorer l’intendance",
+      "body": "Orienter argent et travail vers une responsabilité fidèle."
+    },
+    "wait_with_peace": {
+      "label": "Attendre en paix",
+      "body": "Ralentir l’urgence et laisser place à la prière, aux faits et au conseil."
+    },
+    "build_consistency": {
+      "label": "Bâtir la constance",
+      "body": "Pratiquer de petits rythmes qui rendent la sagesse répétable."
+    },
+    "seek_counsel": {
+      "label": "Chercher un conseil sage",
+      "body": "Inviter la bonne voix de confiance avant un grand pas."
+    }
   }
 }

@@ -307,7 +307,9 @@
     "enabling": "Enabling...",
     "timezone": "Timezone",
     "useDeviceTimezoneAutomatically": "Use device timezone automatically",
-    "usingDeviceTimezone": "Using device timezone"
+    "usingDeviceTimezone": "Using device timezone",
+    "dailyWisdomSetFor": "Daily wisdom is set for",
+    "savedLocalTimingPreference": "Aletheia will use your saved local timing preference."
   },
   "status": {
     "guestMode": "Guest mode is active. Sign in to sync decisions.",
@@ -713,7 +715,9 @@
     "enable": "Enable",
     "updating": "Updating...",
     "working": "Working...",
-    "accountDetails": "Account details"
+    "accountDetails": "Account details",
+    "deliveryRhythm": "Delivery rhythm",
+    "focusIntentionsSaved": "Focus intentions applied automatically."
   },
   "personalizationNudgeTitle": "Want more personal counsel?",
   "personalizationNudgeBody": "Add one detail about money, work, or rhythm.",
@@ -949,5 +953,27 @@
     "ocean": "Ocean",
     "forest": "Forest",
     "sunset": "Sunset"
+  },
+  "focusIntentions": {
+    "reduce_anxiety": {
+      "label": "Reduce anxiety",
+      "body": "Move from pressure into calmer trust before acting."
+    },
+    "improve_stewardship": {
+      "label": "Improve stewardship",
+      "body": "Shape money and work choices around faithful responsibility."
+    },
+    "wait_with_peace": {
+      "label": "Wait with peace",
+      "body": "Slow urgency and make room for prayer, facts, and counsel."
+    },
+    "build_consistency": {
+      "label": "Build consistency",
+      "body": "Practice small rhythms that make wisdom repeatable."
+    },
+    "seek_counsel": {
+      "label": "Seek counsel wisely",
+      "body": "Invite the right trusted voice before a major step."
+    }
   }
 }

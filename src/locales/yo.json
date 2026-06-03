@@ -307,7 +307,9 @@
     "enabling": "Ń mú ṣiṣẹ́...",
     "timezone": "Agbègbè àkókò",
     "useDeviceTimezoneAutomatically": "Lo agbègbè àkókò ẹrọ laifọwọyi",
-    "usingDeviceTimezone": "Ń lo agbègbè àkókò ẹrọ"
+    "usingDeviceTimezone": "Ń lo agbègbè àkókò ẹrọ",
+    "dailyWisdomSetFor": "Ọgbọ́n ojoojúmọ́ ti ṣètò fún",
+    "savedLocalTimingPreference": "Aletheia máa lo àkókò agbegbe tí o fipamọ́."
   },
   "status": {
     "guestMode": "Ìpò àlejò ń ṣiṣẹ́. Wọlé láti fọ́kàn sọ́ àwọn ìpinnu.",
@@ -713,7 +715,9 @@
     "enable": "Mú ṣiṣẹ́",
     "updating": "Ń ṣe imudojuiwọn...",
     "working": "Ń ṣiṣẹ́...",
-    "accountDetails": "Àlàyé àkáǹtì"
+    "accountDetails": "Àlàyé àkáǹtì",
+    "deliveryRhythm": "Ìlànà fífi ránṣẹ́",
+    "focusIntentionsSaved": "Ìfọkànsìn ti lo laifọwọyi."
   },
   "personalizationNudgeTitle": "Ṣe o fẹ́ ìmọ̀ràn tó mọ̀ ọ́ síi?",
   "personalizationNudgeBody": "Fi alaye kan kun nípa owó, iṣẹ́, tàbí ìlànà ìgbé-ayé.",
@@ -949,5 +953,27 @@
     "ocean": "Òkun",
     "forest": "Igbó",
     "sunset": "Ìwọ̀-oòrùn"
+  },
+  "focusIntentions": {
+    "reduce_anxiety": {
+      "label": "Dín ìbànújẹ kù",
+      "body": "Kúrò nínú ìtẹ̀síwájú ìyára sí ìgbẹ́kẹ̀lé tó balẹ̀ kí o tó ṣe."
+    },
+    "improve_stewardship": {
+      "label": "Mú ìtọju ohun-ini dara",
+      "body": "Ṣe ìpinnu owó àti iṣẹ́ pẹ̀lú ojúṣe olóòótọ́."
+    },
+    "wait_with_peace": {
+      "label": "Dúró pẹ̀lú àlàáfíà",
+      "body": "Dín ìyára kù kí àdúrà, òtítọ́, àti ìmọ̀ràn le wọlé."
+    },
+    "build_consistency": {
+      "label": "Kọ ìdúróṣinṣin",
+      "body": "Ṣe ìṣe kékeré tó mú ọgbọ́n di ohun tí a tún ṣe."
+    },
+    "seek_counsel": {
+      "label": "Wá ìmọ̀ràn pẹ̀lú ọgbọ́n",
+      "body": "Pe ẹni tí o gbẹ́kẹ̀lé kí o tó ṣe ìgbésẹ̀ ńlá."
+    }
   }
 }
