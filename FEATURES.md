@@ -174,7 +174,9 @@ After a meaningful answer, Aletheia can help the user take the next wise step.
 - Dedicated Account tab
 - Premium grouped Account screen built around Profile, Personalization, Daily Wisdom Notifications, Manual Context Vault, Share Aletheia, and System
 - One Profile card with avatar/photo and personalized greeting in the default state, with sign-in, sync, and notification details available on expand
-- Personalization group for language, Bible translation, visual theme swatches, voice, avatar, and focus intentions
+- Personalization group with command-center rows for language, Bible translation, visual theme swatches, curated voice preference, avatar, and focus intentions
+- Each personalization row shows the current value first and expands only when the user wants to change it
+- Guided onboarding journey for mode, tone, faith familiarity, language, Bible translation, region, focus intentions, and privacy/context posture
 - Daily Wisdom Notifications card for push status, delivery rhythm, local delivery time, and timezone preference
 - Manual Context Vault card for region/context, privacy posture, user-provided current/future state signals, and per-area privacy toggles
 - Dedicated Share Aletheia card with native share, copy link, WhatsApp, Facebook, X / Twitter, LinkedIn, email, and SMS channels
@@ -213,6 +215,7 @@ After a meaningful answer, Aletheia can help the user take the next wise step.
 - Life context / region
 - Preferred Bible translation
 - Voice preference (device default or selected installed voice)
+- Premium voice preference selector with curated device voices and preview playback
 - Notification timing preference (local hour, timezone mode, timezone, delivery strategy)
 - Focus intentions that tune prompt suggestions and Companion/Decision guidance emphasis
 - Region-aware examples

@@ -3068,6 +3068,7 @@ export function AletheiaApp() {
   const [onboardingConcern, setOnboardingConcern] = useState("");
   const [onboardingTone, setOnboardingTone] = useState("gentle");
   const [faithFamiliarity, setFaithFamiliarity] = useState("familiar");
+  const [onboardingPrivacyLevel, setOnboardingPrivacyLevel] = useState("minimal");
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [speechPaused, setSpeechPaused] = useState(false);
@@ -4425,6 +4426,7 @@ export function AletheiaApp() {
   function completeOnboarding() {
     try {
       window.localStorage.setItem("aletheia_onboarding_complete", "yes");
+      window.localStorage.setItem("aletheia_context_privacy_level", onboardingPrivacyLevel);
     } catch {
       // Onboarding can still close if storage is unavailable.
     }
@@ -4445,6 +4447,8 @@ export function AletheiaApp() {
       bibleTranslation: preferences.bibleTranslation,
       tone: onboardingTone,
       faithFamiliarity,
+      privacyLevel: onboardingPrivacyLevel,
+      focusIntentions: focusIntentions.join(","),
       hasConcern: Boolean(onboardingConcern.trim()),
       ...analyticsQuestionMetadata(onboardingConcern, mode),
     });
@@ -6736,6 +6740,10 @@ export function AletheiaApp() {
         setTone={setOnboardingTone}
         faithFamiliarity={faithFamiliarity}
         setFaithFamiliarity={setFaithFamiliarity}
+        privacyLevel={onboardingPrivacyLevel}
+        setPrivacyLevel={setOnboardingPrivacyLevel}
+        focusIntentions={focusIntentions}
+        onFocusIntentionsChange={updateFocusIntentions}
         notificationsEnabled={notificationsEnabled}
         onModeChange={handleModeChange}
         onPreferenceChange={updatePreferences}
@@ -7204,6 +7212,10 @@ function OnboardingModal({
   setTone,
   faithFamiliarity,
   setFaithFamiliarity,
+  privacyLevel,
+  setPrivacyLevel,
+  focusIntentions,
+  onFocusIntentionsChange,
   notificationsEnabled,
   onModeChange,
   onPreferenceChange,
@@ -7221,6 +7233,10 @@ function OnboardingModal({
   setTone: (value: string) => void;
   faithFamiliarity: string;
   setFaithFamiliarity: (value: string) => void;
+  privacyLevel: string;
+  setPrivacyLevel: (value: string) => void;
+  focusIntentions: string[];
+  onFocusIntentionsChange: (intentions: string[]) => void;
   notificationsEnabled: boolean;
   onModeChange: (mode: Mode) => void;
   onPreferenceChange: (patch: Partial<UserPreferences>) => void;
@@ -7233,6 +7249,30 @@ function OnboardingModal({
 
   const bibleOptions = bibleTranslationOptionsForLanguage(preferences.language);
   const selectedTranslation = bibleTranslations[preferences.bibleTranslation];
+  const setupSteps = [
+    ts('labels.setupStepMode', 'Mode'),
+    ts('labels.setupStepTone', 'Tone'),
+    ts('labels.setupStepLanguage', 'Language'),
+    ts('labels.setupStepFocus', 'Focus'),
+    ts('labels.setupStepPrivacy', 'Privacy'),
+  ];
+  const privacyOptions = [
+    {
+      key: "minimal",
+      label: ts('labels.privacyLevelMinimal', 'Minimal'),
+      body: ts('labels.privacyLevelMinimalBody', 'Use only your language, Bible translation, and selected wisdom mode.'),
+    },
+    {
+      key: "guided",
+      label: ts('labels.privacyLevelGuided', 'Guided'),
+      body: ts('labels.privacyLevelGuidedBody', 'Let Aletheia nudge you to add one helpful detail when it would improve counsel.'),
+    },
+    {
+      key: "contextual",
+      label: ts('labels.privacyLevelContextual', 'Contextual'),
+      body: ts('labels.privacyLevelContextualBody', 'Use the Manual Context Vault later for more personalized guidance.'),
+    },
+  ];
 
   return (
     <div className="fixed inset-0 z-50 grid min-w-0 place-items-end overflow-x-hidden p-3 backdrop-blur-sm sm:place-items-center" style={{ backgroundColor: theme.primary + '75' }}>
@@ -7264,8 +7304,24 @@ function OnboardingModal({
         </div>
 
         <div className="mt-5 space-y-4">
+          <div className="grid grid-cols-5 gap-1 rounded-lg border p-1" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
+            {setupSteps.map((step, index) => (
+              <span
+                key={step}
+                className="rounded-md px-1 py-2 text-center text-[10px] font-semibold uppercase tracking-[0.08em]"
+                style={{
+                  backgroundColor: index === 0 ? theme.activeBg : "transparent",
+                  color: index === 0 ? theme.textPrimary : theme.textSecondary,
+                }}
+              >
+                {step}
+              </span>
+            ))}
+          </div>
+
           <section>
-            <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.whatBringsYou', 'What brings you here?')}</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{ts('labels.setupStepMode', 'Mode')}</p>
+            <p className="mt-1 text-sm font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.whatBringsYou', 'What brings you here?')}</p>
             <div className="mt-2 grid min-w-0 grid-cols-2 gap-2">
               {modeCards.map((item) => (
                 <button
@@ -7288,6 +7344,7 @@ function OnboardingModal({
           </section>
 
           <section className="rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{ts('labels.setupStepTone', 'Tone')}</p>
             <label className="text-sm font-semibold" style={{ color: theme.textPrimary }}>
               {ts('labels.seekingWisdomFor', 'What are you seeking wisdom for?')}
               <textarea
@@ -7382,6 +7439,40 @@ function OnboardingModal({
                 ))}
               </select>
             </label>
+          </section>
+
+          <FocusIntentionsCard
+            theme={theme}
+            ts={ts}
+            selected={focusIntentions}
+            onChange={onFocusIntentionsChange}
+          />
+
+          <section className="rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{ts('labels.setupStepPrivacy', 'Privacy')}</p>
+            <h3 className="mt-1 text-sm font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.privacyLevelTitle', 'Choose how personal Aletheia should feel at first.')}</h3>
+            <div className="mt-3 grid gap-2 sm:grid-cols-3">
+              {privacyOptions.map((option) => {
+                const active = privacyLevel === option.key;
+                return (
+                  <button
+                    key={option.key}
+                    type="button"
+                    onClick={() => setPrivacyLevel(option.key)}
+                    className="rounded-md border p-3 text-left transition"
+                    style={{
+                      borderColor: active ? theme.accentGold : theme.borderMedium,
+                      backgroundColor: active ? theme.activeBg : theme.bgInput,
+                      color: theme.textPrimary,
+                    }}
+                    aria-pressed={active}
+                  >
+                    <span className="block text-sm font-semibold">{option.label}</span>
+                    <span className="mt-1 block text-xs leading-5" style={{ color: theme.textSecondary }}>{option.body}</span>
+                  </button>
+                );
+              })}
+            </div>
           </section>
 
           <section className="rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
@@ -8127,27 +8218,44 @@ function AccountSettingRow({
   icon: Icon,
   label,
   body,
+  currentValue,
   control,
   theme,
 }: {
   icon: typeof Globe2;
   label: string;
   body: string;
+  currentValue: string;
   control: ReactNode;
   theme: ThemeColors;
 }) {
+  const [open, setOpen] = useState(false);
+
   return (
     <div className="rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-      <div className="flex items-start gap-3">
-        <div className="grid size-9 shrink-0 place-items-center rounded-md" style={{ backgroundColor: theme.bgInput, color: theme.primary }}>
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        className="flex w-full items-center gap-3 text-left"
+        aria-expanded={open}
+      >
+        <span className="grid size-10 shrink-0 place-items-center rounded-md" style={{ backgroundColor: theme.bgInput, color: theme.primary }}>
           <Icon size={17} />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm font-semibold" style={{ color: theme.textPrimary }}>{label}</span>
+          <span className="mt-1 block text-xs leading-5" style={{ color: theme.textSecondary }}>{body}</span>
+        </span>
+        <span className="min-w-0 shrink-0 text-right">
+          <span className="block max-w-32 truncate text-xs font-semibold sm:max-w-44" style={{ color: theme.accentGold }}>{currentValue}</span>
+          <span className="mt-1 block text-lg leading-none transition" style={{ color: theme.textSecondary, transform: open ? "rotate(90deg)" : "rotate(0deg)" }}>›</span>
+        </span>
+      </button>
+      {open ? (
+        <div className="mt-3 border-t pt-3" style={{ borderColor: theme.borderLight }}>
+          {control}
         </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{label}</p>
-          <p className="mt-1 text-xs leading-5" style={{ color: theme.textSecondary }}>{body}</p>
-          <div className="mt-3">{control}</div>
-        </div>
-      </div>
+      ) : null}
     </div>
   );
 }
@@ -8269,6 +8377,9 @@ function AccountPersonalizationPanel({
   onUpdateProfileAvatar: (avatarUrl: string) => Promise<boolean>;
 }) {
   const bibleOptions = bibleTranslationOptionsForLanguage(preferences.language);
+  const selectedBible = bibleTranslations[preferences.bibleTranslation];
+  const selectedVoiceObject = availableVoices.find((voice) => voice.voiceURI === selectedVoice);
+  const selectedVoiceLabel = selectedVoiceObject ? voiceLabel(selectedVoiceObject) : ts('labels.deviceDefault', 'Device default');
 
   return (
     <section className="space-y-3">
@@ -8276,6 +8387,7 @@ function AccountPersonalizationPanel({
         icon={Languages}
         label={accountLabel(ts('labels.language', 'Language'))}
         body={ts('labels.accountLanguageBody', "Speak your heart's language.")}
+        currentValue={languages[preferences.language]?.nativeName ?? preferences.language}
         theme={theme}
         control={(
           <AccountSelect
@@ -8294,6 +8406,7 @@ function AccountPersonalizationPanel({
         icon={BookOpen}
         label={ts('labels.bibleTranslation', 'Bible translation')}
         body={ts('labels.accountBibleBody', 'Engage scripture in words that speak to you.')}
+        currentValue={selectedBible?.label ?? preferences.bibleTranslation}
         theme={theme}
         control={(
           <AccountSelect
@@ -8317,6 +8430,7 @@ function AccountPersonalizationPanel({
         icon={Sun}
         label={accountLabel(ts('labels.theme', 'Theme'))}
         body={ts('labels.accountThemeBody', 'Choose a space that feels calm and readable.')}
+        currentValue={ts(`theme.${themePreference}`, themePreference)}
         theme={theme}
         control={(
           <ThemeSwatchGrid
@@ -8331,19 +8445,17 @@ function AccountPersonalizationPanel({
         icon={Volume2}
         label={ts('labels.voice', 'Voice')}
         body={ts('labels.accountVoiceBody', 'Hear wisdom with care and clarity.')}
+        currentValue={selectedVoiceLabel}
         theme={theme}
         control={(
-          <AccountSelect
-            ariaLabel={ts('labels.voice', 'Voice')}
-            value={selectedVoice || ""}
-            onChange={(value) => onVoiceChange(value || null)}
+          <VoicePreferenceSelector
             theme={theme}
-          >
-            <option value="">{ts('labels.deviceDefault', 'Device default')}</option>
-            {availableVoices.map((voice) => (
-              <option key={voice.voiceURI} value={voice.voiceURI}>{voiceLabel(voice)}</option>
-            ))}
-          </AccountSelect>
+            ts={ts}
+            voices={availableVoices}
+            selectedVoice={selectedVoice}
+            language={preferences.language}
+            onVoiceChange={onVoiceChange}
+          />
         )}
       />
       <FocusIntentionsCard
@@ -8415,6 +8527,130 @@ function ThemeSwatchGrid({
           </button>
         );
       })}
+    </div>
+  );
+}
+
+function VoicePreferenceSelector({
+  theme,
+  ts,
+  voices,
+  selectedVoice,
+  language,
+  onVoiceChange,
+}: {
+  theme: ThemeColors;
+  ts: (key: string, fallback?: string) => string;
+  voices: SpeechSynthesisVoice[];
+  selectedVoice: string | null;
+  language: LanguageCode;
+  onVoiceChange: (voiceURI: string | null) => void;
+}) {
+  const selectedVoiceObject = voices.find((voice) => voice.voiceURI === selectedVoice);
+  const voiceChoices = [
+    ...(selectedVoiceObject ? [selectedVoiceObject] : []),
+    ...voices.filter((voice) => voice.voiceURI !== selectedVoice).slice(0, 4),
+  ].slice(0, 4);
+
+  function previewVoice(voiceURI: string | null) {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
+      return;
+    }
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(ts('labels.voicePreviewText', 'Aletheia reads with calm, clarity, and care.'));
+    utterance.lang = languages[language]?.speech ?? languages.en.speech;
+    const voice = voiceURI ? voices.find((item) => item.voiceURI === voiceURI) : null;
+    if (voice) {
+      utterance.voice = voice;
+      utterance.lang = voice.lang;
+    }
+    const pacing = speechPacingForLanguage(language);
+    utterance.rate = pacing.rate;
+    utterance.pitch = pacing.pitch;
+    utterance.volume = 1;
+    window.speechSynthesis.speak(utterance);
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{ts('labels.voicePreference', 'Voice preference')}</p>
+            <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>{ts('labels.voicePreferenceBody', 'Curated voices from this device. Preview before choosing.')}</p>
+          </div>
+          <div className="flex h-10 shrink-0 items-end gap-1" aria-hidden="true">
+            {[14, 24, 18, 31, 22, 28, 16, 25].map((height, index) => (
+              <span key={index} className="w-1.5 rounded-full" style={{ height, backgroundColor: index % 2 ? theme.accentGold : theme.primary }} />
+            ))}
+          </div>
+        </div>
+      </div>
+      <div
+        className="flex min-h-14 w-full items-center justify-between gap-3 rounded-md border p-3 text-left transition"
+        style={{
+          borderColor: !selectedVoice ? theme.accentGold : theme.borderMedium,
+          backgroundColor: !selectedVoice ? theme.activeBg : theme.bgInput,
+          color: theme.textPrimary,
+        }}
+      >
+        <button type="button" onClick={() => onVoiceChange(null)} className="min-w-0 flex-1 text-left" aria-pressed={!selectedVoice}>
+          <span className="block text-sm font-semibold">{ts('labels.deviceDefaultRecommended', 'Device default (recommended)')}</span>
+          <span className="mt-1 block text-xs" style={{ color: theme.textSecondary }}>{ts('labels.deviceVoiceBody', 'Uses the clearest available voice for this device.')}</span>
+        </button>
+        <span className="flex shrink-0 items-center gap-2">
+          <button
+            type="button"
+            onClick={() => previewVoice(null)}
+            className="rounded-md border px-2.5 py-1.5 text-xs font-semibold"
+            style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
+          >
+            {ts('labels.preview', 'Preview')}
+          </button>
+          {!selectedVoice ? <Check size={16} style={{ color: theme.accentGold }} /> : null}
+        </span>
+      </div>
+      {voiceChoices.length ? (
+        <div className="grid gap-2">
+          {voiceChoices.map((voice) => {
+            const active = selectedVoice === voice.voiceURI;
+            return (
+              <div
+                key={voice.voiceURI}
+                className="flex min-h-14 items-center justify-between gap-3 rounded-md border p-3 text-left transition"
+                style={{
+                  borderColor: active ? theme.accentGold : theme.borderMedium,
+                  backgroundColor: active ? theme.activeBg : theme.bgInput,
+                  color: theme.textPrimary,
+                }}
+              >
+                <button type="button" onClick={() => onVoiceChange(voice.voiceURI)} className="min-w-0 flex-1 text-left" aria-pressed={active}>
+                  <span className="block truncate text-sm font-semibold">{voice.name}</span>
+                  <span className="mt-1 block text-xs" style={{ color: theme.textSecondary }}>{voice.lang}</span>
+                </button>
+                <span className="flex shrink-0 items-center gap-2">
+                  <span className="rounded-md border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
+                    {voice.localService ? ts('labels.offlineVoice', 'Offline') : ts('labels.deviceVoice', 'Device')}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => previewVoice(voice.voiceURI)}
+                    className="rounded-md border px-2.5 py-1.5 text-xs font-semibold"
+                    style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
+                  >
+                    {ts('labels.preview', 'Preview')}
+                  </button>
+                  {active ? <Check size={16} style={{ color: theme.accentGold }} /> : null}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <p className="rounded-md border p-3 text-sm leading-6" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+          {ts('labels.noCuratedVoices', 'No curated device voices are available yet. Device default remains available.')}
+        </p>
+      )}
     </div>
   );
 }
