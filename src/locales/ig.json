@@ -323,7 +323,11 @@
     "gratitudePostcardFailed": "Enweghị ike ịkwadebe kaadị",
     "gratitudePostcardFailedBody": "Nwaa ọzọ na foto ọzọ.",
     "gratitudeReflectionDrafted": "A kwadebere ntụnye ntụgharị uche",
-    "gratitudeReflectionDraftedBody": "Oge foto ahụ dị njikere n’akwụkwọ gị. Tinye ihe ị na-ahụ."
+    "gratitudeReflectionDraftedBody": "Oge foto ahụ dị njikere n’akwụkwọ gị. Tinye ihe ị na-ahụ.",
+    "notificationTimingSavedBody": "Amamihe kwa ụbọchị e lekwasịrị anya ugbu a n’ihe dị ka {time} oge mpaghara.",
+    "preferencesReady": "Ntọala asụsụ adịla njikere.",
+    "preferencesSaving": "A na-echekwa ntọala asụsụ...",
+    "themeAppliedAutomatically": "Etinyela isiokwu na-akpaghị aka."
   },
   "status": {
     "guestMode": "Ọnọdụ ọbịa na-arụ ọrụ. Banye ka ịmekọrịta mkpebi.",
@@ -670,7 +674,7 @@
     "reportIssuePrivacy": "Naanị ihe ị dere na obere ọnọdụ app ka a na-eziga.",
     "reportIssueTitle": "Kọọ nsogbu",
     "reviewMoneyWorkMomentHonestly": "Lelee otu oge ego ma ọ bụ ọrụ n’eziokwu, ọ bụghị n’ihere.",
-    "selected": "ahọpụtara",
+    "selected": "Ahọrọla",
     "sendReport": "Zipụ mkpesa",
     "sending": "Na-ezipụ...",
     "signInToExportDelete": "Banye iji bupụ ma ọ bụ hichapụ data akaụntụ.",
@@ -794,7 +798,13 @@
     "useAsReflectionPrompt": "Jiri ya bụrụ ntụnye",
     "postcardSavedToTimeline": "Echekwara postcard n’akụkọ ekele",
     "usedForReflection": "Ejirila ya bụrụ ntụnye ntụgharị uche",
-    "gratitudeReflectionQuestion": "Gịnị ka oge a na-egosi gbasara inye aka, afọ ojuju, ma ọ bụ ihe zuru ezu?"
+    "gratitudeReflectionQuestion": "Gịnị ka oge a na-egosi gbasara inye aka, afọ ojuju, ma ọ bụ ihe zuru ezu?",
+    "useVoice": "Jiri",
+    "voicePreviewPlaying": "A na-akpọ nlele olu...",
+    "voicePreviewDone": "Nlele agwụla.",
+    "voicePreviewFailed": "Enweghị ike ịkpọ nlele. Nwaa olu ọzọ ma ọ bụ ndabara ngwaọrụ.",
+    "voiceApplied": "Ahọrọla olu. Jiri Nlele gee ya.",
+    "deviceVoiceApplied": "Ahọrọla ndabara ngwaọrụ. Jiri Nlele gee ya."
   },
   "personalizationNudgeTitle": "Ị chọrọ ndụmọdụ ka ọ bụrụ nke onwe gị?",
   "personalizationNudgeBody": "Tinye otu nkọwa gbasara ego, ọrụ, ma ọ bụ rhythm ndụ.",

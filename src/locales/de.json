@@ -323,7 +323,11 @@
     "gratitudePostcardFailed": "Postkarte konnte nicht vorbereitet werden",
     "gratitudePostcardFailedBody": "Versuche es mit einem anderen Bild erneut.",
     "gratitudeReflectionDrafted": "Reflexionsimpuls vorbereitet",
-    "gratitudeReflectionDraftedBody": "Der Fotomoment liegt im Journal bereit. Ergänze, was du bemerkst."
+    "gratitudeReflectionDraftedBody": "Der Fotomoment liegt im Journal bereit. Ergänze, was du bemerkst.",
+    "notificationTimingSavedBody": "Tägliche Weisheit ist jetzt auf etwa {time} Ortszeit ausgerichtet.",
+    "preferencesReady": "Spracheinstellungen sind bereit.",
+    "preferencesSaving": "Spracheinstellungen werden gespeichert...",
+    "themeAppliedAutomatically": "Theme automatisch angewendet."
   },
   "status": {
     "guestMode": "Gast-Modus aktiv. Melde dich an, um Entscheidungen zu synchronisieren.",
@@ -670,7 +674,7 @@
     "reportIssuePrivacy": "Nur dein Text und grundlegender App-Kontext werden gesendet. Private Chats, Journale, Entscheidungen und manueller Kontext werden nicht angehängt.",
     "reportIssueTitle": "Problem melden",
     "reviewMoneyWorkMomentHonestly": "Prüfe einen Geld- oder Arbeitsmoment ehrlich, nicht beschämend.",
-    "selected": "ausgewählt",
+    "selected": "Ausgewählt",
     "sendReport": "Bericht senden",
     "sending": "Wird gesendet...",
     "signInToExportDelete": "Melde dich an, um synchronisierte Kontodaten zu exportieren oder zu löschen. Gastdaten bleiben auf diesem Gerät.",
@@ -794,7 +798,13 @@
     "useAsReflectionPrompt": "Als Impuls nutzen",
     "postcardSavedToTimeline": "Postkarte in der Zeitleiste gespeichert",
     "usedForReflection": "Als Reflexionsimpuls genutzt",
-    "gratitudeReflectionQuestion": "Was zeigt dieser Moment über Versorgung, Zufriedenheit oder genug?"
+    "gratitudeReflectionQuestion": "Was zeigt dieser Moment über Versorgung, Zufriedenheit oder genug?",
+    "useVoice": "Nutzen",
+    "voicePreviewPlaying": "Stimmvorschau läuft...",
+    "voicePreviewDone": "Vorschau beendet.",
+    "voicePreviewFailed": "Vorschau konnte nicht abgespielt werden. Probiere eine andere Stimme oder den Gerätestandard.",
+    "voiceApplied": "Stimme ausgewählt. Nutze Anhören, um sie zu hören.",
+    "deviceVoiceApplied": "Gerätestandard ausgewählt. Nutze Anhören, um ihn zu hören."
   },
   "personalizationNudgeTitle": "Möchtest du persönlicheren Rat?",
   "personalizationNudgeBody": "Füge ein Detail zu Geld, Arbeit oder Rhythmus hinzu.",

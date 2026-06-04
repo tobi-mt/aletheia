@@ -323,7 +323,11 @@
     "gratitudePostcardFailed": "La carte n’a pas pu être préparée",
     "gratitudePostcardFailedBody": "Réessaie avec une autre image.",
     "gratitudeReflectionDrafted": "Invitation de réflexion préparée",
-    "gratitudeReflectionDraftedBody": "Le moment photo est prêt dans ton journal. Ajoute ce que tu remarques."
+    "gratitudeReflectionDraftedBody": "Le moment photo est prêt dans ton journal. Ajoute ce que tu remarques.",
+    "notificationTimingSavedBody": "La sagesse quotidienne est maintenant prévue vers {time} heure locale.",
+    "preferencesReady": "Les réglages de langue sont prêts.",
+    "preferencesSaving": "Enregistrement des réglages de langue...",
+    "themeAppliedAutomatically": "Thème appliqué automatiquement."
   },
   "status": {
     "guestMode": "Mode invité actif. Connecte-toi pour synchroniser les décisions.",
@@ -670,7 +674,7 @@
     "reportIssuePrivacy": "Seuls votre texte et un contexte de base de l’app sont envoyés. Les chats, journaux, décisions et contexte manuel privés ne sont pas joints.",
     "reportIssueTitle": "Signaler un problème",
     "reviewMoneyWorkMomentHonestly": "Revoyez honnêtement un moment d’argent ou de travail, sans honte.",
-    "selected": "sélectionné",
+    "selected": "Sélectionné",
     "sendReport": "Envoyer le rapport",
     "sending": "Envoi...",
     "signInToExportDelete": "Connectez-vous pour exporter ou supprimer les données synchronisées. Les données invité restent sur cet appareil.",
@@ -794,7 +798,13 @@
     "useAsReflectionPrompt": "Utiliser comme invitation",
     "postcardSavedToTimeline": "Carte enregistrée dans la chronologie",
     "usedForReflection": "Utilisé comme invitation de réflexion",
-    "gratitudeReflectionQuestion": "Que révèle ce moment sur la provision, le contentement ou le fait d’avoir assez ?"
+    "gratitudeReflectionQuestion": "Que révèle ce moment sur la provision, le contentement ou le fait d’avoir assez ?",
+    "useVoice": "Utiliser",
+    "voicePreviewPlaying": "Lecture de l’aperçu vocal...",
+    "voicePreviewDone": "Aperçu terminé.",
+    "voicePreviewFailed": "L’aperçu n’a pas pu être lu. Essaie une autre voix ou la voix par défaut.",
+    "voiceApplied": "Voix sélectionnée. Utilise Aperçu pour l’écouter.",
+    "deviceVoiceApplied": "Voix par défaut sélectionnée. Utilise Aperçu pour l’écouter."
   },
   "personalizationNudgeTitle": "Vous voulez un conseil plus personnel ?",
   "personalizationNudgeBody": "Ajoutez un détail sur l’argent, le travail ou le rythme.",

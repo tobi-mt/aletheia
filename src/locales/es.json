@@ -323,7 +323,11 @@
     "gratitudePostcardFailed": "No se pudo preparar la postal",
     "gratitudePostcardFailedBody": "Inténtalo de nuevo con otra imagen.",
     "gratitudeReflectionDrafted": "Impulso de reflexión preparado",
-    "gratitudeReflectionDraftedBody": "El momento de la foto está listo en tu diario. Añade lo que estás notando."
+    "gratitudeReflectionDraftedBody": "El momento de la foto está listo en tu diario. Añade lo que estás notando.",
+    "notificationTimingSavedBody": "La sabiduría diaria está programada alrededor de las {time} hora local.",
+    "preferencesReady": "Los ajustes de idioma están listos.",
+    "preferencesSaving": "Guardando ajustes de idioma...",
+    "themeAppliedAutomatically": "Tema aplicado automáticamente."
   },
   "status": {
     "guestMode": "Modo invitado activo. Inicia sesión para sincronizar decisiones.",
@@ -670,7 +674,7 @@
     "reportIssuePrivacy": "Solo se envían lo que escribes y contexto básico de la app. No se adjuntan chats, diarios, decisiones ni contexto manual.",
     "reportIssueTitle": "Reportar un problema",
     "reviewMoneyWorkMomentHonestly": "Revisa un momento de dinero o trabajo con honestidad, no con vergüenza.",
-    "selected": "seleccionado",
+    "selected": "Seleccionado",
     "sendReport": "Enviar reporte",
     "sending": "Enviando...",
     "signInToExportDelete": "Inicia sesión para exportar o eliminar datos sincronizados. Los datos de invitado permanecen en este dispositivo.",
@@ -794,7 +798,13 @@
     "useAsReflectionPrompt": "Usar como impulso",
     "postcardSavedToTimeline": "Postal guardada en la línea de gratitud",
     "usedForReflection": "Usado como impulso de reflexión",
-    "gratitudeReflectionQuestion": "¿Qué revela este momento sobre provisión, contentamiento o suficiente?"
+    "gratitudeReflectionQuestion": "¿Qué revela este momento sobre provisión, contentamiento o suficiente?",
+    "useVoice": "Usar",
+    "voicePreviewPlaying": "Reproduciendo vista previa...",
+    "voicePreviewDone": "Vista previa terminada.",
+    "voicePreviewFailed": "La vista previa no pudo reproducirse. Prueba otra voz o la predeterminada del dispositivo.",
+    "voiceApplied": "Voz seleccionada. Usa Vista previa para escucharla.",
+    "deviceVoiceApplied": "Voz predeterminada seleccionada. Usa Vista previa para escucharla."
   },
   "personalizationNudgeTitle": "¿Quieres un consejo más personal?",
   "personalizationNudgeBody": "Agrega un detalle sobre dinero, trabajo o ritmo.",

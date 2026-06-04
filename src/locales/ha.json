@@ -323,7 +323,11 @@
     "gratitudePostcardFailed": "Ba a iya shirya kati ba",
     "gratitudePostcardFailedBody": "Sake gwadawa da wani hoto.",
     "gratitudeReflectionDrafted": "An shirya tambayar tunani",
-    "gratitudeReflectionDraftedBody": "Lokacin hoton yana shirye a kundin tunaninka. Ƙara abin da kake lura da shi."
+    "gratitudeReflectionDraftedBody": "Lokacin hoton yana shirye a kundin tunaninka. Ƙara abin da kake lura da shi.",
+    "notificationTimingSavedBody": "Hikimar yau da kullum yanzu tana nufin kusan {time} lokacin gida.",
+    "preferencesReady": "Saitunan harshe sun shirya.",
+    "preferencesSaving": "Ana ajiye saitunan harshe...",
+    "themeAppliedAutomatically": "An aiwatar da jigo ta atomatik."
   },
   "status": {
     "guestMode": "Matsayin baƙo yana aiki. Shiga don daidaita shawara.",
@@ -670,7 +674,7 @@
     "reportIssuePrivacy": "Abin da ka rubuta da ƙaramin bayanin app kawai ake aikawa.",
     "reportIssueTitle": "Bayar da rahoton matsala",
     "reviewMoneyWorkMomentHonestly": "Duba wani lokaci na kuɗi ko aiki da gaskiya, ba da kunya ba.",
-    "selected": "an zaɓa",
+    "selected": "An zaɓa",
     "sendReport": "Aika rahoto",
     "sending": "Ana aikawa...",
     "signInToExportDelete": "Shiga don fitarwa ko share bayanan asusu.",
@@ -794,7 +798,13 @@
     "useAsReflectionPrompt": "Yi amfani da shi a matsayin tambaya",
     "postcardSavedToTimeline": "An ajiye katin a tarihin godiya",
     "usedForReflection": "An yi amfani da shi don tunani",
-    "gratitudeReflectionQuestion": "Me wannan lokaci yake nuna game da tanadi, gamsuwa, ko abin da ya isa?"
+    "gratitudeReflectionQuestion": "Me wannan lokaci yake nuna game da tanadi, gamsuwa, ko abin da ya isa?",
+    "useVoice": "Yi amfani",
+    "voicePreviewPlaying": "Ana kunna samfurin murya...",
+    "voicePreviewDone": "Samfuri ya ƙare.",
+    "voicePreviewFailed": "Ba a iya kunna samfurin ba. Gwada wata murya ko tsohon zaɓin na’ura.",
+    "voiceApplied": "An zaɓi murya. Yi amfani da Samfuri don ji.",
+    "deviceVoiceApplied": "An zaɓi tsohon murya na na’ura. Yi amfani da Samfuri don ji."
   },
   "personalizationNudgeTitle": "Kana son shawara ta fi zama ta kanka?",
   "personalizationNudgeBody": "Ƙara bayani ɗaya game da kuɗi, aiki, ko tsarin rayuwa.",

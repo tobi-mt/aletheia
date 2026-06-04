@@ -323,7 +323,11 @@
     "gratitudePostcardFailed": "Postcard could not be prepared",
     "gratitudePostcardFailedBody": "Try again with a different image.",
     "gratitudeReflectionDrafted": "Reflection prompt prepared",
-    "gratitudeReflectionDraftedBody": "The photo moment is ready in your journal. Add what you are noticing."
+    "gratitudeReflectionDraftedBody": "The photo moment is ready in your journal. Add what you are noticing.",
+    "notificationTimingSavedBody": "Daily wisdom is now aimed around {time} local time.",
+    "preferencesReady": "Language settings are ready.",
+    "preferencesSaving": "Saving language settings...",
+    "themeAppliedAutomatically": "Theme applied automatically."
   },
   "status": {
     "guestMode": "Guest mode is active. Sign in to sync decisions.",
@@ -670,7 +674,7 @@
     "reportIssuePrivacy": "Only what you type here and basic app context are sent. Private chats, journals, decisions, and manual context are not attached.",
     "reportIssueTitle": "Report an issue",
     "reviewMoneyWorkMomentHonestly": "Review one money or work moment with honesty, not shame.",
-    "selected": "selected",
+    "selected": "Selected",
     "sendReport": "Send report",
     "sending": "Sending...",
     "signInToExportDelete": "Sign in to export or delete synced account data. Guest data remains on this device.",
@@ -794,7 +798,13 @@
     "useAsReflectionPrompt": "Use as prompt",
     "postcardSavedToTimeline": "Postcard saved to timeline",
     "usedForReflection": "Used as reflection prompt",
-    "gratitudeReflectionQuestion": "What does this moment reveal about provision, contentment, or enough?"
+    "gratitudeReflectionQuestion": "What does this moment reveal about provision, contentment, or enough?",
+    "useVoice": "Use",
+    "voicePreviewPlaying": "Playing voice preview...",
+    "voicePreviewDone": "Preview finished.",
+    "voicePreviewFailed": "Preview could not play. Try another voice or your device default.",
+    "voiceApplied": "Voice selected. Use Preview to hear it.",
+    "deviceVoiceApplied": "Device default selected. Use Preview to hear it."
   },
   "personalizationNudgeTitle": "Want more personal counsel?",
   "personalizationNudgeBody": "Add one detail about money, work, or rhythm.",

@@ -323,7 +323,11 @@
     "gratitudePostcardFailed": "Kaadi ko le ṣetan",
     "gratitudePostcardFailedBody": "Gbiyanju lẹẹkansi pẹlu aworan miran.",
     "gratitudeReflectionDrafted": "A ti pèsè ìtànná ìrònú",
-    "gratitudeReflectionDraftedBody": "Ìṣẹ́jú fọ́tò náà ti ṣetan nínú ìwé ìrònú rẹ. Fi ohun tí o ń rí kún un."
+    "gratitudeReflectionDraftedBody": "Ìṣẹ́jú fọ́tò náà ti ṣetan nínú ìwé ìrònú rẹ. Fi ohun tí o ń rí kún un.",
+    "notificationTimingSavedBody": "Ọgbọ́n ojoojúmọ́ ti wa ni ìtọ́sọ́nà sí ayika {time} akoko agbègbè.",
+    "preferencesReady": "Àwọn ètò èdè ti ṣetan.",
+    "preferencesSaving": "Ń fi àwọn ètò èdè pamọ...",
+    "themeAppliedAutomatically": "Àkòrí ti ṣiṣẹ́ laifọwọyi."
   },
   "status": {
     "guestMode": "Ìpò àlejò ń ṣiṣẹ́. Wọlé láti fọ́kàn sọ́ àwọn ìpinnu.",
@@ -670,7 +674,7 @@
     "reportIssuePrivacy": "Ohun tí o kọ àti àlàyé app díẹ̀ nìkan ni a fi ránṣẹ́.",
     "reportIssueTitle": "Jábọ̀ ìṣòro",
     "reviewMoneyWorkMomentHonestly": "Ṣàyẹ̀wò ìṣẹ̀lẹ̀ owó tàbí iṣẹ́ kan pẹ̀lú òtítọ́, kì í ṣe ìtìjú.",
-    "selected": "ti yan",
+    "selected": "Ti yan",
     "sendReport": "Fi ránṣẹ́",
     "sending": "Ń ránṣẹ́...",
     "signInToExportDelete": "Wọlé láti gbe data jáde tàbí pa data àkántì rẹ́.",
@@ -794,7 +798,13 @@
     "useAsReflectionPrompt": "Lo gẹ́gẹ́ bí ìtànná",
     "postcardSavedToTimeline": "A fi kaadi pamọ́ sí ìtàn ìmoore",
     "usedForReflection": "A lo gẹ́gẹ́ bí ìtànná ìrònú",
-    "gratitudeReflectionQuestion": "Kí ni ìṣẹ́jú yìí fi hàn nípa ìpèsè, ìtẹ́lọ́run, tàbí ohun tó tó?"
+    "gratitudeReflectionQuestion": "Kí ni ìṣẹ́jú yìí fi hàn nípa ìpèsè, ìtẹ́lọ́run, tàbí ohun tó tó?",
+    "useVoice": "Lo",
+    "voicePreviewPlaying": "Àpẹẹrẹ ohùn ń dun...",
+    "voicePreviewDone": "Àpẹẹrẹ parí.",
+    "voicePreviewFailed": "Àpẹẹrẹ kò le dun. Gbìyànjú ohùn míràn tàbí aiyipada ẹrọ.",
+    "voiceApplied": "A ti yan ohùn. Lo Àpẹẹrẹ láti gbọ́ ọ.",
+    "deviceVoiceApplied": "Aiyipada ẹrọ ti yan. Lo Àpẹẹrẹ láti gbọ́ ọ."
   },
   "personalizationNudgeTitle": "Ṣe o fẹ́ ìmọ̀ràn tó mọ̀ ọ́ síi?",
   "personalizationNudgeBody": "Fi alaye kan kun nípa owó, iṣẹ́, tàbí ìlànà ìgbé-ayé.",

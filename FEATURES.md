@@ -140,6 +140,7 @@ After a meaningful answer, Aletheia can help the user take the next wise step.
 - Reflection drafts created from AI answers
 - Today’s wisdom can be turned into a reflection prompt
 - Gratitude Lens for visual gratitude practice using a user-selected or captured photo plus one grateful note
+- Gratitude Lens interface, timeline, weekly recap, and postcard actions use the user’s selected app language
 - Gratitude photos stay local on the user’s device by default and are not synced to the account
 - Prompt from today’s wisdom to suggest one gratitude photo or observation
 - Photo-to-reflection flow that turns a saved gratitude moment into a journal prompt
@@ -186,8 +187,9 @@ After a meaningful answer, Aletheia can help the user take the next wise step.
 - Dedicated Account tab
 - Premium grouped Account screen built around Profile, Personalization, Daily Wisdom Notifications, Manual Context Vault, Share Aletheia, and System
 - One Profile card with avatar/photo and personalized greeting in the default state, with sign-in, sync, and notification details available on expand
-- Collapsed Profile card shows icon-led continuity stats for reflections, decisions, and trusted voices without truncating labels
+- Collapsed Profile card shows avatar/photo, email, and icon-and-number continuity stats for reflections, decisions, and trusted voices without truncating translated labels
 - Personalization group with command-center rows for language, Bible translation, visual theme swatches, curated voice preference, avatar, and focus intentions
+- Voice selector separates Use and Preview actions, shows selected-state feedback, and reports localized preview status
 - Each personalization row shows the current value first and expands only when the user wants to change it
 - Guided onboarding journey for mode, tone, faith familiarity, language, Bible translation, region, focus intentions, and privacy/context posture
 - Daily Wisdom Notifications card for push status, delivery rhythm, local delivery time, and timezone preference
@@ -228,7 +230,7 @@ After a meaningful answer, Aletheia can help the user take the next wise step.
 - Life context / region
 - Preferred Bible translation
 - Voice preference (device default or selected installed voice)
-- Premium voice preference selector with curated device voices and preview playback
+- Premium voice preference selector with curated device voices, explicit apply controls, and preview playback feedback
 - Notification timing preference (local hour, timezone mode, timezone, delivery strategy)
 - Focus intentions that tune prompt suggestions and Companion/Decision guidance emphasis
 - Region-aware examples

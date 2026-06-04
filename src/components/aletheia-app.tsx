@@ -1909,7 +1909,7 @@ function createGratitudePostcardBlob(entry: GratitudeEntry, theme: ThemeColors, 
 function voiceQualityScore(voice: SpeechSynthesisVoice, languagePrefix: string) {
   const name = voice.name.toLowerCase();
   const noveltyVoicePattern =
-    /novelty|bells|bad news|bubbles|cellos|good news|hysterical|organ|trinoids|whisper|zarvox|boing|bahh|pipe|jester|superstar|wobble|seifenblasen|schlechte neuigkeiten|gute neuigkeiten|flüstern|fluestern|hysterisch|orgel|glocken|blasen|celli/i;
+    /novelty|bells|bad news|bubbles|cellos|good news|hysterical|organ|trinoids|whisper|zarvox|boing|bahh|pipe|jester|superstar|wobble|grandma|grandpa|grandmother|grandfather|shelley|sandy|rocko|shelley|seifenblasen|schlechte neuigkeiten|gute neuigkeiten|flüstern|fluestern|hysterisch|orgel|glocken|blasen|celli|oma|opa|grossmutter|großmutter|grossvater|großvater/i;
   if (noveltyVoicePattern.test(voice.name)) {
     return -999;
   }
@@ -2102,11 +2102,16 @@ function notificationHourForStrategy(strategy: NotificationTiming["deliveryStrat
   return fallback;
 }
 
-function notificationTimeLabel(hour: number) {
+function notificationTimeLabel(hour: number, locale: string = "en") {
   const normalized = Math.min(23, Math.max(0, hour));
-  const suffix = normalized >= 12 ? "PM" : "AM";
-  const hour12 = normalized % 12 || 12;
-  return `${hour12}:00 ${suffix}`;
+  const date = new Date(2026, 0, 1, normalized, 0, 0);
+  try {
+    return new Intl.DateTimeFormat(locale, { hour: "numeric", minute: "2-digit" }).format(date);
+  } catch {
+    const suffix = normalized >= 12 ? "PM" : "AM";
+    const hour12 = normalized % 12 || 12;
+    return `${hour12}:00 ${suffix}`;
+  }
 }
 
 function notificationTimezoneOptions(currentTimezone?: string) {
@@ -3260,7 +3265,7 @@ export function AletheiaApp() {
   const [authStatus, setAuthStatus] = useState<AuthStatus>("checking");
   const [googleAuthAvailable, setGoogleAuthAvailable] = useState(false);
   const [preferences, setPreferences] = useState<UserPreferences>(defaultPreferences);
-  const [preferencesStatus, setPreferencesStatus] = useState("Language settings are ready.");
+  const [preferencesStatus, setPreferencesStatus] = useState("");
   const [manualContext, setManualContext] = useState<ManualContextProfile>(defaultManualContext);
   const [manualContextStatus, setManualContextStatus] = useState("Manual context is private and optional.");
   const [clientStateRestored, setClientStateRestored] = useState(false);
@@ -4558,7 +4563,7 @@ export function AletheiaApp() {
 
   function updateThemePreference(nextTheme: ThemePreference) {
     setThemePreference(nextTheme);
-    setPreferencesStatus("Theme applied automatically.");
+    setPreferencesStatus(ts('notifications.themeAppliedAutomatically', 'Theme applied automatically.'));
     trackClientEvent("theme_changed", {
       theme: nextTheme,
       previous_theme: themePreference,
@@ -4567,7 +4572,11 @@ export function AletheiaApp() {
 
   function updateVoicePreference(voiceURI: string | null) {
     setSelectedVoice(voiceURI);
-    setPreferencesStatus(voiceURI ? "Voice preference applied on this device." : "Voice reset to device default.");
+    setPreferencesStatus(
+      voiceURI
+        ? ts('labels.voiceApplied', 'Voice selected. Use Preview to hear it.')
+        : ts('labels.deviceVoiceApplied', 'Device default selected. Use Preview to hear it.')
+    );
   }
 
   function updateFocusIntentions(nextIntentions: string[]) {
@@ -4908,7 +4917,7 @@ export function AletheiaApp() {
       });
     }
     setPreferences(next);
-    setPreferencesStatus(user ? "Saving language settings..." : "Saved on this device. Sign in to sync language settings.");
+    setPreferencesStatus(user ? ts('notifications.preferencesSaving', 'Saving language settings...') : ts('notifications.preferencesSavedBody', 'Your language preferences are saved on this device.'));
     try {
       window.localStorage.setItem("aletheia_preferences", JSON.stringify(next));
     } catch {
@@ -4929,7 +4938,7 @@ export function AletheiaApp() {
         body: JSON.stringify(next),
       });
       const saved = response.ok;
-      setPreferencesStatus(saved ? "Language settings saved." : "Could not sync language settings yet.");
+      setPreferencesStatus(saved ? ts('notifications.preferencesReady', 'Language settings are ready.') : ts('notifications.preferencesSavedLocallyBody', 'The app kept the setting on this device, but sync did not complete.'));
       announceWorkflow(
         saved ? getNextTranslation('notifications.preferencesSynced', 'Language settings synced') : getNextTranslation('notifications.preferencesSavedLocally', 'Language settings saved locally'),
         saved ? getNextTranslation('notifications.preferencesSyncedBody', 'Your language preferences are now synced across devices.') : getNextTranslation('notifications.preferencesSavedLocallyBody', 'Your language preferences are saved on this device.'),
@@ -5136,7 +5145,7 @@ export function AletheiaApp() {
     const SpeechRecognition =
       browserWindow.SpeechRecognition || browserWindow.webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      setPreferencesStatus("Voice input is not supported in this browser yet.");
+      setPreferencesStatus(ts('notifications.voiceInputUnavailableBody', 'Voice input is not supported in this browser yet.'));
       announceWorkflow(ts('notifications.voiceInputUnavailable'), ts('notifications.voiceInputUnavailableBody'), "warning");
       return;
     }
@@ -5188,7 +5197,7 @@ export function AletheiaApp() {
     };
     recognition.onerror = () => {
       if (inactivityTimer) clearTimeout(inactivityTimer);
-      setPreferencesStatus("Voice input stopped before Aletheia could hear clearly.");
+      setPreferencesStatus(ts('notifications.voiceInputStoppedBody', 'Voice input stopped before Aletheia could hear clearly.'));
       announceWorkflow(ts('notifications.voiceInputStopped'), ts('notifications.voiceInputStoppedBody'), "warning");
     };
     recognition.onend = () => {
@@ -5204,7 +5213,7 @@ export function AletheiaApp() {
 
   function speakLatestAletheiaReply() {
     if (!("speechSynthesis" in window)) {
-      setPreferencesStatus("Voice output is not supported in this browser yet.");
+      setPreferencesStatus(ts('notifications.voiceOutputUnavailableBody', 'Voice output is not supported in this browser yet.'));
       announceWorkflow(ts('notifications.voiceOutputUnavailable'), ts('notifications.voiceOutputUnavailableBody'), "warning");
       return;
     }
@@ -5248,7 +5257,7 @@ export function AletheiaApp() {
     label = "Aletheia reading"
   ) {
     if (!("speechSynthesis" in window)) {
-      setPreferencesStatus("Voice output is not supported in this browser yet.");
+      setPreferencesStatus(ts('notifications.voiceOutputUnavailableBody', 'Voice output is not supported in this browser yet.'));
       announceWorkflow(ts('notifications.voiceOutputUnavailable'), ts('notifications.voiceOutputUnavailableBody'), "warning");
       return;
     }
@@ -5687,7 +5696,7 @@ export function AletheiaApp() {
       setNotificationTiming(nextTiming);
       persistNotificationTiming(nextTiming);
       setNotificationStatus(ts('notifications.notificationsEnabledBody'));
-      announceWorkflow(ts('notifications.notificationsEnabled'), ts('notifications.notificationsEnabledBodyTime').replace('{time}', notificationTimeLabel(preferredLocalHour)), "success");
+      announceWorkflow(ts('notifications.notificationsEnabled'), ts('notifications.notificationsEnabledBodyTime').replace('{time}', notificationTimeLabel(preferredLocalHour, preferences.language)), "success");
     } catch {
       trackClientEvent("notification_enable_failed", { reason: "client_exception" });
       setNotificationsEnabled(false);
@@ -5806,7 +5815,7 @@ export function AletheiaApp() {
       }
       if (!notificationsEnabled) {
         setNotificationStatus("Daily wisdom timing synced. Enable notifications when this device is ready.");
-        announceWorkflow(ts('notifications.notificationTimingSaved'), `Daily wisdom is now aimed around ${notificationTimeLabel(nextTiming.preferredLocalHour)} local time.`, "success");
+        announceWorkflow(ts('notifications.notificationTimingSaved'), ts('notifications.notificationTimingSavedBody').replace('{time}', notificationTimeLabel(nextTiming.preferredLocalHour, preferences.language)), "success");
         return;
       }
       const registration = await getReliableServiceWorkerRegistration();
@@ -5822,7 +5831,7 @@ export function AletheiaApp() {
         return;
       }
       setNotificationStatus("Daily wisdom timing synced.");
-      announceWorkflow(ts('notifications.notificationTimingSaved'), `Daily wisdom is now aimed around ${notificationTimeLabel(nextTiming.preferredLocalHour)} local time.`, "success");
+      announceWorkflow(ts('notifications.notificationTimingSaved'), ts('notifications.notificationTimingSavedBody').replace('{time}', notificationTimeLabel(nextTiming.preferredLocalHour, preferences.language)), "success");
     } catch {
       setNotificationStatus("Timing changed here, but could not sync to the server yet.");
     } finally {
@@ -8511,6 +8520,7 @@ function AccountPanel({
           <NotificationPanel
             theme={theme}
             ts={ts}
+            language={preferences.language}
             user={user}
             enabled={notificationsEnabled}
             configured={notificationsConfigured}
@@ -8601,16 +8611,16 @@ function AccountHeaderStat({
   const accessibleLabel = `${value} ${detail}`;
   return (
     <span
-      className="min-w-0 rounded-md border px-2 py-1.5 text-center"
+      className="min-w-0 rounded-md border px-2 py-2 text-center"
       style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}
       aria-label={accessibleLabel}
       title={accessibleLabel}
     >
-      <span className="flex items-center justify-center gap-1.5 leading-none" style={{ color: theme.textPrimary }}>
-        <Icon size={13} aria-hidden="true" />
-        <span className="text-sm font-semibold">{value}</span>
+      <span className="flex items-center justify-center gap-2 leading-none" style={{ color: theme.textPrimary }}>
+        <Icon size={15} aria-hidden="true" />
+        <span className="text-base font-semibold">{value}</span>
       </span>
-      <span className="mt-1 block text-[9px] font-semibold uppercase leading-tight tracking-[0.06em]" style={{ color: theme.textMuted }}>{label}</span>
+      <span className="sr-only">{label}</span>
     </span>
   );
 }
@@ -8866,7 +8876,7 @@ function AccountPersonalizationPanel({
         onChange={onFocusIntentionsChange}
       />
       <p className="rounded-md border px-3 py-2 text-xs leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
-        {preferencesStatus}
+        {preferencesStatus || ts('notifications.preferencesReady', 'Language settings are ready.')}
       </p>
       <AvatarStudioCard theme={theme} user={user} ts={ts} onUpdateProfileAvatar={onUpdateProfileAvatar} />
     </section>
@@ -8947,6 +8957,8 @@ function VoicePreferenceSelector({
   language: LanguageCode;
   onVoiceChange: (voiceURI: string | null) => void;
 }) {
+  const [previewStatus, setPreviewStatus] = useState("");
+  const [previewingVoiceURI, setPreviewingVoiceURI] = useState<string | null | "default">(null);
   const selectedVoiceObject = voices.find((voice) => voice.voiceURI === selectedVoice);
   const voiceChoices = [
     ...(selectedVoiceObject ? [selectedVoiceObject] : []),
@@ -8955,9 +8967,13 @@ function VoicePreferenceSelector({
 
   function previewVoice(voiceURI: string | null) {
     if (typeof window === "undefined" || !("speechSynthesis" in window)) {
+      setPreviewStatus(ts('notifications.voiceOutputUnavailable', 'Voice output is not supported in this browser yet.'));
       return;
     }
     window.speechSynthesis.cancel();
+    if (window.speechSynthesis.paused) {
+      window.speechSynthesis.resume();
+    }
     const utterance = new SpeechSynthesisUtterance(ts('labels.voicePreviewText', 'Aletheia reads with calm, clarity, and care.'));
     utterance.lang = languages[language]?.speech ?? languages.en.speech;
     const voice = voiceURI ? voices.find((item) => item.voiceURI === voiceURI) : null;
@@ -8969,7 +8985,41 @@ function VoicePreferenceSelector({
     utterance.rate = pacing.rate;
     utterance.pitch = pacing.pitch;
     utterance.volume = 1;
+    setPreviewingVoiceURI(voiceURI ?? "default");
+    setPreviewStatus(ts('labels.voicePreviewPlaying', 'Playing voice preview...'));
+    utterance.onend = () => {
+      setPreviewingVoiceURI(null);
+      setPreviewStatus(ts('labels.voicePreviewDone', 'Preview finished.'));
+    };
+    utterance.onerror = () => {
+      setPreviewingVoiceURI(null);
+      setPreviewStatus(ts('labels.voicePreviewFailed', 'Preview could not play. Try another voice or your device default.'));
+    };
     window.speechSynthesis.speak(utterance);
+  }
+
+  function chooseVoice(voiceURI: string | null) {
+    onVoiceChange(voiceURI);
+    setPreviewStatus(
+      voiceURI
+        ? ts('labels.voiceApplied', 'Voice selected. Use Preview to hear it.')
+        : ts('labels.deviceVoiceApplied', 'Device default selected. Use Preview to hear it.')
+    );
+  }
+
+  function renderVoicePreviewButton(voiceURI: string | null) {
+    const isPreviewing = previewingVoiceURI === (voiceURI ?? "default");
+    return (
+      <button
+        type="button"
+        onClick={() => previewVoice(voiceURI)}
+        className="inline-flex h-10 items-center justify-center gap-2 rounded-md border px-3 text-xs font-semibold"
+        style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
+      >
+        {isPreviewing ? <Volume2 size={14} /> : <Play size={14} />}
+        {ts('labels.preview', 'Preview')}
+      </button>
+    );
   }
 
   return (
@@ -8988,27 +9038,34 @@ function VoicePreferenceSelector({
         </div>
       </div>
       <div
-        className="flex min-h-14 w-full items-center justify-between gap-3 rounded-md border p-3 text-left transition"
+        className="grid gap-3 rounded-md border p-3 text-left transition sm:grid-cols-[1fr_auto]"
         style={{
           borderColor: !selectedVoice ? theme.accentGold : theme.borderMedium,
           backgroundColor: !selectedVoice ? theme.activeBg : theme.bgInput,
           color: theme.textPrimary,
         }}
       >
-        <button type="button" onClick={() => onVoiceChange(null)} className="min-w-0 flex-1 text-left" aria-pressed={!selectedVoice}>
+        <div className="min-w-0">
           <span className="block text-sm font-semibold">{ts('labels.deviceDefaultRecommended', 'Device default (recommended)')}</span>
           <span className="mt-1 block text-xs" style={{ color: theme.textSecondary }}>{ts('labels.deviceVoiceBody', 'Uses the clearest available voice for this device.')}</span>
-        </button>
-        <span className="flex shrink-0 items-center gap-2">
+          {!selectedVoice ? (
+            <span className="mt-2 inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.accentGold, backgroundColor: theme.activeBg, color: theme.accentGold }}>
+              <Check size={12} />
+              {ts('labels.selected', 'Selected')}
+            </span>
+          ) : null}
+        </div>
+        <span className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
           <button
             type="button"
-            onClick={() => previewVoice(null)}
-            className="rounded-md border px-2.5 py-1.5 text-xs font-semibold"
-            style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
+            onClick={() => chooseVoice(null)}
+            className="h-10 rounded-md border px-3 text-xs font-semibold"
+            style={{ borderColor: !selectedVoice ? theme.accentGold : theme.borderLight, backgroundColor: !selectedVoice ? theme.activeBg : theme.bgCardElevated, color: theme.textPrimary }}
+            aria-pressed={!selectedVoice}
           >
-            {ts('labels.preview', 'Preview')}
+            {ts('labels.useVoice', 'Use')}
           </button>
-          {!selectedVoice ? <Check size={16} style={{ color: theme.accentGold }} /> : null}
+          {renderVoicePreviewButton(null)}
         </span>
       </div>
       {voiceChoices.length ? (
@@ -9018,30 +9075,39 @@ function VoicePreferenceSelector({
             return (
               <div
                 key={voice.voiceURI}
-                className="flex min-h-14 items-center justify-between gap-3 rounded-md border p-3 text-left transition"
+                className="grid gap-3 rounded-md border p-3 text-left transition sm:grid-cols-[1fr_auto]"
                 style={{
                   borderColor: active ? theme.accentGold : theme.borderMedium,
                   backgroundColor: active ? theme.activeBg : theme.bgInput,
                   color: theme.textPrimary,
                 }}
               >
-                <button type="button" onClick={() => onVoiceChange(voice.voiceURI)} className="min-w-0 flex-1 text-left" aria-pressed={active}>
+                <div className="min-w-0">
                   <span className="block truncate text-sm font-semibold">{voice.name}</span>
-                  <span className="mt-1 block text-xs" style={{ color: theme.textSecondary }}>{voice.lang}</span>
-                </button>
-                <span className="flex shrink-0 items-center gap-2">
-                  <span className="rounded-md border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
-                    {voice.localService ? ts('labels.offlineVoice', 'Offline') : ts('labels.deviceVoice', 'Device')}
+                  <span className="mt-1 flex flex-wrap items-center gap-2 text-xs" style={{ color: theme.textSecondary }}>
+                    <span>{voice.lang}</span>
+                    <span className="rounded-md border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
+                      {voice.localService ? ts('labels.offlineVoice', 'Offline') : ts('labels.deviceVoice', 'Device')}
+                    </span>
                   </span>
+                  {active ? (
+                    <span className="mt-2 inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.accentGold, backgroundColor: theme.activeBg, color: theme.accentGold }}>
+                      <Check size={12} />
+                      {ts('labels.selected', 'Selected')}
+                    </span>
+                  ) : null}
+                </div>
+                <span className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
                   <button
                     type="button"
-                    onClick={() => previewVoice(voice.voiceURI)}
-                    className="rounded-md border px-2.5 py-1.5 text-xs font-semibold"
-                    style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
+                    onClick={() => chooseVoice(voice.voiceURI)}
+                    className="h-10 rounded-md border px-3 text-xs font-semibold"
+                    style={{ borderColor: active ? theme.accentGold : theme.borderLight, backgroundColor: active ? theme.activeBg : theme.bgCardElevated, color: theme.textPrimary }}
+                    aria-pressed={active}
                   >
-                    {ts('labels.preview', 'Preview')}
+                    {active ? ts('labels.selected', 'Selected') : ts('labels.useVoice', 'Use')}
                   </button>
-                  {active ? <Check size={16} style={{ color: theme.accentGold }} /> : null}
+                  {renderVoicePreviewButton(voice.voiceURI)}
                 </span>
               </div>
             );
@@ -9052,6 +9118,11 @@ function VoicePreferenceSelector({
           {ts('labels.noCuratedVoices', 'No curated device voices are available yet. Device default remains available.')}
         </p>
       )}
+      {previewStatus ? (
+        <p className="rounded-md border px-3 py-2 text-xs leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }} aria-live="polite">
+          {previewStatus}
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -10724,6 +10795,7 @@ function AuthPanel({
 function NotificationPanel({
   theme,
   ts,
+  language,
   user,
   enabled,
   configured,
@@ -10737,6 +10809,7 @@ function NotificationPanel({
 }: {
   theme: ThemeColors;
   ts: (key: string, fallback?: string) => string;
+  language: LanguageCode;
   user: User | null;
   enabled: boolean;
   configured: boolean;
@@ -10809,7 +10882,7 @@ function NotificationPanel({
       <div className="mt-4 rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
         <div className="mb-3 rounded-md border px-3 py-2 text-sm leading-6" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
           <span className="font-semibold" style={{ color: theme.textPrimary }}>
-            {ts('notifications.dailyWisdomSetFor', 'Daily wisdom is set for')} {notificationTimeLabel(timing.preferredLocalHour)}.
+            {ts('notifications.dailyWisdomSetFor', 'Daily wisdom is set for')} {notificationTimeLabel(timing.preferredLocalHour, language)}.
           </span>{" "}
           {ts('notifications.savedLocalTimingPreference', 'Aletheia will use your saved local timing preference.')}
         </div>
@@ -10841,7 +10914,7 @@ function NotificationPanel({
             >
               {Array.from({ length: 18 }, (_, index) => index + 5).map((hour) => (
                 <option key={hour} value={hour}>
-                  {notificationTimeLabel(hour)}
+                  {notificationTimeLabel(hour, language)}
                 </option>
               ))}
             </select>
@@ -13913,7 +13986,7 @@ function GratitudeLensPanel({
     'labels.gratitudePromptFromWisdomBody',
     'Take one photo that helps you practice today’s wisdom: {practice}'
   ).replace("{practice}", todayCompanionCard.practice);
-  const gratitudeRhythmLabel = notificationTimeLabel(GRATITUDE_REFLECTION_DEFAULT_HOUR);
+  const gratitudeRhythmLabel = notificationTimeLabel(GRATITUDE_REFLECTION_DEFAULT_HOUR, language);
 
   return (
     <DisclosureSection
