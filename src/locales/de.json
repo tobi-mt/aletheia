@@ -777,7 +777,9 @@
     "delete": "Löschen",
     "gratitudeTimelineEmpty": "Mach ein ruhiges Foto von etwas, das du nicht für selbstverständlich halten möchtest. Aletheia bewahrt es hier als privaten visuellen Rhythmus.",
     "gratitudePostcard": "Dankbarkeitspostkarte",
-    "gratitudePostcardShareText": "Ein ruhiger Dankbarkeitsmoment aus Aletheia."
+    "gratitudePostcardShareText": "Ein ruhiger Dankbarkeitsmoment aus Aletheia.",
+    "personalizeAletheia": "Aletheia personalisieren",
+    "gratitudePostcardInvite": "Beginne deinen eigenen Dankbarkeitsrhythmus mit Aletheia."
   },
   "personalizationNudgeTitle": "Möchtest du persönlicheren Rat?",
   "personalizationNudgeBody": "Füge ein Detail zu Geld, Arbeit oder Rhythmus hinzu.",

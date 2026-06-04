@@ -777,7 +777,9 @@
     "delete": "Goge",
     "gratitudeTimelineEmpty": "Dauki hoto cikin natsuwa na abin da ba ka so ka dauka da wasa. Aletheia za ta ajiye shi a nan a matsayin tsarin gani na sirri.",
     "gratitudePostcard": "Katin godiya",
-    "gratitudePostcardShareText": "Lokacin godiya mai natsuwa daga Aletheia."
+    "gratitudePostcardShareText": "Lokacin godiya mai natsuwa daga Aletheia.",
+    "personalizeAletheia": "Daidaita Aletheia naka",
+    "gratitudePostcardInvite": "Fara tsarin godiyarka da Aletheia."
   },
   "personalizationNudgeTitle": "Kana son shawara ta fi zama ta kanka?",
   "personalizationNudgeBody": "Ƙara bayani ɗaya game da kuɗi, aiki, ko tsarin rayuwa.",

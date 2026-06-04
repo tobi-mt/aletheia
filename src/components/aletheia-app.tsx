@@ -1819,7 +1819,7 @@ function drawWrappedCanvasText(
   return y + lines.length * lineHeight;
 }
 
-function createGratitudePostcardBlob(entry: GratitudeEntry, theme: ThemeColors, label: string, locale: string): Promise<Blob> {
+function createGratitudePostcardBlob(entry: GratitudeEntry, theme: ThemeColors, label: string, inviteText: string, locale: string): Promise<Blob> {
   return new Promise((resolve, reject) => {
     const canvas = document.createElement("canvas");
     canvas.width = 1200;
@@ -1831,6 +1831,7 @@ function createGratitudePostcardBlob(entry: GratitudeEntry, theme: ThemeColors, 
     }
     const img = document.createElement("img");
     img.onload = () => {
+      const render = (logo?: HTMLImageElement) => {
       context.fillStyle = theme.bgMain;
       context.fillRect(0, 0, canvas.width, canvas.height);
       const imageHeight = 1000;
@@ -1845,16 +1846,27 @@ function createGratitudePostcardBlob(entry: GratitudeEntry, theme: ThemeColors, 
       context.fillStyle = gradient;
       context.fillRect(0, 0, canvas.width, canvas.height);
 
+      if (logo) {
+        context.save();
+        context.beginPath();
+        context.roundRect(80, 1050, 74, 74, 14);
+        context.clip();
+        context.drawImage(logo, 80, 1050, 74, 74);
+        context.restore();
+      }
       context.fillStyle = "#f8f5e8";
       context.font = "700 46px Georgia, serif";
-      context.fillText("Aletheia", 80, 1120);
+      context.fillText("Aletheia", logo ? 176 : 80, 1110);
+      context.fillStyle = "rgba(248, 245, 232, 0.76)";
+      context.font = "400 26px system-ui, sans-serif";
+      context.fillText("Wisdom for stewards", logo ? 176 : 80, 1148);
       context.fillStyle = theme.accentLight;
       context.font = "700 30px system-ui, sans-serif";
-      context.fillText(label.toLocaleUpperCase(locale), 80, 1180);
+      context.fillText(label.toLocaleUpperCase(locale), 80, 1210);
 
       context.fillStyle = "#f8f5e8";
       context.font = "600 60px Georgia, serif";
-      const afterNoteY = drawWrappedCanvasText(context, entry.note, 80, 1270, 1040, 76, 4);
+      const afterNoteY = drawWrappedCanvasText(context, entry.note, 80, 1300, 1040, 76, 4);
 
       context.fillStyle = "rgba(248, 245, 232, 0.78)";
       context.font = "400 30px system-ui, sans-serif";
@@ -1863,9 +1875,12 @@ function createGratitudePostcardBlob(entry: GratitudeEntry, theme: ThemeColors, 
         entry.place.trim(),
       ].filter(Boolean).join(" · ");
       if (details) {
-        drawWrappedCanvasText(context, details, 80, Math.min(afterNoteY + 56, 1510), 1040, 42, 2);
+        drawWrappedCanvasText(context, details, 80, Math.min(afterNoteY + 46, 1488), 1040, 42, 2);
       }
 
+      context.fillStyle = "rgba(248, 245, 232, 0.66)";
+      context.font = "500 24px system-ui, sans-serif";
+      drawWrappedCanvasText(context, inviteText, 80, 1536, 1040, 30, 2);
       context.strokeStyle = theme.accentLight;
       context.lineWidth = 4;
       context.strokeRect(42, 42, canvas.width - 84, canvas.height - 84);
@@ -1876,6 +1891,12 @@ function createGratitudePostcardBlob(entry: GratitudeEntry, theme: ThemeColors, 
           reject(new Error("Could not export postcard."));
         }
       }, "image/png", 0.95);
+      };
+
+      const logo = document.createElement("img");
+      logo.onload = () => render(logo);
+      logo.onerror = () => render();
+      logo.src = "/brand/aletheia-app-icon-192.png";
     };
     img.onerror = () => reject(new Error("Could not load gratitude image."));
     img.src = entry.imageDataUrl;
@@ -5912,6 +5933,7 @@ export function AletheiaApp() {
         entry,
         theme,
         ts('labels.gratitudeLens', 'Gratitude Lens'),
+        ts('labels.gratitudePostcardInvite', 'Begin your own gratitude rhythm with Aletheia.'),
         preferences.language
       );
       const filename = `aletheia-gratitude-${entry.createdAt.slice(0, 10)}.png`;
@@ -8303,6 +8325,20 @@ function AccountPanel({
   const profileSummary = user
     ? user.email
     : ts('labels.accountGuestSummary', text.accountGuestSummary ?? "Google and email sign-in keep history, preferences, decisions, and notifications portable.");
+  const profileStats = [
+    {
+      value: journalEntries.length,
+      label: ts('labels.accountHistoryReflections', text.accountHistoryReflections ?? 'reflections'),
+    },
+    {
+      value: decisions.length,
+      label: ts('labels.accountHistoryDecisions', text.accountHistoryDecisions ?? 'decisions'),
+    },
+    {
+      value: counselContacts.length,
+      label: ts('labels.trustedVoices', 'trusted voices'),
+    },
+  ];
 
   return (
     <div className="mx-auto grid min-w-0 max-w-3xl gap-4">
@@ -8323,6 +8359,11 @@ function AccountPanel({
                 <span className="block text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.profileTitle', 'Profile')}</span>
                 <span className="mt-1 block truncate text-lg font-semibold" style={{ color: theme.textPrimary }}>{profileGreeting}</span>
                 <span className="mt-1 block truncate text-sm leading-5" style={{ color: theme.textSecondary }}>{profileSummary}</span>
+                <span className="mt-3 grid grid-cols-3 gap-1.5">
+                  {profileStats.map((stat) => (
+                    <AccountHeaderStat key={stat.label} value={stat.value} label={stat.label} theme={theme} />
+                  ))}
+                </span>
               </span>
             </span>
           )}
@@ -8369,8 +8410,9 @@ function AccountPanel({
         </DisclosureSection>
 
         <DisclosureSection
-          title={ts('labels.accountPersonalizationTitle', 'Personalization')}
+          title={ts('labels.personalizeAletheia', 'Personalize Aletheia')}
           summary={ts('labels.accountPersonalizationSummary', 'Language, Bible translation, theme, voice, and avatar shape how Aletheia feels when you use it.')}
+          eyebrow={ts('labels.accountPersonalizationTitle', 'Personalization')}
           compactCollapsed
           showDetailsLabel={text.showDetails}
           hideDetailsLabel={text.hideDetails}
@@ -8493,6 +8535,18 @@ function AccountPanel({
         </DisclosureSection>
       </section>
     </div>
+  );
+}
+
+function AccountHeaderStat({ value, label, theme }: { value: number; label: string; theme: ThemeColors }) {
+  return (
+    <span
+      className="min-w-0 rounded-md border px-2 py-1.5 text-center"
+      style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}
+    >
+      <span className="block text-sm font-semibold leading-none" style={{ color: theme.textPrimary }}>{value}</span>
+      <span className="mt-1 block truncate text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ color: theme.textMuted }}>{label}</span>
+    </span>
   );
 }
 

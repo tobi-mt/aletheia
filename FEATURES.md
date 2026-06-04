@@ -144,6 +144,7 @@ After a meaningful answer, Aletheia can help the user take the next wise step.
 - Optional place/context field for gratitude moments without requesting GPS location
 - Private gratitude timeline for visual tracking of provision, beauty, and small mercies
 - Optional generated gratitude postcard that includes the selected image, note, date/time, and optional place
+- Gratitude postcard includes Aletheia branding/signature and a subtle invitation to begin a gratitude rhythm
 - Gratitude postcards export/share only when the user explicitly chooses
 
 ## Biblical Wisdom Knowledge Engine
@@ -180,6 +181,7 @@ After a meaningful answer, Aletheia can help the user take the next wise step.
 - Dedicated Account tab
 - Premium grouped Account screen built around Profile, Personalization, Daily Wisdom Notifications, Manual Context Vault, Share Aletheia, and System
 - One Profile card with avatar/photo and personalized greeting in the default state, with sign-in, sync, and notification details available on expand
+- Collapsed Profile card shows calm continuity stats for reflections, decisions, and trusted voices
 - Personalization group with command-center rows for language, Bible translation, visual theme swatches, curated voice preference, avatar, and focus intentions
 - Each personalization row shows the current value first and expands only when the user wants to change it
 - Guided onboarding journey for mode, tone, faith familiarity, language, Bible translation, region, focus intentions, and privacy/context posture

@@ -777,7 +777,9 @@
     "delete": "Delete",
     "gratitudeTimelineEmpty": "Take one quiet photo of something you do not want to take for granted. Aletheia will keep it here as a private visual rhythm.",
     "gratitudePostcard": "Gratitude postcard",
-    "gratitudePostcardShareText": "A quiet gratitude moment from Aletheia."
+    "gratitudePostcardShareText": "A quiet gratitude moment from Aletheia.",
+    "personalizeAletheia": "Personalize Aletheia",
+    "gratitudePostcardInvite": "Begin your own gratitude rhythm with Aletheia."
   },
   "personalizationNudgeTitle": "Want more personal counsel?",
   "personalizationNudgeBody": "Add one detail about money, work, or rhythm.",

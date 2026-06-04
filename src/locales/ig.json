@@ -777,7 +777,9 @@
     "delete": "Hichapụ",
     "gratitudeTimelineEmpty": "Were foto dị jụụ nke ihe ị chọghị ileghara anya. Aletheia ga-edebe ya ebe a dịka omume anya nkeonwe.",
     "gratitudePostcard": "Kaadị ekele",
-    "gratitudePostcardShareText": "Oge ekele dị jụụ sitere na Aletheia."
+    "gratitudePostcardShareText": "Oge ekele dị jụụ sitere na Aletheia.",
+    "personalizeAletheia": "Mee Aletheia nke gị",
+    "gratitudePostcardInvite": "Malite usoro ekele nke gị na Aletheia."
   },
   "personalizationNudgeTitle": "Ị chọrọ ndụmọdụ ka ọ bụrụ nke onwe gị?",
   "personalizationNudgeBody": "Tinye otu nkọwa gbasara ego, ọrụ, ma ọ bụ rhythm ndụ.",

@@ -777,7 +777,9 @@
     "delete": "Paarẹ",
     "gratitudeTimelineEmpty": "Ya fọto idakẹjẹ ti nkan kan tí o ko fẹ ka si ohun lasan. Aletheia yoo pa a mọ́ nibi bi aṣa ìwòye aládáni.",
     "gratitudePostcard": "Kaadi ọpẹ",
-    "gratitudePostcardShareText": "Akoko ọpẹ idakẹjẹ lati Aletheia."
+    "gratitudePostcardShareText": "Akoko ọpẹ idakẹjẹ lati Aletheia.",
+    "personalizeAletheia": "Ṣe Aletheia ti ara rẹ",
+    "gratitudePostcardInvite": "Bẹrẹ aṣa ọpẹ tirẹ pẹlu Aletheia."
   },
   "personalizationNudgeTitle": "Ṣe o fẹ́ ìmọ̀ràn tó mọ̀ ọ́ síi?",
   "personalizationNudgeBody": "Fi alaye kan kun nípa owó, iṣẹ́, tàbí ìlànà ìgbé-ayé.",

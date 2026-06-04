@@ -777,7 +777,9 @@
     "delete": "Excluir",
     "gratitudeTimelineEmpty": "Tire uma foto tranquila de algo que você não quer tratar como garantido. Aletheia vai guardá-la aqui como um ritmo visual privado.",
     "gratitudePostcard": "Cartão de gratidão",
-    "gratitudePostcardShareText": "Um momento tranquilo de gratidão do Aletheia."
+    "gratitudePostcardShareText": "Um momento tranquilo de gratidão do Aletheia.",
+    "personalizeAletheia": "Personalize Aletheia",
+    "gratitudePostcardInvite": "Comece seu próprio ritmo de gratidão com Aletheia."
   },
   "personalizationNudgeTitle": "Quer um conselho mais pessoal?",
   "personalizationNudgeBody": "Adicione um detalhe sobre dinheiro, trabalho ou ritmo.",
