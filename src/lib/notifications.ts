@@ -156,7 +156,7 @@ function dailyNotificationPayload(row: PushRow, wisdomEntries: Awaited<ReturnTyp
   const daily = localizedDailyWisdom(wisdom, dailyMode, preferences);
   const localDate = localDateForTimezone(now, row.preferred_timezone);
   const variant = stableHash(`${row.user_id}:${localDate}:${daily.scripture}:${daily.theme}`) % 5;
-  const title = buildDailyNotificationTitle(daily.label, daily.principle, daily.theme, daily.practice, variant);
+  const title = buildDailyNotificationTitle(daily.label, daily.theme, daily.scripture, variant);
   const body = buildDailyNotificationBody(daily.practice, daily.scripture, daily.principle, variant);
   return {
     title,
@@ -200,36 +200,35 @@ function notificationTagPart(value: string) {
 
 function buildDailyNotificationTitle(
   label: string,
-  principle: string,
   theme: string,
-  practice: string,
+  scripture: string,
   variant: number
 ) {
-  const cleanPrinciple = compactNotificationCopy(principle, 62);
-  const cleanPractice = compactNotificationCopy(practice, 62);
-  const cleanTheme = compactNotificationCopy(theme, 44);
+  const cleanTheme = compactNotificationCopy(theme, 34);
+  const scriptureReference = compactNotificationCopy(scripture.replace(/\s*\([^)]*\)\s*$/, ""), 32);
   const titleOptions = [
     `${label}: ${cleanTheme}`,
-    cleanPrinciple,
-    `${cleanTheme}: ${cleanPractice}`,
-    cleanPractice,
-    `${label}: ${cleanPrinciple}`,
+    cleanTheme,
+    `${label}: ${scriptureReference}`,
+    `${cleanTheme} · ${scriptureReference}`,
+    label,
   ].filter(Boolean);
-  return compactNotificationCopy(titleOptions[variant % titleOptions.length] || `${label}: ${cleanTheme}`, 72);
+  return compactNotificationCopy(titleOptions[variant % titleOptions.length] || `${label}: ${cleanTheme}`, 58);
 }
 
 function buildDailyNotificationBody(practice: string, scripture: string, principle: string, variant: number) {
-  const cleanPractice = compactNotificationCopy(practice, 104);
-  const cleanPrinciple = compactNotificationCopy(principle, 104);
-  const scriptureReference = compactNotificationCopy(scripture, 54);
+  const cleanPractice = compactNotificationCopy(practice, 118);
+  const cleanPrinciple = compactNotificationCopy(principle, 118);
+  const scriptureReference = compactNotificationCopy(scripture, 46);
+  const distinctPrinciple = cleanPrinciple.toLowerCase() !== cleanPractice.toLowerCase() ? cleanPrinciple : "";
   const bodyOptions = [
     `${cleanPractice} · ${scriptureReference}`,
-    `${cleanPrinciple} · ${scriptureReference}`,
-    `${scriptureReference} · ${cleanPractice}`,
     cleanPractice,
-    `${cleanPractice} · ${cleanPrinciple}`,
+    distinctPrinciple ? `${distinctPrinciple} · ${scriptureReference}` : "",
+    `${scriptureReference} · ${cleanPractice}`,
+    distinctPrinciple || cleanPractice,
   ].filter(Boolean);
-  return compactNotificationCopy(bodyOptions[variant % bodyOptions.length] || scriptureReference, 165);
+  return compactNotificationCopy(bodyOptions[variant % bodyOptions.length] || cleanPractice || scriptureReference, 142);
 }
 
 function selectReminderForUser(reminders: DueDecisionReminder[]) {

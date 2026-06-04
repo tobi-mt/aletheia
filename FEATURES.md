@@ -186,7 +186,7 @@ After a meaningful answer, Aletheia can help the user take the next wise step.
 - Dedicated Account tab
 - Premium grouped Account screen built around Profile, Personalization, Daily Wisdom Notifications, Manual Context Vault, Share Aletheia, and System
 - One Profile card with avatar/photo and personalized greeting in the default state, with sign-in, sync, and notification details available on expand
-- Collapsed Profile card shows calm continuity stats for reflections, decisions, and trusted voices
+- Collapsed Profile card shows icon-led continuity stats for reflections, decisions, and trusted voices without truncating labels
 - Personalization group with command-center rows for language, Bible translation, visual theme swatches, curated voice preference, avatar, and focus intentions
 - Each personalization row shows the current value first and expands only when the user wants to change it
 - Guided onboarding journey for mode, tone, faith familiarity, language, Bible translation, region, focus intentions, and privacy/context posture
@@ -314,7 +314,7 @@ After a meaningful answer, Aletheia can help the user take the next wise step.
 
 - Opt-in daily wisdom notifications
 - Web Push support
-- Daily push copy is generated from the selected wisdom principle, practice, scripture, user language, and local date so notifications remain meaningful and varied
+- Daily push copy is generated from the selected wisdom principle, practice, scripture, user language, and local date so notifications remain meaningful, varied, and non-duplicative
 - Daily notification tags include the local date and wisdom entry, helping each day feel distinct instead of replacing every prior daily message with the same tag
 - Decision waiting-mode and revisit notifications use distinct, premium reminder copy and deep-link back to the relevant decision card
 - Notification status inside Account

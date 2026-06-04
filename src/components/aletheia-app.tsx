@@ -8368,16 +8368,22 @@ function AccountPanel({
     : ts('labels.accountGuestSummary', text.accountGuestSummary ?? "Google and email sign-in keep history, preferences, decisions, and notifications portable.");
   const profileStats = [
     {
+      icon: Feather,
       value: journalEntries.length,
-      label: ts('labels.accountHistoryReflections', text.accountHistoryReflections ?? 'reflections'),
+      label: ts('nav.reflect', text.nav.reflect),
+      detail: ts('labels.accountHistoryReflections', text.accountHistoryReflections ?? 'reflections'),
     },
     {
+      icon: FileText,
       value: decisions.length,
-      label: ts('labels.accountHistoryDecisions', text.accountHistoryDecisions ?? 'decisions'),
+      label: ts('nav.decisions', text.nav.decisions),
+      detail: ts('labels.accountHistoryDecisions', text.accountHistoryDecisions ?? 'decisions'),
     },
     {
+      icon: Users,
       value: counselContacts.length,
-      label: ts('labels.trustedVoices', 'trusted voices'),
+      label: ts('labels.counsel', 'Counsel'),
+      detail: ts('labels.trustedVoices', 'trusted voices'),
     },
   ];
 
@@ -8402,7 +8408,7 @@ function AccountPanel({
                 <span className="mt-1 block truncate text-sm leading-5" style={{ color: theme.textSecondary }}>{profileSummary}</span>
                 <span className="mt-3 grid grid-cols-3 gap-1.5">
                   {profileStats.map((stat) => (
-                    <AccountHeaderStat key={stat.label} value={stat.value} label={stat.label} theme={theme} />
+                    <AccountHeaderStat key={stat.detail} icon={stat.icon} value={stat.value} label={stat.label} detail={stat.detail} theme={theme} />
                   ))}
                 </span>
               </span>
@@ -8579,14 +8585,32 @@ function AccountPanel({
   );
 }
 
-function AccountHeaderStat({ value, label, theme }: { value: number; label: string; theme: ThemeColors }) {
+function AccountHeaderStat({
+  icon: Icon,
+  value,
+  label,
+  detail,
+  theme,
+}: {
+  icon: typeof Feather;
+  value: number;
+  label: string;
+  detail: string;
+  theme: ThemeColors;
+}) {
+  const accessibleLabel = `${value} ${detail}`;
   return (
     <span
       className="min-w-0 rounded-md border px-2 py-1.5 text-center"
       style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}
+      aria-label={accessibleLabel}
+      title={accessibleLabel}
     >
-      <span className="block text-sm font-semibold leading-none" style={{ color: theme.textPrimary }}>{value}</span>
-      <span className="mt-1 block truncate text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ color: theme.textMuted }}>{label}</span>
+      <span className="flex items-center justify-center gap-1.5 leading-none" style={{ color: theme.textPrimary }}>
+        <Icon size={13} aria-hidden="true" />
+        <span className="text-sm font-semibold">{value}</span>
+      </span>
+      <span className="mt-1 block text-[9px] font-semibold uppercase leading-tight tracking-[0.06em]" style={{ color: theme.textMuted }}>{label}</span>
     </span>
   );
 }
