@@ -308,6 +308,7 @@ const UPDATE_REFRESH_PENDING_KEY = "aletheia_update_refresh_pending";
 const FOCUS_INTENTIONS_STORAGE_KEY = "aletheia_focus_intentions";
 const GRATITUDE_LENS_STORAGE_KEY = "aletheia_gratitude_lens";
 const MAX_GRATITUDE_ENTRIES = 12;
+const GRATITUDE_REFLECTION_DEFAULT_HOUR = 19;
 const DEFAULT_NOTIFICATION_TIMING: NotificationTiming = {
   preferredLocalHour: 8,
   preferredTimezone: "UTC",
@@ -1742,6 +1743,8 @@ function storedGratitudeEntries(): GratitudeEntry[] {
       .map((entry) => ({
         ...entry,
         place: typeof entry.place === "string" ? entry.place : "",
+        postcardCreatedAt: typeof entry.postcardCreatedAt === "string" ? entry.postcardCreatedAt : undefined,
+        reflectedAt: typeof entry.reflectedAt === "string" ? entry.reflectedAt : undefined,
       }))
       .slice(0, MAX_GRATITUDE_ENTRIES);
   } catch {
@@ -2300,6 +2303,8 @@ type GratitudeEntry = {
   note: string;
   place: string;
   createdAt: string;
+  postcardCreatedAt?: string;
+  reflectedAt?: string;
 };
 
 type WisdomDecision = {
@@ -5911,6 +5916,39 @@ export function AletheiaApp() {
     }
   }
 
+  function updateGratitudeEntry(id: string, patch: Partial<GratitudeEntry>) {
+    setGratitudeEntries((current) => {
+      const nextEntries = current.map((entry) => entry.id === id ? { ...entry, ...patch } : entry);
+      try {
+        persistGratitudeEntries(nextEntries);
+      } catch {
+        // The in-memory timeline remains updated if local storage is briefly unavailable.
+      }
+      return nextEntries;
+    });
+  }
+
+  function useGratitudeAsReflectionPrompt(entry: GratitudeEntry) {
+    const created = new Date(entry.createdAt).toLocaleString(preferences.language, { dateStyle: "medium", timeStyle: "short" });
+    const placeLine = entry.place.trim()
+      ? `${ts('labels.placeOptional', 'Place (optional)')}: ${entry.place.trim()}\n`
+      : "";
+    setJournalTitle(ts('labels.gratitudeReflectionTitle', 'Gratitude reflection'));
+    setJournalBody(
+      `${ts('labels.gratitudeMoment', 'gratitude moment')}: ${entry.note}\n${placeLine}${ts('labels.date', 'Date')}: ${created}\n\n${ts('labels.gratitudeReflectionQuestion', 'What does this moment reveal about provision, contentment, or enough?')}\n\n`
+    );
+    updateGratitudeEntry(entry.id, { reflectedAt: new Date().toISOString() });
+    trackClientEvent("gratitude_reflection_prompt_used", {
+      has_place: Boolean(entry.place.trim()),
+      source: "reflect_tab",
+    });
+    announceWorkflow(
+      ts('notifications.gratitudeReflectionDrafted', 'Reflection prompt prepared'),
+      ts('notifications.gratitudeReflectionDraftedBody', 'The photo moment is ready in your journal. Add what you are noticing.'),
+      "success"
+    );
+  }
+
   function deleteGratitudeEntry(id: string) {
     const nextEntries = gratitudeEntries.filter((entry) => entry.id !== id);
     setGratitudeEntries(nextEntries);
@@ -5960,9 +5998,10 @@ export function AletheiaApp() {
         URL.revokeObjectURL(url);
       }
       trackClientEvent("gratitude_postcard_shared", { channel: canShareFile ? "native" : "download", source: "reflect_tab" });
+      updateGratitudeEntry(entry.id, { postcardCreatedAt: new Date().toISOString() });
       announceWorkflow(
         canShareFile ? ts('notifications.shareSheetOpened', 'Share sheet opened') : ts('notifications.gratitudePostcardDownloaded', 'Postcard downloaded'),
-        ts('notifications.gratitudePostcardReadyBody', 'Only the postcard image you chose was exported. Your other reflections stayed private.'),
+        ts('notifications.gratitudePostcardReadyBody', 'Only the postcard image you chose was exported. Your other reflections stayed private. A copy is marked in your Gratitude Timeline.'),
         "success"
       );
     } catch (error) {
@@ -6905,6 +6944,8 @@ export function AletheiaApp() {
                   onSaveGratitude={saveGratitudeEntry}
                   onDeleteGratitude={deleteGratitudeEntry}
                   onShareGratitudePostcard={shareGratitudePostcard}
+                  onUseGratitudeAsReflection={useGratitudeAsReflectionPrompt}
+                  todayCompanionCard={todayCompanionCard}
                   theme={theme}
                 />
                 </Screen>
@@ -13639,6 +13680,8 @@ function ReflectPanel({
   onSaveGratitude,
   onDeleteGratitude,
   onShareGratitudePostcard,
+  onUseGratitudeAsReflection,
+  todayCompanionCard,
   theme,
 }: {
   language: LanguageCode;
@@ -13663,6 +13706,8 @@ function ReflectPanel({
   onSaveGratitude: (file: File | null, note: string, place: string) => void;
   onDeleteGratitude: (id: string) => void;
   onShareGratitudePostcard: (entry: GratitudeEntry) => void;
+  onUseGratitudeAsReflection: (entry: GratitudeEntry) => void;
+  todayCompanionCard: TodayCompanionCard;
   theme: ThemeColors;
 }) {
   const runtime = runtimeCopyFor(language);
@@ -13721,6 +13766,8 @@ function ReflectPanel({
         onSave={onSaveGratitude}
         onDelete={onDeleteGratitude}
         onSharePostcard={onShareGratitudePostcard}
+        onUseAsReflection={onUseGratitudeAsReflection}
+        todayCompanionCard={todayCompanionCard}
       />
 
       <JournalPanel
@@ -13764,6 +13811,8 @@ function GratitudeLensPanel({
   onSave,
   onDelete,
   onSharePostcard,
+  onUseAsReflection,
+  todayCompanionCard,
 }: {
   entries: GratitudeEntry[];
   language: LanguageCode;
@@ -13772,12 +13821,15 @@ function GratitudeLensPanel({
   onSave: (file: File | null, note: string, place: string) => void | Promise<void>;
   onDelete: (id: string) => void;
   onSharePostcard: (entry: GratitudeEntry) => void;
+  onUseAsReflection: (entry: GratitudeEntry) => void;
+  todayCompanionCard: TodayCompanionCard;
 }) {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState("");
   const [note, setNote] = useState("");
   const [place, setPlace] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [weekStartTime] = useState(() => Date.now() - 7 * 24 * 60 * 60 * 1000);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
@@ -13828,6 +13880,16 @@ function GratitudeLensPanel({
   const summary = entries.length
     ? `${entries.length} ${entries.length === 1 ? ts('labels.gratitudeMoment', 'gratitude moment') : ts('labels.gratitudeMoments', 'gratitude moments')} · ${ts('labels.localOnly', 'local only')}`
     : ts('labels.gratitudeEmptySummary', 'Start with one image and one grateful sentence.');
+  const weeklyEntries = entries.filter((entry) => {
+    const entryTime = new Date(entry.createdAt).getTime();
+    return Number.isFinite(entryTime) && entryTime >= weekStartTime;
+  });
+  const weeklyPlaces = Array.from(new Set(weeklyEntries.map((entry) => entry.place.trim()).filter(Boolean))).slice(0, 3);
+  const todayWisdomPrompt = ts(
+    'labels.gratitudePromptFromWisdomBody',
+    'Take one photo that helps you practice today’s wisdom: {practice}'
+  ).replace("{practice}", todayCompanionCard.practice);
+  const gratitudeRhythmLabel = notificationTimeLabel(GRATITUDE_REFLECTION_DEFAULT_HOUR);
 
   return (
     <DisclosureSection
@@ -13850,6 +13912,20 @@ function GratitudeLensPanel({
               <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
                 {ts('labels.gratitudeLensBody', 'Take or choose a photo, name what you are grateful for, and keep a private visual record of provision, beauty, and small mercies.')}
               </p>
+            </div>
+          </div>
+
+          <div className="mt-4 rounded-xl border p-3" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+            <div className="flex items-start gap-3">
+              <Sparkles size={18} className="mt-0.5 shrink-0" style={{ color: theme.accentGold }} />
+              <div className="min-w-0">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
+                  {ts('labels.promptFromTodayWisdom', "Prompt from today’s wisdom")}
+                </p>
+                <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                  {todayWisdomPrompt}
+                </p>
+              </div>
             </div>
           </div>
 
@@ -13932,6 +14008,9 @@ function GratitudeLensPanel({
           <p className="mt-3 text-xs leading-5" style={{ color: theme.textMuted }}>
             {ts('labels.gratitudePrivacyNote', 'Private by default: gratitude images are stored locally on this device and are not synced to your account.')}
           </p>
+          <p className="mt-2 text-xs leading-5" style={{ color: theme.textMuted }}>
+            {ts('labels.suggestedGratitudeRhythm', 'Best rhythm: around {time} local time as a day-closing reflection.').replace("{time}", gratitudeRhythmLabel)}
+          </p>
         </div>
 
         <div className="rounded-xl border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
@@ -13943,6 +14022,19 @@ function GratitudeLensPanel({
               </h3>
             </div>
             <Sprout size={24} style={{ color: theme.primary }} />
+          </div>
+          <div className="mt-4 rounded-xl border p-3" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput }}>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
+              {ts('labels.gratitudeWeeklyRecap', 'Weekly gratitude recap')}
+            </p>
+            <p className="mt-1 text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>
+              {ts('labels.weeklyMomentsNoticed', 'This week: {count} moments noticed.').replace("{count}", String(weeklyEntries.length))}
+            </p>
+            <p className="mt-1 text-xs leading-5" style={{ color: theme.textSecondary }}>
+              {weeklyPlaces.length
+                ? ts('labels.weeklyGratitudePlaces', 'Places noticed: {places}.').replace("{places}", weeklyPlaces.join(", "))
+                : ts('labels.noStreaksJustRemembrance', 'No streaks, no pressure. Just remembrance over time.')}
+            </p>
           </div>
           <div className="mt-4 space-y-3">
             {entries.length ? (
@@ -13957,7 +14049,30 @@ function GratitudeLensPanel({
                       {new Date(entry.createdAt).toLocaleString(language, { dateStyle: "medium", timeStyle: "short" })}
                       {entry.place ? ` · ${entry.place}` : ""}
                     </p>
-                    <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_auto]">
+                    {(entry.postcardCreatedAt || entry.reflectedAt) ? (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {entry.postcardCreatedAt ? (
+                          <span className="rounded-full border px-3 py-1 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                            {ts('labels.postcardSavedToTimeline', 'Postcard saved to timeline')}
+                          </span>
+                        ) : null}
+                        {entry.reflectedAt ? (
+                          <span className="rounded-full border px-3 py-1 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                            {ts('labels.usedForReflection', 'Used as reflection prompt')}
+                          </span>
+                        ) : null}
+                      </div>
+                    ) : null}
+                    <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                      <button
+                        type="button"
+                        onClick={() => onUseAsReflection(entry)}
+                        className="inline-flex h-10 items-center justify-center gap-2 rounded-md border px-3 text-sm font-semibold"
+                        style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                      >
+                        <Feather size={15} />
+                        {ts('labels.useAsReflectionPrompt', 'Use as prompt')}
+                      </button>
                       <button
                         type="button"
                         onClick={() => onSharePostcard(entry)}

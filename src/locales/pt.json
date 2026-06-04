@@ -319,9 +319,11 @@
     "gratitudeDeleted": "Gratidão removida",
     "gratitudeDeletedBody": "A imagem local de gratidão foi removida deste dispositivo.",
     "gratitudePostcardDownloaded": "Cartão baixado",
-    "gratitudePostcardReadyBody": "Somente o cartão que você escolheu foi exportado. Suas outras reflexões permaneceram privadas.",
+    "gratitudePostcardReadyBody": "Somente a imagem do cartão que você escolheu foi exportada. Suas outras reflexões continuam privadas. Uma cópia fica marcada na sua linha do tempo de gratidão.",
     "gratitudePostcardFailed": "O cartão não pôde ser preparado",
-    "gratitudePostcardFailedBody": "Tente novamente com outra imagem."
+    "gratitudePostcardFailedBody": "Tente novamente com outra imagem.",
+    "gratitudeReflectionDrafted": "Sugestão de reflexão preparada",
+    "gratitudeReflectionDraftedBody": "O momento da foto está pronto no seu diário. Acrescente o que você percebe."
   },
   "status": {
     "guestMode": "Modo convidado ativo. Entre para sincronizar decisões.",
@@ -779,7 +781,20 @@
     "gratitudePostcard": "Cartão de gratidão",
     "gratitudePostcardShareText": "Um momento tranquilo de gratidão do Aletheia.",
     "personalizeAletheia": "Personalize Aletheia",
-    "gratitudePostcardInvite": "Comece seu próprio ritmo de gratidão com Aletheia."
+    "gratitudePostcardInvite": "Comece seu próprio ritmo de gratidão com Aletheia.",
+    "gratitudeReflectionTitle": "Reflexão de gratidão",
+    "date": "Data",
+    "promptFromTodayWisdom": "Sugestão da sabedoria de hoje",
+    "gratitudePromptFromWisdomBody": "Tire uma foto que ajude você a praticar a sabedoria de hoje: {practice}",
+    "suggestedGratitudeRhythm": "Melhor ritmo: por volta de {time} no horário local, como reflexão de fim de dia.",
+    "gratitudeWeeklyRecap": "Resumo semanal de gratidão",
+    "weeklyMomentsNoticed": "Esta semana: {count} momentos percebidos.",
+    "weeklyGratitudePlaces": "Lugares percebidos: {places}.",
+    "noStreaksJustRemembrance": "Sem sequência, sem pressão. Apenas lembrança ao longo do tempo.",
+    "useAsReflectionPrompt": "Usar como sugestão",
+    "postcardSavedToTimeline": "Cartão salvo na linha do tempo",
+    "usedForReflection": "Usado como sugestão de reflexão",
+    "gratitudeReflectionQuestion": "O que este momento revela sobre provisão, contentamento ou o suficiente?"
   },
   "personalizationNudgeTitle": "Quer um conselho mais pessoal?",
   "personalizationNudgeBody": "Adicione um detalhe sobre dinheiro, trabalho ou ritmo.",

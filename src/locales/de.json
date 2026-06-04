@@ -319,9 +319,11 @@
     "gratitudeDeleted": "Dankbarkeit entfernt",
     "gratitudeDeletedBody": "Das lokale Dankbarkeitsbild wurde von diesem Gerät entfernt.",
     "gratitudePostcardDownloaded": "Postkarte heruntergeladen",
-    "gratitudePostcardReadyBody": "Nur die von dir gewählte Postkarte wurde exportiert. Deine anderen Reflexionen blieben privat.",
+    "gratitudePostcardReadyBody": "Nur das ausgewählte Postkartenbild wurde exportiert. Deine anderen Reflexionen bleiben privat. Eine Kopie ist in deiner Dankbarkeits-Zeitleiste markiert.",
     "gratitudePostcardFailed": "Postkarte konnte nicht vorbereitet werden",
-    "gratitudePostcardFailedBody": "Versuche es mit einem anderen Bild erneut."
+    "gratitudePostcardFailedBody": "Versuche es mit einem anderen Bild erneut.",
+    "gratitudeReflectionDrafted": "Reflexionsimpuls vorbereitet",
+    "gratitudeReflectionDraftedBody": "Der Fotomoment liegt im Journal bereit. Ergänze, was du bemerkst."
   },
   "status": {
     "guestMode": "Gast-Modus aktiv. Melde dich an, um Entscheidungen zu synchronisieren.",
@@ -779,7 +781,20 @@
     "gratitudePostcard": "Dankbarkeitspostkarte",
     "gratitudePostcardShareText": "Ein ruhiger Dankbarkeitsmoment aus Aletheia.",
     "personalizeAletheia": "Aletheia personalisieren",
-    "gratitudePostcardInvite": "Beginne deinen eigenen Dankbarkeitsrhythmus mit Aletheia."
+    "gratitudePostcardInvite": "Beginne deinen eigenen Dankbarkeitsrhythmus mit Aletheia.",
+    "gratitudeReflectionTitle": "Dankbarkeitsreflexion",
+    "date": "Datum",
+    "promptFromTodayWisdom": "Impuls aus der heutigen Weisheit",
+    "gratitudePromptFromWisdomBody": "Mache ein Foto, das dir hilft, die heutige Weisheit zu üben: {practice}",
+    "suggestedGratitudeRhythm": "Bester Rhythmus: gegen {time} Ortszeit als Tagesabschluss.",
+    "gratitudeWeeklyRecap": "Wöchentlicher Dankbarkeitsrückblick",
+    "weeklyMomentsNoticed": "Diese Woche: {count} Momente wahrgenommen.",
+    "weeklyGratitudePlaces": "Wahrgenommene Orte: {places}.",
+    "noStreaksJustRemembrance": "Keine Serie, kein Druck. Nur Erinnerung über die Zeit.",
+    "useAsReflectionPrompt": "Als Impuls nutzen",
+    "postcardSavedToTimeline": "Postkarte in der Zeitleiste gespeichert",
+    "usedForReflection": "Als Reflexionsimpuls genutzt",
+    "gratitudeReflectionQuestion": "Was zeigt dieser Moment über Versorgung, Zufriedenheit oder genug?"
   },
   "personalizationNudgeTitle": "Möchtest du persönlicheren Rat?",
   "personalizationNudgeBody": "Füge ein Detail zu Geld, Arbeit oder Rhythmus hinzu.",

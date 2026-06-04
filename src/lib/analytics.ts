@@ -36,6 +36,7 @@ const ALLOWED_EVENTS = new Set([
   "gratitude_entry_created",
   "gratitude_entry_deleted",
   "gratitude_postcard_shared",
+  "gratitude_reflection_prompt_used",
   "account_delete_completed",
   "account_delete_requested",
   "data_export_requested",

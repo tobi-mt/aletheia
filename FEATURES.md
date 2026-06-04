@@ -141,11 +141,16 @@ After a meaningful answer, Aletheia can help the user take the next wise step.
 - Today’s wisdom can be turned into a reflection prompt
 - Gratitude Lens for visual gratitude practice using a user-selected or captured photo plus one grateful note
 - Gratitude photos stay local on the user’s device by default and are not synced to the account
+- Prompt from today’s wisdom to suggest one gratitude photo or observation
+- Photo-to-reflection flow that turns a saved gratitude moment into a journal prompt
 - Optional place/context field for gratitude moments without requesting GPS location
 - Private gratitude timeline for visual tracking of provision, beauty, and small mercies
+- Streak-free weekly gratitude recap focused on remembrance rather than pressure
 - Optional generated gratitude postcard that includes the selected image, note, date/time, and optional place
 - Gratitude postcard includes Aletheia branding/signature and a subtle invitation to begin a gratitude rhythm
 - Gratitude postcards export/share only when the user explicitly chooses
+- Exported gratitude postcards are marked back in the local Gratitude Timeline
+- Gratitude rhythm guidance recommends around 7 PM local time as a calm day-closing practice
 
 ## Biblical Wisdom Knowledge Engine
 

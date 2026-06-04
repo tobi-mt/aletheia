@@ -319,9 +319,11 @@
     "gratitudeDeleted": "An cire godiya",
     "gratitudeDeletedBody": "An cire hoton godiya na gida daga wannan na’ura.",
     "gratitudePostcardDownloaded": "An sauke kati",
-    "gratitudePostcardReadyBody": "Katin hoton da ka zaba kawai aka fitar. Sauran tunaninka sun kasance na sirri.",
+    "gratitudePostcardReadyBody": "Hoton katin da ka zaba kawai aka fitar. Sauran tunaninka sun kasance na sirri. An yi alama da kwafi a tarihin godiyarka.",
     "gratitudePostcardFailed": "Ba a iya shirya kati ba",
-    "gratitudePostcardFailedBody": "Sake gwadawa da wani hoto."
+    "gratitudePostcardFailedBody": "Sake gwadawa da wani hoto.",
+    "gratitudeReflectionDrafted": "An shirya tambayar tunani",
+    "gratitudeReflectionDraftedBody": "Lokacin hoton yana shirye a kundin tunaninka. Ƙara abin da kake lura da shi."
   },
   "status": {
     "guestMode": "Matsayin baƙo yana aiki. Shiga don daidaita shawara.",
@@ -779,7 +781,20 @@
     "gratitudePostcard": "Katin godiya",
     "gratitudePostcardShareText": "Lokacin godiya mai natsuwa daga Aletheia.",
     "personalizeAletheia": "Daidaita Aletheia naka",
-    "gratitudePostcardInvite": "Fara tsarin godiyarka da Aletheia."
+    "gratitudePostcardInvite": "Fara tsarin godiyarka da Aletheia.",
+    "gratitudeReflectionTitle": "Tunani na godiya",
+    "date": "Kwanan wata",
+    "promptFromTodayWisdom": "Tambaya daga hikimar yau",
+    "gratitudePromptFromWisdomBody": "Ɗauki hoto guda da zai taimaka maka aiwatar da hikimar yau: {practice}",
+    "suggestedGratitudeRhythm": "Mafi dacewa: kusan {time} lokacin gida, a matsayin tunanin rufe rana.",
+    "gratitudeWeeklyRecap": "Takaitaccen godiya na mako",
+    "weeklyMomentsNoticed": "Wannan mako: an lura da lokuta {count}.",
+    "weeklyGratitudePlaces": "Wuraren da aka lura: {places}.",
+    "noStreaksJustRemembrance": "Babu lissafin nasara, babu matsin lamba. Tunawa ne kawai a hankali.",
+    "useAsReflectionPrompt": "Yi amfani da shi a matsayin tambaya",
+    "postcardSavedToTimeline": "An ajiye katin a tarihin godiya",
+    "usedForReflection": "An yi amfani da shi don tunani",
+    "gratitudeReflectionQuestion": "Me wannan lokaci yake nuna game da tanadi, gamsuwa, ko abin da ya isa?"
   },
   "personalizationNudgeTitle": "Kana son shawara ta fi zama ta kanka?",
   "personalizationNudgeBody": "Ƙara bayani ɗaya game da kuɗi, aiki, ko tsarin rayuwa.",

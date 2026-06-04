@@ -319,9 +319,11 @@
     "gratitudeDeleted": "Gratitude supprimée",
     "gratitudeDeletedBody": "L’image locale de gratitude a été supprimée de cet appareil.",
     "gratitudePostcardDownloaded": "Carte téléchargée",
-    "gratitudePostcardReadyBody": "Seule l’image de carte que tu as choisie a été exportée. Tes autres réflexions sont restées privées.",
+    "gratitudePostcardReadyBody": "Seule l’image de carte que tu as choisie a été exportée. Tes autres réflexions restent privées. Une copie est indiquée dans ta chronologie de gratitude.",
     "gratitudePostcardFailed": "La carte n’a pas pu être préparée",
-    "gratitudePostcardFailedBody": "Réessaie avec une autre image."
+    "gratitudePostcardFailedBody": "Réessaie avec une autre image.",
+    "gratitudeReflectionDrafted": "Invitation de réflexion préparée",
+    "gratitudeReflectionDraftedBody": "Le moment photo est prêt dans ton journal. Ajoute ce que tu remarques."
   },
   "status": {
     "guestMode": "Mode invité actif. Connecte-toi pour synchroniser les décisions.",
@@ -779,7 +781,20 @@
     "gratitudePostcard": "Carte de gratitude",
     "gratitudePostcardShareText": "Un moment paisible de gratitude depuis Aletheia.",
     "personalizeAletheia": "Personnaliser Aletheia",
-    "gratitudePostcardInvite": "Commence ton propre rythme de gratitude avec Aletheia."
+    "gratitudePostcardInvite": "Commence ton propre rythme de gratitude avec Aletheia.",
+    "gratitudeReflectionTitle": "Réflexion de gratitude",
+    "date": "Date",
+    "promptFromTodayWisdom": "Invitation issue de la sagesse du jour",
+    "gratitudePromptFromWisdomBody": "Prends une photo qui t’aide à pratiquer la sagesse du jour : {practice}",
+    "suggestedGratitudeRhythm": "Meilleur rythme : vers {time} heure locale, comme réflexion de fin de journée.",
+    "gratitudeWeeklyRecap": "Bilan hebdomadaire de gratitude",
+    "weeklyMomentsNoticed": "Cette semaine : {count} moments remarqués.",
+    "weeklyGratitudePlaces": "Lieux remarqués : {places}.",
+    "noStreaksJustRemembrance": "Pas de série, pas de pression. Seulement se souvenir au fil du temps.",
+    "useAsReflectionPrompt": "Utiliser comme invitation",
+    "postcardSavedToTimeline": "Carte enregistrée dans la chronologie",
+    "usedForReflection": "Utilisé comme invitation de réflexion",
+    "gratitudeReflectionQuestion": "Que révèle ce moment sur la provision, le contentement ou le fait d’avoir assez ?"
   },
   "personalizationNudgeTitle": "Vous voulez un conseil plus personnel ?",
   "personalizationNudgeBody": "Ajoutez un détail sur l’argent, le travail ou le rythme.",

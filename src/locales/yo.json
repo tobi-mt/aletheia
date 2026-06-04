@@ -319,9 +319,11 @@
     "gratitudeDeleted": "Ọpẹ ti yọ kuro",
     "gratitudeDeletedBody": "Aworan ọpẹ agbegbe ti yọ kuro lori ẹrọ yii.",
     "gratitudePostcardDownloaded": "Kaadi ti gba silẹ",
-    "gratitudePostcardReadyBody": "Kaadi aworan ti o yan nikan ni a gbejade. Awọn ìrònú miran wa ni aládáni.",
+    "gratitudePostcardReadyBody": "Àwòrán kaadi tí o yan nìkan ni a gbe jáde. Àwọn ìrònú mìíràn wà ní ìkọ̀kọ̀. A ti samisi ẹ̀dà kan nínú ìtàn ìmoore rẹ.",
     "gratitudePostcardFailed": "Kaadi ko le ṣetan",
-    "gratitudePostcardFailedBody": "Gbiyanju lẹẹkansi pẹlu aworan miran."
+    "gratitudePostcardFailedBody": "Gbiyanju lẹẹkansi pẹlu aworan miran.",
+    "gratitudeReflectionDrafted": "A ti pèsè ìtànná ìrònú",
+    "gratitudeReflectionDraftedBody": "Ìṣẹ́jú fọ́tò náà ti ṣetan nínú ìwé ìrònú rẹ. Fi ohun tí o ń rí kún un."
   },
   "status": {
     "guestMode": "Ìpò àlejò ń ṣiṣẹ́. Wọlé láti fọ́kàn sọ́ àwọn ìpinnu.",
@@ -779,7 +781,20 @@
     "gratitudePostcard": "Kaadi ọpẹ",
     "gratitudePostcardShareText": "Akoko ọpẹ idakẹjẹ lati Aletheia.",
     "personalizeAletheia": "Ṣe Aletheia ti ara rẹ",
-    "gratitudePostcardInvite": "Bẹrẹ aṣa ọpẹ tirẹ pẹlu Aletheia."
+    "gratitudePostcardInvite": "Bẹrẹ aṣa ọpẹ tirẹ pẹlu Aletheia.",
+    "gratitudeReflectionTitle": "Ìrònú ìmoore",
+    "date": "Ọjọ́",
+    "promptFromTodayWisdom": "Ìtànná láti ọgbọ́n òní",
+    "gratitudePromptFromWisdomBody": "Ya fọ́tò kan tí yóò ràn ọ́ lọ́wọ́ láti ṣe ọgbọ́n òní: {practice}",
+    "suggestedGratitudeRhythm": "Àkókò tó dára: ní ayika {time} àkókò agbègbè gẹ́gẹ́ bí ìrònú ìparí ọjọ́.",
+    "gratitudeWeeklyRecap": "Àkótán ìmoore ọ̀sẹ̀",
+    "weeklyMomentsNoticed": "Ọ̀sẹ̀ yìí: a rí ìṣẹ́jú {count}.",
+    "weeklyGratitudePlaces": "Àwọn ibi tí a rí: {places}.",
+    "noStreaksJustRemembrance": "Kò sí ìtẹ̀sí, kò sí ìfipá. Ìrántí pẹ̀lú àkókò nìkan.",
+    "useAsReflectionPrompt": "Lo gẹ́gẹ́ bí ìtànná",
+    "postcardSavedToTimeline": "A fi kaadi pamọ́ sí ìtàn ìmoore",
+    "usedForReflection": "A lo gẹ́gẹ́ bí ìtànná ìrònú",
+    "gratitudeReflectionQuestion": "Kí ni ìṣẹ́jú yìí fi hàn nípa ìpèsè, ìtẹ́lọ́run, tàbí ohun tó tó?"
   },
   "personalizationNudgeTitle": "Ṣe o fẹ́ ìmọ̀ràn tó mọ̀ ọ́ síi?",
   "personalizationNudgeBody": "Fi alaye kan kun nípa owó, iṣẹ́, tàbí ìlànà ìgbé-ayé.",

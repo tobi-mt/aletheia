@@ -319,9 +319,11 @@
     "gratitudeDeleted": "Gratitude removed",
     "gratitudeDeletedBody": "The local gratitude image was removed from this device.",
     "gratitudePostcardDownloaded": "Postcard downloaded",
-    "gratitudePostcardReadyBody": "Only the postcard image you chose was exported. Your other reflections stayed private.",
+    "gratitudePostcardReadyBody": "Only the postcard image you chose was exported. Your other reflections stayed private. A copy is marked in your Gratitude Timeline.",
     "gratitudePostcardFailed": "Postcard could not be prepared",
-    "gratitudePostcardFailedBody": "Try again with a different image."
+    "gratitudePostcardFailedBody": "Try again with a different image.",
+    "gratitudeReflectionDrafted": "Reflection prompt prepared",
+    "gratitudeReflectionDraftedBody": "The photo moment is ready in your journal. Add what you are noticing."
   },
   "status": {
     "guestMode": "Guest mode is active. Sign in to sync decisions.",
@@ -779,7 +781,20 @@
     "gratitudePostcard": "Gratitude postcard",
     "gratitudePostcardShareText": "A quiet gratitude moment from Aletheia.",
     "personalizeAletheia": "Personalize Aletheia",
-    "gratitudePostcardInvite": "Begin your own gratitude rhythm with Aletheia."
+    "gratitudePostcardInvite": "Begin your own gratitude rhythm with Aletheia.",
+    "gratitudeReflectionTitle": "Gratitude reflection",
+    "date": "Date",
+    "promptFromTodayWisdom": "Prompt from today’s wisdom",
+    "gratitudePromptFromWisdomBody": "Take one photo that helps you practice today’s wisdom: {practice}",
+    "suggestedGratitudeRhythm": "Best rhythm: around {time} local time as a day-closing reflection.",
+    "gratitudeWeeklyRecap": "Weekly gratitude recap",
+    "weeklyMomentsNoticed": "This week: {count} moments noticed.",
+    "weeklyGratitudePlaces": "Places noticed: {places}.",
+    "noStreaksJustRemembrance": "No streaks, no pressure. Just remembrance over time.",
+    "useAsReflectionPrompt": "Use as prompt",
+    "postcardSavedToTimeline": "Postcard saved to timeline",
+    "usedForReflection": "Used as reflection prompt",
+    "gratitudeReflectionQuestion": "What does this moment reveal about provision, contentment, or enough?"
   },
   "personalizationNudgeTitle": "Want more personal counsel?",
   "personalizationNudgeBody": "Add one detail about money, work, or rhythm.",

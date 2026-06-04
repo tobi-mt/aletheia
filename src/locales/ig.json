@@ -319,9 +319,11 @@
     "gratitudeDeleted": "E wepụrụ ekele",
     "gratitudeDeletedBody": "E wepụrụ foto ekele mpaghara na ngwaọrụ a.",
     "gratitudePostcardDownloaded": "Ebuddatarala kaadị",
-    "gratitudePostcardReadyBody": "Naanị kaadị foto ị họọrọ ka ebupụtara. Ntụgharị uche ndị ọzọ ka nọ na nzuzo.",
+    "gratitudePostcardReadyBody": "Naanị onyonyo postcard ị họọrọ ka e wepụpụtara. Ntụgharị uche ndị ọzọ nọgidekwara nzuzo. E tinyela otu oyiri n’akụkọ ekele gị.",
     "gratitudePostcardFailed": "Enweghị ike ịkwadebe kaadị",
-    "gratitudePostcardFailedBody": "Nwaa ọzọ na foto ọzọ."
+    "gratitudePostcardFailedBody": "Nwaa ọzọ na foto ọzọ.",
+    "gratitudeReflectionDrafted": "A kwadebere ntụnye ntụgharị uche",
+    "gratitudeReflectionDraftedBody": "Oge foto ahụ dị njikere n’akwụkwọ gị. Tinye ihe ị na-ahụ."
   },
   "status": {
     "guestMode": "Ọnọdụ ọbịa na-arụ ọrụ. Banye ka ịmekọrịta mkpebi.",
@@ -779,7 +781,20 @@
     "gratitudePostcard": "Kaadị ekele",
     "gratitudePostcardShareText": "Oge ekele dị jụụ sitere na Aletheia.",
     "personalizeAletheia": "Mee Aletheia nke gị",
-    "gratitudePostcardInvite": "Malite usoro ekele nke gị na Aletheia."
+    "gratitudePostcardInvite": "Malite usoro ekele nke gị na Aletheia.",
+    "gratitudeReflectionTitle": "Ntụgharị uche ekele",
+    "date": "Ụbọchị",
+    "promptFromTodayWisdom": "Ntụnye sitere n’amamihe taa",
+    "gratitudePromptFromWisdomBody": "Were otu foto ga-enyere gị ime amamihe taa: {practice}",
+    "suggestedGratitudeRhythm": "Oge kacha mma: ihe dị ka {time} n’oge mpaghara, dịka ntụgharị uche mmechi ụbọchị.",
+    "gratitudeWeeklyRecap": "Nchịkọta ekele kwa izu",
+    "weeklyMomentsNoticed": "Izu a: achọpụtara oge {count}.",
+    "weeklyGratitudePlaces": "Ebe achọpụtara: {places}.",
+    "noStreaksJustRemembrance": "Enweghị streak, enweghị nrụgide. Naanị icheta ka oge na-aga.",
+    "useAsReflectionPrompt": "Jiri ya bụrụ ntụnye",
+    "postcardSavedToTimeline": "Echekwara postcard n’akụkọ ekele",
+    "usedForReflection": "Ejirila ya bụrụ ntụnye ntụgharị uche",
+    "gratitudeReflectionQuestion": "Gịnị ka oge a na-egosi gbasara inye aka, afọ ojuju, ma ọ bụ ihe zuru ezu?"
   },
   "personalizationNudgeTitle": "Ị chọrọ ndụmọdụ ka ọ bụrụ nke onwe gị?",
   "personalizationNudgeBody": "Tinye otu nkọwa gbasara ego, ọrụ, ma ọ bụ rhythm ndụ.",
