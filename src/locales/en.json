@@ -1062,5 +1062,24 @@
       "label": "Seek counsel wisely",
       "body": "Invite the right trusted voice before a major step."
     }
+  },
+  "supportMission": {
+    "eyebrow": "Mission",
+    "title": "Support the mission",
+    "summary": "Help keep Aletheia free, trustworthy, multilingual, and deeply useful.",
+    "cardTitle": "Keep wisdom accessible",
+    "body": "Optional support helps us keep Aletheia calm, trustworthy, multilingual, and available to people seeking wisdom for money, work, purpose, and stewardship.",
+    "impactAi": "AI and retrieval costs for thoughtful wisdom responses",
+    "impactTranslations": "public-domain scripture, translation polish, and language support",
+    "impactAccess": "free access for people making high-pressure decisions",
+    "impactReliability": "hosting, notifications, privacy, and reliability work",
+    "chooseMethod": "Choose a support method",
+    "cardWallet": "Card, Apple Pay, or Google Pay",
+    "paypal": "PayPal",
+    "bankTransfer": "Bank transfer",
+    "supportPage": "Support page",
+    "contactUs": "Contact us",
+    "notConfigured": "Support links are being prepared. Aletheia remains fully usable while this is set up.",
+    "trustNote": "Giving is optional. It never changes the counsel you receive, and payment details are handled by the payment provider, not by Aletheia."
   }
 }

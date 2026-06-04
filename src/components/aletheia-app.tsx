@@ -36,6 +36,7 @@ import {
   WifiOff,
   Bell,
   Clock3,
+  ExternalLink,
   FileText,
   Globe2,
   Languages,
@@ -78,6 +79,7 @@ type AuthMode = "login" | "register";
 type AuthStatus = "checking" | "guest" | "signing-in" | "signed-in" | "signing-out";
 type AnalyticsMetadata = Record<string, string | number | boolean | null>;
 type ShareChannel = "native" | "copy" | "whatsapp" | "facebook" | "x" | "linkedin" | "email" | "sms";
+type SupportMissionChannel = "stripe" | "paypal" | "bank" | "general" | "contact";
 type WorkflowTone = "info" | "success" | "warning" | "error";
 type ThemePreference = "classic" | "dark" | "black" | "warm" | "ocean" | "forest" | "sunset" | "system";
 type ResolvedTheme = "classic" | "dark" | "black" | "warm" | "ocean" | "forest" | "sunset";
@@ -309,6 +311,40 @@ const FOCUS_INTENTIONS_STORAGE_KEY = "aletheia_focus_intentions";
 const GRATITUDE_LENS_STORAGE_KEY = "aletheia_gratitude_lens";
 const MAX_GRATITUDE_ENTRIES = 12;
 const GRATITUDE_REFLECTION_DEFAULT_HOUR = 19;
+const SUPPORT_MISSION_LINKS: Array<{ channel: SupportMissionChannel; href: string; labelKey: string; fallback: string }> = [
+  {
+    channel: "stripe",
+    href: process.env.NEXT_PUBLIC_ALETHEIA_STRIPE_DONATION_URL || "",
+    labelKey: "supportMission.cardWallet",
+    fallback: "Card, Apple Pay, or Google Pay",
+  },
+  {
+    channel: "paypal",
+    href: process.env.NEXT_PUBLIC_ALETHEIA_PAYPAL_DONATION_URL || "",
+    labelKey: "supportMission.paypal",
+    fallback: "PayPal",
+  },
+  {
+    channel: "bank",
+    href: process.env.NEXT_PUBLIC_ALETHEIA_BANK_SUPPORT_URL || "",
+    labelKey: "supportMission.bankTransfer",
+    fallback: "Bank transfer",
+  },
+  {
+    channel: "general",
+    href: process.env.NEXT_PUBLIC_ALETHEIA_SUPPORT_URL || "",
+    labelKey: "supportMission.supportPage",
+    fallback: "Support page",
+  },
+  {
+    channel: "contact",
+    href: process.env.NEXT_PUBLIC_ALETHEIA_SUPPORT_CONTACT_EMAIL
+      ? `mailto:${process.env.NEXT_PUBLIC_ALETHEIA_SUPPORT_CONTACT_EMAIL}?subject=Aletheia%20mission%20support`
+      : "",
+    labelKey: "supportMission.contactUs",
+    fallback: "Contact us",
+  },
+];
 const DEFAULT_NOTIFICATION_TIMING: NotificationTiming = {
   preferredLocalHour: 8,
   preferredTimezone: "UTC",
@@ -8509,6 +8545,18 @@ function AccountPanel({
         </DisclosureSection>
 
         <DisclosureSection
+          title={ts('supportMission.title', 'Support the mission')}
+          summary={ts('supportMission.summary', 'Help keep Aletheia free, trustworthy, multilingual, and deeply useful.')}
+          eyebrow={ts('supportMission.eyebrow', 'Mission')}
+          compactCollapsed
+          showDetailsLabel={text.showDetails}
+          hideDetailsLabel={text.hideDetails}
+          theme={theme}
+        >
+          <SupportMissionCard theme={theme} ts={ts} />
+        </DisclosureSection>
+
+        <DisclosureSection
           title={ts('labels.dailyWisdomNotifications', 'Daily wisdom notifications')}
           summary={notificationsEnabled ? ts('notifications.deviceSubscribed', 'This device is subscribed for daily wisdom.') : notificationStatus}
           eyebrow={ts('labels.notifications', 'Notifications')}
@@ -8751,6 +8799,90 @@ function AccountShareCard({
             <span className="min-w-0 truncate">{label}</span>
           </button>
         ))}
+      </div>
+    </section>
+  );
+}
+
+function SupportMissionCard({
+  theme,
+  ts,
+}: {
+  theme: ThemeColors;
+  ts: (key: string, fallback?: string) => string;
+}) {
+  const links = SUPPORT_MISSION_LINKS.filter(({ href }) => /^https?:\/\//.test(href) || /^mailto:/i.test(href));
+  const impactItems = [
+    ts('supportMission.impactAi', 'AI and retrieval costs for thoughtful wisdom responses'),
+    ts('supportMission.impactTranslations', 'public-domain scripture, translation polish, and language support'),
+    ts('supportMission.impactAccess', 'free access for people making high-pressure decisions'),
+    ts('supportMission.impactReliability', 'hosting, notifications, privacy, and reliability work'),
+  ];
+
+  function trackSupportClick(channel: SupportMissionChannel) {
+    trackClientEvent("support_mission_clicked", { channel });
+  }
+
+  return (
+    <section className="space-y-4">
+      <div className="overflow-hidden rounded-xl border shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
+        <div className="p-4 sm:p-5">
+          <div className="flex items-start gap-3">
+            <div className="grid size-11 shrink-0 place-items-center rounded-lg border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
+              <HandHeart size={20} />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('supportMission.eyebrow', 'Mission')}</p>
+              <h3 className="mt-2 text-xl font-semibold" style={{ color: theme.textPrimary }}>{ts('supportMission.cardTitle', 'Keep wisdom accessible')}</h3>
+              <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                {ts('supportMission.body', 'Optional support helps us keep Aletheia calm, trustworthy, multilingual, and available to people seeking wisdom for money, work, purpose, and stewardship.')}
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-4 grid gap-2 sm:grid-cols-2">
+            {impactItems.map((item) => (
+              <div key={item} className="flex items-start gap-2 rounded-md border p-3 text-sm leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                <Check size={15} className="mt-0.5 shrink-0" style={{ color: theme.accentGold }} />
+                <span>{item}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="border-t p-4 sm:p-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+          <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{ts('supportMission.chooseMethod', 'Choose a support method')}</p>
+          {links.length ? (
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              {links.map(({ channel, href, labelKey, fallback }) => (
+                <a
+                  key={channel}
+                  href={href}
+                  target={href.startsWith("mailto:") ? undefined : "_blank"}
+                  rel={href.startsWith("mailto:") ? undefined : "noreferrer"}
+                  onClick={() => trackSupportClick(channel)}
+                  className="flex min-h-12 items-center justify-between gap-3 rounded-md border px-3 py-2 text-sm font-semibold transition"
+                  style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                >
+                  <span className="flex min-w-0 items-center gap-3">
+                    <span className="grid size-8 shrink-0 place-items-center rounded-md" style={{ backgroundColor: theme.bgCardElevated, color: theme.primary }}>
+                      {channel === "contact" ? <Mail size={16} /> : <HandHeart size={16} />}
+                    </span>
+                    <span className="min-w-0 truncate">{ts(labelKey, fallback)}</span>
+                  </span>
+                  <ExternalLink size={15} className="shrink-0" />
+                </a>
+              ))}
+            </div>
+          ) : (
+            <div className="mt-3 rounded-md border p-3 text-sm leading-6" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+              {ts('supportMission.notConfigured', 'Support links are being prepared. Aletheia remains fully usable while this is set up.')}
+            </div>
+          )}
+          <p className="mt-3 text-xs leading-5" style={{ color: theme.textMuted }}>
+            {ts('supportMission.trustNote', 'Giving is optional. It never changes the counsel you receive, and payment details are handled by the payment provider, not by Aletheia.')}
+          </p>
+        </div>
       </div>
     </section>
   );

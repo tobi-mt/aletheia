@@ -1062,5 +1062,24 @@
       "label": "Chọọ ndụmọdụ amamihe",
       "body": "Kpọọ olu a tụkwasịrị obi tupu nnukwu nzọụkwụ."
     }
+  },
+  "supportMission": {
+    "eyebrow": "Ozi",
+    "title": "Kwado ozi a",
+    "summary": "Nyere ka Aletheia dịrị n’efu, bụrụ nke a pụrụ ịtụkwasị obi, nwee ọtụtụ asụsụ, ma baa ezigbo uru.",
+    "cardTitle": "Mee ka amamihe dịrị mmadụ niile",
+    "body": "Nkwado nhọrọ na-enyere anyị aka idobe Aletheia nwayọọ, ntụkwasị obi, ọtụtụ asụsụ, ma dịrị ndị na-achọ amamihe gbasara ego, ọrụ, ebumnuche, na nlekọta ihe e nyere ha.",
+    "impactAi": "ego AI na nchọta maka azịza amamihe e chebara echiche",
+    "impactTranslations": "Akwụkwọ Nsọ ọha, mmezi ntụgharị, na nkwado asụsụ",
+    "impactAccess": "nnweta n’efu maka ndị na-eme mkpebi siri ike",
+    "impactReliability": "nnabata weebụ, ọkwa ozi, nzuzo, na ntụkwasị obi",
+    "chooseMethod": "Họrọ ụzọ nkwado",
+    "cardWallet": "Kaadị, Apple Pay, ma ọ bụ Google Pay",
+    "paypal": "PayPal",
+    "bankTransfer": "Nyefe ego banki",
+    "supportPage": "Peeji nkwado",
+    "contactUs": "Kpọtụrụ anyị",
+    "notConfigured": "A na-akwadebe njikọ nkwado. Aletheia ka na-arụ ọrụ nke ọma mgbe a na-ahazi nke a.",
+    "trustNote": "Inye onyinye bụ nhọrọ. Ọ naghị agbanwe ndụmọdụ ị na-enweta, onye na-eweta ịkwụ ụgwọ na-elekọta nkọwa ịkwụ ụgwọ, ọ bụghị Aletheia."
   }
 }

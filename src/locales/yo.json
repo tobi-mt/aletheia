@@ -1062,5 +1062,24 @@
       "label": "Wá ìmọ̀ràn pẹ̀lú ọgbọ́n",
       "body": "Pe ẹni tí o gbẹ́kẹ̀lé kí o tó ṣe ìgbésẹ̀ ńlá."
     }
+  },
+  "supportMission": {
+    "eyebrow": "Ìránṣẹ́",
+    "title": "Ṣe atilẹyin ìránṣẹ́ yii",
+    "summary": "Ran wa lọwọ lati jẹ ki Aletheia jẹ ọfẹ, gbẹkẹle, ọpọlọpọ ede, ati wulo gan-an.",
+    "cardTitle": "Jẹ ki ọgbọn wa fun gbogbo eniyan",
+    "body": "Atilẹyin ti o ba fẹ n ran wa lọwọ lati jẹ ki Aletheia dakẹ, gbẹkẹle, jẹ ọpọlọpọ ede, ki o si wa fun awọn ti n wa ọgbọn fun owo, iṣẹ, idi, ati iṣakoso rere.",
+    "impactAi": "owo AI ati wiwa data fun awọn idahun ọgbọn ti a ronu jinlẹ",
+    "impactTranslations": "Iwe Mimọ ti gbogbo eniyan le lo, atunṣe itumọ, ati atilẹyin ede",
+    "impactAccess": "iraye ọfẹ fun awọn eniyan ti o n ṣe ipinnu labẹ titẹ",
+    "impactReliability": "alejo wẹẹbu, iwifunni, asiri, ati igbẹkẹle app",
+    "chooseMethod": "Yan ọna atilẹyin",
+    "cardWallet": "Kaadi, Apple Pay, tabi Google Pay",
+    "paypal": "PayPal",
+    "bankTransfer": "Gbigbe owo banki",
+    "supportPage": "Oju-iwe atilẹyin",
+    "contactUs": "Kan si wa",
+    "notConfigured": "A n pese awọn ọna atilẹyin silẹ. Aletheia ṣi ṣiṣẹ ni kikun nigba ti a n ṣeto eyi.",
+    "trustNote": "Fifun jẹ yiyan tirẹ. Ko yi imọran ti o gba pada rara, ati olupese isanwo ni o n ṣakoso alaye isanwo, kii ṣe Aletheia."
   }
 }

@@ -1062,5 +1062,24 @@
       "label": "Rat weise suchen",
       "body": "Vor einem großen Schritt die richtige vertraute Stimme einladen."
     }
+  },
+  "supportMission": {
+    "eyebrow": "Mission",
+    "title": "Mission unterstützen",
+    "summary": "Hilf mit, Aletheia kostenlos, vertrauenswürdig, mehrsprachig und wirklich hilfreich zu halten.",
+    "cardTitle": "Weisheit zugänglich halten",
+    "body": "Optionale Unterstützung hilft uns, Aletheia ruhig, vertrauenswürdig, mehrsprachig und verfügbar für Menschen zu halten, die Weisheit für Geld, Arbeit, Sinn und Verwaltung suchen.",
+    "impactAi": "KI- und Abrufkosten für durchdachte Weisheitsantworten",
+    "impactTranslations": "gemeinfreie Schrifttexte, Übersetzungspflege und Sprachunterstützung",
+    "impactAccess": "kostenloser Zugang für Menschen unter Entscheidungsdruck",
+    "impactReliability": "Hosting, Benachrichtigungen, Datenschutz und Zuverlässigkeit",
+    "chooseMethod": "Unterstützungsweg wählen",
+    "cardWallet": "Karte, Apple Pay oder Google Pay",
+    "paypal": "PayPal",
+    "bankTransfer": "Banküberweisung",
+    "supportPage": "Unterstützungsseite",
+    "contactUs": "Kontakt aufnehmen",
+    "notConfigured": "Unterstützungslinks werden vorbereitet. Aletheia bleibt währenddessen vollständig nutzbar.",
+    "trustNote": "Geben ist freiwillig. Es verändert niemals den Rat, den du erhältst, und Zahlungsdaten werden vom Zahlungsanbieter verarbeitet, nicht von Aletheia."
   }
 }

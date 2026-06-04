@@ -1063,5 +1063,24 @@
       "label": "Chercher un conseil sage",
       "body": "Inviter la bonne voix de confiance avant un grand pas."
     }
+  },
+  "supportMission": {
+    "eyebrow": "Mission",
+    "title": "Soutenir la mission",
+    "summary": "Aide à garder Aletheia gratuit, fiable, multilingue et profondément utile.",
+    "cardTitle": "Garder la sagesse accessible",
+    "body": "Un soutien facultatif nous aide à garder Aletheia calme, fiable, multilingue et disponible pour celles et ceux qui cherchent la sagesse pour l’argent, le travail, le sens et l’intendance.",
+    "impactAi": "coûts d’IA et de recherche pour des réponses sages et réfléchies",
+    "impactTranslations": "Écritures du domaine public, soin des traductions et soutien linguistique",
+    "impactAccess": "accès gratuit pour les personnes face à des décisions sous pression",
+    "impactReliability": "hébergement, notifications, confidentialité et fiabilité",
+    "chooseMethod": "Choisir un moyen de soutien",
+    "cardWallet": "Carte, Apple Pay ou Google Pay",
+    "paypal": "PayPal",
+    "bankTransfer": "Virement bancaire",
+    "supportPage": "Page de soutien",
+    "contactUs": "Nous contacter",
+    "notConfigured": "Les liens de soutien sont en préparation. Aletheia reste pleinement utilisable pendant cette mise en place.",
+    "trustNote": "Le don est facultatif. Il ne change jamais le conseil que tu reçois, et les données de paiement sont traitées par le prestataire de paiement, pas par Aletheia."
   }
 }

@@ -1062,5 +1062,24 @@
       "label": "Buscar consejo sabio",
       "body": "Invitar una voz confiable antes de un paso importante."
     }
+  },
+  "supportMission": {
+    "eyebrow": "Misión",
+    "title": "Apoyar la misión",
+    "summary": "Ayuda a mantener Aletheia gratis, confiable, multilingüe y profundamente útil.",
+    "cardTitle": "Mantener la sabiduría accesible",
+    "body": "El apoyo opcional nos ayuda a mantener Aletheia calmada, confiable, multilingüe y disponible para quienes buscan sabiduría sobre dinero, trabajo, propósito y mayordomía.",
+    "impactAi": "costos de IA y recuperación para respuestas sabias y cuidadosas",
+    "impactTranslations": "Escritura de dominio público, pulido de traducciones y soporte de idiomas",
+    "impactAccess": "acceso gratuito para personas con decisiones de alta presión",
+    "impactReliability": "hosting, notificaciones, privacidad y trabajo de fiabilidad",
+    "chooseMethod": "Elige un método de apoyo",
+    "cardWallet": "Tarjeta, Apple Pay o Google Pay",
+    "paypal": "PayPal",
+    "bankTransfer": "Transferencia bancaria",
+    "supportPage": "Página de apoyo",
+    "contactUs": "Contáctanos",
+    "notConfigured": "Los enlaces de apoyo se están preparando. Aletheia sigue siendo completamente usable mientras tanto.",
+    "trustNote": "Dar es opcional. Nunca cambia el consejo que recibes, y los datos de pago los gestiona el proveedor de pagos, no Aletheia."
   }
 }

@@ -42,6 +42,11 @@ VAPID_SUBJECT="mailto:hello@mirrortalkpodcast.com"
 NOTIFICATION_CRON_SECRET=""
 NOTIFICATION_HEALTH_SECRET=""
 ANALYTICS_ADMIN_SECRET=""
+NEXT_PUBLIC_ALETHEIA_STRIPE_DONATION_URL=""
+NEXT_PUBLIC_ALETHEIA_PAYPAL_DONATION_URL=""
+NEXT_PUBLIC_ALETHEIA_BANK_SUPPORT_URL=""
+NEXT_PUBLIC_ALETHEIA_SUPPORT_URL=""
+NEXT_PUBLIC_ALETHEIA_SUPPORT_CONTACT_EMAIL=""
 ```
 
 ### Avatar Image Hosts
@@ -58,6 +63,18 @@ AVATAR_IMAGE_HOSTS="example-cdn.com,https://profile-images.myapp.com"
 ```
 
 Built-in fallback hosts include common providers such as GitHub, Google profile images, Gravatar, Discord, X/Twitter, and Pravatar.
+
+### Mission Support Links
+
+The Account screen can show an optional, non-pressure "Support the Mission" card. Configure one or more public support destinations to enable its buttons:
+
+- `NEXT_PUBLIC_ALETHEIA_STRIPE_DONATION_URL` for card, Apple Pay, or Google Pay through Stripe.
+- `NEXT_PUBLIC_ALETHEIA_PAYPAL_DONATION_URL` for PayPal.
+- `NEXT_PUBLIC_ALETHEIA_BANK_SUPPORT_URL` for a bank-transfer instruction page.
+- `NEXT_PUBLIC_ALETHEIA_SUPPORT_URL` for a general support page.
+- `NEXT_PUBLIC_ALETHEIA_SUPPORT_CONTACT_EMAIL` for a contact email link.
+
+Payment details should stay with the payment provider. Aletheia only records the non-private `support_mission_clicked` analytics event with the selected channel.
 
 Without `OPENAI_API_KEY`, the server still performs retrieval and returns a deterministic grounded fallback response. With `OPENAI_API_KEY`, `/api/chat` calls OpenAI server-side after retrieving curated biblical wisdom sources.
 

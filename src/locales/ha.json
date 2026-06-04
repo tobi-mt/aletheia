@@ -1062,5 +1062,24 @@
       "label": "Nemi shawara cikin hikima",
       "body": "Gayyaci amintaccen murya kafin babban mataki."
     }
+  },
+  "supportMission": {
+    "eyebrow": "Manufa",
+    "title": "Tallafa wa manufar",
+    "summary": "Taimaka a ci gaba da Aletheia kyauta, abin dogaro, mai harsuna da yawa, kuma mai amfani sosai.",
+    "cardTitle": "A bar hikima ta kasance ga kowa",
+    "body": "Tallafi na zaɓi yana taimaka mana mu riƙe Aletheia cikin natsuwa, abin dogaro, mai harsuna da yawa, kuma samuwa ga masu neman hikima kan kuɗi, aiki, manufa, da rikon amana.",
+    "impactAi": "kuɗin AI da bincike don amsoshin hikima masu zurfi",
+    "impactTranslations": "Nassosi na jama’a, gyaran fassara, da tallafin harshe",
+    "impactAccess": "samun shiga kyauta ga mutane masu yanke shawara cikin matsin lamba",
+    "impactReliability": "hosting, sanarwa, sirri, da aikin dogaro",
+    "chooseMethod": "Zaɓi hanyar tallafi",
+    "cardWallet": "Kati, Apple Pay, ko Google Pay",
+    "paypal": "PayPal",
+    "bankTransfer": "Canja kuɗi ta banki",
+    "supportPage": "Shafin tallafi",
+    "contactUs": "Tuntuɓe mu",
+    "notConfigured": "Ana shirya hanyoyin tallafi. Aletheia na nan yana aiki cikakke yayin da ake saitawa.",
+    "trustNote": "Bayarwa zaɓi ne. Ba ya canza shawarar da kake samu, kuma bayanan biyan kuɗi suna hannun mai samar da biyan kuɗi, ba Aletheia ba."
   }
 }
