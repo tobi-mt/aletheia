@@ -149,6 +149,41 @@ body {
   transform: none;
 }
 
+.editorial-surface {
+  position: relative;
+  overflow: hidden;
+}
+
+.editorial-surface::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 86% 10%, color-mix(in srgb, var(--aletheia-focus-ring, #d6b45d) 18%, transparent) 0%, transparent 34%),
+    radial-gradient(circle at 8% 92%, color-mix(in srgb, var(--aletheia-primary, #284c3f) 14%, transparent) 0%, transparent 36%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.07), transparent 56%);
+  opacity: 0.9;
+}
+
+.editorial-surface > * {
+  position: relative;
+  z-index: 1;
+}
+
+.premium-tap-card {
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.08) inset,
+    0 12px 28px rgba(18, 28, 24, 0.08);
+}
+
+.theme-dark-root .premium-tap-card,
+.theme-black-root .premium-tap-card {
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.06) inset,
+    0 14px 32px rgba(0, 0, 0, 0.18);
+}
+
 .app-shell::before,
 .app-shell::after {
   content: "";

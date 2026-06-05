@@ -18,6 +18,7 @@ It is designed to feel emotionally intelligent, spiritually grounded, and practi
 
 - Calm experience that reduces noise, anxiety, and decision fatigue.
 - Premium interface that feels intentional, focused, and trustworthy.
+- Editorial Home rhythm with one clear next action, supporting choices, and a richer Today’s Companion card.
 - Spiritual depth rooted in curated biblical wisdom rather than generic advice.
 - Practical guidance that includes reflection, counsel, and concrete next steps.
 - Continuity across sessions for signed-in users through sync, memory, and history.
@@ -25,6 +26,7 @@ It is designed to feel emotionally intelligent, spiritually grounded, and practi
 - Multilingual support so the app can serve users across different regions and languages.
 - PWA and mobile-first behavior so the app feels like a real companion, not just a web page.
 - Consistent button, link, and disclosure feedback for tap, press, focus, and disabled states across the app.
+- Softer premium surfaces and clearer tappable affordances to reduce visual clutter without losing depth.
 
 ## What Makes It Different
 
@@ -66,6 +68,7 @@ Aletheia includes distinct wisdom modes that change how guidance is interpreted 
 ## Today Dashboard
 
 - A daily home dashboard centered on the question: “What should I do next?”
+- Strong visual hierarchy that keeps one primary next action visible before supporting options.
 - Quick actions to start or continue a decision
 - Quick action to reflect on today’s wisdom
 - Quick action to ask Aletheia
@@ -75,6 +78,7 @@ Aletheia includes distinct wisdom modes that change how guidance is interpreted 
 - Today’s wisdom principle
 - Today’s scripture anchor
 - Tiny daily practice
+- Editorial Today’s Companion card with scripture chip, featured insight, carry phrase, and quiet detail expansion
 - Visible mode lens for the day
 
 ## Decision Companion

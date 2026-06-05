@@ -7948,10 +7948,15 @@ function HomeDashboard({
       ? { label: text.askNewQuestion!, body: text.askNewQuestionBody!, onClick: onAskOneQuestion, icon: MessageCircle }
       : { label: text.startDecision!, body: text.startDecisionBody!, onClick: onContinueDecision, icon: Compass },
   ];
+  const featuredInsightIsDuplicate = companionCard.principle.trim().toLowerCase() === companionCard.practice.trim().toLowerCase();
+  const featuredInsightLabel = featuredInsightIsDuplicate ? text.reflectionQuestion : text.wisdomPrinciple;
+  const featuredInsight = featuredInsightIsDuplicate ? companionCard.question : companionCard.principle;
+  const visibleSecondaryActions = secondaryActions.slice(0, 2);
+  const finalSecondaryAction = secondaryActions[2];
 
   return (
-    <div className="grid gap-3 sm:gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
-      <section className={`min-w-0 rounded-xl border p-4 shadow-sm sm:p-5 ${prioritizeToday ? "order-2" : "order-1"}`} style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+    <div className="grid gap-3 sm:gap-4 xl:grid-cols-[minmax(0,0.98fr)_minmax(300px,1.02fr)]">
+      <section className={`editorial-surface min-w-0 rounded-xl border p-4 shadow-sm sm:p-5 ${prioritizeToday ? "order-2" : "order-1"}`} style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
         {carryToday ? (
           <div className="mb-4 rounded-lg border px-3 py-2 text-sm leading-6" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}>
             <span className="font-semibold" style={{ color: theme.accentGold }}>{text.carryingToday}:</span>{" "}
@@ -7992,61 +7997,71 @@ function HomeDashboard({
           <DashboardAction icon={primaryAction.icon} label={primaryAction.label} body={primaryAction.body} primary onClick={primaryAction.onClick} theme={theme} />
         </div>
         <div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-3">
-          {secondaryActions.map((action, index) => (
-            <div key={action.label} className={index === secondaryActions.length - 1 ? "col-span-2 md:col-span-1" : ""}>
+          {visibleSecondaryActions.map((action) => (
+            <div key={action.label}>
               <DashboardAction icon={action.icon} label={action.label} body={action.body} onClick={action.onClick} compact theme={theme} />
             </div>
           ))}
+          <div className="col-span-2 md:col-span-1">
+            <DashboardAction icon={finalSecondaryAction.icon} label={finalSecondaryAction.label} body={finalSecondaryAction.body} onClick={finalSecondaryAction.onClick} compact theme={theme} />
+          </div>
         </div>
       </section>
 
       <section
         id="today-companion-card"
         tabIndex={-1}
-        className={`min-w-0 scroll-mt-28 rounded-xl border p-4 shadow-sm outline-none sm:p-5 ${prioritizeToday ? "order-1" : "order-2"}`}
-        style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textPrimary }}
+        className={`editorial-surface min-w-0 scroll-mt-28 rounded-xl border p-0 shadow-sm outline-none ${prioritizeToday ? "order-1" : "order-2"}`}
+        style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textPrimary }}
       >
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }} suppressHydrationWarning>{text.todaysCompanion}</p>
-            <h2 className="mt-1 text-xl font-semibold" suppressHydrationWarning>{text.todayPrefix}: {companionCard.title}</h2>
-          </div>
-          <Sprout size={22} style={{ color: theme.primary }} />
-        </div>
-        <p className="text-sm leading-6" style={{ color: theme.textSecondary }} suppressHydrationWarning>{companionCard.opening}</p>
-        <button
-          type="button"
-          onClick={() => onScriptureOpen(dailyEntry.scripture)}
-          className="text-left text-sm font-semibold underline underline-offset-4 transition"
-          style={{ color: theme.accentGold, textDecorationColor: theme.accentGold + '80' }}
-          suppressHydrationWarning
-        >
-          {daily.scripture}
-        </button>
-        <div className="mt-3 rounded-md border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{text.wisdomPrinciple}</p>
-          <p className="mt-2 text-sm leading-6" style={{ color: theme.textPrimary }} suppressHydrationWarning>{companionCard.principle}</p>
-        </div>
-        <div className="mt-3 rounded-md border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.primary, color: theme.textOnPrimary }}>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textOnPrimary }}>{text.carryThisToday}</p>
-          <p className="mt-2 text-sm font-semibold leading-6" suppressHydrationWarning>&ldquo;{companionCard.carryPhrase}&rdquo;</p>
-        </div>
-        <details className="mt-3 rounded-md border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
-          <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
-            {text.showDetails}
-          </summary>
-          <div className="mt-3 grid gap-3">
-            <div className="rounded-md border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{text.tinyPractice}</p>
-              <p className="mt-2 text-sm leading-6" style={{ color: theme.textPrimary }} suppressHydrationWarning>{companionCard.practice}</p>
+        <div className="p-4 sm:p-5">
+          <div className="mb-4 flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }} suppressHydrationWarning>{text.todaysCompanion}</p>
+              <h2 className="mt-2 text-2xl font-semibold leading-tight sm:text-3xl" suppressHydrationWarning>{text.todayPrefix}: {companionCard.title}</h2>
             </div>
-            <div className="rounded-md border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{text.reflectionQuestion}</p>
-              <p className="mt-2 text-sm leading-6" style={{ color: theme.textPrimary }} suppressHydrationWarning>{companionCard.question}</p>
-            </div>
+            <span className="grid size-10 shrink-0 place-items-center rounded-md" style={{ backgroundColor: theme.bgCardElevated, color: theme.primary }}>
+              <Sprout size={22} />
+            </span>
           </div>
-        </details>
-        <div className="mt-3 grid grid-cols-2 gap-2">
+          <p className="text-base leading-7 sm:text-lg sm:leading-8" style={{ color: theme.textSecondary }} suppressHydrationWarning>{companionCard.opening}</p>
+          <button
+            type="button"
+            onClick={() => onScriptureOpen(dailyEntry.scripture)}
+            className="premium-tap-card mt-4 inline-flex max-w-full items-center gap-2 rounded-md border px-3 py-2 text-left text-sm font-semibold transition"
+            style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.accentGold }}
+            suppressHydrationWarning
+          >
+            <BookOpen size={15} />
+            <span className="truncate">{daily.scripture}</span>
+          </button>
+          <div className="mt-4 rounded-lg p-3" style={{ backgroundColor: theme.bgCardElevated }}>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{featuredInsightLabel}</p>
+            <p className="mt-2 text-sm leading-6" style={{ color: theme.textPrimary }} suppressHydrationWarning>{featuredInsight}</p>
+          </div>
+          <div className="mt-3 rounded-lg p-3" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textOnPrimary }}>{text.carryThisToday}</p>
+            <p className="mt-2 text-sm font-semibold leading-6" suppressHydrationWarning>&ldquo;{companionCard.carryPhrase}&rdquo;</p>
+          </div>
+          <details className="mt-3 rounded-md border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
+            <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+              {text.showDetails}
+            </summary>
+            <div className="mt-3 grid gap-3">
+              {featuredInsightIsDuplicate ? null : (
+                <div className="rounded-md border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{text.reflectionQuestion}</p>
+                  <p className="mt-2 text-sm leading-6" style={{ color: theme.textPrimary }} suppressHydrationWarning>{companionCard.question}</p>
+                </div>
+              )}
+              <div className="rounded-md border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{text.tinyPractice}</p>
+                <p className="mt-2 text-sm leading-6" style={{ color: theme.textPrimary }} suppressHydrationWarning>{companionCard.practice}</p>
+              </div>
+            </div>
+          </details>
+        </div>
+        <div className="grid grid-cols-2 gap-2 border-t p-4 sm:p-5" style={{ borderColor: theme.borderLight }}>
           <CompanionCardAction icon={Check} label={text.carryWithMe!} onClick={() => onCarryToday(companionCard)} theme={theme} primary />
           <CompanionCardAction icon={Feather} label={text.reflectToday!} onClick={() => onReflectCard(companionCard)} theme={theme} />
           <CompanionCardAction icon={MessageCircle} label={text.askAboutThis!} onClick={() => onAskAboutCard(companionCard)} theme={theme} />
@@ -8077,7 +8092,7 @@ function CompanionCardAction({
     <button
       type="button"
       onClick={onClick}
-      className="flex min-h-10 items-center justify-center gap-2 rounded-md border px-3 py-2 text-center text-xs font-semibold transition sm:text-sm"
+      className="premium-tap-card flex min-h-10 items-center justify-center gap-2 rounded-md border px-3 py-2 text-center text-xs font-semibold transition sm:text-sm"
       style={primary
         ? { borderColor: theme.primary, backgroundColor: theme.primary, color: theme.textOnPrimary }
         : { borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
@@ -8109,7 +8124,7 @@ function DashboardAction({
     <button
       type="button"
       onClick={onClick}
-      className={`flex h-full w-full min-w-0 items-start gap-3 rounded-md border text-left transition ${compact ? "p-3" : "p-4"}`}
+      className={`premium-tap-card flex h-full w-full min-w-0 items-start gap-3 rounded-md border text-left transition ${compact ? "p-3" : "p-4"}`}
       style={primary
         ? { borderColor: theme.primary, backgroundColor: theme.primary, color: theme.textOnPrimary }
         : { borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
@@ -8184,6 +8199,7 @@ function DisclosureSection({
   compactCollapsed = false,
   showDetailsLabel = "Show details",
   hideDetailsLabel = "Hide details",
+  className = "",
   children,
   theme,
 }: {
@@ -8198,6 +8214,7 @@ function DisclosureSection({
   compactCollapsed?: boolean;
   showDetailsLabel?: string;
   hideDetailsLabel?: string;
+  className?: string;
   children: ReactNode;
   theme: ThemeColors;
 }) {
@@ -8212,7 +8229,7 @@ function DisclosureSection({
   const useCompactClosedState = compactCollapsed && !open;
 
   return (
-    <section id={sectionId} className="min-w-0 max-w-full overflow-hidden rounded-xl border shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+    <section id={sectionId} className={`min-w-0 max-w-full overflow-hidden rounded-xl border shadow-sm ${className}`} style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
       <button
         type="button"
         aria-expanded={open}
@@ -8437,6 +8454,7 @@ function AccountPanel({
           compactCollapsed
           showDetailsLabel={text.showDetails}
           hideDetailsLabel={text.hideDetails}
+          className="editorial-surface"
           theme={theme}
         >
           <div className="space-y-4">
