@@ -8626,23 +8626,25 @@ function AccountPanel({
           title={profileGreeting}
           summary={profileSummary}
           headerContent={(
-            <span className="flex min-w-0 items-center gap-3">
-              <AvatarCircle
-                avatarUrl={user?.avatarUrl}
-                seed={user?.id ?? user?.email ?? "guest"}
-                label={profileName}
-                size={52}
-                className="size-12 rounded-full border object-cover"
-              />
-              <span className="min-w-0">
-                <span className="block text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.profileTitle', 'Profile')}</span>
-                <span className="mt-1 block truncate text-lg font-semibold" style={{ color: theme.textPrimary }}>{profileGreeting}</span>
-                <span className="mt-1 block truncate text-sm leading-5" style={{ color: theme.textSecondary }}>{profileSummary}</span>
-                <span className="mt-3 grid grid-cols-3 gap-1.5">
-                  {profileStats.map((stat) => (
-                    <AccountHeaderStat key={stat.detail} icon={stat.icon} value={stat.value} label={stat.label} detail={stat.detail} theme={theme} />
-                  ))}
+            <span className="block min-w-0">
+              <span className="flex min-w-0 items-start gap-3">
+                <AvatarCircle
+                  avatarUrl={user?.avatarUrl}
+                  seed={user?.id ?? user?.email ?? "guest"}
+                  label={profileName}
+                  size={52}
+                  className="size-12 rounded-full border object-cover"
+                />
+                <span className="min-w-0 flex-1">
+                  <span className="block text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.profileTitle', 'Profile')}</span>
+                  <span className="mt-1 block max-w-full text-balance text-lg font-semibold leading-snug" style={{ color: theme.textPrimary }}>{profileGreeting}</span>
+                  <span className="mt-1 block max-w-full break-words text-sm leading-5" style={{ color: theme.textSecondary }}>{profileSummary}</span>
                 </span>
+              </span>
+              <span className="mt-3 grid w-full max-w-xs grid-cols-3 gap-1.5 sm:max-w-sm">
+                {profileStats.map((stat) => (
+                  <AccountHeaderStat key={stat.detail} icon={stat.icon} value={stat.value} label={stat.label} detail={stat.detail} theme={theme} />
+                ))}
               </span>
             </span>
           )}
@@ -8847,13 +8849,13 @@ function AccountHeaderStat({
   const accessibleLabel = `${value} ${detail}`;
   return (
     <span
-      className="min-w-0 rounded-md border px-2 py-2 text-center"
+      className="flex min-h-11 min-w-0 items-center justify-center rounded-md border px-2 py-2"
       style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}
       aria-label={accessibleLabel}
       title={accessibleLabel}
     >
-      <span className="flex items-center justify-center gap-2 leading-none" style={{ color: theme.textPrimary }}>
-        <Icon size={15} aria-hidden="true" />
+      <span className="flex min-w-0 items-center justify-center gap-2 leading-none" style={{ color: theme.textPrimary }}>
+        <Icon className="shrink-0" size={16} aria-hidden="true" />
         <span className="text-base font-semibold">{value}</span>
       </span>
       <span className="sr-only">{label}</span>
@@ -8893,8 +8895,8 @@ function AccountSettingRow({
           <span className="block text-sm font-semibold" style={{ color: theme.textPrimary }}>{label}</span>
           <span className="mt-1 block text-xs leading-5" style={{ color: theme.textSecondary }}>{body}</span>
         </span>
-        <span className="min-w-0 shrink-0 text-right">
-          <span className="block max-w-32 truncate text-xs font-semibold sm:max-w-44" style={{ color: theme.accentGold }}>{currentValue}</span>
+        <span className="min-w-[5rem] shrink-0 text-right sm:min-w-[7rem]">
+          <span className="block max-w-32 break-words text-xs font-semibold leading-4 sm:max-w-44" style={{ color: theme.accentGold }}>{currentValue}</span>
           <span className="mt-1 block text-lg leading-none transition" style={{ color: theme.textSecondary, transform: open ? "rotate(90deg)" : "rotate(0deg)" }}>›</span>
         </span>
       </button>
@@ -8984,7 +8986,7 @@ function AccountShareCard({
             <span className="grid size-8 shrink-0 place-items-center rounded-md" style={{ backgroundColor: theme.bgCardElevated, color: theme.primary }}>
               <Icon size={16} />
             </span>
-            <span className="min-w-0 truncate">{label}</span>
+            <span className="min-w-0 break-words leading-5">{label}</span>
           </button>
         ))}
       </div>
@@ -9058,7 +9060,7 @@ function SupportMissionCard({
                     <span className="grid size-8 shrink-0 place-items-center rounded-md" style={{ backgroundColor: theme.bgCardElevated, color: theme.primary }}>
                       {channel === "contact" ? <Mail size={16} /> : <HandHeart size={16} />}
                     </span>
-                    <span className="min-w-0 truncate">{ts(labelKey, fallback)}</span>
+                    <span className="min-w-0 break-words leading-5">{ts(labelKey, fallback)}</span>
                   </span>
                   <ExternalLink size={15} className="shrink-0" />
                 </a>
@@ -9250,7 +9252,7 @@ function ThemeSwatchGrid({
               <span className="grid size-8 shrink-0 place-items-center rounded-md" style={{ backgroundColor: theme.bgCardElevated, color: active ? theme.accentGold : theme.textSecondary }}>
                 <Icon size={15} />
               </span>
-              <span className="min-w-0 truncate">{ts(`theme.${option.key}`, option.key)}</span>
+              <span className="min-w-0 break-words leading-5">{ts(`theme.${option.key}`, option.key)}</span>
             </span>
             <span className="flex shrink-0 gap-1" aria-hidden="true">
               {option.colors.map((color) => (
@@ -9405,7 +9407,7 @@ function VoicePreferenceSelector({
                 }}
               >
                 <div className="min-w-0">
-                  <span className="block truncate text-sm font-semibold">{voice.name}</span>
+                  <span className="block break-words text-sm font-semibold leading-5">{voice.name}</span>
                   <span className="mt-1 flex flex-wrap items-center gap-2 text-xs" style={{ color: theme.textSecondary }}>
                     <span>{voice.lang}</span>
                     <span className="rounded-md border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
@@ -11296,8 +11298,8 @@ function NotificationPanel({
               <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
                 {ts('notifications.timezone', 'Timezone')}
               </p>
-              <div className="mt-2 flex h-10 items-center justify-between rounded-md border px-3" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
-                <span className="truncate text-sm">{ts('notifications.usingDeviceTimezone', 'Using device timezone')}: {timing.preferredTimezone || browserTimezone()}</span>
+              <div className="mt-2 flex min-h-10 items-center justify-between gap-3 rounded-md border px-3 py-2" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
+                <span className="min-w-0 break-words text-sm leading-5">{ts('notifications.usingDeviceTimezone', 'Using device timezone')}: {timing.preferredTimezone || browserTimezone()}</span>
                 <button
                   type="button"
                   disabled={busy || !user}
@@ -13008,7 +13010,7 @@ function HistoryExchange({
         className="flex w-full items-start justify-between gap-3 p-3 text-left transition"
       >
         <span className="min-w-0">
-          <span className="block truncate text-sm font-semibold" style={{ color: theme.textPrimary }}>{cleanDisplayText(title)}</span>
+          <span className="block break-words text-sm font-semibold leading-5" style={{ color: theme.textPrimary }}>{cleanDisplayText(title)}</span>
           <span className="mt-1 inline-flex rounded-md px-2 py-1 text-[11px] font-semibold" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>
             {ui.currentLens}: {exchangeModeProfile.displayLabel ?? exchange.mode}
           </span>
@@ -13618,7 +13620,7 @@ function DecisionCompanionPanel({
                           <span className="mt-0.5 shrink-0 rounded px-1.5 py-0.5 text-[0.65rem] font-semibold" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>
                             {isMode(decision.mode) ? ts(modeTranslationKey(decision.mode), decision.mode) : decision.mode}
                           </span>
-                          <span className="min-w-0 flex-1 truncate font-medium" style={{ color: theme.textPrimary }}>{decision.title}</span>
+                          <span className="min-w-0 flex-1 break-words font-medium leading-5" style={{ color: theme.textPrimary }}>{decision.title}</span>
                         </button>
                       ))}
                     </div>

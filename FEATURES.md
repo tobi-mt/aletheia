@@ -30,6 +30,7 @@ It is designed to feel emotionally intelligent, spiritually grounded, and practi
 - Softer premium surfaces and clearer tappable affordances to reduce visual clutter without losing depth.
 - Softer editorial surfaces and press feedback are applied across shared cards, settings rows, navigation controls, and action buttons.
 - Mobile bottom navigation uses a theme-aware glossy glass treatment with a clear active tab capsule.
+- Account and history card summaries wrap cleanly across languages and use compact symbolic counters where labels would otherwise truncate awkwardly.
 
 ## What Makes It Different
 
