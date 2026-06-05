@@ -150,8 +150,10 @@ try {
     const hour = Number(result.hour ?? new Date().getUTCHours());
     const followupAttempted = Number(result.followupAttempted ?? 0);
     const followupDecisionsNotified = Number(result.followupDecisionsNotified ?? 0);
+    const gratitudeAttempted = Number(result.gratitudeAttempted ?? 0);
+    const gratitudeSent = Number(result.gratitudeSent ?? 0);
     console.log(
-      `✓ Daily notifications checked. attempted=${attempted} sent=${sent} failed=${failed} skipped=${skipped} scanned=${scanned} utcHour=${hour} followupAttempted=${followupAttempted} followupDecisionsNotified=${followupDecisionsNotified}`
+      `✓ Daily notifications checked. attempted=${attempted} sent=${sent} failed=${failed} skipped=${skipped} scanned=${scanned} utcHour=${hour} followupAttempted=${followupAttempted} followupDecisionsNotified=${followupDecisionsNotified} gratitudeAttempted=${gratitudeAttempted} gratitudeSent=${gratitudeSent}`
     );
     if (Array.isArray(result.failureSamples) && result.failureSamples.length) {
       console.log("Failure samples:");

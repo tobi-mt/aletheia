@@ -16,6 +16,7 @@ type PushRow = {
   preferred_timezone: string | null;
   delivery_strategy: string | null;
   last_sent_at: string | null;
+  last_gratitude_sent_at: string | null;
   language: string | null;
   region: string | null;
   bible_translation: string | null;
@@ -45,6 +46,7 @@ type DueDecisionReminder = {
 };
 
 const DAILY_UNAUTHORIZED_METRIC_KEY = "daily_unauthorized_hits";
+const GRATITUDE_REFLECTION_LOCAL_HOUR = 19;
 
 type MetricRow = {
   metric_value: string | number;
@@ -182,6 +184,27 @@ function dailyNotificationPayload(row: PushRow, wisdomEntries: Awaited<ReturnTyp
   };
 }
 
+function gratitudeNotificationPayload(row: PushRow) {
+  const preferences = normalizePreferences({
+    language: row.language as LanguageCode,
+    region: row.region as RegionCode,
+    bibleTranslation: row.bible_translation as BibleTranslation,
+    voiceEnabled: Boolean(row.voice_enabled),
+  });
+  const now = new Date();
+  const localDate = localDateForTimezone(now, row.preferred_timezone);
+  const copy = gratitudeNotificationCopy[preferences.language] ?? gratitudeNotificationCopy.en;
+  const variant = stableHash(`${row.user_id}:${localDate}:gratitude`) % copy.titles.length;
+
+  return {
+    title: compactNotificationCopy(copy.titles[variant](), 68),
+    body: compactNotificationCopy(copy.bodies[variant](), 136),
+    url: "/?source=notification&focus=gratitude",
+    tag: `aletheia-gratitude-${notificationTagPart(localDate)}`,
+    notificationKind: "gratitude_reflection",
+  };
+}
+
 function stableHash(value: string) {
   let hash = 0;
   for (let i = 0; i < value.length; i += 1) {
@@ -214,6 +237,11 @@ function notificationTagPart(value: string) {
 type DailyNotificationLanguageCopy = {
   titles: Array<(input: { label: string; theme: string; scripture: string }) => string>;
   bodies: Array<(input: { theme: string; practice: string; scripture: string; principle: string }) => string>;
+};
+
+type SimpleNotificationLanguageCopy = {
+  titles: Array<() => string>;
+  bodies: Array<() => string>;
 };
 
 const dailyNotificationCopy: Record<LanguageCode, DailyNotificationLanguageCopy> = {
@@ -359,6 +387,121 @@ const dailyNotificationCopy: Record<LanguageCode, DailyNotificationLanguageCopy>
       ({ scripture, principle }) => `${scripture} · ${principle}`,
       ({ theme }) => `Karamin lokacin hikima ga ${theme} ya shirya. Ba matsin lamba ba, haske ne.`,
       ({ practice }) => `Rike wannan yau: ${practice}`,
+    ],
+  },
+};
+
+const gratitudeNotificationCopy: Record<LanguageCode, SimpleNotificationLanguageCopy> = {
+  en: {
+    titles: [
+      () => "A quiet gratitude moment",
+      () => "What are you grateful for today?",
+      () => "End the day with one gift",
+      () => "Gratitude Lens is ready",
+    ],
+    bodies: [
+      () => "Take one photo, name one mercy, and let the day close with attention.",
+      () => "Before the day disappears, capture one thing you do not want to take for granted.",
+      () => "One image. One honest sentence of thanks. No pressure, just remembrance.",
+      () => "Open Gratitude Lens and keep one private visual note from today.",
+    ],
+  },
+  es: {
+    titles: [
+      () => "Un momento tranquilo de gratitud",
+      () => "¿Por qué das gracias hoy?",
+      () => "Cierra el día con un regalo",
+      () => "Tu mirada de gratitud está lista",
+    ],
+    bodies: [
+      () => "Toma una foto, nombra una misericordia y cierra el día con atención.",
+      () => "Antes de que el día pase, guarda algo que no quieres dar por sentado.",
+      () => "Una imagen. Una frase sincera de gratitud. Sin presión, solo memoria.",
+      () => "Abre Gratitud y conserva una nota visual privada de hoy.",
+    ],
+  },
+  fr: {
+    titles: [
+      () => "Un moment calme de gratitude",
+      () => "De quoi es-tu reconnaissant aujourd’hui ?",
+      () => "Termine la journée avec un don",
+      () => "Le regard de gratitude est prêt",
+    ],
+    bodies: [
+      () => "Prends une photo, nomme une grâce, et laisse la journée se fermer avec attention.",
+      () => "Avant que le jour passe, garde une chose que tu ne veux pas considérer comme acquise.",
+      () => "Une image. Une phrase sincère de gratitude. Sans pression, juste le souvenir.",
+      () => "Ouvre Gratitude et garde une note visuelle privée d’aujourd’hui.",
+    ],
+  },
+  pt: {
+    titles: [
+      () => "Um momento calmo de gratidão",
+      () => "Pelo que você é grato hoje?",
+      () => "Feche o dia com uma dádiva",
+      () => "O olhar de gratidão está pronto",
+    ],
+    bodies: [
+      () => "Tire uma foto, nomeie uma misericórdia e encerre o dia com atenção.",
+      () => "Antes que o dia passe, guarde algo que você não quer tratar como comum.",
+      () => "Uma imagem. Uma frase honesta de gratidão. Sem pressão, só memória.",
+      () => "Abra Gratidão e guarde uma nota visual privada de hoje.",
+    ],
+  },
+  de: {
+    titles: [
+      () => "Ein stiller Moment der Dankbarkeit",
+      () => "Wofür bist du heute dankbar?",
+      () => "Schließe den Tag mit einer Gabe",
+      () => "Der Dankbarkeitsblick ist bereit",
+    ],
+    bodies: [
+      () => "Mach ein Foto, benenne eine Gnade und lass den Tag aufmerksam ausklingen.",
+      () => "Bevor der Tag vergeht, halte etwas fest, das du nicht selbstverständlich nehmen willst.",
+      () => "Ein Bild. Ein ehrlicher Satz Dankbarkeit. Kein Druck, nur Erinnerung.",
+      () => "Öffne den Dankbarkeitsblick und bewahre eine private visuelle Notiz von heute.",
+    ],
+  },
+  yo: {
+    titles: [
+      () => "Ìgbà ìdúpẹ́ pẹ̀lẹ́",
+      () => "Kí ni o dúpẹ́ fún lónìí?",
+      () => "Parí ọjọ́ pẹ̀lú ẹ̀bùn kan",
+      () => "Ojú ìdúpẹ́ ti ṣetan",
+    ],
+    bodies: [
+      () => "Ya fọ́tò kan, sọ aanu kan, kí ọjọ́ pari pẹ̀lú ìfọkànsìn.",
+      () => "Kí ọjọ́ tó kọjá, gba ohun kan sílẹ̀ tí o kò fẹ́ ka sí ohun lasan.",
+      () => "Àwòrán kan. Gbólóhùn ìdúpẹ́ kan. Kò sí ìkánjú, ìrántí nìkan.",
+      () => "Ṣí Ojú Ìdúpẹ́ kí o pa àkọsílẹ̀ ìran ikọ̀kọ̀ kan mọ́ fún òní.",
+    ],
+  },
+  ig: {
+    titles: [
+      () => "Oge ekele dị jụụ",
+      () => "Gịnị ka ị na-ekele maka taa?",
+      () => "Mechie ụbọchị na otu onyinye",
+      () => "Anya ekele dị njikere",
+    ],
+    bodies: [
+      () => "Were otu foto, kpọọ otu amara, ka ụbọchị mechie n’ilebara anya.",
+      () => "Tupu ụbọchị gafee, debe otu ihe ị chọghị iwere dị ka ihe nkịtị.",
+      () => "Otu foto. Otu ahịrị ekele eziokwu. Enweghị nrụgide, naanị ncheta.",
+      () => "Mepee Anya Ekele ma debe otu ndetu anya nkeonwe nke taa.",
+    ],
+  },
+  ha: {
+    titles: [
+      () => "Lokacin godiya mai natsuwa",
+      () => "Me kake godewa yau?",
+      () => "Rufe rana da baiwa guda",
+      () => "Madubin godiya ya shirya",
+    ],
+    bodies: [
+      () => "Dauki hoto guda, ambaci wata alheri, ka rufe rana da lura.",
+      () => "Kafin rana ta wuce, kama abu daya da ba ka so ka dauka da wasa.",
+      () => "Hoto daya. Jumlar godiya ta gaskiya daya. Ba matsin lamba, tunawa ne kawai.",
+      () => "Bude Madubin Godiya ka ajiye bayanin gani na sirri daga yau.",
     ],
   },
 };
@@ -616,6 +759,19 @@ function shouldSendAtLocalHour(row: PushRow, now: Date) {
   return localHour >= preferredLocalHour;
 }
 
+function shouldSendGratitudeAtLocalHour(row: PushRow, now: Date) {
+  const localHour = localHourForTimezone(now, row.preferred_timezone);
+  const alreadySentToday =
+    row.last_gratitude_sent_at &&
+    localDateForTimezone(new Date(row.last_gratitude_sent_at), row.preferred_timezone) ===
+      localDateForTimezone(now, row.preferred_timezone);
+  if (alreadySentToday) {
+    return false;
+  }
+
+  return localHour >= GRATITUDE_REFLECTION_LOCAL_HOUR;
+}
+
 function shouldDeleteBrokenSubscription(error: unknown) {
   if (typeof error !== "object" || !error) {
     return false;
@@ -671,7 +827,7 @@ function summarizePushFailure(error: unknown, row: PushRow, deleted: boolean): P
 async function sendPushRows(
   rows: PushRow[],
   payloadForRow: (row: PushRow) => string,
-  { updateLastSent = true }: { updateLastSent?: boolean } = {}
+  { lastSentColumn = "last_sent_at" }: { lastSentColumn?: "last_sent_at" | "last_gratitude_sent_at" | null } = {}
 ) {
   let sent = 0;
   let failed = 0;
@@ -700,9 +856,9 @@ async function sendPushRows(
 
           await Promise.race([sendPromise, timeoutPromise]);
 
-          if (updateLastSent) {
+          if (lastSentColumn) {
             await run(
-              "UPDATE push_subscriptions SET last_sent_at = ?, updated_at = ? WHERE id = ?",
+              `UPDATE push_subscriptions SET ${lastSentColumn} = ?, updated_at = ? WHERE id = ?`,
               now.toISOString(),
               now.toISOString(),
               row.id
@@ -812,7 +968,7 @@ export async function sendDailyWisdomNotifications() {
 
   const rows = await many<PushRow>(
     `SELECT push_subscriptions.id, push_subscriptions.user_id, endpoint, p256dh, auth, preferred_hour, last_sent_at,
-            preferred_local_hour, preferred_timezone, delivery_strategy,
+            preferred_local_hour, preferred_timezone, delivery_strategy, last_gratitude_sent_at,
             user_preferences.language, user_preferences.region, user_preferences.bible_translation, user_preferences.voice_enabled
      FROM push_subscriptions
      LEFT JOIN user_preferences ON user_preferences.user_id = push_subscriptions.user_id
@@ -870,18 +1026,29 @@ export async function sendDailyWisdomNotifications() {
   const { sent, failed, failureSamples } = await sendPushRows(dueRows, (row) =>
     JSON.stringify(dailyNotificationPayload(row, wisdomEntries))
   );
+  const dailyUsers = new Set(dueRows.map((row) => row.user_id));
+  const gratitudeRows = rows.filter(
+    (row) => !followupUsers.has(row.user_id) && !dailyUsers.has(row.user_id) && shouldSendGratitudeAtLocalHour(row, now)
+  );
+  const gratitudeResult = await sendPushRows(
+    gratitudeRows,
+    (row) => JSON.stringify(gratitudeNotificationPayload(row)),
+    { lastSentColumn: "last_gratitude_sent_at" }
+  );
 
   return {
-    attempted: dueRows.length + followupAttempted,
-    sent: sent + followupSent,
-    failed: failed + followupFailed,
+    attempted: dueRows.length + followupAttempted + gratitudeRows.length,
+    sent: sent + followupSent + gratitudeResult.sent,
+    failed: failed + followupFailed + gratitudeResult.failed,
     scanned: rows.length,
-    skipped: Math.max(0, rows.length - dueRows.length - followupAttempted),
+    skipped: Math.max(0, rows.length - dueRows.length - followupAttempted - gratitudeRows.length),
     catchupAttempted: 0,
     hour: currentHour,
     followupAttempted,
     followupDecisionsNotified,
-    failureSamples: [...followupFailureSamples, ...failureSamples].slice(0, 5),
+    gratitudeAttempted: gratitudeRows.length,
+    gratitudeSent: gratitudeResult.sent,
+    failureSamples: [...followupFailureSamples, ...failureSamples, ...gratitudeResult.failureSamples].slice(0, 5),
   };
 }
 
@@ -890,7 +1057,7 @@ export async function sendTestWisdomNotification(userId: string) {
 
   const rows = await many<PushRow>(
     `SELECT push_subscriptions.id, push_subscriptions.user_id, endpoint, p256dh, auth, preferred_hour, last_sent_at,
-            preferred_local_hour, preferred_timezone, delivery_strategy,
+            preferred_local_hour, preferred_timezone, delivery_strategy, last_gratitude_sent_at,
             user_preferences.language, user_preferences.region, user_preferences.bible_translation, user_preferences.voice_enabled
      FROM push_subscriptions
      LEFT JOIN user_preferences ON user_preferences.user_id = push_subscriptions.user_id
@@ -901,7 +1068,7 @@ export async function sendTestWisdomNotification(userId: string) {
   const { sent, failed, failureSamples } = await sendPushRows(
     rows,
     (row) => JSON.stringify(testNotificationPayload(row)),
-    { updateLastSent: false }
+    { lastSentColumn: null }
   );
 
   return {
@@ -961,14 +1128,14 @@ export async function getNotificationHealthSnapshot(): Promise<NotificationHealt
   const now = new Date();
   const rows = await many<PushRow>(
     `SELECT push_subscriptions.id, push_subscriptions.user_id, endpoint, p256dh, auth, preferred_hour, last_sent_at,
-            preferred_local_hour, preferred_timezone, delivery_strategy,
+            preferred_local_hour, preferred_timezone, delivery_strategy, last_gratitude_sent_at,
             user_preferences.language, user_preferences.region, user_preferences.bible_translation, user_preferences.voice_enabled
      FROM push_subscriptions
      LEFT JOIN user_preferences ON user_preferences.user_id = push_subscriptions.user_id
      WHERE enabled = TRUE`,
   );
 
-  const dueNow = rows.filter((row) => shouldSendAtLocalHour(row, now)).length;
+  const dueNow = rows.filter((row) => shouldSendAtLocalHour(row, now) || shouldSendGratitudeAtLocalHour(row, now)).length;
   const unauthorizedHits = await notificationMetricValue(DAILY_UNAUTHORIZED_METRIC_KEY);
 
   return {

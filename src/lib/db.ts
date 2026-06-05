@@ -121,6 +121,7 @@ async function initializeDatabase() {
       timezone_mode TEXT NOT NULL DEFAULT 'auto',
       delivery_strategy TEXT NOT NULL DEFAULT 'morning',
       last_sent_at TIMESTAMPTZ,
+      last_gratitude_sent_at TIMESTAMPTZ,
       created_at TIMESTAMPTZ NOT NULL,
       updated_at TIMESTAMPTZ NOT NULL
     );
@@ -129,6 +130,7 @@ async function initializeDatabase() {
     ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS preferred_timezone TEXT NOT NULL DEFAULT 'UTC';
     ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS timezone_mode TEXT NOT NULL DEFAULT 'auto';
     ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS delivery_strategy TEXT NOT NULL DEFAULT 'morning';
+    ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS last_gratitude_sent_at TIMESTAMPTZ;
 
     CREATE TABLE IF NOT EXISTS counsel_contacts (
       id TEXT PRIMARY KEY,

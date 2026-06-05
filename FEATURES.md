@@ -151,6 +151,7 @@ After a meaningful answer, Aletheia can help the user take the next wise step.
 - Gratitude Lens for visual gratitude practice using a user-selected or captured photo plus one grateful note
 - Gratitude Lens interface, timeline, weekly recap, and postcard actions use the user’s selected app language
 - Gratitude photos stay local on the user’s device by default and are not synced to the account
+- Evening gratitude notifications are delivered around 7 PM local time through the existing notification cron, without adding another visible timing control
 - Prompt from today’s wisdom to suggest one gratitude photo or observation
 - Photo-to-reflection flow that turns a saved gratitude moment into a journal prompt
 - Optional place/context field for gratitude moments without requesting GPS location
@@ -160,7 +161,7 @@ After a meaningful answer, Aletheia can help the user take the next wise step.
 - Gratitude postcard includes Aletheia branding/signature and a subtle invitation to begin a gratitude rhythm
 - Gratitude postcards export/share only when the user explicitly chooses
 - Exported gratitude postcards are marked back in the local Gratitude Timeline
-- Gratitude rhythm guidance recommends around 7 PM local time as a calm day-closing practice
+- Gratitude rhythm guidance and push delivery use around 7 PM local time as a calm day-closing practice
 
 ## Biblical Wisdom Knowledge Engine
 

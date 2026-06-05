@@ -3407,6 +3407,7 @@ export function AletheiaApp() {
   const [answerFocusId, setAnswerFocusId] = useState<string | null>(null);
   const [ruleText, setRuleText] = useState("");
   const [pendingNotificationFocus, setPendingNotificationFocus] = useState(false);
+  const [pendingGratitudeNotificationFocus, setPendingGratitudeNotificationFocus] = useState(false);
   const [pendingDecisionNotificationFocus, setPendingDecisionNotificationFocus] = useState<string | null>(null);
 
   useEffect(() => {
@@ -3863,7 +3864,7 @@ export function AletheiaApp() {
     }
     const focus = params.get("focus");
     const decisionId = params.get("decisionId");
-    if (focus !== "today" && focus !== "reflect" && focus !== "library" && !(focus === "decision" && decisionId)) {
+    if (focus !== "today" && focus !== "reflect" && focus !== "gratitude" && focus !== "library" && !(focus === "decision" && decisionId)) {
       return;
     }
 
@@ -3887,6 +3888,15 @@ export function AletheiaApp() {
           ts('notifications.reflectionReminderReadyBody', "Aletheia opened Reflect so you can respond quietly."),
           "success"
         );
+      } else if (focus === "gratitude") {
+        setActiveView("reflect", "notification_click");
+        setStatusMessage(ts('status.gratitudeReminderReady', "Your gratitude moment is ready."));
+        announceWorkflow(
+          ts('notifications.gratitudeReminderReady', "Gratitude moment ready"),
+          ts('notifications.gratitudeReminderReadyBody', "Aletheia opened the Gratitude Lens so you can close the day with attention."),
+          "success"
+        );
+        setPendingGratitudeNotificationFocus(true);
       } else if (focus === "library") {
         setActiveView("library", "notification_click");
         setStatusMessage(ts('status.libraryWisdomReady', "A wisdom anchor is ready."));
@@ -3904,6 +3914,44 @@ export function AletheiaApp() {
       window.history.replaceState({}, "", window.location.pathname);
     });
   }, [announceWorkflow, clientStateRestored, setActiveView, ts]);
+
+  useEffect(() => {
+    if (!pendingGratitudeNotificationFocus || activeView !== "reflect" || showOnboarding) {
+      return;
+    }
+
+    let settled = false;
+    const focusGratitudeLens = () => {
+      const target = document.getElementById("gratitude-lens-card");
+      if (!target) {
+        return false;
+      }
+      const topNav = document.querySelector(".app-top-nav");
+      const topOffset = topNav instanceof HTMLElement ? topNav.getBoundingClientRect().height + 18 : 112;
+      const top = Math.max(0, window.scrollY + target.getBoundingClientRect().top - topOffset);
+      target.focus({ preventScroll: true });
+      window.scrollTo({ top, behavior: "smooth" });
+      return true;
+    };
+
+    const timers = [0, 180, 720, 1400, 2600, 3600, 5200].map((delay) =>
+      window.setTimeout(() => {
+        if (settled) {
+          return;
+        }
+        const focused = focusGratitudeLens();
+        if (focused && delay >= 1400) {
+          settled = true;
+          setPendingGratitudeNotificationFocus(false);
+        }
+      }, delay)
+    );
+
+    return () => {
+      settled = true;
+      timers.forEach((timer) => window.clearTimeout(timer));
+    };
+  }, [activeView, pendingGratitudeNotificationFocus, showOnboarding]);
 
   useEffect(() => {
     if (!pendingNotificationFocus || activeView !== "companion" || showOnboarding) {
@@ -14486,15 +14534,16 @@ function GratitudeLensPanel({
   const gratitudeRhythmLabel = notificationTimeLabel(GRATITUDE_REFLECTION_DEFAULT_HOUR, language);
 
   return (
-    <DisclosureSection
-      title={ts('labels.gratitudeLens', 'Gratitude Lens')}
-      summary={summary}
-      eyebrow={ts('labels.visualGratitude', 'Visual gratitude')}
-      defaultOpen={entries.length === 0}
-      showDetailsLabel={ts('showDetails', 'Show details')}
-      hideDetailsLabel={ts('hideDetails', 'Hide details')}
-      theme={theme}
-    >
+    <div id="gratitude-lens-card" tabIndex={-1} className="scroll-mt-28 outline-none">
+      <DisclosureSection
+        title={ts('labels.gratitudeLens', 'Gratitude Lens')}
+        summary={summary}
+        eyebrow={ts('labels.visualGratitude', 'Visual gratitude')}
+        defaultOpen={entries.length === 0}
+        showDetailsLabel={ts('showDetails', 'Show details')}
+        hideDetailsLabel={ts('hideDetails', 'Hide details')}
+        theme={theme}
+      >
       <section className="grid min-w-0 gap-4 xl:grid-cols-[0.95fr_1.05fr]">
         <div className="rounded-xl border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
           <div className="flex items-start gap-3">
@@ -14697,7 +14746,8 @@ function GratitudeLensPanel({
           </div>
         </div>
       </section>
-    </DisclosureSection>
+      </DisclosureSection>
+    </div>
   );
 }
 

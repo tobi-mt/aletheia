@@ -294,6 +294,8 @@
     "libraryWisdomReadyBody": "Aletheia ta buɗe Laburare domin ka karanta mahallin nassi.",
     "reflectionReminderReady": "Tunatarwar tunani ta shirya",
     "reflectionReminderReadyBody": "Aletheia ta buɗe Tunani domin ka amsa cikin nutsuwa.",
+    "gratitudeReminderReady": "Lokacin godiya ya shirya",
+    "gratitudeReminderReadyBody": "Aletheia ta buɗe Madubin Godiya domin ka rufe rana da lura.",
     "notificationsNeedReenableDevice": "Ana buƙatar sake kunna sanarwa a wannan na’ura.",
     "notificationsOptionalWhenReady": "Za ka iya kunna sanarwa idan ka shirya.",
     "preparingDeviceNotifications": "Ana shirya wannan na’ura don sanarwar hikima ta yau da kullum...",
@@ -361,7 +363,8 @@
     "local": "gida",
     "decisionReminderReady": "Tunatarwar shawara ta shirya",
     "libraryWisdomReady": "Tushen hikima ya shirya",
-    "reflectionReminderReady": "Tunatarwar tunani ta shirya"
+    "reflectionReminderReady": "Tunatarwar tunani ta shirya",
+    "gratitudeReminderReady": "Lokacin godiyarka ya shirya."
   },
   "placeholders": {
     "decisionExample": "Matsin lamba na kuɗi, shawara ta aiki, matsin lamba na dangantaka...",

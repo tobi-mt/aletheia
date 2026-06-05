@@ -294,6 +294,8 @@
     "libraryWisdomReadyBody": "Aletheia mepere Ọbá akwụkwọ ka ị gụọ ọnọdụ Akwụkwọ Nsọ.",
     "reflectionReminderReady": "Ncheta ntụgharị uche dị njikere",
     "reflectionReminderReadyBody": "Aletheia mepere Tụgharịa uche ka ị zaa nwayọọ.",
+    "gratitudeReminderReady": "Oge ekele dị njikere",
+    "gratitudeReminderReadyBody": "Aletheia mepere Anya Ekele ka i mechie ụbọchị n’ilebara anya.",
     "notificationsNeedReenableDevice": "A ga-agbanyeghachi amamọkwa na ngwaọrụ a.",
     "notificationsOptionalWhenReady": "Ị nwere ike ịgbanye amamọkwa mgbe ị dị njikere.",
     "preparingDeviceNotifications": "Na-akwadebe ngwaọrụ a maka amamọkwa amamihe kwa ụbọchị...",
@@ -361,7 +363,8 @@
     "local": "mpaghara",
     "decisionReminderReady": "Ncheta mkpebi dị njikere",
     "libraryWisdomReady": "Njikọ amamihe dị njikere",
-    "reflectionReminderReady": "Ncheta ntụgharị uche dị njikere"
+    "reflectionReminderReady": "Ncheta ntụgharị uche dị njikere",
+    "gratitudeReminderReady": "Oge ekele gị dị njikere."
   },
   "placeholders": {
     "decisionExample": "Nrụgide ego, mkpebi ọrụ, nrụgide mmekọrịta...",

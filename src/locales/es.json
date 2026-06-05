@@ -294,6 +294,8 @@
     "libraryWisdomReadyBody": "Aletheia abrió la Biblioteca para que leas el contexto bíblico.",
     "reflectionReminderReady": "Reflexión lista",
     "reflectionReminderReadyBody": "Aletheia abrió Reflexionar para que respondas con calma.",
+    "gratitudeReminderReady": "Momento de gratitud listo",
+    "gratitudeReminderReadyBody": "Aletheia abrió Gratitud para que cierres el día con atención.",
     "notificationsNeedReenableDevice": "Las notificaciones deben volver a activarse en este dispositivo.",
     "notificationsOptionalWhenReady": "Puedes activar las notificaciones cuando estés listo.",
     "preparingDeviceNotifications": "Preparando este dispositivo para notificaciones diarias de sabiduría...",
@@ -361,7 +363,8 @@
     "local": "en este dispositivo",
     "decisionReminderReady": "Tu recordatorio de decisión está listo.",
     "libraryWisdomReady": "Un ancla de sabiduría está lista.",
-    "reflectionReminderReady": "Tu reflexión está lista."
+    "reflectionReminderReady": "Tu reflexión está lista.",
+    "gratitudeReminderReady": "Tu momento de gratitud está listo."
   },
   "placeholders": {
     "decisionExample": "Estrés por dinero, una decisión de carrera, presión de generosidad...",

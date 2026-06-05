@@ -294,6 +294,8 @@
     "libraryWisdomReadyBody": "Aletheia hat die Bibliothek geöffnet, damit du den Bibelkontext lesen kannst.",
     "reflectionReminderReady": "Reflexionsimpuls bereit",
     "reflectionReminderReadyBody": "Aletheia hat Reflektieren geöffnet, damit du ruhig antworten kannst.",
+    "gratitudeReminderReady": "Dankbarkeitsmoment bereit",
+    "gratitudeReminderReadyBody": "Aletheia hat den Dankbarkeitsblick geöffnet, damit du den Tag aufmerksam abschließen kannst.",
     "notificationsNeedReenableDevice": "Benachrichtigungen müssen auf diesem Gerät erneut aktiviert werden.",
     "notificationsOptionalWhenReady": "Benachrichtigungen können aktiviert werden, wenn du bereit bist.",
     "preparingDeviceNotifications": "Dieses Gerät wird für tägliche Weisheitsbenachrichtigungen vorbereitet...",
@@ -361,7 +363,8 @@
     "local": "lokal",
     "decisionReminderReady": "Deine Entscheidungserinnerung ist bereit.",
     "libraryWisdomReady": "Ein Weisheitsanker ist bereit.",
-    "reflectionReminderReady": "Dein Reflexionsimpuls ist bereit."
+    "reflectionReminderReady": "Dein Reflexionsimpuls ist bereit.",
+    "gratitudeReminderReady": "Dein Dankbarkeitsmoment ist bereit."
   },
   "placeholders": {
     "decisionExample": "Geldstress, eine Karriereentscheidung, Großzügigkeitsdruck...",

@@ -294,6 +294,8 @@
     "libraryWisdomReadyBody": "Aletheia ṣí Ilé-ìkàwé kí o lè ka àyíká Bíbélì.",
     "reflectionReminderReady": "Ìránnilétí ìrònú ti ṣetan",
     "reflectionReminderReadyBody": "Aletheia ṣí Ìrònú kí o lè dáhùn ní ìdákẹ́jẹ.",
+    "gratitudeReminderReady": "Ìgbà ìdúpẹ́ ti ṣetan",
+    "gratitudeReminderReadyBody": "Aletheia ṣí Ojú Ìdúpẹ́ kí o lè pari ọjọ́ pẹ̀lú ìfọkànsìn.",
     "notificationsNeedReenableDevice": "Ìfitónilétí gbọ́dọ̀ tún ṣiṣẹ́ lórí ẹrọ yìí.",
     "notificationsOptionalWhenReady": "O lè tan ìfitónilétí nígbà tí o bá ṣetan.",
     "preparingDeviceNotifications": "Ń pèsè ẹrọ yìí fún ìfitónilétí ọgbọ́n ojoojúmọ́...",
@@ -361,7 +363,8 @@
     "local": "níhìn-ìhìn",
     "decisionReminderReady": "Ìránnilétí ìpinnu ti ṣetan",
     "libraryWisdomReady": "Ìdákọ̀ró ọgbọ́n ti ṣetan",
-    "reflectionReminderReady": "Ìránnilétí ìrònú ti ṣetan"
+    "reflectionReminderReady": "Ìránnilétí ìrònú ti ṣetan",
+    "gratitudeReminderReady": "Ìgbà ìdúpẹ́ rẹ ti ṣetan."
   },
   "placeholders": {
     "decisionExample": "Ìpọ́njú owó, ìpinnu iṣẹ́, títẹ ọ̀fẹ́...",

@@ -294,6 +294,8 @@
     "libraryWisdomReadyBody": "Aletheia opened the Library so you can read the scripture context.",
     "reflectionReminderReady": "Reflection prompt ready",
     "reflectionReminderReadyBody": "Aletheia opened Reflect so you can respond quietly.",
+    "gratitudeReminderReady": "Gratitude moment ready",
+    "gratitudeReminderReadyBody": "Aletheia opened the Gratitude Lens so you can close the day with attention.",
     "notificationsNeedReenableDevice": "Notifications need to be re-enabled on this device.",
     "notificationsOptionalWhenReady": "Notifications can be enabled when you are ready.",
     "preparingDeviceNotifications": "Preparing this device for daily wisdom notifications...",
@@ -361,7 +363,8 @@
     "local": "local",
     "decisionReminderReady": "Your decision reminder is ready.",
     "libraryWisdomReady": "A wisdom anchor is ready.",
-    "reflectionReminderReady": "Your reflection prompt is ready."
+    "reflectionReminderReady": "Your reflection prompt is ready.",
+    "gratitudeReminderReady": "Your gratitude moment is ready."
   },
   "placeholders": {
     "decisionExample": "Money stress, a career decision, generosity pressure...",
