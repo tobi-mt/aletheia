@@ -327,7 +327,11 @@
     "notificationTimingSavedBody": "Hikimar yau da kullum yanzu tana nufin kusan {time} lokacin gida.",
     "preferencesReady": "Saitunan harshe sun shirya.",
     "preferencesSaving": "Ana ajiye saitunan harshe...",
-    "themeAppliedAutomatically": "An aiwatar da jigo ta atomatik."
+    "themeAppliedAutomatically": "An aiwatar da jigo ta atomatik.",
+    "localSettingsCleared": "An share saitunan na’ura",
+    "localSettingsClearedBody": "An sake saita jigo, murya, mahalli, lokaci da niyya a wannan na’ura.",
+    "guestWorkspaceCleared": "An share wurin aikin baƙo",
+    "guestWorkspaceClearedBody": "An share tattaunawa, shawarwari, tunani, lambobin shawara da dokokin baƙo daga wannan na’ura."
   },
   "status": {
     "guestMode": "Matsayin baƙo yana aiki. Shiga don daidaita shawara.",
@@ -677,7 +681,7 @@
     "selected": "An zaɓa",
     "sendReport": "Aika rahoto",
     "sending": "Ana aikawa...",
-    "signInToExportDelete": "Shiga don fitarwa ko share bayanan asusu.",
+    "signInToExportDelete": "Shiga don fitarwa ko share bayanan asusu da aka daidaita. Ana iya share bayanan baƙo daga wannan na’ura.",
     "suggestedAction": "Mataki da aka ba da shawara",
     "support": "Taimako",
     "theme": "jigo",
@@ -697,7 +701,7 @@
     "voice": "Murya",
     "weeklyPatternReview": "Binciken alamu na mako",
     "whatStaysLocal": "Abin da ke nan a na’ura",
-    "whatStaysLocalBody": "Murya, jigo, rubutun mahalli da niyya suna zama a wannan na’ura har sai ka canza su.",
+    "whatStaysLocalBody": "Murya, jigo, rubutun mahalli, lokacin sanarwa da niyya suna zama a wannan na’ura har sai ka canza su.",
     "whatSyncs": "Abin da ke daidaitawa",
     "whatSyncsGuest": "Babu abin da ke daidaitawa a matsayin bako har sai ka shiga.",
     "whatSyncsSignedIn": "Shawarwari, tunani, bayanan asusu, saituna da masu shawara suna daidaitawa.",
@@ -804,7 +808,11 @@
     "voicePreviewDone": "Samfuri ya ƙare.",
     "voicePreviewFailed": "Ba a iya kunna samfurin ba. Gwada wata murya ko tsohon zaɓin na’ura.",
     "voiceApplied": "An zaɓi murya. Yi amfani da Samfuri don ji.",
-    "deviceVoiceApplied": "An zaɓi tsohon murya na na’ura. Yi amfani da Samfuri don ji."
+    "deviceVoiceApplied": "An zaɓi tsohon murya na na’ura. Yi amfani da Samfuri don ji.",
+    "clearLocalSettings": "Share saitunan na’ura",
+    "clearGuestWorkspace": "Share wurin aikin baƙo",
+    "signOutPrivacy": "Sirri lokacin fita",
+    "signOutPrivacyBody": "Fita yana ɓoye bayanan sirri na asusu da aka daidaita a wannan na’ura. Za su dawo ne kawai idan ka sake shiga."
   },
   "personalizationNudgeTitle": "Kana son shawara ta fi zama ta kanka?",
   "personalizationNudgeBody": "Ƙara bayani ɗaya game da kuɗi, aiki, ko tsarin rayuwa.",
@@ -1084,5 +1092,9 @@
     "contactUs": "Tuntuɓe mu",
     "notConfigured": "Ana shirya hanyoyin tallafi. Aletheia na nan yana aiki cikakke yayin da ake saitawa.",
     "trustNote": "Bayarwa zaɓi ne. Ba ya canza shawarar da kake samu, kuma bayanan biyan kuɗi suna hannun mai samar da biyan kuɗi, ba Aletheia ba."
+  },
+  "confirm": {
+    "signOut": "Fita? Za a ɓoye bayanan sirri na asusu a wannan na’ura. Bayananka da aka daidaita suna nan lafiya kuma za su dawo idan ka sake shiga.",
+    "clearGuestWorkspace": "Share tattaunawa, shawarwari, tunani, lambobin shawara da dokokin baƙo daga wannan na’ura? Wannan ba ya share bayanan asusun da aka shiga."
   }
 }

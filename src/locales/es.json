@@ -327,7 +327,11 @@
     "notificationTimingSavedBody": "La sabiduría diaria está programada alrededor de las {time} hora local.",
     "preferencesReady": "Los ajustes de idioma están listos.",
     "preferencesSaving": "Guardando ajustes de idioma...",
-    "themeAppliedAutomatically": "Tema aplicado automáticamente."
+    "themeAppliedAutomatically": "Tema aplicado automáticamente.",
+    "localSettingsCleared": "Ajustes locales borrados",
+    "localSettingsClearedBody": "Tema, voz, contexto local, horario e intenciones se restablecieron en este dispositivo.",
+    "guestWorkspaceCleared": "Espacio de invitado borrado",
+    "guestWorkspaceClearedBody": "Conversaciones, decisiones, reflexiones, contactos de consejo y reglas locales se borraron de este dispositivo."
   },
   "status": {
     "guestMode": "Modo invitado activo. Inicia sesión para sincronizar decisiones.",
@@ -677,7 +681,7 @@
     "selected": "Seleccionado",
     "sendReport": "Enviar reporte",
     "sending": "Enviando...",
-    "signInToExportDelete": "Inicia sesión para exportar o eliminar datos sincronizados. Los datos de invitado permanecen en este dispositivo.",
+    "signInToExportDelete": "Inicia sesión para exportar o eliminar datos sincronizados. Los datos de invitado pueden borrarse de este dispositivo.",
     "suggestedAction": "Acción sugerida",
     "support": "Soporte",
     "theme": "tema",
@@ -697,7 +701,7 @@
     "voice": "Voz",
     "weeklyPatternReview": "Revisión semanal de patrones",
     "whatStaysLocal": "Qué queda local",
-    "whatStaysLocalBody": "Voz del dispositivo, tema, borradores locales de contexto e intenciones quedan locales hasta que los cambies.",
+    "whatStaysLocalBody": "Voz del dispositivo, tema, borradores locales de contexto, horario de notificaciones e intenciones quedan locales hasta que los cambies.",
     "whatSyncs": "Qué se sincroniza",
     "whatSyncsGuest": "Nada se sincroniza en modo invitado hasta que inicies sesión.",
     "whatSyncsSignedIn": "Decisiones, reflexiones, perfil, preferencias y círculo de consejo se sincronizan con tu cuenta.",
@@ -804,7 +808,11 @@
     "voicePreviewDone": "Vista previa terminada.",
     "voicePreviewFailed": "La vista previa no pudo reproducirse. Prueba otra voz o la predeterminada del dispositivo.",
     "voiceApplied": "Voz seleccionada. Usa Vista previa para escucharla.",
-    "deviceVoiceApplied": "Voz predeterminada seleccionada. Usa Vista previa para escucharla."
+    "deviceVoiceApplied": "Voz predeterminada seleccionada. Usa Vista previa para escucharla.",
+    "clearLocalSettings": "Borrar ajustes locales",
+    "clearGuestWorkspace": "Borrar espacio de invitado",
+    "signOutPrivacy": "Privacidad al cerrar sesión",
+    "signOutPrivacyBody": "Al cerrar sesión, los datos privados sincronizados se ocultan en este dispositivo. Vuelven solo cuando inicias sesión otra vez."
   },
   "personalizationNudgeTitle": "¿Quieres un consejo más personal?",
   "personalizationNudgeBody": "Agrega un detalle sobre dinero, trabajo o ritmo.",
@@ -1084,5 +1092,9 @@
     "contactUs": "Contáctanos",
     "notConfigured": "Los enlaces de apoyo se están preparando. Aletheia sigue siendo completamente usable mientras tanto.",
     "trustNote": "Dar es opcional. Nunca cambia el consejo que recibes, y los datos de pago los gestiona el proveedor de pagos, no Aletheia."
+  },
+  "confirm": {
+    "signOut": "¿Cerrar sesión? Los datos privados de la cuenta se ocultarán en este dispositivo. Tus datos sincronizados permanecen seguros y vuelven al iniciar sesión.",
+    "clearGuestWorkspace": "¿Borrar conversaciones, decisiones, reflexiones, contactos de consejo y reglas locales de invitado de este dispositivo? No elimina datos de una cuenta iniciada."
   }
 }

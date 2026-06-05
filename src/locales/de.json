@@ -327,7 +327,11 @@
     "notificationTimingSavedBody": "Tägliche Weisheit ist jetzt auf etwa {time} Ortszeit ausgerichtet.",
     "preferencesReady": "Spracheinstellungen sind bereit.",
     "preferencesSaving": "Spracheinstellungen werden gespeichert...",
-    "themeAppliedAutomatically": "Theme automatisch angewendet."
+    "themeAppliedAutomatically": "Theme automatisch angewendet.",
+    "localSettingsCleared": "Lokale Einstellungen gelöscht",
+    "localSettingsClearedBody": "Theme, Stimme, lokaler Kontext, Zeit und Fokusabsichten wurden auf diesem Gerät zurückgesetzt.",
+    "guestWorkspaceCleared": "Gast-Arbeitsbereich gelöscht",
+    "guestWorkspaceClearedBody": "Lokale Gastgespräche, Entscheidungen, Reflexionen, Ratgeberkontakte und Regeln wurden von diesem Gerät gelöscht."
   },
   "status": {
     "guestMode": "Gast-Modus aktiv. Melde dich an, um Entscheidungen zu synchronisieren.",
@@ -677,7 +681,7 @@
     "selected": "Ausgewählt",
     "sendReport": "Bericht senden",
     "sending": "Wird gesendet...",
-    "signInToExportDelete": "Melde dich an, um synchronisierte Kontodaten zu exportieren oder zu löschen. Gastdaten bleiben auf diesem Gerät.",
+    "signInToExportDelete": "Melde dich an, um synchronisierte Kontodaten zu exportieren oder zu löschen. Gastdaten kannst du von diesem Gerät löschen.",
     "suggestedAction": "Vorgeschlagene Aktion",
     "support": "Support",
     "theme": "Theme",
@@ -697,7 +701,7 @@
     "voice": "Stimme",
     "weeklyPatternReview": "Wöchentliche Musterprüfung",
     "whatStaysLocal": "Was lokal bleibt",
-    "whatStaysLocalBody": "Gerätespezifische Stimme, Theme, lokale Kontextentwürfe und Fokusabsichten bleiben lokal, bis du sie änderst.",
+    "whatStaysLocalBody": "Gerätespezifische Stimme, Theme, lokale Kontextentwürfe, Benachrichtigungszeit und Fokusabsichten bleiben lokal, bis du sie änderst.",
     "whatSyncs": "Was synchronisiert wird",
     "whatSyncsGuest": "Im Gastmodus wird nichts synchronisiert, bis du dich anmeldest.",
     "whatSyncsSignedIn": "Entscheidungen, Reflexionen, Profil, Einstellungen und Ratgeberkreis werden mit deinem Konto synchronisiert.",
@@ -804,7 +808,11 @@
     "voicePreviewDone": "Vorschau beendet.",
     "voicePreviewFailed": "Vorschau konnte nicht abgespielt werden. Probiere eine andere Stimme oder den Gerätestandard.",
     "voiceApplied": "Stimme ausgewählt. Nutze Anhören, um sie zu hören.",
-    "deviceVoiceApplied": "Gerätestandard ausgewählt. Nutze Anhören, um ihn zu hören."
+    "deviceVoiceApplied": "Gerätestandard ausgewählt. Nutze Anhören, um ihn zu hören.",
+    "clearLocalSettings": "Lokale Einstellungen löschen",
+    "clearGuestWorkspace": "Gast-Arbeitsbereich löschen",
+    "signOutPrivacy": "Datenschutz beim Abmelden",
+    "signOutPrivacyBody": "Beim Abmelden werden synchronisierte private Arbeitsbereichsdaten auf diesem Gerät ausgeblendet. Sie erscheinen erst wieder, wenn du dich erneut anmeldest."
   },
   "personalizationNudgeTitle": "Möchtest du persönlicheren Rat?",
   "personalizationNudgeBody": "Füge ein Detail zu Geld, Arbeit oder Rhythmus hinzu.",
@@ -1084,5 +1092,9 @@
     "contactUs": "Kontakt aufnehmen",
     "notConfigured": "Unterstützungslinks werden vorbereitet. Aletheia bleibt währenddessen vollständig nutzbar.",
     "trustNote": "Geben ist freiwillig. Es verändert niemals den Rat, den du erhältst, und Zahlungsdaten werden vom Zahlungsanbieter verarbeitet, nicht von Aletheia."
+  },
+  "confirm": {
+    "signOut": "Abmelden? Private Kontodaten werden auf diesem Gerät ausgeblendet. Deine synchronisierten Kontodaten bleiben sicher und erscheinen wieder, wenn du dich erneut anmeldest.",
+    "clearGuestWorkspace": "Lokale Gastgespräche, Entscheidungen, Reflexionen, Ratgeberkontakte und Regeln von diesem Gerät löschen? Synchronisierte Kontodaten werden nicht gelöscht."
   }
 }

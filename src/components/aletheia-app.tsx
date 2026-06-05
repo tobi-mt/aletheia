@@ -5055,7 +5055,40 @@ export function AletheiaApp() {
     } catch {
       // In-memory reset still gives immediate safety.
     }
-    announceWorkflow("Local personalization cleared", "Theme, voice, local context, timing, and focus intentions were reset on this device.", "success");
+    announceWorkflow(ts('notifications.localSettingsCleared', 'Local settings cleared'), ts('notifications.localSettingsClearedBody', 'Theme, voice, local context, timing, and focus intentions were reset on this device.'), "success");
+  }
+
+  function clearLocalPrivateWorkspace() {
+    setMessages(defaultMessages);
+    setJournalEntries([]);
+    setWisdomDecisions([]);
+    setDecisionEvents([]);
+    setCounselContacts([]);
+    setRulesOfLife([]);
+    setCounselSummaryDraft(null);
+    try {
+      window.localStorage.removeItem("aletheia-counsel-summary-draft");
+    } catch {
+      // In-memory reset is the privacy-critical part.
+    }
+  }
+
+  function clearGuestWorkspace() {
+    const confirmed = window.confirm(
+      ts(
+        'confirm.clearGuestWorkspace',
+        'Clear local guest conversations, decisions, reflections, counsel contacts, and rules from this device? This does not delete any signed-in account data.'
+      )
+    );
+    if (!confirmed) {
+      return;
+    }
+    clearLocalPrivateWorkspace();
+    announceWorkflow(
+      ts('notifications.guestWorkspaceCleared', 'Guest workspace cleared'),
+      ts('notifications.guestWorkspaceClearedBody', 'Local guest conversations, decisions, reflections, counsel contacts, and rules were cleared from this device.'),
+      "success"
+    );
   }
 
   async function exportAccountData() {
@@ -5553,7 +5586,7 @@ export function AletheiaApp() {
   }
 
   async function logout() {
-    if (!window.confirm('Are you sure you want to sign out? Any unsaved local data will be cleared from this device.')) {
+    if (!window.confirm(ts('confirm.signOut', 'Sign out? Private account data will be hidden from this device. Your synced account data stays safe and returns when you sign back in.'))) {
       return;
     }
     setAuthStatus("signing-out");
@@ -5564,9 +5597,10 @@ export function AletheiaApp() {
     setUser(null);
     setAuthStatus("guest");
     setAuthNotice("Signed out. Guest mode is active.");
-    setMessages(defaultMessages);
-    setJournalEntries([]);
+    clearLocalPrivateWorkspace();
     setNotificationsEnabled(false);
+    setNotificationAccountEnabled(false);
+    setNotificationDeviceSubscribed(false);
     setStatusMessage(ts('status.signedOutGuest'));
     announceWorkflow(ts('notifications.signedOut'), ts('notifications.signedOutBody'), "info");
   }
@@ -7053,12 +7087,14 @@ export function AletheiaApp() {
                   decisions={wisdomDecisions}
                   journalEntries={journalEntries}
                   counselContacts={counselContacts}
+                  rulesOfLife={rulesOfLife}
                   availableVoices={availableVoices}
                   selectedVoice={selectedVoice}
                   onVoiceChange={updateVoicePreference}
                   focusIntentions={focusIntentions}
                   onFocusIntentionsChange={updateFocusIntentions}
                   onClearLocalPersonalization={clearLocalPersonalization}
+                  onClearGuestWorkspace={clearGuestWorkspace}
                   onExportData={exportAccountData}
                   onRequestDeleteAccount={() => setShowDeleteAccountModal(true)}
                   onReportIssue={() => setShowReportIssueModal(true)}
@@ -8512,12 +8548,14 @@ function AccountPanel({
   decisions,
   journalEntries,
   counselContacts,
+  rulesOfLife,
   availableVoices,
   selectedVoice,
   onVoiceChange,
   focusIntentions,
   onFocusIntentionsChange,
   onClearLocalPersonalization,
+  onClearGuestWorkspace,
   onExportData,
   onRequestDeleteAccount,
   onReportIssue,
@@ -8568,12 +8606,14 @@ function AccountPanel({
   decisions: WisdomDecision[];
   journalEntries: JournalEntry[];
   counselContacts: CounselContact[];
+  rulesOfLife: RuleOfLife[];
   availableVoices: SpeechSynthesisVoice[];
   selectedVoice: string | null;
   onVoiceChange: (voiceURI: string | null) => void;
   focusIntentions: string[];
   onFocusIntentionsChange: (intentions: string[]) => void;
   onClearLocalPersonalization: () => void;
+  onClearGuestWorkspace: () => void;
   onExportData: () => void;
   onRequestDeleteAccount: () => void;
   onReportIssue: () => void;
@@ -8584,6 +8624,7 @@ function AccountPanel({
   const text = { ...uiText.en, ...ui };
   const exchanges = conversationExchanges(messages).filter((exchange) => exchange.question);
   const activeDecisionCount = decisions.filter((decision) => decision.status !== "closed").length;
+  const hasLocalWorkspaceData = exchanges.length > 0 || decisions.length > 0 || journalEntries.length > 0 || counselContacts.length > 0 || rulesOfLife.length > 0;
   const contextAreas = [
     manualContextHasContent(manualContext),
     Boolean(manualContext.monthlyIncome || manualContext.fixedExpenses || manualContext.debtPayments || manualContext.savingsBufferMonths),
@@ -8820,7 +8861,9 @@ function AccountPanel({
               theme={theme}
               ts={ts}
               user={user}
+              hasLocalWorkspaceData={hasLocalWorkspaceData}
               onClearLocalPersonalization={onClearLocalPersonalization}
+              onClearGuestWorkspace={onClearGuestWorkspace}
               onExportData={onExportData}
               onRequestDeleteAccount={onRequestDeleteAccount}
               accountActionBusy={accountActionBusy}
@@ -9573,7 +9616,9 @@ function DataBoundariesCard({
   theme,
   ts,
   user,
+  hasLocalWorkspaceData,
   onClearLocalPersonalization,
+  onClearGuestWorkspace,
   onExportData,
   onRequestDeleteAccount,
   accountActionBusy,
@@ -9581,7 +9626,9 @@ function DataBoundariesCard({
   theme: ThemeColors;
   ts: (key: string, fallback?: string) => string;
   user: User | null;
+  hasLocalWorkspaceData: boolean;
   onClearLocalPersonalization: () => void;
+  onClearGuestWorkspace: () => void;
   onExportData: () => void;
   onRequestDeleteAccount: () => void;
   accountActionBusy: "export" | "delete" | "report" | null;
@@ -9598,6 +9645,12 @@ function DataBoundariesCard({
           <p className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>{ts('labels.whatStaysLocal', 'What stays local')}</p>
           <p className="mt-1 text-sm leading-6" style={{ color: theme.textPrimary }}>{ts('labels.whatStaysLocalBody', 'Device-specific voice, theme preference, local context drafts, and focus intentions stay local until changed.')}</p>
         </div>
+        <div className="rounded-md border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+          <p className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>{ts('labels.signOutPrivacy', 'Sign-out privacy')}</p>
+          <p className="mt-1 text-sm leading-6" style={{ color: theme.textPrimary }}>
+            {ts('labels.signOutPrivacyBody', 'Signing out hides synced private workspace data on this device. It returns only after you sign back in.')}
+          </p>
+        </div>
       </div>
       <div className="mt-3 flex flex-wrap gap-2">
         <button
@@ -9606,8 +9659,19 @@ function DataBoundariesCard({
           style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
           onClick={onClearLocalPersonalization}
         >
-          {ts('labels.clearLocalPersonalization', 'Clear local personalization')}
+          {ts('labels.clearLocalSettings', 'Clear local settings')}
         </button>
+        {!user ? (
+          <button
+            type="button"
+            className="h-11 rounded-md border px-4 text-sm font-semibold"
+            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: hasLocalWorkspaceData ? theme.textPrimary : theme.textSecondary, opacity: hasLocalWorkspaceData ? 1 : 0.65 }}
+            disabled={!hasLocalWorkspaceData}
+            onClick={onClearGuestWorkspace}
+          >
+            {ts('labels.clearGuestWorkspace', 'Clear guest workspace')}
+          </button>
+        ) : null}
         <button
           type="button"
           className="h-11 rounded-md border px-4 text-sm font-semibold"

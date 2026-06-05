@@ -393,6 +393,9 @@ Calm milestones are included as signs of formation, not childish gamification.
 - Keeps the experience calm, reflective, and non-judgmental
 - Visible trust layer explaining source integrity, advice boundaries, and plain-English privacy/model behavior
 - Tap-to-read scripture context and “why this matters here”
+- Signing out hides synced private workspace data from the device immediately
+- Guest mode includes a separate clear-guest-workspace action for local guest conversations, decisions, reflections, counsel contacts, and rules
+- Local settings reset is separate from private workspace reset, so users understand what is being cleared
 
 ## Retention Rhythm
 

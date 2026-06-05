@@ -327,7 +327,11 @@
     "notificationTimingSavedBody": "La sagesse quotidienne est maintenant prévue vers {time} heure locale.",
     "preferencesReady": "Les réglages de langue sont prêts.",
     "preferencesSaving": "Enregistrement des réglages de langue...",
-    "themeAppliedAutomatically": "Thème appliqué automatiquement."
+    "themeAppliedAutomatically": "Thème appliqué automatiquement.",
+    "localSettingsCleared": "Réglages locaux effacés",
+    "localSettingsClearedBody": "Thème, voix, contexte local, horaire et intentions ont été réinitialisés sur cet appareil.",
+    "guestWorkspaceCleared": "Espace invité effacé",
+    "guestWorkspaceClearedBody": "Conversations, décisions, réflexions, contacts de conseil et règles locaux ont été effacés de cet appareil."
   },
   "status": {
     "guestMode": "Mode invité actif. Connecte-toi pour synchroniser les décisions.",
@@ -677,7 +681,7 @@
     "selected": "Sélectionné",
     "sendReport": "Envoyer le rapport",
     "sending": "Envoi...",
-    "signInToExportDelete": "Connectez-vous pour exporter ou supprimer les données synchronisées. Les données invité restent sur cet appareil.",
+    "signInToExportDelete": "Connectez-vous pour exporter ou supprimer les données synchronisées. Les données invité peuvent être effacées de cet appareil.",
     "suggestedAction": "Action suggérée",
     "support": "Assistance",
     "theme": "thème",
@@ -697,7 +701,7 @@
     "voice": "Voix",
     "weeklyPatternReview": "Revue hebdomadaire des schémas",
     "whatStaysLocal": "Ce qui reste local",
-    "whatStaysLocalBody": "La voix propre à l’appareil, le thème, les brouillons de contexte et intentions restent locaux jusqu’à modification.",
+    "whatStaysLocalBody": "La voix propre à l’appareil, le thème, les brouillons de contexte, l’horaire des notifications et les intentions restent locaux jusqu’à modification.",
     "whatSyncs": "Ce qui se synchronise",
     "whatSyncsGuest": "Rien ne se synchronise en mode invité avant connexion.",
     "whatSyncsSignedIn": "Décisions, réflexions, profil, préférences et cercle de conseil se synchronisent avec votre compte.",
@@ -804,7 +808,11 @@
     "voicePreviewDone": "Aperçu terminé.",
     "voicePreviewFailed": "L’aperçu n’a pas pu être lu. Essaie une autre voix ou la voix par défaut.",
     "voiceApplied": "Voix sélectionnée. Utilise Aperçu pour l’écouter.",
-    "deviceVoiceApplied": "Voix par défaut sélectionnée. Utilise Aperçu pour l’écouter."
+    "deviceVoiceApplied": "Voix par défaut sélectionnée. Utilise Aperçu pour l’écouter.",
+    "clearLocalSettings": "Effacer les réglages locaux",
+    "clearGuestWorkspace": "Effacer l’espace invité",
+    "signOutPrivacy": "Confidentialité à la déconnexion",
+    "signOutPrivacyBody": "La déconnexion masque les données privées synchronisées sur cet appareil. Elles reviennent seulement après une nouvelle connexion."
   },
   "personalizationNudgeTitle": "Vous voulez un conseil plus personnel ?",
   "personalizationNudgeBody": "Ajoutez un détail sur l’argent, le travail ou le rythme.",
@@ -1085,5 +1093,9 @@
     "contactUs": "Nous contacter",
     "notConfigured": "Les liens de soutien sont en préparation. Aletheia reste pleinement utilisable pendant cette mise en place.",
     "trustNote": "Le don est facultatif. Il ne change jamais le conseil que tu reçois, et les données de paiement sont traitées par le prestataire de paiement, pas par Aletheia."
+  },
+  "confirm": {
+    "signOut": "Se déconnecter ? Les données privées du compte seront masquées sur cet appareil. Vos données synchronisées restent en sécurité et reviennent à la reconnexion.",
+    "clearGuestWorkspace": "Effacer les conversations, décisions, réflexions, contacts de conseil et règles invités de cet appareil ? Cela ne supprime aucune donnée de compte connecté."
   }
 }

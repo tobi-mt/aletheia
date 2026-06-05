@@ -327,7 +327,11 @@
     "notificationTimingSavedBody": "Ọgbọ́n ojoojúmọ́ ti wa ni ìtọ́sọ́nà sí ayika {time} akoko agbègbè.",
     "preferencesReady": "Àwọn ètò èdè ti ṣetan.",
     "preferencesSaving": "Ń fi àwọn ètò èdè pamọ...",
-    "themeAppliedAutomatically": "Àkòrí ti ṣiṣẹ́ laifọwọyi."
+    "themeAppliedAutomatically": "Àkòrí ti ṣiṣẹ́ laifọwọyi.",
+    "localSettingsCleared": "Eto agbegbe ti parẹ",
+    "localSettingsClearedBody": "Akori, ohùn, kọ́ńtẹ́ẹ̀sì agbegbe, akoko àti ìfọkànsìn ti tún ṣètò lórí ẹrọ yìí.",
+    "guestWorkspaceCleared": "Aaye alejo ti parẹ",
+    "guestWorkspaceClearedBody": "Ìjíròrò alejo, ìpinnu, ìrònú, olubasọrọ ìmọ̀ràn àti òfin ti parẹ lórí ẹrọ yìí."
   },
   "status": {
     "guestMode": "Ìpò àlejò ń ṣiṣẹ́. Wọlé láti fọ́kàn sọ́ àwọn ìpinnu.",
@@ -677,7 +681,7 @@
     "selected": "Ti yan",
     "sendReport": "Fi ránṣẹ́",
     "sending": "Ń ránṣẹ́...",
-    "signInToExportDelete": "Wọlé láti gbe data jáde tàbí pa data àkántì rẹ́.",
+    "signInToExportDelete": "Wọlé láti gbe data àkántì tí a mú pọ̀ jáde tàbí pa á rẹ́. O lè pa data alejo lórí ẹrọ yìí rẹ́.",
     "suggestedAction": "Ìgbésẹ̀ tí a dábàá",
     "support": "Ìrànlọ́wọ́",
     "theme": "akori",
@@ -697,7 +701,7 @@
     "voice": "Ohùn",
     "weeklyPatternReview": "Àyẹ̀wò àwòṣe ọ̀sẹ̀",
     "whatStaysLocal": "Ohun tí ó wà lórí ẹrọ",
-    "whatStaysLocalBody": "Ohùn ẹrọ, akori, ìkọ̀kọ̀ kọ́ńtẹ́ẹ̀sì àti ìfọkànsìn wà lórí ẹrọ títí o fi yí wọn padà.",
+    "whatStaysLocalBody": "Ohùn ẹrọ, akori, àkọsílẹ̀ kọ́ńtẹ́ẹ̀sì, akoko ìfitónilétí àti ìfọkànsìn wà lórí ẹrọ títí o fi yí wọn padà.",
     "whatSyncs": "Ohun tí ń muuṣiṣẹpọ̀",
     "whatSyncsGuest": "Kò sí ohun tí yóò muuṣiṣẹpọ̀ ní ipo alejo títí o fi wọlé.",
     "whatSyncsSignedIn": "Ìpinnu, ìrònú, profaili, ìṣètò àti ẹgbẹ́ olùdámọ̀ràn ń muuṣiṣẹpọ̀.",
@@ -804,7 +808,11 @@
     "voicePreviewDone": "Àpẹẹrẹ parí.",
     "voicePreviewFailed": "Àpẹẹrẹ kò le dun. Gbìyànjú ohùn míràn tàbí aiyipada ẹrọ.",
     "voiceApplied": "A ti yan ohùn. Lo Àpẹẹrẹ láti gbọ́ ọ.",
-    "deviceVoiceApplied": "Aiyipada ẹrọ ti yan. Lo Àpẹẹrẹ láti gbọ́ ọ."
+    "deviceVoiceApplied": "Aiyipada ẹrọ ti yan. Lo Àpẹẹrẹ láti gbọ́ ọ.",
+    "clearLocalSettings": "Pa eto agbegbe rẹ",
+    "clearGuestWorkspace": "Pa aaye alejo rẹ",
+    "signOutPrivacy": "Ìpamọ́ nígbà tí o bá jáde",
+    "signOutPrivacyBody": "Nígbà tí o bá jáde, data ikọkọ tí a ti mú pọ̀ mọ́ àkántì yóò farapamọ́ lórí ẹrọ yìí. Ó máa padà nígbà tí o bá wọlé lẹ́ẹ̀kansi."
   },
   "personalizationNudgeTitle": "Ṣe o fẹ́ ìmọ̀ràn tó mọ̀ ọ́ síi?",
   "personalizationNudgeBody": "Fi alaye kan kun nípa owó, iṣẹ́, tàbí ìlànà ìgbé-ayé.",
@@ -1084,5 +1092,9 @@
     "contactUs": "Kan si wa",
     "notConfigured": "A n pese awọn ọna atilẹyin silẹ. Aletheia ṣi ṣiṣẹ ni kikun nigba ti a n ṣeto eyi.",
     "trustNote": "Fifun jẹ yiyan tirẹ. Ko yi imọran ti o gba pada rara, ati olupese isanwo ni o n ṣakoso alaye isanwo, kii ṣe Aletheia."
+  },
+  "confirm": {
+    "signOut": "Jáde? Data ikọkọ àkántì yóò farapamọ́ lórí ẹrọ yìí. Data tí a mú pọ̀ rẹ wà ní ààbò, yóò sì padà nígbà tí o bá wọlé lẹ́ẹ̀kansi.",
+    "clearGuestWorkspace": "Pa ìjíròrò alejo, ìpinnu, ìrònú, olubasọrọ ìmọ̀ràn àti òfin lórí ẹrọ yìí rẹ́? Èyí kì í pa data àkántì tí a wọlé rẹ́."
   }
 }

@@ -327,7 +327,11 @@
     "notificationTimingSavedBody": "Daily wisdom is now aimed around {time} local time.",
     "preferencesReady": "Language settings are ready.",
     "preferencesSaving": "Saving language settings...",
-    "themeAppliedAutomatically": "Theme applied automatically."
+    "themeAppliedAutomatically": "Theme applied automatically.",
+    "localSettingsCleared": "Local settings cleared",
+    "localSettingsClearedBody": "Theme, voice, local context, timing, and focus intentions were reset on this device.",
+    "guestWorkspaceCleared": "Guest workspace cleared",
+    "guestWorkspaceClearedBody": "Local guest conversations, decisions, reflections, counsel contacts, and rules were cleared from this device."
   },
   "status": {
     "guestMode": "Guest mode is active. Sign in to sync decisions.",
@@ -677,7 +681,7 @@
     "selected": "Selected",
     "sendReport": "Send report",
     "sending": "Sending...",
-    "signInToExportDelete": "Sign in to export or delete synced account data. Guest data remains on this device.",
+    "signInToExportDelete": "Sign in to export or delete synced account data. Guest workspace data can be cleared from this device.",
     "suggestedAction": "Suggested action",
     "support": "Support",
     "theme": "theme",
@@ -697,7 +701,7 @@
     "voice": "Voice",
     "weeklyPatternReview": "Weekly pattern review",
     "whatStaysLocal": "What stays local",
-    "whatStaysLocalBody": "Device-specific voice, theme preference, local context drafts, and focus intentions stay local until changed.",
+    "whatStaysLocalBody": "Device-specific voice, theme preference, local context drafts, notification timing, and focus intentions stay local until changed.",
     "whatSyncs": "What syncs",
     "whatSyncsGuest": "Nothing syncs in guest mode until you sign in.",
     "whatSyncsSignedIn": "Decisions, reflections, profile, preferences, and counsel circle sync with your account.",
@@ -804,7 +808,11 @@
     "voicePreviewDone": "Preview finished.",
     "voicePreviewFailed": "Preview could not play. Try another voice or your device default.",
     "voiceApplied": "Voice selected. Use Preview to hear it.",
-    "deviceVoiceApplied": "Device default selected. Use Preview to hear it."
+    "deviceVoiceApplied": "Device default selected. Use Preview to hear it.",
+    "clearLocalSettings": "Clear local settings",
+    "clearGuestWorkspace": "Clear guest workspace",
+    "signOutPrivacy": "Sign-out privacy",
+    "signOutPrivacyBody": "Signing out hides synced private workspace data on this device. It returns only after you sign back in."
   },
   "personalizationNudgeTitle": "Want more personal counsel?",
   "personalizationNudgeBody": "Add one detail about money, work, or rhythm.",
@@ -1084,5 +1092,9 @@
     "contactUs": "Contact us",
     "notConfigured": "Support links are being prepared. Aletheia remains fully usable while this is set up.",
     "trustNote": "Giving is optional. It never changes the counsel you receive, and payment details are handled by the payment provider, not by Aletheia."
+  },
+  "confirm": {
+    "signOut": "Sign out? Private account data will be hidden from this device. Your synced account data stays safe and returns when you sign back in.",
+    "clearGuestWorkspace": "Clear local guest conversations, decisions, reflections, counsel contacts, and rules from this device? This does not delete any signed-in account data."
   }
 }

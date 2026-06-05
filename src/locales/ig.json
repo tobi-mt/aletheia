@@ -327,7 +327,11 @@
     "notificationTimingSavedBody": "Amamihe kwa ụbọchị e lekwasịrị anya ugbu a n’ihe dị ka {time} oge mpaghara.",
     "preferencesReady": "Ntọala asụsụ adịla njikere.",
     "preferencesSaving": "A na-echekwa ntọala asụsụ...",
-    "themeAppliedAutomatically": "Etinyela isiokwu na-akpaghị aka."
+    "themeAppliedAutomatically": "Etinyela isiokwu na-akpaghị aka.",
+    "localSettingsCleared": "Ntọala ngwaọrụ ehichapụla",
+    "localSettingsClearedBody": "Isiokwu, olu, ọnọdụ ngwaọrụ, oge na ebumnobi agbakwunyeregharịrị n’ọrụ a.",
+    "guestWorkspaceCleared": "Ebe ọrụ ọbịa ehichapụla",
+    "guestWorkspaceClearedBody": "Mkparịta ụka ọbịa, mkpebi, ntụgharị uche, kọntaktị ndụmọdụ na iwu ehichapụla n’ọrụ a."
   },
   "status": {
     "guestMode": "Ọnọdụ ọbịa na-arụ ọrụ. Banye ka ịmekọrịta mkpebi.",
@@ -677,7 +681,7 @@
     "selected": "Ahọrọla",
     "sendReport": "Zipụ mkpesa",
     "sending": "Na-ezipụ...",
-    "signInToExportDelete": "Banye iji bupụ ma ọ bụ hichapụ data akaụntụ.",
+    "signInToExportDelete": "Banye iji bupụ ma ọ bụ hichapụ data akaụntụ jikọtara. A pụrụ ihichapụ data ọbịa n’ọrụ a.",
     "suggestedAction": "Ihe a tụrụ aro",
     "support": "Nkwado",
     "theme": "usoro agba",
@@ -697,7 +701,7 @@
     "voice": "Olu",
     "weeklyPatternReview": "Nyocha ụkpụrụ kwa izu",
     "whatStaysLocal": "Ihe na-anọ n’ọrụ a",
-    "whatStaysLocalBody": "Olu ngwaọrụ, isiokwu, ihe ndekọ ọnọdụ na ebumnobi na-anọ n’ọrụ a ruo mgbe ị gbanwere ha.",
+    "whatStaysLocalBody": "Olu ngwaọrụ, isiokwu, draft ọnọdụ, oge ọkwa na ebumnobi na-anọ n’ọrụ a ruo mgbe ị gbanwere ha.",
     "whatSyncs": "Ihe na-emekọrịta",
     "whatSyncsGuest": "Ọ dịghị ihe na-emekọrịta na ọnọdụ ọbịa ruo mgbe ị banyere.",
     "whatSyncsSignedIn": "Mkpebi, ntụgharị uche, profaịlụ, mmasị na ndị ndụmọdụ na-emekọrịta.",
@@ -804,7 +808,11 @@
     "voicePreviewDone": "Nlele agwụla.",
     "voicePreviewFailed": "Enweghị ike ịkpọ nlele. Nwaa olu ọzọ ma ọ bụ ndabara ngwaọrụ.",
     "voiceApplied": "Ahọrọla olu. Jiri Nlele gee ya.",
-    "deviceVoiceApplied": "Ahọrọla ndabara ngwaọrụ. Jiri Nlele gee ya."
+    "deviceVoiceApplied": "Ahọrọla ndabara ngwaọrụ. Jiri Nlele gee ya.",
+    "clearLocalSettings": "Hichapụ ntọala ngwaọrụ",
+    "clearGuestWorkspace": "Hichapụ ebe ọrụ ọbịa",
+    "signOutPrivacy": "Nzuzo mgbe ị pụtara",
+    "signOutPrivacyBody": "Ịpụ na-ezobe data nzuzo akaụntụ a jikọtara n’ọrụ a. Ọ ga-apụta naanị mgbe ị batara ọzọ."
   },
   "personalizationNudgeTitle": "Ị chọrọ ndụmọdụ ka ọ bụrụ nke onwe gị?",
   "personalizationNudgeBody": "Tinye otu nkọwa gbasara ego, ọrụ, ma ọ bụ rhythm ndụ.",
@@ -1084,5 +1092,9 @@
     "contactUs": "Kpọtụrụ anyị",
     "notConfigured": "A na-akwadebe njikọ nkwado. Aletheia ka na-arụ ọrụ nke ọma mgbe a na-ahazi nke a.",
     "trustNote": "Inye onyinye bụ nhọrọ. Ọ naghị agbanwe ndụmọdụ ị na-enweta, onye na-eweta ịkwụ ụgwọ na-elekọta nkọwa ịkwụ ụgwọ, ọ bụghị Aletheia."
+  },
+  "confirm": {
+    "signOut": "Ị pụọ? A ga-ezobe data nzuzo akaụntụ n’ọrụ a. Data gị jikọtara dị nchebe ma laghachi mgbe ị batara ọzọ.",
+    "clearGuestWorkspace": "Hichapụ mkparịta ụka ọbịa, mkpebi, ntụgharị uche, kọntaktị ndụmọdụ na iwu n’ọrụ a? Nke a anaghị ehichapụ data akaụntụ ọ bụla ị batara."
   }
 }

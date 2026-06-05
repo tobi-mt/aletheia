@@ -327,7 +327,11 @@
     "notificationTimingSavedBody": "A sabedoria diária agora está prevista por volta de {time} no horário local.",
     "preferencesReady": "As configurações de idioma estão prontas.",
     "preferencesSaving": "Salvando configurações de idioma...",
-    "themeAppliedAutomatically": "Tema aplicado automaticamente."
+    "themeAppliedAutomatically": "Tema aplicado automaticamente.",
+    "localSettingsCleared": "Ajustes locais limpos",
+    "localSettingsClearedBody": "Tema, voz, contexto local, horário e intenções foram redefinidos neste dispositivo.",
+    "guestWorkspaceCleared": "Espaço de convidado limpo",
+    "guestWorkspaceClearedBody": "Conversas, decisões, reflexões, contatos de conselho e regras locais foram limpos deste dispositivo."
   },
   "status": {
     "guestMode": "Modo convidado ativo. Entre para sincronizar decisões.",
@@ -677,7 +681,7 @@
     "selected": "Selecionado",
     "sendReport": "Enviar relato",
     "sending": "Enviando...",
-    "signInToExportDelete": "Entre para exportar ou excluir dados sincronizados da conta. Dados de convidado ficam neste dispositivo.",
+    "signInToExportDelete": "Entre para exportar ou excluir dados sincronizados. Dados de convidado podem ser limpos deste dispositivo.",
     "suggestedAction": "Ação sugerida",
     "support": "Suporte",
     "theme": "tema",
@@ -697,7 +701,7 @@
     "voice": "Voz",
     "weeklyPatternReview": "Revisão semanal de padrões",
     "whatStaysLocal": "O que fica local",
-    "whatStaysLocalBody": "Voz do dispositivo, tema, rascunhos locais de contexto e intenções ficam locais até serem alterados.",
+    "whatStaysLocalBody": "Voz do dispositivo, tema, rascunhos locais de contexto, horário de notificações e intenções ficam locais até serem alterados.",
     "whatSyncs": "O que sincroniza",
     "whatSyncsGuest": "Nada sincroniza no modo convidado até você entrar.",
     "whatSyncsSignedIn": "Decisões, reflexões, perfil, preferências e círculo de conselho sincronizam com sua conta.",
@@ -804,7 +808,11 @@
     "voicePreviewDone": "Prévia concluída.",
     "voicePreviewFailed": "A prévia não pôde tocar. Tente outra voz ou o padrão do dispositivo.",
     "voiceApplied": "Voz selecionada. Use Prévia para ouvir.",
-    "deviceVoiceApplied": "Padrão do dispositivo selecionado. Use Prévia para ouvir."
+    "deviceVoiceApplied": "Padrão do dispositivo selecionado. Use Prévia para ouvir.",
+    "clearLocalSettings": "Limpar ajustes locais",
+    "clearGuestWorkspace": "Limpar espaço de convidado",
+    "signOutPrivacy": "Privacidade ao sair",
+    "signOutPrivacyBody": "Ao sair, os dados privados sincronizados ficam ocultos neste dispositivo. Eles voltam apenas quando você entra novamente."
   },
   "personalizationNudgeTitle": "Quer um conselho mais pessoal?",
   "personalizationNudgeBody": "Adicione um detalhe sobre dinheiro, trabalho ou ritmo.",
@@ -1084,5 +1092,9 @@
     "contactUs": "Fale conosco",
     "notConfigured": "Os links de apoio estão sendo preparados. O Aletheia continua totalmente utilizável enquanto isso.",
     "trustNote": "Contribuir é opcional. Isso nunca muda o conselho que você recebe, e os dados de pagamento são tratados pelo provedor de pagamento, não pelo Aletheia."
+  },
+  "confirm": {
+    "signOut": "Sair? Os dados privados da conta serão ocultados neste dispositivo. Seus dados sincronizados ficam seguros e voltam quando você entrar novamente.",
+    "clearGuestWorkspace": "Limpar conversas, decisões, reflexões, contatos de conselho e regras locais de convidado deste dispositivo? Isso não exclui dados de nenhuma conta conectada."
   }
 }
