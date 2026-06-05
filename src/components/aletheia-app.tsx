@@ -1800,6 +1800,7 @@ function storedGratitudeEntries(): GratitudeEntry[] {
       .map((entry) => ({
         ...entry,
         place: typeof entry.place === "string" ? entry.place : "",
+        visual: normalizeGratitudeVisual(entry.visual),
         postcardCreatedAt: typeof entry.postcardCreatedAt === "string" ? entry.postcardCreatedAt : undefined,
         reflectedAt: typeof entry.reflectedAt === "string" ? entry.reflectedAt : undefined,
       }))
@@ -1879,6 +1880,37 @@ function drawWrappedCanvasText(
   return y + lines.length * lineHeight;
 }
 
+function drawGratitudeStickerChips(context: CanvasRenderingContext2D, visual: GratitudeVisualSettings, theme: ThemeColors) {
+  const items = [...visual.stickers.map((sticker) => GRATITUDE_STICKER_MARK[sticker]), visual.emoji].filter(Boolean).slice(0, 5);
+  if (!items.length) {
+    return;
+  }
+  context.save();
+  context.font = "700 28px system-ui, sans-serif";
+  let x = 80;
+  const y = 910;
+  for (const item of items) {
+    const isWord = item.length > 2;
+    const width = Math.min(220, Math.max(isWord ? 150 : 76, context.measureText(item).width + 42));
+    if (x + width > 1120) {
+      break;
+    }
+    context.fillStyle = "rgba(13, 23, 20, 0.58)";
+    context.strokeStyle = theme.accentLight;
+    context.lineWidth = 2;
+    context.beginPath();
+    context.roundRect(x, y, width, 58, 20);
+    context.fill();
+    context.stroke();
+    context.fillStyle = "#f8f5e8";
+    context.textAlign = "center";
+    context.textBaseline = "middle";
+    context.fillText(item, x + width / 2, y + 31);
+    x += width + 16;
+  }
+  context.restore();
+}
+
 function createGratitudePostcardBlob(entry: GratitudeEntry, theme: ThemeColors, label: string, inviteText: string, locale: string): Promise<Blob> {
   return new Promise((resolve, reject) => {
     const canvas = document.createElement("canvas");
@@ -1892,21 +1924,26 @@ function createGratitudePostcardBlob(entry: GratitudeEntry, theme: ThemeColors, 
     const img = document.createElement("img");
     img.onload = () => {
       const render = (logo?: HTMLImageElement) => {
+      const visual = normalizeGratitudeVisual(entry.visual);
       context.fillStyle = theme.bgMain;
       context.fillRect(0, 0, canvas.width, canvas.height);
       const imageHeight = 1000;
       const scale = Math.max(canvas.width / img.naturalWidth, imageHeight / img.naturalHeight);
       const drawWidth = img.naturalWidth * scale;
       const drawHeight = img.naturalHeight * scale;
+      context.save();
+      context.filter = GRATITUDE_FILTER_STYLE[visual.filter];
       context.drawImage(img, (canvas.width - drawWidth) / 2, (imageHeight - drawHeight) / 2, drawWidth, drawHeight);
+      context.restore();
       const gradient = context.createLinearGradient(0, 680, 0, 1600);
       gradient.addColorStop(0, "rgba(13, 23, 20, 0)");
       gradient.addColorStop(0.42, "rgba(13, 23, 20, 0.78)");
       gradient.addColorStop(1, "rgba(13, 23, 20, 0.96)");
       context.fillStyle = gradient;
       context.fillRect(0, 0, canvas.width, canvas.height);
+      drawGratitudeStickerChips(context, visual, theme);
 
-      if (logo) {
+      if (logo && visual.showSignature) {
         context.save();
         context.beginPath();
         context.roundRect(80, 1050, 74, 74, 14);
@@ -1914,33 +1951,40 @@ function createGratitudePostcardBlob(entry: GratitudeEntry, theme: ThemeColors, 
         context.drawImage(logo, 80, 1050, 74, 74);
         context.restore();
       }
-      context.fillStyle = "#f8f5e8";
-      context.font = "700 46px Georgia, serif";
-      context.fillText("Aletheia", logo ? 176 : 80, 1110);
-      context.fillStyle = "rgba(248, 245, 232, 0.76)";
-      context.font = "400 26px system-ui, sans-serif";
-      context.fillText("Wisdom for stewards", logo ? 176 : 80, 1148);
+      if (visual.showSignature) {
+        context.fillStyle = "#f8f5e8";
+        context.font = "700 46px Georgia, serif";
+        context.fillText("Aletheia", logo ? 176 : 80, 1110);
+        context.fillStyle = "rgba(248, 245, 232, 0.76)";
+        context.font = "400 26px system-ui, sans-serif";
+        context.fillText("Wisdom for stewards", logo ? 176 : 80, 1148);
+      }
       context.fillStyle = theme.accentLight;
       context.font = "700 30px system-ui, sans-serif";
       context.fillText(label.toLocaleUpperCase(locale), 80, 1210);
 
-      context.fillStyle = "#f8f5e8";
-      context.font = "600 60px Georgia, serif";
-      const afterNoteY = drawWrappedCanvasText(context, entry.note, 80, 1300, 1040, 76, 4);
+      let afterNoteY = 1260;
+      if (visual.showNote) {
+        context.fillStyle = "#f8f5e8";
+        context.font = "600 60px Georgia, serif";
+        afterNoteY = drawWrappedCanvasText(context, entry.note, 80, 1300, 1040, 76, 4);
+      }
 
       context.fillStyle = "rgba(248, 245, 232, 0.78)";
       context.font = "400 30px system-ui, sans-serif";
       const details = [
-        new Date(entry.createdAt).toLocaleString(locale, { dateStyle: "medium", timeStyle: "short" }),
-        entry.place.trim(),
+        visual.showDate ? new Date(entry.createdAt).toLocaleString(locale, { dateStyle: "medium", timeStyle: "short" }) : "",
+        visual.showPlace ? entry.place.trim() : "",
       ].filter(Boolean).join(" · ");
       if (details) {
         drawWrappedCanvasText(context, details, 80, Math.min(afterNoteY + 46, 1488), 1040, 42, 2);
       }
 
-      context.fillStyle = "rgba(248, 245, 232, 0.66)";
-      context.font = "500 24px system-ui, sans-serif";
-      drawWrappedCanvasText(context, inviteText, 80, 1536, 1040, 30, 2);
+      if (visual.showSignature) {
+        context.fillStyle = "rgba(248, 245, 232, 0.66)";
+        context.font = "500 24px system-ui, sans-serif";
+        drawWrappedCanvasText(context, inviteText, 80, 1536, 1040, 30, 2);
+      }
       context.strokeStyle = theme.accentLight;
       context.lineWidth = 4;
       context.strokeRect(42, 42, canvas.width - 84, canvas.height - 84);
@@ -2365,9 +2409,82 @@ type GratitudeEntry = {
   note: string;
   place: string;
   createdAt: string;
+  visual?: GratitudeVisualSettings;
   postcardCreatedAt?: string;
   reflectedAt?: string;
 };
+
+type GratitudeFilter = "none" | "warm" | "soft" | "mono" | "forest" | "golden" | "calm";
+type GratitudeSticker = "leaf" | "cross" | "heart" | "spark" | "book" | "seedling" | "sun" | "thankful" | "enough" | "grace";
+
+type GratitudeVisualSettings = {
+  filter: GratitudeFilter;
+  showDate: boolean;
+  showPlace: boolean;
+  showNote: boolean;
+  showSignature: boolean;
+  stickers: GratitudeSticker[];
+  emoji: string;
+};
+
+const GRATITUDE_FILTERS: GratitudeFilter[] = ["none", "warm", "soft", "mono", "forest", "golden", "calm"];
+const GRATITUDE_STICKERS: GratitudeSticker[] = ["leaf", "cross", "heart", "spark", "book", "seedling", "sun", "thankful", "enough", "grace"];
+const GRATITUDE_EMOJIS = ["", "🙏", "✨", "🌿", "☀️", "💛", "🕊️"];
+const MAX_GRATITUDE_STICKERS = 4;
+
+const DEFAULT_GRATITUDE_VISUAL: GratitudeVisualSettings = {
+  filter: "none",
+  showDate: true,
+  showPlace: true,
+  showNote: true,
+  showSignature: true,
+  stickers: [],
+  emoji: "",
+};
+
+const GRATITUDE_FILTER_STYLE: Record<GratitudeFilter, string> = {
+  none: "none",
+  warm: "sepia(0.2) saturate(1.08) contrast(1.03)",
+  soft: "brightness(1.06) contrast(0.94) saturate(0.92)",
+  mono: "grayscale(1) contrast(1.08)",
+  forest: "sepia(0.12) hue-rotate(50deg) saturate(1.12) contrast(1.02)",
+  golden: "sepia(0.3) saturate(1.18) brightness(1.04) contrast(1.02)",
+  calm: "contrast(1.07) saturate(0.86) brightness(0.98)",
+};
+
+const GRATITUDE_STICKER_MARK: Record<GratitudeSticker, string> = {
+  leaf: "🍃",
+  cross: "✝",
+  heart: "♡",
+  spark: "✦",
+  book: "📖",
+  seedling: "🌱",
+  sun: "☀",
+  thankful: "thankful",
+  enough: "enough",
+  grace: "grace",
+};
+
+function normalizeGratitudeVisual(value: unknown): GratitudeVisualSettings {
+  if (!value || typeof value !== "object") {
+    return DEFAULT_GRATITUDE_VISUAL;
+  }
+  const input = value as Partial<GratitudeVisualSettings>;
+  const filter = input.filter && GRATITUDE_FILTERS.includes(input.filter) ? input.filter : DEFAULT_GRATITUDE_VISUAL.filter;
+  const stickers = Array.isArray(input.stickers)
+    ? input.stickers.filter((sticker): sticker is GratitudeSticker => GRATITUDE_STICKERS.includes(sticker as GratitudeSticker)).slice(0, MAX_GRATITUDE_STICKERS)
+    : [];
+  const emoji = typeof input.emoji === "string" && GRATITUDE_EMOJIS.includes(input.emoji) ? input.emoji : "";
+  return {
+    filter,
+    showDate: typeof input.showDate === "boolean" ? input.showDate : true,
+    showPlace: typeof input.showPlace === "boolean" ? input.showPlace : true,
+    showNote: typeof input.showNote === "boolean" ? input.showNote : true,
+    showSignature: typeof input.showSignature === "boolean" ? input.showSignature : true,
+    stickers,
+    emoji,
+  };
+}
 
 type WisdomDecision = {
   id: string;
@@ -6017,7 +6134,7 @@ export function AletheiaApp() {
     announceWorkflow(ts('notifications.reflectionDeleted'), ts('notifications.reflectionDeletedBody'), "info");
   }
 
-  async function saveGratitudeEntry(file: File | null, note: string, place: string) {
+  async function saveGratitudeEntry(file: File | null, note: string, place: string, visual?: GratitudeVisualSettings) {
     const cleanNote = note.trim();
     const cleanPlace = place.trim();
     if (!file || !cleanNote) {
@@ -6036,11 +6153,18 @@ export function AletheiaApp() {
         note: cleanNote.slice(0, 280),
         place: cleanPlace.slice(0, 120),
         createdAt: new Date().toISOString(),
+        visual: normalizeGratitudeVisual(visual),
       };
       const nextEntries = [entry, ...gratitudeEntries].slice(0, MAX_GRATITUDE_ENTRIES);
       persistGratitudeEntries(nextEntries);
       setGratitudeEntries(nextEntries);
-      trackClientEvent("gratitude_entry_created", { has_place: Boolean(cleanPlace), source: "reflect_tab" });
+      trackClientEvent("gratitude_entry_created", {
+        has_place: Boolean(cleanPlace),
+        source: "reflect_tab",
+        filter: entry.visual?.filter ?? "none",
+        sticker_count: entry.visual?.stickers.length ?? 0,
+        has_emoji: Boolean(entry.visual?.emoji),
+      });
       announceWorkflow(
         ts('notifications.gratitudeSavedLocally', 'Gratitude saved locally'),
         ts('notifications.gratitudeSavedLocallyBody', 'The image stayed on this device. Export or share only when you choose.'),
@@ -14345,7 +14469,7 @@ function ReflectPanel({
   setBody: (value: string) => void;
   onSave: () => void;
   onDelete: (id: string) => void;
-  onSaveGratitude: (file: File | null, note: string, place: string) => void;
+  onSaveGratitude: (file: File | null, note: string, place: string, visual?: GratitudeVisualSettings) => void;
   onDeleteGratitude: (id: string) => void;
   onShareGratitudePostcard: (entry: GratitudeEntry) => void;
   onUseGratitudeAsReflection: (entry: GratitudeEntry) => void;
@@ -14460,7 +14584,7 @@ function GratitudeLensPanel({
   language: LanguageCode;
   ts: (key: string, fallback?: string) => string;
   theme: ThemeColors;
-  onSave: (file: File | null, note: string, place: string) => void | Promise<void>;
+  onSave: (file: File | null, note: string, place: string, visual?: GratitudeVisualSettings) => void | Promise<void>;
   onDelete: (id: string) => void;
   onSharePostcard: (entry: GratitudeEntry) => void;
   onUseAsReflection: (entry: GratitudeEntry) => void;
@@ -14470,6 +14594,7 @@ function GratitudeLensPanel({
   const [previewUrl, setPreviewUrl] = useState("");
   const [note, setNote] = useState("");
   const [place, setPlace] = useState("");
+  const [visual, setVisual] = useState<GratitudeVisualSettings>(DEFAULT_GRATITUDE_VISUAL);
   const [isSaving, setIsSaving] = useState(false);
   const [weekStartTime] = useState(() => Date.now() - 7 * 24 * 60 * 60 * 1000);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -14499,6 +14624,7 @@ function GratitudeLensPanel({
     setPreviewUrl("");
     setNote("");
     setPlace("");
+    setVisual(DEFAULT_GRATITUDE_VISUAL);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -14506,17 +14632,34 @@ function GratitudeLensPanel({
 
   const submit = async () => {
     if (!imageFile || !note.trim()) {
-      await onSave(imageFile, note, place);
+      await onSave(imageFile, note, place, visual);
       return;
     }
     setIsSaving(true);
     try {
-      await onSave(imageFile, note, place);
+      await onSave(imageFile, note, place, visual);
       resetForm();
     } finally {
       setIsSaving(false);
     }
   };
+
+  const toggleOverlay = (key: keyof Pick<GratitudeVisualSettings, "showDate" | "showPlace" | "showNote" | "showSignature">) => {
+    setVisual((current) => ({ ...current, [key]: !current[key] }));
+  };
+
+  const toggleSticker = (sticker: GratitudeSticker) => {
+    setVisual((current) => {
+      const exists = current.stickers.includes(sticker);
+      if (exists) {
+        return { ...current, stickers: current.stickers.filter((item) => item !== sticker) };
+      }
+      return { ...current, stickers: [...current.stickers, sticker].slice(0, MAX_GRATITUDE_STICKERS) };
+    });
+  };
+
+  const gratitudeFilterLabel = (filter: GratitudeFilter) => ts(`labels.gratitudeFilter_${filter}`, filter);
+  const gratitudeStickerLabel = (sticker: GratitudeSticker) => ts(`labels.gratitudeSticker_${sticker}`, GRATITUDE_STICKER_MARK[sticker]);
 
   const latestEntry = entries[0];
   const summary = entries.length
@@ -14575,7 +14718,27 @@ function GratitudeLensPanel({
           <div className="mt-4 overflow-hidden rounded-xl border" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput }}>
             {previewUrl ? (
               <div className="relative aspect-[4/3] w-full">
-                <Image src={previewUrl} alt={ts('labels.gratitudePreview', 'Gratitude preview')} fill className="object-cover" unoptimized />
+                <Image
+                  src={previewUrl}
+                  alt={ts('labels.gratitudePreview', 'Gratitude preview')}
+                  fill
+                  className="object-cover"
+                  style={{ filter: GRATITUDE_FILTER_STYLE[visual.filter] }}
+                  unoptimized
+                />
+                {(visual.stickers.length || visual.emoji) ? (
+                  <div className="absolute inset-x-3 bottom-3 flex flex-wrap gap-2">
+                    {[...visual.stickers.map((sticker) => GRATITUDE_STICKER_MARK[sticker]), visual.emoji].filter(Boolean).slice(0, 5).map((item) => (
+                      <span
+                        key={item}
+                        className="rounded-full border px-3 py-1 text-xs font-semibold shadow-sm backdrop-blur"
+                        style={{ borderColor: theme.borderMedium, backgroundColor: "rgba(13, 23, 20, 0.62)", color: "#f8f5e8" }}
+                      >
+                        {item}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
               </div>
             ) : (
               <button
@@ -14609,6 +14772,123 @@ function GratitudeLensPanel({
             >
               {ts('labels.clear', 'Clear')}
             </button>
+          </div>
+
+          <div className="mt-4 rounded-xl border p-3" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+            <div className="flex items-start gap-3">
+              <Sparkles size={18} className="mt-0.5 shrink-0" style={{ color: theme.accentGold }} />
+              <div className="min-w-0">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
+                  {ts('labels.gratitudeStyleCard', 'Postcard style')}
+                </p>
+                <p className="mt-1 text-xs leading-5" style={{ color: theme.textSecondary }}>
+                  {ts('labels.gratitudeStyleBody', 'Optional, local-only edits. Nothing leaves this device until you export or share.')}
+                </p>
+              </div>
+            </div>
+
+            <p className="mt-4 text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
+              {ts('labels.gratitudeFilters', 'Filters')}
+            </p>
+            <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
+              {GRATITUDE_FILTERS.map((filter) => {
+                const isActive = visual.filter === filter;
+                return (
+                  <button
+                    key={filter}
+                    type="button"
+                    onClick={() => setVisual((current) => ({ ...current, filter }))}
+                    className="shrink-0 rounded-full border px-3 py-2 text-xs font-semibold transition active:scale-[0.98]"
+                    style={{
+                      borderColor: isActive ? theme.primary : theme.borderMedium,
+                      backgroundColor: isActive ? theme.primary : theme.bgInput,
+                      color: isActive ? theme.textOnPrimary : theme.textPrimary,
+                    }}
+                  >
+                    {gratitudeFilterLabel(filter)}
+                  </button>
+                );
+              })}
+            </div>
+
+            <p className="mt-4 text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
+              {ts('labels.gratitudeOverlays', 'Overlays')}
+            </p>
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              {[
+                ["showNote", ts('labels.gratitudeOverlayNote', 'Note')],
+                ["showDate", ts('labels.gratitudeOverlayDate', 'Date')],
+                ["showPlace", ts('labels.gratitudeOverlayPlace', 'Place')],
+                ["showSignature", ts('labels.gratitudeOverlaySignature', 'Aletheia signature')],
+              ].map(([key, label]) => {
+                const settingKey = key as keyof Pick<GratitudeVisualSettings, "showDate" | "showPlace" | "showNote" | "showSignature">;
+                const isActive = visual[settingKey];
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => toggleOverlay(settingKey)}
+                    className="inline-flex min-h-10 items-center justify-between gap-2 rounded-lg border px-3 py-2 text-left text-xs font-semibold transition active:scale-[0.98]"
+                    style={{ borderColor: isActive ? theme.primary : theme.borderMedium, backgroundColor: isActive ? theme.bgCardElevated : theme.bgInput, color: theme.textPrimary }}
+                  >
+                    <span className="min-w-0">{label}</span>
+                    {isActive ? <Check size={14} style={{ color: theme.accentGold }} /> : null}
+                  </button>
+                );
+              })}
+            </div>
+
+            <p className="mt-4 text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
+              {ts('labels.gratitudeStickers', 'Stickers')}
+            </p>
+            <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {GRATITUDE_STICKERS.map((sticker) => {
+                const isActive = visual.stickers.includes(sticker);
+                return (
+                  <button
+                    key={sticker}
+                    type="button"
+                    onClick={() => toggleSticker(sticker)}
+                    className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition active:scale-[0.98]"
+                    style={{
+                      borderColor: isActive ? theme.primary : theme.borderMedium,
+                      backgroundColor: isActive ? theme.bgCardElevated : theme.bgInput,
+                      color: theme.textPrimary,
+                    }}
+                  >
+                    <span aria-hidden="true">{GRATITUDE_STICKER_MARK[sticker]}</span>
+                    <span className="min-w-0 truncate">{gratitudeStickerLabel(sticker)}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <p className="mt-2 text-[11px] leading-5" style={{ color: theme.textMuted }}>
+              {ts('labels.gratitudeStickerLimit', 'Choose up to four. Keep the card calm.')}
+            </p>
+
+            <p className="mt-4 text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
+              {ts('labels.gratitudeEmoji', 'Emoji')}
+            </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {GRATITUDE_EMOJIS.map((emoji) => {
+                const isActive = visual.emoji === emoji;
+                return (
+                  <button
+                    key={emoji || "none"}
+                    type="button"
+                    onClick={() => setVisual((current) => ({ ...current, emoji }))}
+                    className="min-h-10 rounded-full border px-3 text-sm font-semibold transition active:scale-[0.98]"
+                    style={{
+                      borderColor: isActive ? theme.primary : theme.borderMedium,
+                      backgroundColor: isActive ? theme.primary : theme.bgInput,
+                      color: isActive ? theme.textOnPrimary : theme.textPrimary,
+                    }}
+                  >
+                    {emoji || ts('labels.gratitudeNoEmoji', 'None')}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           <label className="mt-4 block text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
@@ -14684,7 +14964,14 @@ function GratitudeLensPanel({
               entries.map((entry) => (
                 <article key={entry.id} className="overflow-hidden rounded-xl border" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
                   <div className="relative aspect-[16/9] w-full">
-                    <Image src={entry.imageDataUrl} alt={entry.note} fill className="object-cover" unoptimized />
+                    <Image
+                      src={entry.imageDataUrl}
+                      alt={entry.note}
+                      fill
+                      className="object-cover"
+                      style={{ filter: GRATITUDE_FILTER_STYLE[normalizeGratitudeVisual(entry.visual).filter] }}
+                      unoptimized
+                    />
                   </div>
                   <div className="p-4">
                     <p className="text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>{entry.note}</p>

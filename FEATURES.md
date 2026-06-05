@@ -158,6 +158,9 @@ After a meaningful answer, Aletheia can help the user take the next wise step.
 - Private gratitude timeline for visual tracking of provision, beauty, and small mercies
 - Streak-free weekly gratitude recap focused on remembrance rather than pressure
 - Optional generated gratitude postcard that includes the selected image, note, date/time, and optional place
+- Local-only postcard styling with calm filters: Warm, Soft, Mono, Forest, Golden Hour, and Calm Contrast
+- Optional postcard overlays for date, place, gratitude note, and Aletheia signature
+- Curated gratitude stickers and minimal emoji accents for users who intentionally want a more playful card
 - Gratitude postcard includes Aletheia branding/signature and a subtle invitation to begin a gratitude rhythm
 - Gratitude postcards export/share only when the user explicitly chooses
 - Exported gratitude postcards are marked back in the local Gratitude Timeline
