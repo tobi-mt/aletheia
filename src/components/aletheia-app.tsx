@@ -4012,7 +4012,8 @@ export function AletheiaApp() {
     document.documentElement.style.setProperty("--aletheia-glass-top", theme.bgNav);
     document.documentElement.style.setProperty("--aletheia-glass-bottom", theme.bgNav);
     document.documentElement.style.setProperty("--aletheia-glass-edge", theme.bgNavBorder);
-  }, [resolvedTheme, theme.bgMain, theme.bgNav, theme.bgNavBorder]);
+    document.documentElement.style.setProperty("--aletheia-primary", theme.primary);
+  }, [resolvedTheme, theme.bgMain, theme.bgNav, theme.bgNavBorder, theme.primary]);
 
   const loadSignedInWorkspace = useCallback(async () => {
     const [chatResponse, journalResponse, notificationResponse, decisionsResponse, counselResponse, rulesResponse, preferencesResponse, contextResponse] = await Promise.all([
@@ -7064,21 +7065,21 @@ export function AletheiaApp() {
         />
       ) : null}
 
-      <div ref={bottomNavRef} className="app-bottom-nav fixed left-1/2 z-40 -translate-x-1/2 overflow-hidden border shadow-[0_12px_34px_rgba(7,10,8,0.22)] backdrop-blur-2xl backdrop-saturate-150 md:hidden" style={{
+      <div ref={bottomNavRef} className="app-bottom-nav fixed left-1/2 z-40 -translate-x-1/2 overflow-hidden border shadow-[0_18px_48px_rgba(7,10,8,0.26)] md:hidden" style={{
         borderColor: theme.bgNavBorder,
         backgroundColor: resolvedTheme === "black"
-          ? "rgba(7, 10, 8, 0.86)"
+          ? "rgba(7, 10, 8, 0.68)"
           : resolvedTheme === "dark"
-            ? "rgba(14, 21, 20, 0.84)"
+            ? "rgba(14, 21, 20, 0.66)"
             : resolvedTheme === "warm"
-              ? "rgba(250, 246, 241, 0.88)"
+              ? "rgba(250, 246, 241, 0.62)"
               : resolvedTheme === "ocean"
-                ? "rgba(241, 246, 250, 0.88)"
+                ? "rgba(241, 246, 250, 0.62)"
                 : resolvedTheme === "forest"
-                  ? "rgba(241, 246, 241, 0.88)"
+                  ? "rgba(241, 246, 241, 0.62)"
                   : resolvedTheme === "sunset"
-                    ? "rgba(250, 241, 246, 0.88)"
-                    : "rgba(238, 242, 239, 0.88)",
+                    ? "rgba(250, 241, 246, 0.62)"
+                    : "rgba(238, 242, 239, 0.62)",
         width: "var(--aletheia-bottom-nav-width, min(calc(100vw - 1.5rem), 28rem))",
         bottom: "calc(var(--aletheia-bottom-nav-gap, 0.75) * 1rem + env(safe-area-inset-bottom))",
         borderRadius: "calc(var(--aletheia-bottom-nav-radius, 1.75) * 1rem)",
@@ -7316,10 +7317,12 @@ function MobileNav({
   return (
     <button
       onClick={onClick}
-      className="premium-tap-card flex h-12 min-w-0 flex-col items-center justify-center gap-1 rounded-[1.1rem] px-1 text-[10px] font-semibold transition duration-200 sm:text-[11px]"
+      className="flex h-12 min-w-0 flex-col items-center justify-center gap-1 rounded-[1.1rem] px-1 text-[10px] font-semibold transition duration-200 sm:text-[11px]"
       style={{
-        backgroundColor: active ? theme.primary : 'transparent',
-        boxShadow: active ? "0 8px 18px rgba(0, 0, 0, 0.18)" : "none",
+        backgroundColor: active ? `color-mix(in srgb, ${theme.primary} 88%, ${theme.bgCardElevated})` : 'transparent',
+        boxShadow: active
+          ? "0 12px 24px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.14)"
+          : "none",
         color: active ? theme.textOnPrimary : theme.textSecondary,
       }}
       onMouseEnter={(event) => !active && (event.currentTarget.style.backgroundColor = theme.hoverBg)}

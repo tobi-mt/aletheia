@@ -184,6 +184,49 @@ body {
     0 14px 32px rgba(0, 0, 0, 0.18);
 }
 
+.app-bottom-nav {
+  isolation: isolate;
+  -webkit-backdrop-filter: blur(30px) saturate(180%) contrast(1.04);
+  backdrop-filter: blur(30px) saturate(180%) contrast(1.04);
+}
+
+.app-bottom-nav::before,
+.app-bottom-nav::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.app-bottom-nav::before {
+  z-index: -2;
+  background:
+    radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.24), transparent 24%),
+    radial-gradient(circle at 82% 10%, color-mix(in srgb, var(--aletheia-focus-ring, #d6b45d) 18%, transparent), transparent 28%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.035) 54%, rgba(0, 0, 0, 0.1));
+}
+
+.app-bottom-nav::after {
+  z-index: -1;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 0 0 1px color-mix(in srgb, var(--aletheia-glass-edge, rgba(201, 213, 205, 0.7)) 34%, transparent);
+}
+
+.app-bottom-nav > * {
+  position: relative;
+  z-index: 1;
+}
+
+.theme-dark-root .app-bottom-nav::before,
+.theme-black-root .app-bottom-nav::before {
+  background:
+    radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.12), transparent 24%),
+    radial-gradient(circle at 82% 10%, color-mix(in srgb, var(--aletheia-focus-ring, #d6b45d) 20%, transparent), transparent 30%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.105), rgba(255, 255, 255, 0.025) 54%, rgba(0, 0, 0, 0.22));
+}
+
 .app-shell::before,
 .app-shell::after {
   content: "";

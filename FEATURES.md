@@ -28,6 +28,7 @@ It is designed to feel emotionally intelligent, spiritually grounded, and practi
 - Consistent button, link, and disclosure feedback for tap, press, focus, and disabled states across the app.
 - Softer premium surfaces and clearer tappable affordances to reduce visual clutter without losing depth.
 - Softer editorial surfaces and press feedback are applied across shared cards, settings rows, navigation controls, and action buttons.
+- Mobile bottom navigation uses a theme-aware glossy glass treatment with a clear active tab capsule.
 
 ## What Makes It Different
 
