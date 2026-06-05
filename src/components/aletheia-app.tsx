@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import Image from "next/image";
 import { signIn as authSignIn, signOut as authSignOut } from "next-auth/react";
 import { ChangeEvent, FormEvent, type KeyboardEvent, type ReactNode, type RefObject, type TouchEvent, type WheelEvent, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   BookOpen,
   BriefcaseBusiness,
@@ -10485,6 +10486,22 @@ function ContextUseToggle({
   );
 }
 
+function useBodyScrollLock(active: boolean) {
+  useEffect(() => {
+    if (!active || typeof document === "undefined") {
+      return;
+    }
+    const previousOverflow = document.body.style.overflow;
+    const previousTouchAction = document.body.style.touchAction;
+    document.body.style.overflow = "hidden";
+    document.body.style.touchAction = "none";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.body.style.touchAction = previousTouchAction;
+    };
+  }, [active]);
+}
+
 function AvatarPickerModal({
   theme,
   ts,
@@ -10504,9 +10521,8 @@ function AvatarPickerModal({
   onClose: () => void;
   onPick: (avatarSrc: string) => void;
 }) {
-  if (!open) {
-    return null;
-  }
+  const canUsePortal = typeof document !== "undefined";
+  useBodyScrollLock(open && canUsePortal);
 
   const normalizedCurrent = normalizeAvatarUrl(currentAvatar) ?? "";
 
@@ -10522,13 +10538,34 @@ function AvatarPickerModal({
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-[70] grid place-items-end p-3 backdrop-blur-sm sm:place-items-center" style={{ backgroundColor: "rgba(13, 23, 20, 0.46)" }}>
-      <section className="max-h-[88vh] w-full max-w-3xl overflow-y-auto rounded-2xl border p-4 shadow-2xl sm:p-5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+  if (!open || !canUsePortal) {
+    return null;
+  }
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[9999] grid min-h-dvh place-items-end overflow-hidden overscroll-none px-3 backdrop-blur-sm sm:place-items-center"
+      style={{
+        backgroundColor: "rgba(13, 23, 20, 0.56)",
+        paddingTop: "calc(env(safe-area-inset-top, 0px) + 0.75rem)",
+        paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 0.75rem)",
+      }}
+    >
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="avatar-picker-title"
+        className="w-full max-w-3xl overflow-y-auto overscroll-contain rounded-2xl border p-4 shadow-2xl sm:p-5"
+        style={{
+          borderColor: theme.borderMedium,
+          backgroundColor: theme.bgCard,
+          maxHeight: "calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 1.5rem)",
+        }}
+      >
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('avatar.pickerEyebrow', 'Avatar Picker')}</p>
-            <h2 className="mt-2 text-xl font-semibold" style={{ color: theme.textPrimary }}>{title}</h2>
+            <h2 id="avatar-picker-title" className="mt-2 text-xl font-semibold" style={{ color: theme.textPrimary }}>{title}</h2>
             <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>{subtitle}</p>
           </div>
           <button
@@ -10584,7 +10621,8 @@ function AvatarPickerModal({
           })}
         </div>
       </section>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -10605,17 +10643,37 @@ function AvatarUploadTipsModal({
   onClose: () => void;
   onContinue: () => void;
 }) {
-  if (!open) {
+  const canUsePortal = typeof document !== "undefined";
+  useBodyScrollLock(open && canUsePortal);
+
+  if (!open || !canUsePortal) {
     return null;
   }
 
-  return (
-    <div className="fixed inset-0 z-[70] grid place-items-end p-3 backdrop-blur-sm sm:place-items-center" style={{ backgroundColor: "rgba(13, 23, 20, 0.46)" }}>
-      <section className="w-full max-w-lg rounded-2xl border p-4 shadow-2xl sm:p-5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[9999] grid min-h-dvh place-items-end overflow-hidden overscroll-none px-3 backdrop-blur-sm sm:place-items-center"
+      style={{
+        backgroundColor: "rgba(13, 23, 20, 0.56)",
+        paddingTop: "calc(env(safe-area-inset-top, 0px) + 0.75rem)",
+        paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 0.75rem)",
+      }}
+    >
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="avatar-photo-tips-title"
+        className="w-full max-w-lg overflow-y-auto overscroll-contain rounded-2xl border p-4 shadow-2xl sm:p-5"
+        style={{
+          borderColor: theme.borderMedium,
+          backgroundColor: theme.bgCard,
+          maxHeight: "calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 1.5rem)",
+        }}
+      >
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('avatar.photoTipsEyebrow', 'Photo tips')}</p>
-            <h2 className="mt-2 text-xl font-semibold" style={{ color: theme.textPrimary }}>{ts('avatar.photoTipsTitle', 'Upload a profile photo calmly')}</h2>
+            <h2 id="avatar-photo-tips-title" className="mt-2 text-xl font-semibold" style={{ color: theme.textPrimary }}>{ts('avatar.photoTipsTitle', 'Upload a profile photo calmly')}</h2>
             <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
               {ts('avatar.photoTipsBody', 'Aletheia keeps this simple. Use one clear photo and it applies as soon as it is ready.')}
             </p>
@@ -10669,7 +10727,8 @@ function AvatarUploadTipsModal({
           </button>
         </div>
       </section>
-    </div>
+    </div>,
+    document.body
   );
 }
 
