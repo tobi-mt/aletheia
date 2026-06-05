@@ -7663,6 +7663,17 @@ function OnboardingModal({
   onComplete: () => void;
   theme: ThemeColors;
 }) {
+  const [activeSetupStep, setActiveSetupStep] = useState("mode");
+  const modeSectionRef = useRef<HTMLElement | null>(null);
+  const toneSectionRef = useRef<HTMLElement | null>(null);
+  const languageSectionRef = useRef<HTMLElement | null>(null);
+  const focusSectionRef = useRef<HTMLElement | null>(null);
+  const privacySectionRef = useRef<HTMLElement | null>(null);
+  const scrollToSetupStep = useCallback((key: string, ref: RefObject<HTMLElement | null>) => {
+    setActiveSetupStep(key);
+    ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, []);
+
   if (!open) {
     return null;
   }
@@ -7670,11 +7681,11 @@ function OnboardingModal({
   const bibleOptions = bibleTranslationOptionsForLanguage(preferences.language);
   const selectedTranslation = bibleTranslations[preferences.bibleTranslation];
   const setupSteps = [
-    ts('labels.setupStepMode', 'Mode'),
-    ts('labels.setupStepTone', 'Tone'),
-    ts('labels.setupStepLanguage', 'Language'),
-    ts('labels.setupStepFocus', 'Focus'),
-    ts('labels.setupStepPrivacy', 'Privacy'),
+    { key: "mode", label: ts('labels.setupStepMode', 'Mode'), ref: modeSectionRef },
+    { key: "tone", label: ts('labels.setupStepTone', 'Tone'), ref: toneSectionRef },
+    { key: "language", label: ts('labels.setupStepLanguage', 'Language'), ref: languageSectionRef },
+    { key: "focus", label: ts('labels.setupStepFocus', 'Focus'), ref: focusSectionRef },
+    { key: "privacy", label: ts('labels.setupStepPrivacy', 'Privacy'), ref: privacySectionRef },
   ];
   const privacyOptions = [
     {
@@ -7697,9 +7708,9 @@ function OnboardingModal({
   return (
     <div className="fixed inset-0 z-50 grid min-w-0 place-items-end overflow-x-hidden p-3 backdrop-blur-sm sm:place-items-center" style={{ backgroundColor: theme.primary + '75' }}>
       <section
-        className="box-border max-h-[92vh] min-w-0 overflow-x-hidden overflow-y-auto rounded-xl border p-4 shadow-2xl sm:p-5"
+        className="editorial-surface box-border max-h-[92vh] min-w-0 overflow-x-hidden overflow-y-auto rounded-xl border p-4 shadow-2xl sm:p-5"
         style={{
-          borderColor: theme.borderMedium,
+          borderColor: theme.borderLight,
           backgroundColor: theme.bgCard,
           width: "min(100%, calc(100vw - 1.5rem), 42rem)",
         }}
@@ -7724,22 +7735,30 @@ function OnboardingModal({
         </div>
 
         <div className="mt-5 space-y-4">
-          <div className="grid grid-cols-5 gap-1 rounded-lg border p-1" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
-            {setupSteps.map((step, index) => (
-              <span
-                key={step}
-                className="rounded-md px-1 py-2 text-center text-[10px] font-semibold uppercase tracking-[0.08em]"
+          <nav aria-label={ts('labels.onboardingSetupNav', 'Onboarding setup steps')} className="-mx-1 overflow-x-auto pb-1">
+            <div className="flex min-w-max gap-1 rounded-lg border p-1" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
+              {setupSteps.map((step) => {
+                const active = activeSetupStep === step.key;
+                return (
+              <button
+                key={step.key}
+                type="button"
+                onClick={() => scrollToSetupStep(step.key, step.ref)}
+                className="min-h-10 rounded-md px-3 py-2 text-center text-[10px] font-semibold uppercase tracking-[0.08em] transition sm:text-xs"
                 style={{
-                  backgroundColor: index === 0 ? theme.activeBg : "transparent",
-                  color: index === 0 ? theme.textPrimary : theme.textSecondary,
+                  backgroundColor: active ? theme.activeBg : "transparent",
+                  color: active ? theme.textPrimary : theme.textSecondary,
                 }}
+                aria-current={active ? "step" : undefined}
               >
-                {step}
-              </span>
-            ))}
-          </div>
+                <span className="whitespace-nowrap">{step.label}</span>
+              </button>
+                );
+              })}
+            </div>
+          </nav>
 
-          <section>
+          <section ref={modeSectionRef} tabIndex={-1} className="scroll-mt-4 outline-none">
             <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{ts('labels.setupStepMode', 'Mode')}</p>
             <p className="mt-1 text-sm font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.whatBringsYou', 'What brings you here?')}</p>
             <div className="mt-2 grid min-w-0 grid-cols-2 gap-2">
@@ -7748,7 +7767,7 @@ function OnboardingModal({
                   type="button"
                   key={item.label}
                   onClick={() => onModeChange(item.label)}
-                  className="flex min-w-0 items-start gap-2 rounded-lg border p-3 text-left transition"
+                  className="premium-tap-card flex min-w-0 items-start gap-2 rounded-lg border p-3 text-left transition"
                   style={mode === item.label
                     ? { borderColor: theme.primary, backgroundColor: theme.primary, color: theme.textOnPrimary }
                     : { borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
@@ -7763,7 +7782,7 @@ function OnboardingModal({
             </div>
           </section>
 
-          <section className="rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+          <section ref={toneSectionRef} tabIndex={-1} className="scroll-mt-4 rounded-lg border p-3 outline-none" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
             <p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{ts('labels.setupStepTone', 'Tone')}</p>
             <label className="text-sm font-semibold" style={{ color: theme.textPrimary }}>
               {ts('labels.seekingWisdomFor', 'What are you seeking wisdom for?')}
@@ -7806,7 +7825,7 @@ function OnboardingModal({
             </div>
           </section>
 
-          <section className="grid gap-3 sm:grid-cols-3">
+          <section ref={languageSectionRef} tabIndex={-1} className="scroll-mt-4 grid gap-3 rounded-lg border p-3 outline-none sm:grid-cols-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
             <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
               {ts('language', 'Language')}
               <select
@@ -7861,14 +7880,16 @@ function OnboardingModal({
             </label>
           </section>
 
-          <FocusIntentionsCard
-            theme={theme}
-            ts={ts}
-            selected={focusIntentions}
-            onChange={onFocusIntentionsChange}
-          />
+          <section ref={focusSectionRef} tabIndex={-1} className="scroll-mt-4 outline-none">
+            <FocusIntentionsCard
+              theme={theme}
+              ts={ts}
+              selected={focusIntentions}
+              onChange={onFocusIntentionsChange}
+            />
+          </section>
 
-          <section className="rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+          <section ref={privacySectionRef} tabIndex={-1} className="scroll-mt-4 rounded-lg border p-3 outline-none" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
             <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{ts('labels.setupStepPrivacy', 'Privacy')}</p>
             <h3 className="mt-1 text-sm font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.privacyLevelTitle', 'Choose how personal Aletheia should feel at first.')}</h3>
             <div className="mt-3 grid gap-2 sm:grid-cols-3">

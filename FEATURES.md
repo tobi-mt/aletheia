@@ -200,6 +200,7 @@ After a meaningful answer, Aletheia can help the user take the next wise step.
 - Voice selector separates Use and Preview actions, shows selected-state feedback, and reports localized preview status
 - Each personalization row shows the current value first and expands only when the user wants to change it
 - Guided onboarding journey for mode, tone, faith familiarity, language, Bible translation, region, focus intentions, and privacy/context posture
+- Onboarding setup navigation is tappable, responsive, and language-safe so long translated step labels do not wrap awkwardly
 - Daily Wisdom Notifications card for push status, delivery rhythm, local delivery time, and timezone preference
 - Manual Context Vault card for region/context, privacy posture, user-provided current/future state signals, and per-area privacy toggles
 - Dedicated Share Aletheia card with native share, copy link, WhatsApp, Facebook, X / Twitter, LinkedIn, email, and SMS channels
@@ -250,6 +251,7 @@ After a meaningful answer, Aletheia can help the user take the next wise step.
 ## Onboarding Customization
 
 - Starting wisdom mode selection (Money, Work, Purpose, Generosity)
+- Clickable setup step navigation for mode, tone, language/Bible/region, focus, and privacy
 - First concern prompt to personalize first-session guidance
 - Tone selection for early guidance (gentle, direct, strategic, reflective)
 - Faith familiarity selection (new to biblical wisdom, familiar, deeply familiar)
