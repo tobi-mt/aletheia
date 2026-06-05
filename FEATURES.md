@@ -201,6 +201,7 @@ After a meaningful answer, Aletheia can help the user take the next wise step.
 - Each personalization row shows the current value first and expands only when the user wants to change it
 - Guided onboarding journey for mode, tone, faith familiarity, language, Bible translation, region, focus intentions, and privacy/context posture
 - Onboarding setup navigation is tappable, responsive, and language-safe so long translated step labels do not wrap awkwardly
+- First launch uses the device/browser language when Aletheia supports it, then falls back to English until the user chooses another language
 - Daily Wisdom Notifications card for push status, delivery rhythm, local delivery time, and timezone preference
 - Manual Context Vault card for region/context, privacy posture, user-provided current/future state signals, and per-area privacy toggles
 - Dedicated Share Aletheia card with native share, copy link, WhatsApp, Facebook, X / Twitter, LinkedIn, email, and SMS channels
@@ -256,6 +257,7 @@ After a meaningful answer, Aletheia can help the user take the next wise step.
 - Tone selection for early guidance (gentle, direct, strategic, reflective)
 - Faith familiarity selection (new to biblical wisdom, familiar, deeply familiar)
 - Language selection during onboarding
+- Device/browser language is used as the first onboarding language when supported
 - Bible translation selection during onboarding
 - Region selection during onboarding
 - Onboarding settings can be changed later in Account

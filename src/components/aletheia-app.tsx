@@ -1704,6 +1704,26 @@ function AvatarCircle({
   );
 }
 
+function languageFromBrowserLocale(locale: string | undefined): LanguageCode | null {
+  const primary = locale?.trim().toLowerCase().split(/[-_]/)[0];
+  return primary && primary in languages ? primary as LanguageCode : null;
+}
+
+function deviceDefaultPreferences(): UserPreferences {
+  if (typeof window === "undefined") {
+    return defaultPreferences;
+  }
+
+  const language = [
+    ...(Array.isArray(window.navigator.languages) ? window.navigator.languages : []),
+    window.navigator.language,
+  ]
+    .map(languageFromBrowserLocale)
+    .find((value): value is LanguageCode => Boolean(value));
+
+  return language ? normalizePreferences(preferencePatchForLanguage(language)) : defaultPreferences;
+}
+
 function storedPreferences() {
   if (typeof window === "undefined") {
     return defaultPreferences;
@@ -1711,9 +1731,9 @@ function storedPreferences() {
 
   try {
     const saved = window.localStorage.getItem("aletheia_preferences");
-    return saved ? normalizePreferences(JSON.parse(saved) as Partial<UserPreferences>) : defaultPreferences;
+    return saved ? normalizePreferences(JSON.parse(saved) as Partial<UserPreferences>) : deviceDefaultPreferences();
   } catch {
-    return defaultPreferences;
+    return deviceDefaultPreferences();
   }
 }
 
