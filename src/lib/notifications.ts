@@ -155,9 +155,22 @@ function dailyNotificationPayload(row: PushRow, wisdomEntries: Awaited<ReturnTyp
     : "Money";
   const daily = localizedDailyWisdom(wisdom, dailyMode, preferences);
   const localDate = localDateForTimezone(now, row.preferred_timezone);
-  const variant = stableHash(`${row.user_id}:${localDate}:${daily.scripture}:${daily.theme}`) % 5;
-  const title = buildDailyNotificationTitle(daily.label, daily.theme, daily.scripture, variant);
-  const body = buildDailyNotificationBody(daily.practice, daily.scripture, daily.principle, variant);
+  const variant = stableHash(`${row.user_id}:${localDate}:${daily.scripture}:${daily.theme}`) % 6;
+  const title = buildDailyNotificationTitle({
+    language: preferences.language,
+    label: daily.label,
+    theme: daily.theme,
+    scripture: daily.scripture,
+    variant,
+  });
+  const body = buildDailyNotificationBody({
+    language: preferences.language,
+    theme: daily.theme,
+    practice: daily.practice,
+    scripture: daily.scripture,
+    principle: daily.principle,
+    variant,
+  });
   return {
     title,
     body,
@@ -198,37 +211,261 @@ function notificationTagPart(value: string) {
   return value.replace(/[^a-zA-Z0-9_-]+/g, "-").slice(0, 40) || "item";
 }
 
-function buildDailyNotificationTitle(
-  label: string,
-  theme: string,
-  scripture: string,
-  variant: number
-) {
-  const cleanTheme = compactNotificationCopy(theme, 34);
-  const scriptureReference = compactNotificationCopy(scripture.replace(/\s*\([^)]*\)\s*$/, ""), 32);
-  const titleOptions = [
-    `${label}: ${cleanTheme}`,
-    cleanTheme,
-    `${label}: ${scriptureReference}`,
-    `${cleanTheme} · ${scriptureReference}`,
-    label,
-  ].filter(Boolean);
-  return compactNotificationCopy(titleOptions[variant % titleOptions.length] || `${label}: ${cleanTheme}`, 58);
+type DailyNotificationLanguageCopy = {
+  titles: Array<(input: { label: string; theme: string; scripture: string }) => string>;
+  bodies: Array<(input: { theme: string; practice: string; scripture: string; principle: string }) => string>;
+};
+
+const dailyNotificationCopy: Record<LanguageCode, DailyNotificationLanguageCopy> = {
+  en: {
+    titles: [
+      ({ theme }) => `${theme}: a wiser pace`,
+      ({ theme }) => `Today's ${theme} check`,
+      ({ scripture }) => `${scripture} for today`,
+      () => "One faithful next step",
+      ({ theme }) => `Carry this in ${theme}`,
+      ({ label }) => label,
+    ],
+    bodies: [
+      ({ scripture, practice }) => `${scripture} · ${practice}`,
+      ({ theme }) => `Open today's card: one question, one tiny practice, and a calmer lens for ${theme}.`,
+      ({ practice }) => `Tiny practice: ${practice}`,
+      ({ scripture, principle }) => `${scripture} · ${principle}`,
+      ({ theme }) => `A short wisdom pause is ready for ${theme}. No pressure, just clarity.`,
+      ({ practice }) => `Carry this today: ${practice}`,
+    ],
+  },
+  es: {
+    titles: [
+      ({ theme }) => `${theme}: un ritmo más sabio`,
+      ({ theme }) => `Revisión de ${theme} para hoy`,
+      ({ scripture }) => `${scripture} para hoy`,
+      () => "Un próximo paso fiel",
+      ({ theme }) => `Lleva esto en ${theme}`,
+      ({ label }) => label,
+    ],
+    bodies: [
+      ({ scripture, practice }) => `${scripture} · ${practice}`,
+      ({ theme }) => `Abre la tarjeta de hoy: una pregunta, una práctica breve y más claridad para ${theme}.`,
+      ({ practice }) => `Práctica breve: ${practice}`,
+      ({ scripture, principle }) => `${scripture} · ${principle}`,
+      ({ theme }) => `Hay una pausa de sabiduría para ${theme}. Sin presión, con claridad.`,
+      ({ practice }) => `Lleva esto hoy: ${practice}`,
+    ],
+  },
+  fr: {
+    titles: [
+      ({ theme }) => `${theme} : un rythme plus sage`,
+      ({ theme }) => `Point du jour sur ${theme}`,
+      ({ scripture }) => `${scripture} pour aujourd'hui`,
+      () => "Un prochain pas fidèle",
+      ({ theme }) => `Garde ceci pour ${theme}`,
+      ({ label }) => label,
+    ],
+    bodies: [
+      ({ scripture, practice }) => `${scripture} · ${practice}`,
+      ({ theme }) => `Ouvre la carte du jour : une question, une petite pratique et plus de clarté pour ${theme}.`,
+      ({ practice }) => `Petite pratique : ${practice}`,
+      ({ scripture, principle }) => `${scripture} · ${principle}`,
+      ({ theme }) => `Une pause de sagesse est prête pour ${theme}. Sans pression, avec clarté.`,
+      ({ practice }) => `Garde ceci aujourd'hui : ${practice}`,
+    ],
+  },
+  pt: {
+    titles: [
+      ({ theme }) => `${theme}: um ritmo mais sábio`,
+      ({ theme }) => `Revisão de ${theme} para hoje`,
+      ({ scripture }) => `${scripture} para hoje`,
+      () => "Um próximo passo fiel",
+      ({ theme }) => `Leve isto em ${theme}`,
+      ({ label }) => label,
+    ],
+    bodies: [
+      ({ scripture, practice }) => `${scripture} · ${practice}`,
+      ({ theme }) => `Abra o cartão de hoje: uma pergunta, uma prática breve e mais clareza para ${theme}.`,
+      ({ practice }) => `Prática breve: ${practice}`,
+      ({ scripture, principle }) => `${scripture} · ${principle}`,
+      ({ theme }) => `Uma pausa de sabedoria está pronta para ${theme}. Sem pressão, com clareza.`,
+      ({ practice }) => `Leve isto hoje: ${practice}`,
+    ],
+  },
+  de: {
+    titles: [
+      ({ theme }) => `${theme}: ein weiseres Tempo`,
+      ({ theme }) => `Dein ${theme}-Impuls`,
+      ({ scripture }) => `${scripture} für heute`,
+      () => "Ein treuer nächster Schritt",
+      ({ theme }) => `Nimm dies in ${theme} mit`,
+      ({ label }) => label,
+    ],
+    bodies: [
+      ({ scripture, practice }) => `${scripture} · ${practice}`,
+      ({ theme }) => `Öffne die heutige Karte: eine Frage, eine kleine Übung und mehr Klarheit für ${theme}.`,
+      ({ practice }) => `Kleine Übung: ${practice}`,
+      ({ scripture, principle }) => `${scripture} · ${principle}`,
+      ({ theme }) => `Ein kurzer Weisheitsmoment für ${theme} ist bereit. Kein Druck, nur Klarheit.`,
+      ({ practice }) => `Nimm das heute mit: ${practice}`,
+    ],
+  },
+  yo: {
+    titles: [
+      ({ theme }) => `${theme}: ìyára tó ní ọgbọ́n`,
+      ({ theme }) => `Ìrònú ${theme} fún oni`,
+      ({ scripture }) => `${scripture} fún oni`,
+      () => "Ìgbésẹ̀ olóòtítọ́ tó kàn",
+      ({ theme }) => `Rù èyí lọ ninu ${theme}`,
+      ({ label }) => label,
+    ],
+    bodies: [
+      ({ scripture, practice }) => `${scripture} · ${practice}`,
+      ({ theme }) => `Ṣí kaadi oni: ìbéèrè kan, ìṣe kékeré kan, àti ìmúlò tó yege fún ${theme}.`,
+      ({ practice }) => `Ìṣe kékeré: ${practice}`,
+      ({ scripture, principle }) => `${scripture} · ${principle}`,
+      ({ theme }) => `Ìsinmi ọgbọ́n kékeré fún ${theme} ti ṣetan. Kò sí ìkánjú, ìmọ̀lára kedere ni.`,
+      ({ practice }) => `Rù èyí lọ loni: ${practice}`,
+    ],
+  },
+  ig: {
+    titles: [
+      ({ theme }) => `${theme}: ọsọ amamihe`,
+      ({ theme }) => `Ntụgharị ${theme} taa`,
+      ({ scripture }) => `${scripture} maka taa`,
+      () => "Nzọụkwụ kwesịrị ntụkwasị obi",
+      ({ theme }) => `Buru nke a n'ime ${theme}`,
+      ({ label }) => label,
+    ],
+    bodies: [
+      ({ scripture, practice }) => `${scripture} · ${practice}`,
+      ({ theme }) => `Mepee kaadị taa: ajụjụ otu, omume nta, na nghọta dị jụụ maka ${theme}.`,
+      ({ practice }) => `Omume nta: ${practice}`,
+      ({ scripture, principle }) => `${scripture} · ${principle}`,
+      ({ theme }) => `Obere oge amamihe maka ${theme} dị njikere. Enweghị nrụgide, naanị nghọta.`,
+      ({ practice }) => `Buru nke a taa: ${practice}`,
+    ],
+  },
+  ha: {
+    titles: [
+      ({ theme }) => `${theme}: tafiya mai hikima`,
+      ({ theme }) => `Tunanin ${theme} na yau`,
+      ({ scripture }) => `${scripture} na yau`,
+      () => "Mataki mai aminci na gaba",
+      ({ theme }) => `Rika wannan a ${theme}`,
+      ({ label }) => label,
+    ],
+    bodies: [
+      ({ scripture, practice }) => `${scripture} · ${practice}`,
+      ({ theme }) => `Bude katin yau: tambaya daya, karamin aiki daya, da karin haske ga ${theme}.`,
+      ({ practice }) => `Karamin aiki: ${practice}`,
+      ({ scripture, principle }) => `${scripture} · ${principle}`,
+      ({ theme }) => `Karamin lokacin hikima ga ${theme} ya shirya. Ba matsin lamba ba, haske ne.`,
+      ({ practice }) => `Rike wannan yau: ${practice}`,
+    ],
+  },
+};
+
+function stripTranslationLabel(scripture: string) {
+  return scripture.replace(/\s*\([^)]*\)\s*$/, "");
 }
 
-function buildDailyNotificationBody(practice: string, scripture: string, principle: string, variant: number) {
-  const cleanPractice = compactNotificationCopy(practice, 118);
-  const cleanPrinciple = compactNotificationCopy(principle, 118);
-  const scriptureReference = compactNotificationCopy(scripture, 46);
-  const distinctPrinciple = cleanPrinciple.toLowerCase() !== cleanPractice.toLowerCase() ? cleanPrinciple : "";
-  const bodyOptions = [
-    `${cleanPractice} · ${scriptureReference}`,
-    cleanPractice,
-    distinctPrinciple ? `${distinctPrinciple} · ${scriptureReference}` : "",
-    `${scriptureReference} · ${cleanPractice}`,
-    distinctPrinciple || cleanPractice,
-  ].filter(Boolean);
-  return compactNotificationCopy(bodyOptions[variant % bodyOptions.length] || cleanPractice || scriptureReference, 142);
+function normalizeNotificationSegment(value: string, fallback: string) {
+  const cleaned = value.replace(/\s+/g, " ").trim();
+  return cleaned || fallback;
+}
+
+function buildDailyNotificationTitle(input: {
+  language: LanguageCode;
+  label: string;
+  theme: string;
+  scripture: string;
+  variant: number;
+}) {
+  const copy = dailyNotificationCopy[input.language] ?? dailyNotificationCopy.en;
+  const cleanTheme = compactNotificationCopy(normalizeNotificationSegment(input.theme, input.label), 34);
+  const scriptureReference = compactNotificationCopy(stripTranslationLabel(input.scripture), 32);
+  const cleanLabel = compactNotificationCopy(normalizeNotificationSegment(input.label, "Aletheia"), 34);
+  const title = copy.titles[input.variant % copy.titles.length]({
+    label: cleanLabel,
+    theme: cleanTheme,
+    scripture: scriptureReference,
+  });
+  return compactNotificationCopy(title, 62);
+}
+
+function buildDailyNotificationBody(input: {
+  language: LanguageCode;
+  theme: string;
+  practice: string;
+  scripture: string;
+  principle: string;
+  variant: number;
+}) {
+  const copy = dailyNotificationCopy[input.language] ?? dailyNotificationCopy.en;
+  const cleanTheme = compactNotificationCopy(normalizeNotificationSegment(input.theme, "wisdom"), 34);
+  const cleanPractice = compactNotificationCopy(normalizeNotificationSegment(input.practice, "Open today's wisdom card."), 104);
+  const cleanPrinciple = compactNotificationCopy(normalizeNotificationSegment(input.principle, cleanPractice), 104);
+  const scriptureReference = compactNotificationCopy(input.scripture, 48);
+  const distinctPrinciple = cleanPrinciple.toLowerCase() !== cleanPractice.toLowerCase() ? cleanPrinciple : cleanPractice;
+  const body = copy.bodies[input.variant % copy.bodies.length]({
+    theme: cleanTheme,
+    practice: cleanPractice,
+    scripture: scriptureReference,
+    principle: distinctPrinciple,
+  });
+  return compactNotificationCopy(body, 148);
+}
+
+const testNotificationCopy: Record<LanguageCode, { title: string; body: string }> = {
+  en: {
+    title: "Aletheia is ready",
+    body: "A calm wisdom prompt can now reach this device at your chosen local time.",
+  },
+  es: {
+    title: "Aletheia está lista",
+    body: "Un impulso tranquilo de sabiduría puede llegar a este dispositivo a tu hora local elegida.",
+  },
+  fr: {
+    title: "Aletheia est prête",
+    body: "Un rappel paisible de sagesse peut maintenant arriver sur cet appareil à l'heure choisie.",
+  },
+  pt: {
+    title: "Aletheia está pronta",
+    body: "Um lembrete tranquilo de sabedoria pode chegar a este dispositivo no horário local escolhido.",
+  },
+  de: {
+    title: "Aletheia ist bereit",
+    body: "Ein ruhiger Weisheitsimpuls kann dieses Gerät jetzt zu deiner gewählten Ortszeit erreichen.",
+  },
+  yo: {
+    title: "Aletheia ti ṣetan",
+    body: "Ìránṣẹ́ ọgbọ́n pẹ̀lẹ́pẹ̀lẹ́ lè dé ẹrọ yìí ní àkókò agbègbè tí o yàn.",
+  },
+  ig: {
+    title: "Aletheia dị njikere",
+    body: "Ozi amamihe dị jụụ nwere ike iru ngwaọrụ a n'oge mpaghara ị họọrọ.",
+  },
+  ha: {
+    title: "Aletheia ta shirya",
+    body: "Sakon hikima mai natsuwa zai iya zuwa wannan na'ura a lokacin yankin da ka zaba.",
+  },
+};
+
+function testNotificationPayload(row: PushRow) {
+  const preferences = normalizePreferences({
+    language: row.language as LanguageCode,
+    region: row.region as RegionCode,
+    bibleTranslation: row.bible_translation as BibleTranslation,
+    voiceEnabled: Boolean(row.voice_enabled),
+  });
+  const copy = testNotificationCopy[preferences.language] ?? testNotificationCopy.en;
+  return {
+    title: copy.title,
+    body: copy.body,
+    url: "/?source=notification&focus=today",
+    scripture: "Proverbs 3:5-6",
+    tag: "aletheia-notification-test",
+    notificationKind: "notification_test",
+    test: true,
+  };
 }
 
 function selectReminderForUser(reminders: DueDecisionReminder[]) {
@@ -663,14 +900,7 @@ export async function sendTestWisdomNotification(userId: string) {
 
   const { sent, failed, failureSamples } = await sendPushRows(
     rows,
-    () =>
-      JSON.stringify({
-        title: "Aletheia notifications are ready",
-        body: "This device can receive daily wisdom and decision reminders.",
-        url: "/?source=notification&focus=today",
-        scripture: "Proverbs 3:5-6",
-        test: true,
-      }),
+    (row) => JSON.stringify(testNotificationPayload(row)),
     { updateLastSent: false }
   );
 

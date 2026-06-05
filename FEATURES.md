@@ -319,6 +319,8 @@ After a meaningful answer, Aletheia can help the user take the next wise step.
 - Opt-in daily wisdom notifications
 - Web Push support
 - Daily push copy is generated from the selected wisdom principle, practice, scripture, user language, and local date so notifications remain meaningful, varied, and non-duplicative
+- Premium daily notification copy rotates across localized title/body patterns so users do not repeatedly receive the same generic “Today...” line
+- Daily notifications include a scripture anchor, tiny practice, or clear reason to open the Today Companion card while avoiding private user content
 - Daily notification tags include the local date and wisdom entry, helping each day feel distinct instead of replacing every prior daily message with the same tag
 - Decision waiting-mode and revisit notifications use distinct, premium reminder copy and deep-link back to the relevant decision card
 - Notification status inside Account
