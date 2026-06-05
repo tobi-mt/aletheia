@@ -27,6 +27,7 @@ It is designed to feel emotionally intelligent, spiritually grounded, and practi
 - PWA and mobile-first behavior so the app feels like a real companion, not just a web page.
 - Consistent button, link, and disclosure feedback for tap, press, focus, and disabled states across the app.
 - Softer premium surfaces and clearer tappable affordances to reduce visual clutter without losing depth.
+- Softer editorial surfaces and press feedback are applied across shared cards, settings rows, navigation controls, and action buttons.
 
 ## What Makes It Different
 
@@ -193,6 +194,7 @@ After a meaningful answer, Aletheia can help the user take the next wise step.
 - Premium grouped Account screen built around Profile, Personalization, Share Aletheia, Support the Mission, Daily Wisdom Notifications, Manual Context Vault, and System
 - One Profile card with avatar/photo and personalized greeting in the default state, with sign-in, sync, and notification details available on expand
 - Collapsed Profile card shows avatar/photo, email, and icon-and-number continuity stats for reflections, decisions, and trusted voices without truncating translated labels
+- Account navigation can show the user’s selected avatar/profile photo while guests keep the standard account icon
 - Personalization group with command-center rows for language, Bible translation, visual theme swatches, curated voice preference, avatar, and focus intentions
 - Voice selector separates Use and Preview actions, shows selected-state feedback, and reports localized preview status
 - Each personalization row shows the current value first and expands only when the user wants to change it

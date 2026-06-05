@@ -6710,12 +6710,12 @@ export function AletheiaApp() {
             </div>
           </button>
 
-          <div className="hidden items-center gap-1 rounded-lg border p-1 shadow-sm md:flex" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
+          <div className="editorial-surface hidden items-center gap-1 rounded-lg border p-1 shadow-sm md:flex" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
             <NavButton active={activeView === "companion"} icon={Home} label={ui.nav.companion} onClick={() => showView("companion")} theme={theme} />
             <NavButton active={activeView === "decisions"} icon={FileText} label={ui.nav.decisions} onClick={() => showView("decisions")} theme={theme} />
             <NavButton active={activeView === "reflect"} icon={Feather} label={ui.nav.reflect} onClick={() => showView("reflect")} theme={theme} />
             <NavButton active={activeView === "library"} icon={BookOpen} label={ui.nav.library} onClick={() => showView("library")} theme={theme} />
-            <NavButton active={activeView === "account"} icon={Users} label={ui.nav.account} onClick={() => showView("account")} theme={theme} />
+            <NavButton active={activeView === "account"} icon={Users} label={ui.nav.account} onClick={() => showView("account")} theme={theme} avatarUrl={user?.avatarUrl} avatarLabel={user?.name ?? user?.email ?? ui.nav.account} />
           </div>
 
           <div className="flex items-center gap-2">
@@ -6726,7 +6726,7 @@ export function AletheiaApp() {
               </span>
             ) : null}
             <label
-              className="app-chrome-control relative grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-md border shadow-sm transition"
+              className="app-chrome-control premium-tap-card relative grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-md border shadow-sm transition"
               style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textPrimary }}
               title={`${ui.languageSelect}: ${languages[preferences.language].nativeName}`}
               suppressHydrationWarning
@@ -6747,7 +6747,7 @@ export function AletheiaApp() {
               </select>
             </label>
             <label
-              className="app-chrome-control relative grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-md border shadow-sm transition"
+              className="app-chrome-control premium-tap-card relative grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-md border shadow-sm transition"
               style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textPrimary }}
               title={`${ui.bibleSelect}: ${preferences.bibleTranslation}`}
               suppressHydrationWarning
@@ -6772,7 +6772,7 @@ export function AletheiaApp() {
               </select>
             </label>
             <button
-              className="app-chrome-control grid h-11 w-11 place-items-center rounded-md border shadow-sm transition"
+              className="app-chrome-control premium-tap-card grid h-11 w-11 place-items-center rounded-md border shadow-sm transition"
               style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textPrimary }}
               aria-label={user ? ts('labels.openAccount', 'Open account') : ts('labels.openGuestDashboard', 'Open guest dashboard')}
               onClick={() => showView("companion")}
@@ -7089,7 +7089,7 @@ export function AletheiaApp() {
           <MobileNav active={activeView === "decisions"} icon={FileText} label={ui.decideShort} onClick={() => showView("decisions")} theme={theme} />
           <MobileNav active={activeView === "reflect"} icon={Feather} label={ui.nav.reflect} onClick={() => showView("reflect")} theme={theme} />
           <MobileNav active={activeView === "library"} icon={BookOpen} label={ui.nav.library} onClick={() => showView("library")} theme={theme} />
-          <MobileNav active={activeView === "account"} icon={Users} label={ui.nav.account} onClick={() => showView("account")} theme={theme} />
+          <MobileNav active={activeView === "account"} icon={Users} label={ui.nav.account} onClick={() => showView("account")} theme={theme} avatarUrl={user?.avatarUrl} avatarLabel={user?.name ?? user?.email ?? ui.nav.account} />
         </div>
       </div>
 
@@ -7252,11 +7252,27 @@ function Screen({ children }: { children: React.ReactNode }) {
   );
 }
 
-function NavButton({ active, icon: Icon, label, onClick, theme }: { active: boolean; icon: typeof Home; label: string; onClick: () => void; theme: ThemeColors }) {
+function NavButton({
+  active,
+  icon: Icon,
+  label,
+  onClick,
+  theme,
+  avatarUrl,
+  avatarLabel,
+}: {
+  active: boolean;
+  icon: typeof Home;
+  label: string;
+  onClick: () => void;
+  theme: ThemeColors;
+  avatarUrl?: string | null;
+  avatarLabel?: string;
+}) {
   return (
     <button
       onClick={onClick}
-      className="inline-flex h-11 items-center gap-2 rounded-md px-3 text-sm font-semibold transition"
+      className="premium-tap-card inline-flex h-11 items-center gap-2 rounded-md px-3 text-sm font-semibold transition"
       style={{
         backgroundColor: active ? theme.primary : 'transparent',
         color: active ? theme.textOnPrimary : theme.textSecondary,
@@ -7264,17 +7280,43 @@ function NavButton({ active, icon: Icon, label, onClick, theme }: { active: bool
       onMouseEnter={(e) => !active && (e.currentTarget.style.backgroundColor = theme.hoverBg)}
       onMouseLeave={(e) => !active && (e.currentTarget.style.backgroundColor = 'transparent')}
     >
-      <Icon size={15} />
+      {avatarUrl ? (
+        <AvatarCircle
+          avatarUrl={avatarUrl}
+          seed={avatarLabel ?? label}
+          label={avatarLabel ?? label}
+          size={18}
+          className="size-[18px] rounded-full border object-cover"
+        />
+      ) : (
+        <Icon size={15} />
+      )}
       {label}
     </button>
   );
 }
 
-function MobileNav({ active, icon: Icon, label, onClick, theme }: { active: boolean; icon: typeof Home; label: string; onClick: () => void; theme: ThemeColors }) {
+function MobileNav({
+  active,
+  icon: Icon,
+  label,
+  onClick,
+  theme,
+  avatarUrl,
+  avatarLabel,
+}: {
+  active: boolean;
+  icon: typeof Home;
+  label: string;
+  onClick: () => void;
+  theme: ThemeColors;
+  avatarUrl?: string | null;
+  avatarLabel?: string;
+}) {
   return (
     <button
       onClick={onClick}
-      className="flex h-12 min-w-0 flex-col items-center justify-center gap-1 rounded-[1.1rem] px-1 text-[10px] font-semibold transition duration-200 sm:text-[11px]"
+      className="premium-tap-card flex h-12 min-w-0 flex-col items-center justify-center gap-1 rounded-[1.1rem] px-1 text-[10px] font-semibold transition duration-200 sm:text-[11px]"
       style={{
         backgroundColor: active ? theme.primary : 'transparent',
         boxShadow: active ? "0 8px 18px rgba(0, 0, 0, 0.18)" : "none",
@@ -7283,7 +7325,17 @@ function MobileNav({ active, icon: Icon, label, onClick, theme }: { active: bool
       onMouseEnter={(event) => !active && (event.currentTarget.style.backgroundColor = theme.hoverBg)}
       onMouseLeave={(event) => !active && (event.currentTarget.style.backgroundColor = 'transparent')}
     >
-      <Icon size={17} />
+      {avatarUrl ? (
+        <AvatarCircle
+          avatarUrl={avatarUrl}
+          seed={avatarLabel ?? label}
+          label={avatarLabel ?? label}
+          size={18}
+          className="size-[18px] rounded-full border object-cover"
+        />
+      ) : (
+        <Icon size={17} />
+      )}
       <span className="max-w-full truncate leading-none">{label}</span>
     </button>
   );
@@ -8165,7 +8217,7 @@ function ContextualNextAction({
   theme: ThemeColors;
 }) {
   return (
-    <section className="rounded-xl border p-4 shadow-sm sm:p-5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+    <section className="editorial-surface rounded-xl border p-4 shadow-sm sm:p-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{eyebrow}</p>
@@ -8176,7 +8228,7 @@ function ContextualNextAction({
           <button
             type="button"
             onClick={onAction}
-            className="h-10 rounded-md px-4 text-sm font-semibold shadow-sm"
+            className="premium-tap-card h-10 rounded-md px-4 text-sm font-semibold shadow-sm"
             style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
           >
             {actionLabel}
@@ -8229,7 +8281,7 @@ function DisclosureSection({
   const useCompactClosedState = compactCollapsed && !open;
 
   return (
-    <section id={sectionId} className={`min-w-0 max-w-full overflow-hidden rounded-xl border shadow-sm ${className}`} style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+    <section id={sectionId} className={`editorial-surface min-w-0 max-w-full overflow-hidden rounded-xl border shadow-sm ${className}`} style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
       <button
         type="button"
         aria-expanded={open}
@@ -8260,7 +8312,7 @@ function DisclosureSection({
             </>
           )}
         </span>
-        <span className={useCompactClosedState ? "shrink-0 rounded-md border px-2 py-1 text-[10px] font-semibold" : "shrink-0 rounded-md border px-2 py-1 text-[11px] font-semibold"} style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+        <span className={useCompactClosedState ? "shrink-0 rounded-md border px-2 py-1 text-[10px] font-semibold" : "shrink-0 rounded-md border px-2 py-1 text-[11px] font-semibold"} style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
           {open ? hideDetailsLabel : showDetailsLabel}
         </span>
       </button>
@@ -8684,7 +8736,7 @@ function AccountSettingRow({
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+    <div className="editorial-surface premium-tap-card rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
@@ -8764,7 +8816,7 @@ function AccountShareCard({
 
   return (
     <section className="space-y-4">
-      <div className="rounded-lg border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+      <div className="editorial-surface rounded-lg border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
         <div className="flex items-start gap-3">
           <div className="grid size-10 shrink-0 place-items-center rounded-md" style={{ backgroundColor: theme.bgInput, color: theme.primary }}>
             <Share2 size={18} />
@@ -8783,8 +8835,8 @@ function AccountShareCard({
             key={channel}
             type="button"
             onClick={() => onShare(channel)}
-            className="flex min-h-12 items-center gap-3 rounded-md border px-3 py-2 text-left text-sm font-semibold transition"
-            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+            className="premium-tap-card flex min-h-12 items-center gap-3 rounded-md border px-3 py-2 text-left text-sm font-semibold transition"
+            style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textPrimary }}
           >
             <span className="grid size-8 shrink-0 place-items-center rounded-md" style={{ backgroundColor: theme.bgCardElevated, color: theme.primary }}>
               <Icon size={16} />
@@ -8818,7 +8870,7 @@ function SupportMissionCard({
 
   return (
     <section className="space-y-4">
-      <div className="overflow-hidden rounded-xl border shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
+      <div className="editorial-surface overflow-hidden rounded-xl border shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
         <div className="p-4 sm:p-5">
           <div className="flex items-start gap-3">
             <div className="grid size-11 shrink-0 place-items-center rounded-lg border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
@@ -8835,9 +8887,11 @@ function SupportMissionCard({
 
           <div className="mt-4 grid gap-2 sm:grid-cols-2">
             {impactItems.map((item) => (
-              <div key={item} className="flex items-start gap-2 rounded-md border p-3 text-sm leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+              <div key={item} className="rounded-md p-3 text-sm leading-5" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                <span className="flex items-start gap-2">
                 <Check size={15} className="mt-0.5 shrink-0" style={{ color: theme.accentGold }} />
                 <span>{item}</span>
+                </span>
               </div>
             ))}
           </div>
@@ -8854,8 +8908,8 @@ function SupportMissionCard({
                   target={href.startsWith("mailto:") ? undefined : "_blank"}
                   rel={href.startsWith("mailto:") ? undefined : "noreferrer"}
                   onClick={() => trackSupportClick(channel)}
-                  className="flex min-h-12 items-center justify-between gap-3 rounded-md border px-3 py-2 text-sm font-semibold transition"
-                  style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                  className="premium-tap-card flex min-h-12 items-center justify-between gap-3 rounded-md border px-3 py-2 text-sm font-semibold transition"
+                  style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textPrimary }}
                 >
                   <span className="flex min-w-0 items-center gap-3">
                     <span className="grid size-8 shrink-0 place-items-center rounded-md" style={{ backgroundColor: theme.bgCardElevated, color: theme.primary }}>
