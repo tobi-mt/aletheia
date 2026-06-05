@@ -19,6 +19,7 @@ It is designed to feel emotionally intelligent, spiritually grounded, and practi
 - Calm experience that reduces noise, anxiety, and decision fatigue.
 - Premium interface that feels intentional, focused, and trustworthy.
 - Editorial Home rhythm with one clear next action, supporting choices, and a richer Today’s Companion card.
+- Onboarding keeps setup navigation reachable and traps mobile scrolling inside the setup card so first-time users do not get stuck or accidentally scroll the app behind it.
 - Spiritual depth rooted in curated biblical wisdom rather than generic advice.
 - Practical guidance that includes reflection, counsel, and concrete next steps.
 - Continuity across sessions for signed-in users through sync, memory, and history.

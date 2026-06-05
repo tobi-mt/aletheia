@@ -3,7 +3,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import Image from "next/image";
 import { signIn as authSignIn, signOut as authSignOut } from "next-auth/react";
-import { ChangeEvent, FormEvent, type KeyboardEvent, type ReactNode, type RefObject, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { ChangeEvent, FormEvent, type KeyboardEvent, type ReactNode, type RefObject, type TouchEvent, type WheelEvent, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   BookOpen,
   BriefcaseBusiness,
@@ -7684,6 +7684,8 @@ function OnboardingModal({
   theme: ThemeColors;
 }) {
   const [activeSetupStep, setActiveSetupStep] = useState("mode");
+  const modalScrollRef = useRef<HTMLElement | null>(null);
+  const onboardingTouchRef = useRef<{ x: number; y: number } | null>(null);
   const modeSectionRef = useRef<HTMLElement | null>(null);
   const toneSectionRef = useRef<HTMLElement | null>(null);
   const languageSectionRef = useRef<HTMLElement | null>(null);
@@ -7691,8 +7693,95 @@ function OnboardingModal({
   const privacySectionRef = useRef<HTMLElement | null>(null);
   const scrollToSetupStep = useCallback((key: string, ref: RefObject<HTMLElement | null>) => {
     setActiveSetupStep(key);
-    ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    const target = ref.current;
+    const container = modalScrollRef.current;
+    if (!target || !container) {
+      return;
+    }
+
+    const containerRect = container.getBoundingClientRect();
+    const targetRect = target.getBoundingClientRect();
+    const prefersReducedMotion =
+      typeof window !== "undefined" &&
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+
+    container.scrollTo({
+      top: Math.max(0, container.scrollTop + targetRect.top - containerRect.top - 76),
+      behavior: prefersReducedMotion ? "auto" : "smooth",
+    });
   }, []);
+  const routeOnboardingWheel = useCallback((event: WheelEvent<HTMLElement>) => {
+    const container = modalScrollRef.current;
+    if (!container) {
+      return;
+    }
+    event.preventDefault();
+    container.scrollBy({ left: event.deltaX, top: event.deltaY, behavior: "auto" });
+  }, []);
+  const rememberOnboardingTouch = useCallback((event: TouchEvent<HTMLElement>) => {
+    const touch = event.touches[0];
+    onboardingTouchRef.current = touch ? { x: touch.clientX, y: touch.clientY } : null;
+  }, []);
+  const routeOnboardingTouch = useCallback((event: TouchEvent<HTMLElement>) => {
+    const container = modalScrollRef.current;
+    const previous = onboardingTouchRef.current;
+    const touch = event.touches[0];
+    if (!container || !previous || !touch) {
+      return;
+    }
+
+    const deltaX = previous.x - touch.clientX;
+    const deltaY = previous.y - touch.clientY;
+    if (Math.abs(deltaX) > 1 || Math.abs(deltaY) > 1) {
+      event.preventDefault();
+      container.scrollBy({ left: deltaX, top: deltaY, behavior: "auto" });
+    }
+    onboardingTouchRef.current = { x: touch.clientX, y: touch.clientY };
+  }, []);
+  const clearOnboardingTouch = useCallback(() => {
+    onboardingTouchRef.current = null;
+  }, []);
+
+  useEffect(() => {
+    if (!open || typeof document === "undefined") {
+      return;
+    }
+
+    const { body, documentElement } = document;
+    const previousBodyOverflow = body.style.overflow;
+    const previousHtmlOverflow = documentElement.style.overflow;
+    const previousBodyTouchAction = body.style.touchAction;
+    const previousHtmlOverscroll = documentElement.style.overscrollBehavior;
+    const previousBodyPosition = body.style.position;
+    const previousBodyTop = body.style.top;
+    const previousBodyLeft = body.style.left;
+    const previousBodyRight = body.style.right;
+    const previousBodyWidth = body.style.width;
+    const scrollY = window.scrollY;
+
+    body.style.overflow = "hidden";
+    documentElement.style.overflow = "hidden";
+    body.style.touchAction = "none";
+    documentElement.style.overscrollBehavior = "none";
+    body.style.position = "fixed";
+    body.style.top = `-${scrollY}px`;
+    body.style.left = "0";
+    body.style.right = "0";
+    body.style.width = "100%";
+
+    return () => {
+      body.style.overflow = previousBodyOverflow;
+      documentElement.style.overflow = previousHtmlOverflow;
+      body.style.touchAction = previousBodyTouchAction;
+      documentElement.style.overscrollBehavior = previousHtmlOverscroll;
+      body.style.position = previousBodyPosition;
+      body.style.top = previousBodyTop;
+      body.style.left = previousBodyLeft;
+      body.style.right = previousBodyRight;
+      body.style.width = previousBodyWidth;
+      window.scrollTo(0, scrollY);
+    };
+  }, [open]);
 
   if (!open) {
     return null;
@@ -7726,9 +7815,15 @@ function OnboardingModal({
   ];
 
   return (
-    <div className="fixed inset-0 z-50 grid min-w-0 place-items-end overflow-x-hidden p-3 backdrop-blur-sm sm:place-items-center" style={{ backgroundColor: theme.primary + '75' }}>
+    <div className="fixed inset-0 z-50 grid min-w-0 place-items-end overflow-hidden overscroll-none p-3 backdrop-blur-sm sm:place-items-center" style={{ backgroundColor: theme.primary + '75' }}>
       <section
-        className="editorial-surface box-border max-h-[92vh] min-w-0 overflow-x-hidden overflow-y-auto rounded-xl border p-4 shadow-2xl sm:p-5"
+        ref={modalScrollRef}
+        onWheel={routeOnboardingWheel}
+        onTouchStart={rememberOnboardingTouch}
+        onTouchMove={routeOnboardingTouch}
+        onTouchEnd={clearOnboardingTouch}
+        onTouchCancel={clearOnboardingTouch}
+        className="editorial-surface box-border max-h-[92vh] min-w-0 overflow-x-hidden overflow-y-auto overscroll-contain rounded-xl border p-4 shadow-2xl [touch-action:pan-y] sm:p-5"
         style={{
           borderColor: theme.borderLight,
           backgroundColor: theme.bgCard,
@@ -7755,7 +7850,11 @@ function OnboardingModal({
         </div>
 
         <div className="mt-5 space-y-4">
-          <nav aria-label={ts('labels.onboardingSetupNav', 'Onboarding setup steps')} className="-mx-1 overflow-x-auto pb-1">
+          <nav
+            aria-label={ts('labels.onboardingSetupNav', 'Onboarding setup steps')}
+            className="sticky top-0 z-20 -mx-4 overflow-x-auto px-4 pb-2 pt-2 backdrop-blur-xl sm:-mx-5 sm:px-5"
+            style={{ backgroundColor: theme.bgCard }}
+          >
             <div className="flex min-w-max gap-1 rounded-lg border p-1" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
               {setupSteps.map((step) => {
                 const active = activeSetupStep === step.key;
