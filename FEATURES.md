@@ -24,6 +24,7 @@ It is designed to feel emotionally intelligent, spiritually grounded, and practi
 - Privacy-conscious design that avoids exposing private questions, answers, or reflections when sharing.
 - Multilingual support so the app can serve users across different regions and languages.
 - PWA and mobile-first behavior so the app feels like a real companion, not just a web page.
+- Consistent button, link, and disclosure feedback for tap, press, focus, and disabled states across the app.
 
 ## What Makes It Different
 

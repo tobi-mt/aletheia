@@ -113,6 +113,42 @@ body {
   overflow-wrap: break-word;
 }
 
+.app-shell :where(button, a[href], [role="button"], summary) {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.app-shell :where(button, a[href], [role="button"]) {
+  transition-property: background-color, border-color, box-shadow, color, opacity, transform, filter;
+  transition-duration: 160ms;
+  transition-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.app-shell :where(button:not(:disabled), a[href], [role="button"]:not([aria-disabled="true"])):hover {
+  filter: brightness(1.035) saturate(1.04);
+}
+
+.app-shell :where(button:not(:disabled), a[href], [role="button"]:not([aria-disabled="true"])):active {
+  transform: translateY(1px) scale(0.985);
+  filter: brightness(0.98) saturate(1.02);
+}
+
+.app-shell :where(summary):active {
+  transform: translateY(1px);
+}
+
+.app-shell :where(button, a[href], [role="button"], summary):focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--aletheia-focus-ring, #d6b45d) 86%, white);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--aletheia-focus-ring, #d6b45d) 22%, transparent);
+}
+
+.app-shell :where(button:disabled, [role="button"][aria-disabled="true"]) {
+  cursor: not-allowed;
+  filter: grayscale(0.12);
+  transform: none;
+}
+
 .app-shell::before,
 .app-shell::after {
   content: "";
