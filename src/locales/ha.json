@@ -939,7 +939,10 @@
     "familyObligationsPrompt": "Misali: ina tallafa wa iyali kuma ina buƙatar shawara da ke girmama hakan.",
     "boundariesChip": "Iyakoki",
     "boundariesPrompt": "Misali: kar ka ƙarfafa zaɓin da zai sadaukar da zaman lafiyar iyali.",
-    "enoughDefinitionPrompt": "Misali: isa yana nufin kwanciyar hankali, bayarwa da lokaci da masoya."
+    "enoughDefinitionPrompt": "Misali: isa yana nufin kwanciyar hankali, bayarwa da lokaci da masoya.",
+    "savingManualContext": "Ana adana mahalli...",
+    "manualContextSaved": "An adana mahallin hannu.",
+    "detailSaved": "An ƙara bayani kuma an adana."
   },
   "share": {
     "shareAletheia": "Raba Aletheia",

@@ -939,7 +939,10 @@
     "familyObligationsPrompt": "Ejemplo: Apoyo a familiares y necesito consejo que honre eso.",
     "boundariesChip": "Límites",
     "boundariesPrompt": "Ejemplo: No fomentes decisiones que sacrifiquen la paz familiar.",
-    "enoughDefinitionPrompt": "Ejemplo: Suficiente significa estabilidad, generosidad y tiempo con seres queridos."
+    "enoughDefinitionPrompt": "Ejemplo: Suficiente significa estabilidad, generosidad y tiempo con seres queridos.",
+    "savingManualContext": "Guardando contexto...",
+    "manualContextSaved": "Contexto manual guardado.",
+    "detailSaved": "Detalle añadido y guardado."
   },
   "share": {
     "shareAletheia": "Compartir Aletheia",

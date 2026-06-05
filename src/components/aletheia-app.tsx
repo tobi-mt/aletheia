@@ -3,7 +3,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import Image from "next/image";
 import { signIn as authSignIn, signOut as authSignOut } from "next-auth/react";
-import { ChangeEvent, FormEvent, type ReactNode, type RefObject, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { ChangeEvent, FormEvent, type KeyboardEvent, type ReactNode, type RefObject, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   BookOpen,
   BriefcaseBusiness,
@@ -3829,12 +3829,10 @@ export function AletheiaApp() {
     window.addEventListener("resize", updateViewportChrome);
     window.addEventListener("orientationchange", updateViewportChrome);
     window.visualViewport?.addEventListener("resize", updateViewportChrome);
-    window.visualViewport?.addEventListener("scroll", updateViewportChrome);
     return () => {
       window.removeEventListener("resize", updateViewportChrome);
       window.removeEventListener("orientationchange", updateViewportChrome);
       window.visualViewport?.removeEventListener("resize", updateViewportChrome);
-      window.visualViewport?.removeEventListener("scroll", updateViewportChrome);
     };
   }, []);
 
@@ -3976,7 +3974,7 @@ export function AletheiaApp() {
 
     const updateBottomNavSpace = () => {
       const navHeight = Math.max(0, Math.ceil(nav.getBoundingClientRect().height));
-      const reservedSpace = navHeight > 0 ? navHeight + 28 : 136;
+      const reservedSpace = navHeight > 0 ? navHeight + 54 : 156;
       document.documentElement.style.setProperty("--aletheia-bottom-nav-space", `${reservedSpace}px`);
     };
 
@@ -6679,18 +6677,31 @@ export function AletheiaApp() {
         }}
       />
       <div
-        className="pointer-events-none fixed inset-x-0 bottom-0 z-[35] backdrop-blur-2xl backdrop-saturate-150 md:hidden"
+        className="pointer-events-none fixed inset-x-0 bottom-0 z-[35] border-t backdrop-blur-2xl backdrop-saturate-150 md:hidden"
         style={{
-          height: "max(5rem, calc(var(--aletheia-bottom-nav-space, 8.5rem) * 0.9))",
-          backgroundColor: "rgba(255, 255, 255, 0.05)",
-          backgroundImage: resolvedTheme === "black"
-            ? "linear-gradient(0deg, rgba(214, 180, 93, 0.08) 0%, rgba(214, 180, 93, 0.03) 48%, rgba(0, 0, 0, 0) 100%)"
+          height: "calc(var(--aletheia-bottom-nav-space, 8.5rem) + env(safe-area-inset-bottom))",
+          borderColor: theme.bgNavBorder,
+          backgroundColor: resolvedTheme === "black"
+            ? "rgba(7, 10, 8, 0.86)"
             : resolvedTheme === "dark"
-              ? "linear-gradient(0deg, rgba(208, 173, 85, 0.07) 0%, rgba(255, 255, 255, 0.03) 48%, rgba(0, 0, 0, 0) 100%)"
-              : "linear-gradient(0deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.04) 48%, rgba(0, 0, 0, 0) 100%)",
-          boxShadow: `inset 0 1px 0 ${theme.bgNavBorder}`,
-          WebkitBackdropFilter: "blur(34px) saturate(190%)",
-          backdropFilter: "blur(34px) saturate(190%)",
+              ? "rgba(14, 21, 20, 0.84)"
+              : resolvedTheme === "warm"
+                ? "rgba(250, 246, 241, 0.82)"
+                : resolvedTheme === "ocean"
+                  ? "rgba(241, 246, 250, 0.82)"
+                  : resolvedTheme === "forest"
+                    ? "rgba(241, 246, 241, 0.82)"
+                    : resolvedTheme === "sunset"
+                      ? "rgba(250, 241, 246, 0.82)"
+                      : "rgba(238, 242, 239, 0.82)",
+          backgroundImage: resolvedTheme === "black"
+            ? "linear-gradient(0deg, rgba(214, 180, 93, 0.1) 0%, rgba(214, 180, 93, 0.05) 46%, rgba(7, 10, 8, 0.34) 100%)"
+            : resolvedTheme === "dark"
+              ? "linear-gradient(0deg, rgba(208, 173, 85, 0.1) 0%, rgba(255, 255, 255, 0.05) 46%, rgba(14, 21, 20, 0.32) 100%)"
+              : "linear-gradient(0deg, rgba(255, 255, 255, 0.28) 0%, rgba(255, 255, 255, 0.16) 46%, rgba(238, 242, 239, 0.26) 100%)",
+          boxShadow: `0 -18px 42px color-mix(in srgb, ${theme.bgMain} 86%, transparent), inset 0 1px 0 color-mix(in srgb, ${theme.bgNavBorder} 70%, transparent)`,
+          WebkitBackdropFilter: "blur(30px) saturate(185%)",
+          backdropFilter: "blur(30px) saturate(185%)",
         }}
       />
       <WorkflowNotice
@@ -9605,12 +9616,14 @@ function ManualContextPanel({
   context: ManualContextProfile;
   status: string;
   onPreferenceChange: (patch: Partial<UserPreferences>) => void;
-  onChange: (patch: Partial<ManualContextProfile>) => void;
+  onChange: (patch: Partial<ManualContextProfile>) => void | Promise<void>;
 }) {
   const [draft, setDraft] = useState(context);
   const [contextTab, setContextTab] = useState<"current" | "future">("current");
   const [quickDetailType, setQuickDetailType] = useState<"financeContext" | "workContext" | "healthContext" | "obligations" | "boundaries" | "enoughDefinition">("financeContext");
   const [quickDetail, setQuickDetail] = useState("");
+  const [manualContextFeedback, setManualContextFeedback] = useState("");
+  const [manualContextSaving, setManualContextSaving] = useState(false);
   const manualCopy = {
     title: ts('labels.manualContextTitle', 'Manual Context Vault'),
     intro: ts('manualContext.intro', 'Add only the health, money, work, and life context you want Aletheia to consider. No external apps are connected.'),
@@ -9650,6 +9663,9 @@ function ManualContextPanel({
     clearFields: ts('manualContext.clearFields', 'You can delete any field by clearing it.'),
     nothingAdded: ts('manualContext.nothingAdded', 'Nothing has been added yet.'),
     saveManualContext: ts('manualContext.saveManualContext', 'Save manual context'),
+    savingManualContext: ts('manualContext.savingManualContext', 'Saving context...'),
+    manualContextSaved: ts('manualContext.manualContextSaved', 'Manual context saved.'),
+    detailSaved: ts('manualContext.detailSaved', 'Detail added and saved.'),
     incomeAdded: ts('manualContext.incomeAdded', 'Income added'),
     incomeNotAdded: ts('manualContext.incomeNotAdded', 'Income not added'),
     savingsAdded: ts('manualContext.savingsAdded', 'savings added'),
@@ -9765,17 +9781,54 @@ function ManualContextPanel({
     { key: "boundaries", label: ts('manualContext.boundariesChip', 'Boundaries'), prompt: ts('manualContext.boundariesPrompt', 'Example: Do not encourage choices that sacrifice family peace.') },
     { key: "enoughDefinition", label: ts('manualContext.enoughDefinitionLabel', 'Definition of enough'), prompt: ts('manualContext.enoughDefinitionPrompt', 'Example: Enough means stability, generosity, and time with loved ones.') },
   ];
-  const applyQuickDetail = () => {
+  const saveManualContextDraft = async (nextDraft: ManualContextProfile, feedback: string) => {
+    setManualContextSaving(true);
+    setManualContextFeedback(manualCopy.savingManualContext);
+    try {
+      await Promise.resolve(onChange(nextDraft));
+      setManualContextFeedback(feedback);
+    } catch {
+      setManualContextFeedback(status);
+    } finally {
+      setManualContextSaving(false);
+    }
+  };
+  const applyQuickDetail = async () => {
     const value = quickDetail.trim();
     if (!value) {
       return;
     }
-    setDraft((current) => ({
-      ...current,
-      [quickDetailType]: current[quickDetailType] ? `${current[quickDetailType]}\n${value}` : value,
-    }));
+    const nextDraft = normalizeManualContext({
+      ...draft,
+      [quickDetailType]: draft[quickDetailType] ? `${draft[quickDetailType]}\n${value}` : value,
+    });
+    setDraft(nextDraft);
     setQuickDetail("");
     setContextTab("current");
+    await saveManualContextDraft(nextDraft, manualCopy.detailSaved);
+  };
+
+  const handleManualContextSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const nextDraft = normalizeManualContext(draft);
+    setDraft(nextDraft);
+    await saveManualContextDraft(nextDraft, manualCopy.manualContextSaved);
+  };
+
+  const updateQuickDetailFromEnter = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key !== "Enter" || event.shiftKey) {
+      return;
+    }
+    event.preventDefault();
+    void applyQuickDetail();
+  };
+
+  const updateDraft = (patch: Partial<ManualContextProfile>) => {
+    setDraft((current) => ({
+      ...current,
+      ...patch,
+    }));
+    setManualContextFeedback("");
   };
 
   return (
@@ -9796,10 +9849,7 @@ function ManualContextPanel({
 
         <form
           className="space-y-3"
-          onSubmit={(event) => {
-            event.preventDefault();
-            onChange(draft);
-          }}
+          onSubmit={handleManualContextSubmit}
         >
           <div className="rounded-lg border p-4" style={{ borderColor: theme.borderMedium, backgroundColor: draft.useInAnswers ? theme.activeBg : theme.bgCardElevated }}>
             <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
@@ -9842,6 +9892,7 @@ function ManualContextPanel({
               <input
                 value={quickDetail}
                 onChange={(event) => setQuickDetail(event.target.value)}
+                onKeyDown={updateQuickDetailFromEnter}
                 className="h-11 min-w-0 flex-1 rounded-md border px-3 text-sm outline-none"
                 style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
                 placeholder={quickDetailOptions.find((option) => option.key === quickDetailType)?.prompt}
@@ -9849,13 +9900,18 @@ function ManualContextPanel({
               <button
                 type="button"
                 className="h-11 rounded-md px-4 text-sm font-semibold"
-                style={{ backgroundColor: theme.primary, color: theme.textOnPrimary, opacity: quickDetail.trim() ? 1 : 0.65 }}
-                disabled={!quickDetail.trim()}
-                onClick={applyQuickDetail}
+                style={{ backgroundColor: theme.primary, color: theme.textOnPrimary, opacity: quickDetail.trim() && !manualContextSaving ? 1 : 0.65 }}
+                disabled={!quickDetail.trim() || manualContextSaving}
+                onClick={() => void applyQuickDetail()}
               >
                 {manualCopy.addDetail}
               </button>
             </div>
+            {manualContextFeedback ? (
+              <p className="mt-2 rounded-md border px-3 py-2 text-xs leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                {manualContextFeedback}
+              </p>
+            ) : null}
           </div>
 
           <label className="block rounded-lg border p-3 text-xs font-semibold uppercase tracking-[0.12em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
@@ -9879,7 +9935,7 @@ function ManualContextPanel({
             <input
               type="checkbox"
               checked={draft.useInAnswers}
-              onChange={(event) => setDraft((current) => ({ ...current, useInAnswers: event.target.checked }))}
+              onChange={(event) => updateDraft({ useInAnswers: event.target.checked })}
               className="mt-0.5 size-5 shrink-0 rounded"
               style={{ borderColor: theme.borderMedium }}
             />
@@ -9898,7 +9954,7 @@ function ManualContextPanel({
               body={sectionSummary.money}
               checked={draft.useMoneyInAnswers}
               theme={theme}
-              onChange={(checked) => setDraft((current) => ({ ...current, useMoneyInAnswers: checked }))}
+              onChange={(checked) => updateDraft({ useMoneyInAnswers: checked })}
             />
             <ContextUseToggle
               icon={BriefcaseBusiness}
@@ -9906,7 +9962,7 @@ function ManualContextPanel({
               body={sectionSummary.work}
               checked={draft.useWorkInAnswers}
               theme={theme}
-              onChange={(checked) => setDraft((current) => ({ ...current, useWorkInAnswers: checked }))}
+              onChange={(checked) => updateDraft({ useWorkInAnswers: checked })}
             />
             <ContextUseToggle
               icon={Sprout}
@@ -9914,7 +9970,7 @@ function ManualContextPanel({
               body={sectionSummary.health}
               checked={draft.useHealthInAnswers}
               theme={theme}
-              onChange={(checked) => setDraft((current) => ({ ...current, useHealthInAnswers: checked }))}
+              onChange={(checked) => updateDraft({ useHealthInAnswers: checked })}
             />
             <ContextUseToggle
               icon={Users}
@@ -9922,7 +9978,7 @@ function ManualContextPanel({
               body={sectionSummary.relationships}
               checked={draft.useRelationshipsInAnswers}
               theme={theme}
-              onChange={(checked) => setDraft((current) => ({ ...current, useRelationshipsInAnswers: checked }))}
+              onChange={(checked) => updateDraft({ useRelationshipsInAnswers: checked })}
             />
             <ContextUseToggle
               icon={ShieldCheck}
@@ -9930,7 +9986,7 @@ function ManualContextPanel({
               body={sectionSummary.values}
               checked={draft.useValuesInAnswers}
               theme={theme}
-              onChange={(checked) => setDraft((current) => ({ ...current, useValuesInAnswers: checked }))}
+              onChange={(checked) => updateDraft({ useValuesInAnswers: checked })}
               wide
             />
           </div>
@@ -9976,7 +10032,7 @@ function ManualContextPanel({
                     min={field.min}
                     max={field.max}
                     step={field.step ?? 1}
-                    onChange={(value) => setDraft((current) => ({ ...current, [field.key]: value }))}
+                    onChange={(value) => updateDraft({ [field.key]: value })}
                     ts={ts}
                     theme={theme}
                   />
@@ -9999,7 +10055,7 @@ function ManualContextPanel({
                     min={field.min}
                     max={field.max}
                     step={field.step ?? 1}
-                    onChange={(value) => setDraft((current) => ({ ...current, [field.key]: value }))}
+                    onChange={(value) => updateDraft({ [field.key]: value })}
                     ts={ts}
                     theme={theme}
                   />
@@ -10022,7 +10078,7 @@ function ManualContextPanel({
                     min={field.min}
                     max={field.max}
                     step={1}
-                    onChange={(value) => setDraft((current) => ({ ...current, [field.key]: value }))}
+                    onChange={(value) => updateDraft({ [field.key]: value })}
                     ts={ts}
                     theme={theme}
                   />
@@ -10042,7 +10098,7 @@ function ManualContextPanel({
                     {field.label}
                     <input
                       value={draft[field.key]}
-                      onChange={(event) => setDraft((current) => ({ ...current, [field.key]: event.target.value }))}
+                      onChange={(event) => updateDraft({ [field.key]: event.target.value })}
                       className="mt-2 h-10 w-full rounded-md border px-3 text-sm normal-case tracking-normal outline-none"
                       style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
                       placeholder={field.placeholder}
@@ -10064,7 +10120,7 @@ function ManualContextPanel({
                     {field.label}
                     <textarea
                       value={draft[field.key]}
-                      onChange={(event) => setDraft((current) => ({ ...current, [field.key]: event.target.value }))}
+                      onChange={(event) => updateDraft({ [field.key]: event.target.value })}
                       className="mt-2 min-h-24 w-full resize-none rounded-md border px-3 py-2 text-sm normal-case leading-6 tracking-normal outline-none"
                       style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
                       placeholder={field.placeholder}
@@ -10092,7 +10148,7 @@ function ManualContextPanel({
                     min={field.min}
                     max={field.max}
                     step={field.step ?? 1}
-                    onChange={(value) => setDraft((current) => ({ ...current, [field.key]: value }))}
+                    onChange={(value) => updateDraft({ [field.key]: value })}
                     ts={ts}
                     theme={theme}
                   />
@@ -10104,7 +10160,7 @@ function ManualContextPanel({
                     {field.label}
                     <textarea
                       value={draft[field.key]}
-                      onChange={(event) => setDraft((current) => ({ ...current, [field.key]: event.target.value }))}
+                      onChange={(event) => updateDraft({ [field.key]: event.target.value })}
                       className="mt-2 min-h-24 w-full resize-none rounded-md border px-3 py-2 text-sm normal-case leading-6 tracking-normal outline-none"
                       style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
                       placeholder={field.placeholder}
@@ -10127,8 +10183,13 @@ function ManualContextPanel({
               {hasContent ? manualCopy.clearFields : manualCopy.nothingAdded}
             </p>
           </div>
-          <button className="h-10 rounded-md px-4 text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>
-            {manualCopy.saveManualContext}
+          <button
+            type="submit"
+            disabled={manualContextSaving}
+            className="h-10 rounded-md px-4 text-sm font-semibold"
+            style={{ backgroundColor: theme.primary, color: theme.textOnPrimary, opacity: manualContextSaving ? 0.68 : 1 }}
+          >
+            {manualContextSaving ? manualCopy.savingManualContext : manualCopy.saveManualContext}
           </button>
         </form>
       </div>

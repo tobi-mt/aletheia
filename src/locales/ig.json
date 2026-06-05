@@ -939,7 +939,10 @@
     "familyObligationsPrompt": "Ihe atụ: ana m akwado ezinụlọ ma chọọ ndụmọdụ na-asọpụrụ nke ahụ.",
     "boundariesChip": "Ókè",
     "boundariesPrompt": "Ihe atụ: emela ka m họrọ ihe ga-emebi udo ezinụlọ.",
-    "enoughDefinitionPrompt": "Ihe atụ: ezuru ezu pụtara nkwụsi ike, inye onyinye na oge na ndị m hụrụ n’anya."
+    "enoughDefinitionPrompt": "Ihe atụ: ezuru ezu pụtara nkwụsi ike, inye onyinye na oge na ndị m hụrụ n’anya.",
+    "savingManualContext": "A na-echekwa ọnọdụ...",
+    "manualContextSaved": "Ọnọdụ aka echekwara.",
+    "detailSaved": "Nkọwa agbakwunyere ma chekwaa."
   },
   "share": {
     "shareAletheia": "Kekọrịta Aletheia",

@@ -939,7 +939,10 @@
     "familyObligationsPrompt": "Beispiel: Ich unterstütze Familie und brauche Rat, der das achtet.",
     "boundariesChip": "Grenzen",
     "boundariesPrompt": "Beispiel: Ermutige keine Entscheidungen, die den Familienfrieden opfern.",
-    "enoughDefinitionPrompt": "Beispiel: Genug bedeutet Stabilität, Großzügigkeit und Zeit mit Nahestehenden."
+    "enoughDefinitionPrompt": "Beispiel: Genug bedeutet Stabilität, Großzügigkeit und Zeit mit Nahestehenden.",
+    "savingManualContext": "Kontext wird gespeichert...",
+    "manualContextSaved": "Manueller Kontext gespeichert.",
+    "detailSaved": "Detail hinzugefügt und gespeichert."
   },
   "share": {
     "shareAletheia": "Aletheia teilen",

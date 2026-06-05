@@ -939,7 +939,10 @@
     "familyObligationsPrompt": "Àpẹẹrẹ: mo ń ran ẹbí lọ́wọ́, mo sì fẹ́ ìmọ̀ràn tó bọ̀wọ̀ fún un.",
     "boundariesChip": "Ààlà",
     "boundariesPrompt": "Àpẹẹrẹ: má ṣe gba mi níyànjú láti rú àlàáfíà ẹbí.",
-    "enoughDefinitionPrompt": "Àpẹẹrẹ: ohun tó tó túmọ̀ sí ìdúróṣinṣin, fífúnni àti àkókò pẹ̀lú olólùfẹ́."
+    "enoughDefinitionPrompt": "Àpẹẹrẹ: ohun tó tó túmọ̀ sí ìdúróṣinṣin, fífúnni àti àkókò pẹ̀lú olólùfẹ́.",
+    "savingManualContext": "À ń fi àyíká pamọ́...",
+    "manualContextSaved": "Àyíká ọwọ́ ti fipamọ́.",
+    "detailSaved": "Àlàyé ti kun un, ó sì ti fipamọ́."
   },
   "share": {
     "shareAletheia": "Pin Aletheia",

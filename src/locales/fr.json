@@ -940,7 +940,10 @@
     "boundariesChip": "Limites",
     "boundariesPrompt": "Exemple : ne m’encouragez pas à sacrifier la paix familiale.",
     "enoughDefinitionPrompt": "Exemple : suffisant signifie stabilité, générosité et temps avec les proches.",
-    "privacyPosture": "Confidentialité"
+    "privacyPosture": "Confidentialité",
+    "savingManualContext": "Enregistrement du contexte...",
+    "manualContextSaved": "Contexte manuel enregistré.",
+    "detailSaved": "Détail ajouté et enregistré."
   },
   "share": {
     "shareAletheia": "Partager Aletheia",

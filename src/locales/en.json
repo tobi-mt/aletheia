@@ -939,7 +939,10 @@
     "familyObligationsPrompt": "Example: I support family members and need counsel that honors that.",
     "boundariesChip": "Boundaries",
     "boundariesPrompt": "Example: Do not encourage choices that sacrifice family peace.",
-    "enoughDefinitionPrompt": "Example: Enough means stability, generosity, and time with loved ones."
+    "enoughDefinitionPrompt": "Example: Enough means stability, generosity, and time with loved ones.",
+    "savingManualContext": "Saving context...",
+    "manualContextSaved": "Manual context saved.",
+    "detailSaved": "Detail added and saved."
   },
   "share": {
     "shareAletheia": "Share Aletheia",
