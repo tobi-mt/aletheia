@@ -3791,20 +3791,12 @@ export function AletheiaApp() {
       const isSmallPhone = !isTablet && !isFoldClass && viewportWidth <= 390;
       const isLargePhone = !isTablet && !isFoldClass && viewportWidth >= 400;
       const deviceFamily = isTablet ? "tablet" : isFoldClass ? "fold" : isSmallPhone ? "small-phone" : isLargePhone ? "large-phone" : "regular-phone";
-      const bottomReserve = isTablet
-        ? 0
-        : isSmallPhone
-          ? Math.round(Math.max(20, Math.min(32, shortestSide * 0.042)))
-          : isFoldClass
-            ? Math.round(Math.max(16, Math.min(26, shortestSide * 0.026)))
-            : isLargePhone
-              ? Math.round(Math.max(10, Math.min(20, shortestSide * 0.02)))
-              : Math.round(Math.max(14, Math.min(24, shortestSide * 0.03)));
-      const bottomNavGap = isTablet ? 0 : isSmallPhone ? 1.08 : isFoldClass ? 0.7 : isLargePhone ? 0.58 : 0.78;
-      const bottomNavPadY = isTablet ? 0 : isSmallPhone ? 0.72 : isFoldClass ? 0.58 : isLargePhone ? 0.52 : 0.62;
-      const bottomNavPadX = isTablet ? 0 : isSmallPhone ? 0.95 : isFoldClass ? 0.82 : isLargePhone ? 0.78 : 0.85;
-      const bottomNavRadius = isTablet ? 0 : isSmallPhone ? 1.55 : isFoldClass ? 1.7 : isLargePhone ? 1.9 : 1.75;
-      const bottomNavWidth = isFoldClass ? "min(calc(100vw - 1.5rem), 38rem)" : "min(calc(100vw - 1.5rem), 28rem)";
+      const bottomReserve = isTablet ? 0 : Math.round(Math.max(8, Math.min(14, shortestSide * 0.018)));
+      const bottomNavGap = isTablet ? 0 : isSmallPhone ? 0.42 : isFoldClass ? 0.42 : isLargePhone ? 0.38 : 0.42;
+      const bottomNavPadY = isTablet ? 0 : isSmallPhone ? 0.56 : isFoldClass ? 0.52 : isLargePhone ? 0.48 : 0.52;
+      const bottomNavPadX = isTablet ? 0 : isSmallPhone ? 0.72 : isFoldClass ? 0.72 : isLargePhone ? 0.68 : 0.7;
+      const bottomNavRadius = isTablet ? 0 : isSmallPhone ? 1.45 : isFoldClass ? 1.55 : isLargePhone ? 1.6 : 1.5;
+      const bottomNavWidth = isFoldClass ? "min(calc(100vw - 1rem), 38rem)" : "min(calc(100vw - 1rem), 28rem)";
       const noticeBottomOffset = isTablet
         ? 0
         : isSmallPhone
@@ -3974,7 +3966,7 @@ export function AletheiaApp() {
 
     const updateBottomNavSpace = () => {
       const navHeight = Math.max(0, Math.ceil(nav.getBoundingClientRect().height));
-      const reservedSpace = navHeight > 0 ? navHeight + 54 : 156;
+      const reservedSpace = navHeight > 0 ? navHeight + 18 : 112;
       document.documentElement.style.setProperty("--aletheia-bottom-nav-space", `${reservedSpace}px`);
     };
 
@@ -6676,34 +6668,6 @@ export function AletheiaApp() {
           backdropFilter: "blur(34px) saturate(190%)",
         }}
       />
-      <div
-        className="pointer-events-none fixed inset-x-0 bottom-0 z-[35] border-t backdrop-blur-2xl backdrop-saturate-150 md:hidden"
-        style={{
-          height: "calc(var(--aletheia-bottom-nav-space, 8.5rem) + env(safe-area-inset-bottom))",
-          borderColor: theme.bgNavBorder,
-          backgroundColor: resolvedTheme === "black"
-            ? "rgba(7, 10, 8, 0.86)"
-            : resolvedTheme === "dark"
-              ? "rgba(14, 21, 20, 0.84)"
-              : resolvedTheme === "warm"
-                ? "rgba(250, 246, 241, 0.82)"
-                : resolvedTheme === "ocean"
-                  ? "rgba(241, 246, 250, 0.82)"
-                  : resolvedTheme === "forest"
-                    ? "rgba(241, 246, 241, 0.82)"
-                    : resolvedTheme === "sunset"
-                      ? "rgba(250, 241, 246, 0.82)"
-                      : "rgba(238, 242, 239, 0.82)",
-          backgroundImage: resolvedTheme === "black"
-            ? "linear-gradient(0deg, rgba(214, 180, 93, 0.1) 0%, rgba(214, 180, 93, 0.05) 46%, rgba(7, 10, 8, 0.34) 100%)"
-            : resolvedTheme === "dark"
-              ? "linear-gradient(0deg, rgba(208, 173, 85, 0.1) 0%, rgba(255, 255, 255, 0.05) 46%, rgba(14, 21, 20, 0.32) 100%)"
-              : "linear-gradient(0deg, rgba(255, 255, 255, 0.28) 0%, rgba(255, 255, 255, 0.16) 46%, rgba(238, 242, 239, 0.26) 100%)",
-          boxShadow: `0 -18px 42px color-mix(in srgb, ${theme.bgMain} 86%, transparent), inset 0 1px 0 color-mix(in srgb, ${theme.bgNavBorder} 70%, transparent)`,
-          WebkitBackdropFilter: "blur(30px) saturate(185%)",
-          backdropFilter: "blur(30px) saturate(185%)",
-        }}
-      />
       <WorkflowNotice
         notice={workflowNotice}
         onClose={() => setWorkflowNotice(null)}
@@ -7100,21 +7064,21 @@ export function AletheiaApp() {
         />
       ) : null}
 
-      <div ref={bottomNavRef} className="app-bottom-nav fixed left-1/2 z-40 -translate-x-1/2 overflow-hidden border shadow-[0_18px_40px_rgba(31,42,36,0.18)] backdrop-blur-2xl backdrop-saturate-150 md:hidden" style={{
+      <div ref={bottomNavRef} className="app-bottom-nav fixed left-1/2 z-40 -translate-x-1/2 overflow-hidden border shadow-[0_12px_34px_rgba(7,10,8,0.22)] backdrop-blur-2xl backdrop-saturate-150 md:hidden" style={{
         borderColor: theme.bgNavBorder,
         backgroundColor: resolvedTheme === "black"
-          ? "rgba(7, 10, 8, 0.28)"
+          ? "rgba(7, 10, 8, 0.86)"
           : resolvedTheme === "dark"
-            ? "rgba(14, 21, 20, 0.24)"
+            ? "rgba(14, 21, 20, 0.84)"
             : resolvedTheme === "warm"
-              ? "rgba(250, 246, 241, 0.22)"
+              ? "rgba(250, 246, 241, 0.88)"
               : resolvedTheme === "ocean"
-                ? "rgba(241, 246, 250, 0.22)"
+                ? "rgba(241, 246, 250, 0.88)"
                 : resolvedTheme === "forest"
-                  ? "rgba(241, 246, 241, 0.22)"
+                  ? "rgba(241, 246, 241, 0.88)"
                   : resolvedTheme === "sunset"
-                    ? "rgba(250, 241, 246, 0.22)"
-                    : "rgba(238, 242, 239, 0.22)",
+                    ? "rgba(250, 241, 246, 0.88)"
+                    : "rgba(238, 242, 239, 0.88)",
         width: "var(--aletheia-bottom-nav-width, min(calc(100vw - 1.5rem), 28rem))",
         bottom: "calc(var(--aletheia-bottom-nav-gap, 0.75) * 1rem + env(safe-area-inset-bottom))",
         borderRadius: "calc(var(--aletheia-bottom-nav-radius, 1.75) * 1rem)",

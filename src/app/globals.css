@@ -87,7 +87,7 @@ body {
   --aletheia-bottom-reserve: 12px;
   --aletheia-top-nav-space: calc(max(env(safe-area-inset-top, 0px), var(--aletheia-top-reserve)) + 5.6rem);
   --aletheia-top-glass-height: calc(max(env(safe-area-inset-top, 0px), var(--aletheia-top-reserve)) + 5.1rem);
-  --aletheia-bottom-nav-space: calc(max(env(safe-area-inset-bottom, 0px), var(--aletheia-bottom-reserve)) + 8.3rem);
+  --aletheia-bottom-nav-space: calc(max(env(safe-area-inset-bottom, 0px), var(--aletheia-bottom-reserve)) + 6.2rem);
 }
 
 .app-shell {
@@ -170,8 +170,8 @@ body {
 
 .app-shell::after {
   bottom: 0;
-  height: max(7rem, calc(env(safe-area-inset-bottom, 0px) + 6rem));
-  background: linear-gradient(0deg, var(--aletheia-glass-bottom, rgba(14, 21, 20, 0.94)) 0%, rgba(14, 21, 20, 0.52) 42%, rgba(14, 21, 20, 0) 100%);
+  height: max(4.5rem, calc(env(safe-area-inset-bottom, 0px) + 3.8rem));
+  background: linear-gradient(0deg, color-mix(in srgb, var(--aletheia-glass-bottom, rgba(14, 21, 20, 0.94)) 55%, transparent) 0%, rgba(14, 21, 20, 0) 100%);
   box-shadow: inset 0 1px 0 color-mix(in srgb, var(--aletheia-glass-edge, rgba(201, 213, 205, 0.7)) 42%, transparent);
 }
 

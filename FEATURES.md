@@ -364,6 +364,7 @@ Calm milestones are included as signs of formation, not childish gamification.
 - Service worker support
 - Fast production build
 - Sticky mobile navigation
+- Lean mobile bottom navigation that stays close to the device bottom without an oversized translucent backdrop
 - Sticky companion input on mobile
 - Responsive layout for desktop and mobile
 
