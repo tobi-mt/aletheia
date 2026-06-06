@@ -307,6 +307,7 @@ const VOICE_STORAGE_KEY = "aletheia_selected_voice";
 const NOTIFICATION_TIMING_STORAGE_KEY = "aletheia_notification_timing";
 const COUNSEL_STATUS_TRACKING_KEY = "aletheia_counsel_status_tracking";
 const CARRY_TODAY_STORAGE_KEY = "aletheia_carry_today";
+const SCRIPTURE_MEMORY_STORAGE_KEY = "aletheia_scripture_memory";
 const UPDATE_REFRESH_PENDING_KEY = "aletheia_update_refresh_pending";
 const FOCUS_INTENTIONS_STORAGE_KEY = "aletheia_focus_intentions";
 const GRATITUDE_LENS_STORAGE_KEY = "aletheia_gratitude_lens";
@@ -501,6 +502,19 @@ const uiText: Record<
     reflectionQuestion?: string;
     carryThisToday?: string;
     carryWithMe?: string;
+    carryCard?: string;
+    createCard?: string;
+    createWisdomPostcard?: string;
+    carryScriptureForWeek?: string;
+    scriptureMemory?: string;
+    weeklyWisdomReview?: string;
+    weeklyReviewTitle?: string;
+    weeklyReviewBody?: string;
+    questionsThisWeek?: string;
+    reflectionsThisWeek?: string;
+    gratitudeThisWeek?: string;
+    decisionsThisWeek?: string;
+    nextFaithfulStep?: string;
     askAboutThis?: string;
     saveToRuleOfLife?: string;
     carryingToday?: string;
@@ -648,6 +662,19 @@ const uiText: Record<
     reflectionQuestion: "Question",
     carryThisToday: "Carry this today",
     carryWithMe: "Carry with me",
+    carryCard: "Carry Card",
+    createCard: "Create card",
+    createWisdomPostcard: "Create wisdom card",
+    carryScriptureForWeek: "Carry scripture",
+    scriptureMemory: "Scripture memory",
+    weeklyWisdomReview: "Weekly Wisdom Review",
+    weeklyReviewTitle: "A quiet look at your week",
+    weeklyReviewBody: "No streaks or pressure. Just notice how {pattern} has been shaping your discernment.",
+    questionsThisWeek: "Questions",
+    reflectionsThisWeek: "Reflections",
+    gratitudeThisWeek: "Gratitude",
+    decisionsThisWeek: "Decisions",
+    nextFaithfulStep: "Next faithful step",
     askAboutThis: "Ask about this",
     saveToRuleOfLife: "Save to Rule of Life",
     carryingToday: "Carrying today",
@@ -2007,6 +2034,88 @@ function createGratitudePostcardBlob(entry: GratitudeEntry, theme: ThemeColors, 
   });
 }
 
+function createWisdomPostcardBlob(payload: WisdomPostcardPayload, theme: ThemeColors, locale: string): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const canvas = document.createElement("canvas");
+    canvas.width = 1200;
+    canvas.height = 1600;
+    const context = canvas.getContext("2d");
+    if (!context) {
+      reject(new Error("Could not prepare wisdom card."));
+      return;
+    }
+
+    const render = (logo?: HTMLImageElement) => {
+      const bg = context.createLinearGradient(0, 0, 1200, 1600);
+      bg.addColorStop(0, theme.bgMain);
+      bg.addColorStop(0.5, theme.bgCard);
+      bg.addColorStop(1, theme.bgCardElevated);
+      context.fillStyle = bg;
+      context.fillRect(0, 0, canvas.width, canvas.height);
+
+      const glow = context.createRadialGradient(1040, 120, 40, 1040, 120, 640);
+      glow.addColorStop(0, `${theme.accentGold}55`);
+      glow.addColorStop(1, "rgba(255,255,255,0)");
+      context.fillStyle = glow;
+      context.fillRect(0, 0, canvas.width, canvas.height);
+
+      context.strokeStyle = theme.accentGold;
+      context.lineWidth = 4;
+      context.strokeRect(54, 54, canvas.width - 108, canvas.height - 108);
+
+      if (logo) {
+        context.save();
+        context.beginPath();
+        context.roundRect(86, 86, 92, 92, 18);
+        context.clip();
+        context.drawImage(logo, 86, 86, 92, 92);
+        context.restore();
+      }
+
+      context.fillStyle = theme.textPrimary;
+      context.font = "700 44px system-ui, sans-serif";
+      context.fillText("Aletheia", logo ? 206 : 86, 142);
+      context.fillStyle = theme.accentGold;
+      context.font = "700 30px system-ui, sans-serif";
+      const eyebrow = payload.eyebrow || payload.kind;
+      context.fillText(eyebrow.toLocaleUpperCase(locale), 86, 270);
+
+      context.fillStyle = theme.textPrimary;
+      context.font = "700 72px Georgia, serif";
+      drawWrappedCanvasText(context, cleanDisplayText(payload.title), 86, 370, 1028, 88, 4);
+
+      context.fillStyle = theme.textSecondary;
+      context.font = "400 42px system-ui, sans-serif";
+      drawWrappedCanvasText(context, cleanDisplayText(payload.body), 86, 760, 1028, 62, 8);
+
+      context.fillStyle = theme.accentGold;
+      context.font = "600 30px system-ui, sans-serif";
+      drawWrappedCanvasText(
+        context,
+        payload.footer || "Share the principle, not the private story.",
+        86,
+        1420,
+        1028,
+        40,
+        3
+      );
+
+      canvas.toBlob((blob) => {
+        if (blob) {
+          resolve(blob);
+        } else {
+          reject(new Error("Could not export wisdom card."));
+        }
+      }, "image/png", 0.95);
+    };
+
+    const logo = document.createElement("img");
+    logo.onload = () => render(logo);
+    logo.onerror = () => render();
+    logo.src = "/brand/aletheia-app-icon-192.png";
+  });
+}
+
 function voiceQualityScore(voice: SpeechSynthesisVoice, languagePrefix: string) {
   const name = voice.name.toLowerCase();
   const noveltyVoicePattern =
@@ -2386,6 +2495,13 @@ type CarryToday = {
   phrase: string;
 };
 
+type ScriptureMemory = {
+  scripture: string;
+  principle: string;
+  savedAt: string;
+  weekKey: string;
+};
+
 type TodayCompanionCard = {
   title: string;
   opening: string;
@@ -2393,6 +2509,16 @@ type TodayCompanionCard = {
   practice: string;
   question: string;
   carryPhrase: string;
+};
+
+type WeeklyWisdomReview = {
+  questions: number;
+  reflections: number;
+  gratitudeMoments: number;
+  decisions: number;
+  pattern: string;
+  scripture: string;
+  nextStep: string;
 };
 
 type JournalEntry = {
@@ -2523,6 +2649,14 @@ type TimelineInsight = {
   daysDiscerning: number;
   patterns: string[];
   gentleObservation: string;
+};
+
+type WisdomPostcardPayload = {
+  title: string;
+  eyebrow?: string;
+  body: string;
+  footer?: string;
+  kind: "answer" | "reflection" | "daily" | "decision" | "scripture" | "carry" | "blessing";
 };
 
 type CounselContact = {
@@ -3354,6 +3488,41 @@ function storedCarryToday(): CarryToday | null {
   }
 }
 
+function currentWeekKey(date = new Date()) {
+  const start = new Date(date);
+  start.setHours(0, 0, 0, 0);
+  start.setDate(start.getDate() - ((start.getDay() + 6) % 7));
+  return localTodayKeyFromDate(start);
+}
+
+function localTodayKeyFromDate(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function storedScriptureMemory(): ScriptureMemory | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(SCRIPTURE_MEMORY_STORAGE_KEY) || "null") as ScriptureMemory | null;
+    return parsed?.scripture && parsed.weekKey === currentWeekKey() ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function buildDecisionBlessing(decision: WisdomDecision, ts: (key: string, fallback?: string) => string) {
+  return [
+    ts('labels.decisionBlessingOpening', 'Lord, help me choose without fear, greed, haste, or pressure.'),
+    ts('labels.decisionBlessingClarity', 'Give me clarity about what is true, courage for the faithful step, and humility to seek wise counsel.'),
+    ts('labels.decisionBlessingDecision', 'For this decision: {decision}').replace("{decision}", decision.title),
+    ts('labels.decisionBlessingEnding', 'Let peace, integrity, and love guide what I do next. Amen.'),
+  ].join("\n\n");
+}
+
 function companionCardFromDaily({
   daily,
   entry,
@@ -3457,6 +3626,7 @@ export function AletheiaApp() {
   const [speechProgress, setSpeechProgress] = useState(0);
   const [readingLabel, setReadingLabel] = useState("Aletheia reading");
   const [carryToday, setCarryToday] = useState<CarryToday | null>(null);
+  const [scriptureMemory, setScriptureMemory] = useState<ScriptureMemory | null>(null);
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [selectedVoice, setSelectedVoice] = useState<string | null>(null);
   const [, setCurrentUtterance] = useState<SpeechSynthesisUtterance | null>(null);
@@ -3560,6 +3730,7 @@ export function AletheiaApp() {
       setThemePreference(storedThemePreference());
       setShowOnboarding(shouldShowOnboarding());
       setCarryToday(storedCarryToday());
+      setScriptureMemory(storedScriptureMemory());
       setGratitudeEntries(storedGratitudeEntries());
       setSelectedVoice(storedVoicePreference());
       setNotificationTiming(storedNotificationTiming());
@@ -4730,6 +4901,33 @@ export function AletheiaApp() {
   const activeDecision = wisdomDecisions.find((item) => item.status !== "closed") ?? wisdomDecisions[0] ?? null;
   const todayPattern = timelineInsight.patterns[0] ?? activeMode.blindSpots[0];
   const todayCompanionCard = companionCardFromDaily({ daily, entry: dailyEntry, pattern: todayPattern, language: preferences.language });
+  const weeklyReview = useMemo<WeeklyWisdomReview>(() => {
+    const weekStart = new Date();
+    weekStart.setHours(0, 0, 0, 0);
+    weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() + 6) % 7));
+    const since = weekStart.getTime();
+    const countSince = <T extends { createdAt?: string }>(items: T[]) =>
+      items.filter((item) => item.createdAt && new Date(item.createdAt).getTime() >= since).length;
+    const questions = messages.filter((message) => message.role === "user").length;
+    const reflections = countSince(journalEntries);
+    const gratitudeMoments = countSince(gratitudeEntries);
+    const decisions = countSince(wisdomDecisions);
+    const pattern = todayPattern || daily.theme;
+    const nextStep = activeDecision
+      ? ts('labels.weeklyReviewDecisionStep', 'Revisit one active decision and ask what has changed.')
+      : reflections || gratitudeMoments
+        ? ts('labels.weeklyReviewReflectStep', 'Save one sentence from this week as a Rule of Life.')
+        : ts('labels.weeklyReviewAskStep', 'Ask one honest question or save one quiet reflection.');
+    return {
+      questions,
+      reflections,
+      gratitudeMoments,
+      decisions,
+      pattern,
+      scripture: dailyEntry.scripture,
+      nextStep,
+    };
+  }, [activeDecision, daily.theme, dailyEntry.scripture, gratitudeEntries, journalEntries, messages, todayPattern, ts, wisdomDecisions]);
 
   // Get translated mode-specific content
   const modeKey = mode.toLowerCase();
@@ -4922,7 +5120,118 @@ export function AletheiaApp() {
       topic: daily.theme.toLowerCase(),
       language: preferences.language,
     });
-    announceWorkflow("Carried for today", `"${card.carryPhrase}" is pinned on Home for today.`, "success");
+    announceWorkflow(
+      ts('notifications.carriedForToday', 'Carried for today'),
+      ts('notifications.carriedForTodayBody', '"{phrase}" is pinned on Home for today.').replace("{phrase}", card.carryPhrase),
+      "success"
+    );
+  }
+
+  async function shareWisdomPostcard(payload: WisdomPostcardPayload, placement: string) {
+    try {
+      const blob = await createWisdomPostcardBlob(
+        {
+          ...payload,
+          footer: payload.footer || ts('labels.sharePrincipleNotStory', 'Share the principle, not my private story.'),
+        },
+        theme,
+        preferences.language
+      );
+      const file = new File([blob], `aletheia-${payload.kind}-${localTodayKey()}.png`, { type: "image/png" });
+      const canShareFile =
+        typeof navigator !== "undefined" &&
+        "share" in navigator &&
+        "canShare" in navigator &&
+        navigator.canShare({ files: [file] });
+
+      if (canShareFile) {
+        await navigator.share({
+          title: payload.title,
+          text: ts('labels.wisdomPostcardShareText', 'A quiet wisdom card from Aletheia.'),
+          files: [file],
+        });
+      } else {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = file.name;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+      }
+
+      trackClientEvent("wisdom_postcard_shared", {
+        placement,
+        kind: payload.kind,
+        channel: canShareFile ? "native" : "download",
+        language: preferences.language,
+      });
+      announceWorkflow(
+        canShareFile ? ts('notifications.shareSheetOpened', 'Share sheet opened') : ts('notifications.wisdomPostcardDownloaded', 'Wisdom card downloaded'),
+        ts('notifications.wisdomPostcardReadyBody', 'Only the principle card was exported. Your private story stayed private.'),
+        "success"
+      );
+    } catch (error) {
+      announceWorkflow(
+        ts('notifications.wisdomPostcardFailed', 'Wisdom card could not be prepared'),
+        error instanceof Error ? error.message : ts('notifications.wisdomPostcardFailedBody', 'Try again in a moment.'),
+        "error"
+      );
+    }
+  }
+
+  function shareTodayWisdomPostcard(card: TodayCompanionCard) {
+    void shareWisdomPostcard({
+      kind: "daily",
+      eyebrow: ts('labels.todaysCompanion', 'Today’s Companion'),
+      title: `${ts('todayPrefix', 'Today')}: ${card.title}`,
+      body: `${card.opening}\n\n${card.carryPhrase}`,
+    }, "today_companion_card");
+  }
+
+  function shareCarryPostcard() {
+    const phrase = carryToday?.phrase || todayCompanionCard.carryPhrase;
+    void shareWisdomPostcard({
+      kind: "carry",
+      eyebrow: ts('labels.carryCard', 'Carry Card'),
+      title: phrase,
+      body: ts('labels.carryCardBody', 'One sentence to carry with clarity today.'),
+    }, "carry_card");
+  }
+
+  function saveScriptureMemory(scripture: string, principle: string) {
+    const next: ScriptureMemory = {
+      scripture,
+      principle,
+      savedAt: new Date().toISOString(),
+      weekKey: currentWeekKey(),
+    };
+    setScriptureMemory(next);
+    try {
+      window.localStorage.setItem(SCRIPTURE_MEMORY_STORAGE_KEY, JSON.stringify(next));
+    } catch {
+      // Memory remains active for this session if local storage is unavailable.
+    }
+    trackClientEvent("scripture_memory_saved", {
+      scripture: canonicalScriptureReference(scripture),
+      language: preferences.language,
+      bibleTranslation: preferences.bibleTranslation,
+    });
+    announceWorkflow(
+      ts('notifications.scriptureMemorySaved', 'Scripture carried for the week'),
+      ts('notifications.scriptureMemorySavedBody', 'Aletheia will keep this wisdom visible as a gentle weekly anchor.'),
+      "success"
+    );
+  }
+
+  function shareScriptureMemoryCard(memory: ScriptureMemory) {
+    void shareWisdomPostcard({
+      kind: "scripture",
+      eyebrow: ts('labels.scriptureMemory', 'Scripture Memory'),
+      title: memory.scripture,
+      body: memory.principle,
+    }, "scripture_memory");
   }
 
   function askAboutCompanionCard(card: TodayCompanionCard) {
@@ -4945,6 +5254,45 @@ export function AletheiaApp() {
     setRuleText(card.carryPhrase);
     showView("decisions");
     announceWorkflow(ts('notifications.ruleDrafted', 'Rule drafted'), ts('notifications.ruleDraftedBody', 'The carry phrase is ready as a Rule of Life. Review and save it when it feels true.'), "success");
+  }
+
+  function startVoiceReflectionMode() {
+    const script = ts(
+      'labels.voiceReflectionScript',
+      'Take one breath. Name the pressure. Name what is true. Name the next faithful step. You do not have to solve everything in this moment.'
+    );
+    speakText(script, ts('notifications.voiceReflectionStarted', 'Voice reflection started'), ts('labels.voiceReflectionMode', 'Voice Reflection Mode'));
+    trackClientEvent("voice_reflection_started", { mode, language: preferences.language });
+  }
+
+  function shareReflectionPostcard(entry: JournalEntry) {
+    void shareWisdomPostcard({
+      kind: "reflection",
+      eyebrow: ts('labels.reflectionJournal', 'Reflection Journal'),
+      title: entry.title,
+      body: cleanDisplayText(entry.body).slice(0, 520),
+    }, "reflection_entry");
+  }
+
+  function shareAnswerPostcard(exchange: ConversationExchange) {
+    const source = exchange.answer.sources?.[0];
+    const modeLabel = localizedModeProfile(exchange.mode, preferences.language).displayLabel ?? exchange.mode;
+    void shareWisdomPostcard({
+      kind: "answer",
+      eyebrow: ts('labels.wisdomPostcard', 'Wisdom Postcard'),
+      title: source?.principle || modeLabel,
+      body: source?.application || cleanDisplayText(exchange.answer.text).slice(0, 520),
+    }, "current_answer");
+  }
+
+  function shareDecisionPostcard(decision: WisdomDecision, kind: "summary" | "blessing", text?: string) {
+    const body = cleanDisplayText(text || decision.summary || decision.pressure).slice(0, 620);
+    void shareWisdomPostcard({
+      kind: kind === "blessing" ? "blessing" : "decision",
+      eyebrow: kind === "blessing" ? ts('labels.decisionBlessing', 'Decision blessing') : ts('labels.decisionSummaryExport', 'Decision Summary Export'),
+      title: decision.title,
+      body,
+    }, kind === "blessing" ? "decision_blessing" : "decision_summary");
   }
 
   async function shareAletheia(channel: ShareChannel, placement: string) {
@@ -5208,6 +5556,7 @@ export function AletheiaApp() {
     setThemePreference("system");
     setNotificationTiming(DEFAULT_NOTIFICATION_TIMING);
     setCarryToday(null);
+    setScriptureMemory(null);
     setManualContext(defaultManualContext);
     setCounselSummaryDraft(null);
     try {
@@ -5216,6 +5565,7 @@ export function AletheiaApp() {
       window.localStorage.removeItem(THEME_STORAGE_KEY);
       window.localStorage.removeItem(NOTIFICATION_TIMING_STORAGE_KEY);
       window.localStorage.removeItem(CARRY_TODAY_STORAGE_KEY);
+      window.localStorage.removeItem(SCRIPTURE_MEMORY_STORAGE_KEY);
       window.localStorage.removeItem(MANUAL_CONTEXT_STORAGE_KEY);
       window.localStorage.removeItem("aletheia-counsel-summary-draft");
     } catch {
@@ -6093,6 +6443,7 @@ export function AletheiaApp() {
       announceWorkflow(ts('notifications.writeReflectionFirst'), ts('notifications.writeReflectionFirstBody'), "warning");
       return;
     }
+    const isFirstReflection = journalEntries.length === 0;
 
     if (user) {
       const response = await fetch("/api/journal", {
@@ -6104,7 +6455,11 @@ export function AletheiaApp() {
       if (data.entry) {
         setJournalEntries((current) => [data.entry!, ...current]);
         trackClientEvent("journal_entry_created", { mode, source: "reflect_tab" });
-        announceWorkflow(ts('notifications.reflectionSaved'), ts('notifications.reflectionSavedBody'), "success");
+        announceWorkflow(
+          isFirstReflection ? ts('notifications.firstReflectionMilestone', 'You practiced reflection before speed') : ts('notifications.reflectionSaved'),
+          isFirstReflection ? ts('notifications.firstReflectionMilestoneBody', 'A quiet formation moment has begun. One honest reflection is enough for today.') : ts('notifications.reflectionSavedBody'),
+          "success"
+        );
       }
     } else {
       trackClientEvent("journal_entry_created_local", { mode });
@@ -6119,7 +6474,11 @@ export function AletheiaApp() {
         ...current,
       ]);
       setStatusMessage(ts('status.reflectionSavedSession'));
-      announceWorkflow(ts('notifications.reflectionSavedLocally'), ts('notifications.reflectionSavedLocallyBody'), "success");
+      announceWorkflow(
+        isFirstReflection ? ts('notifications.firstReflectionMilestone', 'You practiced reflection before speed') : ts('notifications.reflectionSavedLocally'),
+        isFirstReflection ? ts('notifications.firstReflectionMilestoneBody', 'A quiet formation moment has begun. One honest reflection is enough for today.') : ts('notifications.reflectionSavedLocallyBody'),
+        "success"
+      );
     }
 
     setJournalTitle("");
@@ -6306,6 +6665,7 @@ export function AletheiaApp() {
       announceWorkflow(ts('notifications.nameDecisionPressure'), ts('notifications.nameDecisionPressureBody'), "warning");
       return;
     }
+    const isFirstDecision = wisdomDecisions.length === 0;
 
     if (user) {
       const response = await fetch("/api/decisions", {
@@ -6328,7 +6688,11 @@ export function AletheiaApp() {
           },
           ...current,
         ]);
-        announceWorkflow(ts('notifications.decisionTracked'), ts('notifications.decisionTrackedBody'), "success");
+        announceWorkflow(
+          isFirstDecision ? ts('notifications.firstDecisionMilestone', 'You practiced wisdom before speed') : ts('notifications.decisionTracked'),
+          isFirstDecision ? ts('notifications.firstDecisionMilestoneBody', 'This decision now has memory, counsel space, and room to mature over time.') : ts('notifications.decisionTrackedBody'),
+          "success"
+        );
       }
     } else {
       trackClientEvent("decision_created_local", { mode, emotion: decisionEmotion });
@@ -6379,7 +6743,11 @@ export function AletheiaApp() {
       setDecisionEvents(nextEvents);
       refreshLocalTimeline(nextDecisions, nextEvents);
       setStatusMessage(ts('status.decisionSavedSession'));
-      announceWorkflow(ts('notifications.decisionTrackedLocally'), ts('notifications.decisionTrackedLocallyBody'), "success");
+      announceWorkflow(
+        isFirstDecision ? ts('notifications.firstDecisionMilestone', 'You practiced wisdom before speed') : ts('notifications.decisionTrackedLocally'),
+        isFirstDecision ? ts('notifications.firstDecisionMilestoneBody', 'This decision now has memory, counsel space, and room to mature over time.') : ts('notifications.decisionTrackedLocallyBody'),
+        "success"
+      );
     }
 
     setDecisionTitle("");
@@ -7060,6 +7428,8 @@ export function AletheiaApp() {
                   todayPattern={todayPattern}
                   companionCard={todayCompanionCard}
                   carryToday={carryToday}
+                  scriptureMemory={scriptureMemory}
+                  weeklyReview={weeklyReview}
                   personalizationContextEmpty={!manualContextHasContent(manualContext)}
                   prioritizeToday={pendingNotificationFocus}
                   onScriptureOpen={openScripture}
@@ -7072,7 +7442,10 @@ export function AletheiaApp() {
                   onReflectCard={reflectOnCompanionCard}
                   onAskAboutCard={askAboutCompanionCard}
                   onSaveCardAsRule={saveCompanionRule}
-                  onShareCard={() => shareAletheia("native", "today_companion_card")}
+                  onShareCard={() => shareTodayWisdomPostcard(todayCompanionCard)}
+                  onShareCarryCard={shareCarryPostcard}
+                  onSaveScriptureMemory={() => saveScriptureMemory(dailyEntry.scripture, dailyEntry.principle)}
+                  onShareScriptureMemory={shareScriptureMemoryCard}
                   theme={theme}
                 />
                 <CompanionPanel
@@ -7106,6 +7479,7 @@ export function AletheiaApp() {
                   onCreateCounselSummary={draftCounselSummaryFromExchange}
                   onGoDeeper={goDeeperFromExchange}
                   onWait={waitFromExchange}
+                  onSharePostcard={shareAnswerPostcard}
                   onShare={(channel) => shareAletheia(channel, "answer")}
                   onFeedback={(value) => recordAnswerFeedback(value, "answer")}
                   theme={theme}
@@ -7161,6 +7535,7 @@ export function AletheiaApp() {
                   onBulkShareDecisionsWithCounsel={bulkShareDecisionsWithCounsel}
                   onRemoveCounselContact={removeCounselContact}
                   onSpeakText={speakText}
+                  onShareDecisionPostcard={shareDecisionPostcard}
                   isSpeaking={isSpeaking}
                   onAddRule={addRuleOfLife}
                   onScriptureOpen={openScripture}
@@ -7193,6 +7568,8 @@ export function AletheiaApp() {
                   onDeleteGratitude={deleteGratitudeEntry}
                   onShareGratitudePostcard={shareGratitudePostcard}
                   onUseGratitudeAsReflection={useGratitudeAsReflectionPrompt}
+                  onVoiceReflection={startVoiceReflectionMode}
+                  onShareReflectionPostcard={shareReflectionPostcard}
                   todayCompanionCard={todayCompanionCard}
                   theme={theme}
                 />
@@ -7207,6 +7584,9 @@ export function AletheiaApp() {
                   preferences={preferences}
                   ts={ts}
                   onScriptureOpen={openScripture}
+                  scriptureMemory={scriptureMemory}
+                  onSaveScriptureMemory={saveScriptureMemory}
+                  onShareScriptureMemory={shareScriptureMemoryCard}
                   theme={theme}
                 />
                 </Screen>
@@ -8281,6 +8661,8 @@ function HomeDashboard({
   todayPattern,
   companionCard,
   carryToday,
+  scriptureMemory,
+  weeklyReview,
   personalizationContextEmpty,
   prioritizeToday,
   onScriptureOpen,
@@ -8294,6 +8676,9 @@ function HomeDashboard({
   onAskAboutCard,
   onSaveCardAsRule,
   onShareCard,
+  onShareCarryCard,
+  onSaveScriptureMemory,
+  onShareScriptureMemory,
   theme,
 }: {
   daily: ReturnType<typeof localizedDailyWisdom>;
@@ -8306,6 +8691,8 @@ function HomeDashboard({
   todayPattern: string;
   companionCard: TodayCompanionCard;
   carryToday: CarryToday | null;
+  scriptureMemory: ScriptureMemory | null;
+  weeklyReview: WeeklyWisdomReview;
   personalizationContextEmpty: boolean;
   prioritizeToday: boolean;
   onScriptureOpen: (scripture: string) => void;
@@ -8319,6 +8706,9 @@ function HomeDashboard({
   onAskAboutCard: (card: TodayCompanionCard) => void;
   onSaveCardAsRule: (card: TodayCompanionCard) => void;
   onShareCard: () => void;
+  onShareCarryCard: () => void;
+  onSaveScriptureMemory: () => void;
+  onShareScriptureMemory: (memory: ScriptureMemory) => void;
   theme: ThemeColors;
 }) {
   const text = { ...uiText.en, ...ui };
@@ -8362,9 +8752,40 @@ function HomeDashboard({
     <div className="grid gap-3 sm:gap-4 xl:grid-cols-[minmax(0,0.98fr)_minmax(300px,1.02fr)]">
       <section className={`editorial-surface min-w-0 rounded-xl border p-4 shadow-sm sm:p-5 ${prioritizeToday ? "order-2" : "order-1"}`} style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
         {carryToday ? (
+          <div className="mb-4 flex flex-col gap-2 rounded-lg border px-3 py-2 text-sm leading-6 sm:flex-row sm:items-center sm:justify-between" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}>
+            <span>
+              <span className="font-semibold" style={{ color: theme.accentGold }}>{text.carryingToday}:</span>{" "}
+              <span suppressHydrationWarning>&ldquo;{carryToday.phrase}&rdquo;</span>
+            </span>
+            <button
+              type="button"
+              onClick={onShareCarryCard}
+              className="premium-tap-card w-fit rounded-md border px-2 py-1 text-xs font-semibold"
+              style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+            >
+              {text.createCard || "Create card"}
+            </button>
+          </div>
+        ) : null}
+        {scriptureMemory ? (
           <div className="mb-4 rounded-lg border px-3 py-2 text-sm leading-6" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}>
-            <span className="font-semibold" style={{ color: theme.accentGold }}>{text.carryingToday}:</span>{" "}
-            <span suppressHydrationWarning>&ldquo;{carryToday.phrase}&rdquo;</span>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <span>
+                <span className="font-semibold" style={{ color: theme.accentGold }}>{text.scriptureMemory || "Scripture memory"}:</span>{" "}
+                <button type="button" onClick={() => onScriptureOpen(scriptureMemory.scripture)} className="font-semibold underline underline-offset-4">
+                  {scriptureMemory.scripture}
+                </button>
+              </span>
+              <button
+                type="button"
+                onClick={() => onShareScriptureMemory(scriptureMemory)}
+                className="premium-tap-card w-fit rounded-md border px-2 py-1 text-xs font-semibold"
+                style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+              >
+                {text.createCard || "Create card"}
+              </button>
+            </div>
+            <p className="mt-1 text-xs leading-5" style={{ color: theme.textSecondary }}>{scriptureMemory.principle}</p>
           </div>
         ) : null}
         <div className="mb-3">
@@ -8470,11 +8891,52 @@ function HomeDashboard({
           <CompanionCardAction icon={Feather} label={text.reflectToday!} onClick={() => onReflectCard(companionCard)} theme={theme} />
           <CompanionCardAction icon={MessageCircle} label={text.askAboutThis!} onClick={() => onAskAboutCard(companionCard)} theme={theme} />
           <CompanionCardAction icon={Plus} label={text.saveToRuleOfLife!} onClick={() => onSaveCardAsRule(companionCard)} theme={theme} />
+          <CompanionCardAction icon={BookOpen} label={text.carryScriptureForWeek || "Carry scripture"} onClick={onSaveScriptureMemory} theme={theme} />
           <div className="col-span-2">
-            <CompanionCardAction icon={Share2} label={text.shareAletheia!} onClick={onShareCard} theme={theme} />
+            <CompanionCardAction icon={Share2} label={text.createWisdomPostcard || "Create wisdom card"} onClick={onShareCard} theme={theme} />
           </div>
         </div>
       </section>
+
+      <section className="editorial-surface order-3 rounded-xl border p-4 shadow-sm xl:col-span-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{text.weeklyWisdomReview || "Weekly Wisdom Review"}</p>
+            <h2 className="mt-2 text-xl font-semibold" style={{ color: theme.textPrimary }}>{text.weeklyReviewTitle || "A quiet look at your week"}</h2>
+            <p className="mt-2 max-w-2xl text-sm leading-6" style={{ color: theme.textSecondary }}>
+              {(text.weeklyReviewBody || "No streaks or pressure. Just notice what Aletheia is helping you carry.").replace("{pattern}", weeklyReview.pattern)}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => onScriptureOpen(weeklyReview.scripture)}
+            className="premium-tap-card inline-flex w-fit items-center gap-2 rounded-md border px-3 py-2 text-sm font-semibold"
+            style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
+          >
+            <BookOpen size={15} />
+            {weeklyReview.scripture}
+          </button>
+        </div>
+        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <MiniReviewStat label={text.questionsThisWeek || "Questions"} value={weeklyReview.questions} theme={theme} />
+          <MiniReviewStat label={text.reflectionsThisWeek || "Reflections"} value={weeklyReview.reflections} theme={theme} />
+          <MiniReviewStat label={text.gratitudeThisWeek || "Gratitude"} value={weeklyReview.gratitudeMoments} theme={theme} />
+          <MiniReviewStat label={text.decisionsThisWeek || "Decisions"} value={weeklyReview.decisions} theme={theme} />
+        </div>
+        <p className="mt-4 rounded-lg border p-3 text-sm leading-6" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
+          <span className="font-semibold" style={{ color: theme.textPrimary }}>{text.nextFaithfulStep || "Next faithful step"}:</span>{" "}
+          {weeklyReview.nextStep}
+        </p>
+      </section>
+    </div>
+  );
+}
+
+function MiniReviewStat({ label, value, theme }: { label: string; value: number; theme: ThemeColors }) {
+  return (
+    <div className="rounded-lg border px-3 py-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+      <p className="text-xl font-semibold" style={{ color: theme.textPrimary }}>{value}</p>
+      <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>{label}</p>
     </div>
   );
 }
@@ -10191,6 +10653,12 @@ function ManualContextPanel({
     values: `${ts('manualContext.stressSummary', 'Stress')} ${draft.stressLevel ?? manualCopy.notAdded} · ${ts('manualContext.urgencySummary', 'urgency')} ${draft.urgencyLevel ?? manualCopy.notAdded} · ${draft.enoughDefinition ? manualCopy.enoughDefined : manualCopy.enoughNotDefined}`,
     counsel: `${draft.riskTolerance ? manualCopy.riskAdded : manualCopy.riskNotAdded} · ${draft.waitingPreference ? manualCopy.waitingAdded : manualCopy.waitingNotAdded} · ${draft.counselCadence ? manualCopy.counselAdded : manualCopy.counselNotAdded}`,
   };
+  const enoughProfileItems = [
+    draft.enoughDefinition ? manualCopy.enoughDefined : manualCopy.enoughNotDefined,
+    draft.targetSavingsBufferMonths !== null ? `${ts('manualContext.targetSavingsBufferMonths', 'Target savings buffer')}: ${draft.targetSavingsBufferMonths}` : "",
+    draft.targetWorkHoursPerWeek !== null ? `${ts('manualContext.targetWorkHoursPerWeek', 'Target work hours/week')}: ${draft.targetWorkHoursPerWeek}` : "",
+    draft.targetSleepHours !== null ? `${ts('manualContext.targetSleepHours', 'Target sleep hours/day')}: ${draft.targetSleepHours}` : "",
+  ].filter(Boolean);
   const quickDetailOptions: Array<{ key: typeof quickDetailType; label: string; prompt: string }> = [
     { key: "financeContext", label: manualCopy.moneyPicture, prompt: ts('manualContext.moneyPicturePrompt', 'Example: My buffer is thin and I feel pressure to take bigger risks.') },
     { key: "workContext", label: manualCopy.workRhythm, prompt: ts('manualContext.workRhythmPrompt', 'Example: I work long hours and feel called to change pace.') },
@@ -10278,6 +10746,10 @@ function ManualContextPanel({
             </p>
             <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
               {manualCopy.areaSummary}
+            </p>
+            <p className="mt-3 rounded-md border px-3 py-2 text-xs leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+              <span className="font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.enoughProfile', 'Enough profile')}:</span>{" "}
+              {enoughProfileItems.length ? enoughProfileItems.join(" · ") : ts('labels.enoughProfileEmpty', 'Define enough for money, work, rest, and generosity when you are ready.')}
             </p>
           </div>
 
@@ -12407,6 +12879,7 @@ function CompanionPanel({
   onCreateCounselSummary,
   onGoDeeper,
   onWait,
+  onSharePostcard,
   onShare,
   onFeedback,
   isWorking,
@@ -12441,6 +12914,7 @@ function CompanionPanel({
   onCreateCounselSummary: (exchange: ConversationExchange) => void;
   onGoDeeper: (exchange: ConversationExchange) => void;
   onWait: (exchange: ConversationExchange) => void;
+  onSharePostcard: (exchange: ConversationExchange) => void;
   onShare: (channel: ShareChannel) => void;
   onFeedback: (value: string) => void;
   isWorking: boolean;
@@ -12661,6 +13135,7 @@ function CompanionPanel({
                 onCreateCounselSummary={onCreateCounselSummary}
                 onGoDeeper={onGoDeeper}
                 onWait={onWait}
+                onSharePostcard={onSharePostcard}
                 onShare={onShare}
                 onFeedback={onFeedback}
               />
@@ -13078,6 +13553,7 @@ function CurrentCounselCard({
   onCreateCounselSummary,
   onGoDeeper,
   onWait,
+  onSharePostcard,
   onShare,
   onFeedback,
 }: {
@@ -13098,6 +13574,7 @@ function CurrentCounselCard({
   onCreateCounselSummary: (exchange: ConversationExchange) => void;
   onGoDeeper: (exchange: ConversationExchange) => void;
   onWait: (exchange: ConversationExchange) => void;
+  onSharePostcard: (exchange: ConversationExchange) => void;
   onShare: (channel: ShareChannel) => void;
   onFeedback: (value: string) => void;
 }) {
@@ -13207,6 +13684,7 @@ function CurrentCounselCard({
             <div className="mt-3 grid gap-2 sm:grid-cols-2">
               <CounselAction theme={theme} label={text.goDeeper!} onClick={() => onGoDeeper(exchange)} />
               <CounselAction theme={theme} label={text.waitThreeDays!} onClick={() => onWait(exchange)} />
+              <CounselAction theme={theme} label={ts('labels.createAnswerCard', 'Create wisdom card')} onClick={() => onSharePostcard(exchange)} />
             </div>
             <AnswerFeedback theme={theme} ui={ui} onFeedback={onFeedback} />
             <div className="mt-3 rounded-md border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
@@ -13388,6 +13866,7 @@ function DecisionCompanionPanel({
   onBulkShareDecisionsWithCounsel,
   onRemoveCounselContact,
   onSpeakText,
+  onShareDecisionPostcard,
   isSpeaking,
   onAddRule,
   onScriptureOpen,
@@ -13448,6 +13927,7 @@ function DecisionCompanionPanel({
   onBulkShareDecisionsWithCounsel: (contactId: string, decisionIds: string[]) => void;
   onRemoveCounselContact: (contactId: string) => void;
   onSpeakText: (text: string, notice?: string, label?: string) => void;
+  onShareDecisionPostcard: (decision: WisdomDecision, kind: "summary" | "blessing", text?: string) => void;
   isSpeaking: boolean;
   onAddRule: (event: FormEvent<HTMLFormElement>) => void;
   onScriptureOpen: (scripture: string) => void;
@@ -13459,7 +13939,9 @@ function DecisionCompanionPanel({
   const counselAvatarFileInputRef = useRef<HTMLInputElement | null>(null);
   const activeDecisions = decisions.filter((decision) => decision.status !== "closed");
   const selectedDecision = decisions[0];
+  const [blessingOpen, setBlessingOpen] = useState(false);
   const modeRules = rules.filter((rule) => rule.mode === mode);
+  const selectedDecisionBlessing = selectedDecision ? buildDecisionBlessing(selectedDecision, ts) : "";
   const decisionNextTitle = selectedDecision ? formatNextDecisionTitle(selectedDecision.title) : runtime.decisionNextTitleDefault;
   const decisionFocusPrompt = focusIntentionPrompt(focusIntentions, "decisions");
   const decisionNextBody = selectedDecision
@@ -14005,12 +14487,57 @@ function DecisionCompanionPanel({
                 <Volume2 size={14} style={{ color: isSpeaking ? theme.accentGold : 'inherit' }} />
                 {isSpeaking ? ts('labels.stop', 'Stop') : ts('labels.readAloud', 'Read aloud')}
               </button>
+              <button
+                type="button"
+                onClick={() => onShareDecisionPostcard(selectedDecision, "summary")}
+                className="inline-flex h-11 items-center gap-2 rounded-md border px-3 text-xs font-semibold transition"
+                style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+              >
+                <Share2 size={14} />
+                {ts('labels.createCard', 'Create card')}
+              </button>
             </div>
             <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
               {ts('labels.mentorReadySummaryReviewBeforeSharing', 'Mentor-ready summary with decision, pressure, wisdom anchors, risks, counsel questions, and next faithful step. Review it before sharing.')}
             </p>
             <div className="mt-3 max-h-80 min-h-40 overflow-y-auto rounded-md border p-3" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput }}>
               <ScriptureLinkedText theme={theme} text={selectedDecision.summary} onScriptureOpen={onScriptureOpen} />
+            </div>
+            <div className="mt-3 rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+              <button
+                type="button"
+                onClick={() => setBlessingOpen((current) => !current)}
+                className="flex w-full items-center justify-between gap-3 text-left text-sm font-semibold"
+                style={{ color: theme.textPrimary }}
+              >
+                <span>{ts('labels.decisionBlessing', 'Decision blessing / prayer draft')}</span>
+                <span className="text-xs" style={{ color: theme.textSecondary }}>{blessingOpen ? ts('hideDetails', 'Hide details') : ts('showDetails', 'Show details')}</span>
+              </button>
+              {blessingOpen ? (
+                <div className="mt-3">
+                  <p className="whitespace-pre-wrap text-sm leading-6" style={{ color: theme.textSecondary }}>{selectedDecisionBlessing}</p>
+                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                    <button
+                      type="button"
+                      onClick={() => onSpeakText(selectedDecisionBlessing, ts('notifications.decisionBlessingReading', 'Aletheia is reading the decision blessing.'), ts('labels.decisionBlessing', 'Decision blessing'))}
+                      className="premium-tap-card inline-flex h-10 items-center justify-center gap-2 rounded-md border px-3 text-xs font-semibold"
+                      style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                    >
+                      <Volume2 size={14} />
+                      {ts('labels.readAloud', 'Read aloud')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onShareDecisionPostcard(selectedDecision, "blessing", selectedDecisionBlessing)}
+                      className="premium-tap-card inline-flex h-10 items-center justify-center gap-2 rounded-md border px-3 text-xs font-semibold"
+                      style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                    >
+                      <Share2 size={14} />
+                      {ts('labels.createCard', 'Create card')}
+                    </button>
+                  </div>
+                </div>
+              ) : null}
             </div>
           </section>
         ) : null}
@@ -14447,6 +14974,8 @@ function ReflectPanel({
   onDeleteGratitude,
   onShareGratitudePostcard,
   onUseGratitudeAsReflection,
+  onVoiceReflection,
+  onShareReflectionPostcard,
   todayCompanionCard,
   theme,
 }: {
@@ -14473,6 +15002,8 @@ function ReflectPanel({
   onDeleteGratitude: (id: string) => void;
   onShareGratitudePostcard: (entry: GratitudeEntry) => void;
   onUseGratitudeAsReflection: (entry: GratitudeEntry) => void;
+  onVoiceReflection: () => void;
+  onShareReflectionPostcard: (entry: JournalEntry) => void;
   todayCompanionCard: TodayCompanionCard;
   theme: ThemeColors;
 }) {
@@ -14498,6 +15029,15 @@ function ReflectPanel({
         <p className="mt-2 max-w-2xl text-sm leading-6" style={{ color: theme.textSecondary }}>
           {runtime.reflectIntro}
         </p>
+        <button
+          type="button"
+          onClick={onVoiceReflection}
+          className="premium-tap-card mt-4 inline-flex h-10 items-center gap-2 rounded-md border px-3 text-sm font-semibold"
+          style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
+        >
+          <Volume2 size={15} />
+          {ts('labels.voiceReflectionMode', 'Voice Reflection Mode')}
+        </button>
       </section>
 
       <DisclosureSection
@@ -14546,6 +15086,8 @@ function ReflectPanel({
         setBody={setBody}
         onSave={onSave}
         onDelete={onDelete}
+        onSharePostcard={onShareReflectionPostcard}
+        onVoiceReflection={onVoiceReflection}
         ts={ts}
         theme={theme}
       />
@@ -14670,6 +15212,11 @@ function GratitudeLensPanel({
     return Number.isFinite(entryTime) && entryTime >= weekStartTime;
   });
   const weeklyPlaces = Array.from(new Set(weeklyEntries.map((entry) => entry.place.trim()).filter(Boolean))).slice(0, 3);
+  const gratitudeThemes = Array.from(new Set(
+    weeklyEntries
+      .flatMap((entry) => entry.note.toLowerCase().split(/[^a-zÀ-ÿ]+/i))
+      .filter((word) => word.length > 4 && !["today", "thank", "thanks", "grateful", "danke", "heute"].includes(word))
+  )).slice(0, 3);
   const todayWisdomPrompt = ts(
     'labels.gratitudePromptFromWisdomBody',
     'Take one photo that helps you practice today’s wisdom: {practice}'
@@ -14958,6 +15505,11 @@ function GratitudeLensPanel({
                 ? ts('labels.weeklyGratitudePlaces', 'Places noticed: {places}.').replace("{places}", weeklyPlaces.join(", "))
                 : ts('labels.noStreaksJustRemembrance', 'No streaks, no pressure. Just remembrance over time.')}
             </p>
+            {gratitudeThemes.length ? (
+              <p className="mt-1 text-xs leading-5" style={{ color: theme.textSecondary }}>
+                {ts('labels.gratitudeThemesNoticed', 'Themes noticed: {themes}.').replace("{themes}", gratitudeThemes.join(", "))}
+              </p>
+            ) : null}
           </div>
           <div className="mt-4 space-y-3">
             {entries.length ? (
@@ -15046,6 +15598,9 @@ function LibraryPanel({
   preferences,
   ts,
   onScriptureOpen,
+  scriptureMemory,
+  onSaveScriptureMemory,
+  onShareScriptureMemory,
   theme,
 }: {
   entries: WisdomEntry[];
@@ -15055,6 +15610,9 @@ function LibraryPanel({
   preferences: UserPreferences;
   ts: (key: string, fallback?: string) => string;
   onScriptureOpen: (scripture: string) => void;
+  scriptureMemory: ScriptureMemory | null;
+  onSaveScriptureMemory: (scripture: string, principle: string) => void;
+  onShareScriptureMemory: (memory: ScriptureMemory) => void;
   theme: ThemeColors;
 }) {
   const runtime = runtimeCopyFor(preferences.language);
@@ -15084,6 +15642,30 @@ function LibraryPanel({
         theme={theme}
       />
       <section className="min-w-0 rounded-xl border p-4 shadow-sm sm:p-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+        {scriptureMemory ? (
+          <div className="mb-4 rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.scriptureMemory', 'Scripture Memory')}</p>
+            <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <button
+                type="button"
+                onClick={() => onScriptureOpen(scriptureMemory.scripture)}
+                className="text-left text-sm font-semibold underline underline-offset-4"
+                style={{ color: theme.textPrimary }}
+              >
+                {scriptureMemory.scripture}
+              </button>
+              <button
+                type="button"
+                onClick={() => onShareScriptureMemory(scriptureMemory)}
+                className="premium-tap-card w-fit rounded-md border px-3 py-2 text-xs font-semibold"
+                style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+              >
+                {ts('labels.createCard', 'Create card')}
+              </button>
+            </div>
+            <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>{scriptureMemory.principle}</p>
+          </div>
+        ) : null}
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <div className="flex items-center gap-2 text-xl font-semibold" style={{ color: theme.textPrimary }}>
@@ -15142,6 +15724,15 @@ function LibraryPanel({
                 <p className="mt-3 rounded-md border p-3 text-xs leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textMuted }}>
                   {localizedWisdomLibraryNote(entry, preferences)}
                 </p>
+                <button
+                  type="button"
+                  onClick={() => onSaveScriptureMemory(entry.scripture, localizedEntry.principle)}
+                  className="premium-tap-card mt-3 inline-flex h-9 items-center gap-2 rounded-md border px-3 text-xs font-semibold"
+                  style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                >
+                  <BookOpen size={14} />
+                  {ts('labels.carryScriptureForWeek', 'Carry scripture')}
+                </button>
               </article>
             );
           })}
@@ -15173,6 +15764,15 @@ function LibraryPanel({
                     </div>
                     <p className="text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>{localizedEntry.principle}</p>
                     <p className="mt-3 text-sm leading-6" style={{ color: theme.textSecondary }}>{localizedEntry.application}</p>
+                    <button
+                      type="button"
+                      onClick={() => onSaveScriptureMemory(entry.scripture, localizedEntry.principle)}
+                      className="premium-tap-card mt-3 inline-flex h-9 items-center gap-2 rounded-md border px-3 text-xs font-semibold"
+                      style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                    >
+                      <BookOpen size={14} />
+                      {ts('labels.carryScriptureForWeek', 'Carry scripture')}
+                    </button>
                   </article>
                 );
               })}
@@ -15194,6 +15794,8 @@ function JournalPanel({
   setBody,
   onSave,
   onDelete,
+  onSharePostcard,
+  onVoiceReflection,
   ts,
   theme,
 }: {
@@ -15206,6 +15808,8 @@ function JournalPanel({
   setBody: (value: string) => void;
   onSave: () => void;
   onDelete: (id: string) => void;
+  onSharePostcard: (entry: JournalEntry) => void;
+  onVoiceReflection: () => void;
   ts: (key: string, fallback?: string) => string;
   theme: ThemeColors;
 }) {
@@ -15244,10 +15848,21 @@ function JournalPanel({
           onFocus={(e) => e.currentTarget.style.borderColor = theme.primary}
           onBlur={(e) => e.currentTarget.style.borderColor = theme.borderMedium}
         />
-        <button onClick={onSave} className="mt-3 inline-flex h-11 items-center justify-center gap-2 rounded-md px-4 text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary, boxShadow: `0 10px 15px -3px ${theme.primary}15` }}>
-          <Plus size={16} />
-          {ts('labels.saveReflection', 'Save reflection')}
-        </button>
+        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+          <button onClick={onSave} className="premium-tap-card inline-flex h-11 items-center justify-center gap-2 rounded-md px-4 text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary, boxShadow: `0 10px 15px -3px ${theme.primary}15` }}>
+            <Plus size={16} />
+            {ts('labels.saveReflection', 'Save reflection')}
+          </button>
+          <button
+            type="button"
+            onClick={onVoiceReflection}
+            className="premium-tap-card inline-flex h-11 items-center justify-center gap-2 rounded-md border px-4 text-sm font-semibold"
+            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+          >
+            <Volume2 size={16} />
+            {ts('labels.voiceReflectionMode', 'Voice Reflection Mode')}
+          </button>
+        </div>
       </section>
 
       <DisclosureSection title={`${entries.length} ${entries.length === 1 ? runtime.savedReflectionSingular : runtime.savedReflectionPlural}`} summary={entries.length ? runtime.reflectionHistorySummaryActive : runtime.reflectionHistorySummaryDefault} eyebrow={runtime.reflectionHistory} showDetailsLabel={ts('showDetails', 'Show details')} hideDetailsLabel={ts('hideDetails', 'Hide details')} theme={theme}>
@@ -15265,23 +15880,32 @@ function JournalPanel({
                     </p>
                   </div>
                   <button onClick={() => {
-                    if (window.confirm('Are you sure you want to delete this journal entry? This cannot be undone.')) {
+                    if (window.confirm(ts('confirm.deleteJournalEntry', 'Are you sure you want to delete this journal entry? This cannot be undone.'))) {
                       onDelete(entry.id);
                     }
-                  }} className="grid size-9 shrink-0 place-items-center rounded-md border" aria-label={`Delete ${entry.title}`} style={{ borderColor: theme.borderMedium, color: theme.textMuted }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.bgInput} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
+                  }} className="grid size-9 shrink-0 place-items-center rounded-md border" aria-label={`${ts('labels.delete', 'Delete')} ${entry.title}`} style={{ borderColor: theme.borderMedium, color: theme.textMuted }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.bgInput} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
                     <Trash2 size={15} />
                   </button>
                 </div>
                 <p className="mt-3 whitespace-pre-wrap text-sm leading-6" style={{ color: theme.textSecondary }}>{entry.body}</p>
+                <button
+                  type="button"
+                  onClick={() => onSharePostcard(entry)}
+                  className="premium-tap-card mt-3 inline-flex h-9 items-center gap-2 rounded-md border px-3 text-xs font-semibold"
+                  style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                >
+                  <Share2 size={14} />
+                  {ts('labels.createCard', 'Create card')}
+                </button>
               </article>
             ))
           ) : (
             <div className="rounded-lg border border-dashed p-6 text-sm leading-6" style={{ borderColor: theme.borderMedium, color: theme.textMuted }}>
-              No reflections yet. Save one from the form to keep a private record on this device.
+              {ts('labels.noReflectionsYet', 'No reflections yet. Save one from the form to keep a private record on this device.')}
             </div>
           )}
         </div>
-        <p className="mt-4 text-xs leading-5" style={{ color: theme.textMuted }}>Currently active mode: {mode}</p>
+        <p className="mt-4 text-xs leading-5" style={{ color: theme.textMuted }}>{ts('labels.currentlyActiveMode', 'Currently active mode')}: {mode}</p>
       </section>
       </DisclosureSection>
     </div>

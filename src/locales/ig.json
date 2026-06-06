@@ -333,7 +333,21 @@
     "localSettingsCleared": "Ntọala ngwaọrụ ehichapụla",
     "localSettingsClearedBody": "Isiokwu, olu, ọnọdụ ngwaọrụ, oge na ebumnobi agbakwunyeregharịrị n’ọrụ a.",
     "guestWorkspaceCleared": "Ebe ọrụ ọbịa ehichapụla",
-    "guestWorkspaceClearedBody": "Mkparịta ụka ọbịa, mkpebi, ntụgharị uche, kọntaktị ndụmọdụ na iwu ehichapụla n’ọrụ a."
+    "guestWorkspaceClearedBody": "Mkparịta ụka ọbịa, mkpebi, ntụgharị uche, kọntaktị ndụmọdụ na iwu ehichapụla n’ọrụ a.",
+    "carriedForToday": "Carried for today",
+    "carriedForTodayBody": "\"{phrase}\" is pinned on Home for today.",
+    "wisdomPostcardDownloaded": "Card downloaded",
+    "wisdomPostcardReadyBody": "Only the card was exported. Private content stayed private.",
+    "wisdomPostcardFailed": "Card could not be prepared",
+    "wisdomPostcardFailedBody": "Try again in a moment.",
+    "scriptureMemorySaved": "Ncheta Akwụkwọ Nsọ",
+    "scriptureMemorySavedBody": "Saved as a weekly anchor.",
+    "voiceReflectionStarted": "Voice reflection started",
+    "firstReflectionMilestone": "Reflection saved",
+    "firstReflectionMilestoneBody": "A quiet formation moment has begun.",
+    "firstDecisionMilestone": "Decision tracked",
+    "firstDecisionMilestoneBody": "This decision now has room to mature over time.",
+    "decisionBlessingReading": "Aletheia is reading."
   },
   "status": {
     "guestMode": "Ọnọdụ ọbịa na-arụ ọrụ. Banye ka ịmekọrịta mkpebi.",
@@ -844,7 +858,26 @@
     "gratitudeSticker_sun": "Anyanwụ",
     "gratitudeSticker_thankful": "Ekele",
     "gratitudeSticker_enough": "Zuru",
-    "gratitudeSticker_grace": "Amara"
+    "gratitudeSticker_grace": "Amara",
+    "sharePrincipleNotStory": "Share the principle, not my private story.",
+    "wisdomPostcardShareText": "Aletheia",
+    "carryCard": "Carry Card",
+    "carryCardBody": "One sentence to carry today.",
+    "scriptureMemory": "Ncheta Akwụkwọ Nsọ",
+    "carryScriptureForWeek": "Buru Akwụkwọ Nsọ",
+    "createCard": "Mepụta kaadị",
+    "voiceReflectionMode": "Voice Reflection",
+    "voiceReflectionScript": "Take one breath. Name the pressure. Name what is true. Name the next faithful step.",
+    "decisionBlessing": "Prayer draft",
+    "weeklyReviewDecisionStep": "Revisit one active decision and ask what changed.",
+    "weeklyReviewReflectStep": "Save one sentence from this week as a Rule of Life.",
+    "weeklyReviewAskStep": "Ask one honest question or save one reflection.",
+    "enoughProfile": "Enough profile",
+    "enoughProfileEmpty": "Define enough when you are ready.",
+    "gratitudeThemesNoticed": "Themes noticed: {themes}.",
+    "noReflectionsYet": "No reflections yet.",
+    "currentlyActiveMode": "Current mode",
+    "createAnswerCard": "Mepụta kaadị amamihe"
   },
   "personalizationNudgeTitle": "Ị chọrọ ndụmọdụ ka ọ bụrụ nke onwe gị?",
   "personalizationNudgeBody": "Tinye otu nkọwa gbasara ego, ọrụ, ma ọ bụ rhythm ndụ.",
@@ -1127,6 +1160,20 @@
   },
   "confirm": {
     "signOut": "Ị pụọ? A ga-ezobe data nzuzo akaụntụ n’ọrụ a. Data gị jikọtara dị nchebe ma laghachi mgbe ị batara ọzọ.",
-    "clearGuestWorkspace": "Hichapụ mkparịta ụka ọbịa, mkpebi, ntụgharị uche, kọntaktị ndụmọdụ na iwu n’ọrụ a? Nke a anaghị ehichapụ data akaụntụ ọ bụla ị batara."
-  }
+    "clearGuestWorkspace": "Hichapụ mkparịta ụka ọbịa, mkpebi, ntụgharị uche, kọntaktị ndụmọdụ na iwu n’ọrụ a? Nke a anaghị ehichapụ data akaụntụ ọ bụla ị batara.",
+    "deleteJournalEntry": "Delete this journal entry?"
+  },
+  "carryCard": "Carry Card",
+  "createCard": "Mepụta kaadị",
+  "createWisdomPostcard": "Mepụta kaadị amamihe",
+  "carryScriptureForWeek": "Buru Akwụkwọ Nsọ",
+  "scriptureMemory": "Ncheta Akwụkwọ Nsọ",
+  "weeklyWisdomReview": "Nyocha amamihe izu",
+  "weeklyReviewTitle": "Nyocha amamihe izu",
+  "weeklyReviewBody": "{pattern}",
+  "questionsThisWeek": "Jụọ",
+  "reflectionsThisWeek": "Tụgharịa uche",
+  "gratitudeThisWeek": "Gratitude",
+  "decisionsThisWeek": "Mkpebi",
+  "nextFaithfulStep": "Nzọụkwụ kwesịrị ntụkwasị obi"
 }

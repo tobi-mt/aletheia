@@ -333,7 +333,21 @@
     "localSettingsCleared": "An share saitunan na’ura",
     "localSettingsClearedBody": "An sake saita jigo, murya, mahalli, lokaci da niyya a wannan na’ura.",
     "guestWorkspaceCleared": "An share wurin aikin baƙo",
-    "guestWorkspaceClearedBody": "An share tattaunawa, shawarwari, tunani, lambobin shawara da dokokin baƙo daga wannan na’ura."
+    "guestWorkspaceClearedBody": "An share tattaunawa, shawarwari, tunani, lambobin shawara da dokokin baƙo daga wannan na’ura.",
+    "carriedForToday": "Carried for today",
+    "carriedForTodayBody": "\"{phrase}\" is pinned on Home for today.",
+    "wisdomPostcardDownloaded": "Card downloaded",
+    "wisdomPostcardReadyBody": "Only the card was exported. Private content stayed private.",
+    "wisdomPostcardFailed": "Card could not be prepared",
+    "wisdomPostcardFailedBody": "Try again in a moment.",
+    "scriptureMemorySaved": "Tunawa da Nassi",
+    "scriptureMemorySavedBody": "Saved as a weekly anchor.",
+    "voiceReflectionStarted": "Voice reflection started",
+    "firstReflectionMilestone": "Reflection saved",
+    "firstReflectionMilestoneBody": "A quiet formation moment has begun.",
+    "firstDecisionMilestone": "Decision tracked",
+    "firstDecisionMilestoneBody": "This decision now has room to mature over time.",
+    "decisionBlessingReading": "Aletheia is reading."
   },
   "status": {
     "guestMode": "Matsayin baƙo yana aiki. Shiga don daidaita shawara.",
@@ -844,7 +858,26 @@
     "gratitudeSticker_sun": "Rana",
     "gratitudeSticker_thankful": "Godiya",
     "gratitudeSticker_enough": "Ya isa",
-    "gratitudeSticker_grace": "Alheri"
+    "gratitudeSticker_grace": "Alheri",
+    "sharePrincipleNotStory": "Share the principle, not my private story.",
+    "wisdomPostcardShareText": "Aletheia",
+    "carryCard": "Carry Card",
+    "carryCardBody": "One sentence to carry today.",
+    "scriptureMemory": "Tunawa da Nassi",
+    "carryScriptureForWeek": "Riƙe Nassi",
+    "createCard": "Ƙirƙiri kati",
+    "voiceReflectionMode": "Voice Reflection",
+    "voiceReflectionScript": "Take one breath. Name the pressure. Name what is true. Name the next faithful step.",
+    "decisionBlessing": "Prayer draft",
+    "weeklyReviewDecisionStep": "Revisit one active decision and ask what changed.",
+    "weeklyReviewReflectStep": "Save one sentence from this week as a Rule of Life.",
+    "weeklyReviewAskStep": "Ask one honest question or save one reflection.",
+    "enoughProfile": "Enough profile",
+    "enoughProfileEmpty": "Define enough when you are ready.",
+    "gratitudeThemesNoticed": "Themes noticed: {themes}.",
+    "noReflectionsYet": "No reflections yet.",
+    "currentlyActiveMode": "Current mode",
+    "createAnswerCard": "Ƙirƙiri katin hikima"
   },
   "personalizationNudgeTitle": "Kana son shawara ta fi zama ta kanka?",
   "personalizationNudgeBody": "Ƙara bayani ɗaya game da kuɗi, aiki, ko tsarin rayuwa.",
@@ -1127,6 +1160,20 @@
   },
   "confirm": {
     "signOut": "Fita? Za a ɓoye bayanan sirri na asusu a wannan na’ura. Bayananka da aka daidaita suna nan lafiya kuma za su dawo idan ka sake shiga.",
-    "clearGuestWorkspace": "Share tattaunawa, shawarwari, tunani, lambobin shawara da dokokin baƙo daga wannan na’ura? Wannan ba ya share bayanan asusun da aka shiga."
-  }
+    "clearGuestWorkspace": "Share tattaunawa, shawarwari, tunani, lambobin shawara da dokokin baƙo daga wannan na’ura? Wannan ba ya share bayanan asusun da aka shiga.",
+    "deleteJournalEntry": "Delete this journal entry?"
+  },
+  "carryCard": "Carry Card",
+  "createCard": "Ƙirƙiri kati",
+  "createWisdomPostcard": "Ƙirƙiri katin hikima",
+  "carryScriptureForWeek": "Riƙe Nassi",
+  "scriptureMemory": "Tunawa da Nassi",
+  "weeklyWisdomReview": "Binciken hikima na mako",
+  "weeklyReviewTitle": "Binciken hikima na mako",
+  "weeklyReviewBody": "{pattern}",
+  "questionsThisWeek": "Tambaya",
+  "reflectionsThisWeek": "Tunani",
+  "gratitudeThisWeek": "Gratitude",
+  "decisionsThisWeek": "Shawara",
+  "nextFaithfulStep": "Mataki na aminci na gaba"
 }

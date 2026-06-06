@@ -333,7 +333,21 @@
     "localSettingsCleared": "Ajustes locales borrados",
     "localSettingsClearedBody": "Tema, voz, contexto local, horario e intenciones se restablecieron en este dispositivo.",
     "guestWorkspaceCleared": "Espacio de invitado borrado",
-    "guestWorkspaceClearedBody": "Conversaciones, decisiones, reflexiones, contactos de consejo y reglas locales se borraron de este dispositivo."
+    "guestWorkspaceClearedBody": "Conversaciones, decisiones, reflexiones, contactos de consejo y reglas locales se borraron de este dispositivo.",
+    "carriedForToday": "Carried for today",
+    "carriedForTodayBody": "\"{phrase}\" is pinned on Home for today.",
+    "wisdomPostcardDownloaded": "Card downloaded",
+    "wisdomPostcardReadyBody": "Only the card was exported. Private content stayed private.",
+    "wisdomPostcardFailed": "Card could not be prepared",
+    "wisdomPostcardFailedBody": "Try again in a moment.",
+    "scriptureMemorySaved": "Memoria bíblica",
+    "scriptureMemorySavedBody": "Saved as a weekly anchor.",
+    "voiceReflectionStarted": "Voice reflection started",
+    "firstReflectionMilestone": "Reflection saved",
+    "firstReflectionMilestoneBody": "A quiet formation moment has begun.",
+    "firstDecisionMilestone": "Decision tracked",
+    "firstDecisionMilestoneBody": "This decision now has room to mature over time.",
+    "decisionBlessingReading": "Aletheia is reading."
   },
   "status": {
     "guestMode": "Modo invitado activo. Inicia sesión para sincronizar decisiones.",
@@ -844,7 +858,26 @@
     "gratitudeSticker_sun": "Sol",
     "gratitudeSticker_thankful": "Agradecido",
     "gratitudeSticker_enough": "Suficiente",
-    "gratitudeSticker_grace": "Gracia"
+    "gratitudeSticker_grace": "Gracia",
+    "sharePrincipleNotStory": "Share the principle, not my private story.",
+    "wisdomPostcardShareText": "Aletheia",
+    "carryCard": "Carry Card",
+    "carryCardBody": "One sentence to carry today.",
+    "scriptureMemory": "Memoria bíblica",
+    "carryScriptureForWeek": "Llevar escritura",
+    "createCard": "Crear tarjeta",
+    "voiceReflectionMode": "Voice Reflection",
+    "voiceReflectionScript": "Take one breath. Name the pressure. Name what is true. Name the next faithful step.",
+    "decisionBlessing": "Prayer draft",
+    "weeklyReviewDecisionStep": "Revisit one active decision and ask what changed.",
+    "weeklyReviewReflectStep": "Save one sentence from this week as a Rule of Life.",
+    "weeklyReviewAskStep": "Ask one honest question or save one reflection.",
+    "enoughProfile": "Enough profile",
+    "enoughProfileEmpty": "Define enough when you are ready.",
+    "gratitudeThemesNoticed": "Themes noticed: {themes}.",
+    "noReflectionsYet": "No reflections yet.",
+    "currentlyActiveMode": "Current mode",
+    "createAnswerCard": "Crear tarjeta de sabiduría"
   },
   "personalizationNudgeTitle": "¿Quieres un consejo más personal?",
   "personalizationNudgeBody": "Agrega un detalle sobre dinero, trabajo o ritmo.",
@@ -1127,6 +1160,20 @@
   },
   "confirm": {
     "signOut": "¿Cerrar sesión? Los datos privados de la cuenta se ocultarán en este dispositivo. Tus datos sincronizados permanecen seguros y vuelven al iniciar sesión.",
-    "clearGuestWorkspace": "¿Borrar conversaciones, decisiones, reflexiones, contactos de consejo y reglas locales de invitado de este dispositivo? No elimina datos de una cuenta iniciada."
-  }
+    "clearGuestWorkspace": "¿Borrar conversaciones, decisiones, reflexiones, contactos de consejo y reglas locales de invitado de este dispositivo? No elimina datos de una cuenta iniciada.",
+    "deleteJournalEntry": "Delete this journal entry?"
+  },
+  "carryCard": "Carry Card",
+  "createCard": "Crear tarjeta",
+  "createWisdomPostcard": "Crear tarjeta de sabiduría",
+  "carryScriptureForWeek": "Llevar escritura",
+  "scriptureMemory": "Memoria bíblica",
+  "weeklyWisdomReview": "Revisión semanal de sabiduría",
+  "weeklyReviewTitle": "Revisión semanal de sabiduría",
+  "weeklyReviewBody": "{pattern}",
+  "questionsThisWeek": "Preguntar",
+  "reflectionsThisWeek": "Reflexión",
+  "gratitudeThisWeek": "Gratitude",
+  "decisionsThisWeek": "Decisiones",
+  "nextFaithfulStep": "Siguiente paso fiel"
 }

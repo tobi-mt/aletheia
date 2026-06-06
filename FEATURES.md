@@ -84,6 +84,9 @@ Aletheia includes distinct wisdom modes that change how guidance is interpreted 
 - Tiny daily practice
 - Editorial Today’s Companion card with scripture chip, featured insight, carry phrase, and quiet detail expansion
 - Visible mode lens for the day
+- Carry Card action that turns the daily carry phrase into a beautiful shareable wisdom card
+- Gentle scripture memory strip for one saved weekly scripture/principle
+- Weekly Wisdom Review with quiet counts for questions, reflections, gratitude moments, and decisions plus one next faithful step
 
 ## Decision Companion
 
@@ -96,6 +99,9 @@ Aletheia includes distinct wisdom modes that change how guidance is interpreted 
 - Outcome review prompts for 7, 30, and 90 days
 - Decision summary export area
 - Mentor-ready decision summary with privacy review before sharing
+- Decision summary postcard export for sharing the principle or summary without exposing the full private story by default
+- Optional decision blessing / prayer draft after a decision summary
+- “What changed?” revisit support that helps users compare urgency, counsel, clarity, numbers, and peace over time
 - Outcome and learning capture after the decision is made
 - Decision history
 - Ability to continue a decision from a chat answer
@@ -113,6 +119,7 @@ After a meaningful answer, Aletheia can help the user take the next wise step.
 - Draft a reflection from the latest answer
 - Draft a mentor/counsel summary from the latest answer
 - Invite someone to Aletheia without sharing private question or answer content
+- Turn useful counsel into a Wisdom Postcard with privacy-first share copy
 
 ## Sharing And Referrals
 
@@ -146,6 +153,9 @@ After a meaningful answer, Aletheia can help the user take the next wise step.
 - Private reflection journal
 - Saved reflections
 - Reflection deletion
+- Voice Reflection Mode for a short guided moment: breathe, name the pressure, name what is true, and name the next faithful step
+- Reflection postcard export for sharing a principle or insight without exposing private journal context unless the user chooses
+- First-reflection milestone moment that gently acknowledges formation without gamification
 - Reflection drafts created from AI answers
 - Today’s wisdom can be turned into a reflection prompt
 - Gratitude Lens for visual gratitude practice using a user-selected or captured photo plus one grateful note
@@ -156,6 +166,7 @@ After a meaningful answer, Aletheia can help the user take the next wise step.
 - Photo-to-reflection flow that turns a saved gratitude moment into a journal prompt
 - Optional place/context field for gratitude moments without requesting GPS location
 - Private gratitude timeline for visual tracking of provision, beauty, and small mercies
+- Gratitude Gallery summary that highlights recurring themes across the user’s saved gratitude moments
 - Streak-free weekly gratitude recap focused on remembrance rather than pressure
 - Optional generated gratitude postcard that includes the selected image, note, date/time, and optional place
 - Local-only postcard styling with calm filters: Warm, Soft, Mono, Forest, Golden Hour, and Calm Contrast
@@ -180,6 +191,20 @@ After a meaningful answer, Aletheia can help the user take the next wise step.
 - “Why this matters here” explanation
 - Related wisdom principle shown in the scripture modal
 - Integrity layer that avoids invented scripture references
+- Gentle Scripture Memory: users can carry one scripture/principle for the week, revisit it, hear it read aloud, or export it as a card
+
+## Wisdom Postcards
+
+- Users can create beautiful shareable cards from daily wisdom, carry phrases, scripture memory, reflections, and decision summaries
+- Cards include Aletheia branding and a privacy-first posture: “Share the principle, not the private story”
+- Private questions, full answers, journal entries, and decision details are not shared by default
+- Export uses an in-browser canvas so the user explicitly controls saving or sharing
+
+## Enough And Values Tools
+
+- Manual Context Vault includes “definition of enough” and future-state targets for savings buffer, work hours, rest, generosity, support, stress, and urgency
+- Enough profile summary helps Aletheia challenge endless “more” with the user’s own stated values
+- Counsel signals can distinguish lack of courage from missing numbers, thin buffers, unclear cost, or insufficient counsel
 
 ## Counsel Circle
 
@@ -359,6 +384,7 @@ Calm milestones are included as signs of formation, not childish gamification.
 - Rule of life created
 - Notifications enabled
 - 7 days of wisdom practice
+- Milestone moments use quiet acknowledgement such as “You practiced wisdom before speed” rather than points, pressure, or competition
 
 ## Analytics
 
