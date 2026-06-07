@@ -19,6 +19,7 @@ It is designed to feel emotionally intelligent, spiritually grounded, and practi
 - Calm experience that reduces noise, anxiety, and decision fatigue.
 - Premium interface that feels intentional, focused, and trustworthy.
 - Editorial Home rhythm with one clear next action, supporting choices, and a richer Today’s Companion card.
+- Main tabs keep a shared Aletheia design language while using distinct visual outlines, rhythms, and motifs for Today, Ask, Decisions, Reflect, Library, and Account.
 - Onboarding keeps setup navigation reachable and traps mobile scrolling inside the setup card so first-time users do not get stuck or accidentally scroll the app behind it.
 - Spiritual depth rooted in curated biblical wisdom rather than generic advice.
 - Practical guidance that includes reflection, counsel, and concrete next steps.
@@ -49,7 +50,8 @@ It is designed to feel emotionally intelligent, spiritually grounded, and practi
 - Collapsed conversation history so the interface does not feel like a noisy chat transcript
 - Current counsel card that keeps the latest answer prominent
 - Suggested prompts for common money, work, purpose, and generosity questions
-- Voice input for asking questions when supported by the browser
+- Voice input for asking questions is enabled by default when supported by the browser
+- Visible voice input toggle in Account so users can deactivate or reactivate the microphone beside Ask
 - Voice output for reading the latest Aletheia response aloud
 - Answer feedback buttons: helpful, too vague, too preachy, and not relevant
 - Contextual personalization nudge after “too vague” feedback when the user has not added any manual context
@@ -72,6 +74,7 @@ Aletheia includes distinct wisdom modes that change how guidance is interpreted 
 ## Today Dashboard
 
 - A daily home dashboard centered on the question: “What should I do next?”
+- Home uses a top-level Today / Ask Aletheia switch so the main ask experience is one tap away without scrolling past dashboard cards.
 - Strong visual hierarchy that keeps one primary next action visible before supporting options.
 - Quick actions to start or continue a decision
 - Quick action to reflect on today’s wisdom
@@ -85,8 +88,7 @@ Aletheia includes distinct wisdom modes that change how guidance is interpreted 
 - Editorial Today’s Companion card with scripture chip, featured insight, carry phrase, and quiet detail expansion
 - Visible mode lens for the day
 - Carry Card action that turns the daily carry phrase into a beautiful shareable wisdom card
-- Gentle scripture memory strip for one saved weekly scripture/principle
-- Weekly Wisdom Review with quiet counts for questions, reflections, gratitude moments, and decisions plus one next faithful step
+- Weekly Wisdom Review with quiet counts for questions, reflections, gratitude moments, decisions, one saved weekly scripture/principle, and one next faithful step
 
 ## Decision Companion
 
@@ -159,6 +161,7 @@ After a meaningful answer, Aletheia can help the user take the next wise step.
 - Reflection drafts created from AI answers
 - Today’s wisdom can be turned into a reflection prompt
 - Gratitude Lens for visual gratitude practice using a user-selected or captured photo plus one grateful note
+- Gratitude Lens frames each saved moment as private visual formation: provision, beauty, enoughness, answered prayer, or ordinary mercy
 - Gratitude Lens interface, timeline, weekly recap, and postcard actions use the user’s selected app language
 - Gratitude photos stay local on the user’s device by default and are not synced to the account
 - Evening gratitude notifications are delivered around 7 PM local time through the existing notification cron, without adding another visible timing control
@@ -167,11 +170,12 @@ After a meaningful answer, Aletheia can help the user take the next wise step.
 - Optional place/context field for gratitude moments without requesting GPS location
 - Private gratitude timeline for visual tracking of provision, beauty, and small mercies
 - Gratitude Gallery summary that highlights recurring themes across the user’s saved gratitude moments
+- Weekly gratitude recap highlights formation patterns over time without streaks, scores, or social-media pressure
 - Streak-free weekly gratitude recap focused on remembrance rather than pressure
 - Optional generated gratitude postcard that includes the selected image, note, date/time, and optional place
 - Local-only postcard styling with calm filters: Warm, Soft, Mono, Forest, Golden Hour, and Calm Contrast
-- Optional postcard overlays for date, place, gratitude note, and Aletheia signature
-- Curated gratitude stickers and minimal emoji accents for users who intentionally want a more playful card
+- Optional postcard filters, overlays, stickers, and emoji accents live inside a collapsed style control so gratitude capture stays simple by default
+- Selected gratitude postcard filters, overlays, stickers, emoji accents, date/place details, note, and Aletheia signature are applied to the generated card
 - Gratitude postcard includes Aletheia branding/signature and a subtle invitation to begin a gratitude rhythm
 - Gratitude postcards export/share only when the user explicitly chooses
 - Exported gratitude postcards are marked back in the local Gratitude Timeline
@@ -228,6 +232,7 @@ After a meaningful answer, Aletheia can help the user take the next wise step.
 - Collapsed Profile card shows avatar/photo, email, and icon-and-number continuity stats for reflections, decisions, and trusted voices without truncating translated labels
 - Account navigation can show the user’s selected avatar/profile photo while guests keep the standard account icon
 - Personalization group with command-center rows for language, Bible translation, visual theme swatches, curated voice preference, avatar, and focus intentions
+- Visible Voice Input control in Account for showing or hiding the microphone beside Ask
 - Voice selector separates Use and Preview actions, shows selected-state feedback, and reports localized preview status
 - Each personalization row shows the current value first and expands only when the user wants to change it
 - Guided onboarding journey for mode, tone, faith familiarity, language, Bible translation, region, focus intentions, and privacy/context posture

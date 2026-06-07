@@ -23,7 +23,7 @@ export const defaultPreferences: UserPreferences = {
   language: "en",
   region: "global",
   bibleTranslation: "WEB",
-  voiceEnabled: false,
+  voiceEnabled: true,
 };
 
 export const languages: Record<LanguageCode, { name: string; nativeName: string; speech: string; direction: "ltr" }> = {
@@ -759,7 +759,7 @@ export function normalizePreferences(input: Partial<UserPreferences> = {}): User
     language,
     region,
     bibleTranslation,
-    voiceEnabled: Boolean(input.voiceEnabled),
+    voiceEnabled: typeof input.voiceEnabled === "boolean" ? input.voiceEnabled : defaultPreferences.voiceEnabled,
   };
 }
 

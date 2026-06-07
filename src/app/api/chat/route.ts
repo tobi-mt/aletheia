@@ -8,7 +8,7 @@ import { generateWisdomResponse } from "@/lib/openai";
 import { checkRateLimit, getClientIdentity, rateLimitHeaders } from "@/lib/rate-limit";
 import { composeModeAwareFallbackResponse, retrieveWisdom } from "@/lib/wisdom";
 import { analyticsQuestionMetadata } from "@/lib/analytics-taxonomy";
-import type { Mode } from "@/lib/wisdom-data";
+import { normalizeMode } from "@/lib/wisdom-data";
 
 function compactMemorySummary({
   decisions,
@@ -94,13 +94,13 @@ export async function POST(request: Request) {
 
   const body = (await request.json()) as {
     message?: string;
-    mode?: Mode;
+    mode?: unknown;
     preferences?: Partial<UserPreferences>;
     manualContext?: Partial<ManualContextProfile>;
   };
 
   const message = body.message?.trim();
-  const mode = body.mode ?? "Money";
+  const mode = normalizeMode(body.mode);
   const preferences = normalizePreferences(body.preferences ?? defaultPreferences);
 
   if (!message) {

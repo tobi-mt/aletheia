@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { trackServerEvent } from "@/lib/analytics";
 import { many, run } from "@/lib/db";
-import type { Mode } from "@/lib/wisdom-data";
+import { normalizeMode, type Mode } from "@/lib/wisdom-data";
 
 type RuleRow = {
   id: string;
@@ -41,9 +41,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Sign in to save rules of life." }, { status: 401 });
   }
 
-  const body = (await request.json()) as { mode?: Mode; principle?: string };
+  const body = (await request.json()) as { mode?: unknown; principle?: string };
   const principle = body.principle?.trim();
-  const mode = body.mode ?? "Money";
+  const mode = normalizeMode(body.mode);
   if (!principle) {
     return NextResponse.json({ error: "Principle is required." }, { status: 400 });
   }

@@ -76,6 +76,8 @@ import { curatedAvatarOptions, defaultAvatarDataUrl, normalizeAvatarUrl } from "
 import { loadTranslationsWithFallbackSync, getTranslation, type TranslationData } from "@/lib/translations";
 
 type View = "companion" | "decisions" | "reflect" | "library" | "account";
+type HomeSection = "today" | "ask";
+type ViewIdentity = HomeSection | "decisions" | "reflect" | "library" | "account";
 type AuthMode = "login" | "register";
 type AuthStatus = "checking" | "guest" | "signing-in" | "signed-in" | "signing-out";
 type AnalyticsMetadata = Record<string, string | number | boolean | null>;
@@ -507,6 +509,7 @@ const uiText: Record<
     createWisdomPostcard?: string;
     carryScriptureForWeek?: string;
     scriptureMemory?: string;
+    clearScriptureMemory?: string;
     weeklyWisdomReview?: string;
     weeklyReviewTitle?: string;
     weeklyReviewBody?: string;
@@ -667,6 +670,7 @@ const uiText: Record<
     createWisdomPostcard: "Create wisdom card",
     carryScriptureForWeek: "Carry scripture",
     scriptureMemory: "Scripture memory",
+    clearScriptureMemory: "Stop carrying scripture",
     weeklyWisdomReview: "Weekly Wisdom Review",
     weeklyReviewTitle: "A quiet look at your week",
     weeklyReviewBody: "No streaks or pressure. Just notice how {pattern} has been shaping your discernment.",
@@ -1827,6 +1831,7 @@ function storedGratitudeEntries(): GratitudeEntry[] {
       .map((entry) => ({
         ...entry,
         place: typeof entry.place === "string" ? entry.place : "",
+        formation: normalizeGratitudeFormation(entry.formation),
         visual: normalizeGratitudeVisual(entry.visual),
         postcardCreatedAt: typeof entry.postcardCreatedAt === "string" ? entry.postcardCreatedAt : undefined,
         reflectedAt: typeof entry.reflectedAt === "string" ? entry.reflectedAt : undefined,
@@ -1907,7 +1912,7 @@ function drawWrappedCanvasText(
   return y + lines.length * lineHeight;
 }
 
-function drawGratitudeStickerChips(context: CanvasRenderingContext2D, visual: GratitudeVisualSettings, theme: ThemeColors) {
+function drawGratitudeStickerChips(context: CanvasRenderingContext2D, visual: GratitudeVisualSettings) {
   const items = [...visual.stickers.map((sticker) => GRATITUDE_STICKER_MARK[sticker]), visual.emoji].filter(Boolean).slice(0, 5);
   if (!items.length) {
     return;
@@ -1915,24 +1920,28 @@ function drawGratitudeStickerChips(context: CanvasRenderingContext2D, visual: Gr
   context.save();
   context.font = "700 28px system-ui, sans-serif";
   let x = 80;
-  const y = 910;
+  const y = 902;
   for (const item of items) {
     const isWord = item.length > 2;
-    const width = Math.min(220, Math.max(isWord ? 150 : 76, context.measureText(item).width + 42));
+    const width = Math.min(240, Math.max(isWord ? 154 : 76, context.measureText(item).width + 46));
     if (x + width > 1120) {
       break;
     }
-    context.fillStyle = "rgba(13, 23, 20, 0.58)";
-    context.strokeStyle = theme.accentLight;
+    context.shadowColor = "rgba(0, 0, 0, 0.28)";
+    context.shadowBlur = 18;
+    context.shadowOffsetY = 8;
+    context.fillStyle = "rgba(13, 23, 20, 0.64)";
+    context.strokeStyle = "rgba(248, 245, 232, 0.32)";
     context.lineWidth = 2;
     context.beginPath();
-    context.roundRect(x, y, width, 58, 20);
+    context.roundRect(x, y, width, 60, 22);
     context.fill();
     context.stroke();
+    context.shadowColor = "rgba(0, 0, 0, 0)";
     context.fillStyle = "#f8f5e8";
     context.textAlign = "center";
     context.textBaseline = "middle";
-    context.fillText(item, x + width / 2, y + 31);
+    context.fillText(item, x + width / 2, y + 32);
     x += width + 16;
   }
   context.restore();
@@ -1962,13 +1971,17 @@ function createGratitudePostcardBlob(entry: GratitudeEntry, theme: ThemeColors, 
       context.filter = GRATITUDE_FILTER_STYLE[visual.filter];
       context.drawImage(img, (canvas.width - drawWidth) / 2, (imageHeight - drawHeight) / 2, drawWidth, drawHeight);
       context.restore();
+      if (visual.filter !== "none") {
+        context.fillStyle = GRATITUDE_FILTER_OVERLAY[visual.filter];
+        context.fillRect(0, 0, canvas.width, imageHeight);
+      }
       const gradient = context.createLinearGradient(0, 680, 0, 1600);
       gradient.addColorStop(0, "rgba(13, 23, 20, 0)");
-      gradient.addColorStop(0.42, "rgba(13, 23, 20, 0.78)");
+      gradient.addColorStop(0.38, "rgba(13, 23, 20, 0.72)");
       gradient.addColorStop(1, "rgba(13, 23, 20, 0.96)");
       context.fillStyle = gradient;
       context.fillRect(0, 0, canvas.width, canvas.height);
-      drawGratitudeStickerChips(context, visual, theme);
+      drawGratitudeStickerChips(context, visual);
 
       if (logo && visual.showSignature) {
         context.save();
@@ -1988,13 +2001,13 @@ function createGratitudePostcardBlob(entry: GratitudeEntry, theme: ThemeColors, 
       }
       context.fillStyle = theme.accentLight;
       context.font = "700 30px system-ui, sans-serif";
-      context.fillText(label.toLocaleUpperCase(locale), 80, 1210);
+      context.fillText(label.toLocaleUpperCase(locale), 80, visual.showSignature ? 1210 : 1112);
 
-      let afterNoteY = 1260;
+      let afterNoteY = visual.showSignature ? 1260 : 1162;
       if (visual.showNote) {
         context.fillStyle = "#f8f5e8";
         context.font = "600 60px Georgia, serif";
-        afterNoteY = drawWrappedCanvasText(context, entry.note, 80, 1300, 1040, 76, 4);
+        afterNoteY = drawWrappedCanvasText(context, entry.note, 80, visual.showSignature ? 1300 : 1210, 1040, 76, visual.showSignature ? 4 : 5);
       }
 
       context.fillStyle = "rgba(248, 245, 232, 0.78)";
@@ -2004,7 +2017,7 @@ function createGratitudePostcardBlob(entry: GratitudeEntry, theme: ThemeColors, 
         visual.showPlace ? entry.place.trim() : "",
       ].filter(Boolean).join(" · ");
       if (details) {
-        drawWrappedCanvasText(context, details, 80, Math.min(afterNoteY + 46, 1488), 1040, 42, 2);
+        drawWrappedCanvasText(context, details, 80, Math.min(afterNoteY + 46, visual.showSignature ? 1488 : 1520), 1040, 42, 2);
       }
 
       if (visual.showSignature) {
@@ -2082,11 +2095,31 @@ function createWisdomPostcardBlob(payload: WisdomPostcardPayload, theme: ThemeCo
 
       context.fillStyle = theme.textPrimary;
       context.font = "700 72px Georgia, serif";
-      drawWrappedCanvasText(context, cleanDisplayText(payload.title), 86, 370, 1028, 88, 4);
+      const titleEndY = drawWrappedCanvasText(context, cleanDisplayText(payload.title), 86, 370, 1028, 88, 4);
 
-      context.fillStyle = theme.textSecondary;
-      context.font = "400 42px system-ui, sans-serif";
-      drawWrappedCanvasText(context, cleanDisplayText(payload.body), 86, 760, 1028, 62, 8);
+      const bodyStartY = Math.max(payload.kind === "scripture" ? 610 : 650, titleEndY + 78);
+      if (payload.sections?.length) {
+        let sectionY = bodyStartY;
+        payload.sections.slice(0, 4).forEach((section, index) => {
+          if (sectionY > 1320) {
+            return;
+          }
+          if (section.label) {
+            context.fillStyle = theme.accentGold;
+            context.font = "700 24px system-ui, sans-serif";
+            context.fillText(section.label.toLocaleUpperCase(locale), 86, sectionY);
+            sectionY += 44;
+          }
+          context.fillStyle = theme.textSecondary;
+          context.font = index === 0 && payload.kind === "scripture" ? "400 38px Georgia, serif" : "400 36px system-ui, sans-serif";
+          const maxLines = payload.kind === "scripture" && index === 0 ? 5 : 3;
+          sectionY = drawWrappedCanvasText(context, cleanDisplayText(section.text), 86, sectionY, 1028, 52, maxLines) + 38;
+        });
+      } else {
+        context.fillStyle = theme.textSecondary;
+        context.font = "400 42px system-ui, sans-serif";
+        drawWrappedCanvasText(context, cleanDisplayText(payload.body), 86, 760, 1028, 62, 8);
+      }
 
       context.fillStyle = theme.accentGold;
       context.font = "600 30px system-ui, sans-serif";
@@ -2535,11 +2568,13 @@ type GratitudeEntry = {
   note: string;
   place: string;
   createdAt: string;
+  formation?: GratitudeFormation;
   visual?: GratitudeVisualSettings;
   postcardCreatedAt?: string;
   reflectedAt?: string;
 };
 
+type GratitudeFormation = "provision" | "beauty" | "enoughness" | "answeredPrayer" | "ordinaryMercy";
 type GratitudeFilter = "none" | "warm" | "soft" | "mono" | "forest" | "golden" | "calm";
 type GratitudeSticker = "leaf" | "cross" | "heart" | "spark" | "book" | "seedling" | "sun" | "thankful" | "enough" | "grace";
 
@@ -2554,9 +2589,11 @@ type GratitudeVisualSettings = {
 };
 
 const GRATITUDE_FILTERS: GratitudeFilter[] = ["none", "warm", "soft", "mono", "forest", "golden", "calm"];
+const GRATITUDE_FORMATIONS: GratitudeFormation[] = ["provision", "beauty", "enoughness", "answeredPrayer", "ordinaryMercy"];
 const GRATITUDE_STICKERS: GratitudeSticker[] = ["leaf", "cross", "heart", "spark", "book", "seedling", "sun", "thankful", "enough", "grace"];
 const GRATITUDE_EMOJIS = ["", "🙏", "✨", "🌿", "☀️", "💛", "🕊️"];
 const MAX_GRATITUDE_STICKERS = 4;
+const DEFAULT_GRATITUDE_FORMATION: GratitudeFormation = "ordinaryMercy";
 
 const DEFAULT_GRATITUDE_VISUAL: GratitudeVisualSettings = {
   filter: "none",
@@ -2578,6 +2615,16 @@ const GRATITUDE_FILTER_STYLE: Record<GratitudeFilter, string> = {
   calm: "contrast(1.07) saturate(0.86) brightness(0.98)",
 };
 
+const GRATITUDE_FILTER_OVERLAY: Record<GratitudeFilter, string> = {
+  none: "rgba(0, 0, 0, 0)",
+  warm: "rgba(176, 104, 52, 0.12)",
+  soft: "rgba(255, 246, 232, 0.16)",
+  mono: "rgba(18, 18, 18, 0.1)",
+  forest: "rgba(44, 91, 58, 0.12)",
+  golden: "rgba(213, 163, 69, 0.16)",
+  calm: "rgba(82, 112, 124, 0.12)",
+};
+
 const GRATITUDE_STICKER_MARK: Record<GratitudeSticker, string> = {
   leaf: "🍃",
   cross: "✝",
@@ -2590,6 +2637,20 @@ const GRATITUDE_STICKER_MARK: Record<GratitudeSticker, string> = {
   enough: "enough",
   grace: "grace",
 };
+
+const GRATITUDE_FORMATION_ICON: Record<GratitudeFormation, string> = {
+  provision: "☕",
+  beauty: "✦",
+  enoughness: "enough",
+  answeredPrayer: "amen",
+  ordinaryMercy: "mercy",
+};
+
+function normalizeGratitudeFormation(value: unknown): GratitudeFormation {
+  return typeof value === "string" && GRATITUDE_FORMATIONS.includes(value as GratitudeFormation)
+    ? value as GratitudeFormation
+    : DEFAULT_GRATITUDE_FORMATION;
+}
 
 function normalizeGratitudeVisual(value: unknown): GratitudeVisualSettings {
   if (!value || typeof value !== "object") {
@@ -2655,6 +2716,7 @@ type WisdomPostcardPayload = {
   title: string;
   eyebrow?: string;
   body: string;
+  sections?: Array<{ label?: string; text: string }>;
   footer?: string;
   kind: "answer" | "reflection" | "daily" | "decision" | "scripture" | "carry" | "blessing";
 };
@@ -3572,6 +3634,7 @@ function companionCardFromDaily({
 
 export function AletheiaApp() {
   const [activeView, setActiveViewState] = useState<View>("companion");
+  const [homeSection, setHomeSectionState] = useState<HomeSection>("today");
   
   // Wrapper to persist active view and track navigation usage.
   const setActiveView = useCallback((view: View, source = "navigation") => {
@@ -3583,6 +3646,18 @@ export function AletheiaApp() {
     });
     if (typeof window !== "undefined") {
       window.localStorage.setItem("aletheia-active-view", view);
+    }
+  }, []);
+
+  const setHomeSection = useCallback((section: HomeSection, source = "home_tabs") => {
+    setHomeSectionState((current) => {
+      if (current !== section) {
+        trackClientEvent("home_section_changed", { from_section: current, to_section: section, source });
+      }
+      return section;
+    });
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("aletheia-home-section", section);
     }
   }, []);
   
@@ -3740,8 +3815,12 @@ export function AletheiaApp() {
 
       try {
         const storedView = window.localStorage.getItem("aletheia-active-view") as View | null;
+        const storedHomeSection = window.localStorage.getItem("aletheia-home-section") as HomeSection | null;
         if (!shouldHonorNotificationFocus && storedView && ["companion", "decisions", "reflect", "library", "account"].includes(storedView)) {
           setActiveViewState(storedView);
+        }
+        if (!shouldHonorNotificationFocus && storedHomeSection && ["today", "ask"].includes(storedHomeSection)) {
+          setHomeSectionState(storedHomeSection);
         }
       } catch {
         // Keep deterministic defaults if storage is unavailable.
@@ -3750,11 +3829,15 @@ export function AletheiaApp() {
     return () => window.cancelAnimationFrame(restoreId);
   }, []);
 
-  // String-only translation helper (for notification titles/bodies)
-  const ts = useCallback((key: string, fallback?: string): string => {
-    const result = getTranslation(translations, key, fallback || key);
-    return Array.isArray(result) ? result.join(', ') : result;
+  const translationHelpers = useMemo(() => {
+    const t = (key: string, fallback?: string): string | string[] => getTranslation(translations, key, fallback || key);
+    const ts = (key: string, fallback?: string): string => {
+      const result = t(key, fallback || key);
+      return Array.isArray(result) ? result.join(', ') : result;
+    };
+    return { t, ts };
   }, [translations]);
+  const { ts } = translationHelpers;
 
   // Build ui object from translations for backward compatibility
   const buildUiFromTranslations = (trans: TranslationData) => {
@@ -4195,13 +4278,14 @@ export function AletheiaApp() {
         );
       } else {
         setActiveView("companion", "notification_click");
+        setHomeSection("today", "notification_click");
         setStatusMessage(ts('status.todayWisdomReady', "Today's wisdom is ready."));
         announceWorkflow(ts('notifications.todayWisdomReady', "Today's wisdom is ready"), ts('notifications.todayWisdomReadyBody', 'Aletheia opened the daily companion card for you.'), "success");
         setPendingNotificationFocus(true);
       }
       window.history.replaceState({}, "", window.location.pathname);
     });
-  }, [announceWorkflow, clientStateRestored, setActiveView, ts]);
+  }, [announceWorkflow, clientStateRestored, setActiveView, setHomeSection, ts]);
 
   useEffect(() => {
     if (!pendingGratitudeNotificationFocus || activeView !== "reflect" || showOnboarding) {
@@ -5058,6 +5142,7 @@ export function AletheiaApp() {
       setQuery(
         `I am seeking wisdom for this right now: ${onboardingConcern.trim()}. Please guide me with a ${onboardingTone} tone. My faith familiarity is ${faithFamiliarity}.`
       );
+      setHomeSection("ask", "onboarding_completed");
       showView("companion");
       setStatusMessage(ts('status.startingQuestionReady'));
       announceWorkflow(ts('notifications.startingPathPrepared'), ts('notifications.startingPathPreparedBody'), "success");
@@ -5101,6 +5186,7 @@ export function AletheiaApp() {
   }
 
   function askOneQuestionFlow() {
+    setHomeSection("ask", "ask_one_question");
     showView("companion");
     setQuery((current) => current || modeProfile.prompts[0]);
     scrollToSection("companion-ask");
@@ -5186,7 +5272,12 @@ export function AletheiaApp() {
       kind: "daily",
       eyebrow: ts('labels.todaysCompanion', 'Today’s Companion'),
       title: `${ts('todayPrefix', 'Today')}: ${card.title}`,
-      body: `${card.opening}\n\n${card.carryPhrase}`,
+      body: `${card.principle}\n\n${card.practice}\n\n${card.carryPhrase}`,
+      sections: [
+        { label: ts('labels.principle', 'Principle'), text: card.principle },
+        { label: ts('labels.tinyPractice', 'Tiny practice'), text: card.practice },
+        { label: ts('labels.carryThisToday', 'Carry this today'), text: card.carryPhrase },
+      ],
     }, "today_companion_card");
   }
 
@@ -5225,17 +5316,45 @@ export function AletheiaApp() {
     );
   }
 
+  function clearScriptureMemory() {
+    setScriptureMemory(null);
+    try {
+      window.localStorage.removeItem(SCRIPTURE_MEMORY_STORAGE_KEY);
+    } catch {
+      // The visible memory is cleared for this session even if storage is unavailable.
+    }
+    trackClientEvent("scripture_memory_cleared", {
+      language: preferences.language,
+      bibleTranslation: preferences.bibleTranslation,
+    });
+    announceWorkflow(
+      ts('notifications.scriptureMemoryCleared', 'Scripture memory cleared'),
+      ts('notifications.scriptureMemoryClearedBody', 'The weekly scripture anchor was removed from Home.'),
+      "info"
+    );
+  }
+
   function shareScriptureMemoryCard(memory: ScriptureMemory) {
+    const read = localizedScriptureRead(memory.scripture, preferences);
+    const translationCode = read.translation as BibleTranslation;
+    const translation = bibleTranslations[translationCode] ?? bibleTranslations[preferences.bibleTranslation];
+    const translationLabel = `${translationCode} · ${translation.label}`;
     void shareWisdomPostcard({
       kind: "scripture",
-      eyebrow: ts('labels.scriptureMemory', 'Scripture Memory'),
+      eyebrow: `${ts('labels.scriptureMemory', 'Scripture Memory')} · ${translationCode}`,
       title: memory.scripture,
-      body: memory.principle,
+      body: `${read.text}\n\n${translationLabel}\n\n${memory.principle}`,
+      sections: [
+        { label: ts('labels.scriptureQuotedText', 'Quoted text'), text: read.text },
+        { label: ts('labels.bibleTranslation', 'Bible translation'), text: translationLabel },
+        { label: ts('labels.principle', 'Principle'), text: memory.principle },
+      ],
     }, "scripture_memory");
   }
 
   function askAboutCompanionCard(card: TodayCompanionCard) {
     setQuery(`Help me reflect on this today: ${card.question}`);
+    setHomeSection("ask", "today_companion_card");
     showView("companion");
     scrollToSection("companion-ask");
     announceWorkflow(ts('notifications.questionPrepared', 'Question prepared'), ts('notifications.questionPreparedBody', 'Aletheia placed today’s question in the Companion input.'), "success");
@@ -5446,6 +5565,7 @@ export function AletheiaApp() {
       `Please go deeper on this in a practical, understandable way. Add more context, examples, blind spots, scripture context, and one next faithful step: ${question}`
     );
     trackClientEvent("answer_followup_asked", { mode, kind: "go_deeper", ...analyticsQuestionMetadata(question, mode) });
+    setHomeSection("ask", "answer_followup");
     showView("companion");
     scrollToSection("companion-ask");
     announceWorkflow(ts('notifications.deeperFollowUpReady'), ts('notifications.deeperFollowUpReadyBody'), "success");
@@ -6493,7 +6613,7 @@ export function AletheiaApp() {
     announceWorkflow(ts('notifications.reflectionDeleted'), ts('notifications.reflectionDeletedBody'), "info");
   }
 
-  async function saveGratitudeEntry(file: File | null, note: string, place: string, visual?: GratitudeVisualSettings) {
+  async function saveGratitudeEntry(file: File | null, note: string, place: string, visual?: GratitudeVisualSettings, formation?: GratitudeFormation) {
     const cleanNote = note.trim();
     const cleanPlace = place.trim();
     if (!file || !cleanNote) {
@@ -6512,6 +6632,7 @@ export function AletheiaApp() {
         note: cleanNote.slice(0, 280),
         place: cleanPlace.slice(0, 120),
         createdAt: new Date().toISOString(),
+        formation: normalizeGratitudeFormation(formation),
         visual: normalizeGratitudeVisual(visual),
       };
       const nextEntries = [entry, ...gratitudeEntries].slice(0, MAX_GRATITUDE_ENTRIES);
@@ -6520,6 +6641,7 @@ export function AletheiaApp() {
       trackClientEvent("gratitude_entry_created", {
         has_place: Boolean(cleanPlace),
         source: "reflect_tab",
+        formation: entry.formation ?? DEFAULT_GRATITUDE_FORMATION,
         filter: entry.visual?.filter ?? "none",
         sticker_count: entry.visual?.stickers.length ?? 0,
         has_emoji: Boolean(entry.visual?.emoji),
@@ -6552,16 +6674,19 @@ export function AletheiaApp() {
 
   function useGratitudeAsReflectionPrompt(entry: GratitudeEntry) {
     const created = new Date(entry.createdAt).toLocaleString(preferences.language, { dateStyle: "medium", timeStyle: "short" });
+    const entryFormation = normalizeGratitudeFormation(entry.formation);
+    const formationLine = `${ts('labels.gratitudeNoticedAs', 'Noticed as')}: ${ts(`labels.gratitudeFormation_${entryFormation}`, entryFormation)}\n`;
     const placeLine = entry.place.trim()
       ? `${ts('labels.placeOptional', 'Place (optional)')}: ${entry.place.trim()}\n`
       : "";
     setJournalTitle(ts('labels.gratitudeReflectionTitle', 'Gratitude reflection'));
     setJournalBody(
-      `${ts('labels.gratitudeMoment', 'gratitude moment')}: ${entry.note}\n${placeLine}${ts('labels.date', 'Date')}: ${created}\n\n${ts('labels.gratitudeReflectionQuestion', 'What does this moment reveal about provision, contentment, or enough?')}\n\n`
+      `${ts('labels.gratitudeMoment', 'gratitude moment')}: ${entry.note}\n${formationLine}${placeLine}${ts('labels.date', 'Date')}: ${created}\n\n${ts('labels.gratitudeReflectionQuestion', 'What does this moment reveal about provision, contentment, or enough?')}\n\n`
     );
     updateGratitudeEntry(entry.id, { reflectedAt: new Date().toISOString() });
     trackClientEvent("gratitude_reflection_prompt_used", {
       has_place: Boolean(entry.place.trim()),
+      formation: entryFormation,
       source: "reflect_tab",
     });
     announceWorkflow(
@@ -7417,244 +7542,259 @@ export function AletheiaApp() {
             <>
               {activeView === "companion" ? (
                 <Screen key="companion">
-                <HomeDashboard
-                  daily={daily}
-                  dailyEntry={dailyEntry}
-                  currentLocalHour={currentLocalHour}
-                  activeDecision={activeDecision}
-                  user={user}
-                  ui={ui}
-                  notificationsEnabled={notificationsEnabled}
-                  todayPattern={todayPattern}
-                  companionCard={todayCompanionCard}
-                  carryToday={carryToday}
-                  scriptureMemory={scriptureMemory}
-                  weeklyReview={weeklyReview}
-                  personalizationContextEmpty={!manualContextHasContent(manualContext)}
-                  prioritizeToday={pendingNotificationFocus}
-                  onScriptureOpen={openScripture}
-                  onContinueDecision={continueDecisionFlow}
-                  onReflectToday={reflectOnToday}
-                  onReviewPattern={reviewPatternFlow}
-                  onOpenAccount={openAccountFlow}
-                  onAskOneQuestion={askOneQuestionFlow}
-                  onCarryToday={carryCompanionCard}
-                  onReflectCard={reflectOnCompanionCard}
-                  onAskAboutCard={askAboutCompanionCard}
-                  onSaveCardAsRule={saveCompanionRule}
-                  onShareCard={() => shareTodayWisdomPostcard(todayCompanionCard)}
-                  onShareCarryCard={shareCarryPostcard}
-                  onSaveScriptureMemory={() => saveScriptureMemory(dailyEntry.scripture, dailyEntry.principle)}
-                  onShareScriptureMemory={shareScriptureMemoryCard}
-                  theme={theme}
-                />
-                <CompanionPanel
-                  ts={ts}
-                  messages={messages}
-                  mode={mode}
-                  modeProfile={modeProfile}
-                  modeCards={activeModeCards}
-                  preferences={preferences}
-                  copy={copy}
-                  ui={ui}
-                  query={query}
-                  focusIntentions={focusIntentions}
-                  setQuery={setQuery}
-                  onAsk={handleAsk}
-                  onDraftPrompt={setQuery}
-                  onModeChange={handleModeChange}
-                  onListen={startVoiceInput}
-                  onSpeak={speakLatestAletheiaReply}
-                  onTogglePause={toggleSpeechPause}
-                  isWorking={isWorking}
-                  isListening={isListening}
-                  isSpeaking={isSpeaking}
-                  speechPaused={speechPaused}
-                  speechProgress={speechProgress}
-                  answerFocusId={answerFocusId}
-                  onAnswerFocused={() => setAnswerFocusId(null)}
-                  onScriptureOpen={openScripture}
-                  onTrackDecision={trackDecisionFromExchange}
-                  onDraftReflection={draftReflectionFromExchange}
-                  onCreateCounselSummary={draftCounselSummaryFromExchange}
-                  onGoDeeper={goDeeperFromExchange}
-                  onWait={waitFromExchange}
-                  onSharePostcard={shareAnswerPostcard}
-                  onShare={(channel) => shareAletheia(channel, "answer")}
-                  onFeedback={(value) => recordAnswerFeedback(value, "answer")}
-                  theme={theme}
-                />
+                  <ViewIdentityFrame identity={homeSection} theme={theme}>
+                    <HomeSectionTabs section={homeSection} onChange={(section) => setHomeSection(section)} ts={ts} theme={theme} />
+                    {homeSection === "today" ? (
+                      <HomeDashboard
+                        daily={daily}
+                        dailyEntry={dailyEntry}
+                        currentLocalHour={currentLocalHour}
+                        activeDecision={activeDecision}
+                        user={user}
+                        ui={ui}
+                        notificationsEnabled={notificationsEnabled}
+                        todayPattern={todayPattern}
+                        companionCard={todayCompanionCard}
+                        carryToday={carryToday}
+                        scriptureMemory={scriptureMemory}
+                        weeklyReview={weeklyReview}
+                        personalizationContextEmpty={!manualContextHasContent(manualContext)}
+                        prioritizeToday={pendingNotificationFocus}
+                        onScriptureOpen={openScripture}
+                        onContinueDecision={continueDecisionFlow}
+                        onReflectToday={reflectOnToday}
+                        onReviewPattern={reviewPatternFlow}
+                        onOpenAccount={openAccountFlow}
+                        onAskOneQuestion={askOneQuestionFlow}
+                        onCarryToday={carryCompanionCard}
+                        onReflectCard={reflectOnCompanionCard}
+                        onAskAboutCard={askAboutCompanionCard}
+                        onSaveCardAsRule={saveCompanionRule}
+                        onShareCard={() => shareTodayWisdomPostcard(todayCompanionCard)}
+                        onShareCarryCard={shareCarryPostcard}
+                        onSaveScriptureMemory={() => saveScriptureMemory(dailyEntry.scripture, dailyEntry.principle)}
+                        onClearScriptureMemory={clearScriptureMemory}
+                        onShareScriptureMemory={shareScriptureMemoryCard}
+                        theme={theme}
+                      />
+                    ) : (
+                      <CompanionPanel
+                        ts={ts}
+                        messages={messages}
+                        mode={mode}
+                        modeProfile={modeProfile}
+                        modeCards={activeModeCards}
+                        preferences={preferences}
+                        copy={copy}
+                        ui={ui}
+                        query={query}
+                        focusIntentions={focusIntentions}
+                        setQuery={setQuery}
+                        onAsk={handleAsk}
+                        onDraftPrompt={setQuery}
+                        onModeChange={handleModeChange}
+                        onListen={startVoiceInput}
+                        onSpeak={speakLatestAletheiaReply}
+                        onTogglePause={toggleSpeechPause}
+                        isWorking={isWorking}
+                        isListening={isListening}
+                        isSpeaking={isSpeaking}
+                        speechPaused={speechPaused}
+                        speechProgress={speechProgress}
+                        answerFocusId={answerFocusId}
+                        onAnswerFocused={() => setAnswerFocusId(null)}
+                        onScriptureOpen={openScripture}
+                        onTrackDecision={trackDecisionFromExchange}
+                        onDraftReflection={draftReflectionFromExchange}
+                        onCreateCounselSummary={draftCounselSummaryFromExchange}
+                        onGoDeeper={goDeeperFromExchange}
+                        onWait={waitFromExchange}
+                        onSharePostcard={shareAnswerPostcard}
+                        onShare={(channel) => shareAletheia(channel, "answer")}
+                        onFeedback={(value) => recordAnswerFeedback(value, "answer")}
+                        theme={theme}
+                      />
+                    )}
+                  </ViewIdentityFrame>
                 </Screen>
               ) : activeView === "decisions" ? (
                 <Screen key="decisions">
-                <DecisionCompanionPanel
-                  language={preferences.language}
-                  mode={mode}
-                  modeProfile={activeMode}
-                  decisions={wisdomDecisions}
-                  focusedDecisionId={pendingDecisionNotificationFocus}
-                  events={decisionEvents}
-                  insight={timelineInsight}
-                  counselContacts={counselContacts}
-                  counselSummaryDraft={counselSummaryDraft}
-                  setCounselSummaryDraft={setCounselSummaryDraft}
-                  announceWorkflow={announceWorkflow}
-                  ts={ts}
-                  rules={rulesOfLife}
-                  title={decisionTitle}
-                  pressure={decisionPressure}
-                  emotion={decisionEmotion}
-                  focusIntentions={focusIntentions}
-                  counselName={counselName}
-                  counselRole={counselRole}
-                  counselAvatarUrl={counselAvatarUrl}
-                  counselContactValue={counselContactValue}
-                  counselCanViewSummaries={counselCanViewSummaries}
-                  counselCanComment={counselCanComment}
-                  counselCanReceiveCheckins={counselCanReceiveCheckins}
-                  latestCounselInvite={latestCounselInvite}
-                  userSignedIn={Boolean(user)}
-                  ruleText={ruleText}
-                  setTitle={setDecisionTitle}
-                  setPressure={setDecisionPressure}
-                  setEmotion={setDecisionEmotion}
-                  setCounselName={setCounselName}
-                  setCounselRole={setCounselRole}
-                  setCounselAvatarUrl={setCounselAvatarUrl}
-                  setCounselContactValue={setCounselContactValue}
-                  setCounselCanViewSummaries={setCounselCanViewSummaries}
-                  setCounselCanComment={setCounselCanComment}
-                  setCounselCanReceiveCheckins={setCounselCanReceiveCheckins}
-                  setRuleText={setRuleText}
-                  onCreateDecision={createDecision}
-                  onUpdateDecision={updateDecision}
-                  onDeleteDecision={deleteDecision}
-                  onAddCounsel={addCounselContact}
-                  onShareCounselInvite={shareCounselInvite}
-                  onShareDecisionWithCounsel={shareDecisionWithCounsel}
-                  onBulkShareDecisionsWithCounsel={bulkShareDecisionsWithCounsel}
-                  onRemoveCounselContact={removeCounselContact}
-                  onSpeakText={speakText}
-                  onShareDecisionPostcard={shareDecisionPostcard}
-                  isSpeaking={isSpeaking}
-                  onAddRule={addRuleOfLife}
-                  onScriptureOpen={openScripture}
-                  theme={theme}
-                />
+                  <ViewIdentityFrame identity="decisions" theme={theme}>
+                    <DecisionCompanionPanel
+                      language={preferences.language}
+                      mode={mode}
+                      modeProfile={activeMode}
+                      decisions={wisdomDecisions}
+                      focusedDecisionId={pendingDecisionNotificationFocus}
+                      events={decisionEvents}
+                      insight={timelineInsight}
+                      counselContacts={counselContacts}
+                      counselSummaryDraft={counselSummaryDraft}
+                      setCounselSummaryDraft={setCounselSummaryDraft}
+                      announceWorkflow={announceWorkflow}
+                      ts={ts}
+                      rules={rulesOfLife}
+                      title={decisionTitle}
+                      pressure={decisionPressure}
+                      emotion={decisionEmotion}
+                      focusIntentions={focusIntentions}
+                      counselName={counselName}
+                      counselRole={counselRole}
+                      counselAvatarUrl={counselAvatarUrl}
+                      counselContactValue={counselContactValue}
+                      counselCanViewSummaries={counselCanViewSummaries}
+                      counselCanComment={counselCanComment}
+                      counselCanReceiveCheckins={counselCanReceiveCheckins}
+                      latestCounselInvite={latestCounselInvite}
+                      userSignedIn={Boolean(user)}
+                      ruleText={ruleText}
+                      setTitle={setDecisionTitle}
+                      setPressure={setDecisionPressure}
+                      setEmotion={setDecisionEmotion}
+                      setCounselName={setCounselName}
+                      setCounselRole={setCounselRole}
+                      setCounselAvatarUrl={setCounselAvatarUrl}
+                      setCounselContactValue={setCounselContactValue}
+                      setCounselCanViewSummaries={setCounselCanViewSummaries}
+                      setCounselCanComment={setCounselCanComment}
+                      setCounselCanReceiveCheckins={setCounselCanReceiveCheckins}
+                      setRuleText={setRuleText}
+                      onCreateDecision={createDecision}
+                      onUpdateDecision={updateDecision}
+                      onDeleteDecision={deleteDecision}
+                      onAddCounsel={addCounselContact}
+                      onShareCounselInvite={shareCounselInvite}
+                      onShareDecisionWithCounsel={shareDecisionWithCounsel}
+                      onBulkShareDecisionsWithCounsel={bulkShareDecisionsWithCounsel}
+                      onRemoveCounselContact={removeCounselContact}
+                      onSpeakText={speakText}
+                      onShareDecisionPostcard={shareDecisionPostcard}
+                      isSpeaking={isSpeaking}
+                      onAddRule={addRuleOfLife}
+                      onScriptureOpen={openScripture}
+                      theme={theme}
+                    />
+                  </ViewIdentityFrame>
                 </Screen>
               ) : activeView === "reflect" ? (
                 <Screen key="reflect">
-                <ReflectPanel
-                  language={preferences.language}
-                  decision={decision}
-                  setDecision={setDecision}
-                  emotion={emotion}
-                  setEmotion={setEmotion}
-                  timeframe={timeframe}
-                  setTimeframe={setTimeframe}
-                  result={decisionResult}
-                  mode={mode}
-                  modeProfile={activeMode}
-                  ts={ts}
-                  entries={journalEntries}
-                  gratitudeEntries={gratitudeEntries}
-                  title={journalTitle}
-                  body={journalBody}
-                  setTitle={setJournalTitle}
-                  setBody={setJournalBody}
-                  onSave={saveReflection}
-                  onDelete={deleteJournalEntry}
-                  onSaveGratitude={saveGratitudeEntry}
-                  onDeleteGratitude={deleteGratitudeEntry}
-                  onShareGratitudePostcard={shareGratitudePostcard}
-                  onUseGratitudeAsReflection={useGratitudeAsReflectionPrompt}
-                  onVoiceReflection={startVoiceReflectionMode}
-                  onShareReflectionPostcard={shareReflectionPostcard}
-                  todayCompanionCard={todayCompanionCard}
-                  theme={theme}
-                />
+                  <ViewIdentityFrame identity="reflect" theme={theme}>
+                    <ReflectPanel
+                      language={preferences.language}
+                      decision={decision}
+                      setDecision={setDecision}
+                      emotion={emotion}
+                      setEmotion={setEmotion}
+                      timeframe={timeframe}
+                      setTimeframe={setTimeframe}
+                      result={decisionResult}
+                      mode={mode}
+                      modeProfile={activeMode}
+                      ts={ts}
+                      entries={journalEntries}
+                      gratitudeEntries={gratitudeEntries}
+                      title={journalTitle}
+                      body={journalBody}
+                      setTitle={setJournalTitle}
+                      setBody={setJournalBody}
+                      onSave={saveReflection}
+                      onDelete={deleteJournalEntry}
+                      onSaveGratitude={saveGratitudeEntry}
+                      onDeleteGratitude={deleteGratitudeEntry}
+                      onShareGratitudePostcard={shareGratitudePostcard}
+                      onUseGratitudeAsReflection={useGratitudeAsReflectionPrompt}
+                      onVoiceReflection={startVoiceReflectionMode}
+                      onShareReflectionPostcard={shareReflectionPostcard}
+                      todayCompanionCard={todayCompanionCard}
+                      theme={theme}
+                    />
+                  </ViewIdentityFrame>
                 </Screen>
               ) : activeView === "library" ? (
                 <Screen key="library">
-                <LibraryPanel
-                  entries={filteredEntries}
-                  search={librarySearch}
-                  setSearch={setLibrarySearch}
-                  mode={mode}
-                  preferences={preferences}
-                  ts={ts}
-                  onScriptureOpen={openScripture}
-                  scriptureMemory={scriptureMemory}
-                  onSaveScriptureMemory={saveScriptureMemory}
-                  onShareScriptureMemory={shareScriptureMemoryCard}
-                  theme={theme}
-                />
+                  <ViewIdentityFrame identity="library" theme={theme}>
+                    <LibraryPanel
+                      entries={filteredEntries}
+                      search={librarySearch}
+                      setSearch={setLibrarySearch}
+                      mode={mode}
+                      preferences={preferences}
+                      ts={ts}
+                      onScriptureOpen={openScripture}
+                      scriptureMemory={scriptureMemory}
+                      onSaveScriptureMemory={saveScriptureMemory}
+                      onShareScriptureMemory={shareScriptureMemoryCard}
+                      theme={theme}
+                    />
+                  </ViewIdentityFrame>
                 </Screen>
               ) : activeView === "account" ? (
                 <Screen key="account">
-                <AccountPanel
-                  ts={ts}
-                  user={user}
-                  authMode={authMode}
-                  setAuthMode={(value) => {
-                    setAuthMode(value);
-                    setAuthError("");
-                    setAuthNotice("");
-                  }}
-                  name={authName}
-                  setName={setAuthName}
-                  email={authEmail}
-                  setEmail={setAuthEmail}
-                  password={authPassword}
-                  setPassword={setAuthPassword}
-                  error={authError}
-                  notice={authNotice}
-                  authStatus={authStatus}
-                  googleAuthAvailable={googleAuthAvailable}
-                  status={statusMessage}
-                  isWorking={isWorking}
-                  onSubmit={handleAuth}
-                  onGoogleSignIn={handleGoogleSignIn}
-                  onLogout={logout}
-                  onUpdateProfileAvatar={updateProfileAvatar}
-                  preferences={preferences}
-                  preferencesStatus={preferencesStatus}
-                  ui={ui}
-                  manualContext={manualContext}
-                  manualContextStatus={manualContextStatus}
-                  themePreference={themePreference}
-                  onPreferenceChange={updatePreferences}
-                  onThemePreferenceChange={updateThemePreference}
-                  onManualContextChange={updateManualContext}
-                  notificationsEnabled={notificationsEnabled}
-                  notificationsConfigured={notificationsConfigured}
-                  notificationAccountEnabled={notificationAccountEnabled}
-                  notificationDeviceSubscribed={notificationDeviceSubscribed}
-                  notificationStatus={notificationStatus}
-                  notificationBusy={notificationBusy}
-                  notificationTiming={notificationTiming}
-                  onNotificationTimingChange={updateNotificationTiming}
-                  onEnableNotifications={enableNotifications}
-                  onDisableNotifications={disableNotifications}
-                  messages={messages}
-                  decisions={wisdomDecisions}
-                  journalEntries={journalEntries}
-                  counselContacts={counselContacts}
-                  rulesOfLife={rulesOfLife}
-                  availableVoices={availableVoices}
-                  selectedVoice={selectedVoice}
-                  onVoiceChange={updateVoicePreference}
-                  focusIntentions={focusIntentions}
-                  onFocusIntentionsChange={updateFocusIntentions}
-                  onClearLocalPersonalization={clearLocalPersonalization}
-                  onClearGuestWorkspace={clearGuestWorkspace}
-                  onExportData={exportAccountData}
-                  onRequestDeleteAccount={() => setShowDeleteAccountModal(true)}
-                  onReportIssue={() => setShowReportIssueModal(true)}
-                  onShare={(channel, placement) => shareAletheia(channel, placement)}
-                  accountActionBusy={accountActionBusy}
-                  theme={theme}
-                />
+                  <ViewIdentityFrame identity="account" theme={theme}>
+                    <AccountPanel
+                      ts={ts}
+                      user={user}
+                      authMode={authMode}
+                      setAuthMode={(value) => {
+                        setAuthMode(value);
+                        setAuthError("");
+                        setAuthNotice("");
+                      }}
+                      name={authName}
+                      setName={setAuthName}
+                      email={authEmail}
+                      setEmail={setAuthEmail}
+                      password={authPassword}
+                      setPassword={setAuthPassword}
+                      error={authError}
+                      notice={authNotice}
+                      authStatus={authStatus}
+                      googleAuthAvailable={googleAuthAvailable}
+                      status={statusMessage}
+                      isWorking={isWorking}
+                      onSubmit={handleAuth}
+                      onGoogleSignIn={handleGoogleSignIn}
+                      onLogout={logout}
+                      onUpdateProfileAvatar={updateProfileAvatar}
+                      preferences={preferences}
+                      preferencesStatus={preferencesStatus}
+                      ui={ui}
+                      manualContext={manualContext}
+                      manualContextStatus={manualContextStatus}
+                      themePreference={themePreference}
+                      onPreferenceChange={updatePreferences}
+                      onThemePreferenceChange={updateThemePreference}
+                      onManualContextChange={updateManualContext}
+                      notificationsEnabled={notificationsEnabled}
+                      notificationsConfigured={notificationsConfigured}
+                      notificationAccountEnabled={notificationAccountEnabled}
+                      notificationDeviceSubscribed={notificationDeviceSubscribed}
+                      notificationStatus={notificationStatus}
+                      notificationBusy={notificationBusy}
+                      notificationTiming={notificationTiming}
+                      onNotificationTimingChange={updateNotificationTiming}
+                      onEnableNotifications={enableNotifications}
+                      onDisableNotifications={disableNotifications}
+                      messages={messages}
+                      decisions={wisdomDecisions}
+                      journalEntries={journalEntries}
+                      counselContacts={counselContacts}
+                      rulesOfLife={rulesOfLife}
+                      availableVoices={availableVoices}
+                      selectedVoice={selectedVoice}
+                      onVoiceChange={updateVoicePreference}
+                      focusIntentions={focusIntentions}
+                      onFocusIntentionsChange={updateFocusIntentions}
+                      onClearLocalPersonalization={clearLocalPersonalization}
+                      onClearGuestWorkspace={clearGuestWorkspace}
+                      onExportData={exportAccountData}
+                      onRequestDeleteAccount={() => setShowDeleteAccountModal(true)}
+                      onReportIssue={() => setShowReportIssueModal(true)}
+                      onShare={(channel, placement) => shareAletheia(channel, placement)}
+                      accountActionBusy={accountActionBusy}
+                      theme={theme}
+                    />
+                  </ViewIdentityFrame>
                 </Screen>
               ) : null}
             </>
@@ -7862,6 +8002,181 @@ function Screen({ children }: { children: React.ReactNode }) {
   );
 }
 
+function MobileNav({
+  active,
+  icon: Icon,
+  label,
+  onClick,
+  theme,
+  avatarUrl,
+  avatarLabel,
+}: {
+  active: boolean;
+  icon: typeof Home;
+  label: string;
+  onClick: () => void;
+  theme: ThemeColors;
+  avatarUrl?: string | null;
+  avatarLabel?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex h-12 min-w-0 flex-col items-center justify-center gap-1 rounded-[1.1rem] px-1 text-[10px] font-semibold transition duration-200 sm:text-[11px]"
+      style={{
+        backgroundColor: active ? theme.primary : "transparent",
+        color: active ? theme.textOnPrimary : theme.textSecondary,
+      }}
+      aria-current={active ? "page" : undefined}
+    >
+      {avatarUrl ? (
+        <AvatarCircle
+          avatarUrl={avatarUrl}
+          seed={avatarLabel ?? label}
+          label={avatarLabel ?? label}
+          size={18}
+          className="size-[18px] rounded-full border object-cover"
+        />
+      ) : (
+        <Icon size={17} />
+      )}
+      <span className="max-w-full truncate">{label}</span>
+    </button>
+  );
+}
+
+function ViewIdentityFrame({ identity, theme, children }: { identity: ViewIdentity; theme: ThemeColors; children: React.ReactNode }) {
+  const accent = viewIdentityAccent(identity, theme);
+  const isQuiet = identity === "reflect";
+  const isStructured = identity === "decisions" || identity === "account";
+
+  return (
+    <div
+      className={`relative min-w-0 overflow-hidden rounded-2xl border p-2 shadow-[0_20px_60px_rgba(14,21,20,0.08)] sm:p-3 ${isStructured ? "lg:p-4" : ""}`}
+      style={{
+        borderColor: `color-mix(in srgb, ${accent} 38%, ${theme.borderLight})`,
+        backgroundColor: `color-mix(in srgb, ${theme.bgCard} ${isQuiet ? "78%" : "84%"}, ${accent} ${isQuiet ? "22%" : "16%"})`,
+        backgroundImage: viewIdentityBackground(identity, theme, accent),
+      }}
+      data-view-personality={identity}
+    >
+      <div
+        className="pointer-events-none absolute inset-x-4 top-0 h-px opacity-80"
+        style={{ backgroundColor: `color-mix(in srgb, ${accent} 58%, transparent)` }}
+        aria-hidden="true"
+      />
+      <div
+        className="pointer-events-none absolute bottom-4 left-0 top-4 hidden w-1 rounded-r-full sm:block"
+        style={{ backgroundColor: `color-mix(in srgb, ${accent} 68%, transparent)` }}
+        aria-hidden="true"
+      />
+      <ViewIdentityMark identity={identity} theme={theme} accent={accent} />
+      <div className="relative z-10 min-w-0">{children}</div>
+    </div>
+  );
+}
+
+function viewIdentityAccent(identity: ViewIdentity, theme: ThemeColors) {
+  switch (identity) {
+    case "ask":
+      return theme.primary;
+    case "decisions":
+      return "#7a6234";
+    case "reflect":
+      return "#7b8c78";
+    case "library":
+      return "#4f7188";
+    case "account":
+      return "#6f6a78";
+    default:
+      return theme.accentGold;
+  }
+}
+
+function viewIdentityBackground(identity: ViewIdentity, theme: ThemeColors, accent: string) {
+  const softAccent = `color-mix(in srgb, ${accent} 18%, transparent)`;
+  const lineAccent = `color-mix(in srgb, ${accent} 13%, transparent)`;
+
+  switch (identity) {
+    case "ask":
+      return `radial-gradient(circle at 6% 8%, ${softAccent}, transparent 34%), linear-gradient(135deg, transparent 0 64%, ${lineAccent} 64% 65%, transparent 65% 100%)`;
+    case "decisions":
+      return `linear-gradient(90deg, ${lineAccent} 0 1px, transparent 1px 100%), linear-gradient(180deg, ${lineAccent} 0 1px, transparent 1px 100%)`;
+    case "reflect":
+      return `radial-gradient(circle at 12% 12%, ${softAccent}, transparent 38%), radial-gradient(circle at 88% 0%, color-mix(in srgb, ${theme.bgInput} 56%, transparent), transparent 30%)`;
+    case "library":
+      return `repeating-linear-gradient(0deg, transparent 0 28px, ${lineAccent} 28px 29px), radial-gradient(circle at 92% 12%, ${softAccent}, transparent 34%)`;
+    case "account":
+      return `linear-gradient(90deg, ${lineAccent} 0 1px, transparent 1px 100%), radial-gradient(circle at 92% 10%, ${softAccent}, transparent 34%)`;
+    default:
+      return `radial-gradient(circle at 9% 6%, ${softAccent}, transparent 36%), linear-gradient(180deg, color-mix(in srgb, ${theme.bgInput} 42%, transparent), transparent 42%)`;
+  }
+}
+
+function ViewIdentityMark({ identity, theme, accent }: { identity: ViewIdentity; theme: ThemeColors; accent: string }) {
+  const commonStyle = {
+    borderColor: `color-mix(in srgb, ${accent} 36%, ${theme.borderLight})`,
+    backgroundColor: `color-mix(in srgb, ${theme.bgInput} 76%, ${accent} 24%)`,
+  };
+
+  if (identity === "ask") {
+    return (
+      <div className="pointer-events-none absolute right-4 top-4 hidden items-end gap-1 opacity-70 sm:flex" aria-hidden="true">
+        <span className="h-7 w-12 rounded-lg border" style={commonStyle} />
+        <span className="h-10 w-10 rounded-full border" style={commonStyle} />
+      </div>
+    );
+  }
+
+  if (identity === "decisions") {
+    return (
+      <div className="pointer-events-none absolute right-5 top-4 hidden h-20 w-20 opacity-70 sm:block" aria-hidden="true">
+        {[0, 1, 2].map((item) => (
+          <span key={item} className="absolute left-1/2 size-3 -translate-x-1/2 rounded-full border" style={{ ...commonStyle, top: `${item * 1.75}rem` }} />
+        ))}
+        <span className="absolute bottom-2 left-1/2 top-1 w-px -translate-x-1/2" style={{ backgroundColor: `color-mix(in srgb, ${accent} 42%, transparent)` }} />
+      </div>
+    );
+  }
+
+  if (identity === "reflect") {
+    return (
+      <div className="pointer-events-none absolute right-4 top-4 hidden size-20 rounded-full border opacity-60 sm:block" style={commonStyle} aria-hidden="true">
+        <span className="absolute inset-4 rounded-full border" style={{ borderColor: `color-mix(in srgb, ${accent} 28%, transparent)` }} />
+      </div>
+    );
+  }
+
+  if (identity === "library") {
+    return (
+      <div className="pointer-events-none absolute right-4 top-4 hidden w-24 space-y-2 opacity-70 sm:block" aria-hidden="true">
+        {[0, 1, 2].map((item) => (
+          <span key={item} className="block h-3 rounded-sm border" style={commonStyle} />
+        ))}
+      </div>
+    );
+  }
+
+  if (identity === "account") {
+    return (
+      <div className="pointer-events-none absolute right-4 top-4 hidden grid-cols-2 gap-1 opacity-70 sm:grid" aria-hidden="true">
+        {[0, 1, 2, 3].map((item) => (
+          <span key={item} className="size-5 rounded-sm border" style={commonStyle} />
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="pointer-events-none absolute right-4 top-4 hidden items-center gap-1 opacity-70 sm:flex" aria-hidden="true">
+      <span className="h-12 w-4 rounded-full border" style={commonStyle} />
+      <span className="h-16 w-4 rounded-full border" style={commonStyle} />
+      <span className="h-9 w-4 rounded-full border" style={commonStyle} />
+    </div>
+  );
+}
+
 function NavButton({
   active,
   icon: Icon,
@@ -7902,53 +8217,6 @@ function NavButton({
         <Icon size={15} />
       )}
       {label}
-    </button>
-  );
-}
-
-function MobileNav({
-  active,
-  icon: Icon,
-  label,
-  onClick,
-  theme,
-  avatarUrl,
-  avatarLabel,
-}: {
-  active: boolean;
-  icon: typeof Home;
-  label: string;
-  onClick: () => void;
-  theme: ThemeColors;
-  avatarUrl?: string | null;
-  avatarLabel?: string;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className="flex h-12 min-w-0 flex-col items-center justify-center gap-1 rounded-[1.1rem] px-1 text-[10px] font-semibold transition duration-200 sm:text-[11px]"
-      style={{
-        backgroundColor: active ? `color-mix(in srgb, ${theme.primary} 88%, ${theme.bgCardElevated})` : 'transparent',
-        boxShadow: active
-          ? "0 12px 24px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.14)"
-          : "none",
-        color: active ? theme.textOnPrimary : theme.textSecondary,
-      }}
-      onMouseEnter={(event) => !active && (event.currentTarget.style.backgroundColor = theme.hoverBg)}
-      onMouseLeave={(event) => !active && (event.currentTarget.style.backgroundColor = 'transparent')}
-    >
-      {avatarUrl ? (
-        <AvatarCircle
-          avatarUrl={avatarUrl}
-          seed={avatarLabel ?? label}
-          label={avatarLabel ?? label}
-          size={18}
-          className="size-[18px] rounded-full border object-cover"
-        />
-      ) : (
-        <Icon size={17} />
-      )}
-      <span className="max-w-full truncate leading-none">{label}</span>
     </button>
   );
 }
@@ -8053,82 +8321,37 @@ function ModeLensCard({ item, active, onClick, theme }: { item: (typeof modes)[n
   return (
     <button
       type="button"
+      aria-pressed={active}
       onClick={onClick}
-      className="flex items-start gap-3 rounded-md border p-3 text-left transition"
+      className="premium-tap-card flex min-h-24 w-[12.75rem] shrink-0 snap-start flex-col justify-between rounded-lg border p-2.5 text-left transition sm:w-[13.5rem]"
       style={{
         borderColor: active ? theme.primary : theme.borderLight,
         backgroundColor: active ? theme.primary : theme.bgCard,
         color: active ? theme.textOnPrimary : theme.textPrimary,
+        boxShadow: active ? "0 12px 26px rgba(7, 10, 8, 0.16)" : "0 6px 14px rgba(7, 10, 8, 0.05)",
       }}
       onMouseEnter={(e) => !active && (e.currentTarget.style.borderColor = theme.primary) && (e.currentTarget.style.backgroundColor = theme.bgCardElevated)}
       onMouseLeave={(e) => !active && (e.currentTarget.style.borderColor = theme.borderLight) && (e.currentTarget.style.backgroundColor = theme.bgCard)}
     >
-      <span
-        className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-md"
-        style={{
-          backgroundColor: active ? 'rgba(255,255,255,0.12)' : theme.bgInput,
-          color: active ? theme.accentGold : theme.textPrimary,
-        }}
-      >
-        <item.icon size={16} style={{ color: active ? 'rgba(255, 255, 255, 0.95)' : theme.textPrimary }} />
+      <span className="flex items-start justify-between gap-3">
+        <span
+          className="grid size-8 shrink-0 place-items-center rounded-md"
+          style={{
+            backgroundColor: active ? 'rgba(255,255,255,0.14)' : theme.bgInput,
+            color: active ? theme.textOnPrimary : theme.textPrimary,
+          }}
+        >
+          <item.icon size={16} />
+        </span>
+        <span className="grid size-7 place-items-center rounded-full border" style={{ borderColor: active ? 'rgba(255,255,255,0.32)' : theme.borderLight, color: active ? theme.textOnPrimary : theme.textMuted, backgroundColor: active ? 'rgba(255,255,255,0.1)' : 'transparent' }}>
+          {active ? <Check size={14} /> : <span className="size-1.5 rounded-full" style={{ backgroundColor: theme.borderMedium }} />}
+        </span>
       </span>
-      <span className="min-w-0">
+      <span className="mt-2 min-w-0">
         <span className="block text-sm font-semibold">{item.displayLabel ?? item.label}</span>
-        <span className="mt-1 block text-xs leading-5" style={{ color: active ? theme.textOnPrimary : theme.textSecondary }}>{item.copy}</span>
+        <span className="mt-1 block line-clamp-2 text-[11px] leading-4" style={{ color: active ? theme.textOnPrimary : theme.textSecondary, opacity: active ? 0.92 : 1 }}>{item.copy}</span>
       </span>
     </button>
-  );
-}
-
-function ModeIntelligenceStrip({
-  modeProfile,
-  ui,
-  theme,
-}: {
-  modeProfile: DisplayModeProfile;
-  ui: (typeof uiText)[LanguageCode];
-  theme: ThemeColors;
-}) {
-  const items = [
-    {
-      label: ui.currentLens,
-      value: modeProfile.lens,
-      icon: Scale,
-    },
-    {
-      label: ui.blindSpots,
-      value: modeProfile.blindSpots[0],
-      icon: ShieldCheck,
-    },
-    {
-      label: ui.tinyPractice ?? uiText.en.tinyPractice,
-      value: modeProfile.practices[0],
-      icon: Feather,
-    },
-  ];
-
-  return (
-    <section
-      className="mb-3 grid gap-2 rounded-lg border p-2 sm:grid-cols-3"
-      style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}
-      aria-label={`${modeProfile.displayLabel ?? modeProfile.label} intelligence`}
-    >
-      {items.map((item) => (
-        <div key={item.label} className="min-w-0 rounded-md border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-          <div className="flex items-center gap-2">
-            <span className="grid size-7 shrink-0 place-items-center rounded-md" style={{ backgroundColor: theme.bgCardElevated, color: theme.accentGold }}>
-              <item.icon size={14} />
-            </span>
-            <p className="min-w-0 truncate text-[0.68rem] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
-              {item.label}
-            </p>
-          </div>
-          <p className="mt-2 line-clamp-3 text-xs leading-5" style={{ color: theme.textSecondary }}>
-            {item.value}
-          </p>
-        </div>
-      ))}
-    </section>
   );
 }
 
@@ -8404,7 +8627,14 @@ function OnboardingModal({
   ];
 
   return (
-    <div className="fixed inset-0 z-50 grid min-w-0 place-items-end overflow-hidden overscroll-none p-3 backdrop-blur-sm sm:place-items-center" style={{ backgroundColor: theme.primary + '75' }}>
+    <div
+      className="fixed inset-0 z-50 grid min-w-0 place-items-end overflow-hidden overscroll-none p-3 backdrop-blur-sm sm:place-items-center"
+      style={{
+        backgroundColor: theme.primary + '75',
+        paddingTop: "calc(max(env(safe-area-inset-top, 0px), var(--aletheia-top-reserve, 20px)) + 0.75rem)",
+        paddingBottom: "calc(max(env(safe-area-inset-bottom, 0px), var(--aletheia-bottom-reserve, 12px)) + 0.75rem)",
+      }}
+    >
       <section
         ref={modalScrollRef}
         onWheel={routeOnboardingWheel}
@@ -8416,6 +8646,7 @@ function OnboardingModal({
         style={{
           borderColor: theme.borderLight,
           backgroundColor: theme.bgCard,
+          maxHeight: "calc(100dvh - max(env(safe-area-inset-top, 0px), var(--aletheia-top-reserve, 20px)) - max(env(safe-area-inset-bottom, 0px), var(--aletheia-bottom-reserve, 12px)) - 1.5rem)",
           width: "min(100%, calc(100vw - 1.5rem), 42rem)",
         }}
       >
@@ -8678,6 +8909,7 @@ function HomeDashboard({
   onShareCard,
   onShareCarryCard,
   onSaveScriptureMemory,
+  onClearScriptureMemory,
   onShareScriptureMemory,
   theme,
 }: {
@@ -8708,6 +8940,7 @@ function HomeDashboard({
   onShareCard: () => void;
   onShareCarryCard: () => void;
   onSaveScriptureMemory: () => void;
+  onClearScriptureMemory: () => void;
   onShareScriptureMemory: (memory: ScriptureMemory) => void;
   theme: ThemeColors;
 }) {
@@ -8765,27 +8998,6 @@ function HomeDashboard({
             >
               {text.createCard || "Create card"}
             </button>
-          </div>
-        ) : null}
-        {scriptureMemory ? (
-          <div className="mb-4 rounded-lg border px-3 py-2 text-sm leading-6" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}>
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <span>
-                <span className="font-semibold" style={{ color: theme.accentGold }}>{text.scriptureMemory || "Scripture memory"}:</span>{" "}
-                <button type="button" onClick={() => onScriptureOpen(scriptureMemory.scripture)} className="font-semibold underline underline-offset-4">
-                  {scriptureMemory.scripture}
-                </button>
-              </span>
-              <button
-                type="button"
-                onClick={() => onShareScriptureMemory(scriptureMemory)}
-                className="premium-tap-card w-fit rounded-md border px-2 py-1 text-xs font-semibold"
-                style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-              >
-                {text.createCard || "Create card"}
-              </button>
-            </div>
-            <p className="mt-1 text-xs leading-5" style={{ color: theme.textSecondary }}>{scriptureMemory.principle}</p>
           </div>
         ) : null}
         <div className="mb-3">
@@ -8892,9 +9104,7 @@ function HomeDashboard({
           <CompanionCardAction icon={MessageCircle} label={text.askAboutThis!} onClick={() => onAskAboutCard(companionCard)} theme={theme} />
           <CompanionCardAction icon={Plus} label={text.saveToRuleOfLife!} onClick={() => onSaveCardAsRule(companionCard)} theme={theme} />
           <CompanionCardAction icon={BookOpen} label={text.carryScriptureForWeek || "Carry scripture"} onClick={onSaveScriptureMemory} theme={theme} />
-          <div className="col-span-2">
-            <CompanionCardAction icon={Share2} label={text.createWisdomPostcard || "Create wisdom card"} onClick={onShareCard} theme={theme} />
-          </div>
+          <CompanionCardAction icon={Share2} label={text.createWisdomPostcard || "Create wisdom card"} onClick={onShareCard} theme={theme} />
         </div>
       </section>
 
@@ -8923,6 +9133,39 @@ function HomeDashboard({
           <MiniReviewStat label={text.gratitudeThisWeek || "Gratitude"} value={weeklyReview.gratitudeMoments} theme={theme} />
           <MiniReviewStat label={text.decisionsThisWeek || "Decisions"} value={weeklyReview.decisions} theme={theme} />
         </div>
+        {scriptureMemory ? (
+          <div className="mt-4 rounded-lg border p-3 text-sm leading-6" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+              <span className="min-w-0">
+                <span className="block text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{text.scriptureMemory || "Scripture memory"}</span>
+                <button type="button" onClick={() => onScriptureOpen(scriptureMemory.scripture)} className="mt-1 font-semibold underline underline-offset-4">
+                  {scriptureMemory.scripture}
+                </button>
+              </span>
+              <div className="flex w-fit shrink-0 items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => onShareScriptureMemory(scriptureMemory)}
+                  className="premium-tap-card rounded-md border px-2 py-1 text-xs font-semibold"
+                  style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                >
+                  {text.createCard || "Create card"}
+                </button>
+                <button
+                  type="button"
+                  onClick={onClearScriptureMemory}
+                  className="premium-tap-card grid size-8 place-items-center rounded-md border"
+                  style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}
+                  aria-label={text.clearScriptureMemory || "Stop carrying scripture"}
+                  title={text.clearScriptureMemory || "Stop carrying scripture"}
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            </div>
+            <p className="mt-2 text-xs leading-5" style={{ color: theme.textSecondary }}>{scriptureMemory.principle}</p>
+          </div>
+        ) : null}
         <p className="mt-4 rounded-lg border p-3 text-sm leading-6" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
           <span className="font-semibold" style={{ color: theme.textPrimary }}>{text.nextFaithfulStep || "Next faithful step"}:</span>{" "}
           {weeklyReview.nextStep}
@@ -8937,6 +9180,53 @@ function MiniReviewStat({ label, value, theme }: { label: string; value: number;
     <div className="rounded-lg border px-3 py-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
       <p className="text-xl font-semibold" style={{ color: theme.textPrimary }}>{value}</p>
       <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>{label}</p>
+    </div>
+  );
+}
+
+function HomeSectionTabs({
+  section,
+  onChange,
+  ts,
+  theme,
+}: {
+  section: HomeSection;
+  onChange: (section: HomeSection) => void;
+  ts: (key: string, fallback?: string) => string;
+  theme: ThemeColors;
+}) {
+  const tabs: Array<{ key: HomeSection; label: string }> = [
+    { key: "today", label: ts('labels.homeTodayTab', 'Today') },
+    { key: "ask", label: ts('labels.homeAskTab', 'Ask Aletheia') },
+  ];
+
+  return (
+    <div
+      className="relative z-20 mb-5 grid min-w-0 scroll-mt-28 grid-cols-2 gap-1 rounded-xl border p-1 shadow-sm"
+      role="tablist"
+      aria-label={ts('labels.homeSections', 'Home sections')}
+      style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}
+    >
+      {tabs.map((tab) => {
+        const active = section === tab.key;
+        return (
+          <button
+            key={tab.key}
+            type="button"
+            role="tab"
+            aria-selected={active}
+            onClick={() => onChange(tab.key)}
+            className="premium-tap-card relative min-h-12 rounded-lg px-3 py-3 text-center text-sm font-semibold tracking-normal transition sm:text-base"
+            style={{
+              backgroundColor: active ? theme.primary : "transparent",
+              color: active ? theme.textOnPrimary : theme.textSecondary,
+              boxShadow: active ? "0 10px 24px rgba(7, 10, 8, 0.12)" : "none",
+            }}
+          >
+            {tab.label}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -9587,6 +9877,65 @@ function AccountSettingRow({
   );
 }
 
+function AccountToggleRow({
+  icon: Icon,
+  label,
+  body,
+  checked,
+  onChange,
+  onLabel,
+  offLabel,
+  theme,
+}: {
+  icon: typeof Globe2;
+  label: string;
+  body: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  onLabel: string;
+  offLabel: string;
+  theme: ThemeColors;
+}) {
+  return (
+    <div className="editorial-surface premium-tap-card rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-start gap-3">
+          <span className="grid size-10 shrink-0 place-items-center rounded-md" style={{ backgroundColor: theme.bgInput, color: theme.primary }}>
+            <Icon size={17} />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-semibold" style={{ color: theme.textPrimary }}>{label}</span>
+            <span className="mt-1 block text-xs leading-5" style={{ color: theme.textSecondary }}>{body}</span>
+          </span>
+        </div>
+        <span className="grid grid-cols-2 rounded-md border p-1" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
+          {[
+            { value: false, label: offLabel },
+            { value: true, label: onLabel },
+          ].map((option) => {
+            const active = checked === option.value;
+            return (
+              <button
+                key={option.label}
+                type="button"
+                onClick={() => onChange(option.value)}
+                className="min-h-10 rounded-sm px-3 text-xs font-semibold transition"
+                style={{
+                  backgroundColor: active ? theme.primary : "transparent",
+                  color: active ? theme.textOnPrimary : theme.textSecondary,
+                }}
+                aria-pressed={active}
+              >
+                {option.label}
+              </button>
+            );
+          })}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 function AccountSelect({
   value,
   onChange,
@@ -9854,9 +10203,20 @@ function AccountPersonalizationPanel({
           />
         )}
       />
-      <AccountSettingRow
+      <AccountToggleRow
+        icon={Mic}
+        label={ts('labels.voiceInput', 'Voice input')}
+        body={ts('labels.accountVoiceInputBody', 'Show the microphone beside Ask and enable voice controls when this device supports them.')}
+        checked={preferences.voiceEnabled}
+        onChange={(checked) => onPreferenceChange({ voiceEnabled: checked })}
+        onLabel={ts('labels.enabled', 'Enabled')}
+        offLabel={ts('labels.disabled', 'Disabled')}
+        theme={theme}
+      />
+      {preferences.voiceEnabled ? (
+        <AccountSettingRow
         icon={Volume2}
-        label={ts('labels.voice', 'Voice')}
+        label={ts('labels.readingVoice', 'Reading voice')}
         body={ts('labels.accountVoiceBody', 'Hear wisdom with care and clarity.')}
         currentValue={selectedVoiceLabel}
         theme={theme}
@@ -9870,7 +10230,8 @@ function AccountPersonalizationPanel({
             onVoiceChange={onVoiceChange}
           />
         )}
-      />
+        />
+      ) : null}
       <FocusIntentionsCard
         theme={theme}
         ts={ts}
@@ -12931,7 +13292,6 @@ function CompanionPanel({
   const [expandedHistoryId, setExpandedHistoryId] = useState<string | null>(null);
   const [showSidebarDeep, setShowSidebarDeep] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
-  const [showModeChoices, setShowModeChoices] = useState(false);
   const exchanges = conversationExchanges(messages);
   const currentExchange = exchanges[exchanges.length - 1] ?? null;
   const history = exchanges.slice(0, -1).reverse();
@@ -12939,6 +13299,8 @@ function CompanionPanel({
   const focusLabels = focusIntentionLabels(focusIntentions);
   const suggestedFocusPrompt = focusIntentionPrompt(focusIntentions, "companion");
   const promptChips = [suggestedFocusPrompt, ...modeProfile.prompts].filter(Boolean).slice(0, 3);
+  const currentModeCard = modeCards.find((item) => item.label === mode) ?? modeCards[0];
+  const CurrentLensIcon = currentModeCard.icon;
 
   useEffect(() => {
     if (!answerFocusId || !currentExchange?.question) {
@@ -12964,9 +13326,6 @@ function CompanionPanel({
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <span className="w-fit rounded-sm px-2 py-1 text-xs font-semibold" style={{ backgroundColor: theme.bgInput, color: theme.textPrimary }} suppressHydrationWarning>
-              {ui.currentLens}: {modeProfile.displayLabel ?? mode}
-            </span>
             <span className="w-fit rounded-sm border px-2 py-1 text-xs font-semibold" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }} suppressHydrationWarning>
               {languages[preferences.language].nativeName} · {preferences.bibleTranslation}
             </span>
@@ -12990,48 +13349,31 @@ function CompanionPanel({
                 ))}
               </div>
             ) : null}
-            <button
-              type="button"
-              onClick={() => setShowModeChoices((value) => !value)}
-              className="mb-3 flex w-full items-start justify-between gap-3 rounded-lg border p-3 text-left"
-              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-            >
-              <span>
-                <span className="block text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{ui.currentLens}</span>
-                <span className="mt-1 block text-sm font-semibold">{modeProfile.displayLabel ?? mode}</span>
-                <span className="mt-1 block text-xs leading-5" style={{ color: theme.textSecondary }}>{modeProfile.focus}</span>
-              </span>
-              <span
-                className={`shrink-0 rounded-md border px-2 py-1 text-[11px] font-semibold ${showModeChoices ? "text-center leading-4 whitespace-normal" : "whitespace-nowrap"}`}
-                style={{ borderColor: theme.borderMedium, color: theme.textSecondary }}
-              >
-                {showModeChoices ? ui.hideDetails : (ui.change ?? "Change")}
-              </span>
-            </button>
-            {showModeChoices ? (
-              <div className="mb-3 grid gap-2 sm:grid-cols-2">
+            <div className="mb-3 rounded-xl border p-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
+              <div className="flex items-center gap-3 rounded-lg border p-2.5" style={{ borderColor: theme.primary, backgroundColor: theme.bgCard }}>
+                <span className="grid size-10 shrink-0 place-items-center rounded-lg" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>
+                  <CurrentLensIcon size={18} />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[0.68rem] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{ui.currentLens}</span>
+                  <span className="mt-0.5 flex min-w-0 items-center gap-2">
+                    <span className="truncate text-base font-semibold" style={{ color: theme.textPrimary }}>{modeProfile.displayLabel ?? mode}</span>
+                    <Check className="shrink-0" size={16} style={{ color: theme.primary }} />
+                  </span>
+                </span>
+              </div>
+              <div className="mt-2 flex snap-x gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]" aria-label={ui.currentLens}>
                 {modeCards.map((item) => (
                   <ModeLensCard
                     key={item.label}
                     item={item}
                     active={mode === item.label}
-                    onClick={() => {
-                      onModeChange(item.label);
-                      setShowModeChoices(false);
-                    }}
+                    onClick={() => onModeChange(item.label)}
                     theme={theme}
                   />
                 ))}
               </div>
-            ) : null}
-            <details className="mb-3 rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
-              <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
-                {ui.modeGuidance}
-              </summary>
-              <div className="mt-3">
-                <ModeIntelligenceStrip modeProfile={modeProfile} ui={ui} theme={theme} />
-              </div>
-            </details>
+            </div>
             <div className="flex flex-col gap-3">
               <textarea
                 id="companion-question-input"
@@ -14998,7 +15340,7 @@ function ReflectPanel({
   setBody: (value: string) => void;
   onSave: () => void;
   onDelete: (id: string) => void;
-  onSaveGratitude: (file: File | null, note: string, place: string, visual?: GratitudeVisualSettings) => void;
+  onSaveGratitude: (file: File | null, note: string, place: string, visual?: GratitudeVisualSettings, formation?: GratitudeFormation) => void;
   onDeleteGratitude: (id: string) => void;
   onShareGratitudePostcard: (entry: GratitudeEntry) => void;
   onUseGratitudeAsReflection: (entry: GratitudeEntry) => void;
@@ -15126,7 +15468,7 @@ function GratitudeLensPanel({
   language: LanguageCode;
   ts: (key: string, fallback?: string) => string;
   theme: ThemeColors;
-  onSave: (file: File | null, note: string, place: string, visual?: GratitudeVisualSettings) => void | Promise<void>;
+  onSave: (file: File | null, note: string, place: string, visual?: GratitudeVisualSettings, formation?: GratitudeFormation) => void | Promise<void>;
   onDelete: (id: string) => void;
   onSharePostcard: (entry: GratitudeEntry) => void;
   onUseAsReflection: (entry: GratitudeEntry) => void;
@@ -15136,6 +15478,7 @@ function GratitudeLensPanel({
   const [previewUrl, setPreviewUrl] = useState("");
   const [note, setNote] = useState("");
   const [place, setPlace] = useState("");
+  const [formation, setFormation] = useState<GratitudeFormation>(DEFAULT_GRATITUDE_FORMATION);
   const [visual, setVisual] = useState<GratitudeVisualSettings>(DEFAULT_GRATITUDE_VISUAL);
   const [isSaving, setIsSaving] = useState(false);
   const [weekStartTime] = useState(() => Date.now() - 7 * 24 * 60 * 60 * 1000);
@@ -15166,6 +15509,7 @@ function GratitudeLensPanel({
     setPreviewUrl("");
     setNote("");
     setPlace("");
+    setFormation(DEFAULT_GRATITUDE_FORMATION);
     setVisual(DEFAULT_GRATITUDE_VISUAL);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
@@ -15174,12 +15518,12 @@ function GratitudeLensPanel({
 
   const submit = async () => {
     if (!imageFile || !note.trim()) {
-      await onSave(imageFile, note, place, visual);
+      await onSave(imageFile, note, place, visual, formation);
       return;
     }
     setIsSaving(true);
     try {
-      await onSave(imageFile, note, place, visual);
+      await onSave(imageFile, note, place, visual, formation);
       resetForm();
     } finally {
       setIsSaving(false);
@@ -15200,8 +15544,22 @@ function GratitudeLensPanel({
     });
   };
 
+  const gratitudeFormationLabel = (value: GratitudeFormation) => ts(`labels.gratitudeFormation_${value}`, value);
+  const gratitudeFormationPrompt = (value: GratitudeFormation) => ts(`labels.gratitudeFormationPrompt_${value}`, "What did this help you notice?");
   const gratitudeFilterLabel = (filter: GratitudeFilter) => ts(`labels.gratitudeFilter_${filter}`, filter);
   const gratitudeStickerLabel = (sticker: GratitudeSticker) => ts(`labels.gratitudeSticker_${sticker}`, GRATITUDE_STICKER_MARK[sticker]);
+  const activeOverlayLabels = [
+    visual.showNote ? ts('labels.gratitudeOverlayNote', 'Note') : "",
+    visual.showDate ? ts('labels.gratitudeOverlayDate', 'Date') : "",
+    visual.showPlace ? ts('labels.gratitudeOverlayPlace', 'Place') : "",
+    visual.showSignature ? ts('labels.gratitudeOverlaySignature', 'Aletheia signature') : "",
+  ].filter(Boolean);
+  const activeStyleSummary = [
+    gratitudeFilterLabel(visual.filter),
+    activeOverlayLabels.length ? `${activeOverlayLabels.length} ${ts('labels.gratitudeOverlays', 'overlays')}` : ts('labels.gratitudeNoOverlays', 'no overlays'),
+    visual.stickers.length ? `${visual.stickers.length} ${ts('labels.gratitudeStickers', 'stickers')}` : "",
+    visual.emoji ? ts('labels.gratitudeEmoji', 'emoji') : "",
+  ].filter(Boolean).join(" · ");
 
   const latestEntry = entries[0];
   const summary = entries.length
@@ -15217,6 +15575,13 @@ function GratitudeLensPanel({
       .flatMap((entry) => entry.note.toLowerCase().split(/[^a-zÀ-ÿ]+/i))
       .filter((word) => word.length > 4 && !["today", "thank", "thanks", "grateful", "danke", "heute"].includes(word))
   )).slice(0, 3);
+  const formationCounts = GRATITUDE_FORMATIONS.map((item) => ({
+    key: item,
+    label: gratitudeFormationLabel(item),
+    icon: GRATITUDE_FORMATION_ICON[item],
+    count: weeklyEntries.filter((entry) => normalizeGratitudeFormation(entry.formation) === item).length,
+  }));
+  const topFormation = formationCounts.reduce((top, item) => item.count > top.count ? item : top, formationCounts[0]);
   const todayWisdomPrompt = ts(
     'labels.gratitudePromptFromWisdomBody',
     'Take one photo that helps you practice today’s wisdom: {practice}'
@@ -15260,6 +15625,41 @@ function GratitudeLensPanel({
                 </p>
               </div>
             </div>
+          </div>
+
+          <div className="mt-4 rounded-xl border p-3" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
+              {ts('labels.gratitudeNoticingQuestion', 'What are you noticing?')}
+            </p>
+            <p className="mt-1 text-xs leading-5" style={{ color: theme.textSecondary }}>
+              {ts('labels.gratitudeNoticingBody', 'Name the kind of gift before you style or share anything.')}
+            </p>
+            <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {GRATITUDE_FORMATIONS.map((item) => {
+                const isActive = formation === item;
+                return (
+                  <button
+                    key={item}
+                    type="button"
+                    onClick={() => setFormation(item)}
+                    className="premium-tap-card flex min-h-16 flex-col items-start justify-between rounded-lg border p-3 text-left transition"
+                    style={{
+                      borderColor: isActive ? theme.primary : theme.borderMedium,
+                      backgroundColor: isActive ? theme.primary : theme.bgInput,
+                      color: isActive ? theme.textOnPrimary : theme.textPrimary,
+                    }}
+                  >
+                    <span className="text-xs font-semibold uppercase tracking-[0.1em]" style={{ color: isActive ? theme.textOnPrimary : theme.accentGold }}>
+                      {GRATITUDE_FORMATION_ICON[item]}
+                    </span>
+                    <span className="mt-2 text-sm font-semibold leading-5">{gratitudeFormationLabel(item)}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <p className="mt-3 rounded-lg border p-3 text-xs leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+              {gratitudeFormationPrompt(formation)}
+            </p>
           </div>
 
           <div className="mt-4 overflow-hidden rounded-xl border" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput }}>
@@ -15321,18 +15721,28 @@ function GratitudeLensPanel({
             </button>
           </div>
 
-          <div className="mt-4 rounded-xl border p-3" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
-            <div className="flex items-start gap-3">
+          <details className="mt-4 rounded-xl border p-3" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+            <summary className="flex cursor-pointer list-none items-start justify-between gap-3 [&::-webkit-details-marker]:hidden">
+              <span className="flex min-w-0 items-start gap-3">
               <Sparkles size={18} className="mt-0.5 shrink-0" style={{ color: theme.accentGold }} />
               <div className="min-w-0">
                 <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
                   {ts('labels.gratitudeStyleCard', 'Postcard style')}
                 </p>
                 <p className="mt-1 text-xs leading-5" style={{ color: theme.textSecondary }}>
-                  {ts('labels.gratitudeStyleBody', 'Optional, local-only edits. Nothing leaves this device until you export or share.')}
+                  {activeStyleSummary || ts('labels.gratitudeStyleBody', 'Optional, local-only edits. Nothing leaves this device until you export or share.')}
                 </p>
               </div>
-            </div>
+              </span>
+              <span className="shrink-0 rounded-md border px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.1em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                {ts('showDetails', 'Show details')}
+              </span>
+            </summary>
+
+            <div className="mt-4 border-t pt-4" style={{ borderColor: theme.borderLight }}>
+              <p className="text-xs leading-5" style={{ color: theme.textSecondary }}>
+                {ts('labels.gratitudeStyleBody', 'Optional, local-only edits. Nothing leaves this device until you export or share.')}
+              </p>
 
             <p className="mt-4 text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
               {ts('labels.gratitudeFilters', 'Filters')}
@@ -15436,7 +15846,8 @@ function GratitudeLensPanel({
                 );
               })}
             </div>
-          </div>
+            </div>
+          </details>
 
           <label className="mt-4 block text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
             {ts('labels.gratefulFor', 'What are you grateful for?')}
@@ -15510,6 +15921,24 @@ function GratitudeLensPanel({
                 {ts('labels.gratitudeThemesNoticed', 'Themes noticed: {themes}.').replace("{themes}", gratitudeThemes.join(", "))}
               </p>
             ) : null}
+            {weeklyEntries.length ? (
+              <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-5">
+                {formationCounts.map((item) => (
+                  <div key={item.key} className="rounded-lg border px-2 py-2" style={{ borderColor: item.count ? theme.primary : theme.borderLight, backgroundColor: item.count ? theme.bgCardElevated : theme.bgCard }}>
+                    <p className="text-base font-semibold" style={{ color: item.count ? theme.textPrimary : theme.textMuted }}>{item.count}</p>
+                    <p className="mt-1 line-clamp-2 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ color: item.count ? theme.accentGold : theme.textMuted }}>
+                      {item.label}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+            {weeklyEntries.length && topFormation.count ? (
+              <p className="mt-3 rounded-lg border p-3 text-xs leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textSecondary }}>
+                <span className="font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.gratitudePatternThisWeek', 'Pattern this week')}:</span>{" "}
+                {ts('labels.gratitudePatternThisWeekBody', 'You have been noticing {pattern}. Keep paying attention without turning it into a score.').replace("{pattern}", topFormation.label.toLowerCase())}
+              </p>
+            ) : null}
           </div>
           <div className="mt-4 space-y-3">
             {entries.length ? (
@@ -15526,7 +15955,11 @@ function GratitudeLensPanel({
                     />
                   </div>
                   <div className="p-4">
-                    <p className="text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>{entry.note}</p>
+                    <span className="inline-flex max-w-full items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.accentGold }}>
+                      <span aria-hidden="true">{GRATITUDE_FORMATION_ICON[normalizeGratitudeFormation(entry.formation)]}</span>
+                      <span className="truncate">{gratitudeFormationLabel(normalizeGratitudeFormation(entry.formation))}</span>
+                    </span>
+                    <p className="mt-3 text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>{entry.note}</p>
                     <p className="mt-2 text-xs leading-5" style={{ color: theme.textMuted }}>
                       {new Date(entry.createdAt).toLocaleString(language, { dateStyle: "medium", timeStyle: "short" })}
                       {entry.place ? ` · ${entry.place}` : ""}

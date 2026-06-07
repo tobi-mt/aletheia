@@ -5,7 +5,7 @@ import { buildDecisionSummary, detectPatterns, scoreDecision } from "@/lib/decis
 import { many, one, run } from "@/lib/db";
 import { defaultPreferences, normalizePreferences, type UserPreferences } from "@/lib/localization";
 import { retrieveWisdom } from "@/lib/wisdom";
-import type { Mode } from "@/lib/wisdom-data";
+import { normalizeMode, type Mode } from "@/lib/wisdom-data";
 
 type DecisionRow = {
   id: string;
@@ -198,13 +198,13 @@ export async function POST(request: Request) {
 
   const body = (await request.json()) as {
     title?: string;
-    mode?: Mode;
+    mode?: unknown;
     pressure?: string;
     emotion?: string;
   };
   const title = body.title?.trim();
   const pressure = body.pressure?.trim();
-  const mode = body.mode ?? "Money";
+  const mode = normalizeMode(body.mode);
   const emotion = body.emotion?.trim() || "uncertain";
 
   if (!title || !pressure) {

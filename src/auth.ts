@@ -1,4 +1,4 @@
-import NextAuth from "next-auth";
+import { getServerSession, type NextAuthOptions } from "next-auth";
 import Google from "next-auth/providers/google";
 import { createHash } from "node:crypto";
 
@@ -9,8 +9,7 @@ const derivedLocalSecret = createHash("sha256")
   .update(process.env.DATABASE_URL || "aletheia-local-dev")
   .digest("hex");
 
-export const { handlers, auth, signIn, signOut } = NextAuth({
-  trustHost: true,
+export const authOptions: NextAuthOptions = {
   secret:
     process.env.AUTH_SECRET ??
     derivedLocalSecret,
@@ -24,8 +23,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: googleConfigured
     ? [
         Google({
-          clientId: googleClientId,
-          clientSecret: googleClientSecret,
+          clientId: googleClientId!,
+          clientSecret: googleClientSecret!,
           allowDangerousEmailAccountLinking: true,
         }),
       ]
@@ -46,4 +45,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return session;
     },
   },
-});
+};
+
+export function auth() {
+  return getServerSession(authOptions);
+}

@@ -28,7 +28,7 @@ const viewports = [
 ];
 
 const markers = {
-  Home: 'What should I do next?',
+  Home: 'Ask Aletheia',
   Decide: 'Name the decision under pressure',
   Decisions: 'Name the decision under pressure',
   Reflect: 'Begin with one honest sentence',
@@ -247,6 +247,21 @@ async function checkTapTargets(page, enforce44) {
 
 async function checkHome(page, mobile) {
   await clickTab(page, 'Home', mobile);
+  const askSubtabFound = await page.evaluate(() => {
+    const button = Array.from(document.querySelectorAll('button')).find((candidate) => {
+      const text = (candidate.textContent || '').replace(/\s+/g, ' ').trim();
+      const rect = candidate.getBoundingClientRect();
+      return text === 'Ask Aletheia' && rect.width > 0 && rect.height > 0;
+    });
+    if (button instanceof HTMLButtonElement) {
+      button.click();
+      return true;
+    }
+    return false;
+  });
+  if (askSubtabFound) {
+    await page.waitForTimeout(220);
+  }
   const initial = await page.evaluate((marker) => {
     const markerVisible = document.body.innerText.includes(marker);
     const scope = document.querySelector('#companion-ask form') || document;
@@ -299,8 +314,9 @@ async function checkHome(page, mobile) {
 
   return {
     ...initial,
+    askSubtabFound,
     promptPopulated,
-    pass: initial.markerVisible && initial.inlineActions && promptPopulated && rowTight,
+    pass: askSubtabFound && initial.markerVisible && initial.inlineActions && promptPopulated && rowTight,
   };
 }
 

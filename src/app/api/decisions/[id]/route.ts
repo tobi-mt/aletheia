@@ -5,7 +5,7 @@ import { buildDecisionSummary, scoreDecision } from "@/lib/decision-intelligence
 import { many, one, run } from "@/lib/db";
 import { defaultPreferences, normalizePreferences, type UserPreferences } from "@/lib/localization";
 import { retrieveWisdom } from "@/lib/wisdom";
-import type { Mode } from "@/lib/wisdom-data";
+import { normalizeMode, type Mode } from "@/lib/wisdom-data";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -185,15 +185,16 @@ export async function PATCH(request: Request, { params }: Params) {
     reversibleStep,
     peaceOverUrgency,
   });
+  const mode = normalizeMode(current.mode);
   const sources = await retrieveWisdom(
     `${current.title} ${current.pressure} ${current.initial_emotion}`,
-    current.mode,
+    mode,
     3
   );
   const preferences = await getUserPreferences(user.id);
   const summary = buildDecisionSummary({
     title: current.title,
-    mode: current.mode,
+    mode,
     pressure: current.pressure,
     emotion: current.initial_emotion,
     sources,

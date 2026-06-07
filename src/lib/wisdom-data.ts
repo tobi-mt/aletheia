@@ -1,5 +1,11 @@
 export type Mode = "Money" | "Work" | "Purpose" | "Generosity";
 
+export const modes: Mode[] = ["Money", "Work", "Purpose", "Generosity"];
+
+export function normalizeMode(value: unknown): Mode {
+  return modes.includes(value as Mode) ? (value as Mode) : "Money";
+}
+
 export type WisdomEntryData = {
   theme: string;
   scripture: string;

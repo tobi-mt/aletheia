@@ -130,7 +130,7 @@ export async function loadTranslationsWithFallback(language: LanguageCode): Prom
  * Deep merge two translation objects
  * Target translations override English where they exist
  */
-function mergeTranslations(base: TranslationData, override: TranslationData): TranslationData {
+export function mergeTranslations(base: TranslationData, override: TranslationData): TranslationData {
   const result: TranslationData = { ...base };
   
   for (const [key, value] of Object.entries(override)) {

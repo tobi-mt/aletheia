@@ -245,7 +245,7 @@ const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
 assert(packageJson.dependencies['next'], 'Next.js is installed');
 assert(packageJson.dependencies['react'], 'React is installed');
 assert(packageJson.dependencies['openai'], 'OpenAI SDK is installed');
-assert(packageJson.dependencies['@neondatabase/serverless'], 'Neon Database SDK is installed');
+assert(packageJson.dependencies['pg'], 'PostgreSQL client is installed');
 
 log(`  Next.js version: ${packageJson.dependencies['next']}`, 'blue');
 log(`  React version: ${packageJson.dependencies['react']}`, 'blue');

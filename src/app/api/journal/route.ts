@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth";
 import { trackServerEvent } from "@/lib/analytics";
 import { many, run } from "@/lib/db";
-import type { Mode } from "@/lib/wisdom-data";
+import { normalizeMode } from "@/lib/wisdom-data";
 
 export async function GET() {
   try {
@@ -41,7 +41,7 @@ export async function POST(request: Request) {
     const body = (await request.json()) as {
       title?: string;
       body?: string;
-      mode?: Mode;
+      mode?: unknown;
     };
 
     const content = body.body?.trim();
@@ -49,11 +49,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Journal body is required." }, { status: 400 });
     }
 
+    const mode = normalizeMode(body.mode);
     const entry = {
       id: crypto.randomUUID(),
-      title: body.title?.trim() || `${body.mode ?? "Money"} reflection`,
+      title: body.title?.trim() || `${mode} reflection`,
       body: content,
-      mode: body.mode ?? "Money",
+      mode,
       createdAt: new Date().toISOString(),
     };
 
