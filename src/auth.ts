@@ -5,14 +5,13 @@ import { createHash } from "node:crypto";
 const googleClientId = process.env.AUTH_GOOGLE_ID;
 const googleClientSecret = process.env.AUTH_GOOGLE_SECRET;
 const googleConfigured = Boolean(googleClientId && googleClientSecret);
+const explicitAuthSecret = process.env.NEXTAUTH_SECRET ?? process.env.AUTH_SECRET;
 const derivedLocalSecret = createHash("sha256")
   .update(process.env.DATABASE_URL || "aletheia-local-dev")
   .digest("hex");
 
 export const authOptions: NextAuthOptions = {
-  secret:
-    process.env.AUTH_SECRET ??
-    derivedLocalSecret,
+  secret: explicitAuthSecret ?? (process.env.NODE_ENV === "production" ? undefined : derivedLocalSecret),
   pages: {
     signIn: "/",
     error: "/",
@@ -25,7 +24,6 @@ export const authOptions: NextAuthOptions = {
         Google({
           clientId: googleClientId!,
           clientSecret: googleClientSecret!,
-          allowDangerousEmailAccountLinking: true,
         }),
       ]
     : [],

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { trackServerEvent } from "@/lib/analytics";
 import { emailConfigured, isEmailAddress, sendEmail } from "@/lib/email";
+import { readJsonBody } from "@/lib/request";
 
 function supportRecipient() {
   return (
@@ -19,7 +20,11 @@ function trim(value: unknown, limit: number) {
 
 export async function POST(request: Request) {
   const user = await getCurrentUser();
-  const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
+  const parsedBody = await readJsonBody<Record<string, unknown>>(request, { maxBytes: 8_000 });
+  if (!parsedBody.ok) {
+    return parsedBody.response;
+  }
+  const body = parsedBody.data;
   const category = trim(body.category, 80) || "General feedback";
   const message = trim(body.message, 4000);
   const path = trim(body.path, 300);

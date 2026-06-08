@@ -25,7 +25,7 @@ export async function generateWisdomResponse({
     return null;
   }
 
-  const model = process.env.OPENAI_MODEL || "gpt-5.4-mini";
+  const model = process.env.OPENAI_MODEL || "gpt-4o-mini";
   const profile = modeProfiles[mode];
   const context = sources
     .map((source, index) => {
@@ -86,7 +86,7 @@ Write a human response that feels personal and grounded. Requirements:
 - Honor the preferred Bible translation. When selected translation reading text is supplied in the retrieved sources, use that wording if you quote or paraphrase the passage. If only fallback reading text is available, clearly keep the exact reference and explain the principle without pretending the selected translation text is available.
 - Use the selected mode as a real diagnostic lens. Name the most likely tension, blind spot, or maturity signal when it fits.
 - Give practical next steps without sounding like financial advice.
-- When memory or manual context is available, use it quietly and only when relevant. Treat strategic counsel signals as guidance for emphasis, not as labels to recite mechanically.
+- When memory, manual context, gratitude signals, decisions, reflections, rules, or focus intentions are available, use them quietly and only when relevant. Treat strategic counsel signals as guidance for emphasis, not as labels to recite mechanically.
 - If manual context includes current state and desired future state, connect the user's next faithful step to that direction without promising outcomes.
 - Do not expose private context unnecessarily. You may say "because you've noted..." only when it would help the user feel seen and the detail is directly relevant.
 - Ask 1-3 reflection questions only if they genuinely help.

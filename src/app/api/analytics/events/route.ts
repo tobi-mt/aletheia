@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { trackEvent } from "@/lib/analytics";
 import { checkRateLimit, getClientIdentity, rateLimitHeaders } from "@/lib/rate-limit";
+import { readJsonBody } from "@/lib/request";
 
 export async function POST(request: Request) {
   const identity = await getClientIdentity();
@@ -16,7 +17,7 @@ export async function POST(request: Request) {
   }
 
   const user = await getCurrentUser();
-  const body = (await request.json().catch(() => ({}))) as {
+  const parsedBody = await readJsonBody<{
     eventName?: string;
     anonId?: string;
     sessionId?: string;
@@ -24,7 +25,11 @@ export async function POST(request: Request) {
     referrer?: string;
     source?: string;
     metadata?: Record<string, string | number | boolean | null>;
-  };
+  }>(request, { maxBytes: 6_000, emptyBody: {} });
+  if (!parsedBody.ok) {
+    return parsedBody.response;
+  }
+  const body = parsedBody.data;
 
   const headerStore = await headers();
   await trackEvent({

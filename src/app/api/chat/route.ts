@@ -9,6 +9,74 @@ import { checkRateLimit, getClientIdentity, rateLimitHeaders } from "@/lib/rate-
 import { composeModeAwareFallbackResponse, retrieveWisdom } from "@/lib/wisdom";
 import { analyticsQuestionMetadata } from "@/lib/analytics-taxonomy";
 import { normalizeMode } from "@/lib/wisdom-data";
+import { readJsonBody } from "@/lib/request";
+
+type GratitudeContextSummary = {
+  totalEntries?: unknown;
+  recentEntries?: unknown;
+  formationThemes?: unknown;
+  latestNote?: unknown;
+  latestPlace?: unknown;
+  latestCreatedAt?: unknown;
+};
+
+const focusIntentionLabels: Record<string, string> = {
+  reduce_anxiety: "reduce anxiety",
+  improve_stewardship: "improve stewardship",
+  wait_with_peace: "wait with peace",
+  build_consistency: "build consistency",
+  seek_counsel: "seek counsel wisely",
+};
+
+function cleanPrivateText(value: unknown, limit = 220) {
+  return typeof value === "string" ? value.trim().replace(/\s+/g, " ").slice(0, limit) : "";
+}
+
+function boundedCount(value: unknown, max = 999) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? Math.max(0, Math.min(max, Math.round(parsed))) : 0;
+}
+
+function compactFocusContext(value: unknown) {
+  if (!Array.isArray(value)) {
+    return "";
+  }
+  const labels = value
+    .map((item) => focusIntentionLabels[String(item)])
+    .filter(Boolean)
+    .slice(0, 3);
+  return labels.length
+    ? `User-selected formation intentions: ${labels.join(", ")}. Use these quietly to shape tone, examples, and next-step emphasis.`
+    : "";
+}
+
+function compactGratitudeContext(value: GratitudeContextSummary | undefined) {
+  if (!value || typeof value !== "object") {
+    return "";
+  }
+  const totalEntries = boundedCount(value.totalEntries, 50);
+  const recentEntries = boundedCount(value.recentEntries, 50);
+  const formationThemes = Array.isArray(value.formationThemes)
+    ? value.formationThemes.map((theme) => cleanPrivateText(theme, 40)).filter(Boolean).slice(0, 4)
+    : [];
+  const latestNote = cleanPrivateText(value.latestNote, 180);
+  const latestPlace = cleanPrivateText(value.latestPlace, 80);
+  const latestCreatedAt = cleanPrivateText(value.latestCreatedAt, 40);
+  if (!totalEntries && !formationThemes.length && !latestNote && !latestPlace) {
+    return "";
+  }
+
+  return [
+    `Local Gratitude Lens signal: ${totalEntries} saved gratitude moment${totalEntries === 1 ? "" : "s"}${recentEntries ? `, ${recentEntries} in the last 30 days` : ""}.`,
+    formationThemes.length ? `Gratitude formation themes: ${formationThemes.join(", ")}.` : "",
+    latestNote ? `Most recent gratitude note excerpt: ${latestNote}` : "",
+    latestPlace ? `Most recent gratitude place: ${latestPlace}` : "",
+    latestCreatedAt ? `Most recent gratitude date: ${latestCreatedAt}` : "",
+    "Use gratitude context as a gentle formation signal. Do not mention local photos, image data, or quote the note unless directly relevant and helpful.",
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
 
 function compactMemorySummary({
   decisions,
@@ -92,12 +160,18 @@ export async function POST(request: Request) {
     );
   }
 
-  const body = (await request.json()) as {
+  const parsedBody = await readJsonBody<{
     message?: string;
     mode?: unknown;
     preferences?: Partial<UserPreferences>;
     manualContext?: Partial<ManualContextProfile>;
-  };
+    focusIntentions?: unknown;
+    gratitudeContext?: GratitudeContextSummary;
+  }>(request, { maxBytes: 24_000 });
+  if (!parsedBody.ok) {
+    return parsedBody.response;
+  }
+  const body = parsedBody.data;
 
   const message = body.message?.trim();
   const mode = normalizeMode(body.mode);
@@ -110,6 +184,15 @@ export async function POST(request: Request) {
   const sources = await retrieveWisdom(message, mode, 3);
   let memoryContext = "";
   const guestManualContext = normalizeManualContext(body.manualContext ?? {});
+  const clientContext = [compactFocusContext(body.focusIntentions), compactGratitudeContext(body.gratitudeContext)]
+    .filter(Boolean)
+    .join("\n\n");
+  const privateContextRules = `Private context handling rules:
+- Treat manual context, gratitude, reflections, decisions, rules, saved memories, and preferences as private support for discernment.
+- Use context to tailor emphasis, examples, pacing, questions, and next steps; do not recite or expose private details mechanically.
+- When current and desired future states are available, bridge them with one faithful next step without promising outcomes.
+- Do not quote journal/reflection content unless the user provides it in this chat. For decisions, summarize patterns before naming details.
+- Respect region and language preferences while avoiding legal, tax, medical, or regulated financial claims.`;
   if (user) {
     const [decisions, rules, journals, manualContextRows, memoryRows] = await Promise.all([
       many<{ title: string; mode: string; pressure: string; status: string; updated_at: string }>(
@@ -183,6 +266,8 @@ export async function POST(request: Request) {
       : [];
     const safeSummary = compactMemorySummary({ decisions, journals, feedbackGuidance });
     memoryContext = [
+      privateContextRules,
+      clientContext,
       memoryRow?.summary ? `Saved user-safe memory:\n${memoryRow.summary}` : "",
       safeSummary,
       manualContextSummary(manualContext) ? `User-provided manual context:\n${manualContextSummary(manualContext)}` : "",
@@ -199,9 +284,13 @@ export async function POST(request: Request) {
       .join("\n\n");
   } else {
     const guestContext = manualContextSummary(guestManualContext);
-    memoryContext = guestContext
-      ? `User-provided manual context from this device:\n${guestContext}`
-      : "";
+    memoryContext = [
+      privateContextRules,
+      clientContext,
+      guestContext ? `User-provided manual context from this device:\n${guestContext}` : "",
+    ]
+      .filter(Boolean)
+      .join("\n\n");
   }
   const aiText =
     (await generateWisdomResponse({ question: message, mode, sources, preferences, memoryContext })) ??

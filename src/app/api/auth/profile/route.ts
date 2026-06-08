@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { normalizeAvatarUrl } from "@/lib/avatars";
 import { run } from "@/lib/db";
+import { readJsonBody } from "@/lib/request";
 
 type ProfileBody = {
   avatarUrl?: string | null;
@@ -13,7 +14,11 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: "Sign in to update your profile." }, { status: 401 });
   }
 
-  const body = (await request.json().catch(() => ({}))) as ProfileBody;
+  const parsedBody = await readJsonBody<ProfileBody>(request, { maxBytes: 2_000, emptyBody: {} });
+  if (!parsedBody.ok) {
+    return parsedBody.response;
+  }
+  const body = parsedBody.data;
   const hasAvatarField = Object.prototype.hasOwnProperty.call(body, "avatarUrl");
   if (!hasAvatarField) {
     return NextResponse.json({ error: "avatarUrl is required." }, { status: 400 });

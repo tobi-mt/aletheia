@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { clearSession, getCurrentUser } from "@/lib/auth";
 import { run } from "@/lib/db";
 import { trackServerEvent } from "@/lib/analytics";
+import { readJsonBody } from "@/lib/request";
 
 export async function POST(request: Request) {
   const user = await getCurrentUser();
@@ -9,7 +10,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Sign in to delete your Aletheia account." }, { status: 401 });
   }
 
-  const body = (await request.json().catch(() => ({}))) as { confirmation?: string };
+  const parsedBody = await readJsonBody<{ confirmation?: string }>(request, { maxBytes: 1_000, emptyBody: {} });
+  if (!parsedBody.ok) {
+    return parsedBody.response;
+  }
+  const body = parsedBody.data;
   if (body.confirmation?.trim().toUpperCase() !== "DELETE") {
     await trackServerEvent({
       userId: user.id,

@@ -5,6 +5,7 @@ import { normalizeAvatarUrl } from "@/lib/avatars";
 import { counselInviteUrl, createCounselInviteToken, hashCounselInviteToken } from "@/lib/counsel-invites";
 import { many, one, pool, run } from "@/lib/db";
 import { counselInviteEmail, emailConfigured, isEmailAddress, sendEmail } from "@/lib/email";
+import { readJsonBody } from "@/lib/request";
 
 type CounselRow = {
   id: string;
@@ -171,7 +172,11 @@ export async function DELETE(request: Request) {
   let contactId = url.searchParams.get("contactId")?.trim() || "";
 
   if (!contactId) {
-    const body = (await request.json().catch(() => ({}))) as { contactId?: string };
+    const parsedBody = await readJsonBody<{ contactId?: string }>(request, { maxBytes: 1_000, emptyBody: {} });
+    if (!parsedBody.ok) {
+      return parsedBody.response;
+    }
+    const body = parsedBody.data;
     contactId = body.contactId?.trim() || "";
   }
 

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { one, run } from "@/lib/db";
 import { defaultPreferences, normalizePreferences, type UserPreferences } from "@/lib/localization";
+import { readJsonBody } from "@/lib/request";
 
 type PreferenceRow = {
   language: string;
@@ -41,7 +42,11 @@ export async function GET() {
 
 export async function PUT(request: Request) {
   const user = await getCurrentUser();
-  const body = (await request.json().catch(() => ({}))) as Partial<UserPreferences>;
+  const parsedBody = await readJsonBody<Partial<UserPreferences>>(request, { maxBytes: 4_000, emptyBody: {} });
+  if (!parsedBody.ok) {
+    return parsedBody.response;
+  }
+  const body = parsedBody.data;
   const preferences = normalizePreferences(body);
 
   if (!user) {

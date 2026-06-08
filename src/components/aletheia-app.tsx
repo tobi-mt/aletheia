@@ -1846,6 +1846,34 @@ function persistGratitudeEntries(entries: GratitudeEntry[]) {
   window.localStorage.setItem(GRATITUDE_LENS_STORAGE_KEY, JSON.stringify(entries.slice(0, MAX_GRATITUDE_ENTRIES)));
 }
 
+function gratitudeContextSummary(entries: GratitudeEntry[]): GratitudeContextSummary | null {
+  const recentEntries = entries
+    .slice(0, MAX_GRATITUDE_ENTRIES)
+    .filter((entry) => entry.note.trim() || entry.place.trim() || entry.formation);
+  if (!recentEntries.length) {
+    return null;
+  }
+
+  const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+  const recentCount = recentEntries.filter((entry) => {
+    const createdAt = Date.parse(entry.createdAt);
+    return Number.isFinite(createdAt) && createdAt >= thirtyDaysAgo;
+  }).length;
+  const formationThemes = Array.from(
+    new Set(recentEntries.map((entry) => GRATITUDE_FORMATION_LABELS[normalizeGratitudeFormation(entry.formation)]))
+  ).slice(0, 4);
+  const latest = recentEntries[0];
+
+  return {
+    totalEntries: entries.length,
+    recentEntries: recentCount,
+    formationThemes,
+    latestNote: latest.note.trim().slice(0, 180) || undefined,
+    latestPlace: latest.place.trim().slice(0, 80) || undefined,
+    latestCreatedAt: latest.createdAt,
+  };
+}
+
 function imageFileToLocalDataUrl(file: File, maxDimension = 1400, quality = 0.82): Promise<string> {
   return new Promise((resolve, reject) => {
     if (!file.type.startsWith("image/")) {
@@ -2574,6 +2602,15 @@ type GratitudeEntry = {
   reflectedAt?: string;
 };
 
+type GratitudeContextSummary = {
+  totalEntries: number;
+  recentEntries: number;
+  formationThemes: string[];
+  latestNote?: string;
+  latestPlace?: string;
+  latestCreatedAt?: string;
+};
+
 type GratitudeFormation = "provision" | "beauty" | "enoughness" | "answeredPrayer" | "ordinaryMercy";
 type GratitudeFilter = "none" | "warm" | "soft" | "mono" | "forest" | "golden" | "calm";
 type GratitudeSticker = "leaf" | "cross" | "heart" | "spark" | "book" | "seedling" | "sun" | "thankful" | "enough" | "grace";
@@ -2590,6 +2627,13 @@ type GratitudeVisualSettings = {
 
 const GRATITUDE_FILTERS: GratitudeFilter[] = ["none", "warm", "soft", "mono", "forest", "golden", "calm"];
 const GRATITUDE_FORMATIONS: GratitudeFormation[] = ["provision", "beauty", "enoughness", "answeredPrayer", "ordinaryMercy"];
+const GRATITUDE_FORMATION_LABELS: Record<GratitudeFormation, string> = {
+  provision: "provision",
+  beauty: "beauty",
+  enoughness: "enoughness",
+  answeredPrayer: "answered prayer",
+  ordinaryMercy: "ordinary mercy",
+};
 const GRATITUDE_STICKERS: GratitudeSticker[] = ["leaf", "cross", "heart", "spark", "book", "seedling", "sun", "thankful", "enough", "grace"];
 const GRATITUDE_EMOJIS = ["", "🙏", "✨", "🌿", "☀️", "💛", "🕊️"];
 const MAX_GRATITUDE_STICKERS = 4;
@@ -6089,7 +6133,14 @@ export function AletheiaApp() {
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: trimmed, mode, preferences, manualContext, focusIntentions }),
+        body: JSON.stringify({
+          message: trimmed,
+          mode,
+          preferences,
+          manualContext,
+          focusIntentions,
+          gratitudeContext: gratitudeContextSummary(gratitudeEntries),
+        }),
       });
       const data = (await response.json()) as {
         reply?: ChatMessage;
@@ -13340,15 +13391,6 @@ function CompanionPanel({
                 {modeProfile.focus}
               </span>
             </div>
-            {focusLabels.length ? (
-              <div className="mb-3 flex flex-wrap gap-2">
-                {focusLabels.map((label) => (
-                  <span key={label} className="rounded-md border px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-                    {label}
-                  </span>
-                ))}
-              </div>
-            ) : null}
             <div className="mb-3 rounded-xl border p-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
               <div className="flex items-center gap-3 rounded-lg border p-2.5" style={{ borderColor: theme.primary, backgroundColor: theme.bgCard }}>
                 <span className="grid size-10 shrink-0 place-items-center rounded-lg" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>

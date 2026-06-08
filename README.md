@@ -27,9 +27,11 @@ Copy `.env.example` to `.env`:
 ```bash
 DATABASE_URL="postgresql://USER:PASSWORD@HOST/neondb?sslmode=require&channel_binding=require"
 OPENAI_API_KEY=""
-OPENAI_MODEL="gpt-5.4-mini"
+OPENAI_MODEL="gpt-4o-mini"
 SESSION_COOKIE_NAME="aletheia_session"
 NEXT_PUBLIC_APP_URL="https://your-production-domain"
+NEXTAUTH_SECRET=""
+NEXTAUTH_URL="https://your-production-domain"
 AUTH_SECRET=""
 AUTH_TRUST_HOST="true"
 AUTH_URL="https://your-production-domain"
@@ -85,7 +87,7 @@ The database adapter creates required tables and seeds the curated wisdom entrie
 - Set `DATABASE_URL` to the Neon pooled connection string.
 - Set `OPENAI_API_KEY` server-side only.
 - Set `NEXT_PUBLIC_APP_URL` to the Railway/custom production URL.
-- Set `AUTH_SECRET`, `AUTH_URL`, `AUTH_TRUST_HOST`, `AUTH_GOOGLE_ID`, and `AUTH_GOOGLE_SECRET` for Google sign-in.
+- Set `NEXTAUTH_SECRET`, `NEXTAUTH_URL`, `AUTH_TRUST_HOST`, `AUTH_GOOGLE_ID`, and `AUTH_GOOGLE_SECRET` for Google sign-in.
 - Set VAPID keys for daily wisdom push notifications.
 - Set `NOTIFICATION_CRON_SECRET` and use it from your Railway scheduled job.
 - Set `ANALYTICS_ADMIN_SECRET` to protect aggregate analytics exports.
@@ -130,7 +132,8 @@ Create a Google OAuth client in Google Cloud Console:
 Set these Railway variables on the Aletheia web service:
 
 ```bash
-AUTH_SECRET="generated-secret"
+NEXTAUTH_SECRET="generated-secret"
+NEXTAUTH_URL="https://aletheia.mirrortalkpodcast.com"
 AUTH_TRUST_HOST="true"
 AUTH_URL="https://aletheia.mirrortalkpodcast.com"
 AUTH_GOOGLE_ID="google-client-id"

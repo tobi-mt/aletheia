@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { one, run } from "@/lib/db";
 import { defaultManualContext, normalizeManualContext, type ManualContextProfile } from "@/lib/manual-context";
+import { readJsonBody } from "@/lib/request";
 
 type ContextRow = {
   health_context: string;
@@ -53,7 +54,11 @@ export async function GET() {
 
 export async function PUT(request: Request) {
   const user = await getCurrentUser();
-  const body = (await request.json().catch(() => ({}))) as Partial<ManualContextProfile>;
+  const parsedBody = await readJsonBody<Partial<ManualContextProfile>>(request, { maxBytes: 18_000, emptyBody: {} });
+  if (!parsedBody.ok) {
+    return parsedBody.response;
+  }
+  const body = parsedBody.data;
   const context = normalizeManualContext(body);
 
   if (!user) {

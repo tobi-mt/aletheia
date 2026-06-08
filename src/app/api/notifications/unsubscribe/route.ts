@@ -1,13 +1,18 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth";
 import { run } from "@/lib/db";
+import { readJsonBody } from "@/lib/request";
 
 export async function POST(request: Request) {
   try {
     const user = await requireUser();
-    const body = (await request.json().catch(() => ({}))) as {
+    const parsedBody = await readJsonBody<{
       endpoint?: string;
-    };
+    }>(request, { maxBytes: 4_000, emptyBody: {} });
+    if (!parsedBody.ok) {
+      return parsedBody.response;
+    }
+    const body = parsedBody.data;
 
     if (body.endpoint) {
       await run(
