@@ -90,6 +90,9 @@ type AnalyticsPayload = {
   languageDistribution30d: LanguageRow[];
   themeDistribution30d: ThemeRow[];
   frictionSignals30d: FrictionRow[];
+  config?: {
+    geo_enrichment_enabled?: boolean;
+  };
 };
 
 const SECRET_KEY = "aletheia_analytics_admin_secret";
@@ -137,6 +140,8 @@ export default function InternalAnalyticsDashboardPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [payload, setPayload] = useState<AnalyticsPayload | null>(null);
+  const [includeAutomation, setIncludeAutomation] = useState(false);
+  const [lastLoaded, setLastLoaded] = useState<{ atIso: string; mode: string } | null>(null);
 
   const hourlyGrid = useMemo(() => {
     const hours = Array.from({ length: 24 }, (_, hour) => ({ hour, events: 0, unique_people: 0 }));
@@ -162,6 +167,9 @@ export default function InternalAnalyticsDashboardPage() {
     () => (payload?.features30d ?? []).reduce((max, row) => Math.max(max, row.unique_people), 0),
     [payload]
   );
+  const trafficModeLabel = includeAutomation ? "All traffic" : "Human-only";
+  const geoEnrichmentEnabled = payload?.config?.geo_enrichment_enabled;
+  const geoEnrichmentLabel = geoEnrichmentEnabled == null ? "Unknown" : geoEnrichmentEnabled ? "On" : "Off";
 
   async function loadAnalytics(event?: FormEvent) {
     event?.preventDefault();
@@ -175,7 +183,12 @@ export default function InternalAnalyticsDashboardPage() {
     setError(null);
 
     try {
-      const response = await fetch("/api/analytics/summary", {
+      const params = new URLSearchParams();
+      if (includeAutomation) {
+        params.set("includeAutomation", "1");
+      }
+
+      const response = await fetch(`/api/analytics/summary${params.size ? `?${params.toString()}` : ""}`, {
         method: "GET",
         headers: { Authorization: `Bearer ${token}` },
         cache: "no-store",
@@ -187,6 +200,7 @@ export default function InternalAnalyticsDashboardPage() {
 
       const nextPayload = (await response.json()) as AnalyticsPayload;
       setPayload(nextPayload);
+      setLastLoaded({ atIso: new Date().toISOString(), mode: trafficModeLabel });
 
       try {
         window.sessionStorage.setItem(SECRET_KEY, token);
@@ -207,7 +221,36 @@ export default function InternalAnalyticsDashboardPage() {
     <main className="min-h-screen bg-slate-100 text-slate-900">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
         <header className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h1 className="text-2xl font-semibold tracking-tight">Internal Analytics Dashboard</h1>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <h1 className="text-2xl font-semibold tracking-tight">Internal Analytics Dashboard</h1>
+            <div className="flex flex-col items-start gap-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <span
+                  className={`inline-flex w-fit items-center rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide ${
+                    includeAutomation
+                      ? "border-amber-200 bg-amber-50 text-amber-800"
+                      : "border-emerald-200 bg-emerald-50 text-emerald-800"
+                  }`}
+                >
+                  Mode: {trafficModeLabel}
+                </span>
+                <span
+                  className={`inline-flex w-fit items-center rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide ${
+                    geoEnrichmentEnabled == null
+                      ? "border-slate-200 bg-slate-100 text-slate-700"
+                      : geoEnrichmentEnabled
+                        ? "border-sky-200 bg-sky-50 text-sky-800"
+                        : "border-rose-200 bg-rose-50 text-rose-800"
+                  }`}
+                >
+                  Geo enrichment: {geoEnrichmentLabel}
+                </span>
+              </div>
+              {lastLoaded ? (
+                <p className="text-xs text-slate-500">Last loaded with mode {lastLoaded.mode}: {lastLoaded.atIso}</p>
+              ) : null}
+            </div>
+          </div>
           <p className="mt-1 text-sm text-slate-600">
             Visualizes funnel progression, feature adoption, cohort retention, and hourly usage heatmap from <span className="font-mono">/api/analytics/summary</span>.
           </p>
@@ -228,6 +271,15 @@ export default function InternalAnalyticsDashboardPage() {
               {loading ? "Loading..." : "Load Dashboard"}
             </button>
           </form>
+          <label className="mt-3 inline-flex items-center gap-2 text-sm text-slate-700">
+            <input
+              type="checkbox"
+              checked={includeAutomation}
+              onChange={(event) => setIncludeAutomation(event.target.checked)}
+              className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-500"
+            />
+            Include automation and test traffic
+          </label>
           {error ? <p className="mt-3 text-sm text-rose-700">{error}</p> : null}
           {!error && !payload ? (
             <p className="mt-3 text-sm text-slate-600">

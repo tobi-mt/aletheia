@@ -44,12 +44,15 @@ VAPID_SUBJECT="mailto:hello@mirrortalkpodcast.com"
 NOTIFICATION_CRON_SECRET=""
 NOTIFICATION_HEALTH_SECRET=""
 ANALYTICS_ADMIN_SECRET=""
+ANALYTICS_GEO_ENRICHMENT_ENABLED="false"
 NEXT_PUBLIC_ALETHEIA_STRIPE_DONATION_URL=""
 NEXT_PUBLIC_ALETHEIA_PAYPAL_DONATION_URL=""
 NEXT_PUBLIC_ALETHEIA_BANK_SUPPORT_URL=""
 NEXT_PUBLIC_ALETHEIA_SUPPORT_URL=""
 NEXT_PUBLIC_ALETHEIA_SUPPORT_CONTACT_EMAIL=""
 ```
+
+`ANALYTICS_GEO_ENRICHMENT_ENABLED` is optional and defaults to `false`. When enabled, analytics ingestion stores only coarse geo metadata (`geo_country`, `geo_region`) derived from proxy headers.
 
 ### Avatar Image Hosts
 
@@ -169,6 +172,7 @@ Read aggregate analytics with:
 curl -H "Authorization: Bearer YOUR_ANALYTICS_ADMIN_SECRET" \
   https://aletheia.mirrortalkpodcast.com/api/analytics/summary
 ```
+Internal Analytics Summary Dashboard: https://aletheia.mirrortalkpodcast.com/internal/analytics
 
 The summary response includes high-level usage and product insight blocks:
 

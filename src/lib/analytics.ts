@@ -64,6 +64,10 @@ const ALLOWED_EVENTS = new Set([
 
 type AnalyticsMetadata = Record<string, string | number | boolean | null>;
 
+const AUTOMATION_USER_AGENT_PATTERN =
+  "headlesschrome|lighthouse|bot|spider|crawler|curl|wget|python-requests|uptime|monitor|playwright|puppeteer|selenium";
+const TEST_SOURCE_PATTERN = "test|qa|e2e|automation|playwright|cypress|loadtest|stress";
+
 export type AnalyticsEventInput = {
   userId?: string | null;
   anonId?: string | null;
@@ -92,6 +96,42 @@ function sanitizeMetadata(metadata: AnalyticsMetadata = {}) {
       ])
       .filter(([key]) => key)
   );
+}
+
+function hasRegexMatch(value: string | null | undefined, regex: RegExp) {
+  return typeof value === "string" && regex.test(value);
+}
+
+export function deriveTrafficLabel(input: {
+  source?: string | null;
+  userAgent?: string | null;
+  host?: string | null;
+}) {
+  const source = input.source ?? "";
+  const userAgent = input.userAgent ?? "";
+  const host = input.host ?? "";
+
+  const isAutomation = hasRegexMatch(userAgent, new RegExp(AUTOMATION_USER_AGENT_PATTERN, "i"));
+  const isTestSource = hasRegexMatch(source, new RegExp(TEST_SOURCE_PATTERN, "i"));
+  const isProductionHost = /(^|\.)aletheia\.mirrortalkpodcast\.com(?::\d+)?$/i.test(host);
+
+  return {
+    source: isAutomation ? "automation" : isTestSource ? "test" : "human",
+    environment: process.env.NODE_ENV === "production" && isProductionHost ? "production" : "test",
+  } as const;
+}
+
+function trafficFilterWhere(includeAutomation: boolean, alias = "analytics_events") {
+  if (includeAutomation) {
+    return "TRUE";
+  }
+
+  return `
+    COALESCE(${alias}.metadata->>'traffic_source', '') NOT IN ('automation', 'test')
+    AND COALESCE(${alias}.metadata->>'traffic_environment', 'production') = 'production'
+    AND COALESCE(${alias}.user_agent, '') !~* '${AUTOMATION_USER_AGENT_PATTERN}'
+    AND COALESCE(${alias}.source, '') !~* '${TEST_SOURCE_PATTERN}'
+  `;
 }
 
 export async function trackEvent(input: AnalyticsEventInput) {
@@ -125,7 +165,10 @@ export async function trackServerEvent(input: Omit<AnalyticsEventInput, "userAge
   });
 }
 
-export async function analyticsSummary() {
+export async function analyticsSummary(options: { includeAutomation?: boolean } = {}) {
+  const includeAutomation = options.includeAutomation ?? false;
+  const trafficFilter = trafficFilterWhere(includeAutomation, "analytics_events");
+
   const [
     overviewRows,
     eventRows,
@@ -156,14 +199,14 @@ export async function analyticsSummary() {
         SELECT 'new_users_30d', COUNT(*)::int FROM users WHERE created_at >= now() - interval '30 days'
        UNION ALL
        SELECT 'anonymous_devices_30d', COUNT(DISTINCT anon_id)::int FROM analytics_events
-        WHERE anon_id IS NOT NULL AND created_at >= now() - interval '30 days'
+          WHERE anon_id IS NOT NULL AND created_at >= now() - interval '30 days' AND ${trafficFilter}
        UNION ALL
        SELECT 'identified_active_users_30d', COUNT(DISTINCT user_id)::int FROM analytics_events
-        WHERE user_id IS NOT NULL AND created_at >= now() - interval '30 days'
+          WHERE user_id IS NOT NULL AND created_at >= now() - interval '30 days' AND ${trafficFilter}
        UNION ALL
-       SELECT 'events_24h', COUNT(*)::int FROM analytics_events WHERE created_at >= now() - interval '24 hours'
+               SELECT 'events_24h', COUNT(*)::int FROM analytics_events WHERE created_at >= now() - interval '24 hours' AND ${trafficFilter}
        UNION ALL
-       SELECT 'events_30d', COUNT(*)::int FROM analytics_events WHERE created_at >= now() - interval '30 days'`
+               SELECT 'events_30d', COUNT(*)::int FROM analytics_events WHERE created_at >= now() - interval '30 days' AND ${trafficFilter}`
     ),
     many<{ event_name: string; count: number; unique_people: number }>(
       `SELECT event_name,
@@ -171,6 +214,7 @@ export async function analyticsSummary() {
               COUNT(DISTINCT COALESCE(user_id, anon_id))::int AS unique_people
        FROM analytics_events
        WHERE created_at >= now() - interval '30 days'
+         AND ${trafficFilter}
        GROUP BY event_name
        ORDER BY count DESC`
     ),
@@ -179,6 +223,7 @@ export async function analyticsSummary() {
        FROM analytics_events
        WHERE metadata->>'mode' IS NOT NULL
          AND created_at >= now() - interval '30 days'
+         AND ${trafficFilter}
        GROUP BY metadata->>'mode'
        ORDER BY count DESC`
     ),
@@ -198,6 +243,7 @@ export async function analyticsSummary() {
                 COUNT(*)::int AS events
          FROM analytics_events
          WHERE created_at::date >= current_date - interval '13 days'
+           AND ${trafficFilter}
          GROUP BY created_at::date
        )
        SELECT days.day::text AS day,
@@ -215,6 +261,7 @@ export async function analyticsSummary() {
                 COALESCE(user_id, anon_id, session_id) AS person_id
          FROM analytics_events
          WHERE created_at >= now() - interval '30 days'
+           AND ${trafficFilter}
        ),
        feature_map(feature, event_name) AS (
          VALUES
@@ -247,6 +294,7 @@ export async function analyticsSummary() {
                 COALESCE(user_id, anon_id, session_id) AS person_id
          FROM analytics_events
          WHERE created_at >= now() - interval '30 days'
+           AND ${trafficFilter}
        ),
        funnel(stage, event_name, stage_order) AS (
          VALUES
@@ -275,6 +323,7 @@ export async function analyticsSummary() {
        FROM analytics_events
        WHERE event_name = 'answer_feedback'
          AND created_at >= now() - interval '30 days'
+         AND ${trafficFilter}
          AND metadata->>'value' IS NOT NULL
        GROUP BY metadata->>'value'
        ORDER BY count DESC`
@@ -286,6 +335,7 @@ export async function analyticsSummary() {
        FROM analytics_events
        WHERE event_name = 'app_view_changed'
          AND created_at >= now() - interval '30 days'
+         AND ${trafficFilter}
          AND metadata->>'to_view' IS NOT NULL
        GROUP BY metadata->>'to_view'
        ORDER BY count DESC`
@@ -297,6 +347,7 @@ export async function analyticsSummary() {
        FROM analytics_events
        WHERE source IS NOT NULL
          AND created_at >= now() - interval '30 days'
+         AND ${trafficFilter}
        GROUP BY source
        ORDER BY count DESC`
     ),
@@ -307,6 +358,7 @@ export async function analyticsSummary() {
        FROM analytics_events
        WHERE path IS NOT NULL
          AND created_at >= now() - interval '30 days'
+         AND ${trafficFilter}
        GROUP BY path
        ORDER BY count DESC
        LIMIT 15`
@@ -317,6 +369,7 @@ export async function analyticsSummary() {
               COUNT(DISTINCT COALESCE(user_id, anon_id, session_id))::int AS unique_people
        FROM analytics_events
        WHERE created_at >= now() - interval '30 days'
+         AND ${trafficFilter}
        GROUP BY EXTRACT(HOUR FROM created_at)
        ORDER BY hour_of_day_utc ASC`
     ),
@@ -337,6 +390,7 @@ export async function analyticsSummary() {
                   WHERE analytics_events.user_id = signup_cohorts.user_id
                     AND analytics_events.created_at > signup_cohorts.signup_at
                     AND analytics_events.created_at <= signup_cohorts.signup_at + interval '7 days'
+                    AND ${trafficFilter}
                 ) AS retained_7d
          FROM signup_cohorts
        )
@@ -358,6 +412,7 @@ export async function analyticsSummary() {
        FROM analytics_events
        WHERE event_name = 'auth_failure'
          AND created_at >= now() - interval '30 days'
+         AND ${trafficFilter}
        GROUP BY metadata->>'method', metadata->>'flow', metadata->>'category', metadata->>'reason'
        ORDER BY count DESC, unique_people DESC, method ASC, flow ASC, category ASC, reason ASC`
     ),
@@ -368,6 +423,7 @@ export async function analyticsSummary() {
          FROM analytics_events
          WHERE event_name IN ('question_asked', 'chat_question_sent')
            AND created_at >= now() - interval '30 days'
+           AND ${trafficFilter}
        ),
        feedback AS (
          SELECT COALESCE(metadata->>'topic', 'unknown') AS topic,
@@ -376,6 +432,7 @@ export async function analyticsSummary() {
          FROM analytics_events
          WHERE event_name = 'answer_feedback'
            AND created_at >= now() - interval '30 days'
+           AND ${trafficFilter}
          GROUP BY COALESCE(metadata->>'topic', 'unknown')
        )
        SELECT questions.topic,
@@ -394,6 +451,7 @@ export async function analyticsSummary() {
        FROM analytics_events
        WHERE event_name IN ('question_asked', 'chat_question_sent')
          AND created_at >= now() - interval '30 days'
+         AND ${trafficFilter}
        GROUP BY COALESCE(metadata->>'emotional_tone', 'unknown')
        ORDER BY count DESC`
     ),
@@ -404,6 +462,7 @@ export async function analyticsSummary() {
        FROM analytics_events
        WHERE event_name = 'answer_feedback'
          AND created_at >= now() - interval '30 days'
+         AND ${trafficFilter}
        GROUP BY COALESCE(metadata->>'mode', 'unknown'), COALESCE(metadata->>'value', 'unknown')
        ORDER BY mode ASC, count DESC`
     ),
@@ -419,6 +478,7 @@ export async function analyticsSummary() {
                 BOOL_OR(event_name IN ('app_shared', 'share_started')) AS shared
          FROM analytics_events
          WHERE created_at >= now() - interval '30 days'
+           AND ${trafficFilter}
            AND COALESCE(user_id, anon_id, session_id) IS NOT NULL
          GROUP BY COALESCE(user_id, anon_id, session_id)
        ),
@@ -444,6 +504,7 @@ export async function analyticsSummary() {
        FROM analytics_events
        WHERE event_name IN ('language_changed', 'question_asked', 'chat_question_sent')
          AND created_at >= now() - interval '30 days'
+         AND ${trafficFilter}
        GROUP BY COALESCE(metadata->>'language', 'unknown')
        ORDER BY unique_people DESC, count DESC`
     ),
@@ -454,6 +515,7 @@ export async function analyticsSummary() {
        FROM analytics_events
        WHERE event_name = 'theme_changed'
          AND created_at >= now() - interval '30 days'
+         AND ${trafficFilter}
        GROUP BY COALESCE(metadata->>'theme', 'unknown')
        ORDER BY unique_people DESC, count DESC`
     ),
@@ -471,6 +533,7 @@ export async function analyticsSummary() {
               COUNT(DISTINCT COALESCE(user_id, anon_id, session_id))::int AS unique_people
        FROM analytics_events
        WHERE created_at >= now() - interval '30 days'
+         AND ${trafficFilter}
          AND event_name IN ('auth_failure', 'notification_enable_failed', 'error_seen', 'notification_daily_checked', 'disclosure_section_toggled', 'app_view_changed', 'pwa_install_prompt_available', 'app_update_refresh_landed')
        GROUP BY area
        ORDER BY count DESC`
