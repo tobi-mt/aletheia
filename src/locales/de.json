@@ -424,6 +424,7 @@
     "familiarityFamiliar": "Vertraut",
     "familiarityDeep": "Tief vertraut",
     "accountNotice": "Konto und Benachrichtigungen befinden sich im Konto-Tab.",
+    "askAboutCompanionPromptPrefix": "Hilf mir, heute darüber nachzudenken:",
     "accountTitle": "Konto",
     "accountSubtitle": "Dein Aletheia-Raum",
     "historyTitle": "Verlauf",

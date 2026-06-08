@@ -424,6 +424,7 @@
     "familiarityFamiliar": "Familiar",
     "familiarityDeep": "Deeply familiar",
     "accountNotice": "Account and notifications live in Account tab.",
+    "askAboutCompanionPromptPrefix": "Help me reflect on this today:",
     "accountTitle": "Account",
     "accountSubtitle": "Your Aletheia space",
     "historyTitle": "History",

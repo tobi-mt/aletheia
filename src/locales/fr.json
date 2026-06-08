@@ -424,6 +424,7 @@
     "familiarityFamiliar": "Familier",
     "familiarityDeep": "Profondément familier",
     "accountNotice": "Compte et notifications se trouvent dans l'onglet Compte.",
+    "askAboutCompanionPromptPrefix": "Aide-moi à réfléchir à cela aujourd'hui :",
     "accountTitle": "Compte",
     "accountSubtitle": "Ton espace Aletheia",
     "historyTitle": "Historique",

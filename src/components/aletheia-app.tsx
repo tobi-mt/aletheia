@@ -69,7 +69,7 @@ import {
   type UserPreferences,
 } from "@/lib/localization";
 import { modeProfiles, type ModeProfile } from "@/lib/mode-profiles";
-import { defaultManualContext, manualContextHasContent, normalizeManualContext, type ManualContextProfile } from "@/lib/manual-context";
+import { defaultManualContext, manualContextCounselSignals, manualContextHasContent, normalizeManualContext, type ManualContextProfile } from "@/lib/manual-context";
 import type { Mode } from "@/lib/wisdom-data";
 import { analyticsQuestionMetadata } from "@/lib/analytics-taxonomy";
 import { curatedAvatarOptions, defaultAvatarDataUrl, normalizeAvatarUrl } from "@/lib/avatars";
@@ -3574,6 +3574,180 @@ function todayWisdom(dayNumber = STATIC_TODAY_DAY_NUMBER) {
   return wisdomEntries[index];
 }
 
+type PersonalizedCarryPhraseKey =
+  | "financialPressure"
+  | "burnout"
+  | "isolation"
+  | "urgency"
+  | "values"
+  | "futureState"
+  | "activeDecision"
+  | FocusIntentionKey;
+
+const personalizedCarryPhrases: Record<PersonalizedCarryPhraseKey, Record<LanguageCode, string>> = {
+  financialPressure: {
+    en: "Count the cost before pressure gets a vote.",
+    es: "Cuenta el costo antes de que la presión vote.",
+    fr: "Compte le coût avant que la pression ait voix au chapitre.",
+    pt: "Conte o custo antes que a pressão decida.",
+    de: "Zähle die Kosten, bevor der Druck mitentscheidet.",
+    yo: "Ka iye owo naa ṣaaju ki titẹ to sọ ipinnu.",
+    ig: "Gụọ ụgwọ tupu nrụgide ekwuo okwu.",
+    ha: "Lissafa farashin kafin matsin lamba ya yi tasiri.",
+  },
+  burnout: {
+    en: "Let sustainability shape the next faithful step.",
+    es: "Deja que lo sostenible moldee el siguiente paso fiel.",
+    fr: "Laisse la durabilité façonner la prochaine étape fidèle.",
+    pt: "Deixe a sustentabilidade moldar o próximo passo fiel.",
+    de: "Lass Tragfähigkeit den nächsten treuen Schritt formen.",
+    yo: "Jẹ́ kí ohun tó le tẹ̀síwájú ṣe amọ̀nà ìgbésẹ̀ olóòtítọ́ tó kàn.",
+    ig: "Ka ịdịgide mee ka nzọụkwụ kwesịrị ntụkwasị obi sochirinụ dịrị.",
+    ha: "Bari dorewa ta tsara mataki na aminci na gaba.",
+  },
+  isolation: {
+    en: "Invite one trusted voice before carrying this alone.",
+    es: "Invita una voz confiable antes de cargar esto solo.",
+    fr: "Invite une voix de confiance avant de porter cela seul.",
+    pt: "Convide uma voz confiável antes de carregar isso sozinho.",
+    de: "Lade eine vertraute Stimme ein, bevor du das allein trägst.",
+    yo: "Pe ohùn ẹni tí o gbẹ́kẹ̀lé kí o tó gbe e nikan.",
+    ig: "Kpọọ olu ị tụkwasịrị obi tupu ibu nke a naanị gị.",
+    ha: "Gayyaci murya da ka amince da ita kafin ka ɗauki wannan kai kaɗai.",
+  },
+  urgency: {
+    en: "Separate courage from pressure before you move.",
+    es: "Distingue el valor de la presión antes de moverte.",
+    fr: "Distingue le courage de la pression avant d'agir.",
+    pt: "Separe coragem de pressão antes de agir.",
+    de: "Trenne Mut von Druck, bevor du handelst.",
+    yo: "Ya ìgboyà sọ́tọ̀ kúrò ní titẹ ṣaaju ki o to gbe igbese.",
+    ig: "Kewaa obi ike na nrụgide tupu ịga n'ihu.",
+    ha: "Raba jarumtaka da matsin lamba kafin ka motsa.",
+  },
+  values: {
+    en: "Let enough, integrity, and your boundaries stay in the room.",
+    es: "Deja que lo suficiente, la integridad y tus límites permanezcan presentes.",
+    fr: "Laisse le suffisant, l'intégrité et tes limites rester présents.",
+    pt: "Deixe o suficiente, a integridade e seus limites permanecerem presentes.",
+    de: "Lass Genug, Integrität und deine Grenzen im Raum bleiben.",
+    yo: "Jẹ́ kí ohun tó tó, ìwà pípé, àti ààlà rẹ wà níbẹ̀.",
+    ig: "Ka ihe zuru ezu, ezi omume, na oke gị nọgide ebe ahụ.",
+    ha: "Bari isasshe, gaskiya, da iyakokinka su kasance a wurin.",
+  },
+  futureState: {
+    en: "Choose the step that agrees with the future you named.",
+    es: "Elige el paso que coincide con el futuro que nombraste.",
+    fr: "Choisis l'étape qui s'accorde avec l'avenir que tu as nommé.",
+    pt: "Escolha o passo que combina com o futuro que você nomeou.",
+    de: "Wähle den Schritt, der zu der Zukunft passt, die du benannt hast.",
+    yo: "Yan ìgbésẹ̀ tó bá ọjọ́ iwájú tí o darukọ mu.",
+    ig: "Họrọ nzọụkwụ kwekọrọ n'ọdịnihu ị kpọrọ aha.",
+    ha: "Zaɓi matakin da ya dace da makomar da ka ambata.",
+  },
+  activeDecision: {
+    en: "Keep the next step small enough for peace to stay visible.",
+    es: "Mantén el siguiente paso lo bastante pequeño para que la paz siga visible.",
+    fr: "Garde la prochaine étape assez petite pour que la paix reste visible.",
+    pt: "Mantenha o próximo passo pequeno o bastante para que a paz permaneça visível.",
+    de: "Halte den nächsten Schritt klein genug, damit Frieden sichtbar bleibt.",
+    yo: "Jẹ́ kí ìgbésẹ̀ tó kàn kere tó kí àlàáfíà lè hàn.",
+    ig: "Mee ka nzọụkwụ ọzọ dị nta nke udo ga-anọgide pụta ìhè.",
+    ha: "Ka mataki na gaba ya kasance ƙanana har salama ta kasance a fili.",
+  },
+  reduce_anxiety: {
+    en: "Practice steady trust before you rehearse the fear.",
+    es: "Practica una confianza firme antes de ensayar el temor.",
+    fr: "Pratique une confiance stable avant de répéter la peur.",
+    pt: "Pratique confiança firme antes de ensaiar o medo.",
+    de: "Übe ruhiges Vertrauen, bevor du die Angst wiederholst.",
+    yo: "Ṣe ìgbẹ́kẹ̀lé tó dúró ṣinṣin ṣaaju ki o to tún ibẹru ṣe.",
+    ig: "Mụta ntụkwasị obi kwụsie ike tupu ịmegharị egwu.",
+    ha: "Yi aikin dogaro mai ƙarfi kafin ka maimaita tsoro.",
+  },
+  improve_stewardship: {
+    en: "Treat today's choice as something entrusted, not owned.",
+    es: "Trata la elección de hoy como algo confiado, no poseído.",
+    fr: "Traite le choix d'aujourd'hui comme confié, non possédé.",
+    pt: "Trate a escolha de hoje como algo confiado, não possuído.",
+    de: "Behandle die heutige Wahl als anvertraut, nicht besessen.",
+    yo: "Wo yiyan oni bi ohun ti a fi le ọ lọwọ, kii ṣe ohun ini rẹ.",
+    ig: "Were nhọrọ taa dị ka ihe e nyere gị, ọ bụghị nke i ji nwe.",
+    ha: "Dauki zaɓin yau a matsayin abin da aka ba ka amana, ba mallaka ba.",
+  },
+  wait_with_peace: {
+    en: "Let waiting protect what urgency would rush.",
+    es: "Deja que la espera proteja lo que la urgencia apresuraría.",
+    fr: "Laisse l'attente protéger ce que l'urgence précipiterait.",
+    pt: "Deixe a espera proteger o que a urgência apressaria.",
+    de: "Lass Warten schützen, was Dringlichkeit übereilen würde.",
+    yo: "Jẹ́ kí ìdúró dáàbò bo ohun tí ìkánjú fẹ́ yara.",
+    ig: "Ka ichere chebe ihe ngwa ngwa ga-eme ọsọ ọsọ.",
+    ha: "Bari jira ya kare abin da gaggawa za ta hanzarta.",
+  },
+  build_consistency: {
+    en: "Choose one repeatable step over a dramatic push.",
+    es: "Elige un paso repetible antes que un impulso dramático.",
+    fr: "Choisis une étape répétable plutôt qu'un élan spectaculaire.",
+    pt: "Escolha um passo repetível em vez de um impulso dramático.",
+    de: "Wähle einen wiederholbaren Schritt statt eines dramatischen Schubs.",
+    yo: "Yan ìgbésẹ̀ kan tí o le tún ṣe ju ìfọkànsìn ńlá lọ.",
+    ig: "Họrọ otu nzọụkwụ a pụrụ imegharị kama mkpali dị egwu.",
+    ha: "Zaɓi mataki guda da za a iya maimaitawa maimakon turawa mai girma.",
+  },
+  seek_counsel: {
+    en: "Ask a wise voice before the pressure gets louder.",
+    es: "Pregunta a una voz sabia antes de que la presión suba.",
+    fr: "Demande à une voix sage avant que la pression augmente.",
+    pt: "Pergunte a uma voz sábia antes que a pressão aumente.",
+    de: "Frage eine weise Stimme, bevor der Druck lauter wird.",
+    yo: "Beere lọwọ ohun ọlọgbọn ṣaaju ki titẹ to pọ si.",
+    ig: "Jụọ olu maara ihe tupu nrụgide abawanye.",
+    ha: "Tambayi murya mai hikima kafin matsin lamba ya ƙaru.",
+  },
+};
+
+function personalizedCarryPhrase({
+  language,
+  manualContext,
+  focusIntentions,
+  activeDecision,
+}: {
+  language: LanguageCode;
+  manualContext: ManualContextProfile;
+  focusIntentions: string[];
+  activeDecision: WisdomDecision | null;
+}) {
+  const signals = manualContextCounselSignals(manualContext).join(" ").toLowerCase();
+  if (signals.includes("financial pressure")) {
+    return personalizedCarryPhrases.financialPressure[language];
+  }
+  if (signals.includes("burnout")) {
+    return personalizedCarryPhrases.burnout[language];
+  }
+  if (signals.includes("isolation")) {
+    return personalizedCarryPhrases.isolation[language];
+  }
+  if (signals.includes("urgency")) {
+    return personalizedCarryPhrases.urgency[language];
+  }
+  if (signals.includes("values")) {
+    return personalizedCarryPhrases.values[language];
+  }
+  if (signals.includes("future-state")) {
+    return personalizedCarryPhrases.futureState[language];
+  }
+
+  if (activeDecision) {
+    return personalizedCarryPhrases.activeDecision[language];
+  }
+
+  const focusKey = focusIntentions.find((value): value is FocusIntentionKey =>
+    focusIntentionLibrary.some((item) => item.key === value)
+  );
+  return focusKey ? personalizedCarryPhrases[focusKey][language] : "";
+}
+
 function localTodayKey() {
   const now = new Date();
   const year = now.getFullYear();
@@ -3634,11 +3808,17 @@ function companionCardFromDaily({
   entry,
   pattern,
   language,
+  manualContext,
+  focusIntentions,
+  activeDecision,
 }: {
   daily: ReturnType<typeof localizedDailyWisdom>;
   entry: WisdomEntry;
   pattern: string;
   language: LanguageCode;
+  manualContext: ManualContextProfile;
+  focusIntentions: string[];
+  activeDecision: WisdomDecision | null;
 }): TodayCompanionCard {
   const theme = daily.theme || entry.theme;
   const questions: Partial<Record<LanguageCode, string>> = {
@@ -3662,10 +3842,10 @@ function companionCardFromDaily({
     es: "No tienes que decidir desde la presión hoy.",
     pt: "Hoje, você não precisa decidir sob pressão.",
   };
-  const carryPhrase =
-    language === "en" && pattern && pattern.length < 72
+  const personalizedPhrase = personalizedCarryPhrase({ language, manualContext, focusIntentions, activeDecision });
+  const carryPhrase = personalizedPhrase || (language === "en" && pattern && pattern.length < 72
       ? `Notice ${pattern.toLowerCase()} before it drives the decision.`
-      : daily.practice.replace(/\.$/, ".");
+      : daily.practice.replace(/\.$/, "."));
   return {
     title: theme,
     opening: openings[language] ?? openings.en!,
@@ -5028,7 +5208,15 @@ export function AletheiaApp() {
   const topBibleOptions = bibleTranslationOptionsForLanguage(preferences.language);
   const activeDecision = wisdomDecisions.find((item) => item.status !== "closed") ?? wisdomDecisions[0] ?? null;
   const todayPattern = timelineInsight.patterns[0] ?? activeMode.blindSpots[0];
-  const todayCompanionCard = companionCardFromDaily({ daily, entry: dailyEntry, pattern: todayPattern, language: preferences.language });
+  const todayCompanionCard = companionCardFromDaily({
+    daily,
+    entry: dailyEntry,
+    pattern: todayPattern,
+    language: preferences.language,
+    manualContext,
+    focusIntentions,
+    activeDecision,
+  });
   const weeklyReview = useMemo<WeeklyWisdomReview>(() => {
     const weekStart = new Date();
     weekStart.setHours(0, 0, 0, 0);
@@ -5397,7 +5585,7 @@ export function AletheiaApp() {
   }
 
   function askAboutCompanionCard(card: TodayCompanionCard) {
-    setQuery(`Help me reflect on this today: ${card.question}`);
+    setQuery(`${ts('labels.askAboutCompanionPromptPrefix', 'Help me reflect on this today:')} ${card.question}`);
     setHomeSection("ask", "today_companion_card");
     showView("companion");
     scrollToSection("companion-ask");
