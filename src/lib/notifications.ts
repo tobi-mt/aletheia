@@ -27,8 +27,8 @@ type DueDecisionReminderRow = {
   id: string;
   user_id: string;
   title: string;
-  waiting_until: string | null;
-  revisit_at: string | null;
+  waiting_until: string | Date | null;
+  revisit_at: string | Date | null;
   waiting_due: boolean;
   revisit_due: boolean;
   language: string | null;
@@ -211,6 +211,10 @@ function stableHash(value: string) {
     hash = (hash * 31 + value.charCodeAt(i)) >>> 0;
   }
   return hash;
+}
+
+function normalizeTimestamp(value: string | Date) {
+  return value instanceof Date ? value.toISOString() : value;
 }
 
 function dailyWisdomIndex(row: PushRow, size: number, now: Date) {
@@ -913,7 +917,7 @@ async function findDueDecisionReminders() {
         userId: row.user_id,
         title: row.title,
         kind: "waiting",
-        dueAt: row.waiting_until,
+        dueAt: normalizeTimestamp(row.waiting_until),
         language: normalizePreferences({ language: row.language as LanguageCode }).language,
       });
     }
@@ -923,7 +927,7 @@ async function findDueDecisionReminders() {
         userId: row.user_id,
         title: row.title,
         kind: "revisit",
-        dueAt: row.revisit_at,
+        dueAt: normalizeTimestamp(row.revisit_at),
         language: normalizePreferences({ language: row.language as LanguageCode }).language,
       });
     }
@@ -1010,7 +1014,8 @@ export async function sendDailyWisdomNotifications() {
     followupAttempted += userRows.length;
     const result = await sendPushRows(
       userRows,
-      () => JSON.stringify(followupNotificationPayload(reminder))
+      () => JSON.stringify(followupNotificationPayload(reminder)),
+      { lastSentColumn: null }
     );
     followupSent += result.sent;
     followupFailed += result.failed;
@@ -1045,9 +1050,12 @@ export async function sendDailyWisdomNotifications() {
     catchupAttempted: 0,
     hour: currentHour,
     followupAttempted,
+    followupSent,
+    followupFailed,
     followupDecisionsNotified,
     gratitudeAttempted: gratitudeRows.length,
     gratitudeSent: gratitudeResult.sent,
+    gratitudeFailed: gratitudeResult.failed,
     failureSamples: [...followupFailureSamples, ...failureSamples, ...gratitudeResult.failureSamples].slice(0, 5),
   };
 }

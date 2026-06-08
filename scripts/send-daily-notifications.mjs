@@ -149,11 +149,14 @@ try {
     const scanned = Number(result.scanned ?? 0);
     const hour = Number(result.hour ?? new Date().getUTCHours());
     const followupAttempted = Number(result.followupAttempted ?? 0);
+    const followupSent = Number(result.followupSent ?? 0);
+    const followupFailed = Number(result.followupFailed ?? 0);
     const followupDecisionsNotified = Number(result.followupDecisionsNotified ?? 0);
     const gratitudeAttempted = Number(result.gratitudeAttempted ?? 0);
     const gratitudeSent = Number(result.gratitudeSent ?? 0);
+    const gratitudeFailed = Number(result.gratitudeFailed ?? 0);
     console.log(
-      `✓ Daily notifications checked. attempted=${attempted} sent=${sent} failed=${failed} skipped=${skipped} scanned=${scanned} utcHour=${hour} followupAttempted=${followupAttempted} followupDecisionsNotified=${followupDecisionsNotified} gratitudeAttempted=${gratitudeAttempted} gratitudeSent=${gratitudeSent}`
+      `✓ Daily notifications checked. attempted=${attempted} sent=${sent} failed=${failed} skipped=${skipped} scanned=${scanned} utcHour=${hour} followupAttempted=${followupAttempted} followupSent=${followupSent} followupFailed=${followupFailed} followupDecisionsNotified=${followupDecisionsNotified} gratitudeAttempted=${gratitudeAttempted} gratitudeSent=${gratitudeSent} gratitudeFailed=${gratitudeFailed}`
     );
     if (Array.isArray(result.failureSamples) && result.failureSamples.length) {
       console.log("Failure samples:");

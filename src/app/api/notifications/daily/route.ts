@@ -38,8 +38,13 @@ async function runDailyNotifications(request: Request) {
       skipped: result.skipped,
       scanned: result.scanned,
       hour: result.hour,
+      followupAttempted: result.followupAttempted,
+      followupSent: result.followupSent,
+      followupFailed: result.followupFailed,
+      followupDecisionsNotified: result.followupDecisionsNotified,
       gratitudeAttempted: result.gratitudeAttempted,
       gratitudeSent: result.gratitudeSent,
+      gratitudeFailed: result.gratitudeFailed,
     },
   }).catch(() => undefined);
   return NextResponse.json(result);
