@@ -8158,7 +8158,7 @@ export function AletheiaApp() {
 function Screen({ children }: { children: React.ReactNode }) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 12 }}
+      initial={false}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -8 }}
       transition={{ duration: 0.25, ease: "easeOut" }}
@@ -8202,7 +8202,7 @@ function MobileNav({
           seed={avatarLabel ?? label}
           label={avatarLabel ?? label}
           size={18}
-          className="size-[18px] rounded-full border object-cover"
+          className="size-[18px]"
         />
       ) : (
         <Icon size={17} />
@@ -8377,7 +8377,7 @@ function NavButton({
           seed={avatarLabel ?? label}
           label={avatarLabel ?? label}
           size={18}
-          className="size-[18px] rounded-full border object-cover"
+          className="size-[18px]"
         />
       ) : (
         <Icon size={15} />
@@ -9899,20 +9899,18 @@ function AccountPanel({
         <div className="flex flex-col items-center gap-4 p-4 text-center sm:p-5">
           <div className="grid place-items-center">
             <div
-              className="rounded-full p-[1px] shadow-sm"
+              className="rounded-full p-[1.5px] shadow-[0_0_0_1px_rgba(0,0,0,0.04)]"
               style={{
                 background: `linear-gradient(135deg, ${theme.accentGold}, ${theme.primary}, ${theme.borderMedium})`,
               }}
             >
-              <div className="rounded-full p-[1px]" style={{ backgroundColor: theme.bgCard }}>
-                <AvatarCircle
-                  avatarUrl={user?.avatarUrl}
-                  seed={user?.id ?? user?.email ?? "guest"}
-                  label={profileName}
-                  size={72}
-                  className="size-[72px] rounded-full border object-cover"
-                />
-              </div>
+              <AvatarCircle
+                avatarUrl={user?.avatarUrl}
+                seed={user?.id ?? user?.email ?? "guest"}
+                label={profileName}
+                size={72}
+                className="size-[72px]"
+              />
             </div>
           </div>
           <div className="min-w-0 max-w-2xl">
@@ -10066,62 +10064,55 @@ function AccountPanel({
 
       {accountSection === "privacy" ? (
         <div className="space-y-4">
-          <DisclosureSection
-            title={ts('labels.manualContextTitle', 'Manual Context Vault')}
-            summary={manualContext.useInAnswers
-              ? `${ts('labels.accountContextActive', text.accountContextActive ?? "Context active")} · ${contextAreas} ${contextAreas === 1 ? ts('labels.accountArea', text.accountArea ?? "area") : ts('labels.accountAreas', text.accountAreas ?? "areas")} ${ts('labels.accountAdded', text.accountAdded ?? "added")}`
-              : ts('manualContext.intro', 'Add only the health, money, work, and life context you want Aletheia to consider. No external apps are connected.')}
-            eyebrow={ts('labels.privacyPosture', 'Privacy posture')}
-            compactCollapsed
-            showDetailsLabel={text.showDetails}
-            hideDetailsLabel={text.hideDetails}
-            theme={theme}
-          >
-            <ManualContextPanel
-              theme={theme}
-              ts={ts}
-              user={user}
-              preferences={preferences}
-              context={manualContext}
-              status={manualContextStatus}
-              onPreferenceChange={onPreferenceChange}
-              onChange={onManualContextChange}
-            />
-          </DisclosureSection>
+          <section className="overflow-hidden rounded-xl border shadow-sm" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
+            <div className="border-b px-4 py-4 sm:px-5" style={{ borderColor: theme.borderLight }}>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+                {ts('labels.privacyPosture', 'Privacy posture')}
+              </p>
+              <h3 className="mt-2 text-lg font-semibold sm:text-xl" style={{ color: theme.textPrimary }}>
+                {ts('labels.accountTrustPostureTitle', 'Manual context and trust boundaries')}
+              </h3>
+              <p className="mt-2 max-w-2xl text-sm leading-6" style={{ color: theme.textSecondary }}>
+                {ts('labels.accountTrustPostureSummary', 'Manual context comes first, with trust explanations and data boundaries kept nearby without burying the controls that matter most.')}
+              </p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <span className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold whitespace-nowrap" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: manualContext.useInAnswers ? theme.textPrimary : theme.textSecondary }}>
+                  {manualContext.useInAnswers ? `${contextAreas} ${contextAreas === 1 ? ts('labels.accountArea', text.accountArea ?? "area") : ts('labels.accountAreas', text.accountAreas ?? "areas")} ${ts('labels.accountAdded', text.accountAdded ?? "added")}` : ts('manualContext.notAddedYet', 'Not added yet')}
+                </span>
+                <span className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold whitespace-nowrap" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                  {manualContext.useInAnswers ? ts('labels.accountContextActive', text.accountContextActive ?? 'Context active') : ts('manualContext.paused', 'Context is paused')}
+                </span>
+                <span className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold whitespace-nowrap" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                  {ts('labels.signOutPrivacy', 'Sign-out privacy')}
+                </span>
+              </div>
+            </div>
+          </section>
 
-          <DisclosureSection
-            title={ts('labels.accountTrustPostureTitle', 'Trust and privacy posture')}
-            summary={ts('labels.accountTrustPostureSummary', 'Boundaries, scripture sourcing, saved data, and sharing posture are available without flooding the page.')}
-            eyebrow={ts('labels.privacyPosture', 'Privacy posture')}
-            compactCollapsed
-            showDetailsLabel={text.showDetails}
-            hideDetailsLabel={text.hideDetails}
+          <ManualContextPanel
             theme={theme}
-          >
-            <TrustCenterCard theme={theme} ts={ts} />
-          </DisclosureSection>
+            ts={ts}
+            user={user}
+            preferences={preferences}
+            context={manualContext}
+            status={manualContextStatus}
+            onPreferenceChange={onPreferenceChange}
+            onChange={onManualContextChange}
+          />
 
-          <DisclosureSection
-            title={ts('labels.accountBoundariesTitle', "Aletheia's guardrails")}
-            summary={ts('labels.accountBoundariesSummary', "The app's safety boundaries remain visible when needed, not constantly in the way.")}
-            eyebrow={ts('labels.privacyPosture', 'Privacy posture')}
-            compactCollapsed
-            showDetailsLabel={text.showDetails}
-            hideDetailsLabel={text.hideDetails}
+          <TrustCenterCard theme={theme} ts={ts} />
+
+          <DataBoundariesCard
             theme={theme}
-          >
-            <DataBoundariesCard
-              theme={theme}
-              ts={ts}
-              user={user}
-              hasLocalWorkspaceData={hasLocalWorkspaceData}
-              onClearLocalPersonalization={onClearLocalPersonalization}
-              onClearGuestWorkspace={onClearGuestWorkspace}
-              onExportData={onExportData}
-              onRequestDeleteAccount={onRequestDeleteAccount}
-              accountActionBusy={accountActionBusy}
-            />
-          </DisclosureSection>
+            ts={ts}
+            user={user}
+            hasLocalWorkspaceData={hasLocalWorkspaceData}
+            onClearLocalPersonalization={onClearLocalPersonalization}
+            onClearGuestWorkspace={onClearGuestWorkspace}
+            onExportData={onExportData}
+            onRequestDeleteAccount={onRequestDeleteAccount}
+            accountActionBusy={accountActionBusy}
+          />
         </div>
       ) : null}
 
@@ -11140,32 +11131,25 @@ function DataBoundariesCard({
         <p className="mt-2 max-w-2xl text-sm leading-6" style={{ color: theme.textSecondary }}>
           {ts('labels.accountTrustPostureSummary', 'Boundaries, scripture sourcing, saved data, and sharing posture are available without flooding the page.')}
         </p>
-        <div className="mt-4 flex flex-wrap gap-2">
-          <span className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold whitespace-nowrap" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: user ? theme.textPrimary : theme.textSecondary }}>
-            {user ? ts('labels.whatSyncsSignedIn', 'Signed-in sync') : ts('labels.whatSyncsGuest', 'Guest only')}
-          </span>
-          <span className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold whitespace-nowrap" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-            {ts('labels.whatStaysLocal', 'Local by default')}
-          </span>
-          <span className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold whitespace-nowrap" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-            {ts('labels.signOutPrivacy', 'Sign-out privacy')}
-          </span>
-        </div>
-      </div>
-      <div className="grid gap-2 p-4 sm:grid-cols-2 sm:p-5">
-        <div className="rounded-xl border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-          <p className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>{ts('labels.whatSyncs', 'What syncs')}</p>
-          <p className="mt-1 text-sm leading-6" style={{ color: theme.textPrimary }}>{user ? ts('labels.whatSyncsSignedIn', 'Decisions, reflections, profile, preferences, and counsel circle sync with your account.') : ts('labels.whatSyncsGuest', 'Nothing syncs in guest mode until you sign in.')}</p>
-        </div>
-        <div className="rounded-xl border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-          <p className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>{ts('labels.whatStaysLocal', 'What stays local')}</p>
-          <p className="mt-1 text-sm leading-6" style={{ color: theme.textPrimary }}>{ts('labels.whatStaysLocalBody', 'Device-specific voice, theme preference, local context drafts, and focus intentions stay local until changed.')}</p>
-        </div>
-        <div className="rounded-xl border p-3 sm:col-span-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-          <p className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>{ts('labels.signOutPrivacy', 'Sign-out privacy')}</p>
-          <p className="mt-1 text-sm leading-6" style={{ color: theme.textPrimary }}>
-            {ts('labels.signOutPrivacyBody', 'Signing out hides synced private workspace data on this device. It returns only after you sign back in.')}
-          </p>
+        <div className="mt-4 grid gap-2 sm:grid-cols-3">
+          <div className="rounded-xl border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+            <p className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>{user ? ts('labels.whatSyncsSignedIn', 'Signed-in sync') : ts('labels.whatSyncsGuest', 'Guest only')}</p>
+            <p className="mt-1 text-sm leading-6" style={{ color: theme.textPrimary }}>
+              {user ? ts('labels.whatSyncsSignedIn', 'Decisions, reflections, profile, preferences, and counsel circle sync with your account.') : ts('labels.whatSyncsGuest', 'Nothing syncs in guest mode until you sign in.')}
+            </p>
+          </div>
+          <div className="rounded-xl border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+            <p className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>{ts('labels.whatStaysLocal', 'Local by default')}</p>
+            <p className="mt-1 text-sm leading-6" style={{ color: theme.textPrimary }}>
+              {ts('labels.whatStaysLocalBody', 'Device-specific voice, theme preference, local context drafts, and focus intentions stay local until changed.')}
+            </p>
+          </div>
+          <div className="rounded-xl border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+            <p className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>{ts('labels.signOutPrivacy', 'Sign-out privacy')}</p>
+            <p className="mt-1 text-sm leading-6" style={{ color: theme.textPrimary }}>
+              {ts('labels.signOutPrivacyBody', 'Signing out hides synced private workspace data on this device. It returns only after you sign back in.')}
+            </p>
+          </div>
         </div>
       </div>
       <div className="flex flex-wrap gap-2 border-t px-4 py-4 sm:px-5" style={{ borderColor: theme.borderLight }}>
@@ -11417,8 +11401,7 @@ function ManualContextPanel({
   const [quickDetail, setQuickDetail] = useState("");
   const [manualContextFeedback, setManualContextFeedback] = useState("");
   const [manualContextSaving, setManualContextSaving] = useState(false);
-  const [contextEditorOpen, setContextEditorOpen] = useState(false);
-  const [quickDetailOpen, setQuickDetailOpen] = useState(false);
+  const [contextEditorOpen, setContextEditorOpen] = useState(true);
   const [privacyPostureOpen, setPrivacyPostureOpen] = useState(false);
   const manualCopy = {
     title: ts('labels.manualContextTitle', 'Manual Context Vault'),
@@ -11616,7 +11599,7 @@ function ManualContextPanel({
     activeKey: T,
     onSelect: (key: T) => void
   ) => (
-    <div className="grid grid-cols-2 gap-2 xl:grid-cols-3">
+    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
       {cards.map((card) => {
         const active = card.key === activeKey;
         const Icon = card.icon;
@@ -11805,6 +11788,9 @@ function ManualContextPanel({
     { key: "boundaries", label: ts('manualContext.boundariesChip', 'Boundaries'), prompt: ts('manualContext.boundariesPrompt', 'Example: Do not encourage choices that sacrifice family peace.') },
     { key: "enoughDefinition", label: ts('manualContext.enoughDefinitionLabel', 'Definition of enough'), prompt: ts('manualContext.enoughDefinitionPrompt', 'Example: Enough means stability, generosity, and time with loved ones.') },
   ];
+  const quickDetailOption = quickDetailOptions.find((option) => option.key === quickDetailType) ?? quickDetailOptions[0];
+  const vaultStateLabel = draft.useInAnswers ? manualCopy.active : manualCopy.paused;
+  const syncSummary = user ? manualCopy.signedInSync : manualCopy.guestSync;
   const saveManualContextDraft = async (nextDraft: ManualContextProfile, feedback: string) => {
     setManualContextSaving(true);
     setManualContextFeedback(manualCopy.savingManualContext);
@@ -11856,60 +11842,79 @@ function ManualContextPanel({
   };
 
   return (
-    <section className="rounded-xl p-4 shadow-sm sm:p-5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
-      <div className="grid gap-4 xl:grid-cols-[0.84fr_1.16fr]">
-        <div className="space-y-4">
-          <div className="flex items-start gap-3">
-            <div className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-md" style={{ backgroundColor: theme.bgInput, color: theme.primary }}>
-              <ShieldCheck size={17} />
+    <section className="rounded-[1.75rem] border p-3 shadow-sm sm:p-4" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+      <div className="overflow-hidden rounded-[1.4rem] border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+        <div className="p-4 sm:p-5">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div className="min-w-0 max-w-3xl">
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5 grid size-10 shrink-0 place-items-center rounded-xl border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
+                  <ShieldCheck size={18} />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{manualCopy.privacyPosture}</p>
+                  <h3 className="mt-2 text-2xl font-semibold sm:text-[2rem]" style={{ color: theme.textPrimary }}>{manualCopy.title}</h3>
+                  <p className="mt-2 max-w-2xl text-sm leading-6 sm:text-[15px]" style={{ color: theme.textSecondary }}>
+                    {manualCopy.intro}
+                  </p>
+                </div>
+              </div>
             </div>
-            <div>
-              <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{manualCopy.title}</p>
-              <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
-                {manualCopy.intro}
-              </p>
-              <p className="mt-2 text-xs leading-5" style={{ color: theme.textSecondary }}>{status}</p>
+            <div className="flex flex-wrap gap-2">
+              <span className="inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.1em]" style={{ borderColor: theme.borderLight, backgroundColor: draft.useInAnswers ? theme.activeBg : theme.bgInput, color: draft.useInAnswers ? theme.accentGold : theme.textSecondary }}>
+                {draft.useInAnswers ? <Check size={13} /> : null}
+                {vaultStateLabel}
+              </span>
+              <span className="inline-flex items-center rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.1em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                {activeContextSections} {activeContextSections === 1 ? manualCopy.areaSingular : manualCopy.areaPlural} {manualCopy.added}
+              </span>
             </div>
           </div>
 
-          <div className="rounded-lg border p-4" style={{ borderColor: theme.borderMedium, backgroundColor: draft.useInAnswers ? theme.activeBg : theme.bgCardElevated }}>
-            <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
-              {draft.useInAnswers ? manualCopy.active : manualCopy.paused}
-            </p>
-            <p className="mt-2 text-2xl font-semibold" style={{ color: theme.textPrimary }}>
-              {activeContextSections} {activeContextSections === 1 ? manualCopy.areaSingular : manualCopy.areaPlural} {manualCopy.added}
-            </p>
-            <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
-              {manualCopy.areaSummary}
-            </p>
-            <p className="mt-3 rounded-md border px-3 py-2 text-xs leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-              <span className="font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.enoughProfile', 'Enough profile')}:</span>{" "}
-              {enoughProfileItems.length ? enoughProfileItems.join(" · ") : ts('labels.enoughProfileEmpty', 'Define enough for money, work, rest, and generosity when you are ready.')}
-            </p>
-          </div>
+          <div className="mt-4 grid gap-3 2xl:grid-cols-[1.15fr_0.85fr]">
+            <div className="rounded-[1.3rem] border p-4 sm:p-5" style={{ borderColor: theme.borderMedium, backgroundColor: draft.useInAnswers ? theme.activeBg : theme.bgCard }}>
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div className="rounded-xl border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{vaultStateLabel}</p>
+                  <p className="mt-2 text-2xl font-semibold" style={{ color: theme.textPrimary }}>
+                    {activeContextSections}
+                  </p>
+                  <p className="mt-1 text-xs leading-5" style={{ color: theme.textSecondary }}>
+                    {activeContextSections === 1 ? manualCopy.activeArea : manualCopy.activeAreas}
+                  </p>
+                </div>
+                <div className="rounded-xl border p-3 sm:col-span-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{ts('labels.enoughProfile', 'Enough profile')}</p>
+                  <p className="mt-2 text-sm leading-6" style={{ color: theme.textPrimary }}>
+                    {enoughProfileItems.length ? enoughProfileItems.join(" · ") : ts('labels.enoughProfileEmpty', 'Define enough for money, work, rest, and generosity when you are ready.')}
+                  </p>
+                </div>
+              </div>
+              <div className="mt-3 rounded-xl border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{ts('manualContext.vaultPromise', 'Vault promise')}</p>
+                <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>{manualCopy.areaSummary}</p>
+                <p className="mt-2 text-xs leading-5" style={{ color: theme.textMuted }}>{syncSummary}</p>
+              </div>
+            </div>
 
-          <DisclosureSection
-            title={ts('manualContext.quickTitle', 'Add one helpful detail')}
-            summary={manualCopy.quickBody}
-            eyebrow={ts('manualContext.quickTitle', 'Quick add')}
-            compactCollapsed
-            isOpen={quickDetailOpen}
-            onOpenChange={setQuickDetailOpen}
-            showDetailsLabel={ts('showDetails', 'Show details')}
-            hideDetailsLabel={ts('hideDetails', 'Hide details')}
-            theme={theme}
-          >
-            <div className="rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-              <div className="flex flex-wrap gap-2">
+            <div className="rounded-[1.3rem] border p-4 sm:p-5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('manualContext.quickTitle', 'Quick add')}</p>
+                  <p className="mt-2 text-lg font-semibold" style={{ color: theme.textPrimary }}>{ts('manualContext.quickAddHeadline', 'Add one honest detail now')}</p>
+                  <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>{manualCopy.quickBody}</p>
+                </div>
+              </div>
+              <div className="mt-4 flex flex-wrap gap-2">
                 {quickDetailOptions.map((option) => {
                   const active = quickDetailType === option.key;
                   return (
                     <button
                       key={option.key}
                       type="button"
-                      className="rounded-md border px-2.5 py-1.5 text-[11px] font-semibold"
+                      className="rounded-full border px-3 py-1.5 text-[11px] font-semibold"
                       style={{
-                        borderColor: active ? theme.primary : theme.borderLight,
+                        borderColor: active ? theme.accentGold : theme.borderLight,
                         backgroundColor: active ? theme.activeBg : theme.bgInput,
                         color: active ? theme.textPrimary : theme.textSecondary,
                       }}
@@ -11920,18 +11925,24 @@ function ManualContextPanel({
                   );
                 })}
               </div>
-              <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+              <label className="mt-4 block rounded-xl border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
+                <span className="text-[11px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{quickDetailOption.label}</span>
                 <input
                   value={quickDetail}
                   onChange={(event) => setQuickDetail(event.target.value)}
                   onKeyDown={updateQuickDetailFromEnter}
-                  className="h-11 min-w-0 flex-1 rounded-md border px-3 text-sm outline-none"
-                  style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-                  placeholder={quickDetailOptions.find((option) => option.key === quickDetailType)?.prompt}
+                  className="mt-3 h-11 w-full rounded-lg border px-3 text-sm outline-none"
+                  style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textPrimary }}
+                  placeholder={quickDetailOption.prompt}
                 />
+              </label>
+              <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-xs leading-5" style={{ color: theme.textSecondary }}>
+                  {manualContextFeedback || status}
+                </p>
                 <button
                   type="button"
-                  className="h-11 rounded-md px-4 text-sm font-semibold"
+                  className="h-11 rounded-xl px-4 text-sm font-semibold shadow-sm"
                   style={{ backgroundColor: theme.primary, color: theme.textOnPrimary, opacity: quickDetail.trim() && !manualContextSaving ? 1 : 0.65 }}
                   disabled={!quickDetail.trim() || manualContextSaving}
                   onClick={() => void applyQuickDetail()}
@@ -11939,213 +11950,238 @@ function ManualContextPanel({
                   {manualCopy.addDetail}
                 </button>
               </div>
-              {manualContextFeedback ? (
-                <p className="mt-2 rounded-md border px-3 py-2 text-xs leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-                  {manualContextFeedback}
-                </p>
-              ) : null}
             </div>
-          </DisclosureSection>
-
-          <DisclosureSection
-            title={ts('labels.privacyPosture', 'Privacy posture')}
-            summary={ts('manualContext.privacyBody', 'This is manual, optional, and scoped to your account or this device. Aletheia does not connect to Apple Watch, banks, payroll, or medical systems here.')}
-            eyebrow={ts('labels.privacyPosture', 'Privacy posture')}
-            compactCollapsed
-            isOpen={privacyPostureOpen}
-            onOpenChange={setPrivacyPostureOpen}
-            showDetailsLabel={ts('showDetails', 'Show details')}
-            hideDetailsLabel={ts('hideDetails', 'Hide details')}
-            theme={theme}
-          >
-            <div className="rounded-lg border p-3 text-xs leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
-              <p className="font-semibold" style={{ color: theme.textPrimary }}>{manualCopy.privacyPosture}</p>
-              <p className="mt-1">
-                {manualCopy.privacyBody}
-              </p>
-              <p className="mt-1">
-                {user
-                  ? manualCopy.signedInSync
-                  : manualCopy.guestSync}{" "}
-                {hasContent ? manualCopy.clearFields : manualCopy.nothingAdded}
-              </p>
-            </div>
-          </DisclosureSection>
+          </div>
         </div>
 
-        <form
-          className="space-y-3"
-          onSubmit={handleManualContextSubmit}
-        >
-          <div className="grid gap-3 lg:grid-cols-[1.05fr_0.95fr]">
-            <label className="block rounded-lg border p-3 text-xs font-semibold uppercase tracking-[0.12em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
-              {ts('labels.guidanceRegion', 'Guidance region')}
-              <select
-                value={preferences.region}
-                onChange={(event) => onPreferenceChange({ region: event.target.value as RegionCode })}
-                className="mt-2 h-10 w-full rounded-md border px-3 text-sm normal-case tracking-normal outline-none"
-                style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-              >
-                {Object.entries(regions).map(([code, region]) => (
-                  <option key={code} value={code}>{region.label}</option>
-                ))}
-              </select>
-              <span className="mt-2 block text-xs font-normal normal-case leading-5 tracking-normal" style={{ color: theme.textSecondary }}>
-                {regions[preferences.region]?.example ?? regions.global.example}
-              </span>
-            </label>
+        <div className="border-t p-4 sm:p-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+          <form
+            className="space-y-4"
+            onSubmit={handleManualContextSubmit}
+          >
+            <div className="grid gap-3 2xl:grid-cols-[0.88fr_1.12fr]">
+              <div className="space-y-3">
+                <div className="rounded-[1.2rem] border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                  <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('manualContext.vaultControlsEyebrow', 'Vault controls')}</p>
+                      <p className="mt-2 text-lg font-semibold" style={{ color: theme.textPrimary }}>{ts('manualContext.vaultControlsTitle', 'Choose where this context applies')}</p>
+                      <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>{manualCopy.allowContextBody}</p>
+                    </div>
+                    <label className="inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm font-semibold" style={{ borderColor: draft.useInAnswers ? theme.accentGold : theme.borderLight, backgroundColor: draft.useInAnswers ? theme.activeBg : theme.bgInput, color: theme.textPrimary }}>
+                      <input
+                        type="checkbox"
+                        checked={draft.useInAnswers}
+                        onChange={(event) => updateDraft({ useInAnswers: event.target.checked })}
+                        className="size-4 rounded"
+                        style={{ borderColor: theme.borderMedium }}
+                      />
+                      {manualCopy.allowContextPrompt}
+                    </label>
+                  </div>
+                  <div className="mt-4 grid gap-3 lg:grid-cols-[0.95fr_1.05fr]">
+                    <label className="block rounded-xl border p-3 text-xs font-semibold uppercase tracking-[0.12em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                      {ts('labels.guidanceRegion', 'Guidance region')}
+                      <select
+                        value={preferences.region}
+                        onChange={(event) => onPreferenceChange({ region: event.target.value as RegionCode })}
+                        className="mt-2 h-10 w-full rounded-md border px-3 text-sm normal-case tracking-normal outline-none"
+                        style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textPrimary }}
+                      >
+                        {Object.entries(regions).map(([code, region]) => (
+                          <option key={code} value={code}>{region.label}</option>
+                        ))}
+                      </select>
+                      <span className="mt-2 block text-xs font-normal normal-case leading-5 tracking-normal" style={{ color: theme.textSecondary }}>
+                        {regions[preferences.region]?.example ?? regions.global.example}
+                      </span>
+                    </label>
+                    <div className="rounded-xl border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{ts('manualContext.syncAndDelete', 'Sync and delete')}</p>
+                      <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                        {syncSummary} {hasContent ? manualCopy.clearFields : manualCopy.nothingAdded}
+                      </p>
+                    </div>
+                  </div>
+                </div>
 
-            <label className="flex items-start gap-3 rounded-lg border p-3 text-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
-              <input
-                type="checkbox"
-                checked={draft.useInAnswers}
-                onChange={(event) => updateDraft({ useInAnswers: event.target.checked })}
-                className="mt-0.5 size-5 shrink-0 rounded"
-                style={{ borderColor: theme.borderMedium }}
-              />
-              <span>
-                <span className="block font-semibold" style={{ color: theme.textPrimary }}>{manualCopy.allowContextPrompt}</span>
-                <span className="mt-1 block text-xs leading-5" style={{ color: theme.textSecondary }}>
-                  {manualCopy.allowContextBody}
-                </span>
-              </span>
-            </label>
-          </div>
+                <div className="rounded-[1.2rem] border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('manualContext.answerUseEyebrow', 'Answer shaping')}</p>
+                      <p className="mt-2 text-lg font-semibold" style={{ color: theme.textPrimary }}>{ts('manualContext.answerUseTitle', 'Choose which areas can shape answers')}</p>
+                    </div>
+                    <span className="inline-flex items-center rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.1em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                      {activeContextSections} active
+                    </span>
+                  </div>
+                  <div className="mt-4 grid gap-3 lg:grid-cols-2">
+                    <ContextUseToggle
+                      icon={PiggyBank}
+                      label={manualCopy.useMoney}
+                      body={sectionSummary.money}
+                      checked={draft.useMoneyInAnswers}
+                      theme={theme}
+                      onChange={(checked) => updateDraft({ useMoneyInAnswers: checked })}
+                    />
+                    <ContextUseToggle
+                      icon={BriefcaseBusiness}
+                      label={manualCopy.useWork}
+                      body={sectionSummary.work}
+                      checked={draft.useWorkInAnswers}
+                      theme={theme}
+                      onChange={(checked) => updateDraft({ useWorkInAnswers: checked })}
+                    />
+                    <ContextUseToggle
+                      icon={Sprout}
+                      label={manualCopy.useHealth}
+                      body={sectionSummary.health}
+                      checked={draft.useHealthInAnswers}
+                      theme={theme}
+                      onChange={(checked) => updateDraft({ useHealthInAnswers: checked })}
+                    />
+                    <ContextUseToggle
+                      icon={Users}
+                      label={manualCopy.useRelationships}
+                      body={sectionSummary.relationships}
+                      checked={draft.useRelationshipsInAnswers}
+                      theme={theme}
+                      onChange={(checked) => updateDraft({ useRelationshipsInAnswers: checked })}
+                    />
+                    <ContextUseToggle
+                      icon={ShieldCheck}
+                      label={manualCopy.useValues}
+                      body={sectionSummary.values}
+                      checked={draft.useValuesInAnswers}
+                      theme={theme}
+                      onChange={(checked) => updateDraft({ useValuesInAnswers: checked })}
+                      wide
+                    />
+                  </div>
+                </div>
 
-          <div className="grid gap-3 lg:grid-cols-2">
-            <ContextUseToggle
-              icon={PiggyBank}
-              label={manualCopy.useMoney}
-              body={sectionSummary.money}
-              checked={draft.useMoneyInAnswers}
-              theme={theme}
-              onChange={(checked) => updateDraft({ useMoneyInAnswers: checked })}
-            />
-            <ContextUseToggle
-              icon={BriefcaseBusiness}
-              label={manualCopy.useWork}
-              body={sectionSummary.work}
-              checked={draft.useWorkInAnswers}
-              theme={theme}
-              onChange={(checked) => updateDraft({ useWorkInAnswers: checked })}
-            />
-            <ContextUseToggle
-              icon={Sprout}
-              label={manualCopy.useHealth}
-              body={sectionSummary.health}
-              checked={draft.useHealthInAnswers}
-              theme={theme}
-              onChange={(checked) => updateDraft({ useHealthInAnswers: checked })}
-            />
-            <ContextUseToggle
-              icon={Users}
-              label={manualCopy.useRelationships}
-              body={sectionSummary.relationships}
-              checked={draft.useRelationshipsInAnswers}
-              theme={theme}
-              onChange={(checked) => updateDraft({ useRelationshipsInAnswers: checked })}
-            />
-            <ContextUseToggle
-              icon={ShieldCheck}
-              label={manualCopy.useValues}
-              body={sectionSummary.values}
-              checked={draft.useValuesInAnswers}
-              theme={theme}
-              onChange={(checked) => updateDraft({ useValuesInAnswers: checked })}
-              wide
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-2 rounded-full border p-1.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
-            {[
-              { key: "current" as const, label: manualCopy.currentState, body: `${activeContextSections} ${activeContextSections === 1 ? manualCopy.activeArea : manualCopy.activeAreas}` },
-              { key: "future" as const, label: manualCopy.futureState, body: hasFutureState ? manualCopy.directionAdded : manualCopy.notAddedYet },
-            ].map((tab) => {
-              const active = contextTab === tab.key;
-              return (
-                <button
-                  key={tab.key}
-                  type="button"
-                  className="rounded-full px-3 py-2 text-left text-xs font-semibold transition"
-                  style={{
-                    backgroundColor: active ? theme.bgCardElevated : "transparent",
-                    color: active ? theme.textPrimary : theme.textSecondary,
-                    boxShadow: active ? `0 0 0 1px ${theme.borderMedium}` : "none",
-                  }}
-                  onClick={() => setContextTab(tab.key)}
+                <DisclosureSection
+                  title={ts('manualContext.privateByDefaultTitle', 'How it stays private')}
+                  summary={ts('manualContext.privacyBody', 'This is manual, optional, and scoped to your account or this device. Aletheia does not connect to Apple Watch, banks, payroll, or medical systems here.')}
+                  eyebrow={ts('manualContext.privateByDefaultEyebrow', 'Private by default')}
+                  compactCollapsed
+                  isOpen={privacyPostureOpen}
+                  onOpenChange={setPrivacyPostureOpen}
+                  showDetailsLabel={ts('showDetails', 'Show details')}
+                  hideDetailsLabel={ts('hideDetails', 'Hide details')}
+                  theme={theme}
                 >
-                  <span className="block uppercase tracking-[0.12em]">{tab.label}</span>
-                  <span className="mt-1 block text-[11px] font-normal normal-case tracking-normal">{tab.body}</span>
-                </button>
-              );
-            })}
-          </div>
-
-          <DisclosureSection
-            title={ts('manualContext.editContextTitle', 'Edit current and future context')}
-            summary={contextEditorOpen
-              ? ts('manualContext.editContextOpenSummary', 'Choose a card, then edit the details that matter most.')
-              : ts('manualContext.editContextClosedSummary', 'Current and future context stay collapsed until you want to make a deeper change.')}
-            eyebrow={ts('manualContext.editContextEyebrow', 'Context editor')}
-            isOpen={contextEditorOpen}
-            onOpenChange={setContextEditorOpen}
-            compactCollapsed
-            showDetailsLabel={ts('showDetails', 'Show details')}
-            hideDetailsLabel={ts('hideDetails', 'Hide details')}
-            theme={theme}
-          >
-            {contextTab === "current" ? (
-              <div className="space-y-4">
-                {renderCardRail(currentContextCards, currentContextFocus, setCurrentContextFocus)}
-                <div className="rounded-lg border p-3 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <div className="min-w-0">
-                      <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{manualCopy.currentState}</p>
-                      <h3 className="mt-1 text-lg font-semibold" style={{ color: theme.textPrimary }}>{activeCurrentContextCard.label}</h3>
-                      <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>{activeCurrentContextCard.summary}</p>
-                    </div>
-                    <span className="inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: activeCurrentContextCard.active ? theme.accentGold : theme.borderLight, backgroundColor: activeCurrentContextCard.active ? theme.activeBg : theme.bgInput, color: activeCurrentContextCard.active ? theme.accentGold : theme.textSecondary }}>
-                      {activeCurrentContextCard.active ? <Check size={12} /> : null}
-                      {activeCurrentContextCard.active ? manualCopy.added : manualCopy.notAddedYet}
-                    </span>
+                  <div className="rounded-lg border p-3 text-xs leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
+                    <p className="font-semibold" style={{ color: theme.textPrimary }}>{manualCopy.privacyPosture}</p>
+                    <p className="mt-1">
+                      {manualCopy.privacyBody}
+                    </p>
+                    <p className="mt-1">
+                      {syncSummary} {hasContent ? manualCopy.clearFields : manualCopy.nothingAdded}
+                    </p>
                   </div>
-                  <div className="mt-4">
-                    {renderCurrentContextEditor()}
-                  </div>
-                </div>
+                </DisclosureSection>
               </div>
-            ) : (
-              <div className="space-y-4">
-                {renderCardRail(futureContextCards, futureContextFocus, setFutureContextFocus)}
-                <div className="rounded-lg border p-3 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <div className="min-w-0">
-                      <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{manualCopy.desiredFutureState}</p>
-                      <h3 className="mt-1 text-lg font-semibold" style={{ color: theme.textPrimary }}>{activeFutureContextCard.label}</h3>
-                      <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>{manualCopy.desiredFutureBody}</p>
-                    </div>
-                    <span className="inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: activeFutureContextCard.active ? theme.accentGold : theme.borderLight, backgroundColor: activeFutureContextCard.active ? theme.activeBg : theme.bgInput, color: activeFutureContextCard.active ? theme.accentGold : theme.textSecondary }}>
-                      {activeFutureContextCard.active ? <Check size={12} /> : null}
-                      {activeFutureContextCard.active ? manualCopy.added : manualCopy.notAddedYet}
-                    </span>
-                  </div>
-                  <div className="mt-4">
-                    {renderFutureContextEditor()}
-                  </div>
-                </div>
-              </div>
-            )}
-          </DisclosureSection>
 
-          <button
-            type="submit"
-            disabled={manualContextSaving}
-            className="h-11 rounded-xl px-4 text-sm font-semibold shadow-sm"
-            style={{ backgroundColor: theme.primary, color: theme.textOnPrimary, opacity: manualContextSaving ? 0.68 : 1 }}
-          >
-            {manualContextSaving ? manualCopy.savingManualContext : manualCopy.saveManualContext}
-          </button>
-        </form>
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-2 rounded-full border p-1.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
+                  {[
+                    { key: "current" as const, label: manualCopy.currentState, body: `${activeContextSections} ${activeContextSections === 1 ? manualCopy.activeArea : manualCopy.activeAreas}` },
+                    { key: "future" as const, label: manualCopy.futureState, body: hasFutureState ? manualCopy.directionAdded : manualCopy.notAddedYet },
+                  ].map((tab) => {
+                    const active = contextTab === tab.key;
+                    return (
+                      <button
+                        key={tab.key}
+                        type="button"
+                        className="rounded-full px-3 py-2 text-left text-xs font-semibold transition"
+                        style={{
+                          backgroundColor: active ? theme.bgCardElevated : "transparent",
+                          color: active ? theme.textPrimary : theme.textSecondary,
+                          boxShadow: active ? `0 0 0 1px ${theme.borderMedium}` : "none",
+                        }}
+                        onClick={() => setContextTab(tab.key)}
+                      >
+                        <span className="block uppercase tracking-[0.12em]">{tab.label}</span>
+                        <span className="mt-1 block text-[11px] font-normal normal-case tracking-normal">{tab.body}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <DisclosureSection
+                  title={ts('manualContext.editContextTitle', 'Edit current and future context')}
+                  summary={contextEditorOpen
+                    ? ts('manualContext.editContextOpenSummary', 'Choose a card, then edit the details that matter most.')
+                    : ts('manualContext.editContextClosedSummary', 'Current and future context stay collapsed until you want to make a deeper change.')}
+                  eyebrow={ts('manualContext.editContextEyebrow', 'Vault editor')}
+                  isOpen={contextEditorOpen}
+                  onOpenChange={setContextEditorOpen}
+                  compactCollapsed
+                  showDetailsLabel={ts('showDetails', 'Show details')}
+                  hideDetailsLabel={ts('hideDetails', 'Hide details')}
+                  theme={theme}
+                >
+                  {contextTab === "current" ? (
+                    <div className="space-y-4">
+                      {renderCardRail(currentContextCards, currentContextFocus, setCurrentContextFocus)}
+                      <div className="rounded-lg border p-3 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                          <div className="min-w-0">
+                            <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{manualCopy.currentState}</p>
+                            <h3 className="mt-1 text-lg font-semibold" style={{ color: theme.textPrimary }}>{activeCurrentContextCard.label}</h3>
+                            <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>{activeCurrentContextCard.summary}</p>
+                          </div>
+                          <span className="inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: activeCurrentContextCard.active ? theme.accentGold : theme.borderLight, backgroundColor: activeCurrentContextCard.active ? theme.activeBg : theme.bgInput, color: activeCurrentContextCard.active ? theme.accentGold : theme.textSecondary }}>
+                            {activeCurrentContextCard.active ? <Check size={12} /> : null}
+                            {activeCurrentContextCard.active ? manualCopy.added : manualCopy.notAddedYet}
+                          </span>
+                        </div>
+                        <div className="mt-4">
+                          {renderCurrentContextEditor()}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {renderCardRail(futureContextCards, futureContextFocus, setFutureContextFocus)}
+                      <div className="rounded-lg border p-3 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                          <div className="min-w-0">
+                            <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{manualCopy.desiredFutureState}</p>
+                            <h3 className="mt-1 text-lg font-semibold" style={{ color: theme.textPrimary }}>{activeFutureContextCard.label}</h3>
+                            <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>{manualCopy.desiredFutureBody}</p>
+                          </div>
+                          <span className="inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: activeFutureContextCard.active ? theme.accentGold : theme.borderLight, backgroundColor: activeFutureContextCard.active ? theme.activeBg : theme.bgInput, color: activeFutureContextCard.active ? theme.accentGold : theme.textSecondary }}>
+                            {activeFutureContextCard.active ? <Check size={12} /> : null}
+                            {activeFutureContextCard.active ? manualCopy.added : manualCopy.notAddedYet}
+                          </span>
+                        </div>
+                        <div className="mt-4">
+                          {renderFutureContextEditor()}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </DisclosureSection>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-xs leading-5" style={{ color: theme.textSecondary }}>
+                {manualContextFeedback || status}
+              </p>
+              <button
+                type="submit"
+                disabled={manualContextSaving}
+                className="h-11 rounded-xl px-4 text-sm font-semibold shadow-sm"
+                style={{ backgroundColor: theme.primary, color: theme.textOnPrimary, opacity: manualContextSaving ? 0.68 : 1 }}
+              >
+                {manualContextSaving ? manualCopy.savingManualContext : manualCopy.saveManualContext}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </section>
   );
@@ -12699,7 +12735,7 @@ function AvatarStudioCard({
     <section className="rounded-xl border p-4 shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <AvatarCircle avatarUrl={avatarDraft} seed={avatarSeed} label={avatarLabel} size={56} className="size-14 rounded-full border object-cover" />
+          <AvatarCircle avatarUrl={avatarDraft} seed={avatarSeed} label={avatarLabel} size={56} className="size-14" />
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('avatar.studioEyebrow', 'Avatar Studio')}</p>
             <p className="mt-1 text-sm font-semibold" style={{ color: theme.textPrimary }}>{ts('avatar.studioTitle', 'Personalize your profile identity')}</p>
@@ -13560,7 +13596,7 @@ function CounselInviteModal({
               seed={token}
               label={preview?.invite.name ?? "Counsel contact"}
               size={44}
-              className="size-11 rounded-full border object-cover"
+              className="size-11"
             />
             <div>
             <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>{ts('labels.privateCounselInvite', 'Private Counsel Invite')}</p>
@@ -15349,7 +15385,7 @@ function DecisionCompanionPanel({
                       seed={counselName || counselContactValue || "counsel-contact"}
                       label={counselName || "Counsel contact"}
                       size={34}
-                      className="size-[34px] rounded-full border object-cover"
+                      className="size-[34px]"
                     />
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
@@ -15542,7 +15578,7 @@ function DecisionCompanionPanel({
                           seed={contact.id}
                           label={contact.name}
                           size={30}
-                          className="size-[30px] rounded-full border object-cover"
+                          className="size-[30px]"
                         />
                         <div>
                           <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{contact.name}</p>
@@ -15648,7 +15684,7 @@ function DecisionCompanionPanel({
                                   seed={contact.id}
                                   label={contact.name}
                                   size={30}
-                                  className="size-[30px] rounded-full border object-cover"
+                                  className="size-[30px]"
                                 />
                                 <div>
                                   <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{contact.name}</p>
