@@ -9899,18 +9899,18 @@ function AccountPanel({
         <div className="flex flex-col items-center gap-4 p-4 text-center sm:p-5">
           <div className="grid place-items-center">
             <div
-              className="rounded-full p-[2px] shadow-sm"
+              className="rounded-full p-[1px] shadow-sm"
               style={{
                 background: `linear-gradient(135deg, ${theme.accentGold}, ${theme.primary}, ${theme.borderMedium})`,
               }}
             >
-              <div className="rounded-full p-[2px]" style={{ backgroundColor: theme.bgCard }}>
+              <div className="rounded-full p-[1px]" style={{ backgroundColor: theme.bgCard }}>
                 <AvatarCircle
                   avatarUrl={user?.avatarUrl}
                   seed={user?.id ?? user?.email ?? "guest"}
                   label={profileName}
-                  size={80}
-                  className="size-20 rounded-full border object-cover"
+                  size={72}
+                  className="size-[72px] rounded-full border object-cover"
                 />
               </div>
             </div>
@@ -9922,23 +9922,25 @@ function AccountPanel({
             <h2 className="mt-1 text-2xl font-semibold leading-tight text-balance sm:text-3xl" style={{ color: theme.textPrimary }}>
               {profileGreeting}
             </h2>
-            <p className="mt-2 truncate text-sm leading-6 sm:text-base sm:leading-7" style={{ color: theme.textSecondary }}>
+            <p className="mt-2 text-sm leading-6 sm:text-base sm:leading-7" style={{ color: theme.textSecondary }}>
               {user ? `${ts('labels.accountSignedInWith', 'Signed in with')} ${profileSummary}` : profileSummary}
             </p>
           </div>
-          <div className="flex w-full flex-nowrap justify-center gap-2 overflow-x-auto pb-1">
-            <span className="inline-flex shrink-0 items-center rounded-full border px-3 py-1 text-xs font-semibold whitespace-nowrap" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}>
+          <div className="flex w-full flex-wrap justify-center gap-x-3 gap-y-1 text-xs leading-5 sm:text-sm" style={{ color: theme.textSecondary }}>
+            <span className="font-semibold" style={{ color: theme.textPrimary }}>
               {user ? ts('labels.accountConnected', 'Account connected') : ts('labels.accountLocalOnly', 'Local only')}
             </span>
-            <span className="inline-flex shrink-0 items-center rounded-full border px-3 py-1 text-xs font-semibold whitespace-nowrap" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+            <span aria-hidden="true">·</span>
+            <span>
               {notificationsEnabled ? ts('notifications.deviceSubscribed', 'This device is subscribed for daily wisdom.') : ts('notifications.notificationsOptionalWhenReady', 'Notifications can be enabled when you are ready.')}
             </span>
-            <span className="inline-flex shrink-0 items-center rounded-full border px-3 py-1 text-xs font-semibold whitespace-nowrap" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+            <span aria-hidden="true">·</span>
+            <span>
               {user ? ts('labels.accountHistorySynced', 'History synced') : ts('labels.accountHistoryLocal', 'History local')}
             </span>
           </div>
         </div>
-        <div className="grid gap-2 border-t px-4 py-4 sm:grid-cols-3 sm:px-5" style={{ borderColor: theme.borderLight }}>
+        <div className="grid grid-cols-3 gap-2 border-t px-4 py-4 sm:px-5" style={{ borderColor: theme.borderLight }}>
           {profileStats.map((stat) => (
             <AccountHeaderStat key={stat.detail} icon={stat.icon} value={stat.value} label={stat.label} detail={stat.detail} theme={theme} />
           ))}
@@ -10211,15 +10213,13 @@ function AccountHeaderStat({
   const accessibleLabel = `${value} ${detail}`;
   return (
     <span
-      className="flex min-h-12 min-w-0 items-center justify-center rounded-xl border px-3 py-3"
+      className="flex min-h-11 min-w-0 items-center justify-center gap-2 rounded-xl border px-2.5 py-2.5 text-center"
       style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}
       aria-label={accessibleLabel}
       title={accessibleLabel}
     >
-      <span className="flex min-w-0 items-center justify-center gap-2 leading-none" style={{ color: theme.textPrimary }}>
-        <Icon className="shrink-0" size={16} aria-hidden="true" />
-        <span className="text-base font-semibold">{value}</span>
-      </span>
+      <Icon className="shrink-0" size={15} aria-hidden="true" style={{ color: theme.textSecondary }} />
+      <span className="text-sm font-semibold leading-none" style={{ color: theme.textPrimary }}>{value}</span>
       <span className="sr-only">{label}</span>
     </span>
   );
@@ -11557,7 +11557,7 @@ function ManualContextPanel({
   ];
   const activeContextSections = currentContextCards.filter((card) => card.active).length;
   const renderNumberFieldGrid = (fields: Array<{ key: keyof ManualContextProfile; label: string; step?: number; min: number; max: number }>) => (
-    <div className="grid grid-flow-col auto-cols-[minmax(15rem,1fr)] gap-3 overflow-x-auto pb-1 snap-x snap-mandatory sm:grid sm:grid-flow-row sm:auto-cols-auto sm:grid-cols-2 sm:overflow-visible xl:grid-cols-3">
+    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
       {fields.map((field) => (
         <RangeField
           key={String(field.key)}
@@ -11616,7 +11616,7 @@ function ManualContextPanel({
     activeKey: T,
     onSelect: (key: T) => void
   ) => (
-    <div className="grid grid-flow-col auto-cols-[minmax(15rem,1fr)] gap-2 overflow-x-auto pb-1 snap-x snap-mandatory sm:grid sm:grid-flow-row sm:grid-cols-2 sm:auto-cols-auto sm:overflow-visible xl:grid-cols-3">
+    <div className="grid grid-cols-2 gap-2 xl:grid-cols-3">
       {cards.map((card) => {
         const active = card.key === activeKey;
         const Icon = card.icon;
@@ -11625,7 +11625,7 @@ function ManualContextPanel({
               key={card.key}
               type="button"
               onClick={() => onSelect(card.key)}
-            className="premium-tap-card min-w-0 shrink-0 snap-start rounded-xl border p-3 text-left shadow-sm transition hover:-translate-y-0.5"
+            className="premium-tap-card min-w-0 rounded-xl border p-3 text-left shadow-sm transition hover:-translate-y-0.5"
             style={{
               borderColor: active ? theme.accentGold : theme.borderLight,
               backgroundColor: active ? theme.activeBg : theme.bgCardElevated,
