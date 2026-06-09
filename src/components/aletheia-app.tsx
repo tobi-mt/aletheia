@@ -10211,8 +10211,8 @@ function AccountHeaderStat({
   const accessibleLabel = `${value} ${detail}`;
   return (
     <span
-      className="flex min-h-11 min-w-0 items-center justify-center rounded-md border px-2 py-2"
-      style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}
+      className="flex min-h-12 min-w-0 items-center justify-center rounded-xl border px-3 py-3"
+      style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}
       aria-label={accessibleLabel}
       title={accessibleLabel}
     >
@@ -12380,32 +12380,45 @@ function AccountStatusCard({
       : notificationStatus;
 
   return (
-    <section className="rounded-xl border p-4 shadow-sm sm:p-5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
-      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-        <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.accountDetails', 'Account details')}</p>
-          <h3 className="mt-2 text-xl font-semibold" style={{ color: theme.textPrimary }}>
-            {signedIn ? ts('auth.signedIn', 'Signed in') : ts('auth.guestMode', 'Guest mode')}
-          </h3>
-          <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
-            {signedIn
-              ? `${ts('auth.signedInAs', 'Signed in as')} ${user?.email}. ${ts('auth.syncActiveFull', 'Sync is active for decisions, reflections, counsel, rules, and preferences.')}`
-              : ts('auth.signInSyncHistory', 'Sign in to sync your wisdom history across devices and enable daily notifications.')}
-          </p>
+    <section className="overflow-hidden rounded-xl border shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
+      <div className="border-b px-4 py-4 sm:px-5" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.accountDetails', 'Account details')}</p>
+            <h3 className="mt-2 text-xl font-semibold sm:text-2xl" style={{ color: theme.textPrimary }}>
+              {signedIn ? ts('auth.signedIn', 'Signed in') : ts('auth.guestMode', 'Guest mode')}
+            </h3>
+            <p className="mt-2 max-w-2xl text-sm leading-6" style={{ color: theme.textSecondary }}>
+              {signedIn
+                ? `${user?.email}. ${ts('auth.syncActiveFull', 'Sync is active for decisions, reflections, counsel, rules, and preferences.')}`
+                : ts('auth.signInSyncHistory', 'Sign in to sync your wisdom history across devices and enable daily notifications.')}
+            </p>
+          </div>
+          {signedIn ? (
+            <button
+              type="button"
+              onClick={onLogout}
+              disabled={authStatus === "signing-out"}
+              className="inline-flex h-10 items-center justify-center rounded-full border px-4 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60"
+              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+            >
+              {authStatus === "signing-out" ? ts('auth.signingOut', 'Signing out...') : ts('auth.signOut', 'Sign out')}
+            </button>
+          ) : null}
         </div>
-        {signedIn ? (
-          <button
-            type="button"
-            onClick={onLogout}
-            disabled={authStatus === "signing-out"}
-            className="h-10 rounded-md border px-4 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60"
-            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textSecondary }}
-          >
-            {authStatus === "signing-out" ? ts('auth.signingOut', 'Signing out...') : ts('auth.signOut', 'Sign out')}
-          </button>
-        ) : null}
+        <div className="mt-4 flex flex-wrap gap-2">
+          <span className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold whitespace-nowrap" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: signedIn ? theme.textPrimary : theme.textSecondary }}>
+            {signedIn ? ts('labels.active', 'Active') : ts('auth.guestOnly', 'Guest only')}
+          </span>
+          <span className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold whitespace-nowrap" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+            {signedIn ? ts('labels.thisSession', 'This session') : ts('labels.notSynced', 'Not synced')}
+          </span>
+          <span className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold whitespace-nowrap" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: notificationsEnabled ? theme.textPrimary : theme.textSecondary }}>
+            {notificationHealth}
+          </span>
+        </div>
       </div>
-      <div className="mt-4 grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 p-4 sm:grid-cols-3 sm:p-5">
         <AccountSignal label={ts('labels.sync', 'Sync')} value={signedIn ? ts('labels.active', 'Active') : ts('auth.guestOnly', 'Guest only')} active={signedIn} theme={theme} />
         <AccountSignal label={ts('labels.lastSynced', 'Last synced')} value={signedIn ? ts('labels.thisSession', 'This session') : ts('labels.notSynced', 'Not synced')} active={signedIn} theme={theme} />
         <AccountSignal label={ts('labels.notifications', 'Notifications')} value={notificationHealth} active={notificationsEnabled} theme={theme} />
