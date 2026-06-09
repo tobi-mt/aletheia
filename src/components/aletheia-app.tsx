@@ -9926,13 +9926,13 @@ function AccountPanel({
               {user ? `${ts('labels.accountSignedInWith', 'Signed in with')} ${profileSummary}` : profileSummary}
             </p>
           </div>
-          <div className="flex w-full flex-wrap justify-center gap-x-3 gap-y-1 text-xs leading-5 sm:text-sm" style={{ color: theme.textSecondary }}>
+          <div className="flex w-full flex-wrap justify-center gap-x-2 gap-y-1 text-[11px] leading-5 sm:text-xs" style={{ color: theme.textSecondary }}>
             <span className="font-semibold" style={{ color: theme.textPrimary }}>
-              {user ? ts('labels.accountConnected', 'Account connected') : ts('labels.accountLocalOnly', 'Local only')}
+              {user ? ts('labels.accountConnected', 'Connected') : ts('labels.accountLocalOnly', 'Local only')}
             </span>
             <span aria-hidden="true">·</span>
             <span>
-              {notificationsEnabled ? ts('notifications.deviceSubscribed', 'This device is subscribed for daily wisdom.') : ts('notifications.notificationsOptionalWhenReady', 'Notifications can be enabled when you are ready.')}
+              {notificationsEnabled ? ts('notifications.deviceSubscribed', 'Notifications on') : ts('notifications.notificationsOptionalWhenReady', 'Notifications off')}
             </span>
             <span aria-hidden="true">·</span>
             <span>
@@ -10213,13 +10213,13 @@ function AccountHeaderStat({
   const accessibleLabel = `${value} ${detail}`;
   return (
     <span
-      className="flex min-h-11 min-w-0 items-center justify-center gap-2 rounded-xl border px-2.5 py-2.5 text-center"
+      className="flex min-h-11 min-w-0 items-center justify-center gap-2 rounded-xl border px-2 py-2 text-center"
       style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}
       aria-label={accessibleLabel}
       title={accessibleLabel}
     >
       <Icon className="shrink-0" size={15} aria-hidden="true" style={{ color: theme.textSecondary }} />
-      <span className="text-sm font-semibold leading-none" style={{ color: theme.textPrimary }}>{value}</span>
+      <span className="text-[13px] font-semibold leading-none sm:text-sm" style={{ color: theme.textPrimary }}>{value}</span>
       <span className="sr-only">{label}</span>
     </span>
   );
@@ -10448,7 +10448,7 @@ function SupportMissionCard({
             </div>
             <div className="min-w-0">
               <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('supportMission.eyebrow', 'Mission')}</p>
-              <h3 className="mt-2 text-xl font-semibold" style={{ color: theme.textPrimary }}>{ts('supportMission.cardTitle', 'Keep wisdom accessible')}</h3>
+              <h3 className="mt-2 text-lg font-semibold sm:text-xl" style={{ color: theme.textPrimary }}>{ts('supportMission.cardTitle', 'Keep wisdom accessible')}</h3>
               <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
                 {ts('supportMission.body', 'Optional support helps us keep Aletheia calm, trustworthy, multilingual, and available to people seeking wisdom for money, work, purpose, and stewardship.')}
               </p>
@@ -10568,7 +10568,7 @@ function AccountPersonalizationPanel({
               <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
                 {ts('labels.accountPersonalizationTitle', 'Personalization')}
               </p>
-              <h3 className="mt-1 text-xl font-semibold sm:text-2xl" style={{ color: theme.textPrimary }}>
+              <h3 className="mt-1 text-lg font-semibold sm:text-xl" style={{ color: theme.textPrimary }}>
                 {ts('labels.personalizeAletheia', 'Personalize Aletheia')}
               </h3>
               <p className="mt-2 max-w-2xl text-sm leading-6" style={{ color: theme.textSecondary }}>
@@ -11082,7 +11082,7 @@ function SystemStatusCard({
           </div>
           <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.sync', 'Sync')}</p>
-            <h3 className="mt-2 text-xl font-semibold sm:text-2xl" style={{ color: theme.textPrimary }}>
+            <h3 className="mt-2 text-lg font-semibold sm:text-xl" style={{ color: theme.textPrimary }}>
               {statusLabel}
             </h3>
             <p className="mt-2 max-w-2xl text-sm leading-6" style={{ color: theme.textSecondary }}>
@@ -11134,7 +11134,7 @@ function DataBoundariesCard({
     <section className="overflow-hidden rounded-xl border shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
       <div className="border-b px-4 py-4 sm:px-5" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
         <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.yourDataBoundaries', 'Your data boundaries')}</p>
-        <h3 className="mt-2 text-xl font-semibold sm:text-2xl" style={{ color: theme.textPrimary }}>
+        <h3 className="mt-2 text-lg font-semibold sm:text-xl" style={{ color: theme.textPrimary }}>
           {ts('labels.accountTrustPostureTitle', 'Trust and privacy posture')}
         </h3>
         <p className="mt-2 max-w-2xl text-sm leading-6" style={{ color: theme.textSecondary }}>
@@ -11234,7 +11234,7 @@ function SupportReportCard({
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.support', 'Support')}</p>
-            <h3 className="mt-2 text-xl font-semibold sm:text-2xl" style={{ color: theme.textPrimary }}>{ts('labels.reportIssueTitle', 'Report an issue')}</h3>
+            <h3 className="mt-2 text-lg font-semibold sm:text-xl" style={{ color: theme.textPrimary }}>{ts('labels.reportIssueTitle', 'Report an issue')}</h3>
             <p className="mt-2 max-w-2xl text-sm leading-6" style={{ color: theme.textSecondary }}>
               {ts('labels.reportIssueBody', 'Send feedback, a bug, or a confusing workflow. Private chats, journals, decisions, and manual context are not attached.')}
             </p>
@@ -11284,7 +11284,7 @@ function TrustCenterCard({ theme, ts }: { theme: ThemeColors; ts: (key: string, 
           </div>
           <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.trustCenterTitle', 'Trust Center')}</p>
-            <h3 className="mt-1 text-xl font-semibold sm:text-2xl" style={{ color: theme.textPrimary }}>
+            <h3 className="mt-1 text-lg font-semibold sm:text-xl" style={{ color: theme.textPrimary }}>
               {ts('labels.accountTrustPostureTitle', 'Trust and privacy posture')}
             </h3>
             <p className="mt-2 max-w-2xl text-sm leading-6" style={{ color: theme.textSecondary }}>
@@ -11308,8 +11308,8 @@ function TrustCenterCard({ theme, ts }: { theme: ThemeColors; ts: (key: string, 
 function AccountStat({ label, value, theme }: { label: string; value: string; theme: ThemeColors }) {
   return (
     <div className="rounded-xl border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-      <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textSecondary }}>{label}</p>
-      <p className="mt-2 text-2xl font-semibold" style={{ color: theme.textPrimary }}>{value}</p>
+      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] leading-4" style={{ color: theme.textSecondary }}>{label}</p>
+      <p className="mt-2 text-[13px] font-semibold leading-none sm:text-sm" style={{ color: theme.textPrimary }}>{value}</p>
     </div>
   );
 }
@@ -12474,7 +12474,7 @@ function AccountStatusCard({
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.accountDetails', 'Account details')}</p>
-            <h3 className="mt-2 text-xl font-semibold sm:text-2xl" style={{ color: theme.textPrimary }}>
+            <h3 className="mt-2 text-lg font-semibold sm:text-xl" style={{ color: theme.textPrimary }}>
               {signedIn ? ts('auth.signedIn', 'Signed in') : ts('auth.guestMode', 'Guest mode')}
             </h3>
             <p className="mt-2 max-w-2xl text-sm leading-6" style={{ color: theme.textSecondary }}>
@@ -12496,13 +12496,13 @@ function AccountStatusCard({
           ) : null}
         </div>
         <div className="mt-4 flex flex-wrap gap-2">
-          <span className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold whitespace-nowrap" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: signedIn ? theme.textPrimary : theme.textSecondary }}>
+          <span className="inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold whitespace-nowrap" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: signedIn ? theme.textPrimary : theme.textSecondary }}>
             {signedIn ? ts('labels.active', 'Active') : ts('auth.guestOnly', 'Guest only')}
           </span>
-          <span className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold whitespace-nowrap" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+          <span className="inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold whitespace-nowrap" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
             {signedIn ? ts('labels.thisSession', 'This session') : ts('labels.notSynced', 'Not synced')}
           </span>
-          <span className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold whitespace-nowrap" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: notificationsEnabled ? theme.textPrimary : theme.textSecondary }}>
+          <span className="inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold whitespace-nowrap" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: notificationsEnabled ? theme.textPrimary : theme.textSecondary }}>
             {notificationHealth}
           </span>
         </div>
@@ -12845,8 +12845,8 @@ function AccountSignal({ label, value, active, theme }: { label: string; value: 
       borderColor: active ? theme.accentLight : theme.borderLight, 
       backgroundColor: active ? theme.bgCardElevated : theme.bgCard 
     }}>
-      <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textSecondary }}>{label}</p>
-      <p className="mt-2 text-sm font-semibold leading-5" style={{ color: theme.textPrimary }}>{value}</p>
+      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] leading-4" style={{ color: theme.textSecondary }}>{label}</p>
+      <p className="mt-2 text-[13px] font-semibold leading-5 sm:text-sm" style={{ color: theme.textPrimary }}>{value}</p>
     </div>
   );
 }
