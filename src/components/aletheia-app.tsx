@@ -5977,7 +5977,6 @@ export function AletheiaApp() {
       voiceRecognition.stop();
       setIsListening(false);
       setVoiceRecognition(null);
-      setVoiceTranscriptPreview("");
       announceWorkflow(ts('notifications.voiceStopped'), ts('notifications.voiceStoppedBody'), "info");
       return;
     }
@@ -6023,7 +6022,7 @@ export function AletheiaApp() {
     setVoiceTranscriptPreview("");
     announceWorkflow(
       ts('notifications.voiceInputListening', 'Voice input active'),
-      ts('notifications.voiceInputListeningBody', 'Speak now. Your words will appear in the ask field as they are recognized.'),
+      ts('notifications.voiceInputListeningBody', 'Speak now. Your words will appear here before you insert them.'),
       "info"
     );
     
@@ -6042,29 +6041,17 @@ export function AletheiaApp() {
     recognition.onresult = (event) => {
       resetInactivityTimer(); // Reset timer on each result
       
-      // Process results progressively
-      let finalTranscript = "";
-      let interimTranscript = "";
-      
-      for (let i = event.resultIndex; i < event.results.length; i++) {
+      let combinedTranscript = "";
+      for (let i = 0; i < event.results.length; i++) {
         const result = event.results[i];
         const transcript = result[0]?.transcript || "";
-        
-        if (result[0] && "isFinal" in result[0] && (result[0] as { isFinal: boolean }).isFinal) {
-          finalTranscript += transcript + " ";
-        } else {
-          interimTranscript += transcript;
-        }
+        combinedTranscript += `${transcript} `;
       }
       
-      if (finalTranscript) {
-        setQuery((current) => `${current}${current ? " " : ""}${finalTranscript}`.trim());
-      }
-      setVoiceTranscriptPreview(interimTranscript.trim());
+      setVoiceTranscriptPreview(combinedTranscript.trim());
     };
     recognition.onerror = () => {
       if (inactivityTimer) clearTimeout(inactivityTimer);
-      setVoiceTranscriptPreview("");
       setPreferencesStatus(ts('notifications.voiceInputStoppedBody', 'Voice input stopped before Aletheia could hear clearly.'));
       announceWorkflow(ts('notifications.voiceInputStopped'), ts('notifications.voiceInputStoppedBody'), "warning");
     };
@@ -6072,7 +6059,6 @@ export function AletheiaApp() {
       if (inactivityTimer) clearTimeout(inactivityTimer);
       setIsListening(false);
       setVoiceRecognition(null);
-      setVoiceTranscriptPreview("");
     };
     recognition.start();
     setVoiceRecognition(recognition);
@@ -7752,6 +7738,8 @@ export function AletheiaApp() {
                         onDraftPrompt={setQuery}
                         onModeChange={handleModeChange}
                         onListen={startVoiceInput}
+                        onAskQuestion={askAletheia}
+                        onClearVoiceTranscript={() => setVoiceTranscriptPreview("")}
                         onSpeak={speakLatestAletheiaReply}
                         onTogglePause={toggleSpeechPause}
                         isWorking={isWorking}
@@ -13530,6 +13518,8 @@ function CompanionPanel({
   onDraftPrompt,
   onModeChange,
   onListen,
+  onAskQuestion,
+  onClearVoiceTranscript,
   onSpeak,
   onTogglePause,
   onScriptureOpen,
@@ -13566,6 +13556,8 @@ function CompanionPanel({
   onDraftPrompt: (value: string) => void;
   onModeChange: (mode: Mode) => void;
   onListen: () => void;
+  onAskQuestion: (question: string) => Promise<void>;
+  onClearVoiceTranscript: () => void;
   onSpeak: () => void;
   onTogglePause: () => void;
   onScriptureOpen: (scripture: string) => void;
@@ -13601,6 +13593,7 @@ function CompanionPanel({
   const promptChips = [suggestedFocusPrompt, ...modeProfile.prompts].filter(Boolean).slice(0, 3);
   const currentModeCard = modeCards.find((item) => item.label === mode) ?? modeCards[0];
   const CurrentLensIcon = currentModeCard.icon;
+  const voiceDraft = voiceTranscriptPreview.trim();
 
   useEffect(() => {
     if (!answerFocusId || !currentExchange?.question) {
@@ -13697,8 +13690,8 @@ function CompanionPanel({
                     onMouseLeave={(e) => {
                       e.currentTarget.style.backgroundColor = isListening ? theme.activeBg : theme.bgInput;
                     }}
-                    aria-label={isListening ? "Stop dictation" : "Start dictation"}
-                    title={isListening ? "Stop dictating" : "Tap to dictate your question"}
+                    aria-label={isListening ? ts('labels.stopDictation', 'Stop dictation') : ts('labels.startDictation', 'Start dictation')}
+                    title={isListening ? ts('labels.stopDictation', 'Stop dictation') : ts('labels.startDictation', 'Tap to dictate your question')}
                   >
                     {isListening ? <MicOff size={18} /> : <Mic size={18} />}
                   </button>
@@ -13717,13 +13710,55 @@ function CompanionPanel({
                   {isWorking ? "..." : ui.askButton}
                 </button>
               </div>
-              {isListening || voiceTranscriptPreview ? (
-                <p className="rounded-md border px-3 py-2 text-xs leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
-                  <span className="font-semibold" style={{ color: theme.textPrimary }}>
-                    {isListening ? ts('notifications.voiceInputListening', 'Voice input active') : ts('labels.voiceTranscription', 'Voice transcription')}
-                  </span>
-                  {voiceTranscriptPreview ? ` ${voiceTranscriptPreview}` : isListening ? ` ${ts('notifications.voiceInputListeningBody', 'Speak now. Your words will appear in the ask field as they are recognized.')}` : ""}
-                </p>
+              {isListening || voiceDraft ? (
+                <div className="rounded-md border px-3 py-2 text-xs leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="font-semibold" style={{ color: theme.textPrimary }}>
+                      {isListening ? ts('notifications.voiceInputListening', 'Voice input active') : ts('labels.voiceTranscription', 'Voice transcription')}
+                    </span>
+                    <span className="rounded-full border px-2 py-1 text-[11px] font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                      {isListening ? ts('labels.listening', 'Listening') : ts('labels.voiceDraftReady', 'Draft ready')}
+                    </span>
+                  </div>
+                  <p className="mt-2 whitespace-pre-wrap" style={{ color: theme.textSecondary }}>
+                    {isListening ? ts('notifications.voiceInputListeningBody', 'Speak now. Your words will appear here before you insert them.') : voiceDraft}
+                  </p>
+                  {!isListening && voiceDraft ? (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setQuery([query.trim(), voiceDraft].filter(Boolean).join(" "));
+                          onClearVoiceTranscript();
+                        }}
+                        className="rounded-md border px-3 py-2 font-semibold transition"
+                        style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                      >
+                        {ts('labels.insertTranscript', 'Insert transcript')}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const mergedQuestion = [query.trim(), voiceDraft].filter(Boolean).join(" ").trim();
+                          onClearVoiceTranscript();
+                          await onAskQuestion(mergedQuestion);
+                        }}
+                        className="rounded-md px-3 py-2 font-semibold transition"
+                        style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                      >
+                        {ts('labels.askTranscript', 'Ask now')}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onClearVoiceTranscript()}
+                        className="rounded-md border px-3 py-2 font-semibold transition"
+                        style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
+                      >
+                        {ts('labels.clearTranscript', 'Clear')}
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
               ) : null}
             </div>
             <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
