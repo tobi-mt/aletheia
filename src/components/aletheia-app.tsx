@@ -10554,9 +10554,54 @@ function AccountPersonalizationPanel({
   const selectedVoiceObject = availableVoices.find((voice) => voice.voiceURI === selectedVoice);
   const selectedVoiceLabel = selectedVoiceObject ? voiceLabel(selectedVoiceObject) : ts('labels.deviceDefault', 'Device default');
   const selectedFocusCount = focusIntentions.length;
+  const selectedFocusPreview = focusIntentions.slice(0, 3).join(" · ");
 
   return (
     <section className="space-y-3">
+      <div className="overflow-hidden rounded-xl border shadow-sm" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
+        <div className="flex flex-col gap-4 p-4 sm:p-5">
+          <div className="flex items-center gap-3">
+            <div className="grid size-12 shrink-0 place-items-center rounded-full border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
+              <Sparkles size={20} />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+                {ts('labels.accountPersonalizationTitle', 'Personalization')}
+              </p>
+              <h3 className="mt-1 text-xl font-semibold sm:text-2xl" style={{ color: theme.textPrimary }}>
+                {ts('labels.personalizeAletheia', 'Personalize Aletheia')}
+              </h3>
+              <p className="mt-2 max-w-2xl text-sm leading-6" style={{ color: theme.textSecondary }}>
+                {ts('labels.accountPersonalizationSummary', 'Language, Bible translation, theme, voice, and avatar shape how Aletheia feels when you use it.')}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <span className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold whitespace-nowrap" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textPrimary }}>
+              {languages[preferences.language]?.nativeName ?? preferences.language}
+            </span>
+            <span className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold whitespace-nowrap" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+              {selectedBible?.label ?? preferences.bibleTranslation}
+            </span>
+            <span className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold whitespace-nowrap" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+              {ts(`theme.${themePreference}`, themePreference)}
+            </span>
+            <span className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold whitespace-nowrap" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+              {preferences.voiceEnabled ? selectedVoiceLabel : ts('labels.voiceInputDisabled', 'Voice input off')}
+            </span>
+            <span className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold whitespace-nowrap" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: selectedFocusCount ? theme.textPrimary : theme.textSecondary }}>
+              {selectedFocusCount ? `${selectedFocusCount}/3 ${ts('labels.focusIntentions', 'Focus intentions')}` : ts('labels.focusIntentionsHint', 'Focus intentions')}
+            </span>
+          </div>
+          {selectedFocusPreview ? (
+            <p className="rounded-md border px-3 py-2 text-xs leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+              {selectedFocusPreview}
+            </p>
+          ) : null}
+        </div>
+      </div>
+
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1.05fr)_minmax(320px,0.95fr)]">
         <div className="space-y-3">
           <AccountSettingRow
