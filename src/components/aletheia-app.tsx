@@ -11071,31 +11071,40 @@ function SystemStatusCard({
   counselContacts: number;
   notificationsEnabled: boolean;
 }) {
+  const statusLabel = user ? ts('labels.accountSyncActive', 'Sync active.') : ts('auth.guestMode', 'Guest mode');
+  const statusBody = user ? ts('labels.whatSyncsSignedIn', 'Decisions, reflections, profile, preferences, and counsel circle sync with your account.') : ts('labels.whatSyncsGuest', 'Nothing syncs in guest mode until you sign in.');
   return (
-    <section className="rounded-lg border p-4 shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
-      <div className="flex items-center gap-3">
-        <div className="grid size-10 shrink-0 place-items-center rounded-md" style={{ backgroundColor: theme.bgInput, color: theme.primary }}>
-          <WifiOff size={18} />
+    <section className="overflow-hidden rounded-xl border shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
+      <div className="border-b px-4 py-4 sm:px-5" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
+        <div className="flex items-start gap-3">
+          <div className="grid size-11 shrink-0 place-items-center rounded-full border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
+            <WifiOff size={18} />
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.sync', 'Sync')}</p>
+            <h3 className="mt-2 text-xl font-semibold sm:text-2xl" style={{ color: theme.textPrimary }}>
+              {statusLabel}
+            </h3>
+            <p className="mt-2 max-w-2xl text-sm leading-6" style={{ color: theme.textSecondary }}>
+              {statusBody}
+            </p>
+          </div>
         </div>
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.sync', 'Sync')}</p>
-          <h3 className="mt-1 text-lg font-semibold" style={{ color: theme.textPrimary }}>
-            {user ? ts('labels.accountSyncActive', 'Sync active.') : ts('auth.guestMode', 'Guest mode')}
-          </h3>
-          <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
-            {user ? ts('labels.whatSyncsSignedIn', 'Decisions, reflections, profile, preferences, and counsel circle sync with your account.') : ts('labels.whatSyncsGuest', 'Nothing syncs in guest mode until you sign in.')}
-          </p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <span className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold whitespace-nowrap" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: user ? theme.textPrimary : theme.textSecondary }}>
+            {user ? ts('labels.active', 'Active') : ts('auth.guestOnly', 'Guest only')}
+          </span>
+          <span className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold whitespace-nowrap" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+            {notificationsEnabled ? ts('notifications.deviceSubscribed', 'This device is subscribed for daily wisdom.') : ts('notifications.notificationsOptionalWhenReady', 'Notifications can be enabled when you are ready.')}
+          </span>
         </div>
       </div>
-      <div className="mt-4 grid gap-2 sm:grid-cols-2">
+      <div className="grid gap-2 p-4 sm:grid-cols-2 sm:p-5">
         <AccountStat label={ts('labels.accountStatConversations', 'Conversations')} value={String(conversations)} theme={theme} />
         <AccountStat label={ts('labels.accountStatDecisions', 'Decisions')} value={String(decisions)} theme={theme} />
         <AccountStat label={ts('labels.accountStatJournalEntries', 'Journal entries')} value={String(reflections)} theme={theme} />
         <AccountStat label={ts('labels.counselContacts', 'Counsel contacts')} value={String(counselContacts)} theme={theme} />
       </div>
-      <p className="mt-3 rounded-md border px-3 py-2 text-xs leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
-        {notificationsEnabled ? ts('notifications.deviceSubscribed', 'This device is subscribed for daily wisdom.') : ts('notifications.notificationsOptionalWhenReady', 'Notifications can be enabled when you are ready.')}
-      </p>
     </section>
   );
 }
@@ -11122,28 +11131,47 @@ function DataBoundariesCard({
   accountActionBusy: "export" | "delete" | "report" | null;
 }) {
   return (
-    <section className="rounded-lg border p-4 shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
-      <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.yourDataBoundaries', 'Your data boundaries')}</p>
-      <div className="mt-3 grid gap-2">
-        <div className="rounded-md border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+    <section className="overflow-hidden rounded-xl border shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
+      <div className="border-b px-4 py-4 sm:px-5" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
+        <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.yourDataBoundaries', 'Your data boundaries')}</p>
+        <h3 className="mt-2 text-xl font-semibold sm:text-2xl" style={{ color: theme.textPrimary }}>
+          {ts('labels.accountTrustPostureTitle', 'Trust and privacy posture')}
+        </h3>
+        <p className="mt-2 max-w-2xl text-sm leading-6" style={{ color: theme.textSecondary }}>
+          {ts('labels.accountTrustPostureSummary', 'Boundaries, scripture sourcing, saved data, and sharing posture are available without flooding the page.')}
+        </p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <span className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold whitespace-nowrap" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: user ? theme.textPrimary : theme.textSecondary }}>
+            {user ? ts('labels.whatSyncsSignedIn', 'Signed-in sync') : ts('labels.whatSyncsGuest', 'Guest only')}
+          </span>
+          <span className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold whitespace-nowrap" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+            {ts('labels.whatStaysLocal', 'Local by default')}
+          </span>
+          <span className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold whitespace-nowrap" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+            {ts('labels.signOutPrivacy', 'Sign-out privacy')}
+          </span>
+        </div>
+      </div>
+      <div className="grid gap-2 p-4 sm:grid-cols-2 sm:p-5">
+        <div className="rounded-xl border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
           <p className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>{ts('labels.whatSyncs', 'What syncs')}</p>
           <p className="mt-1 text-sm leading-6" style={{ color: theme.textPrimary }}>{user ? ts('labels.whatSyncsSignedIn', 'Decisions, reflections, profile, preferences, and counsel circle sync with your account.') : ts('labels.whatSyncsGuest', 'Nothing syncs in guest mode until you sign in.')}</p>
         </div>
-        <div className="rounded-md border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+        <div className="rounded-xl border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
           <p className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>{ts('labels.whatStaysLocal', 'What stays local')}</p>
           <p className="mt-1 text-sm leading-6" style={{ color: theme.textPrimary }}>{ts('labels.whatStaysLocalBody', 'Device-specific voice, theme preference, local context drafts, and focus intentions stay local until changed.')}</p>
         </div>
-        <div className="rounded-md border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+        <div className="rounded-xl border p-3 sm:col-span-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
           <p className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>{ts('labels.signOutPrivacy', 'Sign-out privacy')}</p>
           <p className="mt-1 text-sm leading-6" style={{ color: theme.textPrimary }}>
             {ts('labels.signOutPrivacyBody', 'Signing out hides synced private workspace data on this device. It returns only after you sign back in.')}
           </p>
         </div>
       </div>
-      <div className="mt-3 flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2 border-t px-4 py-4 sm:px-5" style={{ borderColor: theme.borderLight }}>
         <button
           type="button"
-          className="h-11 rounded-md border px-4 text-sm font-semibold"
+          className="h-11 rounded-full border px-4 text-sm font-semibold"
           style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
           onClick={onClearLocalPersonalization}
         >
@@ -11152,7 +11180,7 @@ function DataBoundariesCard({
         {!user ? (
           <button
             type="button"
-            className="h-11 rounded-md border px-4 text-sm font-semibold"
+            className="h-11 rounded-full border px-4 text-sm font-semibold"
             style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: hasLocalWorkspaceData ? theme.textPrimary : theme.textSecondary, opacity: hasLocalWorkspaceData ? 1 : 0.65 }}
             disabled={!hasLocalWorkspaceData}
             onClick={onClearGuestWorkspace}
@@ -11162,7 +11190,7 @@ function DataBoundariesCard({
         ) : null}
         <button
           type="button"
-          className="h-11 rounded-md border px-4 text-sm font-semibold"
+          className="h-11 rounded-full border px-4 text-sm font-semibold"
           style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: user ? theme.textPrimary : theme.textSecondary, opacity: user ? 1 : 0.65 }}
           disabled={!user || accountActionBusy === "export"}
           onClick={onExportData}
@@ -11171,7 +11199,7 @@ function DataBoundariesCard({
         </button>
         <button
           type="button"
-          className="h-11 rounded-md border px-4 text-sm font-semibold"
+          className="h-11 rounded-full border px-4 text-sm font-semibold"
           style={{ borderColor: theme.borderStrong, backgroundColor: theme.bgInput, color: user ? theme.textPrimary : theme.textSecondary, opacity: user ? 1 : 0.65 }}
           disabled={!user || accountActionBusy === "delete"}
           onClick={onRequestDeleteAccount}
@@ -11198,26 +11226,30 @@ function SupportReportCard({
   onReportIssue: () => void;
 }) {
   return (
-    <section className="rounded-lg border p-4 shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
-      <div className="flex items-start gap-3">
-        <div className="grid size-10 shrink-0 place-items-center rounded-md" style={{ backgroundColor: theme.bgInput, color: theme.primary }}>
-          <MessageCircle size={18} />
+    <section className="overflow-hidden rounded-xl border shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
+      <div className="border-b px-4 py-4 sm:px-5" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
+        <div className="flex items-start gap-3">
+          <div className="grid size-11 shrink-0 place-items-center rounded-full border" style={{ backgroundColor: theme.bgInput, borderColor: theme.borderLight, color: theme.primary }}>
+            <MessageCircle size={18} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.support', 'Support')}</p>
+            <h3 className="mt-2 text-xl font-semibold sm:text-2xl" style={{ color: theme.textPrimary }}>{ts('labels.reportIssueTitle', 'Report an issue')}</h3>
+            <p className="mt-2 max-w-2xl text-sm leading-6" style={{ color: theme.textSecondary }}>
+              {ts('labels.reportIssueBody', 'Send feedback, a bug, or a confusing workflow. Private chats, journals, decisions, and manual context are not attached.')}
+            </p>
+          </div>
         </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.support', 'Support')}</p>
-          <h3 className="mt-2 text-lg font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.reportIssueTitle', 'Report an issue')}</h3>
-          <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
-            {ts('labels.reportIssueBody', 'Send feedback, a bug, or a confusing workflow. Private chats, journals, decisions, and manual context are not attached.')}
-          </p>
-          <button
-            type="button"
-            className="mt-3 h-11 rounded-md border px-4 text-sm font-semibold"
-            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-            onClick={onReportIssue}
-          >
-            {ts('labels.openReportIssue', 'Open report form')}
-          </button>
-        </div>
+      </div>
+      <div className="p-4 sm:p-5">
+        <button
+          type="button"
+          className="h-11 w-full rounded-full border px-4 text-sm font-semibold sm:w-auto"
+          style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+          onClick={onReportIssue}
+        >
+          {ts('labels.openReportIssue', 'Open report form')}
+        </button>
       </div>
     </section>
   );
@@ -11244,14 +11276,26 @@ function TrustCenterCard({ theme, ts }: { theme: ThemeColors; ts: (key: string, 
   ];
 
   return (
-    <section className="rounded-lg border p-4 shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
-      <div className="flex items-center gap-2">
-        <ShieldCheck size={17} style={{ color: theme.primary }} />
-        <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.trustCenterTitle', 'Trust Center')}</p>
+    <section className="overflow-hidden rounded-xl border shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
+      <div className="border-b px-4 py-4 sm:px-5" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
+        <div className="flex items-center gap-3">
+          <div className="grid size-11 shrink-0 place-items-center rounded-full border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
+            <ShieldCheck size={18} />
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.trustCenterTitle', 'Trust Center')}</p>
+            <h3 className="mt-1 text-xl font-semibold sm:text-2xl" style={{ color: theme.textPrimary }}>
+              {ts('labels.accountTrustPostureTitle', 'Trust and privacy posture')}
+            </h3>
+            <p className="mt-2 max-w-2xl text-sm leading-6" style={{ color: theme.textSecondary }}>
+              {ts('labels.accountTrustPostureSummary', 'Boundaries, scripture sourcing, saved data, and sharing posture are available without flooding the page.')}
+            </p>
+          </div>
+        </div>
       </div>
-      <div className="mt-3 space-y-2">
+      <div className="grid gap-2 p-4 sm:grid-cols-2 sm:p-5">
         {items.map((item) => (
-          <details key={item.label} className="rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+          <details key={item.label} className="rounded-xl border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
             <summary className="cursor-pointer text-sm font-semibold" style={{ color: theme.textPrimary }}>{item.label}</summary>
             <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>{item.body}</p>
           </details>
@@ -11263,7 +11307,7 @@ function TrustCenterCard({ theme, ts }: { theme: ThemeColors; ts: (key: string, 
 
 function AccountStat({ label, value, theme }: { label: string; value: string; theme: ThemeColors }) {
   return (
-    <div className="rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+    <div className="rounded-xl border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
       <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textSecondary }}>{label}</p>
       <p className="mt-2 text-2xl font-semibold" style={{ color: theme.textPrimary }}>{value}</p>
     </div>
