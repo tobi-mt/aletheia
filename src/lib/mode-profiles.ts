@@ -192,4 +192,48 @@ export const modeProfiles: Record<Mode, ModeProfile> = {
       "How much generosity is sustainable for me?",
     ],
   },
+  Life: {
+    label: "Life",
+    intent: "Apply biblical wisdom to ordinary life with steady, grounded attention.",
+    focus: "Habits, relationships, family, rest, health, home rhythms",
+    useWhen: "Use for everyday life decisions, routines, relationships, habits, rest, conflict, or when the right next step is not obviously a money or work question.",
+    lens: "A whole-life lens: character, relationships, responsibilities, rhythms, and the next faithful step.",
+    diagnosticTracks: [
+      "Character: what kind of person is this habit or choice forming?",
+      "Relationships: who is affected by this, and how can I love them well?",
+      "Rhythm: does this create space for rest, attention, and repair?",
+      "Responsibility: what ordinary duty is calling for care instead of avoidance?",
+    ],
+    blindSpots: [
+      "Treating ordinary life choices as spiritually irrelevant",
+      "Over-spiritualizing what needs practical wisdom",
+      "Ignoring body, family, or rest while chasing meaning",
+      "Letting urgency decide the pace of the whole life",
+    ],
+    maturitySignals: [
+      "The decision fits with healthy rhythms, not only ambition",
+      "The people closest to the change are considered with care",
+      "The next step is simple enough to obey",
+      "Peace and responsibility can both stay in the room",
+    ],
+    practices: [
+      "Name the smallest faithful habit you can repeat",
+      "Check whether this choice strengthens or frays your relationships",
+      "Protect a rhythm of rest before adding pressure",
+      "Choose the next ordinary act of care instead of chasing a dramatic fix",
+    ],
+    responseMoves: [
+      "Bring the question down from abstraction into ordinary life",
+      "Connect wisdom to habits, relationships, and household realities",
+      "Keep the next step concrete and sustainable",
+      "Encourage patient consistency over dramatic solutions",
+    ],
+    promptCue:
+      "In Life mode, emphasize ordinary biblical wisdom for family, relationships, habits, rest, conflict, home rhythms, health, and the next faithful small step. Keep the counsel grounded, practical, and gentle.",
+    prompts: [
+      "How do I make my daily life wiser?",
+      "How should I think about this relationship?",
+      "What habit should I change first?",
+    ],
+  },
 };

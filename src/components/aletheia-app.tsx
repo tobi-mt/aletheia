@@ -3,7 +3,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import Image from "next/image";
 import { signIn as authSignIn, signOut as authSignOut } from "next-auth/react";
-import { ChangeEvent, FormEvent, type KeyboardEvent, type ReactNode, type RefObject, type TouchEvent, type WheelEvent, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { ChangeEvent, FormEvent, type Dispatch, type KeyboardEvent, type ReactNode, type RefObject, type SetStateAction, type TouchEvent, type WheelEvent, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   BookOpen,
@@ -59,8 +59,10 @@ import {
   languages,
   localizedDailyWisdom,
   localizedScriptureRead,
+  localizedModeProfile as sharedLocalizedModeProfile,
   localizedWisdomLibraryEntry,
   localizedWisdomLibraryNote,
+  localizedWisdomEntry,
   normalizePreferences,
   regions,
   type BibleTranslation,
@@ -69,6 +71,7 @@ import {
   type UserPreferences,
 } from "@/lib/localization";
 import { modeProfiles, type ModeProfile } from "@/lib/mode-profiles";
+import { wisdomEntries as baseWisdomEntries } from "@/lib/wisdom-data";
 import { defaultManualContext, manualContextCounselSignals, manualContextHasContent, normalizeManualContext, type ManualContextProfile } from "@/lib/manual-context";
 import type { Mode } from "@/lib/wisdom-data";
 import { analyticsQuestionMetadata } from "@/lib/analytics-taxonomy";
@@ -642,14 +645,14 @@ const uiText: Record<
     greetingIntent: "Let's choose one wise next step today.",
     personalizedPriority: "Personalized priority",
     whatNext: "What should I do next?",
-    whatNextBody: "Aletheia is choosing one wise next action first. The ask field and mode controls stay directly below when you want to begin something new.",
+    whatNextBody: "Aletheia is choosing one wise next action first. Ask and mode controls stay easy to reach when you want to begin something new.",
     personalizationNudgeTitle: "Want more personal counsel?",
     personalizationNudgeBody: "Add one detail about money, work, or rhythm.",
     continueDecision: "Continue this decision",
     askOneQuestion: "Ask one question",
     askOneQuestionBody: "Start with the pressure or decision you are carrying right now.",
     askNewQuestion: "Ask a new question",
-    askNewQuestionBody: "The Companion input and wisdom modes are just below.",
+    askNewQuestionBody: "The Companion input and wisdom modes stay close at hand.",
     reflectToday: "Reflect on today",
     reviewPattern: "Review a pattern",
     enableNotifications: "Enable notifications",
@@ -2824,136 +2827,7 @@ type RuleOfLife = {
   createdAt: string;
 };
 
-const wisdomEntries: WisdomEntry[] = [
-  {
-    theme: "Stewardship",
-    scripture: "Matthew 25:14-30",
-    principle: "Entrusted resources are handled with faithfulness, courage, and accountability.",
-    context:
-      "The parable is about servants entrusted with responsibility while the master is away. It commends faithful action, not speculation or anxiety.",
-    application:
-      "Treat money, skill, time, and opportunity as entrusted resources. Growth matters, but so do motive, patience, diligence, and accountability.",
-    keywords: ["money", "invest", "investing", "wealth", "stewardship", "growth", "risk", "responsibility"],
-    emotions: ["fear", "uncertainty", "greed", "pressure"],
-    questions: [
-      "What has actually been entrusted to me right now?",
-      "Am I acting from faithful responsibility or from comparison?",
-      "What counsel or accountability would make this decision wiser?",
-    ],
-  },
-  {
-    theme: "Debt",
-    scripture: "Proverbs 22:7",
-    principle: "Debt can reduce freedom and should be approached with sobriety.",
-    context:
-      "Proverbs often describes patterns of wisdom rather than absolute legal rules. This proverb names the relational and practical weight debt can create.",
-    application:
-      "Before taking on debt, examine necessity, repayment capacity, emotional pressure, and whether the obligation supports wise stewardship.",
-    keywords: ["debt", "loan", "credit", "mortgage", "borrow", "owe", "payment"],
-    emotions: ["stress", "shame", "fear", "urgency"],
-    questions: [
-      "Is this debt serving a clear purpose or soothing a short-term pressure?",
-      "What freedom will I lose while repaying it?",
-      "Have I made the repayment plan visible and realistic?",
-    ],
-  },
-  {
-    theme: "Contentment",
-    scripture: "Philippians 4:11-13",
-    principle: "Contentment is learned through trust, not achieved through perfect circumstances.",
-    context:
-      "Paul writes from hardship and describes contentment as learned dependence, not denial of real need.",
-    application:
-      "Financial peace often begins by naming enough, resisting comparison, and building habits that lower emotional volatility.",
-    keywords: ["comparison", "contentment", "salary", "envy", "peace", "lifestyle", "greed"],
-    emotions: ["envy", "restlessness", "anxiety", "scarcity"],
-    questions: [
-      "What am I calling enough in this season?",
-      "Where is comparison distorting my judgment?",
-      "What practice would help my nervous system slow down?",
-    ],
-  },
-  {
-    theme: "Counsel",
-    scripture: "Proverbs 15:22",
-    principle: "Plans become sturdier when they are examined with humble counsel.",
-    context:
-      "Wisdom literature repeatedly values teachability, correction, and the ability to seek perspective before acting.",
-    application:
-      "For major work, money, or business choices, invite people who are wise, honest, and not financially dependent on your decision.",
-    keywords: ["job", "career", "business", "startup", "leave", "quit", "decision", "counsel", "mentor"],
-    emotions: ["confusion", "excitement", "fear", "ambition"],
-    questions: [
-      "Who can challenge my assumptions without controlling me?",
-      "What would a wise critic notice about this plan?",
-      "What would I still do if nobody applauded the decision?",
-    ],
-  },
-  {
-    theme: "Cost Counting",
-    scripture: "Luke 14:28",
-    principle: "Wise action considers cost before commitment.",
-    context:
-      "Jesus uses the image of building a tower to emphasize sober assessment before public commitment.",
-    application:
-      "Before a major business or career move, define runway, tradeoffs, obligations, timing, and the smallest reversible experiment.",
-    keywords: ["business", "startup", "risk", "job", "career", "plan", "runway", "entrepreneur"],
-    emotions: ["excitement", "pressure", "uncertainty", "impatience"],
-    questions: [
-      "What is the real cost if this takes twice as long?",
-      "Which part of the decision is reversible?",
-      "What experiment could reveal truth before I make a larger commitment?",
-    ],
-  },
-  {
-    theme: "Generosity",
-    scripture: "2 Corinthians 9:6-8",
-    principle: "Generosity is willing and thoughtful, not coerced or performative.",
-    context:
-      "Paul invites cheerful generosity while rejecting compulsion. The posture matters as much as the amount.",
-    application:
-      "Give from conviction and planning, not guilt, social pressure, or the need to appear spiritual.",
-    keywords: ["give", "giving", "generosity", "tithe", "donate", "charity", "church"],
-    emotions: ["guilt", "joy", "pressure", "gratitude"],
-    questions: [
-      "Is this gift free, thoughtful, and sustainable?",
-      "Does my giving plan protect both generosity and responsibility?",
-      "What need am I being invited to notice with love?",
-    ],
-  },
-  {
-    theme: "Diligence",
-    scripture: "Proverbs 21:5",
-    principle: "Diligent planning tends toward abundance; haste tends toward lack.",
-    context:
-      "This proverb contrasts steady diligence with hurried action. It warns against impulsive shortcuts.",
-    application:
-      "Avoid financial moves driven by hype, panic, or urgency. Write the plan, test assumptions, and give time for counsel.",
-    keywords: ["budget", "plan", "hype", "impulse", "crypto", "spending", "saving", "discipline"],
-    emotions: ["panic", "fomo", "urgency", "excitement"],
-    questions: [
-      "What would I choose if there were no urgency?",
-      "Is this opportunity still wise after a quiet night of sleep?",
-      "What process protects me from impulse?",
-    ],
-  },
-  {
-    theme: "Provision and Anxiety",
-    scripture: "Matthew 6:25-34",
-    principle: "Trust reduces anxious striving while still allowing responsible action.",
-    context:
-      "Jesus addresses worry and misplaced striving, calling listeners to seek God's kingdom while living one day at a time.",
-    application:
-      "Separate responsible planning from anxiety loops. Do the next faithful action, then refuse to rehearse every worst-case scenario.",
-    keywords: ["anxiety", "worry", "provision", "fear", "future", "security", "scarcity"],
-    emotions: ["anxiety", "fear", "scarcity", "overwhelm"],
-    questions: [
-      "What is the next faithful action for today?",
-      "Which worries are calling for planning, and which are calling for release?",
-      "What would peace change about my pace?",
-    ],
-  },
-];
+const wisdomEntries: WisdomEntry[] = baseWisdomEntries;
 
 type ModeCard = { label: Mode; icon: typeof PiggyBank; copy: string; displayLabel?: string };
 type DisplayModeProfile = ModeProfile & { displayLabel?: string };
@@ -2963,6 +2837,7 @@ const modes: ModeCard[] = [
   { label: "Work", icon: BriefcaseBusiness, copy: modeProfiles.Work.focus },
   { label: "Purpose", icon: Compass, copy: modeProfiles.Purpose.focus },
   { label: "Generosity", icon: HandHeart, copy: modeProfiles.Generosity.focus },
+  { label: "Life", icon: Home, copy: modeProfiles.Life.focus },
 ];
 
 const modeDisplayLabels: Partial<Record<LanguageCode, Record<Mode, string>>> = {
@@ -2971,30 +2846,56 @@ const modeDisplayLabels: Partial<Record<LanguageCode, Record<Mode, string>>> = {
     Work: "Trabalho",
     Purpose: "Propósito",
     Generosity: "Generosidade",
+    Life: "Vida",
   },
   yo: {
     Money: "Owó",
     Work: "Iṣẹ́",
     Purpose: "Ìdí",
     Generosity: "Ọ̀fẹ́",
+    Life: "Ayé",
   },
   ig: {
     Money: "Ego",
     Work: "Ọrụ",
     Purpose: "Nzube",
     Generosity: "Mmesapụ aka",
+    Life: "Ndụ",
   },
   ha: {
     Money: "Kuɗi",
     Work: "Aiki",
     Purpose: "Manufa",
     Generosity: "Karimci",
+    Life: "Rayuwa",
   },
   de: {
     Money: "Geld",
     Work: "Arbeit",
     Purpose: "Sinn",
     Generosity: "Großzügigkeit",
+    Life: "Leben",
+  },
+  es: {
+    Money: "Dinero",
+    Work: "Trabajo",
+    Purpose: "Propósito",
+    Generosity: "Generosidad",
+    Life: "Vida",
+  },
+  fr: {
+    Money: "Argent",
+    Work: "Travail",
+    Purpose: "Sens",
+    Generosity: "Générosité",
+    Life: "Vie",
+  },
+  en: {
+    Money: "Money",
+    Work: "Work",
+    Purpose: "Purpose",
+    Generosity: "Generosity",
+    Life: "Life",
   },
 };
 
@@ -3052,6 +2953,13 @@ const localizedModeProfiles: Partial<Record<LanguageCode, Partial<Record<Mode, P
       lens: "Ìwòye ìfẹ́ fúnni: ìfẹ́ ọkàn, ìtẹ̀síwájú, ayọ̀, ọgbọ́n, àti ìfẹ́ láì fi ipa múni.",
       prompts: ["Báwo ni mo ṣe lè fúnni láì jẹ́ ẹ̀bi tàbí ìfọkànsìn?", "Ṣé kí n tún ran ẹbí lọ́wọ́ nípa owó?", "Ìfẹ́ fúnni mélòó ni ó le tẹ̀síwájú fún mi?"],
     },
+    Life: {
+      intent: "Ṣe ìtọ́nisọ́nà ìgbésí ayé ojoojúmọ́ pẹ̀lú ọgbọ́n tí ó dákẹ́.",
+      focus: "Àṣà, ìbáṣepọ̀, ẹbí, ìsinmi, ìlera, ìrìnàjò ilé",
+      useWhen: "Lo fún àwọn ìpinnu ìgbésí ayé ojoojúmọ́, àṣà, ìbáṣepọ̀, ìsinmi, ìjà, tàbí nígbà tí ìgbésẹ̀ tó tẹ̀lé kò dájú pé ó jẹ́ ìbéèrè owó tàbí iṣẹ́.",
+      lens: "Ìwòye gbogbo ìgbésí ayé: ìhuwasi, ìbáṣepọ̀, ojúṣe, ìlànà, àti ìgbésẹ̀ olóòtítọ́ tó kàn.",
+      prompts: ["Báwo ni mo ṣe lè sọ ìgbésí ayé ojoojúmọ́ mi di ọgbọ́n síi?", "Kí ni mo yẹ kí n ṣe nípa ìbáṣepọ̀ yìí?", "Àṣà wo ni mo yẹ kí n yí padà kíákíá?"],
+    },
   },
 };
 
@@ -3103,7 +3011,7 @@ const wisdomThemeDisplayLabels: Partial<Record<LanguageCode, Record<string, stri
 };
 
 function isMode(value: string): value is Mode {
-  return value === "Money" || value === "Work" || value === "Purpose" || value === "Generosity";
+  return value === "Money" || value === "Work" || value === "Purpose" || value === "Generosity" || value === "Life";
 }
 
 function modeTranslationKey(mode: Mode) {
@@ -3470,9 +3378,9 @@ function runtimeCopyFor(language: LanguageCode): RuntimePanelCopy {
 
 function localizedModeProfile(mode: Mode, language: LanguageCode): DisplayModeProfile {
   return {
-    ...modeProfiles[mode],
+    ...sharedLocalizedModeProfile(mode, language),
     ...localizedModeProfiles[language]?.[mode],
-    displayLabel: modeDisplayLabel(mode, language),
+    displayLabel: localizedModeLabel(mode, language),
   };
 }
 
@@ -3496,6 +3404,7 @@ const modeTerms: Record<Mode, string[]> = {
   Work: ["work", "job", "career", "business", "counsel", "diligence", "cost", "planning"],
   Purpose: ["purpose", "identity", "direction", "discernment", "peace", "anxiety", "motives", "calling"],
   Generosity: ["generosity", "give", "giving", "charity", "willing", "sustainable", "stewardship", "guilt"],
+  Life: ["life", "home", "family", "relationships", "habits", "rest", "health", "everyday"],
 };
 
 const defaultMessages: ChatMessage[] = [
@@ -3508,22 +3417,27 @@ const defaultMessages: ChatMessage[] = [
   },
 ];
 
-function searchWisdom(query: string, mode: Mode, limit = 3) {
+function searchWisdom(query: string, mode: Mode, limit = 3, preferences: UserPreferences = defaultPreferences) {
   const words = query.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
   return wisdomEntries
     .map((entry) => {
+      const localizedEntry = localizedWisdomEntry(entry, preferences);
+      const profile = localizedModeProfile(mode, preferences.language);
       const haystack = [
-        entry.scripture,
-        entry.principle,
-        entry.context,
-        entry.application,
-        ...entry.keywords,
-        ...entry.emotions,
+        localizedEntry.scripture,
+        localizedEntry.principle,
+        localizedEntry.context,
+        localizedEntry.application,
+        localizedEntry.theme,
+        ...localizedEntry.keywords,
+        ...localizedEntry.emotions,
+        profile.focus,
+        profile.lens,
       ]
         .join(" ")
         .toLowerCase();
-      const themeScore = words.includes(entry.theme.toLowerCase()) ? 8 : 0;
-      const exactKeywordScore = entry.keywords.reduce(
+      const themeScore = words.includes(localizedEntry.theme.toLowerCase()) ? 8 : 0;
+      const exactKeywordScore = localizedEntry.keywords.reduce(
         (score, keyword) => score + (words.includes(keyword) ? 6 : 0),
         0
       );
@@ -3532,17 +3446,17 @@ function searchWisdom(query: string, mode: Mode, limit = 3) {
         (score, term) => score + (haystack.includes(term) ? 2 : 0),
         haystack.includes(mode.toLowerCase()) ? 2 : 0
       );
-      return { entry, score: themeScore + exactKeywordScore + keywordScore + modeScore };
+      return { entry: localizedEntry, score: themeScore + exactKeywordScore + keywordScore + modeScore };
     })
     .sort((a, b) => b.score - a.score)
     .slice(0, limit)
     .map((result) => result.entry);
 }
 
-function composeResponse(question: string, mode: Mode) {
-  const sources = searchWisdom(question, mode, 3);
-  const primary = sources[0] ?? wisdomEntries[0];
-  const secondary = sources[1] ?? wisdomEntries[2];
+function composeResponse(question: string, mode: Mode, preferences: UserPreferences = defaultPreferences) {
+  const sources = searchWisdom(question, mode, 3, preferences);
+  const primary = sources[0] ?? localizedWisdomEntry(wisdomEntries[0], preferences);
+  const secondary = sources[1] ?? localizedWisdomEntry(wisdomEntries[2], preferences);
 
   return {
     sources,
@@ -3920,6 +3834,7 @@ export function AletheiaApp() {
   const [faithFamiliarity, setFaithFamiliarity] = useState("familiar");
   const [onboardingPrivacyLevel, setOnboardingPrivacyLevel] = useState("minimal");
   const [isListening, setIsListening] = useState(false);
+  const [voiceTranscriptPreview, setVoiceTranscriptPreview] = useState("");
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [speechPaused, setSpeechPaused] = useState(false);
   const [speechProgress, setSpeechProgress] = useState(0);
@@ -5192,8 +5107,8 @@ export function AletheiaApp() {
     if (!librarySearch.trim()) {
       return wisdomEntries;
     }
-    return searchWisdom(librarySearch, mode, wisdomEntries.length);
-  }, [librarySearch, mode]);
+    return searchWisdom(librarySearch, mode, wisdomEntries.length, preferences);
+  }, [librarySearch, mode, preferences]);
 
   const dailyEntry = todayWisdom(currentLocalDayNumber ?? STATIC_TODAY_DAY_NUMBER);
   const dailyMode = modes.some((item) => item.label === dailyEntry.theme)
@@ -5271,7 +5186,7 @@ export function AletheiaApp() {
     if (!decision.trim()) {
       return null;
     }
-    const sources = searchWisdom(`${decision} ${emotion} ${timeframe}`, mode, 2);
+    const sources = searchWisdom(`${decision} ${emotion} ${timeframe}`, mode, 2, preferences);
     const hasUrgency = /today|now|urgent|must|quick|fomo|panic|afraid/i.test(decision);
     const mentionsCounsel = /counsel|advisor|mentor|spouse|pastor|friend|team/i.test(decision);
     const negatesCounsel =
@@ -5281,7 +5196,7 @@ export function AletheiaApp() {
     const hasCounsel = mentionsCounsel && !negatesCounsel;
     const readiness = Math.max(36, Math.min(92, 62 + (hasCounsel ? 14 : 0) - (hasUrgency ? 16 : 0) + (timeframe === "Long-term" ? 8 : 0)));
     return { sources, readiness, hasUrgency, hasCounsel };
-  }, [decision, emotion, timeframe, mode]);
+  }, [decision, emotion, timeframe, mode, preferences]);
 
   function handleModeChange(nextMode: Mode) {
     setMode(nextMode);
@@ -6062,6 +5977,7 @@ export function AletheiaApp() {
       voiceRecognition.stop();
       setIsListening(false);
       setVoiceRecognition(null);
+      setVoiceTranscriptPreview("");
       announceWorkflow(ts('notifications.voiceStopped'), ts('notifications.voiceStoppedBody'), "info");
       return;
     }
@@ -6104,6 +6020,12 @@ export function AletheiaApp() {
     recognition.continuous = true; // Keep listening until stopped
     recognition.maxAlternatives = 1;
     setIsListening(true);
+    setVoiceTranscriptPreview("");
+    announceWorkflow(
+      ts('notifications.voiceInputListening', 'Voice input active'),
+      ts('notifications.voiceInputListeningBody', 'Speak now. Your words will appear in the ask field as they are recognized.'),
+      "info"
+    );
     
     // Auto-stop after 1 minute of inactivity
     let inactivityTimer: ReturnType<typeof setTimeout> | null = null;
@@ -6111,7 +6033,7 @@ export function AletheiaApp() {
       if (inactivityTimer) clearTimeout(inactivityTimer);
       inactivityTimer = setTimeout(() => {
         recognition.stop();
-        announceWorkflow(ts('notifications.voiceInputStopped'), "Voice input stopped after 1 minute of inactivity.", "info");
+        announceWorkflow(ts('notifications.voiceInputStopped'), ts('notifications.voiceInputStoppedBody', 'Voice input stopped before Aletheia could hear clearly.'), "info");
       }, 60000); // 1 minute
     };
     
@@ -6137,14 +6059,12 @@ export function AletheiaApp() {
       
       if (finalTranscript) {
         setQuery((current) => `${current}${current ? " " : ""}${finalTranscript}`.trim());
-      } else if (interimTranscript) {
-        // Show interim text in the textarea (user can see it being transcribed)
-        const currentBase = query.split("[...]")[0].trim();
-        setQuery(`${currentBase}${currentBase ? " " : ""}[...] ${interimTranscript}`);
       }
+      setVoiceTranscriptPreview(interimTranscript.trim());
     };
     recognition.onerror = () => {
       if (inactivityTimer) clearTimeout(inactivityTimer);
+      setVoiceTranscriptPreview("");
       setPreferencesStatus(ts('notifications.voiceInputStoppedBody', 'Voice input stopped before Aletheia could hear clearly.'));
       announceWorkflow(ts('notifications.voiceInputStopped'), ts('notifications.voiceInputStoppedBody'), "warning");
     };
@@ -6152,8 +6072,7 @@ export function AletheiaApp() {
       if (inactivityTimer) clearTimeout(inactivityTimer);
       setIsListening(false);
       setVoiceRecognition(null);
-      // Clean up interim markers
-      setQuery((current) => current.replace(/\[\.\.\.\]\s*/g, "").trim());
+      setVoiceTranscriptPreview("");
     };
     recognition.start();
     setVoiceRecognition(recognition);
@@ -6360,7 +6279,7 @@ export function AletheiaApp() {
         mode,
         ...analyticsQuestionMetadata(trimmed, mode),
       });
-      const fallback = composeResponse(trimmed, mode);
+      const fallback = composeResponse(trimmed, mode, preferences);
       setMessages((current) =>
         current.map((message) =>
           message.id === "thinking"
@@ -7060,7 +6979,7 @@ export function AletheiaApp() {
       }
     } else {
       trackClientEvent("decision_created_local", { mode, emotion: decisionEmotion });
-      const sources = searchWisdom(`${title} ${pressure} ${decisionEmotion}`, mode, 3);
+      const sources = searchWisdom(`${title} ${pressure} ${decisionEmotion}`, mode, 3, preferences);
       const signals = scoreDecision({
         pressure,
         emotion: decisionEmotion,
@@ -7175,7 +7094,7 @@ export function AletheiaApp() {
         return item;
       }
       const next = { ...item, ...patch, waitingUntil, revisitAt, outcomeReviewAt, updatedAt: new Date().toISOString() };
-      const sources = searchWisdom(`${next.title} ${next.pressure} ${next.initialEmotion}`, next.mode, 3);
+      const sources = searchWisdom(`${next.title} ${next.pressure} ${next.initialEmotion}`, next.mode, 3, preferences);
       const signals = scoreDecision({
         pressure: next.pressure,
         emotion: next.initialEmotion,
@@ -7743,8 +7662,8 @@ export function AletheiaApp() {
         </div>
       </nav>
 
-      <div className="mx-auto grid max-w-7xl gap-5 px-3 pt-4 sm:px-4 sm:pt-5 lg:grid-cols-[260px_1fr] lg:py-6" style={{ paddingBottom: "calc(var(--aletheia-bottom-nav-space, 8.5rem) + env(safe-area-inset-bottom))" }}>
-        <aside className="hidden lg:block">
+      <div className="mx-auto grid max-w-7xl gap-5 px-3 pt-4 sm:px-4 sm:pt-5 xl:grid-cols-[280px_minmax(0,1fr)] xl:py-6" style={{ paddingBottom: "calc(var(--aletheia-bottom-nav-space, 8.5rem) + env(safe-area-inset-bottom))" }}>
+        <aside className="hidden xl:block">
           <div className="sticky top-24 space-y-4">
             <section className="rounded-lg border p-4 shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
               <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
@@ -7851,6 +7770,7 @@ export function AletheiaApp() {
                         onSharePostcard={shareAnswerPostcard}
                         onShare={(channel) => shareAletheia(channel, "answer")}
                         onFeedback={(value) => recordAnswerFeedback(value, "answer")}
+                        voiceTranscriptPreview={voiceTranscriptPreview}
                         theme={theme}
                       />
                     )}
@@ -8127,7 +8047,24 @@ export function AletheiaApp() {
         onCancel={() => setCounselRemovalPrompt(null)}
         onConfirm={confirmCounselContactRemoval}
       />
-      <ScriptureModal theme={theme} scripture={selectedScripture} preferences={preferences} ts={ts} onClose={() => setSelectedScripture(null)} />
+      <ScriptureModal
+        theme={theme}
+        scripture={selectedScripture}
+        preferences={preferences}
+        ts={ts}
+        onReadAloud={() => {
+          if (!selectedScripture) {
+            return;
+          }
+          const quickRead = localizedScriptureRead(selectedScripture, preferences);
+          speakText(
+            `${selectedScripture}. ${cleanDisplayText(quickRead.text)}`,
+            ts('labels.readingScriptureQuickRead', 'Aletheia is reading the scripture quick read aloud.'),
+            quickRead.label
+          );
+        }}
+        onClose={() => setSelectedScripture(null)}
+      />
       <DeleteAccountModal
         open={showDeleteAccountModal}
         theme={theme}
@@ -9470,6 +9407,50 @@ function HomeSectionTabs({
   );
 }
 
+function ScreenTabs<T extends string>({
+  value,
+  onChange,
+  tabs,
+  ariaLabel,
+  theme,
+}: {
+  value: T;
+  onChange: Dispatch<SetStateAction<T>>;
+  tabs: Array<{ key: T; label: string }>;
+  ariaLabel: string;
+  theme: ThemeColors;
+}) {
+  return (
+    <div
+      className="relative z-20 grid min-w-0 gap-1 rounded-xl border p-1 shadow-sm sm:grid-cols-2"
+      role="tablist"
+      aria-label={ariaLabel}
+      style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, gridTemplateColumns: `repeat(${Math.min(tabs.length, 2)}, minmax(0, 1fr))` }}
+    >
+      {tabs.map((tab) => {
+        const active = value === tab.key;
+        return (
+          <button
+            key={tab.key}
+            type="button"
+            role="tab"
+            aria-selected={active}
+            onClick={() => onChange(tab.key)}
+            className="premium-tap-card relative min-h-12 rounded-lg px-3 py-3 text-center text-sm font-semibold tracking-normal transition sm:text-base"
+            style={{
+              backgroundColor: active ? theme.primary : "transparent",
+              color: active ? theme.textOnPrimary : theme.textSecondary,
+              boxShadow: active ? "0 10px 24px rgba(7, 10, 8, 0.12)" : "none",
+            }}
+          >
+            {tab.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function CompanionCardAction({
   icon: Icon,
   label,
@@ -9786,6 +9767,7 @@ function AccountPanel({
   theme: ThemeColors;
 }) {
   const text = { ...uiText.en, ...ui };
+  const [accountSection, setAccountSection] = useState<"personalization" | "privacy" | "share" | "system">("personalization");
   const exchanges = conversationExchanges(messages).filter((exchange) => exchange.question);
   const activeDecisionCount = decisions.filter((decision) => decision.status !== "closed").length;
   const hasLocalWorkspaceData = exchanges.length > 0 || decisions.length > 0 || journalEntries.length > 0 || counselContacts.length > 0 || rulesOfLife.length > 0;
@@ -9825,7 +9807,7 @@ function AccountPanel({
   ];
 
   return (
-    <div className="mx-auto grid min-w-0 max-w-3xl gap-4">
+    <div className="mx-auto grid min-w-0 max-w-5xl gap-4">
       <section className="min-w-0 space-y-4">
         <DisclosureSection
           title={profileGreeting}
@@ -9895,132 +9877,124 @@ function AccountPanel({
             ) : null}
           </div>
         </DisclosureSection>
+      </section>
 
-        <DisclosureSection
-          title={ts('labels.personalizeAletheia', 'Personalize Aletheia')}
-          summary={ts('labels.accountPersonalizationSummary', 'Language, Bible translation, theme, voice, and avatar shape how Aletheia feels when you use it.')}
-          eyebrow={ts('labels.accountPersonalizationTitle', 'Personalization')}
-          compactCollapsed
-          showDetailsLabel={text.showDetails}
-          hideDetailsLabel={text.hideDetails}
-          theme={theme}
-        >
-          <AccountPersonalizationPanel
+      <ScreenTabs
+        value={accountSection}
+        onChange={setAccountSection}
+        ariaLabel={ts('labels.accountSections', 'Account sections')}
+        theme={theme}
+        tabs={[
+          { key: "personalization", label: ts('labels.accountPersonalizationTitle', 'Personalization') },
+          { key: "privacy", label: ts('labels.privacyPosture', 'Privacy posture') },
+          { key: "share", label: ts('share.accountShareEyebrow', 'Share') },
+          { key: "system", label: ts('labels.accountSystemEyebrow', 'System') },
+        ]}
+      />
+
+      {accountSection === "personalization" ? (
+        <div className="grid gap-4 lg:grid-cols-2">
+          <DisclosureSection
+            title={ts('labels.personalizeAletheia', 'Personalize Aletheia')}
+            summary={ts('labels.accountPersonalizationSummary', 'Language, Bible translation, theme, voice, and avatar shape how Aletheia feels when you use it.')}
+            eyebrow={ts('labels.accountPersonalizationTitle', 'Personalization')}
+            compactCollapsed
+            showDetailsLabel={text.showDetails}
+            hideDetailsLabel={text.hideDetails}
             theme={theme}
-            ts={ts}
-            preferences={preferences}
-            preferencesStatus={preferencesStatus}
-            themePreference={themePreference}
-            availableVoices={availableVoices}
-            selectedVoice={selectedVoice}
-            user={user}
-            focusIntentions={focusIntentions}
-            onPreferenceChange={onPreferenceChange}
-            onThemePreferenceChange={onThemePreferenceChange}
-            onVoiceChange={onVoiceChange}
-            onFocusIntentionsChange={onFocusIntentionsChange}
-            onUpdateProfileAvatar={onUpdateProfileAvatar}
-          />
-        </DisclosureSection>
+          >
+            <AccountPersonalizationPanel
+              theme={theme}
+              ts={ts}
+              preferences={preferences}
+              preferencesStatus={preferencesStatus}
+              themePreference={themePreference}
+              availableVoices={availableVoices}
+              selectedVoice={selectedVoice}
+              user={user}
+              focusIntentions={focusIntentions}
+              onPreferenceChange={onPreferenceChange}
+              onThemePreferenceChange={onThemePreferenceChange}
+              onVoiceChange={onVoiceChange}
+              onFocusIntentionsChange={onFocusIntentionsChange}
+              onUpdateProfileAvatar={onUpdateProfileAvatar}
+            />
+          </DisclosureSection>
 
-        <DisclosureSection
-          title={ts('share.accountShareTitle', 'Invite someone to Aletheia')}
-          summary={ts('share.accountShareSummary', 'Share the app link privately through the channel that fits the person.')}
-          eyebrow={ts('share.accountShareEyebrow', 'Share')}
-          compactCollapsed
-          showDetailsLabel={text.showDetails}
-          hideDetailsLabel={text.hideDetails}
-          theme={theme}
-        >
-          <AccountShareCard
+          <DisclosureSection
+            title={ts('labels.dailyWisdomNotifications', 'Daily wisdom notifications')}
+            summary={notificationsEnabled ? ts('notifications.deviceSubscribed', 'This device is subscribed for daily wisdom.') : notificationStatus}
+            eyebrow={ts('labels.notifications', 'Notifications')}
+            compactCollapsed
+            showDetailsLabel={text.showDetails}
+            hideDetailsLabel={text.hideDetails}
             theme={theme}
-            ts={ts}
-            onShare={(channel) => onShare(channel, "account")}
-          />
-        </DisclosureSection>
+          >
+            <NotificationPanel
+              theme={theme}
+              ts={ts}
+              language={preferences.language}
+              user={user}
+              enabled={notificationsEnabled}
+              configured={notificationsConfigured}
+              permission={typeof window !== "undefined" && "Notification" in window ? Notification.permission : "default"}
+              status={notificationStatus}
+              busy={notificationBusy}
+              timing={notificationTiming}
+              onTimingChange={onNotificationTimingChange}
+              onEnable={onEnableNotifications}
+              onDisable={onDisableNotifications}
+            />
+          </DisclosureSection>
+        </div>
+      ) : null}
 
-        <DisclosureSection
-          title={ts('supportMission.title', 'Support the mission')}
-          summary={ts('supportMission.summary', 'Help keep Aletheia free, trustworthy, multilingual, and deeply useful.')}
-          eyebrow={ts('supportMission.eyebrow', 'Mission')}
-          compactCollapsed
-          showDetailsLabel={text.showDetails}
-          hideDetailsLabel={text.hideDetails}
-          theme={theme}
-        >
-          <SupportMissionCard theme={theme} ts={ts} />
-        </DisclosureSection>
-
-        <DisclosureSection
-          title={ts('labels.dailyWisdomNotifications', 'Daily wisdom notifications')}
-          summary={notificationsEnabled ? ts('notifications.deviceSubscribed', 'This device is subscribed for daily wisdom.') : notificationStatus}
-          eyebrow={ts('labels.notifications', 'Notifications')}
-          compactCollapsed
-          showDetailsLabel={text.showDetails}
-          hideDetailsLabel={text.hideDetails}
-          theme={theme}
-        >
-          <NotificationPanel
+      {accountSection === "privacy" ? (
+        <div className="space-y-4">
+          <DisclosureSection
+            title={ts('labels.manualContextTitle', 'Manual Context Vault')}
+            summary={manualContext.useInAnswers
+              ? `${ts('labels.accountContextActive', text.accountContextActive ?? "Context active")} · ${contextAreas} ${contextAreas === 1 ? ts('labels.accountArea', text.accountArea ?? "area") : ts('labels.accountAreas', text.accountAreas ?? "areas")} ${ts('labels.accountAdded', text.accountAdded ?? "added")}`
+              : ts('manualContext.intro', 'Add only the health, money, work, and life context you want Aletheia to consider. No external apps are connected.')}
+            eyebrow={ts('labels.privacyPosture', 'Privacy posture')}
+            compactCollapsed
+            showDetailsLabel={text.showDetails}
+            hideDetailsLabel={text.hideDetails}
             theme={theme}
-            ts={ts}
-            language={preferences.language}
-            user={user}
-            enabled={notificationsEnabled}
-            configured={notificationsConfigured}
-            permission={typeof window !== "undefined" && "Notification" in window ? Notification.permission : "default"}
-            status={notificationStatus}
-            busy={notificationBusy}
-            timing={notificationTiming}
-            onTimingChange={onNotificationTimingChange}
-            onEnable={onEnableNotifications}
-            onDisable={onDisableNotifications}
-          />
-        </DisclosureSection>
-
-        <DisclosureSection
-          title={ts('labels.manualContextTitle', 'Manual Context Vault')}
-          summary={manualContext.useInAnswers
-            ? `${ts('labels.accountContextActive', text.accountContextActive ?? "Context active")} · ${contextAreas} ${contextAreas === 1 ? ts('labels.accountArea', text.accountArea ?? "area") : ts('labels.accountAreas', text.accountAreas ?? "areas")} ${ts('labels.accountAdded', text.accountAdded ?? "added")}`
-            : ts('manualContext.intro', 'Add only the health, money, work, and life context you want Aletheia to consider. No external apps are connected.')}
-          eyebrow={ts('labels.privacyPosture', 'Privacy posture')}
-          compactCollapsed
-          showDetailsLabel={text.showDetails}
-          hideDetailsLabel={text.hideDetails}
-          theme={theme}
-        >
-          <ManualContextPanel
-            theme={theme}
-            ts={ts}
-            user={user}
-            preferences={preferences}
-            context={manualContext}
-            status={manualContextStatus}
-            onPreferenceChange={onPreferenceChange}
-            onChange={onManualContextChange}
-          />
-        </DisclosureSection>
-
-        <DisclosureSection
-          title={ts('labels.accountSystemTitle', 'System')}
-          summary={`${ts('labels.accountSystemSummary', 'Sync status, data controls, and support actions stay together.')} ${exchanges.length} ${ts('labels.accountHistoryConversations', text.accountHistoryConversations ?? "conversations")} · ${activeDecisionCount} ${ts('labels.accountHistoryDecisions', text.accountHistoryDecisions ?? "decisions")}`}
-          eyebrow={ts('labels.accountSystemEyebrow', 'System')}
-          compactCollapsed
-          showDetailsLabel={text.showDetails}
-          hideDetailsLabel={text.hideDetails}
-          theme={theme}
-        >
-          <div className="space-y-4">
-            <SystemStatusCard
+          >
+            <ManualContextPanel
               theme={theme}
               ts={ts}
               user={user}
-              conversations={exchanges.length}
-              decisions={decisions.length}
-              reflections={journalEntries.length}
-              counselContacts={counselContacts.length}
-              notificationsEnabled={notificationsEnabled}
+              preferences={preferences}
+              context={manualContext}
+              status={manualContextStatus}
+              onPreferenceChange={onPreferenceChange}
+              onChange={onManualContextChange}
             />
+          </DisclosureSection>
+
+          <DisclosureSection
+            title={ts('labels.accountTrustPostureTitle', 'Trust and privacy posture')}
+            summary={ts('labels.accountTrustPostureSummary', 'Boundaries, scripture sourcing, saved data, and sharing posture are available without flooding the page.')}
+            eyebrow={ts('labels.privacyPosture', 'Privacy posture')}
+            compactCollapsed
+            showDetailsLabel={text.showDetails}
+            hideDetailsLabel={text.hideDetails}
+            theme={theme}
+          >
             <TrustCenterCard theme={theme} ts={ts} />
+          </DisclosureSection>
+
+          <DisclosureSection
+            title={ts('labels.accountBoundariesTitle', "Aletheia's guardrails")}
+            summary={ts('labels.accountBoundariesSummary', "The app's safety boundaries remain visible when needed, not constantly in the way.")}
+            eyebrow={ts('labels.privacyPosture', 'Privacy posture')}
+            compactCollapsed
+            showDetailsLabel={text.showDetails}
+            hideDetailsLabel={text.hideDetails}
+            theme={theme}
+          >
             <DataBoundariesCard
               theme={theme}
               ts={ts}
@@ -10032,10 +10006,78 @@ function AccountPanel({
               onRequestDeleteAccount={onRequestDeleteAccount}
               accountActionBusy={accountActionBusy}
             />
+          </DisclosureSection>
+        </div>
+      ) : null}
+
+      {accountSection === "share" ? (
+        <div className="grid gap-4 lg:grid-cols-2">
+          <DisclosureSection
+            title={ts('share.accountShareTitle', 'Invite someone to Aletheia')}
+            summary={ts('share.accountShareSummary', 'Share the app link privately through the channel that fits the person.')}
+            eyebrow={ts('share.accountShareEyebrow', 'Share')}
+            compactCollapsed
+            showDetailsLabel={text.showDetails}
+            hideDetailsLabel={text.hideDetails}
+            theme={theme}
+          >
+            <AccountShareCard
+              theme={theme}
+              ts={ts}
+              onShare={(channel) => onShare(channel, "account")}
+            />
+          </DisclosureSection>
+
+          <DisclosureSection
+            title={ts('supportMission.title', 'Support the mission')}
+            summary={ts('supportMission.summary', 'Help keep Aletheia free, trustworthy, multilingual, and deeply useful.')}
+            eyebrow={ts('supportMission.eyebrow', 'Mission')}
+            compactCollapsed
+            showDetailsLabel={text.showDetails}
+            hideDetailsLabel={text.hideDetails}
+            theme={theme}
+          >
+            <SupportMissionCard theme={theme} ts={ts} />
+          </DisclosureSection>
+        </div>
+      ) : null}
+
+      {accountSection === "system" ? (
+        <div className="space-y-4">
+          <DisclosureSection
+            title={ts('labels.accountSystemTitle', 'System')}
+            summary={`${ts('labels.accountSystemSummary', 'Sync status, data controls, and support actions stay together.')} ${exchanges.length} ${ts('labels.accountHistoryConversations', text.accountHistoryConversations ?? "conversations")} · ${activeDecisionCount} ${ts('labels.accountHistoryDecisions', text.accountHistoryDecisions ?? "decisions")}`}
+            eyebrow={ts('labels.accountSystemEyebrow', 'System')}
+            compactCollapsed
+            showDetailsLabel={text.showDetails}
+            hideDetailsLabel={text.hideDetails}
+            theme={theme}
+          >
+            <SystemStatusCard
+              theme={theme}
+              ts={ts}
+              user={user}
+              conversations={exchanges.length}
+              decisions={decisions.length}
+              reflections={journalEntries.length}
+              counselContacts={counselContacts.length}
+              notificationsEnabled={notificationsEnabled}
+            />
+          </DisclosureSection>
+
+          <DisclosureSection
+            title={ts('labels.supportReportIssue', 'Report a problem')}
+            summary={ts('labels.supportReportIssueSummary', 'Share a problem without attaching private chats, journals, or manual context.')}
+            eyebrow={ts('labels.support', 'Support')}
+            compactCollapsed
+            showDetailsLabel={text.showDetails}
+            hideDetailsLabel={text.hideDetails}
+            theme={theme}
+          >
             <SupportReportCard theme={theme} ts={ts} onReportIssue={onReportIssue} />
-          </div>
-        </DisclosureSection>
-      </section>
+          </DisclosureSection>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -12716,12 +12758,14 @@ function ScriptureModal({
   scripture,
   preferences,
   ts,
+  onReadAloud,
   onClose,
 }: {
   theme: ThemeColors;
   scripture: string | null;
   preferences: UserPreferences;
   ts: (key: string, fallback?: string) => string;
+  onReadAloud: () => void;
   onClose: () => void;
 }) {
   if (!scripture) {
@@ -12731,6 +12775,7 @@ function ScriptureModal({
   const quickRead = localizedScriptureRead(scripture, preferences);
   const canonicalScripture = canonicalScriptureReference(scripture);
   const wisdomEntry = wisdomEntries.find((entry) => entry.scripture === canonicalScripture);
+  const localizedEntry = wisdomEntry ? localizedWisdomEntry(wisdomEntry, preferences) : null;
   const isLocalized = quickRead.availableLanguage === preferences.language;
   const usesCanonicalRange = canonicalScripture !== scripture;
   const isSummary = quickRead.kind === "summary";
@@ -12745,23 +12790,37 @@ function ScriptureModal({
             <p className="mt-1 text-sm" style={{ color: theme.textSecondary }}>
               {quickRead.label} · {quickRead.translation}
             </p>
+            <p className="mt-2 text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
+              {ts('labels.verses', 'Verses')}: {canonicalScripture}
+            </p>
             {usesCanonicalRange ? (
               <p className="mt-1 text-xs leading-5" style={{ color: theme.textSecondary }}>
                 {ts('labels.shownFromCuratedRange', 'Shown from Aletheia’s curated range:')} {canonicalScripture}
               </p>
             ) : null}
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="grid size-9 shrink-0 place-items-center rounded-md border transition"
-            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
-            aria-label={ts('labels.closeScriptureQuickRead', 'Close scripture quick read')}
-          >
-            <X size={17} />
-          </button>
+          <div className="flex shrink-0 flex-col items-end gap-2">
+            <button
+              type="button"
+              onClick={onReadAloud}
+              className="inline-flex min-h-9 items-center gap-2 rounded-md border px-3 py-2 text-xs font-semibold transition"
+              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
+            >
+              <Volume2 size={15} />
+              {ts('labels.readScriptureAloud', 'Read aloud')}
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="grid size-9 shrink-0 place-items-center rounded-md border transition"
+              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
+              aria-label={ts('labels.closeScriptureQuickRead', 'Close scripture quick read')}
+            >
+              <X size={17} />
+            </button>
+          </div>
         </div>
-        <p className="mt-4 rounded-lg border bg-white/70 p-4 text-sm leading-7" style={{ borderColor: theme.borderLight, color: theme.textPrimary }}>
+        <p className="mt-4 rounded-lg border p-4 text-sm leading-7" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textPrimary }}>
           {quickRead.text}
         </p>
         {isSummary ? (
@@ -12777,20 +12836,20 @@ function ScriptureModal({
           <div className="rounded-lg border p-4" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
             <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.context', 'Context')}</p>
             <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
-              {wisdomEntry?.context ?? ts('labels.referenceShownBecauseCurated', 'This reference is shown because it belongs to Aletheia’s curated wisdom library.')}
+              {localizedEntry?.context ?? ts('labels.referenceShownBecauseCurated', 'This reference is shown because it belongs to Aletheia’s curated wisdom library.')}
             </p>
           </div>
           <div className="rounded-lg border p-4" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
             <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.whyItMattersHere', 'Why it matters here')}</p>
             <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
-              {wisdomEntry?.application ?? ts('labels.useAsWisdomAnchor', 'Use it as a wisdom anchor, not as a prediction or pressure tactic.')}
+              {localizedEntry?.application ?? ts('labels.useAsWisdomAnchor', 'Use it as a wisdom anchor, not as a prediction or pressure tactic.')}
             </p>
           </div>
         </div>
         <div className="mt-3 rounded-lg border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.primary, color: theme.textOnPrimary }}>
           <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textOnPrimary }}>{ts('labels.relatedPrinciple', 'Related principle')}</p>
           <p className="mt-2 text-sm leading-6" style={{ color: theme.textOnPrimary }}>
-            {wisdomEntry?.principle ?? ts('labels.onlyKnownReferences', 'Aletheia only surfaces known references and avoids invented verse text.')}
+            {localizedEntry?.principle ?? ts('labels.onlyKnownReferences', 'Aletheia only surfaces known references and avoids invented verse text.')}
           </p>
         </div>
         <p className="mt-3 text-xs leading-5" style={{ color: theme.textMuted }}>
@@ -13083,11 +13142,11 @@ function CounselInviteModal({
           </button>
         </div>
 
-        {status ? <p className="mt-4 rounded-lg border bg-white/70 p-3 text-sm" style={{ borderColor: theme.borderLight, color: theme.textSecondary }}>{status}</p> : null}
+        {status ? <p className="mt-4 rounded-lg border p-3 text-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>{status}</p> : null}
 
         {preview ? (
           <>
-            <div className="mt-4 grid gap-2 rounded-xl border bg-white/70 p-4 text-sm" style={{ borderColor: theme.borderLight, color: theme.textSecondary }}>
+            <div className="mt-4 grid gap-2 rounded-xl border p-4 text-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
               <p>
                 <span className="font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.role', 'Role')}:</span> {preview.invite.role}
               </p>
@@ -13108,7 +13167,7 @@ function CounselInviteModal({
             ) : (
               <div className="mt-4 space-y-3">
                 {preview.sharedDecisions.map((decision) => (
-                  <article key={decision.id} className="rounded-xl border bg-white/72 p-4" style={{ borderColor: theme.borderLight }}>
+                  <article key={decision.id} className="rounded-xl border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                       <div>
                         <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{decision.title}</p>
@@ -13156,7 +13215,7 @@ function CounselInviteModal({
                   </article>
                 ))}
                 {!preview.sharedDecisions.length ? (
-                  <div className="rounded-xl border bg-white/70 p-5" style={{ borderColor: theme.borderLight }}>
+                  <div className="rounded-xl border p-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
                     <div className="flex items-start gap-3">
                       <div className="grid size-10 shrink-0 place-items-center rounded-md" style={{ backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
                         <Users size={18} />
@@ -13484,6 +13543,7 @@ function CompanionPanel({
   onFeedback,
   isWorking,
   isListening,
+  voiceTranscriptPreview,
   isSpeaking,
   speechPaused,
   speechProgress,
@@ -13519,6 +13579,7 @@ function CompanionPanel({
   onFeedback: (value: string) => void;
   isWorking: boolean;
   isListening: boolean;
+  voiceTranscriptPreview: string;
   isSpeaking: boolean;
   speechPaused: boolean;
   speechProgress: number;
@@ -13610,7 +13671,7 @@ function CompanionPanel({
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder={`${copy.askPlaceholder} ${(focusLabels[0] ?? modeProfile.focus).toLowerCase()}...`}
-                className="min-h-28 flex-1 resize-none rounded-md border px-3 py-3 text-base leading-6 outline-none transition sm:text-sm"
+                className="min-h-32 flex-1 resize-none rounded-md border px-4 py-4 text-base leading-7 outline-none transition sm:text-sm"
                 style={{
                   borderColor: theme.borderMedium,
                   backgroundColor: theme.bgInput,
@@ -13624,15 +13685,19 @@ function CompanionPanel({
                   <button
                     type="button"
                     onClick={onListen}
-                    className="grid h-11 w-11 shrink-0 place-items-center rounded-lg border px-3 transition"
+                    className="grid h-12 w-12 shrink-0 place-items-center rounded-lg border px-3 transition"
                     style={{
-                      borderColor: theme.borderMedium,
-                      backgroundColor: theme.bgInput,
-                      color: theme.textPrimary,
+                      borderColor: isListening ? theme.primary : theme.borderMedium,
+                      backgroundColor: isListening ? theme.activeBg : theme.bgInput,
+                      color: isListening ? theme.primary : theme.textPrimary,
                     }}
-                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.bgCardElevated}
-                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = theme.bgInput}
-                    aria-label={isListening ? "Stop voice input" : "Use voice input"}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = isListening ? theme.activeBg : theme.bgCardElevated;
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = isListening ? theme.activeBg : theme.bgInput;
+                    }}
+                    aria-label={isListening ? "Stop dictation" : "Start dictation"}
                     title={isListening ? "Stop dictating" : "Tap to dictate your question"}
                   >
                     {isListening ? <MicOff size={18} /> : <Mic size={18} />}
@@ -13640,7 +13705,7 @@ function CompanionPanel({
                 ) : null}
                 <button
                   disabled={isWorking}
-                  className="inline-flex h-11 min-w-0 flex-1 items-center justify-center gap-2 rounded-md px-5 text-sm font-semibold shadow-lg transition disabled:opacity-60 sm:flex-none"
+                  className="inline-flex h-12 min-w-0 flex-1 items-center justify-center gap-2 rounded-md px-5 text-sm font-semibold shadow-lg transition disabled:opacity-60 sm:flex-none"
                   style={{
                     backgroundColor: theme.primary,
                     color: theme.textOnPrimary,
@@ -13652,6 +13717,14 @@ function CompanionPanel({
                   {isWorking ? "..." : ui.askButton}
                 </button>
               </div>
+              {isListening || voiceTranscriptPreview ? (
+                <p className="rounded-md border px-3 py-2 text-xs leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
+                  <span className="font-semibold" style={{ color: theme.textPrimary }}>
+                    {isListening ? ts('notifications.voiceInputListening', 'Voice input active') : ts('labels.voiceTranscription', 'Voice transcription')}
+                  </span>
+                  {voiceTranscriptPreview ? ` ${voiceTranscriptPreview}` : isListening ? ` ${ts('notifications.voiceInputListeningBody', 'Speak now. Your words will appear in the ask field as they are recognized.')}` : ""}
+                </p>
+              ) : null}
             </div>
             <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
               {promptChips.map((prompt) => (
@@ -13685,7 +13758,7 @@ function CompanionPanel({
       </section>
 
       {hasCounselSurface ? (
-      <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_300px] xl:grid-cols-[minmax(0,1fr)_320px]">
         <section className="min-w-0 rounded-xl border p-3 shadow-sm sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
           {currentExchange ? (
             <div ref={currentCounselRef} className="scroll-mt-24">
@@ -14251,7 +14324,7 @@ function CurrentCounselCard({
           </div>
           <details className="mt-3 rounded-md border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
             <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
-              More counsel options
+              {ts('labels.moreCounselOptions', 'More counsel options')}
             </summary>
             <div className="mt-3 grid gap-2 sm:grid-cols-2">
               <CounselAction theme={theme} label={text.goDeeper!} onClick={() => onGoDeeper(exchange)} />
@@ -14512,6 +14585,7 @@ function DecisionCompanionPanel({
   const activeDecisions = decisions.filter((decision) => decision.status !== "closed");
   const selectedDecision = decisions[0];
   const [blessingOpen, setBlessingOpen] = useState(false);
+  const [decisionSection, setDecisionSection] = useState<"decisions" | "counsel" | "rhythm" | "memory">("decisions");
   const modeRules = rules.filter((rule) => rule.mode === mode);
   const selectedDecisionBlessing = selectedDecision ? buildDecisionBlessing(selectedDecision, ts) : "";
   const decisionNextTitle = selectedDecision ? formatNextDecisionTitle(selectedDecision.title) : runtime.decisionNextTitleDefault;
@@ -14582,14 +14656,14 @@ function DecisionCompanionPanel({
   }
 
   return (
-    <div className="min-w-0 space-y-4 xl:grid xl:gap-4 xl:space-y-0 xl:grid-cols-[1fr_340px]">
+    <div className="min-w-0 space-y-4">
+      <ContextualNextAction
+        eyebrow={runtime.nextInDecisions}
+        title={decisionNextTitle}
+        body={decisionNextBodyWithFocus}
+        theme={theme}
+      />
       <section className="space-y-4">
-        <ContextualNextAction
-          eyebrow={runtime.nextInDecisions}
-          title={decisionNextTitle}
-          body={decisionNextBodyWithFocus}
-          theme={theme}
-        />
         <section className="rounded-xl border p-4 shadow-sm sm:p-5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div>
@@ -14602,25 +14676,25 @@ function DecisionCompanionPanel({
             <span className="w-fit rounded-md px-3 py-2 text-xs font-semibold" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>{modeProfile.displayLabel ?? modeProfile.label}</span>
           </div>
 
-          <form onSubmit={onCreateDecision} className="mt-5 grid gap-3 lg:grid-cols-[1fr_1.2fr_auto]">
+          <form onSubmit={onCreateDecision} className="mt-5 grid gap-3 xl:grid-cols-[1fr_1.2fr_auto]">
             <input
               value={title}
               onChange={(event) => setTitle(event.target.value)}
-              className="h-11 rounded-lg border px-3 text-sm outline-none"
+              className="min-h-11 rounded-lg border px-3 py-2 text-sm outline-none md:min-h-12 md:px-4 md:text-base"
               style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
               placeholder={ts('placeholders.decisionTitle', 'Decision title')}
             />
             <input
               value={pressure}
               onChange={(event) => setPressure(event.target.value)}
-              className="h-11 rounded-lg border px-3 text-sm outline-none"
+              className="min-h-11 rounded-lg border px-3 py-2 text-sm outline-none md:min-h-12 md:px-4 md:text-base"
               style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
               placeholder={ts('placeholders.decisionPressure', 'What pressure, fear, or hope is attached?')}
             />
             <select
               value={emotion}
               onChange={(event) => setEmotion(event.target.value)}
-              className="h-11 rounded-lg border px-3 text-sm outline-none"
+              className="min-h-11 rounded-lg border px-3 py-2 text-sm outline-none md:min-h-12 md:px-4 md:text-base"
               style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
               aria-label={ts('labels.initialEmotion', 'Initial emotion')}
             >
@@ -14642,478 +14716,503 @@ function DecisionCompanionPanel({
           <TimelineStat icon={ShieldCheck} label={ts('labels.patternsNoticed', 'Patterns noticed')} value={String(insight.patterns.length)} theme={theme} />
         </section>
 
-        <DisclosureSection title={ts('labels.wisdomTimeline', 'Wisdom timeline')} summary={events.length ? insight.gentleObservation : runtime.timelineReady} eyebrow={`${events.length} ${ts('labels.eventsRecorded', 'events recorded')}`} compactCollapsed showDetailsLabel={ts('showDetails', 'Show details')} hideDetailsLabel={ts('hideDetails', 'Hide details')} theme={theme}>
-          <section className="rounded-xl border p-4 shadow-sm sm:p-5" style={{ backgroundColor: theme.primary, borderColor: theme.borderMedium, color: theme.textOnPrimary }}>
-            <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textOnPrimary, opacity: 0.9 }}>{ts('labels.wisdomTimeline', 'Wisdom timeline')}</p>
-            <p className="mt-3 text-sm leading-6" style={{ color: theme.textOnPrimary }}>{insight.gentleObservation}</p>
-            <div className="mt-4 space-y-3">
-              {events.slice(0, 5).map((event) => (
-                <div key={event.id} className="rounded-lg border border-white/10 bg-white/7 p-3">
-                  <p className="text-sm leading-6" style={{ color: theme.textOnPrimary }}>{event.body}</p>
-                  <p className="mt-1 text-xs" style={{ color: theme.textOnPrimary, opacity: 0.7 }}>{new Date(event.createdAt).toLocaleDateString()}</p>
+        <ScreenTabs
+          value={decisionSection}
+          onChange={setDecisionSection}
+          ariaLabel={ts('labels.decisionSections', 'Decision sections')}
+          theme={theme}
+          tabs={[
+            { key: "decisions", label: "Decisions" },
+            { key: "counsel", label: "Counsel" },
+            { key: "rhythm", label: "Rhythm" },
+            { key: "memory", label: "Memory" },
+          ]}
+        />
+
+        {decisionSection === "decisions" ? (
+          <div className="space-y-4">
+            <DisclosureSection title={ts('labels.wisdomTimeline', 'Wisdom timeline')} summary={events.length ? insight.gentleObservation : runtime.timelineReady} eyebrow={`${events.length} ${ts('labels.eventsRecorded', 'events recorded')}`} compactCollapsed showDetailsLabel={ts('showDetails', 'Show details')} hideDetailsLabel={ts('hideDetails', 'Hide details')} theme={theme}>
+              <section className="rounded-xl border p-4 shadow-sm sm:p-5" style={{ backgroundColor: theme.primary, borderColor: theme.borderMedium, color: theme.textOnPrimary }}>
+                <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textOnPrimary, opacity: 0.9 }}>{ts('labels.wisdomTimeline', 'Wisdom timeline')}</p>
+                <p className="mt-3 text-sm leading-6" style={{ color: theme.textOnPrimary }}>{insight.gentleObservation}</p>
+                <div className="mt-4 space-y-3">
+                  {events.slice(0, 5).map((event) => (
+                    <div key={event.id} className="rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                      <p className="text-sm leading-6" style={{ color: theme.textPrimary }}>{event.body}</p>
+                      <p className="mt-1 text-xs" style={{ color: theme.textSecondary }}>{new Date(event.createdAt).toLocaleDateString()}</p>
+                    </div>
+                  ))}
+                  {!events.length ? <p className="text-sm leading-6" style={{ color: theme.textOnPrimary }}>{ts('labels.startDecisionToBeginTimeline', 'Start a decision to begin your wisdom timeline.')}</p> : null}
                 </div>
-              ))}
-              {!events.length ? <p className="text-sm leading-6" style={{ color: theme.textOnPrimary }}>{ts('labels.startDecisionToBeginTimeline', 'Start a decision to begin your wisdom timeline.')}</p> : null}
-            </div>
-          </section>
-        </DisclosureSection>
+              </section>
+            </DisclosureSection>
 
-        <DisclosureSection title={ts('labels.decisionArchiveReadiness', 'Decision archive and readiness details')} summary={decisions.length ? `${decisions.length} ${ts('labels.decisionsSavedOpenFullList', 'decisions saved. Open when you want the full list.')}` : ts('labels.noDecisionMemoryYet', 'No decision memory yet. Start one above when pressure needs time and counsel.')} eyebrow={ts('labels.decisionMemory', 'Decision memory')} defaultOpen={Boolean(focusedDecisionId) || (decisions.length > 0 && decisions.length < 2)} compactCollapsed showDetailsLabel={ts('showDetails', 'Show details')} hideDetailsLabel={ts('hideDetails', 'Hide details')} theme={theme}>
-        <section className="space-y-3">
-          {decisions.map((decision) => (
-            <DecisionCard key={decision.id} decision={decision} highlighted={decision.id === focusedDecisionId} modeProfile={modeProfiles[decision.mode]} modeLabel={ts(modeTranslationKey(decision.mode), decision.mode)} onUpdate={onUpdateDecision} onDelete={onDeleteDecision} theme={theme} ts={ts} />
-          ))}
-          {!decisions.length ? (
-            <div className="rounded-xl border border-dashed p-6 text-sm leading-6" style={{ borderColor: theme.borderMedium, color: theme.textSecondary }}>
-              {ts('labels.noDecisionMemoryHelp', 'No decision memory yet. Add the first decision above and Aletheia will track pressure, wisdom anchors, waiting, counsel, and learning.')}
-            </div>
-          ) : null}
-        </section>
-        </DisclosureSection>
-
-        <DisclosureSection title={ts('labels.formationRhythm', 'Formation rhythm')} summary={ts('labels.formationRhythmSummary', 'Morning reflection, evening examen, and weekly pattern review stay available without dominating the decision page.')} eyebrow={ts('labels.rhythm', 'Rhythm')} compactCollapsed showDetailsLabel={ts('showDetails', 'Show details')} hideDetailsLabel={ts('hideDetails', 'Hide details')} theme={theme}>
-        <section>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.formationRhythm', 'Formation rhythm')}</p>
-          <div className="mt-3 grid gap-2">
-            <RhythmItem label={ts('labels.threeMinuteMorningReflection', '3-minute morning reflection')} body={ts('labels.namePressureBeforeDayNamesIt', 'Name the pressure before the day names it for you.')} theme={theme} />
-            <RhythmItem label={ts('labels.eveningExamen', 'Evening examen')} body={ts('labels.reviewMoneyWorkMomentHonestly', 'Review one money or work moment with honesty, not shame.')} theme={theme} />
-            <RhythmItem label={ts('labels.weeklyPatternReview', 'Weekly pattern review')} body={ts('labels.noticeRepeatedUrgencyComparison', 'Notice repeated urgency, comparison, fear, or overgiving.')} theme={theme} />
+            <DisclosureSection title={ts('labels.decisionArchiveReadiness', 'Decision archive and readiness details')} summary={decisions.length ? `${decisions.length} ${ts('labels.decisionsSavedOpenFullList', 'decisions saved. Open when you want the full list.')}` : ts('labels.noDecisionMemoryYet', 'No decision memory yet. Start one above when pressure needs time and counsel.')} eyebrow={ts('labels.decisionMemory', 'Decision memory')} defaultOpen={Boolean(focusedDecisionId) || (decisions.length > 0 && decisions.length < 2)} compactCollapsed showDetailsLabel={ts('showDetails', 'Show details')} hideDetailsLabel={ts('hideDetails', 'Hide details')} theme={theme}>
+              <section className="space-y-3">
+                {decisions.map((decision) => (
+                  <DecisionCard key={decision.id} decision={decision} highlighted={decision.id === focusedDecisionId} modeProfile={localizedModeProfile(decision.mode, language)} modeLabel={ts(modeTranslationKey(decision.mode), decision.mode)} onUpdate={onUpdateDecision} onDelete={onDeleteDecision} theme={theme} ts={ts} />
+                ))}
+                {!decisions.length ? (
+                  <div className="rounded-xl border border-dashed p-6 text-sm leading-6" style={{ borderColor: theme.borderMedium, color: theme.textSecondary }}>
+                    {ts('labels.noDecisionMemoryHelp', 'No decision memory yet. Add the first decision above and Aletheia will track pressure, wisdom anchors, waiting, counsel, and learning.')}
+                  </div>
+                ) : null}
+              </section>
+            </DisclosureSection>
           </div>
-        </section>
-        </DisclosureSection>
-      </section>
+        ) : null}
 
-      <aside className="space-y-4">
-        <DisclosureSection title={`${ts('labels.counselCircle', 'Counsel Circle')} · ${counselContacts.length} ${ts('labels.trustedVoices', 'trusted voices')}`} summary={ts('labels.counselCircleSummary', 'Private invites and sharing controls are explicit. No one sees chats, journals, or decisions unless shared.')} eyebrow={ts('labels.counsel', 'Counsel')} defaultOpen={Boolean(counselSummaryDraft)} compactCollapsed showDetailsLabel={ts('showDetails', 'Show details')} hideDetailsLabel={ts('hideDetails', 'Hide details')} theme={theme}>
-        <section id="counsel-circle" className="scroll-mt-24">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.counselCircle', 'Counsel Circle')}</p>
-          <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
-            {ts('labels.inviteTrustedPeoplePrivate', 'Invite trusted people privately. They see only the decision summaries you choose to share.')}
-          </p>
-          {counselSummaryDraft ? (
-            <div className="mt-3 rounded-lg border p-3" style={{ borderColor: theme.accentGold, backgroundColor: theme.bgCardElevated }}>
-              <div className="flex items-start justify-between gap-2">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{ts('labels.summaryReady', 'Summary ready')}</p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (window.confirm('Are you sure you want to delete this counsel summary? This cannot be undone.')) {
-                      setCounselSummaryDraft(null);
-                      announceWorkflow(
-                        ts('notifications.counselSummaryCleared'),
-                        ts('notifications.counselSummaryClearedBody'),
-                        "info"
-                      );
-                    }
-                  }}
-                  className="grid size-9 shrink-0 place-items-center rounded-md border-2 transition"
-                  style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: '#cc4444' }}
-                  aria-label="Delete counsel summary"
-                  title="Delete summary"
-                >
-                  <X size={18} />
-                </button>
-              </div>
-              <p className="mt-2 text-sm font-semibold" style={{ color: theme.textPrimary }}>{counselSummaryDraft.title}</p>
-              <pre className="mt-3 max-h-72 overflow-auto whitespace-pre-wrap rounded-md border p-3 text-xs leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-                {counselSummaryDraft.body}
-              </pre>
-              <p className="mt-2 text-xs leading-5" style={{ color: theme.textSecondary }}>
-                {ts('labels.summaryPrivateUntilShared', 'This summary is private until you copy it or share a selected decision with someone in your Counsel Circle.')}
+        {decisionSection === "counsel" ? (
+          <DisclosureSection title={`${ts('labels.counselCircle', 'Counsel Circle')} · ${counselContacts.length} ${ts('labels.trustedVoices', 'trusted voices')}`} summary={ts('labels.counselCircleSummary', 'Private invites and sharing controls are explicit. No one sees chats, journals, or decisions unless shared.')} eyebrow={ts('labels.counsel', 'Counsel')} defaultOpen={Boolean(counselSummaryDraft)} compactCollapsed showDetailsLabel={ts('showDetails', 'Show details')} hideDetailsLabel={ts('hideDetails', 'Hide details')} theme={theme}>
+            <section id="counsel-circle" className="scroll-mt-24">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.counselCircle', 'Counsel Circle')}</p>
+              <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                {ts('labels.inviteTrustedPeoplePrivate', 'Invite trusted people privately. They see only the decision summaries you choose to share.')}
               </p>
-            </div>
-          ) : null}
-          <form onSubmit={onAddCounsel} className="mt-3 grid gap-2">
-            <input
-              value={counselName}
-              onChange={(event) => setCounselName(event.target.value)}
-              className="h-10 rounded-md border px-3 text-sm outline-none"
-              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-              placeholder={ts('placeholders.name', 'Name')}
-            />
-            <input
-              ref={counselAvatarFileInputRef}
-              type="file"
-              accept="image/png,image/jpeg,image/webp"
-              className="hidden"
-              onChange={onCounselAvatarFileSelected}
-            />
-            <div className="rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-              <div className="flex items-center gap-3">
-                <AvatarCircle
-                  avatarUrl={counselAvatarUrl || null}
-                  seed={counselName || counselContactValue || "counsel-contact"}
-                  label={counselName || "Counsel contact"}
-                  size={34}
-                  className="size-[34px] rounded-full border object-cover"
-                />
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
-                    Counsel photo
-                  </p>
-                  <p className="text-xs leading-5" style={{ color: theme.textSecondary }}>
-                    Choose from gallery to personalize this contact.
+              {counselSummaryDraft ? (
+                <div className="mt-3 rounded-lg border p-3" style={{ borderColor: theme.accentGold, backgroundColor: theme.bgCardElevated }}>
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{ts('labels.summaryReady', 'Summary ready')}</p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (window.confirm('Are you sure you want to delete this counsel summary? This cannot be undone.')) {
+                          setCounselSummaryDraft(null);
+                          announceWorkflow(
+                            ts('notifications.counselSummaryCleared'),
+                            ts('notifications.counselSummaryClearedBody'),
+                            "info"
+                          );
+                        }
+                      }}
+                      className="grid size-9 shrink-0 place-items-center rounded-md border-2 transition"
+                      style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: '#cc4444' }}
+                      aria-label="Delete counsel summary"
+                      title="Delete summary"
+                    >
+                      <X size={18} />
+                    </button>
+                  </div>
+                  <p className="mt-2 text-sm font-semibold" style={{ color: theme.textPrimary }}>{counselSummaryDraft.title}</p>
+                  <pre className="mt-3 max-h-72 overflow-auto whitespace-pre-wrap rounded-md border p-3 text-xs leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                    {counselSummaryDraft.body}
+                  </pre>
+                  <p className="mt-2 text-xs leading-5" style={{ color: theme.textSecondary }}>
+                    {ts('labels.summaryPrivateUntilShared', 'This summary is private until you copy it or share a selected decision with someone in your Counsel Circle.')}
                   </p>
                 </div>
-              </div>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => counselAvatarFileInputRef.current?.click()}
-                  className="h-9 rounded-md border px-3 text-xs font-semibold"
-                  style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-                >
-                  Choose photo
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCounselAvatarPickerOpen(true)}
-                  className="h-9 rounded-md border px-3 text-xs font-semibold"
-                  style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-                >
-                  Pick fun avatar
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCounselAvatarUrl("");
-                    setCounselAvatarStatus("Using default avatar for this contact.");
-                  }}
-                  className="h-9 rounded-md border px-3 text-xs font-semibold"
-                  style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-                >
-                  Use default
-                </button>
-              </div>
-              {counselAvatarStatus ? (
-                <p className="mt-2 text-xs leading-5" style={{ color: theme.textSecondary }}>
-                  {counselAvatarStatus}
-                </p>
               ) : null}
-            </div>
-            <input
-              value={counselContactValue}
-              onChange={(event) => setCounselContactValue(event.target.value)}
-              className="h-10 rounded-md border px-3 text-sm outline-none"
-              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-              placeholder={ts('placeholders.contactOptional', 'Email or phone, optional')}
-            />
-            <select
-              value={counselRole}
-              onChange={(event) => setCounselRole(event.target.value)}
-              className="h-10 rounded-md border px-3 text-sm outline-none"
-              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-            >
-              <option>spouse</option>
-              <option>mentor</option>
-              <option>pastor</option>
-              <option>advisor</option>
-              <option>friend</option>
-            </select>
-            <div className="space-y-2 rounded-lg border p-3 text-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
-              <PermissionToggle
-                checked={counselCanViewSummaries}
-                label={ts('labels.canViewSelectedDecisionSummaries', 'Can view selected decision summaries')}
-                onChange={setCounselCanViewSummaries}
-              />
-              <PermissionToggle
-                checked={counselCanComment}
-                label={ts('labels.canCommentOnSharedDecisions', 'Can comment on shared decisions')}
-                onChange={setCounselCanComment}
-              />
-              <PermissionToggle
-                checked={counselCanReceiveCheckins}
-                label={ts('labels.canReceiveWaitingModeCheckins', 'Can receive waiting-mode check-ins')}
-                onChange={setCounselCanReceiveCheckins}
-              />
-            </div>
-            <p className="rounded-lg border p-3 text-xs leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
-              {ts('labels.privateChatsNeverVisible', 'Private chats, journal entries, and unshared decisions are never visible to counselors by default.')}
-            </p>
-            <button className="h-10 rounded-md px-3 text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>
-              {userSignedIn ? ts('labels.createPrivateInvite', 'Create private invite') : ts('labels.addLocally', 'Add locally')}
-            </button>
-          </form>
-          <AvatarPickerModal
-            theme={theme}
-            ts={ts}
-            open={counselAvatarPickerOpen}
-            title={ts('avatar.chooseCounselAvatar', 'Choose a counsel avatar')}
-            subtitle={ts('avatar.chooseCounselAvatarBody', 'Pick a curated avatar for this contact, or use gallery upload.')}
-            currentAvatar={counselAvatarUrl}
-            onClose={() => setCounselAvatarPickerOpen(false)}
-            onPick={(avatarSrc) => {
-              setCounselAvatarUrl(avatarSrc);
-              setCounselAvatarStatus(ts('avatar.counselAvatarSelected', 'Avatar selected for this counsel contact.'));
-              setCounselAvatarPickerOpen(false);
-            }}
-          />
-          {latestCounselInvite ? (
-            <div className="mt-3 rounded-lg border p-3" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
-              <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.inviteReadyFor', 'Invite ready for')} {latestCounselInvite.name}</p>
-              <p className="mt-1 break-all text-xs leading-5" style={{ color: theme.textSecondary }}>{latestCounselInvite.url}</p>
-              {counselContacts[0]?.name === latestCounselInvite.name && counselContacts[0]?.emailSent ? (
-                <p className="mt-2 rounded-md px-2 py-1 text-xs font-semibold" style={{ backgroundColor: theme.bgCardElevated, color: theme.primary }}>
-                  {ts('labels.emailSentPrivateLinkFallback', 'Email sent. The private link is also here as a fallback.')}
-                </p>
-              ) : null}
-              <div className="mt-3 flex flex-wrap gap-2">
-                <button
-                  className="rounded-md border px-3 py-2 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-                  onClick={() => onShareCounselInvite("copy")}
-                  type="button"
-                >
-                  {ts('labels.copyLink', 'Copy link')}
-                </button>
-                <button
-                  className="rounded-md px-3 py-2 text-xs font-semibold"
-                  style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
-                  onClick={() => onShareCounselInvite("native")}
-                  type="button"
-                >
-                  {ts('labels.shareInvite', 'Share invite')}
-                </button>
-                <button
-                  className="rounded-md border px-3 py-2 text-xs font-semibold"
-                  style={{ borderColor: theme.borderMedium, color: theme.textPrimary }}
-                  onClick={() => onShareCounselInvite("email")}
-                  type="button"
-                >
-                  {ts('labels.email', 'Email')}
-                </button>
-                <button
-                  className="rounded-md border px-3 py-2 text-xs font-semibold"
-                  style={{ borderColor: theme.borderMedium, color: theme.textPrimary }}
-                  onClick={() => onShareCounselInvite("sms")}
-                  type="button"
-                >
-                  {ts('labels.sms', 'SMS')}
-                </button>
-                <button
-                  className="rounded-md border px-3 py-2 text-xs font-semibold"
-                  style={{ borderColor: theme.borderMedium, color: theme.textPrimary }}
-                  onClick={() => onShareCounselInvite("whatsapp")}
-                  type="button"
-                >
-                  {ts('labels.whatsApp', 'WhatsApp')}
-                </button>
-              </div>
-            </div>
-          ) : null}
-          <div className="mt-3 space-y-2">
-            {counselContacts.slice(0, 5).map((contact) => (
-              <div key={contact.id} className="rounded-lg border p-3" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-2">
+              <form onSubmit={onAddCounsel} className="mt-3 grid gap-2">
+                <input
+                  value={counselName}
+                  onChange={(event) => setCounselName(event.target.value)}
+                  className="min-h-11 rounded-md border px-3 py-2 text-sm outline-none md:min-h-12 md:px-4"
+                  style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                  placeholder={ts('placeholders.name', 'Name')}
+                />
+                <input
+                  ref={counselAvatarFileInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  className="hidden"
+                  onChange={onCounselAvatarFileSelected}
+                />
+                <div className="rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                  <div className="flex items-center gap-3">
                     <AvatarCircle
-                      avatarUrl={contact.avatarUrl}
-                      seed={contact.id}
-                      label={contact.name}
-                      size={30}
-                      className="size-[30px] rounded-full border object-cover"
+                      avatarUrl={counselAvatarUrl || null}
+                      seed={counselName || counselContactValue || "counsel-contact"}
+                      label={counselName || "Counsel contact"}
+                      size={34}
+                      className="size-[34px] rounded-full border object-cover"
                     />
                     <div>
-                      <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{contact.name}</p>
-                      <p className="text-xs uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
-                        {contact.role} · {contact.inviteStatus === "accepted" ? ts('status.accepted', 'accepted') : contact.inviteStatus === "pending" ? ts('status.invited', 'invited') : ts('status.local', 'local')}
+                      <p className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
+                        Counsel photo
+                      </p>
+                      <p className="text-xs leading-5" style={{ color: theme.textSecondary }}>
+                        Choose from gallery to personalize this contact.
                       </p>
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => onRemoveCounselContact(contact.id)}
-                    className="grid size-8 place-items-center rounded-md border transition"
-                    style={{ borderColor: theme.borderMedium, color: theme.textMuted, backgroundColor: "transparent" }}
-                    onMouseEnter={(event) => {
-                      event.currentTarget.style.backgroundColor = theme.bgInput;
-                      event.currentTarget.style.borderColor = theme.borderStrong;
-                    }}
-                    onMouseLeave={(event) => {
-                      event.currentTarget.style.backgroundColor = "transparent";
-                      event.currentTarget.style.borderColor = theme.borderMedium;
-                    }}
-                    aria-label={`${ts('labels.removeFromCounselCircle', 'Remove from Counsel Circle')}: ${contact.name}`}
-                    title={ts('labels.removeFromCounselCircle', 'Remove from Counsel Circle')}
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-                <div className="mt-2 flex flex-wrap gap-1 text-[0.68rem] font-semibold uppercase tracking-[0.08em]" style={{ color: theme.textSecondary }}>
-                  {contact.canViewSummaries ? <span className="rounded px-2 py-1" style={{ backgroundColor: theme.bgCardElevated }}>{ts('labels.summaries', 'summaries')}</span> : null}
-                  {contact.canCommentOnDecisions ? <span className="rounded px-2 py-1" style={{ backgroundColor: theme.bgCardElevated }}>{ts('labels.comments', 'comments')}</span> : null}
-                  {contact.canReceiveCheckins ? <span className="rounded px-2 py-1" style={{ backgroundColor: theme.bgCardElevated }}>{ts('labels.checkIns', 'check-ins')}</span> : null}
-                </div>
-                {contact.canViewSummaries && decisions.length > 0 ? (
-                  <div className="mt-3 space-y-2">
-                    <p className="text-xs font-semibold" style={{ color: theme.textSecondary }}>{ts('labels.shareDecisions', 'Share decisions:')}</p>
-                    <div className="max-h-48 space-y-1 overflow-y-auto rounded-md border p-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-                      {decisions.map((decision) => (
-                        <button
-                          key={decision.id}
-                          type="button"
-                          className="flex w-full items-start gap-2 rounded border px-2 py-2 text-left text-xs transition"
-                          style={{
-                            borderColor: theme.borderMedium,
-                            backgroundColor: theme.bgCard,
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.borderColor = theme.primary;
-                            e.currentTarget.style.backgroundColor = theme.bgCardElevated;
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.borderColor = theme.borderMedium;
-                            e.currentTarget.style.backgroundColor = theme.bgCard;
-                          }}
-                          onClick={() => onShareDecisionWithCounsel(contact.id, decision.id)}
-                        >
-                          <span className="mt-0.5 shrink-0 rounded px-1.5 py-0.5 text-[0.65rem] font-semibold" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-                            {isMode(decision.mode) ? ts(modeTranslationKey(decision.mode), decision.mode) : decision.mode}
-                          </span>
-                          <span className="min-w-0 flex-1 break-words font-medium leading-5" style={{ color: theme.textPrimary }}>{decision.title}</span>
-                        </button>
-                      ))}
-                    </div>
-                    {decisions.length > 1 ? (
-                      <button
-                        type="button"
-                        className="w-full rounded-md px-3 py-2 text-xs font-semibold transition"
-                        style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
-                        onClick={() => onBulkShareDecisionsWithCounsel(contact.id, decisions.map((d) => d.id))}
-                      >
-                        {ts('labels.shareAllDecisions', 'Share all decisions')} ({decisions.length})
-                      </button>
-                    ) : null}
-                  </div>
-                ) : null}
-              </div>
-            ))}
-            {!counselContacts.length ? (
-              <p className="rounded-lg border border-dashed p-3 text-sm leading-6" style={{ borderColor: theme.borderMedium, color: theme.textSecondary }}>
-                {ts('labels.addTrustedPersonBeforeHighStakes', 'Add one trusted person before the next high-stakes decision.')}
-              </p>
-            ) : null}
-          </div>
-        </section>
-        </DisclosureSection>
-
-        <DisclosureSection title={`${runtime.ruleOfLife} · ${modeRules.length} ${modeRules.length === 1 ? runtime.ruleOfLifePrincipleSingular : runtime.ruleOfLifePrinciplePlural}`} summary={runtime.ruleOfLifeSummary} eyebrow={runtime.ruleOfLife} compactCollapsed showDetailsLabel={ts('showDetails', 'Show details')} hideDetailsLabel={ts('hideDetails', 'Hide details')} theme={theme}>
-        <section>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{runtime.ruleOfLife}</p>
-          <form onSubmit={onAddRule} className="mt-3 grid gap-2">
-            <textarea
-              value={ruleText}
-              onChange={(event) => setRuleText(event.target.value)}
-              className="min-h-20 resize-none rounded-md border px-3 py-2 text-sm leading-6 outline-none"
-              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-              placeholder={ts('placeholders.ruleExample', 'I do not make career decisions without counsel.')}
-            />
-            <button className="h-10 rounded-md px-3 text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>{ts('labels.savePrinciple', 'Save principle')}</button>
-          </form>
-          <div className="mt-3 space-y-2">
-            {modeRules.slice(0, 4).map((rule) => (
-              <p key={rule.id} className="rounded-lg border p-3 text-sm leading-6" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
-                {rule.principle}
-              </p>
-            ))}
-            {!modeRules.length ? (
-              <p className="rounded-lg border border-dashed p-3 text-sm leading-6" style={{ borderColor: theme.borderMedium, color: theme.textSecondary }}>
-                Write one principle you want to live by before pressure arrives.
-              </p>
-            ) : null}
-          </div>
-        </section>
-        </DisclosureSection>
-
-        <section>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.scriptureIntegrity', 'Scripture integrity')}</p>
-          <ul className="mt-3 space-y-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
-            <li>{ts('labels.referencesFromCuratedLibrary', 'References come from the curated wisdom library.')}</li>
-            <li>{ts('labels.noFinancialOutcomesOrPredictions', 'No financial outcomes or divine predictions.')}</li>
-            <li>{ts('labels.prosperityFramingRefused', 'Prosperity-gospel framing is refused.')}</li>
-            <li>{ts('labels.highStakesPointedToCounsel', 'High-stakes choices are pointed toward qualified counsel.')}</li>
-          </ul>
-        </section>
-
-        <section className="rounded-xl border p-4 shadow-sm" style={{ backgroundColor: theme.primary, borderColor: theme.borderMedium, color: theme.textOnPrimary }}>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textOnPrimary, opacity: 0.9 }}>{ts('labels.decisionPractice', 'Decision practice')}</p>
-          <p className="mt-3 text-sm font-semibold" style={{ color: theme.textOnPrimary }}>{runtime.decisionPracticeLine}</p>
-          <p className="mt-2 text-sm leading-6" style={{ color: theme.textOnPrimary }}>{ts('labels.smallPracticeForDecision', 'A small practice for the decision you are carrying, shaped by the active wisdom mode.')}</p>
-        </section>
-
-        {selectedDecision?.summary ? (
-          <section className="rounded-xl border p-4 shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.decisionSummaryExport', 'Decision Summary Export')}</p>
-              <button
-                type="button"
-                onClick={() => onSpeakText(selectedDecision.summary || "", "Aletheia is reading the decision summary aloud.", "Decision summary")}
-                className="inline-flex h-11 items-center gap-2 rounded-md border px-3 text-xs font-semibold transition"
-                style={{
-                  borderColor: theme.borderMedium,
-                  backgroundColor: theme.bgInput,
-                  color: theme.textPrimary,
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.bgCardElevated}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = theme.bgInput}
-              >
-                <Volume2 size={14} style={{ color: isSpeaking ? theme.accentGold : 'inherit' }} />
-                {isSpeaking ? ts('labels.stop', 'Stop') : ts('labels.readAloud', 'Read aloud')}
-              </button>
-              <button
-                type="button"
-                onClick={() => onShareDecisionPostcard(selectedDecision, "summary")}
-                className="inline-flex h-11 items-center gap-2 rounded-md border px-3 text-xs font-semibold transition"
-                style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-              >
-                <Share2 size={14} />
-                {ts('labels.createCard', 'Create card')}
-              </button>
-            </div>
-            <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
-              {ts('labels.mentorReadySummaryReviewBeforeSharing', 'Mentor-ready summary with decision, pressure, wisdom anchors, risks, counsel questions, and next faithful step. Review it before sharing.')}
-            </p>
-            <div className="mt-3 max-h-80 min-h-40 overflow-y-auto rounded-md border p-3" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput }}>
-              <ScriptureLinkedText theme={theme} text={selectedDecision.summary} onScriptureOpen={onScriptureOpen} />
-            </div>
-            <div className="mt-3 rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-              <button
-                type="button"
-                onClick={() => setBlessingOpen((current) => !current)}
-                className="flex w-full items-center justify-between gap-3 text-left text-sm font-semibold"
-                style={{ color: theme.textPrimary }}
-              >
-                <span>{ts('labels.decisionBlessing', 'Decision blessing / prayer draft')}</span>
-                <span className="text-xs" style={{ color: theme.textSecondary }}>{blessingOpen ? ts('hideDetails', 'Hide details') : ts('showDetails', 'Show details')}</span>
-              </button>
-              {blessingOpen ? (
-                <div className="mt-3">
-                  <p className="whitespace-pre-wrap text-sm leading-6" style={{ color: theme.textSecondary }}>{selectedDecisionBlessing}</p>
-                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                  <div className="mt-3 flex flex-wrap gap-2">
                     <button
                       type="button"
-                      onClick={() => onSpeakText(selectedDecisionBlessing, ts('notifications.decisionBlessingReading', 'Aletheia is reading the decision blessing.'), ts('labels.decisionBlessing', 'Decision blessing'))}
-                      className="premium-tap-card inline-flex h-10 items-center justify-center gap-2 rounded-md border px-3 text-xs font-semibold"
+                      onClick={() => counselAvatarFileInputRef.current?.click()}
+                      className="h-9 rounded-md border px-3 text-xs font-semibold"
                       style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
                     >
-                      <Volume2 size={14} />
-                      {ts('labels.readAloud', 'Read aloud')}
+                      Choose photo
                     </button>
                     <button
                       type="button"
-                      onClick={() => onShareDecisionPostcard(selectedDecision, "blessing", selectedDecisionBlessing)}
-                      className="premium-tap-card inline-flex h-10 items-center justify-center gap-2 rounded-md border px-3 text-xs font-semibold"
+                      onClick={() => setCounselAvatarPickerOpen(true)}
+                      className="h-9 rounded-md border px-3 text-xs font-semibold"
                       style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
                     >
-                      <Share2 size={14} />
-                      {ts('labels.createCard', 'Create card')}
+                      Pick fun avatar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCounselAvatarUrl("");
+                        setCounselAvatarStatus("Using default avatar for this contact.");
+                      }}
+                      className="h-9 rounded-md border px-3 text-xs font-semibold"
+                      style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                    >
+                      Use default
+                    </button>
+                  </div>
+                  {counselAvatarStatus ? (
+                    <p className="mt-2 text-xs leading-5" style={{ color: theme.textSecondary }}>
+                      {counselAvatarStatus}
+                    </p>
+                  ) : null}
+                </div>
+                <input
+                  value={counselContactValue}
+                  onChange={(event) => setCounselContactValue(event.target.value)}
+                  className="h-10 rounded-md border px-3 text-sm outline-none"
+                  style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                  placeholder={ts('placeholders.contactOptional', 'Email or phone, optional')}
+                />
+                <select
+                  value={counselRole}
+                  onChange={(event) => setCounselRole(event.target.value)}
+                  className="h-10 rounded-md border px-3 text-sm outline-none"
+                  style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                >
+                  <option>spouse</option>
+                  <option>mentor</option>
+                  <option>pastor</option>
+                  <option>advisor</option>
+                  <option>friend</option>
+                </select>
+                <div className="space-y-2 rounded-lg border p-3 text-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
+                  <PermissionToggle
+                    checked={counselCanViewSummaries}
+                    label={ts('labels.canViewSelectedDecisionSummaries', 'Can view selected decision summaries')}
+                    onChange={setCounselCanViewSummaries}
+                  />
+                  <PermissionToggle
+                    checked={counselCanComment}
+                    label={ts('labels.canCommentOnSharedDecisions', 'Can comment on shared decisions')}
+                    onChange={setCounselCanComment}
+                  />
+                  <PermissionToggle
+                    checked={counselCanReceiveCheckins}
+                    label={ts('labels.canReceiveWaitingModeCheckins', 'Can receive waiting-mode check-ins')}
+                    onChange={setCounselCanReceiveCheckins}
+                  />
+                </div>
+                <p className="rounded-lg border p-3 text-xs leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
+                  {ts('labels.privateChatsNeverVisible', 'Private chats, journal entries, and unshared decisions are never visible to counselors by default.')}
+                </p>
+                <button className="h-10 rounded-md px-3 text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>
+                  {userSignedIn ? ts('labels.createPrivateInvite', 'Create private invite') : ts('labels.addLocally', 'Add locally')}
+                </button>
+              </form>
+              <AvatarPickerModal
+                theme={theme}
+                ts={ts}
+                open={counselAvatarPickerOpen}
+                title={ts('avatar.chooseCounselAvatar', 'Choose a counsel avatar')}
+                subtitle={ts('avatar.chooseCounselAvatarBody', 'Pick a curated avatar for this contact, or use gallery upload.')}
+                currentAvatar={counselAvatarUrl}
+                onClose={() => setCounselAvatarPickerOpen(false)}
+                onPick={(avatarSrc) => {
+                  setCounselAvatarUrl(avatarSrc);
+                  setCounselAvatarStatus(ts('avatar.counselAvatarSelected', 'Avatar selected for this counsel contact.'));
+                  setCounselAvatarPickerOpen(false);
+                }}
+              />
+              {latestCounselInvite ? (
+                <div className="mt-3 rounded-lg border p-3" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
+                  <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.inviteReadyFor', 'Invite ready for')} {latestCounselInvite.name}</p>
+                  <p className="mt-1 break-all text-xs leading-5" style={{ color: theme.textSecondary }}>{latestCounselInvite.url}</p>
+                  {counselContacts[0]?.name === latestCounselInvite.name && counselContacts[0]?.emailSent ? (
+                    <p className="mt-2 rounded-md px-2 py-1 text-xs font-semibold" style={{ backgroundColor: theme.bgCardElevated, color: theme.primary }}>
+                      {ts('labels.emailSentPrivateLinkFallback', 'Email sent. The private link is also here as a fallback.')}
+                    </p>
+                  ) : null}
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button
+                      className="rounded-md border px-3 py-2 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                      onClick={() => onShareCounselInvite("copy")}
+                      type="button"
+                    >
+                      {ts('labels.copyLink', 'Copy link')}
+                    </button>
+                    <button
+                      className="rounded-md px-3 py-2 text-xs font-semibold"
+                      style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                      onClick={() => onShareCounselInvite("native")}
+                      type="button"
+                    >
+                      {ts('labels.shareInvite', 'Share invite')}
+                    </button>
+                    <button
+                      className="rounded-md border px-3 py-2 text-xs font-semibold"
+                      style={{ borderColor: theme.borderMedium, color: theme.textPrimary }}
+                      onClick={() => onShareCounselInvite("email")}
+                      type="button"
+                    >
+                      {ts('labels.email', 'Email')}
+                    </button>
+                    <button
+                      className="rounded-md border px-3 py-2 text-xs font-semibold"
+                      style={{ borderColor: theme.borderMedium, color: theme.textPrimary }}
+                      onClick={() => onShareCounselInvite("sms")}
+                      type="button"
+                    >
+                      {ts('labels.sms', 'SMS')}
+                    </button>
+                    <button
+                      className="rounded-md border px-3 py-2 text-xs font-semibold"
+                      style={{ borderColor: theme.borderMedium, color: theme.textPrimary }}
+                      onClick={() => onShareCounselInvite("whatsapp")}
+                      type="button"
+                    >
+                      {ts('labels.whatsApp', 'WhatsApp')}
                     </button>
                   </div>
                 </div>
               ) : null}
-            </div>
-          </section>
+              <div className="mt-3 space-y-2">
+                {counselContacts.slice(0, 5).map((contact) => (
+                  <div key={contact.id} className="rounded-lg border p-3" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <AvatarCircle
+                          avatarUrl={contact.avatarUrl}
+                          seed={contact.id}
+                          label={contact.name}
+                          size={30}
+                          className="size-[30px] rounded-full border object-cover"
+                        />
+                        <div>
+                          <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{contact.name}</p>
+                          <p className="text-xs uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
+                            {contact.role} · {contact.inviteStatus === "accepted" ? ts('status.accepted', 'accepted') : contact.inviteStatus === "pending" ? ts('status.invited', 'invited') : ts('status.local', 'local')}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => onRemoveCounselContact(contact.id)}
+                        className="grid size-8 place-items-center rounded-md border transition"
+                        style={{ borderColor: theme.borderMedium, color: theme.textMuted, backgroundColor: "transparent" }}
+                        onMouseEnter={(event) => {
+                          event.currentTarget.style.backgroundColor = theme.bgInput;
+                          event.currentTarget.style.borderColor = theme.borderStrong;
+                        }}
+                        onMouseLeave={(event) => {
+                          event.currentTarget.style.backgroundColor = "transparent";
+                          event.currentTarget.style.borderColor = theme.borderMedium;
+                        }}
+                        aria-label={`${ts('labels.removeFromCounselCircle', 'Remove from Counsel Circle')}: ${contact.name}`}
+                        title={ts('labels.removeFromCounselCircle', 'Remove from Counsel Circle')}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                    <div className="mt-2 flex flex-wrap gap-1 text-[0.68rem] font-semibold uppercase tracking-[0.08em]" style={{ color: theme.textSecondary }}>
+                      {contact.canViewSummaries ? <span className="rounded px-2 py-1" style={{ backgroundColor: theme.bgCardElevated }}>{ts('labels.summaries', 'summaries')}</span> : null}
+                      {contact.canCommentOnDecisions ? <span className="rounded px-2 py-1" style={{ backgroundColor: theme.bgCardElevated }}>{ts('labels.comments', 'comments')}</span> : null}
+                      {contact.canReceiveCheckins ? <span className="rounded px-2 py-1" style={{ backgroundColor: theme.bgCardElevated }}>{ts('labels.checkIns', 'check-ins')}</span> : null}
+                    </div>
+                    {contact.canViewSummaries && decisions.length > 0 ? (
+                      <div className="mt-3 space-y-2">
+                        <p className="text-xs font-semibold" style={{ color: theme.textSecondary }}>{ts('labels.shareDecisions', 'Share decisions:')}</p>
+                        <div className="max-h-48 space-y-1 overflow-y-auto rounded-md border p-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                          {decisions.map((decision) => (
+                            <button
+                              key={decision.id}
+                              type="button"
+                              className="flex w-full items-start gap-2 rounded border px-2 py-2 text-left text-xs transition"
+                              style={{
+                                borderColor: theme.borderMedium,
+                                backgroundColor: theme.bgCard,
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.borderColor = theme.primary;
+                                e.currentTarget.style.backgroundColor = theme.bgCardElevated;
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.borderColor = theme.borderMedium;
+                                e.currentTarget.style.backgroundColor = theme.bgCard;
+                              }}
+                              onClick={() => onShareDecisionWithCounsel(contact.id, decision.id)}
+                            >
+                              <span className="mt-0.5 shrink-0 rounded px-1.5 py-0.5 text-[0.65rem] font-semibold" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                                {isMode(decision.mode) ? ts(modeTranslationKey(decision.mode), decision.mode) : decision.mode}
+                              </span>
+                              <span className="min-w-0 flex-1 break-words font-medium leading-5" style={{ color: theme.textPrimary }}>{decision.title}</span>
+                            </button>
+                          ))}
+                        </div>
+                        {decisions.length > 1 ? (
+                          <button
+                            type="button"
+                            className="w-full rounded-md px-3 py-2 text-xs font-semibold transition"
+                            style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                            onClick={() => onBulkShareDecisionsWithCounsel(contact.id, decisions.map((d) => d.id))}
+                          >
+                            {ts('labels.shareAllDecisions', 'Share all decisions')} ({decisions.length})
+                          </button>
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </div>
+                ))}
+                {!counselContacts.length ? (
+                  <p className="rounded-lg border border-dashed p-3 text-sm leading-6" style={{ borderColor: theme.borderMedium, color: theme.textSecondary }}>
+                    {ts('labels.addTrustedPersonBeforeHighStakes', 'Add one trusted person before the next high-stakes decision.')}
+                  </p>
+                ) : null}
+              </div>
+            </section>
+          </DisclosureSection>
         ) : null}
-      </aside>
+
+        {decisionSection === "rhythm" ? (
+          <div className="space-y-4">
+            <DisclosureSection title={ts('labels.formationRhythm', 'Formation rhythm')} summary={ts('labels.formationRhythmSummary', 'Morning reflection, evening examen, and weekly pattern review stay available without dominating the decision page.')} eyebrow={ts('labels.rhythm', 'Rhythm')} compactCollapsed showDetailsLabel={ts('showDetails', 'Show details')} hideDetailsLabel={ts('hideDetails', 'Hide details')} theme={theme}>
+              <section>
+                <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.formationRhythm', 'Formation rhythm')}</p>
+                <div className="mt-3 grid gap-2">
+                  <RhythmItem label={ts('labels.threeMinuteMorningReflection', '3-minute morning reflection')} body={ts('labels.namePressureBeforeDayNamesIt', 'Name the pressure before the day names it for you.')} theme={theme} />
+                  <RhythmItem label={ts('labels.eveningExamen', 'Evening examen')} body={ts('labels.reviewMoneyWorkMomentHonestly', 'Review one money or work moment with honesty, not shame.')} theme={theme} />
+                  <RhythmItem label={ts('labels.weeklyPatternReview', 'Weekly pattern review')} body={ts('labels.noticeRepeatedUrgencyComparison', 'Notice repeated urgency, comparison, fear, or overgiving.')} theme={theme} />
+                </div>
+              </section>
+            </DisclosureSection>
+
+            <DisclosureSection title={`${runtime.ruleOfLife} · ${modeRules.length} ${modeRules.length === 1 ? runtime.ruleOfLifePrincipleSingular : runtime.ruleOfLifePrinciplePlural}`} summary={runtime.ruleOfLifeSummary} eyebrow={runtime.ruleOfLife} compactCollapsed showDetailsLabel={ts('showDetails', 'Show details')} hideDetailsLabel={ts('hideDetails', 'Hide details')} theme={theme}>
+              <section>
+                <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{runtime.ruleOfLife}</p>
+                <form onSubmit={onAddRule} className="mt-3 grid gap-2">
+                  <textarea
+                    value={ruleText}
+                    onChange={(event) => setRuleText(event.target.value)}
+                    className="min-h-20 resize-none rounded-md border px-3 py-2 text-sm leading-6 outline-none"
+                    style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                    placeholder={ts('placeholders.ruleExample', 'I do not make career decisions without counsel.')}
+                  />
+                  <button className="h-10 rounded-md px-3 text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>{ts('labels.savePrinciple', 'Save principle')}</button>
+                </form>
+                <div className="mt-3 space-y-2">
+                  {modeRules.slice(0, 4).map((rule) => (
+                    <p key={rule.id} className="rounded-lg border p-3 text-sm leading-6" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
+                      {rule.principle}
+                    </p>
+                  ))}
+                  {!modeRules.length ? (
+                    <p className="rounded-lg border border-dashed p-3 text-sm leading-6" style={{ borderColor: theme.borderMedium, color: theme.textSecondary }}>
+                      Write one principle you want to live by before pressure arrives.
+                    </p>
+                  ) : null}
+                </div>
+              </section>
+            </DisclosureSection>
+
+            <section>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.scriptureIntegrity', 'Scripture integrity')}</p>
+              <ul className="mt-3 space-y-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                <li>{ts('labels.referencesFromCuratedLibrary', 'References come from the curated wisdom library.')}</li>
+                <li>{ts('labels.noFinancialOutcomesOrPredictions', 'No financial outcomes or divine predictions.')}</li>
+                <li>{ts('labels.prosperityFramingRefused', 'Prosperity-gospel framing is refused.')}</li>
+                <li>{ts('labels.highStakesPointedToCounsel', 'High-stakes choices are pointed toward qualified counsel.')}</li>
+              </ul>
+            </section>
+          </div>
+        ) : null}
+
+        {decisionSection === "memory" ? (
+          <div className="space-y-4">
+            <section className="rounded-xl border p-4 shadow-sm" style={{ backgroundColor: theme.primary, borderColor: theme.borderMedium, color: theme.textOnPrimary }}>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textOnPrimary, opacity: 0.9 }}>{ts('labels.decisionPractice', 'Decision practice')}</p>
+              <p className="mt-3 text-sm font-semibold" style={{ color: theme.textOnPrimary }}>{runtime.decisionPracticeLine}</p>
+              <p className="mt-2 text-sm leading-6" style={{ color: theme.textOnPrimary }}>{ts('labels.smallPracticeForDecision', 'A small practice for the decision you are carrying, shaped by the active wisdom mode.')}</p>
+            </section>
+
+            {selectedDecision?.summary ? (
+              <section className="rounded-xl border p-4 shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.decisionSummaryExport', 'Decision Summary Export')}</p>
+                  <button
+                    type="button"
+                    onClick={() => onSpeakText(selectedDecision.summary || "", "Aletheia is reading the decision summary aloud.", "Decision summary")}
+                    className="inline-flex h-11 items-center gap-2 rounded-md border px-3 text-xs font-semibold transition"
+                    style={{
+                      borderColor: theme.borderMedium,
+                      backgroundColor: theme.bgInput,
+                      color: theme.textPrimary,
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.bgCardElevated}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = theme.bgInput}
+                  >
+                    <Volume2 size={14} style={{ color: isSpeaking ? theme.accentGold : 'inherit' }} />
+                    {isSpeaking ? ts('labels.stop', 'Stop') : ts('labels.readAloud', 'Read aloud')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onShareDecisionPostcard(selectedDecision, "summary")}
+                    className="inline-flex h-11 items-center gap-2 rounded-md border px-3 text-xs font-semibold transition"
+                    style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                  >
+                    <Share2 size={14} />
+                    {ts('labels.createCard', 'Create card')}
+                  </button>
+                </div>
+                <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                  {ts('labels.mentorReadySummaryReviewBeforeSharing', 'Mentor-ready summary with decision, pressure, wisdom anchors, risks, counsel questions, and next faithful step. Review it before sharing.')}
+                </p>
+                <div className="mt-3 max-h-80 min-h-40 overflow-y-auto rounded-md border p-3" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput }}>
+                  <ScriptureLinkedText theme={theme} text={selectedDecision.summary} onScriptureOpen={onScriptureOpen} />
+                </div>
+                <div className="mt-3 rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                  <button
+                    type="button"
+                    onClick={() => setBlessingOpen((current) => !current)}
+                    className="flex w-full items-center justify-between gap-3 text-left text-sm font-semibold"
+                    style={{ color: theme.textPrimary }}
+                  >
+                    <span>{ts('labels.decisionBlessing', 'Decision blessing / prayer draft')}</span>
+                    <span className="text-xs" style={{ color: theme.textSecondary }}>{blessingOpen ? ts('hideDetails', 'Hide details') : ts('showDetails', 'Show details')}</span>
+                  </button>
+                  {blessingOpen ? (
+                    <div className="mt-3">
+                      <p className="whitespace-pre-wrap text-sm leading-6" style={{ color: theme.textSecondary }}>{selectedDecisionBlessing}</p>
+                      <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                        <button
+                          type="button"
+                          onClick={() => onSpeakText(selectedDecisionBlessing, ts('notifications.decisionBlessingReading', 'Aletheia is reading the decision blessing.'), ts('labels.decisionBlessing', 'Decision blessing'))}
+                          className="premium-tap-card inline-flex h-10 items-center justify-center gap-2 rounded-md border px-3 text-xs font-semibold"
+                          style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                        >
+                          <Volume2 size={14} />
+                          {ts('labels.readAloud', 'Read aloud')}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => onShareDecisionPostcard(selectedDecision, "blessing", selectedDecisionBlessing)}
+                          className="premium-tap-card inline-flex h-10 items-center justify-center gap-2 rounded-md border px-3 text-xs font-semibold"
+                          style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                        >
+                          <Share2 size={14} />
+                          {ts('labels.createCard', 'Create card')}
+                        </button>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              </section>
+            ) : null}
+          </div>
+        ) : null}
+      </section>
     </div>
   );
 }
@@ -15584,6 +15683,7 @@ function ReflectPanel({
   const reflectNextBody = body.trim() || decision.trim()
     ? runtime.reflectNextBodyActive
     : runtime.reflectNextBodyDefault;
+  const [reflectSection, setReflectSection] = useState<"check" | "gratitude" | "journal">("check");
 
   return (
     <div className="min-w-0 space-y-4">
@@ -15612,57 +15712,75 @@ function ReflectPanel({
         </button>
       </section>
 
-      <DisclosureSection
-        title={runtime.wisdomCheck}
-        summary={result ? `${ts('labels.readiness', 'Readiness')} ${result.readiness}/100 · ${result.hasUrgency ? runtime.wisdomCheckUrgency : runtime.wisdomCheckSlower}` : runtime.wisdomCheckSummaryDefault}
-        eyebrow={runtime.decisionScan}
-        defaultOpen={Boolean(decision.trim())}
-        showDetailsLabel={ts('showDetails', 'Show details')}
-        hideDetailsLabel={ts('hideDetails', 'Hide details')}
+      <ScreenTabs
+        value={reflectSection}
+        onChange={setReflectSection}
+        ariaLabel={ts('labels.reflectSections', 'Reflect sections')}
         theme={theme}
-      >
-        <WisdomCheck
-          decision={decision}
-          setDecision={setDecision}
-          emotion={emotion}
-          setEmotion={setEmotion}
-          timeframe={timeframe}
-          setTimeframe={setTimeframe}
-          result={result}
+        tabs={[
+          { key: "check", label: ts('labels.wisdomCheck', 'Wisdom check') },
+          { key: "gratitude", label: ts('labels.gratitudeLens', 'Gratitude') },
+          { key: "journal", label: ts('labels.reflectionJournal', 'Journal') },
+        ]}
+      />
+
+      {reflectSection === "check" ? (
+        <DisclosureSection
+          title={runtime.wisdomCheck}
+          summary={result ? `${ts('labels.readiness', 'Readiness')} ${result.readiness}/100 · ${result.hasUrgency ? runtime.wisdomCheckUrgency : runtime.wisdomCheckSlower}` : runtime.wisdomCheckSummaryDefault}
+          eyebrow={runtime.decisionScan}
+          defaultOpen={Boolean(decision.trim())}
+          showDetailsLabel={ts('showDetails', 'Show details')}
+          hideDetailsLabel={ts('hideDetails', 'Hide details')}
+          theme={theme}
+        >
+          <WisdomCheck
+            decision={decision}
+            setDecision={setDecision}
+            emotion={emotion}
+            setEmotion={setEmotion}
+            timeframe={timeframe}
+            setTimeframe={setTimeframe}
+            result={result}
+            mode={mode}
+            modeProfile={modeProfile}
+            ts={ts}
+            theme={theme}
+          />
+        </DisclosureSection>
+      ) : null}
+
+      {reflectSection === "gratitude" ? (
+        <GratitudeLensPanel
+          entries={gratitudeEntries}
+          language={language}
+          ts={ts}
+          theme={theme}
+          onSave={onSaveGratitude}
+          onDelete={onDeleteGratitude}
+          onSharePostcard={onShareGratitudePostcard}
+          onUseAsReflection={onUseGratitudeAsReflection}
+          todayCompanionCard={todayCompanionCard}
+        />
+      ) : null}
+
+      {reflectSection === "journal" ? (
+        <JournalPanel
+          entries={entries}
+          title={title}
+          body={body}
+          language={language}
           mode={mode}
-          modeProfile={modeProfile}
+          setTitle={setTitle}
+          setBody={setBody}
+          onSave={onSave}
+          onDelete={onDelete}
+          onSharePostcard={onShareReflectionPostcard}
+          onVoiceReflection={onVoiceReflection}
           ts={ts}
           theme={theme}
         />
-      </DisclosureSection>
-
-      <GratitudeLensPanel
-        entries={gratitudeEntries}
-        language={language}
-        ts={ts}
-        theme={theme}
-        onSave={onSaveGratitude}
-        onDelete={onDeleteGratitude}
-        onSharePostcard={onShareGratitudePostcard}
-        onUseAsReflection={onUseGratitudeAsReflection}
-        todayCompanionCard={todayCompanionCard}
-      />
-
-      <JournalPanel
-        entries={entries}
-        title={title}
-        body={body}
-        language={language}
-        mode={mode}
-        setTitle={setTitle}
-        setBody={setBody}
-        onSave={onSave}
-        onDelete={onDelete}
-        onSharePostcard={onShareReflectionPostcard}
-        onVoiceReflection={onVoiceReflection}
-        ts={ts}
-        theme={theme}
-      />
+      ) : null}
     </div>
   );
 }
@@ -16477,100 +16595,116 @@ function JournalPanel({
   theme: ThemeColors;
 }) {
   const runtime = runtimeCopyFor(language);
+  const [journalSection, setJournalSection] = useState<"write" | "archive">("write");
 
   return (
-    <div className="grid min-w-0 gap-4 xl:grid-cols-[0.9fr_1.1fr]">
-      <section className="min-w-0 rounded-xl border p-4 shadow-sm sm:p-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-        <div className="mb-5 flex items-center gap-2 text-xl font-semibold" style={{ color: theme.textPrimary }}>
-          <Feather size={20} />
-          {ts('labels.reflectionJournal', 'Reflection Journal')}
-        </div>
-        <input
-          value={title}
-          onChange={(event) => setTitle(event.target.value)}
-          className="h-11 w-full rounded-lg border px-3 text-sm outline-none"
-          placeholder={ts('placeholders.reflectionTitle', 'Reflection title')}
-          style={{
-            borderColor: theme.borderMedium,
-            backgroundColor: theme.bgInput,
-            color: theme.textPrimary,
-          }}
-          onFocus={(e) => e.currentTarget.style.borderColor = theme.primary}
-          onBlur={(e) => e.currentTarget.style.borderColor = theme.borderMedium}
-        />
-        <textarea
-          value={body}
-          onChange={(event) => setBody(event.target.value)}
-          className="mt-3 min-h-48 w-full resize-none rounded-lg border px-3 py-3 text-sm leading-6 outline-none"
-          placeholder={ts('placeholders.reflectionBody', 'What are you noticing about motives, fear, generosity, or peace in your current decisions?')}
-          style={{
-            borderColor: theme.borderMedium,
-            backgroundColor: theme.bgInput,
-            color: theme.textPrimary,
-          }}
-          onFocus={(e) => e.currentTarget.style.borderColor = theme.primary}
-          onBlur={(e) => e.currentTarget.style.borderColor = theme.borderMedium}
-        />
-        <div className="mt-3 grid gap-2 sm:grid-cols-2">
-          <button onClick={onSave} className="premium-tap-card inline-flex h-11 items-center justify-center gap-2 rounded-md px-4 text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary, boxShadow: `0 10px 15px -3px ${theme.primary}15` }}>
-            <Plus size={16} />
-            {ts('labels.saveReflection', 'Save reflection')}
-          </button>
-          <button
-            type="button"
-            onClick={onVoiceReflection}
-            className="premium-tap-card inline-flex h-11 items-center justify-center gap-2 rounded-md border px-4 text-sm font-semibold"
-            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-          >
-            <Volume2 size={16} />
-            {ts('labels.voiceReflectionMode', 'Voice Reflection Mode')}
-          </button>
-        </div>
-      </section>
+    <div className="min-w-0 space-y-4">
+      <ScreenTabs
+        value={journalSection}
+        onChange={setJournalSection}
+        ariaLabel={ts('labels.journalSections', 'Journal sections')}
+        theme={theme}
+        tabs={[
+          { key: "write", label: ts('labels.writeReflection', 'Write') },
+          { key: "archive", label: ts('labels.savedReflections', 'Archive') },
+        ]}
+      />
 
-      <DisclosureSection title={`${entries.length} ${entries.length === 1 ? runtime.savedReflectionSingular : runtime.savedReflectionPlural}`} summary={entries.length ? runtime.reflectionHistorySummaryActive : runtime.reflectionHistorySummaryDefault} eyebrow={runtime.reflectionHistory} showDetailsLabel={ts('showDetails', 'Show details')} hideDetailsLabel={ts('hideDetails', 'Hide details')} theme={theme}>
-      <section className="min-w-0">
-        <h2 className="text-xl font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.savedReflections', 'Saved reflections')}</h2>
-        <div className="mt-4 space-y-3">
-          {entries.length ? (
-            entries.map((entry) => (
-              <article key={entry.id} className="rounded-lg border p-4" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="font-semibold" style={{ color: theme.textPrimary }}>{entry.title}</p>
-                    <p className="mt-1 text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
-                      {entry.mode} - {new Date(entry.createdAt).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <button onClick={() => {
-                    if (window.confirm(ts('confirm.deleteJournalEntry', 'Are you sure you want to delete this journal entry? This cannot be undone.'))) {
-                      onDelete(entry.id);
-                    }
-                  }} className="grid size-9 shrink-0 place-items-center rounded-md border" aria-label={`${ts('labels.delete', 'Delete')} ${entry.title}`} style={{ borderColor: theme.borderMedium, color: theme.textMuted }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.bgInput} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
-                    <Trash2 size={15} />
-                  </button>
+      {journalSection === "write" ? (
+        <section className="min-w-0 rounded-xl border p-4 shadow-sm sm:p-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+          <div className="mb-5 flex items-center gap-2 text-xl font-semibold" style={{ color: theme.textPrimary }}>
+            <Feather size={20} />
+            {ts('labels.reflectionJournal', 'Reflection Journal')}
+          </div>
+          <input
+            value={title}
+            onChange={(event) => setTitle(event.target.value)}
+            className="h-11 w-full rounded-lg border px-3 text-sm outline-none"
+            placeholder={ts('placeholders.reflectionTitle', 'Reflection title')}
+            style={{
+              borderColor: theme.borderMedium,
+              backgroundColor: theme.bgInput,
+              color: theme.textPrimary,
+            }}
+            onFocus={(e) => e.currentTarget.style.borderColor = theme.primary}
+            onBlur={(e) => e.currentTarget.style.borderColor = theme.borderMedium}
+          />
+          <textarea
+            value={body}
+            onChange={(event) => setBody(event.target.value)}
+            className="mt-3 min-h-48 w-full resize-none rounded-lg border px-3 py-3 text-sm leading-6 outline-none"
+            placeholder={ts('placeholders.reflectionBody', 'What are you noticing about motives, fear, generosity, or peace in your current decisions?')}
+            style={{
+              borderColor: theme.borderMedium,
+              backgroundColor: theme.bgInput,
+              color: theme.textPrimary,
+            }}
+            onFocus={(e) => e.currentTarget.style.borderColor = theme.primary}
+            onBlur={(e) => e.currentTarget.style.borderColor = theme.borderMedium}
+          />
+          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+            <button onClick={onSave} className="premium-tap-card inline-flex h-11 items-center justify-center gap-2 rounded-md px-4 text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary, boxShadow: `0 10px 15px -3px ${theme.primary}15` }}>
+              <Plus size={16} />
+              {ts('labels.saveReflection', 'Save reflection')}
+            </button>
+            <button
+              type="button"
+              onClick={onVoiceReflection}
+              className="premium-tap-card inline-flex h-11 items-center justify-center gap-2 rounded-md border px-4 text-sm font-semibold"
+              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+            >
+              <Volume2 size={16} />
+              {ts('labels.voiceReflectionMode', 'Voice Reflection Mode')}
+            </button>
+          </div>
+        </section>
+      ) : null}
+
+      {journalSection === "archive" ? (
+        <DisclosureSection title={`${entries.length} ${entries.length === 1 ? runtime.savedReflectionSingular : runtime.savedReflectionPlural}`} summary={entries.length ? runtime.reflectionHistorySummaryActive : runtime.reflectionHistorySummaryDefault} eyebrow={runtime.reflectionHistory} showDetailsLabel={ts('showDetails', 'Show details')} hideDetailsLabel={ts('hideDetails', 'Hide details')} theme={theme}>
+          <section className="min-w-0">
+            <h2 className="text-xl font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.savedReflections', 'Saved reflections')}</h2>
+            <div className="mt-4 grid gap-3 md:grid-cols-2">
+              {entries.length ? (
+                entries.map((entry) => (
+                  <article key={entry.id} className="rounded-lg border p-4" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="font-semibold" style={{ color: theme.textPrimary }}>{entry.title}</p>
+                        <p className="mt-1 text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
+                          {entry.mode} - {new Date(entry.createdAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <button onClick={() => {
+                        if (window.confirm(ts('confirm.deleteJournalEntry', 'Are you sure you want to delete this journal entry? This cannot be undone.'))) {
+                          onDelete(entry.id);
+                        }
+                      }} className="grid size-9 shrink-0 place-items-center rounded-md border" aria-label={`${ts('labels.delete', 'Delete')} ${entry.title}`} style={{ borderColor: theme.borderMedium, color: theme.textMuted }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.bgInput} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
+                    <p className="mt-3 whitespace-pre-wrap text-sm leading-6" style={{ color: theme.textSecondary }}>{entry.body}</p>
+                    <button
+                      type="button"
+                      onClick={() => onSharePostcard(entry)}
+                      className="premium-tap-card mt-3 inline-flex h-9 items-center gap-2 rounded-md border px-3 text-xs font-semibold"
+                      style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                    >
+                      <Share2 size={14} />
+                      {ts('labels.createCard', 'Create card')}
+                    </button>
+                  </article>
+                ))
+              ) : (
+                <div className="rounded-lg border border-dashed p-6 text-sm leading-6 md:col-span-2" style={{ borderColor: theme.borderMedium, color: theme.textMuted }}>
+                  {ts('labels.noReflectionsYet', 'No reflections yet. Save one from the form to keep a private record on this device.')}
                 </div>
-                <p className="mt-3 whitespace-pre-wrap text-sm leading-6" style={{ color: theme.textSecondary }}>{entry.body}</p>
-                <button
-                  type="button"
-                  onClick={() => onSharePostcard(entry)}
-                  className="premium-tap-card mt-3 inline-flex h-9 items-center gap-2 rounded-md border px-3 text-xs font-semibold"
-                  style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-                >
-                  <Share2 size={14} />
-                  {ts('labels.createCard', 'Create card')}
-                </button>
-              </article>
-            ))
-          ) : (
-            <div className="rounded-lg border border-dashed p-6 text-sm leading-6" style={{ borderColor: theme.borderMedium, color: theme.textMuted }}>
-              {ts('labels.noReflectionsYet', 'No reflections yet. Save one from the form to keep a private record on this device.')}
+              )}
             </div>
-          )}
-        </div>
-        <p className="mt-4 text-xs leading-5" style={{ color: theme.textMuted }}>{ts('labels.currentlyActiveMode', 'Currently active mode')}: {mode}</p>
-      </section>
-      </DisclosureSection>
+            <p className="mt-4 text-xs leading-5" style={{ color: theme.textMuted }}>{ts('labels.currentlyActiveMode', 'Currently active mode')}: {mode}</p>
+          </section>
+        </DisclosureSection>
+      ) : null}
     </div>
   );
 }

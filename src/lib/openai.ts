@@ -1,6 +1,12 @@
 import OpenAI from "openai";
-import { defaultPreferences, localizedScriptureRead, promptPreferenceContext, type UserPreferences } from "@/lib/localization";
-import { modeProfiles } from "@/lib/mode-profiles";
+import {
+  defaultPreferences,
+  localizedModeProfile,
+  localizedScriptureRead,
+  localizedWisdomEntry,
+  promptPreferenceContext,
+  type UserPreferences,
+} from "@/lib/localization";
 import type { Mode } from "@/lib/wisdom-data";
 import type { WisdomSource } from "@/lib/wisdom";
 
@@ -26,19 +32,20 @@ export async function generateWisdomResponse({
   }
 
   const model = process.env.OPENAI_MODEL || "gpt-4o-mini";
-  const profile = modeProfiles[mode];
+  const profile = localizedModeProfile(mode, preferences.language);
   const context = sources
     .map((source, index) => {
+      const localizedSource = localizedWisdomEntry(source, preferences);
       const scriptureRead = localizedScriptureRead(source.scripture, preferences);
       return `Source ${index + 1}
-Theme: ${source.theme}
-Scripture: ${source.scripture}
+Theme: ${localizedSource.theme}
+Scripture: ${localizedSource.scripture}
 Selected translation reading: ${scriptureRead.label} (${scriptureRead.translation})
 Available reading text: ${scriptureRead.text}
-Principle: ${source.principle}
-Context: ${source.context}
-Modern application: ${source.application}
-Reflection questions: ${source.questions.join(" | ")}`;
+Principle: ${localizedSource.principle}
+Context: ${localizedSource.context}
+Modern application: ${localizedSource.application}
+Reflection questions: ${localizedSource.questions.join(" | ")}`;
     })
     .join("\n\n");
 

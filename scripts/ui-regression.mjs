@@ -268,7 +268,11 @@ async function checkHome(page, mobile) {
     const textarea = document.querySelector('#companion-question-input');
     const buttons = Array.from(scope.querySelectorAll('button'));
     const askButton = buttons.find((button) => (button.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase() === 'ask');
-    const micButton = buttons.find((button) => (button.getAttribute('aria-label') || '').toLowerCase().includes('voice input'));
+    const micButton = buttons.find((button) => {
+      const aria = (button.getAttribute('aria-label') || '').toLowerCase();
+      const text = (button.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase();
+      return aria.includes('voice input') || aria.includes('dictation') || text.includes('dictation');
+    });
     const promptButton = buttons.find((button) => (button.textContent || '').trim() === 'How do I build wealth without greed?');
 
     if (!(askButton instanceof HTMLButtonElement) || !(micButton instanceof HTMLButtonElement)) {
@@ -403,6 +407,19 @@ async function checkSimpleMarker(page, tabName, mobile, extraCheck) {
   }
 
   await clickTab(page, tabName, mobile);
+  if (extraCheck === 'reflect') {
+    await page.evaluate(() => {
+      const button = Array.from(document.querySelectorAll('button')).find((candidate) => {
+        const text = (candidate.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase();
+        const rect = candidate.getBoundingClientRect();
+        return text.includes('reflection journal') && rect.width > 0 && rect.height > 0;
+      });
+      if (button instanceof HTMLButtonElement) {
+        button.click();
+      }
+    });
+    await page.waitForTimeout(260);
+  }
   let result = { markerVisible: false, extraPass: false };
   for (let attempt = 0; attempt < 8; attempt += 1) {
     result = await page.evaluate(({ marker, extraCheck }) => {
@@ -414,7 +431,9 @@ async function checkSimpleMarker(page, tabName, mobile, extraCheck) {
       }
 
       if (extraCheck === 'reflect') {
-        extraPass = Boolean(document.querySelector('input[placeholder="Reflection title"]')) && Boolean(document.querySelector('textarea[placeholder*="What are you noticing"]'));
+        const titleInput = document.querySelector('input[placeholder="Reflection title"]');
+        const bodyInput = document.querySelector('textarea[placeholder*="What are you noticing"]');
+        extraPass = Boolean(titleInput) && Boolean(bodyInput);
       }
 
       if (extraCheck === 'library') {

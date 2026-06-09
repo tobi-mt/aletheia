@@ -152,7 +152,7 @@ function dailyNotificationPayload(row: PushRow, wisdomEntries: Awaited<ReturnTyp
     bibleTranslation: row.bible_translation as BibleTranslation,
     voiceEnabled: Boolean(row.voice_enabled),
   });
-  const dailyMode: Mode = ["Money", "Work", "Purpose", "Generosity"].includes(wisdom.theme)
+  const dailyMode: Mode = ["Money", "Work", "Purpose", "Generosity", "Life"].includes(wisdom.theme)
     ? (wisdom.theme as Mode)
     : "Money";
   const daily = localizedDailyWisdom(wisdom, dailyMode, preferences);

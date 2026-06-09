@@ -1,6 +1,6 @@
-export type Mode = "Money" | "Work" | "Purpose" | "Generosity";
+export type Mode = "Money" | "Work" | "Purpose" | "Generosity" | "Life";
 
-export const modes: Mode[] = ["Money", "Work", "Purpose", "Generosity"];
+export const modes: Mode[] = ["Money", "Work", "Purpose", "Generosity", "Life"];
 
 export function normalizeMode(value: unknown): Mode {
   return modes.includes(value as Mode) ? (value as Mode) : "Money";

@@ -2,12 +2,13 @@ import { many } from "@/lib/db";
 import {
   defaultPreferences,
   languages,
+  localizedModeProfile,
   localizedScriptureRead,
+  localizedWisdomEntry,
   regions,
   scriptureTranslationLabel,
   type UserPreferences,
 } from "@/lib/localization";
-import { modeProfiles } from "@/lib/mode-profiles";
 import { Mode, wisdomEntries, WisdomEntryData } from "@/lib/wisdom-data";
 
 export type WisdomSource = WisdomEntryData & { id?: string };
@@ -29,6 +30,7 @@ const modeTerms: Record<Mode, string[]> = {
   Work: ["work", "job", "career", "business", "counsel", "diligence", "cost", "planning"],
   Purpose: ["purpose", "identity", "direction", "discernment", "peace", "anxiety", "motives", "calling"],
   Generosity: ["generosity", "give", "giving", "charity", "willing", "sustainable", "stewardship", "guilt"],
+  Life: ["life", "home", "family", "relationships", "habits", "rest", "health", "everyday"],
 };
 
 function decodeList(value: string[] | string) {
@@ -122,8 +124,8 @@ export function composeFallbackResponse(
   sources: WisdomSource[],
   preferences: UserPreferences = defaultPreferences
 ) {
-  const primary = sources[0] ?? wisdomEntries[0];
-  const secondary = sources[1] ?? wisdomEntries[2];
+  const primary = localizedWisdomEntry(sources[0] ?? wisdomEntries[0], preferences);
+  const secondary = localizedWisdomEntry(sources[1] ?? wisdomEntries[2], preferences);
   const primaryRead = localizedScriptureRead(primary.scripture, preferences);
   const secondaryRead = localizedScriptureRead(secondary.scripture, preferences);
   const asksAboutDebt = /debt|borrow|loan|credit/i.test(question);
@@ -161,11 +163,11 @@ export function composeModeAwareFallbackResponse(
   sources: WisdomSource[],
   preferences: UserPreferences = defaultPreferences
 ) {
-  const profile = modeProfiles[mode];
+  const profile = localizedModeProfile(mode, preferences.language);
   const base = composeFallbackResponse(question, sources, preferences);
   const language = languages[preferences.language] ?? languages.en;
   const region = regions[preferences.region] ?? regions.global;
-  const primary = sources[0] ?? wisdomEntries[0];
+  const primary = localizedWisdomEntry(sources[0] ?? wisdomEntries[0], preferences);
 
   return [
     base,

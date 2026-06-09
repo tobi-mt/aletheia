@@ -1,5 +1,10 @@
-import { modeProfiles } from "@/lib/mode-profiles";
-import { defaultPreferences, scriptureTranslationLabel, type UserPreferences } from "@/lib/localization";
+import {
+  defaultPreferences,
+  localizedModeProfile,
+  localizedWisdomEntry,
+  scriptureTranslationLabel,
+  type UserPreferences,
+} from "@/lib/localization";
 import type { Mode } from "@/lib/wisdom-data";
 import type { WisdomSource } from "@/lib/wisdom";
 
@@ -132,10 +137,13 @@ export function buildDecisionSummary({
   signals: DecisionSignals;
   preferences?: UserPreferences;
 }) {
-  const profile = modeProfiles[mode];
+  const profile = localizedModeProfile(mode, preferences.language);
   const anchors = sources
     .slice(0, 3)
-    .map((source) => `${source.scripture} (${scriptureTranslationLabel(source.scripture, preferences)}): ${source.principle}`)
+    .map((source) => {
+      const localizedSource = localizedWisdomEntry(source, preferences);
+      return `${localizedSource.scripture} (${scriptureTranslationLabel(localizedSource.scripture, preferences)}): ${localizedSource.principle}`;
+    })
     .join("\n");
 
   return [
