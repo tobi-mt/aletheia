@@ -10742,6 +10742,7 @@ function VoicePreferenceSelector({
 }) {
   const [previewStatus, setPreviewStatus] = useState("");
   const [previewingVoiceURI, setPreviewingVoiceURI] = useState<string | null | "default">(null);
+  const [voiceListOpen, setVoiceListOpen] = useState(false);
   const selectedVoiceObject = voices.find((voice) => voice.voiceURI === selectedVoice);
   const voiceChoices = [
     ...(selectedVoiceObject ? [selectedVoiceObject] : []),
@@ -10838,7 +10839,7 @@ function VoicePreferenceSelector({
             </span>
           ) : null}
         </div>
-        <span className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
+        <span className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-end">
           <button
             type="button"
             onClick={() => chooseVoice(null)}
@@ -10852,50 +10853,62 @@ function VoicePreferenceSelector({
         </span>
       </div>
       {voiceChoices.length ? (
-        <div className="grid gap-2">
-          {voiceChoices.map((voice) => {
-            const active = selectedVoice === voice.voiceURI;
-            return (
-              <div
-                key={voice.voiceURI}
-                className="grid gap-3 rounded-md border p-3 text-left transition sm:grid-cols-[1fr_auto]"
-                style={{
-                  borderColor: active ? theme.accentGold : theme.borderMedium,
-                  backgroundColor: active ? theme.activeBg : theme.bgInput,
-                  color: theme.textPrimary,
-                }}
-              >
-                <div className="min-w-0">
-                  <span className="block break-words text-sm font-semibold leading-5">{voice.name}</span>
-                  <span className="mt-1 flex flex-wrap items-center gap-2 text-xs" style={{ color: theme.textSecondary }}>
-                    <span>{voice.lang}</span>
-                    <span className="rounded-md border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
-                      {voice.localService ? ts('labels.offlineVoice', 'Offline') : ts('labels.deviceVoice', 'Device')}
+        <DisclosureSection
+          title={ts('labels.curatedVoices', 'Curated voices')}
+          summary={ts('labels.curatedVoicesBody', 'Browse a few device voices without filling the screen.')}
+          eyebrow={ts('labels.moreVoices', 'More voices')}
+          compactCollapsed
+          isOpen={voiceListOpen}
+          onOpenChange={setVoiceListOpen}
+          showDetailsLabel={ts('showDetails', 'Show details')}
+          hideDetailsLabel={ts('hideDetails', 'Hide details')}
+          theme={theme}
+        >
+          <div className="grid gap-2 sm:grid-cols-2">
+            {voiceChoices.map((voice) => {
+              const active = selectedVoice === voice.voiceURI;
+              return (
+                <div
+                  key={voice.voiceURI}
+                  className="grid gap-3 rounded-md border p-3 text-left transition sm:grid-cols-[1fr_auto]"
+                  style={{
+                    borderColor: active ? theme.accentGold : theme.borderMedium,
+                    backgroundColor: active ? theme.activeBg : theme.bgInput,
+                    color: theme.textPrimary,
+                  }}
+                >
+                  <div className="min-w-0">
+                    <span className="block break-words text-sm font-semibold leading-5">{voice.name}</span>
+                    <span className="mt-1 flex flex-wrap items-center gap-2 text-xs" style={{ color: theme.textSecondary }}>
+                      <span>{voice.lang}</span>
+                      <span className="rounded-md border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
+                        {voice.localService ? ts('labels.offlineVoice', 'Offline') : ts('labels.deviceVoice', 'Device')}
+                      </span>
                     </span>
+                    {active ? (
+                      <span className="mt-2 inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.accentGold, backgroundColor: theme.activeBg, color: theme.accentGold }}>
+                        <Check size={12} />
+                        {ts('labels.selected', 'Selected')}
+                      </span>
+                    ) : null}
+                  </div>
+                  <span className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-end">
+                    <button
+                      type="button"
+                      onClick={() => chooseVoice(voice.voiceURI)}
+                      className="h-10 rounded-md border px-3 text-xs font-semibold"
+                      style={{ borderColor: active ? theme.accentGold : theme.borderLight, backgroundColor: active ? theme.activeBg : theme.bgCardElevated, color: theme.textPrimary }}
+                      aria-pressed={active}
+                    >
+                      {active ? ts('labels.selected', 'Selected') : ts('labels.useVoice', 'Use')}
+                    </button>
+                    {renderVoicePreviewButton(voice.voiceURI)}
                   </span>
-                  {active ? (
-                    <span className="mt-2 inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.accentGold, backgroundColor: theme.activeBg, color: theme.accentGold }}>
-                      <Check size={12} />
-                      {ts('labels.selected', 'Selected')}
-                    </span>
-                  ) : null}
                 </div>
-                <span className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
-                  <button
-                    type="button"
-                    onClick={() => chooseVoice(voice.voiceURI)}
-                    className="h-10 rounded-md border px-3 text-xs font-semibold"
-                    style={{ borderColor: active ? theme.accentGold : theme.borderLight, backgroundColor: active ? theme.activeBg : theme.bgCardElevated, color: theme.textPrimary }}
-                    aria-pressed={active}
-                  >
-                    {active ? ts('labels.selected', 'Selected') : ts('labels.useVoice', 'Use')}
-                  </button>
-                  {renderVoicePreviewButton(voice.voiceURI)}
-                </span>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        </DisclosureSection>
       ) : (
         <p className="rounded-md border p-3 text-sm leading-6" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
           {ts('labels.noCuratedVoices', 'No curated device voices are available yet. Device default remains available.')}
@@ -10949,7 +10962,7 @@ function FocusIntentionsCard({
               {selected.length}/3 {ts('labels.selected', 'selected')}
             </span>
           </div>
-          <div className={`mt-3 grid gap-2 ${compact ? "sm:grid-cols-2 xl:grid-cols-3" : "sm:grid-cols-2 xl:grid-cols-3"}`}>
+          <div className="mt-3 flex gap-2 overflow-x-auto pb-1 snap-x snap-mandatory sm:grid sm:grid-flow-row sm:grid-cols-2 sm:overflow-visible xl:grid-cols-3">
             {options.map((option) => {
               const active = selectedSet.has(option.key);
               return (
@@ -10957,7 +10970,7 @@ function FocusIntentionsCard({
                   key={option.key}
                   type="button"
                   onClick={() => toggle(option.key)}
-                  className={`flex min-h-16 items-start gap-2 rounded-lg border ${compact ? "p-2" : "p-2.5"} text-left transition`}
+                  className={`flex min-h-16 min-w-[14rem] snap-start items-start gap-2 rounded-lg border ${compact ? "p-2" : "p-2.5"} text-left transition sm:min-w-0`}
                   style={{
                     borderColor: active ? theme.accentGold : theme.borderMedium,
                     backgroundColor: active ? theme.activeBg : theme.bgInput,
@@ -11443,7 +11456,7 @@ function ManualContextPanel({
   ];
   const activeContextSections = currentContextCards.filter((card) => card.active).length;
   const renderNumberFieldGrid = (fields: Array<{ key: keyof ManualContextProfile; label: string; step?: number; min: number; max: number }>) => (
-    <div className="grid gap-3 lg:grid-cols-2">
+    <div className="grid grid-flow-col auto-cols-[minmax(15rem,1fr)] gap-3 overflow-x-auto pb-1 snap-x snap-mandatory sm:grid sm:grid-flow-row sm:auto-cols-auto sm:grid-cols-2 sm:overflow-visible xl:grid-cols-3">
       {fields.map((field) => (
         <RangeField
           key={String(field.key)}
@@ -11460,7 +11473,7 @@ function ManualContextPanel({
     </div>
   );
   const renderTextFieldGrid = (fields: Array<{ key: keyof ManualContextProfile; label: string; placeholder: string }>) => (
-    <div className="grid gap-3 lg:grid-cols-2">
+    <div className="grid gap-3 sm:grid-cols-2">
       {fields.map((field) => (
         <label key={String(field.key)} className="rounded-lg border p-3 text-xs font-semibold uppercase tracking-[0.12em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
           {field.label}
@@ -11476,7 +11489,7 @@ function ManualContextPanel({
     </div>
   );
   const renderInputFieldGrid = (fields: Array<{ key: keyof ManualContextProfile; label: string; placeholder: string }>) => (
-    <div className="grid gap-3 lg:grid-cols-2">
+    <div className="grid gap-3 sm:grid-cols-2">
       {fields.map((field) => (
         <label key={String(field.key)} className="rounded-lg border p-3 text-xs font-semibold uppercase tracking-[0.12em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
           {field.label}
@@ -11502,7 +11515,7 @@ function ManualContextPanel({
     activeKey: T,
     onSelect: (key: T) => void
   ) => (
-    <div className="flex gap-2 overflow-x-auto pb-1 lg:grid lg:grid-cols-2 lg:overflow-visible xl:grid-cols-3">
+    <div className="grid grid-flow-col auto-cols-[minmax(15rem,1fr)] gap-2 overflow-x-auto pb-1 snap-x snap-mandatory sm:grid sm:grid-flow-row sm:grid-cols-2 sm:auto-cols-auto sm:overflow-visible xl:grid-cols-3">
       {cards.map((card) => {
         const active = card.key === activeKey;
         const Icon = card.icon;
@@ -11511,7 +11524,7 @@ function ManualContextPanel({
               key={card.key}
               type="button"
               onClick={() => onSelect(card.key)}
-            className="premium-tap-card min-w-[16rem] flex-1 shrink-0 rounded-xl border p-3 text-left shadow-sm transition hover:-translate-y-0.5 lg:min-w-0"
+            className="premium-tap-card min-w-0 shrink-0 snap-start rounded-xl border p-3 text-left shadow-sm transition hover:-translate-y-0.5"
             style={{
               borderColor: active ? theme.accentGold : theme.borderLight,
               backgroundColor: active ? theme.activeBg : theme.bgCardElevated,
@@ -12640,10 +12653,10 @@ function AvatarStudioCard({
             </button>
           </div>
         ) : null}
-        <div className="flex flex-wrap gap-2">
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
           <button
             type="button"
-            className="h-11 rounded-md border px-4 text-sm font-semibold"
+            className="h-11 w-full rounded-md border px-4 text-sm font-semibold sm:w-auto"
             style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
             onClick={() => {
               if (avatarTipsOptOut) {
@@ -12656,10 +12669,10 @@ function AvatarStudioCard({
           >
             {ts('avatar.choosePhoto', 'Choose photo')}
           </button>
-          <button type="button" className="h-11 rounded-md border px-4 text-sm font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={() => setAvatarPickerOpen(true)} disabled={savingAvatar}>{ts('avatar.pickFunAvatar', 'Pick fun avatar')}</button>
+          <button type="button" className="h-11 w-full rounded-md border px-4 text-sm font-semibold sm:w-auto" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={() => setAvatarPickerOpen(true)} disabled={savingAvatar}>{ts('avatar.pickFunAvatar', 'Pick fun avatar')}</button>
           <button
             type="button"
-            className="h-11 rounded-md border px-4 text-sm font-semibold"
+            className="h-11 w-full rounded-md border px-4 text-sm font-semibold sm:w-auto"
             style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
             onClick={() => {
               const available = curatedAvatarOptions.filter((option) => (normalizeAvatarUrl(option.src) ?? option.src) !== canonicalDraft);
@@ -12673,11 +12686,11 @@ function AvatarStudioCard({
           >
             {ts('avatar.surpriseMe', 'Surprise me')}
           </button>
-          <button type="button" className="h-11 rounded-md border px-4 text-sm font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={() => {
+          <button type="button" className="h-11 w-full rounded-md border px-4 text-sm font-semibold sm:w-auto" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={() => {
             void applyAvatarChoice("", ts('avatar.restoringDefault', 'Restoring default avatar...'), ts('avatar.defaultApplied', 'Default avatar applied.'), "default");
           }} disabled={savingAvatar}>{ts('avatar.useDefault', 'Use default')}</button>
           {savingAvatar ? (
-            <span className="flex h-11 items-center rounded-md px-4 text-sm font-semibold" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+            <span className="col-span-2 flex h-11 items-center rounded-md px-4 text-sm font-semibold sm:col-span-1" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>
               {ts('labels.applying', 'Applying...')}
             </span>
           ) : null}
