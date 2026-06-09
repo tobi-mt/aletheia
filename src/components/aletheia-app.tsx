@@ -13675,26 +13675,46 @@ function CompanionPanel({
               />
               <div className="flex items-stretch gap-2">
                 {preferences.voiceEnabled ? (
-                  <button
-                    type="button"
-                    onClick={onListen}
-                    className="grid h-12 w-12 shrink-0 place-items-center rounded-lg border px-3 transition"
-                    style={{
-                      borderColor: isListening ? theme.primary : theme.borderMedium,
-                      backgroundColor: isListening ? theme.activeBg : theme.bgInput,
-                      color: isListening ? theme.primary : theme.textPrimary,
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = isListening ? theme.activeBg : theme.bgCardElevated;
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = isListening ? theme.activeBg : theme.bgInput;
-                    }}
-                    aria-label={isListening ? ts('labels.stopDictation', 'Stop dictation') : ts('labels.startDictation', 'Start dictation')}
-                    title={isListening ? ts('labels.stopDictation', 'Stop dictation') : ts('labels.startDictation', 'Tap to dictate your question')}
-                  >
-                    {isListening ? <MicOff size={18} /> : <Mic size={18} />}
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={onListen}
+                      className="grid h-12 w-12 shrink-0 place-items-center rounded-lg border px-3 transition"
+                      style={{
+                        borderColor: isListening ? theme.primary : theme.borderMedium,
+                        backgroundColor: isListening ? theme.activeBg : theme.bgInput,
+                        color: isListening ? theme.primary : theme.textPrimary,
+                        boxShadow: isListening ? `0 0 0 2px ${theme.primary}1f` : "none",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = isListening ? theme.activeBg : theme.bgCardElevated;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = isListening ? theme.activeBg : theme.bgInput;
+                      }}
+                      aria-label={isListening ? ts('labels.stopDictation', 'Stop dictation') : ts('labels.startDictation', 'Start dictation')}
+                      title={isListening ? ts('labels.stopDictation', 'Stop dictation') : ts('labels.startDictation', 'Tap to dictate your question')}
+                    >
+                      {isListening ? <MicOff size={18} /> : <Mic size={18} />}
+                    </button>
+                    {isListening ? (
+                      <span
+                        className="inline-flex h-12 items-center gap-2 rounded-lg border px-3 text-[11px] font-semibold uppercase tracking-[0.12em]"
+                        style={{
+                          borderColor: theme.primary,
+                          backgroundColor: theme.bgCardElevated,
+                          color: theme.primary,
+                        }}
+                        aria-live="polite"
+                      >
+                        <span className="relative flex size-3 items-center justify-center" aria-hidden="true">
+                          <span className="absolute inline-flex size-3 animate-ping rounded-full bg-red-500 opacity-70" />
+                          <span className="relative size-2 rounded-full bg-red-500" />
+                        </span>
+                        REC
+                      </span>
+                    ) : null}
+                  </div>
                 ) : null}
                 <button
                   disabled={isWorking}
@@ -13711,8 +13731,8 @@ function CompanionPanel({
                 </button>
               </div>
               {isListening || voiceDraft ? (
-                <div className="rounded-md border px-3 py-2 text-xs leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
-                  <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="pt-1 text-xs leading-5" style={{ color: theme.textSecondary }}>
+                  <div className="flex flex-wrap items-center gap-2">
                     <span className="font-semibold" style={{ color: theme.textPrimary }}>
                       {isListening ? ts('notifications.voiceInputListening', 'Voice input active') : ts('labels.voiceTranscription', 'Voice transcription')}
                     </span>
@@ -13720,11 +13740,11 @@ function CompanionPanel({
                       {isListening ? ts('labels.listening', 'Listening') : ts('labels.voiceDraftReady', 'Draft ready')}
                     </span>
                   </div>
-                  <p className="mt-2 whitespace-pre-wrap" style={{ color: theme.textSecondary }}>
-                    {isListening ? ts('notifications.voiceInputListeningBody', 'Speak now. Your words will appear here before you insert them.') : voiceDraft}
+                  <p className="mt-2 whitespace-pre-wrap text-sm leading-6" style={{ color: theme.textPrimary }}>
+                    {voiceDraft || (isListening ? ts('notifications.voiceInputListeningBody', 'Speak now. Your words will appear here before you insert them.') : "")}
                   </p>
                   {!isListening && voiceDraft ? (
-                    <div className="mt-3 flex flex-wrap gap-2">
+                    <div className="mt-2 flex flex-wrap gap-2">
                       <button
                         type="button"
                         onClick={() => {
