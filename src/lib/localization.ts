@@ -735,13 +735,13 @@ const localizedScriptureLabelCopy: Record<LanguageCode, { summary: string; fallb
 };
 
 const localizedRegionLabels: Partial<Record<LanguageCode, Partial<Record<RegionCode, string>>>> = {
-  es: { global: "Mundo" },
-  fr: { global: "Monde" },
-  pt: { global: "Global" },
-  de: { global: "Global" },
-  yo: { global: "Agbaye" },
-  ig: { global: "Uwa uwa" },
-  ha: { global: "Duniya" },
+  es: { global: "Mundo", us: "Estados Unidos", uk: "Reino Unido", eu: "Europa", ng: "Nigeria", br: "Brasil", latam: "América Latina" },
+  fr: { global: "Monde", us: "États-Unis", uk: "Royaume-Uni", eu: "Europe", ng: "Nigeria", br: "Brésil", latam: "Amérique latine" },
+  pt: { global: "Global", us: "Estados Unidos", uk: "Reino Unido", eu: "Europa", ng: "Nigéria", br: "Brasil", latam: "América Latina" },
+  de: { global: "Weltweit", us: "Vereinigte Staaten", uk: "Vereinigtes Königreich", eu: "Europa", ng: "Nigeria", br: "Brasilien", latam: "Lateinamerika" },
+  yo: { global: "Agbaye", us: "Orílẹ̀-èdè Amẹ́ríkà", uk: "Orílẹ̀-èdè Gẹ̀ẹ́sì", eu: "Yúróòpù", ng: "Nàìjíríà", br: "Bràsíl", latam: "Amẹ́ríkà Látìn" },
+  ig: { global: "Uwa niile", us: "United States", uk: "United Kingdom", eu: "Europe", ng: "Naịjịrịa", br: "Brazil", latam: "Latin America" },
+  ha: { global: "Duniya", us: "Amurka", uk: "Birtaniya", eu: "Turai", ng: "Najeriya", br: "Brazil", latam: "Latin Amurka" },
 };
 
 const localizedModeProfiles: Partial<Record<LanguageCode, Partial<Record<Mode, Partial<ModeProfile>>>>> = {
@@ -2410,7 +2410,7 @@ const localizedWisdomLibraryEntries: Partial<Record<LanguageCode, Record<string,
   },
 };
 
-function localizedRegionLabel(regionCode: RegionCode, language: LanguageCode) {
+export function localizedRegionLabel(regionCode: RegionCode, language: LanguageCode) {
   return localizedRegionLabels[language]?.[regionCode] ?? regions[regionCode]?.label ?? regions.global.label;
 }
 
