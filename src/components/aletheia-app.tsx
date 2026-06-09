@@ -9896,32 +9896,44 @@ function AccountPanel({
   return (
     <div className="mx-auto grid min-w-0 max-w-5xl gap-4">
       <section className="overflow-hidden rounded-xl border shadow-sm" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
-        <div className="flex flex-col gap-4 p-4 sm:p-5 lg:flex-row lg:items-start lg:justify-between">
-          <div className="flex min-w-0 items-start gap-3">
-            <AvatarCircle
-              avatarUrl={user?.avatarUrl}
-              seed={user?.id ?? user?.email ?? "guest"}
-              label={profileName}
-              size={56}
-              className="size-14 rounded-full border object-cover"
-            />
-            <div className="min-w-0">
-              <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
-                {ts('labels.profileTitle', 'Profile')}
-              </p>
-              <h2 className="mt-1 text-2xl font-semibold leading-tight text-balance" style={{ color: theme.textPrimary }}>
-                {profileGreeting}
-              </h2>
-              <p className="mt-2 max-w-2xl text-sm leading-6 sm:text-base sm:leading-7" style={{ color: theme.textSecondary }}>
-                {profileSummary}
-              </p>
+        <div className="flex flex-col items-center gap-4 p-4 text-center sm:p-5">
+          <div className="grid place-items-center">
+            <div
+              className="rounded-full p-[3px] shadow-sm"
+              style={{
+                background: `linear-gradient(135deg, ${theme.accentGold}, ${theme.primary}, ${theme.borderMedium})`,
+              }}
+            >
+              <div className="rounded-full p-1" style={{ backgroundColor: theme.bgCard }}>
+                <AvatarCircle
+                  avatarUrl={user?.avatarUrl}
+                  seed={user?.id ?? user?.email ?? "guest"}
+                  label={profileName}
+                  size={72}
+                  className="size-[72px] rounded-full border object-cover"
+                />
+              </div>
             </div>
           </div>
-          <div className="flex flex-wrap gap-2 lg:justify-end">
-            <span className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}>
+          <div className="min-w-0 max-w-2xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+              {ts('labels.profileTitle', 'Profile')}
+            </p>
+            <h2 className="mt-1 text-2xl font-semibold leading-tight text-balance sm:text-3xl" style={{ color: theme.textPrimary }}>
+              {profileGreeting}
+            </h2>
+            <p className="mt-2 truncate text-sm leading-6 sm:text-base sm:leading-7" style={{ color: theme.textSecondary }}>
+              {user ? `${ts('labels.accountSignedInWith', 'Signed in with')} ${profileSummary}` : profileSummary}
+            </p>
+          </div>
+          <div className="flex w-full flex-nowrap justify-center gap-2 overflow-x-auto pb-1">
+            <span className="inline-flex shrink-0 items-center rounded-full border px-3 py-1 text-xs font-semibold whitespace-nowrap" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}>
               {user ? ts('labels.accountSignedInAs', 'Signed in as') : ts('auth.guestMode', 'Guest mode')}
             </span>
-            <span className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+            <span className="inline-flex shrink-0 items-center rounded-full border px-3 py-1 text-xs font-semibold whitespace-nowrap" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+              {user ? ts('labels.accountConnected', 'Account connected') : ts('labels.accountLocalOnly', 'Local only')}
+            </span>
+            <span className="inline-flex shrink-0 items-center rounded-full border px-3 py-1 text-xs font-semibold whitespace-nowrap" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
               {notificationsEnabled ? ts('notifications.deviceSubscribed', 'This device is subscribed for daily wisdom.') : ts('notifications.notificationsOptionalWhenReady', 'Notifications can be enabled when you are ready.')}
             </span>
           </div>
