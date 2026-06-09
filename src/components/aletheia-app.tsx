@@ -11130,6 +11130,8 @@ function ManualContextPanel({
 }) {
   const [draft, setDraft] = useState(context);
   const [contextTab, setContextTab] = useState<"current" | "future">("current");
+  const [currentContextFocus, setCurrentContextFocus] = useState<"money" | "work" | "health" | "relationships" | "values" | "counsel">("money");
+  const [futureContextFocus, setFutureContextFocus] = useState<"money" | "rhythm" | "posture">("money");
   const [quickDetailType, setQuickDetailType] = useState<"financeContext" | "workContext" | "healthContext" | "obligations" | "boundaries" | "enoughDefinition">("financeContext");
   const [quickDetail, setQuickDetail] = useState("");
   const [manualContextFeedback, setManualContextFeedback] = useState("");
@@ -11198,91 +11200,313 @@ function ManualContextPanel({
     window.setTimeout(() => setDraft(context), 0);
   }, [context]);
   const hasContent = manualContextHasContent(draft);
-  const longFields: Array<{
-    key: keyof Pick<
-      ManualContextProfile,
-      "financeContext" | "workContext" | "healthContext" | "obligations" | "goals" | "boundaries" | "enoughDefinition" | "mustNotSacrifice"
-    >;
-    label: string;
-    placeholder: string;
-  }> = [
-    { key: "financeContext", label: ts('manualContext.financeContextLabel', 'Money context'), placeholder: ts('manualContext.financeContextPlaceholder', 'Current pressure, obligations, giving posture, spending tension...') },
-    { key: "workContext", label: ts('manualContext.workContextLabel', 'Work context'), placeholder: ts('manualContext.workContextPlaceholder', 'Role, workload, calling tension, business stage, leadership strain...') },
-    { key: "healthContext", label: ts('manualContext.healthContextLabel', 'Health context'), placeholder: ts('manualContext.healthContextPlaceholder', 'Energy pattern, limits, sleep rhythm, recovery factors...') },
-    { key: "obligations", label: ts('manualContext.obligationsLabel', 'Responsibilities'), placeholder: ts('manualContext.obligationsPlaceholder', 'Dependents, caregiving, family obligations, community load...') },
-    { key: "goals", label: ts('manualContext.goalsLabel', 'Current goals'), placeholder: ts('manualContext.goalsPlaceholder', 'What you are trying to build with money, work, and life...') },
-    { key: "enoughDefinition", label: ts('manualContext.enoughDefinitionLabel', 'Definition of enough'), placeholder: ts('manualContext.enoughDefinitionPlaceholder', "What 'enough' means in this season...") },
-    { key: "mustNotSacrifice", label: ts('manualContext.mustNotSacrificeLabel', 'Must not sacrifice'), placeholder: ts('manualContext.mustNotSacrificePlaceholder', 'Peace, integrity, family time, Sabbath, health...') },
-    { key: "boundaries", label: ts('manualContext.boundariesLabel', 'Guidance boundaries'), placeholder: ts('manualContext.boundariesPlaceholder', 'What Aletheia should avoid assuming or overemphasizing...') },
-  ];
-  const moneyNumberFields: Array<{ key: keyof Pick<ManualContextProfile, "monthlyIncome" | "fixedExpenses" | "debtPayments" | "savingsBufferMonths" | "givingTargetPercent" | "financialDependents">; label: string; step?: number; min: number; max: number }> = [
-    { key: "monthlyIncome", label: ts('manualContext.monthlyIncome', 'Monthly income'), step: 100, min: 0, max: 50000 },
-    { key: "fixedExpenses", label: ts('manualContext.fixedExpenses', 'Fixed monthly expenses'), step: 100, min: 0, max: 50000 },
-    { key: "debtPayments", label: ts('manualContext.debtPayments', 'Monthly debt payments'), step: 50, min: 0, max: 20000 },
-    { key: "savingsBufferMonths", label: ts('manualContext.savingsBufferMonths', 'Savings buffer (months)'), step: 0.1, min: 0, max: 60 },
-    { key: "givingTargetPercent", label: ts('manualContext.givingTargetPercent', 'Giving target (%)'), step: 0.5, min: 0, max: 100 },
-    { key: "financialDependents", label: ts('manualContext.financialDependents', 'Financial dependents'), step: 1, min: 0, max: 20 },
-  ];
-  const lifeNumberFields: Array<{ key: keyof Pick<ManualContextProfile, "workHoursPerWeek" | "commuteHoursPerWeek" | "sleepHours" | "exerciseSessionsPerWeek" | "timeWithLovedOnesHoursPerWeek" | "timeWithCommunityHoursPerWeek">; label: string; step?: number; min: number; max: number }> = [
-    { key: "workHoursPerWeek", label: ts('manualContext.workHoursPerWeek', 'Work hours per week'), step: 0.5, min: 0, max: 120 },
-    { key: "commuteHoursPerWeek", label: ts('manualContext.commuteHoursPerWeek', 'Commute hours per week'), step: 0.5, min: 0, max: 60 },
-    { key: "sleepHours", label: ts('manualContext.sleepHours', 'Sleep hours (avg/day)'), step: 0.1, min: 0, max: 24 },
-    { key: "exerciseSessionsPerWeek", label: ts('manualContext.exerciseSessionsPerWeek', 'Exercise sessions/week'), step: 1, min: 0, max: 30 },
-    { key: "timeWithLovedOnesHoursPerWeek", label: ts('manualContext.timeWithLovedOnesHoursPerWeek', 'Hours with loved ones/week'), step: 0.5, min: 0, max: 120 },
-    { key: "timeWithCommunityHoursPerWeek", label: ts('manualContext.timeWithCommunityHoursPerWeek', 'Hours with community/week'), step: 0.5, min: 0, max: 120 },
-  ];
-  const signalFields: Array<{ key: keyof Pick<ManualContextProfile, "stressLevel" | "energyDrainLevel" | "urgencyLevel" | "supportLevel">; label: string; min: number; max: number }> = [
-    { key: "stressLevel", label: ts('manualContext.stressLevel', 'Stress (0-10)'), min: 0, max: 10 },
-    { key: "energyDrainLevel", label: ts('manualContext.energyDrainLevel', 'Energy drain (0-10)'), min: 0, max: 10 },
-    { key: "urgencyLevel", label: ts('manualContext.urgencyLevel', 'Urgency pressure (0-10)'), min: 0, max: 10 },
-    { key: "supportLevel", label: ts('manualContext.supportLevel', 'Support strength (0-10)'), min: 0, max: 10 },
-  ];
-  const preferenceFields: Array<{ key: keyof Pick<ManualContextProfile, "riskTolerance" | "waitingPreference" | "counselCadence" | "successDefinition">; label: string; placeholder: string }> = [
-    { key: "riskTolerance", label: ts('manualContext.riskTolerance', 'Risk tolerance'), placeholder: ts('manualContext.riskTolerancePlaceholder', 'Conservative, moderate, aggressive, depends on season...') },
-    { key: "waitingPreference", label: ts('manualContext.waitingPreference', 'Waiting preference'), placeholder: ts('manualContext.waitingPreferencePlaceholder', '24h, 3 days, 7 days, 30 days for major decisions...') },
-    { key: "counselCadence", label: ts('manualContext.counselCadence', 'Counsel rhythm'), placeholder: ts('manualContext.counselCadencePlaceholder', 'Who I check with and how often...') },
-    { key: "successDefinition", label: ts('manualContext.successDefinition', 'Definition of success'), placeholder: ts('manualContext.successDefinitionPlaceholder', 'How I measure faithful success, not just outcomes...') },
-  ];
-  const futureNumberFields: Array<{ key: keyof Pick<ManualContextProfile, "targetSavingsBufferMonths" | "targetWorkHoursPerWeek" | "targetSleepHours" | "targetExerciseSessionsPerWeek" | "targetTimeWithLovedOnesHoursPerWeek" | "targetTimeWithCommunityHoursPerWeek" | "targetStressLevel" | "targetUrgencyLevel" | "targetSupportLevel">; label: string; step?: number; min: number; max: number }> = [
-    { key: "targetSavingsBufferMonths", label: ts('manualContext.targetSavingsBufferMonths', 'Target savings buffer'), step: 0.1, min: 0, max: 60 },
-    { key: "targetWorkHoursPerWeek", label: ts('manualContext.targetWorkHoursPerWeek', 'Target work hours/week'), step: 0.5, min: 0, max: 120 },
-    { key: "targetSleepHours", label: ts('manualContext.targetSleepHours', 'Target sleep hours/day'), step: 0.1, min: 0, max: 24 },
-    { key: "targetExerciseSessionsPerWeek", label: ts('manualContext.targetExerciseSessionsPerWeek', 'Target exercise/week'), step: 1, min: 0, max: 30 },
-    { key: "targetTimeWithLovedOnesHoursPerWeek", label: ts('manualContext.targetTimeWithLovedOnesHoursPerWeek', 'Target loved ones hours/week'), step: 0.5, min: 0, max: 120 },
-    { key: "targetTimeWithCommunityHoursPerWeek", label: ts('manualContext.targetTimeWithCommunityHoursPerWeek', 'Target community hours/week'), step: 0.5, min: 0, max: 120 },
-    { key: "targetStressLevel", label: ts('manualContext.targetStressLevel', 'Target stress (0-10)'), step: 1, min: 0, max: 10 },
-    { key: "targetUrgencyLevel", label: ts('manualContext.targetUrgencyLevel', 'Target urgency (0-10)'), step: 1, min: 0, max: 10 },
-    { key: "targetSupportLevel", label: ts('manualContext.targetSupportLevel', 'Target support (0-10)'), step: 1, min: 0, max: 10 },
-  ];
-  const futureLongFields: Array<{
-    key: keyof Pick<ManualContextProfile, "futureFinanceContext" | "futureWorkContext" | "futureHealthContext" | "futureRelationshipsContext" | "futureValuesContext" | "futureGoals" | "futureBoundaries">;
-    label: string;
-    placeholder: string;
-  }> = [
-    { key: "futureFinanceContext", label: ts('manualContext.futureFinanceContext', 'Desired money posture'), placeholder: ts('manualContext.futureFinanceContextPlaceholder', 'What a wiser, more peaceful money life would look like...') },
-    { key: "futureWorkContext", label: ts('manualContext.futureWorkContext', 'Desired work rhythm'), placeholder: ts('manualContext.futureWorkContextPlaceholder', 'What sustainable, faithful work should feel like...') },
-    { key: "futureHealthContext", label: ts('manualContext.futureHealthContext', 'Desired health rhythm'), placeholder: ts('manualContext.futureHealthContextPlaceholder', 'The energy, sleep, and recovery you want to move toward...') },
-    { key: "futureRelationshipsContext", label: ts('manualContext.futureRelationshipsContext', 'Desired relationships/community'), placeholder: ts('manualContext.futureRelationshipsContextPlaceholder', 'The support, family rhythm, or community connection you want...') },
-    { key: "futureValuesContext", label: ts('manualContext.futureValuesContext', 'Desired values posture'), placeholder: ts('manualContext.futureValuesContextPlaceholder', 'The kind of person your decisions should form you into...') },
-    { key: "futureGoals", label: ts('manualContext.futureGoals', 'Future goals'), placeholder: ts('manualContext.futureGoalsPlaceholder', 'What you are hoping to build over time...') },
-    { key: "futureBoundaries", label: ts('manualContext.futureBoundaries', 'Future boundaries'), placeholder: ts('manualContext.futureBoundariesPlaceholder', 'What should remain protected as you grow...') },
-  ];
-
-  // Check if sections have content to determine if they should auto-expand
-  const hasMoneySignals = moneyNumberFields.some(field => (draft[field.key] ?? 0) > 0);
-  const hasSignals = signalFields.some(field => (draft[field.key] ?? 0) > 0);
-  const hasPreferences = preferenceFields.some(field => (draft[field.key] ?? '').trim().length > 0);
-  const hasLongFields = longFields.some(field => (draft[field.key] ?? '').trim().length > 0);
-  const hasFutureState = futureNumberFields.some(field => draft[field.key] !== null) || futureLongFields.some(field => (draft[field.key] ?? '').trim().length > 0);
-  const activeContextSections = [hasMoneySignals, Boolean(draft.workContext || draft.workHoursPerWeek), Boolean(draft.healthContext || draft.sleepHours || draft.exerciseSessionsPerWeek), Boolean(draft.obligations || draft.timeWithLovedOnesHoursPerWeek || draft.timeWithCommunityHoursPerWeek), hasSignals || hasLongFields, hasPreferences].filter(Boolean).length;
+  const hasFutureMoney = draft.targetSavingsBufferMonths !== null || (draft.futureFinanceContext ?? "").trim().length > 0;
+  const hasFutureRhythm = [
+    draft.targetWorkHoursPerWeek,
+    draft.targetSleepHours,
+    draft.targetExerciseSessionsPerWeek,
+    draft.targetTimeWithLovedOnesHoursPerWeek,
+    draft.targetTimeWithCommunityHoursPerWeek,
+    draft.futureWorkContext,
+    draft.futureHealthContext,
+    draft.futureRelationshipsContext,
+  ].some((value) => value !== null && String(value).trim().length > 0);
+  const hasFuturePosture = [
+    draft.targetStressLevel,
+    draft.targetUrgencyLevel,
+    draft.targetSupportLevel,
+    draft.futureValuesContext,
+    draft.futureGoals,
+    draft.futureBoundaries,
+  ].some((value) => value !== null && String(value).trim().length > 0);
+  const hasFutureState = hasFutureMoney || hasFutureRhythm || hasFuturePosture;
   const sectionSummary = {
-    money: `${draft.monthlyIncome ? manualCopy.incomeAdded : manualCopy.incomeNotAdded} · ${draft.savingsBufferMonths ? manualCopy.savingsAdded : manualCopy.savingsNotAdded} · ${draft.debtPayments ? manualCopy.debtAdded : manualCopy.debtNotAdded}`,
-    work: `${manualCopy.workRhythm} ${draft.workHoursPerWeek ? `${draft.workHoursPerWeek}h/week` : manualCopy.notAdded} · ${draft.workContext ? manualCopy.contextAdded : manualCopy.contextNotAdded}`,
-    health: `${ts('manualContext.sleepSummary', 'Sleep')} ${draft.sleepHours ? `${draft.sleepHours}h` : manualCopy.notAdded} · ${ts('manualContext.exerciseSummary', 'exercise')} ${draft.exerciseSessionsPerWeek ? `${draft.exerciseSessionsPerWeek}/week` : manualCopy.notAdded}`,
-    relationships: `${ts('manualContext.lovedOnesSummary', 'Loved ones')} ${draft.timeWithLovedOnesHoursPerWeek ? `${draft.timeWithLovedOnesHoursPerWeek}h/week` : manualCopy.notAdded} · ${ts('manualContext.obligationsSummary', 'obligations')} ${draft.obligations ? manualCopy.added : manualCopy.notAdded}`,
-    values: `${ts('manualContext.stressSummary', 'Stress')} ${draft.stressLevel ?? manualCopy.notAdded} · ${ts('manualContext.urgencySummary', 'urgency')} ${draft.urgencyLevel ?? manualCopy.notAdded} · ${draft.enoughDefinition ? manualCopy.enoughDefined : manualCopy.enoughNotDefined}`,
+    money: `${draft.monthlyIncome !== null ? manualCopy.incomeAdded : manualCopy.incomeNotAdded} · ${draft.savingsBufferMonths !== null ? manualCopy.savingsAdded : manualCopy.savingsNotAdded} · ${draft.debtPayments !== null ? manualCopy.debtAdded : manualCopy.debtNotAdded}`,
+    work: `${manualCopy.workRhythm} ${draft.workHoursPerWeek !== null ? `${draft.workHoursPerWeek}h/week` : manualCopy.notAdded} · ${draft.workContext ? manualCopy.contextAdded : manualCopy.contextNotAdded}`,
+    health: `${ts('manualContext.sleepSummary', 'Sleep')} ${draft.sleepHours !== null ? `${draft.sleepHours}h` : manualCopy.notAdded} · ${ts('manualContext.exerciseSummary', 'exercise')} ${draft.exerciseSessionsPerWeek !== null ? `${draft.exerciseSessionsPerWeek}/week` : manualCopy.notAdded}`,
+    relationships: `${ts('manualContext.lovedOnesSummary', 'Loved ones')} ${draft.timeWithLovedOnesHoursPerWeek !== null ? `${draft.timeWithLovedOnesHoursPerWeek}h/week` : manualCopy.notAdded} · ${ts('manualContext.obligationsSummary', 'obligations')} ${draft.obligations ? manualCopy.added : manualCopy.notAdded}`,
+    values: `${ts('manualContext.stressSummary', 'Stress')} ${draft.stressLevel !== null ? draft.stressLevel : manualCopy.notAdded} · ${ts('manualContext.urgencySummary', 'urgency')} ${draft.urgencyLevel !== null ? draft.urgencyLevel : manualCopy.notAdded} · ${draft.enoughDefinition ? manualCopy.enoughDefined : manualCopy.enoughNotDefined}`,
     counsel: `${draft.riskTolerance ? manualCopy.riskAdded : manualCopy.riskNotAdded} · ${draft.waitingPreference ? manualCopy.waitingAdded : manualCopy.waitingNotAdded} · ${draft.counselCadence ? manualCopy.counselAdded : manualCopy.counselNotAdded}`,
   };
+  const currentContextCards: Array<{
+    key: "money" | "work" | "health" | "relationships" | "values" | "counsel";
+    label: string;
+    summary: string;
+    icon: typeof PiggyBank;
+    active: boolean;
+  }> = [
+    { key: "money", label: manualCopy.moneyPicture, summary: sectionSummary.money, icon: PiggyBank, active: Boolean(draft.monthlyIncome !== null || draft.fixedExpenses !== null || draft.debtPayments !== null || draft.savingsBufferMonths !== null || draft.givingTargetPercent !== null || draft.financialDependents !== null || draft.financeContext.trim()) },
+    { key: "work", label: manualCopy.workRhythm, summary: sectionSummary.work, icon: BriefcaseBusiness, active: Boolean(draft.workContext || draft.workHoursPerWeek !== null || draft.commuteHoursPerWeek !== null) },
+    { key: "health", label: ts('manualContext.healthCard', 'Health'), summary: sectionSummary.health, icon: Sprout, active: Boolean(draft.healthContext || draft.sleepHours !== null || draft.exerciseSessionsPerWeek !== null) },
+    { key: "relationships", label: ts('manualContext.relationshipsCard', 'Relationships'), summary: sectionSummary.relationships, icon: Users, active: Boolean(draft.obligations || draft.timeWithLovedOnesHoursPerWeek !== null || draft.timeWithCommunityHoursPerWeek !== null) },
+    { key: "values", label: manualCopy.valuesRiskPosture, summary: sectionSummary.values, icon: ShieldCheck, active: Boolean(draft.stressLevel !== null || draft.energyDrainLevel !== null || draft.urgencyLevel !== null || draft.supportLevel !== null || draft.enoughDefinition || draft.mustNotSacrifice || draft.boundaries) },
+    { key: "counsel", label: manualCopy.counselPreferences, summary: sectionSummary.counsel, icon: Compass, active: Boolean(draft.goals.trim() || draft.riskTolerance.trim() || draft.waitingPreference.trim() || draft.counselCadence.trim() || draft.successDefinition.trim()) },
+  ];
+  const futureContextCards: Array<{
+    key: "money" | "rhythm" | "posture";
+    label: string;
+    summary: string;
+    icon: typeof PiggyBank;
+    active: boolean;
+  }> = [
+    {
+      key: "money",
+      label: ts('manualContext.futureMoneyCardTitle', 'Future money'),
+      summary: hasFutureMoney ? `${draft.targetSavingsBufferMonths !== null ? `${ts('manualContext.targetSavingsBufferMonths', 'Target savings buffer')}: ${draft.targetSavingsBufferMonths}` : manualCopy.notAddedYet} · ${draft.futureFinanceContext.trim() ? manualCopy.directionAdded : manualCopy.notAddedYet}` : manualCopy.notAddedYet,
+      icon: PiggyBank,
+      active: hasFutureMoney,
+    },
+    {
+      key: "rhythm",
+      label: ts('manualContext.futureRhythmCardTitle', 'Future rhythm'),
+      summary: hasFutureRhythm ? `${draft.targetWorkHoursPerWeek !== null ? `${ts('manualContext.targetWorkHoursPerWeek', 'Target work hours/week')}: ${draft.targetWorkHoursPerWeek}` : manualCopy.notAddedYet} · ${draft.futureWorkContext.trim() || draft.futureHealthContext.trim() || draft.futureRelationshipsContext.trim() ? manualCopy.directionAdded : manualCopy.notAddedYet}` : manualCopy.notAddedYet,
+      icon: Clock3,
+      active: hasFutureRhythm,
+    },
+    {
+      key: "posture",
+      label: ts('manualContext.futurePostureCardTitle', 'Future posture'),
+      summary: hasFuturePosture ? `${draft.targetStressLevel !== null ? `${ts('manualContext.targetStressLevel', 'Target stress (0-10)')}: ${draft.targetStressLevel}` : manualCopy.notAddedYet} · ${draft.futureValuesContext.trim() || draft.futureGoals.trim() || draft.futureBoundaries.trim() ? manualCopy.directionAdded : manualCopy.notAddedYet}` : manualCopy.notAddedYet,
+      icon: Sparkles,
+      active: hasFuturePosture,
+    },
+  ];
+  const activeContextSections = currentContextCards.filter((card) => card.active).length;
+  const renderNumberFieldGrid = (fields: Array<{ key: keyof ManualContextProfile; label: string; step?: number; min: number; max: number }>) => (
+    <div className="grid gap-3 md:grid-cols-2">
+      {fields.map((field) => (
+        <RangeField
+          key={String(field.key)}
+          label={field.label}
+          value={draft[field.key] as number | null}
+          min={field.min}
+          max={field.max}
+          step={field.step ?? 1}
+          onChange={(value) => updateDraft({ [field.key]: value } as Partial<ManualContextProfile>)}
+          ts={ts}
+          theme={theme}
+        />
+      ))}
+    </div>
+  );
+  const renderTextFieldGrid = (fields: Array<{ key: keyof ManualContextProfile; label: string; placeholder: string }>) => (
+    <div className="grid gap-3 md:grid-cols-2">
+      {fields.map((field) => (
+        <label key={String(field.key)} className="rounded-lg border p-3 text-xs font-semibold uppercase tracking-[0.12em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+          {field.label}
+          <textarea
+            value={String(draft[field.key] ?? "")}
+            onChange={(event) => updateDraft({ [field.key]: event.target.value } as Partial<ManualContextProfile>)}
+            className="mt-2 min-h-28 w-full resize-none rounded-md border px-3 py-3 text-sm normal-case leading-6 tracking-normal outline-none"
+            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textPrimary }}
+            placeholder={field.placeholder}
+          />
+        </label>
+      ))}
+    </div>
+  );
+  const renderInputFieldGrid = (fields: Array<{ key: keyof ManualContextProfile; label: string; placeholder: string }>) => (
+    <div className="grid gap-3 md:grid-cols-2">
+      {fields.map((field) => (
+        <label key={String(field.key)} className="rounded-lg border p-3 text-xs font-semibold uppercase tracking-[0.12em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+          {field.label}
+          <input
+            value={String(draft[field.key] ?? "")}
+            onChange={(event) => updateDraft({ [field.key]: event.target.value } as Partial<ManualContextProfile>)}
+            className="mt-2 h-11 w-full rounded-md border px-3 text-sm normal-case tracking-normal outline-none"
+            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textPrimary }}
+            placeholder={field.placeholder}
+          />
+        </label>
+      ))}
+    </div>
+  );
+  const renderCardRail = <T extends string,>(
+    cards: Array<{
+      key: T;
+      label: string;
+      summary: string;
+      icon: typeof PiggyBank;
+      active: boolean;
+    }>,
+    activeKey: T,
+    onSelect: (key: T) => void
+  ) => (
+    <div className="flex gap-2 overflow-x-auto pb-1 sm:grid sm:grid-cols-2 sm:overflow-visible xl:grid-cols-3">
+      {cards.map((card) => {
+        const active = card.key === activeKey;
+        const Icon = card.icon;
+        return (
+          <button
+            key={card.key}
+            type="button"
+            onClick={() => onSelect(card.key)}
+            className="premium-tap-card min-w-[17rem] flex-1 shrink-0 rounded-xl border p-3 text-left transition sm:min-w-0"
+            style={{
+              borderColor: active ? theme.accentGold : theme.borderLight,
+              backgroundColor: active ? theme.activeBg : theme.bgCardElevated,
+              color: theme.textPrimary,
+              boxShadow: active ? `0 0 0 1px ${theme.accentGold}` : "none",
+            }}
+            aria-pressed={active}
+          >
+            <div className="flex items-start gap-3">
+              <span className="grid size-10 shrink-0 place-items-center rounded-md border" style={{ borderColor: active ? theme.accentGold : theme.borderLight, backgroundColor: theme.bgInput, color: active ? theme.primary : theme.textSecondary }}>
+                <Icon size={17} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-semibold leading-5">{card.label}</span>
+                <span className="mt-1 block text-xs leading-5" style={{ color: theme.textSecondary }}>{card.summary}</span>
+              </span>
+            </div>
+            <span className="mt-3 inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: card.active ? theme.accentGold : theme.borderLight, backgroundColor: card.active ? theme.activeBg : theme.bgInput, color: card.active ? theme.accentGold : theme.textSecondary }}>
+              {card.active ? <Check size={12} /> : null}
+              {card.active ? manualCopy.added : manualCopy.notAddedYet}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+  const renderCurrentContextEditor = () => {
+    switch (currentContextFocus) {
+      case "money":
+        return (
+          <div className="space-y-4">
+            {renderNumberFieldGrid([
+              { key: "monthlyIncome", label: ts('manualContext.monthlyIncome', 'Monthly income'), step: 100, min: 0, max: 50000 },
+              { key: "fixedExpenses", label: ts('manualContext.fixedExpenses', 'Fixed monthly expenses'), step: 100, min: 0, max: 50000 },
+              { key: "debtPayments", label: ts('manualContext.debtPayments', 'Monthly debt payments'), step: 50, min: 0, max: 20000 },
+              { key: "savingsBufferMonths", label: ts('manualContext.savingsBufferMonths', 'Savings buffer (months)'), step: 0.1, min: 0, max: 60 },
+              { key: "givingTargetPercent", label: ts('manualContext.givingTargetPercent', 'Giving target (%)'), step: 0.5, min: 0, max: 100 },
+              { key: "financialDependents", label: ts('manualContext.financialDependents', 'Financial dependents'), step: 1, min: 0, max: 20 },
+            ])}
+            {renderTextFieldGrid([
+              { key: "financeContext", label: ts('manualContext.financeContextLabel', 'Money context'), placeholder: ts('manualContext.financeContextPlaceholder', 'Current pressure, obligations, giving posture, spending tension...') },
+            ])}
+          </div>
+        );
+      case "work":
+        return (
+          <div className="space-y-4">
+            {renderNumberFieldGrid([
+              { key: "workHoursPerWeek", label: ts('manualContext.workHoursPerWeek', 'Work hours per week'), step: 0.5, min: 0, max: 120 },
+              { key: "commuteHoursPerWeek", label: ts('manualContext.commuteHoursPerWeek', 'Commute hours per week'), step: 0.5, min: 0, max: 60 },
+            ])}
+            {renderTextFieldGrid([
+              { key: "workContext", label: ts('manualContext.workContextLabel', 'Work context'), placeholder: ts('manualContext.workContextPlaceholder', 'Role, workload, calling tension, business stage, leadership strain...') },
+            ])}
+          </div>
+        );
+      case "health":
+        return (
+          <div className="space-y-4">
+            {renderNumberFieldGrid([
+              { key: "sleepHours", label: ts('manualContext.sleepHours', 'Sleep hours (avg/day)'), step: 0.1, min: 0, max: 24 },
+              { key: "exerciseSessionsPerWeek", label: ts('manualContext.exerciseSessionsPerWeek', 'Exercise sessions/week'), step: 1, min: 0, max: 30 },
+            ])}
+            {renderTextFieldGrid([
+              { key: "healthContext", label: ts('manualContext.healthContextLabel', 'Health context'), placeholder: ts('manualContext.healthContextPlaceholder', 'Energy pattern, limits, sleep rhythm, recovery factors...') },
+            ])}
+          </div>
+        );
+      case "relationships":
+        return (
+          <div className="space-y-4">
+            {renderNumberFieldGrid([
+              { key: "timeWithLovedOnesHoursPerWeek", label: ts('manualContext.timeWithLovedOnesHoursPerWeek', 'Hours with loved ones/week'), step: 0.5, min: 0, max: 120 },
+              { key: "timeWithCommunityHoursPerWeek", label: ts('manualContext.timeWithCommunityHoursPerWeek', 'Hours with community/week'), step: 0.5, min: 0, max: 120 },
+            ])}
+            {renderTextFieldGrid([
+              { key: "obligations", label: ts('manualContext.obligationsLabel', 'Responsibilities'), placeholder: ts('manualContext.obligationsPlaceholder', 'Dependents, caregiving, family obligations, community load...') },
+            ])}
+          </div>
+        );
+      case "values":
+        return (
+          <div className="space-y-4">
+            {renderNumberFieldGrid([
+              { key: "stressLevel", label: ts('manualContext.stressLevel', 'Stress (0-10)'), min: 0, max: 10 },
+              { key: "energyDrainLevel", label: ts('manualContext.energyDrainLevel', 'Energy drain (0-10)'), min: 0, max: 10 },
+              { key: "urgencyLevel", label: ts('manualContext.urgencyLevel', 'Urgency pressure (0-10)'), min: 0, max: 10 },
+              { key: "supportLevel", label: ts('manualContext.supportLevel', 'Support strength (0-10)'), min: 0, max: 10 },
+            ])}
+            {renderTextFieldGrid([
+              { key: "enoughDefinition", label: ts('manualContext.enoughDefinitionLabel', 'Definition of enough'), placeholder: ts('manualContext.enoughDefinitionPlaceholder', "What 'enough' means in this season...") },
+              { key: "mustNotSacrifice", label: ts('manualContext.mustNotSacrificeLabel', 'Must not sacrifice'), placeholder: ts('manualContext.mustNotSacrificePlaceholder', 'Peace, integrity, family time, Sabbath, health...') },
+              { key: "boundaries", label: ts('manualContext.boundariesLabel', 'Guidance boundaries'), placeholder: ts('manualContext.boundariesPlaceholder', 'What Aletheia should avoid assuming or overemphasizing...') },
+            ])}
+          </div>
+        );
+      case "counsel":
+        return (
+          <div className="space-y-4">
+            {renderTextFieldGrid([
+              { key: "goals", label: ts('manualContext.goalsLabel', 'Current goals'), placeholder: ts('manualContext.goalsPlaceholder', 'What you are trying to build with money, work, and life...') },
+            ])}
+            {renderInputFieldGrid([
+              { key: "riskTolerance", label: ts('manualContext.riskTolerance', 'Risk tolerance'), placeholder: ts('manualContext.riskTolerancePlaceholder', 'Conservative, moderate, aggressive, depends on season...') },
+              { key: "waitingPreference", label: ts('manualContext.waitingPreference', 'Waiting preference'), placeholder: ts('manualContext.waitingPreferencePlaceholder', '24h, 3 days, 7 days, 30 days for major decisions...') },
+              { key: "counselCadence", label: ts('manualContext.counselCadence', 'Counsel rhythm'), placeholder: ts('manualContext.counselCadencePlaceholder', 'Who I check with and how often...') },
+              { key: "successDefinition", label: ts('manualContext.successDefinition', 'Definition of success'), placeholder: ts('manualContext.successDefinitionPlaceholder', 'How I measure faithful success, not just outcomes...') },
+            ])}
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
+  const renderFutureContextEditor = () => {
+    switch (futureContextFocus) {
+      case "money":
+        return (
+          <div className="space-y-4">
+            {renderNumberFieldGrid([
+              { key: "targetSavingsBufferMonths", label: ts('manualContext.targetSavingsBufferMonths', 'Target savings buffer'), step: 0.1, min: 0, max: 60 },
+            ])}
+            {renderTextFieldGrid([
+              { key: "futureFinanceContext", label: ts('manualContext.futureFinanceContext', 'Desired money posture'), placeholder: ts('manualContext.futureFinanceContextPlaceholder', 'What a wiser, more peaceful money life would look like...') },
+            ])}
+          </div>
+        );
+      case "rhythm":
+        return (
+          <div className="space-y-4">
+            {renderNumberFieldGrid([
+              { key: "targetWorkHoursPerWeek", label: ts('manualContext.targetWorkHoursPerWeek', 'Target work hours/week'), step: 0.5, min: 0, max: 120 },
+              { key: "targetSleepHours", label: ts('manualContext.targetSleepHours', 'Target sleep hours/day'), step: 0.1, min: 0, max: 24 },
+              { key: "targetExerciseSessionsPerWeek", label: ts('manualContext.targetExerciseSessionsPerWeek', 'Target exercise/week'), step: 1, min: 0, max: 30 },
+              { key: "targetTimeWithLovedOnesHoursPerWeek", label: ts('manualContext.targetTimeWithLovedOnesHoursPerWeek', 'Target loved ones hours/week'), step: 0.5, min: 0, max: 120 },
+              { key: "targetTimeWithCommunityHoursPerWeek", label: ts('manualContext.targetTimeWithCommunityHoursPerWeek', 'Target community hours/week'), step: 0.5, min: 0, max: 120 },
+            ])}
+            {renderTextFieldGrid([
+              { key: "futureWorkContext", label: ts('manualContext.futureWorkContext', 'Desired work rhythm'), placeholder: ts('manualContext.futureWorkContextPlaceholder', 'What sustainable, faithful work should feel like...') },
+              { key: "futureHealthContext", label: ts('manualContext.futureHealthContext', 'Desired health rhythm'), placeholder: ts('manualContext.futureHealthContextPlaceholder', 'The energy, sleep, and recovery you want to move toward...') },
+              { key: "futureRelationshipsContext", label: ts('manualContext.futureRelationshipsContext', 'Desired relationships/community'), placeholder: ts('manualContext.futureRelationshipsContextPlaceholder', 'The support, family rhythm, or community connection you want...') },
+            ])}
+          </div>
+        );
+      case "posture":
+        return (
+          <div className="space-y-4">
+            {renderNumberFieldGrid([
+              { key: "targetStressLevel", label: ts('manualContext.targetStressLevel', 'Target stress (0-10)'), step: 1, min: 0, max: 10 },
+              { key: "targetUrgencyLevel", label: ts('manualContext.targetUrgencyLevel', 'Target urgency (0-10)'), step: 1, min: 0, max: 10 },
+              { key: "targetSupportLevel", label: ts('manualContext.targetSupportLevel', 'Target support (0-10)'), step: 1, min: 0, max: 10 },
+            ])}
+            {renderTextFieldGrid([
+              { key: "futureValuesContext", label: ts('manualContext.futureValuesContext', 'Desired values posture'), placeholder: ts('manualContext.futureValuesContextPlaceholder', 'The kind of person your decisions should form you into...') },
+              { key: "futureGoals", label: ts('manualContext.futureGoals', 'Future goals'), placeholder: ts('manualContext.futureGoalsPlaceholder', 'What you are hoping to build over time...') },
+              { key: "futureBoundaries", label: ts('manualContext.futureBoundaries', 'Future boundaries'), placeholder: ts('manualContext.futureBoundariesPlaceholder', 'What should remain protected as you grow...') },
+            ])}
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
+  const activeCurrentContextCard = currentContextCards.find((card) => card.key === currentContextFocus) ?? currentContextCards[0];
+  const activeFutureContextCard = futureContextCards.find((card) => card.key === futureContextFocus) ?? futureContextCards[0];
   const enoughProfileItems = [
     draft.enoughDefinition ? manualCopy.enoughDefined : manualCopy.enoughNotDefined,
     draft.targetSavingsBufferMonths !== null ? `${ts('manualContext.targetSavingsBufferMonths', 'Target savings buffer')}: ${draft.targetSavingsBufferMonths}` : "",
@@ -11537,156 +11761,43 @@ function ManualContextPanel({
           </div>
 
           {contextTab === "current" ? (
-            <>
-          <details className="group rounded-lg border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-            <summary className="cursor-pointer p-3 text-xs font-semibold uppercase tracking-[0.12em] transition" style={{ color: theme.textSecondary }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.bgCard} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
-              {manualCopy.moneyPicture} {hasMoneySignals ? "✓" : ""}<span className="mt-1 block normal-case tracking-normal" style={{ color: theme.textMuted }}>{sectionSummary.money}</span>
-            </summary>
-            <div className="space-y-3 border-t p-3" style={{ borderColor: theme.borderLight }}>
-              <div className="grid gap-3 md:grid-cols-2">
-                {moneyNumberFields.map((field) => (
-                  <RangeField
-                    key={field.key}
-                    label={field.label}
-                    value={draft[field.key]}
-                    min={field.min}
-                    max={field.max}
-                    step={field.step ?? 1}
-                    onChange={(value) => updateDraft({ [field.key]: value })}
-                    ts={ts}
-                    theme={theme}
-                  />
-                ))}
+            <div className="space-y-4">
+              {renderCardRail(currentContextCards, currentContextFocus, setCurrentContextFocus)}
+              <div className="rounded-lg border p-3 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{manualCopy.currentState}</p>
+                    <h3 className="mt-1 text-lg font-semibold" style={{ color: theme.textPrimary }}>{activeCurrentContextCard.label}</h3>
+                    <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>{activeCurrentContextCard.summary}</p>
+                  </div>
+                  <span className="inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: activeCurrentContextCard.active ? theme.accentGold : theme.borderLight, backgroundColor: activeCurrentContextCard.active ? theme.activeBg : theme.bgInput, color: activeCurrentContextCard.active ? theme.accentGold : theme.textSecondary }}>
+                    {activeCurrentContextCard.active ? <Check size={12} /> : null}
+                    {activeCurrentContextCard.active ? manualCopy.added : manualCopy.notAddedYet}
+                  </span>
+                </div>
+                <div className="mt-4">
+                  {renderCurrentContextEditor()}
+                </div>
               </div>
             </div>
-          </details>
-
-          <details className="group rounded-lg border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-            <summary className="cursor-pointer p-3 text-xs font-semibold uppercase tracking-[0.12em] transition" style={{ color: theme.textSecondary }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.bgCard} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
-              {manualCopy.workRhythm} {draft.workContext || draft.workHoursPerWeek ? "✓" : ""}<span className="mt-1 block normal-case tracking-normal" style={{ color: theme.textMuted }}>{sectionSummary.work}</span>
-            </summary>
-            <div className="space-y-3 border-t p-3" style={{ borderColor: theme.borderLight }}>
-              <div className="grid gap-3 md:grid-cols-2">
-                {lifeNumberFields.map((field) => (
-                  <RangeField
-                    key={field.key}
-                    label={field.label}
-                    value={draft[field.key]}
-                    min={field.min}
-                    max={field.max}
-                    step={field.step ?? 1}
-                    onChange={(value) => updateDraft({ [field.key]: value })}
-                    ts={ts}
-                    theme={theme}
-                  />
-                ))}
-              </div>
-            </div>
-          </details>
-
-          <details className="group rounded-lg border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-            <summary className="cursor-pointer p-3 text-xs font-semibold uppercase tracking-[0.12em] transition" style={{ color: theme.textSecondary }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.bgCard} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
-              {manualCopy.valuesRiskPosture} {hasSignals ? "✓" : ""}<span className="mt-1 block normal-case tracking-normal" style={{ color: theme.textMuted }}>{sectionSummary.values}</span>
-            </summary>
-            <div className="space-y-3 border-t p-3" style={{ borderColor: theme.borderLight }}>
-              <div className="grid gap-3 md:grid-cols-2">
-                {signalFields.map((field) => (
-                  <RangeField
-                    key={field.key}
-                    label={field.label}
-                    value={draft[field.key]}
-                    min={field.min}
-                    max={field.max}
-                    step={1}
-                    onChange={(value) => updateDraft({ [field.key]: value })}
-                    ts={ts}
-                    theme={theme}
-                  />
-                ))}
-              </div>
-            </div>
-          </details>
-
-          <details className="group rounded-lg border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-            <summary className="cursor-pointer p-3 text-xs font-semibold uppercase tracking-[0.12em] transition" style={{ color: theme.textSecondary }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.bgCard} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
-              {manualCopy.counselPreferences} {hasPreferences ? "✓" : ""}<span className="mt-1 block normal-case tracking-normal" style={{ color: theme.textMuted }}>{sectionSummary.counsel}</span>
-            </summary>
-            <div className="space-y-3 border-t p-3" style={{ borderColor: theme.borderLight }}>
-              <div className="grid gap-3 md:grid-cols-2">
-                {preferenceFields.map((field) => (
-                  <label key={field.key} className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
-                    {field.label}
-                    <input
-                      value={draft[field.key]}
-                      onChange={(event) => updateDraft({ [field.key]: event.target.value })}
-                      className="mt-2 h-10 w-full rounded-md border px-3 text-sm normal-case tracking-normal outline-none"
-                      style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-                      placeholder={field.placeholder}
-                    />
-                  </label>
-                ))}
-              </div>
-            </div>
-          </details>
-
-          <details className="group rounded-lg border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-            <summary className="cursor-pointer p-3 text-xs font-semibold uppercase tracking-[0.12em] transition" style={{ color: theme.textSecondary }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.bgCard} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
-              {manualCopy.healthRelationships} {hasLongFields ? "✓" : ""}<span className="mt-1 block normal-case tracking-normal" style={{ color: theme.textMuted }}>{sectionSummary.health} · {sectionSummary.relationships}</span>
-            </summary>
-            <div className="space-y-3 border-t p-3" style={{ borderColor: theme.borderLight }}>
-              <div className="grid gap-3 md:grid-cols-2">
-                {longFields.map((field) => (
-                  <label key={field.key} className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
-                    {field.label}
-                    <textarea
-                      value={draft[field.key]}
-                      onChange={(event) => updateDraft({ [field.key]: event.target.value })}
-                      className="mt-2 min-h-24 w-full resize-none rounded-md border px-3 py-2 text-sm normal-case leading-6 tracking-normal outline-none"
-                      style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-                      placeholder={field.placeholder}
-                    />
-                  </label>
-                ))}
-              </div>
-            </div>
-          </details>
-            </>
           ) : (
-            <div className="space-y-3 rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{manualCopy.desiredFutureState}</p>
-                <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
-                  {manualCopy.desiredFutureBody}
-                </p>
-              </div>
-              <div className="grid gap-3 md:grid-cols-2">
-                {futureNumberFields.map((field) => (
-                  <RangeField
-                    key={field.key}
-                    label={field.label}
-                    value={draft[field.key]}
-                    min={field.min}
-                    max={field.max}
-                    step={field.step ?? 1}
-                    onChange={(value) => updateDraft({ [field.key]: value })}
-                    ts={ts}
-                    theme={theme}
-                  />
-                ))}
-              </div>
-              <div className="grid gap-3 md:grid-cols-2">
-                {futureLongFields.map((field) => (
-                  <label key={field.key} className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
-                    {field.label}
-                    <textarea
-                      value={draft[field.key]}
-                      onChange={(event) => updateDraft({ [field.key]: event.target.value })}
-                      className="mt-2 min-h-24 w-full resize-none rounded-md border px-3 py-2 text-sm normal-case leading-6 tracking-normal outline-none"
-                      style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-                      placeholder={field.placeholder}
-                    />
-                  </label>
-                ))}
+            <div className="space-y-4">
+              {renderCardRail(futureContextCards, futureContextFocus, setFutureContextFocus)}
+              <div className="rounded-lg border p-3 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{manualCopy.desiredFutureState}</p>
+                    <h3 className="mt-1 text-lg font-semibold" style={{ color: theme.textPrimary }}>{activeFutureContextCard.label}</h3>
+                    <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>{manualCopy.desiredFutureBody}</p>
+                  </div>
+                  <span className="inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: activeFutureContextCard.active ? theme.accentGold : theme.borderLight, backgroundColor: activeFutureContextCard.active ? theme.activeBg : theme.bgInput, color: activeFutureContextCard.active ? theme.accentGold : theme.textSecondary }}>
+                    {activeFutureContextCard.active ? <Check size={12} /> : null}
+                    {activeFutureContextCard.active ? manualCopy.added : manualCopy.notAddedYet}
+                  </span>
+                </div>
+                <div className="mt-4">
+                  {renderFutureContextEditor()}
+                </div>
               </div>
             </div>
           )}
@@ -14163,7 +14274,7 @@ function RangeField({
   const isSignalScale = min === 0 && max === 10 && step === 1;
   if (isSignalScale) {
     return (
-      <div className="rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
+      <div className="rounded-xl border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
         <div className="flex items-center justify-between gap-2">
           <p className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>{label}</p>
           <span className="rounded-md px-2 py-1 text-[10px] font-semibold tracking-[0.08em]" style={{ backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}>
@@ -14187,12 +14298,15 @@ function RangeField({
             </button>
           ))}
         </div>
+        <p className="mt-2 text-[11px] leading-5" style={{ color: theme.textMuted }}>
+          {ts('manualContext.tapToSet', 'Tap a number to set it, or tap it again to clear it.')}
+        </p>
       </div>
     );
   }
 
   return (
-    <label className="rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+    <label className="rounded-xl border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
       <span className="flex items-center justify-between gap-3">
         <span className="text-xs font-semibold uppercase tracking-[0.12em]">{label}</span>
         <span className="rounded-md px-2 py-1 text-[10px] font-semibold tracking-[0.08em]" style={{ backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}>
@@ -14230,6 +14344,10 @@ function RangeField({
         >
           +
         </button>
+      </div>
+      <div className="mt-2 flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ color: theme.textMuted }}>
+        <span>{min}</span>
+        <span>{max}</span>
       </div>
     </label>
   );
