@@ -8743,7 +8743,7 @@ function RailSummaryPill({
 }) {
   return (
     <div
-      className="min-w-0 rounded-xl border px-3 py-2.5 shadow-sm"
+      className="flex min-w-0 items-center justify-between gap-3 rounded-xl border px-3 py-2.5 shadow-sm"
       style={{
         borderColor: active ? theme.accentLight : theme.borderLight,
         backgroundColor: active ? theme.bgCardElevated : theme.bgCard,
@@ -8752,7 +8752,7 @@ function RailSummaryPill({
       <p className="text-[10px] font-semibold uppercase tracking-[0.1em] leading-4 sm:tracking-[0.14em]" style={{ color: theme.textSecondary }}>
         {label}
       </p>
-      <p className="mt-1 text-[13px] font-semibold leading-5 sm:text-sm" style={{ color: active ? theme.textPrimary : theme.textSecondary }}>
+      <p className="max-w-[65%] text-right text-[13px] font-semibold leading-5 sm:text-sm" style={{ color: active ? theme.textPrimary : theme.textSecondary }}>
         {value}
       </p>
     </div>
@@ -10190,7 +10190,7 @@ function AccountPanel({
             </span>
           </div>
         </div>
-        <div className="grid grid-cols-3 gap-2 border-t px-4 py-4 sm:px-5" style={{ borderColor: theme.borderLight }}>
+        <div className="flex flex-col gap-2 border-t px-4 py-4 sm:px-5" style={{ borderColor: theme.borderLight }}>
           {profileStats.map((stat) => (
             <AccountHeaderStat key={stat.detail} icon={stat.icon} value={stat.value} label={stat.label} detail={stat.detail} theme={theme} />
           ))}
@@ -10259,7 +10259,7 @@ function AccountPanel({
       />
 
       {accountSection === "personalization" ? (
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className="flex flex-col gap-4">
           <DisclosureSection
             title={ts('labels.personalizeAletheia')}
             summary={ts('labels.accountPersonalizationSummary')}
@@ -10367,7 +10367,7 @@ function AccountPanel({
       ) : null}
 
       {accountSection === "share" ? (
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className="flex flex-col gap-4">
           <DisclosureSection
             title={ts('share.accountShareTitle')}
             summary={ts('share.accountShareSummary')}
@@ -10453,14 +10453,16 @@ function AccountHeaderStat({
   const accessibleLabel = `${value} ${detail}`;
   return (
     <span
-      className="flex min-h-11 min-w-0 items-center justify-center gap-2 rounded-xl border px-2 py-2 text-center"
+      className="flex min-h-11 min-w-0 items-center justify-between gap-3 rounded-xl border px-3 py-2 text-left"
       style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}
       aria-label={accessibleLabel}
       title={accessibleLabel}
     >
-      <Icon className="shrink-0" size={15} aria-hidden="true" style={{ color: theme.textSecondary }} />
+      <span className="flex min-w-0 items-center gap-2">
+        <Icon className="shrink-0" size={15} aria-hidden="true" style={{ color: theme.textSecondary }} />
+        <span className="truncate text-xs font-semibold uppercase tracking-[0.08em]" style={{ color: theme.textSecondary }}>{label}</span>
+      </span>
       <span className="text-[13px] font-semibold leading-none sm:text-sm" style={{ color: theme.textPrimary }}>{value}</span>
-      <span className="sr-only">{label}</span>
     </span>
   );
 }
@@ -10498,7 +10500,7 @@ function AccountSettingRow({
           <span className="mt-1 block text-xs leading-5" style={{ color: theme.textSecondary }}>{body}</span>
         </span>
         <span className="min-w-[4.25rem] shrink text-right sm:min-w-[7rem]">
-          <span className="block max-w-[6.25rem] break-words text-[11px] font-semibold leading-4 sm:max-w-44 sm:text-xs" style={{ color: theme.accentGold }}>{currentValue}</span>
+          <span className="block max-w-[6.25rem] text-[11px] font-semibold leading-4 sm:max-w-44 sm:text-xs" style={{ color: theme.accentGold }}>{currentValue}</span>
           <span className="mt-1 inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.08em]" style={{ color: theme.textSecondary }}>
             <ChevronDown size={12} style={{ transform: open ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 180ms ease" }} />
           </span>
@@ -10637,7 +10639,7 @@ function AccountShareCard({
           </div>
         </div>
       </div>
-      <div className="grid gap-2 sm:grid-cols-2">
+      <div className="flex flex-col gap-2">
         {shareActions.map(({ channel, label, icon: Icon }) => (
           <button
             key={channel}
@@ -10649,7 +10651,7 @@ function AccountShareCard({
             <span className="grid size-9 shrink-0 place-items-center rounded-lg" style={{ backgroundColor: theme.bgCardElevated, color: theme.primary }}>
               <Icon size={16} />
             </span>
-            <span className="min-w-0 flex-1 break-words leading-5">{label}</span>
+            <span className="min-w-0 flex-1 leading-5">{label}</span>
             <ChevronDown className="shrink-0 -rotate-90 opacity-50" size={14} />
           </button>
         ))}
@@ -10707,7 +10709,7 @@ function SupportMissionCard({
             theme={theme}
             className="mt-4"
           >
-            <div className="grid gap-2 sm:grid-cols-2">
+            <div className="flex flex-col gap-2">
               {impactItems.map((item) => (
                 <div key={item} className="rounded-xl border p-3 text-sm leading-5 shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
                   <span className="flex items-start gap-2">
@@ -10723,7 +10725,7 @@ function SupportMissionCard({
         <div className="border-t p-4 sm:p-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
           <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{ts('supportMission.chooseMethod')}</p>
           {links.length ? (
-            <div className="mt-3 grid gap-2 lg:grid-cols-2 xl:grid-cols-3">
+            <div className="mt-3 flex flex-col gap-2">
               {links.map(({ channel, href, labelKey, fallback }) => (
                 <a
                   key={channel}
@@ -10738,7 +10740,7 @@ function SupportMissionCard({
                     <span className="grid size-9 shrink-0 place-items-center rounded-lg" style={{ backgroundColor: theme.bgCardElevated, color: theme.primary }}>
                       {channel === "contact" ? <Mail size={16} /> : <HandHeart size={16} />}
                     </span>
-                    <span className="min-w-0 break-words leading-5">{ts(labelKey, fallback)}</span>
+                    <span className="min-w-0 leading-5">{ts(labelKey, fallback)}</span>
                   </span>
                   <ExternalLink size={15} className="shrink-0 opacity-70" />
                 </a>
@@ -10816,7 +10818,7 @@ function AccountPersonalizationPanel({
             </div>
           </div>
 
-          <div className="grid gap-2 min-[380px]:grid-cols-2">
+          <div className="flex flex-col gap-2">
             <RailSummaryPill
               label={ts('labels.language', 'Language')}
               value={languages[preferences.language]?.nativeName ?? preferences.language}
@@ -10837,7 +10839,7 @@ function AccountPersonalizationPanel({
         </div>
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.05fr)_minmax(320px,0.95fr)]">
+      <div className="flex flex-col gap-4">
         <div className="space-y-3">
           <AccountSettingRow
             icon={Languages}
@@ -10982,7 +10984,7 @@ function ThemeSwatchGrid({
   ];
 
   return (
-    <div className="grid gap-2 sm:grid-cols-2">
+    <div className="flex flex-col gap-2">
       {options.map((option) => {
         const active = value === option.key;
         const Icon = option.icon;
@@ -11004,7 +11006,7 @@ function ThemeSwatchGrid({
               <span className="grid size-8 shrink-0 place-items-center rounded-md" style={{ backgroundColor: theme.bgCardElevated, color: active ? theme.accentGold : theme.textSecondary }}>
                 <Icon size={15} />
               </span>
-              <span className="min-w-0 break-words leading-5">{ts(`theme.${option.key}`, option.key)}</span>
+              <span className="min-w-0 leading-5">{ts(`theme.${option.key}`, option.key)}</span>
             </span>
             <span className="flex shrink-0 gap-1" aria-hidden="true">
               {option.colors.map((color) => (
@@ -11121,7 +11123,7 @@ function VoicePreferenceSelector({
                   <Volume2 size={17} />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="break-words text-[13px] font-semibold leading-5 sm:text-sm">{voice.title}</p>
+                  <p className="text-[13px] font-semibold leading-5 sm:text-sm">{voice.title}</p>
                   <p className="mt-1 text-xs leading-5" style={{ color: theme.textSecondary }}>
                     {voice.body}
                   </p>
@@ -11256,7 +11258,7 @@ function SystemStatusCard({
           </div>
         </div>
       </div>
-      <div className="grid gap-2 p-4 sm:grid-cols-2 sm:p-5">
+      <div className="flex flex-col gap-2 p-4 sm:p-5">
         <AccountStat label={ts('labels.accountStatConversations')} value={String(conversations)} theme={theme} />
         <AccountStat label={ts('labels.accountStatDecisions')} value={String(decisions)} theme={theme} />
         <AccountStat label={ts('labels.accountStatJournalEntries')} value={String(reflections)} theme={theme} />
@@ -11297,7 +11299,7 @@ function DataBoundariesCard({
         <p className="mt-2 max-w-2xl text-sm leading-6" style={{ color: theme.textSecondary }}>
           {ts('labels.accountTrustPostureSummary')}
         </p>
-        <div className="mt-4 grid gap-2 sm:grid-cols-3">
+        <div className="mt-4 flex flex-col gap-2">
           <div className="rounded-xl border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
             <p className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>{user ? ts('labels.whatSyncsLabel') : ts('auth.guestOnly')}</p>
             <p className="mt-1 text-sm leading-6" style={{ color: theme.textPrimary }}>
@@ -11454,7 +11456,7 @@ function TrustCenterCard({ theme, ts }: { theme: ThemeColors; ts: (key: string, 
       </button>
       {open ? (
         <div className="border-t p-4 sm:p-5" style={{ borderColor: theme.borderLight }}>
-          <div className="grid gap-2 sm:grid-cols-2">
+          <div className="flex flex-col gap-2">
             {items.map((item) => (
               <details key={item.label} className="rounded-xl border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
                 <summary className="cursor-pointer text-sm font-semibold" style={{ color: theme.textPrimary }}>{item.label}</summary>
@@ -11470,9 +11472,9 @@ function TrustCenterCard({ theme, ts }: { theme: ThemeColors; ts: (key: string, 
 
 function AccountStat({ label, value, theme }: { label: string; value: string; theme: ThemeColors }) {
   return (
-    <div className="rounded-xl border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] leading-4" style={{ color: theme.textSecondary }}>{label}</p>
-      <p className="mt-2 text-[13px] font-semibold leading-none sm:text-sm" style={{ color: theme.textPrimary }}>{value}</p>
+    <div className="flex items-center justify-between gap-3 rounded-xl border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+      <p className="text-[11px] font-semibold uppercase tracking-[0.1em] leading-4 sm:tracking-[0.14em]" style={{ color: theme.textSecondary }}>{label}</p>
+      <p className="text-[13px] font-semibold leading-none sm:text-sm" style={{ color: theme.textPrimary }}>{value}</p>
     </div>
   );
 }
@@ -12049,9 +12051,9 @@ function ManualContextPanel({
             </div>
           </div>
 
-          <div className="mt-4 grid gap-3 2xl:grid-cols-[1.15fr_0.85fr]">
+          <div className="mt-4 flex flex-col gap-3">
             <div className="rounded-[1.3rem] border p-4 sm:p-5" style={{ borderColor: theme.borderMedium, backgroundColor: draft.useInAnswers ? theme.activeBg : theme.bgCard }}>
-              <div className="grid gap-3 sm:grid-cols-3">
+              <div className="flex flex-col gap-3">
                 <div className="rounded-xl border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
                   <p className="text-[11px] font-semibold uppercase tracking-[0.1em] sm:tracking-[0.14em]" style={{ color: theme.accentGold }}>{vaultStateLabel}</p>
                   <p className="mt-2 text-2xl font-semibold" style={{ color: theme.textPrimary }}>
@@ -12061,7 +12063,7 @@ function ManualContextPanel({
                     {activeContextSections === 1 ? manualCopy.activeArea : manualCopy.activeAreas}
                   </p>
                 </div>
-                <div className="rounded-xl border p-3 sm:col-span-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
+                <div className="rounded-xl border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
                   <p className="text-[11px] font-semibold uppercase tracking-[0.1em] sm:tracking-[0.14em]" style={{ color: theme.accentGold }}>{ts('labels.enoughProfile')}</p>
                   <p className="mt-2 text-sm leading-6" style={{ color: theme.textPrimary }}>
                     {enoughProfileItems.length ? enoughProfileItems.join(", ") : ts('labels.enoughProfileEmpty')}
@@ -12133,7 +12135,7 @@ function ManualContextPanel({
             className="space-y-4"
             onSubmit={handleManualContextSubmit}
           >
-            <div className="grid gap-3 2xl:grid-cols-[0.88fr_1.12fr]">
+            <div className="flex flex-col gap-3">
               <div className="space-y-3">
                 <div className="rounded-[1.2rem] border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
                   <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
@@ -12152,7 +12154,7 @@ function ManualContextPanel({
                       {manualCopy.allowContextPrompt}
                     </label>
                   </div>
-                  <div className="mt-4 grid gap-3 lg:grid-cols-[0.95fr_1.05fr]">
+                  <div className="mt-4 flex flex-col gap-3">
                     <label className="block rounded-xl border p-3 text-xs font-semibold uppercase tracking-[0.08em] sm:tracking-[0.12em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
                       {ts('labels.guidanceRegion')}
                       <select
@@ -13324,7 +13326,7 @@ function NotificationPanel({
                 {ts('notifications.timezone')}
               </p>
               <div className="mt-2 flex min-h-10 items-center justify-between gap-3 rounded-md border px-3 py-2" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
-                <span className="min-w-0 break-words text-sm leading-5">{ts('notifications.usingDeviceTimezone')}: {timing.preferredTimezone || browserTimezone()}</span>
+                <span className="min-w-0 text-sm leading-5">{ts('notifications.usingDeviceTimezone')}: {timing.preferredTimezone || browserTimezone()}</span>
                 <button
                   type="button"
                   disabled={busy || !user}
@@ -14990,7 +14992,7 @@ function CurrentCounselCard({
       </article>
       {showDecisionActions ? (
         <>
-          <div className="mt-3 grid gap-2 sm:grid-cols-3">
+          <div className="mt-4 flex flex-col gap-2">
             <CounselAction theme={theme} label={text.trackThisDecision!} onClick={() => onTrackDecision(exchange)} />
             <CounselAction theme={theme} label={text.saveAsReflection!} onClick={() => onDraftReflection(exchange)} />
             <CounselAction theme={theme} label={text.createCounselSummary!} onClick={() => onCreateCounselSummary(exchange)} />
@@ -16361,7 +16363,7 @@ function WisdomCheck({
                 <div className="h-full rounded-full" style={{ width: `${result.readiness}%`, backgroundColor: theme.primary }} />
               </div>
             </div>
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="flex flex-col gap-2">
               <Signal active={!result.hasUrgency} label={ts('labels.paceIsCalmEnough', 'Pace is calm enough')} theme={theme} />
               <Signal
                 active={result.hasCounsel}
@@ -16383,7 +16385,7 @@ function WisdomCheck({
                 ))}
               </ul>
             </div>
-            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="flex flex-col gap-3">
               <div className="rounded-lg border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
                 <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>{ts('labels.watchFor', 'Watch for')}</p>
                 <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>{modeProfile.blindSpots[0]}</p>
