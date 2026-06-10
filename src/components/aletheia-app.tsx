@@ -10839,7 +10839,7 @@ function AccountPersonalizationPanel({
         </div>
       </div>
 
-      <div className="flex flex-col gap-4">
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.05fr)_minmax(320px,0.95fr)]">
         <div className="space-y-3">
           <AccountSettingRow
             icon={Languages}
@@ -11456,7 +11456,7 @@ function TrustCenterCard({ theme, ts }: { theme: ThemeColors; ts: (key: string, 
       </button>
       {open ? (
         <div className="border-t p-4 sm:p-5" style={{ borderColor: theme.borderLight }}>
-          <div className="flex flex-col gap-2">
+          <div className="grid gap-2 sm:grid-cols-2">
             {items.map((item) => (
               <details key={item.label} className="rounded-xl border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
                 <summary className="cursor-pointer text-sm font-semibold" style={{ color: theme.textPrimary }}>{item.label}</summary>
@@ -11472,9 +11472,9 @@ function TrustCenterCard({ theme, ts }: { theme: ThemeColors; ts: (key: string, 
 
 function AccountStat({ label, value, theme }: { label: string; value: string; theme: ThemeColors }) {
   return (
-    <div className="flex items-center justify-between gap-3 rounded-xl border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-      <p className="text-[11px] font-semibold uppercase tracking-[0.1em] leading-4 sm:tracking-[0.14em]" style={{ color: theme.textSecondary }}>{label}</p>
-      <p className="text-[13px] font-semibold leading-none sm:text-sm" style={{ color: theme.textPrimary }}>{value}</p>
+    <div className="rounded-xl border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] leading-4" style={{ color: theme.textSecondary }}>{label}</p>
+      <p className="mt-2 text-[13px] font-semibold leading-none sm:text-sm" style={{ color: theme.textPrimary }}>{value}</p>
     </div>
   );
 }
@@ -12051,9 +12051,9 @@ function ManualContextPanel({
             </div>
           </div>
 
-          <div className="mt-4 flex flex-col gap-3">
+          <div className="mt-4 grid gap-3 2xl:grid-cols-[1.15fr_0.85fr]">
             <div className="rounded-[1.3rem] border p-4 sm:p-5" style={{ borderColor: theme.borderMedium, backgroundColor: draft.useInAnswers ? theme.activeBg : theme.bgCard }}>
-              <div className="flex flex-col gap-3">
+              <div className="grid gap-3 sm:grid-cols-3">
                 <div className="rounded-xl border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
                   <p className="text-[11px] font-semibold uppercase tracking-[0.1em] sm:tracking-[0.14em]" style={{ color: theme.accentGold }}>{vaultStateLabel}</p>
                   <p className="mt-2 text-2xl font-semibold" style={{ color: theme.textPrimary }}>
@@ -12063,7 +12063,7 @@ function ManualContextPanel({
                     {activeContextSections === 1 ? manualCopy.activeArea : manualCopy.activeAreas}
                   </p>
                 </div>
-                <div className="rounded-xl border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
+                <div className="rounded-xl border p-3 sm:col-span-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
                   <p className="text-[11px] font-semibold uppercase tracking-[0.1em] sm:tracking-[0.14em]" style={{ color: theme.accentGold }}>{ts('labels.enoughProfile')}</p>
                   <p className="mt-2 text-sm leading-6" style={{ color: theme.textPrimary }}>
                     {enoughProfileItems.length ? enoughProfileItems.join(", ") : ts('labels.enoughProfileEmpty')}
@@ -12135,7 +12135,7 @@ function ManualContextPanel({
             className="space-y-4"
             onSubmit={handleManualContextSubmit}
           >
-            <div className="flex flex-col gap-3">
+            <div className="grid gap-3 2xl:grid-cols-[0.88fr_1.12fr]">
               <div className="space-y-3">
                 <div className="rounded-[1.2rem] border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
                   <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
@@ -12154,7 +12154,7 @@ function ManualContextPanel({
                       {manualCopy.allowContextPrompt}
                     </label>
                   </div>
-                  <div className="mt-4 flex flex-col gap-3">
+                  <div className="mt-4 grid gap-3 lg:grid-cols-[0.95fr_1.05fr]">
                     <label className="block rounded-xl border p-3 text-xs font-semibold uppercase tracking-[0.08em] sm:tracking-[0.12em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
                       {ts('labels.guidanceRegion')}
                       <select
@@ -13326,7 +13326,7 @@ function NotificationPanel({
                 {ts('notifications.timezone')}
               </p>
               <div className="mt-2 flex min-h-10 items-center justify-between gap-3 rounded-md border px-3 py-2" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
-                <span className="min-w-0 text-sm leading-5">{ts('notifications.usingDeviceTimezone')}: {timing.preferredTimezone || browserTimezone()}</span>
+                <span className="min-w-0 break-words text-sm leading-5">{ts('notifications.usingDeviceTimezone')}: {timing.preferredTimezone || browserTimezone()}</span>
                 <button
                   type="button"
                   disabled={busy || !user}
@@ -14992,7 +14992,7 @@ function CurrentCounselCard({
       </article>
       {showDecisionActions ? (
         <>
-          <div className="mt-4 flex flex-col gap-2">
+          <div className="mt-3 grid gap-2 sm:grid-cols-3">
             <CounselAction theme={theme} label={text.trackThisDecision!} onClick={() => onTrackDecision(exchange)} />
             <CounselAction theme={theme} label={text.saveAsReflection!} onClick={() => onDraftReflection(exchange)} />
             <CounselAction theme={theme} label={text.createCounselSummary!} onClick={() => onCreateCounselSummary(exchange)} />
@@ -16363,7 +16363,7 @@ function WisdomCheck({
                 <div className="h-full rounded-full" style={{ width: `${result.readiness}%`, backgroundColor: theme.primary }} />
               </div>
             </div>
-            <div className="flex flex-col gap-2">
+            <div className="grid gap-3 sm:grid-cols-2">
               <Signal active={!result.hasUrgency} label={ts('labels.paceIsCalmEnough', 'Pace is calm enough')} theme={theme} />
               <Signal
                 active={result.hasCounsel}
@@ -16385,7 +16385,7 @@ function WisdomCheck({
                 ))}
               </ul>
             </div>
-              <div className="flex flex-col gap-3">
+            <div className="grid gap-3 sm:grid-cols-2">
               <div className="rounded-lg border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
                 <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>{ts('labels.watchFor', 'Watch for')}</p>
                 <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>{modeProfile.blindSpots[0]}</p>
