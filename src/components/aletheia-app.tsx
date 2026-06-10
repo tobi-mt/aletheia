@@ -4605,8 +4605,20 @@ export function AletheiaApp() {
     document.documentElement.style.setProperty("--aletheia-primary", theme.primary);
   }, [resolvedTheme, theme.bgMain, theme.bgNav, theme.bgNavBorder, theme.primary]);
 
+  async function readJsonOrFallback<T>(response: Response | null, fallback: T): Promise<T> {
+    if (!response || !response.ok) {
+      return fallback;
+    }
+
+    try {
+      return (await response.json()) as T;
+    } catch {
+      return fallback;
+    }
+  }
+
   const loadSignedInWorkspace = useCallback(async () => {
-    const [chatResponse, journalResponse, notificationResponse, decisionsResponse, counselResponse, rulesResponse, preferencesResponse, contextResponse] = await Promise.all([
+    const [chatResponse, journalResponse, notificationResponse, decisionsResponse, counselResponse, rulesResponse, preferencesResponse, contextResponse] = await Promise.allSettled([
       fetch("/api/chat"),
       fetch("/api/journal"),
       fetch("/api/notifications/status"),
@@ -4616,9 +4628,23 @@ export function AletheiaApp() {
       fetch("/api/preferences"),
       fetch("/api/context"),
     ]);
-    const chatData = (await chatResponse.json()) as { messages?: ChatMessage[] };
-    const journalData = (await journalResponse.json()) as { entries?: JournalEntry[] };
-    const notificationData = (await notificationResponse.json()) as {
+    const chatData = await readJsonOrFallback(
+      chatResponse.status === "fulfilled" ? chatResponse.value : null,
+      { messages: [] as ChatMessage[] }
+    );
+    const journalData = await readJsonOrFallback(
+      journalResponse.status === "fulfilled" ? journalResponse.value : null,
+      { entries: [] as JournalEntry[] }
+    );
+    const notificationData = await readJsonOrFallback(
+      notificationResponse.status === "fulfilled" ? notificationResponse.value : null,
+      {
+        configured: false,
+        enabled: false,
+        timingConfigured: false,
+        hasExplicitTiming: false,
+      }
+    ) as {
       configured?: boolean;
       enabled?: boolean;
       timingConfigured?: boolean;
@@ -4628,15 +4654,30 @@ export function AletheiaApp() {
       timezoneMode?: NotificationTiming["timezoneMode"];
       deliveryStrategy?: NotificationTiming["deliveryStrategy"];
     };
-    const decisionsData = (await decisionsResponse.json()) as {
+    const decisionsData = await readJsonOrFallback(
+      decisionsResponse.status === "fulfilled" ? decisionsResponse.value : null,
+      { decisions: [] as WisdomDecision[], events: [] as DecisionEvent[] }
+    ) as {
       decisions?: WisdomDecision[];
       events?: DecisionEvent[];
       insight?: TimelineInsight;
     };
-    const counselData = (await counselResponse.json()) as { contacts?: CounselContact[] };
-    const rulesData = (await rulesResponse.json()) as { rules?: RuleOfLife[] };
-    const preferencesData = (await preferencesResponse.json()) as { preferences?: UserPreferences };
-    const contextData = (await contextResponse.json()) as { context?: ManualContextProfile };
+    const counselData = await readJsonOrFallback(
+      counselResponse.status === "fulfilled" ? counselResponse.value : null,
+      { contacts: [] as CounselContact[] }
+    );
+    const rulesData = await readJsonOrFallback(
+      rulesResponse.status === "fulfilled" ? rulesResponse.value : null,
+      { rules: [] as RuleOfLife[] }
+    );
+    const preferencesData = await readJsonOrFallback(
+      preferencesResponse.status === "fulfilled" ? preferencesResponse.value : null,
+      { preferences: defaultPreferences }
+    );
+    const contextData = await readJsonOrFallback(
+      contextResponse.status === "fulfilled" ? contextResponse.value : null,
+      { context: defaultManualContext }
+    );
 
     setAuthStatus("signed-in");
     if (chatData.messages?.length) {
@@ -4791,7 +4832,10 @@ export function AletheiaApp() {
 
       if (data.user) {
         setUser(data.user);
-        await loadSignedInWorkspace();
+        setAuthStatus("signed-in");
+        await loadSignedInWorkspace().catch((workspaceError) => {
+          console.error("Workspace hydration on session restore failed:", workspaceError);
+        });
         const firstName = data.user.name?.split(" ")[0] || data.user.email.split("@")[0];
         const signedInMessage =
           params.get("auth") === "google_new"
@@ -6323,13 +6367,16 @@ export function AletheiaApp() {
       }
       setAuthPassword("");
       setUser(data.user);
-      await loadSignedInWorkspace();
+      setAuthStatus("signed-in");
       const firstName = data.user.name?.split(" ")[0] || data.user.email.split("@")[0];
       const successMessage =
         data.welcomeMessage ??
         (authMode === "register"
           ? `Welcome to Aletheia, ${firstName}. Your account is ready and sync is active.`
           : `Welcome back, ${firstName}. Your Aletheia memory is ready.`);
+      await loadSignedInWorkspace().catch((workspaceError) => {
+        console.error("Workspace hydration after auth failed:", workspaceError);
+      });
       setStatusMessage(successMessage);
       setAuthNotice(successMessage);
       announceWorkflow(authMode === "register" ? ts('notifications.accountCreated') : ts('notifications.signedIn'), successMessage, "success");
@@ -6413,7 +6460,7 @@ export function AletheiaApp() {
     announceWorkflow(ts('notifications.openingGoogle'), ts('notifications.openingGoogleBody'), "info");
     try {
       await authSignIn("google", {
-        redirectTo: "/api/auth/oauth/complete?next=%2F%3Fauth%3Dgoogle_success%26view%3Daccount",
+        callbackUrl: "/api/auth/oauth/complete?next=%2F%3Fauth%3Dgoogle_success%26view%3Daccount",
       });
     } catch (error) {
       const message = error instanceof Error
@@ -8564,6 +8611,80 @@ function ModeLensCard({ item, active, onClick, theme }: { item: (typeof modes)[n
   );
 }
 
+function SelectionRailCard({
+  icon: Icon,
+  title,
+  body,
+  active,
+  onClick,
+  theme,
+  status,
+  className = "",
+}: {
+  icon: typeof PiggyBank;
+  title: string;
+  body: string;
+  active: boolean;
+  onClick: () => void;
+  theme: ThemeColors;
+  status?: string;
+  className?: string;
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={active}
+      onClick={onClick}
+      className={`premium-tap-card flex min-h-24 w-[12.75rem] shrink-0 snap-start flex-col justify-between rounded-xl border p-2.5 text-left shadow-sm transition hover:-translate-y-0.5 sm:w-[13.5rem] ${className}`}
+      style={{
+        borderColor: active ? theme.primary : theme.borderLight,
+        backgroundColor: active ? theme.primary : theme.bgCard,
+        color: active ? theme.textOnPrimary : theme.textPrimary,
+        boxShadow: active ? "0 12px 26px rgba(7, 10, 8, 0.16)" : "0 6px 14px rgba(7, 10, 8, 0.05)",
+      }}
+    >
+      <span className="flex items-start justify-between gap-3">
+        <span
+          className="grid size-8 shrink-0 place-items-center rounded-md"
+          style={{
+            backgroundColor: active ? "rgba(255,255,255,0.14)" : theme.bgInput,
+            color: active ? theme.textOnPrimary : theme.textPrimary,
+          }}
+        >
+          <Icon size={16} />
+        </span>
+        {status ? (
+          <span
+            className="grid size-7 place-items-center rounded-full border text-[10px] font-semibold uppercase tracking-[0.08em]"
+            style={{
+              borderColor: active ? "rgba(255,255,255,0.32)" : theme.borderLight,
+              color: active ? theme.textOnPrimary : theme.textMuted,
+              backgroundColor: active ? "rgba(255,255,255,0.1)" : "transparent",
+            }}
+          >
+            {status}
+          </span>
+        ) : (
+          <span
+            className="grid size-7 place-items-center rounded-full border"
+            style={{
+              borderColor: active ? "rgba(255,255,255,0.32)" : theme.borderLight,
+              color: active ? theme.textOnPrimary : theme.textMuted,
+              backgroundColor: active ? "rgba(255,255,255,0.1)" : "transparent",
+            }}
+          >
+            {active ? <Check size={14} /> : <span className="size-1.5 rounded-full" style={{ backgroundColor: theme.borderMedium }} />}
+          </span>
+        )}
+      </span>
+      <span className="mt-2 min-w-0">
+        <span className="block text-sm font-semibold">{title}</span>
+        <span className="mt-1 block line-clamp-2 text-[11px] leading-4" style={{ color: active ? theme.textOnPrimary : theme.textSecondary, opacity: active ? 0.92 : 1 }}>{body}</span>
+      </span>
+    </button>
+  );
+}
+
 function WorkflowNotice({
   notice,
   onClose,
@@ -8922,23 +9043,15 @@ function OnboardingModal({
           <section ref={modeSectionRef} tabIndex={-1} className="scroll-mt-4 outline-none">
             <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{ts('labels.setupStepMode', 'Mode')}</p>
             <p className="mt-1 text-sm font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.whatBringsYou', 'What brings you here?')}</p>
-            <div className="mt-2 grid min-w-0 grid-cols-2 gap-2">
+            <div className="mt-2 flex min-w-0 snap-x gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
               {modeCards.map((item) => (
-                <button
-                  type="button"
+                <ModeLensCard
                   key={item.label}
+                  item={item}
+                  active={mode === item.label}
                   onClick={() => onModeChange(item.label)}
-                  className="premium-tap-card flex min-w-0 items-start gap-2 rounded-lg border p-3 text-left transition"
-                  style={mode === item.label
-                    ? { borderColor: theme.primary, backgroundColor: theme.primary, color: theme.textOnPrimary }
-                    : { borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
-                >
-                  <item.icon className="mt-0.5 shrink-0" size={16} style={{ color: mode === item.label ? 'rgba(255, 255, 255, 0.95)' : theme.textPrimary }} />
-                  <span className="min-w-0">
-                    <span className="block text-sm font-semibold">{item.displayLabel ?? item.label}</span>
-                    <span className="mt-1 line-clamp-2 block text-xs leading-5 opacity-85 break-words">{item.copy}</span>
-                  </span>
-                </button>
+                  theme={theme}
+                />
               ))}
             </div>
           </section>
@@ -9053,25 +9166,21 @@ function OnboardingModal({
           <section ref={privacySectionRef} tabIndex={-1} className="scroll-mt-4 rounded-lg border p-3 outline-none" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
             <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{ts('labels.setupStepPrivacy', 'Privacy')}</p>
             <h3 className="mt-1 text-sm font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.privacyLevelTitle', 'Choose how personal Aletheia should feel at first.')}</h3>
-            <div className="mt-3 grid gap-2 sm:grid-cols-3">
+            <div className="mt-3 flex min-w-0 snap-x gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
               {privacyOptions.map((option) => {
                 const active = privacyLevel === option.key;
                 return (
-                  <button
+                  <SelectionRailCard
                     key={option.key}
-                    type="button"
+                    icon={ShieldCheck}
+                    title={option.label}
+                    body={option.body}
+                    active={active}
                     onClick={() => setPrivacyLevel(option.key)}
-                    className="rounded-md border p-3 text-left transition"
-                    style={{
-                      borderColor: active ? theme.accentGold : theme.borderMedium,
-                      backgroundColor: active ? theme.activeBg : theme.bgInput,
-                      color: theme.textPrimary,
-                    }}
-                    aria-pressed={active}
-                  >
-                    <span className="block text-sm font-semibold">{option.label}</span>
-                    <span className="mt-1 block text-xs leading-5" style={{ color: theme.textSecondary }}>{option.body}</span>
-                  </button>
+                    theme={theme}
+                    status={active ? ts('labels.selected', 'Selected') : undefined}
+                    className="w-[11.75rem] sm:w-[12.5rem]"
+                  />
                 );
               })}
             </div>
@@ -12979,23 +13088,25 @@ function AuthPanel({
         </div>
       ) : null}
       <div className="grid gap-4 p-4 sm:p-5">
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
+          <div className="flex min-w-0 snap-x gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
+            <SelectionRailCard
+              icon={Mail}
+              title={ts('auth.signIn')}
+              body={ts('auth.signInForSync')}
+              active={authMode === "login"}
               onClick={() => setAuthMode("login")}
-              className="h-10 rounded-full px-4 text-sm font-semibold"
-              style={{ backgroundColor: authMode === "login" ? theme.primary : theme.bgInput, color: authMode === "login" ? theme.textOnPrimary : theme.textPrimary }}
-            >
-              {ts('auth.signIn')}
-            </button>
-            <button
-              type="button"
+              theme={theme}
+              className="w-[11.75rem]"
+            />
+            <SelectionRailCard
+              icon={Users}
+              title={ts('auth.createNewAccount')}
+              body={ts('auth.createAccountBody', 'Create a synced Aletheia account.')}
+              active={authMode === "register"}
               onClick={() => setAuthMode("register")}
-              className="h-10 rounded-full border px-4 text-sm font-semibold"
-              style={{ borderColor: theme.borderMedium, backgroundColor: authMode === "register" ? theme.activeBg : theme.bgInput, color: theme.textPrimary }}
-            >
-              {ts('auth.createNewAccount')}
-            </button>
+              theme={theme}
+              className="w-[11.75rem]"
+            />
           </div>
           <div className="grid gap-3">
             {googleAuthAvailable ? (
