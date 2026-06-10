@@ -8637,7 +8637,7 @@ function SelectionRailCard({
       type="button"
       aria-pressed={active}
       onClick={onClick}
-      className={`premium-tap-card flex min-h-24 ${stretch ? "w-full" : "w-[12.75rem] shrink-0 snap-start sm:w-[13.5rem]"} flex-col justify-between rounded-xl border p-2.5 sm:p-3 text-left shadow-sm transition hover:-translate-y-0.5 ${className}`}
+      className={`premium-tap-card flex min-w-0 ${stretch ? "min-h-[4.75rem] w-full items-start gap-3 rounded-xl p-3 sm:p-3.5" : "min-h-24 w-[12.75rem] shrink-0 snap-start flex-col justify-between rounded-xl p-2.5 sm:w-[13.5rem] sm:p-3"} border text-left shadow-sm transition hover:-translate-y-0.5 ${className}`}
       style={{
         borderColor: active ? theme.primary : theme.borderLight,
         backgroundColor: active ? theme.primary : theme.bgCard,
@@ -8645,44 +8645,87 @@ function SelectionRailCard({
         boxShadow: active ? "0 12px 26px rgba(7, 10, 8, 0.16)" : "0 6px 14px rgba(7, 10, 8, 0.05)",
       }}
     >
-      <span className="flex min-w-0 items-start justify-between gap-3">
-        <span
-          className="grid size-7 shrink-0 place-items-center rounded-md sm:size-8"
-          style={{
-            backgroundColor: active ? "rgba(255,255,255,0.14)" : theme.bgInput,
-            color: active ? theme.textOnPrimary : theme.textPrimary,
-          }}
-        >
-          <Icon size={16} />
-        </span>
-        {status ? (
+      {stretch ? (
+        <>
           <span
-            className="inline-flex shrink-0 items-center rounded-full border px-1.5 py-1 text-[10px] font-semibold uppercase tracking-[0.06em] sm:px-2 sm:tracking-[0.08em]"
+            className="grid size-9 shrink-0 place-items-center rounded-lg sm:size-10"
             style={{
-              borderColor: active ? "rgba(255,255,255,0.32)" : theme.borderLight,
-              color: active ? theme.textOnPrimary : theme.textSecondary,
-              backgroundColor: active ? "rgba(255,255,255,0.12)" : theme.bgCardElevated,
+              backgroundColor: active ? "rgba(255,255,255,0.14)" : theme.bgInput,
+              color: active ? theme.textOnPrimary : theme.textPrimary,
             }}
           >
-            {status}
+            <Icon size={17} />
           </span>
-        ) : (
-          <span
-            className="grid size-6 place-items-center rounded-full border sm:size-7"
-            style={{
-              borderColor: active ? "rgba(255,255,255,0.32)" : theme.borderLight,
-              color: active ? theme.textOnPrimary : theme.textMuted,
-              backgroundColor: active ? "rgba(255,255,255,0.1)" : "transparent",
-            }}
-          >
-            {active ? <Check size={14} /> : <span className="size-1.5 rounded-full" style={{ backgroundColor: theme.borderMedium }} />}
+          <span className="min-w-0 flex-1">
+            <span className="block text-[13px] font-semibold leading-5 sm:text-sm">{title}</span>
+            <span className="mt-1 block text-xs leading-5" style={{ color: active ? theme.textOnPrimary : theme.textSecondary, opacity: active ? 0.92 : 1 }}>{body}</span>
           </span>
-        )}
-      </span>
-      <span className="mt-2 min-w-0">
-        <span className="block text-[13px] font-semibold leading-5 sm:text-sm">{title}</span>
-        <span className="mt-1 block break-words text-xs leading-5" style={{ color: active ? theme.textOnPrimary : theme.textSecondary, opacity: active ? 0.92 : 1 }}>{body}</span>
-      </span>
+          {status ? (
+            <span
+              className="inline-flex shrink-0 items-center rounded-full border px-1.5 py-1 text-[10px] font-semibold uppercase tracking-[0.06em] sm:px-2 sm:tracking-[0.08em]"
+              style={{
+                borderColor: active ? "rgba(255,255,255,0.32)" : theme.borderLight,
+                color: active ? theme.textOnPrimary : theme.textSecondary,
+                backgroundColor: active ? "rgba(255,255,255,0.12)" : theme.bgCardElevated,
+              }}
+            >
+              {status}
+            </span>
+          ) : (
+            <span
+              className="grid size-6 shrink-0 place-items-center rounded-full border sm:size-7"
+              style={{
+                borderColor: active ? "rgba(255,255,255,0.32)" : theme.borderLight,
+                color: active ? theme.textOnPrimary : theme.textMuted,
+                backgroundColor: active ? "rgba(255,255,255,0.1)" : "transparent",
+              }}
+            >
+              {active ? <Check size={14} /> : <span className="size-1.5 rounded-full" style={{ backgroundColor: theme.borderMedium }} />}
+            </span>
+          )}
+        </>
+      ) : (
+        <>
+          <span className="flex min-w-0 items-start justify-between gap-3">
+            <span
+              className="grid size-7 shrink-0 place-items-center rounded-md sm:size-8"
+              style={{
+                backgroundColor: active ? "rgba(255,255,255,0.14)" : theme.bgInput,
+                color: active ? theme.textOnPrimary : theme.textPrimary,
+              }}
+            >
+              <Icon size={16} />
+            </span>
+            {status ? (
+              <span
+                className="inline-flex shrink-0 items-center rounded-full border px-1.5 py-1 text-[10px] font-semibold uppercase tracking-[0.06em] sm:px-2 sm:tracking-[0.08em]"
+                style={{
+                  borderColor: active ? "rgba(255,255,255,0.32)" : theme.borderLight,
+                  color: active ? theme.textOnPrimary : theme.textSecondary,
+                  backgroundColor: active ? "rgba(255,255,255,0.12)" : theme.bgCardElevated,
+                }}
+              >
+                {status}
+              </span>
+            ) : (
+              <span
+                className="grid size-6 place-items-center rounded-full border sm:size-7"
+                style={{
+                  borderColor: active ? "rgba(255,255,255,0.32)" : theme.borderLight,
+                  color: active ? theme.textOnPrimary : theme.textMuted,
+                  backgroundColor: active ? "rgba(255,255,255,0.1)" : "transparent",
+                }}
+              >
+                {active ? <Check size={14} /> : <span className="size-1.5 rounded-full" style={{ backgroundColor: theme.borderMedium }} />}
+              </span>
+            )}
+          </span>
+          <span className="mt-2 min-w-0">
+            <span className="block text-[13px] font-semibold leading-5 sm:text-sm">{title}</span>
+            <span className="mt-1 block text-xs leading-5" style={{ color: active ? theme.textOnPrimary : theme.textSecondary, opacity: active ? 0.92 : 1 }}>{body}</span>
+          </span>
+        </>
+      )}
     </button>
   );
 }
@@ -8709,7 +8752,7 @@ function RailSummaryPill({
       <p className="text-[10px] font-semibold uppercase tracking-[0.1em] leading-4 sm:tracking-[0.14em]" style={{ color: theme.textSecondary }}>
         {label}
       </p>
-      <p className="mt-1 break-words text-[13px] font-semibold leading-5 sm:text-sm" style={{ color: active ? theme.textPrimary : theme.textSecondary }}>
+      <p className="mt-1 text-[13px] font-semibold leading-5 sm:text-sm" style={{ color: active ? theme.textPrimary : theme.textSecondary }}>
         {value}
       </p>
     </div>
@@ -9730,7 +9773,7 @@ function ChoiceCardButton({
       </span>
       <span className="min-w-0 flex-1">
         <span className="block text-[13px] font-semibold leading-5 sm:text-sm">{title}</span>
-        <span className="mt-1 block break-words text-xs leading-5" style={{ color: theme.textSecondary }}>{body}</span>
+        <span className="mt-1 block text-xs leading-5" style={{ color: theme.textSecondary }}>{body}</span>
         {status ? (
           <span className="mt-2 inline-flex w-fit items-center rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: active ? theme.accentGold : theme.borderLight, backgroundColor: active ? theme.activeBg : theme.bgCardElevated, color: active ? theme.accentGold : theme.textSecondary }}>
             {status}
@@ -11155,7 +11198,7 @@ function FocusIntentionsCard({
           {selected.length}/3 {ts('labels.selected', 'selected')}
         </span>
       </div>
-      <div className="grid gap-2 sm:grid-cols-2">
+      <div className="flex flex-col gap-2">
         {options.map((option) => {
           const active = selectedSet.has(option.key);
           return (
@@ -11755,7 +11798,7 @@ function ManualContextPanel({
     activeKey: T,
     onSelect: (key: T) => void
   ) => (
-    <div className="grid gap-2 sm:grid-cols-2">
+    <div className="flex flex-col gap-2">
       {cards.map((card) => {
         return (
           <ChoiceCardButton
@@ -12039,7 +12082,7 @@ function ManualContextPanel({
                   <p className="mt-2 text-lg font-semibold" style={{ color: theme.textPrimary }}>{ts('manualContext.quickAddHeadline')}</p>
                 </div>
               </div>
-              <div className="mt-4 grid gap-2 min-[380px]:grid-cols-2">
+              <div className="mt-4 flex flex-col gap-2">
                 {quickDetailOptions.map((option) => {
                   return (
                     <SelectionRailCard
@@ -12140,7 +12183,7 @@ function ManualContextPanel({
                     <p className="text-xs font-semibold uppercase tracking-[0.12em] sm:tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('manualContext.answerUseEyebrow')}</p>
                     <p className="mt-2 text-lg font-semibold" style={{ color: theme.textPrimary }}>{ts('manualContext.answerUseTitle')}</p>
                   </div>
-                  <div className="mt-4 grid gap-3 min-[380px]:grid-cols-2 lg:grid-cols-2">
+                  <div className="mt-4 flex flex-col gap-3">
                     <ContextUseToggle
                       icon={PiggyBank}
                       label={manualCopy.useMoney}
