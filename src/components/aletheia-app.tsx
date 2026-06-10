@@ -8620,6 +8620,7 @@ function SelectionRailCard({
   theme,
   status,
   className = "",
+  stretch = false,
 }: {
   icon: typeof PiggyBank;
   title: string;
@@ -8629,13 +8630,14 @@ function SelectionRailCard({
   theme: ThemeColors;
   status?: string;
   className?: string;
+  stretch?: boolean;
 }) {
   return (
     <button
       type="button"
       aria-pressed={active}
       onClick={onClick}
-      className={`premium-tap-card flex min-h-24 w-[12.75rem] shrink-0 snap-start flex-col justify-between rounded-xl border p-2.5 text-left shadow-sm transition hover:-translate-y-0.5 sm:w-[13.5rem] ${className}`}
+      className={`premium-tap-card flex min-h-24 ${stretch ? "w-full" : "w-[12.75rem] shrink-0 snap-start sm:w-[13.5rem]"} flex-col justify-between rounded-xl border p-2.5 text-left shadow-sm transition hover:-translate-y-0.5 ${className}`}
       style={{
         borderColor: active ? theme.primary : theme.borderLight,
         backgroundColor: active ? theme.primary : theme.bgCard,
@@ -8677,11 +8679,40 @@ function SelectionRailCard({
           </span>
         )}
       </span>
-      <span className="mt-2 min-w-0">
+        <span className="mt-2 min-w-0">
         <span className="block text-sm font-semibold">{title}</span>
         <span className="mt-1 block line-clamp-2 text-[11px] leading-4" style={{ color: active ? theme.textOnPrimary : theme.textSecondary, opacity: active ? 0.92 : 1 }}>{body}</span>
       </span>
     </button>
+  );
+}
+
+function RailSummaryPill({
+  label,
+  value,
+  active = false,
+  theme,
+}: {
+  label: string;
+  value: string;
+  active?: boolean;
+  theme: ThemeColors;
+}) {
+  return (
+    <div
+      className="min-w-0 rounded-xl border px-3 py-2.5 shadow-sm"
+      style={{
+        borderColor: active ? theme.accentLight : theme.borderLight,
+        backgroundColor: active ? theme.bgCardElevated : theme.bgCard,
+      }}
+    >
+      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] leading-4" style={{ color: theme.textSecondary }}>
+        {label}
+      </p>
+      <p className="mt-1 text-[13px] font-semibold leading-5 sm:text-sm" style={{ color: active ? theme.textPrimary : theme.textSecondary }}>
+        {value}
+      </p>
+    </div>
   );
 }
 
@@ -9685,29 +9716,35 @@ function ChoiceCardButton({
     <button
       type="button"
       onClick={onClick}
-      className={`premium-tap-card flex min-w-0 flex-col gap-3 rounded-xl border p-3 text-left transition sm:flex-row sm:items-start sm:justify-between ${className}`}
+      className={`premium-tap-card flex min-h-24 min-w-0 flex-col justify-between rounded-xl border p-2.5 text-left shadow-sm transition hover:-translate-y-0.5 ${className}`}
       style={{
         borderColor: active ? theme.accentGold : theme.borderMedium,
         backgroundColor: active ? theme.activeBg : theme.bgInput,
         color: theme.textPrimary,
-        boxShadow: active ? `0 0 0 1px ${theme.accentGold}` : "none",
+        boxShadow: active ? `0 0 0 1px ${theme.accentGold}` : "0 6px 14px rgba(7, 10, 8, 0.05)",
       }}
       aria-pressed={active}
     >
-      <span className="flex min-w-0 items-start gap-3">
-        <span className="grid size-10 shrink-0 place-items-center rounded-lg border" style={{ borderColor: active ? theme.accentGold : theme.borderLight, backgroundColor: theme.bgCardElevated, color: active ? theme.primary : theme.textSecondary }}>
-          <Icon size={17} />
+      <span className="flex min-w-0 items-start justify-between gap-3">
+        <span className="flex min-w-0 items-start gap-3">
+          <span className="grid size-10 shrink-0 place-items-center rounded-lg border" style={{ borderColor: active ? theme.accentGold : theme.borderLight, backgroundColor: theme.bgCardElevated, color: active ? theme.primary : theme.textSecondary }}>
+            <Icon size={17} />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-semibold leading-5 text-balance">{title}</span>
+            <span className="mt-1 block line-clamp-3 text-xs leading-5" style={{ color: theme.textSecondary }}>{body}</span>
+          </span>
         </span>
-        <span className="min-w-0 flex-1">
-          <span className="block text-sm font-semibold leading-5 text-balance">{title}</span>
-          <span className="mt-1 block line-clamp-3 text-xs leading-5" style={{ color: theme.textSecondary }}>{body}</span>
-        </span>
+        {status ? (
+          <span className="inline-flex w-fit items-center rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] sm:shrink-0" style={{ borderColor: active ? theme.accentGold : theme.borderLight, backgroundColor: active ? theme.primary : theme.bgCardElevated, color: active ? theme.textOnPrimary : theme.textSecondary }}>
+            {status}
+          </span>
+        ) : (
+          <span className="grid size-7 shrink-0 place-items-center rounded-full border" style={{ borderColor: active ? theme.accentGold : theme.borderLight, backgroundColor: active ? theme.primary : "transparent", color: active ? theme.textOnPrimary : theme.textMuted }}>
+            {active ? <Check size={13} /> : <span className="size-1.5 rounded-full" style={{ backgroundColor: theme.borderMedium }} />}
+          </span>
+        )}
       </span>
-      {status ? (
-        <span className="inline-flex w-fit items-center self-start rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] sm:shrink-0" style={{ borderColor: active ? theme.accentGold : theme.borderLight, backgroundColor: active ? theme.primary : theme.bgCardElevated, color: active ? theme.textOnPrimary : theme.textSecondary }}>
-          {status}
-        </span>
-      ) : null}
     </button>
   );
 }
@@ -10102,15 +10139,14 @@ function AccountPanel({
               {user ? `${ts('labels.accountSignedInWith')} ${profileSummary}` : profileSummary}
             </p>
           </div>
-          <div className="flex w-full flex-wrap justify-center gap-x-2 gap-y-1 text-[11px] leading-5 sm:text-xs" style={{ color: theme.textSecondary }}>
-            <span className="font-semibold" style={{ color: theme.textPrimary }}>
-              {user ? ts('labels.accountConnected') : ts('labels.accountLocalOnly')}
-            </span>
-            <span aria-hidden="true">·</span>
+          <div className="grid w-full gap-1 text-[11px] leading-5 sm:text-xs" style={{ color: theme.textSecondary }}>
             <span>
+              <span className="font-semibold" style={{ color: theme.textPrimary }}>
+                {user ? ts('labels.accountConnected') : ts('labels.accountLocalOnly')}
+              </span>
+              {" "}
               {notificationsEnabled ? ts('notifications.deviceSubscribed') : ts('notifications.notificationsOptionalWhenReady')}
             </span>
-            <span aria-hidden="true">·</span>
             <span>
               {user ? ts('labels.accountHistorySynced') : ts('labels.accountHistoryLocal')}
             </span>
@@ -10717,11 +10753,8 @@ function AccountPersonalizationPanel({
   onUpdateProfileAvatar: (avatarUrl: string) => Promise<boolean>;
 }) {
   const bibleOptions = bibleTranslationOptionsForLanguage(preferences.language);
-  const selectedBible = bibleTranslations[preferences.bibleTranslation];
   const selectedVoiceObject = availableVoices.find((voice) => voice.voiceURI === selectedVoice);
   const selectedVoiceLabel = selectedVoiceObject ? voiceLabel(selectedVoiceObject) : ts('labels.deviceDefault', 'Device default');
-  const selectedFocusCount = focusIntentions.length;
-  const selectedFocusPreview = focusIntentions.slice(0, 3).join(" · ");
 
   return (
     <section className="space-y-3">
@@ -10744,28 +10777,24 @@ function AccountPersonalizationPanel({
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            <span className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold whitespace-nowrap" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textPrimary }}>
-              {languages[preferences.language]?.nativeName ?? preferences.language}
-            </span>
-            <span className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold whitespace-nowrap" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-              {selectedBible?.label ?? preferences.bibleTranslation}
-            </span>
-            <span className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold whitespace-nowrap" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-              {ts(`theme.${themePreference}`, themePreference)}
-            </span>
-            <span className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold whitespace-nowrap" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-              {preferences.voiceEnabled ? selectedVoiceLabel : ts('labels.voiceInputDisabled', 'Voice input off')}
-            </span>
-            <span className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold whitespace-nowrap" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: selectedFocusCount ? theme.textPrimary : theme.textSecondary }}>
-              {selectedFocusCount ? `${selectedFocusCount}/3 ${ts('labels.focusIntentions', 'Focus intentions')}` : ts('labels.focusIntentionsHint', 'Focus intentions')}
-            </span>
+          <div className="grid gap-2 sm:grid-cols-3">
+            <RailSummaryPill
+              label={ts('labels.language', 'Language')}
+              value={languages[preferences.language]?.nativeName ?? preferences.language}
+              active
+              theme={theme}
+            />
+            <RailSummaryPill
+              label={ts('labels.theme', 'Theme')}
+              value={ts(`theme.${themePreference}`, themePreference)}
+              theme={theme}
+            />
+            <RailSummaryPill
+              label={ts('labels.voiceInput', 'Voice input')}
+              value={preferences.voiceEnabled ? selectedVoiceLabel : ts('labels.voiceInputDisabled', 'Off')}
+              theme={theme}
+            />
           </div>
-          {selectedFocusPreview ? (
-            <p className="line-clamp-2 rounded-md border px-3 py-2 text-xs leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-              {selectedFocusPreview}
-            </p>
-          ) : null}
         </div>
       </div>
 
@@ -10794,7 +10823,7 @@ function AccountPersonalizationPanel({
             icon={BookOpen}
             label={ts('labels.bibleTranslation', 'Bible translation')}
             body={ts('labels.accountBibleBody', 'Engage scripture in words that speak to you.')}
-            currentValue={selectedBible?.label ?? preferences.bibleTranslation}
+            currentValue={bibleTranslations[preferences.bibleTranslation]?.label ?? preferences.bibleTranslation}
             theme={theme}
             control={(
               <AccountSelect
@@ -10863,12 +10892,12 @@ function AccountPersonalizationPanel({
         <div className="space-y-3">
           <DisclosureSection
             title={ts('labels.focusIntentions', 'Focus intentions')}
-            summary={selectedFocusCount
-              ? `${selectedFocusCount}/3 ${ts('labels.selected', 'selected')} · ${focusIntentions.join(" · ")}`
+            summary={focusIntentions.length
+              ? `${focusIntentions.length}/3 selected`
               : ts('labels.focusIntentionsHint', 'Pick up to three intentions. Aletheia uses these to shape prompt suggestions and guidance emphasis.')}
             eyebrow={ts('labels.accountPersonalizationTitle', 'Personalization')}
             compactCollapsed
-            defaultOpen={selectedFocusCount === 0}
+            defaultOpen={focusIntentions.length === 0}
             showDetailsLabel={ts('showDetails', 'Show details')}
             hideDetailsLabel={ts('hideDetails', 'Hide details')}
             theme={theme}
@@ -11015,58 +11044,32 @@ function VoicePreferenceSelector({
     );
   }
 
-  function renderVoicePreviewButton(voiceURI: string | null) {
-    const isPreviewing = previewingVoiceURI === (voiceURI ?? "default");
-    return (
-      <button
-        type="button"
-        onClick={() => previewVoice(voiceURI)}
-        className="inline-flex h-10 items-center justify-center gap-2 rounded-md border px-3 text-xs font-semibold"
-        style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
-      >
-        {isPreviewing ? <Volume2 size={14} /> : <Play size={14} />}
-        {ts('labels.preview', 'Preview')}
-      </button>
-    );
-  }
-
   return (
     <div className="space-y-3">
       <p className="text-xs leading-5" style={{ color: theme.textSecondary }}>
         {ts('labels.voicePreferenceBody', 'Curated voices from this device. Preview before choosing.')}
       </p>
-      <div className="grid gap-2 sm:grid-cols-2">
-        <div
-          className="min-w-0 rounded-xl border p-3"
-          style={{
-            borderColor: !selectedVoice ? theme.accentGold : theme.borderMedium,
-            backgroundColor: !selectedVoice ? theme.activeBg : theme.bgInput,
-            color: theme.textPrimary,
-            boxShadow: !selectedVoice ? `0 0 0 1px ${theme.accentGold}` : "none",
-          }}
-        >
-          <div className="flex items-start gap-3">
-            <span className="grid size-10 shrink-0 place-items-center rounded-lg border" style={{ borderColor: !selectedVoice ? theme.accentGold : theme.borderLight, backgroundColor: theme.bgCardElevated, color: !selectedVoice ? theme.primary : theme.textSecondary }}>
-              <Volume2 size={17} />
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="break-words text-sm font-semibold leading-5">{ts('labels.deviceDefaultRecommended', 'Device default (recommended)')}</p>
-              <p className="mt-1 text-xs leading-5" style={{ color: theme.textSecondary }}>{ts('labels.deviceVoiceBody', 'Uses the clearest available voice for this device.')}</p>
-            </div>
-          </div>
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            <button type="button" onClick={() => chooseVoice(null)} className="h-10 rounded-md border px-3 text-xs font-semibold" style={{ borderColor: !selectedVoice ? theme.accentGold : theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}>
-              {!selectedVoice ? ts('labels.selected', 'Selected') : ts('labels.useVoice', 'Use')}
-            </button>
-            {renderVoicePreviewButton(null)}
-          </div>
-        </div>
-        {voiceChoices.map((voice) => {
+      <div className="space-y-2">
+        {[
+          {
+            key: "device-default",
+            voiceURI: null,
+            title: ts('labels.deviceDefaultRecommended', 'Device default (recommended)'),
+            body: ts('labels.deviceVoiceBody', 'Uses the clearest available voice for this device.'),
+          },
+          ...voiceChoices.map((voice) => ({
+            key: voice.voiceURI,
+            voiceURI: voice.voiceURI,
+            title: voice.name,
+            body: `${voice.lang} · ${voice.localService ? ts('labels.offlineVoice', 'Offline') : ts('labels.deviceVoice', 'Device')}`,
+          })),
+        ].map((voice) => {
           const active = selectedVoice === voice.voiceURI;
+          const isPreviewing = previewingVoiceURI === (voice.voiceURI ?? "default");
           return (
             <div
-              key={voice.voiceURI}
-              className="min-w-0 rounded-xl border p-3"
+              key={voice.key}
+              className="rounded-xl border p-3 shadow-sm"
               style={{
                 borderColor: active ? theme.accentGold : theme.borderMedium,
                 backgroundColor: active ? theme.activeBg : theme.bgInput,
@@ -11079,9 +11082,14 @@ function VoicePreferenceSelector({
                   <Volume2 size={17} />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="break-words text-sm font-semibold leading-5">{voice.name}</p>
-                  <p className="mt-1 line-clamp-2 text-xs leading-5" style={{ color: theme.textSecondary }}>
-                    {voice.lang} · {voice.localService ? ts('labels.offlineVoice', 'Offline') : ts('labels.deviceVoice', 'Device')}
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="break-words text-sm font-semibold leading-5">{voice.title}</p>
+                    <span className="inline-flex shrink-0 items-center rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: active ? theme.accentGold : theme.borderLight, backgroundColor: active ? theme.primary : theme.bgCardElevated, color: active ? theme.textOnPrimary : theme.textSecondary }}>
+                      {active ? ts('labels.selected', 'Selected') : ts('labels.useVoice', 'Use')}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-xs leading-5" style={{ color: theme.textSecondary }}>
+                    {voice.body}
                   </p>
                 </div>
               </div>
@@ -11095,7 +11103,15 @@ function VoicePreferenceSelector({
                 >
                   {active ? ts('labels.selected', 'Selected') : ts('labels.useVoice', 'Use')}
                 </button>
-                {renderVoicePreviewButton(voice.voiceURI)}
+                <button
+                  type="button"
+                  onClick={() => previewVoice(voice.voiceURI)}
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-md border px-3 text-xs font-semibold"
+                  style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
+                >
+                  {isPreviewing ? <Volume2 size={14} /> : <Play size={14} />}
+                  {ts('labels.preview', 'Preview')}
+                </button>
               </div>
             </div>
           );
@@ -12027,7 +12043,7 @@ function ManualContextPanel({
                 <div className="rounded-xl border p-3 sm:col-span-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
                   <p className="text-[11px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{ts('labels.enoughProfile')}</p>
                   <p className="mt-2 text-sm leading-6" style={{ color: theme.textPrimary }}>
-                    {enoughProfileItems.length ? enoughProfileItems.join(" · ") : ts('labels.enoughProfileEmpty')}
+                    {enoughProfileItems.length ? enoughProfileItems.join(", ") : ts('labels.enoughProfileEmpty')}
                   </p>
                 </div>
               </div>
@@ -12642,17 +12658,6 @@ function AccountStatusCard({
             </button>
           ) : null}
         </div>
-        <div className="mt-4 flex flex-wrap gap-2">
-          <span className="inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold whitespace-nowrap" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: signedIn ? theme.textPrimary : theme.textSecondary }}>
-            {signedIn ? ts('labels.active') : ts('auth.guestOnly')}
-          </span>
-          <span className="inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold whitespace-nowrap" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-            {signedIn ? ts('labels.thisSession') : ts('labels.notSynced')}
-          </span>
-          <span className="inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold whitespace-nowrap" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: notificationsEnabled ? theme.textPrimary : theme.textSecondary }}>
-            {notificationHealth}
-          </span>
-        </div>
       </div>
       <div className="grid gap-3 p-4 sm:grid-cols-3 sm:p-5">
         <AccountSignal label={ts('labels.sync')} value={signedIn ? ts('labels.active') : ts('auth.guestOnly')} active={signedIn} theme={theme} />
@@ -12988,9 +12993,10 @@ function AvatarStudioCard({
 
 function AccountSignal({ label, value, active, theme }: { label: string; value: string; active: boolean; theme: ThemeColors }) {
   return (
-    <div className="rounded-lg border p-3" style={{ 
-      borderColor: active ? theme.accentLight : theme.borderLight, 
-      backgroundColor: active ? theme.bgCardElevated : theme.bgCard 
+    <div className="rounded-xl border p-3 shadow-sm" style={{
+      borderColor: active ? theme.accentLight : theme.borderLight,
+      backgroundColor: active ? theme.bgCardElevated : theme.bgCard,
+      boxShadow: active ? "0 10px 22px rgba(7, 10, 8, 0.06)" : "0 6px 14px rgba(7, 10, 8, 0.04)",
     }}>
       <p className="text-[11px] font-semibold uppercase tracking-[0.14em] leading-4" style={{ color: theme.textSecondary }}>{label}</p>
       <p className="mt-2 text-[13px] font-semibold leading-5 sm:text-sm" style={{ color: theme.textPrimary }}>{value}</p>
@@ -13756,11 +13762,9 @@ function CounselInviteModal({
               <p>
                 <span className="font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.status', 'Status')}:</span> {accepted ? ts('status.accepted', 'Accepted') : ts('status.waitingForAcceptance', 'Waiting for acceptance')}
               </p>
-              <div className="flex flex-wrap gap-2 pt-1 text-xs font-semibold uppercase tracking-[0.08em]">
-                {preview.invite.permissions.canViewSummaries ? <span className="rounded-full px-2 py-1" style={{ backgroundColor: theme.bgCard }}>{ts('labels.summariesOnly', 'summaries only')}</span> : null}
-                {preview.invite.permissions.canCommentOnDecisions ? <span className="rounded-full px-2 py-1" style={{ backgroundColor: theme.bgCard }}>{ts('labels.commentsAllowed', 'comments allowed')}</span> : null}
-                {preview.invite.permissions.canReceiveCheckins ? <span className="rounded-full px-2 py-1" style={{ backgroundColor: theme.bgCard }}>{ts('labels.waitingCheckins', 'waiting check-ins')}</span> : null}
-              </div>
+              <p className="pt-1 text-xs leading-5" style={{ color: theme.textSecondary }}>
+                {[preview.invite.permissions.canViewSummaries ? ts('labels.summariesOnly', 'summaries only') : null, preview.invite.permissions.canCommentOnDecisions ? ts('labels.commentsAllowed', 'comments allowed') : null, preview.invite.permissions.canReceiveCheckins ? ts('labels.waitingCheckins', 'waiting check-ins') : null].filter(Boolean).join(', ')}
+              </p>
             </div>
 
             {!accepted ? (
@@ -13778,7 +13782,7 @@ function CounselInviteModal({
                           {(isMode(decision.mode) ? ts(modeTranslationKey(decision.mode), decision.mode) : decision.mode)} · readiness {decision.readiness}/100
                         </p>
                       </div>
-                      <span className="w-fit rounded-full px-2 py-1 text-xs font-semibold" style={{ backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>{decision.status}</span>
+                      <p className="text-xs font-semibold uppercase tracking-[0.08em]" style={{ color: theme.textSecondary }}>{decision.status}</p>
                     </div>
                     <p className="mt-3 whitespace-pre-wrap text-sm leading-6" style={{ color: theme.textSecondary }}>
                       {decision.summary || ts('labels.sharedDecisionSummaryPending', 'The user shared this decision, but a summary has not been generated yet.')}
@@ -14079,25 +14083,22 @@ function PreferencesPanel({
         </div>
         {preferences.voiceEnabled && availableVoices.length > 0 ? (
           <div className="mt-3">
-            <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
+            <p className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
               Reading voice
-              <select
-                value={selectedVoice || ""}
-                onChange={(event) => onVoiceChange(event.target.value || null)}
-                className="mt-2 h-10 w-full rounded-md border px-3 text-sm normal-case tracking-normal outline-none"
-                style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-              >
-                <option value="">{ts('labels.deviceDefaultRecommended', 'Device default (recommended)')}</option>
-                {availableVoices.map((voice) => (
-                  <option key={voice.voiceURI} value={voice.voiceURI}>
-                    {voiceLabel(voice)}
-                  </option>
-                ))}
-              </select>
-              <span className="mt-1 block text-[11px] normal-case leading-4 tracking-normal" style={{ color: theme.textSecondary }}>
-                Aletheia shows only a short curated set of human-sounding device voices. Sound-effect voices are hidden.
-              </span>
-            </label>
+            </p>
+            <div className="mt-2">
+              <VoicePreferenceSelector
+                theme={theme}
+                ts={ts}
+                voices={availableVoices}
+                selectedVoice={selectedVoice}
+                language={preferences.language}
+                onVoiceChange={onVoiceChange}
+              />
+            </div>
+            <span className="mt-1 block text-[11px] normal-case leading-4 tracking-normal" style={{ color: theme.textSecondary }}>
+              Aletheia shows only a short curated set of human-sounding device voices. Sound-effect voices are hidden.
+            </span>
           </div>
         ) : preferences.voiceEnabled ? (
           <p className="mt-3 rounded-md border p-3 text-xs leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
@@ -14360,14 +14361,12 @@ function CompanionPanel({
                   theme={theme}
                 >
                   <div className="text-xs leading-5" style={{ color: theme.textSecondary }}>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-semibold" style={{ color: theme.textPrimary }}>
-                        {isListening ? ts('notifications.voiceInputListening', 'Voice input active') : ts('labels.voiceTranscription', 'Voice transcription')}
-                      </span>
-                      <span className="rounded-full border px-2 py-1 text-[11px] font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-                        {isListening ? ts('labels.listening', 'Listening') : ts('labels.voiceDraftReady', 'Draft ready')}
-                      </span>
-                    </div>
+                    <p className="font-semibold" style={{ color: theme.textPrimary }}>
+                      {isListening ? ts('notifications.voiceInputListening', 'Voice input active') : ts('labels.voiceTranscription', 'Voice transcription')}
+                    </p>
+                    <p className="mt-1 text-xs leading-5" style={{ color: theme.textSecondary }}>
+                      {isListening ? ts('labels.listening', 'Listening') : ts('labels.voiceDraftReady', 'Draft ready')}
+                    </p>
                     <p className="mt-2 whitespace-pre-wrap text-sm leading-6" style={{ color: theme.textPrimary }}>
                       {voiceDraft || (isListening ? ts('notifications.voiceInputListeningBody', 'Speak now. Your words will appear here before you insert them.') : "")}
                     </p>
@@ -14742,13 +14741,12 @@ function ThemeOptionButton({
     <button
       type="button"
       onClick={onClick}
-      className="inline-flex h-11 items-center gap-2 rounded-md px-3 text-xs font-semibold transition"
+      className="flex min-h-12 min-w-0 items-center justify-between gap-3 rounded-xl border px-3 py-2.5 text-left text-xs font-semibold shadow-sm transition hover:-translate-y-0.5"
       style={{
         backgroundColor: active ? activeColor : theme.bgInput,
         color: active ? (color ? '#f8f5e8' : theme.textOnPrimary) : theme.textPrimary,
-        borderWidth: active ? '2px' : '1px',
-        borderStyle: 'solid',
         borderColor: active ? theme.accentGold : theme.borderMedium,
+        boxShadow: active ? `0 0 0 1px ${theme.accentGold}` : "0 6px 14px rgba(7, 10, 8, 0.05)",
       }}
       onMouseEnter={(e) => {
         if (!active) {
@@ -14763,8 +14761,15 @@ function ThemeOptionButton({
         }
       }}
     >
-      <Icon size={14} style={color && !active ? { color } : undefined} />
-      {label}
+      <span className="flex min-w-0 items-center gap-2">
+        <span className="grid size-8 shrink-0 place-items-center rounded-lg border" style={{ borderColor: active ? theme.accentGold : theme.borderLight, backgroundColor: theme.bgCardElevated, color: active ? theme.textOnPrimary : (color || theme.textSecondary) }}>
+          <Icon size={14} style={color && !active ? { color } : undefined} />
+        </span>
+        <span className="min-w-0 break-words leading-5">{label}</span>
+      </span>
+      <span className="grid size-6 shrink-0 place-items-center rounded-full border" style={{ borderColor: active ? theme.accentGold : theme.borderLight, backgroundColor: active ? theme.primary : "transparent", color: active ? theme.textOnPrimary : theme.textMuted }}>
+        {active ? <Check size={12} /> : <span className="size-1.5 rounded-full" style={{ backgroundColor: theme.borderMedium }} />}
+      </span>
     </button>
   );
 }
@@ -16672,18 +16677,7 @@ function GratitudeLensPanel({
   const gratitudeFormationPrompt = (value: GratitudeFormation) => ts(`labels.gratitudeFormationPrompt_${value}`, "What did this help you notice?");
   const gratitudeFilterLabel = (filter: GratitudeFilter) => ts(`labels.gratitudeFilter_${filter}`, filter);
   const gratitudeStickerLabel = (sticker: GratitudeSticker) => ts(`labels.gratitudeSticker_${sticker}`, GRATITUDE_STICKER_MARK[sticker]);
-  const activeOverlayLabels = [
-    visual.showNote ? ts('labels.gratitudeOverlayNote', 'Note') : "",
-    visual.showDate ? ts('labels.gratitudeOverlayDate', 'Date') : "",
-    visual.showPlace ? ts('labels.gratitudeOverlayPlace', 'Place') : "",
-    visual.showSignature ? ts('labels.gratitudeOverlaySignature', 'Aletheia signature') : "",
-  ].filter(Boolean);
-  const activeStyleSummary = [
-    gratitudeFilterLabel(visual.filter),
-    activeOverlayLabels.length ? `${activeOverlayLabels.length} ${ts('labels.gratitudeOverlays', 'overlays')}` : ts('labels.gratitudeNoOverlays', 'no overlays'),
-    visual.stickers.length ? `${visual.stickers.length} ${ts('labels.gratitudeStickers', 'stickers')}` : "",
-    visual.emoji ? ts('labels.gratitudeEmoji', 'emoji') : "",
-  ].filter(Boolean).join(" · ");
+  const activeStyleSummary = gratitudeFilterLabel(visual.filter);
 
   const latestEntry = entries[0];
   const summary = entries.length
@@ -16797,19 +16791,6 @@ function GratitudeLensPanel({
                   style={{ filter: GRATITUDE_FILTER_STYLE[visual.filter] }}
                   unoptimized
                 />
-                {(visual.stickers.length || visual.emoji) ? (
-                  <div className="absolute inset-x-3 bottom-3 flex flex-wrap gap-2">
-                    {[...visual.stickers.map((sticker) => GRATITUDE_STICKER_MARK[sticker]), visual.emoji].filter(Boolean).slice(0, 5).map((item) => (
-                      <span
-                        key={item}
-                        className="rounded-full border px-3 py-1 text-xs font-semibold shadow-sm backdrop-blur"
-                        style={{ borderColor: theme.borderMedium, backgroundColor: "rgba(13, 23, 20, 0.62)", color: "#f8f5e8" }}
-                      >
-                        {item}
-                      </span>
-                    ))}
-                  </div>
-                ) : null}
               </div>
             ) : (
               <button
