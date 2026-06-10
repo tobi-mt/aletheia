@@ -8504,11 +8504,11 @@ function ReadingPlayer({
       aria-label={ts('labels.readingPlayer', 'Reading player')}
     >
       <div className="flex items-center gap-3">
-        <div className="grid size-10 shrink-0 place-items-center rounded-md" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>
+        <span className="grid size-9 shrink-0 place-items-center rounded-lg" style={{ backgroundColor: theme.bgInput, color: theme.primary }}>
           <Volume2 size={18} />
-        </div>
+        </span>
         <div className="min-w-0 flex-1">
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center justify-between gap-2">
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold">{label}</p>
               <p className="truncate text-xs" style={{ color: theme.textSecondary }}>
@@ -8637,7 +8637,7 @@ function SelectionRailCard({
       type="button"
       aria-pressed={active}
       onClick={onClick}
-      className={`premium-tap-card flex min-h-24 ${stretch ? "w-full" : "w-[12.75rem] shrink-0 snap-start sm:w-[13.5rem]"} flex-col justify-between rounded-xl border p-2.5 text-left shadow-sm transition hover:-translate-y-0.5 ${className}`}
+      className={`premium-tap-card flex min-h-24 ${stretch ? "w-full" : "w-[12.75rem] shrink-0 snap-start sm:w-[13.5rem]"} flex-col justify-between rounded-xl border p-2.5 sm:p-3 text-left shadow-sm transition hover:-translate-y-0.5 ${className}`}
       style={{
         borderColor: active ? theme.primary : theme.borderLight,
         backgroundColor: active ? theme.primary : theme.bgCard,
@@ -8645,9 +8645,9 @@ function SelectionRailCard({
         boxShadow: active ? "0 12px 26px rgba(7, 10, 8, 0.16)" : "0 6px 14px rgba(7, 10, 8, 0.05)",
       }}
     >
-      <span className="flex items-start justify-between gap-3">
+      <span className="flex min-w-0 items-start justify-between gap-3">
         <span
-          className="grid size-8 shrink-0 place-items-center rounded-md"
+          className="grid size-7 shrink-0 place-items-center rounded-md sm:size-8"
           style={{
             backgroundColor: active ? "rgba(255,255,255,0.14)" : theme.bgInput,
             color: active ? theme.textOnPrimary : theme.textPrimary,
@@ -8657,18 +8657,18 @@ function SelectionRailCard({
         </span>
         {status ? (
           <span
-            className="grid size-7 place-items-center rounded-full border text-[10px] font-semibold uppercase tracking-[0.08em]"
+            className="inline-flex shrink-0 items-center rounded-full border px-1.5 py-1 text-[10px] font-semibold uppercase tracking-[0.06em] sm:px-2 sm:tracking-[0.08em]"
             style={{
               borderColor: active ? "rgba(255,255,255,0.32)" : theme.borderLight,
-              color: active ? theme.textOnPrimary : theme.textMuted,
-              backgroundColor: active ? "rgba(255,255,255,0.1)" : "transparent",
+              color: active ? theme.textOnPrimary : theme.textSecondary,
+              backgroundColor: active ? "rgba(255,255,255,0.12)" : theme.bgCardElevated,
             }}
           >
             {status}
           </span>
         ) : (
           <span
-            className="grid size-7 place-items-center rounded-full border"
+            className="grid size-6 place-items-center rounded-full border sm:size-7"
             style={{
               borderColor: active ? "rgba(255,255,255,0.32)" : theme.borderLight,
               color: active ? theme.textOnPrimary : theme.textMuted,
@@ -8679,9 +8679,9 @@ function SelectionRailCard({
           </span>
         )}
       </span>
-        <span className="mt-2 min-w-0">
-        <span className="block text-sm font-semibold">{title}</span>
-        <span className="mt-1 block line-clamp-2 text-[11px] leading-4" style={{ color: active ? theme.textOnPrimary : theme.textSecondary, opacity: active ? 0.92 : 1 }}>{body}</span>
+      <span className="mt-2 min-w-0">
+        <span className="block text-[13px] font-semibold leading-5 sm:text-sm">{title}</span>
+        <span className="mt-1 block break-words text-xs leading-5" style={{ color: active ? theme.textOnPrimary : theme.textSecondary, opacity: active ? 0.92 : 1 }}>{body}</span>
       </span>
     </button>
   );
@@ -8706,10 +8706,10 @@ function RailSummaryPill({
         backgroundColor: active ? theme.bgCardElevated : theme.bgCard,
       }}
     >
-      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] leading-4" style={{ color: theme.textSecondary }}>
+      <p className="text-[10px] font-semibold uppercase tracking-[0.1em] leading-4 sm:tracking-[0.14em]" style={{ color: theme.textSecondary }}>
         {label}
       </p>
-      <p className="mt-1 text-[13px] font-semibold leading-5 sm:text-sm" style={{ color: active ? theme.textPrimary : theme.textSecondary }}>
+      <p className="mt-1 break-words text-[13px] font-semibold leading-5 sm:text-sm" style={{ color: active ? theme.textPrimary : theme.textSecondary }}>
         {value}
       </p>
     </div>
@@ -9716,7 +9716,7 @@ function ChoiceCardButton({
     <button
       type="button"
       onClick={onClick}
-      className={`premium-tap-card flex min-h-24 min-w-0 flex-col justify-between rounded-xl border p-2.5 text-left shadow-sm transition hover:-translate-y-0.5 ${className}`}
+      className={`premium-tap-card flex min-h-24 min-w-0 items-start gap-2.5 rounded-xl border p-2.5 sm:gap-3 sm:p-3 text-left shadow-sm transition hover:-translate-y-0.5 ${className}`}
       style={{
         borderColor: active ? theme.accentGold : theme.borderMedium,
         backgroundColor: active ? theme.activeBg : theme.bgInput,
@@ -9725,25 +9725,20 @@ function ChoiceCardButton({
       }}
       aria-pressed={active}
     >
-      <span className="flex min-w-0 items-start justify-between gap-3">
-        <span className="flex min-w-0 items-start gap-3">
-          <span className="grid size-10 shrink-0 place-items-center rounded-lg border" style={{ borderColor: active ? theme.accentGold : theme.borderLight, backgroundColor: theme.bgCardElevated, color: active ? theme.primary : theme.textSecondary }}>
-            <Icon size={17} />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block text-sm font-semibold leading-5 text-balance">{title}</span>
-            <span className="mt-1 block line-clamp-3 text-xs leading-5" style={{ color: theme.textSecondary }}>{body}</span>
-          </span>
-        </span>
+      <span className="grid size-9 shrink-0 place-items-center rounded-lg border sm:size-10" style={{ borderColor: active ? theme.accentGold : theme.borderLight, backgroundColor: theme.bgCardElevated, color: active ? theme.primary : theme.textSecondary }}>
+        <Icon size={17} />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-[13px] font-semibold leading-5 sm:text-sm">{title}</span>
+        <span className="mt-1 block break-words text-xs leading-5" style={{ color: theme.textSecondary }}>{body}</span>
         {status ? (
-          <span className="inline-flex w-fit items-center rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] sm:shrink-0" style={{ borderColor: active ? theme.accentGold : theme.borderLight, backgroundColor: active ? theme.primary : theme.bgCardElevated, color: active ? theme.textOnPrimary : theme.textSecondary }}>
+          <span className="mt-2 inline-flex w-fit items-center rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: active ? theme.accentGold : theme.borderLight, backgroundColor: active ? theme.activeBg : theme.bgCardElevated, color: active ? theme.accentGold : theme.textSecondary }}>
             {status}
           </span>
-        ) : (
-          <span className="grid size-7 shrink-0 place-items-center rounded-full border" style={{ borderColor: active ? theme.accentGold : theme.borderLight, backgroundColor: active ? theme.primary : "transparent", color: active ? theme.textOnPrimary : theme.textMuted }}>
-            {active ? <Check size={13} /> : <span className="size-1.5 rounded-full" style={{ backgroundColor: theme.borderMedium }} />}
-          </span>
-        )}
+        ) : null}
+      </span>
+      <span className="grid size-6 shrink-0 place-items-center rounded-full border sm:size-7" style={{ borderColor: active ? theme.accentGold : theme.borderLight, backgroundColor: active ? theme.primary : "transparent", color: active ? theme.textOnPrimary : theme.textMuted }}>
+        {active ? <Check size={13} /> : <span className="size-1.5 rounded-full" style={{ backgroundColor: theme.borderMedium }} />}
       </span>
     </button>
   );
@@ -9926,7 +9921,7 @@ function DisclosureSection({
           {headerContent ? headerContent : (
             <>
               {eyebrow ? (
-                <span className="block text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{eyebrow}</span>
+                <span className="block text-xs font-semibold uppercase tracking-[0.12em] sm:tracking-[0.16em]" style={{ color: theme.accentGold }}>{eyebrow}</span>
               ) : null}
               <span className={useCompactClosedState ? "mt-1 block text-base font-semibold" : "mt-1 block text-lg font-semibold"} style={{ color: theme.textPrimary }}>{title}</span>
               {summary ? (
@@ -10379,7 +10374,6 @@ function AccountPanel({
               decisions={decisions.length}
               reflections={journalEntries.length}
               counselContacts={counselContacts.length}
-              notificationsEnabled={notificationsEnabled}
             />
           </DisclosureSection>
 
@@ -10450,18 +10444,18 @@ function AccountSettingRow({
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        className="flex w-full items-center gap-3 text-left"
+        className="flex w-full items-center gap-2 sm:gap-3 text-left"
         aria-expanded={open}
       >
-        <span className="grid size-10 shrink-0 place-items-center rounded-lg border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
+        <span className="grid size-9 shrink-0 place-items-center rounded-lg border sm:size-10" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
           <Icon size={17} />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block text-sm font-semibold" style={{ color: theme.textPrimary }}>{label}</span>
+          <span className="block text-[13px] font-semibold leading-5 sm:text-sm" style={{ color: theme.textPrimary }}>{label}</span>
           <span className="mt-1 block text-xs leading-5" style={{ color: theme.textSecondary }}>{body}</span>
         </span>
-        <span className="min-w-[5rem] shrink-0 text-right sm:min-w-[7rem]">
-          <span className="block max-w-32 break-words text-xs font-semibold leading-4 sm:max-w-44" style={{ color: theme.accentGold }}>{currentValue}</span>
+        <span className="min-w-[4.25rem] shrink text-right sm:min-w-[7rem]">
+          <span className="block max-w-[6.25rem] break-words text-[11px] font-semibold leading-4 sm:max-w-44 sm:text-xs" style={{ color: theme.accentGold }}>{currentValue}</span>
           <span className="mt-1 inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.08em]" style={{ color: theme.textSecondary }}>
             <ChevronDown size={12} style={{ transform: open ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 180ms ease" }} />
           </span>
@@ -10507,7 +10501,7 @@ function AccountToggleRow({
             <span className="mt-1 block text-xs leading-5" style={{ color: theme.textSecondary }}>{body}</span>
           </span>
         </div>
-        <span className="grid grid-cols-2 rounded-full border p-1" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
+        <span className="grid w-full grid-cols-2 rounded-full border p-1 sm:w-auto" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
           {[
             { value: false, label: offLabel },
             { value: true, label: onLabel },
@@ -10518,14 +10512,14 @@ function AccountToggleRow({
                 key={option.label}
                 type="button"
                 onClick={() => onChange(option.value)}
-                className="min-h-10 rounded-full px-3 text-xs font-semibold transition"
+                className="min-h-10 min-w-0 rounded-full px-2 text-[11px] font-semibold transition sm:px-3 sm:text-xs"
                 style={{
                   backgroundColor: active ? theme.primary : "transparent",
                   color: active ? theme.textOnPrimary : theme.textSecondary,
                 }}
                 aria-pressed={active}
               >
-                {option.label}
+                <span className="truncate">{option.label}</span>
               </button>
             );
           })}
@@ -10753,6 +10747,8 @@ function AccountPersonalizationPanel({
   onUpdateProfileAvatar: (avatarUrl: string) => Promise<boolean>;
 }) {
   const bibleOptions = bibleTranslationOptionsForLanguage(preferences.language);
+  const bibleValue = bibleTranslations[preferences.bibleTranslation]?.label ?? preferences.bibleTranslation;
+  const compactBibleValue = bibleValue.length > 18 ? preferences.bibleTranslation.toUpperCase() : bibleValue;
   const selectedVoiceObject = availableVoices.find((voice) => voice.voiceURI === selectedVoice);
   const selectedVoiceLabel = selectedVoiceObject ? voiceLabel(selectedVoiceObject) : ts('labels.deviceDefault', 'Device default');
 
@@ -10777,7 +10773,7 @@ function AccountPersonalizationPanel({
             </div>
           </div>
 
-          <div className="grid gap-2 sm:grid-cols-3">
+          <div className="grid gap-2 min-[380px]:grid-cols-2">
             <RailSummaryPill
               label={ts('labels.language', 'Language')}
               value={languages[preferences.language]?.nativeName ?? preferences.language}
@@ -10785,13 +10781,13 @@ function AccountPersonalizationPanel({
               theme={theme}
             />
             <RailSummaryPill
-              label={ts('labels.theme', 'Theme')}
-              value={ts(`theme.${themePreference}`, themePreference)}
+              label={ts('labels.bibleTranslation', 'Bible translation')}
+              value={compactBibleValue}
               theme={theme}
             />
             <RailSummaryPill
-              label={ts('labels.voiceInput', 'Voice input')}
-              value={preferences.voiceEnabled ? selectedVoiceLabel : ts('labels.voiceInputDisabled', 'Off')}
+              label={ts('labels.theme', 'Theme')}
+              value={ts(`theme.${themePreference}`, themePreference)}
               theme={theme}
             />
           </div>
@@ -10894,7 +10890,7 @@ function AccountPersonalizationPanel({
             title={ts('labels.focusIntentions', 'Focus intentions')}
             summary={focusIntentions.length
               ? `${focusIntentions.length}/3 selected`
-              : ts('labels.focusIntentionsHint', 'Pick up to three intentions. Aletheia uses these to shape prompt suggestions and guidance emphasis.')}
+              : ts('labels.focusIntentionsNoneSelected', 'No intentions selected yet')}
             eyebrow={ts('labels.accountPersonalizationTitle', 'Personalization')}
             compactCollapsed
             defaultOpen={focusIntentions.length === 0}
@@ -11077,23 +11073,18 @@ function VoicePreferenceSelector({
                 boxShadow: active ? `0 0 0 1px ${theme.accentGold}` : "none",
               }}
             >
-              <div className="flex items-start gap-3">
-                <span className="grid size-10 shrink-0 place-items-center rounded-lg border" style={{ borderColor: active ? theme.accentGold : theme.borderLight, backgroundColor: theme.bgCardElevated, color: active ? theme.primary : theme.textSecondary }}>
+              <div className="flex items-start gap-2.5 sm:gap-3">
+                <span className="grid size-9 shrink-0 place-items-center rounded-lg border sm:size-10" style={{ borderColor: active ? theme.accentGold : theme.borderLight, backgroundColor: theme.bgCardElevated, color: active ? theme.primary : theme.textSecondary }}>
                   <Volume2 size={17} />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-start justify-between gap-3">
-                    <p className="break-words text-sm font-semibold leading-5">{voice.title}</p>
-                    <span className="inline-flex shrink-0 items-center rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: active ? theme.accentGold : theme.borderLight, backgroundColor: active ? theme.primary : theme.bgCardElevated, color: active ? theme.textOnPrimary : theme.textSecondary }}>
-                      {active ? ts('labels.selected', 'Selected') : ts('labels.useVoice', 'Use')}
-                    </span>
-                  </div>
+                  <p className="break-words text-[13px] font-semibold leading-5 sm:text-sm">{voice.title}</p>
                   <p className="mt-1 text-xs leading-5" style={{ color: theme.textSecondary }}>
                     {voice.body}
                   </p>
                 </div>
               </div>
-              <div className="mt-3 grid grid-cols-2 gap-2">
+              <div className="mt-3 grid grid-cols-1 gap-2 min-[350px]:grid-cols-2">
                 <button
                   type="button"
                   onClick={() => chooseVoice(voice.voiceURI)}
@@ -11101,7 +11092,7 @@ function VoicePreferenceSelector({
                   style={{ borderColor: active ? theme.accentGold : theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
                   aria-pressed={active}
                 >
-                  {active ? ts('labels.selected', 'Selected') : ts('labels.useVoice', 'Use')}
+                  {active ? ts('labels.selected', 'Selected') : ts('labels.select', 'Select')}
                 </button>
                 <button
                   type="button"
@@ -11160,7 +11151,7 @@ function FocusIntentionsCard({
         <p className="text-xs leading-5" style={{ color: theme.textSecondary }}>
           {ts('labels.focusIntentionsHint', 'Pick up to three intentions. Aletheia uses these to shape prompt suggestions and guidance emphasis.')}
         </p>
-        <span className="shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-semibold whitespace-nowrap" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+        <span className="shrink-0 text-xs font-semibold whitespace-nowrap" style={{ color: theme.textSecondary }}>
           {selected.length}/3 {ts('labels.selected', 'selected')}
         </span>
       </div>
@@ -11176,7 +11167,6 @@ function FocusIntentionsCard({
               active={active}
               onClick={() => toggle(option.key)}
               theme={theme}
-              status={active ? ts('labels.selected', 'Selected') : undefined}
               className={compact ? "p-2.5" : ""}
             />
           );
@@ -11194,7 +11184,6 @@ function SystemStatusCard({
   decisions,
   reflections,
   counselContacts,
-  notificationsEnabled,
 }: {
   theme: ThemeColors;
   ts: (key: string, fallback?: string) => string;
@@ -11203,7 +11192,6 @@ function SystemStatusCard({
   decisions: number;
   reflections: number;
   counselContacts: number;
-  notificationsEnabled: boolean;
 }) {
   const statusLabel = user ? ts('labels.accountSyncActive') : ts('auth.guestMode');
   const statusBody = user ? ts('labels.whatSyncsSignedIn') : ts('labels.whatSyncsGuest');
@@ -11223,14 +11211,6 @@ function SystemStatusCard({
               {statusBody}
             </p>
           </div>
-        </div>
-        <div className="mt-4 flex flex-wrap gap-2">
-          <span className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold whitespace-nowrap" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: user ? theme.textPrimary : theme.textSecondary }}>
-            {user ? ts('labels.active') : ts('auth.guestOnly')}
-          </span>
-          <span className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold whitespace-nowrap" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-            {notificationsEnabled ? ts('notifications.deviceSubscribed') : ts('notifications.notificationsOptionalWhenReady')}
-          </span>
         </div>
       </div>
       <div className="grid gap-2 p-4 sm:grid-cols-2 sm:p-5">
@@ -11664,12 +11644,12 @@ function ManualContextPanel({
   ].some((value) => value !== null && String(value).trim().length > 0);
   const hasFutureState = hasFutureMoney || hasFutureRhythm || hasFuturePosture;
   const sectionSummary = {
-    money: `${draft.monthlyIncome !== null ? manualCopy.incomeAdded : manualCopy.incomeNotAdded} · ${draft.savingsBufferMonths !== null ? manualCopy.savingsAdded : manualCopy.savingsNotAdded} · ${draft.debtPayments !== null ? manualCopy.debtAdded : manualCopy.debtNotAdded}`,
-    work: `${manualCopy.workRhythm} ${draft.workHoursPerWeek !== null ? `${draft.workHoursPerWeek}h/week` : manualCopy.notAdded} · ${draft.workContext ? manualCopy.contextAdded : manualCopy.contextNotAdded}`,
-    health: `${ts('manualContext.sleepSummary')} ${draft.sleepHours !== null ? `${draft.sleepHours}h` : manualCopy.notAdded} · ${ts('manualContext.exerciseSummary')} ${draft.exerciseSessionsPerWeek !== null ? `${draft.exerciseSessionsPerWeek}/week` : manualCopy.notAdded}`,
-    relationships: `${ts('manualContext.lovedOnesSummary')} ${draft.timeWithLovedOnesHoursPerWeek !== null ? `${draft.timeWithLovedOnesHoursPerWeek}h/week` : manualCopy.notAdded} · ${ts('manualContext.obligationsSummary')} ${draft.obligations ? manualCopy.added : manualCopy.notAdded}`,
-    values: `${ts('manualContext.stressSummary')} ${draft.stressLevel !== null ? draft.stressLevel : manualCopy.notAdded} · ${ts('manualContext.urgencySummary')} ${draft.urgencyLevel !== null ? draft.urgencyLevel : manualCopy.notAdded} · ${draft.enoughDefinition ? manualCopy.enoughDefined : manualCopy.enoughNotDefined}`,
-    counsel: `${draft.riskTolerance ? manualCopy.riskAdded : manualCopy.riskNotAdded} · ${draft.waitingPreference ? manualCopy.waitingAdded : manualCopy.waitingNotAdded} · ${draft.counselCadence ? manualCopy.counselAdded : manualCopy.counselNotAdded}`,
+    money: `${draft.monthlyIncome !== null ? manualCopy.incomeAdded : manualCopy.incomeNotAdded}; ${draft.savingsBufferMonths !== null ? manualCopy.savingsAdded : manualCopy.savingsNotAdded}; ${draft.debtPayments !== null ? manualCopy.debtAdded : manualCopy.debtNotAdded}`,
+    work: `${manualCopy.workRhythm} ${draft.workHoursPerWeek !== null ? `${draft.workHoursPerWeek}h/week` : manualCopy.notAdded}; ${draft.workContext ? manualCopy.contextAdded : manualCopy.contextNotAdded}`,
+    health: `${ts('manualContext.sleepSummary')} ${draft.sleepHours !== null ? `${draft.sleepHours}h` : manualCopy.notAdded}; ${ts('manualContext.exerciseSummary')} ${draft.exerciseSessionsPerWeek !== null ? `${draft.exerciseSessionsPerWeek}/week` : manualCopy.notAdded}`,
+    relationships: `${ts('manualContext.lovedOnesSummary')} ${draft.timeWithLovedOnesHoursPerWeek !== null ? `${draft.timeWithLovedOnesHoursPerWeek}h/week` : manualCopy.notAdded}; ${ts('manualContext.obligationsSummary')} ${draft.obligations ? manualCopy.added : manualCopy.notAdded}`,
+    values: `${ts('manualContext.stressSummary')} ${draft.stressLevel !== null ? draft.stressLevel : manualCopy.notAdded}; ${ts('manualContext.urgencySummary')} ${draft.urgencyLevel !== null ? draft.urgencyLevel : manualCopy.notAdded}; ${draft.enoughDefinition ? manualCopy.enoughDefined : manualCopy.enoughNotDefined}`,
+    counsel: `${draft.riskTolerance ? manualCopy.riskAdded : manualCopy.riskNotAdded}; ${draft.waitingPreference ? manualCopy.waitingAdded : manualCopy.waitingNotAdded}; ${draft.counselCadence ? manualCopy.counselAdded : manualCopy.counselNotAdded}`,
   };
   const currentContextCards: Array<{
     key: "money" | "work" | "health" | "relationships" | "values" | "counsel";
@@ -11695,21 +11675,21 @@ function ManualContextPanel({
     {
       key: "money",
       label: ts('manualContext.futureMoneyCardTitle'),
-      summary: hasFutureMoney ? `${draft.targetSavingsBufferMonths !== null ? `${ts('manualContext.targetSavingsBufferMonths')}: ${draft.targetSavingsBufferMonths}` : manualCopy.notAddedYet} · ${draft.futureFinanceContext.trim() ? manualCopy.directionAdded : manualCopy.notAddedYet}` : manualCopy.notAddedYet,
+      summary: hasFutureMoney ? `${draft.targetSavingsBufferMonths !== null ? `${ts('manualContext.targetSavingsBufferMonths')}: ${draft.targetSavingsBufferMonths}` : manualCopy.notAddedYet}; ${draft.futureFinanceContext.trim() ? manualCopy.directionAdded : manualCopy.notAddedYet}` : manualCopy.notAddedYet,
       icon: PiggyBank,
       active: hasFutureMoney,
     },
     {
       key: "rhythm",
       label: ts('manualContext.futureRhythmCardTitle'),
-      summary: hasFutureRhythm ? `${draft.targetWorkHoursPerWeek !== null ? `${ts('manualContext.targetWorkHoursPerWeek')}: ${draft.targetWorkHoursPerWeek}` : manualCopy.notAddedYet} · ${draft.futureWorkContext.trim() || draft.futureHealthContext.trim() || draft.futureRelationshipsContext.trim() ? manualCopy.directionAdded : manualCopy.notAddedYet}` : manualCopy.notAddedYet,
+      summary: hasFutureRhythm ? `${draft.targetWorkHoursPerWeek !== null ? `${ts('manualContext.targetWorkHoursPerWeek')}: ${draft.targetWorkHoursPerWeek}` : manualCopy.notAddedYet}; ${draft.futureWorkContext.trim() || draft.futureHealthContext.trim() || draft.futureRelationshipsContext.trim() ? manualCopy.directionAdded : manualCopy.notAddedYet}` : manualCopy.notAddedYet,
       icon: Clock3,
       active: hasFutureRhythm,
     },
     {
       key: "posture",
       label: ts('manualContext.futurePostureCardTitle'),
-      summary: hasFuturePosture ? `${draft.targetStressLevel !== null ? `${ts('manualContext.targetStressLevel')}: ${draft.targetStressLevel}` : manualCopy.notAddedYet} · ${draft.futureValuesContext.trim() || draft.futureGoals.trim() || draft.futureBoundaries.trim() ? manualCopy.directionAdded : manualCopy.notAddedYet}` : manualCopy.notAddedYet,
+      summary: hasFuturePosture ? `${draft.targetStressLevel !== null ? `${ts('manualContext.targetStressLevel')}: ${draft.targetStressLevel}` : manualCopy.notAddedYet}; ${draft.futureValuesContext.trim() || draft.futureGoals.trim() || draft.futureBoundaries.trim() ? manualCopy.directionAdded : manualCopy.notAddedYet}` : manualCopy.notAddedYet,
       icon: Sparkles,
       active: hasFuturePosture,
     },
@@ -11786,7 +11766,6 @@ function ManualContextPanel({
             active={card.key === activeKey}
             onClick={() => onSelect(card.key)}
             theme={theme}
-            status={card.active ? manualCopy.added : manualCopy.notAddedYet}
           />
         );
       })}
@@ -11999,9 +11978,8 @@ function ManualContextPanel({
   };
 
   return (
-    <section className="rounded-[1.75rem] border p-3 shadow-sm sm:p-4" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
-      <div className="overflow-hidden rounded-[1.4rem] border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-        <div className="p-4 sm:p-5">
+    <section className="overflow-hidden rounded-[1.4rem] border shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
+      <div className="p-4 sm:p-5">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div className="min-w-0 max-w-3xl">
               <div className="flex items-start gap-3">
@@ -12009,7 +11987,7 @@ function ManualContextPanel({
                   <ShieldCheck size={18} />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{manualCopy.privacyPosture}</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] sm:tracking-[0.16em]" style={{ color: theme.accentGold }}>{manualCopy.privacyPosture}</p>
                   <h3 className="mt-2 text-2xl font-semibold sm:text-[2rem]" style={{ color: theme.textPrimary }}>{manualCopy.title}</h3>
                   <p className="mt-2 max-w-2xl text-sm leading-6 sm:text-[15px]" style={{ color: theme.textSecondary }}>
                     {manualCopy.intro}
@@ -12018,11 +11996,11 @@ function ManualContextPanel({
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
-              <span className="inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.1em]" style={{ borderColor: theme.borderLight, backgroundColor: draft.useInAnswers ? theme.activeBg : theme.bgInput, color: draft.useInAnswers ? theme.accentGold : theme.textSecondary }}>
+              <span className="inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.06em] sm:tracking-[0.1em]" style={{ borderColor: theme.borderLight, backgroundColor: draft.useInAnswers ? theme.activeBg : theme.bgInput, color: draft.useInAnswers ? theme.accentGold : theme.textSecondary }}>
                 {draft.useInAnswers ? <Check size={13} /> : null}
                 {vaultStateLabel}
               </span>
-              <span className="inline-flex items-center rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.1em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+              <span className="inline-flex items-center rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.06em] sm:tracking-[0.1em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
                 {activeContextSections} {activeContextSections === 1 ? manualCopy.areaSingular : manualCopy.areaPlural} {manualCopy.added}
               </span>
             </div>
@@ -12032,7 +12010,7 @@ function ManualContextPanel({
             <div className="rounded-[1.3rem] border p-4 sm:p-5" style={{ borderColor: theme.borderMedium, backgroundColor: draft.useInAnswers ? theme.activeBg : theme.bgCard }}>
               <div className="grid gap-3 sm:grid-cols-3">
                 <div className="rounded-xl border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{vaultStateLabel}</p>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.1em] sm:tracking-[0.14em]" style={{ color: theme.accentGold }}>{vaultStateLabel}</p>
                   <p className="mt-2 text-2xl font-semibold" style={{ color: theme.textPrimary }}>
                     {activeContextSections}
                   </p>
@@ -12041,14 +12019,14 @@ function ManualContextPanel({
                   </p>
                 </div>
                 <div className="rounded-xl border p-3 sm:col-span-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{ts('labels.enoughProfile')}</p>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.1em] sm:tracking-[0.14em]" style={{ color: theme.accentGold }}>{ts('labels.enoughProfile')}</p>
                   <p className="mt-2 text-sm leading-6" style={{ color: theme.textPrimary }}>
                     {enoughProfileItems.length ? enoughProfileItems.join(", ") : ts('labels.enoughProfileEmpty')}
                   </p>
                 </div>
               </div>
               <div className="mt-3 rounded-xl border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{ts('manualContext.vaultPromise')}</p>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.1em] sm:tracking-[0.14em]" style={{ color: theme.accentGold }}>{ts('manualContext.vaultPromise')}</p>
                 <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>{manualCopy.areaSummary}</p>
                 <p className="mt-2 text-xs leading-5" style={{ color: theme.textMuted }}>{syncSummary}</p>
               </div>
@@ -12057,14 +12035,14 @@ function ManualContextPanel({
             <div className="rounded-[1.3rem] border p-4 sm:p-5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('manualContext.quickTitle')}</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] sm:tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('manualContext.quickTitle')}</p>
                   <p className="mt-2 text-lg font-semibold" style={{ color: theme.textPrimary }}>{ts('manualContext.quickAddHeadline')}</p>
                 </div>
               </div>
-              <div className="mt-4 grid gap-2 sm:grid-cols-2">
+              <div className="mt-4 grid gap-2 min-[380px]:grid-cols-2">
                 {quickDetailOptions.map((option) => {
                   return (
-                    <ChoiceCardButton
+                    <SelectionRailCard
                       key={option.key}
                       icon={option.icon}
                       title={option.label}
@@ -12072,12 +12050,14 @@ function ManualContextPanel({
                       active={quickDetailType === option.key}
                       onClick={() => setQuickDetailType(option.key)}
                       theme={theme}
+                      className="w-full"
+                      stretch
                     />
                   );
                 })}
               </div>
               <label className="mt-4 block rounded-xl border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
-                <span className="text-[11px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{quickDetailOption.label}</span>
+                <span className="text-[11px] font-semibold uppercase tracking-[0.1em] sm:tracking-[0.14em]" style={{ color: theme.accentGold }}>{quickDetailOption.label}</span>
                 <input
                   value={quickDetail}
                   onChange={(event) => setQuickDetail(event.target.value)}
@@ -12105,7 +12085,7 @@ function ManualContextPanel({
           </div>
         </div>
 
-        <div className="border-t p-4 sm:p-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+      <div className="border-t p-4 sm:p-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
           <form
             className="space-y-4"
             onSubmit={handleManualContextSubmit}
@@ -12115,7 +12095,7 @@ function ManualContextPanel({
                 <div className="rounded-[1.2rem] border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
                   <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                     <div className="min-w-0">
-                      <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('manualContext.vaultControlsEyebrow')}</p>
+                      <p className="text-xs font-semibold uppercase tracking-[0.12em] sm:tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('manualContext.vaultControlsEyebrow')}</p>
                       <p className="mt-2 text-lg font-semibold" style={{ color: theme.textPrimary }}>{ts('manualContext.vaultControlsTitle')}</p>
                     </div>
                     <label className="inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm font-semibold" style={{ borderColor: draft.useInAnswers ? theme.accentGold : theme.borderLight, backgroundColor: draft.useInAnswers ? theme.activeBg : theme.bgInput, color: theme.textPrimary }}>
@@ -12130,7 +12110,7 @@ function ManualContextPanel({
                     </label>
                   </div>
                   <div className="mt-4 grid gap-3 lg:grid-cols-[0.95fr_1.05fr]">
-                    <label className="block rounded-xl border p-3 text-xs font-semibold uppercase tracking-[0.12em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                    <label className="block rounded-xl border p-3 text-xs font-semibold uppercase tracking-[0.08em] sm:tracking-[0.12em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
                       {ts('labels.guidanceRegion')}
                       <select
                         value={preferences.region}
@@ -12147,7 +12127,7 @@ function ManualContextPanel({
                       </span>
                     </label>
                     <div className="rounded-xl border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{ts('manualContext.syncAndDelete')}</p>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.1em] sm:tracking-[0.14em]" style={{ color: theme.accentGold }}>{ts('manualContext.syncAndDelete')}</p>
                       <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
                         {syncSummary} {hasContent ? manualCopy.clearFields : ""}
                       </p>
@@ -12157,18 +12137,16 @@ function ManualContextPanel({
 
                 <div className="rounded-[1.2rem] border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
                   <div className="min-w-0">
-                    <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('manualContext.answerUseEyebrow')}</p>
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em] sm:tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('manualContext.answerUseEyebrow')}</p>
                     <p className="mt-2 text-lg font-semibold" style={{ color: theme.textPrimary }}>{ts('manualContext.answerUseTitle')}</p>
                   </div>
-                  <div className="mt-4 grid gap-3 lg:grid-cols-2">
+                  <div className="mt-4 grid gap-3 min-[380px]:grid-cols-2 lg:grid-cols-2">
                     <ContextUseToggle
                       icon={PiggyBank}
                       label={manualCopy.useMoney}
                       body={sectionSummary.money}
                       checked={draft.useMoneyInAnswers}
                       theme={theme}
-                      onLabel={ts('labels.on')}
-                      offLabel={ts('labels.off')}
                       onChange={(checked) => updateDraft({ useMoneyInAnswers: checked })}
                     />
                     <ContextUseToggle
@@ -12177,8 +12155,6 @@ function ManualContextPanel({
                       body={sectionSummary.work}
                       checked={draft.useWorkInAnswers}
                       theme={theme}
-                      onLabel={ts('labels.on')}
-                      offLabel={ts('labels.off')}
                       onChange={(checked) => updateDraft({ useWorkInAnswers: checked })}
                     />
                     <ContextUseToggle
@@ -12187,8 +12163,6 @@ function ManualContextPanel({
                       body={sectionSummary.health}
                       checked={draft.useHealthInAnswers}
                       theme={theme}
-                      onLabel={ts('labels.on')}
-                      offLabel={ts('labels.off')}
                       onChange={(checked) => updateDraft({ useHealthInAnswers: checked })}
                     />
                     <ContextUseToggle
@@ -12197,8 +12171,6 @@ function ManualContextPanel({
                       body={sectionSummary.relationships}
                       checked={draft.useRelationshipsInAnswers}
                       theme={theme}
-                      onLabel={ts('labels.on')}
-                      offLabel={ts('labels.off')}
                       onChange={(checked) => updateDraft({ useRelationshipsInAnswers: checked })}
                     />
                     <ContextUseToggle
@@ -12207,8 +12179,6 @@ function ManualContextPanel({
                       body={sectionSummary.values}
                       checked={draft.useValuesInAnswers}
                       theme={theme}
-                      onLabel={ts('labels.on')}
-                      offLabel={ts('labels.off')}
                       onChange={(checked) => updateDraft({ useValuesInAnswers: checked })}
                       wide
                     />
@@ -12272,7 +12242,7 @@ function ManualContextPanel({
                             <h3 className="mt-1 text-lg font-semibold" style={{ color: theme.textPrimary }}>{activeCurrentContextCard.label}</h3>
                             <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>{activeCurrentContextCard.summary}</p>
                           </div>
-                          <span className="inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: activeCurrentContextCard.active ? theme.accentGold : theme.borderLight, backgroundColor: activeCurrentContextCard.active ? theme.activeBg : theme.bgInput, color: activeCurrentContextCard.active ? theme.accentGold : theme.textSecondary }}>
+                          <span className="inline-flex shrink-0 items-center gap-1 rounded-full border px-1.5 py-1 text-[10px] font-semibold uppercase tracking-[0.06em] sm:px-2 sm:tracking-[0.08em]" style={{ borderColor: activeCurrentContextCard.active ? theme.accentGold : theme.borderLight, backgroundColor: activeCurrentContextCard.active ? theme.activeBg : theme.bgInput, color: activeCurrentContextCard.active ? theme.accentGold : theme.textSecondary }}>
                             {activeCurrentContextCard.active ? <Check size={12} /> : null}
                             {activeCurrentContextCard.active ? manualCopy.added : manualCopy.notAddedYet}
                           </span>
@@ -12289,7 +12259,7 @@ function ManualContextPanel({
                             <h3 className="mt-1 text-lg font-semibold" style={{ color: theme.textPrimary }}>{activeFutureContextCard.label}</h3>
                             <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>{manualCopy.desiredFutureBody}</p>
                           </div>
-                          <span className="inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: activeFutureContextCard.active ? theme.accentGold : theme.borderLight, backgroundColor: activeFutureContextCard.active ? theme.activeBg : theme.bgInput, color: activeFutureContextCard.active ? theme.accentGold : theme.textSecondary }}>
+                          <span className="inline-flex shrink-0 items-center gap-1 rounded-full border px-1.5 py-1 text-[10px] font-semibold uppercase tracking-[0.06em] sm:px-2 sm:tracking-[0.08em]" style={{ borderColor: activeFutureContextCard.active ? theme.accentGold : theme.borderLight, backgroundColor: activeFutureContextCard.active ? theme.activeBg : theme.bgInput, color: activeFutureContextCard.active ? theme.accentGold : theme.textSecondary }}>
                             {activeFutureContextCard.active ? <Check size={12} /> : null}
                             {activeFutureContextCard.active ? manualCopy.added : manualCopy.notAddedYet}
                           </span>
@@ -12316,7 +12286,6 @@ function ManualContextPanel({
               </button>
             </div>
           </form>
-        </div>
       </div>
     </section>
   );
@@ -12329,8 +12298,6 @@ function ContextUseToggle({
   checked,
   theme,
   onChange,
-  onLabel,
-  offLabel,
   wide = false,
 }: {
   icon: typeof ShieldCheck;
@@ -12339,20 +12306,18 @@ function ContextUseToggle({
   checked: boolean;
   theme: ThemeColors;
   onChange: (checked: boolean) => void;
-  onLabel: string;
-  offLabel: string;
   wide?: boolean;
 }) {
   return (
-    <ChoiceCardButton
+    <SelectionRailCard
       icon={Icon}
       title={label}
       body={body}
       active={checked}
       onClick={() => onChange(!checked)}
       theme={theme}
-      status={checked ? onLabel : offLabel}
       className={wide ? "sm:col-span-2" : ""}
+      stretch
     />
   );
 }
@@ -12636,7 +12601,7 @@ function AccountStatusCard({
       <div className="border-b px-4 py-4 sm:px-5" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.accountDetails')}</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] sm:tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.accountDetails')}</p>
             <h3 className="mt-2 text-lg font-semibold sm:text-xl" style={{ color: theme.textPrimary }}>
               {signedIn ? ts('auth.signedIn') : ts('auth.guestMode')}
             </h3>
@@ -12659,10 +12624,23 @@ function AccountStatusCard({
           ) : null}
         </div>
       </div>
-      <div className="grid gap-3 p-4 sm:grid-cols-3 sm:p-5">
-        <AccountSignal label={ts('labels.sync')} value={signedIn ? ts('labels.active') : ts('auth.guestOnly')} active={signedIn} theme={theme} />
-        <AccountSignal label={ts('labels.lastSynced')} value={signedIn ? ts('labels.thisSession') : ts('labels.notSynced')} active={signedIn} theme={theme} />
-        <AccountSignal label={ts('labels.notifications')} value={notificationHealth} active={notificationsEnabled} theme={theme} />
+      <div className="p-4 sm:p-5">
+        <div className="overflow-hidden rounded-lg border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+          {[
+            { label: ts('labels.sync'), value: signedIn ? ts('labels.active') : ts('auth.guestOnly'), active: signedIn },
+            { label: ts('labels.lastSynced'), value: signedIn ? ts('labels.thisSession') : ts('labels.notSynced'), active: signedIn },
+            { label: ts('labels.notifications'), value: notificationHealth, active: notificationsEnabled },
+          ].map((item, index) => (
+            <div
+              key={item.label}
+              className="flex items-center justify-between gap-3 px-3 py-2.5"
+              style={{ borderTop: index === 0 ? "none" : `1px solid ${theme.borderLight}` }}
+            >
+              <p className="text-[11px] font-semibold uppercase tracking-[0.1em] sm:tracking-[0.12em]" style={{ color: theme.textSecondary }}>{item.label}</p>
+              <p className="text-sm font-semibold text-right" style={{ color: item.active ? theme.textPrimary : theme.textSecondary }}>{item.value}</p>
+            </div>
+          ))}
+        </div>
       </div>
     </section>
   );
@@ -12988,19 +12966,6 @@ function AvatarStudioCard({
         }}
       />
     </section>
-  );
-}
-
-function AccountSignal({ label, value, active, theme }: { label: string; value: string; active: boolean; theme: ThemeColors }) {
-  return (
-    <div className="rounded-xl border p-3 shadow-sm" style={{
-      borderColor: active ? theme.accentLight : theme.borderLight,
-      backgroundColor: active ? theme.bgCardElevated : theme.bgCard,
-      boxShadow: active ? "0 10px 22px rgba(7, 10, 8, 0.06)" : "0 6px 14px rgba(7, 10, 8, 0.04)",
-    }}>
-      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] leading-4" style={{ color: theme.textSecondary }}>{label}</p>
-      <p className="mt-2 text-[13px] font-semibold leading-5 sm:text-sm" style={{ color: theme.textPrimary }}>{value}</p>
-    </div>
   );
 }
 
