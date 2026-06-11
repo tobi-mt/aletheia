@@ -8703,35 +8703,6 @@ function SelectionRailCard({
   );
 }
 
-function RailSummaryPill({
-  label,
-  value,
-  active = false,
-  theme,
-}: {
-  label: string;
-  value: string;
-  active?: boolean;
-  theme: ThemeColors;
-}) {
-  return (
-    <div
-      className="flex min-w-0 items-center justify-between gap-3 rounded-xl border px-3 py-2.5 shadow-sm"
-      style={{
-        borderColor: active ? theme.accentLight : theme.borderLight,
-        backgroundColor: active ? theme.bgCardElevated : theme.bgCard,
-      }}
-    >
-      <p className="text-[10px] font-semibold uppercase tracking-[0.1em] leading-4 sm:tracking-[0.14em]" style={{ color: theme.textSecondary }}>
-        {label}
-      </p>
-      <p className="max-w-[65%] text-right text-[13px] font-semibold leading-5 sm:text-sm" style={{ color: active ? theme.textPrimary : theme.textSecondary }}>
-        {value}
-      </p>
-    </div>
-  );
-}
-
 function WorkflowNotice({
   notice,
   onClose,
@@ -10082,12 +10053,6 @@ function AccountPanel({
   const exchanges = conversationExchanges(messages).filter((exchange) => exchange.question);
   const activeDecisionCount = decisions.filter((decision) => decision.status !== "closed").length;
   const hasLocalWorkspaceData = exchanges.length > 0 || decisions.length > 0 || journalEntries.length > 0 || counselContacts.length > 0 || rulesOfLife.length > 0;
-  const contextAreas = [
-    manualContextHasContent(manualContext),
-    Boolean(manualContext.monthlyIncome || manualContext.fixedExpenses || manualContext.debtPayments || manualContext.savingsBufferMonths),
-    Boolean(manualContext.workHoursPerWeek || manualContext.workContext),
-    Boolean(manualContext.sleepHours || manualContext.exerciseSessionsPerWeek || manualContext.healthContext),
-  ].filter(Boolean).length;
   const profileName = user?.name || user?.email || ts('auth.guest');
   const profileFirstName = user?.name?.split(" ")[0] || user?.email?.split("@")[0];
   const profileGreeting = user
@@ -10277,7 +10242,6 @@ function AccountPanel({
               enabled={notificationsEnabled}
               configured={notificationsConfigured}
               permission={typeof window !== "undefined" && "Notification" in window ? Notification.permission : "default"}
-              status={notificationStatus}
               busy={notificationBusy}
               timing={notificationTiming}
               onTimingChange={onNotificationTimingChange}
@@ -10298,17 +10262,6 @@ function AccountPanel({
               <h3 className="mt-2 text-lg font-semibold sm:text-xl" style={{ color: theme.textPrimary }}>
                 {ts('labels.accountTrustPostureTitle')}
               </h3>
-              <div className="mt-4 flex flex-wrap gap-2">
-                <span className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold whitespace-nowrap" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: manualContext.useInAnswers ? theme.textPrimary : theme.textSecondary }}>
-                  {manualContext.useInAnswers ? `${contextAreas} ${contextAreas === 1 ? ts('labels.accountArea') : ts('labels.accountAreas')} ${ts('labels.accountAdded')}` : ts('manualContext.notAddedYet')}
-                </span>
-                <span className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold whitespace-nowrap" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-                  {manualContext.useInAnswers ? ts('labels.accountContextActive') : ts('manualContext.paused')}
-                </span>
-                <span className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold whitespace-nowrap" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-                  {ts('labels.signOutPrivacy')}
-                </span>
-              </div>
             </div>
           </section>
 
@@ -10386,10 +10339,6 @@ function AccountPanel({
               theme={theme}
               ts={ts}
               user={user}
-              conversations={exchanges.length}
-              decisions={decisions.length}
-              reflections={journalEntries.length}
-              counselContacts={counselContacts.length}
             />
           </DisclosureSection>
 
@@ -10765,8 +10714,6 @@ function AccountPersonalizationPanel({
   onUpdateProfileAvatar: (avatarUrl: string) => Promise<boolean>;
 }) {
   const bibleOptions = bibleTranslationOptionsForLanguage(preferences.language);
-  const bibleValue = bibleTranslations[preferences.bibleTranslation]?.label ?? preferences.bibleTranslation;
-  const compactBibleValue = bibleValue.length > 18 ? preferences.bibleTranslation.toUpperCase() : bibleValue;
   const selectedVoiceObject = availableVoices.find((voice) => voice.voiceURI === selectedVoice);
   const selectedVoiceLabel = selectedVoiceObject ? voiceLabel(selectedVoiceObject) : ts('labels.deviceDefault');
 
@@ -10791,24 +10738,6 @@ function AccountPersonalizationPanel({
             </div>
           </div>
 
-          <div className="flex flex-col gap-2">
-            <RailSummaryPill
-              label={ts('labels.language')}
-              value={languages[preferences.language]?.nativeName ?? preferences.language}
-              active
-              theme={theme}
-            />
-            <RailSummaryPill
-              label={ts('labels.bibleTranslation')}
-              value={compactBibleValue}
-              theme={theme}
-            />
-            <RailSummaryPill
-              label={ts('labels.theme')}
-              value={ts(`theme.${themePreference}`, themePreference)}
-              theme={theme}
-            />
-          </div>
         </div>
       </div>
 
@@ -11165,14 +11094,9 @@ function FocusIntentionsCard({
 
   return (
     <section className={`space-y-3 ${compact ? "" : ""}`}>
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-xs leading-5" style={{ color: theme.textSecondary }}>
-          {ts('labels.focusIntentionsHint')}
-        </p>
-        <span className="shrink-0 text-xs font-semibold whitespace-nowrap" style={{ color: theme.textSecondary }}>
-          {selected.length}/3 {ts('labels.selected')}
-        </span>
-      </div>
+      <p className="text-xs leading-5" style={{ color: theme.textSecondary }}>
+        {ts('labels.focusIntentionsHint')}
+      </p>
       <div className="flex min-w-0 snap-x gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
         {options.map((option) => {
           const active = selectedSet.has(option.key);
@@ -11198,18 +11122,10 @@ function SystemStatusCard({
   theme,
   ts,
   user,
-  conversations,
-  decisions,
-  reflections,
-  counselContacts,
 }: {
   theme: ThemeColors;
   ts: (key: string, fallback?: string) => string;
   user: User | null;
-  conversations: number;
-  decisions: number;
-  reflections: number;
-  counselContacts: number;
 }) {
   const statusLabel = user ? ts('labels.accountSyncActive') : ts('auth.guestMode');
   const statusBody = user ? ts('labels.whatSyncsSignedIn') : ts('labels.whatSyncsGuest');
@@ -11230,12 +11146,6 @@ function SystemStatusCard({
             </p>
           </div>
         </div>
-      </div>
-      <div className="flex flex-col gap-2 p-4 sm:p-5">
-        <AccountStat label={ts('labels.accountStatConversations')} value={String(conversations)} theme={theme} />
-        <AccountStat label={ts('labels.accountStatDecisions')} value={String(decisions)} theme={theme} />
-        <AccountStat label={ts('labels.accountStatJournalEntries')} value={String(reflections)} theme={theme} />
-        <AccountStat label={ts('labels.counselContacts')} value={String(counselContacts)} theme={theme} />
       </div>
     </section>
   );
@@ -11440,15 +11350,6 @@ function TrustCenterCard({ theme, ts }: { theme: ThemeColors; ts: (key: string, 
         </div>
       ) : null}
     </section>
-  );
-}
-
-function AccountStat({ label, value, theme }: { label: string; value: string; theme: ThemeColors }) {
-  return (
-    <div className="rounded-xl border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] leading-4" style={{ color: theme.textSecondary }}>{label}</p>
-      <p className="mt-2 text-[13px] font-semibold leading-none sm:text-sm" style={{ color: theme.textPrimary }}>{value}</p>
-    </div>
   );
 }
 
@@ -11929,12 +11830,6 @@ function ManualContextPanel({
   };
   const activeCurrentContextCard = currentContextCards.find((card) => card.key === currentContextFocus) ?? currentContextCards[0];
   const activeFutureContextCard = futureContextCards.find((card) => card.key === futureContextFocus) ?? futureContextCards[0];
-  const enoughProfileItems = [
-    draft.enoughDefinition ? manualCopy.enoughDefined : manualCopy.enoughNotDefined,
-    draft.targetSavingsBufferMonths !== null ? `${ts('manualContext.targetSavingsBufferMonths')}: ${draft.targetSavingsBufferMonths}` : "",
-    draft.targetWorkHoursPerWeek !== null ? `${ts('manualContext.targetWorkHoursPerWeek')}: ${draft.targetWorkHoursPerWeek}` : "",
-    draft.targetSleepHours !== null ? `${ts('manualContext.targetSleepHours')}: ${draft.targetSleepHours}` : "",
-  ].filter(Boolean);
   const quickDetailOptions: Array<{ key: typeof quickDetailType; label: string; prompt: string; icon: typeof PiggyBank }> = [
     { key: "financeContext", label: manualCopy.moneyPicture, prompt: ts('manualContext.moneyPicturePrompt'), icon: PiggyBank },
     { key: "workContext", label: manualCopy.workRhythm, prompt: ts('manualContext.workRhythmPrompt'), icon: BriefcaseBusiness },
@@ -12026,31 +11921,6 @@ function ManualContextPanel({
           </div>
 
           <div className="mt-4 grid gap-3 2xl:grid-cols-[1.15fr_0.85fr]">
-            <div className="rounded-[1.3rem] border p-4 sm:p-5" style={{ borderColor: theme.borderMedium, backgroundColor: draft.useInAnswers ? theme.activeBg : theme.bgCard }}>
-              <div className="grid gap-3 sm:grid-cols-3">
-                <div className="rounded-xl border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.1em] sm:tracking-[0.14em]" style={{ color: theme.accentGold }}>{vaultStateLabel}</p>
-                  <p className="mt-2 text-2xl font-semibold" style={{ color: theme.textPrimary }}>
-                    {activeContextSections}
-                  </p>
-                  <p className="mt-1 text-xs leading-5" style={{ color: theme.textSecondary }}>
-                    {activeContextSections === 1 ? manualCopy.activeArea : manualCopy.activeAreas}
-                  </p>
-                </div>
-                <div className="rounded-xl border p-3 sm:col-span-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.1em] sm:tracking-[0.14em]" style={{ color: theme.accentGold }}>{ts('labels.enoughProfile')}</p>
-                  <p className="mt-2 text-sm leading-6" style={{ color: theme.textPrimary }}>
-                    {enoughProfileItems.length ? enoughProfileItems.join(", ") : ts('labels.enoughProfileEmpty')}
-                  </p>
-                </div>
-              </div>
-              <div className="mt-3 rounded-xl border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.1em] sm:tracking-[0.14em]" style={{ color: theme.accentGold }}>{ts('manualContext.vaultPromise')}</p>
-                <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>{manualCopy.areaSummary}</p>
-                <p className="mt-2 text-xs leading-5" style={{ color: theme.textMuted }}>{syncSummary}</p>
-              </div>
-            </div>
-
             <div className="rounded-[1.3rem] border p-4 sm:p-5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
@@ -13175,7 +13045,6 @@ function NotificationPanel({
   enabled,
   configured,
   permission,
-  status,
   busy,
   timing,
   onTimingChange,
@@ -13189,7 +13058,6 @@ function NotificationPanel({
   enabled: boolean;
   configured: boolean;
   permission: NotificationPermission;
-  status: string;
   busy: boolean;
   timing: NotificationTiming;
   onTimingChange: (patch: Partial<NotificationTiming>) => void;
@@ -13204,15 +13072,6 @@ function NotificationPanel({
     typeof window !== "undefined" &&
     (!("Notification" in window) || !("serviceWorker" in navigator) || !("PushManager" in window));
   const disabled = busy || !user || !configured || unsupported || permission === "denied";
-  const displayStatus = !user
-    ? ts('notifications.signInRequiredBody')
-    : !configured
-      ? ts('notifications.notificationsNotConfiguredBody')
-      : unsupported
-        ? ts('notifications.notificationsUnavailableBody')
-        : permission === "denied"
-          ? ts('notifications.notificationsBlockedBody')
-          : status;
   const deliveryOptions: Array<{ value: NotificationTiming["deliveryStrategy"]; label: string }> = [
     { value: "morning", label: ts('labels.morning') },
     { value: "midday", label: ts('labels.midday') },
@@ -13222,18 +13081,7 @@ function NotificationPanel({
 
   return (
     <section className="mb-5 rounded-xl border p-4 shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-start gap-3">
-          <div className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-md" style={{ backgroundColor: theme.bgInput, color: theme.primary }}>
-            <Bell size={17} />
-          </div>
-          <div>
-            <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.dailyWisdomNotifications')}</p>
-            <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
-              {displayStatus}
-            </p>
-          </div>
-        </div>
+      <div className="mb-3 flex items-center gap-2">
         {enabled ? (
           <button
             onClick={onDisable}
