@@ -6,7 +6,7 @@ import {
   localizedScriptureRead,
   localizedWisdomEntry,
   regions,
-  scriptureTranslationLabel,
+  scriptureDisplayLabel,
   type UserPreferences,
 } from "@/lib/localization";
 import { Mode, wisdomEntries, WisdomEntryData } from "@/lib/wisdom-data";
@@ -116,7 +116,7 @@ export async function retrieveWisdom(query: string, mode: Mode, limit = 3) {
 }
 
 function sourceReference(source: WisdomSource, preferences: UserPreferences) {
-  return `${source.scripture} (${scriptureTranslationLabel(source.scripture, preferences)})`;
+  return `${source.scripture} (${scriptureDisplayLabel(source.scripture, preferences)})`;
 }
 
 export function composeFallbackResponse(

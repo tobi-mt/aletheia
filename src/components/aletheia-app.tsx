@@ -59,6 +59,7 @@ import {
   languages,
   localizedDailyWisdom,
   localizedScriptureRead,
+  scriptureDisplayLabel,
   localizedRegionLabel,
   localizedModeProfile as sharedLocalizedModeProfile,
   localizedWisdomLibraryEntry,
@@ -7744,6 +7745,7 @@ export function AletheiaApp() {
                       currentLocalHour={currentLocalHour}
                       activeDecision={activeDecision}
                       user={user}
+                      preferences={preferences}
                       ts={ts}
                       ui={ui}
                       notificationsEnabled={notificationsEnabled}
@@ -8099,7 +8101,7 @@ export function AletheiaApp() {
           speakText(
             `${selectedScripture}. ${cleanDisplayText(quickRead.text)}`,
             ts('labels.readingScriptureQuickRead'),
-            quickRead.label
+            scriptureDisplayLabel(selectedScripture, preferences)
           );
         }}
         onClose={() => setSelectedScripture(null)}
@@ -9239,6 +9241,7 @@ function HomeDashboard({
   currentLocalHour,
   activeDecision,
   user,
+  preferences,
   ui,
   notificationsEnabled,
   todayPattern,
@@ -9271,6 +9274,7 @@ function HomeDashboard({
   currentLocalHour: number | null;
   activeDecision: WisdomDecision | null;
   user: User | null;
+  preferences: UserPreferences;
   ui: (typeof uiText)[LanguageCode];
   notificationsEnabled: boolean;
   todayPattern: string;
@@ -9543,7 +9547,7 @@ function HomeDashboard({
             style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
           >
             <BookOpen size={15} />
-            {weeklyReview.scripture}
+            {daily.scripture}
           </button>
         </div>
         <DisclosureSection
@@ -9572,7 +9576,7 @@ function HomeDashboard({
                 <span className="min-w-0">
                   <span className="block text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{text.scriptureMemory ?? ""}</span>
                   <button type="button" onClick={() => onScriptureOpen(scriptureMemory.scripture)} className="mt-1 font-semibold underline underline-offset-4">
-                    {scriptureMemory.scripture}
+                    {scriptureMemory.scripture} · {scriptureDisplayLabel(scriptureMemory.scripture, preferences)}
                   </button>
                 </span>
                 <div className="flex w-fit shrink-0 items-center gap-2">
@@ -13230,7 +13234,7 @@ function ScriptureModal({
             <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.scriptureQuickRead')}</p>
             <h2 className="mt-2 text-xl font-semibold" style={{ color: theme.textPrimary }}>{scripture}</h2>
             <p className="mt-1 text-sm" style={{ color: theme.textSecondary }}>
-              {quickRead.label} · {quickRead.translation}
+              {scriptureDisplayLabel(scripture, preferences)}
             </p>
             <p className="mt-2 text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
               {ts('labels.verses')}: {canonicalScripture}
@@ -14429,7 +14433,7 @@ function ScriptureChips({
           style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textSecondary }}
           suppressHydrationWarning
         >
-          {source.scripture} · {localizedScriptureRead(source.scripture, preferences).translation}
+          {source.scripture} · {scriptureDisplayLabel(source.scripture, preferences)}
         </button>
       ))}
     </div>
@@ -17084,7 +17088,7 @@ function LibraryPanel({
                 className="text-left text-sm font-semibold underline underline-offset-4"
                 style={{ color: theme.textPrimary }}
               >
-                {scriptureMemory.scripture}
+                {scriptureMemory.scripture} · {scriptureDisplayLabel(scriptureMemory.scripture, preferences)}
               </button>
               <button
                 type="button"
@@ -17170,7 +17174,7 @@ function LibraryPanel({
                     onMouseEnter={(e) => e.currentTarget.style.color = theme.accentGold}
                     onMouseLeave={(e) => e.currentTarget.style.color = theme.textPrimary}
                   >
-                    {entry.scripture}
+                    {entry.scripture} · {scriptureDisplayLabel(entry.scripture, preferences)}
                   </button>
                 </div>
                 <p className="text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>{localizedEntry.principle}</p>
@@ -17213,7 +17217,7 @@ function LibraryPanel({
                         className="text-left text-sm font-semibold underline underline-offset-4 transition"
                         style={{ color: theme.textPrimary, textDecorationColor: theme.borderMedium }}
                       >
-                        {entry.scripture}
+                        {entry.scripture} · {scriptureDisplayLabel(entry.scripture, preferences)}
                       </button>
                     </div>
                     <p className="text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>{localizedEntry.principle}</p>

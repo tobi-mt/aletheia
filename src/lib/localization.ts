@@ -603,6 +603,22 @@ export function scriptureTranslationLabel(scripture: string, preferences: UserPr
   return `${read.translation} ${language.name}${fallbackLabel}`;
 }
 
+export function scriptureDisplayLabel(scripture: string, preferences: UserPreferences) {
+  const read = localizedScriptureRead(scripture, preferences);
+  const preferredTranslation = bibleTranslations[preferences.bibleTranslation] ?? bibleTranslations.WEB;
+  const labelCopy = localizedScriptureLabelCopy[preferences.language] ?? localizedScriptureLabelCopy.en;
+
+  if (read.kind === "translation") {
+    return preferredTranslation.label;
+  }
+
+  if (read.kind === "summary") {
+    return `${preferredTranslation.label} ${labelCopy.summary}`;
+  }
+
+  return preferredTranslation.label;
+}
+
 export const languageCopy: Record<
   LanguageCode,
   {
@@ -2559,7 +2575,7 @@ export function localizedDailyWisdom(
   return {
     label: copy.dailyLabel,
     theme: localizedEntry.theme,
-    scripture: `${entry.scripture} (${scriptureTranslationLabel(entry.scripture, preferences)})`,
+    scripture: `${entry.scripture} (${scriptureDisplayLabel(entry.scripture, preferences)})`,
     principle: localizedEntry.principle,
     practice,
     translationNote: copy.translationFallback,
@@ -2568,7 +2584,7 @@ export function localizedDailyWisdom(
 
 export function localizedWisdomLibraryNote(entry: WisdomEntryData, preferences: UserPreferences) {
   const regionLabel = localizedRegionLabel(preferences.region, preferences.language);
-  const translation = scriptureTranslationLabel(entry.scripture, preferences);
+  const translation = scriptureDisplayLabel(entry.scripture, preferences);
 
   const notes: Record<LanguageCode, string> = {
     en: `Use ${entry.scripture} with the ${translation} reference label, then apply it with ${regionLabel} realities in view.`,

@@ -2,7 +2,7 @@ import {
   defaultPreferences,
   localizedModeProfile,
   localizedWisdomEntry,
-  scriptureTranslationLabel,
+  scriptureDisplayLabel,
   type UserPreferences,
 } from "@/lib/localization";
 import type { Mode } from "@/lib/wisdom-data";
@@ -142,7 +142,7 @@ export function buildDecisionSummary({
     .slice(0, 3)
     .map((source) => {
       const localizedSource = localizedWisdomEntry(source, preferences);
-      return `${localizedSource.scripture} (${scriptureTranslationLabel(localizedSource.scripture, preferences)}): ${localizedSource.principle}`;
+      return `${localizedSource.scripture} (${scriptureDisplayLabel(localizedSource.scripture, preferences)}): ${localizedSource.principle}`;
     })
     .join("\n");
 
