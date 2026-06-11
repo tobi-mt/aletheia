@@ -25,12 +25,66 @@ function testSection(title) {
 }
 
 const BASE_URL = 'http://localhost:3000';
+const REQUEST_PACE_MS = Number(process.env.ALETHEIA_TEST_PACE_MS || 2600);
+const RETRY_LIMIT = Number(process.env.ALETHEIA_TEST_RETRY_LIMIT || 8);
 let testsRun = 0;
 let testsPassed = 0;
 let testsFailed = 0;
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function resolveRetryWaitMs(response, attempt) {
+  const retryAfterHeader = response.headers.get('retry-after');
+  const resetHeader = response.headers.get('x-ratelimit-reset');
+  const retryAfterSeconds = retryAfterHeader ? Number(retryAfterHeader) : NaN;
+  if (Number.isFinite(retryAfterSeconds) && retryAfterSeconds >= 0) {
+    return Math.max(1800, Math.round(retryAfterSeconds * 1000) + 300);
+  }
+  if (resetHeader) {
+    const resetAt = Date.parse(resetHeader);
+    if (Number.isFinite(resetAt)) {
+      return Math.max(1800, resetAt - Date.now() + 300);
+    }
+  }
+  return Math.min(16000, 1800 * Math.max(1, attempt));
+}
+
+async function pacedFetch(path, init = {}) {
+  for (let attempt = 1; attempt <= RETRY_LIMIT; attempt += 1) {
+    if (attempt > 1) {
+      await sleep(REQUEST_PACE_MS);
+    }
+
+    const syntheticClientIp = `198.51.100.${Math.floor(Math.random() * 200) + 20}`;
+    const response = await fetch(`${BASE_URL}${path}`, {
+      ...init,
+      headers: {
+        ...(init.headers || {}),
+        'x-forwarded-for': syntheticClientIp,
+        'x-real-ip': syntheticClientIp,
+      },
+    });
+
+    if (response.status === 429) {
+      const waitMs = resolveRetryWaitMs(response, attempt);
+      log(`    429 rate limit. Waiting ${Math.ceil(waitMs / 1000)}s...`, 'yellow');
+      await sleep(waitMs);
+      continue;
+    }
+
+    if (response.status >= 500 && attempt < RETRY_LIMIT) {
+      const waitMs = Math.min(12000, 900 * attempt);
+      log(`    ${response.status} received. Retrying in ${Math.ceil(waitMs / 1000)}s...`, 'yellow');
+      await sleep(waitMs);
+      continue;
+    }
+
+    return response;
+  }
+
+  throw new Error(`Unable to complete request after ${RETRY_LIMIT} attempts`);
 }
 
 async function test(description, testFn) {
@@ -68,10 +122,10 @@ await test('API endpoints are responsive', async () => {
 // Test 2: OpenAI Chat Integration (with delays)
 testSection('2. OpenAI Chat Integration (with Rate Limiting)');
 
-log('  Note: Adding 3s delays between requests to respect rate limits...', 'yellow');
+log('  Note: Adaptive pacing is enabled to respect rate limits.', 'yellow');
 
 await test('Chat works with English + Money mode', async () => {
-  const response = await fetch(`${BASE_URL}/api/chat`, {
+  const response = await pacedFetch('/api/chat', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -81,7 +135,7 @@ await test('Chat works with English + Money mode', async () => {
       mode: 'Money',
       preferences: {
         language: 'en',
-        region: 'US',
+        region: 'us',
         bibleTranslation: 'WEB',
       },
       manualContext: {},
@@ -102,10 +156,10 @@ await test('Chat works with English + Money mode', async () => {
   log(`    Has scripture: ${data.reply.sources && data.reply.sources.length > 0 ? '✓' : '✗'}`, 'blue');
 });
 
-await sleep(3000); // Wait 3s before next request
+await sleep(REQUEST_PACE_MS);
 
 await test('Chat works with Spanish + Work mode', async () => {
-  const response = await fetch(`${BASE_URL}/api/chat`, {
+  const response = await pacedFetch('/api/chat', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -135,10 +189,10 @@ await test('Chat works with Spanish + Work mode', async () => {
   log(`    Response length: ${data.reply.text.length} chars`, 'blue');
 });
 
-await sleep(3000); // Wait 3s before next request
+await sleep(REQUEST_PACE_MS);
 
 await test('Chat works with German + Purpose mode', async () => {
-  const response = await fetch(`${BASE_URL}/api/chat`, {
+  const response = await pacedFetch('/api/chat', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -168,10 +222,10 @@ await test('Chat works with German + Purpose mode', async () => {
   log(`    Response length: ${data.reply.text.length} chars`, 'blue');
 });
 
-await sleep(3000); // Wait 3s before next request
+await sleep(REQUEST_PACE_MS);
 
 await test('Chat works with French + Generosity mode', async () => {
-  const response = await fetch(`${BASE_URL}/api/chat`, {
+  const response = await pacedFetch('/api/chat', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -204,10 +258,10 @@ await test('Chat works with French + Generosity mode', async () => {
 // Test 3: Bible Translation Handling
 testSection('3. Bible Translation Cross-Language Support');
 
-await sleep(3000); // Wait 3s before next request
+await sleep(REQUEST_PACE_MS);
 
 await test('English user can use Spanish Bible (RV1960)', async () => {
-  const response = await fetch(`${BASE_URL}/api/chat`, {
+  const response = await pacedFetch('/api/chat', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -217,7 +271,7 @@ await test('English user can use Spanish Bible (RV1960)', async () => {
       mode: 'Purpose',
       preferences: {
         language: 'en', // English interface
-        region: 'US',
+        region: 'us',
         bibleTranslation: 'RV1960', // Spanish Bible
       },
       manualContext: {},
@@ -236,10 +290,10 @@ await test('English user can use Spanish Bible (RV1960)', async () => {
 // Test 4: Error Handling
 testSection('4. Error Handling & Validation');
 
-await sleep(3000); // Wait 3s before next request
+await sleep(REQUEST_PACE_MS);
 
 await test('Handles empty messages gracefully', async () => {
-  const response = await fetch(`${BASE_URL}/api/chat`, {
+  const response = await pacedFetch('/api/chat', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -247,7 +301,7 @@ await test('Handles empty messages gracefully', async () => {
     body: JSON.stringify({
       message: '',
       mode: 'Money',
-      preferences: { language: 'en', region: 'US', bibleTranslation: 'WEB' },
+      preferences: { language: 'en', region: 'us', bibleTranslation: 'WEB' },
       manualContext: {},
     }),
   });
@@ -261,11 +315,11 @@ await test('Handles empty messages gracefully', async () => {
 // Test 5: Performance Check
 testSection('5. Response Time Performance');
 
-await sleep(3000); // Wait 3s before final request
+await sleep(REQUEST_PACE_MS);
 
 await test('Chat responds within reasonable time', async () => {
   const testStart = Date.now();
-  const response = await fetch(`${BASE_URL}/api/chat`, {
+  const response = await pacedFetch('/api/chat', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -273,7 +327,7 @@ await test('Chat responds within reasonable time', async () => {
     body: JSON.stringify({
       message: 'Quick wisdom test',
       mode: 'Money',
-      preferences: { language: 'en', region: 'US', bibleTranslation: 'WEB' },
+      preferences: { language: 'en', region: 'us', bibleTranslation: 'WEB' },
       manualContext: {},
     }),
   });

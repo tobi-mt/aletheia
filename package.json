@@ -7,7 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "translations:analyze": "npx ts-node scripts/analyze-translations.ts",
+    "translations:audit": "npx ts-node scripts/analyze-translations.ts --strict",
     "ui:regression": "node scripts/ui-regression.mjs",
+    "ui:i18n": "node scripts/ui-i18n-regression.mjs",
     "notify:daily": "node scripts/send-daily-notifications.mjs",
     "push:keys": "web-push generate-vapid-keys"
   },

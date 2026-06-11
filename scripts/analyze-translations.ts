@@ -40,7 +40,7 @@ interface HardCodedString {
   line: number;
   context: string;
   string: string;
-  category: 'notification' | 'status' | 'error' | 'label' | 'message' | 'unknown';
+  category: 'notification' | 'status' | 'error' | 'label' | 'message' | 'fallback' | 'constant' | 'unknown';
 }
 
 // Language configuration
@@ -136,6 +136,12 @@ function findHardCodedStrings(content: string): HardCodedString[] {
   
   // Patterns to look for
   const patterns = [
+    // Inline translation fallbacks such as ts('labels.key', 'English text')
+    { regex: /\b(?:ts|t)\s*\(\s*['"`][^'"`]+['"`]\s*,\s*"([^"]{3,})"\s*\)/g, category: 'fallback' as const },
+    { regex: /\b(?:ts|t)\s*\(\s*['"`][^'"`]+['"`]\s*,\s*'([^']{3,})'\s*\)/g, category: 'fallback' as const },
+    // High-risk uppercase user-facing constants
+    { regex: /const\s+[A-Z0-9_]+_(?:TEXT|MESSAGE)\s*=\s*"([^"]{8,})"/g, category: 'constant' as const },
+    { regex: /const\s+[A-Z0-9_]+_(?:TEXT|MESSAGE)\s*=\s*'([^']{8,})'/g, category: 'constant' as const },
     // announceWorkflow calls
     { regex: /announceWorkflow\s*\(\s*"([^"]+)"\s*,\s*"([^"]+)"/g, category: 'notification' as const },
     // setStatusMessage, setCounselInviteStatus
@@ -240,6 +246,10 @@ function generateHardCodedReport(hardCoded: HardCodedString[]): string {
   return report;
 }
 
+function isStrictMode() {
+  return process.argv.includes('--strict') || process.env.STRICT_INLINE_ENGLISH === '1';
+}
+
 /**
  * Main execution
  */
@@ -307,6 +317,14 @@ async function main() {
     fs.writeFileSync(path.join(REPORTS_DIR, 'hard-coded-strings.md'), hardCodedReport);
     console.log('✓ Hard-coded strings report: translation-reports/hard-coded-strings.md');
     console.log(`  Found ${hardCoded.length} hard-coded strings\n`);
+
+    const strictFindings = hardCoded.filter((item) => item.category === 'constant');
+
+    if (isStrictMode() && strictFindings.length > 0) {
+      console.error('❌ Strict mode failed: hard-coded user-facing strings detected.');
+      console.error(`   Blocking findings: ${strictFindings.length} (constant category)`);
+      process.exit(1);
+    }
   }
   
   // Generate missing translations template
