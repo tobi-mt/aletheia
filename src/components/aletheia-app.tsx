@@ -9091,7 +9091,7 @@ function OnboardingModal({
           <section ref={modeSectionRef} tabIndex={-1} className="scroll-mt-4 outline-none">
             <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{ts('labels.setupStepMode')}</p>
             <p className="mt-1 text-sm font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.whatBringsYou')}</p>
-            <div className="mt-2 flex flex-col gap-2">
+            <div className="mt-2 flex min-w-0 snap-x gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
               {modeCards.map((item) => (
                 <ModeLensCard
                   key={item.label}
@@ -9099,7 +9099,6 @@ function OnboardingModal({
                   active={mode === item.label}
                   onClick={() => onModeChange(item.label)}
                   theme={theme}
-                  stretch
                 />
               ))}
             </div>
@@ -9215,7 +9214,7 @@ function OnboardingModal({
           <section ref={privacySectionRef} tabIndex={-1} className="scroll-mt-4 rounded-lg border p-3 outline-none" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
             <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{ts('labels.setupStepPrivacy')}</p>
             <h3 className="mt-1 text-sm font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.privacyLevelTitle')}</h3>
-            <div className="mt-3 flex flex-col gap-2">
+            <div className="mt-3 flex min-w-0 snap-x gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
               {privacyOptions.map((option) => {
                 const active = privacyLevel === option.key;
                 return (
@@ -9228,8 +9227,7 @@ function OnboardingModal({
                     onClick={() => setPrivacyLevel(option.key)}
                     theme={theme}
                     status={active ? ts('labels.selected') : undefined}
-                    className="w-full"
-                    stretch
+                    className="w-[16.75rem] shrink-0 snap-start"
                   />
                 );
               })}
@@ -11066,7 +11064,7 @@ function VoicePreferenceSelector({
       <p className="text-xs leading-5" style={{ color: theme.textSecondary }}>
         {ts('labels.voicePreferenceBody')}
       </p>
-      <div className="space-y-2">
+      <div className="flex min-w-0 snap-x gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
         {[
           {
             key: "device-default",
@@ -11086,7 +11084,7 @@ function VoicePreferenceSelector({
           return (
             <div
               key={voice.key}
-              className="rounded-xl border p-3 shadow-sm"
+              className="w-[17rem] shrink-0 snap-start rounded-xl border p-3 shadow-sm"
               style={{
                 borderColor: active ? theme.accentGold : theme.borderMedium,
                 backgroundColor: active ? theme.activeBg : theme.bgInput,
@@ -11176,7 +11174,7 @@ function FocusIntentionsCard({
           {selected.length}/3 {ts('labels.selected')}
         </span>
       </div>
-      <div className="flex flex-col gap-2">
+      <div className="flex min-w-0 snap-x gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
         {options.map((option) => {
           const active = selectedSet.has(option.key);
           return (
@@ -11188,7 +11186,7 @@ function FocusIntentionsCard({
               active={active}
               onClick={() => toggle(option.key)}
               theme={theme}
-              className={compact ? "p-2.5" : ""}
+              className={`${compact ? "p-2.5" : ""} w-[16.75rem] shrink-0 snap-start`}
             />
           );
         })}
@@ -11776,7 +11774,7 @@ function ManualContextPanel({
     activeKey: T,
     onSelect: (key: T) => void
   ) => (
-    <div className="flex flex-col gap-2">
+    <div className="flex min-w-0 snap-x gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
       {cards.map((card) => {
         return (
           <ChoiceCardButton
@@ -11787,6 +11785,7 @@ function ManualContextPanel({
             active={card.key === activeKey}
             onClick={() => onSelect(card.key)}
             theme={theme}
+            className="w-[17rem] shrink-0 snap-start"
           />
         );
       })}
@@ -12060,7 +12059,7 @@ function ManualContextPanel({
                   <p className="mt-2 text-lg font-semibold" style={{ color: theme.textPrimary }}>{ts('manualContext.quickAddHeadline')}</p>
                 </div>
               </div>
-              <div className="mt-4 flex flex-col gap-2">
+              <div className="mt-4 flex min-w-0 snap-x gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
                 {quickDetailOptions.map((option) => {
                   return (
                     <SelectionRailCard
@@ -12071,8 +12070,7 @@ function ManualContextPanel({
                       active={quickDetailType === option.key}
                       onClick={() => setQuickDetailType(option.key)}
                       theme={theme}
-                      className="w-full"
-                      stretch
+                      className="w-[16.75rem] shrink-0 snap-start"
                     />
                   );
                 })}
@@ -12161,7 +12159,7 @@ function ManualContextPanel({
                     <p className="text-xs font-semibold uppercase tracking-[0.12em] sm:tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('manualContext.answerUseEyebrow')}</p>
                     <p className="mt-2 text-lg font-semibold" style={{ color: theme.textPrimary }}>{ts('manualContext.answerUseTitle')}</p>
                   </div>
-                  <div className="mt-4 flex flex-col gap-3">
+                  <div className="mt-4 flex min-w-0 snap-x gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
                     <ContextUseToggle
                       icon={PiggyBank}
                       label={manualCopy.useMoney}
@@ -12337,8 +12335,7 @@ function ContextUseToggle({
       active={checked}
       onClick={() => onChange(!checked)}
       theme={theme}
-      className={wide ? "sm:col-span-2" : ""}
-      stretch
+      className={wide ? "w-[18.5rem] shrink-0 snap-start" : "w-[16.75rem] shrink-0 snap-start"}
     />
   );
 }

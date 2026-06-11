@@ -49,7 +49,6 @@ function color(code, text) {
 const ok = (text) => color('\x1b[32m', text);
 const bad = (text) => color('\x1b[31m', text);
 const info = (text) => color('\x1b[36m', text);
-const warn = (text) => color('\x1b[33m', text);
 
 function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
