@@ -147,6 +147,17 @@
         "Sollte ich meiner Familie finanziell wieder helfen?",
         "Wie viel Großzügigkeit ist für mich nachhaltig?"
       ]
+    },
+    "life": {
+      "label": "Leben",
+      "intent": "Biblische Weisheit mit ruhiger, geerdeter Aufmerksamkeit auf den Alltag anwenden.",
+      "focus": "Gewohnheiten, Beziehungen, Familie, Ruhe, Gesundheit, Hausrhythmen",
+      "useWhen": "Nutze es für alltägliche Entscheidungen, Routinen, Beziehungen, Gewohnheiten, Ruhe, Konflikte oder wenn der nächste Schritt nicht klar eine Geld- oder Arbeitsfrage ist.",
+      "prompts": [
+        "Wie kann ich meinen Alltag weiser gestalten?",
+        "Wie sollte ich über diese Beziehung denken?",
+        "Welche Gewohnheit sollte ich zuerst ändern?"
+      ]
     }
   },
   "notifications": {

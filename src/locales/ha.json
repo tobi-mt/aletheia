@@ -147,6 +147,17 @@
         "Shin ya kamata in sake taimakawa iyalina da kuɗi?",
         "Nawa karimci ya dace da ni?"
       ]
+    },
+    "life": {
+      "label": "Rayuwa",
+      "intent": "Aiwatar da hikimar Littafi Mai Tsarki ga rayuwar yau da kullum cikin nutsuwa da hankali.",
+      "focus": "Halaye, dangantaka, iyali, hutu, lafiya, tsarin gida",
+      "useWhen": "Yi amfani da shi don shawarwarin yau da kullum, al'adu, dangantaka, halaye, hutu, rikici, ko lokacin da mataki na gaba ba ya bayyana a matsayin tambayar kuɗi ko aiki.",
+      "prompts": [
+        "Ta yaya zan sa rayuwata ta yau da kullum ta fi hikima?",
+        "Yaya ya kamata in yi tunani game da wannan dangantaka?",
+        "Wane al'ada zan fara canzawa?"
+      ]
     }
   },
   "notifications": {

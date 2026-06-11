@@ -147,6 +147,17 @@
         "Ṣé mo yẹ kí n ran ìdílé mi lọ́wọ́ ní owó lẹ́ẹ̀kan sí i?",
         "Ìwọ̀n ọ̀fẹ́ wo ni ó dúró pẹ́ fún mi?"
       ]
+    },
+    "life": {
+      "label": "Ayé",
+      "intent": "Ṣe ìtọ́nisọ́nà ìgbésí ayé ojoojúmọ́ pẹ̀lú ọgbọ́n tí ó dákẹ́.",
+      "focus": "Àṣà, ìbáṣepọ̀, ẹbí, ìsinmi, ìlera, ìrìnàjò ilé",
+      "useWhen": "Lo fún àwọn ìpinnu ìgbésí ayé ojoojúmọ́, àṣà, ìbáṣepọ̀, ìsinmi, ìjà, tàbí nígbà tí ìgbésẹ̀ tó tẹ̀lé kò dájú pé ó jẹ́ ìbéèrè owó tàbí iṣẹ́.",
+      "prompts": [
+        "Báwo ni mo ṣe lè sọ ìgbésí ayé ojoojúmọ́ mi di ọgbọ́n síi?",
+        "Kí ni mo yẹ kí n ṣe nípa ìbáṣepọ̀ yìí?",
+        "Àṣà wo ni mo yẹ kí n yí padà kíákíá?"
+      ]
     }
   },
   "notifications": {

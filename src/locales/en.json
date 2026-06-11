@@ -147,6 +147,17 @@
         "Should I help family financially again?",
         "How much generosity is sustainable for me?"
       ]
+    },
+    "life": {
+      "label": "Life",
+      "intent": "Apply biblical wisdom to ordinary life with steady, grounded attention.",
+      "focus": "Habits, relationships, family, rest, health, home rhythms",
+      "useWhen": "Use for everyday life decisions, routines, relationships, habits, rest, conflict, or when the right next step is not obviously a money or work question.",
+      "prompts": [
+        "How do I make my daily life wiser?",
+        "How should I think about this relationship?",
+        "What habit should I change first?"
+      ]
     }
   },
   "notifications": {

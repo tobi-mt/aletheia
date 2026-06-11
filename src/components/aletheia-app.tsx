@@ -3947,8 +3947,7 @@ export function AletheiaApp() {
   }, []);
 
   const translationHelpers = useMemo(() => {
-    const useEnglishFallback = preferences.language === "en";
-    const resolveFallback = (key: string, fallback?: string) => useEnglishFallback ? (fallback || key) : key;
+    const resolveFallback = (key: string, fallback?: string) => fallback?.trim() ? fallback : key;
     const t = (key: string, fallback?: string): string | string[] => getTranslation(translations, key, resolveFallback(key, fallback));
     const ts = (key: string, fallback?: string): string => {
       const result = t(key, fallback);

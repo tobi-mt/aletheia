@@ -147,6 +147,17 @@
         "M kwesịrị inyere ezinụlọ m aka n'ego ọzọ?",
         "Oke mmesapụ aka ole na-adịgide maka m?"
       ]
+    },
+    "life": {
+      "label": "Ndụ",
+      "intent": "Tinye amamihe Baịbụl n'ọrụ na ndụ nkịtị n'ụzọ siri ike ma dị jụụ.",
+      "focus": "Omume, mmekọrịta, ezinụlọ, izu ike, ahụike, usoro ụlọ",
+      "useWhen": "Jiri ya maka mkpebi ndụ kwa ụbọchị, usoro, mmekọrịta, omume, izu ike, esemokwu, ma ọ bụ mgbe nzọụkwụ ọzọ adịghị doro anya na ọ bụ ajụjụ ego ma ọ bụ ọrụ.",
+      "prompts": [
+        "Kedu ka m ga-esi mee ndụ m kwa ụbọchị ka ọ bụrụ nke amamihe karịa?",
+        "Kedu ka m kwesịrị iche banyere mmekọrịta a?",
+        "Omume gịnị ka m kwesịrị ịgbanwe mbụ?"
+      ]
     }
   },
   "notifications": {

@@ -147,6 +147,17 @@
         "Devo ajudar minha família financeiramente novamente?",
         "Quanta generosidade é sustentável para mim?"
       ]
+    },
+    "life": {
+      "label": "Vida",
+      "intent": "Aplique a sabedoria bíblica à vida comum com atenção firme.",
+      "focus": "Hábitos, relacionamentos, família, descanso, saúde, ritmos da casa",
+      "useWhen": "Use para decisões do dia a dia, rotinas, relações, hábitos, descanso, conflito ou quando o próximo passo não parece ser dinheiro ou trabalho.",
+      "prompts": [
+        "Como tornar minha vida diária mais sábia?",
+        "Como devo pensar sobre este relacionamento?",
+        "Que hábito devo mudar primeiro?"
+      ]
     }
   },
   "notifications": {

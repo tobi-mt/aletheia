@@ -147,6 +147,17 @@
         "Devrais-je aider financièrement ma famille à nouveau?",
         "Quelle générosité est durable pour moi?"
       ]
+    },
+    "life": {
+      "label": "Vie",
+      "intent": "Appliquer la sagesse biblique à la vie ordinaire avec une attention stable.",
+      "focus": "Habitudes, relations, famille, repos, santé, rythmes du foyer",
+      "useWhen": "Utilise-le pour les décisions du quotidien, les routines, les relations, les habitudes, le repos, les conflits ou quand le prochain pas n'est pas clairement une question d'argent ou de travail.",
+      "prompts": [
+        "Comment rendre ma vie quotidienne plus sage?",
+        "Comment devrais-je penser à cette relation?",
+        "Quelle habitude dois-je changer en premier?"
+      ]
     }
   },
   "notifications": {
