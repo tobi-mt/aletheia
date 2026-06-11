@@ -510,10 +510,6 @@ const gratitudeNotificationCopy: Record<LanguageCode, SimpleNotificationLanguage
   },
 };
 
-function stripTranslationLabel(scripture: string) {
-  return scripture.replace(/\s*\([^)]*\)\s*$/, "");
-}
-
 function normalizeNotificationSegment(value: string, fallback: string) {
   const cleaned = value.replace(/\s+/g, " ").trim();
   return cleaned || fallback;
@@ -528,7 +524,7 @@ function buildDailyNotificationTitle(input: {
 }) {
   const copy = dailyNotificationCopy[input.language] ?? dailyNotificationCopy.en;
   const cleanTheme = compactNotificationCopy(normalizeNotificationSegment(input.theme, input.label), 34);
-  const scriptureReference = compactNotificationCopy(stripTranslationLabel(input.scripture), 32);
+  const scriptureReference = compactNotificationCopy(input.scripture, 44);
   const cleanLabel = compactNotificationCopy(normalizeNotificationSegment(input.label, "Aletheia"), 34);
   const title = copy.titles[input.variant % copy.titles.length]({
     label: cleanLabel,

@@ -5516,12 +5516,10 @@ export function AletheiaApp() {
 
   function shareScriptureMemoryCard(memory: ScriptureMemory) {
     const read = localizedScriptureRead(memory.scripture, preferences);
-    const translationCode = read.translation as BibleTranslation;
-    const translation = bibleTranslations[translationCode] ?? bibleTranslations[preferences.bibleTranslation];
-    const translationLabel = `${translationCode} · ${translation.label}`;
+    const translationLabel = scriptureDisplayLabel(memory.scripture, preferences);
     void shareWisdomPostcard({
       kind: "scripture",
-      eyebrow: `${ts('labels.scriptureMemory')} · ${translationCode}`,
+      eyebrow: `${ts('labels.scriptureMemory')} · ${translationLabel}`,
       title: memory.scripture,
       body: `${read.text}\n\n${translationLabel}\n\n${memory.principle}`,
       sections: [
