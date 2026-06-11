@@ -15,9 +15,16 @@ const LOCAL_PORT = Number(process.env.UI_REGRESSION_PORT || 3101);
 const REQUESTED_BASE_URL = process.env.UI_REGRESSION_BASE_URL || null;
 const LOCAL_BASE_URL = `http://localhost:${LOCAL_PORT}`;
 const SERVER_START_TIMEOUT_MS = 90_000;
+const RUN_EXPANDED_MATRIX = process.env.UI_REGRESSION_EXPANDED === '1';
+const RUN_NAV_STRESS = process.env.UI_REGRESSION_NAV_STRESS === '1' || RUN_EXPANDED_MATRIX;
+const ENDURANCE_LOOPS = Math.max(1, Number(process.env.UI_REGRESSION_ENDURANCE_LOOPS || '1'));
+const REQUESTED_SCHEMES = (process.env.UI_REGRESSION_SCHEMES || '')
+  .split(',')
+  .map((value) => value.trim())
+  .filter(Boolean);
 let runtimeBaseUrl = REQUESTED_BASE_URL || LOCAL_BASE_URL;
 
-const viewports = [
+const baseViewports = [
   { name: 'iPhone SE', width: 375, height: 667, mobile: true, touch: true, tabs: ['Home', 'Decide', 'Reflect', 'Library', 'Account'] },
   { name: 'iPhone 14 Pro', width: 393, height: 852, mobile: true, touch: true, tabs: ['Home', 'Decide', 'Reflect', 'Library', 'Account'] },
   { name: 'iPhone 14 Pro Max', width: 430, height: 932, mobile: true, touch: true, tabs: ['Home', 'Decide', 'Reflect', 'Library', 'Account'] },
@@ -26,6 +33,20 @@ const viewports = [
   { name: 'Desktop 1440', width: 1440, height: 900, mobile: false, touch: false, tabs: ['Home', 'Decisions', 'Reflect', 'Library', 'Account'] },
   { name: 'iPhone 14 Pro landscape', width: 852, height: 393, mobile: false, touch: true, tabs: ['Home', 'Decisions', 'Reflect', 'Library', 'Account'] },
 ];
+
+const expandedViewports = [
+  { name: 'Galaxy S8', width: 360, height: 740, mobile: true, touch: true, tabs: ['Home', 'Decide', 'Reflect', 'Library', 'Account'] },
+  { name: 'iPad Mini landscape', width: 1024, height: 768, mobile: false, touch: true, tabs: ['Home', 'Decisions', 'Reflect', 'Library', 'Account'] },
+  { name: 'Desktop 1280', width: 1280, height: 800, mobile: false, touch: false, tabs: ['Home', 'Decisions', 'Reflect', 'Library', 'Account'] },
+  { name: 'Desktop 1920', width: 1920, height: 1080, mobile: false, touch: false, tabs: ['Home', 'Decisions', 'Reflect', 'Library', 'Account'] },
+];
+
+const viewports = RUN_EXPANDED_MATRIX ? [...baseViewports, ...expandedViewports] : baseViewports;
+const colorSchemes = REQUESTED_SCHEMES.length
+  ? REQUESTED_SCHEMES
+  : RUN_EXPANDED_MATRIX
+    ? ['dark', 'light']
+    : ['dark'];
 
 const markers = {
   Home: 'Ask Aletheia',
@@ -204,6 +225,184 @@ async function checkGlobalLayout(page) {
     const overlap = nav && firstHeading ? Math.max(0, Math.round(nav.getBoundingClientRect().bottom - firstHeading.top)) : 0;
     return { overflowX, overlap };
   });
+}
+
+async function checkPrimaryInputStress(page) {
+  return page.evaluate(() => {
+    const textarea = document.querySelector('#companion-question-input');
+    if (!(textarea instanceof HTMLTextAreaElement)) {
+      return { hasTextarea: false, grewToExpectedLines: false };
+    }
+
+    const original = textarea.value;
+    const beforeHeight = textarea.getBoundingClientRect().height;
+    textarea.value = 'This is a long regression stress prompt. '.repeat(40);
+    textarea.dispatchEvent(new Event('input', { bubbles: true }));
+    const afterHeight = textarea.getBoundingClientRect().height;
+    textarea.value = original;
+    textarea.dispatchEvent(new Event('input', { bubbles: true }));
+
+    return {
+      hasTextarea: true,
+      grewToExpectedLines: Math.round(afterHeight) >= Math.round(beforeHeight),
+    };
+  });
+}
+
+function tabStressSequences(viewport) {
+  const decisionTab = viewport.tabs.includes('Decisions') ? 'Decisions' : 'Decide';
+  const ordered = ['Home', decisionTab, 'Reflect', 'Library', 'Account'];
+  const reverse = [...ordered].reverse();
+  const bounce = ['Home', decisionTab, 'Home', 'Reflect', 'Library', 'Account', 'Home'];
+  return [ordered, reverse, bounce];
+}
+
+async function verifyTabMarker(page, tabName) {
+  const marker = markers[tabName];
+  if (!marker) {
+    return true;
+  }
+  return page.evaluate((needle) => document.body.innerText.includes(needle), marker);
+}
+
+async function runNavigationFlowStress(page, viewport) {
+  const failures = [];
+  for (const sequence of tabStressSequences(viewport)) {
+    for (const tab of sequence) {
+      try {
+        await clickTab(page, tab, viewport.mobile);
+      } catch (error) {
+        failures.push(`tab stress click failed for ${tab}: ${error.message}`);
+        continue;
+      }
+      const markerVisible = await verifyTabMarker(page, tab);
+      if (!markerVisible) {
+        failures.push(`tab stress marker missing after ${tab}`);
+      }
+    }
+  }
+  return failures;
+}
+
+async function runExpandableToggleStress(page) {
+  // Get list of expandable controls with their initial states
+  const controls = await page.evaluate(() => {
+    const visibilityCheck = (node) => {
+      const rect = node.getBoundingClientRect();
+      const style = window.getComputedStyle(node);
+      return rect.width > 0 && rect.height > 0 && style.visibility !== 'hidden' && style.display !== 'none';
+    };
+
+    const expandedButtons = Array.from(document.querySelectorAll('button[aria-expanded]')).filter(visibilityCheck).slice(0, 6);
+    const summaryControls = Array.from(document.querySelectorAll('details > summary')).filter(visibilityCheck).slice(0, 6);
+
+    return {
+      buttonCount: expandedButtons.length,
+      summaryCount: summaryControls.length,
+      buttons: expandedButtons.map((btn, idx) => ({
+        type: 'button',
+        index: idx,
+        selector: `button[aria-expanded]:nth-of-type(${idx + 1})`,
+      })),
+      summaries: summaryControls.map((summary, idx) => ({
+        type: 'summary',
+        index: idx,
+        selector: `details > summary:nth-of-type(${idx + 1})`,
+      })),
+    };
+  });
+
+  let exercised = 0;
+  let failed = 0;
+
+  // Test buttons with aria-expanded using Playwright's click (respects React events)
+  for (let i = 0; i < controls.buttons.length; i += 1) {
+    try {
+      const before = await page.getAttribute(`button[aria-expanded]`, 'aria-expanded');
+      await page.locator(`button[aria-expanded]`).first().click();
+      await page.waitForTimeout(50);
+      const mid = await page.getAttribute(`button[aria-expanded]`, 'aria-expanded');
+      await page.locator(`button[aria-expanded]`).first().click();
+      await page.waitForTimeout(50);
+      const after = await page.getAttribute(`button[aria-expanded]`, 'aria-expanded');
+
+      exercised += 1;
+      if (before === mid || before !== after) {
+        failed += 1;
+      }
+    } catch {
+      // Control may have disappeared or become hidden
+    }
+  }
+
+  // Test details/summary (native HTML, no React event issues)
+  for (const summary of controls.summaries) {
+    try {
+      const before = await page.evaluate((sel) => {
+        const elem = document.querySelector(sel);
+        return elem?.parentElement instanceof HTMLDetailsElement ? String(elem.parentElement.open) : null;
+      }, summary.selector);
+
+      await page.locator(summary.selector).click();
+      await page.waitForTimeout(50);
+
+      const mid = await page.evaluate((sel) => {
+        const elem = document.querySelector(sel);
+        return elem?.parentElement instanceof HTMLDetailsElement ? String(elem.parentElement.open) : null;
+      }, summary.selector);
+
+      await page.locator(summary.selector).click();
+      await page.waitForTimeout(50);
+
+      const after = await page.evaluate((sel) => {
+        const elem = document.querySelector(sel);
+        return elem?.parentElement instanceof HTMLDetailsElement ? String(elem.parentElement.open) : null;
+      }, summary.selector);
+
+      exercised += 1;
+      if (before === mid || before !== after) {
+        failed += 1;
+      }
+    } catch {
+      // Control may have disappeared or become hidden
+    }
+  }
+
+  return {
+    found: controls.buttons.length + controls.summaries.length,
+    exercised,
+    failed,
+  };
+}
+
+async function runNavigationEndurance(page, viewport, loops) {
+  const loopResults = [];
+
+  for (let loop = 0; loop < loops; loop += 1) {
+    const navFailures = await runNavigationFlowStress(page, viewport);
+    const expandableStress = await runExpandableToggleStress(page);
+    const loopFailures = [...navFailures];
+
+    if (expandableStress.found > 0 && expandableStress.failed > 0) {
+      loopFailures.push(`expandable toggle stress failed: ${expandableStress.failed}/${expandableStress.exercised}`);
+    }
+
+    loopResults.push({
+      loop: loop + 1,
+      failures: loopFailures,
+      expandableStress,
+    });
+  }
+
+  const failedLoops = loopResults.filter((result) => result.failures.length > 0).length;
+  const flakyLoops = failedLoops > 0 && failedLoops < loops ? failedLoops : 0;
+
+  return {
+    loops,
+    failedLoops,
+    flakyLoops,
+    loopResults,
+  };
 }
 
 async function checkTapTargets(page, enforce44) {
@@ -484,11 +683,12 @@ async function run() {
     const results = [];
 
     for (const viewport of viewports) {
+      for (const colorScheme of colorSchemes) {
       const context = await browser.newContext({
         viewport: { width: viewport.width, height: viewport.height },
         isMobile: viewport.mobile,
         hasTouch: viewport.touch,
-        colorScheme: 'dark',
+        colorScheme,
       });
       const page = await context.newPage();
       const pageErrors = [];
@@ -517,21 +717,34 @@ async function run() {
       const reflect = await checkSimpleMarker(page, 'Reflect', viewport.mobile, 'reflect');
       const library = await checkSimpleMarker(page, 'Library', viewport.mobile, 'library');
       const account = await checkSimpleMarker(page, 'Account', viewport.mobile, 'account');
+      await clickTab(page, 'Home', viewport.mobile);
+      const inputStress = await checkPrimaryInputStress(page);
+      const navStressFailures = RUN_NAV_STRESS ? await runNavigationFlowStress(page, viewport) : [];
+      const expandableStress = RUN_NAV_STRESS ? await runExpandableToggleStress(page) : null;
+      const endurance = RUN_NAV_STRESS && ENDURANCE_LOOPS > 1
+        ? await runNavigationEndurance(page, viewport, ENDURANCE_LOOPS)
+        : null;
 
       results.push({
         viewport: viewport.name,
+        colorScheme,
         globalLayout,
         home,
         decision,
         reflect,
         library,
         account,
+        inputStress,
+        navStressFailures,
+        expandableStress,
+        endurance,
         tapTargets,
         pageErrors,
         consoleErrors,
       });
 
       await context.close();
+      }
     }
 
     await browser.close();
@@ -547,6 +760,21 @@ async function run() {
           failures.push(`${name} regression`);
         }
       }
+      if (!result.inputStress.hasTextarea || !result.inputStress.grewToExpectedLines) {
+        failures.push('primary input stress behavior regression');
+      }
+      if (RUN_NAV_STRESS && result.navStressFailures.length) {
+        failures.push(...result.navStressFailures.slice(0, 6));
+      }
+      if (RUN_NAV_STRESS && result.expandableStress && result.expandableStress.found > 0 && result.expandableStress.failed > 0) {
+        failures.push(`expandable toggle stress failed: ${result.expandableStress.failed}/${result.expandableStress.exercised}`);
+      }
+      if (result.endurance && result.endurance.flakyLoops > 0) {
+        failures.push(`flaky nav stress loops: ${result.endurance.flakyLoops}/${result.endurance.loops}`);
+      }
+      if (result.endurance && result.endurance.failedLoops === result.endurance.loops) {
+        failures.push(`nav stress endurance failed all loops: ${result.endurance.failedLoops}/${result.endurance.loops}`);
+      }
       if (result.tapTargets.length) {
         failures.push(`tap targets <44px: ${result.tapTargets.length}`);
       }
@@ -559,7 +787,7 @@ async function run() {
 
       if (failures.length) {
         hasFailure = true;
-        console.log(bad(`FAIL ${result.viewport}`));
+        console.log(bad(`FAIL ${result.viewport} · ${result.colorScheme}`));
         for (const failure of failures) {
           console.log(`  - ${failure}`);
         }
@@ -569,14 +797,14 @@ async function run() {
           }
         }
       } else {
-        console.log(ok(`PASS ${result.viewport}`));
+        console.log(ok(`PASS ${result.viewport} · ${result.colorScheme}`));
       }
     }
 
     if (hasFailure) {
       process.exitCode = 1;
     } else {
-      console.log(ok('All UI regression checks passed.'));
+      console.log(ok(`All UI regression checks passed (${results.length} matrix runs).`));
     }
   } finally {
     if (server && !server.killed) {

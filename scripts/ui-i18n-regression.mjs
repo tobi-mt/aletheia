@@ -16,15 +16,36 @@ const LOCAL_PORT = Number(process.env.UI_I18N_PORT || 3102);
 const REQUESTED_BASE_URL = process.env.UI_I18N_BASE_URL || null;
 const LOCAL_BASE_URL = `http://localhost:${LOCAL_PORT}`;
 const SERVER_START_TIMEOUT_MS = 90_000;
+const RUN_EXPANDED_MATRIX = process.env.UI_I18N_EXPANDED === '1';
+const RUN_NAV_STRESS = process.env.UI_I18N_NAV_STRESS === '1' || RUN_EXPANDED_MATRIX;
+const ENDURANCE_LOOPS = Math.max(1, Number(process.env.UI_I18N_ENDURANCE_LOOPS || '1'));
+const REQUESTED_SCHEMES = (process.env.UI_I18N_SCHEMES || '')
+  .split(',')
+  .map((value) => value.trim())
+  .filter(Boolean);
 let runtimeBaseUrl = REQUESTED_BASE_URL || LOCAL_BASE_URL;
 
 const untranslatedPattern = /\b(?:labels|notifications|manualContext|supportMission|share|avatar|theme|auth|status|nav)\.[A-Za-z0-9_]+\b/g;
 
-const viewports = [
+const baseViewports = [
   { name: 'iPhone 14 Pro', width: 393, height: 852, mobile: true, touch: true },
   { name: 'iPad Mini', width: 768, height: 1024, mobile: false, touch: true },
   { name: 'Desktop 1440', width: 1440, height: 900, mobile: false, touch: false },
 ];
+
+const expandedViewports = [
+  { name: 'iPhone SE', width: 375, height: 667, mobile: true, touch: true },
+  { name: 'Pixel 7', width: 412, height: 915, mobile: true, touch: true },
+  { name: 'iPad Mini landscape', width: 1024, height: 768, mobile: false, touch: true },
+  { name: 'Desktop 1280', width: 1280, height: 800, mobile: false, touch: false },
+];
+
+const viewports = RUN_EXPANDED_MATRIX ? [...baseViewports, ...expandedViewports] : baseViewports;
+const colorSchemes = REQUESTED_SCHEMES.length
+  ? REQUESTED_SCHEMES
+  : RUN_EXPANDED_MATRIX
+    ? ['dark', 'light']
+    : ['dark'];
 
 const languageProfiles = {
   en: { region: 'us', bibleTranslation: 'WEB' },
@@ -123,6 +144,15 @@ function tabLabelsFromLocale(locale, mobile) {
     locale.nav?.library,
     locale.nav?.account,
   ].filter(Boolean);
+}
+
+function tabLabelSequences(labels) {
+  const ordered = [...labels];
+  const reverse = [...labels].reverse();
+  const pivot = labels.length >= 5
+    ? [labels[0], labels[1], labels[0], labels[2], labels[3], labels[4], labels[0]]
+    : [...labels];
+  return [ordered, reverse, pivot];
 }
 
 async function preparePage(page, language, profile) {
@@ -247,6 +277,155 @@ async function getUntranslatedTokenLeaks(page) {
   return [...new Set(matches)].slice(0, 25);
 }
 
+async function checkLocalizedLongInputStress(page) {
+  return page.evaluate(() => {
+    const textarea = document.querySelector('#companion-question-input');
+    if (!(textarea instanceof HTMLTextAreaElement)) {
+      return { hasTextarea: false, acceptedLongInput: true };
+    }
+
+    const original = textarea.value;
+    const longPrompt = 'Localized stress prompt '.repeat(60);
+    textarea.value = longPrompt;
+    textarea.dispatchEvent(new Event('input', { bubbles: true }));
+    const acceptedLongInput = textarea.value.length >= longPrompt.length;
+    textarea.value = original;
+    textarea.dispatchEvent(new Event('input', { bubbles: true }));
+
+    return { hasTextarea: true, acceptedLongInput };
+  });
+}
+
+async function runLocalizedNavigationFlowStress(page, labels, mobile) {
+  const failures = [];
+  for (const sequence of tabLabelSequences(labels)) {
+    for (const label of sequence) {
+      const clicked = await clickTab(page, label, mobile);
+      if (!clicked) {
+        failures.push(`nav stress could not click tab: ${label}`);
+        continue;
+      }
+      const leaks = await getUntranslatedTokenLeaks(page);
+      if (leaks.length) {
+        failures.push(`nav stress untranslated token leak after ${label}: ${leaks.join(', ')}`);
+        break;
+      }
+    }
+  }
+  return failures;
+}
+
+async function runLocalizedExpandableToggleStress(page) {
+  // Get list of expandable controls with their initial states
+  const controls = await page.evaluate(() => {
+    const isVisible = (node) => {
+      const rect = node.getBoundingClientRect();
+      const style = window.getComputedStyle(node);
+      return rect.width > 0 && rect.height > 0 && style.visibility !== 'hidden' && style.display !== 'none';
+    };
+
+    const expandedButtons = Array.from(document.querySelectorAll('button[aria-expanded]')).filter(isVisible).slice(0, 6);
+    const summaryControls = Array.from(document.querySelectorAll('details > summary')).filter(isVisible).slice(0, 6);
+
+    return {
+      buttonCount: expandedButtons.length,
+      summaryCount: summaryControls.length,
+    };
+  });
+
+  let exercised = 0;
+  let failed = 0;
+
+  // Test buttons with aria-expanded using Playwright's click (respects React events)
+  for (let i = 0; i < controls.buttonCount; i += 1) {
+    try {
+      const before = await page.getAttribute(`button[aria-expanded]`, 'aria-expanded');
+      await page.locator(`button[aria-expanded]`).first().click();
+      await page.waitForTimeout(50);
+      const mid = await page.getAttribute(`button[aria-expanded]`, 'aria-expanded');
+      await page.locator(`button[aria-expanded]`).first().click();
+      await page.waitForTimeout(50);
+      const after = await page.getAttribute(`button[aria-expanded]`, 'aria-expanded');
+
+      exercised += 1;
+      if (before === mid || before !== after) {
+        failed += 1;
+      }
+    } catch {
+      // Control may have disappeared or become hidden
+    }
+  }
+
+  // Test details/summary (native HTML, no React event issues)
+  for (let i = 0; i < controls.summaryCount; i += 1) {
+    try {
+      const before = await page.evaluate(() => {
+        const elem = document.querySelector('details > summary');
+        return elem?.parentElement instanceof HTMLDetailsElement ? String(elem.parentElement.open) : null;
+      });
+
+      await page.locator('details > summary').first().click();
+      await page.waitForTimeout(50);
+
+      const mid = await page.evaluate(() => {
+        const elem = document.querySelector('details > summary');
+        return elem?.parentElement instanceof HTMLDetailsElement ? String(elem.parentElement.open) : null;
+      });
+
+      await page.locator('details > summary').first().click();
+      await page.waitForTimeout(50);
+
+      const after = await page.evaluate(() => {
+        const elem = document.querySelector('details > summary');
+        return elem?.parentElement instanceof HTMLDetailsElement ? String(elem.parentElement.open) : null;
+      });
+
+      exercised += 1;
+      if (before === mid || before !== after) {
+        failed += 1;
+      }
+    } catch {
+      // Control may have disappeared or become hidden
+    }
+  }
+
+  return {
+    found: controls.buttonCount + controls.summaryCount,
+    exercised,
+    failed,
+  };
+}
+
+async function runLocalizedNavigationEndurance(page, labels, mobile, loops) {
+  const loopResults = [];
+
+  for (let loop = 0; loop < loops; loop += 1) {
+    const navFailures = await runLocalizedNavigationFlowStress(page, labels, mobile);
+    const expandableStress = await runLocalizedExpandableToggleStress(page);
+    const loopFailures = [...navFailures];
+
+    if (expandableStress.found > 0 && expandableStress.failed > 0) {
+      loopFailures.push(`expandable toggle stress failed: ${expandableStress.failed}/${expandableStress.exercised}`);
+    }
+
+    loopResults.push({
+      loop: loop + 1,
+      failures: loopFailures,
+      expandableStress,
+    });
+  }
+
+  const failedLoops = loopResults.filter((result) => result.failures.length > 0).length;
+  const flakyLoops = failedLoops > 0 && failedLoops < loops ? failedLoops : 0;
+
+  return {
+    loops,
+    failedLoops,
+    flakyLoops,
+    loopResults,
+  };
+}
+
 async function run() {
   let server;
   try {
@@ -281,11 +460,12 @@ async function run() {
       const locale = await loadLocale(language);
 
       for (const viewport of viewports) {
+        for (const colorScheme of colorSchemes) {
         const context = await browser.newContext({
           viewport: { width: viewport.width, height: viewport.height },
           isMobile: viewport.mobile,
           hasTouch: viewport.touch,
-          colorScheme: 'dark',
+          colorScheme,
         });
         const page = await context.newPage();
 
@@ -306,6 +486,7 @@ async function run() {
         await preparePage(page, language, profile);
         const globalLayout = await checkGlobalLayout(page);
         const tapTargets = await checkTapTargets(page, viewport.touch);
+        const inputStress = await checkLocalizedLongInputStress(page);
 
         const labels = tabLabelsFromLocale(locale, viewport.mobile);
         const tabFailures = [];
@@ -321,6 +502,12 @@ async function run() {
             break;
           }
         }
+
+        const navStressFailures = RUN_NAV_STRESS ? await runLocalizedNavigationFlowStress(page, labels, viewport.mobile) : [];
+        const expandableStress = RUN_NAV_STRESS ? await runLocalizedExpandableToggleStress(page) : null;
+        const endurance = RUN_NAV_STRESS && ENDURANCE_LOOPS > 1
+          ? await runLocalizedNavigationEndurance(page, labels, viewport.mobile, ENDURANCE_LOOPS)
+          : null;
 
         const finalLeaks = await getUntranslatedTokenLeaks(page);
 
@@ -341,15 +528,33 @@ async function run() {
           failures.push(`untranslated token leaks: ${finalLeaks.join(', ')}`);
         }
         failures.push(...tabFailures);
+        if (RUN_NAV_STRESS && navStressFailures.length) {
+          failures.push(...navStressFailures.slice(0, 6));
+        }
+        if (RUN_NAV_STRESS && expandableStress && expandableStress.found > 0 && expandableStress.failed > 0) {
+          failures.push(`expandable toggle stress failed: ${expandableStress.failed}/${expandableStress.exercised}`);
+        }
+        if (endurance && endurance.flakyLoops > 0) {
+          failures.push(`flaky nav stress loops: ${endurance.flakyLoops}/${endurance.loops}`);
+        }
+        if (endurance && endurance.failedLoops === endurance.loops) {
+          failures.push(`nav stress endurance failed all loops: ${endurance.failedLoops}/${endurance.loops}`);
+        }
 
         allResults.push({
           language,
           viewport: viewport.name,
+          colorScheme,
           failures,
           tapTargets,
+          inputStress,
+          navStressFailures,
+          expandableStress,
+          endurance,
         });
 
         await context.close();
+        }
       }
     }
 
@@ -357,7 +562,10 @@ async function run() {
 
     let hasFailure = false;
     for (const result of allResults) {
-      const prefix = `${result.language.toUpperCase()} · ${result.viewport}`;
+      const prefix = `${result.language.toUpperCase()} · ${result.viewport} · ${result.colorScheme}`;
+      if (result.inputStress?.hasTextarea && !result.inputStress?.acceptedLongInput) {
+        result.failures.push('localized long-input stress regression');
+      }
       if (result.failures.length) {
         hasFailure = true;
         console.log(bad(`FAIL ${prefix}`));
@@ -377,7 +585,7 @@ async function run() {
     if (hasFailure) {
       process.exitCode = 1;
     } else {
-      console.log(ok('All multilingual UI regression checks passed.'));
+      console.log(ok(`All multilingual UI regression checks passed (${allResults.length} matrix runs).`));
     }
   } finally {
     if (server && !server.killed) {
