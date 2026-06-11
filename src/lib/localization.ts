@@ -2505,12 +2505,13 @@ export function localizedModeProfile(mode: Mode, language: LanguageCode) {
 export function localizedWisdomEntry(entry: WisdomEntryData, preferences: UserPreferences): WisdomEntryData {
   const canonical = canonicalScriptureReference(entry.scripture);
   const localized = localizedWisdomLibraryEntries[preferences.language]?.[canonical];
+  const localizedSummary = localizedScriptureSummaries[preferences.language]?.[canonical];
   const theme = localizedWisdomThemes[preferences.language]?.[entry.theme] ?? entry.theme;
 
   return {
     ...entry,
     theme,
-    principle: localized?.principle ?? entry.principle,
+    principle: localized?.principle ?? localizedSummary ?? entry.principle,
     context: localized?.context ?? entry.context,
     application: localized?.application ?? entry.application,
     keywords: localized?.keywords ?? entry.keywords,

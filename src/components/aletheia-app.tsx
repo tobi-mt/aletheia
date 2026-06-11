@@ -4042,6 +4042,10 @@ export function AletheiaApp() {
       reflectionQuestion: getString('reflectionQuestion', languageFallback.reflectionQuestion ?? 'Question'),
       carryThisToday: getString('carryThisToday', languageFallback.carryThisToday ?? 'Carry this today'),
       carryWithMe: getString('carryWithMe', languageFallback.carryWithMe ?? 'Carry with me'),
+      weeklyWisdomReview: getString('weeklyWisdomReview', languageFallback.weeklyWisdomReview ?? 'Weekly Wisdom Review'),
+      weeklyReviewTitle: getString('weeklyReviewTitle', languageFallback.weeklyReviewTitle ?? 'A quiet look at your week'),
+      weeklyReviewBody: getString('weeklyReviewBody', languageFallback.weeklyReviewBody ?? 'No streaks or pressure. Just notice how {pattern} has been shaping your discernment.'),
+      nextFaithfulStep: getString('nextFaithfulStep', languageFallback.nextFaithfulStep ?? 'Next faithful step'),
       askAboutThis: getString('askAboutThis', languageFallback.askAboutThis ?? 'Ask about this'),
       saveToRuleOfLife: getString('saveToRuleOfLife', languageFallback.saveToRuleOfLife ?? 'Save to Rule of Life'),
       carryingToday: getString('carryingToday', languageFallback.carryingToday ?? 'Carrying today'),
@@ -9357,7 +9361,7 @@ function HomeDashboard({
               className="premium-tap-card w-fit rounded-md border px-2 py-1 text-xs font-semibold"
               style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textPrimary }}
             >
-              {text.createCard || "Create card"}
+              {text.createCard}
             </button>
           </div>
         ) : null}
@@ -9526,10 +9530,10 @@ function HomeDashboard({
       <section className="editorial-surface order-3 rounded-xl border p-4 shadow-sm xl:col-span-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{text.weeklyWisdomReview || "Weekly Wisdom Review"}</p>
-            <h2 className="mt-2 text-xl font-semibold" style={{ color: theme.textPrimary }}>{text.weeklyReviewTitle || "A quiet look at your week"}</h2>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{text.weeklyWisdomReview ?? ""}</p>
+            <h2 className="mt-2 text-xl font-semibold" style={{ color: theme.textPrimary }}>{text.weeklyReviewTitle ?? ""}</h2>
             <p className="mt-2 max-w-2xl text-sm leading-6" style={{ color: theme.textSecondary }}>
-              {(text.weeklyReviewBody || "No streaks or pressure. Just notice what Aletheia is helping you carry.").replace("{pattern}", weeklyReview.pattern)}
+              {(text.weeklyReviewBody ?? "").replace("{pattern}", weeklyReview.pattern)}
             </p>
           </div>
           <button
@@ -9547,7 +9551,7 @@ function HomeDashboard({
           summary={scriptureMemory
             ? ts('labels.weeklySignalsSummaryWithMemory')
             : ts('labels.weeklySignalsSummary')}
-          eyebrow={text.weeklyWisdomReview || "Weekly Wisdom Review"}
+          eyebrow={text.weeklyWisdomReview ?? ""}
           isOpen={weeklyReviewOpen}
           onOpenChange={setWeeklyReviewOpen}
           compactCollapsed
@@ -9557,16 +9561,16 @@ function HomeDashboard({
           theme={theme}
         >
           <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
-            <MiniReviewStat label={text.questionsThisWeek || "Questions"} value={weeklyReview.questions} theme={theme} />
-            <MiniReviewStat label={text.reflectionsThisWeek || "Reflections"} value={weeklyReview.reflections} theme={theme} />
-            <MiniReviewStat label={text.gratitudeThisWeek || "Gratitude"} value={weeklyReview.gratitudeMoments} theme={theme} />
-            <MiniReviewStat label={text.decisionsThisWeek || "Decisions"} value={weeklyReview.decisions} theme={theme} />
+            <MiniReviewStat label={text.questionsThisWeek ?? ""} value={weeklyReview.questions} theme={theme} />
+            <MiniReviewStat label={text.reflectionsThisWeek ?? ""} value={weeklyReview.reflections} theme={theme} />
+            <MiniReviewStat label={text.gratitudeThisWeek ?? ""} value={weeklyReview.gratitudeMoments} theme={theme} />
+            <MiniReviewStat label={text.decisionsThisWeek ?? ""} value={weeklyReview.decisions} theme={theme} />
           </div>
           {scriptureMemory ? (
             <div className="mt-4 rounded-lg border p-3 text-sm leading-6" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}>
               <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                 <span className="min-w-0">
-                  <span className="block text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{text.scriptureMemory || "Scripture memory"}</span>
+                  <span className="block text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{text.scriptureMemory ?? ""}</span>
                   <button type="button" onClick={() => onScriptureOpen(scriptureMemory.scripture)} className="mt-1 font-semibold underline underline-offset-4">
                     {scriptureMemory.scripture}
                   </button>
@@ -9578,15 +9582,15 @@ function HomeDashboard({
                     className="premium-tap-card rounded-md border px-2 py-1 text-xs font-semibold"
                     style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textPrimary }}
                   >
-                    {text.createCard || "Create card"}
+              {text.createCard ?? ""}
                   </button>
                   <button
                     type="button"
                     onClick={onClearScriptureMemory}
                     className="premium-tap-card grid size-8 place-items-center rounded-md border"
                     style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}
-                    aria-label={text.clearScriptureMemory || "Stop carrying scripture"}
-                    title={text.clearScriptureMemory || "Stop carrying scripture"}
+                    aria-label={text.clearScriptureMemory ?? ""}
+                    title={text.clearScriptureMemory ?? ""}
                   >
                     <X size={14} />
                   </button>
@@ -9597,7 +9601,7 @@ function HomeDashboard({
           ) : null}
         </DisclosureSection>
         <p className="mt-4 rounded-lg border p-3 text-sm leading-6" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
-          <span className="font-semibold" style={{ color: theme.textPrimary }}>{text.nextFaithfulStep || "Next faithful step"}:</span>{" "}
+          <span className="font-semibold" style={{ color: theme.textPrimary }}>{text.nextFaithfulStep ?? ""}:</span>{" "}
           {weeklyReview.nextStep}
         </p>
       </section>
