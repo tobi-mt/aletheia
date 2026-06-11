@@ -43,3 +43,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 neon_env.txt
+
+# local QA inventory
+SCRIPTURE_COVERAGE_INVENTORY.md

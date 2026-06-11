@@ -53,7 +53,6 @@ import {
   bibleTranslations,
   bibleTranslationOptionsForLanguage,
   canonicalScriptureReference,
-  curatedScriptureReferences,
   defaultPreferences,
   defaultBibleTranslationForLanguage,
   languageCopy,
@@ -7705,7 +7704,7 @@ export function AletheiaApp() {
                 <h2 className="font-semibold">{ui.wisdomMode}</h2>
                 <Moon size={17} style={{ color: theme.textOnPrimary }} />
               </div>
-              <div className="space-y-2">
+              <div className="flex min-w-0 snap-x gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
                 {activeModeCards.map((item) => (
                   <ModeButton key={item.label} item={item} active={mode === item.label} onClick={() => handleModeChange(item.label)} theme={theme} />
                 ))}
@@ -14220,20 +14219,12 @@ function CompanionPanel({
               {ui.askIntro}
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <span className="w-fit rounded-sm border px-2 py-1 text-xs font-semibold" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }} suppressHydrationWarning>
-              {languages[preferences.language].nativeName} · {preferences.bibleTranslation}
-            </span>
-          </div>
         </div>
 
         <form onSubmit={onAsk} className="p-3 sm:p-5" style={{ backgroundColor: theme.bgMain + 'E0' }}>
           <div className="rounded-lg border p-3 shadow-sm sm:p-4" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
               <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ui.yourQuestion}</p>
-              <span className="rounded-sm px-2 py-1 text-xs font-semibold" style={{ backgroundColor: theme.bgInput, color: theme.textMuted }}>
-                {modeProfile.focus}
-              </span>
             </div>
             <div className="mb-3 rounded-xl border p-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
               <div className="flex items-center gap-3 rounded-lg border p-2.5" style={{ borderColor: theme.primary, backgroundColor: theme.bgCard }}>
@@ -14248,7 +14239,7 @@ function CompanionPanel({
                   </span>
                 </span>
               </div>
-              <div className="mt-2 flex flex-col gap-2" aria-label={ui.currentLens}>
+              <div className="mt-2 flex min-w-0 snap-x gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]" aria-label={ui.currentLens}>
                 {modeCards.map((item) => (
                   <ModeLensCard
                     key={item.label}
@@ -14256,7 +14247,6 @@ function CompanionPanel({
                     active={mode === item.label}
                     onClick={() => onModeChange(item.label)}
                     theme={theme}
-                    stretch
                   />
                 ))}
               </div>
@@ -14466,9 +14456,6 @@ function CompanionPanel({
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="w-fit rounded-sm px-2 py-1 text-xs font-semibold" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-                    {history.length} saved
-                  </span>
                   <button
                     type="button"
                     onClick={() => setShowHistory((value) => !value)}
@@ -14598,29 +14585,48 @@ function ScriptureChips({
   );
 }
 
-const scriptureBookPattern = Array.from(
-  new Set(curatedScriptureReferences.map((reference) => reference.replace(/\s+\d+:\d+(?:[-–—]\d+)?$/, "")))
-)
-  .sort((a, b) => b.length - a.length)
-  .map((book) => book.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
-  .join("|");
-const scriptureTextReferencePattern = new RegExp(
-  `\\b(?:${scriptureBookPattern})\\s+\\d+:\\d+(?:\\s*[-–—]\\s*\\d+)?\\b`,
-  "g"
-);
+const scriptureBookAliases: Record<string, string[]> = {
+  "Matthew": ["matthew", "mathew", "matt", "mt", "mateo", "mateus", "matthieu", "matthaus", "matthäus", "matiyu"],
+  "Proverbs": ["proverbs", "prov", "proverbios", "provérbios", "proverbes", "spruche", "sprüche", "owe", "ilu", "karin magana"],
+  "Philippians": ["philippians", "phil", "filipenses", "philippiens", "philipper", "filibiyawa", "filipiyawa"],
+  "Luke": ["luke", "lk", "lucas", "luc", "lukas", "luka"],
+  "2 Corinthians": ["2 corinthians", "ii corinthians", "2 cor", "2 corinth", "2 corintios", "2 coríntios", "2 corinthiens", "2 korinther", "2 korintiyawa"],
+};
+
+const scriptureBookAliasLookup = new Map<string, string>();
+Object.entries(scriptureBookAliases).forEach(([canonicalBook, aliases]) => {
+  aliases.forEach((alias) => {
+    scriptureBookAliasLookup.set(alias.toLowerCase().replace(/\.+$/g, "").replace(/\s+/g, " ").trim(), canonicalBook);
+  });
+});
+
+const scriptureTextReferencePattern = /(?:(?:[1-3]\s*)?[\p{L}][\p{L}.'’-]*(?:\s+[\p{L}][\p{L}.'’-]*){0,4})\s+\d+:\d+(?:\s*[-–—]\s*\d+)?/gu;
+
+function normalizeDetectedScriptureReference(reference: string) {
+  const normalized = reference.replace(/[–—]/g, "-").replace(/\s+/g, " ").trim();
+  const match = normalized.match(/^(.+?)\s+(\d+:\d+(?:\s*-\s*\d+)?)$/u);
+  if (!match) {
+    return normalized;
+  }
+
+  const rawBook = match[1].replace(/\.+$/g, "").trim();
+  const aliasKey = rawBook.toLowerCase().replace(/\s+/g, " ");
+  const canonicalBook = scriptureBookAliasLookup.get(aliasKey) ?? rawBook;
+  const chapterAndVerse = match[2].replace(/\s*-\s*/g, "-");
+  return `${canonicalBook} ${chapterAndVerse}`;
+}
 
 function scriptureTextMatches(text: string) {
   return [...text.matchAll(scriptureTextReferencePattern)]
     .map((match) => {
       const label = match[0];
-      const canonical = canonicalScriptureReference(label);
+      const canonical = canonicalScriptureReference(normalizeDetectedScriptureReference(label));
       return {
         label,
         scripture: canonical,
         index: match.index ?? 0,
       };
     })
-    .filter((match) => curatedScriptureReferences.includes(match.scripture))
     .sort((a, b) => a.index - b.index);
 }
 
@@ -14653,7 +14659,7 @@ function ScriptureLinkedText({
       <button
         key={`${match.label}-${position}-${match.index}`}
         type="button"
-        onClick={() => onScriptureOpen(match.label)}
+        onClick={() => onScriptureOpen(match.scripture)}
         className="mx-0.5 rounded-md px-1.5 py-0.5 font-semibold underline decoration-1 underline-offset-2 transition"
         style={{ backgroundColor: theme.bgInput, color: theme.textPrimary }}
       >
