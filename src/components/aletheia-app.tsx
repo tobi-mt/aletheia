@@ -76,6 +76,7 @@ import { wisdomEntries as baseWisdomEntries } from "@/lib/wisdom-data";
 import { defaultManualContext, manualContextCounselSignals, manualContextHasContent, normalizeManualContext, type ManualContextProfile } from "@/lib/manual-context";
 import type { Mode } from "@/lib/wisdom-data";
 import { analyticsQuestionMetadata } from "@/lib/analytics-taxonomy";
+import { decisionStartedDiscerningBody, decisionTimelineObservation, localizeDecisionEventBody } from "@/lib/decision-copy";
 import { curatedAvatarOptions, defaultAvatarDataUrl, normalizeAvatarUrl } from "@/lib/avatars";
 import { loadTranslationsWithFallbackSync, getTranslation, type TranslationData } from "@/lib/translations";
 
@@ -3088,7 +3089,7 @@ const runtimePanelCopy: Record<LanguageCode, RuntimePanelCopy> = {
     moreAnchors: "more anchors",
   },
   es: {
-    timelineReady: "Tu linea de tiempo esta lista para seguir decisiones, patrones, consejo y aprendizaje.",
+    timelineReady: "Tu línea de tiempo está lista para registrar decisiones, patrones, consejo y aprendizaje.",
     nextInDecisions: "Siguiente en Decisiones",
     decisionNextTitleDefault: "Nombra la decision bajo presion",
     decisionNextBodyActive: "Actualiza consejo, costo, espera y paz para que la decision tenga una linea de tiempo real.",
@@ -3125,7 +3126,7 @@ const runtimePanelCopy: Record<LanguageCode, RuntimePanelCopy> = {
     moreAnchors: "anclas mas",
   },
   fr: {
-    timelineReady: "Votre chronologie est prete a suivre decisions, motifs, conseil et apprentissage.",
+    timelineReady: "Votre chronologie est prête à suivre les décisions, les schémas, le conseil et l’apprentissage.",
     nextInDecisions: "Suite dans Decisions",
     decisionNextTitleDefault: "Nommez la decision sous pression",
     decisionNextBodyActive: "Mettez a jour conseil, cout, attente et paix pour donner une vraie chronologie a la decision.",
@@ -3162,7 +3163,7 @@ const runtimePanelCopy: Record<LanguageCode, RuntimePanelCopy> = {
     moreAnchors: "ancrages de plus",
   },
   pt: {
-    timelineReady: "Sua linha do tempo esta pronta para acompanhar decisoes, padroes, conselho e aprendizado.",
+    timelineReady: "Sua linha do tempo está pronta para acompanhar decisões, padrões, conselho e aprendizado.",
     nextInDecisions: "Proximo em Decisoes",
     decisionNextTitleDefault: "Nomeie a decisao sob pressao",
     decisionNextBodyActive: "Atualize conselho, custo, espera e paz para que a decisao tenha uma linha do tempo real.",
@@ -3199,7 +3200,7 @@ const runtimePanelCopy: Record<LanguageCode, RuntimePanelCopy> = {
     moreAnchors: "ancoras a mais",
   },
   de: {
-    timelineReady: "Deine Zeitleiste ist bereit, Entscheidungen, Muster, Rat und Lernen zu verfolgen.",
+    timelineReady: "Deine Zeitleiste ist bereit, Entscheidungen, Muster, Rat und Lernen im Blick zu behalten.",
     nextInDecisions: "Als Nächstes in Entscheidungen",
     decisionNextTitleDefault: "Benenne die Entscheidung unter Druck",
     decisionNextBodyActive: "Aktualisiere Rat, Kosten, Warten und Frieden, damit die Entscheidung eine echte Zeitleiste hat.",
@@ -3236,7 +3237,7 @@ const runtimePanelCopy: Record<LanguageCode, RuntimePanelCopy> = {
     moreAnchors: "weitere Anker",
   },
   yo: {
-    timelineReady: "Ago-akoko re ti setan lati tele ipinnu, ilana, imooran ati eko.",
+    timelineReady: "Àkójọpọ̀ rẹ ti ṣetan láti tọ́pa àwọn ìpinnu, àwọn àpẹẹrẹ, ìmọ̀ràn, àti ẹ̀kọ́.",
     nextInDecisions: "Eto to nbo ninu Ipinnu",
     decisionNextTitleDefault: "So ipinnu to wa labẹ titẹ",
     decisionNextBodyActive: "Tun imoaran, iye owo, idaduro ati alaafia se ki ipinnu naa ni itan-akoko gidi.",
@@ -3273,7 +3274,7 @@ const runtimePanelCopy: Record<LanguageCode, RuntimePanelCopy> = {
     moreAnchors: "awon oran afikun",
   },
   ig: {
-    timelineReady: "Usoro oge gi di njikere iso mkpebi, usoro, nduzi na omumu.",
+    timelineReady: "Usoro oge gị dị njikere ịdekọ mkpebi, usoro, ndụmọdụ na mmụta.",
     nextInDecisions: "Ihe na-esote na Mkpebi",
     decisionNextTitleDefault: "Kowa mkpebi di n'okpuru nrụgide",
     decisionNextBodyActive: "Megharia nduzi, onu ahia, ichere na udo ka mkpebi nwee usoro oge eziokwu.",
@@ -3310,7 +3311,7 @@ const runtimePanelCopy: Record<LanguageCode, RuntimePanelCopy> = {
     moreAnchors: "mkporo ozo",
   },
   ha: {
-    timelineReady: "Jadawalin lokacinka ya shirya don bin shawarwari, tsari, shawara da koyo.",
+    timelineReady: "Jadawalin lokacinka ya shirya don bin sawun shawarwari, alamu, shawara da koyo.",
     nextInDecisions: "Na gaba a Shawara",
     decisionNextTitleDefault: "Sanya sunan shawarar da ke karkashin matsin lamba",
     decisionNextBodyActive: "Sabunta shawara, kudi, jira da salama domin shawarar ta samu jadawalin lokaci na gaskiya.",
@@ -3965,12 +3966,14 @@ export function AletheiaApp() {
     
     // Helper to ensure string type
     const getString = (key: string, fallback: string): string => {
-      const result = getTranslation(trans, key, preferences.language === "en" ? (fallback || key) : key);
+      const result = getTranslation(trans, key, fallback || key);
       return Array.isArray(result) ? result.join(', ') : result;
     };
     
     return {
+      ...languageFallback,
       nav: {
+        ...languageFallback.nav,
         companion: getString('nav.companion', 'Home'),
         decisions: getString('nav.decisions', 'Decisions'),
         reflect: getString('nav.reflect', 'Reflect'),
@@ -6928,7 +6931,6 @@ export function AletheiaApp() {
   }
 
   function refreshLocalTimeline(decisions: WisdomDecision[], events: DecisionEvent[]) {
-    const runtime = runtimeCopyFor(preferences.language);
     const combined = [
       ...decisions.map((item) => `${item.title} ${item.pressure} ${item.initialEmotion}`),
       ...events.map((event) => event.body),
@@ -6939,13 +6941,7 @@ export function AletheiaApp() {
       activeCount: active.length,
       daysDiscerning: active.length ? 1 : 0,
       patterns,
-      gentleObservation: patterns.includes("urgency")
-        ? "Urgency appears in your recent decisions. That does not make the desire wrong, but speed may be clouding wisdom."
-        : patterns.includes("comparison")
-          ? "Comparison appears in your recent reflections. It may help to define enough before choosing more."
-          : active.length
-            ? `You are carrying ${active.length} active decision${active.length === 1 ? "" : "s"}. Keep the next faithful step small and visible.`
-            : runtime.timelineReady,
+      gentleObservation: decisionTimelineObservation(preferences.language, patterns, active.length),
     });
   }
 
@@ -6974,7 +6970,7 @@ export function AletheiaApp() {
             id: crypto.randomUUID(),
             decisionId: data.decision!.id,
             eventType: "created",
-            body: `Started discerning: ${title}`,
+            body: decisionStartedDiscerningBody(preferences.language, title),
             mode,
             createdAt: new Date().toISOString(),
           },
@@ -7025,7 +7021,7 @@ export function AletheiaApp() {
         id: crypto.randomUUID(),
         decisionId: localDecision.id,
         eventType: "created",
-        body: `Started discerning: ${title}`,
+        body: decisionStartedDiscerningBody(preferences.language, title),
         mode,
         createdAt: now,
       };
@@ -15272,14 +15268,14 @@ function DecisionCompanionPanel({
 
         {decisionSection === "decisions" ? (
           <div className="space-y-4">
-            <DisclosureSection title={ts('labels.wisdomTimeline')} summary={events.length ? insight.gentleObservation : runtime.timelineReady} eyebrow={`${events.length} ${ts('labels.eventsRecorded')}`} compactCollapsed showDetailsLabel={ts('showDetails')} hideDetailsLabel={ts('hideDetails')} theme={theme}>
+            <DisclosureSection title={ts('labels.wisdomTimeline')} summary={events.length ? insight.gentleObservation : decisionTimelineObservation(language, [], 0)} eyebrow={`${events.length} ${ts('labels.eventsRecorded')}`} compactCollapsed showDetailsLabel={ts('showDetails')} hideDetailsLabel={ts('hideDetails')} theme={theme}>
               <section className="rounded-xl border p-4 shadow-sm sm:p-5" style={{ backgroundColor: theme.primary, borderColor: theme.borderMedium, color: theme.textOnPrimary }}>
                 <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textOnPrimary, opacity: 0.9 }}>{ts('labels.wisdomTimeline')}</p>
                 <p className="mt-3 text-sm leading-6" style={{ color: theme.textOnPrimary }}>{insight.gentleObservation}</p>
                 <div className="mt-4 space-y-3">
                   {events.slice(0, 5).map((event) => (
                     <div key={event.id} className="rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-                      <p className="text-sm leading-6" style={{ color: theme.textPrimary }}>{event.body}</p>
+                      <p className="text-sm leading-6" style={{ color: theme.textPrimary }}>{localizeDecisionEventBody(language, event.eventType, event.body)}</p>
                       <p className="mt-1 text-xs" style={{ color: theme.textSecondary }}>{new Date(event.createdAt).toLocaleDateString()}</p>
                     </div>
                   ))}

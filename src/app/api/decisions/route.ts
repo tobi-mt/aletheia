@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { trackServerEvent } from "@/lib/analytics";
 import { buildDecisionSummary, detectPatterns, scoreDecision } from "@/lib/decision-intelligence";
+import { decisionStartedDiscerningBody, decisionTimelineObservation } from "@/lib/decision-copy";
 import { many, one, run } from "@/lib/db";
 import { defaultPreferences, normalizePreferences, type UserPreferences } from "@/lib/localization";
 import { retrieveWisdom } from "@/lib/wisdom";
@@ -127,7 +128,7 @@ async function refreshUserMemorySummary(userId: string) {
   );
 }
 
-function timelineInsight(decisions: DecisionRow[], events: EventRow[]) {
+function timelineInsight(decisions: DecisionRow[], events: EventRow[], language: UserPreferences["language"]) {
   const text = [...decisions.map((item) => `${item.title} ${item.pressure} ${item.initial_emotion}`), ...events.map((event) => event.body)].join(" ");
   const patterns = detectPatterns(text);
   const active = decisions.filter((decision) => decision.status === "discerning");
@@ -140,22 +141,14 @@ function timelineInsight(decisions: DecisionRow[], events: EventRow[]) {
     activeCount: active.length,
     daysDiscerning: days,
     patterns,
-    gentleObservation: patterns.includes("urgency")
-      ? "Urgency appears in your recent decisions. That does not make the desire wrong, but speed may be clouding wisdom."
-      : patterns.includes("comparison")
-        ? "Comparison appears in your recent reflections. It may help to define enough before choosing more."
-        : patterns.includes("fear")
-          ? "Fear appears in your recent discernment. Some fear calls for planning; some calls for release."
-          : active.length
-            ? `You are carrying ${active.length} active decision${active.length === 1 ? "" : "s"}. Keep the next faithful step small and visible.`
-            : "Your timeline is ready to track decisions, patterns, counsel, and learning.",
+    gentleObservation: decisionTimelineObservation(language, patterns, active.length),
   };
 }
 
 export async function GET() {
   const user = await getCurrentUser();
   if (!user) {
-    return NextResponse.json({ decisions: [], events: [], insight: timelineInsight([], []) });
+    return NextResponse.json({ decisions: [], events: [], insight: timelineInsight([], [], defaultPreferences.language) });
   }
 
   const [decisions, events] = await Promise.all([
@@ -175,6 +168,7 @@ export async function GET() {
       user.id
     ),
   ]);
+  const preferences = await getUserPreferences(user.id);
 
   return NextResponse.json({
     decisions: decisions.map(mapDecision),
@@ -186,7 +180,7 @@ export async function GET() {
       mode: event.mode,
       createdAt: event.created_at,
     })),
-    insight: timelineInsight(decisions, events),
+    insight: timelineInsight(decisions, events, preferences.language),
   });
 }
 
@@ -248,7 +242,7 @@ export async function POST(request: Request) {
     user.id,
     id,
     "created",
-    `Started discerning: ${title}`,
+    decisionStartedDiscerningBody(preferences.language, title),
     mode,
     now
   );
