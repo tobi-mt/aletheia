@@ -108,14 +108,11 @@ export function getTranslation(
 }
 
 /**
- * Load translations with English fallback - Synchronous version
- * Ensures all keys have values even if target language is incomplete
+ * Load translations for a specific language - synchronous version.
+ * Callers can decide how they want to handle any missing keys.
  */
 export function loadTranslationsWithFallbackSync(language: LanguageCode): TranslationData {
-  const targetTranslations = loadTranslationsSync(language);
-  const englishTranslations = loadTranslationsSync('en');
-  
-  return mergeTranslations(englishTranslations, targetTranslations);
+  return loadTranslationsSync(language);
 }
 
 /**

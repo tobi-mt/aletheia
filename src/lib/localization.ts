@@ -421,6 +421,46 @@ const localizedScriptureReads: Partial<Record<BibleTranslation, Record<string, S
 };
 
 const localizedScriptureSummaries: Partial<Record<LanguageCode, Record<string, string>>> = {
+  es: {
+    "Matthew 25:14-30": "Un hombre confió a sus siervos distintas cantidades mientras viajaba. Los que trabajaron con fidelidad recibieron elogio; quien escondió lo recibido por miedo fue reprendido. La fidelidad, el valor y la responsabilidad hacen crecer lo que se nos encomienda.",
+    "Proverbs 22:7": "El rico gobierna sobre el pobre, y el que pide prestado queda sujeto al prestamista.",
+    "Philippians 4:11-13": "Pablo aprendió a contentarse en toda situación, con poco o con mucho. La fuerza de Cristo le daba ánimo para seguir adelante.",
+    "Proverbs 15:22": "Sin consejo, los planes fracasan; con muchos consejeros se afirman.",
+    "Luke 14:28": "Jesús enseña a sentarse primero y calcular el costo antes de construir una torre. La sabiduría cuenta el precio antes del compromiso.",
+    "2 Corinthians 9:6-8": "El que siembra poco, poco segará; el que siembra generosamente, generosamente segará. Dar debe salir de un corazón dispuesto, no por obligación.",
+    "Proverbs 21:5": "Los planes del diligente llevan a la abundancia; la prisa suele llevar a la escasez.",
+    "Matthew 6:25-34": "Jesús enseña a no vivir dominados por la ansiedad por la comida, la ropa o el mañana. Busca primero el reino de Dios y vive hoy con confianza.",
+  },
+  fr: {
+    "Matthew 25:14-30": "Un homme confia à ses serviteurs différentes sommes avant de partir. Ceux qui ont travaillé fidèlement ont été félicités; celui qui a caché ce qui lui avait été confié par peur a été repris. Fidélité, courage et responsabilité font fructifier ce qui nous est remis.",
+    "Proverbs 22:7": "Le riche domine sur le pauvre, et celui qui emprunte devient l'esclave du prêteur.",
+    "Philippians 4:11-13": "Paul a appris à être content en toute situation, dans le manque comme dans l'abondance. La force du Christ lui donnait d'avancer.",
+    "Proverbs 15:22": "Sans conseil, les projets échouent; avec de nombreux conseillers, ils tiennent bon.",
+    "Luke 14:28": "Jésus enseigne à s'asseoir d'abord et à calculer le coût avant de bâtir une tour. La sagesse compte le prix avant l'engagement.",
+    "2 Corinthians 9:6-8": "Celui qui sème peu moissonnera peu; celui qui sème généreusement moissonnera généreusement. Donner doit venir d'un cœur volontaire, non d'une obligation.",
+    "Proverbs 21:5": "Les projets du diligent mènent à l'abondance; la hâte mène souvent à la pénurie.",
+    "Matthew 6:25-34": "Jésus enseigne à ne pas être dominé par l'inquiétude au sujet de la nourriture, des vêtements ou de demain. Cherche d'abord le royaume de Dieu et vis aujourd'hui avec confiance.",
+  },
+  pt: {
+    "Matthew 25:14-30": "Um homem confiou diferentes quantias aos seus servos antes de viajar. Os que trabalharam com fidelidade receberam elogios; quem escondeu o que recebeu por medo foi repreendido. Fidelidade, coragem e responsabilidade fazem crescer o que nos é confiado.",
+    "Proverbs 22:7": "O rico domina sobre o pobre, e quem toma emprestado fica servo de quem empresta.",
+    "Philippians 4:11-13": "Paulo aprendeu a estar contente em toda situação, na falta ou na abundância. A força de Cristo lhe dava ânimo para seguir.",
+    "Proverbs 15:22": "Sem conselho, os planos fracassam; com muitos conselheiros, se firmam.",
+    "Luke 14:28": "Jesus ensina a sentar primeiro e calcular o custo antes de construir uma torre. A sabedoria conta o preço antes do compromisso.",
+    "2 Corinthians 9:6-8": "Quem semeia pouco colherá pouco; quem semeia generosamente colherá generosamente. Dar deve nascer de um coração disposto, não por obrigação.",
+    "Proverbs 21:5": "Os planos do diligente levam à abundância; a pressa costuma levar à escassez.",
+    "Matthew 6:25-34": "Jesus ensina a não viver dominado pela ansiedade com comida, roupa ou amanhã. Busque primeiro o Reino de Deus e viva hoje com confiança.",
+  },
+  de: {
+    "Matthew 25:14-30": "Ein Mann vertraute seinen Dienern vor seiner Reise unterschiedliche Summen an. Wer treu mit dem Empfangenen arbeitete, wurde gelobt; wer es aus Angst versteckte, wurde getadelt. Treue, Mut und Verantwortung lassen das Wachsende gedeihen, das uns anvertraut ist.",
+    "Proverbs 22:7": "Der Reiche herrscht über den Armen, und wer borgt, wird des Leihers Knecht.",
+    "Philippians 4:11-13": "Paulus lernte, in jeder Lage zufrieden zu sein, im Mangel wie im Überfluss. Die Kraft Christi gab ihm Halt zum Weitergehen.",
+    "Proverbs 15:22": "Ohne Rat scheitern Pläne; mit vielen Ratgebern bleiben sie bestehen.",
+    "Luke 14:28": "Jesus lehrt, sich zuerst zu setzen und die Kosten zu überschlagen, bevor man einen Turm baut. Weisheit zählt den Preis vor der Verpflichtung.",
+    "2 Corinthians 9:6-8": "Wer wenig sät, wird wenig ernten; wer großzügig sät, wird großzügig ernten. Geben soll aus einem willigen Herzen kommen, nicht aus Zwang.",
+    "Proverbs 21:5": "Die Pläne des Fleißigen führen zum Überfluss; Hast führt oft zur Knappheit.",
+    "Matthew 6:25-34": "Jesus lehrt, sich nicht von Sorgen um Essen, Kleidung oder morgen beherrschen zu lassen. Suche zuerst Gottes Reich und lebe heute mit Vertrauen.",
+  },
   yo: {
     "Matthew 25:14-30": "Ọkùnrin kan fi ohun-ini rẹ̀ lé àwọn ọmọ-ọdọ rẹ̀ lọ́wọ́ gẹ́gẹ́ bí agbára wọn. Àwọn tí wọ́n ṣiṣẹ́ pẹ̀lú ohun tí a fún wọn ló gba ìyìn; ẹni tó fi tálẹ́ǹtì rẹ̀ pamọ́ nítorí ìbẹ̀rù ni a dá lẹ́bi. Ọgbọ́n, ìgboyà, àti ojúṣe ló ń jẹ́ kó dàgbà.",
     "Proverbs 22:7": "Ọlọ́rọ̀ máa ń ṣàkóso talaka, ẹni tí ó sì yá owó sì di ẹrú ẹni tí ó yá a.",
@@ -531,8 +571,8 @@ export function localizedScriptureRead(scripture: string, preferences: UserPrefe
     return {
       translation: preferences.bibleTranslation,
       label: `${preferredTranslation.label} ${labelCopy.summary}`,
-      text: fallback.text,
-      availableLanguage: "en",
+      text: preferences.language === "en" ? fallback.text : localizedScriptureFallbackText[preferences.language],
+      availableLanguage: preferences.language,
       kind: "summary",
     };
   }
@@ -541,9 +581,8 @@ export function localizedScriptureRead(scripture: string, preferences: UserPrefe
     translation: fallback?.translation ?? preferences.bibleTranslation,
     label: fallback?.label ?? labelCopy.curatedReference,
     text:
-      fallback?.text ??
-      "This reference is part of Aletheia's curated wisdom library. The app only surfaces known references and avoids inventing verse text.",
-    availableLanguage: "en",
+      fallback?.text ?? localizedScriptureFallbackText[preferences.language],
+    availableLanguage: preferences.language,
     kind: fallback?.label === "Selected reading" ? "summary" : "translation",
   };
 }
@@ -586,7 +625,7 @@ export const languageCopy: Record<
   es: {
     onboarding: "Elige cómo debe hablar Aletheia: idioma, región, traducción bíblica y voz.",
     dailyLabel: "Sabiduría diaria",
-    translationFallback: "Las referencias bíblicas usan una traducción pública disponible; si no, volvemos al inglés.",
+    translationFallback: "Las referencias bíblicas usan tu traducción pública preferida cuando está disponible.",
     voiceHint: "Usa la voz para una conversación más pausada si tu navegador lo permite.",
     askPlaceholder: "Pregunta con sabiduría, no con prisa...",
     regionHint: "Los ejemplos reflejarán tu región sin reemplazar consejo legal, fiscal o financiero.",
@@ -594,7 +633,7 @@ export const languageCopy: Record<
   fr: {
     onboarding: "Choisis la manière dont Aletheia doit parler: langue, région, traduction biblique et voix.",
     dailyLabel: "Sagesse du jour",
-    translationFallback: "Les références bibliques utilisent une traduction publique disponible; sinon, l’anglais sert de repli.",
+    translationFallback: "Les références bibliques utilisent votre traduction du domaine public préférée lorsqu’elle est disponible.",
     voiceHint: "Utilise la voix pour une conversation plus lente si ton navigateur le permet.",
     askPlaceholder: "Pose ta question avec sagesse, sans précipitation...",
     regionHint: "Les exemples tiendront compte de ta région sans remplacer un conseil professionnel.",
@@ -602,7 +641,7 @@ export const languageCopy: Record<
   pt: {
     onboarding: "Escolha como Aletheia deve falar: idioma, região, tradução bíblica e voz.",
     dailyLabel: "Sabedoria diária",
-    translationFallback: "As referências bíblicas usam uma tradução pública disponível; caso contrário, voltamos ao inglês.",
+    translationFallback: "As referências bíblicas usam sua tradução de domínio público preferida quando disponível.",
     voiceHint: "Use voz para uma conversa mais calma quando o navegador permitir.",
     askPlaceholder: "Pergunte com sabedoria, não com pressa...",
     regionHint: "Os exemplos considerarão sua região sem substituir aconselhamento profissional.",
@@ -610,7 +649,7 @@ export const languageCopy: Record<
   de: {
     onboarding: "Wähle, wie Aletheia sprechen soll: Sprache, Region, Bibelübersetzung und Stimme.",
     dailyLabel: "Tägliche Weisheit",
-    translationFallback: "Bibelstellen nutzen eine verfügbare gemeinfreie Übersetzung; sonst greifen wir auf Englisch zurück.",
+    translationFallback: "Bibelstellen verwenden nach Möglichkeit deine bevorzugte gemeinfreie Übersetzung.",
     voiceHint: "Nutze Sprache für ein ruhigeres Gespräch, wenn dein Browser es unterstützt.",
     askPlaceholder: "Frage mit Weisheit, nicht aus Eile...",
     regionHint: "Beispiele berücksichtigen deine Region, ersetzen aber keine Fachberatung.",
@@ -618,7 +657,7 @@ export const languageCopy: Record<
   yo: {
     onboarding: "Yan bí Aletheia ṣe máa ba ọ sọrọ: èdè, agbègbè, ìtumọ̀ Bíbélì, àti ohùn.",
     dailyLabel: "Ọgbọ́n ojoojúmọ́",
-    translationFallback: "A máa lo ìtọ́kasí Bíbélì tó dá lórí ìtumọ̀ tó wà; bí kò bá sí, a padà sí Gẹ̀ẹ́sì.",
+    translationFallback: "A máa lo ìtumọ̀ Bíbélì tó o fẹ́ nígbà gbogbo tí ó bá wà.",
     voiceHint: "Lo ohùn fún ìjíròrò tó lọra tí browser rẹ bá gba.",
     askPlaceholder: "Béèrè pẹ̀lú ọgbọ́n, kì í ṣe pẹ̀lú ìkánjú...",
     regionHint: "Àpẹẹrẹ yóò rántí agbègbè rẹ, ṣùgbọ́n kò rọ́pò ìmọ̀ràn amọ̀ja.",
@@ -626,7 +665,7 @@ export const languageCopy: Record<
   ig: {
     onboarding: "Họrọ otu Aletheia ga-esi gwa gị okwu: asụsụ, mpaghara, ntụgharị Baịbụl, na olu.",
     dailyLabel: "Amamihe kwa ụbọchị",
-    translationFallback: "A ga-eji ntụaka Baịbụl dị nchebe; ma ọ bụrụ na ntụgharị adịghị, anyị alaghachi n'Bekee.",
+    translationFallback: "A ga-eji ntụgharị Baịbụl ị họrọ mgbe ọ bụla ọ dị.",
     voiceHint: "Jiri olu mee mkparịta ụka dị nwayọọ ma ọ bụrụ na browser gị kwadoro ya.",
     askPlaceholder: "Jụọ n'amamihe, ọ bụghị n'ịgba ọsọ...",
     regionHint: "Ihe atụ ga-elebara mpaghara gị anya, ma ọ naghị dochie ndụmọdụ ọkachamara.",
@@ -634,7 +673,7 @@ export const languageCopy: Record<
   ha: {
     onboarding: "Zaɓi yadda Aletheia za ta yi magana da kai: harshe, yanki, fassarar Littafi Mai Tsarki, da murya.",
     dailyLabel: "Hikima ta yau",
-    translationFallback: "Za mu yi amfani da nassoshin Littafi Mai Tsarki masu aminci; idan babu fassara, za mu koma Turanci.",
+    translationFallback: "Za mu yi amfani da fassarar Littafi Mai Tsarki da ka fi so idan tana nan.",
     voiceHint: "Yi amfani da murya don tattaunawa a hankali idan browser ɗinka ya goyi baya.",
     askPlaceholder: "Tambaya da hikima, ba da gaggawa ba...",
     regionHint: "Misalai za su dace da yankinka, amma ba su maye gurbin shawarar ƙwararre ba.",
@@ -701,6 +740,36 @@ export const localizedDailyPractices: Record<LanguageCode, Partial<Record<Mode, 
 };
 
 const localizedWisdomThemes: Partial<Record<LanguageCode, Record<string, string>>> = {
+  es: {
+    Stewardship: "Administración",
+    Debt: "Deuda",
+    Contentment: "Contentamiento",
+    Counsel: "Consejo",
+    "Cost Counting": "Cálculo del costo",
+    Generosity: "Generosidad",
+    Diligence: "Diligencia",
+    "Provision and Anxiety": "Provisión y ansiedad",
+  },
+  fr: {
+    Stewardship: "Gestion fidèle",
+    Debt: "Dette",
+    Contentment: "Contentement",
+    Counsel: "Conseil",
+    "Cost Counting": "Calcul du coût",
+    Generosity: "Générosité",
+    Diligence: "Diligence",
+    "Provision and Anxiety": "Provision et anxiété",
+  },
+  pt: {
+    Stewardship: "Administração",
+    Debt: "Dívida",
+    Contentment: "Contentamento",
+    Counsel: "Conselho",
+    "Cost Counting": "Cálculo do custo",
+    Generosity: "Generosidade",
+    Diligence: "Diligência",
+    "Provision and Anxiety": "Provisão e ansiedade",
+  },
   yo: {
     Stewardship: "Ìtọ́jú ohun tí a fi lé wa lọ́wọ́",
     Debt: "Gbèsè",
@@ -732,6 +801,17 @@ const localizedScriptureLabelCopy: Record<LanguageCode, { summary: string; fallb
   yo: { summary: "akotan", fallback: "afowose", curatedReference: "Itokasi ogbon ti a yan" },
   ig: { summary: "nchikota", fallback: "ndabere", curatedReference: "Ntughari amamihe ahoputara" },
   ha: { summary: "takaitawa", fallback: "madadi", curatedReference: "Nassin hikima da aka tace" },
+};
+
+const localizedScriptureFallbackText: Record<LanguageCode, string> = {
+  en: "This reference is part of Aletheia's curated wisdom library. The app only surfaces known references and avoids inventing verse text.",
+  es: "Esta referencia forma parte de la biblioteca de sabiduría curada de Aletheia. La app solo muestra referencias conocidas y evita inventar texto bíblico.",
+  fr: "Cette référence fait partie de la bibliothèque de sagesse curée d'Aletheia. L'application n'affiche que des références connues et évite d'inventer du texte biblique.",
+  pt: "Esta referência faz parte da biblioteca de sabedoria curada da Aletheia. O app só mostra referências conhecidas e evita inventar texto bíblico.",
+  de: "Diese Stelle gehört zu Aletheias kuratierter Weisheitsbibliothek. Die App zeigt nur bekannte Verweise und erfindet keinen Bibeltext.",
+  yo: "Ìtọ́kasí yìí jẹ́ apá kan nínú ìkàwé ọgbọ́n tí Aletheia ti yan. Ohun elo naa ń fi àwọn ìtọ́kasí tí a mọ̀ hàn, kò sì ń dá ọ̀rọ̀ Bíbélì tuntun sílẹ̀.",
+  ig: "Ntụaka a bụ akụkụ nke ụlọ akwụkwọ amamihe Aletheia họrọ. Ngwa ahụ na-egosi naanị ntụaka a maara ma ghara ịmepụta ederede amaokwu ọhụrụ.",
+  ha: "Wannan nassin yana cikin ɗakin hikimar Aletheia da aka tace. Manhajar tana nuna nassoshi da aka sani kawai, ba ta ƙirƙiri sabon rubutun ayar ba.",
 };
 
 const localizedRegionLabels: Partial<Record<LanguageCode, Partial<Record<RegionCode, string>>>> = {

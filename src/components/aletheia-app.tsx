@@ -3945,29 +3945,27 @@ export function AletheiaApp() {
   }, []);
 
   const translationHelpers = useMemo(() => {
-    const t = (key: string, fallback?: string): string | string[] => getTranslation(translations, key, fallback || key);
+    const useEnglishFallback = preferences.language === "en";
+    const resolveFallback = (key: string, fallback?: string) => useEnglishFallback ? (fallback || key) : key;
+    const t = (key: string, fallback?: string): string | string[] => getTranslation(translations, key, resolveFallback(key, fallback));
     const ts = (key: string, fallback?: string): string => {
-      const result = t(key, fallback || key);
+      const result = t(key, fallback);
       return Array.isArray(result) ? result.join(', ') : result;
     };
     return { t, ts };
-  }, [translations]);
+  }, [preferences.language, translations]);
   const { ts } = translationHelpers;
 
   // Build ui object from translations for backward compatibility
   const buildUiFromTranslations = (trans: TranslationData) => {
-    const languageFallback = {
-      ...uiText.en,
-      ...(uiText[preferences.language] ?? {}),
-    };
+    const languageFallback = uiText[preferences.language] ?? uiText.en;
     if (!trans || Object.keys(trans).length === 0) {
-      // Return fallback to uiText.en if translations not loaded yet
       return languageFallback;
     }
     
     // Helper to ensure string type
     const getString = (key: string, fallback: string): string => {
-      const result = getTranslation(trans, key, fallback);
+      const result = getTranslation(trans, key, preferences.language === "en" ? (fallback || key) : key);
       return Array.isArray(result) ? result.join(', ') : result;
     };
     
@@ -4287,6 +4285,10 @@ export function AletheiaApp() {
     }
     return () => media.removeEventListener("change", applyTheme);
   }, [clientStateRestored, themePreference]);
+
+  useEffect(() => {
+    document.documentElement.lang = preferences.language;
+  }, [preferences.language]);
 
   useLayoutEffect(() => {
     const updateViewportChrome = () => {
@@ -13589,7 +13591,7 @@ function CounselInviteModal({
           <>
             <div className="mt-4 grid gap-2 rounded-2xl border p-4 text-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
               <p>
-                <span className="font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.role')}:</span> {preview.invite.role}
+                <span className="font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.role')}:</span> {localizedCounselRoleLabel(preview.invite.role, ts)}
               </p>
               <p>
                 <span className="font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.status')}:</span> {accepted ? ts('status.accepted') : ts('status.waitingForAcceptance')}
@@ -13611,7 +13613,7 @@ function CounselInviteModal({
                       <div>
                         <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{decision.title}</p>
                         <p className="mt-1 text-xs uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
-                          {(isMode(decision.mode) ? ts(modeTranslationKey(decision.mode), decision.mode) : decision.mode)} · readiness {decision.readiness}/100
+                          {(isMode(decision.mode) ? ts(modeTranslationKey(decision.mode), decision.mode) : decision.mode)} · {ts('labels.readiness')} {decision.readiness}/100
                         </p>
                       </div>
                       <p className="text-xs font-semibold uppercase tracking-[0.08em]" style={{ color: theme.textSecondary }}>{decision.status}</p>
@@ -13865,9 +13867,9 @@ function PreferencesPanel({
           <div className="rounded-md border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
             <p className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>{ts('labels.appearance')}</p>
             <div className="mt-2 grid grid-cols-2 gap-2">
-              <ThemeOptionButton icon={Sun} label="Classic" active={themePreference === "classic"} onClick={() => onThemePreferenceChange("classic")} color="#203a35" theme={theme} />
-              <ThemeOptionButton icon={Moon} label="Dark" active={themePreference === "dark"} onClick={() => onThemePreferenceChange("dark")} color="#d0ad55" theme={theme} />
-              <ThemeOptionButton icon={Moon} label="Black" active={themePreference === "black"} onClick={() => onThemePreferenceChange("black")} color="#0b0f0d" theme={theme} />
+              <ThemeOptionButton icon={Sun} label={ts('labels.themeClassic')} active={themePreference === "classic"} onClick={() => onThemePreferenceChange("classic")} color="#203a35" theme={theme} />
+              <ThemeOptionButton icon={Moon} label={ts('labels.themeDark')} active={themePreference === "dark"} onClick={() => onThemePreferenceChange("dark")} color="#d0ad55" theme={theme} />
+              <ThemeOptionButton icon={Moon} label={ts('labels.themeBlack')} active={themePreference === "black"} onClick={() => onThemePreferenceChange("black")} color="#0b0f0d" theme={theme} />
               <ThemeOptionButton icon={Monitor} label={ts('labels.system')} active={themePreference === "system"} onClick={() => onThemePreferenceChange("system")} theme={theme} />
             </div>
           </div>
@@ -13875,16 +13877,16 @@ function PreferencesPanel({
       </div>
       <details className="mt-3 rounded-md border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
         <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
-          Advanced preferences · {activeRegion.label} · {preferences.voiceEnabled ? "voice on" : "voice off"}
+          {ui.preferencesTitle} · {activeRegion.label} · {preferences.voiceEnabled ? ts('on') : ts('off')}
         </summary>
         <div className="mt-3 grid gap-3 md:grid-cols-2">
           <div className="rounded-md border p-3 md:col-span-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
             <p className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>{ts('labels.moreThemes')}</p>
             <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-4">
-              <ThemeOptionButton icon={Sun} label="Warm" active={themePreference === "warm"} onClick={() => onThemePreferenceChange("warm")} color="#8b5a3c" theme={theme} />
-              <ThemeOptionButton icon={Sun} label="Ocean" active={themePreference === "ocean"} onClick={() => onThemePreferenceChange("ocean")} color="#2d5a7b" theme={theme} />
-              <ThemeOptionButton icon={Sun} label="Forest" active={themePreference === "forest"} onClick={() => onThemePreferenceChange("forest")} color="#2d6b4a" theme={theme} />
-              <ThemeOptionButton icon={Sun} label="Sunset" active={themePreference === "sunset"} onClick={() => onThemePreferenceChange("sunset")} color="#8b3a52" theme={theme} />
+              <ThemeOptionButton icon={Sun} label={ts('labels.themeWarm')} active={themePreference === "warm"} onClick={() => onThemePreferenceChange("warm")} color="#8b5a3c" theme={theme} />
+              <ThemeOptionButton icon={Sun} label={ts('labels.themeOcean')} active={themePreference === "ocean"} onClick={() => onThemePreferenceChange("ocean")} color="#2d5a7b" theme={theme} />
+              <ThemeOptionButton icon={Sun} label={ts('labels.themeForest')} active={themePreference === "forest"} onClick={() => onThemePreferenceChange("forest")} color="#2d6b4a" theme={theme} />
+              <ThemeOptionButton icon={Sun} label={ts('labels.themeSunset')} active={themePreference === "sunset"} onClick={() => onThemePreferenceChange("sunset")} color="#8b3a52" theme={theme} />
             </div>
           </div>
           <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
@@ -13916,7 +13918,7 @@ function PreferencesPanel({
         {preferences.voiceEnabled && availableVoices.length > 0 ? (
           <div className="mt-3">
             <p className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
-              Reading voice
+              {ts('labels.readingVoice')}
             </p>
             <div className="mt-2">
               <VoicePreferenceSelector
@@ -13929,7 +13931,7 @@ function PreferencesPanel({
               />
             </div>
             <span className="mt-1 block text-[11px] normal-case leading-4 tracking-normal" style={{ color: theme.textSecondary }}>
-              Aletheia shows only a short curated set of human-sounding device voices. Sound-effect voices are hidden.
+              {ts('labels.curatedVoiceNote')}
             </span>
           </div>
         ) : preferences.voiceEnabled ? (
@@ -14300,7 +14302,7 @@ function CompanionPanel({
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.conversationHistory')}</p>
                   <p className="mt-1 text-sm leading-6" style={{ color: theme.textMuted }}>
-                    Older counsel is kept quiet so the current question stays clear.
+                    {ts('labels.olderCounselKeptQuiet')}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -14322,11 +14324,12 @@ function CompanionPanel({
                     exchange={exchange}
                     preferences={preferences}
                     ui={ui}
+                    ts={ts}
                     expanded={expandedHistoryId === exchange.id}
                     onToggle={() => setExpandedHistoryId((current) => (current === exchange.id ? null : exchange.id))}
                     onContinue={() => {
                       if (!exchange.question) return;
-                      onDraftPrompt(`Continue from this: ${cleanDisplayText(exchange.question.text)}`);
+                      onDraftPrompt(`${ts('labels.continueFromThis')}: ${cleanDisplayText(exchange.question.text)}`);
                       panelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
                     }}
                     onScriptureOpen={onScriptureOpen}
@@ -14614,6 +14617,36 @@ function ThemeOptionButton({
   );
 }
 
+function localizedCounselRoleLabel(role: string, ts: (key: string, fallback?: string) => string) {
+  switch (role) {
+    case "spouse":
+      return ts('labels.counselRoleSpouse');
+    case "mentor":
+      return ts('labels.counselRoleMentor');
+    case "pastor":
+      return ts('labels.counselRolePastor');
+    case "advisor":
+      return ts('labels.counselRoleAdvisor');
+    case "friend":
+      return ts('labels.counselRoleFriend');
+    default:
+      return role;
+  }
+}
+
+function localizedDecisionStatusLabel(status: string, ts: (key: string, fallback?: string) => string) {
+  switch (status) {
+    case "discerning":
+      return ts('status.discerning');
+    case "waiting":
+      return ts('status.waiting');
+    case "closed":
+      return ts('status.closed');
+    default:
+      return status;
+  }
+}
+
 function RangeField({
   label,
   value,
@@ -14766,11 +14799,11 @@ function CurrentCounselCard({
                 onClick={onSpeak}
                 className="inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-xs font-semibold transition"
                 style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
-                aria-label={isSpeaking ? "Stop reading aloud" : "Read answer aloud"}
-                title={isSpeaking ? "Stop" : "Listen to this answer"}
+                aria-label={isSpeaking ? ts('labels.stopReading') : ts('labels.readAnswerAloud')}
+                title={isSpeaking ? ts('labels.stop') : ts('labels.listenToThisAnswer')}
               >
                 <Volume2 size={14} style={isSpeaking ? { color: theme.accentGold } : undefined} />
-                {isSpeaking ? "Stop" : "Read aloud"}
+                {isSpeaking ? ts('labels.stop') : ts('labels.readAloud')}
               </button>
               {isSpeaking ? (
                 <button
@@ -14778,10 +14811,10 @@ function CurrentCounselCard({
                   onClick={onTogglePause}
                   className="inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-xs font-semibold transition"
                   style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
-                  aria-label={speechPaused ? "Resume reading" : "Pause reading"}
-                  title={speechPaused ? "Resume" : "Pause"}
+                  aria-label={speechPaused ? ts('labels.resumeReading') : ts('labels.pauseReading')}
+                  title={speechPaused ? ts('labels.resumeReading') : ts('labels.pauseReading')}
                 >
-                  {speechPaused ? "Resume" : "Pause"}
+                  {speechPaused ? ts('labels.resumeReading') : ts('labels.pauseReading')}
                 </button>
               ) : null}
             </div>
@@ -14907,6 +14940,7 @@ function HistoryExchange({
   exchange,
   preferences,
   ui,
+  ts,
   expanded,
   onToggle,
   onContinue,
@@ -14916,12 +14950,13 @@ function HistoryExchange({
   exchange: ConversationExchange;
   preferences: UserPreferences;
   ui: (typeof uiText)[LanguageCode];
+  ts: (key: string, fallback?: string) => string;
   expanded: boolean;
   onToggle: () => void;
   onContinue: () => void;
   onScriptureOpen: (scripture: string) => void;
 }) {
-  const title = exchange.question?.text ?? "Welcome guidance";
+  const title = exchange.question?.text ?? ts('labels.welcomeGuidance');
   const preview = cleanDisplayText(exchange.answer.text).slice(0, 120);
   const exchangeModeProfile = localizedModeProfile(exchange.mode, preferences.language);
 
@@ -14940,7 +14975,7 @@ function HistoryExchange({
           <span className="mt-1 block line-clamp-2 text-xs leading-5" style={{ color: theme.textMuted }}>{preview}</span>
         </span>
         <span className="shrink-0 rounded-md px-2 py-1 text-xs font-semibold" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-          {expanded ? "Hide" : "Read"}
+          {expanded ? ts('hideDetails') : ts('showDetails')}
         </span>
       </button>
       {expanded ? (
@@ -14959,7 +14994,7 @@ function HistoryExchange({
               className="mt-3 h-11 rounded-md border px-3 text-xs font-semibold transition"
               style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
             >
-              Continue from this
+              {ts('labels.continueFromThis')}
             </button>
           ) : null}
         </div>
@@ -15139,13 +15174,13 @@ function DecisionCompanionPanel({
 
     const acceptedTypes = new Set(["image/png", "image/jpeg", "image/webp"]);
     if (!acceptedTypes.has(file.type)) {
-      setCounselAvatarStatus("Use PNG, JPEG, or WEBP images.");
+      setCounselAvatarStatus(ts('status.avatarFileTypeUnsupported'));
       event.target.value = "";
       return;
     }
     const maxBytes = 10 * 1024 * 1024;
     if (file.size > maxBytes) {
-      setCounselAvatarStatus("Choose an image smaller than 10MB.");
+      setCounselAvatarStatus(ts('status.avatarFileTooLarge'));
       event.target.value = "";
       return;
     }
@@ -15153,10 +15188,9 @@ function DecisionCompanionPanel({
     try {
       const optimized = await optimizeCounselAvatarFile(file);
       setCounselAvatarUrl(optimized);
-      setCounselAvatarStatus("Photo selected for this counsel contact.");
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Could not process this image.";
-      setCounselAvatarStatus(message);
+      setCounselAvatarStatus(ts('status.avatarPhotoSelected'));
+    } catch {
+      setCounselAvatarStatus(ts('status.avatarProcessingFailed'));
     } finally {
       event.target.value = "";
     }
@@ -15349,7 +15383,7 @@ function DecisionCompanionPanel({
                       className="h-9 rounded-md border px-3 text-xs font-semibold"
                       style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
                     >
-                      Choose photo
+                      {ts('labels.choosePhoto')}
                     </button>
                     <button
                       type="button"
@@ -15357,7 +15391,7 @@ function DecisionCompanionPanel({
                       className="h-9 rounded-md border px-3 text-xs font-semibold"
                       style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
                     >
-                      Pick fun avatar
+                      {ts('labels.pickFunAvatar')}
                     </button>
                     <button
                       type="button"
@@ -15368,7 +15402,7 @@ function DecisionCompanionPanel({
                       className="h-9 rounded-md border px-3 text-xs font-semibold"
                       style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
                     >
-                      Use default
+                      {ts('labels.useDefault')}
                     </button>
                   </div>
                   {counselAvatarStatus ? (
@@ -15390,11 +15424,11 @@ function DecisionCompanionPanel({
                   className="h-10 rounded-md border px-3 text-sm outline-none"
                   style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
                 >
-                  <option>spouse</option>
-                  <option>mentor</option>
-                  <option>pastor</option>
-                  <option>advisor</option>
-                  <option>friend</option>
+                  <option value="spouse">{ts('labels.counselRoleSpouse')}</option>
+                  <option value="mentor">{ts('labels.counselRoleMentor')}</option>
+                  <option value="pastor">{ts('labels.counselRolePastor')}</option>
+                  <option value="advisor">{ts('labels.counselRoleAdvisor')}</option>
+                  <option value="friend">{ts('labels.counselRoleFriend')}</option>
                 </select>
                 <div className="space-y-2 rounded-lg border p-3 text-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
                   <PermissionToggle
@@ -15505,7 +15539,7 @@ function DecisionCompanionPanel({
               <DisclosureSection
                 title={`${visibleCounselContacts.length} ${visibleCounselContacts.length === 1 ? ts('labels.trustedVoice') : ts('labels.trustedVoices')}`}
                 summary={hiddenCounselContacts.length
-                  ? `${hiddenCounselContacts.length} ${hiddenCounselContacts.length === 1 ? ts('labels.moreTrustedVoice') : ts('labels.moreTrustedVoices')} stay collapsed until you need them.`
+                  ? `${hiddenCounselContacts.length} ${hiddenCounselContacts.length === 1 ? ts('labels.moreTrustedVoice') : ts('labels.moreTrustedVoices')} ${ts('labels.stayCollapsedUntilNeeded')}`
                   : ts('labels.counselCircleSummary')}
                 eyebrow={ts('labels.trustedVoices')}
                 defaultOpen={counselContacts.length > 0 && counselContacts.length <= 2}
@@ -15529,7 +15563,7 @@ function DecisionCompanionPanel({
                         <div>
                           <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{contact.name}</p>
                           <p className="text-xs uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
-                            {contact.role} · {contact.inviteStatus === "accepted" ? ts('status.accepted') : contact.inviteStatus === "pending" ? ts('status.invited') : ts('status.local')}
+                            {localizedCounselRoleLabel(contact.role, ts)} · {contact.inviteStatus === "accepted" ? ts('status.accepted') : contact.inviteStatus === "pending" ? ts('status.invited') : ts('status.local')}
                           </p>
                         </div>
                       </div>
@@ -15635,7 +15669,7 @@ function DecisionCompanionPanel({
                                 <div>
                                   <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{contact.name}</p>
                                   <p className="text-xs uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
-                                    {contact.role} · {contact.inviteStatus === "accepted" ? ts('status.accepted') : contact.inviteStatus === "pending" ? ts('status.invited') : ts('status.local')}
+                                    {localizedCounselRoleLabel(contact.role, ts)} · {contact.inviteStatus === "accepted" ? ts('status.accepted') : contact.inviteStatus === "pending" ? ts('status.invited') : ts('status.local')}
                                   </p>
                                 </div>
                               </div>
@@ -15708,7 +15742,7 @@ function DecisionCompanionPanel({
                   ))}
                   {!modeRules.length ? (
                     <p className="rounded-lg border border-dashed p-3 text-sm leading-6" style={{ borderColor: theme.borderMedium, color: theme.textSecondary }}>
-                      Write one principle you want to live by before pressure arrives.
+                      {ts('notifications.writePrincipleFirstBody')}
                     </p>
                   ) : null}
                 </div>
@@ -15741,7 +15775,7 @@ function DecisionCompanionPanel({
                   <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.decisionSummaryExport')}</p>
                   <button
                     type="button"
-                    onClick={() => onSpeakText(selectedDecision.summary || "", "Aletheia is reading the decision summary aloud.", "Decision summary")}
+                    onClick={() => onSpeakText(selectedDecision.summary || "", ts('notifications.readingAloud'), ts('labels.decisionSummary'))}
                     className="inline-flex h-11 items-center gap-2 rounded-md border px-3 text-xs font-semibold transition"
                     style={{
                       borderColor: theme.borderMedium,
@@ -15882,9 +15916,9 @@ function DecisionCard({
   const waiting = decision.waitingUntil ? new Date(decision.waitingUntil) : null;
   const revisit = decision.revisitAt ? new Date(decision.revisitAt) : null;
   const outcomeReview = decision.outcomeReviewAt ? new Date(decision.outcomeReviewAt) : null;
-  const waitingText = waiting ? `Waiting until ${waiting.toLocaleDateString()}` : null;
-  const revisitText = revisit ? `Revisit ${revisit.toLocaleDateString()}` : null;
-  const outcomeText = outcomeReview ? `Outcome review ${outcomeReview.toLocaleDateString()}` : null;
+  const waitingText = waiting ? `${ts('labels.waitingUntil')} ${waiting.toLocaleDateString()}` : null;
+  const revisitText = revisit ? `${ts('labels.revisit')} ${revisit.toLocaleDateString()}` : null;
+  const outcomeText = outcomeReview ? `${ts('labels.outcomeReview')} ${outcomeReview.toLocaleDateString()}` : null;
   const [detailsOpen, setDetailsOpen] = useState(highlighted);
   const isDetailsOpen = highlighted || detailsOpen;
 
@@ -15903,7 +15937,7 @@ function DecisionCard({
         <div className="flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <span className="rounded-md px-2 py-1 text-xs font-semibold" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>{modeLabel}</span>
-            <span className="rounded-md px-2 py-1 text-xs font-semibold" style={{ backgroundColor: theme.bgCardElevated, color: theme.accentGold }}>{decision.status}</span>
+            <span className="rounded-md px-2 py-1 text-xs font-semibold" style={{ backgroundColor: theme.bgCardElevated, color: theme.accentGold }}>{localizedDecisionStatusLabel(decision.status, ts)}</span>
             {waitingText ? <span className="rounded-md px-2 py-1 text-xs font-semibold" style={{ backgroundColor: theme.bgCardElevated, color: theme.accentGold }}>{waitingText}</span> : null}
             {revisitText ? <span className="rounded-md px-2 py-1 text-xs font-semibold" style={{ backgroundColor: theme.bgInput, color: theme.primary }}>{revisitText}</span> : null}
             {outcomeText ? <span className="rounded-md px-2 py-1 text-xs font-semibold" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>{outcomeText}</span> : null}
@@ -16111,7 +16145,6 @@ function WisdomCheck({
   timeframe,
   setTimeframe,
   result,
-  mode,
   modeProfile,
   ts,
   theme,
@@ -16123,7 +16156,6 @@ function WisdomCheck({
   timeframe: string;
   setTimeframe: (value: string) => void;
   result: { sources: WisdomEntry[]; readiness: number; hasUrgency: boolean; hasCounsel: boolean } | null;
-  mode: Mode;
   modeProfile: DisplayModeProfile;
   ts: (key: string, fallback?: string) => string;
   theme: ThemeColors;
@@ -16133,14 +16165,14 @@ function WisdomCheck({
       <section className="min-w-0 rounded-xl border p-4 shadow-sm sm:p-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
         <div className="mb-5 flex items-center gap-2 text-xl font-semibold" style={{ color: theme.textPrimary }}>
           <Scale size={20} />
-          Wisdom Check
+          {ts('labels.wisdomCheck')}
         </div>
         <div className="mb-5 rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
           <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{modeProfile.displayLabel ?? modeProfile.label} · {ts('labels.discernmentReadout')}</p>
           <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>{modeProfile.intent}</p>
         </div>
         <label className="text-sm font-semibold" htmlFor="decision" style={{ color: theme.textPrimary }}>
-          Decision or pressure
+          {ts('labels.decisionOrPressure')}
         </label>
         <textarea
           id="decision"
@@ -16208,7 +16240,7 @@ function WisdomCheck({
               </p>
             </div>
             <div className="rounded-lg border p-4" style={{ backgroundColor: theme.primary, borderColor: theme.borderMedium, color: theme.textOnPrimary }}>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.textOnPrimary, opacity: 0.9 }}>{mode} diagnostic</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.textOnPrimary, opacity: 0.9 }}>{ts('labels.modeDiagnostic')}</p>
               <ul className="mt-3 space-y-2 text-sm leading-6" style={{ color: theme.textOnPrimary }}>
                 {modeProfile.diagnosticTracks.slice(0, 2).map((track) => (
                   <li key={track}>{track}</li>
@@ -16363,7 +16395,6 @@ function ReflectPanel({
             timeframe={timeframe}
             setTimeframe={setTimeframe}
             result={result}
-            mode={mode}
             modeProfile={modeProfile}
             ts={ts}
             theme={theme}
