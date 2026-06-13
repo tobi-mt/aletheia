@@ -8460,7 +8460,7 @@ function ReadingPlayer({
   const safeProgress = Math.min(100, Math.max(0, progress || 0));
   return (
     <section
-      className="fixed inset-x-3 bottom-[calc(4.6rem+env(safe-area-inset-bottom))] z-[55] mx-auto max-w-2xl rounded-xl border p-3 shadow-2xl backdrop-blur-xl md:bottom-5"
+      className="fixed inset-x-3 bottom-[calc(4.6rem+env(safe-area-inset-bottom))] z-[55] mx-auto max-w-xl rounded-2xl border px-3 py-2.5 shadow-2xl backdrop-blur-xl md:bottom-5"
       style={{
         borderColor: theme.borderStrong,
         backgroundColor: theme.bgCard,
@@ -8468,50 +8468,47 @@ function ReadingPlayer({
       }}
       aria-label={ts('labels.readingPlayer')}
     >
-      <div className="flex items-center gap-3">
-        <span className="grid size-9 shrink-0 place-items-center rounded-lg" style={{ backgroundColor: theme.bgInput, color: theme.primary }}>
-          <Volume2 size={18} />
+      <div className="flex items-center gap-2.5 sm:gap-3">
+        <span className="grid size-8 shrink-0 place-items-center rounded-xl" style={{ backgroundColor: theme.bgInput, color: theme.primary }}>
+          <Volume2 size={16} />
         </span>
         <div className="min-w-0 flex-1">
-          <div className="flex items-center justify-between gap-2">
+          <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold">{label}</p>
-              <p className="truncate text-xs" style={{ color: theme.textSecondary }}>
+              <p className="truncate text-[0.92rem] font-semibold leading-5">{label}</p>
+              <p className="truncate text-[0.72rem] leading-5" style={{ color: theme.textSecondary }}>
                 {voiceName
                   ? ts('labels.readingWithVoice').replace('{voice}', voiceName)
                   : ts('labels.readingWithDeviceVoice')}
               </p>
             </div>
-            <span className="text-xs font-semibold" style={{ color: theme.textMuted }}>
+            <span className="shrink-0 rounded-full border px-2 py-0.5 text-[0.7rem] font-semibold leading-4" style={{ borderColor: theme.borderLight, color: theme.textMuted, backgroundColor: theme.bgCardElevated }}>
               {safeProgress}%
             </span>
           </div>
-          <div className="mt-2 h-1.5 overflow-hidden rounded-full" style={{ backgroundColor: theme.borderLight }}>
+          <div className="mt-2 h-1 overflow-hidden rounded-full" style={{ backgroundColor: theme.borderLight }}>
             <div className="h-full rounded-full transition-all" style={{ width: `${safeProgress}%`, backgroundColor: theme.accentGold }} />
           </div>
         </div>
         <button
           type="button"
           onClick={onTogglePause}
-          className="grid size-10 shrink-0 place-items-center rounded-md border transition"
+          className="grid size-9 shrink-0 place-items-center rounded-xl border transition"
           style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
           aria-label={paused ? ts('labels.resumeReading') : ts('labels.pauseReading')}
         >
-          {paused ? <Play size={17} /> : <Pause size={17} />}
+          {paused ? <Play size={16} /> : <Pause size={16} />}
         </button>
         <button
           type="button"
           onClick={onStop}
-          className="grid size-10 shrink-0 place-items-center rounded-md border transition"
+          className="grid size-9 shrink-0 place-items-center rounded-xl border transition"
           style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
           aria-label={ts('labels.stopReading')}
         >
-          <X size={17} />
+          <X size={16} />
         </button>
       </div>
-      <p className="mt-2 text-xs leading-5" style={{ color: theme.textMuted }}>
-        {ts('labels.browserReadingMayPause')}
-      </p>
     </section>
   );
 }
@@ -8741,18 +8738,21 @@ function WorkflowNotice({
 
   return (
     <div
-      className="fixed inset-x-3 z-50 md:bottom-auto md:left-auto md:right-4 md:top-24 md:w-[360px]"
+      className="fixed inset-x-3 z-50 md:bottom-auto md:left-auto md:right-4 md:top-24 md:w-[320px]"
       style={{
         top: `calc(max(env(safe-area-inset-top, 0px), var(--aletheia-top-reserve, 0px)) + ${readerOpen ? "6.5rem" : "5rem"})`,
       }}
       role="status"
       aria-live="polite"
     >
-      <div className="rounded-xl border p-4 shadow-xl backdrop-blur" style={{ borderColor: colors.border, backgroundColor: colors.bg, color: colors.text }}>
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-sm font-semibold">{notice.title}</p>
-            <p className="mt-1 text-sm leading-6 opacity-85">{notice.body}</p>
+      <div className="rounded-2xl border px-3 py-3 shadow-xl backdrop-blur" style={{ borderColor: colors.border, backgroundColor: colors.bg, color: colors.text }}>
+        <div className="flex items-start gap-3">
+          <div className="grid size-8 shrink-0 place-items-center rounded-xl border" style={{ borderColor: colors.border, backgroundColor: colors.bg, color: colors.border }}>
+            <span className="size-2 rounded-full" style={{ backgroundColor: colors.border }} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-[0.9rem] font-semibold leading-5">{notice.title}</p>
+            <p className="mt-1 line-clamp-2 text-[0.78rem] leading-5 opacity-85">{notice.body}</p>
             {notice.action ? (
               <button
                 type="button"
@@ -8760,7 +8760,7 @@ function WorkflowNotice({
                   notice.action!.onClick();
                   onClose();
                 }}
-                className="mt-3 h-11 rounded-md px-4 text-xs font-semibold transition"
+                className="mt-2 h-9 rounded-full px-3 text-[11px] font-semibold transition"
                 style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
               >
                 {notice.action.label}
@@ -8770,11 +8770,11 @@ function WorkflowNotice({
           <button
             type="button"
             onClick={onClose}
-            className="grid size-8 shrink-0 place-items-center rounded-md border transition"
+            className="grid size-7 shrink-0 place-items-center rounded-full border transition"
             style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
             aria-label={ts('labels.dismissWorkflowNotice')}
           >
-            <X size={15} />
+            <X size={14} />
           </button>
         </div>
       </div>
@@ -12936,7 +12936,7 @@ function AuthPanel({
       {notice ? (
         <div
           role="status"
-          className="mx-4 mt-4 rounded-lg border px-3 py-2 text-sm font-medium leading-6 sm:mx-5"
+          className="mx-4 mt-4 rounded-md border px-3 py-2 text-xs font-medium leading-5 sm:mx-5"
           style={{ borderColor: theme.primary, backgroundColor: theme.bgCardElevated, color: theme.primary }}
         >
           {notice}
@@ -12945,7 +12945,7 @@ function AuthPanel({
       {error ? (
         <div
           role="alert"
-          className="mx-4 mt-4 rounded-lg border px-3 py-2 text-sm font-medium leading-6 sm:mx-5"
+          className="mx-4 mt-4 rounded-md border px-3 py-2 text-xs font-medium leading-5 sm:mx-5"
           style={{ borderColor: '#e0c3b7', backgroundColor: '#fff6f1', color: '#8c3f28' }}
         >
           {error}
@@ -13265,7 +13265,7 @@ function ScriptureModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby={view === "quick" ? "scripture-quick-read-title" : "scripture-study-mode-title"}
-        className="flex w-full max-w-xl flex-col overflow-hidden rounded-3xl border shadow-2xl"
+        className="flex w-full max-w-2xl flex-col overflow-hidden rounded-[2rem] border shadow-2xl"
         style={{
           borderColor: theme.borderMedium,
           backgroundColor: theme.bgCard,
@@ -13273,75 +13273,80 @@ function ScriptureModal({
         }}
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex items-start justify-between gap-4 border-b p-4 sm:p-5" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
-          <div className="min-w-0">
-            {view === "quick" ? (
-              <>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
-                  {ts('labels.scriptureQuickRead')}
-                </p>
-                <h2 id="scripture-quick-read-title" className="mt-2 text-2xl font-semibold leading-tight" style={{ color: theme.textPrimary }}>
-                  {canonicalScripture}
-                </h2>
-                <p className="mt-2 text-sm" style={{ color: theme.textSecondary }}>
-                  {scriptureDisplayLabel(canonicalScripture, preferences)}
-                </p>
-              </>
-            ) : (
-              <>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
-                  {studyModeTitle}
-                </p>
-                <h2 id="scripture-study-mode-title" className="mt-2 text-2xl font-semibold leading-tight" style={{ color: theme.textPrimary }}>
-                  {studyModeTitle}
-                </h2>
-                <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
-                  {studyModeSubtitle}
-                </p>
-              </>
-            )}
-          </div>
-          <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
-            <button
-              type="button"
-              onClick={onReadAloud}
-              className="inline-flex h-10 items-center gap-2 rounded-full border px-4 text-xs font-semibold transition"
-              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
-            >
-              <Volume2 size={15} />
-              {ts('labels.readScriptureAloud')}
-            </button>
-            {view === "quick" ? (
+        <div className="border-b px-4 pb-4 pt-4 sm:px-6 sm:pb-5 sm:pt-5" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-5">
+            <div className="min-w-0 flex-1">
+              {view === "quick" ? (
+                <>
+                  <p className="text-[0.68rem] font-semibold uppercase tracking-[0.24em]" style={{ color: theme.accentGold }}>
+                    {ts('labels.scriptureQuickRead')}
+                  </p>
+                  <h2 id="scripture-quick-read-title" className="mt-2 text-[2rem] font-semibold leading-[1.05] sm:text-[2.45rem]" style={{ color: theme.textPrimary }}>
+                    {canonicalScripture}
+                  </h2>
+                  <p className="mt-2 text-sm leading-6 sm:text-[0.98rem]" style={{ color: theme.textSecondary }}>
+                    {scriptureDisplayLabel(canonicalScripture, preferences)}
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-[0.68rem] font-semibold uppercase tracking-[0.24em]" style={{ color: theme.accentGold }}>
+                    {studyModeTitle}
+                  </p>
+                  <h2 id="scripture-study-mode-title" className="mt-2 text-[2rem] font-semibold leading-[1.05] sm:text-[2.45rem]" style={{ color: theme.textPrimary }}>
+                    {studyModeTitle}
+                  </h2>
+                  <p className="mt-2 text-sm leading-6 sm:text-[0.98rem]" style={{ color: theme.textSecondary }}>
+                    {studyModeSubtitle}
+                  </p>
+                  <p className="mt-3 text-[0.72rem] font-semibold uppercase tracking-[0.22em]" style={{ color: theme.textMuted }}>
+                    {canonicalScripture} · {scriptureDisplayLabel(canonicalScripture, preferences)}
+                  </p>
+                </>
+              )}
+            </div>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-[auto_auto_auto] sm:justify-end sm:gap-2">
               <button
                 type="button"
-                onClick={() => setView("deep")}
-                className="inline-flex h-10 items-center rounded-full border px-4 text-xs font-semibold transition"
-                style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                onClick={onReadAloud}
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-full border px-4 text-xs font-semibold transition sm:justify-start"
+                style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
               >
-                {studyModeButton}
+                <Volume2 size={15} />
+                {ts('labels.readScriptureAloud')}
               </button>
-            ) : (
+              {view === "quick" ? (
+                <button
+                  type="button"
+                  onClick={() => setView("deep")}
+                  className="inline-flex h-10 items-center justify-center rounded-full border px-4 text-xs font-semibold transition"
+                  style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                >
+                  {studyModeButton}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setView("quick")}
+                  className="inline-flex h-10 items-center justify-center rounded-full border px-4 text-xs font-semibold transition"
+                  style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                >
+                  {backToQuickRead}
+                </button>
+              )}
               <button
                 type="button"
-                onClick={() => setView("quick")}
-                className="inline-flex h-10 items-center rounded-full border px-4 text-xs font-semibold transition"
-                style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                onClick={onClose}
+                className="grid h-10 w-full place-items-center rounded-full border transition sm:size-10 sm:w-10"
+                style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
+                aria-label={ts('labels.closeScriptureQuickRead')}
               >
-                {backToQuickRead}
+                <X size={17} />
               </button>
-            )}
-            <button
-              type="button"
-              onClick={onClose}
-              className="grid size-10 shrink-0 place-items-center rounded-full border transition"
-              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
-              aria-label={ts('labels.closeScriptureQuickRead')}
-            >
-              <X size={17} />
-            </button>
+            </div>
           </div>
         </div>
-        <div ref={contentRef} className="flex-1 overflow-y-auto p-4 sm:p-5">
+        <div ref={contentRef} className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
           <AnimatePresence mode="wait" initial={false}>
             {view === "quick" ? (
               <motion.div
@@ -13351,25 +13356,25 @@ function ScriptureModal({
                 exit={{ opacity: 0, y: -8 }}
                 transition={{ duration: 0.18, ease: "easeOut" }}
               >
-                <div className="rounded-3xl border p-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
+                <div className="px-1 sm:px-0">
                   {quickRead.verses?.length ? (
-                    <div className="space-y-4">
+                    <div className="divide-y" style={{ borderColor: theme.borderLight }}>
                       {quickRead.verses.map((verse) => (
-                        <div key={verse.verse} className="flex gap-3">
+                        <div key={verse.verse} className="grid gap-3 py-4 sm:grid-cols-[3rem_minmax(0,1fr)] sm:gap-4 sm:py-5">
                           <div
-                            className="mt-0.5 inline-flex h-7 min-w-7 shrink-0 items-center justify-center rounded-full border px-2 text-xs font-semibold"
-                            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.accentGold }}
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-full border text-[0.7rem] font-semibold"
+                            style={{ borderColor: theme.borderMedium, color: theme.accentGold }}
                           >
                             {verse.verse}
                           </div>
-                          <p className="flex-1 text-base leading-8 sm:text-lg sm:leading-9" style={{ color: theme.textPrimary }}>
+                          <p className="text-[1.02rem] leading-8 sm:text-lg sm:leading-9" style={{ color: theme.textPrimary }}>
                             {verse.text}
                           </p>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <p className="whitespace-pre-wrap text-base leading-8 sm:text-lg sm:leading-9" style={{ color: theme.textPrimary }}>
+                    <p className="whitespace-pre-wrap text-[1.02rem] leading-8 sm:text-lg sm:leading-9" style={{ color: theme.textPrimary }}>
                       {quickRead.text}
                     </p>
                   )}
@@ -14721,46 +14726,50 @@ function ScriptureStudyMode({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -8 }}
       transition={{ duration: 0.18, ease: "easeOut" }}
-      className="space-y-4"
+      className="space-y-6 sm:space-y-7"
     >
-      <section className="rounded-3xl border p-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
-        <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+      <section className="pt-1 first:pt-0" style={{ borderColor: theme.borderLight }}>
+        <p className="text-[0.68rem] font-semibold uppercase tracking-[0.24em]" style={{ color: theme.accentGold }}>
           {whatItSays}
         </p>
-        <p className="mt-3 text-base leading-8 sm:text-lg sm:leading-9" style={{ color: theme.textPrimary }}>
+        <p className="mt-3 text-[1.02rem] leading-8 sm:text-lg sm:leading-9" style={{ color: theme.textPrimary }}>
           {studyGuide.meaning}
         </p>
-        <p className="mt-4 text-sm leading-7" style={{ color: theme.textSecondary }}>
+        <p className="mt-3 text-sm leading-6 sm:mt-4 sm:leading-7" style={{ color: theme.textSecondary }}>
           {studyGuide.context}
         </p>
       </section>
 
-      <section className="rounded-3xl border p-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
-        <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+      <section className="border-t pt-5" style={{ borderColor: theme.borderLight }}>
+        <p className="text-[0.68rem] font-semibold uppercase tracking-[0.24em]" style={{ color: theme.accentGold }}>
           {whyItMatters}
         </p>
-        <p className="mt-3 text-base leading-8 sm:text-lg sm:leading-9" style={{ color: theme.textPrimary }}>
+        <p className="mt-3 text-[1.02rem] leading-8 sm:text-lg sm:leading-9" style={{ color: theme.textPrimary }}>
           {studyGuide.whyItMatters}
         </p>
       </section>
 
-      <section className="rounded-3xl border p-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
-        <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+      <section className="border-t pt-5" style={{ borderColor: theme.borderLight }}>
+        <p className="text-[0.68rem] font-semibold uppercase tracking-[0.24em]" style={{ color: theme.accentGold }}>
           {relatedScriptures}
         </p>
-        <div className="mt-4 space-y-3">
+        <div className="mt-4 space-y-4">
           {studyGuide.related.map((related) => (
             <button
               key={related.scripture}
               type="button"
               onClick={() => onScriptureOpen(related.scripture)}
-              className="w-full rounded-2xl border p-4 text-left transition hover:-translate-y-px"
-              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textPrimary }}
+              className="group w-full border-b border-dashed pb-4 text-left transition last:border-b-0 last:pb-0 hover:-translate-y-px"
+              style={{ borderColor: theme.borderLight, color: theme.textPrimary }}
             >
-              <p className="text-sm font-semibold">{related.scripture}</p>
-              <p className="mt-1 text-sm" style={{ color: theme.textSecondary }}>
-                {related.theme}
-              </p>
+              <div className="flex items-start justify-between gap-3">
+                <p className="text-sm font-semibold sm:text-[0.98rem] group-hover:underline group-hover:underline-offset-4">
+                  {related.scripture}
+                </p>
+                <span className="shrink-0 text-[0.68rem] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.accentGold }}>
+                  {related.theme}
+                </span>
+              </div>
               <p className="mt-2 text-sm leading-6" style={{ color: theme.textPrimary }}>
                 {related.principle}
               </p>
@@ -14769,17 +14778,17 @@ function ScriptureStudyMode({
         </div>
       </section>
 
-      <section className="rounded-3xl border p-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
-        <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+      <section className="border-t pt-5" style={{ borderColor: theme.borderLight }}>
+        <p className="text-[0.68rem] font-semibold uppercase tracking-[0.24em]" style={{ color: theme.accentGold }}>
           {wiseNextStep}
         </p>
-        <p className="mt-3 text-base leading-8 sm:text-lg sm:leading-9" style={{ color: theme.textPrimary }}>
+        <p className="mt-3 text-[1.02rem] leading-8 sm:text-lg sm:leading-9" style={{ color: theme.textPrimary }}>
           {studyGuide.nextStep}
         </p>
       </section>
 
       {quickRead.kind === "unavailable" ? (
-        <p className="px-1 text-xs leading-5" style={{ color: theme.textSecondary }}>
+        <p className="pt-1 text-xs leading-5" style={{ color: theme.textSecondary }}>
           {quickRead.text}
         </p>
       ) : null}
