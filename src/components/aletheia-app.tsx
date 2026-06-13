@@ -319,7 +319,10 @@ const SCRIPTURE_MEMORY_STORAGE_KEY = "aletheia_scripture_memory";
 const UPDATE_REFRESH_PENDING_KEY = "aletheia_update_refresh_pending";
 const FOCUS_INTENTIONS_STORAGE_KEY = "aletheia_focus_intentions";
 const GRATITUDE_LENS_STORAGE_KEY = "aletheia_gratitude_lens";
-const MAX_GRATITUDE_ENTRIES = 12;
+const GRATITUDE_INDEXED_DB_NAME = "aletheia-gratitude";
+const GRATITUDE_INDEXED_DB_VERSION = 1;
+const GRATITUDE_INDEXED_DB_STORE = "gratitude_entries";
+const MAX_GRATITUDE_ENTRIES = Number.POSITIVE_INFINITY;
 const GRATITUDE_REFLECTION_DEFAULT_HOUR = 19;
 const SUPPORT_MISSION_LINKS: Array<{ channel: SupportMissionChannel; href: string; labelKey: string; fallback: string }> = [
   {
@@ -1825,8 +1828,102 @@ function storedGratitudeEntries(): GratitudeEntry[] {
   }
 }
 
-function persistGratitudeEntries(entries: GratitudeEntry[]) {
-  window.localStorage.setItem(GRATITUDE_LENS_STORAGE_KEY, JSON.stringify(entries.slice(0, MAX_GRATITUDE_ENTRIES)));
+function openGratitudeDatabase(): Promise<IDBDatabase> {
+  if (typeof indexedDB === "undefined") {
+    return Promise.reject(new Error("IndexedDB is unavailable."));
+  }
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(GRATITUDE_INDEXED_DB_NAME, GRATITUDE_INDEXED_DB_VERSION);
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains(GRATITUDE_INDEXED_DB_STORE)) {
+        db.createObjectStore(GRATITUDE_INDEXED_DB_STORE, { keyPath: "id" });
+      }
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error ?? new Error("Could not open gratitude storage."));
+  });
+}
+
+async function readGratitudeEntriesFromIndexedDB(): Promise<GratitudeEntry[] | null> {
+  if (typeof indexedDB === "undefined") {
+    return null;
+  }
+  try {
+    const db = await openGratitudeDatabase();
+    return await new Promise((resolve, reject) => {
+      const transaction = db.transaction(GRATITUDE_INDEXED_DB_STORE, "readonly");
+      const store = transaction.objectStore(GRATITUDE_INDEXED_DB_STORE);
+      const request = store.getAll();
+      request.onsuccess = () => {
+        const parsed = (request.result as GratitudeEntry[] | undefined) ?? [];
+        resolve(
+          parsed
+            .filter((entry): entry is GratitudeEntry =>
+              Boolean(
+                entry &&
+                typeof entry.id === "string" &&
+                typeof entry.imageDataUrl === "string" &&
+                typeof entry.note === "string" &&
+                typeof entry.createdAt === "string"
+              )
+            )
+            .map((entry) => ({
+              ...entry,
+              place: typeof entry.place === "string" ? entry.place : "",
+              formation: normalizeGratitudeFormation(entry.formation),
+              visual: normalizeGratitudeVisual(entry.visual),
+              postcardCreatedAt: typeof entry.postcardCreatedAt === "string" ? entry.postcardCreatedAt : undefined,
+              reflectedAt: typeof entry.reflectedAt === "string" ? entry.reflectedAt : undefined,
+            }))
+            .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime())
+            .slice(0, MAX_GRATITUDE_ENTRIES)
+        );
+      };
+      request.onerror = () => reject(request.error ?? new Error("Could not read gratitude storage."));
+      transaction.onerror = () => reject(transaction.error ?? new Error("Could not read gratitude storage."));
+    });
+  } catch {
+    return null;
+  }
+}
+
+async function persistGratitudeEntries(entries: GratitudeEntry[]) {
+  const nextEntries = entries.slice(0, MAX_GRATITUDE_ENTRIES);
+  const canUseIndexedDB = typeof indexedDB !== "undefined";
+  if (canUseIndexedDB) {
+    try {
+      const db = await openGratitudeDatabase();
+      await new Promise<void>((resolve, reject) => {
+        const transaction = db.transaction(GRATITUDE_INDEXED_DB_STORE, "readwrite");
+        const store = transaction.objectStore(GRATITUDE_INDEXED_DB_STORE);
+        const clearRequest = store.clear();
+        clearRequest.onerror = () => reject(clearRequest.error ?? new Error("Could not update gratitude storage."));
+        clearRequest.onsuccess = () => {
+          nextEntries.forEach((entry) => {
+            store.put(entry);
+          });
+        };
+        transaction.oncomplete = () => resolve();
+        transaction.onerror = () => reject(transaction.error ?? new Error("Could not update gratitude storage."));
+      });
+      try {
+        window.localStorage.removeItem(GRATITUDE_LENS_STORAGE_KEY);
+      } catch {
+        // The legacy backup is best-effort only.
+      }
+      return { storedIn: "indexeddb" as const, stored: true };
+    } catch {
+      // Fall back to localStorage so the live session still works if IndexedDB is unavailable.
+    }
+  }
+
+  try {
+    window.localStorage.setItem(GRATITUDE_LENS_STORAGE_KEY, JSON.stringify(nextEntries));
+    return { storedIn: "localStorage" as const, stored: true };
+  } catch {
+    return { storedIn: "memory" as const, stored: false };
+  }
 }
 
 function gratitudeContextSummary(entries: GratitudeEntry[]): GratitudeContextSummary | null {
@@ -3788,7 +3885,7 @@ export function AletheiaApp() {
   const [journalTitle, setJournalTitle] = useState("");
   const [journalBody, setJournalBody] = useState("");
   const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([]);
-  const [gratitudeEntries, setGratitudeEntries] = useState<GratitudeEntry[]>([]);
+  const [gratitudeEntries, setGratitudeEntries] = useState<GratitudeEntry[]>(() => storedGratitudeEntries());
   const [isOnline, setIsOnline] = useState(true);
   const [user, setUser] = useState<User | null>(null);
   const [authMode, setAuthMode] = useState<AuthMode>("register");
@@ -3915,6 +4012,7 @@ export function AletheiaApp() {
 
   // Hydration-safe restore of client-only persisted state.
   useEffect(() => {
+    let cancelled = false;
     const restoreId = window.requestAnimationFrame(() => {
       const params = new URLSearchParams(window.location.search);
       const shouldHonorNotificationFocus = params.get("source") === "notification";
@@ -3924,12 +4022,35 @@ export function AletheiaApp() {
       setShowOnboarding(shouldShowOnboarding());
       setCarryToday(storedCarryToday());
       setScriptureMemory(storedScriptureMemory());
-      setGratitudeEntries(storedGratitudeEntries());
       setSelectedVoice(storedVoicePreference());
       setNotificationTiming(storedNotificationTiming());
       setCurrentLocalDayNumber(Math.floor(Date.now() / 86400000));
       setCurrentLocalHour(new Date().getHours());
       setClientStateRestored(true);
+
+      void (async () => {
+        const indexedEntries = await readGratitudeEntriesFromIndexedDB();
+        if (cancelled) {
+          return;
+        }
+        if (indexedEntries && indexedEntries.length > 0) {
+          setGratitudeEntries(indexedEntries);
+          return;
+        }
+
+        const localEntries = storedGratitudeEntries();
+        if (cancelled) {
+          return;
+        }
+        setGratitudeEntries(localEntries);
+        if (localEntries.length > 0) {
+          await persistGratitudeEntries(localEntries);
+        }
+      })().catch(() => {
+        if (!cancelled) {
+          setGratitudeEntries(storedGratitudeEntries());
+        }
+      });
 
       try {
         const storedView = window.localStorage.getItem("aletheia-active-view") as View | null;
@@ -3944,7 +4065,10 @@ export function AletheiaApp() {
         // Keep deterministic defaults if storage is unavailable.
       }
     });
-    return () => window.cancelAnimationFrame(restoreId);
+    return () => {
+      cancelled = true;
+      window.cancelAnimationFrame(restoreId);
+    };
   }, []);
 
   const translationHelpers = useMemo(() => {
@@ -3955,7 +4079,7 @@ export function AletheiaApp() {
       return Array.isArray(result) ? result.join(', ') : result;
     };
     return { t, ts };
-  }, [preferences.language, translations]);
+  }, [translations]);
   const { ts } = translationHelpers;
 
   // Build ui object from translations for backward compatibility
@@ -5553,12 +5677,6 @@ export function AletheiaApp() {
     announceWorkflow(ts('notifications.ruleDrafted'), ts('notifications.ruleDraftedBody'), "success");
   }
 
-  function startVoiceReflectionMode() {
-    const script = ts('labels.voiceReflectionScript');
-    speakText(script, ts('notifications.voiceReflectionStarted'), ts('labels.voiceReflectionMode'));
-    trackClientEvent("voice_reflection_started", { mode, language: preferences.language });
-  }
-
   function shareReflectionPostcard(entry: JournalEntry) {
     void shareWisdomPostcard({
       kind: "reflection",
@@ -6809,8 +6927,11 @@ export function AletheiaApp() {
         visual: normalizeGratitudeVisual(visual),
       };
       const nextEntries = [entry, ...gratitudeEntries].slice(0, MAX_GRATITUDE_ENTRIES);
-      persistGratitudeEntries(nextEntries);
       setGratitudeEntries(nextEntries);
+      const stored = await persistGratitudeEntries(nextEntries);
+      if (!stored.stored) {
+        setStatusMessage('Saved in this session, but your browser storage is full. Export or share soon so nothing is lost.');
+      }
       trackClientEvent("gratitude_entry_created", {
         has_place: Boolean(cleanPlace),
         source: "reflect_tab",
@@ -6836,11 +6957,7 @@ export function AletheiaApp() {
   function updateGratitudeEntry(id: string, patch: Partial<GratitudeEntry>) {
     setGratitudeEntries((current) => {
       const nextEntries = current.map((entry) => entry.id === id ? { ...entry, ...patch } : entry);
-      try {
-        persistGratitudeEntries(nextEntries);
-      } catch {
-        // The in-memory timeline remains updated if local storage is briefly unavailable.
-      }
+      void persistGratitudeEntries(nextEntries);
       return nextEntries;
     });
   }
@@ -6872,11 +6989,7 @@ export function AletheiaApp() {
   function deleteGratitudeEntry(id: string) {
     const nextEntries = gratitudeEntries.filter((entry) => entry.id !== id);
     setGratitudeEntries(nextEntries);
-    try {
-      persistGratitudeEntries(nextEntries);
-    } catch {
-      // The UI still reflects the deletion even if storage is temporarily unavailable.
-    }
+    void persistGratitudeEntries(nextEntries);
     trackClientEvent("gratitude_entry_deleted", { source: "reflect_tab" });
     announceWorkflow(
       ts('notifications.gratitudeDeleted'),
@@ -7900,9 +8013,8 @@ export function AletheiaApp() {
                       onDeleteGratitude={deleteGratitudeEntry}
                       onShareGratitudePostcard={shareGratitudePostcard}
                       onUseGratitudeAsReflection={useGratitudeAsReflectionPrompt}
-                      onVoiceReflection={startVoiceReflectionMode}
+                      onSpeakText={speakText}
                       onShareReflectionPostcard={shareReflectionPostcard}
-                      todayCompanionCard={todayCompanionCard}
                       theme={theme}
                     />
                   </ViewIdentityFrame>
@@ -16430,6 +16542,7 @@ function WisdomCheck({
   modeProfile,
   ts,
   theme,
+  onSpeakText,
 }: {
   decision: string;
   setDecision: (value: string) => void;
@@ -16441,7 +16554,21 @@ function WisdomCheck({
   modeProfile: DisplayModeProfile;
   ts: (key: string, fallback?: string) => string;
   theme: ThemeColors;
+  onSpeakText: (text: string, notice?: string, label?: string) => void;
 }) {
+  const readoutText = result
+    ? [
+        `${ts('labels.discernmentReadout')}. ${ts('labels.readiness')}: ${result.readiness}/100.`,
+        result.hasUrgency
+          ? ts('labels.wisdomCheckUrgency', 'urgency noticed')
+          : ts('labels.wisdomCheckSlower', 'pressure looks slower'),
+        result.sources[0]?.scripture ? `${ts('labels.grounding')}: ${result.sources[0].scripture}. ${result.sources[0].principle}` : "",
+        `${ts('labels.nextFaithfulAction')}. ${ts('labels.nextFaithfulActionBody')}`,
+      ]
+        .filter(Boolean)
+        .join(" ")
+    : "";
+
   return (
     <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
       <section className="min-w-0 rounded-xl border p-3.5 shadow-sm sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
@@ -16495,9 +16622,24 @@ function WisdomCheck({
       </section>
 
       <section className="min-w-0 rounded-xl border p-3.5 shadow-sm sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-        <h2 className="text-lg font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.discernmentReadout')}</h2>
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <h2 className="text-lg font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.discernmentReadout')}</h2>
+          {result ? (
+            <button
+              type="button"
+              onClick={() => onSpeakText(readoutText, ts('notifications.readingAloud'), ts('labels.discernmentReadout'))}
+              className="inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-xs font-semibold transition"
+              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
+              aria-label={ts('labels.readReadoutAloud', 'Read readout aloud')}
+              title={ts('labels.readReadoutAloud', 'Read readout aloud')}
+            >
+              <Volume2 size={14} />
+              {ts('labels.readReadoutAloud', 'Read readout aloud')}
+            </button>
+          ) : null}
+        </div>
         {result ? (
-          <div className="mt-4 space-y-3.5">
+          <div className="space-y-3.5" aria-live="polite">
             <div>
               <div className="mb-2 flex items-center justify-between text-sm font-semibold" style={{ color: theme.textPrimary }}>
                 <span>{ts('labels.readinessSignal')}</span>
@@ -16548,7 +16690,7 @@ function WisdomCheck({
           </div>
         ) : (
           <div className="mt-4 rounded-lg border border-dashed p-4 text-sm leading-6" style={{ borderColor: theme.borderMedium, color: theme.textSecondary }}>
-            {ts('labels.writeDecisionForReadout')}
+            {ts('labels.writeDecisionForReadoutFriendly', 'Write your decision above. Aletheia will turn it into a discernment readout grounded in the wisdom library.')}
           </div>
         )}
       </section>
@@ -16580,9 +16722,8 @@ function ReflectPanel({
   onDeleteGratitude,
   onShareGratitudePostcard,
   onUseGratitudeAsReflection,
-  onVoiceReflection,
+  onSpeakText,
   onShareReflectionPostcard,
-  todayCompanionCard,
   theme,
 }: {
   language: LanguageCode;
@@ -16608,9 +16749,8 @@ function ReflectPanel({
   onDeleteGratitude: (id: string) => void;
   onShareGratitudePostcard: (entry: GratitudeEntry) => void;
   onUseGratitudeAsReflection: (entry: GratitudeEntry) => void;
-  onVoiceReflection: () => void;
+  onSpeakText: (text: string, notice?: string, label?: string) => void;
   onShareReflectionPostcard: (entry: JournalEntry) => void;
-  todayCompanionCard: TodayCompanionCard;
   theme: ThemeColors;
 }) {
   const runtime = runtimeCopyFor(language);
@@ -16636,15 +16776,6 @@ function ReflectPanel({
         <p className="mt-1.5 max-w-2xl text-sm leading-5" style={{ color: theme.textSecondary }}>
           {runtime.reflectIntro}
         </p>
-        <button
-          type="button"
-          onClick={onVoiceReflection}
-          className="premium-tap-card mt-3 inline-flex h-9 items-center gap-2 rounded-md border px-3 text-sm font-semibold"
-          style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
-        >
-          <Volume2 size={15} />
-          {ts('labels.voiceReflectionMode')}
-        </button>
       </section>
 
       <ScreenTabs
@@ -16680,6 +16811,7 @@ function ReflectPanel({
             modeProfile={modeProfile}
             ts={ts}
             theme={theme}
+            onSpeakText={onSpeakText}
           />
         </DisclosureSection>
       ) : null}
@@ -16694,7 +16826,6 @@ function ReflectPanel({
           onDelete={onDeleteGratitude}
           onSharePostcard={onShareGratitudePostcard}
           onUseAsReflection={onUseGratitudeAsReflection}
-          todayCompanionCard={todayCompanionCard}
         />
       ) : null}
 
@@ -16710,7 +16841,6 @@ function ReflectPanel({
           onSave={onSave}
           onDelete={onDelete}
           onSharePostcard={onShareReflectionPostcard}
-          onVoiceReflection={onVoiceReflection}
           ts={ts}
           theme={theme}
         />
@@ -16744,7 +16874,6 @@ function GratitudeLensPanel({
   onDelete,
   onSharePostcard,
   onUseAsReflection,
-  todayCompanionCard,
 }: {
   entries: GratitudeEntry[];
   language: LanguageCode;
@@ -16754,7 +16883,6 @@ function GratitudeLensPanel({
   onDelete: (id: string) => void;
   onSharePostcard: (entry: GratitudeEntry) => void;
   onUseAsReflection: (entry: GratitudeEntry) => void;
-  todayCompanionCard: TodayCompanionCard;
 }) {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState("");
@@ -16763,6 +16891,7 @@ function GratitudeLensPanel({
   const [formation, setFormation] = useState<GratitudeFormation>(DEFAULT_GRATITUDE_FORMATION);
   const [visual, setVisual] = useState<GratitudeVisualSettings>(DEFAULT_GRATITUDE_VISUAL);
   const [isSaving, setIsSaving] = useState(false);
+  const [selectedEntryId, setSelectedEntryId] = useState<string | null>(entries[0]?.id ?? null);
   const [weekStartTime] = useState(() => Date.now() - 7 * 24 * 60 * 60 * 1000);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -16827,12 +16956,14 @@ function GratitudeLensPanel({
   };
 
   const gratitudeFormationLabel = (value: GratitudeFormation) => ts(`labels.gratitudeFormation_${value}`, value);
-  const gratitudeFormationPrompt = (value: GratitudeFormation) => ts(`labels.gratitudeFormationPrompt_${value}`);
   const gratitudeFilterLabel = (filter: GratitudeFilter) => ts(`labels.gratitudeFilter_${filter}`, filter);
   const gratitudeStickerLabel = (sticker: GratitudeSticker) => ts(`labels.gratitudeSticker_${sticker}`, GRATITUDE_STICKER_MARK[sticker]);
   const activeStyleSummary = gratitudeFilterLabel(visual.filter);
 
   const latestEntry = entries[0];
+  const selectedEntry = entries.find((entry) => entry.id === selectedEntryId) ?? latestEntry;
+  const visibleTimelineEntries = entries.slice(0, 6);
+  const olderTimelineEntries = entries.slice(6);
   const summary = entries.length
     ? `${entries.length} ${entries.length === 1 ? ts('labels.gratitudeMoment') : ts('labels.gratitudeMoments')} · ${ts('labels.localOnly')}`
     : ts('labels.gratitudeEmptySummary');
@@ -16840,21 +16971,14 @@ function GratitudeLensPanel({
     const entryTime = new Date(entry.createdAt).getTime();
     return Number.isFinite(entryTime) && entryTime >= weekStartTime;
   });
-  const weeklyPlaces = Array.from(new Set(weeklyEntries.map((entry) => entry.place.trim()).filter(Boolean))).slice(0, 3);
-  const gratitudeThemes = Array.from(new Set(
-    weeklyEntries
-      .flatMap((entry) => entry.note.toLowerCase().split(/[^a-zÀ-ÿ]+/i))
-      .filter((word) => word.length > 4 && !["today", "thank", "thanks", "grateful", "danke", "heute"].includes(word))
-  )).slice(0, 3);
   const formationCounts = GRATITUDE_FORMATIONS.map((item) => ({
     key: item,
     label: gratitudeFormationLabel(item),
-    icon: GRATITUDE_FORMATION_ICON[item],
     count: weeklyEntries.filter((entry) => normalizeGratitudeFormation(entry.formation) === item).length,
   }));
   const topFormation = formationCounts.reduce((top, item) => item.count > top.count ? item : top, formationCounts[0]);
-  const todayWisdomPrompt = ts('labels.gratitudePromptFromWisdomBody').replace("{practice}", todayCompanionCard.practice);
   const gratitudeRhythmLabel = notificationTimeLabel(GRATITUDE_REFLECTION_DEFAULT_HOUR, language);
+  const selectedFormation = selectedEntry ? normalizeGratitudeFormation(selectedEntry.formation) : DEFAULT_GRATITUDE_FORMATION;
 
   return (
     <div id="gratitude-lens-card" tabIndex={-1} className="scroll-mt-28 outline-none">
@@ -16876,58 +17000,32 @@ function GratitudeLensPanel({
             <div>
               <h3 className="text-base font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.captureGratitude')}</h3>
               <p className="mt-1 text-sm leading-5" style={{ color: theme.textSecondary }}>
-                {ts('labels.gratitudeLensBody')}
+                {ts('labels.gratitudeLensBodyShort', 'Take one photo, name the gift, and keep the moment private by default.')}
               </p>
             </div>
           </div>
 
           <div className="mt-3 rounded-xl border p-2.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
-            <div className="flex items-start gap-3">
-              <Sparkles size={18} className="mt-0.5 shrink-0" style={{ color: theme.accentGold }} />
-              <div className="min-w-0">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
-                  {ts('labels.promptFromTodayWisdom')}
-                </p>
-                <p className="mt-1 text-sm leading-5" style={{ color: theme.textSecondary }}>
-                  {todayWisdomPrompt}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-3 rounded-xl border p-2.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
             <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
-              {ts('labels.gratitudeNoticingQuestion')}
+              {ts('labels.gratitudeNoticingQuestion', 'What kind of gift is this?')}
             </p>
             <p className="mt-1 text-xs leading-5" style={{ color: theme.textSecondary }}>
-              {ts('labels.gratitudeNoticingBody')}
+              {ts('labels.gratitudeNoticingBodyShort', 'Choose the kind of gift first, then add your note.')}
             </p>
-            <div className="mt-2.5 grid grid-cols-2 gap-2 sm:grid-cols-3">
-              {GRATITUDE_FORMATIONS.map((item) => {
-                const isActive = formation === item;
-                return (
-                  <button
-                    key={item}
-                    type="button"
-                    onClick={() => setFormation(item)}
-                    className="premium-tap-card flex min-h-14 flex-col items-start justify-between rounded-lg border p-2.5 text-left transition"
-                    style={{
-                      borderColor: isActive ? theme.primary : theme.borderMedium,
-                      backgroundColor: isActive ? theme.primary : theme.bgInput,
-                      color: isActive ? theme.textOnPrimary : theme.textPrimary,
-                    }}
-                  >
-                    <span className="text-xs font-semibold uppercase tracking-[0.1em]" style={{ color: isActive ? theme.textOnPrimary : theme.accentGold }}>
-                      {GRATITUDE_FORMATION_ICON[item]}
-                    </span>
-                    <span className="mt-1.5 text-sm font-semibold leading-5">{gratitudeFormationLabel(item)}</span>
-                  </button>
-                );
-              })}
+            <div className="mt-2">
+              <ScreenTabs
+                value={formation}
+                onChange={setFormation}
+                ariaLabel={ts('labels.gratitudeNoticingQuestion', 'What kind of gift is this?')}
+                theme={theme}
+                layout="scroll"
+                className="border-0 p-0 shadow-none"
+                tabs={GRATITUDE_FORMATIONS.map((item) => ({
+                  key: item,
+                  label: `${GRATITUDE_FORMATION_ICON[item]} ${gratitudeFormationLabel(item)}`,
+                }))}
+              />
             </div>
-            <p className="mt-2.5 rounded-lg border p-2.5 text-xs leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-              {gratitudeFormationPrompt(formation)}
-            </p>
           </div>
 
           <div className="mt-4 overflow-hidden rounded-xl border" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput }}>
@@ -16976,133 +17074,135 @@ function GratitudeLensPanel({
             </button>
           </div>
 
-          <details className="mt-3 rounded-xl border p-2.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
-            <summary className="flex cursor-pointer list-none items-start justify-between gap-3 [&::-webkit-details-marker]:hidden">
-              <span className="flex min-w-0 items-start gap-3">
-              <Sparkles size={18} className="mt-0.5 shrink-0" style={{ color: theme.accentGold }} />
-              <div className="min-w-0">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
-                  {ts('labels.gratitudeStyleCard')}
-                </p>
-                <p className="mt-1 text-xs leading-5" style={{ color: theme.textSecondary }}>
-                  {activeStyleSummary || ts('labels.gratitudeStyleBody')}
-                </p>
-              </div>
-              </span>
-              <span className="shrink-0 rounded-md border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.1em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-                {ts('showDetails')}
-              </span>
-            </summary>
-
-            <div className="mt-3 border-t pt-3" style={{ borderColor: theme.borderLight }}>
+          <DisclosureSection
+            title={ts('labels.advanced', 'Advanced')}
+            summary={activeStyleSummary || ts('labels.gratitudeStyleBody', 'A few style notes.')}
+            eyebrow={ts('labels.gratitudeStyleCard')}
+            compactCollapsed
+            showDetailsLabel={ts('showDetails')}
+            hideDetailsLabel={ts('hideDetails')}
+            theme={theme}
+            className="mt-3"
+          >
+            <div className="space-y-3">
               <p className="text-xs leading-5" style={{ color: theme.textSecondary }}>
                 {ts('labels.gratitudeStyleBody')}
               </p>
 
-            <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
-              {ts('labels.gratitudeFilters')}
-            </p>
-            <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
-              {GRATITUDE_FILTERS.map((filter) => {
-                const isActive = visual.filter === filter;
-                return (
-                  <button
-                    key={filter}
-                    type="button"
-                    onClick={() => setVisual((current) => ({ ...current, filter }))}
-                    className="shrink-0 rounded-full border px-2.5 py-1.5 text-xs font-semibold transition active:scale-[0.98]"
-                    style={{
-                      borderColor: isActive ? theme.primary : theme.borderMedium,
-                      backgroundColor: isActive ? theme.primary : theme.bgInput,
-                      color: isActive ? theme.textOnPrimary : theme.textPrimary,
-                    }}
-                  >
-                    {gratitudeFilterLabel(filter)}
-                  </button>
-                );
-              })}
-            </div>
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
+                  {ts('labels.gratitudeFilters')}
+                </p>
+                <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
+                  {GRATITUDE_FILTERS.map((filter) => {
+                    const isActive = visual.filter === filter;
+                    return (
+                      <button
+                        key={filter}
+                        type="button"
+                        onClick={() => setVisual((current) => ({ ...current, filter }))}
+                        className="shrink-0 rounded-full border px-2.5 py-1.5 text-xs font-semibold transition active:scale-[0.98]"
+                        style={{
+                          borderColor: isActive ? theme.primary : theme.borderMedium,
+                          backgroundColor: isActive ? theme.primary : theme.bgInput,
+                          color: isActive ? theme.textOnPrimary : theme.textPrimary,
+                        }}
+                      >
+                        {gratitudeFilterLabel(filter)}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
 
-            <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
-              {ts('labels.gratitudeOverlays')}
-            </p>
-            <div className="mt-2 grid grid-cols-2 gap-2">
-              {[
-                ["showNote", ts('labels.gratitudeOverlayNote')],
-                ["showDate", ts('labels.gratitudeOverlayDate')],
-                ["showPlace", ts('labels.gratitudeOverlayPlace')],
-                ["showSignature", ts('labels.gratitudeOverlaySignature')],
-              ].map(([key, label]) => {
-                const settingKey = key as keyof Pick<GratitudeVisualSettings, "showDate" | "showPlace" | "showNote" | "showSignature">;
-                const isActive = visual[settingKey];
-                return (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => toggleOverlay(settingKey)}
-                    className="inline-flex min-h-9 items-center justify-between gap-2 rounded-lg border px-2.5 py-2 text-left text-xs font-semibold transition active:scale-[0.98]"
-                    style={{ borderColor: isActive ? theme.primary : theme.borderMedium, backgroundColor: isActive ? theme.bgCardElevated : theme.bgInput, color: theme.textPrimary }}
-                  >
-                    <span className="min-w-0">{label}</span>
-                    {isActive ? <Check size={14} style={{ color: theme.accentGold }} /> : null}
-                  </button>
-                );
-              })}
-            </div>
+              <div className="rounded-xl border p-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                <DisclosureSection
+                  title={ts('labels.gratitudeEmoji')}
+                  summary={visual.emoji ? `${visual.emoji} ${ts('labels.gratitudeNoEmoji', 'Emoji set')}` : ts('labels.gratitudeNoEmoji')}
+                  eyebrow={ts('labels.gratitudeOverlays')}
+                  compactCollapsed
+                  showDetailsLabel={ts('showDetails')}
+                  hideDetailsLabel={ts('hideDetails')}
+                  theme={theme}
+                >
+                  <div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        ["showNote", ts('labels.gratitudeOverlayNote')],
+                        ["showDate", ts('labels.gratitudeOverlayDate')],
+                        ["showPlace", ts('labels.gratitudeOverlayPlace')],
+                        ["showSignature", ts('labels.gratitudeOverlaySignature')],
+                      ].map(([key, label]) => {
+                        const settingKey = key as keyof Pick<GratitudeVisualSettings, "showDate" | "showPlace" | "showNote" | "showSignature">;
+                        const isActive = visual[settingKey];
+                        return (
+                          <button
+                            key={key}
+                            type="button"
+                            onClick={() => toggleOverlay(settingKey)}
+                            className="inline-flex min-h-9 items-center justify-between gap-2 rounded-lg border px-2.5 py-2 text-left text-xs font-semibold transition active:scale-[0.98]"
+                            style={{ borderColor: isActive ? theme.primary : theme.borderMedium, backgroundColor: isActive ? theme.bgCardElevated : theme.bgInput, color: theme.textPrimary }}
+                          >
+                            <span className="min-w-0">{label}</span>
+                            {isActive ? <Check size={14} style={{ color: theme.accentGold }} /> : null}
+                          </button>
+                        );
+                      })}
+                    </div>
 
-            <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
-              {ts('labels.gratitudeStickers')}
-            </p>
-            <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
-              {GRATITUDE_STICKERS.map((sticker) => {
-                const isActive = visual.stickers.includes(sticker);
-                return (
-                  <button
-                    key={sticker}
-                    type="button"
-                    onClick={() => toggleSticker(sticker)}
-                    className="inline-flex min-h-9 items-center justify-center gap-2 rounded-lg border px-2.5 py-2 text-xs font-semibold transition active:scale-[0.98]"
-                    style={{
-                      borderColor: isActive ? theme.primary : theme.borderMedium,
-                      backgroundColor: isActive ? theme.bgCardElevated : theme.bgInput,
-                      color: theme.textPrimary,
-                    }}
-                  >
-                    <span aria-hidden="true">{GRATITUDE_STICKER_MARK[sticker]}</span>
-                    <span className="min-w-0 truncate">{gratitudeStickerLabel(sticker)}</span>
-                  </button>
-                );
-              })}
-            </div>
-            <p className="mt-2 text-[11px] leading-5" style={{ color: theme.textMuted }}>
-              {ts('labels.gratitudeStickerLimit')}
-            </p>
+                    <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
+                      {ts('labels.gratitudeStickers')}
+                    </p>
+                    <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                      {GRATITUDE_STICKERS.map((sticker) => {
+                        const isActive = visual.stickers.includes(sticker);
+                        return (
+                          <button
+                            key={sticker}
+                            type="button"
+                            onClick={() => toggleSticker(sticker)}
+                            className="inline-flex min-h-9 items-center justify-center gap-2 rounded-lg border px-2.5 py-2 text-xs font-semibold transition active:scale-[0.98]"
+                            style={{
+                              borderColor: isActive ? theme.primary : theme.borderMedium,
+                              backgroundColor: isActive ? theme.bgCardElevated : theme.bgInput,
+                              color: theme.textPrimary,
+                            }}
+                          >
+                            <span aria-hidden="true">{GRATITUDE_STICKER_MARK[sticker]}</span>
+                            <span className="min-w-0 truncate">{gratitudeStickerLabel(sticker)}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <p className="mt-2 text-[11px] leading-5" style={{ color: theme.textMuted }}>
+                      {ts('labels.gratitudeStickerLimit')}
+                    </p>
 
-            <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
-              {ts('labels.gratitudeEmoji')}
-            </p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {GRATITUDE_EMOJIS.map((emoji) => {
-                const isActive = visual.emoji === emoji;
-                return (
-                  <button
-                    key={emoji || "none"}
-                    type="button"
-                    onClick={() => setVisual((current) => ({ ...current, emoji }))}
-                    className="min-h-9 rounded-full border px-2.5 text-sm font-semibold transition active:scale-[0.98]"
-                    style={{
-                      borderColor: isActive ? theme.primary : theme.borderMedium,
-                      backgroundColor: isActive ? theme.primary : theme.bgInput,
-                      color: isActive ? theme.textOnPrimary : theme.textPrimary,
-                    }}
-                  >
-                    {emoji || ts('labels.gratitudeNoEmoji')}
-                  </button>
-                );
-              })}
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {GRATITUDE_EMOJIS.map((emoji) => {
+                        const isActive = visual.emoji === emoji;
+                        return (
+                          <button
+                            key={emoji || "none"}
+                            type="button"
+                            onClick={() => setVisual((current) => ({ ...current, emoji }))}
+                            className="min-h-9 rounded-full border px-2.5 text-sm font-semibold transition active:scale-[0.98]"
+                            style={{
+                              borderColor: isActive ? theme.primary : theme.borderMedium,
+                              backgroundColor: isActive ? theme.primary : theme.bgInput,
+                              color: isActive ? theme.textOnPrimary : theme.textPrimary,
+                            }}
+                          >
+                            {emoji || ts('labels.gratitudeNoEmoji')}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </DisclosureSection>
+              </div>
             </div>
-            </div>
-          </details>
+          </DisclosureSection>
 
             <label className="mt-3 block text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
             {ts('labels.gratefulFor')}
@@ -17151,82 +17251,125 @@ function GratitudeLensPanel({
 
         <div className="rounded-xl border p-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
           <div className="flex items-center justify-between gap-3">
-            <div>
+            <div className="min-w-0">
               <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.gratitudeTimeline')}</p>
               <h3 className="mt-1 text-base font-semibold" style={{ color: theme.textPrimary }}>
-                {latestEntry ? ts('labels.latestGratitude') : ts('labels.noGratitudeYet')}
+                {entries.length ? ts('labels.latestGratitude') : ts('labels.noGratitudeYet')}
               </h3>
             </div>
             <Sprout size={24} style={{ color: theme.primary }} />
           </div>
+
           <div className="mt-3 rounded-xl border p-2.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput }}>
-            <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
-              {ts('labels.gratitudeWeeklyRecap')}
-            </p>
-            <p className="mt-1 text-sm font-semibold leading-5" style={{ color: theme.textPrimary }}>
-              {ts('labels.weeklyMomentsNoticed').replace("{count}", String(weeklyEntries.length))}
-            </p>
-            <p className="mt-1 text-xs leading-5" style={{ color: theme.textSecondary }}>
-              {weeklyPlaces.length
-                ? ts('labels.weeklyGratitudePlaces').replace("{places}", weeklyPlaces.join(", "))
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
+                  {ts('labels.gratitudeWeeklyRecap')}
+                </p>
+                <p className="mt-1 text-sm font-semibold leading-5" style={{ color: theme.textPrimary }}>
+                  {ts('labels.gratitudeWeeklyRecapLine', 'This week held {count} quiet moments.').replace("{count}", String(weeklyEntries.length))}
+                </p>
+              </div>
+              <span className="shrink-0 rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
+                {ts('labels.localOnly')}
+              </span>
+            </div>
+            <p className="mt-2 text-xs leading-5" style={{ color: theme.textSecondary }}>
+              {weeklyEntries.length && topFormation.count
+                ? ts('labels.gratitudePatternThisWeekBody').replace("{pattern}", topFormation.label.toLowerCase())
                 : ts('labels.noStreaksJustRemembrance')}
             </p>
-            {gratitudeThemes.length ? (
-              <p className="mt-1 text-xs leading-5" style={{ color: theme.textSecondary }}>
-                {ts('labels.gratitudeThemesNoticed').replace("{themes}", gratitudeThemes.join(", "))}
-              </p>
-            ) : null}
-            {weeklyEntries.length ? (
-              <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-5">
-                {formationCounts.map((item) => (
-                  <div key={item.key} className="rounded-lg border px-2 py-1.5" style={{ borderColor: item.count ? theme.primary : theme.borderLight, backgroundColor: item.count ? theme.bgCardElevated : theme.bgCard }}>
-                    <p className="text-sm font-semibold" style={{ color: item.count ? theme.textPrimary : theme.textMuted }}>{item.count}</p>
-                    <p className="mt-1 line-clamp-2 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ color: item.count ? theme.accentGold : theme.textMuted }}>
-                      {item.label}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            ) : null}
-            {weeklyEntries.length && topFormation.count ? (
-              <p className="mt-3 rounded-lg border p-2.5 text-xs leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textSecondary }}>
-                <span className="font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.gratitudePatternThisWeek')}:</span>{" "}
-                {ts('labels.gratitudePatternThisWeekBody').replace("{pattern}", topFormation.label.toLowerCase())}
-              </p>
-            ) : null}
+            <p className="mt-2 text-[11px] leading-5" style={{ color: theme.textMuted }}>
+              {ts('labels.gratitudeTimelineHint', 'Scroll sideways for recent moments. Older moments stay below.')}
+            </p>
           </div>
-          <div className="mt-4 space-y-3">
-            {entries.length ? (
-              entries.map((entry) => (
-                <article key={entry.id} className="overflow-hidden rounded-xl border" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+
+          {entries.length ? (
+            <>
+              <div className="mt-4 flex gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
+                {visibleTimelineEntries.map((entry, index) => {
+                  const entryFormation = normalizeGratitudeFormation(entry.formation);
+                  const isActive = entry.id === selectedEntry?.id;
+                  return (
+                    <button
+                      key={entry.id}
+                      type="button"
+                      onClick={() => setSelectedEntryId(entry.id)}
+                      className="premium-tap-card relative flex h-40 w-44 shrink-0 snap-start flex-col overflow-hidden rounded-2xl border p-0 text-left shadow-sm transition"
+                      style={{
+                        borderColor: isActive ? theme.primary : theme.borderMedium,
+                        backgroundColor: isActive ? theme.bgCardElevated : theme.bgInput,
+                        boxShadow: isActive ? `0 0 0 1px ${theme.primary}` : "0 6px 14px rgba(7, 10, 8, 0.05)",
+                      }}
+                      aria-pressed={isActive}
+                    >
+                      <div className="relative h-24 w-full">
+                        <Image
+                          src={entry.imageDataUrl}
+                          alt={entry.note}
+                          fill
+                          className="object-cover"
+                          style={{ filter: GRATITUDE_FILTER_STYLE[normalizeGratitudeVisual(entry.visual).filter] }}
+                          unoptimized
+                        />
+                        <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-black/55 to-transparent" />
+                      </div>
+                      <div className="flex min-w-0 flex-1 flex-col gap-1 p-2.5">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="truncate text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.accentGold }}>
+                            {gratitudeFormationLabel(entryFormation)}
+                          </span>
+                          <span className="text-[10px]" style={{ color: theme.textMuted }}>
+                            {index + 1}
+                          </span>
+                        </div>
+                        <p className="line-clamp-2 text-sm font-semibold leading-5" style={{ color: theme.textPrimary }}>
+                          {entry.note}
+                        </p>
+                        <p className="text-[10px] leading-4" style={{ color: theme.textMuted }}>
+                          {new Date(entry.createdAt).toLocaleDateString(language, { month: "short", day: "numeric" })}
+                          {entry.place ? ` · ${entry.place}` : ""}
+                        </p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {selectedEntry ? (
+                <article className="mt-4 overflow-hidden rounded-2xl border" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
                   <div className="relative aspect-[16/9] w-full">
                     <Image
-                      src={entry.imageDataUrl}
-                      alt={entry.note}
+                      src={selectedEntry.imageDataUrl}
+                      alt={selectedEntry.note}
                       fill
                       className="object-cover"
-                      style={{ filter: GRATITUDE_FILTER_STYLE[normalizeGratitudeVisual(entry.visual).filter] }}
+                      style={{ filter: GRATITUDE_FILTER_STYLE[normalizeGratitudeVisual(selectedEntry.visual).filter] }}
                       unoptimized
                     />
                   </div>
                   <div className="p-3.5">
-                    <span className="inline-flex max-w-full items-center gap-2 rounded-full border px-2.5 py-1 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.accentGold }}>
-                      <span aria-hidden="true">{GRATITUDE_FORMATION_ICON[normalizeGratitudeFormation(entry.formation)]}</span>
-                      <span className="truncate">{gratitudeFormationLabel(normalizeGratitudeFormation(entry.formation))}</span>
-                    </span>
-                    <p className="mt-2 text-sm font-semibold leading-5" style={{ color: theme.textPrimary }}>{entry.note}</p>
-                    <p className="mt-1.5 text-xs leading-5" style={{ color: theme.textMuted }}>
-                      {new Date(entry.createdAt).toLocaleString(language, { dateStyle: "medium", timeStyle: "short" })}
-                      {entry.place ? ` · ${entry.place}` : ""}
-                    </p>
-                    {(entry.postcardCreatedAt || entry.reflectedAt) ? (
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="inline-flex max-w-full items-center gap-2 rounded-full border px-2.5 py-1 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.accentGold }}>
+                        <span aria-hidden="true">{GRATITUDE_FORMATION_ICON[selectedFormation]}</span>
+                        <span className="truncate">{gratitudeFormationLabel(selectedFormation)}</span>
+                      </span>
+                      <span className="text-xs leading-5" style={{ color: theme.textMuted }}>
+                        {new Date(selectedEntry.createdAt).toLocaleString(language, { dateStyle: "medium", timeStyle: "short" })}
+                      </span>
+                    </div>
+                    <p className="mt-2 text-sm font-semibold leading-5" style={{ color: theme.textPrimary }}>{selectedEntry.note}</p>
+                    {selectedEntry.place ? (
+                      <p className="mt-1 text-xs leading-5" style={{ color: theme.textMuted }}>{selectedEntry.place}</p>
+                    ) : null}
+                    {(selectedEntry.postcardCreatedAt || selectedEntry.reflectedAt) ? (
                       <div className="mt-2.5 flex flex-wrap gap-2">
-                        {entry.postcardCreatedAt ? (
+                        {selectedEntry.postcardCreatedAt ? (
                           <span className="rounded-full border px-2.5 py-1 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
                             {ts('labels.postcardSavedToTimeline')}
                           </span>
                         ) : null}
-                        {entry.reflectedAt ? (
+                        {selectedEntry.reflectedAt ? (
                           <span className="rounded-full border px-2.5 py-1 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
                             {ts('labels.usedForReflection')}
                           </span>
@@ -17236,7 +17379,7 @@ function GratitudeLensPanel({
                     <div className="mt-2.5 grid gap-2 sm:grid-cols-3">
                       <button
                         type="button"
-                        onClick={() => onUseAsReflection(entry)}
+                        onClick={() => onUseAsReflection(selectedEntry)}
                         className="inline-flex h-9 items-center justify-center gap-2 rounded-md border px-3 text-xs font-semibold"
                         style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
                       >
@@ -17245,7 +17388,7 @@ function GratitudeLensPanel({
                       </button>
                       <button
                         type="button"
-                        onClick={() => onSharePostcard(entry)}
+                        onClick={() => onSharePostcard(selectedEntry)}
                         className="inline-flex h-9 items-center justify-center gap-2 rounded-md px-3 text-xs font-semibold"
                         style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
                       >
@@ -17254,7 +17397,7 @@ function GratitudeLensPanel({
                       </button>
                       <button
                         type="button"
-                        onClick={() => onDelete(entry.id)}
+                        onClick={() => onDelete(selectedEntry.id)}
                         className="inline-flex h-9 items-center justify-center gap-2 rounded-md border px-3 text-xs font-semibold"
                         style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
                       >
@@ -17264,13 +17407,55 @@ function GratitudeLensPanel({
                     </div>
                   </div>
                 </article>
-              ))
-            ) : (
-              <div className="rounded-xl border border-dashed p-4 text-sm leading-6" style={{ borderColor: theme.borderMedium, color: theme.textSecondary }}>
-                {ts('labels.gratitudeTimelineEmpty')}
-              </div>
-            )}
-          </div>
+              ) : null}
+
+              {olderTimelineEntries.length ? (
+                <DisclosureSection
+                  title={ts('labels.archive', 'Earlier moments')}
+                  summary={`${olderTimelineEntries.length} ${olderTimelineEntries.length === 1 ? ts('labels.gratitudeMoment') : ts('labels.gratitudeMoments')}`}
+                  eyebrow={ts('labels.gratitudeTimeline')}
+                  compactCollapsed
+                  showDetailsLabel={ts('showDetails')}
+                  hideDetailsLabel={ts('hideDetails')}
+                  theme={theme}
+                  className="mt-4"
+                >
+                  <div className="grid gap-3 md:grid-cols-2">
+                    {olderTimelineEntries.map((entry) => (
+                      <button
+                        key={entry.id}
+                        type="button"
+                        onClick={() => setSelectedEntryId(entry.id)}
+                        className="overflow-hidden rounded-xl border text-left transition hover:-translate-y-px"
+                        style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}
+                      >
+                        <div className="relative aspect-[5/3] w-full">
+                          <Image
+                            src={entry.imageDataUrl}
+                            alt={entry.note}
+                            fill
+                            className="object-cover"
+                            style={{ filter: GRATITUDE_FILTER_STYLE[normalizeGratitudeVisual(entry.visual).filter] }}
+                            unoptimized
+                          />
+                        </div>
+                        <div className="p-3">
+                          <p className="text-sm font-semibold leading-5" style={{ color: theme.textPrimary }}>{entry.note}</p>
+                          <p className="mt-1 text-xs leading-5" style={{ color: theme.textMuted }}>
+                            {new Date(entry.createdAt).toLocaleDateString(language, { dateStyle: "medium" })}
+                          </p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </DisclosureSection>
+              ) : null}
+            </>
+          ) : (
+            <div className="mt-4 rounded-xl border border-dashed p-4 text-sm leading-6" style={{ borderColor: theme.borderMedium, color: theme.textSecondary }}>
+              {ts('labels.gratitudeTimelineEmpty')}
+            </div>
+          )}
         </div>
       </section>
       </DisclosureSection>
@@ -17532,7 +17717,6 @@ function JournalPanel({
   onSave,
   onDelete,
   onSharePostcard,
-  onVoiceReflection,
   ts,
   theme,
 }: {
@@ -17546,7 +17730,6 @@ function JournalPanel({
   onSave: () => void;
   onDelete: (id: string) => void;
   onSharePostcard: (entry: JournalEntry) => void;
-  onVoiceReflection: () => void;
   ts: (key: string, fallback?: string) => string;
   theme: ThemeColors;
 }) {
@@ -17604,15 +17787,6 @@ function JournalPanel({
             <button onClick={onSave} className="premium-tap-card inline-flex h-10 items-center justify-center gap-2 rounded-md px-4 text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary, boxShadow: `0 10px 15px -3px ${theme.primary}15` }}>
               <Plus size={16} />
               {ts('labels.saveReflection')}
-            </button>
-            <button
-              type="button"
-              onClick={onVoiceReflection}
-              className="premium-tap-card inline-flex h-10 items-center justify-center gap-2 rounded-md border px-4 text-sm font-semibold"
-              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-            >
-              <Volume2 size={16} />
-              {ts('labels.voiceReflectionMode')}
             </button>
           </div>
         </section>
