@@ -7592,27 +7592,27 @@ export function AletheiaApp() {
                   : "rgba(238, 242, 239, 0.28)", top: 0 }}>
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3">
           <button
-            className="app-brand-button flex min-w-0 items-center gap-3 text-left"
+            className="app-brand-button flex min-w-0 items-center gap-2.5 text-left"
             onClick={() => showView("companion")}
             aria-label={ts('labels.goToAletheiaHome')}
           >
-            <div className="app-brand-logo relative size-11 shrink-0 overflow-hidden rounded-lg border shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
+            <div className="app-brand-logo relative size-10 shrink-0 overflow-hidden rounded-xl border shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
               <Image
                 src="/brand/aletheia-app-icon-192.png"
                 alt=""
                 fill
-                sizes="44px"
+                sizes="40px"
                 priority
                 className="object-cover"
               />
             </div>
             <div className="app-brand-copy min-w-0">
-              <p className="text-sm font-semibold uppercase tracking-[0.18em] sm:tracking-[0.22em]" style={{ color: theme.textPrimary }}>{ts('labels.appName')}</p>
-              <p className="truncate text-xs" style={{ color: theme.textSecondary }}>{ts('labels.appTagline')}</p>
+              <p className="text-[0.7rem] font-semibold uppercase tracking-[0.22em] sm:text-[0.72rem]" style={{ color: theme.textPrimary }}>{ts('labels.appName')}</p>
+              <p className="truncate text-[11px] leading-4" style={{ color: theme.textSecondary }}>{ts('labels.appTagline')}</p>
             </div>
           </button>
 
-          <div className="editorial-surface hidden items-center gap-1 rounded-lg border p-1 shadow-sm md:flex" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+          <div className="editorial-surface hidden items-center gap-1 rounded-full border p-1 shadow-sm md:flex" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
             <NavButton active={activeView === "companion"} icon={Home} label={ui.nav.companion} onClick={() => showView("companion")} theme={theme} />
             <NavButton active={activeView === "decisions"} icon={FileText} label={ui.nav.decisions} onClick={() => showView("decisions")} theme={theme} />
             <NavButton active={activeView === "reflect"} icon={Feather} label={ui.nav.reflect} onClick={() => showView("reflect")} theme={theme} />
@@ -7620,20 +7620,20 @@ export function AletheiaApp() {
             <NavButton active={activeView === "account"} icon={Users} label={ui.nav.account} onClick={() => showView("account")} theme={theme} avatarUrl={user?.avatarUrl} avatarLabel={user?.name ?? user?.email ?? ui.nav.account} />
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             {!isOnline ? (
-              <span className="hidden items-center gap-2 rounded-md border px-3 py-2 text-xs font-medium sm:inline-flex" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}>
-                <WifiOff size={14} />
+              <span className="hidden items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium sm:inline-flex" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}>
+                <WifiOff size={13} />
                 {ui.offline}
               </span>
             ) : null}
             <label
-              className="app-chrome-control premium-tap-card relative grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-md border shadow-sm transition"
+              className="app-chrome-control premium-tap-card relative grid h-[2.625rem] w-[2.625rem] shrink-0 place-items-center overflow-hidden rounded-full border shadow-sm transition"
               style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textPrimary }}
               title={`${ui.languageSelect}: ${languages[preferences.language].nativeName}`}
               suppressHydrationWarning
             >
-              <span aria-hidden="true" className="text-lg leading-none" suppressHydrationWarning>{languageFlags[preferences.language]}</span>
+              <span aria-hidden="true" className="text-base leading-none" suppressHydrationWarning>{languageFlags[preferences.language]}</span>
               <span className="sr-only">{ui.languageSelect}</span>
               <select
                 value={preferences.language}
@@ -7649,12 +7649,12 @@ export function AletheiaApp() {
               </select>
             </label>
             <label
-              className="app-chrome-control premium-tap-card relative grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-md border shadow-sm transition"
+              className="app-chrome-control premium-tap-card relative grid h-[2.625rem] w-[2.625rem] shrink-0 place-items-center overflow-hidden rounded-full border shadow-sm transition"
               style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textPrimary }}
               title={`${ui.bibleSelect}: ${preferences.bibleTranslation}`}
               suppressHydrationWarning
             >
-              <BookOpen size={18} aria-hidden="true" />
+              <BookOpen size={17} aria-hidden="true" />
               <span className="sr-only">{ui.bibleSelect}</span>
               <select
                 value={preferences.bibleTranslation}
@@ -7674,18 +7674,18 @@ export function AletheiaApp() {
               </select>
             </label>
             <button
-              className="app-chrome-control premium-tap-card grid h-11 w-11 place-items-center rounded-md border shadow-sm transition"
+              className="app-chrome-control premium-tap-card grid h-[2.625rem] w-[2.625rem] place-items-center rounded-full border shadow-sm transition"
               style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textPrimary }}
               aria-label={user ? ts('labels.openAccount') : ts('labels.openGuestDashboard')}
               onClick={() => showView("companion")}
             >
-              <Home size={18} />
+              <Home size={17} />
             </button>
           </div>
         </div>
       </nav>
 
-      <div className="mx-auto grid max-w-7xl gap-5 px-3 pt-4 sm:px-4 sm:pt-5 xl:grid-cols-[280px_minmax(0,1fr)] xl:py-6" style={{ paddingBottom: "calc(var(--aletheia-bottom-nav-space, 8.5rem) + env(safe-area-inset-bottom))" }}>
+      <div className="mx-auto grid max-w-7xl gap-5 px-3 pt-4 sm:px-4 sm:pt-5 xl:grid-cols-[320px_minmax(0,1fr)] xl:py-6" style={{ paddingBottom: "calc(var(--aletheia-bottom-nav-space, 8.5rem) + env(safe-area-inset-bottom))" }}>
         <aside className="hidden xl:block">
           <div className="sticky top-24 space-y-4">
             <section className="rounded-lg border p-4 shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
@@ -7705,7 +7705,7 @@ export function AletheiaApp() {
                 <h2 className="font-semibold">{ui.wisdomMode}</h2>
                 <Moon size={17} style={{ color: theme.textOnPrimary }} />
               </div>
-              <div className="flex min-w-0 snap-x gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
+              <div className="grid gap-2">
                 {activeModeCards.map((item) => (
                   <ModeButton key={item.label} item={item} active={mode === item.label} onClick={() => handleModeChange(item.label)} theme={theme} />
                 ))}
@@ -8414,27 +8414,27 @@ function NavButton({
   return (
     <button
       onClick={onClick}
-      className="premium-tap-card inline-flex h-11 items-center gap-2 rounded-md px-3 text-sm font-semibold transition"
+      className="premium-tap-card inline-flex h-10 items-center gap-1.5 rounded-full px-3 text-[0.82rem] font-semibold transition"
       style={{
         backgroundColor: active ? theme.primary : 'transparent',
         color: active ? theme.textOnPrimary : theme.textSecondary,
       }}
       onMouseEnter={(e) => !active && (e.currentTarget.style.backgroundColor = theme.hoverBg)}
       onMouseLeave={(e) => !active && (e.currentTarget.style.backgroundColor = 'transparent')}
-    >
-      {avatarUrl ? (
-        <AvatarCircle
-          avatarUrl={avatarUrl}
-          seed={avatarLabel ?? label}
-          label={avatarLabel ?? label}
-          size={18}
-          className="size-[18px]"
-        />
-      ) : (
-        <Icon size={15} />
-      )}
-      {label}
-    </button>
+      >
+        {avatarUrl ? (
+          <AvatarCircle
+            avatarUrl={avatarUrl}
+            seed={avatarLabel ?? label}
+            label={avatarLabel ?? label}
+            size={17}
+            className="size-[17px]"
+          />
+        ) : (
+          <Icon size={14} />
+        )}
+        {label}
+      </button>
   );
 }
 
@@ -8517,7 +8517,7 @@ function ModeButton({ item, active, onClick, theme }: { item: (typeof modes)[num
   return (
     <button
       onClick={onClick}
-      className="flex w-full items-start gap-3 rounded-md border p-3 text-left transition"
+      className="flex w-full items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition"
       style={{
         borderColor: active ? theme.accentLight : theme.borderMedium + '40',
         backgroundColor: active ? theme.bgCardElevated : theme.borderMedium + '15',
@@ -8526,10 +8526,12 @@ function ModeButton({ item, active, onClick, theme }: { item: (typeof modes)[num
       onMouseEnter={(e) => !active && (e.currentTarget.style.backgroundColor = theme.hoverBg)}
       onMouseLeave={(e) => !active && (e.currentTarget.style.backgroundColor = theme.borderMedium + '15')}
     >
-      <item.icon className="mt-0.5 shrink-0" size={17} style={{ color: active ? theme.accentGold : theme.textOnPrimary }} />
-      <span>
-        <span className="block text-sm font-semibold">{item.displayLabel ?? item.label}</span>
-        <span className="mt-1 block text-xs leading-5" style={{ color: active ? theme.textSecondary : theme.textOnPrimary, opacity: active ? 1 : 0.88 }}>{item.copy}</span>
+      <item.icon className="shrink-0" size={16} style={{ color: active ? theme.accentGold : theme.textOnPrimary }} />
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-semibold leading-5">{item.displayLabel ?? item.label}</span>
+        <span className="mt-0.5 block line-clamp-1 text-[11px] leading-4" style={{ color: active ? theme.textSecondary : theme.textOnPrimary, opacity: active ? 1 : 0.88 }}>
+          {item.copy}
+        </span>
       </span>
     </button>
   );
@@ -8996,7 +8998,7 @@ function OnboardingModal({
         onTouchMove={routeOnboardingTouch}
         onTouchEnd={clearOnboardingTouch}
         onTouchCancel={clearOnboardingTouch}
-        className="editorial-surface box-border max-h-[92vh] min-w-0 overflow-x-hidden overflow-y-auto overscroll-contain rounded-xl border p-4 shadow-2xl [touch-action:pan-y] sm:p-5"
+        className="editorial-surface box-border max-h-[92vh] min-w-0 overflow-x-hidden overflow-y-auto overscroll-contain rounded-xl border p-3.5 shadow-2xl [touch-action:pan-y] sm:p-4"
         style={{
           borderColor: theme.borderLight,
           backgroundColor: theme.bgCard,
@@ -9005,20 +9007,20 @@ function OnboardingModal({
         }}
       >
         <div className="flex items-start justify-between gap-3">
-          <div className="max-w-2xl rounded-xl border p-4 shadow-sm" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
+          <div className="max-w-2xl rounded-xl border p-3.5 shadow-sm sm:p-4" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
             <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.beginQuietly')}</p>
-            <h2 className="mt-2 text-2xl font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.onboardingTitle')}</h2>
-            <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
+            <h2 className="mt-1.5 text-xl font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.onboardingTitle')}</h2>
+            <p className="mt-1.5 text-sm leading-5" style={{ color: theme.textSecondary }}>
               {ts('labels.chooseLensAndSettings')}
             </p>
-            <div className="mt-4 flex flex-wrap gap-2">
-              <span className="rounded-full border px-3 py-1 text-xs font-semibold" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <span className="rounded-full border px-2.5 py-0.5 text-[11px] font-semibold" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}>
                 5 {ts('labels.setupSteps')}
               </span>
-              <span className="rounded-full border px-3 py-1 text-xs font-semibold" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+              <span className="rounded-full border px-2.5 py-0.5 text-[11px] font-semibold" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
                 {ts('labels.appLikeSetup')}
               </span>
-              <span className="rounded-full border px-3 py-1 text-xs font-semibold" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+              <span className="rounded-full border px-2.5 py-0.5 text-[11px] font-semibold" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
                 {ts('labels.changeLaterInAccount')}
               </span>
             </div>
@@ -9352,7 +9354,7 @@ function HomeDashboard({
 
   return (
     <div className="grid gap-3 sm:gap-4 xl:grid-cols-[minmax(0,0.98fr)_minmax(300px,1.02fr)]">
-      <section className={`editorial-surface min-w-0 rounded-xl border p-4 shadow-sm sm:p-5 ${prioritizeToday ? "order-2" : "order-1"}`} style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+      <section className={`editorial-surface min-w-0 rounded-xl border p-3.5 shadow-sm sm:p-4 ${prioritizeToday ? "order-2" : "order-1"}`} style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
         {carryToday ? (
           <div className="mb-4 flex flex-col gap-2 rounded-lg border px-3 py-2 text-sm leading-6 sm:flex-row sm:items-center sm:justify-between" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}>
             <span>
@@ -9373,18 +9375,18 @@ function HomeDashboard({
           <p className="text-base font-semibold tracking-tight sm:text-lg" style={{ color: theme.textPrimary }} suppressHydrationWarning>
             {greeting}
           </p>
-          <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }} suppressHydrationWarning>
+          <p className="mt-1 text-sm leading-5" style={{ color: theme.textSecondary }} suppressHydrationWarning>
             {text.greetingIntent || "Let's choose one wise next step today."}
           </p>
         </div>
-        <div className="mb-4 inline-flex w-fit max-w-full items-center gap-2 rounded-md border px-3 py-2 text-[11px] font-medium uppercase tracking-[0.12em] sm:text-xs sm:tracking-[0.18em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.accentGold }}>
+        <div className="mb-3 inline-flex w-fit max-w-full items-center gap-2 rounded-md border px-2.5 py-2 text-[11px] font-medium uppercase tracking-[0.12em] sm:text-xs sm:tracking-[0.18em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.accentGold }}>
           <Sparkles size={14} />
           {text.personalizedPriority}
         </div>
-        <h1 className="max-w-3xl text-2xl font-semibold leading-tight tracking-normal sm:text-3xl" style={{ color: theme.textPrimary }}>
+        <h1 className="max-w-3xl text-2xl font-semibold leading-tight tracking-normal sm:text-[2rem]" style={{ color: theme.textPrimary }}>
           {text.whatNext}
         </h1>
-        <p className="mt-4 max-w-2xl text-sm leading-6 sm:text-base sm:leading-7" style={{ color: theme.textSecondary }}>
+        <p className="mt-3.5 max-w-2xl text-sm leading-5 sm:text-base sm:leading-6" style={{ color: theme.textSecondary }}>
           {text.whatNextBody}
         </p>
         {personalizationContextEmpty ? (
@@ -9399,7 +9401,7 @@ function HomeDashboard({
           </button>
         ) : null}
 
-        <div className="mt-5">
+        <div className="mt-4">
           <DashboardAction icon={primaryAction.icon} label={primaryAction.label} body={primaryAction.body} primary onClick={primaryAction.onClick} theme={theme} />
         </div>
         <div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-3">
@@ -9431,12 +9433,12 @@ function HomeDashboard({
         className={`editorial-surface min-w-0 scroll-mt-28 rounded-xl border p-0 shadow-sm outline-none ${prioritizeToday ? "order-1" : "order-2"}`}
         style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textPrimary }}
       >
-        <div className="border-b p-4 sm:p-5" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
+        <div className="border-b p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
               <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }} suppressHydrationWarning>{text.todaysCompanion}</p>
-              <h2 className="mt-2 text-2xl font-semibold leading-tight sm:text-3xl" suppressHydrationWarning>{text.todayPrefix}: {companionCard.title}</h2>
-              <p className="mt-3 max-w-2xl text-base leading-7 sm:text-lg sm:leading-8" style={{ color: theme.textSecondary }} suppressHydrationWarning>{companionCard.opening}</p>
+              <h2 className="mt-1.5 text-2xl font-semibold leading-tight sm:text-[2rem]" suppressHydrationWarning>{text.todayPrefix}: {companionCard.title}</h2>
+              <p className="mt-2.5 max-w-2xl text-base leading-6 sm:text-lg sm:leading-7" style={{ color: theme.textSecondary }} suppressHydrationWarning>{companionCard.opening}</p>
             </div>
             <span className="grid size-12 shrink-0 place-items-center rounded-xl border shadow-sm" style={{ borderColor: theme.primary, backgroundColor: theme.primary, color: theme.textOnPrimary }}>
               <Sprout size={24} />
@@ -9464,7 +9466,7 @@ function HomeDashboard({
               </span>
             </button>
 
-            <div className="rounded-xl border p-4 shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.primary, color: theme.textOnPrimary }}>
+            <div className="rounded-xl border p-3.5 shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.primary, color: theme.textOnPrimary }}>
               <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textOnPrimary }}>
                 {text.carryThisToday}
               </p>
@@ -9472,30 +9474,30 @@ function HomeDashboard({
             </div>
           </div>
 
-          <div className="mt-3 rounded-xl border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+          <div className="mt-3 rounded-xl border p-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
             <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{featuredInsightLabel}</p>
             <p className="mt-2 text-sm leading-6 sm:text-base sm:leading-7" style={{ color: theme.textPrimary }} suppressHydrationWarning>{featuredInsight}</p>
           </div>
 
-          <details className="mt-3 rounded-md border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
+          <details className="mt-3 rounded-md border p-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
             <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
               {text.showDetails}
             </summary>
-            <div className="mt-3 grid gap-3">
+            <div className="mt-2.5 grid gap-3">
               {featuredInsightIsDuplicate ? null : (
-                <div className="rounded-md border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                <div className="rounded-md border p-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
                   <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{text.reflectionQuestion}</p>
                   <p className="mt-2 text-sm leading-6" style={{ color: theme.textPrimary }} suppressHydrationWarning>{companionCard.question}</p>
                 </div>
               )}
-              <div className="rounded-md border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+              <div className="rounded-md border p-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
                 <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{text.tinyPractice}</p>
                 <p className="mt-2 text-sm leading-6" style={{ color: theme.textPrimary }} suppressHydrationWarning>{companionCard.practice}</p>
               </div>
             </div>
           </details>
         </div>
-        <div className="grid grid-cols-2 gap-2 border-t p-4 sm:p-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+        <div className="grid grid-cols-2 gap-2 border-t p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
           {visibleTodayActions.map((action) => (
             <CompanionCardAction
               key={action.label}
@@ -9531,12 +9533,12 @@ function HomeDashboard({
         </div>
       </section>
 
-      <section className="editorial-surface order-3 rounded-xl border p-4 shadow-sm xl:col-span-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+      <section className="editorial-surface order-3 rounded-xl border p-3.5 shadow-sm xl:col-span-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{text.weeklyWisdomReview ?? ""}</p>
-            <h2 className="mt-2 text-xl font-semibold" style={{ color: theme.textPrimary }}>{text.weeklyReviewTitle ?? ""}</h2>
-            <p className="mt-2 max-w-2xl text-sm leading-6" style={{ color: theme.textSecondary }}>
+            <h2 className="mt-1.5 text-lg font-semibold" style={{ color: theme.textPrimary }}>{text.weeklyReviewTitle ?? ""}</h2>
+            <p className="mt-1.5 max-w-2xl text-sm leading-5" style={{ color: theme.textSecondary }}>
               {(text.weeklyReviewBody ?? "").replace("{pattern}", weeklyReview.pattern)}
             </p>
           </div>
@@ -9754,12 +9756,12 @@ function CompanionCardAction({
     <button
       type="button"
       onClick={onClick}
-      className="premium-tap-card flex min-h-11 items-center justify-center gap-2 rounded-xl border px-3 py-2 text-center text-xs font-semibold shadow-sm transition sm:text-sm"
+      className="premium-tap-card flex min-h-10 items-center justify-center gap-2 rounded-xl border px-2.5 py-2 text-center text-xs font-semibold shadow-sm transition sm:text-sm"
       style={primary
         ? { borderColor: theme.primary, backgroundColor: theme.primary, color: theme.textOnPrimary }
         : { borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
     >
-      <Icon size={15} />
+      <Icon size={14} />
       <span>{label}</span>
     </button>
   );
@@ -10381,13 +10383,13 @@ function AccountHeaderStat({
   const accessibleLabel = `${value} ${detail}`;
   return (
     <span
-      className="flex min-h-11 min-w-0 items-center justify-between gap-3 rounded-xl border px-3 py-2 text-left"
+      className="flex min-h-10 min-w-0 items-center justify-between gap-2.5 rounded-xl border px-2.5 py-2 text-left"
       style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}
       aria-label={accessibleLabel}
       title={accessibleLabel}
     >
       <span className="flex min-w-0 items-center gap-2">
-        <Icon className="shrink-0" size={15} aria-hidden="true" style={{ color: theme.textSecondary }} />
+        <Icon className="shrink-0" size={14} aria-hidden="true" style={{ color: theme.textSecondary }} />
         <span className="truncate text-xs font-semibold uppercase tracking-[0.08em]" style={{ color: theme.textSecondary }}>{label}</span>
       </span>
       <span className="text-[13px] font-semibold leading-none sm:text-sm" style={{ color: theme.textPrimary }}>{value}</span>
@@ -10520,7 +10522,7 @@ function AccountSelect({
       aria-label={ariaLabel}
       value={value}
       onChange={(event) => onChange(event.target.value)}
-      className="h-11 w-full rounded-md border px-3 text-sm outline-none"
+      className="h-10 w-full rounded-md border px-3 text-sm outline-none"
       style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
     >
       {children}
@@ -10573,14 +10575,14 @@ function AccountShareCard({
             key={channel}
             type="button"
             onClick={() => onShare(channel)}
-            className="premium-tap-card flex min-h-12 items-center gap-3 rounded-xl border px-3 py-3 text-left text-sm font-semibold shadow-sm transition hover:-translate-y-0.5"
+            className="premium-tap-card flex min-h-10 items-center gap-2.5 rounded-xl border px-2.5 py-2.5 text-left text-sm font-semibold shadow-sm transition hover:-translate-y-0.5"
             style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textPrimary }}
           >
-            <span className="grid size-9 shrink-0 place-items-center rounded-lg" style={{ backgroundColor: theme.bgCardElevated, color: theme.primary }}>
-              <Icon size={16} />
+            <span className="grid size-8 shrink-0 place-items-center rounded-lg" style={{ backgroundColor: theme.bgCardElevated, color: theme.primary }}>
+              <Icon size={15} />
             </span>
             <span className="min-w-0 flex-1 leading-5">{label}</span>
-            <ChevronDown className="shrink-0 -rotate-90 opacity-50" size={14} />
+            <ChevronDown className="shrink-0 -rotate-90 opacity-50" size={13} />
           </button>
         ))}
       </div>
@@ -10611,15 +10613,15 @@ function SupportMissionCard({
   return (
     <section className="space-y-4">
       <div className="editorial-surface overflow-hidden rounded-xl border shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-        <div className="p-4 sm:p-5">
+        <div className="p-3.5 sm:p-4">
           <div className="flex items-start gap-3">
             <div className="grid size-11 shrink-0 place-items-center rounded-lg border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
               <HandHeart size={20} />
             </div>
             <div className="min-w-0">
               <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('supportMission.eyebrow')}</p>
-              <h3 className="mt-2 text-lg font-semibold sm:text-xl" style={{ color: theme.textPrimary }}>{ts('supportMission.cardTitle')}</h3>
-              <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
+              <h3 className="mt-1.5 text-lg font-semibold sm:text-xl" style={{ color: theme.textPrimary }}>{ts('supportMission.cardTitle')}</h3>
+              <p className="mt-1.5 text-sm leading-5" style={{ color: theme.textSecondary }}>
                 {ts('supportMission.body')}
               </p>
             </div>
@@ -10639,7 +10641,7 @@ function SupportMissionCard({
           >
             <div className="flex flex-col gap-2">
               {impactItems.map((item) => (
-                <div key={item} className="rounded-xl border p-3 text-sm leading-5 shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                <div key={item} className="rounded-xl border p-2.5 text-sm leading-5 shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
                   <span className="flex items-start gap-2">
                     <Check size={15} className="mt-0.5 shrink-0" style={{ color: theme.accentGold }} />
                     <span>{item}</span>
@@ -10650,7 +10652,7 @@ function SupportMissionCard({
           </DisclosureSection>
         </div>
 
-        <div className="border-t p-4 sm:p-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+        <div className="border-t p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
           <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{ts('supportMission.chooseMethod')}</p>
           {links.length ? (
             <div className="mt-3 flex flex-col gap-2">
@@ -10661,16 +10663,16 @@ function SupportMissionCard({
                   target={href.startsWith("mailto:") ? undefined : "_blank"}
                   rel={href.startsWith("mailto:") ? undefined : "noreferrer"}
                   onClick={() => trackSupportClick(channel)}
-                  className="premium-tap-card flex min-h-12 items-center justify-between gap-3 rounded-2xl border px-3 py-3 text-sm font-semibold shadow-sm transition hover:-translate-y-0.5"
+                  className="premium-tap-card flex min-h-10 items-center justify-between gap-2.5 rounded-xl border px-2.5 py-2.5 text-sm font-semibold shadow-sm transition hover:-translate-y-0.5"
                   style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textPrimary }}
                 >
                   <span className="flex min-w-0 items-center gap-3">
-                    <span className="grid size-9 shrink-0 place-items-center rounded-lg" style={{ backgroundColor: theme.bgCardElevated, color: theme.primary }}>
-                      {channel === "contact" ? <Mail size={16} /> : <HandHeart size={16} />}
+                    <span className="grid size-8 shrink-0 place-items-center rounded-lg" style={{ backgroundColor: theme.bgCardElevated, color: theme.primary }}>
+                      {channel === "contact" ? <Mail size={15} /> : <HandHeart size={15} />}
                     </span>
                     <span className="min-w-0 leading-5">{ts(labelKey, fallback)}</span>
                   </span>
-                  <ExternalLink size={15} className="shrink-0 opacity-70" />
+                  <ExternalLink size={13} className="shrink-0 opacity-70" />
                 </a>
               ))}
             </div>
@@ -10901,7 +10903,7 @@ function ThemeSwatchGrid({
             key={option.key}
             type="button"
             onClick={() => onChange(option.key)}
-            className="flex min-h-12 items-center justify-between gap-3 rounded-md border px-3 py-2 text-left text-sm font-semibold transition"
+                className="flex min-h-10 items-center justify-between gap-2.5 rounded-md border px-2.5 py-2 text-left text-sm font-semibold transition"
             style={{
               borderColor: active ? theme.accentGold : theme.borderMedium,
               backgroundColor: active ? theme.activeBg : theme.bgInput,
@@ -10911,8 +10913,8 @@ function ThemeSwatchGrid({
             aria-pressed={active}
           >
             <span className="flex min-w-0 items-center gap-2">
-              <span className="grid size-8 shrink-0 place-items-center rounded-md" style={{ backgroundColor: theme.bgCardElevated, color: active ? theme.accentGold : theme.textSecondary }}>
-                <Icon size={15} />
+              <span className="grid size-7 shrink-0 place-items-center rounded-md" style={{ backgroundColor: theme.bgCardElevated, color: active ? theme.accentGold : theme.textSecondary }}>
+                <Icon size={14} />
               </span>
               <span className="min-w-0 leading-5">{ts(`theme.${option.key}`, option.key)}</span>
             </span>
@@ -11212,7 +11214,7 @@ function DataBoundariesCard({
       <div className="flex flex-wrap gap-2 border-t px-4 py-4 sm:px-5" style={{ borderColor: theme.borderLight }}>
         <button
           type="button"
-          className="h-11 rounded-full border px-4 text-sm font-semibold"
+          className="h-10 rounded-full border px-3.5 text-sm font-semibold"
           style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
           onClick={onClearLocalPersonalization}
         >
@@ -11221,7 +11223,7 @@ function DataBoundariesCard({
         {!user ? (
           <button
             type="button"
-            className="h-11 rounded-full border px-4 text-sm font-semibold"
+            className="h-10 rounded-full border px-3.5 text-sm font-semibold"
             style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: hasLocalWorkspaceData ? theme.textPrimary : theme.textSecondary, opacity: hasLocalWorkspaceData ? 1 : 0.65 }}
             disabled={!hasLocalWorkspaceData}
             onClick={onClearGuestWorkspace}
@@ -11231,7 +11233,7 @@ function DataBoundariesCard({
         ) : null}
         <button
           type="button"
-          className="h-11 rounded-full border px-4 text-sm font-semibold"
+          className="h-10 rounded-full border px-3.5 text-sm font-semibold"
           style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: user ? theme.textPrimary : theme.textSecondary, opacity: user ? 1 : 0.65 }}
           disabled={!user || accountActionBusy === "export"}
           onClick={onExportData}
@@ -11240,7 +11242,7 @@ function DataBoundariesCard({
         </button>
         <button
           type="button"
-          className="h-11 rounded-full border px-4 text-sm font-semibold"
+          className="h-10 rounded-full border px-3.5 text-sm font-semibold"
           style={{ borderColor: theme.borderStrong, backgroundColor: theme.bgInput, color: user ? theme.textPrimary : theme.textSecondary, opacity: user ? 1 : 0.65 }}
           disabled={!user || accountActionBusy === "delete"}
           onClick={onRequestDeleteAccount}
@@ -12284,7 +12286,7 @@ function AvatarPickerModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="avatar-picker-title"
-        className="w-full max-w-3xl overflow-y-auto overscroll-contain rounded-3xl border p-4 shadow-2xl sm:p-5"
+        className="w-full max-w-3xl overflow-y-auto overscroll-contain rounded-3xl border p-3.5 shadow-2xl sm:p-4"
         style={{
           borderColor: theme.borderMedium,
           backgroundColor: theme.bgCard,
@@ -12294,17 +12296,17 @@ function AvatarPickerModal({
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('avatar.pickerEyebrow')}</p>
-            <h2 id="avatar-picker-title" className="mt-2 text-xl font-semibold" style={{ color: theme.textPrimary }}>{title}</h2>
-            <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>{subtitle}</p>
+            <h2 id="avatar-picker-title" className="mt-1.5 text-lg font-semibold" style={{ color: theme.textPrimary }}>{title}</h2>
+            <p className="mt-1 text-sm leading-5" style={{ color: theme.textSecondary }}>{subtitle}</p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="grid size-10 shrink-0 place-items-center rounded-full border transition"
+            className="grid size-9 shrink-0 place-items-center rounded-full border transition"
             style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
             aria-label={ts('avatar.closePicker')}
           >
-            <X size={17} />
+            <X size={16} />
           </button>
         </div>
 
@@ -12312,14 +12314,14 @@ function AvatarPickerModal({
           <button
             type="button"
             onClick={surpriseAvatar}
-            className="inline-flex h-10 items-center rounded-full border px-4 text-xs font-semibold transition"
+            className="inline-flex h-9 items-center rounded-full border px-3.5 text-[11px] font-semibold transition"
             style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
           >
             {ts('avatar.surpriseMe')}
           </button>
         </div>
 
-        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+        <div className="mt-3.5 grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
           {curatedAvatarOptions.map((option) => {
             const selected = (normalizeAvatarUrl(option.src) ?? option.src) === normalizedCurrent;
             return (
@@ -12327,7 +12329,7 @@ function AvatarPickerModal({
                 key={option.id}
                 type="button"
                 onClick={() => onPick(option.src)}
-                className="rounded-2xl border p-2 text-left transition"
+                className="rounded-2xl border p-1.5 text-left transition"
                 style={{
                   borderColor: selected ? theme.accentLight : theme.borderMedium,
                   backgroundColor: selected ? theme.activeBg : theme.bgCardElevated,
@@ -12338,11 +12340,11 @@ function AvatarPickerModal({
                 <Image
                   src={option.src}
                   alt={option.name}
-                  width={72}
-                  height={72}
-                  className="mx-auto size-[72px] rounded-2xl border object-cover"
+                  width={64}
+                  height={64}
+                  className="mx-auto size-[64px] rounded-2xl border object-cover"
                 />
-                <p className="mt-2 truncate text-center text-[11px] font-semibold uppercase tracking-[0.08em]" style={{ color: theme.textSecondary }}>
+                <p className="mt-1.5 truncate text-center text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ color: theme.textSecondary }}>
                   {option.name}
                 </p>
               </button>
@@ -12392,7 +12394,7 @@ function AvatarUploadTipsModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="avatar-photo-tips-title"
-        className="w-full max-w-lg overflow-y-auto overscroll-contain rounded-3xl border p-4 shadow-2xl sm:p-5"
+        className="w-full max-w-lg overflow-y-auto overscroll-contain rounded-3xl border p-3.5 shadow-2xl sm:p-4"
         style={{
           borderColor: theme.borderMedium,
           backgroundColor: theme.bgCard,
@@ -12402,23 +12404,23 @@ function AvatarUploadTipsModal({
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('avatar.photoTipsEyebrow')}</p>
-            <h2 id="avatar-photo-tips-title" className="mt-2 text-xl font-semibold" style={{ color: theme.textPrimary }}>{ts('avatar.photoTipsTitle')}</h2>
-            <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
+            <h2 id="avatar-photo-tips-title" className="mt-1.5 text-lg font-semibold" style={{ color: theme.textPrimary }}>{ts('avatar.photoTipsTitle')}</h2>
+            <p className="mt-1 text-sm leading-5" style={{ color: theme.textSecondary }}>
               {ts('avatar.photoTipsBody')}
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="grid size-10 shrink-0 place-items-center rounded-full border transition"
+            className="grid size-9 shrink-0 place-items-center rounded-full border transition"
             style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
             aria-label={ts('avatar.closePhotoTips')}
           >
-            <X size={17} />
+            <X size={16} />
           </button>
         </div>
 
-        <div className="mt-4 rounded-2xl border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+        <div className="mt-3.5 rounded-2xl border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
           <ul className="space-y-1.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
             <li>{ts('avatar.supportedFormats')}</li>
             <li>{ts('avatar.maxFileSize')}</li>
@@ -12437,11 +12439,11 @@ function AvatarUploadTipsModal({
           <span>{ts('avatar.hideTips')}</span>
         </label>
 
-        <div className="mt-4 flex flex-wrap justify-end gap-2">
+        <div className="mt-3.5 flex flex-wrap justify-end gap-2">
           <button
             type="button"
             onClick={onClose}
-            className="h-11 rounded-full border px-4 text-sm font-semibold"
+            className="h-10 rounded-full border px-4 text-sm font-semibold"
             style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
           >
             {ts('labels.maybeLater')}
@@ -12449,7 +12451,7 @@ function AvatarUploadTipsModal({
           <button
             type="button"
             onClick={onContinue}
-            className="h-11 rounded-full px-4 text-sm font-semibold"
+            className="h-10 rounded-full px-4 text-sm font-semibold"
             style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
           >
             {ts('avatar.continueToPicker')}
@@ -13430,33 +13432,33 @@ function DeleteAccountModal({
 
   return (
     <div className="fixed inset-0 z-[70] grid place-items-end p-3 backdrop-blur-sm sm:place-items-center" style={{ backgroundColor: "rgba(13, 23, 20, 0.48)" }}>
-      <section className="w-full max-w-lg rounded-3xl border p-5 shadow-2xl" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.deleteAccount')}</p>
-            <h2 className="mt-2 text-xl font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.deleteAccountTitle')}</h2>
-            <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
-              {ts('labels.deleteAccountBody')}
-            </p>
-            {user ? (
-              <p className="mt-2 text-xs leading-5" style={{ color: theme.textSecondary }}>
+        <section className="w-full max-w-lg rounded-3xl border p-4 shadow-2xl sm:p-3.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.deleteAccount')}</p>
+              <h2 className="mt-1.5 text-lg font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.deleteAccountTitle')}</h2>
+              <p className="mt-1.5 text-sm leading-5" style={{ color: theme.textSecondary }}>
+                {ts('labels.deleteAccountBody')}
+              </p>
+              {user ? (
+              <p className="mt-1.5 text-xs leading-5" style={{ color: theme.textSecondary }}>
                 {ts('labels.account')}: <span className="font-semibold" style={{ color: theme.textPrimary }}>{user.email}</span>
               </p>
-            ) : null}
+              ) : null}
+            </div>
+            <button
+              type="button"
+              onClick={cancel}
+              className="grid size-9 shrink-0 place-items-center rounded-full border transition"
+              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+              aria-label={ts('labels.close')}
+            >
+              <X size={16} />
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={cancel}
-            className="grid size-10 shrink-0 place-items-center rounded-full border transition"
-            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-            aria-label={ts('labels.close')}
-          >
-            <X size={17} />
-          </button>
-        </div>
 
-        <form
-          className="mt-4 grid gap-3"
+          <form
+          className="mt-3.5 grid gap-3"
           onSubmit={(event) => {
             event.preventDefault();
             if (canConfirm) {
@@ -13469,7 +13471,7 @@ function DeleteAccountModal({
             <input
               value={typedValue}
               onChange={(event) => setTypedValue(event.target.value)}
-              className="mt-2 h-11 w-full rounded-xl border px-3 text-sm normal-case tracking-normal outline-none"
+              className="mt-2 h-10 w-full rounded-xl border px-3 text-sm normal-case tracking-normal outline-none"
               style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
               placeholder={confirmationWord}
               autoFocus
@@ -13479,7 +13481,7 @@ function DeleteAccountModal({
             <button
               type="button"
               onClick={cancel}
-              className="h-11 rounded-full border px-4 text-sm font-semibold"
+              className="h-10 rounded-full border px-4 text-sm font-semibold"
               style={{ borderColor: theme.borderMedium, color: theme.textPrimary, backgroundColor: theme.bgInput }}
               disabled={isWorking}
             >
@@ -13487,7 +13489,7 @@ function DeleteAccountModal({
             </button>
             <button
               type="submit"
-              className="h-11 rounded-full px-4 text-sm font-semibold"
+              className="h-10 rounded-full px-4 text-sm font-semibold"
               style={{
                 backgroundColor: canConfirm ? theme.primary : theme.borderMedium,
                 color: theme.textOnPrimary,
@@ -13547,27 +13549,27 @@ function ReportIssueModal({
 
   return (
     <div className="fixed inset-0 z-[70] grid place-items-end p-3 backdrop-blur-sm sm:place-items-center" style={{ backgroundColor: "rgba(13, 23, 20, 0.48)" }}>
-      <section className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl border p-5 shadow-2xl" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
-        <div className="flex items-start justify-between gap-4">
+      <section className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl border p-4 shadow-2xl sm:p-3.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+        <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.reportIssueTitle')}</p>
-            <h2 className="mt-2 text-xl font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.helpImproveAletheia')}</h2>
-            <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
+            <h2 className="mt-1.5 text-lg font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.helpImproveAletheia')}</h2>
+            <p className="mt-1.5 text-sm leading-5" style={{ color: theme.textSecondary }}>
               {ts('labels.reportIssuePrivacy')}
             </p>
           </div>
           <button
             type="button"
             onClick={cancel}
-            className="grid size-10 shrink-0 place-items-center rounded-full border transition"
+            className="grid size-9 shrink-0 place-items-center rounded-full border transition"
             style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
             aria-label={ts('labels.close')}
           >
-            <X size={17} />
+            <X size={16} />
           </button>
         </div>
         <form
-          className="mt-4 grid gap-3"
+          className="mt-3.5 grid gap-3"
           onSubmit={(event) => {
             event.preventDefault();
             if (canSubmit) {
@@ -13581,7 +13583,7 @@ function ReportIssueModal({
             <select
               value={category}
               onChange={(event) => setCategory(event.target.value)}
-              className="mt-2 h-11 w-full rounded-xl border px-3 text-sm normal-case tracking-normal outline-none"
+              className="mt-2 h-10 w-full rounded-xl border px-3 text-sm normal-case tracking-normal outline-none"
               style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
             >
               {categories.map((item) => (
@@ -13594,7 +13596,7 @@ function ReportIssueModal({
             <textarea
               value={message}
               onChange={(event) => setMessage(event.target.value)}
-              className="mt-2 min-h-36 w-full resize-none rounded-xl border px-3 py-3 text-sm normal-case leading-6 tracking-normal outline-none"
+              className="mt-2 min-h-28 w-full resize-none rounded-xl border px-3 py-2.5 text-sm normal-case leading-5 tracking-normal outline-none"
               style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
               placeholder={ts('placeholders.reportIssue')}
             />
@@ -13603,7 +13605,7 @@ function ReportIssueModal({
             <button
               type="button"
               onClick={cancel}
-              className="h-11 rounded-full border px-4 text-sm font-semibold"
+              className="h-10 rounded-full border px-4 text-sm font-semibold"
               style={{ borderColor: theme.borderMedium, color: theme.textPrimary, backgroundColor: theme.bgInput }}
               disabled={isWorking}
             >
@@ -13611,7 +13613,7 @@ function ReportIssueModal({
             </button>
             <button
               type="submit"
-              className="h-11 rounded-full px-4 text-sm font-semibold"
+              className="h-10 rounded-full px-4 text-sm font-semibold"
               style={{
                 backgroundColor: canSubmit ? theme.primary : theme.borderMedium,
                 color: theme.textOnPrimary,
@@ -13656,36 +13658,36 @@ function CounselInviteModal({
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-end p-3 backdrop-blur-sm sm:place-items-center" style={{ backgroundColor: 'rgba(13, 23, 20, 0.42)' }}>
-      <section className="max-h-[88vh] w-full max-w-2xl overflow-y-auto rounded-3xl border p-5 shadow-2xl" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
-        <div className="flex items-start justify-between gap-4">
+      <section className="max-h-[88vh] w-full max-w-2xl overflow-y-auto rounded-3xl border p-4 shadow-2xl sm:p-3.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+        <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3">
             <AvatarCircle
               avatarUrl={preview?.invite.avatarUrl}
               seed={token}
               label={preview?.invite.name ?? ts('labels.counselContact')}
-              size={44}
-              className="size-11"
+              size={40}
+              className="size-10"
             />
             <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>{ts('labels.privateCounselInvite')}</p>
-            <h2 className="mt-2 text-2xl font-semibold" style={{ color: theme.textPrimary }}>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>{ts('labels.privateCounselInvite')}</p>
+              <h2 className="mt-1.5 text-lg font-semibold" style={{ color: theme.textPrimary }}>
               {preview ? `${ts('labels.counselRequestFor')} ${preview.invite.name}` : ts('status.openingInvite')}
-            </h2>
-            <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
+              </h2>
+              <p className="mt-1.5 text-sm leading-5" style={{ color: theme.textSecondary }}>
               {ts('labels.invitePrivacyNote')}
-            </p>
+              </p>
             </div>
           </div>
-          <button className="grid size-10 place-items-center rounded-full border transition" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={onClose} aria-label={ts('labels.closeInvite')}>
-            <X size={17} />
+          <button className="grid size-9 place-items-center rounded-full border transition" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={onClose} aria-label={ts('labels.closeInvite')}>
+            <X size={16} />
           </button>
         </div>
 
-        {status ? <p className="mt-4 rounded-2xl border p-3 text-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>{status}</p> : null}
+        {status ? <p className="mt-3.5 rounded-2xl border p-3 text-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>{status}</p> : null}
 
         {preview ? (
           <>
-            <div className="mt-4 grid gap-2 rounded-2xl border p-4 text-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
+            <div className="mt-3.5 grid gap-2 rounded-2xl border p-3.5 text-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
               <p>
                 <span className="font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.role')}:</span> {localizedCounselRoleLabel(preview.invite.role, ts)}
               </p>
@@ -14799,7 +14801,7 @@ function ScriptureStudyMode({
 function TrustLayerPanel({ theme, ui }: { theme: ThemeColors; ui: (typeof uiText)[LanguageCode] }) {
   const [open, setOpen] = useState(false);
   return (
-    <section className="rounded-xl border p-4 shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+    <section className="rounded-xl border p-3.5 shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <ShieldCheck size={17} style={{ color: theme.primary }} />
@@ -14814,17 +14816,17 @@ function TrustLayerPanel({ theme, ui }: { theme: ThemeColors; ui: (typeof uiText
           {open ? ui.hideDetails : ui.showDetails}
         </button>
       </div>
-      <p className="mt-3 rounded-lg border p-3 text-sm leading-6" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+      <p className="mt-3 rounded-lg border p-2.5 text-sm leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
         {ui.trustScriptureBody ?? uiText.en.trustScriptureBody}
       </p>
-      {open ? <div className="mt-3 space-y-3 text-sm leading-6" style={{ color: theme.textSecondary }}>
-        <p className="rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
+      {open ? <div className="mt-3 space-y-2.5 text-sm leading-5" style={{ color: theme.textSecondary }}>
+        <p className="rounded-lg border p-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
           {ui.trustBoundaryBody ?? uiText.en.trustBoundaryBody}
         </p>
-        <p className="rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
+        <p className="rounded-lg border p-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
           {ui.trustMemoryBody ?? uiText.en.trustMemoryBody}
         </p>
-        <p className="rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
+        <p className="rounded-lg border p-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
           {ui.trustConnectedDataBody ?? uiText.en.trustConnectedDataBody}
         </p>
       </div> : null}
@@ -14854,7 +14856,7 @@ function ThemeOptionButton({
     <button
       type="button"
       onClick={onClick}
-      className="flex min-h-12 min-w-0 items-center justify-between gap-3 rounded-xl border px-3 py-2.5 text-left text-xs font-semibold shadow-sm transition hover:-translate-y-0.5"
+      className="flex min-h-11 min-w-0 items-center justify-between gap-3 rounded-xl border px-3 py-2 text-left text-xs font-semibold shadow-sm transition hover:-translate-y-0.5"
       style={{
         backgroundColor: active ? activeColor : theme.bgInput,
         color: active ? (color ? '#f8f5e8' : theme.textOnPrimary) : theme.textPrimary,
@@ -15202,7 +15204,7 @@ function CounselAction({ theme, label, onClick }: { theme: ThemeColors; label: s
     <button
       type="button"
       onClick={onClick}
-      className="rounded-md border px-3 py-2 text-xs font-semibold transition"
+      className="rounded-md border px-2.5 py-1.5 text-xs font-semibold transition"
       style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
     >
       {label}
@@ -15249,7 +15251,7 @@ function HistoryExchange({
           </span>
           <span className="mt-1 block line-clamp-2 text-xs leading-5" style={{ color: theme.textMuted }}>{preview}</span>
         </span>
-        <span className="shrink-0 rounded-md px-2 py-1 text-xs font-semibold" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+        <span className="shrink-0 rounded-md px-2 py-1 text-[11px] font-semibold" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>
           {expanded ? ts('hideDetails') : ts('showDetails')}
         </span>
       </button>
@@ -15271,7 +15273,7 @@ function HistoryExchange({
             <button
               type="button"
               onClick={onContinue}
-              className="mt-3 h-11 rounded-md border px-3 text-xs font-semibold transition"
+              className="mt-3 h-10 rounded-md border px-3 text-xs font-semibold transition"
               style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
             >
               {ts('labels.continueFromThis')}
@@ -15485,37 +15487,37 @@ function DecisionCompanionPanel({
         theme={theme}
       />
       <section className="space-y-4">
-        <section className="rounded-xl border p-4 shadow-sm sm:p-5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+        <section className="rounded-xl border p-3.5 shadow-sm sm:p-4" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.decisionCompanion')}</p>
-              <h2 className="mt-2 text-2xl font-semibold" style={{ color: theme.textPrimary }}>{runtime.decisionCompanionHeading}</h2>
-              <p className="mt-2 max-w-2xl text-sm leading-6" style={{ color: theme.textSecondary }}>
+              <h2 className="mt-1.5 text-xl font-semibold leading-tight" style={{ color: theme.textPrimary }}>{runtime.decisionCompanionHeading}</h2>
+              <p className="mt-1.5 max-w-2xl text-sm leading-5" style={{ color: theme.textSecondary }}>
                 {runtime.decisionCompanionSub}
               </p>
             </div>
             <span className="w-fit rounded-md px-3 py-2 text-xs font-semibold" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>{modeProfile.displayLabel ?? modeProfile.label}</span>
           </div>
 
-          <form onSubmit={onCreateDecision} className="mt-5 grid gap-3 xl:grid-cols-[1fr_1.2fr_auto]">
+          <form onSubmit={onCreateDecision} className="mt-4 grid gap-2.5 xl:grid-cols-[1fr_1.2fr_auto]">
             <input
               value={title}
               onChange={(event) => setTitle(event.target.value)}
-              className="min-h-11 rounded-lg border px-3 py-2 text-sm outline-none md:min-h-12 md:px-4 md:text-base"
+              className="min-h-10 rounded-lg border px-3 py-2 text-sm outline-none md:min-h-11 md:px-4 md:text-base"
               style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
               placeholder={ts('placeholders.decisionTitle')}
             />
             <input
               value={pressure}
               onChange={(event) => setPressure(event.target.value)}
-              className="min-h-11 rounded-lg border px-3 py-2 text-sm outline-none md:min-h-12 md:px-4 md:text-base"
+              className="min-h-10 rounded-lg border px-3 py-2 text-sm outline-none md:min-h-11 md:px-4 md:text-base"
               style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
               placeholder={ts('placeholders.decisionPressure')}
             />
             <select
               value={emotion}
               onChange={(event) => setEmotion(event.target.value)}
-              className="min-h-11 rounded-lg border px-3 py-2 text-sm outline-none md:min-h-12 md:px-4 md:text-base"
+              className="min-h-10 rounded-lg border px-3 py-2 text-sm outline-none md:min-h-11 md:px-4 md:text-base"
               style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
               aria-label={ts('labels.initialEmotion')}
             >
@@ -15525,7 +15527,7 @@ function DecisionCompanionPanel({
               <option value="pressured">{ts('emotion.pressured')}</option>
               <option value="peaceful">{ts('emotion.peaceful')}</option>
             </select>
-            <button className="h-11 rounded-lg px-4 text-sm font-semibold lg:col-span-full" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>
+            <button className="h-10 rounded-lg px-4 text-sm font-semibold lg:col-span-full" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>
               {ts('labels.startDecisionMemory')}
             </button>
           </form>
@@ -15553,17 +15555,17 @@ function DecisionCompanionPanel({
         {decisionSection === "decisions" ? (
           <div className="space-y-4">
             <DisclosureSection title={ts('labels.wisdomTimeline')} summary={events.length ? insight.gentleObservation : decisionTimelineObservation(language, [], 0)} eyebrow={`${events.length} ${ts('labels.eventsRecorded')}`} compactCollapsed showDetailsLabel={ts('showDetails')} hideDetailsLabel={ts('hideDetails')} theme={theme}>
-              <section className="rounded-xl border p-4 shadow-sm sm:p-5" style={{ backgroundColor: theme.primary, borderColor: theme.borderMedium, color: theme.textOnPrimary }}>
+              <section className="rounded-xl border p-3.5 shadow-sm sm:p-4" style={{ backgroundColor: theme.primary, borderColor: theme.borderMedium, color: theme.textOnPrimary }}>
                 <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textOnPrimary, opacity: 0.9 }}>{ts('labels.wisdomTimeline')}</p>
-                <p className="mt-3 text-sm leading-6" style={{ color: theme.textOnPrimary }}>{insight.gentleObservation}</p>
-                <div className="mt-4 space-y-3">
+                <p className="mt-2.5 text-sm leading-5" style={{ color: theme.textOnPrimary }}>{insight.gentleObservation}</p>
+                <div className="mt-3.5 space-y-2.5">
                   {events.slice(0, 5).map((event) => (
-                    <div key={event.id} className="rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-                      <p className="text-sm leading-6" style={{ color: theme.textPrimary }}>{localizeDecisionEventBody(language, event.eventType, event.body)}</p>
+                    <div key={event.id} className="rounded-lg border p-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                      <p className="text-sm leading-5" style={{ color: theme.textPrimary }}>{localizeDecisionEventBody(language, event.eventType, event.body)}</p>
                       <p className="mt-1 text-xs" style={{ color: theme.textSecondary }}>{new Date(event.createdAt).toLocaleDateString()}</p>
                     </div>
                   ))}
-                  {!events.length ? <p className="text-sm leading-6" style={{ color: theme.textOnPrimary }}>{ts('labels.startDecisionToBeginTimeline')}</p> : null}
+                  {!events.length ? <p className="text-sm leading-5" style={{ color: theme.textOnPrimary }}>{ts('labels.startDecisionToBeginTimeline')}</p> : null}
                 </div>
               </section>
             </DisclosureSection>
@@ -15574,7 +15576,7 @@ function DecisionCompanionPanel({
                   <DecisionCard key={decision.id} decision={decision} highlighted={decision.id === focusedDecisionId} modeProfile={localizedModeProfile(decision.mode, language)} modeLabel={ts(modeTranslationKey(decision.mode), decision.mode)} onUpdate={onUpdateDecision} onDelete={onDeleteDecision} theme={theme} ts={ts} />
                 ))}
                 {!decisions.length ? (
-                  <div className="rounded-xl border border-dashed p-6 text-sm leading-6" style={{ borderColor: theme.borderMedium, color: theme.textSecondary }}>
+                  <div className="rounded-xl border border-dashed p-4 text-sm leading-6" style={{ borderColor: theme.borderMedium, color: theme.textSecondary }}>
                     {ts('labels.noDecisionMemoryHelp')}
                   </div>
                 ) : null}
@@ -15591,7 +15593,7 @@ function DecisionCompanionPanel({
                 {ts('labels.inviteTrustedPeoplePrivate')}
               </p>
               {counselSummaryDraft ? (
-                <div className="mt-3 rounded-lg border p-3" style={{ borderColor: theme.accentGold, backgroundColor: theme.bgCardElevated }}>
+                <div className="mt-3 rounded-lg border p-2.5" style={{ borderColor: theme.accentGold, backgroundColor: theme.bgCardElevated }}>
                   <div className="flex items-start justify-between gap-2">
                     <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{ts('labels.summaryReady')}</p>
                     <button
@@ -16043,20 +16045,20 @@ function DecisionCompanionPanel({
 
         {decisionSection === "memory" ? (
           <div className="space-y-4">
-            <section className="rounded-xl border p-4 shadow-sm" style={{ backgroundColor: theme.primary, borderColor: theme.borderMedium, color: theme.textOnPrimary }}>
+            <section className="rounded-xl border p-3.5 shadow-sm" style={{ backgroundColor: theme.primary, borderColor: theme.borderMedium, color: theme.textOnPrimary }}>
               <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textOnPrimary, opacity: 0.9 }}>{ts('labels.decisionPractice')}</p>
-              <p className="mt-3 text-sm font-semibold" style={{ color: theme.textOnPrimary }}>{runtime.decisionPracticeLine}</p>
-              <p className="mt-2 text-sm leading-6" style={{ color: theme.textOnPrimary }}>{ts('labels.smallPracticeForDecision')}</p>
+              <p className="mt-2.5 text-sm font-semibold" style={{ color: theme.textOnPrimary }}>{runtime.decisionPracticeLine}</p>
+              <p className="mt-1.5 text-sm leading-5" style={{ color: theme.textOnPrimary }}>{ts('labels.smallPracticeForDecision')}</p>
             </section>
 
             {selectedDecision?.summary ? (
-              <section className="rounded-xl border p-4 shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+              <section className="rounded-xl border p-3.5 shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.decisionSummaryExport')}</p>
                   <button
                     type="button"
                     onClick={() => onSpeakText(selectedDecision.summary || "", ts('notifications.readingAloud'), ts('labels.decisionSummary'))}
-                    className="inline-flex h-11 items-center gap-2 rounded-md border px-3 text-xs font-semibold transition"
+                    className="inline-flex h-10 items-center gap-2 rounded-md border px-3 text-xs font-semibold transition"
                     style={{
                       borderColor: theme.borderMedium,
                       backgroundColor: theme.bgInput,
@@ -16071,20 +16073,20 @@ function DecisionCompanionPanel({
                   <button
                     type="button"
                     onClick={() => onShareDecisionPostcard(selectedDecision, "summary")}
-                    className="inline-flex h-11 items-center gap-2 rounded-md border px-3 text-xs font-semibold transition"
+                    className="inline-flex h-10 items-center gap-2 rounded-md border px-3 text-xs font-semibold transition"
                     style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
                   >
                     <Share2 size={14} />
                     {ts('labels.createCard')}
                   </button>
                 </div>
-                <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                <p className="mt-1.5 text-sm leading-5" style={{ color: theme.textSecondary }}>
                   {ts('labels.mentorReadySummaryReviewBeforeSharing')}
                 </p>
-                <div className="mt-3 max-h-80 min-h-40 overflow-y-auto rounded-md border p-3" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput }}>
+                <div className="mt-3 max-h-80 min-h-40 overflow-y-auto rounded-md border p-2.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput }}>
                   <ScriptureLinkedText theme={theme} text={selectedDecision.summary} onScriptureOpen={onScriptureOpen} />
                 </div>
-                <div className="mt-3 rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                <div className="mt-3 rounded-lg border p-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
                   <button
                     type="button"
                     onClick={() => setBlessingOpen((current) => !current)}
@@ -16442,14 +16444,14 @@ function WisdomCheck({
 }) {
   return (
     <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
-      <section className="min-w-0 rounded-xl border p-4 shadow-sm sm:p-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-        <div className="mb-5 flex items-center gap-2 text-xl font-semibold" style={{ color: theme.textPrimary }}>
+      <section className="min-w-0 rounded-xl border p-3.5 shadow-sm sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+        <div className="mb-4 flex items-center gap-2 text-lg font-semibold" style={{ color: theme.textPrimary }}>
           <Scale size={20} />
           {ts('labels.wisdomCheck')}
         </div>
-        <div className="mb-5 rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+        <div className="mb-4 rounded-lg border p-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
           <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{modeProfile.displayLabel ?? modeProfile.label} · {ts('labels.discernmentReadout')}</p>
-          <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>{modeProfile.intent}</p>
+          <p className="mt-1.5 text-sm leading-5" style={{ color: theme.textSecondary }}>{modeProfile.intent}</p>
         </div>
         <label className="text-sm font-semibold" htmlFor="decision" style={{ color: theme.textPrimary }}>
           {ts('labels.decisionOrPressure')}
@@ -16458,7 +16460,7 @@ function WisdomCheck({
           id="decision"
           value={decision}
           onChange={(event) => setDecision(event.target.value)}
-          className="mt-2 min-h-36 w-full resize-none rounded-lg border px-3 py-3 text-sm leading-6 outline-none"
+          className="mt-2 min-h-32 w-full resize-none rounded-lg border px-3 py-2.5 text-sm leading-5 outline-none"
           placeholder={ts('placeholders.journalExample')}
           style={{
             borderColor: theme.borderMedium,
@@ -16469,10 +16471,10 @@ function WisdomCheck({
           onBlur={(e) => e.currentTarget.style.borderColor = theme.borderMedium}
         />
 
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <div className="mt-3 grid gap-2.5 sm:grid-cols-2">
           <label className="text-sm font-semibold" style={{ color: theme.textPrimary }}>
             {ts('labels.currentEmotion')}
-            <select value={emotion} onChange={(event) => setEmotion(event.target.value)} className="mt-2 h-11 w-full rounded-md border px-3 text-sm outline-none" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}>
+            <select value={emotion} onChange={(event) => setEmotion(event.target.value)} className="mt-2 h-10 w-full rounded-md border px-3 text-sm outline-none" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}>
               <option value="uncertain">{ts('emotion.uncertain')}</option>
               <option value="anxious">{ts('emotion.anxious')}</option>
               <option value="excited">{ts('emotion.excited')}</option>
@@ -16482,7 +16484,7 @@ function WisdomCheck({
           </label>
           <label className="text-sm font-semibold" style={{ color: theme.textPrimary }}>
             {ts('labels.timeHorizon')}
-            <select value={timeframe} onChange={(event) => setTimeframe(event.target.value)} className="mt-2 h-11 w-full rounded-md border px-3 text-sm outline-none" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}>
+            <select value={timeframe} onChange={(event) => setTimeframe(event.target.value)} className="mt-2 h-10 w-full rounded-md border px-3 text-sm outline-none" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}>
               <option value="Long-term">{ts('labels.longTerm')}</option>
               <option value="Next 90 days">{ts('labels.next90Days')}</option>
               <option value="This month">{ts('labels.thisMonth')}</option>
@@ -16492,10 +16494,10 @@ function WisdomCheck({
         </div>
       </section>
 
-      <section className="min-w-0 rounded-xl border p-4 shadow-sm sm:p-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-        <h2 className="text-xl font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.discernmentReadout')}</h2>
+      <section className="min-w-0 rounded-xl border p-3.5 shadow-sm sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+        <h2 className="text-lg font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.discernmentReadout')}</h2>
         {result ? (
-          <div className="mt-5 space-y-4">
+          <div className="mt-4 space-y-3.5">
             <div>
               <div className="mb-2 flex items-center justify-between text-sm font-semibold" style={{ color: theme.textPrimary }}>
                 <span>{ts('labels.readinessSignal')}</span>
@@ -16505,7 +16507,7 @@ function WisdomCheck({
                 <div className="h-full rounded-full" style={{ width: `${result.readiness}%`, backgroundColor: theme.primary }} />
               </div>
             </div>
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-2.5 sm:grid-cols-2">
               <Signal active={!result.hasUrgency} label={ts('labels.paceIsCalmEnough')} theme={theme} />
               <Signal
                 active={result.hasCounsel}
@@ -16513,39 +16515,39 @@ function WisdomCheck({
                 theme={theme}
               />
             </div>
-            <div className="rounded-lg border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+            <div className="rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
               <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>{ts('labels.grounding')}</p>
-              <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
+              <p className="mt-1.5 text-sm leading-5" style={{ color: theme.textSecondary }}>
                 {result.sources[0]?.scripture}: {result.sources[0]?.principle}
               </p>
             </div>
-            <div className="rounded-lg border p-4" style={{ backgroundColor: theme.primary, borderColor: theme.borderMedium, color: theme.textOnPrimary }}>
+            <div className="rounded-lg border p-3" style={{ backgroundColor: theme.primary, borderColor: theme.borderMedium, color: theme.textOnPrimary }}>
               <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.textOnPrimary, opacity: 0.9 }}>{ts('labels.modeDiagnostic')}</p>
-              <ul className="mt-3 space-y-2 text-sm leading-6" style={{ color: theme.textOnPrimary }}>
+              <ul className="mt-2.5 space-y-1.5 text-sm leading-5" style={{ color: theme.textOnPrimary }}>
                 {modeProfile.diagnosticTracks.slice(0, 2).map((track) => (
                   <li key={track}>{track}</li>
                 ))}
               </ul>
             </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-lg border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+            <div className="grid gap-2.5 sm:grid-cols-2">
+              <div className="rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
                 <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>{ts('labels.watchFor')}</p>
-                <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>{modeProfile.blindSpots[0]}</p>
+                <p className="mt-1.5 text-sm leading-5" style={{ color: theme.textSecondary }}>{modeProfile.blindSpots[0]}</p>
               </div>
-              <div className="rounded-lg border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+              <div className="rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
                 <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>{ts('labels.practice')}</p>
-                <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>{modeProfile.practices[0]}</p>
+                <p className="mt-1.5 text-sm leading-5" style={{ color: theme.textSecondary }}>{modeProfile.practices[0]}</p>
               </div>
             </div>
-            <div className="rounded-lg border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+            <div className="rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
               <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>{ts('labels.nextFaithfulAction')}</p>
-              <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
+              <p className="mt-1.5 text-sm leading-5" style={{ color: theme.textSecondary }}>
                 {ts('labels.nextFaithfulActionBody')}
               </p>
             </div>
           </div>
         ) : (
-          <div className="mt-5 rounded-lg border border-dashed p-6 text-sm leading-6" style={{ borderColor: theme.borderMedium, color: theme.textSecondary }}>
+          <div className="mt-4 rounded-lg border border-dashed p-4 text-sm leading-6" style={{ borderColor: theme.borderMedium, color: theme.textSecondary }}>
             {ts('labels.writeDecisionForReadout')}
           </div>
         )}
@@ -16628,16 +16630,16 @@ function ReflectPanel({
         onAction={body.trim() ? onSave : undefined}
         theme={theme}
       />
-      <section className="rounded-xl border p-4 shadow-sm sm:p-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+      <section className="rounded-xl border p-3.5 shadow-sm sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
         <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('nav.reflect')}</p>
-        <h2 className="mt-2 text-2xl font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.discernmentReflectionQuietPlace')}</h2>
-        <p className="mt-2 max-w-2xl text-sm leading-6" style={{ color: theme.textSecondary }}>
+        <h2 className="mt-1.5 text-xl font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.discernmentReflectionQuietPlace')}</h2>
+        <p className="mt-1.5 max-w-2xl text-sm leading-5" style={{ color: theme.textSecondary }}>
           {runtime.reflectIntro}
         </p>
         <button
           type="button"
           onClick={onVoiceReflection}
-          className="premium-tap-card mt-4 inline-flex h-10 items-center gap-2 rounded-md border px-3 text-sm font-semibold"
+          className="premium-tap-card mt-3 inline-flex h-9 items-center gap-2 rounded-md border px-3 text-sm font-semibold"
           style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
         >
           <Volume2 size={15} />
@@ -16866,41 +16868,41 @@ function GratitudeLensPanel({
         theme={theme}
       >
       <section className="grid min-w-0 gap-4 xl:grid-cols-[0.95fr_1.05fr]">
-        <div className="rounded-xl border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+        <div className="rounded-xl border p-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
           <div className="flex items-start gap-3">
             <div className="grid size-10 shrink-0 place-items-center rounded-md" style={{ backgroundColor: theme.bgInput, color: theme.primary }}>
               <Camera size={18} />
             </div>
             <div>
-              <h3 className="text-lg font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.captureGratitude')}</h3>
-              <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
+              <h3 className="text-base font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.captureGratitude')}</h3>
+              <p className="mt-1 text-sm leading-5" style={{ color: theme.textSecondary }}>
                 {ts('labels.gratitudeLensBody')}
               </p>
             </div>
           </div>
 
-          <div className="mt-4 rounded-xl border p-3" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+          <div className="mt-3 rounded-xl border p-2.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
             <div className="flex items-start gap-3">
               <Sparkles size={18} className="mt-0.5 shrink-0" style={{ color: theme.accentGold }} />
               <div className="min-w-0">
                 <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
                   {ts('labels.promptFromTodayWisdom')}
                 </p>
-                <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                <p className="mt-1 text-sm leading-5" style={{ color: theme.textSecondary }}>
                   {todayWisdomPrompt}
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="mt-4 rounded-xl border p-3" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+          <div className="mt-3 rounded-xl border p-2.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
             <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
               {ts('labels.gratitudeNoticingQuestion')}
             </p>
             <p className="mt-1 text-xs leading-5" style={{ color: theme.textSecondary }}>
               {ts('labels.gratitudeNoticingBody')}
             </p>
-            <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+            <div className="mt-2.5 grid grid-cols-2 gap-2 sm:grid-cols-3">
               {GRATITUDE_FORMATIONS.map((item) => {
                 const isActive = formation === item;
                 return (
@@ -16908,7 +16910,7 @@ function GratitudeLensPanel({
                     key={item}
                     type="button"
                     onClick={() => setFormation(item)}
-                    className="premium-tap-card flex min-h-16 flex-col items-start justify-between rounded-lg border p-3 text-left transition"
+                    className="premium-tap-card flex min-h-14 flex-col items-start justify-between rounded-lg border p-2.5 text-left transition"
                     style={{
                       borderColor: isActive ? theme.primary : theme.borderMedium,
                       backgroundColor: isActive ? theme.primary : theme.bgInput,
@@ -16918,12 +16920,12 @@ function GratitudeLensPanel({
                     <span className="text-xs font-semibold uppercase tracking-[0.1em]" style={{ color: isActive ? theme.textOnPrimary : theme.accentGold }}>
                       {GRATITUDE_FORMATION_ICON[item]}
                     </span>
-                    <span className="mt-2 text-sm font-semibold leading-5">{gratitudeFormationLabel(item)}</span>
+                    <span className="mt-1.5 text-sm font-semibold leading-5">{gratitudeFormationLabel(item)}</span>
                   </button>
                 );
               })}
             </div>
-            <p className="mt-3 rounded-lg border p-3 text-xs leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+            <p className="mt-2.5 rounded-lg border p-2.5 text-xs leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
               {gratitudeFormationPrompt(formation)}
             </p>
           </div>
@@ -16944,7 +16946,7 @@ function GratitudeLensPanel({
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="flex aspect-[4/3] w-full flex-col items-center justify-center gap-3 p-6 text-center"
+                className="flex aspect-[4/3] w-full flex-col items-center justify-center gap-2.5 p-4 text-center"
                 style={{ color: theme.textSecondary }}
               >
                 <Camera size={28} />
@@ -16959,7 +16961,7 @@ function GratitudeLensPanel({
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="h-11 rounded-md border px-4 text-sm font-semibold"
+              className="h-10 rounded-md border px-4 text-sm font-semibold"
               style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
             >
               {previewUrl ? ts('labels.changePhoto') : ts('labels.addPhoto')}
@@ -16967,14 +16969,14 @@ function GratitudeLensPanel({
             <button
               type="button"
               onClick={resetForm}
-              className="h-11 rounded-md border px-4 text-sm font-semibold"
+              className="h-10 rounded-md border px-4 text-sm font-semibold"
               style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textSecondary }}
             >
               {ts('labels.clear')}
             </button>
           </div>
 
-          <details className="mt-4 rounded-xl border p-3" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+          <details className="mt-3 rounded-xl border p-2.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
             <summary className="flex cursor-pointer list-none items-start justify-between gap-3 [&::-webkit-details-marker]:hidden">
               <span className="flex min-w-0 items-start gap-3">
               <Sparkles size={18} className="mt-0.5 shrink-0" style={{ color: theme.accentGold }} />
@@ -16987,17 +16989,17 @@ function GratitudeLensPanel({
                 </p>
               </div>
               </span>
-              <span className="shrink-0 rounded-md border px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.1em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+              <span className="shrink-0 rounded-md border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.1em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
                 {ts('showDetails')}
               </span>
             </summary>
 
-            <div className="mt-4 border-t pt-4" style={{ borderColor: theme.borderLight }}>
+            <div className="mt-3 border-t pt-3" style={{ borderColor: theme.borderLight }}>
               <p className="text-xs leading-5" style={{ color: theme.textSecondary }}>
                 {ts('labels.gratitudeStyleBody')}
               </p>
 
-            <p className="mt-4 text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
+            <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
               {ts('labels.gratitudeFilters')}
             </p>
             <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
@@ -17008,7 +17010,7 @@ function GratitudeLensPanel({
                     key={filter}
                     type="button"
                     onClick={() => setVisual((current) => ({ ...current, filter }))}
-                    className="shrink-0 rounded-full border px-3 py-2 text-xs font-semibold transition active:scale-[0.98]"
+                    className="shrink-0 rounded-full border px-2.5 py-1.5 text-xs font-semibold transition active:scale-[0.98]"
                     style={{
                       borderColor: isActive ? theme.primary : theme.borderMedium,
                       backgroundColor: isActive ? theme.primary : theme.bgInput,
@@ -17021,7 +17023,7 @@ function GratitudeLensPanel({
               })}
             </div>
 
-            <p className="mt-4 text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
+            <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
               {ts('labels.gratitudeOverlays')}
             </p>
             <div className="mt-2 grid grid-cols-2 gap-2">
@@ -17038,7 +17040,7 @@ function GratitudeLensPanel({
                     key={key}
                     type="button"
                     onClick={() => toggleOverlay(settingKey)}
-                    className="inline-flex min-h-10 items-center justify-between gap-2 rounded-lg border px-3 py-2 text-left text-xs font-semibold transition active:scale-[0.98]"
+                    className="inline-flex min-h-9 items-center justify-between gap-2 rounded-lg border px-2.5 py-2 text-left text-xs font-semibold transition active:scale-[0.98]"
                     style={{ borderColor: isActive ? theme.primary : theme.borderMedium, backgroundColor: isActive ? theme.bgCardElevated : theme.bgInput, color: theme.textPrimary }}
                   >
                     <span className="min-w-0">{label}</span>
@@ -17048,7 +17050,7 @@ function GratitudeLensPanel({
               })}
             </div>
 
-            <p className="mt-4 text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
+            <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
               {ts('labels.gratitudeStickers')}
             </p>
             <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
@@ -17059,7 +17061,7 @@ function GratitudeLensPanel({
                     key={sticker}
                     type="button"
                     onClick={() => toggleSticker(sticker)}
-                    className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition active:scale-[0.98]"
+                    className="inline-flex min-h-9 items-center justify-center gap-2 rounded-lg border px-2.5 py-2 text-xs font-semibold transition active:scale-[0.98]"
                     style={{
                       borderColor: isActive ? theme.primary : theme.borderMedium,
                       backgroundColor: isActive ? theme.bgCardElevated : theme.bgInput,
@@ -17076,7 +17078,7 @@ function GratitudeLensPanel({
               {ts('labels.gratitudeStickerLimit')}
             </p>
 
-            <p className="mt-4 text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
+            <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
               {ts('labels.gratitudeEmoji')}
             </p>
             <div className="mt-2 flex flex-wrap gap-2">
@@ -17087,7 +17089,7 @@ function GratitudeLensPanel({
                     key={emoji || "none"}
                     type="button"
                     onClick={() => setVisual((current) => ({ ...current, emoji }))}
-                    className="min-h-10 rounded-full border px-3 text-sm font-semibold transition active:scale-[0.98]"
+                    className="min-h-9 rounded-full border px-2.5 text-sm font-semibold transition active:scale-[0.98]"
                     style={{
                       borderColor: isActive ? theme.primary : theme.borderMedium,
                       backgroundColor: isActive ? theme.primary : theme.bgInput,
@@ -17102,13 +17104,13 @@ function GratitudeLensPanel({
             </div>
           </details>
 
-          <label className="mt-4 block text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
+            <label className="mt-3 block text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
             {ts('labels.gratefulFor')}
             <textarea
               value={note}
               onChange={(event) => setNote(event.target.value)}
               maxLength={280}
-              className="mt-2 min-h-28 w-full resize-none rounded-lg border px-3 py-3 text-sm normal-case leading-6 tracking-normal outline-none"
+              className="mt-2 min-h-24 w-full resize-none rounded-lg border px-3 py-2.5 text-sm normal-case leading-5 tracking-normal outline-none"
               placeholder={ts('placeholders.gratitudeNote')}
               style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
             />
@@ -17122,7 +17124,7 @@ function GratitudeLensPanel({
                 value={place}
                 onChange={(event) => setPlace(event.target.value)}
                 maxLength={120}
-                className="h-11 min-w-0 flex-1 bg-transparent text-sm normal-case tracking-normal outline-none"
+                className="h-10 min-w-0 flex-1 bg-transparent text-sm normal-case tracking-normal outline-none"
                 placeholder={ts('placeholders.gratitudePlace')}
                 style={{ color: theme.textPrimary }}
               />
@@ -17133,7 +17135,7 @@ function GratitudeLensPanel({
             type="button"
             onClick={submit}
             disabled={isSaving}
-            className="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-md px-4 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-65"
+            className="mt-3 inline-flex h-10 w-full items-center justify-center gap-2 rounded-md px-4 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-65"
             style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
           >
             <Plus size={16} />
@@ -17147,21 +17149,21 @@ function GratitudeLensPanel({
           </p>
         </div>
 
-        <div className="rounded-xl border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+        <div className="rounded-xl border p-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.gratitudeTimeline')}</p>
-              <h3 className="mt-1 text-lg font-semibold" style={{ color: theme.textPrimary }}>
+              <h3 className="mt-1 text-base font-semibold" style={{ color: theme.textPrimary }}>
                 {latestEntry ? ts('labels.latestGratitude') : ts('labels.noGratitudeYet')}
               </h3>
             </div>
             <Sprout size={24} style={{ color: theme.primary }} />
           </div>
-          <div className="mt-4 rounded-xl border p-3" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput }}>
+          <div className="mt-3 rounded-xl border p-2.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput }}>
             <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
               {ts('labels.gratitudeWeeklyRecap')}
             </p>
-            <p className="mt-1 text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>
+            <p className="mt-1 text-sm font-semibold leading-5" style={{ color: theme.textPrimary }}>
               {ts('labels.weeklyMomentsNoticed').replace("{count}", String(weeklyEntries.length))}
             </p>
             <p className="mt-1 text-xs leading-5" style={{ color: theme.textSecondary }}>
@@ -17177,8 +17179,8 @@ function GratitudeLensPanel({
             {weeklyEntries.length ? (
               <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-5">
                 {formationCounts.map((item) => (
-                  <div key={item.key} className="rounded-lg border px-2 py-2" style={{ borderColor: item.count ? theme.primary : theme.borderLight, backgroundColor: item.count ? theme.bgCardElevated : theme.bgCard }}>
-                    <p className="text-base font-semibold" style={{ color: item.count ? theme.textPrimary : theme.textMuted }}>{item.count}</p>
+                  <div key={item.key} className="rounded-lg border px-2 py-1.5" style={{ borderColor: item.count ? theme.primary : theme.borderLight, backgroundColor: item.count ? theme.bgCardElevated : theme.bgCard }}>
+                    <p className="text-sm font-semibold" style={{ color: item.count ? theme.textPrimary : theme.textMuted }}>{item.count}</p>
                     <p className="mt-1 line-clamp-2 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ color: item.count ? theme.accentGold : theme.textMuted }}>
                       {item.label}
                     </p>
@@ -17187,7 +17189,7 @@ function GratitudeLensPanel({
               </div>
             ) : null}
             {weeklyEntries.length && topFormation.count ? (
-              <p className="mt-3 rounded-lg border p-3 text-xs leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textSecondary }}>
+              <p className="mt-3 rounded-lg border p-2.5 text-xs leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textSecondary }}>
                 <span className="font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.gratitudePatternThisWeek')}:</span>{" "}
                 {ts('labels.gratitudePatternThisWeekBody').replace("{pattern}", topFormation.label.toLowerCase())}
               </p>
@@ -17207,35 +17209,35 @@ function GratitudeLensPanel({
                       unoptimized
                     />
                   </div>
-                  <div className="p-4">
-                    <span className="inline-flex max-w-full items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.accentGold }}>
+                  <div className="p-3.5">
+                    <span className="inline-flex max-w-full items-center gap-2 rounded-full border px-2.5 py-1 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.accentGold }}>
                       <span aria-hidden="true">{GRATITUDE_FORMATION_ICON[normalizeGratitudeFormation(entry.formation)]}</span>
                       <span className="truncate">{gratitudeFormationLabel(normalizeGratitudeFormation(entry.formation))}</span>
                     </span>
-                    <p className="mt-3 text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>{entry.note}</p>
-                    <p className="mt-2 text-xs leading-5" style={{ color: theme.textMuted }}>
+                    <p className="mt-2 text-sm font-semibold leading-5" style={{ color: theme.textPrimary }}>{entry.note}</p>
+                    <p className="mt-1.5 text-xs leading-5" style={{ color: theme.textMuted }}>
                       {new Date(entry.createdAt).toLocaleString(language, { dateStyle: "medium", timeStyle: "short" })}
                       {entry.place ? ` · ${entry.place}` : ""}
                     </p>
                     {(entry.postcardCreatedAt || entry.reflectedAt) ? (
-                      <div className="mt-3 flex flex-wrap gap-2">
+                      <div className="mt-2.5 flex flex-wrap gap-2">
                         {entry.postcardCreatedAt ? (
-                          <span className="rounded-full border px-3 py-1 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                          <span className="rounded-full border px-2.5 py-1 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
                             {ts('labels.postcardSavedToTimeline')}
                           </span>
                         ) : null}
                         {entry.reflectedAt ? (
-                          <span className="rounded-full border px-3 py-1 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                          <span className="rounded-full border px-2.5 py-1 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
                             {ts('labels.usedForReflection')}
                           </span>
                         ) : null}
                       </div>
                     ) : null}
-                    <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                    <div className="mt-2.5 grid gap-2 sm:grid-cols-3">
                       <button
                         type="button"
                         onClick={() => onUseAsReflection(entry)}
-                        className="inline-flex h-10 items-center justify-center gap-2 rounded-md border px-3 text-sm font-semibold"
+                        className="inline-flex h-9 items-center justify-center gap-2 rounded-md border px-3 text-xs font-semibold"
                         style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
                       >
                         <Feather size={15} />
@@ -17244,7 +17246,7 @@ function GratitudeLensPanel({
                       <button
                         type="button"
                         onClick={() => onSharePostcard(entry)}
-                        className="inline-flex h-10 items-center justify-center gap-2 rounded-md px-3 text-sm font-semibold"
+                        className="inline-flex h-9 items-center justify-center gap-2 rounded-md px-3 text-xs font-semibold"
                         style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
                       >
                         <Download size={15} />
@@ -17253,7 +17255,7 @@ function GratitudeLensPanel({
                       <button
                         type="button"
                         onClick={() => onDelete(entry.id)}
-                        className="inline-flex h-10 items-center justify-center gap-2 rounded-md border px-3 text-sm font-semibold"
+                        className="inline-flex h-9 items-center justify-center gap-2 rounded-md border px-3 text-xs font-semibold"
                         style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
                       >
                         <Trash2 size={15} />
@@ -17264,7 +17266,7 @@ function GratitudeLensPanel({
                 </article>
               ))
             ) : (
-              <div className="rounded-xl border border-dashed p-6 text-sm leading-6" style={{ borderColor: theme.borderMedium, color: theme.textSecondary }}>
+              <div className="rounded-xl border border-dashed p-4 text-sm leading-6" style={{ borderColor: theme.borderMedium, color: theme.textSecondary }}>
                 {ts('labels.gratitudeTimelineEmpty')}
               </div>
             )}
@@ -17399,14 +17401,14 @@ function LibraryPanel({
       ) : null}
 
       {librarySection !== "memory" ? (
-      <section className="min-w-0 rounded-xl border p-4 shadow-sm sm:p-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+      <section className="min-w-0 rounded-xl border p-3.5 shadow-sm sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <div className="flex items-center gap-2 text-xl font-semibold" style={{ color: theme.textPrimary }}>
+            <div className="flex items-center gap-2 text-lg font-semibold" style={{ color: theme.textPrimary }}>
               <BookOpen size={20} />
               {ts('labels.wisdomLibrary')}
             </div>
-            <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
+            <p className="mt-1.5 text-sm leading-5" style={{ color: theme.textSecondary }}>
               {runtime.libraryDescription}
             </p>
           </div>
@@ -17415,7 +17417,7 @@ function LibraryPanel({
             <input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              className="h-11 w-full rounded-lg border px-3 pl-10 pr-3 text-sm outline-none"
+              className="h-10 w-full rounded-lg border px-3 pl-10 pr-3 text-sm outline-none"
               placeholder={`${ts('labels.search')} ${localizedModeSearchLabel} ${ts('labels.wisdom')}...`}
               style={{
                 borderColor: theme.borderMedium,
@@ -17428,16 +17430,16 @@ function LibraryPanel({
           </label>
         </div>
 
-        <div className="mt-5 grid min-w-0 gap-3 lg:grid-cols-2">
+        <div className="mt-4 grid min-w-0 gap-3 lg:grid-cols-2">
           {visibleEntries.map((entry, index) => {
             const localizedEntry = localizedWisdomLibraryEntry(entry, preferences);
             return (
               <article
                 key={entry.scripture}
-                className={`rounded-lg border p-4 ${visibleEntries.length % 2 === 1 && index === visibleEntries.length - 1 ? "lg:col-span-2" : ""}`}
+                className={`rounded-lg border p-3.5 ${visibleEntries.length % 2 === 1 && index === visibleEntries.length - 1 ? "lg:col-span-2" : ""}`}
                 style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}
               >
-                <div className="mb-3 flex flex-wrap items-center gap-2">
+                <div className="mb-2.5 flex flex-wrap items-center gap-2">
                   <span className="rounded-md px-2 py-1 text-xs font-semibold uppercase tracking-[0.14em]" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>{localizedWisdomThemeLabel(entry.theme, preferences.language)}</span>
                   <button
                     type="button"
@@ -17453,15 +17455,15 @@ function LibraryPanel({
                     {entry.scripture} · {scriptureDisplayLabel(entry.scripture, preferences)}
                   </button>
                 </div>
-                <p className="text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>{localizedEntry.principle}</p>
-                <p className="mt-3 text-sm leading-6" style={{ color: theme.textSecondary }}>{localizedEntry.application}</p>
-                <p className="mt-3 rounded-md border p-3 text-xs leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textMuted }}>
+                <p className="text-sm font-semibold leading-5" style={{ color: theme.textPrimary }}>{localizedEntry.principle}</p>
+                <p className="mt-2.5 text-sm leading-5" style={{ color: theme.textSecondary }}>{localizedEntry.application}</p>
+                <p className="mt-2.5 rounded-md border p-2.5 text-xs leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textMuted }}>
                   {localizedWisdomLibraryNote(entry, preferences)}
                 </p>
                 <button
                   type="button"
                   onClick={() => onSaveScriptureMemory(entry.scripture, localizedEntry.principle)}
-                  className="premium-tap-card mt-3 inline-flex h-9 items-center gap-2 rounded-md border px-3 text-xs font-semibold"
+                  className="premium-tap-card mt-2.5 inline-flex h-8 items-center gap-2 rounded-md border px-3 text-xs font-semibold"
                   style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
                 >
                   <BookOpen size={14} />
@@ -17472,20 +17474,20 @@ function LibraryPanel({
           })}
         </div>
         {!search.trim() && remainingEntries.length > 0 ? (
-          <details className="mt-4 rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
+          <details className="mt-3 rounded-lg border p-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
             <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
               {runtime.fullWisdomLibrary} · {remainingEntries.length} {runtime.moreAnchors}
             </summary>
-            <div className="mt-3 grid min-w-0 gap-3 lg:grid-cols-2">
+            <div className="mt-2.5 grid min-w-0 gap-3 lg:grid-cols-2">
               {remainingEntries.map((entry, index) => {
                 const localizedEntry = localizedWisdomLibraryEntry(entry, preferences);
                 return (
                   <article
                     key={entry.scripture}
-                    className={`rounded-lg border p-4 ${remainingEntries.length % 2 === 1 && index === remainingEntries.length - 1 ? "lg:col-span-2" : ""}`}
+                    className={`rounded-lg border p-3.5 ${remainingEntries.length % 2 === 1 && index === remainingEntries.length - 1 ? "lg:col-span-2" : ""}`}
                     style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}
                   >
-                    <div className="mb-3 flex flex-wrap items-center gap-2">
+                    <div className="mb-2.5 flex flex-wrap items-center gap-2">
                       <span className="rounded-md px-2 py-1 text-xs font-semibold uppercase tracking-[0.14em]" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>{localizedWisdomThemeLabel(entry.theme, preferences.language)}</span>
                       <button
                         type="button"
@@ -17496,12 +17498,12 @@ function LibraryPanel({
                         {entry.scripture} · {scriptureDisplayLabel(entry.scripture, preferences)}
                       </button>
                     </div>
-                    <p className="text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>{localizedEntry.principle}</p>
-                    <p className="mt-3 text-sm leading-6" style={{ color: theme.textSecondary }}>{localizedEntry.application}</p>
+                    <p className="text-sm font-semibold leading-5" style={{ color: theme.textPrimary }}>{localizedEntry.principle}</p>
+                    <p className="mt-2.5 text-sm leading-5" style={{ color: theme.textSecondary }}>{localizedEntry.application}</p>
                     <button
                       type="button"
                       onClick={() => onSaveScriptureMemory(entry.scripture, localizedEntry.principle)}
-                      className="premium-tap-card mt-3 inline-flex h-9 items-center gap-2 rounded-md border px-3 text-xs font-semibold"
+                      className="premium-tap-card mt-2.5 inline-flex h-8 items-center gap-2 rounded-md border px-3 text-xs font-semibold"
                       style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
                     >
                       <BookOpen size={14} />
@@ -17567,15 +17569,15 @@ function JournalPanel({
       />
 
       {journalSection === "write" ? (
-        <section className="min-w-0 rounded-xl border p-4 shadow-sm sm:p-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-          <div className="mb-5 flex items-center gap-2 text-xl font-semibold" style={{ color: theme.textPrimary }}>
+        <section className="min-w-0 rounded-xl border p-3.5 shadow-sm sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+          <div className="mb-4 flex items-center gap-2 text-lg font-semibold" style={{ color: theme.textPrimary }}>
             <Feather size={20} />
             {ts('labels.reflectionJournal')}
           </div>
           <input
             value={title}
             onChange={(event) => setTitle(event.target.value)}
-            className="h-11 w-full rounded-lg border px-3 text-sm outline-none"
+            className="h-10 w-full rounded-lg border px-3 text-sm outline-none"
             placeholder={ts('placeholders.reflectionTitle')}
             style={{
               borderColor: theme.borderMedium,
@@ -17588,7 +17590,7 @@ function JournalPanel({
           <textarea
             value={body}
             onChange={(event) => setBody(event.target.value)}
-            className="mt-3 min-h-48 w-full resize-none rounded-lg border px-3 py-3 text-sm leading-6 outline-none"
+            className="mt-3 min-h-40 w-full resize-none rounded-lg border px-3 py-2.5 text-sm leading-5 outline-none"
             placeholder={ts('placeholders.reflectionBody')}
             style={{
               borderColor: theme.borderMedium,
@@ -17599,14 +17601,14 @@ function JournalPanel({
             onBlur={(e) => e.currentTarget.style.borderColor = theme.borderMedium}
           />
           <div className="mt-3 grid gap-2 sm:grid-cols-2">
-            <button onClick={onSave} className="premium-tap-card inline-flex h-11 items-center justify-center gap-2 rounded-md px-4 text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary, boxShadow: `0 10px 15px -3px ${theme.primary}15` }}>
+            <button onClick={onSave} className="premium-tap-card inline-flex h-10 items-center justify-center gap-2 rounded-md px-4 text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary, boxShadow: `0 10px 15px -3px ${theme.primary}15` }}>
               <Plus size={16} />
               {ts('labels.saveReflection')}
             </button>
             <button
               type="button"
               onClick={onVoiceReflection}
-              className="premium-tap-card inline-flex h-11 items-center justify-center gap-2 rounded-md border px-4 text-sm font-semibold"
+              className="premium-tap-card inline-flex h-10 items-center justify-center gap-2 rounded-md border px-4 text-sm font-semibold"
               style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
             >
               <Volume2 size={16} />
@@ -17628,11 +17630,11 @@ function JournalPanel({
           theme={theme}
         >
           <section className="min-w-0">
-            <h2 className="text-xl font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.savedReflections')}</h2>
-            <div className="mt-4 grid gap-3 md:grid-cols-2">
+            <h2 className="text-lg font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.savedReflections')}</h2>
+            <div className="mt-3.5 grid gap-3 md:grid-cols-2">
               {visibleEntries.length ? (
                 visibleEntries.map((entry) => (
-                  <article key={entry.id} className="rounded-lg border p-4" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
+                  <article key={entry.id} className="rounded-lg border p-3.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <p className="font-semibold" style={{ color: theme.textPrimary }}>{entry.title}</p>
@@ -17648,11 +17650,11 @@ function JournalPanel({
                         <Trash2 size={15} />
                       </button>
                     </div>
-                    <p className="mt-3 whitespace-pre-wrap text-sm leading-6" style={{ color: theme.textSecondary }}>{entry.body}</p>
+                    <p className="mt-2.5 whitespace-pre-wrap text-sm leading-5" style={{ color: theme.textSecondary }}>{entry.body}</p>
                     <button
                       type="button"
                       onClick={() => onSharePostcard(entry)}
-                      className="premium-tap-card mt-3 inline-flex h-9 items-center gap-2 rounded-md border px-3 text-xs font-semibold"
+                      className="premium-tap-card mt-2.5 inline-flex h-8 items-center gap-2 rounded-md border px-3 text-xs font-semibold"
                       style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
                     >
                       <Share2 size={14} />
@@ -17661,7 +17663,7 @@ function JournalPanel({
                   </article>
                 ))
               ) : (
-                <div className="rounded-lg border border-dashed p-6 text-sm leading-6 md:col-span-2" style={{ borderColor: theme.borderMedium, color: theme.textMuted }}>
+                <div className="rounded-lg border border-dashed p-4 text-sm leading-6 md:col-span-2" style={{ borderColor: theme.borderMedium, color: theme.textMuted }}>
                   {ts('labels.noReflectionsYet')}
                 </div>
               )}
@@ -17678,7 +17680,7 @@ function JournalPanel({
               >
                 <div className="grid gap-3 md:grid-cols-2">
                   {remainingEntries.map((entry) => (
-                    <article key={entry.id} className="rounded-lg border p-4" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
+                    <article key={entry.id} className="rounded-lg border p-3.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <p className="font-semibold" style={{ color: theme.textPrimary }}>{entry.title}</p>
@@ -17694,13 +17696,13 @@ function JournalPanel({
                           <Trash2 size={15} />
                         </button>
                       </div>
-                      <p className="mt-3 whitespace-pre-wrap text-sm leading-6" style={{ color: theme.textSecondary }}>{entry.body}</p>
-                      <button
-                        type="button"
-                        onClick={() => onSharePostcard(entry)}
-                        className="premium-tap-card mt-3 inline-flex h-9 items-center gap-2 rounded-md border px-3 text-xs font-semibold"
-                        style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-                      >
+                    <p className="mt-2.5 whitespace-pre-wrap text-sm leading-5" style={{ color: theme.textSecondary }}>{entry.body}</p>
+                    <button
+                      type="button"
+                      onClick={() => onSharePostcard(entry)}
+                      className="premium-tap-card mt-2.5 inline-flex h-8 items-center gap-2 rounded-md border px-3 text-xs font-semibold"
+                      style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                    >
                         <Share2 size={14} />
                         {ts('labels.createCard')}
                       </button>
