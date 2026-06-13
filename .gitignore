@@ -39,6 +39,11 @@ yarn-error.log*
 # vercel
 .vercel
 
+# mobile signing
+android/keystore.properties
+android/*.jks
+android/*.keystore
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

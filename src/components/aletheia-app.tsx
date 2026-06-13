@@ -55,6 +55,7 @@ import {
   canonicalScriptureReference,
   defaultPreferences,
   defaultBibleTranslationForLanguage,
+  curatedScriptureReferences,
   languageCopy,
   languages,
   localizedDailyWisdom,
@@ -13211,42 +13212,70 @@ function ScriptureModal({
   onReadAloud: () => void;
   onClose: () => void;
 }) {
-  if (!scripture) {
+  const canUsePortal = typeof document !== "undefined";
+  useBodyScrollLock(Boolean(scripture && canUsePortal));
+
+  useEffect(() => {
+    if (!scripture || !canUsePortal || typeof window === "undefined") {
+      return;
+    }
+
+    const handleKeyDown = (event: globalThis.KeyboardEvent) => {
+      if (event.key === "Escape") {
+        onClose();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [canUsePortal, onClose, scripture]);
+
+  if (!scripture || !canUsePortal) {
     return null;
   }
 
   const quickRead = localizedScriptureRead(scripture, preferences);
   const canonicalScripture = canonicalScriptureReference(scripture);
-  const wisdomEntry = wisdomEntries.find((entry) => entry.scripture === canonicalScripture);
-  const localizedEntry = wisdomEntry ? localizedWisdomEntry(wisdomEntry, preferences) : null;
-  const isLocalized = quickRead.availableLanguage === preferences.language;
-  const usesCanonicalRange = canonicalScripture !== scripture;
-  const isSummary = quickRead.kind === "summary";
 
-  return (
-    <div className="fixed inset-0 z-50 grid place-items-end p-3 backdrop-blur-sm sm:place-items-center" style={{ backgroundColor: 'rgba(16, 24, 20, 0.45)' }}>
-      <section className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl border p-4 shadow-2xl sm:p-5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.scriptureQuickRead')}</p>
-            <h2 className="mt-2 text-xl font-semibold" style={{ color: theme.textPrimary }}>{scripture}</h2>
-            <p className="mt-1 text-sm" style={{ color: theme.textSecondary }}>
-              {scriptureDisplayLabel(scripture, preferences)}
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[80] grid min-h-dvh place-items-end overflow-hidden overscroll-none px-3 backdrop-blur-sm sm:place-items-center"
+      style={{
+        backgroundColor: "rgba(13, 23, 20, 0.56)",
+        paddingTop: "calc(env(safe-area-inset-top, 0px) + 0.75rem)",
+        paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 0.75rem)",
+      }}
+      onClick={onClose}
+    >
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="scripture-quick-read-title"
+        className="flex w-full max-w-xl flex-col overflow-hidden rounded-3xl border shadow-2xl"
+        style={{
+          borderColor: theme.borderMedium,
+          backgroundColor: theme.bgCard,
+          maxHeight: "calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 1.5rem)",
+        }}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-4 border-b p-4 sm:p-5" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
+              {ts('labels.scriptureQuickRead')}
             </p>
-            <p className="mt-2 text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
-              {ts('labels.verses')}: {canonicalScripture}
+            <h2 id="scripture-quick-read-title" className="mt-2 text-2xl font-semibold leading-tight" style={{ color: theme.textPrimary }}>
+              {canonicalScripture}
+            </h2>
+            <p className="mt-2 text-sm" style={{ color: theme.textSecondary }}>
+              {scriptureDisplayLabel(canonicalScripture, preferences)}
             </p>
-            {usesCanonicalRange ? (
-              <p className="mt-1 text-xs leading-5" style={{ color: theme.textSecondary }}>
-                {ts('labels.shownFromCuratedRange')} {canonicalScripture}
-              </p>
-            ) : null}
           </div>
-          <div className="flex shrink-0 flex-col items-end gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             <button
               type="button"
               onClick={onReadAloud}
-              className="inline-flex min-h-10 items-center gap-2 rounded-full border px-4 py-2 text-xs font-semibold transition"
+              className="inline-flex h-10 items-center gap-2 rounded-full border px-4 text-xs font-semibold transition"
               style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
             >
               <Volume2 size={15} />
@@ -13263,43 +13292,16 @@ function ScriptureModal({
             </button>
           </div>
         </div>
-        <p className="mt-4 rounded-2xl border p-4 text-sm leading-7" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textPrimary }}>
-          {quickRead.text}
-        </p>
-        {isSummary ? (
-          <p className="mt-3 rounded-2xl border p-3 text-xs leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
-            {ts('labels.fullVerseNotCuratedYet')}
-          </p>
-        ) : !isLocalized ? (
-          <p className="mt-3 rounded-2xl border p-3 text-xs leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
-            {ts('labels.publicDomainReadingNotAvailableYet')}
-          </p>
-        ) : null}
-        <div className="mt-3 grid gap-3 md:grid-cols-2">
-          <div className="rounded-2xl border p-4" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
-            <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.context')}</p>
-            <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
-              {localizedEntry?.context ?? ts('labels.referenceShownBecauseCurated')}
-            </p>
-          </div>
-          <div className="rounded-2xl border p-4" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
-            <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.whyItMattersHere')}</p>
-            <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
-              {localizedEntry?.application ?? ts('labels.useAsWisdomAnchor')}
+        <div className="flex-1 overflow-y-auto p-4 sm:p-5">
+          <div className="rounded-3xl border p-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
+            <p className="whitespace-pre-wrap text-base leading-8 sm:text-lg sm:leading-9" style={{ color: theme.textPrimary }}>
+              {quickRead.text}
             </p>
           </div>
         </div>
-        <div className="mt-3 rounded-2xl border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.primary, color: theme.textOnPrimary }}>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textOnPrimary }}>{ts('labels.relatedPrinciple')}</p>
-          <p className="mt-2 text-sm leading-6" style={{ color: theme.textOnPrimary }}>
-            {localizedEntry?.principle ?? ts('labels.onlyKnownReferences')}
-          </p>
-        </div>
-        <p className="mt-3 text-xs leading-5" style={{ color: theme.textMuted }}>
-          {ts('labels.curatedReadingOrSummary')}
-        </p>
       </section>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -14437,45 +14439,36 @@ function ScriptureChips({
   );
 }
 
-const scriptureBookAliases: Record<string, string[]> = {
-  "Matthew": ["matthew", "mathew", "matt", "mt", "mateo", "mateus", "matthieu", "matthaus", "matthäus", "matiyu"],
-  "Proverbs": ["proverbs", "prov", "proverbios", "provérbios", "proverbes", "spruche", "sprüche", "owe", "ilu", "karin magana"],
-  "Philippians": ["philippians", "phil", "filipenses", "philippiens", "philipper", "filibiyawa", "filipiyawa"],
-  "Luke": ["luke", "lk", "lucas", "luc", "lukas", "luka"],
-  "2 Corinthians": ["2 corinthians", "ii corinthians", "2 cor", "2 corinth", "2 corintios", "2 coríntios", "2 corinthiens", "2 korinther", "2 korintiyawa"],
-};
-
-const scriptureBookAliasLookup = new Map<string, string>();
-Object.entries(scriptureBookAliases).forEach(([canonicalBook, aliases]) => {
-  aliases.forEach((alias) => {
-    scriptureBookAliasLookup.set(alias.toLowerCase().replace(/\.+$/g, "").replace(/\s+/g, " ").trim(), canonicalBook);
-  });
-});
-
-const scriptureTextReferencePattern = /(?:(?:[1-3]\s*)?[\p{L}][\p{L}.'’-]*(?:\s+[\p{L}][\p{L}.'’-]*){0,4})\s+\d+:\d+(?:\s*[-–—]\s*\d+)?/gu;
-
-function normalizeDetectedScriptureReference(reference: string) {
-  const normalized = reference.replace(/[–—]/g, "-").replace(/\s+/g, " ").trim();
-  const match = normalized.match(/^(.+?)\s+(\d+:\d+(?:\s*-\s*\d+)?)$/u);
-  if (!match) {
-    return normalized;
-  }
-
-  const rawBook = match[1].replace(/\.+$/g, "").trim();
-  const aliasKey = rawBook.toLowerCase().replace(/\s+/g, " ");
-  const canonicalBook = scriptureBookAliasLookup.get(aliasKey) ?? rawBook;
-  const chapterAndVerse = match[2].replace(/\s*-\s*/g, "-");
-  return `${canonicalBook} ${chapterAndVerse}`;
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-function scriptureTextMatches(text: string) {
-  return [...text.matchAll(scriptureTextReferencePattern)]
+function normalizeScriptureMatchText(text: string) {
+  return text.replace(/[–—]/g, "-");
+}
+
+function scriptureTextMatches(text: string, allowedScriptures: string[] = curatedScriptureReferences) {
+  const uniqueTargets = [...new Set(allowedScriptures.map((scripture) => canonicalScriptureReference(scripture)))].filter(Boolean);
+  if (!uniqueTargets.length) {
+    return [];
+  }
+
+  const pattern = new RegExp(
+    uniqueTargets
+      .map((scripture) => escapeRegExp(normalizeScriptureMatchText(scripture)))
+      .sort((a, b) => b.length - a.length)
+      .join("|"),
+    "gu"
+  );
+  const normalizedText = normalizeScriptureMatchText(text);
+
+  return [...normalizedText.matchAll(pattern)]
     .map((match) => {
       const label = match[0];
-      const canonical = canonicalScriptureReference(normalizeDetectedScriptureReference(label));
+      const scripture = canonicalScriptureReference(label);
       return {
         label,
-        scripture: canonical,
+        scripture,
         index: match.index ?? 0,
       };
     })
@@ -14485,14 +14478,16 @@ function scriptureTextMatches(text: string) {
 function ScriptureLinkedText({
   theme,
   text,
+  allowedScriptures,
   onScriptureOpen,
 }: {
   theme: ThemeColors;
   text: string;
+  allowedScriptures?: string[];
   onScriptureOpen: (scripture: string) => void;
 }) {
   const cleaned = cleanDisplayText(text);
-  const matches = scriptureTextMatches(cleaned);
+  const matches = scriptureTextMatches(cleaned, allowedScriptures);
 
   if (!matches.length) {
     return <p className="whitespace-pre-wrap text-sm leading-6" style={{ color: theme.textPrimary }}>{cleaned}</p>;
@@ -14850,7 +14845,12 @@ function CurrentCounselCard({
           ) : null}
         </div>
         <div className="calm-prose" style={{ color: theme.textPrimary }}>
-          <ScriptureLinkedText theme={theme} text={answerText} onScriptureOpen={onScriptureOpen} />
+          <ScriptureLinkedText
+            theme={theme}
+            text={answerText}
+            allowedScriptures={exchange.answer.sources?.map((source) => source.scripture)}
+            onScriptureOpen={onScriptureOpen}
+          />
         </div>
         <ScriptureChips theme={theme} sources={exchange.answer.sources} preferences={preferences} onScriptureOpen={onScriptureOpen} />
       </article>
@@ -14985,7 +14985,12 @@ function HistoryExchange({
             <p className="rounded-md p-3 text-sm leading-6" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>{cleanDisplayText(exchange.question.text)}</p>
           ) : null}
           <div className="mt-3">
-            <ScriptureLinkedText theme={theme} text={exchange.answer.text} onScriptureOpen={onScriptureOpen} />
+            <ScriptureLinkedText
+              theme={theme}
+              text={exchange.answer.text}
+              allowedScriptures={exchange.answer.sources?.map((source) => source.scripture)}
+              onScriptureOpen={onScriptureOpen}
+            />
           </div>
           <ScriptureChips theme={theme} sources={exchange.answer.sources} preferences={preferences} onScriptureOpen={onScriptureOpen} />
           {exchange.question ? (

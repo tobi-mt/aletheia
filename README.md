@@ -118,6 +118,31 @@ Open [http://localhost:3001](http://localhost:3001).
 
 The service worker is registered only in production so local development does not get stuck behind stale cached bundles.
 
+## Native Mobile Shells
+
+Aletheia can be packaged for iOS and Android with Capacitor while keeping the hosted app as the source of truth.
+
+Use a production URL when building the native shells:
+
+```bash
+CAPACITOR_SERVER_URL="https://your-production-domain"
+```
+
+Useful commands:
+
+```bash
+npm run mobile:assets
+npm run mobile:sync
+npm run mobile:bundle:android
+npm run mobile:archive:ios
+npm run mobile:open:android
+npm run mobile:open:ios
+```
+
+The `android/` and `ios/` projects are checked in and ready for store signing, screenshots, and platform-specific review work.
+For the launch checklist, start with Google Play in [`GOOGLE_PLAY_LAUNCH_PREP.md`](./GOOGLE_PLAY_LAUNCH_PREP.md).
+Keep [`STORE_LAUNCH_PREP.md`](./STORE_LAUNCH_PREP.md) for the later Apple pass.
+
 ## Google Sign-In With Auth.js
 
 Generate an Auth.js secret:

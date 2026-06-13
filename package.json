@@ -7,6 +7,12 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "mobile:assets": "npx @capacitor/assets generate --assetPath assets --iconBackgroundColor '#eef2ef' --iconBackgroundColorDark '#0e1514' --splashBackgroundColor '#eef2ef' --splashBackgroundColorDark '#0e1514' --logoSplashScale 0.28 --ios --android",
+    "mobile:sync": "cap sync",
+    "mobile:bundle:android": "cd android && ./gradlew bundleRelease",
+    "mobile:archive:ios": "xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release -archivePath build/App.xcarchive archive",
+    "mobile:open:android": "cap open android",
+    "mobile:open:ios": "cap open ios",
     "translations:analyze": "npx ts-node scripts/analyze-translations.ts",
     "translations:audit": "npx ts-node scripts/analyze-translations.ts --strict",
     "ui:regression": "node scripts/ui-regression.mjs",
@@ -32,6 +38,7 @@
     "web-push": "^3.6.7"
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/pg": "^8.20.0",
