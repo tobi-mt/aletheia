@@ -74,7 +74,7 @@ import {
   type UserPreferences,
 } from "@/lib/localization";
 import { modeProfiles, type ModeProfile } from "@/lib/mode-profiles";
-import { wisdomEntries as baseWisdomEntries } from "@/lib/wisdom-data";
+import { wisdomEntries as baseWisdomEntries, type WisdomEntryData } from "@/lib/wisdom-data";
 import { defaultManualContext, manualContextCounselSignals, manualContextHasContent, normalizeManualContext, type ManualContextProfile } from "@/lib/manual-context";
 import type { Mode } from "@/lib/wisdom-data";
 import { analyticsQuestionMetadata } from "@/lib/analytics-taxonomy";
@@ -8078,7 +8078,7 @@ export function AletheiaApp() {
         }}
       />
       <CounselRemovalConfirmModal
-        key={counselRemovalPrompt?.contactId ?? "none"}
+        key={`counsel-removal:${counselRemovalPrompt?.contactId ?? "closed"}`}
         theme={theme}
         ts={ts}
         pending={counselRemovalPrompt}
@@ -8087,6 +8087,7 @@ export function AletheiaApp() {
         onConfirm={confirmCounselContactRemoval}
       />
       <ScriptureModal
+        key={`scripture:${selectedScripture ?? "closed"}`}
         theme={theme}
         scripture={selectedScripture}
         preferences={preferences}
@@ -8102,6 +8103,7 @@ export function AletheiaApp() {
             scriptureDisplayLabel(selectedScripture, preferences)
           );
         }}
+        onScriptureOpen={openScripture}
         onClose={() => setSelectedScripture(null)}
       />
       <DeleteAccountModal
@@ -13203,6 +13205,7 @@ function ScriptureModal({
   preferences,
   ts,
   onReadAloud,
+  onScriptureOpen,
   onClose,
 }: {
   theme: ThemeColors;
@@ -13210,9 +13213,12 @@ function ScriptureModal({
   preferences: UserPreferences;
   ts: (key: string, fallback?: string) => string;
   onReadAloud: () => void;
+  onScriptureOpen: (scripture: string) => void;
   onClose: () => void;
 }) {
   const canUsePortal = typeof document !== "undefined";
+  const [view, setView] = useState<"quick" | "deep">("quick");
+  const contentRef = useRef<HTMLDivElement | null>(null);
   useBodyScrollLock(Boolean(scripture && canUsePortal));
 
   useEffect(() => {
@@ -13230,12 +13236,20 @@ function ScriptureModal({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [canUsePortal, onClose, scripture]);
 
+  useEffect(() => {
+    contentRef.current?.scrollTo({ top: 0, behavior: "auto" });
+  }, [scripture, view]);
+
   if (!scripture || !canUsePortal) {
     return null;
   }
 
   const quickRead = localizedScriptureRead(scripture, preferences);
   const canonicalScripture = canonicalScriptureReference(scripture);
+  const studyModeTitle = ts('labels.scriptureStudyMode', 'Study Mode');
+  const studyModeSubtitle = ts('labels.scriptureStudyModeSubtitle', 'Explore the meaning, context, and connected scriptures.');
+  const studyModeButton = ts('labels.diveDeep', 'Dive Deep');
+  const backToQuickRead = ts('labels.backToQuickRead', 'Back to Quick Read');
 
   return createPortal(
     <div
@@ -13250,7 +13264,7 @@ function ScriptureModal({
       <section
         role="dialog"
         aria-modal="true"
-        aria-labelledby="scripture-quick-read-title"
+        aria-labelledby={view === "quick" ? "scripture-quick-read-title" : "scripture-study-mode-title"}
         className="flex w-full max-w-xl flex-col overflow-hidden rounded-3xl border shadow-2xl"
         style={{
           borderColor: theme.borderMedium,
@@ -13261,17 +13275,33 @@ function ScriptureModal({
       >
         <div className="flex items-start justify-between gap-4 border-b p-4 sm:p-5" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
           <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
-              {ts('labels.scriptureQuickRead')}
-            </p>
-            <h2 id="scripture-quick-read-title" className="mt-2 text-2xl font-semibold leading-tight" style={{ color: theme.textPrimary }}>
-              {canonicalScripture}
-            </h2>
-            <p className="mt-2 text-sm" style={{ color: theme.textSecondary }}>
-              {scriptureDisplayLabel(canonicalScripture, preferences)}
-            </p>
+            {view === "quick" ? (
+              <>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
+                  {ts('labels.scriptureQuickRead')}
+                </p>
+                <h2 id="scripture-quick-read-title" className="mt-2 text-2xl font-semibold leading-tight" style={{ color: theme.textPrimary }}>
+                  {canonicalScripture}
+                </h2>
+                <p className="mt-2 text-sm" style={{ color: theme.textSecondary }}>
+                  {scriptureDisplayLabel(canonicalScripture, preferences)}
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
+                  {studyModeTitle}
+                </p>
+                <h2 id="scripture-study-mode-title" className="mt-2 text-2xl font-semibold leading-tight" style={{ color: theme.textPrimary }}>
+                  {studyModeTitle}
+                </h2>
+                <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                  {studyModeSubtitle}
+                </p>
+              </>
+            )}
           </div>
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
             <button
               type="button"
               onClick={onReadAloud}
@@ -13281,6 +13311,25 @@ function ScriptureModal({
               <Volume2 size={15} />
               {ts('labels.readScriptureAloud')}
             </button>
+            {view === "quick" ? (
+              <button
+                type="button"
+                onClick={() => setView("deep")}
+                className="inline-flex h-10 items-center rounded-full border px-4 text-xs font-semibold transition"
+                style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+              >
+                {studyModeButton}
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setView("quick")}
+                className="inline-flex h-10 items-center rounded-full border px-4 text-xs font-semibold transition"
+                style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+              >
+                {backToQuickRead}
+              </button>
+            )}
             <button
               type="button"
               onClick={onClose}
@@ -13292,12 +13341,51 @@ function ScriptureModal({
             </button>
           </div>
         </div>
-        <div className="flex-1 overflow-y-auto p-4 sm:p-5">
-          <div className="rounded-3xl border p-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
-            <p className="whitespace-pre-wrap text-base leading-8 sm:text-lg sm:leading-9" style={{ color: theme.textPrimary }}>
-              {quickRead.text}
-            </p>
-          </div>
+        <div ref={contentRef} className="flex-1 overflow-y-auto p-4 sm:p-5">
+          <AnimatePresence mode="wait" initial={false}>
+            {view === "quick" ? (
+              <motion.div
+                key="quick"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.18, ease: "easeOut" }}
+              >
+                <div className="rounded-3xl border p-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
+                  {quickRead.verses?.length ? (
+                    <div className="space-y-4">
+                      {quickRead.verses.map((verse) => (
+                        <div key={verse.verse} className="flex gap-3">
+                          <div
+                            className="mt-0.5 inline-flex h-7 min-w-7 shrink-0 items-center justify-center rounded-full border px-2 text-xs font-semibold"
+                            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.accentGold }}
+                          >
+                            {verse.verse}
+                          </div>
+                          <p className="flex-1 text-base leading-8 sm:text-lg sm:leading-9" style={{ color: theme.textPrimary }}>
+                            {verse.text}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="whitespace-pre-wrap text-base leading-8 sm:text-lg sm:leading-9" style={{ color: theme.textPrimary }}>
+                      {quickRead.text}
+                    </p>
+                  )}
+                </div>
+              </motion.div>
+            ) : (
+              <ScriptureStudyMode
+                key="study"
+                theme={theme}
+                scripture={scripture}
+                preferences={preferences}
+                ts={ts}
+                onScriptureOpen={onScriptureOpen}
+              />
+            )}
+          </AnimatePresence>
         </div>
       </section>
     </div>,
@@ -14520,6 +14608,183 @@ function ScriptureLinkedText({
   }
 
   return <p className="whitespace-pre-wrap text-sm leading-6" style={{ color: theme.textPrimary }}>{nodes}</p>;
+}
+
+type ScriptureStudyGuide = {
+  meaning: string;
+  context: string;
+  whyItMatters: string;
+  nextStep: string;
+  related: Array<{
+    scripture: string;
+    theme: string;
+    principle: string;
+  }>;
+};
+
+function scoreRelatedScripture(current: WisdomEntryData, candidate: WisdomEntryData) {
+  const currentKeywords = current.keywords.map((keyword) => keyword.toLowerCase());
+  const currentEmotions = current.emotions.map((emotion) => emotion.toLowerCase());
+  const candidateText = [
+    candidate.theme,
+    candidate.principle,
+    candidate.context,
+    candidate.application,
+    ...candidate.keywords,
+    ...candidate.emotions,
+  ]
+    .join(" ")
+    .toLowerCase();
+
+  let score = 0;
+  if (candidate.theme.toLowerCase() === current.theme.toLowerCase()) {
+    score += 8;
+  }
+  if (candidateText.includes(current.theme.toLowerCase())) {
+    score += 3;
+  }
+
+  currentKeywords.forEach((keyword) => {
+    if (candidateText.includes(keyword)) {
+      score += 3;
+    }
+  });
+
+  currentEmotions.forEach((emotion) => {
+    if (candidateText.includes(emotion)) {
+      score += 1;
+    }
+  });
+
+  return score;
+}
+
+function buildScriptureStudyGuide(scripture: string, preferences: UserPreferences): ScriptureStudyGuide {
+  const canonical = canonicalScriptureReference(scripture);
+  const sourceEntry = baseWisdomEntries.find((entry) => canonicalScriptureReference(entry.scripture) === canonical) ?? baseWisdomEntries[0];
+  const current = localizedWisdomEntry(sourceEntry, preferences);
+
+  const related = baseWisdomEntries
+    .filter((entry) => canonicalScriptureReference(entry.scripture) !== canonical)
+    .map((entry) => {
+      const localized = localizedWisdomEntry(entry, preferences);
+      return {
+        scripture: localized.scripture,
+        theme: localized.theme,
+        principle: localized.principle,
+        score: scoreRelatedScripture(current, localized),
+      };
+    })
+    .sort((left, right) => right.score - left.score)
+    .slice(0, 5)
+    .map(({ score, ...entry }) => {
+      void score;
+      return entry;
+    });
+
+  return {
+    meaning: current.principle,
+    context: current.context,
+    whyItMatters: current.application,
+    nextStep:
+      current.questions[0]
+        ? current.questions[0]
+        : "Take one small faithful step that reflects this passage today.",
+    related,
+  };
+}
+
+function ScriptureStudyMode({
+  theme,
+  scripture,
+  preferences,
+  ts,
+  onScriptureOpen,
+}: {
+  theme: ThemeColors;
+  scripture: string;
+  preferences: UserPreferences;
+  ts: (key: string, fallback?: string) => string;
+  onScriptureOpen: (scripture: string) => void;
+}) {
+  const studyGuide = buildScriptureStudyGuide(scripture, preferences);
+  const quickRead = localizedScriptureRead(scripture, preferences);
+  const whatItSays = ts('labels.whatThisPassageIsSaying', 'What this passage is saying');
+  const whyItMatters = ts('labels.whyItMatters', 'Why it matters');
+  const relatedScriptures = ts('labels.relatedScriptures', 'Related scriptures');
+  const wiseNextStep = ts('labels.aWiseNextStep', 'A wise next step');
+
+  return (
+    <motion.div
+      key="study"
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }}
+      transition={{ duration: 0.18, ease: "easeOut" }}
+      className="space-y-4"
+    >
+      <section className="rounded-3xl border p-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
+        <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+          {whatItSays}
+        </p>
+        <p className="mt-3 text-base leading-8 sm:text-lg sm:leading-9" style={{ color: theme.textPrimary }}>
+          {studyGuide.meaning}
+        </p>
+        <p className="mt-4 text-sm leading-7" style={{ color: theme.textSecondary }}>
+          {studyGuide.context}
+        </p>
+      </section>
+
+      <section className="rounded-3xl border p-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
+        <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+          {whyItMatters}
+        </p>
+        <p className="mt-3 text-base leading-8 sm:text-lg sm:leading-9" style={{ color: theme.textPrimary }}>
+          {studyGuide.whyItMatters}
+        </p>
+      </section>
+
+      <section className="rounded-3xl border p-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
+        <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+          {relatedScriptures}
+        </p>
+        <div className="mt-4 space-y-3">
+          {studyGuide.related.map((related) => (
+            <button
+              key={related.scripture}
+              type="button"
+              onClick={() => onScriptureOpen(related.scripture)}
+              className="w-full rounded-2xl border p-4 text-left transition hover:-translate-y-px"
+              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textPrimary }}
+            >
+              <p className="text-sm font-semibold">{related.scripture}</p>
+              <p className="mt-1 text-sm" style={{ color: theme.textSecondary }}>
+                {related.theme}
+              </p>
+              <p className="mt-2 text-sm leading-6" style={{ color: theme.textPrimary }}>
+                {related.principle}
+              </p>
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section className="rounded-3xl border p-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
+        <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+          {wiseNextStep}
+        </p>
+        <p className="mt-3 text-base leading-8 sm:text-lg sm:leading-9" style={{ color: theme.textPrimary }}>
+          {studyGuide.nextStep}
+        </p>
+      </section>
+
+      {quickRead.kind === "unavailable" ? (
+        <p className="px-1 text-xs leading-5" style={{ color: theme.textSecondary }}>
+          {quickRead.text}
+        </p>
+      ) : null}
+    </motion.div>
+  );
 }
 
 function TrustLayerPanel({ theme, ui }: { theme: ThemeColors; ui: (typeof uiText)[LanguageCode] }) {

@@ -204,7 +204,11 @@ export type ScriptureRead = {
   label: string;
   text: string;
   availableLanguage: LanguageCode;
-  kind?: "translation" | "summary";
+  kind?: "translation" | "passage" | "unavailable";
+  verses?: Array<{
+    verse: string;
+    text: string;
+  }>;
 };
 
 export const scriptureQuickReads: Record<
@@ -260,13 +264,211 @@ export const scriptureQuickReads: Record<
 export const curatedScriptureReferences = Object.keys(scriptureQuickReads).sort((a, b) => b.length - a.length);
 
 const localizedScriptureReads: Partial<Record<BibleTranslation, Record<string, ScriptureRead>>> = {
+  WEB: {
+    "Matthew 25:14-30": {
+      translation: "WEB",
+      label: "World English Bible",
+      availableLanguage: "en",
+      verses: [
+        {
+          verse: "14",
+          text: "For it is like a man going into another country, who called his own servants and entrusted his goods to them.",
+        },
+        {
+          verse: "15",
+          text: "To one he gave five talents, to another two, to another one, to each according to his own ability. Then he went on his journey.",
+        },
+        {
+          verse: "16",
+          text: "Immediately he who received the five talents went and traded with them, and made another five talents.",
+        },
+        {
+          verse: "17",
+          text: "In the same way, he also who got the two gained another two.",
+        },
+        {
+          verse: "18",
+          text: "But he who received the one talent went away and dug in the earth and hid his lord's money.",
+        },
+        {
+          verse: "19",
+          text: "Now after a long time the lord of those servants came, and settled accounts with them.",
+        },
+        {
+          verse: "20",
+          text: "He who received the five talents came and brought another five talents, saying, 'Lord, you delivered to me five talents. Behold, I have gained another five talents in addition to them.'",
+        },
+        {
+          verse: "21",
+          text: "His lord said to him, 'Well done, good and faithful servant. You have been faithful over a few things. I will set you over many things. Enter into the joy of your lord.'",
+        },
+        {
+          verse: "22",
+          text: "He also who got the two talents came and said, 'Lord, you delivered to me two talents. Behold, I have gained another two talents in addition to them.'",
+        },
+        {
+          verse: "23",
+          text: "His lord said to him, 'Well done, good and faithful servant. You have been faithful over a few things. I will set you over many things. Enter into the joy of your lord.'",
+        },
+        {
+          verse: "24",
+          text: "He also who had received the one talent came and said, 'Lord, I knew you that you are a hard man, reaping where you didn't sow, and gathering where you didn't scatter.",
+        },
+        {
+          verse: "25",
+          text: "I was afraid, and went away and hid your talent in the earth. Behold, you have what is yours.'",
+        },
+        {
+          verse: "26",
+          text: "But his lord answered him, 'You wicked and slothful servant. You knew that I reap where I didn't sow, and gather where I didn't scatter.",
+        },
+        {
+          verse: "27",
+          text: "You ought therefore to have deposited my money with the bankers, and at my coming I should have received back my own with interest.",
+        },
+        {
+          verse: "28",
+          text: "Take away therefore the talent from him and give it to him who has the ten talents.",
+        },
+        {
+          verse: "29",
+          text: "For to everyone who has will be given, and he will have abundance, but from him who doesn't have, even that which he has will be taken away.",
+        },
+        {
+          verse: "30",
+          text: "Throw out the unprofitable servant into the outer darkness, where there will be weeping and gnashing of teeth.",
+        },
+      ],
+      text:
+        "14 For it is like a man going into another country, who called his own servants and entrusted his goods to them. 15 To one he gave five talents, to another two, to another one, to each according to his own ability. Then he went on his journey. 16 Immediately he who received the five talents went and traded with them, and made another five talents. 17 In the same way, he also who got the two gained another two. 18 But he who received the one talent went away and dug in the earth and hid his lord's money. 19 Now after a long time the lord of those servants came, and settled accounts with them. 20 He who received the five talents came and brought another five talents, saying, 'Lord, you delivered to me five talents. Behold, I have gained another five talents in addition to them.' 21 His lord said to him, 'Well done, good and faithful servant. You have been faithful over a few things. I will set you over many things. Enter into the joy of your lord.' 22 He also who got the two talents came and said, 'Lord, you delivered to me two talents. Behold, I have gained another two talents in addition to them.' 23 His lord said to him, 'Well done, good and faithful servant. You have been faithful over a few things. I will set you over many things. Enter into the joy of your lord.' 24 He also who had received the one talent came and said, 'Lord, I knew you that you are a hard man, reaping where you didn't sow, and gathering where you didn't scatter. 25 I was afraid, and went away and hid your talent in the earth. Behold, you have what is yours.' 26 But his lord answered him, 'You wicked and slothful servant. You knew that I reap where I didn't sow, and gather where I didn't scatter. 27 You ought therefore to have deposited my money with the bankers, and at my coming I should have received back my own with interest. 28 Take away therefore the talent from him and give it to him who has the ten talents. 29 For to everyone who has will be given, and he will have abundance, but from him who doesn't have, even that which he has will be taken away. 30 Throw out the unprofitable servant into the outer darkness, where there will be weeping and gnashing of teeth.",
+    },
+    "Matthew 6:25-34": {
+      translation: "WEB",
+      label: "World English Bible",
+      availableLanguage: "en",
+      verses: [
+        {
+          verse: "25",
+          text: "Therefore, I tell you, don't be anxious for your life: what you will eat, or what you will drink; nor yet for your body, what you will wear. Isn't life more than food, and the body more than clothing?",
+        },
+        {
+          verse: "26",
+          text: "See the birds of the sky, that they don't sow, neither do they reap, nor gather into barns. Your heavenly Father feeds them. Aren't you of much more value than they?",
+        },
+        {
+          verse: "27",
+          text: "Which of you by being anxious can add one moment to his lifespan?",
+        },
+        {
+          verse: "28",
+          text: "Why are you anxious about clothing? Consider the lilies of the field, how they grow. They don't toil, neither do they spin,",
+        },
+        {
+          verse: "29",
+          text: "yet I tell you that even Solomon in all his glory was not dressed like one of these.",
+        },
+        {
+          verse: "30",
+          text: "But if God so clothes the grass of the field, which today exists and tomorrow is thrown into the oven, won't he much more clothe you, you of little faith?",
+        },
+        {
+          verse: "31",
+          text: "Therefore don't be anxious, saying, 'What will we eat?', 'What will we drink?' or, 'With what will we be clothed?'",
+        },
+        {
+          verse: "32",
+          text: "For the Gentiles seek after all these things; for your heavenly Father knows that you need all these things.",
+        },
+        {
+          verse: "33",
+          text: "But seek first God's Kingdom, and his righteousness; and all these things will be given to you as well.",
+        },
+        {
+          verse: "34",
+          text: "Therefore don't be anxious for tomorrow, for tomorrow will be anxious for itself. Each day's own evil is sufficient.",
+        },
+      ],
+      text:
+        "25 Therefore, I tell you, don't be anxious for your life: what you will eat, or what you will drink; nor yet for your body, what you will wear. Isn't life more than food, and the body more than clothing? 26 See the birds of the sky, that they don't sow, neither do they reap, nor gather into barns. Your heavenly Father feeds them. Aren't you of much more value than they? 27 Which of you by being anxious can add one moment to his lifespan? 28 Why are you anxious about clothing? Consider the lilies of the field, how they grow. They don't toil, neither do they spin, 29 yet I tell you that even Solomon in all his glory was not dressed like one of these. 30 But if God so clothes the grass of the field, which today exists and tomorrow is thrown into the oven, won't he much more clothe you, you of little faith? 31 Therefore don't be anxious, saying, 'What will we eat?', 'What will we drink?' or, 'With what will we be clothed?' 32 For the Gentiles seek after all these things; for your heavenly Father knows that you need all these things. 33 But seek first God's Kingdom, and his righteousness; and all these things will be given to you as well. 34 Therefore don't be anxious for tomorrow, for tomorrow will be anxious for itself. Each day's own evil is sufficient.",
+    },
+  },
   KJV: {
     "Matthew 25:14-30": {
       translation: "KJV",
       label: "King James Version",
       availableLanguage: "en",
+      verses: [
+        {
+          verse: "14",
+          text: "For the kingdom of heaven is as a man travelling into a far country, who called his own servants, and delivered unto them his goods.",
+        },
+        {
+          verse: "15",
+          text: "And unto one he gave five talents, to another two, and to another one; to every man according to his several ability; and straightway took his journey.",
+        },
+        {
+          verse: "16",
+          text: "Then he that had received the five talents went and traded with the same, and made them other five talents.",
+        },
+        {
+          verse: "17",
+          text: "And likewise he that had received two, he also gained other two.",
+        },
+        {
+          verse: "18",
+          text: "But he that had received one went and digged in the earth, and hid his lord's money.",
+        },
+        {
+          verse: "19",
+          text: "After a long time the lord of those servants cometh, and reckoneth with them.",
+        },
+        {
+          verse: "20",
+          text: "And so he that had received five talents came and brought other five talents, saying, Lord, thou deliveredst unto me five talents: behold, I have gained beside them five talents more.",
+        },
+        {
+          verse: "21",
+          text: "His lord said unto him, Well done, thou good and faithful servant: thou hast been faithful over a few things, I will make thee ruler over many things: enter thou into the joy of thy lord.",
+        },
+        {
+          verse: "22",
+          text: "He also that had received two talents came and said, Lord, thou deliveredst unto me two talents: behold, I have gained two other talents beside them.",
+        },
+        {
+          verse: "23",
+          text: "His lord said unto him, Well done, good and faithful servant; thou hast been faithful over a few things, I will make thee ruler over many things: enter thou into the joy of thy lord.",
+        },
+        {
+          verse: "24",
+          text: "Then he which had received the one talent came and said, Lord, I knew thee that thou art an hard man, reaping where thou hast not sown, and gathering where thou hast not strawed:",
+        },
+        {
+          verse: "25",
+          text: "And I was afraid, and went and hid thy talent in the earth: lo, there thou hast that is thine.",
+        },
+        {
+          verse: "26",
+          text: "His lord answered and said unto him, Thou wicked and slothful servant, thou knewest that I reap where I sowed not, and gather where I have not strawed:",
+        },
+        {
+          verse: "27",
+          text: "Thou oughtest therefore to have put my money to the exchangers, and then at my coming I should have received mine own with usury.",
+        },
+        {
+          verse: "28",
+          text: "Take therefore the talent from him, and give it unto him which hath ten talents.",
+        },
+        {
+          verse: "29",
+          text: "For unto every one that hath shall be given, and he shall have abundance: but from him that hath not shall be taken away even that which he hath.",
+        },
+        {
+          verse: "30",
+          text: "And cast ye the unprofitable servant into outer darkness: there shall be weeping and gnashing of teeth.",
+        },
+      ],
       text:
-        "For the kingdom of heaven is as a man travelling into a far country, who called his own servants, and delivered unto them his goods. And unto one he gave five talents, to another two, and to another one; to every man according to his several ability; and straightway took his journey. Then he that had received the five talents went and traded with the same, and made them other five talents. And likewise he that had received two, he also gained other two. But he that had received one went and digged in the earth, and hid his lord's money. After a long time the lord of those servants cometh, and reckoneth with them. And so he that had received five talents came and brought other five talents, saying, Lord, thou deliveredst unto me five talents: behold, I have gained beside them five talents more. His lord said unto him, Well done, thou good and faithful servant: thou hast been faithful over a few things, I will make thee ruler over many things: enter thou into the joy of thy lord. He also that had received two talents came and said, Lord, thou deliveredst unto me two talents: behold, I have gained two other talents beside them. His lord said unto him, Well done, good and faithful servant; thou hast been faithful over a few things, I will make thee ruler over many things: enter thou into the joy of thy lord. Then he which had received the one talent came and said, Lord, I knew thee that thou art an hard man, reaping where thou hast not sown, and gathering where thou hast not strawed: And I was afraid, and went and hid thy talent in the earth: lo, there thou hast that is thine. His lord answered and said unto him, Thou wicked and slothful servant, thou knewest that I reap where I sowed not, and gather where I have not strawed: Thou oughtest therefore to have put my money to the exchangers, and then at my coming I should have received mine own with usury. Take therefore the talent from him, and give it unto him which hath ten talents. For unto every one that hath shall be given, and he shall have abundance: but from him that hath not shall be taken away even that which he hath. And cast ye the unprofitable servant into outer darkness: there shall be weeping and gnashing of teeth.",
+        "14 For the kingdom of heaven is as a man travelling into a far country, who called his own servants, and delivered unto them his goods. 15 And unto one he gave five talents, to another two, and to another one; to every man according to his several ability; and straightway took his journey. 16 Then he that had received the five talents went and traded with the same, and made them other five talents. 17 And likewise he that had received two, he also gained other two. 18 But he that had received one went and digged in the earth, and hid his lord's money. 19 After a long time the lord of those servants cometh, and reckoneth with them. 20 And so he that had received five talents came and brought other five talents, saying, Lord, thou deliveredst unto me five talents: behold, I have gained beside them five talents more. 21 His lord said unto him, Well done, thou good and faithful servant: thou hast been faithful over a few things, I will make thee ruler over many things: enter thou into the joy of thy lord. 22 He also that had received two talents came and said, Lord, thou deliveredst unto me two talents: behold, I have gained two other talents beside them. 23 His lord said unto him, Well done, good and faithful servant; thou hast been faithful over a few things, I will make thee ruler over many things: enter thou into the joy of thy lord. 24 Then he which had received the one talent came and said, Lord, I knew thee that thou art an hard man, reaping where thou hast not sown, and gathering where thou hast not strawed: 25 And I was afraid, and went and hid thy talent in the earth: lo, there thou hast that is thine. 26 His lord answered and said unto him, Thou wicked and slothful servant, thou knewest that I reap where I sowed not, and gather where I have not strawed: 27 Thou oughtest therefore to have put my money to the exchangers, and then at my coming I should have received mine own with usury. 28 Take therefore the talent from him, and give it unto him which hath ten talents. 29 For unto every one that hath shall be given, and he shall have abundance: but from him that hath not shall be taken away even that which he hath. 30 And cast ye the unprofitable servant into outer darkness: there shall be weeping and gnashing of teeth.",
     },
     "Proverbs 22:7": {
       translation: "KJV",
@@ -310,8 +512,50 @@ const localizedScriptureReads: Partial<Record<BibleTranslation, Record<string, S
       translation: "KJV",
       label: "King James Version",
       availableLanguage: "en",
+      verses: [
+        {
+          verse: "25",
+          text: "Therefore I say unto you, Take no thought for your life, what ye shall eat, or what ye shall drink; nor yet for your body, what ye shall put on. Is not the life more than meat, and the body than raiment?",
+        },
+        {
+          verse: "26",
+          text: "Behold the fowls of the air: for they sow not, neither do they reap, nor gather into barns; yet your heavenly Father feedeth them. Are ye not much better than they?",
+        },
+        {
+          verse: "27",
+          text: "Which of you by taking thought can add one cubit unto his stature?",
+        },
+        {
+          verse: "28",
+          text: "And why take ye thought for raiment? Consider the lilies of the field, how they grow; they toil not, neither do they spin:",
+        },
+        {
+          verse: "29",
+          text: "And yet I say unto you, That even Solomon in all his glory was not arrayed like one of these.",
+        },
+        {
+          verse: "30",
+          text: "Wherefore, if God so clothe the grass of the field, which to day is, and to morrow is cast into the oven, shall he not much more clothe you, O ye of little faith?",
+        },
+        {
+          verse: "31",
+          text: "Therefore take no thought, saying, What shall we eat? or, What shall we drink? or, Wherewithal shall we be clothed?",
+        },
+        {
+          verse: "32",
+          text: "For after all these things do the Gentiles seek: for your heavenly Father knoweth that ye have need of all these things.",
+        },
+        {
+          verse: "33",
+          text: "But seek ye first the kingdom of God, and his righteousness; and all these things shall be added unto you.",
+        },
+        {
+          verse: "34",
+          text: "Take therefore no thought for the morrow: for the morrow shall take thought for the things of itself. Sufficient unto the day is the evil thereof.",
+        },
+      ],
       text:
-        "Therefore I say unto you, Take no thought for your life, what ye shall eat, or what ye shall drink; nor yet for your body, what ye shall put on. Is not the life more than meat, and the body than raiment? Behold the fowls of the air: for they sow not, neither do they reap, nor gather into barns; yet your heavenly Father feedeth them. Are ye not much better than they? Which of you by taking thought can add one cubit unto his stature? And why take ye thought for raiment? Consider the lilies of the field, how they grow; they toil not, neither do they spin: And yet I say unto you, That even Solomon in all his glory was not arrayed like one of these. Wherefore, if God so clothe the grass of the field, which to day is, and to morrow is cast into the oven, shall he not much more clothe you, O ye of little faith? Therefore take no thought, saying, What shall we eat? or, What shall we drink? or, Wherewithal shall we be clothed? For after all these things do the Gentiles seek: for your heavenly Father knoweth that ye have need of all these things. But seek ye first the kingdom of God, and his righteousness; and all these things shall be added unto you. Take therefore no thought for the morrow: for the morrow shall take thought for the things of itself. Sufficient unto the day is the evil thereof.",
+        "25 Therefore I say unto you, Take no thought for your life, what ye shall eat, or what ye shall drink; nor yet for your body, what ye shall put on. Is not the life more than meat, and the body than raiment? 26 Behold the fowls of the air: for they sow not, neither do they reap, nor gather into barns; yet your heavenly Father feedeth them. Are ye not much better than they? 27 Which of you by taking thought can add one cubit unto his stature? 28 And why take ye thought for raiment? Consider the lilies of the field, how they grow; they toil not, neither do they spin: 29 And yet I say unto you, That even Solomon in all his glory was not arrayed like one of these. 30 Wherefore, if God so clothe the grass of the field, which to day is, and to morrow is cast into the oven, shall he not much more clothe you, O ye of little faith? 31 Therefore take no thought, saying, What shall we eat? or, What shall we drink? or, Wherewithal shall we be clothed? 32 For after all these things do the Gentiles seek: for your heavenly Father knoweth that ye have need of all these things. 33 But seek ye first the kingdom of God, and his righteousness; and all these things shall be added unto you. 34 Take therefore no thought for the morrow: for the morrow shall take thought for the things of itself. Sufficient unto the day is the evil thereof.",
     },
   },
   RV1909: {
@@ -550,70 +794,53 @@ export function localizedScriptureRead(scripture: string, preferences: UserPrefe
   const canonical = canonicalScriptureReference(scripture);
   const localized = localizedScriptureReads[preferences.bibleTranslation]?.[canonical];
   if (localized) {
-    return { ...localized, kind: "translation" };
-  }
-
-  const localizedSummary = localizedScriptureSummaries[preferences.language]?.[canonical];
-  const preferredTranslation = bibleTranslations[preferences.bibleTranslation] ?? bibleTranslations.WEB;
-  const labelCopy = localizedScriptureLabelCopy[preferences.language] ?? localizedScriptureLabelCopy.en;
-  if (localizedSummary) {
     return {
-      translation: preferences.bibleTranslation,
-      label: `${preferredTranslation.label} ${labelCopy.summary}`,
-      text: localizedSummary,
-      availableLanguage: preferences.language,
-      kind: "summary",
+      ...localized,
+      kind: localized.verses?.length ? "passage" : "translation",
     };
   }
 
+  const preferredTranslation = bibleTranslations[preferences.bibleTranslation] ?? bibleTranslations.WEB;
   const fallback = scriptureQuickReads[canonical];
-  if (fallback && preferences.bibleTranslation !== fallback.translation) {
+  if (fallback && preferences.bibleTranslation === fallback.translation && fallback.label !== "Selected reading") {
     return {
-      translation: preferences.bibleTranslation,
-      label: `${preferredTranslation.label} ${labelCopy.summary}`,
-      text: preferences.language === "en" ? fallback.text : localizedScriptureFallbackText[preferences.language],
+      translation: fallback.translation,
+      label: fallback.label,
+      text: fallback.text,
       availableLanguage: preferences.language,
-      kind: "summary",
+      kind: "translation",
     };
   }
 
   return {
-    translation: fallback?.translation ?? preferences.bibleTranslation,
-    label: fallback?.label ?? labelCopy.curatedReference,
-    text:
-      fallback?.text ?? localizedScriptureFallbackText[preferences.language],
+    translation: preferences.bibleTranslation,
+    label: preferredTranslation.label,
+    text: localizedScriptureFallbackText[preferences.language],
     availableLanguage: preferences.language,
-    kind: fallback?.label === "Selected reading" ? "summary" : "translation",
+    kind: "unavailable",
   };
 }
 
 export function scriptureTranslationLabel(scripture: string, preferences: UserPreferences) {
   const read = localizedScriptureRead(scripture, preferences);
   const language = languages[read.availableLanguage] ?? languages.en;
-  const labelCopy = localizedScriptureLabelCopy[preferences.language] ?? localizedScriptureLabelCopy.en;
-  if (read.kind === "summary") {
+  if (read.kind === "unavailable") {
     const translation = bibleTranslations[read.translation as BibleTranslation] ?? bibleTranslations.WEB;
-    return `${translation.label} ${labelCopy.summary}`;
+    return translation.label;
   }
-  const fallbackLabel =
-    read.translation === preferences.bibleTranslation && read.availableLanguage === preferences.language
-      ? ""
-      : ` ${labelCopy.fallback}`;
-
-  return `${read.translation} ${language.name}${fallbackLabel}`;
+  return `${read.translation} ${language.name}`;
 }
 
 export function scriptureDisplayLabel(scripture: string, preferences: UserPreferences) {
   const read = localizedScriptureRead(scripture, preferences);
   const preferredTranslation = bibleTranslations[preferences.bibleTranslation] ?? bibleTranslations.WEB;
-  const labelCopy = localizedScriptureLabelCopy[preferences.language] ?? localizedScriptureLabelCopy.en;
 
-  if (read.kind === "translation") {
+  if (read.kind === "translation" || read.kind === "passage") {
     return preferredTranslation.label;
   }
 
-  if (read.kind === "summary") {
-    return `${preferredTranslation.label} ${labelCopy.summary}`;
+  if (read.kind === "unavailable") {
+    return preferredTranslation.label;
   }
 
   return preferredTranslation.label;
@@ -806,17 +1033,6 @@ const localizedWisdomThemes: Partial<Record<LanguageCode, Record<string, string>
     Diligence: "Sorgfalt",
     "Provision and Anxiety": "Versorgung und Sorge",
   },
-};
-
-const localizedScriptureLabelCopy: Record<LanguageCode, { summary: string; fallback: string; curatedReference: string }> = {
-  en: { summary: "summary", fallback: "fallback", curatedReference: "Curated wisdom reference" },
-  es: { summary: "resumen", fallback: "respaldo", curatedReference: "Referencia de sabiduria curada" },
-  fr: { summary: "resume", fallback: "repli", curatedReference: "Reference de sagesse selectionnee" },
-  pt: { summary: "resumo", fallback: "reserva", curatedReference: "Referencia de sabedoria curada" },
-  de: { summary: "Zusammenfassung", fallback: "Ersatz", curatedReference: "Kuratiertes Weisheitsreferenz" },
-  yo: { summary: "akotan", fallback: "afowose", curatedReference: "Itokasi ogbon ti a yan" },
-  ig: { summary: "nchikota", fallback: "ndabere", curatedReference: "Ntughari amamihe ahoputara" },
-  ha: { summary: "takaitawa", fallback: "madadi", curatedReference: "Nassin hikima da aka tace" },
 };
 
 const localizedScriptureFallbackText: Record<LanguageCode, string> = {
