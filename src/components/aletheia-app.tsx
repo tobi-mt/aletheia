@@ -6171,7 +6171,6 @@ function TodayVisualPanel({
   month,
   dayOfWeek,
   theme,
-  caption,
 }: {
   themeName: string;
   dayNumber: number;
@@ -6180,7 +6179,6 @@ function TodayVisualPanel({
   month: number | null;
   dayOfWeek: number | null;
   theme: ThemeColors;
-  caption: string;
 }) {
   const [imageFailed, setImageFailed] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -6212,10 +6210,10 @@ function TodayVisualPanel({
       style={{
         background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})`,
         boxShadow: "inset 0 1px 0 rgba(255,255,255,0.08), 0 10px 20px rgba(12, 18, 16, 0.06)",
-        minHeight: "272px",
+        minHeight: "150px",
         width: placement.figureWidth,
         opacity: placement.figureOpacity,
-        aspectRatio: "0.92",
+        aspectRatio: "1.28",
       }}
       aria-hidden="true"
       >
@@ -6250,20 +6248,6 @@ function TodayVisualPanel({
             priority={false}
           />
         ) : null}
-      </div>
-      <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[rgba(8,11,10,0.28)] via-[rgba(8,11,10,0.12)] to-transparent" />
-      <div className="absolute inset-x-0 bottom-0 px-4 pb-4 sm:px-5 sm:pb-5">
-        <div
-          className="max-w-[15rem] rounded-[0.95rem] border px-3 py-2.5 shadow-[0_10px_24px_rgba(7,10,8,0.14)] backdrop-blur-md"
-          style={{
-            borderColor: "rgba(255,255,255,0.18)",
-            backgroundColor: "rgba(240, 241, 238, 0.16)",
-          }}
-        >
-          <p className="text-[0.88rem] font-medium leading-6 tracking-[-0.01em] text-balance text-white/96 drop-shadow-[0_1px_1px_rgba(0,0,0,0.24)] sm:text-[0.93rem] sm:leading-7">
-            {caption}
-          </p>
-        </div>
       </div>
     </figure>
   );
@@ -12225,7 +12209,6 @@ function OnboardingModal({
 
 function HomeDashboard({
   ts,
-  daily,
   dailyEntry,
   dayNumber,
   currentLocalMonth,
@@ -12396,7 +12379,7 @@ function HomeDashboard({
             </button>
           ) : null}
 
-          <div className="grid gap-3 lg:grid-cols-[minmax(0,1.12fr)_minmax(248px,0.88fr)] lg:items-start">
+          <div className="grid gap-2.5 lg:grid-cols-[minmax(0,1.42fr)_minmax(9.25rem,0.58fr)] lg:items-start">
             <div className="min-w-0 lg:pt-1">
               <p className="text-[10.5px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.accentGold }} suppressHydrationWarning>
                 {text.todaysCompanion}
@@ -12408,7 +12391,7 @@ function HomeDashboard({
                 {todaySeasonalHeader.body}
               </p>
             </div>
-            <div className="lg:self-stretch lg:pt-0">
+            <div className="lg:self-start lg:justify-self-end lg:w-full lg:max-w-[11.5rem] lg:pt-0">
               <TodayVisualPanel
                 key={`${todayVisualTheme}:${dayNumber}:${todayVisualMood}:${currentLocalHour ?? "na"}:${currentLocalMonth ?? "na"}:${currentLocalDayOfWeek ?? "na"}`}
                 themeName={todayVisualTheme}
@@ -12418,7 +12401,6 @@ function HomeDashboard({
                 month={currentLocalMonth}
                 dayOfWeek={currentLocalDayOfWeek}
                 theme={theme}
-                caption={daily.principle}
               />
             </div>
           </div>
