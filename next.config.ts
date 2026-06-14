@@ -11,6 +11,7 @@ const COMMON_AVATAR_HOSTS = [
   "secure.gravatar.com",
   "www.gravatar.com",
   "i.pravatar.cc",
+  "upload.wikimedia.org",
 ];
 
 function toRemotePattern(value: string) {

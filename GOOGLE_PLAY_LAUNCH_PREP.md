@@ -2,6 +2,8 @@
 
 This document is the Play Console handoff for Aletheia.
 
+For the exact field-by-field upload checklist, use [`GOOGLE_PLAY_UPLOAD_PACK.md`](./GOOGLE_PLAY_UPLOAD_PACK.md).
+
 ## App Identity
 
 - App name: `Aletheia`

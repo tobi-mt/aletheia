@@ -3,6 +3,7 @@ import { createECDH, timingSafeEqual } from "node:crypto";
 import { many, one, run } from "@/lib/db";
 import { localizedDailyWisdom, normalizePreferences, type BibleTranslation, type LanguageCode, type RegionCode } from "@/lib/localization";
 import { getWisdomEntries } from "@/lib/wisdom";
+import { selectDailyWisdomIndex } from "@/lib/wisdom-data";
 import type { Mode } from "@/lib/wisdom-data";
 
 type PushRow = {
@@ -218,12 +219,11 @@ function normalizeTimestamp(value: string | Date) {
 }
 
 function dailyWisdomIndex(row: PushRow, size: number, now: Date) {
-  if (size <= 1) {
-    return 0;
-  }
-  const dateSeed = localDateForTimezone(now, row.preferred_timezone);
-  const seed = `${row.user_id}:${dateSeed}`;
-  return stableHash(seed) % size;
+  return selectDailyWisdomIndex({
+    dayNumber: Number(localDateForTimezone(now, row.preferred_timezone).replace(/-/g, "")),
+    size,
+    seedParts: [row.user_id, row.language || "", row.bible_translation || ""],
+  });
 }
 
 function compactNotificationCopy(copy: string, max = 140) {

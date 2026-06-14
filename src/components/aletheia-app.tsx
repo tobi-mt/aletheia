@@ -3,7 +3,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import Image from "next/image";
 import { signIn as authSignIn, signOut as authSignOut } from "next-auth/react";
-import { ChangeEvent, FormEvent, type KeyboardEvent, type ReactNode, type RefObject, type TouchEvent, type WheelEvent, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { ChangeEvent, FormEvent, type KeyboardEvent, type ReactNode, type RefObject, type TouchEvent, type WheelEvent, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   BookOpen,
@@ -74,7 +74,7 @@ import {
   type UserPreferences,
 } from "@/lib/localization";
 import { modeProfiles, type ModeProfile } from "@/lib/mode-profiles";
-import { wisdomEntries as baseWisdomEntries, type WisdomEntryData } from "@/lib/wisdom-data";
+import { stableHash, todayWisdom as sharedTodayWisdom, wisdomEntries as baseWisdomEntries, type WisdomEntryData } from "@/lib/wisdom-data";
 import { defaultManualContext, manualContextCounselSignals, manualContextHasContent, normalizeManualContext, type ManualContextProfile } from "@/lib/manual-context";
 import type { Mode } from "@/lib/wisdom-data";
 import { analyticsQuestionMetadata } from "@/lib/analytics-taxonomy";
@@ -488,6 +488,9 @@ const uiText: Record<
     todayPrefix?: string;
     wisdomPrinciple?: string;
     reflectionQuestion?: string;
+    whatINotice?: string;
+    context?: string;
+    application?: string;
     carryThisToday?: string;
     carryWithMe?: string;
     carryCard?: string;
@@ -649,6 +652,9 @@ const uiText: Record<
     todayPrefix: "Today",
     wisdomPrinciple: "Wisdom principle",
     reflectionQuestion: "Question",
+    whatINotice: "What I notice",
+    context: "Context",
+    application: "Application",
     carryThisToday: "Carry this today",
     carryWithMe: "Carry with me",
     carryCard: "Carry Card",
@@ -791,6 +797,9 @@ const uiText: Record<
     wisdomPrinciple: "Principio de sabiduría",
     tinyPractice: "Práctica breve",
     reflectionQuestion: "Pregunta",
+    whatINotice: "Lo que noto",
+    context: "Contexto",
+    application: "Aplicación",
     carryThisToday: "Lleva esto hoy",
     carryWithMe: "Llevar conmigo",
     askAboutThis: "Preguntar sobre esto",
@@ -882,6 +891,9 @@ const uiText: Record<
     wisdomPrinciple: "Principe de sagesse",
     tinyPractice: "Petite pratique",
     reflectionQuestion: "Question",
+    whatINotice: "Ce que je remarque",
+    context: "Contexte",
+    application: "Application",
     carryThisToday: "À porter aujourd'hui",
     carryWithMe: "Porter avec moi",
     askAboutThis: "Questionner cela",
@@ -994,6 +1006,9 @@ const uiText: Record<
     wisdomPrinciple: "Princípio de sabedoria",
     tinyPractice: "Pequena prática",
     reflectionQuestion: "Pergunta",
+    whatINotice: "O que percebo",
+    context: "Contexto",
+    application: "Aplicação",
     carryThisToday: "Leve isto hoje",
     carryWithMe: "Levar comigo",
     askAboutThis: "Perguntar sobre isto",
@@ -1136,6 +1151,9 @@ const uiText: Record<
     todayPrefix: "Heute",
     wisdomPrinciple: "Weisheitsprinzip",
     reflectionQuestion: "Frage",
+    whatINotice: "Was ich bemerke",
+    context: "Kontext",
+    application: "Anwendung",
     carryThisToday: "Heute mitnehmen",
     carryWithMe: "Mitnehmen",
     askAboutThis: "Dazu fragen",
@@ -1275,6 +1293,9 @@ const uiText: Record<
     todayPrefix: "Lónìí",
     wisdomPrinciple: "Ìlànà ọgbọ́n",
     reflectionQuestion: "Ìbéèrè",
+    whatINotice: "Ohun tí mo ń rí",
+    context: "Àyíká",
+    application: "Ìmúlò",
     carryThisToday: "Gbé èyí lọ lónìí",
     carryWithMe: "Gbé e pẹ̀lú mi",
     askAboutThis: "Béèrè nípa èyí",
@@ -1424,6 +1445,9 @@ const uiText: Record<
     wisdomPrinciple: "Ụkpụrụ amamihe",
     tinyPractice: "Omume nta",
     reflectionQuestion: "Ajụjụ",
+    whatINotice: "Ihe m na-ahụ",
+    context: "Ọnọdụ",
+    application: "Mmekọrịta",
     carryThisToday: "Buru nke a taa",
     carryWithMe: "Buru ya na m",
     askAboutThis: "Jụọ maka nke a",
@@ -1573,6 +1597,9 @@ const uiText: Record<
     wisdomPrinciple: "Ka'idar hikima",
     tinyPractice: "Karamin aiki",
     reflectionQuestion: "Tambaya",
+    whatINotice: "Abin da na lura da shi",
+    context: "Mahalli",
+    application: "Aikace-aikace",
     carryThisToday: "Rike wannan yau",
     carryWithMe: "Rike tare da ni",
     askAboutThis: "Tambaya game da wannan",
@@ -2633,6 +2660,8 @@ type CounselSummaryDraft = {
 type CarryToday = {
   date: string;
   phrase: string;
+  language: LanguageCode;
+  bibleTranslation: BibleTranslation;
 };
 
 type ScriptureMemory = {
@@ -2650,6 +2679,24 @@ type TodayCompanionCard = {
   question: string;
   carryPhrase: string;
 };
+
+type TodayIllustrationVariant = "path" | "field" | "stillness" | "glow";
+
+type TodayVisualPhoto = {
+  kind: "photo";
+  title: string;
+  imageUrl: string;
+  imagePageUrl: string;
+  license: string;
+};
+
+type TodayVisualIllustration = {
+  kind: "illustration";
+  title: string;
+  variant: TodayIllustrationVariant;
+};
+
+type TodayVisualAsset = TodayVisualPhoto | TodayVisualIllustration;
 
 type WeeklyWisdomReview = {
   questions: number;
@@ -3559,9 +3606,761 @@ function composeResponse(question: string, mode: Mode, preferences: UserPreferen
 
 const STATIC_TODAY_DAY_NUMBER = 0;
 
-function todayWisdom(dayNumber = STATIC_TODAY_DAY_NUMBER) {
-  const index = dayNumber % wisdomEntries.length;
-  return wisdomEntries[index];
+const TODAY_VISUAL_LIBRARY: Record<string, TodayVisualAsset[]> = {
+  Stewardship: [
+    {
+      kind: "photo",
+      title: "Sunrise on the road",
+      imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/73/Sunrise_on_the_road.jpg/1280px-Sunrise_on_the_road.jpg",
+      imagePageUrl: "https://commons.wikimedia.org/wiki/File:Sunrise_on_the_road.jpg",
+      license: "CC BY-SA 4.0",
+    },
+    {
+      kind: "photo",
+      title: "Field in sunrise",
+      imageUrl: "https://upload.wikimedia.org/wikipedia/commons/f/f6/Field_in_sunrise_%28Unsplash%29.jpg",
+      imagePageUrl: "https://commons.wikimedia.org/wiki/File:Field_in_sunrise_(Unsplash).jpg",
+      license: "CC0",
+    },
+    {
+      kind: "photo",
+      title: "New horizons",
+      imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e9/New_Horizons_%28Unsplash%29.jpg/1280px-New_Horizons_%28Unsplash%29.jpg",
+      imagePageUrl: "https://commons.wikimedia.org/wiki/File:New_Horizons_(Unsplash).jpg",
+      license: "CC0",
+    },
+  ],
+  "Cost Counting": [
+    {
+      kind: "photo",
+      title: "New horizons",
+      imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e9/New_Horizons_%28Unsplash%29.jpg/1280px-New_Horizons_%28Unsplash%29.jpg",
+      imagePageUrl: "https://commons.wikimedia.org/wiki/File:New_Horizons_(Unsplash).jpg",
+      license: "CC0",
+    },
+    {
+      kind: "photo",
+      title: "Hopeful horizons",
+      imageUrl: "https://upload.wikimedia.org/wikipedia/commons/1/18/Hopeful_Horizons_%28Unsplash%29.jpg",
+      imagePageUrl: "https://commons.wikimedia.org/wiki/File:Hopeful_Horizons_(Unsplash).jpg",
+      license: "CC0",
+    },
+    {
+      kind: "photo",
+      title: "Sunrise on the road",
+      imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/73/Sunrise_on_the_road.jpg/1280px-Sunrise_on_the_road.jpg",
+      imagePageUrl: "https://commons.wikimedia.org/wiki/File:Sunrise_on_the_road.jpg",
+      license: "CC BY-SA 4.0",
+    },
+  ],
+  Diligence: [
+    {
+      kind: "photo",
+      title: "Field under clear sky",
+      imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2b/Field_under_clear_sky.jpg/1280px-Field_under_clear_sky.jpg",
+      imagePageUrl: "https://commons.wikimedia.org/wiki/File:Field_under_clear_sky.jpg",
+      license: "Public domain",
+    },
+    {
+      kind: "photo",
+      title: "Lush green field",
+      imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b8/Lush_Green_Field_Under_Clear_Blue_Sky.jpg/1280px-Lush_Green_Field_Under_Clear_Blue_Sky.jpg",
+      imagePageUrl: "https://commons.wikimedia.org/wiki/File:Lush_Green_Field_Under_Clear_Blue_Sky.jpg",
+      license: "CC0",
+    },
+    {
+      kind: "photo",
+      title: "Ireland fields and sky",
+      imageUrl: "https://upload.wikimedia.org/wikipedia/commons/c/c0/Ireland_fields_sky_clouds.jpg",
+      imagePageUrl: "https://commons.wikimedia.org/wiki/File:Ireland_fields_sky_clouds.jpg",
+      license: "Public domain",
+    },
+  ],
+  "Provision and Anxiety": [
+    {
+      kind: "photo",
+      title: "Ireland fields and sky",
+      imageUrl: "https://upload.wikimedia.org/wikipedia/commons/c/c0/Ireland_fields_sky_clouds.jpg",
+      imagePageUrl: "https://commons.wikimedia.org/wiki/File:Ireland_fields_sky_clouds.jpg",
+      license: "Public domain",
+    },
+    {
+      kind: "photo",
+      title: "Staying up all night",
+      imageUrl: "https://upload.wikimedia.org/wikipedia/commons/e/e4/Staying_up_all_night_to_watch_the_sunrise_%28Unsplash%29.jpg",
+      imagePageUrl: "https://commons.wikimedia.org/wiki/File:Staying_up_all_night_to_watch_the_sunrise_(Unsplash).jpg",
+      license: "CC0",
+    },
+    {
+      kind: "photo",
+      title: "Field under clear sky",
+      imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2b/Field_under_clear_sky.jpg/1280px-Field_under_clear_sky.jpg",
+      imagePageUrl: "https://commons.wikimedia.org/wiki/File:Field_under_clear_sky.jpg",
+      license: "Public domain",
+    },
+  ],
+  Generosity: [
+    {
+      kind: "photo",
+      title: "Sunrise on the road",
+      imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/73/Sunrise_on_the_road.jpg/1280px-Sunrise_on_the_road.jpg",
+      imagePageUrl: "https://commons.wikimedia.org/wiki/File:Sunrise_on_the_road.jpg",
+      license: "CC BY-SA 4.0",
+    },
+    {
+      kind: "photo",
+      title: "Field under clear sky",
+      imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2b/Field_under_clear_sky.jpg/1280px-Field_under_clear_sky.jpg",
+      imagePageUrl: "https://commons.wikimedia.org/wiki/File:Field_under_clear_sky.jpg",
+      license: "Public domain",
+    },
+  ],
+  Contentment: [
+    {
+      kind: "photo",
+      title: "Field under clear sky",
+      imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2b/Field_under_clear_sky.jpg/1280px-Field_under_clear_sky.jpg",
+      imagePageUrl: "https://commons.wikimedia.org/wiki/File:Field_under_clear_sky.jpg",
+      license: "Public domain",
+    },
+    {
+      kind: "photo",
+      title: "Hopeful horizons",
+      imageUrl: "https://upload.wikimedia.org/wikipedia/commons/1/18/Hopeful_Horizons_%28Unsplash%29.jpg",
+      imagePageUrl: "https://commons.wikimedia.org/wiki/File:Hopeful_Horizons_(Unsplash).jpg",
+      license: "CC0",
+    },
+  ],
+  Counsel: [
+    {
+      kind: "illustration",
+      title: "Stillness path",
+      variant: "path",
+    },
+  ],
+  Debt: [
+    {
+      kind: "illustration",
+      title: "Measured balance",
+      variant: "glow",
+    },
+  ],
+};
+
+const TODAY_THEME_VISUAL_PRIORITIES: Record<string, string[]> = {
+  Stewardship: ["Sunrise on the road", "Field in sunrise", "Hopeful horizons", "New horizons"],
+  "Cost Counting": ["Hopeful horizons", "Sunrise on the road", "Field in sunrise", "New horizons"],
+  Diligence: ["Field under clear sky", "Lush green field", "Ireland fields and sky"],
+  "Provision and Anxiety": ["Ireland fields and sky", "Field under clear sky", "Staying up all night", "Hopeful horizons"],
+  Contentment: ["Field under clear sky", "Ireland fields and sky", "Hopeful horizons"],
+  Generosity: ["Sunrise on the road", "Field in sunrise", "Field under clear sky"],
+  Counsel: ["Stillness path"],
+  Debt: ["Measured balance"],
+};
+
+type TodayVisualMood = "warm" | "cool" | "contemplative";
+type TodayVisualLabelTone = "warm" | "cool" | "quiet";
+
+const TODAY_THEME_MOOD_PRIORITIES: Record<string, Partial<Record<TodayVisualMood, string[]>>> = {
+  Stewardship: {
+    warm: ["Sunrise on the road", "Field in sunrise", "New horizons", "Hopeful horizons"],
+    cool: ["New horizons", "Hopeful horizons", "Field under clear sky"],
+    contemplative: ["New horizons", "Hopeful horizons", "Field under clear sky"],
+  },
+  "Cost Counting": {
+    warm: ["Hopeful horizons", "Sunrise on the road", "Field in sunrise", "New horizons"],
+    cool: ["New horizons", "Hopeful horizons", "Field under clear sky"],
+    contemplative: ["Hopeful horizons", "New horizons", "Field under clear sky"],
+  },
+  Diligence: {
+    warm: ["Lush green field", "Field under clear sky", "Ireland fields and sky"],
+    cool: ["Field under clear sky", "Ireland fields and sky", "Lush green field"],
+    contemplative: ["Ireland fields and sky", "Field under clear sky", "Lush green field"],
+  },
+  "Provision and Anxiety": {
+    warm: ["Field under clear sky", "Ireland fields and sky", "Hopeful horizons"],
+    cool: ["Ireland fields and sky", "Field under clear sky", "Hopeful horizons"],
+    contemplative: ["Ireland fields and sky", "Field under clear sky", "Hopeful horizons"],
+  },
+  Generosity: {
+    warm: ["Sunrise on the road", "Field in sunrise", "Field under clear sky"],
+    cool: ["Field under clear sky", "Hopeful horizons", "New horizons"],
+    contemplative: ["Field under clear sky", "Hopeful horizons", "New horizons"],
+  },
+  Contentment: {
+    warm: ["Hopeful horizons", "Field under clear sky", "Ireland fields and sky"],
+    cool: ["Field under clear sky", "Ireland fields and sky", "Hopeful horizons"],
+    contemplative: ["Ireland fields and sky", "Field under clear sky", "Hopeful horizons"],
+  },
+  Counsel: {
+    warm: ["Stillness path"],
+    cool: ["Stillness path"],
+    contemplative: ["Stillness path"],
+  },
+  Debt: {
+    warm: ["Measured balance"],
+    cool: ["Measured balance"],
+    contemplative: ["Measured balance"],
+  },
+};
+
+const TODAY_THEME_TIME_PRIORITIES: Record<string, { morning?: string[]; winter?: string[]; weekend?: string[] }> = {
+  Stewardship: {
+    morning: ["Sunrise on the road", "Field in sunrise", "New horizons"],
+  },
+  Generosity: {
+    morning: ["Sunrise on the road", "Field in sunrise", "Field under clear sky"],
+  },
+  "Provision and Anxiety": {
+    winter: ["Ireland fields and sky", "Field under clear sky", "Hopeful horizons"],
+  },
+  Counsel: {
+    weekend: ["Stillness path"],
+  },
+  Contentment: {
+    weekend: ["Ireland fields and sky", "Field under clear sky", "Hopeful horizons"],
+  },
+};
+
+function resolveTodayVisualMood({
+  month,
+  hour,
+  dayOfWeek,
+}: {
+  month: number | null;
+  hour: number | null;
+  dayOfWeek: number | null;
+}): TodayVisualMood {
+  if (hour !== null) {
+    if (hour >= 5 && hour < 11) {
+      return "warm";
+    }
+    if (hour >= 18 || hour < 5) {
+      return "contemplative";
+    }
+  }
+
+  if (dayOfWeek !== null && (dayOfWeek === 0 || dayOfWeek === 6)) {
+    return "contemplative";
+  }
+
+  if (month !== null && [12, 1, 2].includes(month)) {
+    return "cool";
+  }
+
+  if (month !== null && [6, 7, 8].includes(month)) {
+    return "warm";
+  }
+
+  return "cool";
+}
+
+function resolveTodayVisualLabelTone({
+  theme,
+  mood,
+  hour,
+  month,
+  dayOfWeek,
+}: {
+  theme: string;
+  mood: TodayVisualMood;
+  hour: number | null;
+  month: number | null;
+  dayOfWeek: number | null;
+}): TodayVisualLabelTone {
+  if ((theme === "Stewardship" || theme === "Generosity") && hour !== null && hour >= 5 && hour < 11) {
+    return "warm";
+  }
+
+  if (theme === "Provision and Anxiety" && month !== null && [12, 1, 2].includes(month)) {
+    return "quiet";
+  }
+
+  if ((theme === "Counsel" || theme === "Contentment") && dayOfWeek !== null && (dayOfWeek === 0 || dayOfWeek === 6)) {
+    return "quiet";
+  }
+
+  return mood === "warm" ? "warm" : mood === "contemplative" ? "quiet" : "cool";
+}
+
+function todayVisualLabelCopy({
+  theme,
+  mood,
+  hour,
+  month,
+  dayOfWeek,
+}: {
+  theme: string;
+  mood: TodayVisualMood;
+  hour: number | null;
+  month: number | null;
+  dayOfWeek: number | null;
+}) {
+  const tone = resolveTodayVisualLabelTone({ theme, mood, hour, month, dayOfWeek });
+  const isMorningSunriseTheme = (theme === "Stewardship" || theme === "Generosity") && hour !== null && hour >= 5 && hour < 11;
+  const isWinterTheme = theme === "Provision and Anxiety" && month !== null && [12, 1, 2].includes(month);
+  const isWeekendTheme = (theme === "Counsel" || theme === "Contentment") && dayOfWeek !== null && (dayOfWeek === 0 || dayOfWeek === 6);
+
+  if (isMorningSunriseTheme) {
+    return {
+      eyebrow: "Morning light",
+      caption: theme === "Stewardship" ? "Open horizon" : "Quiet generosity",
+      source: "Open",
+    };
+  }
+
+  if (isWinterTheme) {
+    return {
+      eyebrow: "Winter hush",
+      caption: "Calm field",
+      source: "Open",
+    };
+  }
+
+  if (isWeekendTheme) {
+    return {
+      eyebrow: "Weekend stillness",
+      caption: theme === "Contentment" ? "Enough, quietly" : "Slow reflection",
+      source: "Open",
+    };
+  }
+
+  if (tone === "warm") {
+    return {
+      eyebrow: "Warm light",
+      caption: theme === "Stewardship" || theme === "Generosity" ? "A gentle beginning" : "Soft horizon",
+      source: "Open",
+    };
+  }
+
+  if (tone === "quiet") {
+    return {
+      eyebrow: "Quiet light",
+      caption: "Still reflection",
+      source: "Calm",
+    };
+  }
+
+  return {
+    eyebrow: "Soft field",
+    caption: "Steady focus",
+    source: "Open",
+  };
+}
+
+function todaySeasonalHeaderCopy({
+  theme,
+  mood,
+  hour,
+  month,
+  dayOfWeek,
+}: {
+  theme: string;
+  mood: TodayVisualMood;
+  hour: number | null;
+  month: number | null;
+  dayOfWeek: number | null;
+}) {
+  const tone = resolveTodayVisualLabelTone({ theme, mood, hour, month, dayOfWeek });
+  const isMorningSunriseTheme = (theme === "Stewardship" || theme === "Generosity") && hour !== null && hour >= 5 && hour < 11;
+  const isWinterTheme = theme === "Provision and Anxiety" && month !== null && [12, 1, 2].includes(month);
+  const isWeekendTheme = (theme === "Counsel" || theme === "Contentment") && dayOfWeek !== null && (dayOfWeek === 0 || dayOfWeek === 6);
+
+  if (isMorningSunriseTheme) {
+    return {
+      eyebrow: "Morning guidance",
+      body: theme === "Stewardship"
+        ? "A clear start for what has been entrusted."
+        : "A gentle start for what you can give.",
+    };
+  }
+
+  if (isWinterTheme) {
+    return {
+      eyebrow: "Winter calm",
+      body: "A quieter frame for what feels heavy today.",
+    };
+  }
+
+  if (isWeekendTheme) {
+    return {
+      eyebrow: "Weekend stillness",
+      body: theme === "Contentment"
+        ? "A little more room to notice enough."
+        : "A softer pace for discernment and trust.",
+    };
+  }
+
+  if (tone === "warm") {
+    return {
+      eyebrow: "Warm light",
+      body: "A steady way to begin without rushing.",
+    };
+  }
+
+  if (tone === "quiet") {
+    return {
+      eyebrow: "Quiet field",
+      body: "A calm frame for a careful next step.",
+    };
+  }
+
+  return {
+    eyebrow: "Steady focus",
+    body: "A clear frame for what comes next.",
+  };
+}
+
+function homeWelcomeSeasonalCopy({
+  theme,
+  mood,
+  hour,
+  month,
+  dayOfWeek,
+}: {
+  theme: string;
+  mood: TodayVisualMood;
+  hour: number | null;
+  month: number | null;
+  dayOfWeek: number | null;
+}) {
+  const isMorningSunriseTheme = (theme === "Stewardship" || theme === "Generosity") && hour !== null && hour >= 5 && hour < 11;
+  const isWinterTheme = theme === "Provision and Anxiety" && month !== null && [12, 1, 2].includes(month);
+  const isWeekendTheme = (theme === "Counsel" || theme === "Contentment") && dayOfWeek !== null && (dayOfWeek === 0 || dayOfWeek === 6);
+
+  if (isMorningSunriseTheme) {
+    return "A calm start for what is entrusted to you.";
+  }
+
+  if (isWinterTheme) {
+    return "A quieter frame for what feels heavier today.";
+  }
+
+  if (isWeekendTheme) {
+    return theme === "Contentment"
+      ? "A gentler pace for noticing enough."
+      : "A softer pace for discernment and trust.";
+  }
+
+  if (mood === "warm") {
+    return "A steady, warm beginning for today's next step.";
+  }
+
+  if (mood === "contemplative") {
+    return "A little more stillness before you move.";
+  }
+
+  return "A clear, steady start for today's next step.";
+}
+
+function homeWelcomeEyebrowCopy({
+  theme,
+  mood,
+  hour,
+  month,
+  dayOfWeek,
+}: {
+  theme: string;
+  mood: TodayVisualMood;
+  hour: number | null;
+  month: number | null;
+  dayOfWeek: number | null;
+}) {
+  const isMorningSunriseTheme = (theme === "Stewardship" || theme === "Generosity") && hour !== null && hour >= 5 && hour < 11;
+  const isWinterTheme = theme === "Provision and Anxiety" && month !== null && [12, 1, 2].includes(month);
+  const isWeekendTheme = (theme === "Counsel" || theme === "Contentment") && dayOfWeek !== null && (dayOfWeek === 0 || dayOfWeek === 6);
+
+  if (isMorningSunriseTheme) {
+    return "Morning priority";
+  }
+
+  if (isWinterTheme) {
+    return "Quiet priority";
+  }
+
+  if (isWeekendTheme) {
+    return "Stillness priority";
+  }
+
+  if (mood === "warm") {
+    return "Warm priority";
+  }
+
+  if (mood === "contemplative") {
+    return "Quiet priority";
+  }
+
+  return "Personalized priority";
+}
+
+function orderedTodayVisualAssets(
+  theme: string,
+  mood: TodayVisualMood,
+  dayNumber: number,
+  overrideTitles?: string[]
+) {
+  const keyedAssets = TODAY_VISUAL_LIBRARY[theme];
+  if (!keyedAssets || keyedAssets.length === 0) {
+    return null;
+  }
+
+  const preferredTitles =
+    overrideTitles ??
+    TODAY_THEME_MOOD_PRIORITIES[theme]?.[mood] ??
+    TODAY_THEME_VISUAL_PRIORITIES[theme] ??
+    [];
+  const prioritizedAssets = preferredTitles
+    .map((title) => keyedAssets.find((asset) => asset.title === title))
+    .filter((asset): asset is TodayVisualAsset => Boolean(asset));
+  const remainingAssets = keyedAssets.filter((asset) => !preferredTitles.includes(asset.title));
+  const orderedAssets = [...prioritizedAssets, ...remainingAssets];
+  if (orderedAssets.length === 0) {
+    return null;
+  }
+
+  const index = stableHash(`${theme}:${mood}:${dayNumber}:today-visual`) % orderedAssets.length;
+  return orderedAssets[index];
+}
+
+const TODAY_GENERIC_VISUALS: TodayVisualIllustration[] = [
+  { kind: "illustration", title: "Quiet field", variant: "field" },
+  { kind: "illustration", title: "Stillness", variant: "stillness" },
+  { kind: "illustration", title: "Soft path", variant: "path" },
+];
+
+function selectTodayVisualAsset({
+  theme,
+  dayNumber,
+  mood,
+  hour,
+  month,
+  dayOfWeek,
+}: {
+  theme: string;
+  dayNumber: number;
+  mood: TodayVisualMood;
+  hour: number | null;
+  month: number | null;
+  dayOfWeek: number | null;
+}): TodayVisualAsset {
+  const isMorningSunriseTheme = (theme === "Stewardship" || theme === "Generosity") && hour !== null && hour >= 5 && hour < 11;
+  const isWinterTheme = theme === "Provision and Anxiety" && month !== null && [12, 1, 2].includes(month);
+  const isWeekendTheme = (theme === "Counsel" || theme === "Contentment") && dayOfWeek !== null && (dayOfWeek === 0 || dayOfWeek === 6);
+  const effectiveMood = isMorningSunriseTheme
+    ? "warm"
+    : isWinterTheme
+      ? "cool"
+      : isWeekendTheme
+        ? "contemplative"
+        : mood;
+  const explicitTitles =
+    isMorningSunriseTheme
+      ? TODAY_THEME_TIME_PRIORITIES[theme]?.morning
+      : isWinterTheme
+        ? TODAY_THEME_TIME_PRIORITIES[theme]?.winter
+        : isWeekendTheme
+          ? TODAY_THEME_TIME_PRIORITIES[theme]?.weekend
+          : undefined;
+  const orderedAssets = orderedTodayVisualAssets(theme, effectiveMood, dayNumber, explicitTitles);
+  if (orderedAssets) {
+    return orderedAssets;
+  }
+
+  const fallbackIndex = stableHash(`${theme}:${effectiveMood}:${dayNumber}:today-generic`) % TODAY_GENERIC_VISUALS.length;
+  return TODAY_GENERIC_VISUALS[fallbackIndex];
+}
+
+function TodayVisualScene({
+  variant,
+  theme,
+}: {
+  variant: TodayIllustrationVariant;
+  theme: ThemeColors;
+}) {
+  const gradientId = useId().replace(/:/g, "");
+  const glowId = `${gradientId}-glow`;
+  const pathId = `${gradientId}-path`;
+  const ink = theme.textPrimary;
+  const muted = theme.textSecondary;
+  const surface = theme.bgCardElevated;
+  const focus = theme.accentGold;
+  const primary = theme.primary;
+
+  if (variant === "path") {
+    return (
+      <svg viewBox="0 0 320 220" className="h-full w-full" role="img" aria-hidden="true">
+        <defs>
+          <linearGradient id={glowId} x1="0%" x2="100%" y1="0%" y2="100%">
+            <stop offset="0%" stopColor={surface} />
+            <stop offset="50%" stopColor={theme.bgCard} />
+            <stop offset="100%" stopColor={primary} stopOpacity="0.22" />
+          </linearGradient>
+          <linearGradient id={pathId} x1="0%" x2="0%" y1="0%" y2="100%">
+            <stop offset="0%" stopColor={focus} stopOpacity="0.92" />
+            <stop offset="100%" stopColor={focus} stopOpacity="0.45" />
+          </linearGradient>
+        </defs>
+        <rect width="320" height="220" fill={`url(#${glowId})`} />
+        <circle cx="244" cy="66" r="28" fill={focus} fillOpacity="0.23" />
+        <path d="M-10 180 C 55 166, 98 164, 158 175 S 260 193, 340 167" fill="none" stroke={primary} strokeOpacity="0.2" strokeWidth="4" />
+        <path d="M18 171 C 60 152, 100 145, 148 154 S 250 183, 298 169" fill="none" stroke={focus} strokeOpacity="0.28" strokeWidth="2.5" strokeLinecap="round" />
+        <path d="M42 182 C 84 156, 111 146, 152 152 C 183 156, 209 168, 262 186" fill="none" stroke={`url(#${pathId})`} strokeWidth="12" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M142 154 C 146 135, 154 120, 168 104" fill="none" stroke={ink} strokeOpacity="0.16" strokeWidth="2" />
+        <circle cx="169" cy="101" r="5" fill={theme.textOnPrimary} fillOpacity="0.82" />
+        <path d="M46 112 C 75 100, 92 94, 108 98" fill="none" stroke={muted} strokeOpacity="0.16" strokeWidth="3" />
+        <path d="M77 137 C 99 126, 121 123, 145 128" fill="none" stroke={muted} strokeOpacity="0.12" strokeWidth="2" />
+      </svg>
+    );
+  }
+
+  if (variant === "glow") {
+    return (
+      <svg viewBox="0 0 320 220" className="h-full w-full" role="img" aria-hidden="true">
+        <defs>
+          <radialGradient id={glowId} cx="50%" cy="42%" r="65%">
+            <stop offset="0%" stopColor={focus} stopOpacity="0.38" />
+            <stop offset="52%" stopColor={primary} stopOpacity="0.12" />
+            <stop offset="100%" stopColor={theme.bgCard} stopOpacity="0" />
+          </radialGradient>
+        </defs>
+        <rect width="320" height="220" fill={surface} />
+        <rect width="320" height="220" fill={`url(#${glowId})`} />
+        <circle cx="160" cy="102" r="42" fill={focus} fillOpacity="0.18" />
+        <circle cx="160" cy="102" r="21" fill={theme.textOnPrimary} fillOpacity="0.17" />
+        <path d="M62 161 C 112 140, 208 140, 258 161" fill="none" stroke={focus} strokeOpacity="0.35" strokeWidth="2.4" strokeLinecap="round" />
+        <path d="M92 77 L 114 98" stroke={theme.textOnPrimary} strokeOpacity="0.2" strokeWidth="2" strokeLinecap="round" />
+        <path d="M228 77 L 206 98" stroke={theme.textOnPrimary} strokeOpacity="0.2" strokeWidth="2" strokeLinecap="round" />
+        <path d="M160 44 L 160 24 M160 180 L 160 200 M118 102 L 98 102 M222 102 L 242 102" stroke={focus} strokeOpacity="0.28" strokeWidth="2" strokeLinecap="round" />
+        <path d="M127 65 L 114 52 M193 65 L 206 52 M127 140 L 114 153 M193 140 L 206 153" stroke={theme.textSecondary} strokeOpacity="0.16" strokeWidth="2" strokeLinecap="round" />
+      </svg>
+    );
+  }
+
+  if (variant === "stillness") {
+    return (
+      <svg viewBox="0 0 320 220" className="h-full w-full" role="img" aria-hidden="true">
+        <defs>
+          <linearGradient id={glowId} x1="0%" x2="100%" y1="0%" y2="100%">
+            <stop offset="0%" stopColor={theme.bgCard} />
+            <stop offset="100%" stopColor={primary} stopOpacity="0.12" />
+          </linearGradient>
+        </defs>
+        <rect width="320" height="220" fill={`url(#${glowId})`} />
+        <circle cx="160" cy="110" r="58" fill="none" stroke={focus} strokeOpacity="0.18" strokeWidth="1.8" />
+        <circle cx="160" cy="110" r="34" fill="none" stroke={primary} strokeOpacity="0.18" strokeWidth="1.5" />
+        <circle cx="160" cy="110" r="12" fill={focus} fillOpacity="0.2" />
+        <path d="M72 161 C 108 150, 126 145, 160 145 C 194 145, 212 150, 248 161" fill="none" stroke={theme.borderMedium} strokeOpacity="0.24" strokeWidth="2.3" strokeLinecap="round" />
+        <path d="M54 174 C 102 162, 120 158, 160 158 C 200 158, 218 162, 266 174" fill="none" stroke={focus} strokeOpacity="0.18" strokeWidth="2" strokeLinecap="round" />
+        <path d="M97 74 C 119 84, 131 97, 139 114" fill="none" stroke={muted} strokeOpacity="0.12" strokeWidth="2" strokeLinecap="round" />
+        <path d="M223 74 C 201 84, 189 97, 181 114" fill="none" stroke={muted} strokeOpacity="0.12" strokeWidth="2" strokeLinecap="round" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg viewBox="0 0 320 220" className="h-full w-full" role="img" aria-hidden="true">
+      <defs>
+        <linearGradient id={glowId} x1="0%" x2="100%" y1="0%" y2="100%">
+          <stop offset="0%" stopColor={theme.bgCardElevated} />
+          <stop offset="60%" stopColor={theme.bgCard} />
+          <stop offset="100%" stopColor={focus} stopOpacity="0.18" />
+        </linearGradient>
+      </defs>
+      <rect width="320" height="220" fill={`url(#${glowId})`} />
+      <path d="M24 170 H296" stroke={focus} strokeOpacity="0.26" strokeWidth="2.2" strokeLinecap="round" />
+      <path d="M52 158 C 88 130, 119 118, 161 124 C 197 129, 223 145, 272 170" fill="none" stroke={primary} strokeOpacity="0.24" strokeWidth="3" strokeLinecap="round" />
+      <path d="M72 82 C 98 66, 120 60, 152 64 C 180 67, 204 80, 228 100" fill="none" stroke={theme.textSecondary} strokeOpacity="0.16" strokeWidth="2.2" strokeLinecap="round" />
+      <circle cx="250" cy="74" r="18" fill={focus} fillOpacity="0.16" />
+      <circle cx="96" cy="142" r="5" fill={theme.textOnPrimary} fillOpacity="0.24" />
+      <circle cx="174" cy="150" r="4" fill={theme.textOnPrimary} fillOpacity="0.18" />
+      <circle cx="214" cy="111" r="4" fill={theme.textOnPrimary} fillOpacity="0.18" />
+    </svg>
+  );
+}
+
+function TodayVisualPanel({
+  labelCopy,
+  themeName,
+  dayNumber,
+  mood,
+  hour,
+  month,
+  dayOfWeek,
+  theme,
+}: {
+  labelCopy: { eyebrow: string; caption: string; source: string };
+  themeName: string;
+  dayNumber: number;
+  mood: TodayVisualMood;
+  hour: number | null;
+  month: number | null;
+  dayOfWeek: number | null;
+  theme: ThemeColors;
+}) {
+  const [imageFailed, setImageFailed] = useState(false);
+  const asset = useMemo(
+    () => selectTodayVisualAsset({
+      theme: themeName,
+      dayNumber,
+      mood,
+      hour,
+      month,
+      dayOfWeek,
+    }),
+    [dayNumber, dayOfWeek, hour, month, mood, themeName]
+  );
+  const usingPhoto = asset.kind === "photo" && !imageFailed;
+
+  return (
+    <figure
+      className="relative w-full min-w-0 overflow-hidden rounded-[1.5rem] border shadow-sm"
+      style={{
+        borderColor: theme.borderLight,
+        backgroundColor: theme.bgCardElevated,
+        boxShadow: "0 12px 30px rgba(12, 18, 16, 0.12)",
+      }}
+      aria-label={`${labelCopy.eyebrow} visual`}
+    >
+      <div className="absolute left-3 top-3 z-10 rounded-full border px-2.5 py-1 text-[0.64rem] font-semibold uppercase tracking-[0.18em]" style={{ borderColor: theme.borderLight, backgroundColor: "rgba(8, 12, 10, 0.48)", color: theme.textOnPrimary }}>
+        {labelCopy.eyebrow}
+      </div>
+      <div className="absolute right-3 top-3 z-10 rounded-full border px-2 py-1 text-[0.62rem] font-semibold uppercase tracking-[0.16em]" style={{ borderColor: theme.borderLight, backgroundColor: "rgba(8, 12, 10, 0.38)", color: theme.textOnPrimary }}>
+        {asset.kind === "photo" ? labelCopy.source : "Aletheia texture"}
+      </div>
+      <div className="relative aspect-[4/3] min-h-[168px] overflow-hidden">
+        {usingPhoto ? (
+          <Image
+            src={asset.imageUrl}
+            alt=""
+            fill
+            sizes="(max-width: 768px) 100vw, 230px"
+            className="object-cover"
+            onError={() => setImageFailed(true)}
+            unoptimized
+            priority={false}
+          />
+        ) : (
+          <div className="absolute inset-0">
+            <TodayVisualScene variant={asset.kind === "illustration" ? asset.variant : "stillness"} theme={theme} />
+          </div>
+        )}
+        <div
+          className="absolute inset-0"
+          style={{
+            background: "linear-gradient(180deg, rgba(8, 11, 10, 0.02) 0%, rgba(8, 11, 10, 0.08) 45%, rgba(8, 11, 10, 0.38) 100%)",
+          }}
+        />
+        <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 p-3 text-[0.66rem] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textOnPrimary }}>
+          <span className="rounded-full border px-2.5 py-1" style={{ borderColor: theme.borderLight, backgroundColor: "rgba(8, 12, 10, 0.45)" }}>
+            {labelCopy.caption}
+          </span>
+          <span className="rounded-full border px-2.5 py-1" style={{ borderColor: theme.borderLight, backgroundColor: "rgba(8, 12, 10, 0.45)" }}>
+            {asset.kind === "photo" ? labelCopy.source : "Aletheia"}
+          </span>
+        </div>
+      </div>
+    </figure>
+  );
 }
 
 type PersonalizedCarryPhraseKey =
@@ -3746,13 +4545,18 @@ function localTodayKey() {
   return `${year}-${month}-${day}`;
 }
 
-function storedCarryToday(): CarryToday | null {
+function storedCarryToday(preferences: UserPreferences): CarryToday | null {
   if (typeof window === "undefined") {
     return null;
   }
   try {
     const parsed = JSON.parse(window.localStorage.getItem(CARRY_TODAY_STORAGE_KEY) || "null") as CarryToday | null;
-    return parsed?.date === localTodayKey() && parsed.phrase ? parsed : null;
+    return parsed?.date === localTodayKey() &&
+      parsed.phrase &&
+      parsed.language === preferences.language &&
+      parsed.bibleTranslation === preferences.bibleTranslation
+      ? parsed
+      : null;
   } catch {
     return null;
   }
@@ -3966,6 +4770,8 @@ export function AletheiaApp() {
   const [isRemovingCounselContact, setIsRemovingCounselContact] = useState(false);
   const [currentLocalDayNumber, setCurrentLocalDayNumber] = useState<number | null>(null);
   const [currentLocalHour, setCurrentLocalHour] = useState<number | null>(null);
+  const [currentLocalMonth, setCurrentLocalMonth] = useState<number | null>(null);
+  const [currentLocalDayOfWeek, setCurrentLocalDayOfWeek] = useState<number | null>(null);
   
   const [counselSummaryDraft, setCounselSummaryDraftState] = useState<CounselSummaryDraft | null>(null);
   
@@ -4016,16 +4822,20 @@ export function AletheiaApp() {
     const restoreId = window.requestAnimationFrame(() => {
       const params = new URLSearchParams(window.location.search);
       const shouldHonorNotificationFocus = params.get("source") === "notification";
-      setPreferences(storedPreferences());
+      const restoredPreferences = storedPreferences();
+      setPreferences(restoredPreferences);
       setManualContext(storedManualContext());
       setThemePreference(storedThemePreference());
       setShowOnboarding(shouldShowOnboarding());
-      setCarryToday(storedCarryToday());
+      setCarryToday(storedCarryToday(restoredPreferences));
       setScriptureMemory(storedScriptureMemory());
       setSelectedVoice(storedVoicePreference());
       setNotificationTiming(storedNotificationTiming());
-      setCurrentLocalDayNumber(Math.floor(Date.now() / 86400000));
-      setCurrentLocalHour(new Date().getHours());
+      const now = new Date();
+      setCurrentLocalDayNumber(Math.floor(now.getTime() / 86400000));
+      setCurrentLocalHour(now.getHours());
+      setCurrentLocalMonth(now.getMonth() + 1);
+      setCurrentLocalDayOfWeek(now.getDay());
       setClientStateRestored(true);
 
       void (async () => {
@@ -4165,6 +4975,9 @@ export function AletheiaApp() {
       todayPrefix: getString('todayPrefix', languageFallback.todayPrefix ?? 'Today'),
       wisdomPrinciple: getString('wisdomPrinciple', languageFallback.wisdomPrinciple ?? 'Wisdom principle'),
       reflectionQuestion: getString('reflectionQuestion', languageFallback.reflectionQuestion ?? 'Question'),
+      whatINotice: getString('whatINotice', languageFallback.whatINotice ?? 'What I notice'),
+      context: getString('context', languageFallback.context ?? 'Context'),
+      application: getString('application', languageFallback.application ?? 'Application'),
       carryThisToday: getString('carryThisToday', languageFallback.carryThisToday ?? 'Carry this today'),
       carryWithMe: getString('carryWithMe', languageFallback.carryWithMe ?? 'Carry with me'),
       weeklyWisdomReview: getString('weeklyWisdomReview', languageFallback.weeklyWisdomReview ?? 'Weekly Wisdom Review'),
@@ -4801,6 +5614,7 @@ export function AletheiaApp() {
     setRulesOfLife(rulesData.rules ?? []);
     if (preferencesData.preferences) {
       setPreferences(preferencesData.preferences);
+      setCarryToday(storedCarryToday(preferencesData.preferences));
       window.localStorage.setItem("aletheia_preferences", JSON.stringify(preferencesData.preferences));
     }
     if (contextData.context) {
@@ -5267,7 +6081,10 @@ export function AletheiaApp() {
     return searchWisdom(librarySearch, mode, wisdomEntries.length, preferences);
   }, [librarySearch, mode, preferences]);
 
-  const dailyEntry = todayWisdom(currentLocalDayNumber ?? STATIC_TODAY_DAY_NUMBER);
+  const dailyEntry = sharedTodayWisdom({
+    dayNumber: currentLocalDayNumber ?? STATIC_TODAY_DAY_NUMBER,
+    seedParts: [preferences.language, preferences.bibleTranslation],
+  });
   const dailyMode = modes.some((item) => item.label === dailyEntry.theme)
     ? (dailyEntry.theme as Mode)
     : mode;
@@ -5475,7 +6292,7 @@ export function AletheiaApp() {
 
   function reflectOnToday() {
     setJournalTitle(`${localizedWisdomThemeLabel(daily.theme, preferences.language)} ${ts('labels.reflection')}`);
-    setJournalBody(`${daily.practice}\n\nWhat I notice today:\n`);
+    setJournalBody(`${daily.practice}\n\n${text.whatINotice ?? "What I notice"}:\n`);
     showView("reflect");
     announceWorkflow(ts('notifications.reflectionPrepared'), ts('notifications.reflectionPreparedBody'), "success");
   }
@@ -5498,7 +6315,12 @@ export function AletheiaApp() {
   }
 
   function carryCompanionCard(card: TodayCompanionCard) {
-    const next = { date: localTodayKey(), phrase: card.carryPhrase };
+    const next = {
+      date: localTodayKey(),
+      phrase: card.carryPhrase,
+      language: preferences.language,
+      bibleTranslation: preferences.bibleTranslation,
+    };
     setCarryToday(next);
     try {
       window.localStorage.setItem(CARRY_TODAY_STORAGE_KEY, JSON.stringify(next));
@@ -5576,11 +6398,13 @@ export function AletheiaApp() {
       kind: "daily",
       eyebrow: ts('labels.todaysCompanion'),
       title: `${ts('todayPrefix')}: ${card.title}`,
-      body: `${card.principle}\n\n${card.practice}\n\n${card.carryPhrase}`,
+      body: `${card.principle}\n\n${card.practice}\n\n${card.carryPhrase}\n\n${dailyEntry.context}\n\n${dailyEntry.application}`,
       sections: [
         { label: ts('labels.principle'), text: card.principle },
         { label: ts('labels.tinyPractice'), text: card.practice },
         { label: ts('labels.carryThisToday'), text: card.carryPhrase },
+        { label: text.context ?? "Context", text: dailyEntry.context },
+        { label: text.application ?? "Application", text: dailyEntry.application },
       ],
     }, "today_companion_card");
   }
@@ -5663,9 +6487,9 @@ export function AletheiaApp() {
   }
 
   function reflectOnCompanionCard(card: TodayCompanionCard) {
-    setJournalTitle(`Today: ${card.title}`);
+    setJournalTitle(`${ts('todayPrefix')}: ${card.title}`);
     setJournalBody(
-      `${card.opening}\n\nPrinciple:\n${card.principle}\n\nTiny practice:\n${card.practice}\n\nQuestion:\n${card.question}\n\nWhat I notice today:\n`
+      `${card.opening}\n\n${text.wisdomPrinciple}:\n${card.principle}\n\n${text.context ?? "Context"}:\n${dailyEntry.context}\n\n${text.application ?? "Application"}:\n${dailyEntry.application}\n\n${text.tinyPractice}:\n${card.practice}\n\n${text.reflectionQuestion}:\n${card.question}\n\n${text.whatINotice ?? "What I notice"}:\n`
     );
     showView("reflect");
     announceWorkflow(ts('notifications.reflectionPrepared'), ts('notifications.reflectionPreparedBody'), "success");
@@ -5793,7 +6617,7 @@ export function AletheiaApp() {
     const question = cleanDisplayText(exchange.question?.text ?? "Recent counsel");
     const answer = cleanDisplayText(exchange.answer.text);
     setJournalTitle(`Reflection: ${question.slice(0, 70)}`);
-    setJournalBody(`Question:\n${question}\n\nAletheia counsel:\n${answer}\n\nWhat I notice:\n`);
+    setJournalBody(`${text.reflectionQuestion ?? "Question"}:\n${question}\n\n${text.currentCounsel ?? "Current counsel"}:\n${answer}\n\n${text.whatINotice ?? "What I notice"}:\n`);
     trackClientEvent("answer_saved_or_acted", { action: "draft_reflection", mode, ...analyticsQuestionMetadata(question, mode) });
     showView("reflect");
     announceWorkflow(ts('notifications.reflectionDraftPrepared'), ts('notifications.reflectionDraftPreparedBody'), "success");
@@ -5892,6 +6716,7 @@ export function AletheiaApp() {
       });
     }
     setPreferences(next);
+    setCarryToday(storedCarryToday(next));
     setPreferencesStatus(user ? ts('notifications.preferencesSaving') : ts('notifications.preferencesSavedBody'));
     try {
       window.localStorage.setItem("aletheia_preferences", JSON.stringify(next));
@@ -7851,15 +8676,18 @@ export function AletheiaApp() {
                     />
                     {homeSection === "today" ? (
                       <HomeDashboard
-                      daily={daily}
-                      dailyEntry={dailyEntry}
-                      currentLocalHour={currentLocalHour}
-                      activeDecision={activeDecision}
-                      user={user}
-                      preferences={preferences}
-                      ts={ts}
-                      ui={ui}
-                      notificationsEnabled={notificationsEnabled}
+                        daily={daily}
+                        dailyEntry={dailyEntry}
+                        dayNumber={currentLocalDayNumber ?? STATIC_TODAY_DAY_NUMBER}
+                        currentLocalMonth={currentLocalMonth}
+                        currentLocalHour={currentLocalHour}
+                        currentLocalDayOfWeek={currentLocalDayOfWeek}
+                        activeDecision={activeDecision}
+                        user={user}
+                        preferences={preferences}
+                        ts={ts}
+                        ui={ui}
+                        notificationsEnabled={notificationsEnabled}
                         todayPattern={todayPattern}
                         companionCard={todayCompanionCard}
                         carryToday={carryToday}
@@ -9352,7 +10180,10 @@ function HomeDashboard({
   ts,
   daily,
   dailyEntry,
+  dayNumber,
+  currentLocalMonth,
   currentLocalHour,
+  currentLocalDayOfWeek,
   activeDecision,
   user,
   preferences,
@@ -9385,7 +10216,10 @@ function HomeDashboard({
   ts: (key: string, fallback?: string) => string;
   daily: ReturnType<typeof localizedDailyWisdom>;
   dailyEntry: WisdomEntry;
+  dayNumber: number;
+  currentLocalMonth: number | null;
   currentLocalHour: number | null;
+  currentLocalDayOfWeek: number | null;
   activeDecision: WisdomDecision | null;
   user: User | null;
   preferences: UserPreferences;
@@ -9453,6 +10287,41 @@ function HomeDashboard({
   const featuredInsight = featuredInsightIsDuplicate ? companionCard.question : companionCard.principle;
   const visibleSecondaryActions = secondaryActions.slice(0, 2);
   const finalSecondaryAction = secondaryActions[2];
+  const carryPhrase = carryToday?.phrase || companionCard.carryPhrase;
+  const todayVisualTheme = dailyEntry.theme;
+  const todayVisualMood = resolveTodayVisualMood({
+    month: currentLocalMonth,
+    hour: currentLocalHour,
+    dayOfWeek: currentLocalDayOfWeek,
+  });
+  const todayVisualLabel = todayVisualLabelCopy({
+    theme: todayVisualTheme,
+    mood: todayVisualMood,
+    hour: currentLocalHour,
+    month: currentLocalMonth,
+    dayOfWeek: currentLocalDayOfWeek,
+  });
+  const todaySeasonalHeader = todaySeasonalHeaderCopy({
+    theme: todayVisualTheme,
+    mood: todayVisualMood,
+    hour: currentLocalHour,
+    month: currentLocalMonth,
+    dayOfWeek: currentLocalDayOfWeek,
+  });
+  const homeWelcomeSeasonal = homeWelcomeSeasonalCopy({
+    theme: todayVisualTheme,
+    mood: todayVisualMood,
+    hour: currentLocalHour,
+    month: currentLocalMonth,
+    dayOfWeek: currentLocalDayOfWeek,
+  });
+  const homeWelcomeEyebrow = homeWelcomeEyebrowCopy({
+    theme: todayVisualTheme,
+    mood: todayVisualMood,
+    hour: currentLocalHour,
+    month: currentLocalMonth,
+    dayOfWeek: currentLocalDayOfWeek,
+  });
   const visibleTodayActions = [
     { icon: Check, label: text.carryWithMe!, onClick: () => onCarryToday(companionCard), primary: true },
     { icon: Feather, label: text.reflectToday!, onClick: () => onReflectCard(companionCard) },
@@ -9463,60 +10332,77 @@ function HomeDashboard({
     { icon: BookOpen, label: text.carryScriptureForWeek || "Carry scripture", onClick: onSaveScriptureMemory },
     { icon: Share2, label: text.createWisdomPostcard || "Create wisdom card", onClick: onShareCard },
   ];
+  const homeAtAGlance = [
+    { label: text.personalizedPriority || "Personalized priority", value: text.whatNext || "What should I do next?" },
+    { label: text.todaysCompanion || "Today's companion", value: companionCard.title },
+    { label: text.carryingToday || "Carrying today", value: carryPhrase },
+  ];
 
   return (
     <div className="grid gap-3 sm:gap-4 xl:grid-cols-[minmax(0,0.98fr)_minmax(300px,1.02fr)]">
-      <section className={`editorial-surface min-w-0 rounded-xl border p-3.5 shadow-sm sm:p-4 ${prioritizeToday ? "order-2" : "order-1"}`} style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-        {carryToday ? (
-          <div className="mb-4 flex flex-col gap-2 rounded-lg border px-3 py-2 text-sm leading-6 sm:flex-row sm:items-center sm:justify-between" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}>
-            <span>
-              <span className="font-semibold" style={{ color: theme.accentGold }}>{text.carryingToday}:</span>{" "}
-              <span suppressHydrationWarning>&ldquo;{carryToday.phrase}&rdquo;</span>
+      <section
+        className={`editorial-surface min-w-0 rounded-2xl border p-4 shadow-sm sm:p-5 ${prioritizeToday ? "order-2" : "order-1"}`}
+        style={{
+          borderColor: theme.borderLight,
+          background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})`,
+        }}
+      >
+        <div className="flex flex-col gap-4">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
+                {homeWelcomeEyebrow}
+              </p>
+              <p className="mt-2 text-base font-semibold tracking-tight sm:text-lg" style={{ color: theme.textPrimary }} suppressHydrationWarning>
+                {greeting}
+              </p>
+              <p className="mt-1.5 max-w-2xl text-sm leading-6 sm:text-base sm:leading-6" style={{ color: theme.textSecondary }} suppressHydrationWarning>
+                {homeWelcomeSeasonal}
+              </p>
+            </div>
+            <span className="grid size-12 shrink-0 place-items-center rounded-xl border shadow-sm" style={{ borderColor: theme.primary, backgroundColor: theme.primary, color: theme.textOnPrimary }}>
+              <Sparkles size={22} />
             </span>
+          </div>
+
+          <div className="grid gap-2 sm:grid-cols-3">
+            {homeAtAGlance.map((item) => (
+              <div key={item.label} className="rounded-2xl border px-3.5 py-3 shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                <p className="text-[0.68rem] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+                  {item.label}
+                </p>
+                <p className="mt-1.5 text-sm font-medium leading-6" style={{ color: theme.textPrimary }} suppressHydrationWarning>
+                  {item.value}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          <div>
+            <h1 className="max-w-3xl text-2xl font-semibold leading-tight tracking-normal sm:text-[2rem]" style={{ color: theme.textPrimary }}>
+              {text.whatNext}
+            </h1>
+            <p className="mt-3 max-w-2xl text-sm leading-6 sm:text-base sm:leading-7" style={{ color: theme.textSecondary }}>
+              {text.whatNextBody}
+            </p>
+          </div>
+
+          {personalizationContextEmpty ? (
             <button
               type="button"
-              onClick={onShareCarryCard}
-              className="premium-tap-card w-fit rounded-md border px-2 py-1 text-xs font-semibold"
-              style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+              onClick={onOpenAccount}
+              className="rounded-2xl border px-3.5 py-3 text-left text-sm font-semibold leading-6 transition"
+              style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}
             >
-              {text.createCard}
+              <span className="block" style={{ color: theme.textPrimary }}>{text.personalizationNudgeTitle}</span>
+              <span className="mt-1 block text-sm font-normal leading-6" style={{ color: theme.textSecondary }}>{text.personalizationNudgeBody}</span>
             </button>
-          </div>
-        ) : null}
-        <div className="mb-3">
-          <p className="text-base font-semibold tracking-tight sm:text-lg" style={{ color: theme.textPrimary }} suppressHydrationWarning>
-            {greeting}
-          </p>
-          <p className="mt-1 text-sm leading-5" style={{ color: theme.textSecondary }} suppressHydrationWarning>
-            {text.greetingIntent || "Let's choose one wise next step today."}
-          </p>
-        </div>
-        <div className="mb-3 inline-flex w-fit max-w-full items-center gap-2 rounded-md border px-2.5 py-2 text-[11px] font-medium uppercase tracking-[0.12em] sm:text-xs sm:tracking-[0.18em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.accentGold }}>
-          <Sparkles size={14} />
-          {text.personalizedPriority}
-        </div>
-        <h1 className="max-w-3xl text-2xl font-semibold leading-tight tracking-normal sm:text-[2rem]" style={{ color: theme.textPrimary }}>
-          {text.whatNext}
-        </h1>
-        <p className="mt-3.5 max-w-2xl text-sm leading-5 sm:text-base sm:leading-6" style={{ color: theme.textSecondary }}>
-          {text.whatNextBody}
-        </p>
-        {personalizationContextEmpty ? (
-          <button
-            type="button"
-            onClick={onOpenAccount}
-            className="mt-3 rounded-md border px-3 py-2 text-left text-xs font-semibold leading-5 transition"
-            style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}
-          >
-            <span style={{ color: theme.textPrimary }}>{text.personalizationNudgeTitle}</span>{" "}
-            {text.personalizationNudgeBody}
-          </button>
-        ) : null}
+          ) : null}
 
-        <div className="mt-4">
-          <DashboardAction icon={primaryAction.icon} label={primaryAction.label} body={primaryAction.body} primary onClick={primaryAction.onClick} theme={theme} />
-        </div>
-        <div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-3">
+          <div>
+            <DashboardAction icon={primaryAction.icon} label={primaryAction.label} body={primaryAction.body} primary onClick={primaryAction.onClick} theme={theme} />
+          </div>
+          <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
           {visibleSecondaryActions.map((action) => (
             <div key={action.label}>
               <DashboardAction icon={action.icon} label={action.label} body={action.body} onClick={action.onClick} compact theme={theme} />
@@ -9535,8 +10421,26 @@ function HomeDashboard({
           className="mt-3"
           theme={theme}
         >
-          <DashboardAction icon={finalSecondaryAction.icon} label={finalSecondaryAction.label} body={finalSecondaryAction.body} onClick={finalSecondaryAction.onClick} compact theme={theme} />
+          <div className="space-y-2">
+            <div className="rounded-2xl border p-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+              <div className="flex items-start gap-3">
+                <span className="grid size-10 shrink-0 place-items-center rounded-xl" style={{ backgroundColor: theme.bgInput, color: theme.accentGold }}>
+                  <Compass size={16} />
+                </span>
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+                    {ts('labels.moreHomeActions')}
+                  </p>
+                  <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                    {ts('labels.moreHomeActionsSummary')}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <DashboardAction icon={finalSecondaryAction.icon} label={finalSecondaryAction.label} body={finalSecondaryAction.body} onClick={finalSecondaryAction.onClick} compact theme={theme} />
+          </div>
         </DisclosureSection>
+        </div>
       </section>
 
       <section
@@ -9545,103 +10449,231 @@ function HomeDashboard({
         className={`editorial-surface min-w-0 scroll-mt-28 rounded-xl border p-0 shadow-sm outline-none ${prioritizeToday ? "order-1" : "order-2"}`}
         style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textPrimary }}
       >
-        <div className="border-b p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
-          <div className="flex items-start justify-between gap-4">
+        <div
+          className="border-b p-3.5 sm:p-4"
+          style={{
+            borderColor: theme.borderLight,
+            background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})`,
+          }}
+        >
+          <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(190px,230px)] md:items-start">
             <div className="min-w-0">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }} suppressHydrationWarning>{text.todaysCompanion}</p>
-              <h2 className="mt-1.5 text-2xl font-semibold leading-tight sm:text-[2rem]" suppressHydrationWarning>{text.todayPrefix}: {companionCard.title}</h2>
-              <p className="mt-2.5 max-w-2xl text-base leading-6 sm:text-lg sm:leading-7" style={{ color: theme.textSecondary }} suppressHydrationWarning>{companionCard.opening}</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }} suppressHydrationWarning>
+                {text.todaysCompanion}
+              </p>
+              <h2 className="mt-1.5 text-2xl font-semibold leading-tight sm:text-[2rem]" suppressHydrationWarning>
+                {text.todayPrefix}: {companionCard.title}
+              </h2>
+              <p className="mt-2.5 text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }} suppressHydrationWarning>
+                {todaySeasonalHeader.eyebrow}
+              </p>
+              <p className="mt-1.5 max-w-2xl text-base leading-6 sm:text-lg sm:leading-7" style={{ color: theme.textSecondary }} suppressHydrationWarning>
+                {todaySeasonalHeader.body}
+              </p>
+              <p className="mt-2.5 max-w-2xl text-sm leading-6 sm:text-base sm:leading-7" style={{ color: theme.textSecondary }} suppressHydrationWarning>
+                {companionCard.opening}
+              </p>
             </div>
-            <span className="grid size-12 shrink-0 place-items-center rounded-xl border shadow-sm" style={{ borderColor: theme.primary, backgroundColor: theme.primary, color: theme.textOnPrimary }}>
-              <Sprout size={24} />
-            </span>
+            <div className="justify-self-start md:justify-self-end">
+              <TodayVisualPanel
+                labelCopy={todayVisualLabel}
+                themeName={todayVisualTheme}
+                dayNumber={dayNumber}
+                mood={todayVisualMood}
+                hour={currentLocalHour}
+                month={currentLocalMonth}
+                dayOfWeek={currentLocalDayOfWeek}
+                theme={theme}
+              />
+            </div>
           </div>
 
-          <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
-            <button
-              type="button"
-              onClick={() => onScriptureOpen(dailyEntry.scripture)}
-              className="premium-tap-card inline-flex min-h-14 w-full items-center gap-3 rounded-xl border px-4 py-3 text-left text-sm font-semibold transition"
-              style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
-              suppressHydrationWarning
-            >
-              <span className="grid size-9 shrink-0 place-items-center rounded-lg" style={{ backgroundColor: theme.bgInput, color: theme.accentGold }}>
-                <BookOpen size={16} />
-              </span>
+          {carryToday ? (
+            <div className="mt-4 flex flex-col gap-2 rounded-2xl border px-3.5 py-3 text-sm leading-6 sm:flex-row sm:items-center sm:justify-between" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}>
               <span className="min-w-0">
-                <span className="block text-[0.7rem] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
-                  {ts('labels.scripture')}
-                </span>
-                <span className="mt-1 block truncate text-sm leading-6" style={{ color: theme.textPrimary }}>
-                  {daily.scripture}
-                </span>
+                <span className="font-semibold" style={{ color: theme.accentGold }}>
+                  {text.carryingToday}:
+                </span>{" "}
+                <span suppressHydrationWarning>&ldquo;{carryPhrase}&rdquo;</span>
               </span>
-            </button>
+              <button
+                type="button"
+                onClick={onShareCarryCard}
+                className="premium-tap-card w-fit rounded-md border px-2.5 py-1 text-xs font-semibold"
+                style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+              >
+                {text.createCard}
+              </button>
+            </div>
+          ) : null}
 
-            <div className="rounded-xl border p-3.5 shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.primary, color: theme.textOnPrimary }}>
-              <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textOnPrimary }}>
+          <div className="mt-4 grid gap-2 sm:grid-cols-3">
+            <div className="rounded-2xl border p-3 shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+              <p className="text-[0.68rem] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+                {ts('labels.scripture')}
+              </p>
+              <p className="mt-1.5 text-sm font-medium leading-6" style={{ color: theme.textPrimary }} suppressHydrationWarning>
+                {daily.scripture}
+              </p>
+            </div>
+            <div className="rounded-2xl border p-3 shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+              <p className="text-[0.68rem] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
                 {text.carryThisToday}
               </p>
-              <p className="mt-2 text-base font-semibold leading-7" suppressHydrationWarning>&ldquo;{companionCard.carryPhrase}&rdquo;</p>
+              <p className="mt-1.5 text-sm font-medium leading-6" style={{ color: theme.textPrimary }} suppressHydrationWarning>
+                &ldquo;{carryPhrase}&rdquo;
+              </p>
+            </div>
+            <div className="rounded-2xl border p-3 shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+              <p className="text-[0.68rem] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+                {featuredInsightLabel}
+              </p>
+              <p className="mt-1.5 line-clamp-2 text-sm font-medium leading-6" style={{ color: theme.textPrimary }} suppressHydrationWarning>
+                {featuredInsight}
+              </p>
             </div>
           </div>
-
-          <div className="mt-3 rounded-xl border p-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-            <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{featuredInsightLabel}</p>
-            <p className="mt-2 text-sm leading-6 sm:text-base sm:leading-7" style={{ color: theme.textPrimary }} suppressHydrationWarning>{featuredInsight}</p>
-          </div>
-
-          <details className="mt-3 rounded-md border p-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
-            <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
-              {text.showDetails}
-            </summary>
-            <div className="mt-2.5 grid gap-3">
-              {featuredInsightIsDuplicate ? null : (
-                <div className="rounded-md border p-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{text.reflectionQuestion}</p>
-                  <p className="mt-2 text-sm leading-6" style={{ color: theme.textPrimary }} suppressHydrationWarning>{companionCard.question}</p>
-                </div>
-              )}
-              <div className="rounded-md border p-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-                <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{text.tinyPractice}</p>
-                <p className="mt-2 text-sm leading-6" style={{ color: theme.textPrimary }} suppressHydrationWarning>{companionCard.practice}</p>
-              </div>
-            </div>
-          </details>
         </div>
-        <div className="grid grid-cols-2 gap-2 border-t p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-          {visibleTodayActions.map((action) => (
-            <CompanionCardAction
-              key={action.label}
-              icon={action.icon}
-              label={action.label}
-              onClick={action.onClick}
-              theme={theme}
-              primary={action.primary}
-            />
-          ))}
+
+        <div className="space-y-3 p-3.5 sm:p-4">
+          <div className="rounded-3xl border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
+            <div className="relative space-y-3 border-l pl-4" style={{ borderColor: theme.borderLight }}>
+              <TodayTimelineStep
+                index={1}
+                label={ts('labels.scripture')}
+                theme={theme}
+                highlight
+                body={
+                  <button
+                    type="button"
+                    onClick={() => onScriptureOpen(dailyEntry.scripture)}
+                    className="premium-tap-card inline-flex w-full items-center gap-3 rounded-xl border px-3.5 py-3 text-left text-sm font-semibold transition"
+                    style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
+                    suppressHydrationWarning
+                  >
+                    <span className="grid size-9 shrink-0 place-items-center rounded-lg" style={{ backgroundColor: theme.bgInput, color: theme.accentGold }}>
+                      <BookOpen size={16} />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block text-[0.7rem] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+                        {ts('labels.scripture')}
+                      </span>
+                      <span className="mt-1 block truncate text-sm leading-6" style={{ color: theme.textPrimary }}>
+                        {daily.scripture}
+                      </span>
+                    </span>
+                  </button>
+                }
+              />
+              <TodayTimelineStep
+                index={2}
+                label={text.carryThisToday}
+                theme={theme}
+                body={
+                  <p className="text-base font-semibold leading-7" suppressHydrationWarning>
+                    &ldquo;{carryPhrase}&rdquo;
+                  </p>
+                }
+              />
+              <TodayTimelineStep
+                index={3}
+                label={featuredInsightLabel}
+                theme={theme}
+                body={
+                  <p className="text-sm leading-6 sm:text-[0.95rem] sm:leading-7" suppressHydrationWarning>
+                    {featuredInsight}
+                  </p>
+                }
+              />
+              <TodayTimelineStep
+                index={4}
+                label={text.tinyPractice}
+                theme={theme}
+                body={
+                  <p className="text-sm leading-6 sm:text-[0.95rem] sm:leading-7" suppressHydrationWarning>
+                    {companionCard.practice}
+                  </p>
+                }
+              />
+            </div>
+          </div>
+
           <DisclosureSection
-            title={ts('labels.moreTodayActions')}
-            summary={ts('labels.moreTodayActionsSummary')}
-            eyebrow={ts('labels.today')}
+            title={text.reflectionQuestion}
+            summary={companionCard.question}
+            eyebrow={text.todayPrefix}
             compactCollapsed
-            showDetailsLabel={ts('showDetails')}
-            hideDetailsLabel={ts('hideDetails')}
-            className="col-span-2"
+            showDetailsLabel={text.showDetails}
+            hideDetailsLabel={text.hideDetails}
+            className="rounded-3xl"
             theme={theme}
           >
-            <div className="grid gap-2 sm:grid-cols-2">
-              {hiddenTodayActions.map((action) => (
-                <CompanionCardAction
-                  key={action.label}
-                  icon={action.icon}
-                  label={action.label}
-                  onClick={action.onClick}
-                  theme={theme}
-                />
-              ))}
+            <div className="grid gap-3">
+              {featuredInsightIsDuplicate ? null : (
+                <div className="rounded-2xl border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                  <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+                    {text.reflectionQuestion}
+                  </p>
+                  <p className="mt-2 text-sm leading-6 sm:text-[0.95rem] sm:leading-7" style={{ color: theme.textPrimary }} suppressHydrationWarning>
+                    {companionCard.question}
+                  </p>
+                </div>
+              )}
+              <div className="rounded-2xl border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+                  {text.context}
+                </p>
+                <p className="mt-2 text-sm leading-6 sm:text-[0.95rem] sm:leading-7" style={{ color: theme.textPrimary }} suppressHydrationWarning>
+                  {dailyEntry.context}
+                </p>
+              </div>
+              <div className="rounded-2xl border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+                  {text.application}
+                </p>
+                <p className="mt-2 text-sm leading-6 sm:text-[0.95rem] sm:leading-7" style={{ color: theme.textPrimary }} suppressHydrationWarning>
+                  {dailyEntry.application}
+                </p>
+              </div>
             </div>
           </DisclosureSection>
+        </div>
+
+        <div className="border-t p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+          <div className="grid grid-cols-2 gap-2">
+            {visibleTodayActions.map((action) => (
+              <CompanionCardAction
+                key={action.label}
+                icon={action.icon}
+                label={action.label}
+                onClick={action.onClick}
+                theme={theme}
+                primary={action.primary}
+              />
+            ))}
+            <DisclosureSection
+              title={ts('labels.moreTodayActions')}
+              summary={ts('labels.moreTodayActionsSummary')}
+              eyebrow={ts('labels.today')}
+              compactCollapsed
+              showDetailsLabel={ts('showDetails')}
+              hideDetailsLabel={ts('hideDetails')}
+              className="col-span-2"
+              theme={theme}
+            >
+              <div className="grid gap-2 sm:grid-cols-2">
+                {hiddenTodayActions.map((action) => (
+                  <CompanionCardAction
+                    key={action.label}
+                    icon={action.icon}
+                    label={action.label}
+                    onClick={action.onClick}
+                    theme={theme}
+                  />
+                ))}
+              </div>
+            </DisclosureSection>
+          </div>
         </div>
       </section>
 
@@ -9910,9 +10942,49 @@ function DashboardAction({
       </span>
       <span className="min-w-0">
         <span className={`${primary ? "text-base" : "text-sm"} block font-semibold`}>{label}</span>
-        <span className={`${compact ? "home-secondary-action-body " : ""}mt-1 line-clamp-2 block text-xs leading-5 opacity-80`}>{body}</span>
+      <span className={`${compact ? "home-secondary-action-body " : ""}mt-1 line-clamp-2 block text-xs leading-5 opacity-80`}>{body}</span>
+    </span>
+  </button>
+);
+}
+
+function TodayTimelineStep({
+  index,
+  label,
+  body,
+  theme,
+  highlight = false,
+}: {
+  index: number;
+  label: string;
+  body: ReactNode;
+  theme: ThemeColors;
+  highlight?: boolean;
+}) {
+  return (
+    <div className="relative min-w-0 pl-11">
+      <span
+        className="absolute left-0 top-0.5 grid size-8 place-items-center rounded-full border text-[0.72rem] font-semibold shadow-sm"
+        style={highlight
+          ? { borderColor: theme.primary, backgroundColor: theme.primary, color: theme.textOnPrimary }
+          : { borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}
+      >
+        {index}
       </span>
-    </button>
+      <div
+        className="rounded-2xl border px-3.5 py-3 shadow-sm sm:px-4"
+        style={highlight
+          ? { borderColor: theme.primary, backgroundColor: theme.bgCard }
+          : { borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}
+      >
+        <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+          {label}
+        </p>
+        <div className="mt-2 text-sm leading-6 sm:text-[0.95rem] sm:leading-7" style={{ color: theme.textPrimary }}>
+          {body}
+        </div>
+      </div>
+    </div>
   );
 }
 

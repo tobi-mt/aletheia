@@ -2129,9 +2129,9 @@ const localizedWisdomLibraryEntries: Partial<Record<LanguageCode, Record<string,
       keywords: ["money", "invest", "investing", "wealth", "stewardship", "growth", "risk", "responsibility"],
       emotions: ["fear", "uncertainty", "greed", "pressure"],
       questions: [
-        "What has actually been entrusted to me right now?",
-        "Am I acting from faithful responsibility or from comparison?",
-        "What counsel or accountability would make this decision wiser?",
+        "¿Qué me ha sido confiado realmente ahora?",
+        "¿Estoy actuando desde la responsabilidad fiel o desde la comparación?",
+        "¿Qué consejo o rendición de cuentas haría esta decisión más sabia?",
       ],
     },
     "Proverbs 22:7": {
@@ -2144,9 +2144,9 @@ const localizedWisdomLibraryEntries: Partial<Record<LanguageCode, Record<string,
       keywords: ["debt", "loan", "credit", "mortgage", "borrow", "owe", "payment"],
       emotions: ["stress", "shame", "fear", "urgency"],
       questions: [
-        "Is this debt serving a clear purpose or soothing a short-term pressure?",
-        "What freedom will I lose while repaying it?",
-        "Have I made the repayment plan visible and realistic?",
+        "¿Esta deuda sirve a un propósito claro o calma una presión momentánea?",
+        "¿Qué libertad perderé mientras la pago?",
+        "¿He hecho visible y realista el plan de pago?",
       ],
     },
     "Philippians 4:11-13": {
@@ -2159,9 +2159,9 @@ const localizedWisdomLibraryEntries: Partial<Record<LanguageCode, Record<string,
       keywords: ["comparison", "contentment", "salary", "envy", "peace", "lifestyle", "greed"],
       emotions: ["envy", "restlessness", "anxiety", "scarcity"],
       questions: [
-        "What am I calling enough in this season?",
-        "Where is comparison distorting my judgment?",
-        "What practice would help my nervous system slow down?",
+        "¿Qué estoy llamando suficiente en esta temporada?",
+        "¿Dónde la comparación está distorsionando mi juicio?",
+        "¿Qué práctica ayudaría a mi sistema nervioso a bajar el ritmo?",
       ],
     },
     "Proverbs 15:22": {
@@ -2174,9 +2174,9 @@ const localizedWisdomLibraryEntries: Partial<Record<LanguageCode, Record<string,
       keywords: ["job", "career", "business", "startup", "leave", "quit", "decision", "counsel", "mentor"],
       emotions: ["confusion", "excitement", "fear", "ambition"],
       questions: [
-        "Who can challenge my assumptions without controlling me?",
-        "What would a wise critic notice about this plan?",
-        "What would I still do if nobody applauded the decision?",
+        "¿Quién puede desafiar mis supuestos sin controlarme?",
+        "¿Qué notaría un crítico sabio sobre este plan?",
+        "¿Qué seguiría haciendo si nadie aplaudiera la decisión?",
       ],
     },
     "Luke 14:28": {
@@ -2189,9 +2189,9 @@ const localizedWisdomLibraryEntries: Partial<Record<LanguageCode, Record<string,
       keywords: ["business", "startup", "risk", "job", "career", "plan", "runway", "entrepreneur"],
       emotions: ["excitement", "pressure", "uncertainty", "impatience"],
       questions: [
-        "What is the real cost if this takes twice as long?",
-        "Which part of the decision is reversible?",
-        "What experiment could reveal truth before I make a larger commitment?",
+        "¿Cuál es el costo real si esto tarda el doble?",
+        "¿Qué parte de la decisión es reversible?",
+        "¿Qué experimento podría revelar la verdad antes de que haga un compromiso mayor?",
       ],
     },
     "2 Corinthians 9:6-8": {
@@ -2204,9 +2204,9 @@ const localizedWisdomLibraryEntries: Partial<Record<LanguageCode, Record<string,
       keywords: ["give", "giving", "generosity", "tithe", "donate", "charity", "church"],
       emotions: ["guilt", "joy", "pressure", "gratitude"],
       questions: [
-        "Is this gift free, thoughtful, and sustainable?",
-        "Does my giving plan protect both generosity and responsibility?",
-        "What need am I being invited to notice with love?",
+        "¿Este regalo es libre, considerado y sostenible?",
+        "¿Mi plan de dar protege tanto la generosidad como la responsabilidad?",
+        "¿Qué necesidad se me invita a ver con amor?",
       ],
     },
     "Proverbs 21:5": {
@@ -2219,9 +2219,9 @@ const localizedWisdomLibraryEntries: Partial<Record<LanguageCode, Record<string,
       keywords: ["budget", "plan", "hype", "impulse", "crypto", "spending", "saving", "discipline"],
       emotions: ["panic", "fomo", "urgency", "excitement"],
       questions: [
-        "What would I choose if there were no urgency?",
-        "Is this opportunity still wise after a quiet night of sleep?",
-        "What process protects me from impulse?",
+        "¿Qué elegiría si no hubiera urgencia?",
+        "¿Sigue siendo sabia esta oportunidad después de una noche de descanso?",
+        "¿Qué proceso me protege del impulso?",
       ],
     },
     "Matthew 6:25-34": {
@@ -2234,11 +2234,714 @@ const localizedWisdomLibraryEntries: Partial<Record<LanguageCode, Record<string,
       keywords: ["anxiety", "worry", "provision", "fear", "future", "security", "scarcity"],
       emotions: ["anxiety", "fear", "scarcity", "overwhelm"],
       questions: [
-        "What is the next faithful action for today?",
-        "Which worries are calling for planning, and which are calling for release?",
-        "What would peace change about my pace?",
+        "¿Cuál es la siguiente acción fiel para hoy?",
+        "¿Qué preocupaciones piden planificación y cuáles piden ser soltadas?",
+        "¿Qué cambiaría la paz en mi ritmo?",
       ],
     },
+  },
+  es: {
+    "Matthew 25:14-30": {
+      principle: "Los recursos confiados se administran con fidelidad, valentía y responsabilidad.",
+      context:
+        "La parábola trata de siervos a quienes se les confía responsabilidad mientras el amo está fuera. Valora la fidelidad, no la ansiedad ni la especulación.",
+      application:
+        "Trata el dinero, la habilidad, el tiempo y la oportunidad como recursos confiados. El crecimiento importa, pero también el motivo, la paciencia, la diligencia y la rendición de cuentas.",
+    },
+    "Proverbs 22:7": {
+      principle: "La deuda puede reducir la libertad y conviene abordarla con sobriedad.",
+      context:
+        "Los Proverbios suelen describir patrones de sabiduría más que reglas legales absolutas. Este proverbio señala el peso relacional y práctico que puede crear la deuda.",
+      application:
+        "Antes de asumir una deuda, revisa la necesidad, la capacidad de pago, la presión emocional y si la obligación sirve a una buena administración.",
+    },
+    "Philippians 4:11-13": {
+      principle: "El contentamiento se aprende confiando, no cuando las circunstancias son perfectas.",
+      context:
+        "Pablo escribe desde la dificultad y describe el contentamiento como una dependencia aprendida, no como negación de la necesidad real.",
+      application:
+        "La paz financiera suele empezar al nombrar lo suficiente, resistir la comparación y cultivar hábitos que bajen la volatilidad emocional.",
+    },
+    "Proverbs 15:22": {
+      principle: "Los planes se fortalecen cuando se examinan con consejo humilde.",
+      context:
+        "La literatura sapiencial valora repetidamente la docilidad, la corrección y la capacidad de buscar perspectiva antes de actuar.",
+      application:
+        "Para decisiones grandes de trabajo, dinero o negocio, invita a personas sabias, honestas y que no dependan financieramente de tu decisión.",
+    },
+    "Luke 14:28": {
+      principle: "La acción sabia calcula el costo antes del compromiso.",
+      context:
+        "Jesús usa la imagen de construir una torre para destacar una evaluación sobria antes del compromiso público.",
+      application:
+        "Antes de un gran movimiento laboral o empresarial, define margen, intercambios, obligaciones, tiempos y el experimento reversible más pequeño.",
+    },
+    "2 Corinthians 9:6-8": {
+      principle: "La generosidad es voluntaria y reflexiva, no forzada ni performativa.",
+      context:
+        "Pablo invita a una generosidad alegre y rechaza la imposición. La postura importa tanto como el monto.",
+      application:
+        "Da por convicción y con planificación, no por culpa, presión social ni por querer parecer espiritual.",
+    },
+    "Proverbs 21:5": {
+      principle: "La planificación diligente suele conducir a la abundancia; la prisa, a la escasez.",
+      context:
+        "Este proverbio contrasta la diligencia constante con la acción apresurada. Advierte contra los atajos impulsivos.",
+      application:
+        "Evita decisiones financieras guiadas por hype, pánico o urgencia. Escribe el plan, prueba supuestos y deja tiempo para consejo.",
+    },
+    "Matthew 6:25-34": {
+      principle: "La confianza reduce la ansiedad sin impedir la acción responsable.",
+      context:
+        "Jesús aborda la preocupación y el afán desordenado, llamando a sus oyentes a buscar el reino de Dios mientras viven un día a la vez.",
+      application:
+        "Separa la planificación responsable de los bucles de ansiedad. Haz la siguiente acción fiel y luego rechaza ensayar cada peor escenario.",
+    },
+  },
+  fr: {
+    "Matthew 25:14-30": {
+      principle: "Les ressources confiées se gèrent avec fidélité, courage et responsabilité.",
+      context:
+        "La parabole concerne des serviteurs à qui l’on confie une responsabilité pendant l’absence du maître. Elle valorise l’action fidèle, non l’angoisse ni la spéculation.",
+      application:
+        "Considère l’argent, les compétences, le temps et les occasions comme des ressources confiées. La croissance compte, mais aussi le motif, la patience, la diligence et la redevabilité.",
+    },
+    "Proverbs 22:7": {
+      principle: "La dette peut réduire la liberté et doit être abordée avec sobriété.",
+      context:
+        "Les Proverbes décrivent souvent des schémas de sagesse plutôt que des règles légales absolues. Ce proverbe nomme le poids relationnel et pratique que la dette peut créer.",
+      application:
+        "Avant de prendre une dette, examine le besoin, la capacité de remboursement, la pression émotionnelle et si l'engagement soutient une bonne gestion.",
+    },
+    "Philippians 4:11-13": {
+      principle: "Le contentement s'apprend dans la confiance, non dans des circonstances parfaites.",
+      context:
+        "Paul écrit dans l'épreuve et décrit le contentement comme une dépendance apprise, non comme le déni d'un besoin réel.",
+      application:
+        "La paix financière commence souvent par nommer ce qui suffit, résister à la comparaison et construire des habitudes qui réduisent la volatilité émotionnelle.",
+    },
+    "Proverbs 15:22": {
+      principle: "Les projets deviennent plus solides quand ils sont examinés avec un conseil humble.",
+      context:
+        "La littérature de sagesse valorise sans cesse l'aptitude à être enseigné, la correction et la recherche d'un autre point de vue avant d'agir.",
+      application:
+        "Pour les grandes décisions de travail, d'argent ou d'entreprise, invite des personnes sages, honnêtes et non dépendantes financièrement de ton choix.",
+    },
+    "Luke 14:28": {
+      principle: "L'action sage évalue le coût avant l'engagement.",
+      context:
+        "Jésus utilise l'image de la construction d'une tour pour souligner une évaluation sobre avant un engagement public.",
+      application:
+        "Avant un grand changement professionnel ou entrepreneurial, définis la marge, les arbitrages, les obligations, le calendrier et le plus petit test réversible.",
+    },
+    "2 Corinthians 9:6-8": {
+      principle: "La générosité est volontaire et réfléchie, non forcée ni mise en scène.",
+      context:
+        "Paul invite à une générosité joyeuse tout en rejetant la contrainte. La posture compte autant que le montant.",
+      application:
+        "Donne par conviction et avec planification, non par culpabilité, pression sociale ou besoin d'avoir l'air spirituel.",
+    },
+    "Proverbs 21:5": {
+      principle: "Une planification diligente mène souvent à l'abondance ; la précipitation mène au manque.",
+      context:
+        "Ce proverbe oppose la diligence régulière à l'action précipitée. Il met en garde contre les raccourcis impulsifs.",
+      application:
+        "Évite les décisions financières dictées par le battage, la panique ou l'urgence. Écris le plan, teste les hypothèses et laisse du temps au conseil.",
+    },
+    "Matthew 6:25-34": {
+      principle: "La confiance réduit l'anxiété tout en laissant place à l'action responsable.",
+      context:
+        "Jésus traite l'inquiétude et l'agitation déplacée, appelant ses auditeurs à chercher le royaume de Dieu tout en vivant un jour à la fois.",
+      application:
+        "Sépare la planification responsable des boucles d'anxiété. Fais le prochain geste fidèle puis refuse de rejouer chaque pire scénario.",
+    },
+  },
+  pt: {
+    "Matthew 25:14-30": {
+      principle: "Recursos confiados são administrados com fidelidade, coragem e responsabilidade.",
+      context:
+        "A parábola trata de servos a quem foi dada responsabilidade enquanto o mestre está ausente. Ela valoriza ação fiel, não especulação nem ansiedade.",
+      application:
+        "Trate dinheiro, habilidade, tempo e oportunidade como recursos confiados. Crescimento importa, mas motivo, paciência, diligência e prestação de contas também importam.",
+    },
+    "Proverbs 22:7": {
+      principle: "A dívida pode reduzir a liberdade e deve ser tratada com sobriedade.",
+      context:
+        "Os Provérbios costumam descrever padrões de sabedoria, não regras legais absolutas. Este provérbio nomeia o peso relacional e prático que a dívida pode criar.",
+      application:
+        "Antes de assumir uma dívida, examine a necessidade, a capacidade de pagamento, a pressão emocional e se a obrigação sustenta uma boa mordomia.",
+    },
+    "Philippians 4:11-13": {
+      principle: "O contentamento se aprende pela confiança, não por circunstâncias perfeitas.",
+      context:
+        "Paulo escreve em meio à dificuldade e descreve o contentamento como dependência aprendida, não como negação da necessidade real.",
+      application:
+        "A paz financeira costuma começar ao nomear o suficiente, resistir à comparação e construir hábitos que reduzam a volatilidade emocional.",
+    },
+    "Proverbs 15:22": {
+      principle: "Os planos ficam mais firmes quando são examinados com conselho humilde.",
+      context:
+        "A literatura de sabedoria valoriza repetidamente a docilidade, a correção e a busca de perspectiva antes de agir.",
+      application:
+        "Para grandes decisões de trabalho, dinheiro ou negócio, convide pessoas sábias, honestas e que não dependam financeiramente da sua decisão.",
+    },
+    "Luke 14:28": {
+      principle: "A ação sábia conta o custo antes do compromisso.",
+      context:
+        "Jesus usa a imagem de construir uma torre para enfatizar uma avaliação sóbria antes de um compromisso público.",
+      application:
+        "Antes de uma grande mudança de trabalho ou negócio, defina margem, trocas, obrigações, tempo e o menor experimento reversível.",
+    },
+    "2 Corinthians 9:6-8": {
+      principle: "A generosidade é voluntária e cuidadosa, não forçada nem performática.",
+      context:
+        "Paulo convida à generosidade alegre enquanto rejeita a compulsão. A postura importa tanto quanto o valor.",
+      application:
+        "Dê por convicção e com planejamento, não por culpa, pressão social ou necessidade de parecer espiritual.",
+    },
+    "Proverbs 21:5": {
+      principle: "O planejamento diligente tende à abundância; a pressa tende à escassez.",
+      context:
+        "Este provérbio contrasta a diligência constante com a ação apressada. Ele adverte contra atalhos impulsivos.",
+      application:
+        "Evite decisões financeiras guiadas por hype, pânico ou urgência. Escreva o plano, teste as suposições e dê tempo ao conselho.",
+    },
+    "Matthew 6:25-34": {
+      principle: "A confiança reduz a ansiedade sem impedir a ação responsável.",
+      context:
+        "Jesus trata da preocupação e do esforço deslocado, chamando os ouvintes a buscar o reino de Deus enquanto vivem um dia de cada vez.",
+      application:
+        "Separe o planejamento responsável dos ciclos de ansiedade. Faça a próxima ação fiel e depois recuse ensaiar cada pior cenário.",
+    },
+  },
+  de: {
+    "Matthew 25:14-30": {
+      principle: "Anvertraute Ressourcen werden mit Treue, Mut und Verantwortung verwaltet.",
+      context:
+        "Das Gleichnis handelt von Dienern, denen Verantwortung anvertraut wird, während der Herr abwesend ist. Es würdigt treues Handeln, nicht Spekulation oder Angst.",
+      application:
+        "Behandle Geld, Fähigkeiten, Zeit und Gelegenheit als anvertraute Ressourcen. Wachstum zählt, aber auch Motivation, Geduld, Fleiß und Rechenschaft.",
+    },
+    "Proverbs 22:7": {
+      principle: "Schulden können Freiheit einschränken und sollten nüchtern angegangen werden.",
+      context:
+        "Die Sprüche beschreiben oft Weisheitsmuster statt absoluter Rechtsregeln. Dieses Sprichwort benennt das relationale und praktische Gewicht, das Schulden erzeugen können.",
+      application:
+        "Prüfe vor einer Verschuldung Bedarf, Rückzahlungsfähigkeit, emotionalen Druck und ob die Verpflichtung gute Haushalterschaft unterstützt.",
+    },
+    "Philippians 4:11-13": {
+      principle: "Genügsamkeit lernt man durch Vertrauen, nicht durch perfekte Umstände.",
+      context:
+        "Paulus schreibt aus der Bedrängnis und beschreibt Genügsamkeit als erlernte Abhängigkeit, nicht als Verleugnung realer Not.",
+      application:
+        "Finanzieller Frieden beginnt oft damit, genug zu benennen, Vergleich zu widerstehen und Gewohnheiten aufzubauen, die emotionale Schwankungen senken.",
+    },
+    "Proverbs 15:22": {
+      principle: "Pläne werden tragfähiger, wenn sie mit bescheidenem Rat geprüft werden.",
+      context:
+        "Weisheitsliteratur schätzt Belehrbarkeit, Korrektur und die Bereitschaft, vor dem Handeln Perspektive zu suchen.",
+      application:
+        "Bei großen Entscheidungen in Arbeit, Geld oder Geschäft lade weise, ehrliche Menschen ein, die finanziell nicht von deiner Entscheidung abhängen.",
+    },
+    "Luke 14:28": {
+      principle: "Kluges Handeln zählt die Kosten vor der Zusage.",
+      context:
+        "Jesus nutzt das Bild vom Turmbau, um eine nüchterne Einschätzung vor einer öffentlichen Zusage zu betonen.",
+      application:
+        "Vor einem großen Berufs- oder Geschäftsschritt definiere Puffer, Abwägungen, Verpflichtungen, Timing und das kleinste reversible Experiment.",
+    },
+    "2 Corinthians 9:6-8": {
+      principle: "Großzügigkeit ist willig und bedacht, nicht erzwungen oder zur Schau gestellt.",
+      context:
+        "Paulus lädt zu fröhlicher Großzügigkeit ein und lehnt Zwang ab. Die Haltung ist ebenso wichtig wie der Betrag.",
+      application:
+        "Gib aus Überzeugung und mit Planung, nicht aus Schuld, sozialem Druck oder dem Wunsch, geistlich beeindruckend zu wirken.",
+    },
+    "Proverbs 21:5": {
+      principle: "Sorgfältige Planung führt oft zum Wohlstand; Hast führt zum Mangel.",
+      context:
+        "Dieses Sprichwort stellt beständige Sorgfalt und übereiltes Handeln gegenüber. Es warnt vor impulsiven Abkürzungen.",
+      application:
+        "Vermeide finanzielle Entscheidungen, die von Hype, Panik oder Dringlichkeit getrieben sind. Schreibe den Plan, prüfe Annahmen und nimm dir Zeit für Rat.",
+    },
+    "Matthew 6:25-34": {
+      principle: "Vertrauen mindert ängstliches Streben und lässt dennoch verantwortliches Handeln zu.",
+      context:
+        "Jesus spricht Sorge und fehlgeleitetes Streben an und ruft die Hörer dazu auf, Gottes Reich zu suchen und gleichzeitig einen Tag nach dem anderen zu leben.",
+      application:
+        "Trenne verantwortliche Planung von Angstschleifen. Tu den nächsten treuen Schritt und weigere dich dann, jedes Worst-Case-Szenario durchzuspielen.",
+    },
+  },
+  yo: {
+    "Matthew 25:14-30": {
+      principle: "A n tọ́jú ohun tí a fi lé wa lọ́wọ́ pẹ̀lú òtítọ́, ìgboyà, àti ojúṣe.",
+      context:
+        "Òwe yìí ń sọ̀rọ̀ nípa àwọn ìránṣẹ́ tí a fi ojúṣe lé ọwọ́ wọn nígbà tí olúwa kò sí. Ó gbé iṣẹ́ olóòtítọ́ ga, kì í ṣe ìfojúsùn tàbí ìbẹ̀rù.",
+      application:
+        "Wo owó, ọgbọ́n, àkókò, àti àǹfààní gẹ́gẹ́ bí ohun tí a fi lé ọ lọ́wọ́. Ìdàgbàsókè ṣe pàtàkì, ṣùgbọ́n ìdí, sùúrù, aápọn, àti ìjábọ̀ tún ṣe pàtàkì.",
+    },
+    "Proverbs 22:7": {
+      principle: "Gbèsè lè dín òmìnira kù, a sì gbọ́dọ̀ dojú kọ́ ọ pẹ̀lú ìfarabalẹ̀.",
+      context:
+        "Òwe sábà máa ń ṣàpèjúwe àpẹẹrẹ ọgbọ́n dípò òfin gígùn tí kò yí padà. Òwe yìí ń darúkọ ẹrù ìbáṣepọ̀ àti ìṣe tí gbèsè lè dá.",
+      application:
+        "Kí o tó gba gbèsè, ṣàyẹ̀wò ìdí rẹ, agbára láti san padà, ìtẹ̀sí ọkàn, àti bóyá ojúṣe náà ń ṣe ìtọ́jú rere.",
+    },
+    "Philippians 4:11-13": {
+      principle: "Ìtẹ́lọ́run a kọ́ ọ nípasẹ̀ ìgbẹ́kẹ̀lé, kì í ṣe nípasẹ̀ ipò pípé.",
+      context:
+        "Paulu kọ láti inú ìpọnju, ó sì ṣàpèjúwe ìtẹ́lọ́run gẹ́gẹ́ bí ìgbẹ́kẹ̀lé tí a kọ́, kì í ṣe bí ìkọ̀sílẹ̀ àìní gidi.",
+      application:
+        "Àlàáfíà owó sábà máa bẹ̀rẹ̀ nígbà tí a bá sọ ohun tó tó di mímọ̀, a sì kọ ìfíwéra sílẹ̀, a sì dá àwọn àṣà tó dín ìyí padà ọkàn kù sílẹ̀.",
+    },
+    "Proverbs 15:22": {
+      principle: "Ètò máa ń lágbára síi nígbà tí a bá ṣàyẹ̀wò rẹ̀ pẹ̀lú ìmọ̀ràn onírẹ̀lẹ̀.",
+      context:
+        "Ìwé ọgbọ́n máa ń fi iye sí ẹ̀kọ́, ìtọ́ni, àti agbára láti wá ojú ìwòye kí a tó ṣiṣẹ́.",
+      application:
+        "Fún àwọn ìpinnu ńlá ní iṣẹ́, owó, tàbí òwò, pe àwọn ènìyàn ọlọ́gbọ́n, olóòtítọ́, tí kò gbẹ́kẹ̀lé owó rẹ fún ìpinnu náà.",
+    },
+    "Luke 14:28": {
+      principle: "Ìṣe ọlọ́gbọ́n ń ka iye kí ó tó dá ara rẹ̀ mọ́ra.",
+      context:
+        "Jésù lo àpẹẹrẹ fífi ilé gíga kọ́ láti fi hàn pé a gbọ́dọ̀ wo ohun tó wà níwájú pẹ̀lú ìfarabalẹ̀ kí a tó fi ara mọ́ ohun kan ní gbangba.",
+      application:
+        "Kí o tó ṣe ìgbésẹ̀ ńlá ní iṣẹ́ tàbí òwò, ṣàlàyé àyè, ìyàtọ̀, ojúṣe, àsìkò, àti ìdánwò kékeré tí a lè yí padà.",
+    },
+    "2 Corinthians 9:6-8": {
+      principle: "Ìfẹ́ fúnni jẹ́ ìfẹ́ ọkàn àti ìmòye, kì í ṣe ohun tí a fi ipa mú tàbí fún ìfihàn.",
+      context:
+        "Paulu ń pè ní fífúnni pẹ̀lú ayọ̀, ó sì kọ ìfipá. Ìpò ọkàn ṣe pàtàkì tó iye owó.",
+      application:
+        "Fúnni látinú ìdánilójú àti ètò, kì í ṣe láti inú ẹ̀bi, titẹ awujọ, tàbí ìfẹ́ láti dà bí ẹni ẹ̀mí.",
+    },
+    "Proverbs 21:5": {
+      principle: "Ìṣètò tó fara balẹ̀ máa ń yọrí sí ọ̀pọ̀; ìkánjú máa ń yọrí sí àìní.",
+      context:
+        "Òwe yìí fi àfiyèsí pípẹ́ hàn sí aápọn tó dúró ṣinṣin àti ìṣe tó yara jù. Ó ń kìlọ̀ lòdì sí àkókò kékèké tí kò rò.",
+      application:
+        "Yago fún ìpinnu owó tí hype, ìbànújẹ, tàbí ìkánjú ń darí. Kọ ètò náà, dán àwọn ìròyìn inú wò, kí o sì fún ìmọ̀ràn ní àkókò.",
+    },
+    "Matthew 6:25-34": {
+      principle: "Ìgbẹ́kẹ̀lé dín ìbẹ̀rù kù, ṣùgbọ́n ó tún jẹ́ kí a ṣe ohun tó yẹ.",
+      context:
+        "Jésù ń bá ìbànújẹ àti ìfọkànsìn tí kò tọ́ sọrọ, ó sì ń pè àwọn olùgbọ́ rẹ̀ láti wá ìjọba Ọlọ́run nígbà tí wọ́n ń gbé ọjọ́ kan lọ́ọ̀kan.",
+      application:
+        "Ya ìṣètò tó yẹ sọ́tọ̀ kúrò nínú kíkààkiri ìbẹ̀rù. Ṣe ìgbésẹ̀ olóòtítọ́ tó kàn, lẹ́yìn náà kọ̀ láti tún gbogbo àbájáde burúkú ṣe nínú ọkàn rẹ.",
+    },
+  },
+  ig: {
+    "Matthew 25:14-30": {
+      principle: "A na-elekọta ihe e nyere anyị n'aka site n'ịbụ ndị kwesịrị ntụkwasị obi, obi ike, na ibu ọrụ.",
+      context:
+        "Akụkọ a na-ekwu maka ndị ohu e nyere ibu ọrụ mgbe nna ha ukwu nọ n'ebe ọzọ. Ọ na-akwado omume kwesịrị ntụkwasị obi, ọ bụghị egwu ma ọ bụ ịkọwapụta ihe n'ike.",
+      application:
+        "Were ego, nkà, oge, na ohere dịka ihe e nyere gị n'aka. Ito uto dị mkpa, ma ebumnuche, ndidi, ịdị uchu, na ịza ajụjụ dịkwa mkpa.",
+    },
+    "Proverbs 22:7": {
+      principle: "Ụgwọ nwere ike belata nnwere onwe, a ga-abịaru ya nso n'uche zuru.",
+      context:
+        "Akwụkwọ Ilu na-akọkarị ụkpụrụ amamihe karịa iwu zuru oke. Ilu a na-akọ ihe ibu mmekọrịta na nke bara uru ụgwọ nwere ike ịkpata.",
+      application:
+        "Tupu iwere ụgwọ, nyochaa mkpa ya, ike ịkwụghachi ya, nrụgide nke mmetụta, na ma ọrụ ahụ na-akwado ezigbo nlekọta.",
+    },
+    "Philippians 4:11-13": {
+      principle: "Afọ ojuju a na-amụta site n'ịtụkwasị obi, ọ bụghị site n'ọnọdụ zuru oke.",
+      context:
+        "Pọl na-ede site n'ime ihe isi ike ma kọwaa afọ ojuju dịka ntụkwasị obi a mụtara, ọ bụghị ịgọnahụ mkpa dị adị.",
+      application:
+        "Udo n'ihe gbasara ego na-amalitekarị mgbe a kpọrọ ihe zuru ezu aha, a jụrụ ịtụnyere onwe onye, a na-ewu kwa omume na-eme ka mmetụta ghara ịgbanwe nke ukwuu.",
+    },
+    "Proverbs 15:22": {
+      principle: "Atụmatụ na-adịkwu sie ike mgbe e nyochara ya n'okpuru ndụmọdụ dị umeala n'obi.",
+      context:
+        "Akwụkwọ amamihe na-akwanyere ịdị njikere ịmụ ihe, mmezi, na ịchọ echiche ndị ọzọ tupu omume.",
+      application:
+        "Maka mkpebi ukwu n'ọrụ, ego, ma ọ bụ azụmahịa, kpọọ ndị maara ihe, ndị na-ekwu eziokwu, ndị na-adabereghị na ego gị maka mkpebi ahụ.",
+    },
+    "Luke 14:28": {
+      principle: "Omume amamihe na-agụ ụgwọ tupu nkwekọrịta.",
+      context:
+        "Jisọs jiri ihe atụ ụlọ elu rụọ ka o doo anya na e kwesịrị ịtụle ihe nwayọọ tupu e mee nkwekọrịta n'ihu ọha.",
+      application:
+        "Tupu nnukwu mgbanwe ọrụ ma ọ bụ azụmahịa, kọwaa ohere, mgbanwe, ibu ọrụ, oge, na nnwale pere mpe a pụrụ ịtụgharị azụ.",
+    },
+    "2 Corinthians 9:6-8": {
+      principle: "Mmesapụ aka bụ ihe e ji obi dị njikere na echiche ọma mee, ọ bụghị nke a manyere ma ọ bụ egosipụtara.",
+      context:
+        "Pọl na-akpọ ka e nye n'ọṅụ ma na-ajụ ịmanye mmadụ. Ọnọdụ obi dị mkpa dịka oke onyinye.",
+      application:
+        "Nye site n'ịkwenye n'ime obi ma hazie ya, ọ bụghị site n'ikpe ọmụma, nrụgide obodo, ma ọ bụ ịchọ ka a hụ gị dịka onye mmụọ.",
+    },
+    "Proverbs 21:5": {
+      principle: "Nhazi nke ọma na-eduba n'ụba; ọsọ ọsọ na-eduba n'ụkọ.",
+      context:
+        "Ilu a na-atụnyere ịdị uchu na-adịgide adịgide na omume ọsọ ọsọ. Ọ na-adọ aka ná ntị megide ụzọ mkpirisi na-enweghị echiche.",
+      application:
+        "Ka ị ghara isoro hype, egwu, ma ọ bụ ọsọ ọsọ mee mkpebi ego. Dee atụmatụ ahụ, nwalee echiche, ma hapụ oge maka ndụmọdụ.",
+    },
+    "Matthew 6:25-34": {
+      principle: "Ntụkwasị obi na-ebelata ịchụso ihe na-akpata nchekasị, ma ọ ka na-enye ohere maka omume kwesịrị ntụkwasị obi.",
+      context:
+        "Jisọs na-ekwu banyere nchekasị na ịchụso ihe n'ụzọ na-ezighị ezi, na-akpọ ndị na-ege ntị ka ha chọọ alaeze Chineke mgbe ha na-ebi otu ụbọchị n'otu ụbọchị.",
+      application:
+        "Kewapụ atụmatụ kwesịrị ntụkwasị obi pụọ na okirikiri nchekasị. Mee nzọụkwụ kwesịrị ntụkwasị obi sochirinụ, wee jụ ịmegharị ọnọdụ kacha njọ niile n'uche.",
+    },
+  },
+  ha: {
+    "Matthew 25:14-30": {
+      principle: "Abubuwan da aka ba wa amana ana sarrafa su da aminci, jarumtaka, da alhaki.",
+      context:
+        "Misalin yana magana ne game da bayin da aka damka wa alhaki yayin da maigida ya tafi. Yana yaba aiki mai aminci, ba zato ko tsoro ba.",
+      application:
+        "Ka ɗauki kuɗi, fasaha, lokaci, da dama a matsayin abubuwan da aka ba ka amana. Girma yana da muhimmanci, amma niyya, haƙuri, ƙwazo, da bayar da lissafi suna da muhimmanci ma.",
+    },
+    "Proverbs 22:7": {
+      principle: "Bashi na iya rage 'yanci kuma ya kamata a tunkare shi cikin natsuwa.",
+      context:
+        "Littafin Karin Magana yakan bayyana al'amuran hikima maimakon ƙa'idoji na doka kai tsaye. Wannan karin magana yana nuna nauyin dangantaka da na aiki da bashi zai iya haifarwa.",
+      application:
+        "Kafin ka ɗauki bashi, ka binciki buƙata, ikon biyan sa, matsin zuciya, da ko wajibcin yana goyon bayan kyakkyawan kula da abin da aka damka.",
+    },
+    "Philippians 4:11-13": {
+      principle: "Ana koyon gamsuwa ta hanyar dogaro, ba ta hanyar yanayi cikakke ba.",
+      context:
+        "Bulus yana rubutu daga wahala kuma yana bayyana gamsuwa a matsayin dogaro da aka koya, ba musun bukata ta gaske ba.",
+      application:
+        "Salamar kuɗi sau da yawa tana farawa ne da bayyana abin da ya isa, kin kwatantawa, da gina halaye da ke rage tashin hankali na zuciya.",
+    },
+    "Proverbs 15:22": {
+      principle: "Shirye-shirye suna ƙara ƙarfi idan an bincika su da tawali'u.",
+      context:
+        "Littafin hikima yana daraja koyuwa, gyara, da kuma neman hangen nesa kafin a yi aiki.",
+      application:
+        "Don manyan shawarwarin aiki, kuɗi, ko kasuwanci, gayyaci mutane masu hikima, masu gaskiya, kuma ba su dogara da kuɗin ku ba wajen yanke shawarar.",
+    },
+    "Luke 14:28": {
+      principle: "Aikin hikima yana ƙididdige farashi kafin amincewa.",
+      context:
+        "Yesu ya yi amfani da hoton gina hasumiya don nuna auna abin da zai zo kafin a ɗauki alƙawari a fili.",
+      application:
+        "Kafin babban motsi na aiki ko kasuwanci, ka fayyace sarari, musayar da za a yi, wajibai, lokaci, da ƙaramin gwaji da za a iya juyawa.",
+    },
+    "2 Corinthians 9:6-8": {
+      principle: "Karimci abu ne da aka yi da niyya da tunani, ba da tilas ba kuma ba don nuna kai ba.",
+      context:
+        "Bulus yana gayyatar bayarwa da farin ciki kuma yana ƙin tilas. Yanayin zuciya yana da muhimmanci kamar adadin.",
+      application:
+        "Ba da tabbaci da tsari, ba saboda laifi, matsin lamba na jama'a, ko son a ɗauke ka a matsayin mai tsarki ba.",
+    },
+    "Proverbs 21:5": {
+      principle: "Tsari mai ƙwazo yana kaiwa zuwa yalwa; gaggawa kuma tana kaiwa ga rashi.",
+      context:
+        "Wannan karin magana ya kwatanta ƙwazo mai ɗorewa da aiki cikin gaggawa. Yana gargadi game da hanyoyin gajerun da ba su da tunani.",
+      application:
+        "Ka guji shawarwarin kuɗi da hype, firgici, ko gaggawa ke tuka su. Ka rubuta tsarin, ka gwada zato, kuma ka ba da lokaci don shawara.",
+    },
+    "Matthew 6:25-34": {
+      principle: "Dogaro yana rage damuwar gaggawa, amma har yanzu yana barin aiki mai alhaki.",
+      context:
+        "Yesu yana magana ne game da damuwa da biye wa abin da bai dace ba, yana kiran masu sauraro su nemi mulkin Allah yayin da suke rayuwa rana ɗaya a lokaci ɗaya.",
+      application:
+        "Ka raba shiri mai alhaki daga zagayen damuwa. Yi mataki na gaba mai aminci, sannan ka ƙi sake kunna kowanne mummunan al'amari a kai.",
+    },
+  },
+};
+
+const localizedWisdomQuestions: Partial<Record<LanguageCode, Partial<Record<string, string[]>>>> = {
+  es: {
+    "Matthew 25:14-30": [
+      "¿Qué me ha sido confiado realmente ahora?",
+      "¿Estoy actuando desde la responsabilidad fiel o desde la comparación?",
+      "¿Qué consejo o rendición de cuentas haría esta decisión más sabia?",
+    ],
+    "Proverbs 22:7": [
+      "¿Esta deuda sirve a un propósito claro o calma una presión momentánea?",
+      "¿Qué libertad perderé mientras la pago?",
+      "¿He hecho visible y realista el plan de pago?",
+    ],
+    "Philippians 4:11-13": [
+      "¿Qué estoy llamando suficiente en esta temporada?",
+      "¿Dónde la comparación está distorsionando mi juicio?",
+      "¿Qué práctica ayudaría a mi sistema nervioso a bajar el ritmo?",
+    ],
+    "Proverbs 15:22": [
+      "¿Quién puede desafiar mis supuestos sin controlarme?",
+      "¿Qué notaría un crítico sabio sobre este plan?",
+      "¿Qué seguiría haciendo si nadie aplaudiera la decisión?",
+    ],
+    "Luke 14:28": [
+      "¿Cuál es el costo real si esto tarda el doble?",
+      "¿Qué parte de la decisión es reversible?",
+      "¿Qué experimento podría revelar la verdad antes de que haga un compromiso mayor?",
+    ],
+    "2 Corinthians 9:6-8": [
+      "¿Este regalo es libre, considerado y sostenible?",
+      "¿Mi plan de dar protege tanto la generosidad como la responsabilidad?",
+      "¿Qué necesidad se me invita a ver con amor?",
+    ],
+    "Proverbs 21:5": [
+      "¿Qué elegiría si no hubiera urgencia?",
+      "¿Sigue siendo sabia esta oportunidad después de una noche de descanso?",
+      "¿Qué proceso me protege del impulso?",
+    ],
+    "Matthew 6:25-34": [
+      "¿Cuál es la siguiente acción fiel para hoy?",
+      "¿Qué preocupaciones piden planificación y cuáles piden ser soltadas?",
+      "¿Qué cambiaría la paz en mi ritmo?",
+    ],
+  },
+  fr: {
+    "Matthew 25:14-30": [
+      "Qu'est-ce qui m'a réellement été confié en ce moment ?",
+      "Est-ce que j'agis par responsabilité fidèle ou par comparaison ?",
+      "Quel conseil ou quelle redevabilité rendrait cette décision plus sage ?",
+    ],
+    "Proverbs 22:7": [
+      "Cette dette sert-elle un objectif clair ou apaise-t-elle une pression passagère ?",
+      "Quelle liberté vais-je perdre pendant le remboursement ?",
+      "Ai-je rendu le plan de remboursement visible et réaliste ?",
+    ],
+    "Philippians 4:11-13": [
+      "Qu'est-ce que j'appelle assez en cette saison ?",
+      "Où la comparaison déforme-t-elle mon jugement ?",
+      "Quelle pratique aiderait mon système nerveux à ralentir ?",
+    ],
+    "Proverbs 15:22": [
+      "Qui peut challenger mes hypothèses sans me contrôler ?",
+      "Qu'est-ce qu'un critique sage remarquerait dans ce plan ?",
+      "Que ferais-je encore si personne n'applaudissait la décision ?",
+    ],
+    "Luke 14:28": [
+      "Quel est le coût réel si cela prend deux fois plus de temps ?",
+      "Quelle partie de la décision est réversible ?",
+      "Quelle expérience pourrait révéler la vérité avant un engagement plus grand ?",
+    ],
+    "2 Corinthians 9:6-8": [
+      "Ce don est-il libre, réfléchi et durable ?",
+      "Mon plan de don protège-t-il à la fois la générosité et la responsabilité ?",
+      "Quel besoin suis-je invité à voir avec amour ?",
+    ],
+    "Proverbs 21:5": [
+      "Que choisirais-je s'il n'y avait aucune urgence ?",
+      "Cette opportunité reste-t-elle sage après une nuit de sommeil calme ?",
+      "Quel processus me protège de l'impulsivité ?",
+    ],
+    "Matthew 6:25-34": [
+      "Quelle est l'action fidèle à poser aujourd'hui ?",
+      "Quelles inquiétudes demandent un plan, et lesquelles demandent d'être relâchées ?",
+      "Qu'est-ce que la paix changerait à mon rythme ?",
+    ],
+  },
+  pt: {
+    "Matthew 25:14-30": [
+      "O que realmente me foi confiado agora?",
+      "Estou agindo por responsabilidade fiel ou por comparação?",
+      "Que conselho ou prestação de contas tornaria esta decisão mais sábia?",
+    ],
+    "Proverbs 22:7": [
+      "Esta dívida serve a um propósito claro ou apenas alivia uma pressão momentânea?",
+      "Que liberdade eu perderei enquanto a pago?",
+      "Tornei o plano de pagamento visível e realista?",
+    ],
+    "Philippians 4:11-13": [
+      "O que estou chamando de suficiente nesta temporada?",
+      "Onde a comparação está distorcendo meu julgamento?",
+      "Que prática ajudaria meu sistema nervoso a desacelerar?",
+    ],
+    "Proverbs 15:22": [
+      "Quem pode desafiar meus pressupostos sem me controlar?",
+      "O que um crítico sábio notaria sobre este plano?",
+      "O que eu ainda faria se ninguém aplaudisse a decisão?",
+    ],
+    "Luke 14:28": [
+      "Qual é o custo real se isso demorar o dobro?",
+      "Que parte da decisão é reversível?",
+      "Que experimento poderia revelar a verdade antes de eu assumir um compromisso maior?",
+    ],
+    "2 Corinthians 9:6-8": [
+      "Este presente é livre, cuidadoso e sustentável?",
+      "Meu plano de doar protege tanto a generosidade quanto a responsabilidade?",
+      "Que necessidade estou sendo convidado a notar com amor?",
+    ],
+    "Proverbs 21:5": [
+      "O que eu escolheria se não houvesse urgência?",
+      "Esta oportunidade continua sábia depois de uma noite de descanso?",
+      "Que processo me protege do impulso?",
+    ],
+    "Matthew 6:25-34": [
+      "Qual é a próxima ação fiel para hoje?",
+      "Quais preocupações pedem planejamento e quais pedem liberação?",
+      "O que a paz mudaria no meu ritmo?",
+    ],
+  },
+  de: {
+    "Matthew 25:14-30": [
+      "Was ist mir gerade tatsächlich anvertraut worden?",
+      "Handle ich aus treuer Verantwortung oder aus Vergleich?",
+      "Welcher Rat oder welche Rechenschaft würde diese Entscheidung weiser machen?",
+    ],
+    "Proverbs 22:7": [
+      "Dient diese Schuld einem klaren Zweck oder beruhigt sie nur einen kurzfristigen Druck?",
+      "Welche Freiheit verliere ich während der Rückzahlung?",
+      "Habe ich den Rückzahlungsplan sichtbar und realistisch gemacht?",
+    ],
+    "Philippians 4:11-13": [
+      "Was nenne ich in dieser Saison genug?",
+      "Wo verzerrt der Vergleich mein Urteil?",
+      "Welche Praxis würde meinem Nervensystem helfen, langsamer zu werden?",
+    ],
+    "Proverbs 15:22": [
+      "Wer kann meine Annahmen herausfordern, ohne mich zu kontrollieren?",
+      "Was würde ein weiser Kritiker an diesem Plan bemerken?",
+      "Was würde ich noch tun, wenn niemand die Entscheidung beklatschte?",
+    ],
+    "Luke 14:28": [
+      "Was sind die echten Kosten, wenn das doppelt so lange dauert?",
+      "Welcher Teil der Entscheidung ist reversibel?",
+      "Welches Experiment könnte die Wahrheit zeigen, bevor ich mich größer verpflichte?",
+    ],
+    "2 Corinthians 9:6-8": [
+      "Ist dieses Geschenk frei, bedacht und tragfähig?",
+      "Schützt mein Gebeplan sowohl Großzügigkeit als auch Verantwortung?",
+      "Welches Bedürfnis werde ich eingeladen, in Liebe zu sehen?",
+    ],
+    "Proverbs 21:5": [
+      "Wofür würde ich mich entscheiden, wenn es keinen Druck gäbe?",
+      "Ist diese Gelegenheit nach einer ruhigen Nacht immer noch weise?",
+      "Welcher Prozess schützt mich vor Impuls?",
+    ],
+    "Matthew 6:25-34": [
+      "Was ist heute der treue nächste Schritt?",
+      "Welche Sorgen brauchen Planung und welche brauchen Loslassen?",
+      "Was würde Frieden an meinem Tempo ändern?",
+    ],
+  },
+  yo: {
+    "Matthew 25:14-30": [
+      "Kí ni a fi lé mi lọwọ gidi ní báyìí?",
+      "Ṣé mo ń ṣiṣẹ́ láti inú ojúṣe olóòtítọ́ tàbí láti inú fífi ara wé ẹlòmíì?",
+      "Ìmọ̀ràn tàbí ìjábọ̀ wo ni yóò mú ipinnu yìí jẹ́ ọgbọ́n síi?",
+    ],
+    "Proverbs 22:7": [
+      "Ṣé gbèsè yìí ń ṣiṣẹ́ fún ìdí tó mọ́ tàbí ó kan ń tù mí nínú ní asiko kúkúrú?",
+      "Òmìnira wo ni mo máa padanu nígbà tí mo ń san án?",
+      "Ṣé mo ti fi ètò sísan hàn gbangba, ó sì dáa?",
+    ],
+    "Philippians 4:11-13": [
+      "Kí ni mo ń pè ní ohun tó tó ní àkókò yìí?",
+      "Níbo ni fífi ara wé ẹlòmíì ń yí ìdájọ́ mi padà?",
+      "Ìṣe wo ni yóò ràn ara mi lọ́wọ́ kí ó dákẹ́?",
+    ],
+    "Proverbs 15:22": [
+      "Ta ni lè pe àwọn àròjinlẹ̀ mi ní ìbéèrè láì ṣàkóso mi?",
+      "Kí ni alátìlẹ́yìn ọlọ́gbọ́n yóò rí nínú ètò yìí?",
+      "Kí ni màá ṣi ṣe tí kò bá sí ẹni tó yìn ìpinnu náà?",
+    ],
+    "Luke 14:28": [
+      "Kí ni iye gidi rẹ bí èyí bá gba ìgbà méjì?",
+      "Apá wo ni ìpinnu yìí lè yí padà?",
+      "Ìdánwò wo lè fi òtítọ́ hàn kí n tó ṣe àlùmọ́nì ńlá?",
+    ],
+    "2 Corinthians 9:6-8": [
+      "Ṣé ẹ̀bùn yìí jẹ́ ọ̀fẹ́, tí a ronú lé e lórí, tí ó sì lè tẹ̀síwájú?",
+      "Ṣé ètò fífúnni mi ń dáàbò bo ìfẹ́ fúnni àti ojúṣe pọ̀?",
+      "Àìní wo ni wọ́n ń pè mí láti rí pẹ̀lú ìfẹ́?",
+    ],
+    "Proverbs 21:5": [
+      "Kí ni màá yan tí kò bá sí ìkánjú?",
+      "Ṣé àǹfààní yìí ṣi jẹ́ ọlọ́gbọ́n lẹ́yìn òru ìsinmi?",
+      "Ìlànà wo ni yóò dá mi lọ́wọ́ kúrò ní inú kíkankíkan?",
+    ],
+    "Matthew 6:25-34": [
+      "Kí ni ìgbésẹ̀ olóòtítọ́ tó kàn fún òní?",
+      "Àníyàn wo ni ń béèrè fún ìṣètò, èwo sì ń béèrè fún ìtú silẹ?",
+      "Kí ni àlàáfíà yóò yí padà nínú ìyára mi?",
+    ],
+  },
+  ig: {
+    "Matthew 25:14-30": [
+      "Gịnị ka e nyere m n'aka n'ezie ugbu a?",
+      "Ọ bụ site n'ibu ọrụ kwesiri ntụkwasị obi ka m na-eme ma ọ bụ site n'ịtụnyere onwe m?",
+      "Ndụmọdụ ma ọ bụ ịza ajụjụ gịnị ga-eme ka mkpebi a bụrụ nke amamihe karịa?",
+    ],
+    "Proverbs 22:7": [
+      "Ụgwọ a ọ na-arụ ọrụ maka ebumnuche doro anya ma ọ bụ na-agwọ nrụgide obere oge?",
+      "Nnwere onwe gịnị ka m ga-atụfu mgbe m na-akwụ ya?",
+      "Emela ka usoro ịkwụ ụgwọ pụta ìhè ma nwee ezi uche?",
+    ],
+    "Philippians 4:11-13": [
+      "Gịnị ka m na-akpọ izu oke n'oge a?",
+      "Ebee ka ntụnyere na-agbagọ ikpe m?",
+      "Omume gịnị ga-enyere ahụ m na uche m belata ọsọ?",
+    ],
+    "Proverbs 15:22": [
+      "Onye nwere ike ịjụ echiche m n'enweghị ịchịkwa m?",
+      "Kedu ihe onye na-akatọ nwere amamihe ga-ahụ n'usoro a?",
+      "Gịnị ka m ka ga-eme ma ọ bụrụ na ọ dịghị onye kụrụ aka?",
+    ],
+    "Luke 14:28": [
+      "Gịnị bụ ezigbo ọnụ ahịa ma ọ bụrụ na nke a were ugboro abụọ ogologo oge?",
+      "Kedu akụkụ nke mkpebi a ka a pụrụ ịtụgharị azụ?",
+      "Nnwale gịnị ga-egosi eziokwu tupu m akwe nnukwu nkwekọrịta?",
+    ],
+    "2 Corinthians 9:6-8": [
+      "Onyinye a ọ bụ nke n'efu, nke e chere echiche, ma na-adịgide?",
+      "Atụmatụ inye m ọ na-echebe ma mmesapụ aka na ibu ọrụ?",
+      "Mkpa gịnị ka a na-akpọ m ka m hụ n'anya?",
+    ],
+    "Proverbs 21:5": [
+      "Kedu ihe m ga-ahọrọ ma ọ bụrụ na enweghi nrụgide?",
+      "O kwesiri ihe omume a ka ọ bụrụ amamihe mgbe abalị izuike gasịrị?",
+      "Usoro gịnị ga-echebe m pụọ na mkpali?",
+    ],
+    "Matthew 6:25-34": [
+      "Gịnị bụ nzọụkwụ kwesịrị ntụkwasị obi nke taa?",
+      "Nchegbu gịnị chọrọ atụmatụ, gịnị kwa chọrọ ka e hapụ?",
+      "Kedu ihe udo ga-agbanwe na ọsọ m?",
+    ],
+  },
+  ha: {
+    "Matthew 25:14-30": [
+      "Me aka damka mani a mini gare yanzu?",
+      "Ina aiki daga aminci ne ko daga kwatantawa ne?",
+      "Wane shawara ko lissafi zai sa wannan hukunci ya fi hikima?",
+    ],
+    "Proverbs 22:7": [
+      "Bashin nan yana hidima ga manufa mai ma'ana ne ko yana rage matsa lamba ne na lokaci kaɗan?",
+      "Wace 'yanci zan rasa yayin biyan sa?",
+      "Shin na bayyana tsarin biyan a fili kuma da gaske?",
+    ],
+    "Philippians 4:11-13": [
+      "Me nake kira isa a wannan lokaci?",
+      "Ina kwatantawa yake gurɓata hukunci na?",
+      "Wace hanya za ta taimaka wa jikina da zuciyata su rage sauri?",
+    ],
+    "Proverbs 15:22": [
+      "Wa zai iya kalubalantar zato na ba tare da sarrafa ni ba?",
+      "Mene ne mai hikima zai lura da shi a cikin wannan shiri?",
+      "Me zan ci gaba da yi ko da babu wanda ya tafa wa shawarar?",
+    ],
+    "Luke 14:28": [
+      "Menene ainihin kudin idan wannan ya ɗauki ninki biyu?",
+      "Wanne ɓangare na shawarar za a iya juyawa?",
+      "Wane gwaji zai iya bayyana gaskiya kafin in ɗauki babban alƙawari?",
+    ],
+    "2 Corinthians 9:6-8": [
+      "Shin wannan kyauta tana da 'yanci, tunani, kuma tana dorewa?",
+      "Shirin bayarwa na yana kare karimci da alhaki tare?",
+      "Wace bukata ake kirana in lura da ita cikin ƙauna?",
+    ],
+    "Proverbs 21:5": [
+      "Me zan zaɓa idan babu gaggawa?",
+      "Shin wannan dama har yanzu hikima ce bayan dare mai natsuwa?",
+      "Wane tsari ne zai kare ni daga saurin zuciya?",
+    ],
+    "Matthew 6:25-34": [
+      "Wane ne mataki na aminci na yau?",
+      "Wadanne damuwa ne ke bukatar shiri, wadanne kuma suna bukatar a sake su?",
+      "Menene salama za ta canza a saurin tafiyata?",
+    ],
   },
 };
 
@@ -2258,6 +2961,10 @@ export function localizedWisdomEntry(entry: WisdomEntryData, preferences: UserPr
   const canonical = canonicalScriptureReference(entry.scripture);
   const localized = localizedWisdomLibraryEntries[preferences.language]?.[canonical];
   const theme = localizedWisdomThemes[preferences.language]?.[entry.theme] ?? entry.theme;
+  const questions =
+    localized?.questions ??
+    localizedWisdomQuestions[preferences.language]?.[canonical] ??
+    entry.questions;
 
   return {
     ...entry,
@@ -2267,7 +2974,7 @@ export function localizedWisdomEntry(entry: WisdomEntryData, preferences: UserPr
     application: localized?.application ?? entry.application,
     keywords: localized?.keywords ?? entry.keywords,
     emotions: localized?.emotions ?? entry.emotions,
-    questions: localized?.questions ?? entry.questions,
+    questions,
   };
 }
 

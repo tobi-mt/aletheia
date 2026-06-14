@@ -162,3 +162,39 @@ export const wisdomEntries: WisdomEntryData[] = [
     ],
   },
 ];
+
+export function stableHash(value: string) {
+  let hash = 0;
+  for (let i = 0; i < value.length; i += 1) {
+    hash = (hash * 31 + value.charCodeAt(i)) >>> 0;
+  }
+  return hash;
+}
+
+export function selectDailyWisdomIndex({
+  dayNumber,
+  size,
+  seedParts = [],
+}: {
+  dayNumber: number;
+  size: number;
+  seedParts?: string[];
+}) {
+  if (size <= 0) {
+    return 0;
+  }
+
+  const seed = [String(dayNumber), ...seedParts].join(":");
+  return stableHash(seed) % size;
+}
+
+export function todayWisdom({
+  dayNumber = 0,
+  seedParts = [],
+}: {
+  dayNumber?: number;
+  seedParts?: string[];
+} = {}) {
+  const index = selectDailyWisdomIndex({ dayNumber, size: wisdomEntries.length, seedParts });
+  return wisdomEntries[index];
+}

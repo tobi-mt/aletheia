@@ -140,7 +140,7 @@ npm run mobile:open:ios
 ```
 
 The `android/` and `ios/` projects are checked in and ready for store signing, screenshots, and platform-specific review work.
-For the launch checklist, start with Google Play in [`GOOGLE_PLAY_LAUNCH_PREP.md`](./GOOGLE_PLAY_LAUNCH_PREP.md).
+For the launch checklist, start with Google Play in [`GOOGLE_PLAY_UPLOAD_PACK.md`](./GOOGLE_PLAY_UPLOAD_PACK.md).
 Keep [`STORE_LAUNCH_PREP.md`](./STORE_LAUNCH_PREP.md) for the later Apple pass.
 
 ## Google Sign-In With Auth.js
