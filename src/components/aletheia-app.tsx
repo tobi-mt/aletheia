@@ -34,6 +34,9 @@ import {
   ShieldCheck,
   Sparkles,
   Sprout,
+  ArrowDownRight,
+  ArrowUpRight,
+  Minus,
   Trash2,
   WifiOff,
   Bell,
@@ -4999,29 +5002,29 @@ function resolveTodayVisualPlacement({
   const isWarmMood = mood === "warm";
   const isQuietMood = mood === "contemplative";
 
-  let wrapperClassName = "mt-8 w-[128px] self-end md:mt-0 md:w-full md:self-start md:justify-self-end";
+  let wrapperClassName = "mt-8 w-full self-stretch md:mt-0 md:self-start md:justify-self-end";
   let imageClassName = "object-cover";
   let objectPosition = "center 36%";
   let overlayGradient = "linear-gradient(180deg, rgba(8, 11, 10, 0.00) 0%, rgba(8, 11, 10, 0.02) 48%, rgba(8, 11, 10, 0.14) 100%)";
-  let figureMinHeight = "112px";
-  let figureWidth = "128px";
+  let figureMinHeight = "168px";
+  let figureWidth = "100%";
   let figureOpacity = 1;
 
   if (fallbackLevel === "illustration") {
-    wrapperClassName = "mt-7 w-[124px] self-end md:mt-0 md:w-full md:self-start md:justify-self-end";
+    wrapperClassName = "mt-7 w-full self-stretch md:mt-0 md:self-start md:justify-self-end";
     imageClassName = "object-contain";
     objectPosition = "center 44%";
-    overlayGradient = "linear-gradient(180deg, rgba(8, 11, 10, 0.00) 0%, rgba(8, 11, 10, 0.02) 52%, rgba(8, 11, 10, 0.10) 100%)";
-    figureMinHeight = "108px";
-    figureWidth = "124px";
+    overlayGradient = "linear-gradient(180deg, rgba(8, 11, 10, 0.00) 0%, rgba(8, 11, 10, 0.02) 52%, rgba(8, 11, 10, 0.12) 100%)";
+    figureMinHeight = "164px";
+    figureWidth = "100%";
     figureOpacity = 0.98;
   } else if (fallbackLevel === "fallback") {
-    wrapperClassName = "mt-7 w-[122px] self-end md:mt-0 md:w-full md:self-start md:justify-self-end";
+    wrapperClassName = "mt-7 w-full self-stretch md:mt-0 md:self-start md:justify-self-end";
     imageClassName = "object-contain";
     objectPosition = "center 46%";
-    overlayGradient = "linear-gradient(180deg, rgba(8, 11, 10, 0.00) 0%, rgba(8, 11, 10, 0.03) 54%, rgba(8, 11, 10, 0.08) 100%)";
-    figureMinHeight = "106px";
-    figureWidth = "122px";
+    overlayGradient = "linear-gradient(180deg, rgba(8, 11, 10, 0.00) 0%, rgba(8, 11, 10, 0.03) 54%, rgba(8, 11, 10, 0.10) 100%)";
+    figureMinHeight = "162px";
+    figureWidth = "100%";
     figureOpacity = 0.94;
   }
 
@@ -5216,30 +5219,71 @@ function TodayVisualPanel({
       }}
       aria-hidden="true"
     >
-      <div className={`relative aspect-[4/3] overflow-hidden ${placement.imageClassName}`}>
-        {usingPhoto ? (
-          <Image
-            src={asset.imageUrl}
-            alt=""
-            fill
-            sizes="(max-width: 768px) 100vw, 180px"
-            className={placement.imageClassName}
-            style={{ objectPosition: placement.objectPosition }}
-            onError={() => setImageFailed(true)}
-            unoptimized
-            priority={false}
-          />
-        ) : (
-          <div className="absolute inset-0">
-            <TodayVisualScene variant={asset.kind === "illustration" ? asset.variant : "stillness"} theme={theme} />
-          </div>
-        )}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_16%,rgba(208,173,85,0.16),transparent_42%),radial-gradient(circle_at_84%_20%,rgba(32,58,53,0.18),transparent_35%)]" />
+      <div className="absolute inset-0 p-3">
         <div
-          className="absolute inset-0"
+          className="relative h-full overflow-hidden rounded-[1.15rem] border shadow-[0_18px_34px_rgba(7,10,8,0.12)]"
           style={{
-            background: placement.overlayGradient,
+            borderColor: theme.borderLight,
+            background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})`,
           }}
         />
+        <div className="absolute inset-0 overflow-hidden rounded-[1.15rem]">
+          {usingPhoto ? (
+            <Image
+              src={asset.imageUrl}
+              alt=""
+              fill
+              sizes="(max-width: 768px) 100vw, 240px"
+              className={`object-cover transition-transform duration-500 ${placement.imageClassName} scale-[1.03]`}
+              style={{ objectPosition: placement.objectPosition }}
+              onError={() => setImageFailed(true)}
+              unoptimized
+              priority={false}
+            />
+          ) : (
+            <div className="absolute inset-0">
+              <TodayVisualScene variant={asset.kind === "illustration" ? asset.variant : "stillness"} theme={theme} />
+            </div>
+          )}
+          <div
+            className="absolute inset-0"
+            style={{
+              background: `linear-gradient(180deg, rgba(4, 7, 6, 0.02) 0%, rgba(4, 7, 6, 0.06) 42%, rgba(4, 7, 6, 0.26) 100%), ${placement.overlayGradient}`,
+            }}
+          />
+        </div>
+
+        <div className="absolute inset-x-4 top-4 flex items-center justify-between">
+          <div
+            className="rounded-full border px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.22em] shadow-[0_10px_24px_rgba(7,10,8,0.10)]"
+            style={{
+              borderColor: theme.borderLight,
+              background: "rgba(8, 11, 10, 0.48)",
+              color: theme.accentGold,
+              backdropFilter: "blur(10px)",
+              WebkitBackdropFilter: "blur(10px)",
+            }}
+          >
+            {asset.kind === "photo" ? "Today's image" : "Today's frame"}
+          </div>
+        </div>
+
+        <div className="absolute inset-x-0 bottom-0 p-3">
+          <div
+            className="rounded-[1rem] border px-3 py-2.5 shadow-[0_12px_24px_rgba(7,10,8,0.12)]"
+            style={{
+              borderColor: theme.borderLight,
+              background: "linear-gradient(180deg, rgba(12, 18, 16, 0.72), rgba(12, 18, 16, 0.44))",
+              backdropFilter: "blur(10px)",
+              WebkitBackdropFilter: "blur(10px)",
+            }}
+          >
+            <p className="mt-1 line-clamp-1 text-sm font-semibold leading-5 text-white/95">
+              {asset.title}
+            </p>
+          </div>
+        </div>
       </div>
     </figure>
   );
@@ -11285,10 +11329,11 @@ function HomeDashboard({
               </p>
             </div>
             <div className="lg:pt-1">
-              <TodayVisualPanel
-                themeName={todayVisualTheme}
-                dayNumber={dayNumber}
-                mood={todayVisualMood}
+            <TodayVisualPanel
+              key={`${todayVisualTheme}:${dayNumber}:${todayVisualMood}:${currentLocalHour ?? "na"}:${currentLocalMonth ?? "na"}:${currentLocalDayOfWeek ?? "na"}`}
+              themeName={todayVisualTheme}
+              dayNumber={dayNumber}
+              mood={todayVisualMood}
                 hour={currentLocalHour}
                 month={currentLocalMonth}
                 dayOfWeek={currentLocalDayOfWeek}
@@ -11453,25 +11498,83 @@ function WeeklyReviewBadge({
 }) {
   const delta = current - previous;
   const deltaLabel = `${delta > 0 ? "+" : ""}${delta}`;
+  const DeltaIcon = delta > 0 ? ArrowUpRight : delta < 0 ? ArrowDownRight : Minus;
+  const deltaStyle =
+    delta > 0
+      ? { borderColor: theme.accentGold, backgroundColor: theme.activeBg, color: theme.accentGold }
+      : delta < 0
+        ? { borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textSecondary }
+        : { borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textSecondary };
 
   return (
-    <div className="rounded-[1.15rem] border p-4 shadow-[0_6px_14px_rgba(7,10,8,0.04)]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] whitespace-nowrap" style={{ color: theme.accentGold }}>
+    <div className="rounded-[1.05rem] border p-3 shadow-[0_6px_14px_rgba(7,10,8,0.04)]" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
+      <div className="flex items-start justify-between gap-2.5">
+        <div className="min-w-0 flex-1">
+          <p className="text-[9.5px] font-semibold uppercase tracking-[0.18em] whitespace-nowrap" style={{ color: theme.accentGold }}>
             {label}
           </p>
-          <p className="mt-2 text-[1.82rem] font-semibold leading-none tracking-[-0.02em]" style={{ color: theme.textPrimary }}>
-            {current}
+          <div className="mt-2 flex items-end gap-2.5">
+            <p className="text-[1.95rem] font-semibold leading-none tracking-[-0.035em]" style={{ color: theme.textPrimary }}>
+              {current}
+            </p>
+            <span className="inline-flex min-w-[3.25rem] items-center justify-center gap-1 rounded-full border px-2 py-1 text-[9.5px] font-semibold uppercase tracking-[0.12em]" style={deltaStyle}>
+              <DeltaIcon size={11} />
+              {deltaLabel}
+            </span>
+          </div>
+          <p className="mt-1.5 text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textSecondary }}>
+            {lastWeekLabel} {previous}
           </p>
         </div>
-        <span className="shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.1em]" style={{ borderColor: theme.borderLight, color: theme.textSecondary, backgroundColor: theme.bgCard }}>
-          {deltaLabel}
-        </span>
+        <WeeklyReviewTrend current={current} previous={previous} theme={theme} />
       </div>
-      <p className="mt-3 text-[0.8rem] leading-5" style={{ color: theme.textSecondary }}>
-        {lastWeekLabel} {previous}
-      </p>
+    </div>
+  );
+}
+
+function WeeklyReviewTrend({
+  current,
+  previous,
+  theme,
+}: {
+  current: number;
+  previous: number;
+  theme: ThemeColors;
+}) {
+  const max = Math.max(current, previous, 1);
+  const delta = current - previous;
+  const stroke = delta > 0 ? theme.accentGold : delta < 0 ? theme.textSecondary : theme.borderMedium;
+  const guide = theme.borderLight;
+  const previousY = 22 - Math.round((previous / max) * 13);
+  const currentY = 22 - Math.round((current / max) * 13);
+  const curveLift = Math.max(1, Math.round(Math.abs(currentY - previousY) / 2));
+  const midY = Math.max(4, Math.min(18, Math.min(previousY, currentY) - curveLift));
+  const startY = Math.min(22, Math.max(4, previousY));
+  const endY = Math.min(22, Math.max(4, currentY));
+
+  return (
+    <div
+      className="flex h-12 w-16 shrink-0 flex-col justify-center rounded-[0.95rem] border px-2 py-1.5"
+      style={{
+        borderColor: theme.borderLight,
+        background: `linear-gradient(180deg, ${theme.bgCard}, ${theme.bgCardElevated})`,
+      }}
+      aria-hidden="true"
+    >
+      <svg viewBox="0 0 72 24" className="h-6 w-full">
+        <path d="M4 18 H68" stroke={guide} strokeOpacity="0.34" strokeWidth="1.2" strokeLinecap="round" />
+        <path
+          d={`M12 ${startY} C 22 ${startY}, 26 ${midY}, 36 ${midY} S 50 ${endY}, 60 ${endY}`}
+          fill="none"
+          stroke={stroke}
+          strokeOpacity="0.9"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <circle cx="12" cy={startY} r="2.1" fill={theme.bgCard} stroke={theme.borderMedium} strokeWidth="1.1" />
+        <circle cx="60" cy={endY} r="2.2" fill={theme.bgCard} stroke={stroke} strokeWidth="1.1" />
+      </svg>
     </div>
   );
 }
@@ -11984,7 +12087,7 @@ function AccountPanel({
               {user ? `${ts('labels.accountSignedInWith')} ${profileSummary}` : profileSummary}
             </p>
           </div>
-          <div className="flex flex-col gap-2 border-t px-4 py-4 sm:px-5" style={{ borderColor: theme.borderLight }}>
+          <div className="grid grid-cols-3 gap-2 border-t px-3 py-3 sm:px-5" style={{ borderColor: theme.borderLight }}>
             {profileStats.map((stat) => (
               <AccountHeaderStat key={stat.detail} icon={stat.icon} value={stat.value} label={stat.label} detail={stat.detail} theme={theme} />
             ))}
@@ -12219,16 +12322,18 @@ function AccountHeaderStat({
   const accessibleLabel = `${value} ${detail}`;
   return (
     <span
-      className="flex min-h-10 min-w-0 items-center justify-between gap-2.5 rounded-xl border px-2.5 py-2 text-left"
+      className="flex min-h-12 min-w-0 items-center gap-2 rounded-xl border px-2.5 py-2 text-left shadow-[0_4px_10px_rgba(7,10,8,0.03)]"
       style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}
       aria-label={accessibleLabel}
       title={accessibleLabel}
     >
-      <span className="flex min-w-0 items-center gap-2">
-        <Icon className="shrink-0" size={14} aria-hidden="true" style={{ color: theme.textSecondary }} />
-        <span className="truncate text-xs font-semibold uppercase tracking-[0.08em]" style={{ color: theme.textSecondary }}>{label}</span>
+      <span className="grid size-8 shrink-0 place-items-center rounded-lg border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
+        <Icon size={14} aria-hidden="true" />
       </span>
-      <span className="text-[13px] font-semibold leading-none sm:text-sm" style={{ color: theme.textPrimary }}>{value}</span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textSecondary }}>{label}</span>
+        <span className="mt-1 block text-[14px] font-semibold leading-none tracking-[-0.02em] sm:text-[15px]" style={{ color: theme.textPrimary }}>{value}</span>
+      </span>
     </span>
   );
 }
