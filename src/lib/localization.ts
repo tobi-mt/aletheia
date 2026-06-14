@@ -2,8 +2,8 @@ import { modeProfiles, type ModeProfile } from "@/lib/mode-profiles";
 import type { Mode, WisdomEntryData } from "@/lib/wisdom-data";
 import { displayReadyScriptureReads } from "@/lib/display-ready-scripture-reads";
 
-export type LanguageCode = "en" | "es" | "fr" | "pt" | "de" | "yo" | "ig" | "ha";
-export type RegionCode = "global" | "us" | "uk" | "eu" | "ng" | "br" | "latam";
+export type LanguageCode = "en" | "es" | "fr" | "pt" | "de" | "yo" | "ig" | "ha" | "tl" | "ar" | "hi";
+export type RegionCode = "global" | "us" | "uk" | "eu" | "ng" | "br" | "latam" | "ph" | "mena" | "in";
 export type BibleTranslation = 
   | "WEB" | "KJV" | "ASV" 
   | "RV1909" | "RV1960" 
@@ -28,7 +28,7 @@ export const defaultPreferences: UserPreferences = {
   voiceEnabled: true,
 };
 
-export const languages: Record<LanguageCode, { name: string; nativeName: string; speech: string; direction: "ltr" }> = {
+export const languages: Record<LanguageCode, { name: string; nativeName: string; speech: string; direction: "ltr" | "rtl" }> = {
   en: { name: "English", nativeName: "English", speech: "en-US", direction: "ltr" },
   es: { name: "Spanish", nativeName: "Español", speech: "es-ES", direction: "ltr" },
   fr: { name: "French", nativeName: "Français", speech: "fr-FR", direction: "ltr" },
@@ -37,6 +37,9 @@ export const languages: Record<LanguageCode, { name: string; nativeName: string;
   yo: { name: "Yoruba", nativeName: "Yorùbá", speech: "yo-NG", direction: "ltr" },
   ig: { name: "Igbo", nativeName: "Igbo", speech: "ig-NG", direction: "ltr" },
   ha: { name: "Hausa", nativeName: "Hausa", speech: "ha-NG", direction: "ltr" },
+  tl: { name: "Filipino", nativeName: "Filipino", speech: "tl-PH", direction: "ltr" },
+  ar: { name: "Arabic", nativeName: "العربية", speech: "ar", direction: "rtl" },
+  hi: { name: "Hindi", nativeName: "हिन्दी", speech: "hi-IN", direction: "ltr" },
 };
 
 export const regions: Record<RegionCode, { label: string; example: string; currency: string }> = {
@@ -74,6 +77,21 @@ export const regions: Record<RegionCode, { label: string; example: string; curre
     label: "Latin America",
     currency: "local currency",
     example: "Use examples like family networks, inflation, remittances, informal business, and regional employment norms.",
+  },
+  ph: {
+    label: "Philippines",
+    currency: "PHP",
+    example: "Use examples like family obligations, remittances, school costs, island logistics, and community support.",
+  },
+  mena: {
+    label: "Middle East and North Africa",
+    currency: "local currency",
+    example: "Use examples like family duty, migration, remittances, business uncertainty, and regional community norms.",
+  },
+  in: {
+    label: "India",
+    currency: "INR",
+    example: "Use examples like family obligations, inflation, savings discipline, work pressure, and regional diversity.",
   },
 };
 
@@ -174,6 +192,9 @@ const languageDefaultBibleTranslations: Partial<Record<LanguageCode, BibleTransl
   yo: "YOR1900",
   ig: "IGB1913",
   ha: "HAU1932",
+  tl: "WEB",
+  ar: "WEB",
+  hi: "WEB",
 };
 
 export function defaultBibleTranslationForLanguage(language: LanguageCode): BibleTranslation {
@@ -335,7 +356,7 @@ export function localizedScriptureRead(scripture: string, preferences: UserPrefe
   return {
     translation: preferences.bibleTranslation,
     label: preferredTranslation.label,
-    text: localizedScriptureFallbackText[preferences.language],
+    text: localizedScriptureFallbackText[preferences.language] ?? localizedScriptureFallbackText.en ?? "",
     availableLanguage: preferences.language,
     kind: "unavailable",
   };
@@ -366,7 +387,7 @@ export function scriptureDisplayLabel(scripture: string, preferences: UserPrefer
   return preferredTranslation.label;
 }
 
-export const languageCopy: Record<
+export const languageCopy: Partial<Record<
   LanguageCode,
   {
     onboarding: string;
@@ -376,7 +397,7 @@ export const languageCopy: Record<
     askPlaceholder: string;
     regionHint: string;
   }
-> = {
+>> = {
   en: {
     onboarding: "Choose how Aletheia should speak: language, region, Bible translation, and voice.",
     dailyLabel: "Daily Wisdom",
@@ -443,7 +464,221 @@ export const languageCopy: Record<
   },
 };
 
-export const localizedDailyPractices: Record<LanguageCode, Partial<Record<Mode, string>>> = {
+export const crisisSupportCopy: Partial<Record<
+  LanguageCode,
+  {
+    selfHarmOpening: string;
+    selfHarmImmediate: string;
+    selfHarmFollowUp: string;
+    addictionOpening: string;
+    addictionNext: string;
+    depressionOpening: string;
+    depressionNext: string;
+    lonelinessOpening: string;
+    lonelinessNext: string;
+    holinessOpening: string;
+    holinessNext: string;
+  }
+>> = {
+  en: {
+    selfHarmOpening:
+      "I’m really glad you said this out loud. If you might act on thoughts of self-harm or suicide, stop here and get immediate human help.",
+    selfHarmImmediate:
+      "If you are in the U.S. or Canada, call or text 988 now. If you are elsewhere, contact local emergency services or a nearby crisis line right away.",
+    selfHarmFollowUp:
+      "Reach a trusted person now, do not stay alone, and move anything you could use to hurt yourself away from you.",
+    addictionOpening:
+      "That is a serious struggle, and you do not need to face it by willpower alone.",
+    addictionNext:
+      "Tell one trusted person the truth today, remove one easy access point, and make the next 24 hours safer.",
+    depressionOpening:
+      "That sounds heavy, and I’m sorry you are carrying it.",
+    depressionNext:
+      "Shrink the next hour: drink water, eat something, step outside, and tell one safe person what is happening.",
+    lonelinessOpening:
+      "That kind of loneliness matters.",
+    lonelinessNext:
+      "Choose contact before clarity. Text, call, or sit with one safe person, even if you do not have the right words yet.",
+    holinessOpening:
+      "This sounds like a holiness and formation question, not just a willpower question.",
+    holinessNext:
+      "Bring the struggle into the light with confession, boundaries, and accountability.",
+  },
+  es: {
+    selfHarmOpening:
+      "Me alegra que lo hayas dicho en voz alta. Si podrías actuar sobre pensamientos de autolesión o suicidio, detente aquí y busca ayuda humana inmediata.",
+    selfHarmImmediate:
+      "Si estás en EE. UU. o Canadá, llama o envía un mensaje al 988 ahora. Si estás en otro lugar, contacta de inmediato a los servicios de emergencia locales o a una línea de crisis cercana.",
+    selfHarmFollowUp:
+      "Contacta ahora a una persona de confianza, no te quedes solo y aleja de ti cualquier cosa que podrías usar para hacerte daño.",
+    addictionOpening:
+      "Eso es una lucha seria y no necesitas enfrentarla solo con fuerza de voluntad.",
+    addictionNext:
+      "Dile la verdad hoy a una persona de confianza, quita un acceso fácil y haz más seguros los próximos 24 horas.",
+    depressionOpening:
+      "Eso suena pesado y siento que lo estés cargando.",
+    depressionNext:
+      "Reduce la próxima hora: toma agua, come algo, sal un momento y dile a una persona segura lo que está pasando.",
+    lonelinessOpening:
+      "Ese tipo de soledad importa.",
+    lonelinessNext:
+      "Elige contacto antes que claridad. Escribe, llama o siéntate con una persona segura, aunque no tengas las palabras correctas.",
+    holinessOpening:
+      "Esto suena más a una pregunta de santidad y formación que solo de fuerza de voluntad.",
+    holinessNext:
+      "Lleva la lucha a la luz con confesión, límites y rendición de cuentas.",
+  },
+  fr: {
+    selfHarmOpening:
+      "Je suis vraiment content que tu l’aies dit à voix haute. Si tu pourrais passer à l’acte, arrête-toi ici et demande une aide humaine immédiate.",
+    selfHarmImmediate:
+      "Si tu es aux États-Unis ou au Canada, appelle ou envoie un message au 988 maintenant. Sinon, contacte tout de suite les services d’urgence locaux ou une ligne de crise proche.",
+    selfHarmFollowUp:
+      "Contacte maintenant une personne de confiance, ne reste pas seul et éloigne de toi tout ce que tu pourrais utiliser pour te faire du mal.",
+    addictionOpening:
+      "C’est une lutte sérieuse et tu n’as pas besoin de l’affronter par la seule volonté.",
+    addictionNext:
+      "Dis la vérité aujourd’hui à une personne de confiance, enlève un point d’accès facile et rends les prochaines 24 heures plus sûres.",
+    depressionOpening:
+      "Cela semble lourd, et je suis désolé que tu portes cela.",
+    depressionNext:
+      "Rends la prochaine heure plus petite: bois de l’eau, mange quelque chose, sors un moment et dis à une personne sûre ce qui se passe.",
+    lonelinessOpening:
+      "Ce genre de solitude compte.",
+    lonelinessNext:
+      "Choisis le contact avant la clarté. Envoie un message, appelle ou reste avec une personne sûre, même sans les mots justes.",
+    holinessOpening:
+      "Cela ressemble à une question de sainteté et de formation, pas seulement de volonté.",
+    holinessNext:
+      "Amène ce combat à la lumière avec confession, limites et redevabilité.",
+  },
+  pt: {
+    selfHarmOpening:
+      "Fico muito grato por você ter dito isso em voz alta. Se você pode agir sobre pensamentos de autoagressão ou suicídio, pare aqui e busque ajuda humana imediata.",
+    selfHarmImmediate:
+      "Se você está nos EUA ou no Canadá, ligue ou envie mensagem para 988 agora. Se estiver em outro lugar, contate imediatamente os serviços de emergência locais ou uma linha de crise próxima.",
+    selfHarmFollowUp:
+      "Procure agora uma pessoa de confiança, não fique sozinho e afaste de você qualquer coisa que possa usar para se machucar.",
+    addictionOpening:
+      "Isso é uma luta séria, e você não precisa enfrentá-la só com força de vontade.",
+    addictionNext:
+      "Conte a verdade hoje a uma pessoa de confiança, remova um acesso fácil e torne as próximas 24 horas mais seguras.",
+    depressionOpening:
+      "Isso soa pesado, e sinto muito que você esteja carregando isso.",
+    depressionNext:
+      "Reduza a próxima hora: beba água, coma algo, saia um pouco e conte a uma pessoa segura o que está acontecendo.",
+    lonelinessOpening:
+      "Esse tipo de solidão importa.",
+    lonelinessNext:
+      "Escolha contato antes de clareza. Envie mensagem, ligue ou fique com uma pessoa segura, mesmo sem as palavras certas.",
+    holinessOpening:
+      "Isso soa mais como uma pergunta de santidade e formação do que apenas de força de vontade.",
+    holinessNext:
+      "Traga a luta para a luz com confissão, limites e responsabilidade.",
+  },
+  de: {
+    selfHarmOpening:
+      "Es ist gut, dass du das laut gesagt hast. Wenn du diesen Gedanken nachgehen könntest, halte jetzt an und hole sofort menschliche Hilfe.",
+    selfHarmImmediate:
+      "Wenn du in den USA oder Kanada bist, ruf oder schreibe jetzt 988. Wenn du woanders bist, kontaktiere sofort den örtlichen Notruf oder eine nahe Krisenhilfe.",
+    selfHarmFollowUp:
+      "Kontaktiere jetzt eine Vertrauensperson, bleib nicht allein und entferne alles aus deiner Nähe, womit du dir schaden könntest.",
+    addictionOpening:
+      "Das ist ein ernstes Ringen, und du musst es nicht nur mit Willenskraft tragen.",
+    addictionNext:
+      "Sag heute einer Vertrauensperson die Wahrheit, entferne einen leichten Zugang und sichere die nächsten 24 Stunden besser ab.",
+    depressionOpening:
+      "Das klingt schwer, und es tut mir leid, dass du das trägst.",
+    depressionNext:
+      "Mach die nächste Stunde kleiner: trink Wasser, iss etwas, geh kurz nach draußen und sag einer sicheren Person, was los ist.",
+    lonelinessOpening:
+      "Diese Art von Einsamkeit zählt.",
+    lonelinessNext:
+      "Wähle zuerst Verbindung, dann Klarheit. Schreib, ruf an oder sei mit einer sicheren Person zusammen, auch ohne die richtigen Worte.",
+    holinessOpening:
+      "Das klingt eher nach einer Frage von Heiligung und Formung als nur nach Willenskraft.",
+    holinessNext:
+      "Bring den Kampf mit Bekenntnis, Grenzen und Rechenschaft ans Licht.",
+  },
+  yo: {
+    selfHarmOpening:
+      "Ó dáa pé o sọ èyí jáde. Tí o bá lè ṣe ohun tó lè pa ọ lára, dá sílẹ̀ báyìí kí o sì wá ìrànlọ́wọ́ ènìyàn lẹ́sẹ̀kẹsẹ̀.",
+    selfHarmImmediate:
+      "Tí o bá wà ní U.S. tàbí Canada, pe tàbí ránṣẹ́ sí 988 báyìí. Tí o bá wà níbòmíràn, kan sí ìpè pajawiri agbègbè rẹ tàbí laini ìrànlọ́wọ́ tó sún mọ́ ọ lẹ́sẹ̀kẹsẹ̀.",
+    selfHarmFollowUp:
+      "Kan sí ẹni tí o lè gbẹ́kẹ̀lé báyìí, má ṣe dúró nikan, kí o sì yọ ohunkóhun tí o lè fi pa ara rẹ lára kúrò nítòsí rẹ.",
+    addictionOpening:
+      "Ìjà tó lágbára ni èyí, kò sì yẹ kí o koju rẹ pẹ̀lú agbára ìfẹ́ nìkan.",
+    addictionNext:
+      "Sọ òtítọ́ fún ẹni kan tí o lè gbẹ́kẹ̀lé lónìí, yọ ọ̀nà ìraye kan kúrò, kí o sì jẹ́ kí wákàtí 24 tó ń bọ dáa síi.",
+    depressionOpening:
+      "Èyí wuwo gan-an, ó sì dùn mí pé o ń rú ẹ̀rù yìí.",
+    depressionNext:
+      "Dín wákàtí tó ń bọ kù: mu omi, jẹun, jáde díẹ̀, kí o sì sọ fún ẹni tó dáa ohun tó ń ṣẹlẹ̀.",
+    lonelinessOpening:
+      "Iru ìdádúró yìí ṣe pàtàkì.",
+    lonelinessNext:
+      "Yan ìbáṣepọ̀ kí o tó yan ìmúlòye. Ránṣẹ́, pe, tàbí jókòó pẹ̀lú ẹni tó dáa, kó tilẹ̀ jẹ́ pé o kò ní ọ̀rọ̀ tó pé.",
+    holinessOpening:
+      "Èyí dà bí ìbéèrè ìmímọ́ àti ìdàgbàsókè ju ìṣọ̀kan ìfẹ́ lọ.",
+    holinessNext:
+      "Mú ìjà náà wá sí ìmọ́lẹ̀ pẹ̀lú ìjẹ́wọ́, ààlà, àti ìjẹ́rìí.",
+  },
+  ig: {
+    selfHarmOpening:
+      "Ọ dị mma na ị kwuru nke a n’olu. Ọ bụrụ na ị nwere ike ime ihe ga-emebi gị, kwụsị ebe a ma nweta enyemaka mmadụ ozugbo.",
+    selfHarmImmediate:
+      "Ọ bụrụ na ị nọ na U.S. ma ọ bụ Canada, kpọọ ma ọ bụ zipu 988 ugbu a. Ọ bụrụ na ị nọ ebe ọzọ, kpọtụrụ ọrụ mberede mpaghara ma ọ bụ akara ndụmọdụ mgbapu nso ozugbo.",
+    selfHarmFollowUp:
+      "Kpọtụrụ onye ị tụkwasịrị obi ugbu a, anọla naanị gị, ma wepụ ihe ọ bụla ị nwere ike iji merụọ onwe gị n’akụkụ gị.",
+    addictionOpening:
+      "Nke ahụ bụ ọgụ siri ike, ma ị gaghị enwe ike ịlụ ya naanị site n’ike ọchịchọ.",
+    addictionNext:
+      "Gwa onye ị tụkwasịrị obi eziokwu taa, wepụ otu ụzọ dị mfe iji nweta ihe ahụ, ma mee ka awa 24 sochirinụ dị nchebe.",
+    depressionOpening:
+      "Nke ahụ na-ebu ibu, ma ọ dị m nwute na ị na-ebu ya.",
+    depressionNext:
+      "Mee awa sochirinụ ka ọ dị obere: ṅụọ mmiri, rie ihe, pụọ obere, ma gwa onye nchekwa ihe na-eme.",
+    lonelinessOpening:
+      "Ụdị owu ọmụma ahụ dị mkpa.",
+    lonelinessNext:
+      "Họrọ njikọ tupu ị họrọ nghọta. Zipu ozi, kpọọ, ma ọ bụ nọrọ na onye nchekwa, ọbụna ma okwu ezughị ezu.",
+    holinessOpening:
+      "Nke a yiri ajụjụ banyere ịdị nsọ na nhazi ndụ karịa naanị ike ọchịchọ.",
+    holinessNext:
+      "Weta ọgụ ahụ n’ìhè site na nkwupụta, ókè, na ịza ajụjụ.",
+  },
+  ha: {
+    selfHarmOpening:
+      "Na yi kyau ka ka faɗi wannan a fili. Idan kana iya aiwatar da tunanin cutar da kai ko kashe kai, ka tsaya nan ka nemi taimakon mutum nan take.",
+    selfHarmImmediate:
+      "Idan kana cikin Amurka ko Kanada, ka kira ko ka tura saƙo zuwa 988 yanzu. Idan kana wani wuri dabam, ka tuntubi sabis na gaggawa na yankinka ko layin taimakon rikici kusa nan take.",
+    selfHarmFollowUp:
+      "Tuntubi wani amintacce yanzu, kada ka zauna kai kaɗai, kuma ka nisantar da kanka daga duk abin da za ka iya amfani da shi don cutar da kanka.",
+    addictionOpening:
+      "Wannan gwagwarmaya ce mai tsanani, kuma ba sai ka fuskance ta da ƙarfin hali kaɗai ba.",
+    addictionNext:
+      "Ka gaya wa wani amintacce gaskiya yau, ka cire hanya ɗaya mai sauƙin shiga, ka sa sa’o’i 24 masu zuwa su fi aminci.",
+    depressionOpening:
+      "Wannan yana da nauyi sosai, kuma na tausaya maka da kake ɗauke da shi.",
+    depressionNext:
+      "Ka ƙanƙantar da sa’a ta gaba: ka sha ruwa, ka ci wani abu, ka fito ɗan lokaci, ka kuma gaya wa wani amintacce abin da ke faruwa.",
+    lonelinessOpening:
+      "Irin wannan kaɗaicin yana da muhimmanci.",
+    lonelinessNext:
+      "Zaɓi haɗuwa kafin haske. Ka aika saƙo, ka kira, ko ka zauna da wani amintacce, ko da ba ka da kalmomin da suka dace.",
+    holinessOpening:
+      "Wannan ya fi kama da tambayar tsarki da samuwa fiye da ƙarfin hali kaɗai.",
+    holinessNext:
+      "Ka kawo gwagwarmayar cikin haske ta ikirari, iyaka, da amsa tambaya.",
+  },
+};
+
+export function localizedCrisisSupportCopy(language: LanguageCode) {
+  return crisisSupportCopy[language] ?? crisisSupportCopy.en!;
+}
+
+export const localizedDailyPractices: Partial<Record<LanguageCode, Partial<Record<Mode, string>>>> = {
   en: {
     Money: "Today, do not optimize for more. Define enough.",
     Work: "Today, choose the next faithful step before chasing the impressive one.",
@@ -512,6 +747,10 @@ const localizedWisdomThemes: Partial<Record<LanguageCode, Record<string, string>
     Generosity: "Generosidad",
     Diligence: "Diligencia",
     "Provision and Anxiety": "Provisión y ansiedad",
+    Recovery: "Recuperación",
+    Confession: "Confesión",
+    Purity: "Pureza",
+    Freedom: "Libertad",
   },
   fr: {
     Stewardship: "Gestion fidèle",
@@ -522,6 +761,10 @@ const localizedWisdomThemes: Partial<Record<LanguageCode, Record<string, string>
     Generosity: "Générosité",
     Diligence: "Diligence",
     "Provision and Anxiety": "Provision et anxiété",
+    Recovery: "Restauration",
+    Confession: "Confession",
+    Purity: "Pureté",
+    Freedom: "Liberté",
   },
   pt: {
     Stewardship: "Administração",
@@ -532,6 +775,10 @@ const localizedWisdomThemes: Partial<Record<LanguageCode, Record<string, string>
     Generosity: "Generosidade",
     Diligence: "Diligência",
     "Provision and Anxiety": "Provisão e ansiedade",
+    Recovery: "Restauração",
+    Confession: "Confissão",
+    Purity: "Pureza",
+    Freedom: "Liberdade",
   },
   yo: {
     Stewardship: "Ìtọ́jú ohun tí a fi lé wa lọ́wọ́",
@@ -542,6 +789,10 @@ const localizedWisdomThemes: Partial<Record<LanguageCode, Record<string, string>
     Generosity: "Ìfẹ́ fúnni",
     Diligence: "Ìfarabalẹ̀ iṣẹ́",
     "Provision and Anxiety": "Ìpèsè àti àníyàn",
+    Recovery: "Ìmúpadàbọ̀sípò",
+    Confession: "Ìjẹ́wọ́",
+    Purity: "Mímọ́",
+    Freedom: "Òmìnira",
   },
   de: {
     Stewardship: "Verantwortliche Verwaltung",
@@ -552,10 +803,42 @@ const localizedWisdomThemes: Partial<Record<LanguageCode, Record<string, string>
     Generosity: "Großzügigkeit",
     Diligence: "Sorgfalt",
     "Provision and Anxiety": "Versorgung und Sorge",
+    Recovery: "Wiederherstellung",
+    Confession: "Bekenntnis",
+    Purity: "Reinheit",
+    Freedom: "Freiheit",
+  },
+  ig: {
+    Stewardship: "Nlekọta",
+    Debt: "Ụgwọ",
+    Contentment: "Afọ ojuju",
+    Counsel: "Ndụmọdụ",
+    "Cost Counting": "Ịgụ ụgwọ",
+    Generosity: "Mmesapụ aka",
+    Diligence: "Ịrụsi ọrụ ike",
+    "Provision and Anxiety": "Nlekọta na nchegbu",
+    Recovery: "Nlaghachi",
+    Confession: "Nkwupụta",
+    Purity: "Ịdị ọcha",
+    Freedom: "Nnwere onwe",
+  },
+  ha: {
+    Stewardship: "Kula",
+    Debt: "Bashi",
+    Contentment: "Gamsuwa",
+    Counsel: "Shawara",
+    "Cost Counting": "Lissafin kuɗi",
+    Generosity: "Karimci",
+    Diligence: "Naci",
+    "Provision and Anxiety": "Tanadi da damuwa",
+    Recovery: "Warkewa",
+    Confession: "Iƙirari",
+    Purity: "Tsabta",
+    Freedom: "'Yanci",
   },
 };
 
-const localizedScriptureFallbackText: Record<LanguageCode, string> = {
+const localizedScriptureFallbackText: Partial<Record<LanguageCode, string>> = {
   en: "This reference is part of Aletheia's curated wisdom library. The app only surfaces known references and avoids inventing verse text.",
   es: "Esta referencia forma parte de la biblioteca de sabiduría curada de Aletheia. La app solo muestra referencias conocidas y evita inventar texto bíblico.",
   fr: "Cette référence fait partie de la bibliothèque de sagesse curée d'Aletheia. L'application n'affiche que des références connues et évite d'inventer du texte biblique.",
@@ -574,6 +857,9 @@ const localizedRegionLabels: Partial<Record<LanguageCode, Partial<Record<RegionC
   yo: { global: "Agbaye", us: "Orílẹ̀-èdè Amẹ́ríkà", uk: "Orílẹ̀-èdè Gẹ̀ẹ́sì", eu: "Yúróòpù", ng: "Nàìjíríà", br: "Bràsíl", latam: "Amẹ́ríkà Látìn" },
   ig: { global: "Uwa niile", us: "United States", uk: "United Kingdom", eu: "Europe", ng: "Naịjịrịa", br: "Brazil", latam: "Latin America" },
   ha: { global: "Duniya", us: "Amurka", uk: "Birtaniya", eu: "Turai", ng: "Najeriya", br: "Brazil", latam: "Latin Amurka" },
+  tl: { global: "Pandaigdig", us: "Estados Unidos", uk: "United Kingdom", eu: "Europa", ng: "Nigeria", br: "Brazil", latam: "Latin America", ph: "Pilipinas", mena: "Gitnang Silangan at Hilagang Aprika", in: "India" },
+  ar: { global: "عالمي", us: "الولايات المتحدة", uk: "المملكة المتحدة", eu: "أوروبا", ng: "نيجيريا", br: "البرازيل", latam: "أمريكا اللاتينية", ph: "الفلبين", mena: "الشرق الأوسط وشمال أفريقيا", in: "الهند" },
+  hi: { global: "वैश्विक", us: "संयुक्त राज्य", uk: "यूनाइटेड किंगडम", eu: "यूरोप", ng: "नाइजीरिया", br: "ब्राज़ील", latam: "लैटिन अमेरिका", ph: "फिलीपींस", mena: "मध्य पूर्व व उत्तरी अफ्रीका", in: "भारत" },
 };
 
 const localizedModeProfiles: Partial<Record<LanguageCode, Partial<Record<Mode, Partial<ModeProfile>>>>> = {
@@ -731,41 +1017,47 @@ const localizedModeProfiles: Partial<Record<LanguageCode, Partial<Record<Mode, P
       ],
     },
     Life: {
-      intent: "Apply biblical wisdom to ordinary life with steady, grounded attention.",
-      focus: "Habits, relationships, family, rest, health, home rhythms",
-      useWhen: "Use for everyday life decisions, routines, relationships, habits, rest, conflict, or when the right next step is not obviously a money or work question.",
-      lens: "A whole-life lens: character, relationships, responsibilities, rhythms, and the next faithful step.",
+      intent: "Apply biblical wisdom to ordinary life, formation, and care with steady, grounded attention.",
+      focus: "Habits, relationships, family, rest, health, recovery, holiness, loneliness",
+      useWhen:
+        "Use for everyday life decisions, routines, relationships, habits, rest, conflict, loneliness, addiction, temptation, prayer life, or when the right next step is a quiet act of obedience rather than a major decision.",
+      lens: "A formation lens: character, healing, accountability, relationships, and the next faithful step.",
       diagnosticTracks: [
-        "Character: what kind of person is this habit or choice forming?",
-        "Relationships: who is affected by this, and how can I love them well?",
-        "Rhythm: does this create space for rest, attention, and repair?",
+        "Character: what is this habit training you to love, tolerate, or hide?",
+        "Care: who should know, especially if you feel stuck, isolated, or at risk?",
+        "Rhythm: does this pattern create rest, honesty, and repair, or does it erode them?",
+        "Holiness: what would faithful repentance, boundaries, or confession look like today?",
       ],
       blindSpots: [
-        "Treating ordinary life choices as spiritually irrelevant",
-        "Over-spiritualizing what needs practical wisdom",
-        "Ignoring body, family, or rest while chasing meaning",
+        "Treating addiction, depression, or loneliness as a private problem you must outlast alone",
+        "Confusing guilt, shame, and conviction",
+        "Calling spiritual intensity holiness while ignoring body, sleep, and accountability",
+        "Letting secrecy protect the very habit that is harming you",
       ],
       maturitySignals: [
-        "The decision fits with healthy rhythms, not only ambition",
-        "The people closest to the change are considered with care",
-        "The next step is simple enough to obey",
+        "The next step is small, concrete, and shared with a safe person when needed",
+        "The plan makes room for prayer, rest, and honest accountability",
+        "Compassion and truth are both present",
+        "The pattern becomes more honest, not more hidden",
       ],
       practices: [
-        "Name the smallest faithful habit you can repeat",
-        "Check whether this choice strengthens or frays your relationships",
-        "Protect a rhythm of rest before adding pressure",
+        "Tell one trusted person the truth if secrecy is keeping the struggle alive",
+        "Remove one easy access point to the habit or trigger today",
+        "Choose one ordinary act of care: sleep, food, water, a walk, shower, prayer",
+        "Write the next 24 hours rather than the next year",
       ],
       responseMoves: [
-        "Bring the question down from abstraction into ordinary life",
-        "Connect wisdom to habits, relationships, and household realities",
-        "Keep the next step concrete and sustainable",
+        "Slow the pace and reduce shame",
+        "Distinguish temptation, compulsion, grief, and isolation",
+        "Push the counsel toward concrete support, not abstract ideals",
+        "Encourage confession, accountability, and professional or pastoral help when needed",
       ],
       promptCue:
-        "In Life mode, emphasize ordinary biblical wisdom for family, relationships, habits, rest, conflict, home rhythms, health, and the next faithful small step. Keep the counsel grounded, practical, and gentle.",
+        "In Life mode, emphasize ordinary biblical wisdom for family, relationships, habits, rest, conflict, home rhythms, health, recovery, loneliness, addiction, holiness, temptation, and the next faithful small step. Be especially gentle, concrete, and non-shaming. If self-harm, suicide, overdose, abuse, or immediate danger is hinted, stop normal counsel and shift to urgent human support and simple safety steps.",
       prompts: [
-        "How do I make my daily life wiser?",
-        "How should I think about this relationship?",
-        "What habit should I change first?",
+        "How do I stay faithful in a hard season?",
+        "What do I do when I feel stuck in an unhealthy pattern?",
+        "How do I respond when loneliness or temptation gets heavy?",
       ],
     },
   },
@@ -2297,6 +2589,34 @@ const localizedWisdomLibraryEntries: Partial<Record<LanguageCode, Record<string,
       application:
         "Separa la planificación responsable de los bucles de ansiedad. Haz la siguiente acción fiel y luego rechaza ensayar cada peor escenario.",
     },
+    "Psalm 51:10-12": {
+      principle: "Un corazón limpio y un espíritu firme pueden ser restaurados después de caer.",
+      context:
+        "David ora después de un colapso moral. No pide solo perdón, sino renovación interior y alegría devuelta por Dios.",
+      application:
+        "Cuando hayas caído, empieza con arrepentimiento honesto y no con autoprotección. Pide a Dios que renueve tu corazón y te ayude a dar el siguiente paso verdadero.",
+    },
+    "James 5:16": {
+      principle: "La confesión y la oración abren camino a la sanidad y a la integridad restaurada.",
+      context:
+        "Santiago une la confesión con la oración y la sanidad, mostrando que la lucha escondida suele debilitarnos y que la honestidad puede iniciar reparación.",
+      application:
+        "Confiesa lo que es verdad ante Dios y, cuando sea sabio, ante una persona de confianza que pueda orar, sostenerte y ayudarte a rendir cuentas.",
+    },
+    "1 Thessalonians 4:3-5": {
+      principle: "La santidad se aprende honrando a Dios con el cuerpo y rechazando el deseo distorsionado.",
+      context:
+        "Pablo llama a los creyentes hacia la santificación, el autocontrol y una manera distinta de usar el deseo frente a la cultura que los rodea.",
+      application:
+        "La pureza no es solo evitar; es también una forma positiva de límites, autocontrol y honra a Dios con lo que miras, tocas e imaginas.",
+    },
+    "1 Corinthians 10:13": {
+      principle: "La tentación es real, pero Dios también provee una salida y capacidad para resistir.",
+      context:
+        "Pablo asegura a los creyentes que la tentación no es única, ni imposible de soportar, ni ajena a la ayuda fiel de Dios.",
+      application:
+        "Busca la salida, no solo la tentación. La libertad suele requerir nombrar el patrón, cambiar el entorno y tomar la salida ofrecida.",
+    },
   },
   fr: {
     "Matthew 25:14-30": {
@@ -2690,6 +3010,26 @@ const localizedWisdomQuestions: Partial<Record<LanguageCode, Partial<Record<stri
       "¿Qué preocupaciones piden planificación y cuáles piden ser soltadas?",
       "¿Qué cambiaría la paz en mi ritmo?",
     ],
+    "Psalm 51:10-12": [
+      "¿Qué necesito que Dios limpie y renueve en mí?",
+      "¿Qué estaría ocultando en vez de confesar?",
+      "¿Qué paso honesto abriría la puerta a la restauración?",
+    ],
+    "James 5:16": [
+      "¿Qué verdad necesito sacar a la luz?",
+      "¿Quién es suficientemente seguro para escucharme y orar conmigo?",
+      "¿Cómo cambiaría mi carga si dejara de cargar esto solo?",
+    ],
+    "1 Thessalonians 4:3-5": [
+      "¿Qué límite haría más concreta mi obediencia hoy?",
+      "¿Qué hábito alimenta este deseo desordenado?",
+      "¿Cómo puedo honrar a Dios con mi cuerpo y mi atención?",
+    ],
+    "1 Corinthians 10:13": [
+      "¿Dónde está la salida en este momento?",
+      "¿Qué cambio de entorno reduciría la tentación?",
+      "¿Quién puede ayudarme a ver la puerta de escape antes de quedar abrumado?",
+    ],
   },
   fr: {
     "Matthew 25:14-30": [
@@ -2731,6 +3071,26 @@ const localizedWisdomQuestions: Partial<Record<LanguageCode, Partial<Record<stri
       "Quelle est l'action fidèle à poser aujourd'hui ?",
       "Quelles inquiétudes demandent un plan, et lesquelles demandent d'être relâchées ?",
       "Qu'est-ce que la paix changerait à mon rythme ?",
+    ],
+    "Psalm 51:10-12": [
+      "Qu'est-ce que j'ai besoin que Dieu purifie et renouvelle en moi ?",
+      "Qu'est-ce que je cacherais au lieu de confesser ?",
+      "Quel pas honnête ouvrirait la porte à la restauration ?",
+    ],
+    "James 5:16": [
+      "Quelle vérité ai-je besoin de mettre en lumière ?",
+      "Qui est suffisamment sûr pour m'écouter et prier avec moi ?",
+      "Comment ma charge changerait-elle si je ne portais plus cela seul ?",
+    ],
+    "1 Thessalonians 4:3-5": [
+      "Quelle limite rendrait mon obéissance plus concrète aujourd'hui ?",
+      "Quelle habitude nourrit ce désir désordonné ?",
+      "Comment puis-je honorer Dieu avec mon corps et mon attention ?",
+    ],
+    "1 Corinthians 10:13": [
+      "Où est la porte de sortie, ici et maintenant ?",
+      "Quel changement d'environnement réduirait la tentation ?",
+      "Qui peut m'aider à voir l'issue avant que je sois submergé ?",
     ],
   },
   pt: {
@@ -2774,6 +3134,26 @@ const localizedWisdomQuestions: Partial<Record<LanguageCode, Partial<Record<stri
       "Quais preocupações pedem planejamento e quais pedem liberação?",
       "O que a paz mudaria no meu ritmo?",
     ],
+    "Psalm 51:10-12": [
+      "O que preciso que Deus limpe e renove em mim?",
+      "O que eu estaria escondendo em vez de confessar?",
+      "Que passo honesto abriria espaço para restauração?",
+    ],
+    "James 5:16": [
+      "Que verdade eu preciso trazer à luz?",
+      "Quem é seguro o suficiente para me ouvir e orar comigo?",
+      "Como meu peso mudaria se eu parasse de carregar isso sozinho?",
+    ],
+    "1 Thessalonians 4:3-5": [
+      "Que limite tornaria minha obediência mais concreta hoje?",
+      "Que hábito alimenta esse desejo desordenado?",
+      "Como posso honrar a Deus com meu corpo e minha atenção?",
+    ],
+    "1 Corinthians 10:13": [
+      "Onde está a saída neste momento?",
+      "Que mudança de ambiente reduziria a tentação?",
+      "Quem pode me ajudar a enxergar a saída antes de eu ficar sobrecarregado?",
+    ],
   },
   de: {
     "Matthew 25:14-30": [
@@ -2815,6 +3195,26 @@ const localizedWisdomQuestions: Partial<Record<LanguageCode, Partial<Record<stri
       "Was ist heute der treue nächste Schritt?",
       "Welche Sorgen brauchen Planung und welche brauchen Loslassen?",
       "Was würde Frieden an meinem Tempo ändern?",
+    ],
+    "Psalm 51:10-12": [
+      "Was muss Gott in mir reinigen und erneuern?",
+      "Was würde ich eher verbergen als bekennen?",
+      "Welcher ehrliche Schritt würde Wiederherstellung ermöglichen?",
+    ],
+    "James 5:16": [
+      "Welche Wahrheit muss ans Licht kommen?",
+      "Wer ist sicher genug, um mir zuzuhören und mit mir zu beten?",
+      "Wie würde sich meine Last ändern, wenn ich das nicht mehr allein trüge?",
+    ],
+    "1 Thessalonians 4:3-5": [
+      "Welche Grenze würde meinen Gehorsam heute konkreter machen?",
+      "Welche Gewohnheit nährt dieses ungeordnete Verlangen?",
+      "Wie kann ich Gott mit meinem Körper und meiner Aufmerksamkeit ehren?",
+    ],
+    "1 Corinthians 10:13": [
+      "Wo ist hier der Ausweg?",
+      "Welche Veränderung der Umgebung würde die Versuchung verringern?",
+      "Wer kann mir helfen, den Ausweg zu sehen, bevor ich überfordert bin?",
     ],
   },
   yo: {
@@ -2858,6 +3258,26 @@ const localizedWisdomQuestions: Partial<Record<LanguageCode, Partial<Record<stri
       "Àníyàn wo ni ń béèrè fún ìṣètò, èwo sì ń béèrè fún ìtú silẹ?",
       "Kí ni àlàáfíà yóò yí padà nínú ìyára mi?",
     ],
+    "Psalm 51:10-12": [
+      "Kí ni mo nílò kí Ọlọ́run wẹ́, kí ó sì tún ṣe nínú mi?",
+      "Kí ni màá ń fi pamọ́ dípò kí n jẹ́wọ́?",
+      "Ìgbésẹ̀ olóòtítọ́ wo ló máa ṣí ọ̀nà sí ìmúpadàbọ̀sípò?",
+    ],
+    "James 5:16": [
+      "Òtítọ́ wo ni mo nílò láti mú wá sí ìmọ́lẹ̀?",
+      "Ta ni ó dáa tó láti gbọ́ mi, kí ó sì gbàdúrà pẹ̀lú mi?",
+      "Báwo ni ẹrù mi ṣe máa yí padà tí mo bá dáwọ́ ríru rẹ̀ nìkan?",
+    ],
+    "1 Thessalonians 4:3-5": [
+      "Ààlà wo ló máa jẹ́ kí ìgbọràn mi túbọ̀ dájú lónìí?",
+      "Àṣà wo ni ń fún ìfẹ́ tí kò tọ́ yìí ní agbára?",
+      "Báwo ni mo ṣe lè bọlá fún Ọlọ́run pẹ̀lú ara mi àti àfiyèsí mi?",
+    ],
+    "1 Corinthians 10:13": [
+      "Níbo ni ọ̀nà àbáyọ wà ní àsìkò yìí?",
+      "Ìyípadà ayíká wo ló máa dín ìdánwò kù?",
+      "Ta ni lè ràn mí lọ́wọ́ láti rí àbáyọ kí ìwọ̀n má tó lá mi?",
+    ],
   },
   ig: {
     "Matthew 25:14-30": [
@@ -2900,6 +3320,26 @@ const localizedWisdomQuestions: Partial<Record<LanguageCode, Partial<Record<stri
       "Nchegbu gịnị chọrọ atụmatụ, gịnị kwa chọrọ ka e hapụ?",
       "Kedu ihe udo ga-agbanwe na ọsọ m?",
     ],
+    "Psalm 51:10-12": [
+      "Kedu ihe m chọrọ ka Chineke sachapụ ma megharịa n’ime m?",
+      "Gịnị ka m ga-ezobe kama ikwupụta ya?",
+      "Kedu nzọụkwụ eziokwu ga-emeghe ụzọ maka nlaghachi?",
+    ],
+    "James 5:16": [
+      "Kedu eziokwu m kwesịrị iweta n’ìhè?",
+      "Ònye ka m na-echekwa nke ọma ka ọ nụ m ma kpee ekpere m?",
+      "Kedu ka ibu m ga-esi gbanwee ma ọ bụrụ na m kwụsịrị ibu nke a naanị m?",
+    ],
+    "1 Thessalonians 4:3-5": [
+      "Kedu ókè ga-eme ka nrubeisi m bụrụ nke a na-ahụ anya taa?",
+      "Kedu omume na-azụ agụụ a na-adịghị edozi?",
+      "Kedu ka m ga-esi sọpụrụ Chineke n’ahụ m na n’echiche m?",
+    ],
+    "1 Corinthians 10:13": [
+      "Ebee ka ụzọ mgbapụ dị ugbu a?",
+      "Kedu mgbanwe gburugburu ebe obibi ga-eme ka ọnwụnwa belata?",
+      "Ònye nwere ike inyere m hụ ụzọ mgbapụ tupu ibu arọ emeri m?",
+    ],
   },
   ha: {
     "Matthew 25:14-30": [
@@ -2941,6 +3381,26 @@ const localizedWisdomQuestions: Partial<Record<LanguageCode, Partial<Record<stri
       "Wane ne mataki na aminci na yau?",
       "Wadanne damuwa ne ke bukatar shiri, wadanne kuma suna bukatar a sake su?",
       "Menene salama za ta canza a saurin tafiyata?",
+    ],
+    "Psalm 51:10-12": [
+      "Me nake bukata Allah ya tsarkake kuma ya sabunta a cikina?",
+      "Me nake ɓoye maimakon in furta?",
+      "Wane mataki na gaskiya zai buɗe hanya zuwa warkewa?",
+    ],
+    "James 5:16": [
+      "Wace gaskiya nake bukata in fito da ita fili?",
+      "Wa ne ya isa ya saurare ni ya kuma yi addu’a tare da ni?",
+      "Ta yaya nauyina zai sauya idan na daina ɗaukar wannan ni kaɗai?",
+    ],
+    "1 Thessalonians 4:3-5": [
+      "Wace iyaka za ta sa biyayyata ta fi bayyane yau?",
+      "Wane hali ne ke ciyar da wannan son da bai da tsari?",
+      "Ta yaya zan girmama Allah da jikina da hankalina?",
+    ],
+    "1 Corinthians 10:13": [
+      "Ina hanyar fita take a wannan lokacin?",
+      "Wane canjin muhalli zai rage gwaji?",
+      "Wa zai iya taimaka mini ganin hanyar fita kafin in yi nauyi sosai?",
     ],
   },
 };
@@ -3007,11 +3467,11 @@ export function localizedDailyWisdom(
   mode: Mode,
   preferences: UserPreferences
 ) {
-  const copy = languageCopy[preferences.language] ?? languageCopy.en;
+  const copy = languageCopy[preferences.language] ?? languageCopy.en!;
   const localizedEntry = localizedWisdomEntry(entry, preferences);
   const practice =
     localizedDailyPractices[preferences.language]?.[mode] ??
-    localizedDailyPractices.en[mode] ??
+    localizedDailyPractices.en?.[mode] ??
     localizedEntry.questions[0];
 
   return {
@@ -3028,7 +3488,7 @@ export function localizedWisdomLibraryNote(entry: WisdomEntryData, preferences: 
   const regionLabel = localizedRegionLabel(preferences.region, preferences.language);
   const translation = scriptureDisplayLabel(entry.scripture, preferences);
 
-  const notes: Record<LanguageCode, string> = {
+  const notes: Partial<Record<LanguageCode, string>> = {
     en: `Use ${entry.scripture} with the ${translation} reference label, then apply it with ${regionLabel} realities in view.`,
     es: `Usa ${entry.scripture} con la referencia ${translation}, y aplica el principio considerando la realidad de ${regionLabel}.`,
     fr: `Utilise ${entry.scripture} avec la référence ${translation}, puis applique le principe dans le contexte de ${regionLabel}.`,
@@ -3039,7 +3499,7 @@ export function localizedWisdomLibraryNote(entry: WisdomEntryData, preferences: 
     ha: `Yi amfani da ${entry.scripture} tare da alamar ${translation}, sannan ka aiwatar da ƙa'idar a yanayin ${regionLabel}.`,
   };
 
-  return notes[preferences.language] ?? notes.en;
+  return notes[preferences.language] ?? notes.en ?? `${entry.scripture} (${translation})`;
 }
 
 export function promptPreferenceContext(preferences: UserPreferences) {

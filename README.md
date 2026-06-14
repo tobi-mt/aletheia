@@ -296,12 +296,14 @@ curl -H "Authorization: Bearer YOUR_NOTIFICATION_CRON_SECRET" \
 
 Aletheia supports user preferences for:
 
-- preferred language: English, Spanish, French, Portuguese, German, Yoruba, Igbo, Hausa
-- region context: global, United States, United Kingdom, Europe, Nigeria, Brazil, Latin America
+- preferred language: English, Spanish, French, Portuguese, German, Yoruba, Igbo, Hausa, Filipino/Tagalog, Arabic, Hindi
+- region context: global, United States, United Kingdom, Europe, Nigeria, Brazil, Latin America, Philippines, Middle East and North Africa, India
 - public-domain Bible translation label: WEB, KJV, ASV
 - browser voice input/output when supported
 
 The AI prompt receives these preferences and adapts language, regional examples, and scripture-reference labels. If a safe public-domain localized scripture text is not available, Aletheia keeps the scripture reference accurate and falls back to English/reference-only wording rather than inventing translation text.
+
+For the launch sequence, file-level rollout scope, and QA gates, see [`LANGUAGE_EXPANSION_ROLLOUT.md`](/Users/tobi/PycharmProjects/pythonProject/aletheia/LANGUAGE_EXPANSION_ROLLOUT.md).
 
 ## PWA Notes
 

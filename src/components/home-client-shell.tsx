@@ -45,9 +45,24 @@ const splashText = {
     preparing: "Ana shirya manhajar ka...",
     refreshing: "Ana sabunta ayyuka kuma ana loda sabon kwarewarka.",
   },
+  tl: {
+    tagline: "Karunungan para sa maingat na pamumuno",
+    preparing: "Inihahanda ang app mo...",
+    refreshing: "Ina-update ang mga serbisyo at nilo-load ang pinakabagong karanasan mo.",
+  },
+  ar: {
+    tagline: "حكمة للتدبير الأمين",
+    preparing: "جارٍ تجهيز التطبيق...",
+    refreshing: "جارٍ تحديث الخدمات وتحميل أحدث تجربة لك.",
+  },
+  hi: {
+    tagline: "दायित्वपूर्ण जीवन के लिए विवेक",
+    preparing: "आपका ऐप तैयार किया जा रहा है...",
+    refreshing: "सेवाएं अपडेट की जा रही हैं और आपका नवीनतम अनुभव लोड हो रहा है।",
+  },
 } as const;
 
-const supportedSplashLanguages = new Set(["en", "es", "fr", "de", "pt", "yo", "ig", "ha"] as const);
+const supportedSplashLanguages = new Set(["en", "es", "fr", "de", "pt", "yo", "ig", "ha", "tl", "ar", "hi"] as const);
 
 const SPLASH_LAST_SHOWN_AT_KEY = "aletheia_splash_last_shown_at";
 

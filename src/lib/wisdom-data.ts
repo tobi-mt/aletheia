@@ -145,6 +145,74 @@ export const wisdomEntries: WisdomEntryData[] = [
     ],
   },
   {
+    theme: "Recovery",
+    scripture: "Psalm 51:10-12",
+    principle:
+      "A clean heart and a steady spirit can be restored after failure and sin.",
+    context:
+      "David prays after moral collapse, asking not merely for forgiveness but for inward renewal and joy.",
+    application:
+      "When you have fallen, start with honest repentance, not self-protection. Ask God to renew your heart and help you take the next truthful step.",
+    keywords: ["recovery", "restoration", "restore", "renew", "repentance", "healing", "return"],
+    emotions: ["shame", "regret", "grief", "hope"],
+    questions: [
+      "What am I trying to hide instead of bringing into the light?",
+      "What would honest repentance look like in the next 24 hours?",
+      "Who can help me take the next faithful step without shame?",
+    ],
+  },
+  {
+    theme: "Confession",
+    scripture: "James 5:16",
+    principle:
+      "Confession and prayer open the way for healing and restored integrity.",
+    context:
+      "James connects confession with prayer and healing, showing that hidden struggle often weakens us while honest exposure can begin repair.",
+    application:
+      "Confess what is true to God and, when wise, to a trusted person who can pray, support, and help you stay accountable.",
+    keywords: ["confession", "confess", "accountability", "healing", "truth", "prayer", "hidden"],
+    emotions: ["shame", "relief", "fear", "hope"],
+    questions: [
+      "What truth have I been avoiding speaking?",
+      "Who is safe enough to hear this honestly?",
+      "How would prayer and confession change the weight I am carrying?",
+    ],
+  },
+  {
+    theme: "Purity",
+    scripture: "1 Thessalonians 4:3-5",
+    principle:
+      "Holiness is learned by honoring God with the body and refusing distorted desire.",
+    context:
+      "Paul calls believers toward sanctification, self-control, and a different way of using desire than the surrounding culture.",
+    application:
+      "Purity is not merely avoidance; it is a positive pattern of boundaries, self-control, and honoring God with what you look at, touch, and imagine.",
+    keywords: ["purity", "holiness", "temptation", "lust", "porn", "desire", "self-control"],
+    emotions: ["temptation", "shame", "longing", "resolve"],
+    questions: [
+      "What boundary would make obedience more concrete today?",
+      "What pattern is feeding this desire?",
+      "What helps me honor God with my body and attention?",
+    ],
+  },
+  {
+    theme: "Freedom",
+    scripture: "1 Corinthians 10:13",
+    principle:
+      "Temptation is real, but God also provides a way of escape and endurance.",
+    context:
+      "Paul reassures believers that temptation is not unique, not unsurvivable, and not outside God's faithful help.",
+    application:
+      "Look for the exit, not just the temptation. Freedom often requires naming the pattern, changing the environment, and taking the offered way out.",
+    keywords: ["freedom", "escape", "temptation", "way out", "deliverance", "self-control"],
+    emotions: ["temptation", "pressure", "fear", "hope"],
+    questions: [
+      "Where is the way out in this moment?",
+      "What environment change would reduce the pull?",
+      "Who can help me see the exit before I am overwhelmed?",
+    ],
+  },
+  {
     theme: "Provision and Anxiety",
     scripture: "Matthew 6:25-34",
     principle:

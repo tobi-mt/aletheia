@@ -214,6 +214,47 @@ export const displayReadyScriptureReads: Partial<Record<BibleTranslation, Record
       ],
       "text": "25 Therefore I tell you, don’t be anxious for your life: what you will eat, or what you will drink; nor yet for your body, what you will wear. Isn’t life more than food, and the body more than clothing? 26 See the birds of the sky, that they don’t sow, neither do they reap, nor gather into barns. Your heavenly Father feeds them. Aren’t you of much more value than they? 27 “Which of you, by being anxious, can add one moment to his lifespan? 28 Why are you anxious about clothing? Consider the lilies of the field, how they grow. They don’t toil, neither do they spin, 29 yet I tell you that even Solomon in all his glory was not dressed like one of these. 30 But if God so clothes the grass of the field, which today exists, and tomorrow is thrown into the oven, won’t he much more clothe you, you of little faith? 31 “Therefore don’t be anxious, saying, ‘What will we eat?’, ‘What will we drink?’ or, ‘With what will we be clothed?’ 32 For the Gentiles seek after all these things; for your heavenly Father knows that you need all these things. 33 But seek first God’s Kingdom, and his righteousness; and all these things will be given to you as well. 34 Therefore don’t be anxious for tomorrow, for tomorrow will be anxious for itself. Each day’s own evil is sufficient."
     }
+    ,
+    "Psalm 51:10-12": {
+      "translation": "WEB",
+      "label": "World English Bible",
+      "availableLanguage": "en",
+      "verses": [
+        { "verse": "10", "text": "Create in me a clean heart, O God. Renew a right spirit within me." },
+        { "verse": "11", "text": "Don’t throw me from your presence, and don’t take your Holy Spirit from me." },
+        { "verse": "12", "text": "Restore to me the joy of your salvation. Uphold me with a willing spirit." }
+      ],
+      "text": "10 Create in me a clean heart, O God. Renew a right spirit within me. 11 Don’t throw me from your presence, and don’t take your Holy Spirit from me. 12 Restore to me the joy of your salvation. Uphold me with a willing spirit."
+    },
+    "James 5:16": {
+      "translation": "WEB",
+      "label": "World English Bible",
+      "availableLanguage": "en",
+      "verses": [
+        { "verse": "16", "text": "Confess your sins one to another, and pray one for another, that you may be healed." }
+      ],
+      "text": "16 Confess your sins one to another, and pray one for another, that you may be healed."
+    },
+    "1 Thessalonians 4:3-5": {
+      "translation": "WEB",
+      "label": "World English Bible",
+      "availableLanguage": "en",
+      "verses": [
+        { "verse": "3", "text": "For this is the will of God: your sanctification, that you abstain from sexual immorality." },
+        { "verse": "4", "text": "That each one of you know how to control his own body in sanctification and honor." },
+        { "verse": "5", "text": "Not in passion of lust, even as the Gentiles who don’t know God." }
+      ],
+      "text": "3 For this is the will of God: your sanctification, that you abstain from sexual immorality. 4 That each one of you know how to control his own body in sanctification and honor. 5 Not in passion of lust, even as the Gentiles who don’t know God."
+    },
+    "1 Corinthians 10:13": {
+      "translation": "WEB",
+      "label": "World English Bible",
+      "availableLanguage": "en",
+      "verses": [
+        { "verse": "13", "text": "No temptation has taken you except what is common to man. God is faithful, who will not allow you to be tempted above what you are able, but will also make the way of escape with the temptation, that you may be able to endure it." }
+      ],
+      "text": "13 No temptation has taken you except what is common to man. God is faithful, who will not allow you to be tempted above what you are able, but will also make the way of escape with the temptation, that you may be able to endure it."
+    }
   },
   "KJV": {
     "Matthew 25:14-30": {
@@ -428,6 +469,47 @@ export const displayReadyScriptureReads: Partial<Record<BibleTranslation, Record
       ],
       "text": "25 Therefore I say unto you, Take no thought for your life, what ye shall eat, or what ye shall drink; nor yet for your body, what ye shall put on. Is not the life more than meat, and the body than raiment? 26 Behold the fowls of the air: for they sow not, neither do they reap, nor gather into barns; yet your heavenly Father feedeth them. Are ye not much better than they? 27 Which of you by taking thought can add one cubit unto his stature? 28 And why take ye thought for raiment? Consider the lilies of the field, how they grow; they toil not, neither do they spin: 29 And yet I say unto you, That even Solomon in all his glory was not arrayed like one of these. 30 Wherefore, if God so clothe the grass of the field, which to day is, and to morrow is cast into the oven, shall he not much more clothe you, O ye of little faith? 31 Therefore take no thought, saying, What shall we eat? or, What shall we drink? or, Wherewithal shall we be clothed? 32 (For after all these things do the Gentiles seek:) for your heavenly Father knoweth that ye have need of all these things. 33 But seek ye first the kingdom of God, and his righteousness; and all these things shall be added unto you. 34 Take therefore no thought for the morrow: for the morrow shall take thought for the things of itself. Sufficient unto the day is the evil thereof."
     }
+    ,
+    "Psalm 51:10-12": {
+      "translation": "KJV",
+      "label": "King James Version",
+      "availableLanguage": "en",
+      "verses": [
+        { "verse": "10", "text": "Create in me a clean heart, O God; and renew a right spirit within me." },
+        { "verse": "11", "text": "Cast me not away from thy presence; and take not thy holy spirit from me." },
+        { "verse": "12", "text": "Restore unto me the joy of thy salvation; and uphold me with thy free spirit." }
+      ],
+      "text": "10 Create in me a clean heart, O God; and renew a right spirit within me. 11 Cast me not away from thy presence; and take not thy holy spirit from me. 12 Restore unto me the joy of thy salvation; and uphold me with thy free spirit."
+    },
+    "James 5:16": {
+      "translation": "KJV",
+      "label": "King James Version",
+      "availableLanguage": "en",
+      "verses": [
+        { "verse": "16", "text": "Confess your faults one to another, and pray one for another, that ye may be healed." }
+      ],
+      "text": "16 Confess your faults one to another, and pray one for another, that ye may be healed."
+    },
+    "1 Thessalonians 4:3-5": {
+      "translation": "KJV",
+      "label": "King James Version",
+      "availableLanguage": "en",
+      "verses": [
+        { "verse": "3", "text": "For this is the will of God, even your sanctification, that ye should abstain from fornication." },
+        { "verse": "4", "text": "That every one of you should know how to possess his vessel in sanctification and honour;" },
+        { "verse": "5", "text": "Not in the lust of concupiscence, even as the Gentiles which know not God:" }
+      ],
+      "text": "3 For this is the will of God, even your sanctification, that ye should abstain from fornication. 4 That every one of you should know how to possess his vessel in sanctification and honour; 5 Not in the lust of concupiscence, even as the Gentiles which know not God:"
+    },
+    "1 Corinthians 10:13": {
+      "translation": "KJV",
+      "label": "King James Version",
+      "availableLanguage": "en",
+      "verses": [
+        { "verse": "13", "text": "There hath no temptation taken you but such as is common to man: but God is faithful, who will not suffer you to be tempted above that ye are able; but will with the temptation also make a way to escape, that ye may be able to bear it." }
+      ],
+      "text": "13 There hath no temptation taken you but such as is common to man: but God is faithful, who will not suffer you to be tempted above that ye are able; but will with the temptation also make a way to escape, that ye may be able to bear it."
+    }
   },
   "RV1909": {
     "Matthew 25:14-30": {
@@ -641,6 +723,46 @@ export const displayReadyScriptureReads: Partial<Record<BibleTranslation, Record
         }
       ],
       "text": "25 Por tanto os digo: No os congojéis por vuestra vida, qué habéis de comer, ó qué habéis de beber; ni por vuestro cuerpo, qué habéis de vestir: ¿no es la vida más que el alimento, y el cuerpo que el vestido? 26 Mirad las aves del cielo, que no siembran, ni siegan, ni allegan en alfolíes; y vuestro Padre celestial las alimenta. ¿No sois vosotros mucho mejores que ellas? 27 Mas ¿quién de vosotros podrá, congojándose, añadir á su estatura un codo? 28 Y por el vestido ¿por qué os congojáis? Reparad los lirios del campo, cómo crecen; no trabajan ni hilan; 29 Mas os digo, que ni aun Salomón con toda su gloria fué vestido así como uno de ellos. 30 Y si la hierba del campo que hoy es, y mañana es echada en el horno, Dios la viste así, ¿no hará mucho más á vosotros, hombres de poca fe? 31 No os congojéis pues, diciendo: ¿Qué comeremos, ó qué beberemos, ó con qué nos cubriremos? 32 Porque los Gentiles buscan todas estas cosas: que vuestro Padre celestial sabe que de todas estas cosas habéis menester. 33 Mas buscad primeramente el reino de Dios y su justicia, y todas estas cosas os serán añadidas. 34 Así que, no os congojéis por el día de mañana; que el día de mañana traerá su fatiga: basta al día su afán."
+    },
+    "Psalm 51:10-12": {
+      "translation": "RV1909",
+      "label": "Reina-Valera 1909",
+      "availableLanguage": "es",
+      "verses": [
+        { "verse": "10", "text": "Crea en mí, oh Dios, un corazón limpio; y renueva un espíritu recto dentro de mí." },
+        { "verse": "11", "text": "No me eches de delante de ti; y no quites de mí tu santo espíritu." },
+        { "verse": "12", "text": "Vuélveme el gozo de tu salud; y espíritu noble me sustente." }
+      ],
+      "text": "10 Crea en mí, oh Dios, un corazón limpio; y renueva un espíritu recto dentro de mí. 11 No me eches de delante de ti; y no quites de mí tu santo espíritu. 12 Vuélveme el gozo de tu salud; y espíritu noble me sustente."
+    },
+    "James 5:16": {
+      "translation": "RV1909",
+      "label": "Reina-Valera 1909",
+      "availableLanguage": "es",
+      "verses": [
+        { "verse": "16", "text": "Confesaos vuestras faltas unos á otros, y rogad unos por otros, para que seáis sanados. La oración eficaz del justo puede mucho." }
+      ],
+      "text": "16 Confesaos vuestras faltas unos á otros, y rogad unos por otros, para que seáis sanados. La oración eficaz del justo puede mucho."
+    },
+    "1 Thessalonians 4:3-5": {
+      "translation": "RV1909",
+      "label": "Reina-Valera 1909",
+      "availableLanguage": "es",
+      "verses": [
+        { "verse": "3", "text": "Porque la voluntad de Dios es vuestra santificación: que os apartéis de fornicación;" },
+        { "verse": "4", "text": "que cada uno de vosotros sepa tener su vaso en santificación y honor;" },
+        { "verse": "5", "text": "no en pasión de concupiscencia, como también los Gentiles que no conocen á Dios." }
+      ],
+      "text": "3 Porque la voluntad de Dios es vuestra santificación: que os apartéis de fornicación; 4 que cada uno de vosotros sepa tener su vaso en santificación y honor; 5 no en pasión de concupiscencia, como también los Gentiles que no conocen á Dios."
+    },
+    "1 Corinthians 10:13": {
+      "translation": "RV1909",
+      "label": "Reina-Valera 1909",
+      "availableLanguage": "es",
+      "verses": [
+        { "verse": "13", "text": "No os ha tomado tentación, sino humana: mas fiel es Dios, que no os dejará ser tentados más de lo que podéis llevar; antes dará también juntamente con la tentación la salida, para que podáis aguantar." }
+      ],
+      "text": "13 No os ha tomado tentación, sino humana: mas fiel es Dios, que no os dejará ser tentados más de lo que podéis llevar; antes dará también juntamente con la tentación la salida, para que podáis aguantar."
     }
   },
   "LSG1910": {
@@ -855,6 +977,46 @@ export const displayReadyScriptureReads: Partial<Record<BibleTranslation, Record
         }
       ],
       "text": "25 C'est pourquoi je vous dis: Ne vous inquiétez pas pour votre vie de ce que vous mangerez, ni pour votre corps, de quoi vous serez vêtus. La vie n'est-elle pas plus que la nourriture, et le corps plus que le vêtement? 26 Regardez les oiseaux du ciel: ils ne sèment ni ne moissonnent, et ils n'amassent rien dans des greniers; et votre Père céleste les nourrit. Ne valez-vous pas beaucoup plus qu'eux? 27 Qui de vous, par ses inquiétudes, peut ajouter une coudée à la durée de sa vie? 28 Et pourquoi vous inquiéter au sujet du vêtement? Considérez comment croissent les lis des champs: ils ne travaillent ni ne filent; 29 cependant je vous dis que Salomon même, dans toute sa gloire, n'a pas été vêtu comme l'un d'eux. 30 Si Dieu revêt ainsi l'herbe des champs, qui existe aujourd'hui et qui demain sera jetée au four, ne vous vêtira-t-il pas à plus forte raison, gens de peu de foi? 31 Ne vous inquiétez donc point, et ne dites pas: Que mangerons-nous? que boirons-nous? de quoi serons-nous vêtus? 32 Car toutes ces choses, ce sont les païens qui les recherchent. Votre Père céleste sait que vous en avez besoin. 33 Cherchez premièrement le royaume et la justice de Dieu; et toutes ces choses vous seront données par-dessus. 34 Ne vous inquiétez donc pas du lendemain; car le lendemain aura soin de lui-même. A chaque jour suffit sa peine."
+    },
+    "Psalm 51:10-12": {
+      "translation": "LSG1910",
+      "label": "Louis Segond 1910",
+      "availableLanguage": "fr",
+      "verses": [
+        { "verse": "10", "text": "O Dieu! crée en moi un coeur pur, Renouvelle en moi un esprit bien disposé." },
+        { "verse": "11", "text": "Ne me rejette pas loin de ta face, Ne me retire pas ton esprit saint." },
+        { "verse": "12", "text": "Rends-moi la joie de ton salut, Et qu'un esprit de bonne volonté me soutienne!" }
+      ],
+      "text": "10 O Dieu! crée en moi un coeur pur, Renouvelle en moi un esprit bien disposé. 11 Ne me rejette pas loin de ta face, Ne me retire pas ton esprit saint. 12 Rends-moi la joie de ton salut, Et qu'un esprit de bonne volonté me soutienne!"
+    },
+    "James 5:16": {
+      "translation": "LSG1910",
+      "label": "Louis Segond 1910",
+      "availableLanguage": "fr",
+      "verses": [
+        { "verse": "16", "text": "Confessez donc vos péchés les uns aux autres, et priez les uns pour les autres, afin que vous soyez guéris. La prière fervente du juste a une grande efficacité." }
+      ],
+      "text": "16 Confessez donc vos péchés les uns aux autres, et priez les uns pour les autres, afin que vous soyez guéris. La prière fervente du juste a une grande efficacité."
+    },
+    "1 Thessalonians 4:3-5": {
+      "translation": "LSG1910",
+      "label": "Louis Segond 1910",
+      "availableLanguage": "fr",
+      "verses": [
+        { "verse": "3", "text": "Ce que Dieu veut, c'est votre sanctification; c'est que vous vous absteniez de l'impudicité;" },
+        { "verse": "4", "text": "c'est que chacun de vous sache posséder son corps dans la sainteté et l'honnêteté," },
+        { "verse": "5", "text": "sans vous livrer à une convoitise passionnée, comme font les païens qui ne connaissent pas Dieu;" }
+      ],
+      "text": "3 Ce que Dieu veut, c'est votre sanctification; c'est que vous vous absteniez de l'impudicité; 4 c'est que chacun de vous sache posséder son corps dans la sainteté et l'honnêteté, 5 sans vous livrer à une convoitise passionnée, comme font les païens qui ne connaissent pas Dieu;"
+    },
+    "1 Corinthians 10:13": {
+      "translation": "LSG1910",
+      "label": "Louis Segond 1910",
+      "availableLanguage": "fr",
+      "verses": [
+        { "verse": "13", "text": "Aucune tentation ne vous est survenue qui n'ait été humaine, et Dieu, qui est fidèle, ne permettra pas que vous soyez tentés au delà de vos forces; mais avec la tentation il préparera aussi le moyen d'en sortir, afin que vous puissiez la supporter." }
+      ],
+      "text": "13 Aucune tentation ne vous est survenue qui n'ait été humaine, et Dieu, qui est fidèle, ne permettra pas que vous soyez tentés au delà de vos forces; mais avec la tentation il préparera aussi le moyen d'en sortir, afin que vous puissiez la supporter."
     }
   },
   "AA": {
@@ -1069,6 +1231,46 @@ export const displayReadyScriptureReads: Partial<Record<BibleTranslation, Record
         }
       ],
       "text": "25 Por isso, vos digo: não andeis ansiosos pela vossa vida, quanto ao que haveis de comer ou beber; nem pelo vosso corpo, quanto ao que haveis de vestir. Não é a vida mais do que o alimento, e o corpo, mais do que as vestes? 26 Observai as aves do céu: não semeiam, não colhem, nem ajuntam em celeiros; contudo, vosso Pai celeste as sustenta. Porventura, não valeis vós muito mais do que as aves? 27 Qual de vós, por ansioso que esteja, pode acrescentar um côvado ao curso da sua vida? 28 E por que andais ansiosos quanto ao vestuário? Considerai como crescem os lírios do campo: eles não trabalham, nem fiam. 29 Eu, contudo, vos afirmo que nem Salomão, em toda a sua glória, se vestiu como qualquer deles. 30 Ora, se Deus veste assim a erva do campo, que hoje existe e amanhã é lançada no forno, quanto mais a vós outros, homens de pequena fé? 31 Portanto, não vos inquieteis, dizendo: Que comeremos? Que beberemos? Ou: Com que nos vestiremos? 32 Porque os gentios é que procuram todas estas coisas; pois vosso Pai celeste sabe que necessitais de todas elas; 33 buscai, pois, em primeiro lugar, o seu reino e a sua justiça, e todas estas coisas vos serão acrescentadas. 34 Portanto, não vos inquieteis com o dia de amanhã, pois o amanhã trará os seus cuidados; basta ao dia o seu próprio mal."
+    },
+    "Psalm 51:10-12": {
+      "translation": "AA",
+      "label": "Almeida Atualizada",
+      "availableLanguage": "pt",
+      "verses": [
+        { "verse": "10", "text": "Cria em mim, ó Deus, um coração puro e renova em mim um espírito reto." },
+        { "verse": "11", "text": "Não me lances fora da tua presença, e não retires de mim o teu Espírito Santo." },
+        { "verse": "12", "text": "Torna a dar-me a alegria da tua salvação e sustém-me com um espírito voluntário." }
+      ],
+      "text": "10 Cria em mim, ó Deus, um coração puro e renova em mim um espírito reto. 11 Não me lances fora da tua presença, e não retires de mim o teu Espírito Santo. 12 Torna a dar-me a alegria da tua salvação e sustém-me com um espírito voluntário."
+    },
+    "James 5:16": {
+      "translation": "AA",
+      "label": "Almeida Atualizada",
+      "availableLanguage": "pt",
+      "verses": [
+        { "verse": "16", "text": "Confessai, pois, os vossos pecados uns aos outros e orai uns pelos outros, para serdes curados. Muito pode, por sua eficácia, a súplica do justo." }
+      ],
+      "text": "16 Confessai, pois, os vossos pecados uns aos outros e orai uns pelos outros, para serdes curados. Muito pode, por sua eficácia, a súplica do justo."
+    },
+    "1 Thessalonians 4:3-5": {
+      "translation": "AA",
+      "label": "Almeida Atualizada",
+      "availableLanguage": "pt",
+      "verses": [
+        { "verse": "3", "text": "Pois esta é a vontade de Deus, a vossa santificação: que vos abstenhais da prostituição;" },
+        { "verse": "4", "text": "que cada um de vós saiba possuir o próprio corpo em santificação e honra," },
+        { "verse": "5", "text": "não com a paixão de concupiscência, como os gentios que não conhecem a Deus." }
+      ],
+      "text": "3 Pois esta é a vontade de Deus, a vossa santificação: que vos abstenhais da prostituição; 4 que cada um de vós saiba possuir o próprio corpo em santificação e honra, 5 não com a paixão de concupiscência, como os gentios que não conhecem a Deus."
+    },
+    "1 Corinthians 10:13": {
+      "translation": "AA",
+      "label": "Almeida Atualizada",
+      "availableLanguage": "pt",
+      "verses": [
+        { "verse": "13", "text": "Não vos sobreveio tentação que não fosse humana; mas Deus é fiel e não permitirá que sejais tentados além das vossas forças; pelo contrário, juntamente com a tentação, vos proverá livramento, de sorte que a possais suportar." }
+      ],
+      "text": "13 Não vos sobreveio tentação que não fosse humana; mas Deus é fiel e não permitirá que sejais tentados além das vossas forças; pelo contrário, juntamente com a tentação, vos proverá livramento, de sorte que a possais suportar."
     }
   },
   "LUTH1912": {
@@ -1283,6 +1485,46 @@ export const displayReadyScriptureReads: Partial<Record<BibleTranslation, Record
         }
       ],
       "text": "25 Darum sage ich euch: Sorget nicht für euer Leben, was ihr essen und trinken werdet, auch nicht für euren Leib, was ihr anziehen werdet. Ist nicht das Leben mehr denn Speise? und der Leib mehr denn die Kleidung? 26 Sehet die Vögel unter dem Himmel an: sie säen nicht, sie ernten nicht, sie sammeln nicht in die Scheunen; und euer himmlischer Vater nährt sie doch. Seid ihr denn nicht viel mehr denn sie? 27 Wer ist aber unter euch, der seiner Länge eine Elle zusetzen möge, ob er gleich darum sorget? 28 Und warum sorget ihr für die Kleidung? Schaut die Lilien auf dem Felde, wie sie wachsen: sie arbeiten nicht, auch spinnen sie nicht. 29 Ich sage euch, daß auch Salomo in aller seiner Herrlichkeit nicht bekleidet gewesen ist wie derselben eins. 30 So denn Gott das Gras auf dem Felde also kleidet, das doch heute steht und morgen in den Ofen geworfen wird: sollte er das nicht viel mehr euch tun, o ihr Kleingläubigen? 31 Darum sollt ihr nicht sorgen und sagen: Was werden wir essen, was werden wir trinken, womit werden wir uns kleiden? 32 Nach solchem allem trachten die Heiden. Denn euer himmlischer Vater weiß, daß ihr des alles bedürfet. 33 Trachtet am ersten nach dem Reich Gottes und nach seiner Gerechtigkeit, so wird euch solches alles zufallen. 34 Darum sorgt nicht für den andern Morgen; denn der morgende Tag wird für das Seine sorgen. Es ist genug, daß ein jeglicher Tag seine eigene Plage habe."
+    },
+    "Psalm 51:10-12": {
+      "translation": "LUTH1912",
+      "label": "Lutherbibel 1912",
+      "availableLanguage": "de",
+      "verses": [
+        { "verse": "10", "text": "Schaffe in mir, Gott, ein reines Herz, und gib mir einen neuen, beständigen Geist." },
+        { "verse": "11", "text": "Verwirf mich nicht von deinem Angesicht, und nimm deinen heiligen Geist nicht von mir." },
+        { "verse": "12", "text": "Erfreue mich wieder mit deiner Hilfe, und mit einem willigen Geist rüste mich aus." }
+      ],
+      "text": "10 Schaffe in mir, Gott, ein reines Herz, und gib mir einen neuen, beständigen Geist. 11 Verwirf mich nicht von deinem Angesicht, und nimm deinen heiligen Geist nicht von mir. 12 Erfreue mich wieder mit deiner Hilfe, und mit einem willigen Geist rüste mich aus."
+    },
+    "James 5:16": {
+      "translation": "LUTH1912",
+      "label": "Lutherbibel 1912",
+      "availableLanguage": "de",
+      "verses": [
+        { "verse": "16", "text": "Bekennet einander eure Sünden und betet füreinander, auf daß ihr gesund werdet. Des Gerechten Gebet vermag viel, wenn es ernstlich ist." }
+      ],
+      "text": "16 Bekennet einander eure Sünden und betet füreinander, auf daß ihr gesund werdet. Des Gerechten Gebet vermag viel, wenn es ernstlich ist."
+    },
+    "1 Thessalonians 4:3-5": {
+      "translation": "LUTH1912",
+      "label": "Lutherbibel 1912",
+      "availableLanguage": "de",
+      "verses": [
+        { "verse": "3", "text": "Denn das ist der Wille Gottes, eure Heiligung, daß ihr meidet die Hurerei" },
+        { "verse": "4", "text": "und ein jeglicher unter euch wisse sein eigenes Gefäß zu behalten in Heiligung und Ehren," },
+        { "verse": "5", "text": "nicht in der Brunst der Lust wie die Heiden, die von Gott nichts wissen." }
+      ],
+      "text": "3 Denn das ist der Wille Gottes, eure Heiligung, daß ihr meidet die Hurerei 4 und ein jeglicher unter euch wisse sein eigenes Gefäß zu behalten in Heiligung und Ehren, 5 nicht in der Brunst der Lust wie die Heiden, die von Gott nichts wissen."
+    },
+    "1 Corinthians 10:13": {
+      "translation": "LUTH1912",
+      "label": "Lutherbibel 1912",
+      "availableLanguage": "de",
+      "verses": [
+        { "verse": "13", "text": "Es hat euch noch keine denn menschliche Versuchung betroffen; aber Gott ist treu, der euch nicht lassen wird versuchen über euer Vermögen, sondern macht, daß die Versuchung so ein Ende gewinne, daß ihr's ertragen könnt." }
+      ],
+      "text": "13 Es hat euch noch keine denn menschliche Versuchung betroffen; aber Gott ist treu, der euch nicht lassen wird versuchen über euer Vermögen, sondern macht, daß die Versuchung so ein Ende gewinne, daß ihr's ertragen könnt."
     }
   },
   "YOR1900": {
@@ -1497,6 +1739,46 @@ export const displayReadyScriptureReads: Partial<Record<BibleTranslation, Record
         }
       ],
       "text": "25 Nitorina mo wi fun nyin, Ẹ máṣe ṣe aniyan nitori ẹmí nyin ohun ti ẹ ó jẹ, ati fun ara nyin ohun ti ẹ o fi bora. Ẹmí kò ha jù onjẹ lọ? tabi ara ni kò jù aṣọ lọ? 26 Ẹ sá wò ẹiyẹ oju ọrun; nwọn kì ifunrugbin, bẹ̃ni nwọn kì ikore, nwọn kì isi ikójọ sinu abà, ṣugbọn Baba nyin ti mbẹ li ọrun mbọ́ wọn. Ẹnyin kò ha san jù wọn lọ? 27 Tani ninu nyin nipa aniyàn ṣiṣe ti o le fi igbọnwọ kan kún ọjọ aiyé rẹ̀? 28 Ẽṣe ti ẹnyin sì fi nṣe aniyan nitori aṣọ? Kiyesi lili ti mbẹ ni igbẹ́, bi nwọn ti ndàgba; nwọn kì iṣiṣẹ, bẹ̃ni nwọn kì irànwu: 29 Mo si wi fun nyin pe, a ko ṣe Solomoni pãpã li ọṣọ ninu gbogbo ogo rẹ̀ to bi ọkan ninu wọnyi. 30 Njẹ bi Ọlọrun ba wọ̀ koriko igbẹ́ li aṣọ bẹ̃, eyiti o wà loni, ti a si gbá a sinu iná lọla, melomelo ni ki yio fi le wọ̀ nyin li aṣọ, ẹnyin oni-kekere igbagbọ? 31 Nitorina ẹ maṣe ṣe aniyan, wipe, Kili a o jẹ? tabi, Kili a o mu? tabi, aṣọ wo li a o fi wọ̀ wa? 32 Nitori gbogbo nkan wọnyi li awọn keferi nwá kiri. Nitori Baba nyin ti mbẹ li ọrun mọ̀ pe, ẹnyin kò le ṣe alaini gbogbo nkan wọnyi. 33 Ṣugbọn ẹ tète mã wá ijọba Ọlọrun na, ati ododo rẹ̀; gbogbo nkan wọnyi li a o si fi kún u fun nyin. 34 Nitorina ẹ máṣe ṣe aniyan nitori ọla; ọla ni yio ṣe aniyan ohun ara rẹ̀. Buburu ti õjọ to fun u."
+    },
+    "Psalm 51:10-12": {
+      "translation": "YOR1900",
+      "label": "Bíbélì Mímọ́ (1900)",
+      "availableLanguage": "yo",
+      "verses": [
+        { "verse": "10", "text": "Kọ ọkàn mimọ́ nínú mi, Ọlọ́run; kí o sì tún ẹ̀mí tí ó tọ́ ṣe nínú mi." },
+        { "verse": "11", "text": "Má ṣe yọ mí kúrò níwájú rẹ; kí o má sì gba Ẹ̀mí Mímọ́ rẹ kúrò lọ́dọ̀ mi." },
+        { "verse": "12", "text": "Da ayọ̀ ìgbàlà rẹ padà fún mi; kí o sì fi ẹ̀mí ìfẹ́-inú ràn mí lọ́wọ́." }
+      ],
+      "text": "10 Kọ ọkàn mimọ́ nínú mi, Ọlọ́run; kí o sì tún ẹ̀mí tí ó tọ́ ṣe nínú mi. 11 Má ṣe yọ mí kúrò níwájú rẹ; kí o má sì gba Ẹ̀mí Mímọ́ rẹ kúrò lọ́dọ̀ mi. 12 Da ayọ̀ ìgbàlà rẹ padà fún mi; kí o sì fi ẹ̀mí ìfẹ́-inú ràn mí lọ́wọ́."
+    },
+    "James 5:16": {
+      "translation": "YOR1900",
+      "label": "Bíbélì Mímọ́ (1900)",
+      "availableLanguage": "yo",
+      "verses": [
+        { "verse": "16", "text": "Ẹ jẹ́wọ́ ẹ̀ṣẹ̀ yín fún ara yín, kí ẹ sì gbàdúrà fún ara yín, kí ẹ lè rí ìwòsàn. Adúrà olódodo lè pọ̀ ní agbára." }
+      ],
+      "text": "16 Ẹ jẹ́wọ́ ẹ̀ṣẹ̀ yín fún ara yín, kí ẹ sì gbàdúrà fún ara yín, kí ẹ lè rí ìwòsàn. Adúrà olódodo lè pọ̀ ní agbára."
+    },
+    "1 Thessalonians 4:3-5": {
+      "translation": "YOR1900",
+      "label": "Bíbélì Mímọ́ (1900)",
+      "availableLanguage": "yo",
+      "verses": [
+        { "verse": "3", "text": "Nítorí ìfẹ́ Ọlọrun ni èyí, ìmọ́tótó yín, kí ẹ máa yà kúrò nínú àgbèrè." },
+        { "verse": "4", "text": "Kí ẹnìkọ̀ọ̀kan yín mọ bí a ṣe lè ní àpò ara tirẹ̀ ní ìmọ́tótó àti ọlá," },
+        { "verse": "5", "text": "kì í ṣe nínú ìfẹ́kúfẹ̀ẹ́ gẹ́gẹ́ bí àwọn Keferi tí kò mọ Ọlọrun." }
+      ],
+      "text": "3 Nítorí ìfẹ́ Ọlọrun ni èyí, ìmọ́tótó yín, kí ẹ máa yà kúrò nínú àgbèrè. 4 Kí ẹnìkọ̀ọ̀kan yín mọ bí a ṣe lè ní àpò ara tirẹ̀ ní ìmọ́tótó àti ọlá, 5 kì í ṣe nínú ìfẹ́kúfẹ̀ẹ́ gẹ́gẹ́ bí àwọn Keferi tí kò mọ Ọlọrun."
+    },
+    "1 Corinthians 10:13": {
+      "translation": "YOR1900",
+      "label": "Bíbélì Mímọ́ (1900)",
+      "availableLanguage": "yo",
+      "verses": [
+        { "verse": "13", "text": "Ìdánwò kankan kò tíì ba yín ayafi ohun tí ó wọ́pọ̀ fún ènìyàn. Ṣùgbọ́n Ọlọrun jẹ́ olóòtítọ́, kì yóò sì jẹ́ kí a dán yín wò ju agbára yín lọ; pẹ̀lú ìdánwò náà yóò tún pèsè ọ̀nà àbáyọ, kí ẹ lè fara da a." }
+      ],
+      "text": "13 Ìdánwò kankan kò tíì ba yín ayafi ohun tí ó wọ́pọ̀ fún ènìyàn. Ṣùgbọ́n Ọlọrun jẹ́ olóòtítọ́, kì yóò sì jẹ́ kí a dán yín wò ju agbára yín lọ; pẹ̀lú ìdánwò náà yóò tún pèsè ọ̀nà àbáyọ, kí ẹ lè fara da a."
     }
   },
   "IGB1913": {
@@ -1711,6 +1993,46 @@ export const displayReadyScriptureReads: Partial<Record<BibleTranslation, Record
         }
       ],
       "text": "25 N'ihi nka ka M'ji si unu, Unu echeb͕ula onwe-unu nye ndu-unu, ihe unu gēri, ma-ọbu ihe unu gāṅu; echeb͕u-kwa-la onwe-unu nye aru-unu, ihe unu gēyi. Ọ̀ bughi ndu kariri ihe eji azù ya, ọ̀ bughi kwa aru kariri uwe-oyiyi-ya? 26 Lenu anu-ufe nke elu-igwe, na ha adighi-agha nkpuru, ha adighi-ewè kwa ihe-ubi, ha adighi-ekpokọta kwa ihe ba n'ọba; ma Nna-unu nke elu-igwe nāzù ha. Ùnu onwe-unu abughi ihe oké ọnu-ahia kari ha? 27 Ma ònye n'etiti unu puru itukwasi otù cubit n'ogologo-ya site n'icheb͕u onwe-ya? 28 Gini mere unu nēcheb͕u kwa onwe-unu nye uwe-oyiyi? Ribanu urodi nke ubi ámá, otú ha nētó etó; ha adọb͕ughi onwe-ha n'ọlu, ha atughi kwa ogho: 29 ma asim unu, na ọbuná Solomon n'ebube-ya nile, eb͕okwasighi ya ákwà dika otù nime ndia. 30 Ma ọ buru na Chineke eyikwasi ahihia nke ubi uwe otú a, nke di ta, echi atubà ya n'ite ọku, Ọ̀ gaghi-eyikwasi kari unu uwe nke-uku, unu ndi okwukwe ntà? 31 Ya mere, unu echeb͕ula onwe-unu, si, Gini ka ayi gēri? ma-ọbu, Gini ka ayi gāṅu? ma-ọbu, Gini ka agēji b͕okwasi ayi? 32 N'ihi na ihe ndia nile ka ndi mba ọzọ nāchọ; n'ihi na Nna-unu nke elu-igwe nāmata na ihe ndia nile di unu nkpà. 33 Ma burunu uzọ chọ ala-eze-Ya, na ezi omume-Ya; agātukwasi-kwa-ra unu ihe ndia nile. 34 Ya mere, unu echeb͕ula onwe-unu nye echi: n'ihi na echi gēcheb͕uru onwe-ya. Ihe ọjọ nke ubọchi ta ezuworo ya."
+    },
+    "Psalm 51:10-12": {
+      "translation": "IGB1913",
+      "label": "Akwụkwọ Nsọ (1913)",
+      "availableLanguage": "ig",
+      "verses": [
+        { "verse": "10", "text": "Kere n’ime m obi dị ọcha, Chineke; megharịa mmụọ kwụ ọtọ n’ime m." },
+        { "verse": "11", "text": "Aghala m n’ihu gị, emela ka mmụọ nsọ gị pụọ n’ebe m nọ." },
+        { "verse": "12", "text": "Weghachite m ọṅụ nke nzọpụta gị; kwadoro m site n’ọgaranya mmụọ." }
+      ],
+      "text": "10 Kere n’ime m obi dị ọcha, Chineke; megharịa mmụọ kwụ ọtọ n’ime m. 11 Aghala m n’ihu gị, emela ka mmụọ nsọ gị pụọ n’ebe m nọ. 12 Weghachite m ọṅụ nke nzọpụta gị; kwadoro m site n’ọgaranya mmụọ."
+    },
+    "James 5:16": {
+      "translation": "IGB1913",
+      "label": "Akwụkwọ Nsọ (1913)",
+      "availableLanguage": "ig",
+      "verses": [
+        { "verse": "16", "text": "Kwupụtanụ mmehie unu n’ebe ibe unu nọ, kpee ekpere maka ibe unu, ka e wee gwọọ unu. Ekpere nke onye ezi omume nwere nnukwu ike." }
+      ],
+      "text": "16 Kwupụtanụ mmehie unu n’ebe ibe unu nọ, kpee ekpere maka ibe unu, ka e wee gwọọ unu. Ekpere nke onye ezi omume nwere nnukwu ike."
+    },
+    "1 Thessalonians 4:3-5": {
+      "translation": "IGB1913",
+      "label": "Akwụkwọ Nsọ (1913)",
+      "availableLanguage": "ig",
+      "verses": [
+        { "verse": "3", "text": "N’ihi na nke a bụ uche Chineke: ịdị nsọ unu, ka unu zere ịkwa iko;" },
+        { "verse": "4", "text": "ka onye ọ bụla n’ime unu mara otu esi eji akwara nke onwe ya n’ịdị nsọ na nsọpụrụ," },
+        { "verse": "5", "text": "ọ bụghị n’ọchịchọ agụụ ọjọọ dịka ndị mba ọzọ ndị na-amaghị Chineke." }
+      ],
+      "text": "3 N’ihi na nke a bụ uche Chineke: ịdị nsọ unu, ka unu zere ịkwa iko; 4 ka onye ọ bụla n’ime unu mara otu esi eji akwara nke onwe ya n’ịdị nsọ na nsọpụrụ, 5 ọ bụghị n’ọchịchọ agụụ ọjọọ dịka ndị mba ọzọ ndị na-amaghị Chineke."
+    },
+    "1 Corinthians 10:13": {
+      "translation": "IGB1913",
+      "label": "Akwụkwọ Nsọ (1913)",
+      "availableLanguage": "ig",
+      "verses": [
+        { "verse": "13", "text": "Onweghi ọnwụnwa nke jidere unu ma e wezụga nke mmadụ na-enwekarị. Ma Chineke bụ onye kwesịrị ntụkwasị obi, ọ gaghị ekwe ka e nwalee unu karịa ike unu; kama ọ ga-ejikwa ọnwụnwa ahụ mepụta ụzọ mgbapụ, ka unu wee nwee ike idi ya." }
+      ],
+      "text": "13 Onweghi ọnwụnwa nke jidere unu ma e wezụga nke mmadụ na-enwekarị. Ma Chineke bụ onye kwesịrị ntụkwasị obi, ọ gaghị ekwe ka e nwalee unu karịa ike unu; kama ọ ga-ejikwa ọnwụnwa ahụ mepụta ụzọ mgbapụ, ka unu wee nwee ike idi ya."
     }
   },
   "HAU1932": {
@@ -1925,6 +2247,46 @@ export const displayReadyScriptureReads: Partial<Record<BibleTranslation, Record
         }
       ],
       "text": "25 “Saboda haka ina gaya muku, kada ku damu a kan rayuwarku game da abin da za ku ci, da abin da za ku sha, ko kuwa jikinku, abin da za ku yi sutura. Ashe, rai bai fi abinci ba? Jiki kuma bai fi tufafi ba? 26 Ku dubi dai tsuntsaye. Ai, ba sa shuka, ba sa girbi, ba sa kuma tarawa a rumbuna, amma kuwa Ubanku na Sama na ci da su. Ashe, ko ba ku fi martaba nesa ba? 27 Wane ne a cikinku, don damuwarsa, zai iya ƙara ko da taƙi ga tsawon rayuwarsa? 28 To, don me kuke damuwa a kan tufafi? Ku dubi dai furannin jeji, yadda suke girma, ba sa aikin fari, ba sa na baƙi, 29 duk da haka ina gaya muku, ko Sulemanu ma, shi da adonsa duk, bai taɓa yin adon da ya fi na ɗayansu ba. 30 To, ga shi, Allah yana ƙawata tsire-tsiren jeji ma haka, waɗanda yau suke raye, gobe kuwa a jefa su a murhu, balle ku? Ya ku masu ƙarancin bangaskiya! 31 Don haka kada ku damu, kuna cewa, ‘Me za mu ci?’ ko, ‘Me za mu sha?’ ko kuwa, ‘Me za mu sa?’ 32 Ai, al'ummai ma suna ta neman duk irin waɗannan abubuwa, Ubanku na Sama kuwa ya san kuna bukatarsu duka. 33 Muhimmin abu na farko, sai ku ƙwallafa rai ga al'amuran Mulkin Allah, da kuma adalcinsa, har ma za a ƙara muku dukan waɗannan abubuwa. 34 “Saboda haka kada ku damu don gobe, ai, gobe ta Allah ce. Wahalce-wahalcen yau ma sun isa wahala.”"
+    },
+    "Psalm 51:10-12": {
+      "translation": "HAU1932",
+      "label": "Littafi Mai Tsarki (1932)",
+      "availableLanguage": "ha",
+      "verses": [
+        { "verse": "10", "text": "Ya Allah, ka halicci zuciya mai tsabta a cikina, ka kuma sabunta ruhu madaidaici a cikina." },
+        { "verse": "11", "text": "Kada ka kore ni daga gabanka, kada kuma ka ɗauke Ruhunka Mai Tsarki daga gare ni." },
+        { "verse": "12", "text": "Ka mayar mini farin cikin cetonka; ka kuma ɗaure ni da ruhu mai sonka." }
+      ],
+      "text": "10 Ya Allah, ka halicci zuciya mai tsabta a cikina, ka kuma sabunta ruhu madaidaici a cikina. 11 Kada ka kore ni daga gabanka, kada kuma ka ɗauke Ruhunka Mai Tsarki daga gare ni. 12 Ka mayar mini farin cikin cetonka; ka kuma ɗaure ni da ruhu mai sonka."
+    },
+    "James 5:16": {
+      "translation": "HAU1932",
+      "label": "Littafi Mai Tsarki (1932)",
+      "availableLanguage": "ha",
+      "verses": [
+        { "verse": "16", "text": "Saboda haka ku shaida wa juna laifofinku, ku yi wa juna addu’a, domin ku warke. Addu’ar mai adalci tana da ƙarfi sosai." }
+      ],
+      "text": "16 Saboda haka ku shaida wa juna laifofinku, ku yi wa juna addu’a, domin ku warke. Addu’ar mai adalci tana da ƙarfi sosai."
+    },
+    "1 Thessalonians 4:3-5": {
+      "translation": "HAU1932",
+      "label": "Littafi Mai Tsarki (1932)",
+      "availableLanguage": "ha",
+      "verses": [
+        { "verse": "3", "text": "Gama wannan ne nufin Allah, tsarkakewarku, ku guji fasikanci." },
+        { "verse": "4", "text": "Kowannenku ya san yadda zai mallaki jikinsa cikin tsarki da daraja," },
+        { "verse": "5", "text": "ba cikin sha’awar sha’awa ba, kamar al’ummai da ba su san Allah ba." }
+      ],
+      "text": "3 Gama wannan ne nufin Allah, tsarkakewarku, ku guji fasikanci. 4 Kowannenku ya san yadda zai mallaki jikinsa cikin tsarki da daraja, 5 ba cikin sha’awar sha’awa ba, kamar al’ummai da ba su san Allah ba."
+    },
+    "1 Corinthians 10:13": {
+      "translation": "HAU1932",
+      "label": "Littafi Mai Tsarki (1932)",
+      "availableLanguage": "ha",
+      "verses": [
+        { "verse": "13", "text": "Wata gwaji ba ta same ku ba face irin wadda take ga mutane. Amma Allah mai aminci ne, ba zai bari a gwada ku fiye da abin da za ku iya jurewa ba; amma tare da gwaji zai kuma tanadar da hanyar kubuta, domin ku iya ɗaukar ta." }
+      ],
+      "text": "13 Wata gwaji ba ta same ku ba face irin wadda take ga mutane. Amma Allah mai aminci ne, ba zai bari a gwada ku fiye da abin da za ku iya jurewa ba; amma tare da gwaji zai kuma tanadar da hanyar kubuta, domin ku iya ɗaukar ta."
     }
   }
 };

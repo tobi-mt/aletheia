@@ -194,7 +194,7 @@ function gratitudeNotificationPayload(row: PushRow) {
   });
   const now = new Date();
   const localDate = localDateForTimezone(now, row.preferred_timezone);
-  const copy = gratitudeNotificationCopy[preferences.language] ?? gratitudeNotificationCopy.en;
+  const copy = gratitudeNotificationCopy[preferences.language] ?? gratitudeNotificationCopy.en!;
   const variant = stableHash(`${row.user_id}:${localDate}:gratitude`) % copy.titles.length;
 
   return {
@@ -248,7 +248,7 @@ type SimpleNotificationLanguageCopy = {
   bodies: Array<() => string>;
 };
 
-const dailyNotificationCopy: Record<LanguageCode, DailyNotificationLanguageCopy> = {
+const dailyNotificationCopy: Partial<Record<LanguageCode, DailyNotificationLanguageCopy>> = {
   en: {
     titles: [
       ({ theme }) => `${theme}: a wiser pace`,
@@ -395,7 +395,7 @@ const dailyNotificationCopy: Record<LanguageCode, DailyNotificationLanguageCopy>
   },
 };
 
-const gratitudeNotificationCopy: Record<LanguageCode, SimpleNotificationLanguageCopy> = {
+const gratitudeNotificationCopy: Partial<Record<LanguageCode, SimpleNotificationLanguageCopy>> = {
   en: {
     titles: [
       () => "A quiet gratitude moment",
@@ -522,7 +522,7 @@ function buildDailyNotificationTitle(input: {
   scripture: string;
   variant: number;
 }) {
-  const copy = dailyNotificationCopy[input.language] ?? dailyNotificationCopy.en;
+  const copy = dailyNotificationCopy[input.language] ?? dailyNotificationCopy.en!;
   const cleanTheme = compactNotificationCopy(normalizeNotificationSegment(input.theme, input.label), 34);
   const scriptureReference = compactNotificationCopy(input.scripture, 44);
   const cleanLabel = compactNotificationCopy(normalizeNotificationSegment(input.label, "Aletheia"), 34);
@@ -542,7 +542,7 @@ function buildDailyNotificationBody(input: {
   principle: string;
   variant: number;
 }) {
-  const copy = dailyNotificationCopy[input.language] ?? dailyNotificationCopy.en;
+  const copy = dailyNotificationCopy[input.language] ?? dailyNotificationCopy.en!;
   const cleanTheme = compactNotificationCopy(normalizeNotificationSegment(input.theme, "wisdom"), 34);
   const cleanPractice = compactNotificationCopy(normalizeNotificationSegment(input.practice, "Open today's wisdom card."), 104);
   const cleanPrinciple = compactNotificationCopy(normalizeNotificationSegment(input.principle, cleanPractice), 104);
@@ -557,7 +557,7 @@ function buildDailyNotificationBody(input: {
   return compactNotificationCopy(body, 148);
 }
 
-const testNotificationCopy: Record<LanguageCode, { title: string; body: string }> = {
+const testNotificationCopy: Partial<Record<LanguageCode, { title: string; body: string }>> = {
   en: {
     title: "Aletheia is ready",
     body: "A calm wisdom prompt can now reach this device at your chosen local time.",
@@ -599,7 +599,7 @@ function testNotificationPayload(row: PushRow) {
     bibleTranslation: row.bible_translation as BibleTranslation,
     voiceEnabled: Boolean(row.voice_enabled),
   });
-  const copy = testNotificationCopy[preferences.language] ?? testNotificationCopy.en;
+  const copy = testNotificationCopy[preferences.language] ?? testNotificationCopy.en!;
   return {
     title: copy.title,
     body: copy.body,
@@ -628,12 +628,12 @@ function selectReminderForUser(reminders: DueDecisionReminder[]) {
 }
 
 function reminderCopyLanguage(language: LanguageCode) {
-  const copy: Record<LanguageCode, {
+  const copy: Partial<Record<LanguageCode, {
     waitingTitles: string[];
     revisitTitles: string[];
     waitingBodies: string[];
     revisitBodies: string[];
-  }> = {
+  }>> = {
     en: {
       waitingTitles: ["Time has helped this breathe", "Return to this decision calmly", "Your waiting period is ready"],
       revisitTitles: ["What changed since last time?", "A decision worth reviewing", "Return with clearer eyes"],
@@ -692,7 +692,7 @@ function reminderCopyLanguage(language: LanguageCode) {
     },
   };
 
-  return copy[language] ?? copy.en;
+  return copy[language] ?? copy.en!;
 }
 
 function followupNotificationPayload(reminder: DueDecisionReminder) {

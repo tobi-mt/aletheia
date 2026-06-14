@@ -9,7 +9,7 @@ type DecisionCopy = {
   active: (count: number) => string;
 };
 
-const decisionCopy: Record<LanguageCode, DecisionCopy> = {
+const decisionCopy: Partial<Record<LanguageCode, DecisionCopy>> = {
   en: {
     timelineReady: "Your timeline is ready to track decisions, patterns, counsel, and learning.",
     startedDiscerning: "Started discerning",
@@ -77,7 +77,7 @@ const decisionCopy: Record<LanguageCode, DecisionCopy> = {
 };
 
 function decisionCopyFor(language: LanguageCode): DecisionCopy {
-  return decisionCopy[language] ?? decisionCopy.en;
+  return decisionCopy[language] ?? decisionCopy.en!;
 }
 
 export function decisionTimelineObservation(

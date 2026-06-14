@@ -15,6 +15,7 @@
     "mobile:open:ios": "cap open ios",
     "translations:analyze": "npx ts-node scripts/analyze-translations.ts",
     "translations:audit": "npx ts-node scripts/analyze-translations.ts --strict",
+    "translations:strict": "node scripts/check-strict-locales.mjs",
     "ui:regression": "node scripts/ui-regression.mjs",
     "ui:i18n": "node scripts/ui-i18n-regression.mjs",
     "notify:daily": "node scripts/send-daily-notifications.mjs",

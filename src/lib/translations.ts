@@ -14,6 +14,9 @@ import deTranslations from '@/locales/de.json';
 import yoTranslations from '@/locales/yo.json';
 import igTranslations from '@/locales/ig.json';
 import haTranslations from '@/locales/ha.json';
+import tlTranslations from '@/locales/tl.json';
+import arTranslations from '@/locales/ar.json';
+import hiTranslations from '@/locales/hi.json';
 
 export type TranslationKey = keyof typeof import('@/locales/en.json');
 
@@ -22,6 +25,18 @@ export interface TranslationData {
 }
 
 type TranslationValue = string | string[] | TranslationData;
+
+export interface TranslationLoadOptions {
+  strict?: boolean;
+}
+
+export interface TranslationMissingReport {
+  language: LanguageCode;
+  translatedKeys: number;
+  missingKeys: string[];
+  totalKeys: number;
+  coveragePercent: number;
+}
 
 /**
  * Map of all available translations
@@ -35,6 +50,9 @@ const translationMap: Record<LanguageCode, TranslationData> = {
   yo: yoTranslations,
   ig: igTranslations,
   ha: haTranslations,
+  tl: tlTranslations,
+  ar: arTranslations,
+  hi: hiTranslations,
 };
 
 /**
@@ -108,19 +126,34 @@ export function getTranslation(
 }
 
 /**
- * Load translations for a specific language - synchronous version.
- * Callers can decide how they want to handle any missing keys.
+ * Load translations with English fallback or strict completeness checking.
+ * In strict mode, incomplete locales throw instead of merging English fallback.
  */
-export function loadTranslationsWithFallbackSync(language: LanguageCode): TranslationData {
-  return loadTranslationsSync(language);
+export function loadTranslationsWithFallbackSync(language: LanguageCode, options?: TranslationLoadOptions): TranslationData;
+export function loadTranslationsWithFallbackSync(language: LanguageCode, options?: TranslationLoadOptions): TranslationData {
+  const data = loadTranslationsSync(language);
+  if (language === 'en') {
+    return data;
+  }
+
+  const missingKeys = getMissingTranslationKeys(language, data);
+  if (options?.strict && missingKeys.length > 0) {
+    throw new Error(buildStrictLocaleError(language, missingKeys));
+  }
+
+  return options?.strict ? data : mergeTranslations(translationMap.en, data);
 }
 
+export async function loadTranslationsWithFallback(
+  language: LanguageCode,
+  options?: TranslationLoadOptions
+): Promise<TranslationData>;
 /**
  * Load translations with English fallback - Async version for compatibility
  * Ensures all keys have values even if target language is incomplete
  */
-export async function loadTranslationsWithFallback(language: LanguageCode): Promise<TranslationData> {
-  return loadTranslationsWithFallbackSync(language);
+export async function loadTranslationsWithFallback(language: LanguageCode, options?: TranslationLoadOptions): Promise<TranslationData> {
+  return loadTranslationsWithFallbackSync(language, options);
 }
 
 /**
@@ -191,4 +224,35 @@ export function getMissingKeys(
     const value = getTranslation(targetTranslations, key);
     return value === key || value === undefined || value === null;
   });
+}
+
+export function getMissingTranslationKeys(language: LanguageCode, targetTranslations?: TranslationData): string[] {
+  if (language === "en") {
+    return [];
+  }
+
+  return getMissingKeys(targetTranslations ?? loadTranslationsSync(language), translationMap.en);
+}
+
+export function getTranslationMissingReport(
+  language: LanguageCode,
+  targetTranslations?: TranslationData
+): TranslationMissingReport {
+  const missingKeys = getMissingTranslationKeys(language, targetTranslations);
+  const totalKeys = getAllKeys(translationMap.en).length;
+  const translatedKeys = totalKeys - missingKeys.length;
+
+  return {
+    language,
+    translatedKeys,
+    missingKeys,
+    totalKeys,
+    coveragePercent: totalKeys === 0 ? 100 : (translatedKeys / totalKeys) * 100,
+  };
+}
+
+function buildStrictLocaleError(language: LanguageCode, missingKeys: string[]): string {
+  const preview = missingKeys.slice(0, 12).join(", ");
+  const extra = missingKeys.length > 12 ? `, ...and ${missingKeys.length - 12} more` : "";
+  return `Locale ${language} is incomplete for strict mode. Missing ${missingKeys.length} keys: ${preview}${extra}`;
 }

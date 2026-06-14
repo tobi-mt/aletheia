@@ -1,7 +1,9 @@
+import "server-only";
 import { many } from "@/lib/db";
 import {
   defaultPreferences,
   languages,
+  localizedCrisisSupportCopy,
   localizedModeProfile,
   localizedScriptureRead,
   localizedWisdomEntry,
@@ -9,6 +11,7 @@ import {
   scriptureDisplayLabel,
   type UserPreferences,
 } from "@/lib/localization";
+import { detectLifeSupportConcern } from "@/lib/life-support";
 import { Mode, wisdomEntries, WisdomEntryData } from "@/lib/wisdom-data";
 
 export type WisdomSource = WisdomEntryData & { id?: string };
@@ -30,7 +33,27 @@ const modeTerms: Record<Mode, string[]> = {
   Work: ["work", "job", "career", "business", "counsel", "diligence", "cost", "planning"],
   Purpose: ["purpose", "identity", "direction", "discernment", "peace", "anxiety", "motives", "calling"],
   Generosity: ["generosity", "give", "giving", "charity", "willing", "sustainable", "stewardship", "guilt"],
-  Life: ["life", "home", "family", "relationships", "habits", "rest", "health", "everyday"],
+  Life: [
+    "life",
+    "home",
+    "family",
+    "relationships",
+    "habits",
+    "rest",
+    "health",
+    "everyday",
+    "addiction",
+    "recovery",
+    "sobriety",
+    "lonely",
+    "loneliness",
+    "depression",
+    "holy",
+    "holiness",
+    "temptation",
+    "relapse",
+    "purity",
+  ],
 };
 
 function decodeList(value: string[] | string) {
@@ -124,6 +147,8 @@ export function composeFallbackResponse(
   sources: WisdomSource[],
   preferences: UserPreferences = defaultPreferences
 ) {
+  const lifeConcern = detectLifeSupportConcern(question);
+  const crisisCopy = localizedCrisisSupportCopy(preferences.language);
   const primary = localizedWisdomEntry(sources[0] ?? wisdomEntries[0], preferences);
   const secondary = localizedWisdomEntry(sources[1] ?? wisdomEntries[2], preferences);
   const primaryRead = localizedScriptureRead(primary.scripture, preferences);
@@ -132,7 +157,17 @@ export function composeFallbackResponse(
   const asksAboutWork = /job|career|business|startup|quit|leave|work/i.test(question);
   const asksAboutGreed = /greed|wealth|rich|money|comparison|contentment/i.test(question);
 
-  const opening = asksAboutDebt
+  const opening = lifeConcern === "self_harm"
+    ? crisisCopy.selfHarmOpening
+    : lifeConcern === "addiction"
+      ? crisisCopy.addictionOpening
+      : lifeConcern === "depression"
+        ? crisisCopy.depressionOpening
+        : lifeConcern === "loneliness"
+          ? crisisCopy.lonelinessOpening
+          : lifeConcern === "holiness"
+            ? crisisCopy.holinessOpening
+            : asksAboutDebt
     ? "That is worth slowing down for. Debt is not automatically wrong, but it can quietly reduce freedom if it is taken on from pressure, fear, or speed."
     : asksAboutWork
       ? "That kind of decision can carry both hope and weight. It makes sense to want clarity without forcing yourself into a rushed yes or no."
@@ -143,17 +178,40 @@ export function composeFallbackResponse(
   return [
     opening,
     "",
-    `${sourceReference(primary, preferences)} gives a helpful anchor here: ${primary.principle.toLowerCase()} In ordinary life, that means ${primary.application.toLowerCase()}`,
+    lifeConcern === "self_harm"
+      ? crisisCopy.selfHarmFollowUp
+      : `${sourceReference(primary, preferences)} gives a helpful anchor here: ${primary.principle.toLowerCase()} In ordinary life, that means ${primary.application.toLowerCase()}`,
+    lifeConcern === "self_harm"
+      ? crisisCopy.selfHarmImmediate
+      : "",
+    lifeConcern === "self_harm"
+      ? ""
+      : `Scripture text: ${primaryRead.text}`,
     "",
-    `Scripture text: ${primaryRead.text}`,
-    "",
-    `${sourceReference(secondary, preferences)} adds another layer: ${secondary.principle.toLowerCase()} So a wise next step is not to ask, "Can I make this work?" only, but also, "What kind of person will this decision train me to become?"`,
-    "",
-    `Scripture text: ${secondaryRead.text}`,
-    "",
-    `A few questions may help: ${primary.questions[0]} ${primary.questions[1]} ${secondary.questions[0]}`,
-    "",
-    "This is wisdom support, not financial or legal advice. If the stakes are significant, bring the numbers and the plan to someone qualified and trustworthy before you act.",
+    lifeConcern === "self_harm"
+      ? ""
+      : `${sourceReference(secondary, preferences)} adds another layer: ${secondary.principle.toLowerCase()} So a wise next step is not to ask, "Can I make this work?" only, but also, "What kind of person will this decision train me to become?"`,
+    lifeConcern === "self_harm"
+      ? ""
+      : `Scripture text: ${secondaryRead.text}`,
+    lifeConcern === "self_harm"
+      ? ""
+      : `A few questions may help: ${primary.questions[0]} ${primary.questions[1]} ${secondary.questions[0]}`,
+    lifeConcern === "self_harm"
+      ? ""
+      : "This is wisdom support, not financial or legal advice. If the stakes are significant, bring the numbers and the plan to someone qualified and trustworthy before you act.",
+    lifeConcern === "addiction"
+      ? crisisCopy.addictionNext
+      : "",
+    lifeConcern === "depression"
+      ? crisisCopy.depressionNext
+      : "",
+    lifeConcern === "loneliness"
+      ? crisisCopy.lonelinessNext
+      : "",
+    lifeConcern === "holiness"
+      ? crisisCopy.holinessNext
+      : "",
   ].join("\n");
 }
 
@@ -165,6 +223,9 @@ export function composeModeAwareFallbackResponse(
 ) {
   const profile = localizedModeProfile(mode, preferences.language);
   const base = composeFallbackResponse(question, sources, preferences);
+  if (mode === "Life" && detectLifeSupportConcern(question) === "self_harm") {
+    return base;
+  }
   const language = languages[preferences.language] ?? languages.en;
   const region = regions[preferences.region] ?? regions.global;
   const primary = localizedWisdomEntry(sources[0] ?? wisdomEntries[0], preferences);

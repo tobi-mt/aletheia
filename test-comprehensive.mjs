@@ -49,7 +49,7 @@ function assert(condition, message) {
 // Test 1: Translation Files Integrity
 testSection('1. Translation Files Integrity');
 
-const languages = ['en', 'es', 'fr', 'pt', 'de', 'yo', 'ig', 'ha'];
+const languages = ['en', 'es', 'fr', 'pt', 'de', 'yo', 'ig', 'ha', 'tl', 'ar', 'hi'];
 const localesDir = path.join(__dirname, 'src', 'locales');
 
 languages.forEach(lang => {

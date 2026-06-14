@@ -11,7 +11,7 @@
   "guardrailItems": [
     "Never predicts financial outcomes.",
     "Never invents scripture references.",
-    "Encourages counsel for high-stakes choices."
+    "Strongly encourages human support for self-harm, addiction, or crisis language."
   ],
   "wisdomMode": "Wisdom mode",
   "currentLens": "Current lens",
@@ -158,13 +158,13 @@
     },
     "life": {
       "label": "Life",
-      "intent": "Apply biblical wisdom to ordinary life with steady, grounded attention.",
-      "focus": "Habits, relationships, family, rest, health, home rhythms",
-      "useWhen": "Use for everyday life decisions, routines, relationships, habits, rest, conflict, or when the right next step is not obviously a money or work question.",
+      "intent": "Apply biblical wisdom to ordinary life, formation, and care with steady, grounded attention.",
+      "focus": "Habits, relationships, family, rest, health, recovery, holiness, loneliness",
+      "useWhen": "Use for everyday life decisions, routines, relationships, habits, rest, conflict, loneliness, addiction, temptation, prayer life, or when the right next step is a quiet act of obedience rather than a major decision.",
       "prompts": [
-        "How do I make my daily life wiser?",
-        "How should I think about this relationship?",
-        "What habit should I change first?"
+        "How do I stay faithful in a hard season?",
+        "What do I do when I feel stuck in an unhealthy pattern?",
+        "How do I respond when loneliness or temptation gets heavy?"
       ]
     }
   },

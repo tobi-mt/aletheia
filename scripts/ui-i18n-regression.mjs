@@ -56,6 +56,9 @@ const languageProfiles = {
   yo: { region: 'ng', bibleTranslation: 'YOR1900' },
   ig: { region: 'ng', bibleTranslation: 'IGB1913' },
   ha: { region: 'ng', bibleTranslation: 'HAU1932' },
+  tl: { region: 'ph', bibleTranslation: 'WEB' },
+  ar: { region: 'mena', bibleTranslation: 'WEB' },
+  hi: { region: 'in', bibleTranslation: 'WEB' },
 };
 
 const requestedLanguages = (process.env.UI_I18N_LANGUAGES || Object.keys(languageProfiles).join(','))

@@ -6,6 +6,7 @@ import { defaultPreferences, normalizePreferences, type UserPreferences } from "
 import { manualContextSummary, normalizeManualContext, type ManualContextProfile } from "@/lib/manual-context";
 import { generateWisdomResponse } from "@/lib/openai";
 import { checkRateLimit, getClientIdentity, rateLimitHeaders } from "@/lib/rate-limit";
+import { detectLifeSupportConcern } from "@/lib/life-support";
 import { composeModeAwareFallbackResponse, retrieveWisdom } from "@/lib/wisdom";
 import { analyticsQuestionMetadata } from "@/lib/analytics-taxonomy";
 import { normalizeMode } from "@/lib/wisdom-data";
@@ -181,7 +182,70 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Message is required." }, { status: 400 });
   }
 
+  const lifeConcern = mode === "Life" ? detectLifeSupportConcern(message) : null;
   const sources = await retrieveWisdom(message, mode, 3);
+  if (lifeConcern === "self_harm") {
+    const aiText = composeModeAwareFallbackResponse(message, mode, sources, preferences);
+
+    if (user) {
+      const now = new Date().toISOString();
+      await run(
+        "INSERT INTO chat_messages (id, user_id, role, mode, content, sources, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        crypto.randomUUID(),
+        user.id,
+        "user",
+        mode,
+        message,
+        null,
+        now
+      );
+      await run(
+        "INSERT INTO chat_messages (id, user_id, role, mode, content, sources, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        crypto.randomUUID(),
+        user.id,
+        "aletheia",
+        mode,
+        aiText,
+        JSON.stringify(sources),
+        now
+      );
+      await trackServerEvent({
+        userId: user.id,
+        eventName: "chat_question_sent",
+        metadata: {
+          mode,
+          language: preferences.language,
+          region: preferences.region,
+          persisted: true,
+          usedOpenAI: false,
+          sourceCount: sources.length,
+          ...analyticsQuestionMetadata(message, mode),
+        },
+      });
+    }
+
+    return NextResponse.json(
+      {
+        userMessage: {
+          id: crypto.randomUUID(),
+          role: "user",
+          text: message,
+          mode,
+        },
+        reply: {
+          id: crypto.randomUUID(),
+          role: "aletheia",
+          text: aiText,
+          mode,
+          sources,
+        },
+        persisted: Boolean(user),
+        usedOpenAI: false,
+      },
+      { headers: rateLimitHeaders(rateLimit) }
+    );
+  }
+
   let memoryContext = "";
   const guestManualContext = normalizeManualContext(body.manualContext ?? {});
   const clientContext = [compactFocusContext(body.focusIntentions), compactGratitudeContext(body.gratitudeContext)]

@@ -44,7 +44,7 @@ interface HardCodedString {
 }
 
 // Language configuration
-const LANGUAGES = ['en', 'es', 'fr', 'pt', 'de', 'yo', 'ig', 'ha'] as const;
+const LANGUAGES = ['en', 'es', 'fr', 'pt', 'de', 'yo', 'ig', 'ha', 'tl', 'ar', 'hi'] as const;
 type Language = typeof LANGUAGES[number];
 
 const LANGUAGE_NAMES: Record<Language, string> = {
@@ -56,6 +56,9 @@ const LANGUAGE_NAMES: Record<Language, string> = {
   yo: 'Yorùbá',
   ig: 'Igbo',
   ha: 'Hausa',
+  tl: 'Filipino',
+  ar: 'العربية',
+  hi: 'हिन्दी',
 };
 
 /**

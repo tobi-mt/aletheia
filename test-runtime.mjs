@@ -131,7 +131,7 @@ await test('Main app loads successfully', async () => {
 // Test 2: Translation Loading
 testSection('2. Translation System Runtime');
 
-const languages = ['en', 'es', 'fr', 'pt', 'de', 'yo', 'ig', 'ha'];
+const languages = ['en', 'es', 'fr', 'pt', 'de', 'yo', 'ig', 'ha', 'tl', 'ar', 'hi'];
 
 for (const lang of languages) {
   await test(`${lang}.json is readable and valid`, async () => {
@@ -177,6 +177,9 @@ const languageMatrix = [
   { lang: 'yo', region: 'ng', mode: 'Work', bible: 'YOR1900', message: 'Fun mi ni imo fun ise ati ojuse loni.' },
   { lang: 'ig', region: 'ng', mode: 'Purpose', bible: 'IGB1913', message: 'Nyere m amamihe maka nzube na nkwusi obi.' },
   { lang: 'ha', region: 'ng', mode: 'Generosity', bible: 'HAU1932', message: 'Ka taimake ni in yi alheri cikin hikima?' },
+  { lang: 'tl', region: 'ph', mode: 'Life', bible: 'WEB', message: 'Paano ako pipili nang may karunungan ngayon?' },
+  { lang: 'ar', region: 'mena', mode: 'Purpose', bible: 'WEB', message: 'كيف أختار الخطوة التالية بحكمة؟' },
+  { lang: 'hi', region: 'in', mode: 'Work', bible: 'WEB', message: 'मैं अगला सही कदम समझदारी से कैसे चुनूं?' },
 ];
 
 async function runChatCase({ message, mode, preferences }) {

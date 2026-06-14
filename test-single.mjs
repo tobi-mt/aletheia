@@ -54,7 +54,7 @@ try {
     log('', 'reset');
     log('📝 Manual Testing Checklist:', 'cyan');
     log('  1. Open http://localhost:3000 in browser', 'reset');
-    log('  2. Click language dropdown, test all 8 languages', 'reset');
+    log('  2. Click language dropdown, test all 11 languages', 'reset');
     log('  3. Verify UI elements translate correctly', 'reset');
     log('  4. Test Bible translation dropdown (should show 14 options)', 'reset');
     log('  5. Ask a question in chat with different modes', 'reset');

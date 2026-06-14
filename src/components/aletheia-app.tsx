@@ -62,6 +62,7 @@ import {
   localizedScriptureRead,
   scriptureDisplayLabel,
   localizedRegionLabel,
+  localizedCrisisSupportCopy,
   localizedModeProfile as sharedLocalizedModeProfile,
   localizedWisdomLibraryEntry,
   localizedWisdomLibraryNote,
@@ -74,6 +75,7 @@ import {
   type UserPreferences,
 } from "@/lib/localization";
 import { modeProfiles, type ModeProfile } from "@/lib/mode-profiles";
+import { detectLifeSupportConcern } from "@/lib/life-support";
 import { stableHash, todayWisdom as sharedTodayWisdom, wisdomEntries as baseWisdomEntries, type WisdomEntryData } from "@/lib/wisdom-data";
 import { defaultManualContext, manualContextCounselSignals, manualContextHasContent, normalizeManualContext, type ManualContextProfile } from "@/lib/manual-context";
 import type { Mode } from "@/lib/wisdom-data";
@@ -365,7 +367,7 @@ const DEFAULT_NOTIFICATION_TIMING: NotificationTiming = {
   deliveryStrategy: "morning",
 };
 
-const languageFlags: Record<LanguageCode, string> = {
+const languageFlags: Partial<Record<LanguageCode, string>> = {
   en: "🇺🇸",
   es: "🇪🇸",
   fr: "🇫🇷",
@@ -374,6 +376,9 @@ const languageFlags: Record<LanguageCode, string> = {
   yo: "🇳🇬",
   ig: "🇳🇬",
   ha: "🇳🇬",
+  tl: "🇵🇭",
+  ar: "🇸🇦",
+  hi: "🇮🇳",
 };
 
 type FocusIntentionKey =
@@ -424,7 +429,7 @@ function localizedFocusIntentions(ts: (key: string, fallback?: string) => string
   }));
 }
 
-const uiText: Record<
+const uiText: Partial<Record<
   LanguageCode,
   {
     nav: Record<View, string>;
@@ -502,6 +507,13 @@ const uiText: Record<
     weeklyWisdomReview?: string;
     weeklyReviewTitle?: string;
     weeklyReviewBody?: string;
+    todayScriptureLabel?: string;
+    todayQuestionLabel?: string;
+    todayActionsLabel?: string;
+    weeklyReviewHeading?: string;
+    weeklyReviewLastWeekLabel?: string;
+    diveDeep?: string;
+    backToQuickRead?: string;
     questionsThisWeek?: string;
     reflectionsThisWeek?: string;
     gratitudeThisWeek?: string;
@@ -589,12 +601,16 @@ const uiText: Record<
     accountQuietMilestonePlural?: string;
     accountFormationSummary?: string;
   }
-> = {
+>> = {
   en: {
     nav: { companion: "Home", decisions: "Decisions", reflect: "Reflect", library: "Library", account: "Account" },
     decideShort: "Decide",
     guardrails: "Guardrails",
-    guardrailItems: ["Never predicts financial outcomes.", "Never invents scripture references.", "Encourages counsel for high-stakes choices."],
+    guardrailItems: [
+      "Never predicts financial outcomes.",
+      "Never invents scripture references.",
+      "Strongly encourages human support for self-harm, addiction, or crisis language.",
+    ],
     wisdomMode: "Wisdom mode",
     currentLens: "Current lens",
     offline: "Offline",
@@ -666,6 +682,11 @@ const uiText: Record<
     weeklyWisdomReview: "Weekly Wisdom Review",
     weeklyReviewTitle: "A quiet look at your week",
     weeklyReviewBody: "No streaks or pressure. Just notice how {pattern} has been shaping your discernment.",
+    todayScriptureLabel: "Scripture",
+    todayQuestionLabel: "Today's question",
+    todayActionsLabel: "Today's actions",
+    weeklyReviewHeading: "Your Weekly Review",
+    weeklyReviewLastWeekLabel: "Last week",
     questionsThisWeek: "Questions",
     reflectionsThisWeek: "Reflections",
     gratitudeThisWeek: "Gratitude",
@@ -762,7 +783,7 @@ const uiText: Record<
     nav: { companion: "Inicio", decisions: "Decisiones", reflect: "Reflexión", library: "Biblioteca", account: "Cuenta" },
     decideShort: "Decidir",
     guardrails: "Límites",
-    guardrailItems: ["Nunca predice resultados financieros.", "Nunca inventa referencias bíblicas.", "Anima a buscar consejo en decisiones importantes."],
+    guardrailItems: ["Nunca predice resultados financieros.", "Nunca inventa referencias bíblicas.", "Anima a buscar apoyo humano ante lenguaje de autolesión, adicción o crisis."],
     wisdomMode: "Modo de sabiduría",
     currentLens: "Enfoque actual",
     offline: "Sin conexión",
@@ -801,6 +822,14 @@ const uiText: Record<
     context: "Contexto",
     application: "Aplicación",
     carryThisToday: "Lleva esto hoy",
+    todayScriptureLabel: "Escritura",
+    todayQuestionLabel: "Pregunta de hoy",
+    todayActionsLabel: "Acciones de hoy",
+    weeklyReviewHeading: "Tu revisión semanal",
+    weeklyReviewLastWeekLabel: "La semana pasada",
+    weeklyWisdomReview: "Revisión semanal de sabiduría",
+    weeklyReviewTitle: "Una mirada tranquila a tu semana",
+    weeklyReviewBody: "Sin rachas ni presión. Solo observa cómo {pattern} ha ido dando forma a tu discernimiento.",
     carryWithMe: "Llevar conmigo",
     askAboutThis: "Preguntar sobre esto",
     saveToRuleOfLife: "Guardar como regla de vida",
@@ -856,7 +885,7 @@ const uiText: Record<
     nav: { companion: "Accueil", decisions: "Décisions", reflect: "Réflexion", library: "Bibliothèque", account: "Compte" },
     decideShort: "Décider",
     guardrails: "Garde-fous",
-    guardrailItems: ["Ne prédit jamais les résultats financiers.", "N’invente jamais de références bibliques.", "Encourage le conseil pour les choix importants."],
+    guardrailItems: ["Ne prédit jamais les résultats financiers.", "N’invente jamais de références bibliques.", "Encourage un soutien humain en cas de propos d’automutilation, d’addiction ou de crise."],
     wisdomMode: "Mode sagesse",
     currentLens: "Angle actuel",
     offline: "Hors ligne",
@@ -895,6 +924,14 @@ const uiText: Record<
     context: "Contexte",
     application: "Application",
     carryThisToday: "À porter aujourd'hui",
+    todayScriptureLabel: "Écriture",
+    todayQuestionLabel: "Question du jour",
+    todayActionsLabel: "Actions du jour",
+    weeklyReviewHeading: "Votre revue hebdomadaire",
+    weeklyReviewLastWeekLabel: "La semaine dernière",
+    weeklyWisdomReview: "Revue hebdomadaire de sagesse",
+    weeklyReviewTitle: "Un regard calme sur votre semaine",
+    weeklyReviewBody: "Sans série ni pression. Observez simplement comment {pattern} façonne votre discernement.",
     carryWithMe: "Porter avec moi",
     askAboutThis: "Questionner cela",
     saveToRuleOfLife: "Ajouter à ma règle de vie",
@@ -950,7 +987,7 @@ const uiText: Record<
     nav: { companion: "Início", decisions: "Decisões", reflect: "Refletir", library: "Biblioteca", account: "Conta" },
     decideShort: "Decidir",
     guardrails: "Limites",
-    guardrailItems: ["Nunca prevê resultados financeiros.", "Nunca inventa referências bíblicas.", "Incentiva conselho em escolhas importantes."],
+    guardrailItems: ["Nunca prevê resultados financeiros.", "Nunca inventa referências bíblicas.", "Incentiva apoio humano diante de fala sobre autoagressão, vício ou crise."],
     wisdomMode: "Modo de sabedoria",
     currentLens: "Lente atual",
     offline: "Offline",
@@ -1010,6 +1047,14 @@ const uiText: Record<
     context: "Contexto",
     application: "Aplicação",
     carryThisToday: "Leve isto hoje",
+    todayScriptureLabel: "Escritura",
+    todayQuestionLabel: "Pergunta de hoje",
+    todayActionsLabel: "Ações de hoje",
+    weeklyReviewHeading: "Sua revisão semanal",
+    weeklyReviewLastWeekLabel: "Na semana passada",
+    weeklyWisdomReview: "Revisão semanal de sabedoria",
+    weeklyReviewTitle: "Um olhar tranquilo sobre a sua semana",
+    weeklyReviewBody: "Sem sequências nem pressão. Apenas perceba como {pattern} tem moldado o seu discernimento.",
     carryWithMe: "Levar comigo",
     askAboutThis: "Perguntar sobre isto",
     saveToRuleOfLife: "Salvar como regra de vida",
@@ -1102,7 +1147,7 @@ const uiText: Record<
     nav: { companion: "Start", decisions: "Entscheidungen", reflect: "Reflektieren", library: "Bibliothek", account: "Konto" },
     decideShort: "Entscheiden",
     guardrails: "Leitplanken",
-    guardrailItems: ["Sagt keine finanziellen Ergebnisse voraus.", "Erfindet keine Bibelstellen.", "Ermutigt bei wichtigen Entscheidungen zu Rat."],
+    guardrailItems: ["Sagt keine finanziellen Ergebnisse voraus.", "Erfindet keine Bibelstellen.", "Ermutigt bei Selbstverletzung, Sucht oder Krisensprache zu menschlicher Hilfe."],
     wisdomMode: "Weisheitsmodus",
     currentLens: "Aktuelle Perspektive",
     offline: "Offline",
@@ -1155,6 +1200,14 @@ const uiText: Record<
     context: "Kontext",
     application: "Anwendung",
     carryThisToday: "Heute mitnehmen",
+    todayScriptureLabel: "Bibelstelle",
+    todayQuestionLabel: "Frage von heute",
+    todayActionsLabel: "Aktionen für heute",
+    weeklyReviewHeading: "Dein Wochenrückblick",
+    weeklyReviewLastWeekLabel: "Letzte Woche",
+    weeklyWisdomReview: "Wöchentliche Weisheitsrückschau",
+    weeklyReviewTitle: "Ein ruhiger Blick auf deine Woche",
+    weeklyReviewBody: "Ohne Serien oder Druck. Achte einfach darauf, wie {pattern} dein Urteilsvermögen geprägt hat.",
     carryWithMe: "Mitnehmen",
     askAboutThis: "Dazu fragen",
     saveToRuleOfLife: "Als Lebensregel speichern",
@@ -1297,6 +1350,14 @@ const uiText: Record<
     context: "Àyíká",
     application: "Ìmúlò",
     carryThisToday: "Gbé èyí lọ lónìí",
+    todayScriptureLabel: "Ìwé mímọ́",
+    todayQuestionLabel: "Ìbéèrè lónìí",
+    todayActionsLabel: "Àwọn ìṣe lónìí",
+    weeklyReviewHeading: "Àfọ̀wọ̀sẹ̀ rẹ",
+    weeklyReviewLastWeekLabel: "Ọ̀sẹ̀ tó kọjá",
+    weeklyWisdomReview: "Àfọ̀wọ̀sẹ̀ ọgbọ́n",
+    weeklyReviewTitle: "Ìwọ̀ pẹ̀lú ìdákẹ́jẹ sí ọ̀sẹ̀ rẹ",
+    weeklyReviewBody: "Laisi ìtẹ̀síwájú tàbí titẹ. Ṣàkíyèsí bí {pattern} ṣe ń dá ìmúlò ọgbọ́n rẹ láàrin.",
     carryWithMe: "Gbé e pẹ̀lú mi",
     askAboutThis: "Béèrè nípa èyí",
     saveToRuleOfLife: "Fi sí Ofin ìgbé-ayé",
@@ -1449,6 +1510,14 @@ const uiText: Record<
     context: "Ọnọdụ",
     application: "Mmekọrịta",
     carryThisToday: "Buru nke a taa",
+    todayScriptureLabel: "Akwụkwọ Nsọ",
+    todayQuestionLabel: "Ajụjụ taa",
+    todayActionsLabel: "Omume taa",
+    weeklyReviewHeading: "Nyocha izu gị",
+    weeklyReviewLastWeekLabel: "Izu gara aga",
+    weeklyWisdomReview: "Nyocha amamihe kwa izu",
+    weeklyReviewTitle: "Nlele dị jụụ n'izu gị",
+    weeklyReviewBody: "Enweghị usoro pụrụ iche ma ọ bụ nrụgide. Naanị hụ otú {pattern} si na-akpụ uche gị.",
     carryWithMe: "Buru ya na m",
     askAboutThis: "Jụọ maka nke a",
     saveToRuleOfLife: "Chekwaa dị ka iwu ndụ",
@@ -1601,6 +1670,14 @@ const uiText: Record<
     context: "Mahalli",
     application: "Aikace-aikace",
     carryThisToday: "Rike wannan yau",
+    todayScriptureLabel: "Nassi",
+    todayQuestionLabel: "Tambayar yau",
+    todayActionsLabel: "Ayyukan yau",
+    weeklyReviewHeading: "Bitar mako naka",
+    weeklyReviewLastWeekLabel: "Makon da ya gabata",
+    weeklyWisdomReview: "Bitar hikima ta mako",
+    weeklyReviewTitle: "Dubi mai natsuwa ga makonka",
+    weeklyReviewBody: "Ba tare da tsari ko matsin lamba ba. Ka lura yadda {pattern} ke tsara fahimtarka.",
     carryWithMe: "Rike tare da ni",
     askAboutThis: "Tambaya game da wannan",
     saveToRuleOfLife: "Ajiye a matsayin ka'idar rayuwa",
@@ -1751,6 +1828,9 @@ function AvatarCircle({
 
 function languageFromBrowserLocale(locale: string | undefined): LanguageCode | null {
   const primary = locale?.trim().toLowerCase().split(/[-_]/)[0];
+  if (primary === "fil") {
+    return "tl";
+  }
   return primary && primary in languages ? primary as LanguageCode : null;
 }
 
@@ -2315,7 +2395,9 @@ function voiceLabel(voice: SpeechSynthesisVoice) {
   return `${voice.name} · ${voice.lang}`;
 }
 
-const speechPacingProfiles: Record<LanguageCode, { rate: number; pitch: number }> = {
+type UiText = NonNullable<(typeof uiText)["en"]>;
+
+const speechPacingProfiles: Partial<Record<LanguageCode, { rate: number; pitch: number }>> = {
   en: { rate: 0.9, pitch: 1 },
   es: { rate: 0.92, pitch: 0.98 },
   fr: { rate: 0.9, pitch: 0.96 },
@@ -2324,10 +2406,13 @@ const speechPacingProfiles: Record<LanguageCode, { rate: number; pitch: number }
   yo: { rate: 0.82, pitch: 1.02 },
   ig: { rate: 0.84, pitch: 1.02 },
   ha: { rate: 0.86, pitch: 1 },
+  tl: { rate: 0.92, pitch: 0.98 },
+  ar: { rate: 0.9, pitch: 0.96 },
+  hi: { rate: 0.9, pitch: 0.98 },
 };
 
 function speechPacingForLanguage(languageCode: LanguageCode) {
-  return speechPacingProfiles[languageCode] ?? speechPacingProfiles.en;
+  return speechPacingProfiles[languageCode] ?? speechPacingProfiles.en!;
 }
 
 function shouldShowOnboarding() {
@@ -2640,6 +2725,7 @@ type ChatMessage = {
   mode?: Mode;
   text: string;
   sources?: WisdomEntry[];
+  createdAt?: string;
 };
 
 type ConversationExchange = {
@@ -2700,9 +2786,13 @@ type TodayVisualAsset = TodayVisualPhoto | TodayVisualIllustration;
 
 type WeeklyWisdomReview = {
   questions: number;
+  previousQuestions: number;
   reflections: number;
+  previousReflections: number;
   gratitudeMoments: number;
+  previousGratitudeMoments: number;
   decisions: number;
+  previousDecisions: number;
   pattern: string;
   scripture: string;
   nextStep: string;
@@ -3077,11 +3167,16 @@ const localizedModeProfiles: Partial<Record<LanguageCode, Partial<Record<Mode, P
       prompts: ["Báwo ni mo ṣe lè fúnni láì jẹ́ ẹ̀bi tàbí ìfọkànsìn?", "Ṣé kí n tún ran ẹbí lọ́wọ́ nípa owó?", "Ìfẹ́ fúnni mélòó ni ó le tẹ̀síwájú fún mi?"],
     },
     Life: {
-      intent: "Ṣe ìtọ́nisọ́nà ìgbésí ayé ojoojúmọ́ pẹ̀lú ọgbọ́n tí ó dákẹ́.",
-      focus: "Àṣà, ìbáṣepọ̀, ẹbí, ìsinmi, ìlera, ìrìnàjò ilé",
-      useWhen: "Lo fún àwọn ìpinnu ìgbésí ayé ojoojúmọ́, àṣà, ìbáṣepọ̀, ìsinmi, ìjà, tàbí nígbà tí ìgbésẹ̀ tó tẹ̀lé kò dájú pé ó jẹ́ ìbéèrè owó tàbí iṣẹ́.",
-      lens: "Ìwòye gbogbo ìgbésí ayé: ìhuwasi, ìbáṣepọ̀, ojúṣe, ìlànà, àti ìgbésẹ̀ olóòtítọ́ tó kàn.",
-      prompts: ["Báwo ni mo ṣe lè sọ ìgbésí ayé ojoojúmọ́ mi di ọgbọ́n síi?", "Kí ni mo yẹ kí n ṣe nípa ìbáṣepọ̀ yìí?", "Àṣà wo ni mo yẹ kí n yí padà kíákíá?"],
+      intent: "Apply biblical wisdom to ordinary life, formation, and care with steady, grounded attention.",
+      focus: "Habits, relationships, family, rest, health, recovery, holiness, loneliness",
+      useWhen:
+        "Use for everyday life decisions, routines, relationships, habits, rest, conflict, loneliness, addiction, temptation, prayer life, or when the right next step is a quiet act of obedience rather than a major decision.",
+      lens: "A formation lens: character, healing, accountability, relationships, and the next faithful step.",
+      prompts: [
+        "How do I stay faithful in a hard season?",
+        "What do I do when I feel stuck in an unhealthy pattern?",
+        "How do I respond when loneliness or temptation gets heavy?",
+      ],
     },
   },
 };
@@ -3196,7 +3291,7 @@ type RuntimePanelCopy = {
   moreAnchors: string;
 };
 
-const runtimePanelCopy: Record<LanguageCode, RuntimePanelCopy> = {
+const runtimePanelCopy: Partial<Record<LanguageCode, RuntimePanelCopy>> = {
   en: {
     timelineReady: "Your timeline is ready to track decisions, patterns, counsel, and learning.",
     nextInDecisions: "Next in Decisions",
@@ -3496,7 +3591,7 @@ const runtimePanelCopy: Record<LanguageCode, RuntimePanelCopy> = {
 };
 
 function runtimeCopyFor(language: LanguageCode): RuntimePanelCopy {
-  return runtimePanelCopy[language] ?? runtimePanelCopy.en;
+  return runtimePanelCopy[language] ?? runtimePanelCopy.en!;
 }
 
 function localizedModeProfile(mode: Mode, language: LanguageCode): DisplayModeProfile {
@@ -3527,7 +3622,27 @@ const modeTerms: Record<Mode, string[]> = {
   Work: ["work", "job", "career", "business", "counsel", "diligence", "cost", "planning"],
   Purpose: ["purpose", "identity", "direction", "discernment", "peace", "anxiety", "motives", "calling"],
   Generosity: ["generosity", "give", "giving", "charity", "willing", "sustainable", "stewardship", "guilt"],
-  Life: ["life", "home", "family", "relationships", "habits", "rest", "health", "everyday"],
+  Life: [
+    "life",
+    "home",
+    "family",
+    "relationships",
+    "habits",
+    "rest",
+    "health",
+    "everyday",
+    "addiction",
+    "recovery",
+    "sobriety",
+    "lonely",
+    "loneliness",
+    "depression",
+    "holy",
+    "holiness",
+    "temptation",
+    "relapse",
+    "purity",
+  ],
 };
 
 const defaultMessages: ChatMessage[] = [
@@ -3580,12 +3695,40 @@ function composeResponse(question: string, mode: Mode, preferences: UserPreferen
   const sources = searchWisdom(question, mode, 3, preferences);
   const primary = sources[0] ?? localizedWisdomEntry(wisdomEntries[0], preferences);
   const secondary = sources[1] ?? localizedWisdomEntry(wisdomEntries[2], preferences);
+  const lifeConcern = mode === "Life" ? detectLifeSupportConcern(question) : null;
+  const crisisCopy = localizedCrisisSupportCopy(preferences.language);
+
+  if (lifeConcern === "self_harm") {
+    return {
+      sources,
+      text: [
+        "Reflection",
+        crisisCopy.selfHarmOpening,
+        "",
+        "Immediate next step",
+        crisisCopy.selfHarmImmediate,
+        "",
+        crisisCopy.selfHarmFollowUp,
+        "",
+        "",
+        "",
+      ].join("\n"),
+    };
+  }
 
   return {
     sources,
     text: [
       "Reflection",
-      `It makes sense to bring care to this. Your question touches ${primary.theme.toLowerCase()}, and it deserves more than a rushed answer or a fear-driven reaction.`,
+      lifeConcern === "addiction"
+        ? crisisCopy.addictionOpening
+        : lifeConcern === "depression"
+          ? crisisCopy.depressionOpening
+          : lifeConcern === "loneliness"
+            ? crisisCopy.lonelinessOpening
+            : lifeConcern === "holiness"
+              ? crisisCopy.holinessOpening
+              : `It makes sense to bring care to this. Your question touches ${primary.theme.toLowerCase()}, and it deserves more than a rushed answer or a fear-driven reaction.`,
       "",
       "Biblical Wisdom",
       `${primary.scripture} points toward this principle: ${primary.principle} ${secondary.scripture} adds a second guardrail: ${secondary.principle}`,
@@ -3599,12 +3742,24 @@ function composeResponse(question: string, mode: Mode, preferences: UserPreferen
       `3. ${secondary.questions[0]}`,
       "",
       "Gentle Reminder",
-      "You do not need to force clarity through urgency. Slow, honest, well-counseled obedience is often the most fruitful path.",
+      lifeConcern === "addiction"
+        ? crisisCopy.addictionNext
+        : lifeConcern === "depression"
+          ? crisisCopy.depressionNext
+          : lifeConcern === "loneliness"
+            ? crisisCopy.lonelinessNext
+            : lifeConcern === "holiness"
+              ? crisisCopy.holinessNext
+              : "You do not need to force clarity through urgency. Slow, honest, well-counseled obedience is often the most fruitful path.",
     ].join("\n"),
   };
 }
 
 const STATIC_TODAY_DAY_NUMBER = 0;
+
+function commonsFilePath(fileName: string) {
+  return `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(fileName)}`;
+}
 
 const TODAY_VISUAL_LIBRARY: Record<string, TodayVisualAsset[]> = {
   Stewardship: [
@@ -3627,6 +3782,20 @@ const TODAY_VISUAL_LIBRARY: Record<string, TodayVisualAsset[]> = {
       title: "New horizons",
       imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e9/New_Horizons_%28Unsplash%29.jpg/1280px-New_Horizons_%28Unsplash%29.jpg",
       imagePageUrl: "https://commons.wikimedia.org/wiki/File:New_Horizons_(Unsplash).jpg",
+      license: "CC0",
+    },
+    {
+      kind: "photo",
+      title: "Writing the Moment",
+      imageUrl: commonsFilePath("Writing the Moment (Unsplash).jpg"),
+      imagePageUrl: "https://commons.wikimedia.org/wiki/File:Writing_the_Moment_(Unsplash).jpg",
+      license: "CC0",
+    },
+    {
+      kind: "photo",
+      title: "Business notes",
+      imageUrl: commonsFilePath("Businessman working and writing notes in office (Unsplash).jpg"),
+      imagePageUrl: "https://commons.wikimedia.org/wiki/File:Businessman_working_and_writing_notes_in_office_(Unsplash).jpg",
       license: "CC0",
     },
   ],
@@ -3652,6 +3821,20 @@ const TODAY_VISUAL_LIBRARY: Record<string, TodayVisualAsset[]> = {
       imagePageUrl: "https://commons.wikimedia.org/wiki/File:Sunrise_on_the_road.jpg",
       license: "CC BY-SA 4.0",
     },
+    {
+      kind: "photo",
+      title: "Writing the Moment",
+      imageUrl: commonsFilePath("Writing the Moment (Unsplash).jpg"),
+      imagePageUrl: "https://commons.wikimedia.org/wiki/File:Writing_the_Moment_(Unsplash).jpg",
+      license: "CC0",
+    },
+    {
+      kind: "photo",
+      title: "Business notes",
+      imageUrl: commonsFilePath("Businessman working and writing notes in office (Unsplash).jpg"),
+      imagePageUrl: "https://commons.wikimedia.org/wiki/File:Businessman_working_and_writing_notes_in_office_(Unsplash).jpg",
+      license: "CC0",
+    },
   ],
   Diligence: [
     {
@@ -3674,6 +3857,20 @@ const TODAY_VISUAL_LIBRARY: Record<string, TodayVisualAsset[]> = {
       imageUrl: "https://upload.wikimedia.org/wikipedia/commons/c/c0/Ireland_fields_sky_clouds.jpg",
       imagePageUrl: "https://commons.wikimedia.org/wiki/File:Ireland_fields_sky_clouds.jpg",
       license: "Public domain",
+    },
+    {
+      kind: "photo",
+      title: "Writing with both hands",
+      imageUrl: commonsFilePath("Writing with both hands.png"),
+      imagePageUrl: "https://commons.wikimedia.org/wiki/File:Writing_with_both_hands.png",
+      license: "CC0",
+    },
+    {
+      kind: "photo",
+      title: "Writing the Moment",
+      imageUrl: commonsFilePath("Writing the Moment (Unsplash).jpg"),
+      imagePageUrl: "https://commons.wikimedia.org/wiki/File:Writing_the_Moment_(Unsplash).jpg",
+      license: "CC0",
     },
   ],
   "Provision and Anxiety": [
@@ -3714,6 +3911,20 @@ const TODAY_VISUAL_LIBRARY: Record<string, TodayVisualAsset[]> = {
       imagePageUrl: "https://commons.wikimedia.org/wiki/File:Field_under_clear_sky.jpg",
       license: "Public domain",
     },
+    {
+      kind: "photo",
+      title: "Sharing a meal",
+      imageUrl: commonsFilePath("Sharing a meal in the Philippines (Unsplash).jpg"),
+      imagePageUrl: "https://commons.wikimedia.org/wiki/File:Sharing_a_meal_in_the_Philippines_(Unsplash).jpg",
+      license: "CC0",
+    },
+    {
+      kind: "photo",
+      title: "Sunrise hike",
+      imageUrl: commonsFilePath("Sunrise hike El Hoyo Volcano (Unsplash).jpg"),
+      imagePageUrl: "https://commons.wikimedia.org/wiki/File:Sunrise_hike_El_Hoyo_Volcano_(Unsplash).jpg",
+      license: "CC0",
+    },
   ],
   Contentment: [
     {
@@ -3730,6 +3941,20 @@ const TODAY_VISUAL_LIBRARY: Record<string, TodayVisualAsset[]> = {
       imagePageUrl: "https://commons.wikimedia.org/wiki/File:Hopeful_Horizons_(Unsplash).jpg",
       license: "CC0",
     },
+    {
+      kind: "photo",
+      title: "Window reading",
+      imageUrl: commonsFilePath("Charles-james-lewis-reading-by-the-window.jpg"),
+      imagePageUrl: "https://commons.wikimedia.org/wiki/File:Charles-james-lewis-reading-by-the-window.jpg",
+      license: "CC0",
+    },
+    {
+      kind: "photo",
+      title: "Quiet reading",
+      imageUrl: commonsFilePath("Woman reading a book on lap (Unsplash).jpg"),
+      imagePageUrl: "https://commons.wikimedia.org/wiki/File:Woman_reading_a_book_on_lap_(Unsplash).jpg",
+      license: "CC0",
+    },
   ],
   Counsel: [
     {
@@ -3737,12 +3962,65 @@ const TODAY_VISUAL_LIBRARY: Record<string, TodayVisualAsset[]> = {
       title: "Stillness path",
       variant: "path",
     },
+    {
+      kind: "photo",
+      title: "Window reading",
+      imageUrl: commonsFilePath("Charles-james-lewis-reading-by-the-window.jpg"),
+      imagePageUrl: "https://commons.wikimedia.org/wiki/File:Charles-james-lewis-reading-by-the-window.jpg",
+      license: "CC0",
+    },
+    {
+      kind: "photo",
+      title: "Quiet reading",
+      imageUrl: commonsFilePath("Person reading an ebook.jpg"),
+      imagePageUrl: "https://commons.wikimedia.org/wiki/File:Person_reading_an_ebook.jpg",
+      license: "CC0",
+    },
   ],
   Debt: [
     {
       kind: "illustration",
       title: "Measured balance",
       variant: "glow",
+    },
+  ],
+  Work: [
+    {
+      kind: "photo",
+      title: "Business notes",
+      imageUrl: commonsFilePath("Businessman working and writing notes in office (Unsplash).jpg"),
+      imagePageUrl: "https://commons.wikimedia.org/wiki/File:Businessman_working_and_writing_notes_in_office_(Unsplash).jpg",
+      license: "CC0",
+    },
+    {
+      kind: "photo",
+      title: "Writing the Moment",
+      imageUrl: commonsFilePath("Writing the Moment (Unsplash).jpg"),
+      imagePageUrl: "https://commons.wikimedia.org/wiki/File:Writing_the_Moment_(Unsplash).jpg",
+      license: "CC0",
+    },
+  ],
+  Life: [
+    {
+      kind: "photo",
+      title: "Sharing a meal",
+      imageUrl: commonsFilePath("Sharing a meal in the Philippines (Unsplash).jpg"),
+      imagePageUrl: "https://commons.wikimedia.org/wiki/File:Sharing_a_meal_in_the_Philippines_(Unsplash).jpg",
+      license: "CC0",
+    },
+    {
+      kind: "photo",
+      title: "Walking coastline",
+      imageUrl: commonsFilePath("Walking along the hilly coastline (Unsplash).jpg"),
+      imagePageUrl: "https://commons.wikimedia.org/wiki/File:Walking_along_the_hilly_coastline_(Unsplash).jpg",
+      license: "CC0",
+    },
+    {
+      kind: "photo",
+      title: "Beach walk",
+      imageUrl: commonsFilePath("Walking along the beach in the dark (Unsplash).jpg"),
+      imagePageUrl: "https://commons.wikimedia.org/wiki/File:Walking_along_the_beach_in_the_dark_(Unsplash).jpg",
+      license: "CC0",
     },
   ],
 };
@@ -3756,10 +4034,70 @@ const TODAY_THEME_VISUAL_PRIORITIES: Record<string, string[]> = {
   Generosity: ["Sunrise on the road", "Field in sunrise", "Field under clear sky"],
   Counsel: ["Stillness path"],
   Debt: ["Measured balance"],
+  Work: ["Field under clear sky", "Ireland fields and sky", "New horizons"],
+  Life: ["Field under clear sky", "Hopeful horizons", "Ireland fields and sky"],
+};
+
+const TODAY_THEME_HUMAN_PRIORITIES: Record<string, Partial<Record<TodayVisualMood, string[]>>> = {
+  Stewardship: {
+    warm: ["Business notes", "Writing the Moment"],
+    cool: ["Business notes", "Writing the Moment"],
+    contemplative: ["Writing the Moment", "Business notes"],
+  },
+  "Cost Counting": {
+    warm: ["Business notes", "Writing the Moment"],
+    cool: ["Writing the Moment", "Business notes"],
+    contemplative: ["Writing the Moment", "Business notes"],
+  },
+  Diligence: {
+    warm: ["Writing with both hands", "Business notes", "Writing the Moment"],
+    cool: ["Writing the Moment", "Writing with both hands", "Business notes"],
+    contemplative: ["Writing the Moment", "Writing with both hands", "Business notes"],
+  },
+  Generosity: {
+    warm: ["Sharing a meal", "Sunrise hike"],
+    cool: ["Sunrise hike", "Sharing a meal"],
+    contemplative: ["Sharing a meal", "Sunrise hike"],
+  },
+  "Provision and Anxiety": {
+    warm: ["Sharing a meal", "Quiet reading"],
+    cool: ["Window reading", "Quiet reading"],
+    contemplative: ["Quiet reading", "Window reading", "Sharing a meal"],
+  },
+  Counsel: {
+    warm: ["Quiet reading", "Window reading"],
+    cool: ["Window reading", "Quiet reading"],
+    contemplative: ["Window reading", "Quiet reading"],
+  },
+  Contentment: {
+    warm: ["Quiet reading", "Window reading"],
+    cool: ["Window reading", "Quiet reading"],
+    contemplative: ["Quiet reading", "Window reading"],
+  },
+  Work: {
+    warm: ["Business notes", "Writing the Moment"],
+    cool: ["Writing the Moment", "Business notes"],
+    contemplative: ["Writing the Moment", "Business notes"],
+  },
+  Life: {
+    warm: ["Sharing a meal", "Walking coastline", "Beach walk"],
+    cool: ["Walking coastline", "Beach walk", "Sharing a meal"],
+    contemplative: ["Walking coastline", "Beach walk", "Sharing a meal"],
+  },
 };
 
 type TodayVisualMood = "warm" | "cool" | "contemplative";
 type TodayVisualLabelTone = "warm" | "cool" | "quiet";
+type TodayVisualFallbackLevel = "photo" | "illustration" | "fallback";
+type TodayVisualPlacement = {
+  wrapperClassName: string;
+  imageClassName: string;
+  objectPosition: string;
+  overlayGradient: string;
+  figureMinHeight: string;
+  figureWidth: string;
+  figureOpacity: number;
+};
 
 const TODAY_THEME_MOOD_PRIORITIES: Record<string, Partial<Record<TodayVisualMood, string[]>>> = {
   Stewardship: {
@@ -3820,7 +4158,89 @@ const TODAY_THEME_TIME_PRIORITIES: Record<string, { morning?: string[]; winter?:
   Contentment: {
     weekend: ["Ireland fields and sky", "Field under clear sky", "Hopeful horizons"],
   },
+  Work: {
+    morning: ["Field under clear sky", "Ireland fields and sky", "New horizons"],
+  },
+  Life: {
+    weekend: ["Field under clear sky", "Hopeful horizons", "Ireland fields and sky"],
+  },
 };
+
+function shouldUseHumanAccent({
+  theme,
+  mood,
+  hour,
+  month,
+  dayOfWeek,
+  dayNumber,
+}: {
+  theme: string;
+  mood: TodayVisualMood;
+  hour: number | null;
+  month: number | null;
+  dayOfWeek: number | null;
+  dayNumber: number;
+}) {
+  if (!TODAY_THEME_HUMAN_PRIORITIES[theme]) {
+    return false;
+  }
+
+  const isMorning = hour !== null && hour >= 5 && hour < 11;
+  const isAfternoon = hour !== null && hour >= 11 && hour < 17;
+  const isEvening = hour !== null && hour >= 17;
+  const isWeekend = dayOfWeek !== null && (dayOfWeek === 0 || dayOfWeek === 6);
+  const isWinter = month !== null && [12, 1, 2].includes(month);
+  let eligible = false;
+  let chance = 0.16;
+
+  switch (theme) {
+    case "Stewardship":
+      eligible = isMorning || mood === "warm" || mood === "contemplative";
+      chance = isMorning ? 0.68 : mood === "warm" ? 0.38 : 0.24;
+      break;
+    case "Cost Counting":
+      eligible = isMorning || isAfternoon || mood === "warm";
+      chance = isMorning ? 0.42 : isAfternoon ? 0.24 : 0.16;
+      break;
+    case "Diligence":
+      eligible = true;
+      chance = isMorning ? 0.56 : mood === "warm" ? 0.34 : mood === "contemplative" ? 0.3 : 0.22;
+      break;
+    case "Generosity":
+      eligible = isMorning || isWeekend || mood === "warm" || mood === "contemplative";
+      chance = isMorning ? 0.68 : isWeekend ? (mood === "contemplative" ? 0.54 : 0.4) : mood === "warm" ? 0.36 : 0.24;
+      break;
+    case "Provision and Anxiety":
+      eligible = isWinter || isWeekend || mood === "contemplative";
+      chance = isWinter ? (mood === "contemplative" ? 0.36 : 0.24) : isWeekend ? 0.2 : 0.12;
+      break;
+    case "Counsel":
+      eligible = isWeekend || isEvening || mood === "contemplative";
+      chance = isWeekend ? (mood === "contemplative" ? 0.62 : 0.46) : isEvening ? (mood === "contemplative" ? 0.44 : 0.26) : 0.16;
+      break;
+    case "Contentment":
+      eligible = isWeekend || isEvening || mood === "contemplative";
+      chance = isWeekend ? (mood === "contemplative" ? 0.6 : 0.44) : isEvening ? (mood === "contemplative" ? 0.42 : 0.24) : 0.14;
+      break;
+    case "Work":
+      eligible = isMorning || isAfternoon || mood === "warm";
+      chance = isMorning ? 0.62 : isAfternoon ? 0.34 : mood === "warm" ? 0.24 : 0.16;
+      break;
+    case "Life":
+      eligible = !isWinter || isWeekend || mood === "contemplative";
+      chance = isWeekend ? 0.44 : mood === "contemplative" ? 0.3 : 0.18;
+      break;
+    default:
+      eligible = false;
+  }
+
+  if (!eligible) {
+    return false;
+  }
+
+  const roll = stableHash(`${theme}:${mood}:${hour ?? "na"}:${month ?? "na"}:${dayOfWeek ?? "na"}:${dayNumber}:human-accent`) % 100;
+  return roll < Math.round(chance * 100);
+}
 
 function resolveTodayVisualMood({
   month,
@@ -3883,19 +4303,381 @@ function resolveTodayVisualLabelTone({
   return mood === "warm" ? "warm" : mood === "contemplative" ? "quiet" : "cool";
 }
 
+type SeasonalCopyDictionary = {
+  morningLight: string;
+  openHorizon: string;
+  quietGenerosity: string;
+  winterHush: string;
+  calmField: string;
+  weekendStillness: string;
+  enoughQuietly: string;
+  slowReflection: string;
+  warmLight: string;
+  gentleBeginning: string;
+  softHorizon: string;
+  stillReflection: string;
+  steadyFocus: string;
+  morningGuidance: string;
+  clearStartEntrusted: string;
+  gentleStartGive: string;
+  winterCalm: string;
+  quieterFrameHeavy: string;
+  weekendMoreRoom: string;
+  softerPaceTrust: string;
+  warmSteadyBegin: string;
+  quietFrameCareful: string;
+  clearFrameNext: string;
+  morningPriority: string;
+  quietPriority: string;
+  stillnessPriority: string;
+  warmPriority: string;
+  personalizedPriority: string;
+  calmStartEntrusted: string;
+  quieterFrameHeavier: string;
+  gentlerPaceEnough: string;
+  softPaceDiscernment: string;
+  steadyWarmBeginning: string;
+  littleMoreStillness: string;
+  clearSteadyStart: string;
+  openSource: string;
+  calmSource: string;
+};
+
+const seasonalCopyByLanguage: Partial<Record<LanguageCode, SeasonalCopyDictionary>> = {
+  en: {
+    morningLight: "Morning light",
+    openHorizon: "Open horizon",
+    quietGenerosity: "Quiet generosity",
+    winterHush: "Winter hush",
+    calmField: "Calm field",
+    weekendStillness: "Weekend stillness",
+    enoughQuietly: "Enough, quietly",
+    slowReflection: "Slow reflection",
+    warmLight: "Warm light",
+    gentleBeginning: "A gentle beginning",
+    softHorizon: "Soft horizon",
+    stillReflection: "Still reflection",
+    steadyFocus: "Steady focus",
+    morningGuidance: "Morning guidance",
+    clearStartEntrusted: "A clear start for what has been entrusted.",
+    gentleStartGive: "A gentle start for what you can give.",
+    winterCalm: "Winter calm",
+    quieterFrameHeavy: "A quieter frame for what feels heavy today.",
+    weekendMoreRoom: "A little more room to notice enough.",
+    softerPaceTrust: "A softer pace for discernment and trust.",
+    warmSteadyBegin: "A steady way to begin without rushing.",
+    quietFrameCareful: "A calm frame for a careful next step.",
+    clearFrameNext: "A clear frame for what comes next.",
+    morningPriority: "Morning priority",
+    quietPriority: "Quiet priority",
+    stillnessPriority: "Stillness priority",
+    warmPriority: "Warm priority",
+    personalizedPriority: "Personalized priority",
+    calmStartEntrusted: "A calm start for what is entrusted to you.",
+    quieterFrameHeavier: "A quieter frame for what feels heavier today.",
+    gentlerPaceEnough: "A gentler pace for noticing enough.",
+    softPaceDiscernment: "A softer pace for discernment and trust.",
+    steadyWarmBeginning: "A steady, warm beginning for today's next step.",
+    littleMoreStillness: "A little more stillness before you move.",
+    clearSteadyStart: "A clear, steady start for today's next step.",
+    openSource: "Open",
+    calmSource: "Calm",
+  },
+  es: {
+    morningLight: "Luz de la mañana",
+    openHorizon: "Horizonte abierto",
+    quietGenerosity: "Generosidad tranquila",
+    winterHush: "Silencio de invierno",
+    calmField: "Campo en calma",
+    weekendStillness: "Quietud de fin de semana",
+    enoughQuietly: "Basta, en silencio",
+    slowReflection: "Reflexión lenta",
+    warmLight: "Luz cálida",
+    gentleBeginning: "Un comienzo suave",
+    softHorizon: "Horizonte suave",
+    stillReflection: "Reflexión serena",
+    steadyFocus: "Foco constante",
+    morningGuidance: "Guía de la mañana",
+    clearStartEntrusted: "Un comienzo claro para lo que se te ha confiado.",
+    gentleStartGive: "Un comienzo suave para lo que puedes dar.",
+    winterCalm: "Calma de invierno",
+    quieterFrameHeavy: "Un marco más sereno para lo que hoy pesa.",
+    weekendMoreRoom: "Un poco más de espacio para notar que basta.",
+    softerPaceTrust: "Un ritmo más suave para discernimiento y confianza.",
+    warmSteadyBegin: "Una forma constante de comenzar sin prisa.",
+    quietFrameCareful: "Un marco sereno para un siguiente paso cuidadoso.",
+    clearFrameNext: "Un marco claro para lo que viene después.",
+    morningPriority: "Prioridad de la mañana",
+    quietPriority: "Prioridad tranquila",
+    stillnessPriority: "Prioridad de quietud",
+    warmPriority: "Prioridad cálida",
+    personalizedPriority: "Prioridad personalizada",
+    calmStartEntrusted: "Un comienzo sereno para lo que se te ha confiado.",
+    quieterFrameHeavier: "Un marco más sereno para lo que hoy se siente más pesado.",
+    gentlerPaceEnough: "Un ritmo más suave para notar que basta.",
+    softPaceDiscernment: "Un ritmo más suave para discernimiento y confianza.",
+    steadyWarmBeginning: "Un comienzo constante y cálido para el siguiente paso de hoy.",
+    littleMoreStillness: "Un poco más de quietud antes de moverte.",
+    clearSteadyStart: "Un comienzo claro y constante para el siguiente paso de hoy.",
+    openSource: "Abierto",
+    calmSource: "Calma",
+  },
+  fr: {
+    morningLight: "Lumière du matin",
+    openHorizon: "Horizon ouvert",
+    quietGenerosity: "Générosité paisible",
+    winterHush: "Silence d'hiver",
+    calmField: "Champ paisible",
+    weekendStillness: "Calme du week-end",
+    enoughQuietly: "Assez, en douceur",
+    slowReflection: "Réflexion lente",
+    warmLight: "Lumière douce",
+    gentleBeginning: "Un début en douceur",
+    softHorizon: "Horizon doux",
+    stillReflection: "Réflexion calme",
+    steadyFocus: "Attention stable",
+    morningGuidance: "Repère du matin",
+    clearStartEntrusted: "Un départ clair pour ce qui vous a été confié.",
+    gentleStartGive: "Un départ doux pour ce que vous pouvez offrir.",
+    winterCalm: "Calme d'hiver",
+    quieterFrameHeavy: "Un cadre plus calme pour ce qui pèse aujourd'hui.",
+    weekendMoreRoom: "Un peu plus d'espace pour remarquer que c'est assez.",
+    softerPaceTrust: "Un rythme plus doux pour le discernement et la confiance.",
+    warmSteadyBegin: "Une manière stable de commencer sans se presser.",
+    quietFrameCareful: "Un cadre calme pour un prochain pas attentif.",
+    clearFrameNext: "Un cadre clair pour la suite.",
+    morningPriority: "Priorité du matin",
+    quietPriority: "Priorité calme",
+    stillnessPriority: "Priorité de silence",
+    warmPriority: "Priorité douce",
+    personalizedPriority: "Priorité personnalisée",
+    calmStartEntrusted: "Un départ paisible pour ce qui vous est confié.",
+    quieterFrameHeavier: "Un cadre plus calme pour ce qui semble plus lourd aujourd'hui.",
+    gentlerPaceEnough: "Un rythme plus doux pour remarquer que c'est assez.",
+    softPaceDiscernment: "Un rythme plus doux pour le discernement et la confiance.",
+    steadyWarmBeginning: "Un début stable et doux pour le prochain pas d'aujourd'hui.",
+    littleMoreStillness: "Un peu plus de silence avant d'avancer.",
+    clearSteadyStart: "Un départ clair et stable pour le prochain pas d'aujourd'hui.",
+    openSource: "Ouvert",
+    calmSource: "Calme",
+  },
+  pt: {
+    morningLight: "Luz da manhã",
+    openHorizon: "Horizonte aberto",
+    quietGenerosity: "Generosidade tranquila",
+    winterHush: "Silêncio de inverno",
+    calmField: "Campo em calma",
+    weekendStillness: "Quietude de fim de semana",
+    enoughQuietly: "Basta, em silêncio",
+    slowReflection: "Reflexão lenta",
+    warmLight: "Luz quente",
+    gentleBeginning: "Um começo suave",
+    softHorizon: "Horizonte suave",
+    stillReflection: "Reflexão serena",
+    steadyFocus: "Foco constante",
+    morningGuidance: "Guia da manhã",
+    clearStartEntrusted: "Um começo claro para o que lhe foi confiado.",
+    gentleStartGive: "Um começo suave para o que você pode oferecer.",
+    winterCalm: "Calma de inverno",
+    quieterFrameHeavy: "Um enquadramento mais silencioso para o que pesa hoje.",
+    weekendMoreRoom: "Um pouco mais de espaço para perceber o bastante.",
+    softerPaceTrust: "Um ritmo mais suave para discernimento e confiança.",
+    warmSteadyBegin: "Uma forma constante de começar sem pressa.",
+    quietFrameCareful: "Um enquadramento calmo para o próximo passo cuidadoso.",
+    clearFrameNext: "Um enquadramento claro para o que vem a seguir.",
+    morningPriority: "Prioridade da manhã",
+    quietPriority: "Prioridade tranquila",
+    stillnessPriority: "Prioridade de quietude",
+    warmPriority: "Prioridade acolhedora",
+    personalizedPriority: "Prioridade personalizada",
+    calmStartEntrusted: "Um começo sereno para o que foi confiado a você.",
+    quieterFrameHeavier: "Um enquadramento mais silencioso para o que parece mais pesado hoje.",
+    gentlerPaceEnough: "Um ritmo mais suave para perceber o bastante.",
+    softPaceDiscernment: "Um ritmo mais suave para discernimento e confiança.",
+    steadyWarmBeginning: "Um começo firme e acolhedor para o próximo passo de hoje.",
+    littleMoreStillness: "Um pouco mais de quietude antes de avançar.",
+    clearSteadyStart: "Um começo claro e firme para o próximo passo de hoje.",
+    openSource: "Aberto",
+    calmSource: "Calmo",
+  },
+  de: {
+    morningLight: "Morgenlicht",
+    openHorizon: "Offener Horizont",
+    quietGenerosity: "Leise Großzügigkeit",
+    winterHush: "Winterstille",
+    calmField: "Ruhiges Feld",
+    weekendStillness: "Wochenendstille",
+    enoughQuietly: "Genug, ganz leise",
+    slowReflection: "Langsame Reflexion",
+    warmLight: "Warmes Licht",
+    gentleBeginning: "Ein sanfter Anfang",
+    softHorizon: "Sanfter Horizont",
+    stillReflection: "Stille Reflexion",
+    steadyFocus: "Ruhiger Fokus",
+    morningGuidance: "Morgenimpuls",
+    clearStartEntrusted: "Ein klarer Start für das, was dir anvertraut wurde.",
+    gentleStartGive: "Ein sanfter Start für das, was du geben kannst.",
+    winterCalm: "Winterruhe",
+    quieterFrameHeavy: "Ein stillerer Rahmen für das, was sich heute schwer anfühlt.",
+    weekendMoreRoom: "Etwas mehr Raum, um genug wahrzunehmen.",
+    softerPaceTrust: "Ein sanfteres Tempo für Unterscheidung und Vertrauen.",
+    warmSteadyBegin: "Ein ruhiger, warmer Anfang ohne Eile.",
+    quietFrameCareful: "Ein ruhiger Rahmen für den nächsten sorgfältigen Schritt.",
+    clearFrameNext: "Ein klarer Rahmen für das, was als Nächstes kommt.",
+    morningPriority: "Morgenpriorität",
+    quietPriority: "Ruhige Priorität",
+    stillnessPriority: "Stille Priorität",
+    warmPriority: "Warme Priorität",
+    personalizedPriority: "Personalisierte Priorität",
+    calmStartEntrusted: "Ein ruhiger Start für das, was dir anvertraut ist.",
+    quieterFrameHeavier: "Ein stillerer Rahmen für das, was sich heute schwerer anfühlt.",
+    gentlerPaceEnough: "Ein sanfteres Tempo, um genug wahrzunehmen.",
+    softPaceDiscernment: "Ein sanfteres Tempo für Unterscheidung und Vertrauen.",
+    steadyWarmBeginning: "Ein ruhiger, warmer Beginn für den nächsten Schritt heute.",
+    littleMoreStillness: "Ein wenig mehr Stille, bevor du dich bewegst.",
+    clearSteadyStart: "Ein klarer, ruhiger Start für den nächsten Schritt heute.",
+    openSource: "Offen",
+    calmSource: "Ruhig",
+  },
+  yo: {
+    morningLight: "Ìmọ́lẹ̀ òwúrọ̀",
+    openHorizon: "Òkè òkun tó ṣí",
+    quietGenerosity: "Ìfọ̀kànbalẹ̀ ìfúnni",
+    winterHush: "Ìdákẹ́jẹ òtútù",
+    calmField: "Pápá ìdákẹ́jẹ",
+    weekendStillness: "Ìdákẹ́jẹ òpin ọ̀sẹ̀",
+    enoughQuietly: "Ó tó, ní ìdákẹ́jẹ",
+    slowReflection: "Ìrònú lọ́ra",
+    warmLight: "Ìmọ́lẹ̀ gbóná",
+    gentleBeginning: "Ìbẹ̀rẹ̀ pẹ̀lẹ́",
+    softHorizon: "Òkè òkun pẹ̀lẹ́",
+    stillReflection: "Ìrònú ìdákẹ́jẹ",
+    steadyFocus: "Ìfọkànsìn dúróṣinṣin",
+    morningGuidance: "Ìtọ́nisọ́nà òwúrọ̀",
+    clearStartEntrusted: "Ìbẹ̀rẹ̀ kedere fún ohun tí a fi lé ọ lọ́wọ́.",
+    gentleStartGive: "Ìbẹ̀rẹ̀ pẹ̀lẹ́ fún ohun tí o lè pèsè.",
+    winterCalm: "Ìfọ̀kànbalẹ̀ òtútù",
+    quieterFrameHeavy: "Àyíká tó dakẹ́ síi fún ohun tó ń wu lónìí.",
+    weekendMoreRoom: "Àyè díẹ̀ síi láti rí i pé ó tó.",
+    softerPaceTrust: "Ìtẹ̀síwájú pẹ̀lẹ́ fún ìmúlòyé àti ìgbẹ́kẹ̀lé.",
+    warmSteadyBegin: "Ọna tó dúróṣinṣin àti gbóná láti bẹ̀rẹ̀ láìsáré.",
+    quietFrameCareful: "Àyíká ìdákẹ́jẹ fún ìgbésẹ̀ tó tẹ̀síwájú pẹ̀lú àkíyèsí.",
+    clearFrameNext: "Àyíká kedere fún ohun tó ń bọ̀.",
+    morningPriority: "Ìṣáájú òwúrọ̀",
+    quietPriority: "Ìṣáájú ìdákẹ́jẹ",
+    stillnessPriority: "Ìṣáájú ìdákẹ́jẹ pátápátá",
+    warmPriority: "Ìṣáájú gbóná",
+    personalizedPriority: "Ìṣáájú tí a ṣe pẹ̀lú ẹni kọọkan",
+    calmStartEntrusted: "Ìbẹ̀rẹ̀ pẹ̀lú ìfọ̀kànbalẹ̀ fún ohun tí a fi lé ọ lọ́wọ́.",
+    quieterFrameHeavier: "Àyíká tó dakẹ́ síi fún ohun tó ń wu jù lónìí.",
+    gentlerPaceEnough: "Ìtẹ̀síwájú pẹ̀lẹ́ láti mọ̀ pé ó tó.",
+    softPaceDiscernment: "Ìtẹ̀síwájú pẹ̀lẹ́ fún ìmúlòyé àti ìgbẹ́kẹ̀lé.",
+    steadyWarmBeginning: "Ìbẹ̀rẹ̀ tó dúróṣinṣin, tó gbóná fún ìgbésẹ̀ t'ónìí.",
+    littleMoreStillness: "Ìdákẹ́jẹ díẹ̀ síi kí o tó rìn.",
+    clearSteadyStart: "Ìbẹ̀rẹ̀ kedere, tó dúróṣinṣin fún ìgbésẹ̀ t'ónìí.",
+    openSource: "Ṣí",
+    calmSource: "Ìdákẹ́jẹ",
+  },
+  ig: {
+    morningLight: "Ìhè ụtụtụ",
+    openHorizon: "Nnukwu mbara",
+    quietGenerosity: "Mmesapụ aka dị jụụ",
+    winterHush: "Jụụ nke oyi",
+    calmField: "Ubi dị jụụ",
+    weekendStillness: "Idu jụụ nke ngwụsị izu",
+    enoughQuietly: "O zuru, nwayọ",
+    slowReflection: "Ntụgharị uche nwayọ",
+    warmLight: "Ìhè dị ọkụ",
+    gentleBeginning: "Mmalite dị nro",
+    softHorizon: "Mbara dị nro",
+    stillReflection: "Ntụgharị uche dị jụụ",
+    steadyFocus: "Nlebara anya kwụsie ike",
+    morningGuidance: "Ntuziaka ụtụtụ",
+    clearStartEntrusted: "Mmalite doro anya maka ihe e nyefere gị.",
+    gentleStartGive: "Mmalite dị nro maka ihe i nwere ike inye.",
+    winterCalm: "Udo nke oyi",
+    quieterFrameHeavy: "Ụkpụrụ dị jụụ karịa maka ihe na-ada arọ taa.",
+    weekendMoreRoom: "Obere ohere ọzọ iji hụ na o zuru.",
+    softerPaceTrust: "Ọsọ dị nro maka nghọta na ntụkwasị obi.",
+    warmSteadyBegin: "Mmalite kwụsie ike, na-ekpo ọkụ na-enweghị ngwa ngwa.",
+    quietFrameCareful: "Ụkpụrụ dị jụụ maka nzọụkwụ ọzọ jiri nlezianya.",
+    clearFrameNext: "Ụkpụrụ doro anya maka ihe na-abịa ọzọ.",
+    morningPriority: "Ihe kacha mkpa nke ụtụtụ",
+    quietPriority: "Ihe kacha mkpa dị jụụ",
+    stillnessPriority: "Ihe kacha mkpa nke ịdị jụụ",
+    warmPriority: "Ihe kacha mkpa dị ọkụ",
+    personalizedPriority: "Ihe kacha mkpa ahaziri onwe ya",
+    calmStartEntrusted: "Mmalite dị jụụ maka ihe e nyefere gị.",
+    quieterFrameHeavier: "Ụkpụrụ dị jụụ karịa maka ihe na-adị arọ taa.",
+    gentlerPaceEnough: "Ọsọ dị nro iji mata na o zuru.",
+    softPaceDiscernment: "Ọsọ dị nro maka nghọta na ntụkwasị obi.",
+    steadyWarmBeginning: "Mmalite kwụsie ike, dị ọkụ maka nzọụkwụ ọzọ nke taa.",
+    littleMoreStillness: "Obere ịdị jụụ ọzọ tupu ịga n'ihu.",
+    clearSteadyStart: "Mmalite doro anya, kwụsie ike maka nzọụkwụ ọzọ nke taa.",
+    openSource: "Mepee",
+    calmSource: "Jụụ",
+  },
+  ha: {
+    morningLight: "Haske na safe",
+    openHorizon: "Sararin budewa",
+    quietGenerosity: "Kyauta cikin natsuwa",
+    winterHush: "Natsuwar hunturu",
+    calmField: "Filin natsuwa",
+    weekendStillness: "Natsuwar ƙarshen mako",
+    enoughQuietly: "Ya isa, a hankali",
+    slowReflection: "Tunani a hankali",
+    warmLight: "Haske mai dumi",
+    gentleBeginning: "Farawa a hankali",
+    softHorizon: "Sararin laushi",
+    stillReflection: "Tunani cikin natsuwa",
+    steadyFocus: "Natsattsen hankali",
+    morningGuidance: "Jagorar safe",
+    clearStartEntrusted: "Farawa mai kyau ga abin da aka danƙa maka.",
+    gentleStartGive: "Farawa mai laushi ga abin da za ka iya bayarwa.",
+    winterCalm: "Natsuwar hunturu",
+    quieterFrameHeavy: "Yanayi mafi shiru ga abin da ya yi nauyi yau.",
+    weekendMoreRoom: "Ƙarin wuri kaɗan don lura cewa ya isa.",
+    softerPaceTrust: "Sauri mai laushi don fahimta da dogaro.",
+    warmSteadyBegin: "Farawa mai dumi da tabbatacce ba tare da gaggawa ba.",
+    quietFrameCareful: "Yanayi mai natsuwa don mataki na gaba a hankali.",
+    clearFrameNext: "Yanayi bayyananne ga abin da zai biyo baya.",
+    morningPriority: "Muhimmancin safe",
+    quietPriority: "Muhimmanci cikin natsuwa",
+    stillnessPriority: "Muhimmancin shiru",
+    warmPriority: "Muhimmanci mai dumi",
+    personalizedPriority: "Muhimmanci na musamman",
+    calmStartEntrusted: "Farawa mai natsuwa ga abin da aka danƙa maka.",
+    quieterFrameHeavier: "Yanayi mafi shiru ga abin da ya fi nauyi yau.",
+    gentlerPaceEnough: "Sauri mai laushi don lura cewa ya isa.",
+    softPaceDiscernment: "Sauri mai laushi don fahimta da dogaro.",
+    steadyWarmBeginning: "Farawa mai tabbatacce da dumi ga mataki na gaba na yau.",
+    littleMoreStillness: "Ƙarin shiru kaɗan kafin ka motsa.",
+    clearSteadyStart: "Farawa bayyananne, tabbatacce ga mataki na gaba na yau.",
+    openSource: "Buɗe",
+    calmSource: "Natsuwa",
+  },
+};
+
+function seasonalCopy(language: LanguageCode) {
+  return seasonalCopyByLanguage[language] ?? seasonalCopyByLanguage.en!;
+}
+
 function todayVisualLabelCopy({
+  language,
   theme,
   mood,
   hour,
   month,
   dayOfWeek,
 }: {
+  language: LanguageCode;
   theme: string;
   mood: TodayVisualMood;
   hour: number | null;
   month: number | null;
   dayOfWeek: number | null;
 }) {
+  const copy = seasonalCopy(language);
   const tone = resolveTodayVisualLabelTone({ theme, mood, hour, month, dayOfWeek });
   const isMorningSunriseTheme = (theme === "Stewardship" || theme === "Generosity") && hour !== null && hour >= 5 && hour < 11;
   const isWinterTheme = theme === "Provision and Anxiety" && month !== null && [12, 1, 2].includes(month);
@@ -3903,64 +4685,67 @@ function todayVisualLabelCopy({
 
   if (isMorningSunriseTheme) {
     return {
-      eyebrow: "Morning light",
-      caption: theme === "Stewardship" ? "Open horizon" : "Quiet generosity",
-      source: "Open",
+      eyebrow: copy.morningLight,
+      caption: theme === "Stewardship" ? copy.openHorizon : copy.quietGenerosity,
+      source: copy.openSource,
     };
   }
 
   if (isWinterTheme) {
     return {
-      eyebrow: "Winter hush",
-      caption: "Calm field",
-      source: "Open",
+      eyebrow: copy.winterHush,
+      caption: copy.calmField,
+      source: copy.openSource,
     };
   }
 
   if (isWeekendTheme) {
     return {
-      eyebrow: "Weekend stillness",
-      caption: theme === "Contentment" ? "Enough, quietly" : "Slow reflection",
-      source: "Open",
+      eyebrow: copy.weekendStillness,
+      caption: theme === "Contentment" ? copy.enoughQuietly : copy.slowReflection,
+      source: copy.openSource,
     };
   }
 
   if (tone === "warm") {
     return {
-      eyebrow: "Warm light",
-      caption: theme === "Stewardship" || theme === "Generosity" ? "A gentle beginning" : "Soft horizon",
-      source: "Open",
+      eyebrow: copy.warmLight,
+      caption: theme === "Stewardship" || theme === "Generosity" ? copy.gentleBeginning : copy.softHorizon,
+      source: copy.openSource,
     };
   }
 
   if (tone === "quiet") {
     return {
-      eyebrow: "Quiet light",
-      caption: "Still reflection",
-      source: "Calm",
+      eyebrow: copy.stillReflection,
+      caption: copy.stillReflection,
+      source: copy.calmSource,
     };
   }
 
   return {
-    eyebrow: "Soft field",
-    caption: "Steady focus",
-    source: "Open",
+    eyebrow: copy.openHorizon,
+    caption: copy.steadyFocus,
+    source: copy.openSource,
   };
 }
 
 function todaySeasonalHeaderCopy({
+  language,
   theme,
   mood,
   hour,
   month,
   dayOfWeek,
 }: {
+  language: LanguageCode;
   theme: string;
   mood: TodayVisualMood;
   hour: number | null;
   month: number | null;
   dayOfWeek: number | null;
 }) {
+  const copy = seasonalCopy(language);
   const tone = resolveTodayVisualLabelTone({ theme, mood, hour, month, dayOfWeek });
   const isMorningSunriseTheme = (theme === "Stewardship" || theme === "Generosity") && hour !== null && hour >= 5 && hour < 11;
   const isWinterTheme = theme === "Provision and Anxiety" && month !== null && [12, 1, 2].includes(month);
@@ -3968,129 +4753,131 @@ function todaySeasonalHeaderCopy({
 
   if (isMorningSunriseTheme) {
     return {
-      eyebrow: "Morning guidance",
-      body: theme === "Stewardship"
-        ? "A clear start for what has been entrusted."
-        : "A gentle start for what you can give.",
+      eyebrow: copy.morningGuidance,
+      body: theme === "Stewardship" ? copy.clearStartEntrusted : copy.gentleStartGive,
     };
   }
 
   if (isWinterTheme) {
     return {
-      eyebrow: "Winter calm",
-      body: "A quieter frame for what feels heavy today.",
+      eyebrow: copy.winterCalm,
+      body: copy.quieterFrameHeavy,
     };
   }
 
   if (isWeekendTheme) {
     return {
-      eyebrow: "Weekend stillness",
-      body: theme === "Contentment"
-        ? "A little more room to notice enough."
-        : "A softer pace for discernment and trust.",
+      eyebrow: copy.weekendStillness,
+      body: theme === "Contentment" ? copy.weekendMoreRoom : copy.softerPaceTrust,
     };
   }
 
   if (tone === "warm") {
     return {
-      eyebrow: "Warm light",
-      body: "A steady way to begin without rushing.",
+      eyebrow: copy.warmLight,
+      body: copy.warmSteadyBegin,
     };
   }
 
   if (tone === "quiet") {
     return {
-      eyebrow: "Quiet field",
-      body: "A calm frame for a careful next step.",
+      eyebrow: copy.stillReflection,
+      body: copy.quietFrameCareful,
     };
   }
 
   return {
-    eyebrow: "Steady focus",
-    body: "A clear frame for what comes next.",
+    eyebrow: copy.steadyFocus,
+    body: copy.clearFrameNext,
   };
 }
 
 function homeWelcomeSeasonalCopy({
+  language,
   theme,
   mood,
   hour,
   month,
   dayOfWeek,
 }: {
+  language: LanguageCode;
   theme: string;
   mood: TodayVisualMood;
   hour: number | null;
   month: number | null;
   dayOfWeek: number | null;
 }) {
+  const copy = seasonalCopy(language);
   const isMorningSunriseTheme = (theme === "Stewardship" || theme === "Generosity") && hour !== null && hour >= 5 && hour < 11;
   const isWinterTheme = theme === "Provision and Anxiety" && month !== null && [12, 1, 2].includes(month);
   const isWeekendTheme = (theme === "Counsel" || theme === "Contentment") && dayOfWeek !== null && (dayOfWeek === 0 || dayOfWeek === 6);
 
   if (isMorningSunriseTheme) {
-    return "A calm start for what is entrusted to you.";
+    return copy.calmStartEntrusted;
   }
 
   if (isWinterTheme) {
-    return "A quieter frame for what feels heavier today.";
+    return copy.quieterFrameHeavier;
   }
 
   if (isWeekendTheme) {
     return theme === "Contentment"
-      ? "A gentler pace for noticing enough."
-      : "A softer pace for discernment and trust.";
+      ? copy.gentlerPaceEnough
+      : copy.softPaceDiscernment;
   }
 
   if (mood === "warm") {
-    return "A steady, warm beginning for today's next step.";
+    return copy.steadyWarmBeginning;
   }
 
   if (mood === "contemplative") {
-    return "A little more stillness before you move.";
+    return copy.littleMoreStillness;
   }
 
-  return "A clear, steady start for today's next step.";
+  return copy.clearSteadyStart;
 }
 
 function homeWelcomeEyebrowCopy({
+  language,
   theme,
   mood,
   hour,
   month,
   dayOfWeek,
 }: {
+  language: LanguageCode;
   theme: string;
   mood: TodayVisualMood;
   hour: number | null;
   month: number | null;
   dayOfWeek: number | null;
 }) {
+  const copy = seasonalCopy(language);
   const isMorningSunriseTheme = (theme === "Stewardship" || theme === "Generosity") && hour !== null && hour >= 5 && hour < 11;
   const isWinterTheme = theme === "Provision and Anxiety" && month !== null && [12, 1, 2].includes(month);
   const isWeekendTheme = (theme === "Counsel" || theme === "Contentment") && dayOfWeek !== null && (dayOfWeek === 0 || dayOfWeek === 6);
 
   if (isMorningSunriseTheme) {
-    return "Morning priority";
+    return copy.morningPriority;
   }
 
   if (isWinterTheme) {
-    return "Quiet priority";
+    return copy.quietPriority;
   }
 
   if (isWeekendTheme) {
-    return "Stillness priority";
+    return copy.stillnessPriority;
   }
 
   if (mood === "warm") {
-    return "Warm priority";
+    return copy.warmPriority;
   }
 
   if (mood === "contemplative") {
-    return "Quiet priority";
+    return copy.quietPriority;
   }
 
-  return "Personalized priority";
+  return copy.personalizedPriority;
 }
 
 function orderedTodayVisualAssets(
@@ -4153,7 +4940,15 @@ function selectTodayVisualAsset({
       : isWeekendTheme
         ? "contemplative"
         : mood;
-  const explicitTitles =
+  const humanAccent = shouldUseHumanAccent({
+    theme,
+    mood: effectiveMood,
+    hour,
+    month,
+    dayOfWeek,
+    dayNumber,
+  });
+  const landscapeTitles =
     isMorningSunriseTheme
       ? TODAY_THEME_TIME_PRIORITIES[theme]?.morning
       : isWinterTheme
@@ -4161,13 +4956,104 @@ function selectTodayVisualAsset({
         : isWeekendTheme
           ? TODAY_THEME_TIME_PRIORITIES[theme]?.weekend
           : undefined;
-  const orderedAssets = orderedTodayVisualAssets(theme, effectiveMood, dayNumber, explicitTitles);
+  const humanTitles = humanAccent ? TODAY_THEME_HUMAN_PRIORITIES[theme]?.[effectiveMood] ?? TODAY_THEME_HUMAN_PRIORITIES[theme]?.warm : undefined;
+  const orderedAssets = orderedTodayVisualAssets(theme, effectiveMood, dayNumber, humanTitles ?? landscapeTitles);
   if (orderedAssets) {
     return orderedAssets;
   }
 
+  if (humanAccent) {
+    const fallbackLandscape = orderedTodayVisualAssets(theme, effectiveMood, dayNumber, landscapeTitles);
+    if (fallbackLandscape) {
+      return fallbackLandscape;
+    }
+  }
+
   const fallbackIndex = stableHash(`${theme}:${effectiveMood}:${dayNumber}:today-generic`) % TODAY_GENERIC_VISUALS.length;
   return TODAY_GENERIC_VISUALS[fallbackIndex];
+}
+
+function resolveTodayVisualPlacement({
+  theme,
+  mood,
+  hour,
+  month,
+  dayOfWeek,
+  fallbackLevel,
+}: {
+  theme: string;
+  mood: TodayVisualMood;
+  hour: number | null;
+  month: number | null;
+  dayOfWeek: number | null;
+  fallbackLevel: TodayVisualFallbackLevel;
+}): TodayVisualPlacement {
+  const isMorning = hour !== null && hour >= 5 && hour < 11;
+  const isAfternoon = hour !== null && hour >= 11 && hour < 17;
+  const isEvening = hour !== null && hour >= 17;
+  const isWinter = month !== null && [12, 1, 2].includes(month);
+  const isWeekend = dayOfWeek !== null && (dayOfWeek === 0 || dayOfWeek === 6);
+  const isMorningSunriseTheme = (theme === "Stewardship" || theme === "Generosity") && isMorning;
+  const isWinterTheme = theme === "Provision and Anxiety" && isWinter;
+  const isWeekendTheme = (theme === "Counsel" || theme === "Contentment") && isWeekend;
+  const isWarmMood = mood === "warm";
+  const isQuietMood = mood === "contemplative";
+
+  let wrapperClassName = "mt-8 w-[128px] self-end md:mt-0 md:w-full md:self-start md:justify-self-end";
+  let imageClassName = "object-cover";
+  let objectPosition = "center 36%";
+  let overlayGradient = "linear-gradient(180deg, rgba(8, 11, 10, 0.00) 0%, rgba(8, 11, 10, 0.02) 48%, rgba(8, 11, 10, 0.14) 100%)";
+  let figureMinHeight = "112px";
+  let figureWidth = "128px";
+  let figureOpacity = 1;
+
+  if (fallbackLevel === "illustration") {
+    wrapperClassName = "mt-7 w-[124px] self-end md:mt-0 md:w-full md:self-start md:justify-self-end";
+    imageClassName = "object-contain";
+    objectPosition = "center 44%";
+    overlayGradient = "linear-gradient(180deg, rgba(8, 11, 10, 0.00) 0%, rgba(8, 11, 10, 0.02) 52%, rgba(8, 11, 10, 0.10) 100%)";
+    figureMinHeight = "108px";
+    figureWidth = "124px";
+    figureOpacity = 0.98;
+  } else if (fallbackLevel === "fallback") {
+    wrapperClassName = "mt-7 w-[122px] self-end md:mt-0 md:w-full md:self-start md:justify-self-end";
+    imageClassName = "object-contain";
+    objectPosition = "center 46%";
+    overlayGradient = "linear-gradient(180deg, rgba(8, 11, 10, 0.00) 0%, rgba(8, 11, 10, 0.03) 54%, rgba(8, 11, 10, 0.08) 100%)";
+    figureMinHeight = "106px";
+    figureWidth = "122px";
+    figureOpacity = 0.94;
+  }
+
+  if (isMorningSunriseTheme) {
+    wrapperClassName = wrapperClassName.replace("mt-8", "mt-10");
+    objectPosition = "center 30%";
+    overlayGradient = "linear-gradient(180deg, rgba(8, 11, 10, 0.00) 0%, rgba(8, 11, 10, 0.03) 42%, rgba(8, 11, 10, 0.16) 100%)";
+  } else if (isWinterTheme) {
+    wrapperClassName = wrapperClassName.replace("mt-8", "mt-9");
+    objectPosition = "center 48%";
+    overlayGradient = "linear-gradient(180deg, rgba(8, 11, 10, 0.00) 0%, rgba(8, 11, 10, 0.04) 44%, rgba(8, 11, 10, 0.18) 100%)";
+  } else if (isWeekendTheme) {
+    wrapperClassName = wrapperClassName.replace("mt-8", "mt-9");
+    objectPosition = "center 40%";
+    overlayGradient = "linear-gradient(180deg, rgba(8, 11, 10, 0.00) 0%, rgba(8, 11, 10, 0.03) 46%, rgba(8, 11, 10, 0.14) 100%)";
+  } else if (isAfternoon) {
+    objectPosition = "center 38%";
+  } else if (isEvening || isQuietMood) {
+    objectPosition = "center 44%";
+  } else if (isWarmMood) {
+    objectPosition = "center 34%";
+  }
+
+  return {
+    wrapperClassName,
+    imageClassName,
+    objectPosition,
+    overlayGradient,
+    figureMinHeight,
+    figureWidth,
+    figureOpacity,
+  };
 }
 
 function TodayVisualScene({
@@ -4279,7 +5165,6 @@ function TodayVisualScene({
 }
 
 function TodayVisualPanel({
-  labelCopy,
   themeName,
   dayNumber,
   mood,
@@ -4288,7 +5173,6 @@ function TodayVisualPanel({
   dayOfWeek,
   theme,
 }: {
-  labelCopy: { eyebrow: string; caption: string; source: string };
   themeName: string;
   dayNumber: number;
   mood: TodayVisualMood;
@@ -4310,31 +5194,37 @@ function TodayVisualPanel({
     [dayNumber, dayOfWeek, hour, month, mood, themeName]
   );
   const usingPhoto = asset.kind === "photo" && !imageFailed;
+  const placement = resolveTodayVisualPlacement({
+    theme: themeName,
+    mood,
+    hour,
+    month,
+    dayOfWeek,
+    fallbackLevel: usingPhoto ? "photo" : asset.kind === "illustration" ? "illustration" : "fallback",
+  });
 
   return (
     <figure
-      className="relative w-full min-w-0 overflow-hidden rounded-[1.5rem] border shadow-sm"
+      className={`relative w-full min-w-0 overflow-hidden rounded-[1.35rem] border shadow-sm ${placement.wrapperClassName}`}
       style={{
         borderColor: theme.borderLight,
-        backgroundColor: theme.bgCardElevated,
-        boxShadow: "0 12px 30px rgba(12, 18, 16, 0.12)",
+        background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})`,
+        boxShadow: "0 8px 20px rgba(12, 18, 16, 0.08)",
+        minHeight: placement.figureMinHeight,
+        width: placement.figureWidth,
+        opacity: placement.figureOpacity,
       }}
-      aria-label={`${labelCopy.eyebrow} visual`}
+      aria-hidden="true"
     >
-      <div className="absolute left-3 top-3 z-10 rounded-full border px-2.5 py-1 text-[0.64rem] font-semibold uppercase tracking-[0.18em]" style={{ borderColor: theme.borderLight, backgroundColor: "rgba(8, 12, 10, 0.48)", color: theme.textOnPrimary }}>
-        {labelCopy.eyebrow}
-      </div>
-      <div className="absolute right-3 top-3 z-10 rounded-full border px-2 py-1 text-[0.62rem] font-semibold uppercase tracking-[0.16em]" style={{ borderColor: theme.borderLight, backgroundColor: "rgba(8, 12, 10, 0.38)", color: theme.textOnPrimary }}>
-        {asset.kind === "photo" ? labelCopy.source : "Aletheia texture"}
-      </div>
-      <div className="relative aspect-[4/3] min-h-[168px] overflow-hidden">
+      <div className={`relative aspect-[4/3] overflow-hidden ${placement.imageClassName}`}>
         {usingPhoto ? (
           <Image
             src={asset.imageUrl}
             alt=""
             fill
-            sizes="(max-width: 768px) 100vw, 230px"
-            className="object-cover"
+            sizes="(max-width: 768px) 100vw, 180px"
+            className={placement.imageClassName}
+            style={{ objectPosition: placement.objectPosition }}
             onError={() => setImageFailed(true)}
             unoptimized
             priority={false}
@@ -4347,17 +5237,9 @@ function TodayVisualPanel({
         <div
           className="absolute inset-0"
           style={{
-            background: "linear-gradient(180deg, rgba(8, 11, 10, 0.02) 0%, rgba(8, 11, 10, 0.08) 45%, rgba(8, 11, 10, 0.38) 100%)",
+            background: placement.overlayGradient,
           }}
         />
-        <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 p-3 text-[0.66rem] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textOnPrimary }}>
-          <span className="rounded-full border px-2.5 py-1" style={{ borderColor: theme.borderLight, backgroundColor: "rgba(8, 12, 10, 0.45)" }}>
-            {labelCopy.caption}
-          </span>
-          <span className="rounded-full border px-2.5 py-1" style={{ borderColor: theme.borderLight, backgroundColor: "rgba(8, 12, 10, 0.45)" }}>
-            {asset.kind === "photo" ? labelCopy.source : "Aletheia"}
-          </span>
-        </div>
       </div>
     </figure>
   );
@@ -4373,7 +5255,7 @@ type PersonalizedCarryPhraseKey =
   | "activeDecision"
   | FocusIntentionKey;
 
-const personalizedCarryPhrases: Record<PersonalizedCarryPhraseKey, Record<LanguageCode, string>> = {
+const personalizedCarryPhrases: Record<PersonalizedCarryPhraseKey, Partial<Record<LanguageCode, string>>> = {
   financialPressure: {
     en: "Count the cost before pressure gets a vote.",
     es: "Cuenta el costo antes de que la presión vote.",
@@ -4496,6 +5378,10 @@ const personalizedCarryPhrases: Record<PersonalizedCarryPhraseKey, Record<Langua
   },
 };
 
+function personalizedCarryPhraseFor(key: PersonalizedCarryPhraseKey, language: LanguageCode) {
+  return personalizedCarryPhrases[key][language] ?? personalizedCarryPhrases[key].en ?? "";
+}
+
 function personalizedCarryPhrase({
   language,
   manualContext,
@@ -4509,32 +5395,32 @@ function personalizedCarryPhrase({
 }) {
   const signals = manualContextCounselSignals(manualContext).join(" ").toLowerCase();
   if (signals.includes("financial pressure")) {
-    return personalizedCarryPhrases.financialPressure[language];
+    return personalizedCarryPhraseFor("financialPressure", language);
   }
   if (signals.includes("burnout")) {
-    return personalizedCarryPhrases.burnout[language];
+    return personalizedCarryPhraseFor("burnout", language);
   }
   if (signals.includes("isolation")) {
-    return personalizedCarryPhrases.isolation[language];
+    return personalizedCarryPhraseFor("isolation", language);
   }
   if (signals.includes("urgency")) {
-    return personalizedCarryPhrases.urgency[language];
+    return personalizedCarryPhraseFor("urgency", language);
   }
   if (signals.includes("values")) {
-    return personalizedCarryPhrases.values[language];
+    return personalizedCarryPhraseFor("values", language);
   }
   if (signals.includes("future-state")) {
-    return personalizedCarryPhrases.futureState[language];
+    return personalizedCarryPhraseFor("futureState", language);
   }
 
   if (activeDecision) {
-    return personalizedCarryPhrases.activeDecision[language];
+    return personalizedCarryPhraseFor("activeDecision", language);
   }
 
   const focusKey = focusIntentions.find((value): value is FocusIntentionKey =>
     focusIntentionLibrary.includes(value as FocusIntentionKey)
   );
-  return focusKey ? personalizedCarryPhrases[focusKey][language] : "";
+  return focusKey ? personalizedCarryPhraseFor(focusKey, language) : "";
 }
 
 function localTodayKey() {
@@ -4894,7 +5780,7 @@ export function AletheiaApp() {
 
   // Build ui object from translations for backward compatibility
   const buildUiFromTranslations = (trans: TranslationData) => {
-    const languageFallback = uiText[preferences.language] ?? uiText.en;
+  const languageFallback = uiText[preferences.language] ?? uiText.en!;
     if (!trans || Object.keys(trans).length === 0) {
       return languageFallback;
     }
@@ -4983,6 +5869,13 @@ export function AletheiaApp() {
       weeklyWisdomReview: getString('weeklyWisdomReview', languageFallback.weeklyWisdomReview ?? 'Weekly Wisdom Review'),
       weeklyReviewTitle: getString('weeklyReviewTitle', languageFallback.weeklyReviewTitle ?? 'A quiet look at your week'),
       weeklyReviewBody: getString('weeklyReviewBody', languageFallback.weeklyReviewBody ?? 'No streaks or pressure. Just notice how {pattern} has been shaping your discernment.'),
+      todayScriptureLabel: getString('todayScriptureLabel', languageFallback.todayScriptureLabel ?? 'Scripture'),
+      todayQuestionLabel: getString('todayQuestionLabel', languageFallback.todayQuestionLabel ?? "Today's question"),
+      todayActionsLabel: getString('todayActionsLabel', languageFallback.todayActionsLabel ?? "Today's actions"),
+      weeklyReviewHeading: getString('weeklyReviewHeading', languageFallback.weeklyReviewHeading ?? 'Your Weekly Review'),
+      weeklyReviewLastWeekLabel: getString('weeklyReviewLastWeekLabel', languageFallback.weeklyReviewLastWeekLabel ?? 'Last week'),
+      diveDeep: getString('diveDeep', languageFallback.diveDeep ?? 'Dive Deep'),
+      backToQuickRead: getString('backToQuickRead', languageFallback.backToQuickRead ?? 'Back to Quick Read'),
       nextFaithfulStep: getString('nextFaithfulStep', languageFallback.nextFaithfulStep ?? 'Next faithful step'),
       askAboutThis: getString('askAboutThis', languageFallback.askAboutThis ?? 'Ask about this'),
       saveToRuleOfLife: getString('saveToRuleOfLife', languageFallback.saveToRuleOfLife ?? 'Save to Rule of Life'),
@@ -5233,6 +6126,7 @@ export function AletheiaApp() {
 
   useEffect(() => {
     document.documentElement.lang = preferences.language;
+    document.documentElement.dir = languages[preferences.language]?.direction ?? "ltr";
   }, [preferences.language]);
 
   useLayoutEffect(() => {
@@ -6092,7 +6986,7 @@ export function AletheiaApp() {
   const activeMode = localizedModeProfile(mode, preferences.language);
   const activeModeCards = localizedModeCards(preferences.language, translations);
   const activeLanguage = languages[preferences.language];
-  const copy = languageCopy[preferences.language] ?? languageCopy.en;
+  const copy = languageCopy[preferences.language] ?? languageCopy.en!;
   const ui = buildUiFromTranslations(translations);
   const topBibleOptions = bibleTranslationOptionsForLanguage(preferences.language);
   const activeDecision = wisdomDecisions.find((item) => item.status !== "closed") ?? wisdomDecisions[0] ?? null;
@@ -6107,16 +7001,37 @@ export function AletheiaApp() {
     activeDecision,
   });
   const weeklyReview = useMemo<WeeklyWisdomReview>(() => {
-    const weekStart = new Date();
-    weekStart.setHours(0, 0, 0, 0);
+    const now = new Date();
+    now.setHours(23, 59, 59, 999);
+    const weekStart = new Date(now);
     weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() + 6) % 7));
-    const since = weekStart.getTime();
-    const countSince = <T extends { createdAt?: string }>(items: T[]) =>
-      items.filter((item) => item.createdAt && new Date(item.createdAt).getTime() >= since).length;
-    const questions = messages.filter((message) => message.role === "user").length;
-    const reflections = countSince(journalEntries);
-    const gratitudeMoments = countSince(gratitudeEntries);
-    const decisions = countSince(wisdomDecisions);
+    weekStart.setHours(0, 0, 0, 0);
+    const previousWeekStart = new Date(weekStart);
+    previousWeekStart.setDate(previousWeekStart.getDate() - 7);
+    const currentStartMs = weekStart.getTime();
+    const currentEndMs = now.getTime();
+    const previousStartMs = previousWeekStart.getTime();
+    const previousEndMs = currentStartMs - 1;
+
+    const countInRange = <T extends { createdAt?: string }>(items: T[], startMs: number, endMs: number) =>
+      items.filter((item) => {
+        if (!item.createdAt) {
+          return false;
+        }
+        const createdAt = new Date(item.createdAt).getTime();
+        return Number.isFinite(createdAt) && createdAt >= startMs && createdAt <= endMs;
+      }).length;
+
+    const questionEntries = messages.filter((message) => message.role === "user");
+    const hasQuestionTimestamps = questionEntries.some((message) => message.createdAt);
+    const questions = hasQuestionTimestamps ? countInRange(questionEntries, currentStartMs, currentEndMs) : questionEntries.length;
+    const previousQuestions = hasQuestionTimestamps ? countInRange(questionEntries, previousStartMs, previousEndMs) : 0;
+    const reflections = countInRange(journalEntries, currentStartMs, currentEndMs);
+    const previousReflections = countInRange(journalEntries, previousStartMs, previousEndMs);
+    const gratitudeMoments = countInRange(gratitudeEntries, currentStartMs, currentEndMs);
+    const previousGratitudeMoments = countInRange(gratitudeEntries, previousStartMs, previousEndMs);
+    const decisions = countInRange(wisdomDecisions, currentStartMs, currentEndMs);
+    const previousDecisions = countInRange(wisdomDecisions, previousStartMs, previousEndMs);
     const pattern = todayPattern || daily.theme;
     const nextStep = activeDecision
       ? ts('labels.weeklyReviewDecisionStep')
@@ -6125,9 +7040,13 @@ export function AletheiaApp() {
         : ts('labels.weeklyReviewAskStep');
     return {
       questions,
+      previousQuestions,
       reflections,
+      previousReflections,
       gratitudeMoments,
+      previousGratitudeMoments,
       decisions,
+      previousDecisions,
       pattern,
       scripture: dailyEntry.scripture,
       nextStep,
@@ -9031,6 +9950,7 @@ export function AletheiaApp() {
         theme={theme}
         scripture={selectedScripture}
         preferences={preferences}
+        ui={ui}
         ts={ts}
         onReadAloud={() => {
           if (!selectedScripture) {
@@ -10223,7 +11143,7 @@ function HomeDashboard({
   activeDecision: WisdomDecision | null;
   user: User | null;
   preferences: UserPreferences;
-  ui: (typeof uiText)[LanguageCode];
+  ui: UiText;
   notificationsEnabled: boolean;
   todayPattern: string;
   companionCard: TodayCompanionCard;
@@ -10249,9 +11169,7 @@ function HomeDashboard({
   onShareScriptureMemory: (memory: ScriptureMemory) => void;
   theme: ThemeColors;
 }) {
-  const text = { ...uiText.en, ...ui };
-  const [secondaryActionsOpen, setSecondaryActionsOpen] = useState(false);
-  const [weeklyReviewOpen, setWeeklyReviewOpen] = useState(false);
+  const text = { ...uiText.en!, ...ui };
   const greeting = useMemo(() => {
     if (currentLocalHour === null) {
       return text.greetingFallback || "Welcome back";
@@ -10272,38 +11190,14 @@ function HomeDashboard({
   const primaryAction = activeDecision
     ? { label: text.continueDecision!, body: activeDecision.title, onClick: onContinueDecision, icon: Compass }
     : { label: text.askOneQuestion!, body: text.askOneQuestionBody!, onClick: onAskOneQuestion, icon: MessageCircle };
-
-  const secondaryActions = [
-    { label: text.reflectToday!, body: daily.practice, onClick: onReflectToday, icon: Feather },
-    user && notificationsEnabled
-      ? { label: text.reviewPattern!, body: todayPattern, onClick: onReviewPattern, icon: ShieldCheck }
-      : { label: user ? text.enableNotifications! : text.enableSync!, body: user ? text.notificationPromptBody! : text.syncDevicesBody!, onClick: onOpenAccount, icon: Bell },
-    activeDecision
-      ? { label: text.askNewQuestion!, body: text.askNewQuestionBody!, onClick: onAskOneQuestion, icon: MessageCircle }
-      : { label: text.startDecision!, body: text.startDecisionBody!, onClick: onContinueDecision, icon: Compass },
-  ];
-  const featuredInsightIsDuplicate = companionCard.principle.trim().toLowerCase() === companionCard.practice.trim().toLowerCase();
-  const featuredInsightLabel = featuredInsightIsDuplicate
-    ? (text.reflectionQuestion || "Reflection question")
-    : (text.wisdomPrinciple || "Wisdom principle");
-  const featuredInsight = featuredInsightIsDuplicate ? companionCard.question : companionCard.principle;
-  const visibleSecondaryActions = secondaryActions.slice(0, 2);
-  const finalSecondaryAction = secondaryActions[2];
-  const carryPhrase = carryToday?.phrase || companionCard.carryPhrase;
   const todayVisualTheme = dailyEntry.theme;
   const todayVisualMood = resolveTodayVisualMood({
     month: currentLocalMonth,
     hour: currentLocalHour,
     dayOfWeek: currentLocalDayOfWeek,
   });
-  const todayVisualLabel = todayVisualLabelCopy({
-    theme: todayVisualTheme,
-    mood: todayVisualMood,
-    hour: currentLocalHour,
-    month: currentLocalMonth,
-    dayOfWeek: currentLocalDayOfWeek,
-  });
   const todaySeasonalHeader = todaySeasonalHeaderCopy({
+    language: preferences.language,
     theme: todayVisualTheme,
     mood: todayVisualMood,
     hour: currentLocalHour,
@@ -10311,6 +11205,7 @@ function HomeDashboard({
     dayOfWeek: currentLocalDayOfWeek,
   });
   const homeWelcomeSeasonal = homeWelcomeSeasonalCopy({
+    language: preferences.language,
     theme: todayVisualTheme,
     mood: todayVisualMood,
     hour: currentLocalHour,
@@ -10318,6 +11213,7 @@ function HomeDashboard({
     dayOfWeek: currentLocalDayOfWeek,
   });
   const homeWelcomeEyebrow = homeWelcomeEyebrowCopy({
+    language: preferences.language,
     theme: todayVisualTheme,
     mood: todayVisualMood,
     hour: currentLocalHour,
@@ -10330,20 +11226,14 @@ function HomeDashboard({
     { icon: MessageCircle, label: text.askAboutThis!, onClick: () => onAskAboutCard(companionCard) },
     { icon: Plus, label: text.saveToRuleOfLife!, onClick: () => onSaveCardAsRule(companionCard) },
   ];
-  const hiddenTodayActions = [
-    { icon: BookOpen, label: text.carryScriptureForWeek || "Carry scripture", onClick: onSaveScriptureMemory },
-    { icon: Share2, label: text.createWisdomPostcard || "Create wisdom card", onClick: onShareCard },
-  ];
-  const homeAtAGlance = [
-    { label: text.personalizedPriority || "Personalized priority", value: text.whatNext || "What should I do next?" },
-    { label: text.todaysCompanion || "Today's companion", value: companionCard.title },
-    { label: text.carryingToday || "Carrying today", value: carryPhrase },
-  ];
+  const todayQuestionCardAction = activeDecision
+    ? { label: text.askAboutThis!, onClick: () => onAskAboutCard(companionCard) }
+    : { label: text.askNewQuestion!, onClick: onAskOneQuestion };
 
   return (
-    <div className="grid gap-3 sm:gap-4 xl:grid-cols-[minmax(0,0.98fr)_minmax(300px,1.02fr)]">
+    <div className="grid gap-4 sm:gap-5">
       <section
-        className={`editorial-surface min-w-0 rounded-2xl border p-4 shadow-sm sm:p-5 ${prioritizeToday ? "order-2" : "order-1"}`}
+        className={`editorial-surface min-w-0 rounded-[1.45rem] border p-4 shadow-[0_8px_20px_rgba(7,10,8,0.06)] sm:p-5 ${prioritizeToday ? "ring-1 ring-inset" : ""}`}
         style={{
           borderColor: theme.borderLight,
           background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})`,
@@ -10352,48 +11242,26 @@ function HomeDashboard({
         <div className="flex flex-col gap-4">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
+              <p className="text-[10.5px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.accentGold }}>
                 {homeWelcomeEyebrow}
               </p>
-              <p className="mt-2 text-base font-semibold tracking-tight sm:text-lg" style={{ color: theme.textPrimary }} suppressHydrationWarning>
+              <h1 className="mt-2 text-[1.88rem] font-semibold leading-[1.01] text-balance sm:text-[2.35rem]" style={{ color: theme.textPrimary }} suppressHydrationWarning>
                 {greeting}
-              </p>
-              <p className="mt-1.5 max-w-2xl text-sm leading-6 sm:text-base sm:leading-6" style={{ color: theme.textSecondary }} suppressHydrationWarning>
+              </h1>
+              <p className="mt-2 max-w-2xl text-sm leading-6 sm:text-[0.98rem] sm:leading-7" style={{ color: theme.textSecondary }} suppressHydrationWarning>
                 {homeWelcomeSeasonal}
               </p>
             </div>
-            <span className="grid size-12 shrink-0 place-items-center rounded-xl border shadow-sm" style={{ borderColor: theme.primary, backgroundColor: theme.primary, color: theme.textOnPrimary }}>
+            <span className="grid size-12 shrink-0 place-items-center rounded-2xl border shadow-[0_8px_16px_rgba(7,10,8,0.08)]" style={{ borderColor: theme.primary, backgroundColor: theme.primary, color: theme.textOnPrimary }}>
               <Sparkles size={22} />
             </span>
-          </div>
-
-          <div className="grid gap-2 sm:grid-cols-3">
-            {homeAtAGlance.map((item) => (
-              <div key={item.label} className="rounded-2xl border px-3.5 py-3 shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-                <p className="text-[0.68rem] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
-                  {item.label}
-                </p>
-                <p className="mt-1.5 text-sm font-medium leading-6" style={{ color: theme.textPrimary }} suppressHydrationWarning>
-                  {item.value}
-                </p>
-              </div>
-            ))}
-          </div>
-
-          <div>
-            <h1 className="max-w-3xl text-2xl font-semibold leading-tight tracking-normal sm:text-[2rem]" style={{ color: theme.textPrimary }}>
-              {text.whatNext}
-            </h1>
-            <p className="mt-3 max-w-2xl text-sm leading-6 sm:text-base sm:leading-7" style={{ color: theme.textSecondary }}>
-              {text.whatNextBody}
-            </p>
           </div>
 
           {personalizationContextEmpty ? (
             <button
               type="button"
               onClick={onOpenAccount}
-              className="rounded-2xl border px-3.5 py-3 text-left text-sm font-semibold leading-6 transition"
+              className="rounded-2xl border px-3.5 py-3 text-left text-sm font-semibold leading-6 transition shadow-[0_6px_14px_rgba(7,10,8,0.04)]"
               style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}
             >
               <span className="block" style={{ color: theme.textPrimary }}>{text.personalizationNudgeTitle}</span>
@@ -10401,84 +11269,23 @@ function HomeDashboard({
             </button>
           ) : null}
 
-          <div>
-            <DashboardAction icon={primaryAction.icon} label={primaryAction.label} body={primaryAction.body} primary onClick={primaryAction.onClick} theme={theme} />
-          </div>
-          <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
-          {visibleSecondaryActions.map((action) => (
-            <div key={action.label}>
-              <DashboardAction icon={action.icon} label={action.label} body={action.body} onClick={action.onClick} compact theme={theme} />
-            </div>
-          ))}
-        </div>
-        <DisclosureSection
-          title={ts('labels.moreHomeActions')}
-          summary={ts('labels.moreHomeActionsSummary')}
-          eyebrow={ts('labels.moreHomeOptions')}
-          isOpen={secondaryActionsOpen}
-          onOpenChange={setSecondaryActionsOpen}
-          compactCollapsed
-          showDetailsLabel={ts('showDetails')}
-          hideDetailsLabel={ts('hideDetails')}
-          className="mt-3"
-          theme={theme}
-        >
-          <div className="space-y-2">
-            <div className="rounded-2xl border p-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-              <div className="flex items-start gap-3">
-                <span className="grid size-10 shrink-0 place-items-center rounded-xl" style={{ backgroundColor: theme.bgInput, color: theme.accentGold }}>
-                  <Compass size={16} />
-                </span>
-                <div className="min-w-0">
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
-                    {ts('labels.moreHomeActions')}
-                  </p>
-                  <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
-                    {ts('labels.moreHomeActionsSummary')}
-                  </p>
-                </div>
-              </div>
-            </div>
-            <DashboardAction icon={finalSecondaryAction.icon} label={finalSecondaryAction.label} body={finalSecondaryAction.body} onClick={finalSecondaryAction.onClick} compact theme={theme} />
-          </div>
-        </DisclosureSection>
-        </div>
-      </section>
-
-      <section
-        id="today-companion-card"
-        tabIndex={-1}
-        className={`editorial-surface min-w-0 scroll-mt-28 rounded-xl border p-0 shadow-sm outline-none ${prioritizeToday ? "order-1" : "order-2"}`}
-        style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textPrimary }}
-      >
-        <div
-          className="border-b p-3.5 sm:p-4"
-          style={{
-            borderColor: theme.borderLight,
-            background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})`,
-          }}
-        >
-          <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(190px,230px)] md:items-start">
+          <div className="grid gap-4 rounded-[1.28rem] border p-4 sm:p-5 lg:grid-cols-[minmax(0,1fr)_minmax(184px,236px)] lg:items-start" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, boxShadow: "inset 0 1px 0 rgba(255,255,255,0.28)" }}>
             <div className="min-w-0">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }} suppressHydrationWarning>
+              <p className="text-[10.5px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.accentGold }} suppressHydrationWarning>
                 {text.todaysCompanion}
               </p>
-              <h2 className="mt-1.5 text-2xl font-semibold leading-tight sm:text-[2rem]" suppressHydrationWarning>
+              <h2 className="mt-1.5 text-[1.95rem] font-semibold leading-[1.03] text-balance sm:text-[2.15rem]" suppressHydrationWarning>
                 {text.todayPrefix}: {companionCard.title}
               </h2>
-              <p className="mt-2.5 text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }} suppressHydrationWarning>
-                {todaySeasonalHeader.eyebrow}
-              </p>
-              <p className="mt-1.5 max-w-2xl text-base leading-6 sm:text-lg sm:leading-7" style={{ color: theme.textSecondary }} suppressHydrationWarning>
+              <p className="mt-3 max-w-2xl text-[0.98rem] leading-7 sm:text-[1.03rem] sm:leading-8" style={{ color: theme.textSecondary }} suppressHydrationWarning>
                 {todaySeasonalHeader.body}
               </p>
-              <p className="mt-2.5 max-w-2xl text-sm leading-6 sm:text-base sm:leading-7" style={{ color: theme.textSecondary }} suppressHydrationWarning>
-                {companionCard.opening}
+              <p className="mt-4 max-w-2xl text-[0.98rem] leading-7 font-medium sm:text-[1.03rem] sm:leading-8" style={{ color: theme.textPrimary }} suppressHydrationWarning>
+                {daily.principle}
               </p>
             </div>
-            <div className="justify-self-start md:justify-self-end">
+            <div className="lg:pt-1">
               <TodayVisualPanel
-                labelCopy={todayVisualLabel}
                 themeName={todayVisualTheme}
                 dayNumber={dayNumber}
                 mood={todayVisualMood}
@@ -10490,273 +11297,181 @@ function HomeDashboard({
             </div>
           </div>
 
-          {carryToday ? (
-            <div className="mt-4 flex flex-col gap-2 rounded-2xl border px-3.5 py-3 text-sm leading-6 sm:flex-row sm:items-center sm:justify-between" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={() => onScriptureOpen(dailyEntry.scripture)}
+              className="premium-tap-card flex min-h-16 items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-left shadow-[0_6px_14px_rgba(7,10,8,0.04)] transition hover:-translate-y-0.5"
+              style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
+            >
               <span className="min-w-0">
-                <span className="font-semibold" style={{ color: theme.accentGold }}>
-                  {text.carryingToday}:
-                </span>{" "}
-                <span suppressHydrationWarning>&ldquo;{carryPhrase}&rdquo;</span>
+                <span className="block text-[10.5px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
+                  {text.todayScriptureLabel ?? "Scripture"}
+                </span>
+                <span className="mt-1 block text-sm font-semibold leading-6 sm:text-base">
+                  {dailyEntry.scripture}
+                </span>
               </span>
+              <span className="grid size-10 shrink-0 place-items-center rounded-xl border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textPrimary }}>
+                <BookOpen size={17} />
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => onCarryToday(companionCard)}
+              className="premium-tap-card flex min-h-16 items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-left shadow-[0_6px_14px_rgba(7,10,8,0.04)] transition hover:-translate-y-0.5"
+              style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
+            >
+              <span className="min-w-0">
+                <span className="block text-[10.5px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
+                  {text.carryThisToday}
+                </span>
+                <span className="mt-1 block text-sm font-semibold leading-6 sm:text-base">
+                  {companionCard.carryPhrase}
+                </span>
+              </span>
+              <span className="grid size-10 shrink-0 place-items-center rounded-xl border" style={{ borderColor: theme.borderLight, backgroundColor: theme.primary, color: theme.textOnPrimary }}>
+                <Check size={17} />
+              </span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section
+        id="today-companion-card"
+        tabIndex={-1}
+        className={`editorial-surface min-w-0 scroll-mt-28 rounded-[1.45rem] border p-4 shadow-[0_8px_20px_rgba(7,10,8,0.06)] outline-none sm:p-5 ${prioritizeToday ? "ring-1 ring-inset" : ""}`}
+        style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textPrimary }}
+      >
+        <div className="flex flex-col gap-4">
+          <div>
+            <h2 className="mt-2 text-[1.92rem] font-semibold leading-[1.03] text-balance sm:text-[2.25rem]" style={{ color: theme.textPrimary }}>
+              {text.whatNext}
+            </h2>
+            <p className="mt-3 max-w-2xl text-[0.98rem] leading-7 sm:text-[1.03rem] sm:leading-8" style={{ color: theme.textSecondary }}>
+              {text.whatNextBody}
+            </p>
+          </div>
+
+          <div>
+            <DashboardAction icon={primaryAction.icon} label={primaryAction.label} body={primaryAction.body} primary onClick={primaryAction.onClick} theme={theme} />
+          </div>
+
+          <div className="grid gap-3 lg:grid-cols-2">
+            <section className="rounded-[1.15rem] border p-4 shadow-[0_6px_14px_rgba(7,10,8,0.04)]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+              <p className="text-[10.5px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
+                {text.todayQuestionLabel ?? "Today's question"}
+              </p>
+              <p className="mt-2 text-[1.05rem] font-semibold leading-7 text-balance sm:text-[1.1rem]" style={{ color: theme.textPrimary }}>
+                {companionCard.question}
+              </p>
               <button
                 type="button"
-                onClick={onShareCarryCard}
-                className="premium-tap-card w-fit rounded-md border px-2.5 py-1 text-xs font-semibold"
-                style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                onClick={todayQuestionCardAction.onClick}
+                className="premium-tap-card mt-4 inline-flex h-10 items-center rounded-full border px-4 text-sm font-semibold shadow-[0_6px_14px_rgba(7,10,8,0.04)] transition hover:-translate-y-0.5"
+                style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textPrimary }}
               >
-                {text.createCard}
+                {todayQuestionCardAction.label}
               </button>
-            </div>
-          ) : null}
+            </section>
 
-          <div className="mt-4 grid gap-2 sm:grid-cols-3">
-            <div className="rounded-2xl border p-3 shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-              <p className="text-[0.68rem] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
-                {ts('labels.scripture')}
+            <section className="rounded-[1.15rem] border p-4 shadow-[0_6px_14px_rgba(7,10,8,0.04)]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+              <p className="text-[10.5px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
+                {text.todayActionsLabel ?? "Today's actions"}
               </p>
-              <p className="mt-1.5 text-sm font-medium leading-6" style={{ color: theme.textPrimary }} suppressHydrationWarning>
-                {daily.scripture}
-              </p>
-            </div>
-            <div className="rounded-2xl border p-3 shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-              <p className="text-[0.68rem] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
-                {text.carryThisToday}
-              </p>
-              <p className="mt-1.5 text-sm font-medium leading-6" style={{ color: theme.textPrimary }} suppressHydrationWarning>
-                &ldquo;{carryPhrase}&rdquo;
-              </p>
-            </div>
-            <div className="rounded-2xl border p-3 shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-              <p className="text-[0.68rem] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
-                {featuredInsightLabel}
-              </p>
-              <p className="mt-1.5 line-clamp-2 text-sm font-medium leading-6" style={{ color: theme.textPrimary }} suppressHydrationWarning>
-                {featuredInsight}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="space-y-3 p-3.5 sm:p-4">
-          <div className="rounded-3xl border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
-            <div className="relative space-y-3 border-l pl-4" style={{ borderColor: theme.borderLight }}>
-              <TodayTimelineStep
-                index={1}
-                label={ts('labels.scripture')}
-                theme={theme}
-                highlight
-                body={
-                  <button
-                    type="button"
-                    onClick={() => onScriptureOpen(dailyEntry.scripture)}
-                    className="premium-tap-card inline-flex w-full items-center gap-3 rounded-xl border px-3.5 py-3 text-left text-sm font-semibold transition"
-                    style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
-                    suppressHydrationWarning
-                  >
-                    <span className="grid size-9 shrink-0 place-items-center rounded-lg" style={{ backgroundColor: theme.bgInput, color: theme.accentGold }}>
-                      <BookOpen size={16} />
-                    </span>
-                    <span className="min-w-0">
-                      <span className="block text-[0.7rem] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
-                        {ts('labels.scripture')}
-                      </span>
-                      <span className="mt-1 block truncate text-sm leading-6" style={{ color: theme.textPrimary }}>
-                        {daily.scripture}
-                      </span>
-                    </span>
-                  </button>
-                }
-              />
-              <TodayTimelineStep
-                index={2}
-                label={text.carryThisToday || "Carry this today"}
-                theme={theme}
-                body={
-                  <p className="text-base font-semibold leading-7" suppressHydrationWarning>
-                    &ldquo;{carryPhrase}&rdquo;
-                  </p>
-                }
-              />
-              <TodayTimelineStep
-                index={3}
-                label={featuredInsightLabel}
-                theme={theme}
-                body={
-                  <p className="text-sm leading-6 sm:text-[0.95rem] sm:leading-7" suppressHydrationWarning>
-                    {featuredInsight}
-                  </p>
-                }
-              />
-              <TodayTimelineStep
-                index={4}
-                label={text.tinyPractice || "Tiny practice"}
-                theme={theme}
-                body={
-                  <p className="text-sm leading-6 sm:text-[0.95rem] sm:leading-7" suppressHydrationWarning>
-                    {companionCard.practice}
-                  </p>
-                }
-              />
-            </div>
-          </div>
-
-          <DisclosureSection
-            title={text.reflectionQuestion || "Reflection question"}
-            summary={companionCard.question}
-            eyebrow={text.todayPrefix || "Today"}
-            compactCollapsed
-            showDetailsLabel={text.showDetails}
-            hideDetailsLabel={text.hideDetails}
-            className="rounded-3xl"
-            theme={theme}
-          >
-            <div className="grid gap-3">
-              {featuredInsightIsDuplicate ? null : (
-                <div className="rounded-2xl border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-                  <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
-                    {text.reflectionQuestion}
-                  </p>
-                  <p className="mt-2 text-sm leading-6 sm:text-[0.95rem] sm:leading-7" style={{ color: theme.textPrimary }} suppressHydrationWarning>
-                    {companionCard.question}
-                  </p>
-                </div>
-              )}
-              <div className="rounded-2xl border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-                <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
-                  {text.context}
-                </p>
-                <p className="mt-2 text-sm leading-6 sm:text-[0.95rem] sm:leading-7" style={{ color: theme.textPrimary }} suppressHydrationWarning>
-                  {dailyEntry.context}
-                </p>
-              </div>
-              <div className="rounded-2xl border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-                <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
-                  {text.application}
-                </p>
-                <p className="mt-2 text-sm leading-6 sm:text-[0.95rem] sm:leading-7" style={{ color: theme.textPrimary }} suppressHydrationWarning>
-                  {dailyEntry.application}
-                </p>
-              </div>
-            </div>
-          </DisclosureSection>
-        </div>
-
-        <div className="border-t p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-          <div className="grid grid-cols-2 gap-2">
-            {visibleTodayActions.map((action) => (
-              <CompanionCardAction
-                key={action.label}
-                icon={action.icon}
-                label={action.label}
-                onClick={action.onClick}
-                theme={theme}
-                primary={action.primary}
-              />
-            ))}
-            <DisclosureSection
-              title={ts('labels.moreTodayActions')}
-              summary={ts('labels.moreTodayActionsSummary')}
-              eyebrow={ts('labels.today')}
-              compactCollapsed
-              showDetailsLabel={ts('showDetails')}
-              hideDetailsLabel={ts('hideDetails')}
-              className="col-span-2"
-              theme={theme}
-            >
-              <div className="grid gap-2 sm:grid-cols-2">
-                {hiddenTodayActions.map((action) => (
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                {visibleTodayActions.map((action) => (
                   <CompanionCardAction
                     key={action.label}
                     icon={action.icon}
                     label={action.label}
                     onClick={action.onClick}
                     theme={theme}
+                    primary={action.primary}
                   />
                 ))}
               </div>
-            </DisclosureSection>
+            </section>
+          </div>
+
+          <div className="flex justify-center">
+            <button
+              type="button"
+              onClick={onAskOneQuestion}
+              className="premium-tap-card inline-flex h-12 items-center rounded-full border px-5 text-sm font-semibold shadow-[0_6px_14px_rgba(7,10,8,0.04)] transition hover:-translate-y-0.5"
+              style={{ borderColor: theme.primary, backgroundColor: theme.primary, color: theme.textOnPrimary }}
+            >
+              {text.askNewQuestion}
+            </button>
           </div>
         </div>
       </section>
 
-      <section className="editorial-surface order-3 rounded-xl border p-3.5 shadow-sm xl:col-span-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <section className="editorial-surface rounded-[1.45rem] border p-4 shadow-[0_8px_20px_rgba(7,10,8,0.05)] sm:p-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+        <div className="flex flex-col gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{text.weeklyWisdomReview ?? ""}</p>
-            <h2 className="mt-1.5 text-lg font-semibold" style={{ color: theme.textPrimary }}>{text.weeklyReviewTitle ?? ""}</h2>
-            <p className="mt-1.5 max-w-2xl text-sm leading-5" style={{ color: theme.textSecondary }}>
+            <p className="text-[10.5px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.accentGold }}>
+              {text.weeklyWisdomReview ?? ""}
+            </p>
+            <h2 className="mt-2 text-[1.92rem] font-semibold leading-[1.03] text-balance sm:text-[2.25rem]" style={{ color: theme.textPrimary }}>
+              {text.weeklyReviewHeading ?? "Your Weekly Review"}
+            </h2>
+            <p className="mt-3 max-w-2xl text-[0.98rem] leading-7 sm:text-[1.03rem] sm:leading-8" style={{ color: theme.textSecondary }}>
               {(text.weeklyReviewBody ?? "").replace("{pattern}", weeklyReview.pattern)}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => onScriptureOpen(weeklyReview.scripture)}
-            className="premium-tap-card inline-flex w-fit items-center gap-2 rounded-md border px-3 py-2 text-sm font-semibold"
-            style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
-          >
-            <BookOpen size={15} />
-            {daily.scripture}
-          </button>
-        </div>
-        <DisclosureSection
-          title={ts('labels.weeklySignals')}
-          summary={scriptureMemory
-            ? ts('labels.weeklySignalsSummaryWithMemory')
-            : ts('labels.weeklySignalsSummary')}
-          eyebrow={text.weeklyWisdomReview ?? ""}
-          isOpen={weeklyReviewOpen}
-          onOpenChange={setWeeklyReviewOpen}
-          compactCollapsed
-          showDetailsLabel={ts('showDetails')}
-          hideDetailsLabel={ts('hideDetails')}
-          className="mt-4"
-          theme={theme}
-        >
-          <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
-            <MiniReviewStat label={text.questionsThisWeek ?? ""} value={weeklyReview.questions} theme={theme} />
-            <MiniReviewStat label={text.reflectionsThisWeek ?? ""} value={weeklyReview.reflections} theme={theme} />
-            <MiniReviewStat label={text.gratitudeThisWeek ?? ""} value={weeklyReview.gratitudeMoments} theme={theme} />
-            <MiniReviewStat label={text.decisionsThisWeek ?? ""} value={weeklyReview.decisions} theme={theme} />
+          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+            <WeeklyReviewBadge label={text.questionsThisWeek ?? ""} current={weeklyReview.questions} previous={weeklyReview.previousQuestions} lastWeekLabel={text.weeklyReviewLastWeekLabel ?? "Last week"} theme={theme} />
+            <WeeklyReviewBadge label={text.reflectionsThisWeek ?? ""} current={weeklyReview.reflections} previous={weeklyReview.previousReflections} lastWeekLabel={text.weeklyReviewLastWeekLabel ?? "Last week"} theme={theme} />
+            <WeeklyReviewBadge label={text.gratitudeThisWeek ?? ""} current={weeklyReview.gratitudeMoments} previous={weeklyReview.previousGratitudeMoments} lastWeekLabel={text.weeklyReviewLastWeekLabel ?? "Last week"} theme={theme} />
+            <WeeklyReviewBadge label={text.decisionsThisWeek ?? ""} current={weeklyReview.decisions} previous={weeklyReview.previousDecisions} lastWeekLabel={text.weeklyReviewLastWeekLabel ?? "Last week"} theme={theme} />
           </div>
-          {scriptureMemory ? (
-            <div className="mt-4 rounded-lg border p-3 text-sm leading-6" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}>
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                <span className="min-w-0">
-                  <span className="block text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{text.scriptureMemory ?? ""}</span>
-                  <button type="button" onClick={() => onScriptureOpen(scriptureMemory.scripture)} className="mt-1 font-semibold underline underline-offset-4">
-                    {scriptureMemory.scripture} · {scriptureDisplayLabel(scriptureMemory.scripture, preferences)}
-                  </button>
-                </span>
-                <div className="flex w-fit shrink-0 items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => onShareScriptureMemory(scriptureMemory)}
-                    className="premium-tap-card rounded-md border px-2 py-1 text-xs font-semibold"
-                    style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-                  >
-              {text.createCard ?? ""}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={onClearScriptureMemory}
-                    className="premium-tap-card grid size-8 place-items-center rounded-md border"
-                    style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}
-                    aria-label={text.clearScriptureMemory ?? ""}
-                    title={text.clearScriptureMemory ?? ""}
-                  >
-                    <X size={14} />
-                  </button>
-                </div>
-              </div>
-              <p className="mt-2 text-xs leading-5" style={{ color: theme.textSecondary }}>{scriptureMemory.principle}</p>
-            </div>
-          ) : null}
-        </DisclosureSection>
-        <p className="mt-4 rounded-lg border p-3 text-sm leading-6" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
-          <span className="font-semibold" style={{ color: theme.textPrimary }}>{text.nextFaithfulStep ?? ""}:</span>{" "}
-          {weeklyReview.nextStep}
-        </p>
+          <p className="rounded-[1.15rem] border p-4 text-[0.95rem] leading-7" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
+            <span className="font-semibold" style={{ color: theme.textPrimary }}>{text.nextFaithfulStep ?? ""}:</span>{" "}
+            {weeklyReview.nextStep}
+          </p>
+        </div>
       </section>
+    </div>
+  );
+}
+
+function WeeklyReviewBadge({
+  label,
+  current,
+  previous,
+  lastWeekLabel,
+  theme,
+}: {
+  label: string;
+  current: number;
+  previous: number;
+  lastWeekLabel: string;
+  theme: ThemeColors;
+}) {
+  const delta = current - previous;
+  const deltaLabel = `${delta > 0 ? "+" : ""}${delta}`;
+
+  return (
+    <div className="rounded-[1.15rem] border p-4 shadow-[0_6px_14px_rgba(7,10,8,0.04)]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] whitespace-nowrap" style={{ color: theme.accentGold }}>
+            {label}
+          </p>
+          <p className="mt-2 text-[1.82rem] font-semibold leading-none tracking-[-0.02em]" style={{ color: theme.textPrimary }}>
+            {current}
+          </p>
+        </div>
+        <span className="shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.1em]" style={{ borderColor: theme.borderLight, color: theme.textSecondary, backgroundColor: theme.bgCard }}>
+          {deltaLabel}
+        </span>
+      </div>
+      <p className="mt-3 text-[0.8rem] leading-5" style={{ color: theme.textSecondary }}>
+        {lastWeekLabel} {previous}
+      </p>
     </div>
   );
 }
@@ -10948,46 +11663,6 @@ function DashboardAction({
     </span>
   </button>
 );
-}
-
-function TodayTimelineStep({
-  index,
-  label,
-  body,
-  theme,
-  highlight = false,
-}: {
-  index: number;
-  label: string;
-  body: ReactNode;
-  theme: ThemeColors;
-  highlight?: boolean;
-}) {
-  return (
-    <div className="relative min-w-0 pl-11">
-      <span
-        className="absolute left-0 top-0.5 grid size-8 place-items-center rounded-full border text-[0.72rem] font-semibold shadow-sm"
-        style={highlight
-          ? { borderColor: theme.primary, backgroundColor: theme.primary, color: theme.textOnPrimary }
-          : { borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}
-      >
-        {index}
-      </span>
-      <div
-        className="rounded-2xl border px-3.5 py-3 shadow-sm sm:px-4"
-        style={highlight
-          ? { borderColor: theme.primary, backgroundColor: theme.bgCard }
-          : { borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}
-      >
-        <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
-          {label}
-        </p>
-        <div className="mt-2 text-sm leading-6 sm:text-[0.95rem] sm:leading-7" style={{ color: theme.textPrimary }}>
-          {body}
-        </div>
-      </div>
-    </div>
-  );
 }
 
 function RhythmItem({ label, body, theme }: { label: string; body: string; theme: ThemeColors }) {
@@ -11206,7 +11881,7 @@ function AccountPanel({
   onUpdateProfileAvatar: (avatarUrl: string) => Promise<boolean>;
   preferences: UserPreferences;
   preferencesStatus: string;
-  ui: (typeof uiText)[LanguageCode];
+  ui: UiText;
   manualContext: ManualContextProfile;
   manualContextStatus: string;
   themePreference: ThemePreference;
@@ -11242,7 +11917,7 @@ function AccountPanel({
   accountActionBusy: "export" | "delete" | "report" | null;
   theme: ThemeColors;
 }) {
-  const text = { ...uiText.en, ...ui };
+  const text = { ...uiText.en!, ...ui };
   const [accountSection, setAccountSection] = useState<"personalization" | "privacy" | "share" | "system">("personalization");
   const exchanges = conversationExchanges(messages).filter((exchange) => exchange.question);
   const activeDecisionCount = decisions.filter((decision) => decision.status !== "closed").length;
@@ -11309,23 +11984,11 @@ function AccountPanel({
               {user ? `${ts('labels.accountSignedInWith')} ${profileSummary}` : profileSummary}
             </p>
           </div>
-          <div className="grid w-full gap-1 text-[11px] leading-5 sm:text-xs" style={{ color: theme.textSecondary }}>
-            <span>
-              <span className="font-semibold" style={{ color: theme.textPrimary }}>
-                {user ? ts('labels.accountConnected') : ts('labels.accountLocalOnly')}
-              </span>
-              {" "}
-              {notificationsEnabled ? ts('notifications.deviceSubscribed') : ts('notifications.notificationsOptionalWhenReady')}
-            </span>
-            <span>
-              {user ? ts('labels.accountHistorySynced') : ts('labels.accountHistoryLocal')}
-            </span>
+          <div className="flex flex-col gap-2 border-t px-4 py-4 sm:px-5" style={{ borderColor: theme.borderLight }}>
+            {profileStats.map((stat) => (
+              <AccountHeaderStat key={stat.detail} icon={stat.icon} value={stat.value} label={stat.label} detail={stat.detail} theme={theme} />
+            ))}
           </div>
-        </div>
-        <div className="flex flex-col gap-2 border-t px-4 py-4 sm:px-5" style={{ borderColor: theme.borderLight }}>
-          {profileStats.map((stat) => (
-            <AccountHeaderStat key={stat.detail} icon={stat.icon} value={stat.value} label={stat.label} detail={stat.detail} theme={theme} />
-          ))}
         </div>
       </section>
 
@@ -11448,17 +12111,6 @@ function AccountPanel({
 
       {accountSection === "privacy" ? (
         <div className="space-y-4">
-          <section className="overflow-hidden rounded-xl border shadow-sm" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
-            <div className="border-b px-4 py-4 sm:px-5" style={{ borderColor: theme.borderLight }}>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
-                {ts('labels.privacyPosture')}
-              </p>
-              <h3 className="mt-2 text-lg font-semibold sm:text-xl" style={{ color: theme.textPrimary }}>
-                {ts('labels.accountTrustPostureTitle')}
-              </h3>
-            </div>
-          </section>
-
           <ManualContextPanel
             theme={theme}
             ts={ts}
@@ -11470,9 +12122,7 @@ function AccountPanel({
             onChange={onManualContextChange}
           />
 
-          <TrustCenterCard theme={theme} ts={ts} />
-
-          <DataBoundariesCard
+          <TrustCenterCard
             theme={theme}
             ts={ts}
             user={user}
@@ -12345,106 +12995,6 @@ function SystemStatusCard({
   );
 }
 
-function DataBoundariesCard({
-  theme,
-  ts,
-  user,
-  hasLocalWorkspaceData,
-  onClearLocalPersonalization,
-  onClearGuestWorkspace,
-  onExportData,
-  onRequestDeleteAccount,
-  accountActionBusy,
-}: {
-  theme: ThemeColors;
-  ts: (key: string, fallback?: string) => string;
-  user: User | null;
-  hasLocalWorkspaceData: boolean;
-  onClearLocalPersonalization: () => void;
-  onClearGuestWorkspace: () => void;
-  onExportData: () => void;
-  onRequestDeleteAccount: () => void;
-  accountActionBusy: "export" | "delete" | "report" | null;
-}) {
-  return (
-    <section className="overflow-hidden rounded-xl border shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
-      <div className="border-b px-4 py-4 sm:px-5" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
-        <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.yourDataBoundaries')}</p>
-        <h3 className="mt-2 text-lg font-semibold sm:text-xl" style={{ color: theme.textPrimary }}>
-          {ts('labels.accountTrustPostureTitle')}
-        </h3>
-        <p className="mt-2 max-w-2xl text-sm leading-6" style={{ color: theme.textSecondary }}>
-          {ts('labels.accountTrustPostureSummary')}
-        </p>
-        <div className="mt-4 flex flex-col gap-2">
-          <div className="rounded-xl border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-            <p className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>{user ? ts('labels.whatSyncsLabel') : ts('auth.guestOnly')}</p>
-            <p className="mt-1 text-sm leading-6" style={{ color: theme.textPrimary }}>
-              {user ? ts('labels.whatSyncsSignedIn') : ts('labels.whatSyncsGuest')}
-            </p>
-          </div>
-          <div className="rounded-xl border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-            <p className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>{ts('labels.whatStaysLocal')}</p>
-            <p className="mt-1 text-sm leading-6" style={{ color: theme.textPrimary }}>
-              {ts('labels.whatStaysLocalBody')}
-            </p>
-          </div>
-          <div className="rounded-xl border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-            <p className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>{ts('labels.signOutPrivacy')}</p>
-            <p className="mt-1 text-sm leading-6" style={{ color: theme.textPrimary }}>
-              {ts('labels.signOutPrivacyBody')}
-            </p>
-          </div>
-        </div>
-      </div>
-      <div className="flex flex-wrap gap-2 border-t px-4 py-4 sm:px-5" style={{ borderColor: theme.borderLight }}>
-        <button
-          type="button"
-          className="h-10 rounded-full border px-3.5 text-sm font-semibold"
-          style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-          onClick={onClearLocalPersonalization}
-        >
-          {ts('labels.clearLocalSettings')}
-        </button>
-        {!user ? (
-          <button
-            type="button"
-            className="h-10 rounded-full border px-3.5 text-sm font-semibold"
-            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: hasLocalWorkspaceData ? theme.textPrimary : theme.textSecondary, opacity: hasLocalWorkspaceData ? 1 : 0.65 }}
-            disabled={!hasLocalWorkspaceData}
-            onClick={onClearGuestWorkspace}
-          >
-            {ts('labels.clearGuestWorkspace')}
-          </button>
-        ) : null}
-        <button
-          type="button"
-          className="h-10 rounded-full border px-3.5 text-sm font-semibold"
-          style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: user ? theme.textPrimary : theme.textSecondary, opacity: user ? 1 : 0.65 }}
-          disabled={!user || accountActionBusy === "export"}
-          onClick={onExportData}
-        >
-          {accountActionBusy === "export" ? ts('labels.preparingExport') : ts('labels.exportData')}
-        </button>
-        <button
-          type="button"
-          className="h-10 rounded-full border px-3.5 text-sm font-semibold"
-          style={{ borderColor: theme.borderStrong, backgroundColor: theme.bgInput, color: user ? theme.textPrimary : theme.textSecondary, opacity: user ? 1 : 0.65 }}
-          disabled={!user || accountActionBusy === "delete"}
-          onClick={onRequestDeleteAccount}
-        >
-          {ts('labels.deleteAccount')}
-        </button>
-      </div>
-      {!user ? (
-        <p className="border-t px-4 py-3 text-xs leading-5 sm:px-5" style={{ borderColor: theme.borderLight, color: theme.textSecondary }}>
-          {ts('labels.signInToExportDelete')}
-        </p>
-      ) : null}
-    </section>
-  );
-}
-
 function SupportReportCard({
   theme,
   ts,
@@ -12484,7 +13034,27 @@ function SupportReportCard({
   );
 }
 
-function TrustCenterCard({ theme, ts }: { theme: ThemeColors; ts: (key: string, fallback?: string) => string }) {
+function TrustCenterCard({
+  theme,
+  ts,
+  user,
+  hasLocalWorkspaceData,
+  onClearLocalPersonalization,
+  onClearGuestWorkspace,
+  onExportData,
+  onRequestDeleteAccount,
+  accountActionBusy,
+}: {
+  theme: ThemeColors;
+  ts: (key: string, fallback?: string) => string;
+  user: User | null;
+  hasLocalWorkspaceData: boolean;
+  onClearLocalPersonalization: () => void;
+  onClearGuestWorkspace: () => void;
+  onExportData: () => void;
+  onRequestDeleteAccount: () => void;
+  accountActionBusy: "export" | "delete" | "report" | null;
+}) {
   const [open, setOpen] = useState(false);
   const items = [
     {
@@ -12502,6 +13072,20 @@ function TrustCenterCard({ theme, ts }: { theme: ThemeColors; ts: (key: string, 
     {
       label: ts('labels.trustDeleteExportTitle'),
       body: ts('labels.trustDeleteExportBody'),
+    },
+  ];
+  const statusItems = [
+    {
+      label: ts('labels.whatSyncsLabel'),
+      body: user ? ts('labels.whatSyncsSignedIn') : ts('labels.whatSyncsGuest'),
+    },
+    {
+      label: ts('labels.whatStaysLocal'),
+      body: ts('labels.whatStaysLocalBody'),
+    },
+    {
+      label: ts('labels.signOutPrivacy'),
+      body: ts('labels.signOutPrivacyBody'),
     },
   ];
 
@@ -12533,14 +13117,74 @@ function TrustCenterCard({ theme, ts }: { theme: ThemeColors; ts: (key: string, 
       </button>
       {open ? (
         <div className="border-t p-4 sm:p-5" style={{ borderColor: theme.borderLight }}>
-          <div className="grid gap-2 sm:grid-cols-2">
-            {items.map((item) => (
-              <details key={item.label} className="rounded-xl border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-                <summary className="cursor-pointer text-sm font-semibold" style={{ color: theme.textPrimary }}>{item.label}</summary>
-                <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>{item.body}</p>
-              </details>
-            ))}
+          <div className="space-y-4">
+            <div className="rounded-xl border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+              <p className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>{ts('labels.yourDataBoundaries')}</p>
+              <p className="mt-1 text-sm leading-6" style={{ color: theme.textPrimary }}>
+                {ts('labels.accountTrustPostureSummary')}
+              </p>
+              <div className="mt-3 flex flex-col gap-2">
+                {statusItems.map((item) => (
+                  <div key={item.label} className="rounded-xl border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>{item.label}</p>
+                    <p className="mt-1 text-sm leading-6" style={{ color: theme.textPrimary }}>{item.body}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {items.map((item) => (
+                <details key={item.label} className="rounded-xl border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                  <summary className="cursor-pointer text-sm font-semibold" style={{ color: theme.textPrimary }}>{item.label}</summary>
+                  <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>{item.body}</p>
+                </details>
+              ))}
+            </div>
           </div>
+          <div className="mt-4 flex flex-wrap gap-2 border-t pt-4" style={{ borderColor: theme.borderLight }}>
+            <button
+              type="button"
+              className="h-10 rounded-full border px-3.5 text-sm font-semibold"
+              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+              onClick={onClearLocalPersonalization}
+            >
+              {ts('labels.clearLocalSettings')}
+            </button>
+            {!user ? (
+              <button
+                type="button"
+                className="h-10 rounded-full border px-3.5 text-sm font-semibold"
+                style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: hasLocalWorkspaceData ? theme.textPrimary : theme.textSecondary, opacity: hasLocalWorkspaceData ? 1 : 0.65 }}
+                disabled={!hasLocalWorkspaceData}
+                onClick={onClearGuestWorkspace}
+              >
+                {ts('labels.clearGuestWorkspace')}
+              </button>
+            ) : null}
+            <button
+              type="button"
+              className="h-10 rounded-full border px-3.5 text-sm font-semibold"
+              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: user ? theme.textPrimary : theme.textSecondary, opacity: user ? 1 : 0.65 }}
+              disabled={!user || accountActionBusy === "export"}
+              onClick={onExportData}
+            >
+              {accountActionBusy === "export" ? ts('labels.preparingExport') : ts('labels.exportData')}
+            </button>
+            <button
+              type="button"
+              className="h-10 rounded-full border px-3.5 text-sm font-semibold"
+              style={{ borderColor: theme.borderStrong, backgroundColor: theme.bgInput, color: user ? theme.textPrimary : theme.textSecondary, opacity: user ? 1 : 0.65 }}
+              disabled={!user || accountActionBusy === "delete"}
+              onClick={onRequestDeleteAccount}
+            >
+              {ts('labels.deleteAccount')}
+            </button>
+          </div>
+          {!user ? (
+            <p className="border-t px-4 py-3 text-xs leading-5 sm:px-5" style={{ borderColor: theme.borderLight, color: theme.textSecondary }}>
+              {ts('labels.signInToExportDelete')}
+            </p>
+          ) : null}
         </div>
       ) : null}
     </section>
@@ -14391,6 +15035,7 @@ function ScriptureModal({
   theme,
   scripture,
   preferences,
+  ui,
   ts,
   onReadAloud,
   onScriptureOpen,
@@ -14399,6 +15044,7 @@ function ScriptureModal({
   theme: ThemeColors;
   scripture: string | null;
   preferences: UserPreferences;
+  ui: UiText;
   ts: (key: string, fallback?: string) => string;
   onReadAloud: () => void;
   onScriptureOpen: (scripture: string) => void;
@@ -14434,10 +15080,15 @@ function ScriptureModal({
 
   const quickRead = localizedScriptureRead(scripture, preferences);
   const canonicalScripture = canonicalScriptureReference(scripture);
+  const translationLabel = scriptureDisplayLabel(canonicalScripture, preferences);
+  const curatedReadingNote = ts(
+    "labels.curatedReadingOrSummary",
+    "When Aletheia has a curated public-domain reading in your chosen translation, it shows that reading. Otherwise it uses a concise, clearly marked wisdom summary and keeps the reference exact."
+  );
   const studyModeTitle = ts('labels.scriptureStudyMode', 'Study Mode');
   const studyModeSubtitle = ts('labels.scriptureStudyModeSubtitle', 'Explore the meaning, context, and connected scriptures.');
-  const studyModeButton = ts('labels.diveDeep', 'Dive Deep');
-  const backToQuickRead = ts('labels.backToQuickRead', 'Back to Quick Read');
+  const studyModeButton = ui.diveDeep ?? ts('labels.diveDeep', 'Dive Deep');
+  const backToQuickRead = ui.backToQuickRead ?? ts('labels.backToQuickRead', 'Back to Quick Read');
 
   return createPortal(
     <div
@@ -14472,9 +15123,14 @@ function ScriptureModal({
                   <h2 id="scripture-quick-read-title" className="mt-2 text-[2rem] font-semibold leading-[1.05] sm:text-[2.45rem]" style={{ color: theme.textPrimary }}>
                     {canonicalScripture}
                   </h2>
-                  <p className="mt-2 text-sm leading-6 sm:text-[0.98rem]" style={{ color: theme.textSecondary }}>
-                    {scriptureDisplayLabel(canonicalScripture, preferences)}
-                  </p>
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <span className="inline-flex items-center rounded-full border px-3 py-1 text-[0.72rem] font-semibold uppercase tracking-[0.16em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
+                      {translationLabel}
+                    </span>
+                    <span className="text-xs leading-5 sm:text-sm" style={{ color: theme.textSecondary }}>
+                      {curatedReadingNote}
+                    </span>
+                  </div>
                 </>
               ) : (
                 <>
@@ -14487,9 +15143,14 @@ function ScriptureModal({
                   <p className="mt-2 text-sm leading-6 sm:text-[0.98rem]" style={{ color: theme.textSecondary }}>
                     {studyModeSubtitle}
                   </p>
-                  <p className="mt-3 text-[0.72rem] font-semibold uppercase tracking-[0.22em]" style={{ color: theme.textMuted }}>
-                    {canonicalScripture} · {scriptureDisplayLabel(canonicalScripture, preferences)}
-                  </p>
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <span className="inline-flex items-center rounded-full border px-3 py-1 text-[0.72rem] font-semibold uppercase tracking-[0.16em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
+                      {translationLabel}
+                    </span>
+                    <span className="text-[0.72rem] font-semibold uppercase tracking-[0.22em]" style={{ color: theme.textMuted }}>
+                      {canonicalScripture}
+                    </span>
+                  </div>
                 </>
               )}
             </div>
@@ -15082,8 +15743,8 @@ function PreferencesPanel({
   ts: (key: string, fallback?: string) => string;
   preferences: UserPreferences;
   status: string;
-  ui: (typeof uiText)[LanguageCode];
-  copy: (typeof languageCopy)[LanguageCode];
+  ui: UiText;
+  copy: NonNullable<(typeof languageCopy)["en"]>;
   activeRegion: (typeof regions)[RegionCode];
   onChange: (patch: Partial<UserPreferences>) => void;
   themePreference: ThemePreference;
@@ -15281,8 +15942,8 @@ function CompanionPanel({
   modeProfile: DisplayModeProfile;
   modeCards: ModeCard[];
   preferences: UserPreferences;
-  copy: (typeof languageCopy)[LanguageCode];
-  ui: (typeof uiText)[LanguageCode];
+  copy: NonNullable<(typeof languageCopy)["en"]>;
+  ui: UiText;
   query: string;
   focusIntentions: string[];
   setQuery: (value: string) => void;
@@ -15984,7 +16645,7 @@ function ScriptureStudyMode({
   );
 }
 
-function TrustLayerPanel({ theme, ui }: { theme: ThemeColors; ui: (typeof uiText)[LanguageCode] }) {
+function TrustLayerPanel({ theme, ui }: { theme: ThemeColors; ui: UiText }) {
   const [open, setOpen] = useState(false);
   return (
     <section className="rounded-xl border p-3.5 shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
@@ -16003,17 +16664,17 @@ function TrustLayerPanel({ theme, ui }: { theme: ThemeColors; ui: (typeof uiText
         </button>
       </div>
       <p className="mt-3 rounded-lg border p-2.5 text-sm leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-        {ui.trustScriptureBody ?? uiText.en.trustScriptureBody}
+        {ui.trustScriptureBody ?? uiText.en!.trustScriptureBody}
       </p>
       {open ? <div className="mt-3 space-y-2.5 text-sm leading-5" style={{ color: theme.textSecondary }}>
         <p className="rounded-lg border p-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
-          {ui.trustBoundaryBody ?? uiText.en.trustBoundaryBody}
+          {ui.trustBoundaryBody ?? uiText.en!.trustBoundaryBody}
         </p>
         <p className="rounded-lg border p-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
-          {ui.trustMemoryBody ?? uiText.en.trustMemoryBody}
+          {ui.trustMemoryBody ?? uiText.en!.trustMemoryBody}
         </p>
         <p className="rounded-lg border p-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
-          {ui.trustConnectedDataBody ?? uiText.en.trustConnectedDataBody}
+          {ui.trustConnectedDataBody ?? uiText.en!.trustConnectedDataBody}
         </p>
       </div> : null}
     </section>
@@ -16202,7 +16863,7 @@ function CurrentCounselCard({
   theme: ThemeColors;
   exchange: ConversationExchange;
   preferences: UserPreferences;
-  ui: (typeof uiText)[LanguageCode];
+  ui: UiText;
   isWorking: boolean;
   isSpeaking: boolean;
   speechPaused: boolean;
@@ -16219,7 +16880,7 @@ function CurrentCounselCard({
   onShare: (channel: ShareChannel) => void;
   onFeedback: (value: string) => void;
 }) {
-  const text = { ...uiText.en, ...ui };
+  const text = { ...uiText.en!, ...ui };
   const question = exchange.question?.text;
   const exchangeMode = exchange.mode;
   const exchangeModeProfile = localizedModeProfile(exchangeMode, preferences.language);
@@ -16355,8 +17016,8 @@ function CurrentCounselCard({
   );
 }
 
-function AnswerFeedback({ theme, ui, onFeedback }: { theme: ThemeColors; ui: (typeof uiText)[LanguageCode]; onFeedback: (value: string) => void }) {
-  const text = { ...uiText.en, ...ui };
+function AnswerFeedback({ theme, ui, onFeedback }: { theme: ThemeColors; ui: UiText; onFeedback: (value: string) => void }) {
+  const text = { ...uiText.en!, ...ui };
   const items = [
     ["helpful", text.feedbackHelpful!],
     ["mildly_helpful", text.feedbackMildlyHelpful!],
@@ -16412,7 +17073,7 @@ function HistoryExchange({
   theme: ThemeColors;
   exchange: ConversationExchange;
   preferences: UserPreferences;
-  ui: (typeof uiText)[LanguageCode];
+  ui: UiText;
   ts: (key: string, fallback?: string) => string;
   expanded: boolean;
   onToggle: () => void;
@@ -18618,6 +19279,19 @@ function LibraryPanel({
           theme={theme}
         >
           <div className="rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+            {(() => {
+              const translationLabel = scriptureDisplayLabel(scriptureMemory.scripture, preferences);
+              return (
+                <div className="mb-2 flex flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center rounded-full border px-3 py-1 text-[0.72rem] font-semibold uppercase tracking-[0.16em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                    {translationLabel}
+                  </span>
+                  <span className="text-xs leading-5" style={{ color: theme.textSecondary }}>
+                    {ts('labels.bibleTranslation')}
+                  </span>
+                </div>
+              );
+            })()}
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <button
                 type="button"
@@ -18625,7 +19299,7 @@ function LibraryPanel({
                 className="text-left text-sm font-semibold underline underline-offset-4"
                 style={{ color: theme.textPrimary }}
               >
-                {scriptureMemory.scripture} · {scriptureDisplayLabel(scriptureMemory.scripture, preferences)}
+                {scriptureMemory.scripture}
               </button>
               <button
                 type="button"
@@ -18692,6 +19366,7 @@ function LibraryPanel({
         <div className="mt-4 grid min-w-0 gap-3 lg:grid-cols-2">
           {visibleEntries.map((entry, index) => {
             const localizedEntry = localizedWisdomLibraryEntry(entry, preferences);
+            const translationLabel = scriptureDisplayLabel(entry.scripture, preferences);
             return (
               <article
                 key={entry.scripture}
@@ -18700,6 +19375,9 @@ function LibraryPanel({
               >
                 <div className="mb-2.5 flex flex-wrap items-center gap-2">
                   <span className="rounded-md px-2 py-1 text-xs font-semibold uppercase tracking-[0.14em]" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>{localizedWisdomThemeLabel(entry.theme, preferences.language)}</span>
+                  <span className="inline-flex items-center rounded-full border px-3 py-1 text-[0.72rem] font-semibold uppercase tracking-[0.16em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                    {translationLabel}
+                  </span>
                   <button
                     type="button"
                     onClick={() => onScriptureOpen(entry.scripture)}
@@ -18711,7 +19389,7 @@ function LibraryPanel({
                     onMouseEnter={(e) => e.currentTarget.style.color = theme.accentGold}
                     onMouseLeave={(e) => e.currentTarget.style.color = theme.textPrimary}
                   >
-                    {entry.scripture} · {scriptureDisplayLabel(entry.scripture, preferences)}
+                    {entry.scripture}
                   </button>
                 </div>
                 <p className="text-sm font-semibold leading-5" style={{ color: theme.textPrimary }}>{localizedEntry.principle}</p>
@@ -18740,6 +19418,7 @@ function LibraryPanel({
             <div className="mt-2.5 grid min-w-0 gap-3 lg:grid-cols-2">
               {remainingEntries.map((entry, index) => {
                 const localizedEntry = localizedWisdomLibraryEntry(entry, preferences);
+                const translationLabel = scriptureDisplayLabel(entry.scripture, preferences);
                 return (
                   <article
                     key={entry.scripture}
@@ -18748,13 +19427,16 @@ function LibraryPanel({
                   >
                     <div className="mb-2.5 flex flex-wrap items-center gap-2">
                       <span className="rounded-md px-2 py-1 text-xs font-semibold uppercase tracking-[0.14em]" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>{localizedWisdomThemeLabel(entry.theme, preferences.language)}</span>
+                      <span className="inline-flex items-center rounded-full border px-3 py-1 text-[0.72rem] font-semibold uppercase tracking-[0.16em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                        {translationLabel}
+                      </span>
                       <button
                         type="button"
                         onClick={() => onScriptureOpen(entry.scripture)}
                         className="text-left text-sm font-semibold underline underline-offset-4 transition"
                         style={{ color: theme.textPrimary, textDecorationColor: theme.borderMedium }}
                       >
-                        {entry.scripture} · {scriptureDisplayLabel(entry.scripture, preferences)}
+                        {entry.scripture}
                       </button>
                     </div>
                     <p className="text-sm font-semibold leading-5" style={{ color: theme.textPrimary }}>{localizedEntry.principle}</p>

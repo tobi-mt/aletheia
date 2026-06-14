@@ -12,6 +12,9 @@ This directory contains all UI translations for the Aletheia app in JSON format.
 - **yo** - Yorùbá (Yoruba)
 - **ig** - Igbo
 - **ha** - Hausa
+- **tl** - Filipino / Tagalog
+- **ar** - العربية (Arabic)
+- **hi** - हिन्दी (Hindi)
 
 ## File Structure
 
@@ -67,10 +70,18 @@ These files show English source text with `[TODO: Translate]` prefix for easy tr
 
 Run `npx ts-node scripts/analyze-translations.ts` to see current coverage:
 
+`tl`, `ar`, and `hi` now pass the strict no-fallback check. English fallback stays available in the loader, but these three locales currently have complete key coverage.
+
+The tactical rollout plan, exact file scope, and launch checklist live in [`LANGUAGE_EXPANSION_ROLLOUT.md`](/Users/tobi/PycharmProjects/pythonProject/aletheia/LANGUAGE_EXPANSION_ROLLOUT.md).
+The exact strict-mode missing-key inventories live in [`translation-reports/strict-missing-keys.md`](/Users/tobi/PycharmProjects/pythonProject/aletheia/translation-reports/strict-missing-keys.md), and `npm run translations:strict` enforces the no-fallback gate for `tl`, `ar`, and `hi`.
+
 ```
 ✅ English: 100% (85/85)
 🟡 Deutsch: 62% (53/85)
 🟡 Yorùbá: 74% (63/85)
+✅ Filipino / Tagalog: strict no-fallback complete
+✅ العربية: strict no-fallback complete
+✅ हिन्दी: strict no-fallback complete
 🔴 Español: 31% (26/85)
 🔴 Français: 31% (26/85)
 🔴 Português: 31% (26/85)
