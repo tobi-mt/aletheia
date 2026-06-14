@@ -5228,7 +5228,13 @@ function TodayVisualPanel({
             background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})`,
           }}
         />
-        <div className="absolute inset-0 overflow-hidden rounded-[1.15rem]">
+        <div
+          className="absolute inset-0 overflow-hidden rounded-[1.15rem]"
+          style={{
+            WebkitMaskImage: "linear-gradient(180deg, transparent 0%, black 16%, black 82%, transparent 100%)",
+            maskImage: "linear-gradient(180deg, transparent 0%, black 16%, black 82%, transparent 100%)",
+          }}
+        >
           {usingPhoto ? (
             <Image
               src={asset.imageUrl}
@@ -5249,40 +5255,9 @@ function TodayVisualPanel({
           <div
             className="absolute inset-0"
             style={{
-              background: `linear-gradient(180deg, rgba(4, 7, 6, 0.02) 0%, rgba(4, 7, 6, 0.06) 42%, rgba(4, 7, 6, 0.26) 100%), ${placement.overlayGradient}`,
+              background: `linear-gradient(180deg, rgba(4, 7, 6, 0.02) 0%, rgba(4, 7, 6, 0.05) 34%, rgba(4, 7, 6, 0.18) 70%, rgba(4, 7, 6, 0.30) 100%), ${placement.overlayGradient}`,
             }}
           />
-        </div>
-
-        <div className="absolute inset-x-4 top-4 flex items-center justify-between">
-          <div
-            className="rounded-full border px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.22em] shadow-[0_10px_24px_rgba(7,10,8,0.10)]"
-            style={{
-              borderColor: theme.borderLight,
-              background: "rgba(8, 11, 10, 0.48)",
-              color: theme.accentGold,
-              backdropFilter: "blur(10px)",
-              WebkitBackdropFilter: "blur(10px)",
-            }}
-          >
-            {asset.kind === "photo" ? "Today's image" : "Today's frame"}
-          </div>
-        </div>
-
-        <div className="absolute inset-x-0 bottom-0 p-3">
-          <div
-            className="rounded-[1rem] border px-3 py-2.5 shadow-[0_12px_24px_rgba(7,10,8,0.12)]"
-            style={{
-              borderColor: theme.borderLight,
-              background: "linear-gradient(180deg, rgba(12, 18, 16, 0.72), rgba(12, 18, 16, 0.44))",
-              backdropFilter: "blur(10px)",
-              WebkitBackdropFilter: "blur(10px)",
-            }}
-          >
-            <p className="mt-1 line-clamp-1 text-sm font-semibold leading-5 text-white/95">
-              {asset.title}
-            </p>
-          </div>
         </div>
       </div>
     </figure>
@@ -11467,11 +11442,11 @@ function HomeDashboard({
               {(text.weeklyReviewBody ?? "").replace("{pattern}", weeklyReview.pattern)}
             </p>
           </div>
-          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-            <WeeklyReviewBadge label={text.questionsThisWeek ?? ""} current={weeklyReview.questions} previous={weeklyReview.previousQuestions} lastWeekLabel={text.weeklyReviewLastWeekLabel ?? "Last week"} theme={theme} />
-            <WeeklyReviewBadge label={text.reflectionsThisWeek ?? ""} current={weeklyReview.reflections} previous={weeklyReview.previousReflections} lastWeekLabel={text.weeklyReviewLastWeekLabel ?? "Last week"} theme={theme} />
-            <WeeklyReviewBadge label={text.gratitudeThisWeek ?? ""} current={weeklyReview.gratitudeMoments} previous={weeklyReview.previousGratitudeMoments} lastWeekLabel={text.weeklyReviewLastWeekLabel ?? "Last week"} theme={theme} />
-            <WeeklyReviewBadge label={text.decisionsThisWeek ?? ""} current={weeklyReview.decisions} previous={weeklyReview.previousDecisions} lastWeekLabel={text.weeklyReviewLastWeekLabel ?? "Last week"} theme={theme} />
+          <div className="grid min-w-0 gap-2 sm:grid-cols-2 xl:grid-cols-4">
+            <WeeklyReviewRailStat label={text.questionsThisWeek ?? ""} current={weeklyReview.questions} previous={weeklyReview.previousQuestions} lastWeekLabel={text.weeklyReviewLastWeekLabel ?? "Last week"} theme={theme} />
+            <WeeklyReviewRailStat label={text.reflectionsThisWeek ?? ""} current={weeklyReview.reflections} previous={weeklyReview.previousReflections} lastWeekLabel={text.weeklyReviewLastWeekLabel ?? "Last week"} theme={theme} />
+            <WeeklyReviewRailStat label={text.gratitudeThisWeek ?? ""} current={weeklyReview.gratitudeMoments} previous={weeklyReview.previousGratitudeMoments} lastWeekLabel={text.weeklyReviewLastWeekLabel ?? "Last week"} theme={theme} />
+            <WeeklyReviewRailStat label={text.decisionsThisWeek ?? ""} current={weeklyReview.decisions} previous={weeklyReview.previousDecisions} lastWeekLabel={text.weeklyReviewLastWeekLabel ?? "Last week"} theme={theme} />
           </div>
           <p className="rounded-[1.15rem] border p-4 text-[0.95rem] leading-7" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
             <span className="font-semibold" style={{ color: theme.textPrimary }}>{text.nextFaithfulStep ?? ""}:</span>{" "}
@@ -11483,7 +11458,7 @@ function HomeDashboard({
   );
 }
 
-function WeeklyReviewBadge({
+function WeeklyReviewRailStat({
   label,
   current,
   previous,
@@ -11505,27 +11480,28 @@ function WeeklyReviewBadge({
       : delta < 0
         ? { borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textSecondary }
         : { borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textSecondary };
+  const accessibleLabel = `${label}, ${current}. ${lastWeekLabel} ${previous}.`;
 
   return (
-    <div className="rounded-[1.05rem] border p-3 shadow-[0_6px_14px_rgba(7,10,8,0.04)]" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
-      <div className="flex items-start justify-between gap-2.5">
-        <div className="min-w-0 flex-1">
-          <p className="text-[9.5px] font-semibold uppercase tracking-[0.18em] whitespace-nowrap" style={{ color: theme.accentGold }}>
-            {label}
-          </p>
-          <div className="mt-2 flex items-end gap-2.5">
-            <p className="text-[1.95rem] font-semibold leading-none tracking-[-0.035em]" style={{ color: theme.textPrimary }}>
-              {current}
-            </p>
-            <span className="inline-flex min-w-[3.25rem] items-center justify-center gap-1 rounded-full border px-2 py-1 text-[9.5px] font-semibold uppercase tracking-[0.12em]" style={deltaStyle}>
-              <DeltaIcon size={11} />
-              {deltaLabel}
-            </span>
-          </div>
-          <p className="mt-1.5 text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textSecondary }}>
-            {lastWeekLabel} {previous}
-          </p>
-        </div>
+    <div
+      className="premium-tap-card flex min-w-0 flex-col rounded-[1rem] border p-3 text-left shadow-[0_6px_14px_rgba(7,10,8,0.04)]"
+      style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}
+      aria-label={accessibleLabel}
+      title={accessibleLabel}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <p className="min-w-0 truncate text-[9.5px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
+          {label}
+        </p>
+        <span className="inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.12em]" style={deltaStyle}>
+          <DeltaIcon size={10} />
+          {deltaLabel}
+        </span>
+      </div>
+      <div className="mt-2 flex items-end justify-between gap-2">
+        <p className="text-[2rem] font-semibold leading-none tracking-[-0.04em]" style={{ color: theme.textPrimary }}>
+          {current}
+        </p>
         <WeeklyReviewTrend current={current} previous={previous} theme={theme} />
       </div>
     </div>
@@ -11554,7 +11530,7 @@ function WeeklyReviewTrend({
 
   return (
     <div
-      className="flex h-12 w-16 shrink-0 flex-col justify-center rounded-[0.95rem] border px-2 py-1.5"
+      className="flex h-11 w-16 shrink-0 flex-col justify-center rounded-[0.95rem] border px-2 py-1.5"
       style={{
         borderColor: theme.borderLight,
         background: `linear-gradient(180deg, ${theme.bgCard}, ${theme.bgCardElevated})`,
@@ -12037,19 +12013,16 @@ function AccountPanel({
     {
       icon: Feather,
       value: journalEntries.length,
-      label: ts('nav.reflect'),
       detail: ts('labels.accountHistoryReflections'),
     },
     {
       icon: FileText,
       value: decisions.length,
-      label: ts('nav.decisions'),
       detail: ts('labels.accountHistoryDecisions'),
     },
     {
       icon: Users,
       value: counselContacts.length,
-      label: ts('labels.counsel'),
       detail: ts('labels.trustedVoices'),
     },
   ];
@@ -12089,7 +12062,7 @@ function AccountPanel({
           </div>
           <div className="grid grid-cols-3 gap-2 border-t px-3 py-3 sm:px-5" style={{ borderColor: theme.borderLight }}>
             {profileStats.map((stat) => (
-              <AccountHeaderStat key={stat.detail} icon={stat.icon} value={stat.value} label={stat.label} detail={stat.detail} theme={theme} />
+              <AccountHeaderStat key={stat.detail} icon={stat.icon} value={stat.value} detail={stat.detail} theme={theme} />
             ))}
           </div>
         </div>
@@ -12309,20 +12282,18 @@ function AccountPanel({
 function AccountHeaderStat({
   icon: Icon,
   value,
-  label,
   detail,
   theme,
 }: {
   icon: typeof Feather;
   value: number;
-  label: string;
   detail: string;
   theme: ThemeColors;
 }) {
   const accessibleLabel = `${value} ${detail}`;
   return (
     <span
-      className="flex min-h-12 min-w-0 items-center gap-2 rounded-xl border px-2.5 py-2 text-left shadow-[0_4px_10px_rgba(7,10,8,0.03)]"
+      className="flex min-h-11 min-w-0 items-center justify-between gap-2 rounded-xl border px-3 py-2 text-left shadow-[0_4px_10px_rgba(7,10,8,0.03)]"
       style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}
       aria-label={accessibleLabel}
       title={accessibleLabel}
@@ -12330,10 +12301,7 @@ function AccountHeaderStat({
       <span className="grid size-8 shrink-0 place-items-center rounded-lg border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
         <Icon size={14} aria-hidden="true" />
       </span>
-      <span className="min-w-0 flex-1">
-        <span className="block truncate text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textSecondary }}>{label}</span>
-        <span className="mt-1 block text-[14px] font-semibold leading-none tracking-[-0.02em] sm:text-[15px]" style={{ color: theme.textPrimary }}>{value}</span>
-      </span>
+      <span className="text-[15px] font-semibold leading-none tracking-[-0.02em]" style={{ color: theme.textPrimary }}>{value}</span>
     </span>
   );
 }
