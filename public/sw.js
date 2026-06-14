@@ -1,4 +1,5 @@
-const CACHE_NAME = "aletheia-v28";
+const buildId = new URL(self.location.href).searchParams.get("v") || "dev";
+const CACHE_NAME = `aletheia-${buildId}`;
 const APP_SHELL = [
   "/",
   "/manifest.webmanifest",
