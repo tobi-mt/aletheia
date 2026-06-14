@@ -696,6 +696,78 @@ export const crisisSupportCopy: Partial<Record<
     holinessNext:
       "Ka kawo gwagwarmayar cikin haske ta ikirari, iyaka, da amsa tambaya.",
   },
+  tl: {
+    selfHarmOpening:
+      "Mabuti at sinabi mo ito nang lantad. Kung maaari mong isagawa ang naiisip na pananakit sa sarili o pagpapakamatay, huminto muna at humingi agad ng tulong ng tao.",
+    selfHarmImmediate:
+      "Kung nasa U.S. o Canada ka, tumawag o mag-text sa 988 ngayon. Kung nasa ibang lugar ka, makipag-ugnayan agad sa lokal na emergency services o sa pinakamalapit na crisis line.",
+    selfHarmFollowUp:
+      "Kumontak agad sa isang taong mapagkakatiwalaan, huwag munang mag-isa, at ilayo ang anumang puwede mong gamitin para saktan ang sarili mo.",
+    addictionOpening:
+      "Mabigat na laban ito, at hindi mo kailangang harapin ito sa sariling lakas lang.",
+    addictionNext:
+      "Sabihin ngayon ang totoo sa isang taong mapagkakatiwalaan, alisin ang isang madaling daanan, at gawing mas ligtas ang susunod na 24 oras.",
+    depressionOpening:
+      "Mukhang mabigat iyon, at ikinalulungkot kong pasan mo ito.",
+    depressionNext:
+      "Paliitin ang susunod na oras: uminom ng tubig, kumain ng kahit ano, lumabas sandali, at sabihin sa isang ligtas na tao ang nangyayari.",
+    lonelinessOpening:
+      "Mahalaga ang ganitong uri ng pag-iisa.",
+    lonelinessNext:
+      "Piliin muna ang koneksyon bago ang linaw. Mag-text, tumawag, o makisama sa isang ligtas na tao kahit wala ka pang tamang salita.",
+    holinessOpening:
+      "Mas mukhang tanong ito ng kabanalan at paghubog kaysa simpleng lakas ng loob.",
+    holinessNext:
+      "Dalhin ang laban sa liwanag sa pamamagitan ng pag-amin, mga hangganan, at pananagutan.",
+  },
+  ar: {
+    selfHarmOpening:
+      "من الجيد أنك قلت هذا بصوتٍ عالٍ. إذا كنت قد تُقدِم على إيذاء نفسك أو الانتحار، فتوقف هنا واطلب مساعدة بشرية فورية.",
+    selfHarmImmediate:
+      "إذا كنت في الولايات المتحدة أو كندا، فاتصل أو أرسل رسالة إلى 988 الآن. وإذا كنت في مكان آخر، فاتصل فورًا بخدمات الطوارئ المحلية أو بخط أزمة قريب.",
+    selfHarmFollowUp:
+      "تواصل الآن مع شخص تثق به، ولا تبقَ وحدك، وأبعد عنك أي شيء قد تستخدمه لإيذاء نفسك.",
+    addictionOpening:
+      "هذا صراع جاد، ولا تحتاج إلى مواجهته بالإرادة وحدها.",
+    addictionNext:
+      "قل الحقيقة اليوم لشخص تثق به، وأزل منفذًا سهلاً واحدًا، واجعل الساعات الأربع والعشرين القادمة أكثر أمانًا.",
+    depressionOpening:
+      "يبدو هذا ثقيلًا، وأنا آسف لأنك تحمله.",
+    depressionNext:
+      "صغّر الساعة القادمة: اشرب ماءً، وكل شيئًا، واخرج قليلًا، وأخبر شخصًا آمنًا بما يحدث.",
+    lonelinessOpening:
+      "هذا النوع من الوحدة مهم.",
+    lonelinessNext:
+      "اختر الاتصال قبل الوضوح. أرسل رسالة، أو اتصل، أو اجلس مع شخص آمن، حتى إن لم تكن لديك الكلمات المناسبة بعد.",
+    holinessOpening:
+      "يبدو هذا أقرب إلى سؤال عن القداسة والتكوين منه إلى مسألة إرادة فقط.",
+    holinessNext:
+      "أخرج الصراع إلى النور بالاعتراف، والحدود، والمساءلة.",
+  },
+  hi: {
+    selfHarmOpening:
+      "यह अच्छी बात है कि आपने यह खुलकर कहा। यदि आप आत्म-हानि या आत्महत्या के विचार पर कार्रवाई कर सकते हैं, तो यहीं रुकें और तुरंत किसी इंसान से मदद लें।",
+    selfHarmImmediate:
+      "यदि आप U.S. या Canada में हैं, तो अभी 988 पर कॉल या टेक्स्ट करें। यदि आप कहीं और हैं, तो तुरंत स्थानीय आपातकालीन सेवाओं या पास की संकट-रेखा से संपर्क करें।",
+    selfHarmFollowUp:
+      "अभी किसी भरोसेमंद व्यक्ति से संपर्क करें, अकेले न रहें, और अपने आस-पास की कोई भी चीज़ हटा दें जिससे आप स्वयं को नुकसान पहुँचा सकते हों।",
+    addictionOpening:
+      "यह एक गंभीर संघर्ष है, और आपको इसे केवल इच्छाशक्ति के सहारे नहीं झेलना चाहिए।",
+    addictionNext:
+      "आज ही किसी भरोसेमंद व्यक्ति को सच्चाई बताइए, एक आसान पहुँच हटाइए, और अगले 24 घंटों को अधिक सुरक्षित बनाइए।",
+    depressionOpening:
+      "यह बहुत भारी लगता है, और मुझे दुख है कि आप इसे ढो रहे हैं।",
+    depressionNext:
+      "अगले घंटे को छोटा करें: पानी पिएँ, कुछ खाएँ, थोड़ी देर बाहर जाएँ, और किसी सुरक्षित व्यक्ति को बताइए कि क्या हो रहा है।",
+    lonelinessOpening:
+      "ऐसी अकेलापन बहुत मायने रखती है।",
+    lonelinessNext:
+      "स्पष्टता से पहले संपर्क चुनिए। संदेश भेजिए, कॉल कीजिए, या किसी सुरक्षित व्यक्ति के साथ बैठिए, भले ही अभी सही शब्द न हों।",
+    holinessOpening:
+      "यह केवल इच्छाशक्ति नहीं, बल्कि पवित्रता और गठन का प्रश्न लगता है।",
+    holinessNext:
+      "स्वीकारोक्ति, सीमाओं, और जवाबदेही के साथ इस संघर्ष को प्रकाश में लाइए.",
+  },
 };
 
 export function localizedCrisisSupportCopy(language: LanguageCode) {
@@ -880,6 +952,48 @@ const localizedWisdomThemes: Partial<Record<LanguageCode, Record<string, string>
     Confession: "Iƙirari",
     Purity: "Tsabta",
     Freedom: "'Yanci",
+  },
+  tl: {
+    Stewardship: "Pangangasiwa",
+    Debt: "Utang",
+    Contentment: "Kuntento",
+    Counsel: "Payo",
+    "Cost Counting": "Pagtataya ng gastos",
+    Generosity: "Pagkamapagbigay",
+    Diligence: "Kasipagan",
+    "Provision and Anxiety": "Paglalaan at pag-aalala",
+    Recovery: "Pagbangon",
+    Confession: "Pag-amin",
+    Purity: "Kadalisayan",
+    Freedom: "Kalayaan",
+  },
+  ar: {
+    Stewardship: "الأمانة في التدبير",
+    Debt: "الدَّين",
+    Contentment: "القناعة",
+    Counsel: "المشورة",
+    "Cost Counting": "حساب الكلفة",
+    Generosity: "الكرم",
+    Diligence: "المثابرة",
+    "Provision and Anxiety": "الرزق والقلق",
+    Recovery: "الشفاء",
+    Confession: "الاعتراف",
+    Purity: "الطهارة",
+    Freedom: "الحرية",
+  },
+  hi: {
+    Stewardship: "अमानत की देखभाल",
+    Debt: "कर्ज़",
+    Contentment: "संतोष",
+    Counsel: "सलाह",
+    "Cost Counting": "लागत का आकलन",
+    Generosity: "उदारता",
+    Diligence: "परिश्रम",
+    "Provision and Anxiety": "प्रावधान और चिंता",
+    Recovery: "पुनर्स्थापन",
+    Confession: "स्वीकारोक्ति",
+    Purity: "पवित्रता",
+    Freedom: "स्वतंत्रता",
   },
 };
 
@@ -2450,6 +2564,582 @@ const localizedModeProfiles: Partial<Record<LanguageCode, Partial<Record<Mode, P
       ],
     },
   },
+  tl: {
+    Money: {
+      intent: "Pamahalaan ang mga pinagkakatiwalaang yaman nang may kapayapaan at linaw.",
+      focus: "Badyet, utang, pag-iipon, pag-iinvest, kasiyahan",
+      useWhen: "Gamitin para sa paggastos, utang, pag-iipon, pag-iinvest, pinansyal na pag-aalala, o paghahambing.",
+      lens: "Isang lente ng pangangasiwa: kalayaan, sapat, pagtitiis, panganib, at tapat na pananagutan.",
+      diagnosticTracks: [
+        "Kalayaan: dadami ba o mababawasan ang matalinong pagpipilian sa bandang huli?",
+        "Sapat: malinaw ba ang hangarin, o paghahambing ang nagtatakda ng target?",
+        "Panganib: ano ang puwedeng masira, at nasukat ko ba nang maayos ang halaga nito?",
+      ],
+      blindSpots: [
+        "Pagkalito sa pagitan ng pananampalataya at pinansyal na katiyakan",
+        "Pagkakamaling ituring ang pressure sa lifestyle bilang pangangailangan",
+        "Pagtingin sa kakayahang mangutang bilang pahintulot",
+      ],
+      maturitySignals: [
+        "May saysay pa rin ang plano matapos maghintay",
+        "Nakikita ang mga numero, hindi malabo",
+        "Nahirap ang mga palagay sa pamamagitan ng payo",
+      ],
+      practices: [
+        "Tukuyin kung ano ang sapat para sa panahong ito",
+        "Isulat nang malinaw ang plano sa pagbabayad, pag-iipon, o pagbibigay",
+        "Maghintay muna ng isang gabi bago gumastos nang hindi na mababalik",
+      ],
+      responseMoves: [
+        "Ihiwalay ang hangarin, takot, at pananagutan",
+        "Linawin ang mga tradeoff nang hindi pinapahiya ang user",
+        "Iugnay ang Kasulatan sa konkretong gawi ng pangangasiwa",
+      ],
+      promptCue:
+        "Sa Money mode, bigyang-diin ang pangangasiwa, kasiyahan, pag-iingat sa utang, matalinong panganib, pangmatagalang pananagutan, pagkamapagbigay, at emosyonal na pag-regulate sa pera. Iwasan ang payo sa pag-iinvest o pangakong resulta.",
+      prompts: [
+        "Paano ako bubuo ng yaman nang hindi nagiging sakim?",
+        "Ano ang sinasabi ng karunungan tungkol sa utang?",
+        "Paano ko mapipigilan ang paghahambing ko sa pera?",
+      ],
+    },
+    Work: {
+      intent: "Tuklasin ang trabaho, tawag, pamumuno, at pangmatagalang ambisyon.",
+      focus: "Paglipat ng karera, pamumuno, negosyo, pagkapagod, bokasyon",
+      useWhen: "Gamitin para sa mga desisyon sa trabaho, ideya sa negosyo, pressure sa pamumuno, pagkapagod, o ambisyon.",
+      lens: "Isang lente ng bokasyon: kasipagan, payo, pagbibilang ng halaga, paglilingkod, at napapanatiling bilis.",
+      diagnosticTracks: [
+        "Tawag: anong uri ng paglilingkod o responsibilidad ang nililinaw?",
+        "Kapasidad: may espasyo ba ang buhay ng user para sa pangakong ito?",
+        "Payo: sino ang puwedeng sumubok sa plano nang hindi ito kinokontrol?",
+      ],
+      blindSpots: [
+        "Pagkakamaling tawagin ang pagkabalisa na tawag",
+        "Paggamit ng espiritwal na wika para iwasan ang pagpaplano",
+        "Pagkalito sa palakpakan at bunga",
+      ],
+      maturitySignals: [
+        "Kayang pangalanan ng user ang tradeoffs nang tapat",
+        "May susunod na eksperimentong puwedeng ibalik",
+        "Nakikita ng payong matalino ang numero at motibo",
+      ],
+      practices: [
+        "Tukuyin ang pinakamaliit na hakbang na puwedeng ibalik",
+        "Isulat ang totoong halaga sa oras, pera, at atensyon",
+        "Tanungin ang kritiko kung aling bahagi ng plano ang marupok",
+      ],
+      responseMoves: [
+        "Ihiwalay ang tawag, ambisyon, pagtakas, at pagkapagod",
+        "Ibinababa ang desisyon sa susunod na tapat na eksperimento",
+        "Gamitin ang payo at pagbibilang ng halaga bilang pampatatag",
+      ],
+      promptCue:
+        "Sa Work mode, bigyang-diin ang bokasyon, kasipagan, matalinong payo, karakter ng pamumuno, pagbibilang ng halaga, napapanatiling ambisyon, at paglilingkod. Tulungan ang user na siyasatin ang motibo at tradeoff bago ang malalaking desisyon sa trabaho.",
+      prompts: [
+        "Dapat ko bang iwan ang matatag kong trabaho?",
+        "Paano ko malalaman kung malusog ang ambisyon ko?",
+        "Dapat ko na bang simulan ang negosyong ito ngayon?",
+      ],
+    },
+    Purpose: {
+      intent: "Bagalan at siyasatin ang taong hinuhubog ng desisyong ito.",
+      focus: "Pagkakakilanlan, direksyon, pagkabalisa, mga halaga, pangmatagalang linaw",
+      useWhen: "Gamitin kapag ang tunay na tanong ay pagkakakilanlan, direksyon, kapayapaan, panahon, o mga halaga.",
+      lens: "Isang lente ng pagdiscern: pagkakakilanlan, kapayapaan, motibo, pagtitiis, at susunod na tapat na hakbang.",
+      diagnosticTracks: [
+        "Pagkakakilanlan: ano ang sinusubukang patunayan, protektahan, o maging ng user?",
+        "Kapayapaan: ano ang nagbabago kapag humupa ang pagkaapurahan?",
+        "Motibo: alin ang mabuting hangarin, at alin ang nabaluktot?",
+      ],
+      blindSpots: [
+        "Paghihintay ng perpektong katiyakan bago sumunod nang tapat",
+        "Pagtingin sa pagkabalisa bilang discernment",
+        "Pagpapahintulot sa tagumpay na magtakda ng identidad",
+      ],
+      maturitySignals: [
+        "Malinaw ang susunod na hakbang kahit hindi pa ang buong daan",
+        "Kayang pangalanan ng user ang motibo nang walang sariling pagkondena",
+        "Kayang dalhin ang desisyon nang may pagtitiis",
+      ],
+      practices: [
+        "Pangalanan ang takot sa ilalim ng desisyon",
+        "Sumulat ng isang pangungusap tungkol sa taong hinuhubog ng pagpiling ito",
+        "Piliin ang susunod na tapat na hakbang para sa susunod na 24 oras",
+      ],
+      responseMoves: [
+        "Bawasan ang pagkaapurahan at ibalik ang kakayahang kumilos",
+        "Ihiwalay ang pagkakakilanlan sa resulta",
+        "Anyayahan ang tapat na pagsusuri ng motibo nang walang hiya",
+      ],
+      promptCue:
+        "Sa Purpose mode, bigyang-diin ang discernment, pagkakakilanlan, motibo, kapayapaan, pagtitiis, mga halaga, mapanalanging pagninilay, at susunod na tapat na hakbang. Panatilihing nakaugat at hindi mistikal ang gabay; huwag mag-angkin ng banal na katiyakan.",
+      prompts: [
+        "Paano ako magpapasya kapag malabo ang lahat?",
+        "Paano kung hinahabol ko ang tagumpay sa maling dahilan?",
+        "Paano ako makakahanap ng kapayapaan tungkol sa susunod kong hakbang?",
+      ],
+    },
+    Generosity: {
+      intent: "Magbigay nang malaya, walang hiya, pressure, o pagpapakitang-tao.",
+      focus: "Pagbibigay, suporta sa pamilya, kawanggawa, hangganan, pagpapanatili",
+      useWhen: "Gamitin para sa pagbibigay, pagtiti, pagtulong sa pamilya, hangganan, o napapanatiling pagkamapagbigay.",
+      lens: "Isang lente ng pagkamapagbigay: bukas na loob, pagpapanatili, kagalakan, karunungan, at pag-ibig na walang pamimilit.",
+      diagnosticTracks: [
+        "Kalayaan: kusang loob ba ang regalo, o pinapatakbo ng hiya at takot?",
+        "Pagpapanatili: makakapagpatuloy ba ito nang walang nakatagong hinanakit?",
+        "Karunungan: ang pagtulong ba rito ay nagpapalakas ng pananagutan o nagpapahintulot ng pinsala?",
+      ],
+      blindSpots: [
+        "Pagpapanggap na pagkamapagbigay ang hiya",
+        "Pagbibigay sa publiko para magmukhang espiritwal",
+        "Pagsagip sa iba mula sa mga kahihinatnang kailangan nilang harapin",
+      ],
+      maturitySignals: [
+        "Malaya ang regalo, hindi pinilit",
+        "Malinaw at mabait ang mga hangganan",
+        "Napapanatili ang plano sa pagbibigay",
+      ],
+      practices: [
+        "Magpasya sa regalo bago ang sandali ng pressure",
+        "Itakda ang hangganan sa pagbibigay sa malinaw na salita",
+        "Tanungin kung pera ba talaga ang pinakamainam na tulong",
+      ],
+      responseMoves: [
+        "Alisin ang hiya at pressure sa gitna",
+        "Protektahan ang masayang pagkamapagbigay at matalinong hangganan",
+        "Tanungin kung nakakatulong o nagpapahintulot ng problema ang regalo",
+      ],
+      promptCue:
+        "Sa Generosity mode, bigyang-diin ang masayang bukas na loob, pagpapanatili, hangganan, walang pamimilit, habag, at responsableng pagbibigay. Tanggihan ang pagbibigay na inuudyok ng hiya o pagpapakita.",
+      prompts: [
+        "Paano ako magbibigay nang walang hiya o pressure?",
+        "Dapat ko pa bang tulungan ang pamilya ko sa pera?",
+        "Gaano karaming pagkamapagbigay ang kaya kong panindigan?",
+      ],
+    },
+    Life: {
+      intent: "Ilapat ang karunungang biblikal sa pang-araw-araw na buhay nang may mahinahong atensyon.",
+      focus: "Gawi, relasyon, pamilya, pahinga, kalusugan, ritmo ng tahanan",
+      useWhen: "Gamitin para sa pang-araw-araw na desisyon, rutina, relasyon, gawi, pahinga, alitan, o kapag hindi malinaw na pera o trabaho ang susunod na hakbang.",
+      lens: "Isang lente ng buong buhay: karakter, relasyon, pananagutan, ritmo, at susunod na tapat na hakbang.",
+      diagnosticTracks: [
+        "Karakter: anong uri ng tao ang hinuhubog ng gawi o pagpiling ito?",
+        "Relasyon: sino ang naaapektuhan at paano ko sila mamahalin nang mabuti?",
+        "Ritmo: lumilikha ba ito ng espasyo para sa pahinga, atensyon, at pag-aayos?",
+      ],
+      blindSpots: [
+        "Pagturing sa karaniwang desisyon bilang walang espiritwal na halaga",
+        "Sobrang pag-spiritualize sa nangangailangan ng praktikal na karunungan",
+        "Hindi pinapansin ang katawan, pamilya, o pahinga habang hinahabol ang kahulugan",
+      ],
+      maturitySignals: [
+        "Ang desisyon ay tumutugma sa malusog na ritmo, hindi lang sa ambisyon",
+        "Ang mga taong pinakamalapit sa pagbabago ay isinasaalang-alang nang maayos",
+        "Madaling sundin ang susunod na hakbang",
+      ],
+      practices: [
+        "Pangalanan ang pinakamaliit na tapat na gawi na puwede mong ulitin",
+        "Suriin kung pinalalakas o pinapahina ng pagpiling ito ang mga relasyon",
+        "Protektahan ang ritmo ng pahinga bago magdagdag ng pressure",
+      ],
+      responseMoves: [
+        "Ibaba ang tanong mula sa abstraksyon tungo sa araw-araw na buhay",
+        "Ikonekta ang karunungan sa gawi, relasyon, at realidad ng tahanan",
+        "Panatilihing konkret at napapanatili ang susunod na hakbang",
+      ],
+      promptCue:
+        "Sa Life mode, bigyang-diin ang araw-araw na karunungang biblikal para sa pamilya, relasyon, gawi, pahinga, alitan, ritmo ng tahanan, kalusugan, at ang maliit na susunod na tapat na hakbang. Panatilihing praktikal, malinaw, at mahinahon ang gabay.",
+      prompts: [
+        "Paano ko gagawing mas marunong ang araw-araw kong buhay?",
+        "Paano ko dapat tingnan ang relasyong ito?",
+        "Aling gawi ang dapat kong baguhin muna?",
+      ],
+    },
+  },
+  ar: {
+    Money: {
+      intent: "أدر الموارد الموكولة إليك بسلام ووضوح.",
+      focus: "الميزانية، الدَّين، الادخار، الاستثمار، القناعة",
+      useWhen: "استخدمه للإنفاق أو الدَّين أو الادخار أو الاستثمار أو القلق المالي أو المقارنة.",
+      lens: "منظور الأمانة في التدبير: الحرية، الكفاية، الصبر، المخاطرة، والمسؤولية الأمينة.",
+      diagnosticTracks: [
+        "الحرية: هل يزيد هذا الاختيار الخيارات الحكيمة لاحقًا أم يقللها؟",
+        "الكفاية: هل الرغبة واضحة أم أن المقارنة هي التي تحدد الهدف؟",
+        "المخاطرة: ما الذي قد يسوء، وهل حسبت الكلفة بواقعية؟",
+      ],
+      blindSpots: [
+        "الخلط بين الإيمان واليقين المالي",
+        "اعتبار ضغط نمط الحياة حاجة",
+        "التعامل مع القدرة على الاستدانة كأنها إذن",
+      ],
+      maturitySignals: [
+        "ما يزال الخُطّة منطقية بعد الانتظار",
+        "الأرقام واضحة وليست ضبابية",
+        "اختبرها المشورة ونقحت الفرضيات",
+      ],
+      practices: [
+        "سمِّ ما يكفي لهذه المرحلة",
+        "اكتب خطة السداد أو الادخار أو العطاء بوضوح",
+        "انتظر ليلة قبل أي إنفاق غير قابل للرجوع",
+      ],
+      responseMoves: [
+        "افصل الرغبة والخوف والمسؤولية",
+        "وضح المقايضات من دون أن تخجل المستخدم",
+        "حوّل الكتاب المقدس إلى عادات أمانة عملية",
+      ],
+      promptCue:
+        "في Money mode، ركّز على الأمانة في التدبير، القناعة، الحذر من الدَّين، المخاطرة الحكيمة، المسؤولية الطويلة الأمد، الكرم، والتنظيم العاطفي حول المال. تجنب نصائح الاستثمار أو وعود النتائج.",
+      prompts: [
+        "كيف أبني ثروة من دون جشع؟",
+        "ماذا تقول الحكمة عن الدَّين؟",
+        "كيف أتوقف عن مقارنة نفسي ماليًا؟",
+      ],
+    },
+    Work: {
+      intent: "ميّز العمل والدعوة والقيادة والطموح المستدام.",
+      focus: "تغييرات الوظيفة، القيادة، الأعمال، الإرهاق، الدعوة",
+      useWhen: "استخدمه لقرارات العمل أو أفكار المشاريع أو ضغط القيادة أو الإرهاق أو الطموح.",
+      lens: "منظور الدعوة: الاجتهاد، المشورة، حساب الكلفة، الخدمة، والإيقاع المستدام.",
+      diagnosticTracks: [
+        "الدعوة: أي نوع من الخدمة أو المسؤولية يتضح هنا؟",
+        "القدرة: هل لدى حياة المستخدم مساحة لهذا الالتزام؟",
+        "المشورة: من يمكنه اختبار الخطة من دون التحكم فيها؟",
+      ],
+      blindSpots: [
+        "الخلط بين الاضطراب والدعوة",
+        "استخدام لغة روحية لتجنب التخطيط",
+        "الخلط بين التصفيق والثمر",
+      ],
+      maturitySignals: [
+        "يستطيع المستخدم تسمية المقايضات بصدق",
+        "هناك تجربة تالية قابلة للرجوع",
+        "رأت المشورة الحكيمة الأرقام والدوافع",
+      ],
+      practices: [
+        "حدد أصغر خطوة قابلة للرجوع",
+        "اكتب الكلفة الحقيقية من وقت ومال وانتباه",
+        "اسأل ناقدًا: أي جزء من الخطة هش؟",
+      ],
+      responseMoves: [
+        "ميّز بين الدعوة والطموح والهروب والإرهاق",
+        "انقل القرار إلى التجربة الأمينة التالية",
+        "استخدم المشورة وحساب الكلفة كعوامل تثبيت",
+      ],
+      promptCue:
+        "في Work mode، ركّز على الدعوة، الاجتهاد، المشورة الحكيمة، شخصية القيادة، حساب الكلفة، الطموح المستدام، والخدمة. ساعد المستخدم على فحص الدوافع والمقايضات قبل قرارات العمل الكبرى.",
+      prompts: [
+        "هل أترك عملي المستقر؟",
+        "كيف أعرف إن كان طموحي صحيًا؟",
+        "هل أبدأ هذا المشروع الآن؟",
+      ],
+    },
+    Purpose: {
+      intent: "أبطئ وميّز الشخص الذي يشكله هذا القرار.",
+      focus: "الهوية، الاتجاه، القلق، القيم، الوضوح بعيد المدى",
+      useWhen: "استخدمه عندما يكون السؤال الحقيقي عن الهوية أو الاتجاه أو السلام أو التوقيت أو القيم.",
+      lens: "منظور التمييز: الهوية، السلام، الدوافع، الصبر، والخطوة الأمينة التالية.",
+      diagnosticTracks: [
+        "الهوية: ما الذي يحاول المستخدم إثباته أو حمايته أو أن يصير إليه؟",
+        "السلام: ماذا يتغير عندما يهدأ الاستعجال؟",
+        "الدوافع: أي الرغبات صالحة، وأيها مشوَّه؟",
+      ],
+      blindSpots: [
+        "الانتظار حتى اليقين الكامل قبل الطاعة الأمينة",
+        "اعتبار القلق تمييزًا",
+        "السماح للنجاح بأن يعرّف الهوية",
+      ],
+      maturitySignals: [
+        "الخطوة التالية واضحة حتى لو لم يكن الطريق كله واضحًا",
+        "يستطيع المستخدم تسمية دوافعه من دون إدانة الذات",
+        "يمكن حمل القرار بصبر",
+      ],
+      practices: [
+        "سمِّ الخوف الكامن تحت القرار",
+        "اكتب جملة عن الشخص الذي يشكله هذا الاختيار",
+        "اختر الخطوة الأمينة التالية للـ 24 ساعة القادمة",
+      ],
+      responseMoves: [
+        "خفف الاستعجال وأعد الوكالة",
+        "افصل الهوية عن النتيجة",
+        "ادعُ إلى فحص صادق للدوافع من دون خجل",
+      ],
+      promptCue:
+        "في Purpose mode، ركّز على التمييز، الهوية، الدوافع، السلام، الصبر، القيم، التأمل المصلي، والخطوة الأمينة التالية. اجعل الإرشاد واقعيًا وغير غيبي؛ لا تدّعِ يقينًا إلهيًا.",
+      prompts: [
+        "كيف أقرر عندما أشعر أن الأمور غير واضحة؟",
+        "ماذا لو كنت ألاحق النجاح لأسباب خاطئة؟",
+        "كيف أجد السلام بشأن خطوتي التالية؟",
+      ],
+    },
+    Generosity: {
+      intent: "أعطِ بحرية من دون ذنب أو ضغط أو استعراض.",
+      focus: "العطاء، دعم العائلة، الصدقة، الحدود، الاستدامة",
+      useWhen: "استخدمه للعطاء أو العُشر أو مساعدة العائلة أو الحدود أو الكرم المستدام.",
+      lens: "منظور الكرم: الاستعداد، الاستدامة، الفرح، الحكمة، والمحبة من دون إكراه.",
+      diagnosticTracks: [
+        "الحرية: هل الهدية طوعية أم تقودها مشاعر الذنب والخوف؟",
+        "الاستدامة: هل يمكن لهذا الكرم أن يستمر من دون ضيق مكتوم؟",
+        "الحكمة: هل المساعدة هنا تقوي المسؤولية أم تتيح الضرر؟",
+      ],
+      blindSpots: [
+        "تسمية الذنب كرمًا",
+        "العطاء أمام الناس لتبدو روحيًا",
+        "إنقاذ الآخرين من العواقب التي يحتاجون أن يواجهوها",
+      ],
+      maturitySignals: [
+        "الهدية حرة لا مفروضة",
+        "الحدود واضحة ولطيفة",
+        "خطة العطاء مستدامة",
+      ],
+      practices: [
+        "قرر الهدية قبل لحظة الضغط",
+        "ضع حدود العطاء بكلمات واضحة",
+        "اسأل إن كان المال هو أفضل شكل للمساعدة",
+      ],
+      responseMoves: [
+        "أزل الذنب والضغط من المركز",
+        "احمِ الكرم الفَرِح والحدود الحكيمة",
+        "اسأل إن كانت الهدية تساعد أم تمكّن المشكلة",
+      ],
+      promptCue:
+        "في Generosity mode، ركّز على الاستعداد الفَرِح، الاستدامة، الحدود، عدم الإكراه، الرحمة، والعطاء المسؤول. ارفض العطاء المحرك بالذنب أو الاستعراض.",
+      prompts: [
+        "كيف أعطي من دون ذنب أو ضغط؟",
+        "هل يجب أن أساعد عائلتي ماليًا مرة أخرى؟",
+        "كم من الكرم يمكنني الاستمرار عليه؟",
+      ],
+    },
+    Life: {
+      intent: "طبّق الحكمة الكتابية على الحياة اليومية بانتباه هادئ.",
+      focus: "العادات، العلاقات، العائلة، الراحة، الصحة، إيقاع البيت",
+      useWhen: "استخدمه لقرارات الحياة اليومية، والروتين، والعلاقات، والعادات، والراحة، والخلاف، أو عندما لا يكون التالي واضحًا كمالٍ أو عمل.",
+      lens: "منظور الحياة الكاملة: الشخصية، العلاقات، المسؤوليات، الإيقاع، والخطوة الأمينة التالية.",
+      diagnosticTracks: [
+        "الشخصية: أي نوع من الناس يشكله هذا العُرف أو القرار؟",
+        "العلاقات: من يتأثر وكيف أحب جيدًا؟",
+        "الإيقاع: هل يخلق مساحة للراحة والانتباه والإصلاح؟",
+      ],
+      blindSpots: [
+        "اعتبار القرارات العادية بلا أهمية روحية",
+        "المبالغة في الروحانية لما يحتاج حكمة عملية",
+        "تجاهل الجسد أو العائلة أو الراحة أثناء السعي للمعنى",
+      ],
+      maturitySignals: [
+        "يتوافق القرار مع إيقاع صحي، لا مع الطموح فقط",
+        "يؤخذ الأقربون من التغيير بعناية",
+        "الخطوة التالية سهلة الطاعة",
+      ],
+      practices: [
+        "سمِّ أصغر عادة أمينة يمكنك تكرارها",
+        "تحقق إن كان هذا الاختيار يقوي العلاقات أو يضعفها",
+        "احمِ إيقاع الراحة قبل إضافة الضغط",
+      ],
+      responseMoves: [
+        "أنزل السؤال من التجريد إلى الحياة اليومية",
+        "صل الحكمة بالعادات والعلاقات وواقع البيت",
+        "اجعل الخطوة التالية ملموسة ومستدامة",
+      ],
+      promptCue:
+        "في Life mode، ركّز على الحكمة الكتابية اليومية للأسرة والعلاقات والعادات والراحة والخلاف وإيقاع البيت والصحة والخطوة الصغيرة الأمينة التالية. اجعل الإرشاد عمليًا وواضحًا ولطيفًا.",
+      prompts: [
+        "كيف أجعل حياتي اليومية أكثر حكمة؟",
+        "كيف ينبغي أن أفكر في هذه العلاقة؟",
+        "أي عادة يجب أن أغيّرها أولًا؟",
+      ],
+    },
+  },
+  hi: {
+    Money: {
+      intent: "सौंपे गए संसाधनों को शांति और स्पष्टता से सँभालें।",
+      focus: "बजट, कर्ज़, बचत, निवेश, संतोष",
+      useWhen: "खर्च, कर्ज़, बचत, निवेश, वित्तीय चिंता, या तुलना के लिए उपयोग करें।",
+      lens: "अमानत की देखभाल का दृष्टिकोण: स्वतंत्रता, पर्याप्तता, धैर्य, जोखिम, और निष्ठावान ज़िम्मेदारी।",
+      diagnosticTracks: [
+        "स्वतंत्रता: क्या यह चुनाव आगे चलकर बुद्धिमान विकल्पों को बढ़ाएगा या घटाएगा?",
+        "पर्याप्तता: क्या इच्छा स्पष्ट है, या तुलना लक्ष्य तय कर रही है?",
+        "जोखिम: क्या बिगड़ सकता है, और क्या मैंने उसकी लागत गंभीरता से आँकी है?",
+      ],
+      blindSpots: [
+        "विश्वास को वित्तीय निश्चितता समझ लेना",
+        "जीवन-शैली के दबाव को ज़रूरत कहना",
+        "कर्ज़ लेने की क्षमता को अनुमति मान लेना",
+      ],
+      maturitySignals: [
+        "इंतज़ार के बाद भी योजना अर्थपूर्ण लगती है",
+        "संख्याएँ स्पष्ट हैं, धुँधली नहीं",
+        "सलाह ने धारणाओं को चुनौती दी है",
+      ],
+      practices: [
+        "इस मौसम के लिए पर्याप्त क्या है, उसे नाम दीजिए",
+        "चुकौती, बचत, या दान की योजना स्पष्ट लिखिए",
+        "अपरिवर्तनीय खर्च से पहले एक रात रुकिए",
+      ],
+      responseMoves: [
+        "इच्छा, भय, और ज़िम्मेदारी को अलग कीजिए",
+        "उपयोगकर्ता को शर्मिंदा किए बिना tradeoffs स्पष्ट कीजिए",
+        "शास्त्र को ठोस stewardship habits में बदलिए",
+      ],
+      promptCue:
+        "Money mode में stewardship, संतोष, कर्ज़-चेतावनी, बुद्धिमान जोखिम, दीर्घकालिक ज़िम्मेदारी, उदारता, और पैसे के साथ भावनात्मक संतुलन पर ज़ोर दें। निवेश सलाह या परिणाम के वादे न दें।",
+      prompts: [
+        "मैं लालच के बिना संपत्ति कैसे बनाऊँ?",
+        "कर्ज़ के बारे में बुद्धि क्या कहती है?",
+        "मैं पैसे के मामले में तुलना करना कैसे बंद करूँ?",
+      ],
+    },
+    Work: {
+      intent: "काम, बुलाहट, नेतृत्व, और टिकाऊ महत्वाकांक्षा का विवेक करें।",
+      focus: "करियर बदलाव, नेतृत्व, व्यवसाय, थकान, बुलाहट",
+      useWhen: "नौकरी, व्यवसाय, नेतृत्व दबाव, थकान, या महत्वाकांक्षा से जुड़े निर्णयों के लिए उपयोग करें।",
+      lens: "बुलाहट का दृष्टिकोण: परिश्रम, सलाह, लागत-गणना, सेवा, और टिकाऊ गति।",
+      diagnosticTracks: [
+        "बुलाहट: किस प्रकार की सेवा या ज़िम्मेदारी स्पष्ट हो रही है?",
+        "क्षमता: क्या जीवन में इस प्रतिबद्धता के लिए जगह है?",
+        "सलाह: कौन योजना को नियंत्रित किए बिना परख सकता है?",
+      ],
+      blindSpots: [
+        "बेचैनी को बुलाहट समझ लेना",
+        "योजना से बचने के लिए आध्यात्मिक भाषा का उपयोग",
+        "तालियों को फल समझ लेना",
+      ],
+      maturitySignals: [
+        "उपयोगकर्ता tradeoffs को ईमानदारी से बता सकता है",
+        "एक अगला reversible experiment मौजूद है",
+        "समझदार सलाह ने संख्या और motives देखे हैं",
+      ],
+      practices: [
+        "सबसे छोटा reversible step तय कीजिए",
+        "समय, पैसे, और ध्यान की वास्तविक लागत लिखिए",
+        "किसी आलोचक से पूछिए कि योजना का कौन-सा हिस्सा नाज़ुक है",
+      ],
+      responseMoves: [
+        "बुलाहट, महत्वाकांक्षा, escape, और थकान को अलग कीजिए",
+        "निर्णय को अगले faithful experiment तक ले आइए",
+        "सलाह और लागत-गणना को stabilizers की तरह उपयोग करें",
+      ],
+      promptCue:
+        "Work mode में बुलाहट, परिश्रम, बुद्धिमान सलाह, नेतृत्व-चरित्र, लागत-गणना, टिकाऊ महत्वाकांक्षा, और सेवा पर ज़ोर दें। बड़े कार्य-निर्णयों से पहले motives और tradeoffs की जाँच में मदद करें।",
+      prompts: [
+        "क्या मुझे अपनी स्थिर नौकरी छोड़ देनी चाहिए?",
+        "मैं कैसे जानूँ कि मेरी महत्वाकांक्षा स्वस्थ है?",
+        "क्या मुझे यह व्यवसाय अभी शुरू करना चाहिए?",
+      ],
+    },
+    Purpose: {
+      intent: "धीमा होकर उस व्यक्ति को समझिए जिसे यह निर्णय गढ़ रहा है।",
+      focus: "पहचान, दिशा, चिंता, मूल्य, दीर्घकालिक स्पष्टता",
+      useWhen: "जब वास्तविक प्रश्न पहचान, दिशा, शांति, समय, या मूल्यों के बारे में हो।",
+      lens: "विवेक का दृष्टिकोण: पहचान, शांति, motives, धैर्य, और अगला निष्ठावान कदम।",
+      diagnosticTracks: [
+        "पहचान: उपयोगकर्ता क्या साबित, बचाव, या बनना चाहता है?",
+        "शांति: जब urgency शांत होती है, क्या बदलता है?",
+        "मोटिव: कौन-सी इच्छा अच्छी है, और कौन-सी विकृत?",
+      ],
+      blindSpots: [
+        "निष्ठावान कदम से पहले पूर्ण certainty का इंतज़ार",
+        "चिंता को विवेक समझ लेना",
+        "सफलता को पहचान तय करने देना",
+      ],
+      maturitySignals: [
+        "पूरा रास्ता न भी दिखे, अगला कदम स्पष्ट है",
+        "उपयोगकर्ता motives को आत्म-निंदा के बिना बता सकता है",
+        "निर्णय को धैर्य के साथ रखा जा सकता है",
+      ],
+      practices: [
+        "निर्णय के नीचे छिपे डर को नाम दीजिए",
+        "उस व्यक्ति के बारे में एक वाक्य लिखिए जिसे यह चुनाव गढ़ रहा है",
+        "अगले 24 घंटों के लिए अगला निष्ठावान कदम चुनिए",
+      ],
+      responseMoves: [
+        "urgency कम करके agency लौटाइए",
+        "पहचान को परिणाम से अलग कीजिए",
+        "शर्म के बिना motives की ईमानदार जाँच कराइए",
+      ],
+      promptCue:
+        "Purpose mode में विवेक, पहचान, motives, शांति, धैर्य, मूल्य, प्रार्थनापूर्ण चिंतन, और अगले निष्ठावान कदम पर ज़ोर दें। मार्गदर्शन को grounded और non-mystical रखें; दैवी निश्चितता का दावा न करें।",
+      prompts: [
+        "जब सब कुछ अस्पष्ट लगे, मैं कैसे निर्णय लूँ?",
+        "क्या होगा अगर मैं गलत कारणों से सफलता का पीछा कर रहा हूँ?",
+        "मैं अपने अगले कदम के बारे में शांति कैसे पाऊँ?",
+      ],
+    },
+    Generosity: {
+      intent: "दबाव, अपराधबोध, या दिखावे के बिना स्वतंत्र रूप से दें।",
+      focus: "देना, परिवार का समर्थन, दान, सीमाएँ, स्थिरता",
+      useWhen: "देने, दान, परिवार की मदद, सीमाएँ, या टिकाऊ उदारता के लिए उपयोग करें।",
+      lens: "उदारता का दृष्टिकोण: तत्परता, स्थिरता, आनंद, बुद्धि, और बिना coercion के प्रेम।",
+      diagnosticTracks: [
+        "स्वतंत्रता: क्या उपहार स्वेच्छा से है, या अपराधबोध और भय से संचालित?",
+        "स्थिरता: क्या यह उदारता छिपी कड़वाहट के बिना जारी रह सकती है?",
+        "बुद्धि: यहाँ सहायता ज़िम्मेदारी को मज़बूत करती है या हानि को सक्षम करती है?",
+      ],
+      blindSpots: [
+        "अपराधबोध को उदारता कहना",
+        "सार्वजनिक रूप से देना ताकि आप आध्यात्मिक दिखें",
+        "दूसरों को उन consequences से बचाना जिन्हें उन्हें सामना करना चाहिए",
+      ],
+      maturitySignals: [
+        "उपहार मुक्त है, मजबूर नहीं",
+        "सीमाएँ स्पष्ट और दयालु हैं",
+        "देने की योजना टिकाऊ है",
+      ],
+      practices: [
+        "दबाव के क्षण से पहले उपहार तय कीजिए",
+        "देने की सीमा स्पष्ट शब्दों में तय कीजिए",
+        "पूछिए क्या पैसा सचमुच सबसे अच्छी मदद है",
+      ],
+      responseMoves: [
+        "अपराधबोध और दबाव को केंद्र से हटाइए",
+        "आनंदपूर्ण उदारता और बुद्धिमान सीमाओं की रक्षा कीजिए",
+        "पूछिए कि उपहार मदद करता है या enable करता है",
+      ],
+      promptCue:
+        "Generosity mode में आनंदपूर्ण तत्परता, स्थिरता, सीमाएँ, non-coercion, करुणा, और ज़िम्मेदार दान पर ज़ोर दें। अपराधबोध या प्रदर्शन से प्रेरित देने को अस्वीकार करें।",
+      prompts: [
+        "मैं अपराधबोध या दबाव के बिना कैसे दूँ?",
+        "क्या मुझे फिर से परिवार की आर्थिक मदद करनी चाहिए?",
+        "मेरे लिए कितनी उदारता टिकाऊ है?",
+      ],
+    },
+    Life: {
+      intent: "सामान्य जीवन पर बाइबिल की बुद्धि को शांत ध्यान से लागू कीजिए।",
+      focus: "आदतें, रिश्ते, परिवार, विश्राम, स्वास्थ्य, घर की लय",
+      useWhen: "रोज़मर्रा के निर्णयों, दिनचर्या, रिश्तों, आदतों, आराम, संघर्ष, या जब अगला कदम पैसा/काम नहीं बल्कि जीवन हो।",
+      lens: "सम्पूर्ण जीवन का दृष्टिकोण: चरित्र, रिश्ते, ज़िम्मेदारियाँ, लय, और अगला निष्ठावान कदम।",
+      diagnosticTracks: [
+        "चरित्र: यह आदत या चुनाव किस प्रकार का व्यक्ति गढ़ रहा है?",
+        "रिश्ते: इससे कौन प्रभावित होगा, और मैं कैसे ठीक से प्रेम करूँ?",
+        "लय: क्या यह विश्राम, ध्यान, और मरम्मत के लिए जगह बनाता है?",
+      ],
+      blindSpots: [
+        "साधारण निर्णयों को आध्यात्मिक रूप से महत्वहीन समझना",
+        "जहाँ व्यावहारिक बुद्धि चाहिए वहाँ अति-आध्यात्मिक होना",
+        "अर्थ की खोज में शरीर, परिवार, या आराम को अनदेखा करना",
+      ],
+      maturitySignals: [
+        "निर्णय स्वस्थ लय से मेल खाता है, सिर्फ महत्वाकांक्षा से नहीं",
+        "बदलाव के सबसे नज़दीकी लोगों पर ध्यान दिया गया है",
+        "अगला कदम पालन करने में सरल है",
+      ],
+      practices: [
+        "सबसे छोटी निष्ठावान आदत को नाम दीजिए जिसे आप दोहरा सकते हैं",
+        "जाँचिए कि यह चुनाव रिश्तों को मज़बूत करता है या कमज़ोर",
+        "दबाव जोड़ने से पहले विश्राम की लय की रक्षा कीजिए",
+      ],
+      responseMoves: [
+        "प्रश्न को abstraction से रोज़मर्रा की ज़िंदगी में लाइए",
+        "बुद्धि को आदतों, रिश्तों, और घर की वास्तविकता से जोड़िए",
+        "अगला कदम ठोस और टिकाऊ रखिए",
+      ],
+      promptCue:
+        "Life mode में परिवार, रिश्ते, आदतों, विश्राम, संघर्ष, घर की लय, स्वास्थ्य, और छोटे निष्ठावान अगले कदम के लिए रोज़मर्रा की बाइबिलीय बुद्धि पर ज़ोर दें। मार्गदर्शन को ठोस, व्यावहारिक, और कोमल रखें।",
+      prompts: [
+        "मैं अपने रोज़मर्रा के जीवन को और बुद्धिमान कैसे बनाऊँ?",
+        "मुझे इस रिश्ते के बारे में कैसे सोचना चाहिए?",
+        "मुझे पहले कौन-सी आदत बदलनी चाहिए?",
+      ],
+    },
+  },
 };
 
 type LocalizedWisdomEntryData = Partial<Pick<WisdomEntryData, "theme" | "principle" | "context" | "application" | "keywords" | "emotions" | "questions">>;
@@ -3446,6 +4136,192 @@ const localizedWisdomQuestions: Partial<Record<LanguageCode, Partial<Record<stri
       "Ina hanyar fita take a wannan lokacin?",
       "Wane canjin muhalli zai rage gwaji?",
       "Wa zai iya taimaka mini ganin hanyar fita kafin in yi nauyi sosai?",
+    ],
+  },
+  tl: {
+    "Matthew 25:14-30": [
+      "Ano talaga ang ipinagkatiwala sa akin ngayon?",
+      "Kumikilos ba ako mula sa tapat na pananagutan o mula sa paghahambing?",
+      "Anong payo o pananagutan ang magpapatalino sa desisyong ito?",
+    ],
+    "Proverbs 22:7": [
+      "Naglilingkod ba ang utang na ito sa malinaw na layunin o pansamantalang ginhawa lang?",
+      "Anong kalayaan ang mawawala habang binabayaran ko ito?",
+      "Naging malinaw at makatotohanan ba ang plano sa pagbabayad?",
+    ],
+    "Philippians 4:11-13": [
+      "Ano ang tinatawag kong sapat sa panahong ito?",
+      "Saan binabaluktot ng paghahambing ang aking paghatol?",
+      "Anong gawain ang makakatulong sa aking katawan at isip na bumagal?",
+    ],
+    "Proverbs 15:22": [
+      "Sino ang puwedeng maghamon sa aking palagay nang hindi ako kinokontrol?",
+      "Ano ang mapapansin ng isang matalinong kritiko sa planong ito?",
+      "Ano ang ipagpapatuloy ko kahit walang pumalakpak sa desisyon?",
+    ],
+    "Luke 14:28": [
+      "Ano ang totoong halaga kung doble ang tagal nito?",
+      "Aling bahagi ng desisyon ang puwedeng balikan?",
+      "Anong eksperimento ang puwedeng magpakita ng totoo bago ako pumirma sa mas malaking pangako?",
+    ],
+    "2 Corinthians 9:6-8": [
+      "Malaya ba, pinag-isipan ba, at kaya bang panindigan ang regalong ito?",
+      "Pinoprotektahan ba ng plano ko sa pagbibigay ang pagkamapagbigay at pananagutan?",
+      "Anong pangangailangan ang inaanyayahan akong makita nang may pag-ibig?",
+    ],
+    "Proverbs 21:5": [
+      "Ano ang pipiliin ko kung walang apura?",
+      "Matalino pa rin ba ang pagkakataong ito matapos ang isang tahimik na gabi?",
+      "Anong proseso ang nagpoprotekta sa akin laban sa padalos-dalos?",
+    ],
+    "Matthew 6:25-34": [
+      "Ano ang susunod na tapat na kilos para sa araw na ito?",
+      "Aling mga alalahanin ang humihingi ng plano, at alin ang humihingi ng pagpapakawala?",
+      "Ano ang mababago ng kapayapaan sa aking bilis?",
+    ],
+    "Psalm 51:10-12": [
+      "Ano ang gusto kong linisin at baguhin ng Diyos sa akin?",
+      "Ano ang tinatago ko sa halip na ikumpisal?",
+      "Anong tapat na hakbang ang magbubukas ng daan sa pagpapanumbalik?",
+    ],
+    "James 5:16": [
+      "Anong katotohanan ang iniiwasan kong sabihin?",
+      "Sino ang ligtas na makikinig sa akin nang tapat?",
+      "Paano bubagaan ang dinadala ko kung itigil kong akuin ito nang mag-isa?",
+    ],
+    "1 Thessalonians 4:3-5": [
+      "Anong hangganan ang magpapalinaw sa pagsunod ko ngayon?",
+      "Anong pattern ang nagpapakain sa pagnanasang ito?",
+      "Paano ko mapaparangalan ang Diyos sa aking katawan at atensyon?",
+    ],
+    "1 Corinthians 10:13": [
+      "Nasaan ang daan palabas sa sandaling ito?",
+      "Anong pagbabago sa kapaligiran ang makababawas sa hatak?",
+      "Sino ang makatutulong sa akin na makita ang labasan bago ako lamunin ng bigat?",
+    ],
+  },
+  ar: {
+    "Matthew 25:14-30": [
+      "ما الذي أُوكل إليّ حقًا الآن؟",
+      "هل أتحرك من مسؤولية أمينة أم من مقارنة؟",
+      "أي مشورة أو مساءلة ستجعل هذا القرار أكثر حكمة؟",
+    ],
+    "Proverbs 22:7": [
+      "هل يخدم هذا الدَّين غرضًا واضحًا أم يهدئ ضغطًا مؤقتًا؟",
+      "ما الحرية التي سأفقدها أثناء سداده؟",
+      "هل جعلت خطة السداد واضحة وواقعية؟",
+    ],
+    "Philippians 4:11-13": [
+      "ما الذي أسميه كافيًا في هذه المرحلة؟",
+      "أين تشوّه المقارنة حكمي؟",
+      "أي ممارسة تساعد جهازَي العصبي على التمهل؟",
+    ],
+    "Proverbs 15:22": [
+      "من يستطيع تحدي افتراضاتي من دون أن يتحكم بي؟",
+      "ماذا سيلحظ ناقد حكيم في هذه الخطة؟",
+      "ماذا سأواصل فعله لو لم يصفق أحد للقرار؟",
+    ],
+    "Luke 14:28": [
+      "ما الكلفة الحقيقية إذا استغرق الأمر ضعف الوقت؟",
+      "أي جزء من القرار قابل للرجوع؟",
+      "أي تجربة قد تكشف الحقيقة قبل أن ألتزم أكثر؟",
+    ],
+    "2 Corinthians 9:6-8": [
+      "هل هذه الهدية حرة، مدروسة، وقابلة للاستمرار؟",
+      "هل تحمي خطة عطائي الكرم والمسؤولية معًا؟",
+      "أي حاجة يُدعوني هذا الموقف إلى ملاحظتها بمحبة؟",
+    ],
+    "Proverbs 21:5": [
+      "ماذا سأختار لو لم توجد عجلة؟",
+      "هل ما يزال هذا الخيار حكيمًا بعد ليلة هادئة؟",
+      "أي عملية تحميني من الاندفاع؟",
+    ],
+    "Matthew 6:25-34": [
+      "ما الفعل الأمين التالي لهذا اليوم؟",
+      "أي هموم تحتاج إلى تخطيط، وأيها تحتاج إلى إطلاق؟",
+      "ما الذي سيغيره السلام في وتيرتي؟",
+    ],
+    "Psalm 51:10-12": [
+      "ما الذي أحتاج أن ينقيه الله ويجددّه فيّ؟",
+      "ما الذي أخفيه بدل أن أعترف به؟",
+      "أي خطوة صادقة تفتح باب الاستعادة؟",
+    ],
+    "James 5:16": [
+      "أي حقيقة أحتاج أن أقولها؟",
+      "من الآمن بما يكفي أن يسمعني بصدق؟",
+      "كيف ستتغير حملي لو توقفت عن حمل هذا وحدي؟",
+    ],
+    "1 Thessalonians 4:3-5": [
+      "أي حدّ يجعل طاعتي أكثر واقعية اليوم؟",
+      "أي نمط يغذي هذه الرغبة؟",
+      "كيف أكرم الله بجسدي وانتباهي؟",
+    ],
+    "1 Corinthians 10:13": [
+      "أين المخرج في هذه اللحظة؟",
+      "أي تغيير في البيئة يخفف الجذب؟",
+      "من يساعدني على رؤية المخرج قبل أن أنهك؟",
+    ],
+  },
+  hi: {
+    "Matthew 25:14-30": [
+      "अभी वास्तव में मुझे क्या सौंपा गया है?",
+      "क्या मैं निष्ठावान ज़िम्मेदारी से काम कर रहा हूँ या तुलना से?",
+      "कौन-सी सलाह या जवाबदेही इस निर्णय को और बुद्धिमान बनाएगी?",
+    ],
+    "Proverbs 22:7": [
+      "क्या यह कर्ज़ किसी स्पष्ट उद्देश्य की सेवा कर रहा है या केवल तात्कालिक दबाव कम कर रहा है?",
+      "इसे चुकाते समय मैं कौन-सी स्वतंत्रता खोऊँगा?",
+      "क्या मैंने चुकौती योजना को स्पष्ट और यथार्थवादी बनाया है?",
+    ],
+    "Philippians 4:11-13": [
+      "इस मौसम में मैं किसे पर्याप्त कह रहा हूँ?",
+      "कहाँ तुलना मेरे निर्णय को बिगाड़ रही है?",
+      "कौन-सी practice मेरे nervous system को धीमा करने में मदद करेगी?",
+    ],
+    "Proverbs 15:22": [
+      "कौन मेरी धारणाओं को बिना मुझे नियंत्रित किए चुनौती दे सकता है?",
+      "इस योजना में एक बुद्धिमान आलोचक क्या देखेगा?",
+      "अगर कोई इस निर्णय पर ताली न भी बजाए, तो मैं क्या करता रहूँगा?",
+    ],
+    "Luke 14:28": [
+      "अगर इसमें दोगुना समय लगे तो वास्तविक लागत क्या होगी?",
+      "निर्णय का कौन-सा हिस्सा reversible है?",
+      "बड़ी प्रतिबद्धता से पहले कौन-सा experiment सत्य उजागर कर सकता है?",
+    ],
+    "2 Corinthians 9:6-8": [
+      "क्या यह भेंट स्वतंत्र, सोची-समझी, और टिकाऊ है?",
+      "क्या मेरी देने की योजना उदारता और ज़िम्मेदारी दोनों की रक्षा करती है?",
+      "किस ज़रूरत को मुझे प्रेम से देखने के लिए बुलाया जा रहा है?",
+    ],
+    "Proverbs 21:5": [
+      "अगर urgency न हो तो मैं क्या चुनूँगा?",
+      "क्या यह अवसर एक शांत रात के बाद भी बुद्धिमान लगता है?",
+      "कौन-सी प्रक्रिया मुझे impulsiveness से बचाती है?",
+    ],
+    "Matthew 6:25-34": [
+      "आज के लिए अगला निष्ठावान कदम क्या है?",
+      "कौन-सी चिंताएँ योजना माँगती हैं, और कौन-सी छोड़ने की?",
+      "शांति मेरी गति में क्या बदल देगी?",
+    ],
+    "Psalm 51:10-12": [
+      "मेरे भीतर परमेश्वर क्या शुद्ध और नया करना चाहते हैं?",
+      "मैं क्या छिपा रहा हूँ, स्वीकार करने के बजाय?",
+      "कौन-सा ईमानदार कदम पुनर्स्थापन का द्वार खोलेगा?",
+    ],
+    "James 5:16": [
+      "कौन-सा सत्य मुझे बाहर लाना चाहिए?",
+      "कौन सुनने और मेरे साथ प्रार्थना करने के लिए सुरक्षित है?",
+      "अगर मैं यह भार अकेले उठाना बंद कर दूँ तो मेरा बोझ कैसे बदलेगा?",
+    ],
+    "1 Thessalonians 4:3-5": [
+      "कौन-सी सीमा आज मेरी आज्ञाकारिता को अधिक ठोस बनाएगी?",
+      "कौन-सा pattern इस विकृत इच्छा को खिलाता है?",
+      "मैं अपने शरीर और ध्यान से परमेश्वर का सम्मान कैसे करूँ?",
+    ],
+    "1 Corinthians 10:13": [
+      "इस क्षण निकास कहाँ है?",
+      "कौन-सा वातावरण-परिवर्तन खिंचाव को कम करेगा?",
+      "मुझे भारी होने से पहले exit देखने में कौन मदद कर सकता है?",
     ],
   },
 };

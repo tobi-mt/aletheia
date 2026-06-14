@@ -393,6 +393,60 @@ const dailyNotificationCopy: Partial<Record<LanguageCode, DailyNotificationLangu
       ({ practice }) => `Rike wannan yau: ${practice}`,
     ],
   },
+  tl: {
+    titles: [
+      ({ theme }) => `${theme}: mas mahinahong takbo`,
+      ({ theme }) => `Pagsusuri ng ${theme} para sa ngayon`,
+      ({ scripture }) => `${scripture} para sa ngayon`,
+      () => "Isang tapat na susunod na hakbang",
+      ({ theme }) => `Dalhin ito sa ${theme}`,
+      ({ label }) => label,
+    ],
+    bodies: [
+      ({ scripture, practice }) => `${scripture} · ${practice}`,
+      ({ theme }) => `Buksan ang card ngayon: isang tanong, isang maliit na pagsasanay, at mas mahinahong pagtingin para sa ${theme}.`,
+      ({ practice }) => `Maliit na pagsasanay: ${practice}`,
+      ({ scripture, principle }) => `${scripture} · ${principle}`,
+      ({ theme }) => `May handang maikling sandali ng karunungan para sa ${theme}. Walang pressure, malinaw lang.`,
+      ({ practice }) => `Dalhin ito ngayon: ${practice}`,
+    ],
+  },
+  ar: {
+    titles: [
+      ({ theme }) => `${theme}: إيقاع أهدأ`,
+      ({ theme }) => `مراجعة ${theme} لليوم`,
+      ({ scripture }) => `${scripture} لليوم`,
+      () => "خطوة أمينة واحدة تالية",
+      ({ theme }) => `احمل هذا في ${theme}`,
+      ({ label }) => label,
+    ],
+    bodies: [
+      ({ scripture, practice }) => `${scripture} · ${practice}`,
+      ({ theme }) => `افتح بطاقة اليوم: سؤال واحد، وممارسة صغيرة، ونظرة أهدأ إلى ${theme}.`,
+      ({ practice }) => `ممارسة صغيرة: ${practice}`,
+      ({ scripture, principle }) => `${scripture} · ${principle}`,
+      ({ theme }) => `لحظة حكمة قصيرة جاهزة لـ ${theme}. بلا ضغط، مع وضوح.`,
+      ({ practice }) => `احمل هذا اليوم: ${practice}`,
+    ],
+  },
+  hi: {
+    titles: [
+      ({ theme }) => `${theme}: अधिक शांत लय`,
+      ({ theme }) => `आज का ${theme} अवलोकन`,
+      ({ scripture }) => `${scripture} आज के लिए`,
+      () => "एक निष्ठावान अगला कदम",
+      ({ theme }) => `${theme} में इसे साथ रखें`,
+      ({ label }) => label,
+    ],
+    bodies: [
+      ({ scripture, practice }) => `${scripture} · ${practice}`,
+      ({ theme }) => `आज का कार्ड खोलिए: एक प्रश्न, एक छोटी प्रैक्टिस, और ${theme} के लिए अधिक शांत दृष्टि।`,
+      ({ practice }) => `छोटी प्रैक्टिस: ${practice}`,
+      ({ scripture, principle }) => `${scripture} · ${principle}`,
+      ({ theme }) => `${theme} के लिए एक छोटा ज्ञान-विराम तैयार है। कोई दबाव नहीं, बस स्पष्टता.`,
+      ({ practice }) => `इसे आज साथ रखें: ${practice}`,
+    ],
+  },
 };
 
 const gratitudeNotificationCopy: Partial<Record<LanguageCode, SimpleNotificationLanguageCopy>> = {
@@ -508,6 +562,48 @@ const gratitudeNotificationCopy: Partial<Record<LanguageCode, SimpleNotification
       () => "Bude Madubin Godiya ka ajiye bayanin gani na sirri daga yau.",
     ],
   },
+  tl: {
+    titles: [
+      () => "Isang tahimik na sandali ng pasasalamat",
+      () => "Ano ang ipinagpapasalamat mo ngayon?",
+      () => "Tapusin ang araw sa isang handog",
+      () => "Handa na ang Gratitude Lens",
+    ],
+    bodies: [
+      () => "Kumuha ng isang larawan, pangalanan ang isang biyaya, at hayaang matapos ang araw nang may pansin.",
+      () => "Bago lumipas ang araw, itabi ang isang bagay na ayaw mong balewalain.",
+      () => "Isang larawan. Isang tapat na pangungusap ng pasasalamat. Walang pressure, alaala lang.",
+      () => "Buksan ang Gratitude Lens at itago ang isang pribadong visual note mula sa araw na ito.",
+    ],
+  },
+  ar: {
+    titles: [
+      () => "لحظة امتنان هادئة",
+      () => "عمَّ تشعر بالامتنان اليوم؟",
+      () => "اختم اليوم بهدية واحدة",
+      () => "عدسة الامتنان جاهزة",
+    ],
+    bodies: [
+      () => "التقط صورة واحدة، واذكر نعمة واحدة، ودع اليوم يُختتم بانتباه.",
+      () => "قبل أن ينتهي اليوم، احتفظ بشيء لا تريد أن تأخذه كأمر مسلم به.",
+      () => "صورة واحدة. جملة امتنان صادقة واحدة. بلا ضغط، فقط تذكّر.",
+      () => "افتح عدسة الامتنان واحتفظ بملاحظة بصرية خاصة من اليوم.",
+    ],
+  },
+  hi: {
+    titles: [
+      () => "शांत कृतज्ञता का क्षण",
+      () => "आज किस बात के लिए आभारी हैं?",
+      () => "दिन का समापन एक उपहार के साथ करें",
+      () => "Gratitude Lens तैयार है",
+    ],
+    bodies: [
+      () => "एक फोटो लें, एक कृपा का नाम लें, और दिन को ध्यान के साथ समाप्त होने दें।",
+      () => "दिन बीतने से पहले, किसी ऐसी चीज़ को सुरक्षित रखें जिसे आप सामान्य नहीं मानना चाहते।",
+      () => "एक छवि। कृतज्ञता का एक ईमानदार वाक्य। कोई दबाव नहीं, बस स्मरण।",
+      () => "Gratitude Lens खोलिए और आज की एक निजी दृश्य-टिप्पणी सहेजिए।",
+    ],
+  },
 };
 
 function normalizeNotificationSegment(value: string, fallback: string) {
@@ -589,6 +685,18 @@ const testNotificationCopy: Partial<Record<LanguageCode, { title: string; body: 
   ha: {
     title: "Aletheia ta shirya",
     body: "Sakon hikima mai natsuwa zai iya zuwa wannan na'ura a lokacin yankin da ka zaba.",
+  },
+  tl: {
+    title: "Handa na si Aletheia",
+    body: "Makakarating na sa device na ito ang isang tahimik na paalala ng karunungan sa napili mong lokal na oras.",
+  },
+  ar: {
+    title: "Aletheia جاهزة",
+    body: "يمكن أن يصل إلى هذا الجهاز تذكيرٌ هادئ بالحكمة في الوقت المحلي الذي اخترته.",
+  },
+  hi: {
+    title: "Aletheia तैयार है",
+    body: "एक शांत ज्ञान-स्मरण अब आपके चुने हुए स्थानीय समय पर इस डिवाइस तक पहुँच सकता है।",
   },
 };
 
@@ -689,6 +797,24 @@ function reminderCopyLanguage(language: LanguageCode) {
       revisitTitles: ["Me ya canza tun daga baya?", "Shawarar da ta cancanci dubawa", "Koma da ido mafi bayyana"],
       waitingBodies: ["ta samu lokaci ta numfasa. Bude ta ka lura da abin da ya canza.", "tana jiran kallo mai natsuwa. Me ya fi bayyana yanzu?", "ta shirya don mataki mai aminci, ba gaggawa ba."],
       revisitBodies: ["Me ya fi bayyana yanzu fiye da lokacin farko?", "Duba matsin lamba, shawara, farashi, da salama da ke kewaye da ita.", "Bude tarihin shawarar ka ambaci abin da ya canza."],
+    },
+    tl: {
+      waitingTitles: ["Nagkaroon ng oras ang desisyong ito", "Bumalik sa desisyong ito nang mahinahon", "Handa na ang iyong hintay"],
+      revisitTitles: ["Ano ang nagbago mula noon?", "Isang desisyong dapat muling suriin", "Bumalik nang mas malinaw ang mata"],
+      waitingBodies: ["nagkaroon ng oras huminga. Buksan ito at pansinin kung ano ang nagbago.", "naghihintay ng mas mahinahong pagtingin. Ano ang mas malinaw ngayon?", "handa na para sa susunod na tapat na hakbang, hindi para sa pagmamadali."],
+      revisitBodies: ["Ano ang mas malinaw ngayon kaysa noong una mo itong dala?", "Balikan ang pressure, payo, gastos, at kapayapaang nakapalibot dito.", "Buksan ang decision timeline at pangalanan ang nagbago."],
+    },
+    ar: {
+      waitingTitles: ["أُعطي هذا القرار وقتًا", "ارجع إلى هذا القرار بهدوء", "فترة الانتظار جاهزة"],
+      revisitTitles: ["ما الذي تغيّر منذ ذلك الحين؟", "قرار يستحق المراجعة", "ارجع بعين أوضح"],
+      waitingBodies: ["أُتيح له وقت ليتنفس. افتحه ولاحظ ما الذي تغيّر.", "كان ينتظر نظرة أهدأ. ما الذي أصبح أوضح الآن؟", "هو جاهز لخطوة أمينة تالية، لا لخطوة متسرعة."],
+      revisitBodies: ["ما الذي أصبح أوضح الآن مما كان عليه في البداية؟", "راجع الضغط، والمشورة، والكلفة، والسلام المحيط به.", "افتح الخط الزمني للقرار وسمِّ ما الذي تغيّر."],
+    },
+    hi: {
+      waitingTitles: ["इस निर्णय को समय मिला", "इस निर्णय पर शांति से लौटें", "आपका प्रतीक्षा-काल तैयार है"],
+      revisitTitles: ["तब से क्या बदला?", "एक निर्णय जिसे फिर से देखना चाहिए", "अधिक स्पष्ट दृष्टि के साथ लौटें"],
+      waitingBodies: ["इसे साँस लेने का समय मिला है। इसे खोलिए और देखें क्या बदला है।", "यह अधिक शांत नज़र की प्रतीक्षा कर रहा था। अब क्या अधिक स्पष्ट है?", "यह अगले निष्ठावान कदम के लिए तैयार है, जल्दबाज़ी के लिए नहीं."],
+      revisitBodies: ["अब क्या पहले से अधिक स्पष्ट है?", "दबाव, सलाह, लागत, और उसके आसपास की शांति की फिर से जाँच करें.", "निर्णय-समयरेखा खोलिए और नाम दीजिए कि क्या बदला।"],
     },
   };
 

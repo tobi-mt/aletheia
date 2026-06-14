@@ -1770,39 +1770,39 @@ const uiText: Partial<Record<
     accountFormationSummary: "Tsarawa rikodi ne mai natsuwa na aiki, ba allon maki ba.",
   },
   tl: {
-    nav: { companion: "Tahanan", decisions: "Mga Desisyon", reflect: "Pagninilay", library: "Aklatan", account: "Account" },
+    nav: { companion: "Tahanan", decisions: "Mga Desisyon", reflect: "Pagninilay", library: "Aklatan", account: "Akaunti" },
     decideShort: "Magpasya",
     guardrails: "Mga hangganan",
     guardrailItems: ["Hindi kailanman naghuhula ng pinansyal na resulta.", "Hindi kailanman gumagawa ng mga sanggunian sa Kasulatan.", "Hinihikayat ang tulong ng tao sa self-harm, adiksyon, o krisis."],
-    wisdomMode: "Mode ng karunungan",
+    wisdomMode: "Paraan ng karunungan",
     currentLens: "Kasalukuyang lente",
-    offline: "Offline",
+    offline: "Wala sa online",
     languageSelect: "Palitan ang wika",
     bibleSelect: "Palitan ang salin ng Biblia",
-    account: "Account",
+    account: "Akaunti",
     askTitle: "Magtanong kay Aletheia",
     askIntro: "Magsimula sa isang tapat na tanong. Pinapabagal ni Aletheia ang sandali at tumutulong maglinaw ng isip.",
     yourQuestion: "Ang tanong mo",
     askButton: "Magtanong",
     startHere: "Magsimula rito",
     ready: "Handa",
-    whatModeFor: "Para saan ang mode na ito",
+    whatModeFor: "Para saan ang paraang ito",
     deepChecks: "Masusing pagsuri",
     blindSpots: "Mga hindi napapansin",
     maturitySignals: "Mga palatandaan ng paghinog",
-    modeGuidance: "Gabay sa mode",
+    modeGuidance: "Patnubay sa paraan",
     change: "Palitan",
     showDetails: "Ipakita ang detalye",
     hideDetails: "Itago ang detalye",
-    modeGuidancePreview: "Panatilihing nakatuon ang view na ito. Palawakin kapag gusto mo ng mas malalim na pagsusuri, blind spot, at mga palatandaan ng paghinog.",
+    modeGuidancePreview: "Panatilihing nakatuon ang tinging ito. Palawakin kapag gusto mo ng mas malalim na pagsusuri, mga hindi napapansin, at mga palatandaan ng paghinog.",
     trustLayer: "Patong ng tiwala",
     preferencesTitle: "Wika at rehiyon",
     language: "Wika",
     region: "Rehiyon",
     bible: "Biblia",
     voiceControls: "Kontrol sa boses",
-    available: "Available",
-    englishFallback: "Fallback na Ingles",
+    available: "Magagamit",
+    englishFallback: "Kapalit na Ingles",
     greetingMorning: "Magandang umaga",
     greetingAfternoon: "Magandang hapon",
     greetingEvening: "Magandang gabi",
@@ -1810,24 +1810,24 @@ const uiText: Partial<Record<
     greetingIntent: "Pumili tayo ng isang matalinong susunod na hakbang ngayon.",
     personalizedPriority: "Piniling prayoridad",
     whatNext: "Ano ang susunod kong dapat gawin?",
-    whatNextBody: "Pinipili muna ni Aletheia ang isang matalinong susunod na aksyon. Nasa malapit pa rin ang tanong at mga kontrol sa mode kapag handa ka nang magsimula.",
+    whatNextBody: "Pinipili muna ni Aletheia ang isang matalinong susunod na aksyon. Nasa malapit pa rin ang tanong at mga kontrol sa paraan kapag handa ka nang magsimula.",
     personalizationNudgeTitle: "Gusto mo ng mas personal na payo?",
     personalizationNudgeBody: "Magdagdag ng isang detalye tungkol sa pera, trabaho, o ritmo.",
     continueDecision: "Ipagpatuloy ang desisyong ito",
     askOneQuestion: "Magtanong ng isang tanong",
     askOneQuestionBody: "Magsimula sa bigat o desisyong dala mo ngayon.",
     askNewQuestion: "Magtanong ng bago",
-    askNewQuestionBody: "Nasa malapit lang ang input ng Companion at mga mode ng karunungan.",
+    askNewQuestionBody: "Nasa malapit lang ang input ng kasama at mga paraang may karunungan.",
     reflectToday: "Magnilay ngayon",
     reviewPattern: "Suriin ang pattern",
     enableNotifications: "I-enable ang mga abiso",
-    enableSync: "I-enable ang sync",
+    enableSync: "I-on ang pagsabay",
     notificationPromptBody: "Tumanggap ng isang tahimik na paalala ng karunungan bawat araw.",
-    syncDevicesBody: "Panatilihing naka-sync ang mga desisyon at pagninilay sa iba't ibang device.",
+    syncDevicesBody: "Panatilihing magkakasabay ang mga desisyon at pagninilay sa iba't ibang aparato.",
     startDecision: "Magsimula ng desisyon",
     startDecisionBody: "Subaybayan ang isang mahalagang pagpili sa paglipas ng panahon.",
     tinyPractice: "Maliit na pagsasanay",
-    todaysCompanion: "Kasama ngayong araw",
+    todaysCompanion: "Kasama ngayon",
     todayPrefix: "Ngayon",
     wisdomPrinciple: "Prinsipyo ng karunungan",
     reflectionQuestion: "Tanong",
@@ -1846,10 +1846,10 @@ const uiText: Partial<Record<
     weeklyReviewLastWeekLabel: "Noong nakaraang linggo",
     nextFaithfulStep: "Susunod na tapat na hakbang",
     askAboutThis: "Magtanong tungkol dito",
-    saveToRuleOfLife: "I-save sa Rule of Life",
+    saveToRuleOfLife: "I-save sa tuntunin ng buhay",
     carryingToday: "Bitbit ngayong araw",
     currentCounsel: "Kasalukuyang payo",
-    modeShapesCounsel: "ang humuhubog sa payong ito ayon sa",
+    modeShapesCounsel: "ang humuhubog sa payong ito batay sa",
     trackThisDecision: "Subaybayan ang desisyong ito",
     saveAsReflection: "I-save bilang pagninilay",
     createCounselSummary: "Gumawa ng buod ng payo",
@@ -1864,36 +1864,36 @@ const uiText: Partial<Record<
     feedbackTooVague: "Masyadong malabo",
     feedbackTooPreachy: "Masyadong parang sermon",
     feedbackNotRelevant: "Hindi akma",
-    badgesFormation: "Mga badge / Paghubog",
+    badgesFormation: "Mga palatandaan / Paghubog",
     firstReflectionSaved: "Naka-save ang unang pagninilay",
     firstDecisionTracked: "Nabinyayang unang desisyon",
     soughtCounsel: "Humingi ng payo",
-    waitingModeUsed: "Ginamit ang waiting mode",
-    ruleOfLifeCreated: "Nagawa ang Rule of Life",
-    notificationsEnabled: "Naka-enable ang mga abiso",
+    waitingModeUsed: "Ginamit ang paraan ng paghihintay",
+    ruleOfLifeCreated: "Nagawa ang tuntunin ng buhay",
+    notificationsEnabled: "Naka-on ang mga abiso",
     sevenDaysPractice: "7 araw ng pagsasanay sa karunungan",
     formationNote: "Mga tahimik itong palatandaan ng paghubog, hindi mga puntong habulin. Karaniwang nagsisimula ang unang milestone sa pag-save ng isang pagninilay.",
     milestoneShareTitle: "May kilala ka bang gumagawa ng mahalagang desisyon?",
-    milestoneShareBody: "Maaari mo silang anyayahan sa Aletheia nang hindi nagbabahagi ng pribado mula sa account mo.",
-    welcomeCounsel: "Magdala ng totoong desisyon, pressure, o tanong sa pera. Sasagot ako mula sa curated wisdom library, nang may kalinawan at walang pangakong pinansyal.",
-    trustScriptureBody: "Ang mga sanggunian sa Kasulatan ay mula sa curated wisdom library ni Aletheia. Kapag may lumabas na talata, maaari mo itong i-tap para makita ang konteksto at kahalagahan nito.",
+    milestoneShareBody: "Maaari mo silang anyayahan sa Aletheia nang hindi nagbabahagi ng pribado mula sa iyong akaunti.",
+    welcomeCounsel: "Magdala ng totoong desisyon, pressure, o tanong sa pera. Sasagot ako mula sa piniling aklatan ng karunungan, nang may kalinawan at walang pangakong pinansyal.",
+    trustScriptureBody: "Ang mga sanggunian sa Kasulatan ay mula sa piniling aklatan ng karunungan ni Aletheia. Kapag may lumabas na talata, maaari mo itong i-tap para makita ang konteksto at kahalagahan nito.",
     trustBoundaryBody: "Hindi mangangako si Aletheia ng resulta, manghuhula ng merkado, maghahabol ng banal na katiyakan, o papalitan ang kwalipikadong payo sa pananalapi, legal, buwis, medikal, o pastoral.",
-    trustMemoryBody: "Tumutulong ang naka-sign in na memorya sa pagpapatuloy ng mga desisyon, pagninilay, payo, at mga tuntunin sa buhay. Dapat nitong gawing mas personal ang gabay nang hindi inilalantad ang pribadong detalye nang hindi kailangan.",
-    trustConnectedDataBody: "Ang mga susunod na integrasyon sa kalusugan, pananalapi, o mga device ay dapat may malinaw na pahintulot, naka-off bilang default, at limitado lamang sa eksaktong data na pipiliing ikonekta ng user.",
-    accountNextEyebrow: "Susunod sa Account",
-    accountNextReviewSyncFormation: "Suriin ang sync at paghubog",
-    accountNextSignInPortable: "Mag-sign in para madala si Aletheia saan ka man",
-    accountNextActiveBody: "Aktibo ang account mo. Suriin ang mga preference, history, at mga milestone ng paghubog kapag kailangan mo.",
-    accountNextSyncBody: "Aktibo ang sync. I-on ang isang tahimik na pang-araw-araw na paalala ng karunungan kung dapat itong matanggap ng device na ito.",
-    accountNextGuestBody: "Gamitin ang Google o email para i-sync ang mga desisyon, pagninilay, preference, payo, at abiso sa iba't ibang device.",
-    accountManageSummary: "Pamahalaan ang sign-in, sync, wika, mga abiso, history, at mga milestone ng paghubog nang hindi sumasakal sa wisdom companion.",
-    accountSignedInAs: "Naka-sign in bilang",
-    accountSignInOrGuest: "Mag-sign in o magpatuloy bilang guest",
-    accountSyncActive: "Aktibo ang sync.",
-    accountNotificationsNotEnabled: "Hindi pa naka-enable ang mga abiso.",
-    accountGuestSummary: "Mag-sign in para mapanatili ang iyong history, mga preference, at mga desisyon.",
-    accountPreferencesEyebrow: "Mga preference",
-    accountPreferencesSummary: "Nandito ang wika, salin ng Biblia, itsura, rehiyon, at boses para manatiling kalmado ang Companion.",
+    trustMemoryBody: "Tumutulong ang naka-login na memorya sa pagpapatuloy ng mga desisyon, pagninilay, payo, at mga tuntunin sa buhay. Dapat nitong gawing mas personal ang gabay nang hindi inilalantad ang pribadong detalye nang hindi kailangan.",
+    trustConnectedDataBody: "Ang mga susunod na integrasyon sa kalusugan, pananalapi, o mga aparato ay dapat may malinaw na pahintulot, naka-off bilang default, at limitado lamang sa eksaktong datos na pipiliing ikonekta ng user.",
+    accountNextEyebrow: "Susunod sa Akaunti",
+    accountNextReviewSyncFormation: "Suriin ang pagsabay at paghubog",
+    accountNextSignInPortable: "Mag-log in para madala si Aletheia saan ka man",
+    accountNextActiveBody: "Aktibo ang iyong akaunti. Suriin ang mga kagustuhan, kasaysayan, at mga milestone ng paghubog kapag kailangan mo.",
+    accountNextSyncBody: "Aktibo ang pagsabay. I-on ang isang tahimik na pang-araw-araw na paalala ng karunungan kung dapat itong matanggap ng aparatong ito.",
+    accountNextGuestBody: "Gamitin ang Google o email para isabay ang mga desisyon, pagninilay, mga kagustuhan, payo, at abiso sa iba't ibang aparato.",
+    accountManageSummary: "Pamahalaan ang pag-login, pagsabay, wika, mga abiso, kasaysayan, at mga milestone ng paghubog nang hindi sumasakal sa kasama ng karunungan.",
+    accountSignedInAs: "Naka-login bilang",
+    accountSignInOrGuest: "Mag-login o magpatuloy bilang bisita",
+    accountSyncActive: "Aktibo ang pagsabay.",
+    accountNotificationsNotEnabled: "Hindi pa naka-on ang mga abiso.",
+    accountGuestSummary: "Mag-sign in para mapanatili ang iyong kasaysayan, mga kagustuhan, at mga desisyon.",
+    accountPreferencesEyebrow: "Mga kagustuhan",
+    accountPreferencesSummary: "Nandito ang wika, salin ng Biblia, itsura, rehiyon, at boses para manatiling kalmado ang kasama.",
     accountContextActive: "Aktibo ang konteksto",
     accountContextPaused: "Naka-pause ang konteksto",
     accountArea: "lugar",
@@ -1902,30 +1902,30 @@ const uiText: Partial<Record<
     accountManualContextSummary: "Opsyonal at pribado ang manual na konteksto. Idagdag lamang ang dapat humubog sa payo ni Aletheia.",
     accountDailyWisdomEnabled: "Naka-enable ang pang-araw-araw na karunungan",
     accountNotificationsSummaryEnabled: "Gagamitin ni Aletheia ang iyong naka-save na lokal na oras.",
-    accountNotificationsSummaryDisabled: "I-on ang isang tahimik na pang-araw-araw na paalala kapag handa na ang device na ito.",
+    accountNotificationsSummaryDisabled: "I-on ang isang tahimik na pang-araw-araw na paalala kapag handa na ang aparatong ito.",
     accountInstallTitle: "Idagdag si Aletheia sa home screen mo",
-    accountInstallSummary: "Nakatago ang mga tagubilin sa pag-install hanggang may kailangan sa app-like na setup.",
+    accountInstallSummary: "Nakatago ang mga tagubilin sa pag-install hanggang may kailangan sa setup na parang app.",
     accountInstallEyebrow: "I-install si Aletheia",
     accountInviteTitle: "Imbitahan ang isang tao nang pribado",
-    accountInviteSummary: "Ibahagi lang ang link ni Aletheia, hindi kailanman pribadong tanong, journal, o payo bilang default.",
+    accountInviteSummary: "Ibahagi lang ang link ni Aletheia, hindi kailanman pribadong tanong, tala sa araw-araw, o payo bilang default.",
     accountInviteEyebrow: "Mag-imbita ng tao",
     accountHistoryConversations: "mga usapan",
     accountHistoryDecisions: "mga desisyon",
     accountHistoryReflections: "mga pagninilay",
-    accountHistorySummary: "Nakatiklop ang history hanggang gusto mong balikan ang mga na-save.",
+    accountHistorySummary: "Nakatiklop ang kasaysayan hanggang gusto mong balikan ang mga na-save.",
     accountStatConversations: "Mga usapan",
     accountStatDecisions: "Mga desisyon",
-    accountStatJournalEntries: "Mga tala sa journal",
-    accountHistoryEmptyBody: "Magsimula sa isang tapat na tanong o isang desisyong may pressure. Panatilihing tahimik at kapaki-pakinabang ni Aletheia ang rekord.",
+    accountStatJournalEntries: "Mga tala sa araw-araw",
+    accountHistoryEmptyBody: "Magsimula sa isang tapat na tanong o isang desisyong may pressure. Panatilihing tahimik at kapaki-pakinabang ni Aletheia ang tala.",
     accountTrustPostureTitle: "Tiwala at pagkapribado",
     accountTrustPostureSummary: "Makikita ang mga hangganan, naka-save na data, at mga patakaran sa pagbabahagi.",
     accountBoundariesTitle: "Mga hangganan ni Aletheia",
-    accountBoundariesSummary: "Nananatiling nakikita ang mga safety boundary ng app kapag kailangan, hindi lagi nakaharang.",
+    accountBoundariesSummary: "Nananatiling nakikita ang mga hangganan ng seguridad ng app kapag kailangan, hindi lagi nakaharang.",
     accountBoundariesBody: "Pinoprotektahan ka ng mga limitasyong ito mula sa mapaminsalang payo ng AI at pinananatiling tapat si Aletheia sa layunin nito.",
     accountFormationPrefix: "Paghubog",
     accountQuietMilestoneSingular: "tahimik na milestone",
     accountQuietMilestonePlural: "mga tahimik na milestone",
-    accountFormationSummary: "Ang paghubog ay isang kalmadong tala ng pagsasanay, hindi scoreboard.",
+    accountFormationSummary: "Ang paghubog ay isang kalmadong tala ng pagsasanay, hindi talaan ng puntos.",
   },
   ar: {
     nav: { companion: "الرئيسية", decisions: "القرارات", reflect: "التأمل", library: "المكتبة", account: "الحساب" },
@@ -1975,7 +1975,7 @@ const uiText: Partial<Record<
     askOneQuestion: "اطرح سؤالًا واحدًا",
     askOneQuestionBody: "ابدأ بالضغط أو القرار الذي تحمله الآن.",
     askNewQuestion: "اطرح سؤالًا جديدًا",
-    askNewQuestionBody: "يبقى إدخال Companion وأوضاع الحكمة قريبين.",
+    askNewQuestionBody: "يبقى إدخال الرفيق وأوضاع الحكمة قريبين.",
     reflectToday: "تأمل اليوم",
     reviewPattern: "راجع نمطًا",
     enableNotifications: "تفعيل الإشعارات",
@@ -2090,7 +2090,7 @@ const uiText: Partial<Record<
     decideShort: "निर्णय लें",
     guardrails: "सुरक्षा सीमाएँ",
     guardrailItems: ["वित्तीय परिणामों का अनुमान नहीं लगाता।", "शास्त्र संदर्भ नहीं गढ़ता।", "आत्म-हानि, लत या संकट भाषा में मानव सहायता के लिए प्रेरित करता है।"],
-    wisdomMode: "ज्ञान मोड",
+    wisdomMode: "ज्ञान अवस्था",
     currentLens: "वर्तमान दृष्टि",
     offline: "ऑफ़लाइन",
     languageSelect: "भाषा बदलें",
@@ -2102,11 +2102,11 @@ const uiText: Partial<Record<
     askButton: "पूछें",
     startHere: "यहां शुरू करें",
     ready: "तैयार",
-    whatModeFor: "यह मोड किसलिए है",
+    whatModeFor: "यह अवस्था किसलिए है",
     deepChecks: "गहन जांच",
     blindSpots: "अदृश्य हिस्से",
     maturitySignals: "परिपक्वता के संकेत",
-    modeGuidance: "मोड मार्गदर्शन",
+    modeGuidance: "अवस्था-मार्गदर्शन",
     change: "बदलें",
     showDetails: "विवरण दिखाएँ",
     hideDetails: "विवरण छिपाएँ",
@@ -2133,13 +2133,13 @@ const uiText: Partial<Record<
     askOneQuestion: "एक प्रश्न पूछें",
     askOneQuestionBody: "उस दबाव या निर्णय से शुरू करें जिसे आप अभी ढो रहे हैं।",
     askNewQuestion: "नया प्रश्न पूछें",
-    askNewQuestionBody: "Companion इनपुट और ज्ञान मोड पास ही बने रहते हैं।",
+    askNewQuestionBody: "साथी इनपुट और ज्ञान मोड पास ही बने रहते हैं।",
     reflectToday: "आज चिंतन करें",
     reviewPattern: "पैटर्न की समीक्षा करें",
     enableNotifications: "सूचनाएँ सक्षम करें",
-    enableSync: "सिंक सक्षम करें",
+    enableSync: "संगति चालू करें",
     notificationPromptBody: "हर दिन एक शांत ज्ञान-सूचना प्राप्त करें।",
-    syncDevicesBody: "निर्णयों और चिंतन को सभी उपकरणों पर साथ रखें।",
+    syncDevicesBody: "निर्णयों और चिंतन को सभी उपकरणों पर एक-साथ रखें।",
     startDecision: "निर्णय शुरू करें",
     startDecisionBody: "एक महत्वपूर्ण विकल्प को समय के साथ ट्रैक करें।",
     tinyPractice: "छोटी प्रैक्टिस",
@@ -2184,7 +2184,7 @@ const uiText: Partial<Record<
     firstReflectionSaved: "पहला चिंतन सहेजा गया",
     firstDecisionTracked: "पहला निर्णय ट्रैक हुआ",
     soughtCounsel: "सलाह ली",
-    waitingModeUsed: "प्रतीक्षा मोड का उपयोग किया गया",
+    waitingModeUsed: "प्रतीक्षा अवस्था का उपयोग किया गया",
     ruleOfLifeCreated: "जीवन नियम बनाया",
     notificationsEnabled: "सूचनाएँ सक्षम की गईं",
     sevenDaysPractice: "ज्ञान अभ्यास के 7 दिन",
@@ -2197,15 +2197,15 @@ const uiText: Partial<Record<
     trustMemoryBody: "साइन-इन मेमोरी निर्णयों, चिंतनों, सलाह और जीवन-नियमों में निरंतरता में मदद करती है। इसे अनावश्यक निजी विवरण उजागर किए बिना मार्गदर्शन को अधिक व्यक्तिगत बनाना चाहिए।",
     trustConnectedDataBody: "भविष्य के स्वास्थ्य, वित्त, या डिवाइस एकीकरण को स्पष्ट अनुमति के साथ, डिफ़ॉल्ट रूप से बंद, और केवल उसी सटीक डेटा तक सीमित होना चाहिए जिसे उपयोगकर्ता जोड़ना चुनता है।",
     accountNextEyebrow: "खाते में अगला",
-    accountNextReviewSyncFormation: "सिंक और गठन की समीक्षा करें",
+    accountNextReviewSyncFormation: "संगति और गठन की समीक्षा करें",
     accountNextSignInPortable: "Aletheia को अपने साथ ले जाने के लिए साइन इन करें",
     accountNextActiveBody: "आपका खाता सक्रिय है। जब ज़रूरत हो, प्राथमिकताएँ, इतिहास, और गठन मील के पत्थर देखें।",
-    accountNextSyncBody: "सिंक सक्रिय है। यदि यह उपकरण उसे पाए, तो एक शांत दैनिक ज्ञान-सूचना चालू करें।",
-    accountNextGuestBody: "निर्णय, चिंतन, प्राथमिकताएँ, सलाह, और सूचनाएँ उपकरणों में सिंक करने के लिए Google या ईमेल का उपयोग करें।",
-    accountManageSummary: "साइन-इन, सिंक, भाषा, सूचनाएँ, इतिहास, और गठन मील के पत्थरों को ज्ञान साथी को भीड़ दिए बिना प्रबंधित करें।",
+    accountNextSyncBody: "संगति सक्रिय है। यदि यह उपकरण उसे पाए, तो एक शांत दैनिक ज्ञान-सूचना चालू करें।",
+    accountNextGuestBody: "निर्णय, चिंतन, प्राथमिकताएँ, सलाह, और सूचनाएँ उपकरणों में एक-साथ रखने के लिए Google या ईमेल का उपयोग करें।",
+    accountManageSummary: "साइन-इन, संगति, भाषा, सूचनाएँ, इतिहास, और गठन मील के पत्थरों को ज्ञान साथी को भीड़ दिए बिना प्रबंधित करें।",
     accountSignedInAs: "साइन इन किया गया है",
     accountSignInOrGuest: "साइन इन करें या अतिथि के रूप में जारी रखें",
-    accountSyncActive: "सिंक सक्रिय है।",
+    accountSyncActive: "संगति सक्रिय है।",
     accountNotificationsNotEnabled: "सूचनाएँ अभी सक्षम नहीं हैं।",
     accountGuestSummary: "अपना इतिहास, प्राथमिकताएँ, और निर्णय सुरक्षित रखने के लिए साइन इन करें।",
     accountPreferencesEyebrow: "प्राथमिकताएँ",
@@ -2223,7 +2223,7 @@ const uiText: Partial<Record<
     accountInstallSummary: "इंस्टॉल निर्देश तब तक छिपे रहते हैं जब तक किसी को ऐप-जैसी सेटअप की ज़रूरत न हो।",
     accountInstallEyebrow: "Aletheia इंस्टॉल करें",
     accountInviteTitle: "किसी को निजी तौर पर आमंत्रित करें",
-    accountInviteSummary: "सिर्फ Aletheia लिंक साझा करें, निजी प्रश्न, जर्नल, या सलाह नहीं।",
+    accountInviteSummary: "सिर्फ Aletheia लिंक साझा करें, निजी प्रश्न, डायरी, या सलाह नहीं।",
     accountInviteEyebrow: "किसी को आमंत्रित करें",
     accountHistoryConversations: "वार्तालाप",
     accountHistoryDecisions: "निर्णय",
@@ -3587,6 +3587,27 @@ const modeDisplayLabels: Partial<Record<LanguageCode, Record<Mode, string>>> = {
     Generosity: "Generosity",
     Life: "Life",
   },
+  tl: {
+    Money: "Pera",
+    Work: "Trabaho",
+    Purpose: "Layunin",
+    Generosity: "Pagkamapagbigay",
+    Life: "Buhay",
+  },
+  ar: {
+    Money: "المال",
+    Work: "العمل",
+    Purpose: "الغاية",
+    Generosity: "الكرم",
+    Life: "الحياة",
+  },
+  hi: {
+    Money: "पैसा",
+    Work: "काम",
+    Purpose: "उद्देश्य",
+    Generosity: "उदारता",
+    Life: "जीवन",
+  },
 };
 
 const localizedModeProfiles: Partial<Record<LanguageCode, Partial<Record<Mode, Partial<ModeProfile>>>>> = {
@@ -3656,6 +3677,240 @@ const localizedModeProfiles: Partial<Record<LanguageCode, Partial<Record<Mode, P
       ],
     },
   },
+  tl: {
+    Money: {
+      intent: "Pangasiwaan ang ipinagkatiwala sa iyo nang may kapayapaan at katinuan.",
+      focus: "Badyet, utang, ipon, puhunan, kasapatan",
+      useWhen: "Gamitin para sa gastusin, utang, ipon, puhunan, alalahanin sa pera, o paghahambing sa iba.",
+      lens: "Lens ng pangangalaga: kalayaan, sapat, tiyaga, panganib, at tapat na pananagutan.",
+      diagnosticTracks: [
+        "Kalayaan: lalawak ba o liliit ang mga matalinong pagpipilian bukas?",
+        "Sapat: malinaw ba ang pangangailangan, o pinalalabas lang ito ng paghahambing?",
+        "Panganib: ano ang puwedeng maging maayos, ano ang puwedeng pumalya, at nasuri ko ba ang gastos?",
+      ],
+      blindSpots: [
+        "Pagsasama ng pananampalataya at garantiyang pinansyal",
+        "Pagpapanggap ng kakulangan habang nakasentro sa pagtingin ng iba",
+        "Paggamit ng utang bilang kapalit ng pag-asa",
+      ],
+      maturitySignals: [
+        "Nanatiling mabuti ang plano kahit naghintay",
+        "Malinaw ang mga numero at hindi nakalilito",
+        "Nasubok ng payo ang iyong panloob na mga hinala",
+      ],
+      practices: [
+        "Pangalanan ang sapat para sa panahong ito",
+        "Isulat nang malinaw ang plano para sa utang, ipon, o pagbibigay",
+        "Maghintay hanggang bukas bago gastusin ang mahirap nang baguhin",
+      ],
+      prompts: [
+        "Paano ako makagagawa ng yaman nang hindi ako pinamumunuan ng kasakiman?",
+        "Ano ang sinasabi ng karunungan tungkol sa utang?",
+        "Paano ko ititigil ang paghahambing ng sarili ko sa iba sa usaping pera?",
+      ],
+    },
+    Work: {
+      intent: "Suriin ang trabaho, tawag, lider, at angkop na ambisyon.",
+      focus: "Paglipat ng trabaho, lider, negosyo, pagkapagod, tawag",
+      useWhen: "Gamitin para sa mga desisyon sa trabaho, payo sa negosyo, pagtingin sa lider, pagkapagod, o ambisyon.",
+      lens: "Lens ng tawag: mabuting sakripisyo, payo, pagtantya sa halaga, paglilingkod, at tamang bilis.",
+      prompts: [
+        "Dapat ko bang iwan ang matatag kong trabaho?",
+        "Paano ko malalaman kung mabuti ang ambisyon ko?",
+        "Dapat ko bang simulan ang negosyong ito ngayon?",
+      ],
+    },
+    Purpose: {
+      intent: "Tumigil at tingnan kung sino ang hinuhubog ng desisyong ito.",
+      focus: "Pagkakakilanlan, direksyon, pagkabalisa, halaga, pangmatagalang pananaw",
+      useWhen: "Gamitin kapag ang tunay na tanong ay pagkakakilanlan, direksyon, kapayapaan, oras, o halaga.",
+      lens: "Lens ng karunungan: pagkakakilanlan, kapayapaan, layunin, tiyaga, at tapat na susunod na hakbang.",
+      prompts: [
+        "Paano ako magdedesisyon kapag hindi ako sigurado?",
+        "Paano kung hinahabol ko ang tagumpay para sa maling dahilan?",
+        "Paano ako makakahanap ng kapayapaan tungkol sa susunod na hakbang?",
+      ],
+    },
+    Generosity: {
+      intent: "Magbigay nang malaya, hindi mula sa guilt, pressure, o pagpapakitang-gilas.",
+      focus: "Pagbibigay, tulong sa pamilya, kawanggawa, hangganan, pagpapatuloy",
+      useWhen: "Gamitin para sa pagbibigay, tulong sa pamilya, hangganan, o isang paraan ng pagbibigay na kayang tumagal.",
+      lens: "Lens ng pag-ibig sa kapwa: mabuting kalooban, pagpapatuloy, kagalakan, karunungan, at pagbibigay nang hindi napipilitan.",
+      prompts: [
+        "Paano ako makapagbibigay nang walang guilt o pressure?",
+        "Dapat ko pa bang suportahan ang pamilya ko sa pera?",
+        "Gaano kalawak ang pagbibigay na kaya kong panatilihin?",
+      ],
+    },
+    Life: {
+      intent: "Ilapat ang biblikal na karunungan sa pang-araw-araw na buhay, paghubog, at pag-aaruga nang may matatag at nakaugat na atensyon.",
+      focus: "Mga gawi, relasyon, pamilya, pahinga, kalusugan, pagbangon, kabanalan, pag-iisa",
+      useWhen:
+        "Gamitin para sa araw-araw na desisyon, routine, relasyon, gawi, pahinga, alitan, pag-iisa, adiksyon, tukso, buhay-pananalangin, o kapag ang tamang susunod na hakbang ay tahimik na pagsunod sa halip na malaking desisyon.",
+      lens: "Lens ng paghubog: karakter, paggaling, pananagutan, relasyon, at susunod na tapat na hakbang.",
+      prompts: [
+        "Paano ako magiging tapat sa mahirap na panahon?",
+        "Ano ang gagawin ko kapag pakiramdam ko ay nakakulong ako sa hindi malusog na pattern?",
+        "Paano ako tutugon kapag mabigat ang pag-iisa o tukso?",
+      ],
+    },
+  },
+  ar: {
+    Money: {
+      intent: "أدر ما أوكِل إليك بسلام واتزان.",
+      focus: "الميزانية، الدَّين، الادخار، الاستثمار، الكفاية",
+      useWhen: "استخدمه للمصروف، الدَّين، الادخار، الاستثمار، القلق المالي، أو مقارنة نفسك بالآخرين.",
+      lens: "عدسة الرعاية: الحرية، الكفاية، الصبر، المخاطر، والمسؤولية الأمينة.",
+      diagnosticTracks: [
+        "الحرية: هل يزيد هذا الخيار من بدائل الحكمة غدًا أم يقللها؟",
+        "الكفاية: هل الحاجة واضحة، أم أن المقارنة هي التي تصوغها؟",
+        "المخاطر: ما الذي قد يسير جيدًا، وما الذي قد يتعثر، وهل حسبت التكلفة بدقة؟",
+      ],
+      blindSpots: [
+        "دمج الإيمان مع ضمان مالي",
+        "إضفاء طابع القداسة على الندرة بينما يدور القلب حول المقارنة",
+        "تعامل مع الدَّين كبديل عن الثقة",
+      ],
+      maturitySignals: [
+        "يبقى التخطيط صالحًا بعد الانتظار",
+        "الأرقام واضحة وغير مربكة",
+        "النصيحة اختبرت حدسك الداخلي",
+      ],
+      practices: [
+        "سمِّ ما يكفي لهذه المرحلة",
+        "اكتب خطة السداد أو الادخار أو العطاء بوضوح",
+        "انتظر حتى الغد قبل إنفاق ما يصعب التراجع عنه",
+      ],
+      prompts: [
+        "كيف أبني موارد بلا أن تقودني الشراهة؟",
+        "ماذا تقول الحكمة عن الدَّين؟",
+        "كيف أكف عن مقارنة نفسي بالآخرين في المال؟",
+      ],
+    },
+    Work: {
+      intent: "افحص العمل والدعوة والقيادة والطموح المناسب.",
+      focus: "تغيير العمل، القيادة، المشروع، الإرهاق، الدعوة",
+      useWhen: "استخدمه لقرارات العمل، نصيحة المشاريع، تقييم القيادة، الإرهاق، أو الطموح.",
+      lens: "عدسة الدعوة: التضحية الصالحة، النصيحة، حساب القيمة، الخدمة، والوتيرة المناسبة.",
+      prompts: [
+        "هل يجب أن أترك عملي المستقر؟",
+        "كيف أعرف إن كان طموحي صالحًا؟",
+        "هل ينبغي أن أبدأ هذا المشروع الآن؟",
+      ],
+    },
+    Purpose: {
+      intent: "توقف لترى من الذي يُشكَّل عبر هذا القرار.",
+      focus: "الهوية، الاتجاه، القلق، القيمة، الأفق البعيد",
+      useWhen: "استخدمه حين يكون السؤال الحقيقي عن الهوية أو الاتجاه أو السلام أو الوقت أو القيمة.",
+      lens: "عدسة الحكمة: الهوية، السلام، الغاية، الصبر، والخطوة الأمينة التالية.",
+      prompts: [
+        "كيف أقرر عندما لا أكون متأكدًا؟",
+        "ماذا لو كنت أطارد النجاح لسبب خاطئ؟",
+        "كيف أجد سلامًا بخصوص الخطوة التالية؟",
+      ],
+    },
+    Generosity: {
+      intent: "أعطِ بحرية، لا من الشعور بالذنب أو الضغط أو الاستعراض.",
+      focus: "العطاء، دعم العائلة، الخدمة، الحدود، الاستمرارية",
+      useWhen: "استخدمه للعطاء، دعم العائلة، الحدود، أو أي عطاء يمكن أن يستمر.",
+      lens: "عدسة المحبة للآخر: النية الطيبة، الاستمرارية، الفرح، الحكمة، والعطاء بلا إكراه.",
+      prompts: [
+        "كيف أستطيع أن أعطي بلا ذنب أو ضغط؟",
+        "هل يجب أن أواصل دعم عائلتي ماليًا؟",
+        "ما مقدار العطاء الذي أستطيع الاستمرار عليه؟",
+      ],
+    },
+    Life: {
+      intent: "طبّق الحكمة الكتابية على الحياة اليومية والتكوين والرعاية بانتباه ثابت ومتجذر.",
+      focus: "العادات، العلاقات، العائلة، الراحة، الصحة، التعافي، القداسة، الوحدة",
+      useWhen:
+        "استخدمه لقرارات الحياة اليومية، والروتين، والعلاقات، والعادات، والراحة، والخلاف، والوحدة، والإدمان، والتجربة، والحياة الروحية، أو عندما تكون الخطوة التالية الطيبة فعل طاعة هادئًا لا قرارًا كبيرًا.",
+      lens: "عدسة التكوين: الشخصية، الشفاء، المساءلة، العلاقات، والخطوة الأمينة التالية.",
+      prompts: [
+        "كيف أبقى أمينًا في موسم صعب؟",
+        "ماذا أفعل عندما أشعر أنني عالق في نمط غير صحي؟",
+        "كيف أستجيب عندما تصبح الوحدة أو التجربة ثقيلة؟",
+      ],
+    },
+  },
+  hi: {
+    Money: {
+      intent: "जो आपको सौंपा गया है, उसे शांति और समझदारी से संभालिए।",
+      focus: "बजट, कर्ज, बचत, निवेश, पर्याप्तता",
+      useWhen: "खर्च, कर्ज, बचत, निवेश, पैसे की चिंता, या दूसरों से तुलना के लिए उपयोग करें।",
+      lens: "देखभाल का दृष्टिकोण: स्वतंत्रता, पर्याप्तता, धैर्य, जोखिम, और ईमानदार ज़िम्मेदारी।",
+      diagnosticTracks: [
+        "स्वतंत्रता: क्या यह विकल्प कल समझदार संभावनाएँ बढ़ाएगा या घटाएगा?",
+        "पर्याप्तता: क्या ज़रूरत स्पष्ट है, या उसे तुलना आकार दे रही है?",
+        "जोखिम: क्या अच्छा हो सकता है, क्या बिगड़ सकता है, और क्या मैंने लागत ठीक से गिनी है?",
+      ],
+      blindSpots: [
+        "विश्वास और वित्तीय गारंटी को एक ही चीज़ मान लेना",
+        "तुलना के बीच कमी की कहानी को पवित्र मान लेना",
+        "कर्ज को भरोसे के विकल्प के रूप में देखना",
+      ],
+      maturitySignals: [
+        "प्रतीक्षा के बाद भी योजना अच्छी बनी रहती है",
+        "संख्याएँ स्पष्ट हैं और उलझाती नहीं हैं",
+        "सलाह ने आपकी अंदरूनी आशंकाओं को परखा है",
+      ],
+      practices: [
+        "इस मौसम के लिए पर्याप्त क्या है, उसका नाम दें",
+        "कर्ज, बचत, या देने की योजना साफ़-साफ़ लिखें",
+        "बदलना मुश्किल हो, ऐसा खर्च कल तक टालें",
+      ],
+      prompts: [
+        "मैं लालच के बिना धन कैसे बना सकता हूँ?",
+        "कर्ज के बारे में बुद्धि क्या कहती है?",
+        "पैसे के मामले में मैं खुद की तुलना दूसरों से करना कैसे रोकूँ?",
+      ],
+    },
+    Work: {
+      intent: "काम, बुलाहट, नेतृत्व, और उचित महत्वाकांक्षा की जाँच करें।",
+      focus: "नौकरी बदलना, नेतृत्व, व्यवसाय, थकान, बुलाहट",
+      useWhen: "काम के निर्णयों, व्यवसाय की सलाह, नेतृत्व के आकलन, थकान, या महत्वाकांक्षा के लिए उपयोग करें।",
+      lens: "बुलाहट का दृष्टिकोण: अच्छा त्याग, सलाह, मूल्य का हिसाब, सेवा, और सही गति।",
+      prompts: [
+        "क्या मुझे अपनी स्थिर नौकरी छोड़ देनी चाहिए?",
+        "मैं कैसे जानूँ कि मेरी महत्वाकांक्षा अच्छी है?",
+        "क्या मुझे यह व्यवसाय अभी शुरू करना चाहिए?",
+      ],
+    },
+    Purpose: {
+      intent: "रुककर देखें कि यह निर्णय किसे आकार दे रहा है।",
+      focus: "पहचान, दिशा, चिंता, मूल्य, दीर्घ दृष्टि",
+      useWhen: "जब असली सवाल पहचान, दिशा, शांति, समय, या मूल्य का हो, तब उपयोग करें।",
+      lens: "बुद्धि का दृष्टिकोण: पहचान, शांति, उद्देश्य, धैर्य, और अगला ईमानदार कदम।",
+      prompts: [
+        "जब मैं निश्चित न हूँ, तब कैसे निर्णय लूँ?",
+        "अगर मैं गलत कारण से सफलता का पीछा कर रहा हूँ तो?",
+        "अगले कदम को लेकर शांति मैं कैसे पाऊँ?",
+      ],
+    },
+    Generosity: {
+      intent: "स्वतंत्रता से दीजिए, अपराधबोध, दबाव, या दिखावे से नहीं।",
+      focus: "देना, परिवार की सहायता, दान, सीमाएँ, निरंतरता",
+      useWhen: "देने, परिवार की मदद, सीमाओं, या टिकाऊ उदारता के लिए उपयोग करें।",
+      lens: "पड़ोसी-प्रेम का दृष्टिकोण: भलाई, निरंतरता, आनंद, बुद्धि, और बिना मजबूरी के देना।",
+      prompts: [
+        "मैं बिना अपराधबोध या दबाव के कैसे दे सकता हूँ?",
+        "क्या मुझे अपने परिवार की आर्थिक मदद जारी रखनी चाहिए?",
+        "मैं कितनी उदारता को स्थायी रूप से निभा सकता हूँ?",
+      ],
+    },
+    Life: {
+      intent: "बाइबिलीय बुद्धि को रोज़मर्रा की ज़िंदगी, निर्माण, और देखभाल पर स्थिर, जमी हुई ध्यान से लागू कीजिए।",
+      focus: "आदतें, रिश्ते, परिवार, विश्राम, स्वास्थ्य, पुनर्स्थापना, पवित्रता, अकेलापन",
+      useWhen:
+        "दैनिक निर्णयों, दिनचर्या, रिश्तों, आदतों, विश्राम, संघर्ष, अकेलेपन, लत, प्रलोभन, प्रार्थना-जीवन, या जब अगला सही कदम कोई बड़ा निर्णय नहीं बल्कि चुपचाप आज्ञाकारिता का कार्य हो, तब उपयोग करें।",
+      lens: "निर्माण का दृष्टिकोण: चरित्र, चंगाई, जवाबदेही, रिश्ते, और अगला ईमानदार कदम।",
+      prompts: [
+        "मैं कठिन मौसम में कैसे वफ़ादार रहूँ?",
+        "अगर मैं किसी अस्वस्थ पैटर्न में फँसा महसूस करूँ तो क्या करूँ?",
+        "जब अकेलापन या प्रलोभन भारी हो जाए तो मैं कैसे प्रतिक्रिया दूँ?",
+      ],
+    },
+  },
 };
 
 function modeDisplayLabel(mode: Mode, language: LanguageCode) {
@@ -3702,6 +3957,36 @@ const wisdomThemeDisplayLabels: Partial<Record<LanguageCode, Record<string, stri
     Generosity: "Karimci",
     Diligence: "Naci",
     "Provision and Anxiety": "Tanadi da damuwa",
+  },
+  tl: {
+    Stewardship: "Pangangalaga",
+    Debt: "Utang",
+    Contentment: "Kasapatan",
+    Counsel: "Payo",
+    "Cost Counting": "Pagbilang ng Gastos",
+    Generosity: "Pagkamapagbigay",
+    Diligence: "Sipag",
+    "Provision and Anxiety": "Paglalaan at Pag-aalala",
+  },
+  ar: {
+    Stewardship: "الرعاية",
+    Debt: "الدَّين",
+    Contentment: "القناعة",
+    Counsel: "المشورة",
+    "Cost Counting": "حساب التكلفة",
+    Generosity: "الكرم",
+    Diligence: "المثابرة",
+    "Provision and Anxiety": "الرزق والقلق",
+  },
+  hi: {
+    Stewardship: "प्रबंध",
+    Debt: "कर्ज",
+    Contentment: "संतोष",
+    Counsel: "सलाह",
+    "Cost Counting": "लागत का हिसाब",
+    Generosity: "उदारता",
+    Diligence: "लगन",
+    "Provision and Anxiety": "प्रावधान और चिंता",
   },
 };
 
@@ -3805,6 +4090,117 @@ const runtimePanelCopy: Partial<Record<LanguageCode, RuntimePanelCopy>> = {
     libraryDescription: "A curated wisdom base with language-aware application notes and public-domain translation labels.",
     fullWisdomLibrary: "Full wisdom library",
     moreAnchors: "more anchors",
+  },
+  tl: {
+    timelineReady: "Handa na ang iyong timeline para subaybayan ang mga desisyon, pattern, payo, at pagkatuto.",
+    nextInDecisions: "Susunod sa Mga Desisyon",
+    decisionNextTitleDefault: "Pangalanan ang desisyong may pressure",
+    decisionNextBodyActive: "I-update ang payo, gastos, paghihintay, at mga palatandaan ng kapayapaan upang magkaroon ng totoong timeline ang desisyon.",
+    decisionNextBodyEmpty: "Magsimula sa isang desisyon at sa pressure na kaakibat nito. Susubaybayan ni Aletheia ang karunungan, payo, at kahandaan sa paglipas ng panahon.",
+    decisionCompanionHeading: "Subaybayan ang desisyon hanggang may sapat na panahon ang karunungan upang kumilos.",
+    decisionCompanionSub: "Memorya, payo, paghihintay, pag-export ng buod, at isang mahinahong signal ng kahandaan para sa mahahalagang pagpili.",
+    ruleOfLife: "Rule of Life",
+    ruleOfLifePrincipleSingular: "prinsipyo",
+    ruleOfLifePrinciplePlural: "mga prinsipyo",
+    ruleOfLifeSummary: "Ang mga personal na prinsipyo ay malapit lang, ngunit nakatiklop hanggang humuhubog ka na ng isang desisyon.",
+    decisionPracticeLine: "Pangalanan kung ano ang sapat para sa panahong ito",
+    nextInReflect: "Susunod sa Pagninilay",
+    reflectNextTitleDefault: "Magsimula sa isang tapat na pangungusap",
+    reflectNextTitleActive: "Tapusin ang pagninilay sa harap mo",
+    reflectNextBodyDefault: "Gamitin ang Wisdom Check para sa mabilis na pagtingin ng discernment, o isulat ang napapansin mo tungkol sa pera, trabaho, takot, pagkamapagbigay, o bilis.",
+    reflectNextBodyActive: "I-save ang napapansin mo habang sariwa pa ang insight.",
+    reflectIntro: "Gamitin ang Wisdom Check para pabagalin ang desisyon, at i-save ang napapansin mo bago lumipas ang sandali.",
+    wisdomCheck: "Wisdom Check",
+    wisdomCheckSummaryDefault: "Buksan kapag ang desisyon ay kailangang mabilis na suriin.",
+    wisdomCheckUrgency: "napansing urgency",
+    wisdomCheckSlower: "mas mabagal ang pressure",
+    decisionScan: "Pagsusuri ng desisyon",
+    reflectionHistory: "Kasaysayan ng pagninilay",
+    savedReflectionSingular: "naka-save na pagninilay",
+    savedReflectionPlural: "mga naka-save na pagninilay",
+    reflectionHistorySummaryActive: "Buksan ang mga nakaraang pagninilay kapag gusto mong balikan ang paglago.",
+    reflectionHistorySummaryDefault: "Mananatili rito ang mga nakaraang pagninilay kapag na-save na.",
+    nextInLibrary: "Susunod sa Aklatan",
+    libraryNextTitleDefault: "Maghanap ng isang tema ng karunungan",
+    libraryNextBodySearch: "Buksan ang isang reperensiya ng Kasulatan upang basahin ang konteksto ng sipi at kung bakit ito mahalaga dito.",
+    libraryTryPrefix: "Subukan",
+    libraryDescription: "Isang piniling balon ng karunungan na may mga application note ayon sa wika at mga label ng pampublikong domain na salin.",
+    fullWisdomLibrary: "Buong aklatan ng karunungan",
+    moreAnchors: "mas maraming angkla",
+  },
+  ar: {
+    timelineReady: "الخط الزمني جاهز لتتبع القرارات والأنماط والمشورة والتعلم.",
+    nextInDecisions: "التالي في القرارات",
+    decisionNextTitleDefault: "سمِّ القرار تحت الضغط",
+    decisionNextBodyActive: "حدِّث المشورة والكلفة والانتظار وعلامات السلام حتى يكون للقرار خط زمني حقيقي.",
+    decisionNextBodyEmpty: "ابدأ بقرار واحد والضغط المرتبط به. ستتبع Aletheia الحكمة والمشورة والاستعداد عبر الزمن.",
+    decisionCompanionHeading: "تتبّع القرار حتى تحظى الحكمة بوقت لتعمل.",
+    decisionCompanionSub: "الذاكرة، المشورة، الانتظار، تصدير الملخص، وإشارة هادئة للاستعداد للقرارات الكبيرة.",
+    ruleOfLife: "قاعدة الحياة",
+    ruleOfLifePrincipleSingular: "مبدأ",
+    ruleOfLifePrinciplePlural: "مبادئ",
+    ruleOfLifeSummary: "تبقى المبادئ الشخصية قريبة، لكنها مطوية حتى تبدأ بتشكيل قرار.",
+    decisionPracticeLine: "سمِّ ما يكفي لهذه المرحلة",
+    nextInReflect: "التالي في التأمل",
+    reflectNextTitleDefault: "ابدأ بجملة صادقة واحدة",
+    reflectNextTitleActive: "أكمل التأمل أمامك",
+    reflectNextBodyDefault: "استخدم فحص الحكمة لمسح سريع للتمييز، أو اكتب ما تلاحظه عن المال أو العمل أو الخوف أو الكرم أو الوتيرة.",
+    reflectNextBodyActive: "احفظ ما تلاحظه ما دام الإلهام ما يزال طازجًا.",
+    reflectIntro: "استخدم فحص الحكمة لإبطاء القرار، ثم احفظ ما تلاحظه قبل أن تمر اللحظة.",
+    wisdomCheck: "فحص الحكمة",
+    wisdomCheckSummaryDefault: "افتحه عندما يحتاج القرار إلى فحص سريع للتمييز.",
+    wisdomCheckUrgency: "تم رصد استعجال",
+    wisdomCheckSlower: "الضغط يبدو أهدأ",
+    decisionScan: "فحص القرار",
+    reflectionHistory: "سجل التأمل",
+    savedReflectionSingular: "تأمل محفوظ",
+    savedReflectionPlural: "تأملات محفوظة",
+    reflectionHistorySummaryActive: "افتح تأملاتك السابقة عندما تريد مراجعة النمو.",
+    reflectionHistorySummaryDefault: "ستبقى التأملات السابقة هنا بعد حفظها.",
+    nextInLibrary: "التالي في المكتبة",
+    libraryNextTitleDefault: "ابحث عن موضوع حكمة واحد",
+    libraryNextBodySearch: "افتح مرجعًا كتابيًا لقراءة سياق المقطع ولماذا يهم هنا.",
+    libraryTryPrefix: "جرّب",
+    libraryDescription: "قاعدة حكمة منتقاة مع ملاحظات تطبيق تراعي اللغة وعلامات الترجمة العامة.",
+    fullWisdomLibrary: "مكتبة الحكمة الكاملة",
+    moreAnchors: "مزيد من المراسي",
+  },
+  hi: {
+    timelineReady: "आपकी टाइमलाइन निर्णयों, पैटर्न, सलाह और सीख को ट्रैक करने के लिए तैयार है।",
+    nextInDecisions: "निर्णयों में अगला",
+    decisionNextTitleDefault: "दबाव के बीच निर्णय का नाम दीजिए",
+    decisionNextBodyActive: "सलाह, लागत, प्रतीक्षा, और शांति के संकेत अपडेट कीजिए ताकि निर्णय के पास एक वास्तविक timeline हो।",
+    decisionNextBodyEmpty: "एक निर्णय और उससे जुड़ा दबाव लेकर शुरू कीजिए। Aletheia समय के साथ बुद्धि, सलाह, और readiness को ट्रैक करेगा।",
+    decisionCompanionHeading: "निर्णय को तब तक ट्रैक कीजिए जब तक बुद्धि को काम करने का समय न मिल जाए।",
+    decisionCompanionSub: "Memory, सलाह, प्रतीक्षा, summary export, और बड़े विकल्पों के लिए एक शांत readiness signal.",
+    ruleOfLife: "जीवन-नियम",
+    ruleOfLifePrincipleSingular: "सिद्धांत",
+    ruleOfLifePrinciplePlural: "सिद्धांत",
+    ruleOfLifeSummary: "व्यक्तिगत सिद्धांत पास रहते हैं, लेकिन तब तक folded रहते हैं जब तक आप किसी निर्णय को आकार नहीं दे रहे हों।",
+    decisionPracticeLine: "इस मौसम के लिए पर्याप्त क्या है, उसे नाम दीजिए",
+    nextInReflect: "चिंतन में अगला",
+    reflectNextTitleDefault: "एक ईमानदार वाक्य से शुरू कीजिए",
+    reflectNextTitleActive: "अपने सामने चल रहे चिंतन को पूरा कीजिए",
+    reflectNextBodyDefault: "Wisdom Check का उपयोग करके त्वरित discernment scan कीजिए, या लिखिए कि धन, काम, डर, उदारता, या गति के बारे में आप क्या देख रहे हैं।",
+    reflectNextBodyActive: "जो आप देख रहे हैं उसे तब तक सहेजिए जब तक insight ताज़ा है।",
+    reflectIntro: "Wisdom Check का उपयोग करके निर्णय को धीमा कीजिए, फिर क्षण बीतने से पहले जो आप देखते हैं उसे सहेजिए।",
+    wisdomCheck: "Wisdom Check",
+    wisdomCheckSummaryDefault: "जब किसी निर्णय को त्वरित discernment scan चाहिए, तब खोलिए।",
+    wisdomCheckUrgency: "urgency महसूस हुई",
+    wisdomCheckSlower: "pressure धीमी लग रही है",
+    decisionScan: "निर्णय स्कैन",
+    reflectionHistory: "चिंतन इतिहास",
+    savedReflectionSingular: "सहेजा गया चिंतन",
+    savedReflectionPlural: "सहेजे गए चिंतन",
+    reflectionHistorySummaryActive: "विकास की समीक्षा करना चाहें, तो पुराने चिंतन खोलिए।",
+    reflectionHistorySummaryDefault: "सहेजे जाने के बाद पुराने चिंतन यहीं रहेंगे।",
+    nextInLibrary: "पुस्तकालय में अगला",
+    libraryNextTitleDefault: "एक बुद्धि-विषय खोजिए",
+    libraryNextBodySearch: "एक शास्त्र-संदर्भ खोलिए ताकि उस अंश का संदर्भ और उसका महत्व यहाँ पढ़ सकें।",
+    libraryTryPrefix: "आजमाइए",
+    libraryDescription: "एक चुनी हुई ज्ञान-आधार, जिसमें भाषा-सचेत application notes और सार्वजनिक-डोमेन अनुवाद labels हैं।",
+    fullWisdomLibrary: "पूर्ण ज्ञान-पुस्तकालय",
+    moreAnchors: "और आधार",
   },
   es: {
     timelineReady: "Tu línea de tiempo está lista para registrar decisiones, patrones, consejo y aprendizaje.",
@@ -4064,117 +4460,6 @@ const runtimePanelCopy: Partial<Record<LanguageCode, RuntimePanelCopy>> = {
     libraryDescription: "Tarin hikima da aka tace tare da bayanan amfani masu la'akari da harshe da alamun fassarar yankin jama'a.",
     fullWisdomLibrary: "Cikakken laburaren hikima",
     moreAnchors: "ƙarin ginshiƙai",
-  },
-  tl: {
-    timelineReady: "Handa na ang timeline mo para subaybayan ang mga desisyon, pattern, payo, at pagkatuto.",
-    nextInDecisions: "Susunod sa mga Desisyon",
-    decisionNextTitleDefault: "Pangalanan ang desisyong may bigat",
-    decisionNextBodyActive: "I-update ang payo, gastos, paghihintay, at kapayapaan para magkaroon ng tunay na timeline ang desisyon.",
-    decisionNextBodyEmpty: "Magsimula sa isang desisyon at bigat na kalakip nito. Susubaybayan ni Aletheia ang karunungan, payo, at pagiging handa sa paglipas ng panahon.",
-    decisionCompanionHeading: "Subaybayan ang desisyon hanggang magkaroon ng oras ang karunungan.",
-    decisionCompanionSub: "Memorya, payo, paghihintay, export ng buod, at isang kalmadong signal ng kahandaan para sa malalaking pasya.",
-    ruleOfLife: "Rule of Life",
-    ruleOfLifePrincipleSingular: "prinsipyo",
-    ruleOfLifePrinciplePlural: "mga prinsipyo",
-    ruleOfLifeSummary: "Nanatiling malapit ang mga personal na prinsipyo, pero nakatiklop hanggang hinuhubog mo na ang isang desisyon.",
-    decisionPracticeLine: "Pangalanan kung ano ang sapat para sa panahong ito",
-    nextInReflect: "Susunod sa Pagninilay",
-    reflectNextTitleDefault: "Magsimula sa isang tapat na pangungusap",
-    reflectNextTitleActive: "Tapusin ang pagninilay sa harap mo",
-    reflectNextBodyDefault: "Gamitin ang Wisdom Check para sa mabilis na pagsusuri, o isulat ang napapansin mo tungkol sa pera, trabaho, takot, pagkamapagbigay, o bilis.",
-    reflectNextBodyActive: "I-save ang napapansin mo habang sariwa pa ang pagtingin.",
-    reflectIntro: "Gamitin ang Wisdom Check para pabagalin ang desisyon, tapos i-save ang napapansin mo bago lumipas ang sandali.",
-    wisdomCheck: "Wisdom Check",
-    wisdomCheckSummaryDefault: "Buksan kapag ang isang desisyon ay nangangailangan ng mabilis na pagsusuri.",
-    wisdomCheckUrgency: "napansing apurahan",
-    wisdomCheckSlower: "mas mabagal ang pressure",
-    decisionScan: "Pagsusuri ng desisyon",
-    reflectionHistory: "Kasaysayan ng pagninilay",
-    savedReflectionSingular: "nai-save na pagninilay",
-    savedReflectionPlural: "mga nai-save na pagninilay",
-    reflectionHistorySummaryActive: "Buksan ang mga nakaraan mong pagninilay kapag gusto mong tingnan ang pag-unlad.",
-    reflectionHistorySummaryDefault: "Nandito ang mga nakaraang pagninilay kapag nai-save na.",
-    nextInLibrary: "Susunod sa Aklatan",
-    libraryNextTitleDefault: "Maghanap ng isang tema ng karunungan",
-    libraryNextBodySearch: "Buksan ang isang sanggunian sa Kasulatan para basahin ang konteksto ng sipi at kung bakit ito mahalaga rito.",
-    libraryTryPrefix: "Subukan",
-    libraryDescription: "Isang curated na batayan ng karunungan na may mga application note na may kamalayan sa wika at mga label ng saling pampubliko.",
-    fullWisdomLibrary: "Buong aklatan ng karunungan",
-    moreAnchors: "mas maraming angkla",
-  },
-  ar: {
-    timelineReady: "الخط الزمني جاهز لتتبع القرارات والأنماط والمشورة والتعلم.",
-    nextInDecisions: "التالي في القرارات",
-    decisionNextTitleDefault: "سمِّ القرار تحت الضغط",
-    decisionNextBodyActive: "حدّث المشورة والتكلفة والانتظار والسلام حتى يمتلك القرار خطًا زمنيًا حقيقيًا.",
-    decisionNextBodyEmpty: "ابدأ بقرار واحد والضغط المرتبط به. سيتابع Aletheia الحكمة والمشورة والاستعداد مع الوقت.",
-    decisionCompanionHeading: "تابع القرار حتى يكون لدى الحكمة وقت لتعمل.",
-    decisionCompanionSub: "الذاكرة والمشورة والانتظار وتصدير الملخص وإشارة هادئة للاستعداد للقرارات الكبيرة.",
-    ruleOfLife: "قاعدة الحياة",
-    ruleOfLifePrincipleSingular: "مبدأ",
-    ruleOfLifePrinciplePlural: "مبادئ",
-    ruleOfLifeSummary: "تظل المبادئ الشخصية قريبة، لكنها مطوية حتى تكون بصدد تشكيل قرار.",
-    decisionPracticeLine: "سمِّ ما يكفي لهذا الموسم",
-    nextInReflect: "التالي في التأمل",
-    reflectNextTitleDefault: "ابدأ بجملة صادقة واحدة",
-    reflectNextTitleActive: "أكمل التأمل أمامك",
-    reflectNextBodyDefault: "استخدم فحص الحكمة لإجراء مسح سريع، أو اكتب ما تلاحظه عن المال أو العمل أو الخوف أو الكرم أو الوتيرة.",
-    reflectNextBodyActive: "احفظ ما تلاحظه بينما لا يزال الفهم جديدًا.",
-    reflectIntro: "استخدم فحص الحكمة لإبطاء القرار، ثم احفظ ما تلاحظه قبل أن تمر اللحظة.",
-    wisdomCheck: "فحص الحكمة",
-    wisdomCheckSummaryDefault: "افتحه عندما يحتاج القرار إلى مسح سريع للتمييز.",
-    wisdomCheckUrgency: "تمت ملاحظة العجلة",
-    wisdomCheckSlower: "الضغط يبدو أهدأ",
-    decisionScan: "مسح القرار",
-    reflectionHistory: "سجل التأمل",
-    savedReflectionSingular: "تأمل محفوظ",
-    savedReflectionPlural: "تأملات محفوظة",
-    reflectionHistorySummaryActive: "افتح تأملاتك السابقة عندما تريد مراجعة النمو.",
-    reflectionHistorySummaryDefault: "ستبقى التأملات السابقة هنا بعد حفظها.",
-    nextInLibrary: "التالي في المكتبة",
-    libraryNextTitleDefault: "ابحث عن موضوع حكمة واحد",
-    libraryNextBodySearch: "افتح مرجعًا كتابيًا لقراءة سياق المقطع ولماذا يهم هنا.",
-    libraryTryPrefix: "جرّب",
-    libraryDescription: "قاعدة حكمة منسقة مع ملاحظات تطبيق تراعي اللغة وتسميات الترجمات العامة.",
-    fullWisdomLibrary: "مكتبة الحكمة الكاملة",
-    moreAnchors: "مراسي أكثر",
-  },
-  hi: {
-    timelineReady: "आपकी टाइमलाइन निर्णयों, पैटर्न, सलाह और सीख को ट्रैक करने के लिए तैयार है।",
-    nextInDecisions: "निर्णयों में अगला",
-    decisionNextTitleDefault: "दबाव वाले निर्णय का नाम दें",
-    decisionNextBodyActive: "सलाह, लागत, प्रतीक्षा, और शांति संकेतों को अपडेट करें ताकि निर्णय का एक वास्तविक टाइमलाइन हो।",
-    decisionNextBodyEmpty: "एक निर्णय और उससे जुड़े दबाव से शुरू करें। Aletheia समय के साथ बुद्धि, सलाह, और तैयारी को ट्रैक करेगा।",
-    decisionCompanionHeading: "निर्णय को तब तक ट्रैक करें जब तक बुद्धि को काम करने का समय न मिल जाए।",
-    decisionCompanionSub: "स्मृति, सलाह, प्रतीक्षा, सारांश निर्यात, और बड़े विकल्पों के लिए एक शांत तैयारी संकेत।",
-    ruleOfLife: "जीवन नियम",
-    ruleOfLifePrincipleSingular: "सिद्धांत",
-    ruleOfLifePrinciplePlural: "सिद्धांत",
-    ruleOfLifeSummary: "व्यक्तिगत सिद्धांत पास रहते हैं, लेकिन तब तक संक्षिप्त रहते हैं जब तक आप किसी निर्णय को आकार नहीं दे रहे।",
-    decisionPracticeLine: "इस मौसम के लिए क्या पर्याप्त है, उसका नाम दें",
-    nextInReflect: "चिंतन में अगला",
-    reflectNextTitleDefault: "एक सच्चे वाक्य से शुरू करें",
-    reflectNextTitleActive: "अपने सामने चल रहे चिंतन को पूरा करें",
-    reflectNextBodyDefault: "त्वरित विवेक स्कैन के लिए Wisdom Check का उपयोग करें, या धन, काम, डर, उदारता, या गति के बारे में जो आप देखते हैं, उसे लिखें।",
-    reflectNextBodyActive: "जो आप देख रहे हैं उसे तब तक सहेजें जब तक अंतर्दृष्टि ताज़ा है।",
-    reflectIntro: "निर्णय को धीमा करने के लिए Wisdom Check का उपयोग करें, फिर क्षण बीतने से पहले जो आप देखते हैं उसे सहेजें।",
-    wisdomCheck: "Wisdom Check",
-    wisdomCheckSummaryDefault: "जब किसी निर्णय को त्वरित विवेक स्कैन की ज़रूरत हो, खोलें।",
-    wisdomCheckUrgency: "जल्दबाज़ी देखी गई",
-    wisdomCheckSlower: "दबाव धीमा लग रहा है",
-    decisionScan: "निर्णय स्कैन",
-    reflectionHistory: "चिंतन इतिहास",
-    savedReflectionSingular: "सहेजा गया चिंतन",
-    savedReflectionPlural: "सहेजे गए चिंतन",
-    reflectionHistorySummaryActive: "जब आप वृद्धि की समीक्षा करना चाहें, तो पिछले चिंतन खोलें।",
-    reflectionHistorySummaryDefault: "सहेजे जाने के बाद पिछले चिंतन यहीं रहेंगे।",
-    nextInLibrary: "पुस्तकालय में अगला",
-    libraryNextTitleDefault: "एक ज्ञान विषय खोजें",
-    libraryNextBodySearch: "संदर्भ का पाठ और यह यहाँ क्यों मायने रखता है, पढ़ने के लिए एक शास्त्र संदर्भ खोलें।",
-    libraryTryPrefix: "आजमाएँ",
-    libraryDescription: "भाषा-सचेत अनुप्रयोग नोट्स और सार्वजनिक-डोमेन अनुवाद लेबल वाला एक क्यूरेटेड ज्ञान आधार।",
-    fullWisdomLibrary: "पूर्ण ज्ञान पुस्तकालय",
-    moreAnchors: "और अधिक एंकर",
   },
 };
 
@@ -4971,6 +5256,123 @@ const seasonalCopyByLanguage: Partial<Record<LanguageCode, SeasonalCopyDictionar
     openSource: "Open",
     calmSource: "Calm",
   },
+  tl: {
+    morningLight: "Liwanag ng umaga",
+    openHorizon: "Bukas na abot-tanaw",
+    quietGenerosity: "Tahimik na pagkamapagbigay",
+    winterHush: "Tahimik na taglamig",
+    calmField: "Payapang bukirin",
+    weekendStillness: "Katahimikan sa weekend",
+    enoughQuietly: "Sapat, nang tahimik",
+    slowReflection: "Mabagal na pagninilay",
+    warmLight: "Mainit na liwanag",
+    gentleBeginning: "Magiliw na simula",
+    softHorizon: "Malambot na abot-tanaw",
+    stillReflection: "Tahimik na pagninilay",
+    steadyFocus: "Matatag na pagtutok",
+    morningGuidance: "Patnubay sa umaga",
+    clearStartEntrusted: "Isang malinaw na simula sa ipinagkatiwala.",
+    gentleStartGive: "Magiliw na simula sa maibibigay mo.",
+    winterCalm: "Payapang taglamig",
+    quieterFrameHeavy: "Mas tahimik na balangkas para sa mabigat ngayon.",
+    weekendMoreRoom: "Kaunting mas maraming espasyo para mapansin ang sapat.",
+    softerPaceTrust: "Mas malambot na ritmo para sa discernment at tiwala.",
+    warmSteadyBegin: "Matatag na paraan upang magsimula nang hindi nagmamadali.",
+    quietFrameCareful: "Kalmadong balangkas para sa maingat na susunod na hakbang.",
+    clearFrameNext: "Malinaw na balangkas para sa susunod na darating.",
+    morningPriority: "Prayoridad sa umaga",
+    quietPriority: "Tahimik na prayoridad",
+    stillnessPriority: "Prayoridad ng katahimikan",
+    warmPriority: "Mainit na prayoridad",
+    personalizedPriority: "Personal na prayoridad",
+    calmStartEntrusted: "Kalmadong simula sa ipinagkatiwala sa iyo.",
+    quieterFrameHeavier: "Mas tahimik na balangkas para sa mas mabigat ngayon.",
+    gentlerPaceEnough: "Mas banayad na bilis para mapansin ang sapat.",
+    softPaceDiscernment: "Mas malambot na bilis para sa discernment at tiwala.",
+    steadyWarmBeginning: "Matatag at mainit na simula para sa susunod na hakbang ngayon.",
+    littleMoreStillness: "Kaunting higit na katahimikan bago ka kumilos.",
+    clearSteadyStart: "Malinaw at matatag na simula para sa susunod na hakbang ngayon.",
+    openSource: "Buksan",
+    calmSource: "Kalmado",
+  },
+  ar: {
+    morningLight: "ضوء الصباح",
+    openHorizon: "أفق مفتوح",
+    quietGenerosity: "كرم هادئ",
+    winterHush: "سكينة الشتاء",
+    calmField: "حقل هادئ",
+    weekendStillness: "سكينة نهاية الأسبوع",
+    enoughQuietly: "الكفاية، بهدوء",
+    slowReflection: "تأمل بطيء",
+    warmLight: "ضوء دافئ",
+    gentleBeginning: "بداية لطيفة",
+    softHorizon: "أفق ناعم",
+    stillReflection: "تأمل ساكن",
+    steadyFocus: "تركيز ثابت",
+    morningGuidance: "إرشاد الصباح",
+    clearStartEntrusted: "بداية واضحة لما أُوكل إليك.",
+    gentleStartGive: "بداية لطيفة لما تستطيع أن تعطيه.",
+    winterCalm: "هدوء الشتاء",
+    quieterFrameHeavy: "إطار أكثر هدوءًا لما يبدو ثقيلًا اليوم.",
+    weekendMoreRoom: "مساحة أكثر قليلًا لملاحظة الكفاية.",
+    softerPaceTrust: "إيقاع ألين للتمييز والثقة.",
+    warmSteadyBegin: "طريقة ثابتة لبدء اليوم من دون استعجال.",
+    quietFrameCareful: "إطار هادئ لخطوة تالية حذرة.",
+    clearFrameNext: "إطار واضح لما يأتي بعد ذلك.",
+    morningPriority: "أولوية الصباح",
+    quietPriority: "أولوية هادئة",
+    stillnessPriority: "أولوية السكون",
+    warmPriority: "أولوية دافئة",
+    personalizedPriority: "أولوية مخصصة",
+    calmStartEntrusted: "بداية هادئة لما أُوكل إليك.",
+    quieterFrameHeavier: "إطار أكثر هدوءًا لما يبدو أثقل اليوم.",
+    gentlerPaceEnough: "إيقاع ألطف لملاحظة الكفاية.",
+    softPaceDiscernment: "إيقاع ألين للتمييز والثقة.",
+    steadyWarmBeginning: "بداية ثابتة ودافئة للخطوة التالية اليوم.",
+    littleMoreStillness: "قدر أكبر قليلًا من السكون قبل أن تتحرك.",
+    clearSteadyStart: "بداية واضحة وثابتة للخطوة التالية اليوم.",
+    openSource: "افتح",
+    calmSource: "هادئ",
+  },
+  hi: {
+    morningLight: "सुबह की रोशनी",
+    openHorizon: "खुला क्षितिज",
+    quietGenerosity: "शांत उदारता",
+    winterHush: "सर्दी की खामोशी",
+    calmField: "शांत मैदान",
+    weekendStillness: "वीकेंड की निस्तब्धता",
+    enoughQuietly: "पर्याप्त, शांतिपूर्वक",
+    slowReflection: "धीमा चिंतन",
+    warmLight: "गरम रोशनी",
+    gentleBeginning: "मृदु शुरुआत",
+    softHorizon: "मुलायम क्षितिज",
+    stillReflection: "स्थिर चिंतन",
+    steadyFocus: "स्थिर ध्यान",
+    morningGuidance: "सुबह का मार्गदर्शन",
+    clearStartEntrusted: "सौंपे गए काम के लिए एक स्पष्ट शुरुआत।",
+    gentleStartGive: "जो आप दे सकते हैं उसके लिए एक मृदु शुरुआत।",
+    winterCalm: "सर्दियों की शांति",
+    quieterFrameHeavy: "आज जो भारी लगे उसके लिए अधिक शांत ढाँचा।",
+    weekendMoreRoom: "पर्याप्त को देखने के लिए थोड़ा और स्थान।",
+    softerPaceTrust: "विवेक और भरोसे के लिए और मृदु गति।",
+    warmSteadyBegin: "बिना जल्दबाज़ी के शुरू करने का स्थिर, गरम तरीका।",
+    quietFrameCareful: "सावधानीभरे अगले कदम के लिए शांत ढाँचा।",
+    clearFrameNext: "आगे आने वाले के लिए स्पष्ट ढाँचा।",
+    morningPriority: "सुबह की प्राथमिकता",
+    quietPriority: "शांत प्राथमिकता",
+    stillnessPriority: "निस्तब्धता की प्राथमिकता",
+    warmPriority: "गरम प्राथमिकता",
+    personalizedPriority: "व्यक्तिगत प्राथमिकता",
+    calmStartEntrusted: "आपको सौंपे गए कार्य के लिए शांत शुरुआत।",
+    quieterFrameHeavier: "आज जो अधिक भारी लगे उसके लिए अधिक शांत ढाँचा।",
+    gentlerPaceEnough: "पर्याप्त को देखने के लिए और मृदु गति।",
+    softPaceDiscernment: "विवेक और भरोसे के लिए और मृदु गति।",
+    steadyWarmBeginning: "आज के अगले कदम के लिए स्थिर, गरम शुरुआत।",
+    littleMoreStillness: "चलने से पहले थोड़ा और ठहराव।",
+    clearSteadyStart: "आज के अगले कदम के लिए स्पष्ट, स्थिर शुरुआत।",
+    openSource: "खोलें",
+    calmSource: "शांत",
+  },
   es: {
     morningLight: "Luz de la mañana",
     openHorizon: "Horizonte abierto",
@@ -5715,18 +6117,27 @@ function TodayVisualScene({
       <svg viewBox="0 0 320 220" className="h-full w-full" role="img" aria-hidden="true">
         <defs>
           <linearGradient id={glowId} x1="0%" x2="100%" y1="0%" y2="100%">
-            <stop offset="0%" stopColor={theme.bgCard} />
-            <stop offset="100%" stopColor={primary} stopOpacity="0.12" />
+            <stop offset="0%" stopColor={theme.bgCardElevated} />
+            <stop offset="64%" stopColor={theme.bgCard} />
+            <stop offset="100%" stopColor={primary} stopOpacity="0.16" />
           </linearGradient>
+          <radialGradient id={`${glowId}-warm`} cx="68%" cy="28%" r="58%">
+            <stop offset="0%" stopColor={focus} stopOpacity="0.24" />
+            <stop offset="48%" stopColor={primary} stopOpacity="0.10" />
+            <stop offset="100%" stopColor={theme.bgCard} stopOpacity="0" />
+          </radialGradient>
         </defs>
         <rect width="320" height="220" fill={`url(#${glowId})`} />
+        <rect width="320" height="220" fill={`url(#${glowId}-warm)`} />
         <circle cx="160" cy="110" r="58" fill="none" stroke={focus} strokeOpacity="0.18" strokeWidth="1.8" />
         <circle cx="160" cy="110" r="34" fill="none" stroke={primary} strokeOpacity="0.18" strokeWidth="1.5" />
         <circle cx="160" cy="110" r="12" fill={focus} fillOpacity="0.2" />
+        <circle cx="236" cy="66" r="20" fill={focus} fillOpacity="0.08" />
+        <circle cx="94" cy="58" r="14" fill={primary} fillOpacity="0.04" />
         <path d="M72 161 C 108 150, 126 145, 160 145 C 194 145, 212 150, 248 161" fill="none" stroke={theme.borderMedium} strokeOpacity="0.24" strokeWidth="2.3" strokeLinecap="round" />
         <path d="M54 174 C 102 162, 120 158, 160 158 C 200 158, 218 162, 266 174" fill="none" stroke={focus} strokeOpacity="0.18" strokeWidth="2" strokeLinecap="round" />
-        <path d="M97 74 C 119 84, 131 97, 139 114" fill="none" stroke={muted} strokeOpacity="0.12" strokeWidth="2" strokeLinecap="round" />
-        <path d="M223 74 C 201 84, 189 97, 181 114" fill="none" stroke={muted} strokeOpacity="0.12" strokeWidth="2" strokeLinecap="round" />
+        <path d="M97 74 C 119 84, 131 97, 139 114" fill="none" stroke={muted} strokeOpacity="0.10" strokeWidth="2" strokeLinecap="round" />
+        <path d="M223 74 C 201 84, 189 97, 181 114" fill="none" stroke={muted} strokeOpacity="0.10" strokeWidth="2" strokeLinecap="round" />
       </svg>
     );
   }
@@ -5772,6 +6183,7 @@ function TodayVisualPanel({
   caption: string;
 }) {
   const [imageFailed, setImageFailed] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
   const asset = useMemo(
     () => selectTodayVisualAsset({
       theme: themeName,
@@ -5784,6 +6196,7 @@ function TodayVisualPanel({
     [dayNumber, dayOfWeek, hour, month, mood, themeName]
   );
   const usingPhoto = asset.kind === "photo" && !imageFailed;
+  const fallbackVariant = asset.kind === "illustration" ? asset.variant : "stillness";
   const placement = resolveTodayVisualPlacement({
     theme: themeName,
     mood,
@@ -5795,23 +6208,26 @@ function TodayVisualPanel({
 
   return (
     <figure
-      className={`relative w-full min-w-0 overflow-hidden rounded-[1.9rem] ${placement.wrapperClassName}`}
+      className={`relative w-full min-w-0 overflow-hidden rounded-[1.75rem] ${placement.wrapperClassName}`}
       style={{
         background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})`,
-        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.14), 0 22px 44px rgba(12, 18, 16, 0.10)",
-        minHeight: "318px",
+        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.08), 0 10px 20px rgba(12, 18, 16, 0.06)",
+        minHeight: "272px",
         width: placement.figureWidth,
         opacity: placement.figureOpacity,
-        aspectRatio: "0.8",
+        aspectRatio: "0.92",
       }}
       aria-hidden="true"
-    >
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_16%_12%,rgba(208,173,85,0.14),transparent_38%),radial-gradient(circle_at_84%_18%,rgba(26,48,44,0.2),transparent_34%),linear-gradient(180deg,rgba(8,11,10,0.00)0%,rgba(8,11,10,0.02)38%,rgba(8,11,10,0.14)68%,rgba(8,11,10,0.42)100%)]" />
+      >
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_16%_12%,rgba(208,173,85,0.14),transparent_38%),radial-gradient(circle_at_84%_18%,rgba(26,48,44,0.18),transparent_34%),linear-gradient(180deg,rgba(8,11,10,0.00)0%,rgba(8,11,10,0.02)38%,rgba(8,11,10,0.12)64%,rgba(8,11,10,0.34)100%)]" />
+      <div className="absolute inset-0">
+        <TodayVisualScene variant={fallbackVariant} theme={theme} />
+      </div>
       <div
         className="absolute inset-0"
         style={{
-          WebkitMaskImage: "linear-gradient(180deg, transparent 0%, black 6%, black 92%, transparent 100%)",
-          maskImage: "linear-gradient(180deg, transparent 0%, black 6%, black 92%, transparent 100%)",
+          WebkitMaskImage: "linear-gradient(180deg, transparent 0%, black 6%, black 90%, transparent 100%)",
+          maskImage: "linear-gradient(180deg, transparent 0%, black 6%, black 90%, transparent 100%)",
         }}
       >
         {usingPhoto ? (
@@ -5820,23 +6236,34 @@ function TodayVisualPanel({
             alt=""
             fill
             sizes="(max-width: 768px) 100vw, 240px"
-            className={`object-cover transition-transform duration-500 ${placement.imageClassName} scale-[1.1]`}
+            className={`object-cover transition-[opacity,filter,transform] duration-700 ease-out will-change-[opacity,filter,transform] ${placement.imageClassName} ${imageLoaded ? "scale-[1.06] opacity-100 blur-0" : "scale-[1.03] opacity-0 blur-[1px]"}`}
             style={{ objectPosition: placement.objectPosition }}
-            onError={() => setImageFailed(true)}
+            onLoadingComplete={() => {
+              setImageLoaded(true);
+              setImageFailed(false);
+            }}
+            onError={() => {
+              setImageLoaded(false);
+              setImageFailed(true);
+            }}
             unoptimized
             priority={false}
           />
-        ) : (
-          <div className="absolute inset-0">
-            <TodayVisualScene variant={asset.kind === "illustration" ? asset.variant : "stillness"} theme={theme} />
-          </div>
-        )}
+        ) : null}
       </div>
-      <div className="absolute inset-x-0 bottom-0 h-36 bg-gradient-to-t from-[rgba(8,11,10,0.56)] via-[rgba(8,11,10,0.16)] to-transparent" />
-      <div className="absolute inset-x-0 bottom-0 p-4 sm:p-5">
-        <p className="max-w-[13.75rem] text-[0.88rem] font-medium leading-6 tracking-[-0.01em] text-balance text-white/90 drop-shadow-[0_1px_2px_rgba(0,0,0,0.24)] sm:text-[0.93rem] sm:leading-7">
-          {caption}
-        </p>
+      <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[rgba(8,11,10,0.28)] via-[rgba(8,11,10,0.12)] to-transparent" />
+      <div className="absolute inset-x-0 bottom-0 px-4 pb-4 sm:px-5 sm:pb-5">
+        <div
+          className="max-w-[15rem] rounded-[0.95rem] border px-3 py-2.5 shadow-[0_10px_24px_rgba(7,10,8,0.14)] backdrop-blur-md"
+          style={{
+            borderColor: "rgba(255,255,255,0.18)",
+            backgroundColor: "rgba(240, 241, 238, 0.16)",
+          }}
+        >
+          <p className="text-[0.88rem] font-medium leading-6 tracking-[-0.01em] text-balance text-white/96 drop-shadow-[0_1px_1px_rgba(0,0,0,0.24)] sm:text-[0.93rem] sm:leading-7">
+            {caption}
+          </p>
+        </div>
       </div>
     </figure>
   );
@@ -5862,6 +6289,9 @@ const personalizedCarryPhrases: Record<PersonalizedCarryPhraseKey, Partial<Recor
     yo: "Ka iye owo naa ṣaaju ki titẹ to sọ ipinnu.",
     ig: "Gụọ ụgwọ tupu nrụgide ekwuo okwu.",
     ha: "Lissafa farashin kafin matsin lamba ya yi tasiri.",
+    tl: "Tayahin ang halaga bago magkaroon ng boses ang pressure.",
+    ar: "احسب الكلفة قبل أن يكون للضغط كلمة.",
+    hi: "दबाव की बात सुनने से पहले लागत का हिसाब कीजिए।",
   },
   burnout: {
     en: "Let sustainability shape the next faithful step.",
@@ -5872,6 +6302,9 @@ const personalizedCarryPhrases: Record<PersonalizedCarryPhraseKey, Partial<Recor
     yo: "Jẹ́ kí ohun tó le tẹ̀síwájú ṣe amọ̀nà ìgbésẹ̀ olóòtítọ́ tó kàn.",
     ig: "Ka ịdịgide mee ka nzọụkwụ kwesịrị ntụkwasị obi sochirinụ dịrị.",
     ha: "Bari dorewa ta tsara mataki na aminci na gaba.",
+    tl: "Hayaan mong ang pagpapanatili ang humubog sa susunod na tapat na hakbang.",
+    ar: "دع الاستدامة تشكّل الخطوة الأمينة التالية.",
+    hi: "स्थिरता को अगला निष्ठावान कदम आकार देने दीजिए।",
   },
   isolation: {
     en: "Invite one trusted voice before carrying this alone.",
@@ -5882,6 +6315,9 @@ const personalizedCarryPhrases: Record<PersonalizedCarryPhraseKey, Partial<Recor
     yo: "Pe ohùn ẹni tí o gbẹ́kẹ̀lé kí o tó gbe e nikan.",
     ig: "Kpọọ olu ị tụkwasịrị obi tupu ibu nke a naanị gị.",
     ha: "Gayyaci murya da ka amince da ita kafin ka ɗauki wannan kai kaɗai.",
+    tl: "Anyayahan ang isang taong mapagkakatiwalaan bago mo buhatin ito nang mag-isa.",
+    ar: "ادعُ صوتًا واحدًا تثق به قبل أن تحمل هذا وحدك.",
+    hi: "इसे अकेले ढोने से पहले किसी भरोसेमंद आवाज़ को बुलाइए।",
   },
   urgency: {
     en: "Separate courage from pressure before you move.",
@@ -5892,6 +6328,9 @@ const personalizedCarryPhrases: Record<PersonalizedCarryPhraseKey, Partial<Recor
     yo: "Ya ìgboyà sọ́tọ̀ kúrò ní titẹ ṣaaju ki o to gbe igbese.",
     ig: "Kewaa obi ike na nrụgide tupu ịga n'ihu.",
     ha: "Raba jarumtaka da matsin lamba kafin ka motsa.",
+    tl: "Paghiwalayin ang tapang sa pressure bago ka kumilos.",
+    ar: "افصل الشجاعة عن الضغط قبل أن تتحرك.",
+    hi: "चलने से पहले साहस को दबाव से अलग कीजिए।",
   },
   values: {
     en: "Let enough, integrity, and your boundaries stay in the room.",
@@ -5902,6 +6341,9 @@ const personalizedCarryPhrases: Record<PersonalizedCarryPhraseKey, Partial<Recor
     yo: "Jẹ́ kí ohun tó tó, ìwà pípé, àti ààlà rẹ wà níbẹ̀.",
     ig: "Ka ihe zuru ezu, ezi omume, na oke gị nọgide ebe ahụ.",
     ha: "Bari isasshe, gaskiya, da iyakokinka su kasance a wurin.",
+    tl: "Hayaan mong manatili sa usapan ang sapat, integridad, at mga hangganan mo.",
+    ar: "دع الكفاية والنزاهة وحدودك تبقى حاضرة.",
+    hi: "पर्याप्तता, ईमानदारी, और आपकी सीमाएँ बातचीत में बनी रहें।",
   },
   futureState: {
     en: "Choose the step that agrees with the future you named.",
@@ -5912,6 +6354,9 @@ const personalizedCarryPhrases: Record<PersonalizedCarryPhraseKey, Partial<Recor
     yo: "Yan ìgbésẹ̀ tó bá ọjọ́ iwájú tí o darukọ mu.",
     ig: "Họrọ nzọụkwụ kwekọrọ n'ọdịnihu ị kpọrọ aha.",
     ha: "Zaɓi matakin da ya dace da makomar da ka ambata.",
+    tl: "Piliin ang hakbang na naaayon sa hinaharap na binanggit mo.",
+    ar: "اختر الخطوة التي تنسجم مع المستقبل الذي سمّيته.",
+    hi: "उस भविष्य से मेल खाने वाला कदम चुनिए जिसे आपने नाम दिया।",
   },
   activeDecision: {
     en: "Keep the next step small enough for peace to stay visible.",
@@ -5922,6 +6367,9 @@ const personalizedCarryPhrases: Record<PersonalizedCarryPhraseKey, Partial<Recor
     yo: "Jẹ́ kí ìgbésẹ̀ tó kàn kere tó kí àlàáfíà lè hàn.",
     ig: "Mee ka nzọụkwụ ọzọ dị nta nke udo ga-anọgide pụta ìhè.",
     ha: "Ka mataki na gaba ya kasance ƙanana har salama ta kasance a fili.",
+    tl: "Panatilihing maliit ang susunod na hakbang para manatiling nakikita ang kapayapaan.",
+    ar: "اجعل الخطوة التالية صغيرة بما يكفي كي يبقى السلام ظاهرًا.",
+    hi: "अगला कदम इतना छोटा रखिए कि शांति दिखाई देती रहे।",
   },
   reduce_anxiety: {
     en: "Practice steady trust before you rehearse the fear.",
@@ -5932,6 +6380,9 @@ const personalizedCarryPhrases: Record<PersonalizedCarryPhraseKey, Partial<Recor
     yo: "Ṣe ìgbẹ́kẹ̀lé tó dúró ṣinṣin ṣaaju ki o to tún ibẹru ṣe.",
     ig: "Mụta ntụkwasị obi kwụsie ike tupu ịmegharị egwu.",
     ha: "Yi aikin dogaro mai ƙarfi kafin ka maimaita tsoro.",
+    tl: "Sanayin ang matatag na pagtitiwala bago ulitin ang takot.",
+    ar: "تدرّب على الثقة الثابتة قبل أن تعيد تمثيل الخوف.",
+    hi: "डर का अभ्यास करने से पहले स्थिर भरोसे का अभ्यास कीजिए।",
   },
   improve_stewardship: {
     en: "Treat today's choice as something entrusted, not owned.",
@@ -5942,6 +6393,9 @@ const personalizedCarryPhrases: Record<PersonalizedCarryPhraseKey, Partial<Recor
     yo: "Wo yiyan oni bi ohun ti a fi le ọ lọwọ, kii ṣe ohun ini rẹ.",
     ig: "Were nhọrọ taa dị ka ihe e nyere gị, ọ bụghị nke i ji nwe.",
     ha: "Dauki zaɓin yau a matsayin abin da aka ba ka amana, ba mallaka ba.",
+    tl: "Ituring ang pagpili ngayon bilang ipinagkatiwala, hindi pag-aari.",
+    ar: "عامل اختيار اليوم كأمر موكول إليك، لا كملكية.",
+    hi: "आज के चुनाव को सौंपा गया मानिए, अपना नहीं।",
   },
   wait_with_peace: {
     en: "Let waiting protect what urgency would rush.",
@@ -5952,6 +6406,9 @@ const personalizedCarryPhrases: Record<PersonalizedCarryPhraseKey, Partial<Recor
     yo: "Jẹ́ kí ìdúró dáàbò bo ohun tí ìkánjú fẹ́ yara.",
     ig: "Ka ichere chebe ihe ngwa ngwa ga-eme ọsọ ọsọ.",
     ha: "Bari jira ya kare abin da gaggawa za ta hanzarta.",
+    tl: "Hayaang protektahan ng paghihintay ang madali sanang minadali ng urgency.",
+    ar: "دع الانتظار يحمي ما كانت العجلة ستسرع به.",
+    hi: "इंतज़ार को उस चीज़ की रक्षा करने दीजिए जिसे urgency जल्दबाज़ी में बिगाड़ देगी।",
   },
   build_consistency: {
     en: "Choose one repeatable step over a dramatic push.",
@@ -5962,6 +6419,9 @@ const personalizedCarryPhrases: Record<PersonalizedCarryPhraseKey, Partial<Recor
     yo: "Yan ìgbésẹ̀ kan tí o le tún ṣe ju ìfọkànsìn ńlá lọ.",
     ig: "Họrọ otu nzọụkwụ a pụrụ imegharị kama mkpali dị egwu.",
     ha: "Zaɓi mataki guda da za a iya maimaitawa maimakon turawa mai girma.",
+    tl: "Pumili ng isang paulit-ulit na hakbang kaysa sa dramatikong pagbuhos ng lakas.",
+    ar: "اختر خطوة قابلة للتكرار بدل دفعة درامية.",
+    hi: "नाटकीय उछाल से बेहतर एक दोहराने योग्य कदम चुनिए।",
   },
   seek_counsel: {
     en: "Ask a wise voice before the pressure gets louder.",
@@ -5972,6 +6432,9 @@ const personalizedCarryPhrases: Record<PersonalizedCarryPhraseKey, Partial<Recor
     yo: "Beere lọwọ ohun ọlọgbọn ṣaaju ki titẹ to pọ si.",
     ig: "Jụọ olu maara ihe tupu nrụgide abawanye.",
     ha: "Tambayi murya mai hikima kafin matsin lamba ya ƙaru.",
+    tl: "Humingi ng matalinong tinig bago lumakas ang pressure.",
+    ar: "اسأل صوتًا حكيمًا قبل أن يعلو الضغط.",
+    hi: "दबाव बढ़ने से पहले किसी बुद्धिमान आवाज़ से पूछिए।",
   },
 };
 
@@ -6104,6 +6567,9 @@ function companionCardFromDaily({
     yo: "Níbo ni ọgbọ́n ń pè mí láti dákẹ́ lónìí?",
     ig: "Ebee ka amamihe na-akpọ m ka m belata ọsọ taa?",
     ha: "Ina hikima ke kiran ni in rage gaggawa yau?",
+    tl: "Saan ako hinihikayat ng karunungan na bumagal ngayon?",
+    ar: "أين تدعوني الحكمة إلى التمهل اليوم؟",
+    hi: "आज बुद्धि मुझे कहाँ धीमे होने के लिए कह रही है?",
     fr: "Où la sagesse m'invite-t-elle à ralentir aujourd'hui ?",
     es: "¿Dónde me invita la sabiduría a bajar el ritmo hoy?",
     pt: "Onde a sabedoria me convida a desacelerar hoje?",
@@ -6115,6 +6581,9 @@ function companionCardFromDaily({
     yo: "O ko ni lati pinnu lati inu titẹ loni.",
     ig: "I gaghị eme mkpebi site n'ike nrụgide taa.",
     ha: "Ba lallai ne ka yanke shawara daga matsin lamba yau ba.",
+    tl: "Hindi mo kailangang magpasya mula sa pressure ngayon.",
+    ar: "لست مضطرًا لأن تقرر من تحت الضغط اليوم.",
+    hi: "आज आपको दबाव से निर्णय लेने की ज़रूरत नहीं है।",
     fr: "Tu n'as pas besoin de décider sous pression aujourd'hui.",
     es: "No tienes que decidir desde la presión hoy.",
     pt: "Hoje, você não precisa decidir sob pressão.",
@@ -11518,7 +11987,7 @@ function OnboardingModal({
         onTouchCancel={clearOnboardingTouch}
         className="editorial-surface box-border max-h-[92vh] min-w-0 overflow-x-hidden overflow-y-auto overscroll-contain rounded-xl border p-3.5 shadow-2xl [touch-action:pan-y] sm:p-4"
         style={{
-          borderColor: theme.borderLight,
+          borderColor: `color-mix(in srgb, ${theme.borderLight} 82%, transparent)`,
           backgroundColor: theme.bgCard,
           maxHeight: "calc(100dvh - max(env(safe-area-inset-top, 0px), var(--aletheia-top-reserve, 20px)) - max(env(safe-area-inset-bottom, 0px), var(--aletheia-bottom-reserve, 12px)) - 1.5rem)",
           width: "min(100%, calc(100vw - 1.5rem), 42rem)",
@@ -11893,7 +12362,7 @@ function HomeDashboard({
       <section
         className={`editorial-surface min-w-0 rounded-[1.45rem] border p-4 shadow-[0_8px_20px_rgba(7,10,8,0.06)] sm:p-5 ${prioritizeToday ? "ring-1 ring-inset" : ""}`}
         style={{
-          borderColor: theme.borderLight,
+          borderColor: `color-mix(in srgb, ${theme.borderLight} 72%, transparent)`,
           background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})`,
         }}
       >
@@ -11927,8 +12396,8 @@ function HomeDashboard({
             </button>
           ) : null}
 
-          <div className="grid gap-3 rounded-[1.2rem] border p-3.5 sm:p-4 lg:grid-cols-[minmax(0,1fr)_minmax(238px,1fr)] lg:items-start" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, boxShadow: "inset 0 1px 0 rgba(255,255,255,0.28)" }}>
-            <div className="min-w-0">
+          <div className="grid gap-3 lg:grid-cols-[minmax(0,1.12fr)_minmax(248px,0.88fr)] lg:items-start">
+            <div className="min-w-0 lg:pt-1">
               <p className="text-[10.5px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.accentGold }} suppressHydrationWarning>
                 {text.todaysCompanion}
               </p>
