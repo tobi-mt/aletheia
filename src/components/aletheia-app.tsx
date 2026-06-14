@@ -6292,7 +6292,7 @@ export function AletheiaApp() {
 
   function reflectOnToday() {
     setJournalTitle(`${localizedWisdomThemeLabel(daily.theme, preferences.language)} ${ts('labels.reflection')}`);
-    setJournalBody(`${daily.practice}\n\n${text.whatINotice ?? "What I notice"}:\n`);
+    setJournalBody(`${daily.practice}\n\n${ui.whatINotice ?? "What I notice"}:\n`);
     showView("reflect");
     announceWorkflow(ts('notifications.reflectionPrepared'), ts('notifications.reflectionPreparedBody'), "success");
   }
@@ -6403,8 +6403,8 @@ export function AletheiaApp() {
         { label: ts('labels.principle'), text: card.principle },
         { label: ts('labels.tinyPractice'), text: card.practice },
         { label: ts('labels.carryThisToday'), text: card.carryPhrase },
-        { label: text.context ?? "Context", text: dailyEntry.context },
-        { label: text.application ?? "Application", text: dailyEntry.application },
+        { label: ui.context ?? "Context", text: dailyEntry.context },
+        { label: ui.application ?? "Application", text: dailyEntry.application },
       ],
     }, "today_companion_card");
   }
@@ -6489,7 +6489,7 @@ export function AletheiaApp() {
   function reflectOnCompanionCard(card: TodayCompanionCard) {
     setJournalTitle(`${ts('todayPrefix')}: ${card.title}`);
     setJournalBody(
-      `${card.opening}\n\n${text.wisdomPrinciple}:\n${card.principle}\n\n${text.context ?? "Context"}:\n${dailyEntry.context}\n\n${text.application ?? "Application"}:\n${dailyEntry.application}\n\n${text.tinyPractice}:\n${card.practice}\n\n${text.reflectionQuestion}:\n${card.question}\n\n${text.whatINotice ?? "What I notice"}:\n`
+      `${card.opening}\n\n${ui.wisdomPrinciple ?? "Wisdom principle"}:\n${card.principle}\n\n${ui.context ?? "Context"}:\n${dailyEntry.context}\n\n${ui.application ?? "Application"}:\n${dailyEntry.application}\n\n${ts('labels.tinyPractice')}:\n${card.practice}\n\n${ts('labels.reflectionQuestion')}:\n${card.question}\n\n${ui.whatINotice ?? "What I notice"}:\n`
     );
     showView("reflect");
     announceWorkflow(ts('notifications.reflectionPrepared'), ts('notifications.reflectionPreparedBody'), "success");
@@ -6617,7 +6617,7 @@ export function AletheiaApp() {
     const question = cleanDisplayText(exchange.question?.text ?? "Recent counsel");
     const answer = cleanDisplayText(exchange.answer.text);
     setJournalTitle(`Reflection: ${question.slice(0, 70)}`);
-    setJournalBody(`${text.reflectionQuestion ?? "Question"}:\n${question}\n\n${text.currentCounsel ?? "Current counsel"}:\n${answer}\n\n${text.whatINotice ?? "What I notice"}:\n`);
+    setJournalBody(`${ts('labels.reflectionQuestion')}:\n${question}\n\n${ui.currentCounsel ?? "Current counsel"}:\n${answer}\n\n${ui.whatINotice ?? "What I notice"}:\n`);
     trackClientEvent("answer_saved_or_acted", { action: "draft_reflection", mode, ...analyticsQuestionMetadata(question, mode) });
     showView("reflect");
     announceWorkflow(ts('notifications.reflectionDraftPrepared'), ts('notifications.reflectionDraftPreparedBody'), "success");
@@ -10283,7 +10283,9 @@ function HomeDashboard({
       : { label: text.startDecision!, body: text.startDecisionBody!, onClick: onContinueDecision, icon: Compass },
   ];
   const featuredInsightIsDuplicate = companionCard.principle.trim().toLowerCase() === companionCard.practice.trim().toLowerCase();
-  const featuredInsightLabel = featuredInsightIsDuplicate ? text.reflectionQuestion : text.wisdomPrinciple;
+  const featuredInsightLabel = featuredInsightIsDuplicate
+    ? (text.reflectionQuestion || "Reflection question")
+    : (text.wisdomPrinciple || "Wisdom principle");
   const featuredInsight = featuredInsightIsDuplicate ? companionCard.question : companionCard.principle;
   const visibleSecondaryActions = secondaryActions.slice(0, 2);
   const finalSecondaryAction = secondaryActions[2];
@@ -10567,7 +10569,7 @@ function HomeDashboard({
               />
               <TodayTimelineStep
                 index={2}
-                label={text.carryThisToday}
+                label={text.carryThisToday || "Carry this today"}
                 theme={theme}
                 body={
                   <p className="text-base font-semibold leading-7" suppressHydrationWarning>
@@ -10587,7 +10589,7 @@ function HomeDashboard({
               />
               <TodayTimelineStep
                 index={4}
-                label={text.tinyPractice}
+                label={text.tinyPractice || "Tiny practice"}
                 theme={theme}
                 body={
                   <p className="text-sm leading-6 sm:text-[0.95rem] sm:leading-7" suppressHydrationWarning>
@@ -10599,9 +10601,9 @@ function HomeDashboard({
           </div>
 
           <DisclosureSection
-            title={text.reflectionQuestion}
+            title={text.reflectionQuestion || "Reflection question"}
             summary={companionCard.question}
-            eyebrow={text.todayPrefix}
+            eyebrow={text.todayPrefix || "Today"}
             compactCollapsed
             showDetailsLabel={text.showDetails}
             hideDetailsLabel={text.hideDetails}
