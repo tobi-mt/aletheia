@@ -74,6 +74,30 @@ const decisionCopy: Partial<Record<LanguageCode, DecisionCopy>> = {
     fear: "Tsoro ya bayyana a cikin fahimtarka na baya-bayan nan. Wani tsoro yana bukatar tsari; wani kuma yana bukatar saki.",
     active: (count) => `Kana da shawarwari ${count} da ke ci gaba. Ka sanya mataki na aminci na gaba ya kasance ƙarami kuma a gani.`,
   },
+  tl: {
+    timelineReady: "Handa na ang timeline mo para subaybayan ang mga desisyon, pattern, payo, at pagkatuto.",
+    startedDiscerning: "Nagsimulang magtimbang",
+    urgency: "May nakikitang apurahan sa mga kamakailang desisyon mo. Hindi nito ginagawang mali ang hangarin, pero maaaring tinatakpan ng bilis ang karunungan.",
+    comparison: "May nakikitang paghahambing sa mga kamakailang pagninilay mo. Makakatulong na tukuyin muna kung ano ang sapat bago pumili ng mas marami.",
+    fear: "May nakikitang takot sa kamakailang paghatol mo. May takot na kailangan ng plano; may takot na kailangan ng pagbitaw.",
+    active: (count) => `May ${count} aktibong desisyon kang dala. Panatilihing maliit at malinaw ang susunod na tapat na hakbang.`,
+  },
+  ar: {
+    timelineReady: "الخط الزمني جاهز لتتبع القرارات والأنماط والمشورة والتعلم.",
+    startedDiscerning: "بدأ التمييز",
+    urgency: "تظهر العجلة في قراراتك الأخيرة. هذا لا يجعل الرغبة خطأ، لكن السرعة قد تحجب الحكمة.",
+    comparison: "تظهر المقارنة في تأملاتك الأخيرة. قد يفيد أن تحدد ما يكفي قبل اختيار المزيد.",
+    fear: "يظهر الخوف في تمييزك الأخير. بعض الخوف يدعو إلى التخطيط، وبعضه يدعو إلى التخفيف.",
+    active: (count) => `أنت تحمل ${count} قرارًا نشطًا. اجعل الخطوة الأمينة التالية صغيرة وواضحة.`,
+  },
+  hi: {
+    timelineReady: "आपकी टाइमलाइन निर्णयों, पैटर्न, सलाह और सीख को ट्रैक करने के लिए तैयार है।",
+    startedDiscerning: "समझना शुरू किया",
+    urgency: "हाल के निर्णयों में जल्दबाज़ी दिख रही है। इससे इच्छा गलत नहीं हो जाती, लेकिन गति बुद्धि को ढँक सकती है।",
+    comparison: "हाल के चिंतनों में तुलना दिख रही है। अधिक चुनने से पहले पर्याप्त को परिभाषित करना मदद कर सकता है।",
+    fear: "हाल की समझ में डर दिख रहा है। कुछ डर योजना माँगता है; कुछ छोड़ने की।",
+    active: (count) => `आप ${count} सक्रिय निर्णय लेकर चल रहे हैं। अगला निष्ठावान कदम छोटा और स्पष्ट रखें।`,
+  },
 };
 
 function decisionCopyFor(language: LanguageCode): DecisionCopy {

@@ -11,6 +11,7 @@ import { composeModeAwareFallbackResponse, retrieveWisdom } from "@/lib/wisdom";
 import { analyticsQuestionMetadata } from "@/lib/analytics-taxonomy";
 import { normalizeMode } from "@/lib/wisdom-data";
 import { readJsonBody } from "@/lib/request";
+import { apiError } from "@/lib/api-errors";
 
 type GratitudeContextSummary = {
   totalEntries?: unknown;
@@ -179,7 +180,7 @@ export async function POST(request: Request) {
   const preferences = normalizePreferences(body.preferences ?? defaultPreferences);
 
   if (!message) {
-    return NextResponse.json({ error: "Message is required." }, { status: 400 });
+    return apiError(400, "invalid_input", "Message is required.");
   }
 
   const lifeConcern = mode === "Life" ? detectLifeSupportConcern(message) : null;

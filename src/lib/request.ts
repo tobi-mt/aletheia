@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { apiError } from "@/lib/api-errors";
 
 type JsonBodyOptions<T> = {
   maxBytes?: number;
@@ -21,7 +22,7 @@ export async function readJsonBody<T = unknown>(
     if (Number.isFinite(bytes) && bytes > maxBytes) {
       return {
         ok: false,
-        response: NextResponse.json({ error: "Request body is too large." }, { status: 413 }),
+        response: apiError(413, "body_too_large", "Request body is too large."),
       };
     }
   }
@@ -32,14 +33,14 @@ export async function readJsonBody<T = unknown>(
   } catch {
     return {
       ok: false,
-      response: NextResponse.json({ error: "Could not read request body." }, { status: 400 }),
+      response: apiError(400, "invalid_json", "Could not read request body."),
     };
   }
 
   if (new TextEncoder().encode(text).length > maxBytes) {
     return {
       ok: false,
-      response: NextResponse.json({ error: "Request body is too large." }, { status: 413 }),
+      response: apiError(413, "body_too_large", "Request body is too large."),
     };
   }
 
@@ -49,7 +50,7 @@ export async function readJsonBody<T = unknown>(
     }
     return {
       ok: false,
-      response: NextResponse.json({ error: "Request body is required." }, { status: 400 }),
+      response: apiError(400, "body_required", "Request body is required."),
     };
   }
 
@@ -58,7 +59,7 @@ export async function readJsonBody<T = unknown>(
   } catch {
     return {
       ok: false,
-      response: NextResponse.json({ error: "Request body must be valid JSON." }, { status: 400 }),
+      response: apiError(400, "invalid_json", "Request body must be valid JSON."),
     };
   }
 }

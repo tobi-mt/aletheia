@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { trackServerEvent } from "@/lib/analytics";
 import { one, run } from "@/lib/db";
+import { apiError } from "@/lib/api-errors";
 
 type ContactRow = {
   id: string;
@@ -17,14 +18,14 @@ type DecisionRow = {
 export async function POST(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
-    return NextResponse.json({ error: "Sign in to share a decision summary." }, { status: 401 });
+    return apiError(401, "sign_in_required", "Sign in to share a decision summary.");
   }
 
   const body = (await request.json()) as { contactId?: string; decisionId?: string };
   const contactId = body.contactId?.trim();
   const decisionId = body.decisionId?.trim();
   if (!contactId || !decisionId) {
-    return NextResponse.json({ error: "Contact and decision are required." }, { status: 400 });
+    return apiError(400, "invalid_input", "Contact and decision are required.");
   }
 
   const [contact, decision] = await Promise.all([
@@ -41,10 +42,10 @@ export async function POST(request: Request) {
   ]);
 
   if (!contact || !decision) {
-    return NextResponse.json({ error: "Contact or decision not found." }, { status: 404 });
+    return apiError(404, "not_found", "Contact or decision not found.");
   }
   if (!contact.can_view_summaries) {
-    return NextResponse.json({ error: "This counselor does not have summary-view permission." }, { status: 403 });
+    return apiError(403, "permission_denied", "This counselor does not have summary-view permission.");
   }
 
   await run(

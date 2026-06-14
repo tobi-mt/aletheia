@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { trackServerEvent } from "@/lib/analytics";
+import { apiError } from "@/lib/api-errors";
 import { emailConfigured, isEmailAddress, sendEmail } from "@/lib/email";
 import { readJsonBody } from "@/lib/request";
 
@@ -33,15 +34,15 @@ export async function POST(request: Request) {
   const language = trim(body.language, 40);
 
   if (message.length < 8) {
-    return NextResponse.json({ error: "Add a little more detail so we can understand the issue." }, { status: 400 });
+    return apiError(400, "invalid_input", "Add a little more detail so we can understand the issue.");
   }
   if (!emailConfigured()) {
-    return NextResponse.json({ error: "Support email is not configured yet." }, { status: 503 });
+    return apiError(503, "not_configured", "Support email is not configured yet.");
   }
 
   const to = supportRecipient();
   if (!isEmailAddress(to)) {
-    return NextResponse.json({ error: "Support recipient email is not configured yet." }, { status: 503 });
+    return apiError(503, "not_configured", "Support recipient email is not configured yet.");
   }
 
   const text = `Aletheia issue report
@@ -77,7 +78,7 @@ Privacy note: This report includes only the text the user typed plus basic app c
   });
 
   if (!result.sent) {
-    return NextResponse.json({ error: result.error || "Could not send the report." }, { status: 502 });
+    return apiError(502, "unavailable", result.error || "Could not send the report.");
   }
 
   return NextResponse.json({ ok: true, provider: result.provider });

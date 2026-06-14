@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { apiError } from "@/lib/api-errors";
 import { hashCounselInviteToken } from "@/lib/counsel-invites";
 import { one, run } from "@/lib/db";
 
@@ -23,20 +24,20 @@ export async function POST(request: Request, { params }: Params) {
     hashCounselInviteToken(token)
   );
   if (!contact) {
-    return NextResponse.json({ error: "Invite not found." }, { status: 404 });
+    return apiError(404, "not_found", "Invite not found.");
   }
   if (contact.invite_status !== "accepted") {
-    return NextResponse.json({ error: "Accept the invite before commenting." }, { status: 403 });
+    return apiError(403, "permission_denied", "Accept the invite before commenting.");
   }
   if (!contact.can_comment_on_decisions) {
-    return NextResponse.json({ error: "This invite does not allow comments." }, { status: 403 });
+    return apiError(403, "permission_denied", "This invite does not allow comments.");
   }
 
   const body = (await request.json()) as { decisionId?: string; body?: string };
   const decisionId = body.decisionId?.trim();
   const comment = body.body?.trim().slice(0, 1200);
   if (!decisionId || !comment) {
-    return NextResponse.json({ error: "Decision and comment are required." }, { status: 400 });
+    return apiError(400, "invalid_input", "Decision and comment are required.");
   }
 
   const shared = await one<SharedRow>(
@@ -45,7 +46,7 @@ export async function POST(request: Request, { params }: Params) {
     decisionId
   );
   if (!shared) {
-    return NextResponse.json({ error: "That decision summary has not been shared with this counselor." }, { status: 403 });
+    return apiError(403, "permission_denied", "That decision summary has not been shared with this counselor.");
   }
 
   const now = new Date().toISOString();

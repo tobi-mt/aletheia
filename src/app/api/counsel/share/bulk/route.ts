@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { trackServerEvent } from "@/lib/analytics";
 import { many, run } from "@/lib/db";
+import { apiError } from "@/lib/api-errors";
 
 type ContactRow = {
   id: string;
@@ -17,7 +18,7 @@ type DecisionRow = {
 export async function POST(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
-    return NextResponse.json({ error: "Sign in to share decision summaries." }, { status: 401 });
+    return apiError(401, "sign_in_required", "Sign in to share decision summaries.");
   }
 
   const body = (await request.json()) as { contactId?: string; decisionIds?: string[] };
@@ -25,7 +26,7 @@ export async function POST(request: Request) {
   const decisionIds = body.decisionIds?.filter((id) => id?.trim()).map((id) => id.trim()) ?? [];
   
   if (!contactId || decisionIds.length === 0) {
-    return NextResponse.json({ error: "Contact and at least one decision are required." }, { status: 400 });
+    return apiError(400, "invalid_input", "Contact and at least one decision are required.");
   }
 
   // Verify contact belongs to user and has permission
@@ -36,11 +37,11 @@ export async function POST(request: Request) {
   );
 
   if (contact.length === 0) {
-    return NextResponse.json({ error: "Contact not found." }, { status: 404 });
+    return apiError(404, "not_found", "Contact not found.");
   }
   
   if (!contact[0].can_view_summaries) {
-    return NextResponse.json({ error: "This counselor does not have summary-view permission." }, { status: 403 });
+    return apiError(403, "permission_denied", "This counselor does not have summary-view permission.");
   }
 
   // Verify all decisions belong to user
@@ -52,7 +53,7 @@ export async function POST(request: Request) {
   );
 
   if (decisions.length !== decisionIds.length) {
-    return NextResponse.json({ error: "One or more decisions not found." }, { status: 404 });
+    return apiError(404, "not_found", "One or more decisions not found.");
   }
 
   // Bulk insert shared decisions (skip duplicates)

@@ -62,29 +62,30 @@ const translationMap: Record<LanguageCode, TranslationData> = {
 const translationCache = new Map<LanguageCode, TranslationData>();
 
 /**
- * Load translation file for a specific language (with caching) - Synchronous version
+ * Load a locale bundle for a specific language with caching.
+ * This is the raw loader; callers decide whether to merge English fallback or run strict checks.
  */
 export function loadTranslationsSync(language: LanguageCode): TranslationData {
-  // Check cache first
+  // Reuse the cached bundle when we already loaded this locale.
   if (translationCache.has(language)) {
     return translationCache.get(language)!;
   }
 
   try {
-    // Get translation data from static imports
+    // Resolve from the statically imported locale map.
     const data = translationMap[language] || translationMap.en;
-    
-    // Cache the loaded translations
+
+    // Cache the resolved bundle for future calls.
     translationCache.set(language, data);
     return data;
   } catch {
     console.warn(`Failed to load translations for ${language}, falling back to English`);
-    
-    // Check cache for English fallback
+
+    // Preserve English as the safety net if the locale bundle cannot be read.
     if (translationCache.has('en')) {
       return translationCache.get('en')!;
     }
-    
+
     const data = translationMap.en;
     translationCache.set('en', data);
     return data;
@@ -92,7 +93,8 @@ export function loadTranslationsSync(language: LanguageCode): TranslationData {
 }
 
 /**
- * Load translation file for a specific language (with caching) - Async version for compatibility
+ * Async wrapper around the cached locale loader.
+ * Kept for compatibility with call sites that expect a Promise.
  */
 export async function loadTranslations(language: LanguageCode): Promise<TranslationData> {
   return loadTranslationsSync(language);
@@ -127,7 +129,8 @@ export function getTranslation(
 
 /**
  * Load translations with English fallback or strict completeness checking.
- * In strict mode, incomplete locales throw instead of merging English fallback.
+ * Production deliberately keeps English fallback so incomplete locales remain usable.
+ * Strict mode is the dev gate: it throws instead of merging fallback when keys are missing.
  */
 export function loadTranslationsWithFallbackSync(language: LanguageCode, options?: TranslationLoadOptions): TranslationData;
 export function loadTranslationsWithFallbackSync(language: LanguageCode, options?: TranslationLoadOptions): TranslationData {
@@ -149,16 +152,16 @@ export async function loadTranslationsWithFallback(
   options?: TranslationLoadOptions
 ): Promise<TranslationData>;
 /**
- * Load translations with English fallback - Async version for compatibility
- * Ensures all keys have values even if target language is incomplete
+ * Async version of the fallback-aware loader.
+ * English fallback remains intentional outside strict/dev checks.
  */
 export async function loadTranslationsWithFallback(language: LanguageCode, options?: TranslationLoadOptions): Promise<TranslationData> {
   return loadTranslationsWithFallbackSync(language, options);
 }
 
 /**
- * Deep merge two translation objects
- * Target translations override English where they exist
+ * Deep merge two translation objects.
+ * Locale values override English where they exist, and English remains the fallback source.
  */
 export function mergeTranslations(base: TranslationData, override: TranslationData): TranslationData {
   const result: TranslationData = { ...base };
@@ -177,8 +180,8 @@ export function mergeTranslations(base: TranslationData, override: TranslationDa
 }
 
 /**
- * Translation coverage checker
- * Returns percentage of translated keys
+ * Translation coverage checker.
+ * Measures how much of the English source is present in the target locale bundle.
  */
 export function calculateCoverage(
   targetTranslations: TranslationData,
@@ -194,7 +197,7 @@ export function calculateCoverage(
 }
 
 /**
- * Get all keys from translation object (flattened with dot notation)
+ * Get all keys from a translation object, flattened with dot notation.
  */
 function getAllKeys(obj: TranslationData, prefix = ''): string[] {
   const keys: string[] = [];
@@ -213,7 +216,7 @@ function getAllKeys(obj: TranslationData, prefix = ''): string[] {
 }
 
 /**
- * Get missing translation keys
+ * Get the keys that are missing from a locale bundle.
  */
 export function getMissingKeys(
   targetTranslations: TranslationData,

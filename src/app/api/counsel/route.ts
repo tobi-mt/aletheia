@@ -6,6 +6,7 @@ import { counselInviteUrl, createCounselInviteToken, hashCounselInviteToken } fr
 import { many, one, pool, run } from "@/lib/db";
 import { counselInviteEmail, emailConfigured, isEmailAddress, sendEmail } from "@/lib/email";
 import { readJsonBody } from "@/lib/request";
+import { apiError } from "@/lib/api-errors";
 
 type CounselRow = {
   id: string;
@@ -58,7 +59,7 @@ export async function GET() {
 export async function POST(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
-    return NextResponse.json({ error: "Sign in to save your counsel circle." }, { status: 401 });
+    return apiError(401, "sign_in_required", "Sign in to save your counsel circle.");
   }
 
   const body = (await request.json()) as {
@@ -75,9 +76,10 @@ export async function POST(request: Request) {
   const role = (body.role?.trim() || "mentor").slice(0, 80);
   const avatarUrl = normalizeAvatarUrl(body.avatarUrl?.trim() ?? "") ?? null;
   if (body.avatarUrl?.trim() && !avatarUrl) {
-    return NextResponse.json(
-      { error: "Use a valid image for the counselor avatar. Curated picks, gallery uploads, and HTTPS image URLs are supported." },
-      { status: 400 }
+    return apiError(
+      400,
+      "invalid_image",
+      "Use a valid image for the counselor avatar. Curated picks, gallery uploads, and HTTPS image URLs are supported."
     );
   }
   const contactValue = body.contact?.trim().slice(0, 180) || null;
@@ -86,7 +88,7 @@ export async function POST(request: Request) {
   const canCommentOnDecisions = Boolean(body.canCommentOnDecisions);
   const canReceiveCheckins = Boolean(body.canReceiveCheckins);
   if (!name) {
-    return NextResponse.json({ error: "Name is required." }, { status: 400 });
+    return apiError(400, "invalid_input", "Name is required.");
   }
 
   const now = new Date().toISOString();
@@ -165,7 +167,7 @@ export async function POST(request: Request) {
 export async function DELETE(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
-    return NextResponse.json({ error: "Sign in to manage your counsel circle." }, { status: 401 });
+    return apiError(401, "sign_in_required", "Sign in to manage your counsel circle.");
   }
 
   const url = new URL(request.url);
@@ -181,7 +183,7 @@ export async function DELETE(request: Request) {
   }
 
   if (!contactId) {
-    return NextResponse.json({ error: "Contact is required." }, { status: 400 });
+    return apiError(400, "invalid_input", "Contact is required.");
   }
 
   const contact = await one<Pick<CounselRow, "id" | "name" | "role" | "invite_status">>(
@@ -191,7 +193,7 @@ export async function DELETE(request: Request) {
   );
 
   if (!contact) {
-    return NextResponse.json({ error: "Contact not found." }, { status: 404 });
+    return apiError(404, "not_found", "Contact not found.");
   }
 
   const client = await pool.connect();
@@ -215,7 +217,7 @@ export async function DELETE(request: Request) {
   } catch (error) {
     await client.query("ROLLBACK");
     console.error("Failed to remove counsel contact", error);
-    return NextResponse.json({ error: "Could not remove this counsel contact." }, { status: 500 });
+    return apiError(500, "save_failed", "Could not remove this counsel contact.");
   } finally {
     client.release();
   }

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth";
 import { run } from "@/lib/db";
 import { readJsonBody } from "@/lib/request";
+import { apiError } from "@/lib/api-errors";
 
 export async function POST(request: Request) {
   try {
@@ -31,6 +32,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ ok: true });
   } catch {
-    return NextResponse.json({ error: "Sign in to manage notifications." }, { status: 401 });
+    return apiError(401, "sign_in_required", "Sign in to manage notifications.");
   }
 }

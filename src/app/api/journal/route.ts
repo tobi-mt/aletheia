@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth";
 import { trackServerEvent } from "@/lib/analytics";
+import { apiError } from "@/lib/api-errors";
 import { many, run } from "@/lib/db";
 import { normalizeMode } from "@/lib/wisdom-data";
 
@@ -31,7 +32,7 @@ export async function GET() {
       })),
     });
   } catch {
-    return NextResponse.json({ error: "Sign in to use server journal sync." }, { status: 401 });
+    return apiError(401, "sign_in_required", "Sign in to use server journal sync.");
   }
 }
 
@@ -46,7 +47,7 @@ export async function POST(request: Request) {
 
     const content = body.body?.trim();
     if (!content) {
-      return NextResponse.json({ error: "Journal body is required." }, { status: 400 });
+      return apiError(400, "invalid_input", "Journal body is required.");
     }
 
     const mode = normalizeMode(body.mode);
@@ -86,6 +87,6 @@ export async function POST(request: Request) {
       },
     });
   } catch {
-    return NextResponse.json({ error: "Sign in to save reflections." }, { status: 401 });
+    return apiError(401, "sign_in_required", "Sign in to save reflections.");
   }
 }

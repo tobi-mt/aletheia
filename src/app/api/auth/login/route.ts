@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createSession, recordUserLogin, verifyPassword } from "@/lib/auth";
 import { trackServerEvent } from "@/lib/analytics";
+import { apiError } from "@/lib/api-errors";
 import { one } from "@/lib/db";
 import { checkRateLimit, getClientIdentity, rateLimitHeaders } from "@/lib/rate-limit";
 
@@ -22,10 +23,9 @@ export async function POST(request: Request) {
           reason: "too_many_attempts",
         },
       });
-      return NextResponse.json(
-        { error: "Too many sign-in attempts. Please wait a few minutes." },
-        { status: 429, headers: rateLimitHeaders(rateLimit) }
-      );
+      return apiError(429, "rate_limited", "Too many sign-in attempts. Please wait a few minutes.", {
+        headers: rateLimitHeaders(rateLimit),
+      });
     }
 
     const body = (await request.json()) as {
@@ -47,7 +47,7 @@ export async function POST(request: Request) {
           reason: "missing_credentials",
         },
       });
-      return NextResponse.json({ error: "Email and password are required." }, { status: 400 });
+      return apiError(400, "invalid_input", "Email and password are required.");
     }
 
     const user = await one<{
@@ -69,7 +69,7 @@ export async function POST(request: Request) {
           reason: "invalid_credentials",
         },
       });
-      return NextResponse.json({ error: "Invalid email or password." }, { status: 401 });
+      return apiError(401, "invalid_credentials", "Invalid email or password.");
     }
 
     await recordUserLogin(user.id);
@@ -103,9 +103,6 @@ export async function POST(request: Request) {
         reason: "server_error",
       },
     });
-    return NextResponse.json(
-      { error: "Sign-in is temporarily unavailable. Please try again in a moment." },
-      { status: 500 }
-    );
+    return apiError(500, "authentication_failed", "Sign-in is temporarily unavailable. Please try again in a moment.");
   }
 }

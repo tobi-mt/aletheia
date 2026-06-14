@@ -5,6 +5,7 @@ import { buildDecisionSummary, detectPatterns, scoreDecision } from "@/lib/decis
 import { decisionStartedDiscerningBody, decisionTimelineObservation } from "@/lib/decision-copy";
 import { many, one, run } from "@/lib/db";
 import { defaultPreferences, normalizePreferences, type UserPreferences } from "@/lib/localization";
+import { apiError } from "@/lib/api-errors";
 import { retrieveWisdom } from "@/lib/wisdom";
 import { normalizeMode, type Mode } from "@/lib/wisdom-data";
 
@@ -187,7 +188,7 @@ export async function GET() {
 export async function POST(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
-    return NextResponse.json({ error: "Sign in to save decisions." }, { status: 401 });
+    return apiError(401, "sign_in_required", "Sign in to save decisions.");
   }
 
   const body = (await request.json()) as {
@@ -202,7 +203,7 @@ export async function POST(request: Request) {
   const emotion = body.emotion?.trim() || "uncertain";
 
   if (!title || !pressure) {
-    return NextResponse.json({ error: "Decision title and pressure are required." }, { status: 400 });
+    return apiError(400, "invalid_input", "Decision title and pressure are required.");
   }
 
   const signals = scoreDecision({

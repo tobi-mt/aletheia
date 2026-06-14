@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { trackServerEvent } from "@/lib/analytics";
+import { apiError } from "@/lib/api-errors";
 import { many, run } from "@/lib/db";
 import type { Mode } from "@/lib/wisdom-data";
 
@@ -44,7 +45,7 @@ export async function POST(request: Request) {
   };
   const value = body.value?.trim() ?? "";
   if (!feedbackValues.has(value)) {
-    return NextResponse.json({ error: "Unsupported feedback value." }, { status: 400 });
+    return apiError(400, "invalid_input", "Unsupported feedback value.");
   }
 
   if (user) {

@@ -462,6 +462,30 @@ export const languageCopy: Partial<Record<
     askPlaceholder: "Tambaya da hikima, ba da gaggawa ba...",
     regionHint: "Misalai za su dace da yankinka, amma ba su maye gurbin shawarar ƙwararre ba.",
   },
+  tl: {
+    onboarding: "Piliin kung paano magsasalita si Aletheia: wika, rehiyon, salin ng Biblia, at boses.",
+    dailyLabel: "Karunungan sa Araw-araw",
+    translationFallback: "Gumagamit ang mga sanggunian sa Kasulatan ng iyong piniling saling pampubliko kapag mayroon.",
+    voiceHint: "Gamitin ang boses para sa mas mabagal at mas mapagnilay na pag-uusap kapag sinusuportahan ito ng browser.",
+    askPlaceholder: "Magtanong nang may karunungan, hindi pagmamadali...",
+    regionHint: "Sumasalamin ang mga halimbawa sa iyong rehiyon nang hindi nagpapanggap na alam ang lokal na batas o buwis.",
+  },
+  ar: {
+    onboarding: "اختر كيف يتحدث Aletheia: اللغة، المنطقة، ترجمة الكتاب المقدس، والصوت.",
+    dailyLabel: "الحكمة اليومية",
+    translationFallback: "تستخدم مراجع الكتاب المقدس ترجمتك العامة المفضلة عندما تكون متاحة.",
+    voiceHint: "استخدم الصوت لمحادثة أبطأ وأكثر تأملًا عندما يدعم المتصفح ذلك.",
+    askPlaceholder: "اسأل بحكمة، لا بعجلة...",
+    regionHint: "تعكس الأمثلة منطقتك من دون ادعاء معرفة القانون أو الضرائب المحلية.",
+  },
+  hi: {
+    onboarding: "चुनें कि Aletheia कैसे बोले: भाषा, क्षेत्र, बाइबिल अनुवाद, और आवाज़।",
+    dailyLabel: "दैनिक ज्ञान",
+    translationFallback: "शास्त्र संदर्भ, जहाँ उपलब्ध हो, आपके पसंदीदा सार्वजनिक अनुवाद का उपयोग करते हैं।",
+    voiceHint: "जब आपका ब्राउज़र समर्थन करे, तो धीमी और अधिक चिंतनशील बातचीत के लिए आवाज़ का उपयोग करें।",
+    askPlaceholder: "बिना जल्दबाज़ी के, ज्ञान के साथ पूछें...",
+    regionHint: "उदाहरण आपके क्षेत्र को दर्शाते हैं, बिना स्थानीय कानून या कर का दावा किए।",
+  },
 };
 
 export const crisisSupportCopy: Partial<Record<
@@ -734,6 +758,27 @@ export const localizedDailyPractices: Partial<Record<LanguageCode, Partial<Recor
     Purpose: "Yau, bari salama ta tsara saurin fahimtarka.",
     Generosity: "Yau, ka bayar da tabbaci, ba saboda laifi ba.",
     Life: "Yau, zaɓi wata al'ada mai sauƙi da za ta sa sauran rayuwa ta fi ƙarfi.",
+  },
+  tl: {
+    Money: "Ngayon, huwag lang humabol sa mas marami. Tukuyin kung ano ang sapat.",
+    Work: "Ngayon, piliin ang susunod na tapat na hakbang bago habulin ang kahanga-hanga.",
+    Purpose: "Ngayon, hayaang ang kapayapaan ang magtakda ng bilis ng paghatol.",
+    Generosity: "Ngayon, magbigay mula sa paninindigan, hindi sa pagkakasala.",
+    Life: "Ngayon, pumili ng isang pangkaraniwang gawi na magpapatatag sa natitirang bahagi ng buhay.",
+  },
+  ar: {
+    Money: "اليوم، لا تسعَ وراء المزيد فقط. حدّد ما يكفي.",
+    Work: "اليوم، اختر الخطوة الأمينة التالية قبل ملاحقة المثير للإعجاب.",
+    Purpose: "اليوم، دع السلام يحدد إيقاع التمييز.",
+    Generosity: "اليوم، أعطِ عن قناعة، لا عن ذنب.",
+    Life: "اليوم، اختر عادة بسيطة تجعل بقية الحياة أكثر ثباتًا.",
+  },
+  hi: {
+    Money: "आज, अधिक के पीछे मत भागिए। पर्याप्त क्या है, उसे तय करें।",
+    Work: "आज, प्रभावशाली कदम से पहले अगला निष्ठावान कदम चुनें।",
+    Purpose: "आज, शांति को विवेक की गति तय करने दें।",
+    Generosity: "आज, अपराधबोध नहीं, बल्कि दृढ़ विश्वास से दें।",
+    Life: "आज, एक साधारण आदत चुनें जो जीवन के बाकी हिस्से को अधिक स्थिर बनाए।",
   },
 };
 

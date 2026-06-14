@@ -85,7 +85,7 @@ import type { Mode } from "@/lib/wisdom-data";
 import { analyticsQuestionMetadata } from "@/lib/analytics-taxonomy";
 import { decisionStartedDiscerningBody, decisionTimelineObservation, localizeDecisionEventBody } from "@/lib/decision-copy";
 import { curatedAvatarOptions, defaultAvatarDataUrl, normalizeAvatarUrl } from "@/lib/avatars";
-import { loadTranslationsWithFallbackSync, getTranslation, type TranslationData } from "@/lib/translations";
+import { loadTranslationsSync, loadTranslationsWithFallbackSync, getTranslation, type TranslationData } from "@/lib/translations";
 
 type View = "companion" | "decisions" | "reflect" | "library" | "account";
 type HomeSection = "today" | "ask";
@@ -1768,6 +1768,480 @@ const uiText: Partial<Record<
     accountQuietMilestoneSingular: "matakin tsarawa mai nutsuwa",
     accountQuietMilestonePlural: "matakan tsarawa masu nutsuwa",
     accountFormationSummary: "Tsarawa rikodi ne mai natsuwa na aiki, ba allon maki ba.",
+  },
+  tl: {
+    nav: { companion: "Tahanan", decisions: "Mga Desisyon", reflect: "Pagninilay", library: "Aklatan", account: "Account" },
+    decideShort: "Magpasya",
+    guardrails: "Mga hangganan",
+    guardrailItems: ["Hindi kailanman naghuhula ng pinansyal na resulta.", "Hindi kailanman gumagawa ng mga sanggunian sa Kasulatan.", "Hinihikayat ang tulong ng tao sa self-harm, adiksyon, o krisis."],
+    wisdomMode: "Mode ng karunungan",
+    currentLens: "Kasalukuyang lente",
+    offline: "Offline",
+    languageSelect: "Palitan ang wika",
+    bibleSelect: "Palitan ang salin ng Biblia",
+    account: "Account",
+    askTitle: "Magtanong kay Aletheia",
+    askIntro: "Magsimula sa isang tapat na tanong. Pinapabagal ni Aletheia ang sandali at tumutulong maglinaw ng isip.",
+    yourQuestion: "Ang tanong mo",
+    askButton: "Magtanong",
+    startHere: "Magsimula rito",
+    ready: "Handa",
+    whatModeFor: "Para saan ang mode na ito",
+    deepChecks: "Masusing pagsuri",
+    blindSpots: "Mga hindi napapansin",
+    maturitySignals: "Mga palatandaan ng paghinog",
+    modeGuidance: "Gabay sa mode",
+    change: "Palitan",
+    showDetails: "Ipakita ang detalye",
+    hideDetails: "Itago ang detalye",
+    modeGuidancePreview: "Panatilihing nakatuon ang view na ito. Palawakin kapag gusto mo ng mas malalim na pagsusuri, blind spot, at mga palatandaan ng paghinog.",
+    trustLayer: "Patong ng tiwala",
+    preferencesTitle: "Wika at rehiyon",
+    language: "Wika",
+    region: "Rehiyon",
+    bible: "Biblia",
+    voiceControls: "Kontrol sa boses",
+    available: "Available",
+    englishFallback: "Fallback na Ingles",
+    greetingMorning: "Magandang umaga",
+    greetingAfternoon: "Magandang hapon",
+    greetingEvening: "Magandang gabi",
+    greetingFallback: "Maligayang pagbabalik",
+    greetingIntent: "Pumili tayo ng isang matalinong susunod na hakbang ngayon.",
+    personalizedPriority: "Piniling prayoridad",
+    whatNext: "Ano ang susunod kong dapat gawin?",
+    whatNextBody: "Pinipili muna ni Aletheia ang isang matalinong susunod na aksyon. Nasa malapit pa rin ang tanong at mga kontrol sa mode kapag handa ka nang magsimula.",
+    personalizationNudgeTitle: "Gusto mo ng mas personal na payo?",
+    personalizationNudgeBody: "Magdagdag ng isang detalye tungkol sa pera, trabaho, o ritmo.",
+    continueDecision: "Ipagpatuloy ang desisyong ito",
+    askOneQuestion: "Magtanong ng isang tanong",
+    askOneQuestionBody: "Magsimula sa bigat o desisyong dala mo ngayon.",
+    askNewQuestion: "Magtanong ng bago",
+    askNewQuestionBody: "Nasa malapit lang ang input ng Companion at mga mode ng karunungan.",
+    reflectToday: "Magnilay ngayon",
+    reviewPattern: "Suriin ang pattern",
+    enableNotifications: "I-enable ang mga abiso",
+    enableSync: "I-enable ang sync",
+    notificationPromptBody: "Tumanggap ng isang tahimik na paalala ng karunungan bawat araw.",
+    syncDevicesBody: "Panatilihing naka-sync ang mga desisyon at pagninilay sa iba't ibang device.",
+    startDecision: "Magsimula ng desisyon",
+    startDecisionBody: "Subaybayan ang isang mahalagang pagpili sa paglipas ng panahon.",
+    tinyPractice: "Maliit na pagsasanay",
+    todaysCompanion: "Kasama ngayong araw",
+    todayPrefix: "Ngayon",
+    wisdomPrinciple: "Prinsipyo ng karunungan",
+    reflectionQuestion: "Tanong",
+    whatINotice: "Napapansin ko",
+    context: "Konteksto",
+    application: "Paglalapat",
+    carryThisToday: "Dalhin ito ngayon",
+    carryWithMe: "Dalhin ko",
+    weeklyWisdomReview: "Lingguhang Pagsusuri ng Karunungan",
+    weeklyReviewTitle: "Tahimik na tingin sa linggong ito",
+    weeklyReviewBody: "Walang pressure o streak. Pansinin lang kung paano hinuhubog ng {pattern} ang paghatol mo.",
+    todayScriptureLabel: "Kasulatan",
+    todayQuestionLabel: "Tanong ngayon",
+    todayActionsLabel: "Mga gawain ngayon",
+    weeklyReviewHeading: "Iyong Lingguhang Pagsusuri",
+    weeklyReviewLastWeekLabel: "Noong nakaraang linggo",
+    nextFaithfulStep: "Susunod na tapat na hakbang",
+    askAboutThis: "Magtanong tungkol dito",
+    saveToRuleOfLife: "I-save sa Rule of Life",
+    carryingToday: "Bitbit ngayong araw",
+    currentCounsel: "Kasalukuyang payo",
+    modeShapesCounsel: "ang humuhubog sa payong ito ayon sa",
+    trackThisDecision: "Subaybayan ang desisyong ito",
+    saveAsReflection: "I-save bilang pagninilay",
+    createCounselSummary: "Gumawa ng buod ng payo",
+    goDeeper: "Pumunta nang mas malalim",
+    waitThreeDays: "Maghintay ng 3 araw",
+    shareAnswerPrompt: "Ibahagi ang Aletheia sa taong maaaring makinabang sa ganitong payo.",
+    sharePrivacyNote: "Ibinabahagi lang nito ang link ng app, hindi ang tanong mo o ang pribadong sagot ni Aletheia.",
+    shareAletheia: "Ibahagi ang Aletheia",
+    feedbackQuestion: "Nakatulong ba ang payong ito?",
+    feedbackHelpful: "Nakatulong",
+    feedbackMildlyHelpful: "Medyo nakatulong",
+    feedbackTooVague: "Masyadong malabo",
+    feedbackTooPreachy: "Masyadong parang sermon",
+    feedbackNotRelevant: "Hindi akma",
+    badgesFormation: "Mga badge / Paghubog",
+    firstReflectionSaved: "Naka-save ang unang pagninilay",
+    firstDecisionTracked: "Nabinyayang unang desisyon",
+    soughtCounsel: "Humingi ng payo",
+    waitingModeUsed: "Ginamit ang waiting mode",
+    ruleOfLifeCreated: "Nagawa ang Rule of Life",
+    notificationsEnabled: "Naka-enable ang mga abiso",
+    sevenDaysPractice: "7 araw ng pagsasanay sa karunungan",
+    formationNote: "Mga tahimik itong palatandaan ng paghubog, hindi mga puntong habulin. Karaniwang nagsisimula ang unang milestone sa pag-save ng isang pagninilay.",
+    milestoneShareTitle: "May kilala ka bang gumagawa ng mahalagang desisyon?",
+    milestoneShareBody: "Maaari mo silang anyayahan sa Aletheia nang hindi nagbabahagi ng pribado mula sa account mo.",
+    welcomeCounsel: "Magdala ng totoong desisyon, pressure, o tanong sa pera. Sasagot ako mula sa curated wisdom library, nang may kalinawan at walang pangakong pinansyal.",
+    trustScriptureBody: "Ang mga sanggunian sa Kasulatan ay mula sa curated wisdom library ni Aletheia. Kapag may lumabas na talata, maaari mo itong i-tap para makita ang konteksto at kahalagahan nito.",
+    trustBoundaryBody: "Hindi mangangako si Aletheia ng resulta, manghuhula ng merkado, maghahabol ng banal na katiyakan, o papalitan ang kwalipikadong payo sa pananalapi, legal, buwis, medikal, o pastoral.",
+    trustMemoryBody: "Tumutulong ang naka-sign in na memorya sa pagpapatuloy ng mga desisyon, pagninilay, payo, at mga tuntunin sa buhay. Dapat nitong gawing mas personal ang gabay nang hindi inilalantad ang pribadong detalye nang hindi kailangan.",
+    trustConnectedDataBody: "Ang mga susunod na integrasyon sa kalusugan, pananalapi, o mga device ay dapat may malinaw na pahintulot, naka-off bilang default, at limitado lamang sa eksaktong data na pipiliing ikonekta ng user.",
+    accountNextEyebrow: "Susunod sa Account",
+    accountNextReviewSyncFormation: "Suriin ang sync at paghubog",
+    accountNextSignInPortable: "Mag-sign in para madala si Aletheia saan ka man",
+    accountNextActiveBody: "Aktibo ang account mo. Suriin ang mga preference, history, at mga milestone ng paghubog kapag kailangan mo.",
+    accountNextSyncBody: "Aktibo ang sync. I-on ang isang tahimik na pang-araw-araw na paalala ng karunungan kung dapat itong matanggap ng device na ito.",
+    accountNextGuestBody: "Gamitin ang Google o email para i-sync ang mga desisyon, pagninilay, preference, payo, at abiso sa iba't ibang device.",
+    accountManageSummary: "Pamahalaan ang sign-in, sync, wika, mga abiso, history, at mga milestone ng paghubog nang hindi sumasakal sa wisdom companion.",
+    accountSignedInAs: "Naka-sign in bilang",
+    accountSignInOrGuest: "Mag-sign in o magpatuloy bilang guest",
+    accountSyncActive: "Aktibo ang sync.",
+    accountNotificationsNotEnabled: "Hindi pa naka-enable ang mga abiso.",
+    accountGuestSummary: "Mag-sign in para mapanatili ang iyong history, mga preference, at mga desisyon.",
+    accountPreferencesEyebrow: "Mga preference",
+    accountPreferencesSummary: "Nandito ang wika, salin ng Biblia, itsura, rehiyon, at boses para manatiling kalmado ang Companion.",
+    accountContextActive: "Aktibo ang konteksto",
+    accountContextPaused: "Naka-pause ang konteksto",
+    accountArea: "lugar",
+    accountAreas: "mga lugar",
+    accountAdded: "naidagdag",
+    accountManualContextSummary: "Opsyonal at pribado ang manual na konteksto. Idagdag lamang ang dapat humubog sa payo ni Aletheia.",
+    accountDailyWisdomEnabled: "Naka-enable ang pang-araw-araw na karunungan",
+    accountNotificationsSummaryEnabled: "Gagamitin ni Aletheia ang iyong naka-save na lokal na oras.",
+    accountNotificationsSummaryDisabled: "I-on ang isang tahimik na pang-araw-araw na paalala kapag handa na ang device na ito.",
+    accountInstallTitle: "Idagdag si Aletheia sa home screen mo",
+    accountInstallSummary: "Nakatago ang mga tagubilin sa pag-install hanggang may kailangan sa app-like na setup.",
+    accountInstallEyebrow: "I-install si Aletheia",
+    accountInviteTitle: "Imbitahan ang isang tao nang pribado",
+    accountInviteSummary: "Ibahagi lang ang link ni Aletheia, hindi kailanman pribadong tanong, journal, o payo bilang default.",
+    accountInviteEyebrow: "Mag-imbita ng tao",
+    accountHistoryConversations: "mga usapan",
+    accountHistoryDecisions: "mga desisyon",
+    accountHistoryReflections: "mga pagninilay",
+    accountHistorySummary: "Nakatiklop ang history hanggang gusto mong balikan ang mga na-save.",
+    accountStatConversations: "Mga usapan",
+    accountStatDecisions: "Mga desisyon",
+    accountStatJournalEntries: "Mga tala sa journal",
+    accountHistoryEmptyBody: "Magsimula sa isang tapat na tanong o isang desisyong may pressure. Panatilihing tahimik at kapaki-pakinabang ni Aletheia ang rekord.",
+    accountTrustPostureTitle: "Tiwala at pagkapribado",
+    accountTrustPostureSummary: "Makikita ang mga hangganan, naka-save na data, at mga patakaran sa pagbabahagi.",
+    accountBoundariesTitle: "Mga hangganan ni Aletheia",
+    accountBoundariesSummary: "Nananatiling nakikita ang mga safety boundary ng app kapag kailangan, hindi lagi nakaharang.",
+    accountBoundariesBody: "Pinoprotektahan ka ng mga limitasyong ito mula sa mapaminsalang payo ng AI at pinananatiling tapat si Aletheia sa layunin nito.",
+    accountFormationPrefix: "Paghubog",
+    accountQuietMilestoneSingular: "tahimik na milestone",
+    accountQuietMilestonePlural: "mga tahimik na milestone",
+    accountFormationSummary: "Ang paghubog ay isang kalmadong tala ng pagsasanay, hindi scoreboard.",
+  },
+  ar: {
+    nav: { companion: "الرئيسية", decisions: "القرارات", reflect: "التأمل", library: "المكتبة", account: "الحساب" },
+    decideShort: "اتخذ قرارًا",
+    guardrails: "الضوابط",
+    guardrailItems: ["لا يتنبأ بالنتائج المالية.", "لا يخترع مراجع كتابية.", "يشجع على طلب دعم بشري عند لغة إيذاء النفس أو الإدمان أو الأزمات."],
+    wisdomMode: "وضع الحكمة",
+    currentLens: "المنظور الحالي",
+    offline: "غير متصل",
+    languageSelect: "تغيير اللغة",
+    bibleSelect: "تغيير ترجمة الكتاب المقدس",
+    account: "الحساب",
+    askTitle: "اسأل Aletheia",
+    askIntro: "ابدأ بسؤال صادق. يبطئ Aletheia اللحظة ويساعدك على التمييز بوضوح.",
+    yourQuestion: "سؤالك",
+    askButton: "اسأل",
+    startHere: "ابدأ هنا",
+    ready: "جاهز",
+    whatModeFor: "ما فائدة هذا الوضع",
+    deepChecks: "فحوصات عميقة",
+    blindSpots: "نقاط عمياء",
+    maturitySignals: "علامات النضج",
+    modeGuidance: "إرشادات الوضع",
+    change: "تغيير",
+    showDetails: "عرض التفاصيل",
+    hideDetails: "إخفاء التفاصيل",
+    modeGuidancePreview: "أبقِ هذه الصفحة مركزة. وسّعها عندما تريد فحوصات أعمق ونقاطًا عمياء وعلامات نضج.",
+    trustLayer: "طبقة الثقة",
+    preferencesTitle: "اللغة والمنطقة",
+    language: "اللغة",
+    region: "المنطقة",
+    bible: "الكتاب المقدس",
+    voiceControls: "التحكم بالصوت",
+    available: "متاح",
+    englishFallback: "البديل الإنجليزي",
+    greetingMorning: "صباح الخير",
+    greetingAfternoon: "مساء الخير",
+    greetingEvening: "مساء الخير",
+    greetingFallback: "مرحبًا بعودتك",
+    greetingIntent: "لنختر خطوة حكيمة واحدة اليوم.",
+    personalizedPriority: "أولوية مخصصة",
+    whatNext: "ما الذي ينبغي أن أفعله بعد ذلك؟",
+    whatNextBody: "يختار Aletheia أولًا إجراءً حكيمًا واحدًا. يبقى سؤال البدء والتحكم في الوضع قريبين عندما ترغب في بدء شيء جديد.",
+    personalizationNudgeTitle: "هل تريد مشورة أكثر شخصية؟",
+    personalizationNudgeBody: "أضف تفصيلًا واحدًا عن المال أو العمل أو الإيقاع.",
+    continueDecision: "تابع هذا القرار",
+    askOneQuestion: "اطرح سؤالًا واحدًا",
+    askOneQuestionBody: "ابدأ بالضغط أو القرار الذي تحمله الآن.",
+    askNewQuestion: "اطرح سؤالًا جديدًا",
+    askNewQuestionBody: "يبقى إدخال Companion وأوضاع الحكمة قريبين.",
+    reflectToday: "تأمل اليوم",
+    reviewPattern: "راجع نمطًا",
+    enableNotifications: "تفعيل الإشعارات",
+    enableSync: "تفعيل المزامنة",
+    notificationPromptBody: "استقبل تنبيه حكمة يوميًا بهدوء.",
+    syncDevicesBody: "احتفظ بالقرارات والتأملات عبر الأجهزة.",
+    startDecision: "ابدأ قرارًا",
+    startDecisionBody: "تتبّع اختيارًا مهمًا عبر الزمن.",
+    tinyPractice: "ممارسة صغيرة",
+    todaysCompanion: "رفيق اليوم",
+    todayPrefix: "اليوم",
+    wisdomPrinciple: "مبدأ الحكمة",
+    reflectionQuestion: "سؤال",
+    whatINotice: "ما ألاحظه",
+    context: "السياق",
+    application: "التطبيق",
+    carryThisToday: "احمله اليوم",
+    carryWithMe: "احمله معي",
+    weeklyWisdomReview: "مراجعة الحكمة الأسبوعية",
+    weeklyReviewTitle: "نظرة هادئة إلى أسبوعك",
+    weeklyReviewBody: "من دون ضغط أو سباق. فقط لاحظ كيف شكّل {pattern} تمييزك.",
+    todayScriptureLabel: "الكتاب المقدس",
+    todayQuestionLabel: "سؤال اليوم",
+    todayActionsLabel: "أفعال اليوم",
+    weeklyReviewHeading: "مراجعتك الأسبوعية",
+    weeklyReviewLastWeekLabel: "الأسبوع الماضي",
+    nextFaithfulStep: "الخطوة الأمينة التالية",
+    askAboutThis: "اسأل عن هذا",
+    saveToRuleOfLife: "حفظ في قاعدة الحياة",
+    carryingToday: "ما تحمله اليوم",
+    currentCounsel: "المشورة الحالية",
+    modeShapesCounsel: "يشكّل هذه المشورة حول",
+    trackThisDecision: "تتبّع هذا القرار",
+    saveAsReflection: "حفظ كتأمل",
+    createCounselSummary: "إنشاء ملخص للمشورة",
+    goDeeper: "تعمق أكثر",
+    waitThreeDays: "انتظر 3 أيام",
+    shareAnswerPrompt: "شارك Aletheia مع شخص قد يستفيد من هذا النوع من المشورة.",
+    sharePrivacyNote: "هذه المشاركة تشمل رابط التطبيق فقط، لا سؤالك ولا جواب Aletheia الخاص.",
+    shareAletheia: "مشاركة Aletheia",
+    feedbackQuestion: "هل كانت هذه المشورة مفيدة؟",
+    feedbackHelpful: "مفيدة",
+    feedbackMildlyHelpful: "مفيدة قليلًا",
+    feedbackTooVague: "غامضة جدًا",
+    feedbackTooPreachy: "وعظية جدًا",
+    feedbackNotRelevant: "غير مناسبة",
+    badgesFormation: "شارات / التكوين",
+    firstReflectionSaved: "تم حفظ أول تأمل",
+    firstDecisionTracked: "تم تتبع أول قرار",
+    soughtCounsel: "طلب المشورة",
+    waitingModeUsed: "تم استخدام وضع الانتظار",
+    ruleOfLifeCreated: "تم إنشاء قاعدة الحياة",
+    notificationsEnabled: "تم تفعيل الإشعارات",
+    sevenDaysPractice: "7 أيام من ممارسة الحكمة",
+    formationNote: "هذه علامات هادئة على التكوين، وليست نقاطًا للمطاردة. يبدأ أول معلم عادةً بحفظ تأمل واحد.",
+    milestoneShareTitle: "هل تعرف شخصًا يتخذ قرارًا مهمًا؟",
+    milestoneShareBody: "يمكنك دعوته إلى Aletheia دون مشاركة أي شيء خاص من حسابك.",
+    welcomeCounsel: "اسأل عن قرار حقيقي أو ضغط أو مال. سأجيب من مكتبة الحكمة المنسقة، بوضوح وبدون وعود مالية.",
+    trustScriptureBody: "تأتي مراجع الكتاب المقدس من مكتبة الحكمة المنسقة في Aletheia. إذا ظهرت آية، يمكنك النقر عليها لرؤية السياق ومعرفة سبب أهميتها.",
+    trustBoundaryBody: "لن يعد Aletheia بالنتائج، أو يتنبأ بالأسواق، أو يدعي يقينًا إلهيًا، أو يحل محل المشورة المؤهلة المالية أو القانونية أو الضريبية أو الطبية أو الرعوية.",
+    trustMemoryBody: "تساعد الذاكرة المسجّلة على الاستمرارية عبر القرارات والتأملات والمشورة وقواعد الحياة. ويجب أن تجعل التوجيه أكثر شخصية من دون الكشف عن التفاصيل الخاصة بلا حاجة.",
+    trustConnectedDataBody: "يجب أن تكون عمليات التكامل المستقبلية مع الصحة أو التمويل أو الأجهزة قائمة على إذن واضح، ومغلقة افتراضيًا، ومحدودة بالبيانات الدقيقة التي يختار المستخدم ربطها.",
+    accountNextEyebrow: "التالي في الحساب",
+    accountNextReviewSyncFormation: "راجع المزامنة والتكوين",
+    accountNextSignInPortable: "سجّل الدخول لتجعل Aletheia معك",
+    accountNextActiveBody: "حسابك نشط. راجع التفضيلات والسجل ومراحل التكوين عند الحاجة.",
+    accountNextSyncBody: "المزامنة نشطة. فعّل تنبيه حكمة يومي هادئ إذا كان هذا الجهاز يجب أن يستقبله.",
+    accountNextGuestBody: "استخدم Google أو البريد الإلكتروني لمزامنة القرارات والتأملات والتفضيلات والمشورة والإشعارات عبر الأجهزة.",
+    accountManageSummary: "أدر تسجيل الدخول والمزامنة واللغة والإشعارات والسجل ومراحل التكوين دون إرباك رفيق الحكمة.",
+    accountSignedInAs: "تم تسجيل الدخول باسم",
+    accountSignInOrGuest: "سجّل الدخول أو تابع كضيف",
+    accountSyncActive: "المزامنة نشطة.",
+    accountNotificationsNotEnabled: "الإشعارات غير مفعلة بعد.",
+    accountGuestSummary: "سجّل الدخول للاحتفاظ بسجلك وتفضيلاتك وقراراتك.",
+    accountPreferencesEyebrow: "التفضيلات",
+    accountPreferencesSummary: "تظل اللغة وترجمة الكتاب المقدس والمظهر والمنطقة والصوت هنا ليبقى الرفيق هادئًا.",
+    accountContextActive: "السياق نشط",
+    accountContextPaused: "السياق متوقف مؤقتًا",
+    accountArea: "منطقة",
+    accountAreas: "مناطق",
+    accountAdded: "تمت الإضافة",
+    accountManualContextSummary: "السياق اليدوي اختياري وخاص. أضف فقط ما ينبغي أن يشكل نصيحة Aletheia.",
+    accountDailyWisdomEnabled: "تم تفعيل الحكمة اليومية",
+    accountNotificationsSummaryEnabled: "سيستخدم Aletheia تفضيل وقتك المحلي المحفوظ.",
+    accountNotificationsSummaryDisabled: "فعّل تنبيهًا يوميًا هادئًا عندما يكون هذا الجهاز جاهزًا.",
+    accountInstallTitle: "أضف Aletheia إلى الشاشة الرئيسية",
+    accountInstallSummary: "تبقى تعليمات التثبيت مخفية حتى يحتاج أحدهم إلى إعداد يشبه التطبيق.",
+    accountInstallEyebrow: "تثبيت Aletheia",
+    accountInviteTitle: "ادعُ شخصًا بشكل خاص",
+    accountInviteSummary: "شارك رابط Aletheia فقط، ولا تشارك افتراضيًا أي أسئلة خاصة أو مذكرات أو مشورة.",
+    accountInviteEyebrow: "دعوة شخص",
+    accountHistoryConversations: "المحادثات",
+    accountHistoryDecisions: "القرارات",
+    accountHistoryReflections: "التأملات",
+    accountHistorySummary: "يبقى السجل مطويًا حتى ترغب في مراجعة ما تم حفظه.",
+    accountStatConversations: "المحادثات",
+    accountStatDecisions: "القرارات",
+    accountStatJournalEntries: "إدخالات دفتر اليوميات",
+    accountHistoryEmptyBody: "ابدأ بسؤال صادق أو قرار تحت الضغط. سيبقي Aletheia السجل هادئًا ومفيدًا.",
+    accountTrustPostureTitle: "وضعية الثقة والخصوصية",
+    accountTrustPostureSummary: "اعرض الحدود والبيانات المحفوظة وقواعد المشاركة.",
+    accountBoundariesTitle: "ضوابط Aletheia",
+    accountBoundariesSummary: "تبقى حدود الأمان في التطبيق ظاهرة عند الحاجة، من دون أن تعيقك دائمًا.",
+    accountBoundariesBody: "تحميك هذه القيود من نصائح الذكاء الاصطناعي الضارة وتبقي Aletheia مخلصًا لرسالته.",
+    accountFormationPrefix: "التكوين",
+    accountQuietMilestoneSingular: "معلم هادئ",
+    accountQuietMilestonePlural: "معالم هادئة",
+    accountFormationSummary: "التكوين سجل هادئ للممارسة، لا لوحة نتائج.",
+  },
+  hi: {
+    nav: { companion: "घर", decisions: "निर्णय", reflect: "चिंतन", library: "पुस्तकालय", account: "खाता" },
+    decideShort: "निर्णय लें",
+    guardrails: "सुरक्षा सीमाएँ",
+    guardrailItems: ["वित्तीय परिणामों का अनुमान नहीं लगाता।", "शास्त्र संदर्भ नहीं गढ़ता।", "आत्म-हानि, लत या संकट भाषा में मानव सहायता के लिए प्रेरित करता है।"],
+    wisdomMode: "ज्ञान मोड",
+    currentLens: "वर्तमान दृष्टि",
+    offline: "ऑफ़लाइन",
+    languageSelect: "भाषा बदलें",
+    bibleSelect: "बाइबिल अनुवाद बदलें",
+    account: "खाता",
+    askTitle: "Aletheia से पूछें",
+    askIntro: "एक सच्चे प्रश्न से शुरू करें। Aletheia क्षण को धीमा करता है और स्पष्टता से समझने में मदद करता है।",
+    yourQuestion: "आपका प्रश्न",
+    askButton: "पूछें",
+    startHere: "यहां शुरू करें",
+    ready: "तैयार",
+    whatModeFor: "यह मोड किसलिए है",
+    deepChecks: "गहन जांच",
+    blindSpots: "अदृश्य हिस्से",
+    maturitySignals: "परिपक्वता के संकेत",
+    modeGuidance: "मोड मार्गदर्शन",
+    change: "बदलें",
+    showDetails: "विवरण दिखाएँ",
+    hideDetails: "विवरण छिपाएँ",
+    modeGuidancePreview: "इस दृश्य को केंद्रित रखें। जब आप गहन जांच, अंधे हिस्से, और परिपक्वता के संकेत देखना चाहें, तब इसे फैलाएँ।",
+    trustLayer: "विश्वास परत",
+    preferencesTitle: "भाषा और क्षेत्र",
+    language: "भाषा",
+    region: "क्षेत्र",
+    bible: "बाइबिल",
+    voiceControls: "आवाज़ नियंत्रण",
+    available: "उपलब्ध",
+    englishFallback: "अंग्रेज़ी फ़ॉलबैक",
+    greetingMorning: "सुप्रभात",
+    greetingAfternoon: "नमस्कार",
+    greetingEvening: "शुभ संध्या",
+    greetingFallback: "वापसी पर स्वागत है",
+    greetingIntent: "आइए आज एक बुद्धिमान अगला कदम चुनें।",
+    personalizedPriority: "व्यक्तिगत प्राथमिकता",
+    whatNext: "मुझे आगे क्या करना चाहिए?",
+    whatNextBody: "Aletheia पहले एक बुद्धिमान अगला कदम चुनता है। जब आप कुछ नया शुरू करना चाहें, तब प्रश्न और मोड नियंत्रण पास ही रहते हैं।",
+    personalizationNudgeTitle: "क्या आप और व्यक्तिगत सलाह चाहते हैं?",
+    personalizationNudgeBody: "धन, काम, या लय के बारे में एक विवरण जोड़ें।",
+    continueDecision: "इस निर्णय को जारी रखें",
+    askOneQuestion: "एक प्रश्न पूछें",
+    askOneQuestionBody: "उस दबाव या निर्णय से शुरू करें जिसे आप अभी ढो रहे हैं।",
+    askNewQuestion: "नया प्रश्न पूछें",
+    askNewQuestionBody: "Companion इनपुट और ज्ञान मोड पास ही बने रहते हैं।",
+    reflectToday: "आज चिंतन करें",
+    reviewPattern: "पैटर्न की समीक्षा करें",
+    enableNotifications: "सूचनाएँ सक्षम करें",
+    enableSync: "सिंक सक्षम करें",
+    notificationPromptBody: "हर दिन एक शांत ज्ञान-सूचना प्राप्त करें।",
+    syncDevicesBody: "निर्णयों और चिंतन को सभी उपकरणों पर साथ रखें।",
+    startDecision: "निर्णय शुरू करें",
+    startDecisionBody: "एक महत्वपूर्ण विकल्प को समय के साथ ट्रैक करें।",
+    tinyPractice: "छोटी प्रैक्टिस",
+    todaysCompanion: "आज का साथी",
+    todayPrefix: "आज",
+    wisdomPrinciple: "ज्ञान सिद्धांत",
+    reflectionQuestion: "प्रश्न",
+    whatINotice: "जो मैं देखता हूँ",
+    context: "संदर्भ",
+    application: "प्रयोग",
+    carryThisToday: "इसे आज साथ रखें",
+    carryWithMe: "मेरे साथ रखें",
+    weeklyWisdomReview: "साप्ताहिक ज्ञान समीक्षा",
+    weeklyReviewTitle: "आपके सप्ताह पर शांत नज़र",
+    weeklyReviewBody: "कोई दबाव नहीं। बस देखें कि {pattern} आपकी समझ को कैसे आकार दे रहा है।",
+    todayScriptureLabel: "शास्त्र",
+    todayQuestionLabel: "आज का प्रश्न",
+    todayActionsLabel: "आज के कार्य",
+    weeklyReviewHeading: "आपकी साप्ताहिक समीक्षा",
+    weeklyReviewLastWeekLabel: "पिछला सप्ताह",
+    nextFaithfulStep: "अगला निष्ठावान कदम",
+    askAboutThis: "इस बारे में पूछें",
+    saveToRuleOfLife: "जीवन नियम में सहेजें",
+    carryingToday: "आज साथ ले जा रहे हैं",
+    currentCounsel: "वर्तमान सलाह",
+    modeShapesCounsel: "इस सलाह को इस तरह आकार दे रहा है",
+    trackThisDecision: "इस निर्णय को ट्रैक करें",
+    saveAsReflection: "चिंतन के रूप में सहेजें",
+    createCounselSummary: "सलाह सारांश बनाएं",
+    goDeeper: "और गहराई में जाएँ",
+    waitThreeDays: "3 दिन प्रतीक्षा करें",
+    shareAnswerPrompt: "Aletheia को उस व्यक्ति के साथ साझा करें जिसे इस तरह की सलाह से लाभ हो सकता है।",
+    sharePrivacyNote: "इसमें केवल ऐप लिंक साझा होता है, आपका प्रश्न या Aletheia का निजी उत्तर नहीं।",
+    shareAletheia: "Aletheia साझा करें",
+    feedbackQuestion: "क्या यह सलाह उपयोगी थी?",
+    feedbackHelpful: "उपयोगी",
+    feedbackMildlyHelpful: "थोड़ी उपयोगी",
+    feedbackTooVague: "बहुत अस्पष्ट",
+    feedbackTooPreachy: "बहुत उपदेशात्मक",
+    feedbackNotRelevant: "उपयुक्त नहीं",
+    badgesFormation: "बैज / गठन",
+    firstReflectionSaved: "पहला चिंतन सहेजा गया",
+    firstDecisionTracked: "पहला निर्णय ट्रैक हुआ",
+    soughtCounsel: "सलाह ली",
+    waitingModeUsed: "प्रतीक्षा मोड का उपयोग किया गया",
+    ruleOfLifeCreated: "जीवन नियम बनाया",
+    notificationsEnabled: "सूचनाएँ सक्षम की गईं",
+    sevenDaysPractice: "ज्ञान अभ्यास के 7 दिन",
+    formationNote: "ये गठन के शांत संकेत हैं, न कि पीछा करने योग्य लक्ष्य। पहला मील का पत्थर आम तौर पर एक चिंतन सहेजने से शुरू होता है।",
+    milestoneShareTitle: "क्या आप किसी को जानते हैं जो बड़ा निर्णय ले रहा है?",
+    milestoneShareBody: "आप अपने खाते से कुछ भी निजी साझा किए बिना उन्हें Aletheia पर आमंत्रित कर सकते हैं।",
+    welcomeCounsel: "कोई वास्तविक निर्णय, दबाव, या पैसे का प्रश्न लेकर आएँ। मैं क्यूरेटेड ज्ञान पुस्तकालय से उत्तर दूँगा, स्पष्टता के साथ और बिना वित्तीय वादों के।",
+    trustScriptureBody: "शास्त्र संदर्भ Aletheia के क्यूरेटेड ज्ञान पुस्तकालय से आते हैं। यदि कोई पद दिखाई देता है, तो आप उसे टैप करके संदर्भ और उसका महत्व देख सकते हैं।",
+    trustBoundaryBody: "Aletheia परिणामों का वादा नहीं करेगा, बाजारों की भविष्यवाणी नहीं करेगा, दैवीय निश्चितता का दावा नहीं करेगा, या योग्य वित्तीय, कानूनी, कर, चिकित्सा, या देहाती परामर्श की जगह नहीं लेगा।",
+    trustMemoryBody: "साइन-इन मेमोरी निर्णयों, चिंतनों, सलाह और जीवन-नियमों में निरंतरता में मदद करती है। इसे अनावश्यक निजी विवरण उजागर किए बिना मार्गदर्शन को अधिक व्यक्तिगत बनाना चाहिए।",
+    trustConnectedDataBody: "भविष्य के स्वास्थ्य, वित्त, या डिवाइस एकीकरण को स्पष्ट अनुमति के साथ, डिफ़ॉल्ट रूप से बंद, और केवल उसी सटीक डेटा तक सीमित होना चाहिए जिसे उपयोगकर्ता जोड़ना चुनता है।",
+    accountNextEyebrow: "खाते में अगला",
+    accountNextReviewSyncFormation: "सिंक और गठन की समीक्षा करें",
+    accountNextSignInPortable: "Aletheia को अपने साथ ले जाने के लिए साइन इन करें",
+    accountNextActiveBody: "आपका खाता सक्रिय है। जब ज़रूरत हो, प्राथमिकताएँ, इतिहास, और गठन मील के पत्थर देखें।",
+    accountNextSyncBody: "सिंक सक्रिय है। यदि यह उपकरण उसे पाए, तो एक शांत दैनिक ज्ञान-सूचना चालू करें।",
+    accountNextGuestBody: "निर्णय, चिंतन, प्राथमिकताएँ, सलाह, और सूचनाएँ उपकरणों में सिंक करने के लिए Google या ईमेल का उपयोग करें।",
+    accountManageSummary: "साइन-इन, सिंक, भाषा, सूचनाएँ, इतिहास, और गठन मील के पत्थरों को ज्ञान साथी को भीड़ दिए बिना प्रबंधित करें।",
+    accountSignedInAs: "साइन इन किया गया है",
+    accountSignInOrGuest: "साइन इन करें या अतिथि के रूप में जारी रखें",
+    accountSyncActive: "सिंक सक्रिय है।",
+    accountNotificationsNotEnabled: "सूचनाएँ अभी सक्षम नहीं हैं।",
+    accountGuestSummary: "अपना इतिहास, प्राथमिकताएँ, और निर्णय सुरक्षित रखने के लिए साइन इन करें।",
+    accountPreferencesEyebrow: "प्राथमिकताएँ",
+    accountPreferencesSummary: "भाषा, बाइबिल अनुवाद, रूप, क्षेत्र, और आवाज़ यहीं रहें ताकि साथी शांत रहे।",
+    accountContextActive: "संदर्भ सक्रिय",
+    accountContextPaused: "संदर्भ रुका हुआ",
+    accountArea: "क्षेत्र",
+    accountAreas: "क्षेत्र",
+    accountAdded: "जोड़ा गया",
+    accountManualContextSummary: "मैन्युअल संदर्भ वैकल्पिक और निजी है। केवल वही जोड़ें जो Aletheia की सलाह को आकार दे।",
+    accountDailyWisdomEnabled: "दैनिक ज्ञान सक्षम",
+    accountNotificationsSummaryEnabled: "Aletheia आपकी सहेजी हुई स्थानीय समय-प्राथमिकता का उपयोग करेगा।",
+    accountNotificationsSummaryDisabled: "जब यह उपकरण तैयार हो, एक शांत दैनिक याद दिलाने वाला चालू करें।",
+    accountInstallTitle: "Aletheia को होम स्क्रीन पर जोड़ें",
+    accountInstallSummary: "इंस्टॉल निर्देश तब तक छिपे रहते हैं जब तक किसी को ऐप-जैसी सेटअप की ज़रूरत न हो।",
+    accountInstallEyebrow: "Aletheia इंस्टॉल करें",
+    accountInviteTitle: "किसी को निजी तौर पर आमंत्रित करें",
+    accountInviteSummary: "सिर्फ Aletheia लिंक साझा करें, निजी प्रश्न, जर्नल, या सलाह नहीं।",
+    accountInviteEyebrow: "किसी को आमंत्रित करें",
+    accountHistoryConversations: "वार्तालाप",
+    accountHistoryDecisions: "निर्णय",
+    accountHistoryReflections: "चिंतन",
+    accountHistorySummary: "इतिहास तब तक संक्षिप्त रहता है जब तक आप सहेजे गए को देखना न चाहें।",
+    accountStatConversations: "वार्तालाप",
+    accountStatDecisions: "निर्णय",
+    accountStatJournalEntries: "जर्नल प्रविष्टियाँ",
+    accountHistoryEmptyBody: "एक सच्चे प्रश्न या दबाव वाले निर्णय से शुरू करें। Aletheia रिकॉर्ड को शांत और उपयोगी रखेगा।",
+    accountTrustPostureTitle: "विश्वास और गोपनीयता की स्थिति",
+    accountTrustPostureSummary: "सीमाएँ, सहेजा गया डेटा, और साझा करने के नियम देखें।",
+    accountBoundariesTitle: "Aletheia की सुरक्षा सीमाएँ",
+    accountBoundariesSummary: "ज़रूरत पड़ने पर ऐप की सुरक्षा सीमाएँ दिखाई देती हैं, लगातार बाधा नहीं बनतीं।",
+    accountBoundariesBody: "ये सीमाएँ आपको हानिकारक AI सलाह से बचाती हैं और Aletheia को उसके उद्देश्य के प्रति सच्चा रखती हैं।",
+    accountFormationPrefix: "गठन",
+    accountQuietMilestoneSingular: "शांत मील का पत्थर",
+    accountQuietMilestonePlural: "शांत मील के पत्थर",
+    accountFormationSummary: "गठन अभ्यास का शांत रिकॉर्ड है, स्कोरबोर्ड नहीं।",
   },
 };
 
@@ -3591,6 +4065,117 @@ const runtimePanelCopy: Partial<Record<LanguageCode, RuntimePanelCopy>> = {
     fullWisdomLibrary: "Cikakken laburaren hikima",
     moreAnchors: "ƙarin ginshiƙai",
   },
+  tl: {
+    timelineReady: "Handa na ang timeline mo para subaybayan ang mga desisyon, pattern, payo, at pagkatuto.",
+    nextInDecisions: "Susunod sa mga Desisyon",
+    decisionNextTitleDefault: "Pangalanan ang desisyong may bigat",
+    decisionNextBodyActive: "I-update ang payo, gastos, paghihintay, at kapayapaan para magkaroon ng tunay na timeline ang desisyon.",
+    decisionNextBodyEmpty: "Magsimula sa isang desisyon at bigat na kalakip nito. Susubaybayan ni Aletheia ang karunungan, payo, at pagiging handa sa paglipas ng panahon.",
+    decisionCompanionHeading: "Subaybayan ang desisyon hanggang magkaroon ng oras ang karunungan.",
+    decisionCompanionSub: "Memorya, payo, paghihintay, export ng buod, at isang kalmadong signal ng kahandaan para sa malalaking pasya.",
+    ruleOfLife: "Rule of Life",
+    ruleOfLifePrincipleSingular: "prinsipyo",
+    ruleOfLifePrinciplePlural: "mga prinsipyo",
+    ruleOfLifeSummary: "Nanatiling malapit ang mga personal na prinsipyo, pero nakatiklop hanggang hinuhubog mo na ang isang desisyon.",
+    decisionPracticeLine: "Pangalanan kung ano ang sapat para sa panahong ito",
+    nextInReflect: "Susunod sa Pagninilay",
+    reflectNextTitleDefault: "Magsimula sa isang tapat na pangungusap",
+    reflectNextTitleActive: "Tapusin ang pagninilay sa harap mo",
+    reflectNextBodyDefault: "Gamitin ang Wisdom Check para sa mabilis na pagsusuri, o isulat ang napapansin mo tungkol sa pera, trabaho, takot, pagkamapagbigay, o bilis.",
+    reflectNextBodyActive: "I-save ang napapansin mo habang sariwa pa ang pagtingin.",
+    reflectIntro: "Gamitin ang Wisdom Check para pabagalin ang desisyon, tapos i-save ang napapansin mo bago lumipas ang sandali.",
+    wisdomCheck: "Wisdom Check",
+    wisdomCheckSummaryDefault: "Buksan kapag ang isang desisyon ay nangangailangan ng mabilis na pagsusuri.",
+    wisdomCheckUrgency: "napansing apurahan",
+    wisdomCheckSlower: "mas mabagal ang pressure",
+    decisionScan: "Pagsusuri ng desisyon",
+    reflectionHistory: "Kasaysayan ng pagninilay",
+    savedReflectionSingular: "nai-save na pagninilay",
+    savedReflectionPlural: "mga nai-save na pagninilay",
+    reflectionHistorySummaryActive: "Buksan ang mga nakaraan mong pagninilay kapag gusto mong tingnan ang pag-unlad.",
+    reflectionHistorySummaryDefault: "Nandito ang mga nakaraang pagninilay kapag nai-save na.",
+    nextInLibrary: "Susunod sa Aklatan",
+    libraryNextTitleDefault: "Maghanap ng isang tema ng karunungan",
+    libraryNextBodySearch: "Buksan ang isang sanggunian sa Kasulatan para basahin ang konteksto ng sipi at kung bakit ito mahalaga rito.",
+    libraryTryPrefix: "Subukan",
+    libraryDescription: "Isang curated na batayan ng karunungan na may mga application note na may kamalayan sa wika at mga label ng saling pampubliko.",
+    fullWisdomLibrary: "Buong aklatan ng karunungan",
+    moreAnchors: "mas maraming angkla",
+  },
+  ar: {
+    timelineReady: "الخط الزمني جاهز لتتبع القرارات والأنماط والمشورة والتعلم.",
+    nextInDecisions: "التالي في القرارات",
+    decisionNextTitleDefault: "سمِّ القرار تحت الضغط",
+    decisionNextBodyActive: "حدّث المشورة والتكلفة والانتظار والسلام حتى يمتلك القرار خطًا زمنيًا حقيقيًا.",
+    decisionNextBodyEmpty: "ابدأ بقرار واحد والضغط المرتبط به. سيتابع Aletheia الحكمة والمشورة والاستعداد مع الوقت.",
+    decisionCompanionHeading: "تابع القرار حتى يكون لدى الحكمة وقت لتعمل.",
+    decisionCompanionSub: "الذاكرة والمشورة والانتظار وتصدير الملخص وإشارة هادئة للاستعداد للقرارات الكبيرة.",
+    ruleOfLife: "قاعدة الحياة",
+    ruleOfLifePrincipleSingular: "مبدأ",
+    ruleOfLifePrinciplePlural: "مبادئ",
+    ruleOfLifeSummary: "تظل المبادئ الشخصية قريبة، لكنها مطوية حتى تكون بصدد تشكيل قرار.",
+    decisionPracticeLine: "سمِّ ما يكفي لهذا الموسم",
+    nextInReflect: "التالي في التأمل",
+    reflectNextTitleDefault: "ابدأ بجملة صادقة واحدة",
+    reflectNextTitleActive: "أكمل التأمل أمامك",
+    reflectNextBodyDefault: "استخدم فحص الحكمة لإجراء مسح سريع، أو اكتب ما تلاحظه عن المال أو العمل أو الخوف أو الكرم أو الوتيرة.",
+    reflectNextBodyActive: "احفظ ما تلاحظه بينما لا يزال الفهم جديدًا.",
+    reflectIntro: "استخدم فحص الحكمة لإبطاء القرار، ثم احفظ ما تلاحظه قبل أن تمر اللحظة.",
+    wisdomCheck: "فحص الحكمة",
+    wisdomCheckSummaryDefault: "افتحه عندما يحتاج القرار إلى مسح سريع للتمييز.",
+    wisdomCheckUrgency: "تمت ملاحظة العجلة",
+    wisdomCheckSlower: "الضغط يبدو أهدأ",
+    decisionScan: "مسح القرار",
+    reflectionHistory: "سجل التأمل",
+    savedReflectionSingular: "تأمل محفوظ",
+    savedReflectionPlural: "تأملات محفوظة",
+    reflectionHistorySummaryActive: "افتح تأملاتك السابقة عندما تريد مراجعة النمو.",
+    reflectionHistorySummaryDefault: "ستبقى التأملات السابقة هنا بعد حفظها.",
+    nextInLibrary: "التالي في المكتبة",
+    libraryNextTitleDefault: "ابحث عن موضوع حكمة واحد",
+    libraryNextBodySearch: "افتح مرجعًا كتابيًا لقراءة سياق المقطع ولماذا يهم هنا.",
+    libraryTryPrefix: "جرّب",
+    libraryDescription: "قاعدة حكمة منسقة مع ملاحظات تطبيق تراعي اللغة وتسميات الترجمات العامة.",
+    fullWisdomLibrary: "مكتبة الحكمة الكاملة",
+    moreAnchors: "مراسي أكثر",
+  },
+  hi: {
+    timelineReady: "आपकी टाइमलाइन निर्णयों, पैटर्न, सलाह और सीख को ट्रैक करने के लिए तैयार है।",
+    nextInDecisions: "निर्णयों में अगला",
+    decisionNextTitleDefault: "दबाव वाले निर्णय का नाम दें",
+    decisionNextBodyActive: "सलाह, लागत, प्रतीक्षा, और शांति संकेतों को अपडेट करें ताकि निर्णय का एक वास्तविक टाइमलाइन हो।",
+    decisionNextBodyEmpty: "एक निर्णय और उससे जुड़े दबाव से शुरू करें। Aletheia समय के साथ बुद्धि, सलाह, और तैयारी को ट्रैक करेगा।",
+    decisionCompanionHeading: "निर्णय को तब तक ट्रैक करें जब तक बुद्धि को काम करने का समय न मिल जाए।",
+    decisionCompanionSub: "स्मृति, सलाह, प्रतीक्षा, सारांश निर्यात, और बड़े विकल्पों के लिए एक शांत तैयारी संकेत।",
+    ruleOfLife: "जीवन नियम",
+    ruleOfLifePrincipleSingular: "सिद्धांत",
+    ruleOfLifePrinciplePlural: "सिद्धांत",
+    ruleOfLifeSummary: "व्यक्तिगत सिद्धांत पास रहते हैं, लेकिन तब तक संक्षिप्त रहते हैं जब तक आप किसी निर्णय को आकार नहीं दे रहे।",
+    decisionPracticeLine: "इस मौसम के लिए क्या पर्याप्त है, उसका नाम दें",
+    nextInReflect: "चिंतन में अगला",
+    reflectNextTitleDefault: "एक सच्चे वाक्य से शुरू करें",
+    reflectNextTitleActive: "अपने सामने चल रहे चिंतन को पूरा करें",
+    reflectNextBodyDefault: "त्वरित विवेक स्कैन के लिए Wisdom Check का उपयोग करें, या धन, काम, डर, उदारता, या गति के बारे में जो आप देखते हैं, उसे लिखें।",
+    reflectNextBodyActive: "जो आप देख रहे हैं उसे तब तक सहेजें जब तक अंतर्दृष्टि ताज़ा है।",
+    reflectIntro: "निर्णय को धीमा करने के लिए Wisdom Check का उपयोग करें, फिर क्षण बीतने से पहले जो आप देखते हैं उसे सहेजें।",
+    wisdomCheck: "Wisdom Check",
+    wisdomCheckSummaryDefault: "जब किसी निर्णय को त्वरित विवेक स्कैन की ज़रूरत हो, खोलें।",
+    wisdomCheckUrgency: "जल्दबाज़ी देखी गई",
+    wisdomCheckSlower: "दबाव धीमा लग रहा है",
+    decisionScan: "निर्णय स्कैन",
+    reflectionHistory: "चिंतन इतिहास",
+    savedReflectionSingular: "सहेजा गया चिंतन",
+    savedReflectionPlural: "सहेजे गए चिंतन",
+    reflectionHistorySummaryActive: "जब आप वृद्धि की समीक्षा करना चाहें, तो पिछले चिंतन खोलें।",
+    reflectionHistorySummaryDefault: "सहेजे जाने के बाद पिछले चिंतन यहीं रहेंगे।",
+    nextInLibrary: "पुस्तकालय में अगला",
+    libraryNextTitleDefault: "एक ज्ञान विषय खोजें",
+    libraryNextBodySearch: "संदर्भ का पाठ और यह यहाँ क्यों मायने रखता है, पढ़ने के लिए एक शास्त्र संदर्भ खोलें।",
+    libraryTryPrefix: "आजमाएँ",
+    libraryDescription: "भाषा-सचेत अनुप्रयोग नोट्स और सार्वजनिक-डोमेन अनुवाद लेबल वाला एक क्यूरेटेड ज्ञान आधार।",
+    fullWisdomLibrary: "पूर्ण ज्ञान पुस्तकालय",
+    moreAnchors: "और अधिक एंकर",
+  },
 };
 
 function runtimeCopyFor(language: LanguageCode): RuntimePanelCopy {
@@ -5002,7 +5587,7 @@ function resolveTodayVisualPlacement({
   const isWarmMood = mood === "warm";
   const isQuietMood = mood === "contemplative";
 
-  let wrapperClassName = "mt-8 w-full self-stretch md:mt-0 md:self-start md:justify-self-end";
+  let wrapperClassName = "mt-4 w-full self-stretch md:mt-0 md:self-start md:justify-self-end";
   let imageClassName = "object-cover";
   let objectPosition = "center 36%";
   let overlayGradient = "linear-gradient(180deg, rgba(8, 11, 10, 0.00) 0%, rgba(8, 11, 10, 0.02) 48%, rgba(8, 11, 10, 0.14) 100%)";
@@ -5011,7 +5596,7 @@ function resolveTodayVisualPlacement({
   let figureOpacity = 1;
 
   if (fallbackLevel === "illustration") {
-    wrapperClassName = "mt-7 w-full self-stretch md:mt-0 md:self-start md:justify-self-end";
+    wrapperClassName = "mt-3 w-full self-stretch md:mt-0 md:self-start md:justify-self-end";
     imageClassName = "object-contain";
     objectPosition = "center 44%";
     overlayGradient = "linear-gradient(180deg, rgba(8, 11, 10, 0.00) 0%, rgba(8, 11, 10, 0.02) 52%, rgba(8, 11, 10, 0.12) 100%)";
@@ -5019,7 +5604,7 @@ function resolveTodayVisualPlacement({
     figureWidth = "100%";
     figureOpacity = 0.98;
   } else if (fallbackLevel === "fallback") {
-    wrapperClassName = "mt-7 w-full self-stretch md:mt-0 md:self-start md:justify-self-end";
+    wrapperClassName = "mt-3 w-full self-stretch md:mt-0 md:self-start md:justify-self-end";
     imageClassName = "object-contain";
     objectPosition = "center 46%";
     overlayGradient = "linear-gradient(180deg, rgba(8, 11, 10, 0.00) 0%, rgba(8, 11, 10, 0.03) 54%, rgba(8, 11, 10, 0.10) 100%)";
@@ -5029,15 +5614,15 @@ function resolveTodayVisualPlacement({
   }
 
   if (isMorningSunriseTheme) {
-    wrapperClassName = wrapperClassName.replace("mt-8", "mt-10");
+    wrapperClassName = wrapperClassName.replace("mt-4", "mt-5");
     objectPosition = "center 30%";
     overlayGradient = "linear-gradient(180deg, rgba(8, 11, 10, 0.00) 0%, rgba(8, 11, 10, 0.03) 42%, rgba(8, 11, 10, 0.16) 100%)";
   } else if (isWinterTheme) {
-    wrapperClassName = wrapperClassName.replace("mt-8", "mt-9");
+    wrapperClassName = wrapperClassName.replace("mt-4", "mt-5");
     objectPosition = "center 48%";
     overlayGradient = "linear-gradient(180deg, rgba(8, 11, 10, 0.00) 0%, rgba(8, 11, 10, 0.04) 44%, rgba(8, 11, 10, 0.18) 100%)";
   } else if (isWeekendTheme) {
-    wrapperClassName = wrapperClassName.replace("mt-8", "mt-9");
+    wrapperClassName = wrapperClassName.replace("mt-4", "mt-5");
     objectPosition = "center 40%";
     overlayGradient = "linear-gradient(180deg, rgba(8, 11, 10, 0.00) 0%, rgba(8, 11, 10, 0.03) 46%, rgba(8, 11, 10, 0.14) 100%)";
   } else if (isAfternoon) {
@@ -5175,6 +5760,7 @@ function TodayVisualPanel({
   month,
   dayOfWeek,
   theme,
+  caption,
 }: {
   themeName: string;
   dayNumber: number;
@@ -5183,6 +5769,7 @@ function TodayVisualPanel({
   month: number | null;
   dayOfWeek: number | null;
   theme: ThemeColors;
+  caption: string;
 }) {
   const [imageFailed, setImageFailed] = useState(false);
   const asset = useMemo(
@@ -5208,57 +5795,48 @@ function TodayVisualPanel({
 
   return (
     <figure
-      className={`relative w-full min-w-0 overflow-hidden rounded-[1.35rem] border shadow-sm ${placement.wrapperClassName}`}
+      className={`relative w-full min-w-0 overflow-hidden rounded-[1.9rem] ${placement.wrapperClassName}`}
       style={{
-        borderColor: theme.borderLight,
         background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})`,
-        boxShadow: "0 8px 20px rgba(12, 18, 16, 0.08)",
-        minHeight: placement.figureMinHeight,
+        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.14), 0 22px 44px rgba(12, 18, 16, 0.10)",
+        minHeight: "318px",
         width: placement.figureWidth,
         opacity: placement.figureOpacity,
+        aspectRatio: "0.8",
       }}
       aria-hidden="true"
     >
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_16%,rgba(208,173,85,0.16),transparent_42%),radial-gradient(circle_at_84%_20%,rgba(32,58,53,0.18),transparent_35%)]" />
-      <div className="absolute inset-0 p-3">
-        <div
-          className="relative h-full overflow-hidden rounded-[1.15rem] border shadow-[0_18px_34px_rgba(7,10,8,0.12)]"
-          style={{
-            borderColor: theme.borderLight,
-            background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})`,
-          }}
-        />
-        <div
-          className="absolute inset-0 overflow-hidden rounded-[1.15rem]"
-          style={{
-            WebkitMaskImage: "linear-gradient(180deg, transparent 0%, black 16%, black 82%, transparent 100%)",
-            maskImage: "linear-gradient(180deg, transparent 0%, black 16%, black 82%, transparent 100%)",
-          }}
-        >
-          {usingPhoto ? (
-            <Image
-              src={asset.imageUrl}
-              alt=""
-              fill
-              sizes="(max-width: 768px) 100vw, 240px"
-              className={`object-cover transition-transform duration-500 ${placement.imageClassName} scale-[1.03]`}
-              style={{ objectPosition: placement.objectPosition }}
-              onError={() => setImageFailed(true)}
-              unoptimized
-              priority={false}
-            />
-          ) : (
-            <div className="absolute inset-0">
-              <TodayVisualScene variant={asset.kind === "illustration" ? asset.variant : "stillness"} theme={theme} />
-            </div>
-          )}
-          <div
-            className="absolute inset-0"
-            style={{
-              background: `linear-gradient(180deg, rgba(4, 7, 6, 0.02) 0%, rgba(4, 7, 6, 0.05) 34%, rgba(4, 7, 6, 0.18) 70%, rgba(4, 7, 6, 0.30) 100%), ${placement.overlayGradient}`,
-            }}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_16%_12%,rgba(208,173,85,0.14),transparent_38%),radial-gradient(circle_at_84%_18%,rgba(26,48,44,0.2),transparent_34%),linear-gradient(180deg,rgba(8,11,10,0.00)0%,rgba(8,11,10,0.02)38%,rgba(8,11,10,0.14)68%,rgba(8,11,10,0.42)100%)]" />
+      <div
+        className="absolute inset-0"
+        style={{
+          WebkitMaskImage: "linear-gradient(180deg, transparent 0%, black 6%, black 92%, transparent 100%)",
+          maskImage: "linear-gradient(180deg, transparent 0%, black 6%, black 92%, transparent 100%)",
+        }}
+      >
+        {usingPhoto ? (
+          <Image
+            src={asset.imageUrl}
+            alt=""
+            fill
+            sizes="(max-width: 768px) 100vw, 240px"
+            className={`object-cover transition-transform duration-500 ${placement.imageClassName} scale-[1.1]`}
+            style={{ objectPosition: placement.objectPosition }}
+            onError={() => setImageFailed(true)}
+            unoptimized
+            priority={false}
           />
-        </div>
+        ) : (
+          <div className="absolute inset-0">
+            <TodayVisualScene variant={asset.kind === "illustration" ? asset.variant : "stillness"} theme={theme} />
+          </div>
+        )}
+      </div>
+      <div className="absolute inset-x-0 bottom-0 h-36 bg-gradient-to-t from-[rgba(8,11,10,0.56)] via-[rgba(8,11,10,0.16)] to-transparent" />
+      <div className="absolute inset-x-0 bottom-0 p-4 sm:p-5">
+        <p className="max-w-[13.75rem] text-[0.88rem] font-medium leading-6 tracking-[-0.01em] text-balance text-white/90 drop-shadow-[0_1px_2px_rgba(0,0,0,0.24)] sm:text-[0.93rem] sm:leading-7">
+          {caption}
+        </p>
       </div>
     </figure>
   );
@@ -5623,7 +6201,7 @@ export function AletheiaApp() {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [speechPaused, setSpeechPaused] = useState(false);
   const [speechProgress, setSpeechProgress] = useState(0);
-  const [readingLabel, setReadingLabel] = useState("Aletheia reading");
+  const [readingLabel, setReadingLabel] = useState("");
   const [carryToday, setCarryToday] = useState<CarryToday | null>(null);
   const [scriptureMemory, setScriptureMemory] = useState<ScriptureMemory | null>(null);
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
@@ -5632,12 +6210,12 @@ export function AletheiaApp() {
   const [voiceRecognition, setVoiceRecognition] = useState<{ stop: () => void } | null>(null);
   const [selectedScripture, setSelectedScripture] = useState<string | null>(null);
   const [isWorking, setIsWorking] = useState(false);
-  const [statusMessage, setStatusMessage] = useState("Checking your sign-in status...");
+  const [statusMessage, setStatusMessage] = useState("");
   const [workflowNotice, setWorkflowNotice] = useState<WorkflowNoticeState | null>(null);
   const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
   const [showReportIssueModal, setShowReportIssueModal] = useState(false);
   const [accountActionBusy, setAccountActionBusy] = useState<"export" | "delete" | "report" | null>(null);
-  const [notificationStatus, setNotificationStatus] = useState("Checking notification support...");
+  const [notificationStatus, setNotificationStatus] = useState("");
   const [notificationAccountEnabled, setNotificationAccountEnabled] = useState(false);
   const [notificationDeviceSubscribed, setNotificationDeviceSubscribed] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
@@ -5715,6 +6293,9 @@ export function AletheiaApp() {
   const translations = useMemo(() => {
     return loadTranslationsWithFallbackSync(preferences.language);
   }, [preferences.language]);
+  const rawTranslations = useMemo(() => {
+    return loadTranslationsSync(preferences.language);
+  }, [preferences.language]);
   
   const workspaceRef = useRef<HTMLElement | null>(null);
   const bottomNavRef = useRef<HTMLDivElement | null>(null);
@@ -5787,15 +6368,64 @@ export function AletheiaApp() {
   }, []);
 
   const translationHelpers = useMemo(() => {
+    const missingTranslationToken = "__aletheia_missing_translation__";
     const resolveFallback = (key: string, fallback?: string) => fallback?.trim() ? fallback : key;
-    const t = (key: string, fallback?: string): string | string[] => getTranslation(translations, key, resolveFallback(key, fallback));
+    const assertLocaleKeyExistsInDev = (key: string, fallback: string) => {
+      // Development throws loudly so we can catch missing locale coverage early.
+      // Production still uses the merged English fallback by design to avoid user-facing breakage.
+      if (process.env.NODE_ENV === "production" || preferences.language === "en") {
+        return;
+      }
+      const rawValue = getTranslation(rawTranslations, key, missingTranslationToken);
+      if (rawValue === missingTranslationToken) {
+        throw new Error(`Missing translation for ${preferences.language}.${key}. English fallback would be "${fallback}".`);
+      }
+    };
+    const t = (key: string, fallback?: string): string | string[] => {
+      const resolvedFallback = resolveFallback(key, fallback);
+      const result = getTranslation(translations, key, resolvedFallback);
+      assertLocaleKeyExistsInDev(key, resolvedFallback);
+      return result;
+    };
     const ts = (key: string, fallback?: string): string => {
       const result = t(key, fallback);
       return Array.isArray(result) ? result.join(', ') : result;
     };
     return { t, ts };
-  }, [translations]);
+  }, [preferences.language, rawTranslations, translations]);
   const { ts } = translationHelpers;
+  const apiErrorKeyMap: Record<string, string> = {
+    sign_in_required: "apiSignInRequired",
+    rate_limited: "apiRateLimited",
+    invalid_input: "apiInvalidInput",
+    invalid_json: "apiInvalidInput",
+    body_required: "apiInvalidInput",
+    body_too_large: "apiInvalidInput",
+    not_configured: "apiNotConfigured",
+    unavailable: "apiUnavailable",
+    not_found: "apiNotFound",
+    permission_denied: "apiPermissionDenied",
+    save_failed: "apiSaveFailed",
+    invalid_subscription: "apiInvalidSubscription",
+    confirm_delete: "apiConfirmDelete",
+    invalid_image: "apiInvalidImage",
+    invalid_credentials: "auth.authenticationFailed",
+    authentication_failed: "auth.authenticationFailed",
+    account_exists: "status.accountAlreadyExistsSignIn",
+    sign_in_not_finish: "notifications.signInNotFinish",
+  };
+  const resolveApiErrorMessage = (error?: string | null, errorCode?: string | null, fallbackKey?: string) => {
+    // Prefer structured error codes, then locale keys, and only then raw English text.
+    // That keeps the app resilient in production while still localizing the visible message when possible.
+    const key = errorCode ? apiErrorKeyMap[errorCode] : null;
+    if (key) {
+      return ts(key);
+    }
+    if (fallbackKey) {
+      return ts(fallbackKey);
+    }
+    return error ?? ts('apiUnavailable');
+  };
 
   // Build ui object from translations for backward compatibility
   const buildUiFromTranslations = (trans: TranslationData) => {
@@ -5806,6 +6436,13 @@ export function AletheiaApp() {
     
     // Helper to ensure string type
     const getString = (key: string, fallback: string): string => {
+      // Dev-only guard: fail fast for missing keys, but keep English fallback in production.
+      if (process.env.NODE_ENV !== "production" && preferences.language !== "en") {
+        const rawValue = getTranslation(rawTranslations, key, "__aletheia_missing_translation__");
+        if (rawValue === "__aletheia_missing_translation__") {
+          throw new Error(`Missing translation for ${preferences.language}.${key}. English fallback would be "${fallback || key}".`);
+        }
+      }
       const result = getTranslation(trans, key, fallback || key);
       return Array.isArray(result) ? result.join(', ') : result;
     };
@@ -7230,7 +7867,7 @@ export function AletheiaApp() {
 
   function reflectOnToday() {
     setJournalTitle(`${localizedWisdomThemeLabel(daily.theme, preferences.language)} ${ts('labels.reflection')}`);
-    setJournalBody(`${daily.practice}\n\n${ui.whatINotice ?? "What I notice"}:\n`);
+    setJournalBody(`${daily.practice}\n\n${ui.whatINotice ?? ""}:\n`);
     showView("reflect");
     announceWorkflow(ts('notifications.reflectionPrepared'), ts('notifications.reflectionPreparedBody'), "success");
   }
@@ -7341,8 +7978,8 @@ export function AletheiaApp() {
         { label: ts('labels.principle'), text: card.principle },
         { label: ts('labels.tinyPractice'), text: card.practice },
         { label: ts('labels.carryThisToday'), text: card.carryPhrase },
-        { label: ui.context ?? "Context", text: dailyEntry.context },
-        { label: ui.application ?? "Application", text: dailyEntry.application },
+        { label: ui.context ?? "", text: dailyEntry.context },
+        { label: ui.application ?? "", text: dailyEntry.application },
       ],
     }, "today_companion_card");
   }
@@ -7427,7 +8064,7 @@ export function AletheiaApp() {
   function reflectOnCompanionCard(card: TodayCompanionCard) {
     setJournalTitle(`${ts('todayPrefix')}: ${card.title}`);
     setJournalBody(
-      `${card.opening}\n\n${ui.wisdomPrinciple ?? "Wisdom principle"}:\n${card.principle}\n\n${ui.context ?? "Context"}:\n${dailyEntry.context}\n\n${ui.application ?? "Application"}:\n${dailyEntry.application}\n\n${ts('labels.tinyPractice')}:\n${card.practice}\n\n${ts('labels.reflectionQuestion')}:\n${card.question}\n\n${ui.whatINotice ?? "What I notice"}:\n`
+      `${card.opening}\n\n${ui.wisdomPrinciple ?? ""}:\n${card.principle}\n\n${ui.context ?? ""}:\n${dailyEntry.context}\n\n${ui.application ?? ""}:\n${dailyEntry.application}\n\n${ts('labels.tinyPractice')}:\n${card.practice}\n\n${ts('labels.reflectionQuestion')}:\n${card.question}\n\n${ui.whatINotice ?? ""}:\n`
     );
     showView("reflect");
     announceWorkflow(ts('notifications.reflectionPrepared'), ts('notifications.reflectionPreparedBody'), "success");
@@ -7555,7 +8192,7 @@ export function AletheiaApp() {
     const question = cleanDisplayText(exchange.question?.text ?? "Recent counsel");
     const answer = cleanDisplayText(exchange.answer.text);
     setJournalTitle(`Reflection: ${question.slice(0, 70)}`);
-    setJournalBody(`${ts('labels.reflectionQuestion')}:\n${question}\n\n${ui.currentCounsel ?? "Current counsel"}:\n${answer}\n\n${ui.whatINotice ?? "What I notice"}:\n`);
+    setJournalBody(`${ts('labels.reflectionQuestion')}:\n${question}\n\n${ui.currentCounsel ?? ""}:\n${answer}\n\n${ui.whatINotice ?? ""}:\n`);
     trackClientEvent("answer_saved_or_acted", { action: "draft_reflection", mode, ...analyticsQuestionMetadata(question, mode) });
     showView("reflect");
     announceWorkflow(ts('notifications.reflectionDraftPrepared'), ts('notifications.reflectionDraftPreparedBody'), "success");
@@ -7790,8 +8427,8 @@ export function AletheiaApp() {
     try {
       const response = await fetch("/api/account/export");
       if (!response.ok) {
-        const data = (await response.json().catch(() => ({}))) as { error?: string };
-        throw new Error(data.error || ts('notifications.exportPreparationFailedBody'));
+        const data = (await response.json().catch(() => ({}))) as { error?: string; errorCode?: string };
+        throw new Error(resolveApiErrorMessage(data.error, data.errorCode, 'notifications.exportPreparationFailedBody'));
       }
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
@@ -7823,9 +8460,9 @@ export function AletheiaApp() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ confirmation }),
       });
-      const data = (await response.json().catch(() => ({}))) as { error?: string };
+      const data = (await response.json().catch(() => ({}))) as { error?: string; errorCode?: string };
       if (!response.ok) {
-        throw new Error(data.error || ts('notifications.accountDeleteFailedBody'));
+        throw new Error(resolveApiErrorMessage(data.error, data.errorCode, 'notifications.accountDeleteFailedBody'));
       }
       await authSignOut({ redirect: false }).catch(() => undefined);
       setShowDeleteAccountModal(false);
@@ -7865,9 +8502,9 @@ export function AletheiaApp() {
           language: preferences.language,
         }),
       });
-      const data = (await response.json().catch(() => ({}))) as { error?: string };
+      const data = (await response.json().catch(() => ({}))) as { error?: string; errorCode?: string };
       if (!response.ok) {
-        throw new Error(data.error || ts('notifications.reportFailedBody'));
+        throw new Error(resolveApiErrorMessage(data.error, data.errorCode, 'notifications.reportFailedBody'));
       }
       setShowReportIssueModal(false);
       announceWorkflow(ts('notifications.reportSent'), ts('notifications.reportSentBody'), "success");
@@ -7985,7 +8622,7 @@ export function AletheiaApp() {
     if (!latest) {
       return;
     }
-    speakText(latest.text, "Aletheia is reading the latest response in your selected language voice when available.", "Current counsel");
+    speakText(latest.text, ts('notifications.readingAloud'), ts('currentCounsel'));
   }
 
   function toggleSpeechPause() {
@@ -8013,8 +8650,8 @@ export function AletheiaApp() {
 
   function speakText(
     text: string,
-    notice = "Aletheia is reading this aloud in your selected language voice when available.",
-    label = "Aletheia reading"
+    notice = ts('notifications.readingAloud'),
+    label = ts('currentCounsel')
   ) {
     if (!("speechSynthesis" in window)) {
       setPreferencesStatus(ts('notifications.voiceOutputUnavailableBody'));
@@ -8122,11 +8759,11 @@ export function AletheiaApp() {
     const userMessage: ChatMessage = { id: crypto.randomUUID(), role: "user", mode, text: trimmed };
     setIsWorking(true);
     announceWorkflow(ts('notifications.questionSent'), ts('notifications.questionSentBody'), "info");
-    setMessages((current) => [
-      ...current,
-      userMessage,
-      { id: "thinking", role: "aletheia", mode, text: "Retrieving grounded wisdom..." },
-    ]);
+      setMessages((current) => [
+        ...current,
+        userMessage,
+      { id: "thinking", role: "aletheia", mode, text: ts('notifications.retrievingWisdom') },
+      ]);
     setQuery("");
 
     try {
@@ -8145,11 +8782,12 @@ export function AletheiaApp() {
       const data = (await response.json()) as {
         reply?: ChatMessage;
         error?: string;
+        errorCode?: string;
         persisted?: boolean;
         usedOpenAI?: boolean;
       };
       if (!response.ok || !data.reply) {
-        throw new Error(data.error ?? "Aletheia could not answer right now.");
+        throw new Error(resolveApiErrorMessage(data.error, data.errorCode, 'notifications.answerUnavailableBody'));
       }
       setMessages((current) =>
         current.map((message) => (message.id === "thinking" ? data.reply! : message))
@@ -8199,7 +8837,7 @@ export function AletheiaApp() {
     setIsWorking(true);
     setAuthStatus("signing-in");
     setAuthError("");
-    setAuthNotice(authMode === "register" ? "Creating your Aletheia account..." : "Signing you in...");
+    setAuthNotice(ts('auth.signingIn'));
 
     try {
       const response = await fetch(`/api/auth/${authMode}`, {
@@ -8211,9 +8849,9 @@ export function AletheiaApp() {
           password: authPassword,
         }),
       });
-      const data = (await response.json()) as { user?: User; error?: string; isNewUser?: boolean; welcomeMessage?: string };
+      const data = (await response.json()) as { user?: User; error?: string; errorCode?: string; isNewUser?: boolean; welcomeMessage?: string };
       if (!response.ok || !data.user) {
-        throw new Error(data.error ?? "Authentication failed.");
+        throw new Error(resolveApiErrorMessage(data.error, data.errorCode, 'auth.authenticationFailed'));
       }
       setAuthPassword("");
       setUser(data.user);
@@ -8239,7 +8877,7 @@ export function AletheiaApp() {
       setShowOnboarding(false);
     } catch (error) {
       setAuthStatus("guest");
-      const message = error instanceof Error ? error.message : "Authentication failed.";
+      const message = error instanceof Error ? error.message : ts('auth.authenticationFailed');
       const failureMetadata: AnalyticsMetadata = {
         method: "email",
         flow: authMode,
@@ -8253,7 +8891,7 @@ export function AletheiaApp() {
         failureMetadata.category = "validation";
         failureMetadata.reason = "account_exists";
         setAuthMode("login");
-        setAuthNotice("That email already has an Aletheia account. Sign in below to continue.");
+        setAuthNotice(ts('status.accountAlreadyExistsSignIn'));
         setStatusMessage(ts('status.accountAlreadyExistsSignIn'));
       } else if (message.toLowerCase().includes("invalid email or password")) {
         failureMetadata.category = "bad_credentials";
@@ -8281,12 +8919,12 @@ export function AletheiaApp() {
     }
     setAuthStatus("signing-out");
     trackClientEvent("auth_logout", { hadUser: Boolean(user) });
-    setAuthNotice("Signing out...");
+    setAuthNotice(ts('auth.signingOut'));
     await fetch("/api/auth/logout", { method: "POST" });
     await authSignOut({ redirect: false }).catch(() => undefined);
     setUser(null);
     setAuthStatus("guest");
-    setAuthNotice("Signed out. Guest mode is active.");
+    setAuthNotice(ts('status.signedOutGuest'));
     clearLocalPrivateWorkspace();
     setNotificationsEnabled(false);
     setNotificationAccountEnabled(false);
@@ -8297,7 +8935,7 @@ export function AletheiaApp() {
 
   async function handleGoogleSignIn() {
     if (!googleAuthAvailable) {
-      setAuthError("Google sign-in is not configured yet. You can still sign in with email.");
+      setAuthError(ts('notifications.googleUnavailableBody'));
       setAuthNotice("");
       announceWorkflow(ts('notifications.googleUnavailable'), ts('notifications.googleUnavailableBody'), "warning");
       return;
@@ -8305,7 +8943,7 @@ export function AletheiaApp() {
     setAuthStatus("signing-in");
     trackClientEvent("auth_signin_started", { method: "google", flow: "oauth_start" });
     setAuthError("");
-    setAuthNotice("Opening Google sign-in. You will return to Account when it finishes.");
+    setAuthNotice(ts('notifications.openingGoogleBody'));
     setStatusMessage(ts('status.openingGoogleSignIn'));
     announceWorkflow(ts('notifications.openingGoogle'), ts('notifications.openingGoogleBody'), "info");
     try {
@@ -8314,8 +8952,8 @@ export function AletheiaApp() {
       });
     } catch (error) {
       const message = error instanceof Error
-        ? "Google sign-in could not be started. Please try again or use email below instead."
-        : "Google sign-in could not be started. Please try again or use email below instead.";
+        ? ts('notifications.signInNotFinish')
+        : ts('notifications.signInNotFinish');
       trackAuthFailure({
         method: "google",
         flow: "oauth_start",
@@ -8351,9 +8989,9 @@ export function AletheiaApp() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ avatarUrl: rawAvatarUrl || null }),
     });
-    const data = (await response.json()) as { user?: User; error?: string };
+    const data = (await response.json()) as { user?: User; error?: string; errorCode?: string };
     if (!response.ok) {
-      announceWorkflow(ts('notifications.profileUpdateFailed'), data.error || ts('notifications.profileUpdateFailedBody'), "error");
+      announceWorkflow(ts('notifications.profileUpdateFailed'), resolveApiErrorMessage(data.error, data.errorCode, 'notifications.profileUpdateFailedBody'), "error");
       return false;
     }
     if (!data.user) {
@@ -8413,7 +9051,7 @@ export function AletheiaApp() {
       setNotificationPermission(permission);
       if (permission !== "granted") {
         trackClientEvent("notification_enable_failed", { reason: "permission_denied", permission });
-        setNotificationStatus("Notifications were not enabled. You can allow them later in browser settings.");
+        setNotificationStatus(ts('notifications.notificationsNotEnabledBody'));
         announceWorkflow(ts('notifications.notificationsNotEnabled'), ts('notifications.notificationsNotEnabledBody'), "warning");
         return;
       }
@@ -8422,7 +9060,7 @@ export function AletheiaApp() {
       const keyData = (await keyResponse.json()) as { publicKey?: string };
       if (!keyData.publicKey) {
         trackClientEvent("notification_enable_failed", { reason: "missing_public_key" });
-        setNotificationStatus("Notifications are missing a public key.");
+        setNotificationStatus(ts('notifications.notificationKeyMissingBody'));
         announceWorkflow(ts('notifications.notificationKeyMissing'), ts('notifications.notificationKeyMissingBody'), "error");
         return;
       }
@@ -8451,7 +9089,7 @@ export function AletheiaApp() {
       }, preferredHour);
       if (!response.ok) {
         trackClientEvent("notification_enable_failed", { reason: "subscription_save_failed" });
-        setNotificationStatus("Could not save notification preference.");
+        setNotificationStatus(ts('notifications.notificationSyncFailedBody'));
         announceWorkflow(ts('notifications.notificationSyncFailed'), ts('notifications.notificationSyncFailedBody'), "error");
         return;
       }
@@ -8472,7 +9110,7 @@ export function AletheiaApp() {
       trackClientEvent("notification_enable_failed", { reason: "client_exception" });
       setNotificationsEnabled(false);
       setNotificationDeviceSubscribed(false);
-      setNotificationStatus("Notifications could not be enabled on this device. Please try again.");
+      setNotificationStatus(ts('notifications.notificationSetupFailedBody'));
       announceWorkflow(ts('notifications.notificationSetupFailed'), ts('notifications.notificationSetupFailedBody'), "error");
     } finally {
       setNotificationBusy(false);
@@ -8548,7 +9186,7 @@ export function AletheiaApp() {
 
   async function updateNotificationTiming(patch: Partial<NotificationTiming>) {
     if (notificationBusy) {
-      setNotificationStatus("Still saving your previous timing change. Please wait a moment and try again.");
+      setNotificationStatus(ts('notifications.preferencesSaving'));
       return;
     }
 
@@ -8573,7 +9211,7 @@ export function AletheiaApp() {
       timezoneMode: nextTiming.timezoneMode,
       notificationsEnabled,
     });
-    setNotificationStatus("Daily wisdom time saved on this device.");
+    setNotificationStatus(ts('notifications.preferencesSavedBody'));
     if (!user) {
       return;
     }
@@ -8581,11 +9219,11 @@ export function AletheiaApp() {
       setNotificationBusy(true);
       const timingResponse = await saveNotificationTimingPreference(nextTiming);
       if (!timingResponse.ok) {
-        setNotificationStatus("Timing changed here, but could not sync to the server yet.");
+        setNotificationStatus(ts('notifications.preferencesSavedLocallyBody'));
         return;
       }
       if (!notificationsEnabled) {
-        setNotificationStatus("Daily wisdom timing synced. Enable notifications when this device is ready.");
+        setNotificationStatus(ts('notifications.preferencesSyncedBody'));
         announceWorkflow(ts('notifications.notificationTimingSaved'), ts('notifications.notificationTimingSavedBody').replace('{time}', notificationTimeLabel(nextTiming.preferredLocalHour, preferences.language)), "success");
         return;
       }
@@ -8593,18 +9231,18 @@ export function AletheiaApp() {
       const subscription = await registration.pushManager.getSubscription();
       if (!subscription) {
         setNotificationsEnabled(false);
-        setNotificationStatus("This device needs to enable notifications again before timing can sync.");
+        setNotificationStatus(ts('notifications.notificationsNeedReenableDevice'));
         return;
       }
       const response = await saveNotificationSubscription(subscription, nextTiming);
       if (!response.ok) {
-        setNotificationStatus("Timing changed here, but could not sync to the server yet.");
+        setNotificationStatus(ts('notifications.preferencesSavedLocallyBody'));
         return;
       }
-      setNotificationStatus("Daily wisdom timing synced.");
+      setNotificationStatus(ts('notifications.preferencesSynced'));
       announceWorkflow(ts('notifications.notificationTimingSaved'), ts('notifications.notificationTimingSavedBody').replace('{time}', notificationTimeLabel(nextTiming.preferredLocalHour, preferences.language)), "success");
     } catch {
-      setNotificationStatus("Timing changed here, but could not sync to the server yet.");
+      setNotificationStatus(ts('notifications.preferencesSavedLocallyBody'));
     } finally {
       setNotificationBusy(false);
     }
@@ -9027,7 +9665,7 @@ export function AletheiaApp() {
     setWisdomDecisions(updated);
     setDecisionEvents(events);
     refreshLocalTimeline(updated, events);
-    announceWorkflow(ts('notifications.decisionUpdated'), eventBody || "The decision signals were updated.", "success");
+    announceWorkflow(ts('notifications.decisionUpdated'), eventBody || ts('notifications.decisionUpdated'), "success");
   }
 
   async function deleteDecision(id: string) {
@@ -9165,7 +9803,7 @@ export function AletheiaApp() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ contactId, decisionId }),
     });
-    const data = (await response.json()) as { ok?: boolean; error?: string };
+    const data = (await response.json()) as { ok?: boolean; error?: string; errorCode?: string };
     if (response.ok && data.ok) {
       setWisdomDecisions((current) =>
         current.map((decision) =>
@@ -9198,7 +9836,7 @@ export function AletheiaApp() {
           : undefined
       );
     } else {
-      announceWorkflow(ts('notifications.summariesNotShared'), data.error || ts('notifications.summaryNotSharedBody'), "error");
+      announceWorkflow(ts('notifications.summariesNotShared'), resolveApiErrorMessage(data.error, data.errorCode, 'notifications.summaryNotSharedBody'), "error");
     }
   }
 
@@ -9221,7 +9859,7 @@ export function AletheiaApp() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ contactId, decisionIds }),
     });
-    const data = (await response.json()) as { ok?: boolean; sharedCount?: number; error?: string };
+    const data = (await response.json()) as { ok?: boolean; sharedCount?: number; error?: string; errorCode?: string };
     
     if (response.ok && data.ok) {
       // Mark all shared decisions as counselSought
@@ -9241,7 +9879,7 @@ export function AletheiaApp() {
         "success"
       );
     } else {
-      announceWorkflow(ts('notifications.summariesNotShared'), data.error || ts('notifications.summariesNotSharedBody'), "error");
+      announceWorkflow(ts('notifications.summariesNotShared'), resolveApiErrorMessage(data.error, data.errorCode, 'notifications.summariesNotSharedBody'), "error");
     }
   }
 
@@ -9255,12 +9893,13 @@ export function AletheiaApp() {
         revokedSharedCount?: number;
         revokedCommentCount?: number;
         error?: string;
+        errorCode?: string;
       };
 
       if (!response.ok || !data.ok) {
         announceWorkflow(
           ts("notifications.counselNotRemoved"),
-          data.error || ts("notifications.counselNotRemovedBody"),
+          resolveApiErrorMessage(data.error, data.errorCode, "notifications.counselNotRemovedBody"),
           "error"
         );
         return;
@@ -9362,7 +10001,7 @@ export function AletheiaApp() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ decisionId, body }),
     });
-    const data = (await response.json()) as { comment?: { id: string; body: string; createdAt: string }; error?: string };
+    const data = (await response.json()) as { comment?: { id: string; body: string; createdAt: string }; error?: string; errorCode?: string };
     if (response.ok && data.comment) {
       setCounselInvitePreview((current) =>
         current
@@ -9378,7 +10017,7 @@ export function AletheiaApp() {
       );
       setCounselInviteStatus(ts('status.commentShared'));
     } else {
-      setCounselInviteStatus(data.error || "Comment could not be shared.");
+      setCounselInviteStatus(resolveApiErrorMessage(data.error, data.errorCode, 'notifications.summaryNotSharedBody'));
     }
   }
 
@@ -11288,31 +11927,29 @@ function HomeDashboard({
             </button>
           ) : null}
 
-          <div className="grid gap-4 rounded-[1.28rem] border p-4 sm:p-5 lg:grid-cols-[minmax(0,1fr)_minmax(184px,236px)] lg:items-start" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, boxShadow: "inset 0 1px 0 rgba(255,255,255,0.28)" }}>
+          <div className="grid gap-3 rounded-[1.2rem] border p-3.5 sm:p-4 lg:grid-cols-[minmax(0,1fr)_minmax(238px,1fr)] lg:items-start" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, boxShadow: "inset 0 1px 0 rgba(255,255,255,0.28)" }}>
             <div className="min-w-0">
               <p className="text-[10.5px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.accentGold }} suppressHydrationWarning>
                 {text.todaysCompanion}
               </p>
-              <h2 className="mt-1.5 text-[1.95rem] font-semibold leading-[1.03] text-balance sm:text-[2.15rem]" suppressHydrationWarning>
+              <h2 className="mt-1.25 text-[1.6rem] font-semibold leading-[0.98] tracking-[-0.04em] text-balance sm:text-[1.82rem]" suppressHydrationWarning>
                 {text.todayPrefix}: {companionCard.title}
               </h2>
-              <p className="mt-3 max-w-2xl text-[0.98rem] leading-7 sm:text-[1.03rem] sm:leading-8" style={{ color: theme.textSecondary }} suppressHydrationWarning>
+              <p className="mt-2 max-w-md text-[0.86rem] leading-6 sm:text-[0.91rem] sm:leading-[1.5rem]" style={{ color: theme.textSecondary }} suppressHydrationWarning>
                 {todaySeasonalHeader.body}
               </p>
-              <p className="mt-4 max-w-2xl text-[0.98rem] leading-7 font-medium sm:text-[1.03rem] sm:leading-8" style={{ color: theme.textPrimary }} suppressHydrationWarning>
-                {daily.principle}
-              </p>
             </div>
-            <div className="lg:pt-1">
-            <TodayVisualPanel
-              key={`${todayVisualTheme}:${dayNumber}:${todayVisualMood}:${currentLocalHour ?? "na"}:${currentLocalMonth ?? "na"}:${currentLocalDayOfWeek ?? "na"}`}
-              themeName={todayVisualTheme}
-              dayNumber={dayNumber}
-              mood={todayVisualMood}
+            <div className="lg:self-stretch lg:pt-0">
+              <TodayVisualPanel
+                key={`${todayVisualTheme}:${dayNumber}:${todayVisualMood}:${currentLocalHour ?? "na"}:${currentLocalMonth ?? "na"}:${currentLocalDayOfWeek ?? "na"}`}
+                themeName={todayVisualTheme}
+                dayNumber={dayNumber}
+                mood={todayVisualMood}
                 hour={currentLocalHour}
                 month={currentLocalMonth}
                 dayOfWeek={currentLocalDayOfWeek}
                 theme={theme}
+                caption={daily.principle}
               />
             </div>
           </div>
@@ -11442,11 +12079,11 @@ function HomeDashboard({
               {(text.weeklyReviewBody ?? "").replace("{pattern}", weeklyReview.pattern)}
             </p>
           </div>
-          <div className="grid min-w-0 gap-2 sm:grid-cols-2 xl:grid-cols-4">
-            <WeeklyReviewRailStat label={text.questionsThisWeek ?? ""} current={weeklyReview.questions} previous={weeklyReview.previousQuestions} lastWeekLabel={text.weeklyReviewLastWeekLabel ?? "Last week"} theme={theme} />
-            <WeeklyReviewRailStat label={text.reflectionsThisWeek ?? ""} current={weeklyReview.reflections} previous={weeklyReview.previousReflections} lastWeekLabel={text.weeklyReviewLastWeekLabel ?? "Last week"} theme={theme} />
-            <WeeklyReviewRailStat label={text.gratitudeThisWeek ?? ""} current={weeklyReview.gratitudeMoments} previous={weeklyReview.previousGratitudeMoments} lastWeekLabel={text.weeklyReviewLastWeekLabel ?? "Last week"} theme={theme} />
-            <WeeklyReviewRailStat label={text.decisionsThisWeek ?? ""} current={weeklyReview.decisions} previous={weeklyReview.previousDecisions} lastWeekLabel={text.weeklyReviewLastWeekLabel ?? "Last week"} theme={theme} />
+          <div className="mt-2 flex min-w-0 snap-x gap-1.5 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
+            <WeeklyReviewRailStat className="w-[10rem] shrink-0 snap-start" label={text.questionsThisWeek ?? ""} current={weeklyReview.questions} previous={weeklyReview.previousQuestions} lastWeekLabel={text.weeklyReviewLastWeekLabel ?? "Last week"} theme={theme} />
+            <WeeklyReviewRailStat className="w-[10rem] shrink-0 snap-start" label={text.reflectionsThisWeek ?? ""} current={weeklyReview.reflections} previous={weeklyReview.previousReflections} lastWeekLabel={text.weeklyReviewLastWeekLabel ?? "Last week"} theme={theme} />
+            <WeeklyReviewRailStat className="w-[10rem] shrink-0 snap-start" label={text.gratitudeThisWeek ?? ""} current={weeklyReview.gratitudeMoments} previous={weeklyReview.previousGratitudeMoments} lastWeekLabel={text.weeklyReviewLastWeekLabel ?? "Last week"} theme={theme} />
+            <WeeklyReviewRailStat className="w-[10rem] shrink-0 snap-start" label={text.decisionsThisWeek ?? ""} current={weeklyReview.decisions} previous={weeklyReview.previousDecisions} lastWeekLabel={text.weeklyReviewLastWeekLabel ?? "Last week"} theme={theme} />
           </div>
           <p className="rounded-[1.15rem] border p-4 text-[0.95rem] leading-7" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
             <span className="font-semibold" style={{ color: theme.textPrimary }}>{text.nextFaithfulStep ?? ""}:</span>{" "}
@@ -11464,12 +12101,14 @@ function WeeklyReviewRailStat({
   previous,
   lastWeekLabel,
   theme,
+  className = "",
 }: {
   label: string;
   current: number;
   previous: number;
   lastWeekLabel: string;
   theme: ThemeColors;
+  className?: string;
 }) {
   const delta = current - previous;
   const deltaLabel = `${delta > 0 ? "+" : ""}${delta}`;
@@ -11484,22 +12123,22 @@ function WeeklyReviewRailStat({
 
   return (
     <div
-      className="premium-tap-card flex min-w-0 flex-col rounded-[1rem] border p-3 text-left shadow-[0_6px_14px_rgba(7,10,8,0.04)]"
+      className={`premium-tap-card relative flex min-h-[5.55rem] min-w-0 flex-col overflow-hidden rounded-[0.92rem] border p-2 text-left shadow-[0_6px_14px_rgba(7,10,8,0.04)] ${className}`}
       style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}
       aria-label={accessibleLabel}
       title={accessibleLabel}
     >
-      <div className="flex items-center justify-between gap-2">
-        <p className="min-w-0 truncate text-[9.5px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
+      <div className="relative z-10 flex items-center justify-between gap-2">
+        <p className="min-w-0 truncate text-[8px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.accentGold }}>
           {label}
         </p>
-        <span className="inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.12em]" style={deltaStyle}>
+        <span className="inline-flex shrink-0 items-center gap-1 rounded-full border px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-[0.06em]" style={deltaStyle}>
           <DeltaIcon size={10} />
           {deltaLabel}
         </span>
       </div>
-      <div className="mt-2 flex items-end justify-between gap-2">
-        <p className="text-[2rem] font-semibold leading-none tracking-[-0.04em]" style={{ color: theme.textPrimary }}>
+      <div className="relative z-10 mt-1 flex items-end justify-between gap-2">
+        <p className="text-[1.52rem] font-semibold leading-none tracking-[-0.07em]" style={{ color: theme.textPrimary }}>
           {current}
         </p>
         <WeeklyReviewTrend current={current} previous={previous} theme={theme} />
@@ -11529,29 +12168,20 @@ function WeeklyReviewTrend({
   const endY = Math.min(22, Math.max(4, currentY));
 
   return (
-    <div
-      className="flex h-11 w-16 shrink-0 flex-col justify-center rounded-[0.95rem] border px-2 py-1.5"
-      style={{
-        borderColor: theme.borderLight,
-        background: `linear-gradient(180deg, ${theme.bgCard}, ${theme.bgCardElevated})`,
-      }}
-      aria-hidden="true"
-    >
-      <svg viewBox="0 0 72 24" className="h-6 w-full">
-        <path d="M4 18 H68" stroke={guide} strokeOpacity="0.34" strokeWidth="1.2" strokeLinecap="round" />
-        <path
-          d={`M12 ${startY} C 22 ${startY}, 26 ${midY}, 36 ${midY} S 50 ${endY}, 60 ${endY}`}
-          fill="none"
-          stroke={stroke}
-          strokeOpacity="0.9"
-          strokeWidth="1.8"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-        <circle cx="12" cy={startY} r="2.1" fill={theme.bgCard} stroke={theme.borderMedium} strokeWidth="1.1" />
-        <circle cx="60" cy={endY} r="2.2" fill={theme.bgCard} stroke={stroke} strokeWidth="1.1" />
-      </svg>
-    </div>
+    <svg viewBox="0 0 72 24" className="pointer-events-none absolute right-1.5 bottom-1.5 h-7 w-16 opacity-[0.1]" aria-hidden="true">
+      <path d="M4 18 H68" stroke={guide} strokeOpacity="0.18" strokeWidth="1.1" strokeLinecap="round" />
+      <path
+        d={`M12 ${startY} C 22 ${startY}, 26 ${midY}, 36 ${midY} S 50 ${endY}, 60 ${endY}`}
+        fill="none"
+        stroke={stroke}
+        strokeOpacity="0.55"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <circle cx="12" cy={startY} r="1.9" fill={theme.bgCard} stroke={theme.borderMedium} strokeWidth="0.9" />
+      <circle cx="60" cy={endY} r="2" fill={theme.bgCard} stroke={stroke} strokeWidth="0.9" />
+    </svg>
   );
 }
 

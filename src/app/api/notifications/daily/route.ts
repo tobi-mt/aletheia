@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { trackEvent } from "@/lib/analytics";
 import { recordDailyNotificationUnauthorizedHit, sendDailyWisdomNotifications } from "@/lib/notifications";
+import { apiError } from "@/lib/api-errors";
 
 // Allow longer execution time for notification processing
 export const maxDuration = 60; // seconds
@@ -24,7 +25,7 @@ async function runDailyNotifications(request: Request) {
 
   if (!secret || !hasValidSecret(request)) {
     await recordDailyNotificationUnauthorizedHit().catch(() => undefined);
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    return apiError(401, "permission_denied", "Unauthorized.");
   }
 
   const result = await sendDailyWisdomNotifications();

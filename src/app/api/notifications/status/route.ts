@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { many, run } from "@/lib/db";
 import { isPushConfigured } from "@/lib/notifications";
+import { apiError } from "@/lib/api-errors";
 
 function normalizeTiming(body: {
   preferredLocalHour?: unknown;
@@ -110,7 +111,7 @@ export async function GET() {
 export async function POST(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
-    return NextResponse.json({ error: "Sign in to save notification timing." }, { status: 401 });
+    return apiError(401, "sign_in_required", "Sign in to save notification timing.");
   }
 
   const timing = normalizeTiming(await request.json());

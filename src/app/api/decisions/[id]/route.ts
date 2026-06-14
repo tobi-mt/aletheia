@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { trackServerEvent } from "@/lib/analytics";
 import { buildDecisionSummary, scoreDecision } from "@/lib/decision-intelligence";
 import { many, one, run } from "@/lib/db";
+import { apiError } from "@/lib/api-errors";
 import { defaultPreferences, normalizePreferences, type UserPreferences } from "@/lib/localization";
 import { retrieveWisdom } from "@/lib/wisdom";
 import { normalizeMode, type Mode } from "@/lib/wisdom-data";
@@ -123,7 +124,7 @@ async function getUserPreferences(userId: string): Promise<UserPreferences> {
 export async function PATCH(request: Request, { params }: Params) {
   const user = await getCurrentUser();
   if (!user) {
-    return NextResponse.json({ error: "Sign in to update decisions." }, { status: 401 });
+    return apiError(401, "sign_in_required", "Sign in to update decisions.");
   }
 
   const { id } = await params;
@@ -133,7 +134,7 @@ export async function PATCH(request: Request, { params }: Params) {
     user.id
   );
   if (!current) {
-    return NextResponse.json({ error: "Decision not found." }, { status: 404 });
+    return apiError(404, "not_found", "Decision not found.");
   }
 
   const body = (await request.json()) as {
@@ -266,7 +267,7 @@ export async function PATCH(request: Request, { params }: Params) {
 export async function DELETE(_request: Request, { params }: Params) {
   const user = await getCurrentUser();
   if (!user) {
-    return NextResponse.json({ error: "Sign in to delete decisions." }, { status: 401 });
+    return apiError(401, "sign_in_required", "Sign in to delete decisions.");
   }
 
   const { id } = await params;

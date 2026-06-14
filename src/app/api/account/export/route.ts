@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import { apiError } from "@/lib/api-errors";
 import { many, one } from "@/lib/db";
 import { trackServerEvent } from "@/lib/analytics";
 
@@ -12,7 +13,7 @@ async function userRows<T extends Record<string, unknown>>(table: string, userId
 export async function GET() {
   const user = await getCurrentUser();
   if (!user) {
-    return NextResponse.json({ error: "Sign in to export your Aletheia data." }, { status: 401 });
+    return apiError(401, "sign_in_required", "Sign in to export your Aletheia data.");
   }
 
   const [

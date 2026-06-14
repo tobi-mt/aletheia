@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { analyticsSummary } from "@/lib/analytics";
+import { apiError } from "@/lib/api-errors";
 
 export async function GET(request: Request) {
   const secret = process.env.ANALYTICS_ADMIN_SECRET;
@@ -10,7 +11,7 @@ export async function GET(request: Request) {
   const geoEnrichmentEnabled = process.env.ANALYTICS_GEO_ENRICHMENT_ENABLED === "true";
 
   if (!secret || token !== secret) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return apiError(401, "permission_denied", "Unauthorized");
   }
 
   const summary = await analyticsSummary({ includeAutomation });

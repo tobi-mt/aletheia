@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { apiError } from "@/lib/api-errors";
 import { hashCounselInviteToken } from "@/lib/counsel-invites";
 import { many, one, run } from "@/lib/db";
 
@@ -105,7 +106,7 @@ export async function GET(_request: Request, { params }: Params) {
   const { token } = await params;
   const contact = await findContact(token);
   if (!contact) {
-    return NextResponse.json({ error: "Invite not found." }, { status: 404 });
+    return apiError(404, "not_found", "Invite not found.");
   }
 
   const decisions = contact.invite_status === "accepted" ? await sharedDecisions(contact.id) : [];
@@ -117,7 +118,7 @@ export async function POST(_request: Request, { params }: Params) {
   const { token } = await params;
   const contact = await findContact(token);
   if (!contact) {
-    return NextResponse.json({ error: "Invite not found." }, { status: 404 });
+    return apiError(404, "not_found", "Invite not found.");
   }
 
   const now = new Date().toISOString();

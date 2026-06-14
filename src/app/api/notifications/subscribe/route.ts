@@ -2,12 +2,13 @@ import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth";
 import { trackServerEvent } from "@/lib/analytics";
+import { apiError } from "@/lib/api-errors";
 import { run } from "@/lib/db";
 import { isPushConfigured } from "@/lib/notifications";
 
 export async function POST(request: Request) {
   if (!isPushConfigured()) {
-    return NextResponse.json({ error: "Notifications are not configured yet." }, { status: 503 });
+    return apiError(503, "not_configured", "Notifications are not configured yet.");
   }
 
   try {
@@ -45,7 +46,7 @@ export async function POST(request: Request) {
       : "morning";
 
     if (!endpoint || !p256dh || !auth) {
-      return NextResponse.json({ error: "Invalid push subscription." }, { status: 400 });
+      return apiError(400, "invalid_subscription", "Invalid push subscription.");
     }
 
     const headerStore = await headers();
@@ -134,6 +135,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ ok: true });
   } catch {
-    return NextResponse.json({ error: "Sign in to enable notifications." }, { status: 401 });
+    return apiError(401, "sign_in_required", "Sign in to enable notifications.");
   }
 }

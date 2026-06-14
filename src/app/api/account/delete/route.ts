@@ -3,11 +3,12 @@ import { clearSession, getCurrentUser } from "@/lib/auth";
 import { run } from "@/lib/db";
 import { trackServerEvent } from "@/lib/analytics";
 import { readJsonBody } from "@/lib/request";
+import { apiError } from "@/lib/api-errors";
 
 export async function POST(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
-    return NextResponse.json({ error: "Sign in to delete your Aletheia account." }, { status: 401 });
+    return apiError(401, "sign_in_required", "Sign in to delete your Aletheia account.");
   }
 
   const parsedBody = await readJsonBody<{ confirmation?: string }>(request, { maxBytes: 1_000, emptyBody: {} });
@@ -21,7 +22,7 @@ export async function POST(request: Request) {
       eventName: "account_delete_requested",
       metadata: { confirmed: false },
     });
-    return NextResponse.json({ error: "Type DELETE to confirm account deletion." }, { status: 400 });
+    return apiError(400, "confirm_delete", "Type DELETE to confirm account deletion.");
   }
 
   await trackServerEvent({

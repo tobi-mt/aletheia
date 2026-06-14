@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { trackServerEvent } from "@/lib/analytics";
 import { many, run } from "@/lib/db";
+import { apiError } from "@/lib/api-errors";
 import { normalizeMode, type Mode } from "@/lib/wisdom-data";
 
 type RuleRow = {
@@ -38,14 +39,14 @@ export async function GET() {
 export async function POST(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
-    return NextResponse.json({ error: "Sign in to save rules of life." }, { status: 401 });
+    return apiError(401, "sign_in_required", "Sign in to save rules of life.");
   }
 
   const body = (await request.json()) as { mode?: unknown; principle?: string };
   const principle = body.principle?.trim();
   const mode = normalizeMode(body.mode);
   if (!principle) {
-    return NextResponse.json({ error: "Principle is required." }, { status: 400 });
+    return apiError(400, "invalid_input", "Principle is required.");
   }
 
   const now = new Date().toISOString();

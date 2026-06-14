@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { apiError } from "@/lib/api-errors";
 import { getNotificationHealthSnapshot, getVapidKeyPairStatus } from "@/lib/notifications";
 
 export const dynamic = "force-dynamic";
@@ -33,7 +34,7 @@ function scopeFromRequest(request: Request): HealthScope {
 
 export async function GET(request: Request) {
   if (!validSecret(request)) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    return apiError(401, "permission_denied", "Unauthorized.");
   }
 
   const scope = scopeFromRequest(request);
