@@ -76,6 +76,45 @@ type FrictionRow = {
   unique_people: number;
 };
 
+type NotificationSelfHealDayRow = {
+  day: string;
+  healed: number;
+  failed: number;
+  attempts: number;
+  success_rate: number;
+};
+
+type AuthPromptOverview = {
+  shown_count: number;
+  dismissed_count: number;
+  cta_count: number;
+  gate_hits: number;
+  unique_shown_people: number;
+  unique_cta_people: number;
+  dismiss_rate_pct: number;
+  cta_rate_pct: number;
+  cta_per_shown_person_pct: number;
+};
+
+type AuthPromptReasonRow = {
+  prompt_reason: string;
+  shown_count: number;
+  unique_people: number;
+};
+
+type AuthPromptCloseRow = {
+  close_reason: string;
+  dismissed_count: number;
+  unique_people: number;
+};
+
+type AuthPromptDailyRow = {
+  day: string;
+  shown_count: number;
+  cta_count: number;
+  cta_rate_pct: number;
+};
+
 type AnalyticsPayload = {
   overview: Record<string, number>;
   events30d: Array<{ event_name: string; count: number; unique_people: number }>;
@@ -91,6 +130,13 @@ type AnalyticsPayload = {
   languageDistribution30d: LanguageRow[];
   themeDistribution30d: ThemeRow[];
   frictionSignals30d: FrictionRow[];
+  notificationSelfHeal14d: NotificationSelfHealDayRow[];
+  authPrompts30d: {
+    overview: AuthPromptOverview;
+    reasons: AuthPromptReasonRow[];
+    closes: AuthPromptCloseRow[];
+    daily14d: AuthPromptDailyRow[];
+  };
   config?: {
     geo_enrichment_enabled?: boolean;
   };
@@ -168,6 +214,43 @@ export default function InternalAnalyticsDashboardPage() {
     () => (payload?.features30d ?? []).reduce((max, row) => Math.max(max, row.unique_people), 0),
     [payload]
   );
+  const selfHealSummary = useMemo(() => {
+    const rows = payload?.notificationSelfHeal14d ?? [];
+    const healed = rows.reduce((sum, row) => sum + row.healed, 0);
+    const failed = rows.reduce((sum, row) => sum + row.failed, 0);
+    const attempts = healed + failed;
+    const successRate = attempts > 0 ? Number(((healed / attempts) * 100).toFixed(1)) : 0;
+    return { healed, failed, attempts, successRate };
+  }, [payload]);
+  const authPromptSparkline = useMemo(() => {
+    const rows = payload?.authPrompts30d?.daily14d ?? [];
+    const width = 220;
+    const height = 56;
+    const padding = 4;
+    const chartHeight = height - padding * 2;
+    const chartWidth = width - padding * 2;
+    const maxValue = rows.reduce((max, row) => Math.max(max, row.shown_count, row.cta_count), 0);
+    const scaleMax = Math.max(maxValue, 1);
+    const xStep = rows.length > 1 ? chartWidth / (rows.length - 1) : 0;
+    const pointY = (value: number) => {
+      const ratio = value / scaleMax;
+      return padding + (chartHeight - ratio * chartHeight);
+    };
+    const shownPoints = rows.map((row, index) => ({ x: padding + index * xStep, y: pointY(row.shown_count), row }));
+    const ctaPoints = rows.map((row, index) => ({ x: padding + index * xStep, y: pointY(row.cta_count), row }));
+    const toPath = (points: Array<{ x: number; y: number }>) =>
+      points.map((point, index) => `${index === 0 ? "M" : "L"}${point.x.toFixed(1)} ${point.y.toFixed(1)}`).join(" ");
+
+    return {
+      rows,
+      shownPath: toPath(shownPoints),
+      ctaPath: toPath(ctaPoints),
+      shownLast: rows.length > 0 ? rows[rows.length - 1]?.shown_count ?? 0 : 0,
+      ctaLast: rows.length > 0 ? rows[rows.length - 1]?.cta_count ?? 0 : 0,
+      width,
+      height,
+    };
+  }, [payload]);
   const trafficModeLabel = includeAutomation ? "All traffic" : "Human-only";
   const geoEnrichmentEnabled = payload?.config?.geo_enrichment_enabled;
   const geoEnrichmentLabel = geoEnrichmentEnabled == null ? "Unknown" : geoEnrichmentEnabled ? "On" : "Off";
@@ -317,6 +400,49 @@ export default function InternalAnalyticsDashboardPage() {
         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
             <div>
+              <h2 className="text-lg font-semibold">Notification Self-Heal Health (14d)</h2>
+              <p className="text-sm text-slate-600">Daily automatic resubscribe recovery success vs failure.</p>
+            </div>
+            <p className="text-sm text-slate-700">
+              Success rate: <span className="font-semibold">{selfHealSummary.successRate}%</span>
+              {" "}
+              ({selfHealSummary.healed} healed / {selfHealSummary.failed} failed)
+            </p>
+          </div>
+          <div className="mt-4 grid grid-cols-7 gap-2 sm:grid-cols-14">
+            {(payload?.notificationSelfHeal14d ?? []).map((row) => {
+              const ratio = row.attempts > 0 ? row.healed / row.attempts : 0;
+              const barColor = row.attempts === 0
+                ? "#e2e8f0"
+                : ratio >= 0.9
+                  ? "#16a34a"
+                  : ratio >= 0.6
+                    ? "#f59e0b"
+                    : "#dc2626";
+              return (
+                <div
+                  key={row.day}
+                  className="rounded-lg border border-slate-200 p-2"
+                  title={`${row.day.slice(0, 10)} | healed=${row.healed} failed=${row.failed} success=${row.success_rate}%`}
+                >
+                  <p className="text-[10px] text-slate-500">{row.day.slice(5, 10)}</p>
+                  <p className="mt-1 text-sm font-semibold text-slate-900">{row.success_rate}%</p>
+                  <div className="mt-1 h-1.5 w-full rounded-full bg-slate-200">
+                    <div className="h-full rounded-full" style={{ width: `${Math.max(2, Math.min(100, row.success_rate))}%`, backgroundColor: barColor }} />
+                  </div>
+                  <p className="mt-1 text-[10px] text-slate-500">{row.healed}/{row.failed}</p>
+                </div>
+              );
+            })}
+          </div>
+          {payload && payload.notificationSelfHeal14d.length === 0 ? (
+            <p className="mt-2 text-sm text-slate-500">No self-heal events recorded yet.</p>
+          ) : null}
+        </section>
+
+        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+            <div>
               <h2 className="text-lg font-semibold">Core Wisdom Loop (30d)</h2>
               <p className="text-sm text-slate-600">Open app → ask/reflect/decide → save insight → revisit or share.</p>
             </div>
@@ -336,6 +462,96 @@ export default function InternalAnalyticsDashboardPage() {
               </article>
             ))}
             {payload && payload.journeyRates30d.length === 0 ? <p className="text-sm text-slate-500">No journey data yet.</p> : null}
+          </div>
+        </section>
+
+        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 className="text-lg font-semibold">Auth Prompt Health (30d)</h2>
+              <p className="text-sm text-slate-600">Monitors prompt conversion and suppression behavior for guest sign-in nudges.</p>
+            </div>
+            <p className="text-xs text-slate-500">Signals from auth_prompt_* and gate_hit_notifications events.</p>
+          </div>
+          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+            <article className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+              <p className="text-[11px] uppercase text-slate-500">Shown</p>
+              <p className="mt-1 text-xl font-semibold text-slate-900">{payload?.authPrompts30d?.overview?.shown_count ?? 0}</p>
+            </article>
+            <article className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+              <p className="text-[11px] uppercase text-slate-500">CTA Clicked</p>
+              <p className="mt-1 text-xl font-semibold text-slate-900">{payload?.authPrompts30d?.overview?.cta_count ?? 0}</p>
+            </article>
+            <article className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+              <p className="text-[11px] uppercase text-slate-500">Dismissed</p>
+              <p className="mt-1 text-xl font-semibold text-slate-900">{payload?.authPrompts30d?.overview?.dismissed_count ?? 0}</p>
+            </article>
+            <article className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+              <p className="text-[11px] uppercase text-slate-500">CTA Rate</p>
+              <p className="mt-1 text-xl font-semibold text-emerald-700">{payload?.authPrompts30d?.overview?.cta_rate_pct ?? 0}%</p>
+            </article>
+            <article className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+              <p className="text-[11px] uppercase text-slate-500">Dismiss Rate</p>
+              <p className="mt-1 text-xl font-semibold text-amber-700">{payload?.authPrompts30d?.overview?.dismiss_rate_pct ?? 0}%</p>
+            </article>
+            <article className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+              <p className="text-[11px] uppercase text-slate-500">Notif Gate Hits</p>
+              <p className="mt-1 text-xl font-semibold text-slate-900">{payload?.authPrompts30d?.overview?.gate_hits ?? 0}</p>
+            </article>
+          </div>
+          <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">14d Sparkline · Prompt Shown vs CTA</p>
+              <p className="text-xs text-slate-600">
+                Last day: {authPromptSparkline.shownLast} shown / {authPromptSparkline.ctaLast} CTA
+              </p>
+            </div>
+            <div className="mt-2">
+              <svg
+                viewBox={`0 0 ${authPromptSparkline.width} ${authPromptSparkline.height}`}
+                className="h-14 w-full"
+                role="img"
+                aria-label="14-day auth prompt shown and CTA trend"
+              >
+                <path d={`M4 ${authPromptSparkline.height - 4} L${authPromptSparkline.width - 4} ${authPromptSparkline.height - 4}`} stroke="#cbd5e1" strokeWidth="1" fill="none" />
+                {authPromptSparkline.rows.length > 0 ? (
+                  <>
+                    <path d={authPromptSparkline.shownPath} stroke="#0f766e" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d={authPromptSparkline.ctaPath} stroke="#2563eb" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                  </>
+                ) : null}
+              </svg>
+            </div>
+            <div className="mt-1 flex items-center gap-4 text-[11px] text-slate-600">
+              <span className="inline-flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-teal-700" />Shown</span>
+              <span className="inline-flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-blue-600" />CTA</span>
+            </div>
+          </div>
+          <div className="mt-4 grid gap-4 lg:grid-cols-2">
+            <article className="rounded-xl border border-slate-200 p-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Prompt Reasons</p>
+              <div className="mt-2 space-y-2">
+                {(payload?.authPrompts30d?.reasons ?? []).map((row) => (
+                  <div key={row.prompt_reason} className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm">
+                    <span className="font-medium text-slate-800">{formatFeatureName(row.prompt_reason)}</span>
+                    <span className="text-slate-600">{row.shown_count} shown · {row.unique_people} users</span>
+                  </div>
+                ))}
+                {payload && (payload.authPrompts30d?.reasons?.length ?? 0) === 0 ? <p className="text-sm text-slate-500">No prompt reason data yet.</p> : null}
+              </div>
+            </article>
+            <article className="rounded-xl border border-slate-200 p-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Dismiss Close Reasons</p>
+              <div className="mt-2 space-y-2">
+                {(payload?.authPrompts30d?.closes ?? []).map((row) => (
+                  <div key={row.close_reason} className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm">
+                    <span className="font-medium text-slate-800">{formatFeatureName(row.close_reason)}</span>
+                    <span className="text-slate-600">{row.dismissed_count} dismissed · {row.unique_people} users</span>
+                  </div>
+                ))}
+                {payload && (payload.authPrompts30d?.closes?.length ?? 0) === 0 ? <p className="text-sm text-slate-500">No dismiss behavior data yet.</p> : null}
+              </div>
+            </article>
           </div>
         </section>
 

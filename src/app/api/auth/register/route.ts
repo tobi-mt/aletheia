@@ -5,6 +5,26 @@ import { apiError } from "@/lib/api-errors";
 import { one, run } from "@/lib/db";
 import { checkRateLimit, getClientIdentity, rateLimitHeaders } from "@/lib/rate-limit";
 
+const BLOCKED_EMAIL_DOMAIN_PATTERNS = [
+  /\.local$/i,
+  /^example\.com$/i,
+  /^test\.com$/i,
+  /^mailinator\.com$/i,
+  /tempmail/i,
+  /yopmail/i,
+  /guerrillamail/i,
+  /fakeinbox/i,
+];
+
+function isBlockedEmailDomain(email: string) {
+  const atIndex = email.lastIndexOf("@");
+  if (atIndex === -1) {
+    return true;
+  }
+  const domain = email.slice(atIndex + 1).toLowerCase();
+  return BLOCKED_EMAIL_DOMAIN_PATTERNS.some((pattern) => pattern.test(domain));
+}
+
 export async function POST(request: Request) {
   try {
     const rateLimit = await checkRateLimit(await getClientIdentity(), {
@@ -32,10 +52,26 @@ export async function POST(request: Request) {
       email?: string;
       name?: string;
       password?: string;
+      website?: string;
     };
 
     const email = body.email?.trim().toLowerCase();
     const password = body.password ?? "";
+    const honeypot = body.website?.trim();
+
+    if (honeypot) {
+      await trackServerEvent({
+        eventName: "auth_failure",
+        path: "/api/auth/register",
+        metadata: {
+          method: "email",
+          flow: "register",
+          category: "automation",
+          reason: "honeypot_triggered",
+        },
+      });
+      return apiError(400, "invalid_input", "Account creation failed. Please try again.");
+    }
 
     if (!email || !email.includes("@") || password.length < 8) {
       await trackServerEvent({
@@ -49,6 +85,20 @@ export async function POST(request: Request) {
         },
       });
       return apiError(400, "invalid_input", "Use a valid email and a password of at least 8 characters.");
+    }
+
+    if (isBlockedEmailDomain(email)) {
+      await trackServerEvent({
+        eventName: "auth_failure",
+        path: "/api/auth/register",
+        metadata: {
+          method: "email",
+          flow: "register",
+          category: "validation",
+          reason: "blocked_email_domain",
+        },
+      });
+      return apiError(400, "invalid_input", "Please use a real email address.");
     }
 
     const existing = await one("SELECT id FROM users WHERE email = ?", email);

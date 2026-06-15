@@ -14,6 +14,9 @@ const ALLOWED_EVENTS = new Set([
   "app_shared",
   "avatar_updated",
   "auth_signin_started",
+  "auth_prompt_shown",
+  "auth_prompt_dismissed",
+  "auth_prompt_cta_clicked",
   "auth_failure",
   "auth_email_login_success",
   "auth_email_register_success",
@@ -48,8 +51,11 @@ const ALLOWED_EVENTS = new Set([
   "notification_daily_checked",
   "notification_enabled",
   "notification_enable_failed",
+  "notification_self_healed",
+  "notification_self_heal_failed",
   "notification_clicked",
   "notification_timing_updated",
+  "gate_hit_notifications",
   "onboarding_completed",
   "pwa_install_prompt_available",
   "read_aloud_started",
@@ -190,6 +196,11 @@ export async function analyticsSummary(options: { includeAutomation?: boolean } 
     languageRows,
     themeRows,
     frictionRows,
+    notificationSelfHealRows,
+    authPromptOverviewRows,
+    authPromptReasonRows,
+    authPromptCloseRows,
+    authPromptDailyRows,
   ] = await Promise.all([
     many<{ metric: string; value: number }>(
       `SELECT 'registered_users' AS metric, COUNT(*)::int AS value FROM users
@@ -538,6 +549,131 @@ export async function analyticsSummary(options: { includeAutomation?: boolean } 
        GROUP BY area
        ORDER BY count DESC`
     ),
+    many<{ day: string; healed: number; failed: number; attempts: number; success_rate: number }>(
+      `WITH days AS (
+         SELECT generate_series(current_date - interval '13 days', current_date, interval '1 day')::date AS day
+       ),
+       grouped AS (
+         SELECT
+           created_at::date AS day,
+           COUNT(*) FILTER (WHERE event_name = 'notification_self_healed')::int AS healed,
+           COUNT(*) FILTER (WHERE event_name = 'notification_self_heal_failed')::int AS failed
+         FROM analytics_events
+         WHERE created_at::date >= current_date - interval '13 days'
+           AND ${trafficFilter}
+           AND event_name IN ('notification_self_healed', 'notification_self_heal_failed')
+         GROUP BY created_at::date
+       )
+       SELECT
+         days.day::text AS day,
+         COALESCE(grouped.healed, 0)::int AS healed,
+         COALESCE(grouped.failed, 0)::int AS failed,
+         (COALESCE(grouped.healed, 0) + COALESCE(grouped.failed, 0))::int AS attempts,
+         COALESCE(
+           ROUND(
+             (100.0 * COALESCE(grouped.healed, 0) / NULLIF((COALESCE(grouped.healed, 0) + COALESCE(grouped.failed, 0)), 0))::numeric,
+             1
+           ),
+           0
+         )::double precision AS success_rate
+       FROM days
+       LEFT JOIN grouped ON grouped.day = days.day
+       ORDER BY days.day ASC`
+    ),
+    many<{
+      shown_count: number;
+      dismissed_count: number;
+      cta_count: number;
+      gate_hits: number;
+      unique_shown_people: number;
+      unique_cta_people: number;
+      dismiss_rate_pct: number;
+      cta_rate_pct: number;
+      cta_per_shown_person_pct: number;
+    }>(
+            `WITH events AS (
+          SELECT event_name,
+            COALESCE(user_id, anon_id, session_id) AS person_id
+          FROM analytics_events
+          WHERE created_at >= now() - interval '30 days'
+            AND ${trafficFilter}
+            AND event_name IN ('auth_prompt_shown', 'auth_prompt_dismissed', 'auth_prompt_cta_clicked', 'gate_hit_notifications')
+        ),
+        people AS (
+         SELECT COALESCE(user_id, anon_id, session_id) AS person_id,
+                BOOL_OR(event_name = 'auth_prompt_shown') AS shown,
+                BOOL_OR(event_name = 'auth_prompt_dismissed') AS dismissed,
+                BOOL_OR(event_name = 'auth_prompt_cta_clicked') AS clicked
+         FROM analytics_events
+         WHERE created_at >= now() - interval '30 days'
+           AND ${trafficFilter}
+           AND event_name IN ('auth_prompt_shown', 'auth_prompt_dismissed', 'auth_prompt_cta_clicked')
+           AND COALESCE(user_id, anon_id, session_id) IS NOT NULL
+         GROUP BY COALESCE(user_id, anon_id, session_id)
+       )
+       SELECT
+         (SELECT COUNT(*)::int FROM events WHERE event_name = 'auth_prompt_shown') AS shown_count,
+         (SELECT COUNT(*)::int FROM events WHERE event_name = 'auth_prompt_dismissed') AS dismissed_count,
+         (SELECT COUNT(*)::int FROM events WHERE event_name = 'auth_prompt_cta_clicked') AS cta_count,
+         (SELECT COUNT(*)::int FROM events WHERE event_name = 'gate_hit_notifications') AS gate_hits,
+         (SELECT COUNT(*)::int FROM people WHERE shown) AS unique_shown_people,
+         (SELECT COUNT(*)::int FROM people WHERE clicked) AS unique_cta_people,
+         COALESCE(ROUND((100.0 * (SELECT COUNT(*) FROM events WHERE event_name = 'auth_prompt_dismissed') / NULLIF((SELECT COUNT(*) FROM events WHERE event_name = 'auth_prompt_shown'), 0))::numeric, 1), 0)::double precision AS dismiss_rate_pct,
+         COALESCE(ROUND((100.0 * (SELECT COUNT(*) FROM events WHERE event_name = 'auth_prompt_cta_clicked') / NULLIF((SELECT COUNT(*) FROM events WHERE event_name = 'auth_prompt_shown'), 0))::numeric, 1), 0)::double precision AS cta_rate_pct,
+         COALESCE(ROUND((100.0 * (SELECT COUNT(*) FROM people WHERE clicked) / NULLIF((SELECT COUNT(*) FROM people WHERE shown), 0))::numeric, 1), 0)::double precision AS cta_per_shown_person_pct`
+    ),
+    many<{ prompt_reason: string; shown_count: number; unique_people: number }>(
+      `SELECT COALESCE(metadata->>'prompt_reason', 'unknown') AS prompt_reason,
+              COUNT(*)::int AS shown_count,
+              COUNT(DISTINCT COALESCE(user_id, anon_id, session_id))::int AS unique_people
+       FROM analytics_events
+       WHERE event_name = 'auth_prompt_shown'
+         AND created_at >= now() - interval '30 days'
+         AND ${trafficFilter}
+       GROUP BY COALESCE(metadata->>'prompt_reason', 'unknown')
+       ORDER BY shown_count DESC, unique_people DESC, prompt_reason ASC`
+    ),
+    many<{ close_reason: string; dismissed_count: number; unique_people: number }>(
+      `SELECT COALESCE(metadata->>'close_reason', 'unknown') AS close_reason,
+              COUNT(*)::int AS dismissed_count,
+              COUNT(DISTINCT COALESCE(user_id, anon_id, session_id))::int AS unique_people
+       FROM analytics_events
+       WHERE event_name = 'auth_prompt_dismissed'
+         AND created_at >= now() - interval '30 days'
+         AND ${trafficFilter}
+       GROUP BY COALESCE(metadata->>'close_reason', 'unknown')
+       ORDER BY dismissed_count DESC, unique_people DESC, close_reason ASC`
+    ),
+    many<{ day: string; shown_count: number; cta_count: number; cta_rate_pct: number }>(
+      `WITH days AS (
+         SELECT generate_series(current_date - interval '13 days', current_date, interval '1 day')::date AS day
+       ),
+       grouped AS (
+         SELECT
+           created_at::date AS day,
+           COUNT(*) FILTER (WHERE event_name = 'auth_prompt_shown')::int AS shown_count,
+           COUNT(*) FILTER (WHERE event_name = 'auth_prompt_cta_clicked')::int AS cta_count
+         FROM analytics_events
+         WHERE created_at::date >= current_date - interval '13 days'
+           AND ${trafficFilter}
+           AND event_name IN ('auth_prompt_shown', 'auth_prompt_cta_clicked')
+         GROUP BY created_at::date
+       )
+       SELECT
+         days.day::text AS day,
+         COALESCE(grouped.shown_count, 0)::int AS shown_count,
+         COALESCE(grouped.cta_count, 0)::int AS cta_count,
+         COALESCE(
+           ROUND(
+             (100.0 * COALESCE(grouped.cta_count, 0) / NULLIF(COALESCE(grouped.shown_count, 0), 0))::numeric,
+             1
+           ),
+           0
+         )::double precision AS cta_rate_pct
+       FROM days
+       LEFT JOIN grouped ON grouped.day = days.day
+       ORDER BY days.day ASC`
+    ),
   ]);
 
   const funnelSorted = [...funnelRows].sort((a, b) => a.stage_order - b.stage_order);
@@ -573,6 +709,23 @@ export async function analyticsSummary(options: { includeAutomation?: boolean } 
     languageDistribution30d: languageRows,
     themeDistribution30d: themeRows,
     frictionSignals30d: frictionRows,
+    notificationSelfHeal14d: notificationSelfHealRows,
+    authPrompts30d: {
+      overview: authPromptOverviewRows[0] ?? {
+        shown_count: 0,
+        dismissed_count: 0,
+        cta_count: 0,
+        gate_hits: 0,
+        unique_shown_people: 0,
+        unique_cta_people: 0,
+        dismiss_rate_pct: 0,
+        cta_rate_pct: 0,
+        cta_per_shown_person_pct: 0,
+      },
+      reasons: authPromptReasonRows,
+      closes: authPromptCloseRows,
+      daily14d: authPromptDailyRows,
+    },
   };
 }
 

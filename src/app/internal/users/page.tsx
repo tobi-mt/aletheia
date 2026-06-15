@@ -45,6 +45,7 @@ export default function InternalUsersPage() {
   const [payload, setPayload] = useState<UsersPayload | null>(null);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
 
   async function loadUsers(event?: FormEvent, overridePage?: number, overrideSearch?: string) {
     event?.preventDefault();
@@ -102,6 +103,47 @@ export default function InternalUsersPage() {
     e.preventDefault();
     setPage(0);
     loadUsers(undefined, 0, search);
+  }
+
+  async function deleteUser(user: UserRow) {
+    const token = secret.trim();
+    if (!token) {
+      setError("Enter ANALYTICS_ADMIN_SECRET to manage users.");
+      return;
+    }
+
+    const confirmation = window.confirm(
+      `Delete user ${user.email}? This will remove the account and related data.`
+    );
+    if (!confirmation) {
+      return;
+    }
+
+    setDeletingUserId(user.id);
+    setError(null);
+    try {
+      const response = await fetch("/api/internal/users", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ userId: user.id }),
+      });
+
+      if (!response.ok) {
+        const data = (await response.json().catch(() => ({}))) as { error?: string };
+        throw new Error(data.error ?? "Failed to delete user.");
+      }
+
+      const currentOffset = payload?.offset ?? page * PAGE_SIZE;
+      const currentPage = Math.floor(currentOffset / PAGE_SIZE);
+      await loadUsers(undefined, currentPage, search);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete user.");
+    } finally {
+      setDeletingUserId(null);
+    }
   }
 
   const totalPages = payload ? Math.ceil(payload.total / PAGE_SIZE) : 0;
@@ -198,12 +240,13 @@ export default function InternalUsersPage() {
                       <th className="px-4 py-3 font-medium">Logins</th>
                       <th className="px-4 py-3 font-medium">Last Seen</th>
                       <th className="px-4 py-3 font-medium">Registered</th>
+                      <th className="px-4 py-3 font-medium">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {payload.users.length === 0 ? (
                       <tr>
-                        <td colSpan={5} className="px-4 py-8 text-center text-slate-500">
+                        <td colSpan={6} className="px-4 py-8 text-center text-slate-500">
                           No users found.
                         </td>
                       </tr>
@@ -215,6 +258,16 @@ export default function InternalUsersPage() {
                           <td className="px-4 py-3 text-slate-600">{user.login_count}</td>
                           <td className="px-4 py-3 text-slate-600">{formatDate(user.last_seen_at)}</td>
                           <td className="px-4 py-3 text-slate-500">{formatDate(user.created_at)}</td>
+                          <td className="px-4 py-3">
+                            <button
+                              type="button"
+                              onClick={() => deleteUser(user)}
+                              disabled={deletingUserId === user.id}
+                              className="rounded-md border border-rose-200 bg-rose-50 px-2.5 py-1 text-xs font-medium text-rose-700 hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              {deletingUserId === user.id ? "Deleting..." : "Delete"}
+                            </button>
+                          </td>
                         </tr>
                       ))
                     )}

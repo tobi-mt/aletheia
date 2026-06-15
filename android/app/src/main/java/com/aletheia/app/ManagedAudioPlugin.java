@@ -9,6 +9,7 @@ import android.media.MediaPlayer;
 import android.media.session.MediaSession;
 import android.media.session.PlaybackState;
 import android.os.Handler;
+import android.os.IBinder;
 import android.os.Looper;
 
 import com.getcapacitor.JSObject;
@@ -127,6 +128,11 @@ class StreamingMediaDataSource extends MediaDataSource {
 
 @CapacitorPlugin(name = "ManagedAudio")
 public class ManagedAudioPlugin extends Plugin implements MediaPlayer.OnCompletionListener, MediaPlayer.OnErrorListener {
+    private static final int NOTIFICATION_MODE_NONE = 0;
+    private static final int NOTIFICATION_MODE_LOADING = 1;
+    private static final int NOTIFICATION_MODE_PLAYING = 2;
+    private static final int NOTIFICATION_MODE_PAUSED = 3;
+
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private final AtomicInteger playbackGeneration = new AtomicInteger(0);
@@ -141,6 +147,8 @@ public class ManagedAudioPlugin extends Plugin implements MediaPlayer.OnCompleti
     private boolean serviceBound = false;
     private String currentTitle = "Aletheia";
     private Bitmap cachedArtwork;
+    private volatile boolean shouldShowNotification = false;
+    private volatile int notificationMode = NOTIFICATION_MODE_NONE;
 
     private final ServiceConnection serviceConnection = new ServiceConnection() {
         @Override
@@ -150,6 +158,7 @@ public class ManagedAudioPlugin extends Plugin implements MediaPlayer.OnCompleti
             audioService = localBinder.getService();
             serviceBound = true;
             audioService.setCallback(audioActionCallback);
+            publishNotification();
         }
         @Override
         public void onServiceDisconnected(ComponentName name) {
@@ -308,17 +317,41 @@ public class ManagedAudioPlugin extends Plugin implements MediaPlayer.OnCompleti
     }
 
     private void showNotification(boolean isPlaying) {
+        notificationMode = isPlaying ? NOTIFICATION_MODE_PLAYING : NOTIFICATION_MODE_PAUSED;
+        shouldShowNotification = true;
+        publishNotification();
+    }
+
+    private void showLoadingNotification() {
+        notificationMode = NOTIFICATION_MODE_LOADING;
+        shouldShowNotification = true;
+        publishNotification();
+    }
+
+    private void publishNotification() {
         if (!serviceBound || audioService == null || mediaSession == null) return;
-        if (isPlaying) {
-            audioService.showPlayingNotification(
-                currentTitle, getArtwork(), mediaSession.getSessionToken());
-        } else {
-            audioService.showPausedNotification(
-                currentTitle, getArtwork(), mediaSession.getSessionToken());
+        if (!shouldShowNotification) return;
+        switch (notificationMode) {
+            case NOTIFICATION_MODE_LOADING:
+                audioService.showLoadingNotification(
+                    currentTitle, getArtwork(), mediaSession.getSessionToken());
+                break;
+            case NOTIFICATION_MODE_PLAYING:
+                audioService.showPlayingNotification(
+                    currentTitle, getArtwork(), mediaSession.getSessionToken());
+                break;
+            case NOTIFICATION_MODE_PAUSED:
+                audioService.showPausedNotification(
+                    currentTitle, getArtwork(), mediaSession.getSessionToken());
+                break;
+            default:
+                break;
         }
     }
 
     private void dismissNotification() {
+        shouldShowNotification = false;
+        notificationMode = NOTIFICATION_MODE_NONE;
         if (serviceBound && audioService != null) {
             audioService.stopNotification();
         }
@@ -370,56 +403,11 @@ public class ManagedAudioPlugin extends Plugin implements MediaPlayer.OnCompleti
         final String label = call.getString("label", "");
         final int generation = playbackGeneration.incrementAndGet();
 
-        // Create the data source before emitting "loading" so MediaPlayer can be
-        // handed to prepareAsync() immediately — no wait for any download to finish.
+        // Create the data source immediately.
         final StreamingMediaDataSource dataSource = new StreamingMediaDataSource();
 
-        mainHandler.post(() -> {
-            releasePlayer(false);
-            bindAudioService();
-            activeDataSource = dataSource;
-            emitState("loading");
-
-            try {
-                updateMediaMetadata(label);
-                MediaPlayer player = new MediaPlayer();
-                player.setAudioAttributes(new AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_MEDIA)
-                    .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
-                    .build());
-                player.setDataSource(dataSource);
-                player.setOnCompletionListener(this);
-                player.setOnErrorListener(this);
-                player.setOnPreparedListener(preparedPlayer -> {
-                    if (playbackGeneration.get() != generation) {
-                        preparedPlayer.release();
-                        return;
-                    }
-                    // Swap in the newly prepared player without bumping the generation.
-                    stopProgressUpdates();
-                    if (mediaPlayer != null && mediaPlayer != preparedPlayer) {
-                        try { mediaPlayer.stop(); } catch (Exception ignored) {}
-                        mediaPlayer.release();
-                    }
-                    mediaPlayer = preparedPlayer;
-                    mediaPlayer.start();
-                    startProgressUpdates();
-                    updatePlaybackState(PlaybackState.STATE_PLAYING, (float) speed);
-                    showNotification(true);
-                    emitState("playing");
-                });
-                player.prepareAsync();
-            } catch (Exception ex) {
-                dataSource.cancel();
-                if (playbackGeneration.get() == generation) {
-                    emitState("error");
-                }
-            }
-        });
-        call.resolve();
-
-        // Download the audio in the background, feeding bytes into the data source as
-        // they arrive. MediaPlayer's decoder thread is already waiting on readAt().
+        // Start downloading IMMEDIATELY in background — don't wait for UI setup.
+        // This ensures bytes are arriving by the time MediaPlayer needs them.
         executor.submit(() -> {
             HttpURLConnection connection = null;
             try {
@@ -446,7 +434,10 @@ public class ManagedAudioPlugin extends Plugin implements MediaPlayer.OnCompleti
                 if (status < 200 || status >= 300) {
                     dataSource.cancel();
                     mainHandler.post(() -> {
-                        if (playbackGeneration.get() == generation) emitState("error");
+                        if (playbackGeneration.get() == generation) {
+                            dismissNotification();
+                            emitState("error");
+                        }
                     });
                     return;
                 }
@@ -467,12 +458,62 @@ public class ManagedAudioPlugin extends Plugin implements MediaPlayer.OnCompleti
             } catch (Exception ex) {
                 dataSource.cancel();
                 mainHandler.post(() -> {
-                    if (playbackGeneration.get() == generation) emitState("error");
+                    if (playbackGeneration.get() == generation) {
+                        dismissNotification();
+                        emitState("error");
+                    }
                 });
             } finally {
                 if (connection != null) connection.disconnect();
             }
         });
+
+        // Now set up MediaPlayer on the main thread. Bytes are already being downloaded.
+        mainHandler.post(() -> {
+            if (playbackGeneration.get() != generation) return; // Superseded
+            releasePlayer(false);
+            bindAudioService();
+            activeDataSource = dataSource;
+            emitState("loading");
+
+            try {
+                updateMediaMetadata(label);
+                showLoadingNotification();
+                MediaPlayer player = new MediaPlayer();
+                player.setAudioAttributes(new AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_MEDIA)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                    .build());
+                player.setDataSource(dataSource);
+                player.setOnCompletionListener(ManagedAudioPlugin.this);
+                player.setOnErrorListener(ManagedAudioPlugin.this);
+                player.setOnPreparedListener(preparedPlayer -> {
+                    if (playbackGeneration.get() != generation) {
+                        preparedPlayer.release();
+                        return;
+                    }
+                    stopProgressUpdates();
+                    if (mediaPlayer != null && mediaPlayer != preparedPlayer) {
+                        try { mediaPlayer.stop(); } catch (Exception ignored) {}
+                        mediaPlayer.release();
+                    }
+                    mediaPlayer = preparedPlayer;
+                    mediaPlayer.start();
+                    startProgressUpdates();
+                    updatePlaybackState(PlaybackState.STATE_PLAYING, (float) speed);
+                    showNotification(true);
+                    emitState("playing");
+                });
+                player.prepareAsync();
+            } catch (Exception ex) {
+                dataSource.cancel();
+                if (playbackGeneration.get() == generation) {
+                    dismissNotification();
+                    emitState("error");
+                }
+            }
+        });
+        call.resolve();
     }
 
     @PluginMethod

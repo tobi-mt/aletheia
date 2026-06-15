@@ -1,12 +1,15 @@
 import { NextResponse } from "next/server";
-import { many } from "@/lib/db";
+import { many, one, run } from "@/lib/db";
 import { apiError } from "@/lib/api-errors";
 
-export async function GET(request: Request) {
+function authorized(request: Request) {
   const secret = process.env.ANALYTICS_ADMIN_SECRET;
   const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
+  return Boolean(secret && token === secret);
+}
 
-  if (!secret || token !== secret) {
+export async function GET(request: Request) {
+  if (!authorized(request)) {
     return apiError(401, "permission_denied", "Unauthorized");
   }
 
@@ -50,5 +53,37 @@ export async function GET(request: Request) {
     total: countRows[0]?.total ?? 0,
     limit,
     offset,
+  });
+}
+
+export async function DELETE(request: Request) {
+  if (!authorized(request)) {
+    return apiError(401, "permission_denied", "Unauthorized");
+  }
+
+  const body = (await request.json().catch(() => ({}))) as { userId?: string };
+  const userId = body.userId?.trim();
+
+  if (!userId) {
+    return apiError(400, "invalid_input", "userId is required.");
+  }
+
+  const user = await one<{ id: string; email: string; name: string | null }>(
+    "SELECT id, email, name FROM users WHERE id = ?",
+    userId
+  );
+
+  if (!user) {
+    return apiError(404, "not_found", "User not found.");
+  }
+
+  await run("DELETE FROM users WHERE id = ?", userId);
+
+  return NextResponse.json({
+    deleted: {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+    },
   });
 }

@@ -464,7 +464,8 @@
     "avatarFileTypeUnsupported": "Use PNG, JPEG, or WEBP images.",
     "avatarFileTooLarge": "Choose an image smaller than 10MB.",
     "avatarPhotoSelected": "Photo selected for this counsel contact.",
-    "avatarProcessingFailed": "Could not process this image."
+    "avatarProcessingFailed": "Could not process this image.",
+    "preparingAudio": "Preparing audio..."
   },
   "placeholders": {
     "decisionExample": "Money stress, a career decision, generosity pressure...",
@@ -1066,6 +1067,7 @@
     "insertTranscript": "Insert transcript",
     "journalSections": "Journal sections",
     "libraryExplore": "Explore",
+    "bibleLibrary": "Bible",
     "librarySections": "Library sections",
     "listening": "Listening",
     "moreCounselOptions": "More counsel options",
@@ -1131,7 +1133,14 @@
     "counselRoleAdvisor": "Advisor",
     "counselRoleFriend": "Friend",
     "modeDiagnostic": "Mode diagnostic",
-    "olderCounselKeptQuiet": "Older counsel is kept quiet so the current question stays clear."
+    "olderCounselKeptQuiet": "Older counsel is kept quiet so the current question stays clear.",
+    "studyModeNextStepFallback": "Take one small faithful step that reflects this passage today.",
+    "scriptureStudyMode": "Study Mode",
+    "scriptureStudyModeSubtitle": "Explore the meaning, context, and connected scriptures.",
+    "whatThisPassageIsSaying": "What this passage is saying",
+    "whyItMatters": "Why it matters",
+    "relatedScriptures": "Related scriptures",
+    "aWiseNextStep": "A wise next step"
   },
   "personalizationNudgeTitle": "Want more personal counsel?",
   "personalizationNudgeBody": "Add one detail about money, work, or rhythm.",
@@ -1539,5 +1548,13 @@
   "counselRemovedLocally": "Counsel contact removed locally",
   "counselRemovedLocallyBody": "The contact was removed from this device.",
   "scriptureMemoryCleared": "Scripture memory cleared",
-  "scriptureMemoryClearedBody": "The weekly scripture anchor was removed from Home."
+  "scriptureMemoryClearedBody": "The weekly scripture anchor was removed from Home.",
+  "change": "Change",
+  "wisdomPrinciple": "Wisdom principle",
+  "todayScriptureLabel": "Scripture",
+  "todayQuestionLabel": "Today's question",
+  "weeklyReviewHeading": "Your Weekly Review",
+  "carryWithMe": "Carry with me",
+  "askAboutThis": "Ask about this",
+  "saveToRuleOfLife": "Save to Rule of Life"
 }

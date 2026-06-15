@@ -11,6 +11,7 @@ import {
   BriefcaseBusiness,
   Camera,
   Check,
+  CircleHelp,
   Compass,
   Copy,
   ChevronDown,
@@ -63,6 +64,8 @@ import {
   languageCopy,
   languages,
   localizedDailyWisdom,
+  localizeScriptureReferencesInText,
+  localizedScriptureReference,
   localizedScriptureRead,
   scriptureDisplayLabel,
   localizedRegionLabel,
@@ -82,12 +85,14 @@ import { modeProfiles, type ModeProfile } from "@/lib/mode-profiles";
 import { detectLifeSupportConcern } from "@/lib/life-support";
 import { stableHash, todayWisdom as sharedTodayWisdom, wisdomEntries as baseWisdomEntries, type WisdomEntryData } from "@/lib/wisdom-data";
 import { defaultManualContext, manualContextCounselSignals, manualContextHasContent, normalizeManualContext, type ManualContextProfile } from "@/lib/manual-context";
+import { getCompanionTemplate, resolveGenerationLanguage } from "@/lib/scripture-generation-templates";
 import type { Mode } from "@/lib/wisdom-data";
 import { analyticsQuestionMetadata } from "@/lib/analytics-taxonomy";
 import { decisionStartedDiscerningBody, decisionTimelineObservation, localizeDecisionEventBody } from "@/lib/decision-copy";
 import { curatedAvatarOptions, defaultAvatarDataUrl, normalizeAvatarUrl } from "@/lib/avatars";
 import { loadTranslationsSync, loadTranslationsWithFallbackSync, getTranslation, type TranslationData } from "@/lib/translations";
 import { ManagedAudio } from "@/lib/native-audio";
+import BibleReader from "@/components/bible-reader";
 
 type View = "companion" | "decisions" | "reflect" | "library" | "account";
 type HomeSection = "today" | "ask";
@@ -326,8 +331,29 @@ const COUNSEL_STATUS_TRACKING_KEY = "aletheia_counsel_status_tracking";
 const CARRY_TODAY_STORAGE_KEY = "aletheia_carry_today";
 const SCRIPTURE_MEMORY_STORAGE_KEY = "aletheia_scripture_memory";
 const UPDATE_REFRESH_PENDING_KEY = "aletheia_update_refresh_pending";
+type AuthPromptReason =
+  | "guest_second_question"
+  | "guest_saved_reflection"
+  | "guest_saved_decision"
+  | "post_answer_action"
+  | "notifications_gate";
+type AuthPromptCloseReason = "manual" | "timeout" | "cta";
+type AuthPromptState = {
+  shownCount: number;
+  dismissCount: number;
+  lastShownAt: string | null;
+  lastShownSessionId: string | null;
+  lastReason: AuthPromptReason | null;
+  cooldownUntil: string | null;
+  recentShownAt: string[];
+};
 const FOCUS_INTENTIONS_STORAGE_KEY = "aletheia_focus_intentions";
 const GRATITUDE_LENS_STORAGE_KEY = "aletheia_gratitude_lens";
+const AUTH_PROMPT_STATE_STORAGE_KEY = "aletheia_auth_prompt_state";
+const AUTH_PROMPT_MIN_ENGAGEMENT_MS = 90_000;
+const AUTH_PROMPT_WEEKLY_LIMIT = 3;
+const AUTH_PROMPT_FIRST_COOLDOWN_MS = 72 * 60 * 60 * 1000;
+const AUTH_PROMPT_REPEAT_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000;
 const GRATITUDE_INDEXED_DB_NAME = "aletheia-gratitude";
 const GRATITUDE_INDEXED_DB_VERSION = 1;
 const GRATITUDE_INDEXED_DB_STORE = "gratitude_entries";
@@ -3518,6 +3544,28 @@ type CounselInvitePreview = {
   }>;
 };
 
+const DEFAULT_AUTH_PROMPT_STATE: AuthPromptState = {
+  shownCount: 0,
+  dismissCount: 0,
+  lastShownAt: null,
+  lastShownSessionId: null,
+  lastReason: null,
+  cooldownUntil: null,
+  recentShownAt: [],
+};
+
+function pruneRecentPromptHistory(history: string[], now = Date.now()) {
+  const weekWindowMs = 7 * 24 * 60 * 60 * 1000;
+  return history.filter((value) => {
+    const timestamp = Date.parse(value);
+    return Number.isFinite(timestamp) && now - timestamp <= weekWindowMs;
+  });
+}
+
+function authPromptCooldownMs(nextDismissCount: number) {
+  return nextDismissCount <= 1 ? AUTH_PROMPT_FIRST_COOLDOWN_MS : AUTH_PROMPT_REPEAT_COOLDOWN_MS;
+}
+
 type CounselRemovalConfirmationState = {
   contactId: string;
   contactName: string;
@@ -6658,13 +6706,39 @@ function localTodayKeyFromDate(date: Date) {
   return `${year}-${month}-${day}`;
 }
 
-function storedScriptureMemory(): ScriptureMemory | null {
+function storedScriptureMemory(preferences: UserPreferences): ScriptureMemory | null {
   if (typeof window === "undefined") {
     return null;
   }
   try {
     const parsed = JSON.parse(window.localStorage.getItem(SCRIPTURE_MEMORY_STORAGE_KEY) || "null") as ScriptureMemory | null;
-    return parsed?.scripture && parsed.weekKey === currentWeekKey() ? parsed : null;
+    if (!parsed?.scripture || parsed.weekKey !== currentWeekKey()) {
+      return null;
+    }
+
+    const canonical = canonicalScriptureReference(parsed.scripture);
+    const sourceEntry = baseWisdomEntries.find((entry) => canonicalScriptureReference(entry.scripture) === canonical);
+    if (!sourceEntry) {
+      return parsed;
+    }
+
+    const localizedPrinciple = localizedWisdomEntry(sourceEntry, preferences).principle;
+    if (!localizedPrinciple || parsed.principle === localizedPrinciple) {
+      return parsed;
+    }
+
+    const migrated: ScriptureMemory = {
+      ...parsed,
+      principle: localizedPrinciple,
+    };
+
+    try {
+      window.localStorage.setItem(SCRIPTURE_MEMORY_STORAGE_KEY, JSON.stringify(migrated));
+    } catch {
+      // Return migrated memory for this session even if persistence is unavailable.
+    }
+
+    return migrated;
   } catch {
     return null;
   }
@@ -6697,40 +6771,15 @@ function companionCardFromDaily({
   activeDecision: WisdomDecision | null;
 }): TodayCompanionCard {
   const theme = daily.theme || entry.theme;
-  const questions: Partial<Record<LanguageCode, string>> = {
-    en: entry.questions[0] || "Where is wisdom asking me to slow down today?",
-    de: "Wo lädt Weisheit mich heute ein, langsamer zu werden?",
-    yo: "Níbo ni ọgbọ́n ń pè mí láti dákẹ́ lónìí?",
-    ig: "Ebee ka amamihe na-akpọ m ka m belata ọsọ taa?",
-    ha: "Ina hikima ke kiran ni in rage gaggawa yau?",
-    tl: "Saan ako hinihikayat ng karunungan na bumagal ngayon?",
-    ar: "أين تدعوني الحكمة إلى التمهل اليوم؟",
-    hi: "आज बुद्धि मुझे कहाँ धीमे होने के लिए कह रही है?",
-    fr: "Où la sagesse m'invite-t-elle à ralentir aujourd'hui ?",
-    es: "¿Dónde me invita la sabiduría a bajar el ritmo hoy?",
-    pt: "Onde a sabedoria me convida a desacelerar hoje?",
-  };
-  const shortQuestion = questions[language] ?? questions.en!;
-  const openings: Partial<Record<LanguageCode, string>> = {
-    en: "You do not have to decide from pressure today.",
-    de: "Du musst heute nicht aus Druck heraus entscheiden.",
-    yo: "O ko ni lati pinnu lati inu titẹ loni.",
-    ig: "I gaghị eme mkpebi site n'ike nrụgide taa.",
-    ha: "Ba lallai ne ka yanke shawara daga matsin lamba yau ba.",
-    tl: "Hindi mo kailangang magpasya mula sa pressure ngayon.",
-    ar: "لست مضطرًا لأن تقرر من تحت الضغط اليوم.",
-    hi: "आज आपको दबाव से निर्णय लेने की ज़रूरत नहीं है।",
-    fr: "Tu n'as pas besoin de décider sous pression aujourd'hui.",
-    es: "No tienes que decidir desde la presión hoy.",
-    pt: "Hoje, você não precisa decidir sob pressão.",
-  };
+  const companionTemplate = getCompanionTemplate(resolveGenerationLanguage(language));
+  const shortQuestion = entry.questions[0] || companionTemplate.reflectionQuestion;
   const personalizedPhrase = personalizedCarryPhrase({ language, manualContext, focusIntentions, activeDecision });
   const carryPhrase = personalizedPhrase || (language === "en" && pattern && pattern.length < 72
       ? `Notice ${pattern.toLowerCase()} before it drives the decision.`
       : daily.practice.replace(/\.$/, "."));
   return {
     title: theme,
-    opening: openings[language] ?? openings.en!,
+    opening: companionTemplate.opening,
     principle: daily.principle,
     practice: daily.practice,
     question: shortQuestion,
@@ -6784,6 +6833,7 @@ export function AletheiaApp() {
   const [authName, setAuthName] = useState("");
   const [authEmail, setAuthEmail] = useState("");
   const [authPassword, setAuthPassword] = useState("");
+  const [authWebsite, setAuthWebsite] = useState("");
   const [authError, setAuthError] = useState("");
   const [authNotice, setAuthNotice] = useState("");
   const [authStatus, setAuthStatus] = useState<AuthStatus>("checking");
@@ -6804,6 +6854,7 @@ export function AletheiaApp() {
   const [isListening, setIsListening] = useState(false);
   const [voiceTranscriptPreview, setVoiceTranscriptPreview] = useState("");
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [speechLoading, setSpeechLoading] = useState(false);
   const [speechPaused, setSpeechPaused] = useState(false);
   const [speechProgress, setSpeechProgress] = useState(0);
   const [readingLabel, setReadingLabel] = useState("");
@@ -6821,6 +6872,7 @@ export function AletheiaApp() {
   const [isWorking, setIsWorking] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
   const [workflowNotice, setWorkflowNotice] = useState<WorkflowNoticeState | null>(null);
+  const [authPromptState, setAuthPromptState] = useState<AuthPromptState>(DEFAULT_AUTH_PROMPT_STATE);
   const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
   const [showReportIssueModal, setShowReportIssueModal] = useState(false);
   const [accountActionBusy, setAccountActionBusy] = useState<"export" | "delete" | "report" | null>(null);
@@ -6887,6 +6939,11 @@ export function AletheiaApp() {
   const [pendingNotificationFocus, setPendingNotificationFocus] = useState(false);
   const [pendingGratitudeNotificationFocus, setPendingGratitudeNotificationFocus] = useState(false);
   const [pendingDecisionNotificationFocus, setPendingDecisionNotificationFocus] = useState<string | null>(null);
+  const appOpenedAtRef = useRef<number>(Date.now());
+  const guestQuestionCountRef = useRef(0);
+  const authPromptSessionIdRef = useRef<string | null>(null);
+  const authPromptActiveIdRef = useRef<string | null>(null);
+  const authPromptTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
     window.setTimeout(() => {
@@ -6913,6 +6970,7 @@ export function AletheiaApp() {
   const bottomNavRef = useRef<HTMLDivElement | null>(null);
   const updateRefreshTimeoutRef = useRef<number | null>(null);
   const notificationFocusHandledRef = useRef(false);
+  const notificationSelfHealInFlightRef = useRef(false);
 
   // Hydration-safe restore of client-only persisted state.
   useEffect(() => {
@@ -6926,7 +6984,7 @@ export function AletheiaApp() {
       setThemePreference(storedThemePreference());
       setShowOnboarding(shouldShowOnboarding());
       setCarryToday(storedCarryToday(restoredPreferences));
-      setScriptureMemory(storedScriptureMemory());
+      setScriptureMemory(storedScriptureMemory(restoredPreferences));
       setSelectedVoice(storedVoicePreference());
       setNotificationTiming(storedNotificationTiming());
       const now = new Date();
@@ -6935,6 +6993,29 @@ export function AletheiaApp() {
       setCurrentLocalMonth(now.getMonth() + 1);
       setCurrentLocalDayOfWeek(now.getDay());
       setClientStateRestored(true);
+      try {
+        const savedPromptState = JSON.parse(window.localStorage.getItem(AUTH_PROMPT_STATE_STORAGE_KEY) || "null") as AuthPromptState | null;
+        if (savedPromptState && typeof savedPromptState === "object") {
+          setAuthPromptState({
+            shownCount: Number(savedPromptState.shownCount) || 0,
+            dismissCount: Number(savedPromptState.dismissCount) || 0,
+            lastShownAt: typeof savedPromptState.lastShownAt === "string" ? savedPromptState.lastShownAt : null,
+            lastShownSessionId: typeof savedPromptState.lastShownSessionId === "string" ? savedPromptState.lastShownSessionId : null,
+            lastReason: savedPromptState.lastReason ?? null,
+            cooldownUntil: typeof savedPromptState.cooldownUntil === "string" ? savedPromptState.cooldownUntil : null,
+            recentShownAt: Array.isArray(savedPromptState.recentShownAt)
+              ? savedPromptState.recentShownAt.filter((value) => typeof value === "string")
+              : [],
+          });
+        }
+      } catch {
+        // Keep default prompt state if saved state is missing or invalid.
+      }
+      try {
+        authPromptSessionIdRef.current = analyticsId(window.sessionStorage, "aletheia_session_id");
+      } catch {
+        authPromptSessionIdRef.current = null;
+      }
 
       void (async () => {
         const indexedEntries = await readGratitudeEntriesFromIndexedDB();
@@ -6990,7 +7071,7 @@ export function AletheiaApp() {
       }
       const rawValue = getTranslation(rawTranslations, key, missingTranslationToken);
       if (rawValue === missingTranslationToken) {
-        throw new Error(`Missing translation for ${preferences.language}.${key}. English fallback would be "${fallback}".`);
+        console.warn(`Missing translation for ${preferences.language}.${key}. Falling back to "${fallback}".`);
       }
     };
     const t = (key: string, fallback?: string): string | string[] => {
@@ -7052,7 +7133,7 @@ export function AletheiaApp() {
       if (process.env.NODE_ENV !== "production" && preferences.language !== "en") {
         const rawValue = getTranslation(rawTranslations, key, "__aletheia_missing_translation__");
         if (rawValue === "__aletheia_missing_translation__") {
-          throw new Error(`Missing translation for ${preferences.language}.${key}. English fallback would be "${fallback || key}".`);
+          console.warn(`Missing translation for ${preferences.language}.${key}. Falling back to "${fallback || key}".`);
         }
       }
       const result = getTranslation(trans, key, fallback || key);
@@ -7230,14 +7311,142 @@ export function AletheiaApp() {
   };
 
   const announceWorkflow = useCallback((title: string, body: string, tone: WorkflowTone = "info", action?: { label: string; onClick: () => void }) => {
+    const id = crypto.randomUUID();
     setWorkflowNotice({
-      id: crypto.randomUUID(),
+      id,
       title,
       body,
       tone,
       action,
     });
+    return id;
   }, []);
+
+  const updateAuthPromptState = useCallback((updater: (current: AuthPromptState) => AuthPromptState) => {
+    setAuthPromptState((current) => {
+      const next = updater(current);
+      try {
+        if (typeof window !== "undefined") {
+          window.localStorage.setItem(AUTH_PROMPT_STATE_STORAGE_KEY, JSON.stringify(next));
+        }
+      } catch {
+        // Prompt limits still work in-memory for this session.
+      }
+      return next;
+    });
+  }, []);
+
+  const closeWorkflowNotice = useCallback((closeReason: AuthPromptCloseReason = "manual") => {
+    const closingNotice = workflowNotice;
+    if (!closingNotice) {
+      return;
+    }
+
+    const isAuthPrompt = authPromptActiveIdRef.current === closingNotice.id;
+    if (isAuthPrompt) {
+      authPromptActiveIdRef.current = null;
+      if (closeReason !== "cta") {
+        const nextDismissCount = authPromptState.dismissCount + 1;
+        const cooldownUntil = new Date(Date.now() + authPromptCooldownMs(nextDismissCount)).toISOString();
+        updateAuthPromptState((current) => ({
+          ...current,
+          dismissCount: nextDismissCount,
+          cooldownUntil,
+        }));
+      }
+      trackClientEvent("auth_prompt_dismissed", {
+        prompt_reason: authPromptState.lastReason,
+        close_reason: closeReason,
+        dismiss_count: authPromptState.dismissCount + (closeReason === "cta" ? 0 : 1),
+      });
+    }
+
+    setWorkflowNotice(null);
+  }, [authPromptState.dismissCount, authPromptState.lastReason, updateAuthPromptState, workflowNotice]);
+
+  const maybeShowSignInPrompt = useCallback((reason: AuthPromptReason, metadata: AnalyticsMetadata = {}, options?: { bypassMinEngagement?: boolean }) => {
+    if (typeof window === "undefined" || user || authStatus === "signing-in" || authStatus === "signing-out" || showOnboarding) {
+      return false;
+    }
+
+    const now = Date.now();
+    const promptHistory = pruneRecentPromptHistory(authPromptState.recentShownAt, now);
+    const cooldownUntilMs = authPromptState.cooldownUntil ? Date.parse(authPromptState.cooldownUntil) : Number.NaN;
+    const hasCooldown = Number.isFinite(cooldownUntilMs) && cooldownUntilMs > now;
+    const bypassMinEngagement = options?.bypassMinEngagement ?? false;
+
+    if (!bypassMinEngagement && now - appOpenedAtRef.current < AUTH_PROMPT_MIN_ENGAGEMENT_MS) {
+      return false;
+    }
+    if (hasCooldown) {
+      return false;
+    }
+    if (promptHistory.length >= AUTH_PROMPT_WEEKLY_LIMIT) {
+      return false;
+    }
+
+    const sessionId = authPromptSessionIdRef.current ?? analyticsId(window.sessionStorage, "aletheia_session_id");
+    authPromptSessionIdRef.current = sessionId;
+    if (authPromptState.lastShownSessionId === sessionId) {
+      return false;
+    }
+
+    const shownAt = new Date(now).toISOString();
+    updateAuthPromptState((current) => ({
+      ...current,
+      shownCount: current.shownCount + 1,
+      lastShownAt: shownAt,
+      lastShownSessionId: sessionId,
+      lastReason: reason,
+      recentShownAt: [...pruneRecentPromptHistory(current.recentShownAt, now), shownAt],
+    }));
+
+    trackClientEvent("auth_prompt_shown", {
+      prompt_reason: reason,
+      weekly_shown_count: promptHistory.length + 1,
+      ...metadata,
+    });
+
+    const promptId = announceWorkflow(
+      "Save your progress across devices",
+      "Sign in to keep decisions, reflections, and preferences synced and portable.",
+      "info",
+      {
+        label: ts('auth.signIn'),
+        onClick: () => {
+          authPromptActiveIdRef.current = null;
+          trackClientEvent("auth_prompt_cta_clicked", { prompt_reason: reason, ...metadata });
+          closeWorkflowNotice("cta");
+          setAuthMode("login");
+          openAccountFlow();
+        },
+      }
+    );
+    authPromptActiveIdRef.current = promptId;
+    return true;
+  }, [announceWorkflow, authPromptState.cooldownUntil, authPromptState.lastShownSessionId, authPromptState.recentShownAt, authStatus, closeWorkflowNotice, openAccountFlow, showOnboarding, ts, updateAuthPromptState, user]);
+
+  const scheduleSignInPrompt = useCallback((reason: AuthPromptReason, metadata: AnalyticsMetadata = {}, delayMs = 2200) => {
+    if (typeof window === "undefined" || user) {
+      return;
+    }
+    if (authPromptTimeoutRef.current !== null) {
+      window.clearTimeout(authPromptTimeoutRef.current);
+      authPromptTimeoutRef.current = null;
+    }
+    authPromptTimeoutRef.current = window.setTimeout(() => {
+      authPromptTimeoutRef.current = null;
+      void maybeShowSignInPrompt(reason, metadata);
+    }, delayMs);
+  }, [maybeShowSignInPrompt, user]);
+
+  const promptSignInForNotifications = useCallback(() => {
+    trackClientEvent("gate_hit_notifications", {
+      location: "account_notifications",
+      has_account: Boolean(user),
+    });
+    void maybeShowSignInPrompt("notifications_gate", { location: "account_notifications" }, { bypassMinEngagement: true });
+  }, [maybeShowSignInPrompt, user]);
 
   function getFriendlyAuthError(params: URLSearchParams) {
     const oauthReason = params.get("reason");
@@ -7352,17 +7561,27 @@ export function AletheiaApp() {
         });
         stateHandle = await ManagedAudio.addListener("state", ({ state }) => {
           if (cancelled) return;
-          if (state === "loading" || state === "playing") {
+          if (state === "loading") {
+            setSpeechLoading(true);
+            setIsSpeaking(true);
+            setSpeechPaused(false);
+            setStatusMessage(ts('status.preparingAudio', 'Preparing audio...'));
+            return;
+          }
+          if (state === "playing") {
+            setSpeechLoading(false);
             setIsSpeaking(true);
             setSpeechPaused(false);
             return;
           }
           if (state === "paused") {
+            setSpeechLoading(false);
             setIsSpeaking(true);
             setSpeechPaused(true);
             return;
           }
           if (state === "ended" || state === "stopped" || state === "idle") {
+            setSpeechLoading(false);
             setIsSpeaking(false);
             setSpeechPaused(false);
             setSpeechProgress(0);
@@ -7371,6 +7590,7 @@ export function AletheiaApp() {
             return;
           }
           if (state === "error") {
+            setSpeechLoading(false);
             setIsSpeaking(false);
             setSpeechPaused(false);
             setSpeechProgress(0);
@@ -7410,9 +7630,18 @@ export function AletheiaApp() {
     if (!workflowNotice) {
       return;
     }
-    const timeout = window.setTimeout(() => setWorkflowNotice(null), 6500);
+    const timeout = window.setTimeout(() => closeWorkflowNotice("timeout"), 6500);
     return () => window.clearTimeout(timeout);
-  }, [workflowNotice]);
+  }, [closeWorkflowNotice, workflowNotice]);
+
+  useEffect(() => {
+    return () => {
+      if (authPromptTimeoutRef.current !== null) {
+        window.clearTimeout(authPromptTimeoutRef.current);
+        authPromptTimeoutRef.current = null;
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const media = window.matchMedia("(prefers-color-scheme: dark)");
@@ -7438,6 +7667,21 @@ export function AletheiaApp() {
     document.documentElement.lang = preferences.language;
     document.documentElement.dir = languages[preferences.language]?.direction ?? "ltr";
   }, [preferences.language]);
+
+  useEffect(() => {
+    if (user) {
+      guestQuestionCountRef.current = 0;
+      if (authPromptTimeoutRef.current !== null) {
+        window.clearTimeout(authPromptTimeoutRef.current);
+        authPromptTimeoutRef.current = null;
+      }
+      const activePromptId = authPromptActiveIdRef.current;
+      if (activePromptId) {
+        authPromptActiveIdRef.current = null;
+        setWorkflowNotice((current) => (current?.id === activePromptId ? null : current));
+      }
+    }
+  }, [user]);
 
   useLayoutEffect(() => {
     const updateViewportChrome = () => {
@@ -8183,6 +8427,14 @@ export function AletheiaApp() {
         });
         void saveNotificationTimingPreference(fallbackTiming).catch(() => undefined);
       }
+      const shouldAttemptSelfHeal =
+        Boolean(user) &&
+        Boolean(data.configured) &&
+        Notification.permission === "granted" &&
+        (!accountEnabled || !deviceSubscribed);
+      if (shouldAttemptSelfHeal) {
+        void selfHealNotificationSubscription("status_load");
+      }
       if (!data.configured) {
         setNotificationStatus(ts('notifications.notificationsNotConfiguredBody'));
       } else if (!user) {
@@ -8203,6 +8455,8 @@ export function AletheiaApp() {
     loadNotificationStatus().catch(() =>
       setNotificationStatus(ts('notifications.notificationStatusLoadFailed'))
     );
+  // selfHealNotificationSubscription is intentionally omitted to keep bootstrap status checks stable.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ts, user]);
 
   useEffect(() => {
@@ -8213,6 +8467,9 @@ export function AletheiaApp() {
     const syncDeviceTimezone = () => {
       if (document.visibilityState === "hidden") {
         return;
+      }
+      if (Notification.permission === "granted" && (!notificationsEnabled || !notificationDeviceSubscribed)) {
+        void selfHealNotificationSubscription("focus");
       }
       const detectedTimezone = browserTimezone();
       if (detectedTimezone === notificationTiming.preferredTimezone) {
@@ -8233,7 +8490,7 @@ export function AletheiaApp() {
     };
   // updateNotificationTiming is intentionally omitted to avoid effect churn; this effect is scoped to timezone changes.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [notificationTiming.timezoneMode, notificationTiming.preferredTimezone, notificationBusy, user]);
+  }, [notificationTiming.timezoneMode, notificationTiming.preferredTimezone, notificationBusy, user, notificationsEnabled, notificationDeviceSubscribed]);
 
   // Detect newly accepted counsel invites
   useEffect(() => {
@@ -8636,13 +8893,13 @@ export function AletheiaApp() {
       kind: "daily",
       eyebrow: ts('labels.todaysCompanion'),
       title: `${ts('todayPrefix')}: ${card.title}`,
-      body: `${card.principle}\n\n${card.practice}\n\n${card.carryPhrase}\n\n${dailyEntry.context}\n\n${dailyEntry.application}`,
+      body: `${card.principle}\n\n${card.practice}\n\n${card.carryPhrase}\n\n${daily.context}\n\n${daily.application}`,
       sections: [
         { label: ts('labels.principle'), text: card.principle },
         { label: ts('labels.tinyPractice'), text: card.practice },
         { label: ts('labels.carryThisToday'), text: card.carryPhrase },
-        { label: ui.context ?? "", text: dailyEntry.context },
-        { label: ui.application ?? "", text: dailyEntry.application },
+        { label: ui.context ?? "", text: daily.context },
+        { label: ui.application ?? "", text: daily.application },
       ],
     }, "today_companion_card");
   }
@@ -8727,7 +8984,7 @@ export function AletheiaApp() {
   function reflectOnCompanionCard(card: TodayCompanionCard) {
     setJournalTitle(`${ts('todayPrefix')}: ${card.title}`);
     setJournalBody(
-      `${card.opening}\n\n${ui.wisdomPrinciple ?? ""}:\n${card.principle}\n\n${ui.context ?? ""}:\n${dailyEntry.context}\n\n${ui.application ?? ""}:\n${dailyEntry.application}\n\n${ts('labels.tinyPractice')}:\n${card.practice}\n\n${ts('labels.reflectionQuestion')}:\n${card.question}\n\n${ui.whatINotice ?? ""}:\n`
+      `${card.opening}\n\n${ui.wisdomPrinciple ?? ""}:\n${card.principle}\n\n${ui.context ?? ""}:\n${daily.context}\n\n${ui.application ?? ""}:\n${daily.application}\n\n${ts('labels.tinyPractice')}:\n${card.practice}\n\n${ts('labels.reflectionQuestion')}:\n${card.question}\n\n${ui.whatINotice ?? ""}:\n`
     );
     showView("reflect");
     announceWorkflow(ts('notifications.reflectionPrepared'), ts('notifications.reflectionPreparedBody'), "success");
@@ -8735,6 +8992,16 @@ export function AletheiaApp() {
 
   function saveCompanionRule(card: TodayCompanionCard) {
     setRuleText(card.carryPhrase);
+    showView("decisions");
+    announceWorkflow(ts('notifications.ruleDrafted'), ts('notifications.ruleDraftedBody'), "success");
+  }
+
+  function saveStudyActionAsRule(action: string) {
+    const nextRule = action.trim();
+    if (!nextRule) {
+      return;
+    }
+    setRuleText(nextRule);
     showView("decisions");
     announceWorkflow(ts('notifications.ruleDrafted'), ts('notifications.ruleDraftedBody'), "success");
   }
@@ -8847,6 +9114,13 @@ export function AletheiaApp() {
     setDecisionPressure(question);
     setDecisionEmotion("uncertain");
     trackClientEvent("answer_saved_or_acted", { action: "track_decision", mode, ...analyticsQuestionMetadata(question, mode) });
+    if (!user) {
+      scheduleSignInPrompt("post_answer_action", {
+        action: "track_decision",
+        location: "answer_actions",
+        mode,
+      });
+    }
     showView("decisions");
     announceWorkflow(ts('notifications.decisionDraftStarted'), ts('notifications.decisionDraftStartedBody'), "success");
   }
@@ -8857,6 +9131,13 @@ export function AletheiaApp() {
     setJournalTitle(`Reflection: ${question.slice(0, 70)}`);
     setJournalBody(`${ts('labels.reflectionQuestion')}:\n${question}\n\n${ui.currentCounsel ?? ""}:\n${answer}\n\n${ui.whatINotice ?? ""}:\n`);
     trackClientEvent("answer_saved_or_acted", { action: "draft_reflection", mode, ...analyticsQuestionMetadata(question, mode) });
+    if (!user) {
+      scheduleSignInPrompt("post_answer_action", {
+        action: "draft_reflection",
+        location: "answer_actions",
+        mode,
+      });
+    }
     showView("reflect");
     announceWorkflow(ts('notifications.reflectionDraftPrepared'), ts('notifications.reflectionDraftPreparedBody'), "success");
   }
@@ -8910,6 +9191,13 @@ export function AletheiaApp() {
     setDecisionPressure((current) => current || question);
     trackClientEvent("counsel_summary_created", { mode, ...analyticsQuestionMetadata(question, mode) });
     trackClientEvent("answer_saved_or_acted", { action: "create_counsel_summary", mode, ...analyticsQuestionMetadata(question, mode) });
+    if (!user) {
+      scheduleSignInPrompt("post_answer_action", {
+        action: "create_counsel_summary",
+        location: "answer_actions",
+        mode,
+      });
+    }
     showView("decisions");
     scrollToSection("counsel-circle");
     announceWorkflow(ts('notifications.counselSummaryCreated'), ts('notifications.counselSummaryCreatedBody'), "success");
@@ -8933,6 +9221,13 @@ export function AletheiaApp() {
     setDecisionPressure(`${question}\n\nSuggested waiting rhythm: wait 3 days, seek counsel, count the cost, and revisit with less urgency.`);
     setDecisionEmotion("pressured");
     trackClientEvent("answer_saved_or_acted", { action: "waiting_mode", mode, ...analyticsQuestionMetadata(question, mode) });
+    if (!user) {
+      scheduleSignInPrompt("post_answer_action", {
+        action: "waiting_mode",
+        location: "answer_actions",
+        mode,
+      });
+    }
     showView("decisions");
     announceWorkflow(ts('notifications.waitingRhythmPrepared'), ts('notifications.waitingRhythmPreparedBody'), "success");
   }
@@ -9284,7 +9579,7 @@ export function AletheiaApp() {
   }
 
   function toggleSpeechPause() {
-    if (!isSpeaking) return;
+    if (!isSpeaking || speechLoading) return;
     if (Capacitor.isNativePlatform()) {
       if (speechPaused) {
         void ManagedAudio.resume().catch(() => {
@@ -9334,6 +9629,7 @@ export function AletheiaApp() {
       managedAudioUrlRef.current = null;
     }
     setIsSpeaking(false);
+    setSpeechLoading(false);
     setSpeechPaused(false);
     setSpeechProgress(0);
     setReadingLabel("");
@@ -9369,6 +9665,7 @@ export function AletheiaApp() {
     setSpeechProgress(0);
     setStatusMessage(notice);
     setIsSpeaking(true);
+    setSpeechLoading(true);
     setSpeechPaused(false);
 
     try {
@@ -9429,6 +9726,7 @@ export function AletheiaApp() {
             managedAudioUrlRef.current = null;
           }
           setIsSpeaking(false);
+          setSpeechLoading(false);
           setSpeechPaused(false);
           setSpeechProgress(0);
           setReadingLabel("");
@@ -9440,6 +9738,7 @@ export function AletheiaApp() {
             managedAudioUrlRef.current = null;
           }
           setIsSpeaking(false);
+          setSpeechLoading(false);
           setSpeechPaused(false);
           setSpeechProgress(0);
           setReadingLabel("");
@@ -9454,6 +9753,7 @@ export function AletheiaApp() {
       audio.volume = 1;
       audio.playbackRate = 1;
       await audio.play();
+      setSpeechLoading(false);
 
       if ('wakeLock' in navigator) {
         (navigator as Navigator & { wakeLock: { request: (type: string) => Promise<{ release: () => void }> } })
@@ -9469,6 +9769,7 @@ export function AletheiaApp() {
       }
       if (managedPlaybackRequestRef.current === playbackRequest) {
         setIsSpeaking(false);
+        setSpeechLoading(false);
         setSpeechPaused(false);
         setSpeechProgress(0);
         setReadingLabel("");
@@ -9503,6 +9804,14 @@ export function AletheiaApp() {
 
     if (!user) {
       trackClientEvent("chat_question_sent", questionAnalytics);
+      guestQuestionCountRef.current += 1;
+      if (guestQuestionCountRef.current >= 2) {
+        scheduleSignInPrompt("guest_second_question", {
+          question_count: guestQuestionCountRef.current,
+          location: "companion_ask",
+          mode,
+        });
+      }
     }
 
     const userMessage: ChatMessage = { id: crypto.randomUUID(), role: "user", mode, text: trimmed };
@@ -9596,6 +9905,7 @@ export function AletheiaApp() {
           name: authName,
           email: authEmail,
           password: authPassword,
+          website: authMode === "register" ? authWebsite : "",
         }),
       });
       const data = (await response.json()) as { user?: User; error?: string; errorCode?: string; isNewUser?: boolean; welcomeMessage?: string };
@@ -9920,6 +10230,72 @@ export function AletheiaApp() {
     });
   }
 
+  async function selfHealNotificationSubscription(trigger: "status_load" | "focus") {
+    if (!user) {
+      return false;
+    }
+    if (notificationSelfHealInFlightRef.current) {
+      return false;
+    }
+    if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
+      return false;
+    }
+    if (Notification.permission !== "granted") {
+      return false;
+    }
+
+    notificationSelfHealInFlightRef.current = true;
+    try {
+      const keyResponse = await fetch("/api/notifications/key", { cache: "no-store" });
+      const keyData = (await keyResponse.json()) as { publicKey?: string };
+      if (!keyResponse.ok || !keyData.publicKey) {
+        trackClientEvent("notification_self_heal_failed", { trigger, reason: "missing_public_key" });
+        return false;
+      }
+
+      const registration = await getReliableServiceWorkerRegistration();
+      let subscription = await registration.pushManager.getSubscription();
+      if (subscription && !pushSubscriptionUsesPublicKey(subscription, keyData.publicKey)) {
+        await subscription.unsubscribe();
+        subscription = null;
+      }
+      if (!subscription) {
+        subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(keyData.publicKey),
+        });
+      }
+
+      const preferredTimezone = notificationTiming.timezoneMode === "auto"
+        ? browserTimezone()
+        : (notificationTiming.preferredTimezone || browserTimezone());
+      const preferredLocalHour = notificationTiming.preferredLocalHour;
+      const response = await saveNotificationSubscription(subscription, {
+        ...notificationTiming,
+        preferredTimezone,
+        preferredLocalHour,
+      }, localHourToUtcHour(preferredLocalHour));
+
+      if (!response.ok) {
+        trackClientEvent("notification_self_heal_failed", { trigger, reason: "subscribe_api_failed", status: response.status });
+        return false;
+      }
+
+      setNotificationsEnabled(true);
+      setNotificationAccountEnabled(true);
+      setNotificationDeviceSubscribed(true);
+      setNotificationPermission("granted");
+      setNotificationStatus(ts('notifications.notificationsEnabledBody'));
+      trackClientEvent("notification_self_healed", { trigger });
+      return true;
+    } catch {
+      trackClientEvent("notification_self_heal_failed", { trigger, reason: "exception" });
+      return false;
+    } finally {
+      notificationSelfHealInFlightRef.current = false;
+    }
+  }
+
   async function saveNotificationTimingPreference(timing: NotificationTiming) {
     return fetch("/api/notifications/status", {
       method: "POST",
@@ -10040,6 +10416,11 @@ export function AletheiaApp() {
         isFirstReflection ? ts('notifications.firstReflectionMilestoneBody') : ts('notifications.reflectionSavedLocallyBody'),
         "success"
       );
+      scheduleSignInPrompt("guest_saved_reflection", {
+        location: "reflect_tab",
+        mode,
+        first_reflection: isFirstReflection,
+      });
     }
 
     setJournalTitle("");
@@ -10302,6 +10683,11 @@ export function AletheiaApp() {
         isFirstDecision ? ts('notifications.firstDecisionMilestoneBody') : ts('notifications.decisionTrackedLocallyBody'),
         "success"
       );
+      scheduleSignInPrompt("guest_saved_decision", {
+        location: "decisions_tab",
+        mode,
+        first_decision: isFirstDecision,
+      });
     }
 
     setDecisionTitle("");
@@ -10835,7 +11221,7 @@ export function AletheiaApp() {
       />
       <WorkflowNotice
         notice={workflowNotice}
-        onClose={() => setWorkflowNotice(null)}
+        onClose={() => closeWorkflowNotice("manual")}
         theme={theme}
         readerOpen={isSpeaking || speechPaused}
         ts={ts}
@@ -11033,7 +11419,7 @@ export function AletheiaApp() {
                         onSaveCardAsRule={saveCompanionRule}
                         onShareCard={() => shareTodayWisdomPostcard(todayCompanionCard)}
                         onShareCarryCard={shareCarryPostcard}
-                        onSaveScriptureMemory={() => saveScriptureMemory(dailyEntry.scripture, dailyEntry.principle)}
+                        onSaveScriptureMemory={() => saveScriptureMemory(dailyEntry.scripture, daily.principle)}
                         onClearScriptureMemory={clearScriptureMemory}
                         onShareScriptureMemory={shareScriptureMemoryCard}
                         theme={theme}
@@ -11062,6 +11448,7 @@ export function AletheiaApp() {
                         isWorking={isWorking}
                         isListening={isListening}
                         isSpeaking={isSpeaking}
+                        speechLoading={speechLoading}
                         speechPaused={speechPaused}
                         speechProgress={speechProgress}
                         answerFocusId={answerFocusId}
@@ -11186,6 +11573,7 @@ export function AletheiaApp() {
                       onScriptureOpen={openScripture}
                       scriptureMemory={scriptureMemory}
                       onSaveScriptureMemory={saveScriptureMemory}
+                      onSaveStudyActionAsRule={saveStudyActionAsRule}
                       onShareScriptureMemory={shareScriptureMemoryCard}
                       theme={theme}
                     />
@@ -11202,6 +11590,7 @@ export function AletheiaApp() {
                         setAuthMode(value);
                         setAuthError("");
                         setAuthNotice("");
+                        setAuthWebsite("");
                       }}
                       name={authName}
                       setName={setAuthName}
@@ -11209,6 +11598,8 @@ export function AletheiaApp() {
                       setEmail={setAuthEmail}
                       password={authPassword}
                       setPassword={setAuthPassword}
+                      website={authWebsite}
+                      setWebsite={setAuthWebsite}
                       error={authError}
                       notice={authNotice}
                       authStatus={authStatus}
@@ -11238,6 +11629,7 @@ export function AletheiaApp() {
                       onNotificationTimingChange={updateNotificationTiming}
                       onEnableNotifications={enableNotifications}
                       onDisableNotifications={disableNotifications}
+                      onRequestSignInForNotifications={promptSignInForNotifications}
                       messages={messages}
                       decisions={wisdomDecisions}
                       journalEntries={journalEntries}
@@ -11271,6 +11663,7 @@ export function AletheiaApp() {
         theme={theme}
         label={readingLabel}
         progress={speechProgress}
+        loading={speechLoading}
         paused={speechPaused}
         voiceName={managedVoiceLabel(selectedVoice)}
         ts={ts}
@@ -11357,6 +11750,7 @@ export function AletheiaApp() {
         key={`scripture:${selectedScripture ?? "closed"}`}
         theme={theme}
         scripture={selectedScripture}
+        speechLoading={speechLoading}
         preferences={preferences}
         ui={ui}
         ts={ts}
@@ -11710,6 +12104,7 @@ function ReadingPlayer({
   theme,
   label,
   progress,
+  loading,
   paused,
   voiceName,
   ts,
@@ -11719,6 +12114,7 @@ function ReadingPlayer({
   theme: ThemeColors;
   label: string;
   progress: number;
+  loading: boolean;
   paused: boolean;
   voiceName?: string;
   ts: (key: string, fallback?: string) => string;
@@ -11745,24 +12141,30 @@ function ReadingPlayer({
             <div className="min-w-0">
               <p className="truncate text-[0.92rem] font-semibold leading-5">{label}</p>
               <p className="truncate text-[0.72rem] leading-5" style={{ color: theme.textSecondary }}>
-                {voiceName
-                  ? ts('labels.readingWithVoice').replace('{voice}', voiceName)
-                  : ts('labels.readingWithDeviceVoice')}
+                {loading
+                  ? ts('status.preparingAudio', 'Preparing audio...')
+                  : voiceName
+                    ? ts('labels.readingWithVoice').replace('{voice}', voiceName)
+                    : ts('labels.readingWithDeviceVoice')}
               </p>
             </div>
             <span className="shrink-0 rounded-full border px-2 py-0.5 text-[0.7rem] font-semibold leading-4" style={{ borderColor: theme.borderLight, color: theme.textMuted, backgroundColor: theme.bgCardElevated }}>
-              {safeProgress}%
+              {loading ? ts('labels.loading', 'Loading') : `${safeProgress}%`}
             </span>
           </div>
           <div className="mt-2 h-1 overflow-hidden rounded-full" style={{ backgroundColor: theme.borderLight }}>
-            <div className="h-full rounded-full transition-all" style={{ width: `${safeProgress}%`, backgroundColor: theme.accentGold }} />
+            <div
+              className={`h-full rounded-full transition-all ${loading ? 'animate-pulse' : ''}`}
+              style={{ width: loading ? '24%' : `${safeProgress}%`, backgroundColor: theme.accentGold }}
+            />
           </div>
         </div>
         <button
           type="button"
           onClick={onTogglePause}
+          disabled={loading}
           className="grid size-9 shrink-0 place-items-center rounded-xl border transition"
-          style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+          style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary, opacity: loading ? 0.55 : 1 }}
           aria-label={paused ? ts('labels.resumeReading') : ts('labels.pauseReading')}
         >
           {paused ? <Play size={16} /> : <Pause size={16} />}
@@ -12506,6 +12908,7 @@ function OnboardingModal({
 
 function HomeDashboard({
   ts,
+  daily,
   dailyEntry,
   dayNumber,
   currentLocalMonth,
@@ -12692,7 +13095,7 @@ function HomeDashboard({
                   {ui.wisdomPrinciple ?? "Wisdom principle"}
                 </p>
                 <p className="mt-1 max-w-[28ch] text-[0.9rem] leading-6 sm:text-[0.93rem] sm:leading-[1.55rem]" style={{ color: theme.textPrimary }} suppressHydrationWarning>
-                  {dailyEntry.principle}
+                  {daily.principle}
                 </p>
               </div>
             </div>
@@ -12722,7 +13125,7 @@ function HomeDashboard({
                   {text.todayScriptureLabel ?? "Scripture"}
                 </span>
                 <span className="mt-1 block text-sm font-semibold leading-6 sm:text-base">
-                  {dailyEntry.scripture}
+                  {localizedScriptureReference(dailyEntry.scripture, preferences.language)}
                 </span>
               </span>
               <span className="grid size-10 shrink-0 place-items-center rounded-xl border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textPrimary }}>
@@ -13276,6 +13679,8 @@ function AccountPanel({
   setEmail,
   password,
   setPassword,
+  website,
+  setWebsite,
   error,
   notice,
   authStatus,
@@ -13305,6 +13710,7 @@ function AccountPanel({
   onNotificationTimingChange,
   onEnableNotifications,
   onDisableNotifications,
+  onRequestSignInForNotifications,
   messages,
   decisions,
   journalEntries,
@@ -13335,6 +13741,8 @@ function AccountPanel({
   setEmail: (value: string) => void;
   password: string;
   setPassword: (value: string) => void;
+  website: string;
+  setWebsite: (value: string) => void;
   error: string;
   notice: string;
   authStatus: AuthStatus;
@@ -13364,6 +13772,7 @@ function AccountPanel({
   onNotificationTimingChange: (patch: Partial<NotificationTiming>) => void;
   onEnableNotifications: () => void;
   onDisableNotifications: () => void;
+  onRequestSignInForNotifications: () => void;
   messages: ChatMessage[];
   decisions: WisdomDecision[];
   journalEntries: JournalEntry[];
@@ -13479,6 +13888,8 @@ function AccountPanel({
                 setEmail={setEmail}
                 password={password}
                 setPassword={setPassword}
+                website={website}
+                setWebsite={setWebsite}
                 error={error}
                 notice={notice}
                 authStatus={authStatus}
@@ -13569,6 +13980,7 @@ function AccountPanel({
               onTimingChange={onNotificationTimingChange}
               onEnable={onEnableNotifications}
               onDisable={onDisableNotifications}
+              onRequestSignIn={onRequestSignInForNotifications}
             />
           </DisclosureSection>
         </div>
@@ -16288,6 +16700,8 @@ function AuthPanel({
   setEmail,
   password,
   setPassword,
+  website,
+  setWebsite,
   error,
   notice,
   authStatus,
@@ -16307,6 +16721,8 @@ function AuthPanel({
   setEmail: (value: string) => void;
   password: string;
   setPassword: (value: string) => void;
+  website: string;
+  setWebsite: (value: string) => void;
   error: string;
   notice: string;
   authStatus: AuthStatus;
@@ -16434,6 +16850,19 @@ function AuthPanel({
               placeholder={ts('placeholders.password')}
               type="password"
             />
+            {authMode === "register" ? (
+              <input
+                value={website}
+                onChange={(event) => setWebsite(event.target.value)}
+                className="sr-only"
+                style={{ display: "none" }}
+                tabIndex={-1}
+                autoComplete="off"
+                placeholder="Website"
+                type="text"
+                name="website"
+              />
+            ) : null}
             <button
               disabled={authBusy}
               className="h-10 rounded-md px-4 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60 sm:col-span-2"
@@ -16471,6 +16900,7 @@ function NotificationPanel({
   onTimingChange,
   onEnable,
   onDisable,
+  onRequestSignIn,
 }: {
   theme: ThemeColors;
   ts: (key: string, fallback?: string) => string;
@@ -16484,6 +16914,7 @@ function NotificationPanel({
   onTimingChange: (patch: Partial<NotificationTiming>) => void;
   onEnable: () => void;
   onDisable: () => void;
+  onRequestSignIn: () => void;
 }) {
   const timezoneOptions = useMemo(
     () => notificationTimezoneOptions(timing.preferredTimezone),
@@ -16522,7 +16953,21 @@ function NotificationPanel({
             {busy ? ts('notifications.enabling') : ts('labels.enable')}
           </button>
         )}
+        {!user ? (
+          <button
+            onClick={onRequestSignIn}
+            className="h-10 rounded-full border px-4 text-sm font-semibold transition"
+            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
+          >
+            {ts('auth.signInForSync')}
+          </button>
+        ) : null}
       </div>
+      {!user ? (
+        <p className="rounded-[0.9rem] border px-3 py-2 text-sm leading-6" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
+          {ts('labels.accountGuestSummary')}
+        </p>
+      ) : null}
       <div className="mt-4 rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
         <div className="mb-3 rounded-[0.9rem] border px-3 py-2 text-sm leading-6" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
           <span className="font-semibold" style={{ color: theme.textPrimary }}>
@@ -16617,6 +17062,7 @@ function NotificationPanel({
 function ScriptureModal({
   theme,
   scripture,
+  speechLoading,
   preferences,
   ui,
   ts,
@@ -16626,6 +17072,7 @@ function ScriptureModal({
 }: {
   theme: ThemeColors;
   scripture: string | null;
+  speechLoading: boolean;
   preferences: UserPreferences;
   ui: UiText;
   ts: (key: string, fallback?: string) => string;
@@ -16635,6 +17082,7 @@ function ScriptureModal({
 }) {
   const canUsePortal = typeof document !== "undefined";
   const [view, setView] = useState<"quick" | "deep">("quick");
+  const [showCuratedReadingInfo, setShowCuratedReadingInfo] = useState(false);
   const contentRef = useRef<HTMLDivElement | null>(null);
   useBodyScrollLock(Boolean(scripture && canUsePortal));
 
@@ -16645,16 +17093,24 @@ function ScriptureModal({
 
     const handleKeyDown = (event: globalThis.KeyboardEvent) => {
       if (event.key === "Escape") {
+        if (showCuratedReadingInfo) {
+          setShowCuratedReadingInfo(false);
+          return;
+        }
         onClose();
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [canUsePortal, onClose, scripture]);
+  }, [canUsePortal, onClose, scripture, showCuratedReadingInfo]);
 
   useEffect(() => {
     contentRef.current?.scrollTo({ top: 0, behavior: "auto" });
+  }, [scripture, view]);
+
+  useEffect(() => {
+    setShowCuratedReadingInfo(false);
   }, [scripture, view]);
 
   if (!scripture || !canUsePortal) {
@@ -16663,15 +17119,16 @@ function ScriptureModal({
 
   const quickRead = localizedScriptureRead(scripture, preferences);
   const canonicalScripture = canonicalScriptureReference(scripture);
+  const displayScripture = localizedScriptureReference(canonicalScripture, preferences.language);
   const translationLabel = scriptureDisplayLabel(canonicalScripture, preferences);
   const curatedReadingNote = ts(
     "labels.curatedReadingOrSummary",
     "When Aletheia has a curated public-domain reading in your chosen translation, it shows that reading. Otherwise it uses a concise, clearly marked wisdom summary and keeps the reference exact."
   );
-  const studyModeTitle = ts('labels.scriptureStudyMode', 'Study Mode');
-  const studyModeSubtitle = ts('labels.scriptureStudyModeSubtitle', 'Explore the meaning, context, and connected scriptures.');
-  const studyModeButton = ui.diveDeep ?? ts('labels.diveDeep', 'Dive Deep');
-  const backToQuickRead = ui.backToQuickRead ?? ts('labels.backToQuickRead', 'Back to Quick Read');
+  const studyModeTitle = ts('labels.scriptureStudyMode');
+  const studyModeSubtitle = ts('labels.scriptureStudyModeSubtitle');
+  const studyModeButton = ui.diveDeep ?? ts('labels.diveDeep');
+  const backToQuickRead = ui.backToQuickRead ?? ts('labels.backToQuickRead');
 
   return createPortal(
     <div
@@ -16704,16 +17161,34 @@ function ScriptureModal({
                     {ts('labels.scriptureQuickRead')}
                   </p>
                   <h2 id="scripture-quick-read-title" className="mt-2 text-[2rem] font-semibold leading-[1.05] sm:text-[2.45rem]" style={{ color: theme.textPrimary }}>
-                    {canonicalScripture}
+                    {displayScripture}
                   </h2>
                   <div className="mt-3 flex flex-wrap items-center gap-2">
                     <span className="inline-flex items-center rounded-full border px-3 py-1 text-[0.72rem] font-semibold uppercase tracking-[0.16em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
                       {translationLabel}
                     </span>
-                    <span className="text-xs leading-5 sm:text-sm" style={{ color: theme.textSecondary }}>
-                      {curatedReadingNote}
-                    </span>
+                    <button
+                      type="button"
+                      aria-label={ts('labels.aboutThisReading', 'About this reading')}
+                      aria-expanded={showCuratedReadingInfo}
+                      aria-controls="curated-reading-tooltip"
+                      onClick={() => setShowCuratedReadingInfo((open) => !open)}
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-full border transition"
+                      style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}
+                    >
+                      <CircleHelp size={15} />
+                    </button>
                   </div>
+                  {showCuratedReadingInfo ? (
+                    <p
+                      id="curated-reading-tooltip"
+                      role="tooltip"
+                      className="mt-2 rounded-xl border px-3 py-2 text-xs leading-5 sm:text-sm"
+                      style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}
+                    >
+                      {curatedReadingNote}
+                    </p>
+                  ) : null}
                 </>
               ) : (
                 <>
@@ -16731,7 +17206,7 @@ function ScriptureModal({
                       {translationLabel}
                     </span>
                     <span className="text-[0.72rem] font-semibold uppercase tracking-[0.22em]" style={{ color: theme.textMuted }}>
-                      {canonicalScripture}
+                      {displayScripture}
                     </span>
                   </div>
                 </>
@@ -16741,11 +17216,14 @@ function ScriptureModal({
               <button
                 type="button"
                 onClick={onReadAloud}
+                disabled={speechLoading}
                 className="inline-flex h-10 items-center justify-center gap-2 rounded-full border px-4 text-xs font-semibold transition sm:justify-start"
-                style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
+                style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textPrimary, opacity: speechLoading ? 0.62 : 1 }}
               >
                 <Volume2 size={15} />
-                {ts('labels.readScriptureAloud')}
+                {speechLoading
+                  ? ts('status.preparingAudio', 'Preparing audio...')
+                  : ts('labels.readScriptureAloud')}
               </button>
               {view === "quick" ? (
                 <button
@@ -16775,6 +17253,11 @@ function ScriptureModal({
               >
                 <X size={17} />
               </button>
+              {speechLoading ? (
+                <p className="text-[0.72rem] font-semibold sm:col-span-3" style={{ color: theme.textMuted }}>
+                  {ts('status.preparingAudio', 'Preparing audio...')}
+                </p>
+              ) : null}
             </div>
           </div>
         </div>
@@ -17515,6 +17998,7 @@ function CompanionPanel({
   isListening,
   voiceTranscriptPreview,
   isSpeaking,
+  speechLoading,
   speechPaused,
   speechProgress,
   answerFocusId,
@@ -17553,6 +18037,7 @@ function CompanionPanel({
   isListening: boolean;
   voiceTranscriptPreview: string;
   isSpeaking: boolean;
+  speechLoading: boolean;
   speechPaused: boolean;
   speechProgress: number;
   answerFocusId: string | null;
@@ -17809,6 +18294,7 @@ function CompanionPanel({
                 ui={ui}
                 isWorking={isWorking}
                 isSpeaking={isSpeaking}
+                speechLoading={speechLoading}
                 speechPaused={speechPaused}
                 speechProgress={speechProgress}
                 onSpeak={onSpeak}
@@ -17959,7 +18445,7 @@ function ScriptureChips({
           style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textSecondary }}
           suppressHydrationWarning
         >
-          {source.scripture} · {scriptureDisplayLabel(source.scripture, preferences)}
+          {localizedScriptureReference(source.scripture, preferences.language)} · {scriptureDisplayLabel(source.scripture, preferences)}
         </button>
       ))}
     </div>
@@ -18005,11 +18491,13 @@ function scriptureTextMatches(text: string, allowedScriptures: string[] = curate
 function ScriptureLinkedText({
   theme,
   text,
+  language,
   allowedScriptures,
   onScriptureOpen,
 }: {
   theme: ThemeColors;
   text: string;
+  language: LanguageCode;
   allowedScriptures?: string[];
   onScriptureOpen: (scripture: string) => void;
 }) {
@@ -18037,7 +18525,7 @@ function ScriptureLinkedText({
         className="mx-0.5 rounded-md px-1.5 py-0.5 font-semibold underline decoration-1 underline-offset-2 transition"
         style={{ backgroundColor: theme.bgInput, color: theme.textPrimary }}
       >
-        {match.label}
+        {localizedScriptureReference(match.scripture, language)}
       </button>
     );
     cursor = match.index + match.label.length;
@@ -18053,7 +18541,7 @@ type ScriptureStudyGuide = {
   meaning: string;
   context: string;
   whyItMatters: string;
-  nextStep: string;
+  nextStep?: string;
   related: Array<{
     scripture: string;
     theme: string;
@@ -18125,10 +18613,7 @@ function buildScriptureStudyGuide(scripture: string, preferences: UserPreference
     meaning: current.principle,
     context: current.context,
     whyItMatters: current.application,
-    nextStep:
-      current.questions[0]
-        ? current.questions[0]
-        : "Take one small faithful step that reflects this passage today.",
+    nextStep: current.questions[0],
     related,
   };
 }
@@ -18148,10 +18633,11 @@ function ScriptureStudyMode({
 }) {
   const studyGuide = buildScriptureStudyGuide(scripture, preferences);
   const quickRead = localizedScriptureRead(scripture, preferences);
-  const whatItSays = ts('labels.whatThisPassageIsSaying', 'What this passage is saying');
-  const whyItMatters = ts('labels.whyItMatters', 'Why it matters');
-  const relatedScriptures = ts('labels.relatedScriptures', 'Related scriptures');
-  const wiseNextStep = ts('labels.aWiseNextStep', 'A wise next step');
+  const whatItSays = ts('labels.whatThisPassageIsSaying');
+  const whyItMatters = ts('labels.whyItMatters');
+  const relatedScriptures = ts('labels.relatedScriptures');
+  const wiseNextStep = ts('labels.aWiseNextStep');
+  const wiseNextStepFallback = ts('labels.studyModeNextStepFallback');
 
   return (
     <motion.div
@@ -18198,7 +18684,7 @@ function ScriptureStudyMode({
             >
               <div className="flex items-start justify-between gap-3">
                 <p className="text-sm font-semibold sm:text-[0.98rem] group-hover:underline group-hover:underline-offset-4">
-                  {related.scripture}
+                  {localizedScriptureReference(related.scripture, preferences.language)}
                 </p>
                 <span className="shrink-0 text-[0.68rem] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.accentGold }}>
                   {related.theme}
@@ -18217,7 +18703,7 @@ function ScriptureStudyMode({
           {wiseNextStep}
         </p>
         <p className="mt-3 text-[1.02rem] leading-8 sm:text-lg sm:leading-9" style={{ color: theme.textPrimary }}>
-          {studyGuide.nextStep}
+          {studyGuide.nextStep ?? wiseNextStepFallback}
         </p>
       </section>
 
@@ -18430,6 +18916,7 @@ function CurrentCounselCard({
   ui,
   isWorking,
   isSpeaking,
+  speechLoading,
   speechPaused,
   speechProgress,
   onSpeak,
@@ -18451,6 +18938,7 @@ function CurrentCounselCard({
   ui: UiText;
   isWorking: boolean;
   isSpeaking: boolean;
+  speechLoading: boolean;
   speechPaused: boolean;
   speechProgress: number;
   onSpeak: () => void;
@@ -18495,7 +18983,11 @@ function CurrentCounselCard({
           <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{ts('labels.appName')}</p>
           {preferences.voiceEnabled && !isThinking ? (
             <div className="flex items-center gap-2">
-              {isSpeaking && speechProgress > 0 ? (
+              {speechLoading ? (
+                <span className="text-xs font-semibold animate-pulse" style={{ color: theme.textMuted }}>
+                  {ts('status.preparingAudio', 'Preparing audio...')}
+                </span>
+              ) : isSpeaking && speechProgress > 0 ? (
                 <span className="text-xs" style={{ color: theme.textMuted }}>{speechProgress}%</span>
               ) : null}
               <button
@@ -18513,8 +19005,9 @@ function CurrentCounselCard({
                 <button
                   type="button"
                   onClick={onTogglePause}
+                  disabled={speechLoading}
                   className="inline-flex h-8 items-center gap-1.5 rounded-full border px-2.5 text-xs font-semibold transition"
-                  style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
+                  style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary, opacity: speechLoading ? 0.55 : 1 }}
                   aria-label={speechPaused ? ts('labels.resumeReading') : ts('labels.pauseReading')}
                   title={speechPaused ? ts('labels.resumeReading') : ts('labels.pauseReading')}
                 >
@@ -18556,6 +19049,7 @@ function CurrentCounselCard({
           <ScriptureLinkedText
             theme={theme}
             text={answerText}
+            language={preferences.language}
             allowedScriptures={exchange.answer.sources?.map((source) => source.scripture)}
             onScriptureOpen={onScriptureOpen}
           />
@@ -18666,7 +19160,11 @@ function HistoryExchange({
   onScriptureOpen: (scripture: string) => void;
 }) {
   const title = exchange.question?.text ?? ts('labels.welcomeGuidance');
-  const preview = cleanDisplayText(exchange.answer.text).slice(0, 120);
+  const preview = localizeScriptureReferencesInText(
+    cleanDisplayText(exchange.answer.text),
+    preferences.language,
+    exchange.answer.sources?.map((source) => source.scripture)
+  ).slice(0, 120);
   const exchangeModeProfile = localizedModeProfile(exchange.mode, preferences.language);
 
   return (
@@ -18696,6 +19194,7 @@ function HistoryExchange({
             <ScriptureLinkedText
               theme={theme}
               text={exchange.answer.text}
+              language={preferences.language}
               allowedScriptures={exchange.answer.sources?.map((source) => source.scripture)}
               onScriptureOpen={onScriptureOpen}
             />
@@ -19517,7 +20016,7 @@ function DecisionCompanionPanel({
                   {ts('labels.mentorReadySummaryReviewBeforeSharing')}
                 </p>
                 <div className="mt-3 max-h-80 min-h-40 overflow-y-auto rounded-[1rem] border p-2.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput }}>
-                  <ScriptureLinkedText theme={theme} text={selectedDecision.summary} onScriptureOpen={onScriptureOpen} />
+                  <ScriptureLinkedText theme={theme} text={selectedDecision.summary} language={language} onScriptureOpen={onScriptureOpen} />
                 </div>
                 <div className="mt-3 rounded-[1rem] border p-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
                   <button
@@ -19883,7 +20382,9 @@ function WisdomCheck({
         result.hasUrgency
           ? ts('labels.wisdomCheckUrgency', 'urgency noticed')
           : ts('labels.wisdomCheckSlower', 'pressure looks slower'),
-        result.sources[0]?.scripture ? `${ts('labels.grounding')}: ${result.sources[0].scripture}. ${result.sources[0].principle}` : "",
+        result.sources[0]?.scripture
+          ? `${ts('labels.grounding')}: ${localizedScriptureReference(result.sources[0].scripture, language)}. ${result.sources[0].principle}`
+          : "",
         `${ts('labels.nextFaithfulAction')}. ${ts('labels.nextFaithfulActionBody')}`,
       ]
         .filter(Boolean)
@@ -19981,7 +20482,7 @@ function WisdomCheck({
             <div className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
               <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>{ts('labels.grounding')}</p>
               <p className="mt-1.5 text-sm leading-5" style={{ color: theme.textSecondary }}>
-                {result.sources[0]?.scripture}: {result.sources[0]?.principle}
+                {result.sources[0]?.scripture ? localizedScriptureReference(result.sources[0].scripture, language) : ""}: {result.sources[0]?.principle}
               </p>
             </div>
             <div className="rounded-[1rem] border p-3" style={{ backgroundColor: theme.primary, borderColor: theme.borderMedium, color: theme.textOnPrimary }}>
@@ -20794,6 +21295,7 @@ function LibraryPanel({
   onScriptureOpen,
   scriptureMemory,
   onSaveScriptureMemory,
+  onSaveStudyActionAsRule,
   onShareScriptureMemory,
   theme,
 }: {
@@ -20806,12 +21308,13 @@ function LibraryPanel({
   onScriptureOpen: (scripture: string) => void;
   scriptureMemory: ScriptureMemory | null;
   onSaveScriptureMemory: (scripture: string, principle: string) => void;
+  onSaveStudyActionAsRule: (action: string) => void;
   onShareScriptureMemory: (memory: ScriptureMemory) => void;
   theme: ThemeColors;
 }) {
   const runtime = runtimeCopyFor(preferences.language);
   const localizedModeSearchLabel = localizedModeLabel(mode, preferences.language).toLowerCase();
-  const [librarySection, setLibrarySection] = useState<"explore" | "memory">("explore");
+  const [librarySection, setLibrarySection] = useState<"explore" | "memory" | "bible">("explore");
   const libraryNextTitle = search.trim()
     ? (entries.length === 1
         ? ts('labels.libraryMatchingWisdomAnchorSingular')
@@ -20840,18 +21343,17 @@ function LibraryPanel({
         body={libraryNextBody}
         theme={theme}
       />
-      {scriptureMemory ? (
-        <ScreenTabs
+      <ScreenTabs
           value={librarySection}
           onChange={setLibrarySection}
           ariaLabel={ts('labels.librarySections')}
           theme={theme}
           tabs={[
             { key: "explore", label: ts('labels.libraryExplore') },
-            { key: "memory", label: ts('labels.scriptureMemory') },
+            { key: "bible", label: ts('labels.bibleLibrary', "Bible") },
+            ...(scriptureMemory ? [{ key: "memory", label: ts('labels.scriptureMemory') }] : []),
           ]}
         />
-      ) : null}
 
       {librarySection === "memory" && scriptureMemory ? (
         <DisclosureSection
@@ -20885,7 +21387,7 @@ function LibraryPanel({
                 className="text-left text-sm font-semibold underline underline-offset-4"
                 style={{ color: theme.textPrimary }}
               >
-                {scriptureMemory.scripture}
+                {localizedScriptureReference(scriptureMemory.scripture, preferences.language)}
               </button>
               <button
                 type="button"
@@ -20919,7 +21421,13 @@ function LibraryPanel({
         </DisclosureSection>
       ) : null}
 
-      {librarySection !== "memory" ? (
+      {librarySection === "bible" ? (
+        <section className="min-w-0 rounded-xl border p-3.5 shadow-sm sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+          <BibleReader preferences={preferences} theme={theme} onSaveStudyAction={onSaveStudyActionAsRule} />
+        </section>
+      ) : null}
+
+      {librarySection === "explore" ? (
       <section className="min-w-0 rounded-xl border p-3.5 shadow-sm sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
@@ -20975,7 +21483,7 @@ function LibraryPanel({
                     onMouseEnter={(e) => e.currentTarget.style.color = theme.accentGold}
                     onMouseLeave={(e) => e.currentTarget.style.color = theme.textPrimary}
                   >
-                    {entry.scripture}
+                    {localizedScriptureReference(entry.scripture, preferences.language)}
                   </button>
                 </div>
                 <p className="text-sm font-semibold leading-5" style={{ color: theme.textPrimary }}>{localizedEntry.principle}</p>
@@ -21022,7 +21530,7 @@ function LibraryPanel({
                         className="text-left text-sm font-semibold underline underline-offset-4 transition"
                         style={{ color: theme.textPrimary, textDecorationColor: theme.borderMedium }}
                       >
-                        {entry.scripture}
+                        {localizedScriptureReference(entry.scripture, preferences.language)}
                       </button>
                     </div>
                     <p className="text-sm font-semibold leading-5" style={{ color: theme.textPrimary }}>{localizedEntry.principle}</p>

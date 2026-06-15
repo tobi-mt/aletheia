@@ -2288,5 +2288,660 @@ export const displayReadyScriptureReads: Partial<Record<BibleTranslation, Record
       ],
       "text": "13 Wata gwaji ba ta same ku ba face irin wadda take ga mutane. Amma Allah mai aminci ne, ba zai bari a gwada ku fiye da abin da za ku iya jurewa ba; amma tare da gwaji zai kuma tanadar da hanyar kubuta, domin ku iya ɗaukar ta."
     }
+  },
+  "ASV": {
+    "Matthew 25:14-30": {
+      "translation": "ASV",
+      "label": "American Standard Version",
+      "availableLanguage": "en",
+      "verses": [
+        { "verse": "14", "text": "For it is as when a man, going into another country, called his own servants, and delivered unto them his goods." },
+        { "verse": "15", "text": "And unto one he gave five talents, to another two, to another one; to each according to his several ability; and he went on his journey." },
+        { "verse": "16", "text": "Straightway he that received the five talents went and traded with them, and made other five talents." },
+        { "verse": "17", "text": "In like manner he also that received the two gained other two." },
+        { "verse": "18", "text": "But he that received the one went away and digged in the earth, and hid his lord's money." },
+        { "verse": "19", "text": "Now after a long time the lord of those servants cometh, and maketh a reckoning with them." },
+        { "verse": "20", "text": "And he that received the five talents came and brought other five talents, saying, Lord, thou deliveredst unto me five talents: lo, I have gained other five talents." },
+        { "verse": "21", "text": "His lord said unto him, Well done, good and faithful servant: thou hast been faithful over a few things, I will set thee over many things; enter thou into the joy of thy lord." },
+        { "verse": "22", "text": "And he also that received the two talents came and said, Lord, thou deliveredst unto me two talents: lo, I have gained other two talents." },
+        { "verse": "23", "text": "His lord said unto him, Well done, good and faithful servant: thou hast been faithful over a few things, I will set thee over many things; enter thou into the joy of thy lord." },
+        { "verse": "24", "text": "And he also that had received the one talent came and said, Lord, I knew thee that thou art a hard man, reaping where thou didst not sow, and gathering where thou didst not scatter;" },
+        { "verse": "25", "text": "and I was afraid, and went away and hid thy talent in the earth: lo, thou hast thine own." },
+        { "verse": "26", "text": "But his lord answered and said unto him, Thou wicked and slothful servant, thou knewest that I reap where I sowed not, and gather where I did not scatter;" },
+        { "verse": "27", "text": "thou oughtest therefore to have put my money to the bankers, and at my coming I should have received back mine own with interest." },
+        { "verse": "28", "text": "Take ye away therefore the talent from him, and give it unto him that hath the ten talents." },
+        { "verse": "29", "text": "For unto every one that hath shall be given, and he shall have abundance: but from him that hath not, even that which he hath shall be taken away." },
+        { "verse": "30", "text": "And cast ye out the unprofitable servant into the outer darkness: there shall be the weeping and the gnashing of teeth." }
+      ],
+      "text": "14 For it is as when a man, going into another country, called his own servants, and delivered unto them his goods. 15 And unto one he gave five talents, to another two, to another one; to each according to his several ability; and he went on his journey. 16 Straightway he that received the five talents went and traded with them, and made other five talents. 17 In like manner he also that received the two gained other two. 18 But he that received the one went away and digged in the earth, and hid his lord's money. 19 Now after a long time the lord of those servants cometh, and maketh a reckoning with them. 20 And he that received the five talents came and brought other five talents, saying, Lord, thou deliveredst unto me five talents: lo, I have gained other five talents. 21 His lord said unto him, Well done, good and faithful servant: thou hast been faithful over a few things, I will set thee over many things; enter thou into the joy of thy lord. 22 And he also that received the two talents came and said, Lord, thou deliveredst unto me two talents: lo, I have gained other two talents. 23 His lord said unto him, Well done, good and faithful servant: thou hast been faithful over a few things, I will set thee over many things; enter thou into the joy of thy lord. 24 And he also that had received the one talent came and said, Lord, I knew thee that thou art a hard man, reaping where thou didst not sow, and gathering where thou didst not scatter; 25 and I was afraid, and went away and hid thy talent in the earth: lo, thou hast thine own. 26 But his lord answered and said unto him, Thou wicked and slothful servant, thou knewest that I reap where I sowed not, and gather where I did not scatter; 27 thou oughtest therefore to have put my money to the bankers, and at my coming I should have received back mine own with interest. 28 Take ye away therefore the talent from him, and give it unto him that hath the ten talents. 29 For unto every one that hath shall be given, and he shall have abundance: but from him that hath not, even that which he hath shall be taken away. 30 And cast ye out the unprofitable servant into the outer darkness: there shall be the weeping and the gnashing of teeth."
+    },
+    "Proverbs 22:7": {
+      "translation": "ASV",
+      "label": "American Standard Version",
+      "availableLanguage": "en",
+      "verses": [{ "verse": "7", "text": "The rich ruleth over the poor; And the borrower is servant to the lender." }],
+      "text": "7 The rich ruleth over the poor; And the borrower is servant to the lender."
+    },
+    "Philippians 4:11-13": {
+      "translation": "ASV",
+      "label": "American Standard Version",
+      "availableLanguage": "en",
+      "verses": [
+        { "verse": "11", "text": "Not that I speak in respect of want: for I have learned, in whatsoever state I am, therein to be content." },
+        { "verse": "12", "text": "I know how to be abased, and I know also how to abound: in everything and in all things have I learned the secret both to be filled and to be hungry, both to abound and to be in want." },
+        { "verse": "13", "text": "I can do all things in him that strengtheneth me." }
+      ],
+      "text": "11 Not that I speak in respect of want: for I have learned, in whatsoever state I am, therein to be content. 12 I know how to be abased, and I know also how to abound: in everything and in all things have I learned the secret both to be filled and to be hungry, both to abound and to be in want. 13 I can do all things in him that strengtheneth me."
+    },
+    "Proverbs 15:22": {
+      "translation": "ASV",
+      "label": "American Standard Version",
+      "availableLanguage": "en",
+      "verses": [{ "verse": "22", "text": "Where there is no counsel, purposes are disappointed; But in the multitude of counsellors they are established." }],
+      "text": "22 Where there is no counsel, purposes are disappointed; But in the multitude of counsellors they are established."
+    },
+    "Luke 14:28": {
+      "translation": "ASV",
+      "label": "American Standard Version",
+      "availableLanguage": "en",
+      "verses": [{ "verse": "28", "text": "For which of you, desiring to build a tower, doth not first sit down and count the cost, whether he have wherewith to complete it?" }],
+      "text": "28 For which of you, desiring to build a tower, doth not first sit down and count the cost, whether he have wherewith to complete it?"
+    },
+    "2 Corinthians 9:6-8": {
+      "translation": "ASV",
+      "label": "American Standard Version",
+      "availableLanguage": "en",
+      "verses": [
+        { "verse": "6", "text": "But this I say, He that soweth sparingly shall reap also sparingly; and he that soweth bountifully shall reap also bountifully." },
+        { "verse": "7", "text": "Let each man do according as he hath purposed in his heart: not grudgingly, or of necessity: for God loveth a cheerful giver." },
+        { "verse": "8", "text": "And God is able to make all grace abound unto you; that ye, always having all sufficiency in everything, may abound unto every good work:" }
+      ],
+      "text": "6 But this I say, He that soweth sparingly shall reap also sparingly; and he that soweth bountifully shall reap also bountifully. 7 Let each man do according as he hath purposed in his heart: not grudgingly, or of necessity: for God loveth a cheerful giver. 8 And God is able to make all grace abound unto you; that ye, always having all sufficiency in everything, may abound unto every good work:"
+    },
+    "Proverbs 21:5": {
+      "translation": "ASV",
+      "label": "American Standard Version",
+      "availableLanguage": "en",
+      "verses": [{ "verse": "5", "text": "The thoughts of the diligent tend only to plenteousness; But every one that is hasty hasteth only to want." }],
+      "text": "5 The thoughts of the diligent tend only to plenteousness; But every one that is hasty hasteth only to want."
+    },
+    "Matthew 6:25-34": {
+      "translation": "ASV",
+      "label": "American Standard Version",
+      "availableLanguage": "en",
+      "verses": [
+        { "verse": "25", "text": "Therefore I say unto you, Be not anxious for your life, what ye shall eat, or what ye shall drink; nor yet for your body, what ye shall put on. Is not the life more than the food, and the body than the raiment?" },
+        { "verse": "26", "text": "Behold the birds of the heaven, that they sow not, neither do they reap, nor gather into barns; and your heavenly Father feedeth them. Are not ye of much more value than they?" },
+        { "verse": "27", "text": "And which of you by being anxious can add one cubit unto the measure of his life?" },
+        { "verse": "28", "text": "And why are ye anxious concerning raiment? Consider the lilies of the field, how they grow; they toil not, neither do they spin:" },
+        { "verse": "29", "text": "yet I say unto you, that even Solomon in all his glory was not arrayed like one of these." },
+        { "verse": "30", "text": "But if God doth so clothe the grass of the field, which to-day is, and to-morrow is cast into the oven, shall he not much more clothe you, O ye of little faith?" },
+        { "verse": "31", "text": "Be not therefore anxious, saying, What shall we eat? or, What shall we drink? or, Wherewithal shall we be clothed?" },
+        { "verse": "32", "text": "For after all these things do the Gentiles seek; for your heavenly Father knoweth that ye have need of all these things." },
+        { "verse": "33", "text": "But seek ye first his kingdom and his righteousness; and all these things shall be added unto you." },
+        { "verse": "34", "text": "Be not therefore anxious for the morrow: for the morrow will be anxious for itself. Sufficient unto the day is the evil thereof." }
+      ],
+      "text": "25 Therefore I say unto you, Be not anxious for your life, what ye shall eat, or what ye shall drink; nor yet for your body, what ye shall put on. Is not the life more than the food, and the body than the raiment? 26 Behold the birds of the heaven, that they sow not, neither do they reap, nor gather into barns; and your heavenly Father feedeth them. Are not ye of much more value than they? 27 And which of you by being anxious can add one cubit unto the measure of his life? 28 And why are ye anxious concerning raiment? Consider the lilies of the field, how they grow; they toil not, neither do they spin: 29 yet I say unto you, that even Solomon in all his glory was not arrayed like one of these. 30 But if God doth so clothe the grass of the field, which to-day is, and to-morrow is cast into the oven, shall he not much more clothe you, O ye of little faith? 31 Be not therefore anxious, saying, What shall we eat? or, What shall we drink? or, Wherewithal shall we be clothed? 32 For after all these things do the Gentiles seek; for your heavenly Father knoweth that ye have need of all these things. 33 But seek ye first his kingdom and his righteousness; and all these things shall be added unto you. 34 Be not therefore anxious for the morrow: for the morrow will be anxious for itself. Sufficient unto the day is the evil thereof."
+    },
+    "Psalm 51:10-12": {
+      "translation": "ASV",
+      "label": "American Standard Version",
+      "availableLanguage": "en",
+      "verses": [
+        { "verse": "10", "text": "Create in me a clean heart, O God; And renew a right spirit within me." },
+        { "verse": "11", "text": "Cast me not away from thy presence; And take not thy holy Spirit from me." },
+        { "verse": "12", "text": "Restore unto me the joy of thy salvation; And uphold me with a free spirit." }
+      ],
+      "text": "10 Create in me a clean heart, O God; And renew a right spirit within me. 11 Cast me not away from thy presence; And take not thy holy Spirit from me. 12 Restore unto me the joy of thy salvation; And uphold me with a free spirit."
+    },
+    "James 5:16": {
+      "translation": "ASV",
+      "label": "American Standard Version",
+      "availableLanguage": "en",
+      "verses": [{ "verse": "16", "text": "Confess therefore your sins one to another, and pray one for another, that ye may be healed. The supplication of a righteous man availeth much in its working." }],
+      "text": "16 Confess therefore your sins one to another, and pray one for another, that ye may be healed. The supplication of a righteous man availeth much in its working."
+    },
+    "1 Thessalonians 4:3-5": {
+      "translation": "ASV",
+      "label": "American Standard Version",
+      "availableLanguage": "en",
+      "verses": [
+        { "verse": "3", "text": "For this is the will of God, even your sanctification, that ye abstain from fornication;" },
+        { "verse": "4", "text": "that each one of you know how to possess himself of his own vessel in sanctification and honor," },
+        { "verse": "5", "text": "not in the passion of lust, even as the Gentiles who know not God;" }
+      ],
+      "text": "3 For this is the will of God, even your sanctification, that ye abstain from fornication; 4 that each one of you know how to possess himself of his own vessel in sanctification and honor, 5 not in the passion of lust, even as the Gentiles who know not God;"
+    },
+    "1 Corinthians 10:13": {
+      "translation": "ASV",
+      "label": "American Standard Version",
+      "availableLanguage": "en",
+      "verses": [{ "verse": "13", "text": "There hath no temptation taken you but such as man can bear: but God is faithful, who will not suffer you to be tempted above that ye are able; but will with the temptation make also the way of escape, that ye may be able to endure it." }],
+      "text": "13 There hath no temptation taken you but such as man can bear: but God is faithful, who will not suffer you to be tempted above that ye are able; but will with the temptation make also the way of escape, that ye may be able to endure it."
+    }
+  },
+  "RV1960": {
+    "Matthew 25:14-30": {
+      "translation": "RV1960",
+      "label": "Reina-Valera 1960",
+      "availableLanguage": "es",
+      "verses": [
+        { "verse": "14", "text": "Porque el reino de los cielos es como un hombre que yéndose lejos, llamó a sus siervos y les entregó sus bienes." },
+        { "verse": "15", "text": "A uno dio cinco talentos, y a otro dos, y a otro uno, a cada uno conforme a su capacidad; y luego se fue lejos." },
+        { "verse": "16", "text": "Y el que había recibido cinco talentos fue y negoció con ellos, y ganó otros cinco talentos." },
+        { "verse": "17", "text": "Asimismo el que había recibido dos, ganó también otros dos." },
+        { "verse": "18", "text": "Pero el que había recibido uno fue y cavó en la tierra, y escondió el dinero de su señor." },
+        { "verse": "19", "text": "Después de mucho tiempo vino el señor de aquellos siervos, y arregló cuentas con ellos." },
+        { "verse": "20", "text": "Y llegando el que había recibido cinco talentos, trajo otros cinco talentos, diciendo: Señor, cinco talentos me entregaste; aquí tienes, he ganado otros cinco talentos sobre ellos." },
+        { "verse": "21", "text": "Y su señor le dijo: Bien, buen siervo y fiel; sobre poco has sido fiel, sobre mucho te pondré; entra en el gozo de tu señor." },
+        { "verse": "22", "text": "Llegando también el que había recibido dos talentos, dijo: Señor, dos talentos me entregaste; aquí tienes, he ganado otros dos talentos sobre ellos." },
+        { "verse": "23", "text": "Su señor le dijo: Bien, buen siervo y fiel; sobre poco has sido fiel, sobre mucho te pondré; entra en el gozo de tu señor." },
+        { "verse": "24", "text": "Pero llegando también el que había recibido un talento, dijo: Señor, te conocía que eres hombre duro, que siegas donde no sembraste y recoges donde no esparciste;" },
+        { "verse": "25", "text": "por lo cual tuve miedo, y fui y escondí tu talento en la tierra; aquí tienes lo que es tuyo." },
+        { "verse": "26", "text": "Respondiendo su señor, le dijo: Siervo malo y negligente, sabías que siego donde no sembré, y que recojo donde no esparcí." },
+        { "verse": "27", "text": "Por tanto, debías haber dado mi dinero a los banqueros, y al venir yo, hubiera recibido lo que es mío con los intereses." },
+        { "verse": "28", "text": "Quitadle, pues, el talento, y dadlo al que tiene diez talentos." },
+        { "verse": "29", "text": "Porque al que tiene, le será dado, y tendrá más; y al que no tiene, aun lo que tiene le será quitado." },
+        { "verse": "30", "text": "Y al siervo inútil echadle en las tinieblas de afuera; allí será el lloro y el crujir de dientes." }
+      ],
+      "text": "14 Porque el reino de los cielos es como un hombre que yéndose lejos, llamó a sus siervos y les entregó sus bienes. 15 A uno dio cinco talentos, y a otro dos, y a otro uno, a cada uno conforme a su capacidad; y luego se fue lejos. 16 Y el que había recibido cinco talentos fue y negoció con ellos, y ganó otros cinco talentos. 17 Asimismo el que había recibido dos, ganó también otros dos. 18 Pero el que había recibido uno fue y cavó en la tierra, y escondió el dinero de su señor. 19 Después de mucho tiempo vino el señor de aquellos siervos, y arregló cuentas con ellos. 20 Y llegando el que había recibido cinco talentos, trajo otros cinco talentos, diciendo: Señor, cinco talentos me entregaste; aquí tienes, he ganado otros cinco talentos sobre ellos. 21 Y su señor le dijo: Bien, buen siervo y fiel; sobre poco has sido fiel, sobre mucho te pondré; entra en el gozo de tu señor. 22 Llegando también el que había recibido dos talentos, dijo: Señor, dos talentos me entregaste; aquí tienes, he ganado otros dos talentos sobre ellos. 23 Su señor le dijo: Bien, buen siervo y fiel; sobre poco has sido fiel, sobre mucho te pondré; entra en el gozo de tu señor. 24 Pero llegando también el que había recibido un talento, dijo: Señor, te conocía que eres hombre duro, que siegas donde no sembraste y recoges donde no esparciste; 25 por lo cual tuve miedo, y fui y escondí tu talento en la tierra; aquí tienes lo que es tuyo. 26 Respondiendo su señor, le dijo: Siervo malo y negligente, sabías que siego donde no sembré, y que recojo donde no esparcí. 27 Por tanto, debías haber dado mi dinero a los banqueros, y al venir yo, hubiera recibido lo que es mío con los intereses. 28 Quitadle, pues, el talento, y dadlo al que tiene diez talentos. 29 Porque al que tiene, le será dado, y tendrá más; y al que no tiene, aun lo que tiene le será quitado. 30 Y al siervo inútil echadle en las tinieblas de afuera; allí será el lloro y el crujir de dientes."
+    },
+    "Proverbs 22:7": {
+      "translation": "RV1960",
+      "label": "Reina-Valera 1960",
+      "availableLanguage": "es",
+      "verses": [{ "verse": "7", "text": "El rico se enseñorea de los pobres, y el que toma prestado es siervo del que presta." }],
+      "text": "7 El rico se enseñorea de los pobres, y el que toma prestado es siervo del que presta."
+    },
+    "Philippians 4:11-13": {
+      "translation": "RV1960",
+      "label": "Reina-Valera 1960",
+      "availableLanguage": "es",
+      "verses": [
+        { "verse": "11", "text": "No lo digo porque tenga escasez, pues he aprendido a contentarme, cualquiera que sea mi situación." },
+        { "verse": "12", "text": "Sé vivir humildemente, y sé tener abundancia; en todo y por todo estoy enseñado, así para estar saciado como para tener hambre, así para tener abundancia como para padecer necesidad." },
+        { "verse": "13", "text": "Todo lo puedo en Cristo que me fortalece." }
+      ],
+      "text": "11 No lo digo porque tenga escasez, pues he aprendido a contentarme, cualquiera que sea mi situación. 12 Sé vivir humildemente, y sé tener abundancia; en todo y por todo estoy enseñado, así para estar saciado como para tener hambre, así para tener abundancia como para padecer necesidad. 13 Todo lo puedo en Cristo que me fortalece."
+    },
+    "Proverbs 15:22": {
+      "translation": "RV1960",
+      "label": "Reina-Valera 1960",
+      "availableLanguage": "es",
+      "verses": [{ "verse": "22", "text": "Los pensamientos son frustrados donde no hay consejo; mas en la multitud de consejeros se afirman." }],
+      "text": "22 Los pensamientos son frustrados donde no hay consejo; mas en la multitud de consejeros se afirman."
+    },
+    "Luke 14:28": {
+      "translation": "RV1960",
+      "label": "Reina-Valera 1960",
+      "availableLanguage": "es",
+      "verses": [{ "verse": "28", "text": "Porque ¿quién de vosotros, queriendo edificar una torre, no se sienta primero y calcula los gastos, a ver si tiene lo que necesita para acabarla?" }],
+      "text": "28 Porque ¿quién de vosotros, queriendo edificar una torre, no se sienta primero y calcula los gastos, a ver si tiene lo que necesita para acabarla?"
+    },
+    "2 Corinthians 9:6-8": {
+      "translation": "RV1960",
+      "label": "Reina-Valera 1960",
+      "availableLanguage": "es",
+      "verses": [
+        { "verse": "6", "text": "Pero esto digo: El que siembra escasamente, también segará escasamente; y el que siembra generosamente, generosamente también segará." },
+        { "verse": "7", "text": "Cada uno dé como propuso en su corazón: no con tristeza, ni por necesidad, porque Dios ama al dador alegre." },
+        { "verse": "8", "text": "Y poderoso es Dios para hacer que abunde en vosotros toda gracia, a fin de que, teniendo siempre en todas las cosas todo lo suficiente, abundéis para toda buena obra;" }
+      ],
+      "text": "6 Pero esto digo: El que siembra escasamente, también segará escasamente; y el que siembra generosamente, generosamente también segará. 7 Cada uno dé como propuso en su corazón: no con tristeza, ni por necesidad, porque Dios ama al dador alegre. 8 Y poderoso es Dios para hacer que abunde en vosotros toda gracia, a fin de que, teniendo siempre en todas las cosas todo lo suficiente, abundéis para toda buena obra;"
+    },
+    "Proverbs 21:5": {
+      "translation": "RV1960",
+      "label": "Reina-Valera 1960",
+      "availableLanguage": "es",
+      "verses": [{ "verse": "5", "text": "Los pensamientos del diligente ciertamente tienden a la abundancia; mas todo el que se apresura alocadamente, de cierto va a la pobreza." }],
+      "text": "5 Los pensamientos del diligente ciertamente tienden a la abundancia; mas todo el que se apresura alocadamente, de cierto va a la pobreza."
+    },
+    "Matthew 6:25-34": {
+      "translation": "RV1960",
+      "label": "Reina-Valera 1960",
+      "availableLanguage": "es",
+      "verses": [
+        { "verse": "25", "text": "Por tanto os digo: No os afanéis por vuestra vida, qué habéis de comer o qué habéis de beber; ni por vuestro cuerpo, qué habéis de vestir. ¿No es la vida más que el alimento, y el cuerpo más que el vestido?" },
+        { "verse": "26", "text": "Mirad las aves del cielo, que no siembran, ni siegan, ni recogen en graneros; y vuestro Padre celestial las alimenta. ¿No valéis vosotros mucho más que ellas?" },
+        { "verse": "27", "text": "¿Y quién de vosotros podrá, por mucho que se afane, añadir a su estatura un codo?" },
+        { "verse": "28", "text": "Y por el vestido, ¿por qué os afanáis? Considerad los lirios del campo, cómo crecen: no trabajan ni hilan;" },
+        { "verse": "29", "text": "pero os digo, que ni aun Salomón con toda su gloria se vistió así como uno de ellos." },
+        { "verse": "30", "text": "Y si la hierba del campo que hoy es, y mañana se echa en el horno, Dios la viste así, ¿no hará mucho más a vosotros, hombres de poca fe?" },
+        { "verse": "31", "text": "No os afanéis, pues, diciendo: ¿Qué comeremos, o qué beberemos, o qué vestiremos?" },
+        { "verse": "32", "text": "Porque los gentiles buscan todas estas cosas; pero vuestro Padre celestial sabe que tenéis necesidad de todas estas cosas." },
+        { "verse": "33", "text": "Mas buscad primeramente el reino de Dios y su justicia, y todas estas cosas os serán añadidas." },
+        { "verse": "34", "text": "Así que, no os afanéis por el día de mañana, porque el día de mañana traerá su afán. Basta a cada día su propio mal." }
+      ],
+      "text": "25 Por tanto os digo: No os afanéis por vuestra vida, qué habéis de comer o qué habéis de beber; ni por vuestro cuerpo, qué habéis de vestir. ¿No es la vida más que el alimento, y el cuerpo más que el vestido? 26 Mirad las aves del cielo, que no siembran, ni siegan, ni recogen en graneros; y vuestro Padre celestial las alimenta. ¿No valéis vosotros mucho más que ellas? 27 ¿Y quién de vosotros podrá, por mucho que se afane, añadir a su estatura un codo? 28 Y por el vestido, ¿por qué os afanáis? Considerad los lirios del campo, cómo crecen: no trabajan ni hilan; 29 pero os digo, que ni aun Salomón con toda su gloria se vistió así como uno de ellos. 30 Y si la hierba del campo que hoy es, y mañana se echa en el horno, Dios la viste así, ¿no hará mucho más a vosotros, hombres de poca fe? 31 No os afanéis, pues, diciendo: ¿Qué comeremos, o qué beberemos, o qué vestiremos? 32 Porque los gentiles buscan todas estas cosas; pero vuestro Padre celestial sabe que tenéis necesidad de todas estas cosas. 33 Mas buscad primeramente el reino de Dios y su justicia, y todas estas cosas os serán añadidas. 34 Así que, no os afanéis por el día de mañana, porque el día de mañana traerá su afán. Basta a cada día su propio mal."
+    },
+    "Psalm 51:10-12": {
+      "translation": "RV1960",
+      "label": "Reina-Valera 1960",
+      "availableLanguage": "es",
+      "verses": [
+        { "verse": "10", "text": "Crea en mí, oh Dios, un corazón limpio, y renueva un espíritu recto dentro de mí." },
+        { "verse": "11", "text": "No me eches de delante de ti, y no quites de mí tu santo Espíritu." },
+        { "verse": "12", "text": "Vuélveme el gozo de tu salvación, y espíritu noble me sustente." }
+      ],
+      "text": "10 Crea en mí, oh Dios, un corazón limpio, y renueva un espíritu recto dentro de mí. 11 No me eches de delante de ti, y no quites de mí tu santo Espíritu. 12 Vuélveme el gozo de tu salvación, y espíritu noble me sustente."
+    },
+    "James 5:16": {
+      "translation": "RV1960",
+      "label": "Reina-Valera 1960",
+      "availableLanguage": "es",
+      "verses": [{ "verse": "16", "text": "Confesaos vuestras ofensas unos a otros, y orad unos por otros, para que seáis sanados. La oración eficaz del justo puede mucho." }],
+      "text": "16 Confesaos vuestras ofensas unos a otros, y orad unos por otros, para que seáis sanados. La oración eficaz del justo puede mucho."
+    },
+    "1 Thessalonians 4:3-5": {
+      "translation": "RV1960",
+      "label": "Reina-Valera 1960",
+      "availableLanguage": "es",
+      "verses": [
+        { "verse": "3", "text": "Pues la voluntad de Dios es vuestra santificación; que os apartéis de fornicación;" },
+        { "verse": "4", "text": "que cada uno de vosotros sepa tener su propia esposa en santidad y honor;" },
+        { "verse": "5", "text": "no en pasión de concupiscencia, como los gentiles que no conocen a Dios;" }
+      ],
+      "text": "3 Pues la voluntad de Dios es vuestra santificación; que os apartéis de fornicación; 4 que cada uno de vosotros sepa tener su propia esposa en santidad y honor; 5 no en pasión de concupiscencia, como los gentiles que no conocen a Dios;"
+    },
+    "1 Corinthians 10:13": {
+      "translation": "RV1960",
+      "label": "Reina-Valera 1960",
+      "availableLanguage": "es",
+      "verses": [{ "verse": "13", "text": "No os ha sobrevenido ninguna tentación que no sea humana; pero fiel es Dios, que no os dejará ser tentados más de lo que podéis resistir, sino que dará también juntamente con la tentación la salida, para que podáis soportar." }],
+      "text": "13 No os ha sobrevenido ninguna tentación que no sea humana; pero fiel es Dios, que no os dejará ser tentados más de lo que podéis resistir, sino que dará también juntamente con la tentación la salida, para que podáis soportar."
+    }
+  },
+  "MARTIN": {
+    "Matthew 25:14-30": {
+      "translation": "MARTIN",
+      "label": "Martin 1744",
+      "availableLanguage": "fr",
+      "verses": [
+        { "verse": "14", "text": "Car le royaume des cieux est comme un homme qui allant en un pays étranger, appela ses serviteurs, et leur remit ses biens." },
+        { "verse": "15", "text": "Il donna à l'un cinq talents, à l'autre deux, et à l'autre un, à chacun selon sa capacité; et il s'en alla aussitôt." },
+        { "verse": "16", "text": "Celui qui avait reçu les cinq talents alla les faire valoir, et en gagna cinq autres." },
+        { "verse": "17", "text": "Pareillement, celui qui en avait reçu deux, en gagna aussi deux autres." },
+        { "verse": "18", "text": "Mais celui qui n'en avait reçu qu'un, s'en alla et cacha dans la terre l'argent de son maître." },
+        { "verse": "19", "text": "Longtemps après, le maître de ces serviteurs revint et leur fit rendre compte." },
+        { "verse": "20", "text": "Et celui qui avait reçu les cinq talents s'approcha, et en apporta cinq autres, disant: Seigneur, tu m'as remis cinq talents, voici, j'en ai gagné cinq autres." },
+        { "verse": "21", "text": "Son maître lui dit: C'est bien, bon et fidèle serviteur; tu as été fidèle en peu de choses, je t'établirai sur beaucoup; entre dans la joie de ton seigneur." },
+        { "verse": "22", "text": "Celui qui avait reçu deux talents s'approcha aussi, et dit: Seigneur, tu m'as remis deux talents, voici, j'en ai gagné deux autres." },
+        { "verse": "23", "text": "Son maître lui dit: C'est bien, bon et fidèle serviteur; tu as été fidèle en peu de choses, je t'établirai sur beaucoup; entre dans la joie de ton seigneur." },
+        { "verse": "24", "text": "Mais celui qui n'en avait reçu qu'un s'approcha et dit: Seigneur, je savais que tu es un homme dur, qui moissonnes où tu n'as pas semé, et qui amasses où tu n'as pas répandu." },
+        { "verse": "25", "text": "C'est pourquoi j'ai eu peur, et je suis allé cacher ton talent dans la terre; voici, tu as ce qui est à toi." },
+        { "verse": "26", "text": "Mais son maître lui répondit: Mauvais et paresseux serviteur, tu savais que je moissonne où je n'ai pas semé, et que j'amasse où je n'ai pas répandu." },
+        { "verse": "27", "text": "Il te fallait donc porter mon argent aux changeurs, et à mon retour j'aurais reçu ce qui est à moi avec usure." },
+        { "verse": "28", "text": "Ôtez-lui donc le talent, et le donnez à celui qui a dix talents." },
+        { "verse": "29", "text": "Car à celui qui a, il sera donné et il sera dans l'abondance; mais à celui qui n'a pas, on lui ôtera même ce qu'il a." },
+        { "verse": "30", "text": "Et jetez le serviteur inutile dans les ténèbres extérieures; là il y aura des pleurs et des grincements de dents." }
+      ],
+      "text": "14 Car le royaume des cieux est comme un homme qui allant en un pays étranger, appela ses serviteurs, et leur remit ses biens. 15 Il donna à l'un cinq talents, à l'autre deux, et à l'autre un, à chacun selon sa capacité; et il s'en alla aussitôt. 16 Celui qui avait reçu les cinq talents alla les faire valoir, et en gagna cinq autres. 17 Pareillement, celui qui en avait reçu deux, en gagna aussi deux autres. 18 Mais celui qui n'en avait reçu qu'un, s'en alla et cacha dans la terre l'argent de son maître. 19 Longtemps après, le maître de ces serviteurs revint et leur fit rendre compte. 20 Et celui qui avait reçu les cinq talents s'approcha, et en apporta cinq autres, disant: Seigneur, tu m'as remis cinq talents, voici, j'en ai gagné cinq autres. 21 Son maître lui dit: C'est bien, bon et fidèle serviteur; tu as été fidèle en peu de choses, je t'établirai sur beaucoup; entre dans la joie de ton seigneur. 22 Celui qui avait reçu deux talents s'approcha aussi, et dit: Seigneur, tu m'as remis deux talents, voici, j'en ai gagné deux autres. 23 Son maître lui dit: C'est bien, bon et fidèle serviteur; tu as été fidèle en peu de choses, je t'établirai sur beaucoup; entre dans la joie de ton seigneur. 24 Mais celui qui n'en avait reçu qu'un s'approcha et dit: Seigneur, je savais que tu es un homme dur, qui moissonnes où tu n'as pas semé, et qui amasses où tu n'as pas répandu. 25 C'est pourquoi j'ai eu peur, et je suis allé cacher ton talent dans la terre; voici, tu as ce qui est à toi. 26 Mais son maître lui répondit: Mauvais et paresseux serviteur, tu savais que je moissonne où je n'ai pas semé, et que j'amasse où je n'ai pas répandu. 27 Il te fallait donc porter mon argent aux changeurs, et à mon retour j'aurais reçu ce qui est à moi avec usure. 28 Ôtez-lui donc le talent, et le donnez à celui qui a dix talents. 29 Car à celui qui a, il sera donné et il sera dans l'abondance; mais à celui qui n'a pas, on lui ôtera même ce qu'il a. 30 Et jetez le serviteur inutile dans les ténèbres extérieures; là il y aura des pleurs et des grincements de dents."
+    },
+    "Proverbs 22:7": {
+      "translation": "MARTIN",
+      "label": "Martin 1744",
+      "availableLanguage": "fr",
+      "verses": [{ "verse": "7", "text": "Le riche domine sur les pauvres, et le débiteur est esclave de son créancier." }],
+      "text": "7 Le riche domine sur les pauvres, et le débiteur est esclave de son créancier."
+    },
+    "Philippians 4:11-13": {
+      "translation": "MARTIN",
+      "label": "Martin 1744",
+      "availableLanguage": "fr",
+      "verses": [
+        { "verse": "11", "text": "Non que je dise cela parce que j'aie eu quelque disette; car j'ai appris à être content dans l'état où je me trouve." },
+        { "verse": "12", "text": "Je sais vivre chichement, je sais aussi vivre dans l'abondance; et dans tout et partout j'ai appris à être rassasié et à avoir faim, à avoir abondance et à être dans le dénuement." },
+        { "verse": "13", "text": "Je puis tout par Christ qui me fortifie." }
+      ],
+      "text": "11 Non que je dise cela parce que j'aie eu quelque disette; car j'ai appris à être content dans l'état où je me trouve. 12 Je sais vivre chichement, je sais aussi vivre dans l'abondance; et dans tout et partout j'ai appris à être rassasié et à avoir faim, à avoir abondance et à être dans le dénuement. 13 Je puis tout par Christ qui me fortifie."
+    },
+    "Proverbs 15:22": {
+      "translation": "MARTIN",
+      "label": "Martin 1744",
+      "availableLanguage": "fr",
+      "verses": [{ "verse": "22", "text": "Les desseins échouent, faute de conseil; ils s'accomplissent avec les conseillers nombreux." }],
+      "text": "22 Les desseins échouent, faute de conseil; ils s'accomplissent avec les conseillers nombreux."
+    },
+    "Luke 14:28": {
+      "translation": "MARTIN",
+      "label": "Martin 1744",
+      "availableLanguage": "fr",
+      "verses": [{ "verse": "28", "text": "Lequel de vous, en effet, voulant bâtir une tour, ne s'assied d'abord pour calculer la dépense, afin de voir s'il a de quoi l'achever?" }],
+      "text": "28 Lequel de vous, en effet, voulant bâtir une tour, ne s'assied d'abord pour calculer la dépense, afin de voir s'il a de quoi l'achever?"
+    },
+    "2 Corinthians 9:6-8": {
+      "translation": "MARTIN",
+      "label": "Martin 1744",
+      "availableLanguage": "fr",
+      "verses": [
+        { "verse": "6", "text": "Mais je dis ceci: Celui qui sème chichement moissonnera aussi chichement, et celui qui sème avec bénédictions moissonnera aussi avec bénédictions." },
+        { "verse": "7", "text": "Que chacun donne selon qu'il l'a résolu dans son cœur, sans tristesse ni contrainte; car Dieu aime celui qui donne avec joie." },
+        { "verse": "8", "text": "Et Dieu peut vous combler de toute grâce, afin que vous ayez toujours toutes choses et en toute suffisance, et que vous abondiez en toute bonne œuvre;" }
+      ],
+      "text": "6 Mais je dis ceci: Celui qui sème chichement moissonnera aussi chichement, et celui qui sème avec bénédictions moissonnera aussi avec bénédictions. 7 Que chacun donne selon qu'il l'a résolu dans son cœur, sans tristesse ni contrainte; car Dieu aime celui qui donne avec joie. 8 Et Dieu peut vous combler de toute grâce, afin que vous ayez toujours toutes choses et en toute suffisance, et que vous abondiez en toute bonne œuvre;"
+    },
+    "Proverbs 21:5": {
+      "translation": "MARTIN",
+      "label": "Martin 1744",
+      "availableLanguage": "fr",
+      "verses": [{ "verse": "5", "text": "Les projets du diligent l'enrichissent sûrement; mais tout homme qui se hâte court à la pauvreté." }],
+      "text": "5 Les projets du diligent l'enrichissent sûrement; mais tout homme qui se hâte court à la pauvreté."
+    },
+    "Matthew 6:25-34": {
+      "translation": "MARTIN",
+      "label": "Martin 1744",
+      "availableLanguage": "fr",
+      "verses": [
+        { "verse": "25", "text": "C'est pourquoi je vous dis: Ne soyez point en souci pour votre vie, de ce que vous mangerez, ou de ce que vous boirez; ni pour votre corps, de quoi vous vous vêtirez. La vie n'est-elle pas plus que la nourriture, et le corps plus que le vêtement?" },
+        { "verse": "26", "text": "Regardez les oiseaux du ciel: ils ne sèment ni ne moissonnent, et ils n'amassent rien dans des greniers; et votre Père céleste les nourrit. N'êtes-vous pas plus excellents qu'eux?" },
+        { "verse": "27", "text": "Et lequel de vous, par ses soins, peut ajouter à sa stature une seule coudée?" },
+        { "verse": "28", "text": "Et pourquoi seriez-vous en souci pour le vêtement? Considérez comment croissent les lis des champs: ils ne travaillent ni ne filent;" },
+        { "verse": "29", "text": "cependant je vous dis que Salomon même, dans toute sa gloire, n'a pas été vêtu comme l'un d'eux." },
+        { "verse": "30", "text": "Si Dieu revêt ainsi l'herbe des champs, qui est aujourd'hui et qui demain sera jetée dans le four, ne vous vêtira-t-il pas à plus forte raison, gens de peu de foi?" },
+        { "verse": "31", "text": "Ne soyez donc point en souci, disant: Que mangerons-nous? ou que boirons-nous? ou de quoi serons-nous vêtus?" },
+        { "verse": "32", "text": "Car les Gentils recherchent toutes ces choses; et votre Père céleste sait que vous avez besoin de toutes ces choses." },
+        { "verse": "33", "text": "Cherchez premièrement le royaume de Dieu et sa justice, et toutes ces choses vous seront données par-dessus." },
+        { "verse": "34", "text": "Ne soyez donc point en souci pour le lendemain; car le lendemain sera en souci pour lui-même. A chaque jour suffit sa peine." }
+      ],
+      "text": "25 C'est pourquoi je vous dis: Ne soyez point en souci pour votre vie, de ce que vous mangerez, ou de ce que vous boirez; ni pour votre corps, de quoi vous vous vêtirez. La vie n'est-elle pas plus que la nourriture, et le corps plus que le vêtement? 26 Regardez les oiseaux du ciel: ils ne sèment ni ne moissonnent, et ils n'amassent rien dans des greniers; et votre Père céleste les nourrit. N'êtes-vous pas plus excellents qu'eux? 27 Et lequel de vous, par ses soins, peut ajouter à sa stature une seule coudée? 28 Et pourquoi seriez-vous en souci pour le vêtement? Considérez comment croissent les lis des champs: ils ne travaillent ni ne filent; 29 cependant je vous dis que Salomon même, dans toute sa gloire, n'a pas été vêtu comme l'un d'eux. 30 Si Dieu revêt ainsi l'herbe des champs, qui est aujourd'hui et qui demain sera jetée dans le four, ne vous vêtira-t-il pas à plus forte raison, gens de peu de foi? 31 Ne soyez donc point en souci, disant: Que mangerons-nous? ou que boirons-nous? ou de quoi serons-nous vêtus? 32 Car les Gentils recherchent toutes ces choses; et votre Père céleste sait que vous avez besoin de toutes ces choses. 33 Cherchez premièrement le royaume de Dieu et sa justice, et toutes ces choses vous seront données par-dessus. 34 Ne soyez donc point en souci pour le lendemain; car le lendemain sera en souci pour lui-même. A chaque jour suffit sa peine."
+    },
+    "Psalm 51:10-12": {
+      "translation": "MARTIN",
+      "label": "Martin 1744",
+      "availableLanguage": "fr",
+      "verses": [
+        { "verse": "10", "text": "Crée en moi un cœur pur, ô Dieu! Renouvelle en moi un esprit bien disposé." },
+        { "verse": "11", "text": "Ne me rejette pas loin de ta face, Ne me retire pas ton Esprit saint." },
+        { "verse": "12", "text": "Rends-moi la joie de ton salut, Et qu'un esprit de bonne volonté me soutienne!" }
+      ],
+      "text": "10 Crée en moi un cœur pur, ô Dieu! Renouvelle en moi un esprit bien disposé. 11 Ne me rejette pas loin de ta face, Ne me retire pas ton Esprit saint. 12 Rends-moi la joie de ton salut, Et qu'un esprit de bonne volonté me soutienne!"
+    },
+    "James 5:16": {
+      "translation": "MARTIN",
+      "label": "Martin 1744",
+      "availableLanguage": "fr",
+      "verses": [{ "verse": "16", "text": "Confessez vos fautes les uns aux autres, et priez les uns pour les autres, afin que vous soyez guéris. La prière fervente du juste a une grande efficace." }],
+      "text": "16 Confessez vos fautes les uns aux autres, et priez les uns pour les autres, afin que vous soyez guéris. La prière fervente du juste a une grande efficace."
+    },
+    "1 Thessalonians 4:3-5": {
+      "translation": "MARTIN",
+      "label": "Martin 1744",
+      "availableLanguage": "fr",
+      "verses": [
+        { "verse": "3", "text": "Car c'est ici la volonté de Dieu, savoir votre sanctification; c'est que vous vous absteniez de la fornication;" },
+        { "verse": "4", "text": "que chacun de vous sache posséder son vaisseau en sanctification et en honneur;" },
+        { "verse": "5", "text": "et non point dans des passions de convoitise, comme font les Gentils qui ne connaissent pas Dieu;" }
+      ],
+      "text": "3 Car c'est ici la volonté de Dieu, savoir votre sanctification; c'est que vous vous absteniez de la fornication; 4 que chacun de vous sache posséder son vaisseau en sanctification et en honneur; 5 et non point dans des passions de convoitise, comme font les Gentils qui ne connaissent pas Dieu;"
+    },
+    "1 Corinthians 10:13": {
+      "translation": "MARTIN",
+      "label": "Martin 1744",
+      "availableLanguage": "fr",
+      "verses": [{ "verse": "13", "text": "Il ne vous est survenu aucune tentation qui n'ait été humaine; mais Dieu est fidèle, qui ne permettra pas que vous soyez tentés au-delà de ce que vous pouvez, mais qui avec la tentation donnera aussi le moyen d'en sortir, afin que vous puissiez la supporter." }],
+      "text": "13 Il ne vous est survenu aucune tentation qui n'ait été humaine; mais Dieu est fidèle, qui ne permettra pas que vous soyez tentés au-delà de ce que vous pouvez, mais qui avec la tentation donnera aussi le moyen d'en sortir, afin que vous puissiez la supporter."
+    }
+  },
+  "ARC": {
+    "Matthew 25:14-30": {
+      "translation": "ARC",
+      "label": "Almeida Revista e Corrigida",
+      "availableLanguage": "pt",
+      "verses": [
+        { "verse": "14", "text": "Porque o reino dos céus é como um homem que, ausentando-se, chamou os seus servos e entregou-lhes os seus bens." },
+        { "verse": "15", "text": "A um deu cinco talentos, a outro dois, e a outro um, a cada um segundo a sua própria capacidade; e viajou imediatamente." },
+        { "verse": "16", "text": "O que recebeu os cinco talentos logo foi e negociou com eles e ganhou outros cinco." },
+        { "verse": "17", "text": "Assim também o que recebeu os dois talentos ganhou outros dois." },
+        { "verse": "18", "text": "Mas o que recebeu um só talento foi, e cavou na terra, e escondeu o dinheiro do seu senhor." },
+        { "verse": "19", "text": "E depois de muito tempo veio o senhor desses servos, e ajustou contas com eles." },
+        { "verse": "20", "text": "E chegando o que tinha recebido os cinco talentos, trouxe outros cinco talentos, dizendo: Senhor, entregaste-me cinco talentos; aqui tens outros cinco talentos que ganhei." },
+        { "verse": "21", "text": "E o seu senhor disse-lhe: Bem está, servo bom e fiel; sobre o pouco foste fiel, sobre muito te colocarei; entra no gozo do teu senhor." },
+        { "verse": "22", "text": "E chegando também o que tinha recebido dois talentos, disse: Senhor, entregaste-me dois talentos; aqui tens outros dois talentos que ganhei." },
+        { "verse": "23", "text": "Disse-lhe o seu senhor: Bem está, servo bom e fiel; sobre o pouco foste fiel, sobre muito te porei; entra no gozo do teu senhor." },
+        { "verse": "24", "text": "Chegando também o que tinha recebido um só talento, disse: Senhor, eu sabia que és um homem austero, que ceifas onde não semeaste e ajuntas onde não espalhaste;" },
+        { "verse": "25", "text": "receoso, pois, fui esconder o teu talento na terra; aqui tens o que é teu." },
+        { "verse": "26", "text": "E respondendo o seu senhor, disse-lhe: Mau e negligente servo, sabias que ceifo onde não semeei e que ajunto onde não espalhei;" },
+        { "verse": "27", "text": "devia, portanto, ter entregue o meu dinheiro aos banqueiros, e, à minha vinda, eu receberia o que é meu com juros." },
+        { "verse": "28", "text": "Tirai-lhe, pois, o talento, e dai-o ao que tem dez talentos." },
+        { "verse": "29", "text": "Porque a qualquer que tiver, ser-lhe-á dado, e terá em abundância; mas ao que não tiver, até o que tem ser-lhe-á tirado." },
+        { "verse": "30", "text": "E lançai o servo inútil nas trevas exteriores; ali haverá pranto e ranger de dentes." }
+      ],
+      "text": "14 Porque o reino dos céus é como um homem que, ausentando-se, chamou os seus servos e entregou-lhes os seus bens. 15 A um deu cinco talentos, a outro dois, e a outro um, a cada um segundo a sua própria capacidade; e viajou imediatamente. 16 O que recebeu os cinco talentos logo foi e negociou com eles e ganhou outros cinco. 17 Assim também o que recebeu os dois talentos ganhou outros dois. 18 Mas o que recebeu um só talento foi, e cavou na terra, e escondeu o dinheiro do seu senhor. 19 E depois de muito tempo veio o senhor desses servos, e ajustou contas com eles. 20 E chegando o que tinha recebido os cinco talentos, trouxe outros cinco talentos, dizendo: Senhor, entregaste-me cinco talentos; aqui tens outros cinco talentos que ganhei. 21 E o seu senhor disse-lhe: Bem está, servo bom e fiel; sobre o pouco foste fiel, sobre muito te colocarei; entra no gozo do teu senhor. 22 E chegando também o que tinha recebido dois talentos, disse: Senhor, entregaste-me dois talentos; aqui tens outros dois talentos que ganhei. 23 Disse-lhe o seu senhor: Bem está, servo bom e fiel; sobre o pouco foste fiel, sobre muito te porei; entra no gozo do teu senhor. 24 Chegando também o que tinha recebido um só talento, disse: Senhor, eu sabia que és um homem austero, que ceifas onde não semeaste e ajuntas onde não espalhaste; 25 receoso, pois, fui esconder o teu talento na terra; aqui tens o que é teu. 26 E respondendo o seu senhor, disse-lhe: Mau e negligente servo, sabias que ceifo onde não semeei e que ajunto onde não espalhei; 27 devia, portanto, ter entregue o meu dinheiro aos banqueiros, e, à minha vinda, eu receberia o que é meu com juros. 28 Tirai-lhe, pois, o talento, e dai-o ao que tem dez talentos. 29 Porque a qualquer que tiver, ser-lhe-á dado, e terá em abundância; mas ao que não tiver, até o que tem ser-lhe-á tirado. 30 E lançai o servo inútil nas trevas exteriores; ali haverá pranto e ranger de dentes."
+    },
+    "Proverbs 22:7": {
+      "translation": "ARC",
+      "label": "Almeida Revista e Corrigida",
+      "availableLanguage": "pt",
+      "verses": [{ "verse": "7", "text": "O rico domina sobre os pobres, e o que toma prestado é servo do que empresta." }],
+      "text": "7 O rico domina sobre os pobres, e o que toma prestado é servo do que empresta."
+    },
+    "Philippians 4:11-13": {
+      "translation": "ARC",
+      "label": "Almeida Revista e Corrigida",
+      "availableLanguage": "pt",
+      "verses": [
+        { "verse": "11", "text": "Não digo isto por causa da necessidade, porque tenho aprendido a estar contente em qualquer estado em que me encontre." },
+        { "verse": "12", "text": "Sei estar abatido, e sei ter abundância; em tudo e por tudo estou industriado, tanto para estar farto como para ter fome, tanto para ter abundância como para padecer necessidade." },
+        { "verse": "13", "text": "Posso tudo em Cristo que me fortalece." }
+      ],
+      "text": "11 Não digo isto por causa da necessidade, porque tenho aprendido a estar contente em qualquer estado em que me encontre. 12 Sei estar abatido, e sei ter abundância; em tudo e por tudo estou industriado, tanto para estar farto como para ter fome, tanto para ter abundância como para padecer necessidade. 13 Posso tudo em Cristo que me fortalece."
+    },
+    "Proverbs 15:22": {
+      "translation": "ARC",
+      "label": "Almeida Revista e Corrigida",
+      "availableLanguage": "pt",
+      "verses": [{ "verse": "22", "text": "Onde não há conselho os projectos fracassam; mas eles se estabelecem havendo muitos conselheiros." }],
+      "text": "22 Onde não há conselho os projectos fracassam; mas eles se estabelecem havendo muitos conselheiros."
+    },
+    "Luke 14:28": {
+      "translation": "ARC",
+      "label": "Almeida Revista e Corrigida",
+      "availableLanguage": "pt",
+      "verses": [{ "verse": "28", "text": "Porque qual de vós, querendo edificar uma torre, não se assenta primeiro a calcular as despesas, para ver se tem com que a concluir?" }],
+      "text": "28 Porque qual de vós, querendo edificar uma torre, não se assenta primeiro a calcular as despesas, para ver se tem com que a concluir?"
+    },
+    "2 Corinthians 9:6-8": {
+      "translation": "ARC",
+      "label": "Almeida Revista e Corrigida",
+      "availableLanguage": "pt",
+      "verses": [
+        { "verse": "6", "text": "Mas digo isto: o que semeia pouco, pouco também ceifará; e o que semeia muito, muito também ceifará." },
+        { "verse": "7", "text": "Cada um contribua segundo tiver proposto no coração; não com tristeza, nem por força, porque Deus ama ao que dá com alegria." },
+        { "verse": "8", "text": "E Deus é poderoso para fazer abundar em vós toda a graça, para que tenhais sempre, em tudo, plena satisfação e possais abundar em toda boa obra." }
+      ],
+      "text": "6 Mas digo isto: o que semeia pouco, pouco também ceifará; e o que semeia muito, muito também ceifará. 7 Cada um contribua segundo tiver proposto no coração; não com tristeza, nem por força, porque Deus ama ao que dá com alegria. 8 E Deus é poderoso para fazer abundar em vós toda a graça, para que tenhais sempre, em tudo, plena satisfação e possais abundar em toda boa obra."
+    },
+    "Proverbs 21:5": {
+      "translation": "ARC",
+      "label": "Almeida Revista e Corrigida",
+      "availableLanguage": "pt",
+      "verses": [{ "verse": "5", "text": "Os pensamentos do diligente tendem a abundância; mas todos os que se apressam chegam à pobreza." }],
+      "text": "5 Os pensamentos do diligente tendem a abundância; mas todos os que se apressam chegam à pobreza."
+    },
+    "Matthew 6:25-34": {
+      "translation": "ARC",
+      "label": "Almeida Revista e Corrigida",
+      "availableLanguage": "pt",
+      "verses": [
+        { "verse": "25", "text": "Por isso vos digo: Não estejais ansiosos quanto à vossa vida, pelo que haveis de comer, ou pelo que haveis de beber; nem quanto ao vosso corpo, pelo que haveis de vestir. Não é a vida mais do que o alimento, e o corpo mais do que a roupa?" },
+        { "verse": "26", "text": "Olhai para as aves do céu, que nem semeiam, nem segam, nem recolhem em celeiros; e vosso Pai celestial as alimenta. Não tendes vós muito mais valor do que elas?" },
+        { "verse": "27", "text": "Qual de vós, por mais que se afane, pode acrescentar um côvado à sua estatura?" },
+        { "verse": "28", "text": "E por que estais ansiosos quanto ao vestuário? Considerai como crescem os lírios do campo; eles não trabalham nem fiam;" },
+        { "verse": "29", "text": "mas eu vos digo que nem Salomão, em toda a sua glória, se vestiu como qualquer um deles." },
+        { "verse": "30", "text": "Ora, se Deus assim veste a erva do campo, que hoje existe e amanhã é lançada no forno, quanto mais a vós, homens de pequena fé!" },
+        { "verse": "31", "text": "Portanto, não estejais ansiosos, dizendo: Que comeremos? Que beberemos? Com que nos vestiremos?" },
+        { "verse": "32", "text": "Porque os gentios é que procuram todas essas coisas; pois vosso Pai celestial sabe que de todas essas coisas necessitais." },
+        { "verse": "33", "text": "Mas buscai primeiro o reino de Deus, e a sua justiça, e todas essas coisas vos serão acrescentadas." },
+        { "verse": "34", "text": "Portanto, não vos preocupeis com o dia de amanhã; o amanhã cuidará de si mesmo. Basta a cada dia o seu mal." }
+      ],
+      "text": "25 Por isso vos digo: Não estejais ansiosos quanto à vossa vida, pelo que haveis de comer, ou pelo que haveis de beber; nem quanto ao vosso corpo, pelo que haveis de vestir. Não é a vida mais do que o alimento, e o corpo mais do que a roupa? 26 Olhai para as aves do céu, que nem semeiam, nem segam, nem recolhem em celeiros; e vosso Pai celestial as alimenta. Não tendes vós muito mais valor do que elas? 27 Qual de vós, por mais que se afane, pode acrescentar um côvado à sua estatura? 28 E por que estais ansiosos quanto ao vestuário? Considerai como crescem os lírios do campo; eles não trabalham nem fiam; 29 mas eu vos digo que nem Salomão, em toda a sua glória, se vestiu como qualquer um deles. 30 Ora, se Deus assim veste a erva do campo, que hoje existe e amanhã é lançada no forno, quanto mais a vós, homens de pequena fé! 31 Portanto, não estejais ansiosos, dizendo: Que comeremos? Que beberemos? Com que nos vestiremos? 32 Porque os gentios é que procuram todas essas coisas; pois vosso Pai celestial sabe que de todas essas coisas necessitais. 33 Mas buscai primeiro o reino de Deus, e a sua justiça, e todas essas coisas vos serão acrescentadas. 34 Portanto, não vos preocupeis com o dia de amanhã; o amanhã cuidará de si mesmo. Basta a cada dia o seu mal."
+    },
+    "Psalm 51:10-12": {
+      "translation": "ARC",
+      "label": "Almeida Revista e Corrigida",
+      "availableLanguage": "pt",
+      "verses": [
+        { "verse": "10", "text": "Cria em mim um coração puro, ó Deus, e renova em mim um espírito resoluto." },
+        { "verse": "11", "text": "Não me rejeites da tua presença, nem retires de mim o teu Espírito Santo." },
+        { "verse": "12", "text": "Restitui-me a alegria da tua salvação e sustenta-me com um espírito nobre." }
+      ],
+      "text": "10 Cria em mim um coração puro, ó Deus, e renova em mim um espírito resoluto. 11 Não me rejeites da tua presença, nem retires de mim o teu Espírito Santo. 12 Restitui-me a alegria da tua salvação e sustenta-me com um espírito nobre."
+    },
+    "James 5:16": {
+      "translation": "ARC",
+      "label": "Almeida Revista e Corrigida",
+      "availableLanguage": "pt",
+      "verses": [{ "verse": "16", "text": "Confessai as vossas ofensas uns aos outros, e orai uns pelos outros, para que sareis. A oração do justo é muito poderosa na sua operação." }],
+      "text": "16 Confessai as vossas ofensas uns aos outros, e orai uns pelos outros, para que sareis. A oração do justo é muito poderosa na sua operação."
+    },
+    "1 Thessalonians 4:3-5": {
+      "translation": "ARC",
+      "label": "Almeida Revista e Corrigida",
+      "availableLanguage": "pt",
+      "verses": [
+        { "verse": "3", "text": "Porque esta é a vontade de Deus, a vossa santificação: que vos abstenhais da impureza sexual;" },
+        { "verse": "4", "text": "que cada um de vós saiba como guardar o seu próprio corpo em santificação e honra;" },
+        { "verse": "5", "text": "não no ardor da concupiscência, como os gentios que não conhecem a Deus;" }
+      ],
+      "text": "3 Porque esta é a vontade de Deus, a vossa santificação: que vos abstenhais da impureza sexual; 4 que cada um de vós saiba como guardar o seu próprio corpo em santificação e honra; 5 não no ardor da concupiscência, como os gentios que não conhecem a Deus;"
+    },
+    "1 Corinthians 10:13": {
+      "translation": "ARC",
+      "label": "Almeida Revista e Corrigida",
+      "availableLanguage": "pt",
+      "verses": [{ "verse": "13", "text": "Não vos sobreveio tentação alguma que não fosse humana; mas Deus é fiel e não permitirá que sejais tentados além do que podeis suportar; antes, com a tentação, dará também o escape, para que o possais suportar." }],
+      "text": "13 Não vos sobreveio tentação alguma que não fosse humana; mas Deus é fiel e não permitirá que sejais tentados além do que podeis suportar; antes, com a tentação, dará também o escape, para que o possais suportar."
+    }
+  },
+  "SCHLACH": {
+    "Matthew 25:14-30": {
+      "translation": "SCHLACH",
+      "label": "Schlachter 1951",
+      "availableLanguage": "de",
+      "verses": [
+        { "verse": "14", "text": "Denn gleichwie ein Mensch, der auf Reisen gehen wollte, seine Knechte berief und ihnen seine Güter übergab;" },
+        { "verse": "15", "text": "und zwar gab er dem einen fünf Talente, dem anderen zwei, dem dritten eines, jedem nach seinen Fähigkeiten; und reiste damit ab." },
+        { "verse": "16", "text": "Der aber, welcher die fünf Talente empfangen hatte, handelte sogleich damit und gewann andere fünf Talente." },
+        { "verse": "17", "text": "Ebenso gewann auch der, welcher zwei bekommen hatte, andere zwei." },
+        { "verse": "18", "text": "Wer aber das eine bekommen hatte, ging hin und grub ein Loch in die Erde und versteckte das Geld seines Herrn." },
+        { "verse": "19", "text": "Nach langer Zeit aber kam der Herr jener Knechte und hielt Abrechnung mit ihnen." },
+        { "verse": "20", "text": "Da trat der heran, der die fünf Talente empfangen hatte, und legte andere fünf Talente dazu, indem er sagte: Herr, du hast mir fünf Talente übergeben; sieh, ich habe andere fünf Talente dazu gewonnen!" },
+        { "verse": "21", "text": "Sein Herr sprach zu ihm: Gut so, du guter und treuer Knecht! Du warst treu über wenigem, ich will dich über vieles setzen; geh ein in die Freude deines Herrn!" },
+        { "verse": "22", "text": "Dann kam auch der heran, der die zwei Talente empfangen hatte, und sagte: Herr, du hast mir zwei Talente übergeben; sieh, ich habe andere zwei Talente dazu gewonnen!" },
+        { "verse": "23", "text": "Sein Herr sprach zu ihm: Gut so, du guter und treuer Knecht! Du warst treu über wenigem, ich will dich über vieles setzen; geh ein in die Freude deines Herrn!" },
+        { "verse": "24", "text": "Zuletzt kam auch der, der das eine Talent empfangen hatte, heran und sagte: Herr, ich wußte, daß du ein harter Mann bist, der da erntet, wo er nicht gesät hat, und einsammelt, wo er nicht ausgestreut hat;" },
+        { "verse": "25", "text": "und fürchtete mich deshalb und ging hin und verbarg dein Talent in der Erde; sieh, da hast du das Deine!" },
+        { "verse": "26", "text": "Sein Herr aber antwortete und sprach zu ihm: Du schlechter und fauler Knecht! Du wußtest, daß ich ernte, wo ich nicht gesät habe, und einsammle, wo ich nicht ausgestreut habe;" },
+        { "verse": "27", "text": "dann solltest du mein Geld bei den Wechslern angelegt haben, und wenn ich heimgekommen wäre, hätte ich das Meine mit Zinsen zurückerhalten." },
+        { "verse": "28", "text": "Nehmt daher ihm das Talent weg und gebt es dem, der die zehn Talente hat!" },
+        { "verse": "29", "text": "Denn jedem, der hat, wird gegeben werden, und er wird Überfluß haben; von dem aber, der nicht hat, wird selbst das weggenommen werden, was er hat." },
+        { "verse": "30", "text": "Und werft den untauglichen Knecht in die äußere Finsternis! Da wird Heulen und Zähneknirschen sein." }
+      ],
+      "text": "14 Denn gleichwie ein Mensch, der auf Reisen gehen wollte, seine Knechte berief und ihnen seine Güter übergab; 15 und zwar gab er dem einen fünf Talente, dem anderen zwei, dem dritten eines, jedem nach seinen Fähigkeiten; und reiste damit ab. 16 Der aber, welcher die fünf Talente empfangen hatte, handelte sogleich damit und gewann andere fünf Talente. 17 Ebenso gewann auch der, welcher zwei bekommen hatte, andere zwei. 18 Wer aber das eine bekommen hatte, ging hin und grub ein Loch in die Erde und versteckte das Geld seines Herrn. 19 Nach langer Zeit aber kam der Herr jener Knechte und hielt Abrechnung mit ihnen. 20 Da trat der heran, der die fünf Talente empfangen hatte, und legte andere fünf Talente dazu, indem er sagte: Herr, du hast mir fünf Talente übergeben; sieh, ich habe andere fünf Talente dazu gewonnen! 21 Sein Herr sprach zu ihm: Gut so, du guter und treuer Knecht! Du warst treu über wenigem, ich will dich über vieles setzen; geh ein in die Freude deines Herrn! 22 Dann kam auch der heran, der die zwei Talente empfangen hatte, und sagte: Herr, du hast mir zwei Talente übergeben; sieh, ich habe andere zwei Talente dazu gewonnen! 23 Sein Herr sprach zu ihm: Gut so, du guter und treuer Knecht! Du warst treu über wenigem, ich will dich über vieles setzen; geh ein in die Freude deines Herrn! 24 Zuletzt kam auch der, der das eine Talent empfangen hatte, heran und sagte: Herr, ich wußte, daß du ein harter Mann bist, der da erntet, wo er nicht gesät hat, und einsammelt, wo er nicht ausgestreut hat; 25 und fürchtete mich deshalb und ging hin und verbarg dein Talent in der Erde; sieh, da hast du das Deine! 26 Sein Herr aber antwortete und sprach zu ihm: Du schlechter und fauler Knecht! Du wußtest, daß ich ernte, wo ich nicht gesät habe, und einsammle, wo ich nicht ausgestreut habe; 27 dann solltest du mein Geld bei den Wechslern angelegt haben, und wenn ich heimgekommen wäre, hätte ich das Meine mit Zinsen zurückerhalten. 28 Nehmt daher ihm das Talent weg und gebt es dem, der die zehn Talente hat! 29 Denn jedem, der hat, wird gegeben werden, und er wird Überfluß haben; von dem aber, der nicht hat, wird selbst das weggenommen werden, was er hat. 30 Und werft den untauglichen Knecht in die äußere Finsternis! Da wird Heulen und Zähneknirschen sein."
+    },
+    "Proverbs 22:7": {
+      "translation": "SCHLACH",
+      "label": "Schlachter 1951",
+      "availableLanguage": "de",
+      "verses": [{ "verse": "7", "text": "Der Reiche herrscht über die Armen, und der Schuldner ist Sklave des Gläubigers." }],
+      "text": "7 Der Reiche herrscht über die Armen, und der Schuldner ist Sklave des Gläubigers."
+    },
+    "Philippians 4:11-13": {
+      "translation": "SCHLACH",
+      "label": "Schlachter 1951",
+      "availableLanguage": "de",
+      "verses": [
+        { "verse": "11", "text": "Ich rede das nicht als einer, dem es mangelt; denn ich habe gelernt, in welchem Zustand ich auch bin, zufrieden zu sein." },
+        { "verse": "12", "text": "Ich verstehe es, niedrig zu sein, und ich verstehe es auch, zu überfließen; mit allem und jedem bin ich vertraut: sowohl gesättigt zu sein als auch Hunger zu leiden, sowohl Überfluß zu haben als auch Mangel zu leiden." },
+        { "verse": "13", "text": "Alles vermag ich durch den, der mich kräftigt, durch Christus." }
+      ],
+      "text": "11 Ich rede das nicht als einer, dem es mangelt; denn ich habe gelernt, in welchem Zustand ich auch bin, zufrieden zu sein. 12 Ich verstehe es, niedrig zu sein, und ich verstehe es auch, zu überfließen; mit allem und jedem bin ich vertraut: sowohl gesättigt zu sein als auch Hunger zu leiden, sowohl Überfluß zu haben als auch Mangel zu leiden. 13 Alles vermag ich durch den, der mich kräftigt, durch Christus."
+    },
+    "Proverbs 15:22": {
+      "translation": "SCHLACH",
+      "label": "Schlachter 1951",
+      "availableLanguage": "de",
+      "verses": [{ "verse": "22", "text": "Pläne scheitern, wo kein Ratschlag ist; aber sie bestehen, wenn viele Berater sie bedenken." }],
+      "text": "22 Pläne scheitern, wo kein Ratschlag ist; aber sie bestehen, wenn viele Berater sie bedenken."
+    },
+    "Luke 14:28": {
+      "translation": "SCHLACH",
+      "label": "Schlachter 1951",
+      "availableLanguage": "de",
+      "verses": [{ "verse": "28", "text": "Denn wer von euch, der einen Turm bauen will, setzt sich nicht zuerst hin und rechnet die Kosten durch, ob er genug hat, um ihn fertigzustellen?" }],
+      "text": "28 Denn wer von euch, der einen Turm bauen will, setzt sich nicht zuerst hin und rechnet die Kosten durch, ob er genug hat, um ihn fertigzustellen?"
+    },
+    "2 Corinthians 9:6-8": {
+      "translation": "SCHLACH",
+      "label": "Schlachter 1951",
+      "availableLanguage": "de",
+      "verses": [
+        { "verse": "6", "text": "Dies aber sage ich: Wer kärglich sät, der wird auch kärglich ernten; und wer sät im Segen, der wird auch ernten im Segen." },
+        { "verse": "7", "text": "Ein jeder gebe, wie er es in seinem Herzen beschlossen hat, nicht mit Bedauern oder aus Zwang; denn einen fröhlichen Geber hat Gott lieb." },
+        { "verse": "8", "text": "Gott aber ist mächtig, euch alle Gnade in Überfluß zukommen zu lassen, damit ihr in allen Dingen stets alles Genügende habt und reich seid zu jedem guten Werk." }
+      ],
+      "text": "6 Dies aber sage ich: Wer kärglich sät, der wird auch kärglich ernten; und wer sät im Segen, der wird auch ernten im Segen. 7 Ein jeder gebe, wie er es in seinem Herzen beschlossen hat, nicht mit Bedauern oder aus Zwang; denn einen fröhlichen Geber hat Gott lieb. 8 Gott aber ist mächtig, euch alle Gnade in Überfluß zukommen zu lassen, damit ihr in allen Dingen stets alles Genügende habt und reich seid zu jedem guten Werk."
+    },
+    "Proverbs 21:5": {
+      "translation": "SCHLACH",
+      "label": "Schlachter 1951",
+      "availableLanguage": "de",
+      "verses": [{ "verse": "5", "text": "Die Überlegungen des Fleißigen bringen Gewinn; aber wer hastig vorgeht, kommt sicher zu Schaden." }],
+      "text": "5 Die Überlegungen des Fleißigen bringen Gewinn; aber wer hastig vorgeht, kommt sicher zu Schaden."
+    },
+    "Matthew 6:25-34": {
+      "translation": "SCHLACH",
+      "label": "Schlachter 1951",
+      "availableLanguage": "de",
+      "verses": [
+        { "verse": "25", "text": "Darum sage ich euch: Sorgt euch nicht um euer Leben, was ihr essen und trinken werdet, auch nicht um euren Leib, womit ihr euch bekleiden werdet! Ist nicht das Leben mehr als die Nahrung und der Leib mehr als die Kleidung?" },
+        { "verse": "26", "text": "Seht die Vögel des Himmels an: Sie säen nicht, sie ernten nicht, sie sammeln auch nicht in Scheunen; und euer himmlischer Vater ernährt sie doch. Seid ihr nicht viel mehr wert als sie?" },
+        { "verse": "27", "text": "Wer aber von euch kann mit all seiner Sorge seiner Körpergröße eine Elle hinzufügen?" },
+        { "verse": "28", "text": "Und warum sorgt ihr euch um die Kleidung? Betrachtet die Lilien auf dem Felde, wie sie wachsen: Sie mühen sich nicht, sie spinnen auch nicht." },
+        { "verse": "29", "text": "Ich sage euch aber, daß selbst Salomo in all seiner Herrlichkeit nicht so gekleidet war wie eine von diesen." },
+        { "verse": "30", "text": "Wenn aber Gott das Gras des Feldes, das heute steht und morgen in den Ofen geworfen wird, so kleidet, wird er nicht viel mehr für euch sorgen, ihr Kleingläubigen?" },
+        { "verse": "31", "text": "Also sorgt euch nicht und sagt nicht: Was werden wir essen? oder: Was werden wir trinken? oder: Womit werden wir uns bekleiden?" },
+        { "verse": "32", "text": "Denn all das suchen die Heiden; euer himmlischer Vater weiß ja, daß ihr all das braucht." },
+        { "verse": "33", "text": "Sucht aber zuerst das Reich Gottes und seine Gerechtigkeit, so wird euch all das dazugegeben werden!" },
+        { "verse": "34", "text": "Sorgt euch also nicht um den morgigen Tag; denn der morgige Tag wird für sich selbst sorgen. Jeder Tag hat genug an seiner eigenen Plage." }
+      ],
+      "text": "25 Darum sage ich euch: Sorgt euch nicht um euer Leben, was ihr essen und trinken werdet, auch nicht um euren Leib, womit ihr euch bekleiden werdet! Ist nicht das Leben mehr als die Nahrung und der Leib mehr als die Kleidung? 26 Seht die Vögel des Himmels an: Sie säen nicht, sie ernten nicht, sie sammeln auch nicht in Scheunen; und euer himmlischer Vater ernährt sie doch. Seid ihr nicht viel mehr wert als sie? 27 Wer aber von euch kann mit all seiner Sorge seiner Körpergröße eine Elle hinzufügen? 28 Und warum sorgt ihr euch um die Kleidung? Betrachtet die Lilien auf dem Felde, wie sie wachsen: Sie mühen sich nicht, sie spinnen auch nicht. 29 Ich sage euch aber, daß selbst Salomo in all seiner Herrlichkeit nicht so gekleidet war wie eine von diesen. 30 Wenn aber Gott das Gras des Feldes, das heute steht und morgen in den Ofen geworfen wird, so kleidet, wird er nicht viel mehr für euch sorgen, ihr Kleingläubigen? 31 Also sorgt euch nicht und sagt nicht: Was werden wir essen? oder: Was werden wir trinken? oder: Womit werden wir uns bekleiden? 32 Denn all das suchen die Heiden; euer himmlischer Vater weiß ja, daß ihr all das braucht. 33 Sucht aber zuerst das Reich Gottes und seine Gerechtigkeit, so wird euch all das dazugegeben werden! 34 Sorgt euch also nicht um den morgigen Tag; denn der morgige Tag wird für sich selbst sorgen. Jeder Tag hat genug an seiner eigenen Plage."
+    },
+    "Psalm 51:10-12": {
+      "translation": "SCHLACH",
+      "label": "Schlachter 1951",
+      "availableLanguage": "de",
+      "verses": [
+        { "verse": "10", "text": "Schaffe mir, Gott, ein reines Herz und gib mir einen neuen, beständigen Geist!" },
+        { "verse": "11", "text": "Verwirf mich nicht von deinem Angesicht und nimm deinen Heiligen Geist nicht von mir!" },
+        { "verse": "12", "text": "Gib mir die Freude deines Heils zurück und stütze mich durch einen willigen Geist!" }
+      ],
+      "text": "10 Schaffe mir, Gott, ein reines Herz und gib mir einen neuen, beständigen Geist! 11 Verwirf mich nicht von deinem Angesicht und nimm deinen Heiligen Geist nicht von mir! 12 Gib mir die Freude deines Heils zurück und stütze mich durch einen willigen Geist!"
+    },
+    "James 5:16": {
+      "translation": "SCHLACH",
+      "label": "Schlachter 1951",
+      "availableLanguage": "de",
+      "verses": [{ "verse": "16", "text": "Bekennt also einander eure Sünden und betet füreinander, damit ihr geheilt werdet! Das inbrünstige Gebet eines Gerechten vermag viel." }],
+      "text": "16 Bekennt also einander eure Sünden und betet füreinander, damit ihr geheilt werdet! Das inbrünstige Gebet eines Gerechten vermag viel."
+    },
+    "1 Thessalonians 4:3-5": {
+      "translation": "SCHLACH",
+      "label": "Schlachter 1951",
+      "availableLanguage": "de",
+      "verses": [
+        { "verse": "3", "text": "Denn das ist der Wille Gottes, eure Heiligung, daß ihr euch von der Unzucht fernhaltet;" },
+        { "verse": "4", "text": "daß jeder von euch wisse, sein eigenes Gefäß in Heiligkeit und Ehren zu besitzen," },
+        { "verse": "5", "text": "nicht in leidenschaftlicher Begierde wie die Heiden, die Gott nicht kennen;" }
+      ],
+      "text": "3 Denn das ist der Wille Gottes, eure Heiligung, daß ihr euch von der Unzucht fernhaltet; 4 daß jeder von euch wisse, sein eigenes Gefäß in Heiligkeit und Ehren zu besitzen, 5 nicht in leidenschaftlicher Begierde wie die Heiden, die Gott nicht kennen;"
+    },
+    "1 Corinthians 10:13": {
+      "translation": "SCHLACH",
+      "label": "Schlachter 1951",
+      "availableLanguage": "de",
+      "verses": [{ "verse": "13", "text": "Euch hat noch keine Versuchung getroffen als nur eine menschliche; aber Gott ist treu, der nicht zulassen wird, daß ihr über eure Kraft versucht werdet, sondern er wird mit der Versuchung auch den Ausweg schaffen, so daß ihr sie ertragen könnt." }],
+      "text": "13 Euch hat noch keine Versuchung getroffen als nur eine menschliche; aber Gott ist treu, der nicht zulassen wird, daß ihr über eure Kraft versucht werdet, sondern er wird mit der Versuchung auch den Ausweg schaffen, so daß ihr sie ertragen könnt."
+    }
   }
 };

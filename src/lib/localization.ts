@@ -1,6 +1,9 @@
 import { modeProfiles, type ModeProfile } from "@/lib/mode-profiles";
 import type { Mode, WisdomEntryData } from "@/lib/wisdom-data";
 import { displayReadyScriptureReads } from "@/lib/display-ready-scripture-reads";
+import { getFullScriptureRead, fullScriptureReadsEnabled } from "@/lib/full-scripture-reads";
+import { isFullScriptureEnabled, recordScriptureFallback } from "@/lib/full-scripture-rollout";
+import { localizedScriptureBookNamesGenerated } from "@/lib/scripture-book-names.generated";
 
 export type LanguageCode = "en" | "es" | "fr" | "pt" | "de" | "yo" | "ig" | "ha" | "tl" | "ar" | "hi";
 export type RegionCode = "global" | "us" | "uk" | "eu" | "ng" | "br" | "latam" | "ph" | "mena" | "in";
@@ -343,7 +346,14 @@ export function canonicalScriptureReference(scripture: string) {
 
 export function localizedScriptureRead(scripture: string, preferences: UserPreferences): ScriptureRead {
   const canonical = canonicalScriptureReference(scripture);
-  const localized = displayReadyScriptureReads[preferences.bibleTranslation]?.[canonical];
+  const useFullReads = fullScriptureReadsEnabled && isFullScriptureEnabled(preferences.bibleTranslation, preferences.language);
+  const fullRead = useFullReads ? getFullScriptureRead(preferences.bibleTranslation, canonical) : undefined;
+
+  if (useFullReads && fullRead === undefined) {
+    recordScriptureFallback(preferences.bibleTranslation, preferences.language, canonical);
+  }
+
+  const localized = fullRead ?? displayReadyScriptureReads[preferences.bibleTranslation]?.[canonical];
   if (localized?.verses?.length) {
     return {
       ...localized,
@@ -385,6 +395,63 @@ export function scriptureDisplayLabel(scripture: string, preferences: UserPrefer
   }
 
   return preferredTranslation.label;
+}
+
+const localizedScriptureBookNames: Partial<Record<LanguageCode, Record<string, string>>> =
+  localizedScriptureBookNamesGenerated;
+
+export function localizedScriptureReference(scripture: string, language: LanguageCode): string {
+  if (language === "en") {
+    return canonicalScriptureReference(scripture);
+  }
+
+  const canonical = canonicalScriptureReference(scripture);
+  const normalized = normalizeScriptureReference(canonical);
+  const match = normalized.match(/^(.+?)\s+(\d+):(\d+)(?:\s*-\s*(\d+))?$/);
+  if (!match) {
+    return canonical;
+  }
+
+  const bookKey = match[1].trim().toLowerCase().replace(/\s+/g, " ");
+  const localizedBook = localizedScriptureBookNames[language]?.[bookKey];
+  if (!localizedBook) {
+    return canonical;
+  }
+
+  const chapter = match[2];
+  const start = match[3];
+  const end = match[4];
+  return `${localizedBook} ${chapter}:${start}${end ? `-${end}` : ""}`;
+}
+
+function escapeScriptureRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+export function localizeScriptureReferencesInText(
+  text: string,
+  language: LanguageCode,
+  allowedScriptures: string[] = curatedScriptureReferences
+): string {
+  if (!text || language === "en") {
+    return text;
+  }
+
+  const uniqueTargets = [...new Set(allowedScriptures.map((scripture) => canonicalScriptureReference(scripture)))]
+    .filter(Boolean)
+    .sort((left, right) => right.length - left.length);
+
+  let localizedText = text;
+  uniqueTargets.forEach((scripture) => {
+    const localizedReference = localizedScriptureReference(scripture, language);
+    if (!localizedReference || localizedReference === scripture) {
+      return;
+    }
+    const pattern = new RegExp(escapeScriptureRegExp(scripture), "g");
+    localizedText = localizedText.replace(pattern, localizedReference);
+  });
+
+  return localizedText;
 }
 
 export const languageCopy: Partial<Record<
@@ -3701,6 +3768,264 @@ const localizedWisdomLibraryEntries: Partial<Record<LanguageCode, Record<string,
         "Ka raba shiri mai alhaki daga zagayen damuwa. Yi mataki na gaba mai aminci, sannan ka ƙi sake kunna kowanne mummunan al'amari a kai.",
     },
   },
+  tl: {
+    "Matthew 25:14-30": {
+      principle: "Ang mga pinagkakatiwalaang yaman ay pinamamahalaan nang may katapatan, tapang, at pananagutan.",
+      context:
+        "Ang talinghaga ay tungkol sa mga alipin na pinagkatiwalaan ng responsibilidad habang wala ang panginoon. Pinupuri nito ang tapat na gawa, hindi ang pagkukunwari o pagkabalisa.",
+      application:
+        "Ituring ang pera, kakayahan, oras, at pagkakataon bilang mga pinagkakatiwalaang yaman. Mahalaga ang paglago, ngunit mahalaga rin ang motibo, pasensya, kasipagan, at pananagutan.",
+    },
+    "Proverbs 22:7": {
+      principle: "Ang utang ay maaaring magbawas ng kalayaan at dapat harapin nang may tamang pag-iisip.",
+      context:
+        "Ang mga Kawikaan ay kadalasang naglalarawan ng mga pattern ng karunungan kaysa sa ganap na mga legal na tuntunin. Binabanggit ng kawikaan na ito ang relasyon at praktikal na bigat na maaaring likhain ng utang.",
+      application:
+        "Bago mangutang, suriin ang pangangailangan, kakayahang magbayad, emosyonal na presyon, at kung ang obligasyon ba ay sumusuporta sa matalinong pamamahala.",
+    },
+    "Philippians 4:11-13": {
+      principle: "Ang kasiyahan ay natututo sa pamamagitan ng tiwala, hindi nakamit sa pamamagitan ng perpektong kalagayan.",
+      context:
+        "Si Pablo ay sumulat mula sa kahirapan at inilalarawan ang kasiyahan bilang natutunan na pag-asa, hindi pagtanggi sa tunay na pangangailangan.",
+      application:
+        "Ang kapayapaan sa pera ay kadalasang nagsisimula sa pagtukoy ng sapat, paglaban sa paghahambing, at pagbuo ng mga gawi na nagpapababa ng emosyonal na pagbabago.",
+    },
+    "Proverbs 15:22": {
+      principle: "Ang mga plano ay nagiging mas matibay kapag sinuri ng may mapagpakumbabang payo.",
+      context:
+        "Ang panitikan ng karunungan ay paulit-ulit na pinahahalagahan ang pagiging turuan, pagwawasto, at kakayahang humingi ng pananaw bago kumilos.",
+      application:
+        "Para sa malalaking desisyon sa trabaho, pera, o negosyo, anyayahan ang mga taong matalino, tapat, at hindi pinansyal na umaasa sa iyong desisyon.",
+    },
+    "Luke 14:28": {
+      principle: "Ang matalinong gawa ay tinatasa ang halaga bago ang pangako.",
+      context:
+        "Ginamit ni Jesus ang larawan ng pagtatayo ng tore upang bigyang-diin ang maingat na pagtasa bago ang pampublikong pangako.",
+      application:
+        "Bago ang isang malaking hakbang sa trabaho o negosyo, tukuyin ang kaya, mga tradeoff, obligasyon, timing, at ang pinakamaliit na reversible na eksperimento.",
+    },
+    "2 Corinthians 9:6-8": {
+      principle: "Ang pagkamapagbigay ay kusang-loob at maingat, hindi sapilitan o paimbabaw.",
+      context:
+        "Inaanyayahan ni Pablo ang masayang pagkamapagbigay habang tinatanggihan ang pamimilit. Ang saloobin ay kasinghalaga ng halaga.",
+      application:
+        "Magbigay mula sa paninindigan at pagpaplano, hindi mula sa hiya, presyon ng lipunan, o pangangailangang magmukhang espirituwal.",
+    },
+    "Proverbs 21:5": {
+      principle: "Ang masusing pagpaplano ay nagdudulot ng kasaganaan; ang pagmamadali ay nagdudulot ng kakulangan.",
+      context:
+        "Inihahambing ng kawikaan na ito ang patuloy na kasipagan sa pabigla-biglang gawa. Nagbababala ito laban sa mga padalos-dalos na shortcut.",
+      application:
+        "Iwasan ang mga pinansyal na hakbang na pinapatakbo ng hype, pagkabalisa, o pagkaapurahan. Isulat ang plano, subukan ang mga palagay, at bigyan ng oras ang payo.",
+    },
+    "Matthew 6:25-34": {
+      principle: "Ang tiwala ay nagpapababa ng mapanghimasok na pagsisikap habang nagpapahintulot pa rin ng responsableng gawa.",
+      context:
+        "Tinutugunan ni Jesus ang pag-aalala at maling pagsisikap, tinatawag ang mga tagapakinig na hanapin ang kaharian ng Diyos habang namumuhay nang isang araw sa isang pagkakataon.",
+      application:
+        "Ihiwalay ang responsableng pagpaplano mula sa mga siklo ng pagkabalisa. Gawin ang susunod na tapat na gawa, pagkatapos ay tanggihan ang paulit-ulit na pag-iisip sa bawat pinakamasamang sitwasyon.",
+    },
+    "Psalm 51:10-12": {
+      principle: "Ang isang malinis na puso at matibay na espiritu ay maaaring mapanumbalik pagkatapos ng pagbagsak.",
+      context:
+        "Si David ay nanalangin pagkatapos ng moral na pagbagsak. Hindi lamang siya humiling ng kapatawaran, kundi ng panloob na pagbabago at kagalakang ibinabalik ng Diyos.",
+      application:
+        "Kapag nahulog ka, magsimula sa tapat na pagsisisi at hindi sa pagtatanggol sa sarili. Hilingin sa Diyos na baguhin ang iyong puso at tulungan kang gawin ang susunod na tapat na hakbang.",
+    },
+    "James 5:16": {
+      principle: "Ang kumpisal at panalangin ay nagbubukas ng landas tungo sa pagpapagaling at naibalik na integridad.",
+      context:
+        "Inugnay ni Santiago ang kumpisal sa panalangin at pagpapagaling, na nagpapakita na ang nakatagong pakikibaka ay kadalasang nagpapahina sa atin at ang katapatan ay maaaring magpasimulan ng pagkukumpuni.",
+      application:
+        "Ipahayag ang katotohanan sa Diyos at, kapag matalino, sa isang pinagkakatiwalaang tao na maaaring manalangin, suportahan ka, at tumulong sa iyo na maging mapanagutan.",
+    },
+    "1 Thessalonians 4:3-5": {
+      principle: "Ang kabanalan ay natututo sa pamamagitan ng pagpaparangal sa Diyos sa katawan at pagtanggi sa nababago ng pagnanasa.",
+      context:
+        "Tinatawagan ni Pablo ang mga mananampalataya tungo sa kabanalan, pagpipigil sa sarili, at isang naiibang paraan ng paggamit ng pagnanasa kumpara sa kulturang nakapaligid sa kanila.",
+      application:
+        "Ang kadalisayan ay hindi lamang pag-iwas; ito rin ay isang positibong anyo ng mga hangganan, pagpipigil sa sarili, at pagpaparangal sa Diyos sa iyong nakikita, nahahawakan, at iniisip.",
+    },
+    "1 Corinthians 10:13": {
+      principle: "Ang tukso ay tunay, ngunit nagbibigay rin ang Diyos ng paraan ng pagtakas at kakayahang lumaban.",
+      context:
+        "Tinitiyak ni Pablo sa mga mananampalataya na ang tukso ay hindi natatangi, hindi imposibleng tiisin, at hindi hiwalay sa tapat na tulong ng Diyos.",
+      application:
+        "Hanapin ang paraan ng pagtakas, hindi lamang ang tukso. Ang kalayaan ay kadalasang nangangailangan ng pagbibigay-pangalan sa pattern, pagbabago ng kapaligiran, at pagtanggap ng ibinigay na paraan ng pagtakas.",
+    },
+  },
+  ar: {
+    "Matthew 25:14-30": {
+      principle: "تُدار الموارد الموكولة بأمانة وشجاعة ومسؤولية.",
+      context:
+        "تتحدث هذه المثل عن خدام أُوكلت إليهم مسؤولية في غياب السيد، وتُكرّم العمل الأمين لا التخمين أو القلق.",
+      application:
+        "تعامل مع المال والمهارة والوقت والفرصة باعتبارها موارد موكولة. النمو مهم، وكذلك النية والصبر والاجتهاد والمساءلة.",
+    },
+    "Proverbs 22:7": {
+      principle: "الدَّين يُقلّص الحرية وينبغي التعامل معه بواقعية.",
+      context:
+        "غالبًا ما تصف الأمثال أنماط الحكمة بدلًا من القواعد القانونية المطلقة. يُسمّي هذا المثل الثقل العلائقي والعملي الذي يمكن أن يخلقه الدَّين.",
+      application:
+        "قبل الاستدانة، افحص الضرورة وقدرة السداد والضغط النفسي وما إذا كان الالتزام يدعم حسن التدبير.",
+    },
+    "Philippians 4:11-13": {
+      principle: "القناعة تُتعلَّم من خلال التوكل لا من خلال الظروف المثالية.",
+      context:
+        "يكتب بولس من وسط المشقة ويصف القناعة بوصفها اتكالًا مكتسبًا لا إنكارًا للحاجة الحقيقية.",
+      application:
+        "يبدأ الاستقرار المالي كثيرًا بتسمية ما يكفي، ومقاومة المقارنة، وبناء عادات تُخفف من التقلبات العاطفية.",
+    },
+    "Proverbs 15:22": {
+      principle: "تصير الخطط أكثر رسوخًا حين تُفحص بمشورة متواضعة.",
+      context:
+        "تُقدّر أدبيات الحكمة مرارًا القابلية للتعليم والتصحيح والقدرة على طلب وجهات النظر قبل التصرف.",
+      application:
+        "في القرارات الكبرى المتعلقة بالعمل أو المال أو الأعمال، استعن بأشخاص حكماء وصادقين وغير مرتبطين ماليًا بقرارك.",
+    },
+    "Luke 14:28": {
+      principle: "الفعل الحكيم يحسب الكلفة قبل الالتزام.",
+      context:
+        "استخدم يسوع صورة بناء برج للتأكيد على التقييم الرصين قبل الالتزام العلني.",
+      application:
+        "قبل اتخاذ خطوة كبرى في العمل أو الأعمال، حدد الهامش والمقايضات والالتزامات والتوقيت وأصغر تجربة قابلة للرجوع.",
+    },
+    "2 Corinthians 9:6-8": {
+      principle: "العطاء طوعي ومدروس لا مُكرَه ولا مُتكلَّف.",
+      context:
+        "يدعو بولس إلى العطاء بفرح مع رفض الإلزام. السلوك مهم بقدر ما يُعطى.",
+      application:
+        "أعطِ عن قناعة وتخطيط لا عن ذنب أو ضغط اجتماعي أو حاجة للتظاهر بالتقوى.",
+    },
+    "Proverbs 21:5": {
+      principle: "التخطيط الدؤوب يؤدي إلى الوفرة؛ والتسرع يؤدي إلى الشُّح.",
+      context:
+        "يُقابل هذا المثل الاجتهاد الثابت بالتصرف المتسرع ويُحذّر من الاختصارات الاندفاعية.",
+      application:
+        "تجنب الخطوات المالية التي يقودها الضجيج أو الهلع أو الإلحاح. اكتب الخطة، واختبر الافتراضات، وأعطِ وقتًا للمشورة.",
+    },
+    "Matthew 6:25-34": {
+      principle: "التوكل يُقلّص القلق مع إبقاء العمل المسؤول ممكنًا.",
+      context:
+        "يتناول يسوع القلق والسعي الخاطئ، داعيًا المستمعين إلى طلب ملكوت الله مع العيش يومًا بيوم.",
+      application:
+        "افصل التخطيط المسؤول عن حلقات القلق. قم بالفعل الأمين التالي ثم ارفض استعراض كل سيناريو بالغ السوء.",
+    },
+    "Psalm 51:10-12": {
+      principle: "يمكن استعادة قلب طاهر وروح راسخة بعد السقوط.",
+      context:
+        "يصلي داود بعد الانهيار الأخلاقي. لا يطلب الغفران فحسب، بل التجديد الداخلي والفرح الذي يُعيده الله.",
+      application:
+        "حين تسقط، ابدأ بالتوبة الصادقة لا بالتبرير. اطلب من الله أن يجدد قلبك ويساعدك على اتخاذ الخطوة الصادقة التالية.",
+    },
+    "James 5:16": {
+      principle: "الاعتراف والصلاة يفتحان الطريق نحو الشفاء وعودة الأمانة.",
+      context:
+        "يربط يعقوب الاعتراف بالصلاة والشفاء، مُظهرًا أن الكفاح الخفي كثيرًا ما يُضعفنا وأن الصدق يمكن أن يبدأ الترميم.",
+      application:
+        "اعترف بالحق أمام الله، وحين يكون ذلك حكيمًا، أمام شخص موثوق يمكنه الصلاة والدعم والمساعدة في المحاسبة.",
+    },
+    "1 Thessalonians 4:3-5": {
+      principle: "تُكتسب القداسة بتكريم الله بالجسد ورفض الرغبة المنحرفة.",
+      context:
+        "يدعو بولس المؤمنين إلى التقديس والضبط الذاتي وطريقة مختلفة في استخدام الرغبة أمام الثقافة المحيطة بهم.",
+      application:
+        "الطهارة ليست مجرد تجنب؛ إنها أيضًا شكل إيجابي من الحدود والضبط الذاتي وتكريم الله فيما تنظر إليه وتلمسه وتتخيله.",
+    },
+    "1 Corinthians 10:13": {
+      principle: "التجربة حقيقية، لكن الله يوفر أيضًا مخرجًا وقدرة على المقاومة.",
+      context:
+        "يطمئن بولس المؤمنين بأن التجربة ليست فريدة ولا مستحيلة التحمل ولا منفصلة عن عون الله الأمين.",
+      application:
+        "ابحث عن المخرج لا عن التجربة فحسب. الحرية تتطلب غالبًا تسمية النمط وتغيير البيئة وقبول المخرج المُقدَّم.",
+    },
+  },
+  hi: {
+    "Matthew 25:14-30": {
+      principle: "सौंपे गए संसाधनों को विश्वासयोग्यता, साहस और जवाबदेही के साथ सँभाला जाता है।",
+      context:
+        "यह दृष्टांत उन सेवकों के बारे में है जिन्हें मालिक की अनुपस्थिति में ज़िम्मेदारी सौंपी गई। यह विश्वासयोग्य कार्य की प्रशंसा करता है, न कि अटकलों या चिंता की।",
+      application:
+        "पैसे, कौशल, समय और अवसर को सौंपे गए संसाधन मानें। विकास महत्वपूर्ण है, लेकिन उद्देश्य, धैर्य, परिश्रम और जवाबदेही भी उतने ही महत्वपूर्ण हैं।",
+    },
+    "Proverbs 22:7": {
+      principle: "कर्ज़ स्वतंत्रता को कम कर सकता है और इसे गंभीरता से लेना चाहिए।",
+      context:
+        "नीतिवचन अक्सर पूर्ण कानूनी नियमों के बजाय बुद्धि के पैटर्न का वर्णन करते हैं। यह नीतिवचन कर्ज़ के संबंधात्मक और व्यावहारिक बोझ को नाम देता है।",
+      application:
+        "कर्ज़ लेने से पहले, आवश्यकता, चुकौती क्षमता, भावनात्मक दबाव और यह जाँचें कि क्या दायित्व बुद्धिमान प्रबंधन का समर्थन करता है।",
+    },
+    "Philippians 4:11-13": {
+      principle: "संतोष विश्वास के द्वारा सीखा जाता है, सही परिस्थितियों से नहीं।",
+      context:
+        "पौलुस कठिनाई में से लिखता है और संतोष को सीखी हुई निर्भरता के रूप में वर्णित करता है, न कि वास्तविक जरूरत के इनकार के रूप में।",
+      application:
+        "आर्थिक शांति अक्सर पर्याप्त को नाम देने, तुलना का विरोध करने और ऐसी आदतें बनाने से शुरू होती है जो भावनात्मक उतार-चढ़ाव को कम करती हैं।",
+    },
+    "Proverbs 15:22": {
+      principle: "योजनाएँ मज़बूत होती हैं जब उन्हें विनम्र परामर्श से जाँचा जाता है।",
+      context:
+        "ज्ञान साहित्य बार-बार सिखाने योग्य होने, सुधार और कार्य करने से पहले दृष्टिकोण खोजने की क्षमता को महत्व देता है।",
+      application:
+        "काम, पैसे या व्यवसाय के बड़े निर्णयों के लिए, ऐसे लोगों को आमंत्रित करें जो बुद्धिमान, ईमानदार हों और आपके निर्णय पर आर्थिक रूप से निर्भर न हों।",
+    },
+    "Luke 14:28": {
+      principle: "बुद्धिमान कार्य प्रतिबद्धता से पहले लागत की गणना करता है।",
+      context:
+        "यीशु ने सार्वजनिक प्रतिबद्धता से पहले गंभीर मूल्यांकन पर ज़ोर देने के लिए एक मीनार बनाने की छवि का उपयोग किया।",
+      application:
+        "काम या व्यवसाय में बड़ा कदम उठाने से पहले, मार्जिन, tradeoffs, दायित्व, समय और सबसे छोटा reversible प्रयोग तय करें।",
+    },
+    "2 Corinthians 9:6-8": {
+      principle: "उदारता स्वेच्छा से और सोच-समझकर की जाती है, न कि दबाव में या दिखावे के लिए।",
+      context:
+        "पौलुस खुशी से देने के लिए आमंत्रित करता है और दबाव को अस्वीकार करता है। रवैया उतना ही महत्वपूर्ण है जितनी राशि।",
+      application:
+        "दृढ़ विश्वास और योजना के साथ दें, न कि अपराधबोध, सामाजिक दबाव या आध्यात्मिक दिखने की ज़रूरत से।",
+    },
+    "Proverbs 21:5": {
+      principle: "परिश्रमी योजना प्रचुरता की ओर ले जाती है; जल्दबाज़ी कमी की ओर।",
+      context:
+        "यह नीतिवचन निरंतर परिश्रम और जल्दबाज़ी में किए गए कार्य को आमने-सामने रखता है और आवेगशील shortcuts के विरुद्ध चेतावनी देता है।",
+      application:
+        "hype, घबराहट या जल्दबाज़ी से प्रेरित वित्तीय कदमों से बचें। योजना लिखें, अनुमानों को परखें और परामर्श के लिए समय दें।",
+    },
+    "Matthew 6:25-34": {
+      principle: "विश्वास चिंताजनक प्रयास को कम करता है पर जिम्मेदार कार्य की अनुमति देता है।",
+      context:
+        "यीशु चिंता और गलत दिशा में लगाए गए प्रयास को संबोधित करते हैं, श्रोताओं को एक दिन में जीते हुए परमेश्वर के राज्य की खोज करने के लिए बुलाते हैं।",
+      application:
+        "जिम्मेदार योजना को चिंता के चक्रों से अलग करें। अगला विश्वासयोग्य कदम उठाएँ, फिर हर सबसे बुरे परिदृश्य को बार-बार सोचने से इनकार करें।",
+    },
+    "Psalm 51:10-12": {
+      principle: "गिरने के बाद शुद्ध हृदय और स्थिर आत्मा को पुनर्स्थापित किया जा सकता है।",
+      context:
+        "दाऊद नैतिक पतन के बाद प्रार्थना करता है। वह केवल क्षमा नहीं माँगता, बल्कि परमेश्वर द्वारा लौटाई गई आंतरिक नवीनता और आनंद माँगता है।",
+      application:
+        "जब आप गिरें, तो आत्म-बचाव नहीं बल्कि ईमानदार पश्चाताप से शुरू करें। परमेश्वर से माँगें कि वे आपके हृदय को नवीनीकृत करें और आपको अगला सच्चा कदम उठाने में मदद करें।",
+    },
+    "James 5:16": {
+      principle: "पाप स्वीकार करना और प्रार्थना चंगाई और पुनर्स्थापित ईमानदारी का मार्ग खोलती है।",
+      context:
+        "याकूब पाप स्वीकार को प्रार्थना और चंगाई से जोड़ता है, यह दिखाते हुए कि छिपा हुआ संघर्ष अक्सर हमें कमज़ोर करता है और ईमानदारी मरम्मत शुरू कर सकती है।",
+      application:
+        "परमेश्वर के सामने सत्य स्वीकार करें और, जब बुद्धिमानी हो, किसी विश्वासयोग्य व्यक्ति के सामने जो प्रार्थना कर सके, सहारा दे सके और जवाबदेही में मदद कर सके।",
+    },
+    "1 Thessalonians 4:3-5": {
+      principle: "पवित्रता शरीर से परमेश्वर का सम्मान करके और विकृत इच्छा को अस्वीकार करके सीखी जाती है।",
+      context:
+        "पौलुस विश्वासियों को पवित्रता, आत्म-संयम और उनके आस-पास की संस्कृति के विपरीत इच्छा का उपयोग करने के एक अलग तरीके की ओर बुलाता है।",
+      application:
+        "पवित्रता केवल बचने के बारे में नहीं है; यह सीमाओं, आत्म-संयम और परमेश्वर का उस में सम्मान करने का एक सकारात्मक रूप भी है जो आप देखते, छूते और कल्पना करते हैं।",
+    },
+    "1 Corinthians 10:13": {
+      principle: "परीक्षा वास्तविक है, लेकिन परमेश्वर निकास का रास्ता और प्रतिरोध की क्षमता भी प्रदान करता है।",
+      context:
+        "पौलुस विश्वासियों को आश्वस्त करता है कि परीक्षा अनोखी नहीं है, सहन करना असंभव नहीं है, और परमेश्वर की विश्वासयोग्य सहायता से परे नहीं है।",
+      application:
+        "केवल परीक्षा नहीं, निकास का रास्ता खोजें। स्वतंत्रता के लिए अक्सर पैटर्न को नाम देना, वातावरण बदलना और दिए गए निकास को लेना आवश्यक होता है।",
+    },
+  },
 };
 
 const localizedWisdomQuestions: Partial<Record<LanguageCode, Partial<Record<string, string[]>>>> = {
@@ -4398,7 +4723,7 @@ export function localizedDailyWisdom(
   return {
     label: copy.dailyLabel,
     theme: localizedEntry.theme,
-    scripture: `${entry.scripture} (${scriptureDisplayLabel(entry.scripture, preferences)})`,
+    scripture: `${localizedScriptureReference(entry.scripture, preferences.language)} (${scriptureDisplayLabel(entry.scripture, preferences)})`,
     principle: localizedEntry.principle,
     practice,
     translationNote: copy.translationFallback,

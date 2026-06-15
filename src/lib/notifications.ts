@@ -48,6 +48,9 @@ type DueDecisionReminder = {
 
 const DAILY_UNAUTHORIZED_METRIC_KEY = "daily_unauthorized_hits";
 const GRATITUDE_REFLECTION_LOCAL_HOUR = 19;
+const PUSH_DELIVERY_TIMEOUT_MS = Number(process.env.PUSH_DELIVERY_TIMEOUT_MS ?? 10000);
+const PUSH_DELIVERY_MAX_ATTEMPTS = Math.max(1, Number(process.env.PUSH_DELIVERY_MAX_ATTEMPTS ?? 3));
+const PUSH_DELIVERY_RETRY_BASE_DELAY_MS = Number(process.env.PUSH_DELIVERY_RETRY_BASE_DELAY_MS ?? 800);
 
 type MetricRow = {
   metric_value: string | number;
@@ -145,6 +148,7 @@ export function configureWebPush() {
 
 function dailyNotificationPayload(row: PushRow, wisdomEntries: Awaited<ReturnType<typeof getWisdomEntries>>) {
   const now = new Date();
+  const localHour = localHourForTimezone(now, row.preferred_timezone);
   const index = dailyWisdomIndex(row, wisdomEntries.length, now);
   const wisdom = wisdomEntries[index];
   const preferences = normalizePreferences({
@@ -158,6 +162,7 @@ function dailyNotificationPayload(row: PushRow, wisdomEntries: Awaited<ReturnTyp
     : "Money";
   const daily = localizedDailyWisdom(wisdom, dailyMode, preferences);
   const localDate = localDateForTimezone(now, row.preferred_timezone);
+  const campaignArchetype = weeklyCampaignArchetype(localDate);
   const variant = stableHash(`${row.user_id}:${localDate}:${daily.scripture}:${daily.theme}`) % 6;
   const title = buildDailyNotificationTitle({
     language: preferences.language,
@@ -174,14 +179,18 @@ function dailyNotificationPayload(row: PushRow, wisdomEntries: Awaited<ReturnTyp
     principle: daily.principle,
     variant,
   });
+  const opener = campaignArchetypeOpener(preferences.language, campaignArchetype, variant);
+  const campaignBody = compactNotificationCopy(`${opener} ${body}`, 164);
+  const premiumBody = appendPremiumCloser(campaignBody, preferences.language, variant, localHour, premiumDailyClosers);
   return {
     title,
-    body,
+    body: premiumBody,
     url: "/?source=notification&focus=today",
     scripture: daily.scripture,
     tag: `aletheia-daily-${notificationTagPart(localDate)}-${index}`,
     notificationKind: "daily_wisdom",
     wisdomTheme: wisdom.theme,
+    campaignArchetype,
   };
 }
 
@@ -193,13 +202,15 @@ function gratitudeNotificationPayload(row: PushRow) {
     voiceEnabled: Boolean(row.voice_enabled),
   });
   const now = new Date();
+  const localHour = localHourForTimezone(now, row.preferred_timezone);
   const localDate = localDateForTimezone(now, row.preferred_timezone);
   const copy = gratitudeNotificationCopy[preferences.language] ?? gratitudeNotificationCopy.en!;
   const variant = stableHash(`${row.user_id}:${localDate}:gratitude`) % copy.titles.length;
+  const body = compactNotificationCopy(copy.bodies[variant](), 136);
 
   return {
     title: compactNotificationCopy(copy.titles[variant](), 68),
-    body: compactNotificationCopy(copy.bodies[variant](), 136),
+    body: appendPremiumCloser(body, preferences.language, variant, localHour, premiumGratitudeClosers),
     url: "/?source=notification&focus=gratitude",
     tag: `aletheia-gratitude-${notificationTagPart(localDate)}`,
     notificationKind: "gratitude_reflection",
@@ -234,6 +245,68 @@ function compactNotificationCopy(copy: string, max = 140) {
   return `${cleaned.slice(0, Math.max(0, max - 1)).trimEnd()}…`;
 }
 
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function pushErrorStatusCode(error: unknown) {
+  if (typeof error !== "object" || !error || !("statusCode" in error)) {
+    return null;
+  }
+  const statusCode = Number((error as { statusCode?: unknown }).statusCode);
+  return Number.isFinite(statusCode) ? statusCode : null;
+}
+
+function isRetryablePushError(error: unknown) {
+  const statusCode = pushErrorStatusCode(error);
+  if (statusCode !== null) {
+    return statusCode === 408 || statusCode === 425 || statusCode === 429 || statusCode >= 500;
+  }
+
+  const message =
+    typeof error === "object" && error && "message" in error
+      ? String((error as { message?: unknown }).message ?? "")
+      : String(error ?? "");
+  const normalized = message.toLowerCase();
+  return (
+    normalized.includes("timeout") ||
+    normalized.includes("timed out") ||
+    normalized.includes("econnreset") ||
+    normalized.includes("econnrefused") ||
+    normalized.includes("eai_again") ||
+    normalized.includes("etimedout")
+  );
+}
+
+async function sendNotificationWithTimeout(subscription: PushSubscription, payload: string) {
+  return new Promise<unknown>((resolve, reject) => {
+    const timeoutId = setTimeout(() => reject(new Error(`Push notification timeout after ${PUSH_DELIVERY_TIMEOUT_MS}ms`)), PUSH_DELIVERY_TIMEOUT_MS);
+    webpush
+      .sendNotification(subscription, payload)
+      .then(resolve)
+      .catch(reject)
+      .finally(() => clearTimeout(timeoutId));
+  });
+}
+
+async function sendNotificationWithRetry(subscription: PushSubscription, payload: string) {
+  let lastError: unknown = null;
+
+  for (let attempt = 1; attempt <= PUSH_DELIVERY_MAX_ATTEMPTS; attempt += 1) {
+    try {
+      return await sendNotificationWithTimeout(subscription, payload);
+    } catch (error) {
+      lastError = error;
+      if (!isRetryablePushError(error) || attempt === PUSH_DELIVERY_MAX_ATTEMPTS) {
+        throw error;
+      }
+      await sleep(PUSH_DELIVERY_RETRY_BASE_DELAY_MS * attempt);
+    }
+  }
+
+  throw lastError ?? new Error("Unknown push delivery error");
+}
+
 function notificationTagPart(value: string) {
   return value.replace(/[^a-zA-Z0-9_-]+/g, "-").slice(0, 40) || "item";
 }
@@ -247,6 +320,10 @@ type SimpleNotificationLanguageCopy = {
   titles: Array<() => string>;
   bodies: Array<() => string>;
 };
+
+type CampaignArchetype = "reflection" | "challenge" | "promise" | "gratitude";
+
+const WEEKLY_CAMPAIGN_ARCHETYPES: CampaignArchetype[] = ["reflection", "challenge", "promise", "gratitude"];
 
 const dailyNotificationCopy: Partial<Record<LanguageCode, DailyNotificationLanguageCopy>> = {
   en: {
@@ -606,6 +683,121 @@ const gratitudeNotificationCopy: Partial<Record<LanguageCode, SimpleNotification
   },
 };
 
+const premiumDailyClosers: Partial<Record<LanguageCode, string[]>> = {
+  en: ["Open now for your one clear next step.", "Tap to carry a wiser lens into today.", "Open now and let wisdom shape your next decision."],
+  es: ["Abre ahora y toma un paso claro para hoy.", "Toca para llevar una mirada más sabia a tu día.", "Abre ahora y deja que la sabiduría guíe tu próxima decisión."],
+  fr: ["Ouvre maintenant pour un prochain pas clair.", "Touchez pour porter un regard plus sage aujourd'hui.", "Ouvre maintenant et laisse la sagesse guider ta prochaine décision."],
+  pt: ["Abra agora para um próximo passo claro.", "Toque para levar um olhar mais sábio para hoje.", "Abra agora e deixe a sabedoria guiar sua próxima decisão."],
+  de: ["Jetzt öffnen für deinen klaren nächsten Schritt.", "Tippe hier und nimm einen weiseren Blick mit in den Tag.", "Jetzt öffnen und Weisheit in deine nächste Entscheidung tragen."],
+  yo: ["Ṣí i báyìí fún ìgbésẹ̀ kedere tó kàn.", "Fọwọ́ kan an kí o ru ojú ọgbọ́n wọ ọjọ́ rẹ.", "Ṣí i báyìí kí ọgbọ́n dari ìpinnu rẹ tó kàn."],
+  ig: ["Mepee ya ugbu a maka nzọụkwụ doro anya ọzọ.", "Pịa ka i buru anya amamihe n'ime ụbọchị taa.", "Mepee ugbu a ka amamihe duzie mkpebi gị na-esote."],
+  ha: ["Bude yanzu don mataki na gaba mai bayyana.", "Matsa ka dauki hangen hikima cikin yau.", "Bude yanzu ka bar hikima ta jagoranci shawararka ta gaba."],
+  tl: ["Buksan ngayon para sa malinaw na susunod na hakbang.", "I-tap para dalhin ang mas mahinahong pananaw sa araw na ito.", "Buksan ngayon at hayaang gabayan ng karunungan ang susunod mong pasya."],
+  ar: ["افتح الآن لخطوة تالية واضحة.", "اضغط لتحمل نظرة أكثر حكمة في يومك.", "افتح الآن ودع الحكمة تقود قرارك التالي."],
+  hi: ["अभी खोलें और अगला स्पष्ट कदम पाएँ.", "टैप करें और आज के लिए अधिक बुद्धिमान दृष्टि साथ लें.", "अभी खोलें और ज्ञान को आपके अगले निर्णय का मार्गदर्शन करने दें."],
+};
+
+const premiumGratitudeClosers: Partial<Record<LanguageCode, string[]>> = {
+  en: ["Open Gratitude Lens and seal this day with thanks.", "Tap now and keep one memory that deserves attention."],
+  es: ["Abre Gratitude Lens y cierra este día con gratitud.", "Toca ahora y guarda una memoria que merece atención."],
+  fr: ["Ouvre Gratitude Lens et termine la journée avec reconnaissance.", "Touchez maintenant et garde un souvenir qui mérite l'attention."],
+  pt: ["Abra o Gratitude Lens e encerre o dia com gratidão.", "Toque agora e guarde uma memória que merece atenção."],
+  de: ["Öffne den Dankbarkeitsblick und schließe den Tag mit Dank.", "Jetzt tippen und eine Erinnerung bewahren, die Aufmerksamkeit verdient."],
+  yo: ["Ṣí Ojú Ìdúpẹ́ kí o sì fi ìdúpẹ́ pa ọjọ́ yìí.", "Fọwọ́ kan an báyìí kí o pa ìrántí tó yẹ mọ́."],
+  ig: ["Mepee Anya Ekele ma mechie ụbọchị a n'ekele.", "Pịa ugbu a ka i debe ncheta kwesịrị nlebara anya."],
+  ha: ["Bude Madubin Godiya ka rufe yau da godiya.", "Matsa yanzu ka adana tunanin da ya cancanci kulawa."],
+  tl: ["Buksan ang Gratitude Lens at tapusin ang araw na may pasasalamat.", "I-tap ngayon at itabi ang alaalang karapat-dapat sa pansin."],
+  ar: ["افتح عدسة الامتنان واختتم يومك بالشكر.", "اضغط الآن واحتفظ بذكرى تستحق الانتباه."],
+  hi: ["Gratitude Lens खोलें और दिन का समापन धन्यवाद के साथ करें.", "अभी टैप करें और एक याद संजोएँ जो ध्यान की हकदार है."],
+};
+
+const campaignArchetypeOpeners: Partial<Record<LanguageCode, Record<CampaignArchetype, string[]>>> = {
+  en: {
+    reflection: ["Pause and reflect with wisdom."],
+    challenge: ["Take one courageous step today."],
+    promise: ["Hold this promise close today."],
+    gratitude: ["Notice one mercy before the rush."],
+  },
+  es: {
+    reflection: ["Haz una pausa y reflexiona con sabiduría."],
+    challenge: ["Da hoy un paso valiente."],
+    promise: ["Abraza hoy esta promesa."],
+    gratitude: ["Reconoce una misericordia antes de la prisa."],
+  },
+  fr: {
+    reflection: ["Fais une pause et réfléchis avec sagesse."],
+    challenge: ["Fais aujourd'hui un pas courageux."],
+    promise: ["Garde cette promesse près de toi aujourd'hui."],
+    gratitude: ["Remarque une grâce avant la précipitation."],
+  },
+  pt: {
+    reflection: ["Faça uma pausa e reflita com sabedoria."],
+    challenge: ["Dê hoje um passo corajoso."],
+    promise: ["Segure esta promessa com você hoje."],
+    gratitude: ["Perceba uma misericórdia antes da correria."],
+  },
+  de: {
+    reflection: ["Halte kurz inne und reflektiere mit Weisheit."],
+    challenge: ["Gehe heute einen mutigen Schritt."],
+    promise: ["Trage diese Verheißung heute nah bei dir."],
+    gratitude: ["Bemerke eine Gnade vor der Hektik."],
+  },
+  yo: {
+    reflection: ["Dúró díẹ̀ kí o sì ronú pẹ̀lú ọgbọ́n."],
+    challenge: ["Gbé ìgbésẹ̀ akínkanjú kan lónìí."],
+    promise: ["Di ìlérí yìí mú lónìí."],
+    gratitude: ["Ṣàkíyèsí aanu kan kí ìyára tó bẹ̀rẹ̀."],
+  },
+  ig: {
+    reflection: ["Kwụsị ntakịrị ma tụgharịa uche n'amamihe."],
+    challenge: ["Mee otu nzọụkwụ obi ike taa."],
+    promise: ["Jide nkwa a nso taa."],
+    gratitude: ["Hụ otu ebere tupu ọsọ amalite."],
+  },
+  ha: {
+    reflection: ["Dakata ka yi tunani cikin hikima."],
+    challenge: ["Dauki mataki guda na jarumta yau."],
+    promise: ["Rike wannan alkawari kusa da kai yau."],
+    gratitude: ["Lura da wata alheri kafin hanzari."],
+  },
+  tl: {
+    reflection: ["Huminto sandali at magnilay nang may karunungan."],
+    challenge: ["Gumawa ng isang matapang na hakbang ngayon."],
+    promise: ["Hawakan ang pangakong ito ngayong araw."],
+    gratitude: ["Pansinin ang isang biyaya bago ang pagmamadali."],
+  },
+  ar: {
+    reflection: ["توقّف قليلًا وتأمّل بحكمة."],
+    challenge: ["اتخذ اليوم خطوة شجاعة واحدة."],
+    promise: ["تمسّك بهذا الوعد اليوم."],
+    gratitude: ["لاحظ نعمة واحدة قبل زحام اليوم."],
+  },
+  hi: {
+    reflection: ["थोड़ा ठहरें और ज्ञान के साथ मनन करें."],
+    challenge: ["आज एक साहसी कदम उठाएँ."],
+    promise: ["आज इस प्रतिज्ञा को थामे रखें."],
+    gratitude: ["भागदौड़ से पहले एक कृपा को पहचानें."],
+  },
+};
+
+function weeklyCampaignArchetype(localDate: string) {
+  const safeDate = new Date(`${localDate}T00:00:00Z`);
+  const weekIndex = Math.floor(safeDate.getTime() / (7 * 24 * 60 * 60 * 1000));
+  return WEEKLY_CAMPAIGN_ARCHETYPES[Math.abs(weekIndex) % WEEKLY_CAMPAIGN_ARCHETYPES.length] ?? "reflection";
+}
+
+function campaignArchetypeOpener(language: LanguageCode, archetype: CampaignArchetype, variantSeed: number) {
+  const languageCopy = campaignArchetypeOpeners[language] ?? campaignArchetypeOpeners.en;
+  const openers = languageCopy?.[archetype] ?? campaignArchetypeOpeners.en?.[archetype] ?? ["Pause and reflect with wisdom."];
+  return openers[variantSeed % openers.length] ?? openers[0]!;
+}
+
+function appendPremiumCloser(baseBody: string, language: LanguageCode, variantSeed: number, localHour: number, closers: Partial<Record<LanguageCode, string[]>>) {
+  const languageClosers = closers[language] ?? closers.en ?? ["Open now for today's wisdom."];
+  const closer = languageClosers[(variantSeed + Math.floor(localHour / 6)) % languageClosers.length] ?? languageClosers[0]!;
+  return compactNotificationCopy(`${baseBody} ${closer}`, 172);
+}
+
 function normalizeNotificationSegment(value: string, fallback: string) {
   const cleaned = value.replace(/\s+/g, " ").trim();
   return cleaned || fallback;
@@ -958,7 +1150,6 @@ async function sendPushRows(
   let sent = 0;
   let failed = 0;
   const failureSamples: PushFailureSample[] = [];
-  const now = new Date();
 
   const BATCH_SIZE = 10;
   for (let i = 0; i < rows.length; i += BATCH_SIZE) {
@@ -975,18 +1166,14 @@ async function sendPushRows(
         };
 
         try {
-          const sendPromise = webpush.sendNotification(subscription, payloadForRow(row));
-          const timeoutPromise = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error("Push notification timeout")), 10000)
-          );
-
-          await Promise.race([sendPromise, timeoutPromise]);
+          await sendNotificationWithRetry(subscription, payloadForRow(row));
 
           if (lastSentColumn) {
+            const deliveredAt = new Date().toISOString();
             await run(
               `UPDATE push_subscriptions SET ${lastSentColumn} = ?, updated_at = ? WHERE id = ?`,
-              now.toISOString(),
-              now.toISOString(),
+              deliveredAt,
+              deliveredAt,
               row.id
             );
           }

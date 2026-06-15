@@ -24,6 +24,9 @@ public class AudioPlaybackService extends Service {
 
     static final String CHANNEL_ID = "aletheia_audio_playback";
     static final int NOTIFICATION_ID = 1001;
+    private static final int MODE_LOADING = 0;
+    private static final int MODE_PLAYING = 1;
+    private static final int MODE_PAUSED = 2;
 
     // Intent actions sent by notification buttons.
     static final String ACTION_PAUSE  = "com.aletheia.app.ACTION_PAUSE";
@@ -52,7 +55,7 @@ public class AudioPlaybackService extends Service {
     private String lastTitle = "Aletheia";
     private Bitmap lastArtwork;
     private MediaSession.Token lastToken;
-    private boolean lastIsPlaying = false;
+    private int lastMode = MODE_LOADING;
 
     @Override
     public void onCreate() {
@@ -74,7 +77,7 @@ public class AudioPlaybackService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         // Always call startForeground immediately using whatever state we have.
         startForeground(NOTIFICATION_ID,
-            buildNotification(lastTitle, lastArtwork, lastToken, lastIsPlaying));
+            buildNotification(lastTitle, lastArtwork, lastToken, lastMode));
 
         // Dispatch notification button presses to the plugin.
         if (intent != null && callback != null) {
@@ -92,16 +95,32 @@ public class AudioPlaybackService extends Service {
 
     /** Show the "now playing" notification (ongoing, play→pause button). */
     public void showPlayingNotification(String title, Bitmap artwork, MediaSession.Token token) {
-        lastTitle = title; lastArtwork = artwork; lastToken = token; lastIsPlaying = true;
+        lastTitle = title;
+        lastArtwork = artwork;
+        lastToken = token;
+        lastMode = MODE_PLAYING;
         notificationManager.notify(NOTIFICATION_ID,
-            buildNotification(title, artwork, token, true));
+            buildNotification(title, artwork, token, MODE_PLAYING));
     }
 
     /** Show the "paused" notification (dismissible, pause→play button). */
     public void showPausedNotification(String title, Bitmap artwork, MediaSession.Token token) {
-        lastTitle = title; lastArtwork = artwork; lastToken = token; lastIsPlaying = false;
+        lastTitle = title;
+        lastArtwork = artwork;
+        lastToken = token;
+        lastMode = MODE_PAUSED;
         notificationManager.notify(NOTIFICATION_ID,
-            buildNotification(title, artwork, token, false));
+            buildNotification(title, artwork, token, MODE_PAUSED));
+    }
+
+    /** Show an explicit loading state while audio is being prepared/generated. */
+    public void showLoadingNotification(String title, Bitmap artwork, MediaSession.Token token) {
+        lastTitle = title;
+        lastArtwork = artwork;
+        lastToken = token;
+        lastMode = MODE_LOADING;
+        notificationManager.notify(NOTIFICATION_ID,
+            buildNotification(title, artwork, token, MODE_LOADING));
     }
 
     /** Remove the notification and stop this service. */
@@ -123,7 +142,10 @@ public class AudioPlaybackService extends Service {
     }
 
     private Notification buildNotification(
-            String title, Bitmap artwork, MediaSession.Token token, boolean isPlaying) {
+            String title, Bitmap artwork, MediaSession.Token token, int mode) {
+
+        boolean isLoading = mode == MODE_LOADING;
+        boolean isPlaying = mode == MODE_PLAYING;
 
         // Tapping the notification opens the app.
         Intent openApp = getPackageManager().getLaunchIntentForPackage(getPackageName());
@@ -145,24 +167,34 @@ public class AudioPlaybackService extends Service {
 
         // MediaStyle ties the notification to our MediaSession so the system
         // media controller, lock screen, and Wear OS all reflect playback state.
-        Notification.MediaStyle style = new Notification.MediaStyle()
-            .setShowActionsInCompactView(0, 1); // show toggle + stop in compact view
+        Notification.MediaStyle style = new Notification.MediaStyle();
         if (token != null) style.setMediaSession(token);
 
         Notification.Builder builder = new Notification.Builder(this, CHANNEL_ID)
             .setContentTitle(title != null ? title : "Aletheia")
-            .setContentText("Aletheia")
+            .setContentText(isLoading ? "Preparing audio..." : "Aletheia")
             .setSmallIcon(R.mipmap.ic_launcher_foreground)
             .setContentIntent(contentIntent)
             .setVisibility(Notification.VISIBILITY_PUBLIC) // show on lock screen
-            .setOngoing(playing)                           // can't swipe away while playing
+            .setOngoing(playing || isLoading)              // can't swipe away while loading/playing
             .setStyle(style)
-            .addAction(new Notification.Action.Builder(
-                Icon.createWithResource(this, toggleIcon),
-                toggleLabel, toggleIntent).build())
-            .addAction(new Notification.Action.Builder(
+            .setProgress(0, 0, isLoading);
+
+        if (isLoading) {
+            style.setShowActionsInCompactView(0);
+            builder.addAction(new Notification.Action.Builder(
                 Icon.createWithResource(this, android.R.drawable.ic_menu_close_clear_cancel),
                 "Stop", stopIntent).build());
+        } else {
+            style.setShowActionsInCompactView(0, 1); // show toggle + stop in compact view
+            builder
+                .addAction(new Notification.Action.Builder(
+                    Icon.createWithResource(this, toggleIcon),
+                    toggleLabel, toggleIntent).build())
+                .addAction(new Notification.Action.Builder(
+                    Icon.createWithResource(this, android.R.drawable.ic_menu_close_clear_cancel),
+                    "Stop", stopIntent).build());
+        }
 
         if (artwork != null) builder.setLargeIcon(artwork);
 
