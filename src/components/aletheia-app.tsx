@@ -8893,13 +8893,13 @@ export function AletheiaApp() {
       kind: "daily",
       eyebrow: ts('labels.todaysCompanion'),
       title: `${ts('todayPrefix')}: ${card.title}`,
-      body: `${card.principle}\n\n${card.practice}\n\n${card.carryPhrase}\n\n${daily.context}\n\n${daily.application}`,
+      body: `${card.principle}\n\n${card.practice}\n\n${card.carryPhrase}\n\n${dailyEntry.context}\n\n${dailyEntry.application}`,
       sections: [
         { label: ts('labels.principle'), text: card.principle },
         { label: ts('labels.tinyPractice'), text: card.practice },
         { label: ts('labels.carryThisToday'), text: card.carryPhrase },
-        { label: ui.context ?? "", text: daily.context },
-        { label: ui.application ?? "", text: daily.application },
+        { label: ui.context ?? "", text: dailyEntry.context },
+        { label: ui.application ?? "", text: dailyEntry.application },
       ],
     }, "today_companion_card");
   }
@@ -8984,7 +8984,7 @@ export function AletheiaApp() {
   function reflectOnCompanionCard(card: TodayCompanionCard) {
     setJournalTitle(`${ts('todayPrefix')}: ${card.title}`);
     setJournalBody(
-      `${card.opening}\n\n${ui.wisdomPrinciple ?? ""}:\n${card.principle}\n\n${ui.context ?? ""}:\n${daily.context}\n\n${ui.application ?? ""}:\n${daily.application}\n\n${ts('labels.tinyPractice')}:\n${card.practice}\n\n${ts('labels.reflectionQuestion')}:\n${card.question}\n\n${ui.whatINotice ?? ""}:\n`
+      `${card.opening}\n\n${ui.wisdomPrinciple ?? ""}:\n${card.principle}\n\n${ui.context ?? ""}:\n${dailyEntry.context}\n\n${ui.application ?? ""}:\n${dailyEntry.application}\n\n${ts('labels.tinyPractice')}:\n${card.practice}\n\n${ts('labels.reflectionQuestion')}:\n${card.question}\n\n${ui.whatINotice ?? ""}:\n`
     );
     showView("reflect");
     announceWorkflow(ts('notifications.reflectionPrepared'), ts('notifications.reflectionPreparedBody'), "success");
@@ -20362,6 +20362,7 @@ function WisdomCheck({
   modeProfile,
   ts,
   theme,
+  language,
   onSpeakText,
 }: {
   decision: string;
@@ -20374,6 +20375,7 @@ function WisdomCheck({
   modeProfile: DisplayModeProfile;
   ts: (key: string, fallback?: string) => string;
   theme: ThemeColors;
+  language: LanguageCode;
   onSpeakText: (text: string, notice?: string, label?: string) => void;
 }) {
   const readoutText = result
@@ -20633,6 +20635,7 @@ function ReflectPanel({
             modeProfile={modeProfile}
             ts={ts}
             theme={theme}
+            language={language}
             onSpeakText={onSpeakText}
           />
         </DisclosureSection>
@@ -21345,7 +21348,7 @@ function LibraryPanel({
       />
       <ScreenTabs
           value={librarySection}
-          onChange={setLibrarySection}
+          onChange={(v) => setLibrarySection(v as typeof librarySection)}
           ariaLabel={ts('labels.librarySections')}
           theme={theme}
           tabs={[
