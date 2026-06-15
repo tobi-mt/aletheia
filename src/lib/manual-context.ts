@@ -12,6 +12,14 @@ export type ManualContextProfile = {
   futureValuesContext: string;
   futureGoals: string;
   futureBoundaries: string;
+  whatHasntWorkedMoney: string;
+  whatHasntWorkedWork: string;
+  whatHasntWorkedHealth: string;
+  whatHasntWorkedRelationships: string;
+  whatHasntWorkedValues: string;
+  lifeSeasons: string;
+  decisionMakingTendency: string;
+  incomeType: string;
   monthlyIncome: number | null;
   fixedExpenses: number | null;
   debtPayments: number | null;
@@ -43,6 +51,14 @@ export type ManualContextProfile = {
   enoughDefinition: string;
   successDefinition: string;
   mustNotSacrifice: string;
+  inProfessionalCounseling: boolean;
+  hasFinancialAdvisor: boolean;
+  hasSpiritualDirector: boolean;
+  lastUpdatedMoney: string;
+  lastUpdatedWork: string;
+  lastUpdatedHealth: string;
+  lastUpdatedRelationships: string;
+  lastUpdatedValues: string;
   useMoneyInAnswers: boolean;
   useWorkInAnswers: boolean;
   useHealthInAnswers: boolean;
@@ -65,6 +81,14 @@ export const defaultManualContext: ManualContextProfile = {
   futureValuesContext: "",
   futureGoals: "",
   futureBoundaries: "",
+  whatHasntWorkedMoney: "",
+  whatHasntWorkedWork: "",
+  whatHasntWorkedHealth: "",
+  whatHasntWorkedRelationships: "",
+  whatHasntWorkedValues: "",
+  lifeSeasons: "",
+  decisionMakingTendency: "",
+  incomeType: "",
   monthlyIncome: null,
   fixedExpenses: null,
   debtPayments: null,
@@ -96,6 +120,14 @@ export const defaultManualContext: ManualContextProfile = {
   enoughDefinition: "",
   successDefinition: "",
   mustNotSacrifice: "",
+  inProfessionalCounseling: false,
+  hasFinancialAdvisor: false,
+  hasSpiritualDirector: false,
+  lastUpdatedMoney: "",
+  lastUpdatedWork: "",
+  lastUpdatedHealth: "",
+  lastUpdatedRelationships: "",
+  lastUpdatedValues: "",
   useMoneyInAnswers: true,
   useWorkInAnswers: true,
   useHealthInAnswers: true,
@@ -165,6 +197,22 @@ export function normalizeManualContext(input: Partial<ManualContextProfile> = {}
     enoughDefinition: clean(input.enoughDefinition),
     successDefinition: clean(input.successDefinition),
     mustNotSacrifice: clean(input.mustNotSacrifice),
+    whatHasntWorkedMoney: clean(input.whatHasntWorkedMoney),
+    whatHasntWorkedWork: clean(input.whatHasntWorkedWork),
+    whatHasntWorkedHealth: clean(input.whatHasntWorkedHealth),
+    whatHasntWorkedRelationships: clean(input.whatHasntWorkedRelationships),
+    whatHasntWorkedValues: clean(input.whatHasntWorkedValues),
+    lifeSeasons: clean(input.lifeSeasons, 200),
+    decisionMakingTendency: clean(input.decisionMakingTendency, 120),
+    incomeType: clean(input.incomeType, 120),
+    inProfessionalCounseling: input.inProfessionalCounseling === true,
+    hasFinancialAdvisor: input.hasFinancialAdvisor === true,
+    hasSpiritualDirector: input.hasSpiritualDirector === true,
+    lastUpdatedMoney: typeof input.lastUpdatedMoney === "string" ? input.lastUpdatedMoney : "",
+    lastUpdatedWork: typeof input.lastUpdatedWork === "string" ? input.lastUpdatedWork : "",
+    lastUpdatedHealth: typeof input.lastUpdatedHealth === "string" ? input.lastUpdatedHealth : "",
+    lastUpdatedRelationships: typeof input.lastUpdatedRelationships === "string" ? input.lastUpdatedRelationships : "",
+    lastUpdatedValues: typeof input.lastUpdatedValues === "string" ? input.lastUpdatedValues : "",
     useMoneyInAnswers: input.useMoneyInAnswers !== false,
     useWorkInAnswers: input.useWorkInAnswers !== false,
     useHealthInAnswers: input.useHealthInAnswers !== false,
@@ -367,6 +415,17 @@ export function manualContextHasContent(input: ManualContextProfile) {
       input.counselCadence ||
       input.enoughDefinition ||
       input.successDefinition ||
-      input.mustNotSacrifice
+      input.mustNotSacrifice ||
+      input.whatHasntWorkedMoney ||
+      input.whatHasntWorkedWork ||
+      input.whatHasntWorkedHealth ||
+      input.whatHasntWorkedRelationships ||
+      input.whatHasntWorkedValues ||
+      input.lifeSeasons ||
+      input.decisionMakingTendency ||
+      input.incomeType ||
+      input.inProfessionalCounseling ||
+      input.hasFinancialAdvisor ||
+      input.hasSpiritualDirector
   );
 }

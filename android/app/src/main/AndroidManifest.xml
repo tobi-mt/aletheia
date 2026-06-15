@@ -27,9 +27,26 @@
             android:grantUriPermissions="true">
             <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths" />
         </provider>
+
+        <!--
+            Foreground service for media playback notification.
+            foregroundServiceType="mediaPlayback" is required from API 29 (Android 10).
+        -->
+        <service
+            android:name=".AudioPlaybackService"
+            android:foregroundServiceType="mediaPlayback"
+            android:exported="false" />
+
     </application>
 
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Required to start a foreground service for media playback -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+
+    <!-- On Android 13+ (API 33) the system requires explicit permission to post notifications -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 </manifest>

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 800" role="img" aria-label="Calm water">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#101b19"/>
+      <stop offset="100%" stop-color="#0a1211"/>
+    </linearGradient>
+  </defs>
+  <rect width="1280" height="800" fill="url(#bg)"/>
+  <circle cx="220" cy="150" r="64" fill="#d8b766" fill-opacity="0.16"/>
+  <path d="M0 470 C 220 460, 420 470, 640 470 C 860 470, 1060 460, 1280 470 L1280 800 L0 800 Z" fill="#10211d"/>
+  <path d="M90 520 C 260 500, 430 500, 620 520 C 810 540, 980 540, 1190 520" fill="none" stroke="#d5b566" stroke-opacity="0.4" stroke-width="7" stroke-linecap="round"/>
+  <path d="M70 590 C 300 570, 460 565, 710 590 C 930 612, 1080 612, 1220 600" fill="none" stroke="#8fa092" stroke-opacity="0.32" stroke-width="6" stroke-linecap="round"/>
+  <path d="M180 650 C 360 635, 560 635, 760 655" fill="none" stroke="#8fa092" stroke-opacity="0.2" stroke-width="5" stroke-linecap="round"/>
+</svg>

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 800" role="img" aria-label="Quiet forest">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0e1615"/>
+      <stop offset="100%" stop-color="#15211f"/>
+    </linearGradient>
+  </defs>
+  <rect width="1280" height="800" fill="url(#bg)"/>
+  <g fill="#1a2c27" fill-opacity="0.95">
+    <path d="M120 760 L230 300 L340 760 Z"/>
+    <path d="M300 760 L420 240 L540 760 Z"/>
+    <path d="M520 760 L640 280 L760 760 Z"/>
+    <path d="M760 760 L900 230 L1040 760 Z"/>
+    <path d="M980 760 L1090 320 L1200 760 Z"/>
+  </g>
+  <path d="M0 620 C 230 600, 460 610, 700 640 C 930 668, 1100 668, 1280 645 L1280 800 L0 800 Z" fill="#0d1a18"/>
+  <circle cx="990" cy="185" r="52" fill="#d8b766" fill-opacity="0.2"/>
+</svg>

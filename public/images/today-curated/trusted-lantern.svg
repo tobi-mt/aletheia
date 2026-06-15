@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 800" role="img" aria-label="Trusted lantern">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0b1110"/>
+      <stop offset="100%" stop-color="#131f1c"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="52%" cy="44%" r="40%">
+      <stop offset="0%" stop-color="#d8b766" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#d8b766" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1280" height="800" fill="url(#bg)"/>
+  <rect width="1280" height="800" fill="url(#glow)"/>
+  <rect x="570" y="220" width="140" height="300" rx="42" fill="#152622" stroke="#d2b565" stroke-opacity="0.62" stroke-width="6"/>
+  <circle cx="640" cy="360" r="50" fill="#d8b766" fill-opacity="0.45"/>
+  <path d="M640 140 V220" stroke="#d2b565" stroke-opacity="0.72" stroke-width="8" stroke-linecap="round"/>
+  <path d="M0 650 C 240 620, 460 620, 700 650 C 940 680, 1110 680, 1280 660" fill="none" stroke="#8fa092" stroke-opacity="0.26" stroke-width="7" stroke-linecap="round"/>
+</svg>

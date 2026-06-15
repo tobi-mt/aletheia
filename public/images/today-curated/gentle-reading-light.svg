@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 800" role="img" aria-label="Gentle reading light">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#111a18"/>
+      <stop offset="100%" stop-color="#0b1211"/>
+    </linearGradient>
+    <radialGradient id="lamp" cx="72%" cy="30%" r="42%">
+      <stop offset="0%" stop-color="#d8b766" stop-opacity="0.62"/>
+      <stop offset="100%" stop-color="#d8b766" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1280" height="800" fill="url(#bg)"/>
+  <rect width="1280" height="800" fill="url(#lamp)"/>
+  <rect x="190" y="480" width="900" height="220" rx="26" fill="#0f1b18" stroke="#273834" stroke-opacity="0.75"/>
+  <path d="M300 560 C 430 530, 600 530, 740 560 C 820 575, 910 590, 980 598" fill="none" stroke="#d2b565" stroke-opacity="0.72" stroke-width="10" stroke-linecap="round"/>
+  <path d="M300 610 C 450 590, 620 590, 820 625" fill="none" stroke="#8fa092" stroke-opacity="0.28" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="900" cy="360" r="24" fill="#d8b766" fill-opacity="0.22"/>
+</svg>

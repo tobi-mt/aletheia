@@ -54,7 +54,7 @@ It is designed to feel emotionally intelligent, spiritually grounded, and practi
 - Suggested prompts for common money, work, purpose, generosity, and life questions
 - Voice input for asking questions is enabled by default when supported by the browser
 - Visible voice input toggle in Account so users can deactivate or reactivate the microphone beside Ask
-- Voice output for reading the latest Aletheia response aloud with multilingual support
+- Voice output for reading the latest Aletheia response aloud
 - Answer feedback buttons: helpful, too vague, too preachy, and not relevant
 - Contextual personalization nudge after “too vague” feedback when the user has not added any manual context
 - Signed-in memory can use active decisions, recent reflections, and rules of life for continuity
@@ -119,21 +119,20 @@ Aletheia includes 5 distinct wisdom modes that change how guidance is interprete
 
 ## Post-Answer Actions
 
-After a meaningful answer, Aletheia can help the user take the next wise step. All post-answer actions are fully implemented:
+After a meaningful answer, Aletheia can help the user take the next wise step.
 
-- **Track this decision** - Create a tracked decision from the answer
-- **Save as reflection** - Turn the answer into a reflection/journal entry
-- **Create counsel summary** - Generate a structured summary for sharing with mentors
-- **Wait 3 days** - Create a 3-day waiting period reminder
-- **Continue from an older conversation** - Link back to related questions
-- **Draft a reflection** - Auto-generate reflection text from the answer
-- **Draft a mentor/counsel summary** - Auto-generate a shareable summary
-- **Invite someone to Aletheia** - Share the app without exposing private answer content
-- **Turn into a Wisdom Postcard** - Create a beautiful shareable card with the principle or insight
+- Track this decision
+- Save as reflection
+- Create counsel summary
+- Wait 3 days
+- Continue from an older conversation
+- Draft a reflection from the latest answer
+- Draft a mentor/counsel summary from the latest answer
+- Invite someone to Aletheia without sharing private question or answer content
+- Turn useful counsel into a Wisdom Postcard with privacy-first share copy
 
 ## Sharing And Referrals
 
-**Sharing Channels:**
 - Native Web Share support where available
 - Copy-link fallback
 - Share link for WhatsApp
@@ -142,11 +141,9 @@ After a meaningful answer, Aletheia can help the user take the next wise step. A
 - Share link for LinkedIn
 - Email invite link
 - SMS invite link
-
-**Sharing Features:**
-- Account-level invite card in Account > Share Aletheia section
-- Gentle post-answer sharing prompt after meaningful responses
-- Formation milestone sharing prompt to celebrate and invite friends
+- Account-level invite card
+- Gentle post-answer sharing prompt
+- Formation milestone sharing prompt
 - Shares only the public Aletheia app link by default
 - Does not share private questions, answers, decisions, or reflections
 - Privacy-conscious `app_shared` analytics event with only channel and placement metadata
@@ -171,16 +168,11 @@ After a meaningful answer, Aletheia can help the user take the next wise step. A
 - First-reflection milestone moment that gently acknowledges formation without gamification
 - Reflection drafts created from AI answers
 - Today’s wisdom can be turned into a reflection prompt
-
-**Gratitude Lens (In Development):**
-
-The following Gratitude Lens features are planned for upcoming release and currently under development:
-
-- Visual gratitude practice using a user-selected or captured photo plus one grateful note
-- Frames each saved moment as private visual formation: provision, beauty, enoughness, answered prayer, or ordinary mercy
-- Gratitude interface, timeline, weekly recap, and postcard actions use the user's selected app language
+- Gratitude Lens for visual gratitude practice using a user-selected or captured photo plus one grateful note
+- Gratitude Lens frames each saved moment as private visual formation: provision, beauty, enoughness, answered prayer, or ordinary mercy
+- Gratitude Lens interface, timeline, weekly recap, and postcard actions use the user’s selected app language
 - Gratitude photos stay local on the user’s device by default and are not synced to the account
-- Evening gratitude notifications delivered around 7 PM local time
+- Evening gratitude notifications are delivered around 7 PM local time through the existing notification cron, without adding another visible timing control
 - Prompt from today’s wisdom to suggest one gratitude photo or observation
 - Photo-to-reflection flow that turns a saved gratitude moment into a journal prompt
 - Optional place/context field for gratitude moments without requesting GPS location
@@ -188,31 +180,14 @@ The following Gratitude Lens features are planned for upcoming release and curre
 - Gratitude Gallery summary that highlights recurring themes across the user’s saved gratitude moments
 - Weekly gratitude recap highlights formation patterns over time without streaks, scores, or social-media pressure
 - Streak-free weekly gratitude recap focused on remembrance rather than pressure
-- Generated gratitude postcard that includes the selected image, note, date/time, and optional place
-- **Postcard Styling (Planned):** Calm filters (Warm, Soft, Mono, Forest, Golden Hour, Calm Contrast), overlays, stickers, and emoji accents
+- Optional generated gratitude postcard that includes the selected image, note, date/time, and optional place
+- Local-only postcard styling with calm filters: Warm, Soft, Mono, Forest, Golden Hour, and Calm Contrast
+- Optional postcard filters, overlays, stickers, and emoji accents live inside a collapsed style control so gratitude capture stays simple by default
+- Selected gratitude postcard filters, overlays, stickers, emoji accents, date/place details, note, and Aletheia signature are applied to the generated card
 - Gratitude postcard includes Aletheia branding/signature and a subtle invitation to begin a gratitude rhythm
 - Gratitude postcards export/share only when the user explicitly chooses
 - Exported gratitude postcards are marked back in the local Gratitude Timeline
 - Gratitude rhythm guidance and push delivery use around 7 PM local time as a calm day-closing practice
-
-
-## Bible Translations
-
-**Supported Translations (13 public-domain versions):**
-- English: WEB (World English Bible), KJV (King James Version), ASV (American Standard Version)
-- Spanish: RV1909 (Reina-Valera 1909), RV1960 (Reina-Valera 1960)
-- French: LSG1910 (Louis Segond 1910), MARTIN (Martin 1707)
-- Portuguese: AA (Almeida Atualizada), ARC (Almeida Revista Corrigida)
-- German: LUTH1912 (Luther 1912), SCHLACH (Schlachter)
-- Yoruba: YOR1900
-- Igbo: IGB1913
-- Hausa: HAU1932
-
-**Translation Features:**
-- Scripture quick reads available in multiple translations
-- Users can select preferred Bible translation during onboarding or anytime from Account > Personalization
-- Cross-language translation options: users can keep app UI in one language and read scripture in another
-- Safe fallback to English when public-domain localized text is unavailable
 
 ## Biblical Wisdom Knowledge Engine
 
@@ -245,17 +220,10 @@ The following Gratitude Lens features are planned for upcoming release and curre
 
 ## Counsel Circle
 
-**Core Features (Fully Implemented):**
 - Private list of trusted people the user may consult
 - Supports trusted voices such as spouse, mentor, pastor, advisor, or friend
 - Encourages counsel for high-stakes choices
 - Empty state that invites users to add one trusted person before pressure arrives
-- Token-based invite system with email delivery
-- Can share decision summaries with counsel contacts
-- Permissions for counsel contacts: can_view_summaries, can_comment_on_decisions, can_receive_checkins
-
-**Planned Features:**
-- Counsel check-in workflow (permissions infrastructure in place, workflow pending implementation)
 
 ## Rule Of Life
 
@@ -266,9 +234,8 @@ The following Gratitude Lens features are planned for upcoming release and curre
 
 ## Account
 
-**Account Organization:**
-- Dedicated Account tab with premium grouped interface
-- Sections: Profile, Personalization, Share Aletheia, Support the Mission, Daily Wisdom Notifications, Manual Context Vault, and System
+- Dedicated Account tab
+- Premium grouped Account screen built around Profile, Personalization, Share Aletheia, Support the Mission, Daily Wisdom Notifications, Manual Context Vault, and System
 - One Profile card with avatar/photo and personalized greeting in the default state, with sign-in, sync, and notification details available on expand
 - Collapsed Profile card shows avatar/photo, email, and icon-and-number continuity stats for reflections, decisions, and trusted voices without truncating translated labels
 - Account navigation can show the user’s selected avatar/profile photo while guests keep the standard account icon
@@ -313,32 +280,30 @@ The following Gratitude Lens features are planned for upcoming release and curre
 
 ## Preferences
 
-**Personalization Options:**
-- Preferred language (11 supported)
+- Preferred language
 - Theme preference (system, classic, dark, black, warm, ocean, forest, sunset)
-- Life context / region (10 regions with localized examples)
-- Preferred Bible translation (13 public-domain translations)
-- Voice preference (device default or selected installed voice with preview playback)
+- Life context / region
+- Preferred Bible translation
+- Voice preference (device default or selected installed voice)
+- Premium voice preference selector with curated device voices, explicit apply controls, and preview playback feedback
 - Notification timing preference (local hour, timezone mode, timezone, delivery strategy)
-- Focus intentions (up to 3) to tune prompt suggestions and Companion/Decision guidance emphasis
-
-**Preference Storage:**
+- Focus intentions that tune prompt suggestions and Companion/Decision guidance emphasis
+- Region-aware examples
+- Public-domain translation preference labels
 - Local fallback when signed out
 - Database sync when signed in
-- Settings persist across sessions and devices
 
 ## Onboarding Customization
 
-- Starting wisdom mode selection (Money, Work, Purpose, Generosity, Life)
+- Starting wisdom mode selection (Money, Work, Purpose, Generosity)
 - Clickable setup step navigation for mode, tone, language/Bible/region, focus, and privacy
 - First concern prompt to personalize first-session guidance
 - Tone selection for early guidance (gentle, direct, strategic, reflective)
 - Faith familiarity selection (new to biblical wisdom, familiar, deeply familiar)
-- Language selection during onboarding (11 languages supported)
+- Language selection during onboarding
 - Device/browser language is used as the first onboarding language when supported
-- Bible translation selection during onboarding (13 public-domain translations supported)
-- Region selection during onboarding (10 regions with localized examples)
-- Focus intentions selection (up to 3) to tune early guidance emphasis
+- Bible translation selection during onboarding
+- Region selection during onboarding
 - Onboarding settings can be changed later in Account
 
 ## Interface And Guidance Customization
@@ -430,9 +395,8 @@ The following Gratitude Lens features are planned for upcoming release and curre
 
 ## Formation Milestones
 
-Calm milestones are included as signs of formation, not childish gamification. Milestone tracking and event detection are fully implemented.
+Calm milestones are included as signs of formation, not childish gamification.
 
-**Tracked Milestones:**
 - First reflection saved
 - First decision tracked
 - Sought counsel
@@ -440,8 +404,8 @@ Calm milestones are included as signs of formation, not childish gamification. M
 - Rule of life created
 - Notifications enabled
 - 7 days of wisdom practice
+- Milestone moments use quiet acknowledgement such as “You practiced wisdom before speed” rather than points, pressure, or competition
 
-**Current Implementation Status:** Milestone events are tracked in the analytics system and database. Quiet acknowledgement UI is planned for upcoming release to gently celebrate formation moments with copy like "You practiced wisdom before speed" rather than points, pressure, or competition.
 ## Analytics
 
 - First-party analytics owned by the app
@@ -494,57 +458,23 @@ Calm milestones are included as signs of formation, not childish gamification. M
 
 ## Technical Features
 
-**Framework & Language:**
-- Next.js 16 (React 19) app with App Router
-- TypeScript with strict mode
-- Tailwind CSS 4 for styling
-- Framer Motion for animations
-
-**Authentication & Authorization:**
-- Auth.js (NextAuth.js) for authentication
-- Google OAuth support (with fallback to email/guest modes)
-- JWT session strategy
-- Password hashing and secure session management
-
-**Backend & Database:**
-- PostgreSQL persistence (Neon-compatible)
-- 19 database tables with 30+ indexes
-- Server-side API routes (27 endpoints)
-- First-party analytics with privacy-conscious event tracking (50+ events)
-
-**AI & Content:**
-- Server-side OpenAI integration (GPT-4o-mini for chat, TTS for voice)
-- Retrieval-augmented wisdom flow with semantic search
-- 30+ curated wisdom entries with multi-language support
-- Life support detection and referral system
-
-**Mobile & PWA:**
-- Capacitor for iOS/Android native apps
-- Progressive Web App (PWA) with offline capability
-- Web Push notifications with VAPID support
-- Service worker support
-- Mobile-first responsive layout
-
-**Notifications:**
-- Web Push API integration
-- Daily notification delivery with scheduled cron
-- Decision reminder notifications (waiting mode, revisits, outcomes)
-- Gratitude prompt notifications (planned)
-- VAPID key support for secure push delivery
-
-**Email & Communication:**
-- Nodemailer/Resend support for transactional emails
-- Counsel invite email system
-- Issue reporting endpoints
-
-**Deployment & Environment:**
-- Environment-based configuration
-- Production-ready deployment paths (Vercel, Railway, self-hosted)
-- Fast production builds with optimized output
-- Health check and monitoring endpoints
+- Next.js app
+- TypeScript
+- Tailwind CSS
+- Framer Motion animations
+- Auth.js authentication
+- Google OAuth support
+- PostgreSQL persistence
+- Neon-compatible database setup
+- Server-side OpenAI endpoint
+- Retrieval-augmented wisdom flow
+- Push notification endpoints
+- First-party analytics endpoints
+- PWA manifest route
+- Production-ready Railway deployment path
 
 ### Avatar Host Configuration
 
 - `AVATAR_IMAGE_HOSTS` supports comma-separated custom avatar/CDN hosts for remote image optimization.
 - Custom hosts are additive: they extend the built-in avatar host allowlist and do not replace it.
-- Built-in fallback host coverage includes common providers (GitHub, Google profile images, Gravatar, Discord, X/Twitter, Pravatar).
+- Built-in fallback host coverage includes common providers (for example GitHub, Google profile images, Gravatar, Discord, X/Twitter, and Pravatar).

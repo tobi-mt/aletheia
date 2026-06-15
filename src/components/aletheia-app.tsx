@@ -4646,9 +4646,20 @@ function composeResponse(question: string, mode: Mode, preferences: UserPreferen
 }
 
 const STATIC_TODAY_DAY_NUMBER = 0;
+const TODAY_LOCAL_VISUAL_PREFIX = "/images/today-curated/";
 
 function commonsFilePath(fileName: string) {
   return `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(fileName)}`;
+}
+
+function localTodayVisualAsset(title: string, fileName: string): TodayVisualPhoto {
+  return {
+    kind: "photo",
+    title,
+    imageUrl: `${TODAY_LOCAL_VISUAL_PREFIX}${fileName}`,
+    imagePageUrl: `${TODAY_LOCAL_VISUAL_PREFIX}${fileName}`,
+    license: "Aletheia curated",
+  };
 }
 
 const TODAY_VISUAL_LIBRARY: Record<string, TodayVisualAsset[]> = {
@@ -4915,6 +4926,89 @@ const TODAY_VISUAL_LIBRARY: Record<string, TodayVisualAsset[]> = {
   ],
 };
 
+const TODAY_LOCAL_VISUAL_LIBRARY: Record<string, TodayVisualPhoto[]> = {
+  Stewardship: [
+    localTodayVisualAsset("Curated warm horizon", "warm-horizon.svg"),
+    localTodayVisualAsset("Curated open sky", "open-sky.svg"),
+  ],
+  "Cost Counting": [
+    localTodayVisualAsset("Curated open sky", "open-sky.svg"),
+    localTodayVisualAsset("Curated steady field", "steady-field.svg"),
+  ],
+  Diligence: [
+    localTodayVisualAsset("Curated steady field", "steady-field.svg"),
+    localTodayVisualAsset("Curated workbench focus", "workbench-focus.svg"),
+  ],
+  "Provision and Anxiety": [
+    localTodayVisualAsset("Curated calm water", "calm-water.svg"),
+    localTodayVisualAsset("Curated quiet forest", "quiet-forest.svg"),
+  ],
+  Generosity: [
+    localTodayVisualAsset("Curated dawn path", "dawn-path.svg"),
+    localTodayVisualAsset("Curated warm horizon", "warm-horizon.svg"),
+  ],
+  Contentment: [
+    localTodayVisualAsset("Curated calm water", "calm-water.svg"),
+    localTodayVisualAsset("Curated gentle reading light", "gentle-reading-light.svg"),
+  ],
+  Counsel: [
+    localTodayVisualAsset("Curated gentle reading light", "gentle-reading-light.svg"),
+    localTodayVisualAsset("Curated trusted lantern", "trusted-lantern.svg"),
+  ],
+  Debt: [
+    localTodayVisualAsset("Curated trusted lantern", "trusted-lantern.svg"),
+    localTodayVisualAsset("Curated steady field", "steady-field.svg"),
+  ],
+  Work: [
+    localTodayVisualAsset("Curated workbench focus", "workbench-focus.svg"),
+    localTodayVisualAsset("Curated open sky", "open-sky.svg"),
+  ],
+  Life: [
+    localTodayVisualAsset("Curated dawn path", "dawn-path.svg"),
+    localTodayVisualAsset("Curated quiet forest", "quiet-forest.svg"),
+  ],
+};
+
+const TODAY_VISUAL_THEME_ALIASES: Record<string, string> = {
+  Recovery: "Contentment",
+  Confession: "Contentment",
+  Purity: "Contentment",
+  Freedom: "Stewardship",
+};
+
+const TODAY_VISUAL_THEME_KEYWORD_ALIASES: Array<{ pattern: RegExp; theme: string }> = [
+  { pattern: /(purity|holiness|temptation|confession|recovery|freedom|integrity)/i, theme: "Contentment" },
+  { pattern: /(anxiety|worry|fear|scarcity|provision)/i, theme: "Provision and Anxiety" },
+  { pattern: /(work|career|calling|craft|labor)/i, theme: "Work" },
+  { pattern: /(give|gift|generosity|charity|mercy)/i, theme: "Generosity" },
+  { pattern: /(debt|loan|credit|repayment)/i, theme: "Debt" },
+  { pattern: /(counsel|advice|mentor|guidance|discernment)/i, theme: "Counsel" },
+];
+
+function resolveTodayVisualTheme(theme: string) {
+  if (TODAY_VISUAL_LIBRARY[theme]) {
+    return theme;
+  }
+
+  const alias = TODAY_VISUAL_THEME_ALIASES[theme];
+  if (alias && TODAY_VISUAL_LIBRARY[alias]) {
+    return alias;
+  }
+
+  const lowered = theme.toLowerCase();
+  const inferred = TODAY_VISUAL_THEME_KEYWORD_ALIASES.find(({ pattern }) => pattern.test(lowered));
+  if (inferred && TODAY_VISUAL_LIBRARY[inferred.theme]) {
+    return inferred.theme;
+  }
+
+  return "Contentment";
+}
+
+function localTodayVisualsForTheme(theme: string) {
+  const visualTheme = resolveTodayVisualTheme(theme);
+  return TODAY_LOCAL_VISUAL_LIBRARY[visualTheme] ?? TODAY_LOCAL_VISUAL_LIBRARY.Contentment;
+}
+
 const TODAY_THEME_VISUAL_PRIORITIES: Record<string, string[]> = {
   Stewardship: ["Sunrise on the road", "Field in sunrise", "Hopeful horizons", "New horizons"],
   "Cost Counting": ["Hopeful horizons", "Sunrise on the road", "Field in sunrise", "New horizons"],
@@ -4922,7 +5016,7 @@ const TODAY_THEME_VISUAL_PRIORITIES: Record<string, string[]> = {
   "Provision and Anxiety": ["Ireland fields and sky", "Field under clear sky", "Staying up all night", "Hopeful horizons"],
   Contentment: ["Field under clear sky", "Ireland fields and sky", "Hopeful horizons"],
   Generosity: ["Sunrise on the road", "Field in sunrise", "Field under clear sky"],
-  Counsel: ["Stillness path"],
+  Counsel: ["Window reading", "Quiet reading", "Stillness path"],
   Debt: ["Measured balance"],
   Work: ["Field under clear sky", "Ireland fields and sky", "New horizons"],
   Life: ["Field under clear sky", "Hopeful horizons", "Ireland fields and sky"],
@@ -5021,9 +5115,9 @@ const TODAY_THEME_MOOD_PRIORITIES: Record<string, Partial<Record<TodayVisualMood
     contemplative: ["Ireland fields and sky", "Field under clear sky", "Hopeful horizons"],
   },
   Counsel: {
-    warm: ["Stillness path"],
-    cool: ["Stillness path"],
-    contemplative: ["Stillness path"],
+    warm: ["Quiet reading", "Window reading", "Stillness path"],
+    cool: ["Window reading", "Quiet reading", "Stillness path"],
+    contemplative: ["Window reading", "Quiet reading", "Stillness path"],
   },
   Debt: {
     warm: ["Measured balance"],
@@ -5891,17 +5985,19 @@ function orderedTodayVisualAssets(
   theme: string,
   mood: TodayVisualMood,
   dayNumber: number,
-  overrideTitles?: string[]
+  overrideTitles?: string[],
+  attempt: number = 0
 ) {
-  const keyedAssets = TODAY_VISUAL_LIBRARY[theme];
+  const visualTheme = resolveTodayVisualTheme(theme);
+  const keyedAssets = TODAY_VISUAL_LIBRARY[visualTheme];
   if (!keyedAssets || keyedAssets.length === 0) {
     return null;
   }
 
   const preferredTitles =
     overrideTitles ??
-    TODAY_THEME_MOOD_PRIORITIES[theme]?.[mood] ??
-    TODAY_THEME_VISUAL_PRIORITIES[theme] ??
+    TODAY_THEME_MOOD_PRIORITIES[visualTheme]?.[mood] ??
+    TODAY_THEME_VISUAL_PRIORITIES[visualTheme] ??
     [];
   const prioritizedAssets = preferredTitles
     .map((title) => keyedAssets.find((asset) => asset.title === title))
@@ -5912,7 +6008,8 @@ function orderedTodayVisualAssets(
     return null;
   }
 
-  const index = stableHash(`${theme}:${mood}:${dayNumber}:today-visual`) % orderedAssets.length;
+  const baseIndex = stableHash(`${theme}:${visualTheme}:${mood}:${dayNumber}:today-visual`) % orderedAssets.length;
+  const index = (baseIndex + Math.max(0, attempt)) % orderedAssets.length;
   return orderedAssets[index];
 }
 
@@ -5929,6 +6026,8 @@ function selectTodayVisualAsset({
   hour,
   month,
   dayOfWeek,
+  attempt = 0,
+  localOnly = false,
 }: {
   theme: string;
   dayNumber: number;
@@ -5936,10 +6035,19 @@ function selectTodayVisualAsset({
   hour: number | null;
   month: number | null;
   dayOfWeek: number | null;
+  attempt?: number;
+  localOnly?: boolean;
 }): TodayVisualAsset {
-  const isMorningSunriseTheme = (theme === "Stewardship" || theme === "Generosity") && hour !== null && hour >= 5 && hour < 11;
-  const isWinterTheme = theme === "Provision and Anxiety" && month !== null && [12, 1, 2].includes(month);
-  const isWeekendTheme = (theme === "Counsel" || theme === "Contentment") && dayOfWeek !== null && (dayOfWeek === 0 || dayOfWeek === 6);
+  const visualTheme = resolveTodayVisualTheme(theme);
+  const localAssets = localTodayVisualsForTheme(visualTheme);
+  if (localOnly) {
+    const localIndex = stableHash(`${visualTheme}:${mood}:${dayNumber}:today-local`) % localAssets.length;
+    return localAssets[(localIndex + Math.max(0, attempt)) % localAssets.length];
+  }
+
+  const isMorningSunriseTheme = (visualTheme === "Stewardship" || visualTheme === "Generosity") && hour !== null && hour >= 5 && hour < 11;
+  const isWinterTheme = visualTheme === "Provision and Anxiety" && month !== null && [12, 1, 2].includes(month);
+  const isWeekendTheme = (visualTheme === "Counsel" || visualTheme === "Contentment") && dayOfWeek !== null && (dayOfWeek === 0 || dayOfWeek === 6);
   const effectiveMood = isMorningSunriseTheme
     ? "warm"
     : isWinterTheme
@@ -5948,7 +6056,7 @@ function selectTodayVisualAsset({
         ? "contemplative"
         : mood;
   const humanAccent = shouldUseHumanAccent({
-    theme,
+    theme: visualTheme,
     mood: effectiveMood,
     hour,
     month,
@@ -5957,26 +6065,31 @@ function selectTodayVisualAsset({
   });
   const landscapeTitles =
     isMorningSunriseTheme
-      ? TODAY_THEME_TIME_PRIORITIES[theme]?.morning
+      ? TODAY_THEME_TIME_PRIORITIES[visualTheme]?.morning
       : isWinterTheme
-        ? TODAY_THEME_TIME_PRIORITIES[theme]?.winter
+        ? TODAY_THEME_TIME_PRIORITIES[visualTheme]?.winter
         : isWeekendTheme
-          ? TODAY_THEME_TIME_PRIORITIES[theme]?.weekend
+          ? TODAY_THEME_TIME_PRIORITIES[visualTheme]?.weekend
           : undefined;
-  const humanTitles = humanAccent ? TODAY_THEME_HUMAN_PRIORITIES[theme]?.[effectiveMood] ?? TODAY_THEME_HUMAN_PRIORITIES[theme]?.warm : undefined;
-  const orderedAssets = orderedTodayVisualAssets(theme, effectiveMood, dayNumber, humanTitles ?? landscapeTitles);
+  const humanTitles = humanAccent ? TODAY_THEME_HUMAN_PRIORITIES[visualTheme]?.[effectiveMood] ?? TODAY_THEME_HUMAN_PRIORITIES[visualTheme]?.warm : undefined;
+  const orderedAssets = orderedTodayVisualAssets(visualTheme, effectiveMood, dayNumber, humanTitles ?? landscapeTitles, attempt);
   if (orderedAssets) {
     return orderedAssets;
   }
 
   if (humanAccent) {
-    const fallbackLandscape = orderedTodayVisualAssets(theme, effectiveMood, dayNumber, landscapeTitles);
+    const fallbackLandscape = orderedTodayVisualAssets(visualTheme, effectiveMood, dayNumber, landscapeTitles, attempt);
     if (fallbackLandscape) {
       return fallbackLandscape;
     }
   }
 
-  const fallbackIndex = stableHash(`${theme}:${effectiveMood}:${dayNumber}:today-generic`) % TODAY_GENERIC_VISUALS.length;
+  const fallbackIndex = stableHash(`${visualTheme}:${effectiveMood}:${dayNumber}:today-generic`) % TODAY_GENERIC_VISUALS.length;
+  if (localAssets.length > 0) {
+    const localIndex = stableHash(`${visualTheme}:${effectiveMood}:${dayNumber}:today-local`) % localAssets.length;
+    return localAssets[(localIndex + Math.max(0, attempt)) % localAssets.length];
+  }
+
   return TODAY_GENERIC_VISUALS[fallbackIndex];
 }
 
@@ -6197,8 +6310,12 @@ function TodayVisualPanel({
   dayOfWeek: number | null;
   theme: ThemeColors;
 }) {
+  const [photoAttempt, setPhotoAttempt] = useState(0);
+  const [useLocalFallback, setUseLocalFallback] = useState(false);
   const [imageFailed, setImageFailed] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const MAX_REMOTE_PHOTO_ATTEMPTS = 4;
+  const MAX_LOCAL_PHOTO_ATTEMPTS = 2;
   const asset = useMemo(
     () => selectTodayVisualAsset({
       theme: themeName,
@@ -6207,8 +6324,10 @@ function TodayVisualPanel({
       hour,
       month,
       dayOfWeek,
+      attempt: photoAttempt,
+      localOnly: useLocalFallback,
     }),
-    [dayNumber, dayOfWeek, hour, month, mood, themeName]
+    [dayNumber, dayOfWeek, hour, month, mood, photoAttempt, themeName, useLocalFallback]
   );
   const usingPhoto = asset.kind === "photo" && !imageFailed;
   const fallbackVariant = asset.kind === "illustration" ? asset.variant : "stillness";
@@ -6258,6 +6377,22 @@ function TodayVisualPanel({
               setImageFailed(false);
             }}
             onError={() => {
+              if (asset.kind === "photo") {
+                const maxAttempts = useLocalFallback ? MAX_LOCAL_PHOTO_ATTEMPTS : MAX_REMOTE_PHOTO_ATTEMPTS;
+                if (photoAttempt + 1 < maxAttempts) {
+                  setImageLoaded(false);
+                  setPhotoAttempt((current) => current + 1);
+                  return;
+                }
+
+                if (!useLocalFallback) {
+                  setImageLoaded(false);
+                  setImageFailed(false);
+                  setPhotoAttempt(0);
+                  setUseLocalFallback(true);
+                  return;
+                }
+              }
               setImageLoaded(false);
               setImageFailed(true);
             }}
@@ -14723,12 +14858,12 @@ function ManualContextPanel({
     icon: typeof PiggyBank;
     active: boolean;
   }> = [
-    { key: "money", label: manualCopy.moneyPicture, summary: sectionSummary.money, icon: PiggyBank, active: Boolean(draft.monthlyIncome !== null || draft.fixedExpenses !== null || draft.debtPayments !== null || draft.savingsBufferMonths !== null || draft.givingTargetPercent !== null || draft.financialDependents !== null || draft.financeContext.trim()) },
-    { key: "work", label: manualCopy.workRhythm, summary: sectionSummary.work, icon: BriefcaseBusiness, active: Boolean(draft.workContext || draft.workHoursPerWeek !== null || draft.commuteHoursPerWeek !== null) },
-    { key: "health", label: ts('manualContext.healthCard'), summary: sectionSummary.health, icon: Sprout, active: Boolean(draft.healthContext || draft.sleepHours !== null || draft.exerciseSessionsPerWeek !== null) },
-    { key: "relationships", label: ts('manualContext.relationshipsCard'), summary: sectionSummary.relationships, icon: Users, active: Boolean(draft.obligations || draft.timeWithLovedOnesHoursPerWeek !== null || draft.timeWithCommunityHoursPerWeek !== null) },
-    { key: "values", label: manualCopy.valuesRiskPosture, summary: sectionSummary.values, icon: ShieldCheck, active: Boolean(draft.stressLevel !== null || draft.energyDrainLevel !== null || draft.urgencyLevel !== null || draft.supportLevel !== null || draft.enoughDefinition || draft.mustNotSacrifice || draft.boundaries) },
-    { key: "counsel", label: manualCopy.counselPreferences, summary: sectionSummary.counsel, icon: Compass, active: Boolean(draft.goals.trim() || draft.riskTolerance.trim() || draft.waitingPreference.trim() || draft.counselCadence.trim() || draft.successDefinition.trim()) },
+    { key: "money", label: manualCopy.moneyPicture, summary: sectionSummary.money, icon: PiggyBank, active: Boolean(draft.monthlyIncome !== null || draft.fixedExpenses !== null || draft.debtPayments !== null || draft.savingsBufferMonths !== null || draft.givingTargetPercent !== null || draft.financialDependents !== null || draft.financeContext.trim() || draft.incomeType.trim() || draft.whatHasntWorkedMoney.trim() || draft.lastUpdatedMoney) },
+    { key: "work", label: manualCopy.workRhythm, summary: sectionSummary.work, icon: BriefcaseBusiness, active: Boolean(draft.workContext || draft.workHoursPerWeek !== null || draft.commuteHoursPerWeek !== null || draft.whatHasntWorkedWork.trim() || draft.lastUpdatedWork) },
+    { key: "health", label: ts('manualContext.healthCard'), summary: sectionSummary.health, icon: Sprout, active: Boolean(draft.healthContext || draft.sleepHours !== null || draft.exerciseSessionsPerWeek !== null || draft.whatHasntWorkedHealth.trim() || draft.lastUpdatedHealth) },
+    { key: "relationships", label: ts('manualContext.relationshipsCard'), summary: sectionSummary.relationships, icon: Users, active: Boolean(draft.obligations || draft.timeWithLovedOnesHoursPerWeek !== null || draft.timeWithCommunityHoursPerWeek !== null || draft.whatHasntWorkedRelationships.trim() || draft.lastUpdatedRelationships) },
+    { key: "values", label: manualCopy.valuesRiskPosture, summary: sectionSummary.values, icon: ShieldCheck, active: Boolean(draft.stressLevel !== null || draft.energyDrainLevel !== null || draft.urgencyLevel !== null || draft.supportLevel !== null || draft.enoughDefinition || draft.mustNotSacrifice || draft.boundaries || draft.whatHasntWorkedValues.trim() || draft.lastUpdatedValues) },
+    { key: "counsel", label: manualCopy.counselPreferences, summary: sectionSummary.counsel, icon: Compass, active: Boolean(draft.goals.trim() || draft.riskTolerance.trim() || draft.waitingPreference.trim() || draft.counselCadence.trim() || draft.successDefinition.trim() || draft.inProfessionalCounseling || draft.hasFinancialAdvisor || draft.hasSpiritualDirector || draft.decisionMakingTendency.trim()) },
   ];
   const futureContextCards: Array<{
     key: "money" | "rhythm" | "posture";
@@ -14809,6 +14944,82 @@ function ManualContextPanel({
       ))}
     </div>
   );
+  const renderSelectFieldGrid = (fields: Array<{ key: keyof ManualContextProfile; label: string; options: Array<{ value: string; label: string }> }>) => (
+    <div className="grid gap-3 sm:grid-cols-2">
+      {fields.map((field) => (
+        <label key={String(field.key)} className="rounded-[1rem] border p-3 text-xs font-semibold uppercase tracking-[0.12em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+          {field.label}
+          <select
+            value={String(draft[field.key] ?? "")}
+            onChange={(event) => updateDraft({ [field.key]: event.target.value } as Partial<ManualContextProfile>)}
+            className="mt-2 h-11 w-full rounded-full border px-3 text-sm normal-case tracking-normal outline-none"
+            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: String(draft[field.key] ?? "") ? theme.textPrimary : theme.textMuted }}
+          >
+            <option value="">{ts('manualContext.selectPlaceholder')}</option>
+            {field.options.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </select>
+        </label>
+      ))}
+    </div>
+  );
+  const renderCheckboxFieldGrid = (fields: Array<{ key: keyof ManualContextProfile; label: string }>) => (
+    <div className="grid gap-3 sm:grid-cols-2">
+      {fields.map((field) => (
+        <label key={String(field.key)} className="flex cursor-pointer items-center gap-3 rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
+          <input
+            type="checkbox"
+            checked={draft[field.key] === true}
+            onChange={(event) => updateDraft({ [field.key]: event.target.checked } as Partial<ManualContextProfile>)}
+            className="h-4 w-4 rounded border"
+            style={{ borderColor: theme.borderMedium, accentColor: theme.accentGold }}
+          />
+          <span className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
+            {field.label}
+          </span>
+        </label>
+      ))}
+    </div>
+  );
+  const formatTimeSince = (isoTimestamp: string | null): string => {
+    if (!isoTimestamp) return '';
+    try {
+      const date = new Date(isoTimestamp);
+      const now = new Date();
+      const diffMs = now.getTime() - date.getTime();
+      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+      const diffMonths = Math.floor(diffDays / 30);
+      if (diffDays === 0) return 'today';
+      if (diffDays < 30) return `${diffDays} ${ts('manualContext.daysAgo')}`;
+      return `${diffMonths} ${ts('manualContext.monthsAgo')}`;
+    } catch {
+      return '';
+    }
+  };
+  const renderTimestampDisplay = (label: string, isoTimestamp: string | null, onRefresh?: () => void) => (
+    <div className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
+          {label}
+        </span>
+        {isoTimestamp && (
+          <span className="text-xs" style={{ color: theme.textMuted }}>
+            {formatTimeSince(isoTimestamp)}
+          </span>
+        )}
+      </div>
+      {onRefresh && isoTimestamp && (
+        <button
+          onClick={onRefresh}
+          className="mt-2 w-full rounded-full border px-2 py-1 text-xs font-semibold"
+          style={{ borderColor: theme.borderMedium, color: theme.accentGold }}
+        >
+          {ts('manualContext.stillAccurate')}
+        </button>
+      )}
+    </div>
+  );
   const renderCardRail = <T extends string,>(
     cards: Array<{
       key: T;
@@ -14850,9 +15061,25 @@ function ManualContextPanel({
               { key: "givingTargetPercent", label: ts('manualContext.givingTargetPercent'), step: 0.5, min: 0, max: 100 },
               { key: "financialDependents", label: ts('manualContext.financialDependents'), step: 1, min: 0, max: 20 },
             ])}
+            {renderSelectFieldGrid([
+              {
+                key: "incomeType",
+                label: ts('manualContext.incomeType'),
+                options: [
+                  { value: "Salaried", label: ts('manualContext.incomeType_salaried') },
+                  { value: "Self-employed", label: ts('manualContext.incomeType_freelance') },
+                  { value: "Business owner", label: ts('manualContext.incomeType_business') },
+                  { value: "Multiple streams", label: ts('manualContext.incomeType_multiple') },
+                  { value: "Household income", label: ts('manualContext.incomeType_household') },
+                  { value: "In transition", label: ts('manualContext.incomeType_transition') },
+                ],
+              },
+            ])}
             {renderTextFieldGrid([
               { key: "financeContext", label: ts('manualContext.financeContextLabel'), placeholder: ts('manualContext.financeContextPlaceholder') },
+              { key: "whatHasntWorkedMoney", label: ts('manualContext.whatHasntWorkedMoney'), placeholder: ts('manualContext.whatHasntWorkedPlaceholder') },
             ])}
+            {renderTimestampDisplay(ts('manualContext.lastUpdatedMoney'), draft.lastUpdatedMoney, () => updateDraft({ lastUpdatedMoney: new Date().toISOString() }))}
           </div>
         );
       case "work":
@@ -14864,7 +15091,9 @@ function ManualContextPanel({
             ])}
             {renderTextFieldGrid([
               { key: "workContext", label: ts('manualContext.workContextLabel'), placeholder: ts('manualContext.workContextPlaceholder') },
+              { key: "whatHasntWorkedWork", label: ts('manualContext.whatHasntWorkedWork'), placeholder: ts('manualContext.whatHasntWorkedPlaceholder') },
             ])}
+            {renderTimestampDisplay(ts('manualContext.lastUpdatedWork'), draft.lastUpdatedWork, () => updateDraft({ lastUpdatedWork: new Date().toISOString() }))}
           </div>
         );
       case "health":
@@ -14876,7 +15105,9 @@ function ManualContextPanel({
             ])}
             {renderTextFieldGrid([
               { key: "healthContext", label: ts('manualContext.healthContextLabel'), placeholder: ts('manualContext.healthContextPlaceholder') },
+              { key: "whatHasntWorkedHealth", label: ts('manualContext.whatHasntWorkedHealth'), placeholder: ts('manualContext.whatHasntWorkedPlaceholder') },
             ])}
+            {renderTimestampDisplay(ts('manualContext.lastUpdatedHealth'), draft.lastUpdatedHealth, () => updateDraft({ lastUpdatedHealth: new Date().toISOString() }))}
           </div>
         );
       case "relationships":
@@ -14888,7 +15119,9 @@ function ManualContextPanel({
             ])}
             {renderTextFieldGrid([
               { key: "obligations", label: ts('manualContext.obligationsLabel'), placeholder: ts('manualContext.obligationsPlaceholder') },
+              { key: "whatHasntWorkedRelationships", label: ts('manualContext.whatHasntWorkedRelationships'), placeholder: ts('manualContext.whatHasntWorkedPlaceholder') },
             ])}
+            {renderTimestampDisplay(ts('manualContext.lastUpdatedRelationships'), draft.lastUpdatedRelationships, () => updateDraft({ lastUpdatedRelationships: new Date().toISOString() }))}
           </div>
         );
       case "values":
@@ -14904,18 +15137,60 @@ function ManualContextPanel({
               { key: "enoughDefinition", label: ts('manualContext.enoughDefinitionLabel'), placeholder: ts('manualContext.enoughDefinitionPlaceholder') },
               { key: "mustNotSacrifice", label: ts('manualContext.mustNotSacrificeLabel'), placeholder: ts('manualContext.mustNotSacrificePlaceholder') },
               { key: "boundaries", label: ts('manualContext.boundariesLabel'), placeholder: ts('manualContext.boundariesPlaceholder') },
+              { key: "whatHasntWorkedValues", label: ts('manualContext.whatHasntWorkedValues'), placeholder: ts('manualContext.whatHasntWorkedPlaceholder') },
             ])}
+            {renderTimestampDisplay(ts('manualContext.lastUpdatedValues'), draft.lastUpdatedValues, () => updateDraft({ lastUpdatedValues: new Date().toISOString() }))}
           </div>
         );
       case "counsel":
         return (
           <div className="space-y-4">
+            {renderCheckboxFieldGrid([
+              { key: "inProfessionalCounseling", label: ts('manualContext.inProfessionalCounseling') },
+              { key: "hasFinancialAdvisor", label: ts('manualContext.hasFinancialAdvisor') },
+              { key: "hasSpiritualDirector", label: ts('manualContext.hasSpiritualDirector') },
+            ])}
             {renderTextFieldGrid([
               { key: "goals", label: ts('manualContext.goalsLabel'), placeholder: ts('manualContext.goalsPlaceholder') },
             ])}
+            {renderSelectFieldGrid([
+              {
+                key: "riskTolerance",
+                label: ts('manualContext.riskTolerance'),
+                options: [
+                  { value: "Conservative", label: ts('manualContext.riskToleranceOption_conservative') },
+                  { value: "Moderate", label: ts('manualContext.riskToleranceOption_moderate') },
+                  { value: "Aggressive", label: ts('manualContext.riskToleranceOption_aggressive') },
+                  { value: "Depends on season", label: ts('manualContext.riskToleranceOption_seasonal') },
+                  { value: "Case by case", label: ts('manualContext.riskToleranceOption_contextual') },
+                ],
+              },
+              {
+                key: "waitingPreference",
+                label: ts('manualContext.waitingPreference'),
+                options: [
+                  { value: "Same day", label: ts('manualContext.waitingPreferenceOption_sameDay') },
+                  { value: "24 hours", label: ts('manualContext.waitingPreferenceOption_oneDay') },
+                  { value: "3 days", label: ts('manualContext.waitingPreferenceOption_threeDays') },
+                  { value: "7 days", label: ts('manualContext.waitingPreferenceOption_sevenDays') },
+                  { value: "30 days", label: ts('manualContext.waitingPreferenceOption_thirtyDays') },
+                  { value: "Varies by decision", label: ts('manualContext.waitingPreferenceOption_varies') },
+                ],
+              },
+              {
+                key: "decisionMakingTendency",
+                label: ts('manualContext.decisionMakingTendency'),
+                options: [
+                  { value: "Quick decider", label: ts('manualContext.decisionMakingTendency_quickDecider') },
+                  { value: "Researcher", label: ts('manualContext.decisionMakingTendency_researcher') },
+                  { value: "Delayer", label: ts('manualContext.decisionMakingTendency_delayer') },
+                  { value: "Deferrer", label: ts('manualContext.decisionMakingTendency_deferrer') },
+                  { value: "Impulsive when stressed", label: ts('manualContext.decisionMakingTendency_impulsiveStressed') },
+                  { value: "Paralysed by options", label: ts('manualContext.decisionMakingTendency_paralysed') },
+                ],
+              },
+            ])}
             {renderInputFieldGrid([
-              { key: "riskTolerance", label: ts('manualContext.riskTolerance'), placeholder: ts('manualContext.riskTolerancePlaceholder') },
-              { key: "waitingPreference", label: ts('manualContext.waitingPreference'), placeholder: ts('manualContext.waitingPreferencePlaceholder') },
               { key: "counselCadence", label: ts('manualContext.counselCadence'), placeholder: ts('manualContext.counselCadencePlaceholder') },
               { key: "successDefinition", label: ts('manualContext.successDefinition'), placeholder: ts('manualContext.successDefinitionPlaceholder') },
             ])}
@@ -18100,8 +18375,8 @@ function RangeField({
   return (
     <label className="rounded-xl border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
       <span className="flex items-center justify-between gap-3">
-        <span className="text-xs font-semibold uppercase tracking-[0.12em]">{label}</span>
-        <span className="rounded-md px-2 py-1 text-[10px] font-semibold tracking-[0.08em]" style={{ backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}>
+        <span className="min-w-0 truncate text-xs font-semibold uppercase tracking-[0.12em]">{label}</span>
+        <span className="shrink-0 whitespace-nowrap rounded-md px-2 py-1 text-[10px] font-semibold tracking-[0.08em]" style={{ backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}>
           {value === null ? ts('placeholders.notSet') : String(value)}
         </span>
       </span>

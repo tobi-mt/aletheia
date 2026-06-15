@@ -61,6 +61,59 @@ Interaction:
 - Confirm textarea focus does not push the top content underneath the app chrome.
 - Confirm switching tabs after typing preserves spacing and alignment.
 
+## Airplane-Mode Today Visual Fallback QA
+
+Goal:
+- Confirm the Home -> Today hero visual shows a meaningful local curated image when network images are unavailable.
+
+Safety setup:
+- Use a QA/staging build on a non-primary test device.
+- Keep this flow read-only: do not clear app data unless needed for unrelated troubleshooting.
+
+Quick pass (single theme):
+- Open Home -> Today while online and confirm the visual area renders.
+- Enable airplane mode (disable Wi-Fi and cellular).
+- Fully close the app, relaunch, and return to Home -> Today.
+- Pass criteria: visual panel still renders an intentional image (not blank, not broken icon, not empty placeholder look).
+
+Major-theme coverage pass:
+- Because Today theme is date-driven, repeat with device date moved forward one day at a time.
+- For each date/day sampled, do this exact loop:
+1. Set device date to target day.
+2. Launch app online once and open Home -> Today.
+3. Close app, enable airplane mode, relaunch to Home -> Today.
+4. Capture screenshot and note displayed theme label + date.
+5. Mark pass/fail for local fallback rendering.
+
+Coverage target:
+- Capture at least 8 distinct themes from this set:
+- Stewardship
+- Cost Counting
+- Diligence
+- Provision and Anxiety
+- Generosity
+- Contentment
+- Counsel
+- Work
+- Bonus coverage if encountered: Debt, Life, Purity, Recovery, Confession, Freedom.
+
+Visual quality checks (each sample):
+- No blank panel, no missing-image glyph, no severe pixelation.
+- Image crop remains balanced inside the rounded visual container.
+- Text remains legible over the image at normal brightness.
+- App remains responsive after repeated online/offline relaunches.
+
+Record template:
+- Date tested:
+- Theme shown:
+- Network state: airplane mode ON
+- Result: pass/fail
+- Notes (if fail):
+
+Reset:
+- Restore automatic date/time after testing.
+- Re-enable Wi-Fi/cellular.
+
 ## Release Sign-off
 
 Mark release-ready only when all of the following are true:

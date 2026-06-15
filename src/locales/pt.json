@@ -1277,7 +1277,19 @@
     "syncAndDelete": "Sincronizar e excluir",
     "vaultControlsEyebrow": "Controles do vault",
     "vaultControlsTitle": "Escolha onde o contexto se aplica",
-    "vaultPromise": "Promessa do vault"
+    "vaultPromise": "Promessa do vault",
+    "selectPlaceholder": "Selecionar...",
+    "riskToleranceOption_conservative": "Conservador",
+    "riskToleranceOption_moderate": "Moderado",
+    "riskToleranceOption_aggressive": "Agressivo",
+    "riskToleranceOption_seasonal": "Depende da fase",
+    "riskToleranceOption_contextual": "Caso a caso",
+    "waitingPreferenceOption_sameDay": "No mesmo dia",
+    "waitingPreferenceOption_oneDay": "24 horas",
+    "waitingPreferenceOption_threeDays": "3 dias",
+    "waitingPreferenceOption_sevenDays": "7 dias",
+    "waitingPreferenceOption_thirtyDays": "30 dias",
+    "waitingPreferenceOption_varies": "Varia por decisão"
   },
   "share": {
     "shareAletheia": "Compartilhar Aletheia",
