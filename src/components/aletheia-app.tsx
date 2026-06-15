@@ -8560,7 +8560,7 @@ export function AletheiaApp() {
   const todayPattern = timelineInsight.patterns[0] ?? activeMode.blindSpots[0];
   const todayCompanionCard = companionCardFromDaily({
     daily,
-    entry: dailyEntry,
+    entry: localizedWisdomEntry(dailyEntry, preferences),
     pattern: todayPattern,
     language: preferences.language,
     manualContext,
