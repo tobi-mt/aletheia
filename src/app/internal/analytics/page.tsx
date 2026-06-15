@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useMemo, useState } from "react";
+import Link from "next/link";
 
 type FunnelStage = {
   stage: string;
@@ -219,6 +220,12 @@ export default function InternalAnalyticsDashboardPage() {
 
   return (
     <main className="min-h-screen bg-slate-100 text-slate-900">
+      <nav className="border-b border-slate-200 bg-white">
+        <div className="mx-auto flex max-w-7xl gap-1 px-4 sm:px-6 lg:px-8">
+          <span className="border-b-2 border-slate-900 px-3 py-3 text-sm font-semibold text-slate-900">Analytics</span>
+          <Link href="/internal/users" className="px-3 py-3 text-sm text-slate-500 hover:text-slate-900">Users</Link>
+        </div>
+      </nav>
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
         <header className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
