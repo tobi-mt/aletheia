@@ -145,6 +145,7 @@ export async function trackEvent(input: AnalyticsEventInput) {
     return;
   }
 
+  try {
   await run(
     `INSERT INTO analytics_events (
       id, user_id, anon_id, session_id, event_name, path, referrer, source, metadata, user_agent, created_at
@@ -161,6 +162,9 @@ export async function trackEvent(input: AnalyticsEventInput) {
     trimField(input.userAgent, 300),
     new Date().toISOString()
   );
+  } catch {
+    // Analytics must never crash requests
+  }
 }
 
 export async function trackServerEvent(input: Omit<AnalyticsEventInput, "userAgent">) {

@@ -26,6 +26,8 @@ function poolConfig(url: string) {
     connectionString: parsed.toString(),
     ssl: needsSsl ? true : undefined,
     max: 5,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 10000,
   };
 }
 
