@@ -5,6 +5,7 @@ import Image from "next/image";
 import { signIn as authSignIn, signOut as authSignOut } from "next-auth/react";
 import { ChangeEvent, FormEvent, type KeyboardEvent, type ReactNode, type RefObject, type TouchEvent, type WheelEvent, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { Capacitor, type PluginListenerHandle } from "@capacitor/core";
 import {
   BookOpen,
   BriefcaseBusiness,
@@ -86,6 +87,7 @@ import { analyticsQuestionMetadata } from "@/lib/analytics-taxonomy";
 import { decisionStartedDiscerningBody, decisionTimelineObservation, localizeDecisionEventBody } from "@/lib/decision-copy";
 import { curatedAvatarOptions, defaultAvatarDataUrl, normalizeAvatarUrl } from "@/lib/avatars";
 import { loadTranslationsSync, loadTranslationsWithFallbackSync, getTranslation, type TranslationData } from "@/lib/translations";
+import { ManagedAudio } from "@/lib/native-audio";
 
 type View = "companion" | "decisions" | "reflect" | "library" | "account";
 type HomeSection = "today" | "ask";
@@ -365,6 +367,50 @@ const SUPPORT_MISSION_LINKS: Array<{ channel: SupportMissionChannel; href: strin
     fallback: "Contact us",
   },
 ];
+type ManagedVoiceOption = {
+  id: string;
+  label: string;
+  description: string;
+};
+
+const managedSpeechVoices: ManagedVoiceOption[] = [
+  { id: "alloy", label: "Alloy", description: "Balanced and neutral" },
+  { id: "ash", label: "Ash", description: "Low, soft, and steady" },
+  { id: "ballad", label: "Ballad", description: "Warm and expressive" },
+  { id: "coral", label: "Coral", description: "Clear and bright" },
+  { id: "echo", label: "Echo", description: "Direct and focused" },
+  { id: "sage", label: "Sage", description: "Calm and thoughtful" },
+  { id: "shimmer", label: "Shimmer", description: "Light and refined" },
+  { id: "verse", label: "Verse", description: "Measured and articulate" },
+  { id: "marin", label: "Marin", description: "Smooth and grounded" },
+  { id: "cedar", label: "Cedar", description: "Warm and reassuring" },
+];
+
+const defaultManagedVoiceByLanguage: Partial<Record<LanguageCode, string>> = {
+  en: "alloy",
+  es: "coral",
+  fr: "sage",
+  pt: "verse",
+  de: "marin",
+  yo: "sage",
+  ig: "sage",
+  ha: "sage",
+  tl: "echo",
+  ar: "ash",
+  hi: "verse",
+};
+
+function managedVoiceForLanguage(language: LanguageCode) {
+  return defaultManagedVoiceByLanguage[language] ?? "alloy";
+}
+
+function managedVoiceLabel(voiceId: string | null | undefined) {
+  if (!voiceId) {
+    return "Device default";
+  }
+  return managedSpeechVoices.find((voice) => voice.id === voiceId)?.label ?? voiceId;
+}
+
 const DEFAULT_NOTIFICATION_TIMING: NotificationTiming = {
   preferredLocalHour: 8,
   preferredTimezone: "UTC",
@@ -2841,37 +2887,6 @@ function createWisdomPostcardBlob(payload: WisdomPostcardPayload, theme: ThemeCo
     logo.onerror = () => render();
     logo.src = "/brand/aletheia-app-icon-192.png";
   });
-}
-
-function voiceQualityScore(voice: SpeechSynthesisVoice, languagePrefix: string) {
-  const name = voice.name.toLowerCase();
-  const noveltyVoicePattern =
-    /novelty|bells|bad news|bubbles|cellos|good news|hysterical|organ|trinoids|whisper|zarvox|boing|bahh|pipe|jester|superstar|wobble|grandma|grandpa|grandmother|grandfather|shelley|sandy|rocko|shelley|seifenblasen|schlechte neuigkeiten|gute neuigkeiten|flüstern|fluestern|hysterisch|orgel|glocken|blasen|celli|oma|opa|grossmutter|großmutter|grossvater|großvater/i;
-  if (noveltyVoicePattern.test(voice.name)) {
-    return -999;
-  }
-  let score = voice.lang.toLowerCase().startsWith(languagePrefix) ? 90 : 0;
-  if (voice.default) score += 45;
-  if (voice.localService) score += 20;
-  if (name.includes("enhanced") || name.includes("neural") || name.includes("natural") || name.includes("premium") || name.includes("high quality")) score += 50;
-  if (/(samantha|alex|ava|daniel|karen|moira|fiona|tessa|arthur|martha|susan|serena|siri|anna|markus|yannick|amelie|thomas|paulina|jorge|mónica|monica|luciana|felipe|zoe|victoria|allison|tom|diego|paul|luca|camila)/i.test(voice.name)) score += 28;
-  if (name.includes("compact") || name.includes("desktop") || name.includes("espeak") || name.includes("festival") || name.includes("legacy")) score -= 55;
-  return score;
-}
-
-function curatedVoicesForLanguage(voices: SpeechSynthesisVoice[], speechCode: string) {
-  const languagePrefix = speechCode.slice(0, 2).toLowerCase();
-  const deduped = Array.from(new Map(voices.map((voice) => [`${voice.voiceURI}|${voice.name}|${voice.lang}`, voice])).values());
-  const scored = deduped
-    .map((voice) => ({ voice, score: voiceQualityScore(voice, languagePrefix) }))
-    .filter(({ score }) => score >= 35)
-    .sort((a, b) => b.score - a.score);
-  const languageMatches = scored.filter(({ voice }) => voice.lang.toLowerCase().startsWith(languagePrefix));
-  return (languageMatches.length ? languageMatches : scored).slice(0, 8).map(({ voice }) => voice);
-}
-
-function voiceLabel(voice: SpeechSynthesisVoice) {
-  return `${voice.name} · ${voice.lang}`;
 }
 
 type UiText = NonNullable<(typeof uiText)["en"]>;
@@ -6659,9 +6674,13 @@ export function AletheiaApp() {
   const [readingLabel, setReadingLabel] = useState("");
   const [carryToday, setCarryToday] = useState<CarryToday | null>(null);
   const [scriptureMemory, setScriptureMemory] = useState<ScriptureMemory | null>(null);
-  const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
-  const [selectedVoice, setSelectedVoice] = useState<string | null>(null);
-  const [, setCurrentUtterance] = useState<SpeechSynthesisUtterance | null>(null);
+  const [availableVoices] = useState<ManagedVoiceOption[]>(managedSpeechVoices);
+  const [selectedVoice, setSelectedVoice] = useState<string | null>(() => {
+    const saved = storedVoicePreference();
+    return saved && managedSpeechVoices.some((voice) => voice.id === saved)
+      ? saved
+      : managedVoiceForLanguage(deviceDefaultPreferences().language);
+  });
   const [voiceRecognition, setVoiceRecognition] = useState<{ stop: () => void } | null>(null);
   const [selectedScripture, setSelectedScripture] = useState<string | null>(null);
   const [isWorking, setIsWorking] = useState(false);
@@ -6693,6 +6712,9 @@ export function AletheiaApp() {
   const [decisionPressure, setDecisionPressure] = useState("");
   const [decisionEmotion, setDecisionEmotion] = useState("uncertain");
   const [focusIntentions, setFocusIntentions] = useState<string[]>([]);
+  const managedAudioRef = useRef<HTMLAudioElement | null>(null);
+  const managedAudioUrlRef = useRef<string | null>(null);
+  const managedPlaybackRequestRef = useRef(0);
   const [counselName, setCounselName] = useState("");
   const [counselRole, setCounselRole] = useState("mentor");
   const [counselAvatarUrl, setCounselAvatarUrl] = useState("");
@@ -7166,35 +7188,6 @@ export function AletheiaApp() {
     }
   }
 
-  // Load and prioritize browser voices that are least likely to sound harsh.
-  useEffect(() => {
-    if (!("speechSynthesis" in window)) {
-      return;
-    }
-
-    const loadVoices = () => {
-      const voices = window.speechSynthesis.getVoices();
-      const currentLanguage = languages[preferences.language];
-      const finalVoices = curatedVoicesForLanguage(voices, currentLanguage.speech);
-      
-      setAvailableVoices(finalVoices);
-
-      setSelectedVoice((current) => {
-        if (!current) {
-          return null;
-        }
-        return finalVoices.some((voice) => voice.voiceURI === current) ? current : null;
-      });
-    };
-
-    loadVoices();
-    window.speechSynthesis.addEventListener('voiceschanged', loadVoices);
-    
-    return () => {
-      window.speechSynthesis.removeEventListener('voiceschanged', loadVoices);
-    };
-  }, [preferences.language]);
-
   useEffect(() => {
     try {
       if (selectedVoice) {
@@ -7206,6 +7199,77 @@ export function AletheiaApp() {
       // Voice selection can still work for this session.
     }
   }, [selectedVoice]);
+
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) {
+      return;
+    }
+
+    let progressHandle: PluginListenerHandle | null = null;
+    let stateHandle: PluginListenerHandle | null = null;
+    let cancelled = false;
+
+    async function registerNativeAudioListeners() {
+      try {
+        progressHandle = await ManagedAudio.addListener("progress", ({ progress }) => {
+          if (cancelled) return;
+          setSpeechProgress(Math.max(0, Math.min(100, Math.round(progress))));
+        });
+        stateHandle = await ManagedAudio.addListener("state", ({ state }) => {
+          if (cancelled) return;
+          if (state === "loading" || state === "playing") {
+            setIsSpeaking(true);
+            setSpeechPaused(false);
+            return;
+          }
+          if (state === "paused") {
+            setIsSpeaking(true);
+            setSpeechPaused(true);
+            return;
+          }
+          if (state === "ended" || state === "stopped" || state === "idle") {
+            setIsSpeaking(false);
+            setSpeechPaused(false);
+            setSpeechProgress(0);
+            setReadingLabel("");
+            setStatusMessage("");
+            return;
+          }
+          if (state === "error") {
+            setIsSpeaking(false);
+            setSpeechPaused(false);
+            setSpeechProgress(0);
+            setReadingLabel("");
+          }
+        });
+      } catch (error) {
+        console.error("Failed to register native audio listeners:", error);
+      }
+    }
+
+    void registerNativeAudioListeners();
+
+    return () => {
+      cancelled = true;
+      void progressHandle?.remove();
+      void stateHandle?.remove();
+    };
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      managedPlaybackRequestRef.current += 1;
+      if (managedAudioRef.current) {
+        managedAudioRef.current.pause();
+        managedAudioRef.current.removeAttribute("src");
+        managedAudioRef.current.load();
+      }
+      if (managedAudioUrlRef.current) {
+        URL.revokeObjectURL(managedAudioUrlRef.current);
+        managedAudioUrlRef.current = null;
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!workflowNotice) {
@@ -8225,6 +8289,15 @@ export function AletheiaApp() {
     );
   }
 
+  async function previewVoice(voiceId: string) {
+    await speakText(
+      ts('labels.voicePreviewText'),
+      ts('labels.voicePreviewPlaying'),
+      ts('labels.readingVoice'),
+      voiceId
+    );
+  }
+
   function updateFocusIntentions(nextIntentions: string[]) {
     const cleanIntentions = nextIntentions
       .filter((value): value is FocusIntentionKey => focusIntentionLibrary.includes(value as FocusIntentionKey))
@@ -9064,11 +9137,6 @@ export function AletheiaApp() {
   }
 
   function speakLatestAletheiaReply() {
-    if (!("speechSynthesis" in window)) {
-      setPreferencesStatus(ts('notifications.voiceOutputUnavailableBody'));
-      announceWorkflow(ts('notifications.voiceOutputUnavailable'), ts('notifications.voiceOutputUnavailableBody'), "warning");
-      return;
-    }
     if (isSpeaking) {
       stopSpeech();
       return;
@@ -9081,106 +9149,197 @@ export function AletheiaApp() {
   }
 
   function toggleSpeechPause() {
-    if (!("speechSynthesis" in window)) return;
-    
-    if (window.speechSynthesis.paused) {
-      window.speechSynthesis.resume();
+    if (!isSpeaking) return;
+    if (Capacitor.isNativePlatform()) {
+      if (speechPaused) {
+        void ManagedAudio.resume().catch(() => {
+          setPreferencesStatus(ts('notifications.voiceOutputUnavailableBody'));
+          announceWorkflow(ts('notifications.voiceOutputUnavailable'), ts('notifications.voiceOutputUnavailableBody'), "warning");
+        });
+        setSpeechPaused(false);
+      } else {
+        void ManagedAudio.pause().catch(() => {
+          setPreferencesStatus(ts('notifications.voiceOutputUnavailableBody'));
+          announceWorkflow(ts('notifications.voiceOutputUnavailable'), ts('notifications.voiceOutputUnavailableBody'), "warning");
+        });
+        setSpeechPaused(true);
+      }
+      return;
+    }
+
+    const audio = managedAudioRef.current;
+    if (!audio) return;
+
+    if (audio.paused) {
+      audio.play().catch(() => {
+        setPreferencesStatus(ts('notifications.voiceOutputUnavailableBody'));
+        announceWorkflow(ts('notifications.voiceOutputUnavailable'), ts('notifications.voiceOutputUnavailableBody'), "warning");
+      });
       setSpeechPaused(false);
-    } else if (isSpeaking) {
-      window.speechSynthesis.pause();
+    } else {
+      audio.pause();
       setSpeechPaused(true);
     }
   }
 
   function stopSpeech() {
-    if ("speechSynthesis" in window) {
-      window.speechSynthesis.cancel();
+    managedPlaybackRequestRef.current += 1;
+    if (Capacitor.isNativePlatform()) {
+      void ManagedAudio.stop().catch(() => {});
+    }
+    const audio = managedAudioRef.current;
+    if (audio) {
+      audio.pause();
+      audio.currentTime = 0;
+      audio.removeAttribute("src");
+      audio.load();
+    }
+    if (managedAudioUrlRef.current) {
+      URL.revokeObjectURL(managedAudioUrlRef.current);
+      managedAudioUrlRef.current = null;
     }
     setIsSpeaking(false);
     setSpeechPaused(false);
     setSpeechProgress(0);
-    setCurrentUtterance(null);
+    setReadingLabel("");
     announceWorkflow(ts('notifications.voiceStopped'), ts('notifications.voiceStoppedBody'), "info");
   }
 
-  function speakText(
+  async function speakText(
     text: string,
     notice = ts('notifications.readingAloud'),
-    label = ts('currentCounsel')
+    label = ts('currentCounsel'),
+    voiceId = selectedVoice ?? managedVoiceForLanguage(preferences.language),
   ) {
-    if (!("speechSynthesis" in window)) {
-      setPreferencesStatus(ts('notifications.voiceOutputUnavailableBody'));
-      announceWorkflow(ts('notifications.voiceOutputUnavailable'), ts('notifications.voiceOutputUnavailableBody'), "warning");
+    const cleanText = cleanDisplayText(text);
+    if (!cleanText) {
       return;
     }
     if (isSpeaking) {
       stopSpeech();
       return;
     }
-    
-    const cleanText = cleanDisplayText(text);
+
     trackClientEvent("read_aloud_started", {
       label,
       mode,
       language: preferences.language,
-      voiceSelected: Boolean(selectedVoice),
+      voiceSelected: Boolean(voiceId),
       textLength: cleanText.length,
     });
-    const utterance = new SpeechSynthesisUtterance(cleanText);
-    utterance.lang = activeLanguage.speech;
-
     const pacing = speechPacingForLanguage(preferences.language);
-    utterance.rate = pacing.rate;
-    utterance.pitch = pacing.pitch;
-    utterance.volume = 1;
 
-    // Apply selected voice
-    if (selectedVoice && availableVoices.length > 0) {
-      const voice = availableVoices.find(v => v.voiceURI === selectedVoice);
-      if (voice) {
-        utterance.voice = voice;
-        if (/(compact|desktop|espeak|festival|legacy)/i.test(voice.name)) {
-          utterance.rate = Math.max(0.72, pacing.rate - 0.06);
-          utterance.pitch = Math.max(0.85, pacing.pitch - 0.02);
-        }
-      }
-    }
-    
-    // Track progress
-    utterance.onboundary = (event) => {
-      if (event.charIndex !== undefined) {
-        const progress = Math.floor((event.charIndex / cleanText.length) * 100);
-        setSpeechProgress(progress);
-      }
-    };
-    
-    utterance.onend = () => {
-      setIsSpeaking(false);
-      setSpeechPaused(false);
-      setSpeechProgress(0);
-      setCurrentUtterance(null);
-    };
-    
-    utterance.onerror = () => {
-      setIsSpeaking(false);
-      setSpeechPaused(false);
-      setSpeechProgress(0);
-      setCurrentUtterance(null);
-    };
-    
-    setCurrentUtterance(utterance);
-    setIsSpeaking(true);
+    const playbackRequest = ++managedPlaybackRequestRef.current;
     setReadingLabel(label);
     setSpeechProgress(0);
     setStatusMessage(notice);
-    window.speechSynthesis.speak(utterance);
-    
-    // Wake lock to prevent screen sleep during reading (if supported)
-    if ('wakeLock' in navigator) {
-      (navigator as Navigator & { wakeLock: { request: (type: string) => Promise<{ release: () => void }> } })
-        .wakeLock.request('screen').catch(() => {
-          // Wake lock not supported or denied, continue anyway
+    setIsSpeaking(true);
+    setSpeechPaused(false);
+
+    try {
+      if (Capacitor.isNativePlatform()) {
+        await ManagedAudio.speak({
+          text: cleanText,
+          voice: voiceId,
+          language: preferences.language,
+          speed: pacing.rate,
+          notice,
+          label,
         });
+        return;
+      }
+
+      const response = await fetch("/api/audio/speech", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          text: cleanText,
+          voice: voiceId,
+          language: preferences.language,
+          speed: pacing.rate,
+        }),
+      });
+
+      if (!response.ok) {
+        const message = await response.text().catch(() => "");
+        throw new Error(message || `Audio request failed with status ${response.status}`);
+      }
+
+      const blob = await response.blob();
+      if (managedPlaybackRequestRef.current !== playbackRequest) {
+        return;
+      }
+
+      const audioUrl = URL.createObjectURL(blob);
+      if (managedAudioUrlRef.current) {
+        URL.revokeObjectURL(managedAudioUrlRef.current);
+      }
+      managedAudioUrlRef.current = audioUrl;
+
+      const audio = managedAudioRef.current ?? new Audio();
+      if (!managedAudioRef.current) {
+        managedAudioRef.current = audio;
+        audio.preload = "auto";
+        audio.addEventListener("timeupdate", () => {
+          if (!audio.duration || !Number.isFinite(audio.duration) || audio.duration <= 0) {
+            return;
+          }
+          setSpeechProgress(Math.max(0, Math.min(100, Math.floor((audio.currentTime / audio.duration) * 100))));
+        });
+        audio.addEventListener("ended", () => {
+          if (managedAudioUrlRef.current) {
+            URL.revokeObjectURL(managedAudioUrlRef.current);
+            managedAudioUrlRef.current = null;
+          }
+          setIsSpeaking(false);
+          setSpeechPaused(false);
+          setSpeechProgress(0);
+          setReadingLabel("");
+          setStatusMessage("");
+        });
+        audio.addEventListener("error", () => {
+          if (managedAudioUrlRef.current) {
+            URL.revokeObjectURL(managedAudioUrlRef.current);
+            managedAudioUrlRef.current = null;
+          }
+          setIsSpeaking(false);
+          setSpeechPaused(false);
+          setSpeechProgress(0);
+          setReadingLabel("");
+          setPreferencesStatus(ts('notifications.voiceOutputUnavailableBody'));
+          announceWorkflow(ts('notifications.voiceOutputUnavailable'), ts('notifications.voiceOutputUnavailableBody'), "warning");
+        });
+      }
+
+      audio.pause();
+      audio.currentTime = 0;
+      audio.src = audioUrl;
+      audio.volume = 1;
+      audio.playbackRate = 1;
+      await audio.play();
+
+      if ('wakeLock' in navigator) {
+        (navigator as Navigator & { wakeLock: { request: (type: string) => Promise<{ release: () => void }> } })
+          .wakeLock.request('screen').catch(() => {
+            // Wake lock not supported or denied, continue anyway.
+          });
+      }
+    } catch (error) {
+      console.error("Managed audio playback failed:", error);
+      if (managedAudioUrlRef.current) {
+        URL.revokeObjectURL(managedAudioUrlRef.current);
+        managedAudioUrlRef.current = null;
+      }
+      if (managedPlaybackRequestRef.current === playbackRequest) {
+        setIsSpeaking(false);
+        setSpeechPaused(false);
+        setSpeechProgress(0);
+        setReadingLabel("");
+        setPreferencesStatus(ts('notifications.voiceOutputUnavailableBody'));
+        announceWorkflow(ts('notifications.voiceOutputUnavailable'), ts('notifications.voiceOutputUnavailableBody'), "warning");
+      }
     }
   }
 
@@ -10952,6 +11111,7 @@ export function AletheiaApp() {
                       availableVoices={availableVoices}
                       selectedVoice={selectedVoice}
                       onVoiceChange={updateVoicePreference}
+                      onPreviewVoice={previewVoice}
                       focusIntentions={focusIntentions}
                       onFocusIntentionsChange={updateFocusIntentions}
                       onClearLocalPersonalization={clearLocalPersonalization}
@@ -10972,16 +11132,16 @@ export function AletheiaApp() {
       </div>
 
       {(isSpeaking || speechPaused) ? (
-        <ReadingPlayer
-          theme={theme}
-          label={readingLabel}
-          progress={speechProgress}
-          paused={speechPaused}
-          voiceName={availableVoices.find((voice) => voice.voiceURI === selectedVoice)?.name}
-          ts={ts}
-          onTogglePause={toggleSpeechPause}
-          onStop={stopSpeech}
-        />
+      <ReadingPlayer
+        theme={theme}
+        label={readingLabel}
+        progress={speechProgress}
+        paused={speechPaused}
+        voiceName={managedVoiceLabel(selectedVoice)}
+        ts={ts}
+        onTogglePause={toggleSpeechPause}
+        onStop={stopSpeech}
+      />
       ) : null}
 
       <div ref={bottomNavRef} className="app-bottom-nav fixed left-1/2 z-40 -translate-x-1/2 overflow-hidden border shadow-[0_18px_48px_rgba(7,10,8,0.26)] md:hidden" style={{
@@ -13018,6 +13178,7 @@ function AccountPanel({
   availableVoices,
   selectedVoice,
   onVoiceChange,
+  onPreviewVoice,
   focusIntentions,
   onFocusIntentionsChange,
   onClearLocalPersonalization,
@@ -13073,9 +13234,10 @@ function AccountPanel({
   journalEntries: JournalEntry[];
   counselContacts: CounselContact[];
   rulesOfLife: RuleOfLife[];
-  availableVoices: SpeechSynthesisVoice[];
+  availableVoices: ManagedVoiceOption[];
   selectedVoice: string | null;
   onVoiceChange: (voiceURI: string | null) => void;
+  onPreviewVoice: (voiceId: string) => Promise<void>;
   focusIntentions: string[];
   onFocusIntentionsChange: (intentions: string[]) => void;
   onClearLocalPersonalization: () => void;
@@ -13244,6 +13406,7 @@ function AccountPanel({
               onPreferenceChange={onPreferenceChange}
               onThemePreferenceChange={onThemePreferenceChange}
               onVoiceChange={onVoiceChange}
+              onPreviewVoice={onPreviewVoice}
               onFocusIntentionsChange={onFocusIntentionsChange}
               onUpdateProfileAvatar={onUpdateProfileAvatar}
             />
@@ -13703,6 +13866,7 @@ function AccountPersonalizationPanel({
   onPreferenceChange,
   onThemePreferenceChange,
   onVoiceChange,
+  onPreviewVoice,
   onFocusIntentionsChange,
   onUpdateProfileAvatar,
 }: {
@@ -13711,19 +13875,20 @@ function AccountPersonalizationPanel({
   preferences: UserPreferences;
   preferencesStatus: string;
   themePreference: ThemePreference;
-  availableVoices: SpeechSynthesisVoice[];
+  availableVoices: ManagedVoiceOption[];
   selectedVoice: string | null;
   user: User | null;
   focusIntentions: string[];
   onPreferenceChange: (patch: Partial<UserPreferences>) => void;
   onThemePreferenceChange: (value: ThemePreference) => void;
   onVoiceChange: (voiceURI: string | null) => void;
+  onPreviewVoice: (voiceId: string) => Promise<void>;
   onFocusIntentionsChange: (intentions: string[]) => void;
   onUpdateProfileAvatar: (avatarUrl: string) => Promise<boolean>;
 }) {
   const bibleOptions = bibleTranslationOptionsForLanguage(preferences.language);
-  const selectedVoiceObject = availableVoices.find((voice) => voice.voiceURI === selectedVoice);
-  const selectedVoiceLabel = selectedVoiceObject ? voiceLabel(selectedVoiceObject) : ts('labels.deviceDefault');
+  const selectedVoiceObject = availableVoices.find((voice) => voice.id === selectedVoice);
+  const selectedVoiceLabel = selectedVoiceObject ? selectedVoiceObject.label : managedVoiceLabel(selectedVoice);
 
   return (
     <section className="space-y-3">
@@ -13832,8 +13997,8 @@ function AccountPersonalizationPanel({
                   ts={ts}
                   voices={availableVoices}
                   selectedVoice={selectedVoice}
-                  language={preferences.language}
                   onVoiceChange={onVoiceChange}
+                  onPreviewVoice={onPreviewVoice}
                 />
               )}
             />
@@ -13935,61 +14100,28 @@ function VoicePreferenceSelector({
   ts,
   voices,
   selectedVoice,
-  language,
   onVoiceChange,
+  onPreviewVoice,
 }: {
   theme: ThemeColors;
   ts: (key: string, fallback?: string) => string;
-  voices: SpeechSynthesisVoice[];
+  voices: ManagedVoiceOption[];
   selectedVoice: string | null;
-  language: LanguageCode;
   onVoiceChange: (voiceURI: string | null) => void;
+  onPreviewVoice: (voiceId: string) => Promise<void>;
 }) {
   const [previewStatus, setPreviewStatus] = useState("");
-  const [previewingVoiceURI, setPreviewingVoiceURI] = useState<string | null | "default">(null);
-  const selectedVoiceObject = voices.find((voice) => voice.voiceURI === selectedVoice);
+  const [previewingVoiceId, setPreviewingVoiceId] = useState<string | "default" | null>(null);
+  const selectedVoiceObject = voices.find((voice) => voice.id === selectedVoice);
   const voiceChoices = [
     ...(selectedVoiceObject ? [selectedVoiceObject] : []),
-    ...voices.filter((voice) => voice.voiceURI !== selectedVoice).slice(0, 5),
+    ...voices.filter((voice) => voice.id !== selectedVoice).slice(0, 5),
   ].slice(0, 5);
 
-  function previewVoice(voiceURI: string | null) {
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
-      setPreviewStatus(ts('notifications.voiceOutputUnavailable'));
-      return;
-    }
-    window.speechSynthesis.cancel();
-    if (window.speechSynthesis.paused) {
-      window.speechSynthesis.resume();
-    }
-    const utterance = new SpeechSynthesisUtterance(ts('labels.voicePreviewText'));
-    utterance.lang = languages[language]?.speech ?? languages.en.speech;
-    const voice = voiceURI ? voices.find((item) => item.voiceURI === voiceURI) : null;
-    if (voice) {
-      utterance.voice = voice;
-      utterance.lang = voice.lang;
-    }
-    const pacing = speechPacingForLanguage(language);
-    utterance.rate = pacing.rate;
-    utterance.pitch = pacing.pitch;
-    utterance.volume = 1;
-    setPreviewingVoiceURI(voiceURI ?? "default");
-    setPreviewStatus(ts('labels.voicePreviewPlaying'));
-    utterance.onend = () => {
-      setPreviewingVoiceURI(null);
-      setPreviewStatus(ts('labels.voicePreviewDone'));
-    };
-    utterance.onerror = () => {
-      setPreviewingVoiceURI(null);
-      setPreviewStatus(ts('labels.voicePreviewFailed'));
-    };
-    window.speechSynthesis.speak(utterance);
-  }
-
-  function chooseVoice(voiceURI: string | null) {
-    onVoiceChange(voiceURI);
+  function chooseVoice(voiceId: string | null) {
+    onVoiceChange(voiceId);
     setPreviewStatus(
-      voiceURI
+      voiceId
         ? ts('labels.voiceApplied')
         : ts('labels.deviceVoiceApplied')
     );
@@ -14009,14 +14141,14 @@ function VoicePreferenceSelector({
             body: ts('labels.deviceVoiceBody'),
           },
           ...voiceChoices.map((voice) => ({
-            key: voice.voiceURI,
-            voiceURI: voice.voiceURI,
-            title: voice.name,
-            body: `${voice.lang} · ${voice.localService ? ts('labels.offlineVoice') : ts('labels.deviceVoice')}`,
+            key: voice.id,
+            voiceURI: voice.id,
+            title: voice.label,
+            body: voice.description,
           })),
         ].map((voice) => {
           const active = selectedVoice === voice.voiceURI;
-          const isPreviewing = previewingVoiceURI === (voice.voiceURI ?? "default");
+          const isPreviewing = previewingVoiceId === (voice.voiceURI ?? "default");
           return (
             <div
               key={voice.key}
@@ -14051,7 +14183,19 @@ function VoicePreferenceSelector({
                 </button>
                 <button
                   type="button"
-                  onClick={() => previewVoice(voice.voiceURI)}
+                  onClick={async () => {
+                    const voiceId = voice.voiceURI ?? "alloy";
+                    setPreviewingVoiceId(voiceId);
+                    setPreviewStatus(ts('labels.voicePreviewPlaying'));
+                    try {
+                      await onPreviewVoice(voiceId);
+                      setPreviewStatus(ts('labels.voicePreviewDone'));
+                    } catch {
+                      setPreviewStatus(ts('labels.voicePreviewFailed'));
+                    } finally {
+                      setPreviewingVoiceId(null);
+                    }
+                  }}
                   className="inline-flex h-10 items-center justify-center gap-2 rounded-full border px-3 text-xs font-semibold"
                   style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
                 >
@@ -16901,6 +17045,7 @@ function PreferencesPanel({
   availableVoices,
   selectedVoice,
   onVoiceChange,
+  onPreviewVoice,
   theme,
 }: {
   panelRef: RefObject<HTMLElement | null>;
@@ -16913,9 +17058,10 @@ function PreferencesPanel({
   onChange: (patch: Partial<UserPreferences>) => void;
   themePreference: ThemePreference;
   onThemePreferenceChange: (value: ThemePreference) => void;
-  availableVoices: SpeechSynthesisVoice[];
+  availableVoices: ManagedVoiceOption[];
   selectedVoice: string | null;
   onVoiceChange: (voiceURI: string | null) => void;
+  onPreviewVoice: (voiceId: string) => Promise<void>;
   theme: ThemeColors;
 }) {
   const bibleOptions = bibleTranslationOptionsForLanguage(preferences.language);
@@ -17035,8 +17181,8 @@ function PreferencesPanel({
                 ts={ts}
                 voices={availableVoices}
                 selectedVoice={selectedVoice}
-                language={preferences.language}
                 onVoiceChange={onVoiceChange}
+                onPreviewVoice={onPreviewVoice}
               />
             </div>
             <span className="mt-1 block text-[11px] normal-case leading-4 tracking-normal" style={{ color: theme.textSecondary }}>

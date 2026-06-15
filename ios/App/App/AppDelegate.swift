@@ -1,4 +1,5 @@
 import UIKit
+import AVFoundation
 import Capacitor
 
 @UIApplicationMain
@@ -6,8 +7,19 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     var window: UIWindow?
 
+    private func configureAudioSessionForSpeech() {
+        let session = AVAudioSession.sharedInstance()
+        do {
+            // Keep spoken playback audible even when the hardware mute switch is on.
+            try session.setCategory(.playback, mode: .spokenAudio, options: [.mixWithOthers])
+            try session.setActive(true)
+        } catch {
+            print("Failed to configure audio session for speech playback: \(error)")
+        }
+    }
+
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Override point for customization after application launch.
+        configureAudioSessionForSpeech()
         return true
     }
 
@@ -26,7 +38,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }
 
     func applicationDidBecomeActive(_ application: UIApplication) {
-        // Restart any tasks that were paused (or not yet started) while the application was inactive. If the application was previously in the background, optionally refresh the user interface.
+        configureAudioSessionForSpeech()
     }
 
     func applicationWillTerminate(_ application: UIApplication) {
@@ -46,4 +58,208 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         return ApplicationDelegateProxy.shared.application(application, continue: userActivity, restorationHandler: restorationHandler)
     }
 
+}
+
+@objc(ManagedAudioBridgeViewController)
+class ManagedAudioBridgeViewController: CAPBridgeViewController {
+    override func capacitorDidLoad() {
+        bridge?.registerPluginType(ManagedAudioPlugin.self)
+    }
+}
+
+@objc(ManagedAudioPlugin)
+public class ManagedAudioPlugin: CAPPlugin, CAPBridgedPlugin, AVAudioPlayerDelegate {
+    public let identifier = "ManagedAudioPlugin"
+    public let jsName = "ManagedAudio"
+    public let pluginMethods: [CAPPluginMethod] = [
+        CAPPluginMethod(name: "speak", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "pause", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "resume", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "stop", returnType: CAPPluginReturnPromise)
+    ]
+
+    private var player: AVAudioPlayer?
+    private var progressTimer: Timer?
+    private var playbackToken = UUID()
+
+    @objc override public func load() {
+        configureAudioSessionForSpeech()
+    }
+
+    private func configureAudioSessionForSpeech() {
+        let session = AVAudioSession.sharedInstance()
+        do {
+            try session.setCategory(.playback, mode: .spokenAudio, options: [.mixWithOthers])
+            try session.setActive(true)
+        } catch {
+            print("Failed to configure audio session for speech playback: \(error)")
+        }
+    }
+
+    private func emitState(_ state: String) {
+        notifyListeners("state", data: ["state": state])
+    }
+
+    private func emitProgress() {
+        guard let player, player.duration > 0 else {
+            return
+        }
+        let progress = Int((player.currentTime / player.duration) * 100)
+        notifyListeners("progress", data: ["progress": max(0, min(100, progress))])
+    }
+
+    private func startProgressTimer() {
+        stopProgressTimer()
+        progressTimer = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [weak self] _ in
+            self?.emitProgress()
+        }
+        RunLoop.main.add(progressTimer!, forMode: .common)
+    }
+
+    private func stopProgressTimer() {
+        progressTimer?.invalidate()
+        progressTimer = nil
+    }
+
+    private func resetPlayer(keepToken: Bool = false) {
+        stopProgressTimer()
+        player?.stop()
+        player = nil
+        if !keepToken {
+            playbackToken = UUID()
+        }
+    }
+
+    private func serverSpeechURL() -> URL? {
+        guard let baseURL = bridge?.config.serverURL else {
+            return nil
+        }
+        return baseURL.appendingPathComponent("api").appendingPathComponent("audio").appendingPathComponent("speech")
+    }
+
+    @objc func speak(_ call: CAPPluginCall) {
+        guard let text = call.getString("text")?.trimmingCharacters(in: .whitespacesAndNewlines), !text.isEmpty else {
+            call.reject("Text is required")
+            return
+        }
+
+        guard let url = serverSpeechURL() else {
+            call.reject("Audio playback is unavailable")
+            return
+        }
+
+        let voice = call.getString("voice") ?? "alloy"
+        let language = call.getString("language") ?? "en"
+        let speed = call.getDouble("speed") ?? 1.0
+        let token = UUID()
+        playbackToken = token
+        resetPlayer(keepToken: true)
+        emitState("loading")
+        call.resolve()
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("audio/mpeg", forHTTPHeaderField: "Accept")
+        request.httpBody = try? JSONSerialization.data(withJSONObject: [
+            "text": text,
+            "voice": voice,
+            "language": language,
+            "speed": speed,
+        ])
+
+        URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
+            guard let self else { return }
+            guard self.playbackToken == token else {
+                return
+            }
+
+            if let error {
+                DispatchQueue.main.async {
+                    self.emitState("error")
+                }
+                return
+            }
+
+            guard let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode), let data else {
+                DispatchQueue.main.async {
+                    self.emitState("error")
+                }
+                return
+            }
+
+            do {
+                try self.configureAudioSessionForSpeech()
+                let player = try AVAudioPlayer(data: data)
+                player.enableRate = true
+                player.rate = Float(max(0.25, min(4.0, speed)))
+                player.volume = 1.0
+                player.delegate = self
+                player.prepareToPlay()
+
+                DispatchQueue.main.async {
+                    guard self.playbackToken == token else {
+                        return
+                    }
+                    self.player = player
+                    self.startProgressTimer()
+                    self.emitState("playing")
+                    if !player.play() {
+                        self.resetPlayer(keepToken: true)
+                        self.emitState("error")
+                    }
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    self.emitState("error")
+                }
+            }
+        }.resume()
+    }
+
+    @objc func pause(_ call: CAPPluginCall) {
+        DispatchQueue.main.async {
+            guard let player = self.player, player.isPlaying else {
+                call.resolve()
+                return
+            }
+            player.pause()
+            self.stopProgressTimer()
+            self.emitState("paused")
+            call.resolve()
+        }
+    }
+
+    @objc func resume(_ call: CAPPluginCall) {
+        DispatchQueue.main.async {
+            guard let player = self.player, !player.isPlaying else {
+                call.resolve()
+                return
+            }
+            self.configureAudioSessionForSpeech()
+            if player.play() {
+                self.startProgressTimer()
+                self.emitState("playing")
+                call.resolve()
+            } else {
+                self.emitState("error")
+                call.reject("Unable to resume audio playback")
+            }
+        }
+    }
+
+    @objc func stop(_ call: CAPPluginCall) {
+        DispatchQueue.main.async {
+            self.resetPlayer()
+            self.emitState("stopped")
+            call.resolve()
+        }
+    }
+
+    public func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
+        DispatchQueue.main.async {
+            self.resetPlayer(keepToken: false)
+            self.emitState(flag ? "ended" : "error")
+        }
+    }
 }
