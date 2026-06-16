@@ -10122,7 +10122,7 @@ export function AletheiaApp() {
         (authMode === "register"
           ? `Welcome to Aletheia, ${firstName}. Your account is ready and sync is active.`
           : `Welcome back, ${firstName}. Your Aletheia memory is ready.`);
-      await loadSignedInWorkspace().catch((workspaceError) => {
+      await loadSignedInWorkspace(data.user).catch((workspaceError) => {
         console.error("Workspace hydration after auth failed:", workspaceError);
       });
       setStatusMessage(successMessage);
@@ -13870,9 +13870,9 @@ function InfoHint({ text, theme }: { text: string; theme: ThemeColors }) {
       return;
     }
 
-    function closeIfOutside(event: MouseEvent | TouchEvent) {
-      const target = event.target as Node | null;
-      if (target && wrapperRef.current && !wrapperRef.current.contains(target)) {
+    function closeIfOutside(event: Event) {
+      const target = event.target;
+      if (target instanceof Node && wrapperRef.current && !wrapperRef.current.contains(target)) {
         setOpen(false);
       }
     }
@@ -13883,9 +13883,9 @@ function InfoHint({ text, theme }: { text: string; theme: ThemeColors }) {
       }
     }
 
-    window.addEventListener("mousedown", closeIfOutside);
-    window.addEventListener("touchstart", closeIfOutside, { passive: true });
-    window.addEventListener("keydown", closeOnEscape);
+    window.addEventListener("mousedown", closeIfOutside as EventListener);
+    window.addEventListener("touchstart", closeIfOutside as EventListener, { passive: true });
+    window.addEventListener("keydown", closeOnEscape as EventListener);
 
     return () => {
       window.removeEventListener("mousedown", closeIfOutside);
