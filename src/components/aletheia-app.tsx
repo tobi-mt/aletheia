@@ -11792,43 +11792,45 @@ export function AletheiaApp() {
               ) : activeView === "reflect" ? (
                 <Screen key="reflect">
                   <ViewIdentityFrame identity="reflect" theme={theme}>
-                    <FormationsSection
-                      theme={theme}
-                      ts={ts}
-                      user={user}
-                      pendingChallengeId={pendingChallengeId}
-                      onClearPendingChallenge={() => setPendingChallengeId(null)}
-                    />
-                    <ReflectPanel
-                      language={preferences.language}
-                      decision={decision}
-                      setDecision={setDecision}
-                      emotion={emotion}
-                      setEmotion={setEmotion}
-                      timeframe={timeframe}
-                      setTimeframe={setTimeframe}
-                      result={decisionResult}
-                      mode={mode}
-                      modeProfile={activeMode}
-                      ts={ts}
-                      entries={journalEntries}
-                      gratitudeEntries={gratitudeEntries}
-                      gratitudeSyncStatus={gratitudeSyncStatus}
-                      signedIn={Boolean(user)}
-                      title={journalTitle}
-                      body={journalBody}
-                      setTitle={setJournalTitle}
-                      setBody={setJournalBody}
-                      onSave={saveReflection}
-                      onDelete={deleteJournalEntry}
-                      onSaveGratitude={saveGratitudeEntry}
-                      onDeleteGratitude={deleteGratitudeEntry}
-                      onShareGratitudePostcard={shareGratitudePostcard}
-                      onUseGratitudeAsReflection={useGratitudeAsReflectionPrompt}
-                      onSpeakText={speakText}
-                      onShareReflectionPostcard={shareReflectionPostcard}
-                      theme={theme}
-                    />
+                    <div className="space-y-4">
+                      <FormationsSection
+                        theme={theme}
+                        ts={ts}
+                        user={user}
+                        pendingChallengeId={pendingChallengeId}
+                        onClearPendingChallenge={() => setPendingChallengeId(null)}
+                      />
+                      <ReflectPanel
+                        language={preferences.language}
+                        decision={decision}
+                        setDecision={setDecision}
+                        emotion={emotion}
+                        setEmotion={setEmotion}
+                        timeframe={timeframe}
+                        setTimeframe={setTimeframe}
+                        result={decisionResult}
+                        mode={mode}
+                        modeProfile={activeMode}
+                        ts={ts}
+                        entries={journalEntries}
+                        gratitudeEntries={gratitudeEntries}
+                        gratitudeSyncStatus={gratitudeSyncStatus}
+                        signedIn={Boolean(user)}
+                        title={journalTitle}
+                        body={journalBody}
+                        setTitle={setJournalTitle}
+                        setBody={setJournalBody}
+                        onSave={saveReflection}
+                        onDelete={deleteJournalEntry}
+                        onSaveGratitude={saveGratitudeEntry}
+                        onDeleteGratitude={deleteGratitudeEntry}
+                        onShareGratitudePostcard={shareGratitudePostcard}
+                        onUseGratitudeAsReflection={useGratitudeAsReflectionPrompt}
+                        onSpeakText={speakText}
+                        onShareReflectionPostcard={shareReflectionPostcard}
+                        theme={theme}
+                      />
+                    </div>
                   </ViewIdentityFrame>
                 </Screen>
               ) : activeView === "library" ? (
@@ -13966,7 +13968,7 @@ function InfoHint({ text, theme }: { text: string; theme: ThemeColors }) {
       <button
         ref={buttonRef}
         type="button"
-        className="inline-flex size-5 items-center justify-center rounded-full border text-[11px] font-semibold transition"
+        className="inline-flex size-3.5 items-center justify-center rounded-full border text-[8px] font-semibold transition"
         style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
         aria-label={text}
         aria-expanded={open}
