@@ -1,0 +1,467 @@
+[
+  {
+    "width": 375,
+    "screen": "home",
+    "triggerCount": 2,
+    "checks": [
+      {
+        "idx": 0,
+        "triggerInViewport": false,
+        "compactButVisible": true,
+        "triggerW": 15,
+        "triggerH": 15,
+        "tipVisible": true,
+        "tipInViewport": false,
+        "tipW": 188,
+        "tipH": 118,
+        "overlapsNearbyText": true
+      },
+      {
+        "idx": 1,
+        "triggerInViewport": false,
+        "compactButVisible": true,
+        "triggerW": 15,
+        "triggerH": 15,
+        "tipVisible": true,
+        "tipInViewport": false,
+        "tipW": 188,
+        "tipH": 118,
+        "overlapsNearbyText": true
+      }
+    ]
+  },
+  {
+    "width": 375,
+    "screen": "decisions",
+    "triggerCount": 2,
+    "checks": [
+      {
+        "idx": 0,
+        "triggerInViewport": false,
+        "compactButVisible": true,
+        "triggerW": 15,
+        "triggerH": 15,
+        "tipVisible": true,
+        "tipInViewport": false,
+        "tipW": 188,
+        "tipH": 118,
+        "overlapsNearbyText": true
+      },
+      {
+        "idx": 1,
+        "triggerInViewport": false,
+        "compactButVisible": true,
+        "triggerW": 15,
+        "triggerH": 15,
+        "tipVisible": true,
+        "tipInViewport": false,
+        "tipW": 188,
+        "tipH": 118,
+        "overlapsNearbyText": true
+      }
+    ]
+  },
+  {
+    "width": 375,
+    "screen": "reflect",
+    "triggerCount": 2,
+    "checks": [
+      {
+        "idx": 0,
+        "triggerInViewport": false,
+        "compactButVisible": true,
+        "triggerW": 15,
+        "triggerH": 15,
+        "tipVisible": true,
+        "tipInViewport": false,
+        "tipW": 188,
+        "tipH": 118,
+        "overlapsNearbyText": true
+      },
+      {
+        "idx": 1,
+        "triggerInViewport": false,
+        "compactButVisible": true,
+        "triggerW": 15,
+        "triggerH": 15,
+        "tipVisible": true,
+        "tipInViewport": false,
+        "tipW": 188,
+        "tipH": 118,
+        "overlapsNearbyText": true
+      }
+    ]
+  },
+  {
+    "width": 375,
+    "screen": "library",
+    "triggerCount": 2,
+    "checks": [
+      {
+        "idx": 0,
+        "triggerInViewport": false,
+        "compactButVisible": true,
+        "triggerW": 15,
+        "triggerH": 15,
+        "tipVisible": true,
+        "tipInViewport": false,
+        "tipW": 188,
+        "tipH": 118,
+        "overlapsNearbyText": true
+      },
+      {
+        "idx": 1,
+        "triggerInViewport": false,
+        "compactButVisible": true,
+        "triggerW": 15,
+        "triggerH": 15,
+        "tipVisible": true,
+        "tipInViewport": false,
+        "tipW": 188,
+        "tipH": 118,
+        "overlapsNearbyText": true
+      }
+    ]
+  },
+  {
+    "width": 375,
+    "screen": "account",
+    "triggerCount": 2,
+    "checks": [
+      {
+        "idx": 0,
+        "triggerInViewport": false,
+        "compactButVisible": true,
+        "triggerW": 15,
+        "triggerH": 15,
+        "tipVisible": true,
+        "tipInViewport": false,
+        "tipW": 188,
+        "tipH": 118,
+        "overlapsNearbyText": true
+      },
+      {
+        "idx": 1,
+        "triggerInViewport": false,
+        "compactButVisible": true,
+        "triggerW": 15,
+        "triggerH": 15,
+        "tipVisible": true,
+        "tipInViewport": false,
+        "tipW": 188,
+        "tipH": 118,
+        "overlapsNearbyText": true
+      }
+    ]
+  },
+  {
+    "width": 390,
+    "screen": "home",
+    "triggerCount": 2,
+    "checks": [
+      {
+        "idx": 0,
+        "triggerInViewport": false,
+        "compactButVisible": true,
+        "triggerW": 15,
+        "triggerH": 15,
+        "tipVisible": true,
+        "tipInViewport": true,
+        "tipW": 188,
+        "tipH": 118,
+        "overlapsNearbyText": true
+      },
+      {
+        "idx": 1,
+        "triggerInViewport": false,
+        "compactButVisible": true,
+        "triggerW": 15,
+        "triggerH": 15,
+        "tipVisible": true,
+        "tipInViewport": false,
+        "tipW": 188,
+        "tipH": 118,
+        "overlapsNearbyText": true
+      }
+    ]
+  },
+  {
+    "width": 390,
+    "screen": "decisions",
+    "triggerCount": 2,
+    "checks": [
+      {
+        "idx": 0,
+        "triggerInViewport": false,
+        "compactButVisible": true,
+        "triggerW": 15,
+        "triggerH": 15,
+        "tipVisible": true,
+        "tipInViewport": true,
+        "tipW": 188,
+        "tipH": 118,
+        "overlapsNearbyText": true
+      },
+      {
+        "idx": 1,
+        "triggerInViewport": false,
+        "compactButVisible": true,
+        "triggerW": 15,
+        "triggerH": 15,
+        "tipVisible": true,
+        "tipInViewport": false,
+        "tipW": 188,
+        "tipH": 118,
+        "overlapsNearbyText": true
+      }
+    ]
+  },
+  {
+    "width": 390,
+    "screen": "reflect",
+    "triggerCount": 2,
+    "checks": [
+      {
+        "idx": 0,
+        "triggerInViewport": false,
+        "compactButVisible": true,
+        "triggerW": 15,
+        "triggerH": 15,
+        "tipVisible": true,
+        "tipInViewport": true,
+        "tipW": 188,
+        "tipH": 118,
+        "overlapsNearbyText": true
+      },
+      {
+        "idx": 1,
+        "triggerInViewport": false,
+        "compactButVisible": true,
+        "triggerW": 15,
+        "triggerH": 15,
+        "tipVisible": true,
+        "tipInViewport": false,
+        "tipW": 188,
+        "tipH": 118,
+        "overlapsNearbyText": true
+      }
+    ]
+  },
+  {
+    "width": 390,
+    "screen": "library",
+    "triggerCount": 2,
+    "checks": [
+      {
+        "idx": 0,
+        "triggerInViewport": false,
+        "compactButVisible": true,
+        "triggerW": 15,
+        "triggerH": 15,
+        "tipVisible": true,
+        "tipInViewport": true,
+        "tipW": 188,
+        "tipH": 118,
+        "overlapsNearbyText": true
+      },
+      {
+        "idx": 1,
+        "triggerInViewport": false,
+        "compactButVisible": true,
+        "triggerW": 15,
+        "triggerH": 15,
+        "tipVisible": true,
+        "tipInViewport": false,
+        "tipW": 188,
+        "tipH": 118,
+        "overlapsNearbyText": true
+      }
+    ]
+  },
+  {
+    "width": 390,
+    "screen": "account",
+    "triggerCount": 2,
+    "checks": [
+      {
+        "idx": 0,
+        "triggerInViewport": false,
+        "compactButVisible": true,
+        "triggerW": 15,
+        "triggerH": 15,
+        "tipVisible": true,
+        "tipInViewport": true,
+        "tipW": 188,
+        "tipH": 118,
+        "overlapsNearbyText": true
+      },
+      {
+        "idx": 1,
+        "triggerInViewport": false,
+        "compactButVisible": true,
+        "triggerW": 15,
+        "triggerH": 15,
+        "tipVisible": true,
+        "tipInViewport": false,
+        "tipW": 188,
+        "tipH": 118,
+        "overlapsNearbyText": true
+      }
+    ]
+  },
+  {
+    "width": 430,
+    "screen": "home",
+    "triggerCount": 2,
+    "checks": [
+      {
+        "idx": 0,
+        "triggerInViewport": true,
+        "compactButVisible": true,
+        "triggerW": 15,
+        "triggerH": 15,
+        "tipVisible": true,
+        "tipInViewport": true,
+        "tipW": 220,
+        "tipH": 98,
+        "overlapsNearbyText": true
+      },
+      {
+        "idx": 1,
+        "triggerInViewport": false,
+        "compactButVisible": true,
+        "triggerW": 15,
+        "triggerH": 15,
+        "tipVisible": true,
+        "tipInViewport": false,
+        "tipW": 220,
+        "tipH": 98,
+        "overlapsNearbyText": true
+      }
+    ]
+  },
+  {
+    "width": 430,
+    "screen": "decisions",
+    "triggerCount": 2,
+    "checks": [
+      {
+        "idx": 0,
+        "triggerInViewport": true,
+        "compactButVisible": true,
+        "triggerW": 15,
+        "triggerH": 15,
+        "tipVisible": true,
+        "tipInViewport": true,
+        "tipW": 220,
+        "tipH": 98,
+        "overlapsNearbyText": true
+      },
+      {
+        "idx": 1,
+        "triggerInViewport": false,
+        "compactButVisible": true,
+        "triggerW": 15,
+        "triggerH": 15,
+        "tipVisible": true,
+        "tipInViewport": false,
+        "tipW": 220,
+        "tipH": 98,
+        "overlapsNearbyText": true
+      }
+    ]
+  },
+  {
+    "width": 430,
+    "screen": "reflect",
+    "triggerCount": 2,
+    "checks": [
+      {
+        "idx": 0,
+        "triggerInViewport": true,
+        "compactButVisible": true,
+        "triggerW": 15,
+        "triggerH": 15,
+        "tipVisible": true,
+        "tipInViewport": true,
+        "tipW": 220,
+        "tipH": 98,
+        "overlapsNearbyText": true
+      },
+      {
+        "idx": 1,
+        "triggerInViewport": false,
+        "compactButVisible": true,
+        "triggerW": 15,
+        "triggerH": 15,
+        "tipVisible": true,
+        "tipInViewport": false,
+        "tipW": 220,
+        "tipH": 98,
+        "overlapsNearbyText": true
+      }
+    ]
+  },
+  {
+    "width": 430,
+    "screen": "library",
+    "triggerCount": 2,
+    "checks": [
+      {
+        "idx": 0,
+        "triggerInViewport": true,
+        "compactButVisible": true,
+        "triggerW": 15,
+        "triggerH": 15,
+        "tipVisible": true,
+        "tipInViewport": true,
+        "tipW": 220,
+        "tipH": 98,
+        "overlapsNearbyText": true
+      },
+      {
+        "idx": 1,
+        "triggerInViewport": false,
+        "compactButVisible": true,
+        "triggerW": 15,
+        "triggerH": 15,
+        "tipVisible": true,
+        "tipInViewport": false,
+        "tipW": 220,
+        "tipH": 98,
+        "overlapsNearbyText": true
+      }
+    ]
+  },
+  {
+    "width": 430,
+    "screen": "account",
+    "triggerCount": 2,
+    "checks": [
+      {
+        "idx": 0,
+        "triggerInViewport": true,
+        "compactButVisible": true,
+        "triggerW": 15,
+        "triggerH": 15,
+        "tipVisible": true,
+        "tipInViewport": true,
+        "tipW": 220,
+        "tipH": 98,
+        "overlapsNearbyText": true
+      },
+      {
+        "idx": 1,
+        "triggerInViewport": false,
+        "compactButVisible": true,
+        "triggerW": 15,
+        "triggerH": 15,
+        "tipVisible": true,
+        "tipInViewport": false,
+        "tipW": 220,
+        "tipH": 98,
+        "overlapsNearbyText": true
+      }
+    ]
+  }
+]

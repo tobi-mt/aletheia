@@ -13886,7 +13886,7 @@ function InfoHint({
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
     const horizontalMargin = 12;
-    const preferredWidth = 220;
+    const preferredWidth = viewportWidth <= 390 ? 188 : 220;
     const maxWidth = Math.min(preferredWidth, Math.max(160, viewportWidth - horizontalMargin * 2));
     const tooltipHeight = tooltipRef.current?.getBoundingClientRect().height ?? 92;
     const verticalGap = 8;
@@ -13971,14 +13971,19 @@ function InfoHint({
   );
 
   const cornerWrapperClassBySurface: Record<"dense" | "standard" | "hero", string> = {
-    dense: "absolute right-1 top-1 z-10 inline-flex shrink-0",
-    standard: "absolute right-1.5 top-1.5 z-10 inline-flex shrink-0",
-    hero: "absolute right-2.5 top-2.5 z-10 inline-flex shrink-0",
+    dense: "absolute right-0.5 top-0.5 z-10 inline-flex shrink-0",
+    standard: "absolute right-1 top-1 z-10 inline-flex shrink-0",
+    hero: "absolute right-1.5 top-1.5 z-10 inline-flex shrink-0",
   };
   const buttonClassBySurface: Record<"dense" | "standard" | "hero", string> = {
-    dense: "inline-flex size-3.5 items-center justify-center rounded-full border text-[8px] font-semibold transition",
-    standard: "inline-flex size-4 items-center justify-center rounded-full border text-[9px] font-semibold transition",
-    hero: "inline-flex h-[1.15rem] w-[1.15rem] items-center justify-center rounded-full border text-[9px] font-semibold transition",
+    dense: "inline-flex items-center justify-center rounded-full border text-[7px] font-semibold leading-none transition",
+    standard: "inline-flex items-center justify-center rounded-full border text-[8px] font-semibold leading-none transition",
+    hero: "inline-flex items-center justify-center rounded-full border text-[8px] font-semibold leading-none transition",
+  };
+  const buttonSizeBySurface: Record<"dense" | "standard" | "hero", number> = {
+    dense: 12,
+    standard: 14,
+    hero: 15,
   };
   const wrapperClassName = placement === "corner"
     ? cornerWrapperClassBySurface[surface]
@@ -13986,14 +13991,27 @@ function InfoHint({
   const buttonClassName = placement === "corner"
     ? buttonClassBySurface[surface]
     : buttonClassBySurface.standard;
+  const buttonSize = placement === "corner"
+    ? buttonSizeBySurface[surface]
+    : buttonSizeBySurface.standard;
 
   return (
     <span ref={wrapperRef} className={wrapperClassName}>
       <button
         ref={buttonRef}
         type="button"
-        className={buttonClassName}
-        style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
+        className={`${buttonClassName} info-hint-trigger`}
+        style={{
+          borderColor: theme.borderMedium,
+          backgroundColor: theme.bgInput,
+          color: theme.textSecondary,
+          width: `${buttonSize}px`,
+          height: `${buttonSize}px`,
+          minWidth: `${buttonSize}px`,
+          minHeight: `${buttonSize}px`,
+          padding: 0,
+          lineHeight: 1,
+        }}
         aria-label={text}
         aria-expanded={open}
         aria-controls={open ? tooltipId : undefined}

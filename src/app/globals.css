@@ -143,6 +143,29 @@ body {
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--aletheia-focus-ring, #d6b45d) 22%, transparent);
 }
 
+.app-shell .info-hint-trigger {
+  min-width: 0 !important;
+  min-height: 0 !important;
+  width: auto;
+  height: auto;
+  max-width: 17px;
+  max-height: 17px;
+  padding: 0;
+  line-height: 1;
+  flex: 0 0 auto;
+  transform: none !important;
+  filter: none !important;
+  box-shadow: none !important;
+}
+
+.app-shell .info-hint-trigger:hover,
+.app-shell .info-hint-trigger:active,
+.app-shell .info-hint-trigger:focus-visible {
+  transform: none !important;
+  filter: none !important;
+  box-shadow: none !important;
+}
+
 .app-shell :where(button:disabled, [role="button"][aria-disabled="true"]) {
   cursor: not-allowed;
   filter: grayscale(0.12);
@@ -303,6 +326,13 @@ body {
   .app-shell [role="button"],
   .app-chrome-control {
     min-width: 44px;
+  }
+
+  .app-shell .info-hint-trigger {
+    min-width: 0 !important;
+    min-height: 0 !important;
+    width: auto !important;
+    height: auto !important;
   }
 }
 
