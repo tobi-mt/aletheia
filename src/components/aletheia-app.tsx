@@ -11,7 +11,6 @@ import {
   BriefcaseBusiness,
   Camera,
   Check,
-  CircleHelp,
   Compass,
   Copy,
   ChevronDown,
@@ -13435,10 +13434,10 @@ function HomeDashboard({
         style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textPrimary }}
       >
         <div className="flex flex-col gap-4">
-          <div>
-            <h2 className="mt-2 flex items-center gap-2 text-[1.92rem] font-semibold leading-[1.03] text-balance sm:text-[2.25rem]" style={{ color: theme.textPrimary }}>
+          <div className="relative">
+            <InfoHint text={text.whatNextBody ?? ""} theme={theme} placement="corner" surface="hero" />
+            <h2 className="mt-2 pr-5 min-[390px]:pr-6 min-[430px]:pr-7 sm:pr-8 md:pr-9 text-[1.78rem] min-[390px]:text-[1.86rem] min-[430px]:text-[1.92rem] font-semibold leading-[1.03] text-balance sm:text-[2.25rem]" style={{ color: theme.textPrimary }}>
               <span>{text.whatNext}</span>
-              <InfoHint text={text.whatNextBody ?? ""} theme={theme} />
             </h2>
             <p className="mt-3 max-w-2xl text-[0.98rem] leading-7 sm:text-[1.03rem] sm:leading-8" style={{ color: theme.textSecondary }}>
               {ts('labels.whatNextBodyShort', 'One wise next step, then momentum.')}
@@ -13501,18 +13500,18 @@ function HomeDashboard({
 
       <section className="editorial-surface rounded-[1.45rem] border p-4 shadow-[0_8px_20px_rgba(7,10,8,0.05)] sm:p-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
         <div className="flex flex-col gap-4">
-          <div>
+          <div className="relative">
+            <InfoHint text={(text.weeklyReviewBody ?? "").replace("{pattern}", weeklyReview.pattern)} theme={theme} placement="corner" surface="hero" />
             <p className="text-[10.5px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.accentGold }}>
               {text.weeklyWisdomReview ?? ""}
             </p>
-            <h2 className="mt-2 text-[1.92rem] font-semibold leading-[1.03] text-balance sm:text-[2.25rem]" style={{ color: theme.textPrimary }}>
+            <h2 className="mt-2 pr-5 min-[390px]:pr-6 min-[430px]:pr-7 sm:pr-8 md:pr-9 text-[1.78rem] min-[390px]:text-[1.86rem] min-[430px]:text-[1.92rem] font-semibold leading-[1.03] text-balance sm:text-[2.25rem]" style={{ color: theme.textPrimary }}>
               {text.weeklyReviewHeading ?? "Your Weekly Review"}
             </h2>
-            <div className="mt-3 flex max-w-2xl items-start gap-2">
+            <div className="mt-3 max-w-2xl">
               <p className="text-[0.98rem] leading-7 sm:text-[1.03rem] sm:leading-8" style={{ color: theme.textSecondary }}>
                 {ts('labels.weeklyReviewBodyShort', 'No streaks. Just honest weekly signal.')}
               </p>
-              <InfoHint text={(text.weeklyReviewBody ?? "").replace("{pattern}", weeklyReview.pattern)} theme={theme} />
             </div>
           </div>
           <div className="mt-2 flex min-w-0 snap-x gap-1.5 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
@@ -13839,12 +13838,10 @@ function ContextualNextAction({
   return (
     <section className="editorial-surface rounded-xl border p-4 shadow-sm sm:p-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div>
+        <div className="relative">
+          {infoTooltip ? <InfoHint text={infoTooltip} theme={theme} placement="corner" surface="standard" /> : null}
           <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{eyebrow}</p>
-          <h2 className="mt-2 flex items-center gap-2 text-xl font-semibold" style={{ color: theme.textPrimary }}>
-            <span>{title}</span>
-            {infoTooltip ? <InfoHint text={infoTooltip} theme={theme} /> : null}
-          </h2>
+          <h2 className="mt-2 pr-5 sm:pr-6 md:pr-7 text-xl font-semibold" style={{ color: theme.textPrimary }}><span>{title}</span></h2>
           <p className="mt-2 max-w-2xl text-sm leading-6" style={{ color: theme.textSecondary }}>{body}</p>
         </div>
         {actionLabel && onAction ? (
@@ -13862,7 +13859,17 @@ function ContextualNextAction({
   );
 }
 
-function InfoHint({ text, theme }: { text: string; theme: ThemeColors }) {
+function InfoHint({
+  text,
+  theme,
+  placement = "inline",
+  surface = "standard",
+}: {
+  text: string;
+  theme: ThemeColors;
+  placement?: "inline" | "corner";
+  surface?: "dense" | "standard" | "hero";
+}) {
   const [open, setOpen] = useState(false);
   const tooltipId = useId();
   const wrapperRef = useRef<HTMLSpanElement | null>(null);
@@ -13879,8 +13886,8 @@ function InfoHint({ text, theme }: { text: string; theme: ThemeColors }) {
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
     const horizontalMargin = 12;
-    const preferredWidth = 240;
-    const maxWidth = Math.min(preferredWidth, Math.max(180, viewportWidth - horizontalMargin * 2));
+    const preferredWidth = 220;
+    const maxWidth = Math.min(preferredWidth, Math.max(160, viewportWidth - horizontalMargin * 2));
     const tooltipHeight = tooltipRef.current?.getBoundingClientRect().height ?? 92;
     const verticalGap = 8;
 
@@ -13963,12 +13970,29 @@ function InfoHint({ text, theme }: { text: string; theme: ThemeColors }) {
     </span>
   );
 
+  const cornerWrapperClassBySurface: Record<"dense" | "standard" | "hero", string> = {
+    dense: "absolute right-1 top-1 z-10 inline-flex shrink-0",
+    standard: "absolute right-1.5 top-1.5 z-10 inline-flex shrink-0",
+    hero: "absolute right-2.5 top-2.5 z-10 inline-flex shrink-0",
+  };
+  const buttonClassBySurface: Record<"dense" | "standard" | "hero", string> = {
+    dense: "inline-flex size-3.5 items-center justify-center rounded-full border text-[8px] font-semibold transition",
+    standard: "inline-flex size-4 items-center justify-center rounded-full border text-[9px] font-semibold transition",
+    hero: "inline-flex h-[1.15rem] w-[1.15rem] items-center justify-center rounded-full border text-[9px] font-semibold transition",
+  };
+  const wrapperClassName = placement === "corner"
+    ? cornerWrapperClassBySurface[surface]
+    : "relative inline-flex shrink-0";
+  const buttonClassName = placement === "corner"
+    ? buttonClassBySurface[surface]
+    : buttonClassBySurface.standard;
+
   return (
-    <span ref={wrapperRef} className="relative inline-flex shrink-0">
+    <span ref={wrapperRef} className={wrapperClassName}>
       <button
         ref={buttonRef}
         type="button"
-        className="inline-flex size-3.5 items-center justify-center rounded-full border text-[8px] font-semibold transition"
+        className={buttonClassName}
         style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
         aria-label={text}
         aria-expanded={open}
@@ -14537,7 +14561,8 @@ function AccountSettingRow({
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="editorial-surface premium-tap-card rounded-[1rem] border p-3 shadow-[0_4px_10px_rgba(7,10,8,0.04)]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+    <div className="relative editorial-surface premium-tap-card rounded-[1rem] border p-3 shadow-[0_4px_10px_rgba(7,10,8,0.04)]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+      <InfoHint text={body} theme={theme} placement="corner" surface="dense" />
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
@@ -14548,9 +14573,8 @@ function AccountSettingRow({
           <Icon size={17} />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="flex items-center gap-2 text-[13px] font-semibold leading-5 sm:text-sm" style={{ color: theme.textPrimary }}>
+          <span className="flex items-center gap-2 pr-5 sm:pr-6 text-[13px] font-semibold leading-5 sm:text-sm" style={{ color: theme.textPrimary }}>
             <span>{label}</span>
-            <InfoHint text={body} theme={theme} />
           </span>
         </span>
         <span className="min-w-[4.25rem] shrink text-right sm:min-w-[7rem]">
@@ -14589,16 +14613,16 @@ function AccountToggleRow({
   theme: ThemeColors;
 }) {
   return (
-    <div className="editorial-surface premium-tap-card rounded-[1rem] border p-3 shadow-[0_4px_10px_rgba(7,10,8,0.04)]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+    <div className="relative editorial-surface premium-tap-card rounded-[1rem] border p-3 shadow-[0_4px_10px_rgba(7,10,8,0.04)]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+      <InfoHint text={body} theme={theme} placement="corner" surface="dense" />
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex min-w-0 items-start gap-3">
           <span className="grid size-10 shrink-0 place-items-center rounded-full border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
             <Icon size={17} />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="flex items-center gap-2 text-sm font-semibold" style={{ color: theme.textPrimary }}>
+            <span className="flex items-center gap-2 pr-5 sm:pr-6 text-sm font-semibold" style={{ color: theme.textPrimary }}>
               <span>{label}</span>
-              <InfoHint text={body} theme={theme} />
             </span>
           </span>
         </div>
@@ -14682,15 +14706,15 @@ function AccountShareCard({
 
   return (
     <section className="space-y-4">
-      <div className="editorial-surface rounded-[1rem] border p-4 shadow-[0_4px_10px_rgba(7,10,8,0.04)]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+      <div className="relative editorial-surface rounded-[1rem] border p-4 shadow-[0_4px_10px_rgba(7,10,8,0.04)]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+        <InfoHint text={ts('share.accountShareBody')} theme={theme} placement="corner" surface="standard" />
         <div className="flex items-start gap-3">
           <div className="grid size-10 shrink-0 place-items-center rounded-md" style={{ backgroundColor: theme.bgInput, color: theme.primary }}>
             <Share2 size={18} />
           </div>
           <div className="min-w-0">
-            <p className="inline-flex items-center gap-2 text-sm font-semibold" style={{ color: theme.textPrimary }}>
+            <p className="inline-flex items-center gap-2 pr-5 sm:pr-6 md:pr-7 text-sm font-semibold" style={{ color: theme.textPrimary }}>
               <span>{ts('share.accountShareBodyTitle')}</span>
-              <InfoHint text={ts('share.accountShareBody')} theme={theme} />
             </p>
           </div>
         </div>
@@ -14738,7 +14762,8 @@ function SupportMissionCard({
 
   return (
     <section className="space-y-4">
-      <div className="editorial-surface overflow-hidden rounded-[1.35rem] border shadow-[0_6px_16px_rgba(7,10,8,0.05)]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+      <div className="relative editorial-surface overflow-hidden rounded-[1.35rem] border shadow-[0_6px_16px_rgba(7,10,8,0.05)]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+        <InfoHint text={ts('supportMission.body')} theme={theme} placement="corner" surface="hero" />
         <div className="p-3.5 sm:p-4">
           <div className="flex items-start gap-3">
             <div className="grid size-11 shrink-0 place-items-center rounded-full border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
@@ -14746,9 +14771,8 @@ function SupportMissionCard({
             </div>
             <div className="min-w-0">
               <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('supportMission.eyebrow')}</p>
-              <h3 className="mt-1.5 inline-flex items-center gap-2 text-lg font-semibold sm:text-xl" style={{ color: theme.textPrimary }}>
+              <h3 className="mt-1.5 inline-flex items-center gap-2 pr-6 sm:pr-8 md:pr-9 text-lg font-semibold sm:text-xl" style={{ color: theme.textPrimary }}>
                 <span>{ts('supportMission.cardTitle')}</span>
-                <InfoHint text={ts('supportMission.body')} theme={theme} />
               </h3>
               <p className="mt-1.5 text-sm leading-5" style={{ color: theme.textSecondary }}>
                 {ts('supportMission.summary')}
@@ -15217,14 +15241,14 @@ function AccountPersonalizationPanel({
             <div className="grid size-12 shrink-0 place-items-center rounded-[1rem] border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
               <Sparkles size={20} />
             </div>
-            <div className="min-w-0">
+            <div className="relative min-w-0">
+              <InfoHint text={ts('labels.accountPersonalizationSummary')} theme={theme} placement="corner" surface="hero" />
               <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
                 {ts('labels.accountPersonalizationTitle')}
               </p>
               <h3 className="mt-1 text-lg font-semibold sm:text-xl" style={{ color: theme.textPrimary }}>
-                <span className="inline-flex items-center gap-2">
+                <span className="inline-flex items-center gap-2 pr-6 sm:pr-8 md:pr-9">
                   <span>{ts('labels.personalizeAletheia')}</span>
-                  <InfoHint text={ts('labels.accountPersonalizationSummary')} theme={theme} />
                 </span>
               </h3>
             </div>
@@ -15728,12 +15752,12 @@ function TrustCenterCard({
         <div className="grid size-11 shrink-0 place-items-center rounded-full border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
           <ShieldCheck size={18} />
         </div>
-        <div className="min-w-0 flex-1">
+        <div className="relative min-w-0 flex-1">
+          <InfoHint text={ts('labels.accountTrustPostureSummary')} theme={theme} placement="corner" surface="hero" />
           <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.trustCenterTitle')}</p>
           <h3 className="mt-1 text-lg font-semibold sm:text-xl" style={{ color: theme.textPrimary }}>
-            <span className="inline-flex items-center gap-2">
+            <span className="inline-flex items-center gap-2 pr-6 sm:pr-8 md:pr-9">
               <span>{ts('labels.accountTrustPostureTitle')}</span>
-              <InfoHint text={ts('labels.accountTrustPostureSummary')} theme={theme} />
             </span>
           </h3>
         </div>
@@ -16505,12 +16529,12 @@ function ManualContextPanel({
                 <div className="mt-0.5 grid size-10 shrink-0 place-items-center rounded-xl border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
                   <ShieldCheck size={18} />
                 </div>
-                <div className="min-w-0">
+                <div className="relative min-w-0">
+                  <InfoHint text={manualCopy.intro} theme={theme} placement="corner" surface="hero" />
                   <p className="text-xs font-semibold uppercase tracking-[0.12em] sm:tracking-[0.16em]" style={{ color: theme.accentGold }}>{manualCopy.privacyPosture}</p>
                   <h3 className="mt-2 text-2xl font-semibold sm:text-[2rem]" style={{ color: theme.textPrimary }}>
-                    <span className="inline-flex items-center gap-2">
+                    <span className="inline-flex items-center gap-2 pr-6 sm:pr-8 md:pr-9">
                       <span>{manualCopy.title}</span>
-                      <InfoHint text={manualCopy.intro} theme={theme} />
                     </span>
                   </h3>
                 </div>
@@ -17856,7 +17880,6 @@ function ScriptureModal({
 }) {
   const canUsePortal = typeof document !== "undefined";
   const [view, setView] = useState<"quick" | "deep">("quick");
-  const [showCuratedReadingInfo, setShowCuratedReadingInfo] = useState(false);
   const contentRef = useRef<HTMLDivElement | null>(null);
   useBodyScrollLock(Boolean(scripture && canUsePortal));
 
@@ -17867,24 +17890,16 @@ function ScriptureModal({
 
     const handleKeyDown = (event: globalThis.KeyboardEvent) => {
       if (event.key === "Escape") {
-        if (showCuratedReadingInfo) {
-          setShowCuratedReadingInfo(false);
-          return;
-        }
         onClose();
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [canUsePortal, onClose, scripture, showCuratedReadingInfo]);
+  }, [canUsePortal, onClose, scripture]);
 
   useEffect(() => {
     contentRef.current?.scrollTo({ top: 0, behavior: "auto" });
-  }, [scripture, view]);
-
-  useEffect(() => {
-    setShowCuratedReadingInfo(false);
   }, [scripture, view]);
 
   if (!scripture || !canUsePortal) {
@@ -17930,40 +17945,20 @@ function ScriptureModal({
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-5">
             <div className="min-w-0 flex-1">
               {view === "quick" ? (
-                <>
+                <div className="relative">
+                  <InfoHint text={curatedReadingNote} theme={theme} placement="corner" surface="hero" />
                   <p className="text-[0.68rem] font-semibold uppercase tracking-[0.24em]" style={{ color: theme.accentGold }}>
                     {ts('labels.scriptureQuickRead')}
                   </p>
-                  <h2 id="scripture-quick-read-title" className="mt-2 text-[2rem] font-semibold leading-[1.05] sm:text-[2.45rem]" style={{ color: theme.textPrimary }}>
+                  <h2 id="scripture-quick-read-title" className="mt-2 pr-5 min-[390px]:pr-6 min-[430px]:pr-7 sm:pr-8 md:pr-10 text-[1.82rem] min-[390px]:text-[1.92rem] min-[430px]:text-[2rem] font-semibold leading-[1.05] sm:text-[2.45rem]" style={{ color: theme.textPrimary }}>
                     {displayScripture}
                   </h2>
                   <div className="mt-3 flex flex-wrap items-center gap-2">
                     <span className="inline-flex items-center rounded-full border px-3 py-1 text-[0.72rem] font-semibold uppercase tracking-[0.16em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
                       {translationLabel}
                     </span>
-                    <button
-                      type="button"
-                      aria-label={ts('labels.aboutThisReading', 'About this reading')}
-                      aria-expanded={showCuratedReadingInfo}
-                      aria-controls="curated-reading-tooltip"
-                      onClick={() => setShowCuratedReadingInfo((open) => !open)}
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-full border transition"
-                      style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}
-                    >
-                      <CircleHelp size={15} />
-                    </button>
                   </div>
-                  {showCuratedReadingInfo ? (
-                    <p
-                      id="curated-reading-tooltip"
-                      role="tooltip"
-                      className="mt-2 rounded-xl border px-3 py-2 text-xs leading-5 sm:text-sm"
-                      style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}
-                    >
-                      {curatedReadingNote}
-                    </p>
-                  ) : null}
-                </>
+                </div>
               ) : (
                 <>
                   <p className="text-[0.68rem] font-semibold uppercase tracking-[0.24em]" style={{ color: theme.accentGold }}>
@@ -18849,16 +18844,16 @@ function CompanionPanel({
     <div className="space-y-4">
       <section id="companion-ask" ref={panelRef} className="min-w-0 scroll-mt-24 overflow-hidden rounded-xl border shadow-[0_18px_45px_rgba(33,58,53,0.08)]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
         <div className="flex flex-col gap-3 border-b px-3 py-3 sm:px-5 sm:py-4 md:flex-row md:items-center md:justify-between" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
-          <div>
+          <div className="relative">
+            <InfoHint text={ui.askIntro} theme={theme} placement="corner" surface="standard" />
             <div className="flex items-center gap-2 text-lg font-semibold" style={{ color: theme.textPrimary }}>
               <MessageCircle size={18} />
               {ui.askTitle}
             </div>
-            <div className="mt-1 flex items-start gap-2">
+            <div className="mt-1 pr-5 sm:pr-6 md:pr-7">
               <p className="text-sm leading-5" style={{ color: theme.textSecondary }}>
                 {ts('labels.askIntroShort', 'Start with one honest question.')}
               </p>
-              <InfoHint text={ui.askIntro} theme={theme} />
             </div>
           </div>
         </div>
@@ -19054,9 +19049,9 @@ function CompanionPanel({
               ))}
             </div>
             {preferences.voiceEnabled ? (
-              <div className="mt-2 flex items-center gap-2 text-xs leading-5" style={{ color: theme.textMuted }}>
+              <div className="relative mt-2 pr-5 sm:pr-6 text-xs leading-5" style={{ color: theme.textMuted }}>
+                <InfoHint text={copy.voiceHint} theme={theme} placement="corner" surface="dense" />
                 <span>{ts('labels.voiceInput', 'Voice input')}</span>
-                <InfoHint text={copy.voiceHint} theme={theme} />
               </div>
             ) : null}
           </div>
@@ -19516,9 +19511,9 @@ function TrustLayerPanel({ theme, ui }: { theme: ThemeColors; ui: UiText }) {
           {open ? ui.hideDetails : ui.showDetails}
         </button>
       </div>
-      <div className="mt-3 flex items-start gap-2 rounded-lg border p-2.5 text-sm leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+      <div className="relative mt-3 rounded-lg border p-2.5 pr-6 sm:pr-7 md:pr-8 text-sm leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+        <InfoHint text={ui.trustScriptureBody ?? uiText.en!.trustScriptureBody!} theme={theme} placement="corner" surface="dense" />
         <span>{ui.trustLayer}</span>
-        <InfoHint text={ui.trustScriptureBody ?? uiText.en!.trustScriptureBody!} theme={theme} />
       </div>
       {open ? <div className="mt-3 space-y-2.5 text-sm leading-5" style={{ color: theme.textSecondary }}>
         <p className="rounded-lg border p-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
@@ -20203,14 +20198,14 @@ function DecisionCompanionPanel({
       <section className="space-y-4">
         <section className="rounded-[1.35rem] border p-3.5 shadow-[0_8px_24px_rgba(15,23,42,0.05)] sm:p-4" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-            <div>
+            <div className="relative">
+              <InfoHint text={runtime.decisionCompanionSub} theme={theme} placement="corner" surface="hero" />
               <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.decisionCompanion')}</p>
-              <h2 className="mt-1.5 text-xl font-semibold leading-tight" style={{ color: theme.textPrimary }}>{runtime.decisionCompanionHeading}</h2>
-              <div className="mt-1.5 flex max-w-2xl items-start gap-2">
+              <h2 className="mt-1.5 pr-5 min-[390px]:pr-6 min-[430px]:pr-7 text-[1.08rem] min-[390px]:text-[1.14rem] min-[430px]:text-xl font-semibold leading-tight" style={{ color: theme.textPrimary }}>{runtime.decisionCompanionHeading}</h2>
+              <div className="mt-1.5 max-w-2xl pr-6 sm:pr-7 md:pr-8">
                 <p className="text-sm leading-5" style={{ color: theme.textSecondary }}>
                   {ts('labels.decisionCompanionSubShort', 'Track one decision until clarity settles.')}
                 </p>
-                <InfoHint text={runtime.decisionCompanionSub} theme={theme} />
               </div>
             </div>
             <span className="w-fit rounded-full px-3 py-2 text-xs font-semibold" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>{modeProfile.displayLabel ?? modeProfile.label}</span>
@@ -20306,9 +20301,9 @@ function DecisionCompanionPanel({
           <DisclosureSection title={`${ts('labels.counselCircle')} · ${counselContacts.length} ${ts('labels.trustedVoices')}`} summary={ts('labels.counselCircleSummaryShort', 'Invite trusted voices with explicit sharing.')} eyebrow={ts('labels.counsel')} defaultOpen={Boolean(counselSummaryDraft)} compactCollapsed showDetailsLabel={ts('showDetails')} hideDetailsLabel={ts('hideDetails')} theme={theme}>
             <section id="counsel-circle" className="scroll-mt-24">
               <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.counselCircle')}</p>
-              <div className="mt-2 flex items-start gap-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
+              <div className="relative mt-2 pr-5 sm:pr-6 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                <InfoHint text={ts('labels.counselCircleSummary')} theme={theme} placement="corner" surface="dense" />
                 <span>{ts('labels.inviteTrustedPeoplePrivateShort', 'Invite trusted people privately.')}</span>
-                <InfoHint text={ts('labels.counselCircleSummary')} theme={theme} />
               </div>
               {counselSummaryDraft ? (
                 <div className="mt-3 rounded-[1rem] border p-2.5" style={{ borderColor: theme.accentGold, backgroundColor: theme.bgCardElevated }}>
@@ -21391,9 +21386,9 @@ function ReflectPanel({
       <section className="rounded-[1.35rem] border p-3.5 shadow-[0_8px_24px_rgba(15,23,42,0.05)] sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
         <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('nav.reflect')}</p>
         <h2 className="mt-1.5 text-xl font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.discernmentReflectionQuietPlace')}</h2>
-        <div className="mt-1.5 flex max-w-2xl items-start gap-2 text-sm leading-5" style={{ color: theme.textSecondary }}>
+        <div className="relative mt-1.5 max-w-2xl pr-5 sm:pr-6 md:pr-7 text-sm leading-5" style={{ color: theme.textSecondary }}>
+          <InfoHint text={runtime.reflectIntro} theme={theme} placement="corner" surface="standard" />
           <span>{ts('labels.reflectIntroShort', 'Slow the moment and name what is true.')}</span>
-          <InfoHint text={runtime.reflectIntro} theme={theme} />
         </div>
       </section>
 
@@ -21626,28 +21621,38 @@ function GratitudeLensPanel({
         theme={theme}
       >
       <section className="grid min-w-0 gap-4 xl:grid-cols-[0.95fr_1.05fr]">
-        <div className="rounded-xl border p-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+        <div className="relative rounded-xl border p-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+          <InfoHint
+            text={ts('labels.gratitudeLensBodyTooltip', 'Take one photo, name the gift, and keep the moment private by default.')}
+            theme={theme}
+            placement="corner"
+            surface="standard"
+          />
           <div className="flex items-start gap-3">
             <div className="grid size-10 shrink-0 place-items-center rounded-md" style={{ backgroundColor: theme.bgInput, color: theme.primary }}>
               <Camera size={18} />
             </div>
             <div>
               <h3 className="text-base font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.captureGratitude')}</h3>
-              <div className="mt-1 flex items-start gap-2 text-sm leading-5" style={{ color: theme.textSecondary }}>
-                <span>{ts('labels.gratitudeLensBodyShort', 'Capture one grateful moment.')}</span>
-                <InfoHint text={ts('labels.gratitudeLensBodyTooltip', 'Take one photo, name the gift, and keep the moment private by default.')} theme={theme} />
-              </div>
+              <p className="mt-1 pr-5 sm:pr-6 md:pr-7 text-sm leading-5" style={{ color: theme.textSecondary }}>
+                {ts('labels.gratitudeLensBodyShort', 'Capture one grateful moment.')}
+              </p>
             </div>
           </div>
 
-          <div className="mt-3 rounded-xl border p-2.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+          <div className="relative mt-3 rounded-xl border p-2.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+            <InfoHint
+              text={ts('labels.gratitudeNoticingBodyTooltip', 'Choose the kind of gift first, then add your note.')}
+              theme={theme}
+              placement="corner"
+              surface="dense"
+            />
             <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
               {ts('labels.gratitudeNoticingQuestion', 'What kind of gift is this?')}
             </p>
-            <div className="mt-1 flex items-start gap-2 text-xs leading-5" style={{ color: theme.textSecondary }}>
-              <span>{ts('labels.gratitudeNoticingBodyShort', 'Choose gift type first.')}</span>
-              <InfoHint text={ts('labels.gratitudeNoticingBodyTooltip', 'Choose the kind of gift first, then add your note.')} theme={theme} />
-            </div>
+            <p className="mt-1 pr-5 sm:pr-6 text-xs leading-5" style={{ color: theme.textSecondary }}>
+              {ts('labels.gratitudeNoticingBodyShort', 'Choose gift type first.')}
+            </p>
             <div className="mt-2">
               <ScreenTabs
                 value={formation}
@@ -21685,9 +21690,9 @@ function GratitudeLensPanel({
               >
                 <Camera size={28} />
                 <span className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.chooseGratitudePhoto')}</span>
-                <span className="inline-flex max-w-xs items-center gap-2 text-xs leading-5">
+                <span className="relative inline-flex max-w-xs items-center gap-2 pr-5 sm:pr-6 text-xs leading-5">
+                  <InfoHint text={ts('labels.gratitudePhotoPrivate')} theme={theme} placement="corner" surface="dense" />
                   <span>{ts('labels.photoPrivacy', 'Privacy')}</span>
-                  <InfoHint text={ts('labels.gratitudePhotoPrivate')} theme={theme} />
                 </span>
               </button>
             )}
@@ -21890,9 +21895,9 @@ function GratitudeLensPanel({
             <Plus size={16} />
             {isSaving ? ts('labels.saving') : ts('labels.saveGratitude')}
           </button>
-          <div className="mt-3 flex items-start gap-2 text-xs leading-5" style={{ color: theme.textMuted }}>
+          <div className="relative mt-3 pr-5 sm:pr-6 text-xs leading-5" style={{ color: theme.textMuted }}>
+            <InfoHint text={`${ts('labels.gratitudePrivacyNote')} ${ts('labels.suggestedGratitudeRhythm').replace("{time}", gratitudeRhythmLabel)}`} theme={theme} placement="corner" surface="dense" />
             <span>{ts('labels.gratitudePrivacyShort', 'Private by default.')}</span>
-            <InfoHint text={`${ts('labels.gratitudePrivacyNote')} ${ts('labels.suggestedGratitudeRhythm').replace("{time}", gratitudeRhythmLabel)}`} theme={theme} />
           </div>
         </div>
 
@@ -22261,14 +22266,14 @@ function LibraryPanel({
       {librarySection === "explore" ? (
       <section className="min-w-0 rounded-xl border p-3.5 shadow-sm sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
+          <div className="relative">
+            <InfoHint text={runtime.libraryDescription} theme={theme} placement="corner" surface="standard" />
             <div className="flex items-center gap-2 text-lg font-semibold" style={{ color: theme.textPrimary }}>
               <BookOpen size={20} />
               {ts('labels.wisdomLibrary')}
             </div>
-            <div className="mt-1.5 flex items-start gap-2 text-sm leading-5" style={{ color: theme.textSecondary }}>
+            <div className="mt-1.5 pr-5 sm:pr-6 md:pr-7 text-sm leading-5" style={{ color: theme.textSecondary }}>
               <span>{ts('labels.libraryDescriptionShort', 'Curated wisdom, translation-aware.')}</span>
-              <InfoHint text={runtime.libraryDescription} theme={theme} />
             </div>
           </div>
           <label className="relative w-full md:max-w-sm">
@@ -22320,9 +22325,9 @@ function LibraryPanel({
                 </div>
                 <p className="text-sm font-semibold leading-5" style={{ color: theme.textPrimary }}>{localizedEntry.principle}</p>
                 <p className="mt-2.5 text-sm leading-5" style={{ color: theme.textSecondary }}>{localizedEntry.application}</p>
-                <div className="mt-2.5 flex items-start gap-2 rounded-md border p-2.5 text-xs leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textMuted }}>
+                <div className="relative mt-2.5 rounded-md border p-2.5 pr-6 sm:pr-7 md:pr-8 text-xs leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textMuted }}>
+                  <InfoHint text={localizedWisdomLibraryNote(entry, preferences)} theme={theme} placement="corner" surface="dense" />
                   <span>{ts('labels.applicationNote', 'Application note')}</span>
-                  <InfoHint text={localizedWisdomLibraryNote(entry, preferences)} theme={theme} />
                 </div>
                 <button
                   type="button"

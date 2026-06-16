@@ -382,12 +382,12 @@ export default function BibleReader({ preferences, theme, initialBook, initialCh
         </span>
         {showCloseEquivalentEditionNote ? (
           <span
-            className="inline-flex items-center justify-center rounded-full border p-1"
+            className="inline-flex items-center justify-center rounded-full border p-0.5"
             style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
             title={ui.closeEquivalentEdition}
             aria-label={ui.closeEquivalentEdition}
           >
-            <Info size={12} aria-hidden="true" />
+            <Info size={10} aria-hidden="true" />
           </span>
         ) : null}
         {chapterData?.fallbackTranslation ? (
@@ -482,12 +482,12 @@ export default function BibleReader({ preferences, theme, initialBook, initialCh
           {studyData.fallbackTranslation ? (
             <div className="flex items-center justify-end">
               <span
-                className="inline-flex items-center justify-center rounded-full border p-1"
+                className="inline-flex items-center justify-center rounded-full border p-0.5"
                 style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
                 title={`${ui.via} ${studyData.fallbackTranslation}`}
                 aria-label={`${ui.via} ${studyData.fallbackTranslation}`}
               >
-                <Info size={12} aria-hidden="true" />
+                <Info size={10} aria-hidden="true" />
               </span>
             </div>
           ) : null}
