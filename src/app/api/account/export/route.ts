@@ -31,6 +31,7 @@ export async function GET() {
     rulesOfLife,
     answerFeedback,
     pushSubscriptions,
+    gratitudeEntries,
   ] = await Promise.all([
     one("SELECT id, email, name, avatar_url, login_count, last_seen_at, created_at FROM users WHERE id = ?", user.id),
     one("SELECT * FROM user_preferences WHERE user_id = ?", user.id),
@@ -53,6 +54,7 @@ export async function GET() {
     userRows("rule_of_life_entries", user.id),
     userRows("answer_feedback", user.id),
     userRows("push_subscriptions", user.id),
+    userRows("gratitude_entries", user.id),
   ]);
 
   const counts = {
@@ -62,6 +64,7 @@ export async function GET() {
     counselContacts: counselContacts.length,
     rulesOfLife: rulesOfLife.length,
     pushSubscriptions: pushSubscriptions.length,
+    gratitudeEntries: gratitudeEntries.length,
     analyticsEvents: Number((await one<CountRow>("SELECT COUNT(*) AS count FROM analytics_events WHERE user_id = ?", user.id))?.count ?? 0),
   };
 
@@ -87,6 +90,7 @@ export async function GET() {
     counselComments,
     rulesOfLife,
     answerFeedback,
+    gratitudeEntries,
     pushSubscriptions: pushSubscriptions.map((subscription) => ({
       ...(subscription as Record<string, unknown>),
       p256dh: "[redacted]",

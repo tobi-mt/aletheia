@@ -1615,5 +1615,36 @@
   "accountFormationPrefix": "गठन",
   "accountQuietMilestoneSingular": "शांत मील का पत्थर",
   "accountQuietMilestonePlural": "शांत मील के पत्थर",
-  "accountFormationSummary": "जब तक आप समय के साथ विकास की समीक्षा नहीं करना चाहते तब तक शांत मील के पत्थर छुपे रहते हैं।"
+  "accountFormationSummary": "जब तक आप समय के साथ विकास की समीक्षा नहीं करना चाहते तब तक शांत मील के पत्थर छुपे रहते हैं।",
+  "challenges": {
+    "eyebrow": "गठन अभ्यास",
+    "sectionTitle": "गठन अभ्यास",
+    "sectionSummary": "बहुदिन के अभ्यास ज्ञान, कृतज्ञता और विवेक की आदतें बनाने के लिए।",
+    "startChallenge": "अभ्यास शुरू करें",
+    "continueChallenge": "जारी रखें",
+    "completedChallenge": "पूर्ण",
+    "dayLabel": "दिन {day}",
+    "dayOf": "दिन {day} का {total}",
+    "daysCompleted": "{count} का {total} दिन",
+    "markComplete": "आज को पूर्ण के रूप में चिह्नित करें",
+    "reflectionPlaceholder": "वैकल्पिक: आज के अभ्यास के बारे में एक संक्षिप्त नोट लिखें…",
+    "saveReflection": "सहेजें और पूर्ण के रूप में चिह्नित करें",
+    "shareChallenge": "यह अभ्यास साझा करें",
+    "shareChallengeBody": "मेरे साथ Aletheia पर इस {days}-दिवसीय अभ्यास में शामिल हों।",
+    "noProgressYet": "जब आप तैयार हों तो दिन 1 से शुरू करें।",
+    "allDaysComplete": "सभी {total} दिन पूर्ण। बहुत अच्छा।",
+    "signInToTrack": "डिवाइस में अपनी प्रगति को ट्रैक करने के लिए साइन इन करें।",
+    "gratitude3day": {
+      "title": "3-दिन की कृतज्ञता अभ्यास",
+      "description": "शांत निरीक्षण के तीन दिन — एक साधारण उपहार, एक स्थिर उपस्थिति, एक क्षेत्र जहां संतुष्टि बढ़ रही है।"
+    },
+    "waiting5day": {
+      "title": "5-दिन प्रतीक्षा अभ्यास",
+      "description": "एक निर्णय को दृढ़ता से रखने के पाँच दिन — जरूरत को नाम दें, नीचे का डर खोजें, और ज्ञान के निपटने की प्रतीक्षा करें।"
+    },
+    "stewardship7day": {
+      "title": "7-दिन प्रबंधन अभ्यास",
+      "description": "ईमानदार लेखा के सात दिन — आपको क्या दिया गया, जहां जल्दबाजी विकल्प आकार दे रही है, और अभी परिपक्व क्या है।"
+    }
+  }
 }

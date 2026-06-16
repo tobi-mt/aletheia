@@ -1618,5 +1618,36 @@
   "accountFormationPrefix": "Formação",
   "accountQuietMilestoneSingular": "marco tranquilo",
   "accountQuietMilestonePlural": "marcos tranquilos",
-  "accountFormationSummary": "Marcos tranquilos ficam recolhidos até você querer rever seu crescimento."
+  "accountFormationSummary": "Marcos tranquilos ficam recolhidos até você querer rever seu crescimento.",
+  "challenges": {
+    "eyebrow": "Práticas de formação",
+    "sectionTitle": "Práticas de formação",
+    "sectionSummary": "Práticas de vários dias para construir hábitos de sabedoria, gratidão e discernimento.",
+    "startChallenge": "Iniciar prática",
+    "continueChallenge": "Continuar",
+    "completedChallenge": "Concluído",
+    "dayLabel": "Dia {day}",
+    "dayOf": "Dia {day} de {total}",
+    "daysCompleted": "{count} de {total} dias",
+    "markComplete": "Marcar hoje como concluído",
+    "reflectionPlaceholder": "Opcional: escreva uma breve nota sobre a prática de hoje…",
+    "saveReflection": "Salvar e marcar como concluído",
+    "shareChallenge": "Compartilhar esta prática",
+    "shareChallengeBody": "Junte-se a mim nesta prática de {days} dias no Aletheia.",
+    "noProgressYet": "Comece com o Dia 1 quando estiver pronto.",
+    "allDaysComplete": "Todos os {total} dias concluídos. Muito bem.",
+    "signInToTrack": "Entre para rastrear seu progresso em todos os dispositivos.",
+    "gratitude3day": {
+      "title": "Prática de gratidão de 3 dias",
+      "description": "Três dias de observação tranquila — um presente ordinário, uma presença constante, uma área onde a contentamento está crescendo."
+    },
+    "waiting5day": {
+      "title": "Prática de espera de 5 dias",
+      "description": "Cinco dias mantendo uma decisão firme — nomeando a urgência, encontrando o medo por baixo e esperando que a sabedoria se estabeleça."
+    },
+    "stewardship7day": {
+      "title": "Prática de mordomia de 7 dias",
+      "description": "Sete dias de contagem honesta — o que você recebeu, onde a pressa está moldando as escolhas e o que é suficiente agora."
+    }
+  }
 }

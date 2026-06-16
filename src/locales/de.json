@@ -1633,5 +1633,36 @@
   "accountFormationPrefix": "Formung",
   "accountQuietMilestoneSingular": "ruhiger Meilenstein",
   "accountQuietMilestonePlural": "ruhige Meilensteine",
-  "accountFormationSummary": "Formung ist ein ruhiger Praxisverlauf, keine Punktetafel."
+  "accountFormationSummary": "Formung ist ein ruhiger Praxisverlauf, keine Punktetafel.",
+  "challenges": {
+    "eyebrow": "Formungspraktiken",
+    "sectionTitle": "Formungspraktiken",
+    "sectionSummary": "Mehrtagespraktiken zum Aufbau von Weisheits-, Dankbarkeits- und Unterscheidungsgewohnheiten.",
+    "startChallenge": "Praxis beginnen",
+    "continueChallenge": "Fortsetzen",
+    "completedChallenge": "Abgeschlossen",
+    "dayLabel": "Tag {day}",
+    "dayOf": "Tag {day} von {total}",
+    "daysCompleted": "{count} von {total} Tagen",
+    "markComplete": "Heute als abgeschlossen markieren",
+    "reflectionPlaceholder": "Optional: Schreib eine kurze Notiz zur heutigen Praxis…",
+    "saveReflection": "Speichern und als abgeschlossen markieren",
+    "shareChallenge": "Diese Praxis teilen",
+    "shareChallengeBody": "Nimm teil an dieser {days}-Tage-Praxis auf Aletheia.",
+    "noProgressYet": "Beginne mit Tag 1, wenn du bereit bist.",
+    "allDaysComplete": "Alle {total} Tage abgeschlossen. Gut gemacht.",
+    "signInToTrack": "Melde dich an, um deinen Fortschritt geräteübergreifend zu verfolgen.",
+    "gratitude3day": {
+      "title": "3-Tage-Dankbarkeitspraxis",
+      "description": "Drei Tage ruhigen Bemerkens — ein gewöhnliches Geschenk, eine stabile Präsenz, ein Bereich, wo Zufriedenheit wächst."
+    },
+    "waiting5day": {
+      "title": "5-Tage-Wartepraktik",
+      "description": "Fünf Tage, eine Entscheidung fest halten — die Eile benennen, die Angst darunter finden, und auf Weisheit warten."
+    },
+    "stewardship7day": {
+      "title": "7-Tage-Haushalterschaftspraxis",
+      "description": "Sieben Tage ehrliche Bilanz — was dir gegeben wurde, wo Hast Entscheidungen prägt, und was genug bedeutet."
+    }
+  }
 }

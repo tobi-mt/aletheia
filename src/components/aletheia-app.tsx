@@ -357,6 +357,8 @@ const AUTH_PROMPT_REPEAT_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000;
 const GRATITUDE_INDEXED_DB_NAME = "aletheia-gratitude";
 const GRATITUDE_INDEXED_DB_VERSION = 1;
 const GRATITUDE_INDEXED_DB_STORE = "gratitude_entries";
+const GRATITUDE_SYNC_ENABLED = process.env.NEXT_PUBLIC_ENABLE_GRATITUDE_SYNC === "1";
+const GRATITUDE_SYNC_MIGRATION_KEY_PREFIX = "aletheia_gratitude_sync_migrated_";
 const MAX_GRATITUDE_ENTRIES = Number.POSITIVE_INFINITY;
 const GRATITUDE_REFLECTION_DEFAULT_HOUR = 19;
 const SUPPORT_MISSION_LINKS: Array<{ channel: SupportMissionChannel; href: string; labelKey: string; fallback: string }> = [
@@ -3337,6 +3339,8 @@ type GratitudeEntry = {
   postcardCreatedAt?: string;
   reflectedAt?: string;
 };
+
+type GratitudeSyncStatus = "local" | "syncing" | "synced" | "failed";
 
 type GratitudeContextSummary = {
   totalEntries: number;
@@ -6880,6 +6884,7 @@ export function AletheiaApp() {
   const [journalBody, setJournalBody] = useState("");
   const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([]);
   const [gratitudeEntries, setGratitudeEntries] = useState<GratitudeEntry[]>(() => storedGratitudeEntries());
+  const [gratitudeSyncStatus, setGratitudeSyncStatus] = useState<GratitudeSyncStatus>("local");
   const [isOnline, setIsOnline] = useState(true);
   const [user, setUser] = useState<User | null>(null);
   const [authMode, setAuthMode] = useState<AuthMode>("register");
@@ -7938,6 +7943,12 @@ export function AletheiaApp() {
         const focused = focusTodayCard();
         if (focused && delay >= 1400) {
           settled = true;
+          setPendingNotificationFocus(false);
+          return;
+        }
+        if (!focused && delay === 5200) {
+          settled = true;
+          setPendingNotificationFocus(false);
         }
       }, delay)
     );
@@ -8054,7 +8065,15 @@ export function AletheiaApp() {
     }
   }
 
-  const loadSignedInWorkspace = useCallback(async () => {
+  const loadLocalGratitudeEntries = useCallback(async () => {
+    const indexedEntries = await readGratitudeEntriesFromIndexedDB();
+    if (indexedEntries && indexedEntries.length > 0) {
+      return indexedEntries;
+    }
+    return storedGratitudeEntries();
+  }, []);
+
+  const loadSignedInWorkspace = useCallback(async (signedInUser: User) => {
     const [chatResponse, journalResponse, notificationResponse, decisionsResponse, counselResponse, rulesResponse, preferencesResponse, contextResponse] = await Promise.allSettled([
       fetch("/api/chat"),
       fetch("/api/journal"),
@@ -8166,7 +8185,61 @@ export function AletheiaApp() {
         void saveNotificationTimingPreference(nextTiming).catch(() => undefined);
       }
     }
-  }, []);
+
+    if (!GRATITUDE_SYNC_ENABLED) {
+      setGratitudeSyncStatus("local");
+      return;
+    }
+
+    setGratitudeSyncStatus("syncing");
+    const migrationKey = `${GRATITUDE_SYNC_MIGRATION_KEY_PREFIX}${signedInUser.id}`;
+    const localEntries = await loadLocalGratitudeEntries();
+
+    try {
+      const response = await fetch("/api/gratitude", { cache: "no-store" });
+      const data = await readJsonOrFallback(
+        response.ok ? response : null,
+        { entries: [] as GratitudeEntry[] }
+      );
+      let nextEntries = Array.isArray(data.entries) ? data.entries : [];
+
+      const migrationMarked = (() => {
+        try {
+          return window.localStorage.getItem(migrationKey) === "yes";
+        } catch {
+          return false;
+        }
+      })();
+
+      if (localEntries.length > 0 && (!migrationMarked || nextEntries.length === 0)) {
+        const migrationResponse = await fetch("/api/gratitude", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ entries: localEntries }),
+        });
+        if (migrationResponse.ok) {
+          const migratedData = (await migrationResponse.json()) as { entries?: GratitudeEntry[] };
+          if (Array.isArray(migratedData.entries)) {
+            nextEntries = migratedData.entries;
+          }
+          try {
+            window.localStorage.setItem(migrationKey, "yes");
+          } catch {
+            // Migration marker is best-effort only.
+          }
+        }
+      }
+
+      setGratitudeEntries(nextEntries);
+      await persistGratitudeEntries(nextEntries);
+      setGratitudeSyncStatus("synced");
+    } catch {
+      setGratitudeSyncStatus("failed");
+      if (localEntries.length > 0) {
+        setGratitudeEntries(localEntries);
+      }
+    }
+  }, [loadLocalGratitudeEntries]);
 
   useEffect(() => {
     const openedKey = "aletheia_app_opened_tracked";
@@ -8271,7 +8344,7 @@ export function AletheiaApp() {
       if (data.user) {
         setUser(data.user);
         setAuthStatus("signed-in");
-        await loadSignedInWorkspace().catch((workspaceError) => {
+        await loadSignedInWorkspace(data.user).catch((workspaceError) => {
           console.error("Workspace hydration on session restore failed:", workspaceError);
         });
         const firstName = data.user.name?.split(" ")[0] || data.user.email.split("@")[0];
@@ -8296,6 +8369,7 @@ export function AletheiaApp() {
       } else {
         setUser(null);
         setAuthStatus("guest");
+        setGratitudeSyncStatus("local");
         const authFailureMessage = getFriendlyAuthError(params);
         const authFailureAnalytics = getAuthFailureAnalytics(params);
         setStatusMessage(authFailureMessage ?? ts('status.guestMode'));
@@ -9310,6 +9384,12 @@ export function AletheiaApp() {
 
   async function updatePreferences(patch: Partial<UserPreferences>) {
     const next = { ...preferences, ...patch };
+    const nextTranslations = loadTranslationsWithFallbackSync(next.language);
+    const getNextTranslation = (key: string, fallback: string) => {
+      const result = getTranslation(nextTranslations, key, fallback);
+      return Array.isArray(result) ? result.join(', ') : result;
+    };
+
     if (patch.language && patch.language !== preferences.language) {
       trackClientEvent("language_changed", {
         language: patch.language,
@@ -9326,19 +9406,16 @@ export function AletheiaApp() {
     }
     setPreferences(next);
     setCarryToday(storedCarryToday(next));
-    setPreferencesStatus(user ? ts('notifications.preferencesSaving') : ts('notifications.preferencesSavedBody'));
+    setPreferencesStatus(
+      user
+        ? getNextTranslation('notifications.preferencesSaving', 'Saving preferences...')
+        : getNextTranslation('notifications.preferencesSavedBody', 'Your language preferences are saved on this device.')
+    );
     try {
       window.localStorage.setItem("aletheia_preferences", JSON.stringify(next));
     } catch {
       // Preferences still work in memory if local storage is unavailable.
     }
-
-    // Load translations with the new preferences for notification
-    const nextTranslations = loadTranslationsWithFallbackSync(next.language);
-    const getNextTranslation = (key: string, fallback: string) => {
-      const result = getTranslation(nextTranslations, key, fallback);
-      return Array.isArray(result) ? result.join(', ') : result;
-    };
 
     if (user) {
       const response = await fetch("/api/preferences", {
@@ -9347,7 +9424,11 @@ export function AletheiaApp() {
         body: JSON.stringify(next),
       });
       const saved = response.ok;
-      setPreferencesStatus(saved ? ts('notifications.preferencesReady') : ts('notifications.preferencesSavedLocallyBody'));
+      setPreferencesStatus(
+        saved
+          ? getNextTranslation('notifications.preferencesReady', 'Preferences are up to date.')
+          : getNextTranslation('notifications.preferencesSavedLocallyBody', 'Your language preferences are saved on this device.')
+      );
       announceWorkflow(
         saved ? getNextTranslation('notifications.preferencesSynced', 'Language settings synced') : getNextTranslation('notifications.preferencesSavedLocally', 'Language settings saved locally'),
         saved ? getNextTranslation('notifications.preferencesSyncedBody', 'Your language preferences are now synced across devices.') : getNextTranslation('notifications.preferencesSavedLocallyBody', 'Your language preferences are saved on this device.'),
@@ -10578,8 +10659,32 @@ export function AletheiaApp() {
         visual: normalizeGratitudeVisual(visual),
       };
       const nextEntries = [entry, ...gratitudeEntries].slice(0, MAX_GRATITUDE_ENTRIES);
-      setGratitudeEntries(nextEntries);
-      const stored = await persistGratitudeEntries(nextEntries);
+      let persistedEntries = nextEntries;
+
+      if (user && GRATITUDE_SYNC_ENABLED) {
+        setGratitudeSyncStatus("syncing");
+        try {
+          const response = await fetch("/api/gratitude", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ entry }),
+          });
+          if (response.ok) {
+            const data = (await response.json()) as { entries?: GratitudeEntry[] };
+            if (Array.isArray(data.entries)) {
+              persistedEntries = data.entries;
+            }
+            setGratitudeSyncStatus("synced");
+          } else {
+            setGratitudeSyncStatus("failed");
+          }
+        } catch {
+          setGratitudeSyncStatus("failed");
+        }
+      }
+
+      setGratitudeEntries(persistedEntries);
+      const stored = await persistGratitudeEntries(persistedEntries);
       if (!stored.stored) {
         setStatusMessage('Saved in this session, but your browser storage is full. Export or share soon so nothing is lost.');
       }
@@ -10609,6 +10714,29 @@ export function AletheiaApp() {
     setGratitudeEntries((current) => {
       const nextEntries = current.map((entry) => entry.id === id ? { ...entry, ...patch } : entry);
       void persistGratitudeEntries(nextEntries);
+
+      if (user && GRATITUDE_SYNC_ENABLED) {
+        const nextEntry = nextEntries.find((entry) => entry.id === id);
+        if (nextEntry) {
+          setGratitudeSyncStatus("syncing");
+          void fetch("/api/gratitude", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ entry: nextEntry }),
+          })
+            .then((response) => {
+              if (response.ok) {
+                setGratitudeSyncStatus("synced");
+              } else {
+                setGratitudeSyncStatus("failed");
+              }
+            })
+            .catch(() => {
+              setGratitudeSyncStatus("failed");
+            });
+        }
+      }
+
       return nextEntries;
     });
   }
@@ -10637,7 +10765,21 @@ export function AletheiaApp() {
     );
   }
 
-  function deleteGratitudeEntry(id: string) {
+  async function deleteGratitudeEntry(id: string) {
+    if (user && GRATITUDE_SYNC_ENABLED) {
+      try {
+        setGratitudeSyncStatus("syncing");
+        const response = await fetch(`/api/gratitude/${id}`, { method: "DELETE" });
+        if (!response.ok) {
+          setGratitudeSyncStatus("failed");
+        } else {
+          setGratitudeSyncStatus("synced");
+        }
+      } catch {
+        setGratitudeSyncStatus("failed");
+      }
+    }
+
     const nextEntries = gratitudeEntries.filter((entry) => entry.id !== id);
     setGratitudeEntries(nextEntries);
     void persistGratitudeEntries(nextEntries);
@@ -11671,6 +11813,8 @@ export function AletheiaApp() {
                       ts={ts}
                       entries={journalEntries}
                       gratitudeEntries={gratitudeEntries}
+                      gratitudeSyncStatus={gratitudeSyncStatus}
+                      signedIn={Boolean(user)}
                       title={journalTitle}
                       body={journalBody}
                       setTitle={setJournalTitle}
@@ -13717,14 +13861,70 @@ function ContextualNextAction({
 }
 
 function InfoHint({ text, theme }: { text: string; theme: ThemeColors }) {
+  const [open, setOpen] = useState(false);
+  const tooltipId = useId();
+  const wrapperRef = useRef<HTMLSpanElement | null>(null);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    function closeIfOutside(event: MouseEvent | TouchEvent) {
+      const target = event.target as Node | null;
+      if (target && wrapperRef.current && !wrapperRef.current.contains(target)) {
+        setOpen(false);
+      }
+    }
+
+    function closeOnEscape(event: globalThis.KeyboardEvent) {
+      if (event.key === "Escape") {
+        setOpen(false);
+      }
+    }
+
+    window.addEventListener("mousedown", closeIfOutside);
+    window.addEventListener("touchstart", closeIfOutside, { passive: true });
+    window.addEventListener("keydown", closeOnEscape);
+
+    return () => {
+      window.removeEventListener("mousedown", closeIfOutside);
+      window.removeEventListener("touchstart", closeIfOutside);
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [open]);
+
+  if (!text?.trim()) {
+    return null;
+  }
+
   return (
-    <span
-      className="inline-flex size-5 shrink-0 items-center justify-center rounded-full border text-[11px] font-semibold"
-      style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
-      title={text}
-      aria-label={text}
-    >
-      i
+    <span ref={wrapperRef} className="relative inline-flex shrink-0">
+      <button
+        type="button"
+        className="inline-flex size-5 items-center justify-center rounded-full border text-[11px] font-semibold"
+        style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
+        aria-label={text}
+        aria-expanded={open}
+        aria-controls={open ? tooltipId : undefined}
+        onClick={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          setOpen((current) => !current);
+        }}
+      >
+        i
+      </button>
+      {open ? (
+        <span
+          id={tooltipId}
+          role="tooltip"
+          className="absolute left-1/2 top-[calc(100%+0.45rem)] z-30 w-56 -translate-x-1/2 rounded-xl border px-3 py-2 text-left text-xs font-normal leading-5 shadow-lg"
+          style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}
+        >
+          {text}
+        </span>
+      ) : null}
     </span>
   );
 }
@@ -14425,9 +14625,9 @@ function AccountShareCard({
             <Share2 size={18} />
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{ts('share.accountShareBodyTitle')}</p>
-            <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
-              {ts('share.accountShareBody')}
+            <p className="inline-flex items-center gap-2 text-sm font-semibold" style={{ color: theme.textPrimary }}>
+              <span>{ts('share.accountShareBodyTitle')}</span>
+              <InfoHint text={ts('share.accountShareBody')} theme={theme} />
             </p>
           </div>
         </div>
@@ -14483,9 +14683,12 @@ function SupportMissionCard({
             </div>
             <div className="min-w-0">
               <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('supportMission.eyebrow')}</p>
-              <h3 className="mt-1.5 text-lg font-semibold sm:text-xl" style={{ color: theme.textPrimary }}>{ts('supportMission.cardTitle')}</h3>
+              <h3 className="mt-1.5 inline-flex items-center gap-2 text-lg font-semibold sm:text-xl" style={{ color: theme.textPrimary }}>
+                <span>{ts('supportMission.cardTitle')}</span>
+                <InfoHint text={ts('supportMission.body')} theme={theme} />
+              </h3>
               <p className="mt-1.5 text-sm leading-5" style={{ color: theme.textSecondary }}>
-                {ts('supportMission.body')}
+                {ts('supportMission.summary')}
               </p>
             </div>
           </div>
@@ -14956,11 +15159,11 @@ function AccountPersonalizationPanel({
                 {ts('labels.accountPersonalizationTitle')}
               </p>
               <h3 className="mt-1 text-lg font-semibold sm:text-xl" style={{ color: theme.textPrimary }}>
-                {ts('labels.personalizeAletheia')}
+                <span className="inline-flex items-center gap-2">
+                  <span>{ts('labels.personalizeAletheia')}</span>
+                  <InfoHint text={ts('labels.accountPersonalizationSummary')} theme={theme} />
+                </span>
               </h3>
-              <p className="mt-2 max-w-2xl text-sm leading-6" style={{ color: theme.textSecondary }}>
-                {ts('labels.accountPersonalizationSummary')}
-              </p>
             </div>
           </div>
 
@@ -15465,11 +15668,11 @@ function TrustCenterCard({
         <div className="min-w-0 flex-1">
           <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.trustCenterTitle')}</p>
           <h3 className="mt-1 text-lg font-semibold sm:text-xl" style={{ color: theme.textPrimary }}>
-            {ts('labels.accountTrustPostureTitle')}
+            <span className="inline-flex items-center gap-2">
+              <span>{ts('labels.accountTrustPostureTitle')}</span>
+              <InfoHint text={ts('labels.accountTrustPostureSummary')} theme={theme} />
+            </span>
           </h3>
-          <p className="mt-2 max-w-2xl text-sm leading-6" style={{ color: theme.textSecondary }}>
-            {ts('labels.accountTrustPostureSummary')}
-          </p>
         </div>
         <span className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold uppercase tracking-[0.08em]" style={{ color: theme.textSecondary }}>
           {open ? ts('hideDetails') : ts('showDetails')}
@@ -16241,10 +16444,12 @@ function ManualContextPanel({
                 </div>
                 <div className="min-w-0">
                   <p className="text-xs font-semibold uppercase tracking-[0.12em] sm:tracking-[0.16em]" style={{ color: theme.accentGold }}>{manualCopy.privacyPosture}</p>
-                  <h3 className="mt-2 text-2xl font-semibold sm:text-[2rem]" style={{ color: theme.textPrimary }}>{manualCopy.title}</h3>
-                  <p className="mt-2 max-w-2xl text-sm leading-6 sm:text-[15px]" style={{ color: theme.textSecondary }}>
-                    {manualCopy.intro}
-                  </p>
+                  <h3 className="mt-2 text-2xl font-semibold sm:text-[2rem]" style={{ color: theme.textPrimary }}>
+                    <span className="inline-flex items-center gap-2">
+                      <span>{manualCopy.title}</span>
+                      <InfoHint text={manualCopy.intro} theme={theme} />
+                    </span>
+                  </h3>
                 </div>
               </div>
             </div>
@@ -21058,6 +21263,8 @@ function ReflectPanel({
   ts,
   entries,
   gratitudeEntries,
+  gratitudeSyncStatus,
+  signedIn,
   title,
   body,
   setTitle,
@@ -21085,6 +21292,8 @@ function ReflectPanel({
   ts: (key: string, fallback?: string) => string;
   entries: JournalEntry[];
   gratitudeEntries: GratitudeEntry[];
+  gratitudeSyncStatus: GratitudeSyncStatus;
+  signedIn: boolean;
   title: string;
   body: string;
   setTitle: (value: string) => void;
@@ -21167,6 +21376,8 @@ function ReflectPanel({
       {reflectSection === "gratitude" ? (
         <GratitudeLensPanel
           entries={gratitudeEntries}
+          syncStatus={gratitudeSyncStatus}
+          signedIn={signedIn}
           language={language}
           ts={ts}
           theme={theme}
@@ -21215,6 +21426,8 @@ function Signal({ active, label, theme }: { active: boolean; label: string; them
 
 function GratitudeLensPanel({
   entries,
+  syncStatus,
+  signedIn,
   language,
   ts,
   theme,
@@ -21224,6 +21437,8 @@ function GratitudeLensPanel({
   onUseAsReflection,
 }: {
   entries: GratitudeEntry[];
+  syncStatus: GratitudeSyncStatus;
+  signedIn: boolean;
   language: LanguageCode;
   ts: (key: string, fallback?: string) => string;
   theme: ThemeColors;
@@ -21313,7 +21528,15 @@ function GratitudeLensPanel({
   const visibleTimelineEntries = entries.slice(0, 6);
   const olderTimelineEntries = entries.slice(6);
   const summary = entries.length
-    ? `${entries.length} ${entries.length === 1 ? ts('labels.gratitudeMoment') : ts('labels.gratitudeMoments')} · ${ts('labels.localOnly')}`
+    ? `${entries.length} ${entries.length === 1 ? ts('labels.gratitudeMoment') : ts('labels.gratitudeMoments')} · ${
+      !signedIn
+        ? ts('labels.localOnly')
+        : syncStatus === "synced"
+          ? ts('labels.accountSyncActive', 'Sync active.')
+          : syncStatus === "syncing"
+            ? `${ts('labels.sync', 'Sync')}...`
+            : ts('labels.notSynced', 'Not synced')
+    }`
     : ts('labels.gratitudeEmptySummary');
   const weeklyEntries = entries.filter((entry) => {
     const entryTime = new Date(entry.createdAt).getTime();
@@ -21632,7 +21855,13 @@ function GratitudeLensPanel({
                 </p>
               </div>
               <span className="shrink-0 rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
-                {ts('labels.localOnly')}
+                {!signedIn
+                  ? ts('labels.localOnly')
+                  : syncStatus === "synced"
+                    ? ts('labels.active', 'Active')
+                    : syncStatus === "syncing"
+                      ? `${ts('labels.sync', 'Sync')}...`
+                      : ts('labels.notSynced', 'Not synced')}
               </span>
             </div>
             <p className="mt-2 text-xs leading-5" style={{ color: theme.textSecondary }}>

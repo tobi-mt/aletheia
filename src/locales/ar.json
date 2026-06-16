@@ -1615,5 +1615,36 @@
   "accountFormationPrefix": "التكوين",
   "accountQuietMilestoneSingular": "الإنجاز الهادئ",
   "accountQuietMilestonePlural": "المعالم الهادئة",
-  "accountFormationSummary": "تم إخفاء المعالم الرئيسية الهادئة حتى ترغب في مراجعة النمو بمرور الوقت."
+  "accountFormationSummary": "تم إخفاء المعالم الرئيسية الهادئة حتى ترغب في مراجعة النمو بمرور الوقت.",
+  "challenges": {
+    "eyebrow": "ممارسات التكوين",
+    "sectionTitle": "ممارسات التكوين",
+    "sectionSummary": "ممارسات متعددة الأيام لبناء عادات الحكمة والامتنان والتمييز.",
+    "startChallenge": "ابدأ الممارسة",
+    "continueChallenge": "المتابعة",
+    "completedChallenge": "مكتمل",
+    "dayLabel": "اليوم {day}",
+    "dayOf": "اليوم {day} من {total}",
+    "daysCompleted": "{count} من {total} أيام",
+    "markComplete": "ضع علامة على اليوم الحالي كمكتمل",
+    "reflectionPlaceholder": "اختياري: اكتب ملاحظة قصيرة عن ممارسة اليوم…",
+    "saveReflection": "احفظ وضع علامة كمكتمل",
+    "shareChallenge": "شارك هذه الممارسة",
+    "shareChallengeBody": "انضم إلي في ممارسة {days} أيام على Aletheia.",
+    "noProgressYet": "ابدأ باليوم 1 عندما تكون مستعداً.",
+    "allDaysComplete": "تم إكمال جميع {total} أيام. عمل رائع.",
+    "signInToTrack": "سجل الدخول لتتبع تقدمك عبر الأجهزة.",
+    "gratitude3day": {
+      "title": "ممارسة الامتنان لمدة 3 أيام",
+      "description": "ثلاثة أيام من الملاحظة الهادئة — هدية عادية، حضور ثابت، منطقة ينمو فيها الرضا."
+    },
+    "waiting5day": {
+      "title": "ممارسة الانتظار لمدة 5 أيام",
+      "description": "خمسة أيام من التمسك برقة بقرار — تسمية الاستعجالية، إيجاد الخوف تحتها، والانتظار حتى تستقر الحكمة."
+    },
+    "stewardship7day": {
+      "title": "ممارسة الوكالة لمدة 7 أيام",
+      "description": "سبعة أيام من المحاسبة الصادقة — ما أُعطيت، حيث تشكل العجلة الاختيارات، وما يعني الكفاية الآن."
+    }
+  }
 }

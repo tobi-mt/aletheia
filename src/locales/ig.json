@@ -1618,5 +1618,36 @@
   "accountFormationPrefix": "Mmepe",
   "accountQuietMilestoneSingular": "akara mmepe",
   "accountQuietMilestonePlural": "akara mmepe",
-  "accountFormationSummary": "A na-edobe akara mmepe nwayọọ ruo mgbe ịchọrọ ile ha."
+  "accountFormationSummary": "A na-edobe akara mmepe nwayọọ ruo mgbe ịchọrọ ile ha.",
+  "challenges": {
+    "eyebrow": "Omume Mmepe",
+    "sectionTitle": "Omume Mmepe",
+    "sectionSummary": "Omume ụbọchị ụmụ maka iwu amamihe, ekele, na nmata.",
+    "startChallenge": "Malite omume",
+    "continueChallenge": "Gaa n'ihu",
+    "completedChallenge": "Ezubere",
+    "dayLabel": "Ụbọchị {day}",
+    "dayOf": "Ụbọchị {day} nke {total}",
+    "daysCompleted": "{count} nke {total} ụbọchị",
+    "markComplete": "Depụta taa ka ezubere",
+    "reflectionPlaceholder": "Nke ọzọ: dee isiokwu mkpụmkpụ gbasara omume taa…",
+    "saveReflection": "Bokota ma depụta ka ezubere",
+    "shareChallenge": "Kesaa omume a",
+    "shareChallengeBody": "Sonyere m na {days}-ụbọchị omume na Aletheia.",
+    "noProgressYet": "Malite site na Ụbọchị 1 mgbe i dị njikere.",
+    "allDaysComplete": "Nile {total} ụbọchị ezubere. Ọ dị mma.",
+    "signInToTrack": "Banye iji lelee ihu gị na ngwaike.",
+    "gratitude3day": {
+      "title": "Ekele 3-ụbọchị",
+      "description": "Ụbọchị atọ nke ịtụ anya udio — onyinye e meerụ, ọkụ were, ebe ihu na-eto."
+    },
+    "waiting5day": {
+      "title": "Ire 5-ụbọchị",
+      "description": "Ụbọchị ise nke iji azụ ịkpebi agwa — kpọ obi mgbawa, chọta ụjọ, ma chere ka amamihe ndịrị."
+    },
+    "stewardship7day": {
+      "title": "Ịama ihe 7-ụbọchị",
+      "description": "Ụbọchị asaa nke ebubo - ihe i natara, ebe oso na-etu mmepu, na ihe asaa bu ugbu a."
+    }
+  }
 }

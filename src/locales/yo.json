@@ -1619,5 +1619,36 @@
   "accountFormationPrefix": "Ìdàgbàsókè",
   "accountQuietMilestoneSingular": "àmì ìdàgbàsókè",
   "accountQuietMilestonePlural": "àmì ìdàgbàsókè",
-  "accountFormationSummary": "Àwọn àmì ìdàgbàsókè wà ní ìpamọ́ títí tí o bá fẹ́ wo wọn."
+  "accountFormationSummary": "Àwọn àmì ìdàgbàsókè wà ní ìpamọ́ títí tí o bá fẹ́ wo wọn.",
+  "challenges": {
+    "eyebrow": "Àwọn i'ṣẹ́ Ìdàgbàsókè",
+    "sectionTitle": "Àwọn i'ṣẹ́ Ìdàgbàsókè",
+    "sectionSummary": "Àwọn i'ṣẹ́ tó wúlọ ọjọ́ lati kọ́ àwọn ẹkọ ti o'u'kọ́wé, àdúràdúrà, àti igbàgbọ́.",
+    "startChallenge": "Bẹ̀rẹ̀ i'ṣẹ́",
+    "continueChallenge": "Tẹ́síwájú",
+    "completedChallenge": "Tan",
+    "dayLabel": "Ọjọ́ {day}",
+    "dayOf": "Ọjọ́ {day} nínú {total}",
+    "daysCompleted": "{count} nínú {total} ọjọ́",
+    "markComplete": "Sọ ọjọ́ òní mọ́ pé ó tan",
+    "reflectionPlaceholder": "Àpò: kọ ìtójú kíkídi nípá i'ṣẹ́ òní…",
+    "saveReflection": "Tójú àti sọ mọ́ pé ó tan",
+    "shareChallenge": "Pín i'ṣẹ́ yi'",
+    "shareChallengeBody": "Báre mí nínú {days}-ọjọ́ i'ṣẹ́ lórí Aletheia.",
+    "noProgressYet": "Bẹ̀rẹ̀ látí Ọjọ́ 1 nígbà tó bá ṣetan.",
+    "allDaysComplete": "Gbogbo {total} ọjọ́ tan. Oníere.",
+    "signInToTrack": "Wọlé láti ìbáṣepò rẹ lórí gbogbo ìṣẹ́lẹ̀.",
+    "gratitude3day": {
+      "title": "Àdúràdúrà 3-Ọjọ́",
+      "description": "Ọjọ́ mẹ́ta ti ṣíṣẹ́ àlúmọ́ — ẹbun ìbàjẹ́, ìwọ̀yaĺẹ̀ ìfáradà, ibẹ̀ tí owúnrí ń dagba."
+    },
+    "waiting5day": {
+      "title": "Ìgbìn 5-Ọjọ́",
+      "description": "Ọjọ́ márùn-ún ti múra ìpinnu – kpò ìfarabale, tí a bá rí ìbàjẹ́ dé áb́ẹ̀, àti ìgbìn o'u'kọ́wé dúró."
+    },
+    "stewardship7day": {
+      "title": "Ìtójú 7-Ọjọ́",
+      "description": "Ọjọ́ méje ti ìtó òro – ohun tí o ti fún fún, ibẹ̀ tí ìyára ń ṣe àwọn ètò, àti ohun tí ó lẹ́wà lóní."
+    }
+  }
 }

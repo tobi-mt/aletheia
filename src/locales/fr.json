@@ -1626,5 +1626,36 @@
   "accountFormationPrefix": "Formation",
   "accountQuietMilestoneSingular": "jalon discret",
   "accountQuietMilestonePlural": "jalons discrets",
-  "accountFormationSummary": "Les jalons discrets restent repliés jusqu’à ce que vous vouliez revoir votre croissance."
+  "accountFormationSummary": "Les jalons discrets restent repliés jusqu’à ce que vous vouliez revoir votre croissance.",
+  "challenges": {
+    "eyebrow": "Pratiques de formation",
+    "sectionTitle": "Pratiques de formation",
+    "sectionSummary": "Des pratiques de plusieurs jours pour construire des habitudes de sagesse, de gratitude et de discernement.",
+    "startChallenge": "Commencer la pratique",
+    "continueChallenge": "Continuer",
+    "completedChallenge": "Complété",
+    "dayLabel": "Jour {day}",
+    "dayOf": "Jour {day} sur {total}",
+    "daysCompleted": "{count} sur {total} jours",
+    "markComplete": "Marquer aujourd'hui comme complété",
+    "reflectionPlaceholder": "Optionnel : écris une brève note sur la pratique d'aujourd'hui…",
+    "saveReflection": "Enregistrer et marquer comme complété",
+    "shareChallenge": "Partager cette pratique",
+    "shareChallengeBody": "Rejoins-moi pour cette pratique de {days} jours sur Aletheia.",
+    "noProgressYet": "Commence avec le Jour 1 quand tu seras prêt.",
+    "allDaysComplete": "Les {total} jours sont complétés. Bien joué.",
+    "signInToTrack": "Connecte-toi pour suivre ta progression sur tous les appareils.",
+    "gratitude3day": {
+      "title": "Pratique de gratitude de 3 jours",
+      "description": "Trois jours de remarques tranquilles — un don ordinaire, une présence stable, un domaine où la satisfaction grandit."
+    },
+    "waiting5day": {
+      "title": "Pratique d'attente de 5 jours",
+      "description": "Cinq jours à tenir une décision ferme — nommer l'urgence, trouver la peur en dessous, et attendre que la sagesse s'installe."
+    },
+    "stewardship7day": {
+      "title": "Pratique d'intendance de 7 jours",
+      "description": "Sept jours d'honnête comptabilité — ce qui t'a été donné, où la précipitation façonne les choix, et ce que suffisant ressemble maintenant."
+    }
+  }
 }

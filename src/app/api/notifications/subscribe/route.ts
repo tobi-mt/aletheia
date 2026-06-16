@@ -4,7 +4,7 @@ import { requireUser } from "@/lib/auth";
 import { trackServerEvent } from "@/lib/analytics";
 import { apiError } from "@/lib/api-errors";
 import { run } from "@/lib/db";
-import { isPushConfigured } from "@/lib/notifications";
+import { isPushConfigured, sendTestWisdomNotification } from "@/lib/notifications";
 
 export async function POST(request: Request) {
   if (!isPushConfigured()) {
@@ -133,7 +133,25 @@ export async function POST(request: Request) {
       metadata: { preferredHour, preferredLocalHour, preferredTimezone, timezoneMode, deliveryStrategy },
     });
 
-    return NextResponse.json({ ok: true });
+    const verification = await sendTestWisdomNotification(user.id)
+      .then((result) => ({
+        attempted: result.attempted,
+        sent: result.sent,
+        failed: result.failed,
+      }))
+      .catch(() => ({
+        attempted: 0,
+        sent: 0,
+        failed: 0,
+      }));
+
+    await trackServerEvent({
+      userId: user.id,
+      eventName: "notification_subscription_verified",
+      metadata: verification,
+    }).catch(() => undefined);
+
+    return NextResponse.json({ ok: true, verification });
   } catch {
     return apiError(401, "sign_in_required", "Sign in to enable notifications.");
   }

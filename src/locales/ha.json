@@ -1618,5 +1618,36 @@
   "accountFormationPrefix": "Girma",
   "accountQuietMilestoneSingular": "alamar girma",
   "accountQuietMilestonePlural": "alamun girma",
-  "accountFormationSummary": "Alamun girma suna ɓoye cikin natsuwa har sai kana son dubawa."
+  "accountFormationSummary": "Alamun girma suna ɓoye cikin natsuwa har sai kana son dubawa.",
+  "challenges": {
+    "eyebrow": "Ayyukan Girma",
+    "sectionTitle": "Ayyukan Girma",
+    "sectionSummary": "Ayyukan kwanaki-kwanaki don gina aladu na hikima, godiya, da fahimi.",
+    "startChallenge": "Fara aiki",
+    "continueChallenge": "Ci gaba",
+    "completedChallenge": "Gama",
+    "dayLabel": "Rana {day}",
+    "dayOf": "Rana {day} daga {total}",
+    "daysCompleted": "{count} daga {total} ranaku",
+    "markComplete": "Al'ali yau a ciki",
+    "reflectionPlaceholder": "Zaida: rubuta ɗaramin bayanin game da aiki na jiya…",
+    "saveReflection": "Adana da al'ali a ciki",
+    "shareChallenge": "Raba wannan aiki",
+    "shareChallengeBody": "Shiga ni a cikin {days}-rana aiki akan Aletheia.",
+    "noProgressYet": "Fara da Rana 1 lokacin da kake shirya.",
+    "allDaysComplete": "Duk {total} ranaku gama. Sannu sosai.",
+    "signInToTrack": "Shiga don seguida ci gaban ku a cikin na'uro.",
+    "gratitude3day": {
+      "title": "Godiya 3-Rana",
+      "description": "Ranaku ukuta da kimanta natsuwa — kyakya na yau da kullum, tsayuwar tsaye, wuri da kusumsa ke girma."
+    },
+    "waiting5day": {
+      "title": "Jira 5-Rana",
+      "description": "Ranaku biyar na tsaye shawara — kirga jajirga, neman tsoron jikin, da jira hikima ta tsaya."
+    },
+    "stewardship7day": {
+      "title": "Aikin Gida 7-Rana",
+      "description": "Ranaku bakwai na tunanin gatari — abin da aka bayar maka, inda sauri ke katawa yakamata, da abin da isasshe yake jimawa."
+    }
+  }
 }

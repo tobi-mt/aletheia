@@ -1615,5 +1615,36 @@
   "accountFormationPrefix": "Pagbuo",
   "accountQuietMilestoneSingular": "tahimik na milestone",
   "accountQuietMilestonePlural": "tahimik na mga milestone",
-  "accountFormationSummary": "Ang mga tahimik na milestone ay nakatago hanggang sa gusto mong suriin ang paglago sa paglipas ng panahon."
+  "accountFormationSummary": "Ang mga tahimik na milestone ay nakatago hanggang sa gusto mong suriin ang paglago sa paglipas ng panahon.",
+  "challenges": {
+    "eyebrow": "Mga Ehersisyo sa Pagbuo",
+    "sectionTitle": "Mga Ehersisyo sa Pagbuo",
+    "sectionSummary": "Mga maraming araw na ehersisyo upang bumuo ng mga ugali ng karunungan, pasasalamat, at diskernimento.",
+    "startChallenge": "Simulan ang ehersisyo",
+    "continueChallenge": "Magpatuloy",
+    "completedChallenge": "Tapos",
+    "dayLabel": "Araw {day}",
+    "dayOf": "Araw {day} ng {total}",
+    "daysCompleted": "{count} ng {total} araw",
+    "markComplete": "Markahan ang ngayon bilang tapos",
+    "reflectionPlaceholder": "Opsyonal: sumulat ng maikling tala tungkol sa ehersisyo ngayon…",
+    "saveReflection": "I-save at markahan bilang tapos",
+    "shareChallenge": "Ibahagi ang ehersisyong ito",
+    "shareChallengeBody": "Sumali sa amin sa {days}-araw na ehersisyo sa Aletheia.",
+    "noProgressYet": "Magsimula sa Araw 1 kapag handa ka na.",
+    "allDaysComplete": "Lahat ng {total} araw ay tapos. Napakaganda.",
+    "signInToTrack": "Mag-sign in upang subaybayan ang iyong pag-unlad sa lahat ng mga kagamitan.",
+    "gratitude3day": {
+      "title": "3-araw na pasasalamat na ehersisyo",
+      "description": "Tatlong araw ng mahabang pagmamahal — isang ordinaryong regalo, isang patuloy na pagkilala, isang lugar kung saan lumalaki ang kaligayahan."
+    },
+    "waiting5day": {
+      "title": "5-araw na naghihintay na ehersisyo",
+      "description": "Limang araw ng paghawak ng desisyon — pagpapangalan ng siguro, paghahanap ng takot, at paghihintay na ang karunungan ay magsisiguro."
+    },
+    "stewardship7day": {
+      "title": "7-araw na pangangalaga ng ehersisyo",
+      "description": "Pitong araw ng tapat na pagsusugal — ang ibinigay sa iyo, kung saan nagpapabago ang bilisan ang mga pagpipilian, at ang sapat na hitsura ngayon."
+    }
+  }
 }

@@ -1626,5 +1626,36 @@
   "accountFormationPrefix": "Formación",
   "accountQuietMilestoneSingular": "hito tranquilo",
   "accountQuietMilestonePlural": "hitos tranquilos",
-  "accountFormationSummary": "Los hitos tranquilos quedan guardados hasta que quieras revisar tu crecimiento."
+  "accountFormationSummary": "Los hitos tranquilos quedan guardados hasta que quieras revisar tu crecimiento.",
+  "challenges": {
+    "eyebrow": "Prácticas de formación",
+    "sectionTitle": "Prácticas de formación",
+    "sectionSummary": "Prácticas de varios días para construir hábitos de sabiduría, gratitud y discernimiento.",
+    "startChallenge": "Comenzar práctica",
+    "continueChallenge": "Continuar",
+    "completedChallenge": "Completado",
+    "dayLabel": "Día {day}",
+    "dayOf": "Día {day} de {total}",
+    "daysCompleted": "{count} de {total} días",
+    "markComplete": "Marcar hoy como completo",
+    "reflectionPlaceholder": "Opcional: escribe una breve nota sobre la práctica de hoy…",
+    "saveReflection": "Guardar y marcar como completo",
+    "shareChallenge": "Compartir esta práctica",
+    "shareChallengeBody": "Únete a mí en esta práctica de {days} días en Aletheia.",
+    "noProgressYet": "Comienza con el Día 1 cuando estés listo.",
+    "allDaysComplete": "Todos los {total} días completados. Bien hecho.",
+    "signInToTrack": "Inicia sesión para rastrear tu progreso en todos los dispositivos.",
+    "gratitude3day": {
+      "title": "Práctica de gratitud de 3 días",
+      "description": "Tres días de noticia tranquila — un regalo ordinario, una presencia firme, un área donde la satisfacción está creciendo."
+    },
+    "waiting5day": {
+      "title": "Práctica de espera de 5 días",
+      "description": "Cinco días manteniendo una decisión firme — nombrando la urgencia, encontrando el miedo debajo, y esperando a que la sabiduría se asiente."
+    },
+    "stewardship7day": {
+      "title": "Práctica de mayordomía de 7 días",
+      "description": "Siete días de contabilidad honesta — lo que se te ha dado, dónde la prisa está moldeando decisiones, y qué significa suficiente ahora mismo."
+    }
+  }
 }

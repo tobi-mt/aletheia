@@ -134,15 +134,23 @@ self.addEventListener("notificationclick", (event) => {
           },
         }),
       }),
-      self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
-      for (const client of clients) {
-        if ("focus" in client) {
-          client.navigate(targetUrl);
-          return client.focus();
+      self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(async (clients) => {
+        for (const client of clients) {
+          if (!("focus" in client)) {
+            continue;
+          }
+          try {
+            if ("navigate" in client) {
+              await client.navigate(targetUrl);
+            }
+            await client.focus();
+            return;
+          } catch {
+            // Continue trying other clients before opening a new window.
+          }
         }
-      }
 
-      return self.clients.openWindow(targetUrl);
+        await self.clients.openWindow(targetUrl);
       }),
     ])
   );
