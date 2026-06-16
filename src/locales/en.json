@@ -1556,5 +1556,36 @@
   "weeklyReviewHeading": "Your Weekly Review",
   "carryWithMe": "Carry with me",
   "askAboutThis": "Ask about this",
-  "saveToRuleOfLife": "Save to Rule of Life"
+  "saveToRuleOfLife": "Save to Rule of Life",
+  "challenges": {
+    "eyebrow": "Formations",
+    "sectionTitle": "Formation Practices",
+    "sectionSummary": "Multi-day practices to build wisdom, gratitude, and discernment habits.",
+    "startChallenge": "Begin practice",
+    "continueChallenge": "Continue",
+    "completedChallenge": "Completed",
+    "dayLabel": "Day {day}",
+    "dayOf": "Day {day} of {total}",
+    "daysCompleted": "{count} of {total} days",
+    "markComplete": "Mark today complete",
+    "reflectionPlaceholder": "Optional: write a brief note about today's practice…",
+    "saveReflection": "Save and mark complete",
+    "shareChallenge": "Share this practice",
+    "shareChallengeBody": "Join me in this {days}-day practice on Aletheia.",
+    "noProgressYet": "Start with Day 1 whenever you are ready.",
+    "allDaysComplete": "All {total} days complete. Well done.",
+    "signInToTrack": "Sign in to track your progress across devices.",
+    "gratitude3day": {
+      "title": "3-Day Gratitude Practice",
+      "description": "Three days of quiet noticing — one ordinary gift, one steady presence, one area where contentment is growing."
+    },
+    "waiting5day": {
+      "title": "5-Day Waiting Practice",
+      "description": "Five days of holding a decision steady — naming the urgency, finding the fear beneath it, and waiting for wisdom to settle."
+    },
+    "stewardship7day": {
+      "title": "7-Day Stewardship Practice",
+      "description": "Seven days of honest accounting — what you have been given, where haste is shaping choices, and what enough looks like right now."
+    }
+  }
 }

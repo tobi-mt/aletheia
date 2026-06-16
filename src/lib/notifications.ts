@@ -1369,6 +1369,307 @@ export async function sendDailyWisdomNotifications() {
   };
 }
 
+export async function sendChallengeReminders(now = new Date()): Promise<{
+  attempted: number;
+  sent: number;
+  failed: number;
+  suggested: number;
+}> {
+  configureWebPush();
+
+  const { challengeDefinitions, getChallengeById } = await import("@/lib/challenge-data");
+
+  // ------------------------------------------------------------------
+  // 1. Load all enabled push subscriptions with timing and language
+  // ------------------------------------------------------------------
+  type ChallengeRow = PushRow & { last_challenge_notified_at: string | null };
+
+  const allRows = await many<ChallengeRow>(
+    `SELECT push_subscriptions.id, push_subscriptions.user_id, endpoint, p256dh, auth,
+            preferred_hour, preferred_local_hour, preferred_timezone, delivery_strategy,
+            last_sent_at, last_gratitude_sent_at, last_challenge_notified_at,
+            user_preferences.language, user_preferences.region, user_preferences.bible_translation,
+            user_preferences.voice_enabled
+     FROM push_subscriptions
+     LEFT JOIN user_preferences ON user_preferences.user_id = push_subscriptions.user_id
+     WHERE push_subscriptions.enabled = TRUE`
+  );
+
+  if (allRows.length === 0) {
+    return { attempted: 0, sent: 0, failed: 0, suggested: 0 };
+  }
+
+  // ------------------------------------------------------------------
+  // 2. Respect the user's preferred notification hour + dedup per day
+  // ------------------------------------------------------------------
+  const dueRows = allRows.filter((row) => {
+    const localHour = localHourForTimezone(now, row.preferred_timezone);
+    const preferredLocalHour = Number.isInteger(row.preferred_local_hour)
+      ? Math.min(23, Math.max(0, Number(row.preferred_local_hour)))
+      : Math.min(23, Math.max(0, Number(row.preferred_hour ?? 8)));
+    if (localHour < preferredLocalHour) return false;
+
+    // Deduplicate: only one challenge nudge per local calendar day
+    if (row.last_challenge_notified_at) {
+      const alreadySentToday =
+        localDateForTimezone(new Date(row.last_challenge_notified_at), row.preferred_timezone) ===
+        localDateForTimezone(now, row.preferred_timezone);
+      if (alreadySentToday) return false;
+    }
+    return true;
+  });
+
+  if (dueRows.length === 0) {
+    return { attempted: 0, sent: 0, failed: 0, suggested: 0 };
+  }
+
+  // ------------------------------------------------------------------
+  // 3. Load active challenge progress per user (started, not finished)
+  // ------------------------------------------------------------------
+  const userIds = [...new Set(dueRows.map((r) => r.user_id))];
+
+  const progressRows = await many<{
+    user_id: string;
+    challenge_id: string;
+    days_completed: string;
+    last_completed_at: string;
+  }>(
+    `SELECT user_id, challenge_id, COUNT(*) as days_completed,
+            MAX(completed_at) as last_completed_at
+     FROM challenge_progress
+     WHERE user_id = ANY(?)
+     GROUP BY user_id, challenge_id`,
+    userIds
+  );
+
+  type ProgressMap = Map<string, { challengeId: string; daysCompleted: number; lastCompletedAt: Date }[]>;
+  const progressByUser: ProgressMap = new Map();
+  for (const row of progressRows) {
+    const bucket = progressByUser.get(row.user_id) ?? [];
+    bucket.push({
+      challengeId: row.challenge_id,
+      daysCompleted: Number(row.days_completed),
+      lastCompletedAt: new Date(row.last_completed_at),
+    });
+    progressByUser.set(row.user_id, bucket);
+  }
+
+  // ------------------------------------------------------------------
+  // 4. Smart suggestion: pick the best challenge for users with none
+  //    active, based on their recent mode usage and decision activity
+  // ------------------------------------------------------------------
+  const usersWithNoActive = userIds.filter((uid) => {
+    const progress = progressByUser.get(uid) ?? [];
+    return !progress.some((p) => {
+      const def = getChallengeById(p.challengeId);
+      return def && p.daysCompleted < def.totalDays;
+    });
+  });
+
+  type ModeTallyRow = { user_id: string; mode: string; count: string };
+  const modeTallies = usersWithNoActive.length > 0
+    ? await many<ModeTallyRow>(
+        `SELECT user_id, mode, COUNT(*) as count
+         FROM chat_messages
+         WHERE user_id = ANY(?)
+           AND created_at >= NOW() - INTERVAL '30 days'
+         GROUP BY user_id, mode`,
+        usersWithNoActive
+      )
+    : [];
+
+  type ActiveDecisionRow = { user_id: string };
+  const activeDecisionUsers = usersWithNoActive.length > 0
+    ? new Set(
+        (await many<ActiveDecisionRow>(
+          `SELECT DISTINCT user_id FROM wisdom_decisions
+           WHERE user_id = ANY(?) AND status = 'discerning'`,
+          usersWithNoActive
+        )).map((r) => r.user_id)
+      )
+    : new Set<string>();
+
+  // Tally modes per user
+  const modesByUser = new Map<string, Record<string, number>>();
+  for (const row of modeTallies) {
+    const tally = modesByUser.get(row.user_id) ?? {};
+    tally[row.mode] = (tally[row.mode] ?? 0) + Number(row.count);
+    modesByUser.set(row.user_id, tally);
+  }
+
+  function suggestedChallengeFor(userId: string): string | null {
+    // Active decision → Waiting practice builds discernment
+    if (activeDecisionUsers.has(userId)) return "waiting-5day";
+
+    const modes = modesByUser.get(userId) ?? {};
+    const dominant = Object.entries(modes).sort(([, a], [, b]) => b - a)[0]?.[0];
+    if (dominant === "Money") return "stewardship-7day";
+    if (dominant === "Purpose" || dominant === "Life") return "waiting-5day";
+    if (dominant === "Generosity") return "gratitude-3day";
+
+    // No usage signal → easiest entry point
+    return "gratitude-3day";
+  }
+
+  // ------------------------------------------------------------------
+  // 5. Build per-user notification payload and send
+  // ------------------------------------------------------------------
+  const titlesByLanguage: Record<string, Record<string, string>> = {
+    "gratitude-3day": {
+      en: "3-Day Gratitude Practice",
+      es: "Práctica de gratitud de 3 días",
+      fr: "Pratique de gratitude de 3 jours",
+      pt: "Prática de gratidão de 3 dias",
+      de: "3-Tage-Dankbarkeitspraxis",
+      yo: "Ìdánwò Ìdúpẹ́ ojọ́ mẹ́ta",
+      ig: "Ọmụmụ Ekele ụbọchị 3",
+      ha: "Aikin Godiya na Kwanaki 3",
+      tl: "3-Araw na Pagsasanay sa Pasasalamat",
+      ar: "ممارسة الامتنان لمدة 3 أيام",
+      hi: "3-दिन का कृतज्ञता अभ्यास",
+    },
+    "waiting-5day": {
+      en: "5-Day Waiting Practice",
+      es: "Práctica de espera de 5 días",
+      fr: "Pratique d'attente de 5 jours",
+      pt: "Prática de espera de 5 dias",
+      de: "5-Tage-Wartepraxis",
+      yo: "Ìdánwò Ìdúró ojọ́ márùn-ún",
+      ig: "Ọmụmụ Ichere ụbọchị 5",
+      ha: "Aikin Jira na Kwanaki 5",
+      tl: "5-Araw na Pagsasanay sa Paghihintay",
+      ar: "ممارسة الانتظار لمدة 5 أيام",
+      hi: "5-दिन का प्रतीक्षा अभ्यास",
+    },
+    "stewardship-7day": {
+      en: "7-Day Stewardship Practice",
+      es: "Práctica de mayordomía de 7 días",
+      fr: "Pratique d'intendance de 7 jours",
+      pt: "Prática de mordomia de 7 dias",
+      de: "7-Tage-Haushalterpraxis",
+      yo: "Ìdánwò Ìtọ́jú ojọ́ méje",
+      ig: "Ọmụmụ Nlekọta ụbọchị 7",
+      ha: "Aikin Kulawa na Kwanaki 7",
+      tl: "7-Araw na Pagsasanay sa Pangangalaga",
+      ar: "ممارسة الإشراف لمدة 7 أيام",
+      hi: "7-दिन का प्रबंध अभ्यास",
+    },
+  };
+
+  const continueBodies: Record<string, string> = {
+    en: "Continue today's practice.",
+    es: "Continúa la práctica de hoy.",
+    fr: "Continue la pratique d'aujourd'hui.",
+    pt: "Continue a prática de hoje.",
+    de: "Setze die Praxis von heute fort.",
+    yo: "Tẹ̀síwájú ìṣe ònìí.",
+    ig: "Gaa n'ihu na omume taa.",
+    ha: "Ci gaba da aikin yau.",
+    tl: "Ituloy ang pagsasanay ngayon.",
+    ar: "واصل ممارسة اليوم.",
+    hi: "आज का अभ्यास जारी रखें।",
+  };
+
+  const startBodies: Record<string, string> = {
+    en: "A short practice to build wisdom and formation.",
+    es: "Una práctica breve para cultivar sabiduría y formación.",
+    fr: "Une courte pratique pour cultiver sagesse et formation.",
+    pt: "Uma prática breve para cultivar sabedoria e formação.",
+    de: "Eine kurze Praxis, um Weisheit und Formung zu kultivieren.",
+    yo: "Ìṣe kékeré kan láti kọ ọgbọ́n àti ìdàgbàsókè.",
+    ig: "Obere omume iji mụọ amamihe na nhazi.",
+    ha: "Ɗan karamin aiki don gina hikima da tsarawa.",
+    tl: "Isang maikling pagsasanay para sa karunungan at paghubog.",
+    ar: "ممارسة قصيرة لبناء الحكمة والتكوين.",
+    hi: "ज्ञान और निर्माण के लिए एक संक्षिप्त अभ्यास।",
+  };
+
+  let attempted = 0;
+  let sent = 0;
+  let failed = 0;
+  let suggested = 0;
+
+  // Group due rows by user to avoid N+1 sends
+  const dueByUser = new Map<string, ChallengeRow[]>();
+  for (const row of dueRows) {
+    const bucket = dueByUser.get(row.user_id) ?? [];
+    bucket.push(row);
+    dueByUser.set(row.user_id, bucket);
+  }
+
+  for (const [userId, userRows] of dueByUser.entries()) {
+    const userProgress = progressByUser.get(userId) ?? [];
+
+    // Find the in-progress challenge with the most recent activity
+    const active = userProgress
+      .filter((p) => {
+        const def = getChallengeById(p.challengeId);
+        return def && p.daysCompleted < def.totalDays;
+      })
+      .sort((a, b) => b.lastCompletedAt.getTime() - a.lastCompletedAt.getTime())[0];
+
+    let challengeId: string;
+    let nextDay: number;
+    let practice: string;
+    let isSuggestion = false;
+
+    if (active) {
+      const def = getChallengeById(active.challengeId)!;
+      challengeId = active.challengeId;
+      nextDay = active.daysCompleted + 1;
+      const dayPrompt = def.days.find((d) => d.day === nextDay);
+      if (!dayPrompt) continue;
+      practice = dayPrompt.practice;
+    } else {
+      // No active challenge: suggest one
+      const suggest = suggestedChallengeFor(userId);
+      if (!suggest) continue;
+      const def = getChallengeById(suggest);
+      if (!def) continue;
+      challengeId = suggest;
+      nextDay = 1;
+      practice = def.days[0]?.practice ?? "";
+      isSuggestion = true;
+      suggested++;
+    }
+
+    const language = normalizePreferences({ language: (userRows[0]?.language ?? "en") as LanguageCode }).language;
+    const title = titlesByLanguage[challengeId]?.[language] ?? titlesByLanguage[challengeId]?.en ?? "Formation practice";
+    const body = isSuggestion
+      ? startBodies[language] ?? startBodies.en!
+      : `Day ${nextDay}: ${practice}`;
+
+    const payload = JSON.stringify({
+      title,
+      body,
+      url: `/?source=notification&focus=challenge&challenge=${encodeURIComponent(challengeId)}&tab=reflect`,
+    });
+
+    for (const pushRow of userRows) {
+      attempted++;
+      try {
+        await webpush.sendNotification(
+          { endpoint: pushRow.endpoint, keys: { p256dh: pushRow.p256dh, auth: pushRow.auth } },
+          payload
+        );
+        await run(
+          `UPDATE push_subscriptions SET last_challenge_notified_at = ? WHERE id = ?`,
+          now.toISOString(),
+          pushRow.id
+        );
+        sent++;
+      } catch (err) {
+        if (shouldDeleteBrokenSubscription(err)) {
+          await run(`DELETE FROM push_subscriptions WHERE id = ?`, pushRow.id).catch(() => undefined);
+        }
+        failed++;
+      }
+    }
+  }
+
+  return { attempted, sent, failed, suggested };
+}
+
 export async function sendTestWisdomNotification(userId: string) {
   configureWebPush();
 

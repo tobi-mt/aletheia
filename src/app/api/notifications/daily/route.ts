@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { trackEvent } from "@/lib/analytics";
-import { recordDailyNotificationUnauthorizedHit, sendDailyWisdomNotifications } from "@/lib/notifications";
+import { recordDailyNotificationUnauthorizedHit, sendChallengeReminders, sendDailyWisdomNotifications } from "@/lib/notifications";
 import { apiError } from "@/lib/api-errors";
 
 // Allow longer execution time for notification processing
@@ -29,6 +29,7 @@ async function runDailyNotifications(request: Request) {
   }
 
   const result = await sendDailyWisdomNotifications();
+  const challengeResult = await sendChallengeReminders().catch(() => ({ attempted: 0, sent: 0, failed: 0, suggested: 0 }));
   await trackEvent({
     eventName: "notification_daily_checked",
     source: "cron",
@@ -46,9 +47,13 @@ async function runDailyNotifications(request: Request) {
       gratitudeAttempted: result.gratitudeAttempted,
       gratitudeSent: result.gratitudeSent,
       gratitudeFailed: result.gratitudeFailed,
+      challengeAttempted: challengeResult.attempted,
+      challengeSent: challengeResult.sent,
+      challengeFailed: challengeResult.failed,
+      challengeSuggested: challengeResult.suggested,
     },
   }).catch(() => undefined);
-  return NextResponse.json(result);
+  return NextResponse.json({ ...result, challengeResult });
 }
 
 export async function POST(request: Request) {

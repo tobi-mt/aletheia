@@ -6992,6 +6992,7 @@ export function AletheiaApp() {
   const [pendingNotificationFocus, setPendingNotificationFocus] = useState(false);
   const [pendingGratitudeNotificationFocus, setPendingGratitudeNotificationFocus] = useState(false);
   const [pendingDecisionNotificationFocus, setPendingDecisionNotificationFocus] = useState<string | null>(null);
+  const [pendingChallengeId, setPendingChallengeId] = useState<string | null>(null);
   const appOpenedAtRef = useRef<number>(Date.now());
   const guestQuestionCountRef = useRef(0);
   const authPromptSessionIdRef = useRef<string | null>(null);
@@ -7102,6 +7103,18 @@ export function AletheiaApp() {
         }
         if (!shouldHonorNotificationFocus && storedHomeSection && ["today", "ask"].includes(storedHomeSection)) {
           setHomeSectionState(storedHomeSection);
+        }
+
+        // Deep link: ?tab= overrides stored view (but only when there is no notification focus)
+        if (!shouldHonorNotificationFocus) {
+          const tabParam = params.get("tab");
+          if (tabParam && ["companion", "decisions", "reflect", "library", "account"].includes(tabParam)) {
+            setActiveViewState(tabParam as View);
+          }
+          const challengeParam = params.get("challenge");
+          if (challengeParam) {
+            setPendingChallengeId(challengeParam);
+          }
         }
       } catch {
         // Keep deterministic defaults if storage is unavailable.
@@ -7802,7 +7815,7 @@ export function AletheiaApp() {
     }
     const focus = params.get("focus");
     const decisionId = params.get("decisionId");
-    if (focus !== "today" && focus !== "reflect" && focus !== "gratitude" && focus !== "library" && !(focus === "decision" && decisionId)) {
+    if (focus !== "today" && focus !== "reflect" && focus !== "gratitude" && focus !== "library" && !(focus === "decision" && decisionId) && focus !== "challenge") {
       return;
     }
 
@@ -7835,6 +7848,12 @@ export function AletheiaApp() {
           "success"
         );
         setPendingGratitudeNotificationFocus(true);
+      } else if (focus === "challenge") {
+        const challengeId = params.get("challenge");
+        setActiveView("reflect", "notification_click");
+        if (challengeId) {
+          setPendingChallengeId(challengeId);
+        }
       } else if (focus === "library") {
         setActiveView("library", "notification_click");
         setStatusMessage(ts('status.libraryWisdomReady'));
@@ -9786,7 +9805,7 @@ export function AletheiaApp() {
 
       // Show 85% once downloaded
       setSpeechProgress(85);
-      const blob = new Blob(chunks, { type: "audio/opus" });
+      const blob = new Blob(chunks as BlobPart[], { type: "audio/opus" });
 
       const audioUrl = URL.createObjectURL(blob);
       if (managedAudioUrlRef.current) {
@@ -11631,6 +11650,13 @@ export function AletheiaApp() {
               ) : activeView === "reflect" ? (
                 <Screen key="reflect">
                   <ViewIdentityFrame identity="reflect" theme={theme}>
+                    <FormationsSection
+                      theme={theme}
+                      ts={ts}
+                      user={user}
+                      pendingChallengeId={pendingChallengeId}
+                      onClearPendingChallenge={() => setPendingChallengeId(null)}
+                    />
                     <ReflectPanel
                       language={preferences.language}
                       decision={decision}
@@ -14523,6 +14549,359 @@ function SupportMissionCard({
           </p>
         </div>
       </div>
+    </section>
+  );
+}
+
+type ChallengeProgressEntry = {
+  day: number;
+  reflection: string;
+  completedAt: string;
+};
+
+type ChallengeWithProgress = {
+  id: string;
+  titleKey: string;
+  descriptionKey: string;
+  totalDays: number;
+  mode: string;
+  completedDays: ChallengeProgressEntry[];
+};
+
+function FormationsSection({
+  theme,
+  ts,
+  user,
+  pendingChallengeId,
+  onClearPendingChallenge,
+}: {
+  theme: ThemeColors;
+  ts: (key: string, fallback?: string) => string;
+  user: { id: string } | null;
+  pendingChallengeId: string | null;
+  onClearPendingChallenge: () => void;
+}) {
+  const [challenges, setChallenges] = useState<ChallengeWithProgress[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [expandedId, setExpandedId] = useState<string | null>(pendingChallengeId);
+  const [savingDay, setSavingDay] = useState<{ challengeId: string; day: number } | null>(null);
+  const [reflectionText, setReflectionText] = useState("");
+  const sectionRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (pendingChallengeId) {
+      setExpandedId(pendingChallengeId);
+      onClearPendingChallenge();
+      window.requestAnimationFrame(() => {
+        sectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    }
+  }, [pendingChallengeId, onClearPendingChallenge]);
+
+  useEffect(() => {
+    if (!user) return;
+    setLoading(true);
+    fetch("/api/challenges")
+      .then((res) => res.json())
+      .then((data: { challenges?: ChallengeWithProgress[] }) => {
+        if (data.challenges) setChallenges(data.challenges);
+      })
+      .catch(() => undefined)
+      .finally(() => setLoading(false));
+  }, [user]);
+
+  function completedDaysFor(challenge: ChallengeWithProgress) {
+    return challenge.completedDays.length;
+  }
+
+  function nextDayFor(challenge: ChallengeWithProgress) {
+    return completedDaysFor(challenge) + 1;
+  }
+
+  async function markDayComplete(challenge: ChallengeWithProgress) {
+    const day = nextDayFor(challenge);
+    if (day > challenge.totalDays) return;
+    setSavingDay({ challengeId: challenge.id, day });
+    try {
+      const res = await fetch("/api/challenges/complete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ challengeId: challenge.id, day, reflection: reflectionText.trim() }),
+      });
+      if (res.ok) {
+        const now = new Date().toISOString();
+        setChallenges((prev) =>
+          prev.map((c) =>
+            c.id === challenge.id
+              ? {
+                  ...c,
+                  completedDays: [
+                    ...c.completedDays,
+                    { day, reflection: reflectionText.trim(), completedAt: now },
+                  ],
+                }
+              : c
+          )
+        );
+        setReflectionText("");
+        trackClientEvent("challenge_day_marked_complete", { challengeId: challenge.id, day });
+      }
+    } catch {
+      // Let user retry
+    } finally {
+      setSavingDay(null);
+    }
+  }
+
+  function buildShareUrl(challengeId: string) {
+    const base = typeof window !== "undefined" ? window.location.origin : "https://app.aletheia.dev";
+    return `${base}/?tab=reflect&challenge=${encodeURIComponent(challengeId)}`;
+  }
+
+  async function shareChallenge(challenge: ChallengeWithProgress) {
+    const title = ts(challenge.titleKey, challenge.id);
+    const url = buildShareUrl(challenge.id);
+    const text = ts("challenges.shareChallengeBody", `Join me in this ${challenge.totalDays}-day practice on Aletheia.`).replace("{days}", String(challenge.totalDays));
+    if (navigator.share) {
+      await navigator.share({ title, text, url }).catch(() => undefined);
+    } else {
+      await navigator.clipboard.writeText(url).catch(() => undefined);
+    }
+    trackClientEvent("challenge_shared", { challengeId: challenge.id });
+  }
+
+  // Import challenge data client-side (static import via dynamic loading)
+  const [challengeDefs, setChallengeDefs] = useState<
+    Array<{
+      id: string;
+      days: Array<{ day: number; scripture: string; principle: string; prompt: string; practice: string }>;
+    }>
+  >([]);
+
+  useEffect(() => {
+    import("@/lib/challenge-data").then((mod) => {
+      setChallengeDefs(
+        mod.challengeDefinitions.map((def) => ({
+          id: def.id,
+          days: def.days,
+        }))
+      );
+    });
+  }, []);
+
+  function getDayPrompt(challengeId: string, day: number) {
+    const def = challengeDefs.find((d) => d.id === challengeId);
+    return def?.days.find((d) => d.day === day) ?? null;
+  }
+
+  if (!user) {
+    return (
+      <section
+        ref={sectionRef}
+        className="rounded-[1.35rem] border p-3.5 sm:p-4"
+        style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}
+      >
+        <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+          {ts("challenges.eyebrow", "Formations")}
+        </p>
+        <h2 className="mt-1.5 text-xl font-semibold" style={{ color: theme.textPrimary }}>
+          {ts("challenges.sectionTitle", "Formation Practices")}
+        </h2>
+        <p className="mt-1.5 text-sm leading-5" style={{ color: theme.textSecondary }}>
+          {ts("challenges.signInToTrack", "Sign in to track your progress across devices.")}
+        </p>
+      </section>
+    );
+  }
+
+  // Use local challenge defs (title/description) when API data has loaded
+  const displayChallenges = challengeDefs.length > 0
+    ? challengeDefs.map((def) => {
+        const withProgress = challenges.find((c) => c.id === def.id);
+        return {
+          id: def.id,
+          titleKey: `challenges.${def.id.replace(/-/g, "")}.title`,
+          descriptionKey: `challenges.${def.id.replace(/-/g, "")}.description`,
+          totalDays: def.days.length,
+          mode: withProgress?.mode ?? "Life",
+          completedDays: withProgress?.completedDays ?? [],
+        } as ChallengeWithProgress;
+      })
+    : challenges;
+
+  return (
+    <section ref={sectionRef} className="space-y-4">
+      <div className="rounded-[1.35rem] border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+        <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+          {ts("challenges.eyebrow", "Formations")}
+        </p>
+        <h2 className="mt-1.5 text-xl font-semibold" style={{ color: theme.textPrimary }}>
+          {ts("challenges.sectionTitle", "Formation Practices")}
+        </h2>
+        <p className="mt-1.5 text-sm leading-5" style={{ color: theme.textSecondary }}>
+          {ts("challenges.sectionSummary", "Multi-day practices to build wisdom, gratitude, and discernment habits.")}
+        </p>
+      </div>
+
+      {loading && displayChallenges.length === 0 && (
+        <div className="rounded-[1.35rem] border p-4 text-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textMuted }}>
+          Loading…
+        </div>
+      )}
+
+      {displayChallenges.map((challenge) => {
+        const done = completedDaysFor(challenge);
+        const total = challenge.totalDays;
+        const next = nextDayFor(challenge);
+        const isComplete = done >= total;
+        const isExpanded = expandedId === challenge.id;
+        const isSaving = savingDay?.challengeId === challenge.id;
+        const nextPrompt = isComplete ? null : getDayPrompt(challenge.id, next);
+
+        // Prettify the title key so it looks like "gratitude3day" → key lookup
+        const rawKey = challenge.id.replace(/-/g, "");
+        const titleKey = `challenges.${rawKey}.title`;
+        const descKey = `challenges.${rawKey}.description`;
+        const titleText = ts(titleKey, challenge.id);
+        const descText = ts(descKey, "");
+
+        return (
+          <div
+            key={challenge.id}
+            className="overflow-hidden rounded-[1.35rem] border shadow-[0_4px_12px_rgba(7,10,8,0.04)]"
+            style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}
+          >
+            {/* Card header */}
+            <button
+              type="button"
+              className="flex w-full items-start gap-3 p-3.5 text-left sm:p-4"
+              onClick={() => setExpandedId(isExpanded ? null : challenge.id)}
+            >
+              {/* Progress ring */}
+              <div
+                className="grid size-11 shrink-0 place-items-center rounded-full border text-xs font-semibold"
+                style={{
+                  borderColor: isComplete ? theme.accentGold : theme.borderMedium,
+                  backgroundColor: isComplete ? `${theme.accentGold}18` : theme.bgInput,
+                  color: isComplete ? theme.accentGold : theme.textSecondary,
+                }}
+              >
+                {isComplete ? <Check size={18} style={{ color: theme.accentGold }} /> : `${done}/${total}`}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold leading-5" style={{ color: theme.textPrimary }}>{titleText}</p>
+                <p className="mt-0.5 text-xs leading-4" style={{ color: theme.textMuted }}>
+                  {isComplete
+                    ? ts("challenges.allDaysComplete", `All ${total} days complete. Well done.`).replace("{total}", String(total))
+                    : done === 0
+                      ? ts("challenges.noProgressYet", "Start with Day 1 whenever you are ready.")
+                      : ts("challenges.daysCompleted", `${done} of ${total} days`).replace("{count}", String(done)).replace("{total}", String(total))}
+                </p>
+              </div>
+              <ChevronDown
+                size={16}
+                className="mt-0.5 shrink-0 transition-transform"
+                style={{
+                  color: theme.textMuted,
+                  transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)",
+                }}
+              />
+            </button>
+
+            {/* Expanded body */}
+            {isExpanded && (
+              <div className="border-t p-3.5 sm:p-4 space-y-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                {descText && (
+                  <p className="text-sm leading-5" style={{ color: theme.textSecondary }}>{descText}</p>
+                )}
+
+                {/* Progress dots */}
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {Array.from({ length: total }, (_, i) => {
+                    const dayNum = i + 1;
+                    const isDone = challenge.completedDays.some((d) => d.day === dayNum);
+                    return (
+                      <span
+                        key={dayNum}
+                        className="flex size-7 items-center justify-center rounded-full text-xs font-semibold"
+                        style={{
+                          backgroundColor: isDone ? theme.accentGold : theme.bgCardElevated,
+                          color: isDone ? theme.bgMain : theme.textMuted,
+                          border: `1.5px solid ${isDone ? theme.accentGold : theme.borderLight}`,
+                        }}
+                      >
+                        {isDone ? <Check size={12} /> : dayNum}
+                      </span>
+                    );
+                  })}
+                </div>
+
+                {/* Next day prompt */}
+                {!isComplete && nextPrompt && (
+                  <div
+                    className="rounded-[1rem] border p-3 space-y-2"
+                    style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}
+                  >
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
+                      {ts("challenges.dayOf", `Day ${next} of ${total}`).replace("{day}", String(next)).replace("{total}", String(total))}
+                    </p>
+                    <p className="text-xs leading-4 italic" style={{ color: theme.textMuted }}>
+                      {nextPrompt.scripture}
+                    </p>
+                    <p className="text-sm leading-5 font-medium" style={{ color: theme.textPrimary }}>
+                      {nextPrompt.principle}
+                    </p>
+                    <p className="text-sm leading-5" style={{ color: theme.textSecondary }}>
+                      {nextPrompt.prompt}
+                    </p>
+
+                    <textarea
+                      rows={2}
+                      className="mt-1 w-full resize-none rounded-[0.75rem] border px-3 py-2 text-sm leading-5 outline-none"
+                      style={{
+                        borderColor: theme.borderLight,
+                        backgroundColor: theme.bgInput,
+                        color: theme.textPrimary,
+                      }}
+                      placeholder={ts("challenges.reflectionPlaceholder", "Optional: write a brief note about today's practice…")}
+                      value={reflectionText}
+                      onChange={(e) => setReflectionText(e.target.value)}
+                    />
+
+                    <button
+                      type="button"
+                      disabled={isSaving}
+                      onClick={() => markDayComplete(challenge)}
+                      className="mt-1 flex w-full items-center justify-center rounded-[0.85rem] px-4 py-2.5 text-sm font-semibold transition hover:opacity-90 disabled:opacity-50"
+                      style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                    >
+                      {isSaving ? "Saving…" : ts("challenges.saveReflection", "Save and mark complete")}
+                    </button>
+                  </div>
+                )}
+
+                {/* Action row */}
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  {!isComplete && (
+                    <p className="text-xs" style={{ color: theme.textMuted }}>
+                      {ts("challenges.dayLabel", `Day ${next}`).replace("{day}", String(next))} · {nextPrompt?.practice ?? ""}
+                    </p>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => shareChallenge(challenge)}
+                    className="ml-auto flex items-center gap-1.5 rounded-[0.75rem] border px-3 py-1.5 text-xs font-semibold transition hover:opacity-80"
+                    style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}
+                  >
+                    <Share2 size={13} />
+                    {ts("challenges.shareChallenge", "Share this practice")}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })}
     </section>
   );
 }

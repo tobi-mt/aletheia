@@ -134,6 +134,7 @@ async function initializeDatabase() {
     ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS timezone_mode TEXT NOT NULL DEFAULT 'auto';
     ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS delivery_strategy TEXT NOT NULL DEFAULT 'morning';
     ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS last_gratitude_sent_at TIMESTAMPTZ;
+    ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS last_challenge_notified_at TIMESTAMPTZ;
 
     CREATE TABLE IF NOT EXISTS counsel_contacts (
       id TEXT PRIMARY KEY,
@@ -329,6 +330,19 @@ async function initializeDatabase() {
     CREATE INDEX IF NOT EXISTS analytics_events_name_created_idx ON analytics_events(event_name, created_at DESC);
     CREATE INDEX IF NOT EXISTS analytics_events_user_created_idx ON analytics_events(user_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS analytics_events_anon_created_idx ON analytics_events(anon_id, created_at DESC);
+
+    CREATE TABLE IF NOT EXISTS challenge_progress (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      challenge_id TEXT NOT NULL,
+      day INTEGER NOT NULL,
+      reflection TEXT NOT NULL DEFAULT '',
+      completed_at TIMESTAMPTZ NOT NULL,
+      UNIQUE(user_id, challenge_id, day)
+    );
+
+    CREATE INDEX IF NOT EXISTS challenge_progress_user_challenge_idx ON challenge_progress(user_id, challenge_id, day);
+    CREATE INDEX IF NOT EXISTS challenge_progress_user_completed_idx ON challenge_progress(user_id, completed_at DESC);
   `);
 
   const { rows } = await pool.query<{ count: string }>(
