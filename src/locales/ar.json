@@ -1139,7 +1139,12 @@
     "whatThisPassageIsSaying": "ما يقوله هذا المقطع",
     "whyItMatters": "لماذا يهم",
     "relatedScriptures": "الكتب المقدسة ذات الصلة",
-    "aWiseNextStep": "خطوة تالية حكيمة"
+    "aWiseNextStep": "خطوة تالية حكيمة",
+    "gratitudeLensBodyShort": "التقط صورة واحدة، وسمِّ العطية، وأبقِ اللحظة خاصة افتراضيًا.",
+    "gratitudeNoticingBodyShort": "اختر نوع العطية أولًا، ثم أضف ملاحظتك.",
+    "advanced": "متقدم",
+    "gratitudeWeeklyRecapLine": "هذا الأسبوع احتوى على {count} لحظات هادئة.",
+    "gratitudeTimelineHint": "مرّر أفقيًا لرؤية اللحظات الحديثة. اللحظات الأقدم تبقى بالأسفل."
   },
   "personalizationNudgeTitle": "هل تريد المزيد من الاستشارات الشخصية؟",
   "personalizationNudgeBody": "أضف تفصيلاً واحدًا حول المال أو العمل أو الإيقاع.",

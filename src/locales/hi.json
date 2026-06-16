@@ -1139,7 +1139,12 @@
     "whatThisPassageIsSaying": "यह परिच्छेद क्या कह रहा है",
     "whyItMatters": "यह क्यों मायने रखती है",
     "relatedScriptures": "संबंधित ग्रंथ",
-    "aWiseNextStep": "एक बुद्धिमान अगला कदम"
+    "aWiseNextStep": "एक बुद्धिमान अगला कदम",
+    "gratitudeLensBodyShort": "एक फोटो लें, उपहार को नाम दें, और इस पल को डिफ़ॉल्ट रूप से निजी रखें।",
+    "gratitudeNoticingBodyShort": "पहले उपहार का प्रकार चुनें, फिर अपनी टिप्पणी जोड़ें।",
+    "advanced": "उन्नत",
+    "gratitudeWeeklyRecapLine": "इस सप्ताह {count} शांत क्षण रहे।",
+    "gratitudeTimelineHint": "हाल के क्षण देखने के लिए आड़ा स्क्रॉल करें। पुराने क्षण नीचे बने रहेंगे।"
   },
   "personalizationNudgeTitle": "क्या आप अधिक व्यक्तिगत परामर्श चाहते हैं?",
   "personalizationNudgeBody": "धन, कार्य या लय के बारे में एक विवरण जोड़ें।",

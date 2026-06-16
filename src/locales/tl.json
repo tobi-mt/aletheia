@@ -1139,7 +1139,12 @@
     "whatThisPassageIsSaying": "Ano ang sinasabi ng talatang ito",
     "whyItMatters": "Bakit ito mahalaga",
     "relatedScriptures": "Mga kaugnay na kasulatan",
-    "aWiseNextStep": "Isang matalinong susunod na hakbang"
+    "aWiseNextStep": "Isang matalinong susunod na hakbang",
+    "gratitudeLensBodyShort": "Kumuha ng isang larawan, pangalanan ang biyaya, at panatilihing pribado ang sandali bilang default.",
+    "gratitudeNoticingBodyShort": "Piliin muna ang uri ng biyaya, saka idagdag ang iyong tala.",
+    "advanced": "Advanced",
+    "gratitudeWeeklyRecapLine": "Ngayong linggo ay may {count} tahimik na sandali.",
+    "gratitudeTimelineHint": "Mag-scroll pahalang para sa mga bagong sandali. Ang mas luma ay mananatili sa ibaba."
   },
   "personalizationNudgeTitle": "Gusto mo ng mas personal na payo?",
   "personalizationNudgeBody": "Magdagdag ng isang detalye tungkol sa pera, trabaho, o ritmo.",

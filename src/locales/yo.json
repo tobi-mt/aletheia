@@ -1143,7 +1143,12 @@
     "whatThisPassageIsSaying": "Ohun tí abala yìí ń sọ",
     "whyItMatters": "Kí ló ṣe pàtàkì",
     "relatedScriptures": "Àwọn ẹsẹ tó ní ìbáṣepọ̀",
-    "aWiseNextStep": "Ìgbésẹ̀ ọlọ́gbọ́n tó kàn"
+    "aWiseNextStep": "Ìgbésẹ̀ ọlọ́gbọ́n tó kàn",
+    "gratitudeLensBodyShort": "Ya fọto kan, sọ ẹbun naa di mímọ, kí o sì jẹ́ kí ìrántí náà jẹ́ ti ìpamọ́ ní aiyipada.",
+    "gratitudeNoticingBodyShort": "Yan iru ẹbun naa kọ́kọ́, lẹ́yìn náà fi àkọsílẹ̀ rẹ kun un.",
+    "advanced": "To ti ni ilọsiwaju",
+    "gratitudeWeeklyRecapLine": "Ọ̀sẹ̀ yìí ní àkókò ìdákẹ́jẹ {count}.",
+    "gratitudeTimelineHint": "Fa sí ẹgbẹ̀ lati wo àwọn ìrántí tuntun. Àwọn atijọ̀ máa wà ní ìsàlẹ̀."
   },
   "personalizationNudgeTitle": "Ṣe o fẹ́ ìmọ̀ràn tó mọ̀ ọ́ síi?",
   "personalizationNudgeBody": "Fi alaye kan kun nípa owó, iṣẹ́, tàbí ìlànà ìgbé-ayé.",

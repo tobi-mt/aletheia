@@ -1142,7 +1142,12 @@
     "whatThisPassageIsSaying": "Ihe amaokwu a na-ekwu",
     "whyItMatters": "Ihe mere o ji baa uru",
     "relatedScriptures": "Amaokwu ndị nwere njikọ",
-    "aWiseNextStep": "Nzọụkwụ amamihe ọzọ"
+    "aWiseNextStep": "Nzọụkwụ amamihe ọzọ",
+    "gratitudeLensBodyShort": "Were otu foto, kpọọ onyinye ahụ aha, ma debe oge ahụ ka ọ bụrụ nzuzo na ndabara.",
+    "gratitudeNoticingBodyShort": "Họrọ ụdị onyinye mbụ, mgbe ahụ tinye ndetu gị.",
+    "advanced": "Elu",
+    "gratitudeWeeklyRecapLine": "N’izu a, e nwere oge dị jụụ {count}.",
+    "gratitudeTimelineHint": "Pịgharịa n’akụkụ ka ịhụ oge ndị ọhụrụ. Ndị gara aga ga-adị n’okpuru."
   },
   "personalizationNudgeTitle": "Ị chọrọ ndụmọdụ ka ọ bụrụ nke onwe gị?",
   "personalizationNudgeBody": "Tinye otu nkọwa gbasara ego, ọrụ, ma ọ bụ rhythm ndụ.",

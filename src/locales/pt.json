@@ -1142,7 +1142,12 @@
     "whatThisPassageIsSaying": "O que esta passagem diz",
     "whyItMatters": "Por que isso importa",
     "relatedScriptures": "Passagens relacionadas",
-    "aWiseNextStep": "Um próximo passo prudente"
+    "aWiseNextStep": "Um próximo passo prudente",
+    "gratitudeLensBodyShort": "Tire uma foto, nomeie o presente e mantenha o momento privado por padrão.",
+    "gratitudeNoticingBodyShort": "Escolha primeiro o tipo de presente e depois adicione sua nota.",
+    "advanced": "Avançado",
+    "gratitudeWeeklyRecapLine": "Esta semana teve {count} momentos tranquilos.",
+    "gratitudeTimelineHint": "Deslize para os lados para ver os momentos recentes. Os mais antigos ficam abaixo."
   },
   "personalizationNudgeTitle": "Quer um conselho mais pessoal?",
   "personalizationNudgeBody": "Adicione um detalhe sobre dinheiro, trabalho ou ritmo.",

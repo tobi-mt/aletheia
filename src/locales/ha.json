@@ -1142,7 +1142,12 @@
     "whatThisPassageIsSaying": "Abin da wannan nassin yake faɗa",
     "whyItMatters": "Me ya sa wannan yake da muhimmanci",
     "relatedScriptures": "Nassoshi masu alaƙa",
-    "aWiseNextStep": "Mataki na gaba mai hikima"
+    "aWiseNextStep": "Mataki na gaba mai hikima",
+    "gratitudeLensBodyShort": "Dauki hoto guda, sanya wa kyautar suna, kuma ka bar wannan lokacin a sirri ta tsohuwa.",
+    "gratitudeNoticingBodyShort": "Zaɓi irin kyautar da farko, sannan ka ƙara bayaninka.",
+    "advanced": "Na ci gaba",
+    "gratitudeWeeklyRecapLine": "A wannan makon an samu lokutan natsuwa {count}.",
+    "gratitudeTimelineHint": "Ja gefe-gefe don ganin sabbin lokuta. Tsofaffi za su kasance a ƙasa."
   },
   "personalizationNudgeTitle": "Kana son shawara ta fi zama ta kanka?",
   "personalizationNudgeBody": "Ƙara bayani ɗaya game da kuɗi, aiki, ko tsarin rayuwa.",

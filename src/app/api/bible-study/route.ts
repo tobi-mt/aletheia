@@ -16,6 +16,12 @@ type BibleChapterResponse = {
   verses: BibleVerse[];
 };
 
+type ChapterFetchResult = {
+  ok: boolean;
+  status: number;
+  data?: BibleChapterResponse;
+};
+
 function normalizeText(value: string): string {
   return value.toLowerCase().replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
 }
@@ -73,6 +79,30 @@ function buildStudy(chapterData: BibleChapterResponse, language: GenerationLangu
   };
 }
 
+async function fetchChapter(
+  origin: string,
+  translation: string,
+  book: string,
+  chapter: number,
+): Promise<ChapterFetchResult> {
+  const chapterUrl = `${origin}/api/bible?translation=${encodeURIComponent(translation)}&book=${encodeURIComponent(book)}&chapter=${chapter}`;
+  const chapterResponse = await fetch(chapterUrl, {
+    headers: { Accept: "application/json" },
+    cache: "no-store",
+  });
+
+  if (!chapterResponse.ok) {
+    return { ok: false, status: chapterResponse.status };
+  }
+
+  const data = (await chapterResponse.json()) as BibleChapterResponse;
+  if (!data.verses?.length) {
+    return { ok: false, status: 404 };
+  }
+
+  return { ok: true, status: 200, data };
+}
+
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const translation = (searchParams.get("translation") ?? "WEB").toUpperCase();
@@ -85,22 +115,45 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const chapterUrl = `${origin}/api/bible?translation=${encodeURIComponent(translation)}&book=${encodeURIComponent(book)}&chapter=${chapter}`;
-    const chapterResponse = await fetch(chapterUrl, {
-      headers: { Accept: "application/json" },
-      cache: "no-store",
-    });
+    const fallbackCandidates = [translation, "WEB", "KJV"];
+    const tried = new Set<string>();
 
-    if (!chapterResponse.ok) {
-      if (chapterResponse.status === 404) {
+    let chapterData: BibleChapterResponse | null = null;
+    let lastStatus = 404;
+
+    for (const candidate of fallbackCandidates) {
+      if (tried.has(candidate)) {
+        continue;
+      }
+      tried.add(candidate);
+
+      const result = await fetchChapter(origin, candidate, book, chapter);
+      if (!result.ok) {
+        lastStatus = result.status;
+        continue;
+      }
+
+      chapterData = result.data ?? null;
+      if (!chapterData) {
+        continue;
+      }
+
+      if (candidate !== translation) {
+        chapterData = {
+          ...chapterData,
+          translation,
+          fallbackTranslation: candidate,
+        };
+      }
+
+      break;
+    }
+
+    if (!chapterData) {
+      if (lastStatus === 404) {
         return NextResponse.json({ error: "Chapter not found in this translation" }, { status: 404 });
       }
       return NextResponse.json({ error: "Bible study service unavailable" }, { status: 502 });
-    }
-
-    const chapterData = (await chapterResponse.json()) as BibleChapterResponse;
-    if (!chapterData.verses?.length) {
-      return NextResponse.json({ error: "No chapter text available" }, { status: 404 });
     }
 
     const study = buildStudy(chapterData, language);

@@ -73,17 +73,19 @@ export async function POST(request: Request) {
       input: text,
       voice,
       speed,
-      response_format: "mp3",
+      response_format: "opus",
       instructions: managedVoiceInstructions(language),
     });
 
+    // Opus format is more efficient than MP3 for streaming/smaller files
     const audioBytes = await speech.arrayBuffer();
 
     return new NextResponse(Buffer.from(audioBytes), {
       headers: {
-        "Content-Type": "audio/mpeg",
+        "Content-Type": "audio/opus",
         "Content-Length": String(audioBytes.byteLength),
         "Cache-Control": "no-store",
+        "Accept-Ranges": "bytes",
         ...rateLimitHeaders(rateLimit),
       },
     });

@@ -413,7 +413,10 @@ export function localizedScriptureReference(scripture: string, language: Languag
   }
 
   const bookKey = match[1].trim().toLowerCase().replace(/\s+/g, " ");
-  const localizedBook = localizedScriptureBookNames[language]?.[bookKey];
+  const bookNames = localizedScriptureBookNames[language];
+  const localizedBook =
+    bookNames?.[bookKey] ??
+    (bookKey === "psalms" ? bookNames?.psalm : undefined);
   if (!localizedBook) {
     return canonical;
   }
@@ -4733,19 +4736,23 @@ export function localizedDailyWisdom(
 export function localizedWisdomLibraryNote(entry: WisdomEntryData, preferences: UserPreferences) {
   const regionLabel = localizedRegionLabel(preferences.region, preferences.language);
   const translation = scriptureDisplayLabel(entry.scripture, preferences);
+  const localizedReference = localizedScriptureReference(entry.scripture, preferences.language);
 
   const notes: Partial<Record<LanguageCode, string>> = {
-    en: `Use ${entry.scripture} with the ${translation} reference label, then apply it with ${regionLabel} realities in view.`,
-    es: `Usa ${entry.scripture} con la referencia ${translation}, y aplica el principio considerando la realidad de ${regionLabel}.`,
-    fr: `Utilise ${entry.scripture} avec la référence ${translation}, puis applique le principe dans le contexte de ${regionLabel}.`,
-    pt: `Use ${entry.scripture} com a referência ${translation}, aplicando o princípio à realidade de ${regionLabel}.`,
-    de: `Nutze ${entry.scripture} mit der Referenz ${translation} und wende das Prinzip im Kontext von ${regionLabel} an.`,
-    yo: `Lo ${entry.scripture} pẹ̀lú ìtọ́kasí ${translation}, kí o sì fi sí ìṣe ní agbègbè ${regionLabel}.`,
-    ig: `Jiri ${entry.scripture} na ntụaka ${translation}, tinye ụkpụrụ ya n'ọrụ n'ọnọdụ ${regionLabel}.`,
-    ha: `Yi amfani da ${entry.scripture} tare da alamar ${translation}, sannan ka aiwatar da ƙa'idar a yanayin ${regionLabel}.`,
+    en: `Use ${localizedReference} with the ${translation} reference label, then apply it with ${regionLabel} realities in view.`,
+    es: `Usa ${localizedReference} con la referencia ${translation}, y aplica el principio considerando la realidad de ${regionLabel}.`,
+    fr: `Utilise ${localizedReference} avec la référence ${translation}, puis applique le principe dans le contexte de ${regionLabel}.`,
+    pt: `Use ${localizedReference} com a referência ${translation}, aplicando o princípio à realidade de ${regionLabel}.`,
+    de: `Nutze ${localizedReference} mit der Referenz ${translation} und wende das Prinzip im Kontext von ${regionLabel} an.`,
+    yo: `Lo ${localizedReference} pẹ̀lú ìtọ́kasí ${translation}, kí o sì fi sí ìṣe ní agbègbè ${regionLabel}.`,
+    ig: `Jiri ${localizedReference} na ntụaka ${translation}, tinye ụkpụrụ ya n'ọrụ n'ọnọdụ ${regionLabel}.`,
+    ha: `Yi amfani da ${localizedReference} tare da alamar ${translation}, sannan ka aiwatar da ƙa'idar a yanayin ${regionLabel}.`,
+    tl: `Gamitin ang ${localizedReference} kasama ng sangguniang ${translation}, at iangkop ang prinsipyo sa konteksto ng ${regionLabel}.`,
+    ar: `استخدم ${localizedReference} مع إشارة الترجمة ${translation}، ثم طبّق المبدأ ضمن واقع ${regionLabel}.`,
+    hi: `${localizedReference} को ${translation} संदर्भ के साथ उपयोग करें, फिर सिद्धांत को ${regionLabel} की वास्तविकताओं में लागू करें।`,
   };
 
-  return notes[preferences.language] ?? notes.en ?? `${entry.scripture} (${translation})`;
+  return notes[preferences.language] ?? notes.en ?? `${localizedReference} (${translation})`;
 }
 
 export function promptPreferenceContext(preferences: UserPreferences) {

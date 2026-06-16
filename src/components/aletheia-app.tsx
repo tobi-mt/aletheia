@@ -3421,9 +3421,9 @@ const GRATITUDE_STICKER_MARK: Record<GratitudeSticker, string> = {
 const GRATITUDE_FORMATION_ICON: Record<GratitudeFormation, string> = {
   provision: "☕",
   beauty: "✦",
-  enoughness: "enough",
-  answeredPrayer: "amen",
-  ordinaryMercy: "mercy",
+  enoughness: "∞",
+  answeredPrayer: "🙏",
+  ordinaryMercy: "💛",
 };
 
 function normalizeGratitudeFormation(value: unknown): GratitudeFormation {
@@ -3983,6 +3983,26 @@ function modeDisplayLabel(mode: Mode, language: LanguageCode) {
 }
 
 const wisdomThemeDisplayLabels: Partial<Record<LanguageCode, Record<string, string>>> = {
+  es: {
+    Stewardship: "Mayordomía",
+    Debt: "Deuda",
+    Contentment: "Contentamiento",
+    Counsel: "Consejo",
+    "Cost Counting": "Calcular costos",
+    Generosity: "Generosidad",
+    Diligence: "Diligencia",
+    "Provision and Anxiety": "Provisión y ansiedad",
+  },
+  fr: {
+    Stewardship: "Intendance",
+    Debt: "Dette",
+    Contentment: "Contentement",
+    Counsel: "Conseil",
+    "Cost Counting": "Calcul des coûts",
+    Generosity: "Générosité",
+    Diligence: "Diligence",
+    "Provision and Anxiety": "Provision et anxiété",
+  },
   pt: {
     Stewardship: "Mordomia",
     Debt: "Dívida",
@@ -4052,6 +4072,16 @@ const wisdomThemeDisplayLabels: Partial<Record<LanguageCode, Record<string, stri
     Generosity: "उदारता",
     Diligence: "लगन",
     "Provision and Anxiety": "प्रावधान और चिंता",
+  },
+  de: {
+    Stewardship: "Verantwortliche Verwaltung",
+    Debt: "Schulden",
+    Contentment: "Genügsamkeit",
+    Counsel: "Rat",
+    "Cost Counting": "Kostenberechnung",
+    Generosity: "Großzügigkeit",
+    Diligence: "Fleiß",
+    "Provision and Anxiety": "Versorgung und Sorge",
   },
 };
 
@@ -6379,6 +6409,7 @@ function TodayVisualPanel({
   );
   const usingPhoto = asset.kind === "photo" && !imageFailed;
   const fallbackVariant = asset.kind === "illustration" ? asset.variant : "stillness";
+  const isSvgAsset = asset.kind === "photo" && asset.imageUrl.endsWith(".svg");
   const placement = resolveTodayVisualPlacement({
     theme: themeName,
     mood,
@@ -6413,40 +6444,62 @@ function TodayVisualPanel({
         }}
       >
         {usingPhoto ? (
-          <Image
-            src={asset.imageUrl}
-            alt=""
-            fill
-            sizes="(max-width: 768px) 100vw, 240px"
-            className={`object-cover transition-[opacity,filter,transform] duration-700 ease-out will-change-[opacity,filter,transform] ${placement.imageClassName} ${imageLoaded ? "scale-[1.06] opacity-100 blur-0" : "scale-[1.03] opacity-0 blur-[1px]"}`}
-            style={{ objectPosition: placement.objectPosition }}
-            onLoadingComplete={() => {
-              setImageLoaded(true);
-              setImageFailed(false);
-            }}
-            onError={() => {
-              if (asset.kind === "photo") {
-                const maxAttempts = useLocalFallback ? MAX_LOCAL_PHOTO_ATTEMPTS : MAX_REMOTE_PHOTO_ATTEMPTS;
-                if (photoAttempt + 1 < maxAttempts) {
+          isSvgAsset ? (
+            <img
+              src={asset.imageUrl}
+              alt=""
+              className={`absolute inset-0 w-full h-full object-cover transition-[opacity,filter,transform] duration-700 ease-out will-change-[opacity,filter,transform] ${placement.imageClassName} ${imageLoaded ? "scale-[1.06] opacity-100 blur-0" : "scale-[1.03] opacity-0 blur-[1px]"}`}
+              style={{ objectPosition: placement.objectPosition }}
+              onLoad={() => {
+                setImageLoaded(true);
+                setImageFailed(false);
+              }}
+              onError={() => {
+                if (photoAttempt + 1 < MAX_LOCAL_PHOTO_ATTEMPTS) {
                   setImageLoaded(false);
                   setPhotoAttempt((current) => current + 1);
                   return;
                 }
+                setImageLoaded(false);
+                setImageFailed(true);
+              }}
+            />
+          ) : (
+            <Image
+              src={asset.imageUrl}
+              alt=""
+              fill
+              sizes="(max-width: 768px) 100vw, 240px"
+              className={`object-cover transition-[opacity,filter,transform] duration-700 ease-out will-change-[opacity,filter,transform] ${placement.imageClassName} ${imageLoaded ? "scale-[1.06] opacity-100 blur-0" : "scale-[1.03] opacity-0 blur-[1px]"}`}
+              style={{ objectPosition: placement.objectPosition }}
+              onLoadingComplete={() => {
+                setImageLoaded(true);
+                setImageFailed(false);
+              }}
+              onError={() => {
+                if (asset.kind === "photo") {
+                  const maxAttempts = useLocalFallback ? MAX_LOCAL_PHOTO_ATTEMPTS : MAX_REMOTE_PHOTO_ATTEMPTS;
+                  if (photoAttempt + 1 < maxAttempts) {
+                    setImageLoaded(false);
+                    setPhotoAttempt((current) => current + 1);
+                    return;
+                  }
 
-                if (!useLocalFallback) {
-                  setImageLoaded(false);
-                  setImageFailed(false);
-                  setPhotoAttempt(0);
-                  setUseLocalFallback(true);
-                  return;
+                  if (!useLocalFallback) {
+                    setImageLoaded(false);
+                    setImageFailed(false);
+                    setPhotoAttempt(0);
+                    setUseLocalFallback(true);
+                    return;
+                  }
                 }
-              }
-              setImageLoaded(false);
-              setImageFailed(true);
-            }}
-            unoptimized
-            priority={false}
-          />
+                setImageLoaded(false);
+                setImageFailed(true);
+              }}
+              unoptimized
+              priority={false}
+            />
+          )
         ) : null}
       </div>
     </figure>
@@ -7223,6 +7276,10 @@ export function AletheiaApp() {
       todayActionsLabel: getString('todayActionsLabel', languageFallback.todayActionsLabel ?? "Today's actions"),
       weeklyReviewHeading: getString('weeklyReviewHeading', languageFallback.weeklyReviewHeading ?? 'Your Weekly Review'),
       weeklyReviewLastWeekLabel: getString('weeklyReviewLastWeekLabel', languageFallback.weeklyReviewLastWeekLabel ?? 'Last week'),
+      questionsThisWeek: getString('questionsThisWeek', languageFallback.questionsThisWeek ?? 'Questions'),
+      reflectionsThisWeek: getString('reflectionsThisWeek', languageFallback.reflectionsThisWeek ?? 'Reflections'),
+      gratitudeThisWeek: getString('gratitudeThisWeek', languageFallback.gratitudeThisWeek ?? 'Gratitude'),
+      decisionsThisWeek: getString('decisionsThisWeek', languageFallback.decisionsThisWeek ?? 'Decisions'),
       diveDeep: getString('diveDeep', languageFallback.diveDeep ?? 'Dive Deep'),
       backToQuickRead: getString('backToQuickRead', languageFallback.backToQuickRead ?? 'Back to Quick Read'),
       nextFaithfulStep: getString('nextFaithfulStep', languageFallback.nextFaithfulStep ?? 'Next faithful step'),
@@ -9699,10 +9756,37 @@ export function AletheiaApp() {
         throw new Error(message || `Audio request failed with status ${response.status}`);
       }
 
-      const blob = await response.blob();
+      // Stream response instead of waiting for full blob
+      // This allows progress feedback while downloading
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error("Response streaming not supported");
+      }
+
+      const chunks: Uint8Array[] = [];
+      let receivedLength = 0;
+      const contentLength = parseInt(response.headers.get("content-length") || "0", 10);
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+        receivedLength += value.length;
+
+        // Show download progress (0-80% for streaming, leaving room for buffering)
+        if (contentLength > 0) {
+          const downloadProgress = Math.floor((receivedLength / contentLength) * 80);
+          setSpeechProgress(downloadProgress);
+        }
+      }
+
       if (managedPlaybackRequestRef.current !== playbackRequest) {
         return;
       }
+
+      // Show 85% once downloaded
+      setSpeechProgress(85);
+      const blob = new Blob(chunks, { type: "audio/opus" });
 
       const audioUrl = URL.createObjectURL(blob);
       if (managedAudioUrlRef.current) {
@@ -9714,6 +9798,19 @@ export function AletheiaApp() {
       if (!managedAudioRef.current) {
         managedAudioRef.current = audio;
         audio.preload = "auto";
+        audio.addEventListener("canplay", () => {
+          // Audio has buffered enough to start playback
+          if (managedPlaybackRequestRef.current === playbackRequest) {
+            setSpeechProgress(90);
+            setSpeechLoading(false);
+          }
+        });
+        audio.addEventListener("playing", () => {
+          // Audio is actually playing now
+          if (managedPlaybackRequestRef.current === playbackRequest) {
+            setSpeechLoading(false);
+          }
+        });
         audio.addEventListener("timeupdate", () => {
           if (!audio.duration || !Number.isFinite(audio.duration) || audio.duration <= 0) {
             return;
@@ -9752,8 +9849,12 @@ export function AletheiaApp() {
       audio.src = audioUrl;
       audio.volume = 1;
       audio.playbackRate = 1;
-      await audio.play();
-      setSpeechLoading(false);
+      
+      // Start playback and let canplay event update loading state
+      await audio.play().catch(() => {
+        // play() might be blocked by browser autoplay policy
+        // The canplay event will still update the UI
+      });
 
       if ('wakeLock' in navigator) {
         (navigator as Navigator & { wakeLock: { request: (type: string) => Promise<{ release: () => void }> } })
@@ -11760,7 +11861,7 @@ export function AletheiaApp() {
           }
           const quickRead = localizedScriptureRead(selectedScripture, preferences);
           speakText(
-            `${selectedScripture}. ${cleanDisplayText(quickRead.text)}`,
+            cleanDisplayText(quickRead.text),
             ts('labels.readingScriptureQuickRead'),
             scriptureDisplayLabel(selectedScripture, preferences)
           );
@@ -13163,11 +13264,12 @@ function HomeDashboard({
       >
         <div className="flex flex-col gap-4">
           <div>
-            <h2 className="mt-2 text-[1.92rem] font-semibold leading-[1.03] text-balance sm:text-[2.25rem]" style={{ color: theme.textPrimary }}>
-              {text.whatNext}
+            <h2 className="mt-2 flex items-center gap-2 text-[1.92rem] font-semibold leading-[1.03] text-balance sm:text-[2.25rem]" style={{ color: theme.textPrimary }}>
+              <span>{text.whatNext}</span>
+              <InfoHint text={text.whatNextBody ?? ""} theme={theme} />
             </h2>
             <p className="mt-3 max-w-2xl text-[0.98rem] leading-7 sm:text-[1.03rem] sm:leading-8" style={{ color: theme.textSecondary }}>
-              {text.whatNextBody}
+              {ts('labels.whatNextBodyShort', 'One wise next step, then momentum.')}
             </p>
           </div>
 
@@ -13234,9 +13336,12 @@ function HomeDashboard({
             <h2 className="mt-2 text-[1.92rem] font-semibold leading-[1.03] text-balance sm:text-[2.25rem]" style={{ color: theme.textPrimary }}>
               {text.weeklyReviewHeading ?? "Your Weekly Review"}
             </h2>
-            <p className="mt-3 max-w-2xl text-[0.98rem] leading-7 sm:text-[1.03rem] sm:leading-8" style={{ color: theme.textSecondary }}>
-              {(text.weeklyReviewBody ?? "").replace("{pattern}", weeklyReview.pattern)}
-            </p>
+            <div className="mt-3 flex max-w-2xl items-start gap-2">
+              <p className="text-[0.98rem] leading-7 sm:text-[1.03rem] sm:leading-8" style={{ color: theme.textSecondary }}>
+                {ts('labels.weeklyReviewBodyShort', 'No streaks. Just honest weekly signal.')}
+              </p>
+              <InfoHint text={(text.weeklyReviewBody ?? "").replace("{pattern}", weeklyReview.pattern)} theme={theme} />
+            </div>
           </div>
           <div className="mt-2 flex min-w-0 snap-x gap-1.5 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
             <WeeklyReviewRailStat className="w-[10rem] shrink-0 snap-start" label={text.questionsThisWeek ?? ""} current={weeklyReview.questions} previous={weeklyReview.previousQuestions} lastWeekLabel={text.weeklyReviewLastWeekLabel ?? "Last week"} theme={theme} />
@@ -13546,6 +13651,7 @@ function ContextualNextAction({
   eyebrow,
   title,
   body,
+  infoTooltip,
   actionLabel,
   onAction,
   theme,
@@ -13553,6 +13659,7 @@ function ContextualNextAction({
   eyebrow: string;
   title: string;
   body: string;
+  infoTooltip?: string;
   actionLabel?: string;
   onAction?: () => void;
   theme: ThemeColors;
@@ -13562,7 +13669,10 @@ function ContextualNextAction({
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{eyebrow}</p>
-          <h2 className="mt-2 text-xl font-semibold" style={{ color: theme.textPrimary }}>{title}</h2>
+          <h2 className="mt-2 flex items-center gap-2 text-xl font-semibold" style={{ color: theme.textPrimary }}>
+            <span>{title}</span>
+            {infoTooltip ? <InfoHint text={infoTooltip} theme={theme} /> : null}
+          </h2>
           <p className="mt-2 max-w-2xl text-sm leading-6" style={{ color: theme.textSecondary }}>{body}</p>
         </div>
         {actionLabel && onAction ? (
@@ -13577,6 +13687,19 @@ function ContextualNextAction({
         ) : null}
       </div>
     </section>
+  );
+}
+
+function InfoHint({ text, theme }: { text: string; theme: ThemeColors }) {
+  return (
+    <span
+      className="inline-flex size-5 shrink-0 items-center justify-center rounded-full border text-[11px] font-semibold"
+      style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
+      title={text}
+      aria-label={text}
+    >
+      i
+    </span>
   );
 }
 
@@ -13932,7 +14055,7 @@ function AccountPanel({
         <div className="flex flex-col gap-4">
           <DisclosureSection
             title={ts('labels.personalizeAletheia')}
-            summary={ts('labels.accountPersonalizationSummary')}
+            summary={ts('labels.accountPersonalizationSummaryShort', 'Tune language, translation, voice, and style.')}
             eyebrow={ts('labels.accountPersonalizationTitle')}
             compactCollapsed
             showDetailsLabel={text.showDetails}
@@ -14049,7 +14172,7 @@ function AccountPanel({
         <div className="space-y-4">
           <DisclosureSection
             title={ts('labels.accountSystemTitle')}
-            summary={`${ts('labels.accountSystemSummary')} ${exchanges.length} ${ts('labels.accountHistoryConversations')} · ${activeDecisionCount} ${ts('labels.accountHistoryDecisions')}`}
+            summary={`${ts('labels.accountSystemSummaryShort', 'Sync, data controls, support.')} ${exchanges.length} ${ts('labels.accountHistoryConversations')} · ${activeDecisionCount} ${ts('labels.accountHistoryDecisions')}`}
             eyebrow={ts('labels.accountSystemEyebrow')}
             compactCollapsed
             showDetailsLabel={text.showDetails}
@@ -14136,8 +14259,10 @@ function AccountSettingRow({
           <Icon size={17} />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block text-[13px] font-semibold leading-5 sm:text-sm" style={{ color: theme.textPrimary }}>{label}</span>
-          <span className="mt-1 block text-xs leading-5" style={{ color: theme.textSecondary }}>{body}</span>
+          <span className="flex items-center gap-2 text-[13px] font-semibold leading-5 sm:text-sm" style={{ color: theme.textPrimary }}>
+            <span>{label}</span>
+            <InfoHint text={body} theme={theme} />
+          </span>
         </span>
         <span className="min-w-[4.25rem] shrink text-right sm:min-w-[7rem]">
           <span className="block max-w-[6.25rem] text-[11px] font-semibold leading-4 sm:max-w-44 sm:text-xs" style={{ color: theme.accentGold }}>{currentValue}</span>
@@ -14182,8 +14307,10 @@ function AccountToggleRow({
             <Icon size={17} />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block text-sm font-semibold" style={{ color: theme.textPrimary }}>{label}</span>
-            <span className="mt-1 block text-xs leading-5" style={{ color: theme.textSecondary }}>{body}</span>
+            <span className="flex items-center gap-2 text-sm font-semibold" style={{ color: theme.textPrimary }}>
+              <span>{label}</span>
+              <InfoHint text={body} theme={theme} />
+            </span>
           </span>
         </div>
         <span className="grid w-full grid-cols-2 rounded-full border p-1 sm:w-auto" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
@@ -18080,9 +18207,12 @@ function CompanionPanel({
               <MessageCircle size={18} />
               {ui.askTitle}
             </div>
-            <p className="mt-1 text-sm leading-5" style={{ color: theme.textSecondary }}>
-              {ui.askIntro}
-            </p>
+            <div className="mt-1 flex items-start gap-2">
+              <p className="text-sm leading-5" style={{ color: theme.textSecondary }}>
+                {ts('labels.askIntroShort', 'Start with one honest question.')}
+              </p>
+              <InfoHint text={ui.askIntro} theme={theme} />
+            </div>
           </div>
         </div>
 
@@ -18276,7 +18406,12 @@ function CompanionPanel({
                 </button>
               ))}
             </div>
-            {preferences.voiceEnabled ? <p className="mt-2 text-xs leading-5" style={{ color: theme.textMuted }}>{copy.voiceHint}</p> : null}
+            {preferences.voiceEnabled ? (
+              <div className="mt-2 flex items-center gap-2 text-xs leading-5" style={{ color: theme.textMuted }}>
+                <span>{ts('labels.voiceInput', 'Voice input')}</span>
+                <InfoHint text={copy.voiceHint} theme={theme} />
+              </div>
+            ) : null}
           </div>
         </form>
       </section>
@@ -18734,9 +18869,10 @@ function TrustLayerPanel({ theme, ui }: { theme: ThemeColors; ui: UiText }) {
           {open ? ui.hideDetails : ui.showDetails}
         </button>
       </div>
-      <p className="mt-3 rounded-lg border p-2.5 text-sm leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-        {ui.trustScriptureBody ?? uiText.en!.trustScriptureBody}
-      </p>
+      <div className="mt-3 flex items-start gap-2 rounded-lg border p-2.5 text-sm leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+        <span>{ui.trustLayer}</span>
+        <InfoHint text={ui.trustScriptureBody ?? uiText.en!.trustScriptureBody!} theme={theme} />
+      </div>
       {open ? <div className="mt-3 space-y-2.5 text-sm leading-5" style={{ color: theme.textSecondary }}>
         <p className="rounded-lg border p-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
           {ui.trustBoundaryBody ?? uiText.en!.trustBoundaryBody}
@@ -19423,9 +19559,12 @@ function DecisionCompanionPanel({
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.decisionCompanion')}</p>
               <h2 className="mt-1.5 text-xl font-semibold leading-tight" style={{ color: theme.textPrimary }}>{runtime.decisionCompanionHeading}</h2>
-              <p className="mt-1.5 max-w-2xl text-sm leading-5" style={{ color: theme.textSecondary }}>
-                {runtime.decisionCompanionSub}
-              </p>
+              <div className="mt-1.5 flex max-w-2xl items-start gap-2">
+                <p className="text-sm leading-5" style={{ color: theme.textSecondary }}>
+                  {ts('labels.decisionCompanionSubShort', 'Track one decision until clarity settles.')}
+                </p>
+                <InfoHint text={runtime.decisionCompanionSub} theme={theme} />
+              </div>
             </div>
             <span className="w-fit rounded-full px-3 py-2 text-xs font-semibold" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>{modeProfile.displayLabel ?? modeProfile.label}</span>
           </div>
@@ -19517,12 +19656,13 @@ function DecisionCompanionPanel({
         ) : null}
 
         {decisionSection === "counsel" ? (
-          <DisclosureSection title={`${ts('labels.counselCircle')} · ${counselContacts.length} ${ts('labels.trustedVoices')}`} summary={ts('labels.counselCircleSummary')} eyebrow={ts('labels.counsel')} defaultOpen={Boolean(counselSummaryDraft)} compactCollapsed showDetailsLabel={ts('showDetails')} hideDetailsLabel={ts('hideDetails')} theme={theme}>
+          <DisclosureSection title={`${ts('labels.counselCircle')} · ${counselContacts.length} ${ts('labels.trustedVoices')}`} summary={ts('labels.counselCircleSummaryShort', 'Invite trusted voices with explicit sharing.')} eyebrow={ts('labels.counsel')} defaultOpen={Boolean(counselSummaryDraft)} compactCollapsed showDetailsLabel={ts('showDetails')} hideDetailsLabel={ts('hideDetails')} theme={theme}>
             <section id="counsel-circle" className="scroll-mt-24">
               <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.counselCircle')}</p>
-              <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
-                {ts('labels.inviteTrustedPeoplePrivate')}
-              </p>
+              <div className="mt-2 flex items-start gap-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                <span>{ts('labels.inviteTrustedPeoplePrivateShort', 'Invite trusted people privately.')}</span>
+                <InfoHint text={ts('labels.counselCircleSummary')} theme={theme} />
+              </div>
               {counselSummaryDraft ? (
                 <div className="mt-3 rounded-[1rem] border p-2.5" style={{ borderColor: theme.accentGold, backgroundColor: theme.bgCardElevated }}>
                   <div className="flex items-start justify-between gap-2">
@@ -19569,6 +19709,9 @@ function DecisionCompanionPanel({
                   type="file"
                   accept="image/png,image/jpeg,image/webp"
                   className="hidden"
+                  tabIndex={-1}
+                  aria-hidden="true"
+                  style={{ display: "none" }}
                   onChange={onCounselAvatarFileSelected}
                 />
                 <div className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
@@ -20597,9 +20740,10 @@ function ReflectPanel({
       <section className="rounded-[1.35rem] border p-3.5 shadow-[0_8px_24px_rgba(15,23,42,0.05)] sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
         <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('nav.reflect')}</p>
         <h2 className="mt-1.5 text-xl font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.discernmentReflectionQuietPlace')}</h2>
-        <p className="mt-1.5 max-w-2xl text-sm leading-5" style={{ color: theme.textSecondary }}>
-          {runtime.reflectIntro}
-        </p>
+        <div className="mt-1.5 flex max-w-2xl items-start gap-2 text-sm leading-5" style={{ color: theme.textSecondary }}>
+          <span>{ts('labels.reflectIntroShort', 'Slow the moment and name what is true.')}</span>
+          <InfoHint text={runtime.reflectIntro} theme={theme} />
+        </div>
       </section>
 
       <ScreenTabs
@@ -20824,9 +20968,10 @@ function GratitudeLensPanel({
             </div>
             <div>
               <h3 className="text-base font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.captureGratitude')}</h3>
-              <p className="mt-1 text-sm leading-5" style={{ color: theme.textSecondary }}>
-                {ts('labels.gratitudeLensBodyShort', 'Take one photo, name the gift, and keep the moment private by default.')}
-              </p>
+              <div className="mt-1 flex items-start gap-2 text-sm leading-5" style={{ color: theme.textSecondary }}>
+                <span>{ts('labels.gratitudeLensBodyShort', 'Capture one grateful moment.')}</span>
+                <InfoHint text={ts('labels.gratitudeLensBodyTooltip', 'Take one photo, name the gift, and keep the moment private by default.')} theme={theme} />
+              </div>
             </div>
           </div>
 
@@ -20834,9 +20979,10 @@ function GratitudeLensPanel({
             <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
               {ts('labels.gratitudeNoticingQuestion', 'What kind of gift is this?')}
             </p>
-            <p className="mt-1 text-xs leading-5" style={{ color: theme.textSecondary }}>
-              {ts('labels.gratitudeNoticingBodyShort', 'Choose the kind of gift first, then add your note.')}
-            </p>
+            <div className="mt-1 flex items-start gap-2 text-xs leading-5" style={{ color: theme.textSecondary }}>
+              <span>{ts('labels.gratitudeNoticingBodyShort', 'Choose gift type first.')}</span>
+              <InfoHint text={ts('labels.gratitudeNoticingBodyTooltip', 'Choose the kind of gift first, then add your note.')} theme={theme} />
+            </div>
             <div className="mt-2">
               <ScreenTabs
                 value={formation}
@@ -20874,11 +21020,24 @@ function GratitudeLensPanel({
               >
                 <Camera size={28} />
                 <span className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.chooseGratitudePhoto')}</span>
-                <span className="max-w-xs text-xs leading-5">{ts('labels.gratitudePhotoPrivate')}</span>
+                <span className="inline-flex max-w-xs items-center gap-2 text-xs leading-5">
+                  <span>{ts('labels.photoPrivacy', 'Privacy')}</span>
+                  <InfoHint text={ts('labels.gratitudePhotoPrivate')} theme={theme} />
+                </span>
               </button>
             )}
           </div>
-          <input ref={fileInputRef} type="file" accept="image/*" capture="environment" className="sr-only" onChange={selectFile} />
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="hidden"
+            tabIndex={-1}
+            aria-hidden="true"
+            style={{ display: "none" }}
+            onChange={selectFile}
+          />
 
           <div className="mt-3 grid gap-2 sm:grid-cols-2">
             <button
@@ -21066,12 +21225,10 @@ function GratitudeLensPanel({
             <Plus size={16} />
             {isSaving ? ts('labels.saving') : ts('labels.saveGratitude')}
           </button>
-          <p className="mt-3 text-xs leading-5" style={{ color: theme.textMuted }}>
-            {ts('labels.gratitudePrivacyNote')}
-          </p>
-          <p className="mt-2 text-xs leading-5" style={{ color: theme.textMuted }}>
-            {ts('labels.suggestedGratitudeRhythm').replace("{time}", gratitudeRhythmLabel)}
-          </p>
+          <div className="mt-3 flex items-start gap-2 text-xs leading-5" style={{ color: theme.textMuted }}>
+            <span>{ts('labels.gratitudePrivacyShort', 'Private by default.')}</span>
+            <InfoHint text={`${ts('labels.gratitudePrivacyNote')} ${ts('labels.suggestedGratitudeRhythm').replace("{time}", gratitudeRhythmLabel)}`} theme={theme} />
+          </div>
         </div>
 
         <div className="rounded-xl border p-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
@@ -21438,9 +21595,10 @@ function LibraryPanel({
               <BookOpen size={20} />
               {ts('labels.wisdomLibrary')}
             </div>
-            <p className="mt-1.5 text-sm leading-5" style={{ color: theme.textSecondary }}>
-              {runtime.libraryDescription}
-            </p>
+            <div className="mt-1.5 flex items-start gap-2 text-sm leading-5" style={{ color: theme.textSecondary }}>
+              <span>{ts('labels.libraryDescriptionShort', 'Curated wisdom, translation-aware.')}</span>
+              <InfoHint text={runtime.libraryDescription} theme={theme} />
+            </div>
           </div>
           <label className="relative w-full md:max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2" size={17} style={{ color: theme.textMuted }} />
@@ -21491,9 +21649,10 @@ function LibraryPanel({
                 </div>
                 <p className="text-sm font-semibold leading-5" style={{ color: theme.textPrimary }}>{localizedEntry.principle}</p>
                 <p className="mt-2.5 text-sm leading-5" style={{ color: theme.textSecondary }}>{localizedEntry.application}</p>
-                <p className="mt-2.5 rounded-md border p-2.5 text-xs leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textMuted }}>
-                  {localizedWisdomLibraryNote(entry, preferences)}
-                </p>
+                <div className="mt-2.5 flex items-start gap-2 rounded-md border p-2.5 text-xs leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textMuted }}>
+                  <span>{ts('labels.applicationNote', 'Application note')}</span>
+                  <InfoHint text={localizedWisdomLibraryNote(entry, preferences)} theme={theme} />
+                </div>
                 <button
                   type="button"
                   onClick={() => onSaveScriptureMemory(entry.scripture, localizedEntry.principle)}
