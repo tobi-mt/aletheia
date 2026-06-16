@@ -13864,6 +13864,34 @@ function InfoHint({ text, theme }: { text: string; theme: ThemeColors }) {
   const [open, setOpen] = useState(false);
   const tooltipId = useId();
   const wrapperRef = useRef<HTMLSpanElement | null>(null);
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
+  const tooltipRef = useRef<HTMLSpanElement | null>(null);
+  const [tooltipPosition, setTooltipPosition] = useState<{ top: number; left: number; width: number }>({ top: 0, left: 12, width: 240 });
+  const canUsePortal = typeof document !== "undefined";
+
+  const positionTooltip = useCallback(() => {
+    if (!buttonRef.current || !canUsePortal) {
+      return;
+    }
+    const triggerRect = buttonRef.current.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const horizontalMargin = 12;
+    const preferredWidth = 240;
+    const maxWidth = Math.min(preferredWidth, Math.max(180, viewportWidth - horizontalMargin * 2));
+    const tooltipHeight = tooltipRef.current?.getBoundingClientRect().height ?? 92;
+    const verticalGap = 8;
+
+    const centeredLeft = triggerRect.left + triggerRect.width / 2 - maxWidth / 2;
+    const left = Math.max(horizontalMargin, Math.min(centeredLeft, viewportWidth - maxWidth - horizontalMargin));
+
+    const hasRoomBelow = triggerRect.bottom + verticalGap + tooltipHeight <= viewportHeight - horizontalMargin;
+    const top = hasRoomBelow
+      ? triggerRect.bottom + verticalGap
+      : Math.max(horizontalMargin, triggerRect.top - tooltipHeight - verticalGap);
+
+    setTooltipPosition({ top, left, width: maxWidth });
+  }, [canUsePortal]);
 
   useEffect(() => {
     if (!open) {
@@ -13871,8 +13899,8 @@ function InfoHint({ text, theme }: { text: string; theme: ThemeColors }) {
     }
 
     function closeIfOutside(event: Event) {
-      const target = event.target;
-      if (target instanceof Node && wrapperRef.current && !wrapperRef.current.contains(target)) {
+      const target = event.target as Node | null;
+      if (target && wrapperRef.current && !wrapperRef.current.contains(target)) {
         setOpen(false);
       }
     }
@@ -13883,26 +13911,62 @@ function InfoHint({ text, theme }: { text: string; theme: ThemeColors }) {
       }
     }
 
-    window.addEventListener("mousedown", closeIfOutside as EventListener);
-    window.addEventListener("touchstart", closeIfOutside as EventListener, { passive: true });
-    window.addEventListener("keydown", closeOnEscape as EventListener);
+    window.addEventListener("mousedown", closeIfOutside);
+    window.addEventListener("touchstart", closeIfOutside, { passive: true });
+    window.addEventListener("keydown", closeOnEscape);
+    window.addEventListener("resize", positionTooltip);
+    window.addEventListener("scroll", positionTooltip, true);
 
     return () => {
       window.removeEventListener("mousedown", closeIfOutside);
       window.removeEventListener("touchstart", closeIfOutside);
       window.removeEventListener("keydown", closeOnEscape);
+      window.removeEventListener("resize", positionTooltip);
+      window.removeEventListener("scroll", positionTooltip, true);
     };
-  }, [open]);
+  }, [open, positionTooltip]);
+
+  useLayoutEffect(() => {
+    if (!open) {
+      return;
+    }
+    positionTooltip();
+    const raf = window.requestAnimationFrame(positionTooltip);
+    return () => {
+      window.cancelAnimationFrame(raf);
+    };
+  }, [open, text, positionTooltip]);
 
   if (!text?.trim()) {
     return null;
   }
 
+  const tooltipBody = (
+    <span
+      id={tooltipId}
+      ref={tooltipRef}
+      role="tooltip"
+      className="z-[90] rounded-lg border px-2.5 py-2 text-left text-[12px] font-normal leading-5 shadow-xl"
+      style={{
+        position: "fixed",
+        top: tooltipPosition.top,
+        left: tooltipPosition.left,
+        width: tooltipPosition.width,
+        borderColor: theme.borderLight,
+        backgroundColor: theme.bgCardElevated,
+        color: theme.textSecondary,
+      }}
+    >
+      {text}
+    </span>
+  );
+
   return (
     <span ref={wrapperRef} className="relative inline-flex shrink-0">
       <button
+        ref={buttonRef}
         type="button"
-        className="inline-flex size-5 items-center justify-center rounded-full border text-[11px] font-semibold"
+        className="inline-flex size-5 items-center justify-center rounded-full border text-[11px] font-semibold transition"
         style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
         aria-label={text}
         aria-expanded={open}
@@ -13910,21 +13974,18 @@ function InfoHint({ text, theme }: { text: string; theme: ThemeColors }) {
         onClick={(event) => {
           event.preventDefault();
           event.stopPropagation();
-          setOpen((current) => !current);
+          setOpen((current) => {
+            const next = !current;
+            if (next) {
+              window.requestAnimationFrame(positionTooltip);
+            }
+            return next;
+          });
         }}
       >
         i
       </button>
-      {open ? (
-        <span
-          id={tooltipId}
-          role="tooltip"
-          className="absolute left-1/2 top-[calc(100%+0.45rem)] z-30 w-56 -translate-x-1/2 rounded-xl border px-3 py-2 text-left text-xs font-normal leading-5 shadow-lg"
-          style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}
-        >
-          {text}
-        </span>
-      ) : null}
+      {open ? (canUsePortal ? createPortal(tooltipBody, document.body) : tooltipBody) : null}
     </span>
   );
 }
