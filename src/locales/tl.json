@@ -1575,6 +1575,8 @@
     "noProgressYet": "Magsimula sa Araw 1 kapag handa ka na.",
     "allDaysComplete": "Lahat ng {total} araw ay tapos. Napakaganda.",
     "signInToTrack": "Mag-sign in upang subaybayan ang iyong pag-unlad sa lahat ng mga kagamitan.",
+    "loading": "Nag-load…",
+    "saving": "Nagsasave…",
     "gratitude3day": {
       "title": "3-araw na pasasalamat na ehersisyo",
       "description": "Tatlong araw ng mahabang pagmamahal — isang ordinaryong regalo, isang patuloy na pagkilala, isang lugar kung saan lumalaki ang kaligayahan."

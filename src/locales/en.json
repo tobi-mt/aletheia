@@ -1575,6 +1575,8 @@
     "noProgressYet": "Start with Day 1 whenever you are ready.",
     "allDaysComplete": "All {total} days complete. Well done.",
     "signInToTrack": "Sign in to track your progress across devices.",
+    "loading": "Loading…",
+    "saving": "Saving…",
     "gratitude3day": {
       "title": "3-Day Gratitude Practice",
       "description": "Three days of quiet noticing — one ordinary gift, one steady presence, one area where contentment is growing."

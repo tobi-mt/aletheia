@@ -1575,6 +1575,8 @@
     "noProgressYet": "Fara da Rana 1 lokacin da kake shirya.",
     "allDaysComplete": "Duk {total} ranaku gama. Sannu sosai.",
     "signInToTrack": "Shiga don seguida ci gaban ku a cikin na'uro.",
+    "loading": "Hawan…",
+    "saving": "Ajiye…",
     "gratitude3day": {
       "title": "Godiya 3-Rana",
       "description": "Ranaku ukuta da kimanta natsuwa — kyakya na yau da kullum, tsayuwar tsaye, wuri da kusumsa ke girma."

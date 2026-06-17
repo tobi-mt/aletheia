@@ -15053,7 +15053,7 @@ function FormationsSection({
 
       {loading && displayChallenges.length === 0 && (
         <div className="rounded-[1.35rem] border p-4 text-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textMuted }}>
-          Loading…
+          {ts("challenges.loading", "Loading…")}
         </div>
       )}
 
@@ -15183,7 +15183,7 @@ function FormationsSection({
                       className="mt-1 flex w-full items-center justify-center rounded-[0.85rem] px-4 py-2.5 text-sm font-semibold transition hover:opacity-90 disabled:opacity-50"
                       style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
                     >
-                      {isSaving ? "Saving…" : ts("challenges.saveReflection", "Save and mark complete")}
+                      {isSaving ? ts("challenges.saving", "Saving…") : ts("challenges.saveReflection", "Save and mark complete")}
                     </button>
                   </div>
                 )}

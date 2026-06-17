@@ -1575,6 +1575,8 @@
     "noProgressYet": "Comece com o Dia 1 quando estiver pronto.",
     "allDaysComplete": "Todos os {total} dias concluídos. Muito bem.",
     "signInToTrack": "Entre para rastrear seu progresso em todos os dispositivos.",
+    "loading": "Carregando…",
+    "saving": "Salvando…",
     "gratitude3day": {
       "title": "Prática de gratidão de 3 dias",
       "description": "Três dias de observação tranquila — um presente ordinário, uma presença constante, uma área onde a contentamento está crescendo."

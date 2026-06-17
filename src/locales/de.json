@@ -1575,6 +1575,8 @@
     "noProgressYet": "Beginne mit Tag 1, wenn du bereit bist.",
     "allDaysComplete": "Alle {total} Tage abgeschlossen. Gut gemacht.",
     "signInToTrack": "Melde dich an, um deinen Fortschritt geräteübergreifend zu verfolgen.",
+    "loading": "Lädt…",
+    "saving": "Speichert…",
     "gratitude3day": {
       "title": "3-Tage-Dankbarkeitspraxis",
       "description": "Drei Tage ruhigen Bemerkens — ein gewöhnliches Geschenk, eine stabile Präsenz, ein Bereich, wo Zufriedenheit wächst."
