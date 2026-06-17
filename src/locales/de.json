@@ -1579,15 +1579,90 @@
     "saving": "Speichert…",
     "gratitude3day": {
       "title": "3-Tage-Dankbarkeitspraxis",
-      "description": "Drei Tage ruhigen Bemerkens — ein gewöhnliches Geschenk, eine stabile Präsenz, ein Bereich, wo Zufriedenheit wächst."
+      "description": "Drei Tage ruhigen Bemerkens — ein gewöhnliches Geschenk, eine stabile Präsenz, ein Bereich, wo Zufriedenheit wächst.",
+      "day1": {
+        "principle": "Sagt in allem Dank, denn das ist der Wille Gottes für euch in Christus Jesus.",
+        "prompt": "Nimm heute eine gewöhnliche Gabe wahr, die du sonst leicht übersehen würdest. Schreib eine kurze Notiz darüber.",
+        "practice": "Nenne eine alltägliche Barmherzigkeit, die du beinahe übersehen hast."
+      },
+      "day2": {
+        "principle": "Dankt dem Herrn, denn er ist gut; denn seine Güte währt ewiglich.",
+        "prompt": "Denke an jemanden, dessen beständige Gegenwart dein Urteilsvermögen geprägt hat. Schreibe auf, wofür du dieser Person dankbar bist.",
+        "practice": "Nenne eine Person, für deren verlässliche Gegenwart du dankbar bist."
+      },
+      "day3": {
+        "principle": "Ich habe gelernt, mir genügen zu lassen, worin ich auch bin.",
+        "prompt": "Wo war Zufriedenheit diese Woche schwer? Wie sähe es dort aus, Dankbarkeit statt Mangel zu wählen?",
+        "practice": "Nenne einen Bereich, in dem Dankbarkeit heute den Mangel ersetzt."
+      }
     },
     "waiting5day": {
       "title": "5-Tage-Wartepraktik",
-      "description": "Fünf Tage, eine Entscheidung fest halten — die Eile benennen, die Angst darunter finden, und auf Weisheit warten."
+      "description": "Fünf Tage, eine Entscheidung fest halten — die Eile benennen, die Angst darunter finden, und auf Weisheit warten.",
+      "day1": {
+        "principle": "Harre auf den Herrn, sei stark, und dein Herz fasse Mut; harre auf den Herrn.",
+        "prompt": "Nenne die Entscheidung oder den Druck, den du trägst. Schreib einen Satz darüber, was die Dringlichkeit von dir verlangt.",
+        "practice": "Nenne die Entscheidung und was die Dringlichkeit dir zuflüstert."
+      },
+      "day2": {
+        "principle": "Deine Augen sollen geradeaus schauen, und deine Blicke gerade vor dich gerichtet sein. Überlege den Weg deiner Füße, und alle deine Wege werden sicher sein.",
+        "prompt": "Was würde es kosten, noch drei Tage mit der Entscheidung zu warten? Schreib die eigentliche Angst unter der Dringlichkeit auf.",
+        "practice": "Nenne die Angst unter der Dringlichkeit."
+      },
+      "day3": {
+        "principle": "Die auf den Herrn harren, gewinnen neue Kraft; sie fahren auf mit Flügeln wie Adler.",
+        "prompt": "Woran erkennst du bisher, dass das Warten gut war, auch wenn es etwas Kleines ist?",
+        "practice": "Schreibe ein Zeichen auf, dass das Warten etwas Gutes schützt."
+      },
+      "day4": {
+        "principle": "Wenn es jemandem unter euch an Weisheit fehlt, so bitte er Gott, der allen gern und ohne Vorwurf gibt; so wird sie ihm gegeben werden.",
+        "prompt": "Hast du eine vertraute Stimme zu dieser Entscheidung gefragt? Schreib auf, was du gehört hast oder was du fragen würdest.",
+        "practice": "Schreibe auf, was Rat gesagt hat, oder was du fragen würdest."
+      },
+      "day5": {
+        "principle": "Vertraue auf den Herrn von ganzem Herzen und verlasse dich nicht auf deinen Verstand. Auf all deinen Wegen erkenne nur ihn, dann ebnet er selbst deine Pfade.",
+        "prompt": "Was hat sich nach fünf Tagen an deinem Blick auf diese Entscheidung verändert? Was ist der nächste treue Schritt, selbst wenn es noch eine Woche des Wartens ist?",
+        "practice": "Nenne den nächsten treuen Schritt mit offener Hand."
+      }
     },
     "stewardship7day": {
       "title": "7-Tage-Haushalterschaftspraxis",
-      "description": "Sieben Tage ehrliche Bilanz — was dir gegeben wurde, wo Hast Entscheidungen prägt, und was genug bedeutet."
+      "description": "Sieben Tage ehrliche Bilanz — was dir gegeben wurde, wo Hast Entscheidungen prägt, und was genug bedeutet.",
+      "day1": {
+        "principle": "Gedenke an den Herrn, deinen Gott, denn er ist es, der dir Kraft gibt, Reichtum zu erwerben.",
+        "prompt": "Schreibe auf, auf welche Weise Einkommen oder Ressourcen zu dir gekommen sind, etwas, das du nicht ganz allein verdient hast.",
+        "practice": "Erkenne eine Ressource an, die gegeben wurde, nicht nur verdient."
+      },
+      "day2": {
+        "principle": "Die Pläne der Fleißigen führen gewiss zum Überfluss, wer aber hastig ist, gerät nur in Mangel.",
+        "prompt": "Wo triffst du eine finanzielle Entscheidung in Eile? Nenne sie und schreibe auf, was langsames Prüfen fragen würde.",
+        "practice": "Nenne einen Bereich, in dem Eile dein Ausgeben prägt."
+      },
+      "day3": {
+        "principle": "Wer im Geringsten treu ist, der ist auch im Großen treu; und wer im Geringsten ungerecht ist, der ist auch im Großen ungerecht.",
+        "prompt": "Welchen kleinen Bereich finanzieller Treue hast du kürzlich praktiziert? Schreib ihn als Akt der Dankbarkeit auf, nicht des Stolzes.",
+        "practice": "Nenne einen kleinen Bereich, in dem Treue sichtbar geworden ist."
+      },
+      "day4": {
+        "principle": "Seid niemandem etwas schuldig, außer dass ihr einander liebt.",
+        "prompt": "Schau auf deine Schulden - Studienkredite, persönliche Schulden, Konsumschulden oder Beziehungsschulden. Schreib einen ehrlichen Satz darüber, was du schuldest und wie der nächste treue Schritt aussieht.",
+        "practice": "Schreib einen ehrlichen Satz darüber, was du schuldest."
+      },
+      "day5": {
+        "principle": "Jeder gebe, wie er es sich im Herzen vorgenommen hat, nicht widerwillig oder aus Zwang; denn Gott liebt einen fröhlichen Geber.",
+        "prompt": "Schreibe über das letzte Mal, dass du frei gegeben hast - ohne Schuld oder Druck. Was machte es freudig?",
+        "practice": "Nenne einen Akt des Gebens, der aus Freiheit und nicht aus Zwang kam."
+      },
+      "day6": {
+        "principle": "Ihr könnt nicht Gott dienen und dem Geld.",
+        "prompt": "Wo trifft Geld eine Entscheidung, die eigentlich Weisheit, Beziehungen oder Ruhe gehören sollte? Nenne es ohne Scham.",
+        "practice": "Nenne einen Ort, an dem Geld führt, statt zu dienen."
+      },
+      "day7": {
+        "principle": "Frömmigkeit mit Genügsamkeit ist ein großer Gewinn.",
+        "prompt": "Schreibe nach sieben Tagen auf, was für diese Zeit genug ist. Nicht ein Ideal - was jetzt tatsächlich genug ist.",
+        "practice": "Schreibe klar auf, was für diese Zeit genug ist."
+      }
     }
   }
 }

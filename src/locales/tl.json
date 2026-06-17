@@ -1579,15 +1579,90 @@
     "saving": "Nagsasave…",
     "gratitude3day": {
       "title": "3-araw na pasasalamat na ehersisyo",
-      "description": "Tatlong araw ng mahabang pagmamahal — isang ordinaryong regalo, isang patuloy na pagkilala, isang lugar kung saan lumalaki ang kaligayahan."
+      "description": "Tatlong araw ng mahabang pagmamahal — isang ordinaryong regalo, isang patuloy na pagkilala, isang lugar kung saan lumalaki ang kaligayahan.",
+      "day1": {
+        "principle": "Magpasalamat sa lahat ng kalagayan; sapagkat ito ang kalooban ng Diyos para sa inyo kay Cristo Jesus.",
+        "prompt": "Pansinin ang isang karaniwang biyaya ngayon na madalas mong hindi napapansin. Sumulat ng maikling tala tungkol dito.",
+        "practice": "Banggitin ang isang karaniwang awa na halos hindi mo napansin."
+      },
+      "day2": {
+        "principle": "Magpasalamat kayo sa Panginoon, sapagkat siya ay mabuti; ang tapat niyang pag-ibig ay magpakailanman.",
+        "prompt": "Isipin ang isang taong ang matatag na presensya ay humubog sa iyong paghatol. Isulat kung para saan ka nagpapasalamat sa kanila.",
+        "practice": "Banggitin ang isang taong ipinagpapasalamat mo ang matatag na presensya."
+      },
+      "day3": {
+        "principle": "Natuto akong maging kontento sa anumang kalagayan ko.",
+        "prompt": "Saan naging mahirap ang pagiging kontento ngayong linggo? Ano kaya ang hitsura kung pipiliin mo ang pasasalamat kaysa kakulangan sa lugar na iyon?",
+        "practice": "Banggitin ang isang lugar kung saan pumapalit ang pasasalamat sa kakulangan ngayon."
+      }
     },
     "waiting5day": {
       "title": "5-araw na naghihintay na ehersisyo",
-      "description": "Limang araw ng paghawak ng desisyon — pagpapangalan ng siguro, paghahanap ng takot, at paghihintay na ang karunungan ay magsisiguro."
+      "description": "Limang araw ng paghawak ng desisyon — pagpapangalan ng siguro, paghahanap ng takot, at paghihintay na ang karunungan ay magsisiguro.",
+      "day1": {
+        "principle": "Maghintay sa Panginoon; magpakatatag ka, at magpatibay ang iyong puso; maghintay sa Panginoon.",
+        "prompt": "Banggitin ang desisyon o bigat na dala mo. Sumulat ng isang linya na naglalarawan kung ano ang hinihiling sa iyo ng pagkaapura na gawin.",
+        "practice": "Banggitin ang desisyon at kung ano ang ibinubulong ng pagkaapura."
+      },
+      "day2": {
+        "principle": "Diretso ang tingin ng iyong mga mata sa unahan, at maging tuwid ang iyong tingin sa harap mo. Pagnilayan ang landas ng iyong mga paa; kung gayon ay magiging tiyak ang lahat mong daan.",
+        "prompt": "Ano ang kapalit kung maghihintay ka pa ng tatlong araw bago magpasya? Isulat ang tunay na takot sa ilalim ng pagkaapura.",
+        "practice": "Banggitin ang takot na nasa ilalim ng pagkaapura."
+      },
+      "day3": {
+        "principle": "Ang mga naghihintay sa Panginoon ay magpapanibagong-lakas; sila'y aangat na parang agila.",
+        "prompt": "Ano ang isang palatandaan na naging mabuti ang paghihintay hanggang ngayon - kahit isang maliit lang?",
+        "practice": "Sumulat ng isang palatandaan na pinangangalagaan ng paghihintay ang isang mabuti."
+      },
+      "day4": {
+        "principle": "Kung ang sinuman sa inyo ay kulang sa karunungan, humingi siya sa Diyos, na nagbibigay sa lahat nang sagana at walang panunumbat, at ito'y ibibigay sa kanya.",
+        "prompt": "Nagtanong ka na ba sa isang mapagkakatiwalaang tinig tungkol sa desisyong ito? Isulat kung ano ang narinig mo o kung ano ang itatanong mo sa kanila.",
+        "practice": "Isulat kung ano ang sinabi ng payo - o kung ano ang itatanong mo."
+      },
+      "day5": {
+        "principle": "Magtiwala ka sa Panginoon nang buong puso mo, at huwag kang umasa sa sarili mong unawa. Kilalanin mo siya sa lahat mong mga lakad, at itutuwid niya ang iyong mga landas.",
+        "prompt": "Pagkaraan ng limang araw, ano ang nagbago sa pagtingin mo sa desisyong ito? Ano ang susunod na tapat na hakbang - kahit isa pang linggo ng paghihintay iyon?",
+        "practice": "Banggitin ang susunod na tapat na hakbang nang bukas ang kamay."
+      }
     },
     "stewardship7day": {
       "title": "7-araw na pangangalaga ng ehersisyo",
-      "description": "Pitong araw ng tapat na pagsusugal — ang ibinigay sa iyo, kung saan nagpapabago ang bilisan ang mga pagpipilian, at ang sapat na hitsura ngayon."
+      "description": "Pitong araw ng tapat na pagsusugal — ang ibinigay sa iyo, kung saan nagpapabago ang bilisan ang mga pagpipilian, at ang sapat na hitsura ngayon.",
+      "day1": {
+        "principle": "Alalahanin mo ang Panginoon mong Diyos, sapagkat siya ang nagbibigay sa iyo ng kapangyarihang magkamit ng kayamanan.",
+        "prompt": "Sumulat ng isang paraan kung paano dumating sa iyo ang iyong kita o mga yaman - isang bagay na hindi mo ganap na kinita sa sarili mo.",
+        "practice": "Kilalanin ang isang yaman na ibinigay, hindi lamang kinita."
+      },
+      "day2": {
+        "principle": "Ang mga plano ng masipag ay tiyak na patungo sa kasaganaan, ngunit ang bawat nagmamadali ay nauuwi lamang sa karalitaan.",
+        "prompt": "Saan ka gumagawa ng desisyon sa pananalapi nang minamadali? Banggitin ito at isulat kung ano ang itatanong ng maingat na pagninilay.",
+        "practice": "Banggitin ang isang lugar kung saan minamadali ang paggasta."
+      },
+      "day3": {
+        "principle": "Ang tapat sa kaunti ay tapat din sa marami; at ang hindi tapat sa kaunti ay hindi rin tapat sa marami.",
+        "prompt": "Ano ang isang maliit na larangan ng katapatan sa pananalapi na naisagawa mo kamakailan? Isulat ito bilang gawa ng pasasalamat, hindi ng pagmamataas.",
+        "practice": "Banggitin ang isang maliit na larangan kung saan lumitaw ang katapatan."
+      },
+      "day4": {
+        "principle": "Huwag kayong magkaroon ng utang sa kanino man, maliban sa pag-ibig sa isa't isa.",
+        "prompt": "Tingnan ang iyong mga utang - pang-edukasyon, personal, konsumer, o relasyonal. Sumulat ng isang tapat na pangungusap tungkol sa utang mo at kung ano ang hitsura ng susunod na tapat na hakbang.",
+        "practice": "Sumulat ng isang tapat na pangungusap tungkol sa utang mo."
+      },
+      "day5": {
+        "principle": "Magbigay ang bawat isa ayon sa pasya ng kanyang puso, hindi nang may pag-aatubili o sapilitan, sapagkat iniibig ng Diyos ang masayang nagbibigay.",
+        "prompt": "Sumulat tungkol sa huling pagkakataong nagbigay ka nang malaya - walang pagkakasala o presyon. Ano ang nagpasaya rito?",
+        "practice": "Banggitin ang isang gawa ng pagbibigay na nagmula sa kalayaan, hindi sa sapilitan."
+      },
+      "day6": {
+        "principle": "Hindi kayo makapaglilingkod sa Diyos at sa salapi.",
+        "prompt": "Saan ang pera ang gumagawa ng desisyong dapat ay para sa karunungan, mga relasyon, o pahinga? Banggitin ito nang walang hiya.",
+        "practice": "Banggitin ang isang lugar kung saan ang pera ang nangunguna imbes na nagsisilbi."
+      },
+      "day7": {
+        "principle": "Ang maka-Diyos na pamumuhay na may kontento ay malaking pakinabang.",
+        "prompt": "Pagkaraan ng pitong araw, isulat kung ano ang sapat para sa panahong ito. Hindi ang ideal - kung ano talaga ang sapat ngayon.",
+        "practice": "Isulat kung ano ang sapat para sa panahong ito, nang malinaw."
+      }
     }
   }
 }

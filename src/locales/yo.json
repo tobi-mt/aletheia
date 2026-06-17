@@ -1579,15 +1579,90 @@
     "saving": "Tójú…",
     "gratitude3day": {
       "title": "Àdúràdúrà 3-Ọjọ́",
-      "description": "Ọjọ́ mẹ́ta ti ṣíṣẹ́ àlúmọ́ — ẹbun ìbàjẹ́, ìwọ̀yaĺẹ̀ ìfáradà, ibẹ̀ tí owúnrí ń dagba."
+      "description": "Ọjọ́ mẹ́ta ti ṣíṣẹ́ àlúmọ́ — ẹbun ìbàjẹ́, ìwọ̀yaĺẹ̀ ìfáradà, ibẹ̀ tí owúnrí ń dagba.",
+      "day1": {
+        "principle": "Ẹ máa dupẹ́ nínú gbogbo ipo; nítorí èyí ni ìfẹ́ Ọlọ́run nínú Kristi Jesu sí yín.",
+        "prompt": "Ṣàkíyèsí ẹ̀bùn ojoojúmọ́ kan loni tí o maa n fo kọja lójú rẹ. Kọ akọsilẹ kékèké nípa rẹ.",
+        "practice": "Darukọ aanu ojoojúmọ́ kan tí o fẹrẹ kọja kọ."
+      },
+      "day2": {
+        "principle": "Ẹ yin Oluwa, nítorí ó dára; ìfẹ́ rẹ̀ tó dúró ṣinṣin yóò pé títí láé.",
+        "prompt": "Rò nípa ẹnìkan tí ìwà ìdúró ṣinṣin rẹ̀ ti ràn ọ lọwọ lati ṣe amojuto. Kọ ohun tí o dupẹ́ fun nípa wọn.",
+        "practice": "Darukọ ẹni kan tí o dupẹ́ fún ìfarahàn wọn tí ó dúró ṣinṣin."
+      },
+      "day3": {
+        "principle": "Mo ti kọ́, ní ipò kankan tí mo wà, láti ní ìtẹ́lọ́rùn.",
+        "prompt": "Nibo ni ìtẹ́lọ́rùn ti nira ni ọ̀sẹ̀ yìí? Bawo ni yóò ṣe rí bí o bá yan ìdúpẹ́ dípò àìní níbẹ̀?",
+        "practice": "Darukọ agbègbè kan nibiti ìdúpẹ́ ń rọ́pò àìní loni."
+      }
     },
     "waiting5day": {
       "title": "Ìgbìn 5-Ọjọ́",
-      "description": "Ọjọ́ márùn-ún ti múra ìpinnu – kpò ìfarabale, tí a bá rí ìbàjẹ́ dé áb́ẹ̀, àti ìgbìn o'u'kọ́wé dúró."
+      "description": "Ọjọ́ márùn-ún ti múra ìpinnu – kpò ìfarabale, tí a bá rí ìbàjẹ́ dé áb́ẹ̀, àti ìgbìn o'u'kọ́wé dúró.",
+      "day1": {
+        "principle": "Dúró de Oluwa; kí o lagbara, kí ọkàn rẹ sì mú ìgboyà; dúró de Oluwa.",
+        "prompt": "Darukọ ipinnu tàbí titẹ tí o ń rú. Kọ laini kan tí ń ṣàlàyé ohun tí ìkáwọ́ ń béèrè lọwọ rẹ láti ṣe.",
+        "practice": "Darukọ ipinnu náà ati ohun tí ìkáwọ́ ń rọ̀ ọ́ sí."
+      },
+      "day2": {
+        "principle": "Kí ojú rẹ wo taara siwaju, kí ìran rẹ sì dúró ṣinṣin níwájú rẹ. Ronu lórí ọ̀nà ẹsẹ rẹ; nígbà náà gbogbo ọ̀nà rẹ yóò dájú.",
+        "prompt": "Kí ni yóò jẹ ẹrù rẹ bí o bá dúró ọjọ́ mẹ́ta míràn kí o tó pinnu? Kọ ibẹ̀rù gidi tó wà lẹ́yìn ìkáwọ́.",
+        "practice": "Darukọ ibẹ̀rù tó wà lẹ́yìn ìkáwọ́."
+      },
+      "day3": {
+        "principle": "Àwọn tí ń dúró de Oluwa yóò tún agbára wọn ṣe; wọn yóò gòke bí idì.",
+        "prompt": "Ààmì kan wo ni fi hàn pé ìdúró ti dára títí di báyìí — kó tilẹ̀ jẹ́ ohun kékeré?",
+        "practice": "Kọ ààmì kan tí ń fi hàn pé ìdúró ń dáàbò bo ohun rere."
+      },
+      "day4": {
+        "principle": "Bí ẹnikẹ́ni nínú yín bá ṣòro nínú ọgbọ́n, kí ó béèrè lọ́dọ̀ Ọlọ́run, ẹni tí ń fún gbogbo ènìyàn lọ́nà onífẹ̀ẹ́ laisi ẹ̀gàn, a ó sì fi fún un.",
+        "prompt": "Ṣé o ti béèrè lọ́wọ́ ohùn tí o gbẹ́kẹ̀lé nípa ipinnu yìí? Kọ ohun tí o ti gbọ́ tàbí ohun tí o máa béèrè lọwọ wọn.",
+        "practice": "Kọ ohun tí ìmọ̀ràn sọ — tàbí ohun tí o máa béèrè."
+      },
+      "day5": {
+        "principle": "Gbẹ́kẹ̀lé Oluwa pátápátá pẹ̀lú gbogbo ọkàn rẹ, má ṣe fi ìmòye tirẹ rọ̀rùn. Ní gbogbo ọ̀nà rẹ mọ ọ̀nà rẹ, òun yóò sì tọ́ ọ̀nà rẹ.",
+        "prompt": "Lẹ́yìn ọjọ́ marun, kí ni yípadà nínú bí o ṣe n rí ipinnu yìí? Kí ni ìgbésẹ̀ t’okan tó dájú — bó tilẹ̀ jẹ́ pé ọ̀sẹ̀ míì ni ìdúró?",
+        "practice": "Darukọ ìgbésẹ̀ t’okan tó dájú pẹ̀lú ọwọ́ ṣíṣi."
+      }
     },
     "stewardship7day": {
       "title": "Ìtójú 7-Ọjọ́",
-      "description": "Ọjọ́ méje ti ìtó òro – ohun tí o ti fún fún, ibẹ̀ tí ìyára ń ṣe àwọn ètò, àti ohun tí ó lẹ́wà lóní."
+      "description": "Ọjọ́ méje ti ìtó òro – ohun tí o ti fún fún, ibẹ̀ tí ìyára ń ṣe àwọn ètò, àti ohun tí ó lẹ́wà lóní.",
+      "day1": {
+        "principle": "Rántí Oluwa Ọlọ́run rẹ, nítorí òun ni ó ń fún ọ ní agbára láti rí ọrọ.",
+        "prompt": "Kọ ọ̀nà kan tí owó tàbí orísun rẹ ti dé bá ọ — ohun tí o kò rí jèrè nípa ara rẹ nìkan.",
+        "practice": "Mọ̀ orísun kan tí a fi fún ọ, kì í ṣe tí o jèrè nìkan."
+      },
+      "day2": {
+        "principle": "Ète ẹni oníṣẹ́ takuntakun máa ń lọ dájú sí àlààyè, ṣùgbọ́n ẹnikẹ́ni tí ó bá yara máa ń dé sí ìyàjẹ́ nìkan.",
+        "prompt": "Nibo ni o ti n ṣe ipinnu owó lọ́fà? Darukọ rẹ kí o sì kọ ohun tí ìmòye onírẹ̀lẹ̀ yoo béèrè.",
+        "practice": "Darukọ ibi kan tí ìyára ń ṣe amọna inawo."
+      },
+      "day3": {
+        "principle": "Ẹnikẹ́ni tí ó bá jẹ́ olóòtítọ́ nínú ohun kékeré, bẹ́ẹ̀ ni yóò jẹ́ olóòtítọ́ nínú púpọ̀; ẹnikẹ́ni tí ó bá jẹ́ aláìṣotitọ́ nínú ohun kékeré, bẹ́ẹ̀ ni yóò jẹ́ nínú púpọ̀.",
+        "prompt": "Kí ni agbègbè kékeré kan ti òtítọ́ owó tí o ti ṣe laipẹ? Kọ ọ́ gẹ́gẹ́ bi ìṣe ìdúpẹ́, kì í ṣe igberaga.",
+        "practice": "Darukọ agbègbè kékeré kan nibiti òtítọ́ farahàn."
+      },
+      "day4": {
+        "principle": "Ẹ má ṣe jẹ́ ẹni gbèsè sí ẹnikẹ́ni ohunkóhun, bí kò ṣe láti fẹ́ ara yín.",
+        "prompt": "Wo gbèsè rẹ — ti ẹ̀kọ́, ti ara ẹni, ti rira, tàbí ti ìbáṣepọ̀. Kọ gbolóhùn kan pẹ̀lú òtítọ́ nípa ohun tí o jẹ gbèsè àti ìgbésẹ̀ onígbàgbọ́ tó t’okan.",
+        "practice": "Kọ gbolóhùn kan pẹ̀lú òtítọ́ nípa ohun tí o jẹ gbèsè."
+      },
+      "day5": {
+        "principle": "Kí ẹnikẹ́ni fi bí ó ti pinnu nínú ọkàn rẹ fúnni, kì í ṣe pẹ̀lú ìbànújẹ tàbí lábẹ́ ìfipá, nítorí Ọlọ́run fẹ́ ẹni tí ń fún ní ayọ̀.",
+        "prompt": "Kọ nípa ìgbà tó kẹ́yìn tí o fún ní ọ̀fẹ́ — láìsí ẹ̀bi tàbí ìfipá. Kí ni ó jẹ́ kó jẹ́ ayọ̀?",
+        "practice": "Darukọ ìṣe fífún kan tí ó wá láti òmìnira, kì í ṣe ìfipá."
+      },
+      "day6": {
+        "principle": "Ẹ kò lè sin Ọlọ́run àti owó.",
+        "prompt": "Nibo ni owó ti n ṣe ipinnu tí ó yẹ kí ọgbọ́n, ìbáṣepọ̀, tàbí ìsinmi ṣe? Darukọ rẹ láìsí ìtìjú.",
+        "practice": "Darukọ ibi kan tí owó ń dari dípò pé ó ń sìn."
+      },
+      "day7": {
+        "principle": "Ìwà Ọlọ́run pẹ̀lú ìtẹ́lọ́rùn ni èrè ńlá.",
+        "prompt": "Lẹ́yìn ọjọ́ méje, kọ ohun tí ó tó fún asiko yìí. Kì í ṣe ohun tí ó péye — ohun tí ó tó dájú báyìí.",
+        "practice": "Kọ ohun tí ó tó fún asiko yìí ní kedere."
+      }
     }
   }
 }

@@ -1579,15 +1579,90 @@
     "saving": "Na-eche…",
     "gratitude3day": {
       "title": "Ekele 3-ụbọchị",
-      "description": "Ụbọchị atọ nke ịtụ anya udio — onyinye e meerụ, ọkụ were, ebe ihu na-eto."
+      "description": "Ụbọchị atọ nke ịtụ anya udio — onyinye e meerụ, ọkụ were, ebe ihu na-eto.",
+      "day1": {
+        "principle": "Jisonu Chineke ekele n’ọnọdụ niile; n’ihi na nke a bụ uche Chineke n’ime Kraịst Jisọs maka unu.",
+        "prompt": "Lezienụ anya n’otu onyinye nkịtị taa nke ị na-agbakarị ọsọ gafee. Dee obere ndetu banyere ya.",
+        "practice": "Kpọọ otu ebere nkịtị nke fọrọ nke nta ka ị ghara ịhụ."
+      },
+      "day2": {
+        "principle": "Kelee Onyenwe anyị, n’ihi na ọ dị mma; ịhụnanya ya na-adịgide ruo mgbe ebighị ebi.",
+        "prompt": "Chee echiche banyere onye nkwụsi ike ya kpụziri nghọta gị. Dee ihe ị na-enwe ekele maka ya.",
+        "practice": "Kpọọ otu onye nkwụsi ike ya ị na-enwe ekele maka ya."
+      },
+      "day3": {
+        "principle": "Amụtara m ịdị afọ ojuju n’ọnọdụ ọ bụla m nọ.",
+        "prompt": "Ebee ka afọ ojuju siri sie ike n’izu a? Kedu ka ọ ga-adị ma ọ bụrụ na ịhọrọ ekele karịa ụkọ n’ebe ahụ?",
+        "practice": "Kpọọ otu mpaghara ebe ekele na-anọchi ụkọ taa."
+      }
     },
     "waiting5day": {
       "title": "Ire 5-ụbọchị",
-      "description": "Ụbọchị ise nke iji azụ ịkpebi agwa — kpọ obi mgbawa, chọta ụjọ, ma chere ka amamihe ndịrị."
+      "description": "Ụbọchị ise nke iji azụ ịkpebi agwa — kpọ obi mgbawa, chọta ụjọ, ma chere ka amamihe ndịrị.",
+      "day1": {
+        "principle": "Chere Onyenwe anyị; sie ike, ka obi gị nwekwa obi ike; chere Onyenwe anyị.",
+        "prompt": "Kpọọ mkpebi ma ọ bụ nrụgide ị na-ebu. Dee ahịrị otu na-akọwa ihe ngwa ngwa na-arịọ gị ka ị mee.",
+        "practice": "Kpọọ mkpebi ahụ na ihe ngwa ngwa na-asa gị ntị."
+      },
+      "day2": {
+        "principle": "Ka anya gị lee kpọmkwem n’ihu, ka nghọta gị guzosie ike n’ihu gị. Tụlee ụzọ ụkwụ gị; mgbe ahụ ụzọ gị niile ga-adị n’otu.",
+        "prompt": "Gịnị ka ọ ga-efu ma ọ bụrụ na ị chere ụbọchị atọ ọzọ tupu ị kpebie? Dee egwu eziokwu dị n’okpuru ngwa ngwa ahụ.",
+        "practice": "Kpọọ egwu dị n’okpuru ngwa ngwa ahụ."
+      },
+      "day3": {
+        "principle": "Ndị na-echere Onyenwe anyị ga-enweta ume ọhụrụ; ha ga-arị elu dịka ugo.",
+        "prompt": "Kedu otu akara otu si egosi na ichere abaala uru ruo ugbu a - ọbụna obere ihe?",
+        "practice": "Dee otu akara na-egosi na ichere na-echebe ihe ọma."
+      },
+      "day4": {
+        "principle": "Ọ bụrụ na onye ọ bụla n’ime unu enweghi amamihe, ka ọ rịọ Chineke, onye na-enye mmadụ niile n’ọmịiko na-enweghị ịta ụta, a ga-enye ya ya.",
+        "prompt": "Ị jụọla olu a tụkwasịrị obi maka mkpebi a? Dee ihe ị nụrụ ma ọ bụ ihe ị ga-ajụ ha.",
+        "practice": "Dee ihe ndụmọdụ kwuru - ma ọ bụ ihe ị ga-ajụ."
+      },
+      "day5": {
+        "principle": "Tụkwasị Onyenwe anyị obi site n’obi gị niile, emela ka nghọta gị bụrụ ihe ị na-adabere na ya. N’ụzọ gị niile mara ya, ya onwe ya ga-eme ka ụzọ gị kwụ ọtọ.",
+        "prompt": "Mgbe ụbọchị ise gachara, gịnị gbanwere n’otú i si ahụ mkpebi a? Gịnị bụ nzọụkwụ na-esote nke kwesịrị ntụkwasị obi - ọbụna ma ọ bụrụ na ọ bụ izu ọzọ nke ichere?",
+        "practice": "Kpọọ nzọụkwụ na-esote nke kwesịrị ntụkwasị obi n’aka mepere emepe."
+      }
     },
     "stewardship7day": {
       "title": "Ịama ihe 7-ụbọchị",
-      "description": "Ụbọchị asaa nke ebubo - ihe i natara, ebe oso na-etu mmepu, na ihe asaa bu ugbu a."
+      "description": "Ụbọchị asaa nke ebubo - ihe i natara, ebe oso na-etu mmepu, na ihe asaa bu ugbu a.",
+      "day1": {
+        "principle": "Cheta Onyenwe gị Chineke, n’ihi na ọ bụ ya na-enye gị ike ị nweta akụnụba.",
+        "prompt": "Dee otu ụzọ ego gị ma ọ bụ akụrụngwa gị si abịakwute gị — ihe ị na-enweghị ike ị nweta naanị gị.",
+        "practice": "Kpọọ otu akụrụngwa e nyere, ọ bụghị naanị nke e nwetara."
+      },
+      "day2": {
+        "principle": "Atụmatụ ndị na-arụsi ọrụ ike na-eduga n’ọgaranya n’ezie, ma onye ọ bụla na-eme ọsọ ọsọ na-abata naanị n’ọda.",
+        "prompt": "Ebee ka ị na-eme mkpebi gbasara ego n’ike ọsọ? Kpọọ ya ma dee ihe nlezianya dị nro ga-ajụ.",
+        "practice": "Kpọọ otu mpaghara ebe ọsọ na-akpụgharị mmefu ego."
+      },
+      "day3": {
+        "principle": "Onye na-ekwesị ntụkwasị obi n’otu obere ihe bụkwa onye na-ekwesị ntụkwasị obi n’ọtụtụ; onye na-adịghị akwụwa aka ọtọ n’otu obere ihe bụkwa otu ahụ n’ọtụtụ.",
+        "prompt": "Kedu otu obere akụkụ nke ntụkwasị obi ego ị rụrụ n’oge na-adịbeghị anya? Dee ya dị ka omume ekele, ọ bụghị mpako.",
+        "practice": "Kpọọ otu obere mpaghara ebe ntụkwasị obi pụtara."
+      },
+      "day4": {
+        "principle": "Ejila onye ọ bụla ụgwọ ihe ọ bụla, ma e wezụga ịhụ ibe unu n’anya.",
+        "prompt": "Lee ụgwọ gị — nke ọmụmụ, nke onwe, nke ịzụ ahịa, ma ọ bụ nke mmekọrịta. Dee ahịrị otu n’eziokwu gbasara ihe ị ji na nzọụkwụ na-esote nke ntụkwasị obi.",
+        "practice": "Dee ahịrị otu n’eziokwu gbasara ihe ị ji."
+      },
+      "day5": {
+        "principle": "Ka onye ọ bụla nye dịka o siri kpebie n’obi ya, ọ bụghị n’obi mgbu ma ọ bụ n’ịmanye, n’ihi na Chineke hụrụ onye na-enye nke obi ụtọ n’anya.",
+        "prompt": "Dee maka oge ikpeazụ i nyere n’efu — na-enweghị mmehie ma ọ bụ nrụgide. Gịnị mere ọ ji bụrụ nke na-enye ọṅụ?",
+        "practice": "Kpọọ otu omume inye nke si n’ụkwụ mmadụ pụta, ọ bụghị n’ịmanye."
+      },
+      "day6": {
+        "principle": "Ị gaghị eje ozi Chineke na ego.",
+        "prompt": "Ebee ka ego na-eme mkpebi nke kwesịrị ịdịrị amamihe, mmekọrịta, ma ọ bụ izuike? Kpọọ ya n’enweghị ihere.",
+        "practice": "Kpọọ otu ebe ego na-edu kama ijere ozi."
+      },
+      "day7": {
+        "principle": "Ịsọpụrụ Chineke na afọ ojuju bụ nnukwu uru.",
+        "prompt": "Mgbe ụbọchị asaa gachara, dee ihe zuru ezu maka oge a. Ọ bụghị ihe zuru oke — ihe zuru ezu n’ezie ugbu a.",
+        "practice": "Dee ihe zuru ezu maka oge a n’ụzọ doro anya."
+      }
     }
   }
 }

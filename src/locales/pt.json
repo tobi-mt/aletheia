@@ -1578,16 +1578,91 @@
     "loading": "Carregando…",
     "saving": "Salvando…",
     "gratitude3day": {
-      "title": "Prática de gratidão de 3 dias",
-      "description": "Três dias de observação tranquila — um presente ordinário, uma presença constante, uma área onde a contentamento está crescendo."
+      "title": "Prática de Gratidão de 3 Dias",
+      "description": "Três dias de observação tranquila — um dom simples, uma presença firme, uma área onde a satisfação está crescendo.",
+      "day1": {
+        "principle": "Dai graças em todas as circunstâncias, porque esta é a vontade de Deus em Cristo Jesus para convosco.",
+        "prompt": "Perceba hoje um dom simples que normalmente você poderia deixar passar. Escreva uma breve nota sobre ele.",
+        "practice": "Nomeie uma misericórdia comum que você quase não percebeu."
+      },
+      "day2": {
+        "principle": "Deem graças ao Senhor, porque ele é bom; o seu amor leal dura para sempre.",
+        "prompt": "Pense em alguém cuja presença constante moldou o seu discernimento. Escreva pelo que você é grato a essa pessoa.",
+        "practice": "Nomeie uma pessoa por cuja presença firme você é grato."
+      },
+      "day3": {
+        "principle": "Aprendi a viver contente em toda e qualquer situação.",
+        "prompt": "Em que área o contentamento tem sido difícil esta semana? Como seria escolher gratidão em vez de escassez nesse lugar?",
+        "practice": "Nomeie uma área em que a gratidão está substituindo a escassez hoje."
+      }
     },
     "waiting5day": {
-      "title": "Prática de espera de 5 dias",
-      "description": "Cinco dias mantendo uma decisão firme — nomeando a urgência, encontrando o medo por baixo e esperando que a sabedoria se estabeleça."
+      "title": "Prática de Espera de 5 Dias",
+      "description": "Cinco dias mantendo firme uma decisão — nomeando a urgência, encontrando o medo embaixo, e esperando a sabedoria se estabelecer.",
+      "day1": {
+        "principle": "Espere no Senhor; seja forte, e revigore-se o seu coração; espere, pois, no Senhor.",
+        "prompt": "Nomeie a decisão ou a pressão que você está carregando. Escreva uma linha descrevendo o que a urgência está pedindo que você faça.",
+        "practice": "Nomeie a decisão e o que a urgência está sussurrando."
+      },
+      "day2": {
+        "principle": "Os teus olhos olhem direito, e as tuas pálpebras fitam diretamente diante de ti. Pondera a vereda dos teus pés, e todos os teus caminhos serão seguros.",
+        "prompt": "O que custaria esperar mais três dias antes de decidir? Escreva o medo real por trás da urgência.",
+        "practice": "Nomeie o medo por trás da urgência."
+      },
+      "day3": {
+        "principle": "Os que esperam no Senhor renovam as suas forças; sobem com asas como águias.",
+        "prompt": "Qual é um sinal de que esperar tem sido bom até agora, mesmo que seja algo pequeno?",
+        "practice": "Escreva um sinal de que esperar está protegendo algo bom."
+      },
+      "day4": {
+        "principle": "Se algum de vocês tem falta de sabedoria, peça-a a Deus, que a todos dá liberalmente e sem reprovação, e ela lhe será concedida.",
+        "prompt": "Você pediu a opinião de alguém de confiança sobre esta decisão? Escreva o que ouviu ou o que perguntaria a essa pessoa.",
+        "practice": "Escreva o que o conselho disse, ou o que você perguntaria."
+      },
+      "day5": {
+        "principle": "Confia no Senhor de todo o teu coração e não te apoies no teu próprio entendimento. Reconhece-o em todos os teus caminhos, e ele endireitará as tuas veredas.",
+        "prompt": "Depois de cinco dias, o que mudou na forma como você vê esta decisão? Qual é o próximo passo fiel, mesmo que seja esperar mais uma semana?",
+        "practice": "Nomeie o próximo passo fiel com a mão aberta."
+      }
     },
     "stewardship7day": {
-      "title": "Prática de mordomia de 7 dias",
-      "description": "Sete dias de contagem honesta — o que você recebeu, onde a pressa está moldando as escolhas e o que é suficiente agora."
+      "title": "Prática de Mordomia de 7 Dias",
+      "description": "Sete dias de contabilidade honesta — o que lhe foi dado, onde a pressa está moldando decisões, e o que significa suficiente agora.",
+      "day1": {
+        "principle": "Lembra-te do Senhor teu Deus, porque é ele que te dá força para adquirires riquezas.",
+        "prompt": "Escreva uma forma como sua renda ou seus recursos chegaram até você - algo que você não ganhou totalmente sozinho.",
+        "practice": "Reconheça um recurso que foi dado, e não apenas ganho."
+      },
+      "day2": {
+        "principle": "Os planos do diligente conduzem certamente à abundância, mas todo aquele que se apressa só acaba na pobreza.",
+        "prompt": "Em que decisão financeira você está agindo com pressa? Nomeie-a e escreva o que um discernimento lento pediria.",
+        "practice": "Nomeie uma área em que a pressa está moldando os gastos."
+      },
+      "day3": {
+        "principle": "Quem é fiel no pouco também é fiel no muito; e quem é injusto no pouco também é injusto no muito.",
+        "prompt": "Qual é uma pequena área de fidelidade financeira que você praticou recentemente? Escreva-a como um ato de gratidão, não de orgulho.",
+        "practice": "Nomeie uma pequena área em que a fidelidade apareceu."
+      },
+      "day4": {
+        "principle": "A ninguém devais coisa alguma, a não ser o amor com que vos ameis uns aos outros.",
+        "prompt": "Olhe para suas dívidas - estudantis, pessoais, de consumo ou relacionais. Escreva uma frase honesta sobre o que você deve e como seria o próximo passo fiel.",
+        "practice": "Escreva uma frase honesta sobre o que você deve."
+      },
+      "day5": {
+        "principle": "Cada um contribua segundo tiver proposto no coração, não com tristeza ou por necessidade, porque Deus ama a quem dá com alegria.",
+        "prompt": "Escreva sobre a última vez em que você deu livremente, sem culpa nem pressão. O que tornou isso alegre?",
+        "practice": "Nomeie um ato de dar que veio da liberdade, não da obrigação."
+      },
+      "day6": {
+        "principle": "Não podeis servir a Deus e às riquezas.",
+        "prompt": "Onde o dinheiro está tomando uma decisão que deveria pertencer à sabedoria, aos relacionamentos ou ao descanso? Nomeie isso sem vergonha.",
+        "practice": "Nomeie um lugar onde o dinheiro está conduzindo em vez de servir."
+      },
+      "day7": {
+        "principle": "A piedade com contentamento é grande fonte de lucro.",
+        "prompt": "Depois de sete dias, escreva o que é suficiente para esta estação. Não um ideal - o que realmente é suficiente agora.",
+        "practice": "Escreva com clareza o que é suficiente para esta estação."
+      }
     }
   }
 }

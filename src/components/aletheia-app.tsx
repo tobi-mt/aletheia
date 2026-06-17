@@ -14982,7 +14982,7 @@ function FormationsSection({
   const [challengeDefs, setChallengeDefs] = useState<
     Array<{
       id: string;
-      days: Array<{ day: number; scripture: string; principle: string; prompt: string; practice: string }>;
+      days: Array<{ day: number; scripture: string; principleKey: string; promptKey: string; practiceKey: string }>;
     }>
   >([]);
 
@@ -15157,10 +15157,10 @@ function FormationsSection({
                       {nextPrompt.scripture}
                     </p>
                     <p className="text-sm leading-5 font-medium" style={{ color: theme.textPrimary }}>
-                      {nextPrompt.principle}
+                      {ts(nextPrompt.principleKey, "")}
                     </p>
                     <p className="text-sm leading-5" style={{ color: theme.textSecondary }}>
-                      {nextPrompt.prompt}
+                      {ts(nextPrompt.promptKey, "")}
                     </p>
 
                     <textarea
@@ -15192,7 +15192,7 @@ function FormationsSection({
                 <div className="flex items-center justify-between gap-2 flex-wrap">
                   {!isComplete && (
                     <p className="text-xs" style={{ color: theme.textMuted }}>
-                      {ts("challenges.dayLabel", `Day ${next}`).replace("{day}", String(next))} · {nextPrompt?.practice ?? ""}
+                      {ts("challenges.dayLabel", `Day ${next}`).replace("{day}", String(next))} · {nextPrompt ? ts(nextPrompt.practiceKey, "") : ""}
                     </p>
                   )}
                   <button

@@ -1579,15 +1579,90 @@
     "saving": "Ajiye…",
     "gratitude3day": {
       "title": "Godiya 3-Rana",
-      "description": "Ranaku ukuta da kimanta natsuwa — kyakya na yau da kullum, tsayuwar tsaye, wuri da kusumsa ke girma."
+      "description": "Ranaku ukuta da kimanta natsuwa — kyakya na yau da kullum, tsayuwar tsaye, wuri da kusumsa ke girma.",
+      "day1": {
+        "principle": "Ku yi godiya a kowane hali; domin wannan shi ne nufin Allah cikin Almasihu Yesu gare ku.",
+        "prompt": "Ka lura da wata alheri ta yau da kullum a yau da wataƙila ka saba watsi da ita. Rubuta ɗan bayani game da ita.",
+        "practice": "Ka faɗi wata alherin yau da kullum da ka kusa watsawa."
+      },
+      "day2": {
+        "principle": "Ku gode wa Ubangiji, gama shi nagari ne; ƙaunarsa ta tabbata har abada.",
+        "prompt": "Ka yi tunani game da wani mutum wanda tsayuwarsa ta taimaka wajen gina fahimtarka. Ka rubuta abin da kake godiya a kansa.",
+        "practice": "Ka faɗi mutum ɗaya da kake godiya saboda tsayayyen kasancewarsa."
+      },
+      "day3": {
+        "principle": "Na koyi, a kowane hali da nake ciki, in wadatu.",
+        "prompt": "A ina wadatuwa ta kasance da wuya a wannan makon? Yaya zai kasance idan ka zaɓi godiya maimakon ƙaranci a wannan wurin?",
+        "practice": "Ka faɗi wani yanki guda da godiya ke maye gurbin ƙaranci a yau."
+      }
     },
     "waiting5day": {
       "title": "Jira 5-Rana",
-      "description": "Ranaku biyar na tsaye shawara — kirga jajirga, neman tsoron jikin, da jira hikima ta tsaya."
+      "description": "Ranaku biyar na tsaye shawara — kirga jajirga, neman tsoron jikin, da jira hikima ta tsaya.",
+      "day1": {
+        "principle": "Ka jira Ubangiji; ka yi ƙarfi, zuciyarka kuma ta ɗauki ƙarfin zuciya; ka jira Ubangiji.",
+        "prompt": "Ka faɗi shawara ko matsin lamba da kake ɗauka. Ka rubuta layi ɗaya da ke bayyana abin da gaggawa ke tambayarka ka yi.",
+        "practice": "Ka faɗi shawarar da abin da gaggawa ke raɗa maka."
+      },
+      "day2": {
+        "principle": "Bari idanunka su kalli gaba kai tsaye, hangenka kuma ya kasance a gabanka. Ka yi tunani a kan hanyar ƙafafunka; sa’annan dukan hanyoyinka za su tabbata.",
+        "prompt": "Mene ne zai kashe ka idan ka jira wasu kwanaki uku kafin ka yanke hukunci? Rubuta tsoron gaskiya da ke ƙasa da gaggawar.",
+        "practice": "Ka faɗi tsoron da ke ƙasa da gaggawar."
+      },
+      "day3": {
+        "principle": "Waɗanda suke jira Ubangiji za su sabunta ƙarfinsu; za su tashi da fuka-fukai kamar gaggafa.",
+        "prompt": "Menene alama ɗaya da ke nuna cewa jira ya kasance mai kyau har zuwa yanzu - ko da abu ne ƙarami?",
+        "practice": "Ka rubuta alama ɗaya da ke nuna jira na kare wani abu mai kyau."
+      },
+      "day4": {
+        "principle": "Idan wani daga cikinku yana rasa hikima, ya roƙi Allah, wanda yake bayarwa ga kowa da karimci ba tare da zargi ba, za a ba shi.",
+        "prompt": "Ka tambayi amintaccen murya game da wannan shawara? Ka rubuta abin da ka ji ko abin da za ka tambaye su.",
+        "practice": "Ka rubuta abin da shawara ta ce - ko abin da za ka tambaya."
+      },
+      "day5": {
+        "principle": "Ka dogara ga Ubangiji da dukan zuciyarka, kada ka jingina ga fahimtarka. A cikin dukan hanyoyinka ka gane shi, shi kuma zai daidaita hanyoyinka.",
+        "prompt": "Bayan kwanaki biyar, me ya canza yadda kake ganin wannan shawara? Menene mataki na gaba mai aminci - ko da idan mako guda na ƙarin jira ne?",
+        "practice": "Ka faɗi mataki na gaba mai aminci da hannun buɗe."
+      }
     },
     "stewardship7day": {
       "title": "Aikin Gida 7-Rana",
-      "description": "Ranaku bakwai na tunanin gatari — abin da aka bayar maka, inda sauri ke katawa yakamata, da abin da isasshe yake jimawa."
+      "description": "Ranaku bakwai na tunanin gatari — abin da aka bayar maka, inda sauri ke katawa yakamata, da abin da isasshe yake jimawa.",
+      "day1": {
+        "principle": "Ka tuna da Ubangiji Allahnka, domin shi ne yake ba ka ikon samun arziki.",
+        "prompt": "Rubuta hanya ɗaya da kuɗinka ko albarkatunka suka zo gare ka - wani abu da ba ka samu da kanka kaɗai ba.",
+        "practice": "Ka amince da wata albarka da aka ba ka, ba wai ka karɓe ta kaɗai ba."
+      },
+      "day2": {
+        "principle": "Shirye-shiryen mai ƙwazo lalle suna kaiwa ga yalwa, amma duk mai gaggawa yakan zo ga talauci kawai.",
+        "prompt": "A ina kake yanke shawarar kuɗi cikin gaggawa? Ka faɗi shi kuma ka rubuta abin da tunani mai sannu zai tambaya.",
+        "practice": "Ka faɗi wuri guda da gaggawa ke tsara kashe kuɗi."
+      },
+      "day3": {
+        "principle": "Duk wanda yake aminci a ƙanƙanin abu, haka ma zai kasance aminci a babban abu; wanda kuma ba shi da gaskiya a ƙanƙanin abu, haka ma zai kasance a babban abu.",
+        "prompt": "Mene ne ƙaramin yanki guda na amincin kuɗi da ka yi kwanan nan? Rubuta shi a matsayin aikin godiya, ba girman kai ba.",
+        "practice": "Ka faɗi ƙaramin wuri ɗaya da amincin ya bayyana."
+      },
+      "day4": {
+        "principle": "Kada ku ci bashi ga kowa da kome, sai dai ƙaunar juna.",
+        "prompt": "Ka duba bashin ka - na karatu, na kanka, na sayayya, ko na dangantaka. Rubuta jimla ɗaya mai gaskiya game da abin da kake bi da mataki na gaba na aminci.",
+        "practice": "Rubuta jimla ɗaya mai gaskiya game da abin da kake bi."
+      },
+      "day5": {
+        "principle": "Kowane mutum ya bayar yadda ya yanke a zuciyarsa, ba tare da nadama ko tilas ba, domin Allah yana ƙaunar mai bayarwa da farin ciki.",
+        "prompt": "Rubuta game da lokacin ƙarshe da ka bayar da yardar rai - ba tare da laifi ko matsin lamba ba. Me ya sa ya zama mai daɗi?",
+        "practice": "Ka faɗi wata alamar bayarwa da ta fito daga ’yanci, ba daga tilas ba."
+      },
+      "day6": {
+        "principle": "Ba za ku iya bauta wa Allah da kuɗi ba.",
+        "prompt": "A ina kuɗi ke yanke shawarar da ya kamata ta kasance ta hikima, dangantaka, ko hutu? Ka faɗi shi ba tare da kunya ba.",
+        "practice": "Ka faɗi wuri guda da kuɗi ke jagoranta maimakon bauta wa."
+      },
+      "day7": {
+        "principle": "Ibada tare da wadatuwa babban riba ce.",
+        "prompt": "Bayan kwanaki bakwai, rubuta abin da ya isa ga wannan lokaci. Ba abin da ya dace a mafarki ba - abin da yake isa da gaske a yanzu.",
+        "practice": "Rubuta abin da ya isa ga wannan lokaci, a fili."
+      }
     }
   }
 }

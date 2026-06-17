@@ -4,6 +4,8 @@ import { many, one, run } from "@/lib/db";
 import { localizedDailyWisdom, normalizePreferences, type BibleTranslation, type LanguageCode, type RegionCode } from "@/lib/localization";
 import { getWisdomEntries } from "@/lib/wisdom";
 import { selectDailyWisdomIndex } from "@/lib/wisdom-data";
+import { challengeDefinitions, getChallengeById } from "@/lib/challenge-data";
+import { loadTranslationsSync, getTranslation } from "@/lib/translations";
 import type { Mode } from "@/lib/wisdom-data";
 
 type PushRow = {
@@ -1377,7 +1379,7 @@ export async function sendChallengeReminders(now = new Date()): Promise<{
 }> {
   configureWebPush();
 
-  const { challengeDefinitions, getChallengeById } = await import("@/lib/challenge-data");
+  // challengeDefinitions and getChallengeById are now statically imported at the top
 
   // ------------------------------------------------------------------
   // 1. Load all enabled push subscriptions with timing and language
@@ -1619,7 +1621,8 @@ export async function sendChallengeReminders(now = new Date()): Promise<{
       nextDay = active.daysCompleted + 1;
       const dayPrompt = def.days.find((d) => d.day === nextDay);
       if (!dayPrompt) continue;
-      practice = dayPrompt.practice;
+      // dayPrompt.practiceKey now contains the translation key, need to look it up
+      practice = dayPrompt.practiceKey;
     } else {
       // No active challenge: suggest one
       const suggest = suggestedChallengeFor(userId);
@@ -1628,16 +1631,23 @@ export async function sendChallengeReminders(now = new Date()): Promise<{
       if (!def) continue;
       challengeId = suggest;
       nextDay = 1;
-      practice = def.days[0]?.practice ?? "";
+      practice = def.days[0]?.practiceKey ?? "";
       isSuggestion = true;
       suggested++;
     }
 
     const language = normalizePreferences({ language: (userRows[0]?.language ?? "en") as LanguageCode }).language;
     const title = titlesByLanguage[challengeId]?.[language] ?? titlesByLanguage[challengeId]?.en ?? "Formation practice";
-    const body = isSuggestion
-      ? startBodies[language] ?? startBodies.en!
-      : `Day ${nextDay}: ${practice}`;
+    
+    // Translate the practice key if we have one
+    let body: string;
+    if (isSuggestion) {
+      body = startBodies[language] ?? startBodies.en!;
+    } else {
+      const translations = loadTranslationsSync(language);
+      const practiceText = getTranslation(translations, practice, practice);
+      body = `Day ${nextDay}: ${typeof practiceText === 'string' ? practiceText : practiceText[0] ?? practice}`;
+    }
 
     const payload = JSON.stringify({
       title,
