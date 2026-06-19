@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { PWA_START_URL } from "@/lib/build-version";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
@@ -6,7 +7,7 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: "Aletheia",
     description:
       "Biblical wisdom for stewardship, work, generosity, and thoughtful financial decisions.",
-    start_url: "/?pwa=true&v=18",
+    start_url: PWA_START_URL,
     scope: "/",
     display: "standalone",
     background_color: "#eef2ef",

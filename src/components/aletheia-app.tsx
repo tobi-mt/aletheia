@@ -89,6 +89,7 @@ import type { Mode } from "@/lib/wisdom-data";
 import { analyticsQuestionMetadata } from "@/lib/analytics-taxonomy";
 import { decisionStartedDiscerningBody, decisionTimelineObservation, localizeDecisionEventBody } from "@/lib/decision-copy";
 import { curatedAvatarOptions, defaultAvatarDataUrl, normalizeAvatarUrl } from "@/lib/avatars";
+import { SERVICE_WORKER_URL } from "@/lib/build-version";
 import { loadTranslationsSync, loadTranslationsWithFallbackSync, getTranslation, type TranslationData } from "@/lib/translations";
 import { ManagedAudio } from "@/lib/native-audio";
 import BibleReader from "@/components/bible-reader";
@@ -320,8 +321,6 @@ type NotificationTiming = {
 };
 
 const ALETHEIA_SHARE_URL = "https://aletheia.mirrortalkpodcast.com?ref=share";
-const SERVICE_WORKER_BUILD_ID = process.env.NEXT_PUBLIC_BUILD_ID ?? "dev";
-const SERVICE_WORKER_URL = `/sw.js?v=${encodeURIComponent(SERVICE_WORKER_BUILD_ID)}`;
 const MANUAL_CONTEXT_STORAGE_KEY = "aletheia_manual_context";
 const THEME_STORAGE_KEY = "aletheia_theme_preference";
 const VOICE_STORAGE_KEY = "aletheia_selected_voice";
@@ -2994,13 +2993,10 @@ function trackAuthFailure(metadata: AnalyticsMetadata) {
 }
 
 async function getReliableServiceWorkerRegistration() {
-  const existing = await navigator.serviceWorker.getRegistration("/");
-  const registration =
-    existing ??
-    (await navigator.serviceWorker.register(SERVICE_WORKER_URL, {
-      scope: "/",
-      updateViaCache: "none",
-    }));
+  const registration = await navigator.serviceWorker.register(SERVICE_WORKER_URL, {
+    scope: "/",
+    updateViaCache: "none",
+  });
   registration.update().catch(() => undefined);
   return navigator.serviceWorker.ready;
 }
@@ -6944,6 +6940,7 @@ export function AletheiaApp() {
   const [authStatus, setAuthStatus] = useState<AuthStatus>("checking");
   const [googleAuthAvailable, setGoogleAuthAvailable] = useState(false);
   const [preferences, setPreferences] = useState<UserPreferences>(defaultPreferences);
+  const [startupLanguage, setStartupLanguage] = useState<LanguageCode>(defaultPreferences.language);
   const [preferencesStatus, setPreferencesStatus] = useState("");
   const [manualContext, setManualContext] = useState<ManualContextProfile>(defaultManualContext);
   const [manualContextStatus, setManualContextStatus] = useState("");
@@ -7085,6 +7082,7 @@ export function AletheiaApp() {
       const params = new URLSearchParams(window.location.search);
       const shouldHonorNotificationFocus = params.get("source") === "notification";
       const restoredPreferences = storedPreferences();
+      setStartupLanguage(restoredPreferences.language);
       setPreferences(restoredPreferences);
       setManualContext(storedManualContext());
       setThemePreference(storedThemePreference());
@@ -8505,7 +8503,10 @@ export function AletheiaApp() {
 
         navigator.serviceWorker.addEventListener("controllerchange", handleControllerChange);
         navigator.serviceWorker
-          .register(SERVICE_WORKER_URL, { updateViaCache: "none" })
+          .register(SERVICE_WORKER_URL, {
+            scope: "/",
+            updateViaCache: "none",
+          })
           .then((registration) => {
             registration.update().catch(() => undefined);
             registration.addEventListener("updatefound", () => {
@@ -11495,6 +11496,16 @@ export function AletheiaApp() {
     setRuleText("");
   }
 
+  if (!clientStateRestored) {
+    return (
+      <StartupSplash
+        language={startupLanguage}
+        theme={theme}
+        resolvedTheme={resolvedTheme}
+      />
+    );
+  }
+
   return (
     <main className={`app-shell min-h-screen overflow-x-hidden ${resolvedTheme === "dark" || resolvedTheme === "black" ? "theme-dark-root" : ""}`} style={{ backgroundColor: theme.bgMain, color: theme.textPrimary, minHeight: '100dvh' }}>
       <div
@@ -12184,6 +12195,103 @@ export function AletheiaApp() {
           </motion.div>
         ) : null}
       </AnimatePresence>
+    </main>
+  );
+}
+
+function StartupSplash({
+  language,
+  theme,
+  resolvedTheme,
+}: {
+  language: LanguageCode;
+  theme: ThemeColors;
+  resolvedTheme: ResolvedTheme;
+}) {
+  const splashTranslations = useMemo(() => loadTranslationsWithFallbackSync(language), [language]);
+  const appName = String(getTranslation(splashTranslations, "labels.appName", "Aletheia"));
+  const appTagline = String(getTranslation(splashTranslations, "labels.appTagline", "Wisdom for stewardship"));
+  const loadingLabel = String(getTranslation(splashTranslations, "labels.loading", "Loading…"));
+  const restoringPreferences = String(
+    getTranslation(splashTranslations, "status.restoringPreferences", "Restoring preferences…")
+  );
+
+  return (
+    <main
+      className={`app-shell min-h-screen overflow-hidden ${resolvedTheme === "dark" || resolvedTheme === "black" ? "theme-dark-root" : ""}`}
+      style={{ backgroundColor: theme.bgMain, color: theme.textPrimary, minHeight: "100dvh" }}
+    >
+      <div className={`fixed inset-0 -z-10 ${theme.bgGradient}`} style={{ backgroundColor: theme.bgMain }} />
+      <div
+        className="flex min-h-screen items-center justify-center px-6"
+        style={{
+          backgroundImage: resolvedTheme === "black"
+            ? "radial-gradient(circle at 20% 15%, rgba(214, 180, 93, 0.22), rgba(0, 0, 0, 0) 42%), radial-gradient(circle at 80% 80%, rgba(214, 180, 93, 0.08), rgba(0, 0, 0, 0) 30%)"
+            : resolvedTheme === "dark"
+              ? "radial-gradient(circle at 20% 15%, rgba(208, 173, 85, 0.18), rgba(0, 0, 0, 0) 42%), radial-gradient(circle at 80% 80%, rgba(208, 173, 85, 0.06), rgba(0, 0, 0, 0) 30%)"
+              : "radial-gradient(circle at 20% 15%, rgba(74, 118, 105, 0.12), rgba(0, 0, 0, 0) 42%), radial-gradient(circle at 80% 80%, rgba(214, 180, 93, 0.08), rgba(0, 0, 0, 0) 30%)",
+        }}
+      >
+        <motion.div
+          initial={{ y: 10, opacity: 0, scale: 0.98 }}
+          animate={{ y: 0, opacity: 1, scale: 1 }}
+          transition={{ duration: 0.32, ease: "easeOut" }}
+          className="w-full max-w-sm rounded-3xl border px-7 py-8 text-center shadow-[0_28px_80px_rgba(12,20,16,0.18)]"
+          style={{
+            borderColor: theme.borderStrong,
+            backgroundColor: resolvedTheme === "black"
+              ? "rgba(8, 12, 10, 0.88)"
+              : resolvedTheme === "dark"
+                ? "rgba(17, 27, 24, 0.86)"
+                : "rgba(245, 250, 247, 0.88)",
+            backdropFilter: "blur(18px) saturate(140%)",
+            WebkitBackdropFilter: "blur(18px) saturate(140%)",
+          }}
+          role="status"
+          aria-live="polite"
+        >
+          <motion.div
+            className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-2xl border"
+            style={{ borderColor: theme.borderStrong, backgroundColor: theme.bgCardElevated }}
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1.6, ease: "linear", repeat: Number.POSITIVE_INFINITY }}
+          >
+            <div className="relative h-14 w-14 overflow-hidden rounded-xl">
+              <Image
+                src="/brand/aletheia-app-icon-192.png"
+                alt="Aletheia"
+                fill
+                sizes="56px"
+                className="object-cover"
+                priority
+              />
+            </div>
+          </motion.div>
+          <p className="text-[0.69rem] font-semibold uppercase tracking-[0.24em]" style={{ color: theme.textSecondary }}>
+            {appName}
+          </p>
+          <p className="mt-1 text-sm" style={{ color: theme.textSecondary }}>
+            {appTagline}
+          </p>
+          <p className="mt-4 text-base font-semibold" style={{ color: theme.textPrimary }}>
+            {loadingLabel}
+          </p>
+          <p className="mt-1 text-sm" style={{ color: theme.textSecondary }}>
+            {restoringPreferences}
+          </p>
+          <motion.div
+            className="mx-auto mt-4 h-1.5 w-28 overflow-hidden rounded-full"
+            style={{ backgroundColor: theme.borderMedium }}
+          >
+            <motion.div
+              className="h-full rounded-full"
+              style={{ backgroundColor: theme.borderStrong }}
+              animate={{ x: ["-100%", "120%"] }}
+              transition={{ duration: 0.9, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
+            />
+          </motion.div>
+        </motion.div>
+      </div>
     </main>
   );
 }
@@ -14434,7 +14542,7 @@ function AccountPanel({
         <div className="flex flex-col gap-4">
           <DisclosureSection
             title={ts('labels.personalizeAletheia')}
-            summary={ts('labels.accountPersonalizationSummaryShort', 'Tune language, translation, voice, and style.')}
+            summary={ts('labels.accountPersonalizationSummaryShort')}
             eyebrow={ts('labels.accountPersonalizationTitle')}
             compactCollapsed
             showDetailsLabel={text.showDetails}
@@ -14627,24 +14735,26 @@ function AccountSettingRow({
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="relative editorial-surface premium-tap-card rounded-[1rem] border p-3 shadow-[0_4px_10px_rgba(7,10,8,0.04)]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-      <InfoHint text={body} theme={theme} placement="corner" surface="dense" />
+    <div className="relative editorial-surface premium-tap-card rounded-[1rem] border p-2.5 shadow-[0_4px_10px_rgba(7,10,8,0.04)] sm:p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+      <div className="absolute right-2 top-2 z-10">
+        <InfoHint text={body} theme={theme} placement="inline" surface="dense" />
+      </div>
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        className="flex w-full items-center gap-2 sm:gap-3 text-left"
+        className="flex w-full items-center gap-2 text-left sm:gap-2.5"
         aria-expanded={open}
       >
-        <span className="grid size-9 shrink-0 place-items-center rounded-full border sm:size-10" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
-          <Icon size={17} />
+        <span className="grid size-8 shrink-0 place-items-center rounded-full border sm:size-9" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
+          <Icon size={15} />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="flex items-center gap-2 pr-5 sm:pr-6 text-[13px] font-semibold leading-5 sm:text-sm" style={{ color: theme.textPrimary }}>
+          <span className="flex items-center gap-2 pr-7 text-[13px] font-semibold leading-5 sm:pr-8 sm:text-sm" style={{ color: theme.textPrimary }}>
             <span>{label}</span>
           </span>
         </span>
-        <span className="min-w-[4.25rem] shrink text-right sm:min-w-[7rem]">
-          <span className="block max-w-[6.25rem] text-[11px] font-semibold leading-4 sm:max-w-44 sm:text-xs" style={{ color: theme.accentGold }}>{currentValue}</span>
+        <span className="min-w-[4rem] shrink text-right sm:min-w-[6.5rem]">
+          <span className="block max-w-[5.5rem] text-[11px] font-semibold leading-4 sm:max-w-44 sm:text-xs" style={{ color: theme.accentGold }}>{currentValue}</span>
           <span className="mt-1 inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.08em]" style={{ color: theme.textSecondary }}>
             <ChevronDown size={12} style={{ transform: open ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 180ms ease" }} />
           </span>
@@ -14679,20 +14789,22 @@ function AccountToggleRow({
   theme: ThemeColors;
 }) {
   return (
-    <div className="relative editorial-surface premium-tap-card rounded-[1rem] border p-3 shadow-[0_4px_10px_rgba(7,10,8,0.04)]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-      <InfoHint text={body} theme={theme} placement="corner" surface="dense" />
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex min-w-0 items-start gap-3">
-          <span className="grid size-10 shrink-0 place-items-center rounded-full border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
-            <Icon size={17} />
+    <div className="relative editorial-surface premium-tap-card rounded-[1rem] border p-2.5 shadow-[0_4px_10px_rgba(7,10,8,0.04)] sm:p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+      <div className="absolute right-2 top-2 z-10">
+        <InfoHint text={body} theme={theme} placement="inline" surface="dense" />
+      </div>
+      <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+        <div className="flex min-w-0 items-start gap-2.5">
+          <span className="grid size-8 shrink-0 place-items-center rounded-full border sm:size-9" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
+            <Icon size={15} />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="flex items-center gap-2 pr-5 sm:pr-6 text-sm font-semibold" style={{ color: theme.textPrimary }}>
+            <span className="flex items-center gap-2 pr-7 text-[13px] font-semibold leading-5 sm:pr-8 sm:text-sm" style={{ color: theme.textPrimary }}>
               <span>{label}</span>
             </span>
           </span>
         </div>
-        <span className="grid w-full grid-cols-2 rounded-full border p-1 sm:w-auto" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
+        <span className="grid w-full grid-cols-2 rounded-full border p-0.5 sm:w-auto" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
           {[
             { value: false, label: offLabel },
             { value: true, label: onLabel },
@@ -14703,7 +14815,7 @@ function AccountToggleRow({
                 key={option.label}
                 type="button"
                 onClick={() => onChange(option.value)}
-                className="min-h-10 min-w-0 rounded-full px-2 text-[11px] font-semibold transition sm:px-3 sm:text-xs"
+                className="min-h-9 min-w-0 rounded-full px-2 text-[11px] font-semibold transition sm:px-3 sm:text-xs"
                 style={{
                   backgroundColor: active ? theme.primary : "transparent",
                   color: active ? theme.textOnPrimary : theme.textSecondary,
@@ -18920,7 +19032,7 @@ function CompanionPanel({
             </div>
             <div className="mt-1 pr-5 sm:pr-6 md:pr-7">
               <p className="text-sm leading-5" style={{ color: theme.textSecondary }}>
-                {ts('labels.askIntroShort', 'Start with one honest question.')}
+                {ui.askIntro}
               </p>
             </div>
           </div>
@@ -20272,7 +20384,7 @@ function DecisionCompanionPanel({
               <h2 className="mt-1.5 pr-5 min-[390px]:pr-6 min-[430px]:pr-7 text-[1.08rem] min-[390px]:text-[1.14rem] min-[430px]:text-xl font-semibold leading-tight" style={{ color: theme.textPrimary }}>{runtime.decisionCompanionHeading}</h2>
               <div className="mt-1.5 max-w-2xl pr-6 sm:pr-7 md:pr-8">
                 <p className="text-sm leading-5" style={{ color: theme.textSecondary }}>
-                  {ts('labels.decisionCompanionSubShort', 'Track one decision until clarity settles.')}
+                  {runtime.decisionCompanionSub}
                 </p>
               </div>
             </div>
@@ -21965,7 +22077,7 @@ function GratitudeLensPanel({
           </button>
           <div className="relative mt-3 pr-5 sm:pr-6 text-xs leading-5" style={{ color: theme.textMuted }}>
             <InfoHint text={`${ts('labels.gratitudePrivacyNote')} ${ts('labels.suggestedGratitudeRhythm').replace("{time}", gratitudeRhythmLabel)}`} theme={theme} placement="corner" surface="dense" />
-            <span>{ts('labels.gratitudePrivacyShort', 'Private by default.')}</span>
+            <span>{ts('labels.privateByDefaultEyebrow')}</span>
           </div>
         </div>
 
@@ -21987,7 +22099,7 @@ function GratitudeLensPanel({
                   {ts('labels.gratitudeWeeklyRecap')}
                 </p>
                 <p className="mt-1 text-sm font-semibold leading-5" style={{ color: theme.textPrimary }}>
-                  {ts('labels.gratitudeWeeklyRecapLine', 'This week held {count} quiet moments.').replace("{count}", String(weeklyEntries.length))}
+                  {ts('labels.weeklyMomentsNoticed').replace("{count}", String(weeklyEntries.length))}
                 </p>
               </div>
               <span className="shrink-0 rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
@@ -22006,7 +22118,7 @@ function GratitudeLensPanel({
                 : ts('labels.noStreaksJustRemembrance')}
             </p>
             <p className="mt-2 text-[11px] leading-5" style={{ color: theme.textMuted }}>
-              {ts('labels.gratitudeTimelineHint', 'Scroll sideways for recent moments. Older moments stay below.')}
+              {ts('labels.gratitudeTimelineHint')}
             </p>
           </div>
 

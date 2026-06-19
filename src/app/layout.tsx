@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { MANIFEST_URL } from "@/lib/build-version";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -20,7 +21,7 @@ export const metadata: Metadata = {
   description:
     "A calm AI-powered wisdom companion for stewardship, work, generosity, and thoughtful financial decisions.",
   applicationName: "Aletheia",
-  manifest: "/manifest.webmanifest",
+  manifest: MANIFEST_URL,
   openGraph: {
     title: "Aletheia",
     description:
