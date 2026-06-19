@@ -412,6 +412,8 @@ const managedSpeechVoices: ManagedVoiceOption[] = [
   { id: "cedar", label: "Cedar", description: "Warm and reassuring" },
 ];
 
+const browserSpeechFallbackLength = 700;
+
 const defaultManagedVoiceByLanguage: Partial<Record<LanguageCode, string>> = {
   en: "alloy",
   es: "coral",
@@ -435,6 +437,10 @@ function managedVoiceLabel(voiceId: string | null | undefined) {
     return "Device default";
   }
   return managedSpeechVoices.find((voice) => voice.id === voiceId)?.label ?? voiceId;
+}
+
+function browserSpeechLanguage(language: LanguageCode) {
+  return languages[language]?.speech ?? "en-US";
 }
 
 const DEFAULT_NOTIFICATION_TIMING: NotificationTiming = {
@@ -7004,6 +7010,7 @@ export function AletheiaApp() {
   const managedAudioRef = useRef<HTMLAudioElement | null>(null);
   const managedAudioUrlRef = useRef<string | null>(null);
   const managedPlaybackRequestRef = useRef(0);
+  const browserSpeechActiveRef = useRef(false);
   const [counselName, setCounselName] = useState("");
   const [counselRole, setCounselRole] = useState("mentor");
   const [counselAvatarUrl, setCounselAvatarUrl] = useState("");
@@ -7734,6 +7741,10 @@ export function AletheiaApp() {
   useEffect(() => {
     return () => {
       managedPlaybackRequestRef.current += 1;
+      browserSpeechActiveRef.current = false;
+      if (typeof window !== "undefined" && "speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
       if (managedAudioRef.current) {
         managedAudioRef.current.pause();
         managedAudioRef.current.removeAttribute("src");
@@ -9802,6 +9813,17 @@ export function AletheiaApp() {
       return;
     }
 
+    if (browserSpeechActiveRef.current && typeof window !== "undefined" && "speechSynthesis" in window) {
+      if (speechPaused) {
+        window.speechSynthesis.resume();
+        setSpeechPaused(false);
+      } else {
+        window.speechSynthesis.pause();
+        setSpeechPaused(true);
+      }
+      return;
+    }
+
     const audio = managedAudioRef.current;
     if (!audio) return;
 
@@ -9819,6 +9841,10 @@ export function AletheiaApp() {
 
   function stopSpeech() {
     managedPlaybackRequestRef.current += 1;
+    browserSpeechActiveRef.current = false;
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
     if (Capacitor.isNativePlatform()) {
       void ManagedAudio.stop().catch(() => {});
     }
@@ -9874,6 +9900,62 @@ export function AletheiaApp() {
     setSpeechPaused(false);
 
     try {
+      if (
+        !Capacitor.isNativePlatform() &&
+        typeof window !== "undefined" &&
+        "speechSynthesis" in window &&
+        cleanText.length >= browserSpeechFallbackLength
+      ) {
+        const speechSynthesis = window.speechSynthesis;
+        const utterance = new SpeechSynthesisUtterance(cleanText);
+        browserSpeechActiveRef.current = true;
+        utterance.lang = browserSpeechLanguage(preferences.language);
+        utterance.rate = pacing.rate;
+        utterance.pitch = 1;
+        utterance.volume = 1;
+
+        utterance.onstart = () => {
+          if (managedPlaybackRequestRef.current !== playbackRequest) {
+            browserSpeechActiveRef.current = false;
+            if (typeof window !== "undefined" && "speechSynthesis" in window) {
+              window.speechSynthesis.cancel();
+            }
+            return;
+          }
+          setSpeechLoading(false);
+          setSpeechPaused(false);
+        };
+        utterance.onend = () => {
+          if (managedPlaybackRequestRef.current !== playbackRequest) {
+            return;
+          }
+          browserSpeechActiveRef.current = false;
+          setIsSpeaking(false);
+          setSpeechLoading(false);
+          setSpeechPaused(false);
+          setSpeechProgress(0);
+          setReadingLabel("");
+          setStatusMessage("");
+        };
+        utterance.onerror = () => {
+          if (managedPlaybackRequestRef.current !== playbackRequest) {
+            return;
+          }
+          browserSpeechActiveRef.current = false;
+          setIsSpeaking(false);
+          setSpeechLoading(false);
+          setSpeechPaused(false);
+          setSpeechProgress(0);
+          setReadingLabel("");
+          setPreferencesStatus(ts('notifications.voiceOutputUnavailableBody'));
+          announceWorkflow(ts('notifications.voiceOutputUnavailable'), ts('notifications.voiceOutputUnavailableBody'), "warning");
+        };
+
+        speechSynthesis.cancel();
+        speechSynthesis.speak(utterance);
+        return;
+      }
+
       if (Capacitor.isNativePlatform()) {
         await ManagedAudio.speak({
           text: cleanText,
@@ -19941,22 +20023,30 @@ function CurrentCounselCard({
           <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{ts('labels.appName')}</p>
           {preferences.voiceEnabled && !isThinking ? (
             <div className="flex items-center gap-2">
-              {speechLoading ? (
-                <span className="text-xs font-semibold animate-pulse" style={{ color: theme.textMuted }}>
-                  {ts('status.preparingAudio', 'Preparing audio...')}
-                </span>
-              ) : isSpeaking && speechProgress > 0 ? (
-                <span className="text-xs" style={{ color: theme.textMuted }}>{speechProgress}%</span>
-              ) : null}
+              <span
+                className="inline-flex h-8 min-w-[7.75rem] items-center justify-end whitespace-nowrap text-right text-xs leading-none tabular-nums sm:min-w-[8.5rem]"
+                style={{ color: theme.textMuted }}
+                aria-live="polite"
+              >
+                {speechLoading ? (
+                  <span className="font-semibold animate-pulse">
+                    {ts('status.preparingAudio', 'Preparing audio...')}
+                  </span>
+                ) : isSpeaking && speechProgress > 0 ? (
+                  <span>{speechProgress}%</span>
+                ) : (
+                  <span aria-hidden="true">&nbsp;</span>
+                )}
+              </span>
               <button
                 type="button"
                 onClick={onSpeak}
-                className="inline-flex h-8 items-center gap-1.5 rounded-full border px-2.5 text-xs font-semibold transition"
+                className="inline-flex h-7 items-center justify-center gap-1 whitespace-nowrap rounded-full border px-2 text-[11px] font-semibold leading-none transition"
                 style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
                 aria-label={isSpeaking ? ts('labels.stopReading') : ts('labels.readAnswerAloud')}
                 title={isSpeaking ? ts('labels.stop') : ts('labels.listenToThisAnswer')}
               >
-                <Volume2 size={14} style={isSpeaking ? { color: theme.accentGold } : undefined} />
+                <Volume2 size={13} style={isSpeaking ? { color: theme.accentGold } : undefined} />
                 {isSpeaking ? ts('labels.stop') : ts('labels.readAloud')}
               </button>
               {isSpeaking ? (
@@ -19964,7 +20054,7 @@ function CurrentCounselCard({
                   type="button"
                   onClick={onTogglePause}
                   disabled={speechLoading}
-                  className="inline-flex h-8 items-center gap-1.5 rounded-full border px-2.5 text-xs font-semibold transition"
+                  className="inline-flex h-7 items-center justify-center gap-1 whitespace-nowrap rounded-full border px-2 text-[11px] font-semibold leading-none transition"
                   style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary, opacity: speechLoading ? 0.55 : 1 }}
                   aria-label={speechPaused ? ts('labels.resumeReading') : ts('labels.pauseReading')}
                   title={speechPaused ? ts('labels.resumeReading') : ts('labels.pauseReading')}

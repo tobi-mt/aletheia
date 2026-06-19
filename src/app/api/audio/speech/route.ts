@@ -74,16 +74,28 @@ export async function POST(request: Request) {
       voice,
       speed,
       response_format: "opus",
+      stream_format: "audio",
       instructions: managedVoiceInstructions(language),
     });
 
-    // Opus format is more efficient than MP3 for streaming/smaller files
-    const audioBytes = await speech.arrayBuffer();
+    const contentType = speech.headers.get("content-type") || "audio/opus";
 
-    return new NextResponse(Buffer.from(audioBytes), {
+    if (!speech.body) {
+      const audioBytes = await speech.arrayBuffer();
+      return new NextResponse(Buffer.from(audioBytes), {
+        headers: {
+          "Content-Type": contentType,
+          "Content-Length": String(audioBytes.byteLength),
+          "Cache-Control": "no-store",
+          "Accept-Ranges": "bytes",
+          ...rateLimitHeaders(rateLimit),
+        },
+      });
+    }
+
+    return new NextResponse(speech.body, {
       headers: {
-        "Content-Type": "audio/opus",
-        "Content-Length": String(audioBytes.byteLength),
+        "Content-Type": contentType,
         "Cache-Control": "no-store",
         "Accept-Ranges": "bytes",
         ...rateLimitHeaders(rateLimit),
