@@ -1,10 +1,10 @@
 # Store Launch Prep
 
-This document collects the copy, screenshot plan, privacy metadata, and signing setup needed to ship Aletheia on the App Store and Google Play.
+This document collects the copy, screenshot plan, privacy metadata, and signing setup needed to ship Aletheia Companion on the App Store and Google Play.
 
 ## Recommended Store Positioning
 
-- App name: `Aletheia`
+- App name: `Aletheia Companion`
 - App identity: Calm biblical wisdom companion for money, work, stewardship, generosity, and thoughtful decisions
 - Recommended primary category: `Lifestyle`
 - Recommended secondary category: `Productivity`
@@ -22,9 +22,9 @@ This document collects the copy, screenshot plan, privacy metadata, and signing 
 ### App Store Description
 
 ```
-Aletheia is a calm, AI-powered wisdom companion for money, work, stewardship, generosity, and reflective decision-making.
+Aletheia Companion is a calm, AI-powered wisdom companion for money, work, stewardship, generosity, and reflective decision-making.
 
-Use Aletheia to:
+Use Aletheia Companion to:
 - Ask grounded questions about money, work, and next steps
 - Reflect in a private journal
 - Keep track of decisions, counsel, and wise boundaries
@@ -32,14 +32,14 @@ Use Aletheia to:
 - Receive optional daily wisdom notifications
 - Choose language, region, Bible translation, and voice preferences
 
-Aletheia is designed to be thoughtful, quiet, and practical. It helps you pause, notice what matters, and take one faithful next step.
+Aletheia Companion is designed to be thoughtful, quiet, and practical. It helps you pause, notice what matters, and take one faithful next step.
 
 Your account can sync decisions, reflections, preferences, and notifications across devices. You can also export or delete your account data from inside the app.
 ```
 
 ## Google Play Copy
 
-- App title: `Aletheia`
+- App title: `Aletheia Companion`
 - Short description: `A calm biblical wisdom companion for money, work, generosity, and decisions.`
 - Full description: reuse the App Store description above, or shorten slightly for Play Console formatting.
 - Content rating: expect `Everyone` or `Teen` depending on final review wording and any user-generated content policy answers.
@@ -171,12 +171,13 @@ The signed bundle will be in `android/app/build/outputs/bundle/release/`.
 
 1. Open the Xcode project from `ios/App/App.xcodeproj`.
 2. Set the correct Apple Developer Team in Signing & Capabilities.
-3. Confirm bundle identifier `com.aletheia.app`.
+3. Confirm bundle identifier `com.tobi.aletheia.app`.
 4. Confirm version numbers:
    - Marketing version: `1.0.0`
    - Build number: `10000`
-5. Archive the app in Xcode and export an App Store build.
-6. Upload the archive to App Store Connect with Transporter or Xcode.
+5. Switch the signing style to App Store distribution before export if Xcode is still using an Apple Development identity.
+6. Archive the app in Xcode and export an App Store build.
+7. Upload the archive or exported build to App Store Connect with Transporter or Xcode.
 
 ### Release Checklist
 

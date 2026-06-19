@@ -51,3 +51,8 @@ neon_env.txt
 
 # local QA inventory
 SCRIPTURE_COVERAGE_INVENTORY.md
+
+# local screenshot and preview artifacts
+/tmp/
+/store-screenshots/
+/scripts/make_store_screenshot_variants.py

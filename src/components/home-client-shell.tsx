@@ -89,9 +89,7 @@ export default function HomeClientShell() {
   const [showSplash, setShowSplash] = useState(true);
   const [splashLanguage, setSplashLanguage] = useState<keyof typeof splashText>("en");
   const [splashCopyReady, setSplashCopyReady] = useState(false);
-  const runningRef = useRef(false);
   const lastHiddenAtRef = useRef<number | null>(null);
-  const splashCycleIdRef = useRef(0);
 
   useEffect(() => {
     const nextLanguage = readStoredSplashLanguage();
@@ -110,98 +108,32 @@ export default function HomeClientShell() {
 
   useEffect(() => {
     let active = true;
-    let hardDismissTimer: number | null = null;
-
-    const runSplashCycle = async (reason: "launch" | "resume") => {
-      if (!active || runningRef.current) {
-        return;
-      }
-
-      splashCycleIdRef.current += 1;
-      runningRef.current = true;
+    let dismissTimer: number | null = null;
+    const showSplashFor = (visibleMs: number) => {
       setShowSplash(true);
-
-      const minDelayMs = reason === "launch" ? 1400 : 900;
-      const hardTimeoutMs = reason === "launch" ? 5200 : 3200;
-      const shownAt = Date.now();
-
-      try {
-        window.sessionStorage.setItem(SPLASH_LAST_SHOWN_AT_KEY, String(shownAt));
-      } catch {
-        // Ignore storage failures in private browsing or restricted sessions.
+      if (dismissTimer !== null) {
+        window.clearTimeout(dismissTimer);
       }
-
-      if (hardDismissTimer !== null) {
-        window.clearTimeout(hardDismissTimer);
-      }
-      hardDismissTimer = window.setTimeout(() => {
-        if (!active) {
-          return;
+      dismissTimer = window.setTimeout(() => {
+        if (active) {
+          setShowSplash(false);
         }
-        runningRef.current = false;
-        setShowSplash(false);
-      }, hardTimeoutMs + 800);
-
-      const minDelay = new Promise<void>((resolve) => {
-        window.setTimeout(resolve, minDelayMs);
-      });
-
-      const domReady =
-        document.readyState === "complete"
-          ? Promise.resolve()
-          : new Promise<void>((resolve) => {
-              const onLoad = () => {
-                window.removeEventListener("load", onLoad);
-                resolve();
-              };
-              window.addEventListener("load", onLoad, { once: true });
-            });
-
-      const serviceWorkerReady =
-        "serviceWorker" in navigator
-          ? Promise.race([
-              navigator.serviceWorker.ready
-                .then((registration) => registration.update().catch(() => undefined))
-                .catch(() => undefined),
-              new Promise<void>((resolve) => {
-                window.setTimeout(resolve, 1800);
-              }),
-            ])
-          : Promise.resolve();
-
-      const overallTimeout = new Promise<void>((resolve) => {
-        window.setTimeout(resolve, hardTimeoutMs);
-      });
-
-      await Promise.race([
-        Promise.all([minDelay, domReady, serviceWorkerReady]).then(() => undefined),
-        overallTimeout,
-      ]);
-
-      if (active) {
-        setShowSplash(false);
-      }
-      if (hardDismissTimer !== null) {
-        window.clearTimeout(hardDismissTimer);
-        hardDismissTimer = null;
-      }
-      runningRef.current = false;
+      }, visibleMs);
     };
 
     try {
       const lastShownAt = Number(window.sessionStorage.getItem(SPLASH_LAST_SHOWN_AT_KEY) || "0");
       if (lastShownAt > 0 && Date.now() - lastShownAt > 12000) {
-        window.setTimeout(() => {
-          if (active) {
-            setShowSplash(false);
-          }
-        }, 0);
+        queueMicrotask(() => {
+          setShowSplash(false);
+        });
+        return;
       }
     } catch {
       // Ignore session storage errors.
     }
 
-    void runSplashCycle("launch");
+    showSplashFor(1400);
 
     const onVisibility = () => {
       if (document.visibilityState === "hidden") {
@@ -217,7 +149,7 @@ export default function HomeClientShell() {
       lastHiddenAtRef.current = null;
 
       if (hiddenForMs >= 5000) {
-        void runSplashCycle("resume");
+        showSplashFor(900);
       }
     };
 
@@ -225,8 +157,8 @@ export default function HomeClientShell() {
 
     return () => {
       active = false;
-      if (hardDismissTimer !== null) {
-        window.clearTimeout(hardDismissTimer);
+      if (dismissTimer !== null) {
+        window.clearTimeout(dismissTimer);
       }
       document.removeEventListener("visibilitychange", onVisibility);
     };
@@ -241,33 +173,50 @@ export default function HomeClientShell() {
           className="fixed inset-0 z-[160] flex items-center justify-center px-6"
           style={{
             background:
-              "radial-gradient(circle at 22% 10%, rgba(74, 118, 105, 0.28), rgba(238, 242, 239, 0) 52%), linear-gradient(140deg, rgba(238, 242, 239, 0.97), rgba(227, 236, 232, 0.94))",
-            backdropFilter: "blur(12px) saturate(120%)",
-            WebkitBackdropFilter: "blur(12px) saturate(120%)",
+              "radial-gradient(circle at 50% 38%, rgba(99, 146, 129, 0.14), rgba(8, 19, 17, 0) 34%), radial-gradient(circle at 50% 82%, rgba(138, 107, 47, 0.14), rgba(8, 19, 17, 0) 26%), linear-gradient(160deg, #07110f 0%, #0b1513 52%, #101c19 100%)",
+            backdropFilter: "blur(16px) saturate(120%)",
+            WebkitBackdropFilter: "blur(16px) saturate(120%)",
           }}
           role="status"
           aria-live="polite"
         >
-          <div className="w-full max-w-sm rounded-3xl border border-[#b8c9bf] bg-[rgba(248,252,249,0.9)] px-7 py-8 text-center shadow-[0_28px_80px_rgba(12,20,16,0.24)]">
-            <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-2xl border border-[#b8c9bf] bg-[#f4f7f2]">
-              <div className="relative h-14 w-14 animate-pulse overflow-hidden rounded-xl">
+          <div className="relative flex w-full max-w-sm flex-col items-center text-center">
+            <div className="pointer-events-none absolute inset-x-1/2 top-1/2 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#6d8f82]/10 blur-3xl" />
+            <div className="pointer-events-none absolute inset-x-1/2 top-1/2 h-56 w-56 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#8a6b2f]/10 blur-3xl" />
+
+            <div className="relative size-36">
+              <div
+                className="absolute inset-0 rounded-full animate-[spin_10s_linear_infinite] motion-reduce:animate-none"
+                style={{
+                  background:
+                    "conic-gradient(from 180deg, rgba(215,191,122,0) 0deg, rgba(215,191,122,0.9) 40deg, rgba(245,225,174,0.98) 64deg, rgba(149,185,171,0.95) 92deg, rgba(215,191,122,0) 140deg, rgba(215,191,122,0) 360deg)",
+                  maskImage: "radial-gradient(circle, transparent 62%, black 64%)",
+                  WebkitMaskImage: "radial-gradient(circle, transparent 62%, black 64%)",
+                }}
+              />
+              <div className="absolute inset-[6px] rounded-full border border-white/6 bg-white/3 shadow-[inset_0_0_24px_rgba(255,255,255,0.04)]" />
+              <div className="absolute inset-[18px] overflow-hidden rounded-full border border-white/10 bg-[#f1f4ef]/8 shadow-[0_10px_30px_rgba(0,0,0,0.26)]">
+                <div className="absolute inset-0 rounded-full bg-[radial-gradient(circle_at_50%_18%,rgba(255,255,255,0.22),rgba(255,255,255,0)_62%)]" />
                 <Image
                   src="/brand/aletheia-app-icon-192.png"
                   alt="Aletheia"
                   fill
-                  sizes="56px"
+                  sizes="100px"
                   className="object-cover"
                   priority
                 />
               </div>
+              <span className="pointer-events-none absolute left-2 top-8 size-2 rotate-45 rounded-[2px] bg-[#d7bf7a] shadow-[0_0_14px_rgba(215,191,122,0.55)] animate-pulse motion-reduce:animate-none" />
+              <span className="pointer-events-none absolute right-5 top-6 size-1.5 rotate-45 rounded-[2px] bg-[#f3e2ab] shadow-[0_0_12px_rgba(243,226,171,0.55)] animate-pulse [animation-delay:-0.4s] motion-reduce:animate-none" />
+              <span className="pointer-events-none absolute bottom-5 left-7 size-1.5 rotate-45 rounded-[2px] bg-[#8cb5a6] shadow-[0_0_12px_rgba(140,181,166,0.45)] animate-pulse [animation-delay:-0.7s] motion-reduce:animate-none" />
             </div>
-            <p className="text-[0.7rem] font-semibold uppercase tracking-[0.24em] text-[#5a6a62]">Aletheia</p>
-            <p className={`mt-1 text-sm text-[#5a6a62] ${splashCopyReady ? "opacity-100" : "opacity-0"}`}>{splashText[splashLanguage].tagline}</p>
-            <p className={`mt-4 text-base font-semibold text-[#203a35] ${splashCopyReady ? "opacity-100" : "opacity-0"}`}>{splashText[splashLanguage].preparing}</p>
-            <p className={`mt-1 text-xs text-[#6a7a72] ${splashCopyReady ? "opacity-100" : "opacity-0"}`}>{splashText[splashLanguage].refreshing}</p>
-            <div className="mx-auto mt-4 h-1.5 w-28 overflow-hidden rounded-full bg-[#c9d5cd]">
-              <div className="h-full w-2/5 animate-[pulse_1.1s_ease-in-out_infinite] rounded-full bg-[#8a6b2f]" />
-            </div>
+
+            <p className={`mt-5 text-[0.68rem] font-semibold uppercase tracking-[0.32em] text-[#d7e1db] transition-opacity duration-300 ${splashCopyReady ? "opacity-100" : "opacity-0"}`}>
+              Aletheia
+            </p>
+            <p className={`mt-2 text-sm text-[#d4ddd7] transition-opacity duration-300 ${splashCopyReady ? "opacity-100" : "opacity-0"}`}>
+              {splashText[splashLanguage].preparing}
+            </p>
           </div>
         </div>
       ) : null}

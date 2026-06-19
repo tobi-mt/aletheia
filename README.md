@@ -2,6 +2,15 @@
 
 AI-powered biblical wisdom for money, work, stewardship, generosity, and reflective decision-making.
 
+## Aletheia Design North Star
+
+- Serenity first: quiet, trustworthy, and uncluttered.
+- Decision-first: show the why and the next step on every screen.
+- Bible experience: editorial, immersive, minimal chrome.
+- Translation-first: no English leaks or visible fallback references.
+- Wisdom companion: clarity, warmth, and discernment over "AI" vibes.
+- Quiet luxury: deep neutrals, warm gold, subtle motion, strong type.
+
 ## Current MVP
 
 - Conversational Wisdom Companion backed by a curated local wisdom library
@@ -316,6 +325,11 @@ The project includes `capacitor.config.ts` with:
 - app name: `Aletheia`
 - app id: `com.aletheia.app`
 - remote server URL: `NEXT_PUBLIC_APP_URL`
+
+The checked-in native shells currently use:
+
+- Android application/package id: `com.aletheia.app`
+- iOS bundle identifier: `com.tobi.aletheia.app`
 
 When the web app is polished enough for native shells:
 

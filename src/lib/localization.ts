@@ -427,6 +427,10 @@ export function localizedScriptureReference(scripture: string, language: Languag
   return `${localizedBook} ${chapter}:${start}${end ? `-${end}` : ""}`;
 }
 
+export function localizedBookChapterReference(book: string, chapter: number, language: LanguageCode): string {
+  return localizedScriptureReference(`${book} ${chapter}:1`, language).replace(/:1$/, "");
+}
+
 function escapeScriptureRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }

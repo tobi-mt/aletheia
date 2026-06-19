@@ -6843,9 +6843,57 @@ function companionCardFromDaily({
   };
 }
 
+function isValidView(value: string | null): value is View {
+  return value === "companion" || value === "decisions" || value === "reflect" || value === "library" || value === "account";
+}
+
+function isValidHomeSection(value: string | null): value is HomeSection {
+  return value === "today" || value === "ask";
+}
+
+function getInitialActiveView(): View {
+  if (typeof window === "undefined") {
+    return "companion";
+  }
+
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const tabParam = params.get("tab");
+    if (isValidView(tabParam)) {
+      return tabParam;
+    }
+
+    const storedView = window.localStorage.getItem("aletheia-active-view");
+    if (isValidView(storedView)) {
+      return storedView;
+    }
+  } catch {
+    // Fall back to the companion view when storage or URL parsing is unavailable.
+  }
+
+  return "companion";
+}
+
+function getInitialHomeSection(): HomeSection {
+  if (typeof window === "undefined") {
+    return "today";
+  }
+
+  try {
+    const storedHomeSection = window.localStorage.getItem("aletheia-home-section");
+    if (isValidHomeSection(storedHomeSection)) {
+      return storedHomeSection;
+    }
+  } catch {
+    // Fall back to the today section when storage is unavailable.
+  }
+
+  return "today";
+}
+
 export function AletheiaApp() {
-  const [activeView, setActiveViewState] = useState<View>("companion");
-  const [homeSection, setHomeSectionState] = useState<HomeSection>("today");
+  const [activeView, setActiveViewState] = useState<View>(() => getInitialActiveView());
+  const [homeSection, setHomeSectionState] = useState<HomeSection>(() => getInitialHomeSection());
   
   // Wrapper to persist active view and track navigation usage.
   const setActiveView = useCallback((view: View, source = "navigation") => {
@@ -7033,7 +7081,7 @@ export function AletheiaApp() {
   // Hydration-safe restore of client-only persisted state.
   useEffect(() => {
     let cancelled = false;
-    const restoreId = window.requestAnimationFrame(() => {
+    const restoreId = window.setTimeout(() => {
       const params = new URLSearchParams(window.location.search);
       const shouldHonorNotificationFocus = params.get("source") === "notification";
       const restoredPreferences = storedPreferences();
@@ -7123,10 +7171,10 @@ export function AletheiaApp() {
       } catch {
         // Keep deterministic defaults if storage is unavailable.
       }
-    });
+    }, 0);
     return () => {
       cancelled = true;
-      window.cancelAnimationFrame(restoreId);
+      window.clearTimeout(restoreId);
     };
   }, []);
 
@@ -14890,32 +14938,32 @@ function FormationsSection({
   onClearPendingChallenge: () => void;
 }) {
   const [challenges, setChallenges] = useState<ChallengeWithProgress[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [expandedId, setExpandedId] = useState<string | null>(pendingChallengeId);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [savingDay, setSavingDay] = useState<{ challengeId: string; day: number } | null>(null);
   const [reflectionText, setReflectionText] = useState("");
   const sectionRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (pendingChallengeId) {
-      setExpandedId(pendingChallengeId);
-      onClearPendingChallenge();
-      window.requestAnimationFrame(() => {
-        sectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      queueMicrotask(() => {
+        onClearPendingChallenge();
+        window.requestAnimationFrame(() => {
+          sectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
       });
     }
   }, [pendingChallengeId, onClearPendingChallenge]);
 
   useEffect(() => {
     if (!user) return;
-    setLoading(true);
-    fetch("/api/challenges")
-      .then((res) => res.json())
-      .then((data: { challenges?: ChallengeWithProgress[] }) => {
-        if (data.challenges) setChallenges(data.challenges);
-      })
-      .catch(() => undefined)
-      .finally(() => setLoading(false));
+    queueMicrotask(() => {
+      fetch("/api/challenges")
+        .then((res) => res.json())
+        .then((data: { challenges?: ChallengeWithProgress[] }) => {
+          if (data.challenges) setChallenges(data.challenges);
+        })
+        .catch(() => undefined)
+    });
   }, [user]);
 
   function completedDaysFor(challenge: ChallengeWithProgress) {
@@ -14997,6 +15045,8 @@ function FormationsSection({
     });
   }, []);
 
+  const loading = Boolean(user) && challengeDefs.length === 0 && challenges.length === 0;
+
   function getDayPrompt(challengeId: string, day: number) {
     const def = challengeDefs.find((d) => d.id === challengeId);
     return def?.days.find((d) => d.day === day) ?? null;
@@ -15062,7 +15112,7 @@ function FormationsSection({
         const total = challenge.totalDays;
         const next = nextDayFor(challenge);
         const isComplete = done >= total;
-        const isExpanded = expandedId === challenge.id;
+        const isExpanded = expandedId === challenge.id || pendingChallengeId === challenge.id;
         const isSaving = savingDay?.challengeId === challenge.id;
         const nextPrompt = isComplete ? null : getDayPrompt(challenge.id, next);
 
