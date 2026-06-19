@@ -36,8 +36,8 @@ export default function HomeClientShell() {
   const [splashCopyReady, setSplashCopyReady] = useState(false);
   const lastHiddenAtRef = useRef<number | null>(null);
   const splashTranslations = loadTranslationsSync(splashLanguage);
-  const appTagline = String(getTranslation(splashTranslations, "labels.appTagline"));
-  const loadingLabel = String(getTranslation(splashTranslations, "labels.loading"));
+  const appTagline = String(getTranslation(splashTranslations, "labels.appTagline", "Curated wisdom, translation-aware."));
+  const loadingLabel = String(getTranslation(splashTranslations, "labels.loading", "Loading…"));
 
   useEffect(() => {
     const nextLanguage = readStoredSplashLanguage();
