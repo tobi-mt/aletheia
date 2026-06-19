@@ -4662,11 +4662,88 @@ export function localizedRegionLabel(regionCode: RegionCode, language: LanguageC
   return localizedRegionLabels[language]?.[regionCode] ?? regions[regionCode]?.label ?? regions.global.label;
 }
 
+const localizedModeLabels: Partial<Record<LanguageCode, Record<Mode, string>>> = {
+  es: {
+    Money: "Dinero",
+    Work: "Trabajo",
+    Purpose: "Propósito",
+    Generosity: "Generosidad",
+    Life: "Vida",
+  },
+  fr: {
+    Money: "Argent",
+    Work: "Travail",
+    Purpose: "But",
+    Generosity: "Générosité",
+    Life: "Vie",
+  },
+  pt: {
+    Money: "Dinheiro",
+    Work: "Trabalho",
+    Purpose: "Propósito",
+    Generosity: "Generosidade",
+    Life: "Vida",
+  },
+  de: {
+    Money: "Geld",
+    Work: "Arbeit",
+    Purpose: "Zweck",
+    Generosity: "Großzügigkeit",
+    Life: "Leben",
+  },
+  yo: {
+    Money: "Owó",
+    Work: "Iṣẹ́",
+    Purpose: "Ìdí",
+    Generosity: "Ọ̀fẹ́",
+    Life: "Ayé",
+  },
+  ig: {
+    Money: "Ego",
+    Work: "Ọrụ",
+    Purpose: "Nzube",
+    Generosity: "Mmesapụ aka",
+    Life: "Ndụ",
+  },
+  ha: {
+    Money: "Kuɗi",
+    Work: "Aiki",
+    Purpose: "Manufa",
+    Generosity: "Karimci",
+    Life: "Rayuwa",
+  },
+  tl: {
+    Money: "Pera",
+    Work: "Trabaho",
+    Purpose: "Layunin",
+    Generosity: "Pagkamapagbigay",
+    Life: "Buhay",
+  },
+  ar: {
+    Money: "المال",
+    Work: "العمل",
+    Purpose: "الغاية",
+    Generosity: "الكرم",
+    Life: "الحياة",
+  },
+  hi: {
+    Money: "धन",
+    Work: "काम",
+    Purpose: "उद्देश्य",
+    Generosity: "उदारता",
+    Life: "जीवन",
+  },
+};
+
+export function localizedModeLabel(mode: Mode, language: LanguageCode) {
+  return localizedModeLabels[language]?.[mode] ?? modeProfiles[mode].label;
+}
+
 export function localizedModeProfile(mode: Mode, language: LanguageCode) {
   return {
     ...modeProfiles[mode],
     ...localizedModeProfiles[language]?.[mode],
-    displayLabel: mode,
+    displayLabel: localizedModeLabel(mode, language),
   };
 }
 

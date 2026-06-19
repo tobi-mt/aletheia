@@ -70,6 +70,7 @@ import {
   localizedRegionLabel,
   localizedCrisisSupportCopy,
   localizedModeProfile as sharedLocalizedModeProfile,
+  localizedModeLabel as sharedLocalizedModeLabel,
   localizedWisdomLibraryEntry,
   localizedWisdomLibraryNote,
   localizedWisdomEntry,
@@ -2897,7 +2898,7 @@ function createWisdomPostcardBlob(payload: WisdomPostcardPayload, theme: ThemeCo
       context.font = "600 30px system-ui, sans-serif";
       drawWrappedCanvasText(
         context,
-        payload.footer || "Share the principle, not the private story.",
+        payload.footer || "",
         86,
         1420,
         1028,
@@ -3600,392 +3601,6 @@ const modes: ModeCard[] = [
   { label: "Life", icon: Home, copy: modeProfiles.Life.focus },
 ];
 
-const modeDisplayLabels: Partial<Record<LanguageCode, Record<Mode, string>>> = {
-  pt: {
-    Money: "Dinheiro",
-    Work: "Trabalho",
-    Purpose: "Propósito",
-    Generosity: "Generosidade",
-    Life: "Vida",
-  },
-  yo: {
-    Money: "Owó",
-    Work: "Iṣẹ́",
-    Purpose: "Ìdí",
-    Generosity: "Ọ̀fẹ́",
-    Life: "Ayé",
-  },
-  ig: {
-    Money: "Ego",
-    Work: "Ọrụ",
-    Purpose: "Nzube",
-    Generosity: "Mmesapụ aka",
-    Life: "Ndụ",
-  },
-  ha: {
-    Money: "Kuɗi",
-    Work: "Aiki",
-    Purpose: "Manufa",
-    Generosity: "Karimci",
-    Life: "Rayuwa",
-  },
-  de: {
-    Money: "Geld",
-    Work: "Arbeit",
-    Purpose: "Sinn",
-    Generosity: "Großzügigkeit",
-    Life: "Leben",
-  },
-  es: {
-    Money: "Dinero",
-    Work: "Trabajo",
-    Purpose: "Propósito",
-    Generosity: "Generosidad",
-    Life: "Vida",
-  },
-  fr: {
-    Money: "Argent",
-    Work: "Travail",
-    Purpose: "Sens",
-    Generosity: "Générosité",
-    Life: "Vie",
-  },
-  en: {
-    Money: "Money",
-    Work: "Work",
-    Purpose: "Purpose",
-    Generosity: "Generosity",
-    Life: "Life",
-  },
-  tl: {
-    Money: "Pera",
-    Work: "Trabaho",
-    Purpose: "Layunin",
-    Generosity: "Pagkamapagbigay",
-    Life: "Buhay",
-  },
-  ar: {
-    Money: "المال",
-    Work: "العمل",
-    Purpose: "الغاية",
-    Generosity: "الكرم",
-    Life: "الحياة",
-  },
-  hi: {
-    Money: "पैसा",
-    Work: "काम",
-    Purpose: "उद्देश्य",
-    Generosity: "उदारता",
-    Life: "जीवन",
-  },
-};
-
-const localizedModeProfiles: Partial<Record<LanguageCode, Partial<Record<Mode, Partial<ModeProfile>>>>> = {
-  yo: {
-    Money: {
-      intent: "Ṣe ìtọ́jú ohun tí a fi lé ọ lọ́wọ́ pẹ̀lú àlàáfíà àti ìmọ̀.",
-      focus: "Ìṣètò owó, gbèsè, ìfipamọ́, ìdókòwò, ìtẹ́lọ́run",
-      useWhen: "Lo fún ináwó, gbèsè, ìfipamọ́, ìdókòwò, àníyàn owó, tàbí fífi ara wé ẹlòmíì.",
-      lens: "Ìwòye ìtọ́jú: òmìnira, ohun tó tó, sùúrù, ewu, àti ojúṣe olóòtítọ́.",
-      diagnosticTracks: [
-        "Òmìnira: ṣé yíyàn yìí máa pọ̀ síi tàbí dín àwọn àṣàyàn ọgbọ́n lọ́la kù?",
-        "Ohun tó tó: ṣé ìfẹ́ náà mọ́, tàbí fífi ara wé ẹlòmíì ló ń ṣètò ibi-afẹ́?",
-        "Ewu: kí ló lè lọ dáadáa, kí ló lè kuna, àti ṣé mo ti ka iye owó rẹ dáadáa?",
-      ],
-      blindSpots: [
-        "Dídapọ̀ ìgbàgbọ́ mọ́ ìdánilójú owó",
-        "Pípè ìfọkànsìn ìgbé-ayé ní àìní",
-        "Rí agbára gbèsè bí ìyọ̀nda",
-      ],
-      maturitySignals: [
-        "Ètò náà ṣi dára lẹ́yìn ìdúró",
-        "Àwọn nọ́ńbà hàn gbangba, wọn kò ṣòro",
-        "Ìmọ̀ràn ti dán àwọn ìròyìn inú rẹ wò",
-      ],
-      practices: [
-        "Darúkọ ohun tó tó fún àsìkò yìí",
-        "Kọ ètò sísan gbèsè, ìfipamọ́, tàbí fífúnni sílẹ̀ kedere",
-        "Dúró títí di ọ̀la kí o tó ná owó tí kò rọrùn láti yí padà",
-      ],
-      prompts: [
-        "Báwo ni mo ṣe lè kọ ọrọ̀ láì jẹ́ kí ìwọra darí mi?",
-        "Kí ni ọgbọ́n sọ nípa gbèsè?",
-        "Báwo ni mo ṣe lè dá fífi ara mi wé ẹlòmíì dúró nípa owó?",
-      ],
-    },
-    Work: {
-      intent: "Ṣàyẹ̀wò iṣẹ́, ìpè, olórí, àti ìfẹ́ṣọ́nà tó péye.",
-      focus: "Ìyípadà iṣẹ́, olórí, òwò, ìrẹ̀wẹ̀sì, ìpè",
-      useWhen: "Lo fún ìpinnu iṣẹ́, ìmọ̀ràn òwò, ìfọkànsìn olórí, ìrẹ̀wẹ̀sì, tàbí ìfẹ́ṣọ́nà.",
-      lens: "Ìwòye ìpè: aápọn tó dára, ìmọ̀ràn, kika iye, iṣẹ́ ìránṣẹ́, àti ìyára tó péye.",
-      prompts: ["Ṣé kí n fi iṣẹ́ mi tó dúró ṣinṣin sílẹ̀?", "Báwo ni mo ṣe mọ̀ pé ìfẹ́ṣọ́nà mi dára?", "Ṣé kí n bẹ̀rẹ̀ òwò yìí báyìí?"],
-    },
-    Purpose: {
-      intent: "Dákẹ́ kí o ṣàyẹ̀wò ẹni tí ìpinnu yìí ń dá sílẹ̀.",
-      focus: "Ìdánimọ̀, ìtọ́sọ́nà, àníyàn, iye, ìmọ̀ pípẹ́",
-      useWhen: "Lo nígbà tí ìbéèrè gidi jẹ́ ìdánimọ̀, ìtọ́sọ́nà, àlàáfíà, àsìkò, tàbí iye.",
-      lens: "Ìwòye ìmòye: ìdánimọ̀, àlàáfíà, ìdí inú, sùúrù, àti ìgbésẹ̀ olóòtítọ́ tó kàn.",
-      prompts: ["Báwo ni mo ṣe lè pinnu nígbà tí kò yé mi?", "Bí mo bá ń lé aṣeyọrí fún ìdí tí kò dára ńkọ?", "Báwo ni mo ṣe lè rí àlàáfíà nípa ìgbésẹ̀ tó kàn?"],
-    },
-    Generosity: {
-      intent: "Fúnni ní òmìnira láì jẹ́ ẹ̀bi, ìfọkànsìn, tàbí ìṣeré.",
-      focus: "Fífúnni, ìrànwọ́ ẹbí, iṣẹ́ àánú, ààlà, ìtẹ̀síwájú",
-      useWhen: "Lo fún fífúnni, ìrànwọ́ ẹbí, ààlà, tàbí ìfẹ́ fúnni tó lè tẹ̀síwájú.",
-      lens: "Ìwòye ìfẹ́ fúnni: ìfẹ́ ọkàn, ìtẹ̀síwájú, ayọ̀, ọgbọ́n, àti ìfẹ́ láì fi ipa múni.",
-      prompts: ["Báwo ni mo ṣe lè fúnni láì jẹ́ ẹ̀bi tàbí ìfọkànsìn?", "Ṣé kí n tún ran ẹbí lọ́wọ́ nípa owó?", "Ìfẹ́ fúnni mélòó ni ó le tẹ̀síwájú fún mi?"],
-    },
-    Life: {
-      intent: "Apply biblical wisdom to ordinary life, formation, and care with steady, grounded attention.",
-      focus: "Habits, relationships, family, rest, health, recovery, holiness, loneliness",
-      useWhen:
-        "Use for everyday life decisions, routines, relationships, habits, rest, conflict, loneliness, addiction, temptation, prayer life, or when the right next step is a quiet act of obedience rather than a major decision.",
-      lens: "A formation lens: character, healing, accountability, relationships, and the next faithful step.",
-      prompts: [
-        "How do I stay faithful in a hard season?",
-        "What do I do when I feel stuck in an unhealthy pattern?",
-        "How do I respond when loneliness or temptation gets heavy?",
-      ],
-    },
-  },
-  tl: {
-    Money: {
-      intent: "Pangasiwaan ang ipinagkatiwala sa iyo nang may kapayapaan at katinuan.",
-      focus: "Badyet, utang, ipon, puhunan, kasapatan",
-      useWhen: "Gamitin para sa gastusin, utang, ipon, puhunan, alalahanin sa pera, o paghahambing sa iba.",
-      lens: "Lens ng pangangalaga: kalayaan, sapat, tiyaga, panganib, at tapat na pananagutan.",
-      diagnosticTracks: [
-        "Kalayaan: lalawak ba o liliit ang mga matalinong pagpipilian bukas?",
-        "Sapat: malinaw ba ang pangangailangan, o pinalalabas lang ito ng paghahambing?",
-        "Panganib: ano ang puwedeng maging maayos, ano ang puwedeng pumalya, at nasuri ko ba ang gastos?",
-      ],
-      blindSpots: [
-        "Pagsasama ng pananampalataya at garantiyang pinansyal",
-        "Pagpapanggap ng kakulangan habang nakasentro sa pagtingin ng iba",
-        "Paggamit ng utang bilang kapalit ng pag-asa",
-      ],
-      maturitySignals: [
-        "Nanatiling mabuti ang plano kahit naghintay",
-        "Malinaw ang mga numero at hindi nakalilito",
-        "Nasubok ng payo ang iyong panloob na mga hinala",
-      ],
-      practices: [
-        "Pangalanan ang sapat para sa panahong ito",
-        "Isulat nang malinaw ang plano para sa utang, ipon, o pagbibigay",
-        "Maghintay hanggang bukas bago gastusin ang mahirap nang baguhin",
-      ],
-      prompts: [
-        "Paano ako makagagawa ng yaman nang hindi ako pinamumunuan ng kasakiman?",
-        "Ano ang sinasabi ng karunungan tungkol sa utang?",
-        "Paano ko ititigil ang paghahambing ng sarili ko sa iba sa usaping pera?",
-      ],
-    },
-    Work: {
-      intent: "Suriin ang trabaho, tawag, lider, at angkop na ambisyon.",
-      focus: "Paglipat ng trabaho, lider, negosyo, pagkapagod, tawag",
-      useWhen: "Gamitin para sa mga desisyon sa trabaho, payo sa negosyo, pagtingin sa lider, pagkapagod, o ambisyon.",
-      lens: "Lens ng tawag: mabuting sakripisyo, payo, pagtantya sa halaga, paglilingkod, at tamang bilis.",
-      prompts: [
-        "Dapat ko bang iwan ang matatag kong trabaho?",
-        "Paano ko malalaman kung mabuti ang ambisyon ko?",
-        "Dapat ko bang simulan ang negosyong ito ngayon?",
-      ],
-    },
-    Purpose: {
-      intent: "Tumigil at tingnan kung sino ang hinuhubog ng desisyong ito.",
-      focus: "Pagkakakilanlan, direksyon, pagkabalisa, halaga, pangmatagalang pananaw",
-      useWhen: "Gamitin kapag ang tunay na tanong ay pagkakakilanlan, direksyon, kapayapaan, oras, o halaga.",
-      lens: "Lens ng karunungan: pagkakakilanlan, kapayapaan, layunin, tiyaga, at tapat na susunod na hakbang.",
-      prompts: [
-        "Paano ako magdedesisyon kapag hindi ako sigurado?",
-        "Paano kung hinahabol ko ang tagumpay para sa maling dahilan?",
-        "Paano ako makakahanap ng kapayapaan tungkol sa susunod na hakbang?",
-      ],
-    },
-    Generosity: {
-      intent: "Magbigay nang malaya, hindi mula sa guilt, pressure, o pagpapakitang-gilas.",
-      focus: "Pagbibigay, tulong sa pamilya, kawanggawa, hangganan, pagpapatuloy",
-      useWhen: "Gamitin para sa pagbibigay, tulong sa pamilya, hangganan, o isang paraan ng pagbibigay na kayang tumagal.",
-      lens: "Lens ng pag-ibig sa kapwa: mabuting kalooban, pagpapatuloy, kagalakan, karunungan, at pagbibigay nang hindi napipilitan.",
-      prompts: [
-        "Paano ako makapagbibigay nang walang guilt o pressure?",
-        "Dapat ko pa bang suportahan ang pamilya ko sa pera?",
-        "Gaano kalawak ang pagbibigay na kaya kong panatilihin?",
-      ],
-    },
-    Life: {
-      intent: "Ilapat ang biblikal na karunungan sa pang-araw-araw na buhay, paghubog, at pag-aaruga nang may matatag at nakaugat na atensyon.",
-      focus: "Mga gawi, relasyon, pamilya, pahinga, kalusugan, pagbangon, kabanalan, pag-iisa",
-      useWhen:
-        "Gamitin para sa araw-araw na desisyon, routine, relasyon, gawi, pahinga, alitan, pag-iisa, adiksyon, tukso, buhay-pananalangin, o kapag ang tamang susunod na hakbang ay tahimik na pagsunod sa halip na malaking desisyon.",
-      lens: "Lens ng paghubog: karakter, paggaling, pananagutan, relasyon, at susunod na tapat na hakbang.",
-      prompts: [
-        "Paano ako magiging tapat sa mahirap na panahon?",
-        "Ano ang gagawin ko kapag pakiramdam ko ay nakakulong ako sa hindi malusog na pattern?",
-        "Paano ako tutugon kapag mabigat ang pag-iisa o tukso?",
-      ],
-    },
-  },
-  ar: {
-    Money: {
-      intent: "أدر ما أوكِل إليك بسلام واتزان.",
-      focus: "الميزانية، الدَّين، الادخار، الاستثمار، الكفاية",
-      useWhen: "استخدمه للمصروف، الدَّين، الادخار، الاستثمار، القلق المالي، أو مقارنة نفسك بالآخرين.",
-      lens: "عدسة الرعاية: الحرية، الكفاية، الصبر، المخاطر، والمسؤولية الأمينة.",
-      diagnosticTracks: [
-        "الحرية: هل يزيد هذا الخيار من بدائل الحكمة غدًا أم يقللها؟",
-        "الكفاية: هل الحاجة واضحة، أم أن المقارنة هي التي تصوغها؟",
-        "المخاطر: ما الذي قد يسير جيدًا، وما الذي قد يتعثر، وهل حسبت التكلفة بدقة؟",
-      ],
-      blindSpots: [
-        "دمج الإيمان مع ضمان مالي",
-        "إضفاء طابع القداسة على الندرة بينما يدور القلب حول المقارنة",
-        "تعامل مع الدَّين كبديل عن الثقة",
-      ],
-      maturitySignals: [
-        "يبقى التخطيط صالحًا بعد الانتظار",
-        "الأرقام واضحة وغير مربكة",
-        "النصيحة اختبرت حدسك الداخلي",
-      ],
-      practices: [
-        "سمِّ ما يكفي لهذه المرحلة",
-        "اكتب خطة السداد أو الادخار أو العطاء بوضوح",
-        "انتظر حتى الغد قبل إنفاق ما يصعب التراجع عنه",
-      ],
-      prompts: [
-        "كيف أبني موارد بلا أن تقودني الشراهة؟",
-        "ماذا تقول الحكمة عن الدَّين؟",
-        "كيف أكف عن مقارنة نفسي بالآخرين في المال؟",
-      ],
-    },
-    Work: {
-      intent: "افحص العمل والدعوة والقيادة والطموح المناسب.",
-      focus: "تغيير العمل، القيادة، المشروع، الإرهاق، الدعوة",
-      useWhen: "استخدمه لقرارات العمل، نصيحة المشاريع، تقييم القيادة، الإرهاق، أو الطموح.",
-      lens: "عدسة الدعوة: التضحية الصالحة، النصيحة، حساب القيمة، الخدمة، والوتيرة المناسبة.",
-      prompts: [
-        "هل يجب أن أترك عملي المستقر؟",
-        "كيف أعرف إن كان طموحي صالحًا؟",
-        "هل ينبغي أن أبدأ هذا المشروع الآن؟",
-      ],
-    },
-    Purpose: {
-      intent: "توقف لترى من الذي يُشكَّل عبر هذا القرار.",
-      focus: "الهوية، الاتجاه، القلق، القيمة، الأفق البعيد",
-      useWhen: "استخدمه حين يكون السؤال الحقيقي عن الهوية أو الاتجاه أو السلام أو الوقت أو القيمة.",
-      lens: "عدسة الحكمة: الهوية، السلام، الغاية، الصبر، والخطوة الأمينة التالية.",
-      prompts: [
-        "كيف أقرر عندما لا أكون متأكدًا؟",
-        "ماذا لو كنت أطارد النجاح لسبب خاطئ؟",
-        "كيف أجد سلامًا بخصوص الخطوة التالية؟",
-      ],
-    },
-    Generosity: {
-      intent: "أعطِ بحرية، لا من الشعور بالذنب أو الضغط أو الاستعراض.",
-      focus: "العطاء، دعم العائلة، الخدمة، الحدود، الاستمرارية",
-      useWhen: "استخدمه للعطاء، دعم العائلة، الحدود، أو أي عطاء يمكن أن يستمر.",
-      lens: "عدسة المحبة للآخر: النية الطيبة، الاستمرارية، الفرح، الحكمة، والعطاء بلا إكراه.",
-      prompts: [
-        "كيف أستطيع أن أعطي بلا ذنب أو ضغط؟",
-        "هل يجب أن أواصل دعم عائلتي ماليًا؟",
-        "ما مقدار العطاء الذي أستطيع الاستمرار عليه؟",
-      ],
-    },
-    Life: {
-      intent: "طبّق الحكمة الكتابية على الحياة اليومية والتكوين والرعاية بانتباه ثابت ومتجذر.",
-      focus: "العادات، العلاقات، العائلة، الراحة، الصحة، التعافي، القداسة، الوحدة",
-      useWhen:
-        "استخدمه لقرارات الحياة اليومية، والروتين، والعلاقات، والعادات، والراحة، والخلاف، والوحدة، والإدمان، والتجربة، والحياة الروحية، أو عندما تكون الخطوة التالية الطيبة فعل طاعة هادئًا لا قرارًا كبيرًا.",
-      lens: "عدسة التكوين: الشخصية، الشفاء، المساءلة، العلاقات، والخطوة الأمينة التالية.",
-      prompts: [
-        "كيف أبقى أمينًا في موسم صعب؟",
-        "ماذا أفعل عندما أشعر أنني عالق في نمط غير صحي؟",
-        "كيف أستجيب عندما تصبح الوحدة أو التجربة ثقيلة؟",
-      ],
-    },
-  },
-  hi: {
-    Money: {
-      intent: "जो आपको सौंपा गया है, उसे शांति और समझदारी से संभालिए।",
-      focus: "बजट, कर्ज, बचत, निवेश, पर्याप्तता",
-      useWhen: "खर्च, कर्ज, बचत, निवेश, पैसे की चिंता, या दूसरों से तुलना के लिए उपयोग करें।",
-      lens: "देखभाल का दृष्टिकोण: स्वतंत्रता, पर्याप्तता, धैर्य, जोखिम, और ईमानदार ज़िम्मेदारी।",
-      diagnosticTracks: [
-        "स्वतंत्रता: क्या यह विकल्प कल समझदार संभावनाएँ बढ़ाएगा या घटाएगा?",
-        "पर्याप्तता: क्या ज़रूरत स्पष्ट है, या उसे तुलना आकार दे रही है?",
-        "जोखिम: क्या अच्छा हो सकता है, क्या बिगड़ सकता है, और क्या मैंने लागत ठीक से गिनी है?",
-      ],
-      blindSpots: [
-        "विश्वास और वित्तीय गारंटी को एक ही चीज़ मान लेना",
-        "तुलना के बीच कमी की कहानी को पवित्र मान लेना",
-        "कर्ज को भरोसे के विकल्प के रूप में देखना",
-      ],
-      maturitySignals: [
-        "प्रतीक्षा के बाद भी योजना अच्छी बनी रहती है",
-        "संख्याएँ स्पष्ट हैं और उलझाती नहीं हैं",
-        "सलाह ने आपकी अंदरूनी आशंकाओं को परखा है",
-      ],
-      practices: [
-        "इस मौसम के लिए पर्याप्त क्या है, उसका नाम दें",
-        "कर्ज, बचत, या देने की योजना साफ़-साफ़ लिखें",
-        "बदलना मुश्किल हो, ऐसा खर्च कल तक टालें",
-      ],
-      prompts: [
-        "मैं लालच के बिना धन कैसे बना सकता हूँ?",
-        "कर्ज के बारे में बुद्धि क्या कहती है?",
-        "पैसे के मामले में मैं खुद की तुलना दूसरों से करना कैसे रोकूँ?",
-      ],
-    },
-    Work: {
-      intent: "काम, बुलाहट, नेतृत्व, और उचित महत्वाकांक्षा की जाँच करें।",
-      focus: "नौकरी बदलना, नेतृत्व, व्यवसाय, थकान, बुलाहट",
-      useWhen: "काम के निर्णयों, व्यवसाय की सलाह, नेतृत्व के आकलन, थकान, या महत्वाकांक्षा के लिए उपयोग करें।",
-      lens: "बुलाहट का दृष्टिकोण: अच्छा त्याग, सलाह, मूल्य का हिसाब, सेवा, और सही गति।",
-      prompts: [
-        "क्या मुझे अपनी स्थिर नौकरी छोड़ देनी चाहिए?",
-        "मैं कैसे जानूँ कि मेरी महत्वाकांक्षा अच्छी है?",
-        "क्या मुझे यह व्यवसाय अभी शुरू करना चाहिए?",
-      ],
-    },
-    Purpose: {
-      intent: "रुककर देखें कि यह निर्णय किसे आकार दे रहा है।",
-      focus: "पहचान, दिशा, चिंता, मूल्य, दीर्घ दृष्टि",
-      useWhen: "जब असली सवाल पहचान, दिशा, शांति, समय, या मूल्य का हो, तब उपयोग करें।",
-      lens: "बुद्धि का दृष्टिकोण: पहचान, शांति, उद्देश्य, धैर्य, और अगला ईमानदार कदम।",
-      prompts: [
-        "जब मैं निश्चित न हूँ, तब कैसे निर्णय लूँ?",
-        "अगर मैं गलत कारण से सफलता का पीछा कर रहा हूँ तो?",
-        "अगले कदम को लेकर शांति मैं कैसे पाऊँ?",
-      ],
-    },
-    Generosity: {
-      intent: "स्वतंत्रता से दीजिए, अपराधबोध, दबाव, या दिखावे से नहीं।",
-      focus: "देना, परिवार की सहायता, दान, सीमाएँ, निरंतरता",
-      useWhen: "देने, परिवार की मदद, सीमाओं, या टिकाऊ उदारता के लिए उपयोग करें।",
-      lens: "पड़ोसी-प्रेम का दृष्टिकोण: भलाई, निरंतरता, आनंद, बुद्धि, और बिना मजबूरी के देना।",
-      prompts: [
-        "मैं बिना अपराधबोध या दबाव के कैसे दे सकता हूँ?",
-        "क्या मुझे अपने परिवार की आर्थिक मदद जारी रखनी चाहिए?",
-        "मैं कितनी उदारता को स्थायी रूप से निभा सकता हूँ?",
-      ],
-    },
-    Life: {
-      intent: "बाइबिलीय बुद्धि को रोज़मर्रा की ज़िंदगी, निर्माण, और देखभाल पर स्थिर, जमी हुई ध्यान से लागू कीजिए।",
-      focus: "आदतें, रिश्ते, परिवार, विश्राम, स्वास्थ्य, पुनर्स्थापना, पवित्रता, अकेलापन",
-      useWhen:
-        "दैनिक निर्णयों, दिनचर्या, रिश्तों, आदतों, विश्राम, संघर्ष, अकेलेपन, लत, प्रलोभन, प्रार्थना-जीवन, या जब अगला सही कदम कोई बड़ा निर्णय नहीं बल्कि चुपचाप आज्ञाकारिता का कार्य हो, तब उपयोग करें।",
-      lens: "निर्माण का दृष्टिकोण: चरित्र, चंगाई, जवाबदेही, रिश्ते, और अगला ईमानदार कदम।",
-      prompts: [
-        "मैं कठिन मौसम में कैसे वफ़ादार रहूँ?",
-        "अगर मैं किसी अस्वस्थ पैटर्न में फँसा महसूस करूँ तो क्या करूँ?",
-        "जब अकेलापन या प्रलोभन भारी हो जाए तो मैं कैसे प्रतिक्रिया दूँ?",
-      ],
-    },
-  },
-};
-
-function modeDisplayLabel(mode: Mode, language: LanguageCode) {
-  return modeDisplayLabels[language]?.[mode] ?? mode;
-}
 
 const wisdomThemeDisplayLabels: Partial<Record<LanguageCode, Record<string, string>>> = {
   es: {
@@ -4099,7 +3714,7 @@ function modeTranslationKey(mode: Mode) {
 }
 
 function localizedModeLabel(mode: Mode, language: LanguageCode, translations?: TranslationData): string {
-  const fallback = modeDisplayLabel(mode, language);
+  const fallback = sharedLocalizedModeLabel(mode, language);
   if (!translations) {
     return fallback;
   }
@@ -4110,7 +3725,7 @@ function localizedModeLabel(mode: Mode, language: LanguageCode, translations?: T
 
 function localizedWisdomThemeLabel(theme: string, language: LanguageCode) {
   if (isMode(theme)) {
-    return modeDisplayLabel(theme, language);
+    return sharedLocalizedModeLabel(theme, language);
   }
   return wisdomThemeDisplayLabels[language]?.[theme] ?? theme;
 }
@@ -4570,7 +4185,6 @@ function runtimeCopyFor(language: LanguageCode): RuntimePanelCopy {
 function localizedModeProfile(mode: Mode, language: LanguageCode): DisplayModeProfile {
   return {
     ...sharedLocalizedModeProfile(mode, language),
-    ...localizedModeProfiles[language]?.[mode],
     displayLabel: localizedModeLabel(mode, language),
   };
 }
@@ -4749,35 +4363,35 @@ const TODAY_VISUAL_LIBRARY: Record<string, TodayVisualAsset[]> = {
   Stewardship: [
     {
       kind: "photo",
-      title: "Sunrise on the road",
+      title: "sunrise-on-the-road",
       imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/73/Sunrise_on_the_road.jpg/1280px-Sunrise_on_the_road.jpg",
       imagePageUrl: "https://commons.wikimedia.org/wiki/File:Sunrise_on_the_road.jpg",
       license: "CC BY-SA 4.0",
     },
     {
       kind: "photo",
-      title: "Field in sunrise",
+      title: "field-in-sunrise",
       imageUrl: "https://upload.wikimedia.org/wikipedia/commons/f/f6/Field_in_sunrise_%28Unsplash%29.jpg",
       imagePageUrl: "https://commons.wikimedia.org/wiki/File:Field_in_sunrise_(Unsplash).jpg",
       license: "CC0",
     },
     {
       kind: "photo",
-      title: "New horizons",
+      title: "new-horizons",
       imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e9/New_Horizons_%28Unsplash%29.jpg/1280px-New_Horizons_%28Unsplash%29.jpg",
       imagePageUrl: "https://commons.wikimedia.org/wiki/File:New_Horizons_(Unsplash).jpg",
       license: "CC0",
     },
     {
       kind: "photo",
-      title: "Writing the Moment",
+      title: "writing-the-moment",
       imageUrl: commonsFilePath("Writing the Moment (Unsplash).jpg"),
       imagePageUrl: "https://commons.wikimedia.org/wiki/File:Writing_the_Moment_(Unsplash).jpg",
       license: "CC0",
     },
     {
       kind: "photo",
-      title: "Business notes",
+      title: "business-notes",
       imageUrl: commonsFilePath("Businessman working and writing notes in office (Unsplash).jpg"),
       imagePageUrl: "https://commons.wikimedia.org/wiki/File:Businessman_working_and_writing_notes_in_office_(Unsplash).jpg",
       license: "CC0",
@@ -4786,35 +4400,35 @@ const TODAY_VISUAL_LIBRARY: Record<string, TodayVisualAsset[]> = {
   "Cost Counting": [
     {
       kind: "photo",
-      title: "New horizons",
+      title: "new-horizons",
       imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e9/New_Horizons_%28Unsplash%29.jpg/1280px-New_Horizons_%28Unsplash%29.jpg",
       imagePageUrl: "https://commons.wikimedia.org/wiki/File:New_Horizons_(Unsplash).jpg",
       license: "CC0",
     },
     {
       kind: "photo",
-      title: "Hopeful horizons",
+      title: "hopeful-horizons",
       imageUrl: "https://upload.wikimedia.org/wikipedia/commons/1/18/Hopeful_Horizons_%28Unsplash%29.jpg",
       imagePageUrl: "https://commons.wikimedia.org/wiki/File:Hopeful_Horizons_(Unsplash).jpg",
       license: "CC0",
     },
     {
       kind: "photo",
-      title: "Sunrise on the road",
+      title: "sunrise-on-the-road",
       imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/73/Sunrise_on_the_road.jpg/1280px-Sunrise_on_the_road.jpg",
       imagePageUrl: "https://commons.wikimedia.org/wiki/File:Sunrise_on_the_road.jpg",
       license: "CC BY-SA 4.0",
     },
     {
       kind: "photo",
-      title: "Writing the Moment",
+      title: "writing-the-moment",
       imageUrl: commonsFilePath("Writing the Moment (Unsplash).jpg"),
       imagePageUrl: "https://commons.wikimedia.org/wiki/File:Writing_the_Moment_(Unsplash).jpg",
       license: "CC0",
     },
     {
       kind: "photo",
-      title: "Business notes",
+      title: "business-notes",
       imageUrl: commonsFilePath("Businessman working and writing notes in office (Unsplash).jpg"),
       imagePageUrl: "https://commons.wikimedia.org/wiki/File:Businessman_working_and_writing_notes_in_office_(Unsplash).jpg",
       license: "CC0",
@@ -4823,35 +4437,35 @@ const TODAY_VISUAL_LIBRARY: Record<string, TodayVisualAsset[]> = {
   Diligence: [
     {
       kind: "photo",
-      title: "Field under clear sky",
+      title: "field-under-clear-sky",
       imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2b/Field_under_clear_sky.jpg/1280px-Field_under_clear_sky.jpg",
       imagePageUrl: "https://commons.wikimedia.org/wiki/File:Field_under_clear_sky.jpg",
       license: "Public domain",
     },
     {
       kind: "photo",
-      title: "Lush green field",
+      title: "lush-green-field",
       imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b8/Lush_Green_Field_Under_Clear_Blue_Sky.jpg/1280px-Lush_Green_Field_Under_Clear_Blue_Sky.jpg",
       imagePageUrl: "https://commons.wikimedia.org/wiki/File:Lush_Green_Field_Under_Clear_Blue_Sky.jpg",
       license: "CC0",
     },
     {
       kind: "photo",
-      title: "Ireland fields and sky",
+      title: "ireland-fields-and-sky",
       imageUrl: "https://upload.wikimedia.org/wikipedia/commons/c/c0/Ireland_fields_sky_clouds.jpg",
       imagePageUrl: "https://commons.wikimedia.org/wiki/File:Ireland_fields_sky_clouds.jpg",
       license: "Public domain",
     },
     {
       kind: "photo",
-      title: "Writing with both hands",
+      title: "writing-with-both-hands",
       imageUrl: commonsFilePath("Writing with both hands.png"),
       imagePageUrl: "https://commons.wikimedia.org/wiki/File:Writing_with_both_hands.png",
       license: "CC0",
     },
     {
       kind: "photo",
-      title: "Writing the Moment",
+      title: "writing-the-moment",
       imageUrl: commonsFilePath("Writing the Moment (Unsplash).jpg"),
       imagePageUrl: "https://commons.wikimedia.org/wiki/File:Writing_the_Moment_(Unsplash).jpg",
       license: "CC0",
@@ -4860,21 +4474,21 @@ const TODAY_VISUAL_LIBRARY: Record<string, TodayVisualAsset[]> = {
   "Provision and Anxiety": [
     {
       kind: "photo",
-      title: "Ireland fields and sky",
+      title: "ireland-fields-and-sky",
       imageUrl: "https://upload.wikimedia.org/wikipedia/commons/c/c0/Ireland_fields_sky_clouds.jpg",
       imagePageUrl: "https://commons.wikimedia.org/wiki/File:Ireland_fields_sky_clouds.jpg",
       license: "Public domain",
     },
     {
       kind: "photo",
-      title: "Staying up all night",
+      title: "staying-up-all-night",
       imageUrl: "https://upload.wikimedia.org/wikipedia/commons/e/e4/Staying_up_all_night_to_watch_the_sunrise_%28Unsplash%29.jpg",
       imagePageUrl: "https://commons.wikimedia.org/wiki/File:Staying_up_all_night_to_watch_the_sunrise_(Unsplash).jpg",
       license: "CC0",
     },
     {
       kind: "photo",
-      title: "Field under clear sky",
+      title: "field-under-clear-sky",
       imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2b/Field_under_clear_sky.jpg/1280px-Field_under_clear_sky.jpg",
       imagePageUrl: "https://commons.wikimedia.org/wiki/File:Field_under_clear_sky.jpg",
       license: "Public domain",
@@ -4883,28 +4497,28 @@ const TODAY_VISUAL_LIBRARY: Record<string, TodayVisualAsset[]> = {
   Generosity: [
     {
       kind: "photo",
-      title: "Sunrise on the road",
+      title: "sunrise-on-the-road",
       imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/73/Sunrise_on_the_road.jpg/1280px-Sunrise_on_the_road.jpg",
       imagePageUrl: "https://commons.wikimedia.org/wiki/File:Sunrise_on_the_road.jpg",
       license: "CC BY-SA 4.0",
     },
     {
       kind: "photo",
-      title: "Field under clear sky",
+      title: "field-under-clear-sky",
       imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2b/Field_under_clear_sky.jpg/1280px-Field_under_clear_sky.jpg",
       imagePageUrl: "https://commons.wikimedia.org/wiki/File:Field_under_clear_sky.jpg",
       license: "Public domain",
     },
     {
       kind: "photo",
-      title: "Sharing a meal",
+      title: "sharing-a-meal",
       imageUrl: commonsFilePath("Sharing a meal in the Philippines (Unsplash).jpg"),
       imagePageUrl: "https://commons.wikimedia.org/wiki/File:Sharing_a_meal_in_the_Philippines_(Unsplash).jpg",
       license: "CC0",
     },
     {
       kind: "photo",
-      title: "Sunrise hike",
+      title: "sunrise-hike",
       imageUrl: commonsFilePath("Sunrise hike El Hoyo Volcano (Unsplash).jpg"),
       imagePageUrl: "https://commons.wikimedia.org/wiki/File:Sunrise_hike_El_Hoyo_Volcano_(Unsplash).jpg",
       license: "CC0",
@@ -4913,28 +4527,28 @@ const TODAY_VISUAL_LIBRARY: Record<string, TodayVisualAsset[]> = {
   Contentment: [
     {
       kind: "photo",
-      title: "Field under clear sky",
+      title: "field-under-clear-sky",
       imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2b/Field_under_clear_sky.jpg/1280px-Field_under_clear_sky.jpg",
       imagePageUrl: "https://commons.wikimedia.org/wiki/File:Field_under_clear_sky.jpg",
       license: "Public domain",
     },
     {
       kind: "photo",
-      title: "Hopeful horizons",
+      title: "hopeful-horizons",
       imageUrl: "https://upload.wikimedia.org/wikipedia/commons/1/18/Hopeful_Horizons_%28Unsplash%29.jpg",
       imagePageUrl: "https://commons.wikimedia.org/wiki/File:Hopeful_Horizons_(Unsplash).jpg",
       license: "CC0",
     },
     {
       kind: "photo",
-      title: "Window reading",
+      title: "window-reading",
       imageUrl: commonsFilePath("Charles-james-lewis-reading-by-the-window.jpg"),
       imagePageUrl: "https://commons.wikimedia.org/wiki/File:Charles-james-lewis-reading-by-the-window.jpg",
       license: "CC0",
     },
     {
       kind: "photo",
-      title: "Quiet reading",
+      title: "quiet-reading",
       imageUrl: commonsFilePath("Woman reading a book on lap (Unsplash).jpg"),
       imagePageUrl: "https://commons.wikimedia.org/wiki/File:Woman_reading_a_book_on_lap_(Unsplash).jpg",
       license: "CC0",
@@ -4943,19 +4557,19 @@ const TODAY_VISUAL_LIBRARY: Record<string, TodayVisualAsset[]> = {
   Counsel: [
     {
       kind: "illustration",
-      title: "Stillness path",
+      title: "stillness-path",
       variant: "path",
     },
     {
       kind: "photo",
-      title: "Window reading",
+      title: "window-reading",
       imageUrl: commonsFilePath("Charles-james-lewis-reading-by-the-window.jpg"),
       imagePageUrl: "https://commons.wikimedia.org/wiki/File:Charles-james-lewis-reading-by-the-window.jpg",
       license: "CC0",
     },
     {
       kind: "photo",
-      title: "Quiet reading",
+      title: "quiet-reading",
       imageUrl: commonsFilePath("Person reading an ebook.jpg"),
       imagePageUrl: "https://commons.wikimedia.org/wiki/File:Person_reading_an_ebook.jpg",
       license: "CC0",
@@ -4964,21 +4578,21 @@ const TODAY_VISUAL_LIBRARY: Record<string, TodayVisualAsset[]> = {
   Debt: [
     {
       kind: "illustration",
-      title: "Measured balance",
+      title: "measured-balance",
       variant: "glow",
     },
   ],
   Work: [
     {
       kind: "photo",
-      title: "Business notes",
+      title: "business-notes",
       imageUrl: commonsFilePath("Businessman working and writing notes in office (Unsplash).jpg"),
       imagePageUrl: "https://commons.wikimedia.org/wiki/File:Businessman_working_and_writing_notes_in_office_(Unsplash).jpg",
       license: "CC0",
     },
     {
       kind: "photo",
-      title: "Writing the Moment",
+      title: "writing-the-moment",
       imageUrl: commonsFilePath("Writing the Moment (Unsplash).jpg"),
       imagePageUrl: "https://commons.wikimedia.org/wiki/File:Writing_the_Moment_(Unsplash).jpg",
       license: "CC0",
@@ -4987,21 +4601,21 @@ const TODAY_VISUAL_LIBRARY: Record<string, TodayVisualAsset[]> = {
   Life: [
     {
       kind: "photo",
-      title: "Sharing a meal",
+      title: "sharing-a-meal",
       imageUrl: commonsFilePath("Sharing a meal in the Philippines (Unsplash).jpg"),
       imagePageUrl: "https://commons.wikimedia.org/wiki/File:Sharing_a_meal_in_the_Philippines_(Unsplash).jpg",
       license: "CC0",
     },
     {
       kind: "photo",
-      title: "Walking coastline",
+      title: "walking-coastline",
       imageUrl: commonsFilePath("Walking along the hilly coastline (Unsplash).jpg"),
       imagePageUrl: "https://commons.wikimedia.org/wiki/File:Walking_along_the_hilly_coastline_(Unsplash).jpg",
       license: "CC0",
     },
     {
       kind: "photo",
-      title: "Beach walk",
+      title: "beach-walk",
       imageUrl: commonsFilePath("Walking along the beach in the dark (Unsplash).jpg"),
       imagePageUrl: "https://commons.wikimedia.org/wiki/File:Walking_along_the_beach_in_the_dark_(Unsplash).jpg",
       license: "CC0",
@@ -5011,44 +4625,44 @@ const TODAY_VISUAL_LIBRARY: Record<string, TodayVisualAsset[]> = {
 
 const TODAY_LOCAL_VISUAL_LIBRARY: Record<string, TodayVisualPhoto[]> = {
   Stewardship: [
-    localTodayVisualAsset("Curated warm horizon", "warm-horizon.svg"),
-    localTodayVisualAsset("Curated open sky", "open-sky.svg"),
+    localTodayVisualAsset("curated-warm-horizon", "warm-horizon.svg"),
+    localTodayVisualAsset("curated-open-sky", "open-sky.svg"),
   ],
   "Cost Counting": [
-    localTodayVisualAsset("Curated open sky", "open-sky.svg"),
-    localTodayVisualAsset("Curated steady field", "steady-field.svg"),
+    localTodayVisualAsset("curated-open-sky", "open-sky.svg"),
+    localTodayVisualAsset("curated-steady-field", "steady-field.svg"),
   ],
   Diligence: [
-    localTodayVisualAsset("Curated steady field", "steady-field.svg"),
-    localTodayVisualAsset("Curated workbench focus", "workbench-focus.svg"),
+    localTodayVisualAsset("curated-steady-field", "steady-field.svg"),
+    localTodayVisualAsset("curated-workbench-focus", "workbench-focus.svg"),
   ],
   "Provision and Anxiety": [
-    localTodayVisualAsset("Curated calm water", "calm-water.svg"),
-    localTodayVisualAsset("Curated quiet forest", "quiet-forest.svg"),
+    localTodayVisualAsset("curated-calm-water", "calm-water.svg"),
+    localTodayVisualAsset("curated-quiet-forest", "quiet-forest.svg"),
   ],
   Generosity: [
-    localTodayVisualAsset("Curated dawn path", "dawn-path.svg"),
-    localTodayVisualAsset("Curated warm horizon", "warm-horizon.svg"),
+    localTodayVisualAsset("curated-dawn-path", "dawn-path.svg"),
+    localTodayVisualAsset("curated-warm-horizon", "warm-horizon.svg"),
   ],
   Contentment: [
-    localTodayVisualAsset("Curated calm water", "calm-water.svg"),
-    localTodayVisualAsset("Curated gentle reading light", "gentle-reading-light.svg"),
+    localTodayVisualAsset("curated-calm-water", "calm-water.svg"),
+    localTodayVisualAsset("curated-gentle-reading-light", "gentle-reading-light.svg"),
   ],
   Counsel: [
-    localTodayVisualAsset("Curated gentle reading light", "gentle-reading-light.svg"),
-    localTodayVisualAsset("Curated trusted lantern", "trusted-lantern.svg"),
+    localTodayVisualAsset("curated-gentle-reading-light", "gentle-reading-light.svg"),
+    localTodayVisualAsset("curated-trusted-lantern", "trusted-lantern.svg"),
   ],
   Debt: [
-    localTodayVisualAsset("Curated trusted lantern", "trusted-lantern.svg"),
-    localTodayVisualAsset("Curated steady field", "steady-field.svg"),
+    localTodayVisualAsset("curated-trusted-lantern", "trusted-lantern.svg"),
+    localTodayVisualAsset("curated-steady-field", "steady-field.svg"),
   ],
   Work: [
-    localTodayVisualAsset("Curated workbench focus", "workbench-focus.svg"),
-    localTodayVisualAsset("Curated open sky", "open-sky.svg"),
+    localTodayVisualAsset("curated-workbench-focus", "workbench-focus.svg"),
+    localTodayVisualAsset("curated-open-sky", "open-sky.svg"),
   ],
   Life: [
-    localTodayVisualAsset("Curated dawn path", "dawn-path.svg"),
-    localTodayVisualAsset("Curated quiet forest", "quiet-forest.svg"),
+    localTodayVisualAsset("curated-dawn-path", "dawn-path.svg"),
+    localTodayVisualAsset("curated-quiet-forest", "quiet-forest.svg"),
   ],
 };
 
@@ -5093,63 +4707,63 @@ function localTodayVisualsForTheme(theme: string) {
 }
 
 const TODAY_THEME_VISUAL_PRIORITIES: Record<string, string[]> = {
-  Stewardship: ["Sunrise on the road", "Field in sunrise", "Hopeful horizons", "New horizons"],
-  "Cost Counting": ["Hopeful horizons", "Sunrise on the road", "Field in sunrise", "New horizons"],
-  Diligence: ["Field under clear sky", "Lush green field", "Ireland fields and sky"],
-  "Provision and Anxiety": ["Ireland fields and sky", "Field under clear sky", "Staying up all night", "Hopeful horizons"],
-  Contentment: ["Field under clear sky", "Ireland fields and sky", "Hopeful horizons"],
-  Generosity: ["Sunrise on the road", "Field in sunrise", "Field under clear sky"],
-  Counsel: ["Window reading", "Quiet reading", "Stillness path"],
-  Debt: ["Measured balance"],
-  Work: ["Field under clear sky", "Ireland fields and sky", "New horizons"],
-  Life: ["Field under clear sky", "Hopeful horizons", "Ireland fields and sky"],
+  Stewardship: ["sunrise-on-the-road", "field-in-sunrise", "hopeful-horizons", "new-horizons"],
+  "Cost Counting": ["hopeful-horizons", "sunrise-on-the-road", "field-in-sunrise", "new-horizons"],
+  Diligence: ["field-under-clear-sky", "lush-green-field", "ireland-fields-and-sky"],
+  "Provision and Anxiety": ["ireland-fields-and-sky", "field-under-clear-sky", "staying-up-all-night", "hopeful-horizons"],
+  Contentment: ["field-under-clear-sky", "ireland-fields-and-sky", "hopeful-horizons"],
+  Generosity: ["sunrise-on-the-road", "field-in-sunrise", "field-under-clear-sky"],
+  Counsel: ["window-reading", "quiet-reading", "stillness-path"],
+  Debt: ["measured-balance"],
+  Work: ["field-under-clear-sky", "ireland-fields-and-sky", "new-horizons"],
+  Life: ["field-under-clear-sky", "hopeful-horizons", "ireland-fields-and-sky"],
 };
 
 const TODAY_THEME_HUMAN_PRIORITIES: Record<string, Partial<Record<TodayVisualMood, string[]>>> = {
   Stewardship: {
-    warm: ["Business notes", "Writing the Moment"],
-    cool: ["Business notes", "Writing the Moment"],
-    contemplative: ["Writing the Moment", "Business notes"],
+    warm: ["business-notes", "writing-the-moment"],
+    cool: ["business-notes", "writing-the-moment"],
+    contemplative: ["writing-the-moment", "business-notes"],
   },
   "Cost Counting": {
-    warm: ["Business notes", "Writing the Moment"],
-    cool: ["Writing the Moment", "Business notes"],
-    contemplative: ["Writing the Moment", "Business notes"],
+    warm: ["business-notes", "writing-the-moment"],
+    cool: ["writing-the-moment", "business-notes"],
+    contemplative: ["writing-the-moment", "business-notes"],
   },
   Diligence: {
-    warm: ["Writing with both hands", "Business notes", "Writing the Moment"],
-    cool: ["Writing the Moment", "Writing with both hands", "Business notes"],
-    contemplative: ["Writing the Moment", "Writing with both hands", "Business notes"],
+    warm: ["writing-with-both-hands", "business-notes", "writing-the-moment"],
+    cool: ["writing-the-moment", "writing-with-both-hands", "business-notes"],
+    contemplative: ["writing-the-moment", "writing-with-both-hands", "business-notes"],
   },
   Generosity: {
-    warm: ["Sharing a meal", "Sunrise hike"],
-    cool: ["Sunrise hike", "Sharing a meal"],
-    contemplative: ["Sharing a meal", "Sunrise hike"],
+    warm: ["sharing-a-meal", "sunrise-hike"],
+    cool: ["sunrise-hike", "sharing-a-meal"],
+    contemplative: ["sharing-a-meal", "sunrise-hike"],
   },
   "Provision and Anxiety": {
-    warm: ["Sharing a meal", "Quiet reading"],
-    cool: ["Window reading", "Quiet reading"],
-    contemplative: ["Quiet reading", "Window reading", "Sharing a meal"],
+    warm: ["sharing-a-meal", "quiet-reading"],
+    cool: ["window-reading", "quiet-reading"],
+    contemplative: ["quiet-reading", "window-reading", "sharing-a-meal"],
   },
   Counsel: {
-    warm: ["Quiet reading", "Window reading"],
-    cool: ["Window reading", "Quiet reading"],
-    contemplative: ["Window reading", "Quiet reading"],
+    warm: ["quiet-reading", "window-reading"],
+    cool: ["window-reading", "quiet-reading"],
+    contemplative: ["window-reading", "quiet-reading"],
   },
   Contentment: {
-    warm: ["Quiet reading", "Window reading"],
-    cool: ["Window reading", "Quiet reading"],
-    contemplative: ["Quiet reading", "Window reading"],
+    warm: ["quiet-reading", "window-reading"],
+    cool: ["window-reading", "quiet-reading"],
+    contemplative: ["quiet-reading", "window-reading"],
   },
   Work: {
-    warm: ["Business notes", "Writing the Moment"],
-    cool: ["Writing the Moment", "Business notes"],
-    contemplative: ["Writing the Moment", "Business notes"],
+    warm: ["business-notes", "writing-the-moment"],
+    cool: ["writing-the-moment", "business-notes"],
+    contemplative: ["writing-the-moment", "business-notes"],
   },
   Life: {
-    warm: ["Sharing a meal", "Walking coastline", "Beach walk"],
-    cool: ["Walking coastline", "Beach walk", "Sharing a meal"],
-    contemplative: ["Walking coastline", "Beach walk", "Sharing a meal"],
+    warm: ["sharing-a-meal", "walking-coastline", "beach-walk"],
+    cool: ["walking-coastline", "beach-walk", "sharing-a-meal"],
+    contemplative: ["walking-coastline", "beach-walk", "sharing-a-meal"],
   },
 };
 
@@ -5168,68 +4782,68 @@ type TodayVisualPlacement = {
 
 const TODAY_THEME_MOOD_PRIORITIES: Record<string, Partial<Record<TodayVisualMood, string[]>>> = {
   Stewardship: {
-    warm: ["Sunrise on the road", "Field in sunrise", "New horizons", "Hopeful horizons"],
-    cool: ["New horizons", "Hopeful horizons", "Field under clear sky"],
-    contemplative: ["New horizons", "Hopeful horizons", "Field under clear sky"],
+    warm: ["sunrise-on-the-road", "field-in-sunrise", "new-horizons", "hopeful-horizons"],
+    cool: ["new-horizons", "hopeful-horizons", "field-under-clear-sky"],
+    contemplative: ["new-horizons", "hopeful-horizons", "field-under-clear-sky"],
   },
   "Cost Counting": {
-    warm: ["Hopeful horizons", "Sunrise on the road", "Field in sunrise", "New horizons"],
-    cool: ["New horizons", "Hopeful horizons", "Field under clear sky"],
-    contemplative: ["Hopeful horizons", "New horizons", "Field under clear sky"],
+    warm: ["hopeful-horizons", "sunrise-on-the-road", "field-in-sunrise", "new-horizons"],
+    cool: ["new-horizons", "hopeful-horizons", "field-under-clear-sky"],
+    contemplative: ["hopeful-horizons", "new-horizons", "field-under-clear-sky"],
   },
   Diligence: {
-    warm: ["Lush green field", "Field under clear sky", "Ireland fields and sky"],
-    cool: ["Field under clear sky", "Ireland fields and sky", "Lush green field"],
-    contemplative: ["Ireland fields and sky", "Field under clear sky", "Lush green field"],
+    warm: ["lush-green-field", "field-under-clear-sky", "ireland-fields-and-sky"],
+    cool: ["field-under-clear-sky", "ireland-fields-and-sky", "lush-green-field"],
+    contemplative: ["ireland-fields-and-sky", "field-under-clear-sky", "lush-green-field"],
   },
   "Provision and Anxiety": {
-    warm: ["Field under clear sky", "Ireland fields and sky", "Hopeful horizons"],
-    cool: ["Ireland fields and sky", "Field under clear sky", "Hopeful horizons"],
-    contemplative: ["Ireland fields and sky", "Field under clear sky", "Hopeful horizons"],
+    warm: ["field-under-clear-sky", "ireland-fields-and-sky", "hopeful-horizons"],
+    cool: ["ireland-fields-and-sky", "field-under-clear-sky", "hopeful-horizons"],
+    contemplative: ["ireland-fields-and-sky", "field-under-clear-sky", "hopeful-horizons"],
   },
   Generosity: {
-    warm: ["Sunrise on the road", "Field in sunrise", "Field under clear sky"],
-    cool: ["Field under clear sky", "Hopeful horizons", "New horizons"],
-    contemplative: ["Field under clear sky", "Hopeful horizons", "New horizons"],
+    warm: ["sunrise-on-the-road", "field-in-sunrise", "field-under-clear-sky"],
+    cool: ["field-under-clear-sky", "hopeful-horizons", "new-horizons"],
+    contemplative: ["field-under-clear-sky", "hopeful-horizons", "new-horizons"],
   },
   Contentment: {
-    warm: ["Hopeful horizons", "Field under clear sky", "Ireland fields and sky"],
-    cool: ["Field under clear sky", "Ireland fields and sky", "Hopeful horizons"],
-    contemplative: ["Ireland fields and sky", "Field under clear sky", "Hopeful horizons"],
+    warm: ["hopeful-horizons", "field-under-clear-sky", "ireland-fields-and-sky"],
+    cool: ["field-under-clear-sky", "ireland-fields-and-sky", "hopeful-horizons"],
+    contemplative: ["ireland-fields-and-sky", "field-under-clear-sky", "hopeful-horizons"],
   },
   Counsel: {
-    warm: ["Quiet reading", "Window reading", "Stillness path"],
-    cool: ["Window reading", "Quiet reading", "Stillness path"],
-    contemplative: ["Window reading", "Quiet reading", "Stillness path"],
+    warm: ["quiet-reading", "window-reading", "stillness-path"],
+    cool: ["window-reading", "quiet-reading", "stillness-path"],
+    contemplative: ["window-reading", "quiet-reading", "stillness-path"],
   },
   Debt: {
-    warm: ["Measured balance"],
-    cool: ["Measured balance"],
-    contemplative: ["Measured balance"],
+    warm: ["measured-balance"],
+    cool: ["measured-balance"],
+    contemplative: ["measured-balance"],
   },
 };
 
 const TODAY_THEME_TIME_PRIORITIES: Record<string, { morning?: string[]; winter?: string[]; weekend?: string[] }> = {
   Stewardship: {
-    morning: ["Sunrise on the road", "Field in sunrise", "New horizons"],
+    morning: ["sunrise-on-the-road", "field-in-sunrise", "new-horizons"],
   },
   Generosity: {
-    morning: ["Sunrise on the road", "Field in sunrise", "Field under clear sky"],
+    morning: ["sunrise-on-the-road", "field-in-sunrise", "field-under-clear-sky"],
   },
   "Provision and Anxiety": {
-    winter: ["Ireland fields and sky", "Field under clear sky", "Hopeful horizons"],
+    winter: ["ireland-fields-and-sky", "field-under-clear-sky", "hopeful-horizons"],
   },
   Counsel: {
-    weekend: ["Stillness path"],
+    weekend: ["stillness-path"],
   },
   Contentment: {
-    weekend: ["Ireland fields and sky", "Field under clear sky", "Hopeful horizons"],
+    weekend: ["ireland-fields-and-sky", "field-under-clear-sky", "hopeful-horizons"],
   },
   Work: {
-    morning: ["Field under clear sky", "Ireland fields and sky", "New horizons"],
+    morning: ["field-under-clear-sky", "ireland-fields-and-sky", "new-horizons"],
   },
   Life: {
-    weekend: ["Field under clear sky", "Hopeful horizons", "Ireland fields and sky"],
+    weekend: ["field-under-clear-sky", "hopeful-horizons", "ireland-fields-and-sky"],
   },
 };
 
@@ -7186,7 +6800,7 @@ export function AletheiaApp() {
   const translationHelpers = useMemo(() => {
     const missingTranslationToken = "__aletheia_missing_translation__";
     const resolveFallback = (key: string, fallback?: string) => fallback?.trim() ? fallback : key;
-    const assertLocaleKeyExistsInDev = (key: string, fallback: string) => {
+    const assertLocaleKeyExistsInDev = (key: string, fallback?: string) => {
       // Development throws loudly so we can catch missing locale coverage early.
       // Production still uses the merged English fallback by design to avoid user-facing breakage.
       if (process.env.NODE_ENV === "production" || preferences.language === "en") {
@@ -7251,7 +6865,7 @@ export function AletheiaApp() {
     }
     
     // Helper to ensure string type
-    const getString = (key: string, fallback: string): string => {
+    const getString = (key: string, fallback?: string): string => {
       // Dev-only guard: fail fast for missing keys, but keep English fallback in production.
       if (process.env.NODE_ENV !== "production" && preferences.language !== "en") {
         const rawValue = getTranslation(rawTranslations, key, "__aletheia_missing_translation__");
@@ -7285,84 +6899,84 @@ export function AletheiaApp() {
       askTitle: getString('askTitle', 'Ask Aletheia'),
       askIntro: getString('askIntro', 'Start with one honest question.'),
       yourQuestion: getString('yourQuestion', 'Your question'),
-      askButton: getString('askButton', 'Ask'),
-      startHere: getString('startHere', 'Start here'),
-      ready: getString('ready', 'Ready'),
-      whatModeFor: getString('whatModeFor', 'What this mode is for'),
-      deepChecks: getString('deepChecks', 'Deep checks'),
-      blindSpots: getString('blindSpots', 'Blind spots'),
-      maturitySignals: getString('maturitySignals', 'Maturity signals'),
-      modeGuidance: getString('modeGuidance', 'Mode guidance'),
-      change: getString('change', languageFallback.change ?? 'Change'),
-      showDetails: getString('showDetails', 'Show details'),
-      hideDetails: getString('hideDetails', 'Hide details'),
+      askButton: getString('askButton'),
+      startHere: getString('startHere'),
+      ready: getString('ready'),
+      whatModeFor: getString('whatModeFor'),
+      deepChecks: getString('deepChecks'),
+      blindSpots: getString('blindSpots'),
+      maturitySignals: getString('maturitySignals'),
+      modeGuidance: getString('modeGuidance'),
+      change: getString('change', languageFallback.change),
+      showDetails: getString('showDetails'),
+      hideDetails: getString('hideDetails'),
       modeGuidancePreview: getString('modeGuidancePreview', ''),
-      trustLayer: getString('trustLayer', 'Trust layer'),
-      preferencesTitle: getString('preferencesTitle', 'Language and region'),
-      language: getString('language', 'Language'),
-      region: getString('region', 'Region'),
-      bible: getString('bible', 'Bible'),
-      voiceControls: getString('voiceControls', 'Voice controls'),
-      available: getString('available', 'Available'),
-      englishFallback: getString('englishFallback', 'English fallback'),
-      greetingMorning: getString('greetingMorning', languageFallback.greetingMorning ?? 'Good morning'),
-      greetingAfternoon: getString('greetingAfternoon', languageFallback.greetingAfternoon ?? 'Good afternoon'),
-      greetingEvening: getString('greetingEvening', languageFallback.greetingEvening ?? 'Good evening'),
-      greetingFallback: getString('greetingFallback', languageFallback.greetingFallback ?? 'Welcome back'),
-      greetingIntent: getString('greetingIntent', languageFallback.greetingIntent ?? "Let's choose one wise next step today."),
-      personalizedPriority: getString('personalizedPriority', 'Personalized priority'),
-      whatNext: getString('whatNext', 'What should I do next?'),
+      trustLayer: getString('trustLayer'),
+      preferencesTitle: getString('preferencesTitle'),
+      language: getString('language'),
+      region: getString('region'),
+      bible: getString('bible'),
+      voiceControls: getString('voiceControls'),
+      available: getString('available'),
+      englishFallback: getString('englishFallback'),
+      greetingMorning: getString('greetingMorning', languageFallback.greetingMorning),
+      greetingAfternoon: getString('greetingAfternoon', languageFallback.greetingAfternoon),
+      greetingEvening: getString('greetingEvening', languageFallback.greetingEvening),
+      greetingFallback: getString('greetingFallback', languageFallback.greetingFallback),
+      greetingIntent: getString('greetingIntent', languageFallback.greetingIntent),
+      personalizedPriority: getString('personalizedPriority'),
+      whatNext: getString('whatNext'),
       whatNextBody: getString('whatNextBody', ''),
-      personalizationNudgeTitle: getString('personalizationNudgeTitle', languageFallback.personalizationNudgeTitle ?? 'Want more personal counsel?'),
-      personalizationNudgeBody: getString('personalizationNudgeBody', languageFallback.personalizationNudgeBody ?? 'Add one detail about money, work, or rhythm.'),
-      continueDecision: getString('continueDecision', 'Continue this decision'),
-      askOneQuestion: getString('askOneQuestion', 'Ask one question'),
+      personalizationNudgeTitle: getString('personalizationNudgeTitle', languageFallback.personalizationNudgeTitle),
+      personalizationNudgeBody: getString('personalizationNudgeBody', languageFallback.personalizationNudgeBody),
+      continueDecision: getString('continueDecision'),
+      askOneQuestion: getString('askOneQuestion'),
       askOneQuestionBody: getString('askOneQuestionBody', ''),
-      askNewQuestion: getString('askNewQuestion', 'Ask a new question'),
+      askNewQuestion: getString('askNewQuestion'),
       askNewQuestionBody: getString('askNewQuestionBody', ''),
-      reflectToday: getString('reflectToday', 'Reflect on today'),
-      reviewPattern: getString('reviewPattern', 'Review a pattern'),
-      enableNotifications: getString('enableNotifications', 'Enable notifications'),
-      enableSync: getString('enableSync', 'Enable sync'),
+      reflectToday: getString('reflectToday'),
+      reviewPattern: getString('reviewPattern'),
+      enableNotifications: getString('enableNotifications'),
+      enableSync: getString('enableSync'),
       notificationPromptBody: getString('notificationPromptBody', ''),
       syncDevicesBody: getString('syncDevicesBody', ''),
-      startDecision: getString('startDecision', 'Start a decision'),
+      startDecision: getString('startDecision'),
       startDecisionBody: getString('startDecisionBody', ''),
-      tinyPractice: getString('tinyPractice', 'Tiny practice'),
-      todaysCompanion: getString('todaysCompanion', languageFallback.todaysCompanion ?? "Today's companion"),
-      todayPrefix: getString('todayPrefix', languageFallback.todayPrefix ?? 'Today'),
-      wisdomPrinciple: getString('wisdomPrinciple', languageFallback.wisdomPrinciple ?? 'Wisdom principle'),
-      reflectionQuestion: getString('reflectionQuestion', languageFallback.reflectionQuestion ?? 'Question'),
-      whatINotice: getString('whatINotice', languageFallback.whatINotice ?? 'What I notice'),
-      context: getString('context', languageFallback.context ?? 'Context'),
-      application: getString('application', languageFallback.application ?? 'Application'),
-      carryThisToday: getString('carryThisToday', languageFallback.carryThisToday ?? 'Carry this today'),
-      carryWithMe: getString('carryWithMe', languageFallback.carryWithMe ?? 'Carry with me'),
-      weeklyWisdomReview: getString('weeklyWisdomReview', languageFallback.weeklyWisdomReview ?? 'Weekly Wisdom Review'),
-      weeklyReviewTitle: getString('weeklyReviewTitle', languageFallback.weeklyReviewTitle ?? 'A quiet look at your week'),
-      weeklyReviewBody: getString('weeklyReviewBody', languageFallback.weeklyReviewBody ?? 'No streaks or pressure. Just notice how {pattern} has been shaping your discernment.'),
-      todayScriptureLabel: getString('todayScriptureLabel', languageFallback.todayScriptureLabel ?? 'Scripture'),
-      todayQuestionLabel: getString('todayQuestionLabel', languageFallback.todayQuestionLabel ?? "Today's question"),
-      todayActionsLabel: getString('todayActionsLabel', languageFallback.todayActionsLabel ?? "Today's actions"),
-      weeklyReviewHeading: getString('weeklyReviewHeading', languageFallback.weeklyReviewHeading ?? 'Your Weekly Review'),
-      weeklyReviewLastWeekLabel: getString('weeklyReviewLastWeekLabel', languageFallback.weeklyReviewLastWeekLabel ?? 'Last week'),
-      questionsThisWeek: getString('questionsThisWeek', languageFallback.questionsThisWeek ?? 'Questions'),
-      reflectionsThisWeek: getString('reflectionsThisWeek', languageFallback.reflectionsThisWeek ?? 'Reflections'),
-      gratitudeThisWeek: getString('gratitudeThisWeek', languageFallback.gratitudeThisWeek ?? 'Gratitude'),
-      decisionsThisWeek: getString('decisionsThisWeek', languageFallback.decisionsThisWeek ?? 'Decisions'),
-      diveDeep: getString('diveDeep', languageFallback.diveDeep ?? 'Dive Deep'),
-      backToQuickRead: getString('backToQuickRead', languageFallback.backToQuickRead ?? 'Back to Quick Read'),
-      nextFaithfulStep: getString('nextFaithfulStep', languageFallback.nextFaithfulStep ?? 'Next faithful step'),
-      askAboutThis: getString('askAboutThis', languageFallback.askAboutThis ?? 'Ask about this'),
-      saveToRuleOfLife: getString('saveToRuleOfLife', languageFallback.saveToRuleOfLife ?? 'Save to Rule of Life'),
-      carryingToday: getString('carryingToday', languageFallback.carryingToday ?? 'Carrying today'),
-      currentCounsel: getString('currentCounsel', 'Current counsel'),
-      modeShapesCounsel: getString('modeShapesCounsel', 'mode is shaping this counsel around'),
-      trackThisDecision: getString('trackThisDecision', 'Track this decision'),
-      saveAsReflection: getString('saveAsReflection', 'Save as reflection'),
-      createCounselSummary: getString('createCounselSummary', 'Create counsel summary'),
-      goDeeper: getString('goDeeper', 'Go deeper'),
-      waitThreeDays: getString('waitThreeDays', 'Wait 3 days'),
+      tinyPractice: getString('tinyPractice'),
+      todaysCompanion: getString('todaysCompanion', languageFallback.todaysCompanion),
+      todayPrefix: getString('todayPrefix', languageFallback.todayPrefix),
+      wisdomPrinciple: getString('wisdomPrinciple', languageFallback.wisdomPrinciple),
+      reflectionQuestion: getString('reflectionQuestion', languageFallback.reflectionQuestion),
+      whatINotice: getString('whatINotice', languageFallback.whatINotice),
+      context: getString('context', languageFallback.context),
+      application: getString('application', languageFallback.application),
+      carryThisToday: getString('carryThisToday', languageFallback.carryThisToday),
+      carryWithMe: getString('carryWithMe', languageFallback.carryWithMe),
+      weeklyWisdomReview: getString('weeklyWisdomReview', languageFallback.weeklyWisdomReview),
+      weeklyReviewTitle: getString('weeklyReviewTitle', languageFallback.weeklyReviewTitle),
+      weeklyReviewBody: getString('weeklyReviewBody', languageFallback.weeklyReviewBody),
+      todayScriptureLabel: getString('todayScriptureLabel', languageFallback.todayScriptureLabel),
+      todayQuestionLabel: getString('todayQuestionLabel', languageFallback.todayQuestionLabel),
+      todayActionsLabel: getString('todayActionsLabel', languageFallback.todayActionsLabel),
+      weeklyReviewHeading: getString('weeklyReviewHeading', languageFallback.weeklyReviewHeading),
+      weeklyReviewLastWeekLabel: getString('weeklyReviewLastWeekLabel', languageFallback.weeklyReviewLastWeekLabel),
+      questionsThisWeek: getString('questionsThisWeek', languageFallback.questionsThisWeek),
+      reflectionsThisWeek: getString('reflectionsThisWeek', languageFallback.reflectionsThisWeek),
+      gratitudeThisWeek: getString('gratitudeThisWeek', languageFallback.gratitudeThisWeek),
+      decisionsThisWeek: getString('decisionsThisWeek', languageFallback.decisionsThisWeek),
+      diveDeep: getString('diveDeep', languageFallback.diveDeep),
+      backToQuickRead: getString('backToQuickRead', languageFallback.backToQuickRead),
+      nextFaithfulStep: getString('nextFaithfulStep', languageFallback.nextFaithfulStep),
+      askAboutThis: getString('askAboutThis', languageFallback.askAboutThis),
+      saveToRuleOfLife: getString('saveToRuleOfLife', languageFallback.saveToRuleOfLife),
+      carryingToday: getString('carryingToday', languageFallback.carryingToday),
+      currentCounsel: getString('currentCounsel'),
+      modeShapesCounsel: getString('modeShapesCounsel'),
+      trackThisDecision: getString('trackThisDecision'),
+      saveAsReflection: getString('saveAsReflection'),
+      createCounselSummary: getString('createCounselSummary'),
+      goDeeper: getString('goDeeper'),
+      waitThreeDays: getString('waitThreeDays'),
       shareAnswerPrompt: getString('shareAnswerPrompt', ''),
       sharePrivacyNote: getString('sharePrivacyNote', ''),
       shareAletheia: getString('shareAletheia', 'Share Aletheia'),
@@ -7692,7 +7306,7 @@ export function AletheiaApp() {
             setSpeechLoading(true);
             setIsSpeaking(true);
             setSpeechPaused(false);
-            setStatusMessage(ts('status.preparingAudio', 'Preparing audio...'));
+            setStatusMessage(ts('status.preparingAudio'));
             return;
           }
           if (state === "playing") {
@@ -9335,7 +8949,7 @@ export function AletheiaApp() {
   }
 
   function draftReflectionFromExchange(exchange: ConversationExchange) {
-    const question = cleanDisplayText(exchange.question?.text ?? "Recent counsel");
+    const question = cleanDisplayText(exchange.question?.text ?? "");
     const answer = cleanDisplayText(exchange.answer.text);
     setJournalTitle(`Reflection: ${question.slice(0, 70)}`);
     setJournalBody(`${ts('labels.reflectionQuestion')}:\n${question}\n\n${ui.currentCounsel ?? ""}:\n${answer}\n\n${ui.whatINotice ?? ""}:\n`);
@@ -9365,7 +8979,7 @@ export function AletheiaApp() {
       return;
     }
 
-    const question = cleanDisplayText(exchange.question?.text ?? "Recent counsel");
+    const question = cleanDisplayText(exchange.question?.text ?? "");
     const answer = cleanDisplayText(exchange.answer.text);
     const sources = (exchange.answer.sources ?? []).map((source) => ({
       ...source,
@@ -9413,7 +9027,7 @@ export function AletheiaApp() {
   }
 
   function goDeeperFromExchange(exchange: ConversationExchange) {
-    const question = cleanDisplayText(exchange.question?.text ?? "this counsel");
+    const question = cleanDisplayText(exchange.question?.text ?? "");
     setQuery(
       `Please go deeper on this in a practical, understandable way. Add more context, examples, blind spots, scripture context, and one next faithful step: ${question}`
     );
@@ -10705,7 +10319,7 @@ export function AletheiaApp() {
   }
 
   async function saveReflection() {
-    const title = journalTitle.trim() || `${mode} reflection`;
+    const title = journalTitle.trim() || `${localizedModeLabel(mode, preferences.language)} ${ts('labels.reflection')}`;
     const body = journalBody.trim();
     if (!body) {
       announceWorkflow(ts('notifications.writeReflectionFirst'), ts('notifications.writeReflectionFirstBody'), "warning");
@@ -12256,10 +11870,10 @@ export function AletheiaApp() {
                   Aletheia
                 </p>
                 <p className="mt-1 text-sm" style={{ color: theme.textSecondary }}>
-                  Wisdom for stewardship
+                  {ts('labels.appTagline')}
                 </p>
                 <p className="mt-4 text-base font-semibold" style={{ color: theme.textPrimary }}>
-                  App updated, refreshing...
+                  {ts('labels.loading')}
                 </p>
                 <motion.div
                   className="mx-auto mt-4 h-1.5 w-28 overflow-hidden rounded-full"
@@ -12291,11 +11905,11 @@ function StartupSplash({
   resolvedTheme: ResolvedTheme;
 }) {
   const splashTranslations = useMemo(() => loadTranslationsWithFallbackSync(language), [language]);
-  const appName = String(getTranslation(splashTranslations, "labels.appName", "Aletheia"));
-  const appTagline = String(getTranslation(splashTranslations, "labels.appTagline", "Wisdom for stewardship"));
-  const loadingLabel = String(getTranslation(splashTranslations, "labels.loading", "Loading…"));
+  const appName = String(getTranslation(splashTranslations, "labels.appName"));
+  const appTagline = String(getTranslation(splashTranslations, "labels.appTagline"));
+  const loadingLabel = String(getTranslation(splashTranslations, "labels.loading"));
   const restoringPreferences = String(
-    getTranslation(splashTranslations, "status.restoringPreferences", "Restoring preferences…")
+    getTranslation(splashTranslations, "status.restoringPreferences")
   );
 
   return (
@@ -12652,14 +12266,14 @@ function ReadingPlayer({
               <p className="truncate text-[0.92rem] font-semibold leading-5">{label}</p>
               <p className="truncate text-[0.72rem] leading-5" style={{ color: theme.textSecondary }}>
                 {loading
-                  ? ts('status.preparingAudio', 'Preparing audio...')
+                  ? ts('status.preparingAudio')
                   : voiceName
                     ? ts('labels.readingWithVoice').replace('{voice}', voiceName)
                     : ts('labels.readingWithDeviceVoice')}
               </p>
             </div>
             <span className="shrink-0 rounded-full border px-2 py-0.5 text-[0.7rem] font-semibold leading-4" style={{ borderColor: theme.borderLight, color: theme.textMuted, backgroundColor: theme.bgCardElevated }}>
-              {loading ? ts('labels.loading', 'Loading') : `${safeProgress}%`}
+              {loading ? ts('labels.loading') : `${safeProgress}%`}
             </span>
           </div>
           <div className="mt-2 h-1 overflow-hidden rounded-full" style={{ backgroundColor: theme.borderLight }}>
@@ -13492,16 +13106,16 @@ function HomeDashboard({
   const text = { ...uiText.en!, ...ui };
   const greeting = useMemo(() => {
     if (currentLocalHour === null) {
-      return text.greetingFallback || "Welcome back";
+      return text.greetingFallback || "";
     }
 
     const hour = currentLocalHour;
     const baseGreeting =
       hour < 12
-        ? text.greetingMorning || "Good morning"
+        ? text.greetingMorning || ""
         : hour < 18
-          ? text.greetingAfternoon || "Good afternoon"
-          : text.greetingEvening || "Good evening";
+          ? text.greetingAfternoon || ""
+          : text.greetingEvening || "";
 
     const firstName = user?.name?.trim().split(/\s+/)[0] || "";
     return firstName ? `${baseGreeting}, ${firstName}` : baseGreeting;
@@ -13602,7 +13216,7 @@ function HomeDashboard({
               </p>
               <div className="mt-3">
                 <p className="text-[10.5px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
-                  {ui.wisdomPrinciple ?? "Wisdom principle"}
+                  {ui.wisdomPrinciple ?? ""}
                 </p>
                 <p className="mt-1 max-w-[28ch] text-[0.9rem] leading-6 sm:text-[0.93rem] sm:leading-[1.55rem]" style={{ color: theme.textPrimary }} suppressHydrationWarning>
                   {daily.principle}
@@ -13632,7 +13246,7 @@ function HomeDashboard({
             >
               <span className="min-w-0">
                 <span className="block text-[10.5px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
-                  {text.todayScriptureLabel ?? "Scripture"}
+                  {text.todayScriptureLabel ?? ""}
                 </span>
                 <span className="mt-1 block text-sm font-semibold leading-6 sm:text-base">
                   {localizedScriptureReference(dailyEntry.scripture, preferences.language)}
@@ -13678,7 +13292,7 @@ function HomeDashboard({
               <span>{text.whatNext}</span>
             </h2>
             <p className="mt-3 max-w-2xl text-[0.98rem] leading-7 sm:text-[1.03rem] sm:leading-8" style={{ color: theme.textSecondary }}>
-              {ts('labels.whatNextBodyShort', 'One wise next step, then momentum.')}
+              {ts('labels.whatNextBodyShort')}
             </p>
           </div>
 
@@ -13689,7 +13303,7 @@ function HomeDashboard({
           <div className="grid gap-3 lg:grid-cols-2">
             <section className="rounded-[1.15rem] border p-4 shadow-[0_6px_14px_rgba(7,10,8,0.04)]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
               <p className="text-[10.5px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
-                {text.todayQuestionLabel ?? "Today's question"}
+                {text.todayQuestionLabel ?? ""}
               </p>
               <p className="mt-2 text-[1.05rem] font-semibold leading-7 text-balance sm:text-[1.1rem]" style={{ color: theme.textPrimary }}>
                 {companionCard.question}
@@ -13706,7 +13320,7 @@ function HomeDashboard({
 
             <section className="rounded-[1.15rem] border p-4 shadow-[0_6px_14px_rgba(7,10,8,0.04)]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
               <p className="text-[10.5px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
-                {text.todayActionsLabel ?? "Today's actions"}
+                {text.todayActionsLabel ?? ""}
               </p>
               <div className="mt-3 grid grid-cols-2 gap-2">
                 {visibleTodayActions.map((action) => (
@@ -13744,19 +13358,19 @@ function HomeDashboard({
               {text.weeklyWisdomReview ?? ""}
             </p>
             <h2 className="mt-2 pr-5 min-[390px]:pr-6 min-[430px]:pr-7 sm:pr-8 md:pr-9 text-[1.78rem] min-[390px]:text-[1.86rem] min-[430px]:text-[1.92rem] font-semibold leading-[1.03] text-balance sm:text-[2.25rem]" style={{ color: theme.textPrimary }}>
-              {text.weeklyReviewHeading ?? "Your Weekly Review"}
+              {text.weeklyReviewHeading ?? ""}
             </h2>
             <div className="mt-3 max-w-2xl">
               <p className="text-[0.98rem] leading-7 sm:text-[1.03rem] sm:leading-8" style={{ color: theme.textSecondary }}>
-                {ts('labels.weeklyReviewBodyShort', 'No streaks. Just honest weekly signal.')}
+              {ts('labels.weeklyReviewBodyShort')}
               </p>
             </div>
           </div>
           <div className="mt-2 flex min-w-0 snap-x gap-1.5 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
-            <WeeklyReviewRailStat className="w-[10rem] shrink-0 snap-start" label={text.questionsThisWeek ?? ""} current={weeklyReview.questions} previous={weeklyReview.previousQuestions} lastWeekLabel={text.weeklyReviewLastWeekLabel ?? "Last week"} theme={theme} />
-            <WeeklyReviewRailStat className="w-[10rem] shrink-0 snap-start" label={text.reflectionsThisWeek ?? ""} current={weeklyReview.reflections} previous={weeklyReview.previousReflections} lastWeekLabel={text.weeklyReviewLastWeekLabel ?? "Last week"} theme={theme} />
-            <WeeklyReviewRailStat className="w-[10rem] shrink-0 snap-start" label={text.gratitudeThisWeek ?? ""} current={weeklyReview.gratitudeMoments} previous={weeklyReview.previousGratitudeMoments} lastWeekLabel={text.weeklyReviewLastWeekLabel ?? "Last week"} theme={theme} />
-            <WeeklyReviewRailStat className="w-[10rem] shrink-0 snap-start" label={text.decisionsThisWeek ?? ""} current={weeklyReview.decisions} previous={weeklyReview.previousDecisions} lastWeekLabel={text.weeklyReviewLastWeekLabel ?? "Last week"} theme={theme} />
+            <WeeklyReviewRailStat className="w-[10rem] shrink-0 snap-start" label={text.questionsThisWeek ?? ""} current={weeklyReview.questions} previous={weeklyReview.previousQuestions} lastWeekLabel={text.weeklyReviewLastWeekLabel ?? ""} theme={theme} />
+            <WeeklyReviewRailStat className="w-[10rem] shrink-0 snap-start" label={text.reflectionsThisWeek ?? ""} current={weeklyReview.reflections} previous={weeklyReview.previousReflections} lastWeekLabel={text.weeklyReviewLastWeekLabel ?? ""} theme={theme} />
+            <WeeklyReviewRailStat className="w-[10rem] shrink-0 snap-start" label={text.gratitudeThisWeek ?? ""} current={weeklyReview.gratitudeMoments} previous={weeklyReview.previousGratitudeMoments} lastWeekLabel={text.weeklyReviewLastWeekLabel ?? ""} theme={theme} />
+            <WeeklyReviewRailStat className="w-[10rem] shrink-0 snap-start" label={text.decisionsThisWeek ?? ""} current={weeklyReview.decisions} previous={weeklyReview.previousDecisions} lastWeekLabel={text.weeklyReviewLastWeekLabel ?? ""} theme={theme} />
           </div>
           <p className="rounded-[1.15rem] border p-4 text-[0.95rem] leading-7" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
             <span className="font-semibold" style={{ color: theme.textPrimary }}>{text.nextFaithfulStep ?? ""}:</span>{" "}
@@ -14219,9 +13833,9 @@ function InfoHint({
     hero: "inline-flex items-center justify-center rounded-full border text-[8px] font-semibold leading-none transition",
   };
   const buttonSizeBySurface: Record<"dense" | "standard" | "hero", number> = {
-    dense: 12,
-    standard: 14,
-    hero: 15,
+    dense: 24,
+    standard: 26,
+    hero: 28,
   };
   const wrapperClassName = placement === "corner"
     ? cornerWrapperClassBySurface[surface]
@@ -14238,7 +13852,7 @@ function InfoHint({
       <button
         ref={buttonRef}
         type="button"
-        className={`${buttonClassName} info-hint-trigger`}
+        className={`${buttonClassName} info-hint-trigger cursor-help touch-manipulation`}
         style={{
           borderColor: theme.borderMedium,
           backgroundColor: theme.bgInput,
@@ -14741,7 +14355,7 @@ function AccountPanel({
         <div className="space-y-4">
           <DisclosureSection
             title={ts('labels.accountSystemTitle')}
-            summary={`${ts('labels.accountSystemSummaryShort', 'Sync, data controls, support.')} ${exchanges.length} ${ts('labels.accountHistoryConversations')} · ${activeDecisionCount} ${ts('labels.accountHistoryDecisions')}`}
+            summary={`${ts('labels.accountManageSummary')} ${exchanges.length} ${ts('labels.accountHistoryConversations')} · ${activeDecisionCount} ${ts('labels.accountHistoryDecisions')}`}
             eyebrow={ts('labels.accountSystemEyebrow')}
             compactCollapsed
             showDetailsLabel={text.showDetails}
@@ -15254,13 +14868,13 @@ function FormationsSection({
         style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}
       >
         <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
-          {ts("challenges.eyebrow", "Formations")}
+          {ts("challenges.eyebrow")}
         </p>
         <h2 className="mt-1.5 text-xl font-semibold" style={{ color: theme.textPrimary }}>
-          {ts("challenges.sectionTitle", "Formation Practices")}
+          {ts("challenges.sectionTitle")}
         </h2>
         <p className="mt-1.5 text-sm leading-5" style={{ color: theme.textSecondary }}>
-          {ts("challenges.signInToTrack", "Sign in to track your progress across devices.")}
+          {ts("challenges.signInToTrack")}
         </p>
       </section>
     );
@@ -15285,19 +14899,19 @@ function FormationsSection({
     <section ref={sectionRef} className="space-y-4">
       <div className="rounded-[1.35rem] border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
         <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
-          {ts("challenges.eyebrow", "Formations")}
+          {ts("challenges.eyebrow")}
         </p>
         <h2 className="mt-1.5 text-xl font-semibold" style={{ color: theme.textPrimary }}>
-          {ts("challenges.sectionTitle", "Formation Practices")}
+          {ts("challenges.sectionTitle")}
         </h2>
         <p className="mt-1.5 text-sm leading-5" style={{ color: theme.textSecondary }}>
-          {ts("challenges.sectionSummary", "Multi-day practices to build wisdom, gratitude, and discernment habits.")}
+          {ts("challenges.sectionSummary")}
         </p>
       </div>
 
       {loading && displayChallenges.length === 0 && (
         <div className="rounded-[1.35rem] border p-4 text-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textMuted }}>
-          {ts("challenges.loading", "Loading…")}
+          {ts("challenges.loading")}
         </div>
       )}
 
@@ -15344,10 +14958,10 @@ function FormationsSection({
                 <p className="text-sm font-semibold leading-5" style={{ color: theme.textPrimary }}>{titleText}</p>
                 <p className="mt-0.5 text-xs leading-4" style={{ color: theme.textMuted }}>
                   {isComplete
-                    ? ts("challenges.allDaysComplete", `All ${total} days complete. Well done.`).replace("{total}", String(total))
+                    ? ts("challenges.allDaysComplete").replace("{total}", String(total))
                     : done === 0
-                      ? ts("challenges.noProgressYet", "Start with Day 1 whenever you are ready.")
-                      : ts("challenges.daysCompleted", `${done} of ${total} days`).replace("{count}", String(done)).replace("{total}", String(total))}
+                      ? ts("challenges.noProgressYet")
+                      : ts("challenges.daysCompleted").replace("{count}", String(done)).replace("{total}", String(total))}
                 </p>
               </div>
               <ChevronDown
@@ -15395,7 +15009,7 @@ function FormationsSection({
                     style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}
                   >
                     <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
-                      {ts("challenges.dayOf", `Day ${next} of ${total}`).replace("{day}", String(next)).replace("{total}", String(total))}
+                      {ts("challenges.dayOf").replace("{day}", String(next)).replace("{total}", String(total))}
                     </p>
                     <p className="text-xs leading-4 italic" style={{ color: theme.textMuted }}>
                       {nextPrompt.scripture}
@@ -15415,7 +15029,7 @@ function FormationsSection({
                         backgroundColor: theme.bgInput,
                         color: theme.textPrimary,
                       }}
-                      placeholder={ts("challenges.reflectionPlaceholder", "Optional: write a brief note about today's practice…")}
+                      placeholder={ts("challenges.reflectionPlaceholder")}
                       value={reflectionText}
                       onChange={(e) => setReflectionText(e.target.value)}
                     />
@@ -15427,7 +15041,7 @@ function FormationsSection({
                       className="mt-1 flex w-full items-center justify-center rounded-[0.85rem] px-4 py-2.5 text-sm font-semibold transition hover:opacity-90 disabled:opacity-50"
                       style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
                     >
-                      {isSaving ? ts("challenges.saving", "Saving…") : ts("challenges.saveReflection", "Save and mark complete")}
+                      {isSaving ? ts("challenges.saving") : ts("challenges.saveReflection")}
                     </button>
                   </div>
                 )}
@@ -15446,7 +15060,7 @@ function FormationsSection({
                     style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}
                   >
                     <Share2 size={13} />
-                    {ts("challenges.shareChallenge", "Share this practice")}
+                    {ts("challenges.shareChallenge")}
                   </button>
                 </div>
               </div>
@@ -16161,41 +15775,36 @@ function InstallGuideCard({
         </div>
         <div>
           <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>
-            {installState.standalone ? "Aletheia is installed on this device" : "Install Aletheia on your home screen"}
+            {ts('labels.accountInstallTitle')}
           </p>
           <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
-            {installState.standalone
-              ? "You are already using the app-like experience."
-              : "Turn the website into an app icon so it opens full-screen and feels native."}
+            {ts('labels.accountInstallSummary')}
           </p>
         </div>
       </div>
       {!installState.standalone ? (
         <DisclosureSection
-          title={compact ? "Install steps" : "How to install"}
-          summary={compact ? "Tap to see the quick app-install path." : "Open the browser menu or share sheet and add Aletheia to your device."}
-          eyebrow={compact ? "Install" : "Install guide"}
+          title={ts('labels.accountInstallTitle')}
+          summary={ts('labels.accountInstallSummary')}
+          eyebrow={ts('labels.accountInstallEyebrow')}
           compactCollapsed
           isOpen={stepsOpen}
           onOpenChange={setStepsOpen}
-          showDetailsLabel="Show steps"
-          hideDetailsLabel="Hide steps"
+          showDetailsLabel={ts('showDetails')}
+          hideDetailsLabel={ts('hideDetails')}
           theme={theme}
           className="mt-3"
         >
           <ol className={`grid gap-2 text-sm leading-6 ${compact ? "" : "sm:grid-cols-3"}`} style={{ color: theme.textSecondary }}>
             {steps.map((step, index) => (
               <li key={step} className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
-                <span className="mb-1 block text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>Step {index + 1}</span>
+                <span className="mb-1 block text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{index + 1}</span>
                 {step}
               </li>
             ))}
           </ol>
         </DisclosureSection>
       ) : null}
-      <p className="mt-3 text-xs leading-5" style={{ color: theme.textMuted }}>
-        On iPhone and iPad, daily web push notifications are most reliable after Aletheia is added to the Home Screen.
-      </p>
     </section>
   );
 }
@@ -17918,7 +17527,7 @@ function AuthPanel({
                 style={{ display: "none" }}
                 tabIndex={-1}
                 autoComplete="off"
-                placeholder="Website"
+                placeholder={ts('placeholders.website')}
                 type="text"
                 name="website"
               />
@@ -18253,7 +17862,7 @@ function ScriptureModal({
               >
                 <Volume2 size={15} />
                 {speechLoading
-                  ? ts('status.preparingAudio', 'Preparing audio...')
+                  ? ts('status.preparingAudio')
                   : ts('labels.readScriptureAloud')}
               </button>
               {view === "quick" ? (
@@ -18286,7 +17895,7 @@ function ScriptureModal({
               </button>
               {speechLoading ? (
                 <p className="text-[0.72rem] font-semibold sm:col-span-3" style={{ color: theme.textMuted }}>
-                  {ts('status.preparingAudio', 'Preparing audio...')}
+                  {ts('status.preparingAudio')}
                 </p>
               ) : null}
             </div>
@@ -19133,7 +18742,7 @@ function CompanionPanel({
                 <span className="min-w-0 flex-1">
                   <span className="block text-[0.68rem] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{ui.currentLens}</span>
                   <span className="mt-0.5 flex min-w-0 items-center gap-2">
-                    <span className="truncate text-base font-semibold" style={{ color: theme.textPrimary }}>{modeProfile.displayLabel ?? mode}</span>
+                    <span className="truncate text-base font-semibold" style={{ color: theme.textPrimary }}>{localizedModeLabel(mode, preferences.language)}</span>
                     <Check className="shrink-0" size={16} style={{ color: theme.primary }} />
                   </span>
                 </span>
@@ -19313,7 +18922,7 @@ function CompanionPanel({
             {preferences.voiceEnabled ? (
               <div className="relative mt-2 pr-5 sm:pr-6 text-xs leading-5" style={{ color: theme.textMuted }}>
                 <InfoHint text={copy.voiceHint} theme={theme} placement="corner" surface="dense" />
-                <span>{ts('labels.voiceInput', 'Voice input')}</span>
+                <span>{ts('labels.voiceInput')}</span>
               </div>
             ) : null}
           </div>
@@ -19411,7 +19020,7 @@ function CompanionPanel({
           {showSidebarDeep ? (
             <div className="mt-3 space-y-3 editorial-sidebar">
               <div className="rounded-lg border p-3" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
-                <h2 className="font-semibold" style={{ color: theme.textPrimary }}>{modeProfile.displayLabel ?? modeProfile.label}: {modeProfile.intent}</h2>
+                <h2 className="font-semibold" style={{ color: theme.textPrimary }}>{localizedModeLabel(modeProfile.label, preferences.language)}: {modeProfile.intent}</h2>
                 <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>{modeProfile.useWhen}</p>
                 <p className="mt-3 text-sm leading-6" style={{ color: theme.textSecondary }}>{modeProfile.lens}</p>
               </div>
@@ -20030,7 +19639,7 @@ function CurrentCounselCard({
               >
                 {speechLoading ? (
                   <span className="font-semibold animate-pulse">
-                    {ts('status.preparingAudio', 'Preparing audio...')}
+                    {ts('status.preparingAudio')}
                   </span>
                 ) : isSpeaking && speechProgress > 0 ? (
                   <span>{speechProgress}%</span>
@@ -20478,7 +20087,7 @@ function DecisionCompanionPanel({
                 </p>
               </div>
             </div>
-            <span className="w-fit rounded-full px-3 py-2 text-xs font-semibold" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>{modeProfile.displayLabel ?? modeProfile.label}</span>
+            <span className="w-fit rounded-full px-3 py-2 text-xs font-semibold" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>{localizedModeLabel(modeProfile.label, language)}</span>
           </div>
 
           <form onSubmit={onCreateDecision} className="mt-4 grid gap-2.5 xl:grid-cols-[1fr_1.2fr_auto]">
@@ -20568,12 +20177,12 @@ function DecisionCompanionPanel({
         ) : null}
 
         {decisionSection === "counsel" ? (
-          <DisclosureSection title={`${ts('labels.counselCircle')} · ${counselContacts.length} ${ts('labels.trustedVoices')}`} summary={ts('labels.counselCircleSummaryShort', 'Invite trusted voices with explicit sharing.')} eyebrow={ts('labels.counsel')} defaultOpen={Boolean(counselSummaryDraft)} compactCollapsed showDetailsLabel={ts('showDetails')} hideDetailsLabel={ts('hideDetails')} theme={theme}>
+          <DisclosureSection title={`${ts('labels.counselCircle')} · ${counselContacts.length} ${ts('labels.trustedVoices')}`} summary={ts('labels.counselCircleSummary')} eyebrow={ts('labels.counsel')} defaultOpen={Boolean(counselSummaryDraft)} compactCollapsed showDetailsLabel={ts('showDetails')} hideDetailsLabel={ts('hideDetails')} theme={theme}>
             <section id="counsel-circle" className="scroll-mt-24">
               <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.counselCircle')}</p>
               <div className="relative mt-2 pr-5 sm:pr-6 text-sm leading-6" style={{ color: theme.textSecondary }}>
                 <InfoHint text={ts('labels.counselCircleSummary')} theme={theme} placement="corner" surface="dense" />
-                <span>{ts('labels.inviteTrustedPeoplePrivateShort', 'Invite trusted people privately.')}</span>
+                <span>{ts('labels.inviteTrustedPeoplePrivate')}</span>
               </div>
               {counselSummaryDraft ? (
                 <div className="mt-3 rounded-[1rem] border p-2.5" style={{ borderColor: theme.accentGold, backgroundColor: theme.bgCardElevated }}>
@@ -21456,7 +21065,7 @@ function WisdomCheck({
           {ts('labels.wisdomCheck')}
         </div>
         <div className="mb-4 rounded-lg border p-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{modeProfile.displayLabel ?? modeProfile.label} · {ts('labels.discernmentReadout')}</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{localizedModeLabel(modeProfile.label, language)} · {ts('labels.discernmentReadout')}</p>
           <p className="mt-1.5 text-sm leading-5" style={{ color: theme.textSecondary }}>{modeProfile.intent}</p>
         </div>
         <label className="text-sm font-semibold" htmlFor="decision" style={{ color: theme.textPrimary }}>
@@ -21509,11 +21118,11 @@ function WisdomCheck({
               onClick={() => onSpeakText(readoutText, ts('notifications.readingAloud'), ts('labels.discernmentReadout'))}
               className="inline-flex h-8 items-center gap-1.5 rounded-full border px-2.5 text-xs font-semibold transition"
               style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
-              aria-label={ts('labels.readReadoutAloud', 'Read readout aloud')}
-              title={ts('labels.readReadoutAloud', 'Read readout aloud')}
+              aria-label={ts('labels.readAloud')}
+              title={ts('labels.readAloud')}
             >
               <Volume2 size={14} />
-              {ts('labels.readReadoutAloud', 'Read readout aloud')}
+              {ts('labels.readAloud')}
             </button>
           ) : null}
         </div>
@@ -21569,7 +21178,7 @@ function WisdomCheck({
           </div>
         ) : (
           <div className="mt-4 rounded-[1rem] border border-dashed p-4 text-sm leading-6" style={{ borderColor: theme.borderMedium, color: theme.textSecondary }}>
-            {ts('labels.writeDecisionForReadoutFriendly', 'Write your decision above. Aletheia will turn it into a discernment readout grounded in the wisdom library.')}
+            {ts('labels.writeDecisionForReadout')}
           </div>
         )}
       </section>
@@ -21658,7 +21267,7 @@ function ReflectPanel({
         <h2 className="mt-1.5 text-xl font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.discernmentReflectionQuietPlace')}</h2>
         <div className="relative mt-1.5 max-w-2xl pr-5 sm:pr-6 md:pr-7 text-sm leading-5" style={{ color: theme.textSecondary }}>
           <InfoHint text={runtime.reflectIntro} theme={theme} placement="corner" surface="standard" />
-          <span>{ts('labels.reflectIntroShort', 'Slow the moment and name what is true.')}</span>
+          <span>{runtime.reflectIntro}</span>
         </div>
       </section>
 
@@ -21860,10 +21469,10 @@ function GratitudeLensPanel({
       !signedIn
         ? ts('labels.localOnly')
         : syncStatus === "synced"
-          ? ts('labels.accountSyncActive', 'Sync active.')
+          ? ts('labels.accountSyncActive')
           : syncStatus === "syncing"
-            ? `${ts('labels.sync', 'Sync')}...`
-            : ts('labels.notSynced', 'Not synced')
+            ? `${ts('labels.sync')}...`
+            : ts('labels.notSynced')
     }`
     : ts('labels.gratitudeEmptySummary');
   const weeklyEntries = entries.filter((entry) => {
@@ -21893,7 +21502,7 @@ function GratitudeLensPanel({
       <section className="grid min-w-0 gap-4 xl:grid-cols-[0.95fr_1.05fr]">
         <div className="relative rounded-xl border p-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
           <InfoHint
-            text={ts('labels.gratitudeLensBodyTooltip', 'Take one photo, name the gift, and keep the moment private by default.')}
+            text={ts('labels.gratitudeLensBodyTooltip')}
             theme={theme}
             placement="corner"
             surface="standard"
@@ -21905,29 +21514,29 @@ function GratitudeLensPanel({
             <div>
               <h3 className="text-base font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.captureGratitude')}</h3>
               <p className="mt-1 pr-5 sm:pr-6 md:pr-7 text-sm leading-5" style={{ color: theme.textSecondary }}>
-                {ts('labels.gratitudeLensBodyShort', 'Capture one grateful moment.')}
+                {ts('labels.gratitudeLensBodyShort')}
               </p>
             </div>
           </div>
 
           <div className="relative mt-3 rounded-xl border p-2.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
             <InfoHint
-              text={ts('labels.gratitudeNoticingBodyTooltip', 'Choose the kind of gift first, then add your note.')}
+              text={ts('labels.gratitudeNoticingBodyTooltip')}
               theme={theme}
               placement="corner"
               surface="dense"
             />
             <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
-              {ts('labels.gratitudeNoticingQuestion', 'What kind of gift is this?')}
+              {ts('labels.gratitudeNoticingQuestion')}
             </p>
             <p className="mt-1 pr-5 sm:pr-6 text-xs leading-5" style={{ color: theme.textSecondary }}>
-              {ts('labels.gratitudeNoticingBodyShort', 'Choose gift type first.')}
+              {ts('labels.gratitudeNoticingBodyShort')}
             </p>
             <div className="mt-2">
               <ScreenTabs
                 value={formation}
                 onChange={setFormation}
-                ariaLabel={ts('labels.gratitudeNoticingQuestion', 'What kind of gift is this?')}
+                ariaLabel={ts('labels.gratitudeNoticingQuestion')}
                 theme={theme}
                 layout="scroll"
                 className="border-0 p-0 shadow-none"
@@ -21962,7 +21571,7 @@ function GratitudeLensPanel({
                 <span className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.chooseGratitudePhoto')}</span>
                 <span className="relative inline-flex max-w-xs items-center gap-2 pr-5 sm:pr-6 text-xs leading-5">
                   <InfoHint text={ts('labels.gratitudePhotoPrivate')} theme={theme} placement="corner" surface="dense" />
-                  <span>{ts('labels.photoPrivacy', 'Privacy')}</span>
+                  <span>{ts('labels.photoPrivacy')}</span>
                 </span>
               </button>
             )}
@@ -21999,8 +21608,8 @@ function GratitudeLensPanel({
           </div>
 
           <DisclosureSection
-            title={ts('labels.advanced', 'Advanced')}
-            summary={activeStyleSummary || ts('labels.gratitudeStyleBody', 'A few style notes.')}
+            title={ts('labels.advanced')}
+            summary={activeStyleSummary || ts('labels.gratitudeStyleBody')}
             eyebrow={ts('labels.gratitudeStyleCard')}
             compactCollapsed
             showDetailsLabel={ts('showDetails')}
@@ -22042,7 +21651,7 @@ function GratitudeLensPanel({
               <div className="rounded-xl border p-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
                 <DisclosureSection
                   title={ts('labels.gratitudeEmoji')}
-                  summary={visual.emoji ? `${visual.emoji} ${ts('labels.gratitudeNoEmoji', 'Emoji set')}` : ts('labels.gratitudeNoEmoji')}
+                  summary={visual.emoji ? `${visual.emoji} ${ts('labels.gratitudeNoEmoji')}` : ts('labels.gratitudeNoEmoji')}
                   eyebrow={ts('labels.gratitudeOverlays')}
                   compactCollapsed
                   showDetailsLabel={ts('showDetails')}
@@ -22196,10 +21805,10 @@ function GratitudeLensPanel({
                 {!signedIn
                   ? ts('labels.localOnly')
                   : syncStatus === "synced"
-                    ? ts('labels.active', 'Active')
+                    ? ts('labels.active')
                     : syncStatus === "syncing"
-                      ? `${ts('labels.sync', 'Sync')}...`
-                      : ts('labels.notSynced', 'Not synced')}
+                      ? `${ts('labels.sync')}...`
+                      : ts('labels.notSynced')}
               </span>
             </div>
             <p className="mt-2 text-xs leading-5" style={{ color: theme.textSecondary }}>
@@ -22339,7 +21948,7 @@ function GratitudeLensPanel({
 
               {olderTimelineEntries.length ? (
                 <DisclosureSection
-                  title={ts('labels.archive', 'Earlier moments')}
+                  title={ts('labels.archive')}
                   summary={`${olderTimelineEntries.length} ${olderTimelineEntries.length === 1 ? ts('labels.gratitudeMoment') : ts('labels.gratitudeMoments')}`}
                   eyebrow={ts('labels.gratitudeTimeline')}
                   compactCollapsed
@@ -22449,14 +22058,14 @@ function LibraryPanel({
         body={libraryNextBody}
         theme={theme}
       />
-      <ScreenTabs
+          <ScreenTabs
           value={librarySection}
           onChange={(v) => setLibrarySection(v as typeof librarySection)}
           ariaLabel={ts('labels.librarySections')}
           theme={theme}
           tabs={[
             { key: "explore", label: ts('labels.libraryExplore') },
-            { key: "bible", label: ts('labels.bibleLibrary', "Bible") },
+            { key: "bible", label: ts('labels.bibleLibrary') },
             ...(scriptureMemory ? [{ key: "memory", label: ts('labels.scriptureMemory') }] : []),
           ]}
         />
@@ -22543,7 +22152,7 @@ function LibraryPanel({
               {ts('labels.wisdomLibrary')}
             </div>
             <div className="mt-1.5 pr-5 sm:pr-6 md:pr-7 text-sm leading-5" style={{ color: theme.textSecondary }}>
-              <span>{ts('labels.libraryDescriptionShort', 'Curated wisdom, translation-aware.')}</span>
+              <span>{runtime.libraryDescription}</span>
             </div>
           </div>
           <label className="relative w-full md:max-w-sm">
@@ -22595,9 +22204,10 @@ function LibraryPanel({
                 </div>
                 <p className="text-sm font-semibold leading-5" style={{ color: theme.textPrimary }}>{localizedEntry.principle}</p>
                 <p className="mt-2.5 text-sm leading-5" style={{ color: theme.textSecondary }}>{localizedEntry.application}</p>
-                <div className="relative mt-2.5 rounded-md border p-2.5 pr-6 sm:pr-7 md:pr-8 text-xs leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textMuted }}>
-                  <InfoHint text={localizedWisdomLibraryNote(entry, preferences)} theme={theme} placement="corner" surface="dense" />
-                  <span>{ts('labels.applicationNote', 'Application note')}</span>
+                <div className="mt-2.5 rounded-md border p-2.5 text-xs leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textMuted }}>
+                  <p style={{ color: theme.textMuted }}>
+                    {localizedWisdomLibraryNote(entry, preferences)}
+                  </p>
                 </div>
                 <button
                   type="button"
@@ -22771,7 +22381,7 @@ function JournalPanel({
                       <div>
                         <p className="font-semibold" style={{ color: theme.textPrimary }}>{entry.title}</p>
                         <p className="mt-1 text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
-                          {entry.mode} - {new Date(entry.createdAt).toLocaleDateString()}
+                          {localizedModeLabel(entry.mode, language)} - {new Date(entry.createdAt).toLocaleDateString()}
                         </p>
                       </div>
                       <button onClick={() => {
@@ -22817,7 +22427,7 @@ function JournalPanel({
                         <div>
                           <p className="font-semibold" style={{ color: theme.textPrimary }}>{entry.title}</p>
                           <p className="mt-1 text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
-                            {entry.mode} - {new Date(entry.createdAt).toLocaleDateString()}
+                            {localizedModeLabel(entry.mode, language)} - {new Date(entry.createdAt).toLocaleDateString()}
                           </p>
                         </div>
                         <button onClick={() => {
@@ -22843,7 +22453,7 @@ function JournalPanel({
                 </div>
               </DisclosureSection>
             ) : null}
-            <p className="mt-4 text-xs leading-5" style={{ color: theme.textMuted }}>{ts('labels.currentlyActiveMode')}: {mode}</p>
+            <p className="mt-4 text-xs leading-5" style={{ color: theme.textMuted }}>{ts('labels.currentlyActiveMode')}: {localizedModeLabel(mode, language)}</p>
           </section>
         </DisclosureSection>
       ) : null}

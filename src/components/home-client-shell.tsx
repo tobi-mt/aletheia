@@ -3,70 +3,15 @@
 import Image from "next/image";
 import { startTransition, useEffect, useRef, useState } from "react";
 import { AletheiaApp } from "@/components/aletheia-app";
+import { getTranslation, loadTranslationsSync } from "@/lib/translations";
 
-const splashText = {
-  en: {
-    tagline: "Wisdom for stewardship",
-    preparing: "Preparing your app...",
-    refreshing: "Refreshing services and loading your latest experience.",
-  },
-  es: {
-    tagline: "Sabiduria para mayordomia",
-    preparing: "Preparando tu app...",
-    refreshing: "Actualizando servicios y cargando tu experiencia mas reciente.",
-  },
-  fr: {
-    tagline: "Sagesse pour la gestion",
-    preparing: "Preparation de votre app...",
-    refreshing: "Actualisation des services et chargement de votre experience la plus recente.",
-  },
-  de: {
-    tagline: "Weisheit fur verantwortliche Verwaltung",
-    preparing: "Deine App wird vorbereitet...",
-    refreshing: "Dienste werden aktualisiert und deine neueste Erfahrung wird geladen.",
-  },
-  pt: {
-    tagline: "Sabedoria para mordomia",
-    preparing: "Preparando seu app...",
-    refreshing: "Atualizando servicos e carregando sua experiencia mais recente.",
-  },
-  yo: {
-    tagline: "Ogbon fun itoju",
-    preparing: "N pese app re sile...",
-    refreshing: "N tunse awon ise ati kiko iriri re to kẹhin.",
-  },
-  ig: {
-    tagline: "Amamihe maka nlekota",
-    preparing: "Na akwadebe ngwa gi...",
-    refreshing: "Na emelite oru ma na-ebunye ahumahia gi kacha nso.",
-  },
-  ha: {
-    tagline: "Hikima don kulawa",
-    preparing: "Ana shirya manhajar ka...",
-    refreshing: "Ana sabunta ayyuka kuma ana loda sabon kwarewarka.",
-  },
-  tl: {
-    tagline: "Karunungan para sa maingat na pamumuno",
-    preparing: "Inihahanda ang app mo...",
-    refreshing: "Ina-update ang mga serbisyo at nilo-load ang pinakabagong karanasan mo.",
-  },
-  ar: {
-    tagline: "حكمة للتدبير الأمين",
-    preparing: "جارٍ تجهيز التطبيق...",
-    refreshing: "جارٍ تحديث الخدمات وتحميل أحدث تجربة لك.",
-  },
-  hi: {
-    tagline: "दायित्वपूर्ण जीवन के लिए विवेक",
-    preparing: "आपका ऐप तैयार किया जा रहा है...",
-    refreshing: "सेवाएं अपडेट की जा रही हैं और आपका नवीनतम अनुभव लोड हो रहा है।",
-  },
-} as const;
+type SplashLanguage = "en" | "es" | "fr" | "de" | "pt" | "yo" | "ig" | "ha" | "tl" | "ar" | "hi";
 
-const supportedSplashLanguages = new Set(["en", "es", "fr", "de", "pt", "yo", "ig", "ha", "tl", "ar", "hi"] as const);
+const supportedSplashLanguages = new Set<SplashLanguage>(["en", "es", "fr", "de", "pt", "yo", "ig", "ha", "tl", "ar", "hi"]);
 
 const SPLASH_LAST_SHOWN_AT_KEY = "aletheia_splash_last_shown_at";
 
-function readStoredSplashLanguage(): keyof typeof splashText {
+function readStoredSplashLanguage(): SplashLanguage {
   if (typeof window === "undefined") {
     return "en";
   }
@@ -76,8 +21,8 @@ function readStoredSplashLanguage(): keyof typeof splashText {
       return "en";
     }
     const parsed = JSON.parse(saved) as { language?: string };
-    if (parsed.language && supportedSplashLanguages.has(parsed.language as keyof typeof splashText)) {
-      return parsed.language as keyof typeof splashText;
+    if (parsed.language && supportedSplashLanguages.has(parsed.language as SplashLanguage)) {
+      return parsed.language as SplashLanguage;
     }
   } catch {
     // Keep English fallback if preferences are malformed.
@@ -87,9 +32,12 @@ function readStoredSplashLanguage(): keyof typeof splashText {
 
 export default function HomeClientShell() {
   const [showSplash, setShowSplash] = useState(true);
-  const [splashLanguage, setSplashLanguage] = useState<keyof typeof splashText>("en");
+  const [splashLanguage, setSplashLanguage] = useState<SplashLanguage>("en");
   const [splashCopyReady, setSplashCopyReady] = useState(false);
   const lastHiddenAtRef = useRef<number | null>(null);
+  const splashTranslations = loadTranslationsSync(splashLanguage);
+  const appTagline = String(getTranslation(splashTranslations, "labels.appTagline"));
+  const loadingLabel = String(getTranslation(splashTranslations, "labels.loading"));
 
   useEffect(() => {
     const nextLanguage = readStoredSplashLanguage();
@@ -215,7 +163,10 @@ export default function HomeClientShell() {
               Aletheia
             </p>
             <p className={`mt-2 text-sm text-[#d4ddd7] transition-opacity duration-300 ${splashCopyReady ? "opacity-100" : "opacity-0"}`}>
-              {splashText[splashLanguage].preparing}
+              {appTagline}
+            </p>
+            <p className={`mt-1 text-[0.85rem] text-[#d4ddd7]/90 transition-opacity duration-300 ${splashCopyReady ? "opacity-100" : "opacity-0"}`}>
+              {loadingLabel}
             </p>
           </div>
         </div>
