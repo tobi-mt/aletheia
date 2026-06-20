@@ -13461,9 +13461,9 @@ function InfoHint({
   );
 
   const cornerWrapperClassBySurface: Record<"dense" | "standard" | "hero", string> = {
-    dense: "absolute right-0.5 top-0.5 z-10 inline-flex shrink-0",
-    standard: "absolute right-1 top-1 z-10 inline-flex shrink-0",
-    hero: "absolute right-1.5 top-1.5 z-10 inline-flex shrink-0",
+    dense: "absolute right-2 top-2 z-20 inline-flex shrink-0",
+    standard: "absolute right-2.5 top-2.5 z-20 inline-flex shrink-0",
+    hero: "absolute right-3 top-3 z-20 inline-flex shrink-0",
   };
   const buttonClassBySurface: Record<"dense" | "standard" | "hero", string> = {
     dense: "inline-flex items-center justify-center rounded-full border text-[7px] font-semibold leading-none transition",
@@ -13486,7 +13486,7 @@ function InfoHint({
     : buttonSizeBySurface.standard;
 
   return (
-    <span ref={wrapperRef} className={wrapperClassName}>
+    <span ref={wrapperRef} className={`${wrapperClassName} info-hint-anchor`}>
       <button
         ref={buttonRef}
         type="button"
@@ -14072,7 +14072,7 @@ function AccountSettingRow({
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="relative editorial-surface premium-tap-card rounded-[1rem] border p-2 shadow-[0_4px_10px_rgba(7,10,8,0.04)] sm:p-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+    <div className="relative editorial-surface premium-tap-card rounded-[1rem] border p-1.5 shadow-[0_4px_10px_rgba(7,10,8,0.04)] sm:p-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
       <InfoHint text={body} theme={theme} placement="corner" surface="dense" />
       <button
         type="button"
@@ -14080,16 +14080,16 @@ function AccountSettingRow({
         className="flex w-full items-center gap-2 text-left sm:gap-2.5"
         aria-expanded={open}
       >
-        <span className="grid size-7 shrink-0 place-items-center rounded-full border sm:size-8" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
+        <span className="grid size-[1.625rem] shrink-0 place-items-center rounded-full border sm:size-[1.875rem]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
           <Icon size={14} />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="flex items-center gap-2 pr-7 text-[12.5px] font-semibold leading-5 sm:pr-8 sm:text-sm" style={{ color: theme.textPrimary }}>
+          <span className="flex items-center gap-2 pr-6 text-[12.5px] font-semibold leading-5 sm:pr-7 sm:text-sm" style={{ color: theme.textPrimary }}>
             <span>{label}</span>
           </span>
         </span>
-        <span className="min-w-[4rem] shrink text-right sm:min-w-[6.5rem]">
-          <span className="block max-w-[5.5rem] text-[10px] font-semibold leading-4 sm:max-w-44 sm:text-xs" style={{ color: theme.accentGold }}>{currentValue}</span>
+        <span className="min-w-[3.5rem] shrink text-right sm:min-w-[5.75rem]">
+          <span className="block max-w-[5rem] text-[10px] font-semibold leading-4 sm:max-w-40 sm:text-xs" style={{ color: theme.accentGold }}>{currentValue}</span>
           <span className="mt-1 inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.08em]" style={{ color: theme.textSecondary }}>
             <ChevronDown size={12} style={{ transform: open ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 180ms ease" }} />
           </span>
@@ -14124,15 +14124,15 @@ function AccountToggleRow({
   theme: ThemeColors;
 }) {
   return (
-    <div className="relative editorial-surface premium-tap-card rounded-[1rem] border p-2 shadow-[0_4px_10px_rgba(7,10,8,0.04)] sm:p-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+    <div className="relative editorial-surface premium-tap-card rounded-[1rem] border p-1.5 shadow-[0_4px_10px_rgba(7,10,8,0.04)] sm:p-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
       <InfoHint text={body} theme={theme} placement="corner" surface="dense" />
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-2.5">
         <div className="flex min-w-0 items-start gap-2">
-          <span className="grid size-7 shrink-0 place-items-center rounded-full border sm:size-8" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
+          <span className="grid size-[1.625rem] shrink-0 place-items-center rounded-full border sm:size-[1.875rem]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
             <Icon size={14} />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="flex items-center gap-2 pr-7 text-[12.5px] font-semibold leading-5 sm:pr-8 sm:text-sm" style={{ color: theme.textPrimary }}>
+            <span className="flex items-center gap-2 pr-6 text-[12.5px] font-semibold leading-5 sm:pr-7 sm:text-sm" style={{ color: theme.textPrimary }}>
               <span>{label}</span>
             </span>
           </span>
