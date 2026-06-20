@@ -417,7 +417,8 @@ const managedSpeechVoices: ManagedVoiceOption[] = [
   { id: "cedar", label: enTranslations.voiceOptions.cedar.label, description: enTranslations.voiceOptions.cedar.description },
 ];
 
-const browserSpeechFallbackLength = 700;
+// Prefer the browser's built-in speech on web for faster starts and fewer hangs.
+const browserSpeechFallbackLength = 0;
 
 const defaultManagedVoiceByLanguage: Partial<Record<LanguageCode, string>> = {
   en: "alloy",
@@ -9098,7 +9099,6 @@ export function AletheiaApp() {
 
     try {
       if (
-        !Capacitor.isNativePlatform() &&
         typeof window !== "undefined" &&
         "speechSynthesis" in window &&
         cleanText.length >= browserSpeechFallbackLength
