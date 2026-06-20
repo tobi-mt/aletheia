@@ -12,7 +12,8 @@ import {
   type UserPreferences,
 } from "@/lib/localization";
 import { detectLifeSupportConcern } from "@/lib/life-support";
-import { Mode, wisdomEntries, WisdomEntryData } from "@/lib/wisdom-data";
+import { MODE_KEYS, type Mode } from "@/lib/mode-keys";
+import { wisdomEntries, WisdomEntryData } from "@/lib/wisdom-data";
 
 export type WisdomSource = WisdomEntryData & { id?: string };
 
@@ -72,7 +73,7 @@ function decodeList(value: string[] | string) {
 function fromRow(row: WisdomRow): WisdomSource {
   return {
     id: row.id,
-    theme: row.theme,
+    theme: row.theme as WisdomEntryData["theme"],
     scripture: row.scripture,
     principle: row.principle,
     context: row.context,
@@ -138,7 +139,7 @@ export async function retrieveWisdom(query: string, mode: Mode, limit = 3) {
   return searchWisdomEntries(entries, query, mode, limit);
 }
 
-function sourceReference(source: WisdomSource, preferences: UserPreferences) {
+function sourceReference(source: Pick<WisdomSource, "scripture">, preferences: UserPreferences) {
   return `${source.scripture} (${scriptureDisplayLabel(source.scripture, preferences)})`;
 }
 
@@ -223,7 +224,7 @@ export function composeModeAwareFallbackResponse(
 ) {
   const profile = localizedModeProfile(mode, preferences.language);
   const base = composeFallbackResponse(question, sources, preferences);
-  if (mode === "Life" && detectLifeSupportConcern(question) === "self_harm") {
+  if (mode === MODE_KEYS.LIFE && detectLifeSupportConcern(question) === "self_harm") {
     return base;
   }
   const language = languages[preferences.language] ?? languages.en;

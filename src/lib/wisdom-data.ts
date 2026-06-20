@@ -1,13 +1,16 @@
-export type Mode = "Money" | "Work" | "Purpose" | "Generosity" | "Life";
+import { DEFAULT_MODE, MODE_KEYS, type Mode } from "@/lib/mode-keys";
+import { DEFAULT_TODAY_VISUAL_THEME, THEME_KEYS, type ThemeKey } from "@/lib/theme-keys";
 
-export const modes: Mode[] = ["Money", "Work", "Purpose", "Generosity", "Life"];
+export type { Mode } from "@/lib/mode-keys";
+
+export const modes: Mode[] = [MODE_KEYS.MONEY, MODE_KEYS.WORK, MODE_KEYS.PURPOSE, MODE_KEYS.GENEROSITY, MODE_KEYS.LIFE];
 
 export function normalizeMode(value: unknown): Mode {
-  return modes.includes(value as Mode) ? (value as Mode) : "Money";
+  return modes.includes(value as Mode) ? (value as Mode) : DEFAULT_MODE;
 }
 
 export type WisdomEntryData = {
-  theme: string;
+  theme: ThemeKey;
   scripture: string;
   principle: string;
   context: string;
@@ -19,7 +22,7 @@ export type WisdomEntryData = {
 
 export const wisdomEntries: WisdomEntryData[] = [
   {
-    theme: "Stewardship",
+    theme: THEME_KEYS.STEWARDSHIP,
     scripture: "Matthew 25:14-30",
     principle:
       "Entrusted resources are handled with faithfulness, courage, and accountability.",
@@ -45,7 +48,7 @@ export const wisdomEntries: WisdomEntryData[] = [
     ],
   },
   {
-    theme: "Debt",
+    theme: THEME_KEYS.DEBT,
     scripture: "Proverbs 22:7",
     principle: "Debt can reduce freedom and should be approached with sobriety.",
     context:
@@ -61,7 +64,7 @@ export const wisdomEntries: WisdomEntryData[] = [
     ],
   },
   {
-    theme: "Contentment",
+    theme: DEFAULT_TODAY_VISUAL_THEME,
     scripture: "Philippians 4:11-13",
     principle:
       "Contentment is learned through trust, not achieved through perfect circumstances.",
@@ -78,7 +81,7 @@ export const wisdomEntries: WisdomEntryData[] = [
     ],
   },
   {
-    theme: "Counsel",
+    theme: THEME_KEYS.COUNSEL,
     scripture: "Proverbs 15:22",
     principle:
       "Plans become sturdier when they are examined with humble counsel.",
@@ -95,7 +98,7 @@ export const wisdomEntries: WisdomEntryData[] = [
     ],
   },
   {
-    theme: "Cost Counting",
+    theme: THEME_KEYS.COST_COUNTING,
     scripture: "Luke 14:28",
     principle: "Wise action considers cost before commitment.",
     context:
@@ -111,7 +114,7 @@ export const wisdomEntries: WisdomEntryData[] = [
     ],
   },
   {
-    theme: "Generosity",
+    theme: THEME_KEYS.GENEROSITY,
     scripture: "2 Corinthians 9:6-8",
     principle:
       "Generosity is willing and thoughtful, not coerced or performative.",
@@ -128,7 +131,7 @@ export const wisdomEntries: WisdomEntryData[] = [
     ],
   },
   {
-    theme: "Diligence",
+    theme: THEME_KEYS.DILIGENCE,
     scripture: "Proverbs 21:5",
     principle:
       "Diligent planning tends toward abundance; haste tends toward lack.",
@@ -145,7 +148,7 @@ export const wisdomEntries: WisdomEntryData[] = [
     ],
   },
   {
-    theme: "Recovery",
+    theme: THEME_KEYS.RECOVERY,
     scripture: "Psalm 51:10-12",
     principle:
       "A clean heart and a steady spirit can be restored after failure and sin.",
@@ -162,7 +165,7 @@ export const wisdomEntries: WisdomEntryData[] = [
     ],
   },
   {
-    theme: "Confession",
+    theme: THEME_KEYS.CONFESSION,
     scripture: "James 5:16",
     principle:
       "Confession and prayer open the way for healing and restored integrity.",
@@ -179,7 +182,7 @@ export const wisdomEntries: WisdomEntryData[] = [
     ],
   },
   {
-    theme: "Purity",
+    theme: THEME_KEYS.PURITY,
     scripture: "1 Thessalonians 4:3-5",
     principle:
       "Holiness is learned by honoring God with the body and refusing distorted desire.",
@@ -196,7 +199,7 @@ export const wisdomEntries: WisdomEntryData[] = [
     ],
   },
   {
-    theme: "Freedom",
+    theme: THEME_KEYS.FREEDOM,
     scripture: "1 Corinthians 10:13",
     principle:
       "Temptation is real, but God also provides a way of escape and endurance.",
@@ -213,7 +216,7 @@ export const wisdomEntries: WisdomEntryData[] = [
     ],
   },
   {
-    theme: "Provision and Anxiety",
+    theme: THEME_KEYS.PROVISION_AND_ANXIETY,
     scripture: "Matthew 6:25-34",
     principle:
       "Trust reduces anxious striving while still allowing responsible action.",

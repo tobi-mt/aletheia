@@ -1,6 +1,6 @@
-export type GenerationLanguage = "en" | "es" | "fr" | "pt" | "de" | "yo" | "ig" | "ha" | "tl" | "ar" | "hi";
+import { STUDY_THEME_KEYS, type StudyThemeKey } from "@/lib/study-theme-keys";
 
-export type StudyThemeKey = "trust" | "stewardship" | "wisdom" | "generosity" | "perseverance";
+export type GenerationLanguage = "en" | "es" | "fr" | "pt" | "de" | "yo" | "ig" | "ha" | "tl" | "ar" | "hi";
 
 export type StudyThemeTemplate = {
   key: StudyThemeKey;
@@ -75,7 +75,7 @@ const COMPANION_TEMPLATES: Record<GenerationLanguage, CompanionTemplate> = {
 const STUDY_THEME_LIBRARY: Record<GenerationLanguage, StudyThemeTemplate[]> = {
   en: [
     {
-      key: "trust",
+      key: STUDY_THEME_KEYS.TRUST,
       title: "Trust",
       keywords: ["trust", "faith", "believe", "hope", "confidence"],
       insight: "This chapter points you toward confidence in God instead of fear-driven control.",
@@ -83,7 +83,7 @@ const STUDY_THEME_LIBRARY: Record<GenerationLanguage, StudyThemeTemplate[]> = {
       action: "Name one fear and pray before your next money or work decision.",
     },
     {
-      key: "stewardship",
+      key: STUDY_THEME_KEYS.STEWARDSHIP,
       title: "Stewardship",
       keywords: ["give", "talent", "manage", "entrust", "faithful", "serve"],
       insight: "Faithfulness in small responsibilities is treated as spiritual formation.",
@@ -91,7 +91,7 @@ const STUDY_THEME_LIBRARY: Record<GenerationLanguage, StudyThemeTemplate[]> = {
       action: "Use one resource intentionally for one person today.",
     },
     {
-      key: "wisdom",
+      key: STUDY_THEME_KEYS.WISDOM,
       title: "Wisdom",
       keywords: ["wisdom", "understanding", "discern", "instruction", "counsel"],
       insight: "Discernment and listening are emphasized before decisive action.",
@@ -99,7 +99,7 @@ const STUDY_THEME_LIBRARY: Record<GenerationLanguage, StudyThemeTemplate[]> = {
       action: "Pause before your next major step and seek counsel.",
     },
     {
-      key: "generosity",
+      key: STUDY_THEME_KEYS.GENEROSITY,
       title: "Generosity",
       keywords: ["give", "share", "poor", "mercy", "compassion", "neighbor"],
       insight: "Spiritual maturity is connected to practical care for others.",
@@ -107,7 +107,7 @@ const STUDY_THEME_LIBRARY: Record<GenerationLanguage, StudyThemeTemplate[]> = {
       action: "Schedule one concrete act of generosity now.",
     },
     {
-      key: "perseverance",
+      key: STUDY_THEME_KEYS.PERSEVERANCE,
       title: "Perseverance",
       keywords: ["endure", "persevere", "stand", "remain", "finish", "patient"],
       insight: "Steady obedience over time is presented as a path to formation.",
@@ -117,7 +117,7 @@ const STUDY_THEME_LIBRARY: Record<GenerationLanguage, StudyThemeTemplate[]> = {
   ],
   es: [
     {
-      key: "trust",
+      key: STUDY_THEME_KEYS.TRUST,
       title: "Confianza",
       keywords: ["confía", "fe", "esperanza", "creer", "seguridad"],
       insight: "Este capítulo te invita a confiar en Dios en lugar de controlar desde el temor.",
@@ -125,7 +125,7 @@ const STUDY_THEME_LIBRARY: Record<GenerationLanguage, StudyThemeTemplate[]> = {
       action: "Nombra un temor y ora antes de tu próxima decisión de dinero o trabajo.",
     },
     {
-      key: "stewardship",
+      key: STUDY_THEME_KEYS.STEWARDSHIP,
       title: "Mayordomía",
       keywords: ["dar", "talento", "administrar", "fiel", "servir"],
       insight: "La fidelidad en lo pequeño aparece como una disciplina espiritual.",
@@ -133,7 +133,7 @@ const STUDY_THEME_LIBRARY: Record<GenerationLanguage, StudyThemeTemplate[]> = {
       action: "Usa un recurso de forma intencional para servir a alguien hoy.",
     },
     {
-      key: "wisdom",
+      key: STUDY_THEME_KEYS.WISDOM,
       title: "Sabiduría",
       keywords: ["sabiduría", "entender", "discernir", "consejo"],
       insight: "El texto resalta discernir y escuchar antes de actuar.",
@@ -141,7 +141,7 @@ const STUDY_THEME_LIBRARY: Record<GenerationLanguage, StudyThemeTemplate[]> = {
       action: "Haz una pausa antes del próximo paso importante y pide consejo.",
     },
     {
-      key: "generosity",
+      key: STUDY_THEME_KEYS.GENEROSITY,
       title: "Generosidad",
       keywords: ["dar", "compartir", "pobre", "misericordia", "compasión"],
       insight: "La madurez espiritual se vincula con el cuidado práctico del prójimo.",
@@ -149,7 +149,7 @@ const STUDY_THEME_LIBRARY: Record<GenerationLanguage, StudyThemeTemplate[]> = {
       action: "Agenda ahora un acto concreto de generosidad.",
     },
     {
-      key: "perseverance",
+      key: STUDY_THEME_KEYS.PERSEVERANCE,
       title: "Perseverancia",
       keywords: ["perseverar", "permanecer", "paciencia", "resistir"],
       insight: "La obediencia constante en el tiempo forma el carácter.",
@@ -159,7 +159,7 @@ const STUDY_THEME_LIBRARY: Record<GenerationLanguage, StudyThemeTemplate[]> = {
   ],
   fr: [
     {
-      key: "trust",
+      key: STUDY_THEME_KEYS.TRUST,
       title: "Confiance",
       keywords: ["confiance", "foi", "croire", "espérance"],
       insight: "Ce chapitre appelle à la confiance en Dieu plutôt qu'au contrôle par la peur.",
@@ -167,7 +167,7 @@ const STUDY_THEME_LIBRARY: Record<GenerationLanguage, StudyThemeTemplate[]> = {
       action: "Nomme une peur et prie avant ta prochaine décision de travail ou d'argent.",
     },
     {
-      key: "stewardship",
+      key: STUDY_THEME_KEYS.STEWARDSHIP,
       title: "Intendance",
       keywords: ["donner", "talent", "gérer", "fidèle", "servir"],
       insight: "La fidélité dans les petites responsabilités est présentée comme une formation spirituelle.",
@@ -175,7 +175,7 @@ const STUDY_THEME_LIBRARY: Record<GenerationLanguage, StudyThemeTemplate[]> = {
       action: "Utilise une ressource intentionnellement pour servir une personne aujourd'hui.",
     },
     {
-      key: "wisdom",
+      key: STUDY_THEME_KEYS.WISDOM,
       title: "Sagesse",
       keywords: ["sagesse", "discernement", "instruction", "conseil"],
       insight: "Le texte insiste sur l'écoute et le discernement avant d'agir.",
@@ -183,7 +183,7 @@ const STUDY_THEME_LIBRARY: Record<GenerationLanguage, StudyThemeTemplate[]> = {
       action: "Fais une pause avant ta prochaine étape importante et cherche un conseil.",
     },
     {
-      key: "generosity",
+      key: STUDY_THEME_KEYS.GENEROSITY,
       title: "Générosité",
       keywords: ["donner", "partager", "pauvre", "compassion", "miséricorde"],
       insight: "La maturité spirituelle se traduit par des gestes concrets envers les autres.",
@@ -191,7 +191,7 @@ const STUDY_THEME_LIBRARY: Record<GenerationLanguage, StudyThemeTemplate[]> = {
       action: "Planifie maintenant un acte concret de générosité.",
     },
     {
-      key: "perseverance",
+      key: STUDY_THEME_KEYS.PERSEVERANCE,
       title: "Persévérance",
       keywords: ["persévérer", "demeurer", "patient", "tenir ferme"],
       insight: "L'obéissance régulière dans le temps forme le caractère.",
@@ -201,7 +201,7 @@ const STUDY_THEME_LIBRARY: Record<GenerationLanguage, StudyThemeTemplate[]> = {
   ],
   pt: [
     {
-      key: "trust",
+      key: STUDY_THEME_KEYS.TRUST,
       title: "Confiança",
       keywords: ["confiança", "fé", "crer", "esperança"],
       insight: "Este capítulo convida à confiança em Deus em vez de controle movido pelo medo.",
@@ -209,7 +209,7 @@ const STUDY_THEME_LIBRARY: Record<GenerationLanguage, StudyThemeTemplate[]> = {
       action: "Nomeie um medo e ore antes da próxima decisão de trabalho ou dinheiro.",
     },
     {
-      key: "stewardship",
+      key: STUDY_THEME_KEYS.STEWARDSHIP,
       title: "Mordomia",
       keywords: ["dar", "talento", "administrar", "fiel", "servir"],
       insight: "Fidelidade no pouco aparece como formação espiritual.",
@@ -217,7 +217,7 @@ const STUDY_THEME_LIBRARY: Record<GenerationLanguage, StudyThemeTemplate[]> = {
       action: "Use um recurso de forma intencional para servir uma pessoa hoje.",
     },
     {
-      key: "wisdom",
+      key: STUDY_THEME_KEYS.WISDOM,
       title: "Sabedoria",
       keywords: ["sabedoria", "discernimento", "instrução", "conselho"],
       insight: "O texto destaca discernimento e escuta antes de agir.",
@@ -225,7 +225,7 @@ const STUDY_THEME_LIBRARY: Record<GenerationLanguage, StudyThemeTemplate[]> = {
       action: "Faça uma pausa antes do próximo passo importante e peça conselho.",
     },
     {
-      key: "generosity",
+      key: STUDY_THEME_KEYS.GENEROSITY,
       title: "Generosidade",
       keywords: ["dar", "compartilhar", "pobre", "compaixão", "misericórdia"],
       insight: "Maturidade espiritual se conecta a cuidado prático com outras pessoas.",
@@ -233,7 +233,7 @@ const STUDY_THEME_LIBRARY: Record<GenerationLanguage, StudyThemeTemplate[]> = {
       action: "Agende agora um ato concreto de generosidade.",
     },
     {
-      key: "perseverance",
+      key: STUDY_THEME_KEYS.PERSEVERANCE,
       title: "Perseverança",
       keywords: ["perseverar", "permanecer", "paciência", "resistir"],
       insight: "Obediência constante ao longo do tempo forma o caráter.",
@@ -243,7 +243,7 @@ const STUDY_THEME_LIBRARY: Record<GenerationLanguage, StudyThemeTemplate[]> = {
   ],
   de: [
     {
-      key: "trust",
+      key: STUDY_THEME_KEYS.TRUST,
       title: "Vertrauen",
       keywords: ["vertrauen", "glaube", "hoffnung", "zuversicht"],
       insight: "Dieses Kapitel ruft zu Vertrauen in Gott statt zu angstgetriebener Kontrolle.",
@@ -251,7 +251,7 @@ const STUDY_THEME_LIBRARY: Record<GenerationLanguage, StudyThemeTemplate[]> = {
       action: "Benenne eine Angst und bete vor deiner nächsten Geld- oder Arbeitsentscheidung.",
     },
     {
-      key: "stewardship",
+      key: STUDY_THEME_KEYS.STEWARDSHIP,
       title: "Verantwortliche Verwaltung",
       keywords: ["geben", "talent", "verwalten", "treu", "dienen"],
       insight: "Treue in kleinen Aufgaben wird als geistliche Formung dargestellt.",
@@ -259,7 +259,7 @@ const STUDY_THEME_LIBRARY: Record<GenerationLanguage, StudyThemeTemplate[]> = {
       action: "Setze heute eine Ressource bewusst für eine Person ein.",
     },
     {
-      key: "wisdom",
+      key: STUDY_THEME_KEYS.WISDOM,
       title: "Weisheit",
       keywords: ["weisheit", "einsicht", "rat", "verständnis"],
       insight: "Der Text betont Hören und Unterscheiden vor dem Handeln.",
@@ -267,7 +267,7 @@ const STUDY_THEME_LIBRARY: Record<GenerationLanguage, StudyThemeTemplate[]> = {
       action: "Halte vor dem nächsten großen Schritt kurz inne und suche Rat.",
     },
     {
-      key: "generosity",
+      key: STUDY_THEME_KEYS.GENEROSITY,
       title: "Großzügigkeit",
       keywords: ["geben", "teilen", "arm", "barmherzigkeit", "mitgefühl"],
       insight: "Geistliche Reife zeigt sich in praktischer Fürsorge für andere.",
@@ -275,7 +275,7 @@ const STUDY_THEME_LIBRARY: Record<GenerationLanguage, StudyThemeTemplate[]> = {
       action: "Plane jetzt eine konkrete Tat der Großzügigkeit.",
     },
     {
-      key: "perseverance",
+      key: STUDY_THEME_KEYS.PERSEVERANCE,
       title: "Ausdauer",
       keywords: ["ausharren", "bleiben", "geduld", "standhaft"],
       insight: "Beständiger Gehorsam über Zeit formt den Charakter.",
@@ -285,7 +285,7 @@ const STUDY_THEME_LIBRARY: Record<GenerationLanguage, StudyThemeTemplate[]> = {
   ],
   yo: [
     {
-      key: "trust",
+      key: STUDY_THEME_KEYS.TRUST,
       title: "Ìgbẹ́kẹ̀lé",
       keywords: ["igbagbọ", "gbẹkẹle", "ireti", "gbagbo"],
       insight: "Orí yìí ń pè ọ sí ìgbẹ́kẹ̀lé nínú Ọlọ́run dípò ìṣàkóso tí ìbẹ̀rù ń darí.",
@@ -293,7 +293,7 @@ const STUDY_THEME_LIBRARY: Record<GenerationLanguage, StudyThemeTemplate[]> = {
       action: "Darúkọ ìbẹ̀rù kan kí o sì gbàdúrà kí o tó ṣe ìpinnu tó kàn iṣẹ́ tàbí owó.",
     },
     {
-      key: "stewardship",
+      key: STUDY_THEME_KEYS.STEWARDSHIP,
       title: "Ìtọju ohun tí a fi lé wa lọ́wọ́",
       keywords: ["fi", "talenti", "ṣakoso", "olotito", "sin"],
       insight: "Ìṣòtítọ́ nínú ohun kékeré jẹ́ apá ìdàgbàsókè ẹ̀mí.",
@@ -301,7 +301,7 @@ const STUDY_THEME_LIBRARY: Record<GenerationLanguage, StudyThemeTemplate[]> = {
       action: "Lo orísun kan pẹ̀lú ìdí mímọ̀ láti ràn ẹnìkan lọ́wọ́ lónìí.",
     },
     {
-      key: "wisdom",
+      key: STUDY_THEME_KEYS.WISDOM,
       title: "Ọgbọ́n",
       keywords: ["ọgbọn", "ìmọ", "ìmọràn", "oye"],
       insight: "Àkọsílẹ̀ yìí fi hàn pé ìgbọ́ran àti ìmòye yẹ kí ó ṣáájú ìṣe.",
@@ -309,7 +309,7 @@ const STUDY_THEME_LIBRARY: Record<GenerationLanguage, StudyThemeTemplate[]> = {
       action: "Dákẹ́ díẹ̀ kí o tó gbe ìgbésẹ̀ pàtàkì tó tẹ̀lé, kí o sì wá ìmọ̀ràn.",
     },
     {
-      key: "generosity",
+      key: STUDY_THEME_KEYS.GENEROSITY,
       title: "Ọ̀làwọ́",
       keywords: ["fi", "pin", "talaka", "anu", "ifẹ"],
       insight: "Ìdàgbàsókè ẹ̀mí ní asopọ pẹ̀lú ìtọju gidi fún àwọn míì.",
@@ -317,7 +317,7 @@ const STUDY_THEME_LIBRARY: Record<GenerationLanguage, StudyThemeTemplate[]> = {
       action: "Ṣètò ìṣe ọ̀làwọ́ kan gidi báyìí.",
     },
     {
-      key: "perseverance",
+      key: STUDY_THEME_KEYS.PERSEVERANCE,
       title: "Sísùúrù",
       keywords: ["duro", "suru", "farada", "tẹsiwaju"],
       insight: "Ìgbọràn tó dúró ṣinṣin ní àkókò ń kọ iwa.",
@@ -327,7 +327,7 @@ const STUDY_THEME_LIBRARY: Record<GenerationLanguage, StudyThemeTemplate[]> = {
   ],
   ig: [
     {
-      key: "trust",
+      key: STUDY_THEME_KEYS.TRUST,
       title: "Ntụkwasị obi",
       keywords: ["okwukwe", "tụkwasị", "olileanya", "kweere"],
       insight: "Isiakwụkwọ a na-akpọ ka i tụkwasị Chineke obi karịa ijikwa ihe n'ụjọ.",
@@ -335,7 +335,7 @@ const STUDY_THEME_LIBRARY: Record<GenerationLanguage, StudyThemeTemplate[]> = {
       action: "Kpọọ otu ụjọ aha ma kpee ekpere tupu mkpebi ego ma ọ bụ ọrụ ọzọ.",
     },
     {
-      key: "stewardship",
+      key: STUDY_THEME_KEYS.STEWARDSHIP,
       title: "Nlekọta e nyere",
       keywords: ["nye", "talenti", "lekọta", "kwere", "jee ozi"],
       insight: "Nkwado n'ihe nta ka e ji eme ka ndụ ime mmụọ too.",
@@ -343,7 +343,7 @@ const STUDY_THEME_LIBRARY: Record<GenerationLanguage, StudyThemeTemplate[]> = {
       action: "Jiri otu akụnụba n'ụzọ nwere ebumnuche nyere otu onye aka taa.",
     },
     {
-      key: "wisdom",
+      key: STUDY_THEME_KEYS.WISDOM,
       title: "Amamihe",
       keywords: ["amamihe", "nghọta", "ndụmọdụ", "nkuzi"],
       insight: "A na-emesi ntị na nghọta ike tupu ime ihe siri ike.",
@@ -351,7 +351,7 @@ const STUDY_THEME_LIBRARY: Record<GenerationLanguage, StudyThemeTemplate[]> = {
       action: "Kwụsị obere oge tupu nzọụkwụ dị mkpa ma chọọ ndụmọdụ.",
     },
     {
-      key: "generosity",
+      key: STUDY_THEME_KEYS.GENEROSITY,
       title: "Inye aka n'obi",
       keywords: ["nye", "kekọrịta", "ogbenye", "ebere", "ịhụnanya"],
       insight: "Ito ime mmụọ na-apụta n'ịlekọta ndị ọzọ n'ụzọ bara uru.",
@@ -359,7 +359,7 @@ const STUDY_THEME_LIBRARY: Record<GenerationLanguage, StudyThemeTemplate[]> = {
       action: "Hazie otu omume inye aka doro anya ugbu a.",
     },
     {
-      key: "perseverance",
+      key: STUDY_THEME_KEYS.PERSEVERANCE,
       title: "Ndidi",
       keywords: ["ndidi", "iguzosi ike", "nọgide", "kwusie"],
       insight: "Ige ntị mgbe niile n'oge ogologo na-ewu agwa.",
@@ -369,7 +369,7 @@ const STUDY_THEME_LIBRARY: Record<GenerationLanguage, StudyThemeTemplate[]> = {
   ],
   ha: [
     {
-      key: "trust",
+      key: STUDY_THEME_KEYS.TRUST,
       title: "Amincewa",
       keywords: ["amini", "bangaskiya", "bege", "yarda"],
       insight: "Wannan sura tana kira ka dogara ga Allah maimakon sarrafawa daga tsoro.",
@@ -377,7 +377,7 @@ const STUDY_THEME_LIBRARY: Record<GenerationLanguage, StudyThemeTemplate[]> = {
       action: "Ka ambaci tsoro ɗaya ka yi addu'a kafin shawarar aikinka ko kuɗi ta gaba.",
     },
     {
-      key: "stewardship",
+      key: STUDY_THEME_KEYS.STEWARDSHIP,
       title: "Kula da amanar da aka ba",
       keywords: ["ba", "talent", "kulawa", "aminci", "hidima"],
       insight: "Aminci a ƙananan alhaki hanya ce ta gina rayuwar ruhaniya.",
@@ -385,7 +385,7 @@ const STUDY_THEME_LIBRARY: Record<GenerationLanguage, StudyThemeTemplate[]> = {
       action: "Yi amfani da wata albarkatu cikin niyya don taimakon mutum guda a yau.",
     },
     {
-      key: "wisdom",
+      key: STUDY_THEME_KEYS.WISDOM,
       title: "Hikima",
       keywords: ["hikima", "fahimta", "shawara", "umarni"],
       insight: "An fi jaddada sauraro da tantancewa kafin ɗaukar mataki.",
@@ -393,7 +393,7 @@ const STUDY_THEME_LIBRARY: Record<GenerationLanguage, StudyThemeTemplate[]> = {
       action: "Ka ɗan tsaya kafin babban mataki na gaba ka nemi shawara.",
     },
     {
-      key: "generosity",
+      key: STUDY_THEME_KEYS.GENEROSITY,
       title: "Karimci",
       keywords: ["ba", "rabawa", "talaka", "jinƙai", "tausayawa"],
       insight: "Balagar ruhaniya tana haɗuwa da kulawa ta zahiri ga wasu.",
@@ -401,7 +401,7 @@ const STUDY_THEME_LIBRARY: Record<GenerationLanguage, StudyThemeTemplate[]> = {
       action: "Ka tsara aiki ɗaya na karimci a sarari yanzu.",
     },
     {
-      key: "perseverance",
+      key: STUDY_THEME_KEYS.PERSEVERANCE,
       title: "Juriya",
       keywords: ["juriya", "haƙuri", "tsaya", "ci gaba"],
       insight: "Biyayya mai ɗorewa a tsawon lokaci tana gina hali.",
@@ -411,7 +411,7 @@ const STUDY_THEME_LIBRARY: Record<GenerationLanguage, StudyThemeTemplate[]> = {
   ],
   tl: [
     {
-      key: "trust",
+      key: STUDY_THEME_KEYS.TRUST,
       title: "Pagtitiwala",
       keywords: ["tiwala", "pananampalataya", "pag-asa", "maniwala"],
       insight: "Inaanyayahan ka ng kabanatang ito na magtiwala sa Diyos kaysa kontrol na galing sa takot.",
@@ -419,7 +419,7 @@ const STUDY_THEME_LIBRARY: Record<GenerationLanguage, StudyThemeTemplate[]> = {
       action: "Pangalanan ang isang takot at manalangin bago ang susunod mong pasya sa pera o trabaho.",
     },
     {
-      key: "stewardship",
+      key: STUDY_THEME_KEYS.STEWARDSHIP,
       title: "Mabuting Pamamahala",
       keywords: ["bigay", "talento", "pamahala", "tapat", "paglilingkod"],
       insight: "Ang katapatan sa maliliit na tungkulin ay bahagi ng spiritual formation.",
@@ -427,7 +427,7 @@ const STUDY_THEME_LIBRARY: Record<GenerationLanguage, StudyThemeTemplate[]> = {
       action: "Gamitin nang may layunin ang isang resource para sa isang tao ngayon.",
     },
     {
-      key: "wisdom",
+      key: STUDY_THEME_KEYS.WISDOM,
       title: "Karunungan",
       keywords: ["karunungan", "unawa", "pagkilatis", "payo"],
       insight: "Binibigyang-diin ng teksto ang pakikinig at pagkilatis bago kumilos.",
@@ -435,7 +435,7 @@ const STUDY_THEME_LIBRARY: Record<GenerationLanguage, StudyThemeTemplate[]> = {
       action: "Huminto muna bago ang susunod na malaking hakbang at humingi ng payo.",
     },
     {
-      key: "generosity",
+      key: STUDY_THEME_KEYS.GENEROSITY,
       title: "Pagiging Bukas-palad",
       keywords: ["bigay", "bahagi", "mahirap", "habag", "awa"],
       insight: "Ang spiritual maturity ay nakikita sa praktikal na pag-aalaga sa iba.",
@@ -443,7 +443,7 @@ const STUDY_THEME_LIBRARY: Record<GenerationLanguage, StudyThemeTemplate[]> = {
       action: "Magtakda ngayon ng isang konkretong gawa ng generosity.",
     },
     {
-      key: "perseverance",
+      key: STUDY_THEME_KEYS.PERSEVERANCE,
       title: "Pagtitiyaga",
       keywords: ["tiyaga", "manatili", "matatag", "pasensya"],
       insight: "Ang tuloy-tuloy na pagsunod sa paglipas ng panahon ang humuhubog sa ugali.",
@@ -453,7 +453,7 @@ const STUDY_THEME_LIBRARY: Record<GenerationLanguage, StudyThemeTemplate[]> = {
   ],
   ar: [
     {
-      key: "trust",
+      key: STUDY_THEME_KEYS.TRUST,
       title: "الثقة",
       keywords: ["ثقة", "إيمان", "رجاء", "يؤمن"],
       insight: "يدعوك هذا الفصل إلى الثقة بالله بدل التحكم المدفوع بالخوف.",
@@ -461,7 +461,7 @@ const STUDY_THEME_LIBRARY: Record<GenerationLanguage, StudyThemeTemplate[]> = {
       action: "سمِّ خوفًا واحدًا وصلِّ قبل قرارك التالي في المال أو العمل.",
     },
     {
-      key: "stewardship",
+      key: STUDY_THEME_KEYS.STEWARDSHIP,
       title: "الأمانة في التدبير",
       keywords: ["يعطي", "موهبة", "يدير", "أمين", "يخدم"],
       insight: "الأمانة في المسؤوليات الصغيرة تُقدَّم كتشكيل روحي.",
@@ -469,7 +469,7 @@ const STUDY_THEME_LIBRARY: Record<GenerationLanguage, StudyThemeTemplate[]> = {
       action: "استخدم موردًا واحدًا بقصد لخدمة شخص واحد اليوم.",
     },
     {
-      key: "wisdom",
+      key: STUDY_THEME_KEYS.WISDOM,
       title: "الحكمة",
       keywords: ["حكمة", "فهم", "تمييز", "مشورة"],
       insight: "يؤكد النص أهمية الإصغاء والتمييز قبل الفعل.",
@@ -477,7 +477,7 @@ const STUDY_THEME_LIBRARY: Record<GenerationLanguage, StudyThemeTemplate[]> = {
       action: "توقف قليلًا قبل خطوتك الكبيرة التالية واطلب مشورة.",
     },
     {
-      key: "generosity",
+      key: STUDY_THEME_KEYS.GENEROSITY,
       title: "الكرم",
       keywords: ["يعطي", "يشارك", "فقير", "رحمة", "تعاطف"],
       insight: "النضج الروحي يرتبط بعناية عملية تجاه الآخرين.",
@@ -485,7 +485,7 @@ const STUDY_THEME_LIBRARY: Record<GenerationLanguage, StudyThemeTemplate[]> = {
       action: "حدّد الآن فعل كرم عمليًا واحدًا.",
     },
     {
-      key: "perseverance",
+      key: STUDY_THEME_KEYS.PERSEVERANCE,
       title: "المثابرة",
       keywords: ["يثابر", "يبقى", "صبر", "يصمد"],
       insight: "الطاعة الثابتة عبر الزمن تُشكّل الشخصية.",
@@ -495,7 +495,7 @@ const STUDY_THEME_LIBRARY: Record<GenerationLanguage, StudyThemeTemplate[]> = {
   ],
   hi: [
     {
-      key: "trust",
+      key: STUDY_THEME_KEYS.TRUST,
       title: "भरोसा",
       keywords: ["विश्वास", "भरोसा", "आशा", "मानना"],
       insight: "यह अध्याय डर-आधारित नियंत्रण के बजाय परमेश्वर पर भरोसे के लिए बुलाता है।",
@@ -503,7 +503,7 @@ const STUDY_THEME_LIBRARY: Record<GenerationLanguage, StudyThemeTemplate[]> = {
       action: "एक डर का नाम लो और अगली काम या धन-संबंधित निर्णय से पहले प्रार्थना करो।",
     },
     {
-      key: "stewardship",
+      key: STUDY_THEME_KEYS.STEWARDSHIP,
       title: "जिम्मेदार प्रबंधन",
       keywords: ["देना", "प्रतिभा", "प्रबंध", "विश्वासी", "सेवा"],
       insight: "छोटी जिम्मेदारियों में निष्ठा को आत्मिक गठन का भाग बताया गया है।",
@@ -511,7 +511,7 @@ const STUDY_THEME_LIBRARY: Record<GenerationLanguage, StudyThemeTemplate[]> = {
       action: "आज एक संसाधन को उद्देश्यपूर्ण ढंग से एक व्यक्ति के लिए उपयोग करो।",
     },
     {
-      key: "wisdom",
+      key: STUDY_THEME_KEYS.WISDOM,
       title: "बुद्धि",
       keywords: ["बुद्धि", "समझ", "विवेक", "सलाह"],
       insight: "पाठ कार्य से पहले सुनने और विवेक पर ज़ोर देता है।",
@@ -519,7 +519,7 @@ const STUDY_THEME_LIBRARY: Record<GenerationLanguage, StudyThemeTemplate[]> = {
       action: "अगले बड़े कदम से पहले ठहरो और सलाह लो।",
     },
     {
-      key: "generosity",
+      key: STUDY_THEME_KEYS.GENEROSITY,
       title: "उदारता",
       keywords: ["देना", "बाँटना", "गरीब", "दया", "करुणा"],
       insight: "आत्मिक परिपक्वता दूसरों की व्यावहारिक देखभाल से जुड़ती है।",
@@ -527,7 +527,7 @@ const STUDY_THEME_LIBRARY: Record<GenerationLanguage, StudyThemeTemplate[]> = {
       action: "अभी उदारता का एक ठोस कार्य तय करो।",
     },
     {
-      key: "perseverance",
+      key: STUDY_THEME_KEYS.PERSEVERANCE,
       title: "धैर्यपूर्ण स्थिरता",
       keywords: ["धैर्य", "बने रहना", "स्थिर", "सहन"],
       insight: "समय के साथ स्थिर आज्ञाकारिता चरित्र बनाती है।",

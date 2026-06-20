@@ -1,3 +1,5 @@
+import { MODE_KEYS, type Mode } from "@/lib/mode-keys";
+
 export type ChallengeId =
   | "gratitude-3day"
   | "waiting-5day"
@@ -16,7 +18,7 @@ export type ChallengeDefinition = {
   titleKey: string;
   descriptionKey: string;
   totalDays: number;
-  mode: string;
+  mode: Mode;
   days: ChallengeDayPrompt[];
 };
 
@@ -26,7 +28,7 @@ export const challengeDefinitions: ChallengeDefinition[] = [
     titleKey: "challenges.gratitude3day.title",
     descriptionKey: "challenges.gratitude3day.description",
     totalDays: 3,
-    mode: "Life",
+    mode: MODE_KEYS.LIFE,
     days: [
       {
         day: 1,
@@ -56,7 +58,7 @@ export const challengeDefinitions: ChallengeDefinition[] = [
     titleKey: "challenges.waiting5day.title",
     descriptionKey: "challenges.waiting5day.description",
     totalDays: 5,
-    mode: "Purpose",
+    mode: MODE_KEYS.PURPOSE,
     days: [
       {
         day: 1,
@@ -100,7 +102,7 @@ export const challengeDefinitions: ChallengeDefinition[] = [
     titleKey: "challenges.stewardship7day.title",
     descriptionKey: "challenges.stewardship7day.description",
     totalDays: 7,
-    mode: "Money",
+    mode: MODE_KEYS.MONEY,
     days: [
       {
         day: 1,

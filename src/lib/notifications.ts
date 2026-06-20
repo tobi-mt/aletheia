@@ -4,9 +4,9 @@ import { many, one, run } from "@/lib/db";
 import { localizedDailyWisdom, normalizePreferences, type BibleTranslation, type LanguageCode, type RegionCode } from "@/lib/localization";
 import { getWisdomEntries } from "@/lib/wisdom";
 import { selectDailyWisdomIndex } from "@/lib/wisdom-data";
-import { challengeDefinitions, getChallengeById } from "@/lib/challenge-data";
+import { getChallengeById } from "@/lib/challenge-data";
 import { loadTranslationsSync, getTranslation } from "@/lib/translations";
-import type { Mode } from "@/lib/wisdom-data";
+import { MODE_KEYS, type Mode } from "@/lib/mode-keys";
 
 type PushRow = {
   id: string;
@@ -159,9 +159,9 @@ function dailyNotificationPayload(row: PushRow, wisdomEntries: Awaited<ReturnTyp
     bibleTranslation: row.bible_translation as BibleTranslation,
     voiceEnabled: Boolean(row.voice_enabled),
   });
-  const dailyMode: Mode = ["Money", "Work", "Purpose", "Generosity", "Life"].includes(wisdom.theme)
+  const dailyMode: Mode = [MODE_KEYS.MONEY, MODE_KEYS.WORK, MODE_KEYS.PURPOSE, MODE_KEYS.GENEROSITY, MODE_KEYS.LIFE].includes(wisdom.theme as Mode)
     ? (wisdom.theme as Mode)
-    : "Money";
+    : MODE_KEYS.MONEY;
   const daily = localizedDailyWisdom(wisdom, dailyMode, preferences);
   const localDate = localDateForTimezone(now, row.preferred_timezone);
   const campaignArchetype = weeklyCampaignArchetype(localDate);
@@ -1505,9 +1505,9 @@ export async function sendChallengeReminders(now = new Date()): Promise<{
 
     const modes = modesByUser.get(userId) ?? {};
     const dominant = Object.entries(modes).sort(([, a], [, b]) => b - a)[0]?.[0];
-    if (dominant === "Money") return "stewardship-7day";
-    if (dominant === "Purpose" || dominant === "Life") return "waiting-5day";
-    if (dominant === "Generosity") return "gratitude-3day";
+    if (dominant === MODE_KEYS.MONEY) return "stewardship-7day";
+    if (dominant === MODE_KEYS.PURPOSE || dominant === MODE_KEYS.LIFE) return "waiting-5day";
+    if (dominant === MODE_KEYS.GENEROSITY) return "gratitude-3day";
 
     // No usage signal → easiest entry point
     return "gratitude-3day";

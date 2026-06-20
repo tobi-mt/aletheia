@@ -4,7 +4,7 @@ import { trackServerEvent } from "@/lib/analytics";
 import { buildDecisionSummary, detectPatterns, scoreDecision } from "@/lib/decision-intelligence";
 import { decisionStartedDiscerningBody, decisionTimelineObservation } from "@/lib/decision-copy";
 import { many, one, run } from "@/lib/db";
-import { defaultPreferences, normalizePreferences, type UserPreferences } from "@/lib/localization";
+import { defaultPreferences, languages, normalizePreferences, type LanguageCode, type UserPreferences } from "@/lib/localization";
 import { apiError } from "@/lib/api-errors";
 import { retrieveWisdom } from "@/lib/wisdom";
 import { normalizeMode, type Mode } from "@/lib/wisdom-data";
@@ -64,6 +64,14 @@ async function getUserPreferences(userId: string): Promise<UserPreferences> {
         }
       : defaultPreferences
   );
+}
+
+function languageFromAcceptLanguage(header: string | null): LanguageCode {
+  const primary = header?.trim().toLowerCase().split(",")[0]?.split(/[-_]/)[0];
+  if (primary === "fil") {
+    return "tl";
+  }
+  return primary && primary in languages ? (primary as LanguageCode) : defaultPreferences.language;
 }
 
 function mapDecision(row: DecisionRow) {
@@ -146,10 +154,14 @@ function timelineInsight(decisions: DecisionRow[], events: EventRow[], language:
   };
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
-    return NextResponse.json({ decisions: [], events: [], insight: timelineInsight([], [], defaultPreferences.language) });
+    return NextResponse.json({
+      decisions: [],
+      events: [],
+      insight: timelineInsight([], [], languageFromAcceptLanguage(request.headers.get("accept-language"))),
+    });
   }
 
   const [decisions, events] = await Promise.all([

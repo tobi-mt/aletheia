@@ -1,4 +1,4 @@
-import type { Mode } from "@/lib/wisdom-data";
+import { MODE_KEYS, type Mode } from "@/lib/mode-keys";
 
 export type ModeProfile = {
   label: Mode;
@@ -16,8 +16,8 @@ export type ModeProfile = {
 };
 
 export const modeProfiles: Record<Mode, ModeProfile> = {
-  Money: {
-    label: "Money",
+  [MODE_KEYS.MONEY]: {
+    label: MODE_KEYS.MONEY,
     intent: "Steward resources with peace and clarity.",
     focus: "Budgeting, debt, saving, investing, contentment",
     useWhen: "Use for spending, debt, saving, investing, financial anxiety, or comparison.",
@@ -60,8 +60,8 @@ export const modeProfiles: Record<Mode, ModeProfile> = {
       "How do I stop comparing myself financially?",
     ],
   },
-  Work: {
-    label: "Work",
+  [MODE_KEYS.WORK]: {
+    label: MODE_KEYS.WORK,
     intent: "Discern work, calling, leadership, and sustainable ambition.",
     focus: "Career moves, leadership, business, burnout, vocation",
     useWhen: "Use for job decisions, business ideas, leadership pressure, burnout, or ambition.",
@@ -104,8 +104,8 @@ export const modeProfiles: Record<Mode, ModeProfile> = {
       "Should I start this business now?",
     ],
   },
-  Purpose: {
-    label: "Purpose",
+  [MODE_KEYS.PURPOSE]: {
+    label: MODE_KEYS.PURPOSE,
     intent: "Slow down and discern the person this decision forms.",
     focus: "Identity, direction, anxiety, values, long-term clarity",
     useWhen: "Use when the real question is identity, direction, peace, timing, or values.",
@@ -148,8 +148,8 @@ export const modeProfiles: Record<Mode, ModeProfile> = {
       "How do I find peace about my next step?",
     ],
   },
-  Generosity: {
-    label: "Generosity",
+  [MODE_KEYS.GENEROSITY]: {
+    label: MODE_KEYS.GENEROSITY,
     intent: "Give freely without guilt, pressure, or performance.",
     focus: "Giving, family support, charity, boundaries, sustainability",
     useWhen: "Use for giving, tithing, helping family, boundaries, or sustainable generosity.",
@@ -192,8 +192,8 @@ export const modeProfiles: Record<Mode, ModeProfile> = {
       "How much generosity is sustainable for me?",
     ],
   },
-  Life: {
-    label: "Life",
+  [MODE_KEYS.LIFE]: {
+    label: MODE_KEYS.LIFE,
     intent: "Apply biblical wisdom to ordinary life, formation, and care with steady, grounded attention.",
     focus: "Habits, relationships, family, rest, health, recovery, holiness, loneliness",
     useWhen:

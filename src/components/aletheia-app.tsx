@@ -53,6 +53,8 @@ import {
   X,
 } from "lucide-react";
 import { buildDecisionSummary, detectPatterns, scoreDecision } from "@/lib/decision-intelligence";
+import enTranslations from "@/locales/en.json";
+import { DEFAULT_TODAY_VISUAL_THEME, THEME_KEYS } from "@/lib/theme-keys";
 import {
   bibleTranslations,
   bibleTranslationOptionsForLanguage,
@@ -332,6 +334,7 @@ const SCRIPTURE_MEMORY_STORAGE_KEY = "aletheia_scripture_memory";
 const UPDATE_REFRESH_PENDING_KEY = "aletheia_update_refresh_pending";
 type AuthPromptReason =
   | "guest_second_question"
+  | "guest_first_answer"
   | "guest_saved_reflection"
   | "guest_saved_decision"
   | "post_answer_action"
@@ -349,7 +352,7 @@ type AuthPromptState = {
 const FOCUS_INTENTIONS_STORAGE_KEY = "aletheia_focus_intentions";
 const GRATITUDE_LENS_STORAGE_KEY = "aletheia_gratitude_lens";
 const AUTH_PROMPT_STATE_STORAGE_KEY = "aletheia_auth_prompt_state";
-const AUTH_PROMPT_MIN_ENGAGEMENT_MS = 90_000;
+const AUTH_PROMPT_MIN_ENGAGEMENT_MS = 20_000;
 const AUTH_PROMPT_WEEKLY_LIMIT = 3;
 const AUTH_PROMPT_FIRST_COOLDOWN_MS = 72 * 60 * 60 * 1000;
 const AUTH_PROMPT_REPEAT_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000;
@@ -360,30 +363,31 @@ const GRATITUDE_SYNC_ENABLED = process.env.NEXT_PUBLIC_ENABLE_GRATITUDE_SYNC ===
 const GRATITUDE_SYNC_MIGRATION_KEY_PREFIX = "aletheia_gratitude_sync_migrated_";
 const MAX_GRATITUDE_ENTRIES = Number.POSITIVE_INFINITY;
 const GRATITUDE_REFLECTION_DEFAULT_HOUR = 19;
+const DEFAULT_TIMEZONE = enTranslations.timezones.utc;
 const SUPPORT_MISSION_LINKS: Array<{ channel: SupportMissionChannel; href: string; labelKey: string; fallback: string }> = [
   {
     channel: "stripe",
     href: process.env.NEXT_PUBLIC_ALETHEIA_STRIPE_DONATION_URL || "",
     labelKey: "supportMission.cardWallet",
-    fallback: "Card, Apple Pay, or Google Pay",
+    fallback: enTranslations.supportMission.cardWallet,
   },
   {
     channel: "paypal",
     href: process.env.NEXT_PUBLIC_ALETHEIA_PAYPAL_DONATION_URL || "",
     labelKey: "supportMission.paypal",
-    fallback: "PayPal",
+    fallback: enTranslations.supportMission.paypal,
   },
   {
     channel: "bank",
     href: process.env.NEXT_PUBLIC_ALETHEIA_BANK_SUPPORT_URL || "",
     labelKey: "supportMission.bankTransfer",
-    fallback: "Bank transfer",
+    fallback: enTranslations.supportMission.bankTransfer,
   },
   {
     channel: "general",
     href: process.env.NEXT_PUBLIC_ALETHEIA_SUPPORT_URL || "",
     labelKey: "supportMission.supportPage",
-    fallback: "Support page",
+    fallback: enTranslations.supportMission.supportPage,
   },
   {
     channel: "contact",
@@ -391,7 +395,7 @@ const SUPPORT_MISSION_LINKS: Array<{ channel: SupportMissionChannel; href: strin
       ? `mailto:${process.env.NEXT_PUBLIC_ALETHEIA_SUPPORT_CONTACT_EMAIL}?subject=Aletheia%20mission%20support`
       : "",
     labelKey: "supportMission.contactUs",
-    fallback: "Contact us",
+    fallback: enTranslations.supportMission.contactUs,
   },
 ];
 type ManagedVoiceOption = {
@@ -401,16 +405,16 @@ type ManagedVoiceOption = {
 };
 
 const managedSpeechVoices: ManagedVoiceOption[] = [
-  { id: "alloy", label: "Alloy", description: "Balanced and neutral" },
-  { id: "ash", label: "Ash", description: "Low, soft, and steady" },
-  { id: "ballad", label: "Ballad", description: "Warm and expressive" },
-  { id: "coral", label: "Coral", description: "Clear and bright" },
-  { id: "echo", label: "Echo", description: "Direct and focused" },
-  { id: "sage", label: "Sage", description: "Calm and thoughtful" },
-  { id: "shimmer", label: "Shimmer", description: "Light and refined" },
-  { id: "verse", label: "Verse", description: "Measured and articulate" },
-  { id: "marin", label: "Marin", description: "Smooth and grounded" },
-  { id: "cedar", label: "Cedar", description: "Warm and reassuring" },
+  { id: "alloy", label: enTranslations.voiceOptions.alloy.label, description: enTranslations.voiceOptions.alloy.description },
+  { id: "ash", label: enTranslations.voiceOptions.ash.label, description: enTranslations.voiceOptions.ash.description },
+  { id: "ballad", label: enTranslations.voiceOptions.ballad.label, description: enTranslations.voiceOptions.ballad.description },
+  { id: "coral", label: enTranslations.voiceOptions.coral.label, description: enTranslations.voiceOptions.coral.description },
+  { id: "echo", label: enTranslations.voiceOptions.echo.label, description: enTranslations.voiceOptions.echo.description },
+  { id: "sage", label: enTranslations.voiceOptions.sage.label, description: enTranslations.voiceOptions.sage.description },
+  { id: "shimmer", label: enTranslations.voiceOptions.shimmer.label, description: enTranslations.voiceOptions.shimmer.description },
+  { id: "verse", label: enTranslations.voiceOptions.verse.label, description: enTranslations.voiceOptions.verse.description },
+  { id: "marin", label: enTranslations.voiceOptions.marin.label, description: enTranslations.voiceOptions.marin.description },
+  { id: "cedar", label: enTranslations.voiceOptions.cedar.label, description: enTranslations.voiceOptions.cedar.description },
 ];
 
 const browserSpeechFallbackLength = 700;
@@ -435,7 +439,7 @@ function managedVoiceForLanguage(language: LanguageCode) {
 
 function managedVoiceLabel(voiceId: string | null | undefined) {
   if (!voiceId) {
-    return "Device default";
+    return String(getTranslation(enTranslations, "deviceDefault"));
   }
   return managedSpeechVoices.find((voice) => voice.id === voiceId)?.label ?? voiceId;
 }
@@ -446,7 +450,7 @@ function browserSpeechLanguage(language: LanguageCode) {
 
 const DEFAULT_NOTIFICATION_TIMING: NotificationTiming = {
   preferredLocalHour: 8,
-  preferredTimezone: "UTC",
+  preferredTimezone: DEFAULT_TIMEZONE,
   timezoneMode: "auto",
   deliveryStrategy: "morning",
 };
@@ -625,6 +629,8 @@ const uiText: Partial<Record<
     badgesFormation?: string;
     firstReflectionSaved?: string;
     firstDecisionTracked?: string;
+    answerReadyGuestTitle?: string;
+    answerReadyGuestBody?: string;
     soughtCounsel?: string;
     waitingModeUsed?: string;
     ruleOfLifeCreated?: string;
@@ -652,6 +658,8 @@ const uiText: Partial<Record<
     accountGuestSummary?: string;
     accountPreferencesEyebrow?: string;
     accountPreferencesSummary?: string;
+    counselGuestSignInTitle?: string;
+    counselGuestSignInBody?: string;
     accountContextActive?: string;
     accountContextPaused?: string;
     accountArea?: string;
@@ -686,183 +694,7 @@ const uiText: Partial<Record<
     accountFormationSummary?: string;
   }
 >> = {
-  en: {
-    nav: { companion: "Home", decisions: "Decisions", reflect: "Reflect", library: "Library", account: "Account" },
-    decideShort: "Decide",
-    guardrails: "Guardrails",
-    guardrailItems: [
-      "Never predicts financial outcomes.",
-      "Never invents scripture references.",
-      "Strongly encourages human support for self-harm, addiction, or crisis language.",
-    ],
-    wisdomMode: "Wisdom mode",
-    currentLens: "Current lens",
-    offline: "Offline",
-    languageSelect: "Change language",
-    bibleSelect: "Change Bible translation",
-    account: "Account",
-    askTitle: "Ask Aletheia",
-    askIntro: "Start with one honest question. Aletheia will slow the moment down and help you discern clearly.",
-    yourQuestion: "Your question",
-    askButton: "Ask",
-    startHere: "Start here",
-    ready: "Ready",
-    whatModeFor: "What this mode is for",
-    deepChecks: "Deep checks",
-    blindSpots: "Blind spots",
-    maturitySignals: "Maturity signals",
-    modeGuidance: "Mode guidance",
-    change: "Change",
-    showDetails: "Show details",
-    hideDetails: "Hide details",
-    modeGuidancePreview: "Keep this view focused. Expand when you want deeper checks, blind spots, and maturity signals.",
-    trustLayer: "Trust layer",
-    preferencesTitle: "Language and region",
-    language: "Language",
-    region: "Region",
-    bible: "Bible",
-    voiceControls: "Voice controls",
-    available: "Available",
-    englishFallback: "English fallback",
-    greetingMorning: "Good morning",
-    greetingAfternoon: "Good afternoon",
-    greetingEvening: "Good evening",
-    greetingFallback: "Welcome back",
-    greetingIntent: "Let's choose one wise next step today.",
-    personalizedPriority: "Personalized priority",
-    whatNext: "What should I do next?",
-    whatNextBody: "Aletheia is choosing one wise next action first. Ask and mode controls stay easy to reach when you want to begin something new.",
-    personalizationNudgeTitle: "Want more personal counsel?",
-    personalizationNudgeBody: "Add one detail about money, work, or rhythm.",
-    continueDecision: "Continue this decision",
-    askOneQuestion: "Ask one question",
-    askOneQuestionBody: "Start with the pressure or decision you are carrying right now.",
-    askNewQuestion: "Ask a new question",
-    askNewQuestionBody: "The Companion input and wisdom modes stay close at hand.",
-    reflectToday: "Reflect on today",
-    reviewPattern: "Review a pattern",
-    enableNotifications: "Enable notifications",
-    enableSync: "Enable sync",
-    notificationPromptBody: "Receive one quiet daily wisdom prompt.",
-    syncDevicesBody: "Keep decisions and reflections across devices.",
-    startDecision: "Start a decision",
-    startDecisionBody: "Track a high-stakes choice over time.",
-    tinyPractice: "Tiny practice",
-    todaysCompanion: "Today's companion",
-    todayPrefix: "Today",
-    wisdomPrinciple: "Wisdom principle",
-    reflectionQuestion: "Question",
-    whatINotice: "What I notice",
-    context: "Context",
-    application: "Application",
-    carryThisToday: "Carry this today",
-    carryWithMe: "Carry with me",
-    carryCard: "Carry Card",
-    createCard: "Create card",
-    createWisdomPostcard: "Create wisdom card",
-    carryScriptureForWeek: "Carry scripture",
-    scriptureMemory: "Scripture memory",
-    clearScriptureMemory: "Stop carrying scripture",
-    weeklyWisdomReview: "Weekly Wisdom Review",
-    weeklyReviewTitle: "A quiet look at your week",
-    weeklyReviewBody: "No streaks or pressure. Just notice how {pattern} has been shaping your discernment.",
-    todayScriptureLabel: "Scripture",
-    todayQuestionLabel: "Today's question",
-    todayActionsLabel: "Today's actions",
-    weeklyReviewHeading: "Your Weekly Review",
-    weeklyReviewLastWeekLabel: "Last week",
-    questionsThisWeek: "Questions",
-    reflectionsThisWeek: "Reflections",
-    gratitudeThisWeek: "Gratitude",
-    decisionsThisWeek: "Decisions",
-    nextFaithfulStep: "Next faithful step",
-    askAboutThis: "Ask about this",
-    saveToRuleOfLife: "Save to Rule of Life",
-    carryingToday: "Carrying today",
-    currentCounsel: "Current counsel",
-    modeShapesCounsel: "mode is shaping this counsel around",
-    trackThisDecision: "Track this decision",
-    saveAsReflection: "Save as reflection",
-    createCounselSummary: "Create counsel summary",
-    goDeeper: "Go deeper",
-    waitThreeDays: "Wait 3 days",
-    shareAnswerPrompt: "Share Aletheia with someone who may benefit from this kind of counsel.",
-    sharePrivacyNote: "This shares the app link only, not your question or Aletheia’s private answer.",
-    shareAletheia: "Share Aletheia",
-    feedbackQuestion: "Was this counsel useful?",
-    feedbackHelpful: "Helpful",
-    feedbackMildlyHelpful: "Mildly helpful",
-    feedbackTooVague: "Too vague",
-    feedbackTooPreachy: "Too preachy",
-    feedbackNotRelevant: "Not relevant",
-    badgesFormation: "Badges / Formation",
-    firstReflectionSaved: "First reflection saved",
-    firstDecisionTracked: "First decision tracked",
-    soughtCounsel: "Sought counsel",
-    waitingModeUsed: "Waiting mode used",
-    ruleOfLifeCreated: "Rule of life created",
-    notificationsEnabled: "Notifications enabled",
-    sevenDaysPractice: "7 days of wisdom practice",
-    formationNote: "These are quiet signs of formation, not points to chase. The first milestone usually begins with saving one reflection.",
-    milestoneShareTitle: "Know someone making a major decision?",
-    milestoneShareBody: "You can invite them to Aletheia without sharing anything private from your account.",
-    welcomeCounsel:
-      "Bring a real decision, pressure, or money question. I will answer from the curated wisdom library, with emotional clarity and no financial promises.",
-    trustScriptureBody:
-      "Scripture references come from Aletheia’s curated wisdom library. If a verse appears, you can tap it to see context and why it matters.",
-    trustBoundaryBody:
-      "Aletheia will not promise outcomes, predict markets, claim divine certainty, or replace qualified financial, legal, tax, medical, or pastoral counsel.",
-    trustMemoryBody:
-      "Signed-in memory helps continuity across decisions, reflections, counsel, and rules of life. It should make guidance more personal without exposing private details unnecessarily.",
-    trustConnectedDataBody:
-      "Future health, finance, or device integrations should be permission-by-permission, off by default, and limited to the exact data the user chooses to connect.",
-    accountNextEyebrow: "Next in Account",
-    accountNextReviewSyncFormation: "Review sync and formation",
-    accountNextSignInPortable: "Sign in to make Aletheia portable",
-    accountNextActiveBody: "Your account is active. Review preferences, history, and formation milestones when you need to.",
-    accountNextSyncBody: "Sync is active. Turn on one quiet daily wisdom prompt if this device should receive it.",
-    accountNextGuestBody: "Use Google or email to sync decisions, reflections, preferences, counsel, and notifications across devices.",
-    accountManageSummary: "Manage sign-in, sync, language, notifications, history, and formation milestones without crowding the wisdom companion.",
-    accountSignedInAs: "Signed in as",
-    accountSignInOrGuest: "Sign in or continue as guest",
-    accountSyncActive: "Sync active.",
-    accountNotificationsNotEnabled: "Notifications not enabled yet.",
-    accountGuestSummary: "Sign in to keep your history, preferences, and decisions.",
-    accountPreferencesEyebrow: "Preferences",
-    accountPreferencesSummary: "Language, Bible translation, appearance, region, and voice stay here so the Companion stays calm.",
-    accountContextActive: "Context active",
-    accountContextPaused: "Context paused",
-    accountArea: "area",
-    accountAreas: "areas",
-    accountAdded: "added",
-    accountManualContextSummary: "Manual context is optional and private. Add only what should shape Aletheia's counsel.",
-    accountDailyWisdomEnabled: "Daily wisdom enabled",
-    accountNotificationsSummaryEnabled: "Aletheia will use your saved local timing preference.",
-    accountNotificationsSummaryDisabled: "Turn on one quiet daily prompt when this device is ready.",
-    accountInstallTitle: "Add Aletheia to your home screen",
-    accountInstallSummary: "Install instructions are tucked away until someone needs the app-like setup.",
-    accountInstallEyebrow: "Install Aletheia",
-    accountInviteTitle: "Invite someone privately",
-    accountInviteSummary: "Share only the Aletheia link, never private questions, journals, or counsel by default.",
-    accountInviteEyebrow: "Invite Someone",
-    accountHistoryConversations: "conversations",
-    accountHistoryDecisions: "decisions",
-    accountHistoryReflections: "reflections",
-    accountHistorySummary: "History stays collapsed until you want to review what has been saved.",
-    accountStatConversations: "Conversations",
-    accountStatDecisions: "Decisions",
-    accountStatJournalEntries: "Journal entries",
-    accountHistoryEmptyBody: "Start with one honest question or one decision under pressure. Aletheia will keep the record quiet and useful.",
-    accountTrustPostureTitle: "Trust and privacy posture",
-    accountTrustPostureSummary: "See boundaries, saved data, and sharing rules.",
-    accountBoundariesTitle: "Aletheia's guardrails",
-    accountBoundariesSummary: "The app's safety boundaries remain visible when needed, not constantly in the way.",
-    accountBoundariesBody: "These constraints protect you from harmful AI advice and keep Aletheia faithful to its purpose.",
-    accountFormationPrefix: "Formation",
-    accountQuietMilestoneSingular: "quiet milestone",
-    accountQuietMilestonePlural: "quiet milestones",
-    accountFormationSummary: "Formation is a calm record of practice, not a scoreboard.",
-  },
+  en: enTranslations,
   es: {
     nav: { companion: "Inicio", decisions: "Decisiones", reflect: "Reflexión", library: "Biblioteca", account: "Cuenta" },
     decideShort: "Decidir",
@@ -2495,7 +2327,7 @@ function storedGratitudeEntries(): GratitudeEntry[] {
 
 function openGratitudeDatabase(): Promise<IDBDatabase> {
   if (typeof indexedDB === "undefined") {
-    return Promise.reject(new Error("IndexedDB is unavailable."));
+    return Promise.reject(new Error(englishText.errors.indexedDbUnavailable));
   }
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(GRATITUDE_INDEXED_DB_NAME, GRATITUDE_INDEXED_DB_VERSION);
@@ -2506,7 +2338,7 @@ function openGratitudeDatabase(): Promise<IDBDatabase> {
       }
     };
     request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error ?? new Error("Could not open gratitude storage."));
+    request.onerror = () => reject(request.error ?? new Error(englishText.errors.gratitudeStorageOpenFailed));
   });
 }
 
@@ -2545,8 +2377,8 @@ async function readGratitudeEntriesFromIndexedDB(): Promise<GratitudeEntry[] | n
             .slice(0, MAX_GRATITUDE_ENTRIES)
         );
       };
-      request.onerror = () => reject(request.error ?? new Error("Could not read gratitude storage."));
-      transaction.onerror = () => reject(transaction.error ?? new Error("Could not read gratitude storage."));
+      request.onerror = () => reject(request.error ?? new Error(englishText.errors.gratitudeStorageReadFailed));
+      transaction.onerror = () => reject(transaction.error ?? new Error(englishText.errors.gratitudeStorageReadFailed));
     });
   } catch {
     return null;
@@ -2563,14 +2395,14 @@ async function persistGratitudeEntries(entries: GratitudeEntry[]) {
         const transaction = db.transaction(GRATITUDE_INDEXED_DB_STORE, "readwrite");
         const store = transaction.objectStore(GRATITUDE_INDEXED_DB_STORE);
         const clearRequest = store.clear();
-        clearRequest.onerror = () => reject(clearRequest.error ?? new Error("Could not update gratitude storage."));
+        clearRequest.onerror = () => reject(clearRequest.error ?? new Error(englishText.errors.gratitudeStorageUpdateFailed));
         clearRequest.onsuccess = () => {
           nextEntries.forEach((entry) => {
             store.put(entry);
           });
         };
         transaction.oncomplete = () => resolve();
-        transaction.onerror = () => reject(transaction.error ?? new Error("Could not update gratitude storage."));
+        transaction.onerror = () => reject(transaction.error ?? new Error(englishText.errors.gratitudeStorageUpdateFailed));
       });
       try {
         window.localStorage.removeItem(GRATITUDE_LENS_STORAGE_KEY);
@@ -2622,7 +2454,7 @@ function gratitudeContextSummary(entries: GratitudeEntry[]): GratitudeContextSum
 function imageFileToLocalDataUrl(file: File, maxDimension = 1400, quality = 0.82): Promise<string> {
   return new Promise((resolve, reject) => {
     if (!file.type.startsWith("image/")) {
-      reject(new Error("Selected file is not an image."));
+      reject(new Error(englishText.errors.selectedFileNotImage));
       return;
     }
     const reader = new FileReader();
@@ -2637,16 +2469,16 @@ function imageFileToLocalDataUrl(file: File, maxDimension = 1400, quality = 0.82
         canvas.height = height;
         const context = canvas.getContext("2d");
         if (!context) {
-          reject(new Error("Could not prepare the image."));
+          reject(new Error(englishText.errors.imagePreparationFailed));
           return;
         }
         context.drawImage(img, 0, 0, width, height);
         resolve(canvas.toDataURL("image/jpeg", quality));
       };
-      img.onerror = () => reject(new Error("Could not read the selected image."));
+      img.onerror = () => reject(new Error(englishText.errors.selectedImageReadFailed));
       img.src = String(reader.result);
     };
-    reader.onerror = () => reject(new Error("Could not read the selected image."));
+    reader.onerror = () => reject(new Error(englishText.errors.selectedImageReadFailed));
     reader.readAsDataURL(file);
   });
 }
@@ -2727,7 +2559,7 @@ function createGratitudePostcardBlob(entry: GratitudeEntry, theme: ThemeColors, 
     canvas.height = 1600;
     const context = canvas.getContext("2d");
     if (!context) {
-      reject(new Error("Could not prepare postcard."));
+      reject(new Error(englishText.errors.postcardPreparationFailed));
       return;
     }
     const img = document.createElement("img");
@@ -2805,7 +2637,7 @@ function createGratitudePostcardBlob(entry: GratitudeEntry, theme: ThemeColors, 
         if (blob) {
           resolve(blob);
         } else {
-          reject(new Error("Could not export postcard."));
+          reject(new Error(englishText.errors.postcardExportFailed));
         }
       }, "image/png", 0.95);
       };
@@ -2815,7 +2647,7 @@ function createGratitudePostcardBlob(entry: GratitudeEntry, theme: ThemeColors, 
       logo.onerror = () => render();
       logo.src = "/brand/aletheia-app-icon-192.png";
     };
-    img.onerror = () => reject(new Error("Could not load gratitude image."));
+    img.onerror = () => reject(new Error(englishText.errors.gratitudeImageLoadFailed));
     img.src = entry.imageDataUrl;
   });
 }
@@ -2827,7 +2659,7 @@ function createWisdomPostcardBlob(payload: WisdomPostcardPayload, theme: ThemeCo
     canvas.height = 1600;
     const context = canvas.getContext("2d");
     if (!context) {
-      reject(new Error("Could not prepare wisdom card."));
+      reject(new Error(englishText.errors.wisdomCardPreparationFailed));
       return;
     }
 
@@ -2910,7 +2742,7 @@ function createWisdomPostcardBlob(payload: WisdomPostcardPayload, theme: ThemeCo
         if (blob) {
           resolve(blob);
         } else {
-          reject(new Error("Could not export wisdom card."));
+          reject(new Error(englishText.errors.wisdomCardExportFailed));
         }
       }, "image/png", 0.95);
     };
@@ -2922,7 +2754,9 @@ function createWisdomPostcardBlob(payload: WisdomPostcardPayload, theme: ThemeCo
   });
 }
 
-type UiText = NonNullable<(typeof uiText)["en"]>;
+type UiText = NonNullable<(typeof uiText)[LanguageCode]> & typeof enTranslations;
+
+const englishText: UiText = uiText.en as UiText;
 
 const speechPacingProfiles: Partial<Record<LanguageCode, { rate: number; pitch: number }>> = {
   en: { rate: 0.9, pitch: 1 },
@@ -3039,13 +2873,13 @@ function cleanDisplayText(text: string) {
     .trim();
 }
 
-function formatNextDecisionTitle(title: string, maxLength = 112) {
+function formatNextDecisionTitle(title: string, continueLabel = englishText.challenges.continueChallenge, maxLength = 112) {
   const cleaned = cleanDisplayText(title).replace(/\s+/g, " ");
   if (!cleaned) {
-    return "Continue";
+    return continueLabel;
   }
   if (cleaned.length <= maxLength) {
-    return `Continue: ${cleaned}`;
+    return `${continueLabel}: ${cleaned}`;
   }
   const minLength = Math.max(56, Math.floor(maxLength * 0.58));
   const previewWindow = cleaned.slice(0, maxLength + 1);
@@ -3055,24 +2889,24 @@ function formatNextDecisionTitle(title: string, maxLength = 112) {
     sentenceBreak = Math.max(sentenceBreak, previewWindow.lastIndexOf(mark));
   }
   if (sentenceBreak >= minLength - 1) {
-    return `Continue: ${previewWindow.slice(0, sentenceBreak + 1).trimEnd()}`;
+    return `${continueLabel}: ${previewWindow.slice(0, sentenceBreak + 1).trimEnd()}`;
   }
 
   const phraseBreak = previewWindow.lastIndexOf(",");
   if (phraseBreak >= Math.floor(maxLength * 0.72)) {
-    return `Continue: ${previewWindow.slice(0, phraseBreak).trimEnd()}...`;
+    return `${continueLabel}: ${previewWindow.slice(0, phraseBreak).trimEnd()}...`;
   }
 
   const wordBreak = previewWindow.lastIndexOf(" ");
   const cutoff = wordBreak >= minLength ? wordBreak : maxLength;
-  return `Continue: ${cleaned.slice(0, cutoff).trimEnd()}...`;
+  return `${continueLabel}: ${cleaned.slice(0, cutoff).trimEnd()}...`;
 }
 
 function browserTimezone() {
   try {
-    return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || DEFAULT_TIMEZONE;
   } catch {
-    return "UTC";
+    return DEFAULT_TIMEZONE;
   }
 }
 
@@ -3102,7 +2936,7 @@ function notificationTimeLabel(hour: number, locale: string = "en") {
 
 function notificationTimezoneOptions(currentTimezone?: string) {
   const fallbackZones = [
-    "UTC",
+    DEFAULT_TIMEZONE,
     "Europe/Berlin",
     "Europe/London",
     "Europe/Paris",
@@ -3138,7 +2972,7 @@ function notificationTimezoneOptions(currentTimezone?: string) {
 
   const preferred = currentTimezone?.trim() || "";
   const detected = browserTimezone();
-  const topChoices = [preferred, detected, "UTC", "Europe/Berlin"].filter(Boolean);
+  const topChoices = [preferred, detected, DEFAULT_TIMEZONE, "Europe/Berlin"].filter(Boolean);
 
   return Array.from(new Set([...topChoices, ...knownTimezones]));
 }
@@ -3158,7 +2992,7 @@ function shouldFallbackToBrowserTimezone(
     return false;
   }
   const normalized = preferredTimezone?.trim().toUpperCase();
-  return !normalized || normalized === "UTC";
+  return !normalized || normalized === DEFAULT_TIMEZONE;
 }
 
 function normalizeNotificationTiming(value?: Partial<NotificationTiming> | null): NotificationTiming {
@@ -3172,8 +3006,8 @@ function normalizeNotificationTiming(value?: Partial<NotificationTiming> | null)
     : notificationHourForStrategy(deliveryStrategy, DEFAULT_NOTIFICATION_TIMING.preferredLocalHour);
   const timezoneMode: NotificationTiming["timezoneMode"] = value?.timezoneMode === "manual" ? "manual" : "auto";
   const preferredTimezone = timezoneMode === "auto"
-    ? (typeof window === "undefined" ? "UTC" : browserTimezone())
-    : value?.preferredTimezone || (typeof window === "undefined" ? "UTC" : browserTimezone());
+    ? (typeof window === "undefined" ? DEFAULT_TIMEZONE : browserTimezone())
+    : value?.preferredTimezone || (typeof window === "undefined" ? DEFAULT_TIMEZONE : browserTimezone());
   return {
     preferredLocalHour: Math.min(23, Math.max(0, rawHour)),
     preferredTimezone,
@@ -3232,16 +3066,7 @@ function resolveExchangeMode(question: ChatMessage | null, answer: ChatMessage):
   return question?.mode ?? answer.mode ?? "Money";
 }
 
-type WisdomEntry = {
-  theme: string;
-  scripture: string;
-  principle: string;
-  context: string;
-  application: string;
-  keywords: string[];
-  emotions: string[];
-  questions: string[];
-};
+type WisdomEntry = WisdomEntryData;
 
 type ChatMessage = {
   id: string;
@@ -3604,104 +3429,144 @@ const modes: ModeCard[] = [
 
 const wisdomThemeDisplayLabels: Partial<Record<LanguageCode, Record<string, string>>> = {
   es: {
-    Stewardship: "Mayordomía",
-    Debt: "Deuda",
-    Contentment: "Contentamiento",
-    Counsel: "Consejo",
-    "Cost Counting": "Calcular costos",
-    Generosity: "Generosidad",
-    Diligence: "Diligencia",
-    "Provision and Anxiety": "Provisión y ansiedad",
+    [THEME_KEYS.STEWARDSHIP]: "Mayordomía",
+    [THEME_KEYS.DEBT]: "Deuda",
+    [DEFAULT_TODAY_VISUAL_THEME]: "Contentamiento",
+    [THEME_KEYS.COUNSEL]: "Consejo",
+    [THEME_KEYS.COST_COUNTING]: "Calcular costos",
+    [THEME_KEYS.GENEROSITY]: "Generosidad",
+    [THEME_KEYS.DILIGENCE]: "Diligencia",
+    [THEME_KEYS.PROVISION_AND_ANXIETY]: "Provisión y ansiedad",
+    [THEME_KEYS.RECOVERY]: "Recuperación",
+    [THEME_KEYS.CONFESSION]: "Confesión",
+    [THEME_KEYS.PURITY]: "Pureza",
+    [THEME_KEYS.FREEDOM]: "Libertad",
   },
   fr: {
-    Stewardship: "Intendance",
-    Debt: "Dette",
-    Contentment: "Contentement",
-    Counsel: "Conseil",
-    "Cost Counting": "Calcul des coûts",
-    Generosity: "Générosité",
-    Diligence: "Diligence",
-    "Provision and Anxiety": "Provision et anxiété",
+    [THEME_KEYS.STEWARDSHIP]: "Intendance",
+    [THEME_KEYS.DEBT]: "Dette",
+    [DEFAULT_TODAY_VISUAL_THEME]: "Contentement",
+    [THEME_KEYS.COUNSEL]: "Conseil",
+    [THEME_KEYS.COST_COUNTING]: "Calcul des coûts",
+    [THEME_KEYS.GENEROSITY]: "Générosité",
+    [THEME_KEYS.DILIGENCE]: "Diligence",
+    [THEME_KEYS.PROVISION_AND_ANXIETY]: "Provision et anxiété",
+    [THEME_KEYS.RECOVERY]: "Restauration",
+    [THEME_KEYS.CONFESSION]: "Confession",
+    [THEME_KEYS.PURITY]: "Pureté",
+    [THEME_KEYS.FREEDOM]: "Liberté",
   },
   pt: {
-    Stewardship: "Mordomia",
-    Debt: "Dívida",
-    Contentment: "Contentamento",
-    Counsel: "Conselho",
-    "Cost Counting": "Cálculo do custo",
-    Generosity: "Generosidade",
-    Diligence: "Diligência",
-    "Provision and Anxiety": "Provisão e ansiedade",
+    [THEME_KEYS.STEWARDSHIP]: "Mordomia",
+    [THEME_KEYS.DEBT]: "Dívida",
+    [DEFAULT_TODAY_VISUAL_THEME]: "Contentamento",
+    [THEME_KEYS.COUNSEL]: "Conselho",
+    [THEME_KEYS.COST_COUNTING]: "Cálculo do custo",
+    [THEME_KEYS.GENEROSITY]: "Generosidade",
+    [THEME_KEYS.DILIGENCE]: "Diligência",
+    [THEME_KEYS.PROVISION_AND_ANXIETY]: "Provisão e ansiedade",
+    [THEME_KEYS.RECOVERY]: "Restauração",
+    [THEME_KEYS.CONFESSION]: "Confissão",
+    [THEME_KEYS.PURITY]: "Pureza",
+    [THEME_KEYS.FREEDOM]: "Liberdade",
   },
   yo: {
-    Stewardship: "Ìtọ́jú",
-    Debt: "Gbèsè",
-    Contentment: "Ìtẹ́lọ́rùn",
-    Counsel: "Ìmọ̀ràn",
-    "Cost Counting": "Kíka iye owó",
-    Generosity: "Ọ̀fẹ́",
-    Diligence: "Ìsapá",
-    "Provision and Anxiety": "Ipèsè àti àníyàn",
+    [THEME_KEYS.STEWARDSHIP]: "Ìtọ́jú",
+    [THEME_KEYS.DEBT]: "Gbèsè",
+    [DEFAULT_TODAY_VISUAL_THEME]: "Ìtẹ́lọ́rùn",
+    [THEME_KEYS.COUNSEL]: "Ìmọ̀ràn",
+    [THEME_KEYS.COST_COUNTING]: "Kíka iye owó",
+    [THEME_KEYS.GENEROSITY]: "Ọ̀fẹ́",
+    [THEME_KEYS.DILIGENCE]: "Ìsapá",
+    [THEME_KEYS.PROVISION_AND_ANXIETY]: "Ipèsè àti àníyàn",
+    [THEME_KEYS.RECOVERY]: "Ìmúpadàbọ̀sípò",
+    [THEME_KEYS.CONFESSION]: "Ìjẹ́wọ́",
+    [THEME_KEYS.PURITY]: "Mímọ́",
+    [THEME_KEYS.FREEDOM]: "Òmìnira",
   },
   ig: {
-    Stewardship: "Nlekọta",
-    Debt: "Ụgwọ",
-    Contentment: "Afọ ojuju",
-    Counsel: "Ndụmọdụ",
-    "Cost Counting": "Ịgụ ụgwọ",
-    Generosity: "Mmesapụ aka",
-    Diligence: "Ịrụsi ọrụ ike",
-    "Provision and Anxiety": "Nlekọta na nchegbu",
+    [THEME_KEYS.STEWARDSHIP]: "Nlekọta",
+    [THEME_KEYS.DEBT]: "Ụgwọ",
+    [DEFAULT_TODAY_VISUAL_THEME]: "Afọ ojuju",
+    [THEME_KEYS.COUNSEL]: "Ndụmọdụ",
+    [THEME_KEYS.COST_COUNTING]: "Ịgụ ụgwọ",
+    [THEME_KEYS.GENEROSITY]: "Mmesapụ aka",
+    [THEME_KEYS.DILIGENCE]: "Ịrụsi ọrụ ike",
+    [THEME_KEYS.PROVISION_AND_ANXIETY]: "Nlekọta na nchegbu",
+    [THEME_KEYS.RECOVERY]: "Nlaghachi",
+    [THEME_KEYS.CONFESSION]: "Nkwupụta",
+    [THEME_KEYS.PURITY]: "Ịdị ọcha",
+    [THEME_KEYS.FREEDOM]: "Nnwere onwe",
   },
   ha: {
-    Stewardship: "Kulawa",
-    Debt: "Bashi",
-    Contentment: "Gamsuwa",
-    Counsel: "Shawara",
-    "Cost Counting": "Lissafin kuɗi",
-    Generosity: "Karimci",
-    Diligence: "Naci",
-    "Provision and Anxiety": "Tanadi da damuwa",
+    [THEME_KEYS.STEWARDSHIP]: "Kulawa",
+    [THEME_KEYS.DEBT]: "Bashi",
+    [DEFAULT_TODAY_VISUAL_THEME]: "Gamsuwa",
+    [THEME_KEYS.COUNSEL]: "Shawara",
+    [THEME_KEYS.COST_COUNTING]: "Lissafin kuɗi",
+    [THEME_KEYS.GENEROSITY]: "Karimci",
+    [THEME_KEYS.DILIGENCE]: "Naci",
+    [THEME_KEYS.PROVISION_AND_ANXIETY]: "Tanadi da damuwa",
+    [THEME_KEYS.RECOVERY]: "Warkewa",
+    [THEME_KEYS.CONFESSION]: "Iƙirari",
+    [THEME_KEYS.PURITY]: "Tsabta",
+    [THEME_KEYS.FREEDOM]: "'Yanci",
   },
   tl: {
-    Stewardship: "Pangangalaga",
-    Debt: "Utang",
-    Contentment: "Kasapatan",
-    Counsel: "Payo",
-    "Cost Counting": "Pagbilang ng Gastos",
-    Generosity: "Pagkamapagbigay",
-    Diligence: "Sipag",
-    "Provision and Anxiety": "Paglalaan at Pag-aalala",
+    [THEME_KEYS.STEWARDSHIP]: "Pangangalaga",
+    [THEME_KEYS.DEBT]: "Utang",
+    [DEFAULT_TODAY_VISUAL_THEME]: "Kasapatan",
+    [THEME_KEYS.COUNSEL]: "Payo",
+    [THEME_KEYS.COST_COUNTING]: "Pagbilang ng Gastos",
+    [THEME_KEYS.GENEROSITY]: "Pagkamapagbigay",
+    [THEME_KEYS.DILIGENCE]: "Sipag",
+    [THEME_KEYS.PROVISION_AND_ANXIETY]: "Paglalaan at Pag-aalala",
+    [THEME_KEYS.RECOVERY]: "Pagbangon",
+    [THEME_KEYS.CONFESSION]: "Pag-amin",
+    [THEME_KEYS.PURITY]: "Kadalisayan",
+    [THEME_KEYS.FREEDOM]: "Kalayaan",
   },
   ar: {
-    Stewardship: "الرعاية",
-    Debt: "الدَّين",
-    Contentment: "القناعة",
-    Counsel: "المشورة",
-    "Cost Counting": "حساب التكلفة",
-    Generosity: "الكرم",
-    Diligence: "المثابرة",
-    "Provision and Anxiety": "الرزق والقلق",
+    [THEME_KEYS.STEWARDSHIP]: "الرعاية",
+    [THEME_KEYS.DEBT]: "الدَّين",
+    [DEFAULT_TODAY_VISUAL_THEME]: "القناعة",
+    [THEME_KEYS.COUNSEL]: "المشورة",
+    [THEME_KEYS.COST_COUNTING]: "حساب التكلفة",
+    [THEME_KEYS.GENEROSITY]: "الكرم",
+    [THEME_KEYS.DILIGENCE]: "المثابرة",
+    [THEME_KEYS.PROVISION_AND_ANXIETY]: "الرزق والقلق",
+    [THEME_KEYS.RECOVERY]: "الشفاء",
+    [THEME_KEYS.CONFESSION]: "الاعتراف",
+    [THEME_KEYS.PURITY]: "الطهارة",
+    [THEME_KEYS.FREEDOM]: "الحرية",
   },
   hi: {
-    Stewardship: "प्रबंध",
-    Debt: "कर्ज",
-    Contentment: "संतोष",
-    Counsel: "सलाह",
-    "Cost Counting": "लागत का हिसाब",
-    Generosity: "उदारता",
-    Diligence: "लगन",
-    "Provision and Anxiety": "प्रावधान और चिंता",
+    [THEME_KEYS.STEWARDSHIP]: "प्रबंध",
+    [THEME_KEYS.DEBT]: "कर्ज",
+    [DEFAULT_TODAY_VISUAL_THEME]: "संतोष",
+    [THEME_KEYS.COUNSEL]: "सलाह",
+    [THEME_KEYS.COST_COUNTING]: "लागत का हिसाब",
+    [THEME_KEYS.GENEROSITY]: "उदारता",
+    [THEME_KEYS.DILIGENCE]: "लगन",
+    [THEME_KEYS.PROVISION_AND_ANXIETY]: "प्रावधान और चिंता",
+    [THEME_KEYS.RECOVERY]: "पुनर्स्थापन",
+    [THEME_KEYS.CONFESSION]: "स्वीकारोक्ति",
+    [THEME_KEYS.PURITY]: "पवित्रता",
+    [THEME_KEYS.FREEDOM]: "स्वतंत्रता",
   },
   de: {
-    Stewardship: "Verantwortliche Verwaltung",
-    Debt: "Schulden",
-    Contentment: "Genügsamkeit",
-    Counsel: "Rat",
-    "Cost Counting": "Kostenberechnung",
-    Generosity: "Großzügigkeit",
-    Diligence: "Fleiß",
-    "Provision and Anxiety": "Versorgung und Sorge",
+    [THEME_KEYS.STEWARDSHIP]: "Verantwortliche Verwaltung",
+    [THEME_KEYS.DEBT]: "Schulden",
+    [DEFAULT_TODAY_VISUAL_THEME]: "Genügsamkeit",
+    [THEME_KEYS.COUNSEL]: "Rat",
+    [THEME_KEYS.COST_COUNTING]: "Kostenberechnung",
+    [THEME_KEYS.GENEROSITY]: "Großzügigkeit",
+    [THEME_KEYS.DILIGENCE]: "Fleiß",
+    [THEME_KEYS.PROVISION_AND_ANXIETY]: "Versorgung und Sorge",
+    [THEME_KEYS.RECOVERY]: "Wiederherstellung",
+    [THEME_KEYS.CONFESSION]: "Bekenntnis",
+    [THEME_KEYS.PURITY]: "Reinheit",
+    [THEME_KEYS.FREEDOM]: "Freiheit",
   },
 };
 
@@ -3769,43 +3634,7 @@ type RuntimePanelCopy = {
 };
 
 const runtimePanelCopy: Partial<Record<LanguageCode, RuntimePanelCopy>> = {
-  en: {
-    timelineReady: "Your timeline is ready to track decisions, patterns, counsel, and learning.",
-    nextInDecisions: "Next in Decisions",
-    decisionNextTitleDefault: "Name the decision under pressure",
-    decisionNextBodyActive: "Update counsel, cost, waiting, and peace signals so the decision has a real timeline.",
-    decisionNextBodyEmpty: "Start with one decision and the pressure attached to it. Aletheia will track wisdom, counsel, and readiness over time.",
-    decisionCompanionHeading: "Track the decision until wisdom has had time to work.",
-    decisionCompanionSub: "Memory, counsel, waiting, summary export, and a calm readiness signal for major choices.",
-    ruleOfLife: "Rule of Life",
-    ruleOfLifePrincipleSingular: "principle",
-    ruleOfLifePrinciplePlural: "principles",
-    ruleOfLifeSummary: "Personal principles stay close, but collapsed until you are shaping a decision.",
-    decisionPracticeLine: "Name what is enough for this season",
-    nextInReflect: "Next in Reflect",
-    reflectNextTitleDefault: "Begin with one honest sentence",
-    reflectNextTitleActive: "Finish the reflection in front of you",
-    reflectNextBodyDefault: "Use Wisdom Check for a quick discernment scan, or write what you notice about money, work, fear, generosity, or pace.",
-    reflectNextBodyActive: "Save what you are noticing while the insight is still fresh.",
-    reflectIntro: "Use Wisdom Check to slow a decision down, then save what you notice before the moment passes.",
-    wisdomCheck: "Wisdom Check",
-    wisdomCheckSummaryDefault: "Open when a decision needs a quick discernment scan.",
-    wisdomCheckUrgency: "urgency noticed",
-    wisdomCheckSlower: "pressure looks slower",
-    decisionScan: "Decision scan",
-    reflectionHistory: "Reflection history",
-    savedReflectionSingular: "saved reflection",
-    savedReflectionPlural: "saved reflections",
-    reflectionHistorySummaryActive: "Open your past reflections when you want to review growth.",
-    reflectionHistorySummaryDefault: "Past reflections will stay here once saved.",
-    nextInLibrary: "Next in Library",
-    libraryNextTitleDefault: "Search one wisdom theme",
-    libraryNextBodySearch: "Open a scripture reference to read the passage context and why it matters here.",
-    libraryTryPrefix: "Try",
-    libraryDescription: "A curated wisdom base with language-aware application notes and public-domain translation labels.",
-    fullWisdomLibrary: "Full wisdom library",
-    moreAnchors: "more anchors",
-  },
+  en: enTranslations.runtimePanel as RuntimePanelCopy,
   tl: {
     timelineReady: "Handa na ang iyong timeline para subaybayan ang mga desisyon, pattern, payo, at pagkatuto.",
     nextInDecisions: "Susunod sa Mga Desisyon",
@@ -4271,7 +4100,7 @@ function searchWisdom(query: string, mode: Mode, limit = 3, preferences: UserPre
         (score, term) => score + (haystack.includes(term) ? 2 : 0),
         haystack.includes(mode.toLowerCase()) ? 2 : 0
       );
-      return { entry: localizedEntry, score: themeScore + exactKeywordScore + keywordScore + modeScore };
+      return { entry, score: themeScore + exactKeywordScore + keywordScore + modeScore };
     })
     .sort((a, b) => b.score - a.score)
     .slice(0, limit)
@@ -4360,7 +4189,7 @@ function localTodayVisualAsset(title: string, fileName: string): TodayVisualPhot
 }
 
 const TODAY_VISUAL_LIBRARY: Record<string, TodayVisualAsset[]> = {
-  Stewardship: [
+  [THEME_KEYS.STEWARDSHIP]: [
     {
       kind: "photo",
       title: "sunrise-on-the-road",
@@ -4397,7 +4226,7 @@ const TODAY_VISUAL_LIBRARY: Record<string, TodayVisualAsset[]> = {
       license: "CC0",
     },
   ],
-  "Cost Counting": [
+  [THEME_KEYS.COST_COUNTING]: [
     {
       kind: "photo",
       title: "new-horizons",
@@ -4434,7 +4263,7 @@ const TODAY_VISUAL_LIBRARY: Record<string, TodayVisualAsset[]> = {
       license: "CC0",
     },
   ],
-  Diligence: [
+  [THEME_KEYS.DILIGENCE]: [
     {
       kind: "photo",
       title: "field-under-clear-sky",
@@ -4471,7 +4300,7 @@ const TODAY_VISUAL_LIBRARY: Record<string, TodayVisualAsset[]> = {
       license: "CC0",
     },
   ],
-  "Provision and Anxiety": [
+  [THEME_KEYS.PROVISION_AND_ANXIETY]: [
     {
       kind: "photo",
       title: "ireland-fields-and-sky",
@@ -4494,7 +4323,7 @@ const TODAY_VISUAL_LIBRARY: Record<string, TodayVisualAsset[]> = {
       license: "Public domain",
     },
   ],
-  Generosity: [
+  [THEME_KEYS.GENEROSITY]: [
     {
       kind: "photo",
       title: "sunrise-on-the-road",
@@ -4524,7 +4353,7 @@ const TODAY_VISUAL_LIBRARY: Record<string, TodayVisualAsset[]> = {
       license: "CC0",
     },
   ],
-  Contentment: [
+  [DEFAULT_TODAY_VISUAL_THEME]: [
     {
       kind: "photo",
       title: "field-under-clear-sky",
@@ -4554,7 +4383,7 @@ const TODAY_VISUAL_LIBRARY: Record<string, TodayVisualAsset[]> = {
       license: "CC0",
     },
   ],
-  Counsel: [
+  [THEME_KEYS.COUNSEL]: [
     {
       kind: "illustration",
       title: "stillness-path",
@@ -4575,7 +4404,7 @@ const TODAY_VISUAL_LIBRARY: Record<string, TodayVisualAsset[]> = {
       license: "CC0",
     },
   ],
-  Debt: [
+  [THEME_KEYS.DEBT]: [
     {
       kind: "illustration",
       title: "measured-balance",
@@ -4624,35 +4453,35 @@ const TODAY_VISUAL_LIBRARY: Record<string, TodayVisualAsset[]> = {
 };
 
 const TODAY_LOCAL_VISUAL_LIBRARY: Record<string, TodayVisualPhoto[]> = {
-  Stewardship: [
+  [THEME_KEYS.STEWARDSHIP]: [
     localTodayVisualAsset("curated-warm-horizon", "warm-horizon.svg"),
     localTodayVisualAsset("curated-open-sky", "open-sky.svg"),
   ],
-  "Cost Counting": [
+  [THEME_KEYS.COST_COUNTING]: [
     localTodayVisualAsset("curated-open-sky", "open-sky.svg"),
     localTodayVisualAsset("curated-steady-field", "steady-field.svg"),
   ],
-  Diligence: [
+  [THEME_KEYS.DILIGENCE]: [
     localTodayVisualAsset("curated-steady-field", "steady-field.svg"),
     localTodayVisualAsset("curated-workbench-focus", "workbench-focus.svg"),
   ],
-  "Provision and Anxiety": [
+  [THEME_KEYS.PROVISION_AND_ANXIETY]: [
     localTodayVisualAsset("curated-calm-water", "calm-water.svg"),
     localTodayVisualAsset("curated-quiet-forest", "quiet-forest.svg"),
   ],
-  Generosity: [
+  [THEME_KEYS.GENEROSITY]: [
     localTodayVisualAsset("curated-dawn-path", "dawn-path.svg"),
     localTodayVisualAsset("curated-warm-horizon", "warm-horizon.svg"),
   ],
-  Contentment: [
+  [DEFAULT_TODAY_VISUAL_THEME]: [
     localTodayVisualAsset("curated-calm-water", "calm-water.svg"),
     localTodayVisualAsset("curated-gentle-reading-light", "gentle-reading-light.svg"),
   ],
-  Counsel: [
+  [THEME_KEYS.COUNSEL]: [
     localTodayVisualAsset("curated-gentle-reading-light", "gentle-reading-light.svg"),
     localTodayVisualAsset("curated-trusted-lantern", "trusted-lantern.svg"),
   ],
-  Debt: [
+  [THEME_KEYS.DEBT]: [
     localTodayVisualAsset("curated-trusted-lantern", "trusted-lantern.svg"),
     localTodayVisualAsset("curated-steady-field", "steady-field.svg"),
   ],
@@ -4667,19 +4496,19 @@ const TODAY_LOCAL_VISUAL_LIBRARY: Record<string, TodayVisualPhoto[]> = {
 };
 
 const TODAY_VISUAL_THEME_ALIASES: Record<string, string> = {
-  Recovery: "Contentment",
-  Confession: "Contentment",
-  Purity: "Contentment",
-  Freedom: "Stewardship",
+  [THEME_KEYS.RECOVERY]: DEFAULT_TODAY_VISUAL_THEME,
+  [THEME_KEYS.CONFESSION]: DEFAULT_TODAY_VISUAL_THEME,
+  [THEME_KEYS.PURITY]: DEFAULT_TODAY_VISUAL_THEME,
+  [THEME_KEYS.FREEDOM]: THEME_KEYS.STEWARDSHIP,
 };
 
 const TODAY_VISUAL_THEME_KEYWORD_ALIASES: Array<{ pattern: RegExp; theme: string }> = [
-  { pattern: /(purity|holiness|temptation|confession|recovery|freedom|integrity)/i, theme: "Contentment" },
-  { pattern: /(anxiety|worry|fear|scarcity|provision)/i, theme: "Provision and Anxiety" },
+  { pattern: /(purity|holiness|temptation|confession|recovery|freedom|integrity)/i, theme: DEFAULT_TODAY_VISUAL_THEME },
+  { pattern: /(anxiety|worry|fear|scarcity|provision)/i, theme: THEME_KEYS.PROVISION_AND_ANXIETY },
   { pattern: /(work|career|calling|craft|labor)/i, theme: "Work" },
-  { pattern: /(give|gift|generosity|charity|mercy)/i, theme: "Generosity" },
-  { pattern: /(debt|loan|credit|repayment)/i, theme: "Debt" },
-  { pattern: /(counsel|advice|mentor|guidance|discernment)/i, theme: "Counsel" },
+  { pattern: /(give|gift|generosity|charity|mercy)/i, theme: THEME_KEYS.GENEROSITY },
+  { pattern: /(debt|loan|credit|repayment)/i, theme: THEME_KEYS.DEBT },
+  { pattern: /(counsel|advice|mentor|guidance|discernment)/i, theme: THEME_KEYS.COUNSEL },
 ];
 
 function resolveTodayVisualTheme(theme: string) {
@@ -4698,59 +4527,59 @@ function resolveTodayVisualTheme(theme: string) {
     return inferred.theme;
   }
 
-  return "Contentment";
+  return DEFAULT_TODAY_VISUAL_THEME;
 }
 
 function localTodayVisualsForTheme(theme: string) {
   const visualTheme = resolveTodayVisualTheme(theme);
-  return TODAY_LOCAL_VISUAL_LIBRARY[visualTheme] ?? TODAY_LOCAL_VISUAL_LIBRARY.Contentment;
+  return TODAY_LOCAL_VISUAL_LIBRARY[visualTheme] ?? TODAY_LOCAL_VISUAL_LIBRARY[DEFAULT_TODAY_VISUAL_THEME];
 }
 
 const TODAY_THEME_VISUAL_PRIORITIES: Record<string, string[]> = {
-  Stewardship: ["sunrise-on-the-road", "field-in-sunrise", "hopeful-horizons", "new-horizons"],
-  "Cost Counting": ["hopeful-horizons", "sunrise-on-the-road", "field-in-sunrise", "new-horizons"],
-  Diligence: ["field-under-clear-sky", "lush-green-field", "ireland-fields-and-sky"],
-  "Provision and Anxiety": ["ireland-fields-and-sky", "field-under-clear-sky", "staying-up-all-night", "hopeful-horizons"],
-  Contentment: ["field-under-clear-sky", "ireland-fields-and-sky", "hopeful-horizons"],
-  Generosity: ["sunrise-on-the-road", "field-in-sunrise", "field-under-clear-sky"],
-  Counsel: ["window-reading", "quiet-reading", "stillness-path"],
-  Debt: ["measured-balance"],
+  [THEME_KEYS.STEWARDSHIP]: ["sunrise-on-the-road", "field-in-sunrise", "hopeful-horizons", "new-horizons"],
+  [THEME_KEYS.COST_COUNTING]: ["hopeful-horizons", "sunrise-on-the-road", "field-in-sunrise", "new-horizons"],
+  [THEME_KEYS.DILIGENCE]: ["field-under-clear-sky", "lush-green-field", "ireland-fields-and-sky"],
+  [THEME_KEYS.PROVISION_AND_ANXIETY]: ["ireland-fields-and-sky", "field-under-clear-sky", "staying-up-all-night", "hopeful-horizons"],
+  [DEFAULT_TODAY_VISUAL_THEME]: ["field-under-clear-sky", "ireland-fields-and-sky", "hopeful-horizons"],
+  [THEME_KEYS.GENEROSITY]: ["sunrise-on-the-road", "field-in-sunrise", "field-under-clear-sky"],
+  [THEME_KEYS.COUNSEL]: ["window-reading", "quiet-reading", "stillness-path"],
+  [THEME_KEYS.DEBT]: ["measured-balance"],
   Work: ["field-under-clear-sky", "ireland-fields-and-sky", "new-horizons"],
   Life: ["field-under-clear-sky", "hopeful-horizons", "ireland-fields-and-sky"],
 };
 
 const TODAY_THEME_HUMAN_PRIORITIES: Record<string, Partial<Record<TodayVisualMood, string[]>>> = {
-  Stewardship: {
+  [THEME_KEYS.STEWARDSHIP]: {
     warm: ["business-notes", "writing-the-moment"],
     cool: ["business-notes", "writing-the-moment"],
     contemplative: ["writing-the-moment", "business-notes"],
   },
-  "Cost Counting": {
+  [THEME_KEYS.COST_COUNTING]: {
     warm: ["business-notes", "writing-the-moment"],
     cool: ["writing-the-moment", "business-notes"],
     contemplative: ["writing-the-moment", "business-notes"],
   },
-  Diligence: {
+  [THEME_KEYS.DILIGENCE]: {
     warm: ["writing-with-both-hands", "business-notes", "writing-the-moment"],
     cool: ["writing-the-moment", "writing-with-both-hands", "business-notes"],
     contemplative: ["writing-the-moment", "writing-with-both-hands", "business-notes"],
   },
-  Generosity: {
+  [THEME_KEYS.GENEROSITY]: {
     warm: ["sharing-a-meal", "sunrise-hike"],
     cool: ["sunrise-hike", "sharing-a-meal"],
     contemplative: ["sharing-a-meal", "sunrise-hike"],
   },
-  "Provision and Anxiety": {
+  [THEME_KEYS.PROVISION_AND_ANXIETY]: {
     warm: ["sharing-a-meal", "quiet-reading"],
     cool: ["window-reading", "quiet-reading"],
     contemplative: ["quiet-reading", "window-reading", "sharing-a-meal"],
   },
-  Counsel: {
+  [THEME_KEYS.COUNSEL]: {
     warm: ["quiet-reading", "window-reading"],
     cool: ["window-reading", "quiet-reading"],
     contemplative: ["window-reading", "quiet-reading"],
   },
-  Contentment: {
+  [DEFAULT_TODAY_VISUAL_THEME]: {
     warm: ["quiet-reading", "window-reading"],
     cool: ["window-reading", "quiet-reading"],
     contemplative: ["quiet-reading", "window-reading"],
@@ -4781,42 +4610,42 @@ type TodayVisualPlacement = {
 };
 
 const TODAY_THEME_MOOD_PRIORITIES: Record<string, Partial<Record<TodayVisualMood, string[]>>> = {
-  Stewardship: {
+  [THEME_KEYS.STEWARDSHIP]: {
     warm: ["sunrise-on-the-road", "field-in-sunrise", "new-horizons", "hopeful-horizons"],
     cool: ["new-horizons", "hopeful-horizons", "field-under-clear-sky"],
     contemplative: ["new-horizons", "hopeful-horizons", "field-under-clear-sky"],
   },
-  "Cost Counting": {
+  [THEME_KEYS.COST_COUNTING]: {
     warm: ["hopeful-horizons", "sunrise-on-the-road", "field-in-sunrise", "new-horizons"],
     cool: ["new-horizons", "hopeful-horizons", "field-under-clear-sky"],
     contemplative: ["hopeful-horizons", "new-horizons", "field-under-clear-sky"],
   },
-  Diligence: {
+  [THEME_KEYS.DILIGENCE]: {
     warm: ["lush-green-field", "field-under-clear-sky", "ireland-fields-and-sky"],
     cool: ["field-under-clear-sky", "ireland-fields-and-sky", "lush-green-field"],
     contemplative: ["ireland-fields-and-sky", "field-under-clear-sky", "lush-green-field"],
   },
-  "Provision and Anxiety": {
+  [THEME_KEYS.PROVISION_AND_ANXIETY]: {
     warm: ["field-under-clear-sky", "ireland-fields-and-sky", "hopeful-horizons"],
     cool: ["ireland-fields-and-sky", "field-under-clear-sky", "hopeful-horizons"],
     contemplative: ["ireland-fields-and-sky", "field-under-clear-sky", "hopeful-horizons"],
   },
-  Generosity: {
+  [THEME_KEYS.GENEROSITY]: {
     warm: ["sunrise-on-the-road", "field-in-sunrise", "field-under-clear-sky"],
     cool: ["field-under-clear-sky", "hopeful-horizons", "new-horizons"],
     contemplative: ["field-under-clear-sky", "hopeful-horizons", "new-horizons"],
   },
-  Contentment: {
+  [DEFAULT_TODAY_VISUAL_THEME]: {
     warm: ["hopeful-horizons", "field-under-clear-sky", "ireland-fields-and-sky"],
     cool: ["field-under-clear-sky", "ireland-fields-and-sky", "hopeful-horizons"],
     contemplative: ["ireland-fields-and-sky", "field-under-clear-sky", "hopeful-horizons"],
   },
-  Counsel: {
+  [THEME_KEYS.COUNSEL]: {
     warm: ["quiet-reading", "window-reading", "stillness-path"],
     cool: ["window-reading", "quiet-reading", "stillness-path"],
     contemplative: ["window-reading", "quiet-reading", "stillness-path"],
   },
-  Debt: {
+  [THEME_KEYS.DEBT]: {
     warm: ["measured-balance"],
     cool: ["measured-balance"],
     contemplative: ["measured-balance"],
@@ -4824,19 +4653,19 @@ const TODAY_THEME_MOOD_PRIORITIES: Record<string, Partial<Record<TodayVisualMood
 };
 
 const TODAY_THEME_TIME_PRIORITIES: Record<string, { morning?: string[]; winter?: string[]; weekend?: string[] }> = {
-  Stewardship: {
+  [THEME_KEYS.STEWARDSHIP]: {
     morning: ["sunrise-on-the-road", "field-in-sunrise", "new-horizons"],
   },
-  Generosity: {
+  [THEME_KEYS.GENEROSITY]: {
     morning: ["sunrise-on-the-road", "field-in-sunrise", "field-under-clear-sky"],
   },
-  "Provision and Anxiety": {
+  [THEME_KEYS.PROVISION_AND_ANXIETY]: {
     winter: ["ireland-fields-and-sky", "field-under-clear-sky", "hopeful-horizons"],
   },
-  Counsel: {
+  [THEME_KEYS.COUNSEL]: {
     weekend: ["stillness-path"],
   },
-  Contentment: {
+  [DEFAULT_TODAY_VISUAL_THEME]: {
     weekend: ["ireland-fields-and-sky", "field-under-clear-sky", "hopeful-horizons"],
   },
   Work: {
@@ -4875,31 +4704,31 @@ function shouldUseHumanAccent({
   let chance = 0.16;
 
   switch (theme) {
-    case "Stewardship":
+    case THEME_KEYS.STEWARDSHIP:
       eligible = isMorning || mood === "warm" || mood === "contemplative";
       chance = isMorning ? 0.68 : mood === "warm" ? 0.38 : 0.24;
       break;
-    case "Cost Counting":
+    case THEME_KEYS.COST_COUNTING:
       eligible = isMorning || isAfternoon || mood === "warm";
       chance = isMorning ? 0.42 : isAfternoon ? 0.24 : 0.16;
       break;
-    case "Diligence":
+    case THEME_KEYS.DILIGENCE:
       eligible = true;
       chance = isMorning ? 0.56 : mood === "warm" ? 0.34 : mood === "contemplative" ? 0.3 : 0.22;
       break;
-    case "Generosity":
+    case THEME_KEYS.GENEROSITY:
       eligible = isMorning || isWeekend || mood === "warm" || mood === "contemplative";
       chance = isMorning ? 0.68 : isWeekend ? (mood === "contemplative" ? 0.54 : 0.4) : mood === "warm" ? 0.36 : 0.24;
       break;
-    case "Provision and Anxiety":
+    case THEME_KEYS.PROVISION_AND_ANXIETY:
       eligible = isWinter || isWeekend || mood === "contemplative";
       chance = isWinter ? (mood === "contemplative" ? 0.36 : 0.24) : isWeekend ? 0.2 : 0.12;
       break;
-    case "Counsel":
+    case THEME_KEYS.COUNSEL:
       eligible = isWeekend || isEvening || mood === "contemplative";
       chance = isWeekend ? (mood === "contemplative" ? 0.62 : 0.46) : isEvening ? (mood === "contemplative" ? 0.44 : 0.26) : 0.16;
       break;
-    case "Contentment":
+    case DEFAULT_TODAY_VISUAL_THEME:
       eligible = isWeekend || isEvening || mood === "contemplative";
       chance = isWeekend ? (mood === "contemplative" ? 0.6 : 0.44) : isEvening ? (mood === "contemplative" ? 0.42 : 0.24) : 0.14;
       break;
@@ -4969,15 +4798,15 @@ function resolveTodayVisualLabelTone({
   month: number | null;
   dayOfWeek: number | null;
 }): TodayVisualLabelTone {
-  if ((theme === "Stewardship" || theme === "Generosity") && hour !== null && hour >= 5 && hour < 11) {
+  if ((theme === THEME_KEYS.STEWARDSHIP || theme === THEME_KEYS.GENEROSITY) && hour !== null && hour >= 5 && hour < 11) {
     return "warm";
   }
 
-  if (theme === "Provision and Anxiety" && month !== null && [12, 1, 2].includes(month)) {
+  if (theme === THEME_KEYS.PROVISION_AND_ANXIETY && month !== null && [12, 1, 2].includes(month)) {
     return "quiet";
   }
 
-  if ((theme === "Counsel" || theme === "Contentment") && dayOfWeek !== null && (dayOfWeek === 0 || dayOfWeek === 6)) {
+  if ((theme === THEME_KEYS.COUNSEL || theme === DEFAULT_TODAY_VISUAL_THEME) && dayOfWeek !== null && (dayOfWeek === 0 || dayOfWeek === 6)) {
     return "quiet";
   }
 
@@ -5460,74 +5289,6 @@ function seasonalCopy(language: LanguageCode) {
   return seasonalCopyByLanguage[language] ?? seasonalCopyByLanguage.en!;
 }
 
-function todayVisualLabelCopy({
-  language,
-  theme,
-  mood,
-  hour,
-  month,
-  dayOfWeek,
-}: {
-  language: LanguageCode;
-  theme: string;
-  mood: TodayVisualMood;
-  hour: number | null;
-  month: number | null;
-  dayOfWeek: number | null;
-}) {
-  const copy = seasonalCopy(language);
-  const tone = resolveTodayVisualLabelTone({ theme, mood, hour, month, dayOfWeek });
-  const isMorningSunriseTheme = (theme === "Stewardship" || theme === "Generosity") && hour !== null && hour >= 5 && hour < 11;
-  const isWinterTheme = theme === "Provision and Anxiety" && month !== null && [12, 1, 2].includes(month);
-  const isWeekendTheme = (theme === "Counsel" || theme === "Contentment") && dayOfWeek !== null && (dayOfWeek === 0 || dayOfWeek === 6);
-
-  if (isMorningSunriseTheme) {
-    return {
-      eyebrow: copy.morningLight,
-      caption: theme === "Stewardship" ? copy.openHorizon : copy.quietGenerosity,
-      source: copy.openSource,
-    };
-  }
-
-  if (isWinterTheme) {
-    return {
-      eyebrow: copy.winterHush,
-      caption: copy.calmField,
-      source: copy.openSource,
-    };
-  }
-
-  if (isWeekendTheme) {
-    return {
-      eyebrow: copy.weekendStillness,
-      caption: theme === "Contentment" ? copy.enoughQuietly : copy.slowReflection,
-      source: copy.openSource,
-    };
-  }
-
-  if (tone === "warm") {
-    return {
-      eyebrow: copy.warmLight,
-      caption: theme === "Stewardship" || theme === "Generosity" ? copy.gentleBeginning : copy.softHorizon,
-      source: copy.openSource,
-    };
-  }
-
-  if (tone === "quiet") {
-    return {
-      eyebrow: copy.stillReflection,
-      caption: copy.stillReflection,
-      source: copy.calmSource,
-    };
-  }
-
-  return {
-    eyebrow: copy.openHorizon,
-    caption: copy.steadyFocus,
-    source: copy.openSource,
-  };
-}
-
 function todaySeasonalHeaderCopy({
   language,
   theme,
@@ -5545,14 +5306,14 @@ function todaySeasonalHeaderCopy({
 }) {
   const copy = seasonalCopy(language);
   const tone = resolveTodayVisualLabelTone({ theme, mood, hour, month, dayOfWeek });
-  const isMorningSunriseTheme = (theme === "Stewardship" || theme === "Generosity") && hour !== null && hour >= 5 && hour < 11;
-  const isWinterTheme = theme === "Provision and Anxiety" && month !== null && [12, 1, 2].includes(month);
-  const isWeekendTheme = (theme === "Counsel" || theme === "Contentment") && dayOfWeek !== null && (dayOfWeek === 0 || dayOfWeek === 6);
+  const isMorningSunriseTheme = (theme === THEME_KEYS.STEWARDSHIP || theme === THEME_KEYS.GENEROSITY) && hour !== null && hour >= 5 && hour < 11;
+  const isWinterTheme = theme === THEME_KEYS.PROVISION_AND_ANXIETY && month !== null && [12, 1, 2].includes(month);
+  const isWeekendTheme = (theme === THEME_KEYS.COUNSEL || theme === DEFAULT_TODAY_VISUAL_THEME) && dayOfWeek !== null && (dayOfWeek === 0 || dayOfWeek === 6);
 
   if (isMorningSunriseTheme) {
     return {
       eyebrow: copy.morningGuidance,
-      body: theme === "Stewardship" ? copy.clearStartEntrusted : copy.gentleStartGive,
+      body: theme === THEME_KEYS.STEWARDSHIP ? copy.clearStartEntrusted : copy.gentleStartGive,
     };
   }
 
@@ -5566,7 +5327,7 @@ function todaySeasonalHeaderCopy({
   if (isWeekendTheme) {
     return {
       eyebrow: copy.weekendStillness,
-      body: theme === "Contentment" ? copy.weekendMoreRoom : copy.softerPaceTrust,
+      body: theme === DEFAULT_TODAY_VISUAL_THEME ? copy.weekendMoreRoom : copy.softerPaceTrust,
     };
   }
 
@@ -5606,9 +5367,9 @@ function homeWelcomeSeasonalCopy({
   dayOfWeek: number | null;
 }) {
   const copy = seasonalCopy(language);
-  const isMorningSunriseTheme = (theme === "Stewardship" || theme === "Generosity") && hour !== null && hour >= 5 && hour < 11;
-  const isWinterTheme = theme === "Provision and Anxiety" && month !== null && [12, 1, 2].includes(month);
-  const isWeekendTheme = (theme === "Counsel" || theme === "Contentment") && dayOfWeek !== null && (dayOfWeek === 0 || dayOfWeek === 6);
+  const isMorningSunriseTheme = (theme === THEME_KEYS.STEWARDSHIP || theme === THEME_KEYS.GENEROSITY) && hour !== null && hour >= 5 && hour < 11;
+  const isWinterTheme = theme === THEME_KEYS.PROVISION_AND_ANXIETY && month !== null && [12, 1, 2].includes(month);
+  const isWeekendTheme = (theme === THEME_KEYS.COUNSEL || theme === DEFAULT_TODAY_VISUAL_THEME) && dayOfWeek !== null && (dayOfWeek === 0 || dayOfWeek === 6);
 
   if (isMorningSunriseTheme) {
     return copy.calmStartEntrusted;
@@ -5619,7 +5380,7 @@ function homeWelcomeSeasonalCopy({
   }
 
   if (isWeekendTheme) {
-    return theme === "Contentment"
+    return theme === DEFAULT_TODAY_VISUAL_THEME
       ? copy.gentlerPaceEnough
       : copy.softPaceDiscernment;
   }
@@ -5651,9 +5412,9 @@ function homeWelcomeEyebrowCopy({
   dayOfWeek: number | null;
 }) {
   const copy = seasonalCopy(language);
-  const isMorningSunriseTheme = (theme === "Stewardship" || theme === "Generosity") && hour !== null && hour >= 5 && hour < 11;
-  const isWinterTheme = theme === "Provision and Anxiety" && month !== null && [12, 1, 2].includes(month);
-  const isWeekendTheme = (theme === "Counsel" || theme === "Contentment") && dayOfWeek !== null && (dayOfWeek === 0 || dayOfWeek === 6);
+  const isMorningSunriseTheme = (theme === THEME_KEYS.STEWARDSHIP || theme === THEME_KEYS.GENEROSITY) && hour !== null && hour >= 5 && hour < 11;
+  const isWinterTheme = theme === THEME_KEYS.PROVISION_AND_ANXIETY && month !== null && [12, 1, 2].includes(month);
+  const isWeekendTheme = (theme === THEME_KEYS.COUNSEL || theme === DEFAULT_TODAY_VISUAL_THEME) && dayOfWeek !== null && (dayOfWeek === 0 || dayOfWeek === 6);
 
   if (isMorningSunriseTheme) {
     return copy.morningPriority;
@@ -5742,9 +5503,9 @@ function selectTodayVisualAsset({
     return localAssets[(localIndex + Math.max(0, attempt)) % localAssets.length];
   }
 
-  const isMorningSunriseTheme = (visualTheme === "Stewardship" || visualTheme === "Generosity") && hour !== null && hour >= 5 && hour < 11;
-  const isWinterTheme = visualTheme === "Provision and Anxiety" && month !== null && [12, 1, 2].includes(month);
-  const isWeekendTheme = (visualTheme === "Counsel" || visualTheme === "Contentment") && dayOfWeek !== null && (dayOfWeek === 0 || dayOfWeek === 6);
+  const isMorningSunriseTheme = (visualTheme === THEME_KEYS.STEWARDSHIP || visualTheme === THEME_KEYS.GENEROSITY) && hour !== null && hour >= 5 && hour < 11;
+  const isWinterTheme = visualTheme === THEME_KEYS.PROVISION_AND_ANXIETY && month !== null && [12, 1, 2].includes(month);
+  const isWeekendTheme = (visualTheme === THEME_KEYS.COUNSEL || visualTheme === DEFAULT_TODAY_VISUAL_THEME) && dayOfWeek !== null && (dayOfWeek === 0 || dayOfWeek === 6);
   const effectiveMood = isMorningSunriseTheme
     ? "warm"
     : isWinterTheme
@@ -5810,9 +5571,9 @@ function resolveTodayVisualPlacement({
   const isEvening = hour !== null && hour >= 17;
   const isWinter = month !== null && [12, 1, 2].includes(month);
   const isWeekend = dayOfWeek !== null && (dayOfWeek === 0 || dayOfWeek === 6);
-  const isMorningSunriseTheme = (theme === "Stewardship" || theme === "Generosity") && isMorning;
-  const isWinterTheme = theme === "Provision and Anxiety" && isWinter;
-  const isWeekendTheme = (theme === "Counsel" || theme === "Contentment") && isWeekend;
+  const isMorningSunriseTheme = (theme === THEME_KEYS.STEWARDSHIP || theme === THEME_KEYS.GENEROSITY) && isMorning;
+  const isWinterTheme = theme === THEME_KEYS.PROVISION_AND_ANXIETY && isWinter;
+  const isWeekendTheme = (theme === THEME_KEYS.COUNSEL || theme === DEFAULT_TODAY_VISUAL_THEME) && isWeekend;
   const isWarmMood = mood === "warm";
   const isQuietMood = mood === "contemplative";
 
@@ -6435,7 +6196,7 @@ function companionCardFromDaily({
   activeDecision,
 }: {
   daily: ReturnType<typeof localizedDailyWisdom>;
-  entry: WisdomEntry;
+  entry: Pick<WisdomEntryData, "questions"> & { theme: string };
   pattern: string;
   language: LanguageCode;
   manualContext: ManualContextProfile;
@@ -6447,7 +6208,7 @@ function companionCardFromDaily({
   const shortQuestion = entry.questions[0] || companionTemplate.reflectionQuestion;
   const personalizedPhrase = personalizedCarryPhrase({ language, manualContext, focusIntentions, activeDecision });
   const carryPhrase = personalizedPhrase || (language === "en" && pattern && pattern.length < 72
-      ? `Notice ${pattern.toLowerCase()} before it drives the decision.`
+      ? englishText.noticePatternBeforeDecision.replace("{pattern}", pattern.toLowerCase())
       : daily.practice.replace(/\.$/, "."));
   return {
     title: theme,
@@ -6613,7 +6374,7 @@ export function AletheiaApp() {
     activeCount: 0,
     daysDiscerning: 0,
     patterns: [],
-    gentleObservation: runtimeCopyFor(defaultPreferences.language).timelineReady,
+    gentleObservation: runtimeCopyFor(storedPreferences().language).timelineReady,
   });
   const [counselContacts, setCounselContacts] = useState<CounselContact[]>([]);
   const [rulesOfLife, setRulesOfLife] = useState<RuleOfLife[]>([]);
@@ -6859,196 +6620,11 @@ export function AletheiaApp() {
 
   // Build ui object from translations for backward compatibility
   const buildUiFromTranslations = (trans: TranslationData) => {
-  const languageFallback = uiText[preferences.language] ?? uiText.en!;
     if (!trans || Object.keys(trans).length === 0) {
-      return languageFallback;
+      return englishText as UiText;
     }
-    
-    // Helper to ensure string type
-    const getString = (key: string, fallback?: string): string => {
-      // Dev-only guard: fail fast for missing keys, but keep English fallback in production.
-      if (process.env.NODE_ENV !== "production" && preferences.language !== "en") {
-        const rawValue = getTranslation(rawTranslations, key, "__aletheia_missing_translation__");
-        if (rawValue === "__aletheia_missing_translation__") {
-          console.warn(`Missing translation for ${preferences.language}.${key}. Falling back to "${fallback || key}".`);
-        }
-      }
-      const result = getTranslation(trans, key, fallback || key);
-      return Array.isArray(result) ? result.join(', ') : result;
-    };
-    
-    return {
-      ...languageFallback,
-      nav: {
-        ...languageFallback.nav,
-        companion: getString('nav.companion', 'Home'),
-        decisions: getString('nav.decisions', 'Decisions'),
-        reflect: getString('nav.reflect', 'Reflect'),
-        library: getString('nav.library', 'Library'),
-        account: getString('nav.account', 'Account'),
-      },
-      decideShort: getString('decideShort', 'Decide'),
-      guardrails: getString('guardrails', 'Guardrails'),
-      guardrailItems: (getTranslation(trans, 'guardrailItems', '') || []) as string[],
-      wisdomMode: getString('wisdomMode', 'Wisdom mode'),
-      currentLens: getString('currentLens', 'Current lens'),
-      offline: getString('offline', 'Offline'),
-      languageSelect: getString('languageSelect', 'Change language'),
-      bibleSelect: getString('bibleSelect', 'Change Bible translation'),
-      account: getString('account', 'Account'),
-      askTitle: getString('askTitle', 'Ask Aletheia'),
-      askIntro: getString('askIntro', 'Start with one honest question.'),
-      yourQuestion: getString('yourQuestion', 'Your question'),
-      askButton: getString('askButton'),
-      startHere: getString('startHere'),
-      ready: getString('ready'),
-      whatModeFor: getString('whatModeFor'),
-      deepChecks: getString('deepChecks'),
-      blindSpots: getString('blindSpots'),
-      maturitySignals: getString('maturitySignals'),
-      modeGuidance: getString('modeGuidance'),
-      change: getString('change', languageFallback.change),
-      showDetails: getString('showDetails'),
-      hideDetails: getString('hideDetails'),
-      modeGuidancePreview: getString('modeGuidancePreview', ''),
-      trustLayer: getString('trustLayer'),
-      preferencesTitle: getString('preferencesTitle'),
-      language: getString('language'),
-      region: getString('region'),
-      bible: getString('bible'),
-      voiceControls: getString('voiceControls'),
-      available: getString('available'),
-      englishFallback: getString('englishFallback'),
-      greetingMorning: getString('greetingMorning', languageFallback.greetingMorning),
-      greetingAfternoon: getString('greetingAfternoon', languageFallback.greetingAfternoon),
-      greetingEvening: getString('greetingEvening', languageFallback.greetingEvening),
-      greetingFallback: getString('greetingFallback', languageFallback.greetingFallback),
-      greetingIntent: getString('greetingIntent', languageFallback.greetingIntent),
-      personalizedPriority: getString('personalizedPriority'),
-      whatNext: getString('whatNext'),
-      whatNextBody: getString('whatNextBody', ''),
-      personalizationNudgeTitle: getString('personalizationNudgeTitle', languageFallback.personalizationNudgeTitle),
-      personalizationNudgeBody: getString('personalizationNudgeBody', languageFallback.personalizationNudgeBody),
-      continueDecision: getString('continueDecision'),
-      askOneQuestion: getString('askOneQuestion'),
-      askOneQuestionBody: getString('askOneQuestionBody', ''),
-      askNewQuestion: getString('askNewQuestion'),
-      askNewQuestionBody: getString('askNewQuestionBody', ''),
-      reflectToday: getString('reflectToday'),
-      reviewPattern: getString('reviewPattern'),
-      enableNotifications: getString('enableNotifications'),
-      enableSync: getString('enableSync'),
-      notificationPromptBody: getString('notificationPromptBody', ''),
-      syncDevicesBody: getString('syncDevicesBody', ''),
-      startDecision: getString('startDecision'),
-      startDecisionBody: getString('startDecisionBody', ''),
-      tinyPractice: getString('tinyPractice'),
-      todaysCompanion: getString('todaysCompanion', languageFallback.todaysCompanion),
-      todayPrefix: getString('todayPrefix', languageFallback.todayPrefix),
-      wisdomPrinciple: getString('wisdomPrinciple', languageFallback.wisdomPrinciple),
-      reflectionQuestion: getString('reflectionQuestion', languageFallback.reflectionQuestion),
-      whatINotice: getString('whatINotice', languageFallback.whatINotice),
-      context: getString('context', languageFallback.context),
-      application: getString('application', languageFallback.application),
-      carryThisToday: getString('carryThisToday', languageFallback.carryThisToday),
-      carryWithMe: getString('carryWithMe', languageFallback.carryWithMe),
-      weeklyWisdomReview: getString('weeklyWisdomReview', languageFallback.weeklyWisdomReview),
-      weeklyReviewTitle: getString('weeklyReviewTitle', languageFallback.weeklyReviewTitle),
-      weeklyReviewBody: getString('weeklyReviewBody', languageFallback.weeklyReviewBody),
-      todayScriptureLabel: getString('todayScriptureLabel', languageFallback.todayScriptureLabel),
-      todayQuestionLabel: getString('todayQuestionLabel', languageFallback.todayQuestionLabel),
-      todayActionsLabel: getString('todayActionsLabel', languageFallback.todayActionsLabel),
-      weeklyReviewHeading: getString('weeklyReviewHeading', languageFallback.weeklyReviewHeading),
-      weeklyReviewLastWeekLabel: getString('weeklyReviewLastWeekLabel', languageFallback.weeklyReviewLastWeekLabel),
-      questionsThisWeek: getString('questionsThisWeek', languageFallback.questionsThisWeek),
-      reflectionsThisWeek: getString('reflectionsThisWeek', languageFallback.reflectionsThisWeek),
-      gratitudeThisWeek: getString('gratitudeThisWeek', languageFallback.gratitudeThisWeek),
-      decisionsThisWeek: getString('decisionsThisWeek', languageFallback.decisionsThisWeek),
-      diveDeep: getString('diveDeep', languageFallback.diveDeep),
-      backToQuickRead: getString('backToQuickRead', languageFallback.backToQuickRead),
-      nextFaithfulStep: getString('nextFaithfulStep', languageFallback.nextFaithfulStep),
-      askAboutThis: getString('askAboutThis', languageFallback.askAboutThis),
-      saveToRuleOfLife: getString('saveToRuleOfLife', languageFallback.saveToRuleOfLife),
-      carryingToday: getString('carryingToday', languageFallback.carryingToday),
-      currentCounsel: getString('currentCounsel'),
-      modeShapesCounsel: getString('modeShapesCounsel'),
-      trackThisDecision: getString('trackThisDecision'),
-      saveAsReflection: getString('saveAsReflection'),
-      createCounselSummary: getString('createCounselSummary'),
-      goDeeper: getString('goDeeper'),
-      waitThreeDays: getString('waitThreeDays'),
-      shareAnswerPrompt: getString('shareAnswerPrompt', ''),
-      sharePrivacyNote: getString('sharePrivacyNote', ''),
-      shareAletheia: getString('shareAletheia', 'Share Aletheia'),
-      feedbackQuestion: getString('feedbackQuestion', 'Was this counsel useful?'),
-      feedbackHelpful: getString('feedbackHelpful', 'Helpful'),
-      feedbackMildlyHelpful: getString('feedbackMildlyHelpful', 'Mildly helpful'),
-      feedbackTooVague: getString('feedbackTooVague', 'Too vague'),
-      feedbackTooPreachy: getString('feedbackTooPreachy', 'Too preachy'),
-      feedbackNotRelevant: getString('feedbackNotRelevant', 'Not relevant'),
-      badgesFormation: getString('badgesFormation', 'Badges / Formation'),
-      firstReflectionSaved: getString('firstReflectionSaved', 'First reflection saved'),
-      firstDecisionTracked: getString('firstDecisionTracked', 'First decision tracked'),
-      soughtCounsel: getString('soughtCounsel', 'Sought counsel'),
-      waitingModeUsed: getString('waitingModeUsed', 'Waiting mode used'),
-      ruleOfLifeCreated: getString('ruleOfLifeCreated', 'Rule of life created'),
-      notificationsEnabled: getString('notificationsEnabled', 'Notifications enabled'),
-      sevenDaysPractice: getString('sevenDaysPractice', '7 days of wisdom practice'),
-      formationNote: getString('formationNote', ''),
-      milestoneShareTitle: getString('milestoneShareTitle', ''),
-      milestoneShareBody: getString('milestoneShareBody', ''),
-      welcomeCounsel: getString('welcomeCounsel', ''),
-      trustScriptureBody: getString('trustScriptureBody', ''),
-      trustBoundaryBody: getString('trustBoundaryBody', ''),
-      trustMemoryBody: getString('trustMemoryBody', ''),
-      trustConnectedDataBody: getString('trustConnectedDataBody', ''),
-      accountNextEyebrow: getString('accountNextEyebrow', languageFallback.accountNextEyebrow ?? ''),
-      accountNextReviewSyncFormation: getString('accountNextReviewSyncFormation', languageFallback.accountNextReviewSyncFormation ?? ''),
-      accountNextSignInPortable: getString('accountNextSignInPortable', languageFallback.accountNextSignInPortable ?? ''),
-      accountNextActiveBody: getString('accountNextActiveBody', languageFallback.accountNextActiveBody ?? ''),
-      accountNextSyncBody: getString('accountNextSyncBody', languageFallback.accountNextSyncBody ?? ''),
-      accountNextGuestBody: getString('accountNextGuestBody', languageFallback.accountNextGuestBody ?? ''),
-      accountManageSummary: getString('accountManageSummary', languageFallback.accountManageSummary ?? ''),
-      accountSignedInAs: getString('accountSignedInAs', languageFallback.accountSignedInAs ?? ''),
-      accountSignInOrGuest: getString('accountSignInOrGuest', languageFallback.accountSignInOrGuest ?? ''),
-      accountSyncActive: getString('accountSyncActive', languageFallback.accountSyncActive ?? ''),
-      accountNotificationsNotEnabled: getString('accountNotificationsNotEnabled', languageFallback.accountNotificationsNotEnabled ?? ''),
-      accountGuestSummary: getString('accountGuestSummary', languageFallback.accountGuestSummary ?? ''),
-      accountPreferencesEyebrow: getString('accountPreferencesEyebrow', languageFallback.accountPreferencesEyebrow ?? ''),
-      accountPreferencesSummary: getString('accountPreferencesSummary', languageFallback.accountPreferencesSummary ?? ''),
-      accountContextActive: getString('accountContextActive', languageFallback.accountContextActive ?? ''),
-      accountContextPaused: getString('accountContextPaused', languageFallback.accountContextPaused ?? ''),
-      accountArea: getString('accountArea', languageFallback.accountArea ?? ''),
-      accountAreas: getString('accountAreas', languageFallback.accountAreas ?? ''),
-      accountAdded: getString('accountAdded', languageFallback.accountAdded ?? ''),
-      accountManualContextSummary: getString('accountManualContextSummary', languageFallback.accountManualContextSummary ?? ''),
-      accountDailyWisdomEnabled: getString('accountDailyWisdomEnabled', languageFallback.accountDailyWisdomEnabled ?? ''),
-      accountNotificationsSummaryEnabled: getString('accountNotificationsSummaryEnabled', languageFallback.accountNotificationsSummaryEnabled ?? ''),
-      accountNotificationsSummaryDisabled: getString('accountNotificationsSummaryDisabled', languageFallback.accountNotificationsSummaryDisabled ?? ''),
-      accountInstallTitle: getString('accountInstallTitle', languageFallback.accountInstallTitle ?? ''),
-      accountInstallSummary: getString('accountInstallSummary', languageFallback.accountInstallSummary ?? ''),
-      accountInstallEyebrow: getString('accountInstallEyebrow', languageFallback.accountInstallEyebrow ?? ''),
-      accountInviteTitle: getString('accountInviteTitle', languageFallback.accountInviteTitle ?? ''),
-      accountInviteSummary: getString('accountInviteSummary', languageFallback.accountInviteSummary ?? ''),
-      accountInviteEyebrow: getString('accountInviteEyebrow', languageFallback.accountInviteEyebrow ?? ''),
-      accountHistoryConversations: getString('accountHistoryConversations', languageFallback.accountHistoryConversations ?? ''),
-      accountHistoryDecisions: getString('accountHistoryDecisions', languageFallback.accountHistoryDecisions ?? ''),
-      accountHistoryReflections: getString('accountHistoryReflections', languageFallback.accountHistoryReflections ?? ''),
-      accountHistorySummary: getString('accountHistorySummary', languageFallback.accountHistorySummary ?? ''),
-      accountStatConversations: getString('accountStatConversations', languageFallback.accountStatConversations ?? ''),
-      accountStatDecisions: getString('accountStatDecisions', languageFallback.accountStatDecisions ?? ''),
-      accountStatJournalEntries: getString('accountStatJournalEntries', languageFallback.accountStatJournalEntries ?? ''),
-      accountHistoryEmptyBody: getString('accountHistoryEmptyBody', languageFallback.accountHistoryEmptyBody ?? ''),
-      accountTrustPostureTitle: getString('accountTrustPostureTitle', languageFallback.accountTrustPostureTitle ?? ''),
-      accountTrustPostureSummary: getString('accountTrustPostureSummary', languageFallback.accountTrustPostureSummary ?? ''),
-      accountBoundariesTitle: getString('accountBoundariesTitle', languageFallback.accountBoundariesTitle ?? ''),
-      accountBoundariesSummary: getString('accountBoundariesSummary', languageFallback.accountBoundariesSummary ?? ''),
-      accountBoundariesBody: getString('accountBoundariesBody', languageFallback.accountBoundariesBody ?? ''),
-      accountFormationPrefix: getString('accountFormationPrefix', languageFallback.accountFormationPrefix ?? ''),
-      accountQuietMilestoneSingular: getString('accountQuietMilestoneSingular', languageFallback.accountQuietMilestoneSingular ?? ''),
-      accountQuietMilestonePlural: getString('accountQuietMilestonePlural', languageFallback.accountQuietMilestonePlural ?? ''),
-      accountFormationSummary: getString('accountFormationSummary', languageFallback.accountFormationSummary ?? ''),
-    };
+
+    return trans as UiText;
   };
 
   const announceWorkflow = useCallback((title: string, body: string, tone: WorkflowTone = "info", action?: { label: string; onClick: () => void }) => {
@@ -7149,8 +6725,12 @@ export function AletheiaApp() {
     });
 
     const promptId = announceWorkflow(
-      "Save your progress across devices",
-      "Sign in to keep decisions, reflections, and preferences synced and portable.",
+      reason === "guest_first_answer"
+        ? ts('notifications.answerReadyGuestTitle')
+        : ts('auth.signInForSync'),
+      reason === "guest_first_answer"
+        ? ts('notifications.answerReadyGuestBody')
+        : ts('auth.signInSyncHistory'),
       "info",
       {
         label: ts('auth.signIn'),
@@ -7194,24 +6774,24 @@ export function AletheiaApp() {
     const authError = params.get("error");
 
     if (oauthReason === "missing_profile") {
-      return "Google sign-in did not return your email address. Please try again or use email below instead.";
+      return ts("auth.googleMissingProfile");
     }
     if (oauthReason === "server_error") {
-      return "Google sign-in reached Aletheia, but we could not finish it right now. Please try again in a moment or use email below instead.";
+      return ts("auth.googleServerError");
     }
 
     switch (authError) {
       case "OAuthSignin":
       case "OAuthCallbackError":
       case "CallbackRouteError":
-        return "Google sign-in could not be completed. Please try again. If it keeps failing, use email below instead.";
+        return ts("auth.googleSigninFailed");
       case "AccessDenied":
-        return "Google sign-in was canceled before it finished. You can try again or use email below instead.";
+        return ts("auth.googleSigninCancelled");
       case "Configuration":
-        return "Google sign-in is temporarily unavailable. You can still continue with email below.";
+        return ts("auth.googleSigninUnavailable");
       default:
         return params.get("auth") === "oauth_failed"
-          ? "Google sign-in did not finish. Please try again or use email below instead."
+          ? ts("auth.googleSigninDidNotFinish")
           : null;
     }
   }
@@ -8579,7 +8159,10 @@ export function AletheiaApp() {
     }
     if (onboardingConcern.trim()) {
       setQuery(
-        `I am seeking wisdom for this right now: ${onboardingConcern.trim()}. Please guide me with a ${onboardingTone} tone. My faith familiarity is ${faithFamiliarity}.`
+        englishText.onboardingQuestionPrompt
+          .replace("{concern}", onboardingConcern.trim())
+          .replace("{tone}", onboardingTone)
+          .replace("{familiarity}", faithFamiliarity)
       );
       setHomeSection("ask", "onboarding_completed");
       showView("companion");
@@ -8951,7 +8534,7 @@ export function AletheiaApp() {
   function draftReflectionFromExchange(exchange: ConversationExchange) {
     const question = cleanDisplayText(exchange.question?.text ?? "");
     const answer = cleanDisplayText(exchange.answer.text);
-    setJournalTitle(`Reflection: ${question.slice(0, 70)}`);
+    setJournalTitle(englishText.reflectionDraftTitle.replace("{question}", question.slice(0, 70)));
     setJournalBody(`${ts('labels.reflectionQuestion')}:\n${question}\n\n${ui.currentCounsel ?? ""}:\n${answer}\n\n${ui.whatINotice ?? ""}:\n`);
     trackClientEvent("answer_saved_or_acted", { action: "draft_reflection", mode, ...analyticsQuestionMetadata(question, mode) });
     if (!user) {
@@ -9597,14 +9180,14 @@ export function AletheiaApp() {
 
       if (!response.ok) {
         const message = await response.text().catch(() => "");
-        throw new Error(message || `Audio request failed with status ${response.status}`);
+        throw new Error(message || englishText.errors.audioRequestFailedStatus.replace("{status}", String(response.status)));
       }
 
       // Stream response instead of waiting for full blob
       // This allows progress feedback while downloading
       const reader = response.body?.getReader();
       if (!reader) {
-        throw new Error("Response streaming not supported");
+        throw new Error(englishText.errors.responseStreamingNotSupported);
       }
 
       const chunks: Uint8Array[] = [];
@@ -9801,11 +9384,17 @@ export function AletheiaApp() {
           ? data.usedOpenAI
             ? "Answered with server-side OpenAI/RAG and saved to your account."
             : "Answered with server-side retrieval fallback and saved to your account."
-          : data.usedOpenAI
-            ? "Answered with server-side OpenAI/RAG. Sign in to save history."
-            : "Answered with server-side retrieval fallback. Add OPENAI_API_KEY for generated AI responses.";
+          : ts('notifications.answerReadyGuestBody');
       setStatusMessage(responseMessage);
       announceWorkflow(ts('notifications.answerReady'), responseMessage, "success");
+      if (!user) {
+        scheduleSignInPrompt("guest_first_answer", {
+          location: "answer_ready",
+          mode,
+          used_openai: Boolean(data.usedOpenAI),
+          persisted: Boolean(data.persisted),
+        });
+      }
     } catch {
       trackClientEvent("error_seen", {
         area: "chat",
@@ -9824,6 +9413,14 @@ export function AletheiaApp() {
       setAnswerFocusId("offline-fallback");
       setStatusMessage(ts('status.offlineFallback'));
       announceWorkflow(ts('notifications.offlineAnswerReady'), ts('notifications.offlineAnswerReadyBody'), "warning");
+      if (!user) {
+        scheduleSignInPrompt("guest_first_answer", {
+          location: "answer_fallback",
+          mode,
+          used_openai: false,
+          persisted: false,
+        });
+      }
     } finally {
       setIsWorking(false);
     }
@@ -11360,7 +10957,7 @@ export function AletheiaApp() {
                 {ui.guardrails}
               </div>
               <ul className="space-y-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
-                {ui.guardrailItems.map((item) => (
+                {(ui.guardrailItems as string[]).map((item) => (
                   <li key={item}>{item}</li>
                 ))}
               </ul>
@@ -11478,7 +11075,9 @@ export function AletheiaApp() {
                         onSharePostcard={shareAnswerPostcard}
                         onShare={(channel) => shareAletheia(channel, "answer")}
                         onFeedback={(value) => recordAnswerFeedback(value, "answer")}
+                        onRequestSignIn={openAccountFlow}
                         voiceTranscriptPreview={voiceTranscriptPreview}
+                        signedIn={Boolean(user)}
                         theme={theme}
                       />
                     )}
@@ -11745,9 +11344,15 @@ export function AletheiaApp() {
         focusIntentions={focusIntentions}
         onFocusIntentionsChange={updateFocusIntentions}
         notificationsEnabled={notificationsEnabled}
+        signedIn={Boolean(user)}
         onModeChange={handleModeChange}
         onPreferenceChange={updatePreferences}
         onComplete={completeOnboarding}
+        onRequestSignIn={() => {
+          setShowOnboarding(false);
+          setAuthMode("login");
+          openAccountFlow();
+        }}
         theme={theme}
       />
       <CounselInviteModal
@@ -12619,9 +12224,11 @@ function OnboardingModal({
   focusIntentions,
   onFocusIntentionsChange,
   notificationsEnabled,
+  signedIn,
   onModeChange,
   onPreferenceChange,
   onComplete,
+  onRequestSignIn,
   theme,
 }: {
   open: boolean;
@@ -12640,9 +12247,11 @@ function OnboardingModal({
   focusIntentions: string[];
   onFocusIntentionsChange: (intentions: string[]) => void;
   notificationsEnabled: boolean;
+  signedIn: boolean;
   onModeChange: (mode: Mode) => void;
   onPreferenceChange: (patch: Partial<UserPreferences>) => void;
   onComplete: () => void;
+  onRequestSignIn: () => void;
   theme: ThemeColors;
 }) {
   const [activeSetupStep, setActiveSetupStep] = useState("mode");
@@ -13005,13 +12614,42 @@ function OnboardingModal({
           </section>
 
           <section className="rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-            <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.accountNotice')}</p>
-            <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
-              {ts('labels.accountNoticeBody')}
-            </p>
-            <p className="mt-2 text-xs leading-5" style={{ color: theme.textSecondary }}>
-              {notificationsEnabled ? ts('labels.notificationsAlreadyEnabledDevice') : ts('labels.notificationsOptionalAfterSignIn')}
-            </p>
+            {!signedIn ? (
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
+                    {ts('labels.guestSetupReady')}
+                  </p>
+                  <p className="mt-1 text-sm font-semibold" style={{ color: theme.textPrimary }}>
+                    {ts('labels.accountNotice')}
+                  </p>
+                  <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                    {ts('labels.accountNoticeBody')}
+                  </p>
+                  <p className="mt-2 text-xs leading-5" style={{ color: theme.textSecondary }}>
+                    {ts('labels.notificationsOptionalAfterSignIn')}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={onRequestSignIn}
+                  className="inline-flex h-10 shrink-0 items-center justify-center rounded-full border px-4 text-sm font-semibold transition"
+                  style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textPrimary }}
+                >
+                  {ts('auth.signInForSync')}
+                </button>
+              </div>
+            ) : (
+              <>
+                <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.accountNotice')}</p>
+                <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                  {ts('labels.accountNoticeBody')}
+                </p>
+                <p className="mt-2 text-xs leading-5" style={{ color: theme.textSecondary }}>
+                  {notificationsEnabled ? ts('labels.notificationsAlreadyEnabledDevice') : ts('labels.notificationsOptionalAfterSignIn')}
+                </p>
+              </>
+            )}
           </section>
 
           <InstallGuideCard theme={theme} compact ts={ts} />
@@ -13103,7 +12741,7 @@ function HomeDashboard({
   onShareScriptureMemory: (memory: ScriptureMemory) => void;
   theme: ThemeColors;
 }) {
-  const text = { ...uiText.en!, ...ui };
+  const text = { ...englishText, ...ui };
   const greeting = useMemo(() => {
     if (currentLocalHour === null) {
       return text.greetingFallback || "";
@@ -14099,7 +13737,7 @@ function AccountPanel({
   accountActionBusy: "export" | "delete" | "report" | null;
   theme: ThemeColors;
 }) {
-  const text = { ...uiText.en!, ...ui };
+  const text = { ...englishText, ...ui };
   const [accountSection, setAccountSection] = useState<"personalization" | "privacy" | "share" | "system">("personalization");
   const exchanges = conversationExchanges(messages).filter((exchange) => exchange.question);
   const activeDecisionCount = decisions.filter((decision) => decision.status !== "closed").length;
@@ -14108,7 +13746,7 @@ function AccountPanel({
   const profileFirstName = user?.name?.split(" ")[0] || user?.email?.split("@")[0];
   const profileGreeting = user
     ? `${ts('auth.welcomeBack')}, ${profileFirstName}`
-    : ts('labels.accountSignInOrGuest');
+    : ts('labels.accountNextSignInPortable');
   const profileSummary = user
     ? user.email
     : ts('labels.accountGuestSummary');
@@ -14215,6 +13853,7 @@ function AccountPanel({
               notificationDeviceSubscribed={notificationDeviceSubscribed}
               notificationStatus={notificationStatus}
               onLogout={onLogout}
+              onRequestSignIn={() => setAuthMode("login")}
               ts={ts}
             />
           </div>
@@ -14254,6 +13893,7 @@ function AccountPanel({
               availableVoices={availableVoices}
               selectedVoice={selectedVoice}
               user={user}
+              onRequestSignIn={() => setAuthMode("login")}
               focusIntentions={focusIntentions}
               onPreferenceChange={onPreferenceChange}
               onThemePreferenceChange={onThemePreferenceChange}
@@ -14310,6 +13950,7 @@ function AccountPanel({
             ts={ts}
             user={user}
             hasLocalWorkspaceData={hasLocalWorkspaceData}
+            onRequestSignIn={() => setAuthMode("login")}
             onClearLocalPersonalization={onClearLocalPersonalization}
             onClearGuestWorkspace={onClearGuestWorkspace}
             onExportData={onExportData}
@@ -14355,7 +13996,7 @@ function AccountPanel({
         <div className="space-y-4">
           <DisclosureSection
             title={ts('labels.accountSystemTitle')}
-            summary={`${ts('labels.accountManageSummary')} ${exchanges.length} ${ts('labels.accountHistoryConversations')} · ${activeDecisionCount} ${ts('labels.accountHistoryDecisions')}`}
+            summary={`${text.accountManageSummary} ${exchanges.length} ${ts('labels.accountHistoryConversations')} · ${activeDecisionCount} ${ts('labels.accountHistoryDecisions')}`}
             eyebrow={ts('labels.accountSystemEyebrow')}
             compactCollapsed
             showDetailsLabel={text.showDetails}
@@ -14431,26 +14072,24 @@ function AccountSettingRow({
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="relative editorial-surface premium-tap-card rounded-[1rem] border p-2.5 shadow-[0_4px_10px_rgba(7,10,8,0.04)] sm:p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-      <div className="absolute right-2 top-2 z-10">
-        <InfoHint text={body} theme={theme} placement="inline" surface="dense" />
-      </div>
+    <div className="relative editorial-surface premium-tap-card rounded-[1rem] border p-2 shadow-[0_4px_10px_rgba(7,10,8,0.04)] sm:p-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+      <InfoHint text={body} theme={theme} placement="corner" surface="dense" />
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
         className="flex w-full items-center gap-2 text-left sm:gap-2.5"
         aria-expanded={open}
       >
-        <span className="grid size-8 shrink-0 place-items-center rounded-full border sm:size-9" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
-          <Icon size={15} />
+        <span className="grid size-7 shrink-0 place-items-center rounded-full border sm:size-8" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
+          <Icon size={14} />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="flex items-center gap-2 pr-7 text-[13px] font-semibold leading-5 sm:pr-8 sm:text-sm" style={{ color: theme.textPrimary }}>
+          <span className="flex items-center gap-2 pr-7 text-[12.5px] font-semibold leading-5 sm:pr-8 sm:text-sm" style={{ color: theme.textPrimary }}>
             <span>{label}</span>
           </span>
         </span>
         <span className="min-w-[4rem] shrink text-right sm:min-w-[6.5rem]">
-          <span className="block max-w-[5.5rem] text-[11px] font-semibold leading-4 sm:max-w-44 sm:text-xs" style={{ color: theme.accentGold }}>{currentValue}</span>
+          <span className="block max-w-[5.5rem] text-[10px] font-semibold leading-4 sm:max-w-44 sm:text-xs" style={{ color: theme.accentGold }}>{currentValue}</span>
           <span className="mt-1 inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.08em]" style={{ color: theme.textSecondary }}>
             <ChevronDown size={12} style={{ transform: open ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 180ms ease" }} />
           </span>
@@ -14485,17 +14124,15 @@ function AccountToggleRow({
   theme: ThemeColors;
 }) {
   return (
-    <div className="relative editorial-surface premium-tap-card rounded-[1rem] border p-2.5 shadow-[0_4px_10px_rgba(7,10,8,0.04)] sm:p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-      <div className="absolute right-2 top-2 z-10">
-        <InfoHint text={body} theme={theme} placement="inline" surface="dense" />
-      </div>
-      <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-        <div className="flex min-w-0 items-start gap-2.5">
-          <span className="grid size-8 shrink-0 place-items-center rounded-full border sm:size-9" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
-            <Icon size={15} />
+    <div className="relative editorial-surface premium-tap-card rounded-[1rem] border p-2 shadow-[0_4px_10px_rgba(7,10,8,0.04)] sm:p-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+      <InfoHint text={body} theme={theme} placement="corner" surface="dense" />
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+        <div className="flex min-w-0 items-start gap-2">
+          <span className="grid size-7 shrink-0 place-items-center rounded-full border sm:size-8" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
+            <Icon size={14} />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="flex items-center gap-2 pr-7 text-[13px] font-semibold leading-5 sm:pr-8 sm:text-sm" style={{ color: theme.textPrimary }}>
+            <span className="flex items-center gap-2 pr-7 text-[12.5px] font-semibold leading-5 sm:pr-8 sm:text-sm" style={{ color: theme.textPrimary }}>
               <span>{label}</span>
             </span>
           </span>
@@ -14580,14 +14217,14 @@ function AccountShareCard({
 
   return (
     <section className="space-y-4">
-      <div className="relative editorial-surface rounded-[1rem] border p-4 shadow-[0_4px_10px_rgba(7,10,8,0.04)]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+      <div className="relative editorial-surface rounded-[1rem] border p-3.5 shadow-[0_4px_10px_rgba(7,10,8,0.04)] sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
         <InfoHint text={ts('share.accountShareBody')} theme={theme} placement="corner" surface="standard" />
-        <div className="flex items-start gap-3">
-          <div className="grid size-10 shrink-0 place-items-center rounded-md" style={{ backgroundColor: theme.bgInput, color: theme.primary }}>
+        <div className="flex items-start gap-2.5">
+          <div className="grid size-9 shrink-0 place-items-center rounded-md" style={{ backgroundColor: theme.bgInput, color: theme.primary }}>
             <Share2 size={18} />
           </div>
           <div className="min-w-0">
-            <p className="inline-flex items-center gap-2 pr-5 sm:pr-6 md:pr-7 text-sm font-semibold" style={{ color: theme.textPrimary }}>
+            <p className="inline-flex items-center gap-2 pr-6 text-sm font-semibold leading-6 sm:pr-7 md:pr-8" style={{ color: theme.textPrimary }}>
               <span>{ts('share.accountShareBodyTitle')}</span>
             </p>
           </div>
@@ -15081,6 +14718,7 @@ function AccountPersonalizationPanel({
   availableVoices,
   selectedVoice,
   user,
+  onRequestSignIn,
   focusIntentions,
   onPreferenceChange,
   onThemePreferenceChange,
@@ -15097,6 +14735,7 @@ function AccountPersonalizationPanel({
   availableVoices: ManagedVoiceOption[];
   selectedVoice: string | null;
   user: User | null;
+  onRequestSignIn: () => void;
   focusIntentions: string[];
   onPreferenceChange: (patch: Partial<UserPreferences>) => void;
   onThemePreferenceChange: (value: ThemePreference) => void;
@@ -15108,6 +14747,26 @@ function AccountPersonalizationPanel({
   const bibleOptions = bibleTranslationOptionsForLanguage(preferences.language);
   const selectedVoiceObject = availableVoices.find((voice) => voice.id === selectedVoice);
   const selectedVoiceLabel = selectedVoiceObject ? selectedVoiceObject.label : managedVoiceLabel(selectedVoice);
+  const signedIn = Boolean(user);
+  const suggestionCards = [
+    {
+      icon: signedIn ? Sparkles : Users,
+      title: signedIn ? ts('labels.accountSuggestedPickFocus') : ts('labels.accountSuggestedSignInSync'),
+      body: signedIn ? ts('labels.focusIntentionsHint') : ts('labels.signInToSyncIt'),
+      actionLabel: signedIn ? null : ts('auth.signInForSync'),
+      onAction: signedIn ? null : onRequestSignIn,
+    },
+    {
+      icon: Sparkles,
+      title: ts('labels.accountSuggestedReviewAvatarStudio'),
+      body: ts('labels.accountPersonalizationSummaryShort'),
+    },
+    ...signedIn ? [] : [{
+      icon: Bell,
+      title: ts('labels.accountSuggestedEnableNotifications'),
+      body: ts('labels.notificationsOptionalAfterSignIn'),
+    }],
+  ];
 
   return (
     <section className="space-y-3">
@@ -15130,6 +14789,44 @@ function AccountPersonalizationPanel({
             </div>
           </div>
 
+        </div>
+      </div>
+
+      <div className="rounded-[1.35rem] border p-4 shadow-[0_6px_16px_rgba(7,10,8,0.05)]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+        <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+          {ts('labels.suggestedAction')}
+        </p>
+        <div className="mt-3 grid gap-2">
+          {suggestionCards.map((item) => {
+            const Icon = item.icon;
+            return (
+              <div key={item.title} className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                <div className="flex items-start gap-3">
+                  <div className="grid size-9 shrink-0 place-items-center rounded-full border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
+                    <Icon size={16} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>
+                      {item.title}
+                    </p>
+                    <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                      {item.body}
+                    </p>
+                  </div>
+                </div>
+                {item.onAction ? (
+                  <button
+                    type="button"
+                    onClick={item.onAction}
+                    className="mt-3 inline-flex h-10 items-center justify-center rounded-full border px-4 text-sm font-semibold transition"
+                    style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
+                  >
+                    {item.actionLabel}
+                  </button>
+                ) : null}
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -15566,6 +15263,7 @@ function TrustCenterCard({
   ts,
   user,
   hasLocalWorkspaceData,
+  onRequestSignIn,
   onClearLocalPersonalization,
   onClearGuestWorkspace,
   onExportData,
@@ -15576,6 +15274,7 @@ function TrustCenterCard({
   ts: (key: string, fallback?: string) => string;
   user: User | null;
   hasLocalWorkspaceData: boolean;
+  onRequestSignIn: () => void;
   onClearLocalPersonalization: () => void;
   onClearGuestWorkspace: () => void;
   onExportData: () => void;
@@ -15644,11 +15343,11 @@ function TrustCenterCard({
       </button>
       {open ? (
         <div className="border-t p-4 sm:p-5" style={{ borderColor: theme.borderLight }}>
-          <div className="space-y-4">
-            <div className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-              <p className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>{ts('labels.yourDataBoundaries')}</p>
-              <p className="mt-1 text-sm leading-6" style={{ color: theme.textPrimary }}>
-                {ts('labels.accountTrustPostureSummary')}
+        <div className="space-y-4">
+          <div className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+            <p className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>{ts('labels.yourDataBoundaries')}</p>
+            <p className="mt-1 text-sm leading-6" style={{ color: theme.textPrimary }}>
+              {ts('labels.accountTrustPostureSummary')}
               </p>
               <div className="mt-3 flex flex-col gap-2">
                 {statusItems.map((item) => (
@@ -15656,14 +15355,35 @@ function TrustCenterCard({
                     <p className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>{item.label}</p>
                     <p className="mt-1 text-sm leading-6" style={{ color: theme.textPrimary }}>{item.body}</p>
                   </div>
-                ))}
-              </div>
+              ))}
             </div>
-            <div className="grid gap-2 sm:grid-cols-2">
-              {items.map((item) => (
-                <details key={item.label} className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-                  <summary className="cursor-pointer text-sm font-semibold" style={{ color: theme.textPrimary }}>{item.label}</summary>
-                  <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>{item.body}</p>
+          </div>
+          {!user ? (
+            <div className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
+              <p className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.accentGold }}>
+                {ts('labels.guestSetupReady')}
+              </p>
+              <p className="mt-1 text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>
+                {ts('labels.signInToExportDelete')}
+              </p>
+              <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                {ts('labels.accountGuestSummary')}
+              </p>
+              <button
+                type="button"
+                onClick={onRequestSignIn}
+                className="mt-3 inline-flex h-10 items-center justify-center rounded-full border px-4 text-sm font-semibold transition"
+                style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
+              >
+                {ts('auth.signInForSync')}
+              </button>
+            </div>
+          ) : null}
+          <div className="grid gap-2 sm:grid-cols-2">
+            {items.map((item) => (
+              <details key={item.label} className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                <summary className="cursor-pointer text-sm font-semibold" style={{ color: theme.textPrimary }}>{item.label}</summary>
+                <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>{item.body}</p>
                 </details>
               ))}
             </div>
@@ -16578,7 +16298,7 @@ function ManualContextPanel({
                 <DisclosureSection
                   title={ts('manualContext.privateByDefaultTitle')}
                   summary={ts('manualContext.privacyBody')}
-                  eyebrow={ts('manualContext.privateByDefaultEyebrow')}
+                  eyebrow={ts('labels.privateByDefaultEyebrow')}
                   compactCollapsed
                   isOpen={privacyPostureOpen}
                   onOpenChange={setPrivacyPostureOpen}
@@ -16966,6 +16686,7 @@ function AccountStatusCard({
   notificationDeviceSubscribed,
   notificationStatus,
   onLogout,
+  onRequestSignIn,
   ts,
 }: {
   theme: ThemeColors;
@@ -16976,6 +16697,7 @@ function AccountStatusCard({
   notificationDeviceSubscribed: boolean;
   notificationStatus: string;
   onLogout: () => void;
+  onRequestSignIn: () => void;
   ts: (key: string, fallback?: string) => string;
 }) {
   const signedIn = Boolean(user);
@@ -17014,6 +16736,31 @@ function AccountStatusCard({
         </div>
       </div>
       <div className="p-4 sm:p-5">
+        {!signedIn ? (
+          <div className="mb-4 rounded-[1rem] border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
+              {ts('labels.accountNextEyebrow')}
+            </p>
+            <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+              <div className="min-w-0">
+                <h4 className="text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>
+                  {ts('labels.accountNextSignInPortable')}
+                </h4>
+                <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                  {ts('labels.accountNextGuestBody')}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={onRequestSignIn}
+                className="inline-flex h-10 shrink-0 items-center justify-center rounded-full border px-4 text-sm font-semibold transition"
+                style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
+              >
+                {ts('auth.signInForSync')}
+              </button>
+            </div>
+          </div>
+        ) : null}
         <div className="overflow-hidden rounded-[1rem] border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
           {[
             { label: ts('labels.sync'), value: signedIn ? ts('labels.active') : ts('auth.guestOnly'), active: signedIn },
@@ -17593,6 +17340,7 @@ function NotificationPanel({
     typeof window !== "undefined" &&
     (!("Notification" in window) || !("serviceWorker" in navigator) || !("PushManager" in window));
   const disabled = busy || !user || !configured || unsupported || permission === "denied";
+  const signedIn = Boolean(user);
   const deliveryOptions: Array<{ value: NotificationTiming["deliveryStrategy"]; label: string }> = [
     { value: "morning", label: ts('labels.morning') },
     { value: "midday", label: ts('labels.midday') },
@@ -17602,41 +17350,48 @@ function NotificationPanel({
 
   return (
     <section className="mb-5 rounded-[1.35rem] border p-4 shadow-[0_6px_16px_rgba(7,10,8,0.05)]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
-      <div className="mb-3 flex items-center gap-2">
-        {enabled ? (
-          <button
-            onClick={onDisable}
-            disabled={busy}
-            className="h-10 rounded-full border px-4 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60"
-            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}
-          >
-            {busy ? ts('labels.updating') : ts('labels.turnOff')}
-          </button>
-        ) : (
-          <button
-            onClick={onEnable}
-            disabled={disabled}
-            className="h-10 rounded-full px-4 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-55"
-            style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
-          >
-            {busy ? ts('notifications.enabling') : ts('labels.enable')}
-          </button>
-        )}
-        {!user ? (
+      {!signedIn ? (
+        <div className="mb-3 rounded-[1rem] border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
+            {ts('labels.guestSetupReady')}
+          </p>
+          <h3 className="mt-1.5 text-sm font-semibold" style={{ color: theme.textPrimary }}>
+            {ts('labels.accountSuggestedEnableNotifications')}
+          </h3>
+          <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
+            {ts('labels.signInToSyncIt')}
+          </p>
           <button
             onClick={onRequestSignIn}
-            className="h-10 rounded-full border px-4 text-sm font-semibold transition"
-            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
+            className="mt-3 inline-flex h-10 items-center justify-center rounded-full border px-4 text-sm font-semibold transition"
+            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textPrimary }}
           >
             {ts('auth.signInForSync')}
           </button>
-        ) : null}
-      </div>
-      {!user ? (
-        <p className="rounded-[0.9rem] border px-3 py-2 text-sm leading-6" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
-          {ts('labels.accountGuestSummary')}
-        </p>
-      ) : null}
+        </div>
+      ) : (
+        <div className="mb-3 flex items-center gap-2">
+          {enabled ? (
+            <button
+              onClick={onDisable}
+              disabled={busy}
+              className="h-10 rounded-full border px-4 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60"
+              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}
+            >
+              {busy ? ts('labels.updating') : ts('labels.turnOff')}
+            </button>
+          ) : (
+            <button
+              onClick={onEnable}
+              disabled={disabled}
+              className="h-10 rounded-full px-4 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-55"
+              style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+            >
+              {busy ? ts('notifications.enabling') : ts('labels.enable')}
+            </button>
+          )}
+        </div>
+      )}
       <div className="mt-4 rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
         <div className="mb-3 rounded-[0.9rem] border px-3 py-2 text-sm leading-6" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
           <span className="font-semibold" style={{ color: theme.textPrimary }}>
@@ -18634,9 +18389,11 @@ function CompanionPanel({
   onSharePostcard,
   onShare,
   onFeedback,
+  onRequestSignIn,
   isWorking,
   isListening,
   voiceTranscriptPreview,
+  signedIn,
   isSpeaking,
   speechLoading,
   speechPaused,
@@ -18673,9 +18430,11 @@ function CompanionPanel({
   onSharePostcard: (exchange: ConversationExchange) => void;
   onShare: (channel: ShareChannel) => void;
   onFeedback: (value: string) => void;
+  onRequestSignIn: () => void;
   isWorking: boolean;
   isListening: boolean;
   voiceTranscriptPreview: string;
+  signedIn: boolean;
   isSpeaking: boolean;
   speechLoading: boolean;
   speechPaused: boolean;
@@ -18956,6 +18715,8 @@ function CompanionPanel({
                 onSharePostcard={onSharePostcard}
                 onShare={onShare}
                 onFeedback={onFeedback}
+                signedIn={signedIn}
+                onRequestSignIn={onRequestSignIn}
               />
             </div>
           ) : null}
@@ -19197,7 +18958,10 @@ type ScriptureStudyGuide = {
   }>;
 };
 
-function scoreRelatedScripture(current: WisdomEntryData, candidate: WisdomEntryData) {
+function scoreRelatedScripture(
+  current: Omit<WisdomEntryData, "theme"> & { theme: string },
+  candidate: Omit<WisdomEntryData, "theme"> & { theme: string },
+) {
   const currentKeywords = current.keywords.map((keyword) => keyword.toLowerCase());
   const currentEmotions = current.emotions.map((emotion) => emotion.toLowerCase());
   const candidateText = [
@@ -19383,18 +19147,18 @@ function TrustLayerPanel({ theme, ui }: { theme: ThemeColors; ui: UiText }) {
         </button>
       </div>
       <div className="relative mt-3 rounded-lg border p-2.5 pr-6 sm:pr-7 md:pr-8 text-sm leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-        <InfoHint text={ui.trustScriptureBody ?? uiText.en!.trustScriptureBody!} theme={theme} placement="corner" surface="dense" />
+        <InfoHint text={ui.trustScriptureBody ?? englishText.trustScriptureBody!} theme={theme} placement="corner" surface="dense" />
         <span>{ui.trustLayer}</span>
       </div>
       {open ? <div className="mt-3 space-y-2.5 text-sm leading-5" style={{ color: theme.textSecondary }}>
         <p className="rounded-lg border p-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
-          {ui.trustBoundaryBody ?? uiText.en!.trustBoundaryBody}
+          {ui.trustBoundaryBody ?? englishText.trustBoundaryBody}
         </p>
         <p className="rounded-lg border p-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
-          {ui.trustMemoryBody ?? uiText.en!.trustMemoryBody}
+          {ui.trustMemoryBody ?? englishText.trustMemoryBody}
         </p>
         <p className="rounded-lg border p-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
-          {ui.trustConnectedDataBody ?? uiText.en!.trustConnectedDataBody}
+          {ui.trustConnectedDataBody ?? englishText.trustConnectedDataBody}
         </p>
       </div> : null}
     </section>
@@ -19579,6 +19343,8 @@ function CurrentCounselCard({
   onSharePostcard,
   onShare,
   onFeedback,
+  signedIn,
+  onRequestSignIn,
 }: {
   ts: (key: string, fallback?: string) => string;
   theme: ThemeColors;
@@ -19601,8 +19367,10 @@ function CurrentCounselCard({
   onSharePostcard: (exchange: ConversationExchange) => void;
   onShare: (channel: ShareChannel) => void;
   onFeedback: (value: string) => void;
+  signedIn: boolean;
+  onRequestSignIn: () => void;
 }) {
-  const text = { ...uiText.en!, ...ui };
+  const text = { ...englishText, ...ui };
   const question = exchange.question?.text;
   const exchangeMode = exchange.mode;
   const exchangeModeProfile = localizedModeProfile(exchangeMode, preferences.language);
@@ -19720,6 +19488,24 @@ function CurrentCounselCard({
             <CounselAction theme={theme} label={text.saveAsReflection!} onClick={() => onDraftReflection(exchange)} />
             <CounselAction theme={theme} label={text.createCounselSummary!} onClick={() => onCreateCounselSummary(exchange)} />
           </div>
+          {!signedIn ? (
+            <div className="mt-3 flex flex-col gap-3 rounded-[1rem] border p-3 sm:flex-row sm:items-center sm:justify-between" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.counselGuestSignInTitle')}</p>
+                <p className="mt-1 text-xs leading-5" style={{ color: theme.textSecondary }}>
+                  {ts('labels.counselGuestSignInBody')}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={onRequestSignIn}
+                className="inline-flex h-10 shrink-0 items-center justify-center rounded-full border px-4 text-sm font-semibold transition"
+                style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+              >
+                {ts('auth.signIn')}
+              </button>
+            </div>
+          ) : null}
           <details className="mt-3 rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
             <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
               {ts('labels.moreCounselOptions')}
@@ -19753,7 +19539,7 @@ function CurrentCounselCard({
 }
 
 function AnswerFeedback({ theme, ui, onFeedback }: { theme: ThemeColors; ui: UiText; onFeedback: (value: string) => void }) {
-  const text = { ...uiText.en!, ...ui };
+  const text = { ...englishText, ...ui };
   const items = [
     ["helpful", text.feedbackHelpful!],
     ["mildly_helpful", text.feedbackMildlyHelpful!],
@@ -19998,7 +19784,7 @@ function DecisionCompanionPanel({
   const [decisionSection, setDecisionSection] = useState<"decisions" | "counsel" | "rhythm" | "memory">("decisions");
   const modeRules = rules.filter((rule) => rule.mode === mode);
   const selectedDecisionBlessing = selectedDecision ? buildDecisionBlessing(selectedDecision, ts) : "";
-  const decisionNextTitle = selectedDecision ? formatNextDecisionTitle(selectedDecision.title) : runtime.decisionNextTitleDefault;
+  const decisionNextTitle = selectedDecision ? formatNextDecisionTitle(selectedDecision.title, ts('challenges.continueChallenge')) : runtime.decisionNextTitleDefault;
   const decisionFocusPrompt = focusIntentionPrompt(focusIntentions, "decisions");
   const decisionNextBody = selectedDecision
     ? runtime.decisionNextBodyActive
@@ -20021,7 +19807,7 @@ function DecisionCompanionPanel({
     canvas.height = height;
     const context = canvas.getContext("2d");
     if (!context) {
-      throw new Error("Image processing failed.");
+      throw new Error(englishText.errors.imageProcessingFailed);
     }
     context.imageSmoothingEnabled = true;
     context.imageSmoothingQuality = "high";
@@ -20031,7 +19817,7 @@ function DecisionCompanionPanel({
     const dataUrl = canvas.toDataURL("image/webp", 0.86);
     const normalized = normalizeAvatarUrl(dataUrl);
     if (!normalized) {
-      throw new Error("The selected image is too large after optimization.");
+      throw new Error(englishText.errors.optimizedImageTooLarge);
     }
     return normalized;
   }
@@ -22038,14 +21824,14 @@ function LibraryPanel({
   const libraryNextBody = search.trim()
     ? runtime.libraryNextBodySearch
     : `${runtime.libraryTryPrefix} ${[
-        "Stewardship",
-        "Debt",
-        "Contentment",
-        "Counsel",
-        "Cost Counting",
-        "Generosity",
-        "Provision and Anxiety",
-        "Diligence",
+        THEME_KEYS.STEWARDSHIP,
+        THEME_KEYS.DEBT,
+        DEFAULT_TODAY_VISUAL_THEME,
+        THEME_KEYS.COUNSEL,
+        THEME_KEYS.COST_COUNTING,
+        THEME_KEYS.GENEROSITY,
+        THEME_KEYS.PROVISION_AND_ANXIETY,
+        THEME_KEYS.DILIGENCE,
       ].map((item) => localizedWisdomThemeLabel(item, preferences.language).toLowerCase()).join(', ')}.`;
   const visibleEntries = entries.slice(0, search.trim() ? entries.length : 4);
   const remainingEntries = entries.slice(4);
