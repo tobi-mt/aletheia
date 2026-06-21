@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 800" role="img" aria-label="Open hands">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#07100f" />
+      <stop offset="48%" stop-color="#121d1a" />
+      <stop offset="100%" stop-color="#1d1713" />
+    </linearGradient>
+    <radialGradient id="light" cx="64%" cy="26%" r="30%">
+      <stop offset="0%" stop-color="#fff4d9" stop-opacity="0.92" />
+      <stop offset="42%" stop-color="#f2d991" stop-opacity="0.28" />
+      <stop offset="100%" stop-color="#f2d991" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="halo" cx="50%" cy="58%" r="36%">
+      <stop offset="0%" stop-color="#f4dfaa" stop-opacity="0.26" />
+      <stop offset="64%" stop-color="#c39254" stop-opacity="0.1" />
+      <stop offset="100%" stop-color="#c39254" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="bread" cx="42%" cy="36%" r="68%">
+      <stop offset="0%" stop-color="#ffe1ae" />
+      <stop offset="100%" stop-color="#bf854a" />
+    </radialGradient>
+    <linearGradient id="skinL" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f2cfb3" />
+      <stop offset="48%" stop-color="#cf9674" />
+      <stop offset="100%" stop-color="#8a5d48" />
+    </linearGradient>
+    <linearGradient id="skinR" x1="1" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f1cda9" />
+      <stop offset="50%" stop-color="#c78d68" />
+      <stop offset="100%" stop-color="#8f6149" />
+    </linearGradient>
+    <filter id="blur18" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="18" />
+    </filter>
+    <filter id="blur30" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="30" />
+    </filter>
+    <filter id="grain" x="-10%" y="-10%" width="120%" height="120%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="2" seed="12" />
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.05" />
+      </feComponentTransfer>
+    </filter>
+  </defs>
+
+  <rect width="1280" height="800" fill="url(#bg)" />
+  <rect width="1280" height="800" fill="url(#light)" />
+  <circle cx="642" cy="404" r="222" fill="url(#halo)" filter="url(#blur30)" />
+
+  <ellipse cx="640" cy="632" rx="306" ry="112" fill="#101916" fill-opacity="0.92" />
+  <ellipse cx="640" cy="622" rx="348" ry="124" fill="url(#halo)" filter="url(#blur30)" />
+
+  <path d="M468 558 C 538 526, 596 512, 648 514 C 700 516, 756 532, 818 562" fill="none" stroke="#f6e9c2" stroke-opacity="0.12" stroke-width="7" stroke-linecap="round" />
+  <path d="M500 574 C 556 548, 600 538, 646 540 C 690 542, 734 552, 784 576" fill="none" stroke="#94aa9d" stroke-opacity="0.08" stroke-width="4" stroke-linecap="round" />
+
+  <path d="M322 632 C 344 588, 382 560, 434 550 C 490 540, 534 548, 566 570 C 548 610, 518 636, 476 650 C 430 666, 372 664, 322 632 Z" fill="url(#skinL)" />
+  <path d="M350 598 C 366 578, 386 566, 412 560 C 438 554, 460 556, 480 566 C 458 586, 440 600, 418 610 C 392 620, 368 620, 350 598 Z" fill="#f6d4ba" fill-opacity="0.14" />
+  <ellipse cx="378" cy="570" rx="54" ry="26" fill="#efc8a7" fill-opacity="0.22" />
+  <path d="M362 586 C 372 578, 386 572, 404 568" fill="none" stroke="#8f6149" stroke-opacity="0.18" stroke-width="3" stroke-linecap="round" />
+  <path d="M748 562 C 786 536, 828 524, 876 526 C 932 528, 974 548, 1002 586 C 964 618, 916 636, 864 642 C 810 648, 768 636, 748 562 Z" fill="url(#skinR)" />
+  <path d="M776 582 C 792 562, 812 550, 838 544 C 864 538, 886 540, 904 550 C 882 570, 862 586, 840 596 C 816 606, 794 606, 776 582 Z" fill="#f4cfb3" fill-opacity="0.14" />
+  <ellipse cx="826" cy="560" rx="52" ry="24" fill="#efc8a7" fill-opacity="0.22" />
+  <path d="M786 570 C 796 562, 806 556, 820 552" fill="none" stroke="#91634b" stroke-opacity="0.18" stroke-width="3" stroke-linecap="round" />
+
+  <path d="M486 522 C 552 490, 606 476, 646 476 C 688 476, 744 492, 808 522 C 778 548, 730 566, 646 568 C 564 566, 514 548, 486 522 Z" fill="url(#bread)" fill-opacity="0.94" />
+  <path d="M532 514 C 566 494, 604 486, 646 488 C 688 488, 724 496, 760 514" fill="none" stroke="#fff5d6" stroke-opacity="0.12" stroke-width="2.5" stroke-linecap="round" />
+  <path d="M552 540 C 584 530, 614 526, 646 528 C 680 530, 710 536, 742 548" fill="none" stroke="#8a5e36" stroke-opacity="0.16" stroke-width="3" stroke-linecap="round" />
+
+  <path d="M658 470 C 676 430, 710 406, 756 396 C 804 386, 850 392, 888 414" fill="none" stroke="#fff0c8" stroke-opacity="0.18" stroke-width="6" stroke-linecap="round" />
+  <path d="M672 468 C 692 438, 720 422, 754 416 C 792 408, 830 412, 860 430" fill="none" stroke="#fff0c8" stroke-opacity="0.08" stroke-width="3.5" stroke-linecap="round" />
+
+  <circle cx="920" cy="254" r="10" fill="#fff0c8" fill-opacity="0.32" filter="url(#blur18)" />
+  <circle cx="962" cy="286" r="8" fill="#fff0c8" fill-opacity="0.16" filter="url(#blur18)" />
+  <rect width="1280" height="800" filter="url(#grain)" opacity="0.12" />
+</svg>

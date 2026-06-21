@@ -1,14 +1,48 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 800" role="img" aria-label="Open sky">
   <defs>
     <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#10201e"/>
-      <stop offset="100%" stop-color="#0b1514"/>
+      <stop offset="0%" stop-color="#081210" />
+      <stop offset="40%" stop-color="#12221e" />
+      <stop offset="100%" stop-color="#0c1715" />
     </linearGradient>
+    <radialGradient id="sun" cx="78%" cy="16%" r="22%">
+      <stop offset="0%" stop-color="#fff1cc" stop-opacity="0.96" />
+      <stop offset="38%" stop-color="#f0d58b" stop-opacity="0.42" />
+      <stop offset="100%" stop-color="#f0d58b" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="foregroundMist" cx="22%" cy="76%" r="52%">
+      <stop offset="0%" stop-color="#9ab7aa" stop-opacity="0.18" />
+      <stop offset="100%" stop-color="#9ab7aa" stop-opacity="0" />
+    </radialGradient>
+    <filter id="blur28" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="28" />
+    </filter>
+    <filter id="grain" x="-10%" y="-10%" width="120%" height="120%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.82" numOctaves="2" seed="5" />
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.05" />
+      </feComponentTransfer>
+    </filter>
   </defs>
-  <rect width="1280" height="800" fill="url(#sky)"/>
-  <circle cx="980" cy="178" r="90" fill="#d8b766" fill-opacity="0.23"/>
-  <path d="M0 500 C 200 460, 360 470, 580 520 C 850 580, 1030 610, 1280 590 L1280 800 L0 800 Z" fill="#132420"/>
-  <path d="M0 560 C 190 530, 400 530, 640 560 C 920 595, 1080 600, 1280 578" fill="none" stroke="#d6b667" stroke-opacity="0.45" stroke-width="7" stroke-linecap="round"/>
-  <path d="M140 230 C 260 210, 360 220, 520 255" fill="none" stroke="#8ea08f" stroke-opacity="0.28" stroke-width="5" stroke-linecap="round"/>
-  <path d="M620 180 C 740 154, 860 164, 1030 200" fill="none" stroke="#8ea08f" stroke-opacity="0.22" stroke-width="4" stroke-linecap="round"/>
+
+  <rect width="1280" height="800" fill="url(#sky)" />
+  <rect width="1280" height="800" fill="url(#sun)" />
+  <rect width="1280" height="800" fill="url(#foregroundMist)" />
+  <circle cx="990" cy="176" r="64" fill="#fff1cc" fill-opacity="0.88" />
+  <circle cx="990" cy="176" r="112" fill="#fff1cc" fill-opacity="0.12" filter="url(#blur28)" />
+
+  <g filter="url(#blur28)" opacity="0.78">
+    <path d="M130 182 C 230 150, 360 154, 470 186 C 564 214, 626 226, 720 222" fill="none" stroke="#dfe8dd" stroke-opacity="0.18" stroke-width="14" stroke-linecap="round" />
+    <path d="M730 164 C 848 132, 964 136, 1100 170" fill="none" stroke="#dfe8dd" stroke-opacity="0.16" stroke-width="12" stroke-linecap="round" />
+  </g>
+
+  <path d="M0 500 C 160 470, 330 472, 500 504 C 664 534, 826 548, 996 544 C 1136 540, 1212 530, 1280 520 L1280 800 L0 800 Z" fill="#132823" />
+  <path d="M0 566 C 220 540, 442 538, 668 562 C 884 586, 1084 586, 1280 564" fill="none" stroke="#e0c372" stroke-opacity="0.4" stroke-width="8" stroke-linecap="round" />
+  <path d="M0 618 C 246 592, 488 590, 748 618 C 968 642, 1128 642, 1280 624" fill="none" stroke="#9fb5a7" stroke-opacity="0.24" stroke-width="6" stroke-linecap="round" />
+  <path d="M156 252 C 282 222, 410 224, 546 252" fill="none" stroke="#f7e5b0" stroke-opacity="0.12" stroke-width="5" stroke-linecap="round" />
+  <path d="M644 202 C 776 176, 914 180, 1056 210" fill="none" stroke="#f7e5b0" stroke-opacity="0.12" stroke-width="4.5" stroke-linecap="round" />
+  <path d="M206 340 C 382 308, 534 310, 694 344" fill="none" stroke="#f0d58b" stroke-opacity="0.12" stroke-width="4" stroke-linecap="round" />
+  <path d="M748 316 C 878 292, 1002 294, 1140 322" fill="none" stroke="#9db5a8" stroke-opacity="0.1" stroke-width="3.5" stroke-linecap="round" />
+  <path d="M0 728 C 220 702, 438 700, 650 718 C 874 736, 1080 738, 1280 726" fill="none" stroke="#fff1cc" stroke-opacity="0.1" stroke-width="4" stroke-linecap="round" />
+  <rect width="1280" height="800" filter="url(#grain)" opacity="0.18" />
 </svg>

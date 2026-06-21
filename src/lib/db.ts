@@ -244,10 +244,13 @@ async function initializeDatabase() {
       invite_token_hash TEXT NOT NULL UNIQUE,
       invite_status TEXT NOT NULL DEFAULT 'pending',
       note TEXT,
+      invite_details_json JSONB NOT NULL DEFAULT '{}'::jsonb,
       accepted_at TIMESTAMPTZ,
       created_at TIMESTAMPTZ NOT NULL,
       updated_at TIMESTAMPTZ NOT NULL
     );
+
+    ALTER TABLE challenge_circles ADD COLUMN IF NOT EXISTS invite_details_json JSONB NOT NULL DEFAULT '{}'::jsonb;
 
     CREATE TABLE IF NOT EXISTS challenge_circle_members (
       id TEXT PRIMARY KEY,
@@ -266,6 +269,20 @@ async function initializeDatabase() {
       body TEXT NOT NULL,
       created_at TIMESTAMPTZ NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS challenge_circle_invite_responses (
+      id TEXT PRIMARY KEY,
+      circle_id TEXT NOT NULL REFERENCES challenge_circles(id) ON DELETE CASCADE,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      response_status TEXT NOT NULL,
+      responded_at TIMESTAMPTZ NOT NULL,
+      updated_at TIMESTAMPTZ NOT NULL,
+      UNIQUE(circle_id, user_id)
+    );
+
+    ALTER TABLE challenge_circle_invite_responses ADD COLUMN IF NOT EXISTS response_status TEXT NOT NULL DEFAULT 'pending';
+    ALTER TABLE challenge_circle_invite_responses ADD COLUMN IF NOT EXISTS responded_at TIMESTAMPTZ;
+    ALTER TABLE challenge_circle_invite_responses ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ;
 
     CREATE TABLE IF NOT EXISTS rule_of_life_entries (
       id TEXT PRIMARY KEY,
@@ -367,6 +384,8 @@ async function initializeDatabase() {
     CREATE INDEX IF NOT EXISTS challenge_circle_members_circle_idx ON challenge_circle_members(circle_id, joined_at DESC);
     CREATE INDEX IF NOT EXISTS challenge_circle_members_user_idx ON challenge_circle_members(user_id, joined_at DESC);
     CREATE INDEX IF NOT EXISTS challenge_circle_nudges_circle_idx ON challenge_circle_nudges(circle_id, created_at DESC);
+    CREATE INDEX IF NOT EXISTS challenge_circle_invite_responses_circle_idx ON challenge_circle_invite_responses(circle_id, responded_at DESC);
+    CREATE INDEX IF NOT EXISTS challenge_circle_invite_responses_user_idx ON challenge_circle_invite_responses(user_id, responded_at DESC);
     CREATE INDEX IF NOT EXISTS wisdom_decisions_user_updated_idx ON wisdom_decisions(user_id, updated_at DESC);
     CREATE INDEX IF NOT EXISTS decision_events_user_created_idx ON decision_events(user_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS rule_of_life_entries_user_idx ON rule_of_life_entries(user_id);

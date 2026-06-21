@@ -87,12 +87,15 @@ import { modeProfiles, type ModeProfile } from "@/lib/mode-profiles";
 import { detectLifeSupportConcern } from "@/lib/life-support";
 import { stableHash, todayWisdom as sharedTodayWisdom, wisdomEntries as baseWisdomEntries, type WisdomEntryData } from "@/lib/wisdom-data";
 import { defaultManualContext, manualContextCounselSignals, manualContextHasContent, normalizeManualContext, type ManualContextProfile } from "@/lib/manual-context";
+import { recommendChallenges } from "@/lib/challenge-recommendations";
 import { getCompanionTemplate, resolveGenerationLanguage } from "@/lib/scripture-generation-templates";
 import type { Mode } from "@/lib/wisdom-data";
 import { analyticsQuestionMetadata } from "@/lib/analytics-taxonomy";
 import { decisionStartedDiscerningBody, decisionTimelineObservation, localizeDecisionEventBody } from "@/lib/decision-copy";
 import { curatedAvatarOptions, defaultAvatarDataUrl, normalizeAvatarUrl } from "@/lib/avatars";
 import { challengeInviteUrl as buildChallengeInviteUrl } from "@/lib/challenge-circles";
+import { defaultReadWithMeInviteDetails, formatReadWithMeDurationLabel, type ReadWithMeInviteDetails, type ReadWithMeInviteDurationUnit } from "@/lib/read-with-me-invite";
+import type { ChallengeRecommendationBundle } from "@/lib/challenge-recommendations";
 import { SERVICE_WORKER_URL } from "@/lib/build-version";
 import { loadTranslationsSync, loadTranslationsWithFallbackSync, getTranslation, type TranslationData } from "@/lib/translations";
 import { ManagedAudio } from "@/lib/native-audio";
@@ -4332,31 +4335,24 @@ const TODAY_VISUAL_LIBRARY: Record<string, TodayVisualAsset[]> = {
   [THEME_KEYS.GENEROSITY]: [
     {
       kind: "photo",
-      title: "sunrise-on-the-road",
-      imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/73/Sunrise_on_the_road.jpg/1280px-Sunrise_on_the_road.jpg",
-      imagePageUrl: "https://commons.wikimedia.org/wiki/File:Sunrise_on_the_road.jpg",
-      license: "CC BY-SA 4.0",
+      title: "shared-table",
+      imageUrl: `${TODAY_LOCAL_VISUAL_PREFIX}shared-table.svg`,
+      imagePageUrl: `${TODAY_LOCAL_VISUAL_PREFIX}shared-table.svg`,
+      license: "Aletheia curated",
     },
     {
       kind: "photo",
-      title: "field-under-clear-sky",
-      imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2b/Field_under_clear_sky.jpg/1280px-Field_under_clear_sky.jpg",
-      imagePageUrl: "https://commons.wikimedia.org/wiki/File:Field_under_clear_sky.jpg",
-      license: "Public domain",
+      title: "open-hands",
+      imageUrl: `${TODAY_LOCAL_VISUAL_PREFIX}open-hands.svg`,
+      imagePageUrl: `${TODAY_LOCAL_VISUAL_PREFIX}open-hands.svg`,
+      license: "Aletheia curated",
     },
     {
       kind: "photo",
-      title: "sharing-a-meal",
-      imageUrl: commonsFilePath("Sharing a meal in the Philippines (Unsplash).jpg"),
-      imagePageUrl: "https://commons.wikimedia.org/wiki/File:Sharing_a_meal_in_the_Philippines_(Unsplash).jpg",
-      license: "CC0",
-    },
-    {
-      kind: "photo",
-      title: "sunrise-hike",
-      imageUrl: commonsFilePath("Sunrise hike El Hoyo Volcano (Unsplash).jpg"),
-      imagePageUrl: "https://commons.wikimedia.org/wiki/File:Sunrise_hike_El_Hoyo_Volcano_(Unsplash).jpg",
-      license: "CC0",
+      title: "gift-basket",
+      imageUrl: `${TODAY_LOCAL_VISUAL_PREFIX}gift-basket.svg`,
+      imagePageUrl: `${TODAY_LOCAL_VISUAL_PREFIX}gift-basket.svg`,
+      license: "Aletheia curated",
     },
   ],
   [DEFAULT_TODAY_VISUAL_THEME]: [
@@ -4476,8 +4472,9 @@ const TODAY_LOCAL_VISUAL_LIBRARY: Record<string, TodayVisualPhoto[]> = {
     localTodayVisualAsset("curated-quiet-forest", "quiet-forest.svg"),
   ],
   [THEME_KEYS.GENEROSITY]: [
-    localTodayVisualAsset("curated-dawn-path", "dawn-path.svg"),
-    localTodayVisualAsset("curated-warm-horizon", "warm-horizon.svg"),
+    localTodayVisualAsset("shared-table", "shared-table.svg"),
+    localTodayVisualAsset("open-hands", "open-hands.svg"),
+    localTodayVisualAsset("gift-basket", "gift-basket.svg"),
   ],
   [DEFAULT_TODAY_VISUAL_THEME]: [
     localTodayVisualAsset("curated-calm-water", "calm-water.svg"),
@@ -4547,7 +4544,7 @@ const TODAY_THEME_VISUAL_PRIORITIES: Record<string, string[]> = {
   [THEME_KEYS.DILIGENCE]: ["field-under-clear-sky", "lush-green-field", "ireland-fields-and-sky"],
   [THEME_KEYS.PROVISION_AND_ANXIETY]: ["ireland-fields-and-sky", "field-under-clear-sky", "staying-up-all-night", "hopeful-horizons"],
   [DEFAULT_TODAY_VISUAL_THEME]: ["field-under-clear-sky", "ireland-fields-and-sky", "hopeful-horizons"],
-  [THEME_KEYS.GENEROSITY]: ["sunrise-on-the-road", "field-in-sunrise", "field-under-clear-sky"],
+  [THEME_KEYS.GENEROSITY]: ["shared-table", "open-hands", "gift-basket"],
   [THEME_KEYS.COUNSEL]: ["window-reading", "quiet-reading", "stillness-path"],
   [THEME_KEYS.DEBT]: ["measured-balance"],
   Work: ["field-under-clear-sky", "ireland-fields-and-sky", "new-horizons"],
@@ -4571,9 +4568,9 @@ const TODAY_THEME_HUMAN_PRIORITIES: Record<string, Partial<Record<TodayVisualMoo
     contemplative: ["writing-the-moment", "writing-with-both-hands", "business-notes"],
   },
   [THEME_KEYS.GENEROSITY]: {
-    warm: ["sharing-a-meal", "sunrise-hike"],
-    cool: ["sunrise-hike", "sharing-a-meal"],
-    contemplative: ["sharing-a-meal", "sunrise-hike"],
+    warm: ["open-hands", "shared-table", "gift-basket"],
+    cool: ["shared-table", "gift-basket", "open-hands"],
+    contemplative: ["shared-table", "open-hands", "gift-basket"],
   },
   [THEME_KEYS.PROVISION_AND_ANXIETY]: {
     warm: ["sharing-a-meal", "quiet-reading"],
@@ -4637,9 +4634,9 @@ const TODAY_THEME_MOOD_PRIORITIES: Record<string, Partial<Record<TodayVisualMood
     contemplative: ["ireland-fields-and-sky", "field-under-clear-sky", "hopeful-horizons"],
   },
   [THEME_KEYS.GENEROSITY]: {
-    warm: ["sunrise-on-the-road", "field-in-sunrise", "field-under-clear-sky"],
-    cool: ["field-under-clear-sky", "hopeful-horizons", "new-horizons"],
-    contemplative: ["field-under-clear-sky", "hopeful-horizons", "new-horizons"],
+    warm: ["open-hands", "shared-table", "gift-basket"],
+    cool: ["shared-table", "gift-basket", "open-hands"],
+    contemplative: ["gift-basket", "shared-table", "open-hands"],
   },
   [DEFAULT_TODAY_VISUAL_THEME]: {
     warm: ["hopeful-horizons", "field-under-clear-sky", "ireland-fields-and-sky"],
@@ -4663,7 +4660,8 @@ const TODAY_THEME_TIME_PRIORITIES: Record<string, { morning?: string[]; winter?:
     morning: ["sunrise-on-the-road", "field-in-sunrise", "new-horizons"],
   },
   [THEME_KEYS.GENEROSITY]: {
-    morning: ["sunrise-on-the-road", "field-in-sunrise", "field-under-clear-sky"],
+    morning: ["open-hands", "shared-table", "gift-basket"],
+    weekend: ["shared-table", "gift-basket", "open-hands"],
   },
   [THEME_KEYS.PROVISION_AND_ANXIETY]: {
     winter: ["ireland-fields-and-sky", "field-under-clear-sky", "hopeful-horizons"],
@@ -5577,7 +5575,8 @@ function resolveTodayVisualPlacement({
   const isEvening = hour !== null && hour >= 17;
   const isWinter = month !== null && [12, 1, 2].includes(month);
   const isWeekend = dayOfWeek !== null && (dayOfWeek === 0 || dayOfWeek === 6);
-  const isMorningSunriseTheme = (theme === THEME_KEYS.STEWARDSHIP || theme === THEME_KEYS.GENEROSITY) && isMorning;
+  const isMorningStewardshipTheme = theme === THEME_KEYS.STEWARDSHIP && isMorning;
+  const isMorningGenerosityTheme = theme === THEME_KEYS.GENEROSITY && isMorning;
   const isWinterTheme = theme === THEME_KEYS.PROVISION_AND_ANXIETY && isWinter;
   const isWeekendTheme = (theme === THEME_KEYS.COUNSEL || theme === DEFAULT_TODAY_VISUAL_THEME) && isWeekend;
   const isWarmMood = mood === "warm";
@@ -5609,10 +5608,14 @@ function resolveTodayVisualPlacement({
     figureOpacity = 0.94;
   }
 
-  if (isMorningSunriseTheme) {
+  if (isMorningStewardshipTheme) {
     wrapperClassName = wrapperClassName.replace("mt-4", "mt-5");
     objectPosition = "center 30%";
     overlayGradient = "linear-gradient(180deg, rgba(8, 11, 10, 0.00) 0%, rgba(8, 11, 10, 0.03) 42%, rgba(8, 11, 10, 0.16) 100%)";
+  } else if (isMorningGenerosityTheme) {
+    wrapperClassName = wrapperClassName.replace("mt-4", "mt-5");
+    objectPosition = "center 40%";
+    overlayGradient = "linear-gradient(180deg, rgba(8, 11, 10, 0.00) 0%, rgba(8, 11, 10, 0.03) 44%, rgba(8, 11, 10, 0.13) 100%)";
   } else if (isWinterTheme) {
     wrapperClassName = wrapperClassName.replace("mt-4", "mt-5");
     objectPosition = "center 48%";
@@ -5757,6 +5760,76 @@ function TodayVisualScene({
   );
 }
 
+function TodayVisualLoadingPlaceholder({
+  theme,
+}: {
+  theme: ThemeColors;
+}) {
+  return (
+    <div className="absolute inset-0 flex items-center justify-center px-3">
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background: [
+            `radial-gradient(circle at 50% 20%, color-mix(in srgb, ${theme.accentGold} 24%, transparent) 0%, transparent 34%)`,
+            `radial-gradient(circle at 18% 82%, color-mix(in srgb, ${theme.primary} 18%, transparent) 0%, transparent 26%)`,
+            `radial-gradient(circle at 82% 70%, color-mix(in srgb, ${theme.accentLight} 14%, transparent) 0%, transparent 28%)`,
+            `linear-gradient(180deg, color-mix(in srgb, ${theme.bgCardElevated} 92%, #000 8%) 0%, ${theme.bgCard} 100%)`,
+          ].join(", "),
+        }}
+      />
+      <div
+        className="pointer-events-none absolute inset-x-6 top-4 h-px"
+        style={{
+          background: `linear-gradient(90deg, transparent 0%, color-mix(in srgb, ${theme.accentGold} 22%, transparent) 50%, transparent 100%)`,
+        }}
+      />
+      <div
+        className="pointer-events-none absolute inset-x-8 bottom-4 h-px"
+        style={{
+          background: `linear-gradient(90deg, transparent 0%, color-mix(in srgb, ${theme.primary} 18%, transparent) 50%, transparent 100%)`,
+        }}
+      />
+      <div className="relative flex flex-col items-center gap-2 text-center">
+        <div
+          className="relative overflow-hidden rounded-[1.5rem] border shadow-[0_14px_28px_rgba(0,0,0,0.22)]"
+          style={{
+            width: "6.75rem",
+            height: "6.75rem",
+            borderColor: `color-mix(in srgb, ${theme.borderLight} 82%, transparent)`,
+            background: `linear-gradient(180deg, color-mix(in srgb, ${theme.bgCardElevated} 94%, #fff 6%) 0%, color-mix(in srgb, ${theme.bgCard} 92%, #000 8%) 100%)`,
+          }}
+        >
+          <div
+            className="absolute inset-0"
+            style={{
+              background: `radial-gradient(circle at 32% 20%, color-mix(in srgb, #ffffff 74%, transparent) 0%, transparent 54%)`,
+            }}
+          />
+          <Image
+            src="/brand/aletheia-mark-full.png"
+            alt="Aletheia"
+            fill
+            sizes="108px"
+            className="object-contain p-1.5"
+          />
+        </div>
+
+        <div className="flex flex-col items-center gap-1">
+          <span className="text-[8.5px] font-semibold uppercase tracking-[0.34em]" style={{ color: theme.accentGold }}>
+            Loading today
+          </span>
+          <div className="flex items-center gap-1.5">
+            <span className="size-1.5 rounded-full animate-pulse motion-reduce:animate-none" style={{ backgroundColor: theme.accentGold }} />
+            <span className="size-1 rounded-full animate-pulse [animation-delay:-0.35s] motion-reduce:animate-none" style={{ backgroundColor: theme.accentLight }} />
+            <span className="size-1.5 rounded-full animate-pulse [animation-delay:-0.7s] motion-reduce:animate-none" style={{ backgroundColor: theme.primary }} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function TodayVisualPanel({
   themeName,
   dayNumber,
@@ -5789,13 +5862,14 @@ function TodayVisualPanel({
       month,
       dayOfWeek,
       attempt: photoAttempt,
-      localOnly: useLocalFallback,
+      localOnly: true,
     }),
-    [dayNumber, dayOfWeek, hour, month, mood, photoAttempt, themeName, useLocalFallback]
+    [dayNumber, dayOfWeek, hour, month, mood, photoAttempt, themeName]
   );
   const usingPhoto = asset.kind === "photo" && !imageFailed;
   const fallbackVariant = asset.kind === "illustration" ? asset.variant : "stillness";
   const isSvgAsset = asset.kind === "photo" && asset.imageUrl.endsWith(".svg");
+  const showLoadingPlaceholder = asset.kind === "photo" && !isSvgAsset && !imageLoaded && !imageFailed;
   const placement = resolveTodayVisualPlacement({
     theme: themeName,
     mood,
@@ -5829,14 +5903,17 @@ function TodayVisualPanel({
           maskImage: "linear-gradient(180deg, transparent 0%, black 6%, black 90%, transparent 100%)",
         }}
       >
+        {showLoadingPlaceholder ? <TodayVisualLoadingPlaceholder theme={theme} /> : null}
         {usingPhoto ? (
           isSvgAsset ? (
-            <img
+            <Image
               src={asset.imageUrl}
               alt=""
-              className={`absolute inset-0 w-full h-full object-cover transition-[opacity,filter,transform] duration-700 ease-out will-change-[opacity,filter,transform] ${placement.imageClassName} ${imageLoaded ? "scale-[1.06] opacity-100 blur-0" : "scale-[1.03] opacity-0 blur-[1px]"}`}
+              fill
+              sizes="(max-width: 768px) 100vw, 240px"
+              className={`object-cover transition-[opacity,filter,transform] duration-700 ease-out will-change-[opacity,filter,transform] ${placement.imageClassName} ${imageLoaded ? "scale-[1.06] opacity-100 blur-0" : "scale-[1.03] opacity-0 blur-[1px]"}`}
               style={{ objectPosition: placement.objectPosition }}
-              onLoad={() => {
+              onLoadingComplete={() => {
                 setImageLoaded(true);
                 setImageFailed(false);
               }}
@@ -5849,6 +5926,8 @@ function TodayVisualPanel({
                 setImageLoaded(false);
                 setImageFailed(true);
               }}
+              unoptimized
+              priority={false}
             />
           ) : (
             <Image
@@ -8101,6 +8180,46 @@ export function AletheiaApp() {
     return { sources, readiness, hasUrgency, hasCounsel };
   }, [decision, emotion, timeframe, mode, preferences]);
 
+  const featuredChallengeRecommendation = useMemo(() => {
+    const modeCounts: Record<string, number> = {};
+    const bump = (value: string | null | undefined) => {
+      if (!value) {
+        return;
+      }
+      modeCounts[value] = (modeCounts[value] ?? 0) + 1;
+    };
+
+    for (const message of messages) {
+      if (message.role === "user") {
+        bump(message.mode);
+      }
+    }
+    for (const entry of journalEntries) {
+      bump(entry.mode);
+    }
+    for (const decisionItem of wisdomDecisions) {
+      bump(decisionItem.mode);
+    }
+
+    const recentTexts = [
+      ...messages
+        .filter((message) => message.role === "user")
+        .slice(-12)
+        .map((message) => message.text),
+      ...journalEntries.slice(-8).flatMap((entry) => [entry.title, entry.body]),
+      ...wisdomDecisions.slice(-8).flatMap((decisionItem) => [decisionItem.title, decisionItem.pressure, decisionItem.summary ?? "", decisionItem.learning ?? ""]),
+    ].filter(Boolean);
+
+    return recommendChallenges({
+      manualContext,
+      guestManualContext: user ? null : manualContext,
+      focusIntentions,
+      modeCounts,
+      currentMode: mode,
+      recentTexts,
+    });
+  }, [focusIntentions, journalEntries, manualContext, messages, mode, user, wisdomDecisions]);
+
   function handleModeChange(nextMode: Mode) {
     setMode(nextMode);
     trackClientEvent("wisdom_mode_selected", { mode: nextMode });
@@ -8245,6 +8364,11 @@ export function AletheiaApp() {
 
   function openAccountFlow() {
     showView("account");
+  }
+
+  function openRecommendedChallenge(challengeId: string) {
+    setPendingChallengeId(challengeId);
+    showView("reflect");
   }
 
   function askOneQuestionFlow() {
@@ -10813,23 +10937,37 @@ export function AletheiaApp() {
     return challengeInviteToken ?? challengeInviteTokenFromUrl(challengeInviteUrl);
   }
 
-  async function acceptChallengeInvite() {
+  async function respondToChallengeInvite(action: "accept" | "decline") {
     const token = challengeInviteActiveToken();
     if (!token) {
       return;
     }
-    setChallengeInviteStatus(ts("status.challengeInviteAccepting"));
+    setChallengeInviteStatus(
+      action === "accept"
+        ? ts("status.challengeInviteAccepting")
+        : ts("status.challengeInviteDeclining", "Declining invite...")
+    );
     const response = await fetch(`/api/challenge-circles/${encodeURIComponent(token)}`, {
       method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action }),
     });
     const data = (await response.json().catch(() => ({}))) as ChallengeCircleSummary | { error?: string; errorCode?: string };
     if (response.ok && isChallengeCircleSummary(data)) {
       setChallengeInvitePreview(data);
-      setChallengeInviteStatus(ts("status.challengeInviteAccepted"));
+      setChallengeInviteStatus(
+        action === "accept"
+          ? ts("status.challengeInviteAccepted")
+          : ts("status.challengeInviteDeclined", "Invite declined.")
+      );
       refreshChallengeCircles();
       return;
     }
-    setChallengeInviteStatus(ts("status.challengeInviteNotAccepted"));
+    setChallengeInviteStatus(
+      action === "accept"
+        ? ts("status.challengeInviteNotAccepted")
+        : ts("status.challengeInviteDeclineFailed", "Could not decline the invite.")
+    );
   }
 
   async function addChallengeInviteNudge(body: string) {
@@ -11133,6 +11271,8 @@ export function AletheiaApp() {
                         weeklyReview={weeklyReview}
                         personalizationContextEmpty={!manualContextHasContent(manualContext)}
                         prioritizeToday={pendingNotificationFocus}
+                        challengeRecommendation={featuredChallengeRecommendation.primary}
+                        ts={ts}
                         onScriptureOpen={openScripture}
                         onContinueDecision={continueDecisionFlow}
                         onReflectToday={reflectOnToday}
@@ -11148,6 +11288,7 @@ export function AletheiaApp() {
                         onSaveScriptureMemory={() => saveScriptureMemory(dailyEntry.scripture, daily.principle)}
                         onClearScriptureMemory={clearScriptureMemory}
                         onShareScriptureMemory={shareScriptureMemoryCard}
+                        onOpenRecommendedChallenge={openRecommendedChallenge}
                         theme={theme}
                       />
                     ) : (
@@ -11263,6 +11404,12 @@ export function AletheiaApp() {
                         theme={theme}
                         ts={ts}
                         user={user}
+                        mode={mode}
+                        manualContext={manualContext}
+                        focusIntentions={focusIntentions}
+                        messages={messages}
+                        journalEntries={journalEntries}
+                        wisdomDecisions={wisdomDecisions}
                         pendingChallengeId={pendingChallengeId}
                         onClearPendingChallenge={() => setPendingChallengeId(null)}
                         challengeCircleRefreshKey={challengeCircleRefreshKey}
@@ -11362,6 +11509,7 @@ export function AletheiaApp() {
                       ui={ui}
                       manualContext={manualContext}
                       manualContextStatus={manualContextStatus}
+                      challengeRecommendation={featuredChallengeRecommendation.primary}
                       themePreference={themePreference}
                       onPreferenceChange={updatePreferences}
                       onThemePreferenceChange={updateThemePreference}
@@ -11394,6 +11542,7 @@ export function AletheiaApp() {
                       onRequestDeleteAccount={() => setShowDeleteAccountModal(true)}
                       onReportIssue={() => setShowReportIssueModal(true)}
                       onShare={(channel, placement) => shareAletheia(channel, placement)}
+                      onOpenRecommendedChallenge={openRecommendedChallenge}
                       accountActionBusy={accountActionBusy}
                       theme={theme}
                     />
@@ -11498,7 +11647,8 @@ export function AletheiaApp() {
         status={challengeInviteStatus}
         ts={ts}
         user={user}
-        onAccept={acceptChallengeInvite}
+        onAccept={() => respondToChallengeInvite("accept")}
+        onDecline={() => respondToChallengeInvite("decline")}
         onNudge={addChallengeInviteNudge}
         onRequestSignIn={() => {
           setAuthMode("login");
@@ -12404,6 +12554,22 @@ function OnboardingModal({
   const languageSectionRef = useRef<HTMLElement | null>(null);
   const focusSectionRef = useRef<HTMLElement | null>(null);
   const privacySectionRef = useRef<HTMLElement | null>(null);
+  const getSetupStepRef = useCallback((key: string) => {
+    switch (key) {
+      case "mode":
+        return modeSectionRef;
+      case "tone":
+        return toneSectionRef;
+      case "language":
+        return languageSectionRef;
+      case "focus":
+        return focusSectionRef;
+      case "privacy":
+        return privacySectionRef;
+      default:
+        return modeSectionRef;
+    }
+  }, []);
   const scrollToSetupStep = useCallback((key: string, ref: RefObject<HTMLElement | null>) => {
     setActiveSetupStep(key);
     const target = ref.current;
@@ -12503,11 +12669,11 @@ function OnboardingModal({
   const bibleOptions = bibleTranslationOptionsForLanguage(preferences.language);
   const selectedTranslation = bibleTranslations[preferences.bibleTranslation];
   const setupSteps = [
-    { key: "mode", label: ts('labels.setupStepMode'), ref: modeSectionRef },
-    { key: "tone", label: ts('labels.setupStepTone'), ref: toneSectionRef },
-    { key: "language", label: ts('labels.setupStepLanguage'), ref: languageSectionRef },
-    { key: "focus", label: ts('labels.setupStepFocus'), ref: focusSectionRef },
-    { key: "privacy", label: ts('labels.setupStepPrivacy'), ref: privacySectionRef },
+    { key: "mode", label: ts('labels.setupStepMode') },
+    { key: "tone", label: ts('labels.setupStepTone') },
+    { key: "language", label: ts('labels.setupStepLanguage') },
+    { key: "focus", label: ts('labels.setupStepFocus') },
+    { key: "privacy", label: ts('labels.setupStepPrivacy') },
   ];
   const privacyOptions = [
     {
@@ -12524,6 +12690,20 @@ function OnboardingModal({
       key: "contextual",
       label: ts('labels.privacyLevelContextual'),
       body: ts('labels.privacyLevelContextualBody'),
+    },
+  ];
+  const onboardingHighlights = [
+    {
+      title: ts('labels.appLikeSetup'),
+      body: ts('labels.changeLaterInAccount'),
+    },
+    {
+      title: signedIn ? ts('labels.accountNotice') : ts('labels.guestSetupReady'),
+      body: ts('labels.accountNoticeBody'),
+    },
+    {
+      title: notificationsEnabled ? ts('labels.notificationsAlreadyEnabledDevice') : ts('labels.notificationsOptionalAfterSignIn'),
+      body: ts('labels.beginQuietly'),
     },
   ];
 
@@ -12552,20 +12732,22 @@ function OnboardingModal({
         }}
       >
         <div className="flex items-start justify-between gap-3">
-          <div className="max-w-2xl rounded-xl border p-3.5 shadow-sm sm:p-4" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
-            <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.beginQuietly')}</p>
-            <h2 className="mt-1.5 text-xl font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.onboardingTitle')}</h2>
-            <p className="mt-1.5 text-sm leading-5" style={{ color: theme.textSecondary }}>
+          <div className="max-w-2xl rounded-[1.25rem] border p-4 shadow-sm sm:p-5" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>{ts('labels.beginQuietly')}</p>
+            <h2 className="mt-2 text-[1.42rem] font-semibold leading-[1.02] text-balance sm:text-[1.76rem]" style={{ color: theme.textPrimary }}>
+              {ts('labels.onboardingTitle')}
+            </h2>
+            <p className="mt-2 max-w-xl text-sm leading-6 sm:text-[0.96rem] sm:leading-7" style={{ color: theme.textSecondary }}>
               {ts('labels.chooseLensAndSettings')}
             </p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              <span className="rounded-full border px-2.5 py-0.5 text-[11px] font-semibold" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <span className="rounded-full border px-2.5 py-1 text-[11px] font-semibold" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}>
                 5 {ts('labels.setupSteps')}
               </span>
-              <span className="rounded-full border px-2.5 py-0.5 text-[11px] font-semibold" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+              <span className="rounded-full border px-2.5 py-1 text-[11px] font-semibold" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
                 {ts('labels.appLikeSetup')}
               </span>
-              <span className="rounded-full border px-2.5 py-0.5 text-[11px] font-semibold" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+              <span className="rounded-full border px-2.5 py-1 text-[11px] font-semibold" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
                 {ts('labels.changeLaterInAccount')}
               </span>
             </div>
@@ -12573,12 +12755,57 @@ function OnboardingModal({
           <button
             type="button"
             onClick={onComplete}
-            className="grid size-9 shrink-0 place-items-center rounded-md border transition"
+            className="grid size-10 shrink-0 place-items-center rounded-full border transition"
             style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
             aria-label={ts('labels.closeOnboarding')}
           >
             <X size={17} />
           </button>
+        </div>
+
+        <div className="mt-4 grid gap-3 md:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
+          <div className="rounded-[1.25rem] border p-4 shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+              {ts('labels.changeLaterInAccount')}
+            </p>
+            <div className="mt-3 space-y-2">
+              {onboardingHighlights.map((item) => (
+                <div key={item.title} className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                  <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{item.title}</p>
+                  <p className="mt-1 text-xs leading-5" style={{ color: theme.textSecondary }}>{item.body}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="rounded-[1.25rem] border p-4 shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+              {ts('labels.setupSteps')}
+            </p>
+            <div className="mt-3 space-y-2">
+              {setupSteps.map((step, index) => {
+                const active = activeSetupStep === step.key;
+                return (
+                  <button
+                    key={step.key}
+                    type="button"
+                    onClick={() => scrollToSetupStep(step.key, getSetupStepRef(step.key))}
+                    className="flex w-full items-center gap-3 rounded-[1rem] border px-3 py-2.5 text-left transition"
+                    style={{
+                      borderColor: active ? theme.primary : theme.borderLight,
+                      backgroundColor: active ? theme.activeBg : theme.bgCard,
+                      color: active ? theme.textPrimary : theme.textSecondary,
+                    }}
+                    aria-current={active ? "step" : undefined}
+                  >
+                    <span className="grid size-8 shrink-0 place-items-center rounded-full border text-[11px] font-semibold" style={{ borderColor: active ? theme.primary : theme.borderLight, backgroundColor: active ? theme.primary : theme.bgInput, color: active ? theme.textOnPrimary : theme.textSecondary }}>
+                      {index + 1}
+                    </span>
+                    <span className="min-w-0 text-sm font-semibold">{step.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
 
         <div className="mt-5 space-y-4">
@@ -12588,22 +12815,22 @@ function OnboardingModal({
             style={{ backgroundColor: theme.bgCard }}
           >
             <div className="flex min-w-max gap-1 rounded-xl border p-1 shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-              {setupSteps.map((step) => {
+              {setupSteps.map((step, index) => {
                 const active = activeSetupStep === step.key;
                 return (
-              <button
-                key={step.key}
-                type="button"
-                onClick={() => scrollToSetupStep(step.key, step.ref)}
-                className="min-h-10 rounded-md px-3 py-2 text-center text-[10px] font-semibold uppercase tracking-[0.08em] transition sm:text-xs"
-                style={{
-                  backgroundColor: active ? theme.activeBg : "transparent",
-                  color: active ? theme.textPrimary : theme.textSecondary,
-                }}
-                aria-current={active ? "step" : undefined}
-              >
-                <span className="whitespace-nowrap">{step.label}</span>
-              </button>
+                  <button
+                    key={step.key}
+                    type="button"
+                    onClick={() => scrollToSetupStep(step.key, getSetupStepRef(step.key))}
+                    className="min-h-10 rounded-md px-3 py-2 text-center text-[10px] font-semibold uppercase tracking-[0.08em] transition sm:text-xs"
+                    style={{
+                      backgroundColor: active ? theme.activeBg : "transparent",
+                      color: active ? theme.textPrimary : theme.textSecondary,
+                    }}
+                    aria-current={active ? "step" : undefined}
+                  >
+                    <span className="whitespace-nowrap">{index + 1}. {step.label}</span>
+                  </button>
                 );
               })}
             </div>
@@ -12829,6 +13056,8 @@ function HomeDashboard({
   weeklyReview,
   personalizationContextEmpty,
   prioritizeToday,
+  ts,
+  challengeRecommendation,
   onScriptureOpen,
   onContinueDecision,
   onReflectToday,
@@ -12844,8 +13073,10 @@ function HomeDashboard({
   onSaveScriptureMemory,
   onClearScriptureMemory,
   onShareScriptureMemory,
+  onOpenRecommendedChallenge,
   theme,
 }: {
+  ts: (key: string, fallback?: string) => string;
   daily: ReturnType<typeof localizedDailyWisdom>;
   dailyEntry: WisdomEntry;
   dayNumber: number;
@@ -12879,6 +13110,8 @@ function HomeDashboard({
   onSaveScriptureMemory: () => void;
   onClearScriptureMemory: () => void;
   onShareScriptureMemory: (memory: ScriptureMemory) => void;
+  challengeRecommendation: ChallengeRecommendationBundle["primary"];
+  onOpenRecommendedChallenge: (challengeId: string) => void;
   theme: ThemeColors;
 }) {
   const text = { ...englishText, ...ui };
@@ -12951,11 +13184,11 @@ function HomeDashboard({
           background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})`,
         }}
       >
-        <div className="flex flex-col gap-4">
-          <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0">
-              <p className="text-[10.5px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.accentGold }}>
-                {homeWelcomeEyebrow}
+          <div className="flex flex-col gap-4">
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <p className="text-[10.5px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.accentGold }}>
+                  {homeWelcomeEyebrow}
               </p>
               <h1 className="mt-2 text-[1.88rem] font-semibold leading-[1.01] text-balance sm:text-[2.35rem]" style={{ color: theme.textPrimary }} suppressHydrationWarning>
                 {greeting}
@@ -12964,9 +13197,29 @@ function HomeDashboard({
                 {homeWelcomeSeasonal}
               </p>
             </div>
-            <span className="grid size-12 shrink-0 place-items-center rounded-2xl border shadow-[0_8px_16px_rgba(7,10,8,0.08)]" style={{ borderColor: theme.primary, backgroundColor: theme.primary, color: theme.textOnPrimary }}>
-              <Sparkles size={22} />
-            </span>
+              <span className="grid size-12 shrink-0 place-items-center rounded-2xl border shadow-[0_8px_16px_rgba(7,10,8,0.08)]" style={{ borderColor: theme.primary, backgroundColor: theme.primary, color: theme.textOnPrimary }}>
+                <Sparkles size={22} />
+              </span>
+            </div>
+
+          <div className="flex flex-wrap gap-2">
+            {[
+              { label: activeDecision ? text.continueDecision! : text.askOneQuestion!, active: true },
+              { label: text.reflectToday!, active: false },
+              { label: text.carryWithMe!, active: false },
+            ].map((chip) => (
+              <span
+                key={chip.label}
+                className="rounded-full border px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]"
+                style={{
+                  borderColor: chip.active ? theme.primary : theme.borderLight,
+                  backgroundColor: chip.active ? theme.activeBg : theme.bgCardElevated,
+                  color: chip.active ? theme.primary : theme.textSecondary,
+                }}
+              >
+                {chip.label}
+              </span>
+            ))}
           </div>
 
           {personalizationContextEmpty ? (
@@ -12980,6 +13233,14 @@ function HomeDashboard({
               <span className="mt-1 block text-sm font-normal leading-6" style={{ color: theme.textSecondary }}>{text.personalizationNudgeBody}</span>
             </button>
           ) : null}
+
+          <ChallengeRecommendationCard
+            recommendation={challengeRecommendation}
+            theme={theme}
+            ts={ts}
+            onOpenChallenge={onOpenRecommendedChallenge}
+            compact
+          />
 
           <div className="grid gap-3 grid-cols-[minmax(0,1fr)_6.75rem] sm:grid-cols-[minmax(0,1fr)_7.75rem] sm:gap-3.5 items-start">
             <div className="min-w-0 pt-0.5 sm:pt-1">
@@ -13780,6 +14041,7 @@ function AccountPanel({
   ui,
   manualContext,
   manualContextStatus,
+  challengeRecommendation,
   themePreference,
   onPreferenceChange,
   onThemePreferenceChange,
@@ -13812,6 +14074,7 @@ function AccountPanel({
   onRequestDeleteAccount,
   onReportIssue,
   onShare,
+  onOpenRecommendedChallenge,
   accountActionBusy,
   theme,
 }: {
@@ -13842,6 +14105,7 @@ function AccountPanel({
   ui: UiText;
   manualContext: ManualContextProfile;
   manualContextStatus: string;
+  challengeRecommendation: ChallengeRecommendationBundle["primary"];
   themePreference: ThemePreference;
   onPreferenceChange: (patch: Partial<UserPreferences>) => void;
   onThemePreferenceChange: (value: ThemePreference) => void;
@@ -13874,6 +14138,7 @@ function AccountPanel({
   onRequestDeleteAccount: () => void;
   onReportIssue: () => void;
   onShare: (channel: ShareChannel, placement: string) => void;
+  onOpenRecommendedChallenge: (challengeId: string) => void;
   accountActionBusy: "export" | "delete" | "report" | null;
   theme: ThemeColors;
 }) {
@@ -13940,6 +14205,26 @@ function AccountPanel({
             <p className="mt-2 text-sm leading-6 sm:text-base sm:leading-7" style={{ color: theme.textSecondary }}>
               {user ? `${ts('labels.accountSignedInWith')} ${profileSummary}` : profileSummary}
             </p>
+            <div className="mt-4 flex flex-wrap justify-center gap-2">
+              {[
+                { label: ts('labels.accountPersonalizationTab'), active: accountSection === "personalization" },
+                { label: ts('labels.accountPrivacyTab'), active: accountSection === "privacy" },
+                { label: ts('labels.accountShareTab'), active: accountSection === "share" },
+                { label: ts('labels.accountSystemTab'), active: accountSection === "system" },
+              ].map((item) => (
+                <span
+                  key={item.label}
+                  className="rounded-full border px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]"
+                  style={{
+                    borderColor: item.active ? theme.primary : theme.borderLight,
+                    backgroundColor: item.active ? theme.activeBg : theme.bgCardElevated,
+                    color: item.active ? theme.primary : theme.textSecondary,
+                  }}
+                >
+                  {item.label}
+                </span>
+              ))}
+            </div>
           </div>
           <div className="grid grid-cols-3 gap-2 border-t px-3 py-3 sm:px-5" style={{ borderColor: theme.borderLight }}>
             {profileStats.map((stat) => (
@@ -13998,6 +14283,15 @@ function AccountPanel({
             />
           </div>
       </DisclosureSection>
+
+      <ChallengeRecommendationCard
+        recommendation={challengeRecommendation}
+        theme={theme}
+        ts={ts}
+        onOpenChallenge={onOpenRecommendedChallenge}
+        compact
+        className="mt-1"
+      />
 
       <ScreenTabs
         value={accountSection}
@@ -14164,6 +14458,116 @@ function AccountPanel({
         </div>
       ) : null}
     </div>
+  );
+}
+
+function ChallengeRecommendationCard({
+  recommendation,
+  theme,
+  ts,
+  onOpenChallenge,
+  alternatives = [],
+  showAlternatives = false,
+  compact = false,
+  className = "",
+}: {
+  recommendation: ChallengeRecommendationBundle["primary"];
+  theme: ThemeColors;
+  ts: (key: string, fallback?: string) => string;
+  onOpenChallenge: (challengeId: string) => void;
+  alternatives?: ChallengeRecommendationBundle["alternatives"];
+  showAlternatives?: boolean;
+  compact?: boolean;
+  className?: string;
+}) {
+  if (!recommendation) {
+    return null;
+  }
+
+  const actionLabel = recommendation.actionKind === "continue"
+    ? ts("challenges.continueChallenge")
+    : ts("challenges.startChallenge");
+
+  return (
+    <section
+      className={`overflow-hidden rounded-[1.45rem] border shadow-[0_8px_20px_rgba(7,10,8,0.05)] ${compact ? "p-3.5 sm:p-4" : "p-4 sm:p-5"} ${className}`}
+      style={{
+        borderColor: theme.primary,
+        background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})`,
+      }}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+            {ts("labels.suggestedAction")}
+          </p>
+          <h3 className="mt-1 text-lg font-semibold" style={{ color: theme.textPrimary }}>
+            {ts("labels.recommendedForYou", "Recommended for you")}
+          </h3>
+          <p className="mt-1.5 text-base font-semibold leading-6" style={{ color: theme.textPrimary }}>
+            {recommendation.title}
+          </p>
+          <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
+            {recommendation.note}
+          </p>
+        </div>
+        <span
+          className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]"
+          style={{
+            borderColor: theme.borderMedium,
+            backgroundColor: theme.bgInput,
+            color: theme.textSecondary,
+          }}
+        >
+          {actionLabel}
+        </span>
+      </div>
+
+      <div className="mt-3">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
+          {ts("challenges.whyThisFits", "Why this fits")}
+        </p>
+        <div className="mt-2 flex flex-wrap gap-2">
+          {recommendation.fitChips.slice(0, 3).map((chip) => (
+            <span
+              key={chip}
+              className="rounded-full border px-2.5 py-1 text-[10px] font-semibold tracking-[0.08em]"
+              style={{
+                borderColor: theme.borderLight,
+                backgroundColor: theme.bgInput,
+                color: theme.textSecondary,
+              }}
+            >
+              {chip}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={() => onOpenChallenge(recommendation.challengeId)}
+          className="inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-semibold transition"
+          style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+        >
+          {actionLabel}
+        </button>
+        {showAlternatives
+          ? alternatives.slice(0, 2).map((item) => (
+              <button
+                key={item.challengeId}
+                type="button"
+                onClick={() => onOpenChallenge(item.challengeId)}
+                className="inline-flex h-10 items-center justify-center rounded-full border px-4 text-sm font-semibold transition"
+                style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
+              >
+                {item.title}
+              </button>
+            ))
+          : null}
+      </div>
+    </section>
   );
 }
 
@@ -14503,10 +14907,31 @@ type ChallengeProgressEntry = {
 type ChallengeWithProgress = {
   id: string;
   titleKey: string;
+  title: string;
   descriptionKey: string;
+  description: string;
   totalDays: number;
   mode: string;
   completedDays: ChallengeProgressEntry[];
+  days?: ChallengeDefinitionPreview["days"];
+};
+
+type ChallengeDefinitionPreview = {
+  id: string;
+  titleKey: string;
+  title: string;
+  descriptionKey: string;
+  description: string;
+  days: Array<{
+    day: number;
+    scripture: string;
+    principleKey: string;
+    principle: string;
+    promptKey: string;
+    prompt: string;
+    practiceKey: string;
+    practice: string;
+  }>;
 };
 
 type ChallengeCircleMember = {
@@ -14534,7 +14959,9 @@ type ChallengeCircleSummary = {
   challenge: {
     id: string;
     titleKey: string;
+    title: string;
     descriptionKey: string;
+    description: string;
     totalDays: number;
     mode: string;
   };
@@ -14543,12 +14970,14 @@ type ChallengeCircleSummary = {
     note: string | null;
     acceptedAt: string | null;
     createdAt: string;
+    details: ReadWithMeInviteDetails | null;
     owner: {
       id: string;
       name: string | null;
       avatarUrl: string | null;
     };
   };
+  viewerResponse: string | null;
   memberCount: number;
   members: ChallengeCircleMember[];
   nudges: ChallengeCircleNudge[];
@@ -14645,7 +15074,7 @@ function FormationsSection({
   }
 
   async function shareChallenge(challenge: ChallengeWithProgress) {
-    const title = ts(challenge.titleKey, challenge.id);
+    const title = ts(challenge.titleKey, challenge.title);
     const url = buildShareUrl(challenge.id);
     const text = ts("challenges.shareChallengeBody", `Join me in this ${challenge.totalDays}-day practice on Aletheia.`).replace("{days}", String(challenge.totalDays));
     if (navigator.share) {
@@ -14657,14 +15086,7 @@ function FormationsSection({
   }
 
   // Import challenge data client-side (static import via dynamic loading)
-  const [challengeDefs, setChallengeDefs] = useState<
-    Array<{
-      id: string;
-      titleKey: string;
-      descriptionKey: string;
-      days: Array<{ day: number; scripture: string; principleKey: string; promptKey: string; practiceKey: string }>;
-    }>
-  >([]);
+  const [challengeDefs, setChallengeDefs] = useState<ChallengeDefinitionPreview[]>([]);
 
   useEffect(() => {
     import("@/lib/challenge-data").then((mod) => {
@@ -14672,7 +15094,9 @@ function FormationsSection({
         mod.challengeDefinitions.map((def) => ({
           id: def.id,
           titleKey: def.titleKey,
+          title: def.title,
           descriptionKey: def.descriptionKey,
+          description: def.description,
           days: def.days,
         }))
       );
@@ -14712,13 +15136,16 @@ function FormationsSection({
         const withProgress = challenges.find((c) => c.id === def.id);
       return {
         id: def.id,
-          titleKey: def.titleKey,
-          descriptionKey: def.descriptionKey,
-          totalDays: def.days.length,
-          mode: withProgress?.mode ?? "Life",
-          completedDays: withProgress?.completedDays ?? [],
-        } as ChallengeWithProgress;
-      })
+        titleKey: def.titleKey,
+        title: def.title,
+        descriptionKey: def.descriptionKey,
+        description: def.description,
+        totalDays: def.days.length,
+        mode: withProgress?.mode ?? "Life",
+        completedDays: withProgress?.completedDays ?? [],
+        days: def.days,
+      } as ChallengeWithProgress;
+    })
     : challenges;
 
   return (
@@ -14750,12 +15177,8 @@ function FormationsSection({
         const isSaving = savingDay?.challengeId === challenge.id;
         const nextPrompt = isComplete ? null : getDayPrompt(challenge.id, next);
 
-        // Prettify the title key so it looks like "gratitude3day" → key lookup
-        const rawKey = challenge.id.replace(/-/g, "");
-        const titleKey = `challenges.${rawKey}.title`;
-        const descKey = `challenges.${rawKey}.description`;
-        const titleText = ts(titleKey, challenge.id);
-        const descText = ts(descKey, "");
+        const titleText = ts(challenge.titleKey, challenge.title);
+        const descText = ts(challenge.descriptionKey, challenge.description);
 
         return (
           <div
@@ -14841,10 +15264,10 @@ function FormationsSection({
                       {nextPrompt.scripture}
                     </p>
                     <p className="text-sm leading-5 font-medium" style={{ color: theme.textPrimary }}>
-                      {ts(nextPrompt.principleKey, "")}
+                      {ts(nextPrompt.principleKey, nextPrompt.principle)}
                     </p>
                     <p className="text-sm leading-5" style={{ color: theme.textSecondary }}>
-                      {ts(nextPrompt.promptKey, "")}
+                      {ts(nextPrompt.promptKey, nextPrompt.prompt)}
                     </p>
 
                     <textarea
@@ -14876,7 +15299,7 @@ function FormationsSection({
                 <div className="flex items-center justify-between gap-2 flex-wrap">
                   {!isComplete && (
                     <p className="text-xs" style={{ color: theme.textMuted }}>
-                      {ts("challenges.dayLabel", `Day ${next}`).replace("{day}", String(next))} · {nextPrompt ? ts(nextPrompt.practiceKey, "") : ""}
+                      {ts("challenges.dayLabel", `Day ${next}`).replace("{day}", String(next))} · {nextPrompt ? ts(nextPrompt.practiceKey, nextPrompt.practice) : ""}
                     </p>
                   )}
                   <button
@@ -14902,6 +15325,12 @@ function FormationRailSection({
   theme,
   ts,
   user,
+  mode,
+  manualContext,
+  focusIntentions,
+  messages,
+  journalEntries,
+  wisdomDecisions,
   pendingChallengeId,
   onClearPendingChallenge,
   challengeCircleRefreshKey,
@@ -14911,6 +15340,12 @@ function FormationRailSection({
   theme: ThemeColors;
   ts: (key: string, fallback?: string) => string;
   user: User | null;
+  mode: Mode;
+  manualContext: ManualContextProfile;
+  focusIntentions: string[];
+  messages: ChatMessage[];
+  journalEntries: JournalEntry[];
+  wisdomDecisions: WisdomDecision[];
   pendingChallengeId: string | null;
   onClearPendingChallenge: () => void;
   challengeCircleRefreshKey: number;
@@ -14919,24 +15354,20 @@ function FormationRailSection({
 }) {
   const [challenges, setChallenges] = useState<ChallengeWithProgress[]>([]);
   const [challengeCircles, setChallengeCircles] = useState<ChallengeCircleSummary[]>([]);
-  const [challengeDefs, setChallengeDefs] = useState<
-    Array<{
-      id: string;
-      titleKey: string;
-      descriptionKey: string;
-      days: Array<{ day: number; scripture: string; principleKey: string; promptKey: string; practiceKey: string }>;
-    }>
-  >([]);
+  const [challengeDefs, setChallengeDefs] = useState<ChallengeDefinitionPreview[]>([]);
   const [selectedChallengeId, setSelectedChallengeId] = useState<string | null>(pendingChallengeId);
+  const [selectedDayNumber, setSelectedDayNumber] = useState<number | null>(null);
   const [reflectionText, setReflectionText] = useState("");
   const [savingDay, setSavingDay] = useState<{ challengeId: string; day: number } | null>(null);
   const [creatingInviteId, setCreatingInviteId] = useState<string | null>(null);
+  const [readWithMeInviteDraft, setReadWithMeInviteDraft] = useState<ReadWithMeInviteDetails>(defaultReadWithMeInviteDetails);
   const sectionRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     if (pendingChallengeId) {
       queueMicrotask(() => {
         setSelectedChallengeId(pendingChallengeId);
+        setSelectedDayNumber(null);
         onClearPendingChallenge();
         window.requestAnimationFrame(() => {
           sectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -14951,7 +15382,9 @@ function FormationRailSection({
         mod.challengeDefinitions.map((def) => ({
           id: def.id,
           titleKey: def.titleKey,
+          title: def.title,
           descriptionKey: def.descriptionKey,
+          description: def.description,
           days: def.days,
         }))
       );
@@ -15006,7 +15439,9 @@ function FormationRailSection({
         return {
           id: def.id,
           titleKey: def.titleKey,
+          title: def.title,
           descriptionKey: def.descriptionKey,
+          description: def.description,
           totalDays: def.days.length,
           mode: withProgress?.mode ?? "Life",
           completedDays: withProgress?.completedDays ?? [],
@@ -15014,13 +15449,115 @@ function FormationRailSection({
       })
     : challenges;
 
-  const effectiveSelectedChallengeId = pendingChallengeId ?? selectedChallengeId ?? displayChallenges[0]?.id ?? null;
+  const activeChallengeProgress = useMemo(
+    () =>
+      [...challenges]
+        .filter((challenge) => challenge.completedDays.length > 0 && challenge.completedDays.length < challenge.totalDays)
+        .sort((a, b) => {
+          const aLast = a.completedDays[a.completedDays.length - 1]?.completedAt ?? "";
+          const bLast = b.completedDays[b.completedDays.length - 1]?.completedAt ?? "";
+          return Date.parse(bLast) - Date.parse(aLast) || b.completedDays.length - a.completedDays.length;
+        })[0] ?? null,
+    [challenges]
+  );
+  const completionChallengeIds = useMemo(
+    () => challenges.filter((challenge) => challenge.completedDays.length >= challenge.totalDays).map((challenge) => challenge.id),
+    [challenges]
+  );
+  const recommendationSignals = useMemo(() => {
+    const counts: Record<string, number> = {};
+    const bump = (mode: string | null | undefined) => {
+      if (!mode) return;
+      counts[mode] = (counts[mode] ?? 0) + 1;
+    };
+
+    for (const message of messages) {
+      if (message.role === "user") {
+        bump(message.mode);
+      }
+    }
+    for (const entry of journalEntries) {
+      bump(entry.mode);
+    }
+    for (const decision of wisdomDecisions) {
+      bump(decision.mode);
+    }
+
+    const recentTexts = [
+      ...messages
+        .filter((message) => message.role === "user")
+        .slice(-12)
+        .map((message) => message.text),
+      ...journalEntries.slice(-8).flatMap((entry) => [entry.title, entry.body]),
+      ...wisdomDecisions.slice(-8).flatMap((decision) => [decision.title, decision.pressure, decision.summary ?? "", decision.learning ?? ""]),
+    ].filter(Boolean);
+
+    return recommendChallenges({
+      manualContext,
+      focusIntentions,
+      modeCounts: counts,
+      currentMode: mode,
+      recentTexts,
+      completedChallengeIds: completionChallengeIds,
+      activeChallenge: activeChallengeProgress
+        ? {
+            challengeId: activeChallengeProgress.id,
+            daysCompleted: activeChallengeProgress.completedDays.length,
+            totalDays: activeChallengeProgress.totalDays,
+          }
+        : null,
+    });
+  }, [activeChallengeProgress, completionChallengeIds, focusIntentions, journalEntries, manualContext, messages, mode, wisdomDecisions]);
+
+  const effectiveSelectedChallengeId = pendingChallengeId ?? selectedChallengeId ?? recommendationSignals.primary?.challengeId ?? displayChallenges[0]?.id ?? null;
   const selectedChallenge = displayChallenges.find((challenge) => challenge.id === effectiveSelectedChallengeId) ?? null;
   const selectedCircle = selectedChallenge
     ? [...challengeCircles]
         .filter((circle) => circle.challengeId === selectedChallenge.id)
         .sort((a, b) => Date.parse(b.invite.createdAt) - Date.parse(a.invite.createdAt))[0] ?? null
     : null;
+  const selectedCircleInviteDetails = selectedCircle?.invite.details ?? null;
+  const isReadWithMeChallenge = selectedChallenge?.id === "read-with-me-7day";
+  const readWithMeInviteDetails = selectedCircleInviteDetails ?? (isReadWithMeChallenge ? readWithMeInviteDraft : null);
+  const canCreateReadWithMeInvite =
+    readWithMeInviteDraft.bookTitle.trim().length > 0 &&
+    readWithMeInviteDraft.durationValue !== null &&
+    readWithMeInviteDraft.durationValue > 0;
+  const readWithMeDurationLabel = formatReadWithMeDurationLabel(
+    readWithMeInviteDetails?.durationValue ?? null,
+    readWithMeInviteDetails?.durationUnit ?? defaultReadWithMeInviteDetails.durationUnit
+  );
+  const readWithMeStartDate = readWithMeInviteDetails?.startDate
+    ? new Date(`${readWithMeInviteDetails.startDate}T00:00:00`).toLocaleDateString(undefined, {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      })
+    : "";
+  const selectedChallengeNextDay = selectedChallenge ? nextDayFor(selectedChallenge) : 1;
+
+  function updateReadWithMeInviteDraft(patch: Partial<ReadWithMeInviteDetails>) {
+    setReadWithMeInviteDraft((current) => ({ ...current, ...patch }));
+  }
+
+  const selectedChallengeFocusedDay = selectedChallenge
+    ? Math.min(
+        selectedDayNumber ?? selectedChallengeNextDay,
+        selectedChallenge.totalDays
+      )
+    : null;
+  const selectedChallengeFocusedPrompt =
+    selectedChallenge && selectedChallengeFocusedDay !== null
+      ? getDayPrompt(selectedChallenge.id, selectedChallengeFocusedDay)
+      : null;
+  const selectedChallengeFocusState =
+    selectedChallenge && selectedChallengeFocusedDay !== null
+      ? dayStateFor(selectedChallenge, selectedChallengeFocusedDay)
+      : "upcoming";
+  const selectedChallengeFocusedCompletion = selectedChallenge && selectedChallengeFocusedDay !== null
+    ? selectedChallenge.completedDays.find((day) => day.day === selectedChallengeFocusedDay) ?? null
+    : null;
+  const selectedChallengeDays = selectedChallenge?.days ?? [];
 
   function completedDaysFor(challenge: ChallengeWithProgress) {
     return challenge.completedDays.length;
@@ -15028,6 +15565,14 @@ function FormationRailSection({
 
   function nextDayFor(challenge: ChallengeWithProgress) {
     return completedDaysFor(challenge) + 1;
+  }
+
+  function dayStateFor(challenge: ChallengeWithProgress, day: number) {
+    const done = completedDaysFor(challenge);
+    const next = nextDayFor(challenge);
+    if (day <= done) return "completed";
+    if (day === next) return "current";
+    return "upcoming";
   }
 
   async function markDayComplete(challenge: ChallengeWithProgress) {
@@ -15060,13 +15605,20 @@ function FormationRailSection({
     }
   }
 
-  async function createChallengeInvite(challenge: ChallengeWithProgress) {
+  async function createChallengeInvite(
+    challenge: ChallengeWithProgress,
+    inviteDetails?: ReadWithMeInviteDetails
+  ) {
     setCreatingInviteId(challenge.id);
     try {
       const response = await fetch("/api/challenge-circles", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ challengeId: challenge.id }),
+        body: JSON.stringify({
+          challengeId: challenge.id,
+          note: inviteDetails?.note ?? undefined,
+          inviteDetails,
+        }),
       });
       const data = (await response.json()) as { circle?: ChallengeCircleSummary; inviteUrl?: string; error?: string };
       if (!response.ok || !data.circle || !data.inviteUrl) {
@@ -15124,17 +15676,95 @@ function FormationRailSection({
 
       {displayChallenges.length ? (
         <>
+          {recommendationSignals.primary ? (
+            <div className="rounded-[1.45rem] border p-4 shadow-[0_8px_20px_rgba(7,10,8,0.05)]" style={{ borderColor: theme.primary, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+                    {ts("labels.suggestedAction")}
+                  </p>
+                  <h3 className="mt-1 text-lg font-semibold sm:text-[1.15rem]" style={{ color: theme.textPrimary }}>
+                    {ts("labels.recommendedForYou", "Recommended for you")}
+                  </h3>
+                  <p className="mt-1.5 text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>
+                    {recommendationSignals.primary.title}
+                  </p>
+                  <p className="mt-1.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                    {recommendationSignals.primary.note}
+                  </p>
+                </div>
+                <span className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                  {recommendationSignals.primary.actionKind === "continue" ? ts("challenges.continueChallenge") : ts("challenges.startChallenge")}
+                </span>
+              </div>
+
+              <div className="mt-3">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
+                  {ts("challenges.whyThisFits", "Why this fits")}
+                </p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {recommendationSignals.primary.fitChips.slice(0, 3).map((signal) => (
+                    <span
+                      key={signal}
+                      className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]"
+                      style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}
+                    >
+                      {signal}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedChallengeId(recommendationSignals.primary!.challengeId);
+                    setSelectedDayNumber(null);
+                  }}
+                  className="inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-semibold transition"
+                  style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                >
+                  {recommendationSignals.primary.actionKind === "continue" ? ts("challenges.continueChallenge") : ts("challenges.startChallenge")}
+                </button>
+                {recommendationSignals.alternatives.slice(0, 2).map((item) => (
+                  <button
+                    key={item.challengeId}
+                    type="button"
+                    onClick={() => {
+                      setSelectedChallengeId(item.challengeId);
+                      setSelectedDayNumber(null);
+                    }}
+                    className="inline-flex h-10 items-center justify-center rounded-full border px-4 text-sm font-semibold transition"
+                    style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
+                  >
+                    {item.title}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
           <div className="flex gap-3 overflow-x-auto pb-2 [-webkit-overflow-scrolling:touch]">
             {displayChallenges.map((challenge) => {
               const done = completedDaysFor(challenge);
               const circle = challengeCircles.find((item) => item.challengeId === challenge.id) ?? null;
               const isActive = selectedChallenge?.id === challenge.id;
+              const progressLabel =
+                done >= challenge.totalDays
+                  ? ts("challenges.completedChallenge")
+                  : done > 0
+                    ? ts("challenges.continueChallenge")
+                    : ts("challenges.startChallenge");
               return (
                 <button
                   key={challenge.id}
                   type="button"
-                  onClick={() => setSelectedChallengeId(challenge.id)}
-                  className="relative flex w-[16.5rem] shrink-0 snap-start flex-col rounded-[1.15rem] border p-3 text-left shadow-[0_6px_14px_rgba(7,10,8,0.05)] transition active:scale-[0.99]"
+                  onClick={() => {
+                    setSelectedChallengeId(challenge.id);
+                    setSelectedDayNumber(null);
+                  }}
+                  className="relative flex w-[16.5rem] shrink-0 snap-start flex-col rounded-[1.25rem] border p-3.5 text-left shadow-[0_6px_14px_rgba(7,10,8,0.05)] transition active:scale-[0.99]"
                   style={{
                     borderColor: isActive ? theme.primary : theme.borderLight,
                     backgroundColor: isActive ? theme.bgCardElevated : theme.bgCard,
@@ -15142,27 +15772,27 @@ function FormationRailSection({
                   }}
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+                    <div className="min-w-0 flex-1">
+                      <span className="inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.accentGold }}>
                         {ts("labels.preview")}
-                      </p>
-                      <p className="mt-1 text-sm font-semibold leading-5" style={{ color: theme.textPrimary }}>
-                        {ts(challenge.titleKey, challenge.id)}
+                      </span>
+                      <p className="mt-2 text-sm font-semibold leading-5" style={{ color: theme.textPrimary }}>
+                        {ts(challenge.titleKey, challenge.title)}
                       </p>
                     </div>
-                    <span className="rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                    <span className="inline-flex h-10 min-w-[3.25rem] shrink-0 items-center justify-center whitespace-nowrap rounded-full border px-2.5 text-xs font-semibold leading-none" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
                       {done}/{challenge.totalDays}
                     </span>
                   </div>
-                  <p className="mt-2 line-clamp-2 text-xs leading-5" style={{ color: theme.textSecondary }}>
-                    {ts(challenge.descriptionKey, "")}
+                  <p className="mt-3 line-clamp-2 text-xs leading-5" style={{ color: theme.textSecondary }}>
+                    {ts(challenge.descriptionKey, challenge.description)}
                   </p>
                   <div className="mt-3 flex items-center justify-between gap-2">
                     <span className="rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
                       {challenge.mode}
                     </span>
                     <span className="text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ color: theme.textMuted }}>
-                      {circle ? `${circle.memberCount} ${ts("challenges.withFriends")}` : ts("challenges.startChallenge")}
+                      {circle ? `${circle.memberCount} ${ts("challenges.withFriends")}` : progressLabel}
                     </span>
                   </div>
                 </button>
@@ -15171,25 +15801,32 @@ function FormationRailSection({
           </div>
 
           {selectedChallenge ? (
-            <div className="grid gap-4 xl:grid-cols-[minmax(0,1.12fr)_minmax(280px,0.88fr)]">
-              <article className="overflow-hidden rounded-[1.35rem] border shadow-[0_8px_24px_rgba(15,23,42,0.05)]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-                <div className="relative border-b p-4" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
+            <div className="grid gap-4 xl:grid-cols-[minmax(0,1.16fr)_minmax(300px,0.84fr)]">
+              <article className="overflow-hidden rounded-[1.55rem] border shadow-[0_12px_28px_rgba(15,23,42,0.06)]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                <div className="relative border-b p-4 sm:p-5" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
                   <InfoHint text={ts("challenges.previewHint")} theme={theme} placement="corner" surface="hero" />
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+                  <span className="inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.accentGold }}>
                     {ts("labels.preview")}
-                  </p>
-                  <h3 className="mt-1.5 text-xl font-semibold" style={{ color: theme.textPrimary }}>
-                    {ts(selectedChallenge.titleKey, selectedChallenge.id)}
+                  </span>
+                  <h3 className="mt-3 text-xl font-semibold sm:text-[1.7rem]" style={{ color: theme.textPrimary }}>
+                    {ts(selectedChallenge.titleKey, selectedChallenge.title)}
                   </h3>
-                  <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
-                    {ts(selectedChallenge.descriptionKey, "")}
+                  <p className="mt-2 text-sm leading-6 sm:text-[0.98rem] sm:leading-7" style={{ color: theme.textSecondary }}>
+                    {ts(selectedChallenge.descriptionKey, selectedChallenge.description)}
                   </p>
-                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <div className="mt-4 flex flex-wrap items-center gap-2">
                     <span className="rounded-full border px-2.5 py-1 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
                       {selectedChallenge.mode}
                     </span>
                     <span className="rounded-full border px-2.5 py-1 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
                       {ts("challenges.daysCompleted").replace("{count}", String(selectedChallenge.completedDays.length)).replace("{total}", String(selectedChallenge.totalDays))}
+                    </span>
+                    <span className="rounded-full border px-2.5 py-1 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                      {selectedChallenge.completedDays.length >= selectedChallenge.totalDays
+                        ? ts("challenges.completedChallenge")
+                        : selectedChallenge.completedDays.length > 0
+                          ? ts("challenges.continueChallenge")
+                          : ts("challenges.startChallenge")}
                     </span>
                     {selectedCircle ? (
                       <span className="rounded-full border px-2.5 py-1 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
@@ -15197,64 +15834,125 @@ function FormationRailSection({
                       </span>
                     ) : null}
                   </div>
+                  {readWithMeInviteDetails?.bookTitle ? (
+                    <div className="mt-4 rounded-[1.1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+                        {ts("challenges.readWithMeInviteTitle", "Shared reading plan")}
+                      </p>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        <span className="rounded-full border px-2.5 py-1 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}>
+                          {readWithMeInviteDetails.bookTitle}
+                        </span>
+                        {readWithMeInviteDetails.author ? (
+                          <span className="rounded-full border px-2.5 py-1 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                            {readWithMeInviteDetails.author}
+                          </span>
+                        ) : null}
+                        {readWithMeDurationLabel ? (
+                          <span className="rounded-full border px-2.5 py-1 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                            {readWithMeDurationLabel}
+                          </span>
+                        ) : null}
+                        {readWithMeInviteDetails.startDate ? (
+                          <span className="rounded-full border px-2.5 py-1 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                            {readWithMeStartDate || readWithMeInviteDetails.startDate}
+                          </span>
+                        ) : null}
+                      </div>
+                      {readWithMeInviteDetails.cadence ? (
+                        <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                          {readWithMeInviteDetails.cadence}
+                        </p>
+                      ) : null}
+                      {readWithMeInviteDetails.focus ? (
+                        <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                          {readWithMeInviteDetails.focus}
+                        </p>
+                      ) : null}
+                      {readWithMeInviteDetails.note ? (
+                        <p className="mt-2 text-sm leading-6 italic" style={{ color: theme.textSecondary }}>
+                          {readWithMeInviteDetails.note}
+                        </p>
+                      ) : null}
+                    </div>
+                  ) : null}
+                  <div className="mt-4 h-2 overflow-hidden rounded-full" style={{ backgroundColor: theme.bgInput }}>
+                    <div
+                      className="h-full rounded-full"
+                      style={{
+                        width: `${Math.max(0, Math.min(100, (selectedChallenge.completedDays.length / selectedChallenge.totalDays) * 100))}%`,
+                        background: `linear-gradient(90deg, ${theme.primary}, ${theme.accentGold})`,
+                      }}
+                    />
+                  </div>
                 </div>
 
-                <div className="space-y-4 p-4">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    {Array.from({ length: selectedChallenge.totalDays }, (_, i) => {
-                      const dayNum = i + 1;
-                      const isDone = selectedChallenge.completedDays.some((d) => d.day === dayNum);
-                      return (
-                        <span
-                          key={dayNum}
-                          className="flex size-7 items-center justify-center rounded-full text-xs font-semibold"
-                          style={{
-                            backgroundColor: isDone ? theme.accentGold : theme.bgCardElevated,
-                            color: isDone ? theme.bgMain : theme.textMuted,
-                            border: `1.5px solid ${isDone ? theme.accentGold : theme.borderLight}`,
-                          }}
-                        >
-                          {isDone ? <Check size={12} /> : dayNum}
-                        </span>
-                      );
-                    })}
-                  </div>
+                <div className="space-y-4 p-4 sm:p-5">
+                  <section className="rounded-[1.35rem] border p-4 shadow-[0_8px_20px_rgba(7,10,8,0.04)]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
+                          {ts("challenges.dayOf").replace("{day}", String(selectedChallengeFocusedDay ?? 1)).replace("{total}", String(selectedChallenge.totalDays))}
+                        </p>
+                        <p className="mt-1 text-xs leading-5 italic" style={{ color: theme.textMuted }}>
+                          {selectedChallengeFocusedPrompt?.scripture}
+                        </p>
+                        <h4 className="mt-2 text-[1.02rem] font-semibold leading-6 sm:text-[1.08rem]" style={{ color: theme.textPrimary }}>
+                          {selectedChallengeFocusedPrompt ? ts(selectedChallengeFocusedPrompt.principleKey, selectedChallengeFocusedPrompt.principle) : ts("labels.preview")}
+                        </h4>
+                      </div>
+                      <span
+                        className="inline-flex shrink-0 items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]"
+                        style={{
+                          borderColor: theme.borderMedium,
+                          backgroundColor:
+                            selectedChallengeFocusState === "completed"
+                              ? theme.activeBg
+                              : selectedChallengeFocusState === "current"
+                                ? theme.bgInput
+                                : theme.bgCard,
+                          color:
+                            selectedChallengeFocusState === "completed"
+                              ? theme.primary
+                              : selectedChallengeFocusState === "current"
+                                ? theme.textSecondary
+                                : theme.textMuted,
+                        }}
+                      >
+                        {selectedChallengeFocusState === "completed"
+                          ? ts("challenges.completedChallenge")
+                          : selectedChallengeFocusState === "current"
+                            ? (selectedChallenge.completedDays.length > 0 ? ts("challenges.continueChallenge") : ts("challenges.startChallenge"))
+                            : ts("labels.preview")}
+                      </span>
+                    </div>
 
-                  {(() => {
-                    const next = nextDayFor(selectedChallenge);
-                    const nextPrompt = next > selectedChallenge.totalDays ? null : getDayPrompt(selectedChallenge.id, next);
-                    if (!nextPrompt) {
-                      return (
-                        <div className="rounded-[1rem] border p-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-                          <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>
-                            {ts("challenges.allDaysComplete").replace("{total}", String(selectedChallenge.totalDays))}
-                          </p>
-                          <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
-                            {ts("challenges.challengeCompleteBody")}
-                          </p>
-                        </div>
-                      );
-                    }
-                    const isSaving = savingDay?.challengeId === selectedChallenge.id;
-                    return (
-                      <div className="rounded-[1rem] border p-3.5 space-y-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-                        <div>
-                          <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
-                            {ts("challenges.dayOf").replace("{day}", String(next)).replace("{total}", String(selectedChallenge.totalDays))}
-                          </p>
-                          <p className="mt-1 text-xs leading-5 italic" style={{ color: theme.textMuted }}>
-                            {nextPrompt.scripture}
-                          </p>
-                          <p className="mt-2 text-sm font-semibold leading-5" style={{ color: theme.textPrimary }}>
-                            {ts(nextPrompt.principleKey, "")}
-                          </p>
-                          <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
-                            {ts(nextPrompt.promptKey, "")}
-                          </p>
-                        </div>
+                    <div className="mt-3 rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                      <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
+                        {ts("labels.practice")}
+                      </p>
+                      <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                        {selectedChallengeFocusedPrompt?.practice}
+                      </p>
+                    </div>
+
+                    {selectedChallengeFocusedCompletion ? (
+                      <div className="mt-3 rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                        <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
+                          {ts("challenges.completedChallenge")}
+                        </p>
+                        <p className="mt-1 whitespace-pre-wrap text-sm leading-6" style={{ color: theme.textSecondary }}>
+                          {selectedChallengeFocusedCompletion.reflection || ts("noReflectionsYet")}
+                        </p>
+                      </div>
+                    ) : selectedChallengeFocusedDay === selectedChallengeNextDay && selectedChallengeFocusedPrompt ? (
+                      <div className="mt-3 space-y-3">
+                        <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>
+                          {selectedChallengeFocusedPrompt.prompt}
+                        </p>
                         <textarea
-                          rows={3}
-                          className="w-full resize-none rounded-[0.85rem] border px-3 py-2 text-sm leading-6 outline-none"
+                          rows={4}
+                          className="w-full resize-none rounded-[1rem] border px-3 py-2.5 text-sm leading-6 outline-none"
                           style={{
                             borderColor: theme.borderLight,
                             backgroundColor: theme.bgInput,
@@ -15266,81 +15964,449 @@ function FormationRailSection({
                         />
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <p className="text-xs leading-5" style={{ color: theme.textMuted }}>
-                            {ts("challenges.dayLabel").replace("{day}", String(next))} · {ts(nextPrompt.practiceKey, "")}
+                            {ts("challenges.dayLabel").replace("{day}", String(selectedChallengeFocusedDay))} · {ts(selectedChallengeFocusedPrompt.practiceKey, selectedChallengeFocusedPrompt.practice)}
                           </p>
                           <button
                             type="button"
-                            disabled={isSaving}
+                            disabled={savingDay?.challengeId === selectedChallenge.id}
                             onClick={() => markDayComplete(selectedChallenge)}
                             className="inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-semibold transition disabled:opacity-60"
                             style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
                           >
-                            {isSaving ? ts("challenges.saving") : ts("challenges.saveReflection")}
+                            {savingDay?.challengeId === selectedChallenge.id ? ts("challenges.saving") : ts("challenges.saveReflection")}
                           </button>
                         </div>
                       </div>
-                    );
-                  })()}
+                    ) : (
+                      <div className="mt-3 rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                        <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>
+                          {selectedChallengeFocusedDay && selectedChallengeFocusedDay > selectedChallengeNextDay
+                            ? ts("challenges.previewHint")
+                            : ts("challenges.allDaysComplete").replace("{total}", String(selectedChallenge.totalDays))}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedDayNumber(selectedChallengeNextDay)}
+                          className="mt-3 inline-flex h-10 items-center justify-center rounded-full border px-4 text-sm font-semibold transition"
+                          style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
+                        >
+                          {ts("challenges.continueChallenge")}
+                        </button>
+                      </div>
+                    )}
+                  </section>
+
+                  <section className="space-y-2">
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+                      {ts("showDetails")}
+                    </p>
+                    <div className="grid gap-2">
+                      {selectedChallengeDays.map((day) => {
+                        const state = dayStateFor(selectedChallenge, day.day);
+                        const isFocused = selectedChallengeFocusedDay === day.day;
+                        const statusLabel =
+                          state === "completed"
+                            ? ts("challenges.completedChallenge")
+                            : state === "current"
+                              ? (selectedChallenge.completedDays.length > 0 ? ts("challenges.continueChallenge") : ts("challenges.startChallenge"))
+                              : ts("labels.preview");
+
+                        return (
+                          <button
+                            key={day.day}
+                            type="button"
+                            onClick={() => setSelectedDayNumber(day.day)}
+                            className="w-full rounded-[1rem] border p-3 text-left transition hover:-translate-y-px"
+                            style={{
+                              borderColor: isFocused ? theme.primary : theme.borderLight,
+                              backgroundColor: isFocused ? theme.bgCardElevated : theme.bgCard,
+                              boxShadow: isFocused ? `0 0 0 1px ${theme.primary}` : "0 4px 10px rgba(7, 10, 8, 0.04)",
+                            }}
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+                                  {ts("challenges.dayLabel").replace("{day}", String(day.day))}
+                                </p>
+                                <p className="mt-1 text-sm font-semibold leading-5" style={{ color: theme.textPrimary }}>
+                                  {day.scripture}
+                                </p>
+                              </div>
+                              <span
+                                className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]"
+                                style={{
+                                  borderColor: theme.borderMedium,
+                                  backgroundColor:
+                                    state === "completed"
+                                      ? theme.activeBg
+                                      : state === "current"
+                                        ? theme.bgInput
+                                        : theme.bgCardElevated,
+                                  color:
+                                    state === "completed"
+                                      ? theme.primary
+                                      : state === "current"
+                                        ? theme.textSecondary
+                                        : theme.textMuted,
+                                }}
+                              >
+                                {statusLabel}
+                              </span>
+                            </div>
+                            <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                              {day.practice}
+                            </p>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </section>
                 </div>
               </article>
 
               <aside className="space-y-3">
-                <div className="rounded-[1.35rem] border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
-                    {ts("challenges.communityTitle")}
-                  </p>
-                  <p className="mt-1.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
-                    {selectedCircle ? ts("challenges.communitySummary") : ts("challenges.noCommunityYet")}
-                  </p>
+                <div className="overflow-hidden rounded-[1.45rem] border shadow-[0_10px_24px_rgba(7,10,8,0.06)]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                  <div className="border-b px-4 py-4" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+                          {ts("challenges.communityTitle")}
+                        </p>
+                        <h3 className="mt-1.5 text-lg font-semibold" style={{ color: theme.textPrimary }}>
+                          {selectedCircle ? ts("challenges.communitySummary") : ts("challenges.noCommunityYet")}
+                        </h3>
+                      </div>
+                      <span className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                        {selectedCircle ? `${selectedCircle.memberCount} ${ts("challenges.withFriends")}` : ts("labels.preview")}
+                      </span>
+                    </div>
+                    {selectedCircleInviteDetails?.bookTitle ? (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <span className="rounded-full border px-2.5 py-1 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}>
+                          {selectedCircleInviteDetails.bookTitle}
+                        </span>
+                        {readWithMeDurationLabel ? (
+                          <span className="rounded-full border px-2.5 py-1 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                            {readWithMeDurationLabel}
+                          </span>
+                        ) : null}
+                        {selectedCircleInviteDetails.startDate ? (
+                          <span className="rounded-full border px-2.5 py-1 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                            {readWithMeStartDate || selectedCircleInviteDetails.startDate}
+                          </span>
+                        ) : null}
+                      </div>
+                    ) : null}
+                    <p className="mt-3 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                      {selectedCircle ? ts("challenges.communitySummary") : ts("challenges.inviteFriendsBody")}
+                    </p>
+                  </div>
 
                   {selectedCircle ? (
-                    <div className="mt-3 space-y-3">
-                      <div className="flex flex-wrap gap-2">
-                        {selectedCircle.members.map((member) => (
-                          <div key={member.userId} className="flex items-center gap-2 rounded-full border px-2.5 py-1.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput }}>
-                            <AvatarCircle
-                              avatarUrl={member.avatarUrl}
-                              seed={member.userId}
-                              label={member.name ?? ts("labels.counselContact")}
-                              size={22}
-                              className="size-[22px]"
-                            />
-                            <span className="text-xs font-semibold" style={{ color: theme.textPrimary }}>
-                              {member.name ?? ts("labels.counselContact")}
-                            </span>
-                            <span className="text-[10px] uppercase tracking-[0.08em]" style={{ color: theme.textMuted }}>
-                              {member.completedDays}/{selectedChallenge.totalDays}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                      {selectedCircle.nudges.length ? (
-                        <div className="space-y-2">
-                          {selectedCircle.nudges.slice(0, 3).map((nudge) => (
-                            <div key={nudge.id} className="rounded-[1rem] border p-3 text-sm leading-6" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-                              <p style={{ color: theme.textSecondary }}>{nudge.body}</p>
-                              <p className="mt-1 text-[11px] uppercase tracking-[0.08em]" style={{ color: theme.textMuted }}>
-                                {nudge.senderName ?? ts("labels.counselContact")}
-                              </p>
+                    <div className="space-y-3 p-4">
+                      <div className="rounded-[1.1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
+                            {ts("challenges.sharedProgress")}
+                          </p>
+                          <p className="text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ color: theme.textMuted }}>
+                            {selectedCircle.members.length} {ts("challenges.withFriends")}
+                          </p>
+                        </div>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {selectedCircle.members.map((member) => (
+                            <div key={member.userId} className="flex items-center gap-2 rounded-full border px-2.5 py-1.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput }}>
+                              <AvatarCircle
+                                avatarUrl={member.avatarUrl}
+                                seed={member.userId}
+                                label={member.name ?? ts("labels.counselContact")}
+                                size={22}
+                                className="size-[22px]"
+                              />
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-xs font-semibold leading-4" style={{ color: theme.textPrimary }}>
+                                    {member.name ?? ts("labels.counselContact")}
+                                  </span>
+                                  {member.role === "host" ? (
+                                    <span className="rounded-full border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.accentGold }}>
+                                      {ts("labels.host", "Host")}
+                                    </span>
+                                  ) : null}
+                                </div>
+                                <span className="text-[10px] uppercase tracking-[0.08em]" style={{ color: theme.textMuted }}>
+                                  {member.completedDays}/{selectedChallenge.totalDays}
+                                </span>
+                              </div>
                             </div>
                           ))}
                         </div>
-                      ) : (
-                        <p className="text-sm leading-6" style={{ color: theme.textMuted }}>
-                          {ts("challenges.noNudgesYet")}
-                        </p>
-                      )}
+                      </div>
+
+                      {selectedCircleInviteDetails ? (
+                        <div className="rounded-[1.1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                          <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
+                            {ts("challenges.readWithMeInviteDetails", "Fixed reading details")}
+                          </p>
+                          <div className="mt-3 grid gap-2 text-sm leading-6 sm:grid-cols-2">
+                            <div className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                              <p className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
+                                {ts("labels.bookTitle", "Book title")}
+                              </p>
+                              <p className="mt-1 font-semibold" style={{ color: theme.textPrimary }}>
+                                {selectedCircleInviteDetails.bookTitle}
+                              </p>
+                            </div>
+                            <div className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                              <p className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
+                                {ts("labels.duration", "Duration")}
+                              </p>
+                              <p className="mt-1 font-semibold" style={{ color: theme.textPrimary }}>
+                                {readWithMeDurationLabel || ts("labels.notSet", "Not set")}
+                              </p>
+                            </div>
+                            {selectedCircleInviteDetails.cadence ? (
+                              <div className="rounded-[1rem] border p-3 sm:col-span-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                                <p className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
+                                  {ts("labels.cadence", "Cadence")}
+                                </p>
+                                <p className="mt-1 leading-6" style={{ color: theme.textSecondary }}>
+                                  {selectedCircleInviteDetails.cadence}
+                                </p>
+                              </div>
+                            ) : null}
+                            {selectedCircleInviteDetails.focus ? (
+                              <div className="rounded-[1rem] border p-3 sm:col-span-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                                <p className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
+                                  {ts("labels.focus", "Why this book")}
+                                </p>
+                                <p className="mt-1 leading-6" style={{ color: theme.textSecondary }}>
+                                  {selectedCircleInviteDetails.focus}
+                                </p>
+                              </div>
+                            ) : null}
+                          </div>
+                        </div>
+                      ) : null}
+
+                      <div className="rounded-[1.1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
+                            {ts("challenges.nudges")}
+                          </p>
+                          <p className="text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ color: theme.textMuted }}>
+                            {selectedCircle.nudges.length} {ts("labels.notes", "Notes")}
+                          </p>
+                        </div>
+                        <div className="mt-3 space-y-2">
+                          {selectedCircle.nudges.length ? (
+                            selectedCircle.nudges.slice(0, 3).map((nudge) => (
+                              <div key={nudge.id} className="rounded-[1rem] border p-3 text-sm leading-6" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                                <p style={{ color: theme.textSecondary }}>{nudge.body}</p>
+                                <p className="mt-1 text-[11px] uppercase tracking-[0.08em]" style={{ color: theme.textMuted }}>
+                                  {nudge.senderName ?? ts("labels.counselContact")}
+                                </p>
+                              </div>
+                            ))
+                          ) : (
+                            <p className="text-sm leading-6" style={{ color: theme.textMuted }}>
+                              {ts("challenges.noNudgesYet")}
+                            </p>
+                          )}
+                        </div>
+                      </div>
                     </div>
+                  ) : isReadWithMeChallenge ? (
+                    <form
+                      className="space-y-3 p-4"
+                      onSubmit={(event) => {
+                        event.preventDefault();
+                        if (!selectedChallenge || !canCreateReadWithMeInvite) {
+                          return;
+                        }
+                        void createChallengeInvite(selectedChallenge, readWithMeInviteDraft);
+                      }}
+                    >
+                      <div className="rounded-[1.1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                        <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>
+                          {ts("challenges.readWithMeInvitePrompt", "Set the reading plan before you share it.")}
+                        </p>
+                      </div>
+
+                      <div className="grid gap-3">
+                        <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
+                          {ts("labels.bookTitle", "Book title")}
+                          <input
+                            value={readWithMeInviteDraft.bookTitle}
+                            onChange={(event) => updateReadWithMeInviteDraft({ bookTitle: event.target.value })}
+                            className="mt-2 h-11 w-full rounded-[0.9rem] border px-3 text-sm outline-none"
+                            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                            placeholder={ts("challenges.readWithMeBookPlaceholder", "The book you want everyone to read")}
+                          />
+                        </label>
+
+                        <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
+                          {ts("labels.author", "Author")}
+                          <input
+                            value={readWithMeInviteDraft.author}
+                            onChange={(event) => updateReadWithMeInviteDraft({ author: event.target.value })}
+                            className="mt-2 h-11 w-full rounded-[0.9rem] border px-3 text-sm outline-none"
+                            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                            placeholder={ts("challenges.readWithMeAuthorPlaceholder", "Optional, but helpful for clarity")}
+                          />
+                        </label>
+
+                        <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_9rem]">
+                          <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
+                            {ts("labels.duration", "Duration")}
+                            <input
+                              type="number"
+                              min={1}
+                              max={365}
+                              step={1}
+                              value={readWithMeInviteDraft.durationValue ?? ""}
+                              onChange={(event) => updateReadWithMeInviteDraft({ durationValue: event.target.value ? Number(event.target.value) : null })}
+                              className="mt-2 h-11 w-full rounded-[0.9rem] border px-3 text-sm outline-none"
+                              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                              placeholder="4"
+                            />
+                          </label>
+                          <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
+                            {ts("labels.durationUnit", "Unit")}
+                            <select
+                              value={readWithMeInviteDraft.durationUnit}
+                              onChange={(event) => updateReadWithMeInviteDraft({ durationUnit: event.target.value as ReadWithMeInviteDurationUnit })}
+                              className="mt-2 h-11 w-full rounded-[0.9rem] border px-3 text-sm outline-none"
+                              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                            >
+                              <option value="days">{ts("labels.days", "Days")}</option>
+                              <option value="weeks">{ts("labels.weeks", "Weeks")}</option>
+                              <option value="months">{ts("labels.months", "Months")}</option>
+                            </select>
+                          </label>
+                        </div>
+
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
+                            {ts("labels.startDate", "Start date")}
+                            <input
+                              type="date"
+                              value={readWithMeInviteDraft.startDate}
+                              onChange={(event) => updateReadWithMeInviteDraft({ startDate: event.target.value })}
+                              className="mt-2 h-11 w-full rounded-[0.9rem] border px-3 text-sm outline-none"
+                              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                            />
+                          </label>
+
+                          <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
+                            {ts("labels.edition", "Edition / translation")}
+                            <input
+                              value={readWithMeInviteDraft.edition}
+                              onChange={(event) => updateReadWithMeInviteDraft({ edition: event.target.value })}
+                              className="mt-2 h-11 w-full rounded-[0.9rem] border px-3 text-sm outline-none"
+                              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                              placeholder={ts("challenges.readWithMeEditionPlaceholder", "Optional edition, translation, or format")}
+                            />
+                          </label>
+                        </div>
+
+                        <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
+                          {ts("labels.cadence", "Cadence")}
+                          <textarea
+                            rows={3}
+                            value={readWithMeInviteDraft.cadence}
+                            onChange={(event) => updateReadWithMeInviteDraft({ cadence: event.target.value })}
+                            className="mt-2 w-full resize-none rounded-[0.9rem] border px-3 py-2.5 text-sm leading-6 outline-none"
+                            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                            placeholder={ts("challenges.readWithMeCadencePlaceholder", "For example: 3 chapters a week and one Sunday check-in")}
+                          />
+                        </label>
+
+                        <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
+                          {ts("labels.focus", "Why this book")}
+                          <textarea
+                            rows={3}
+                            value={readWithMeInviteDraft.focus}
+                            onChange={(event) => updateReadWithMeInviteDraft({ focus: event.target.value })}
+                            className="mt-2 w-full resize-none rounded-[0.9rem] border px-3 py-2.5 text-sm leading-6 outline-none"
+                            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                            placeholder={ts("challenges.readWithMeFocusPlaceholder", "What do you hope this book will clarify, stretch, or shape?")}
+                          />
+                        </label>
+
+                        <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
+                          {ts("labels.note", "Invitation note")}
+                          <textarea
+                            rows={3}
+                            value={readWithMeInviteDraft.note}
+                            onChange={(event) => updateReadWithMeInviteDraft({ note: event.target.value })}
+                            className="mt-2 w-full resize-none rounded-[0.9rem] border px-3 py-2.5 text-sm leading-6 outline-none"
+                            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                            placeholder={ts("challenges.readWithMeNotePlaceholder", "A short note to the people you are inviting")}
+                          />
+                        </label>
+                      </div>
+
+                      <div className="rounded-[1.1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+                          {ts("challenges.readWithMeInvitePreview", "Invite preview")}
+                        </p>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {readWithMeInviteDraft.bookTitle ? (
+                            <span className="rounded-full border px-2.5 py-1 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}>
+                              {readWithMeInviteDraft.bookTitle}
+                            </span>
+                          ) : null}
+                          {readWithMeInviteDraft.author ? (
+                            <span className="rounded-full border px-2.5 py-1 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                              {readWithMeInviteDraft.author}
+                            </span>
+                          ) : null}
+                          {readWithMeDurationLabel ? (
+                            <span className="rounded-full border px-2.5 py-1 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                              {readWithMeDurationLabel}
+                            </span>
+                          ) : null}
+                        </div>
+                        {readWithMeInviteDraft.focus ? (
+                          <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                            {readWithMeInviteDraft.focus}
+                          </p>
+                        ) : null}
+                      </div>
+
+                      <button
+                        type="submit"
+                        disabled={!canCreateReadWithMeInvite || creatingInviteId === selectedChallenge.id}
+                        className="inline-flex h-11 w-full items-center justify-center rounded-full px-4 text-sm font-semibold transition disabled:opacity-60"
+                        style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                      >
+                        {creatingInviteId === selectedChallenge.id ? ts("challenges.creatingInvite") : ts("challenges.createReadWithMeInvite", "Create reading invite")}
+                      </button>
+                    </form>
                   ) : (
-                    <div className="mt-3 space-y-3 rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-                      <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>
-                        {ts("challenges.inviteFriendsBody")}
-                      </p>
+                    <div className="space-y-3 p-4">
+                      <div className="rounded-[1.1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                        <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>
+                          {ts("challenges.inviteFriendsBody")}
+                        </p>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <span className="rounded-full border px-2.5 py-1 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                            {ts("labels.sharedPlan", "Shared plan")}
+                          </span>
+                          <span className="rounded-full border px-2.5 py-1 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                            {ts("labels.progressVisible", "Progress visible")}
+                          </span>
+                          <span className="rounded-full border px-2.5 py-1 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                            {ts("labels.responsiveNudges", "Nudges")}
+                          </span>
+                        </div>
+                      </div>
                       <button
                         type="button"
                         disabled={creatingInviteId === selectedChallenge.id}
                         onClick={() => createChallengeInvite(selectedChallenge)}
-                        className="inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-semibold transition disabled:opacity-60"
+                        className="inline-flex h-11 w-full items-center justify-center rounded-full px-4 text-sm font-semibold transition disabled:opacity-60"
                         style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
                       >
                         {creatingInviteId === selectedChallenge.id ? ts("challenges.creatingInvite") : ts("challenges.inviteFriends")}
@@ -18747,6 +19813,7 @@ function ChallengeInviteModal({
   ts,
   user,
   onAccept,
+  onDecline,
   onNudge,
   onRequestSignIn,
   onClose,
@@ -18759,6 +19826,7 @@ function ChallengeInviteModal({
   ts: (key: string, fallback?: string) => string;
   user: User | null;
   onAccept: () => void;
+  onDecline: () => void;
   onNudge: (body: string) => void;
   onRequestSignIn: () => void;
   onClose: () => void;
@@ -18805,7 +19873,18 @@ function ChallengeInviteModal({
   }
 
   const challenge = preview;
-  const accepted = challenge.invite.status === "accepted";
+  const responseStatus = challenge.viewerResponse ?? challenge.invite.status;
+  const accepted = responseStatus === "accepted";
+  const declined = responseStatus === "declined";
+  const details = challenge.invite.details;
+  const detailSummaryDuration = details ? formatReadWithMeDurationLabel(details.durationValue, details.durationUnit) : "";
+  const detailSummaryStartDate = details?.startDate
+    ? new Date(`${details.startDate}T00:00:00`).toLocaleDateString(undefined, {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      })
+    : "";
   const shareUrl = inviteUrl ?? (token ? buildChallengeInviteUrl(token) : null);
   const nudgeToken = token ?? (() => {
     if (!inviteUrl) return null;
@@ -18820,11 +19899,22 @@ function ChallengeInviteModal({
     if (!shareUrl) {
       return;
     }
-    const title = ts(challenge.challenge.titleKey, challenge.challenge.id);
-    const text = ts("challenges.shareChallengeBody").replace("{days}", String(challenge.challenge.totalDays));
+    const challengeTitle = details?.bookTitle?.trim()
+      ? `${ts("challenges.readWithMeSharePrefix", "Read with me")} · ${details.bookTitle.trim()}`
+      : ts(challenge.challenge.titleKey, challenge.challenge.title);
+    const text = details?.bookTitle?.trim()
+      ? [
+          `${details.bookTitle.trim()}${details.author?.trim() ? ` by ${details.author.trim()}` : ""}`,
+          detailSummaryDuration ? `for ${detailSummaryDuration}` : "",
+          details.cadence ? `Cadence: ${details.cadence}` : "",
+          details.focus ? `Focus: ${details.focus}` : "",
+        ]
+          .filter(Boolean)
+          .join(" · ")
+      : ts("challenges.shareChallengeBody", `Join me in this ${challenge.challenge.totalDays}-day practice on Aletheia.`).replace("{days}", String(challenge.challenge.totalDays));
     try {
       if (navigator.share) {
-        await navigator.share({ title, text, url: shareUrl });
+        await navigator.share({ title: challengeTitle, text, url: shareUrl });
         return;
       }
       await navigator.clipboard.writeText(shareUrl);
@@ -18844,10 +19934,12 @@ function ChallengeInviteModal({
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>{ts("challenges.inviteEyebrow")}</p>
               <h2 className="mt-1.5 text-lg font-semibold" style={{ color: theme.textPrimary }}>
-                {ts(challenge.challenge.titleKey, challenge.challenge.id)}
+                {details?.bookTitle?.trim() ? details.bookTitle.trim() : ts(challenge.challenge.titleKey, challenge.challenge.title)}
               </h2>
               <p className="mt-1.5 text-sm leading-5" style={{ color: theme.textSecondary }}>
-                {ts(challenge.challenge.descriptionKey, "")}
+                {details?.bookTitle?.trim()
+                  ? ts("challenges.readWithMeInviteSubtitle", "A shared reading invite")
+                  : ts(challenge.challenge.descriptionKey, challenge.challenge.description)}
               </p>
             </div>
           </div>
@@ -18858,12 +19950,94 @@ function ChallengeInviteModal({
 
         {status ? <p className="mt-3.5 rounded-2xl border p-3 text-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>{status}</p> : null}
 
+        {details ? (
+          <div className="mt-3.5 rounded-2xl border p-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
+              {ts("challenges.readWithMeInviteDetails", "Fixed reading details")}
+            </p>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              <div className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
+                  {ts("labels.bookTitle", "Book title")}
+                </p>
+                <p className="mt-1 text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>
+                  {details.bookTitle || ts("labels.notSet", "Not set")}
+                </p>
+              </div>
+              <div className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
+                  {ts("labels.author", "Author")}
+                </p>
+                <p className="mt-1 text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>
+                  {details.author || ts("labels.notSet", "Not set")}
+                </p>
+              </div>
+              <div className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
+                  {ts("labels.duration", "Duration")}
+                </p>
+                <p className="mt-1 text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>
+                  {detailSummaryDuration || ts("labels.notSet", "Not set")}
+                </p>
+              </div>
+              <div className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
+                  {ts("labels.startDate", "Start date")}
+                </p>
+                <p className="mt-1 text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>
+                  {detailSummaryStartDate || details.startDate || ts("labels.notSet", "Not set")}
+                </p>
+              </div>
+              {details.edition ? (
+                <div className="rounded-[1rem] border p-3 sm:col-span-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
+                    {ts("labels.edition", "Edition / translation")}
+                  </p>
+                  <p className="mt-1 text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>
+                    {details.edition}
+                  </p>
+                </div>
+              ) : null}
+              {details.cadence ? (
+                <div className="rounded-[1rem] border p-3 sm:col-span-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
+                    {ts("labels.cadence", "Cadence")}
+                  </p>
+                  <p className="mt-1 text-sm leading-6" style={{ color: theme.textPrimary }}>
+                    {details.cadence}
+                  </p>
+                </div>
+              ) : null}
+              {details.focus ? (
+                <div className="rounded-[1rem] border p-3 sm:col-span-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
+                    {ts("labels.focus", "Why this book")}
+                  </p>
+                  <p className="mt-1 text-sm leading-6" style={{ color: theme.textPrimary }}>
+                    {details.focus}
+                  </p>
+                </div>
+              ) : null}
+              {details.note ? (
+                <div className="rounded-[1rem] border p-3 sm:col-span-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
+                    {ts("labels.note", "Invitation note")}
+                  </p>
+                  <p className="mt-1 text-sm leading-6 italic" style={{ color: theme.textPrimary }}>
+                    {details.note}
+                  </p>
+                </div>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
+
         <div className="mt-3.5 grid gap-3 rounded-2xl border p-3.5 text-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
           <p>
             <span className="font-semibold" style={{ color: theme.textPrimary }}>{ts("challenges.initiatedBy")}:</span> {challenge.invite.owner.name ?? ts("labels.counselContact")}
           </p>
           <p>
-            <span className="font-semibold" style={{ color: theme.textPrimary }}>{ts("labels.status")}:</span> {accepted ? ts("status.accepted") : ts("status.waitingForAcceptance")}
+            <span className="font-semibold" style={{ color: theme.textPrimary }}>{ts("labels.status")}:</span> {accepted ? ts("status.accepted") : declined ? ts("status.declined", "Declined") : ts("status.waitingForAcceptance")}
           </p>
           {challenge.invite.note ? (
             <p className="leading-6">{challenge.invite.note}</p>
@@ -18938,21 +20112,38 @@ function ChallengeInviteModal({
                 <button className="h-10 rounded-full px-3 text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>{ts("challenges.sendNudgeButton")}</button>
               </form>
             ) : null}
+
+            <button
+              type="button"
+              onClick={onDecline}
+              className="inline-flex h-10 items-center justify-center rounded-full border px-4 text-sm font-semibold transition"
+              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+            >
+              {ts("challenges.leaveInvite", "Leave invite")}
+            </button>
           </div>
         ) : (
           <div className="mt-3.5 space-y-3 rounded-2xl border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
             <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>
-              {ts("challenges.joinPrompt")}
+              {declined ? ts("challenges.declinedInviteBody", "You declined this reading invitation. You can still join if you change your mind.") : ts("challenges.joinPrompt")}
             </p>
             <div className="flex flex-wrap gap-2">
               {!user ? (
                 <button className="h-11 rounded-full px-4 text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }} onClick={onRequestSignIn}>
                   {ts("auth.signIn")}
                 </button>
-              ) : token ? (
-                <button className="h-11 rounded-full px-4 text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }} onClick={onAccept}>
-                  {ts("challenges.acceptInvite")}
-                </button>
+              ) : null}
+              {user ? (
+                <>
+                  <button className="h-11 rounded-full px-4 text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }} onClick={onAccept}>
+                    {declined ? ts("challenges.joinAnyway", "Join anyway") : ts("challenges.acceptInvite")}
+                  </button>
+                  {!declined ? (
+                    <button className="h-11 rounded-full border px-4 text-sm font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={onDecline}>
+                      {ts("challenges.declineInvite", "Decline")}
+                    </button>
+                  ) : null}
+                </>
               ) : null}
               {shareUrl ? (
                 <button className="h-11 rounded-full border px-4 text-sm font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={shareChallengeInvite}>
@@ -19342,6 +20533,11 @@ function CompanionPanel({
   const focusLabels = focusIntentionLabels(focusIntentions, ts);
   const suggestedFocusPrompt = focusIntentionPrompt(focusIntentions, "companion", ts);
   const promptChips = [suggestedFocusPrompt, ...modeProfile.prompts].filter(Boolean).slice(0, 3);
+  const askMetaChips = [
+    { label: localizedModeLabel(mode, preferences.language), active: true },
+    { label: modeProfile.focus, active: false },
+    { label: preferences.voiceEnabled ? ts('labels.voiceInput') : ui.askButton, active: false },
+  ];
   const currentModeCard = modeCards.find((item) => item.label === mode) ?? modeCards[0];
   const CurrentLensIcon = currentModeCard.icon;
   const voiceDraft = voiceTranscriptPreview.trim();
@@ -19370,6 +20566,21 @@ function CompanionPanel({
               <p className="text-sm leading-5" style={{ color: theme.textSecondary }}>
                 {ui.askIntro}
               </p>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {askMetaChips.map((chip) => (
+                <span
+                  key={chip.label}
+                  className="rounded-full border px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]"
+                  style={{
+                    borderColor: chip.active ? theme.primary : theme.borderLight,
+                    backgroundColor: chip.active ? theme.activeBg : theme.bgCard,
+                    color: chip.active ? theme.primary : theme.textSecondary,
+                  }}
+                >
+                  {chip.label}
+                </span>
+              ))}
             </div>
           </div>
         </div>
@@ -20680,6 +21891,23 @@ function DecisionCompanionPanel({
     : decisionNextBody;
   const visibleCounselContacts = counselContacts.slice(0, 3);
   const hiddenCounselContacts = counselContacts.slice(3);
+  const decisionOverviewCards = [
+    {
+      label: ts('labels.activeDecisions'),
+      value: String(activeDecisions.length),
+      body: activeDecisions.length ? (selectedDecision?.title ?? runtime.nextInDecisions) : runtime.decisionNextBodyEmpty,
+    },
+    {
+      label: ts('labels.trustedVoices'),
+      value: String(counselContacts.length),
+      body: counselContacts.length ? ts('labels.counselCircleSummary') : ts('labels.inviteTrustedPeoplePrivate'),
+    },
+    {
+      label: ts('labels.eventsRecorded'),
+      value: String(events.length),
+      body: insight.gentleObservation,
+    },
+  ];
 
   async function optimizeCounselAvatarFile(file: File): Promise<string> {
     const imageBitmap = await createImageBitmap(file);
@@ -20746,6 +21974,21 @@ function DecisionCompanionPanel({
         body={decisionNextBodyWithFocus}
         theme={theme}
       />
+      <section className="grid gap-2.5 sm:grid-cols-3">
+        {decisionOverviewCards.map((card) => (
+          <div key={card.label} className="rounded-[1.1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+            <p className="text-[10.5px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
+              {card.label}
+            </p>
+            <p className="mt-1.5 text-xl font-semibold" style={{ color: theme.textPrimary }}>
+              {card.value}
+            </p>
+            <p className="mt-2 text-sm leading-5" style={{ color: theme.textSecondary }}>
+              {card.body}
+            </p>
+          </div>
+        ))}
+      </section>
       <section className="space-y-4">
         <section className="rounded-[1.35rem] border p-3.5 shadow-[0_8px_24px_rgba(15,23,42,0.05)] sm:p-4" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
@@ -20807,6 +22050,7 @@ function DecisionCompanionPanel({
           onChange={setDecisionSection}
           ariaLabel={ts('labels.decisionSections')}
           theme={theme}
+          variant="primary"
           tabs={[
             { key: "decisions", label: ts('nav.decisions') },
             { key: "counsel", label: ts('labels.counsel') },
@@ -21476,14 +22720,17 @@ function DecisionCard({
     <article
       id={`decision-card-${decision.id}`}
       tabIndex={-1}
-      className="rounded-[1.35rem] border p-4 shadow-[0_8px_24px_rgba(15,23,42,0.05)] outline-none sm:p-5"
+      className="relative overflow-hidden rounded-[1.45rem] border p-4 shadow-[0_10px_28px_rgba(15,23,42,0.06)] outline-none sm:p-5"
       style={{
         borderColor: highlighted ? theme.accentGold : theme.borderLight,
-        backgroundColor: highlighted ? theme.bgCardElevated : theme.bgCard,
+        background: highlighted
+          ? `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})`
+          : theme.bgCard,
         boxShadow: highlighted ? `0 0 0 2px ${theme.accentGold}33` : undefined,
       }}
     >
-      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+      <div className="absolute inset-y-0 left-0 w-1.5" style={{ backgroundColor: highlighted ? theme.accentGold : theme.borderLight }} />
+      <div className="relative flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div className="flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <span className="rounded-full px-2 py-1 text-xs font-semibold" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>{modeLabel}</span>
@@ -21492,8 +22739,8 @@ function DecisionCard({
             {revisitText ? <span className="rounded-full px-2 py-1 text-xs font-semibold" style={{ backgroundColor: theme.bgInput, color: theme.primary }}>{revisitText}</span> : null}
             {outcomeText ? <span className="rounded-full px-2 py-1 text-xs font-semibold" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>{outcomeText}</span> : null}
           </div>
-          <h3 className="mt-3 text-xl font-semibold" style={{ color: theme.textPrimary }}>{decision.title}</h3>
-          <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>{decision.pressure}</p>
+          <h3 className="mt-3 text-[1.28rem] font-semibold leading-tight text-balance" style={{ color: theme.textPrimary }}>{decision.title}</h3>
+          <p className="mt-2 max-w-2xl text-sm leading-6" style={{ color: theme.textSecondary }}>{decision.pressure}</p>
         </div>
         <div className="flex shrink-0 gap-2">
           <div className="min-w-28 rounded-[1rem] border p-3 text-center" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
@@ -21525,7 +22772,7 @@ function DecisionCard({
         </div>
       </div>
 
-      <div className="mt-4 flex flex-wrap gap-2">
+      <div className="relative mt-4 flex flex-wrap gap-2">
         <DecisionToggle active={decision.counselSought} label={ts('labels.counsel')} onClick={() => onUpdate(decision.id, { counselSought: !decision.counselSought, event: "Counsel status changed." })} theme={theme} />
         <DecisionToggle active={decision.costCounted} label={ts('labels.cost')} onClick={() => onUpdate(decision.id, { costCounted: !decision.costCounted, event: "Cost counting updated." })} theme={theme} />
         <DecisionToggle active={decision.alignmentClear} label={ts('labels.values')} onClick={() => onUpdate(decision.id, { alignmentClear: !decision.alignmentClear, event: "Values alignment updated." })} theme={theme} />
@@ -21533,7 +22780,7 @@ function DecisionCard({
         <DecisionToggle active={decision.peaceOverUrgency} label={ts('labels.peace')} onClick={() => onUpdate(decision.id, { peaceOverUrgency: !decision.peaceOverUrgency, event: "Peace over urgency updated." })} theme={theme} />
       </div>
 
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
+      <div className="relative mt-4 flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>{modeProfile.diagnosticTracks[0]}</p>
         <button
           type="button"
@@ -21923,6 +23170,25 @@ function ReflectPanel({
     ? runtime.reflectNextBodyActive
     : runtime.reflectNextBodyDefault;
   const [reflectSection, setReflectSection] = useState<"check" | "gratitude" | "journal">("check");
+  const reflectOverviewCards = [
+    {
+      label: ts('labels.wisdomCheck'),
+      value: result ? `${result.readiness}%` : ts('labels.notSet', "Not set"),
+      body: result
+        ? (result.hasUrgency ? runtime.wisdomCheckUrgency : runtime.wisdomCheckSlower)
+        : runtime.wisdomCheckSummaryDefault,
+    },
+    {
+      label: ts('labels.gratitudeLens'),
+      value: String(gratitudeEntries.length),
+      body: gratitudeEntries.length ? ts('labels.gratitudeMoments') : ts('labels.gratitudeEmptySummary'),
+    },
+    {
+      label: ts('labels.reflectionJournal'),
+      value: String(entries.length),
+      body: signedIn ? ts('labels.accountSyncActive') : ts('labels.localOnly'),
+    },
+  ];
 
   return (
     <div className="min-w-0 space-y-4">
@@ -21934,12 +23200,37 @@ function ReflectPanel({
         onAction={body.trim() ? onSave : undefined}
         theme={theme}
       />
-      <section className="rounded-[1.35rem] border p-3.5 shadow-[0_8px_24px_rgba(15,23,42,0.05)] sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-        <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('nav.reflect')}</p>
-        <h2 className="mt-1.5 text-xl font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.discernmentReflectionQuietPlace')}</h2>
-        <div className="relative mt-1.5 max-w-2xl pr-5 sm:pr-6 md:pr-7 text-sm leading-5" style={{ color: theme.textSecondary }}>
-          <InfoHint text={runtime.reflectIntro} theme={theme} placement="corner" surface="standard" />
-          <span>{runtime.reflectIntro}</span>
+      <section className="grid gap-2.5 sm:grid-cols-3">
+        {reflectOverviewCards.map((card) => (
+          <div key={card.label} className="rounded-[1.1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+            <p className="text-[10.5px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
+              {card.label}
+            </p>
+            <p className="mt-1.5 text-xl font-semibold" style={{ color: theme.textPrimary }}>
+              {card.value}
+            </p>
+            <p className="mt-2 text-sm leading-5" style={{ color: theme.textSecondary }}>
+              {card.body}
+            </p>
+          </div>
+        ))}
+      </section>
+
+      <section className="rounded-[1.55rem] border p-4 shadow-[0_10px_28px_rgba(15,23,42,0.06)] sm:p-5" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div className="relative max-w-2xl">
+            <InfoHint text={runtime.reflectIntro} theme={theme} placement="corner" surface="hero" />
+            <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>{ts('nav.reflect')}</p>
+            <h2 className="mt-2 text-[1.42rem] font-semibold leading-[1.02] text-balance sm:text-[1.72rem]" style={{ color: theme.textPrimary }}>
+              {ts('labels.discernmentReflectionQuietPlace')}
+            </h2>
+            <p className="mt-2 max-w-2xl text-sm leading-6 sm:text-[0.96rem] sm:leading-7" style={{ color: theme.textSecondary }}>
+              {runtime.reflectIntro}
+            </p>
+          </div>
+          <span className="inline-flex w-fit items-center rounded-full border px-3 py-2 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+            {modeProfile.label}
+          </span>
         </div>
       </section>
 
@@ -21948,6 +23239,7 @@ function ReflectPanel({
         onChange={setReflectSection}
         ariaLabel={ts('labels.reflectSections')}
         theme={theme}
+        variant="primary"
         tabs={[
           { key: "check", label: ts('labels.wisdomCheck') },
           { key: "gratitude", label: ts('labels.gratitudeLens') },
@@ -22702,6 +23994,13 @@ function LibraryPanel({
   const runtime = runtimeCopyFor(preferences.language);
   const localizedModeSearchLabel = localizedModeLabel(mode, preferences.language).toLowerCase();
   const [librarySection, setLibrarySection] = useState<"explore" | "memory" | "bible">("explore");
+  const searchSuggestions = [
+    THEME_KEYS.STEWARDSHIP,
+    THEME_KEYS.COUNSEL,
+    THEME_KEYS.GENEROSITY,
+    THEME_KEYS.PROVISION_AND_ANXIETY,
+    THEME_KEYS.DILIGENCE,
+  ].map((key) => localizedWisdomThemeLabel(key, preferences.language));
   const libraryNextTitle = search.trim()
     ? (entries.length === 1
         ? ts('labels.libraryMatchingWisdomAnchorSingular')
@@ -22730,7 +24029,7 @@ function LibraryPanel({
         body={libraryNextBody}
         theme={theme}
       />
-          <ScreenTabs
+      <ScreenTabs
           value={librarySection}
           onChange={(v) => setLibrarySection(v as typeof librarySection)}
           ariaLabel={ts('labels.librarySections')}
@@ -22840,10 +24139,30 @@ function LibraryPanel({
                 color: theme.textPrimary,
               }}
               onFocus={(e) => e.currentTarget.style.borderColor = theme.primary}
-              onBlur={(e) => e.currentTarget.style.borderColor = theme.borderMedium}
-            />
-          </label>
+            onBlur={(e) => e.currentTarget.style.borderColor = theme.borderMedium}
+          />
+        </label>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {searchSuggestions.map((suggestion) => {
+            const active = search.trim().toLowerCase() === suggestion.toLowerCase();
+            return (
+              <button
+                key={suggestion}
+                type="button"
+                onClick={() => setSearch(suggestion)}
+                className="premium-tap-card rounded-full border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] transition hover:-translate-y-0.5"
+                style={{
+                  borderColor: active ? theme.primary : theme.borderLight,
+                  backgroundColor: active ? theme.activeBg : theme.bgCardElevated,
+                  color: active ? theme.primary : theme.textSecondary,
+                }}
+              >
+                {suggestion}
+              </button>
+            );
+          })}
         </div>
+      </div>
 
         <div className="mt-4 grid min-w-0 gap-3 lg:grid-cols-2">
           {visibleEntries.map((entry, index) => {

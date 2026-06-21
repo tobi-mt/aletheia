@@ -5,6 +5,8 @@ import { localizedDailyWisdom, normalizePreferences, type BibleTranslation, type
 import { getWisdomEntries } from "@/lib/wisdom";
 import { selectDailyWisdomIndex } from "@/lib/wisdom-data";
 import { getChallengeById } from "@/lib/challenge-data";
+import { recommendChallenges } from "@/lib/challenge-recommendations";
+import { normalizeManualContext, type ManualContextProfile } from "@/lib/manual-context";
 import { loadTranslationsSync, getTranslation } from "@/lib/translations";
 import { MODE_KEYS, type Mode } from "@/lib/mode-keys";
 
@@ -1468,123 +1470,120 @@ export async function sendChallengeReminders(now = new Date()): Promise<{
     });
   });
 
-  type ModeTallyRow = { user_id: string; mode: string; count: string };
-  const modeTallies = usersWithNoActive.length > 0
-    ? await many<ModeTallyRow>(
-        `SELECT user_id, mode, COUNT(*) as count
-         FROM chat_messages
-         WHERE user_id = ANY(?)
-           AND created_at >= NOW() - INTERVAL '30 days'
-         GROUP BY user_id, mode`,
-        usersWithNoActive
-      )
-    : [];
+  type ManualContextRow = {
+    user_id: string;
+    health_context: string;
+    finance_context: string;
+    work_context: string;
+    obligations: string;
+    goals: string;
+    boundaries: string;
+    context_json: unknown;
+    use_in_answers: boolean;
+  };
+  type TextRow = { user_id: string; mode: string | null; text: string | null };
 
-  type ActiveDecisionRow = { user_id: string };
-  const activeDecisionUsers = usersWithNoActive.length > 0
-    ? new Set(
-        (await many<ActiveDecisionRow>(
-          `SELECT DISTINCT user_id FROM wisdom_decisions
-           WHERE user_id = ANY(?) AND status = 'discerning'`,
+  const [manualContextRows, chatRows, journalRows, decisionRows] = usersWithNoActive.length > 0
+    ? await Promise.all([
+        many<ManualContextRow>(
+          `SELECT user_id, health_context, finance_context, work_context, obligations, goals, boundaries, context_json, use_in_answers
+           FROM user_manual_context
+           WHERE user_id = ANY(?)`,
           usersWithNoActive
-        )).map((r) => r.user_id)
-      )
-    : new Set<string>();
+        ),
+        many<TextRow>(
+          `SELECT user_id, mode, content AS text
+           FROM chat_messages
+           WHERE user_id = ANY(?)
+             AND role = 'user'
+             AND created_at >= NOW() - INTERVAL '60 days'`,
+          usersWithNoActive
+        ),
+        many<TextRow>(
+          `SELECT user_id, mode, (title || ' ' || body) AS text
+           FROM journal_entries
+           WHERE user_id = ANY(?)
+             AND created_at >= NOW() - INTERVAL '120 days'`,
+          usersWithNoActive
+        ),
+        many<TextRow>(
+          `SELECT user_id, mode, (
+             title || ' ' ||
+             pressure || ' ' ||
+             COALESCE(summary, '') || ' ' ||
+             COALESCE(learning, '') || ' ' ||
+             COALESCE(final_decision, '')
+           ) AS text
+           FROM wisdom_decisions
+           WHERE user_id = ANY(?)
+             AND created_at >= NOW() - INTERVAL '180 days'`,
+          usersWithNoActive
+        ),
+      ])
+    : [[], [], [], []];
 
-  // Tally modes per user
-  const modesByUser = new Map<string, Record<string, number>>();
-  for (const row of modeTallies) {
-    const tally = modesByUser.get(row.user_id) ?? {};
-    tally[row.mode] = (tally[row.mode] ?? 0) + Number(row.count);
-    modesByUser.set(row.user_id, tally);
+  const manualContextByUser = new Map<string, ManualContextProfile>();
+  for (const row of manualContextRows) {
+    const contextFromJson =
+      row.context_json && typeof row.context_json === "object"
+        ? (row.context_json as Partial<ManualContextProfile>)
+        : {};
+    manualContextByUser.set(
+      row.user_id,
+      normalizeManualContext({
+        ...contextFromJson,
+        healthContext: contextFromJson.healthContext ?? row.health_context,
+        financeContext: contextFromJson.financeContext ?? row.finance_context,
+        workContext: contextFromJson.workContext ?? row.work_context,
+        obligations: contextFromJson.obligations ?? row.obligations,
+        goals: contextFromJson.goals ?? row.goals,
+        boundaries: contextFromJson.boundaries ?? row.boundaries,
+        useInAnswers: contextFromJson.useInAnswers ?? row.use_in_answers,
+      })
+    );
   }
 
-  function suggestedChallengeFor(userId: string): string | null {
-    // Active decision → Waiting practice builds discernment
-    if (activeDecisionUsers.has(userId)) return "waiting-5day";
-
-    const modes = modesByUser.get(userId) ?? {};
-    const dominant = Object.entries(modes).sort(([, a], [, b]) => b - a)[0]?.[0];
-    if (dominant === MODE_KEYS.MONEY) return "stewardship-7day";
-    if (dominant === MODE_KEYS.PURPOSE || dominant === MODE_KEYS.LIFE) return "waiting-5day";
-    if (dominant === MODE_KEYS.GENEROSITY) return "gratitude-3day";
-
-    // No usage signal → easiest entry point
-    return "gratitude-3day";
+  const modeCountsByUser = new Map<string, Record<string, number>>();
+  const recentTextsByUser = new Map<string, string[]>();
+  const appendText = (userId: string, text: string | null) => {
+    const value = text?.trim();
+    if (!value) return;
+    const bucket = recentTextsByUser.get(userId) ?? [];
+    bucket.push(value);
+    recentTextsByUser.set(userId, bucket);
+  };
+  const addMode = (userId: string, mode: string | null) => {
+    if (!mode) return;
+    const bucket = modeCountsByUser.get(userId) ?? {};
+    bucket[mode] = (bucket[mode] ?? 0) + 1;
+    modeCountsByUser.set(userId, bucket);
+  };
+  for (const row of chatRows) {
+    addMode(row.user_id, row.mode);
+    appendText(row.user_id, row.text);
+  }
+  for (const row of journalRows) {
+    addMode(row.user_id, row.mode);
+    appendText(row.user_id, row.text);
+  }
+  for (const row of decisionRows) {
+    addMode(row.user_id, row.mode);
+    appendText(row.user_id, row.text);
   }
 
-  // ------------------------------------------------------------------
-  // 5. Build per-user notification payload and send
-  // ------------------------------------------------------------------
-  const titlesByLanguage: Record<string, Record<string, string>> = {
-    "gratitude-3day": {
-      en: "3-Day Gratitude Practice",
-      es: "Práctica de gratitud de 3 días",
-      fr: "Pratique de gratitude de 3 jours",
-      pt: "Prática de gratidão de 3 dias",
-      de: "3-Tage-Dankbarkeitspraxis",
-      yo: "Ìdánwò Ìdúpẹ́ ojọ́ mẹ́ta",
-      ig: "Ọmụmụ Ekele ụbọchị 3",
-      ha: "Aikin Godiya na Kwanaki 3",
-      tl: "3-Araw na Pagsasanay sa Pasasalamat",
-      ar: "ممارسة الامتنان لمدة 3 أيام",
-      hi: "3-दिन का कृतज्ञता अभ्यास",
-    },
-    "waiting-5day": {
-      en: "5-Day Waiting Practice",
-      es: "Práctica de espera de 5 días",
-      fr: "Pratique d'attente de 5 jours",
-      pt: "Prática de espera de 5 dias",
-      de: "5-Tage-Wartepraxis",
-      yo: "Ìdánwò Ìdúró ojọ́ márùn-ún",
-      ig: "Ọmụmụ Ichere ụbọchị 5",
-      ha: "Aikin Jira na Kwanaki 5",
-      tl: "5-Araw na Pagsasanay sa Paghihintay",
-      ar: "ممارسة الانتظار لمدة 5 أيام",
-      hi: "5-दिन का प्रतीक्षा अभ्यास",
-    },
-    "stewardship-7day": {
-      en: "7-Day Stewardship Practice",
-      es: "Práctica de mayordomía de 7 días",
-      fr: "Pratique d'intendance de 7 jours",
-      pt: "Prática de mordomia de 7 dias",
-      de: "7-Tage-Haushalterpraxis",
-      yo: "Ìdánwò Ìtọ́jú ojọ́ méje",
-      ig: "Ọmụmụ Nlekọta ụbọchị 7",
-      ha: "Aikin Kulawa na Kwanaki 7",
-      tl: "7-Araw na Pagsasanay sa Pangangalaga",
-      ar: "ممارسة الإشراف لمدة 7 أيام",
-      hi: "7-दिन का प्रबंध अभ्यास",
-    },
-  };
+  function dominantModeFor(userId: string) {
+    const modes = modeCountsByUser.get(userId) ?? {};
+    return Object.entries(modes).sort(([, a], [, b]) => b - a)[0]?.[0] ?? null;
+  }
 
-  const continueBodies: Record<string, string> = {
-    en: "Continue today's practice.",
-    es: "Continúa la práctica de hoy.",
-    fr: "Continue la pratique d'aujourd'hui.",
-    pt: "Continue a prática de hoje.",
-    de: "Setze die Praxis von heute fort.",
-    yo: "Tẹ̀síwájú ìṣe ònìí.",
-    ig: "Gaa n'ihu na omume taa.",
-    ha: "Ci gaba da aikin yau.",
-    tl: "Ituloy ang pagsasanay ngayon.",
-    ar: "واصل ممارسة اليوم.",
-    hi: "आज का अभ्यास जारी रखें।",
-  };
-
-  const startBodies: Record<string, string> = {
-    en: "A short practice to build wisdom and formation.",
-    es: "Una práctica breve para cultivar sabiduría y formación.",
-    fr: "Une courte pratique pour cultiver sagesse et formation.",
-    pt: "Uma prática breve para cultivar sabedoria e formação.",
-    de: "Eine kurze Praxis, um Weisheit und Formung zu kultivieren.",
-    yo: "Ìṣe kékeré kan láti kọ ọgbọ́n àti ìdàgbàsókè.",
-    ig: "Obere omume iji mụọ amamihe na nhazi.",
-    ha: "Ɗan karamin aiki don gina hikima da tsarawa.",
-    tl: "Isang maikling pagsasanay para sa karunungan at paghubog.",
-    ar: "ممارسة قصيرة لبناء الحكمة والتكوين.",
-    hi: "ज्ञान और निर्माण के लिए एक संक्षिप्त अभ्यास।",
-  };
+  function localizedChallengeTitle(challengeId: string, language: LanguageCode) {
+    const challenge = getChallengeById(challengeId);
+    if (!challenge) {
+      return "Formation practice";
+    }
+    const translations = loadTranslationsSync(language);
+    return getTranslation(translations, challenge.titleKey, challenge.title);
+  }
 
   let attempted = 0;
   let sent = 0;
@@ -1612,8 +1611,10 @@ export async function sendChallengeReminders(now = new Date()): Promise<{
 
     let challengeId: string;
     let nextDay: number;
-    let practice: string;
+    let practiceKey: string;
+    let practiceFallback: string;
     let isSuggestion = false;
+    let suggestionNote = "";
 
     if (active) {
       const def = getChallengeById(active.challengeId)!;
@@ -1621,32 +1622,48 @@ export async function sendChallengeReminders(now = new Date()): Promise<{
       nextDay = active.daysCompleted + 1;
       const dayPrompt = def.days.find((d) => d.day === nextDay);
       if (!dayPrompt) continue;
-      // dayPrompt.practiceKey now contains the translation key, need to look it up
-      practice = dayPrompt.practiceKey;
+      practiceKey = dayPrompt.practiceKey;
+      practiceFallback = dayPrompt.practice;
     } else {
-      // No active challenge: suggest one
-      const suggest = suggestedChallengeFor(userId);
+      const completedChallengeIds = userProgress
+        .filter((progress) => {
+          const def = getChallengeById(progress.challengeId);
+          return def && progress.daysCompleted >= def.totalDays;
+        })
+        .map((progress) => progress.challengeId);
+      const recommendation = recommendChallenges({
+        manualContext: manualContextByUser.get(userId) ?? null,
+        modeCounts: modeCountsByUser.get(userId) ?? {},
+        currentMode: dominantModeFor(userId),
+        recentTexts: recentTextsByUser.get(userId) ?? [],
+        completedChallengeIds,
+      });
+      const primaryRecommendation = recommendation.primary;
+      if (!primaryRecommendation) continue;
+      const suggest = primaryRecommendation.challengeId;
       if (!suggest) continue;
       const def = getChallengeById(suggest);
       if (!def) continue;
       challengeId = suggest;
       nextDay = 1;
-      practice = def.days[0]?.practiceKey ?? "";
+      practiceKey = def.days[0]?.practiceKey ?? "";
+      practiceFallback = def.days[0]?.practice ?? "";
       isSuggestion = true;
+      suggestionNote = primaryRecommendation.note;
       suggested++;
     }
 
     const language = normalizePreferences({ language: (userRows[0]?.language ?? "en") as LanguageCode }).language;
-    const title = titlesByLanguage[challengeId]?.[language] ?? titlesByLanguage[challengeId]?.en ?? "Formation practice";
+    const title = localizedChallengeTitle(challengeId, language);
     
     // Translate the practice key if we have one
     let body: string;
     if (isSuggestion) {
-      body = startBodies[language] ?? startBodies.en!;
+      body = compactNotificationCopy(suggestionNote || "A short practice to build wisdom and formation.", 136);
     } else {
       const translations = loadTranslationsSync(language);
-      const practiceText = getTranslation(translations, practice, practice);
-      body = `Day ${nextDay}: ${typeof practiceText === 'string' ? practiceText : practiceText[0] ?? practice}`;
+      const practiceText = getTranslation(translations, practiceKey, practiceFallback);
+      body = `Day ${nextDay}: ${typeof practiceText === 'string' ? practiceText : practiceText[0] ?? practiceFallback}`;
     }
 
     const payload = JSON.stringify({

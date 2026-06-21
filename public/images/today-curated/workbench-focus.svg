@@ -1,15 +1,45 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 800" role="img" aria-label="Workbench focus">
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#0f1715"/>
-      <stop offset="100%" stop-color="#1a2723"/>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#06100f" />
+      <stop offset="100%" stop-color="#12211e" />
     </linearGradient>
+    <radialGradient id="lamp" cx="58%" cy="34%" r="28%">
+      <stop offset="0%" stop-color="#fff1ce" stop-opacity="0.8" />
+      <stop offset="42%" stop-color="#f0d58b" stop-opacity="0.22" />
+      <stop offset="100%" stop-color="#f0d58b" stop-opacity="0" />
+    </radialGradient>
+    <filter id="blur18" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="18" />
+    </filter>
+    <filter id="grain" x="-10%" y="-10%" width="120%" height="120%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.84" numOctaves="2" seed="27" />
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.05" />
+      </feComponentTransfer>
+    </filter>
   </defs>
-  <rect width="1280" height="800" fill="url(#bg)"/>
-  <rect x="140" y="250" width="1000" height="400" rx="30" fill="#101d1a" stroke="#2d423c" stroke-opacity="0.7"/>
-  <path d="M220 560 H1060" stroke="#d2b565" stroke-opacity="0.7" stroke-width="12" stroke-linecap="round"/>
-  <path d="M250 490 C 380 430, 520 430, 700 475" fill="none" stroke="#8ea08f" stroke-opacity="0.36" stroke-width="8" stroke-linecap="round"/>
-  <path d="M700 475 C 770 492, 860 518, 980 540" fill="none" stroke="#d2b565" stroke-opacity="0.54" stroke-width="7" stroke-linecap="round"/>
-  <circle cx="940" cy="340" r="40" fill="#d8b766" fill-opacity="0.2"/>
-  <circle cx="300" cy="340" r="16" fill="#d8b766" fill-opacity="0.25"/>
+
+  <rect width="1280" height="800" fill="url(#bg)" />
+  <rect width="1280" height="800" fill="url(#lamp)" />
+  <circle cx="944" cy="334" r="64" fill="#fff1ce" fill-opacity="0.18" filter="url(#blur18)" />
+  <circle cx="944" cy="334" r="38" fill="#fff1ce" fill-opacity="0.24" />
+
+  <rect x="140" y="226" width="1000" height="382" rx="34" fill="#101b19" stroke="#283a34" stroke-opacity="0.82" stroke-width="3" />
+  <rect x="180" y="262" width="920" height="306" rx="22" fill="#0d1816" stroke="#2b413a" stroke-opacity="0.5" stroke-width="2" />
+  <path d="M202 560 H1080" stroke="#e0c372" stroke-opacity="0.64" stroke-width="12" stroke-linecap="round" />
+  <path d="M244 506 C 382 446, 538 444, 710 480" fill="none" stroke="#8ea59a" stroke-opacity="0.28" stroke-width="8" stroke-linecap="round" />
+  <path d="M712 480 C 798 500, 886 522, 1020 548" fill="none" stroke="#e0c372" stroke-opacity="0.48" stroke-width="7" stroke-linecap="round" />
+  <rect x="470" y="324" width="276" height="166" rx="24" fill="#fff1ce" fill-opacity="0.08" stroke="#fff1ce" stroke-opacity="0.22" stroke-width="3" />
+  <path d="M500 348 H714" stroke="#fff1ce" stroke-opacity="0.36" stroke-width="6" stroke-linecap="round" />
+  <path d="M500 384 H690" stroke="#8ea59a" stroke-opacity="0.2" stroke-width="4.5" stroke-linecap="round" />
+  <path d="M500 420 H668" stroke="#8ea59a" stroke-opacity="0.18" stroke-width="4.5" stroke-linecap="round" />
+  <path d="M642 286 V522" stroke="#fff1ce" stroke-opacity="0.2" stroke-width="4" stroke-linecap="round" />
+  <path d="M540 492 C 596 470, 676 470, 744 492" fill="none" stroke="#fff1ce" stroke-opacity="0.16" stroke-width="4" stroke-linecap="round" />
+  <path d="M276 358 C 340 340, 410 340, 476 362" fill="none" stroke="#fff1ce" stroke-opacity="0.1" stroke-width="4" stroke-linecap="round" />
+  <path d="M820 370 C 888 348, 962 348, 1040 370" fill="none" stroke="#fff1ce" stroke-opacity="0.1" stroke-width="4" stroke-linecap="round" />
+  <circle cx="336" cy="364" r="6" fill="#fff1ce" fill-opacity="0.76" />
+  <circle cx="1006" cy="398" r="5" fill="#fff1ce" fill-opacity="0.62" />
+  <path d="M336 364 C 382 390, 422 422, 460 462" fill="none" stroke="#fff1ce" stroke-opacity="0.08" stroke-width="4" stroke-linecap="round" />
+  <rect width="1280" height="800" filter="url(#grain)" opacity="0.16" />
 </svg>

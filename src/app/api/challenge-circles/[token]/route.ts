@@ -3,6 +3,8 @@ import { getCurrentUser } from "@/lib/auth";
 import { apiError } from "@/lib/api-errors";
 import { many, one, run } from "@/lib/db";
 import { hashChallengeInviteToken } from "@/lib/challenge-circles";
+import { normalizeReadWithMeInviteDetails, type ReadWithMeInviteDetails } from "@/lib/read-with-me-invite";
+import { readJsonBody } from "@/lib/request";
 import { trackServerEvent } from "@/lib/analytics";
 import { getChallengeById } from "@/lib/challenge-data";
 
@@ -14,11 +16,17 @@ type CircleRow = {
   owner_user_id: string;
   invite_status: string;
   note: string | null;
+  invite_details_json: unknown;
   accepted_at: string | null;
   created_at: string;
   updated_at: string;
   owner_name: string | null;
   owner_avatar_url: string | null;
+};
+
+type ViewerResponseRow = {
+  response_status: string;
+  responded_at: string | null;
 };
 
 type MemberRow = {
@@ -40,14 +48,32 @@ type NudgeRow = {
   sender_avatar_url: string | null;
 };
 
+function formatInviteDetails(challengeId: string, rawDetails: unknown): ReadWithMeInviteDetails | null {
+  if (challengeId !== "read-with-me-7day" || !rawDetails || typeof rawDetails !== "object" || Array.isArray(rawDetails)) {
+    return null;
+  }
+
+  return normalizeReadWithMeInviteDetails(rawDetails as Partial<ReadWithMeInviteDetails>);
+}
+
 async function findCircle(token: string) {
   return one<CircleRow>(
-    `SELECT c.id, c.challenge_id, c.owner_user_id, c.invite_status, c.note, c.accepted_at, c.created_at, c.updated_at,
+    `SELECT c.id, c.challenge_id, c.owner_user_id, c.invite_status, c.note, c.invite_details_json, c.accepted_at, c.created_at, c.updated_at,
             u.name AS owner_name, u.avatar_url AS owner_avatar_url
      FROM challenge_circles c
      LEFT JOIN users u ON u.id = c.owner_user_id
      WHERE c.invite_token_hash = ?`,
     hashChallengeInviteToken(token)
+  );
+}
+
+async function viewerResponse(circleId: string, userId: string) {
+  return one<ViewerResponseRow>(
+    `SELECT response_status, responded_at
+     FROM challenge_circle_invite_responses
+     WHERE circle_id = ? AND user_id = ?`,
+    circleId,
+    userId
   );
 }
 
@@ -83,15 +109,16 @@ async function circleNudges(circleId: string) {
   );
 }
 
-async function formatCircle(circle: CircleRow) {
+async function formatCircle(circle: CircleRow, viewerUserId?: string) {
   const challenge = getChallengeById(circle.challenge_id);
   if (!challenge) {
     return null;
   }
 
-  const [members, nudges] = await Promise.all([
+  const [members, nudges, viewer] = await Promise.all([
     circleMembers(circle.id, circle.challenge_id),
     circleNudges(circle.id),
+    viewerUserId ? viewerResponse(circle.id, viewerUserId) : Promise.resolve(null),
   ]);
 
   return {
@@ -101,6 +128,8 @@ async function formatCircle(circle: CircleRow) {
       id: challenge.id,
       titleKey: challenge.titleKey,
       descriptionKey: challenge.descriptionKey,
+      title: challenge.title,
+      description: challenge.description,
       totalDays: challenge.totalDays,
       mode: challenge.mode,
     },
@@ -109,12 +138,14 @@ async function formatCircle(circle: CircleRow) {
       note: circle.note,
       acceptedAt: circle.accepted_at,
       createdAt: circle.created_at,
+      details: formatInviteDetails(circle.challenge_id, circle.invite_details_json),
       owner: {
         id: circle.owner_user_id,
         name: circle.owner_name,
         avatarUrl: circle.owner_avatar_url,
       },
     },
+    viewerResponse: viewer?.response_status ?? null,
     memberCount: members.length,
     members: members.map((member) => ({
       userId: member.user_id,
@@ -143,7 +174,8 @@ export async function GET(_request: Request, { params }: Params) {
     return apiError(404, "not_found", "Invite not found.");
   }
 
-  const formatted = await formatCircle(circle);
+  const user = await getCurrentUser();
+  const formatted = await formatCircle(circle, user?.id);
   if (!formatted) {
     return apiError(404, "not_found", "Invite not found.");
   }
@@ -163,8 +195,17 @@ export async function POST(request: Request, { params }: Params) {
     return apiError(404, "not_found", "Invite not found.");
   }
 
+  const parsed = await readJsonBody<{ action?: "accept" | "decline" }>(request, { maxBytes: 1_000, emptyBody: {} });
+  if (!parsed.ok) {
+    return parsed.response;
+  }
+  const action = parsed.data.action ?? "accept";
+  if (action !== "accept" && action !== "decline") {
+    return apiError(400, "invalid_input", "Unknown invite response.");
+  }
+
   const now = new Date().toISOString();
-  if (circle.invite_status !== "accepted") {
+  if (action === "accept" && circle.invite_status !== "accepted") {
     await run(
       "UPDATE challenge_circles SET invite_status = ?, accepted_at = ?, updated_at = ? WHERE id = ?",
       "accepted",
@@ -177,22 +218,47 @@ export async function POST(request: Request, { params }: Params) {
   }
 
   await run(
-    `INSERT INTO challenge_circle_members (id, circle_id, user_id, role, joined_at, updated_at)
+    `INSERT INTO challenge_circle_invite_responses (id, circle_id, user_id, response_status, responded_at, updated_at)
      VALUES (?, ?, ?, ?, ?, ?)
-     ON CONFLICT (circle_id, user_id) DO UPDATE SET updated_at = EXCLUDED.updated_at`,
+     ON CONFLICT (circle_id, user_id) DO UPDATE SET
+       response_status = EXCLUDED.response_status,
+       responded_at = EXCLUDED.responded_at,
+       updated_at = EXCLUDED.updated_at`,
     crypto.randomUUID(),
     circle.id,
     user.id,
-    user.id === circle.owner_user_id ? "host" : "member",
+    action === "accept" ? "accepted" : "declined",
     now,
     now
   );
 
+  if (action === "accept") {
+    await run(
+      `INSERT INTO challenge_circle_members (id, circle_id, user_id, role, joined_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?)
+       ON CONFLICT (circle_id, user_id) DO UPDATE SET updated_at = EXCLUDED.updated_at`,
+      crypto.randomUUID(),
+      circle.id,
+      user.id,
+      user.id === circle.owner_user_id ? "host" : "member",
+      now,
+      now
+    );
+  } else if (user.id !== circle.owner_user_id) {
+    await run(
+      `DELETE FROM challenge_circle_members
+       WHERE circle_id = ? AND user_id = ?`,
+      circle.id,
+      user.id
+    );
+  }
+
   await trackServerEvent({
     userId: user.id,
-    eventName: "challenge_circle_joined",
+    eventName: action === "accept" ? "challenge_circle_joined" : "challenge_circle_declined",
     metadata: {
       challengeId: circle.challenge_id,
+      responseStatus: action,
     },
   }).catch(() => undefined);
 
@@ -201,7 +267,7 @@ export async function POST(request: Request, { params }: Params) {
     return apiError(500, "save_failed", "Could not join the shared practice.");
   }
 
-  const formatted = await formatCircle(refreshed);
+  const formatted = await formatCircle(refreshed, user.id);
   if (!formatted) {
     return apiError(500, "save_failed", "Could not join the shared practice.");
   }

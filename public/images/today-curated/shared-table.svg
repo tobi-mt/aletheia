@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 800" role="img" aria-label="Shared table">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#06100f" />
+      <stop offset="46%" stop-color="#12211c" />
+      <stop offset="100%" stop-color="#201913" />
+    </linearGradient>
+    <radialGradient id="light" cx="73%" cy="18%" r="30%">
+      <stop offset="0%" stop-color="#fff5d8" stop-opacity="0.92" />
+      <stop offset="40%" stop-color="#f1d891" stop-opacity="0.35" />
+      <stop offset="100%" stop-color="#f1d891" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="tableGlow" cx="50%" cy="78%" r="46%">
+      <stop offset="0%" stop-color="#f1deb0" stop-opacity="0.3" />
+      <stop offset="100%" stop-color="#f1deb0" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="bread" cx="40%" cy="34%" r="70%">
+      <stop offset="0%" stop-color="#f7ddb0" />
+      <stop offset="100%" stop-color="#b47a3d" />
+    </radialGradient>
+    <radialGradient id="bowl" cx="42%" cy="34%" r="70%">
+      <stop offset="0%" stop-color="#f5ead4" />
+      <stop offset="100%" stop-color="#b9aa89" />
+    </radialGradient>
+    <radialGradient id="fruit" cx="38%" cy="36%" r="72%">
+      <stop offset="0%" stop-color="#f3c06d" />
+      <stop offset="100%" stop-color="#cd7d32" />
+    </radialGradient>
+    <linearGradient id="cloth" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#dccfb0" stop-opacity="0.95" />
+      <stop offset="100%" stop-color="#9b8766" stop-opacity="0.86" />
+    </linearGradient>
+    <filter id="blur16" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="16" />
+    </filter>
+    <filter id="blur30" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="30" />
+    </filter>
+    <filter id="grain" x="-10%" y="-10%" width="120%" height="120%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.76" numOctaves="2" seed="21" />
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.04" />
+      </feComponentTransfer>
+    </filter>
+  </defs>
+
+  <rect width="1280" height="800" fill="url(#bg)" />
+  <rect width="1280" height="800" fill="url(#light)" />
+  <ellipse cx="646" cy="686" rx="470" ry="106" fill="url(#tableGlow)" filter="url(#blur30)" />
+  <ellipse cx="640" cy="700" rx="540" ry="88" fill="#0d1714" />
+
+  <path d="M160 612 C 332 566, 488 554, 636 562 C 782 570, 914 594, 1100 636 C 1142 646, 1186 654, 1280 666 L 1280 800 L 0 800 L 0 662 C 42 646, 94 630, 160 612 Z" fill="#101916" />
+  <path d="M126 628 C 294 592, 462 586, 642 598 C 820 610, 986 638, 1128 676" fill="none" stroke="#f3dfb0" stroke-opacity="0.14" stroke-width="10" stroke-linecap="round" />
+
+  <path d="M392 590 C 470 562, 558 552, 650 556 C 744 560, 836 580, 936 618" fill="none" stroke="#fff3d3" stroke-opacity="0.14" stroke-width="4" stroke-linecap="round" />
+  <path d="M408 606 C 494 580, 580 572, 666 576 C 748 580, 826 596, 900 622" fill="none" stroke="#8fa79b" stroke-opacity="0.09" stroke-width="3.5" stroke-linecap="round" />
+
+  <path d="M466 560 C 546 542, 626 538, 704 542 C 784 546, 856 564, 924 596 L 918 690 C 850 710, 768 718, 670 716 C 570 714, 482 700, 406 676 L 402 600 C 418 586, 438 572, 466 560 Z" fill="url(#cloth)" fill-opacity="0.4" />
+  <path d="M492 580 C 568 562, 644 558, 720 562 C 798 566, 868 580, 930 606" fill="none" stroke="#f7e7c0" stroke-opacity="0.14" stroke-width="6" stroke-linecap="round" />
+
+  <path d="M492 610 C 536 564, 594 542, 664 540 C 738 538, 796 556, 840 592 C 808 632, 760 656, 700 664 C 636 672, 578 664, 534 642 C 510 630, 500 620, 492 610 Z" fill="url(#bread)" />
+  <path d="M532 596 C 572 570, 618 558, 666 560 C 716 562, 758 574, 794 596" fill="none" stroke="#fff5d9" stroke-opacity="0.2" stroke-width="3" stroke-linecap="round" />
+  <path d="M560 628 C 594 614, 632 608, 674 610 C 714 612, 752 622, 784 638" fill="none" stroke="#8a5c35" stroke-opacity="0.22" stroke-width="4" stroke-linecap="round" />
+
+  <path d="M724 592 C 752 570, 790 558, 836 558 C 880 558, 918 570, 948 592 C 936 626, 912 646, 878 656 C 840 666, 804 664, 772 650 C 746 638, 730 618, 724 592 Z" fill="url(#bowl)" />
+  <ellipse cx="840" cy="610" rx="46" ry="26" fill="#d9c9a7" />
+  <ellipse cx="840" cy="606" rx="28" ry="16" fill="#f7f0e2" fill-opacity="0.65" />
+
+  <ellipse cx="886" cy="568" rx="32" ry="24" fill="url(#fruit)" />
+  <ellipse cx="922" cy="594" rx="26" ry="20" fill="url(#fruit)" />
+  <ellipse cx="960" cy="576" rx="22" ry="18" fill="#d5964f" />
+  <circle cx="918" cy="564" r="9" fill="#7e552f" fill-opacity="0.4" />
+  <circle cx="948" cy="610" r="8" fill="#7e552f" fill-opacity="0.28" />
+
+  <ellipse cx="574" cy="652" rx="46" ry="30" fill="#cc8a4c" fill-opacity="0.9" />
+  <ellipse cx="610" cy="634" rx="30" ry="20" fill="#7e552f" fill-opacity="0.42" />
+  <ellipse cx="534" cy="634" rx="20" ry="14" fill="#7e552f" fill-opacity="0.28" />
+
+  <path d="M346 678 C 486 654, 636 650, 788 662 C 920 672, 1036 694, 1128 724" fill="none" stroke="#f4e4bf" stroke-opacity="0.06" stroke-width="4" stroke-linecap="round" />
+  <rect width="1280" height="800" filter="url(#grain)" opacity="0.14" />
+</svg>
