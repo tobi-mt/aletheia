@@ -1,4 +1,11 @@
 export type ReadWithMeInviteDurationUnit = "days" | "weeks" | "months";
+export type ReadWithMeInvitePendingWindowUnit = "hours" | "days";
+
+export type ReadWithMeInviteRecipient = {
+  id: string;
+  name: string;
+  note: string;
+};
 
 export type ReadWithMeInviteDetails = {
   bookTitle: string;
@@ -10,6 +17,9 @@ export type ReadWithMeInviteDetails = {
   cadence: string;
   focus: string;
   note: string;
+  recipients: ReadWithMeInviteRecipient[];
+  pendingAfterValue: number | null;
+  pendingAfterUnit: ReadWithMeInvitePendingWindowUnit;
 };
 
 export const defaultReadWithMeInviteDetails: ReadWithMeInviteDetails = {
@@ -22,6 +32,9 @@ export const defaultReadWithMeInviteDetails: ReadWithMeInviteDetails = {
   cadence: "Read at a steady pace and hold one brief check-in each week.",
   focus: "",
   note: "",
+  recipients: [],
+  pendingAfterValue: 24,
+  pendingAfterUnit: "hours",
 };
 
 function cleanText(value: unknown, limit: number) {
@@ -51,9 +64,41 @@ function normalizeDurationUnit(value: unknown): ReadWithMeInviteDurationUnit {
   return value === "days" || value === "months" ? value : "weeks";
 }
 
+function normalizePendingWindowUnit(value: unknown): ReadWithMeInvitePendingWindowUnit {
+  return value === "days" ? value : "hours";
+}
+
+function normalizeRecipient(value: unknown, index: number): ReadWithMeInviteRecipient | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  const record = value as Partial<ReadWithMeInviteRecipient>;
+  const name = cleanText(record.name, 120);
+  if (!name) {
+    return null;
+  }
+
+  const fallbackId = `${name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "recipient"}-${index + 1}`;
+
+  return {
+    id: cleanText(record.id, 80) || fallbackId,
+    name,
+    note: cleanText(record.note, 160),
+  };
+}
+
 export function normalizeReadWithMeInviteDetails(
   input: Partial<ReadWithMeInviteDetails> = {}
 ): ReadWithMeInviteDetails {
+  const rawRecipients = (input as { recipients?: unknown }).recipients;
+  const recipients = Array.isArray(rawRecipients)
+    ? (rawRecipients as unknown[])
+        .map((recipient, index) => normalizeRecipient(recipient, index))
+        .filter((recipient): recipient is ReadWithMeInviteRecipient => Boolean(recipient))
+        .slice(0, 12)
+    : [];
+
   return {
     bookTitle: cleanText(input.bookTitle, 160),
     author: cleanText(input.author, 120),
@@ -64,6 +109,9 @@ export function normalizeReadWithMeInviteDetails(
     cadence: cleanText(input.cadence, 280),
     focus: cleanText(input.focus, 320),
     note: cleanText(input.note, 420),
+    recipients,
+    pendingAfterValue: numberOrNull((input as { pendingAfterValue?: unknown }).pendingAfterValue, 1, 365),
+    pendingAfterUnit: normalizePendingWindowUnit((input as { pendingAfterUnit?: unknown }).pendingAfterUnit),
   };
 }
 
@@ -76,4 +124,15 @@ export function formatReadWithMeDurationLabel(
   }
   const unit = durationValue === 1 ? durationUnit.replace(/s$/, "") : durationUnit;
   return `${durationValue} ${unit}`;
+}
+
+export function formatReadWithMePendingWindowLabel(
+  pendingAfterValue: number | null,
+  pendingAfterUnit: ReadWithMeInvitePendingWindowUnit
+) {
+  if (pendingAfterValue === null) {
+    return "";
+  }
+  const unit = pendingAfterValue === 1 ? pendingAfterUnit.replace(/s$/, "") : pendingAfterUnit;
+  return `after ${pendingAfterValue} ${unit}`;
 }

@@ -29,6 +29,14 @@ type ViewerResponseRow = {
   responded_at: string | null;
 };
 
+type InviteResponseRow = {
+  user_id: string;
+  response_status: string;
+  responded_at: string | null;
+  name: string | null;
+  avatar_url: string | null;
+};
+
 type MemberRow = {
   user_id: string;
   role: string;
@@ -86,6 +94,17 @@ async function viewerResponse(circleId: string, userId: string) {
   );
 }
 
+async function inviteResponses(circleId: string) {
+  return many<InviteResponseRow>(
+    `SELECT r.user_id, r.response_status, r.responded_at, u.name, u.avatar_url
+     FROM challenge_circle_invite_responses r
+     JOIN users u ON u.id = r.user_id
+     WHERE r.circle_id = ?
+     ORDER BY r.responded_at DESC, r.updated_at DESC`,
+    circleId
+  );
+}
+
 async function circleNudges(circleId: string) {
   return many<NudgeRow>(
     `SELECT n.id, n.body, n.created_at, n.sender_user_id, u.name AS sender_name, u.avatar_url AS sender_avatar_url
@@ -104,9 +123,10 @@ async function formatCircle(circle: CircleRow, viewerUserId?: string) {
     return null;
   }
 
-  const [members, nudges, viewer] = await Promise.all([
+  const [members, nudges, responses, viewer] = await Promise.all([
     circleMembers(circle.id, circle.challenge_id),
     circleNudges(circle.id),
+    inviteResponses(circle.id),
     viewerUserId ? viewerResponse(circle.id, viewerUserId) : Promise.resolve(null),
   ]);
 
@@ -144,6 +164,13 @@ async function formatCircle(circle: CircleRow, viewerUserId?: string) {
       joinedAt: member.joined_at,
       completedDays: typeof member.completed_days === "number" ? member.completed_days : Number(member.completed_days ?? 0),
       lastCompletedAt: member.last_completed_at,
+    })),
+    responses: responses.map((response) => ({
+      userId: response.user_id,
+      name: response.name,
+      avatarUrl: response.avatar_url,
+      responseStatus: response.response_status,
+      respondedAt: response.responded_at,
     })),
     nudges: nudges.map((nudge) => ({
       id: nudge.id,

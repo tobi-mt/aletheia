@@ -94,7 +94,15 @@ import { analyticsQuestionMetadata } from "@/lib/analytics-taxonomy";
 import { decisionStartedDiscerningBody, decisionTimelineObservation, localizeDecisionEventBody } from "@/lib/decision-copy";
 import { curatedAvatarOptions, defaultAvatarDataUrl, normalizeAvatarUrl } from "@/lib/avatars";
 import { challengeInviteUrl as buildChallengeInviteUrl } from "@/lib/challenge-circles";
-import { defaultReadWithMeInviteDetails, formatReadWithMeDurationLabel, type ReadWithMeInviteDetails, type ReadWithMeInviteDurationUnit } from "@/lib/read-with-me-invite";
+import {
+  defaultReadWithMeInviteDetails,
+  formatReadWithMeDurationLabel,
+  formatReadWithMePendingWindowLabel,
+  type ReadWithMeInviteDetails,
+  type ReadWithMeInviteDurationUnit,
+  type ReadWithMeInviteRecipient,
+  type ReadWithMeInvitePendingWindowUnit,
+} from "@/lib/read-with-me-invite";
 import type { ChallengeRecommendationBundle } from "@/lib/challenge-recommendations";
 import { SERVICE_WORKER_URL } from "@/lib/build-version";
 import { loadTranslationsSync, loadTranslationsWithFallbackSync, getTranslation, type TranslationData } from "@/lib/translations";
@@ -4201,23 +4209,9 @@ const TODAY_VISUAL_LIBRARY: Record<string, TodayVisualAsset[]> = {
   [THEME_KEYS.STEWARDSHIP]: [
     {
       kind: "photo",
-      title: "sunrise-on-the-road",
-      imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/73/Sunrise_on_the_road.jpg/1280px-Sunrise_on_the_road.jpg",
-      imagePageUrl: "https://commons.wikimedia.org/wiki/File:Sunrise_on_the_road.jpg",
-      license: "CC BY-SA 4.0",
-    },
-    {
-      kind: "photo",
-      title: "field-in-sunrise",
-      imageUrl: "https://upload.wikimedia.org/wikipedia/commons/f/f6/Field_in_sunrise_%28Unsplash%29.jpg",
-      imagePageUrl: "https://commons.wikimedia.org/wiki/File:Field_in_sunrise_(Unsplash).jpg",
-      license: "CC0",
-    },
-    {
-      kind: "photo",
-      title: "new-horizons",
-      imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e9/New_Horizons_%28Unsplash%29.jpg/1280px-New_Horizons_%28Unsplash%29.jpg",
-      imagePageUrl: "https://commons.wikimedia.org/wiki/File:New_Horizons_(Unsplash).jpg",
+      title: "business-notes",
+      imageUrl: commonsFilePath("Businessman working and writing notes in office (Unsplash).jpg"),
+      imagePageUrl: "https://commons.wikimedia.org/wiki/File:Businessman_working_and_writing_notes_in_office_(Unsplash).jpg",
       license: "CC0",
     },
     {
@@ -4226,79 +4220,58 @@ const TODAY_VISUAL_LIBRARY: Record<string, TodayVisualAsset[]> = {
       imageUrl: commonsFilePath("Writing the Moment (Unsplash).jpg"),
       imagePageUrl: "https://commons.wikimedia.org/wiki/File:Writing_the_Moment_(Unsplash).jpg",
       license: "CC0",
-    },
-    {
-      kind: "photo",
-      title: "business-notes",
-      imageUrl: commonsFilePath("Businessman working and writing notes in office (Unsplash).jpg"),
-      imagePageUrl: "https://commons.wikimedia.org/wiki/File:Businessman_working_and_writing_notes_in_office_(Unsplash).jpg",
-      license: "CC0",
-    },
-  ],
-  [THEME_KEYS.COST_COUNTING]: [
-    {
-      kind: "photo",
-      title: "new-horizons",
-      imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e9/New_Horizons_%28Unsplash%29.jpg/1280px-New_Horizons_%28Unsplash%29.jpg",
-      imagePageUrl: "https://commons.wikimedia.org/wiki/File:New_Horizons_(Unsplash).jpg",
-      license: "CC0",
-    },
-    {
-      kind: "photo",
-      title: "hopeful-horizons",
-      imageUrl: "https://upload.wikimedia.org/wikipedia/commons/1/18/Hopeful_Horizons_%28Unsplash%29.jpg",
-      imagePageUrl: "https://commons.wikimedia.org/wiki/File:Hopeful_Horizons_(Unsplash).jpg",
-      license: "CC0",
-    },
-    {
-      kind: "photo",
-      title: "sunrise-on-the-road",
-      imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/73/Sunrise_on_the_road.jpg/1280px-Sunrise_on_the_road.jpg",
-      imagePageUrl: "https://commons.wikimedia.org/wiki/File:Sunrise_on_the_road.jpg",
-      license: "CC BY-SA 4.0",
-    },
-    {
-      kind: "photo",
-      title: "writing-the-moment",
-      imageUrl: commonsFilePath("Writing the Moment (Unsplash).jpg"),
-      imagePageUrl: "https://commons.wikimedia.org/wiki/File:Writing_the_Moment_(Unsplash).jpg",
-      license: "CC0",
-    },
-    {
-      kind: "photo",
-      title: "business-notes",
-      imageUrl: commonsFilePath("Businessman working and writing notes in office (Unsplash).jpg"),
-      imagePageUrl: "https://commons.wikimedia.org/wiki/File:Businessman_working_and_writing_notes_in_office_(Unsplash).jpg",
-      license: "CC0",
-    },
-  ],
-  [THEME_KEYS.DILIGENCE]: [
-    {
-      kind: "photo",
-      title: "field-under-clear-sky",
-      imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2b/Field_under_clear_sky.jpg/1280px-Field_under_clear_sky.jpg",
-      imagePageUrl: "https://commons.wikimedia.org/wiki/File:Field_under_clear_sky.jpg",
-      license: "Public domain",
-    },
-    {
-      kind: "photo",
-      title: "lush-green-field",
-      imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b8/Lush_Green_Field_Under_Clear_Blue_Sky.jpg/1280px-Lush_Green_Field_Under_Clear_Blue_Sky.jpg",
-      imagePageUrl: "https://commons.wikimedia.org/wiki/File:Lush_Green_Field_Under_Clear_Blue_Sky.jpg",
-      license: "CC0",
-    },
-    {
-      kind: "photo",
-      title: "ireland-fields-and-sky",
-      imageUrl: "https://upload.wikimedia.org/wikipedia/commons/c/c0/Ireland_fields_sky_clouds.jpg",
-      imagePageUrl: "https://commons.wikimedia.org/wiki/File:Ireland_fields_sky_clouds.jpg",
-      license: "Public domain",
     },
     {
       kind: "photo",
       title: "writing-with-both-hands",
       imageUrl: commonsFilePath("Writing with both hands.png"),
       imagePageUrl: "https://commons.wikimedia.org/wiki/File:Writing_with_both_hands.png",
+      license: "CC0",
+    },
+  ],
+  [THEME_KEYS.COST_COUNTING]: [
+    {
+      kind: "photo",
+      title: "business-notes",
+      imageUrl: commonsFilePath("Businessman working and writing notes in office (Unsplash).jpg"),
+      imagePageUrl: "https://commons.wikimedia.org/wiki/File:Businessman_working_and_writing_notes_in_office_(Unsplash).jpg",
+      license: "CC0",
+    },
+    {
+      kind: "photo",
+      title: "writing-the-moment",
+      imageUrl: commonsFilePath("Writing the Moment (Unsplash).jpg"),
+      imagePageUrl: "https://commons.wikimedia.org/wiki/File:Writing_the_Moment_(Unsplash).jpg",
+      license: "CC0",
+    },
+    {
+      kind: "photo",
+      title: "writing-with-both-hands",
+      imageUrl: commonsFilePath("Writing with both hands.png"),
+      imagePageUrl: "https://commons.wikimedia.org/wiki/File:Writing_with_both_hands.png",
+      license: "CC0",
+    },
+    {
+      kind: "photo",
+      title: "quiet-reading",
+      imageUrl: commonsFilePath("Woman reading a book on lap (Unsplash).jpg"),
+      imagePageUrl: "https://commons.wikimedia.org/wiki/File:Woman_reading_a_book_on_lap_(Unsplash).jpg",
+      license: "CC0",
+    },
+  ],
+  [THEME_KEYS.DILIGENCE]: [
+    {
+      kind: "photo",
+      title: "writing-with-both-hands",
+      imageUrl: commonsFilePath("Writing with both hands.png"),
+      imagePageUrl: "https://commons.wikimedia.org/wiki/File:Writing_with_both_hands.png",
+      license: "CC0",
+    },
+    {
+      kind: "photo",
+      title: "business-notes",
+      imageUrl: commonsFilePath("Businessman working and writing notes in office (Unsplash).jpg"),
+      imagePageUrl: "https://commons.wikimedia.org/wiki/File:Businessman_working_and_writing_notes_in_office_(Unsplash).jpg",
       license: "CC0",
     },
     {
@@ -4312,62 +4285,9 @@ const TODAY_VISUAL_LIBRARY: Record<string, TodayVisualAsset[]> = {
   [THEME_KEYS.PROVISION_AND_ANXIETY]: [
     {
       kind: "photo",
-      title: "ireland-fields-and-sky",
-      imageUrl: "https://upload.wikimedia.org/wikipedia/commons/c/c0/Ireland_fields_sky_clouds.jpg",
-      imagePageUrl: "https://commons.wikimedia.org/wiki/File:Ireland_fields_sky_clouds.jpg",
-      license: "Public domain",
-    },
-    {
-      kind: "photo",
-      title: "staying-up-all-night",
-      imageUrl: "https://upload.wikimedia.org/wikipedia/commons/e/e4/Staying_up_all_night_to_watch_the_sunrise_%28Unsplash%29.jpg",
-      imagePageUrl: "https://commons.wikimedia.org/wiki/File:Staying_up_all_night_to_watch_the_sunrise_(Unsplash).jpg",
-      license: "CC0",
-    },
-    {
-      kind: "photo",
-      title: "field-under-clear-sky",
-      imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2b/Field_under_clear_sky.jpg/1280px-Field_under_clear_sky.jpg",
-      imagePageUrl: "https://commons.wikimedia.org/wiki/File:Field_under_clear_sky.jpg",
-      license: "Public domain",
-    },
-  ],
-  [THEME_KEYS.GENEROSITY]: [
-    {
-      kind: "photo",
-      title: "shared-table",
-      imageUrl: `${TODAY_LOCAL_VISUAL_PREFIX}shared-table.svg`,
-      imagePageUrl: `${TODAY_LOCAL_VISUAL_PREFIX}shared-table.svg`,
-      license: "Aletheia curated",
-    },
-    {
-      kind: "photo",
-      title: "open-hands",
-      imageUrl: `${TODAY_LOCAL_VISUAL_PREFIX}open-hands.svg`,
-      imagePageUrl: `${TODAY_LOCAL_VISUAL_PREFIX}open-hands.svg`,
-      license: "Aletheia curated",
-    },
-    {
-      kind: "photo",
-      title: "gift-basket",
-      imageUrl: `${TODAY_LOCAL_VISUAL_PREFIX}gift-basket.svg`,
-      imagePageUrl: `${TODAY_LOCAL_VISUAL_PREFIX}gift-basket.svg`,
-      license: "Aletheia curated",
-    },
-  ],
-  [DEFAULT_TODAY_VISUAL_THEME]: [
-    {
-      kind: "photo",
-      title: "field-under-clear-sky",
-      imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2b/Field_under_clear_sky.jpg/1280px-Field_under_clear_sky.jpg",
-      imagePageUrl: "https://commons.wikimedia.org/wiki/File:Field_under_clear_sky.jpg",
-      license: "Public domain",
-    },
-    {
-      kind: "photo",
-      title: "hopeful-horizons",
-      imageUrl: "https://upload.wikimedia.org/wikipedia/commons/1/18/Hopeful_Horizons_%28Unsplash%29.jpg",
-      imagePageUrl: "https://commons.wikimedia.org/wiki/File:Hopeful_Horizons_(Unsplash).jpg",
+      title: "sharing-a-meal",
+      imageUrl: commonsFilePath("Sharing a meal in the Philippines (Unsplash).jpg"),
+      imagePageUrl: "https://commons.wikimedia.org/wiki/File:Sharing_a_meal_in_the_Philippines_(Unsplash).jpg",
       license: "CC0",
     },
     {
@@ -4385,11 +4305,13 @@ const TODAY_VISUAL_LIBRARY: Record<string, TodayVisualAsset[]> = {
       license: "CC0",
     },
   ],
-  [THEME_KEYS.COUNSEL]: [
+  [THEME_KEYS.GENEROSITY]: [
     {
-      kind: "illustration",
-      title: "stillness-path",
-      variant: "path",
+      kind: "photo",
+      title: "sharing-a-meal",
+      imageUrl: commonsFilePath("Sharing a meal in the Philippines (Unsplash).jpg"),
+      imagePageUrl: "https://commons.wikimedia.org/wiki/File:Sharing_a_meal_in_the_Philippines_(Unsplash).jpg",
+      license: "CC0",
     },
     {
       kind: "photo",
@@ -4406,11 +4328,73 @@ const TODAY_VISUAL_LIBRARY: Record<string, TodayVisualAsset[]> = {
       license: "CC0",
     },
   ],
+  [DEFAULT_TODAY_VISUAL_THEME]: [
+    {
+      kind: "photo",
+      title: "quiet-reading",
+      imageUrl: commonsFilePath("Woman reading a book on lap (Unsplash).jpg"),
+      imagePageUrl: "https://commons.wikimedia.org/wiki/File:Woman_reading_a_book_on_lap_(Unsplash).jpg",
+      license: "CC0",
+    },
+    {
+      kind: "photo",
+      title: "window-reading",
+      imageUrl: commonsFilePath("Charles-james-lewis-reading-by-the-window.jpg"),
+      imagePageUrl: "https://commons.wikimedia.org/wiki/File:Charles-james-lewis-reading-by-the-window.jpg",
+      license: "CC0",
+    },
+    {
+      kind: "photo",
+      title: "sharing-a-meal",
+      imageUrl: commonsFilePath("Sharing a meal in the Philippines (Unsplash).jpg"),
+      imagePageUrl: "https://commons.wikimedia.org/wiki/File:Sharing_a_meal_in_the_Philippines_(Unsplash).jpg",
+      license: "CC0",
+    },
+  ],
+  [THEME_KEYS.COUNSEL]: [
+    {
+      kind: "photo",
+      title: "window-reading",
+      imageUrl: commonsFilePath("Charles-james-lewis-reading-by-the-window.jpg"),
+      imagePageUrl: "https://commons.wikimedia.org/wiki/File:Charles-james-lewis-reading-by-the-window.jpg",
+      license: "CC0",
+    },
+    {
+      kind: "photo",
+      title: "quiet-reading",
+      imageUrl: commonsFilePath("Person reading an ebook.jpg"),
+      imagePageUrl: "https://commons.wikimedia.org/wiki/File:Person_reading_an_ebook.jpg",
+      license: "CC0",
+    },
+    {
+      kind: "photo",
+      title: "writing-the-moment",
+      imageUrl: commonsFilePath("Writing the Moment (Unsplash).jpg"),
+      imagePageUrl: "https://commons.wikimedia.org/wiki/File:Writing_the_Moment_(Unsplash).jpg",
+      license: "CC0",
+    },
+  ],
   [THEME_KEYS.DEBT]: [
     {
-      kind: "illustration",
-      title: "measured-balance",
-      variant: "glow",
+      kind: "photo",
+      title: "business-notes",
+      imageUrl: commonsFilePath("Businessman working and writing notes in office (Unsplash).jpg"),
+      imagePageUrl: "https://commons.wikimedia.org/wiki/File:Businessman_working_and_writing_notes_in_office_(Unsplash).jpg",
+      license: "CC0",
+    },
+    {
+      kind: "photo",
+      title: "writing-the-moment",
+      imageUrl: commonsFilePath("Writing the Moment (Unsplash).jpg"),
+      imagePageUrl: "https://commons.wikimedia.org/wiki/File:Writing_the_Moment_(Unsplash).jpg",
+      license: "CC0",
+    },
+    {
+      kind: "photo",
+      title: "writing-with-both-hands",
+      imageUrl: commonsFilePath("Writing with both hands.png"),
+      imagePageUrl: "https://commons.wikimedia.org/wiki/File:Writing_with_both_hands.png",
+      license: "CC0",
     },
   ],
   Work: [
@@ -4439,16 +4423,16 @@ const TODAY_VISUAL_LIBRARY: Record<string, TodayVisualAsset[]> = {
     },
     {
       kind: "photo",
-      title: "walking-coastline",
-      imageUrl: commonsFilePath("Walking along the hilly coastline (Unsplash).jpg"),
-      imagePageUrl: "https://commons.wikimedia.org/wiki/File:Walking_along_the_hilly_coastline_(Unsplash).jpg",
+      title: "window-reading",
+      imageUrl: commonsFilePath("Charles-james-lewis-reading-by-the-window.jpg"),
+      imagePageUrl: "https://commons.wikimedia.org/wiki/File:Charles-james-lewis-reading-by-the-window.jpg",
       license: "CC0",
     },
     {
       kind: "photo",
-      title: "beach-walk",
-      imageUrl: commonsFilePath("Walking along the beach in the dark (Unsplash).jpg"),
-      imagePageUrl: "https://commons.wikimedia.org/wiki/File:Walking_along_the_beach_in_the_dark_(Unsplash).jpg",
+      title: "quiet-reading",
+      imageUrl: commonsFilePath("Woman reading a book on lap (Unsplash).jpg"),
+      imagePageUrl: "https://commons.wikimedia.org/wiki/File:Woman_reading_a_book_on_lap_(Unsplash).jpg",
       license: "CC0",
     },
   ],
@@ -4539,53 +4523,53 @@ function localTodayVisualsForTheme(theme: string) {
 }
 
 const TODAY_THEME_VISUAL_PRIORITIES: Record<string, string[]> = {
-  [THEME_KEYS.STEWARDSHIP]: ["sunrise-on-the-road", "field-in-sunrise", "hopeful-horizons", "new-horizons"],
-  [THEME_KEYS.COST_COUNTING]: ["hopeful-horizons", "sunrise-on-the-road", "field-in-sunrise", "new-horizons"],
-  [THEME_KEYS.DILIGENCE]: ["field-under-clear-sky", "lush-green-field", "ireland-fields-and-sky"],
-  [THEME_KEYS.PROVISION_AND_ANXIETY]: ["ireland-fields-and-sky", "field-under-clear-sky", "staying-up-all-night", "hopeful-horizons"],
-  [DEFAULT_TODAY_VISUAL_THEME]: ["field-under-clear-sky", "ireland-fields-and-sky", "hopeful-horizons"],
-  [THEME_KEYS.GENEROSITY]: ["shared-table", "open-hands", "gift-basket"],
-  [THEME_KEYS.COUNSEL]: ["window-reading", "quiet-reading", "stillness-path"],
-  [THEME_KEYS.DEBT]: ["measured-balance"],
-  Work: ["field-under-clear-sky", "ireland-fields-and-sky", "new-horizons"],
-  Life: ["field-under-clear-sky", "hopeful-horizons", "ireland-fields-and-sky"],
+  [THEME_KEYS.STEWARDSHIP]: ["business-notes", "writing-the-moment", "writing-with-both-hands"],
+  [THEME_KEYS.COST_COUNTING]: ["business-notes", "writing-the-moment", "writing-with-both-hands", "quiet-reading"],
+  [THEME_KEYS.DILIGENCE]: ["writing-with-both-hands", "business-notes", "writing-the-moment"],
+  [THEME_KEYS.PROVISION_AND_ANXIETY]: ["sharing-a-meal", "window-reading", "quiet-reading"],
+  [DEFAULT_TODAY_VISUAL_THEME]: ["quiet-reading", "window-reading", "sharing-a-meal"],
+  [THEME_KEYS.GENEROSITY]: ["sharing-a-meal", "window-reading", "quiet-reading"],
+  [THEME_KEYS.COUNSEL]: ["window-reading", "quiet-reading", "writing-the-moment"],
+  [THEME_KEYS.DEBT]: ["business-notes", "writing-the-moment", "writing-with-both-hands"],
+  Work: ["business-notes", "writing-the-moment"],
+  Life: ["sharing-a-meal", "window-reading", "quiet-reading"],
 };
 
 const TODAY_THEME_HUMAN_PRIORITIES: Record<string, Partial<Record<TodayVisualMood, string[]>>> = {
   [THEME_KEYS.STEWARDSHIP]: {
-    warm: ["business-notes", "writing-the-moment"],
-    cool: ["business-notes", "writing-the-moment"],
-    contemplative: ["writing-the-moment", "business-notes"],
+    warm: ["business-notes", "writing-the-moment", "writing-with-both-hands"],
+    cool: ["writing-the-moment", "business-notes", "writing-with-both-hands"],
+    contemplative: ["writing-the-moment", "writing-with-both-hands", "business-notes"],
   },
   [THEME_KEYS.COST_COUNTING]: {
-    warm: ["business-notes", "writing-the-moment"],
-    cool: ["writing-the-moment", "business-notes"],
-    contemplative: ["writing-the-moment", "business-notes"],
+    warm: ["business-notes", "writing-with-both-hands", "quiet-reading"],
+    cool: ["writing-the-moment", "business-notes", "quiet-reading"],
+    contemplative: ["quiet-reading", "writing-the-moment", "business-notes"],
   },
   [THEME_KEYS.DILIGENCE]: {
     warm: ["writing-with-both-hands", "business-notes", "writing-the-moment"],
-    cool: ["writing-the-moment", "writing-with-both-hands", "business-notes"],
-    contemplative: ["writing-the-moment", "writing-with-both-hands", "business-notes"],
+    cool: ["business-notes", "writing-the-moment", "writing-with-both-hands"],
+    contemplative: ["writing-the-moment", "business-notes", "writing-with-both-hands"],
   },
   [THEME_KEYS.GENEROSITY]: {
-    warm: ["open-hands", "shared-table", "gift-basket"],
-    cool: ["shared-table", "gift-basket", "open-hands"],
-    contemplative: ["shared-table", "open-hands", "gift-basket"],
+    warm: ["sharing-a-meal", "window-reading", "quiet-reading"],
+    cool: ["window-reading", "quiet-reading", "sharing-a-meal"],
+    contemplative: ["quiet-reading", "sharing-a-meal", "window-reading"],
   },
   [THEME_KEYS.PROVISION_AND_ANXIETY]: {
-    warm: ["sharing-a-meal", "quiet-reading"],
-    cool: ["window-reading", "quiet-reading"],
+    warm: ["sharing-a-meal", "quiet-reading", "window-reading"],
+    cool: ["window-reading", "quiet-reading", "sharing-a-meal"],
     contemplative: ["quiet-reading", "window-reading", "sharing-a-meal"],
   },
   [THEME_KEYS.COUNSEL]: {
-    warm: ["quiet-reading", "window-reading"],
-    cool: ["window-reading", "quiet-reading"],
-    contemplative: ["window-reading", "quiet-reading"],
+    warm: ["window-reading", "quiet-reading", "writing-the-moment"],
+    cool: ["quiet-reading", "window-reading", "writing-the-moment"],
+    contemplative: ["window-reading", "quiet-reading", "writing-the-moment"],
   },
   [DEFAULT_TODAY_VISUAL_THEME]: {
-    warm: ["quiet-reading", "window-reading"],
-    cool: ["window-reading", "quiet-reading"],
-    contemplative: ["quiet-reading", "window-reading"],
+    warm: ["quiet-reading", "window-reading", "sharing-a-meal"],
+    cool: ["window-reading", "quiet-reading", "sharing-a-meal"],
+    contemplative: ["quiet-reading", "sharing-a-meal", "window-reading"],
   },
   Work: {
     warm: ["business-notes", "writing-the-moment"],
@@ -4593,9 +4577,9 @@ const TODAY_THEME_HUMAN_PRIORITIES: Record<string, Partial<Record<TodayVisualMoo
     contemplative: ["writing-the-moment", "business-notes"],
   },
   Life: {
-    warm: ["sharing-a-meal", "walking-coastline", "beach-walk"],
-    cool: ["walking-coastline", "beach-walk", "sharing-a-meal"],
-    contemplative: ["walking-coastline", "beach-walk", "sharing-a-meal"],
+    warm: ["sharing-a-meal", "window-reading", "quiet-reading"],
+    cool: ["window-reading", "quiet-reading", "sharing-a-meal"],
+    contemplative: ["quiet-reading", "sharing-a-meal", "window-reading"],
   },
 };
 
@@ -4614,69 +4598,69 @@ type TodayVisualPlacement = {
 
 const TODAY_THEME_MOOD_PRIORITIES: Record<string, Partial<Record<TodayVisualMood, string[]>>> = {
   [THEME_KEYS.STEWARDSHIP]: {
-    warm: ["sunrise-on-the-road", "field-in-sunrise", "new-horizons", "hopeful-horizons"],
-    cool: ["new-horizons", "hopeful-horizons", "field-under-clear-sky"],
-    contemplative: ["new-horizons", "hopeful-horizons", "field-under-clear-sky"],
+    warm: ["business-notes", "writing-the-moment", "writing-with-both-hands"],
+    cool: ["writing-the-moment", "business-notes", "writing-with-both-hands"],
+    contemplative: ["writing-the-moment", "writing-with-both-hands", "business-notes"],
   },
   [THEME_KEYS.COST_COUNTING]: {
-    warm: ["hopeful-horizons", "sunrise-on-the-road", "field-in-sunrise", "new-horizons"],
-    cool: ["new-horizons", "hopeful-horizons", "field-under-clear-sky"],
-    contemplative: ["hopeful-horizons", "new-horizons", "field-under-clear-sky"],
+    warm: ["business-notes", "writing-with-both-hands", "quiet-reading"],
+    cool: ["writing-the-moment", "business-notes", "quiet-reading"],
+    contemplative: ["quiet-reading", "writing-the-moment", "business-notes"],
   },
   [THEME_KEYS.DILIGENCE]: {
-    warm: ["lush-green-field", "field-under-clear-sky", "ireland-fields-and-sky"],
-    cool: ["field-under-clear-sky", "ireland-fields-and-sky", "lush-green-field"],
-    contemplative: ["ireland-fields-and-sky", "field-under-clear-sky", "lush-green-field"],
+    warm: ["writing-with-both-hands", "business-notes", "writing-the-moment"],
+    cool: ["business-notes", "writing-the-moment", "writing-with-both-hands"],
+    contemplative: ["writing-the-moment", "business-notes", "writing-with-both-hands"],
   },
   [THEME_KEYS.PROVISION_AND_ANXIETY]: {
-    warm: ["field-under-clear-sky", "ireland-fields-and-sky", "hopeful-horizons"],
-    cool: ["ireland-fields-and-sky", "field-under-clear-sky", "hopeful-horizons"],
-    contemplative: ["ireland-fields-and-sky", "field-under-clear-sky", "hopeful-horizons"],
+    warm: ["sharing-a-meal", "quiet-reading", "window-reading"],
+    cool: ["window-reading", "quiet-reading", "sharing-a-meal"],
+    contemplative: ["quiet-reading", "window-reading", "sharing-a-meal"],
   },
   [THEME_KEYS.GENEROSITY]: {
-    warm: ["open-hands", "shared-table", "gift-basket"],
-    cool: ["shared-table", "gift-basket", "open-hands"],
-    contemplative: ["gift-basket", "shared-table", "open-hands"],
+    warm: ["sharing-a-meal", "window-reading", "quiet-reading"],
+    cool: ["window-reading", "quiet-reading", "sharing-a-meal"],
+    contemplative: ["quiet-reading", "sharing-a-meal", "window-reading"],
   },
   [DEFAULT_TODAY_VISUAL_THEME]: {
-    warm: ["hopeful-horizons", "field-under-clear-sky", "ireland-fields-and-sky"],
-    cool: ["field-under-clear-sky", "ireland-fields-and-sky", "hopeful-horizons"],
-    contemplative: ["ireland-fields-and-sky", "field-under-clear-sky", "hopeful-horizons"],
+    warm: ["quiet-reading", "window-reading", "sharing-a-meal"],
+    cool: ["window-reading", "quiet-reading", "sharing-a-meal"],
+    contemplative: ["quiet-reading", "sharing-a-meal", "window-reading"],
   },
   [THEME_KEYS.COUNSEL]: {
-    warm: ["quiet-reading", "window-reading", "stillness-path"],
-    cool: ["window-reading", "quiet-reading", "stillness-path"],
-    contemplative: ["window-reading", "quiet-reading", "stillness-path"],
+    warm: ["window-reading", "quiet-reading", "writing-the-moment"],
+    cool: ["quiet-reading", "window-reading", "writing-the-moment"],
+    contemplative: ["window-reading", "quiet-reading", "writing-the-moment"],
   },
   [THEME_KEYS.DEBT]: {
-    warm: ["measured-balance"],
-    cool: ["measured-balance"],
-    contemplative: ["measured-balance"],
+    warm: ["business-notes", "writing-the-moment", "writing-with-both-hands"],
+    cool: ["writing-the-moment", "business-notes", "writing-with-both-hands"],
+    contemplative: ["writing-the-moment", "writing-with-both-hands", "business-notes"],
   },
 };
 
 const TODAY_THEME_TIME_PRIORITIES: Record<string, { morning?: string[]; winter?: string[]; weekend?: string[] }> = {
   [THEME_KEYS.STEWARDSHIP]: {
-    morning: ["sunrise-on-the-road", "field-in-sunrise", "new-horizons"],
+    morning: ["writing-the-moment", "business-notes", "writing-with-both-hands"],
   },
   [THEME_KEYS.GENEROSITY]: {
-    morning: ["open-hands", "shared-table", "gift-basket"],
-    weekend: ["shared-table", "gift-basket", "open-hands"],
+    morning: ["sharing-a-meal", "window-reading", "quiet-reading"],
+    weekend: ["sharing-a-meal", "quiet-reading", "window-reading"],
   },
   [THEME_KEYS.PROVISION_AND_ANXIETY]: {
-    winter: ["ireland-fields-and-sky", "field-under-clear-sky", "hopeful-horizons"],
+    winter: ["quiet-reading", "window-reading", "sharing-a-meal"],
   },
   [THEME_KEYS.COUNSEL]: {
-    weekend: ["stillness-path"],
+    weekend: ["window-reading", "quiet-reading"],
   },
   [DEFAULT_TODAY_VISUAL_THEME]: {
-    weekend: ["ireland-fields-and-sky", "field-under-clear-sky", "hopeful-horizons"],
+    weekend: ["quiet-reading", "sharing-a-meal", "window-reading"],
   },
   Work: {
-    morning: ["field-under-clear-sky", "ireland-fields-and-sky", "new-horizons"],
+    morning: ["business-notes", "writing-the-moment"],
   },
   Life: {
-    weekend: ["field-under-clear-sky", "hopeful-horizons", "ireland-fields-and-sky"],
+    weekend: ["sharing-a-meal", "window-reading", "quiet-reading"],
   },
 };
 
@@ -5862,9 +5846,9 @@ function TodayVisualPanel({
       month,
       dayOfWeek,
       attempt: photoAttempt,
-      localOnly: true,
+      localOnly: useLocalFallback,
     }),
-    [dayNumber, dayOfWeek, hour, month, mood, photoAttempt, themeName]
+    [dayNumber, dayOfWeek, hour, month, mood, photoAttempt, themeName, useLocalFallback]
   );
   const usingPhoto = asset.kind === "photo" && !imageFailed;
   const fallbackVariant = asset.kind === "illustration" ? asset.variant : "stillness";
@@ -11406,6 +11390,7 @@ export function AletheiaApp() {
                         user={user}
                         mode={mode}
                         manualContext={manualContext}
+                        counselContacts={counselContacts}
                         focusIntentions={focusIntentions}
                         messages={messages}
                         journalEntries={journalEntries}
@@ -11432,6 +11417,8 @@ export function AletheiaApp() {
                         result={decisionResult}
                         mode={mode}
                         modeProfile={activeMode}
+                        challengeRecommendation={featuredChallengeRecommendation.primary}
+                        onOpenRecommendedChallenge={openRecommendedChallenge}
                         ts={ts}
                         entries={journalEntries}
                         gratitudeEntries={gratitudeEntries}
@@ -11504,6 +11491,7 @@ export function AletheiaApp() {
                       onGoogleSignIn={handleGoogleSignIn}
                       onLogout={logout}
                       onUpdateProfileAvatar={updateProfileAvatar}
+                      mode={mode}
                       preferences={preferences}
                       preferencesStatus={preferencesStatus}
                       ui={ui}
@@ -14100,6 +14088,7 @@ function AccountPanel({
   onGoogleSignIn: () => void;
   onLogout: () => void;
   onUpdateProfileAvatar: (avatarUrl: string) => Promise<boolean>;
+  mode: Mode;
   preferences: UserPreferences;
   preferencesStatus: string;
   ui: UiText;
@@ -14172,6 +14161,33 @@ function AccountPanel({
       detail: ts('labels.trustedVoices'),
     },
   ];
+  const manualSignals = manualContextCounselSignals(manualContext);
+  const accountContextPhrase = manualSignals.some((signal) => signal.startsWith("Financial pressure signal"))
+    ? ts("labels.accountContextMoney", "money feels tight")
+    : manualSignals.some((signal) => signal.startsWith("Burnout signal"))
+      ? ts("labels.accountContextPace", "your pace needs room")
+      : manualSignals.some((signal) => signal.startsWith("Isolation signal"))
+        ? ts("labels.accountContextRelationships", "the people around you matter")
+        : manualSignals.some((signal) => signal.startsWith("Urgency signal"))
+          ? ts("labels.accountContextUrgency", "something feels pressing")
+          : manualSignals.some((signal) => signal.startsWith("Values signal"))
+            ? ts("labels.accountContextValues", "you are holding a line carefully")
+            : manualSignals.some((signal) => signal.startsWith("Future-state signal"))
+              ? ts("labels.accountContextFuture", "you are leaning toward a future you want to name")
+              : "";
+  const accountRecommendationLead = challengeRecommendation
+    ? accountContextPhrase
+      ? `It feels gentle for where you are right now, especially if ${accountContextPhrase}.`
+      : `It feels gentle for where you are right now.`
+    : "";
+  const accountRecommendationBody = challengeRecommendation
+    ? [
+        accountRecommendationLead,
+        challengeRecommendation.note,
+      ]
+        .filter(Boolean)
+        .join(" ")
+    : "";
 
   return (
     <div className="mx-auto grid min-w-0 max-w-5xl gap-4">
@@ -14284,14 +14300,16 @@ function AccountPanel({
           </div>
       </DisclosureSection>
 
-      <ChallengeRecommendationCard
-        recommendation={challengeRecommendation}
-        theme={theme}
-        ts={ts}
-        onOpenChallenge={onOpenRecommendedChallenge}
-        compact
-        className="mt-1"
-      />
+      {challengeRecommendation ? (
+        <ContextualNextAction
+          eyebrow={ts("labels.accountQuietFit", "A quiet fit")}
+          title={challengeRecommendation.title}
+          body={accountRecommendationBody}
+          actionLabel={challengeRecommendation.actionKind === "continue" ? ts("challenges.continueChallenge") : ts("challenges.startChallenge")}
+          onAction={() => onOpenRecommendedChallenge(challengeRecommendation.challengeId)}
+          theme={theme}
+        />
+      ) : null}
 
       <ScreenTabs
         value={accountSection}
@@ -14953,6 +14971,16 @@ type ChallengeCircleNudge = {
   senderAvatarUrl: string | null;
 };
 
+type ChallengeCircleResponse = {
+  userId: string;
+  name: string | null;
+  avatarUrl: string | null;
+  responseStatus: string;
+  respondedAt: string | null;
+};
+
+type ReadWithMeRecipientStatus = "accepted" | "declined" | "pending" | "waiting";
+
 type ChallengeCircleSummary = {
   id: string;
   challengeId: string;
@@ -14980,6 +15008,7 @@ type ChallengeCircleSummary = {
   viewerResponse: string | null;
   memberCount: number;
   members: ChallengeCircleMember[];
+  responses: ChallengeCircleResponse[];
   nudges: ChallengeCircleNudge[];
 };
 
@@ -15327,6 +15356,7 @@ function FormationRailSection({
   user,
   mode,
   manualContext,
+  counselContacts,
   focusIntentions,
   messages,
   journalEntries,
@@ -15342,6 +15372,7 @@ function FormationRailSection({
   user: User | null;
   mode: Mode;
   manualContext: ManualContextProfile;
+  counselContacts: CounselContact[];
   focusIntentions: string[];
   messages: ChatMessage[];
   journalEntries: JournalEntry[];
@@ -15361,6 +15392,9 @@ function FormationRailSection({
   const [savingDay, setSavingDay] = useState<{ challengeId: string; day: number } | null>(null);
   const [creatingInviteId, setCreatingInviteId] = useState<string | null>(null);
   const [readWithMeInviteDraft, setReadWithMeInviteDraft] = useState<ReadWithMeInviteDetails>(defaultReadWithMeInviteDetails);
+  const [recipientNameDraft, setRecipientNameDraft] = useState("");
+  const [recipientNoteDraft, setRecipientNoteDraft] = useState("");
+  const [currentTimestampMs, setCurrentTimestampMs] = useState(() => Date.now());
   const sectionRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
@@ -15389,6 +15423,14 @@ function FormationRailSection({
         }))
       );
     });
+  }, []);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setCurrentTimestampMs(Date.now());
+    }, 60_000);
+
+    return () => window.clearInterval(timer);
   }, []);
 
   useEffect(() => {
@@ -15522,10 +15564,19 @@ function FormationRailSection({
   const canCreateReadWithMeInvite =
     readWithMeInviteDraft.bookTitle.trim().length > 0 &&
     readWithMeInviteDraft.durationValue !== null &&
-    readWithMeInviteDraft.durationValue > 0;
+    readWithMeInviteDraft.durationValue > 0 &&
+    readWithMeInviteDraft.recipients.length > 0;
   const readWithMeDurationLabel = formatReadWithMeDurationLabel(
     readWithMeInviteDetails?.durationValue ?? null,
     readWithMeInviteDetails?.durationUnit ?? defaultReadWithMeInviteDetails.durationUnit
+  );
+  const readWithMePendingWindowValue =
+    readWithMeInviteDetails?.pendingAfterValue ?? defaultReadWithMeInviteDetails.pendingAfterValue;
+  const readWithMePendingWindowUnit =
+    readWithMeInviteDetails?.pendingAfterUnit ?? defaultReadWithMeInviteDetails.pendingAfterUnit;
+  const readWithMePendingWindowLabel = formatReadWithMePendingWindowLabel(
+    readWithMePendingWindowValue,
+    readWithMePendingWindowUnit
   );
   const readWithMeStartDate = readWithMeInviteDetails?.startDate
     ? new Date(`${readWithMeInviteDetails.startDate}T00:00:00`).toLocaleDateString(undefined, {
@@ -15534,11 +15585,105 @@ function FormationRailSection({
         year: "numeric",
       })
     : "";
+  const readWithMeInviteRecipients = readWithMeInviteDetails?.recipients ?? [];
+  const readWithMeInviteResponses = selectedCircle?.responses ?? [];
+  const readWithMeInviteCreatedAt = selectedCircle?.invite.createdAt ?? null;
   const selectedChallengeNextDay = selectedChallenge ? nextDayFor(selectedChallenge) : 1;
 
   function updateReadWithMeInviteDraft(patch: Partial<ReadWithMeInviteDetails>) {
     setReadWithMeInviteDraft((current) => ({ ...current, ...patch }));
   }
+
+  function normalizeRosterKey(value: string) {
+    return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
+  }
+
+  function pendingWindowMs(value: number | null, unit: ReadWithMeInvitePendingWindowUnit) {
+    if (value === null) {
+      return null;
+    }
+    return unit === "days" ? value * 24 * 60 * 60 * 1000 : value * 60 * 60 * 1000;
+  }
+
+  function addRecipientDraft(name: string, note: string = "") {
+    const cleanName = name.trim();
+    if (!cleanName) {
+      return;
+    }
+    const cleanNote = note.trim();
+    setReadWithMeInviteDraft((current) => {
+      const duplicate = current.recipients.some((recipient) => recipient.name.toLowerCase() === cleanName.toLowerCase());
+      if (duplicate) {
+        return current;
+      }
+      return {
+        ...current,
+        recipients: [
+          ...current.recipients,
+          {
+            id: crypto.randomUUID(),
+            name: cleanName,
+            note: cleanNote,
+          },
+        ],
+      };
+    });
+    setRecipientNameDraft("");
+    setRecipientNoteDraft("");
+  }
+
+  function removeRecipientDraft(recipientId: string) {
+    setReadWithMeInviteDraft((current) => ({
+      ...current,
+      recipients: current.recipients.filter((recipient) => recipient.id !== recipientId),
+    }));
+  }
+
+  function addContactToRecipientDraft(contact: CounselContact) {
+    addRecipientDraft(contact.name, contact.notes || contact.contact || contact.role || "");
+  }
+
+  const responseLookup = new Map(
+    readWithMeInviteResponses
+      .map((response) => {
+        const key = normalizeRosterKey(response.name ?? "");
+        return key ? [key, response] as const : null;
+      })
+      .filter((entry): entry is readonly [string, ChallengeCircleResponse] => Boolean(entry))
+  );
+  const pendingThresholdMs = pendingWindowMs(readWithMePendingWindowValue, readWithMePendingWindowUnit);
+  const readWithMeRecipientStatuses: Array<{
+    recipient: ReadWithMeInviteRecipient;
+    response: ChallengeCircleResponse | null;
+    status: ReadWithMeRecipientStatus;
+  }> = readWithMeInviteRecipients.map((recipient) => {
+    const response = responseLookup.get(normalizeRosterKey(recipient.name)) ?? null;
+    const inviteCreatedAtMs = readWithMeInviteCreatedAt ? Date.parse(readWithMeInviteCreatedAt) : NaN;
+    const status = response?.responseStatus === "accepted"
+      ? "accepted"
+      : response?.responseStatus === "declined"
+        ? "declined"
+        : Number.isFinite(inviteCreatedAtMs) && pendingThresholdMs !== null && currentTimestampMs >= inviteCreatedAtMs + pendingThresholdMs
+          ? "pending"
+          : "waiting";
+
+    return {
+      recipient,
+      response,
+      status,
+    };
+  });
+  const readWithMeResponseTotals = readWithMeRecipientStatuses.reduce(
+    (totals, item) => {
+      totals[item.status] += 1;
+      return totals;
+    },
+    { accepted: 0, declined: 0, pending: 0, waiting: 0 } as Record<"accepted" | "declined" | "pending" | "waiting", number>
+  );
+  const unmatchedReadWithMeResponses = readWithMeInviteResponses.filter((response) => {
+    const key = normalizeRosterKey(response.name ?? "");
+    return !key || !responseLookup.has(key);
+  });
 
   const selectedChallengeFocusedDay = selectedChallenge
     ? Math.min(
@@ -15676,75 +15821,6 @@ function FormationRailSection({
 
       {displayChallenges.length ? (
         <>
-          {recommendationSignals.primary ? (
-            <div className="rounded-[1.45rem] border p-4 shadow-[0_8px_20px_rgba(7,10,8,0.05)]" style={{ borderColor: theme.primary, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
-                    {ts("labels.suggestedAction")}
-                  </p>
-                  <h3 className="mt-1 text-lg font-semibold sm:text-[1.15rem]" style={{ color: theme.textPrimary }}>
-                    {ts("labels.recommendedForYou", "Recommended for you")}
-                  </h3>
-                  <p className="mt-1.5 text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>
-                    {recommendationSignals.primary.title}
-                  </p>
-                  <p className="mt-1.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
-                    {recommendationSignals.primary.note}
-                  </p>
-                </div>
-                <span className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-                  {recommendationSignals.primary.actionKind === "continue" ? ts("challenges.continueChallenge") : ts("challenges.startChallenge")}
-                </span>
-              </div>
-
-              <div className="mt-3">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
-                  {ts("challenges.whyThisFits", "Why this fits")}
-                </p>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {recommendationSignals.primary.fitChips.slice(0, 3).map((signal) => (
-                    <span
-                      key={signal}
-                      className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]"
-                      style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}
-                    >
-                      {signal}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              <div className="mt-4 flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedChallengeId(recommendationSignals.primary!.challengeId);
-                    setSelectedDayNumber(null);
-                  }}
-                  className="inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-semibold transition"
-                  style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
-                >
-                  {recommendationSignals.primary.actionKind === "continue" ? ts("challenges.continueChallenge") : ts("challenges.startChallenge")}
-                </button>
-                {recommendationSignals.alternatives.slice(0, 2).map((item) => (
-                  <button
-                    key={item.challengeId}
-                    type="button"
-                    onClick={() => {
-                      setSelectedChallengeId(item.challengeId);
-                      setSelectedDayNumber(null);
-                    }}
-                    className="inline-flex h-10 items-center justify-center rounded-full border px-4 text-sm font-semibold transition"
-                    style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
-                  >
-                    {item.title}
-                  </button>
-                ))}
-              </div>
-            </div>
-          ) : null}
-
           <div className="flex gap-3 overflow-x-auto pb-2 [-webkit-overflow-scrolling:touch]">
             {displayChallenges.map((challenge) => {
               const done = completedDaysFor(challenge);
@@ -15814,22 +15890,15 @@ function FormationRailSection({
                   <p className="mt-2 text-sm leading-6 sm:text-[0.98rem] sm:leading-7" style={{ color: theme.textSecondary }}>
                     {ts(selectedChallenge.descriptionKey, selectedChallenge.description)}
                   </p>
-                  <div className="mt-4 flex flex-wrap items-center gap-2">
-                    <span className="rounded-full border px-2.5 py-1 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                  <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs leading-5" style={{ color: theme.textMuted }}>
+                    <span className="font-semibold uppercase tracking-[0.08em]" style={{ color: theme.textSecondary }}>
                       {selectedChallenge.mode}
                     </span>
-                    <span className="rounded-full border px-2.5 py-1 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                    <span>
                       {ts("challenges.daysCompleted").replace("{count}", String(selectedChallenge.completedDays.length)).replace("{total}", String(selectedChallenge.totalDays))}
                     </span>
-                    <span className="rounded-full border px-2.5 py-1 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-                      {selectedChallenge.completedDays.length >= selectedChallenge.totalDays
-                        ? ts("challenges.completedChallenge")
-                        : selectedChallenge.completedDays.length > 0
-                          ? ts("challenges.continueChallenge")
-                          : ts("challenges.startChallenge")}
-                    </span>
                     {selectedCircle ? (
-                      <span className="rounded-full border px-2.5 py-1 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                      <span>
                         {selectedCircle.memberCount} {ts("challenges.withFriends")}
                       </span>
                     ) : null}
@@ -15839,26 +15908,19 @@ function FormationRailSection({
                       <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
                         {ts("challenges.readWithMeInviteTitle", "Shared reading plan")}
                       </p>
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        <span className="rounded-full border px-2.5 py-1 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}>
-                          {readWithMeInviteDetails.bookTitle}
-                        </span>
-                        {readWithMeInviteDetails.author ? (
-                          <span className="rounded-full border px-2.5 py-1 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-                            {readWithMeInviteDetails.author}
-                          </span>
-                        ) : null}
-                        {readWithMeDurationLabel ? (
-                          <span className="rounded-full border px-2.5 py-1 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-                            {readWithMeDurationLabel}
-                          </span>
-                        ) : null}
-                        {readWithMeInviteDetails.startDate ? (
-                          <span className="rounded-full border px-2.5 py-1 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-                            {readWithMeStartDate || readWithMeInviteDetails.startDate}
-                          </span>
-                        ) : null}
-                      </div>
+                      <p className="mt-1.5 text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>
+                        {readWithMeInviteDetails.bookTitle}
+                      </p>
+                      {readWithMeInviteDetails.author ? (
+                        <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>
+                          {readWithMeInviteDetails.author}
+                        </p>
+                      ) : null}
+                      <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                        {[readWithMeDurationLabel, readWithMeStartDate, readWithMeInviteDetails.recipients.length ? `${readWithMeInviteDetails.recipients.length} ${ts("labels.invited", "Invited")}` : ""]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </p>
                       {readWithMeInviteDetails.cadence ? (
                         <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
                           {readWithMeInviteDetails.cadence}
@@ -16144,11 +16206,26 @@ function FormationRailSection({
                       </div>
 
                       {selectedCircleInviteDetails ? (
-                        <div className="rounded-[1.1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-                          <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
-                            {ts("challenges.readWithMeInviteDetails", "Fixed reading details")}
-                          </p>
-                          <div className="mt-3 grid gap-2 text-sm leading-6 sm:grid-cols-2">
+                        <div className="overflow-hidden rounded-[1.15rem] border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                          <div className="border-b p-3" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
+                                  {ts("challenges.readWithMeInviteDetails", "Fixed reading details")}
+                                </p>
+                                <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                                  {ts("challenges.readWithMeInviteDetailsBody", "Everyone sees the same book, cadence, and response window.")}
+                                </p>
+                              </div>
+                              {readWithMePendingWindowLabel ? (
+                                <span className="shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                                  {readWithMePendingWindowLabel}
+                                </span>
+                              ) : null}
+                            </div>
+                          </div>
+
+                          <div className="grid gap-2 p-3 text-sm leading-6 sm:grid-cols-2">
                             <div className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
                               <p className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
                                 {ts("labels.bookTitle", "Book title")}
@@ -16159,10 +16236,34 @@ function FormationRailSection({
                             </div>
                             <div className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
                               <p className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
+                                {ts("labels.author", "Author")}
+                              </p>
+                              <p className="mt-1 font-semibold" style={{ color: theme.textPrimary }}>
+                                {selectedCircleInviteDetails.author || ts("labels.notSet", "Not set")}
+                              </p>
+                            </div>
+                            <div className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                              <p className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
                                 {ts("labels.duration", "Duration")}
                               </p>
                               <p className="mt-1 font-semibold" style={{ color: theme.textPrimary }}>
                                 {readWithMeDurationLabel || ts("labels.notSet", "Not set")}
+                              </p>
+                            </div>
+                            <div className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                              <p className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
+                                {ts("labels.startDate", "Start date")}
+                              </p>
+                              <p className="mt-1 font-semibold" style={{ color: theme.textPrimary }}>
+                                {readWithMeStartDate || ts("labels.notSet", "Not set")}
+                              </p>
+                            </div>
+                            <div className="rounded-[1rem] border p-3 sm:col-span-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                              <p className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
+                                {ts("labels.edition", "Edition / translation")}
+                              </p>
+                              <p className="mt-1 leading-6" style={{ color: theme.textSecondary }}>
+                                {selectedCircleInviteDetails.edition || ts("labels.notSet", "Not set")}
                               </p>
                             </div>
                             {selectedCircleInviteDetails.cadence ? (
@@ -16183,6 +16284,121 @@ function FormationRailSection({
                                 <p className="mt-1 leading-6" style={{ color: theme.textSecondary }}>
                                   {selectedCircleInviteDetails.focus}
                                 </p>
+                              </div>
+                            ) : null}
+                          </div>
+                        </div>
+                      ) : null}
+
+                      {selectedCircleInviteDetails ? (
+                        <div className="overflow-hidden rounded-[1.15rem] border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                          <div className="flex items-start justify-between gap-3 border-b p-3" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
+                            <div className="min-w-0">
+                              <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
+                                {ts("challenges.responseDashboard", "Response dashboard")}
+                              </p>
+                              <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                                {ts("challenges.responseDashboardBody", "Accepted, declined, and time-based pending states update from the invite roster.")}
+                              </p>
+                            </div>
+                            <div className="flex shrink-0 flex-wrap justify-end gap-2">
+                              <span className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.primary }}>
+                                {readWithMeResponseTotals.accepted} {ts("status.accepted")}
+                              </span>
+                              <span className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                                {readWithMeResponseTotals.declined} {ts("status.declined", "Declined")}
+                              </span>
+                              <span className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.accentGold }}>
+                                {readWithMeResponseTotals.pending} {ts("status.pending", "Pending")}
+                              </span>
+                              <span className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textMuted }}>
+                                {readWithMeResponseTotals.waiting} {ts("status.waitingForAcceptance", "No response yet")}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="space-y-2 p-3">
+                            {readWithMeRecipientStatuses.length ? (
+                              readWithMeRecipientStatuses.map(({ recipient, response, status }) => {
+                                const statusLabel =
+                                  status === "accepted"
+                                    ? ts("status.accepted")
+                                    : status === "declined"
+                                      ? ts("status.declined", "Declined")
+                                      : status === "pending"
+                                        ? ts("status.pending", "Pending")
+                                        : ts("status.waitingForAcceptance", "No response yet");
+                                const statusStyles =
+                                  status === "accepted"
+                                    ? { borderColor: theme.borderMedium, backgroundColor: theme.activeBg, color: theme.primary }
+                                    : status === "declined"
+                                      ? { borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }
+                                      : status === "pending"
+                                        ? { borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.accentGold }
+                                        : { borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textMuted };
+
+                                return (
+                                  <div key={recipient.id} className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                                    <div className="flex items-start gap-3">
+                                      <AvatarCircle
+                                        avatarUrl={null}
+                                        seed={recipient.id}
+                                        label={recipient.name}
+                                        size={34}
+                                        className="size-[34px]"
+                                      />
+                                      <div className="min-w-0 flex-1">
+                                        <div className="flex flex-wrap items-center justify-between gap-2">
+                                          <div className="min-w-0">
+                                            <p className="text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>
+                                              {recipient.name}
+                                            </p>
+                                            {recipient.note ? (
+                                              <p className="text-xs leading-5" style={{ color: theme.textSecondary }}>
+                                                {recipient.note}
+                                              </p>
+                                            ) : null}
+                                          </div>
+                                          <span className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={statusStyles}>
+                                            {statusLabel}
+                                          </span>
+                                        </div>
+                                        {response?.respondedAt ? (
+                                          <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] uppercase tracking-[0.08em]" style={{ color: theme.textMuted }}>
+                                            <span>
+                                              {ts("labels.responded", "Responded")}{" "}
+                                              {new Date(response.respondedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                                            </span>
+                                            {response.responseStatus && response.responseStatus !== status ? (
+                                              <span>• {response.responseStatus}</span>
+                                            ) : null}
+                                          </div>
+                                        ) : null}
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })
+                            ) : (
+                              <p className="text-sm leading-6" style={{ color: theme.textMuted }}>
+                                {ts("challenges.noInviteRosterYet", "Add a roster to start tracking responses.")}
+                              </p>
+                            )}
+
+                            {unmatchedReadWithMeResponses.length ? (
+                              <div className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
+                                <p className="text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
+                                  {ts("challenges.unmatchedResponses", "Other responses")}
+                                </p>
+                                <div className="mt-2 flex flex-wrap gap-2">
+                                  {unmatchedReadWithMeResponses.map((response) => (
+                                    <span key={`${response.userId}-${response.responseStatus}`} className="rounded-full border px-2.5 py-1 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textSecondary }}>
+                                      {response.name ?? ts("labels.counselContact")}
+                                      {" "}
+                                      {response.responseStatus}
+                                    </span>
+                                  ))}
+                                </div>
                               </div>
                             ) : null}
                           </div>
@@ -16218,7 +16434,7 @@ function FormationRailSection({
                     </div>
                   ) : isReadWithMeChallenge ? (
                     <form
-                      className="space-y-3 p-4"
+                      className="space-y-4 p-4"
                       onSubmit={(event) => {
                         event.preventDefault();
                         if (!selectedChallenge || !canCreateReadWithMeInvite) {
@@ -16227,152 +16443,442 @@ function FormationRailSection({
                         void createChallengeInvite(selectedChallenge, readWithMeInviteDraft);
                       }}
                     >
-                      <div className="rounded-[1.1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-                        <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>
-                          {ts("challenges.readWithMeInvitePrompt", "Set the reading plan before you share it.")}
+                      <div className="rounded-[1.1rem] border p-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                        <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+                          {ts("challenges.readWithMeInvitePrompt", "Invitation draft")}
+                        </p>
+                        <p className="mt-1.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                          {ts(
+                            "challenges.readWithMeInvitePromptBody",
+                            "Write the reading invite like a calm letter: clear book, clear people, clear timing."
+                          )}
                         </p>
                       </div>
 
-                      <div className="grid gap-3">
-                        <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
-                          {ts("labels.bookTitle", "Book title")}
-                          <input
-                            value={readWithMeInviteDraft.bookTitle}
-                            onChange={(event) => updateReadWithMeInviteDraft({ bookTitle: event.target.value })}
-                            className="mt-2 h-11 w-full rounded-[0.9rem] border px-3 text-sm outline-none"
-                            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-                            placeholder={ts("challenges.readWithMeBookPlaceholder", "The book you want everyone to read")}
-                          />
-                        </label>
-
-                        <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
-                          {ts("labels.author", "Author")}
-                          <input
-                            value={readWithMeInviteDraft.author}
-                            onChange={(event) => updateReadWithMeInviteDraft({ author: event.target.value })}
-                            className="mt-2 h-11 w-full rounded-[0.9rem] border px-3 text-sm outline-none"
-                            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-                            placeholder={ts("challenges.readWithMeAuthorPlaceholder", "Optional, but helpful for clarity")}
-                          />
-                        </label>
-
-                        <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_9rem]">
-                          <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
-                            {ts("labels.duration", "Duration")}
-                            <input
-                              type="number"
-                              min={1}
-                              max={365}
-                              step={1}
-                              value={readWithMeInviteDraft.durationValue ?? ""}
-                              onChange={(event) => updateReadWithMeInviteDraft({ durationValue: event.target.value ? Number(event.target.value) : null })}
-                              className="mt-2 h-11 w-full rounded-[0.9rem] border px-3 text-sm outline-none"
-                              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-                              placeholder="4"
-                            />
-                          </label>
-                          <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
-                            {ts("labels.durationUnit", "Unit")}
-                            <select
-                              value={readWithMeInviteDraft.durationUnit}
-                              onChange={(event) => updateReadWithMeInviteDraft({ durationUnit: event.target.value as ReadWithMeInviteDurationUnit })}
-                              className="mt-2 h-11 w-full rounded-[0.9rem] border px-3 text-sm outline-none"
-                              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-                            >
-                              <option value="days">{ts("labels.days", "Days")}</option>
-                              <option value="weeks">{ts("labels.weeks", "Weeks")}</option>
-                              <option value="months">{ts("labels.months", "Months")}</option>
-                            </select>
-                          </label>
-                        </div>
-
-                        <div className="grid gap-3 sm:grid-cols-2">
-                          <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
-                            {ts("labels.startDate", "Start date")}
-                            <input
-                              type="date"
-                              value={readWithMeInviteDraft.startDate}
-                              onChange={(event) => updateReadWithMeInviteDraft({ startDate: event.target.value })}
-                              className="mt-2 h-11 w-full rounded-[0.9rem] border px-3 text-sm outline-none"
-                              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-                            />
-                          </label>
-
-                          <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
-                            {ts("labels.edition", "Edition / translation")}
-                            <input
-                              value={readWithMeInviteDraft.edition}
-                              onChange={(event) => updateReadWithMeInviteDraft({ edition: event.target.value })}
-                              className="mt-2 h-11 w-full rounded-[0.9rem] border px-3 text-sm outline-none"
-                              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-                              placeholder={ts("challenges.readWithMeEditionPlaceholder", "Optional edition, translation, or format")}
-                            />
-                          </label>
-                        </div>
-
-                        <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
-                          {ts("labels.cadence", "Cadence")}
-                          <textarea
-                            rows={3}
-                            value={readWithMeInviteDraft.cadence}
-                            onChange={(event) => updateReadWithMeInviteDraft({ cadence: event.target.value })}
-                            className="mt-2 w-full resize-none rounded-[0.9rem] border px-3 py-2.5 text-sm leading-6 outline-none"
-                            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-                            placeholder={ts("challenges.readWithMeCadencePlaceholder", "For example: 3 chapters a week and one Sunday check-in")}
-                          />
-                        </label>
-
-                        <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
-                          {ts("labels.focus", "Why this book")}
-                          <textarea
-                            rows={3}
-                            value={readWithMeInviteDraft.focus}
-                            onChange={(event) => updateReadWithMeInviteDraft({ focus: event.target.value })}
-                            className="mt-2 w-full resize-none rounded-[0.9rem] border px-3 py-2.5 text-sm leading-6 outline-none"
-                            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-                            placeholder={ts("challenges.readWithMeFocusPlaceholder", "What do you hope this book will clarify, stretch, or shape?")}
-                          />
-                        </label>
-
-                        <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
-                          {ts("labels.note", "Invitation note")}
-                          <textarea
-                            rows={3}
-                            value={readWithMeInviteDraft.note}
-                            onChange={(event) => updateReadWithMeInviteDraft({ note: event.target.value })}
-                            className="mt-2 w-full resize-none rounded-[0.9rem] border px-3 py-2.5 text-sm leading-6 outline-none"
-                            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-                            placeholder={ts("challenges.readWithMeNotePlaceholder", "A short note to the people you are inviting")}
-                          />
-                        </label>
-                      </div>
-
-                      <div className="rounded-[1.1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
-                          {ts("challenges.readWithMeInvitePreview", "Invite preview")}
-                        </p>
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          {readWithMeInviteDraft.bookTitle ? (
-                            <span className="rounded-full border px-2.5 py-1 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}>
-                              {readWithMeInviteDraft.bookTitle}
-                            </span>
-                          ) : null}
-                          {readWithMeInviteDraft.author ? (
-                            <span className="rounded-full border px-2.5 py-1 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-                              {readWithMeInviteDraft.author}
-                            </span>
-                          ) : null}
-                          {readWithMeDurationLabel ? (
-                            <span className="rounded-full border px-2.5 py-1 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-                              {readWithMeDurationLabel}
-                            </span>
-                          ) : null}
-                        </div>
-                        {readWithMeInviteDraft.focus ? (
-                          <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
-                            {readWithMeInviteDraft.focus}
+                      <div className="overflow-hidden rounded-[1.25rem] border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                        <div className="border-b px-4 py-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                          <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+                            {ts("labels.details", "Reading brief")}
                           </p>
-                        ) : null}
+                          <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                            {ts("challenges.readWithMeDetailsBody", "Keep the subject line simple and the duration unmistakable.")}
+                          </p>
+                        </div>
+                        <div className="space-y-3 p-4">
+                          <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
+                            {ts("labels.bookTitle", "Book title")}
+                            <input
+                              value={readWithMeInviteDraft.bookTitle}
+                              onChange={(event) => updateReadWithMeInviteDraft({ bookTitle: event.target.value })}
+                              className="mt-2 h-11 w-full rounded-[0.9rem] border px-3 text-sm outline-none"
+                              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                              placeholder={ts("challenges.readWithMeBookPlaceholder", "The book you want everyone to read")}
+                            />
+                          </label>
+
+                          <div className="grid gap-3 sm:grid-cols-2">
+                            <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
+                              {ts("labels.author", "Author")}
+                              <input
+                                value={readWithMeInviteDraft.author}
+                                onChange={(event) => updateReadWithMeInviteDraft({ author: event.target.value })}
+                                className="mt-2 h-11 w-full rounded-[0.9rem] border px-3 text-sm outline-none"
+                                style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                                placeholder={ts("challenges.readWithMeAuthorPlaceholder", "Optional, but helpful for clarity")}
+                              />
+                            </label>
+                            <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
+                              {ts("labels.edition", "Edition / translation")}
+                              <input
+                                value={readWithMeInviteDraft.edition}
+                                onChange={(event) => updateReadWithMeInviteDraft({ edition: event.target.value })}
+                                className="mt-2 h-11 w-full rounded-[0.9rem] border px-3 text-sm outline-none"
+                                style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                                placeholder={ts("challenges.readWithMeEditionPlaceholder", "Optional edition, translation, or format")}
+                              />
+                            </label>
+                          </div>
+
+                          <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_9rem]">
+                            <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
+                              {ts("labels.duration", "Duration")}
+                              <input
+                                type="number"
+                                min={1}
+                                max={365}
+                                step={1}
+                                value={readWithMeInviteDraft.durationValue ?? ""}
+                                onChange={(event) => updateReadWithMeInviteDraft({ durationValue: event.target.value ? Number(event.target.value) : null })}
+                                className="mt-2 h-11 w-full rounded-[0.9rem] border px-3 text-sm outline-none"
+                                style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                                placeholder="4"
+                              />
+                            </label>
+                            <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
+                              {ts("labels.durationUnit", "Unit")}
+                              <select
+                                value={readWithMeInviteDraft.durationUnit}
+                                onChange={(event) => updateReadWithMeInviteDraft({ durationUnit: event.target.value as ReadWithMeInviteDurationUnit })}
+                                className="mt-2 h-11 w-full rounded-[0.9rem] border px-3 text-sm outline-none"
+                                style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                              >
+                                <option value="days">{ts("labels.days", "Days")}</option>
+                                <option value="weeks">{ts("labels.weeks", "Weeks")}</option>
+                                <option value="months">{ts("labels.months", "Months")}</option>
+                              </select>
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+                        <div className="overflow-hidden rounded-[1.25rem] border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                          <div className="border-b px-4 py-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+                                  {ts("labels.recipients", "Recipients")}
+                                </p>
+                                <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                                  {ts("challenges.readWithMeRecipientsBody", "Add names or pull from your counsel circle.")}
+                                </p>
+                              </div>
+                              <span className="shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                                {readWithMeInviteDraft.recipients.length} {ts("labels.selected", "Selected")}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="space-y-3 p-4">
+                            <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
+                              <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
+                                {ts("labels.name", "Name")}
+                                <input
+                                  value={recipientNameDraft}
+                                  onChange={(event) => setRecipientNameDraft(event.target.value)}
+                                  onKeyDown={(event) => {
+                                    if (event.key === "Enter") {
+                                      event.preventDefault();
+                                      addRecipientDraft(recipientNameDraft, recipientNoteDraft);
+                                    }
+                                  }}
+                                  className="mt-2 h-11 w-full rounded-[0.9rem] border px-3 text-sm outline-none"
+                                  style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                                  placeholder={ts("labels.nameOrEmail", "Name or email")}
+                                />
+                              </label>
+                              <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
+                                {ts("labels.note", "Note")}
+                                <input
+                                  value={recipientNoteDraft}
+                                  onChange={(event) => setRecipientNoteDraft(event.target.value)}
+                                  onKeyDown={(event) => {
+                                    if (event.key === "Enter") {
+                                      event.preventDefault();
+                                      addRecipientDraft(recipientNameDraft, recipientNoteDraft);
+                                    }
+                                  }}
+                                  className="mt-2 h-11 w-full rounded-[0.9rem] border px-3 text-sm outline-none"
+                                  style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                                  placeholder={ts("challenges.recipientNotePlaceholder", "Role, relation, or context")}
+                                />
+                              </label>
+                              <button
+                                type="button"
+                                onClick={() => addRecipientDraft(recipientNameDraft, recipientNoteDraft)}
+                                className="inline-flex h-11 items-center justify-center rounded-full border px-4 text-sm font-semibold transition"
+                                style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
+                              >
+                                {ts("labels.add", "Add")}
+                              </button>
+                            </div>
+
+                            {counselContacts.length ? (
+                              <div className="flex flex-wrap gap-2">
+                                {counselContacts.slice(0, 8).map((contact) => (
+                                  <button
+                                    key={contact.id}
+                                    type="button"
+                                    onClick={() => addContactToRecipientDraft(contact)}
+                                    className="inline-flex items-center gap-2 rounded-full border px-2.5 py-1.5 text-xs font-semibold transition"
+                                    style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
+                                  >
+                                    <span>{contact.name}</span>
+                                    <span className="text-[10px] uppercase tracking-[0.08em]" style={{ color: theme.textMuted }}>
+                                      {localizedCounselRoleLabel(contact.role, ts)}
+                                    </span>
+                                  </button>
+                                ))}
+                              </div>
+                            ) : null}
+
+                            {readWithMeInviteDraft.recipients.length ? (
+                              <div className="space-y-2">
+                                {readWithMeInviteDraft.recipients.map((recipient) => (
+                                  <div
+                                    key={recipient.id}
+                                    className="flex items-center justify-between gap-3 rounded-[0.95rem] border px-3 py-2.5"
+                                    style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}
+                                  >
+                                    <div className="min-w-0">
+                                      <p className="text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>
+                                        {recipient.name}
+                                      </p>
+                                      {recipient.note ? (
+                                        <p className="mt-0.5 truncate text-xs leading-5" style={{ color: theme.textSecondary }}>
+                                          {recipient.note}
+                                        </p>
+                                      ) : null}
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={() => removeRecipientDraft(recipient.id)}
+                                      className="grid size-7 shrink-0 place-items-center rounded-full border transition"
+                                      style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textSecondary }}
+                                      aria-label={`${ts("labels.remove", "Remove")} ${recipient.name}`}
+                                    >
+                                      <X size={11} />
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="text-sm leading-6" style={{ color: theme.textMuted }}>
+                                {ts("challenges.readWithMeRecipientsEmpty", "Start by naming one or two people.")}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="space-y-4">
+                          <div className="overflow-hidden rounded-[1.25rem] border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                            <div className="border-b px-4 py-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                              <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+                                {ts("labels.schedule", "Schedule")}
+                              </p>
+                              <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                                {ts("challenges.responseWindowHelper", "Set a start date and the window before responses move to Pending.")}
+                              </p>
+                            </div>
+                            <div className="space-y-3 p-4">
+                              <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
+                                {ts("labels.startDate", "Start date")}
+                                <input
+                                  type="date"
+                                  value={readWithMeInviteDraft.startDate}
+                                  onChange={(event) => updateReadWithMeInviteDraft({ startDate: event.target.value })}
+                                  className="mt-2 h-11 w-full rounded-[0.9rem] border px-3 text-sm outline-none"
+                                  style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                                />
+                              </label>
+
+                              <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_9rem]">
+                                <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
+                                  {ts("challenges.responseWindow", "Response window")}
+                                  <input
+                                    type="number"
+                                    min={1}
+                                    max={365}
+                                    step={1}
+                                    value={readWithMeInviteDraft.pendingAfterValue ?? ""}
+                                    onChange={(event) =>
+                                      updateReadWithMeInviteDraft({
+                                        pendingAfterValue: event.target.value ? Number(event.target.value) : null,
+                                      })
+                                    }
+                                    className="mt-2 h-11 w-full rounded-[0.9rem] border px-3 text-sm outline-none"
+                                    style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                                    placeholder="24"
+                                  />
+                                </label>
+                                <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
+                                  {ts("labels.durationUnit", "Unit")}
+                                  <select
+                                    value={readWithMeInviteDraft.pendingAfterUnit}
+                                    onChange={(event) => updateReadWithMeInviteDraft({ pendingAfterUnit: event.target.value as ReadWithMeInvitePendingWindowUnit })}
+                                    className="mt-2 h-11 w-full rounded-[0.9rem] border px-3 text-sm outline-none"
+                                    style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                                  >
+                                    <option value="hours">{ts("labels.hours", "Hours")}</option>
+                                    <option value="days">{ts("labels.days", "Days")}</option>
+                                  </select>
+                                </label>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="overflow-hidden rounded-[1.25rem] border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                            <div className="border-b px-4 py-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                              <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+                                {ts("labels.tone", "Invitation tone")}
+                              </p>
+                              <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                                {ts("challenges.readWithMeToneBody", "Use this space for the pace, the why, and the actual note you want them to feel.")}
+                              </p>
+                            </div>
+                            <div className="space-y-3 p-4">
+                              <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
+                                {ts("labels.cadence", "Reading rhythm")}
+                                <textarea
+                                  rows={2}
+                                  value={readWithMeInviteDraft.cadence}
+                                  onChange={(event) => updateReadWithMeInviteDraft({ cadence: event.target.value })}
+                                  className="mt-2 w-full resize-none rounded-[0.9rem] border px-3 py-2.5 text-sm leading-6 outline-none"
+                                  style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                                  placeholder={ts("challenges.readWithMeCadencePlaceholder", "Read at a steady pace and hold one brief check-in each week.")}
+                                />
+                              </label>
+
+                              <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
+                                {ts("labels.focus", "Why this book")}
+                                <textarea
+                                  rows={3}
+                                  value={readWithMeInviteDraft.focus}
+                                  onChange={(event) => updateReadWithMeInviteDraft({ focus: event.target.value })}
+                                  className="mt-2 w-full resize-none rounded-[0.9rem] border px-3 py-2.5 text-sm leading-6 outline-none"
+                                  style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                                  placeholder={ts("challenges.readWithMeFocusPlaceholder", "What do you hope this book will clarify, stretch, or shape?")}
+                                />
+                              </label>
+
+                              <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
+                                {ts("labels.note", "Invitation note")}
+                                <textarea
+                                  rows={3}
+                                  value={readWithMeInviteDraft.note}
+                                  onChange={(event) => updateReadWithMeInviteDraft({ note: event.target.value })}
+                                  className="mt-2 w-full resize-none rounded-[0.9rem] border px-3 py-2.5 text-sm leading-6 outline-none"
+                                  style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                                  placeholder={ts("challenges.readWithMeNotePlaceholder", "A short note to the people you are inviting")}
+                                />
+                              </label>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="overflow-hidden rounded-[1.35rem] border shadow-[0_10px_26px_rgba(7,10,8,0.07)]" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
+                        <div className="border-b px-4 py-4" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="min-w-0">
+                              <p className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
+                                {ts("challenges.readWithMeInvitePreview", "Invite preview")}
+                              </p>
+                              <h4 className="mt-2 text-[1.7rem] font-semibold leading-[1.05] tracking-[-0.03em] sm:text-[1.95rem]" style={{ color: theme.textPrimary }}>
+                                {readWithMeInviteDraft.bookTitle || ts("challenges.readWithMeBookPlaceholder", "The book you want everyone to read")}
+                              </h4>
+                              <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                                {[readWithMeInviteDraft.author, readWithMeInviteDraft.edition].filter(Boolean).join(" · ") || ts("challenges.readWithMeAuthorPlaceholder", "Optional, but helpful for clarity")}
+                              </p>
+                            </div>
+                            <div className="shrink-0 text-right">
+                              <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textMuted }}>
+                                {ts("labels.recipients", "Recipients")}
+                              </p>
+                              <p className="mt-1 text-sm font-semibold" style={{ color: theme.textPrimary }}>
+                                {readWithMeInviteDraft.recipients.length} {ts("labels.selected", "selected")}
+                              </p>
+                              <p className="mt-1 text-[10px] uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
+                                {readWithMePendingWindowLabel || ts("status.waitingForAcceptance", "No response yet")}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="space-y-4 px-4 py-4">
+                          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                            <div className="rounded-[1rem] border p-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                              <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textMuted }}>
+                                {ts("labels.duration", "Duration")}
+                              </p>
+                              <p className="mt-1.5 text-sm font-semibold" style={{ color: theme.textPrimary }}>
+                                {readWithMeDurationLabel || "—"}
+                              </p>
+                            </div>
+                            <div className="rounded-[1rem] border p-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                              <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textMuted }}>
+                                {ts("labels.startDate", "Start")}
+                              </p>
+                              <p className="mt-1.5 text-sm font-semibold" style={{ color: theme.textPrimary }}>
+                                {readWithMeStartDate || "—"}
+                              </p>
+                            </div>
+                            <div className="rounded-[1rem] border p-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                              <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textMuted }}>
+                                {ts("challenges.responseWindow", "Response")}
+                              </p>
+                              <p className="mt-1.5 text-sm font-semibold" style={{ color: theme.textPrimary }}>
+                                {readWithMePendingWindowLabel || "—"}
+                              </p>
+                            </div>
+                            <div className="rounded-[1rem] border p-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                              <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textMuted }}>
+                                {ts("labels.cadence", "Rhythm")}
+                              </p>
+                              <p className="mt-1.5 text-sm font-semibold" style={{ color: theme.textPrimary }}>
+                                {readWithMeInviteDraft.cadence || "—"}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="grid gap-3 sm:grid-cols-2">
+                            <div className="rounded-[1rem] border p-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                              <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textMuted }}>
+                                {ts("labels.focus", "Why this book")}
+                              </p>
+                              {readWithMeInviteDraft.focus ? (
+                                <p className="mt-1.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                                  {readWithMeInviteDraft.focus}
+                                </p>
+                              ) : (
+                                <p className="mt-1.5 text-sm leading-6" style={{ color: theme.textMuted }}>
+                                  {ts("challenges.readWithMeFocusPlaceholder", "What do you hope this book will clarify, stretch, or shape?")}
+                                </p>
+                              )}
+                            </div>
+                            <div className="rounded-[1rem] border p-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                              <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textMuted }}>
+                                {ts("labels.note", "Invitation note")}
+                              </p>
+                              {readWithMeInviteDraft.note ? (
+                                <p className="mt-1.5 text-sm leading-6 italic" style={{ color: theme.textSecondary }}>
+                                  “{readWithMeInviteDraft.note}”
+                                </p>
+                              ) : (
+                                <p className="mt-1.5 text-sm leading-6" style={{ color: theme.textMuted }}>
+                                  {ts("challenges.readWithMeNotePlaceholder", "A short note to the people you are inviting")}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="rounded-[1rem] border p-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                            <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textMuted }}>
+                              {ts("labels.recipients", "Recipients")}
+                            </p>
+                            {readWithMeInviteDraft.recipients.length ? (
+                              <div className="mt-2 space-y-2">
+                                {readWithMeInviteDraft.recipients.map((recipient) => (
+                                  <div key={recipient.id} className="flex items-start justify-between gap-3">
+                                    <div className="min-w-0">
+                                      <p className="text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>
+                                        {recipient.name}
+                                      </p>
+                                      {recipient.note ? (
+                                        <p className="mt-0.5 text-xs leading-5" style={{ color: theme.textSecondary }}>
+                                          {recipient.note}
+                                        </p>
+                                      ) : null}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="mt-1.5 text-sm leading-6" style={{ color: theme.textMuted }}>
+                                {ts("challenges.readWithMeRecipientsEmpty", "Start by naming one or two people.")}
+                              </p>
+                            )}
+                          </div>
+                        </div>
                       </div>
 
                       <button
@@ -16386,20 +16892,55 @@ function FormationRailSection({
                     </form>
                   ) : (
                     <div className="space-y-3 p-4">
-                      <div className="rounded-[1.1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-                        <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>
+                      <div className="overflow-hidden rounded-[1.25rem] border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                        <div className="border-b px-4 py-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                          <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+                            {ts("challenges.inviteFriendsTitle", "Shared invite")}
+                          </p>
+                          <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
                           {ts("challenges.inviteFriendsBody")}
-                        </p>
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          <span className="rounded-full border px-2.5 py-1 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-                            {ts("labels.sharedPlan", "Shared plan")}
-                          </span>
-                          <span className="rounded-full border px-2.5 py-1 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-                            {ts("labels.progressVisible", "Progress visible")}
-                          </span>
-                          <span className="rounded-full border px-2.5 py-1 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-                            {ts("labels.responsiveNudges", "Nudges")}
-                          </span>
+                          </p>
+                        </div>
+                        <div className="space-y-2 p-4">
+                          <div className="flex items-start gap-3 rounded-[0.95rem] border px-3 py-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                            <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full border" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.primary }}>
+                              <Check size={11} />
+                            </span>
+                            <div className="min-w-0">
+                              <p className="text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>
+                                {ts("labels.sharedPlan", "Shared plan")}
+                              </p>
+                              <p className="text-xs leading-5" style={{ color: theme.textSecondary }}>
+                                {ts("challenges.inviteFriendsSharedPlanBody", "Everyone follows the same practice and sees the same progress.")}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-start gap-3 rounded-[0.95rem] border px-3 py-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                            <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full border" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.primary }}>
+                              <Check size={11} />
+                            </span>
+                            <div className="min-w-0">
+                              <p className="text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>
+                                {ts("labels.progressVisible", "Progress visible")}
+                              </p>
+                              <p className="text-xs leading-5" style={{ color: theme.textSecondary }}>
+                                {ts("challenges.inviteFriendsProgressBody", "You can see who joined and where the group is up to.")}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-start gap-3 rounded-[0.95rem] border px-3 py-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                            <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full border" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.primary }}>
+                              <Check size={11} />
+                            </span>
+                            <div className="min-w-0">
+                              <p className="text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>
+                                {ts("labels.responsiveNudges", "Nudges")}
+                              </p>
+                              <p className="text-xs leading-5" style={{ color: theme.textSecondary }}>
+                                {ts("challenges.inviteFriendsNudgesBody", "Gentle reminders keep the invite warm without feeling noisy.")}
+                              </p>
+                            </div>
+                          </div>
                         </div>
                       </div>
                       <button
@@ -23116,6 +23657,8 @@ function ReflectPanel({
   result,
   mode,
   modeProfile,
+  challengeRecommendation,
+  onOpenRecommendedChallenge,
   ts,
   entries,
   gratitudeEntries,
@@ -23145,6 +23688,8 @@ function ReflectPanel({
   result: { sources: WisdomEntry[]; readiness: number; hasUrgency: boolean; hasCounsel: boolean } | null;
   mode: Mode;
   modeProfile: ModeProfile;
+  challengeRecommendation: ChallengeRecommendationBundle["primary"];
+  onOpenRecommendedChallenge: (challengeId: string) => void;
   ts: (key: string, fallback?: string) => string;
   entries: JournalEntry[];
   gratitudeEntries: GratitudeEntry[];
@@ -23192,6 +23737,18 @@ function ReflectPanel({
 
   return (
     <div className="min-w-0 space-y-4">
+      {challengeRecommendation ? (
+        <ContextualNextAction
+          eyebrow={ts("labels.suggestedAction")}
+          title={challengeRecommendation.title}
+          body={challengeRecommendation.note}
+          actionLabel={challengeRecommendation.actionKind === "continue" ? ts("challenges.continueChallenge") : ts("challenges.startChallenge")}
+          onAction={() => {
+            onOpenRecommendedChallenge(challengeRecommendation.challengeId);
+          }}
+          theme={theme}
+        />
+      ) : null}
       <ContextualNextAction
         eyebrow={runtime.nextInReflect}
         title={reflectNextTitle}
