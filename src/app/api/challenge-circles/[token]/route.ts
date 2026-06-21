@@ -1,0 +1,210 @@
+import { NextResponse } from "next/server";
+import { getCurrentUser } from "@/lib/auth";
+import { apiError } from "@/lib/api-errors";
+import { many, one, run } from "@/lib/db";
+import { hashChallengeInviteToken } from "@/lib/challenge-circles";
+import { trackServerEvent } from "@/lib/analytics";
+import { getChallengeById } from "@/lib/challenge-data";
+
+type Params = { params: Promise<{ token: string }> };
+
+type CircleRow = {
+  id: string;
+  challenge_id: string;
+  owner_user_id: string;
+  invite_status: string;
+  note: string | null;
+  accepted_at: string | null;
+  created_at: string;
+  updated_at: string;
+  owner_name: string | null;
+  owner_avatar_url: string | null;
+};
+
+type MemberRow = {
+  user_id: string;
+  role: string;
+  joined_at: string;
+  name: string | null;
+  avatar_url: string | null;
+  completed_days: number | string | null;
+  last_completed_at: string | null;
+};
+
+type NudgeRow = {
+  id: string;
+  body: string;
+  created_at: string;
+  sender_user_id: string;
+  sender_name: string | null;
+  sender_avatar_url: string | null;
+};
+
+async function findCircle(token: string) {
+  return one<CircleRow>(
+    `SELECT c.id, c.challenge_id, c.owner_user_id, c.invite_status, c.note, c.accepted_at, c.created_at, c.updated_at,
+            u.name AS owner_name, u.avatar_url AS owner_avatar_url
+     FROM challenge_circles c
+     LEFT JOIN users u ON u.id = c.owner_user_id
+     WHERE c.invite_token_hash = ?`,
+    hashChallengeInviteToken(token)
+  );
+}
+
+async function circleMembers(circleId: string, challengeId: string) {
+  return many<MemberRow>(
+    `SELECT m.user_id, m.role, m.joined_at, u.name, u.avatar_url,
+            COALESCE(progress.days_completed, 0) AS completed_days,
+            progress.last_completed_at
+     FROM challenge_circle_members m
+     JOIN users u ON u.id = m.user_id
+     LEFT JOIN (
+       SELECT user_id, COUNT(*)::int AS days_completed, MAX(completed_at) AS last_completed_at
+       FROM challenge_progress
+       WHERE challenge_id = ?
+       GROUP BY user_id
+     ) AS progress ON progress.user_id = m.user_id
+     WHERE m.circle_id = ?
+     ORDER BY CASE WHEN m.role = 'host' THEN 0 ELSE 1 END, m.joined_at ASC`,
+    challengeId,
+    circleId
+  );
+}
+
+async function circleNudges(circleId: string) {
+  return many<NudgeRow>(
+    `SELECT n.id, n.body, n.created_at, n.sender_user_id, u.name AS sender_name, u.avatar_url AS sender_avatar_url
+     FROM challenge_circle_nudges n
+     JOIN users u ON u.id = n.sender_user_id
+     WHERE n.circle_id = ?
+     ORDER BY n.created_at DESC
+     LIMIT 12`,
+    circleId
+  );
+}
+
+async function formatCircle(circle: CircleRow) {
+  const challenge = getChallengeById(circle.challenge_id);
+  if (!challenge) {
+    return null;
+  }
+
+  const [members, nudges] = await Promise.all([
+    circleMembers(circle.id, circle.challenge_id),
+    circleNudges(circle.id),
+  ]);
+
+  return {
+    id: circle.id,
+    challengeId: circle.challenge_id,
+    challenge: {
+      id: challenge.id,
+      titleKey: challenge.titleKey,
+      descriptionKey: challenge.descriptionKey,
+      totalDays: challenge.totalDays,
+      mode: challenge.mode,
+    },
+    invite: {
+      status: circle.invite_status,
+      note: circle.note,
+      acceptedAt: circle.accepted_at,
+      createdAt: circle.created_at,
+      owner: {
+        id: circle.owner_user_id,
+        name: circle.owner_name,
+        avatarUrl: circle.owner_avatar_url,
+      },
+    },
+    memberCount: members.length,
+    members: members.map((member) => ({
+      userId: member.user_id,
+      name: member.name,
+      avatarUrl: member.avatar_url,
+      role: member.role,
+      joinedAt: member.joined_at,
+      completedDays: typeof member.completed_days === "number" ? member.completed_days : Number(member.completed_days ?? 0),
+      lastCompletedAt: member.last_completed_at,
+    })),
+    nudges: nudges.map((nudge) => ({
+      id: nudge.id,
+      body: nudge.body,
+      createdAt: nudge.created_at,
+      senderUserId: nudge.sender_user_id,
+      senderName: nudge.sender_name,
+      senderAvatarUrl: nudge.sender_avatar_url,
+    })),
+  };
+}
+
+export async function GET(_request: Request, { params }: Params) {
+  const { token } = await params;
+  const circle = await findCircle(token);
+  if (!circle) {
+    return apiError(404, "not_found", "Invite not found.");
+  }
+
+  const formatted = await formatCircle(circle);
+  if (!formatted) {
+    return apiError(404, "not_found", "Invite not found.");
+  }
+
+  return NextResponse.json(formatted);
+}
+
+export async function POST(request: Request, { params }: Params) {
+  const { token } = await params;
+  const user = await getCurrentUser();
+  if (!user) {
+    return apiError(401, "sign_in_required", "Sign in to join the shared practice.");
+  }
+
+  const circle = await findCircle(token);
+  if (!circle) {
+    return apiError(404, "not_found", "Invite not found.");
+  }
+
+  const now = new Date().toISOString();
+  if (circle.invite_status !== "accepted") {
+    await run(
+      "UPDATE challenge_circles SET invite_status = ?, accepted_at = ?, updated_at = ? WHERE id = ?",
+      "accepted",
+      now,
+      now,
+      circle.id
+    );
+    circle.invite_status = "accepted";
+    circle.accepted_at = now;
+  }
+
+  await run(
+    `INSERT INTO challenge_circle_members (id, circle_id, user_id, role, joined_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?)
+     ON CONFLICT (circle_id, user_id) DO UPDATE SET updated_at = EXCLUDED.updated_at`,
+    crypto.randomUUID(),
+    circle.id,
+    user.id,
+    user.id === circle.owner_user_id ? "host" : "member",
+    now,
+    now
+  );
+
+  await trackServerEvent({
+    userId: user.id,
+    eventName: "challenge_circle_joined",
+    metadata: {
+      challengeId: circle.challenge_id,
+    },
+  }).catch(() => undefined);
+
+  const refreshed = await findCircle(token);
+  if (!refreshed) {
+    return apiError(500, "save_failed", "Could not join the shared practice.");
+  }
+
+  const formatted = await formatCircle(refreshed);
+  if (!formatted) {
+    return apiError(500, "save_failed", "Could not join the shared practice.");
+  }
+
+  return NextResponse.json(formatted);
+}

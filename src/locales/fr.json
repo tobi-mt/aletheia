@@ -434,6 +434,13 @@
     "guestMode": "Mode invité actif. Connecte-toi pour synchroniser les décisions.",
     "backendUnavailable": "Backend indisponible. Le mode invité est toujours utilisable avec la sagesse locale.",
     "loadingInvite": "Chargement de l'invitation de conseil privée...",
+    "challengeInviteLoading": "Chargement de l’invitation à la pratique partagée...",
+    "challengeInviteCouldNotOpen": "Cette invitation à la pratique partagée n’a pas pu être ouverte.",
+    "challengeInviteAccepting": "Acceptation de l’invitation à la pratique partagée...",
+    "challengeInviteAccepted": "Invitation à la pratique partagée acceptée. Vous pouvez maintenant suivre la progression ensemble.",
+    "challengeInviteNotAccepted": "Cette invitation à la pratique partagée n’a pas pu être acceptée.",
+    "challengeInviteNudgeSent": "Encouragement envoyé.",
+    "challengeInviteNudgeFailed": "L’encouragement n’a pas pu être envoyé.",
     "restoringPreferences": "Restauration des préférences…",
     "inviteCouldNotOpen": "Cette invitation de conseil n'a pas pu être ouverte.",
     "startingQuestionReady": "Une question de départ personnalisée est prête dans le champ Compagnon.",
@@ -1569,6 +1576,26 @@
     "eyebrow": "Pratiques de formation",
     "sectionTitle": "Pratiques de formation",
     "sectionSummary": "Des pratiques de plusieurs jours pour construire des habitudes de sagesse, de gratitude et de discernement.",
+    "previewHint": "Appuie sur une carte pour prévisualiser la pratique et ouvrir le cercle partagé.",
+    "withFriends": "avec des amis",
+    "challengeCompleteBody": "Invite ton cercle à célébrer, comparer vos notes et continuer à vous encourager.",
+    "communityTitle": "Cercle partagé",
+    "communitySummary": "Tout le monde dans ce cercle peut voir la progression, envoyer des encouragements et avancer ensemble.",
+    "noCommunityYet": "Invite un ami pour créer un cercle partagé pour cette pratique.",
+    "inviteFriendsBody": "Transforme cela en pratique partagée. Invite un ami, acceptez ensemble et voyez la progression de chacun.",
+    "creatingInvite": "Création de l’invitation…",
+    "inviteFriends": "Inviter des amis",
+    "inviteReady": "Invitation prête",
+    "inviteEyebrow": "Invitation à une pratique partagée",
+    "initiatedBy": "Initiée par",
+    "sharedProgress": "Progression partagée",
+    "nudges": "Encouragements",
+    "noNudgesYet": "Pas encore d’encouragements. Envoie le premier.",
+    "sendNudge": "Envoyer un encouragement",
+    "nudgePlaceholder": "Écris un bref encouragement ou un point de contact…",
+    "sendNudgeButton": "Envoyer",
+    "joinPrompt": "Cette pratique est partagée en privé. Connecte-toi ou crée un compte pour participer.",
+    "acceptInvite": "Accepter l’invitation",
     "startChallenge": "Commencer la pratique",
     "continueChallenge": "Continuer",
     "completedChallenge": "Complété",
@@ -1602,6 +1629,25 @@
         "principle": "J'ai appris à être content dans l'état où je me trouve.",
         "prompt": "Où le contentement a-t-il été difficile cette semaine ? À quoi ressemblerait le choix de la gratitude plutôt que du manque à cet endroit ?",
         "practice": "Nomme un domaine où la gratitude remplace aujourd'hui le manque."
+      }
+    },
+    "sharedEncouragement3day": {
+      "title": "Pratique partagée d’encouragement sur 3 jours",
+      "description": "Trois jours d’encouragement mutuel : se remarquer, se fortifier et s’édifier dans un petit cercle partagé.",
+      "day1": {
+        "principle": "Veillons les uns sur les autres pour nous stimuler à l’amour et aux bonnes œuvres, sans abandonner nos assemblées.",
+        "prompt": "Écris le nom d’une personne que tu veux encourager aujourd’hui et une raison pour laquelle elle compte.",
+        "practice": "Nommes un encouragement concret pour un ami."
+      },
+      "day2": {
+        "principle": "Le fer aiguise le fer, et un homme aiguise le visage de son prochain.",
+        "prompt": "Partage une idée ou une observation de ta journée qui pourrait aider quelqu’un d’autre à grandir.",
+        "practice": "Propose une observation honnête qui aiguise, avec bienveillance."
+      },
+      "day3": {
+        "principle": "Que la parole du Christ habite parmi vous abondamment, vous instruisant et vous exhortant les uns les autres en toute sagesse.",
+        "prompt": "Qu’est-ce qui a changé en toi cette semaine parce que quelqu’un a marché avec toi ?",
+        "practice": "Remercie quelqu’un pour la manière dont il t’a aidé à continuer."
       }
     },
     "waiting5day": {

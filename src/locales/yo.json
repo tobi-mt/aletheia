@@ -434,6 +434,13 @@
     "guestMode": "Ìpò àlejò ń ṣiṣẹ́. Wọlé láti fọ́kàn sọ́ àwọn ìpinnu.",
     "backendUnavailable": "Ẹ̀yìn kò sí. Ìpò àlejò ṣì wúlò pẹ̀lú ọgbọ́n ìbílẹ̀.",
     "loadingInvite": "Ìgbàkalẹ̀ ìpè ìmọ̀ràn ìkọ̀kọ̀...",
+    "challengeInviteLoading": "A n gba ìpè ìṣe pínpín...",
+    "challengeInviteCouldNotOpen": "A kò le ṣí ìpè ìṣe pínpín yìí.",
+    "challengeInviteAccepting": "A ń gba ìpè ìṣe pínpín...",
+    "challengeInviteAccepted": "Ìpè ìṣe pínpín ti gba. Ẹ lè tọ́pa ìlọsiwaju pọ̀ báyìí.",
+    "challengeInviteNotAccepted": "A kò le gba ìpè ìṣe pínpín yìí.",
+    "challengeInviteNudgeSent": "A rán ìmúnilọ́kànlẹ́.",
+    "challengeInviteNudgeFailed": "A kò le rán ìmúnilọ́kànlẹ́ náà.",
     "restoringPreferences": "A ń da àwọn ààyò padà…",
     "inviteCouldNotOpen": "Ìpè ìmọ̀ràn yìí kò lè ṣí.",
     "startingQuestionReady": "Ìbéèrè ìbẹ̀rẹ̀ ti ara ẹni ti ṣetán nínú ààyè Alágbàpọ̀.",
@@ -1569,6 +1576,26 @@
     "eyebrow": "Àwọn i'ṣẹ́ Ìdàgbàsókè",
     "sectionTitle": "Àwọn i'ṣẹ́ Ìdàgbàsókè",
     "sectionSummary": "Àwọn i'ṣẹ́ tó wúlọ ọjọ́ lati kọ́ àwọn ẹkọ ti o'u'kọ́wé, àdúràdúrà, àti igbàgbọ́.",
+    "previewHint": "Tẹ kaadi kan lati wo ìṣe naa ṣaaju ki o ṣí ẹgbẹ́ pínpín.",
+    "withFriends": "pẹlu awọn ọrẹ",
+    "challengeCompleteBody": "Pe ẹgbẹ́ rẹ lati ṣe ayẹyẹ, ṣe afiwe akọsilẹ, ki ẹ sì maa gba ara yin niyanju.",
+    "communityTitle": "Ẹgbẹ́ pínpín",
+    "communitySummary": "Gbogbo eniyan ninu ẹgbẹ́ yii le ri ilọsiwaju, fi ìmúnilọ́kànlẹ́ ránṣẹ́, ki ẹ sì maa ṣe ìṣe naa pọ̀.",
+    "noCommunityYet": "Pe ọrẹ kan lati bẹrẹ ẹgbẹ́ pínpín fun ìṣe yii.",
+    "inviteFriendsBody": "Ṣe e di ìṣe pínpín. Pe ọrẹ kan, gba a pọ̀, ki ẹ sì wo ilọsiwaju ara yin.",
+    "creatingInvite": "A ń ṣẹda ìpè…",
+    "inviteFriends": "Pe àwọn ọrẹ",
+    "inviteReady": "Ìpè ti ṣetan",
+    "inviteEyebrow": "Ìpè ìṣe pínpín",
+    "initiatedBy": "Bẹrẹ nipasẹ",
+    "sharedProgress": "Ilọsiwaju pínpín",
+    "nudges": "Ìmúnilọ́kànlẹ́",
+    "noNudgesYet": "Ko si ìmúnilọ́kànlẹ́ sibẹ. Rán akọkọ.",
+    "sendNudge": "Rán ìmúnilọ́kànlẹ́",
+    "nudgePlaceholder": "Kọ ìmúnilọ́kànlẹ́ kékeré tàbí check-in…",
+    "sendNudgeButton": "Rán",
+    "joinPrompt": "A n pin ìṣe yii ni ikọkọ. Wọlé tabi ṣẹda àkọọlẹ lati darapọ.",
+    "acceptInvite": "Gba ìpè",
     "startChallenge": "Bẹ̀rẹ̀ i'ṣẹ́",
     "continueChallenge": "Tẹ́síwájú",
     "completedChallenge": "Tan",
@@ -1602,6 +1629,25 @@
         "principle": "Mo ti kọ́, ní ipò kankan tí mo wà, láti ní ìtẹ́lọ́rùn.",
         "prompt": "Nibo ni ìtẹ́lọ́rùn ti nira ni ọ̀sẹ̀ yìí? Bawo ni yóò ṣe rí bí o bá yan ìdúpẹ́ dípò àìní níbẹ̀?",
         "practice": "Darukọ agbègbè kan nibiti ìdúpẹ́ ń rọ́pò àìní loni."
+      }
+    },
+    "sharedEncouragement3day": {
+      "title": "Ìṣe ìmúnilọ́kànlẹ́ pínpín ọjọ́ mẹ́ta",
+      "description": "Ọjọ́ mẹ́ta ti ìmúnilọ́kànlẹ́ ara wa: rí ara wa, mú ara wa lagbara, kí a sì kọ́ ara wa pọ̀ nínú ẹgbẹ́ kékeré pínpín kan.",
+      "day1": {
+        "principle": "Ẹ jẹ́ kí a ronú bí a ṣe lè fa ara wa sókè sí ifẹ́ àti iṣẹ́ rere, kí a má ṣe fi ìpéjọ́ silẹ.",
+        "prompt": "Kọ orúkọ ẹni kan tí o fẹ́ gba níyànjú lónìí àti ìdí kan tí ó fi ṣe pàtàkì.",
+        "practice": "Darukọ ìmúnilọ́kànlẹ́ kan tó yege fún ọrẹ kan."
+      },
+      "day2": {
+        "principle": "Ìrin ń mú irin pọ̀, ènìyàn sì ń mú ènìyàn pọ̀.",
+        "prompt": "Pín ìmọ̀kan tàbí ìrìnnà kan láti inú ọjọ́ rẹ tí ó lè ràn ẹlòmíràn lọ́wọ́ láti dàgbà.",
+        "practice": "Fúnni ní ìrìnnà tòótọ́ tó ń mú kí ènìyàn lágbára pẹ̀lú inú-rere."
+      },
+      "day3": {
+        "principle": "Kí ọ̀rọ̀ Kristi gbe inú yín lọ́rọ̀, kí ẹ máa kọ́ ara yín, kí ẹ sì máa gba ara yín níyànjú pẹ̀lú gbogbo ọgbọ́n.",
+        "prompt": "Kí ni yí padà nínú rẹ ní ọ̀sẹ̀ yìí nítorí pé ẹlòmíràn rìn pẹ̀lú rẹ?",
+        "practice": "Dupẹ́ lọwọ ẹnìkan fún bí ó ṣe ràn ọ́ lọ́wọ́ láti tẹ̀síwájú."
       }
     },
     "waiting5day": {

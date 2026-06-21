@@ -434,6 +434,13 @@
     "guestMode": "Aktibo ang guest mode.",
     "backendUnavailable": "Hindi available ang backend. Ang guest mode ay magagamit pa rin sa lokal na karunungan.",
     "loadingInvite": "Nilo-load ang imbitasyon ng pribadong tagapayo...",
+    "challengeInviteLoading": "Naglo-load ang imbitasyon sa pinagsasaluhang pagsasanay...",
+    "challengeInviteCouldNotOpen": "Hindi mabuksan ang imbitasyon sa pinagsasaluhang pagsasanay na ito.",
+    "challengeInviteAccepting": "Tinatanggap ang imbitasyon sa pinagsasaluhang pagsasanay...",
+    "challengeInviteAccepted": "Tinanggap ang imbitasyon sa pinagsasaluhang pagsasanay. Maaari ninyong subaybayan ang progreso nang magkasama.",
+    "challengeInviteNotAccepted": "Hindi matanggap ang imbitasyon sa pinagsasaluhang pagsasanay na ito.",
+    "challengeInviteNudgeSent": "Naipadala ang himok.",
+    "challengeInviteNudgeFailed": "Hindi maipadala ang himok.",
     "restoringPreferences": "Ibinabalik ang mga kagustuhan…",
     "inviteCouldNotOpen": "Ang imbitasyon ng payo na ito ay hindi mabuksan.",
     "startingQuestionReady": "Ang isang personal na panimulang tanong ay handa na sa Kasamang input.",
@@ -1569,6 +1576,26 @@
     "eyebrow": "Mga Ehersisyo sa Pagbuo",
     "sectionTitle": "Mga Ehersisyo sa Pagbuo",
     "sectionSummary": "Mga maraming araw na ehersisyo upang bumuo ng mga ugali ng karunungan, pasasalamat, at diskernimento.",
+    "previewHint": "I-tap ang card para silipin ang pagsasanay at buksan ang pinagsasaluhang bilog.",
+    "withFriends": "kasama ang mga kaibigan",
+    "challengeCompleteBody": "Imbitahan ang iyong pangkat na magdiwang, magkumpara ng mga tala, at magpalakas-loob sa isa’t isa.",
+    "communityTitle": "Pinagsasaluhang pangkat",
+    "communitySummary": "Makikita ng lahat sa pangkat na ito ang progreso, makakapagpadala ng mga himok, at sabay-sabay na maipagpapatuloy ang pagsasanay.",
+    "noCommunityYet": "Imbitahan ang isang kaibigan para magsimula ng pinagsasaluhang pangkat para sa pagsasanay na ito.",
+    "inviteFriendsBody": "Gawing pinagsasaluhang pagsasanay ito. Mag-imbita ng kaibigan, tanggapin nang sabay, at makita ang progreso ng isa’t isa.",
+    "creatingInvite": "Ginagawa ang imbitasyon…",
+    "inviteFriends": "Mag-imbita ng mga kaibigan",
+    "inviteReady": "Handa na ang imbitasyon",
+    "inviteEyebrow": "Imbitasyon sa pinagsasaluhang pagsasanay",
+    "initiatedBy": "Sinimulan ni",
+    "sharedProgress": "Pinagsasaluhang progreso",
+    "nudges": "Mga himok",
+    "noNudgesYet": "Wala pang himok. Ipadala ang una.",
+    "sendNudge": "Magpadala ng himok",
+    "nudgePlaceholder": "Sumulat ng maikling himok o check-in…",
+    "sendNudgeButton": "Ipadala",
+    "joinPrompt": "Pribadong pinaghahatian ang pagsasanay na ito. Mag-sign in o gumawa ng account para sumali.",
+    "acceptInvite": "Tanggapin ang imbitasyon",
     "startChallenge": "Simulan ang ehersisyo",
     "continueChallenge": "Magpatuloy",
     "completedChallenge": "Tapos",
@@ -1602,6 +1629,25 @@
         "principle": "Natuto akong maging kontento sa anumang kalagayan ko.",
         "prompt": "Saan naging mahirap ang pagiging kontento ngayong linggo? Ano kaya ang hitsura kung pipiliin mo ang pasasalamat kaysa kakulangan sa lugar na iyon?",
         "practice": "Banggitin ang isang lugar kung saan pumapalit ang pasasalamat sa kakulangan ngayon."
+      }
+    },
+    "sharedEncouragement3day": {
+      "title": "3-araw na pinagsasaluhang paghihikayat",
+      "description": "Tatlong araw ng pagtutulungan sa paghihikayat: makita ang isa’t isa, palakasin ang isa’t isa, at buuin ang isa’t isa sa isang maliit na pinagsasaluhang pangkat.",
+      "day1": {
+        "principle": "Pag-isipan natin kung paano natin mapupukaw ang isa’t isa sa pag-ibig at mabubuting gawa, at huwag pabayaan ang pagtitipon.",
+        "prompt": "Isulat ang isang taong gusto mong hikayatin ngayon at isang dahilan kung bakit mahalaga siya.",
+        "practice": "Magbigay ng isang malinaw na paghihikayat para sa isang kaibigan."
+      },
+      "day2": {
+        "principle": "Ang bakal ay humahasa ng bakal, at ang tao ay humahasa sa kapwa niya.",
+        "prompt": "Ibahagi ang isang insight o obserbasyon mula sa araw mo na makakatulong sa iba na lumago.",
+        "practice": "Magbigay ng isang tapat at nakakapaghusay na obserbasyon nang may kabaitan."
+      },
+      "day3": {
+        "principle": "Hayaan ninyong manahan sa inyo nang sagana ang salita ni Cristo, na nagtuturo at nagpapaalala sa isa’t isa sa buong karunungan.",
+        "prompt": "Ano ang nagbago sa iyo ngayong linggo dahil may isang taong sumama sa iyo?",
+        "practice": "Pasalamatan ang isang tao sa paraang nakatulong siya sa iyo na magpatuloy."
       }
     },
     "waiting5day": {

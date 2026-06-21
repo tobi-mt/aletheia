@@ -434,6 +434,13 @@
     "guestMode": "Ọnọdụ ọbịa na-arụ ọrụ. Banye ka ịmekọrịta mkpebi.",
     "backendUnavailable": "Azụ azụ adịghị. Ọnọdụ ọbịa ka bara uru na amamihe obodo.",
     "loadingInvite": "Na-ebu oku ndụmọdụ nzuzo...",
+    "challengeInviteLoading": "A na-ebu oku omume kesara...",
+    "challengeInviteCouldNotOpen": "Enweghị ike imeghe oku omume kesara a.",
+    "challengeInviteAccepting": "A na-anabata oku omume kesara...",
+    "challengeInviteAccepted": "E nwetara oku omume kesara. Ị nwere ike soro ọganihu ọnụ ugbu a.",
+    "challengeInviteNotAccepted": "Enweghị ike ịnakwere oku omume kesara a.",
+    "challengeInviteNudgeSent": "E zigara mkpali.",
+    "challengeInviteNudgeFailed": "Enweghị ike iziga mkpali ahụ.",
     "restoringPreferences": "A na-eweghachi mmasị…",
     "inviteCouldNotOpen": "Enweghị ike imeghe oku ndụmọdụ a.",
     "startingQuestionReady": "Ajụjụ mmalite nke onwe adịla njikere na mpaghara Onye Njikọ Mkpebi.",
@@ -1569,6 +1576,26 @@
     "eyebrow": "Omume Mmepe",
     "sectionTitle": "Omume Mmepe",
     "sectionSummary": "Omume ụbọchị ụmụ maka iwu amamihe, ekele, na nmata.",
+    "previewHint": "Pịa kaadị iji hụ omume ahụ ụzọ ma mepee okirikiri kesara.",
+    "withFriends": "na ndị enyi",
+    "challengeCompleteBody": "Kpọọ okirikiri gị ka ha mee emume, tụnyere ihe e dere, ma gbaa ibe unu ume ka unu gaa n’ihu.",
+    "communityTitle": "Okirikiri kesara",
+    "communitySummary": "Onye ọ bụla nọ n’okirikiri a nwere ike ịhụ ọganihu, zipu mkpali, ma mee ka omume ahụ na-aga ọnụ.",
+    "noCommunityYet": "Kpọọ enyi ka ọ malite okirikiri kesara maka omume a.",
+    "inviteFriendsBody": "Mee nke a ka ọ bụrụ omume kesara. Kpọọ enyi, nabata ọnụ, ma hụ ọganihu ibe unu.",
+    "creatingInvite": "A na-emepụta oku…",
+    "inviteFriends": "Kpọọ ndị enyi",
+    "inviteReady": "Oku dị njikere",
+    "inviteEyebrow": "Oku maka omume kesara",
+    "initiatedBy": "Bido site na",
+    "sharedProgress": "Ọganihu kesara",
+    "nudges": "Mkpali",
+    "noNudgesYet": "Enweghị mkpali ka e zigara. Ziga nke mbụ.",
+    "sendNudge": "Ziga mkpali",
+    "nudgePlaceholder": "Dee mkpali dị mkpirikpi ma ọ bụ check-in…",
+    "sendNudgeButton": "Ziga",
+    "joinPrompt": "A na-ekekọrịta omume a nkeonwe. Banye ma ọ bụ mepụta akaụntụ iji sonye.",
+    "acceptInvite": "Nabata oku",
     "startChallenge": "Malite omume",
     "continueChallenge": "Gaa n'ihu",
     "completedChallenge": "Ezubere",
@@ -1602,6 +1629,25 @@
         "principle": "Amụtara m ịdị afọ ojuju n’ọnọdụ ọ bụla m nọ.",
         "prompt": "Ebee ka afọ ojuju siri sie ike n’izu a? Kedu ka ọ ga-adị ma ọ bụrụ na ịhọrọ ekele karịa ụkọ n’ebe ahụ?",
         "practice": "Kpọọ otu mpaghara ebe ekele na-anọchi ụkọ taa."
+      }
+    },
+    "sharedEncouragement3day": {
+      "title": "Omume nkwado kesara nke ụbọchị 3",
+      "description": "Ụbọchị atọ nke nkwado ibe unu: ịhụ ibe unu, ịkpụsi ibe unu ike, na iwulite ibe unu n’otu obere okirikiri kesara.",
+      "day1": {
+        "principle": "Ka anyị tụlee otú anyị ga-esi kpalie ibe anyị ịhụnanya na ezi omume, na-enweghị ịhapụ nzukọ ọnụ.",
+        "prompt": "Dee otu onye ị chọrọ ịgba ume taa na otu ihe kpatara na ọ dị mkpa.",
+        "practice": "Kpọọ otu mkpali doro anya maka enyi."
+      },
+      "day2": {
+        "principle": "Ígwè na-akụ ígwè, mmadụ na-akụkwa mmadụ.",
+        "prompt": "Kekọrịta otu nghọta ma ọ bụ ihe ị hụrụ n’ime ụbọchị gị nke nwere ike inyere onye ọzọ ito eto.",
+        "practice": "Nye otu okwu eziokwu nke na-akụziri ma jiri ịdị mma mee ya."
+      },
+      "day3": {
+        "principle": "Ka okwu Kraịst biri n’ime unu n’ụba, na-ezi ibe unu ma na-adọ ibe unu aka ná ntị n’amamihe niile.",
+        "prompt": "Gịnị gbanwere n’ime gị n’izu a n’ihi na onye ọzọ sooro gị jee?",
+        "practice": "Daalụ onye nyere gị aka ka i nwee ike ịga n’ihu."
       }
     },
     "waiting5day": {

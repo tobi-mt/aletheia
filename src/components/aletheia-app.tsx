@@ -92,6 +92,7 @@ import type { Mode } from "@/lib/wisdom-data";
 import { analyticsQuestionMetadata } from "@/lib/analytics-taxonomy";
 import { decisionStartedDiscerningBody, decisionTimelineObservation, localizeDecisionEventBody } from "@/lib/decision-copy";
 import { curatedAvatarOptions, defaultAvatarDataUrl, normalizeAvatarUrl } from "@/lib/avatars";
+import { challengeInviteUrl as buildChallengeInviteUrl } from "@/lib/challenge-circles";
 import { SERVICE_WORKER_URL } from "@/lib/build-version";
 import { loadTranslationsSync, loadTranslationsWithFallbackSync, getTranslation, type TranslationData } from "@/lib/translations";
 import { ManagedAudio } from "@/lib/native-audio";
@@ -3407,6 +3408,10 @@ function isCounselInvitePreview(value: CounselInvitePreview | { error?: string }
   return "invite" in value && "sharedDecisions" in value;
 }
 
+function isChallengeCircleSummary(value: ChallengeCircleSummary | { error?: string; errorCode?: string }): value is ChallengeCircleSummary {
+  return "invite" in value && "members" in value && "nudges" in value;
+}
+
 type RuleOfLife = {
   id: string;
   mode: Mode;
@@ -6398,6 +6403,11 @@ export function AletheiaApp() {
   const [counselInviteToken, setCounselInviteToken] = useState<string | null>(null);
   const [counselInvitePreview, setCounselInvitePreview] = useState<CounselInvitePreview | null>(null);
   const [counselInviteStatus, setCounselInviteStatus] = useState("");
+  const [challengeInviteToken, setChallengeInviteToken] = useState<string | null>(null);
+  const [challengeInvitePreview, setChallengeInvitePreview] = useState<ChallengeCircleSummary | null>(null);
+  const [challengeInviteStatus, setChallengeInviteStatus] = useState("");
+  const [challengeInviteUrl, setChallengeInviteUrl] = useState<string | null>(null);
+  const [challengeCircleRefreshKey, setChallengeCircleRefreshKey] = useState(0);
   const [counselRemovalPrompt, setCounselRemovalPrompt] = useState<CounselRemovalConfirmationState | null>(null);
   const [isRemovingCounselContact, setIsRemovingCounselContact] = useState(false);
   const [currentLocalDayNumber, setCurrentLocalDayNumber] = useState<number | null>(null);
@@ -6430,6 +6440,9 @@ export function AletheiaApp() {
   const authPromptSessionIdRef = useRef<string | null>(null);
   const authPromptActiveIdRef = useRef<string | null>(null);
   const authPromptTimeoutRef = useRef<number | null>(null);
+  const refreshChallengeCircles = () => {
+    setChallengeCircleRefreshKey((value) => value + 1);
+  };
 
   useEffect(() => {
     window.setTimeout(() => {
@@ -7665,6 +7678,32 @@ export function AletheiaApp() {
         })
         .catch(() => {
           setCounselInviteStatus(ts('status.inviteCouldNotOpen'));
+        });
+    });
+  }, [ts]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get("challengeInvite");
+    if (!token) {
+      return;
+    }
+    Promise.resolve().then(() => {
+      setChallengeInviteToken(token);
+      setChallengeInviteUrl(buildChallengeInviteUrl(token, window.location.href));
+      setChallengeInviteStatus(ts('status.challengeInviteLoading'));
+      fetch(`/api/challenge-circles/${encodeURIComponent(token)}`)
+        .then(async (response) => {
+          const data = (await response.json()) as ChallengeCircleSummary | { errorCode?: string; error?: string };
+          if (!response.ok || !isChallengeCircleSummary(data)) {
+            throw new Error("error" in data ? data.error : "Invite could not be loaded.");
+          }
+          setChallengeInvitePreview(data);
+          setChallengeInviteStatus("");
+          window.history.replaceState({}, "", window.location.pathname);
+        })
+        .catch(() => {
+          setChallengeInviteStatus(ts('status.challengeInviteCouldNotOpen'));
         });
     });
   }, [ts]);
@@ -10759,6 +10798,81 @@ export function AletheiaApp() {
     }
   }
 
+  function challengeInviteTokenFromUrl(value: string | null) {
+    if (!value) {
+      return null;
+    }
+    try {
+      return new URL(value).searchParams.get("challengeInvite");
+    } catch {
+      return null;
+    }
+  }
+
+  function challengeInviteActiveToken() {
+    return challengeInviteToken ?? challengeInviteTokenFromUrl(challengeInviteUrl);
+  }
+
+  async function acceptChallengeInvite() {
+    const token = challengeInviteActiveToken();
+    if (!token) {
+      return;
+    }
+    setChallengeInviteStatus(ts("status.challengeInviteAccepting"));
+    const response = await fetch(`/api/challenge-circles/${encodeURIComponent(token)}`, {
+      method: "POST",
+    });
+    const data = (await response.json().catch(() => ({}))) as ChallengeCircleSummary | { error?: string; errorCode?: string };
+    if (response.ok && isChallengeCircleSummary(data)) {
+      setChallengeInvitePreview(data);
+      setChallengeInviteStatus(ts("status.challengeInviteAccepted"));
+      refreshChallengeCircles();
+      return;
+    }
+    setChallengeInviteStatus(ts("status.challengeInviteNotAccepted"));
+  }
+
+  async function addChallengeInviteNudge(body: string) {
+    const token = challengeInviteActiveToken();
+    if (!token) {
+      return;
+    }
+    const response = await fetch(`/api/challenge-circles/${encodeURIComponent(token)}/nudges`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ body }),
+    });
+    const data = (await response.json().catch(() => ({}))) as {
+      nudge?: { id: string; body: string; createdAt: string; senderUserId: string };
+      error?: string;
+      errorCode?: string;
+    };
+    if (response.ok && data.nudge) {
+      setChallengeInvitePreview((current) =>
+        current
+          ? {
+              ...current,
+              nudges: [
+                {
+                  id: data.nudge!.id,
+                  body: data.nudge!.body,
+                  createdAt: data.nudge!.createdAt,
+                  senderUserId: data.nudge!.senderUserId,
+                  senderName: user?.name ?? user?.email ?? null,
+                  senderAvatarUrl: user?.avatarUrl ?? null,
+                },
+                ...current.nudges,
+              ],
+            }
+          : current
+      );
+      setChallengeInviteStatus(ts("status.challengeInviteNudgeSent"));
+      refreshChallengeCircles();
+      return;
+    }
+    setChallengeInviteStatus(resolveApiErrorMessage(data.error, data.errorCode, "status.challengeInviteNudgeFailed"));
+  }
+
   async function addRuleOfLife(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const principle = ruleText.trim();
@@ -11010,7 +11124,6 @@ export function AletheiaApp() {
                         activeDecision={activeDecision}
                         user={user}
                         preferences={preferences}
-                        ts={ts}
                         ui={ui}
                         notificationsEnabled={notificationsEnabled}
                         todayPattern={todayPattern}
@@ -11146,12 +11259,20 @@ export function AletheiaApp() {
                 <Screen key="reflect">
                   <ViewIdentityFrame identity="reflect" theme={theme}>
                     <div className="space-y-4">
-                      <FormationsSection
+                      <FormationRailSection
                         theme={theme}
                         ts={ts}
                         user={user}
                         pendingChallengeId={pendingChallengeId}
                         onClearPendingChallenge={() => setPendingChallengeId(null)}
+                        challengeCircleRefreshKey={challengeCircleRefreshKey}
+                        onChallengeCircleChanged={refreshChallengeCircles}
+                        onChallengeInviteReady={({ inviteUrl, circle }) => {
+                          setChallengeInviteToken(null);
+                          setChallengeInvitePreview(circle);
+                          setChallengeInviteUrl(inviteUrl);
+                          setChallengeInviteStatus(ts("challenges.inviteReady"));
+                        }}
                       />
                       <ReflectPanel
                         language={preferences.language}
@@ -11367,6 +11488,27 @@ export function AletheiaApp() {
           setCounselInviteToken(null);
           setCounselInvitePreview(null);
           setCounselInviteStatus("");
+        }}
+      />
+      <ChallengeInviteModal
+        theme={theme}
+        token={challengeInviteToken}
+        inviteUrl={challengeInviteUrl}
+        preview={challengeInvitePreview}
+        status={challengeInviteStatus}
+        ts={ts}
+        user={user}
+        onAccept={acceptChallengeInvite}
+        onNudge={addChallengeInviteNudge}
+        onRequestSignIn={() => {
+          setAuthMode("login");
+          openAccountFlow();
+        }}
+        onClose={() => {
+          setChallengeInviteToken(null);
+          setChallengeInvitePreview(null);
+          setChallengeInviteStatus("");
+          setChallengeInviteUrl(null);
         }}
       />
       <CounselRemovalConfirmModal
@@ -12669,7 +12811,6 @@ function OnboardingModal({
 }
 
 function HomeDashboard({
-  ts,
   daily,
   dailyEntry,
   dayNumber,
@@ -12705,7 +12846,6 @@ function HomeDashboard({
   onShareScriptureMemory,
   theme,
 }: {
-  ts: (key: string, fallback?: string) => string;
   daily: ReturnType<typeof localizedDailyWisdom>;
   dailyEntry: WisdomEntry;
   dayNumber: number;
@@ -12930,7 +13070,7 @@ function HomeDashboard({
               <span>{text.whatNext}</span>
             </h2>
             <p className="mt-3 max-w-2xl text-[0.98rem] leading-7 sm:text-[1.03rem] sm:leading-8" style={{ color: theme.textSecondary }}>
-              {ts('labels.whatNextBodyShort')}
+              {text.whatNextBody ?? ""}
             </p>
           </div>
 
@@ -13000,7 +13140,7 @@ function HomeDashboard({
             </h2>
             <div className="mt-3 max-w-2xl">
               <p className="text-[0.98rem] leading-7 sm:text-[1.03rem] sm:leading-8" style={{ color: theme.textSecondary }}>
-              {ts('labels.weeklyReviewBodyShort')}
+                {(text.weeklyReviewBody ?? "").replace("{pattern}", weeklyReview.pattern)}
               </p>
             </div>
           </div>
@@ -14369,6 +14509,51 @@ type ChallengeWithProgress = {
   completedDays: ChallengeProgressEntry[];
 };
 
+type ChallengeCircleMember = {
+  userId: string;
+  name: string | null;
+  avatarUrl: string | null;
+  role: string;
+  joinedAt: string;
+  completedDays: number;
+  lastCompletedAt: string | null;
+};
+
+type ChallengeCircleNudge = {
+  id: string;
+  body: string;
+  createdAt: string;
+  senderUserId: string;
+  senderName: string | null;
+  senderAvatarUrl: string | null;
+};
+
+type ChallengeCircleSummary = {
+  id: string;
+  challengeId: string;
+  challenge: {
+    id: string;
+    titleKey: string;
+    descriptionKey: string;
+    totalDays: number;
+    mode: string;
+  };
+  invite: {
+    status: string;
+    note: string | null;
+    acceptedAt: string | null;
+    createdAt: string;
+    owner: {
+      id: string;
+      name: string | null;
+      avatarUrl: string | null;
+    };
+  };
+  memberCount: number;
+  members: ChallengeCircleMember[];
+  nudges: ChallengeCircleNudge[];
+};
+
 function FormationsSection({
   theme,
   ts,
@@ -14475,6 +14660,8 @@ function FormationsSection({
   const [challengeDefs, setChallengeDefs] = useState<
     Array<{
       id: string;
+      titleKey: string;
+      descriptionKey: string;
       days: Array<{ day: number; scripture: string; principleKey: string; promptKey: string; practiceKey: string }>;
     }>
   >([]);
@@ -14484,6 +14671,8 @@ function FormationsSection({
       setChallengeDefs(
         mod.challengeDefinitions.map((def) => ({
           id: def.id,
+          titleKey: def.titleKey,
+          descriptionKey: def.descriptionKey,
           days: def.days,
         }))
       );
@@ -14521,10 +14710,10 @@ function FormationsSection({
   const displayChallenges = challengeDefs.length > 0
     ? challengeDefs.map((def) => {
         const withProgress = challenges.find((c) => c.id === def.id);
-        return {
-          id: def.id,
-          titleKey: `challenges.${def.id.replace(/-/g, "")}.title`,
-          descriptionKey: `challenges.${def.id.replace(/-/g, "")}.description`,
+      return {
+        id: def.id,
+          titleKey: def.titleKey,
+          descriptionKey: def.descriptionKey,
           totalDays: def.days.length,
           mode: withProgress?.mode ?? "Life",
           completedDays: withProgress?.completedDays ?? [],
@@ -14705,6 +14894,465 @@ function FormationsSection({
           </div>
         );
       })}
+    </section>
+  );
+}
+
+function FormationRailSection({
+  theme,
+  ts,
+  user,
+  pendingChallengeId,
+  onClearPendingChallenge,
+  challengeCircleRefreshKey,
+  onChallengeCircleChanged,
+  onChallengeInviteReady,
+}: {
+  theme: ThemeColors;
+  ts: (key: string, fallback?: string) => string;
+  user: User | null;
+  pendingChallengeId: string | null;
+  onClearPendingChallenge: () => void;
+  challengeCircleRefreshKey: number;
+  onChallengeCircleChanged: () => void;
+  onChallengeInviteReady: (payload: { inviteUrl: string; circle: ChallengeCircleSummary }) => void;
+}) {
+  const [challenges, setChallenges] = useState<ChallengeWithProgress[]>([]);
+  const [challengeCircles, setChallengeCircles] = useState<ChallengeCircleSummary[]>([]);
+  const [challengeDefs, setChallengeDefs] = useState<
+    Array<{
+      id: string;
+      titleKey: string;
+      descriptionKey: string;
+      days: Array<{ day: number; scripture: string; principleKey: string; promptKey: string; practiceKey: string }>;
+    }>
+  >([]);
+  const [selectedChallengeId, setSelectedChallengeId] = useState<string | null>(pendingChallengeId);
+  const [reflectionText, setReflectionText] = useState("");
+  const [savingDay, setSavingDay] = useState<{ challengeId: string; day: number } | null>(null);
+  const [creatingInviteId, setCreatingInviteId] = useState<string | null>(null);
+  const sectionRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (pendingChallengeId) {
+      queueMicrotask(() => {
+        setSelectedChallengeId(pendingChallengeId);
+        onClearPendingChallenge();
+        window.requestAnimationFrame(() => {
+          sectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+      });
+    }
+  }, [pendingChallengeId, onClearPendingChallenge]);
+
+  useEffect(() => {
+    import("@/lib/challenge-data").then((mod) => {
+      setChallengeDefs(
+        mod.challengeDefinitions.map((def) => ({
+          id: def.id,
+          titleKey: def.titleKey,
+          descriptionKey: def.descriptionKey,
+          days: def.days,
+        }))
+      );
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!user) {
+      return;
+    }
+
+    let cancelled = false;
+    async function load() {
+      try {
+        const [challengeResponse, circleResponse] = await Promise.all([
+          fetch("/api/challenges", { cache: "no-store" }),
+          fetch("/api/challenge-circles", { cache: "no-store" }),
+        ]);
+        const challengeData = (await challengeResponse.json()) as { challenges?: ChallengeWithProgress[] };
+        const circleData = (await circleResponse.json()) as { circles?: ChallengeCircleSummary[] };
+        if (cancelled) return;
+        if (challengeData.challenges) {
+          setChallenges(challengeData.challenges);
+        }
+        if (circleData.circles) {
+          setChallengeCircles(circleData.circles);
+        }
+      } catch {
+        if (!cancelled) {
+          setChallenges([]);
+          setChallengeCircles([]);
+        }
+      }
+    }
+
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [challengeCircleRefreshKey, user]);
+
+  const loading = Boolean(user) && challengeDefs.length === 0 && challenges.length === 0 && challengeCircles.length === 0;
+
+  function getDayPrompt(challengeId: string, day: number) {
+    const def = challengeDefs.find((d) => d.id === challengeId);
+    return def?.days.find((d) => d.day === day) ?? null;
+  }
+
+  const displayChallenges = challengeDefs.length > 0
+    ? challengeDefs.map((def) => {
+        const withProgress = challenges.find((c) => c.id === def.id);
+        return {
+          id: def.id,
+          titleKey: def.titleKey,
+          descriptionKey: def.descriptionKey,
+          totalDays: def.days.length,
+          mode: withProgress?.mode ?? "Life",
+          completedDays: withProgress?.completedDays ?? [],
+        } as ChallengeWithProgress;
+      })
+    : challenges;
+
+  const effectiveSelectedChallengeId = pendingChallengeId ?? selectedChallengeId ?? displayChallenges[0]?.id ?? null;
+  const selectedChallenge = displayChallenges.find((challenge) => challenge.id === effectiveSelectedChallengeId) ?? null;
+  const selectedCircle = selectedChallenge
+    ? [...challengeCircles]
+        .filter((circle) => circle.challengeId === selectedChallenge.id)
+        .sort((a, b) => Date.parse(b.invite.createdAt) - Date.parse(a.invite.createdAt))[0] ?? null
+    : null;
+
+  function completedDaysFor(challenge: ChallengeWithProgress) {
+    return challenge.completedDays.length;
+  }
+
+  function nextDayFor(challenge: ChallengeWithProgress) {
+    return completedDaysFor(challenge) + 1;
+  }
+
+  async function markDayComplete(challenge: ChallengeWithProgress) {
+    const day = nextDayFor(challenge);
+    if (day > challenge.totalDays) return;
+    setSavingDay({ challengeId: challenge.id, day });
+    try {
+      const res = await fetch("/api/challenges/complete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ challengeId: challenge.id, day, reflection: reflectionText.trim() }),
+      });
+      if (res.ok) {
+        const now = new Date().toISOString();
+        setChallenges((prev) =>
+          prev.map((c) =>
+            c.id === challenge.id
+              ? { ...c, completedDays: [...c.completedDays, { day, reflection: reflectionText.trim(), completedAt: now }] }
+              : c
+          )
+        );
+        setReflectionText("");
+        onChallengeCircleChanged();
+        trackClientEvent("challenge_day_marked_complete", { challengeId: challenge.id, day });
+      }
+    } catch {
+      // Let user retry.
+    } finally {
+      setSavingDay(null);
+    }
+  }
+
+  async function createChallengeInvite(challenge: ChallengeWithProgress) {
+    setCreatingInviteId(challenge.id);
+    try {
+      const response = await fetch("/api/challenge-circles", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ challengeId: challenge.id }),
+      });
+      const data = (await response.json()) as { circle?: ChallengeCircleSummary; inviteUrl?: string; error?: string };
+      if (!response.ok || !data.circle || !data.inviteUrl) {
+        throw new Error(data.error || ts("status.challengeInviteCouldNotOpen"));
+      }
+      onChallengeInviteReady({ inviteUrl: data.inviteUrl, circle: data.circle });
+      onChallengeCircleChanged();
+      trackClientEvent("challenge_shared", { challengeId: challenge.id });
+    } catch {
+      // Invite creation can be retried.
+    } finally {
+      setCreatingInviteId(null);
+    }
+  }
+
+  if (!user) {
+    return (
+      <section
+        ref={sectionRef}
+        className="rounded-[1.35rem] border p-3.5 sm:p-4"
+        style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}
+      >
+        <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+          {ts("challenges.eyebrow")}
+        </p>
+        <h2 className="mt-1.5 text-xl font-semibold" style={{ color: theme.textPrimary }}>
+          {ts("challenges.sectionTitle")}
+        </h2>
+        <p className="mt-1.5 text-sm leading-5" style={{ color: theme.textSecondary }}>
+          {ts("challenges.signInToTrack")}
+        </p>
+      </section>
+    );
+  }
+
+  return (
+    <section ref={sectionRef} className="space-y-4">
+      <div className="rounded-[1.35rem] border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+        <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+          {ts("challenges.eyebrow")}
+        </p>
+        <h2 className="mt-1.5 text-xl font-semibold" style={{ color: theme.textPrimary }}>
+          {ts("challenges.sectionTitle")}
+        </h2>
+        <p className="mt-1.5 text-sm leading-5" style={{ color: theme.textSecondary }}>
+          {ts("challenges.sectionSummary")}
+        </p>
+      </div>
+
+      {loading && displayChallenges.length === 0 && (
+        <div className="rounded-[1.35rem] border p-4 text-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textMuted }}>
+          {ts("challenges.loading")}
+        </div>
+      )}
+
+      {displayChallenges.length ? (
+        <>
+          <div className="flex gap-3 overflow-x-auto pb-2 [-webkit-overflow-scrolling:touch]">
+            {displayChallenges.map((challenge) => {
+              const done = completedDaysFor(challenge);
+              const circle = challengeCircles.find((item) => item.challengeId === challenge.id) ?? null;
+              const isActive = selectedChallenge?.id === challenge.id;
+              return (
+                <button
+                  key={challenge.id}
+                  type="button"
+                  onClick={() => setSelectedChallengeId(challenge.id)}
+                  className="relative flex w-[16.5rem] shrink-0 snap-start flex-col rounded-[1.15rem] border p-3 text-left shadow-[0_6px_14px_rgba(7,10,8,0.05)] transition active:scale-[0.99]"
+                  style={{
+                    borderColor: isActive ? theme.primary : theme.borderLight,
+                    backgroundColor: isActive ? theme.bgCardElevated : theme.bgCard,
+                    boxShadow: isActive ? `0 0 0 1px ${theme.primary}` : "0 6px 14px rgba(7, 10, 8, 0.04)",
+                  }}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+                        {ts("labels.preview")}
+                      </p>
+                      <p className="mt-1 text-sm font-semibold leading-5" style={{ color: theme.textPrimary }}>
+                        {ts(challenge.titleKey, challenge.id)}
+                      </p>
+                    </div>
+                    <span className="rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                      {done}/{challenge.totalDays}
+                    </span>
+                  </div>
+                  <p className="mt-2 line-clamp-2 text-xs leading-5" style={{ color: theme.textSecondary }}>
+                    {ts(challenge.descriptionKey, "")}
+                  </p>
+                  <div className="mt-3 flex items-center justify-between gap-2">
+                    <span className="rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                      {challenge.mode}
+                    </span>
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ color: theme.textMuted }}>
+                      {circle ? `${circle.memberCount} ${ts("challenges.withFriends")}` : ts("challenges.startChallenge")}
+                    </span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {selectedChallenge ? (
+            <div className="grid gap-4 xl:grid-cols-[minmax(0,1.12fr)_minmax(280px,0.88fr)]">
+              <article className="overflow-hidden rounded-[1.35rem] border shadow-[0_8px_24px_rgba(15,23,42,0.05)]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                <div className="relative border-b p-4" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
+                  <InfoHint text={ts("challenges.previewHint")} theme={theme} placement="corner" surface="hero" />
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+                    {ts("labels.preview")}
+                  </p>
+                  <h3 className="mt-1.5 text-xl font-semibold" style={{ color: theme.textPrimary }}>
+                    {ts(selectedChallenge.titleKey, selectedChallenge.id)}
+                  </h3>
+                  <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                    {ts(selectedChallenge.descriptionKey, "")}
+                  </p>
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <span className="rounded-full border px-2.5 py-1 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                      {selectedChallenge.mode}
+                    </span>
+                    <span className="rounded-full border px-2.5 py-1 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                      {ts("challenges.daysCompleted").replace("{count}", String(selectedChallenge.completedDays.length)).replace("{total}", String(selectedChallenge.totalDays))}
+                    </span>
+                    {selectedCircle ? (
+                      <span className="rounded-full border px-2.5 py-1 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                        {selectedCircle.memberCount} {ts("challenges.withFriends")}
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+
+                <div className="space-y-4 p-4">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {Array.from({ length: selectedChallenge.totalDays }, (_, i) => {
+                      const dayNum = i + 1;
+                      const isDone = selectedChallenge.completedDays.some((d) => d.day === dayNum);
+                      return (
+                        <span
+                          key={dayNum}
+                          className="flex size-7 items-center justify-center rounded-full text-xs font-semibold"
+                          style={{
+                            backgroundColor: isDone ? theme.accentGold : theme.bgCardElevated,
+                            color: isDone ? theme.bgMain : theme.textMuted,
+                            border: `1.5px solid ${isDone ? theme.accentGold : theme.borderLight}`,
+                          }}
+                        >
+                          {isDone ? <Check size={12} /> : dayNum}
+                        </span>
+                      );
+                    })}
+                  </div>
+
+                  {(() => {
+                    const next = nextDayFor(selectedChallenge);
+                    const nextPrompt = next > selectedChallenge.totalDays ? null : getDayPrompt(selectedChallenge.id, next);
+                    if (!nextPrompt) {
+                      return (
+                        <div className="rounded-[1rem] border p-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                          <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>
+                            {ts("challenges.allDaysComplete").replace("{total}", String(selectedChallenge.totalDays))}
+                          </p>
+                          <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                            {ts("challenges.challengeCompleteBody")}
+                          </p>
+                        </div>
+                      );
+                    }
+                    const isSaving = savingDay?.challengeId === selectedChallenge.id;
+                    return (
+                      <div className="rounded-[1rem] border p-3.5 space-y-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
+                            {ts("challenges.dayOf").replace("{day}", String(next)).replace("{total}", String(selectedChallenge.totalDays))}
+                          </p>
+                          <p className="mt-1 text-xs leading-5 italic" style={{ color: theme.textMuted }}>
+                            {nextPrompt.scripture}
+                          </p>
+                          <p className="mt-2 text-sm font-semibold leading-5" style={{ color: theme.textPrimary }}>
+                            {ts(nextPrompt.principleKey, "")}
+                          </p>
+                          <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                            {ts(nextPrompt.promptKey, "")}
+                          </p>
+                        </div>
+                        <textarea
+                          rows={3}
+                          className="w-full resize-none rounded-[0.85rem] border px-3 py-2 text-sm leading-6 outline-none"
+                          style={{
+                            borderColor: theme.borderLight,
+                            backgroundColor: theme.bgInput,
+                            color: theme.textPrimary,
+                          }}
+                          placeholder={ts("challenges.reflectionPlaceholder")}
+                          value={reflectionText}
+                          onChange={(e) => setReflectionText(e.target.value)}
+                        />
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <p className="text-xs leading-5" style={{ color: theme.textMuted }}>
+                            {ts("challenges.dayLabel").replace("{day}", String(next))} · {ts(nextPrompt.practiceKey, "")}
+                          </p>
+                          <button
+                            type="button"
+                            disabled={isSaving}
+                            onClick={() => markDayComplete(selectedChallenge)}
+                            className="inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-semibold transition disabled:opacity-60"
+                            style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                          >
+                            {isSaving ? ts("challenges.saving") : ts("challenges.saveReflection")}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+              </article>
+
+              <aside className="space-y-3">
+                <div className="rounded-[1.35rem] border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+                    {ts("challenges.communityTitle")}
+                  </p>
+                  <p className="mt-1.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                    {selectedCircle ? ts("challenges.communitySummary") : ts("challenges.noCommunityYet")}
+                  </p>
+
+                  {selectedCircle ? (
+                    <div className="mt-3 space-y-3">
+                      <div className="flex flex-wrap gap-2">
+                        {selectedCircle.members.map((member) => (
+                          <div key={member.userId} className="flex items-center gap-2 rounded-full border px-2.5 py-1.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput }}>
+                            <AvatarCircle
+                              avatarUrl={member.avatarUrl}
+                              seed={member.userId}
+                              label={member.name ?? ts("labels.counselContact")}
+                              size={22}
+                              className="size-[22px]"
+                            />
+                            <span className="text-xs font-semibold" style={{ color: theme.textPrimary }}>
+                              {member.name ?? ts("labels.counselContact")}
+                            </span>
+                            <span className="text-[10px] uppercase tracking-[0.08em]" style={{ color: theme.textMuted }}>
+                              {member.completedDays}/{selectedChallenge.totalDays}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                      {selectedCircle.nudges.length ? (
+                        <div className="space-y-2">
+                          {selectedCircle.nudges.slice(0, 3).map((nudge) => (
+                            <div key={nudge.id} className="rounded-[1rem] border p-3 text-sm leading-6" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                              <p style={{ color: theme.textSecondary }}>{nudge.body}</p>
+                              <p className="mt-1 text-[11px] uppercase tracking-[0.08em]" style={{ color: theme.textMuted }}>
+                                {nudge.senderName ?? ts("labels.counselContact")}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm leading-6" style={{ color: theme.textMuted }}>
+                          {ts("challenges.noNudgesYet")}
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="mt-3 space-y-3 rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                      <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>
+                        {ts("challenges.inviteFriendsBody")}
+                      </p>
+                      <button
+                        type="button"
+                        disabled={creatingInviteId === selectedChallenge.id}
+                        onClick={() => createChallengeInvite(selectedChallenge)}
+                        className="inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-semibold transition disabled:opacity-60"
+                        style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                      >
+                        {creatingInviteId === selectedChallenge.id ? ts("challenges.creatingInvite") : ts("challenges.inviteFriends")}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </aside>
+            </div>
+          ) : null}
+        </>
+      ) : null}
     </section>
   );
 }
@@ -18085,6 +18733,244 @@ function CounselInviteModal({
             )}
           </>
         ) : null}
+      </section>
+    </div>
+  );
+}
+
+function ChallengeInviteModal({
+  theme,
+  token,
+  inviteUrl,
+  preview,
+  status,
+  ts,
+  user,
+  onAccept,
+  onNudge,
+  onRequestSignIn,
+  onClose,
+}: {
+  theme: ThemeColors;
+  token: string | null;
+  inviteUrl: string | null;
+  preview: ChallengeCircleSummary | null;
+  status: string;
+  ts: (key: string, fallback?: string) => string;
+  user: User | null;
+  onAccept: () => void;
+  onNudge: (body: string) => void;
+  onRequestSignIn: () => void;
+  onClose: () => void;
+}) {
+  const [nudgeDraft, setNudgeDraft] = useState("");
+  if (!preview) {
+    if (!token) {
+      return null;
+    }
+
+    return (
+      <div className="fixed inset-0 z-50 grid place-items-end p-3 backdrop-blur-sm sm:place-items-center" style={{ backgroundColor: 'rgba(13, 23, 20, 0.42)' }}>
+        <section className="max-h-[88vh] w-full max-w-2xl overflow-y-auto rounded-3xl border p-4 shadow-2xl sm:p-3.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <div className="grid size-10 place-items-center rounded-2xl border" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.primary }}>
+                <Users size={18} />
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>{ts("challenges.inviteEyebrow")}</p>
+                <h2 className="mt-1.5 text-lg font-semibold" style={{ color: theme.textPrimary }}>
+                  {status || ts("status.challengeInviteLoading")}
+                </h2>
+                <p className="mt-1.5 text-sm leading-5" style={{ color: theme.textSecondary }}>
+                  {ts("challenges.joinPrompt")}
+                </p>
+              </div>
+            </div>
+            <button className="grid size-9 place-items-center rounded-full border transition" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={onClose} aria-label={ts('labels.closeInvite')}>
+              <X size={16} />
+            </button>
+          </div>
+
+          {status ? <p className="mt-3.5 rounded-2xl border p-3 text-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>{status}</p> : null}
+
+          <div className="mt-4 flex justify-end">
+            <button className="h-10 rounded-full px-4 text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }} onClick={onClose}>
+              {ts("labels.close")}
+            </button>
+          </div>
+        </section>
+      </div>
+    );
+  }
+
+  const challenge = preview;
+  const accepted = challenge.invite.status === "accepted";
+  const shareUrl = inviteUrl ?? (token ? buildChallengeInviteUrl(token) : null);
+  const nudgeToken = token ?? (() => {
+    if (!inviteUrl) return null;
+    try {
+      return new URL(inviteUrl).searchParams.get("challengeInvite");
+    } catch {
+      return null;
+    }
+  })();
+
+  async function shareChallengeInvite() {
+    if (!shareUrl) {
+      return;
+    }
+    const title = ts(challenge.challenge.titleKey, challenge.challenge.id);
+    const text = ts("challenges.shareChallengeBody").replace("{days}", String(challenge.challenge.totalDays));
+    try {
+      if (navigator.share) {
+        await navigator.share({ title, text, url: shareUrl });
+        return;
+      }
+      await navigator.clipboard.writeText(shareUrl);
+    } catch {
+      await navigator.clipboard.writeText(shareUrl).catch(() => undefined);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-end p-3 backdrop-blur-sm sm:place-items-center" style={{ backgroundColor: 'rgba(13, 23, 20, 0.42)' }}>
+      <section className="max-h-[88vh] w-full max-w-2xl overflow-y-auto rounded-3xl border p-4 shadow-2xl sm:p-3.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start gap-3">
+            <div className="grid size-10 place-items-center rounded-2xl border" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.primary }}>
+              <Users size={18} />
+            </div>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>{ts("challenges.inviteEyebrow")}</p>
+              <h2 className="mt-1.5 text-lg font-semibold" style={{ color: theme.textPrimary }}>
+                {ts(challenge.challenge.titleKey, challenge.challenge.id)}
+              </h2>
+              <p className="mt-1.5 text-sm leading-5" style={{ color: theme.textSecondary }}>
+                {ts(challenge.challenge.descriptionKey, "")}
+              </p>
+            </div>
+          </div>
+          <button className="grid size-9 place-items-center rounded-full border transition" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={onClose} aria-label={ts('labels.closeInvite')}>
+            <X size={16} />
+          </button>
+        </div>
+
+        {status ? <p className="mt-3.5 rounded-2xl border p-3 text-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>{status}</p> : null}
+
+        <div className="mt-3.5 grid gap-3 rounded-2xl border p-3.5 text-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
+          <p>
+            <span className="font-semibold" style={{ color: theme.textPrimary }}>{ts("challenges.initiatedBy")}:</span> {challenge.invite.owner.name ?? ts("labels.counselContact")}
+          </p>
+          <p>
+            <span className="font-semibold" style={{ color: theme.textPrimary }}>{ts("labels.status")}:</span> {accepted ? ts("status.accepted") : ts("status.waitingForAcceptance")}
+          </p>
+          {challenge.invite.note ? (
+            <p className="leading-6">{challenge.invite.note}</p>
+          ) : null}
+        </div>
+
+        <div className="mt-3.5 rounded-2xl border p-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{ts("challenges.sharedProgress")}</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {challenge.members.map((member) => (
+              <div key={member.userId} className="flex items-center gap-2 rounded-full border px-2.5 py-1.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput }}>
+                <AvatarCircle
+                  avatarUrl={member.avatarUrl}
+                  seed={member.userId}
+                  label={member.name ?? ts("labels.counselContact")}
+                  size={22}
+                  className="size-[22px]"
+                />
+                <span className="text-xs font-semibold" style={{ color: theme.textPrimary }}>
+                  {member.name ?? ts("labels.counselContact")}
+                </span>
+                <span className="text-[10px] uppercase tracking-[0.08em]" style={{ color: theme.textMuted }}>
+                  {member.completedDays}/{challenge.challenge.totalDays}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {accepted ? (
+          <div className="mt-3.5 space-y-3">
+            <div className="rounded-2xl border p-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+              <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{ts("challenges.nudges")}</p>
+              <div className="mt-2 space-y-2">
+                {challenge.nudges.length ? challenge.nudges.slice(0, 4).map((nudge) => (
+                  <div key={nudge.id} className="rounded-[1rem] border p-3 text-sm leading-6" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                    <p style={{ color: theme.textSecondary }}>{nudge.body}</p>
+                    <p className="mt-1 text-[11px] uppercase tracking-[0.08em]" style={{ color: theme.textMuted }}>
+                      {nudge.senderName ?? ts("labels.counselContact")}
+                    </p>
+                  </div>
+                )) : (
+                  <p className="text-sm leading-6" style={{ color: theme.textMuted }}>
+                    {ts("challenges.noNudgesYet")}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {nudgeToken ? (
+              <form
+                className="grid gap-2 rounded-2xl border p-3.5"
+                style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  const message = nudgeDraft.trim();
+                  if (!message) {
+                    return;
+                  }
+                  onNudge(message);
+                  setNudgeDraft("");
+                }}
+              >
+                <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{ts("challenges.sendNudge")}</p>
+                <textarea
+                  value={nudgeDraft}
+                  onChange={(event) => setNudgeDraft(event.target.value)}
+                  className="min-h-24 resize-none rounded-2xl border px-3 py-2 text-sm leading-6 outline-none"
+                  style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                  placeholder={ts("challenges.nudgePlaceholder")}
+                />
+                <button className="h-10 rounded-full px-3 text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>{ts("challenges.sendNudgeButton")}</button>
+              </form>
+            ) : null}
+          </div>
+        ) : (
+          <div className="mt-3.5 space-y-3 rounded-2xl border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+            <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>
+              {ts("challenges.joinPrompt")}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {!user ? (
+                <button className="h-11 rounded-full px-4 text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }} onClick={onRequestSignIn}>
+                  {ts("auth.signIn")}
+                </button>
+              ) : token ? (
+                <button className="h-11 rounded-full px-4 text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }} onClick={onAccept}>
+                  {ts("challenges.acceptInvite")}
+                </button>
+              ) : null}
+              {shareUrl ? (
+                <button className="h-11 rounded-full border px-4 text-sm font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={shareChallengeInvite}>
+                  {ts("labels.copyLink")}
+                </button>
+              ) : null}
+            </div>
+          </div>
+        )}
+
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
+          <button className="h-10 rounded-full border px-4 text-sm font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={shareChallengeInvite}>
+            {ts("labels.shareInvite")}
+          </button>
+          <button className="h-10 rounded-full px-4 text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }} onClick={onClose}>
+            {ts("labels.close")}
+          </button>
+        </div>
       </section>
     </div>
   );

@@ -2,6 +2,7 @@ import { MODE_KEYS, type Mode } from "@/lib/mode-keys";
 
 export type ChallengeId =
   | "gratitude-3day"
+  | "shared-encouragement-3day"
   | "waiting-5day"
   | "stewardship-7day";
 
@@ -50,6 +51,36 @@ export const challengeDefinitions: ChallengeDefinition[] = [
         principleKey: "challenges.gratitude3day.day3.principle",
         promptKey: "challenges.gratitude3day.day3.prompt",
         practiceKey: "challenges.gratitude3day.day3.practice",
+      },
+    ],
+  },
+  {
+    id: "shared-encouragement-3day",
+    titleKey: "challenges.sharedEncouragement3day.title",
+    descriptionKey: "challenges.sharedEncouragement3day.description",
+    totalDays: 3,
+    mode: MODE_KEYS.LIFE,
+    days: [
+      {
+        day: 1,
+        scripture: "Hebrews 10:24-25",
+        principleKey: "challenges.sharedEncouragement3day.day1.principle",
+        promptKey: "challenges.sharedEncouragement3day.day1.prompt",
+        practiceKey: "challenges.sharedEncouragement3day.day1.practice",
+      },
+      {
+        day: 2,
+        scripture: "Proverbs 27:17",
+        principleKey: "challenges.sharedEncouragement3day.day2.principle",
+        promptKey: "challenges.sharedEncouragement3day.day2.prompt",
+        practiceKey: "challenges.sharedEncouragement3day.day2.practice",
+      },
+      {
+        day: 3,
+        scripture: "Colossians 3:16",
+        principleKey: "challenges.sharedEncouragement3day.day3.principle",
+        promptKey: "challenges.sharedEncouragement3day.day3.prompt",
+        practiceKey: "challenges.sharedEncouragement3day.day3.practice",
       },
     ],
   },

@@ -434,6 +434,13 @@
     "guestMode": "Matsayin baƙo yana aiki. Shiga don daidaita shawara.",
     "backendUnavailable": "Baya babu. Matsayin baƙo har yanzu yana da amfani tare da hikimar gida.",
     "loadingInvite": "Ana loda gayyatar shawara ta sirri...",
+    "challengeInviteLoading": "Ana loda gayyatar aikin tare...",
+    "challengeInviteCouldNotOpen": "Ba a iya buɗe wannan gayyatar aikin tare ba.",
+    "challengeInviteAccepting": "Ana karɓar gayyatar aikin tare...",
+    "challengeInviteAccepted": "An karɓi gayyatar aikin tare. Yanzu za ku iya bin ci gaba tare.",
+    "challengeInviteNotAccepted": "Ba a iya karɓar wannan gayyatar aikin tare ba.",
+    "challengeInviteNudgeSent": "An aika ƙarfafawa.",
+    "challengeInviteNudgeFailed": "Ba a iya aika ƙarfafawar ba.",
     "restoringPreferences": "Ana maido da abubuwan da aka fi so…",
     "inviteCouldNotOpen": "Ba za a iya buɗe wannan gayyatar shawara ba.",
     "startingQuestionReady": "Tambayar farawa ta kai tsaye a shirye take a yankin Abokin tafiya.",
@@ -1569,6 +1576,26 @@
     "eyebrow": "Ayyukan Girma",
     "sectionTitle": "Ayyukan Girma",
     "sectionSummary": "Ayyukan kwanaki-kwanaki don gina aladu na hikima, godiya, da fahimi.",
+    "previewHint": "Danna kati don duba aikin kafin ka buɗe ƙungiyar da ake rabawa.",
+    "withFriends": "tare da abokai",
+    "challengeCompleteBody": "Gayyaci ƙungiyarka su yi murna, su kwatanta rubuce-rubuce, kuma su ci gaba da ƙarfafa juna.",
+    "communityTitle": "Ƙungiyar da ake rabawa",
+    "communitySummary": "Kowane mutum a cikin wannan ƙungiya na iya ganin ci gaba, tura ƙarfafawa, kuma ya ci gaba da aikin tare.",
+    "noCommunityYet": "Gayyaci aboki ka fara ƙungiyar da ake rabawa don wannan aikin.",
+    "inviteFriendsBody": "Ka mayar da wannan aikin zuwa na tare. Gayyaci aboki, ku amince tare, ku ga ci gaban juna.",
+    "creatingInvite": "Ana ƙirƙirar gayyata…",
+    "inviteFriends": "Gayyaci abokai",
+    "inviteReady": "Gayyata ta shirya",
+    "inviteEyebrow": "Gayyatar aikin tare",
+    "initiatedBy": "An fara ta da",
+    "sharedProgress": "Ci gaba na tare",
+    "nudges": "Ƙarfafawa",
+    "noNudgesYet": "Har yanzu babu ƙarfafawa. Aika na farko.",
+    "sendNudge": "Aika ƙarfafawa",
+    "nudgePlaceholder": "Rubuta gajeren ƙarfafawa ko duba halin…",
+    "sendNudgeButton": "Aika",
+    "joinPrompt": "Ana raba wannan aikin a sirrance. Shiga ko ƙirƙiri asusu don shiga.",
+    "acceptInvite": "Karɓi gayyata",
     "startChallenge": "Fara aiki",
     "continueChallenge": "Ci gaba",
     "completedChallenge": "Gama",
@@ -1602,6 +1629,25 @@
         "principle": "Na koyi, a kowane hali da nake ciki, in wadatu.",
         "prompt": "A ina wadatuwa ta kasance da wuya a wannan makon? Yaya zai kasance idan ka zaɓi godiya maimakon ƙaranci a wannan wurin?",
         "practice": "Ka faɗi wani yanki guda da godiya ke maye gurbin ƙaranci a yau."
+      }
+    },
+    "sharedEncouragement3day": {
+      "title": "Aikin ƙarfafawa na kwana 3 tare",
+      "description": "Kwana uku na ƙarfafawa juna: lura da juna, inganta juna, kuma ku gina juna a cikin ƙaramin ƙungiya ta tare.",
+      "day1": {
+        "principle": "Mu yi tunani game da yadda za mu ƙarfafi juna zuwa ga ƙauna da ayyuka masu kyau, ba tare da barin taro ba.",
+        "prompt": "Rubuta mutum guda da kake so ka ƙarfafa yau da dalili guda da ya sa yake da muhimmanci.",
+        "practice": "Ka ambaci ƙarfafawa ɗaya mai ma’ana ga aboki."
+      },
+      "day2": {
+        "principle": "Iron na kaifi da iron, mutum kuma na kaifi da mutum.",
+        "prompt": "Raba wata fahimta ko lura daga ranar ka da za ta iya taimaka wa wani ya girma.",
+        "practice": "Ba da gaskiya tare da taushi da ke ƙarfafawa."
+      },
+      "day3": {
+        "principle": "Bari maganar Kristi ta zauna a cikinku sosai, kuna koyarwa kuma kuna wa juna nasiha da hikima.",
+        "prompt": "Me ya canza a cikinka wannan makon saboda wani ya yi tafiya tare da kai?",
+        "practice": "Ka gode wa wani saboda yadda ya taimaka maka ka ci gaba."
       }
     },
     "waiting5day": {

@@ -237,6 +237,36 @@ async function initializeDatabase() {
       created_at TIMESTAMPTZ NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS challenge_circles (
+      id TEXT PRIMARY KEY,
+      challenge_id TEXT NOT NULL,
+      owner_user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      invite_token_hash TEXT NOT NULL UNIQUE,
+      invite_status TEXT NOT NULL DEFAULT 'pending',
+      note TEXT,
+      accepted_at TIMESTAMPTZ,
+      created_at TIMESTAMPTZ NOT NULL,
+      updated_at TIMESTAMPTZ NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS challenge_circle_members (
+      id TEXT PRIMARY KEY,
+      circle_id TEXT NOT NULL REFERENCES challenge_circles(id) ON DELETE CASCADE,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      role TEXT NOT NULL DEFAULT 'host',
+      joined_at TIMESTAMPTZ NOT NULL,
+      updated_at TIMESTAMPTZ NOT NULL,
+      UNIQUE(circle_id, user_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS challenge_circle_nudges (
+      id TEXT PRIMARY KEY,
+      circle_id TEXT NOT NULL REFERENCES challenge_circles(id) ON DELETE CASCADE,
+      sender_user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      body TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS rule_of_life_entries (
       id TEXT PRIMARY KEY,
       user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -332,6 +362,11 @@ async function initializeDatabase() {
     CREATE INDEX IF NOT EXISTS counsel_shared_decisions_user_idx ON counsel_shared_decisions(user_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS counsel_shared_decisions_contact_idx ON counsel_shared_decisions(contact_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS counsel_comments_contact_decision_idx ON counsel_comments(contact_id, decision_id, created_at DESC);
+    CREATE INDEX IF NOT EXISTS challenge_circles_owner_idx ON challenge_circles(owner_user_id, created_at DESC);
+    CREATE INDEX IF NOT EXISTS challenge_circles_invite_hash_idx ON challenge_circles(invite_token_hash);
+    CREATE INDEX IF NOT EXISTS challenge_circle_members_circle_idx ON challenge_circle_members(circle_id, joined_at DESC);
+    CREATE INDEX IF NOT EXISTS challenge_circle_members_user_idx ON challenge_circle_members(user_id, joined_at DESC);
+    CREATE INDEX IF NOT EXISTS challenge_circle_nudges_circle_idx ON challenge_circle_nudges(circle_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS wisdom_decisions_user_updated_idx ON wisdom_decisions(user_id, updated_at DESC);
     CREATE INDEX IF NOT EXISTS decision_events_user_created_idx ON decision_events(user_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS rule_of_life_entries_user_idx ON rule_of_life_entries(user_id);

@@ -434,6 +434,13 @@
     "guestMode": "Modo invitado activo. Inicia sesión para sincronizar decisiones.",
     "backendUnavailable": "Backend no disponible. El modo invitado aún es usable con sabiduría local.",
     "loadingInvite": "Cargando invitación de consejo privada...",
+    "challengeInviteLoading": "جارٍ تحميل دعوة الممارسة المشتركة...",
+    "challengeInviteCouldNotOpen": "تعذر فتح دعوة الممارسة المشتركة هذه.",
+    "challengeInviteAccepting": "جارٍ قبول دعوة الممارسة المشتركة...",
+    "challengeInviteAccepted": "تم قبول دعوة الممارسة المشتركة. يمكنكما الآن متابعة التقدم معًا.",
+    "challengeInviteNotAccepted": "تعذر قبول دعوة الممارسة المشتركة هذه.",
+    "challengeInviteNudgeSent": "تم إرسال التشجيع.",
+    "challengeInviteNudgeFailed": "تعذر إرسال التشجيع.",
     "restoringPreferences": "Restaurando preferencias…",
     "inviteCouldNotOpen": "Esta invitación de consejo no pudo abrirse.",
     "startingQuestionReady": "Una pregunta inicial personalizada está lista en el campo Compañero.",
@@ -1569,6 +1576,26 @@
     "eyebrow": "Prácticas de formación",
     "sectionTitle": "Prácticas de formación",
     "sectionSummary": "Prácticas de varios días para construir hábitos de sabiduría, gratitud y discernimiento.",
+    "previewHint": "اضغط على بطاقة لمعاينة الممارسة وفتح الدائرة المشتركة.",
+    "withFriends": "مع الأصدقاء",
+    "challengeCompleteBody": "ادعُ دائرتك للاحتفال ومقارنة الملاحظات وتشجيع بعضكم بعضًا.",
+    "communityTitle": "الدائرة المشتركة",
+    "communitySummary": "يمكن للجميع في هذه الدائرة رؤية التقدم وإرسال التنبيهات ومتابعة الممارسة معًا.",
+    "noCommunityYet": "ادعُ صديقًا لبدء دائرة مشتركة لهذه الممارسة.",
+    "inviteFriendsBody": "حوّلها إلى ممارسة مشتركة. ادعُ صديقًا، واقبلوا معًا، وشاهدوا تقدم بعضكم بعضًا.",
+    "creatingInvite": "جارٍ إنشاء الدعوة…",
+    "inviteFriends": "ادعُ الأصدقاء",
+    "inviteReady": "الدعوة جاهزة",
+    "inviteEyebrow": "دعوة لممارسة مشتركة",
+    "initiatedBy": "بدأها",
+    "sharedProgress": "التقدم المشترك",
+    "nudges": "تنبيهات",
+    "noNudgesYet": "لا توجد تنبيهات بعد. أرسل أول تشجيع.",
+    "sendNudge": "أرسل تنبيهًا",
+    "nudgePlaceholder": "اكتب تشجيعًا قصيرًا أو تسجيل وصول…",
+    "sendNudgeButton": "إرسال",
+    "joinPrompt": "تتم مشاركة هذه الممارسة بشكل خاص. سجّل الدخول أو أنشئ حسابًا للانضمام.",
+    "acceptInvite": "قبول الدعوة",
     "startChallenge": "Comenzar práctica",
     "continueChallenge": "Continuar",
     "completedChallenge": "Completado",
@@ -1602,6 +1629,25 @@
         "principle": "تعلمت أن أكون مكتفيًا بما أنا فيه.",
         "prompt": "أين كان القنوع صعبًا هذا الأسبوع؟ كيف سيبدو اختيار الامتنان بدل الندرة في ذلك الموضع؟",
         "practice": "اذكر مجالًا يحل فيه الامتنان اليوم محل الندرة."
+      }
+    },
+    "sharedEncouragement3day": {
+      "title": "ممارسة مشتركة للتشجيع لمدة 3 أيام",
+      "description": "ثلاثة أيام من التشجيع المتبادل: انتبهوا لبعضكم بعضًا، واصقلوا بعضكم بعضًا، وابنوا بعضكم بعضًا في دائرة مشتركة صغيرة.",
+      "day1": {
+        "principle": "لنلاحظ كيف نحرض بعضنا بعضًا على المحبة والأعمال الصالحة، غير متخلين عن الاجتماع معًا.",
+        "prompt": "اكتب اسم شخص تريد أن تشجعه اليوم وسببًا واحدًا يجعل حضوره مهمًا.",
+        "practice": "اذكر تشجيعًا ملموسًا لصديق."
+      },
+      "day2": {
+        "principle": "الحديد بالحديد يحدد، والإنسان يحدد وجه صاحبه.",
+        "prompt": "شارك فكرة أو ملاحظة من يومك قد تساعد شخصًا آخر على النمو.",
+        "practice": "قدّم ملاحظة صادقة ومهذبة تساعد على التهذيب."
+      },
+      "day3": {
+        "principle": "لتسكن كلمة المسيح فيكم بغنى، معلمين ومنذرين بعضكم بعضًا بكل حكمة.",
+        "prompt": "ما الذي تغيّر فيك هذا الأسبوع لأن أحدًا سار معك؟",
+        "practice": "اشكر شخصًا على الطريقة التي ساعدك بها على المضي قدمًا."
       }
     },
     "waiting5day": {

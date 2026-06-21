@@ -434,6 +434,13 @@
     "guestMode": "Modo convidado ativo. Entre para sincronizar decisões.",
     "backendUnavailable": "Backend indisponível. O modo convidado ainda é usável com sabedoria local.",
     "loadingInvite": "Carregando convite de conselho privado...",
+    "challengeInviteLoading": "Carregando convite de prática compartilhada...",
+    "challengeInviteCouldNotOpen": "Este convite de prática compartilhada não pôde ser aberto.",
+    "challengeInviteAccepting": "Aceitando convite de prática compartilhada...",
+    "challengeInviteAccepted": "Convite de prática compartilhada aceito. Agora vocês podem acompanhar o progresso juntos.",
+    "challengeInviteNotAccepted": "Este convite de prática compartilhada não pôde ser aceito.",
+    "challengeInviteNudgeSent": "Incentivo enviado.",
+    "challengeInviteNudgeFailed": "O incentivo não pôde ser enviado.",
     "restoringPreferences": "Restaurando preferências…",
     "inviteCouldNotOpen": "Este convite de conselho não pôde ser aberto.",
     "startingQuestionReady": "Uma pergunta inicial personalizada está pronta no campo Companheiro.",
@@ -1569,6 +1576,26 @@
     "eyebrow": "Práticas de formação",
     "sectionTitle": "Práticas de formação",
     "sectionSummary": "Práticas de vários dias para construir hábitos de sabedoria, gratidão e discernimento.",
+    "previewHint": "Toque em um cartão para pré-visualizar a prática e abrir o círculo compartilhado.",
+    "withFriends": "com amigos",
+    "challengeCompleteBody": "Convide seu círculo para celebrar, comparar notas e continuar se encorajando.",
+    "communityTitle": "Círculo compartilhado",
+    "communitySummary": "Todos neste círculo podem ver o progresso, enviar incentivos e manter a prática em movimento juntos.",
+    "noCommunityYet": "Convide um amigo para iniciar um círculo compartilhado para esta prática.",
+    "inviteFriendsBody": "Transforme isso em uma prática compartilhada. Convide um amigo, aceitem juntos e vejam o progresso de cada um.",
+    "creatingInvite": "Criando convite…",
+    "inviteFriends": "Convidar amigos",
+    "inviteReady": "Convite pronto",
+    "inviteEyebrow": "Convite para prática compartilhada",
+    "initiatedBy": "Iniciado por",
+    "sharedProgress": "Progresso compartilhado",
+    "nudges": "Incentivos",
+    "noNudgesYet": "Ainda não há incentivos. Envie o primeiro.",
+    "sendNudge": "Enviar incentivo",
+    "nudgePlaceholder": "Escreva um incentivo curto ou uma atualização…",
+    "sendNudgeButton": "Enviar incentivo",
+    "joinPrompt": "Esta prática é compartilhada de forma privada. Entre ou crie uma conta para participar.",
+    "acceptInvite": "Aceitar convite",
     "startChallenge": "Iniciar prática",
     "continueChallenge": "Continuar",
     "completedChallenge": "Concluído",
@@ -1602,6 +1629,25 @@
         "principle": "Aprendi a viver contente em toda e qualquer situação.",
         "prompt": "Em que área o contentamento tem sido difícil esta semana? Como seria escolher gratidão em vez de escassez nesse lugar?",
         "practice": "Nomeie uma área em que a gratidão está substituindo a escassez hoje."
+      }
+    },
+    "sharedEncouragement3day": {
+      "title": "Prática compartilhada de incentivo por 3 dias",
+      "description": "Três dias de incentivo mútuo: notar uns aos outros, afiar uns aos outros e construir uns aos outros em um pequeno círculo compartilhado.",
+      "day1": {
+        "principle": "Consideremos como estimular uns aos outros ao amor e às boas obras, sem deixar de nos reunir.",
+        "prompt": "Escreva uma pessoa que você quer encorajar hoje e um motivo pelo qual ela importa.",
+        "practice": "Nomeie um incentivo concreto para um amigo."
+      },
+      "day2": {
+        "principle": "Assim como o ferro afia o ferro, uma pessoa afia a outra.",
+        "prompt": "Compartilhe uma percepção ou observação do seu dia que possa ajudar outra pessoa a crescer.",
+        "practice": "Ofereça uma observação honesta que ajude a afiar, com gentileza."
+      },
+      "day3": {
+        "principle": "Que a palavra de Cristo habite ricamente em vocês, ensinando e aconselhando uns aos outros com toda a sabedoria.",
+        "prompt": "O que mudou em você nesta semana porque alguém caminhou com você?",
+        "practice": "Agradeça a alguém pela forma como ajudou você a continuar."
       }
     },
     "waiting5day": {

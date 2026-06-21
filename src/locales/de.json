@@ -434,6 +434,13 @@
     "guestMode": "Gast-Modus aktiv. Melde dich an, um Entscheidungen zu synchronisieren.",
     "backendUnavailable": "Backend nicht verfügbar. Gast-Modus ist weiterhin mit lokaler Weisheit nutzbar.",
     "loadingInvite": "Private Ratgebereinladung wird geladen...",
+    "challengeInviteLoading": "Einladung zur gemeinsamen Praxis wird geladen...",
+    "challengeInviteCouldNotOpen": "Diese Einladung zur gemeinsamen Praxis konnte nicht geöffnet werden.",
+    "challengeInviteAccepting": "Einladung zur gemeinsamen Praxis wird angenommen...",
+    "challengeInviteAccepted": "Einladung zur gemeinsamen Praxis angenommen. Ihr könnt den Fortschritt jetzt gemeinsam verfolgen.",
+    "challengeInviteNotAccepted": "Diese Einladung zur gemeinsamen Praxis konnte nicht angenommen werden.",
+    "challengeInviteNudgeSent": "Anstoß gesendet.",
+    "challengeInviteNudgeFailed": "Der Anstoß konnte nicht gesendet werden.",
     "restoringPreferences": "Einstellungen werden wiederhergestellt…",
     "inviteCouldNotOpen": "Diese Ratgebereinladung konnte nicht geöffnet werden.",
     "startingQuestionReady": "Eine persönliche Startfrage ist im Begleiter-Feld bereit.",
@@ -1569,6 +1576,26 @@
     "eyebrow": "Formungspraktiken",
     "sectionTitle": "Formungspraktiken",
     "sectionSummary": "Mehrtagespraktiken zum Aufbau von Weisheits-, Dankbarkeits- und Unterscheidungsgewohnheiten.",
+    "previewHint": "Tippe auf eine Karte, um die Praxis anzusehen und den geteilten Kreis zu öffnen.",
+    "withFriends": "mit Freunden",
+    "challengeCompleteBody": "Lade deinen Kreis ein, mitzufeiern, Notizen zu vergleichen und euch weiter zu ermutigen.",
+    "communityTitle": "Geteilter Kreis",
+    "communitySummary": "Alle in diesem Kreis sehen den Fortschritt, schicken Anstöße und halten die Praxis gemeinsam in Bewegung.",
+    "noCommunityYet": "Lade eine Freundin oder einen Freund ein, um für diese Praxis einen geteilten Kreis zu starten.",
+    "inviteFriendsBody": "Mach daraus eine gemeinsame Praxis. Lade jemanden ein, nehmt zusammen an und seht den Fortschritt voneinander.",
+    "creatingInvite": "Einladung wird erstellt…",
+    "inviteFriends": "Freunde einladen",
+    "inviteReady": "Einladung bereit",
+    "inviteEyebrow": "Einladung zur gemeinsamen Praxis",
+    "initiatedBy": "Initiiert von",
+    "sharedProgress": "Gemeinsamer Fortschritt",
+    "nudges": "Anstöße",
+    "noNudgesYet": "Noch keine Anstöße. Sende die erste Ermutigung.",
+    "sendNudge": "Anstoß senden",
+    "nudgePlaceholder": "Schreibe eine kurze Ermutigung oder einen Check-in…",
+    "sendNudgeButton": "Anstoß senden",
+    "joinPrompt": "Diese Praxis wird privat geteilt. Melde dich an oder erstelle ein Konto, um mitzumachen.",
+    "acceptInvite": "Einladung annehmen",
     "startChallenge": "Praxis beginnen",
     "continueChallenge": "Fortsetzen",
     "completedChallenge": "Abgeschlossen",
@@ -1602,6 +1629,25 @@
         "principle": "Ich habe gelernt, mir genügen zu lassen, worin ich auch bin.",
         "prompt": "Wo war Zufriedenheit diese Woche schwer? Wie sähe es dort aus, Dankbarkeit statt Mangel zu wählen?",
         "practice": "Nenne einen Bereich, in dem Dankbarkeit heute den Mangel ersetzt."
+      }
+    },
+    "sharedEncouragement3day": {
+      "title": "3-tägige gemeinsame Ermutigungspraxis",
+      "description": "Drei Tage gegenseitiger Ermutigung: einander wahrnehmen, einander schärfen und sich in einem kleinen geteilten Kreis gegenseitig aufbauen.",
+      "day1": {
+        "principle": "Lasst uns darauf achten, einander zur Liebe und zu guten Werken anzuregen, und unsere Zusammenkünfte nicht zu verlassen.",
+        "prompt": "Schreibe eine Person auf, die du heute ermutigen möchtest, und warum sie wichtig ist.",
+        "practice": "Nenne eine konkrete Ermutigung für einen Freund."
+      },
+      "day2": {
+        "principle": "Eisen schärft Eisen, und ein Mensch schärft den anderen.",
+        "prompt": "Teile eine Einsicht oder Beobachtung aus deinem Tag, die jemand anderem helfen könnte zu wachsen.",
+        "practice": "Gib eine ehrliche, schärfende Beobachtung mit Freundlichkeit weiter."
+      },
+      "day3": {
+        "principle": "Lasst das Wort des Christus reichlich unter euch wohnen, indem ihr einander in aller Weisheit lehrt und ermahnt.",
+        "prompt": "Was hat sich diese Woche in dir verändert, weil jemand mit dir gegangen ist?",
+        "practice": "Danke jemandem dafür, wie er dir geholfen hat, weiterzumachen."
       }
     },
     "waiting5day": {
