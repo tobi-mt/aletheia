@@ -14529,16 +14529,6 @@ function ChallengeRecommendationCard({
             {recommendation.note}
           </p>
         </div>
-        <span
-          className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]"
-          style={{
-            borderColor: theme.borderMedium,
-            backgroundColor: theme.bgInput,
-            color: theme.textSecondary,
-          }}
-        >
-          {actionLabel}
-        </span>
       </div>
 
       <div className="mt-3">
@@ -16069,9 +16059,9 @@ function FormationRailSection({
                         const statusLabel =
                           state === "completed"
                             ? ts("challenges.completedChallenge")
-                            : state === "current"
-                              ? (selectedChallenge.completedDays.length > 0 ? ts("challenges.continueChallenge") : ts("challenges.startChallenge"))
-                              : ts("labels.preview");
+                            : selectedChallenge.completedDays.length > 0
+                              ? ts("challenges.continueChallenge")
+                              : ts("challenges.startChallenge");
 
                         return (
                           <button
