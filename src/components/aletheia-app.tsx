@@ -424,8 +424,8 @@ const managedSpeechVoices: ManagedVoiceOption[] = [
   { id: "sage", label: enTranslations.voiceOptions.sage.label, description: enTranslations.voiceOptions.sage.description },
 ];
 
-// Prefer the browser's built-in speech on web for faster starts and fewer hangs.
-const browserSpeechFallbackLength = 0;
+// Prefer generated audio for selected voices; browser speech is only a last fallback.
+const browserSpeechFallbackLength = Number.POSITIVE_INFINITY;
 
 const defaultManagedVoiceByLanguage: Partial<Record<LanguageCode, string>> = {
   en: "marin",
@@ -6405,6 +6405,7 @@ export function AletheiaApp() {
   const [speechPaused, setSpeechPaused] = useState(false);
   const [speechProgress, setSpeechProgress] = useState(0);
   const [readingLabel, setReadingLabel] = useState("");
+  const [readingVoiceId, setReadingVoiceId] = useState<string | null>(null);
   const [carryToday, setCarryToday] = useState<CarryToday | null>(null);
   const [scriptureMemory, setScriptureMemory] = useState<ScriptureMemory | null>(null);
   const [availableVoices] = useState<ManagedVoiceOption[]>(managedSpeechVoices);
@@ -6979,6 +6980,7 @@ export function AletheiaApp() {
             setSpeechPaused(false);
             setSpeechProgress(0);
             setReadingLabel("");
+            setReadingVoiceId(null);
             setStatusMessage("");
             return;
           }
@@ -6988,6 +6990,8 @@ export function AletheiaApp() {
             setSpeechPaused(false);
             setSpeechProgress(0);
             setReadingLabel("");
+            setReadingVoiceId(null);
+            setStatusMessage("");
           }
         });
       } catch (error) {
@@ -9179,7 +9183,7 @@ export function AletheiaApp() {
     }
   }
 
-  function stopSpeech() {
+  function stopSpeech({ announce = true }: { announce?: boolean } = {}) {
     managedPlaybackRequestRef.current += 1;
     browserSpeechActiveRef.current = false;
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
@@ -9204,7 +9208,11 @@ export function AletheiaApp() {
     setSpeechPaused(false);
     setSpeechProgress(0);
     setReadingLabel("");
-    announceWorkflow(ts('notifications.voiceStopped'), ts('notifications.voiceStoppedBody'), "info");
+    setReadingVoiceId(null);
+    setStatusMessage("");
+    if (announce) {
+      announceWorkflow(ts('notifications.voiceStopped'), ts('notifications.voiceStoppedBody'), "info");
+    }
   }
 
   async function speakText(
@@ -9218,8 +9226,7 @@ export function AletheiaApp() {
       return;
     }
     if (isSpeaking) {
-      stopSpeech();
-      return;
+      stopSpeech({ announce: false });
     }
 
     trackClientEvent("read_aloud_started", {
@@ -9233,13 +9240,26 @@ export function AletheiaApp() {
 
     const playbackRequest = ++managedPlaybackRequestRef.current;
     setReadingLabel(label);
-    setSpeechProgress(0);
+    setReadingVoiceId(voiceId);
+    setSpeechProgress(1);
     setStatusMessage(notice);
     setIsSpeaking(true);
     setSpeechLoading(true);
     setSpeechPaused(false);
 
     try {
+      if (Capacitor.isNativePlatform()) {
+        await ManagedAudio.speak({
+          text: cleanText,
+          voice: voiceId,
+          language: preferences.language,
+          speed: pacing.rate,
+          notice,
+          label,
+        });
+        return;
+      }
+
       if (
         typeof window !== "undefined" &&
         "speechSynthesis" in window &&
@@ -9274,6 +9294,7 @@ export function AletheiaApp() {
           setSpeechPaused(false);
           setSpeechProgress(0);
           setReadingLabel("");
+          setReadingVoiceId(null);
           setStatusMessage("");
         };
         utterance.onerror = () => {
@@ -9286,24 +9307,13 @@ export function AletheiaApp() {
           setSpeechPaused(false);
           setSpeechProgress(0);
           setReadingLabel("");
+          setReadingVoiceId(null);
           setPreferencesStatus(ts('notifications.voiceOutputUnavailableBody'));
           announceWorkflow(ts('notifications.voiceOutputUnavailable'), ts('notifications.voiceOutputUnavailableBody'), "warning");
         };
 
         speechSynthesis.cancel();
         speechSynthesis.speak(utterance);
-        return;
-      }
-
-      if (Capacitor.isNativePlatform()) {
-        await ManagedAudio.speak({
-          text: cleanText,
-          voice: voiceId,
-          language: preferences.language,
-          speed: pacing.rate,
-          notice,
-          label,
-        });
         return;
       }
 
@@ -9346,6 +9356,8 @@ export function AletheiaApp() {
         if (contentLength > 0) {
           const downloadProgress = Math.floor((receivedLength / contentLength) * 80);
           setSpeechProgress(downloadProgress);
+        } else {
+          setSpeechProgress((current) => Math.max(current, Math.min(80, 10 + chunks.length * 5)));
         }
       }
 
@@ -9368,17 +9380,11 @@ export function AletheiaApp() {
         managedAudioRef.current = audio;
         audio.preload = "auto";
         audio.addEventListener("canplay", () => {
-          // Audio has buffered enough to start playback
-          if (managedPlaybackRequestRef.current === playbackRequest) {
-            setSpeechProgress(90);
-            setSpeechLoading(false);
-          }
+          setSpeechProgress((current) => Math.max(current, 90));
+          setSpeechLoading(false);
         });
         audio.addEventListener("playing", () => {
-          // Audio is actually playing now
-          if (managedPlaybackRequestRef.current === playbackRequest) {
-            setSpeechLoading(false);
-          }
+          setSpeechLoading(false);
         });
         audio.addEventListener("timeupdate", () => {
           if (!audio.duration || !Number.isFinite(audio.duration) || audio.duration <= 0) {
@@ -9396,6 +9402,7 @@ export function AletheiaApp() {
           setSpeechPaused(false);
           setSpeechProgress(0);
           setReadingLabel("");
+          setReadingVoiceId(null);
           setStatusMessage("");
         });
         audio.addEventListener("error", () => {
@@ -9408,6 +9415,7 @@ export function AletheiaApp() {
           setSpeechPaused(false);
           setSpeechProgress(0);
           setReadingLabel("");
+          setReadingVoiceId(null);
           setPreferencesStatus(ts('notifications.voiceOutputUnavailableBody'));
           announceWorkflow(ts('notifications.voiceOutputUnavailable'), ts('notifications.voiceOutputUnavailableBody'), "warning");
         });
@@ -9418,12 +9426,7 @@ export function AletheiaApp() {
       audio.src = audioUrl;
       audio.volume = 1;
       audio.playbackRate = 1;
-      
-      // Start playback and let canplay event update loading state
-      await audio.play().catch(() => {
-        // play() might be blocked by browser autoplay policy
-        // The canplay event will still update the UI
-      });
+      await audio.play();
 
       if ('wakeLock' in navigator) {
         (navigator as Navigator & { wakeLock: { request: (type: string) => Promise<{ release: () => void }> } })
@@ -9443,6 +9446,7 @@ export function AletheiaApp() {
         setSpeechPaused(false);
         setSpeechProgress(0);
         setReadingLabel("");
+        setReadingVoiceId(null);
         setPreferencesStatus(ts('notifications.voiceOutputUnavailableBody'));
         announceWorkflow(ts('notifications.voiceOutputUnavailable'), ts('notifications.voiceOutputUnavailableBody'), "warning");
       }
@@ -11538,7 +11542,7 @@ export function AletheiaApp() {
         progress={speechProgress}
         loading={speechLoading}
         paused={speechPaused}
-        voiceName={managedVoiceLabel(selectedVoice)}
+        voiceName={managedVoiceLabel(readingVoiceId ?? selectedVoice)}
         ts={ts}
         onTogglePause={toggleSpeechPause}
         onStop={stopSpeech}
