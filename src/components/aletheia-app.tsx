@@ -7177,6 +7177,7 @@ export function AletheiaApp() {
 
       document.documentElement.style.setProperty("--aletheia-bottom-reserve", `${bottomReserve}px`);
       document.documentElement.style.setProperty("--aletheia-bottom-nav-gap", `${bottomNavGap}`);
+      document.documentElement.style.setProperty("--aletheia-device-bottom-inset", "0px");
       document.documentElement.style.setProperty("--aletheia-bottom-nav-pad-y", `${bottomNavPadY}`);
       document.documentElement.style.setProperty("--aletheia-bottom-nav-pad-x", `${bottomNavPadX}`);
       document.documentElement.style.setProperty("--aletheia-bottom-nav-radius", `${bottomNavRadius}`);
@@ -11752,11 +11753,11 @@ export function AletheiaApp() {
                     ? "rgba(250, 241, 246, 0.62)"
                     : "rgba(238, 242, 239, 0.62)",
         width: "var(--aletheia-bottom-nav-width, min(calc(100vw - 1rem), 28rem))",
-        bottom: "calc(env(safe-area-inset-bottom, 0px) * -1)",
+        bottom: 0,
         borderRadius: "calc(var(--aletheia-bottom-nav-radius, 1.5) * 1rem)",
         paddingTop: "calc(var(--aletheia-bottom-nav-pad-y, 0.6) * 1rem)",
         paddingRight: "calc(var(--aletheia-bottom-nav-pad-x, 0.85) * 1rem)",
-        paddingBottom: "calc(var(--aletheia-bottom-nav-pad-y, 0.6) * 1rem + env(safe-area-inset-bottom, 0px))",
+        paddingBottom: "calc(var(--aletheia-bottom-nav-pad-y, 0.6) * 1rem)",
         paddingLeft: "calc(var(--aletheia-bottom-nav-pad-x, 0.85) * 1rem)",
       }}>
         <div className="grid grid-cols-5 gap-1">
