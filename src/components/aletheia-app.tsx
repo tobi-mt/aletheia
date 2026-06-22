@@ -11350,12 +11350,19 @@ export function AletheiaApp() {
               </select>
             </label>
             <button
-              className="app-chrome-control premium-tap-card grid h-[2.625rem] w-[2.625rem] place-items-center rounded-full border shadow-sm transition"
-              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textPrimary }}
-              aria-label={user ? ts('labels.openAccount') : ts('labels.openGuestDashboard')}
-              onClick={() => showView("companion")}
+              className="app-chrome-control premium-tap-card relative grid h-[2.625rem] w-[2.625rem] place-items-center overflow-hidden rounded-full border shadow-sm transition"
+              style={{
+                borderColor: theme.accentLight,
+                background: `linear-gradient(145deg, ${theme.primary} 0%, color-mix(in srgb, ${theme.primary} 76%, ${theme.accentLight}) 100%)`,
+                color: theme.primaryText,
+                boxShadow: `0 12px 26px color-mix(in srgb, ${theme.primary} 24%, transparent), inset 0 1px 0 rgba(255,255,255,0.16)`,
+              }}
+              aria-label={ui.askTitle}
+              title={ui.askTitle}
+              onClick={askOneQuestionFlow}
             >
-              <Home size={17} />
+              <MessageCircle size={17} />
+              <Sparkles className="pointer-events-none absolute right-2 top-2" size={8} aria-hidden="true" />
             </button>
           </div>
         </div>
