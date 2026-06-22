@@ -1,6 +1,11 @@
-const buildId = new URL(self.location.href).searchParams.get("v") || "dev";
-const CACHE_NAME = `aletheia-${buildId}`;
-const MANIFEST_URL = `/manifest.webmanifest?v=${buildId}`;
+import { BUILD_ID } from "@/lib/build-version";
+
+export const dynamic = "force-dynamic";
+
+const swScript = String.raw`
+const buildId = "__BUILD_ID__";
+const CACHE_NAME = "aletheia-" + buildId;
+const MANIFEST_URL = "/manifest.webmanifest?v=" + encodeURIComponent(buildId);
 const APP_SHELL = [
   "/",
   MANIFEST_URL,
@@ -156,3 +161,15 @@ self.addEventListener("notificationclick", (event) => {
     ])
   );
 });
+`;
+
+export async function GET() {
+  return new Response(swScript.replaceAll("__BUILD_ID__", BUILD_ID), {
+    headers: {
+      "Content-Type": "application/javascript; charset=utf-8",
+      "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+      "Pragma": "no-cache",
+      "Expires": "0",
+    },
+  });
+}
