@@ -6585,6 +6585,7 @@ export function AletheiaApp() {
     return loadTranslationsSync(preferences.language);
   }, [preferences.language]);
   
+  const appShellRef = useRef<HTMLElement | null>(null);
   const workspaceRef = useRef<HTMLElement | null>(null);
   const bottomNavRef = useRef<HTMLDivElement | null>(null);
   const updateRefreshTimeoutRef = useRef<number | null>(null);
@@ -7277,11 +7278,8 @@ export function AletheiaApp() {
       if (!target) {
         return false;
       }
-      const topNav = document.querySelector(".app-top-nav");
-      const topOffset = topNav instanceof HTMLElement ? topNav.getBoundingClientRect().height + 18 : 112;
-      const top = Math.max(0, window.scrollY + target.getBoundingClientRect().top - topOffset);
       target.focus({ preventScroll: true });
-      window.scrollTo({ top, behavior: "smooth" });
+      scrollTargetBelowTopChrome(target);
       return true;
     };
 
@@ -7315,11 +7313,8 @@ export function AletheiaApp() {
       if (!target) {
         return false;
       }
-      const topNav = document.querySelector(".app-top-nav");
-      const topOffset = topNav instanceof HTMLElement ? topNav.getBoundingClientRect().height + 18 : 112;
-      const top = Math.max(0, window.scrollY + target.getBoundingClientRect().top - topOffset);
       target.focus({ preventScroll: true });
-      window.scrollTo({ top, behavior: "smooth" });
+      scrollTargetBelowTopChrome(target);
       return true;
     };
 
@@ -7358,11 +7353,8 @@ export function AletheiaApp() {
       if (!target) {
         return false;
       }
-      const topNav = document.querySelector(".app-top-nav");
-      const topOffset = topNav instanceof HTMLElement ? topNav.getBoundingClientRect().height + 18 : 112;
-      const top = Math.max(0, window.scrollY + target.getBoundingClientRect().top - topOffset);
       target.focus({ preventScroll: true });
-      window.scrollTo({ top, behavior: "smooth" });
+      scrollTargetBelowTopChrome(target);
       return true;
     };
 
@@ -7699,9 +7691,7 @@ export function AletheiaApp() {
       window.history.scrollRestoration = "manual";
     }
 
-    const resetToTop = () => {
-      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
-    };
+    const resetToTop = () => scrollAppToTop("auto");
 
     // Run after layout effects/paint to avoid hydration-time jumps.
     window.requestAnimationFrame(() => {
@@ -8324,10 +8314,36 @@ export function AletheiaApp() {
     });
   }
 
+  function scrollAppToTop(behavior: ScrollBehavior = "auto") {
+    const shell = appShellRef.current;
+    if (shell) {
+      shell.scrollTo({ top: 0, left: 0, behavior });
+      return;
+    }
+    window.scrollTo({ top: 0, left: 0, behavior });
+  }
+
+  function scrollTargetBelowTopChrome(target: HTMLElement, behavior: ScrollBehavior = "smooth") {
+    const topNav = document.querySelector(".app-top-nav");
+    const topOffset = topNav instanceof HTMLElement ? topNav.getBoundingClientRect().height + 18 : 112;
+    const shell = appShellRef.current;
+    const targetRect = target.getBoundingClientRect();
+
+    if (shell) {
+      const shellRect = shell.getBoundingClientRect();
+      const top = Math.max(0, shell.scrollTop + targetRect.top - shellRect.top - topOffset);
+      shell.scrollTo({ top, behavior });
+      return;
+    }
+
+    const top = Math.max(0, window.scrollY + targetRect.top - topOffset);
+    window.scrollTo({ top, behavior });
+  }
+
   function showView(view: View) {
     setActiveView(view, "show_view");
     window.requestAnimationFrame(() => {
-      window.scrollTo({ top: 0, behavior: "auto" });
+      scrollAppToTop("auto");
     });
   }
 
@@ -11131,7 +11147,7 @@ export function AletheiaApp() {
   }
 
   return (
-    <main className={`app-shell min-h-screen overflow-x-hidden ${resolvedTheme === "dark" || resolvedTheme === "black" ? "theme-dark-root" : ""}`} style={{ backgroundColor: theme.bgMain, color: theme.textPrimary, minHeight: '100dvh' }}>
+    <main ref={appShellRef} className={`app-shell min-h-screen overflow-x-hidden ${resolvedTheme === "dark" || resolvedTheme === "black" ? "theme-dark-root" : ""}`} style={{ backgroundColor: theme.bgMain, color: theme.textPrimary, minHeight: '100dvh' }}>
       <div
         className={`fixed inset-0 -z-10 ${theme.bgGradient}`}
         style={{ backgroundColor: theme.bgMain }}

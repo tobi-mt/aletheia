@@ -91,10 +91,18 @@ body {
 }
 
 .app-shell {
-  position: relative;
+  position: fixed;
+  inset: 0;
   isolation: isolate;
+  width: 100%;
+  height: 100dvh;
+  min-height: 100dvh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
   padding-top: calc(var(--aletheia-top-nav-space) + clamp(0.45rem, 1.2vw, 0.85rem));
   padding-bottom: max(env(safe-area-inset-bottom, 0px), var(--aletheia-bottom-reserve));
+  -webkit-overflow-scrolling: touch;
 }
 
 .app-shell [id] {
