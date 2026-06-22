@@ -426,6 +426,7 @@ const managedSpeechVoices: ManagedVoiceOption[] = [
 
 // Prefer generated audio for selected voices; browser speech is only a last fallback.
 const browserSpeechFallbackLength = Number.POSITIVE_INFINITY;
+const SPEECH_AUDIO_CHUNK_TARGET = 700;
 
 const defaultManagedVoiceByLanguage: Partial<Record<LanguageCode, string>> = {
   en: "marin",
@@ -454,6 +455,63 @@ function managedVoiceLabel(voiceId: string | null | undefined) {
 
 function browserSpeechLanguage(language: LanguageCode) {
   return languages[language]?.speech ?? "en-US";
+}
+
+function splitLongSpeechSegment(segment: string, maxLength = SPEECH_AUDIO_CHUNK_TARGET) {
+  const words = segment.split(/\s+/).filter(Boolean);
+  const chunks: string[] = [];
+  let current = "";
+
+  for (const word of words) {
+    const next = current ? `${current} ${word}` : word;
+    if (next.length > maxLength && current) {
+      chunks.push(current);
+      current = word;
+    } else {
+      current = next;
+    }
+  }
+
+  if (current) {
+    chunks.push(current);
+  }
+  return chunks;
+}
+
+function speechAudioChunks(text: string) {
+  const normalized = text.replace(/\s+/g, " ").trim();
+  if (!normalized) {
+    return [];
+  }
+
+  const sentences = normalized.split(/(?<=[.!?;:])\s+/).filter(Boolean);
+  const chunks: string[] = [];
+  let current = "";
+
+  for (const sentence of sentences) {
+    if (sentence.length > SPEECH_AUDIO_CHUNK_TARGET) {
+      if (current) {
+        chunks.push(current);
+        current = "";
+      }
+      chunks.push(...splitLongSpeechSegment(sentence));
+      continue;
+    }
+
+    const next = current ? `${current} ${sentence}` : sentence;
+    if (next.length > SPEECH_AUDIO_CHUNK_TARGET && current) {
+      chunks.push(current);
+      current = sentence;
+    } else {
+      current = next;
+    }
+  }
+
+  if (current) {
+    chunks.push(current);
+  }
+
+  return chunks.length ? chunks : [normalized];
 }
 
 const DEFAULT_NOTIFICATION_TIMING: NotificationTiming = {
@@ -6450,6 +6508,9 @@ export function AletheiaApp() {
   const managedAudioRef = useRef<HTMLAudioElement | null>(null);
   const managedAudioUrlRef = useRef<string | null>(null);
   const managedPlaybackRequestRef = useRef(0);
+  const managedAudioHasQueuedSegmentRef = useRef(false);
+  const managedAudioProgressBaseRef = useRef(0);
+  const managedAudioProgressSpanRef = useRef(100);
   const browserSpeechActiveRef = useRef(false);
   const [counselName, setCounselName] = useState("");
   const [counselRole, setCounselRole] = useState("mentor");
@@ -7012,6 +7073,7 @@ export function AletheiaApp() {
     return () => {
       managedPlaybackRequestRef.current += 1;
       browserSpeechActiveRef.current = false;
+      managedAudioHasQueuedSegmentRef.current = false;
       if (typeof window !== "undefined" && "speechSynthesis" in window) {
         window.speechSynthesis.cancel();
       }
@@ -9140,6 +9202,32 @@ export function AletheiaApp() {
 
   function toggleSpeechPause() {
     if (!isSpeaking || speechLoading) return;
+    if (browserSpeechActiveRef.current && typeof window !== "undefined" && "speechSynthesis" in window) {
+      if (speechPaused) {
+        window.speechSynthesis.resume();
+        setSpeechPaused(false);
+      } else {
+        window.speechSynthesis.pause();
+        setSpeechPaused(true);
+      }
+      return;
+    }
+
+    const audio = managedAudioRef.current;
+    if (audio?.src) {
+      if (audio.paused) {
+        audio.play().catch(() => {
+          setPreferencesStatus(ts('notifications.voiceOutputUnavailableBody'));
+          announceWorkflow(ts('notifications.voiceOutputUnavailable'), ts('notifications.voiceOutputUnavailableBody'), "warning");
+        });
+        setSpeechPaused(false);
+      } else {
+        audio.pause();
+        setSpeechPaused(true);
+      }
+      return;
+    }
+
     if (Capacitor.isNativePlatform()) {
       if (speechPaused) {
         void ManagedAudio.resume().catch(() => {
@@ -9154,38 +9242,13 @@ export function AletheiaApp() {
         });
         setSpeechPaused(true);
       }
-      return;
-    }
-
-    if (browserSpeechActiveRef.current && typeof window !== "undefined" && "speechSynthesis" in window) {
-      if (speechPaused) {
-        window.speechSynthesis.resume();
-        setSpeechPaused(false);
-      } else {
-        window.speechSynthesis.pause();
-        setSpeechPaused(true);
-      }
-      return;
-    }
-
-    const audio = managedAudioRef.current;
-    if (!audio) return;
-
-    if (audio.paused) {
-      audio.play().catch(() => {
-        setPreferencesStatus(ts('notifications.voiceOutputUnavailableBody'));
-        announceWorkflow(ts('notifications.voiceOutputUnavailable'), ts('notifications.voiceOutputUnavailableBody'), "warning");
-      });
-      setSpeechPaused(false);
-    } else {
-      audio.pause();
-      setSpeechPaused(true);
     }
   }
 
   function stopSpeech({ announce = true }: { announce?: boolean } = {}) {
     managedPlaybackRequestRef.current += 1;
     browserSpeechActiveRef.current = false;
+    managedAudioHasQueuedSegmentRef.current = false;
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
       window.speechSynthesis.cancel();
     }
@@ -9248,18 +9311,6 @@ export function AletheiaApp() {
     setSpeechPaused(false);
 
     try {
-      if (Capacitor.isNativePlatform()) {
-        await ManagedAudio.speak({
-          text: cleanText,
-          voice: voiceId,
-          language: preferences.language,
-          speed: pacing.rate,
-          notice,
-          label,
-        });
-        return;
-      }
-
       if (
         typeof window !== "undefined" &&
         "speechSynthesis" in window &&
@@ -9317,70 +9368,13 @@ export function AletheiaApp() {
         return;
       }
 
-      const response = await fetch("/api/audio/speech", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          text: cleanText,
-          voice: voiceId,
-          language: preferences.language,
-          speed: pacing.rate,
-        }),
-      });
-
-      if (!response.ok) {
-        const message = await response.text().catch(() => "");
-        throw new Error(message || englishText.errors.audioRequestFailedStatus.replace("{status}", String(response.status)));
-      }
-
-      // Stream response instead of waiting for full blob
-      // This allows progress feedback while downloading
-      const reader = response.body?.getReader();
-      if (!reader) {
-        throw new Error(englishText.errors.responseStreamingNotSupported);
-      }
-
-      const chunks: Uint8Array[] = [];
-      let receivedLength = 0;
-      const contentLength = parseInt(response.headers.get("content-length") || "0", 10);
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        chunks.push(value);
-        receivedLength += value.length;
-
-        // Show download progress (0-80% for streaming, leaving room for buffering)
-        if (contentLength > 0) {
-          const downloadProgress = Math.floor((receivedLength / contentLength) * 80);
-          setSpeechProgress(downloadProgress);
-        } else {
-          setSpeechProgress((current) => Math.max(current, Math.min(80, 10 + chunks.length * 5)));
-        }
-      }
-
-      if (managedPlaybackRequestRef.current !== playbackRequest) {
-        return;
-      }
-
-      // Show 85% once downloaded
-      setSpeechProgress(85);
-      const blob = new Blob(chunks as BlobPart[], { type: response.headers.get("content-type") || "audio/mpeg" });
-
-      const audioUrl = URL.createObjectURL(blob);
-      if (managedAudioUrlRef.current) {
-        URL.revokeObjectURL(managedAudioUrlRef.current);
-      }
-      managedAudioUrlRef.current = audioUrl;
-
       const audio = managedAudioRef.current ?? new Audio();
       if (!managedAudioRef.current) {
         managedAudioRef.current = audio;
         audio.preload = "auto";
         audio.addEventListener("canplay", () => {
-          setSpeechProgress((current) => Math.max(current, 90));
+          const nextProgress = managedAudioProgressBaseRef.current + Math.min(2, managedAudioProgressSpanRef.current * 0.15);
+          setSpeechProgress((current) => Math.max(current, Math.min(99, Math.floor(nextProgress))));
           setSpeechLoading(false);
         });
         audio.addEventListener("playing", () => {
@@ -9390,12 +9384,17 @@ export function AletheiaApp() {
           if (!audio.duration || !Number.isFinite(audio.duration) || audio.duration <= 0) {
             return;
           }
-          setSpeechProgress(Math.max(0, Math.min(100, Math.floor((audio.currentTime / audio.duration) * 100))));
+          const segmentProgress = (audio.currentTime / audio.duration) * managedAudioProgressSpanRef.current;
+          setSpeechProgress(Math.max(0, Math.min(100, Math.floor(managedAudioProgressBaseRef.current + segmentProgress))));
         });
         audio.addEventListener("ended", () => {
           if (managedAudioUrlRef.current) {
             URL.revokeObjectURL(managedAudioUrlRef.current);
             managedAudioUrlRef.current = null;
+          }
+          if (managedAudioHasQueuedSegmentRef.current) {
+            setSpeechProgress((current) => Math.max(current, Math.floor(managedAudioProgressBaseRef.current + managedAudioProgressSpanRef.current)));
+            return;
           }
           setIsSpeaking(false);
           setSpeechLoading(false);
@@ -9421,12 +9420,109 @@ export function AletheiaApp() {
         });
       }
 
-      audio.pause();
-      audio.currentTime = 0;
-      audio.src = audioUrl;
-      audio.volume = 1;
-      audio.playbackRate = 1;
-      await audio.play();
+      async function fetchAudioChunk(chunkText: string, chunkIndex: number, reportProgress: boolean) {
+        const response = await fetch("/api/audio/speech", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            text: chunkText,
+            voice: voiceId,
+            language: preferences.language,
+            speed: pacing.rate,
+          }),
+        });
+
+        if (!response.ok) {
+          const message = await response.text().catch(() => "");
+          throw new Error(message || englishText.errors.audioRequestFailedStatus.replace("{status}", String(response.status)));
+        }
+
+        const reader = response.body?.getReader();
+        if (!reader) {
+          throw new Error(englishText.errors.responseStreamingNotSupported);
+        }
+
+        const audioBytes: Uint8Array[] = [];
+        let receivedLength = 0;
+        const contentLength = parseInt(response.headers.get("content-length") || "0", 10);
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          audioBytes.push(value);
+          receivedLength += value.length;
+
+          if (reportProgress) {
+            const base = (chunkIndex / textChunks.length) * 100;
+            const downloadSpan = Math.min(8, 80 / textChunks.length);
+            const downloadProgress = contentLength > 0
+              ? (receivedLength / contentLength) * downloadSpan
+              : Math.min(downloadSpan, audioBytes.length * 1.5);
+            setSpeechProgress((current) => Math.max(current, Math.floor(base + downloadProgress)));
+          }
+        }
+
+        return new Blob(audioBytes as BlobPart[], { type: response.headers.get("content-type") || "audio/mpeg" });
+      }
+
+      async function playAudioBlob(blob: Blob, chunkIndex: number, hasNextChunk: boolean) {
+        if (managedPlaybackRequestRef.current !== playbackRequest) {
+          return;
+        }
+
+        managedAudioProgressBaseRef.current = (chunkIndex / textChunks.length) * 100;
+        managedAudioProgressSpanRef.current = 100 / textChunks.length;
+        managedAudioHasQueuedSegmentRef.current = hasNextChunk;
+
+        const audioUrl = URL.createObjectURL(blob);
+        if (managedAudioUrlRef.current) {
+          URL.revokeObjectURL(managedAudioUrlRef.current);
+        }
+        managedAudioUrlRef.current = audioUrl;
+
+        await new Promise<void>((resolve, reject) => {
+          const cleanup = () => {
+            audio.removeEventListener("ended", handleEnded);
+            audio.removeEventListener("error", handleError);
+          };
+          const handleEnded = () => {
+            cleanup();
+            resolve();
+          };
+          const handleError = () => {
+            cleanup();
+            reject(new Error(englishText.errors.audioRequestFailedStatus.replace("{status}", "playback")));
+          };
+
+          audio.addEventListener("ended", handleEnded);
+          audio.addEventListener("error", handleError);
+          audio.pause();
+          audio.currentTime = 0;
+          audio.src = audioUrl;
+          audio.volume = 1;
+          audio.playbackRate = 1;
+          void audio.play().catch((error) => {
+            cleanup();
+            reject(error);
+          });
+        });
+      }
+
+      const textChunks = speechAudioChunks(cleanText);
+      let nextAudio = fetchAudioChunk(textChunks[0], 0, true);
+
+      for (let index = 0; index < textChunks.length; index += 1) {
+        const currentAudio = await nextAudio;
+        if (managedPlaybackRequestRef.current !== playbackRequest) {
+          return;
+        }
+        nextAudio = index + 1 < textChunks.length
+          ? fetchAudioChunk(textChunks[index + 1], index + 1, false)
+          : Promise.resolve(new Blob());
+        await playAudioBlob(currentAudio, index, index + 1 < textChunks.length);
+      }
 
       if ('wakeLock' in navigator) {
         (navigator as Navigator & { wakeLock: { request: (type: string) => Promise<{ release: () => void }> } })
@@ -22592,19 +22688,34 @@ function DecisionCompanionPanel({
   const hiddenCounselContacts = counselContacts.slice(3);
   const decisionOverviewCards = [
     {
+      icon: Clock3,
       label: ts('labels.activeDecisions'),
       value: String(activeDecisions.length),
-      body: activeDecisions.length ? (selectedDecision?.title ?? runtime.nextInDecisions) : runtime.decisionNextBodyEmpty,
+      detail: activeDecisions.length ? (selectedDecision?.title ?? runtime.nextInDecisions) : runtime.decisionNextBodyEmpty,
     },
     {
+      icon: Sparkles,
+      label: ts('labels.daysDiscerning'),
+      value: String(insight.daysDiscerning),
+      detail: runtime.decisionNextBodyActive,
+    },
+    {
+      icon: ShieldCheck,
+      label: ts('labels.patternsNoticed'),
+      value: String(insight.patterns.length),
+      detail: insight.gentleObservation,
+    },
+    {
+      icon: Users,
       label: ts('labels.trustedVoices'),
       value: String(counselContacts.length),
-      body: counselContacts.length ? ts('labels.counselCircleSummary') : ts('labels.inviteTrustedPeoplePrivate'),
+      detail: counselContacts.length ? ts('labels.counselCircleSummary') : ts('labels.inviteTrustedPeoplePrivate'),
     },
     {
+      icon: FileText,
       label: ts('labels.eventsRecorded'),
       value: String(events.length),
-      body: insight.gentleObservation,
+      detail: insight.gentleObservation,
     },
   ];
 
@@ -22690,19 +22801,12 @@ function DecisionCompanionPanel({
             body={decisionNextBodyWithFocus}
             theme={theme}
           />
-          <section className="grid gap-2.5 sm:grid-cols-3">
+          <section
+            aria-label={ts('labels.decisionMemory')}
+            className="flex min-w-0 snap-x gap-1.5 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]"
+          >
             {decisionOverviewCards.map((card) => (
-              <div key={card.label} className="rounded-[1.1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-                <p className="text-[10.5px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
-                  {card.label}
-                </p>
-                <p className="mt-1.5 text-xl font-semibold" style={{ color: theme.textPrimary }}>
-                  {card.value}
-                </p>
-                <p className="mt-2 text-sm leading-5" style={{ color: theme.textSecondary }}>
-                  {card.body}
-                </p>
-              </div>
+              <DecisionOverviewRailStat key={card.label} {...card} theme={theme} />
             ))}
           </section>
         </>
@@ -22758,12 +22862,6 @@ function DecisionCompanionPanel({
                   {ts('labels.startDecisionMemory')}
                 </button>
               </form>
-            </section>
-
-            <section className="grid gap-4 md:grid-cols-3">
-              <TimelineStat icon={Clock3} label={ts('labels.activeDecisions')} value={String(activeDecisions.length)} theme={theme} />
-              <TimelineStat icon={Sparkles} label={ts('labels.daysDiscerning')} value={String(insight.daysDiscerning)} theme={theme} />
-              <TimelineStat icon={ShieldCheck} label={ts('labels.patternsNoticed')} value={String(insight.patterns.length)} theme={theme} />
             </section>
           </>
         ) : null}
@@ -23352,14 +23450,39 @@ function DecisionCompanionPanel({
   );
 }
 
-function TimelineStat({ icon: Icon, label, value, theme }: { icon: typeof Clock3; label: string; value: string; theme: ThemeColors }) {
+function DecisionOverviewRailStat({
+  icon: Icon,
+  label,
+  value,
+  detail,
+  theme,
+}: {
+  icon: typeof Clock3;
+  label: string;
+  value: string;
+  detail: string;
+  theme: ThemeColors;
+}) {
+  const accessibleLabel = `${label}: ${value}. ${detail}`;
+
   return (
-    <div className="rounded-[1rem] border p-4 shadow-[0_8px_24px_rgba(15,23,42,0.05)]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
-      <div className="flex items-center justify-between">
-        <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{label}</p>
-        <Icon size={17} style={{ color: theme.textSecondary }} />
+    <div
+      className="premium-tap-card relative flex min-h-[5.55rem] w-[9.65rem] shrink-0 snap-start flex-col justify-between overflow-hidden rounded-[0.92rem] border p-2.5 text-left shadow-[0_6px_14px_rgba(7,10,8,0.04)] sm:w-[10.5rem]"
+      style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}
+      aria-label={accessibleLabel}
+      title={accessibleLabel}
+    >
+      <div className="relative z-10 flex items-start justify-between gap-2">
+        <p className="min-w-0 text-[8.5px] font-semibold uppercase leading-4 tracking-[0.2em]" style={{ color: theme.accentGold }}>
+          {label}
+        </p>
+        <span className="grid size-7 shrink-0 place-items-center rounded-full border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+          <Icon size={14} />
+        </span>
       </div>
-      <p className="mt-3 text-3xl font-semibold" style={{ color: theme.textPrimary }}>{value}</p>
+      <p className="relative z-10 mt-2 text-[1.72rem] font-semibold leading-none" style={{ color: theme.textPrimary }}>
+        {value}
+      </p>
     </div>
   );
 }
