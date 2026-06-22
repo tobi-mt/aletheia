@@ -420,6 +420,8 @@ type ManagedVoiceOption = {
 const managedSpeechVoices: ManagedVoiceOption[] = [
   { id: "marin", label: enTranslations.voiceOptions.marin.label, description: enTranslations.voiceOptions.marin.description },
   { id: "cedar", label: enTranslations.voiceOptions.cedar.label, description: enTranslations.voiceOptions.cedar.description },
+  { id: "coral", label: enTranslations.voiceOptions.coral.label, description: enTranslations.voiceOptions.coral.description },
+  { id: "sage", label: enTranslations.voiceOptions.sage.label, description: enTranslations.voiceOptions.sage.description },
 ];
 
 // Prefer the browser's built-in speech on web for faster starts and fewer hangs.
@@ -2765,17 +2767,17 @@ type UiText = NonNullable<(typeof uiText)[LanguageCode]> & typeof enTranslations
 const englishText: UiText = uiText.en as UiText;
 
 const speechPacingProfiles: Partial<Record<LanguageCode, { rate: number; pitch: number }>> = {
-  en: { rate: 0.9, pitch: 1 },
-  es: { rate: 0.92, pitch: 0.98 },
-  fr: { rate: 0.9, pitch: 0.96 },
-  pt: { rate: 0.94, pitch: 0.98 },
-  de: { rate: 0.88, pitch: 0.95 },
-  yo: { rate: 0.82, pitch: 1.02 },
-  ig: { rate: 0.84, pitch: 1.02 },
-  ha: { rate: 0.86, pitch: 1 },
-  tl: { rate: 0.92, pitch: 0.98 },
-  ar: { rate: 0.9, pitch: 0.96 },
-  hi: { rate: 0.9, pitch: 0.98 },
+  en: { rate: 0.86, pitch: 1 },
+  es: { rate: 0.86, pitch: 0.98 },
+  fr: { rate: 0.84, pitch: 0.98 },
+  pt: { rate: 0.86, pitch: 0.98 },
+  de: { rate: 0.82, pitch: 0.98 },
+  yo: { rate: 0.78, pitch: 1.02 },
+  ig: { rate: 0.8, pitch: 1.02 },
+  ha: { rate: 0.82, pitch: 1 },
+  tl: { rate: 0.86, pitch: 0.98 },
+  ar: { rate: 0.82, pitch: 0.98 },
+  hi: { rate: 0.84, pitch: 0.98 },
 };
 
 function speechPacingForLanguage(languageCode: LanguageCode) {
@@ -9248,7 +9250,7 @@ export function AletheiaApp() {
         browserSpeechActiveRef.current = true;
         utterance.lang = browserSpeechLanguage(preferences.language);
         utterance.rate = pacing.rate;
-        utterance.pitch = 1;
+        utterance.pitch = pacing.pitch;
         utterance.volume = 1;
 
         utterance.onstart = () => {

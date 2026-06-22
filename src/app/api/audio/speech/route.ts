@@ -11,11 +11,15 @@ const MAX_TEXT_LENGTH = 4096;
 const MANAGED_TTS_VOICES = new Set([
   "marin",
   "cedar",
+  "coral",
+  "sage",
 ]);
 
 function managedVoiceInstructions(language: string) {
-  const base = "Use a natural, human-like narrator voice. Prioritize intelligibility, crisp consonants, full word endings, and steady pacing. Avoid a robotic, breathy, whispery, overly dramatic, or sing-song delivery.";
+  const base = "Use a natural, human-like narrator voice at a calm, conversational speed. Prioritize audibility, intelligibility, crisp consonants, full word endings, and steady pacing with brief natural pauses. Avoid a robotic, breathy, whispery, rushed, overly dramatic, or sing-song delivery.";
   switch (language) {
+    case "en":
+      return `${base} Use clear English pronunciation.`;
     case "es":
       return `${base} Use clear Spanish pronunciation.`;
     case "fr":
@@ -25,12 +29,17 @@ function managedVoiceInstructions(language: string) {
     case "de":
       return `${base} Use clear German pronunciation.`;
     case "yo":
+      return `${base} Use clear Yoruba pronunciation, preserving tonal clarity and natural pacing as much as possible.`;
     case "ig":
+      return `${base} Use clear Igbo pronunciation with careful vowel sounds, consonants, and natural pacing.`;
     case "ha":
+      return `${base} Use clear Hausa pronunciation with steady pacing, careful word endings, and natural rhythm.`;
     case "tl":
+      return `${base} Use clear Filipino pronunciation with natural conversational pacing.`;
     case "ar":
+      return `${base} Use clear Modern Standard Arabic pronunciation with steady pacing and careful articulation.`;
     case "hi":
-      return `${base} Use a careful, clear delivery suited to the language.`;
+      return `${base} Use clear Hindi pronunciation with natural pacing and careful consonants.`;
     default:
       return base;
   }
@@ -72,7 +81,7 @@ export async function POST(request: Request) {
     const voice = MANAGED_TTS_VOICES.has(requestedVoice) ? requestedVoice : "marin";
     const language = body.language?.trim().toLowerCase() || "en";
     const requestedSpeed = typeof body.speed === "number" && Number.isFinite(body.speed) ? body.speed : 1;
-    const speed = Math.max(0.25, Math.min(4, requestedSpeed));
+    const speed = Math.max(0.75, Math.min(0.9, requestedSpeed));
 
     const speech = await client.audio.speech.create({
       model: "gpt-4o-mini-tts",
