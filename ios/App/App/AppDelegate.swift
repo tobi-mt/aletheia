@@ -159,6 +159,7 @@ public class ManagedAudioPlugin: CAPPlugin, CAPBridgedPlugin, AVAudioPlayerDeleg
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
+        request.timeoutInterval = 45
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("audio/mpeg", forHTTPHeaderField: "Accept")
         request.httpBody = try? JSONSerialization.data(withJSONObject: [

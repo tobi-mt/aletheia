@@ -8,25 +8,29 @@ const client = process.env.OPENAI_API_KEY
   : null;
 
 const MAX_TEXT_LENGTH = 4096;
+const MANAGED_TTS_VOICES = new Set([
+  "marin",
+  "cedar",
+]);
 
 function managedVoiceInstructions(language: string) {
-  const base = "Speak clearly, warmly, and with calm pacing.";
+  const base = "Use a natural, human-like narrator voice. Prioritize intelligibility, crisp consonants, full word endings, and steady pacing. Avoid a robotic, breathy, whispery, overly dramatic, or sing-song delivery.";
   switch (language) {
     case "es":
-      return `${base} Use a natural, gentle Spanish delivery.`;
+      return `${base} Use clear Spanish pronunciation.`;
     case "fr":
-      return `${base} Use a natural, gentle French delivery.`;
+      return `${base} Use clear French pronunciation.`;
     case "pt":
-      return `${base} Use a natural, gentle Portuguese delivery.`;
+      return `${base} Use clear Portuguese pronunciation.`;
     case "de":
-      return `${base} Use a natural, gentle German delivery.`;
+      return `${base} Use clear German pronunciation.`;
     case "yo":
     case "ig":
     case "ha":
     case "tl":
     case "ar":
     case "hi":
-      return `${base} Use a clear, steady delivery suited to the language.`;
+      return `${base} Use a careful, clear delivery suited to the language.`;
     default:
       return base;
   }
@@ -64,21 +68,23 @@ export async function POST(request: Request) {
       return apiError(400, "invalid_input", `Audio text must be ${MAX_TEXT_LENGTH} characters or fewer.`);
     }
 
-    const voice = (body.voice?.trim() || "alloy") as string;
+    const requestedVoice = body.voice?.trim() || "";
+    const voice = MANAGED_TTS_VOICES.has(requestedVoice) ? requestedVoice : "marin";
     const language = body.language?.trim().toLowerCase() || "en";
-    const speed = typeof body.speed === "number" && Number.isFinite(body.speed) ? body.speed : 1;
+    const requestedSpeed = typeof body.speed === "number" && Number.isFinite(body.speed) ? body.speed : 1;
+    const speed = Math.max(0.25, Math.min(4, requestedSpeed));
 
     const speech = await client.audio.speech.create({
       model: "gpt-4o-mini-tts",
       input: text,
       voice,
       speed,
-      response_format: "opus",
+      response_format: "mp3",
       stream_format: "audio",
       instructions: managedVoiceInstructions(language),
     });
 
-    const contentType = speech.headers.get("content-type") || "audio/opus";
+    const contentType = "audio/mpeg";
 
     if (!speech.body) {
       const audioBytes = await speech.arrayBuffer();

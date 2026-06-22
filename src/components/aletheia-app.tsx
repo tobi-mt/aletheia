@@ -418,14 +418,6 @@ type ManagedVoiceOption = {
 };
 
 const managedSpeechVoices: ManagedVoiceOption[] = [
-  { id: "alloy", label: enTranslations.voiceOptions.alloy.label, description: enTranslations.voiceOptions.alloy.description },
-  { id: "ash", label: enTranslations.voiceOptions.ash.label, description: enTranslations.voiceOptions.ash.description },
-  { id: "ballad", label: enTranslations.voiceOptions.ballad.label, description: enTranslations.voiceOptions.ballad.description },
-  { id: "coral", label: enTranslations.voiceOptions.coral.label, description: enTranslations.voiceOptions.coral.description },
-  { id: "echo", label: enTranslations.voiceOptions.echo.label, description: enTranslations.voiceOptions.echo.description },
-  { id: "sage", label: enTranslations.voiceOptions.sage.label, description: enTranslations.voiceOptions.sage.description },
-  { id: "shimmer", label: enTranslations.voiceOptions.shimmer.label, description: enTranslations.voiceOptions.shimmer.description },
-  { id: "verse", label: enTranslations.voiceOptions.verse.label, description: enTranslations.voiceOptions.verse.description },
   { id: "marin", label: enTranslations.voiceOptions.marin.label, description: enTranslations.voiceOptions.marin.description },
   { id: "cedar", label: enTranslations.voiceOptions.cedar.label, description: enTranslations.voiceOptions.cedar.description },
 ];
@@ -434,21 +426,21 @@ const managedSpeechVoices: ManagedVoiceOption[] = [
 const browserSpeechFallbackLength = 0;
 
 const defaultManagedVoiceByLanguage: Partial<Record<LanguageCode, string>> = {
-  en: "alloy",
-  es: "coral",
-  fr: "sage",
-  pt: "verse",
+  en: "marin",
+  es: "marin",
+  fr: "marin",
+  pt: "marin",
   de: "marin",
-  yo: "sage",
-  ig: "sage",
-  ha: "sage",
-  tl: "echo",
-  ar: "ash",
-  hi: "verse",
+  yo: "marin",
+  ig: "marin",
+  ha: "marin",
+  tl: "marin",
+  ar: "marin",
+  hi: "marin",
 };
 
 function managedVoiceForLanguage(language: LanguageCode) {
-  return defaultManagedVoiceByLanguage[language] ?? "alloy";
+  return defaultManagedVoiceByLanguage[language] ?? "marin";
 }
 
 function managedVoiceLabel(voiceId: string | null | undefined) {
@@ -9361,7 +9353,7 @@ export function AletheiaApp() {
 
       // Show 85% once downloaded
       setSpeechProgress(85);
-      const blob = new Blob(chunks as BlobPart[], { type: "audio/opus" });
+      const blob = new Blob(chunks as BlobPart[], { type: response.headers.get("content-type") || "audio/mpeg" });
 
       const audioUrl = URL.createObjectURL(blob);
       if (managedAudioUrlRef.current) {
