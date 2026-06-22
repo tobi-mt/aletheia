@@ -24033,6 +24033,7 @@ function ReflectPanel({
   const visibleReflectSection = pendingChallengeId ? "formation" : reflectSection;
   const reflectOverviewCards = [
     {
+      section: "check",
       label: ts('labels.wisdomCheck'),
       value: result ? `${result.readiness}%` : ts('labels.notSet', "Not set"),
       body: result
@@ -24040,16 +24041,19 @@ function ReflectPanel({
         : runtime.wisdomCheckSummaryDefault,
     },
     {
+      section: "gratitude",
       label: ts('labels.gratitudeLens'),
       value: String(gratitudeEntries.length),
       body: gratitudeEntries.length ? ts('labels.gratitudeMoments') : ts('labels.gratitudeEmptySummary'),
     },
     {
+      section: "journal",
       label: ts('labels.reflectionJournal'),
       value: String(entries.length),
       body: signedIn ? ts('labels.accountSyncActive') : ts('labels.localOnly'),
     },
     {
+      section: "formation",
       label: ts("challenges.sectionTitle"),
       value: challengeRecommendation
         ? (challengeRecommendation.actionKind === "continue" ? ts("challenges.continueChallenge") : ts("challenges.startChallenge"))
@@ -24122,7 +24126,9 @@ function ReflectPanel({
         theme={theme}
       />
       <section className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
-        {reflectOverviewCards.map((card) => (
+        {reflectOverviewCards
+          .filter((card) => card.section === visibleReflectSection)
+          .map((card) => (
           <div key={card.label} className="rounded-[1.1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
             <p className="text-[10.5px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
               {card.label}
