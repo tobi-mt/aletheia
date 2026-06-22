@@ -208,7 +208,7 @@ const themeColors: Record<ResolvedTheme, ThemeColors> = {
     primaryHover: "#e0bd65",
     primaryText: "#0a0b0a",
     bgMain: "#050605",
-    bgGradient: "bg-[radial-gradient(circle_at_18%_0%,rgba(208,173,85,0.12),transparent_24%),radial-gradient(circle_at_92%_16%,rgba(47,79,70,0.16),transparent_25%),linear-gradient(180deg,#050605_0%,#000000_100%)]",
+    bgGradient: "bg-[radial-gradient(circle_at_18%_0%,rgba(208,173,85,0.12),transparent_24%),radial-gradient(circle_at_92%_16%,rgba(47,79,70,0.16),transparent_25%),linear-gradient(180deg,#050605_0%,#080c09_100%)]",
     bgCard: "#0b0f0d",
     bgCardElevated: "#101713",
     bgInput: "#070a08",
@@ -6586,6 +6586,7 @@ export function AletheiaApp() {
   }, [preferences.language]);
   
   const appShellRef = useRef<HTMLElement | null>(null);
+  const topNavRef = useRef<HTMLElement | null>(null);
   const workspaceRef = useRef<HTMLElement | null>(null);
   const bottomNavRef = useRef<HTMLDivElement | null>(null);
   const updateRefreshTimeoutRef = useRef<number | null>(null);
@@ -7377,6 +7378,41 @@ export function AletheiaApp() {
   }, [activeView, pendingDecisionNotificationFocus, showOnboarding]);
 
   useEffect(() => {
+    if (!clientStateRestored) {
+      return;
+    }
+
+    const topNav = topNavRef.current;
+    if (!topNav) {
+      return;
+    }
+
+    const updateTopNavSpace = () => {
+      const navHeight = Math.max(0, Math.ceil(topNav.getBoundingClientRect().height));
+      if (navHeight > 0) {
+        document.documentElement.style.setProperty("--aletheia-top-nav-space", `${navHeight}px`);
+        document.documentElement.style.setProperty("--aletheia-top-glass-height", `${navHeight}px`);
+      }
+    };
+
+    updateTopNavSpace();
+    const resizeObserver = new ResizeObserver(updateTopNavSpace);
+    resizeObserver.observe(topNav);
+    window.addEventListener("resize", updateTopNavSpace);
+    window.addEventListener("orientationchange", updateTopNavSpace);
+
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener("resize", updateTopNavSpace);
+      window.removeEventListener("orientationchange", updateTopNavSpace);
+    };
+  }, [clientStateRestored]);
+
+  useEffect(() => {
+    if (!clientStateRestored) {
+      return;
+    }
+
     const nav = bottomNavRef.current;
     if (!nav) {
       return;
@@ -7384,7 +7420,8 @@ export function AletheiaApp() {
 
     const updateBottomNavSpace = () => {
       const navHeight = Math.max(0, Math.ceil(nav.getBoundingClientRect().height));
-      const reservedSpace = navHeight > 0 ? navHeight + 18 : 112;
+      const navVisible = window.getComputedStyle(nav).display !== "none";
+      const reservedSpace = navVisible && navHeight > 0 ? navHeight + 18 : 0;
       document.documentElement.style.setProperty("--aletheia-bottom-nav-space", `${reservedSpace}px`);
     };
 
@@ -7399,11 +7436,35 @@ export function AletheiaApp() {
       window.removeEventListener("resize", updateBottomNavSpace);
       window.removeEventListener("orientationchange", updateBottomNavSpace);
     };
-  }, []);
+  }, [clientStateRestored]);
 
   // Keep iOS installed-PWA chrome transparent so our themed header owns the safe area.
   useEffect(() => {
-    const statusColor = resolvedTheme === "dark" ? "#0e1514" : theme.bgMain;
+    const statusColor = resolvedTheme === "black"
+      ? "#0c120f"
+      : resolvedTheme === "dark"
+        ? "#101917"
+        : theme.bgMain;
+    const topTint = resolvedTheme === "black"
+      ? "rgba(12, 18, 15, 0.96)"
+      : resolvedTheme === "dark"
+        ? "rgba(16, 25, 23, 0.94)"
+        : theme.bgNav;
+    const bottomTint = resolvedTheme === "black"
+      ? "rgba(13, 18, 14, 0.97)"
+      : resolvedTheme === "dark"
+        ? "rgba(14, 22, 20, 0.96)"
+        : theme.bgNav;
+    const topSheen = resolvedTheme === "black"
+      ? "linear-gradient(180deg, rgba(208, 173, 85, 0.13) 0%, rgba(47, 79, 70, 0.11) 58%, rgba(8, 12, 9, 0) 100%)"
+      : resolvedTheme === "dark"
+        ? "linear-gradient(180deg, rgba(208, 173, 85, 0.11) 0%, rgba(73, 122, 107, 0.12) 58%, rgba(14, 21, 20, 0) 100%)"
+        : "linear-gradient(180deg, rgba(255, 255, 255, 0.26) 0%, rgba(255, 255, 255, 0.1) 58%, rgba(255, 255, 255, 0) 100%)";
+    const bottomSheen = resolvedTheme === "black"
+      ? "linear-gradient(0deg, rgba(13, 18, 14, 0.98) 0%, rgba(24, 29, 20, 0.88) 48%, rgba(8, 12, 9, 0) 100%)"
+      : resolvedTheme === "dark"
+        ? "linear-gradient(0deg, rgba(14, 22, 20, 0.98) 0%, rgba(24, 34, 29, 0.82) 50%, rgba(14, 21, 20, 0) 100%)"
+        : `linear-gradient(0deg, ${theme.bgMain} 0%, ${theme.bgNav} 54%, rgba(255, 255, 255, 0) 100%)`;
     
     // Update meta theme-color
     const metaThemeColor = document.querySelector('meta[name="theme-color"]');
@@ -7431,6 +7492,11 @@ export function AletheiaApp() {
     document.documentElement.style.setProperty("--aletheia-glass-bottom", theme.bgNav);
     document.documentElement.style.setProperty("--aletheia-glass-edge", theme.bgNavBorder);
     document.documentElement.style.setProperty("--aletheia-primary", theme.primary);
+    document.documentElement.style.setProperty("--pwa-status-background", statusColor);
+    document.documentElement.style.setProperty("--aletheia-safe-top-tint", topTint);
+    document.documentElement.style.setProperty("--aletheia-safe-bottom-tint", bottomTint);
+    document.documentElement.style.setProperty("--aletheia-safe-top-sheen", topSheen);
+    document.documentElement.style.setProperty("--aletheia-safe-bottom-sheen", bottomSheen);
   }, [resolvedTheme, theme.bgMain, theme.bgNav, theme.bgNavBorder, theme.primary]);
 
   async function readJsonOrFallback<T>(response: Response | null, fallback: T): Promise<T> {
@@ -11187,7 +11253,7 @@ export function AletheiaApp() {
         ts={ts}
       />
 
-      <nav className="app-top-nav fixed inset-x-0 z-50 border-b px-3 pb-3 backdrop-blur-2xl sm:px-4" style={{ borderColor: theme.bgNavBorder, backgroundColor: resolvedTheme === "black"
+      <nav ref={topNavRef} className="app-top-nav fixed inset-x-0 z-50 border-b px-3 pb-3 backdrop-blur-2xl sm:px-4" style={{ borderColor: theme.bgNavBorder, backgroundColor: resolvedTheme === "black"
         ? "rgba(7, 10, 8, 0.28)"
         : resolvedTheme === "dark"
           ? "rgba(14, 21, 20, 0.24)"
