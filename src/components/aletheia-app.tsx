@@ -108,6 +108,7 @@ import { SERVICE_WORKER_URL } from "@/lib/build-version";
 import { loadTranslationsSync, loadTranslationsWithFallbackSync, getTranslation, type TranslationData } from "@/lib/translations";
 import { ManagedAudio } from "@/lib/native-audio";
 import BibleReader from "@/components/bible-reader";
+import type { BibleStudyData } from "@/lib/bible-study";
 
 type View = "companion" | "decisions" | "reflect" | "library" | "account";
 type HomeSection = "today" | "ask";
@@ -19751,6 +19752,7 @@ function ScriptureModal({
 }) {
   const canUsePortal = typeof document !== "undefined";
   const [view, setView] = useState<"quick" | "deep">("quick");
+  const [passageLoad, setPassageLoad] = useState<ScripturePassageLoad>({ status: "idle", verses: [] });
   const contentRef = useRef<HTMLDivElement | null>(null);
   useBodyScrollLock(Boolean(scripture && canUsePortal));
 
@@ -19773,11 +19775,62 @@ function ScriptureModal({
     contentRef.current?.scrollTo({ top: 0, behavior: "auto" });
   }, [scripture, view]);
 
+  useEffect(() => {
+    if (!scripture) {
+      queueMicrotask(() => setPassageLoad({ status: "idle", verses: [] }));
+      return;
+    }
+
+    const parsed = parseScriptureSelection(scripture);
+    if (!parsed) {
+      queueMicrotask(() => setPassageLoad({ status: "idle", verses: [] }));
+      return;
+    }
+
+    const ctrl = new AbortController();
+    queueMicrotask(() => setPassageLoad({ status: "loading", verses: [] }));
+
+    fetch(
+      `/api/bible?translation=${encodeURIComponent(preferences.bibleTranslation)}&book=${encodeURIComponent(parsed.book)}&chapter=${parsed.chapter}`,
+      { signal: ctrl.signal }
+    )
+      .then(async (response) => {
+        if (!response.ok) {
+          throw new Error(`Scripture read failed with ${response.status}`);
+        }
+        const data = (await response.json()) as {
+          verses?: Array<{ verse: number; text: string }>;
+          fallbackTranslation?: string;
+        };
+        const verses = (data.verses ?? [])
+          .filter((verse) => {
+            if (!parsed.startVerse) {
+              return true;
+            }
+            const endVerse = parsed.endVerse ?? parsed.startVerse;
+            return verse.verse >= parsed.startVerse && verse.verse <= endVerse;
+          })
+          .map((verse) => ({ verse: String(verse.verse), text: verse.text }));
+        setPassageLoad({ status: "ready", verses, fallbackTranslation: data.fallbackTranslation });
+      })
+      .catch((error: unknown) => {
+        if (error instanceof Error && error.name === "AbortError") {
+          return;
+        }
+        setPassageLoad({ status: "error", verses: [] });
+      });
+
+    return () => ctrl.abort();
+  }, [preferences.bibleTranslation, scripture]);
+
   if (!scripture || !canUsePortal) {
     return null;
   }
 
   const quickRead = localizedScriptureRead(scripture, preferences);
+  const passageVerses = passageLoad.status === "ready" ? passageLoad.verses : [];
+  const displayedVerses = quickRead.verses?.length ? quickRead.verses : passageVerses;
+  const isLoadingExpandedRead = !quickRead.verses?.length && passageLoad.status === "loading";
   const canonicalScripture = canonicalScriptureReference(scripture);
   const displayScripture = localizedScriptureReference(canonicalScripture, preferences.language);
   const translationLabel = scriptureDisplayLabel(canonicalScripture, preferences);
@@ -19912,9 +19965,9 @@ function ScriptureModal({
                 transition={{ duration: 0.18, ease: "easeOut" }}
               >
                 <div className="px-1 sm:px-0">
-                  {quickRead.verses?.length ? (
+                  {displayedVerses.length ? (
                     <div className="divide-y" style={{ borderColor: theme.borderLight }}>
-                      {quickRead.verses.map((verse) => (
+                      {displayedVerses.map((verse) => (
                         <div key={verse.verse} className="grid gap-3 py-4 sm:grid-cols-[3rem_minmax(0,1fr)] sm:gap-4 sm:py-5">
                           <div
                             className="inline-flex h-8 w-8 items-center justify-center rounded-full border text-[0.7rem] font-semibold"
@@ -19927,7 +19980,16 @@ function ScriptureModal({
                           </p>
                         </div>
                       ))}
+                      {passageLoad.fallbackTranslation ? (
+                        <p className="py-3 text-xs leading-5" style={{ color: theme.textSecondary }}>
+                          {ts('labels.translationFallback', 'Shown with the closest available public-domain translation.')}
+                        </p>
+                      ) : null}
                     </div>
+                  ) : isLoadingExpandedRead ? (
+                    <p className="text-sm font-semibold" style={{ color: theme.textSecondary }}>
+                      {ts('status.loading', 'Loading...')}
+                    </p>
                   ) : (
                     <p className="whitespace-pre-wrap text-[1.02rem] leading-8 sm:text-lg sm:leading-9" style={{ color: theme.textPrimary }}>
                       {quickRead.text}
@@ -21497,6 +21559,47 @@ function normalizeScriptureMatchText(text: string) {
   return text.replace(/[–—]/g, "-");
 }
 
+type ParsedScriptureSelection = {
+  book: string;
+  chapter: number;
+  startVerse?: number;
+  endVerse?: number;
+};
+
+type ScripturePassageLoad = {
+  status: "idle" | "loading" | "ready" | "error";
+  verses: Array<{ verse: string; text: string }>;
+  fallbackTranslation?: string;
+};
+
+function parseScriptureSelection(scripture: string): ParsedScriptureSelection | null {
+  const normalized = normalizeScriptureMatchText(canonicalScriptureReference(scripture)).replace(/\s+/g, " ").trim();
+  const match = normalized.match(/^(.+?)\s+(\d+)(?::(\d+)(?:-(\d+))?)?$/);
+  if (!match) {
+    return null;
+  }
+
+  const chapter = Number(match[2]);
+  const startVerse = match[3] ? Number(match[3]) : undefined;
+  const endVerse = match[4] ? Number(match[4]) : startVerse;
+  if (!Number.isFinite(chapter) || chapter < 1) {
+    return null;
+  }
+  if (startVerse !== undefined && (!Number.isFinite(startVerse) || startVerse < 1)) {
+    return null;
+  }
+  if (endVerse !== undefined && (!Number.isFinite(endVerse) || endVerse < 1)) {
+    return null;
+  }
+
+  return {
+    book: match[1].trim(),
+    chapter,
+    startVerse,
+    endVerse,
+  };
+}
+
 function scriptureTextMatches(text: string, allowedScriptures: string[] = curatedScriptureReferences) {
   const uniqueTargets = [...new Set(allowedScriptures.map((scripture) => canonicalScriptureReference(scripture)))].filter(Boolean);
   if (!uniqueTargets.length) {
@@ -21628,7 +21731,25 @@ function scoreRelatedScripture(
 
 function buildScriptureStudyGuide(scripture: string, preferences: UserPreferences): ScriptureStudyGuide {
   const canonical = canonicalScriptureReference(scripture);
-  const sourceEntry = baseWisdomEntries.find((entry) => canonicalScriptureReference(entry.scripture) === canonical) ?? baseWisdomEntries[0];
+  const sourceEntry = baseWisdomEntries.find((entry) => canonicalScriptureReference(entry.scripture) === canonical);
+  if (!sourceEntry) {
+    const related = baseWisdomEntries.slice(0, 5).map((entry) => {
+      const localized = localizedWisdomEntry(entry, preferences);
+      return {
+        scripture: localized.scripture,
+        theme: localized.theme,
+        principle: localized.principle,
+      };
+    });
+
+    return {
+      meaning: `${localizedScriptureReference(canonical, preferences.language)} is ready to read above. Use Study Mode to observe the passage carefully before applying it.`,
+      context: "Aletheia opens the cited chapter in your selected Bible translation where a public-domain text is available.",
+      whyItMatters: "Start with what the passage says, then consider how it speaks to motive, timing, counsel, responsibility, and the next faithful step.",
+      nextStep: "Read the cited verses slowly, then name one concrete response of trust, obedience, counsel, or repair.",
+      related,
+    };
+  }
   const current = localizedWisdomEntry(sourceEntry, preferences);
 
   const related = baseWisdomEntries
@@ -21671,6 +21792,10 @@ function ScriptureStudyMode({
   ts: (key: string, fallback?: string) => string;
   onScriptureOpen: (scripture: string) => void;
 }) {
+  const [remoteStudy, setRemoteStudy] = useState<{
+    status: "idle" | "loading" | "ready" | "error";
+    data: BibleStudyData | null;
+  }>({ status: "idle", data: null });
   const studyGuide = buildScriptureStudyGuide(scripture, preferences);
   const quickRead = localizedScriptureRead(scripture, preferences);
   const whatItSays = ts('labels.whatThisPassageIsSaying');
@@ -21678,6 +21803,40 @@ function ScriptureStudyMode({
   const relatedScriptures = ts('labels.relatedScriptures');
   const wiseNextStep = ts('labels.aWiseNextStep');
   const wiseNextStepFallback = ts('labels.studyModeNextStepFallback');
+  const parsedSelection = parseScriptureSelection(scripture);
+  const parsedBook = parsedSelection?.book ?? "";
+  const parsedChapter = parsedSelection?.chapter ?? 0;
+
+  useEffect(() => {
+    if (!parsedBook || !parsedChapter) {
+      queueMicrotask(() => setRemoteStudy({ status: "idle", data: null }));
+      return;
+    }
+
+    const ctrl = new AbortController();
+    queueMicrotask(() => setRemoteStudy({ status: "loading", data: null }));
+    fetch(
+      `/api/bible-study?translation=${encodeURIComponent(preferences.bibleTranslation)}&book=${encodeURIComponent(parsedBook)}&chapter=${parsedChapter}&language=${encodeURIComponent(preferences.language)}`,
+      { signal: ctrl.signal }
+    )
+      .then(async (response) => {
+        if (!response.ok) {
+          throw new Error(`Bible study failed with ${response.status}`);
+        }
+        const data = (await response.json()) as BibleStudyData;
+        setRemoteStudy({ status: "ready", data });
+      })
+      .catch((error: unknown) => {
+        if (error instanceof Error && error.name === "AbortError") {
+          return;
+        }
+        setRemoteStudy({ status: "error", data: null });
+      });
+
+    return () => ctrl.abort();
+  }, [parsedBook, parsedChapter, preferences.bibleTranslation, preferences.language]);
+
+  const remote = remoteStudy.data;
 
   return (
     <motion.div
@@ -21688,6 +21847,99 @@ function ScriptureStudyMode({
       transition={{ duration: 0.18, ease: "easeOut" }}
       className="space-y-6 sm:space-y-7"
     >
+      {remote ? (
+        <>
+          <section className="pt-1 first:pt-0" style={{ borderColor: theme.borderLight }}>
+            <p className="text-[0.68rem] font-semibold uppercase tracking-[0.24em]" style={{ color: theme.accentGold }}>
+              {whatItSays}
+            </p>
+            <p className="mt-3 text-[1.02rem] leading-8 sm:text-lg sm:leading-9" style={{ color: theme.textPrimary }}>
+              {remote.summary}
+            </p>
+            {remote.fallbackTranslation ? (
+              <p className="mt-3 text-xs leading-5" style={{ color: theme.textSecondary }}>
+                {ts('labels.translationFallback', 'Shown with the closest available public-domain translation.')}
+              </p>
+            ) : null}
+          </section>
+
+          {remote.themes.length ? (
+            <section className="border-t pt-5" style={{ borderColor: theme.borderLight }}>
+              <p className="text-[0.68rem] font-semibold uppercase tracking-[0.24em]" style={{ color: theme.accentGold }}>
+                {whyItMatters}
+              </p>
+              <div className="mt-4 space-y-4">
+                {remote.themes.map((themeItem) => (
+                  <div key={`${themeItem.title}-${themeItem.verseCitations.join("-")}`} className="border-b border-dashed pb-4 last:border-b-0 last:pb-0" style={{ borderColor: theme.borderLight }}>
+                    <p className="text-sm font-semibold sm:text-[0.98rem]" style={{ color: theme.textPrimary }}>
+                      {themeItem.title}
+                    </p>
+                    <p className="mt-2 text-sm leading-6" style={{ color: theme.textPrimary }}>
+                      {themeItem.explanation}
+                    </p>
+                    <p className="mt-2 text-xs leading-5" style={{ color: theme.textSecondary }}>
+                      {themeItem.verseCitations.map((citation) => localizedScriptureReference(citation, preferences.language)).join(" · ")}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </section>
+          ) : null}
+
+          {remote.relatedVerses.length ? (
+            <section className="border-t pt-5" style={{ borderColor: theme.borderLight }}>
+              <p className="text-[0.68rem] font-semibold uppercase tracking-[0.24em]" style={{ color: theme.accentGold }}>
+                {relatedScriptures}
+              </p>
+              <div className="mt-4 space-y-4">
+                {remote.relatedVerses.map((related) => (
+                  <button
+                    key={related.canonicalScripture}
+                    type="button"
+                    onClick={() => onScriptureOpen(related.canonicalScripture)}
+                    className="group w-full border-b border-dashed pb-4 text-left transition last:border-b-0 last:pb-0 hover:-translate-y-px"
+                    style={{ borderColor: theme.borderLight, color: theme.textPrimary }}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <p className="text-sm font-semibold sm:text-[0.98rem] group-hover:underline group-hover:underline-offset-4">
+                        {related.reference}
+                      </p>
+                      <span className="shrink-0 text-[0.68rem] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.accentGold }}>
+                        {related.theme}
+                      </span>
+                    </div>
+                    <p className="mt-2 text-sm leading-6" style={{ color: theme.textPrimary }}>
+                      {related.principle}
+                    </p>
+                  </button>
+                ))}
+              </div>
+            </section>
+          ) : null}
+
+          {remote.reflectionQuestions.length || remote.practiceActions.length ? (
+            <section className="border-t pt-5" style={{ borderColor: theme.borderLight }}>
+              <p className="text-[0.68rem] font-semibold uppercase tracking-[0.24em]" style={{ color: theme.accentGold }}>
+                {wiseNextStep}
+              </p>
+              <div className="mt-3 space-y-3">
+                {[...remote.reflectionQuestions.slice(0, 2), ...remote.practiceActions.slice(0, 2).map((action) => action.text)].map((item, index) => (
+                  <p key={`${item}-${index}`} className="text-[1.02rem] leading-8 sm:text-lg sm:leading-9" style={{ color: theme.textPrimary }}>
+                    {item}
+                  </p>
+                ))}
+              </div>
+            </section>
+          ) : null}
+        </>
+      ) : remoteStudy.status === "loading" ? (
+        <section className="pt-1 first:pt-0" style={{ borderColor: theme.borderLight }}>
+          <p className="text-sm font-semibold" style={{ color: theme.textSecondary }}>
+            {ts('status.loading', 'Loading...')}
+          </p>
+        </section>
+      ) : (
+        <>
       <section className="pt-1 first:pt-0" style={{ borderColor: theme.borderLight }}>
         <p className="text-[0.68rem] font-semibold uppercase tracking-[0.24em]" style={{ color: theme.accentGold }}>
           {whatItSays}
@@ -21752,6 +22004,8 @@ function ScriptureStudyMode({
           {quickRead.text}
         </p>
       ) : null}
+        </>
+      )}
     </motion.div>
   );
 }

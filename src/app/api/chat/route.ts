@@ -184,7 +184,7 @@ export async function POST(request: Request) {
   }
 
   const lifeConcern = mode === "Life" ? detectLifeSupportConcern(message) : null;
-  const sources = await retrieveWisdom(message, mode, 3);
+  const sources = await retrieveWisdom(message, mode, 8);
   if (lifeConcern === "self_harm") {
     const aiText = composeModeAwareFallbackResponse(message, mode, sources, preferences);
 

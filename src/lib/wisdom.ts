@@ -13,6 +13,7 @@ import {
 } from "@/lib/localization";
 import { detectLifeSupportConcern } from "@/lib/life-support";
 import { MODE_KEYS, type Mode } from "@/lib/mode-keys";
+import { scriptureCounselIndex } from "@/lib/scripture-counsel-index";
 import { wisdomEntries, WisdomEntryData } from "@/lib/wisdom-data";
 
 export type WisdomSource = WisdomEntryData & { id?: string };
@@ -85,11 +86,20 @@ function fromRow(row: WisdomRow): WisdomSource {
 }
 
 export async function getWisdomEntries() {
-  return (
+  const dbEntries = (
     await many<WisdomRow>(
     "SELECT * FROM wisdom_entries ORDER BY theme ASC, scripture ASC"
     )
   ).map(fromRow);
+  const seen = new Set(dbEntries.map((entry) => entry.scripture));
+  const expandedEntries = scriptureCounselIndex
+    .filter((entry) => !seen.has(entry.scripture))
+    .map(({ modes, ...entry }) => {
+      void modes;
+      return entry;
+    });
+
+  return [...dbEntries, ...expandedEntries];
 }
 
 export function searchWisdomEntries(
@@ -127,7 +137,10 @@ export function searchWisdomEntries(
             haystack.includes(mode.toLowerCase()) ? 2 : 0
           )
         : 0;
-      return { entry, score: themeScore + exactKeywordScore + keywordScore + modeScore };
+      const expandedEntry = scriptureCounselIndex.find((item) => item.scripture === entry.scripture);
+      const expandedModeScore = expandedEntry?.modes.includes(mode) ? 10 : 0;
+      const directReferenceScore = entry.scripture.toLowerCase().includes(query.toLowerCase().trim()) ? 20 : 0;
+      return { entry, score: themeScore + exactKeywordScore + keywordScore + modeScore + expandedModeScore + directReferenceScore };
     })
     .sort((a, b) => b.score - a.score)
     .slice(0, limit)
@@ -195,6 +208,12 @@ export function composeFallbackResponse(
     lifeConcern === "self_harm"
       ? ""
       : `Scripture text: ${secondaryRead.text}`,
+    lifeConcern === "self_harm" || sources.length < 3
+      ? ""
+      : `${sourceReference(sources[2], preferences)} widens the counsel: ${localizedWisdomEntry(sources[2], preferences).principle.toLowerCase()}`,
+    lifeConcern === "self_harm" || sources.length < 4
+      ? ""
+      : `${sourceReference(sources[3], preferences)} gives a second witness: ${localizedWisdomEntry(sources[3], preferences).principle.toLowerCase()}`,
     lifeConcern === "self_harm"
       ? ""
       : `A few questions may help: ${primary.questions[0]} ${primary.questions[1]} ${secondary.questions[0]}`,
