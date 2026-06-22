@@ -11385,28 +11385,6 @@ export function AletheiaApp() {
                 <Screen key="reflect">
                   <ViewIdentityFrame identity="reflect" theme={theme}>
                     <div className="space-y-4">
-                      <FormationRailSection
-                        theme={theme}
-                        ts={ts}
-                        user={user}
-                        mode={mode}
-                        manualContext={manualContext}
-                        counselContacts={counselContacts}
-                        focusIntentions={focusIntentions}
-                        messages={messages}
-                        journalEntries={journalEntries}
-                        wisdomDecisions={wisdomDecisions}
-                        pendingChallengeId={pendingChallengeId}
-                        onClearPendingChallenge={() => setPendingChallengeId(null)}
-                        challengeCircleRefreshKey={challengeCircleRefreshKey}
-                        onChallengeCircleChanged={refreshChallengeCircles}
-                        onChallengeInviteReady={({ inviteUrl, circle }) => {
-                          setChallengeInviteToken(null);
-                          setChallengeInvitePreview(circle);
-                          setChallengeInviteUrl(inviteUrl);
-                          setChallengeInviteStatus(ts("challenges.inviteReady"));
-                        }}
-                      />
                       <ReflectPanel
                         language={preferences.language}
                         decision={decision}
@@ -11418,8 +11396,24 @@ export function AletheiaApp() {
                         result={decisionResult}
                         mode={mode}
                         modeProfile={activeMode}
+                        user={user}
+                        manualContext={manualContext}
+                        counselContacts={counselContacts}
+                        focusIntentions={focusIntentions}
+                        messages={messages}
+                        wisdomDecisions={wisdomDecisions}
                         challengeRecommendation={featuredChallengeRecommendation.primary}
                         onOpenRecommendedChallenge={openRecommendedChallenge}
+                        pendingChallengeId={pendingChallengeId}
+                        onClearPendingChallenge={() => setPendingChallengeId(null)}
+                        challengeCircleRefreshKey={challengeCircleRefreshKey}
+                        onChallengeCircleChanged={refreshChallengeCircles}
+                        onChallengeInviteReady={({ inviteUrl, circle }) => {
+                          setChallengeInviteToken(null);
+                          setChallengeInvitePreview(circle);
+                          setChallengeInviteUrl(inviteUrl);
+                          setChallengeInviteStatus(ts("challenges.inviteReady"));
+                        }}
                         ts={ts}
                         entries={journalEntries}
                         gratitudeEntries={gratitudeEntries}
@@ -22675,96 +22669,106 @@ function DecisionCompanionPanel({
 
   return (
     <div className="min-w-0 space-y-4">
-      <ContextualNextAction
-        eyebrow={runtime.nextInDecisions}
-        title={decisionNextTitle}
-        body={decisionNextBodyWithFocus}
+      <ScreenTabs
+        value={decisionSection}
+        onChange={setDecisionSection}
+        ariaLabel={ts('labels.decisionSections')}
         theme={theme}
+        variant="primary"
+        layout="grid"
+        tabs={[
+          { key: "decisions", label: ts('nav.decisions') },
+          { key: "counsel", label: ts('labels.counsel') },
+          { key: "rhythm", label: ts('labels.rhythm') },
+          { key: "memory", label: ts('labels.memory') },
+        ]}
       />
-      <section className="grid gap-2.5 sm:grid-cols-3">
-        {decisionOverviewCards.map((card) => (
-          <div key={card.label} className="rounded-[1.1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-            <p className="text-[10.5px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
-              {card.label}
-            </p>
-            <p className="mt-1.5 text-xl font-semibold" style={{ color: theme.textPrimary }}>
-              {card.value}
-            </p>
-            <p className="mt-2 text-sm leading-5" style={{ color: theme.textSecondary }}>
-              {card.body}
-            </p>
-          </div>
-        ))}
-      </section>
-      <section className="space-y-4">
-        <section className="rounded-[1.35rem] border p-3.5 shadow-[0_8px_24px_rgba(15,23,42,0.05)] sm:p-4" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
-          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-            <div className="relative">
-              <InfoHint text={runtime.decisionCompanionSub} theme={theme} placement="corner" surface="hero" />
-              <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.decisionCompanion')}</p>
-              <h2 className="mt-1.5 pr-5 min-[390px]:pr-6 min-[430px]:pr-7 text-[1.08rem] min-[390px]:text-[1.14rem] min-[430px]:text-xl font-semibold leading-tight" style={{ color: theme.textPrimary }}>{runtime.decisionCompanionHeading}</h2>
-              <div className="mt-1.5 max-w-2xl pr-6 sm:pr-7 md:pr-8">
-                <p className="text-sm leading-5" style={{ color: theme.textSecondary }}>
-                  {runtime.decisionCompanionSub}
+
+      {decisionSection === "decisions" ? (
+        <>
+          <ContextualNextAction
+            eyebrow={runtime.nextInDecisions}
+            title={decisionNextTitle}
+            body={decisionNextBodyWithFocus}
+            theme={theme}
+          />
+          <section className="grid gap-2.5 sm:grid-cols-3">
+            {decisionOverviewCards.map((card) => (
+              <div key={card.label} className="rounded-[1.1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                <p className="text-[10.5px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
+                  {card.label}
+                </p>
+                <p className="mt-1.5 text-xl font-semibold" style={{ color: theme.textPrimary }}>
+                  {card.value}
+                </p>
+                <p className="mt-2 text-sm leading-5" style={{ color: theme.textSecondary }}>
+                  {card.body}
                 </p>
               </div>
-            </div>
-            <span className="w-fit rounded-full px-3 py-2 text-xs font-semibold" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>{localizedModeLabel(modeProfile.label, language)}</span>
-          </div>
+            ))}
+          </section>
+        </>
+      ) : null}
 
-          <form onSubmit={onCreateDecision} className="mt-4 grid gap-2.5 xl:grid-cols-[1fr_1.2fr_auto]">
-            <input
-              value={title}
-              onChange={(event) => setTitle(event.target.value)}
-              className="min-h-10 rounded-lg border px-3 py-2 text-sm outline-none md:min-h-11 md:px-4 md:text-base"
-              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-              placeholder={ts('placeholders.decisionTitle')}
-            />
-            <input
-              value={pressure}
-              onChange={(event) => setPressure(event.target.value)}
-              className="min-h-10 rounded-lg border px-3 py-2 text-sm outline-none md:min-h-11 md:px-4 md:text-base"
-              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-              placeholder={ts('placeholders.decisionPressure')}
-            />
-            <select
-              value={emotion}
-              onChange={(event) => setEmotion(event.target.value)}
-              className="min-h-10 rounded-lg border px-3 py-2 text-sm outline-none md:min-h-11 md:px-4 md:text-base"
-              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-              aria-label={ts('labels.initialEmotion')}
-            >
-              <option value="uncertain">{ts('emotion.uncertain')}</option>
-              <option value="anxious">{ts('emotion.anxious')}</option>
-              <option value="excited">{ts('emotion.excited')}</option>
-              <option value="pressured">{ts('emotion.pressured')}</option>
-              <option value="peaceful">{ts('emotion.peaceful')}</option>
-            </select>
-            <button className="h-10 rounded-lg px-4 text-sm font-semibold lg:col-span-full" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>
-              {ts('labels.startDecisionMemory')}
-            </button>
-          </form>
-        </section>
+      <section className="space-y-4">
+        {decisionSection === "decisions" ? (
+          <>
+            <section className="rounded-[1.35rem] border p-3.5 shadow-[0_8px_24px_rgba(15,23,42,0.05)] sm:p-4" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+              <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                <div className="relative">
+                  <InfoHint text={runtime.decisionCompanionSub} theme={theme} placement="corner" surface="hero" />
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.decisionCompanion')}</p>
+                  <h2 className="mt-1.5 pr-5 min-[390px]:pr-6 min-[430px]:pr-7 text-[1.08rem] min-[390px]:text-[1.14rem] min-[430px]:text-xl font-semibold leading-tight" style={{ color: theme.textPrimary }}>{runtime.decisionCompanionHeading}</h2>
+                  <div className="mt-1.5 max-w-2xl pr-6 sm:pr-7 md:pr-8">
+                    <p className="text-sm leading-5" style={{ color: theme.textSecondary }}>
+                      {runtime.decisionCompanionSub}
+                    </p>
+                  </div>
+                </div>
+                <span className="w-fit rounded-full px-3 py-2 text-xs font-semibold" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>{localizedModeLabel(modeProfile.label, language)}</span>
+              </div>
 
-        <section className="grid gap-4 md:grid-cols-3">
-          <TimelineStat icon={Clock3} label={ts('labels.activeDecisions')} value={String(activeDecisions.length)} theme={theme} />
-          <TimelineStat icon={Sparkles} label={ts('labels.daysDiscerning')} value={String(insight.daysDiscerning)} theme={theme} />
-          <TimelineStat icon={ShieldCheck} label={ts('labels.patternsNoticed')} value={String(insight.patterns.length)} theme={theme} />
-        </section>
+              <form onSubmit={onCreateDecision} className="mt-4 grid gap-2.5 xl:grid-cols-[1fr_1.2fr_auto]">
+                <input
+                  value={title}
+                  onChange={(event) => setTitle(event.target.value)}
+                  className="min-h-10 rounded-lg border px-3 py-2 text-sm outline-none md:min-h-11 md:px-4 md:text-base"
+                  style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                  placeholder={ts('placeholders.decisionTitle')}
+                />
+                <input
+                  value={pressure}
+                  onChange={(event) => setPressure(event.target.value)}
+                  className="min-h-10 rounded-lg border px-3 py-2 text-sm outline-none md:min-h-11 md:px-4 md:text-base"
+                  style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                  placeholder={ts('placeholders.decisionPressure')}
+                />
+                <select
+                  value={emotion}
+                  onChange={(event) => setEmotion(event.target.value)}
+                  className="min-h-10 rounded-lg border px-3 py-2 text-sm outline-none md:min-h-11 md:px-4 md:text-base"
+                  style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                  aria-label={ts('labels.initialEmotion')}
+                >
+                  <option value="uncertain">{ts('emotion.uncertain')}</option>
+                  <option value="anxious">{ts('emotion.anxious')}</option>
+                  <option value="excited">{ts('emotion.excited')}</option>
+                  <option value="pressured">{ts('emotion.pressured')}</option>
+                  <option value="peaceful">{ts('emotion.peaceful')}</option>
+                </select>
+                <button className="h-10 rounded-lg px-4 text-sm font-semibold lg:col-span-full" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>
+                  {ts('labels.startDecisionMemory')}
+                </button>
+              </form>
+            </section>
 
-        <ScreenTabs
-          value={decisionSection}
-          onChange={setDecisionSection}
-          ariaLabel={ts('labels.decisionSections')}
-          theme={theme}
-          variant="primary"
-          tabs={[
-            { key: "decisions", label: ts('nav.decisions') },
-            { key: "counsel", label: ts('labels.counsel') },
-            { key: "rhythm", label: ts('labels.rhythm') },
-            { key: "memory", label: ts('labels.memory') },
-          ]}
-        />
+            <section className="grid gap-4 md:grid-cols-3">
+              <TimelineStat icon={Clock3} label={ts('labels.activeDecisions')} value={String(activeDecisions.length)} theme={theme} />
+              <TimelineStat icon={Sparkles} label={ts('labels.daysDiscerning')} value={String(insight.daysDiscerning)} theme={theme} />
+              <TimelineStat icon={ShieldCheck} label={ts('labels.patternsNoticed')} value={String(insight.patterns.length)} theme={theme} />
+            </section>
+          </>
+        ) : null}
 
         {decisionSection === "decisions" ? (
           <div className="space-y-4">
@@ -23823,8 +23827,19 @@ function ReflectPanel({
   result,
   mode,
   modeProfile,
+  user,
+  manualContext,
+  counselContacts,
+  focusIntentions,
+  messages,
+  wisdomDecisions,
   challengeRecommendation,
   onOpenRecommendedChallenge,
+  pendingChallengeId,
+  onClearPendingChallenge,
+  challengeCircleRefreshKey,
+  onChallengeCircleChanged,
+  onChallengeInviteReady,
   ts,
   entries,
   gratitudeEntries,
@@ -23854,8 +23869,19 @@ function ReflectPanel({
   result: { sources: WisdomEntry[]; readiness: number; hasUrgency: boolean; hasCounsel: boolean } | null;
   mode: Mode;
   modeProfile: ModeProfile;
+  user: User | null;
+  manualContext: ManualContextProfile;
+  counselContacts: CounselContact[];
+  focusIntentions: string[];
+  messages: ChatMessage[];
+  wisdomDecisions: WisdomDecision[];
   challengeRecommendation: ChallengeRecommendationBundle["primary"];
   onOpenRecommendedChallenge: (challengeId: string) => void;
+  pendingChallengeId: string | null;
+  onClearPendingChallenge: () => void;
+  challengeCircleRefreshKey: number;
+  onChallengeCircleChanged: () => void;
+  onChallengeInviteReady: (payload: { inviteUrl: string; circle: ChallengeCircleSummary }) => void;
   ts: (key: string, fallback?: string) => string;
   entries: JournalEntry[];
   gratitudeEntries: GratitudeEntry[];
@@ -23880,7 +23906,10 @@ function ReflectPanel({
   const reflectNextBody = body.trim() || decision.trim()
     ? runtime.reflectNextBodyActive
     : runtime.reflectNextBodyDefault;
-  const [reflectSection, setReflectSection] = useState<"check" | "gratitude" | "journal">("check");
+  const [reflectSection, setReflectSection] = useState<"check" | "gratitude" | "journal" | "formation">(
+    pendingChallengeId ? "formation" : "check"
+  );
+  const visibleReflectSection = pendingChallengeId ? "formation" : reflectSection;
   const reflectOverviewCards = [
     {
       label: ts('labels.wisdomCheck'),
@@ -23899,10 +23928,57 @@ function ReflectPanel({
       value: String(entries.length),
       body: signedIn ? ts('labels.accountSyncActive') : ts('labels.localOnly'),
     },
+    {
+      label: ts("challenges.sectionTitle"),
+      value: challengeRecommendation
+        ? (challengeRecommendation.actionKind === "continue" ? ts("challenges.continueChallenge") : ts("challenges.startChallenge"))
+        : ts("challenges.eyebrow"),
+      body: challengeRecommendation?.note ?? ts("challenges.sectionSummary"),
+    },
   ];
 
   return (
     <div className="min-w-0 space-y-4">
+      <ScreenTabs
+        value={visibleReflectSection}
+        onChange={setReflectSection}
+        ariaLabel={ts('labels.reflectSections')}
+        theme={theme}
+        variant="primary"
+        layout="grid"
+        tabs={[
+          { key: "check", label: ts('labels.wisdomCheck') },
+          { key: "gratitude", label: ts('labels.gratitudeLens') },
+          { key: "journal", label: ts('labels.reflectionJournal') },
+          { key: "formation", label: ts("challenges.eyebrow") },
+        ]}
+      />
+
+      {visibleReflectSection === "formation" ? (
+        <FormationRailSection
+          theme={theme}
+          ts={ts}
+          user={user}
+          mode={mode}
+          manualContext={manualContext}
+          counselContacts={counselContacts}
+          focusIntentions={focusIntentions}
+          messages={messages}
+          journalEntries={entries}
+          wisdomDecisions={wisdomDecisions}
+          pendingChallengeId={pendingChallengeId}
+          onClearPendingChallenge={() => {
+            setReflectSection("formation");
+            onClearPendingChallenge();
+          }}
+          challengeCircleRefreshKey={challengeCircleRefreshKey}
+          onChallengeCircleChanged={onChallengeCircleChanged}
+          onChallengeInviteReady={onChallengeInviteReady}
+        />
+      ) : null}
+
+      {visibleReflectSection !== "formation" ? (
+        <>
       {challengeRecommendation ? (
         <ContextualNextAction
           eyebrow={ts("labels.suggestedAction")}
@@ -23910,6 +23986,7 @@ function ReflectPanel({
           body={challengeRecommendation.note}
           actionLabel={challengeRecommendation.actionKind === "continue" ? ts("challenges.continueChallenge") : ts("challenges.startChallenge")}
           onAction={() => {
+            setReflectSection("formation");
             onOpenRecommendedChallenge(challengeRecommendation.challengeId);
           }}
           theme={theme}
@@ -23923,7 +24000,7 @@ function ReflectPanel({
         onAction={body.trim() ? onSave : undefined}
         theme={theme}
       />
-      <section className="grid gap-2.5 sm:grid-cols-3">
+      <section className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
         {reflectOverviewCards.map((card) => (
           <div key={card.label} className="rounded-[1.1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
             <p className="text-[10.5px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
@@ -23957,20 +24034,7 @@ function ReflectPanel({
         </div>
       </section>
 
-      <ScreenTabs
-        value={reflectSection}
-        onChange={setReflectSection}
-        ariaLabel={ts('labels.reflectSections')}
-        theme={theme}
-        variant="primary"
-        tabs={[
-          { key: "check", label: ts('labels.wisdomCheck') },
-          { key: "gratitude", label: ts('labels.gratitudeLens') },
-          { key: "journal", label: ts('labels.reflectionJournal') },
-        ]}
-      />
-
-      {reflectSection === "check" ? (
+      {visibleReflectSection === "check" ? (
         <DisclosureSection
           title={runtime.wisdomCheck}
           summary={result ? `${ts('labels.readiness')} ${result.readiness}/100 · ${result.hasUrgency ? runtime.wisdomCheckUrgency : runtime.wisdomCheckSlower}` : runtime.wisdomCheckSummaryDefault}
@@ -23997,7 +24061,7 @@ function ReflectPanel({
         </DisclosureSection>
       ) : null}
 
-      {reflectSection === "gratitude" ? (
+      {visibleReflectSection === "gratitude" ? (
         <GratitudeLensPanel
           entries={gratitudeEntries}
           syncStatus={gratitudeSyncStatus}
@@ -24012,7 +24076,7 @@ function ReflectPanel({
         />
       ) : null}
 
-      {reflectSection === "journal" ? (
+      {visibleReflectSection === "journal" ? (
         <JournalPanel
           entries={entries}
           title={title}
@@ -24027,6 +24091,8 @@ function ReflectPanel({
           ts={ts}
           theme={theme}
         />
+      ) : null}
+        </>
       ) : null}
     </div>
   );
