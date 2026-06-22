@@ -13191,26 +13191,6 @@ function HomeDashboard({
               </span>
             </div>
 
-          <div className="flex flex-wrap gap-2">
-            {[
-              { label: activeDecision ? text.continueDecision! : text.askOneQuestion!, active: true },
-              { label: text.reflectToday!, active: false },
-              { label: text.carryWithMe!, active: false },
-            ].map((chip) => (
-              <span
-                key={chip.label}
-                className="rounded-full border px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]"
-                style={{
-                  borderColor: chip.active ? theme.primary : theme.borderLight,
-                  backgroundColor: chip.active ? theme.activeBg : theme.bgCardElevated,
-                  color: chip.active ? theme.primary : theme.textSecondary,
-                }}
-              >
-                {chip.label}
-              </span>
-            ))}
-          </div>
-
           {personalizationContextEmpty ? (
             <button
               type="button"
@@ -14222,26 +14202,6 @@ function AccountPanel({
             <p className="mt-2 text-sm leading-6 sm:text-base sm:leading-7" style={{ color: theme.textSecondary }}>
               {user ? `${ts('labels.accountSignedInWith')} ${profileSummary}` : profileSummary}
             </p>
-            <div className="mt-4 flex flex-wrap justify-center gap-2">
-              {[
-                { label: ts('labels.accountPersonalizationTab'), active: accountSection === "personalization" },
-                { label: ts('labels.accountPrivacyTab'), active: accountSection === "privacy" },
-                { label: ts('labels.accountShareTab'), active: accountSection === "share" },
-                { label: ts('labels.accountSystemTab'), active: accountSection === "system" },
-              ].map((item) => (
-                <span
-                  key={item.label}
-                  className="rounded-full border px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]"
-                  style={{
-                    borderColor: item.active ? theme.primary : theme.borderLight,
-                    backgroundColor: item.active ? theme.activeBg : theme.bgCardElevated,
-                    color: item.active ? theme.primary : theme.textSecondary,
-                  }}
-                >
-                  {item.label}
-                </span>
-              ))}
-            </div>
           </div>
           <div className="grid grid-cols-3 gap-2 border-t px-3 py-3 sm:px-5" style={{ borderColor: theme.borderLight }}>
             {profileStats.map((stat) => (
@@ -14610,7 +14570,6 @@ function AccountHeaderStat({
 function AccountSettingRow({
   icon: Icon,
   label,
-  body,
   currentValue,
   control,
   theme,
@@ -14626,7 +14585,6 @@ function AccountSettingRow({
 
   return (
     <div className="relative editorial-surface premium-tap-card rounded-[1rem] border p-1.5 shadow-[0_4px_10px_rgba(7,10,8,0.04)] sm:p-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-      <InfoHint text={body} theme={theme} placement="corner" surface="dense" />
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
@@ -14637,7 +14595,7 @@ function AccountSettingRow({
           <Icon size={14} />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="flex items-center gap-2 pr-6 text-[12.5px] font-semibold leading-5 sm:pr-7 sm:text-sm" style={{ color: theme.textPrimary }}>
+          <span className="flex items-center gap-2 text-[12.5px] font-semibold leading-5 sm:text-sm" style={{ color: theme.textPrimary }}>
             <span>{label}</span>
           </span>
         </span>
@@ -14660,7 +14618,6 @@ function AccountSettingRow({
 function AccountToggleRow({
   icon: Icon,
   label,
-  body,
   checked,
   onChange,
   onLabel,
@@ -14678,14 +14635,13 @@ function AccountToggleRow({
 }) {
   return (
     <div className="relative editorial-surface premium-tap-card rounded-[1rem] border p-1.5 shadow-[0_4px_10px_rgba(7,10,8,0.04)] sm:p-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-      <InfoHint text={body} theme={theme} placement="corner" surface="dense" />
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-2.5">
         <div className="flex min-w-0 items-start gap-2">
           <span className="grid size-[1.625rem] shrink-0 place-items-center rounded-full border sm:size-[1.875rem]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
             <Icon size={14} />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="flex items-center gap-2 pr-6 text-[12.5px] font-semibold leading-5 sm:pr-7 sm:text-sm" style={{ color: theme.textPrimary }}>
+            <span className="flex items-center gap-2 text-[12.5px] font-semibold leading-5 sm:text-sm" style={{ color: theme.textPrimary }}>
               <span>{label}</span>
             </span>
           </span>
@@ -15840,10 +15796,7 @@ function FormationRailSection({
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
-                      <span className="inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.accentGold }}>
-                        {ts("labels.preview")}
-                      </span>
-                      <p className="mt-2 text-sm font-semibold leading-5" style={{ color: theme.textPrimary }}>
+                      <p className="text-sm font-semibold leading-5" style={{ color: theme.textPrimary }}>
                         {ts(challenge.titleKey, challenge.title)}
                       </p>
                     </div>
@@ -15872,10 +15825,7 @@ function FormationRailSection({
               <article className="overflow-hidden rounded-[1.55rem] border shadow-[0_12px_28px_rgba(15,23,42,0.06)]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
                 <div className="relative border-b p-4 sm:p-5" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
                   <InfoHint text={ts("challenges.previewHint")} theme={theme} placement="corner" surface="hero" />
-                  <span className="inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.accentGold }}>
-                    {ts("labels.preview")}
-                  </span>
-                  <h3 className="mt-3 text-xl font-semibold sm:text-[1.7rem]" style={{ color: theme.textPrimary }}>
+                  <h3 className="text-xl font-semibold sm:text-[1.7rem]" style={{ color: theme.textPrimary }}>
                     {ts(selectedChallenge.titleKey, selectedChallenge.title)}
                   </h3>
                   <p className="mt-2 text-sm leading-6 sm:text-[0.98rem] sm:leading-7" style={{ color: theme.textSecondary }}>
@@ -15951,33 +15901,23 @@ function FormationRailSection({
                           {selectedChallengeFocusedPrompt?.scripture}
                         </p>
                         <h4 className="mt-2 text-[1.02rem] font-semibold leading-6 sm:text-[1.08rem]" style={{ color: theme.textPrimary }}>
-                          {selectedChallengeFocusedPrompt ? ts(selectedChallengeFocusedPrompt.principleKey, selectedChallengeFocusedPrompt.principle) : ts("labels.preview")}
+                          {selectedChallengeFocusedPrompt ? ts(selectedChallengeFocusedPrompt.principleKey, selectedChallengeFocusedPrompt.principle) : ""}
                         </h4>
                       </div>
-                      <span
-                        className="inline-flex shrink-0 items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]"
-                        style={{
-                          borderColor: theme.borderMedium,
-                          backgroundColor:
-                            selectedChallengeFocusState === "completed"
-                              ? theme.activeBg
-                              : selectedChallengeFocusState === "current"
-                                ? theme.bgInput
-                                : theme.bgCard,
-                          color:
-                            selectedChallengeFocusState === "completed"
-                              ? theme.primary
-                              : selectedChallengeFocusState === "current"
-                                ? theme.textSecondary
-                                : theme.textMuted,
-                        }}
-                      >
-                        {selectedChallengeFocusState === "completed"
-                          ? ts("challenges.completedChallenge")
-                          : selectedChallengeFocusState === "current"
-                            ? (selectedChallenge.completedDays.length > 0 ? ts("challenges.continueChallenge") : ts("challenges.startChallenge"))
-                            : ts("labels.preview")}
-                      </span>
+                      {selectedChallengeFocusState === "completed" || selectedChallengeFocusState === "current" ? (
+                        <span
+                          className="inline-flex shrink-0 items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]"
+                          style={{
+                            borderColor: theme.borderMedium,
+                            backgroundColor: selectedChallengeFocusState === "completed" ? theme.activeBg : theme.bgInput,
+                            color: selectedChallengeFocusState === "completed" ? theme.primary : theme.textSecondary,
+                          }}
+                        >
+                          {selectedChallengeFocusState === "completed"
+                            ? ts("challenges.completedChallenge")
+                            : (selectedChallenge.completedDays.length > 0 ? ts("challenges.continueChallenge") : ts("challenges.startChallenge"))}
+                        </span>
+                      ) : null}
                     </div>
 
                     <div className="mt-3 rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
@@ -16129,9 +16069,11 @@ function FormationRailSection({
                           {selectedCircle ? ts("challenges.communitySummary") : ts("challenges.noCommunityYet")}
                         </h3>
                       </div>
-                      <span className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-                        {selectedCircle ? `${selectedCircle.memberCount} ${ts("challenges.withFriends")}` : ts("labels.preview")}
-                      </span>
+                      {selectedCircle ? (
+                        <span className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                          {selectedCircle.memberCount} {ts("challenges.withFriends")}
+                        </span>
+                      ) : null}
                     </div>
                     {selectedCircleInviteDetails?.bookTitle ? (
                       <div className="mt-3 flex flex-wrap gap-2">
@@ -21126,11 +21068,6 @@ function CompanionPanel({
   const focusLabels = focusIntentionLabels(focusIntentions, ts);
   const suggestedFocusPrompt = focusIntentionPrompt(focusIntentions, "companion", ts);
   const promptChips = [suggestedFocusPrompt, ...modeProfile.prompts].filter(Boolean).slice(0, 3);
-  const askMetaChips = [
-    { label: localizedModeLabel(mode, preferences.language), active: true },
-    { label: modeProfile.focus, active: false },
-    { label: preferences.voiceEnabled ? ts('labels.voiceInput') : ui.askButton, active: false },
-  ];
   const currentModeCard = modeCards.find((item) => item.label === mode) ?? modeCards[0];
   const CurrentLensIcon = currentModeCard.icon;
   const voiceDraft = voiceTranscriptPreview.trim();
@@ -21159,21 +21096,6 @@ function CompanionPanel({
               <p className="text-sm leading-5" style={{ color: theme.textSecondary }}>
                 {ui.askIntro}
               </p>
-            </div>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {askMetaChips.map((chip) => (
-                <span
-                  key={chip.label}
-                  className="rounded-full border px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]"
-                  style={{
-                    borderColor: chip.active ? theme.primary : theme.borderLight,
-                    backgroundColor: chip.active ? theme.activeBg : theme.bgCard,
-                    color: chip.active ? theme.primary : theme.textSecondary,
-                  }}
-                >
-                  {chip.label}
-                </span>
-              ))}
             </div>
           </div>
         </div>
@@ -22122,11 +22044,11 @@ function localizedCounselRoleLabel(role: string, ts: (key: string, fallback?: st
 function localizedDecisionStatusLabel(status: string, ts: (key: string, fallback?: string) => string) {
   switch (status) {
     case "discerning":
-      return ts('status.discerning');
+      return ts('status.discerning', 'Discerning');
     case "waiting":
-      return ts('status.waiting');
+      return ts('status.waiting', 'Waiting');
     case "closed":
-      return ts('status.closed');
+      return ts('status.closed', 'Closed');
     default:
       return status;
   }
