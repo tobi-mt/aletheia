@@ -7163,8 +7163,8 @@ export function AletheiaApp() {
       const bottomNavGap = 0;
       const bottomNavPadY = isTablet ? 0 : isSmallPhone ? 0.56 : isFoldClass ? 0.52 : isLargePhone ? 0.48 : 0.52;
       const bottomNavPadX = isTablet ? 0 : isSmallPhone ? 0.72 : isFoldClass ? 0.72 : isLargePhone ? 0.68 : 0.7;
-      const bottomNavRadius = isTablet ? 0 : isSmallPhone ? 1.35 : isFoldClass ? 1.45 : isLargePhone ? 1.5 : 1.4;
-      const bottomNavWidth = isFoldClass ? "min(100vw, 38rem)" : "min(100vw, 28rem)";
+      const bottomNavRadius = isTablet ? 0 : isSmallPhone ? 1.45 : isFoldClass ? 1.55 : isLargePhone ? 1.6 : 1.5;
+      const bottomNavWidth = isFoldClass ? "min(calc(100vw - 1rem), 38rem)" : "min(calc(100vw - 1rem), 28rem)";
       const noticeBottomOffset = isTablet
         ? 0
         : isSmallPhone
@@ -7419,9 +7419,11 @@ export function AletheiaApp() {
     }
 
     const updateBottomNavSpace = () => {
-      const navHeight = Math.max(0, Math.ceil(nav.getBoundingClientRect().height));
+      const navRect = nav.getBoundingClientRect();
+      const navHeight = Math.max(0, Math.ceil(navRect.height));
       const navVisible = window.getComputedStyle(nav).display !== "none";
-      const reservedSpace = navVisible && navHeight > 0 ? navHeight + 18 : 0;
+      const visibleNavDepth = navVisible && navHeight > 0 ? Math.max(navHeight, window.innerHeight - navRect.top) : 0;
+      const reservedSpace = visibleNavDepth > 0 ? Math.ceil(visibleNavDepth + 10) : 0;
       document.documentElement.style.setProperty("--aletheia-bottom-nav-space", `${reservedSpace}px`);
     };
 
@@ -11749,16 +11751,10 @@ export function AletheiaApp() {
                   : resolvedTheme === "sunset"
                     ? "rgba(250, 241, 246, 0.62)"
                     : "rgba(238, 242, 239, 0.62)",
-        width: "var(--aletheia-bottom-nav-width, min(calc(100vw - 1.5rem), 28rem))",
+        width: "var(--aletheia-bottom-nav-width, min(calc(100vw - 1rem), 28rem))",
         bottom: 0,
-        borderTopLeftRadius: "calc(var(--aletheia-bottom-nav-radius, 1.5) * 1rem)",
-        borderTopRightRadius: "calc(var(--aletheia-bottom-nav-radius, 1.5) * 1rem)",
-        borderBottomLeftRadius: 0,
-        borderBottomRightRadius: 0,
-        paddingTop: "calc(var(--aletheia-bottom-nav-pad-y, 0.6) * 1rem)",
-        paddingRight: "calc(var(--aletheia-bottom-nav-pad-x, 0.85) * 1rem)",
-        paddingBottom: "calc(var(--aletheia-bottom-nav-pad-y, 0.6) * 1rem + env(safe-area-inset-bottom, 0px))",
-        paddingLeft: "calc(var(--aletheia-bottom-nav-pad-x, 0.85) * 1rem)",
+        borderRadius: "calc(var(--aletheia-bottom-nav-radius, 1.5) * 1rem)",
+        padding: "calc(var(--aletheia-bottom-nav-pad-y, 0.6) * 1rem) calc(var(--aletheia-bottom-nav-pad-x, 0.85) * 1rem)",
       }}>
         <div className="grid grid-cols-5 gap-1">
           <MobileNav active={activeView === "companion"} icon={Home} label={ui.nav.companion} onClick={() => showView("companion")} theme={theme} />
