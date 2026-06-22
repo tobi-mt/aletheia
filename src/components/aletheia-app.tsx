@@ -7159,12 +7159,12 @@ export function AletheiaApp() {
       const isSmallPhone = !isTablet && !isFoldClass && viewportWidth <= 390;
       const isLargePhone = !isTablet && !isFoldClass && viewportWidth >= 400;
       const deviceFamily = isTablet ? "tablet" : isFoldClass ? "fold" : isSmallPhone ? "small-phone" : isLargePhone ? "large-phone" : "regular-phone";
-      const bottomReserve = isTablet ? 0 : Math.round(Math.max(8, Math.min(14, shortestSide * 0.018)));
-      const bottomNavGap = isTablet ? 0 : isSmallPhone ? 0.42 : isFoldClass ? 0.42 : isLargePhone ? 0.38 : 0.42;
+      const bottomReserve = 0;
+      const bottomNavGap = 0;
       const bottomNavPadY = isTablet ? 0 : isSmallPhone ? 0.56 : isFoldClass ? 0.52 : isLargePhone ? 0.48 : 0.52;
       const bottomNavPadX = isTablet ? 0 : isSmallPhone ? 0.72 : isFoldClass ? 0.72 : isLargePhone ? 0.68 : 0.7;
-      const bottomNavRadius = isTablet ? 0 : isSmallPhone ? 1.45 : isFoldClass ? 1.55 : isLargePhone ? 1.6 : 1.5;
-      const bottomNavWidth = isFoldClass ? "min(calc(100vw - 1rem), 38rem)" : "min(calc(100vw - 1rem), 28rem)";
+      const bottomNavRadius = isTablet ? 0 : isSmallPhone ? 1.35 : isFoldClass ? 1.45 : isLargePhone ? 1.5 : 1.4;
+      const bottomNavWidth = isFoldClass ? "min(100vw, 38rem)" : "min(100vw, 28rem)";
       const noticeBottomOffset = isTablet
         ? 0
         : isSmallPhone
@@ -11361,7 +11361,7 @@ export function AletheiaApp() {
         </div>
       </nav>
 
-      <div className="mx-auto grid max-w-7xl gap-5 px-3 pt-4 sm:px-4 sm:pt-5 xl:grid-cols-[320px_minmax(0,1fr)] xl:py-6" style={{ paddingBottom: "calc(var(--aletheia-bottom-nav-space, 8.5rem) + env(safe-area-inset-bottom))" }}>
+      <div className="mx-auto grid max-w-7xl gap-5 px-3 pt-4 sm:px-4 sm:pt-5 xl:grid-cols-[320px_minmax(0,1fr)] xl:py-6" style={{ paddingBottom: "var(--aletheia-bottom-nav-space, 0px)" }}>
         <aside className="hidden xl:block">
           <div className="sticky top-24 space-y-4">
             <section className="rounded-lg border p-4 shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
@@ -11743,9 +11743,15 @@ export function AletheiaApp() {
                     ? "rgba(250, 241, 246, 0.62)"
                     : "rgba(238, 242, 239, 0.62)",
         width: "var(--aletheia-bottom-nav-width, min(calc(100vw - 1.5rem), 28rem))",
-        bottom: "calc(var(--aletheia-bottom-nav-gap, 0.75) * 1rem + env(safe-area-inset-bottom))",
-        borderRadius: "calc(var(--aletheia-bottom-nav-radius, 1.75) * 1rem)",
-        padding: "calc(var(--aletheia-bottom-nav-pad-y, 0.6) * 1rem) calc(var(--aletheia-bottom-nav-pad-x, 0.85) * 1rem)",
+        bottom: 0,
+        borderTopLeftRadius: "calc(var(--aletheia-bottom-nav-radius, 1.5) * 1rem)",
+        borderTopRightRadius: "calc(var(--aletheia-bottom-nav-radius, 1.5) * 1rem)",
+        borderBottomLeftRadius: 0,
+        borderBottomRightRadius: 0,
+        paddingTop: "calc(var(--aletheia-bottom-nav-pad-y, 0.6) * 1rem)",
+        paddingRight: "calc(var(--aletheia-bottom-nav-pad-x, 0.85) * 1rem)",
+        paddingBottom: "calc(var(--aletheia-bottom-nav-pad-y, 0.6) * 1rem + env(safe-area-inset-bottom, 0px))",
+        paddingLeft: "calc(var(--aletheia-bottom-nav-pad-x, 0.85) * 1rem)",
       }}>
         <div className="grid grid-cols-5 gap-1">
           <MobileNav active={activeView === "companion"} icon={Home} label={ui.nav.companion} onClick={() => showView("companion")} theme={theme} />
