@@ -11274,7 +11274,7 @@ export function AletheiaApp() {
   }
 
   return (
-    <main ref={appShellRef} className={`app-shell min-h-screen overflow-x-hidden ${resolvedTheme === "dark" || resolvedTheme === "black" ? "theme-dark-root" : ""}`} style={{ backgroundColor: theme.bgMain, color: theme.textPrimary, minHeight: '100dvh' }}>
+    <main ref={appShellRef} className={`app-shell overflow-x-hidden ${resolvedTheme === "dark" || resolvedTheme === "black" ? "theme-dark-root" : ""}`} style={{ backgroundColor: theme.bgMain, color: theme.textPrimary }}>
       <div
         className={`fixed inset-0 -z-10 ${theme.bgGradient}`}
         style={{ backgroundColor: theme.bgMain }}
@@ -12062,8 +12062,8 @@ function StartupSplash({
 
   return (
     <main
-      className={`app-shell min-h-screen overflow-hidden ${resolvedTheme === "dark" || resolvedTheme === "black" ? "theme-dark-root" : ""}`}
-      style={{ backgroundColor: theme.bgMain, color: theme.textPrimary, minHeight: "100dvh" }}
+      className={`app-shell overflow-hidden ${resolvedTheme === "dark" || resolvedTheme === "black" ? "theme-dark-root" : ""}`}
+      style={{ backgroundColor: theme.bgMain, color: theme.textPrimary }}
     >
       <div className={`fixed inset-0 -z-10 ${theme.bgGradient}`} style={{ backgroundColor: theme.bgMain }} />
       <div
