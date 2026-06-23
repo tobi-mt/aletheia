@@ -91,6 +91,7 @@ body {
   --aletheia-safe-area-bottom: var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
   --aletheia-top-reserve: 20px;
   --aletheia-bottom-reserve: 0px;
+  --aletheia-fixed-bottom-exclusion: 0px;
   --aletheia-top-nav-space: calc(max(var(--aletheia-safe-area-top), var(--aletheia-top-reserve)) + 5.6rem);
   --aletheia-top-glass-height: calc(max(var(--aletheia-safe-area-top), var(--aletheia-top-reserve)) + 5.1rem);
   --aletheia-bottom-nav-space: 0px;

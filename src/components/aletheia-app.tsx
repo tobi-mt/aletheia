@@ -7164,6 +7164,12 @@ export function AletheiaApp() {
       const viewportHeight = Math.max(0, Math.round(viewport?.height ?? window.innerHeight));
       const viewportOffsetTop = Math.max(0, Math.round(viewport?.offsetTop ?? 0));
       const visualBottomInset = Math.max(0, Math.round(window.innerHeight - viewportHeight - viewportOffsetTop));
+      const fixedBottomProbe = document.createElement("div");
+      fixedBottomProbe.setAttribute("aria-hidden", "true");
+      fixedBottomProbe.style.cssText = "position:fixed;left:0;bottom:0;width:1px;height:1px;pointer-events:none;visibility:hidden;z-index:-1;";
+      document.body.appendChild(fixedBottomProbe);
+      const fixedBottomExclusion = Math.max(0, Math.round(window.innerHeight - fixedBottomProbe.getBoundingClientRect().bottom));
+      fixedBottomProbe.remove();
       const shortestSide = Math.min(viewportWidth, viewportHeight);
       const isTablet = viewportWidth >= 768 || shortestSide >= 768;
       const isFoldClass = !isTablet && viewportWidth >= 600 && viewportWidth < 768 && viewportHeight >= 700;
@@ -7187,6 +7193,7 @@ export function AletheiaApp() {
               : 10.5;
 
       document.documentElement.style.setProperty("--aletheia-bottom-reserve", `${bottomReserve}px`);
+      document.documentElement.style.setProperty("--aletheia-fixed-bottom-exclusion", `${fixedBottomExclusion}px`);
       document.documentElement.style.setProperty("--aletheia-bottom-nav-gap", `${bottomNavGap}`);
       document.documentElement.style.setProperty("--aletheia-bottom-nav-pad-y", `${bottomNavPadY}`);
       document.documentElement.style.setProperty("--aletheia-bottom-nav-pad-x", `${bottomNavPadX}`);
@@ -11815,7 +11822,7 @@ export function AletheiaApp() {
           return `color-mix(in srgb, ${viewAccent} 8%, ${baseBg})`;
         })(),
         width: "var(--aletheia-bottom-nav-width, min(calc(100vw - 1rem), 28rem))",
-        bottom: "calc(var(--aletheia-bottom-nav-gap, 0.38) * 1rem)",
+        bottom: "calc(calc(var(--aletheia-bottom-nav-gap, 0.38) * 1rem) - var(--aletheia-fixed-bottom-exclusion, 0px))",
         borderRadius: "calc(var(--aletheia-bottom-nav-radius, 1.5) * 1rem)",
         paddingTop: "calc(var(--aletheia-bottom-nav-pad-y, 0.6) * 1rem)",
         paddingRight: "calc(var(--aletheia-bottom-nav-pad-x, 0.85) * 1rem)",
