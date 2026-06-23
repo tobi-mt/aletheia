@@ -1718,5 +1718,42 @@
         "practice": "Schreibe klar auf, was für diese Zeit genug ist."
       }
     }
+  },
+  "streak": {
+    "start": "Start",
+    "keepGoing": "Weiter so!",
+    "milestone7": "7-Tage-Keim 🌱",
+    "milestone30": "30-Tage-Kämpfer 🔥",
+    "milestone100": "100-Tage-Legende ⚡",
+    "milestone365": "1-Jahres-Meister 👑",
+    "achievementUnlocked": "Erfolg freigeschaltet!",
+    "achievement7": "7-Tage-Keim! Du baust Beständigkeit auf!",
+    "achievement30": "30-Tage-Kämpfer! Erstaunliche Hingabe!",
+    "achievement100": "100-Tage-Legende! Du bist nicht aufzuhalten!",
+    "achievement365": "1-Jahres-Meister! Du hast dein Leben verändert!",
+    "celebrate": "Feiern",
+    "share": "Teilen"
+  },
+  "decisionTimeline": {
+    "title": "Entscheidungsreise",
+    "daysProgress": "{days} von 30 Tagen",
+    "nextLabel": "Nächste:",
+    "dayBadge": "Tag {day}",
+    "checkpoint": {
+      "decisionStartedLabel": "Entscheidung Begonnen",
+      "decisionStartedDesc": "Du hast diese Entscheidung begonnen",
+      "day1Label": "Einchecken Tag 1",
+      "day1Desc": "Erste Reflexion",
+      "day1Prompt": "Wie fühlst du dich heute bezüglich dieser Entscheidung?",
+      "day3Label": "Engagement Tag 3",
+      "day3Desc": "Perspektiven sammeln",
+      "day3Prompt": "Welche Weisheit hast du erhalten?",
+      "day7Label": "Wöchentliche Reflexion",
+      "day7Desc": "Über den Fortschritt nachdenken",
+      "day7Prompt": "Was hast du diese Woche gelernt?",
+      "day30Label": "Monatliches Ergebnis",
+      "day30Desc": "Sieh, wo du jetzt stehst",
+      "day30Prompt": "Wie hat sich diese Entscheidung entwickelt?"
+    }
   }
 }

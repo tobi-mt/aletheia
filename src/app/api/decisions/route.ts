@@ -8,6 +8,7 @@ import { defaultPreferences, languages, normalizePreferences, type LanguageCode,
 import { apiError } from "@/lib/api-errors";
 import { retrieveWisdom } from "@/lib/wisdom";
 import { normalizeMode, type Mode } from "@/lib/wisdom-data";
+import { scheduleDecisionNotifications } from "@/lib/notification-sequencing";
 
 type DecisionRow = {
   id: string;
@@ -235,8 +236,8 @@ export async function POST(request: Request) {
 
   await run(
     `INSERT INTO wisdom_decisions
-     (id, user_id, title, mode, pressure, initial_emotion, readiness, summary, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     (id, user_id, title, mode, pressure, initial_emotion, readiness, summary, timeline_checkpoints, notification_sequence_sent, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     id,
     user.id,
     title,
@@ -245,6 +246,8 @@ export async function POST(request: Request) {
     emotion,
     signals.readiness,
     summary,
+    JSON.stringify([]),
+    JSON.stringify({}),
     now,
     now
   );
@@ -259,6 +262,10 @@ export async function POST(request: Request) {
     mode,
     now
   );
+  
+  // Schedule notifications for days 1, 3, 7, 30 in the user's language
+  await scheduleDecisionNotifications(id, user.id, title, now, preferences.language);
+  
   await trackServerEvent({
     userId: user.id,
     eventName: "decision_created",

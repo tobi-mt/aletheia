@@ -1718,5 +1718,42 @@
         "practice": "Kọ ohun tí ó tó fún asiko yìí ní kedere."
       }
     }
+  },
+  "streak": {
+    "start": "Bẹ̀rẹ̀",
+    "keepGoing": "Máa jẹ́!",
+    "milestone7": "Abọ ọjọ́ 7 🌱",
+    "milestone30": "Jagunjagun ọjọ́ 30 🔥",
+    "milestone100": "Àlàyé ọjọ́ 100 ⚡",
+    "milestone365": "Ọlọ́gbọ́n ọdún 1 👑",
+    "achievementUnlocked": "Àṣeyọrí tí a ṣí!",
+    "achievement7": "Abọ ọjọ́ 7! O ń tẹ̀ lé lé!",
+    "achievement30": "Jagunjagun ọjọ́ 30! Ìfọkànsìn ìyanu!",
+    "achievement100": "Àlàyé ọjọ́ 100! Ò ṣeéṣe láti dúró rẹ!",
+    "achievement365": "Ọlọ́gbọ́n ọdún 1! O ti yí ìgbésí ayé rẹ padà!",
+    "celebrate": "Ṣe àárọ̀",
+    "share": "Pín"
+  },
+  "decisionTimeline": {
+    "title": "Ìrìnnà Ìpinnu",
+    "daysProgress": "Ọjọ́ {days} lára 30",
+    "nextLabel": "Ó tẹ̀ lé:",
+    "dayBadge": "Ọjọ́ {day}",
+    "checkpoint": {
+      "decisionStartedLabel": "Ìpinnu Bẹ̀rẹ̀",
+      "decisionStartedDesc": "O ti bẹ̀rẹ̀ ìpinnu yìí",
+      "day1Label": "Bọ̀ wọlé Ọjọ́ 1",
+      "day1Desc": "Ìrọ̀lẹ́ àkọ́kọ́",
+      "day1Prompt": "Báwo ni o ṣe ń fẹ̀ nípa ìpinnu yìí lónìí?",
+      "day3Label": "Ìkópa Ọjọ́ 3",
+      "day3Desc": "Kó ìwòye",
+      "day3Prompt": "Ọgbọ́n wo ni o ti gba?",
+      "day7Label": "Ìrọ̀lẹ́ Ọ̀sẹ̀",
+      "day7Desc": "Ronú lórí ìlosíwájú",
+      "day7Prompt": "Kí ni o ti kọ ọ̀sẹ̀ yìí?",
+      "day30Label": "Àbájáde Oṣù",
+      "day30Desc": "Wò ibí o wà nísinsin yìí",
+      "day30Prompt": "Báwo ni ìpinnu yìí ṣe jáde?"
+    }
   }
 }

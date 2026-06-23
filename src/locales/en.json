@@ -1855,5 +1855,42 @@
     "libraryDescription": "A curated wisdom base with language-aware application notes and public-domain translation labels.",
     "fullWisdomLibrary": "Full wisdom library",
     "moreAnchors": "more anchors"
+  },
+  "streak": {
+    "start": "Start",
+    "keepGoing": "Keep going!",
+    "milestone7": "7-Day Sprout 🌱",
+    "milestone30": "30-Day Warrior 🔥",
+    "milestone100": "100-Day Legend ⚡",
+    "milestone365": "1-Year Master 👑",
+    "achievementUnlocked": "Achievement Unlocked!",
+    "achievement7": "7-Day Sprout! You're building consistency!",
+    "achievement30": "30-Day Warrior! Amazing dedication!",
+    "achievement100": "100-Day Legend! You're unstoppable!",
+    "achievement365": "1-Year Master! You've transformed your life!",
+    "celebrate": "Celebrate",
+    "share": "Share"
+  },
+  "decisionTimeline": {
+    "title": "Decision Journey",
+    "daysProgress": "{days} of 30 days",
+    "nextLabel": "Next:",
+    "dayBadge": "Day {day}",
+    "checkpoint": {
+      "decisionStartedLabel": "Decision Started",
+      "decisionStartedDesc": "You began this decision",
+      "day1Label": "Day 1 Check-in",
+      "day1Desc": "First reflection",
+      "day1Prompt": "How are you feeling about this decision today?",
+      "day3Label": "Day 3 Engagement",
+      "day3Desc": "Gather perspective",
+      "day3Prompt": "What wisdom have you received?",
+      "day7Label": "Weekly Reflection",
+      "day7Desc": "Reflect on progress",
+      "day7Prompt": "What have you learned this week?",
+      "day30Label": "Monthly Outcome",
+      "day30Desc": "See where you are now",
+      "day30Prompt": "How did this decision turn out?"
+    }
   }
 }

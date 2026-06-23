@@ -1718,5 +1718,42 @@
         "practice": "Dee ihe zuru ezu maka oge a n’ụzọ doro anya."
       }
     }
+  },
+  "streak": {
+    "start": "Malite",
+    "keepGoing": "Nọgide!",
+    "milestone7": "Ọpụpụ nke Ụbọchị 7 🌱",
+    "milestone30": "Onye ọgụ ụbọchị 30 🔥",
+    "milestone100": "Akụkọ ihe mere eme ụbọchị 100 ⚡",
+    "milestone365": "Nkà nke afọ 1 👑",
+    "achievementUnlocked": "Ihe mmeri ewepụtara!",
+    "achievement7": "Ọpụpụ nke ụbọchị 7! Ị na-ewu nkwụ!",
+    "achievement30": "Onye ọgụ ụbọchị 30! Nrube isi dị ebube!",
+    "achievement100": "Akụkọ ihe mere eme ụbọchị 100! Enweghị ihe ga-egbochi gị!",
+    "achievement365": "Nkà nke afọ 1! Agbanwere ndụ gị!",
+    "celebrate": "Emesiere",
+    "share": "Kekọrịta"
+  },
+  "decisionTimeline": {
+    "title": "Njem Mkpebi",
+    "daysProgress": "Ụbọchị {days} n'ime 30",
+    "nextLabel": "Ọzọ:",
+    "dayBadge": "Ụbọchị {day}",
+    "checkpoint": {
+      "decisionStartedLabel": "Mkpebi Amalitela",
+      "decisionStartedDesc": "Ị malitere mkpebi a",
+      "day1Label": "Nlezianya Ụbọchị 1",
+      "day1Desc": "Ntụgharị uche mbụ",
+      "day1Prompt": "Ọ dị gị otú o dị banyere mkpebi a taa?",
+      "day3Label": "Itinye onwe Ụbọchị 3",
+      "day3Desc": "Nchịkọta echiche",
+      "day3Prompt": "Gị nwetara ọghụgha ole?",
+      "day7Label": "Ntụgharị uche ọ Izu",
+      "day7Desc": "Tụlee ihe ọganihu",
+      "day7Prompt": "Gị mụtara ihe ole n'izu a?",
+      "day30Label": "Nsonaazụ Ọnwa",
+      "day30Desc": "Hụ ebe ị nọ ugbu a",
+      "day30Prompt": "Mkpebi a gasịrị otú o dị?"
+    }
   }
 }

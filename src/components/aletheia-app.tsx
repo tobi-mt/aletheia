@@ -6,6 +6,7 @@ import { signIn as authSignIn, signOut as authSignOut } from "next-auth/react";
 import { ChangeEvent, FormEvent, type KeyboardEvent, type ReactNode, type RefObject, type TouchEvent, type WheelEvent, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Capacitor, type PluginListenerHandle } from "@capacitor/core";
+import { Haptics, ImpactStyle } from "@capacitor/haptics";
 import {
   BookOpen,
   BriefcaseBusiness,
@@ -108,6 +109,10 @@ import { SERVICE_WORKER_URL } from "@/lib/build-version";
 import { loadTranslationsSync, loadTranslationsWithFallbackSync, getTranslation, type TranslationData } from "@/lib/translations";
 import { ManagedAudio } from "@/lib/native-audio";
 import BibleReader from "@/components/bible-reader";
+import { ToastContainer, useToast } from "@/components/toast-notification";
+import { StreakBadge, StreakAchievementNotification } from "@/components/streak-badge";
+import { DecisionTimeline, generateDecisionCheckpoints } from "@/components/decision-timeline";
+import { getUserStreak, checkStreakAchievements, formatStreak, type StreakData } from "@/lib/streak-tracker";
 import type { BibleStudyData } from "@/lib/bible-study";
 
 type View = "companion" | "decisions" | "reflect" | "library" | "account";
@@ -6393,6 +6398,7 @@ function getInitialHomeSection(): HomeSection {
 export function AletheiaApp() {
   const [activeView, setActiveViewState] = useState<View>(() => getInitialActiveView());
   const [homeSection, setHomeSectionState] = useState<HomeSection>(() => getInitialHomeSection());
+  const { toasts, addToast, removeToast } = useToast();
   
   // Wrapper to persist active view and track navigation usage.
   const setActiveView = useCallback((view: View, source = "navigation") => {
@@ -6534,6 +6540,9 @@ export function AletheiaApp() {
   const [currentLocalHour, setCurrentLocalHour] = useState<number | null>(null);
   const [currentLocalMonth, setCurrentLocalMonth] = useState<number | null>(null);
   const [currentLocalDayOfWeek, setCurrentLocalDayOfWeek] = useState<number | null>(null);
+  
+  const [streakData, setStreakData] = useState<StreakData>({ consecutiveDays: 0, lastUseDate: null, achievements: {} });
+  const [showStreakAchievement, setShowStreakAchievement] = useState<number | null>(null);
   
   const [counselSummaryDraft, setCounselSummaryDraftState] = useState<CounselSummaryDraft | null>(null);
   
@@ -7792,6 +7801,28 @@ export function AletheiaApp() {
       if (data.user) {
         setUser(data.user);
         setAuthStatus("signed-in");
+        
+        // Update streak on app load
+        try {
+          const streakResponse = await fetch("/api/streak", { method: "POST" });
+          if (streakResponse.ok) {
+            const streakData = await streakResponse.json();
+            setStreakData({
+              consecutiveDays: streakData.consecutiveDays || 0,
+              lastUseDate: streakData.lastUseDate || null,
+              achievements: streakData.achievements || {},
+            });
+            
+            // Show achievement notification if new milestones unlocked
+            if (streakData.unlockedMilestones?.length > 0) {
+              const firstMilestone = streakData.unlockedMilestones[0];
+              setShowStreakAchievement(firstMilestone);
+            }
+          }
+        } catch (error) {
+          console.error("Error updating streak:", error);
+        }
+        
         await loadSignedInWorkspace(data.user).catch((workspaceError) => {
           console.error("Workspace hydration on session restore failed:", workspaceError);
         });
@@ -11714,6 +11745,7 @@ export function AletheiaApp() {
                       onShare={(channel, placement) => shareAletheia(channel, placement)}
                       onOpenRecommendedChallenge={openRecommendedChallenge}
                       accountActionBusy={accountActionBusy}
+                      streakData={streakData}
                       theme={theme}
                     />
                   </ViewIdentityFrame>
@@ -11740,19 +11772,29 @@ export function AletheiaApp() {
 
       <div ref={bottomNavRef} className="app-bottom-nav fixed left-1/2 z-40 -translate-x-1/2 overflow-hidden border shadow-[0_18px_48px_rgba(7,10,8,0.26)] md:hidden" style={{
         borderColor: theme.bgNavBorder,
-        backgroundColor: resolvedTheme === "black"
-          ? "rgba(7, 10, 8, 0.68)"
-          : resolvedTheme === "dark"
-            ? "rgba(14, 21, 20, 0.66)"
-            : resolvedTheme === "warm"
-              ? "rgba(250, 246, 241, 0.62)"
-              : resolvedTheme === "ocean"
-                ? "rgba(241, 246, 250, 0.62)"
-                : resolvedTheme === "forest"
-                  ? "rgba(241, 246, 241, 0.62)"
-                  : resolvedTheme === "sunset"
-                    ? "rgba(250, 241, 246, 0.62)"
-                    : "rgba(238, 242, 239, 0.62)",
+        backgroundColor: (() => {
+          // Get accent color for current view for ambient blending
+          let viewAccent = theme.accentGold;
+          if (activeView === "decisions") viewAccent = "#7a6234";
+          else if (activeView === "reflect") viewAccent = "#7b8c78";
+          else if (activeView === "library") viewAccent = "#4f7188";
+          else if (activeView === "account") viewAccent = "#6f6a78";
+          // Blend view accent into nav background at 8% for subtle ambient effect
+          const baseBg = resolvedTheme === "black"
+            ? "rgba(7, 10, 8, 0.68)"
+            : resolvedTheme === "dark"
+              ? "rgba(14, 21, 20, 0.66)"
+              : resolvedTheme === "warm"
+                ? "rgba(250, 246, 241, 0.62)"
+                : resolvedTheme === "ocean"
+                  ? "rgba(241, 246, 250, 0.62)"
+                  : resolvedTheme === "forest"
+                    ? "rgba(241, 246, 241, 0.62)"
+                    : resolvedTheme === "sunset"
+                      ? "rgba(250, 241, 246, 0.62)"
+                      : "rgba(238, 242, 239, 0.62)";
+          return `color-mix(in srgb, ${viewAccent} 8%, ${baseBg})`;
+        })(),
         width: "var(--aletheia-bottom-nav-width, min(calc(100vw - 1rem), 28rem))",
         bottom: "calc(max(env(safe-area-inset-bottom, 0px), var(--aletheia-visual-bottom-inset, 0px)) * -1)",
         borderRadius: "calc(var(--aletheia-bottom-nav-radius, 1.5) * 1rem)",
@@ -11961,6 +12003,16 @@ export function AletheiaApp() {
           </motion.div>
         ) : null}
       </AnimatePresence>
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
+      <AnimatePresence>
+        {showStreakAchievement && (
+          <StreakAchievementNotification
+            milestone={showStreakAchievement}
+            onClose={() => setShowStreakAchievement(null)}
+            ts={ts}
+          />
+        )}
+      </AnimatePresence>
     </main>
   );
 }
@@ -12092,14 +12144,31 @@ function MobileNav({
   avatarUrl?: string | null;
   avatarLabel?: string;
 }) {
+  const handleClick = async () => {
+    // Haptic feedback for better tactile experience
+    if (!Capacitor.isNativePlatform()) return onClick();
+    try {
+      await Haptics.impact({ style: ImpactStyle.Light });
+      onClick();
+    } catch {
+      onClick();
+    }
+  };
+
   return (
     <button
       type="button"
-      onClick={onClick}
-      className="flex h-12 min-w-0 flex-col items-center justify-center gap-1 rounded-[1.1rem] px-1 text-[10px] font-semibold transition duration-200 sm:text-[11px]"
+      onClick={handleClick}
+      className={`flex h-12 min-w-0 flex-col items-center justify-center gap-1 rounded-[1.1rem] px-1 text-[10px] font-semibold sm:text-[11px] transition-all duration-300 ease-out ${
+        active ? "font-bold" : "font-semibold"
+      }`}
       style={{
         backgroundColor: active ? theme.primary : "transparent",
         color: active ? theme.textOnPrimary : theme.textSecondary,
+        transform: active ? "scale(1.08)" : "scale(1)",
+        transitionProperty: "all",
+        transitionDuration: "300ms",
+        transitionTimingFunction: "cubic-bezier(0.25, 0.46, 0.45, 0.94)",
       }}
       aria-current={active ? "page" : undefined}
     >
@@ -13727,7 +13796,10 @@ function ScreenTabs<T extends string>({
               borderColor: active ? theme.primary : "transparent",
             }}
           >
-            <span className={useScrollableRail ? "whitespace-nowrap" : "block text-balance"}>
+            <span
+              className={useScrollableRail ? "whitespace-nowrap" : "block"}
+              style={useScrollableRail ? undefined : { wordBreak: "normal", overflowWrap: "normal", hyphens: "none" }}
+            >
               {tab.label}
             </span>
           </button>
@@ -14189,6 +14261,7 @@ function AccountPanel({
   onGoogleSignIn,
   onLogout,
   onUpdateProfileAvatar,
+  mode,
   preferences,
   preferencesStatus,
   ui,
@@ -14229,6 +14302,7 @@ function AccountPanel({
   onShare,
   onOpenRecommendedChallenge,
   accountActionBusy,
+  streakData,
   theme,
 }: {
   ts: (key: string, fallback?: string) => string;
@@ -14294,6 +14368,7 @@ function AccountPanel({
   onShare: (channel: ShareChannel, placement: string) => void;
   onOpenRecommendedChallenge: (challengeId: string) => void;
   accountActionBusy: "export" | "delete" | "report" | null;
+  streakData: StreakData;
   theme: ThemeColors;
 }) {
   const text = { ...englishText, ...ui };
@@ -14387,6 +14462,18 @@ function AccountPanel({
               {user ? `${ts('labels.accountSignedInWith')} ${profileSummary}` : profileSummary}
             </p>
           </div>
+          {user && streakData.consecutiveDays > 0 && (
+            <div className="mt-4">
+              <StreakBadge
+                days={streakData.consecutiveDays}
+                size="md"
+                showLabel={true}
+                animated={true}
+                theme={theme}
+                ts={ts}
+              />
+            </div>
+          )}
           <div className="grid grid-cols-3 gap-2 border-t px-3 py-3 sm:px-5" style={{ borderColor: theme.borderLight }}>
             {profileStats.map((stat) => (
               <AccountHeaderStat key={stat.detail} icon={stat.icon} value={stat.value} detail={stat.detail} theme={theme} />
@@ -24258,6 +24345,17 @@ function ReflectPanel({
       </section>
 
       {visibleReflectSection === "check" ? (
+        <>
+        {wisdomDecisions.length > 0 && wisdomDecisions[0]?.status !== "closed" && (
+          <DecisionTimeline
+            createdAt={wisdomDecisions[0].createdAt}
+            status={wisdomDecisions[0].status}
+            daysElapsed={Math.floor((Date.now() - new Date(wisdomDecisions[0].createdAt).getTime()) / (1000 * 60 * 60 * 24))}
+            checkpoints={generateDecisionCheckpoints(new Date(wisdomDecisions[0].createdAt), Math.floor((Date.now() - new Date(wisdomDecisions[0].createdAt).getTime()) / (1000 * 60 * 60 * 24)), ts)}
+            theme={theme}
+            ts={ts}
+          />
+        )}
         <DisclosureSection
           title={runtime.wisdomCheck}
           summary={result ? `${ts('labels.readiness')} ${result.readiness}/100 · ${result.hasUrgency ? runtime.wisdomCheckUrgency : runtime.wisdomCheckSlower}` : runtime.wisdomCheckSummaryDefault}
@@ -24282,6 +24380,7 @@ function ReflectPanel({
             onSpeakText={onSpeakText}
           />
         </DisclosureSection>
+        </>
       ) : null}
 
       {visibleReflectSection === "gratitude" ? (

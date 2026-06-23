@@ -1718,5 +1718,42 @@
         "practice": "Isulat kung ano ang sapat para sa panahong ito, nang malinaw."
       }
     }
+  },
+  "streak": {
+    "start": "Magsimula",
+    "keepGoing": "Ituloy!",
+    "milestone7": "7-Araw na Usbong 🌱",
+    "milestone30": "30-Araw na Mandirigma 🔥",
+    "milestone100": "100-Araw na Alamat ⚡",
+    "milestone365": "Maestro ng 1 Taon 👑",
+    "achievementUnlocked": "Na-unlock ang Tagumpay!",
+    "achievement7": "7-Araw na Usbong! Nagtatayo ka ng konsistensya!",
+    "achievement30": "30-Araw na Mandirigma! Kahanga-hangang dedikasyon!",
+    "achievement100": "100-Araw na Alamat! Hindi ka mapipigilan!",
+    "achievement365": "Maestro ng 1 Taon! Binago mo ang iyong buhay!",
+    "celebrate": "Ipagdiwang",
+    "share": "Ibahagi"
+  },
+  "decisionTimeline": {
+    "title": "Paglalakbay ng Desisyon",
+    "daysProgress": "{days} sa 30 araw",
+    "nextLabel": "Susunod:",
+    "dayBadge": "Araw {day}",
+    "checkpoint": {
+      "decisionStartedLabel": "Nagsimula ang Desisyon",
+      "decisionStartedDesc": "Sinimulan mo ang desisyong ito",
+      "day1Label": "Check-in sa Araw 1",
+      "day1Desc": "Unang pagninilay",
+      "day1Prompt": "Paano mo nararamdaman ang desisyong ito ngayon?",
+      "day3Label": "Pakikilahok sa Araw 3",
+      "day3Desc": "Mangalap ng pananaw",
+      "day3Prompt": "Anong karunungan ang iyong natanggap?",
+      "day7Label": "Lingguhang Pagninilay",
+      "day7Desc": "Pagnilayan ang pag-unlad",
+      "day7Prompt": "Ano ang natutunan mo ngayong linggo?",
+      "day30Label": "Buwanang Kinalabasan",
+      "day30Desc": "Tingnan kung nasaan ka na ngayon",
+      "day30Prompt": "Paano naging ang desisyong ito?"
+    }
   }
 }

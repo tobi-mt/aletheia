@@ -1817,7 +1817,7 @@
   "reportCategoryNotificationIssue": "مشكلة في الإشعارات",
   "reportCategoryDesignReadabilityIssue": "مشكلة في التصميم أو إمكانية القراءة",
   "reportCategoryGeneralFeedback": "تعليقات عامة",
-    "deleteConfirmationWord": "احذف",
+  "deleteConfirmationWord": "احذف",
   "appLikeSetup": "يشبه التطبيقات الإعداد",
   "archive": "الأرشيف",
   "backToLibrary": "الرجوع إلى المكتبة",
@@ -1887,5 +1887,42 @@
   "counselRoleFriend": "صديق",
   "modeDiagnostic": "تشخيص الوضع",
   "olderCounselKeptQuiet": "المحامي الأقدم يظل هادئًا لذا فإن الحالي يبقى السؤال واضحًا.",
-  "studyModeNextStepFallback": "Take one small faithful step that reflects this passage today."
+  "studyModeNextStepFallback": "Take one small faithful step that reflects this passage today.",
+  "streak": {
+    "start": "ابدأ",
+    "keepGoing": "استمر!",
+    "milestone7": "نبتة 7 أيام 🌱",
+    "milestone30": "محارب 30 يومًا 🔥",
+    "milestone100": "أسطورة 100 يوم ⚡",
+    "milestone365": "سيد عام واحد 👑",
+    "achievementUnlocked": "تم فتح الإنجاز!",
+    "achievement7": "نبتة 7 أيام! أنت تبني الاتساق!",
+    "achievement30": "محارب 30 يومًا! إخلاص مذهل!",
+    "achievement100": "أسطورة 100 يوم! لا يمكن إيقافك!",
+    "achievement365": "سيد عام واحد! لقد غيّرت حياتك!",
+    "celebrate": "احتفل",
+    "share": "مشاركة"
+  },
+  "decisionTimeline": {
+    "title": "رحلة القرار",
+    "daysProgress": "{days} من 30 يومًا",
+    "nextLabel": "التالي:",
+    "dayBadge": "اليوم {day}",
+    "checkpoint": {
+      "decisionStartedLabel": "بدأ القرار",
+      "decisionStartedDesc": "بدأت هذا القرار",
+      "day1Label": "تسجيل اليوم الأول",
+      "day1Desc": "التأمل الأول",
+      "day1Prompt": "كيف تشعر حيال هذا القرار اليوم؟",
+      "day3Label": "تفاعل اليوم الثالث",
+      "day3Desc": "اجمع وجهات النظر",
+      "day3Prompt": "ما الحكمة التي تلقيتها؟",
+      "day7Label": "التأمل الأسبوعي",
+      "day7Desc": "تأمل في التقدم",
+      "day7Prompt": "ماذا تعلمت هذا الأسبوع؟",
+      "day30Label": "النتيجة الشهرية",
+      "day30Desc": "انظر أين أنت الآن",
+      "day30Prompt": "كيف سارت هذه القرار؟"
+    }
+  }
 }

@@ -1718,5 +1718,42 @@
         "practice": "Escribe con claridad qué es suficiente para esta temporada."
       }
     }
+  },
+  "streak": {
+    "start": "Inicio",
+    "keepGoing": "¡Sigue adelante!",
+    "milestone7": "Brote de 7 días 🌱",
+    "milestone30": "Guerrero de 30 días 🔥",
+    "milestone100": "Leyenda de 100 días ⚡",
+    "milestone365": "Maestro de 1 año 👑",
+    "achievementUnlocked": "¡Logro desbloqueado!",
+    "achievement7": "¡Brote de 7 días! ¡Estás construyendo constancia!",
+    "achievement30": "¡Guerrero de 30 días! ¡Dedicación increíble!",
+    "achievement100": "¡Leyenda de 100 días! ¡Eres imparable!",
+    "achievement365": "¡Maestro de 1 año! ¡Has transformado tu vida!",
+    "celebrate": "Celebrar",
+    "share": "Compartir"
+  },
+  "decisionTimeline": {
+    "title": "Viaje de Decisión",
+    "daysProgress": "{days} de 30 días",
+    "nextLabel": "Siguiente:",
+    "dayBadge": "Día {day}",
+    "checkpoint": {
+      "decisionStartedLabel": "Decisión Iniciada",
+      "decisionStartedDesc": "Comenzaste esta decisión",
+      "day1Label": "Registro del Día 1",
+      "day1Desc": "Primera reflexión",
+      "day1Prompt": "¿Cómo te sientes respecto a esta decisión hoy?",
+      "day3Label": "Compromiso del Día 3",
+      "day3Desc": "Reunir perspectivas",
+      "day3Prompt": "¿Qué sabiduría has recibido?",
+      "day7Label": "Reflexión Semanal",
+      "day7Desc": "Reflexionar sobre el progreso",
+      "day7Prompt": "¿Qué aprendiste esta semana?",
+      "day30Label": "Resultado Mensual",
+      "day30Desc": "Mira dónde estás ahora",
+      "day30Prompt": "¿Cómo resultó esta decisión?"
+    }
   }
 }

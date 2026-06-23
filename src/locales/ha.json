@@ -1718,5 +1718,42 @@
         "practice": "Rubuta abin da ya isa ga wannan lokaci, a fili."
       }
     }
+  },
+  "streak": {
+    "start": "Fara",
+    "keepGoing": "Ka ci gaba!",
+    "milestone7": "Tsiro na Kwana 7 🌱",
+    "milestone30": "Jarumi na Kwana 30 🔥",
+    "milestone100": "Almara na Kwana 100 ⚡",
+    "milestone365": "Maigari na Shekara 1 👑",
+    "achievementUnlocked": "An buɗe nasara!",
+    "achievement7": "Tsiro na Kwana 7! Kana gina daidaito!",
+    "achievement30": "Jarumi na Kwana 30! Ban mamaki na sadaukarwa!",
+    "achievement100": "Almara na Kwana 100! Ba za a iya tsayar da kai ba!",
+    "achievement365": "Maigari na Shekara 1! Kun canza rayuwar ka!",
+    "celebrate": "Yi murna",
+    "share": "Raba"
+  },
+  "decisionTimeline": {
+    "title": "Tafiya na Yanke Shawara",
+    "daysProgress": "Kwana {days} na 30",
+    "nextLabel": "Na gaba:",
+    "dayBadge": "Kwana {day}",
+    "checkpoint": {
+      "decisionStartedLabel": "An fara yanke shawara",
+      "decisionStartedDesc": "Ka fara wannan shawarar",
+      "day1Label": "Rajistar Ranar 1",
+      "day1Desc": "Tunani na farko",
+      "day1Prompt": "Yaya kake ji game da wannan shawarar yau?",
+      "day3Label": "Kasancewa Ranar 3",
+      "day3Desc": "Tattara ra'ayi",
+      "day3Prompt": "Wane hikima ka karba?",
+      "day7Label": "Tunani na Mako-mako",
+      "day7Desc": "Yi tunani a kan ci gaba",
+      "day7Prompt": "Me ka ka ka a koya mako-mako?",
+      "day30Label": "Sakamakon Wata",
+      "day30Desc": "Duba inda kake yanzu",
+      "day30Prompt": "Ta yaya wannan shawarar ta kasance?"
+    }
   }
 }

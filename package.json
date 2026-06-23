@@ -1,6 +1,6 @@
 {
   "name": "aletheia",
-  "version": "0.1.7",
+  "version": "0.2.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -33,6 +33,7 @@
     "@capacitor/android": "^8.4.0",
     "@capacitor/cli": "^8.3.4",
     "@capacitor/core": "^8.3.4",
+    "@capacitor/haptics": "^8.0.2",
     "@capacitor/ios": "^8.4.0",
     "@types/nodemailer": "^8.0.0",
     "framer-motion": "^12.39.0",

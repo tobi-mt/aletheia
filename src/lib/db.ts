@@ -60,6 +60,9 @@ async function initializeDatabase() {
     ALTER TABLE users ADD COLUMN IF NOT EXISTS last_seen_at TIMESTAMPTZ;
     ALTER TABLE users ADD COLUMN IF NOT EXISTS login_count INTEGER NOT NULL DEFAULT 0;
     ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url TEXT;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS consecutive_use_days INTEGER NOT NULL DEFAULT 0;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS last_use_date DATE;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS streak_achievements JSONB NOT NULL DEFAULT '{}'::jsonb;
 
     CREATE TABLE IF NOT EXISTS sessions (
       id TEXT PRIMARY KEY,
@@ -209,6 +212,8 @@ async function initializeDatabase() {
     ALTER TABLE wisdom_decisions ADD COLUMN IF NOT EXISTS waiting_notified_at TIMESTAMPTZ;
     ALTER TABLE wisdom_decisions ADD COLUMN IF NOT EXISTS revisit_notified_at TIMESTAMPTZ;
     ALTER TABLE wisdom_decisions ADD COLUMN IF NOT EXISTS outcome_review_at TIMESTAMPTZ;
+    ALTER TABLE wisdom_decisions ADD COLUMN IF NOT EXISTS timeline_checkpoints JSONB NOT NULL DEFAULT '[]'::jsonb;
+    ALTER TABLE wisdom_decisions ADD COLUMN IF NOT EXISTS notification_sequence_sent JSONB NOT NULL DEFAULT '{}'::jsonb;
 
     CREATE TABLE IF NOT EXISTS decision_events (
       id TEXT PRIMARY KEY,
@@ -218,6 +223,20 @@ async function initializeDatabase() {
       body TEXT NOT NULL,
       mode TEXT,
       created_at TIMESTAMPTZ NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS notification_schedules (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::TEXT,
+      decision_id TEXT NOT NULL REFERENCES wisdom_decisions(id) ON DELETE CASCADE,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      day INT NOT NULL,
+      scheduled_for TIMESTAMPTZ NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',
+      sent_at TIMESTAMPTZ,
+      title TEXT NOT NULL,
+      body TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      UNIQUE(decision_id, day)
     );
 
     CREATE TABLE IF NOT EXISTS counsel_shared_decisions (
@@ -388,6 +407,8 @@ async function initializeDatabase() {
     CREATE INDEX IF NOT EXISTS challenge_circle_invite_responses_user_idx ON challenge_circle_invite_responses(user_id, responded_at DESC);
     CREATE INDEX IF NOT EXISTS wisdom_decisions_user_updated_idx ON wisdom_decisions(user_id, updated_at DESC);
     CREATE INDEX IF NOT EXISTS decision_events_user_created_idx ON decision_events(user_id, created_at DESC);
+    CREATE INDEX IF NOT EXISTS notification_schedules_user_pending_idx ON notification_schedules(user_id, status, scheduled_for);
+    CREATE INDEX IF NOT EXISTS notification_schedules_scheduled_idx ON notification_schedules(scheduled_for, status);
     CREATE INDEX IF NOT EXISTS rule_of_life_entries_user_idx ON rule_of_life_entries(user_id);
     CREATE INDEX IF NOT EXISTS user_preferences_language_idx ON user_preferences(language, region);
     CREATE INDEX IF NOT EXISTS user_manual_context_updated_idx ON user_manual_context(updated_at DESC);
