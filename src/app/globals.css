@@ -226,8 +226,8 @@ body {
 
 .app-bottom-nav {
   isolation: isolate;
-  -webkit-backdrop-filter: blur(30px) saturate(180%) contrast(1.04);
-  backdrop-filter: blur(30px) saturate(180%) contrast(1.04);
+  -webkit-backdrop-filter: blur(32px) saturate(185%) contrast(1.06) brightness(1.02);
+  backdrop-filter: blur(32px) saturate(185%) contrast(1.06) brightness(1.02);
 }
 
 .app-bottom-nav::before,
@@ -241,17 +241,20 @@ body {
 .app-bottom-nav::before {
   z-index: -2;
   background:
-    radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.24), transparent 24%),
-    radial-gradient(circle at 82% 10%, color-mix(in srgb, var(--aletheia-focus-ring, #d6b45d) 18%, transparent), transparent 28%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.035) 54%, rgba(0, 0, 0, 0.1));
+    radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.32), transparent 28%),
+    radial-gradient(circle at 82% 10%, color-mix(in srgb, var(--aletheia-focus-ring, #d6b45d) 22%, transparent), transparent 32%),
+    radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.18), transparent 36%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.08) 42%, rgba(255, 255, 255, 0.02) 58%, rgba(0, 0, 0, 0.08));
 }
 
 .app-bottom-nav::after {
   z-index: -1;
+  border-radius: inherit;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.2),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.08),
-    inset 0 0 0 1px color-mix(in srgb, var(--aletheia-glass-edge, rgba(201, 213, 205, 0.7)) 34%, transparent);
+    inset 0 0 1px 1px rgba(255, 255, 255, 0.28),
+    inset 0 2px 6px rgba(255, 255, 255, 0.16),
+    inset 0 -1px 3px rgba(0, 0, 0, 0.12),
+    inset 0 0 0 1px color-mix(in srgb, var(--aletheia-glass-edge, rgba(201, 213, 205, 0.7)) 42%, transparent);
 }
 
 .app-bottom-nav > * {
@@ -262,9 +265,10 @@ body {
 .theme-dark-root .app-bottom-nav::before,
 .theme-black-root .app-bottom-nav::before {
   background:
-    radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.12), transparent 24%),
-    radial-gradient(circle at 82% 10%, color-mix(in srgb, var(--aletheia-focus-ring, #d6b45d) 20%, transparent), transparent 30%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.105), rgba(255, 255, 255, 0.025) 54%, rgba(0, 0, 0, 0.22));
+    radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.18), transparent 28%),
+    radial-gradient(circle at 82% 10%, color-mix(in srgb, var(--aletheia-focus-ring, #d6b45d) 24%, transparent), transparent 34%),
+    radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.11), transparent 38%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.13), rgba(255, 255, 255, 0.04) 44%, rgba(255, 255, 255, 0.01) 60%, rgba(0, 0, 0, 0.18));
 }
 
 .app-shell::before,

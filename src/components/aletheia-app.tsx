@@ -7153,6 +7153,8 @@ export function AletheiaApp() {
       const viewport = window.visualViewport;
       const viewportWidth = Math.max(0, Math.round(viewport?.width ?? window.innerWidth));
       const viewportHeight = Math.max(0, Math.round(viewport?.height ?? window.innerHeight));
+      const viewportOffsetTop = Math.max(0, Math.round(viewport?.offsetTop ?? 0));
+      const visualBottomInset = Math.max(0, Math.round(window.innerHeight - viewportHeight - viewportOffsetTop));
       const shortestSide = Math.min(viewportWidth, viewportHeight);
       const isTablet = viewportWidth >= 768 || shortestSide >= 768;
       const isFoldClass = !isTablet && viewportWidth >= 600 && viewportWidth < 768 && viewportHeight >= 700;
@@ -7182,6 +7184,7 @@ export function AletheiaApp() {
       document.documentElement.style.setProperty("--aletheia-bottom-nav-radius", `${bottomNavRadius}`);
       document.documentElement.style.setProperty("--aletheia-bottom-nav-width", bottomNavWidth);
       document.documentElement.style.setProperty("--aletheia-notice-bottom-offset", `${noticeBottomOffset}`);
+      document.documentElement.style.setProperty("--aletheia-visual-bottom-inset", `${visualBottomInset}px`);
       document.documentElement.dataset.deviceFamily = deviceFamily;
     };
 
@@ -11751,11 +11754,11 @@ export function AletheiaApp() {
                     ? "rgba(250, 241, 246, 0.62)"
                     : "rgba(238, 242, 239, 0.62)",
         width: "var(--aletheia-bottom-nav-width, min(calc(100vw - 1rem), 28rem))",
-        bottom: "calc(env(safe-area-inset-bottom, 0px) * -1)",
+        bottom: "calc(max(env(safe-area-inset-bottom, 0px), var(--aletheia-visual-bottom-inset, 0px)) * -1)",
         borderRadius: "calc(var(--aletheia-bottom-nav-radius, 1.5) * 1rem)",
         paddingTop: "calc(var(--aletheia-bottom-nav-pad-y, 0.6) * 1rem)",
         paddingRight: "calc(var(--aletheia-bottom-nav-pad-x, 0.85) * 1rem)",
-        paddingBottom: "calc(var(--aletheia-bottom-nav-pad-y, 0.6) * 1rem + env(safe-area-inset-bottom, 0px))",
+        paddingBottom: "calc(var(--aletheia-bottom-nav-pad-y, 0.6) * 1rem + max(env(safe-area-inset-bottom, 0px), var(--aletheia-visual-bottom-inset, 0px)))",
         paddingLeft: "calc(var(--aletheia-bottom-nav-pad-x, 0.85) * 1rem)",
       }}>
         <div className="grid grid-cols-5 gap-1">
