@@ -90,26 +90,17 @@ body {
   --aletheia-safe-area-top: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));
   --aletheia-safe-area-bottom: var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
   --aletheia-top-reserve: 20px;
-  --aletheia-bottom-reserve: 0px;
-  --aletheia-fixed-bottom-exclusion: 0px;
+  --aletheia-bottom-reserve: 12px;
   --aletheia-top-nav-space: calc(max(var(--aletheia-safe-area-top), var(--aletheia-top-reserve)) + 5.6rem);
   --aletheia-top-glass-height: calc(max(var(--aletheia-safe-area-top), var(--aletheia-top-reserve)) + 5.1rem);
-  --aletheia-bottom-nav-space: 0px;
+  --aletheia-bottom-nav-space: calc(max(var(--aletheia-safe-area-bottom), var(--aletheia-bottom-reserve)) + 6.2rem);
 }
 
 .app-shell {
-  position: fixed;
-  inset: 0;
+  position: relative;
   isolation: isolate;
-  width: 100%;
-  height: auto;
-  min-height: 0;
-  overflow-x: hidden;
-  overflow-y: auto;
-  overscroll-behavior-y: contain;
   padding-top: calc(var(--aletheia-top-nav-space) + clamp(0.45rem, 1.2vw, 0.85rem));
-  padding-bottom: 0;
-  -webkit-overflow-scrolling: touch;
+  padding-bottom: max(var(--aletheia-safe-area-bottom), var(--aletheia-bottom-reserve));
 }
 
 /* Typography Hierarchy Enhancement */

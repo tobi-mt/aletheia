@@ -7162,26 +7162,18 @@ export function AletheiaApp() {
       const viewport = window.visualViewport;
       const viewportWidth = Math.max(0, Math.round(viewport?.width ?? window.innerWidth));
       const viewportHeight = Math.max(0, Math.round(viewport?.height ?? window.innerHeight));
-      const viewportOffsetTop = Math.max(0, Math.round(viewport?.offsetTop ?? 0));
-      const visualBottomInset = Math.max(0, Math.round(window.innerHeight - viewportHeight - viewportOffsetTop));
-      const fixedBottomProbe = document.createElement("div");
-      fixedBottomProbe.setAttribute("aria-hidden", "true");
-      fixedBottomProbe.style.cssText = "position:fixed;left:0;bottom:0;width:1px;height:1px;pointer-events:none;visibility:hidden;z-index:-1;";
-      document.body.appendChild(fixedBottomProbe);
-      const fixedBottomExclusion = Math.max(0, Math.round(window.innerHeight - fixedBottomProbe.getBoundingClientRect().bottom));
-      fixedBottomProbe.remove();
       const shortestSide = Math.min(viewportWidth, viewportHeight);
       const isTablet = viewportWidth >= 768 || shortestSide >= 768;
       const isFoldClass = !isTablet && viewportWidth >= 600 && viewportWidth < 768 && viewportHeight >= 700;
       const isSmallPhone = !isTablet && !isFoldClass && viewportWidth <= 390;
       const isLargePhone = !isTablet && !isFoldClass && viewportWidth >= 400;
       const deviceFamily = isTablet ? "tablet" : isFoldClass ? "fold" : isSmallPhone ? "small-phone" : isLargePhone ? "large-phone" : "regular-phone";
-      const bottomReserve = 0;
-      const bottomNavGap = isTablet ? 0 : isSmallPhone ? 0.34 : isFoldClass ? 0.4 : isLargePhone ? 0.42 : 0.38;
-      const bottomNavPadY = isTablet ? 0 : isSmallPhone ? 0.5 : isFoldClass ? 0.5 : isLargePhone ? 0.48 : 0.5;
-      const bottomNavPadX = isTablet ? 0 : isSmallPhone ? 0.58 : isFoldClass ? 0.66 : isLargePhone ? 0.68 : 0.62;
-      const bottomNavRadius = isTablet ? 0 : isSmallPhone ? 2.25 : isFoldClass ? 2.45 : isLargePhone ? 2.5 : 2.35;
-      const bottomNavWidth = isFoldClass ? "min(calc(100vw - 1.5rem), 38rem)" : "min(calc(100vw - 1.5rem), 30rem)";
+      const bottomReserve = isTablet ? 0 : Math.round(Math.max(8, Math.min(14, shortestSide * 0.018)));
+      const bottomNavGap = isTablet ? 0 : isSmallPhone ? 0.42 : isFoldClass ? 0.42 : isLargePhone ? 0.38 : 0.42;
+      const bottomNavPadY = isTablet ? 0 : isSmallPhone ? 0.56 : isFoldClass ? 0.52 : isLargePhone ? 0.48 : 0.52;
+      const bottomNavPadX = isTablet ? 0 : isSmallPhone ? 0.72 : isFoldClass ? 0.72 : isLargePhone ? 0.68 : 0.7;
+      const bottomNavRadius = isTablet ? 0 : isSmallPhone ? 1.45 : isFoldClass ? 1.55 : isLargePhone ? 1.6 : 1.5;
+      const bottomNavWidth = isFoldClass ? "min(calc(100vw - 1rem), 38rem)" : "min(calc(100vw - 1rem), 28rem)";
       const noticeBottomOffset = isTablet
         ? 0
         : isSmallPhone
@@ -7193,14 +7185,12 @@ export function AletheiaApp() {
               : 10.5;
 
       document.documentElement.style.setProperty("--aletheia-bottom-reserve", `${bottomReserve}px`);
-      document.documentElement.style.setProperty("--aletheia-fixed-bottom-exclusion", `${fixedBottomExclusion}px`);
       document.documentElement.style.setProperty("--aletheia-bottom-nav-gap", `${bottomNavGap}`);
       document.documentElement.style.setProperty("--aletheia-bottom-nav-pad-y", `${bottomNavPadY}`);
       document.documentElement.style.setProperty("--aletheia-bottom-nav-pad-x", `${bottomNavPadX}`);
       document.documentElement.style.setProperty("--aletheia-bottom-nav-radius", `${bottomNavRadius}`);
       document.documentElement.style.setProperty("--aletheia-bottom-nav-width", bottomNavWidth);
       document.documentElement.style.setProperty("--aletheia-notice-bottom-offset", `${noticeBottomOffset}`);
-      document.documentElement.style.setProperty("--aletheia-visual-bottom-inset", `${visualBottomInset}px`);
       document.documentElement.dataset.deviceFamily = deviceFamily;
     };
 
@@ -7438,14 +7428,8 @@ export function AletheiaApp() {
     }
 
     const updateBottomNavSpace = () => {
-      const navRect = nav.getBoundingClientRect();
-      const navHeight = Math.max(0, Math.ceil(navRect.height));
-      const navVisible = window.getComputedStyle(nav).display !== "none";
-      const rootStyle = getComputedStyle(document.documentElement);
-      const navGapRem = Number.parseFloat(rootStyle.getPropertyValue("--aletheia-bottom-nav-gap")) || 0;
-      const rootFontSize = Number.parseFloat(rootStyle.fontSize) || 16;
-      const navGap = Math.ceil(navGapRem * rootFontSize);
-      const reservedSpace = navVisible && navHeight > 0 ? Math.ceil(navHeight + navGap + 24) : 0;
+      const navHeight = Math.max(0, Math.ceil(nav.getBoundingClientRect().height));
+      const reservedSpace = navHeight > 0 ? navHeight + 18 : 112;
       document.documentElement.style.setProperty("--aletheia-bottom-nav-space", `${reservedSpace}px`);
     };
 
@@ -11274,7 +11258,7 @@ export function AletheiaApp() {
   }
 
   return (
-    <main ref={appShellRef} className={`app-shell overflow-x-hidden ${resolvedTheme === "dark" || resolvedTheme === "black" ? "theme-dark-root" : ""}`} style={{ backgroundColor: theme.bgMain, color: theme.textPrimary }}>
+    <main ref={appShellRef} className={`app-shell min-h-screen overflow-x-hidden ${resolvedTheme === "dark" || resolvedTheme === "black" ? "theme-dark-root" : ""}`} style={{ backgroundColor: theme.bgMain, color: theme.textPrimary, minHeight: '100dvh' }}>
       <div
         className={`fixed inset-0 -z-10 ${theme.bgGradient}`}
         style={{ backgroundColor: theme.bgMain }}
@@ -11429,7 +11413,7 @@ export function AletheiaApp() {
         </div>
       </nav>
 
-      <div className="mx-auto grid max-w-7xl gap-5 px-3 pt-4 sm:px-4 sm:pt-5 xl:grid-cols-[320px_minmax(0,1fr)] xl:py-6" style={{ paddingBottom: "var(--aletheia-bottom-nav-space, 0px)" }}>
+      <div className="mx-auto grid max-w-7xl gap-5 px-3 pt-4 sm:px-4 sm:pt-5 xl:grid-cols-[320px_minmax(0,1fr)] xl:py-6" style={{ paddingBottom: "calc(var(--aletheia-bottom-nav-space, 8.5rem) + var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)))" }}>
         <aside className="hidden xl:block">
           <div className="sticky top-24 space-y-4">
             <section className="rounded-lg border p-4 shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
@@ -11821,13 +11805,10 @@ export function AletheiaApp() {
                       : "rgba(238, 242, 239, 0.62)";
           return `color-mix(in srgb, ${viewAccent} 8%, ${baseBg})`;
         })(),
-        width: "var(--aletheia-bottom-nav-width, min(calc(100vw - 1rem), 28rem))",
-        bottom: "calc(calc(var(--aletheia-bottom-nav-gap, 0.38) * 1rem) - var(--aletheia-fixed-bottom-exclusion, 0px))",
-        borderRadius: "calc(var(--aletheia-bottom-nav-radius, 1.5) * 1rem)",
-        paddingTop: "calc(var(--aletheia-bottom-nav-pad-y, 0.6) * 1rem)",
-        paddingRight: "calc(var(--aletheia-bottom-nav-pad-x, 0.85) * 1rem)",
-        paddingBottom: "calc(var(--aletheia-bottom-nav-pad-y, 0.6) * 1rem)",
-        paddingLeft: "calc(var(--aletheia-bottom-nav-pad-x, 0.85) * 1rem)",
+        width: "var(--aletheia-bottom-nav-width, min(calc(100vw - 1.5rem), 28rem))",
+        bottom: "calc(var(--aletheia-bottom-nav-gap, 0.75) * 1rem + var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)))",
+        borderRadius: "calc(var(--aletheia-bottom-nav-radius, 1.75) * 1rem)",
+        padding: "calc(var(--aletheia-bottom-nav-pad-y, 0.6) * 1rem) calc(var(--aletheia-bottom-nav-pad-x, 0.85) * 1rem)",
       }}>
         <div className="grid grid-cols-5 gap-1">
           <MobileNav active={activeView === "companion"} icon={Home} label={ui.nav.companion} onClick={() => showView("companion")} theme={theme} />
@@ -12062,8 +12043,8 @@ function StartupSplash({
 
   return (
     <main
-      className={`app-shell overflow-hidden ${resolvedTheme === "dark" || resolvedTheme === "black" ? "theme-dark-root" : ""}`}
-      style={{ backgroundColor: theme.bgMain, color: theme.textPrimary }}
+      className={`app-shell min-h-screen overflow-hidden ${resolvedTheme === "dark" || resolvedTheme === "black" ? "theme-dark-root" : ""}`}
+      style={{ backgroundColor: theme.bgMain, color: theme.textPrimary, minHeight: "100dvh" }}
     >
       <div className={`fixed inset-0 -z-10 ${theme.bgGradient}`} style={{ backgroundColor: theme.bgMain }} />
       <div
