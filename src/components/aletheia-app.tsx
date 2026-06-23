@@ -7171,11 +7171,11 @@ export function AletheiaApp() {
       const isLargePhone = !isTablet && !isFoldClass && viewportWidth >= 400;
       const deviceFamily = isTablet ? "tablet" : isFoldClass ? "fold" : isSmallPhone ? "small-phone" : isLargePhone ? "large-phone" : "regular-phone";
       const bottomReserve = 0;
-      const bottomNavGap = 0;
-      const bottomNavPadY = isTablet ? 0 : isSmallPhone ? 0.56 : isFoldClass ? 0.52 : isLargePhone ? 0.48 : 0.52;
-      const bottomNavPadX = isTablet ? 0 : isSmallPhone ? 0.72 : isFoldClass ? 0.72 : isLargePhone ? 0.68 : 0.7;
-      const bottomNavRadius = isTablet ? 0 : isSmallPhone ? 1.45 : isFoldClass ? 1.55 : isLargePhone ? 1.6 : 1.5;
-      const bottomNavWidth = isFoldClass ? "min(calc(100vw - 1rem), 38rem)" : "min(calc(100vw - 1rem), 28rem)";
+      const bottomNavGap = isTablet ? 0 : isSmallPhone ? 0.62 : isFoldClass ? 0.68 : isLargePhone ? 0.72 : 0.66;
+      const bottomNavPadY = isTablet ? 0 : isSmallPhone ? 0.5 : isFoldClass ? 0.5 : isLargePhone ? 0.48 : 0.5;
+      const bottomNavPadX = isTablet ? 0 : isSmallPhone ? 0.58 : isFoldClass ? 0.66 : isLargePhone ? 0.68 : 0.62;
+      const bottomNavRadius = isTablet ? 0 : isSmallPhone ? 2.25 : isFoldClass ? 2.45 : isLargePhone ? 2.5 : 2.35;
+      const bottomNavWidth = isFoldClass ? "min(calc(100vw - 1.5rem), 38rem)" : "min(calc(100vw - 1.5rem), 30rem)";
       const noticeBottomOffset = isTablet
         ? 0
         : isSmallPhone
@@ -7434,7 +7434,7 @@ export function AletheiaApp() {
       const navRect = nav.getBoundingClientRect();
       const navHeight = Math.max(0, Math.ceil(navRect.height));
       const navVisible = window.getComputedStyle(nav).display !== "none";
-      const reservedSpace = navVisible && navHeight > 0 ? Math.ceil(navHeight + 10) : 0;
+      const reservedSpace = navVisible && navHeight > 0 ? Math.ceil(navHeight + 34) : 0;
       document.documentElement.style.setProperty("--aletheia-bottom-nav-space", `${reservedSpace}px`);
     };
 
@@ -11811,11 +11811,11 @@ export function AletheiaApp() {
           return `color-mix(in srgb, ${viewAccent} 8%, ${baseBg})`;
         })(),
         width: "var(--aletheia-bottom-nav-width, min(calc(100vw - 1rem), 28rem))",
-        bottom: "calc(max(var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)), var(--aletheia-visual-bottom-inset, 0px)) * -1)",
+        bottom: "calc(max(var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)), 0px) + calc(var(--aletheia-bottom-nav-gap, 0.66) * 1rem))",
         borderRadius: "calc(var(--aletheia-bottom-nav-radius, 1.5) * 1rem)",
         paddingTop: "calc(var(--aletheia-bottom-nav-pad-y, 0.6) * 1rem)",
         paddingRight: "calc(var(--aletheia-bottom-nav-pad-x, 0.85) * 1rem)",
-        paddingBottom: "calc(var(--aletheia-bottom-nav-pad-y, 0.6) * 1rem + max(var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)), var(--aletheia-visual-bottom-inset, 0px)))",
+        paddingBottom: "calc(var(--aletheia-bottom-nav-pad-y, 0.6) * 1rem)",
         paddingLeft: "calc(var(--aletheia-bottom-nav-pad-x, 0.85) * 1rem)",
       }}>
         <div className="grid grid-cols-5 gap-1">
@@ -12174,13 +12174,13 @@ function MobileNav({
     <button
       type="button"
       onClick={handleClick}
-      className={`flex h-12 min-w-0 flex-col items-center justify-center gap-1 rounded-[1.1rem] px-1 text-[10px] font-semibold sm:text-[11px] transition-all duration-300 ease-out ${
+      className={`flex h-12 min-w-0 flex-col items-center justify-center gap-1 rounded-[1.8rem] px-1 text-[10px] font-semibold sm:text-[11px] transition-all duration-300 ease-out ${
         active ? "font-bold" : "font-semibold"
       }`}
       style={{
         backgroundColor: active ? theme.primary : "transparent",
         color: active ? theme.textOnPrimary : theme.textSecondary,
-        transform: active ? "scale(1.08)" : "scale(1)",
+        transform: "scale(1)",
         transitionProperty: "all",
         transitionDuration: "300ms",
         transitionTimingFunction: "cubic-bezier(0.25, 0.46, 0.45, 0.94)",
