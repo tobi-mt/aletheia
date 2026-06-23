@@ -12183,7 +12183,7 @@ function MobileNav({
       ) : (
         <Icon size={17} />
       )}
-      <span className="max-w-full truncate">{label}</span>
+      <span className="max-w-full truncate" style={{ wordBreak: "normal", overflowWrap: "normal", hyphens: "none" }}>{label}</span>
     </button>
   );
 }
