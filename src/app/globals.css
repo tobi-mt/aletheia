@@ -87,10 +87,12 @@ body {
 
 :root {
   --aletheia-safe-top-extra: 0px;
+  --aletheia-safe-area-top: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));
+  --aletheia-safe-area-bottom: var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
   --aletheia-top-reserve: 20px;
   --aletheia-bottom-reserve: 0px;
-  --aletheia-top-nav-space: calc(max(env(safe-area-inset-top, 0px), var(--aletheia-top-reserve)) + 5.6rem);
-  --aletheia-top-glass-height: calc(max(env(safe-area-inset-top, 0px), var(--aletheia-top-reserve)) + 5.1rem);
+  --aletheia-top-nav-space: calc(max(var(--aletheia-safe-area-top), var(--aletheia-top-reserve)) + 5.6rem);
+  --aletheia-top-glass-height: calc(max(var(--aletheia-safe-area-top), var(--aletheia-top-reserve)) + 5.1rem);
   --aletheia-bottom-nav-space: 0px;
 }
 
@@ -312,7 +314,7 @@ button, [role="button"] {
 
 .app-shell::before {
   top: 0;
-  height: calc(var(--aletheia-top-glass-height, max(5.5rem, calc(env(safe-area-inset-top, 0px) + 4.5rem))) + 0.5rem);
+  height: calc(var(--aletheia-top-glass-height, max(5.5rem, calc(var(--aletheia-safe-area-top) + 4.5rem))) + 0.5rem);
   background:
     var(--aletheia-safe-top-sheen),
     linear-gradient(180deg, var(--aletheia-glass-top, var(--aletheia-safe-top-tint)) 0%, var(--aletheia-safe-top-tint) 56%, rgba(14, 21, 20, 0) 100%);
@@ -327,7 +329,7 @@ button, [role="button"] {
 }
 
 .app-top-nav {
-  padding-top: calc(max(env(safe-area-inset-top, 0px), var(--aletheia-top-reserve)) + clamp(0.7rem, 1.4vw, 0.9rem));
+  padding-top: calc(max(var(--aletheia-safe-area-top), var(--aletheia-top-reserve)) + clamp(0.7rem, 1.4vw, 0.9rem));
 }
 
 .app-brand-button {
@@ -657,7 +659,7 @@ html[data-theme="black"] main.theme-dark-root .app-bottom-nav button:not([style*
 
 @media (max-width: 480px) and (orientation: portrait) {
   .app-top-nav {
-    padding-top: calc(max(env(safe-area-inset-top, 0px), var(--aletheia-top-reserve)) + 0.65rem);
+    padding-top: calc(max(var(--aletheia-safe-area-top), var(--aletheia-top-reserve)) + 0.65rem);
   }
 
   .app-brand-copy p:last-child {
@@ -668,8 +670,8 @@ html[data-theme="black"] main.theme-dark-root .app-bottom-nav button:not([style*
 @media (min-width: 768px) {
   :root {
     --aletheia-top-reserve: 0px;
-    --aletheia-top-nav-space: calc(env(safe-area-inset-top, 0px) + 5.6rem);
-    --aletheia-top-glass-height: calc(env(safe-area-inset-top, 0px) + 5.1rem);
+    --aletheia-top-nav-space: calc(var(--aletheia-safe-area-top) + 5.6rem);
+    --aletheia-top-glass-height: calc(var(--aletheia-safe-area-top) + 5.1rem);
   }
 }
 

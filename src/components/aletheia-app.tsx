@@ -5,7 +5,7 @@ import Image from "next/image";
 import { signIn as authSignIn, signOut as authSignOut } from "next-auth/react";
 import { ChangeEvent, FormEvent, type KeyboardEvent, type ReactNode, type RefObject, type TouchEvent, type WheelEvent, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Capacitor, type PluginListenerHandle } from "@capacitor/core";
+import { Capacitor, SystemBars, SystemBarsStyle, type PluginListenerHandle } from "@capacitor/core";
 import { Haptics, ImpactStyle } from "@capacitor/haptics";
 import {
   BookOpen,
@@ -7512,6 +7512,21 @@ export function AletheiaApp() {
     document.documentElement.style.setProperty("--aletheia-safe-bottom-sheen", bottomSheen);
   }, [resolvedTheme, theme.bgMain, theme.bgNav, theme.bgNavBorder, theme.primary]);
 
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) {
+      return;
+    }
+
+    const systemBarsStyle =
+      resolvedTheme === "dark" || resolvedTheme === "black"
+        ? SystemBarsStyle.Dark
+        : SystemBarsStyle.Light;
+
+    void SystemBars.show().catch(() => undefined);
+    void SystemBars.setAnimation({ animation: "NONE" }).catch(() => undefined);
+    void SystemBars.setStyle({ style: systemBarsStyle }).catch(() => undefined);
+  }, [resolvedTheme]);
+
   async function readJsonOrFallback<T>(response: Response | null, fallback: T): Promise<T> {
     if (!response || !response.ok) {
       return fallback;
@@ -11256,7 +11271,7 @@ export function AletheiaApp() {
       <div
         className="pointer-events-none fixed inset-x-0 top-0 z-[22] backdrop-blur-2xl backdrop-saturate-200 md:hidden"
         style={{
-          height: "calc(var(--aletheia-top-glass-height, calc(max(env(safe-area-inset-top, 0px), var(--aletheia-top-reserve, 0px)) + 4.85rem)) + 0.2rem)",
+          height: "calc(var(--aletheia-top-glass-height, calc(max(var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)), var(--aletheia-top-reserve, 0px)) + 4.85rem)) + 0.2rem)",
           backgroundColor: resolvedTheme === "black"
             ? "rgba(7, 10, 8, 0.18)"
             : resolvedTheme === "dark"
@@ -11796,11 +11811,11 @@ export function AletheiaApp() {
           return `color-mix(in srgb, ${viewAccent} 8%, ${baseBg})`;
         })(),
         width: "var(--aletheia-bottom-nav-width, min(calc(100vw - 1rem), 28rem))",
-        bottom: "calc(max(env(safe-area-inset-bottom, 0px), var(--aletheia-visual-bottom-inset, 0px)) * -1)",
+        bottom: "calc(max(var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)), var(--aletheia-visual-bottom-inset, 0px)) * -1)",
         borderRadius: "calc(var(--aletheia-bottom-nav-radius, 1.5) * 1rem)",
         paddingTop: "calc(var(--aletheia-bottom-nav-pad-y, 0.6) * 1rem)",
         paddingRight: "calc(var(--aletheia-bottom-nav-pad-x, 0.85) * 1rem)",
-        paddingBottom: "calc(var(--aletheia-bottom-nav-pad-y, 0.6) * 1rem + max(env(safe-area-inset-bottom, 0px), var(--aletheia-visual-bottom-inset, 0px)))",
+        paddingBottom: "calc(var(--aletheia-bottom-nav-pad-y, 0.6) * 1rem + max(var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)), var(--aletheia-visual-bottom-inset, 0px)))",
         paddingLeft: "calc(var(--aletheia-bottom-nav-pad-x, 0.85) * 1rem)",
       }}>
         <div className="grid grid-cols-5 gap-1">
@@ -12387,7 +12402,7 @@ function ReadingPlayer({
   const safeProgress = Math.min(100, Math.max(0, progress || 0));
   return (
     <section
-      className="fixed inset-x-3 bottom-[calc(4.6rem+env(safe-area-inset-bottom))] z-[55] mx-auto max-w-xl rounded-2xl border px-3 py-2.5 shadow-2xl backdrop-blur-xl md:bottom-5"
+      className="fixed inset-x-3 bottom-[calc(4.6rem+var(--aletheia-safe-area-bottom,env(safe-area-inset-bottom,0px)))] z-[55] mx-auto max-w-xl rounded-2xl border px-3 py-2.5 shadow-2xl backdrop-blur-xl md:bottom-5"
       style={{
         borderColor: theme.borderStrong,
         backgroundColor: theme.bgCard,
@@ -12675,7 +12690,7 @@ function WorkflowNotice({
     <div
       className="fixed inset-x-3 z-50 md:bottom-auto md:left-auto md:right-4 md:top-24 md:w-[320px]"
       style={{
-        top: `calc(max(env(safe-area-inset-top, 0px), var(--aletheia-top-reserve, 0px)) + ${readerOpen ? "6.5rem" : "5rem"})`,
+        top: `calc(max(var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)), var(--aletheia-top-reserve, 0px)) + ${readerOpen ? "6.5rem" : "5rem"})`,
       }}
       role="status"
       aria-live="polite"
@@ -12954,8 +12969,8 @@ function OnboardingModal({
       className="fixed inset-0 z-50 grid min-w-0 place-items-end overflow-hidden overscroll-none p-3 backdrop-blur-sm sm:place-items-center"
       style={{
         backgroundColor: theme.primary + '75',
-        paddingTop: "calc(max(env(safe-area-inset-top, 0px), var(--aletheia-top-reserve, 20px)) + 0.75rem)",
-        paddingBottom: "calc(max(env(safe-area-inset-bottom, 0px), var(--aletheia-bottom-reserve, 12px)) + 0.75rem)",
+        paddingTop: "calc(max(var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)), var(--aletheia-top-reserve, 20px)) + 0.75rem)",
+        paddingBottom: "calc(max(var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)), var(--aletheia-bottom-reserve, 12px)) + 0.75rem)",
       }}
     >
       <section
@@ -12969,7 +12984,7 @@ function OnboardingModal({
         style={{
           borderColor: `color-mix(in srgb, ${theme.borderLight} 82%, transparent)`,
           backgroundColor: theme.bgCard,
-          maxHeight: "calc(100dvh - max(env(safe-area-inset-top, 0px), var(--aletheia-top-reserve, 20px)) - max(env(safe-area-inset-bottom, 0px), var(--aletheia-bottom-reserve, 12px)) - 1.5rem)",
+          maxHeight: "calc(100dvh - max(var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)), var(--aletheia-top-reserve, 20px)) - max(var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)), var(--aletheia-bottom-reserve, 12px)) - 1.5rem)",
           width: "min(100%, calc(100vw - 1.5rem), 42rem)",
         }}
       >
@@ -18951,8 +18966,8 @@ function AvatarPickerModal({
       className="fixed inset-0 z-[9999] grid min-h-dvh place-items-end overflow-hidden overscroll-none px-3 backdrop-blur-sm sm:place-items-center"
       style={{
         backgroundColor: "rgba(13, 23, 20, 0.56)",
-        paddingTop: "calc(env(safe-area-inset-top, 0px) + 0.75rem)",
-        paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 0.75rem)",
+        paddingTop: "calc(var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)) + 0.75rem)",
+        paddingBottom: "calc(var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)) + 0.75rem)",
       }}
     >
       <section
@@ -18963,7 +18978,7 @@ function AvatarPickerModal({
         style={{
           borderColor: theme.borderMedium,
           backgroundColor: theme.bgCard,
-          maxHeight: "calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 1.5rem)",
+          maxHeight: "calc(100dvh - var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)) - var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)) - 1.5rem)",
         }}
       >
         <div className="flex items-start justify-between gap-3">
@@ -19059,8 +19074,8 @@ function AvatarUploadTipsModal({
       className="fixed inset-0 z-[9999] grid min-h-dvh place-items-end overflow-hidden overscroll-none px-3 backdrop-blur-sm sm:place-items-center"
       style={{
         backgroundColor: "rgba(13, 23, 20, 0.56)",
-        paddingTop: "calc(env(safe-area-inset-top, 0px) + 0.75rem)",
-        paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 0.75rem)",
+        paddingTop: "calc(var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)) + 0.75rem)",
+        paddingBottom: "calc(var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)) + 0.75rem)",
       }}
     >
       <section
@@ -19071,7 +19086,7 @@ function AvatarUploadTipsModal({
         style={{
           borderColor: theme.borderMedium,
           backgroundColor: theme.bgCard,
-          maxHeight: "calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 1.5rem)",
+          maxHeight: "calc(100dvh - var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)) - var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)) - 1.5rem)",
         }}
       >
         <div className="flex items-start justify-between gap-3">
@@ -20061,8 +20076,8 @@ function ScriptureModal({
       className="fixed inset-0 z-[80] grid min-h-dvh place-items-end overflow-hidden overscroll-none px-3 backdrop-blur-sm sm:place-items-center"
       style={{
         backgroundColor: "rgba(13, 23, 20, 0.56)",
-        paddingTop: "calc(env(safe-area-inset-top, 0px) + 0.75rem)",
-        paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 0.75rem)",
+        paddingTop: "calc(var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)) + 0.75rem)",
+        paddingBottom: "calc(var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)) + 0.75rem)",
       }}
       onClick={onClose}
     >
@@ -20074,7 +20089,7 @@ function ScriptureModal({
         style={{
           borderColor: theme.borderMedium,
           backgroundColor: theme.bgCard,
-          maxHeight: "calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 1.5rem)",
+          maxHeight: "calc(100dvh - var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)) - var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)) - 1.5rem)",
         }}
         onClick={(event) => event.stopPropagation()}
       >

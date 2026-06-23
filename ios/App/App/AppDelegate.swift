@@ -62,8 +62,28 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
 @objc(ManagedAudioBridgeViewController)
 class ManagedAudioBridgeViewController: CAPBridgeViewController {
+    private let startupChromeColor = UIColor(red: 0.047, green: 0.071, blue: 0.059, alpha: 1)
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        configureEdgeToEdgeChrome()
+    }
+
     override func capacitorDidLoad() {
         bridge?.registerPluginType(ManagedAudioPlugin.self)
+        configureEdgeToEdgeChrome()
+    }
+
+    private func configureEdgeToEdgeChrome() {
+        view.backgroundColor = startupChromeColor
+        webView?.isOpaque = false
+        webView?.backgroundColor = .clear
+        webView?.scrollView.backgroundColor = .clear
+        webView?.scrollView.contentInsetAdjustmentBehavior = .never
+        webView?.scrollView.contentInset = .zero
+        webView?.scrollView.scrollIndicatorInsets = .zero
+        statusBarStyle = .lightContent
+        setNeedsStatusBarAppearanceUpdate()
     }
 }
 
