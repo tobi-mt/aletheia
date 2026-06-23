@@ -63,6 +63,7 @@ async function initializeDatabase() {
     ALTER TABLE users ADD COLUMN IF NOT EXISTS consecutive_use_days INTEGER NOT NULL DEFAULT 0;
     ALTER TABLE users ADD COLUMN IF NOT EXISTS last_use_date DATE;
     ALTER TABLE users ADD COLUMN IF NOT EXISTS streak_achievements JSONB NOT NULL DEFAULT '{}'::jsonb;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ;
 
     CREATE TABLE IF NOT EXISTS sessions (
       id TEXT PRIMARY KEY,
