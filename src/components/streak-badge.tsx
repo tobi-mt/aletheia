@@ -8,7 +8,10 @@ export interface StreakBadgeProps {
   size?: "sm" | "md" | "lg";
   showLabel?: boolean;
   animated?: boolean;
-  theme?: any;
+  theme?: {
+    accentRgb?: string;
+    accentColor?: string;
+  };
   ts: (key: string, fallback?: string) => string;
 }
 
@@ -35,15 +38,15 @@ export function StreakBadge({
   };
 
   const getStreakLabel = () => {
-    if (days === 0) return ts("streak.start", "Start");
+    if (days === 0) return ts("streak.start");
     return `${days}d`;
   };
 
   const getMilestoneText = () => {
-    if (days >= 365) return ts("streak.milestone365", "1-Year Master 👑");
-    if (days >= 100) return ts("streak.milestone100", "100-Day Legend ⚡");
-    if (days >= 30) return ts("streak.milestone30", "30-Day Warrior 🔥");
-    if (days >= 7) return ts("streak.milestone7", "7-Day Sprout 🌱");
+    if (days >= 365) return ts("streak.milestone365");
+    if (days >= 100) return ts("streak.milestone100");
+    if (days >= 30) return ts("streak.milestone30");
+    if (days >= 7) return ts("streak.milestone7");
     return null;
   };
 
@@ -105,7 +108,7 @@ export function StreakBadge({
           {getMilestoneText() ? (
             <p className="text-sm font-semibold">{getMilestoneText()}</p>
           ) : (
-            <p className="text-xs opacity-60">{ts("streak.keepGoing", "Keep going!")}</p>
+            <p className="text-xs opacity-60">{ts("streak.keepGoing")}</p>
           )}
         </motion.div>
       )}
@@ -124,11 +127,11 @@ export function StreakAchievementNotification({
 }) {
   const getMessage = () => {
     switch (milestone) {
-      case 7:   return ts("streak.achievement7",   "7-Day Sprout! You're building consistency!");
-      case 30:  return ts("streak.achievement30",  "30-Day Warrior! Amazing dedication!");
-      case 100: return ts("streak.achievement100", "100-Day Legend! You're unstoppable!");
-      case 365: return ts("streak.achievement365", "1-Year Master! You've transformed your life!");
-      default:  return ts("streak.achievementUnlocked", "Achievement Unlocked!");
+      case 7:   return ts("streak.achievement7");
+      case 30:  return ts("streak.achievement30");
+      case 100: return ts("streak.achievement100");
+      case 365: return ts("streak.achievement365");
+      default:  return ts("streak.achievementUnlocked");
     }
   };
 
@@ -146,13 +149,13 @@ export function StreakAchievementNotification({
             onClick={onClose}
             className="flex-1 bg-white/30 hover:bg-white/40 px-4 py-2 rounded-lg font-semibold text-sm transition-colors"
           >
-            {ts("streak.celebrate", "Celebrate")}
+            {ts("streak.celebrate")}
           </button>
           <button
             onClick={onClose}
             className="flex-1 bg-white text-orange-600 hover:bg-gray-100 px-4 py-2 rounded-lg font-semibold text-sm transition-colors"
           >
-            {ts("streak.share", "Share")}
+            {ts("streak.share")}
           </button>
         </div>
       </div>

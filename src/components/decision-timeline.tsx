@@ -75,13 +75,13 @@ export function DecisionTimeline({
         <div className="relative flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="text-[11px] font-semibold uppercase tracking-[0.22em]" style={{ color: theme?.accentGold }}>
-              {ts("decisionTimeline.title", "Decision Journey")}
+              {ts("decisionTimeline.title")}
             </p>
             <h3 className="mt-1.5 text-xl font-semibold tracking-tight" style={{ color: theme?.textPrimary }}>
-              {ts("decisionTimeline.daysProgress", "{days} of 30 days").replace("{days}", String(daysElapsed))}
+              {ts("decisionTimeline.daysProgress").replace("{days}", String(daysElapsed))}
             </h3>
             <p className="mt-1.5 max-w-2xl text-sm leading-6" style={{ color: theme?.textSecondary }}>
-              {nextCheckpoint ? `${ts("decisionTimeline.nextLabel", "Next:")} ${nextCheckpoint.label}` : ts("decisionTimeline.completed", "The arc is fully visible now.")}
+              {nextCheckpoint ? `${ts("decisionTimeline.nextLabel")} ${nextCheckpoint.label}` : ts("decisionTimeline.completed")}
             </p>
           </div>
           <div className="grid size-11 shrink-0 place-items-center rounded-full border shadow-sm" style={{ borderColor: theme?.borderLight, backgroundColor: theme?.bgInput, color: theme?.textPrimary }}>
@@ -152,7 +152,7 @@ export function DecisionTimeline({
                           </h4>
                           {checkpoint.daysSinceCreation > 0 ? (
                             <span className="rounded-full border px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ borderColor: theme?.borderLight, backgroundColor: theme?.bgInput, color: theme?.textSecondary }}>
-                              {ts("decisionTimeline.dayBadge", "Day {day}").replace("{day}", String(checkpoint.daysSinceCreation))}
+                              {ts("decisionTimeline.dayBadge").replace("{day}", String(checkpoint.daysSinceCreation))}
                             </span>
                           ) : null}
                         </div>
@@ -164,7 +164,7 @@ export function DecisionTimeline({
                       </div>
                       <span className="inline-flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ borderColor: checkpoint.completed ? theme?.accentLight : theme?.borderLight, backgroundColor: checkpoint.completed ? theme?.activeBg : theme?.bgInput, color: checkpoint.completed ? theme?.accentGold : theme?.textSecondary }}>
                         {checkpoint.completed ? <Check size={11} /> : <Clock3 size={11} />}
-                        {checkpoint.completed ? ts("streak.unlocked", "Unlocked") : ts("streak.notYet", "Not yet")}
+                        {checkpoint.completed ? ts("streak.unlocked") : ts("streak.notYet")}
                       </span>
                     </div>
 
@@ -209,7 +209,7 @@ export function DecisionTimeline({
             </div>
             <div className="min-w-0">
               <p className="text-sm font-semibold tracking-tight" style={{ color: theme?.textPrimary }}>
-                {ts("decisionTimeline.nextLabel", "Next:")} {nextCheckpoint.label}
+                {ts("decisionTimeline.nextLabel")} {nextCheckpoint.label}
               </p>
               <p className="mt-1 text-xs leading-5" style={{ color: theme?.textSecondary }}>
                 {nextCheckpoint.followUpPrompt}
@@ -234,42 +234,42 @@ export function generateDecisionCheckpoints(
     {
       daysSinceCreation: 0,
       type: "created",
-      label: ts("decisionTimeline.checkpoint.decisionStartedLabel", "Decision Started"),
-      description: ts("decisionTimeline.checkpoint.decisionStartedDesc", "You began this decision"),
+      label: ts("decisionTimeline.checkpoint.decisionStartedLabel"),
+      description: ts("decisionTimeline.checkpoint.decisionStartedDesc"),
       completed: true,
       dueDate: createdAt.toISOString(),
     },
     {
       daysSinceCreation: 1,
       type: "check-in",
-      label: ts("decisionTimeline.checkpoint.day1Label", "Day 1 Check-in"),
-      description: ts("decisionTimeline.checkpoint.day1Desc", "First reflection"),
+      label: ts("decisionTimeline.checkpoint.day1Label"),
+      description: ts("decisionTimeline.checkpoint.day1Desc"),
       completed: daysElapsed >= 1,
-      followUpPrompt: ts("decisionTimeline.checkpoint.day1Prompt", "How are you feeling about this decision today?"),
+      followUpPrompt: ts("decisionTimeline.checkpoint.day1Prompt"),
     },
     {
       daysSinceCreation: 3,
       type: "check-in",
-      label: ts("decisionTimeline.checkpoint.day3Label", "Day 3 Engagement"),
-      description: ts("decisionTimeline.checkpoint.day3Desc", "Gather perspective"),
+      label: ts("decisionTimeline.checkpoint.day3Label"),
+      description: ts("decisionTimeline.checkpoint.day3Desc"),
       completed: daysElapsed >= 3,
-      followUpPrompt: ts("decisionTimeline.checkpoint.day3Prompt", "What wisdom have you received?"),
+      followUpPrompt: ts("decisionTimeline.checkpoint.day3Prompt"),
     },
     {
       daysSinceCreation: 7,
       type: "reflection",
-      label: ts("decisionTimeline.checkpoint.day7Label", "Weekly Reflection"),
-      description: ts("decisionTimeline.checkpoint.day7Desc", "Reflect on progress"),
+      label: ts("decisionTimeline.checkpoint.day7Label"),
+      description: ts("decisionTimeline.checkpoint.day7Desc"),
       completed: daysElapsed >= 7,
-      followUpPrompt: ts("decisionTimeline.checkpoint.day7Prompt", "What have you learned this week?"),
+      followUpPrompt: ts("decisionTimeline.checkpoint.day7Prompt"),
     },
     {
       daysSinceCreation: 30,
       type: "outcome",
-      label: ts("decisionTimeline.checkpoint.day30Label", "Monthly Outcome"),
-      description: ts("decisionTimeline.checkpoint.day30Desc", "See where you are now"),
+      label: ts("decisionTimeline.checkpoint.day30Label"),
+      description: ts("decisionTimeline.checkpoint.day30Desc"),
       completed: daysElapsed >= 30,
-      followUpPrompt: ts("decisionTimeline.checkpoint.day30Prompt", "How did this decision turn out?"),
+      followUpPrompt: ts("decisionTimeline.checkpoint.day30Prompt"),
     },
   ];
 }
