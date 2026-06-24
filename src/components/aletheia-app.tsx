@@ -112,7 +112,8 @@ import BibleReader from "@/components/bible-reader";
 import { ToastContainer, useToast } from "@/components/toast-notification";
 import { StreakBadge, StreakAchievementNotification } from "@/components/streak-badge";
 import { DecisionTimeline, generateDecisionCheckpoints } from "@/components/decision-timeline";
-import { getUserStreak, checkStreakAchievements, formatStreak, type StreakData } from "@/lib/streak-tracker";
+import { getUserStreak, checkStreakAchievements } from "@/lib/streak-tracker";
+import { STREAK_MILESTONES, formatStreak, type StreakData } from "@/lib/streak-shared";
 import type { BibleStudyData } from "@/lib/bible-study";
 
 type View = "companion" | "decisions" | "reflect" | "library" | "account";
@@ -6487,6 +6488,7 @@ export function AletheiaApp() {
   const [authPromptState, setAuthPromptState] = useState<AuthPromptState>(DEFAULT_AUTH_PROMPT_STATE);
   const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
   const [showReportIssueModal, setShowReportIssueModal] = useState(false);
+  const [showStreakMilestonesModal, setShowStreakMilestonesModal] = useState(false);
   const [accountActionBusy, setAccountActionBusy] = useState<"export" | "delete" | "report" | null>(null);
   const [notificationStatus, setNotificationStatus] = useState("");
   const [notificationAccountEnabled, setNotificationAccountEnabled] = useState(false);
@@ -11689,6 +11691,7 @@ export function AletheiaApp() {
                     <AccountPanel
                       ts={ts}
                       user={user}
+                      onOpenStreakMilestones={() => setShowStreakMilestonesModal(true)}
                       authMode={authMode}
                       setAuthMode={(value) => {
                         setAuthMode(value);
@@ -11930,6 +11933,13 @@ export function AletheiaApp() {
         isWorking={accountActionBusy === "report"}
         onCancel={() => setShowReportIssueModal(false)}
         onSubmit={reportIssue}
+      />
+      <StreakMilestonesModal
+        open={showStreakMilestonesModal}
+        theme={theme}
+        ts={ts}
+        streakData={streakData}
+        onClose={() => setShowStreakMilestonesModal(false)}
       />
 
       <AnimatePresence>
@@ -14268,6 +14278,7 @@ function AccountPanel({
   onReportIssue,
   onShare,
   onOpenRecommendedChallenge,
+  onOpenStreakMilestones,
   accountActionBusy,
   streakData,
   theme,
@@ -14334,6 +14345,7 @@ function AccountPanel({
   onReportIssue: () => void;
   onShare: (channel: ShareChannel, placement: string) => void;
   onOpenRecommendedChallenge: (challengeId: string) => void;
+  onOpenStreakMilestones: () => void;
   accountActionBusy: "export" | "delete" | "report" | null;
   streakData: StreakData;
   theme: ThemeColors;
@@ -14382,6 +14394,10 @@ function AccountPanel({
             : manualSignals.some((signal) => signal.startsWith("Future-state signal"))
               ? ts("labels.accountContextFuture", "you are leaning toward a future you want to name")
               : "";
+  const accountManageSummary = text.accountManageSummary ?? ts(
+    "labels.accountManageSummary",
+    "Manage sign-in, sync, language, notifications, history, and formation milestones without crowding the wisdom companion."
+  );
   const accountRecommendationLead = challengeRecommendation
     ? accountContextPhrase
       ? `It feels gentle for where you are right now, especially if ${accountContextPhrase}.`
@@ -14430,7 +14446,13 @@ function AccountPanel({
             </p>
           </div>
           {user && streakData.consecutiveDays > 0 && (
-            <div className="mt-4">
+            <button
+              type="button"
+              onClick={onOpenStreakMilestones}
+              className="mt-4 rounded-[1.5rem] outline-none transition-transform duration-200 hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-offset-2"
+              style={{ backgroundColor: "transparent", borderColor: "transparent", WebkitTapHighlightColor: "transparent" }}
+              aria-label={ts('streak.openMilestones', 'Open streak milestones')}
+            >
               <StreakBadge
                 days={streakData.consecutiveDays}
                 size="md"
@@ -14439,7 +14461,7 @@ function AccountPanel({
                 theme={theme}
                 ts={ts}
               />
-            </div>
+            </button>
           )}
           <div className="grid grid-cols-3 gap-2 border-t px-3 py-3 sm:px-5" style={{ borderColor: theme.borderLight }}>
             {profileStats.map((stat) => (
@@ -14451,7 +14473,7 @@ function AccountPanel({
 
       <DisclosureSection
         title={user ? ts('labels.accountControls') : ts('labels.accountSignInOrGuest')}
-        summary={user ? text.accountManageSummary : profileSummary}
+        summary={user ? accountManageSummary : profileSummary}
         eyebrow={ts('labels.accountTitle')}
         compactCollapsed
         showDetailsLabel={text.showDetails}
@@ -14647,7 +14669,7 @@ function AccountPanel({
         <div className="space-y-4">
           <DisclosureSection
             title={ts('labels.accountSystemTitle')}
-            summary={`${text.accountManageSummary} ${exchanges.length} ${ts('labels.accountHistoryConversations')} · ${activeDecisionCount} ${ts('labels.accountHistoryDecisions')}`}
+            summary={`${accountManageSummary} ${exchanges.length} ${ts('labels.accountHistoryConversations')} · ${activeDecisionCount} ${ts('labels.accountHistoryDecisions')}`}
             eyebrow={ts('labels.accountSystemEyebrow')}
             compactCollapsed
             showDetailsLabel={text.showDetails}
@@ -20427,6 +20449,216 @@ function ReportIssueModal({
   );
 }
 
+function StreakMilestonesModal({
+  open,
+  theme,
+  ts,
+  streakData,
+  onClose,
+}: {
+  open: boolean;
+  theme: ThemeColors;
+  ts: (key: string, fallback?: string) => string;
+  streakData: StreakData;
+  onClose: () => void;
+}) {
+  const canUsePortal = typeof document !== "undefined";
+  useBodyScrollLock(open && canUsePortal);
+
+  if (!open || !canUsePortal) {
+    return null;
+  }
+
+  const currentDays = streakData.consecutiveDays;
+  const achievedCount = STREAK_MILESTONES.filter((milestone) => Boolean(streakData.achievements[milestone]) || currentDays >= milestone).length;
+  const nextMilestone = STREAK_MILESTONES.find((milestone) => currentDays < milestone) ?? null;
+  const currentLabel = formatStreak(currentDays);
+  const dateFormatter = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", year: "numeric" });
+  const formatDate = (value: string | null | undefined) => {
+    if (!value) {
+      return null;
+    }
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? null : dateFormatter.format(parsed);
+  };
+
+  const milestones = STREAK_MILESTONES.map((milestone) => {
+    const achievement = streakData.achievements[milestone];
+    const achieved = Boolean(achievement) || currentDays >= milestone;
+    const remaining = Math.max(milestone - currentDays, 0);
+    const unlockedAt = formatDate(achievement?.unlockedAt);
+    const title =
+      milestone === 7
+        ? ts("streak.milestone7", "7-Day Sprout")
+        : milestone === 30
+          ? ts("streak.milestone30", "30-Day Warrior")
+          : milestone === 100
+            ? ts("streak.milestone100", "100-Day Legend")
+            : ts("streak.milestone365", "1-Year Master");
+    const description =
+      milestone === 7
+        ? ts("streak.milestone7Description", "Open Aletheia on 7 consecutive days.")
+        : milestone === 30
+          ? ts("streak.milestone30Description", "Continue the habit for 30 consecutive days.")
+          : milestone === 100
+            ? ts("streak.milestone100Description", "Reach 100 consecutive days of reflection and use.")
+            : ts("streak.milestone365Description", "Stay consistent for a full year of consecutive days.");
+
+    return {
+      milestone,
+      achievement,
+      achieved,
+      remaining,
+      unlockedAt,
+      title,
+      description,
+    };
+  });
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[90] grid min-h-dvh place-items-end overflow-hidden overscroll-none px-3 backdrop-blur-sm sm:place-items-center"
+      style={{
+        backgroundColor: "rgba(13, 23, 20, 0.54)",
+        paddingTop: "calc(var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)) + 0.75rem)",
+        paddingBottom: "calc(var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)) + 0.75rem)",
+      }}
+    >
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="streak-milestones-title"
+        className="max-h-[92vh] w-full max-w-2xl overflow-y-auto overscroll-contain rounded-[1.75rem] border shadow-2xl"
+        style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}
+      >
+        <div
+          className="relative overflow-hidden border-b px-4 py-4 sm:px-5 sm:py-5"
+          style={{
+            borderColor: theme.borderLight,
+            background: `linear-gradient(135deg, color-mix(in srgb, ${theme.bgCardElevated} 72%, white 28%), ${theme.bgCard}, color-mix(in srgb, ${theme.bgCardElevated} 82%, ${theme.accentGold} 18%))`,
+          }}
+        >
+          <div className="absolute inset-0 opacity-80" style={{ background: `radial-gradient(circle at 18% 18%, color-mix(in srgb, ${theme.accentGold} 18%, transparent), transparent 36%), radial-gradient(circle at 92% 0%, color-mix(in srgb, ${theme.primary} 10%, transparent), transparent 30%)` }} />
+          <div className="relative flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] sm:text-xs" style={{ color: theme.accentGold }}>
+                {ts("streak.modalEyebrow", "Streak at a glance")}
+              </p>
+              <h2 id="streak-milestones-title" className="mt-1.5 text-lg font-semibold sm:text-xl" style={{ color: theme.textPrimary }}>
+                {ts("streak.modalTitle", "Your streak, beautifully mapped")}
+              </h2>
+              <p className="mt-1.5 max-w-xl text-sm leading-6" style={{ color: theme.textSecondary }}>
+                {ts("streak.modalBody", "A calm view of every milestone, what it takes to reach it, and what you have already unlocked.")}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="grid size-9 shrink-0 place-items-center rounded-full border transition"
+              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+              aria-label={ts("labels.close")}
+            >
+              <X size={16} />
+            </button>
+          </div>
+
+          <div className="relative mt-4 grid gap-2 sm:grid-cols-3">
+            <div className="rounded-2xl border px-3 py-3.5 shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textSecondary }}>{ts("streak.current", "Current streak")}</p>
+              <p className="mt-1 text-lg font-semibold" style={{ color: theme.textPrimary }}>{currentLabel}</p>
+            </div>
+            <div className="rounded-2xl border px-3 py-3.5 shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textSecondary }}>{ts("streak.unlockedCount", "Unlocked")}</p>
+              <p className="mt-1 text-lg font-semibold" style={{ color: theme.textPrimary }}>{achievedCount}/{STREAK_MILESTONES.length}</p>
+            </div>
+            <div className="rounded-2xl border px-3 py-3.5 shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textSecondary }}>{ts("streak.nextGoal", "Next milestone")}</p>
+              <p className="mt-1 text-lg font-semibold" style={{ color: theme.textPrimary }}>{nextMilestone ? `${nextMilestone}d` : ts("streak.allUnlocked", "Fully unlocked")}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-2.5 p-3.5 sm:p-4">
+          {streakData.lastUseDate ? (
+            <div className="rounded-[1.25rem] border px-3.5 py-3 text-sm leading-6" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
+              {ts("streak.lastUse", "Last active")}: <span className="font-semibold" style={{ color: theme.textPrimary }}>{formatDate(streakData.lastUseDate) ?? streakData.lastUseDate}</span>
+            </div>
+          ) : null}
+
+          {milestones.map((item) => (
+            <article
+              key={item.milestone}
+              className="rounded-[1.35rem] border p-3.5 shadow-[0_8px_20px_rgba(15,23,42,0.04)] sm:p-4"
+              style={{
+                borderColor: item.achieved ? theme.accentLight : theme.borderLight,
+                background: item.achieved
+                  ? `linear-gradient(180deg, color-mix(in srgb, ${theme.bgCardElevated} 78%, ${theme.accentGold} 22%), ${theme.bgCard})`
+                  : theme.bgCard,
+              }}
+            >
+              <div className="flex items-start gap-3">
+                <div
+                  className="grid size-10 shrink-0 place-items-center rounded-2xl border"
+                  style={{
+                    borderColor: item.achieved ? theme.accentLight : theme.borderLight,
+                    backgroundColor: item.achieved ? theme.activeBg : theme.bgInput,
+                    color: item.achieved ? theme.accentGold : theme.textSecondary,
+                  }}
+                  aria-hidden="true"
+                >
+                  {item.achieved ? <Check size={18} /> : <Clock3 size={17} />}
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <h3 className="text-base font-semibold sm:text-lg" style={{ color: theme.textPrimary }}>
+                        {item.title}
+                      </h3>
+                      <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                        {item.description}
+                      </p>
+                    </div>
+                    <span
+                      className="inline-flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]"
+                      style={{
+                        borderColor: item.achieved ? theme.accentLight : theme.borderLight,
+                        backgroundColor: item.achieved ? theme.activeBg : theme.bgInput,
+                        color: item.achieved ? theme.accentGold : theme.textSecondary,
+                      }}
+                    >
+                      {item.achieved ? <Check size={11} /> : <Minus size={11} />}
+                      {item.achieved ? ts("streak.unlocked", "Unlocked") : ts("streak.notYet", "Not yet")}
+                    </span>
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <span className="inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                      {item.achieved
+                        ? ts("streak.unlockedRequirement", "Target reached")
+                        : item.remaining === 0
+                          ? ts("streak.readyNow", "Ready now")
+                          : `${item.remaining} ${ts("streak.days", "days")} ${ts("streak.remainingLabel", "remaining")}`}
+                    </span>
+                    <span className="inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                      {item.achieved
+                        ? item.unlockedAt
+                          ? `${ts("streak.unlockedOn", "Unlocked on")} ${item.unlockedAt}`
+                          : ts("streak.unlocked", "Unlocked")
+                        : `${ts("streak.unlocksAt", "Unlocks at")} ${item.milestone} ${ts("streak.days", "days")}`}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+    </div>,
+    document.body
+  );
+}
+
 function CounselInviteModal({
   theme,
   token,
@@ -22827,10 +23059,10 @@ function DecisionCompanionPanel({
   const counselAvatarFileInputRef = useRef<HTMLInputElement | null>(null);
   const activeDecisions = decisions.filter((decision) => decision.status !== "closed");
   const selectedDecision = decisions[0];
-  const [blessingOpen, setBlessingOpen] = useState(false);
+  const [selectedMemoryDecisionId, setSelectedMemoryDecisionId] = useState<string | null>(decisions[0]?.id ?? null);
+  const [selectedTimelineEventId, setSelectedTimelineEventId] = useState<string | null>(events[0]?.id ?? null);
   const [decisionSection, setDecisionSection] = useState<"decisions" | "counsel" | "rhythm" | "memory">("decisions");
   const modeRules = rules.filter((rule) => rule.mode === mode);
-  const selectedDecisionBlessing = selectedDecision ? buildDecisionBlessing(selectedDecision, ts) : "";
   const decisionNextTitle = selectedDecision ? formatNextDecisionTitle(selectedDecision.title, ts('challenges.continueChallenge')) : runtime.decisionNextTitleDefault;
   const decisionFocusPrompt = focusIntentionPrompt(focusIntentions, "decisions");
   const decisionNextBody = selectedDecision
@@ -22841,6 +23073,37 @@ function DecisionCompanionPanel({
     : decisionNextBody;
   const visibleCounselContacts = counselContacts.slice(0, 3);
   const hiddenCounselContacts = counselContacts.slice(3);
+  const memoryRailDecisions = decisions.slice(0, 4);
+  const memoryArchiveDecisions = decisions.slice(4);
+  const selectedMemoryDecision =
+    decisions.find((decision) => decision.id === selectedMemoryDecisionId) ?? decisions[0] ?? null;
+  const selectedTimelineEvent =
+    events.find((event) => event.id === selectedTimelineEventId) ?? events[0] ?? null;
+  const timelineEventMood = (eventType: string) => {
+    if (eventType === "created") {
+      return {
+        label: "Created",
+        icon: Sparkles,
+        accent: theme.accentGold,
+        gradient: `linear-gradient(135deg, ${theme.accentGold} 0%, ${theme.bgCardElevated} 75%)`,
+      };
+    }
+    if (eventType === "update") {
+      return {
+        label: "Updated",
+        icon: Feather,
+        accent: theme.primary,
+        gradient: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.bgCardElevated} 75%)`,
+      };
+    }
+    return {
+      label: "Event",
+      icon: Clock3,
+      accent: theme.textSecondary,
+      gradient: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.bgCardElevated} 75%)`,
+    };
+  };
+  const selectedTimelineMood = selectedTimelineEvent ? timelineEventMood(selectedTimelineEvent.eventType) : null;
   const decisionOverviewCards = [
     {
       icon: Clock3,
@@ -23024,17 +23287,176 @@ function DecisionCompanionPanel({
         {decisionSection === "decisions" ? (
           <div className="space-y-4">
             <DisclosureSection title={ts('labels.wisdomTimeline')} summary={events.length ? insight.gentleObservation : decisionTimelineObservation(language, [], 0)} eyebrow={`${events.length} ${ts('labels.eventsRecorded')}`} compactCollapsed showDetailsLabel={ts('showDetails')} hideDetailsLabel={ts('hideDetails')} theme={theme}>
-              <section className="rounded-[1.35rem] border p-3.5 shadow-[0_8px_24px_rgba(15,23,42,0.05)] sm:p-4" style={{ backgroundColor: theme.primary, borderColor: theme.borderMedium, color: theme.textOnPrimary }}>
-                <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textOnPrimary, opacity: 0.9 }}>{ts('labels.wisdomTimeline')}</p>
-                <p className="mt-2.5 text-sm leading-5" style={{ color: theme.textOnPrimary }}>{insight.gentleObservation}</p>
-                <div className="mt-3.5 space-y-2.5">
-                  {events.slice(0, 5).map((event) => (
-                    <div key={event.id} className="rounded-[1rem] border p-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-                      <p className="text-sm leading-5" style={{ color: theme.textPrimary }}>{localizeDecisionEventBody(language, event.eventType, event.body)}</p>
-                      <p className="mt-1 text-xs" style={{ color: theme.textSecondary }}>{new Date(event.createdAt).toLocaleDateString()}</p>
+              <section className="rounded-[1.45rem] border shadow-[0_8px_24px_rgba(15,23,42,0.05)]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                <div
+                  className="relative overflow-hidden border-b"
+                  style={{
+                    borderColor: theme.borderLight,
+                    background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.bgCardElevated} 72%)`,
+                  }}
+                >
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.16),transparent_40%),radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.08),transparent_38%)]" />
+                  <div className="relative flex items-start justify-between gap-3 p-3 sm:p-4">
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textOnPrimary, opacity: 0.85 }}>
+                        {ts('labels.wisdomTimeline')}
+                      </p>
+                      <p className="mt-1.5 max-w-2xl text-sm leading-5 sm:leading-6" style={{ color: theme.textOnPrimary, opacity: 0.9 }}>
+                        {events.length ? insight.gentleObservation : decisionTimelineObservation(language, [], 0)}
+                      </p>
                     </div>
-                  ))}
-                  {!events.length ? <p className="text-sm leading-5" style={{ color: theme.textOnPrimary }}>{ts('labels.startDecisionToBeginTimeline')}</p> : null}
+                    <div className="relative grid size-11 shrink-0 place-items-center rounded-full border border-white/20 bg-white/12 shadow-[0_10px_24px_rgba(0,0,0,0.12)]">
+                      <Clock3 size={18} style={{ color: theme.textOnPrimary }} />
+                    </div>
+                  </div>
+                  <div className="relative flex flex-wrap gap-2 px-3 pb-3 sm:px-4 sm:pb-4">
+                    <span className="rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.textOnPrimary + "33", backgroundColor: theme.textOnPrimary + "14", color: theme.textOnPrimary }}>
+                      {events.length} {ts('labels.eventsRecorded')}
+                    </span>
+                    <span className="rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.textOnPrimary + "33", backgroundColor: theme.textOnPrimary + "14", color: theme.textOnPrimary }}>
+                      {events.length ? ts('labels.preview') : ts('labels.noDecisionMemoryYet')}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="p-3 sm:p-3.5">
+                  {events.length ? (
+                    <>
+                      <section
+                        aria-label={ts('labels.eventsRecorded')}
+                        className="flex min-w-0 snap-x gap-1.5 overflow-x-auto pb-1 sm:gap-2 [-webkit-overflow-scrolling:touch]"
+                      >
+                        {events.map((event, index) => {
+                          const isActive = event.id === selectedTimelineEvent?.id;
+                          const localizedBody = localizeDecisionEventBody(language, event.eventType, event.body);
+                          const dayLabel = new Date(event.createdAt).toLocaleDateString(language, {
+                            month: "short",
+                            day: "numeric",
+                          });
+                          const mood = timelineEventMood(event.eventType);
+                          const Icon = mood.icon;
+                          return (
+                            <button
+                              key={event.id}
+                              type="button"
+                              onClick={() => setSelectedTimelineEventId(event.id)}
+                              className="premium-tap-card relative flex h-36 w-40 shrink-0 snap-start flex-col overflow-hidden rounded-2xl border p-0 text-left shadow-sm transition sm:h-40 sm:w-44"
+                              style={{
+                                borderColor: isActive ? theme.primary : theme.borderMedium,
+                                backgroundColor: isActive ? theme.bgCardElevated : theme.bgInput,
+                                boxShadow: isActive
+                                  ? `0 0 0 1px ${theme.primary}, 0 14px 28px rgba(7, 10, 8, 0.10)`
+                                  : "0 8px 18px rgba(7, 10, 8, 0.06)",
+                              }}
+                              aria-pressed={isActive}
+                            >
+                              <div
+                                className="relative h-14 overflow-hidden sm:h-16"
+                                style={{
+                                  background: mood.gradient,
+                                }}
+                              >
+                                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.16),transparent_42%),radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.08),transparent_38%)]" />
+                                <div className="absolute left-2.5 top-2.5 grid size-6 place-items-center rounded-full border border-white/20 bg-white/12 shadow-[0_8px_16px_rgba(0,0,0,0.12)]">
+                                  <Icon size={12} style={{ color: theme.textOnPrimary }} />
+                                </div>
+                                <div className="absolute right-2.5 top-2.5 rounded-full border border-white/20 bg-white/12 px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.08em]" style={{ color: theme.textOnPrimary }}>
+                                  {index + 1}
+                                </div>
+                                <div className="absolute inset-x-2.5 bottom-2.5 flex items-center justify-between gap-2">
+                                  <span className="rounded-full border border-white/20 bg-white/10 px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.08em]" style={{ color: theme.textOnPrimary }}>
+                                    {dayLabel}
+                                  </span>
+                                  <span className="text-[10px] font-semibold" style={{ color: theme.textOnPrimary, opacity: 0.8 }}>
+                                    {isActive ? ts('labels.selected') : ts('labels.preview')}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="flex flex-1 flex-col gap-1.5 p-2.5 sm:gap-2 sm:p-3">
+                                <div className="flex items-center gap-2">
+                                  <span className="rounded-full border px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: mood.accent + "44", backgroundColor: mood.accent + "14", color: mood.accent }}>
+                                    {mood.label}
+                                  </span>
+                                </div>
+                                <p className="line-clamp-2 text-sm font-semibold leading-5" style={{ color: theme.textPrimary }}>
+                                  {localizedBody}
+                                </p>
+                                <p className="line-clamp-2 text-xs leading-5" style={{ color: theme.textSecondary }}>
+                                  {event.decisionId ? ts('labels.decisionMemory') : ts('labels.eventsRecorded')}
+                                </p>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </section>
+
+                      {selectedTimelineEvent ? (
+                        <article className="mt-4 overflow-hidden rounded-[1.45rem] border shadow-[0_8px_24px_rgba(15,23,42,0.05)]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                          <div
+                            className="relative overflow-hidden border-b"
+                            style={{
+                              borderColor: theme.borderLight,
+                              background: selectedTimelineMood?.gradient ?? theme.bgCardElevated,
+                            }}
+                          >
+                            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.16),transparent_42%),radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.08),transparent_38%)]" />
+                            <div className="relative flex items-start justify-between gap-3 p-3 sm:p-4">
+                              <div className="min-w-0">
+                                <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textOnPrimary, opacity: 0.85 }}>
+                                  {ts('labels.preview')}
+                                </p>
+                                <h3 className="mt-1.5 text-[1.08rem] font-semibold leading-tight text-balance sm:text-[1.18rem]" style={{ color: theme.textOnPrimary }}>
+                                  {localizeDecisionEventBody(language, selectedTimelineEvent.eventType, selectedTimelineEvent.body)}
+                                </h3>
+                                <p className="mt-2 max-w-2xl text-sm leading-5 sm:leading-6" style={{ color: theme.textOnPrimary, opacity: 0.88 }}>
+                                  {new Date(selectedTimelineEvent.createdAt).toLocaleString(language, { dateStyle: "medium", timeStyle: "short" })}
+                                </p>
+                              </div>
+                              <div className="relative grid size-11 shrink-0 place-items-center rounded-full border border-white/20 bg-white/12 shadow-[0_10px_24px_rgba(0,0,0,0.12)]">
+                                {selectedTimelineMood ? <selectedTimelineMood.icon size={18} style={{ color: theme.textOnPrimary }} /> : null}
+                              </div>
+                            </div>
+                            <div className="relative flex flex-wrap gap-2 px-3 pb-3 sm:px-4 sm:pb-4">
+                              <span className="rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.textOnPrimary + "33", backgroundColor: theme.textOnPrimary + "14", color: theme.textOnPrimary }}>
+                                {ts('labels.eventsRecorded')}
+                              </span>
+                              <span className="rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.textOnPrimary + "33", backgroundColor: theme.textOnPrimary + "14", color: theme.textOnPrimary }}>
+                                {selectedTimelineMood?.label}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="p-3 sm:p-3.5">
+                            <div className="grid gap-2 sm:grid-cols-2">
+                              <div className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                                <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
+                                  {ts('labels.event', "Event")}
+                                </p>
+                                <span className="mt-2 inline-flex rounded-full border px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: selectedTimelineMood?.accent + "44", backgroundColor: selectedTimelineMood?.accent + "14", color: selectedTimelineMood?.accent }}>
+                                  {selectedTimelineMood?.label}
+                                </span>
+                                <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                                  {selectedTimelineEvent.body}
+                                </p>
+                              </div>
+                              <div className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
+                                <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
+                                  {ts('labels.summary')}
+                                </p>
+                                <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                                  {insight.gentleObservation}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </article>
+                      ) : null}
+                    </>
+                  ) : (
+                    <div className="rounded-[1rem] border border-dashed p-4 text-sm leading-6" style={{ borderColor: theme.borderMedium, color: theme.textSecondary }}>
+                      {ts('labels.startDecisionToBeginTimeline')}
+                    </div>
+                  )}
                 </div>
               </section>
             </DisclosureSection>
@@ -23525,68 +23947,147 @@ function DecisionCompanionPanel({
               <p className="mt-1.5 text-sm leading-5" style={{ color: theme.textOnPrimary }}>{ts('labels.smallPracticeForDecision')}</p>
             </section>
 
-            {selectedDecision?.summary ? (
-              <section className="rounded-[1.35rem] border p-3.5 shadow-[0_8px_24px_rgba(15,23,42,0.05)]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.decisionSummaryExport')}</p>
-                  <button
-                    type="button"
-                    onClick={() => onSpeakText(selectedDecision.summary || "", ts('notifications.readingAloud'), ts('labels.decisionSummary'))}
-                    className="inline-flex h-10 items-center gap-2 rounded-full border px-3 text-xs font-semibold transition"
-                    style={{
-                      borderColor: theme.borderMedium,
-                      backgroundColor: theme.bgInput,
-                      color: theme.textPrimary,
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.bgCardElevated}
-                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = theme.bgInput}
-                  >
-                    <Volume2 size={14} style={{ color: isSpeaking ? theme.accentGold : 'inherit' }} />
-                    {isSpeaking ? ts('labels.stop') : ts('labels.readAloud')}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => onShareDecisionPostcard(selectedDecision, "summary")}
-                    className="inline-flex h-10 items-center gap-2 rounded-full border px-3 text-xs font-semibold transition"
-                    style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-                  >
-                    <Share2 size={14} />
-                    {ts('labels.createCard')}
-                  </button>
-                </div>
-                <p className="mt-1.5 text-sm leading-5" style={{ color: theme.textSecondary }}>
-                  {ts('labels.mentorReadySummaryReviewBeforeSharing')}
-                </p>
-                <div className="mt-3 max-h-80 min-h-40 overflow-y-auto rounded-[1rem] border p-2.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput }}>
-                  <ScriptureLinkedText theme={theme} text={selectedDecision.summary} language={language} onScriptureOpen={onScriptureOpen} />
-                </div>
-                <div className="mt-3 rounded-[1rem] border p-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-                  <button
-                    type="button"
-                    onClick={() => setBlessingOpen((current) => !current)}
-                    className="flex w-full items-center justify-between gap-3 text-left text-sm font-semibold"
-                    style={{ color: theme.textPrimary }}
-                  >
-                    <span>{ts('labels.decisionBlessing')}</span>
-                    <span className="text-xs" style={{ color: theme.textSecondary }}>{blessingOpen ? ts('hideDetails') : ts('showDetails')}</span>
-                  </button>
-                  {blessingOpen ? (
-                    <div className="mt-3">
-                      <p className="whitespace-pre-wrap text-sm leading-6" style={{ color: theme.textSecondary }}>{selectedDecisionBlessing}</p>
+            {decisions.length ? (
+              <>
+                <section
+                  aria-label={ts('labels.decisionMemory')}
+                  className="flex min-w-0 snap-x gap-1.5 overflow-x-auto pb-1 sm:gap-2 [-webkit-overflow-scrolling:touch]"
+                >
+                  {memoryRailDecisions.map((decision, index) => {
+                    const isActive = decision.id === selectedMemoryDecision?.id;
+                    return (
+                      <button
+                        key={decision.id}
+                        type="button"
+                        onClick={() => setSelectedMemoryDecisionId(decision.id)}
+                        className="premium-tap-card relative flex h-36 w-40 shrink-0 snap-start flex-col overflow-hidden rounded-2xl border p-0 text-left shadow-sm transition sm:h-40 sm:w-44"
+                        style={{
+                          borderColor: isActive ? theme.primary : theme.borderMedium,
+                          backgroundColor: isActive ? theme.bgCardElevated : theme.bgInput,
+                          boxShadow: isActive
+                            ? `0 0 0 1px ${theme.primary}, 0 14px 28px rgba(7, 10, 8, 0.10)`
+                            : "0 8px 18px rgba(7, 10, 8, 0.06)",
+                        }}
+                        aria-pressed={isActive}
+                      >
+                        <div
+                          className="relative h-14 overflow-hidden sm:h-16"
+                          style={{
+                            background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.bgCardElevated} 72%)`,
+                          }}
+                        >
+                          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.16),transparent_42%),radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.08),transparent_38%)]" />
+                          <div className="absolute left-2.5 top-2.5 grid size-6 place-items-center rounded-full border border-white/20 bg-white/12 shadow-[0_8px_16px_rgba(0,0,0,0.12)]">
+                            <FileText size={12} style={{ color: theme.textOnPrimary }} />
+                          </div>
+                          <div className="absolute right-2.5 top-2.5 rounded-full border border-white/20 bg-white/12 px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.08em]" style={{ color: theme.textOnPrimary }}>
+                            {Math.max(0, Math.min(100, decision.readiness))}%
+                          </div>
+                          <div className="absolute inset-x-2.5 bottom-2.5 flex items-center justify-between gap-2">
+                            <span className="rounded-full border border-white/20 bg-white/10 px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.08em]" style={{ color: theme.textOnPrimary }}>
+                              {localizedDecisionStatusLabel(decision.status, ts)}
+                            </span>
+                            <span className="text-[10px] font-semibold" style={{ color: theme.textOnPrimary, opacity: 0.8 }}>
+                              {index + 1}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex flex-1 flex-col gap-1.5 p-2.5 sm:gap-2 sm:p-3">
+                          <p className="line-clamp-2 text-sm font-semibold leading-5" style={{ color: theme.textPrimary }}>
+                            {decision.title}
+                          </p>
+                          <p className="line-clamp-2 text-xs leading-5" style={{ color: theme.textSecondary }}>
+                            {decision.pressure}
+                          </p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </section>
+
+                {selectedMemoryDecision ? (
+                  <section className="overflow-hidden rounded-[1.45rem] border shadow-[0_8px_24px_rgba(15,23,42,0.05)]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                    <div
+                      className="relative overflow-hidden border-b"
+                      style={{
+                        borderColor: theme.borderLight,
+                        background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.bgCardElevated} 72%)`,
+                      }}
+                    >
+                      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.18),transparent_42%),radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.08),transparent_40%)]" />
+                      <div className="relative flex items-start justify-between gap-3 p-3 sm:p-4">
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textOnPrimary, opacity: 0.85 }}>
+                            {ts('labels.preview')}
+                          </p>
+                          <h3 className="mt-1.5 text-[1.08rem] font-semibold leading-tight text-balance sm:text-[1.18rem]" style={{ color: theme.textOnPrimary }}>
+                            {selectedMemoryDecision.title}
+                          </h3>
+                          <p className="mt-2 max-w-2xl text-sm leading-5 sm:leading-6" style={{ color: theme.textOnPrimary, opacity: 0.88 }}>
+                            {selectedMemoryDecision.pressure}
+                          </p>
+                        </div>
+                        <div className="relative grid size-11 shrink-0 place-items-center rounded-full border border-white/20 bg-white/12 shadow-[0_10px_24px_rgba(0,0,0,0.12)]">
+                          <FileText size={18} style={{ color: theme.textOnPrimary }} />
+                        </div>
+                      </div>
+                      <div className="relative flex flex-wrap gap-2 px-3 pb-3 sm:px-4 sm:pb-4">
+                        <span className="rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.textOnPrimary + "33", backgroundColor: theme.textOnPrimary + "14", color: theme.textOnPrimary }}>
+                          {localizedDecisionStatusLabel(selectedMemoryDecision.status, ts)}
+                        </span>
+                        <span className="rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.textOnPrimary + "33", backgroundColor: theme.textOnPrimary + "14", color: theme.textOnPrimary }}>
+                          {selectedMemoryDecision.readiness}%
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="p-3 sm:p-3.5">
+                      <div className="flex flex-wrap gap-2">
+                        <span className="rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                          {ts('labels.counsel')}
+                        </span>
+                        <span className="rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                          {ts('labels.cost')}
+                        </span>
+                        <span className="rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                          {ts('labels.values')}
+                        </span>
+                        <span className="rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                          {ts('labels.peace')}
+                        </span>
+                      </div>
+
+                      <div className="mt-3 rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                        <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
+                          {selectedMemoryDecision.summary ? ts('labels.decisionSummaryExport') : ts('labels.decisionBlessing')}
+                        </p>
+                        <div className="mt-2 max-h-64 overflow-y-auto text-sm leading-6" style={{ color: theme.textSecondary }}>
+                          {selectedMemoryDecision.summary ? (
+                            <ScriptureLinkedText theme={theme} text={selectedMemoryDecision.summary} language={language} onScriptureOpen={onScriptureOpen} />
+                          ) : (
+                            <p>{ts('labels.noReflectionsYet')}</p>
+                          )}
+                        </div>
+                      </div>
+
                       <div className="mt-3 grid gap-2 sm:grid-cols-2">
                         <button
                           type="button"
-                          onClick={() => onSpeakText(selectedDecisionBlessing, ts('notifications.decisionBlessingReading'), ts('labels.decisionBlessing'))}
-                          className="premium-tap-card inline-flex h-10 items-center justify-center gap-2 rounded-full border px-3 text-xs font-semibold"
-                          style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                          onClick={() => onSpeakText(selectedMemoryDecision.summary || selectedMemoryDecision.pressure, ts('notifications.readingAloud'), ts('labels.decisionSummary'))}
+                          className="inline-flex h-10 items-center justify-center gap-2 rounded-full border px-3 text-xs font-semibold transition"
+                          style={{
+                            borderColor: theme.borderMedium,
+                            backgroundColor: theme.bgInput,
+                            color: theme.textPrimary,
+                          }}
                         >
-                          <Volume2 size={14} />
-                          {ts('labels.readAloud')}
+                          <Volume2 size={14} style={{ color: isSpeaking ? theme.accentGold : "inherit" }} />
+                          {isSpeaking ? ts('labels.stop') : ts('labels.readAloud')}
                         </button>
                         <button
                           type="button"
-                          onClick={() => onShareDecisionPostcard(selectedDecision, "blessing", selectedDecisionBlessing)}
-                          className="premium-tap-card inline-flex h-10 items-center justify-center gap-2 rounded-full border px-3 text-xs font-semibold"
+                          onClick={() => onShareDecisionPostcard(selectedMemoryDecision, "summary")}
+                          className="inline-flex h-10 items-center justify-center gap-2 rounded-full border px-3 text-xs font-semibold transition"
                           style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
                         >
                           <Share2 size={14} />
@@ -23594,9 +24095,37 @@ function DecisionCompanionPanel({
                         </button>
                       </div>
                     </div>
-                  ) : null}
-                </div>
-              </section>
+                  </section>
+                ) : null}
+
+                {memoryArchiveDecisions.length ? (
+                  <DisclosureSection
+                    title={ts('labels.archive')}
+                    summary={`${memoryArchiveDecisions.length} ${ts('labels.decisionsSavedOpenFullList')}`}
+                    eyebrow={ts('labels.decisionMemory')}
+                    compactCollapsed
+                    showDetailsLabel={ts('showDetails')}
+                    hideDetailsLabel={ts('hideDetails')}
+                    theme={theme}
+                  >
+                    <div className="space-y-3">
+                      {memoryArchiveDecisions.map((decision) => (
+                        <DecisionCard
+                          key={decision.id}
+                          decision={decision}
+                          highlighted={decision.id === selectedMemoryDecision?.id}
+                          modeProfile={localizedModeProfile(decision.mode, language)}
+                          modeLabel={ts(modeTranslationKey(decision.mode), decision.mode)}
+                          onUpdate={onUpdateDecision}
+                          onDelete={onDeleteDecision}
+                          theme={theme}
+                          ts={ts}
+                        />
+                      ))}
+                    </div>
+                  </DisclosureSection>
+                ) : null}
+              </>
             ) : null}
           </div>
         ) : null}
@@ -24178,6 +24707,7 @@ function ReflectPanel({
   theme: ThemeColors;
 }) {
   const runtime = runtimeCopyFor(language);
+  const [timelineNowMs] = useState(() => Date.now());
   const reflectNextTitle = body.trim() || decision.trim() ? runtime.reflectNextTitleActive : runtime.reflectNextTitleDefault;
   const reflectNextBody = body.trim() || decision.trim()
     ? runtime.reflectNextBodyActive
@@ -24322,8 +24852,8 @@ function ReflectPanel({
           <DecisionTimeline
             createdAt={wisdomDecisions[0].createdAt}
             status={wisdomDecisions[0].status}
-            daysElapsed={Math.floor((Date.now() - new Date(wisdomDecisions[0].createdAt).getTime()) / (1000 * 60 * 60 * 24))}
-            checkpoints={generateDecisionCheckpoints(new Date(wisdomDecisions[0].createdAt), Math.floor((Date.now() - new Date(wisdomDecisions[0].createdAt).getTime()) / (1000 * 60 * 60 * 24)), ts)}
+            daysElapsed={Math.floor((timelineNowMs - new Date(wisdomDecisions[0].createdAt).getTime()) / (1000 * 60 * 60 * 24))}
+            checkpoints={generateDecisionCheckpoints(new Date(wisdomDecisions[0].createdAt), Math.floor((timelineNowMs - new Date(wisdomDecisions[0].createdAt).getTime()) / (1000 * 60 * 60 * 24)), ts)}
             theme={theme}
             ts={ts}
           />
@@ -25077,6 +25607,7 @@ function LibraryPanel({
   const runtime = runtimeCopyFor(preferences.language);
   const localizedModeSearchLabel = localizedModeLabel(mode, preferences.language).toLowerCase();
   const [librarySection, setLibrarySection] = useState<"explore" | "memory" | "bible">("explore");
+  const [selectedLibraryEntryId, setSelectedLibraryEntryId] = useState<string | null>(entries[0]?.scripture ?? null);
   const searchSuggestions = [
     THEME_KEYS.STEWARDSHIP,
     THEME_KEYS.COUNSEL,
@@ -25103,6 +25634,8 @@ function LibraryPanel({
       ].map((item) => localizedWisdomThemeLabel(item, preferences.language).toLowerCase()).join(', ')}.`;
   const visibleEntries = entries.slice(0, search.trim() ? entries.length : 4);
   const remainingEntries = entries.slice(4);
+  const selectedLibraryEntry =
+    entries.find((entry) => entry.scripture === selectedLibraryEntryId) ?? visibleEntries[0] ?? entries[0] ?? null;
 
   return (
     <div className="min-w-0 space-y-4">
@@ -25197,152 +25730,252 @@ function LibraryPanel({
       ) : null}
 
       {librarySection === "explore" ? (
-      <section className="min-w-0 rounded-xl border p-3.5 shadow-sm sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div className="relative">
-            <InfoHint text={runtime.libraryDescription} theme={theme} placement="corner" surface="standard" />
-            <div className="flex items-center gap-2 text-lg font-semibold" style={{ color: theme.textPrimary }}>
-              <BookOpen size={20} />
-              {ts('labels.wisdomLibrary')}
+        <section className="min-w-0 rounded-xl border p-3.5 shadow-sm sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div className="relative">
+              <InfoHint text={runtime.libraryDescription} theme={theme} placement="corner" surface="standard" />
+              <div className="flex items-center gap-2 text-lg font-semibold" style={{ color: theme.textPrimary }}>
+                <BookOpen size={20} />
+                {ts('labels.wisdomLibrary')}
+              </div>
+              <div className="mt-1.5 pr-5 sm:pr-6 md:pr-7 text-sm leading-5" style={{ color: theme.textSecondary }}>
+                <span>{runtime.libraryDescription}</span>
+              </div>
             </div>
-            <div className="mt-1.5 pr-5 sm:pr-6 md:pr-7 text-sm leading-5" style={{ color: theme.textSecondary }}>
-              <span>{runtime.libraryDescription}</span>
-            </div>
-          </div>
-          <label className="relative w-full md:max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2" size={17} style={{ color: theme.textMuted }} />
-            <input
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              className="h-10 w-full rounded-lg border px-3 pl-10 pr-3 text-sm outline-none"
-              placeholder={`${ts('labels.search')} ${localizedModeSearchLabel} ${ts('labels.wisdom')}...`}
-              style={{
-                borderColor: theme.borderMedium,
-                backgroundColor: theme.bgInput,
-                color: theme.textPrimary,
-              }}
-              onFocus={(e) => e.currentTarget.style.borderColor = theme.primary}
-            onBlur={(e) => e.currentTarget.style.borderColor = theme.borderMedium}
-          />
-        </label>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {searchSuggestions.map((suggestion) => {
-            const active = search.trim().toLowerCase() === suggestion.toLowerCase();
-            return (
-              <button
-                key={suggestion}
-                type="button"
-                onClick={() => setSearch(suggestion)}
-                className="premium-tap-card rounded-full border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] transition hover:-translate-y-0.5"
+            <label className="relative w-full md:max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2" size={17} style={{ color: theme.textMuted }} />
+              <input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                className="h-10 w-full rounded-lg border px-3 pl-10 pr-3 text-sm outline-none"
+                placeholder={`${ts('labels.search')} ${localizedModeSearchLabel} ${ts('labels.wisdom')}...`}
                 style={{
-                  borderColor: active ? theme.primary : theme.borderLight,
-                  backgroundColor: active ? theme.activeBg : theme.bgCardElevated,
-                  color: active ? theme.primary : theme.textSecondary,
+                  borderColor: theme.borderMedium,
+                  backgroundColor: theme.bgInput,
+                  color: theme.textPrimary,
                 }}
-              >
-                {suggestion}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-        <div className="mt-4 grid min-w-0 gap-3 lg:grid-cols-2">
-          {visibleEntries.map((entry, index) => {
-            const localizedEntry = localizedWisdomLibraryEntry(entry, preferences);
-            const translationLabel = scriptureDisplayLabel(entry.scripture, preferences);
-            return (
-              <article
-                key={entry.scripture}
-                className={`rounded-lg border p-3.5 ${visibleEntries.length % 2 === 1 && index === visibleEntries.length - 1 ? "lg:col-span-2" : ""}`}
-                style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}
-              >
-                <div className="mb-2.5 flex flex-wrap items-center gap-2">
-                  <span className="rounded-md px-2 py-1 text-xs font-semibold uppercase tracking-[0.14em]" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>{localizedWisdomThemeLabel(entry.theme, preferences.language)}</span>
-                  <span className="inline-flex items-center rounded-full border px-3 py-1 text-[0.72rem] font-semibold uppercase tracking-[0.16em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-                    {translationLabel}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => onScriptureOpen(entry.scripture)}
-                    className="text-left text-sm font-semibold underline underline-offset-4 transition"
-                    style={{
-                      color: theme.textPrimary,
-                      textDecorationColor: theme.borderMedium,
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.color = theme.accentGold}
-                    onMouseLeave={(e) => e.currentTarget.style.color = theme.textPrimary}
-                  >
-                    {localizedScriptureReference(entry.scripture, preferences.language)}
-                  </button>
-                </div>
-                <p className="text-sm font-semibold leading-5" style={{ color: theme.textPrimary }}>{localizedEntry.principle}</p>
-                <p className="mt-2.5 text-sm leading-5" style={{ color: theme.textSecondary }}>{localizedEntry.application}</p>
-                <div className="mt-2.5 rounded-md border p-2.5 text-xs leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textMuted }}>
-                  <p style={{ color: theme.textMuted }}>
-                    {localizedWisdomLibraryNote(entry, preferences)}
-                  </p>
-                </div>
+                onFocus={(e) => e.currentTarget.style.borderColor = theme.primary}
+                onBlur={(e) => e.currentTarget.style.borderColor = theme.borderMedium}
+              />
+            </label>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {searchSuggestions.map((suggestion) => {
+              const active = search.trim().toLowerCase() === suggestion.toLowerCase();
+              return (
                 <button
+                  key={suggestion}
                   type="button"
-                  onClick={() => onSaveScriptureMemory(entry.scripture, localizedEntry.principle)}
-                  className="premium-tap-card mt-2.5 inline-flex h-8 items-center gap-2 rounded-md border px-3 text-xs font-semibold"
-                  style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                  onClick={() => setSearch(suggestion)}
+                  className="premium-tap-card rounded-full border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] transition hover:-translate-y-0.5"
+                  style={{
+                    borderColor: active ? theme.primary : theme.borderLight,
+                    backgroundColor: active ? theme.activeBg : theme.bgCardElevated,
+                    color: active ? theme.primary : theme.textSecondary,
+                  }}
                 >
-                  <BookOpen size={14} />
-                  {ts('labels.carryScriptureForWeek')}
+                  {suggestion}
                 </button>
-              </article>
-            );
-          })}
-        </div>
-        {!search.trim() && remainingEntries.length > 0 ? (
-          <details className="mt-3 rounded-lg border p-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
-            <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
-              {runtime.fullWisdomLibrary} · {remainingEntries.length} {runtime.moreAnchors}
-            </summary>
-            <div className="mt-2.5 grid min-w-0 gap-3 lg:grid-cols-2">
-              {remainingEntries.map((entry, index) => {
-                const localizedEntry = localizedWisdomLibraryEntry(entry, preferences);
-                const translationLabel = scriptureDisplayLabel(entry.scripture, preferences);
-                return (
-                  <article
-                    key={entry.scripture}
-                    className={`rounded-lg border p-3.5 ${remainingEntries.length % 2 === 1 && index === remainingEntries.length - 1 ? "lg:col-span-2" : ""}`}
-                    style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}
-                  >
-                    <div className="mb-2.5 flex flex-wrap items-center gap-2">
-                      <span className="rounded-md px-2 py-1 text-xs font-semibold uppercase tracking-[0.14em]" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>{localizedWisdomThemeLabel(entry.theme, preferences.language)}</span>
-                      <span className="inline-flex items-center rounded-full border px-3 py-1 text-[0.72rem] font-semibold uppercase tracking-[0.16em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-                        {translationLabel}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => onScriptureOpen(entry.scripture)}
-                        className="text-left text-sm font-semibold underline underline-offset-4 transition"
-                        style={{ color: theme.textPrimary, textDecorationColor: theme.borderMedium }}
-                      >
-                        {localizedScriptureReference(entry.scripture, preferences.language)}
-                      </button>
-                    </div>
-                    <p className="text-sm font-semibold leading-5" style={{ color: theme.textPrimary }}>{localizedEntry.principle}</p>
-                    <p className="mt-2.5 text-sm leading-5" style={{ color: theme.textSecondary }}>{localizedEntry.application}</p>
+              );
+            })}
+          </div>
+
+          {visibleEntries.length ? (
+            <>
+              <section
+                aria-label={ts('labels.wisdomLibrary')}
+                className="mt-3.5 flex min-w-0 snap-x gap-1.5 overflow-x-auto pb-1 sm:mt-4 sm:gap-2 [-webkit-overflow-scrolling:touch]"
+              >
+                {visibleEntries.map((entry, index) => {
+                  const localizedEntry = localizedWisdomLibraryEntry(entry, preferences);
+                  const translationLabel = scriptureDisplayLabel(entry.scripture, preferences);
+                  const isActive = entry.scripture === selectedLibraryEntry?.scripture;
+                  return (
                     <button
+                      key={entry.scripture}
                       type="button"
-                      onClick={() => onSaveScriptureMemory(entry.scripture, localizedEntry.principle)}
-                      className="premium-tap-card mt-2.5 inline-flex h-8 items-center gap-2 rounded-md border px-3 text-xs font-semibold"
-                      style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                      onClick={() => setSelectedLibraryEntryId(entry.scripture)}
+                      className="premium-tap-card relative flex h-36 w-40 shrink-0 snap-start flex-col overflow-hidden rounded-2xl border p-0 text-left shadow-sm transition sm:h-40 sm:w-44"
+                      style={{
+                        borderColor: isActive ? theme.primary : theme.borderMedium,
+                        backgroundColor: isActive ? theme.bgCardElevated : theme.bgInput,
+                        boxShadow: isActive
+                          ? `0 0 0 1px ${theme.primary}, 0 14px 28px rgba(7, 10, 8, 0.10)`
+                          : "0 8px 18px rgba(7, 10, 8, 0.06)",
+                      }}
+                      aria-pressed={isActive}
                     >
-                      <BookOpen size={14} />
-                      {ts('labels.carryScriptureForWeek')}
+                      <div
+                        className="relative h-14 overflow-hidden sm:h-16"
+                        style={{
+                          background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.bgCardElevated} 72%)`,
+                        }}
+                      >
+                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.16),transparent_42%),radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.08),transparent_38%)]" />
+                        <div className="absolute left-2.5 top-2.5 grid size-6 place-items-center rounded-full border border-white/20 bg-white/12 shadow-[0_8px_16px_rgba(0,0,0,0.12)]">
+                          <BookOpen size={12} style={{ color: theme.textOnPrimary }} />
+                        </div>
+                        <div className="absolute right-2.5 top-2.5 rounded-full border border-white/20 bg-white/12 px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.08em]" style={{ color: theme.textOnPrimary }}>
+                          {index + 1}
+                        </div>
+                        <div className="absolute inset-x-2.5 bottom-2.5 flex items-center justify-between gap-2">
+                          <span className="rounded-full border border-white/20 bg-white/10 px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.08em]" style={{ color: theme.textOnPrimary }}>
+                            {translationLabel}
+                          </span>
+                          <span className="text-[10px] font-semibold" style={{ color: theme.textOnPrimary, opacity: 0.8 }}>
+                            {isActive ? ts('labels.selected') : ts('labels.preview')}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex flex-1 flex-col gap-1.5 p-2.5 sm:gap-2 sm:p-3">
+                        <p className="line-clamp-2 text-sm font-semibold leading-5" style={{ color: theme.textPrimary }}>
+                          {localizedScriptureReference(entry.scripture, preferences.language)}
+                        </p>
+                        <p className="line-clamp-2 text-xs leading-5" style={{ color: theme.textSecondary }}>
+                          {localizedEntry.principle}
+                        </p>
+                      </div>
                     </button>
-                  </article>
-                );
-              })}
+                  );
+                })}
+              </section>
+
+              {selectedLibraryEntry ? (
+                <article className="mt-4 overflow-hidden rounded-[1.45rem] border shadow-[0_8px_24px_rgba(15,23,42,0.05)]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+                  <div
+                    className="relative overflow-hidden border-b"
+                    style={{
+                      borderColor: theme.borderLight,
+                      background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.bgCardElevated} 72%)`,
+                    }}
+                  >
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.16),transparent_40%),radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.08),transparent_42%)]" />
+                    <div className="relative flex items-start justify-between gap-3 p-3 sm:p-4">
+                      <div className="min-w-0">
+                        <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textOnPrimary, opacity: 0.85 }}>{ts('labels.preview')}</p>
+                        <button
+                          type="button"
+                          onClick={() => onScriptureOpen(selectedLibraryEntry.scripture)}
+                          className="mt-1 text-left text-[1.08rem] font-semibold leading-tight underline underline-offset-4 sm:text-[1.15rem]"
+                          style={{ color: theme.textOnPrimary, textDecorationColor: theme.textOnPrimary + "66" }}
+                        >
+                          {localizedScriptureReference(selectedLibraryEntry.scripture, preferences.language)}
+                        </button>
+                        <p className="mt-2 max-w-2xl text-sm leading-5 sm:leading-6" style={{ color: theme.textOnPrimary, opacity: 0.88 }}>
+                          {localizedWisdomLibraryEntry(selectedLibraryEntry, preferences).principle}
+                        </p>
+                      </div>
+                      <div className="relative grid size-11 shrink-0 place-items-center rounded-full border border-white/20 bg-white/12 shadow-[0_10px_24px_rgba(0,0,0,0.12)]">
+                        <BookOpen size={18} style={{ color: theme.textOnPrimary }} />
+                      </div>
+                    </div>
+                    <div className="relative flex flex-wrap gap-2 px-3 pb-3 sm:px-4 sm:pb-4">
+                      <span className="rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.textOnPrimary + "33", backgroundColor: theme.textOnPrimary + "14", color: theme.textOnPrimary }}>
+                        {localizedWisdomThemeLabel(selectedLibraryEntry.theme, preferences.language)}
+                      </span>
+                      <span className="rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.textOnPrimary + "33", backgroundColor: theme.textOnPrimary + "14", color: theme.textOnPrimary }}>
+                        {scriptureDisplayLabel(selectedLibraryEntry.scripture, preferences)}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-0 lg:grid-cols-[1.05fr_0.95fr]">
+                    <div className="border-b p-3.5 lg:border-b-0 lg:border-r" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                      <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
+                        {ts('labels.wisdom')}
+                      </p>
+                      <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                        {localizedWisdomLibraryEntry(selectedLibraryEntry, preferences).application}
+                      </p>
+                      <div className="mt-3 rounded-[1rem] border p-3 text-xs leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textMuted }}>
+                        {localizedWisdomLibraryNote(selectedLibraryEntry, preferences)}
+                      </div>
+                    </div>
+
+                    <div className="p-3.5">
+                      <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
+                        {ts('labels.summary')}
+                      </p>
+                      <div className="mt-2 rounded-[1rem] border p-3 text-sm leading-6" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                        <p>{localizedWisdomLibraryEntry(selectedLibraryEntry, preferences).context}</p>
+                      </div>
+                      <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                        <button
+                          type="button"
+                          onClick={() => onScriptureOpen(selectedLibraryEntry.scripture)}
+                          className="inline-flex h-10 items-center justify-center gap-2 rounded-full border px-3 text-xs font-semibold"
+                          style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                        >
+                          <BookOpen size={14} />
+                          {ts('labels.openScripture', "Open scripture")}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => onSaveScriptureMemory(selectedLibraryEntry.scripture, localizedWisdomLibraryEntry(selectedLibraryEntry, preferences).principle)}
+                          className="inline-flex h-10 items-center justify-center gap-2 rounded-full px-3 text-xs font-semibold"
+                          style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                        >
+                          <BookOpen size={14} />
+                          {ts('labels.carryScriptureForWeek')}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </article>
+              ) : null}
+
+              {!search.trim() && remainingEntries.length > 0 ? (
+                <DisclosureSection
+                  title={ts('labels.archive')}
+                  summary={`${remainingEntries.length} ${runtime.moreAnchors}`}
+                  eyebrow={runtime.fullWisdomLibrary}
+                  compactCollapsed
+                  showDetailsLabel={ts('showDetails')}
+                  hideDetailsLabel={ts('hideDetails')}
+                  theme={theme}
+                  className="mt-3"
+                >
+                  <div className="space-y-3">
+                    {remainingEntries.map((entry) => {
+                      const localizedEntry = localizedWisdomLibraryEntry(entry, preferences);
+                      const translationLabel = scriptureDisplayLabel(entry.scripture, preferences);
+                      return (
+                        <article
+                          key={entry.scripture}
+                          className="rounded-lg border p-3.5"
+                          style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}
+                        >
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="rounded-md px-2 py-1 text-xs font-semibold uppercase tracking-[0.14em]" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                              {localizedWisdomThemeLabel(entry.theme, preferences.language)}
+                            </span>
+                            <span className="inline-flex items-center rounded-full border px-3 py-1 text-[0.72rem] font-semibold uppercase tracking-[0.16em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                              {translationLabel}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => onScriptureOpen(entry.scripture)}
+                              className="text-left text-sm font-semibold underline underline-offset-4 transition"
+                              style={{ color: theme.textPrimary, textDecorationColor: theme.borderMedium }}
+                            >
+                              {localizedScriptureReference(entry.scripture, preferences.language)}
+                            </button>
+                          </div>
+                          <p className="mt-2 text-sm font-semibold leading-5" style={{ color: theme.textPrimary }}>{localizedEntry.principle}</p>
+                          <p className="mt-2.5 text-sm leading-5" style={{ color: theme.textSecondary }}>{localizedEntry.application}</p>
+                        </article>
+                      );
+                    })}
+                  </div>
+                </DisclosureSection>
+              ) : null}
+            </>
+          ) : (
+            <div className="mt-4 rounded-xl border border-dashed p-4 text-sm leading-6" style={{ borderColor: theme.borderMedium, color: theme.textSecondary }}>
+              No wisdom entries yet.
             </div>
-          </details>
-        ) : null}
-      </section>
+          )}
+        </section>
       ) : null}
     </div>
   );

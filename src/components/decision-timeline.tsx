@@ -3,6 +3,7 @@
 import React, { useMemo } from "react";
 import { motion } from "framer-motion";
 import { Check, Clock3, CheckCircle2 } from "lucide-react";
+import type { ThemeColors } from "@/lib/themes";
 
 export interface TimelineCheckpoint {
   daysSinceCreation: number;
@@ -20,13 +21,12 @@ export interface DecisionTimelineProps {
   daysElapsed: number;
   checkpoints: TimelineCheckpoint[];
   onCheckpointClick?: (checkpoint: TimelineCheckpoint) => void;
-  theme?: any;
+  theme?: ThemeColors;
   ts: (key: string, fallback?: string) => string;
 }
 
 export function DecisionTimeline({
   createdAt,
-  status,
   daysElapsed,
   checkpoints = [],
   onCheckpointClick,
@@ -53,7 +53,7 @@ export function DecisionTimeline({
   };
 
   const getCheckpointColor = (completed: boolean) => {
-    if (theme) return completed ? theme.accentGold : theme.textTertiary;
+    if (theme) return completed ? theme.accentGold : theme.textMuted;
     return completed ? "#f59e0b" : "#9ca3af";
   };
 
@@ -86,7 +86,7 @@ export function DecisionTimeline({
       {/* Timeline */}
       <div className="relative">
         <div
-          className="absolute left-3 top-8 bottom-0 w-1"
+          className="absolute left-5 top-0 bottom-0 w-px"
           style={{
             background: `linear-gradient(to bottom, ${theme?.accentGold || "#f59e0b"}, ${theme?.borderLight || "#e5e7eb"})`,
           }}
@@ -96,14 +96,14 @@ export function DecisionTimeline({
           {timelineCheckpoints.map((checkpoint, index) => (
             <motion.div
               key={`${checkpoint.type}-${index}`}
-              className="flex items-start gap-4"
+              className="grid grid-cols-[2.5rem_minmax(0,1fr)] items-start gap-4"
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: index * 0.1 }}
               onClick={() => onCheckpointClick?.(checkpoint)}
             >
               <motion.div
-                className="mt-1 h-6 w-6 rounded-full flex items-center justify-center flex-shrink-0 text-lg cursor-pointer"
+                className="mt-1 h-6 w-6 justify-self-center rounded-full flex items-center justify-center flex-shrink-0 text-lg cursor-pointer"
                 style={{
                   background: checkpoint.completed
                     ? theme?.accentGold || "#f59e0b"
@@ -122,7 +122,7 @@ export function DecisionTimeline({
               </motion.div>
 
               <div
-                className="flex-1 min-w-0"
+                className="min-w-0"
                 style={{
                   padding: "12px",
                   borderRadius: "0.75rem",
@@ -146,13 +146,13 @@ export function DecisionTimeline({
                     >
                       {checkpoint.label}
                       {checkpoint.daysSinceCreation > 0 && (
-                        <span className="ml-2 text-xs whitespace-nowrap" style={{ color: theme?.textTertiary }}>
+                        <span className="ml-2 text-xs whitespace-nowrap" style={{ color: theme?.textMuted }}>
                           {ts("decisionTimeline.dayBadge", "Day {day}").replace("{day}", String(checkpoint.daysSinceCreation))}
                         </span>
                       )}
                     </h4>
                     {checkpoint.description && (
-                      <p className="text-xs mt-1 leading-snug" style={{ color: theme?.textTertiary }}>
+                      <p className="text-xs mt-1 leading-snug" style={{ color: theme?.textMuted }}>
                         {checkpoint.description}
                       </p>
                     )}

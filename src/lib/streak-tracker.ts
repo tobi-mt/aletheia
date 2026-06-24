@@ -1,16 +1,26 @@
 import { one, run } from "@/lib/db";
+import { STREAK_MILESTONES, type StreakAchievement, type StreakData } from "@/lib/streak-shared";
 
-export type StreakAchievement = {
-  milestone: number;
-  unlockedAt: string;
-  notifiedAt?: string;
-};
+function parseStreakAchievements(value: unknown): Record<number, StreakAchievement> {
+  if (!value) {
+    return {};
+  }
 
-export type StreakData = {
-  consecutiveDays: number;
-  lastUseDate: string | null;
-  achievements: Record<number, StreakAchievement>;
-};
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value) as unknown;
+      return parseStreakAchievements(parsed);
+    } catch {
+      return {};
+    }
+  }
+
+  if (typeof value === "object") {
+    return value as Record<number, StreakAchievement>;
+  }
+
+  return {};
+}
 
 /**
  * Calculate and update user streak based on today's usage
@@ -21,7 +31,7 @@ export async function updateUserStreak(userId: string): Promise<number> {
     const user = await one<{
       consecutive_use_days: number | null;
       last_use_date: string | null;
-      streak_achievements: any;
+      streak_achievements: Record<number, StreakAchievement> | string | null;
     }>(
       `SELECT consecutive_use_days, last_use_date, streak_achievements 
        FROM users WHERE id = ?`,
@@ -75,7 +85,7 @@ export async function getUserStreak(userId: string): Promise<StreakData> {
     const user = await one<{
       consecutive_use_days: number | null;
       last_use_date: string | null;
-      streak_achievements: any;
+      streak_achievements: Record<number, StreakAchievement> | string | null;
     }>(
       `SELECT consecutive_use_days, last_use_date, streak_achievements 
        FROM users WHERE id = ?`,
@@ -93,7 +103,7 @@ export async function getUserStreak(userId: string): Promise<StreakData> {
     return {
       consecutiveDays: user.consecutive_use_days || 0,
       lastUseDate: user.last_use_date || null,
-      achievements: user.streak_achievements || {},
+      achievements: parseStreakAchievements(user.streak_achievements),
     };
   } catch (error) {
     console.error("Error fetching streak:", error);
@@ -112,20 +122,19 @@ export async function checkStreakAchievements(
   userId: string,
   currentStreak: number
 ): Promise<number[]> {
-  const MILESTONES = [7, 30, 100, 365];
   const unlockedMilestones: number[] = [];
 
   try {
     const user = await one<{
-      streak_achievements: any;
+      streak_achievements: Record<number, StreakAchievement> | string | null;
     }>(
       `SELECT streak_achievements FROM users WHERE id = ?`,
       [userId]
     );
 
-    const achievements = user?.streak_achievements || {};
+    const achievements = parseStreakAchievements(user?.streak_achievements);
 
-    for (const milestone of MILESTONES) {
+    for (const milestone of STREAK_MILESTONES) {
       if (currentStreak >= milestone && !achievements[milestone]) {
         achievements[milestone] = {
           milestone,
@@ -148,24 +157,4 @@ export async function checkStreakAchievements(
     console.error("Error checking achievements:", error);
     return [];
   }
-}
-
-/**
- * Format streak display
- */
-export function formatStreak(days: number): string {
-  if (days === 0) return "Start your streak today! 🔥";
-  if (days === 1) return "🔥 1-day reflection streak";
-  return `🔥 ${days}-day reflection streak`;
-}
-
-/**
- * Get streak emoji level based on days
- */
-export function getStreakLevel(days: number): string {
-  if (days === 0) return "❄️";
-  if (days < 7) return "🌱";
-  if (days < 30) return "🔥";
-  if (days < 100) return "⚡";
-  return "👑";
 }
