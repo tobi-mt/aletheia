@@ -3,7 +3,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import Image from "next/image";
 import { signIn as authSignIn, signOut as authSignOut } from "next-auth/react";
-import { ChangeEvent, FormEvent, type KeyboardEvent, type ReactNode, type RefObject, type TouchEvent, type WheelEvent, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { ChangeEvent, FormEvent, type KeyboardEvent, type ReactNode, type RefObject, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Capacitor, SystemBars, SystemBarsStyle, type PluginListenerHandle } from "@capacitor/core";
 import { Haptics, ImpactStyle } from "@capacitor/haptics";
@@ -12797,7 +12797,6 @@ function OnboardingModal({
 }) {
   const [activeSetupStep, setActiveSetupStep] = useState("mode");
   const modalScrollRef = useRef<HTMLElement | null>(null);
-  const onboardingTouchRef = useRef<{ x: number; y: number } | null>(null);
   const modeSectionRef = useRef<HTMLElement | null>(null);
   const toneSectionRef = useRef<HTMLElement | null>(null);
   const languageSectionRef = useRef<HTMLElement | null>(null);
@@ -12838,37 +12837,6 @@ function OnboardingModal({
       behavior: prefersReducedMotion ? "auto" : "smooth",
     });
   }, []);
-  const routeOnboardingWheel = useCallback((event: WheelEvent<HTMLElement>) => {
-    const container = modalScrollRef.current;
-    if (!container) {
-      return;
-    }
-    event.preventDefault();
-    container.scrollBy({ left: event.deltaX, top: event.deltaY, behavior: "auto" });
-  }, []);
-  const rememberOnboardingTouch = useCallback((event: TouchEvent<HTMLElement>) => {
-    const touch = event.touches[0];
-    onboardingTouchRef.current = touch ? { x: touch.clientX, y: touch.clientY } : null;
-  }, []);
-  const routeOnboardingTouch = useCallback((event: TouchEvent<HTMLElement>) => {
-    const container = modalScrollRef.current;
-    const previous = onboardingTouchRef.current;
-    const touch = event.touches[0];
-    if (!container || !previous || !touch) {
-      return;
-    }
-
-    const deltaX = previous.x - touch.clientX;
-    const deltaY = previous.y - touch.clientY;
-    if (Math.abs(deltaX) > 1 || Math.abs(deltaY) > 1) {
-      event.preventDefault();
-      container.scrollBy({ left: deltaX, top: deltaY, behavior: "auto" });
-    }
-    onboardingTouchRef.current = { x: touch.clientX, y: touch.clientY };
-  }, []);
-  const clearOnboardingTouch = useCallback(() => {
-    onboardingTouchRef.current = null;
-  }, []);
 
   useEffect(() => {
     if (!open || typeof document === "undefined") {
@@ -12878,7 +12846,6 @@ function OnboardingModal({
     const { body, documentElement } = document;
     const previousBodyOverflow = body.style.overflow;
     const previousHtmlOverflow = documentElement.style.overflow;
-    const previousBodyTouchAction = body.style.touchAction;
     const previousHtmlOverscroll = documentElement.style.overscrollBehavior;
     const previousBodyPosition = body.style.position;
     const previousBodyTop = body.style.top;
@@ -12889,7 +12856,6 @@ function OnboardingModal({
 
     body.style.overflow = "hidden";
     documentElement.style.overflow = "hidden";
-    body.style.touchAction = "none";
     documentElement.style.overscrollBehavior = "none";
     body.style.position = "fixed";
     body.style.top = `-${scrollY}px`;
@@ -12900,7 +12866,6 @@ function OnboardingModal({
     return () => {
       body.style.overflow = previousBodyOverflow;
       documentElement.style.overflow = previousHtmlOverflow;
-      body.style.touchAction = previousBodyTouchAction;
       documentElement.style.overscrollBehavior = previousHtmlOverscroll;
       body.style.position = previousBodyPosition;
       body.style.top = previousBodyTop;
@@ -12967,11 +12932,6 @@ function OnboardingModal({
     >
       <section
         ref={modalScrollRef}
-        onWheel={routeOnboardingWheel}
-        onTouchStart={rememberOnboardingTouch}
-        onTouchMove={routeOnboardingTouch}
-        onTouchEnd={clearOnboardingTouch}
-        onTouchCancel={clearOnboardingTouch}
         className="editorial-surface box-border max-h-[92vh] min-w-0 overflow-x-hidden overflow-y-auto overscroll-contain rounded-xl border p-3.5 shadow-2xl [touch-action:pan-y] sm:p-4"
         style={{
           borderColor: `color-mix(in srgb, ${theme.borderLight} 82%, transparent)`,
@@ -20253,6 +20213,7 @@ function DeleteAccountModal({
   onConfirm: (confirmation: string) => void;
 }) {
   const [typedValue, setTypedValue] = useState("");
+  useBodyScrollLock(Boolean(open));
 
   if (!open) {
     return null;
@@ -20266,8 +20227,8 @@ function DeleteAccountModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[70] grid place-items-end p-3 backdrop-blur-sm sm:place-items-center" style={{ backgroundColor: "rgba(13, 23, 20, 0.48)" }}>
-        <section className="w-full max-w-lg rounded-3xl border p-4 shadow-2xl sm:p-3.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+    <div className="fixed inset-0 z-[70] grid place-items-end overflow-hidden overscroll-none p-3 backdrop-blur-sm sm:place-items-center" style={{ backgroundColor: "rgba(13, 23, 20, 0.48)" }}>
+      <section className="w-full max-w-lg max-h-[88vh] overflow-y-auto overscroll-contain rounded-3xl border p-4 shadow-2xl sm:p-3.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.deleteAccount')}</p>
@@ -20366,6 +20327,7 @@ function ReportIssueModal({
   ];
   const [category, setCategory] = useState(categories[0]?.value ?? "bug_workflow");
   const [message, setMessage] = useState("");
+  useBodyScrollLock(Boolean(open));
 
   if (!open) {
     return null;
@@ -20383,8 +20345,8 @@ function ReportIssueModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[70] grid place-items-end p-3 backdrop-blur-sm sm:place-items-center" style={{ backgroundColor: "rgba(13, 23, 20, 0.48)" }}>
-      <section className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl border p-4 shadow-2xl sm:p-3.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+    <div className="fixed inset-0 z-[70] grid place-items-end overflow-hidden overscroll-none p-3 backdrop-blur-sm sm:place-items-center" style={{ backgroundColor: "rgba(13, 23, 20, 0.48)" }}>
+      <section className="max-h-[90vh] w-full max-w-lg overflow-y-auto overscroll-contain rounded-3xl border p-4 shadow-2xl sm:p-3.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.reportIssueTitle')}</p>
@@ -20485,6 +20447,7 @@ function CounselInviteModal({
   onClose: () => void;
 }) {
   const [drafts, setDrafts] = useState<Record<string, string>>({});
+  useBodyScrollLock(Boolean(token));
   if (!token) {
     return null;
   }
@@ -20492,8 +20455,8 @@ function CounselInviteModal({
   const canComment = Boolean(preview?.invite.permissions.canCommentOnDecisions);
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-end p-3 backdrop-blur-sm sm:place-items-center" style={{ backgroundColor: 'rgba(13, 23, 20, 0.42)' }}>
-      <section className="max-h-[88vh] w-full max-w-2xl overflow-y-auto rounded-3xl border p-4 shadow-2xl sm:p-3.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+    <div className="fixed inset-0 z-50 grid place-items-end overflow-hidden overscroll-none p-3 backdrop-blur-sm sm:place-items-center" style={{ backgroundColor: 'rgba(13, 23, 20, 0.42)' }}>
+      <section className="max-h-[88vh] w-full max-w-2xl overflow-y-auto overscroll-contain rounded-3xl border p-4 shadow-2xl sm:p-3.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3">
             <AvatarCircle
@@ -20645,14 +20608,15 @@ function ChallengeInviteModal({
   onClose: () => void;
 }) {
   const [nudgeDraft, setNudgeDraft] = useState("");
+  useBodyScrollLock(Boolean(token));
   if (!preview) {
     if (!token) {
       return null;
     }
 
     return (
-      <div className="fixed inset-0 z-50 grid place-items-end p-3 backdrop-blur-sm sm:place-items-center" style={{ backgroundColor: 'rgba(13, 23, 20, 0.42)' }}>
-        <section className="max-h-[88vh] w-full max-w-2xl overflow-y-auto rounded-3xl border p-4 shadow-2xl sm:p-3.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+      <div className="fixed inset-0 z-50 grid place-items-end overflow-hidden overscroll-none p-3 backdrop-blur-sm sm:place-items-center" style={{ backgroundColor: 'rgba(13, 23, 20, 0.42)' }}>
+        <section className="max-h-[88vh] w-full max-w-2xl overflow-y-auto overscroll-contain rounded-3xl border p-4 shadow-2xl sm:p-3.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-start gap-3">
               <div className="grid size-10 place-items-center rounded-2xl border" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.primary }}>
@@ -20737,8 +20701,8 @@ function ChallengeInviteModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-end p-3 backdrop-blur-sm sm:place-items-center" style={{ backgroundColor: 'rgba(13, 23, 20, 0.42)' }}>
-      <section className="max-h-[88vh] w-full max-w-2xl overflow-y-auto rounded-3xl border p-4 shadow-2xl sm:p-3.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+    <div className="fixed inset-0 z-50 grid place-items-end overflow-hidden overscroll-none p-3 backdrop-blur-sm sm:place-items-center" style={{ backgroundColor: 'rgba(13, 23, 20, 0.42)' }}>
+      <section className="max-h-[88vh] w-full max-w-2xl overflow-y-auto overscroll-contain rounded-3xl border p-4 shadow-2xl sm:p-3.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3">
             <div className="grid size-10 place-items-center rounded-2xl border" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.primary }}>
@@ -20996,6 +20960,7 @@ function CounselRemovalConfirmModal({
   onConfirm: (typedValue: string) => unknown;
 }) {
   const [typedValue, setTypedValue] = useState("");
+  useBodyScrollLock(Boolean(pending));
 
   if (!pending) {
     return null;
@@ -21005,8 +20970,8 @@ function CounselRemovalConfirmModal({
   const canConfirm = typedValue.trim().toUpperCase() === confirmationWord && !isWorking;
 
   return (
-    <div className="fixed inset-0 z-[70] grid place-items-end p-3 backdrop-blur-sm sm:place-items-center" style={{ backgroundColor: "rgba(13, 23, 20, 0.45)" }}>
-      <section className="w-full max-w-lg rounded-3xl border p-5 shadow-2xl" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+    <div className="fixed inset-0 z-[70] grid place-items-end overflow-hidden overscroll-none p-3 backdrop-blur-sm sm:place-items-center" style={{ backgroundColor: "rgba(13, 23, 20, 0.45)" }}>
+      <section className="w-full max-w-lg max-h-[88vh] overflow-y-auto overscroll-contain rounded-3xl border p-5 shadow-2xl" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.finalConfirmationAction')}</p>
