@@ -2,7 +2,7 @@
 
 import React, { useMemo } from "react";
 import { motion } from "framer-motion";
-import { Check, Clock3, CheckCircle2 } from "lucide-react";
+import { Check, CheckCircle2, Clock3, Feather, Sparkles } from "lucide-react";
 import type { ThemeColors } from "@/lib/themes";
 
 export interface TimelineCheckpoint {
@@ -42,13 +42,18 @@ export function DecisionTimeline({
   const nextCheckpoint = timelineCheckpoints.find((cp) => !cp.completed);
   const progress = Math.min((daysElapsed / 30) * 100, 100);
 
-  const getCheckpointIcon = (type: string) => {
-    switch (type) {
-      case "created": return "✨";
-      case "check-in": return "💭";
-      case "reflection": return "📝";
-      case "outcome": return "🎯";
-      default: return "•";
+  const getCheckpointMeta = (checkpoint: TimelineCheckpoint) => {
+    switch (checkpoint.type) {
+      case "created":
+        return { icon: Sparkles, accent: theme?.accentGold || "#f59e0b", gradient: `linear-gradient(135deg, ${theme?.accentGold || "#f59e0b"} 0%, ${theme?.bgCardElevated || "#fff"} 78%)` };
+      case "check-in":
+        return { icon: Clock3, accent: theme?.primary || "#203a35", gradient: `linear-gradient(135deg, ${theme?.primary || "#203a35"} 0%, ${theme?.bgCardElevated || "#fff"} 78%)` };
+      case "reflection":
+        return { icon: Feather, accent: theme?.accentGold || "#f59e0b", gradient: `linear-gradient(135deg, ${theme?.bgCardElevated || "#fff"} 0%, ${theme?.accentGold || "#f59e0b"} 85%)` };
+      case "outcome":
+        return { icon: CheckCircle2, accent: theme?.primary || "#203a35", gradient: `linear-gradient(135deg, ${theme?.primary || "#203a35"} 0%, ${theme?.accentGold || "#f59e0b"} 82%)` };
+      default:
+        return { icon: Clock3, accent: theme?.textMuted || "#9ca3af", gradient: `linear-gradient(135deg, ${theme?.bgCardElevated || "#fff"} 0%, ${theme?.bgCard || "#fff"} 80%)` };
     }
   };
 
@@ -58,153 +63,155 @@ export function DecisionTimeline({
   };
 
   return (
-    <div className="space-y-6">
-      {/* Progress indicator */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between text-sm">
-          <span className="font-medium" style={{ color: theme?.textPrimary }}>
-            {ts("decisionTimeline.title", "Decision Journey")}
-          </span>
-          <span style={{ color: theme?.textSecondary }}>
-            {ts("decisionTimeline.daysProgress", "{days} of 30 days").replace("{days}", String(daysElapsed))}
-          </span>
+    <div className="space-y-5">
+      <section
+        className="relative overflow-hidden rounded-[1.75rem] border p-4 shadow-[0_18px_50px_rgba(10,18,14,0.12)]"
+        style={{
+          borderColor: theme?.borderLight,
+          background: `linear-gradient(135deg, ${theme?.bgCardElevated || "#fff"} 0%, ${theme?.bgCard || "#fff"} 100%)`,
+        }}
+      >
+        <div className="absolute inset-0 opacity-80" style={{ background: `radial-gradient(circle at 18% 18%, ${theme?.accentGold || "#f59e0b"}22, transparent 34%), radial-gradient(circle at 92% 0%, ${theme?.primary || "#203a35"}18, transparent 30%)` }} />
+        <div className="relative flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.22em]" style={{ color: theme?.accentGold }}>
+              {ts("decisionTimeline.title", "Decision Journey")}
+            </p>
+            <h3 className="mt-1.5 text-xl font-semibold tracking-tight" style={{ color: theme?.textPrimary }}>
+              {ts("decisionTimeline.daysProgress", "{days} of 30 days").replace("{days}", String(daysElapsed))}
+            </h3>
+            <p className="mt-1.5 max-w-2xl text-sm leading-6" style={{ color: theme?.textSecondary }}>
+              {nextCheckpoint ? `${ts("decisionTimeline.nextLabel", "Next:")} ${nextCheckpoint.label}` : ts("decisionTimeline.completed", "The arc is fully visible now.")}
+            </p>
+          </div>
+          <div className="grid size-11 shrink-0 place-items-center rounded-full border shadow-sm" style={{ borderColor: theme?.borderLight, backgroundColor: theme?.bgInput, color: theme?.textPrimary }}>
+            <Clock3 size={18} />
+          </div>
         </div>
-        <motion.div
-          className="h-2 w-full rounded-full overflow-hidden"
-          style={{ background: theme?.bgCard }}
-        >
+        <div className="mt-4 h-2 overflow-hidden rounded-full" style={{ backgroundColor: theme?.bgCard }}>
           <motion.div
-            className="h-full"
-            style={{ background: theme?.accentGold || "#f59e0b" }}
+            className="h-full rounded-full"
+            style={{ background: `linear-gradient(90deg, ${theme?.accentGold || "#f59e0b"}, ${theme?.primary || "#203a35"})` }}
             initial={{ width: 0 }}
             animate={{ width: `${progress}%` }}
             transition={{ duration: 0.8, ease: "easeOut" }}
           />
-        </motion.div>
-      </div>
+        </div>
+      </section>
 
-      {/* Timeline */}
-      <div className="relative">
+      <div className="relative pl-1 sm:pl-2">
         <div
-          className="absolute left-5 top-0 bottom-0 w-px"
-          style={{
-            background: `linear-gradient(to bottom, ${theme?.accentGold || "#f59e0b"}, ${theme?.borderLight || "#e5e7eb"})`,
-          }}
+          className="absolute left-5 top-1 bottom-1 w-px"
+          style={{ background: `linear-gradient(to bottom, transparent, ${theme?.accentGold || "#f59e0b"}, ${theme?.borderLight || "#e5e7eb"}, transparent)` }}
         />
 
-        <div className="space-y-4">
-          {timelineCheckpoints.map((checkpoint, index) => (
-            <motion.div
-              key={`${checkpoint.type}-${index}`}
-              className="grid grid-cols-[2.5rem_minmax(0,1fr)] items-start gap-4"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: index * 0.1 }}
-              onClick={() => onCheckpointClick?.(checkpoint)}
-            >
+        <div className="space-y-3.5">
+          {timelineCheckpoints.map((checkpoint, index) => {
+            const meta = getCheckpointMeta(checkpoint);
+            const Icon = checkpoint.completed ? Check : meta.icon;
+            return (
               <motion.div
-                className="mt-1 h-6 w-6 justify-self-center rounded-full flex items-center justify-center flex-shrink-0 text-lg cursor-pointer"
-                style={{
-                  background: checkpoint.completed
-                    ? theme?.accentGold || "#f59e0b"
-                    : theme?.bgCard || "#f3f4f6",
-                  borderWidth: "2px",
-                  borderColor: getCheckpointColor(checkpoint.completed),
-                }}
-                whileHover={{ scale: 1.2 }}
-                whileTap={{ scale: 0.95 }}
+                key={`${checkpoint.type}-${index}`}
+                className="grid grid-cols-[2.75rem_minmax(0,1fr)] items-start gap-3 sm:grid-cols-[3rem_minmax(0,1fr)]"
+                initial={{ opacity: 0, x: -14 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: index * 0.06 }}
+                onClick={() => onCheckpointClick?.(checkpoint)}
               >
-                {checkpoint.completed ? (
-                  <Check className="w-3 h-3" style={{ color: "white" }} />
-                ) : (
-                  <span>{getCheckpointIcon(checkpoint.type)}</span>
-                )}
-              </motion.div>
-
-              <div
-                className="min-w-0"
-                style={{
-                  padding: "12px",
-                  borderRadius: "0.75rem",
-                  background: checkpoint.completed
-                    ? `${theme?.accentGold || "#f59e0b"}15`
-                    : theme?.bgCard || "#f9fafb",
-                  border: `1px solid ${
-                    checkpoint.completed
-                      ? (theme?.accentGold || "#f59e0b") + "40"
-                      : theme?.borderLight || "#e5e7eb"
-                  }`,
-                }}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1 min-w-0">
-                    <h4
-                      className="text-sm font-semibold break-keep hyphens-none"
-                      style={{
-                        color: checkpoint.completed ? theme?.textPrimary : theme?.textSecondary,
-                      }}
-                    >
-                      {checkpoint.label}
-                      {checkpoint.daysSinceCreation > 0 && (
-                        <span className="ml-2 text-xs whitespace-nowrap" style={{ color: theme?.textMuted }}>
-                          {ts("decisionTimeline.dayBadge", "Day {day}").replace("{day}", String(checkpoint.daysSinceCreation))}
-                        </span>
-                      )}
-                    </h4>
-                    {checkpoint.description && (
-                      <p className="text-xs mt-1 leading-snug" style={{ color: theme?.textMuted }}>
-                        {checkpoint.description}
-                      </p>
-                    )}
-                  </div>
-                  {checkpoint.completed && (
-                    <CheckCircle2
-                      className="w-4 h-4 flex-shrink-0 mt-0.5"
-                      style={{ color: theme?.accentGold || "#f59e0b" }}
-                    />
-                  )}
+                <div className="relative flex justify-center pt-1">
+                  <motion.div
+                    className="grid size-10 place-items-center rounded-full border shadow-sm"
+                    style={{
+                      borderColor: checkpoint.completed ? theme?.accentLight : theme?.borderLight,
+                      backgroundColor: checkpoint.completed ? theme?.activeBg : theme?.bgCardElevated,
+                      color: checkpoint.completed ? theme?.accentGold : meta.accent,
+                    }}
+                    whileHover={{ scale: 1.08 }}
+                    whileTap={{ scale: 0.96 }}
+                  >
+                    <Icon size={16} />
+                  </motion.div>
                 </div>
 
-                {checkpoint.followUpPrompt && !checkpoint.completed && (
-                  <motion.div
-                    className="mt-2 p-2 rounded-md text-xs"
-                    style={{
-                      background: (theme?.accentGold || "#f59e0b") + "20",
-                      borderLeft: `2px solid ${theme?.accentGold || "#f59e0b"}`,
-                      color: theme?.textSecondary,
-                    }}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.3 }}
-                  >
-                    💡 <span className="font-medium">{checkpoint.followUpPrompt}</span>
-                  </motion.div>
-                )}
-              </div>
-            </motion.div>
-          ))}
+                <article
+                  className="overflow-hidden rounded-[1.45rem] border shadow-[0_10px_28px_rgba(10,18,14,0.08)]"
+                  style={{
+                    borderColor: checkpoint.completed ? theme?.accentLight : theme?.borderLight,
+                    background: checkpoint.completed
+                      ? `linear-gradient(180deg, color-mix(in srgb, ${theme?.bgCardElevated || "#fff"} 74%, ${theme?.accentGold || "#f59e0b"} 26%), ${theme?.bgCard || "#fff"})`
+                      : `linear-gradient(180deg, color-mix(in srgb, ${theme?.bgCardElevated || "#fff"} 88%, white 12%), ${theme?.bgCard || "#fff"})`,
+                  }}
+                >
+                  <div className="h-1.5" style={{ background: meta.gradient }} />
+                  <div className="p-3.5 sm:p-4">
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h4 className="text-[1rem] font-semibold tracking-tight" style={{ color: theme?.textPrimary }}>
+                            {checkpoint.label}
+                          </h4>
+                          {checkpoint.daysSinceCreation > 0 ? (
+                            <span className="rounded-full border px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ borderColor: theme?.borderLight, backgroundColor: theme?.bgInput, color: theme?.textSecondary }}>
+                              {ts("decisionTimeline.dayBadge", "Day {day}").replace("{day}", String(checkpoint.daysSinceCreation))}
+                            </span>
+                          ) : null}
+                        </div>
+                        {checkpoint.description ? (
+                          <p className="mt-1.5 text-sm leading-6" style={{ color: theme?.textSecondary }}>
+                            {checkpoint.description}
+                          </p>
+                        ) : null}
+                      </div>
+                      <span className="inline-flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ borderColor: checkpoint.completed ? theme?.accentLight : theme?.borderLight, backgroundColor: checkpoint.completed ? theme?.activeBg : theme?.bgInput, color: checkpoint.completed ? theme?.accentGold : theme?.textSecondary }}>
+                        {checkpoint.completed ? <Check size={11} /> : <Clock3 size={11} />}
+                        {checkpoint.completed ? ts("streak.unlocked", "Unlocked") : ts("streak.notYet", "Not yet")}
+                      </span>
+                    </div>
+
+                    {checkpoint.followUpPrompt && !checkpoint.completed ? (
+                      <motion.div
+                        className="mt-3 rounded-2xl border px-3 py-2.5 text-xs leading-5"
+                        style={{
+                          borderColor: theme?.borderLight,
+                          backgroundColor: theme?.bgInput,
+                          color: theme?.textSecondary,
+                        }}
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.18 }}
+                      >
+                        <span className="font-semibold" style={{ color: theme?.accentGold }}>•</span>{" "}
+                        <span className="font-medium">{checkpoint.followUpPrompt}</span>
+                      </motion.div>
+                    ) : null}
+                  </div>
+                </article>
+              </motion.div>
+            );
+          })}
         </div>
       </div>
 
-      {/* Next milestone */}
       {nextCheckpoint && (
         <motion.div
-          className="p-3 rounded-lg border-2"
+          className="overflow-hidden rounded-[1.45rem] border shadow-[0_10px_28px_rgba(10,18,14,0.08)]"
           style={{
-            background: theme?.bgCardElevated || "white",
+            background: `linear-gradient(180deg, color-mix(in srgb, ${theme?.bgCardElevated || "#fff"} 82%, ${theme?.accentGold || "#f59e0b"} 18%), ${theme?.bgCard || "#fff"})`,
             borderColor: (theme?.accentGold || "#f59e0b") + "40",
           }}
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
         >
-          <div className="flex items-start gap-3">
-            <Clock3 className="w-5 h-5 mt-0.5 flex-shrink-0" style={{ color: theme?.accentGold || "#f59e0b" }} />
+          <div className="flex items-start gap-3 p-3.5 sm:p-4">
+            <div className="grid size-11 shrink-0 place-items-center rounded-full border" style={{ borderColor: theme?.borderLight, backgroundColor: theme?.bgInput, color: theme?.accentGold }}>
+              <Clock3 className="w-5 h-5" />
+            </div>
             <div className="min-w-0">
-              <p className="text-sm font-semibold" style={{ color: theme?.textPrimary }}>
+              <p className="text-sm font-semibold tracking-tight" style={{ color: theme?.textPrimary }}>
                 {ts("decisionTimeline.nextLabel", "Next:")} {nextCheckpoint.label}
               </p>
-              <p className="text-xs mt-1" style={{ color: theme?.textSecondary }}>
+              <p className="mt-1 text-xs leading-5" style={{ color: theme?.textSecondary }}>
                 {nextCheckpoint.followUpPrompt}
               </p>
             </div>

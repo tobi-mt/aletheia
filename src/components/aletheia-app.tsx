@@ -20517,19 +20517,23 @@ function StreakMilestonesModal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[90] grid min-h-dvh place-items-end overflow-hidden overscroll-none px-3 backdrop-blur-sm sm:place-items-center"
+      className="fixed inset-0 z-[9999] grid min-h-dvh place-items-center overflow-hidden overscroll-none px-3 py-3 backdrop-blur-sm"
       style={{
-        backgroundColor: "rgba(13, 23, 20, 0.54)",
-        paddingTop: "calc(var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)) + 0.75rem)",
-        paddingBottom: "calc(var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)) + 0.75rem)",
+        backgroundColor: "rgba(13, 23, 20, 0.62)",
+        paddingTop: "calc(max(var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)), 0.75rem) + 0.25rem)",
+        paddingBottom: "calc(max(var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)), 0.75rem) + 0.25rem)",
       }}
     >
       <section
         role="dialog"
         aria-modal="true"
         aria-labelledby="streak-milestones-title"
-        className="max-h-[92vh] w-full max-w-2xl overflow-y-auto overscroll-contain rounded-[1.75rem] border shadow-2xl"
-        style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}
+        className="w-full max-w-2xl overflow-y-auto overscroll-contain rounded-[2rem] border shadow-[0_28px_90px_rgba(10,18,14,0.36)]"
+        style={{
+          borderColor: theme.borderStrong,
+          backgroundColor: theme.bgCard,
+          maxHeight: "calc(100dvh - max(var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)), 0.75rem) - max(var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)), 0.75rem) - 1rem)",
+        }}
       >
         <div
           className="relative overflow-hidden border-b px-4 py-4 sm:px-5 sm:py-5"
@@ -20538,120 +20542,166 @@ function StreakMilestonesModal({
             background: `linear-gradient(135deg, color-mix(in srgb, ${theme.bgCardElevated} 72%, white 28%), ${theme.bgCard}, color-mix(in srgb, ${theme.bgCardElevated} 82%, ${theme.accentGold} 18%))`,
           }}
         >
-          <div className="absolute inset-0 opacity-80" style={{ background: `radial-gradient(circle at 18% 18%, color-mix(in srgb, ${theme.accentGold} 18%, transparent), transparent 36%), radial-gradient(circle at 92% 0%, color-mix(in srgb, ${theme.primary} 10%, transparent), transparent 30%)` }} />
+          <div
+            className="absolute inset-0 opacity-90"
+            style={{
+              background: `radial-gradient(circle at 18% 18%, color-mix(in srgb, ${theme.accentGold} 18%, transparent), transparent 36%), radial-gradient(circle at 92% 0%, color-mix(in srgb, ${theme.primary} 10%, transparent), transparent 30%)`,
+            }}
+          />
+          <div
+            className="absolute inset-y-0 left-0 w-px"
+            style={{ background: `linear-gradient(to bottom, transparent, ${theme.accentGold}, transparent)` }}
+          />
           <div className="relative flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] sm:text-xs" style={{ color: theme.accentGold }}>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] sm:text-xs" style={{ color: theme.accentGold }}>
                 {ts("streak.modalEyebrow", "Streak at a glance")}
               </p>
-              <h2 id="streak-milestones-title" className="mt-1.5 text-lg font-semibold sm:text-xl" style={{ color: theme.textPrimary }}>
+              <h2 id="streak-milestones-title" className="mt-1.5 text-xl font-semibold tracking-tight sm:text-2xl" style={{ color: theme.textPrimary }}>
                 {ts("streak.modalTitle", "Your streak, beautifully mapped")}
               </h2>
-              <p className="mt-1.5 max-w-xl text-sm leading-6" style={{ color: theme.textSecondary }}>
+              <p className="mt-1.5 max-w-xl text-sm leading-6 sm:text-[0.95rem]" style={{ color: theme.textSecondary }}>
                 {ts("streak.modalBody", "A calm view of every milestone, what it takes to reach it, and what you have already unlocked.")}
               </p>
             </div>
             <button
               type="button"
               onClick={onClose}
-              className="grid size-9 shrink-0 place-items-center rounded-full border transition"
-              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+              className="grid size-10 shrink-0 place-items-center rounded-full border transition shadow-sm"
+              style={{
+                borderColor: theme.borderMedium,
+                backgroundColor: theme.bgInput,
+                color: theme.textPrimary,
+              }}
               aria-label={ts("labels.close")}
             >
               <X size={16} />
             </button>
           </div>
 
-          <div className="relative mt-4 grid gap-2 sm:grid-cols-3">
-            <div className="rounded-2xl border px-3 py-3.5 shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+          <div className="relative mt-4 grid gap-2.5 sm:grid-cols-3">
+            <div className="rounded-[1.35rem] border p-3.5 shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+              <div className="mb-3 h-1.5 rounded-full" style={{ background: `linear-gradient(90deg, ${theme.accentGold}, color-mix(in srgb, ${theme.accentGold} 25%, ${theme.borderLight} 75%))` }} />
               <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textSecondary }}>{ts("streak.current", "Current streak")}</p>
-              <p className="mt-1 text-lg font-semibold" style={{ color: theme.textPrimary }}>{currentLabel}</p>
+              <p className="mt-1.5 text-lg font-semibold tracking-tight" style={{ color: theme.textPrimary }}>{currentLabel}</p>
             </div>
-            <div className="rounded-2xl border px-3 py-3.5 shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+            <div className="rounded-[1.35rem] border p-3.5 shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+              <div className="mb-3 h-1.5 rounded-full" style={{ background: `linear-gradient(90deg, ${theme.primary}, color-mix(in srgb, ${theme.primary} 30%, ${theme.accentGold} 70%))` }} />
               <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textSecondary }}>{ts("streak.unlockedCount", "Unlocked")}</p>
-              <p className="mt-1 text-lg font-semibold" style={{ color: theme.textPrimary }}>{achievedCount}/{STREAK_MILESTONES.length}</p>
+              <p className="mt-1.5 text-lg font-semibold tracking-tight" style={{ color: theme.textPrimary }}>{achievedCount}/{STREAK_MILESTONES.length}</p>
             </div>
-            <div className="rounded-2xl border px-3 py-3.5 shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+            <div className="rounded-[1.35rem] border p-3.5 shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+              <div className="mb-3 h-1.5 rounded-full" style={{ background: `linear-gradient(90deg, ${theme.borderStrong}, ${theme.accentGold})` }} />
               <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textSecondary }}>{ts("streak.nextGoal", "Next milestone")}</p>
-              <p className="mt-1 text-lg font-semibold" style={{ color: theme.textPrimary }}>{nextMilestone ? `${nextMilestone}d` : ts("streak.allUnlocked", "Fully unlocked")}</p>
+              <p className="mt-1.5 text-lg font-semibold tracking-tight" style={{ color: theme.textPrimary }}>{nextMilestone ? `${nextMilestone}d` : ts("streak.allUnlocked", "Fully unlocked")}</p>
             </div>
           </div>
         </div>
 
-        <div className="space-y-2.5 p-3.5 sm:p-4">
+        <div className="space-y-3 p-3.5 sm:p-4">
           {streakData.lastUseDate ? (
-            <div className="rounded-[1.25rem] border px-3.5 py-3 text-sm leading-6" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
+            <div className="rounded-[1.35rem] border px-3.5 py-3 text-sm leading-6 shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
               {ts("streak.lastUse", "Last active")}: <span className="font-semibold" style={{ color: theme.textPrimary }}>{formatDate(streakData.lastUseDate) ?? streakData.lastUseDate}</span>
             </div>
           ) : null}
 
-          {milestones.map((item) => (
-            <article
-              key={item.milestone}
-              className="rounded-[1.35rem] border p-3.5 shadow-[0_8px_20px_rgba(15,23,42,0.04)] sm:p-4"
+          <div className="relative pl-1 sm:pl-2">
+            <div
+              className="absolute left-5 top-2 bottom-2 w-px rounded-full"
               style={{
-                borderColor: item.achieved ? theme.accentLight : theme.borderLight,
-                background: item.achieved
-                  ? `linear-gradient(180deg, color-mix(in srgb, ${theme.bgCardElevated} 78%, ${theme.accentGold} 22%), ${theme.bgCard})`
-                  : theme.bgCard,
+                background: `linear-gradient(to bottom, ${theme.accentGold}, ${theme.borderLight})`,
               }}
-            >
-              <div className="flex items-start gap-3">
-                <div
-                  className="grid size-10 shrink-0 place-items-center rounded-2xl border"
-                  style={{
-                    borderColor: item.achieved ? theme.accentLight : theme.borderLight,
-                    backgroundColor: item.achieved ? theme.activeBg : theme.bgInput,
-                    color: item.achieved ? theme.accentGold : theme.textSecondary,
-                  }}
-                  aria-hidden="true"
-                >
-                  {item.achieved ? <Check size={18} /> : <Clock3 size={17} />}
-                </div>
+            />
 
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <h3 className="text-base font-semibold sm:text-lg" style={{ color: theme.textPrimary }}>
-                        {item.title}
-                      </h3>
-                      <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
-                        {item.description}
-                      </p>
+            <div className="space-y-3">
+              {milestones.map((item) => {
+                const RailIcon = item.milestone === 7 ? Sprout : item.milestone === 30 ? Sparkles : item.milestone === 100 ? Check : ShieldCheck;
+                const accent = item.achieved ? theme.accentGold : theme.textMuted;
+
+                return (
+                  <article
+                    key={item.milestone}
+                    className="grid grid-cols-[2.75rem_minmax(0,1fr)] items-start gap-3 sm:grid-cols-[3rem_minmax(0,1fr)]"
+                  >
+                    <div className="relative flex justify-center pt-1">
+                      <div
+                        className="grid size-10 place-items-center rounded-full border shadow-sm"
+                        style={{
+                          borderColor: item.achieved ? theme.accentLight : theme.borderLight,
+                          backgroundColor: item.achieved ? theme.activeBg : theme.bgCardElevated,
+                          color: accent,
+                        }}
+                        aria-hidden="true"
+                      >
+                        <RailIcon size={16} />
+                      </div>
                     </div>
-                    <span
-                      className="inline-flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]"
+
+                    <div
+                      className="rounded-[1.5rem] border p-3.5 shadow-[0_12px_32px_rgba(10,18,14,0.08)] sm:p-4"
                       style={{
                         borderColor: item.achieved ? theme.accentLight : theme.borderLight,
-                        backgroundColor: item.achieved ? theme.activeBg : theme.bgInput,
-                        color: item.achieved ? theme.accentGold : theme.textSecondary,
+                        background: item.achieved
+                          ? `linear-gradient(180deg, color-mix(in srgb, ${theme.bgCardElevated} 74%, ${theme.accentGold} 26%), ${theme.bgCard})`
+                          : `linear-gradient(180deg, color-mix(in srgb, ${theme.bgCardElevated} 88%, white 12%), ${theme.bgCard})`,
                       }}
                     >
-                      {item.achieved ? <Check size={11} /> : <Minus size={11} />}
-                      {item.achieved ? ts("streak.unlocked", "Unlocked") : ts("streak.notYet", "Not yet")}
-                    </span>
-                  </div>
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h3 className="text-[1.02rem] font-semibold tracking-tight sm:text-[1.08rem]" style={{ color: theme.textPrimary }}>
+                              {item.title}
+                            </h3>
+                            <span
+                              className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em]"
+                              style={{
+                                borderColor: item.achieved ? theme.accentLight : theme.borderLight,
+                                backgroundColor: item.achieved ? theme.activeBg : theme.bgInput,
+                                color: item.achieved ? theme.accentGold : theme.textSecondary,
+                              }}
+                            >
+                              {item.milestone}d
+                            </span>
+                          </div>
+                          <p className="mt-1.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                            {item.description}
+                          </p>
+                        </div>
+                        <span
+                          className="inline-flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]"
+                          style={{
+                            borderColor: item.achieved ? theme.accentLight : theme.borderLight,
+                            backgroundColor: item.achieved ? theme.activeBg : theme.bgInput,
+                            color: item.achieved ? theme.accentGold : theme.textSecondary,
+                          }}
+                        >
+                          {item.achieved ? <Check size={11} /> : <Minus size={11} />}
+                          {item.achieved ? ts("streak.unlocked", "Unlocked") : ts("streak.notYet", "Not yet")}
+                        </span>
+                      </div>
 
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <span className="inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-                      {item.achieved
-                        ? ts("streak.unlockedRequirement", "Target reached")
-                        : item.remaining === 0
-                          ? ts("streak.readyNow", "Ready now")
-                          : `${item.remaining} ${ts("streak.days", "days")} ${ts("streak.remainingLabel", "remaining")}`}
-                    </span>
-                    <span className="inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-                      {item.achieved
-                        ? item.unlockedAt
-                          ? `${ts("streak.unlockedOn", "Unlocked on")} ${item.unlockedAt}`
-                          : ts("streak.unlocked", "Unlocked")
-                        : `${ts("streak.unlocksAt", "Unlocks at")} ${item.milestone} ${ts("streak.days", "days")}`}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </article>
-          ))}
+                      <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                        <div className="rounded-2xl border px-3 py-2.5 text-[11px] font-medium leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                          {item.achieved
+                            ? ts("streak.unlockedRequirement", "Target reached")
+                            : item.remaining === 0
+                              ? ts("streak.readyNow", "Ready now")
+                              : `${item.remaining} ${ts("streak.days", "days")} ${ts("streak.remainingLabel", "remaining")}`}
+                        </div>
+                        <div className="rounded-2xl border px-3 py-2.5 text-[11px] font-medium leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                          {item.achieved
+                            ? item.unlockedAt
+                              ? `${ts("streak.unlockedOn", "Unlocked on")} ${item.unlockedAt}`
+                              : ts("streak.unlocked", "Unlocked")
+                            : `${ts("streak.unlocksAt", "Unlocks at")} ${item.milestone} ${ts("streak.days", "days")}`}
+                        </div>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </div>
         </div>
       </section>
     </div>,
@@ -23082,7 +23132,7 @@ function DecisionCompanionPanel({
   const timelineEventMood = (eventType: string) => {
     if (eventType === "created") {
       return {
-        label: "Created",
+        label: ts("labels.created", "Created"),
         icon: Sparkles,
         accent: theme.accentGold,
         gradient: `linear-gradient(135deg, ${theme.accentGold} 0%, ${theme.bgCardElevated} 75%)`,
@@ -23090,14 +23140,14 @@ function DecisionCompanionPanel({
     }
     if (eventType === "update") {
       return {
-        label: "Updated",
+        label: ts("labels.updated", "Updated"),
         icon: Feather,
         accent: theme.primary,
         gradient: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.bgCardElevated} 75%)`,
       };
     }
     return {
-      label: "Event",
+      label: ts("labels.event", "Event"),
       icon: Clock3,
       accent: theme.textSecondary,
       gradient: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.bgCardElevated} 75%)`,
@@ -23287,7 +23337,7 @@ function DecisionCompanionPanel({
         {decisionSection === "decisions" ? (
           <div className="space-y-4">
             <DisclosureSection title={ts('labels.wisdomTimeline')} summary={events.length ? insight.gentleObservation : decisionTimelineObservation(language, [], 0)} eyebrow={`${events.length} ${ts('labels.eventsRecorded')}`} compactCollapsed showDetailsLabel={ts('showDetails')} hideDetailsLabel={ts('hideDetails')} theme={theme}>
-              <section className="rounded-[1.45rem] border shadow-[0_8px_24px_rgba(15,23,42,0.05)]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+              <section className="overflow-hidden rounded-[1.6rem] border shadow-[0_14px_36px_rgba(10,18,14,0.08)]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
                 <div
                   className="relative overflow-hidden border-b"
                   style={{
@@ -23296,12 +23346,15 @@ function DecisionCompanionPanel({
                   }}
                 >
                   <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.16),transparent_40%),radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.08),transparent_38%)]" />
-                  <div className="relative flex items-start justify-between gap-3 p-3 sm:p-4">
+                  <div className="relative flex items-start justify-between gap-3 p-3.5 sm:p-4">
                     <div className="min-w-0">
-                      <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textOnPrimary, opacity: 0.85 }}>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.22em]" style={{ color: theme.textOnPrimary, opacity: 0.85 }}>
                         {ts('labels.wisdomTimeline')}
                       </p>
-                      <p className="mt-1.5 max-w-2xl text-sm leading-5 sm:leading-6" style={{ color: theme.textOnPrimary, opacity: 0.9 }}>
+                      <h3 className="mt-1.5 text-xl font-semibold tracking-tight sm:text-2xl" style={{ color: theme.textOnPrimary }}>
+                        {events.length} {ts('labels.eventsRecorded')}
+                      </h3>
+                      <p className="mt-1.5 max-w-2xl text-sm leading-6 sm:text-[0.95rem]" style={{ color: theme.textOnPrimary, opacity: 0.9 }}>
                         {events.length ? insight.gentleObservation : decisionTimelineObservation(language, [], 0)}
                       </p>
                     </div>
@@ -23309,22 +23362,19 @@ function DecisionCompanionPanel({
                       <Clock3 size={18} style={{ color: theme.textOnPrimary }} />
                     </div>
                   </div>
-                  <div className="relative flex flex-wrap gap-2 px-3 pb-3 sm:px-4 sm:pb-4">
+                  <div className="relative flex flex-wrap gap-2 px-3.5 pb-3.5 sm:px-4 sm:pb-4">
                     <span className="rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.textOnPrimary + "33", backgroundColor: theme.textOnPrimary + "14", color: theme.textOnPrimary }}>
                       {events.length} {ts('labels.eventsRecorded')}
-                    </span>
-                    <span className="rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.textOnPrimary + "33", backgroundColor: theme.textOnPrimary + "14", color: theme.textOnPrimary }}>
-                      {events.length ? ts('labels.preview') : ts('labels.noDecisionMemoryYet')}
                     </span>
                   </div>
                 </div>
 
-                <div className="p-3 sm:p-3.5">
+                <div className="p-3.5 sm:p-4">
                   {events.length ? (
                     <>
                       <section
                         aria-label={ts('labels.eventsRecorded')}
-                        className="flex min-w-0 snap-x gap-1.5 overflow-x-auto pb-1 sm:gap-2 [-webkit-overflow-scrolling:touch]"
+                        className="flex min-w-0 snap-x gap-2 overflow-x-auto pb-1 sm:gap-2.5 [-webkit-overflow-scrolling:touch]"
                       >
                         {events.map((event, index) => {
                           const isActive = event.id === selectedTimelineEvent?.id;
@@ -23340,48 +23390,48 @@ function DecisionCompanionPanel({
                               key={event.id}
                               type="button"
                               onClick={() => setSelectedTimelineEventId(event.id)}
-                              className="premium-tap-card relative flex h-36 w-40 shrink-0 snap-start flex-col overflow-hidden rounded-2xl border p-0 text-left shadow-sm transition sm:h-40 sm:w-44"
+                              className="premium-tap-card relative flex h-38 w-[10.9rem] shrink-0 snap-start flex-col overflow-hidden rounded-[1.35rem] border p-0 text-left shadow-[0_10px_24px_rgba(7,10,8,0.08)] transition sm:h-42 sm:w-[11.75rem]"
                               style={{
                                 borderColor: isActive ? theme.primary : theme.borderMedium,
                                 backgroundColor: isActive ? theme.bgCardElevated : theme.bgInput,
                                 boxShadow: isActive
-                                  ? `0 0 0 1px ${theme.primary}, 0 14px 28px rgba(7, 10, 8, 0.10)`
+                                  ? `0 0 0 1px ${theme.primary}, 0 16px 30px rgba(7, 10, 8, 0.12)`
                                   : "0 8px 18px rgba(7, 10, 8, 0.06)",
                               }}
                               aria-pressed={isActive}
                             >
                               <div
-                                className="relative h-14 overflow-hidden sm:h-16"
+                                className="relative h-[4.15rem] overflow-hidden sm:h-[4.9rem]"
                                 style={{
                                   background: mood.gradient,
                                 }}
                               >
                                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.16),transparent_42%),radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.08),transparent_38%)]" />
-                                <div className="absolute left-2.5 top-2.5 grid size-6 place-items-center rounded-full border border-white/20 bg-white/12 shadow-[0_8px_16px_rgba(0,0,0,0.12)]">
+                                <div className="absolute left-2.5 top-2.5 grid size-[1.375rem] place-items-center rounded-full border border-white/20 bg-white/12 shadow-[0_8px_16px_rgba(0,0,0,0.12)]">
                                   <Icon size={12} style={{ color: theme.textOnPrimary }} />
                                 </div>
-                                <div className="absolute right-2.5 top-2.5 rounded-full border border-white/20 bg-white/12 px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.08em]" style={{ color: theme.textOnPrimary }}>
+                                <div className="absolute right-2.5 top-2.5 rounded-full border border-white/20 bg-white/12 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em]" style={{ color: theme.textOnPrimary }}>
                                   {index + 1}
                                 </div>
                                 <div className="absolute inset-x-2.5 bottom-2.5 flex items-center justify-between gap-2">
-                                  <span className="rounded-full border border-white/20 bg-white/10 px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.08em]" style={{ color: theme.textOnPrimary }}>
+                                  <span className="rounded-full border border-white/20 bg-white/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em]" style={{ color: theme.textOnPrimary }}>
                                     {dayLabel}
                                   </span>
                                   <span className="text-[10px] font-semibold" style={{ color: theme.textOnPrimary, opacity: 0.8 }}>
-                                    {isActive ? ts('labels.selected') : ts('labels.preview')}
+                                    {index + 1}
                                   </span>
                                 </div>
                               </div>
                               <div className="flex flex-1 flex-col gap-1.5 p-2.5 sm:gap-2 sm:p-3">
                                 <div className="flex items-center gap-2">
-                                  <span className="rounded-full border px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: mood.accent + "44", backgroundColor: mood.accent + "14", color: mood.accent }}>
+                                  <span className="rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ borderColor: mood.accent + "44", backgroundColor: mood.accent + "14", color: mood.accent }}>
                                     {mood.label}
                                   </span>
                                 </div>
-                                <p className="line-clamp-2 text-sm font-semibold leading-5" style={{ color: theme.textPrimary }}>
+                                <p className="min-h-[2.75rem] line-clamp-2 text-[0.98rem] font-semibold leading-[1.25rem] tracking-tight" style={{ color: theme.textPrimary }}>
                                   {localizedBody}
                                 </p>
-                                <p className="line-clamp-2 text-xs leading-5" style={{ color: theme.textSecondary }}>
+                                <p className="line-clamp-2 text-xs leading-6" style={{ color: theme.textSecondary }}>
                                   {event.decisionId ? ts('labels.decisionMemory') : ts('labels.eventsRecorded')}
                                 </p>
                               </div>
@@ -23391,7 +23441,7 @@ function DecisionCompanionPanel({
                       </section>
 
                       {selectedTimelineEvent ? (
-                        <article className="mt-4 overflow-hidden rounded-[1.45rem] border shadow-[0_8px_24px_rgba(15,23,42,0.05)]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                        <article className="mt-4 overflow-hidden rounded-[1.55rem] border shadow-[0_12px_30px_rgba(10,18,14,0.08)]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
                           <div
                             className="relative overflow-hidden border-b"
                             style={{
@@ -23400,15 +23450,12 @@ function DecisionCompanionPanel({
                             }}
                           >
                             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.16),transparent_42%),radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.08),transparent_38%)]" />
-                            <div className="relative flex items-start justify-between gap-3 p-3 sm:p-4">
+                            <div className="relative flex items-start justify-between gap-3 p-3.5 sm:p-4">
                               <div className="min-w-0">
-                                <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textOnPrimary, opacity: 0.85 }}>
-                                  {ts('labels.preview')}
-                                </p>
                                 <h3 className="mt-1.5 text-[1.08rem] font-semibold leading-tight text-balance sm:text-[1.18rem]" style={{ color: theme.textOnPrimary }}>
                                   {localizeDecisionEventBody(language, selectedTimelineEvent.eventType, selectedTimelineEvent.body)}
                                 </h3>
-                                <p className="mt-2 max-w-2xl text-sm leading-5 sm:leading-6" style={{ color: theme.textOnPrimary, opacity: 0.88 }}>
+                                <p className="mt-2 max-w-2xl text-sm leading-6 sm:leading-6" style={{ color: theme.textOnPrimary, opacity: 0.88 }}>
                                   {new Date(selectedTimelineEvent.createdAt).toLocaleString(language, { dateStyle: "medium", timeStyle: "short" })}
                                 </p>
                               </div>
@@ -23416,7 +23463,7 @@ function DecisionCompanionPanel({
                                 {selectedTimelineMood ? <selectedTimelineMood.icon size={18} style={{ color: theme.textOnPrimary }} /> : null}
                               </div>
                             </div>
-                            <div className="relative flex flex-wrap gap-2 px-3 pb-3 sm:px-4 sm:pb-4">
+                            <div className="relative flex flex-wrap gap-2 px-3.5 pb-3.5 sm:px-4 sm:pb-4">
                               <span className="rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.textOnPrimary + "33", backgroundColor: theme.textOnPrimary + "14", color: theme.textOnPrimary }}>
                                 {ts('labels.eventsRecorded')}
                               </span>
@@ -23426,9 +23473,9 @@ function DecisionCompanionPanel({
                             </div>
                           </div>
 
-                          <div className="p-3 sm:p-3.5">
+                          <div className="p-3.5 sm:p-4">
                             <div className="grid gap-2 sm:grid-cols-2">
-                              <div className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                              <div className="rounded-[1.2rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
                                 <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
                                   {ts('labels.event', "Event")}
                                 </p>
@@ -23439,9 +23486,9 @@ function DecisionCompanionPanel({
                                   {selectedTimelineEvent.body}
                                 </p>
                               </div>
-                              <div className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
+                              <div className="rounded-[1.2rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
                                 <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
-                                  {ts('labels.summary')}
+                                  {ts('labels.summary', 'Summary')}
                                 </p>
                                 <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
                                   {insight.gentleObservation}
@@ -23960,7 +24007,7 @@ function DecisionCompanionPanel({
                         key={decision.id}
                         type="button"
                         onClick={() => setSelectedMemoryDecisionId(decision.id)}
-                        className="premium-tap-card relative flex h-36 w-40 shrink-0 snap-start flex-col overflow-hidden rounded-2xl border p-0 text-left shadow-sm transition sm:h-40 sm:w-44"
+                        className="premium-tap-card relative flex h-36 w-[10.9rem] shrink-0 snap-start flex-col overflow-hidden rounded-2xl border p-0 text-left shadow-sm transition sm:h-40 sm:w-[11.75rem]"
                         style={{
                           borderColor: isActive ? theme.primary : theme.borderMedium,
                           backgroundColor: isActive ? theme.bgCardElevated : theme.bgInput,
@@ -23971,20 +24018,20 @@ function DecisionCompanionPanel({
                         aria-pressed={isActive}
                       >
                         <div
-                          className="relative h-14 overflow-hidden sm:h-16"
+                          className="relative h-[4.15rem] overflow-hidden sm:h-[4.9rem]"
                           style={{
                             background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.bgCardElevated} 72%)`,
                           }}
                         >
                           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.16),transparent_42%),radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.08),transparent_38%)]" />
-                          <div className="absolute left-2.5 top-2.5 grid size-6 place-items-center rounded-full border border-white/20 bg-white/12 shadow-[0_8px_16px_rgba(0,0,0,0.12)]">
+                          <div className="absolute left-2.5 top-2.5 grid size-[1.375rem] place-items-center rounded-full border border-white/20 bg-white/12 shadow-[0_8px_16px_rgba(0,0,0,0.12)]">
                             <FileText size={12} style={{ color: theme.textOnPrimary }} />
                           </div>
-                          <div className="absolute right-2.5 top-2.5 rounded-full border border-white/20 bg-white/12 px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.08em]" style={{ color: theme.textOnPrimary }}>
+                          <div className="absolute right-2.5 top-2.5 rounded-full border border-white/20 bg-white/12 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em]" style={{ color: theme.textOnPrimary }}>
                             {Math.max(0, Math.min(100, decision.readiness))}%
                           </div>
                           <div className="absolute inset-x-2.5 bottom-2.5 flex items-center justify-between gap-2">
-                            <span className="rounded-full border border-white/20 bg-white/10 px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.08em]" style={{ color: theme.textOnPrimary }}>
+                            <span className="rounded-full border border-white/20 bg-white/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em]" style={{ color: theme.textOnPrimary }}>
                               {localizedDecisionStatusLabel(decision.status, ts)}
                             </span>
                             <span className="text-[10px] font-semibold" style={{ color: theme.textOnPrimary, opacity: 0.8 }}>
@@ -23993,10 +24040,10 @@ function DecisionCompanionPanel({
                           </div>
                         </div>
                         <div className="flex flex-1 flex-col gap-1.5 p-2.5 sm:gap-2 sm:p-3">
-                          <p className="line-clamp-2 text-sm font-semibold leading-5" style={{ color: theme.textPrimary }}>
+                          <p className="min-h-[2.75rem] line-clamp-2 text-[0.98rem] font-semibold leading-[1.25rem] tracking-tight" style={{ color: theme.textPrimary }}>
                             {decision.title}
                           </p>
-                          <p className="line-clamp-2 text-xs leading-5" style={{ color: theme.textSecondary }}>
+                          <p className="line-clamp-2 text-xs leading-6" style={{ color: theme.textSecondary }}>
                             {decision.pressure}
                           </p>
                         </div>
@@ -24017,9 +24064,6 @@ function DecisionCompanionPanel({
                       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.18),transparent_42%),radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.08),transparent_40%)]" />
                       <div className="relative flex items-start justify-between gap-3 p-3 sm:p-4">
                         <div className="min-w-0">
-                          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textOnPrimary, opacity: 0.85 }}>
-                            {ts('labels.preview')}
-                          </p>
                           <h3 className="mt-1.5 text-[1.08rem] font-semibold leading-tight text-balance sm:text-[1.18rem]" style={{ color: theme.textOnPrimary }}>
                             {selectedMemoryDecision.title}
                           </h3>
@@ -24151,7 +24195,7 @@ function DecisionOverviewRailStat({
 
   return (
     <div
-      className="premium-tap-card relative flex min-h-[5.55rem] w-[9.65rem] shrink-0 snap-start flex-col justify-between overflow-hidden rounded-[0.92rem] border p-2.5 text-left shadow-[0_6px_14px_rgba(7,10,8,0.04)] sm:w-[10.5rem]"
+      className="premium-tap-card relative flex min-h-[5.55rem] w-[10.9rem] shrink-0 snap-start flex-col justify-between overflow-hidden rounded-[0.92rem] border p-2.5 text-left shadow-[0_6px_14px_rgba(7,10,8,0.04)] sm:w-[11.75rem]"
       style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}
       aria-label={accessibleLabel}
       title={accessibleLabel}
@@ -24236,7 +24280,7 @@ function DecisionCard({
     <article
       id={`decision-card-${decision.id}`}
       tabIndex={-1}
-      className="relative overflow-hidden rounded-[1.45rem] border p-4 shadow-[0_10px_28px_rgba(15,23,42,0.06)] outline-none sm:p-5"
+      className="relative overflow-hidden rounded-[1.55rem] border shadow-[0_12px_30px_rgba(10,18,14,0.08)] outline-none"
       style={{
         borderColor: highlighted ? theme.accentGold : theme.borderLight,
         background: highlighted
@@ -24246,49 +24290,62 @@ function DecisionCard({
       }}
     >
       <div className="absolute inset-y-0 left-0 w-1.5" style={{ backgroundColor: highlighted ? theme.accentGold : theme.borderLight }} />
-      <div className="relative flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-        <div className="flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-full px-2 py-1 text-xs font-semibold" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>{modeLabel}</span>
-            <span className="rounded-full px-2 py-1 text-xs font-semibold" style={{ backgroundColor: theme.bgCardElevated, color: theme.accentGold }}>{localizedDecisionStatusLabel(decision.status, ts)}</span>
-            {waitingText ? <span className="rounded-full px-2 py-1 text-xs font-semibold" style={{ backgroundColor: theme.bgCardElevated, color: theme.accentGold }}>{waitingText}</span> : null}
-            {revisitText ? <span className="rounded-full px-2 py-1 text-xs font-semibold" style={{ backgroundColor: theme.bgInput, color: theme.primary }}>{revisitText}</span> : null}
-            {outcomeText ? <span className="rounded-full px-2 py-1 text-xs font-semibold" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>{outcomeText}</span> : null}
+      <div
+        className="relative overflow-hidden border-b"
+        style={{
+          borderColor: theme.borderLight,
+          background: highlighted
+            ? `linear-gradient(135deg, ${theme.primary} 0%, ${theme.bgCardElevated} 72%)`
+            : `linear-gradient(135deg, ${theme.bgCardElevated} 0%, ${theme.bgCard} 72%)`,
+        }}
+      >
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.16),transparent_40%),radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.08),transparent_42%)]" />
+        <div className="relative flex items-start justify-between gap-3 p-3.5 sm:p-4">
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.22em]" style={{ color: theme.textOnPrimary, opacity: 0.85 }}>
+              {modeLabel}
+            </p>
+            <h3 className="mt-1.5 text-[1.22rem] font-semibold leading-tight text-balance sm:text-[1.3rem]" style={{ color: theme.textOnPrimary }}>
+              {decision.title}
+            </h3>
+            <p className="mt-2 max-w-2xl text-sm leading-6" style={{ color: theme.textOnPrimary, opacity: 0.88 }}>
+              {decision.pressure}
+            </p>
           </div>
-          <h3 className="mt-3 text-[1.28rem] font-semibold leading-tight text-balance" style={{ color: theme.textPrimary }}>{decision.title}</h3>
-          <p className="mt-2 max-w-2xl text-sm leading-6" style={{ color: theme.textSecondary }}>{decision.pressure}</p>
+          <div className="flex shrink-0 items-start gap-2">
+            <div className="grid min-w-20 place-items-center rounded-[1rem] border border-white/20 bg-white/12 px-3 py-2 text-center shadow-[0_10px_24px_rgba(0,0,0,0.12)]">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textOnPrimary, opacity: 0.85 }}>{ts('labels.readiness')}</p>
+              <p className="mt-1 text-2xl font-semibold leading-none" style={{ color: theme.textOnPrimary }}>{decision.readiness}%</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => onDelete(decision.id)}
+              className="grid size-11 shrink-0 place-items-center rounded-full border border-white/20 bg-white/12 transition"
+              style={{ color: theme.textOnPrimary }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.18)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.12)";
+              }}
+              aria-label={ts('labels.deleteDecision')}
+              title={ts('labels.deleteThisDecision')}
+            >
+              <Trash2 size={18} />
+            </button>
+          </div>
         </div>
-        <div className="flex shrink-0 gap-2">
-          <div className="min-w-28 rounded-[1rem] border p-3 text-center" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-            <p className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>{ts('labels.readiness')}</p>
-            <p className="mt-1 text-2xl font-semibold" style={{ color: theme.textPrimary }}>{decision.readiness}%</p>
-          </div>
-          <button
-            type="button"
-            onClick={() => onDelete(decision.id)}
-            className="grid size-11 shrink-0 place-items-center self-start rounded-full border-2 transition"
-            style={{
-              borderColor: theme.borderMedium,
-              backgroundColor: theme.bgCard,
-              color: '#cc4444',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = '#cc4444';
-              e.currentTarget.style.backgroundColor = '#fff5f5';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = theme.borderMedium;
-              e.currentTarget.style.backgroundColor = theme.bgCard;
-            }}
-            aria-label={ts('labels.deleteDecision')}
-            title={ts('labels.deleteThisDecision')}
-          >
-            <Trash2 size={18} />
-          </button>
+        <div className="relative flex flex-wrap gap-2 px-3.5 pb-3.5 sm:px-4 sm:pb-4">
+          <span className="inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ borderColor: theme.textOnPrimary + "33", backgroundColor: theme.textOnPrimary + "14", color: theme.textOnPrimary }}>
+            {localizedDecisionStatusLabel(decision.status, ts)}
+          </span>
+          {waitingText ? <span className="inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ borderColor: theme.textOnPrimary + "33", backgroundColor: theme.textOnPrimary + "14", color: theme.textOnPrimary }}>{waitingText}</span> : null}
+          {revisitText ? <span className="inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ borderColor: theme.textOnPrimary + "33", backgroundColor: theme.textOnPrimary + "14", color: theme.textOnPrimary }}>{revisitText}</span> : null}
+          {outcomeText ? <span className="inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ borderColor: theme.textOnPrimary + "33", backgroundColor: theme.textOnPrimary + "14", color: theme.textOnPrimary }}>{outcomeText}</span> : null}
         </div>
       </div>
 
-      <div className="relative mt-4 flex flex-wrap gap-2">
+      <div className="relative mt-4 flex flex-wrap gap-2 px-3.5 sm:px-4">
         <DecisionToggle active={decision.counselSought} label={ts('labels.counsel')} onClick={() => onUpdate(decision.id, { counselSought: !decision.counselSought, event: "Counsel status changed." })} theme={theme} />
         <DecisionToggle active={decision.costCounted} label={ts('labels.cost')} onClick={() => onUpdate(decision.id, { costCounted: !decision.costCounted, event: "Cost counting updated." })} theme={theme} />
         <DecisionToggle active={decision.alignmentClear} label={ts('labels.values')} onClick={() => onUpdate(decision.id, { alignmentClear: !decision.alignmentClear, event: "Values alignment updated." })} theme={theme} />
@@ -24296,7 +24353,7 @@ function DecisionCard({
         <DecisionToggle active={decision.peaceOverUrgency} label={ts('labels.peace')} onClick={() => onUpdate(decision.id, { peaceOverUrgency: !decision.peaceOverUrgency, event: "Peace over urgency updated." })} theme={theme} />
       </div>
 
-      <div className="relative mt-4 flex flex-wrap items-center justify-between gap-2">
+      <div className="relative mt-4 flex flex-wrap items-center justify-between gap-2 px-3.5 sm:px-4">
         <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>{modeProfile.diagnosticTracks[0]}</p>
         <button
           type="button"
@@ -24310,7 +24367,7 @@ function DecisionCard({
 
       {isDetailsOpen ? (
         <>
-          <div className="mt-4 grid gap-3 md:grid-cols-[1fr_auto] md:items-center">
+          <div className="mt-4 grid gap-3 px-3.5 sm:px-4 md:grid-cols-[1fr_auto] md:items-center">
             <div className="flex flex-wrap gap-2">
               {[1, 3, 7, 30].map((days) => (
                 <button key={days} type="button" onClick={() => onUpdate(decision.id, { waitingDays: days })} className="rounded-full border px-3 py-2 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}>
@@ -24332,8 +24389,8 @@ function DecisionCard({
             </div>
           </div>
 
-          <div className="mt-4 grid gap-3 lg:grid-cols-2">
-            <div className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+          <div className="mt-4 grid gap-3 px-3.5 sm:px-4 lg:grid-cols-2">
+            <div className="rounded-[1.15rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
               <label className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
                 {ts('labels.whatChanged')}
               </label>
@@ -24358,7 +24415,7 @@ function DecisionCard({
               </button>
             </div>
 
-            <div className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+            <div className="rounded-[1.15rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
               <label className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
                 {ts('labels.outcomeAndLearning')}
               </label>
@@ -24394,7 +24451,7 @@ function DecisionCard({
             </div>
           </div>
 
-          <div className="mt-4 rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+          <div className="mt-4 rounded-[1.15rem] border p-3 px-3.5 sm:px-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
             <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{ts('labels.revisitRhythm')}</p>
             <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
               {ts('labels.wisdomGetsClearerWithTime')}
@@ -25795,7 +25852,7 @@ function LibraryPanel({
                       key={entry.scripture}
                       type="button"
                       onClick={() => setSelectedLibraryEntryId(entry.scripture)}
-                      className="premium-tap-card relative flex h-36 w-40 shrink-0 snap-start flex-col overflow-hidden rounded-2xl border p-0 text-left shadow-sm transition sm:h-40 sm:w-44"
+                      className="premium-tap-card relative flex h-36 w-[10.9rem] shrink-0 snap-start flex-col overflow-hidden rounded-2xl border p-0 text-left shadow-sm transition sm:h-40 sm:w-[11.75rem]"
                       style={{
                         borderColor: isActive ? theme.primary : theme.borderMedium,
                         backgroundColor: isActive ? theme.bgCardElevated : theme.bgInput,
@@ -25806,7 +25863,7 @@ function LibraryPanel({
                       aria-pressed={isActive}
                     >
                       <div
-                        className="relative h-14 overflow-hidden sm:h-16"
+                        className="relative h-[4.15rem] overflow-hidden sm:h-[4.9rem]"
                         style={{
                           background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.bgCardElevated} 72%)`,
                         }}
@@ -25823,15 +25880,15 @@ function LibraryPanel({
                             {translationLabel}
                           </span>
                           <span className="text-[10px] font-semibold" style={{ color: theme.textOnPrimary, opacity: 0.8 }}>
-                            {isActive ? ts('labels.selected') : ts('labels.preview')}
+                            {index + 1}
                           </span>
                         </div>
                       </div>
                       <div className="flex flex-1 flex-col gap-1.5 p-2.5 sm:gap-2 sm:p-3">
-                        <p className="line-clamp-2 text-sm font-semibold leading-5" style={{ color: theme.textPrimary }}>
+                        <p className="min-h-[2.75rem] line-clamp-2 text-[0.98rem] font-semibold leading-[1.25rem] tracking-tight" style={{ color: theme.textPrimary }}>
                           {localizedScriptureReference(entry.scripture, preferences.language)}
                         </p>
-                        <p className="line-clamp-2 text-xs leading-5" style={{ color: theme.textSecondary }}>
+                        <p className="line-clamp-2 text-xs leading-6" style={{ color: theme.textSecondary }}>
                           {localizedEntry.principle}
                         </p>
                       </div>
@@ -25841,7 +25898,7 @@ function LibraryPanel({
               </section>
 
               {selectedLibraryEntry ? (
-                <article className="mt-4 overflow-hidden rounded-[1.45rem] border shadow-[0_8px_24px_rgba(15,23,42,0.05)]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+                <article className="mt-4 overflow-hidden rounded-[1.55rem] border shadow-[0_12px_30px_rgba(10,18,14,0.08)]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
                   <div
                     className="relative overflow-hidden border-b"
                     style={{
@@ -25850,9 +25907,8 @@ function LibraryPanel({
                     }}
                   >
                     <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.16),transparent_40%),radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.08),transparent_42%)]" />
-                    <div className="relative flex items-start justify-between gap-3 p-3 sm:p-4">
+                    <div className="relative flex items-start justify-between gap-3 p-3.5 sm:p-4">
                       <div className="min-w-0">
-                        <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textOnPrimary, opacity: 0.85 }}>{ts('labels.preview')}</p>
                         <button
                           type="button"
                           onClick={() => onScriptureOpen(selectedLibraryEntry.scripture)}
@@ -25869,7 +25925,7 @@ function LibraryPanel({
                         <BookOpen size={18} style={{ color: theme.textOnPrimary }} />
                       </div>
                     </div>
-                    <div className="relative flex flex-wrap gap-2 px-3 pb-3 sm:px-4 sm:pb-4">
+                    <div className="relative flex flex-wrap gap-2 px-3.5 pb-3.5 sm:px-4 sm:pb-4">
                       <span className="rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.textOnPrimary + "33", backgroundColor: theme.textOnPrimary + "14", color: theme.textOnPrimary }}>
                         {localizedWisdomThemeLabel(selectedLibraryEntry.theme, preferences.language)}
                       </span>
@@ -25894,9 +25950,9 @@ function LibraryPanel({
 
                     <div className="p-3.5">
                       <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
-                        {ts('labels.summary')}
+                        {ts('labels.summary', 'Summary')}
                       </p>
-                      <div className="mt-2 rounded-[1rem] border p-3 text-sm leading-6" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                      <div className="mt-2 rounded-[1.15rem] border p-3 text-sm leading-6" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
                         <p>{localizedWisdomLibraryEntry(selectedLibraryEntry, preferences).context}</p>
                       </div>
                       <div className="mt-3 grid gap-2 sm:grid-cols-2">
@@ -25942,27 +25998,39 @@ function LibraryPanel({
                       return (
                         <article
                           key={entry.scripture}
-                          className="rounded-lg border p-3.5"
+                          className="overflow-hidden rounded-[1.35rem] border shadow-[0_10px_24px_rgba(10,18,14,0.07)]"
                           style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}
                         >
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="rounded-md px-2 py-1 text-xs font-semibold uppercase tracking-[0.14em]" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-                              {localizedWisdomThemeLabel(entry.theme, preferences.language)}
-                            </span>
-                            <span className="inline-flex items-center rounded-full border px-3 py-1 text-[0.72rem] font-semibold uppercase tracking-[0.16em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-                              {translationLabel}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => onScriptureOpen(entry.scripture)}
-                              className="text-left text-sm font-semibold underline underline-offset-4 transition"
-                              style={{ color: theme.textPrimary, textDecorationColor: theme.borderMedium }}
-                            >
-                              {localizedScriptureReference(entry.scripture, preferences.language)}
-                            </button>
+                          <div className="relative overflow-hidden border-b" style={{ borderColor: theme.borderLight, background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.bgCardElevated} 72%)` }}>
+                            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.16),transparent_40%),radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.08),transparent_42%)]" />
+                            <div className="relative flex items-start justify-between gap-3 p-3.5">
+                              <div className="min-w-0">
+                                <p className="text-[11px] font-semibold uppercase tracking-[0.22em]" style={{ color: theme.textOnPrimary, opacity: 0.85 }}>
+                                  {localizedWisdomThemeLabel(entry.theme, preferences.language)}
+                                </p>
+                                <button
+                                  type="button"
+                                  onClick={() => onScriptureOpen(entry.scripture)}
+                                  className="mt-1 text-left text-[1.02rem] font-semibold leading-tight underline underline-offset-4 transition sm:text-[1.08rem]"
+                                  style={{ color: theme.textOnPrimary, textDecorationColor: theme.textOnPrimary + "66" }}
+                                >
+                                  {localizedScriptureReference(entry.scripture, preferences.language)}
+                                </button>
+                              </div>
+                              <div className="grid size-11 shrink-0 place-items-center rounded-full border border-white/20 bg-white/12 shadow-[0_10px_24px_rgba(0,0,0,0.12)]">
+                                <BookOpen size={18} style={{ color: theme.textOnPrimary }} />
+                              </div>
+                            </div>
+                            <div className="relative flex flex-wrap gap-2 px-3.5 pb-3.5">
+                              <span className="rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.textOnPrimary + "33", backgroundColor: theme.textOnPrimary + "14", color: theme.textOnPrimary }}>
+                                {translationLabel}
+                              </span>
+                            </div>
                           </div>
-                          <p className="mt-2 text-sm font-semibold leading-5" style={{ color: theme.textPrimary }}>{localizedEntry.principle}</p>
-                          <p className="mt-2.5 text-sm leading-5" style={{ color: theme.textSecondary }}>{localizedEntry.application}</p>
+                          <div className="p-3.5 sm:p-4">
+                            <p className="text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>{localizedEntry.principle}</p>
+                            <p className="mt-2.5 text-sm leading-6" style={{ color: theme.textSecondary }}>{localizedEntry.application}</p>
+                          </div>
                         </article>
                       );
                     })}
