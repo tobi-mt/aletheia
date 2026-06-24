@@ -2,16 +2,14 @@
 
 import React from "react";
 import { motion } from "framer-motion";
+import { ThemeColors } from "@/lib/themes";
 
 export interface StreakBadgeProps {
   days: number;
   size?: "sm" | "md" | "lg";
   showLabel?: boolean;
   animated?: boolean;
-  theme?: {
-    accentRgb?: string;
-    accentColor?: string;
-  };
+  theme?: ThemeColors;
   ts: (key: string, fallback?: string) => string;
 }
 
@@ -50,10 +48,12 @@ export function StreakBadge({
     return null;
   };
 
+  const accentColor = theme?.accentGold || "#ff6b35";
+  
   const bgColor =
     days === 0
-      ? `rgba(${theme?.accentRgb || "100, 100, 100"}, 0.1)`
-      : `rgba(${theme?.accentRgb || "255, 107, 53"}, 0.15)`;
+      ? `color-mix(in srgb, ${accentColor} 10%, transparent)`
+      : `color-mix(in srgb, ${accentColor} 15%, transparent)`;
 
   const pulseVariants = {
     initial: { opacity: 0.7 },
@@ -72,7 +72,7 @@ export function StreakBadge({
         style={{
           background: bgColor,
           borderWidth: "2px",
-          borderColor: theme?.accentColor || "rgba(255, 107, 53, 0.3)",
+          borderColor: `color-mix(in srgb, ${accentColor} 30%, transparent)`,
         }}
         animate={animated && days > 0 ? "animate" : "initial"}
         variants={pulseVariants}
@@ -83,7 +83,7 @@ export function StreakBadge({
           <span
             className="absolute bottom-0 right-0 text-xs font-bold"
             style={{
-              background: theme?.accentColor || "#ff6b35",
+              background: accentColor,
               color: "white",
               borderRadius: "50%",
               width: "1.25rem",
