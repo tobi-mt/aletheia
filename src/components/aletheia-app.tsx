@@ -20949,58 +20949,28 @@ function DecisionMemoryArchiveSection({
   entries: DecisionMemorySeed[];
 }) {
   const sortedEntries = [...entries].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   return (
     <section
-      aria-labelledby="decision-memory-title"
-      className="overflow-hidden rounded-[1.5rem] border shadow-[0_16px_40px_rgba(10,18,14,0.12)]"
-      style={{
-        borderColor: theme.borderStrong,
-        backgroundColor: theme.bgCard,
-      }}
+      aria-label={ts("labels.decisionMemory")}
+      className="space-y-3"
     >
-      <div
-        className="relative overflow-hidden border-b px-4 py-4 sm:px-5 sm:py-5"
-        style={{
-          borderColor: theme.borderLight,
-          background: `linear-gradient(135deg, color-mix(in srgb, ${theme.bgCardElevated} 66%, white 34%), ${theme.bgCard}, color-mix(in srgb, ${theme.bgCardElevated} 84%, ${theme.accentGold} 16%))`,
-        }}
-      >
-        <div
-          className="absolute inset-0 opacity-90"
-          style={{
-            background: `radial-gradient(circle at 18% 18%, color-mix(in srgb, ${theme.accentGold} 18%, transparent), transparent 36%), radial-gradient(circle at 92% 0%, color-mix(in srgb, ${theme.primary} 10%, transparent), transparent 30%)`,
-          }}
-        />
-        <div
-          className="absolute inset-y-0 left-0 w-px"
-          style={{ background: `linear-gradient(to bottom, transparent, ${theme.accentGold}, transparent)` }}
-        />
-        <div className="relative flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] sm:text-xs" style={{ color: theme.accentGold }}>
-              {ts("labels.memory")}
-            </p>
-            <h2 id="decision-memory-title" className="mt-1.5 text-xl font-semibold tracking-tight sm:text-2xl" style={{ color: theme.textPrimary }}>
-              {ts("labels.decisionMemory")}
-            </h2>
-          </div>
-          <span className="rounded-full border px-3 py-1.5 text-xs font-semibold" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textPrimary }}>
-            {sortedEntries.length}
-          </span>
-        </div>
-      </div>
-
-      <div className="space-y-3 p-3.5 sm:p-4">
         {sortedEntries.length ? (
           sortedEntries.map((entry) => {
             const createdDate = new Date(entry.createdAt);
+            const isExpanded = expandedId === entry.id;
             return (
-              <article
+              <button
                 key={entry.id}
-                className="premium-tap-card overflow-hidden rounded-[1.35rem] border px-3.5 py-3.5 shadow-[0_8px_20px_rgba(10,18,14,0.06)]"
+                type="button"
+                onClick={() => setExpandedId((current) => (current === entry.id ? null : entry.id))}
+                aria-expanded={isExpanded}
+                className="premium-tap-card block w-full overflow-hidden rounded-[1.35rem] border px-3.5 py-3.5 text-left shadow-[0_8px_20px_rgba(10,18,14,0.06)] transition active:scale-[0.995]"
                 style={{
-                  borderColor: theme.borderLight,
-                  background: `linear-gradient(180deg, color-mix(in srgb, ${theme.bgCardElevated} 92%, ${theme.accentGold} 8%), ${theme.bgCard})`,
+                  borderColor: isExpanded ? theme.accentGold : theme.borderLight,
+                  background: isExpanded
+                    ? `linear-gradient(180deg, color-mix(in srgb, ${theme.bgCardElevated} 88%, ${theme.accentGold} 12%), ${theme.bgCard})`
+                    : `linear-gradient(180deg, color-mix(in srgb, ${theme.bgCardElevated} 94%, ${theme.accentGold} 6%), ${theme.bgCard})`,
                 }}
               >
                 <div className="flex items-start justify-between gap-3">
@@ -21019,26 +20989,26 @@ function DecisionMemoryArchiveSection({
                       }).format(createdDate)}
                     </p>
                   </div>
-                  <span className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-                    {ts("labels.memory")}
+                  <span className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                    {isExpanded ? ts("hideDetails") : ts("showDetails")}
+                    <ChevronDown size={11} style={{ transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)" }} />
                   </span>
                 </div>
 
-                <p className="mt-3 line-clamp-2 text-[0.96rem] font-semibold leading-6 tracking-tight" style={{ color: theme.textPrimary }}>
+                <p className={`mt-3 text-[0.96rem] font-semibold leading-6 tracking-tight ${isExpanded ? "" : "line-clamp-2"}`} style={{ color: theme.textPrimary }}>
                   {entry.title}
                 </p>
-                <p className="mt-2 line-clamp-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                <p className={`mt-2 text-sm leading-6 ${isExpanded ? "" : "line-clamp-2"}`} style={{ color: theme.textSecondary }}>
                   {entry.pressure}
                 </p>
-              </article>
+              </button>
             );
           })
         ) : (
           <div className="rounded-[1.35rem] border border-dashed px-4 py-5 text-sm leading-6" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
-            {ts("labels.startDecisionToBeginTimeline")}
+            {ts("labels.noDecisionMemoryHelp")}
           </div>
         )}
-      </div>
     </section>
   );
 }
