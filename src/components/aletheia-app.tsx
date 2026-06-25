@@ -6538,6 +6538,7 @@ export function AletheiaApp() {
   const [challengeInviteStatus, setChallengeInviteStatus] = useState("");
   const [challengeInviteUrl, setChallengeInviteUrl] = useState<string | null>(null);
   const [challengeCircleRefreshKey, setChallengeCircleRefreshKey] = useState(0);
+  const [challengeProgress, setChallengeProgress] = useState<ChallengeWithProgress[]>([]);
   const [counselRemovalPrompt, setCounselRemovalPrompt] = useState<CounselRemovalConfirmationState | null>(null);
   const [isRemovingCounselContact, setIsRemovingCounselContact] = useState(false);
   const [currentLocalDayNumber, setCurrentLocalDayNumber] = useState<number | null>(null);
@@ -6589,6 +6590,34 @@ export function AletheiaApp() {
       }
     }, 0);
   }, []);
+
+  useEffect(() => {
+    if (!user) {
+      queueMicrotask(() => {
+        setChallengeProgress([]);
+      });
+      return;
+    }
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        const response = await fetch("/api/challenges", { cache: "no-store" });
+        const data = (await response.json()) as { challenges?: ChallengeWithProgress[] };
+        if (!cancelled) {
+          setChallengeProgress(data.challenges ?? []);
+        }
+      } catch {
+        if (!cancelled) {
+          setChallengeProgress([]);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [challengeCircleRefreshKey, user]);
   
   // Load translations synchronously using useMemo to ensure they're available immediately
   const translations = useMemo(() => {
@@ -8369,6 +8398,14 @@ export function AletheiaApp() {
       bump(decisionItem.mode);
     }
 
+    const activeChallengeProgress = [...challengeProgress]
+      .filter((challenge) => challenge.completedDays.length > 0 && challenge.completedDays.length < challenge.totalDays)
+      .sort((a, b) => {
+        const aLast = a.completedDays[a.completedDays.length - 1]?.completedAt ?? "";
+        const bLast = b.completedDays[b.completedDays.length - 1]?.completedAt ?? "";
+        return Date.parse(bLast) - Date.parse(aLast) || b.completedDays.length - a.completedDays.length;
+      })[0] ?? null;
+
     const recentTexts = [
       ...messages
         .filter((message) => message.role === "user")
@@ -8385,8 +8422,18 @@ export function AletheiaApp() {
       modeCounts,
       currentMode: mode,
       recentTexts,
+      completedChallengeIds: challengeProgress
+        .filter((challenge) => challenge.completedDays.length >= challenge.totalDays)
+        .map((challenge) => challenge.id),
+      activeChallenge: activeChallengeProgress
+        ? {
+            challengeId: activeChallengeProgress.id,
+            daysCompleted: activeChallengeProgress.completedDays.length,
+            totalDays: activeChallengeProgress.totalDays,
+          }
+        : null,
     });
-  }, [focusIntentions, journalEntries, manualContext, messages, mode, user, wisdomDecisions]);
+  }, [challengeProgress, focusIntentions, journalEntries, manualContext, messages, mode, user, wisdomDecisions]);
 
   function handleModeChange(nextMode: Mode) {
     setMode(nextMode);
