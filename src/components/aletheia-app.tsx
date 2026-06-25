@@ -11772,7 +11772,6 @@ export function AletheiaApp() {
                       mode={mode}
                       modeProfile={activeMode}
                       decisions={wisdomDecisions}
-                      focusedDecisionId={pendingDecisionNotificationFocus}
                       events={decisionEvents}
                       insight={timelineInsight}
                       counselContacts={counselContacts}
@@ -20938,6 +20937,211 @@ function WisdomTimelineModal({
   );
 }
 
+function DecisionMemoryModal({
+  open,
+  theme,
+  ts,
+  language,
+  entries,
+  summary,
+  onClose,
+}: {
+  open: boolean;
+  theme: ThemeColors;
+  ts: (key: string, fallback?: string) => string;
+  language: LanguageCode;
+  entries: DecisionMemorySeed[];
+  summary: string;
+  onClose: () => void;
+}) {
+  const canUsePortal = typeof document !== "undefined";
+  useBodyScrollLock(open && canUsePortal);
+
+  if (!open || !canUsePortal) {
+    return null;
+  }
+
+  const sortedEntries = [...entries].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  const dateFormatter = new Intl.DateTimeFormat(language, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+  const latestEntry = sortedEntries[0] ?? null;
+  const latestEntryLabel = latestEntry ? dateFormatter.format(new Date(latestEntry.createdAt)) : null;
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[9999] grid min-h-dvh place-items-center overflow-hidden overscroll-none px-3 py-3 backdrop-blur-sm"
+      style={{
+        backgroundColor: "rgba(13, 23, 20, 0.62)",
+        paddingTop: "calc(max(var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)), 0.75rem) + 0.25rem)",
+        paddingBottom: "calc(max(var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)), 0.75rem) + 0.25rem)",
+      }}
+    >
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="decision-memory-title"
+        className="w-full max-w-3xl overflow-y-auto overscroll-contain rounded-[2rem] border shadow-[0_28px_90px_rgba(10,18,14,0.36)]"
+        style={{
+          borderColor: theme.borderStrong,
+          backgroundColor: theme.bgCard,
+          maxHeight: "calc(100dvh - max(var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)), 0.75rem) - max(var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)), 0.75rem) - 1rem)",
+        }}
+      >
+        <div
+          className="relative overflow-hidden border-b px-4 py-4 sm:px-5 sm:py-5"
+          style={{
+            borderColor: theme.borderLight,
+            background: `linear-gradient(135deg, color-mix(in srgb, ${theme.bgCardElevated} 66%, white 34%), ${theme.bgCard}, color-mix(in srgb, ${theme.bgCardElevated} 84%, ${theme.accentGold} 16%))`,
+          }}
+        >
+          <div
+            className="absolute inset-0 opacity-90"
+            style={{
+              background: `radial-gradient(circle at 18% 18%, color-mix(in srgb, ${theme.accentGold} 18%, transparent), transparent 36%), radial-gradient(circle at 92% 0%, color-mix(in srgb, ${theme.primary} 10%, transparent), transparent 30%)`,
+            }}
+          />
+          <div
+            className="absolute inset-y-0 left-0 w-px"
+            style={{ background: `linear-gradient(to bottom, transparent, ${theme.accentGold}, transparent)` }}
+          />
+          <div className="relative flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] sm:text-xs" style={{ color: theme.accentGold }}>
+                {ts("labels.memory")}
+              </p>
+              <h2 id="decision-memory-title" className="mt-1.5 text-xl font-semibold tracking-tight sm:text-2xl" style={{ color: theme.textPrimary }}>
+                {ts("labels.decisionMemory")}
+              </h2>
+              <p className="mt-1.5 max-w-xl text-sm leading-6 sm:text-[0.95rem]" style={{ color: theme.textSecondary }}>
+                {summary}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="grid size-10 shrink-0 place-items-center rounded-full border transition shadow-sm"
+              style={{
+                borderColor: theme.borderMedium,
+                backgroundColor: theme.bgInput,
+                color: theme.textPrimary,
+              }}
+              aria-label={ts("labels.close")}
+            >
+              <X size={16} />
+            </button>
+          </div>
+
+          <div className="relative mt-4 grid gap-2.5 sm:grid-cols-2">
+            <div className="rounded-[1.35rem] border p-3.5 shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+              <div className="mb-3 h-1.5 rounded-full" style={{ background: `linear-gradient(90deg, ${theme.accentGold}, color-mix(in srgb, ${theme.accentGold} 25%, ${theme.borderLight} 75%))` }} />
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textSecondary }}>
+                {ts("labels.eventsRecorded")}
+              </p>
+              <p className="mt-1.5 text-lg font-semibold tracking-tight" style={{ color: theme.textPrimary }}>
+                {sortedEntries.length}
+              </p>
+            </div>
+            <div className="rounded-[1.35rem] border p-3.5 shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+              <div className="mb-3 h-1.5 rounded-full" style={{ background: `linear-gradient(90deg, ${theme.primary}, color-mix(in srgb, ${theme.primary} 30%, ${theme.accentGold} 70%))` }} />
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textSecondary }}>
+                {ts("labels.decisionLastReviewed")}
+              </p>
+              <p className="mt-1.5 text-lg font-semibold tracking-tight" style={{ color: theme.textPrimary }}>
+                {latestEntryLabel ?? ts("labels.startDecisionToBeginTimeline")}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-4 p-3.5 sm:p-4">
+          {sortedEntries.length ? (
+            <>
+              <div className="flex justify-end text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
+                <span className="inline-flex items-center gap-1">
+                  <span>{ts("labels.swipeForMore")}</span>
+                  <span aria-hidden="true">→</span>
+                </span>
+              </div>
+              <section
+                className="flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]"
+                aria-label={ts("labels.decisionMemory")}
+              >
+                {sortedEntries.map((entry, index) => {
+                  const createdDate = new Date(entry.createdAt);
+                  return (
+                    <motion.article
+                      key={entry.id}
+                      className="premium-tap-card relative flex min-h-[18rem] min-w-[min(88vw,32rem)] shrink-0 snap-start flex-col overflow-hidden rounded-[1.6rem] border shadow-[0_12px_32px_rgba(10,18,14,0.08)]"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                      style={{
+                        borderColor: theme.borderLight,
+                        background: `linear-gradient(180deg, color-mix(in srgb, ${theme.bgCardElevated} 82%, ${theme.accentGold} 18%), ${theme.bgCard})`,
+                      }}
+                    >
+                      <div
+                        className="h-1.5"
+                        style={{
+                          background: `linear-gradient(90deg, ${theme.accentGold}, color-mix(in srgb, ${theme.primary} 55%, ${theme.accentGold} 45%))`,
+                        }}
+                      />
+                      <div className="flex flex-1 flex-col p-4 sm:p-5">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.textSecondary }}>
+                              {new Intl.DateTimeFormat(language, {
+                                month: "short",
+                                day: "numeric",
+                                year: "numeric",
+                              }).format(createdDate)}
+                            </p>
+                            <p className="mt-1.5 text-[0.92rem] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
+                              {new Intl.DateTimeFormat(language, {
+                                hour: "numeric",
+                                minute: "2-digit",
+                              }).format(createdDate)}
+                            </p>
+                          </div>
+                          <span
+                            className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]"
+                            style={{
+                              borderColor: theme.borderLight,
+                              backgroundColor: theme.bgInput,
+                              color: theme.textSecondary,
+                            }}
+                          >
+                            {ts("labels.memory")}
+                          </span>
+                        </div>
+
+                        <p className="mt-4 text-lg font-semibold leading-7 tracking-tight sm:text-xl" style={{ color: theme.textPrimary }}>
+                          {entry.title}
+                        </p>
+                        <p className="mt-3 text-sm leading-7 sm:text-[0.98rem]" style={{ color: theme.textSecondary }}>
+                          {entry.pressure}
+                        </p>
+                      </div>
+                    </motion.article>
+                  );
+                })}
+              </section>
+            </>
+          ) : (
+            <div className="rounded-[1.35rem] border border-dashed px-4 py-5 text-sm leading-6" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
+              {ts("labels.startDecisionToBeginTimeline")}
+            </div>
+          )}
+        </div>
+      </section>
+    </div>,
+    document.body
+  );
+}
+
 function StreakMilestonesModal({
   open,
   theme,
@@ -23470,7 +23674,6 @@ function DecisionCompanionPanel({
   mode,
   modeProfile,
   decisions,
-  focusedDecisionId,
   events,
   insight,
   counselContacts,
@@ -23517,7 +23720,6 @@ function DecisionCompanionPanel({
   mode: Mode;
   modeProfile: DisplayModeProfile;
   decisions: WisdomDecision[];
-  focusedDecisionId: string | null;
   events: DecisionEvent[];
   insight: TimelineInsight;
   counselContacts: CounselContact[];
@@ -23565,12 +23767,12 @@ function DecisionCompanionPanel({
   const [counselAvatarStatus, setCounselAvatarStatus] = useState("");
   const [counselAvatarPickerOpen, setCounselAvatarPickerOpen] = useState(false);
   const [wisdomTimelineOpen, setWisdomTimelineOpen] = useState(false);
+  const [decisionMemoryOpen, setDecisionMemoryOpen] = useState(false);
   const counselAvatarFileInputRef = useRef<HTMLInputElement | null>(null);
   const rhythmRailRef = useRef<HTMLDivElement | null>(null);
   const visibleCounselRailRef = useRef<HTMLDivElement | null>(null);
   const hiddenCounselRailRef = useRef<HTMLDivElement | null>(null);
   const ruleRailRef = useRef<HTMLDivElement | null>(null);
-  const decisionMemoryRailRef = useRef<HTMLDivElement | null>(null);
   const activeDecisions = decisions.filter((decision) => decision.status !== "closed");
   const selectedDecision = decisions[0];
   const [decisionSection, setDecisionSection] = useState<"decisions" | "counsel" | "rhythm" | "memory">("decisions");
@@ -23589,7 +23791,6 @@ function DecisionCompanionPanel({
   const hiddenCounselRailHasOverflow = useRailOverflow(hiddenCounselRailRef, decisionSection === "counsel" && counselContacts.length > 3, [counselContacts.length]);
   const ruleRailHasOverflow = useRailOverflow(ruleRailRef, decisionSection === "rhythm", [modeRules.length]);
   const visibleDecisionMemoryEntries = decisions.length > 0 ? decisions : process.env.NODE_ENV !== "production" ? buildQaRailSampleDecisionSeeds() : decisions;
-  const decisionMemoryRailHasOverflow = useRailOverflow(decisionMemoryRailRef, decisionSection === "memory" && visibleDecisionMemoryEntries.length > 0, [visibleDecisionMemoryEntries.length, language]);
   const decisionOverviewCards = [
     {
       icon: Clock3,
@@ -23691,6 +23892,17 @@ function DecisionCompanionPanel({
         events={events}
         summary={events.length ? insight.gentleObservation : decisionTimelineObservation(language, [], 0)}
         onClose={() => setWisdomTimelineOpen(false)}
+      />
+      <DecisionMemoryModal
+        open={decisionMemoryOpen}
+        theme={theme}
+        ts={ts}
+        language={language}
+        entries={visibleDecisionMemoryEntries}
+        summary={visibleDecisionMemoryEntries.length
+          ? `${visibleDecisionMemoryEntries.length} ${ts('labels.decisionsSavedOpenFullList')}`
+          : ts('labels.noDecisionMemoryHelp')}
+        onClose={() => setDecisionMemoryOpen(false)}
       />
       <ScreenTabs
         value={decisionSection}
@@ -24323,69 +24535,41 @@ function DecisionCompanionPanel({
               <p className="mt-1.5 text-sm leading-5" style={{ color: theme.textOnPrimary }}>{ts('labels.smallPracticeForDecision')}</p>
             </section>
 
-            {visibleDecisionMemoryEntries.length ? (
-              <DisclosureSection title={ts('labels.decisionMemory')} summary={`${visibleDecisionMemoryEntries.length} ${ts('labels.decisionsSavedOpenFullList')}`} defaultOpen={Boolean(focusedDecisionId) || visibleDecisionMemoryEntries.length < 2} compactCollapsed showDetailsLabel={ts('showDetails')} hideDetailsLabel={ts('hideDetails')} theme={theme}>
-                {decisionMemoryRailHasOverflow ? (
-                  <div className="mb-2 flex justify-end text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
-                    <span className="inline-flex items-center gap-1">
-                      <span>{ts('labels.swipeForMore')}</span>
-                      <span aria-hidden="true">→</span>
-                    </span>
-                  </div>
-                ) : null}
-                <section
-                  ref={decisionMemoryRailRef}
-                  aria-label={ts('labels.decisionMemory')}
-                  className="flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]"
-                >
-                  {visibleDecisionMemoryEntries.map((decision) => {
-                    const highlighted = decision.id === focusedDecisionId;
-                    const createdLabel = new Date(decision.createdAt).toLocaleString(language, {
-                      dateStyle: "medium",
-                      timeStyle: "short",
-                    });
-
-                    return (
-                      <article
-                        key={decision.id}
-                        className="premium-tap-card relative flex w-full min-w-full shrink-0 snap-start flex-col overflow-hidden rounded-[1.45rem] border text-left shadow-[0_10px_24px_rgba(7,10,8,0.08)] transition"
-                        style={{
-                          height: "calc(16.75rem + var(--aletheia-rail-card-height-offset, 0rem))",
-                          borderColor: highlighted ? theme.primary : theme.borderMedium,
-                          backgroundColor: highlighted ? theme.bgCardElevated : theme.bgCard,
-                          boxShadow: highlighted
-                            ? `0 0 0 1px ${theme.primary}, 0 16px 30px rgba(7, 10, 8, 0.12)`
-                            : "0 8px 18px rgba(7, 10, 8, 0.06)",
-                        }}
-                      >
-                        <div
-                          className="relative overflow-hidden"
-                          style={{
-                            height: "calc(4.25rem + var(--aletheia-rail-card-hero-height-offset, 0rem))",
-                            background: highlighted
-                              ? `linear-gradient(135deg, ${theme.primary} 0%, ${theme.accentGold} 100%)`
-                              : `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryHover} 100%)`,
-                          }}
-                        >
-                          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.18),transparent_40%),radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.08),transparent_38%)]" />
-                        </div>
-                        <div className="flex flex-1 flex-col gap-2 p-3.5">
-                          <p className="text-[9px] font-semibold uppercase tracking-[0.14em]" style={{ color: railText.railMuted }}>
-                            {createdLabel}
-                          </p>
-                          <p className="line-clamp-2 text-[0.94rem] font-semibold leading-[1.22rem] tracking-tight" style={{ color: theme.textPrimary }}>
-                            {decision.title}
-                          </p>
-                          <p className="line-clamp-2 text-[0.84rem] leading-5" style={{ color: railText.railSecondary }}>
-                            {decision.pressure}
-                          </p>
-                        </div>
-                      </article>
-                    );
-                  })}
-                </section>
-              </DisclosureSection>
-            ) : null}
+            <button
+              type="button"
+              onClick={() => setDecisionMemoryOpen(true)}
+              className="relative w-full overflow-hidden rounded-[1.5rem] border px-4 py-4 text-left shadow-[0_10px_24px_rgba(7,10,8,0.06)] transition active:scale-[0.99]"
+              style={{
+                borderColor: theme.borderMedium,
+                background: `linear-gradient(135deg, color-mix(in srgb, ${theme.bgCard} 92%, ${theme.accentGold} 8%), ${theme.bgCard}, color-mix(in srgb, ${theme.bgCardElevated} 90%, ${theme.primary} 10%))`,
+              }}
+            >
+              <div
+                className="absolute inset-0 opacity-[0.24]"
+                style={{
+                  background: `radial-gradient(circle at 18% 18%, color-mix(in srgb, ${theme.accentGold} 18%, transparent), transparent 36%), radial-gradient(circle at 100% 0%, color-mix(in srgb, ${theme.primary} 12%, transparent), transparent 30%)`,
+                }}
+              />
+              <div className="relative flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
+                    {ts('labels.memory')}
+                  </p>
+                  <p className="mt-1 text-lg font-semibold leading-tight" style={{ color: theme.textPrimary }}>
+                    {ts('labels.decisionMemory')}
+                  </p>
+                  <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                    {visibleDecisionMemoryEntries.length
+                      ? `${visibleDecisionMemoryEntries.length} ${ts('labels.decisionsSavedOpenFullList')}`
+                      : ts('labels.noDecisionMemoryHelp')}
+                  </p>
+                </div>
+                <span className="mt-1 inline-flex shrink-0 items-center gap-2 rounded-full border px-3 py-2 text-xs font-semibold shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textPrimary }}>
+                  <FileText size={14} />
+                  {ts('showDetails')}
+                </span>
+              </div>
+            </button>
           </div>
         ) : null}
       </section>
