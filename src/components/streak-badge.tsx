@@ -22,9 +22,18 @@ export function StreakBadge({
   ts,
 }: StreakBadgeProps) {
   const sizeClasses = {
-    sm: "h-8 w-8 text-xs",
-    md: "h-12 w-12 text-sm",
-    lg: "h-16 w-16 text-base",
+    sm: {
+      shell: "px-3 py-2.5",
+      icon: "h-8 w-8 text-xs",
+    },
+    md: {
+      shell: "px-3.5 py-3",
+      icon: "h-10 w-10 text-sm",
+    },
+    lg: {
+      shell: "px-4 py-3.5",
+      icon: "h-12 w-12 text-base",
+    },
   };
 
   const getStreakEmoji = () => {
@@ -33,11 +42,6 @@ export function StreakBadge({
     if (days < 30) return "🔥";
     if (days < 100) return "⚡";
     return "👑";
-  };
-
-  const getStreakLabel = () => {
-    if (days === 0) return ts("streak.start");
-    return `${days}d`;
   };
 
   const getMilestoneText = () => {
@@ -53,63 +57,49 @@ export function StreakBadge({
   const iconColor = theme?.textPrimary || "#1f2937";
   const labelColor = theme?.textSecondary || iconColor;
   const milestoneColor = theme?.textPrimary || iconColor;
-  const badgeShadow = `0 10px 22px color-mix(in srgb, ${accentColor} 12%, transparent)`;
-  const bgColor =
-    days === 0
-      ? `linear-gradient(180deg, color-mix(in srgb, ${surfaceColor} 90%, ${accentColor} 10%), ${surfaceColor})`
-      : `linear-gradient(180deg, color-mix(in srgb, ${surfaceColor} 84%, ${accentColor} 16%), ${surfaceColor})`;
-
-  const pulseVariants = {
-    initial: { opacity: 0.7 },
-    animate: { opacity: [0.7, 1, 0.7] },
-  };
+  const badgeShadow = `0 12px 24px color-mix(in srgb, ${accentColor} 10%, transparent)`;
+  const shellBorder = `color-mix(in srgb, ${accentColor} 32%, ${theme?.borderMedium || accentColor} 68%)`;
+  const countText = days === 0 ? ts("streak.start") : `${days}`;
 
   return (
     <motion.div
       initial="initial"
       animate={animated && days > 0 ? "milestone" : "initial"}
       variants={{ initial: { scale: 1 }, milestone: { scale: 1.1 } }}
-      className="flex flex-col items-center gap-2"
+      className={`inline-flex flex-col items-center gap-2 rounded-[1.35rem] border text-center ${sizeClasses[size].shell}`}
     >
-      <motion.div
-        className={`${sizeClasses[size]} relative flex items-center justify-center overflow-hidden rounded-full border font-bold`}
+      <div
+        className={`${sizeClasses[size].icon} relative flex items-center justify-center rounded-full border font-bold`}
         style={{
-          background: bgColor,
+          background: `linear-gradient(180deg, color-mix(in srgb, ${surfaceColor} 92%, ${accentColor} 8%), ${surfaceColor})`,
           borderWidth: "2px",
-          borderColor: `color-mix(in srgb, ${accentColor} 38%, ${theme?.borderMedium || accentColor} 62%)`,
+          borderColor: shellBorder,
           color: iconColor,
           boxShadow: badgeShadow,
         }}
-        animate={animated && days > 0 ? "animate" : "initial"}
-        variants={pulseVariants}
-        transition={{ duration: 2, repeat: Infinity, repeatType: "loop" }}
       >
         <span className="relative z-10" style={{ color: accentColor }}>
           {getStreakEmoji()}
         </span>
-        {size !== "sm" && (
-          <span
-            className="absolute bottom-0 right-0 z-20 text-xs font-bold"
-            style={{
-              background: accentColor,
-              color: theme?.textOnPrimary || "#ffffff",
-              border: `1px solid ${theme?.bgCard || "#ffffff"}`,
-              borderRadius: "50%",
-              width: "1.25rem",
-              height: "1.25rem",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            {getStreakLabel()}
-          </span>
-        )}
-      </motion.div>
+      </div>
+
+      {size !== "sm" && (
+        <span
+          className="inline-flex min-w-[3.35rem] items-center justify-center rounded-full border px-2.5 py-1 text-[0.72rem] font-bold leading-none tracking-[0.08em]"
+          style={{
+            background: `linear-gradient(180deg, color-mix(in srgb, ${surfaceColor} 94%, ${accentColor} 6%), ${surfaceColor})`,
+            color: theme?.textPrimary || "#1f2937",
+            borderColor: shellBorder,
+            boxShadow: `0 6px 14px color-mix(in srgb, ${accentColor} 8%, transparent)`,
+          }}
+        >
+          {countText}
+        </span>
+      )}
 
       {showLabel && (
         <motion.div
-          className="max-w-[7.5rem] text-center"
+          className="max-w-[8rem] text-center"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2 }}
@@ -155,18 +145,18 @@ export function StreakAchievementNotification({
       exit={{ opacity: 0, scale: 0.8, y: 20 }}
       className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50"
     >
-      <div className="bg-gradient-to-br from-yellow-400 to-orange-500 text-white px-6 py-4 rounded-2xl shadow-2xl max-w-sm">
+      <div className="max-w-[19rem] rounded-2xl bg-gradient-to-br from-yellow-400 to-orange-500 px-6 py-4 text-white shadow-2xl sm:max-w-sm">
         <p className="text-xl font-bold text-center">{getMessage()}</p>
-        <div className="mt-4 flex gap-2">
+        <div className="mt-4 flex flex-col gap-2 sm:flex-row">
           <button
             onClick={onClose}
-            className="flex-1 bg-white/30 hover:bg-white/40 px-4 py-2 rounded-lg font-semibold text-sm transition-colors"
+            className="flex-1 rounded-lg bg-white/30 px-4 py-2 text-sm font-semibold whitespace-nowrap transition-colors hover:bg-white/40"
           >
             {ts("streak.celebrate")}
           </button>
           <button
             onClick={onClose}
-            className="flex-1 bg-white text-orange-600 hover:bg-gray-100 px-4 py-2 rounded-lg font-semibold text-sm transition-colors"
+            className="flex-1 rounded-lg bg-white px-4 py-2 text-sm font-semibold whitespace-nowrap text-orange-600 transition-colors hover:bg-gray-100"
           >
             {ts("streak.share")}
           </button>

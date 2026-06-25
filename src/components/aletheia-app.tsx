@@ -14719,8 +14719,8 @@ function AccountPanel({
             <button
               type="button"
               onClick={onOpenStreakMilestones}
-              className="mt-4 rounded-[1.5rem] outline-none transition-transform duration-200 hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-offset-2"
-              style={{ backgroundColor: "transparent", borderColor: "transparent", WebkitTapHighlightColor: "transparent" }}
+              className="mt-4 inline-flex rounded-[1.35rem] outline-none transition-transform duration-200 hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-offset-2"
+              style={{ WebkitTapHighlightColor: "transparent" }}
               aria-label={ts('streak.openMilestones')}
             >
               <StreakBadge
@@ -15880,6 +15880,8 @@ function FormationRailSection({
   const [recipientNoteDraft, setRecipientNoteDraft] = useState("");
   const [currentTimestampMs, setCurrentTimestampMs] = useState(() => Date.now());
   const sectionRef = useRef<HTMLElement | null>(null);
+  const dayCarouselRef = useRef<HTMLDivElement | null>(null);
+  const dayCardRefs = useRef<Record<number, HTMLElement | null>>({});
 
   useEffect(() => {
     if (pendingChallengeId) {
@@ -16192,7 +16194,20 @@ function FormationRailSection({
   const selectedChallengeFocusedCompletion = selectedChallenge && selectedChallengeFocusedDay !== null
     ? selectedChallenge.completedDays.find((day) => day.day === selectedChallengeFocusedDay) ?? null
     : null;
-  const selectedChallengeDays = selectedChallenge?.days ?? [];
+  const selectedChallengeDefinition = selectedChallenge
+    ? challengeDefs.find((def) => def.id === selectedChallenge.id) ?? null
+    : null;
+  const selectedChallengeDays = selectedChallengeDefinition?.days ?? selectedChallenge?.days ?? [];
+  const dayCarouselHasOverflow = useRailOverflow(dayCarouselRef, Boolean(selectedChallenge), [selectedChallenge?.id, selectedChallenge?.totalDays, selectedChallengeFocusedDay, selectedChallenge?.completedDays.length]);
+
+  useEffect(() => {
+    if (!selectedChallenge || selectedChallengeFocusedDay === null) {
+      return;
+    }
+    const target = dayCardRefs.current[selectedChallengeFocusedDay];
+    target?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+  }, [selectedChallenge, selectedChallengeFocusedDay]);
+
   const visibleChallengeCards = activeChallengeProgress
     ? displayChallenges.filter((challenge) => challenge.id === activeChallengeProgress.id)
     : displayChallenges;
@@ -16211,6 +16226,46 @@ function FormationRailSection({
     if (day <= done) return "completed";
     if (day === next) return "current";
     return "upcoming";
+  }
+
+  function completionForDay(challenge: ChallengeWithProgress, day: number) {
+    return challenge.completedDays.find((entry) => entry.day === day) ?? null;
+  }
+
+  function buildChallengeDayShareText(challenge: ChallengeWithProgress, day: number) {
+    const prompt = getDayPrompt(challenge.id, day);
+    const completion = completionForDay(challenge, day);
+    const dayTitle = ts("challenges.dayLabel").replace("{day}", String(day));
+    const challengeTitle = ts(challenge.titleKey, challenge.title);
+    const parts = [
+      `${dayTitle} · ${challengeTitle}`,
+      prompt?.scripture ? `${ts("labels.scripture")}:\n${prompt.scripture}` : null,
+      prompt ? `${ts("labels.practice")}:\n${ts(prompt.practiceKey, prompt.practice)}` : null,
+      completion?.reflection?.trim()
+        ? `${ts("labels.note")}:\n${completion.reflection.trim()}`
+        : null,
+    ].filter(Boolean);
+    return parts.join("\n\n");
+  }
+
+  async function shareChallengeDay(challenge: ChallengeWithProgress, day: number) {
+    const prompt = getDayPrompt(challenge.id, day);
+    const title = `${ts("challenges.dayLabel").replace("{day}", String(day))} · ${ts(challenge.titleKey, challenge.title)}`;
+    const text = buildChallengeDayShareText(challenge, day);
+    const url = typeof window !== "undefined"
+      ? `${window.location.origin}/?tab=reflect&challenge=${encodeURIComponent(challenge.id)}&day=${day}`
+      : `https://app.aletheia.dev/?tab=reflect&challenge=${encodeURIComponent(challenge.id)}&day=${day}`;
+    if (navigator.share) {
+      await navigator.share({ title, text, url }).catch(() => undefined);
+    } else {
+      await navigator.clipboard.writeText(`${title}\n\n${text}\n\n${url}`).catch(() => undefined);
+    }
+    trackClientEvent("challenge_day_shared", {
+      challengeId: challenge.id,
+      day,
+      hasReflection: Boolean(completionForDay(challenge, day)?.reflection?.trim()),
+      scripture: prompt?.scripture ?? null,
+    });
   }
 
   async function markDayComplete(challenge: ChallengeWithProgress) {
@@ -16393,7 +16448,7 @@ function FormationRailSection({
                       {selectedChallenge.mode}
                     </span>
                     <span>
-                      {ts("challenges.daysCompleted").replace("{count}", String(selectedChallenge.completedDays.length)).replace("{total}", String(selectedChallenge.totalDays))}
+                      {ts("challenges.dayOf").replace("{day}", String(selectedChallengeFocusedDay ?? 1)).replace("{total}", String(selectedChallenge.totalDays))}
                     </span>
                     {selectedCircle ? (
                       <span>
@@ -16547,13 +16602,45 @@ function FormationRailSection({
                   </section>
 
                   <section className="space-y-2">
-                    <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
-                      {ts("showDetails")}
-                    </p>
-                    <div className="grid gap-2">
+                    {dayCarouselHasOverflow ? (
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+                            {ts("labels.swipeForMore")}
+                          </p>
+                          <p className="mt-1 text-sm leading-5" style={{ color: theme.textSecondary }}>
+                            {ts("labels.currentlyActiveMode")}: {ts("challenges.dayLabel").replace("{day}", String(selectedChallengeFocusedDay ?? 1))}
+                          </p>
+                        </div>
+                        <span className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                          {ts("challenges.dayOf").replace("{day}", String(selectedChallengeFocusedDay ?? 1)).replace("{total}", String(selectedChallenge.totalDays))}
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+                            {ts("labels.currentlyActiveMode")}
+                          </p>
+                          <p className="mt-1 text-sm leading-5" style={{ color: theme.textSecondary }}>
+                            {ts("challenges.dayLabel").replace("{day}", String(selectedChallengeFocusedDay ?? 1))}
+                          </p>
+                        </div>
+                        <span className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                          {ts("challenges.dayOf").replace("{day}", String(selectedChallengeFocusedDay ?? 1)).replace("{total}", String(selectedChallenge.totalDays))}
+                        </span>
+                      </div>
+                    )}
+                    <div
+                      ref={dayCarouselRef}
+                      className="flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto pb-2 [-webkit-overflow-scrolling:touch]"
+                      aria-label={ts("labels.day")}
+                    >
                       {selectedChallengeDays.map((day) => {
                         const state = dayStateFor(selectedChallenge, day.day);
+                        const completion = completionForDay(selectedChallenge, day.day);
                         const isFocused = selectedChallengeFocusedDay === day.day;
+                        const isLocked = day.day > selectedChallengeNextDay;
                         const statusLabel =
                           state === "completed"
                             ? ts("challenges.completedChallenge")
@@ -16562,15 +16649,26 @@ function FormationRailSection({
                               : ts("challenges.startChallenge");
 
                         return (
-                          <button
+                          <article
                             key={day.day}
-                            type="button"
+                            ref={(node) => {
+                              dayCardRefs.current[day.day] = node;
+                            }}
+                            role="button"
+                            tabIndex={0}
                             onClick={() => setSelectedDayNumber(day.day)}
-                            className="w-full rounded-[1rem] border p-3 text-left transition hover:-translate-y-px"
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter" || event.key === " ") {
+                                event.preventDefault();
+                                setSelectedDayNumber(day.day);
+                              }
+                            }}
+                            className="premium-tap-card relative flex w-[15.5rem] shrink-0 snap-center flex-col rounded-[1.15rem] border p-3.5 text-left transition hover:-translate-y-px sm:w-[16.5rem]"
                             style={{
                               borderColor: isFocused ? theme.primary : theme.borderLight,
                               backgroundColor: isFocused ? theme.bgCardElevated : theme.bgCard,
-                              boxShadow: isFocused ? `0 0 0 1px ${theme.primary}` : "0 4px 10px rgba(7, 10, 8, 0.04)",
+                              boxShadow: isFocused ? `0 0 0 1px ${theme.primary}` : "0 6px 14px rgba(7, 10, 8, 0.04)",
+                              opacity: isLocked ? 0.78 : 1,
                             }}
                           >
                             <div className="flex items-start justify-between gap-3">
@@ -16582,31 +16680,81 @@ function FormationRailSection({
                                   {day.scripture}
                                 </p>
                               </div>
-                              <span
-                                className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]"
-                                style={{
-                                  borderColor: theme.borderMedium,
-                                  backgroundColor:
-                                    state === "completed"
-                                      ? theme.activeBg
-                                      : state === "current"
-                                        ? theme.bgInput
-                                        : theme.bgCardElevated,
-                                  color:
-                                    state === "completed"
-                                      ? theme.primary
-                                      : state === "current"
-                                        ? theme.textSecondary
+                              <div className="flex shrink-0 items-center gap-2">
+                                <span
+                                  className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]"
+                                  style={{
+                                    borderColor: theme.borderMedium,
+                                    backgroundColor:
+                                      state === "completed"
+                                        ? theme.activeBg
+                                        : state === "current"
+                                          ? theme.bgInput
+                                          : theme.bgCardElevated,
+                                    color:
+                                  state === "completed"
+                                    ? theme.primary
+                                    : state === "current"
+                                      ? theme.textSecondary
+                                      : isLocked
+                                        ? theme.textMuted
                                         : theme.textMuted,
                                 }}
                               >
-                                {statusLabel}
-                              </span>
+                                  {isLocked ? ts("streak.nextLabel") : statusLabel}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    void shareChallengeDay(selectedChallenge, day.day);
+                                  }}
+                                  disabled={!completion}
+                                  className="grid size-8 shrink-0 place-items-center rounded-full border transition hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-40"
+                                  aria-label={`${ts("share.shareAletheia")} ${ts("challenges.dayLabel").replace("{day}", String(day.day))}`}
+                                  style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
+                                >
+                                  <Share2 size={13} />
+                                </button>
+                              </div>
                             </div>
                             <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
                               {day.practice}
                             </p>
-                          </button>
+                            {completion ? (
+                              <div className="mt-3 rounded-[0.9rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                                <div className="flex items-center justify-between gap-2">
+                                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
+                                    {ts("labels.note")}
+                                  </p>
+                                  <span className="text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ color: theme.textMuted }}>
+                                    {new Date(completion.completedAt).toLocaleDateString()}
+                                  </span>
+                                </div>
+                                <p className="mt-1.5 line-clamp-4 whitespace-pre-wrap text-sm leading-6" style={{ color: theme.textSecondary }}>
+                                  {completion.reflection || ts("noReflectionsYet")}
+                                </p>
+                              </div>
+                            ) : state === "current" ? (
+                              <div className="mt-3 rounded-[0.9rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                                <p className="text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
+                                  {ts("labels.details")}
+                                </p>
+                                <p className="mt-1.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                                  {ts("challenges.dayOf").replace("{day}", String(day.day)).replace("{total}", String(selectedChallenge.totalDays))}
+                                </p>
+                              </div>
+                            ) : isLocked ? (
+                              <div className="mt-3 rounded-[0.9rem] border border-dashed p-3" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput }}>
+                                <p className="text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
+                                  {ts("streak.nextLabel")}
+                                </p>
+                                <p className="mt-1.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                                  {ts("challenges.previewHint")}
+                                </p>
+                              </div>
+                            ) : null}
+                          </article>
                         );
                       })}
                     </div>
