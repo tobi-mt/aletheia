@@ -13983,6 +13983,40 @@ function RhythmItem({
   );
 }
 
+function useRailOverflow(ref: RefObject<HTMLElement | null>, enabled: boolean, deps: unknown[] = []) {
+  const [hasOverflow, setHasOverflow] = useState(false);
+
+  useLayoutEffect(() => {
+    if (!enabled) {
+      queueMicrotask(() => setHasOverflow(false));
+      return;
+    }
+
+    const rail = ref.current;
+    if (!rail) {
+      queueMicrotask(() => setHasOverflow(false));
+      return;
+    }
+
+    const measure = () => {
+      setHasOverflow(rail.scrollWidth > rail.clientWidth + 8);
+    };
+
+    measure();
+
+    const resizeObserver = typeof ResizeObserver !== "undefined" ? new ResizeObserver(measure) : null;
+    resizeObserver?.observe(rail);
+    window.addEventListener("resize", measure);
+
+    return () => {
+      resizeObserver?.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, [enabled, ref, ...deps]);
+
+  return hasOverflow;
+}
+
 function ContextualNextAction({
   eyebrow,
   title,
@@ -23388,7 +23422,9 @@ function DecisionCompanionPanel({
   const [wisdomTimelineOpen, setWisdomTimelineOpen] = useState(false);
   const counselAvatarFileInputRef = useRef<HTMLInputElement | null>(null);
   const rhythmRailRef = useRef<HTMLDivElement | null>(null);
-  const [rhythmRailHasOverflow, setRhythmRailHasOverflow] = useState(false);
+  const visibleCounselRailRef = useRef<HTMLDivElement | null>(null);
+  const hiddenCounselRailRef = useRef<HTMLDivElement | null>(null);
+  const ruleRailRef = useRef<HTMLDivElement | null>(null);
   const activeDecisions = decisions.filter((decision) => decision.status !== "closed");
   const selectedDecision = decisions[0];
   const [decisionSection, setDecisionSection] = useState<"decisions" | "counsel" | "rhythm" | "memory">("decisions");
@@ -23403,6 +23439,9 @@ function DecisionCompanionPanel({
     : decisionNextBody;
   const visibleCounselContacts = counselContacts.slice(0, 3);
   const hiddenCounselContacts = counselContacts.slice(3);
+  const visibleCounselRailHasOverflow = useRailOverflow(visibleCounselRailRef, decisionSection === "counsel", [counselContacts.length]);
+  const hiddenCounselRailHasOverflow = useRailOverflow(hiddenCounselRailRef, decisionSection === "counsel" && counselContacts.length > 3, [counselContacts.length]);
+  const ruleRailHasOverflow = useRailOverflow(ruleRailRef, decisionSection === "rhythm", [modeRules.length]);
   const decisionOverviewCards = [
     {
       icon: Clock3,
@@ -23435,33 +23474,7 @@ function DecisionCompanionPanel({
       detail: insight.gentleObservation,
     },
   ];
-
-  useLayoutEffect(() => {
-    if (decisionSection !== "rhythm") {
-      return;
-    }
-
-    const rail = rhythmRailRef.current;
-    if (!rail) {
-      setRhythmRailHasOverflow(false);
-      return;
-    }
-
-    const measure = () => {
-      setRhythmRailHasOverflow(rail.scrollWidth > rail.clientWidth + 8);
-    };
-
-    measure();
-
-    const resizeObserver = typeof ResizeObserver !== "undefined" ? new ResizeObserver(measure) : null;
-    resizeObserver?.observe(rail);
-    window.addEventListener("resize", measure);
-
-    return () => {
-      resizeObserver?.disconnect();
-      window.removeEventListener("resize", measure);
-    };
-  }, [decisionSection, modeRules.length]);
+  const rhythmRailHasOverflow = useRailOverflow(rhythmRailRef, decisionSection === "rhythm", [modeRules.length]);
 
   async function optimizeCounselAvatarFile(file: File): Promise<string> {
     const imageBitmap = await createImageBitmap(file);
@@ -23904,15 +23917,17 @@ function DecisionCompanionPanel({
                 hideDetailsLabel={ts('hideDetails')}
                 theme={theme}
               >
-                <div className="mb-2 flex justify-end text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: railText.railMuted }}>
-                  <span className="inline-flex items-center gap-1">
-                    <span>{ts('labels.swipeForMore')}</span>
-                    <span aria-hidden="true">→</span>
-                  </span>
-                </div>
-                <div className="flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
+                {visibleCounselRailHasOverflow ? (
+                  <div className="mb-2 flex justify-end text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: railText.railMuted }}>
+                    <span className="inline-flex items-center gap-1">
+                      <span>{ts('labels.swipeForMore')}</span>
+                      <span aria-hidden="true">→</span>
+                    </span>
+                  </div>
+                ) : null}
+                <div ref={visibleCounselRailRef} className="flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
                   {visibleCounselContacts.map((contact) => (
-                  <div key={contact.id} className="premium-tap-card relative flex w-full min-w-full shrink-0 snap-start flex-col overflow-hidden rounded-[1.35rem] border p-3.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, boxShadow: "0 8px 18px rgba(7, 10, 8, 0.06)" }}>
+                  <div key={contact.id} className="premium-tap-card relative flex min-h-[12rem] w-[14rem] shrink-0 snap-start flex-col overflow-hidden rounded-[1.35rem] border p-3.5 sm:w-[15rem]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, boxShadow: "0 8px 18px rgba(7, 10, 8, 0.06)" }}>
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex items-center gap-2">
                         <AvatarCircle
@@ -24017,9 +24032,17 @@ function DecisionCompanionPanel({
                       hideDetailsLabel={ts('hideDetails')}
                       theme={theme}
                     >
-                      <div className="mt-2 flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
+                      {hiddenCounselRailHasOverflow ? (
+                        <div className="mb-2 mt-2 flex justify-end text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: railText.railMuted }}>
+                          <span className="inline-flex items-center gap-1">
+                            <span>{ts('labels.swipeForMore')}</span>
+                            <span aria-hidden="true">→</span>
+                          </span>
+                        </div>
+                      ) : null}
+                      <div ref={hiddenCounselRailRef} className="mt-2 flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
                         {hiddenCounselContacts.map((contact) => (
-                          <div key={contact.id} className="premium-tap-card relative flex w-full min-w-full shrink-0 snap-start flex-col overflow-hidden rounded-[1.35rem] border p-3.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, boxShadow: "0 8px 18px rgba(7, 10, 8, 0.06)" }}>
+                          <div key={contact.id} className="premium-tap-card relative flex min-h-[11.5rem] w-[13.5rem] shrink-0 snap-start flex-col overflow-hidden rounded-[1.35rem] border p-3.5 sm:w-[14.5rem]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, boxShadow: "0 8px 18px rgba(7, 10, 8, 0.06)" }}>
                             <div className="flex items-start justify-between gap-2">
                               <div className="flex items-center gap-2">
                                 <AvatarCircle
@@ -24104,19 +24127,21 @@ function DecisionCompanionPanel({
                   />
                   <button className="h-10 rounded-full px-3 text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>{ts('labels.savePrinciple')}</button>
                 </form>
-                <div className="mt-3 mb-2 flex justify-end text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
-                  <span className="inline-flex items-center gap-1">
-                    <span>{ts('labels.swipeForMore')}</span>
-                    <span aria-hidden="true">→</span>
-                  </span>
-                </div>
-                <div className="mt-2 flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
+                {ruleRailHasOverflow ? (
+                  <div className="mt-3 mb-2 flex justify-end text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
+                    <span className="inline-flex items-center gap-1">
+                      <span>{ts('labels.swipeForMore')}</span>
+                      <span aria-hidden="true">→</span>
+                    </span>
+                  </div>
+                ) : null}
+                <div ref={ruleRailRef} className="mt-2 flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
                   {modeRules.slice(0, 4).map((rule) => (
-                    <article key={rule.id} className="premium-tap-card flex h-full min-h-[8.25rem] w-full min-w-full flex-col justify-between rounded-[1.35rem] border p-3.5 shadow-[0_8px_18px_rgba(7,10,8,0.06)]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
+                    <article key={rule.id} className="premium-tap-card flex h-full min-h-[10.75rem] w-[12rem] shrink-0 snap-start flex-col justify-between rounded-[1.35rem] border p-3.5 shadow-[0_8px_18px_rgba(7,10,8,0.06)] sm:w-[12.75rem]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
                       <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
                         {runtime.ruleOfLife}
                       </p>
-                      <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                      <p className="mt-2 text-[0.92rem] leading-6" style={{ color: theme.textSecondary }}>
                       {rule.principle}
                       </p>
                     </article>
