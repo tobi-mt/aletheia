@@ -885,7 +885,7 @@
     "accountProfile": "Account profile",
     "accountQuietMilestonePlural": "quiet milestones",
     "accountQuietMilestoneSingular": "quiet milestone",
-    "accountSignInOrGuest": "Continue as guest",
+    "accountSignInOrGuest": "Sign in or continue as guest",
     "accountSignedInAs": "Signed in as",
     "accountStatConversations": "Conversations",
     "accountStatDecisions": "Decisions",
@@ -1900,7 +1900,12 @@
     "declinedInviteBody": "You declined this reading invitation. You can still join if you change your mind.",
     "joinAnyway": "Join anyway",
     "declineInvite": "Decline",
-    "sharedPlan": "Shared plan"
+    "sharedPlan": "Shared plan",
+    "shareDay": "Share this day",
+    "shareDayBody": "A completed day of this practice, with scripture, practice, and note.",
+    "shareDayCta": "Try this day",
+    "shareDayEyebrow": "Challenge day",
+    "shareDayProgress": "Day {day} of {totalDays}"
   },
   "runtimePanel": {
     "timelineReady": "Your timeline is ready to track decisions, patterns, counsel, and learning.",

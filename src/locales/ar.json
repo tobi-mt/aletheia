@@ -1687,8 +1687,8 @@
     "markComplete": "Marcar hoy como completo",
     "reflectionPlaceholder": "Opcional: escribe una breve nota sobre la práctica de hoy…",
     "saveReflection": "Guardar y marcar como completo",
-    "shareChallenge": "Compartir esta práctica",
-    "shareChallengeBody": "Únete a mí en esta práctica de {days} días en Aletheia.",
+    "shareChallenge": "مشاركة هذه الممارسة",
+    "shareChallengeBody": "انضم إليّ في هذه الممارسة لمدة {days} أيام على Aletheia.",
     "noProgressYet": "Comienza con el Día 1 cuando estés listo.",
     "allDaysComplete": "Todos los {total} días completados. Bien hecho.",
     "signInToTrack": "Inicia sesión para rastrear tu progreso en todos los dispositivos.",
@@ -1834,7 +1834,12 @@
     "declinedInviteBody": "You declined this reading invitation. You can still join if you change your mind.",
     "joinAnyway": "Join anyway",
     "declineInvite": "Decline",
-    "sharedPlan": "Shared plan"
+    "sharedPlan": "Shared plan",
+    "shareDay": "مشاركة هذا اليوم",
+    "shareDayBody": "يوم مكتمل من هذه الممارسة، مع الكتاب المقدس، والممارسة، والملاحظة.",
+    "shareDayCta": "جرّب هذا اليوم",
+    "shareDayEyebrow": "يوم التحدي",
+    "shareDayProgress": "اليوم {day} من {totalDays}"
   },
   "streak": {
     "openMilestones": "فتح معالم السجل",

@@ -177,12 +177,12 @@ button, [role="button"] {
 }
 
 .app-shell .info-hint-trigger {
-  min-width: 0 !important;
-  min-height: 0 !important;
-  width: auto;
-  height: auto;
-  max-width: 17px;
-  max-height: 17px;
+  min-width: 44px !important;
+  min-height: 44px !important;
+  width: 44px !important;
+  height: 44px !important;
+  max-width: 44px;
+  max-height: 44px;
   padding: 0;
   line-height: 1;
   flex: 0 0 auto;
@@ -355,10 +355,10 @@ button, [role="button"] {
 }
 
 .app-chrome-control {
-  width: max(44px, clamp(2.75rem, 7vw, 2.9rem)) !important;
-  height: max(44px, clamp(2.75rem, 7vw, 2.9rem)) !important;
-  min-width: 44px;
-  min-height: 44px;
+  width: max(46px, clamp(2.875rem, 7vw, 3rem)) !important;
+  height: max(46px, clamp(2.875rem, 7vw, 3rem)) !important;
+  min-width: 46px;
+  min-height: 46px;
 }
 
 @media (pointer: coarse) {
@@ -374,14 +374,14 @@ button, [role="button"] {
   .app-shell button,
   .app-shell [role="button"],
   .app-chrome-control {
-    min-width: 44px;
+    min-width: 46px;
   }
 
   .app-shell .info-hint-trigger {
-    min-width: 0 !important;
-    min-height: 0 !important;
-    width: auto !important;
-    height: auto !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+    width: 44px !important;
+    height: 44px !important;
   }
 }
 

@@ -1834,7 +1834,12 @@
     "declinedInviteBody": "You declined this reading invitation. You can still join if you change your mind.",
     "joinAnyway": "Join anyway",
     "declineInvite": "Decline",
-    "sharedPlan": "Shared plan"
+    "sharedPlan": "Shared plan",
+    "shareDay": "Compartilhar este dia",
+    "shareDayBody": "Um dia concluído desta prática, com a escritura, a prática e a nota.",
+    "shareDayCta": "Experimente este dia",
+    "shareDayEyebrow": "Dia do desafio",
+    "shareDayProgress": "Dia {day} de {totalDays}"
   },
   "streak": {
     "openMilestones": "Abrir marcos da sequência",

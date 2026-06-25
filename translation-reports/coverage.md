@@ -1,6 +1,6 @@
 # Translation Coverage Report
 
-Generated: 2026-06-25T05:21:57.943Z
+Generated: 2026-06-25T19:51:13.026Z
 
 ## Overall Coverage
 

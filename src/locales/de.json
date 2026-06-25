@@ -1688,7 +1688,7 @@
     "reflectionPlaceholder": "Optional: Schreib eine kurze Notiz zur heutigen Praxis…",
     "saveReflection": "Speichern und als abgeschlossen markieren",
     "shareChallenge": "Diese Praxis teilen",
-    "shareChallengeBody": "Nimm teil an dieser {days}-Tage-Praxis auf Aletheia.",
+    "shareChallengeBody": "Mach mit bei dieser {days}-tägigen Praxis bei Aletheia.",
     "noProgressYet": "Beginne mit Tag 1, wenn du bereit bist.",
     "allDaysComplete": "Alle {total} Tage abgeschlossen. Gut gemacht.",
     "signInToTrack": "Melde dich an, um deinen Fortschritt geräteübergreifend zu verfolgen.",
@@ -1834,7 +1834,12 @@
     "declinedInviteBody": "You declined this reading invitation. You can still join if you change your mind.",
     "joinAnyway": "Join anyway",
     "declineInvite": "Decline",
-    "sharedPlan": "Shared plan"
+    "sharedPlan": "Shared plan",
+    "shareDay": "Diesen Tag teilen",
+    "shareDayBody": "Ein abgeschlossener Tag dieser Praxis, mit Schriftstelle, Praxis und Notiz.",
+    "shareDayCta": "Diesen Tag ausprobieren",
+    "shareDayEyebrow": "Challenge-Tag",
+    "shareDayProgress": "Tag {day} von {totalDays}"
   },
   "streak": {
     "openMilestones": "Meilensteine öffnen",

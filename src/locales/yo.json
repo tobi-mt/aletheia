@@ -1687,8 +1687,8 @@
     "markComplete": "Sọ ọjọ́ òní mọ́ pé ó tan",
     "reflectionPlaceholder": "Àpò: kọ ìtójú kíkídi nípá i'ṣẹ́ òní…",
     "saveReflection": "Tójú àti sọ mọ́ pé ó tan",
-    "shareChallenge": "Pín i'ṣẹ́ yi'",
-    "shareChallengeBody": "Báre mí nínú {days}-ọjọ́ i'ṣẹ́ lórí Aletheia.",
+    "shareChallenge": "Pínpín ìṣe yìí",
+    "shareChallengeBody": "Darapọ mọ mi nínú ìṣe ọjọ {days} yìí lórí Aletheia.",
     "noProgressYet": "Bẹ̀rẹ̀ látí Ọjọ́ 1 nígbà tó bá ṣetan.",
     "allDaysComplete": "Gbogbo {total} ọjọ́ tan. Oníere.",
     "signInToTrack": "Wọlé láti ìbáṣepò rẹ lórí gbogbo ìṣẹ́lẹ̀.",
@@ -1834,7 +1834,12 @@
     "declinedInviteBody": "You declined this reading invitation. You can still join if you change your mind.",
     "joinAnyway": "Join anyway",
     "declineInvite": "Decline",
-    "sharedPlan": "Shared plan"
+    "sharedPlan": "Shared plan",
+    "shareDay": "Pínpín ọjọ́ yìí",
+    "shareDayBody": "Ọjọ́ kan tí a parí nínú ìṣe yìí, pẹ̀lú Ìwé Mímọ́, ìṣe, àti àkọọlẹ.",
+    "shareDayCta": "Ṣe idanwo ọjọ́ yìí",
+    "shareDayEyebrow": "Ọjọ́ ìpenija",
+    "shareDayProgress": "Ọjọ́ {day} nínú {totalDays}"
   },
   "streak": {
     "openMilestones": "Ṣí àwọn ìpele ṣiṣàn",

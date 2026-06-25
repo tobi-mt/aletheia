@@ -2565,6 +2565,20 @@ function drawWrappedCanvasText(
   maxWidth: number,
   lineHeight: number,
   maxLines: number
+  ) {
+  const { lines, truncated } = measureWrappedCanvasText(context, text, maxWidth, maxLines);
+  lines.forEach((lineText, index) => {
+    const suffix = index === lines.length - 1 && truncated ? "..." : "";
+    context.fillText(`${lineText}${suffix}`, x, y + index * lineHeight);
+  });
+  return y + lines.length * lineHeight;
+}
+
+function measureWrappedCanvasText(
+  context: CanvasRenderingContext2D,
+  text: string,
+  maxWidth: number,
+  maxLines: number
 ) {
   const words = text.split(/\s+/).filter(Boolean);
   const lines: string[] = [];
@@ -2584,11 +2598,18 @@ function drawWrappedCanvasText(
   if (line && lines.length < maxLines) {
     lines.push(line);
   }
-  lines.slice(0, maxLines).forEach((lineText, index) => {
-    const suffix = index === maxLines - 1 && words.join(" ").length > lines.join(" ").length ? "..." : "";
-    context.fillText(`${lineText}${suffix}`, x, y + index * lineHeight);
-  });
-  return y + lines.length * lineHeight;
+  const visibleText = lines.join(" ").replace(/\s+/g, " ").trim();
+  const originalText = words.join(" ").replace(/\s+/g, " ").trim();
+  return { lines: lines.slice(0, maxLines), truncated: visibleText.length < originalText.length };
+}
+
+function teasePostcardText(text: string, maxWords = 16) {
+  const words = cleanDisplayText(text).split(/\s+/).filter(Boolean);
+  if (!words.length) {
+    return "";
+  }
+  const teaser = words.slice(0, maxWords).join(" ");
+  return words.length > maxWords ? `${teaser}…` : teaser;
 }
 
 function drawGratitudeStickerChips(context: CanvasRenderingContext2D, visual: GratitudeVisualSettings) {
@@ -2738,79 +2759,278 @@ function createWisdomPostcardBlob(payload: WisdomPostcardPayload, theme: ThemeCo
     }
 
     const render = (logo?: HTMLImageElement) => {
+      const isChallengeCard = payload.kind === "challenge";
       const bg = context.createLinearGradient(0, 0, 1200, 1600);
-      bg.addColorStop(0, theme.bgMain);
-      bg.addColorStop(0.5, theme.bgCard);
-      bg.addColorStop(1, theme.bgCardElevated);
+      if (isChallengeCard) {
+        bg.addColorStop(0, theme.bgMain);
+        bg.addColorStop(0.4, theme.bgCard);
+        bg.addColorStop(1, theme.primary);
+      } else {
+        bg.addColorStop(0, theme.bgMain);
+        bg.addColorStop(0.5, theme.bgCard);
+        bg.addColorStop(1, theme.bgCardElevated);
+      }
       context.fillStyle = bg;
       context.fillRect(0, 0, canvas.width, canvas.height);
 
-      const glow = context.createRadialGradient(1040, 120, 40, 1040, 120, 640);
-      glow.addColorStop(0, `${theme.accentGold}55`);
+      const glow = context.createRadialGradient(isChallengeCard ? 960 : 1040, isChallengeCard ? 190 : 120, 40, isChallengeCard ? 960 : 1040, isChallengeCard ? 190 : 120, isChallengeCard ? 720 : 640);
+      glow.addColorStop(0, isChallengeCard ? `${theme.textOnPrimary}26` : `${theme.accentGold}55`);
       glow.addColorStop(1, "rgba(255,255,255,0)");
       context.fillStyle = glow;
       context.fillRect(0, 0, canvas.width, canvas.height);
 
       context.strokeStyle = theme.accentGold;
-      context.lineWidth = 4;
+      context.lineWidth = isChallengeCard ? 5 : 4;
       context.strokeRect(54, 54, canvas.width - 108, canvas.height - 108);
 
-      if (logo) {
+      if (isChallengeCard) {
+        context.fillStyle = `${theme.bgCardElevated}D2`;
+        context.beginPath();
+        context.roundRect(72, 72, 1056, 194, 34);
+        context.fill();
+        context.strokeStyle = `${theme.accentGold}66`;
+        context.lineWidth = 2;
+        context.stroke();
+      }
+
+      if (isChallengeCard) {
+        const logoX = 88;
+        const logoY = 92;
+        const logoSize = 100;
+        context.save();
+        context.shadowColor = "rgba(0,0,0,0.24)";
+        context.shadowBlur = 18;
+        context.shadowOffsetY = 8;
+        context.fillStyle = `${theme.bgMain}CC`;
+        context.beginPath();
+        context.roundRect(logoX, logoY, logoSize, logoSize, 28);
+        context.fill();
+        context.shadowColor = "rgba(0,0,0,0)";
+        context.strokeStyle = `${theme.accentGold}80`;
+        context.lineWidth = 2;
+        context.stroke();
+        if (logo) {
+          context.beginPath();
+          context.roundRect(logoX + 10, logoY + 10, logoSize - 20, logoSize - 20, 20);
+          context.clip();
+          context.drawImage(logo, logoX + 10, logoY + 10, logoSize - 20, logoSize - 20);
+        } else {
+          context.fillStyle = theme.accentGold;
+          context.font = "700 52px Georgia, serif";
+          context.textAlign = "center";
+          context.textBaseline = "middle";
+          context.fillText("A", logoX + logoSize / 2, logoY + logoSize / 2 + 1);
+          context.textAlign = "start";
+          context.textBaseline = "alphabetic";
+        }
+        context.restore();
+        context.fillStyle = theme.textPrimary;
+        context.font = "700 44px system-ui, sans-serif";
+        context.fillText("Aletheia", 208, 142);
+        context.fillStyle = theme.textSecondary;
+        context.font = "600 22px system-ui, sans-serif";
+        context.fillText("Wisdom for stewardship", 208, 176);
+      } else if (logo) {
         context.save();
         context.beginPath();
         context.roundRect(86, 86, 92, 92, 18);
         context.clip();
         context.drawImage(logo, 86, 86, 92, 92);
         context.restore();
+        context.fillStyle = theme.textPrimary;
+        context.font = "700 44px system-ui, sans-serif";
+        context.fillText("Aletheia", 206, 142);
+      } else {
+        context.fillStyle = theme.textPrimary;
+        context.font = "700 44px system-ui, sans-serif";
+        context.fillText("Aletheia", 86, 142);
+      }
+      if (isChallengeCard) {
+        context.fillStyle = theme.accentGold;
+        context.font = "700 22px system-ui, sans-serif";
+        const eyebrow = payload.eyebrow || payload.kind;
+        context.fillText(eyebrow.toLocaleUpperCase(locale), 86, 286);
+        if (payload.challengeMeta?.progressLabel) {
+          const pillX = 792;
+          const pillY = 218;
+          const pillW = 262;
+          const pillH = 54;
+          context.fillStyle = `${theme.primary}CC`;
+          context.beginPath();
+          context.roundRect(pillX, pillY, pillW, pillH, 22);
+          context.fill();
+          context.strokeStyle = `${theme.accentGold}66`;
+          context.lineWidth = 2;
+          context.stroke();
+          context.fillStyle = theme.textOnPrimary;
+          context.font = "700 22px system-ui, sans-serif";
+          context.textAlign = "center";
+          context.textBaseline = "middle";
+          context.fillText(payload.challengeMeta.progressLabel.toLocaleUpperCase(locale), pillX + pillW / 2, pillY + pillH / 2 + 1);
+          context.textAlign = "start";
+          context.textBaseline = "alphabetic";
+        }
+        const totalDays = payload.challengeMeta?.totalDays ?? 7;
+        const dayIndex = payload.challengeMeta?.day ?? 1;
+        const progressLeft = 86;
+        const progressTop = 330;
+        const progressWidth = 1028;
+        const progressHeight = 18;
+        context.fillStyle = `${theme.borderLight}AA`;
+        context.beginPath();
+        context.roundRect(progressLeft, progressTop, progressWidth, progressHeight, 999);
+        context.fill();
+        const progressRatio = Math.max(0.08, Math.min(1, dayIndex / Math.max(1, totalDays)));
+        const progressFill = context.createLinearGradient(progressLeft, 0, progressLeft + progressWidth, 0);
+        progressFill.addColorStop(0, theme.accentGold);
+        progressFill.addColorStop(0.65, theme.primary);
+        progressFill.addColorStop(1, `${theme.textOnPrimary}CC`);
+        context.fillStyle = progressFill;
+        context.beginPath();
+        context.roundRect(progressLeft, progressTop, progressWidth * progressRatio, progressHeight, 999);
+        context.fill();
+      } else {
+        context.fillStyle = theme.accentGold;
+        context.font = "700 30px system-ui, sans-serif";
+        const eyebrow = payload.eyebrow || payload.kind;
+        context.fillText(eyebrow.toLocaleUpperCase(locale), 86, 270);
       }
 
       context.fillStyle = theme.textPrimary;
-      context.font = "700 44px system-ui, sans-serif";
-      context.fillText("Aletheia", logo ? 206 : 86, 142);
-      context.fillStyle = theme.accentGold;
-      context.font = "700 30px system-ui, sans-serif";
-      const eyebrow = payload.eyebrow || payload.kind;
-      context.fillText(eyebrow.toLocaleUpperCase(locale), 86, 270);
+      context.font = isChallengeCard ? "700 64px system-ui, sans-serif" : "700 72px Georgia, serif";
+      const titleStartY = isChallengeCard ? 414 : 370;
+      const titleLineHeight = isChallengeCard ? 76 : 88;
+      const titleMaxLines = isChallengeCard ? 3 : 4;
+      const titleEndY = drawWrappedCanvasText(context, cleanDisplayText(payload.title), 86, titleStartY, 1028, titleLineHeight, titleMaxLines);
 
-      context.fillStyle = theme.textPrimary;
-      context.font = "700 72px Georgia, serif";
-      const titleEndY = drawWrappedCanvasText(context, cleanDisplayText(payload.title), 86, 370, 1028, 88, 4);
+      let bodyStartY = isChallengeCard ? Math.max(520, titleEndY + 24) : Math.max(payload.kind === "scripture" ? 610 : 650, titleEndY + 78);
+      if (payload.body.trim()) {
+        context.fillStyle = theme.textSecondary;
+        context.font = isChallengeCard ? "400 38px system-ui, sans-serif" : "400 42px system-ui, sans-serif";
+        bodyStartY = drawWrappedCanvasText(context, cleanDisplayText(payload.body), 86, bodyStartY, 1028, isChallengeCard ? 52 : 58, isChallengeCard ? 4 : 3) + (isChallengeCard ? 34 : 28);
+      }
+      if (isChallengeCard) {
+        const challengeSections = payload.sections ?? [];
+        const scriptureSection = challengeSections[0] ?? null;
+        const practiceSection = challengeSections[1] ?? null;
+        const noteSection = challengeSections[2] ?? null;
+        const panelLeft = 86;
+        const panelTop = Math.max(bodyStartY + 18, 640);
+        const panelWidth = 1028;
+        let panelBottom = panelTop + 760;
 
-      const bodyStartY = Math.max(payload.kind === "scripture" ? 610 : 650, titleEndY + 78);
-      if (payload.sections?.length) {
-        let sectionY = bodyStartY;
-        payload.sections.slice(0, 4).forEach((section, index) => {
-          if (sectionY > 1320) {
-            return;
-          }
-          if (section.label) {
-            context.fillStyle = theme.accentGold;
-            context.font = "700 24px system-ui, sans-serif";
-            context.fillText(section.label.toLocaleUpperCase(locale), 86, sectionY);
-            sectionY += 44;
-          }
+        context.save();
+        context.shadowColor = "rgba(0,0,0,0.15)";
+        context.shadowBlur = 28;
+        context.shadowOffsetY = 14;
+        context.fillStyle = `${theme.bgCardElevated}D6`;
+        context.beginPath();
+        context.roundRect(panelLeft, panelTop, panelWidth, panelBottom - panelTop, 34);
+        context.fill();
+        context.restore();
+        context.strokeStyle = `${theme.borderLight}D8`;
+        context.lineWidth = 2;
+        context.beginPath();
+        context.roundRect(panelLeft, panelTop, panelWidth, panelBottom - panelTop, 34);
+        context.stroke();
+
+        let contentY = panelTop + 48;
+        if (scriptureSection) {
+          context.fillStyle = theme.accentGold;
+          context.font = "700 22px system-ui, sans-serif";
+          context.fillText((scriptureSection.label ?? "").toLocaleUpperCase(locale), 110, contentY);
+          contentY += 30;
+          context.fillStyle = theme.textPrimary;
+          context.font = "400 36px Georgia, serif";
+          contentY = drawWrappedCanvasText(context, cleanDisplayText(scriptureSection.text), 110, contentY, 980, 46, 3) + 18;
+        }
+
+        context.strokeStyle = `${theme.borderLight}B8`;
+        context.lineWidth = 1.5;
+        context.beginPath();
+        context.moveTo(110, contentY);
+        context.lineTo(1090, contentY);
+        context.stroke();
+
+        contentY += 34;
+        if (practiceSection) {
+          context.fillStyle = theme.accentGold;
+          context.font = "700 22px system-ui, sans-serif";
+          context.fillText((practiceSection.label ?? "").toLocaleUpperCase(locale), 110, contentY);
+          contentY += 30;
+          context.fillStyle = theme.textPrimary;
+          context.font = "400 38px system-ui, sans-serif";
+          contentY = drawWrappedCanvasText(
+            context,
+            cleanDisplayText(practiceSection.text),
+            110,
+            contentY,
+            980,
+            48,
+            3
+          ) + 16;
+        }
+
+        const hasNote = Boolean(noteSection?.text?.trim());
+        if (hasNote) {
+          const noteTop = contentY + 18;
+          const noteHeight = 116;
+          context.fillStyle = `${theme.bgMain}40`;
+          context.beginPath();
+          context.roundRect(110, noteTop, 980, noteHeight, 24);
+          context.fill();
+          context.fillStyle = theme.accentGold;
+          context.fillRect(124, noteTop + 14, 4, noteHeight - 28);
+          context.fillStyle = theme.accentGold;
+          context.font = "700 18px system-ui, sans-serif";
+          context.fillText((noteSection.label ?? "").toLocaleUpperCase(locale), 144, noteTop + 36);
           context.fillStyle = theme.textSecondary;
-          context.font = index === 0 && payload.kind === "scripture" ? "400 38px Georgia, serif" : "400 36px system-ui, sans-serif";
-          const maxLines = payload.kind === "scripture" && index === 0 ? 5 : 3;
-          sectionY = drawWrappedCanvasText(context, cleanDisplayText(section.text), 86, sectionY, 1028, 52, maxLines) + 38;
-        });
+          context.font = "400 28px system-ui, sans-serif";
+          drawWrappedCanvasText(context, teasePostcardText(noteSection.text, 16), 144, noteTop + 68, 916, 34, 2);
+          contentY = noteTop + noteHeight;
+        }
+
+        const footerTop = Math.max(contentY + 28, panelTop + 520);
+        const footerHeight = 108;
+        panelBottom = footerTop + footerHeight;
+
+        context.save();
+        context.beginPath();
+        context.roundRect(panelLeft, panelTop, panelWidth, panelBottom - panelTop, 34);
+        context.clip();
+        const footerFill = context.createLinearGradient(0, footerTop, 0, panelBottom);
+        footerFill.addColorStop(0, `${theme.primary}F2`);
+        footerFill.addColorStop(1, `${theme.primary}D8`);
+        context.fillStyle = footerFill;
+        context.fillRect(panelLeft, footerTop, panelWidth, footerHeight);
+        context.restore();
+
+        context.strokeStyle = `${theme.accentGold}B0`;
+        context.lineWidth = 2;
+        context.beginPath();
+        context.moveTo(panelLeft + 24, footerTop);
+        context.lineTo(panelLeft + panelWidth - 24, footerTop);
+        context.stroke();
+        context.fillStyle = theme.textOnPrimary;
+        context.font = "700 28px system-ui, sans-serif";
+        drawWrappedCanvasText(context, payload.footer || "", 118, footerTop + 70, 964, 36, 1);
+
       } else {
         context.fillStyle = theme.textSecondary;
         context.font = "400 42px system-ui, sans-serif";
         drawWrappedCanvasText(context, cleanDisplayText(payload.body), 86, 760, 1028, 62, 8);
+        context.fillStyle = theme.accentGold;
+        context.font = "600 30px system-ui, sans-serif";
+        drawWrappedCanvasText(
+          context,
+          payload.footer || "",
+          86,
+          1420,
+          1028,
+          40,
+          3
+        );
       }
-
-      context.fillStyle = theme.accentGold;
-      context.font = "600 30px system-ui, sans-serif";
-      drawWrappedCanvasText(
-        context,
-        payload.footer || "",
-        86,
-        1420,
-        1028,
-        40,
-        3
-      );
 
       canvas.toBlob((blob) => {
         if (blob) {
@@ -2825,6 +3045,93 @@ function createWisdomPostcardBlob(payload: WisdomPostcardPayload, theme: ThemeCo
     logo.onload = () => render(logo);
     logo.onerror = () => render();
     logo.src = "/brand/aletheia-app-icon-192.png";
+  });
+}
+
+async function shareChallengeDayPostcardImage({
+  challengeTitle,
+  totalDays,
+  day,
+  prompt,
+  completion,
+  theme,
+  language,
+  ts,
+  trackClientEvent,
+}: {
+  challengeTitle: string;
+  totalDays: number;
+  day: number;
+  prompt: { scripture: string; practiceKey: string; practice: string; };
+  completion: { reflection?: string | null } | null;
+  theme: ThemeColors;
+  language: LanguageCode;
+  ts: (key: string, fallback?: string) => string;
+  trackClientEvent: (event: string, payload?: AnalyticsMetadata) => void;
+}) {
+  const title = challengeTitle;
+  const body = ts("challenges.shareDayBody");
+  const blob = await createWisdomPostcardBlob(
+      {
+        kind: "challenge",
+        eyebrow: ts("challenges.shareDayEyebrow"),
+        title,
+        body,
+        challengeMeta: {
+          day,
+          totalDays,
+          progressLabel: ts("challenges.shareDayProgress")
+            .replace("{day}", String(day))
+            .replace("{totalDays}", String(totalDays)),
+        },
+      sections: [
+        { label: ts("labels.scripture"), text: prompt.scripture },
+        { label: ts("labels.practice"), text: ts(prompt.practiceKey, prompt.practice) },
+        completion?.reflection?.trim()
+          ? { label: ts("labels.note"), text: completion.reflection.trim() }
+          : null,
+      ].filter(Boolean) as Array<{ label?: string; text: string }>,
+      footer: ts("challenges.shareDayCta"),
+    },
+    theme,
+    language
+  );
+  if (process.env.NODE_ENV !== "production" && typeof window !== "undefined") {
+    const debugWindow = window as Window & {
+      __aletheiaLastChallengePostcardBlob?: Blob;
+      __aletheiaLastChallengePostcardUrl?: string;
+    };
+    debugWindow.__aletheiaLastChallengePostcardBlob = blob;
+    debugWindow.__aletheiaLastChallengePostcardUrl = URL.createObjectURL(blob);
+  }
+  const file = new File([blob], `aletheia-challenge-day-${day}.png`, { type: "image/png" });
+  const canShareFile =
+    typeof navigator !== "undefined" &&
+    "share" in navigator &&
+    "canShare" in navigator &&
+    navigator.canShare({ files: [file] });
+
+  if (canShareFile) {
+    await navigator.share({
+      title,
+      text: `${body} ${ts("challenges.shareDayCta")}`,
+      files: [file],
+    }).catch(() => undefined);
+  } else {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = file.name;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  trackClientEvent("challenge_day_postcard_shared", {
+    day,
+    language,
+    channel: canShareFile ? "native" : "download",
   });
 }
 
@@ -3527,7 +3834,12 @@ type WisdomPostcardPayload = {
   body: string;
   sections?: Array<{ label?: string; text: string }>;
   footer?: string;
-  kind: "answer" | "reflection" | "daily" | "decision" | "scripture" | "carry" | "blessing";
+  challengeMeta?: {
+    day?: number;
+    totalDays?: number;
+    progressLabel?: string;
+  };
+  kind: "answer" | "reflection" | "daily" | "decision" | "scripture" | "carry" | "blessing" | "challenge";
 };
 
 type CounselContact = {
@@ -11563,7 +11875,7 @@ export function AletheiaApp() {
               </span>
             ) : null}
             <label
-              className="app-chrome-control premium-tap-card relative grid h-[2.625rem] w-[2.625rem] shrink-0 place-items-center overflow-hidden rounded-full border shadow-sm transition"
+              className="app-chrome-control premium-tap-card relative grid h-[46px] w-[46px] shrink-0 place-items-center overflow-hidden rounded-full border shadow-sm transition"
               style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textPrimary }}
               title={`${ui.languageSelect}: ${languages[preferences.language].nativeName}`}
               suppressHydrationWarning
@@ -11584,7 +11896,7 @@ export function AletheiaApp() {
               </select>
             </label>
             <label
-              className="app-chrome-control premium-tap-card relative grid h-[2.625rem] w-[2.625rem] shrink-0 place-items-center overflow-hidden rounded-full border shadow-sm transition"
+              className="app-chrome-control premium-tap-card relative grid h-[46px] w-[46px] shrink-0 place-items-center overflow-hidden rounded-full border shadow-sm transition"
               style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textPrimary }}
               title={`${ui.bibleSelect}: ${preferences.bibleTranslation}`}
               suppressHydrationWarning
@@ -11609,7 +11921,7 @@ export function AletheiaApp() {
               </select>
             </label>
             <button
-              className="app-chrome-control premium-tap-card relative grid h-[2.625rem] w-[2.625rem] place-items-center overflow-hidden rounded-full border shadow-sm transition"
+              className="app-chrome-control premium-tap-card relative grid h-[46px] w-[46px] place-items-center overflow-hidden rounded-full border shadow-sm transition"
               style={{
                 borderColor: theme.accentLight,
                 background: `linear-gradient(145deg, ${theme.primary} 0%, color-mix(in srgb, ${theme.primary} 76%, ${theme.accentLight}) 100%)`,
@@ -14338,9 +14650,9 @@ function InfoHint({
     hero: "inline-flex items-center justify-center rounded-full border text-[8px] font-semibold leading-none transition",
   };
   const buttonSizeBySurface: Record<"dense" | "standard" | "hero", number> = {
-    dense: 24,
-    standard: 26,
-    hero: 28,
+    dense: 44,
+    standard: 44,
+    hero: 44,
   };
   const wrapperClassName = placement === "corner"
     ? cornerWrapperClassBySurface[surface]
@@ -15502,12 +15814,14 @@ function FormationsSection({
   user,
   pendingChallengeId,
   onClearPendingChallenge,
+  language,
 }: {
   theme: ThemeColors;
   ts: (key: string, fallback?: string) => string;
   user: { id: string } | null;
   pendingChallengeId: string | null;
   onClearPendingChallenge: () => void;
+  language: LanguageCode;
 }) {
   const [challenges, setChallenges] = useState<ChallengeWithProgress[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -15596,6 +15910,73 @@ function FormationsSection({
       await navigator.clipboard.writeText(url).catch(() => undefined);
     }
     trackClientEvent("challenge_shared", { challengeId: challenge.id });
+  }
+
+async function shareChallengeDayPostcard(challenge: ChallengeWithProgress, day: number) {
+    const prompt = getDayPrompt(challenge.id, day);
+    const completion = challenge.completedDays.find((entry) => entry.day === day) ?? null;
+    if (!prompt) {
+      return;
+    }
+
+    const challengeTitle = ts(challenge.titleKey, challenge.title);
+    const title = challengeTitle;
+    const body = ts("challenges.shareDayBody");
+    const blob = await createWisdomPostcardBlob(
+      {
+        kind: "challenge",
+        eyebrow: ts("challenges.shareDayEyebrow"),
+        title,
+        body,
+        challengeMeta: {
+          day,
+          totalDays: challenge.totalDays,
+          progressLabel: ts("challenges.shareDayProgress")
+            .replace("{day}", String(day))
+            .replace("{totalDays}", String(challenge.totalDays)),
+        },
+        sections: [
+          { label: ts("labels.scripture"), text: prompt.scripture },
+          { label: ts("labels.practice"), text: ts(prompt.practiceKey, prompt.practice) },
+          completion?.reflection?.trim()
+            ? { label: ts("labels.note"), text: completion.reflection.trim() }
+            : null,
+        ].filter(Boolean) as Array<{ label?: string; text: string }>,
+        footer: ts("challenges.shareDayCta"),
+      },
+      theme,
+      language
+    );
+    const file = new File([blob], `aletheia-challenge-${challenge.id}-day-${day}.png`, { type: "image/png" });
+    const canShareFile =
+      typeof navigator !== "undefined" &&
+      "share" in navigator &&
+      "canShare" in navigator &&
+      navigator.canShare({ files: [file] });
+
+    if (canShareFile) {
+      await navigator.share({
+        title,
+        text: `${body} ${ts("challenges.shareDayCta")}`,
+        files: [file],
+      }).catch(() => undefined);
+    } else {
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = file.name;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    trackClientEvent("challenge_day_postcard_shared", {
+      challengeId: challenge.id,
+      day,
+      language,
+      channel: canShareFile ? "native" : "download",
+    });
   }
 
   // Import challenge data client-side (static import via dynamic loading)
@@ -15850,6 +16231,7 @@ function FormationRailSection({
   challengeCircleRefreshKey,
   onChallengeCircleChanged,
   onChallengeInviteReady,
+  language,
 }: {
   theme: ThemeColors;
   ts: (key: string, fallback?: string) => string;
@@ -15866,12 +16248,14 @@ function FormationRailSection({
   challengeCircleRefreshKey: number;
   onChallengeCircleChanged: () => void;
   onChallengeInviteReady: (payload: { inviteUrl: string; circle: ChallengeCircleSummary }) => void;
+  language: LanguageCode;
 }) {
   const [challenges, setChallenges] = useState<ChallengeWithProgress[]>([]);
   const [challengeCircles, setChallengeCircles] = useState<ChallengeCircleSummary[]>([]);
   const [challengeDefs, setChallengeDefs] = useState<ChallengeDefinitionPreview[]>([]);
   const [selectedChallengeId, setSelectedChallengeId] = useState<string | null>(pendingChallengeId);
   const [selectedDayNumber, setSelectedDayNumber] = useState<number | null>(null);
+  const [openDayDetailDay, setOpenDayDetailDay] = useState<number | null>(null);
   const [reflectionText, setReflectionText] = useState("");
   const [savingDay, setSavingDay] = useState<{ challengeId: string; day: number } | null>(null);
   const [creatingInviteId, setCreatingInviteId] = useState<string | null>(null);
@@ -15888,6 +16272,7 @@ function FormationRailSection({
       queueMicrotask(() => {
         setSelectedChallengeId(pendingChallengeId);
         setSelectedDayNumber(null);
+        setOpenDayDetailDay(null);
         onClearPendingChallenge();
         window.requestAnimationFrame(() => {
           sectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -16198,7 +16583,86 @@ function FormationRailSection({
     ? challengeDefs.find((def) => def.id === selectedChallenge.id) ?? null
     : null;
   const selectedChallengeDays = selectedChallengeDefinition?.days ?? selectedChallenge?.days ?? [];
+  const selectedChallengeModalDay = selectedChallenge && openDayDetailDay !== null
+    ? selectedChallengeDays.find((day) => day.day === openDayDetailDay) ?? null
+    : null;
+  const selectedChallengeModalPrompt = selectedChallenge && openDayDetailDay !== null
+    ? getDayPrompt(selectedChallenge.id, openDayDetailDay)
+    : null;
+  const selectedChallengeModalState = selectedChallenge && openDayDetailDay !== null
+    ? dayStateFor(selectedChallenge, openDayDetailDay)
+    : null;
+  const selectedChallengeModalCompletion = selectedChallenge && openDayDetailDay !== null
+    ? completionForDay(selectedChallenge, openDayDetailDay)
+    : null;
   const dayCarouselHasOverflow = useRailOverflow(dayCarouselRef, Boolean(selectedChallenge), [selectedChallenge?.id, selectedChallenge?.totalDays, selectedChallengeFocusedDay, selectedChallenge?.completedDays.length]);
+
+  useEffect(() => {
+    if (process.env.NODE_ENV === "production" || typeof window === "undefined") {
+      return;
+    }
+
+    const debugWindow = window as Window & {
+      __aletheiaDebug?: {
+        renderSelectedChallengeDayPostcard?: () => Promise<Blob | null>;
+      };
+      __aletheiaLastChallengePostcardBlob?: Blob;
+      __aletheiaLastChallengePostcardUrl?: string;
+    };
+
+    debugWindow.__aletheiaDebug = {
+      async renderSelectedChallengeDayPostcard() {
+        if (!selectedChallenge || !selectedChallengeModalPrompt || !selectedChallengeModalCompletion || !selectedChallengeModalDay) {
+          return null;
+        }
+
+        const blob = await createWisdomPostcardBlob(
+          {
+            kind: "challenge",
+            eyebrow: ts("challenges.shareDayEyebrow"),
+            title: ts(selectedChallenge.titleKey, selectedChallenge.title),
+            body: ts("challenges.shareDayBody"),
+            challengeMeta: {
+              day: selectedChallengeModalDay.day,
+              totalDays: selectedChallenge.totalDays,
+              progressLabel: ts("challenges.shareDayProgress")
+                .replace("{day}", String(selectedChallengeModalDay.day))
+                .replace("{totalDays}", String(selectedChallenge.totalDays)),
+            },
+            sections: [
+              { label: ts("labels.scripture"), text: selectedChallengeModalPrompt.scripture },
+              { label: ts("labels.practice"), text: selectedChallengeModalPrompt.practice },
+              selectedChallengeModalCompletion.reflection?.trim()
+                ? { label: ts("labels.note"), text: selectedChallengeModalCompletion.reflection.trim() }
+                : null,
+            ].filter(Boolean) as Array<{ label?: string; text: string }>,
+            footer: ts("challenges.shareDayCta"),
+          },
+          theme,
+          language
+        );
+
+        debugWindow.__aletheiaLastChallengePostcardBlob = blob;
+        debugWindow.__aletheiaLastChallengePostcardUrl = URL.createObjectURL(blob);
+        return blob;
+      },
+    };
+
+    return () => {
+      if (debugWindow.__aletheiaLastChallengePostcardUrl) {
+        URL.revokeObjectURL(debugWindow.__aletheiaLastChallengePostcardUrl);
+      }
+      delete debugWindow.__aletheiaDebug;
+    };
+  }, [
+    language,
+    selectedChallenge,
+    selectedChallengeModalCompletion,
+    selectedChallengeModalDay,
+    selectedChallengeModalPrompt,
+    theme,
+    ts,
+  ]);
 
   useEffect(() => {
     if (!selectedChallenge || selectedChallengeFocusedDay === null) {
@@ -16298,6 +16762,126 @@ function FormationRailSection({
     }
   }
 
+  const canUsePortal = typeof document !== "undefined";
+  useBodyScrollLock(Boolean(selectedChallengeModalDay) && canUsePortal);
+  const dayModal = selectedChallenge && selectedChallengeModalDay && selectedChallengeModalPrompt && canUsePortal ? createPortal(
+    <div
+      className="fixed inset-0 z-[9999] grid min-h-dvh place-items-end overflow-hidden overscroll-none px-3 backdrop-blur-sm sm:place-items-center"
+      style={{
+        backgroundColor: "rgba(13, 23, 20, 0.56)",
+        paddingTop: "calc(var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)) + 0.75rem)",
+        paddingBottom: "calc(var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)) + 0.75rem)",
+      }}
+      onClick={() => setOpenDayDetailDay(null)}
+    >
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="formation-day-modal-title"
+        className="w-full max-w-2xl overflow-y-auto overscroll-contain rounded-[2rem] border p-4 shadow-[0_28px_90px_rgba(10,18,14,0.36)] sm:p-5"
+        style={{
+          borderColor: theme.borderStrong,
+          backgroundColor: theme.bgCard,
+          maxHeight: "calc(100dvh - var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)) - var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)) - 1rem)",
+        }}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.accentGold }}>
+              {ts("challenges.dayLabel").replace("{day}", String(selectedChallengeModalDay.day))}
+            </p>
+            <h2 id="formation-day-modal-title" className="mt-1.5 text-xl font-semibold tracking-tight" style={{ color: theme.textPrimary }}>
+              {selectedChallengeModalPrompt.scripture}
+            </h2>
+            <p className="mt-1.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
+              {ts(selectedChallengeModalPrompt.principleKey, selectedChallengeModalPrompt.principle)}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setOpenDayDetailDay(null)}
+            className="grid size-10 shrink-0 place-items-center rounded-full border transition"
+            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+            aria-label={ts("labels.close")}
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        <div className="mt-4 rounded-[1.35rem] border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+            {ts("labels.practice")}
+          </p>
+          <p className="mt-1.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
+            {selectedChallengeModalPrompt.practice}
+          </p>
+        </div>
+
+        {selectedChallengeModalState === "current" ? (
+          <div className="mt-4 space-y-3">
+            <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>
+              {selectedChallengeModalPrompt.prompt}
+            </p>
+            <textarea
+              rows={4}
+              className="w-full resize-none rounded-[1rem] border px-3 py-2.5 text-sm leading-6 outline-none"
+              style={{
+                borderColor: theme.borderLight,
+                backgroundColor: theme.bgInput,
+                color: theme.textPrimary,
+              }}
+              placeholder={ts("challenges.reflectionPlaceholder")}
+              value={reflectionText}
+              onChange={(e) => setReflectionText(e.target.value)}
+            />
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <button
+                type="button"
+                disabled={savingDay?.challengeId === selectedChallenge.id}
+                onClick={() => markDayComplete(selectedChallenge)}
+                className="inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-semibold transition disabled:opacity-60"
+                style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+              >
+                {savingDay?.challengeId === selectedChallenge.id ? ts("challenges.saving") : ts("challenges.saveReflection")}
+              </button>
+            </div>
+          </div>
+        ) : selectedChallengeModalCompletion ? (
+          <div className="mt-4 rounded-[1.35rem] border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+              {ts("labels.note")}
+            </p>
+            <p className="mt-2 whitespace-pre-wrap text-sm leading-6" style={{ color: theme.textSecondary }}>
+              {selectedChallengeModalCompletion.reflection || ts("noReflectionsYet")}
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => void shareChallengeDayPostcardImage({
+                  challengeTitle: ts(selectedChallenge.titleKey, selectedChallenge.title),
+                  totalDays: selectedChallenge.totalDays,
+                  day: selectedChallengeModalDay.day,
+                  prompt: selectedChallengeModalPrompt,
+                  completion: selectedChallengeModalCompletion,
+                  theme,
+                  language,
+                  ts,
+                  trackClientEvent,
+                })}
+                className="inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-semibold transition"
+                style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+              >
+                {ts("challenges.shareDay")}
+              </button>
+            </div>
+          </div>
+        ) : null}
+      </section>
+    </div>,
+    document.body
+  ) : null;
+
   async function createChallengeInvite(
     challenge: ChallengeWithProgress,
     inviteDetails?: ReadWithMeInviteDetails
@@ -16361,6 +16945,8 @@ function FormationRailSection({
         </p>
       </div>
 
+      {dayModal}
+
       {loading && displayChallenges.length === 0 && (
         <div className="rounded-[1.35rem] border p-4 text-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textMuted }}>
           {ts("challenges.loading")}
@@ -16389,12 +16975,13 @@ function FormationRailSection({
                       ? ts("challenges.continueChallenge")
                       : ts("challenges.continueChallenge");
               return (
-                <button
+                  <button
                   key={challenge.id}
                   type="button"
                   onClick={() => {
                     setSelectedChallengeId(challenge.id);
                     setSelectedDayNumber(null);
+                    setOpenDayDetailDay(null);
                   }}
                   className="relative flex w-[17.25rem] shrink-0 snap-start flex-col rounded-[1.35rem] border p-3.5 text-left shadow-[0_6px_14px_rgba(7,10,8,0.05)] transition active:scale-[0.99]"
                   style={{
@@ -16504,132 +17091,37 @@ function FormationRailSection({
 
                 <div className="space-y-4 p-4 sm:p-5">
                   <section className="rounded-[1.35rem] border p-4 shadow-[0_8px_20px_rgba(7,10,8,0.04)]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
-                          {ts("challenges.dayOf").replace("{day}", String(selectedChallengeFocusedDay ?? 1)).replace("{total}", String(selectedChallenge.totalDays))}
-                        </p>
-                        <p className="mt-1 text-xs leading-5 italic" style={{ color: theme.textMuted }}>
-                          {selectedChallengeFocusedPrompt?.scripture}
-                        </p>
-                        <h4 className="mt-2 text-[1.02rem] font-semibold leading-6 sm:text-[1.08rem]" style={{ color: theme.textPrimary }}>
-                          {selectedChallengeFocusedPrompt ? ts(selectedChallengeFocusedPrompt.principleKey, selectedChallengeFocusedPrompt.principle) : ""}
-                        </h4>
-                      </div>
-                      {selectedChallengeFocusState === "completed" || selectedChallengeFocusState === "current" ? (
-                        <span
-                          className="inline-flex shrink-0 items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]"
-                          style={{
-                            borderColor: theme.borderMedium,
-                            backgroundColor: selectedChallengeFocusState === "completed" ? theme.activeBg : theme.bgInput,
-                            color: selectedChallengeFocusState === "completed" ? theme.primary : theme.textSecondary,
-                          }}
-                        >
-                          {selectedChallengeFocusState === "completed"
-                            ? ts("challenges.completedChallenge")
-                            : (selectedChallenge.completedDays.length > 0 ? ts("challenges.continueChallenge") : ts("challenges.startChallenge"))}
-                        </span>
-                      ) : null}
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
+                      {ts("labels.currentlyActiveMode")}
+                    </p>
+                    <h4 className="mt-1.5 text-[1.05rem] font-semibold leading-6 sm:text-[1.1rem]" style={{ color: theme.textPrimary }}>
+                      {ts(selectedChallenge.titleKey, selectedChallenge.title)}
+                    </h4>
+                    <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                      Tap the current day card below to open the full practice.
+                    </p>
+                    <div className="mt-4 h-2 overflow-hidden rounded-full" style={{ backgroundColor: theme.bgInput }}>
+                      <div
+                        className="h-full rounded-full"
+                        style={{
+                          width: `${Math.max(0, Math.min(100, (selectedChallenge.completedDays.length / selectedChallenge.totalDays) * 100))}%`,
+                          background: `linear-gradient(90deg, ${theme.primary}, ${theme.accentGold})`,
+                        }}
+                      />
                     </div>
-
-                    <div className="mt-3 rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-                      <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
-                        {ts("labels.practice")}
-                      </p>
-                      <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
-                        {selectedChallengeFocusedPrompt?.practice}
-                      </p>
-                    </div>
-
-                    {selectedChallengeFocusedCompletion ? (
-                      <div className="mt-3 rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-                        <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
-                          {ts("challenges.completedChallenge")}
-                        </p>
-                        <p className="mt-1 whitespace-pre-wrap text-sm leading-6" style={{ color: theme.textSecondary }}>
-                          {selectedChallengeFocusedCompletion.reflection || ts("noReflectionsYet")}
-                        </p>
-                      </div>
-                    ) : selectedChallengeFocusedDay === selectedChallengeNextDay && selectedChallengeFocusedPrompt ? (
-                      <div className="mt-3 space-y-3">
-                        <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>
-                          {selectedChallengeFocusedPrompt.prompt}
-                        </p>
-                        <textarea
-                          rows={4}
-                          className="w-full resize-none rounded-[1rem] border px-3 py-2.5 text-sm leading-6 outline-none"
-                          style={{
-                            borderColor: theme.borderLight,
-                            backgroundColor: theme.bgInput,
-                            color: theme.textPrimary,
-                          }}
-                          placeholder={ts("challenges.reflectionPlaceholder")}
-                          value={reflectionText}
-                          onChange={(e) => setReflectionText(e.target.value)}
-                        />
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <p className="text-xs leading-5" style={{ color: theme.textMuted }}>
-                            {ts("challenges.dayLabel").replace("{day}", String(selectedChallengeFocusedDay))} · {ts(selectedChallengeFocusedPrompt.practiceKey, selectedChallengeFocusedPrompt.practice)}
-                          </p>
-                          <button
-                            type="button"
-                            disabled={savingDay?.challengeId === selectedChallenge.id}
-                            onClick={() => markDayComplete(selectedChallenge)}
-                            className="inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-semibold transition disabled:opacity-60"
-                            style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
-                          >
-                            {savingDay?.challengeId === selectedChallenge.id ? ts("challenges.saving") : ts("challenges.saveReflection")}
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="mt-3 rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-                        <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>
-                          {selectedChallengeFocusedDay && selectedChallengeFocusedDay > selectedChallengeNextDay
-                            ? ts("challenges.previewHint")
-                            : ts("challenges.allDaysComplete").replace("{total}", String(selectedChallenge.totalDays))}
-                        </p>
-                        <button
-                          type="button"
-                          onClick={() => setSelectedDayNumber(selectedChallengeNextDay)}
-                          className="mt-3 inline-flex h-10 items-center justify-center rounded-full border px-4 text-sm font-semibold transition"
-                          style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
-                        >
-                          {ts("challenges.continueChallenge")}
-                        </button>
-                      </div>
-                    )}
                   </section>
 
                   <section className="space-y-2">
                     {dayCarouselHasOverflow ? (
                       <div className="flex items-center justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
-                            {ts("labels.swipeForMore")}
-                          </p>
-                          <p className="mt-1 text-sm leading-5" style={{ color: theme.textSecondary }}>
-                            {ts("labels.currentlyActiveMode")}: {ts("challenges.dayLabel").replace("{day}", String(selectedChallengeFocusedDay ?? 1))}
-                          </p>
-                        </div>
-                        <span className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-                          {ts("challenges.dayOf").replace("{day}", String(selectedChallengeFocusedDay ?? 1)).replace("{total}", String(selectedChallenge.totalDays))}
-                        </span>
+                        <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+                          {ts("labels.swipeForMore")}
+                        </p>
                       </div>
                     ) : (
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
-                            {ts("labels.currentlyActiveMode")}
-                          </p>
-                          <p className="mt-1 text-sm leading-5" style={{ color: theme.textSecondary }}>
-                            {ts("challenges.dayLabel").replace("{day}", String(selectedChallengeFocusedDay ?? 1))}
-                          </p>
-                        </div>
-                        <span className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-                          {ts("challenges.dayOf").replace("{day}", String(selectedChallengeFocusedDay ?? 1)).replace("{total}", String(selectedChallenge.totalDays))}
-                        </span>
-                      </div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+                        {ts("labels.currentlyActiveMode")}
+                      </p>
                     )}
                     <div
                       ref={dayCarouselRef}
@@ -16641,12 +17133,10 @@ function FormationRailSection({
                         const completion = completionForDay(selectedChallenge, day.day);
                         const isFocused = selectedChallengeFocusedDay === day.day;
                         const isLocked = day.day > selectedChallengeNextDay;
-                        const statusLabel =
-                          state === "completed"
-                            ? ts("challenges.completedChallenge")
-                            : selectedChallenge.completedDays.length > 0
-                              ? ts("challenges.continueChallenge")
-                              : ts("challenges.startChallenge");
+                        const teaserText = ts(day.promptKey, day.prompt);
+                        const statusLabel = state === "completed"
+                          ? ts("challenges.completedChallenge")
+                          : ts("challenges.continueChallenge");
 
                         return (
                           <article
@@ -16654,21 +17144,37 @@ function FormationRailSection({
                             ref={(node) => {
                               dayCardRefs.current[day.day] = node;
                             }}
-                            role="button"
-                            tabIndex={0}
-                            onClick={() => setSelectedDayNumber(day.day)}
-                            onKeyDown={(event) => {
-                              if (event.key === "Enter" || event.key === " ") {
-                                event.preventDefault();
-                                setSelectedDayNumber(day.day);
-                              }
-                            }}
-                            className="premium-tap-card relative flex w-[15.5rem] shrink-0 snap-center flex-col rounded-[1.15rem] border p-3.5 text-left transition hover:-translate-y-px sm:w-[16.5rem]"
+                            role={isLocked ? undefined : "button"}
+                            aria-disabled={isLocked}
+                            tabIndex={isLocked ? -1 : 0}
+                            onClick={
+                              isLocked
+                                ? undefined
+                                : () => {
+                                    setSelectedDayNumber(day.day);
+                                    setOpenDayDetailDay(day.day);
+                                  }
+                            }
+                            onKeyDown={
+                              isLocked
+                                ? undefined
+                                : (event) => {
+                                    if (event.key === "Enter" || event.key === " ") {
+                                      event.preventDefault();
+                                      setSelectedDayNumber(day.day);
+                                      setOpenDayDetailDay(day.day);
+                                    }
+                                  }
+                            }
+                            className="premium-tap-card relative flex h-[11.75rem] w-[15.25rem] shrink-0 snap-center flex-col rounded-[1.15rem] border p-3.5 text-left transition sm:w-[16rem]"
                             style={{
                               borderColor: isFocused ? theme.primary : theme.borderLight,
-                              backgroundColor: isFocused ? theme.bgCardElevated : theme.bgCard,
+                              backgroundColor: isFocused && !isLocked ? theme.bgCardElevated : theme.bgCard,
                               boxShadow: isFocused ? `0 0 0 1px ${theme.primary}` : "0 6px 14px rgba(7, 10, 8, 0.04)",
-                              opacity: isLocked ? 0.78 : 1,
+                              opacity: isLocked ? 0.45 : 1,
+                              filter: isLocked ? "grayscale(0.55) saturate(0.7)" : "none",
+                              transform: isLocked ? "translateY(0)" : undefined,
+                              cursor: isLocked ? "not-allowed" : "pointer",
                             }}
                           >
                             <div className="flex items-start justify-between gap-3">
@@ -16676,84 +17182,55 @@ function FormationRailSection({
                                 <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
                                   {ts("challenges.dayLabel").replace("{day}", String(day.day))}
                                 </p>
-                                <p className="mt-1 text-sm font-semibold leading-5" style={{ color: theme.textPrimary }}>
+                                <p className="mt-1 line-clamp-2 text-sm font-semibold leading-5" style={{ color: theme.textPrimary }}>
                                   {day.scripture}
                                 </p>
                               </div>
                               <div className="flex shrink-0 items-center gap-2">
-                                <span
-                                  className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]"
-                                  style={{
-                                    borderColor: theme.borderMedium,
-                                    backgroundColor:
-                                      state === "completed"
-                                        ? theme.activeBg
-                                        : state === "current"
-                                          ? theme.bgInput
-                                          : theme.bgCardElevated,
-                                    color:
-                                  state === "completed"
-                                    ? theme.primary
-                                    : state === "current"
-                                      ? theme.textSecondary
-                                      : isLocked
-                                        ? theme.textMuted
-                                        : theme.textMuted,
-                                }}
-                              >
-                                  {isLocked ? ts("streak.nextLabel") : statusLabel}
-                                </span>
-                                <button
-                                  type="button"
-                                  onClick={(event) => {
-                                    event.stopPropagation();
-                                    void shareChallengeDay(selectedChallenge, day.day);
-                                  }}
-                                  disabled={!completion}
-                                  className="grid size-8 shrink-0 place-items-center rounded-full border transition hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-40"
-                                  aria-label={`${ts("share.shareAletheia")} ${ts("challenges.dayLabel").replace("{day}", String(day.day))}`}
-                                  style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
-                                >
-                                  <Share2 size={13} />
-                                </button>
+                                {isLocked ? (
+                                  <span
+                                    className="grid size-8 shrink-0 place-items-center rounded-full border"
+                                    aria-hidden="true"
+                                    style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textMuted }}
+                                  >
+                                    <span className="text-[0.8rem] leading-none">•</span>
+                                  </span>
+                                ) : state === "current" || state === "completed" ? (
+                                  <span
+                                    className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]"
+                                    style={{
+                                      borderColor: theme.borderMedium,
+                                      backgroundColor:
+                                        state === "completed"
+                                          ? theme.activeBg
+                                          : theme.bgInput,
+                                      color: state === "completed"
+                                        ? theme.primary
+                                        : theme.textSecondary,
+                                    }}
+                                  >
+                                    {statusLabel}
+                                  </span>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      void shareChallengeDay(selectedChallenge, day.day);
+                                    }}
+                                    disabled={!completion}
+                                    className="grid size-8 shrink-0 place-items-center rounded-full border transition hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-40"
+                                    aria-label={`${ts("share.shareAletheia")} ${ts("challenges.dayLabel").replace("{day}", String(day.day))}`}
+                                    style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
+                                  >
+                                    <Share2 size={13} />
+                                  </button>
+                                )}
                               </div>
                             </div>
-                            <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
-                              {day.practice}
+                            <p className="mt-3 line-clamp-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                              {teaserText}
                             </p>
-                            {completion ? (
-                              <div className="mt-3 rounded-[0.9rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-                                <div className="flex items-center justify-between gap-2">
-                                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
-                                    {ts("labels.note")}
-                                  </p>
-                                  <span className="text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ color: theme.textMuted }}>
-                                    {new Date(completion.completedAt).toLocaleDateString()}
-                                  </span>
-                                </div>
-                                <p className="mt-1.5 line-clamp-4 whitespace-pre-wrap text-sm leading-6" style={{ color: theme.textSecondary }}>
-                                  {completion.reflection || ts("noReflectionsYet")}
-                                </p>
-                              </div>
-                            ) : state === "current" ? (
-                              <div className="mt-3 rounded-[0.9rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-                                <p className="text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
-                                  {ts("labels.details")}
-                                </p>
-                                <p className="mt-1.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
-                                  {ts("challenges.dayOf").replace("{day}", String(day.day)).replace("{total}", String(selectedChallenge.totalDays))}
-                                </p>
-                              </div>
-                            ) : isLocked ? (
-                              <div className="mt-3 rounded-[0.9rem] border border-dashed p-3" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput }}>
-                                <p className="text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
-                                  {ts("streak.nextLabel")}
-                                </p>
-                                <p className="mt-1.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
-                                  {ts("challenges.previewHint")}
-                                </p>
-                              </div>
-                            ) : null}
                           </article>
                         );
                       })}
@@ -24205,6 +24682,7 @@ function DecisionCompanionPanel({
               />
 
               <DisclosureSection
+                className="mt-5"
                 title={latestCounselInvite ? `${ts('labels.inviteReadyFor')} ${latestCounselInvite.name}` : ts('labels.shareInvite')}
                 summary={latestCounselInvite ? ts('labels.privateChatsNeverVisible') : ts('labels.counselCircleSummary')}
                 eyebrow={ts('labels.shareInvite')}
@@ -24273,6 +24751,7 @@ function DecisionCompanionPanel({
               </DisclosureSection>
 
               <DisclosureSection
+                className="mt-4"
                 title={`${visibleCounselContacts.length} ${visibleCounselContacts.length === 1 ? ts('labels.trustedVoice') : ts('labels.trustedVoices')}`}
                 summary={hiddenCounselContacts.length
                   ? `${hiddenCounselContacts.length} ${hiddenCounselContacts.length === 1 ? ts('labels.moreTrustedVoice') : ts('labels.moreTrustedVoices')} ${ts('labels.stayCollapsedUntilNeeded')}`
@@ -24391,6 +24870,7 @@ function DecisionCompanionPanel({
                 </div>
                 {hiddenCounselContacts.length ? (
                     <DisclosureSection
+                      className="mt-4"
                       title={`${hiddenCounselContacts.length} ${hiddenCounselContacts.length === 1 ? ts('labels.moreTrustedVoice') : ts('labels.moreTrustedVoices')}`}
                       summary={ts('labels.counselCircleSummary')}
                       eyebrow={ts('labels.moreCounselOptions')}
@@ -24948,6 +25428,7 @@ function ReflectPanel({
           challengeCircleRefreshKey={challengeCircleRefreshKey}
           onChallengeCircleChanged={onChallengeCircleChanged}
           onChallengeInviteReady={onChallengeInviteReady}
+          language={language}
         />
       ) : null}
 

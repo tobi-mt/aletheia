@@ -1834,7 +1834,12 @@
     "declinedInviteBody": "You declined this reading invitation. You can still join if you change your mind.",
     "joinAnyway": "Join anyway",
     "declineInvite": "Decline",
-    "sharedPlan": "Shared plan"
+    "sharedPlan": "Shared plan",
+    "shareDay": "Partager ce jour",
+    "shareDayBody": "Une journée accomplie de cette pratique, avec l’Écriture, la pratique et la note.",
+    "shareDayCta": "Essayer ce jour",
+    "shareDayEyebrow": "Jour du défi",
+    "shareDayProgress": "Jour {day} sur {totalDays}"
   },
   "streak": {
     "openMilestones": "Ouvrir les paliers de régularité",

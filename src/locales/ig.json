@@ -1687,8 +1687,8 @@
     "markComplete": "Depụta taa ka ezubere",
     "reflectionPlaceholder": "Nke ọzọ: dee isiokwu mkpụmkpụ gbasara omume taa…",
     "saveReflection": "Bokota ma depụta ka ezubere",
-    "shareChallenge": "Kesaa omume a",
-    "shareChallengeBody": "Sonyere m na {days}-ụbọchị omume na Aletheia.",
+    "shareChallenge": "Kekọrịta omume a",
+    "shareChallengeBody": "Soro m bụrụ na omume ụbọchị {days} a na Aletheia.",
     "noProgressYet": "Malite site na Ụbọchị 1 mgbe i dị njikere.",
     "allDaysComplete": "Nile {total} ụbọchị ezubere. Ọ dị mma.",
     "signInToTrack": "Banye iji lelee ihu gị na ngwaike.",
@@ -1834,7 +1834,12 @@
     "declinedInviteBody": "You declined this reading invitation. You can still join if you change your mind.",
     "joinAnyway": "Join anyway",
     "declineInvite": "Decline",
-    "sharedPlan": "Shared plan"
+    "sharedPlan": "Shared plan",
+    "shareDay": "Kekọrịta ụbọchị a",
+    "shareDayBody": "Ụbọchị emechara nke omume a, nwere akụkụ Akwụkwọ Nsọ, omume, na ndetu.",
+    "shareDayCta": "Nwale ụbọchị a",
+    "shareDayEyebrow": "Ụbọchị ịma aka",
+    "shareDayProgress": "Ụbọchị {day} n’ime {totalDays}"
   },
   "streak": {
     "openMilestones": "Meghee ụzọ ọhụụ",

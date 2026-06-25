@@ -1687,8 +1687,8 @@
     "markComplete": "Markahan ang ngayon bilang tapos",
     "reflectionPlaceholder": "Opsyonal: sumulat ng maikling tala tungkol sa ehersisyo ngayon…",
     "saveReflection": "I-save at markahan bilang tapos",
-    "shareChallenge": "Ibahagi ang ehersisyong ito",
-    "shareChallengeBody": "Sumali sa amin sa {days}-araw na ehersisyo sa Aletheia.",
+    "shareChallenge": "Ibahagi ang praktikang ito",
+    "shareChallengeBody": "Sama ka sa akin sa {days}-araw na praktikang ito sa Aletheia.",
     "noProgressYet": "Magsimula sa Araw 1 kapag handa ka na.",
     "allDaysComplete": "Lahat ng {total} araw ay tapos. Napakaganda.",
     "signInToTrack": "Mag-sign in upang subaybayan ang iyong pag-unlad sa lahat ng mga kagamitan.",
@@ -1834,7 +1834,12 @@
     "declinedInviteBody": "You declined this reading invitation. You can still join if you change your mind.",
     "joinAnyway": "Join anyway",
     "declineInvite": "Decline",
-    "sharedPlan": "Shared plan"
+    "sharedPlan": "Shared plan",
+    "shareDay": "Ibahagi ang araw na ito",
+    "shareDayBody": "Isang natapos na araw ng praktikang ito, kasama ang Kasulatan, gawain, at tala.",
+    "shareDayCta": "Subukan ang araw na ito",
+    "shareDayEyebrow": "Araw ng hamon",
+    "shareDayProgress": "Araw {day} sa {totalDays}"
   },
   "streak": {
     "openMilestones": "Buksan ang mga antas",

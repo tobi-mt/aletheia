@@ -1687,8 +1687,8 @@
     "markComplete": "आज को पूर्ण के रूप में चिह्नित करें",
     "reflectionPlaceholder": "वैकल्पिक: आज के अभ्यास के बारे में एक संक्षिप्त नोट लिखें…",
     "saveReflection": "सहेजें और पूर्ण के रूप में चिह्नित करें",
-    "shareChallenge": "यह अभ्यास साझा करें",
-    "shareChallengeBody": "मेरे साथ Aletheia पर इस {days}-दिवसीय अभ्यास में शामिल हों।",
+    "shareChallenge": "इस अभ्यास को साझा करें",
+    "shareChallengeBody": "Aletheia पर मेरे साथ इस {days}-दिवसीय अभ्यास में शामिल हों।",
     "noProgressYet": "जब आप तैयार हों तो दिन 1 से शुरू करें।",
     "allDaysComplete": "सभी {total} दिन पूर्ण। बहुत अच्छा।",
     "signInToTrack": "डिवाइस में अपनी प्रगति को ट्रैक करने के लिए साइन इन करें।",
@@ -1834,7 +1834,12 @@
     "declinedInviteBody": "You declined this reading invitation. You can still join if you change your mind.",
     "joinAnyway": "Join anyway",
     "declineInvite": "Decline",
-    "sharedPlan": "Shared plan"
+    "sharedPlan": "Shared plan",
+    "shareDay": "इस दिन को साझा करें",
+    "shareDayBody": "इस अभ्यास का एक पूरा हुआ दिन, जिसमें वचन, अभ्यास और नोट शामिल है।",
+    "shareDayCta": "इस दिन को आज़माएँ",
+    "shareDayEyebrow": "चुनौती का दिन",
+    "shareDayProgress": "दिन {day} में से {totalDays}"
   },
   "streak": {
     "openMilestones": "माइलस्टोन खोलें",
