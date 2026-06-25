@@ -49,11 +49,15 @@ export function StreakBadge({
   };
 
   const accentColor = theme?.accentGold || "#ff6b35";
-  
+  const surfaceColor = theme?.bgCardElevated || theme?.bgCard || "#ffffff";
+  const iconColor = theme?.textPrimary || "#1f2937";
+  const labelColor = theme?.textSecondary || iconColor;
+  const milestoneColor = theme?.textPrimary || iconColor;
+  const badgeShadow = `0 10px 22px color-mix(in srgb, ${accentColor} 12%, transparent)`;
   const bgColor =
     days === 0
-      ? `color-mix(in srgb, ${accentColor} 10%, transparent)`
-      : `color-mix(in srgb, ${accentColor} 15%, transparent)`;
+      ? `linear-gradient(180deg, color-mix(in srgb, ${surfaceColor} 90%, ${accentColor} 10%), ${surfaceColor})`
+      : `linear-gradient(180deg, color-mix(in srgb, ${surfaceColor} 84%, ${accentColor} 16%), ${surfaceColor})`;
 
   const pulseVariants = {
     initial: { opacity: 0.7 },
@@ -68,23 +72,28 @@ export function StreakBadge({
       className="flex flex-col items-center gap-2"
     >
       <motion.div
-        className={`${sizeClasses[size]} rounded-full flex items-center justify-center font-bold relative`}
+        className={`${sizeClasses[size]} relative flex items-center justify-center overflow-hidden rounded-full border font-bold`}
         style={{
           background: bgColor,
           borderWidth: "2px",
-          borderColor: `color-mix(in srgb, ${accentColor} 30%, transparent)`,
+          borderColor: `color-mix(in srgb, ${accentColor} 38%, ${theme?.borderMedium || accentColor} 62%)`,
+          color: iconColor,
+          boxShadow: badgeShadow,
         }}
         animate={animated && days > 0 ? "animate" : "initial"}
         variants={pulseVariants}
         transition={{ duration: 2, repeat: Infinity, repeatType: "loop" }}
       >
-        <span>{getStreakEmoji()}</span>
+        <span className="relative z-10" style={{ color: accentColor }}>
+          {getStreakEmoji()}
+        </span>
         {size !== "sm" && (
           <span
-            className="absolute bottom-0 right-0 text-xs font-bold"
+            className="absolute bottom-0 right-0 z-20 text-xs font-bold"
             style={{
               background: accentColor,
-              color: "white",
+              color: theme?.textOnPrimary || "#ffffff",
+              border: `1px solid ${theme?.bgCard || "#ffffff"}`,
               borderRadius: "50%",
               width: "1.25rem",
               height: "1.25rem",
@@ -100,15 +109,19 @@ export function StreakBadge({
 
       {showLabel && (
         <motion.div
-          className="text-center"
+          className="max-w-[7.5rem] text-center"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2 }}
         >
           {getMilestoneText() ? (
-            <p className="text-sm font-semibold">{getMilestoneText()}</p>
+            <p className="text-sm font-semibold" style={{ color: milestoneColor }}>
+              {getMilestoneText()}
+            </p>
           ) : (
-            <p className="text-xs opacity-60">{ts("streak.keepGoing")}</p>
+            <p className="text-xs font-medium" style={{ color: labelColor }}>
+              {ts("streak.keepGoing")}
+            </p>
           )}
         </motion.div>
       )}

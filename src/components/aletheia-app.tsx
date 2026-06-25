@@ -25969,8 +25969,14 @@ function LibraryPanel({
                       }}
                     >
                       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.18),transparent_40%),radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.08),transparent_38%)]" />
-                      <div className="absolute left-2.5 top-2.5 grid size-[1.375rem] place-items-center rounded-full border border-white/20 bg-white/12 shadow-[0_8px_16px_rgba(0,0,0,0.12)]">
-                        <BookOpen size={12} style={{ color: theme.textOnPrimary }} />
+                      <div
+                        className="absolute left-2.5 top-2.5 grid size-[1.55rem] place-items-center rounded-full border shadow-[0_10px_18px_rgba(0,0,0,0.18)]"
+                        style={{
+                          borderColor: theme.borderLight,
+                          backgroundColor: theme.bgInput,
+                        }}
+                      >
+                        <BookOpen size={12} style={{ color: theme.textPrimary }} />
                       </div>
                     </div>
 
