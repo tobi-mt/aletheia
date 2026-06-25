@@ -1,5 +1,6 @@
 import { challengeDefinitions, getChallengeById, type ChallengeId } from "@/lib/challenge-data";
 import { normalizeManualContext, type ManualContextProfile } from "@/lib/manual-context";
+import type { ChallengeProgressState } from "@/lib/challenge-progress";
 
 type ModeCounts = Partial<Record<string, number>>;
 
@@ -20,16 +21,20 @@ export type ChallengeRecommendationContext = {
 
 export type ChallengeRecommendation = {
   challengeId: ChallengeId;
+  titleKey: string;
   title: string;
+  descriptionKey: string;
   description: string;
   totalDays: number;
   mode: string;
+  completedDays: number;
   score: number;
   note: string;
   signals: string[];
   fitChips: string[];
   actionLabel: string;
   actionKind: "start" | "continue";
+  progressState?: ChallengeProgressState;
 };
 
 export type ChallengeRecommendationBundle = {
@@ -691,10 +696,13 @@ function scoreChallenge(
 
   return {
     challengeId,
+    titleKey: challengeDefinitions.find((challenge) => challenge.id === challengeId)?.titleKey ?? challengeId,
     title: challengeDefinitions.find((challenge) => challenge.id === challengeId)?.title ?? challengeId,
+    descriptionKey: challengeDefinitions.find((challenge) => challenge.id === challengeId)?.descriptionKey ?? challengeId,
     description: challengeDefinitions.find((challenge) => challenge.id === challengeId)?.description ?? "",
     totalDays: challengeDefinitions.find((challenge) => challenge.id === challengeId)?.totalDays ?? 0,
     mode: challengeDefinitions.find((challenge) => challenge.id === challengeId)?.mode ?? "Life",
+    completedDays: 0,
     score,
     signals,
     fitChips: buildFitChips(challengeId, signals, context, currentMode),
@@ -740,10 +748,13 @@ export function recommendChallenges(input: ChallengeRecommendationContext): Chal
         const daysCompleted = input.activeChallenge?.daysCompleted ?? 0;
         return {
           challengeId: def.id,
+          titleKey: def.titleKey,
           title: def.title,
+          descriptionKey: def.descriptionKey,
           description: def.description,
           totalDays: def.totalDays,
           mode: def.mode,
+          completedDays: daysCompleted,
           score: 100,
           signals: [
             `${daysCompleted}/${def.totalDays} days complete`,
@@ -768,6 +779,6 @@ export function recommendChallenges(input: ChallengeRecommendationContext): Chal
 
   return {
     primary: active ?? suggestions[0] ?? null,
-    alternatives: active ? suggestions.filter((item) => item.challengeId !== active.challengeId) : suggestions.slice(1),
+    alternatives: active ? [] : suggestions.slice(1),
   };
 }

@@ -88,6 +88,7 @@ import { detectLifeSupportConcern } from "@/lib/life-support";
 import { stableHash, todayWisdom as sharedTodayWisdom, wisdomEntries as baseWisdomEntries, type WisdomEntryData } from "@/lib/wisdom-data";
 import { defaultManualContext, manualContextCounselSignals, manualContextHasContent, normalizeManualContext, type ManualContextProfile } from "@/lib/manual-context";
 import { recommendChallenges } from "@/lib/challenge-recommendations";
+import { getChallengeProgressState } from "@/lib/challenge-progress";
 import { getCompanionTemplate, resolveGenerationLanguage } from "@/lib/scripture-generation-templates";
 import type { Mode } from "@/lib/wisdom-data";
 import { analyticsQuestionMetadata } from "@/lib/analytics-taxonomy";
@@ -8998,8 +8999,8 @@ export function AletheiaApp() {
   async function updatePreferences(patch: Partial<UserPreferences>) {
     const next = { ...preferences, ...patch };
     const nextTranslations = loadTranslationsWithFallbackSync(next.language);
-    const getNextTranslation = (key: string, fallback: string) => {
-      const result = getTranslation(nextTranslations, key, fallback);
+    const getNextTranslation = (key: string) => {
+      const result = getTranslation(nextTranslations, key, key);
       return Array.isArray(result) ? result.join(', ') : result;
     };
 
@@ -9021,8 +9022,8 @@ export function AletheiaApp() {
     setCarryToday(storedCarryToday(next));
     setPreferencesStatus(
       user
-        ? getNextTranslation('notifications.preferencesSaving', 'Saving preferences...')
-        : getNextTranslation('notifications.preferencesSavedBody', 'Your language preferences are saved on this device.')
+        ? getNextTranslation('notifications.preferencesSaving')
+        : getNextTranslation('notifications.preferencesSavedBody')
     );
     try {
       window.localStorage.setItem("aletheia_preferences", JSON.stringify(next));
@@ -9039,16 +9040,16 @@ export function AletheiaApp() {
       const saved = response.ok;
       setPreferencesStatus(
         saved
-          ? getNextTranslation('notifications.preferencesReady', 'Preferences are up to date.')
-          : getNextTranslation('notifications.preferencesSavedLocallyBody', 'Your language preferences are saved on this device.')
+          ? getNextTranslation('notifications.preferencesReady')
+          : getNextTranslation('notifications.preferencesSavedLocallyBody')
       );
       announceWorkflow(
-        saved ? getNextTranslation('notifications.preferencesSynced', 'Language settings synced') : getNextTranslation('notifications.preferencesSavedLocally', 'Language settings saved locally'),
-        saved ? getNextTranslation('notifications.preferencesSyncedBody', 'Your language preferences are now synced across devices.') : getNextTranslation('notifications.preferencesSavedLocallyBody', 'Your language preferences are saved on this device.'),
+        saved ? getNextTranslation('notifications.preferencesSynced') : getNextTranslation('notifications.preferencesSavedLocally'),
+        saved ? getNextTranslation('notifications.preferencesSyncedBody') : getNextTranslation('notifications.preferencesSavedLocallyBody'),
         saved ? "success" : "warning"
       );
     } else {
-      announceWorkflow(getNextTranslation('notifications.preferencesSaved', 'Language settings saved'), getNextTranslation('notifications.preferencesSavedBody', 'Your language preferences are saved on this device.'), "success");
+      announceWorkflow(getNextTranslation('notifications.preferencesSaved'), getNextTranslation('notifications.preferencesSavedBody'), "success");
     }
   }
 
@@ -11669,6 +11670,10 @@ export function AletheiaApp() {
                         onSave={saveReflection}
                         onDelete={deleteJournalEntry}
                         onSaveGratitude={saveGratitudeEntry}
+                        onUpdateGratitude={updateGratitudeEntry}
+                        onDeleteGratitude={deleteGratitudeEntry}
+                        onShareGratitudePostcard={shareGratitudePostcard}
+                        onUseGratitudeAsReflectionPrompt={useGratitudeAsReflectionPrompt}
                         onSpeakText={speakText}
                         onShareReflectionPostcard={shareReflectionPostcard}
                         theme={theme}
@@ -14413,12 +14418,19 @@ function AccountPanel({
       : ts("labels.accountRecommendationLead")
     : "";
   const accountRecommendationBody = challengeRecommendation
-    ? [
-        accountRecommendationLead,
-        challengeRecommendation.note,
-      ]
-        .filter(Boolean)
-        .join(" ")
+    ? challengeRecommendation.actionKind === "continue"
+      ? [
+          accountRecommendationLead,
+          `${ts("challenges.continueChallenge")}: ${ts("challenges.daysCompleted").replace("{count}", String(challengeRecommendation.completedDays)).replace("{total}", String(challengeRecommendation.totalDays))}`,
+        ]
+          .filter(Boolean)
+          .join(" ")
+      : [
+          accountRecommendationLead,
+          ts(challengeRecommendation.descriptionKey, challengeRecommendation.description),
+        ]
+          .filter(Boolean)
+          .join(" ")
     : "";
 
   return (
@@ -14532,8 +14544,8 @@ function AccountPanel({
 
       {challengeRecommendation ? (
       <ContextualNextAction
-        eyebrow={ts("labels.accountQuietFit")}
-        title={challengeRecommendation.title}
+        eyebrow={challengeRecommendation.actionKind === "continue" ? ts("challenges.continueChallenge") : ts("labels.accountQuietFit")}
+        title={ts(challengeRecommendation.titleKey, challengeRecommendation.title)}
         body={accountRecommendationBody}
           actionLabel={challengeRecommendation.actionKind === "continue" ? ts("challenges.continueChallenge") : ts("challenges.startChallenge")}
           onAction={() => onOpenRecommendedChallenge(challengeRecommendation.challengeId)}
@@ -14732,9 +14744,14 @@ function ChallengeRecommendationCard({
     return null;
   }
 
+  const isContinuation = recommendation.actionKind === "continue";
   const actionLabel = recommendation.actionKind === "continue"
     ? ts("challenges.continueChallenge")
     : ts("challenges.startChallenge");
+  const title = ts(recommendation.titleKey, recommendation.title);
+  const body = isContinuation
+    ? `${ts("challenges.continueChallenge")}: ${ts("challenges.daysCompleted").replace("{count}", String(recommendation.completedDays)).replace("{total}", String(recommendation.totalDays))}`
+    : ts(recommendation.descriptionKey, recommendation.description);
 
   return (
     <section
@@ -14747,40 +14764,42 @@ function ChallengeRecommendationCard({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
-            {ts("labels.suggestedAction")}
+            {isContinuation ? ts("challenges.continueChallenge") : ts("labels.suggestedAction")}
           </p>
           <h3 className="mt-1 text-lg font-semibold" style={{ color: theme.textPrimary }}>
-            {ts("labels.recommendedForYou")}
+            {isContinuation ? ts("challenges.continueChallenge") : ts("labels.recommendedForYou")}
           </h3>
           <p className="mt-1.5 text-base font-semibold leading-6" style={{ color: theme.textPrimary }}>
-            {recommendation.title}
+            {title}
           </p>
           <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
-            {recommendation.note}
+            {body}
           </p>
         </div>
       </div>
 
-      <div className="mt-3">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
-          {ts("challenges.whyThisFits")}
-        </p>
-        <div className="mt-2 flex flex-wrap gap-2">
-          {recommendation.fitChips.slice(0, 3).map((chip) => (
-            <span
-              key={chip}
-              className="rounded-full border px-2.5 py-1 text-[10px] font-semibold tracking-[0.08em]"
-              style={{
-                borderColor: theme.borderLight,
-                backgroundColor: theme.bgInput,
-                color: theme.textSecondary,
-              }}
-            >
-              {chip}
-            </span>
-          ))}
+      {!isContinuation ? (
+        <div className="mt-3">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
+            {ts("challenges.whyThisFits")}
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {recommendation.fitChips.slice(0, 3).map((chip) => (
+              <span
+                key={chip}
+                className="rounded-full border px-2.5 py-1 text-[10px] font-semibold tracking-[0.08em]"
+                style={{
+                  borderColor: theme.borderLight,
+                  backgroundColor: theme.bgInput,
+                  color: theme.textSecondary,
+                }}
+              >
+                {chip}
+              </span>
+            ))}
+          </div>
         </div>
-      </div>
+      ) : null}
 
       <div className="mt-4 flex flex-wrap items-center gap-2">
         <button
@@ -15767,7 +15786,13 @@ function FormationRailSection({
     });
   }, [activeChallengeProgress, completionChallengeIds, focusIntentions, journalEntries, manualContext, messages, mode, wisdomDecisions]);
 
-  const effectiveSelectedChallengeId = pendingChallengeId ?? selectedChallengeId ?? recommendationSignals.primary?.challengeId ?? displayChallenges[0]?.id ?? null;
+  const effectiveSelectedChallengeId =
+    pendingChallengeId ??
+    activeChallengeProgress?.id ??
+    selectedChallengeId ??
+    recommendationSignals.primary?.challengeId ??
+    displayChallenges[0]?.id ??
+    null;
   const selectedChallenge = displayChallenges.find((challenge) => challenge.id === effectiveSelectedChallengeId) ?? null;
   const selectedCircle = selectedChallenge
     ? [...challengeCircles]
@@ -15919,6 +15944,9 @@ function FormationRailSection({
     ? selectedChallenge.completedDays.find((day) => day.day === selectedChallengeFocusedDay) ?? null
     : null;
   const selectedChallengeDays = selectedChallenge?.days ?? [];
+  const visibleChallengeCards = activeChallengeProgress
+    ? displayChallenges.filter((challenge) => challenge.id === activeChallengeProgress.id)
+    : displayChallenges;
 
   function completedDaysFor(challenge: ChallengeWithProgress) {
     return challenge.completedDays.length;
@@ -16035,19 +16063,27 @@ function FormationRailSection({
         </div>
       )}
 
-      {displayChallenges.length ? (
+      {visibleChallengeCards.length ? (
         <>
           <div className="flex gap-3 overflow-x-auto pb-2 [-webkit-overflow-scrolling:touch]">
-            {displayChallenges.map((challenge) => {
+            {visibleChallengeCards.map((challenge) => {
               const done = completedDaysFor(challenge);
               const circle = challengeCircles.find((item) => item.challengeId === challenge.id) ?? null;
               const isActive = selectedChallenge?.id === challenge.id;
+              const lastCompletedAt = challenge.completedDays.at(-1)?.completedAt ?? null;
+              const progressState = getChallengeProgressState({
+                completedDays: done,
+                totalDays: challenge.totalDays,
+                lastCompletedAt,
+              }, currentTimestampMs);
               const progressLabel =
-                done >= challenge.totalDays
+                progressState === "completed"
                   ? ts("challenges.completedChallenge")
-                  : done > 0
-                    ? ts("challenges.continueChallenge")
-                    : ts("challenges.startChallenge");
+                  : progressState === "not_started"
+                    ? ts("challenges.startChallenge")
+                    : progressState === "inactive"
+                      ? ts("challenges.continueChallenge")
+                      : ts("challenges.continueChallenge");
               return (
                 <button
                   key={challenge.id}
@@ -16056,7 +16092,7 @@ function FormationRailSection({
                     setSelectedChallengeId(challenge.id);
                     setSelectedDayNumber(null);
                   }}
-                  className="relative flex w-[16.5rem] shrink-0 snap-start flex-col rounded-[1.25rem] border p-3.5 text-left shadow-[0_6px_14px_rgba(7,10,8,0.05)] transition active:scale-[0.99]"
+                  className="relative flex w-[17.25rem] shrink-0 snap-start flex-col rounded-[1.35rem] border p-3.5 text-left shadow-[0_6px_14px_rgba(7,10,8,0.05)] transition active:scale-[0.99]"
                   style={{
                     borderColor: isActive ? theme.primary : theme.borderLight,
                     backgroundColor: isActive ? theme.bgCardElevated : theme.bgCard,
@@ -16065,23 +16101,26 @@ function FormationRailSection({
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold leading-5" style={{ color: theme.textPrimary }}>
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+                        {isActive ? ts("challenges.continueChallenge") : ts("challenges.eyebrow")}
+                      </p>
+                      <p className="mt-1 text-sm font-semibold leading-5" style={{ color: theme.textPrimary }}>
                         {ts(challenge.titleKey, challenge.title)}
                       </p>
                     </div>
-                    <span className="inline-flex h-10 min-w-[3.25rem] shrink-0 items-center justify-center whitespace-nowrap rounded-full border px-2.5 text-xs font-semibold leading-none" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                    <span className="shrink-0 text-xs font-semibold tabular-nums leading-none" style={{ color: theme.textMuted }}>
                       {done}/{challenge.totalDays}
                     </span>
                   </div>
-                  <p className="mt-3 line-clamp-2 text-xs leading-5" style={{ color: theme.textSecondary }}>
+                  <p className="mt-3 line-clamp-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
                     {ts(challenge.descriptionKey, challenge.description)}
                   </p>
-                  <div className="mt-3 flex items-center justify-between gap-2">
-                    <span className="rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-                      {challenge.mode}
+                  <div className="mt-3 flex items-center justify-between gap-2 text-xs leading-5" style={{ color: theme.textMuted }}>
+                    <span className="font-semibold" style={{ color: theme.textSecondary }}>
+                      {progressLabel}
                     </span>
-                    <span className="text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ color: theme.textMuted }}>
-                      {circle ? `${circle.memberCount} ${ts("challenges.withFriends")}` : progressLabel}
+                    <span className="truncate text-right">
+                      {circle ? `${circle.memberCount} ${ts("challenges.withFriends")}` : challenge.mode}
                     </span>
                   </div>
                 </button>
@@ -20458,6 +20497,197 @@ function ReportIssueModal({
   );
 }
 
+function WisdomTimelineModal({
+  open,
+  theme,
+  ts,
+  language,
+  events,
+  summary,
+  onClose,
+}: {
+  open: boolean;
+  theme: ThemeColors;
+  ts: (key: string, fallback?: string) => string;
+  language: LanguageCode;
+  events: DecisionEvent[];
+  summary: string;
+  onClose: () => void;
+}) {
+  const canUsePortal = typeof document !== "undefined";
+  useBodyScrollLock(open && canUsePortal);
+
+  if (!open || !canUsePortal) {
+    return null;
+  }
+
+  const sortedEvents = [...events].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  const dateFormatter = new Intl.DateTimeFormat(language, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+  const timeFormatter = new Intl.DateTimeFormat(language, {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+  const latestEvent = sortedEvents[0] ?? null;
+  const latestEventLabel = latestEvent ? dateFormatter.format(new Date(latestEvent.createdAt)) : null;
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[9999] grid min-h-dvh place-items-center overflow-hidden overscroll-none px-3 py-3 backdrop-blur-sm"
+      style={{
+        backgroundColor: "rgba(13, 23, 20, 0.62)",
+        paddingTop: "calc(max(var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)), 0.75rem) + 0.25rem)",
+        paddingBottom: "calc(max(var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)), 0.75rem) + 0.25rem)",
+      }}
+    >
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="wisdom-timeline-title"
+        className="w-full max-w-2xl overflow-y-auto overscroll-contain rounded-[2rem] border shadow-[0_28px_90px_rgba(10,18,14,0.36)]"
+        style={{
+          borderColor: theme.borderStrong,
+          backgroundColor: theme.bgCard,
+          maxHeight: "calc(100dvh - max(var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)), 0.75rem) - max(var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)), 0.75rem) - 1rem)",
+        }}
+      >
+        <div
+          className="relative overflow-hidden border-b px-4 py-4 sm:px-5 sm:py-5"
+          style={{
+            borderColor: theme.borderLight,
+            background: `linear-gradient(135deg, color-mix(in srgb, ${theme.bgCardElevated} 64%, white 36%), ${theme.bgCard}, color-mix(in srgb, ${theme.bgCardElevated} 84%, ${theme.accentGold} 16%))`,
+          }}
+        >
+          <div
+            className="absolute inset-0 opacity-90"
+            style={{
+              background: `radial-gradient(circle at 18% 18%, color-mix(in srgb, ${theme.accentGold} 18%, transparent), transparent 36%), radial-gradient(circle at 92% 0%, color-mix(in srgb, ${theme.primary} 10%, transparent), transparent 30%)`,
+            }}
+          />
+          <div
+            className="absolute inset-y-0 left-0 w-px"
+            style={{ background: `linear-gradient(to bottom, transparent, ${theme.accentGold}, transparent)` }}
+          />
+          <div className="relative flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] sm:text-xs" style={{ color: theme.accentGold }}>
+                {ts('labels.wisdomTimeline')}
+              </p>
+              <h2 id="wisdom-timeline-title" className="mt-1.5 text-xl font-semibold tracking-tight sm:text-2xl" style={{ color: theme.textPrimary }}>
+                {ts('decisionTimeline.title')}
+              </h2>
+              <p className="mt-1.5 max-w-xl text-sm leading-6 sm:text-[0.95rem]" style={{ color: theme.textSecondary }}>
+                {summary}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="grid size-10 shrink-0 place-items-center rounded-full border transition shadow-sm"
+              style={{
+                borderColor: theme.borderMedium,
+                backgroundColor: theme.bgInput,
+                color: theme.textPrimary,
+              }}
+              aria-label={ts("labels.close")}
+            >
+              <X size={16} />
+            </button>
+          </div>
+
+          <div className="relative mt-4 grid gap-2.5 sm:grid-cols-2">
+            <div className="rounded-[1.35rem] border p-3.5 shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+              <div className="mb-3 h-1.5 rounded-full" style={{ background: `linear-gradient(90deg, ${theme.accentGold}, color-mix(in srgb, ${theme.accentGold} 25%, ${theme.borderLight} 75%))` }} />
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textSecondary }}>{ts("labels.eventsRecorded")}</p>
+              <p className="mt-1.5 text-lg font-semibold tracking-tight" style={{ color: theme.textPrimary }}>{events.length}</p>
+            </div>
+            <div className="rounded-[1.35rem] border p-3.5 shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+              <div className="mb-3 h-1.5 rounded-full" style={{ background: `linear-gradient(90deg, ${theme.primary}, color-mix(in srgb, ${theme.primary} 30%, ${theme.accentGold} 70%))` }} />
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textSecondary }}>{ts("labels.decisionLastReviewed")}</p>
+              <p className="mt-1.5 text-lg font-semibold tracking-tight" style={{ color: theme.textPrimary }}>{latestEventLabel ?? ts("labels.startDecisionToBeginTimeline")}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-4 p-3.5 sm:p-4">
+          {sortedEvents.length ? (
+            <div className="relative pl-1 sm:pl-2">
+              <div
+                className="absolute left-5 top-2 bottom-2 w-px rounded-full"
+                style={{
+                  background: `linear-gradient(to bottom, ${theme.accentGold}, ${theme.borderLight})`,
+                }}
+              />
+
+              <div className="space-y-3.5">
+                {sortedEvents.map((event, index) => {
+                  const localizedBody = localizeDecisionEventBody(language, event.eventType, event.body);
+                  const createdDate = new Date(event.createdAt);
+                  const createdLabel = dateFormatter.format(createdDate);
+                  const createdTime = timeFormatter.format(createdDate);
+
+                  return (
+                    <motion.article
+                      key={event.id}
+                      className="grid grid-cols-[2.75rem_minmax(0,1fr)] items-start gap-3 sm:grid-cols-[3rem_minmax(0,1fr)]"
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                    >
+                      <div className="relative flex justify-center pt-1">
+                        <div
+                          className="grid size-10 place-items-center rounded-full border shadow-sm"
+                          style={{
+                            borderColor: theme.accentLight,
+                            backgroundColor: theme.activeBg,
+                            color: theme.accentGold,
+                          }}
+                          aria-hidden="true"
+                        >
+                          <Clock3 size={16} />
+                        </div>
+                      </div>
+
+                      <div
+                        className="rounded-[1.5rem] border p-3.5 shadow-[0_12px_32px_rgba(10,18,14,0.08)] sm:p-4"
+                        style={{
+                          borderColor: theme.borderLight,
+                          background: `linear-gradient(180deg, color-mix(in srgb, ${theme.bgCardElevated} 90%, white 10%), ${theme.bgCard})`,
+                        }}
+                      >
+                        <div className="flex items-baseline justify-between gap-3">
+                          <p className="min-w-0 text-sm font-semibold tracking-tight" style={{ color: theme.textPrimary }}>
+                            {createdLabel}
+                          </p>
+                          <p className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textMuted }}>
+                            {createdTime}
+                          </p>
+                        </div>
+
+                        <p className="mt-3 text-[0.98rem] leading-6 tracking-tight sm:text-[1rem]" style={{ color: theme.textPrimary }}>
+                          {localizedBody}
+                        </p>
+                      </div>
+                    </motion.article>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-[1.35rem] border border-dashed px-4 py-5 text-sm leading-6" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
+              {ts('labels.startDecisionToBeginTimeline')}
+            </div>
+          )}
+        </div>
+      </section>
+    </div>,
+    document.body
+  );
+}
+
 function StreakMilestonesModal({
   open,
   theme,
@@ -22189,6 +22419,7 @@ function buildScriptureStudyGuide(scripture: string, preferences: UserPreference
   const canonical = canonicalScriptureReference(scripture);
   const sourceEntry = baseWisdomEntries.find((entry) => canonicalScriptureReference(entry.scripture) === canonical);
   if (!sourceEntry) {
+    const translations = loadTranslationsWithFallbackSync(preferences.language);
     const related = baseWisdomEntries.slice(0, 5).map((entry) => {
       const localized = localizedWisdomEntry(entry, preferences);
       return {
@@ -22199,7 +22430,7 @@ function buildScriptureStudyGuide(scripture: string, preferences: UserPreference
     });
 
     return {
-      meaning: `${localizedScriptureReference(canonical, preferences.language)} is ready to read above. Use Study Mode to observe the passage carefully before applying it.`,
+      meaning: `${localizedScriptureReference(canonical, preferences.language)}. ${String(getTranslation(translations, 'labels.scriptureStudyMode'))}. ${String(getTranslation(translations, 'labels.scriptureStudyModeSubtitle'))}`,
       context: "Aletheia opens the cited chapter in your selected Bible translation where a public-domain text is available.",
       whyItMatters: "Start with what the passage says, then consider how it speaks to motive, timing, counsel, responsibility, and the next faithful step.",
       nextStep: "Read the cited verses slowly, then name one concrete response of trust, obedience, counsel, or repair.",
@@ -23083,6 +23314,7 @@ function DecisionCompanionPanel({
   const railText = railTextColors(theme);
   const [counselAvatarStatus, setCounselAvatarStatus] = useState("");
   const [counselAvatarPickerOpen, setCounselAvatarPickerOpen] = useState(false);
+  const [wisdomTimelineOpen, setWisdomTimelineOpen] = useState(false);
   const counselAvatarFileInputRef = useRef<HTMLInputElement | null>(null);
   const activeDecisions = decisions.filter((decision) => decision.status !== "closed");
   const selectedDecision = decisions[0];
@@ -23190,6 +23422,15 @@ function DecisionCompanionPanel({
 
   return (
     <div className="min-w-0 space-y-4">
+      <WisdomTimelineModal
+        open={wisdomTimelineOpen}
+        theme={theme}
+        ts={ts}
+        language={language}
+        events={events}
+        summary={events.length ? insight.gentleObservation : decisionTimelineObservation(language, [], 0)}
+        onClose={() => setWisdomTimelineOpen(false)}
+      />
       <ScreenTabs
         value={decisionSection}
         onChange={setDecisionSection}
@@ -23213,6 +23454,41 @@ function DecisionCompanionPanel({
             body={decisionNextBodyWithFocus}
             theme={theme}
           />
+          <button
+            type="button"
+            onClick={() => setWisdomTimelineOpen(true)}
+            className="relative w-full overflow-hidden rounded-[1.5rem] border px-4 py-4 text-left shadow-[0_10px_24px_rgba(7,10,8,0.06)] transition active:scale-[0.99]"
+            style={{
+              borderColor: theme.borderMedium,
+              background: `linear-gradient(135deg, color-mix(in srgb, ${theme.bgCard} 88%, ${theme.accentGold} 12%), ${theme.bgCard}, color-mix(in srgb, ${theme.bgCardElevated} 86%, ${theme.primary} 14%))`,
+            }}
+          >
+            <div
+              className="absolute inset-0 opacity-[0.28]"
+              style={{
+                background: `radial-gradient(circle at 18% 18%, color-mix(in srgb, ${theme.accentGold} 20%, transparent), transparent 36%), radial-gradient(circle at 100% 0%, color-mix(in srgb, ${theme.primary} 14%, transparent), transparent 30%)`,
+              }}
+            />
+            <div className="relative flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
+                  {ts('labels.wisdomTimeline')}
+                </p>
+                <p className="mt-1 text-lg font-semibold leading-tight" style={{ color: theme.textPrimary }}>
+                  {ts('decisionTimeline.title')}
+                </p>
+                <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                  {events.length
+                    ? `${events.length} ${ts('labels.eventsRecorded')}`
+                    : ts('labels.startDecisionToBeginTimeline')}
+                </p>
+              </div>
+              <span className="mt-1 inline-flex shrink-0 items-center gap-2 rounded-full border px-3 py-2 text-xs font-semibold shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textPrimary }}>
+                <Clock3 size={14} />
+                {ts('labels.wisdomTimeline')}
+              </span>
+            </div>
+          </button>
           <section
             aria-label={ts('labels.decisionMemory')}
             className="flex min-w-0 snap-x gap-1.5 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]"
@@ -23276,74 +23552,6 @@ function DecisionCompanionPanel({
               </form>
             </section>
           </>
-        ) : null}
-
-        {decisionSection === "decisions" ? (
-          <div className="space-y-4">
-            <DisclosureSection title={ts('labels.wisdomTimeline')} summary={events.length ? insight.gentleObservation : decisionTimelineObservation(language, [], 0)} eyebrow={`${events.length} ${ts('labels.eventsRecorded')}`} compactCollapsed showDetailsLabel={ts('showDetails')} hideDetailsLabel={ts('hideDetails')} theme={theme}>
-              {events.length ? (
-                <div className="mb-2 flex justify-end text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: railText.railMuted }}>
-                  <span className="inline-flex items-center gap-1">
-                    <span>Swipe for more</span>
-                    <span aria-hidden="true">→</span>
-                  </span>
-                </div>
-              ) : null}
-              {events.length ? (
-                <section
-                  aria-label={ts('labels.eventsRecorded')}
-                  className="flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]"
-                >
-                  {events.map((event, index) => {
-                    const localizedBody = localizeDecisionEventBody(language, event.eventType, event.body);
-                    const createdLabel = new Date(event.createdAt).toLocaleString(language, {
-                      dateStyle: "medium",
-                      timeStyle: "short",
-                    });
-                    return (
-                      <motion.article
-                        key={event.id}
-                        className="premium-tap-card relative flex w-full min-w-full shrink-0 snap-start flex-col overflow-hidden rounded-[1.35rem] border text-left shadow-[0_10px_24px_rgba(7,10,8,0.08)] transition"
-                        style={{
-                          height: "calc(14.5rem + var(--aletheia-rail-card-height-offset, 0rem))",
-                          borderColor: theme.borderMedium,
-                          backgroundColor: theme.bgCardElevated,
-                          boxShadow: "0 8px 18px rgba(7, 10, 8, 0.06)",
-                        }}
-                        initial={{ opacity: 0, y: 8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.05 }}
-                        whileHover={{ y: -2 }}
-                      >
-                        <div
-                          className="relative overflow-hidden"
-                          style={{
-                            height: "calc(3.75rem + var(--aletheia-rail-card-hero-height-offset, 0rem))",
-                            background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryHover} 100%)`,
-                          }}
-                        >
-                          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.18),transparent_40%),radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.08),transparent_38%)]" />
-                        </div>
-                        <div className="flex flex-1 flex-col gap-2 p-3.5">
-                          <p className="text-[9px] font-semibold uppercase tracking-[0.14em]" style={{ color: railText.railMuted }}>
-                            {createdLabel}
-                          </p>
-                          <p className="line-clamp-2 text-[0.94rem] font-semibold leading-[1.22rem] tracking-tight" style={{ color: theme.textPrimary }}>
-                            {localizedBody}
-                          </p>
-                        </div>
-                      </motion.article>
-                    );
-                  })}
-                </section>
-              ) : (
-                <div className="rounded-[1rem] border border-dashed p-4 text-sm leading-6" style={{ borderColor: theme.borderMedium, color: theme.textSecondary }}>
-                  {ts('labels.startDecisionToBeginTimeline')}
-                </div>
-              )}
-            </DisclosureSection>
-
-          </div>
         ) : null}
 
         {decisionSection === "counsel" ? (
@@ -23598,7 +23806,7 @@ function DecisionCompanionPanel({
               >
                 <div className="mb-2 flex justify-end text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: railText.railMuted }}>
                   <span className="inline-flex items-center gap-1">
-                    <span>Swipe for more</span>
+                    <span>{ts('labels.swipeForMore')}</span>
                     <span aria-hidden="true">→</span>
                   </span>
                 </div>
@@ -23769,7 +23977,7 @@ function DecisionCompanionPanel({
                 <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.formationRhythm')}</p>
                 <div className="mt-3 mb-2 flex justify-end text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
                   <span className="inline-flex items-center gap-1">
-                    <span>Swipe for more</span>
+                    <span>{ts('labels.swipeForMore')}</span>
                     <span aria-hidden="true">→</span>
                   </span>
                 </div>
@@ -23796,7 +24004,7 @@ function DecisionCompanionPanel({
                 </form>
                 <div className="mt-3 mb-2 flex justify-end text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
                   <span className="inline-flex items-center gap-1">
-                    <span>Swipe for more</span>
+                    <span>{ts('labels.swipeForMore')}</span>
                     <span aria-hidden="true">→</span>
                   </span>
                 </div>
@@ -23844,7 +24052,7 @@ function DecisionCompanionPanel({
               <DisclosureSection title={ts('labels.decisionMemory')} summary={`${decisions.length} ${ts('labels.decisionsSavedOpenFullList')}`} defaultOpen={Boolean(focusedDecisionId) || decisions.length < 2} compactCollapsed showDetailsLabel={ts('showDetails')} hideDetailsLabel={ts('hideDetails')} theme={theme}>
                 <div className="mb-2 flex justify-end text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
                   <span className="inline-flex items-center gap-1">
-                    <span>Swipe for more</span>
+                    <span>{ts('labels.swipeForMore')}</span>
                     <span aria-hidden="true">→</span>
                   </span>
                 </div>
@@ -24173,6 +24381,10 @@ function ReflectPanel({
   onSave,
   onDelete,
   onSaveGratitude,
+  onUpdateGratitude,
+  onDeleteGratitude,
+  onShareGratitudePostcard,
+  onUseGratitudeAsReflectionPrompt,
   onSpeakText,
   onShareReflectionPostcard,
   theme,
@@ -24212,6 +24424,10 @@ function ReflectPanel({
   onSave: () => void;
   onDelete: (id: string) => void;
   onSaveGratitude: (file: File | null, note: string, place: string, visual?: GratitudeVisualSettings, formation?: GratitudeFormation) => void;
+  onUpdateGratitude: (id: string, patch: Partial<GratitudeEntry>) => void;
+  onDeleteGratitude: (id: string) => void;
+  onShareGratitudePostcard: (entry: GratitudeEntry) => void;
+  onUseGratitudeAsReflectionPrompt: (entry: GratitudeEntry) => void;
   onSpeakText: (text: string, notice?: string, label?: string) => void;
   onShareReflectionPostcard: (entry: JournalEntry) => void;
   theme: ThemeColors;
@@ -24253,7 +24469,11 @@ function ReflectPanel({
       value: challengeRecommendation
         ? (challengeRecommendation.actionKind === "continue" ? ts("challenges.continueChallenge") : ts("challenges.startChallenge"))
         : ts("challenges.eyebrow"),
-      body: challengeRecommendation?.note ?? ts("challenges.sectionSummary"),
+      body: challengeRecommendation
+        ? challengeRecommendation.actionKind === "continue"
+          ? `${ts("challenges.continueChallenge")}: ${ts("challenges.daysCompleted").replace("{count}", String(challengeRecommendation.completedDays)).replace("{total}", String(challengeRecommendation.totalDays))}`
+          : ts(challengeRecommendation.descriptionKey, challengeRecommendation.description)
+        : ts("challenges.sectionSummary"),
     },
   ];
 
@@ -24301,9 +24521,11 @@ function ReflectPanel({
         <>
       {challengeRecommendation ? (
         <ContextualNextAction
-          eyebrow={ts("labels.suggestedAction")}
-          title={challengeRecommendation.title}
-          body={challengeRecommendation.note}
+          eyebrow={challengeRecommendation.actionKind === "continue" ? ts("challenges.continueChallenge") : ts("labels.suggestedAction")}
+          title={ts(challengeRecommendation.titleKey, challengeRecommendation.title)}
+          body={challengeRecommendation.actionKind === "continue"
+            ? `${ts("challenges.continueChallenge")}: ${ts("challenges.daysCompleted").replace("{count}", String(challengeRecommendation.completedDays)).replace("{total}", String(challengeRecommendation.totalDays))}`
+            : ts(challengeRecommendation.descriptionKey, challengeRecommendation.description)}
           actionLabel={challengeRecommendation.actionKind === "continue" ? ts("challenges.continueChallenge") : ts("challenges.startChallenge")}
           onAction={() => {
             setReflectSection("formation");
@@ -24404,6 +24626,10 @@ function ReflectPanel({
         ts={ts}
         theme={theme}
         onSave={onSaveGratitude}
+        onUpdateGratitude={onUpdateGratitude}
+        onDeleteGratitude={onDeleteGratitude}
+        onShareGratitudePostcard={onShareGratitudePostcard}
+        onUseGratitudeAsReflectionPrompt={onUseGratitudeAsReflectionPrompt}
       />
       ) : null}
 
@@ -24445,6 +24671,233 @@ function Signal({ active, label, theme }: { active: boolean; label: string; them
   );
 }
 
+function GratitudeEntryModal({
+  open,
+  theme,
+  ts,
+  language,
+  entry,
+  onClose,
+  onSave,
+  onSharePostcard,
+  onUseAsReflectionPrompt,
+  onDelete,
+}: {
+  open: boolean;
+  theme: ThemeColors;
+  ts: (key: string, fallback?: string) => string;
+  language: LanguageCode;
+  entry: GratitudeEntry | null;
+  onClose: () => void;
+  onSave: (id: string, patch: Partial<GratitudeEntry>) => void;
+  onSharePostcard: (entry: GratitudeEntry) => void;
+  onUseAsReflectionPrompt: (entry: GratitudeEntry) => void;
+  onDelete: (id: string) => void;
+}) {
+  const canUsePortal = typeof document !== "undefined";
+  useBodyScrollLock(open && canUsePortal);
+  const [draftNote, setDraftNote] = useState(entry?.note ?? "");
+  const [draftPlace, setDraftPlace] = useState(entry?.place ?? "");
+  const dateFormatter = new Intl.DateTimeFormat(language, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+  const timeFormatter = new Intl.DateTimeFormat(language, {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+
+  if (!open || !canUsePortal || !entry) {
+    return null;
+  }
+
+  const createdDate = new Date(entry.createdAt);
+  const normalizedVisual = normalizeGratitudeVisual(entry.visual);
+  const entryFormation = normalizeGratitudeFormation(entry.formation);
+  const hasChanges = draftNote.trim() !== entry.note || draftPlace.trim() !== entry.place;
+
+  const saveChanges = () => {
+    onSave(entry.id, {
+      note: draftNote.trim().slice(0, 280),
+      place: draftPlace.trim().slice(0, 120),
+    });
+  };
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[9999] grid min-h-dvh place-items-center overflow-hidden overscroll-none px-3 py-3 backdrop-blur-sm"
+      style={{
+        backgroundColor: "rgba(13, 23, 20, 0.62)",
+        paddingTop: "calc(max(var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)), 0.75rem) + 0.25rem)",
+        paddingBottom: "calc(max(var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)), 0.75rem) + 0.25rem)",
+      }}
+      onClick={(event) => {
+        if (event.target === event.currentTarget) {
+          onClose();
+        }
+      }}
+    >
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="gratitude-detail-title"
+        className="w-full max-w-4xl overflow-hidden rounded-[2rem] border shadow-[0_28px_90px_rgba(10,18,14,0.36)]"
+        style={{
+          borderColor: theme.borderStrong,
+          backgroundColor: theme.bgCard,
+          maxHeight: "calc(100dvh - max(var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)), 0.75rem) - max(var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)), 0.75rem) - 1rem)",
+        }}
+      >
+        <div className="grid max-h-[inherit] overflow-y-auto overscroll-contain lg:grid-cols-[1.1fr_0.9fr]">
+          <div className="relative min-h-[18rem] bg-black/5 lg:min-h-full">
+            <Image
+              src={entry.imageDataUrl}
+              alt={entry.note}
+              fill
+              className="object-cover"
+              style={{ filter: GRATITUDE_FILTER_STYLE[normalizedVisual.filter] }}
+              unoptimized
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-black/10 to-transparent" />
+            <div className="absolute left-4 right-4 top-4 flex items-start justify-between gap-3">
+              <div className="rounded-full border px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] backdrop-blur-md" style={{ borderColor: "rgba(255,255,255,0.22)", backgroundColor: "rgba(255,255,255,0.12)", color: theme.textOnPrimary }}>
+                {ts('labels.gratitudeLens')}
+              </div>
+              <button
+                type="button"
+                onClick={onClose}
+                className="grid size-10 shrink-0 place-items-center rounded-full border backdrop-blur-md transition"
+                style={{
+                  borderColor: "rgba(255,255,255,0.22)",
+                  backgroundColor: "rgba(255,255,255,0.14)",
+                  color: theme.textOnPrimary,
+                }}
+                aria-label={ts("labels.close")}
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <div className="absolute inset-x-0 bottom-0 p-4 text-white">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/80">
+                {dateFormatter.format(createdDate)}
+              </p>
+              <p className="mt-1 text-xl font-semibold tracking-tight drop-shadow-sm">
+                {entry.note}
+              </p>
+              <p className="mt-1 text-sm leading-6 text-white/80">
+                {entry.place.trim() || ts('labels.placeOptional')}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex min-w-0 flex-col gap-4 overflow-y-auto p-4 sm:p-5">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em]" style={{ color: theme.accentGold }}>
+                {ts('labels.visualGratitude')}
+              </p>
+              <h2 id="gratitude-detail-title" className="mt-1.5 text-xl font-semibold tracking-tight" style={{ color: theme.textPrimary }}>
+                {ts('labels.latestGratitude')}
+              </h2>
+              <p className="mt-1.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                {ts('labels.gratitudeStyleBody')}
+              </p>
+            </div>
+
+            <div className="grid gap-2 sm:grid-cols-2">
+              <div className="rounded-[1.35rem] border p-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textSecondary }}>{ts('labels.date')}</p>
+                <p className="mt-1 text-sm font-semibold" style={{ color: theme.textPrimary }}>{dateFormatter.format(createdDate)}</p>
+                <p className="mt-1 text-xs" style={{ color: theme.textMuted }}>{timeFormatter.format(createdDate)}</p>
+              </div>
+              <div className="rounded-[1.35rem] border p-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textSecondary }}>{ts('labels.gratitudeNoticedAs')}</p>
+                <p className="mt-1 text-sm font-semibold" style={{ color: theme.textPrimary }}>{ts(`labels.gratitudeFormation_${entryFormation}`, entryFormation)}</p>
+                <p className="mt-1 text-xs" style={{ color: theme.textMuted }}>{normalizedVisual.stickers.length ? `${normalizedVisual.stickers.length} ${ts('labels.gratitudeStickers')}` : ts('labels.gratitudeNoEmoji')}</p>
+              </div>
+            </div>
+
+            <div className="space-y-3 rounded-[1.35rem] border p-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.edit')}</p>
+                <span className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>{ts('labels.note')}</span>
+              </div>
+              <textarea
+                value={draftNote}
+                onChange={(event) => setDraftNote(event.target.value)}
+                maxLength={280}
+                className="min-h-28 w-full resize-none rounded-xl border px-3 py-2.5 text-sm leading-6 outline-none"
+                style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                placeholder={ts('labels.note')}
+              />
+              <label className="block">
+                <span className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textMuted }}>
+                  {ts('labels.placeOptional')}
+                </span>
+                <div className="mt-2 flex items-center gap-2 rounded-xl border px-3" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput }}>
+                  <MapPin size={16} style={{ color: theme.textMuted }} />
+                  <input
+                    value={draftPlace}
+                    onChange={(event) => setDraftPlace(event.target.value)}
+                    maxLength={120}
+                    className="h-10 min-w-0 flex-1 bg-transparent text-sm outline-none"
+                    placeholder={ts('labels.placeOptional')}
+                    style={{ color: theme.textPrimary }}
+                  />
+                </div>
+              </label>
+            </div>
+
+            <div className="grid gap-2 sm:grid-cols-2">
+              <button
+                type="button"
+                onClick={saveChanges}
+                disabled={!hasChanges}
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-full px-4 text-sm font-semibold disabled:opacity-60"
+                style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+              >
+                <Check size={16} />
+                {ts('labels.saveGratitude')}
+              </button>
+              <button
+                type="button"
+                onClick={() => onSharePostcard(entry)}
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-full border px-4 text-sm font-semibold"
+                style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+              >
+                <Share2 size={16} />
+                {ts('labels.createPostcard')}
+              </button>
+            </div>
+
+            <div className="grid gap-2 sm:grid-cols-2">
+              <button
+                type="button"
+                onClick={() => onUseAsReflectionPrompt(entry)}
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-full border px-4 text-sm font-semibold"
+                style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+              >
+                <Feather size={16} />
+                {ts('labels.useAsReflectionPrompt')}
+              </button>
+              <button
+                type="button"
+                onClick={() => onDelete(entry.id)}
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-full border px-4 text-sm font-semibold"
+                style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+              >
+                <Trash2 size={16} />
+                {ts('labels.delete')}
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>,
+    document.body
+  );
+}
+
 function GratitudeLensPanel({
   entries,
   syncStatus,
@@ -24453,6 +24906,10 @@ function GratitudeLensPanel({
   ts,
   theme,
   onSave,
+  onUpdateGratitude,
+  onDeleteGratitude,
+  onShareGratitudePostcard,
+  onUseGratitudeAsReflectionPrompt,
 }: {
   entries: GratitudeEntry[];
   syncStatus: GratitudeSyncStatus;
@@ -24461,6 +24918,10 @@ function GratitudeLensPanel({
   ts: (key: string, fallback?: string) => string;
   theme: ThemeColors;
   onSave: (file: File | null, note: string, place: string, visual?: GratitudeVisualSettings, formation?: GratitudeFormation) => void | Promise<void>;
+  onUpdateGratitude: (id: string, patch: Partial<GratitudeEntry>) => void;
+  onDeleteGratitude: (id: string) => void;
+  onShareGratitudePostcard: (entry: GratitudeEntry) => void;
+  onUseGratitudeAsReflectionPrompt: (entry: GratitudeEntry) => void;
 }) {
   const railText = railTextColors(theme);
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -24471,6 +24932,7 @@ function GratitudeLensPanel({
   const [visual, setVisual] = useState<GratitudeVisualSettings>(DEFAULT_GRATITUDE_VISUAL);
   const [isSaving, setIsSaving] = useState(false);
   const [selectedEntryId, setSelectedEntryId] = useState<string | null>(entries[0]?.id ?? null);
+  const [gratitudeDetailOpen, setGratitudeDetailOpen] = useState(false);
   const [weekStartTime] = useState(() => Date.now() - 7 * 24 * 60 * 60 * 1000);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -24540,7 +25002,7 @@ function GratitudeLensPanel({
   const activeStyleSummary = gratitudeFilterLabel(visual.filter);
 
   const latestEntry = entries[0];
-  const selectedEntry = entries.find((entry) => entry.id === selectedEntryId) ?? latestEntry;
+  const selectedEntry = entries.find((entry) => entry.id === selectedEntryId) ?? latestEntry ?? null;
   const visibleTimelineEntries = entries;
   const summary = entries.length
     ? `${entries.length} ${entries.length === 1 ? ts('labels.gratitudeMoment') : ts('labels.gratitudeMoments')} · ${
@@ -24567,6 +25029,22 @@ function GratitudeLensPanel({
 
   return (
     <div id="gratitude-lens-card" tabIndex={-1} className="scroll-mt-28 outline-none">
+      <GratitudeEntryModal
+        key={selectedEntry?.id ?? "gratitude-empty"}
+        open={gratitudeDetailOpen}
+        theme={theme}
+        ts={ts}
+        language={language}
+        entry={selectedEntry}
+        onClose={() => setGratitudeDetailOpen(false)}
+        onSave={onUpdateGratitude}
+        onSharePostcard={onShareGratitudePostcard}
+        onUseAsReflectionPrompt={onUseGratitudeAsReflectionPrompt}
+        onDelete={async (id) => {
+          await onDeleteGratitude(id);
+          setGratitudeDetailOpen(false);
+        }}
+      />
       <DisclosureSection
         title={ts('labels.gratitudeLens')}
         summary={summary}
@@ -24902,7 +25380,7 @@ function GratitudeLensPanel({
             <>
               <div className="mt-4 flex justify-end text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
                 <span className="inline-flex items-center gap-1">
-                  <span>Swipe for more</span>
+                  <span>{ts('labels.swipeForMore')}</span>
                   <span aria-hidden="true">→</span>
                 </span>
               </div>
@@ -24917,7 +25395,6 @@ function GratitudeLensPanel({
                     <button
                       key={entry.id}
                       type="button"
-                      onClick={() => setSelectedEntryId(entry.id)}
                       className="premium-tap-card relative flex w-full min-w-full shrink-0 snap-start flex-col overflow-hidden rounded-[1.35rem] border text-left shadow-[0_10px_24px_rgba(7,10,8,0.08)] transition"
                       style={{
                         height: "calc(14.75rem + var(--aletheia-rail-card-height-offset, 0rem))",
@@ -24928,6 +25405,11 @@ function GratitudeLensPanel({
                           : "0 8px 18px rgba(7, 10, 8, 0.06)",
                       }}
                       aria-pressed={isActive}
+                      aria-label={`${ts('labels.gratitudeLens')} ${entry.note}`}
+                      onClick={() => {
+                        setSelectedEntryId(entry.id);
+                        setGratitudeDetailOpen(true);
+                      }}
                     >
                       <div className="relative w-full overflow-hidden" style={{ height: "calc(7.25rem + var(--aletheia-rail-card-image-height-offset, 0rem))" }}>
                         <Image
@@ -25118,7 +25600,17 @@ function LibraryPanel({
             <div className="relative">
               <InfoHint text={runtime.libraryDescription} theme={theme} placement="corner" surface="standard" />
               <div className="flex items-center gap-2 text-lg font-semibold" style={{ color: theme.textPrimary }}>
-                <BookOpen size={20} />
+                <span
+                  className="grid size-9 shrink-0 place-items-center rounded-full border shadow-sm"
+                  style={{
+                    borderColor: theme.borderMedium,
+                    backgroundColor: theme.bgInput,
+                    color: theme.primary,
+                  }}
+                  aria-hidden="true"
+                >
+                  <BookOpen size={18} />
+                </span>
                 {ts('labels.wisdomLibrary')}
               </div>
               <div className="mt-1.5 pr-5 sm:pr-6 md:pr-7 text-sm leading-5" style={{ color: theme.textSecondary }}>
@@ -25146,7 +25638,7 @@ function LibraryPanel({
             <div className="mt-3 flex items-center justify-between gap-3 text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: railText.railMuted }}>
               <span>{ts('labels.wisdomLibrary')}</span>
               <span className="inline-flex items-center gap-1">
-                <span>Swipe for more</span>
+                <span>{ts('labels.swipeForMore')}</span>
                 <span aria-hidden="true">→</span>
               </span>
             </div>
@@ -25333,7 +25825,7 @@ function JournalPanel({
             <>
               <div className="mb-2 flex justify-end text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: railText.railMuted }}>
                 <span className="inline-flex items-center gap-1">
-                  <span>Swipe for more</span>
+                  <span>{ts('labels.swipeForMore')}</span>
                   <span aria-hidden="true">→</span>
                 </span>
               </div>

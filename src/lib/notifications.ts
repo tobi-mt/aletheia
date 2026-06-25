@@ -1579,7 +1579,7 @@ export async function sendChallengeReminders(now = new Date()): Promise<{
   function localizedChallengeTitle(challengeId: string, language: LanguageCode) {
     const challenge = getChallengeById(challengeId);
     if (!challenge) {
-      return "Formation practice";
+      return challengeId;
     }
     const translations = loadTranslationsSync(language);
     return getTranslation(translations, challenge.titleKey, challenge.title);
@@ -1614,7 +1614,6 @@ export async function sendChallengeReminders(now = new Date()): Promise<{
     let practiceKey: string;
     let practiceFallback: string;
     let isSuggestion = false;
-    let suggestionNote = "";
 
     if (active) {
       const def = getChallengeById(active.challengeId)!;
@@ -1649,21 +1648,26 @@ export async function sendChallengeReminders(now = new Date()): Promise<{
       practiceKey = def.days[0]?.practiceKey ?? "";
       practiceFallback = def.days[0]?.practice ?? "";
       isSuggestion = true;
-      suggestionNote = primaryRecommendation.note;
       suggested++;
     }
 
     const language = normalizePreferences({ language: (userRows[0]?.language ?? "en") as LanguageCode }).language;
+    const translations = loadTranslationsSync(language);
     const title = localizedChallengeTitle(challengeId, language);
     
     // Translate the practice key if we have one
     let body: string;
     if (isSuggestion) {
-      body = compactNotificationCopy(suggestionNote || "A short practice to build wisdom and formation.", 136);
+      const challenge = getChallengeById(challengeId);
+      body = compactNotificationCopy(
+        challenge ? String(getTranslation(translations, challenge.descriptionKey, challenge.description)) : "",
+        136
+      );
     } else {
-      const translations = loadTranslationsSync(language);
       const practiceText = getTranslation(translations, practiceKey, practiceFallback);
-      body = `Day ${nextDay}: ${typeof practiceText === 'string' ? practiceText : practiceText[0] ?? practiceFallback}`;
+      const dayLabel = String(getTranslation(translations, "challenges.dayLabel", "challenges.dayLabel")).replace("{day}", String(nextDay));
+      const continueLabel = String(getTranslation(translations, "challenges.continueChallenge", "challenges.continueChallenge"));
+      body = `${continueLabel} · ${dayLabel}: ${typeof practiceText === "string" ? practiceText : practiceText[0] ?? practiceFallback}`;
     }
 
     const payload = JSON.stringify({

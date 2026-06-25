@@ -428,7 +428,9 @@
     "counselRemovedLocally": "An cire tuntuɓar shawara a wannan na’urar",
     "counselRemovedLocallyBody": "An cire tuntuɓar daga wannan na’urar.",
     "scriptureMemoryCleared": "An goge ajiyar Nassosi",
-    "scriptureMemoryClearedBody": "An cire alamar Nassosi ta mako daga shafin gida."
+    "scriptureMemoryClearedBody": "An cire alamar Nassosi ta mako daga shafin gida.",
+    "answerReadyGuestTitle": "Sign in to save this answer",
+    "answerReadyGuestBody": "Keep this answer and your history synced across devices."
   },
   "status": {
     "guestMode": "Matsayin baƙo yana aiki. Shiga don daidaita shawara.",
@@ -473,7 +475,13 @@
     "avatarFileTooLarge": "Zaɓi hoto da ya fi 10MB ƙanƙanta.",
     "avatarPhotoSelected": "An zaɓi hoto don wannan mai shawara.",
     "avatarProcessingFailed": "Ba a iya sarrafa wannan hoto ba.",
-    "preparingAudio": "Ana shirya sauti..."
+    "preparingAudio": "Ana shirya sauti...",
+    "challengeInviteDeclining": "Declining invite...",
+    "challengeInviteDeclined": "Invite declined.",
+    "challengeInviteDeclineFailed": "Could not decline the invite.",
+    "declined": "Declined",
+    "pending": "Pending",
+    "loading": "Loading…"
   },
   "placeholders": {
     "decisionExample": "Matsin lamba na kuɗi, shawara ta aiki, matsin lamba na dangantaka...",
@@ -1155,7 +1163,71 @@
     "whatThisPassageIsSaying": "Abin da wannan nassin yake faɗa",
     "whyItMatters": "Me ya sa wannan yake da muhimmanci",
     "relatedScriptures": "Nassoshi masu alaƙa",
-    "aWiseNextStep": "Mataki na gaba mai hikima"
+    "aWiseNextStep": "Mataki na gaba mai hikima",
+    "swipeForMore": "Gungura don ganin ƙari",
+    "loading": "Loading…",
+    "diveDeep": "Dive Deep",
+    "backToQuickRead": "Back to Quick Read",
+    "continueFromThis": "Continue from this",
+    "reflectionQuestion": "Reflection question",
+    "gratitudeLensBodyTooltip": "The photo stays on this device unless you export or share a postcard.",
+    "gratitudeNoticingBodyTooltip": "Notice the gift before you style or share anything.",
+    "privateByDefaultEyebrow": "Private by default",
+    "accountManageSummary": "Manage sign-in, sync, language, notifications, history, and formation milestones without crowding the wisdom companion.",
+    "wisdomCheckUrgency": "urgency noticed",
+    "wisdomCheckSlower": "pressure looks slower",
+    "whatNextBodyShort": "Aletheia helps you choose one wise next step first. Ask first, then switch modes when you want a different lens.",
+    "weeklyReviewBodyShort": "No streaks or pressure. Just notice how {pattern} has been shaping your discernment.",
+    "gratitudeLensBodyShort": "Take or choose a photo, name what you are grateful for, and keep a private visual record.",
+    "gratitudeNoticingBodyShort": "Notice the kind of gift before you style or share anything.",
+    "photoPrivacy": "The image stays on this device unless you export or share a postcard.",
+    "advanced": "Advanced",
+    "accountContextMoney": "money feels tight",
+    "accountContextPace": "your pace needs room",
+    "accountContextRelationships": "the people around you matter",
+    "accountContextUrgency": "something feels pressing",
+    "accountContextValues": "you are holding a line carefully",
+    "accountContextFuture": "you are leaning toward a future you want to name",
+    "accountQuietFit": "A quiet fit",
+    "recommendedForYou": "Recommended for you",
+    "accountRecommendationLead": "It feels gentle for where you are right now.",
+    "accountRecommendationLeadWithContext": "It feels gentle for where you are right now, especially if {context}.",
+    "accountNextActiveBody": "Your account is active. Review preferences, history, and formation milestones when you need to.",
+    "accountNextEyebrow": "Next in Account",
+    "accountNextGuestBody": "Sign in with Google or email to keep decisions, reflections, preferences, counsel, and notifications synced across devices.",
+    "accountNextReviewSyncFormation": "Review sync and formation",
+    "accountNextSignInPortable": "Sign in to keep your work synced",
+    "accountNextSyncBody": "Sync is active. Turn on one quiet daily wisdom prompt if this device should receive it.",
+    "counselGuestSignInTitle": "Sign in to save this counsel",
+    "counselGuestSignInBody": "Keep this counsel and your history synced across devices.",
+    "invited": "Invited",
+    "host": "Host",
+    "bookTitle": "Book title",
+    "author": "Author",
+    "notSet": "Not set",
+    "duration": "Duration",
+    "startDate": "Start date",
+    "edition": "Edition / translation",
+    "cadence": "Cadence",
+    "focus": "Why this book",
+    "responded": "Responded",
+    "notes": "Notes",
+    "details": "Reading brief",
+    "durationUnit": "Unit",
+    "weeks": "Weeks",
+    "months": "Months",
+    "recipients": "Recipients",
+    "name": "Name",
+    "nameOrEmail": "Name or email",
+    "note": "Note",
+    "remove": "Remove",
+    "schedule": "Schedule",
+    "hours": "Hours",
+    "sharedPlan": "Shared plan",
+    "progressVisible": "Progress visible",
+    "responsiveNudges": "Nudges",
+    "openScripture": "Open",
+    "translationFallback": "Shown with the closest available public-domain translation."
   },
   "personalizationNudgeTitle": "Kana son shawara ta fi zama ta kanka?",
   "personalizationNudgeBody": "Ƙara bayani ɗaya game da kuɗi, aiki, ko tsarin rayuwa.",
@@ -1366,7 +1438,8 @@
     "lastUpdatedValues": "An sabunta",
     "daysAgo": "kwanaki da suka wuce",
     "monthsAgo": "watanni da suka wuce",
-    "stillAccurate": "Har yanzu daidai?"
+    "stillAccurate": "Har yanzu daidai?",
+    "accountManageSummary": "Manage sign-in, sync, language, notifications, history, and formation milestones without crowding the wisdom companion."
   },
   "share": {
     "shareAletheia": "Raba Aletheia",
@@ -1458,7 +1531,16 @@
     "useEmailToContinue": "Yi amfani da imel domin ci gaba.",
     "useGoogleOrEmail": "Yi amfani da Google ko imel.",
     "signedIn": "An shiga",
-    "authenticationFailed": "Authentication failed."
+    "authenticationFailed": "Authentication failed.",
+    "welcomeToAletheiaReady": "Welcome to Aletheia, {name}. Your account is ready and sync is active.",
+    "welcomeBackMemoryReady": "Welcome back, {name}. Your Aletheia memory is ready.",
+    "signedInSyncDatabase": "Signed in. Conversations and reflections sync to the database.",
+    "googleMissingProfile": "Google sign-in did not return your email address. Please try again or use email below instead.",
+    "googleServerError": "Google sign-in reached Aletheia, but we could not finish it right now. Please try again in a moment or use email below instead.",
+    "googleSigninFailed": "Google sign-in could not be completed. Please try again. If it keeps failing, use email below instead.",
+    "googleSigninCancelled": "Google sign-in was canceled before it finished. You can try again or use email below instead.",
+    "googleSigninUnavailable": "Google sign-in is temporarily unavailable. You can still continue with email below.",
+    "googleSigninDidNotFinish": "Google sign-in did not finish. Please try again or use email below instead."
   },
   "theme": {
     "system": "Tsari",
@@ -1717,7 +1799,42 @@
         "prompt": "Bayan kwanaki bakwai, rubuta abin da ya isa ga wannan lokaci. Ba abin da ya dace a mafarki ba - abin da yake isa da gaske a yanzu.",
         "practice": "Rubuta abin da ya isa ga wannan lokaci, a fili."
       }
-    }
+    },
+    "whyThisFits": "Why this fits",
+    "readWithMeInviteTitle": "Shared reading plan",
+    "readWithMeInviteDetails": "Fixed reading details",
+    "readWithMeInviteDetailsBody": "Everyone sees the same book, cadence, and response window.",
+    "responseDashboard": "Response dashboard",
+    "responseDashboardBody": "Accepted, declined, and time-based pending states update from the invite roster.",
+    "noInviteRosterYet": "Add a roster to start tracking responses.",
+    "unmatchedResponses": "Other responses",
+    "readWithMeInvitePrompt": "Invitation draft",
+    "readWithMeDetailsBody": "Keep the subject line simple and the duration unmistakable.",
+    "readWithMeBookPlaceholder": "The book you want everyone to read",
+    "readWithMeAuthorPlaceholder": "Optional, but helpful for clarity",
+    "readWithMeEditionPlaceholder": "Optional edition, translation, or format",
+    "readWithMeRecipientsBody": "Add names or pull from your counsel circle.",
+    "recipientNotePlaceholder": "Role, relation, or context",
+    "readWithMeRecipientsEmpty": "Start by naming one or two people.",
+    "responseWindowHelper": "Set a start date and the window before responses move to Pending.",
+    "responseWindow": "Response window",
+    "readWithMeToneBody": "Use this space for the pace, the why, and the actual note you want them to feel.",
+    "readWithMeCadencePlaceholder": "Read at a steady pace and hold one brief check-in each week.",
+    "readWithMeFocusPlaceholder": "What do you hope this book will clarify, stretch, or shape?",
+    "readWithMeNotePlaceholder": "A short note to the people you are inviting",
+    "readWithMeInvitePreview": "Invite preview",
+    "createReadWithMeInvite": "Create reading invite",
+    "inviteFriendsTitle": "Shared invite",
+    "inviteFriendsSharedPlanBody": "Everyone follows the same practice and sees the same progress.",
+    "inviteFriendsProgressBody": "You can see who joined and where the group is up to.",
+    "inviteFriendsNudgesBody": "Gentle reminders keep the invite warm without feeling noisy.",
+    "readWithMeSharePrefix": "Read with me",
+    "readWithMeInviteSubtitle": "A shared reading invite",
+    "leaveInvite": "Leave invite",
+    "declinedInviteBody": "You declined this reading invitation. You can still join if you change your mind.",
+    "joinAnyway": "Join anyway",
+    "declineInvite": "Decline",
+    "sharedPlan": "Shared plan"
   },
   "streak": {
     "openMilestones": "Buɗe matakan jerin",
@@ -1776,6 +1893,110 @@
       "day30Label": "Sakamakon Wata",
       "day30Desc": "Duba inda kake yanzu",
       "day30Prompt": "Ta yaya wannan shawarar ta kasance?"
+    },
+    "completed": "The arc is fully visible now."
+  },
+  "voiceOptions": {
+    "alloy": {
+      "label": "Alloy",
+      "description": "Balanced and neutral"
+    },
+    "ash": {
+      "label": "Ash",
+      "description": "Low, soft, and steady"
+    },
+    "ballad": {
+      "label": "Ballad",
+      "description": "Warm and expressive"
+    },
+    "coral": {
+      "label": "Coral",
+      "description": "Clear and bright"
+    },
+    "echo": {
+      "label": "Echo",
+      "description": "Direct and focused"
+    },
+    "sage": {
+      "label": "Sage",
+      "description": "Calm and thoughtful"
+    },
+    "shimmer": {
+      "label": "Shimmer",
+      "description": "Light and refined"
+    },
+    "verse": {
+      "label": "Verse",
+      "description": "Measured and articulate"
+    },
+    "marin": {
+      "label": "Marin",
+      "description": "Smooth and grounded"
+    },
+    "cedar": {
+      "label": "Cedar",
+      "description": "Warm and reassuring"
     }
+  },
+  "errors": {
+    "indexedDbUnavailable": "IndexedDB is unavailable.",
+    "gratitudeStorageOpenFailed": "Could not open gratitude storage.",
+    "gratitudeStorageReadFailed": "Could not read gratitude storage.",
+    "gratitudeStorageUpdateFailed": "Could not update gratitude storage.",
+    "selectedFileNotImage": "Selected file is not an image.",
+    "imagePreparationFailed": "Could not prepare the image.",
+    "selectedImageReadFailed": "Could not read the selected image.",
+    "postcardPreparationFailed": "Could not prepare postcard.",
+    "postcardExportFailed": "Could not export postcard.",
+    "gratitudeImageLoadFailed": "Could not load gratitude image.",
+    "wisdomCardPreparationFailed": "Could not prepare wisdom card.",
+    "wisdomCardExportFailed": "Could not export wisdom card.",
+    "responseStreamingNotSupported": "Response streaming not supported.",
+    "audioRequestFailedStatus": "Audio request failed with status {status}.",
+    "imageProcessingFailed": "Image processing failed.",
+    "optimizedImageTooLarge": "The selected image is too large after optimization."
+  },
+  "noticePatternBeforeDecision": "Notice {pattern} before it drives the decision.",
+  "onboardingQuestionPrompt": "I am seeking wisdom for this right now: {concern}. Please guide me with a {tone} tone. My faith familiarity is {familiarity}.",
+  "reflectionDraftTitle": "Reflection: {question}",
+  "timezones": {
+    "utc": "UTC"
+  },
+  "runtimePanel": {
+    "timelineReady": "Your timeline is ready to track decisions, patterns, counsel, and learning.",
+    "nextInDecisions": "Next in Decisions",
+    "decisionNextTitleDefault": "Name the decision under pressure",
+    "decisionNextBodyActive": "Update counsel, cost, waiting, and peace signals so the decision has a real timeline.",
+    "decisionNextBodyEmpty": "Start with one decision and the pressure attached to it. Aletheia will track wisdom, counsel, and readiness over time.",
+    "decisionCompanionHeading": "Track the decision until wisdom has had time to work.",
+    "decisionCompanionSub": "Memory, counsel, waiting, summary export, and a calm readiness signal for major choices.",
+    "ruleOfLife": "Rule of Life",
+    "ruleOfLifePrincipleSingular": "principle",
+    "ruleOfLifePrinciplePlural": "principles",
+    "ruleOfLifeSummary": "Personal principles stay close, but collapsed until you are shaping a decision.",
+    "decisionPracticeLine": "Name what is enough for this season",
+    "nextInReflect": "Next in Reflect",
+    "reflectNextTitleDefault": "Begin with one honest sentence",
+    "reflectNextTitleActive": "Finish the reflection in front of you",
+    "reflectNextBodyDefault": "Use Wisdom Check for a quick discernment scan, or write what you notice about money, work, fear, generosity, or pace.",
+    "reflectNextBodyActive": "Save what you are noticing while the insight is still fresh.",
+    "reflectIntro": "Use Wisdom Check to slow a decision down, then save what you notice before the moment passes.",
+    "wisdomCheck": "Wisdom Check",
+    "wisdomCheckSummaryDefault": "Open when a decision needs a quick discernment scan.",
+    "wisdomCheckUrgency": "urgency noticed",
+    "wisdomCheckSlower": "pressure looks slower",
+    "decisionScan": "Decision scan",
+    "reflectionHistory": "Reflection history",
+    "savedReflectionSingular": "saved reflection",
+    "savedReflectionPlural": "saved reflections",
+    "reflectionHistorySummaryActive": "Open your past reflections when you want to review growth.",
+    "reflectionHistorySummaryDefault": "Past reflections will stay here once saved.",
+    "nextInLibrary": "Next in Library",
+    "libraryNextTitleDefault": "Search one wisdom theme",
+    "libraryNextBodySearch": "Open a scripture reference to read the passage context and why it matters here.",
+    "libraryTryPrefix": "Try",
+    "libraryDescription": "A curated wisdom base with language-aware application notes and public-domain translation labels.",
+    "fullWisdomLibrary": "Full wisdom library",
+    "moreAnchors": "more anchors"
   }
 }

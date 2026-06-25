@@ -1286,7 +1286,8 @@
     "progressVisible": "Progress visible",
     "responsiveNudges": "Nudges",
     "openScripture": "Open",
-    "translationFallback": "Shown with the closest available public-domain translation."
+    "translationFallback": "Shown with the closest available public-domain translation.",
+    "swipeForMore": "Swipe for more"
   },
   "personalizationNudgeTitle": "Want more personal counsel?",
   "personalizationNudgeBody": "Add one detail about money, work, or rhythm.",
