@@ -14014,6 +14014,20 @@ function ContextualNextAction({
   );
 }
 
+function challengeContinuationProgressLabel(
+  recommendation: ChallengeRecommendationBundle["primary"],
+  ts: (key: string, fallback?: string) => string
+) {
+  if (!recommendation) {
+    return "";
+  }
+
+  const nextDay = Math.min(recommendation.completedDays + 1, recommendation.totalDays);
+  return ts("challenges.dayOf", "Day {day} of {total}")
+    .replace("{day}", String(nextDay))
+    .replace("{total}", String(recommendation.totalDays));
+}
+
 function InfoHint({
   text,
   theme,
@@ -14468,7 +14482,7 @@ function AccountPanel({
     ? challengeRecommendation.actionKind === "continue"
       ? [
           accountRecommendationLead,
-          `${ts("challenges.continueChallenge")}: ${ts("challenges.daysCompleted").replace("{count}", String(challengeRecommendation.completedDays)).replace("{total}", String(challengeRecommendation.totalDays))}`,
+          `${ts("challenges.continueChallenge")}: ${challengeContinuationProgressLabel(challengeRecommendation, ts)}`,
         ]
           .filter(Boolean)
           .join(" ")
@@ -14797,7 +14811,7 @@ function ChallengeRecommendationCard({
     : ts("challenges.startChallenge");
   const title = ts(recommendation.titleKey, recommendation.title);
   const body = isContinuation
-    ? `${ts("challenges.continueChallenge")}: ${ts("challenges.daysCompleted").replace("{count}", String(recommendation.completedDays)).replace("{total}", String(recommendation.totalDays))}`
+    ? `${ts("challenges.continueChallenge")}: ${challengeContinuationProgressLabel(recommendation, ts)}`
     : ts(recommendation.descriptionKey, recommendation.description);
 
   return (
@@ -24518,7 +24532,7 @@ function ReflectPanel({
         : ts("challenges.eyebrow"),
       body: challengeRecommendation
         ? challengeRecommendation.actionKind === "continue"
-          ? `${ts("challenges.continueChallenge")}: ${ts("challenges.daysCompleted").replace("{count}", String(challengeRecommendation.completedDays)).replace("{total}", String(challengeRecommendation.totalDays))}`
+          ? `${ts("challenges.continueChallenge")}: ${challengeContinuationProgressLabel(challengeRecommendation, ts)}`
           : ts(challengeRecommendation.descriptionKey, challengeRecommendation.description)
         : ts("challenges.sectionSummary"),
     },
@@ -24571,7 +24585,7 @@ function ReflectPanel({
           eyebrow={challengeRecommendation.actionKind === "continue" ? ts("challenges.continueChallenge") : ts("labels.suggestedAction")}
           title={ts(challengeRecommendation.titleKey, challengeRecommendation.title)}
           body={challengeRecommendation.actionKind === "continue"
-            ? `${ts("challenges.continueChallenge")}: ${ts("challenges.daysCompleted").replace("{count}", String(challengeRecommendation.completedDays)).replace("{total}", String(challengeRecommendation.totalDays))}`
+            ? `${ts("challenges.continueChallenge")}: ${challengeContinuationProgressLabel(challengeRecommendation, ts)}`
             : ts(challengeRecommendation.descriptionKey, challengeRecommendation.description)}
           actionLabel={challengeRecommendation.actionKind === "continue" ? ts("challenges.continueChallenge") : ts("challenges.startChallenge")}
           onAction={() => {
