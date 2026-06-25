@@ -13964,11 +13964,21 @@ function DashboardAction({
 );
 }
 
-function RhythmItem({ label, body, theme }: { label: string; body: string; theme: ThemeColors }) {
+function RhythmItem({
+  label,
+  body,
+  theme,
+  className = "",
+}: {
+  label: string;
+  body: string;
+  theme: ThemeColors;
+  className?: string;
+}) {
   return (
-    <article className="premium-tap-card flex h-full min-h-[8.25rem] w-full min-w-full flex-col justify-between rounded-[1.35rem] border p-3.5 shadow-[0_8px_18px_rgba(7,10,8,0.06)]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
+    <article className={`premium-tap-card flex h-full min-h-[11rem] w-[11.5rem] shrink-0 snap-start flex-col justify-between rounded-[1.35rem] border p-3.5 shadow-[0_8px_18px_rgba(7,10,8,0.06)] sm:w-[12.25rem] ${className}`} style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
       <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{label}</p>
-      <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>{body}</p>
+      <p className="mt-2 text-[0.92rem] leading-6" style={{ color: theme.textSecondary }}>{body}</p>
     </article>
   );
 }
@@ -23377,6 +23387,8 @@ function DecisionCompanionPanel({
   const [counselAvatarPickerOpen, setCounselAvatarPickerOpen] = useState(false);
   const [wisdomTimelineOpen, setWisdomTimelineOpen] = useState(false);
   const counselAvatarFileInputRef = useRef<HTMLInputElement | null>(null);
+  const rhythmRailRef = useRef<HTMLDivElement | null>(null);
+  const [rhythmRailHasOverflow, setRhythmRailHasOverflow] = useState(false);
   const activeDecisions = decisions.filter((decision) => decision.status !== "closed");
   const selectedDecision = decisions[0];
   const [decisionSection, setDecisionSection] = useState<"decisions" | "counsel" | "rhythm" | "memory">("decisions");
@@ -23423,6 +23435,33 @@ function DecisionCompanionPanel({
       detail: insight.gentleObservation,
     },
   ];
+
+  useLayoutEffect(() => {
+    if (decisionSection !== "rhythm") {
+      return;
+    }
+
+    const rail = rhythmRailRef.current;
+    if (!rail) {
+      setRhythmRailHasOverflow(false);
+      return;
+    }
+
+    const measure = () => {
+      setRhythmRailHasOverflow(rail.scrollWidth > rail.clientWidth + 8);
+    };
+
+    measure();
+
+    const resizeObserver = typeof ResizeObserver !== "undefined" ? new ResizeObserver(measure) : null;
+    resizeObserver?.observe(rail);
+    window.addEventListener("resize", measure);
+
+    return () => {
+      resizeObserver?.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, [decisionSection, modeRules.length]);
 
   async function optimizeCounselAvatarFile(file: File): Promise<string> {
     const imageBitmap = await createImageBitmap(file);
@@ -24036,13 +24075,15 @@ function DecisionCompanionPanel({
             <DisclosureSection title={ts('labels.formationRhythm')} summary={ts('labels.formationRhythmSummary')} eyebrow={ts('labels.rhythm')} compactCollapsed showDetailsLabel={ts('showDetails')} hideDetailsLabel={ts('hideDetails')} theme={theme}>
               <section>
                 <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.formationRhythm')}</p>
-                <div className="mt-3 mb-2 flex justify-end text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
-                  <span className="inline-flex items-center gap-1">
-                    <span>{ts('labels.swipeForMore')}</span>
-                    <span aria-hidden="true">→</span>
-                  </span>
-                </div>
-                <div className="mt-2 flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
+                {rhythmRailHasOverflow ? (
+                  <div className="mt-3 mb-2 flex justify-end text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
+                    <span className="inline-flex items-center gap-1">
+                      <span>{ts('labels.swipeForMore')}</span>
+                      <span aria-hidden="true">→</span>
+                    </span>
+                  </div>
+                ) : null}
+                <div ref={rhythmRailRef} className="mt-2 flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
                   <RhythmItem label={ts('labels.threeMinuteMorningReflection')} body={ts('labels.namePressureBeforeDayNamesIt')} theme={theme} />
                   <RhythmItem label={ts('labels.eveningExamen')} body={ts('labels.reviewMoneyWorkMomentHonestly')} theme={theme} />
                   <RhythmItem label={ts('labels.weeklyPatternReview')} body={ts('labels.noticeRepeatedUrgencyComparison')} theme={theme} />
