@@ -20937,208 +20937,109 @@ function WisdomTimelineModal({
   );
 }
 
-function DecisionMemoryModal({
-  open,
+function DecisionMemoryArchiveSection({
   theme,
   ts,
   language,
   entries,
-  summary,
-  onClose,
 }: {
-  open: boolean;
   theme: ThemeColors;
   ts: (key: string, fallback?: string) => string;
   language: LanguageCode;
   entries: DecisionMemorySeed[];
-  summary: string;
-  onClose: () => void;
 }) {
-  const canUsePortal = typeof document !== "undefined";
-  useBodyScrollLock(open && canUsePortal);
-
-  if (!open || !canUsePortal) {
-    return null;
-  }
-
   const sortedEntries = [...entries].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  const dateFormatter = new Intl.DateTimeFormat(language, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-  const latestEntry = sortedEntries[0] ?? null;
-  const latestEntryLabel = latestEntry ? dateFormatter.format(new Date(latestEntry.createdAt)) : null;
-
-  return createPortal(
-    <div
-      className="fixed inset-0 z-[9999] grid min-h-dvh place-items-center overflow-hidden overscroll-none px-3 py-3 backdrop-blur-sm"
+  return (
+    <section
+      aria-labelledby="decision-memory-title"
+      className="overflow-hidden rounded-[1.5rem] border shadow-[0_16px_40px_rgba(10,18,14,0.12)]"
       style={{
-        backgroundColor: "rgba(13, 23, 20, 0.62)",
-        paddingTop: "calc(max(var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)), 0.75rem) + 0.25rem)",
-        paddingBottom: "calc(max(var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)), 0.75rem) + 0.25rem)",
+        borderColor: theme.borderStrong,
+        backgroundColor: theme.bgCard,
       }}
     >
-      <section
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="decision-memory-title"
-        className="w-full max-w-3xl overflow-y-auto overscroll-contain rounded-[2rem] border shadow-[0_28px_90px_rgba(10,18,14,0.36)]"
+      <div
+        className="relative overflow-hidden border-b px-4 py-4 sm:px-5 sm:py-5"
         style={{
-          borderColor: theme.borderStrong,
-          backgroundColor: theme.bgCard,
-          maxHeight: "calc(100dvh - max(var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)), 0.75rem) - max(var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)), 0.75rem) - 1rem)",
+          borderColor: theme.borderLight,
+          background: `linear-gradient(135deg, color-mix(in srgb, ${theme.bgCardElevated} 66%, white 34%), ${theme.bgCard}, color-mix(in srgb, ${theme.bgCardElevated} 84%, ${theme.accentGold} 16%))`,
         }}
       >
         <div
-          className="relative overflow-hidden border-b px-4 py-4 sm:px-5 sm:py-5"
+          className="absolute inset-0 opacity-90"
           style={{
-            borderColor: theme.borderLight,
-            background: `linear-gradient(135deg, color-mix(in srgb, ${theme.bgCardElevated} 66%, white 34%), ${theme.bgCard}, color-mix(in srgb, ${theme.bgCardElevated} 84%, ${theme.accentGold} 16%))`,
+            background: `radial-gradient(circle at 18% 18%, color-mix(in srgb, ${theme.accentGold} 18%, transparent), transparent 36%), radial-gradient(circle at 92% 0%, color-mix(in srgb, ${theme.primary} 10%, transparent), transparent 30%)`,
           }}
-        >
-          <div
-            className="absolute inset-0 opacity-90"
-            style={{
-              background: `radial-gradient(circle at 18% 18%, color-mix(in srgb, ${theme.accentGold} 18%, transparent), transparent 36%), radial-gradient(circle at 92% 0%, color-mix(in srgb, ${theme.primary} 10%, transparent), transparent 30%)`,
-            }}
-          />
-          <div
-            className="absolute inset-y-0 left-0 w-px"
-            style={{ background: `linear-gradient(to bottom, transparent, ${theme.accentGold}, transparent)` }}
-          />
-          <div className="relative flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] sm:text-xs" style={{ color: theme.accentGold }}>
-                {ts("labels.memory")}
-              </p>
-              <h2 id="decision-memory-title" className="mt-1.5 text-xl font-semibold tracking-tight sm:text-2xl" style={{ color: theme.textPrimary }}>
-                {ts("labels.decisionMemory")}
-              </h2>
-              <p className="mt-1.5 max-w-xl text-sm leading-6 sm:text-[0.95rem]" style={{ color: theme.textSecondary }}>
-                {summary}
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="grid size-10 shrink-0 place-items-center rounded-full border transition shadow-sm"
-              style={{
-                borderColor: theme.borderMedium,
-                backgroundColor: theme.bgInput,
-                color: theme.textPrimary,
-              }}
-              aria-label={ts("labels.close")}
-            >
-              <X size={16} />
-            </button>
+        />
+        <div
+          className="absolute inset-y-0 left-0 w-px"
+          style={{ background: `linear-gradient(to bottom, transparent, ${theme.accentGold}, transparent)` }}
+        />
+        <div className="relative flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] sm:text-xs" style={{ color: theme.accentGold }}>
+              {ts("labels.memory")}
+            </p>
+            <h2 id="decision-memory-title" className="mt-1.5 text-xl font-semibold tracking-tight sm:text-2xl" style={{ color: theme.textPrimary }}>
+              {ts("labels.decisionMemory")}
+            </h2>
           </div>
-
-          <div className="relative mt-4 grid gap-2.5 sm:grid-cols-2">
-            <div className="rounded-[1.35rem] border p-3.5 shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-              <div className="mb-3 h-1.5 rounded-full" style={{ background: `linear-gradient(90deg, ${theme.accentGold}, color-mix(in srgb, ${theme.accentGold} 25%, ${theme.borderLight} 75%))` }} />
-              <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textSecondary }}>
-                {ts("labels.eventsRecorded")}
-              </p>
-              <p className="mt-1.5 text-lg font-semibold tracking-tight" style={{ color: theme.textPrimary }}>
-                {sortedEntries.length}
-              </p>
-            </div>
-            <div className="rounded-[1.35rem] border p-3.5 shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-              <div className="mb-3 h-1.5 rounded-full" style={{ background: `linear-gradient(90deg, ${theme.primary}, color-mix(in srgb, ${theme.primary} 30%, ${theme.accentGold} 70%))` }} />
-              <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textSecondary }}>
-                {ts("labels.decisionLastReviewed")}
-              </p>
-              <p className="mt-1.5 text-lg font-semibold tracking-tight" style={{ color: theme.textPrimary }}>
-                {latestEntryLabel ?? ts("labels.startDecisionToBeginTimeline")}
-              </p>
-            </div>
-          </div>
+          <span className="rounded-full border px-3 py-1.5 text-xs font-semibold" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textPrimary }}>
+            {sortedEntries.length}
+          </span>
         </div>
+      </div>
 
-        <div className="space-y-4 p-3.5 sm:p-4">
-          {sortedEntries.length ? (
-            <>
-              <div className="flex justify-end text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
-                <span className="inline-flex items-center gap-1">
-                  <span>{ts("labels.swipeForMore")}</span>
-                  <span aria-hidden="true">→</span>
-                </span>
-              </div>
-              <section
-                className="flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]"
-                aria-label={ts("labels.decisionMemory")}
+      <div className="space-y-3 p-3.5 sm:p-4">
+        {sortedEntries.length ? (
+          sortedEntries.map((entry) => {
+            const createdDate = new Date(entry.createdAt);
+            return (
+              <article
+                key={entry.id}
+                className="premium-tap-card overflow-hidden rounded-[1.35rem] border px-3.5 py-3.5 shadow-[0_8px_20px_rgba(10,18,14,0.06)]"
+                style={{
+                  borderColor: theme.borderLight,
+                  background: `linear-gradient(180deg, color-mix(in srgb, ${theme.bgCardElevated} 92%, ${theme.accentGold} 8%), ${theme.bgCard})`,
+                }}
               >
-                {sortedEntries.map((entry, index) => {
-                  const createdDate = new Date(entry.createdAt);
-                  return (
-                    <motion.article
-                      key={entry.id}
-                      className="premium-tap-card relative flex min-h-[18rem] min-w-[min(88vw,32rem)] shrink-0 snap-start flex-col overflow-hidden rounded-[1.6rem] border shadow-[0_12px_32px_rgba(10,18,14,0.08)]"
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.05 }}
-                      style={{
-                        borderColor: theme.borderLight,
-                        background: `linear-gradient(180deg, color-mix(in srgb, ${theme.bgCardElevated} 82%, ${theme.accentGold} 18%), ${theme.bgCard})`,
-                      }}
-                    >
-                      <div
-                        className="h-1.5"
-                        style={{
-                          background: `linear-gradient(90deg, ${theme.accentGold}, color-mix(in srgb, ${theme.primary} 55%, ${theme.accentGold} 45%))`,
-                        }}
-                      />
-                      <div className="flex flex-1 flex-col p-4 sm:p-5">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <p className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.textSecondary }}>
-                              {new Intl.DateTimeFormat(language, {
-                                month: "short",
-                                day: "numeric",
-                                year: "numeric",
-                              }).format(createdDate)}
-                            </p>
-                            <p className="mt-1.5 text-[0.92rem] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
-                              {new Intl.DateTimeFormat(language, {
-                                hour: "numeric",
-                                minute: "2-digit",
-                              }).format(createdDate)}
-                            </p>
-                          </div>
-                          <span
-                            className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]"
-                            style={{
-                              borderColor: theme.borderLight,
-                              backgroundColor: theme.bgInput,
-                              color: theme.textSecondary,
-                            }}
-                          >
-                            {ts("labels.memory")}
-                          </span>
-                        </div>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textSecondary }}>
+                      {new Intl.DateTimeFormat(language, {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      }).format(createdDate)}
+                    </p>
+                    <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
+                      {new Intl.DateTimeFormat(language, {
+                        hour: "numeric",
+                        minute: "2-digit",
+                      }).format(createdDate)}
+                    </p>
+                  </div>
+                  <span className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                    {ts("labels.memory")}
+                  </span>
+                </div>
 
-                        <p className="mt-4 text-lg font-semibold leading-7 tracking-tight sm:text-xl" style={{ color: theme.textPrimary }}>
-                          {entry.title}
-                        </p>
-                        <p className="mt-3 text-sm leading-7 sm:text-[0.98rem]" style={{ color: theme.textSecondary }}>
-                          {entry.pressure}
-                        </p>
-                      </div>
-                    </motion.article>
-                  );
-                })}
-              </section>
-            </>
-          ) : (
-            <div className="rounded-[1.35rem] border border-dashed px-4 py-5 text-sm leading-6" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
-              {ts("labels.startDecisionToBeginTimeline")}
-            </div>
-          )}
-        </div>
-      </section>
-    </div>,
-    document.body
+                <p className="mt-3 line-clamp-2 text-[0.96rem] font-semibold leading-6 tracking-tight" style={{ color: theme.textPrimary }}>
+                  {entry.title}
+                </p>
+                <p className="mt-2 line-clamp-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                  {entry.pressure}
+                </p>
+              </article>
+            );
+          })
+        ) : (
+          <div className="rounded-[1.35rem] border border-dashed px-4 py-5 text-sm leading-6" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
+            {ts("labels.startDecisionToBeginTimeline")}
+          </div>
+        )}
+      </div>
+    </section>
   );
 }
 
@@ -23767,7 +23668,6 @@ function DecisionCompanionPanel({
   const [counselAvatarStatus, setCounselAvatarStatus] = useState("");
   const [counselAvatarPickerOpen, setCounselAvatarPickerOpen] = useState(false);
   const [wisdomTimelineOpen, setWisdomTimelineOpen] = useState(false);
-  const [decisionMemoryOpen, setDecisionMemoryOpen] = useState(false);
   const counselAvatarFileInputRef = useRef<HTMLInputElement | null>(null);
   const rhythmRailRef = useRef<HTMLDivElement | null>(null);
   const visibleCounselRailRef = useRef<HTMLDivElement | null>(null);
@@ -23892,17 +23792,6 @@ function DecisionCompanionPanel({
         events={events}
         summary={events.length ? insight.gentleObservation : decisionTimelineObservation(language, [], 0)}
         onClose={() => setWisdomTimelineOpen(false)}
-      />
-      <DecisionMemoryModal
-        open={decisionMemoryOpen}
-        theme={theme}
-        ts={ts}
-        language={language}
-        entries={visibleDecisionMemoryEntries}
-        summary={visibleDecisionMemoryEntries.length
-          ? `${visibleDecisionMemoryEntries.length} ${ts('labels.decisionsSavedOpenFullList')}`
-          : ts('labels.noDecisionMemoryHelp')}
-        onClose={() => setDecisionMemoryOpen(false)}
       />
       <ScreenTabs
         value={decisionSection}
@@ -24529,47 +24418,12 @@ function DecisionCompanionPanel({
 
         {decisionSection === "memory" ? (
           <div className="space-y-4">
-            <section className="rounded-[1.35rem] border p-3.5 shadow-[0_8px_24px_rgba(15,23,42,0.05)]" style={{ backgroundColor: theme.primary, borderColor: theme.borderMedium, color: theme.textOnPrimary }}>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textOnPrimary, opacity: 0.9 }}>{ts('labels.decisionPractice')}</p>
-              <p className="mt-2.5 text-sm font-semibold" style={{ color: theme.textOnPrimary }}>{runtime.decisionPracticeLine}</p>
-              <p className="mt-1.5 text-sm leading-5" style={{ color: theme.textOnPrimary }}>{ts('labels.smallPracticeForDecision')}</p>
-            </section>
-
-            <button
-              type="button"
-              onClick={() => setDecisionMemoryOpen(true)}
-              className="relative w-full overflow-hidden rounded-[1.5rem] border px-4 py-4 text-left shadow-[0_10px_24px_rgba(7,10,8,0.06)] transition active:scale-[0.99]"
-              style={{
-                borderColor: theme.borderMedium,
-                background: `linear-gradient(135deg, color-mix(in srgb, ${theme.bgCard} 92%, ${theme.accentGold} 8%), ${theme.bgCard}, color-mix(in srgb, ${theme.bgCardElevated} 90%, ${theme.primary} 10%))`,
-              }}
-            >
-              <div
-                className="absolute inset-0 opacity-[0.24]"
-                style={{
-                  background: `radial-gradient(circle at 18% 18%, color-mix(in srgb, ${theme.accentGold} 18%, transparent), transparent 36%), radial-gradient(circle at 100% 0%, color-mix(in srgb, ${theme.primary} 12%, transparent), transparent 30%)`,
-                }}
-              />
-              <div className="relative flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
-                    {ts('labels.memory')}
-                  </p>
-                  <p className="mt-1 text-lg font-semibold leading-tight" style={{ color: theme.textPrimary }}>
-                    {ts('labels.decisionMemory')}
-                  </p>
-                  <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
-                    {visibleDecisionMemoryEntries.length
-                      ? `${visibleDecisionMemoryEntries.length} ${ts('labels.decisionsSavedOpenFullList')}`
-                      : ts('labels.noDecisionMemoryHelp')}
-                  </p>
-                </div>
-                <span className="mt-1 inline-flex shrink-0 items-center gap-2 rounded-full border px-3 py-2 text-xs font-semibold shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textPrimary }}>
-                  <FileText size={14} />
-                  {ts('showDetails')}
-                </span>
-              </div>
-            </button>
+            <DecisionMemoryArchiveSection
+              theme={theme}
+              ts={ts}
+              language={language}
+              entries={visibleDecisionMemoryEntries}
+            />
           </div>
         ) : null}
       </section>
