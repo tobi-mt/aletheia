@@ -85,7 +85,7 @@ import {
 } from "@/lib/localization";
 import { modeProfiles, type ModeProfile } from "@/lib/mode-profiles";
 import { detectLifeSupportConcern } from "@/lib/life-support";
-import { stableHash, todayWisdom as sharedTodayWisdom, wisdomEntries as baseWisdomEntries, type WisdomEntryData } from "@/lib/wisdom-data";
+import { normalizeMode, stableHash, todayWisdom as sharedTodayWisdom, wisdomEntries as baseWisdomEntries, type WisdomEntryData } from "@/lib/wisdom-data";
 import { defaultManualContext, manualContextCounselSignals, manualContextHasContent, normalizeManualContext, type ManualContextProfile } from "@/lib/manual-context";
 import { recommendChallenges } from "@/lib/challenge-recommendations";
 import { getChallengeProgressState } from "@/lib/challenge-progress";
