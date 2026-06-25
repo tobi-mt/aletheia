@@ -3229,6 +3229,13 @@ type JournalEntry = {
   createdAt: string;
 };
 
+type DecisionMemorySeed = {
+  id: string;
+  title: string;
+  pressure: string;
+  createdAt: string;
+};
+
 type GratitudeEntry = {
   id: string;
   imageDataUrl: string;
@@ -3330,6 +3337,123 @@ const GRATITUDE_FORMATION_ICON: Record<GratitudeFormation, string> = {
   answeredPrayer: "🙏",
   ordinaryMercy: "💛",
 };
+
+function escapeSvgText(value: string) {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&apos;");
+}
+
+function buildQaRailSampleImageDataUrl(title: string, accent: string, secondary: string) {
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" role="img" aria-label="${escapeSvgText(title)}">
+      <defs>
+        <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="${accent}" />
+          <stop offset="100%" stop-color="${secondary}" />
+        </linearGradient>
+        <radialGradient id="glow" cx="72%" cy="20%" r="55%">
+          <stop offset="0%" stop-color="white" stop-opacity="0.28" />
+          <stop offset="100%" stop-color="white" stop-opacity="0" />
+        </radialGradient>
+      </defs>
+      <rect width="1200" height="900" rx="64" fill="url(#bg)" />
+      <rect width="1200" height="900" rx="64" fill="url(#glow)" />
+      <circle cx="960" cy="180" r="164" fill="white" fill-opacity="0.16" />
+      <circle cx="170" cy="720" r="210" fill="white" fill-opacity="0.08" />
+      <text x="82" y="132" fill="rgba(255,255,255,0.78)" font-family="Inter, Arial, sans-serif" font-size="36" font-weight="700" letter-spacing="8">${escapeSvgText(title.toUpperCase())}</text>
+      <text x="82" y="278" fill="white" font-family="Inter, Arial, sans-serif" font-size="78" font-weight="800">${escapeSvgText(title)}</text>
+      <text x="82" y="388" fill="rgba(255,255,255,0.92)" font-family="Inter, Arial, sans-serif" font-size="42" font-weight="500">${escapeSvgText("seeded sample for visual QA")}</text>
+    </svg>
+  `.trim();
+
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+}
+
+function buildQaRailSampleGratitudeEntries(now = Date.now()): GratitudeEntry[] {
+  const day = 24 * 60 * 60 * 1000;
+  return [
+    {
+      id: "qa-gratitude-1",
+      imageDataUrl: buildQaRailSampleImageDataUrl("Ordinary mercy", "#c58f42", "#5e3f22"),
+      note: "A quiet table, steady work, and grace enough for today.",
+      place: "Kitchen table",
+      createdAt: new Date(now - 2 * day).toISOString(),
+      formation: "ordinaryMercy",
+      visual: {
+        filter: "warm",
+        showDate: true,
+        showPlace: true,
+        showNote: true,
+        showSignature: true,
+        stickers: ["heart", "grace"],
+        emoji: "💛",
+      },
+      postcardCreatedAt: new Date(now - 2 * day + 5 * 60 * 1000).toISOString(),
+      reflectedAt: new Date(now - 2 * day + 18 * 60 * 1000).toISOString(),
+    },
+    {
+      id: "qa-gratitude-2",
+      imageDataUrl: buildQaRailSampleImageDataUrl("Provision", "#3f6f87", "#1c3140"),
+      note: "Morning light on the desk felt like provision.",
+      place: "Work desk",
+      createdAt: new Date(now - 5 * day).toISOString(),
+      formation: "provision",
+      visual: {
+        filter: "golden",
+        showDate: true,
+        showPlace: true,
+        showNote: true,
+        showSignature: true,
+        stickers: ["sun", "book"],
+        emoji: "☀️",
+      },
+      postcardCreatedAt: new Date(now - 5 * day + 8 * 60 * 1000).toISOString(),
+      reflectedAt: new Date(now - 5 * day + 22 * 60 * 1000).toISOString(),
+    },
+  ];
+}
+
+function buildQaRailSampleJournalEntries(now = Date.now()): JournalEntry[] {
+  const day = 24 * 60 * 60 * 1000;
+  return [
+    {
+      id: "qa-journal-1",
+      title: "Sample reflection: pace and provision",
+      body: "I notice how quickly I want certainty. Today’s wisdom is to slow down enough to see what is already enough.",
+      mode: normalizeMode("money"),
+      createdAt: new Date(now - 2 * day).toISOString(),
+    },
+    {
+      id: "qa-journal-2",
+      title: "Sample reflection: counsel before commitment",
+      body: "The better question is not whether I can move fast, but who should help me test this path before I choose it.",
+      mode: normalizeMode("work"),
+      createdAt: new Date(now - 5 * day).toISOString(),
+    },
+  ];
+}
+
+function buildQaRailSampleDecisionSeeds(now = Date.now()): DecisionMemorySeed[] {
+  const day = 24 * 60 * 60 * 1000;
+  return [
+    {
+      id: "qa-decision-1",
+      title: "Wait for counsel before committing",
+      pressure: "I want speed, but steadiness matters more.",
+      createdAt: new Date(now - 2 * day).toISOString(),
+    },
+    {
+      id: "qa-decision-2",
+      title: "Practice faithful stewardship today",
+      pressure: "A quick yes feels easier than a wise yes.",
+      createdAt: new Date(now - 3 * day).toISOString(),
+    },
+  ];
+}
 
 function normalizeGratitudeFormation(value: unknown): GratitudeFormation {
   return typeof value === "string" && GRATITUDE_FORMATIONS.includes(value as GratitudeFormation)
@@ -6695,6 +6819,14 @@ export function AletheiaApp() {
         if (cancelled) {
           return;
         }
+        if (localEntries.length === 0 && process.env.NODE_ENV !== "production") {
+          const seededEntries = buildQaRailSampleGratitudeEntries();
+          await persistGratitudeEntries(seededEntries);
+          if (!cancelled) {
+            setGratitudeEntries(seededEntries);
+          }
+          return;
+        }
         setGratitudeEntries(localEntries);
         if (localEntries.length > 0) {
           await persistGratitudeEntries(localEntries);
@@ -7665,8 +7797,21 @@ export function AletheiaApp() {
         })),
       ]);
     }
-    if (journalData.entries) {
-      setJournalEntries(journalData.entries);
+    let nextJournalEntries = Array.isArray(journalData.entries) ? journalData.entries : [];
+    if (process.env.NODE_ENV !== "production" && nextJournalEntries.length === 0) {
+      nextJournalEntries = buildQaRailSampleJournalEntries();
+      await Promise.all(
+        nextJournalEntries.map((entry) =>
+          fetch("/api/journal", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(entry),
+          })
+        )
+      ).catch(() => undefined);
+    }
+    if (nextJournalEntries.length) {
+      setJournalEntries(nextJournalEntries);
     }
     setWisdomDecisions(decisionsData.decisions ?? []);
     setDecisionEvents(decisionsData.events ?? []);
@@ -23425,6 +23570,7 @@ function DecisionCompanionPanel({
   const visibleCounselRailRef = useRef<HTMLDivElement | null>(null);
   const hiddenCounselRailRef = useRef<HTMLDivElement | null>(null);
   const ruleRailRef = useRef<HTMLDivElement | null>(null);
+  const decisionMemoryRailRef = useRef<HTMLDivElement | null>(null);
   const activeDecisions = decisions.filter((decision) => decision.status !== "closed");
   const selectedDecision = decisions[0];
   const [decisionSection, setDecisionSection] = useState<"decisions" | "counsel" | "rhythm" | "memory">("decisions");
@@ -23442,6 +23588,8 @@ function DecisionCompanionPanel({
   const visibleCounselRailHasOverflow = useRailOverflow(visibleCounselRailRef, decisionSection === "counsel", [counselContacts.length]);
   const hiddenCounselRailHasOverflow = useRailOverflow(hiddenCounselRailRef, decisionSection === "counsel" && counselContacts.length > 3, [counselContacts.length]);
   const ruleRailHasOverflow = useRailOverflow(ruleRailRef, decisionSection === "rhythm", [modeRules.length]);
+  const visibleDecisionMemoryEntries = decisions.length > 0 ? decisions : process.env.NODE_ENV !== "production" ? buildQaRailSampleDecisionSeeds() : decisions;
+  const decisionMemoryRailHasOverflow = useRailOverflow(decisionMemoryRailRef, decisionSection === "memory" && visibleDecisionMemoryEntries.length > 0, [visibleDecisionMemoryEntries.length, language]);
   const decisionOverviewCards = [
     {
       icon: Clock3,
@@ -24175,19 +24323,22 @@ function DecisionCompanionPanel({
               <p className="mt-1.5 text-sm leading-5" style={{ color: theme.textOnPrimary }}>{ts('labels.smallPracticeForDecision')}</p>
             </section>
 
-            {decisions.length ? (
-              <DisclosureSection title={ts('labels.decisionMemory')} summary={`${decisions.length} ${ts('labels.decisionsSavedOpenFullList')}`} defaultOpen={Boolean(focusedDecisionId) || decisions.length < 2} compactCollapsed showDetailsLabel={ts('showDetails')} hideDetailsLabel={ts('hideDetails')} theme={theme}>
-                <div className="mb-2 flex justify-end text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
-                  <span className="inline-flex items-center gap-1">
-                    <span>{ts('labels.swipeForMore')}</span>
-                    <span aria-hidden="true">→</span>
-                  </span>
-                </div>
+            {visibleDecisionMemoryEntries.length ? (
+              <DisclosureSection title={ts('labels.decisionMemory')} summary={`${visibleDecisionMemoryEntries.length} ${ts('labels.decisionsSavedOpenFullList')}`} defaultOpen={Boolean(focusedDecisionId) || visibleDecisionMemoryEntries.length < 2} compactCollapsed showDetailsLabel={ts('showDetails')} hideDetailsLabel={ts('hideDetails')} theme={theme}>
+                {decisionMemoryRailHasOverflow ? (
+                  <div className="mb-2 flex justify-end text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
+                    <span className="inline-flex items-center gap-1">
+                      <span>{ts('labels.swipeForMore')}</span>
+                      <span aria-hidden="true">→</span>
+                    </span>
+                  </div>
+                ) : null}
                 <section
+                  ref={decisionMemoryRailRef}
                   aria-label={ts('labels.decisionMemory')}
                   className="flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]"
                 >
-                  {decisions.map((decision) => {
+                  {visibleDecisionMemoryEntries.map((decision) => {
                     const highlighted = decision.id === focusedDecisionId;
                     const createdLabel = new Date(decision.createdAt).toLocaleString(language, {
                       dateStyle: "medium",
@@ -24197,9 +24348,9 @@ function DecisionCompanionPanel({
                     return (
                       <article
                         key={decision.id}
-                        className="premium-tap-card relative flex w-full min-w-full shrink-0 snap-start flex-col overflow-hidden rounded-[1.35rem] border text-left shadow-[0_10px_24px_rgba(7,10,8,0.08)] transition"
+                        className="premium-tap-card relative flex w-full min-w-full shrink-0 snap-start flex-col overflow-hidden rounded-[1.45rem] border text-left shadow-[0_10px_24px_rgba(7,10,8,0.08)] transition"
                         style={{
-                          height: "calc(14.5rem + var(--aletheia-rail-card-height-offset, 0rem))",
+                          height: "calc(16.75rem + var(--aletheia-rail-card-height-offset, 0rem))",
                           borderColor: highlighted ? theme.primary : theme.borderMedium,
                           backgroundColor: highlighted ? theme.bgCardElevated : theme.bgCard,
                           boxShadow: highlighted
@@ -24210,7 +24361,7 @@ function DecisionCompanionPanel({
                         <div
                           className="relative overflow-hidden"
                           style={{
-                            height: "calc(3.75rem + var(--aletheia-rail-card-hero-height-offset, 0rem))",
+                            height: "calc(4.25rem + var(--aletheia-rail-card-hero-height-offset, 0rem))",
                             background: highlighted
                               ? `linear-gradient(135deg, ${theme.primary} 0%, ${theme.accentGold} 100%)`
                               : `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryHover} 100%)`,
@@ -24225,7 +24376,7 @@ function DecisionCompanionPanel({
                           <p className="line-clamp-2 text-[0.94rem] font-semibold leading-[1.22rem] tracking-tight" style={{ color: theme.textPrimary }}>
                             {decision.title}
                           </p>
-                          <p className="line-clamp-1 text-[0.84rem] leading-5" style={{ color: railText.railSecondary }}>
+                          <p className="line-clamp-2 text-[0.84rem] leading-5" style={{ color: railText.railSecondary }}>
                             {decision.pressure}
                           </p>
                         </div>
@@ -25062,6 +25213,8 @@ function GratitudeLensPanel({
   const [gratitudeDetailOpen, setGratitudeDetailOpen] = useState(false);
   const [weekStartTime] = useState(() => Date.now() - 7 * 24 * 60 * 60 * 1000);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const gratitudeRailRef = useRef<HTMLDivElement | null>(null);
+  const gratitudeRailHasOverflow = useRailOverflow(gratitudeRailRef, entries.length > 0, [entries.length, language]);
 
   useEffect(() => {
     return () => {
@@ -25128,11 +25281,12 @@ function GratitudeLensPanel({
   const gratitudeStickerLabel = (sticker: GratitudeSticker) => ts(`labels.gratitudeSticker_${sticker}`, GRATITUDE_STICKER_MARK[sticker]);
   const activeStyleSummary = gratitudeFilterLabel(visual.filter);
 
-  const latestEntry = entries[0];
-  const selectedEntry = entries.find((entry) => entry.id === selectedEntryId) ?? latestEntry ?? null;
-  const visibleTimelineEntries = entries;
-  const summary = entries.length
-    ? `${entries.length} ${entries.length === 1 ? ts('labels.gratitudeMoment') : ts('labels.gratitudeMoments')} · ${
+  const visibleEntries = entries.length > 0 ? entries : process.env.NODE_ENV !== "production" ? buildQaRailSampleGratitudeEntries() : entries;
+  const latestEntry = visibleEntries[0];
+  const selectedEntry = visibleEntries.find((entry) => entry.id === selectedEntryId) ?? latestEntry ?? null;
+  const visibleTimelineEntries = visibleEntries;
+  const summary = visibleEntries.length
+    ? `${visibleEntries.length} ${visibleEntries.length === 1 ? ts('labels.gratitudeMoment') : ts('labels.gratitudeMoments')} · ${
       !signedIn
         ? ts('labels.localOnly')
         : syncStatus === "synced"
@@ -25142,7 +25296,7 @@ function GratitudeLensPanel({
             : ts('labels.notSynced')
     }`
     : ts('labels.gratitudeEmptySummary');
-  const weeklyEntries = entries.filter((entry) => {
+  const weeklyEntries = visibleEntries.filter((entry) => {
     const entryTime = new Date(entry.createdAt).getTime();
     return Number.isFinite(entryTime) && entryTime >= weekStartTime;
   });
@@ -25243,19 +25397,21 @@ function GratitudeLensPanel({
                 />
               </div>
             ) : (
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="flex aspect-[4/3] w-full flex-col items-center justify-center gap-2.5 p-4 text-center"
-                style={{ color: theme.textSecondary }}
-              >
-                <Camera size={28} />
-                <span className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.chooseGratitudePhoto')}</span>
-                <span className="relative inline-flex max-w-xs items-center gap-2 pr-5 sm:pr-6 text-xs leading-5">
-                  <InfoHint text={ts('labels.gratitudePhotoPrivate')} theme={theme} placement="corner" surface="dense" />
-                  <span>{ts('labels.photoPrivacy')}</span>
-                </span>
-              </button>
+              <div className="relative aspect-[4/3] w-full">
+                <InfoHint text={ts('labels.gratitudePhotoPrivate')} theme={theme} placement="corner" surface="dense" />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex h-full w-full flex-col items-center justify-center gap-2.5 p-4 text-center"
+                  style={{ color: theme.textSecondary }}
+                >
+                  <Camera size={28} />
+                  <span className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.chooseGratitudePhoto')}</span>
+                  <span className="inline-flex max-w-xs items-center gap-2 text-xs leading-5">
+                    <span>{ts('labels.photoPrivacy')}</span>
+                  </span>
+                </button>
+              </div>
             )}
           </div>
           <input
@@ -25467,7 +25623,7 @@ function GratitudeLensPanel({
             <div className="min-w-0">
               <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.gratitudeTimeline')}</p>
               <h3 className="mt-1 text-base font-semibold" style={{ color: theme.textPrimary }}>
-                {entries.length ? ts('labels.latestGratitude') : ts('labels.noGratitudeYet')}
+                {visibleEntries.length ? ts('labels.latestGratitude') : ts('labels.noGratitudeYet')}
               </h3>
             </div>
             <Sprout size={24} style={{ color: theme.primary }} />
@@ -25503,15 +25659,18 @@ function GratitudeLensPanel({
             </p>
           </div>
 
-          {entries.length ? (
+          {visibleEntries.length ? (
             <>
-              <div className="mt-4 flex justify-end text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
-                <span className="inline-flex items-center gap-1">
-                  <span>{ts('labels.swipeForMore')}</span>
-                  <span aria-hidden="true">→</span>
-                </span>
-              </div>
+              {gratitudeRailHasOverflow ? (
+                <div className="mt-4 flex justify-end text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
+                  <span className="inline-flex items-center gap-1">
+                    <span>{ts('labels.swipeForMore')}</span>
+                    <span aria-hidden="true">→</span>
+                  </span>
+                </div>
+              ) : null}
               <section
+                ref={gratitudeRailRef}
                 aria-label={ts('labels.gratitudeTimeline')}
                 className="mt-2 flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]"
               >
@@ -25522,9 +25681,9 @@ function GratitudeLensPanel({
                     <button
                       key={entry.id}
                       type="button"
-                      className="premium-tap-card relative flex w-full min-w-full shrink-0 snap-start flex-col overflow-hidden rounded-[1.35rem] border text-left shadow-[0_10px_24px_rgba(7,10,8,0.08)] transition"
+                      className="premium-tap-card relative flex w-full min-w-full shrink-0 snap-start flex-col overflow-hidden rounded-[1.45rem] border text-left shadow-[0_10px_24px_rgba(7,10,8,0.08)] transition"
                       style={{
-                        height: "calc(14.75rem + var(--aletheia-rail-card-height-offset, 0rem))",
+                        height: "calc(15.5rem + var(--aletheia-rail-card-height-offset, 0rem))",
                         borderColor: isActive ? theme.primary : theme.borderMedium,
                         backgroundColor: isActive ? theme.bgCardElevated : theme.bgCard,
                         boxShadow: isActive
@@ -25538,7 +25697,7 @@ function GratitudeLensPanel({
                         setGratitudeDetailOpen(true);
                       }}
                     >
-                      <div className="relative w-full overflow-hidden" style={{ height: "calc(7.25rem + var(--aletheia-rail-card-image-height-offset, 0rem))" }}>
+                      <div className="relative w-full overflow-hidden" style={{ height: "calc(7.65rem + var(--aletheia-rail-card-image-height-offset, 0rem))" }}>
                         <Image
                           src={entry.imageDataUrl}
                           alt={entry.note}
@@ -25549,13 +25708,13 @@ function GratitudeLensPanel({
                         />
                         <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-black/45 to-transparent" />
                       </div>
-                      <div className="flex min-w-0 flex-1 flex-col gap-1.5 p-3">
+                      <div className="flex min-w-0 flex-1 flex-col gap-1.5 p-3.5">
                         <div className="flex items-center justify-between gap-2">
                           <span className="truncate text-[9px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.accentGold }}>
                             {gratitudeFormationLabel(entryFormation)}
                           </span>
                         </div>
-                        <p className="line-clamp-1 text-[0.93rem] font-semibold leading-5" style={{ color: theme.textPrimary }}>
+                        <p className="line-clamp-2 text-[0.95rem] font-semibold leading-5" style={{ color: theme.textPrimary }}>
                           {entry.note}
                         </p>
                         <p className="text-[9px] leading-4" style={{ color: railText.railMuted }}>
@@ -25610,6 +25769,8 @@ function LibraryPanel({
   const railText = railTextColors(theme);
   const localizedModeSearchLabel = localizedModeLabel(mode, preferences.language).toLowerCase();
   const [librarySection, setLibrarySection] = useState<"explore" | "memory" | "bible">("explore");
+  const libraryRailRef = useRef<HTMLDivElement | null>(null);
+  const libraryRailHasOverflow = useRailOverflow(libraryRailRef, librarySection === "explore" && entries.length > 0, [entries.length, preferences.language]);
   const libraryNextTitle = search.trim()
     ? (entries.length === 1
         ? ts('labels.libraryMatchingWisdomAnchorSingular')
@@ -25764,15 +25925,18 @@ function LibraryPanel({
           {railEntries.length ? (
             <div className="mt-3 flex items-center justify-between gap-3 text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: railText.railMuted }}>
               <span>{ts('labels.wisdomLibrary')}</span>
-              <span className="inline-flex items-center gap-1">
-                <span>{ts('labels.swipeForMore')}</span>
-                <span aria-hidden="true">→</span>
-              </span>
+              {libraryRailHasOverflow ? (
+                <span className="inline-flex items-center gap-1">
+                  <span>{ts('labels.swipeForMore')}</span>
+                  <span aria-hidden="true">→</span>
+                </span>
+              ) : null}
             </div>
           ) : null}
 
           {railEntries.length ? (
             <section
+              ref={libraryRailRef}
               aria-label={ts('labels.wisdomLibrary')}
               className="mt-2 flex min-w-0 snap-x gap-3 overflow-x-auto pb-1 sm:mt-2.5 sm:gap-4 [-webkit-overflow-scrolling:touch]"
             >
@@ -25781,9 +25945,9 @@ function LibraryPanel({
                 return (
                   <article
                     key={entry.scripture}
-                    className="premium-tap-card relative flex w-full min-w-full shrink-0 snap-start flex-col overflow-hidden rounded-[1.35rem] border text-left shadow-[0_10px_24px_rgba(7,10,8,0.08)] transition"
+                    className="premium-tap-card relative flex w-full min-w-full shrink-0 snap-start flex-col overflow-hidden rounded-[1.45rem] border text-left shadow-[0_10px_24px_rgba(7,10,8,0.08)] transition"
                     style={{
-                      height: "calc(14.25rem + var(--aletheia-rail-card-height-offset, 0rem))",
+                      height: "calc(15rem + var(--aletheia-rail-card-height-offset, 0rem))",
                       borderColor: theme.borderMedium,
                       backgroundColor: theme.bgCardElevated,
                       boxShadow: "0 8px 18px rgba(7, 10, 8, 0.06)",
@@ -25792,7 +25956,7 @@ function LibraryPanel({
                       <div
                       className="relative overflow-hidden"
                       style={{
-                        height: "calc(3.75rem + var(--aletheia-rail-card-hero-height-offset, 0rem))",
+                        height: "calc(4.15rem + var(--aletheia-rail-card-hero-height-offset, 0rem))",
                         background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryHover} 100%)`,
                       }}
                     >
@@ -25802,17 +25966,17 @@ function LibraryPanel({
                       </div>
                     </div>
 
-                    <div className="flex flex-1 flex-col gap-1.5 p-3">
+                    <div className="flex flex-1 flex-col gap-1.5 p-3.5">
                       <button
                         type="button"
                         onClick={() => onScriptureOpen(entry.scripture)}
                         className="text-left"
                       >
-                        <p className="min-h-[2.1rem] line-clamp-1 text-[0.94rem] font-semibold leading-[1.2rem] tracking-tight" style={{ color: theme.textPrimary }}>
+                        <p className="min-h-[2.55rem] line-clamp-2 text-[0.95rem] font-semibold leading-[1.2rem] tracking-tight" style={{ color: theme.textPrimary }}>
                           {localizedScriptureReference(entry.scripture, preferences.language)}
                         </p>
                       </button>
-                      <p className="line-clamp-2 text-[0.8rem] leading-5" style={{ color: railText.railSecondary }}>
+                      <p className="line-clamp-3 text-[0.82rem] leading-5" style={{ color: railText.railSecondary }}>
                         {localizedEntry.principle}
                       </p>
                       <div className="mt-auto flex items-center justify-between gap-1.5">
@@ -25882,6 +26046,8 @@ function JournalPanel({
   const runtime = runtimeCopyFor(language);
   const railText = railTextColors(theme);
   const [journalSection, setJournalSection] = useState<"write" | "archive">("write");
+  const savedReflectionsRailRef = useRef<HTMLDivElement | null>(null);
+  const savedReflectionsRailHasOverflow = useRailOverflow(savedReflectionsRailRef, journalSection === "archive" && entries.length > 0, [entries.length, language]);
 
   return (
     <div className="min-w-0 space-y-4">
@@ -25950,19 +26116,22 @@ function JournalPanel({
         >
           {entries.length ? (
             <>
-              <div className="mb-2 flex justify-end text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: railText.railMuted }}>
-                <span className="inline-flex items-center gap-1">
-                  <span>{ts('labels.swipeForMore')}</span>
-                  <span aria-hidden="true">→</span>
-                </span>
-              </div>
+              {savedReflectionsRailHasOverflow ? (
+                <div className="mb-2 flex justify-end text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: railText.railMuted }}>
+                  <span className="inline-flex items-center gap-1">
+                    <span>{ts('labels.swipeForMore')}</span>
+                    <span aria-hidden="true">→</span>
+                  </span>
+                </div>
+              ) : null}
               <section
+                ref={savedReflectionsRailRef}
                 aria-label={ts('labels.savedReflections')}
                 className="flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]"
               >
                 {entries.map((entry, index) => (
-                  <article key={entry.id} className="premium-tap-card relative flex w-full min-w-full shrink-0 snap-start flex-col overflow-hidden rounded-[1.35rem] border text-left shadow-[0_10px_24px_rgba(7,10,8,0.08)] transition" style={{ height: "calc(15.25rem + var(--aletheia-rail-card-height-offset, 0rem))", borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, boxShadow: "0 8px 18px rgba(7, 10, 8, 0.06)" }}>
-                    <div className="relative overflow-hidden" style={{ height: "calc(4rem + var(--aletheia-rail-card-hero-height-offset, 0rem))", background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryHover} 100%)` }}>
+                  <article key={entry.id} className="premium-tap-card relative flex w-full min-w-full shrink-0 snap-start flex-col overflow-hidden rounded-[1.45rem] border text-left shadow-[0_10px_24px_rgba(7,10,8,0.08)] transition" style={{ height: "calc(16rem + var(--aletheia-rail-card-height-offset, 0rem))", borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, boxShadow: "0 8px 18px rgba(7, 10, 8, 0.06)" }}>
+                    <div className="relative overflow-hidden" style={{ height: "calc(4.25rem + var(--aletheia-rail-card-hero-height-offset, 0rem))", background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryHover} 100%)` }}>
                       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.18),transparent_40%),radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.08),transparent_38%)]" />
                       <div className="absolute left-2.5 top-2.5 grid size-[1.375rem] place-items-center rounded-full border border-white/20 bg-white/12 shadow-[0_8px_16px_rgba(0,0,0,0.12)]">
                         <Feather size={12} style={{ color: theme.textOnPrimary }} />
@@ -25971,7 +26140,7 @@ function JournalPanel({
                     <div className="flex min-w-0 flex-1 flex-col gap-1.5 p-3.5">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <p className="text-[0.96rem] font-semibold leading-[1.25rem]" style={{ color: theme.textPrimary }}>{entry.title}</p>
+                          <p className="line-clamp-2 text-[0.97rem] font-semibold leading-[1.22rem]" style={{ color: theme.textPrimary }}>{entry.title}</p>
                           <p className="mt-1 text-[9px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
                             {localizedModeLabel(entry.mode, language)} · {new Date(entry.createdAt).toLocaleDateString()}
                           </p>
@@ -25984,7 +26153,7 @@ function JournalPanel({
                           <Trash2 size={15} />
                         </button>
                       </div>
-                      <p className="line-clamp-3 text-[0.84rem] leading-5" style={{ color: railText.railSecondary }}>{entry.body}</p>
+                      <p className="line-clamp-4 text-[0.85rem] leading-5" style={{ color: railText.railSecondary }}>{entry.body}</p>
                       <div className="mt-auto flex items-center justify-between gap-2">
                         <button
                           type="button"
