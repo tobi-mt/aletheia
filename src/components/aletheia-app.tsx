@@ -14049,6 +14049,8 @@ function HomeDashboard({
   const todayQuestionCardAction = activeDecision
     ? { label: text.askAboutThis!, onClick: () => onAskAboutCard(companionCard) }
     : { label: text.askNewQuestion!, onClick: onAskOneQuestion };
+  const todayActionsRailRef = useRef<HTMLDivElement | null>(null);
+  const todayActionsRailHasOverflow = useRailOverflow(todayActionsRailRef, visibleTodayActions.length > 2, [visibleTodayActions.length]);
 
   return (
     <div className="grid gap-5 sm:gap-6">
@@ -14203,7 +14205,7 @@ function HomeDashboard({
           />
 
           <section
-            className="overflow-hidden rounded-[1.55rem] border p-3 shadow-[0_10px_24px_rgba(7,10,8,0.06)] sm:p-3.5"
+            className="overflow-hidden rounded-[1.55rem] border p-4 shadow-[0_10px_24px_rgba(7,10,8,0.06)] sm:p-4.5"
             style={{
               borderColor: theme.primary,
               background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})`,
@@ -14214,46 +14216,62 @@ function HomeDashboard({
                 <p className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
                   {text.todayQuestionLabel ?? ""}
                 </p>
-                <p className="mt-2 text-[0.98rem] font-semibold leading-6 text-balance sm:text-[1.03rem]" style={{ color: theme.textPrimary }}>
+                <p className="mt-2 max-w-2xl text-[1.12rem] font-semibold leading-7 text-balance sm:text-[1.22rem] sm:leading-8" style={{ color: theme.textPrimary }}>
                   {companionCard.question}
                 </p>
+                <p className="mt-2 max-w-2xl text-[0.92rem] leading-6" style={{ color: theme.textSecondary }}>
+                  {text.whatNextBody ?? ""}
+                </p>
               </div>
-              <div className="grid size-9 shrink-0 place-items-center rounded-[0.95rem] border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
+              <div className="grid size-10 shrink-0 place-items-center rounded-[1rem] border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
                 <MessageCircle size={14} />
               </div>
             </div>
 
-            <div className="mt-2.5 flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={todayQuestionCardAction.onClick}
-                className="premium-tap-card inline-flex min-h-10.5 items-center gap-2 rounded-full border px-4 text-sm font-semibold transition hover:-translate-y-0.5 hover:shadow-sm"
-                style={{
-                  borderColor: theme.primary,
-                  background: `linear-gradient(180deg, color-mix(in srgb, ${theme.primary} 94%, white 6%), ${theme.primary})`,
-                  color: theme.textOnPrimary,
-                  boxShadow: `0 14px 26px color-mix(in srgb, ${theme.primary} 18%, transparent)`,
-                }}
-              >
-                <Compass size={13} />
-                {todayQuestionCardAction.label}
-              </button>
-              <span className="inline-flex min-h-10.5 items-center rounded-full border px-4 text-sm font-semibold" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
-                {text.currentCounsel ?? text.whatNext ?? ""}
+            <button
+              type="button"
+              onClick={todayQuestionCardAction.onClick}
+              className="premium-tap-card mt-3 flex min-h-14 items-center justify-between gap-3 rounded-[1.15rem] border px-4 py-3 text-left shadow-[0_8px_18px_rgba(7,10,8,0.04)] transition hover:-translate-y-0.5 hover:shadow-md"
+              style={{
+                borderColor: theme.primary,
+                background: `linear-gradient(180deg, color-mix(in srgb, ${theme.primary} 94%, white 6%), ${theme.primary})`,
+                color: theme.textOnPrimary,
+                boxShadow: `0 14px 26px color-mix(in srgb, ${theme.primary} 18%, transparent)`,
+              }}
+            >
+              <span className="min-w-0">
+                <span className="block text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: "rgba(255,255,255,0.82)" }}>
+                  {activeDecision ? text.continueDecision : text.askOneQuestion}
+                </span>
+                <span className="mt-1 block text-[0.98rem] font-semibold leading-6 text-balance sm:text-[1.04rem]">
+                  {todayQuestionCardAction.label}
+                </span>
               </span>
-            </div>
+              <ArrowUpRight size={16} />
+            </button>
 
-            <div className="mt-2.5 grid grid-cols-2 gap-2 sm:grid-cols-4">
-              {visibleTodayActions.map((action) => (
-                <CompanionCardAction
-                  key={action.label}
-                  icon={action.icon}
-                  label={action.label}
-                  onClick={action.onClick}
-                  theme={theme}
-                  primary={action.primary}
-                />
-              ))}
+            <div className="mt-4">
+              {todayActionsRailHasOverflow ? (
+                <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
+                  {ts("labels.swipeForMore")}
+                </p>
+              ) : null}
+              <div
+                ref={todayActionsRailRef}
+                className="flex snap-x gap-3 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                aria-label={text.askOneQuestion}
+              >
+                {visibleTodayActions.map((action) => (
+                  <CompanionCardAction
+                    key={action.label}
+                    icon={action.icon}
+                    label={action.label}
+                    onClick={action.onClick}
+                    theme={theme}
+                    primary={action.primary}
+                  />
+                ))}
+              </div>
             </div>
           </section>
 
@@ -14536,7 +14554,7 @@ function CompanionCardAction({
     <button
       type="button"
       onClick={onClick}
-      className="premium-tap-card flex min-h-16 flex-col items-center justify-center gap-1.5 rounded-[1.1rem] border px-3 py-2.5 text-center text-xs font-semibold shadow-sm transition hover:-translate-y-0.5 hover:shadow-md sm:min-h-20 sm:gap-2 sm:text-sm"
+      className="premium-tap-card flex min-h-[7.75rem] w-[10.4rem] shrink-0 snap-start flex-col justify-between rounded-[1.28rem] border p-3.5 text-left text-sm font-semibold shadow-sm transition hover:-translate-y-0.5 hover:shadow-md sm:w-[10.9rem]"
       style={primary
         ? {
             borderColor: theme.primary,
@@ -14551,14 +14569,14 @@ function CompanionCardAction({
           }}
     >
       <span
-        className="grid size-7 place-items-center rounded-full border"
+        className="grid size-8 place-items-center rounded-full border"
         style={primary
           ? { borderColor: "rgba(255,255,255,0.22)", backgroundColor: "rgba(255,255,255,0.12)", color: theme.textOnPrimary }
           : { borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}
       >
-        <Icon size={13} />
+        <Icon size={14} />
       </span>
-      <span className="max-w-[8ch] leading-[1.15] text-balance">{label}</span>
+      <span className="max-w-[8.5rem] leading-[1.15] text-balance">{label}</span>
     </button>
   );
 }
