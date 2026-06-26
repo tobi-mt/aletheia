@@ -3,6 +3,8 @@ import { Pool } from "pg";
 import { wisdomEntries } from "@/lib/wisdom-data";
 
 const connectionString = process.env.DATABASE_URL;
+const shouldBootstrapDatabase =
+  process.env.DB_BOOTSTRAP_ON_STARTUP === "1" || process.env.NODE_ENV !== "production";
 
 if (!connectionString) {
   throw new Error("DATABASE_URL is required. Set it to your Neon Postgres connection string.");
@@ -471,6 +473,9 @@ async function initializeDatabase() {
 }
 
 export async function ensureDbReady() {
+  if (!shouldBootstrapDatabase) {
+    return;
+  }
   globalForDb.aletheiaDbReady ??= initializeDatabase();
   return globalForDb.aletheiaDbReady;
 }
