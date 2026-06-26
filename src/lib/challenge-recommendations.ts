@@ -1,6 +1,6 @@
 import { challengeDefinitions, getChallengeById, type ChallengeId } from "@/lib/challenge-data";
 import { normalizeManualContext, type ManualContextProfile } from "@/lib/manual-context";
-import type { ChallengeProgressState } from "@/lib/challenge-progress";
+import { getChallengeProgressState, type ChallengeProgressState } from "@/lib/challenge-progress";
 
 type ModeCounts = Partial<Record<string, number>>;
 
@@ -16,6 +16,7 @@ export type ChallengeRecommendationContext = {
     challengeId: string;
     daysCompleted: number;
     totalDays: number;
+    lastCompletedAt?: string | null;
   } | null;
 };
 
@@ -726,9 +727,20 @@ export function recommendChallenges(input: ChallengeRecommendationContext): Chal
     .join(" ");
 
   const completedChallengeIds = new Set(input.completedChallengeIds ?? []);
-  const activeChallengeId = input.activeChallenge && input.activeChallenge.daysCompleted > 0 && input.activeChallenge.daysCompleted < input.activeChallenge.totalDays
-    ? input.activeChallenge.challengeId
+  const activeChallengeSnapshot = input.activeChallenge && input.activeChallenge.daysCompleted > 0 && input.activeChallenge.daysCompleted < input.activeChallenge.totalDays
+    ? input.activeChallenge
     : null;
+  const activeChallengeState = activeChallengeSnapshot
+    ? getChallengeProgressState(
+        {
+          completedDays: activeChallengeSnapshot.daysCompleted,
+          totalDays: activeChallengeSnapshot.totalDays,
+          lastCompletedAt: activeChallengeSnapshot.lastCompletedAt ?? null,
+        },
+        Date.now()
+      )
+    : null;
+  const activeChallengeId = activeChallengeSnapshot?.challengeId ?? null;
 
   const scored = challengeDefinitions
     .filter((challenge) => !completedChallengeIds.has(challenge.id))
@@ -745,7 +757,7 @@ export function recommendChallenges(input: ChallengeRecommendationContext): Chal
     ? (() => {
         const def = getChallengeById(activeChallengeId);
         if (!def) return null;
-        const daysCompleted = input.activeChallenge?.daysCompleted ?? 0;
+        const daysCompleted = activeChallengeSnapshot?.daysCompleted ?? 0;
         return {
           challengeId: def.id,
           titleKey: def.titleKey,
@@ -766,6 +778,7 @@ export function recommendChallenges(input: ChallengeRecommendationContext): Chal
           ],
           actionLabel: "continue",
           actionKind: "continue" as const,
+          progressState: activeChallengeState ?? undefined,
           note: `You are already partway through this practice. Keep the rhythm going with day ${Math.min(daysCompleted + 1, def.totalDays)}.`,
         } satisfies ChallengeRecommendation;
       })()

@@ -9025,6 +9025,7 @@ export function AletheiaApp() {
             challengeId: activeChallengeProgress.id,
             daysCompleted: activeChallengeProgress.completedDays.length,
             totalDays: activeChallengeProgress.totalDays,
+            lastCompletedAt: activeChallengeProgress.completedDays.at(-1)?.completedAt ?? null,
           }
         : null,
     });
@@ -12286,7 +12287,7 @@ export function AletheiaApp() {
                         focusIntentions={focusIntentions}
                         messages={messages}
                         wisdomDecisions={wisdomDecisions}
-                        challengeRecommendation={featuredChallengeRecommendation.primary}
+                        challengeRecommendation={null}
                         onOpenRecommendedChallenge={openRecommendedChallenge}
                         pendingChallengeId={pendingChallengeId}
                         onClearPendingChallenge={() => setPendingChallengeId(null)}
@@ -14201,27 +14202,48 @@ function HomeDashboard({
             theme={theme}
           />
 
-          <section className="rounded-[1.25rem] border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+          <section
+            className="overflow-hidden rounded-[1.55rem] border p-3 shadow-[0_10px_24px_rgba(7,10,8,0.06)] sm:p-3.5"
+            style={{
+              borderColor: theme.primary,
+              background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})`,
+            }}
+          >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
                   {text.todayQuestionLabel ?? ""}
                 </p>
-                <p className="mt-2 text-[1rem] font-semibold leading-6 text-balance sm:text-[1.05rem]" style={{ color: theme.textPrimary }}>
+                <p className="mt-2 text-[0.98rem] font-semibold leading-6 text-balance sm:text-[1.03rem]" style={{ color: theme.textPrimary }}>
                   {companionCard.question}
                 </p>
               </div>
+              <div className="grid size-9 shrink-0 place-items-center rounded-[0.95rem] border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
+                <MessageCircle size={14} />
+              </div>
+            </div>
+
+            <div className="mt-2.5 flex flex-wrap items-center gap-2">
               <button
                 type="button"
                 onClick={todayQuestionCardAction.onClick}
-                className="premium-tap-card inline-flex h-10 shrink-0 items-center rounded-full border px-3.5 text-[11px] font-semibold uppercase tracking-[0.12em] transition hover:-translate-y-0.5"
-                style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textPrimary }}
+                className="premium-tap-card inline-flex min-h-10.5 items-center gap-2 rounded-full border px-4 text-sm font-semibold transition hover:-translate-y-0.5 hover:shadow-sm"
+                style={{
+                  borderColor: theme.primary,
+                  background: `linear-gradient(180deg, color-mix(in srgb, ${theme.primary} 94%, white 6%), ${theme.primary})`,
+                  color: theme.textOnPrimary,
+                  boxShadow: `0 14px 26px color-mix(in srgb, ${theme.primary} 18%, transparent)`,
+                }}
               >
+                <Compass size={13} />
                 {todayQuestionCardAction.label}
               </button>
+              <span className="inline-flex min-h-10.5 items-center rounded-full border px-4 text-sm font-semibold" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
+                {text.currentCounsel ?? text.whatNext ?? ""}
+              </span>
             </div>
 
-            <div className="mt-3 flex gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
+            <div className="mt-2.5 grid grid-cols-2 gap-2 sm:grid-cols-4">
               {visibleTodayActions.map((action) => (
                 <CompanionCardAction
                   key={action.label}
@@ -14254,12 +14276,12 @@ function HomeDashboard({
             </div>
           </div>
           <div className="mt-2 flex min-w-0 snap-x gap-1.5 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
-            <WeeklyReviewRailStat className="w-[10rem] shrink-0 snap-start" label={text.questionsThisWeek ?? ""} current={weeklyReview.questions} previous={weeklyReview.previousQuestions} lastWeekLabel={text.weeklyReviewLastWeekLabel ?? ""} theme={theme} />
-            <WeeklyReviewRailStat className="w-[10rem] shrink-0 snap-start" label={text.reflectionsThisWeek ?? ""} current={weeklyReview.reflections} previous={weeklyReview.previousReflections} lastWeekLabel={text.weeklyReviewLastWeekLabel ?? ""} theme={theme} />
-            <WeeklyReviewRailStat className="w-[10rem] shrink-0 snap-start" label={text.gratitudeThisWeek ?? ""} current={weeklyReview.gratitudeMoments} previous={weeklyReview.previousGratitudeMoments} lastWeekLabel={text.weeklyReviewLastWeekLabel ?? ""} theme={theme} />
-            <WeeklyReviewRailStat className="w-[10rem] shrink-0 snap-start" label={text.decisionsThisWeek ?? ""} current={weeklyReview.decisions} previous={weeklyReview.previousDecisions} lastWeekLabel={text.weeklyReviewLastWeekLabel ?? ""} theme={theme} />
+            <WeeklyReviewRailStat className="w-[9.75rem] shrink-0 snap-start" label={text.questionsThisWeek ?? ""} current={weeklyReview.questions} previous={weeklyReview.previousQuestions} lastWeekLabel={text.weeklyReviewLastWeekLabel ?? ""} theme={theme} />
+            <WeeklyReviewRailStat className="w-[9.75rem] shrink-0 snap-start" label={text.reflectionsThisWeek ?? ""} current={weeklyReview.reflections} previous={weeklyReview.previousReflections} lastWeekLabel={text.weeklyReviewLastWeekLabel ?? ""} theme={theme} />
+            <WeeklyReviewRailStat className="w-[9.75rem] shrink-0 snap-start" label={text.gratitudeThisWeek ?? ""} current={weeklyReview.gratitudeMoments} previous={weeklyReview.previousGratitudeMoments} lastWeekLabel={text.weeklyReviewLastWeekLabel ?? ""} theme={theme} />
+            <WeeklyReviewRailStat className="w-[9.75rem] shrink-0 snap-start" label={text.decisionsThisWeek ?? ""} current={weeklyReview.decisions} previous={weeklyReview.previousDecisions} lastWeekLabel={text.weeklyReviewLastWeekLabel ?? ""} theme={theme} />
           </div>
-          <p className="rounded-[1.15rem] border p-4 text-[0.95rem] leading-7" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
+          <p className="rounded-[1.15rem] border p-3.5 text-[0.94rem] leading-7" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
             <span className="font-semibold" style={{ color: theme.textPrimary }}>{text.nextFaithfulStep ?? ""}:</span>{" "}
             {weeklyReview.nextStep}
           </p>
@@ -14297,25 +14319,36 @@ function WeeklyReviewRailStat({
 
   return (
     <div
-      className={`premium-tap-card relative flex min-h-[5.55rem] min-w-0 flex-col overflow-hidden rounded-[0.92rem] border p-2 text-left shadow-[0_6px_14px_rgba(7,10,8,0.04)] ${className}`}
+      className={`premium-tap-card relative flex min-h-[5.75rem] min-w-0 flex-col overflow-hidden rounded-[1.05rem] border p-2.5 text-left shadow-[0_8px_16px_rgba(7,10,8,0.05)] transition hover:-translate-y-0.5 hover:shadow-md ${className}`}
       style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}
       aria-label={accessibleLabel}
       title={accessibleLabel}
     >
       <div className="relative z-10 flex items-center justify-between gap-2">
-        <p className="min-w-0 truncate text-[8px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.accentGold }}>
+        <p className="min-w-0 truncate text-[8.5px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.accentGold }}>
           {label}
         </p>
-        <span className="inline-flex shrink-0 items-center gap-1 rounded-full border px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-[0.06em]" style={deltaStyle}>
+        <span className="inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-[8px] font-semibold uppercase tracking-[0.06em]" style={deltaStyle}>
           <DeltaIcon size={10} />
           {deltaLabel}
         </span>
       </div>
-      <div className="relative z-10 mt-1 flex items-end justify-between gap-2">
-        <p className="text-[1.52rem] font-semibold leading-none tracking-[-0.07em]" style={{ color: theme.textPrimary }}>
+      <div className="relative z-10 mt-1.5 flex items-end justify-between gap-2">
+        <p className="text-[1.62rem] font-semibold leading-none tracking-[-0.075em]" style={{ color: theme.textPrimary }}>
           {current}
         </p>
         <WeeklyReviewTrend current={current} previous={previous} theme={theme} />
+      </div>
+      <div className="relative z-10 mt-auto pt-1">
+        <div className="h-1.5 rounded-full border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
+          <div
+            className="h-full rounded-full"
+            style={{
+              width: `${Math.max(8, Math.min(100, current * 18 + (delta > 0 ? 8 : 0)))}%`,
+              background: `linear-gradient(90deg, ${theme.primary}, ${theme.accentGold})`,
+            }}
+          />
+        </div>
       </div>
     </div>
   );
@@ -14503,13 +14536,29 @@ function CompanionCardAction({
     <button
       type="button"
       onClick={onClick}
-      className="premium-tap-card flex min-h-10 items-center justify-center gap-2 rounded-xl border px-2.5 py-2 text-center text-xs font-semibold shadow-sm transition sm:text-sm"
+      className="premium-tap-card flex min-h-16 flex-col items-center justify-center gap-1.5 rounded-[1.1rem] border px-3 py-2.5 text-center text-xs font-semibold shadow-sm transition hover:-translate-y-0.5 hover:shadow-md sm:min-h-20 sm:gap-2 sm:text-sm"
       style={primary
-        ? { borderColor: theme.primary, backgroundColor: theme.primary, color: theme.textOnPrimary }
-        : { borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
+        ? {
+            borderColor: theme.primary,
+            background: `linear-gradient(180deg, color-mix(in srgb, ${theme.primary} 94%, white 6%), ${theme.primary})`,
+            color: theme.textOnPrimary,
+            boxShadow: `0 12px 22px color-mix(in srgb, ${theme.primary} 18%, transparent)`,
+          }
+        : {
+            borderColor: theme.borderLight,
+            background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})`,
+            color: theme.textPrimary,
+          }}
     >
-      <Icon size={14} />
-      <span>{label}</span>
+      <span
+        className="grid size-7 place-items-center rounded-full border"
+        style={primary
+          ? { borderColor: "rgba(255,255,255,0.22)", backgroundColor: "rgba(255,255,255,0.12)", color: theme.textOnPrimary }
+          : { borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}
+      >
+        <Icon size={13} />
+      </span>
+      <span className="max-w-[8ch] leading-[1.15] text-balance">{label}</span>
     </button>
   );
 }
@@ -14535,18 +14584,35 @@ function DashboardAction({
     <button
       type="button"
       onClick={onClick}
-      className={`premium-tap-card group flex h-full w-full min-w-0 items-start gap-3 rounded-xl border text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${compact ? "p-3" : "p-4"}`}
+      className={`premium-tap-card group flex h-full w-full min-w-0 items-start gap-3 rounded-[1.15rem] border text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${compact ? "p-3.5" : "p-4"}`}
       style={primary
-        ? { borderColor: theme.primary, backgroundColor: theme.primary, color: theme.textOnPrimary, boxShadow: "0 12px 24px rgba(7, 10, 8, 0.14)" }
+        ? {
+            borderColor: theme.primary,
+            background: `linear-gradient(180deg, color-mix(in srgb, ${theme.primary} 94%, white 6%), ${theme.primary})`,
+            color: theme.textOnPrimary,
+            boxShadow: `0 14px 28px color-mix(in srgb, ${theme.primary} 20%, transparent)`,
+          }
         : { borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
     >
-      <span className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-lg" style={primary ? { backgroundColor: theme.bgCardElevated, color: theme.accentGold } : { backgroundColor: theme.bgInput, color: theme.textPrimary }}>
+      <span
+        className="mt-0.5 grid size-10 shrink-0 place-items-center rounded-xl border"
+        style={
+          primary
+            ? {
+                borderColor: "rgba(255,255,255,0.18)",
+                backgroundColor: "rgba(255,255,255,0.12)",
+                color: theme.textOnPrimary,
+              }
+            : { borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }
+        }
+      >
         <Icon size={16} />
       </span>
-      <span className="min-w-0">
-        <span className={`${primary ? "text-base" : "text-sm"} block font-semibold`}>{label}</span>
-      <span className={`${compact ? "home-secondary-action-body " : ""}mt-1 line-clamp-2 block text-xs leading-5 opacity-80`}>{body}</span>
-    </span>
+      <span className="min-w-0 flex-1">
+        <span className={`${primary ? "text-[1.02rem] sm:text-[1.08rem]" : "text-sm"} block font-semibold leading-5`}>{label}</span>
+        <span className={`${compact ? "home-secondary-action-body " : ""}mt-1 block line-clamp-2 text-xs leading-5 opacity-85`}>{body}</span>
+      </span>
+      {primary ? <ArrowUpRight className="ml-auto mt-0.5 shrink-0" size={16} /> : null}
   </button>
 );
 }
@@ -15730,10 +15796,15 @@ function ChallengeRecommendationCard({
   const body = isContinuation
     ? `${ts("challenges.continueChallenge")}: ${challengeContinuationProgressLabel(recommendation, ts)}`
     : ts(recommendation.descriptionKey, recommendation.description);
+  const RecommendationIcon = recommendation.progressState === "inactive"
+    ? Clock3
+    : isContinuation
+      ? Check
+      : Compass;
 
   return (
     <section
-      className={`overflow-hidden rounded-[1.45rem] border shadow-[0_8px_20px_rgba(7,10,8,0.05)] ${compact ? "p-3.5 sm:p-4" : "p-4 sm:p-5"} ${className}`}
+      className={`overflow-hidden rounded-[1.55rem] border shadow-[0_10px_24px_rgba(7,10,8,0.06)] ${compact ? "p-3.5 sm:p-4" : "p-4 sm:p-5"} ${className}`}
       style={{
         borderColor: theme.primary,
         background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})`,
@@ -15747,12 +15818,15 @@ function ChallengeRecommendationCard({
           <h3 className="mt-1 text-lg font-semibold" style={{ color: theme.textPrimary }}>
             {isContinuation ? ts("challenges.continueChallenge") : ts("labels.recommendedForYou")}
           </h3>
-          <p className="mt-1.5 text-base font-semibold leading-6" style={{ color: theme.textPrimary }}>
+          <p className="mt-1.5 text-[1.03rem] font-semibold leading-6 sm:text-[1.08rem]" style={{ color: theme.textPrimary }}>
             {title}
           </p>
           <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
             {body}
           </p>
+        </div>
+        <div className="grid size-11 shrink-0 place-items-center rounded-[1rem] border" style={{ borderColor: theme.borderLight, backgroundColor: isContinuation ? theme.primary : theme.bgInput, color: isContinuation ? theme.textOnPrimary : theme.primary }}>
+          <RecommendationIcon size={18} />
         </div>
       </div>
 
@@ -15783,10 +15857,16 @@ function ChallengeRecommendationCard({
         <button
           type="button"
           onClick={() => onOpenChallenge(recommendation.challengeId)}
-          className="inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-semibold transition"
-          style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border px-4 text-sm font-semibold transition hover:-translate-y-0.5"
+          style={{
+            borderColor: theme.primary,
+            background: `linear-gradient(180deg, color-mix(in srgb, ${theme.primary} 94%, white 6%), ${theme.primary})`,
+            color: theme.textOnPrimary,
+            boxShadow: `0 14px 26px color-mix(in srgb, ${theme.primary} 18%, transparent)`,
+          }}
         >
           {actionLabel}
+          <ArrowUpRight size={15} />
         </button>
         {showAlternatives
           ? alternatives.slice(0, 2).map((item) => (
@@ -15794,8 +15874,8 @@ function ChallengeRecommendationCard({
                 key={item.challengeId}
                 type="button"
                 onClick={() => onOpenChallenge(item.challengeId)}
-                className="inline-flex h-10 items-center justify-center rounded-full border px-4 text-sm font-semibold transition"
-                style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
+                className="inline-flex min-h-11 items-center justify-center rounded-full border px-4 text-sm font-semibold transition hover:-translate-y-0.5"
+                style={{ borderColor: theme.borderMedium, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})`, color: theme.textPrimary }}
               >
                 {item.title}
               </button>

@@ -14,7 +14,7 @@ export type ChallengeProgressSnapshot = {
 };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-export const CHALLENGE_INACTIVE_AFTER_DAYS = 3;
+export const CHALLENGE_INACTIVE_AFTER_DAYS = 1;
 
 function isSameLocalDay(leftMs: number, rightMs: number) {
   const left = new Date(leftMs);
