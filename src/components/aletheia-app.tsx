@@ -16550,16 +16550,18 @@ async function shareChallengeDayPostcard(challenge: ChallengeWithProgress, day: 
 
   return (
     <section ref={sectionRef} className="space-y-4">
-      <div className="rounded-[1.35rem] border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-        <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
-          {ts("challenges.eyebrow")}
-        </p>
-        <h2 className="mt-1.5 text-xl font-semibold" style={{ color: theme.textPrimary }}>
-          {ts("challenges.sectionTitle")}
-        </h2>
-        <p className="mt-1.5 text-sm leading-5" style={{ color: theme.textSecondary }}>
-          {ts("challenges.sectionSummary")}
-        </p>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
+            {ts("challenges.eyebrow")}
+          </p>
+          <h2 className="mt-1 text-2xl font-semibold tracking-tight" style={{ color: theme.textPrimary }}>
+            {ts("challenges.sectionTitle")}
+          </h2>
+          <p className="mt-1.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
+            {ts("challenges.sectionSummary")}
+          </p>
+        </div>
       </div>
 
       {loading && displayChallenges.length === 0 && (
@@ -22099,11 +22101,13 @@ function DecisionMemoryArchiveSection({
   ts,
   language,
   entries,
+  className,
 }: {
   theme: ThemeColors;
   ts: (key: string, fallback?: string) => string;
   language: LanguageCode;
   entries: DecisionMemorySeed[];
+  className?: string;
 }) {
   const sortedEntries = [...entries].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   const railRef = useRef<HTMLDivElement | null>(null);
@@ -22129,7 +22133,7 @@ function DecisionMemoryArchiveSection({
   };
 
   return (
-    <section aria-label={ts("labels.decisionMemory")} className="space-y-3">
+    <section aria-label={ts("labels.decisionMemory")} className={`space-y-3 ${className ?? ""}`.trim()}>
       <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>
         {ts("labels.decisionArchiveReadiness")}
       </p>
@@ -25090,7 +25094,7 @@ function DecisionCompanionPanel({
   const ruleRailRef = useRef<HTMLDivElement | null>(null);
   const activeDecisions = decisions.filter((decision) => decision.status !== "closed");
   const selectedDecision = decisions[0];
-  const [decisionSection, setDecisionSection] = useState<"decisions" | "counsel" | "rhythm" | "memory">("decisions");
+  const [decisionSection, setDecisionSection] = useState<"decisions" | "counsel" | "rhythm">("decisions");
   const modeRules = rules.filter((rule) => rule.mode === mode);
   const decisionNextTitle = selectedDecision ? formatNextDecisionTitle(selectedDecision.title, ts('challenges.continueChallenge')) : runtime.decisionNextTitleDefault;
   const decisionFocusPrompt = focusIntentionPrompt(focusIntentions, "decisions");
@@ -25215,13 +25219,12 @@ function DecisionCompanionPanel({
         theme={theme}
         variant="primary"
         layout="grid"
-        tabs={[
-          { key: "decisions", label: ts('nav.decisions') },
-          { key: "counsel", label: ts('labels.counsel') },
-          { key: "rhythm", label: ts('labels.rhythm') },
-          { key: "memory", label: ts('labels.memory') },
-        ]}
-      />
+      tabs={[
+        { key: "decisions", label: ts('nav.decisions') },
+        { key: "counsel", label: ts('labels.counsel') },
+        { key: "rhythm", label: ts('labels.rhythm') },
+      ]}
+    />
 
       {decisionSection === "decisions" ? (
         <>
@@ -25326,12 +25329,20 @@ function DecisionCompanionPanel({
                   {ts('labels.startDecisionMemory')}
                 </button>
               </form>
+
+              <DecisionMemoryArchiveSection
+                className="mt-5"
+                theme={theme}
+                ts={ts}
+                language={language}
+                entries={visibleDecisionMemoryEntries}
+              />
             </section>
           </>
         ) : null}
 
         {decisionSection === "counsel" ? (
-          <DisclosureSection title={`${ts('labels.counselCircle')} · ${counselContacts.length} ${ts('labels.trustedVoices')}`} summary={ts('labels.counselCircleSummary')} eyebrow={ts('labels.counsel')} defaultOpen={Boolean(counselSummaryDraft)} compactCollapsed showDetailsLabel={ts('showDetails')} hideDetailsLabel={ts('hideDetails')} theme={theme}>
+          <div className="space-y-4">
             <section id="counsel-circle" className="scroll-mt-24">
               <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.counselCircle')}</p>
               <div className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
@@ -25499,19 +25510,22 @@ function DecisionCompanionPanel({
                 }}
               />
 
-              <DisclosureSection
-                className="mt-5"
-                title={latestCounselInvite ? `${ts('labels.inviteReadyFor')} ${latestCounselInvite.name}` : ts('labels.shareInvite')}
-                summary={latestCounselInvite ? ts('labels.privateChatsNeverVisible') : ts('labels.counselCircleSummary')}
-                eyebrow={ts('labels.shareInvite')}
-                defaultOpen={Boolean(latestCounselInvite)}
-                compactCollapsed
-                showDetailsLabel={ts('showDetails')}
-                hideDetailsLabel={ts('hideDetails')}
-                theme={theme}
-              >
+              <div className="mt-5 rounded-[1.35rem] border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
+                      {ts('labels.shareInvite')}
+                    </p>
+                    <h3 className="mt-1 text-lg font-semibold" style={{ color: theme.textPrimary }}>
+                      {latestCounselInvite ? `${ts('labels.inviteReadyFor')} ${latestCounselInvite.name}` : ts('labels.shareInvite')}
+                    </h3>
+                    <p className="mt-1.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                      {latestCounselInvite ? ts('labels.privateChatsNeverVisible') : ts('labels.counselCircleSummary')}
+                    </p>
+                  </div>
+                </div>
                 {latestCounselInvite ? (
-                  <div className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
+                  <div className="mt-3 rounded-[1rem] border p-3" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
                     <p className="break-all text-xs leading-5" style={{ color: theme.textSecondary }}>{latestCounselInvite.url}</p>
                     {counselContacts[0]?.name === latestCounselInvite.name && counselContacts[0]?.emailSent ? (
                       <p className="mt-2 rounded-full px-2 py-1 text-xs font-semibold" style={{ backgroundColor: theme.bgCardElevated, color: theme.primary }}>
@@ -25562,34 +25576,37 @@ function DecisionCompanionPanel({
                     </div>
                   </div>
                 ) : (
-                  <p className="rounded-[1rem] border p-3 text-sm leading-6" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
+                  <p className="mt-3 rounded-[1rem] border p-3 text-sm leading-6" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
                     {ts('labels.privateChatsNeverVisible')}
                   </p>
                 )}
-              </DisclosureSection>
+              </div>
 
-              <DisclosureSection
-                className="mt-4"
-                title={`${visibleCounselContacts.length} ${visibleCounselContacts.length === 1 ? ts('labels.trustedVoice') : ts('labels.trustedVoices')}`}
-                summary={hiddenCounselContacts.length
-                  ? `${hiddenCounselContacts.length} ${hiddenCounselContacts.length === 1 ? ts('labels.moreTrustedVoice') : ts('labels.moreTrustedVoices')} ${ts('labels.stayCollapsedUntilNeeded')}`
-                  : ts('labels.counselCircleSummary')}
-                eyebrow={ts('labels.trustedVoices')}
-                defaultOpen={counselContacts.length > 0 && counselContacts.length <= 2}
-                compactCollapsed
-                showDetailsLabel={ts('showDetails')}
-                hideDetailsLabel={ts('hideDetails')}
-                theme={theme}
-              >
+              <div className="mt-4 rounded-[1.35rem] border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
+                      {ts('labels.trustedVoices')}
+                    </p>
+                    <h3 className="mt-1 text-lg font-semibold" style={{ color: theme.textPrimary }}>
+                      {visibleCounselContacts.length} {visibleCounselContacts.length === 1 ? ts('labels.trustedVoice') : ts('labels.trustedVoices')}
+                    </h3>
+                    <p className="mt-1.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                      {hiddenCounselContacts.length
+                        ? `${hiddenCounselContacts.length} ${hiddenCounselContacts.length === 1 ? ts('labels.moreTrustedVoice') : ts('labels.moreTrustedVoices')} ${ts('labels.stayCollapsedUntilNeeded')}`
+                        : ts('labels.counselCircleSummary')}
+                    </p>
+                  </div>
+                </div>
                 {visibleCounselRailHasOverflow ? (
-                  <div className="mb-2 flex justify-end text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: railText.railMuted }}>
+                  <div className="mt-4 flex justify-end text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: railText.railMuted }}>
                     <span className="inline-flex items-center gap-1">
                       <span>{ts('labels.swipeForMore')}</span>
                       <span aria-hidden="true">→</span>
                     </span>
                   </div>
                 ) : null}
-                <div ref={visibleCounselRailRef} className="flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
+                <div ref={visibleCounselRailRef} className="mt-2 flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
                   {visibleCounselContacts.map((contact) => (
                   <div key={contact.id} className="premium-tap-card relative flex min-h-[12rem] w-[14rem] shrink-0 snap-start flex-col overflow-hidden rounded-[1.35rem] border p-3.5 sm:w-[15rem]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, boxShadow: "0 8px 18px rgba(7, 10, 8, 0.06)" }}>
                     <div className="flex items-start justify-between gap-2">
@@ -25687,138 +25704,162 @@ function DecisionCompanionPanel({
                   ))}
                 </div>
                 {hiddenCounselContacts.length ? (
-                    <DisclosureSection
-                      className="mt-4"
-                      title={`${hiddenCounselContacts.length} ${hiddenCounselContacts.length === 1 ? ts('labels.moreTrustedVoice') : ts('labels.moreTrustedVoices')}`}
-                      summary={ts('labels.counselCircleSummary')}
-                      eyebrow={ts('labels.moreCounselOptions')}
-                      compactCollapsed
-                      showDetailsLabel={ts('showDetails')}
-                      hideDetailsLabel={ts('hideDetails')}
-                      theme={theme}
-                    >
-                      {hiddenCounselRailHasOverflow ? (
-                        <div className="mb-2 mt-2 flex justify-end text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: railText.railMuted }}>
-                          <span className="inline-flex items-center gap-1">
-                            <span>{ts('labels.swipeForMore')}</span>
-                            <span aria-hidden="true">→</span>
-                          </span>
-                        </div>
-                      ) : null}
-                      <div ref={hiddenCounselRailRef} className="mt-2 flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
-                        {hiddenCounselContacts.map((contact) => (
-                          <div key={contact.id} className="premium-tap-card relative flex min-h-[11.5rem] w-[13.5rem] shrink-0 snap-start flex-col overflow-hidden rounded-[1.35rem] border p-3.5 sm:w-[14.5rem]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, boxShadow: "0 8px 18px rgba(7, 10, 8, 0.06)" }}>
-                            <div className="flex items-start justify-between gap-2">
-                              <div className="flex items-center gap-2">
-                                <AvatarCircle
-                                  avatarUrl={contact.avatarUrl}
-                                  seed={contact.id}
-                                  label={contact.name}
-                                  size={30}
-                                  className="size-[30px]"
-                                />
-                                <div>
-                                  <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{contact.name}</p>
-                                  <p className="text-xs uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
-                                    {localizedCounselRoleLabel(contact.role, ts)} · {contact.inviteStatus === "accepted" ? ts('status.accepted') : contact.inviteStatus === "pending" ? ts('status.invited') : ts('status.local')}
-                                  </p>
-                                </div>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => onRemoveCounselContact(contact.id)}
-                                className="grid size-8 place-items-center rounded-full border transition"
-                                style={{ borderColor: theme.borderMedium, color: theme.textMuted, backgroundColor: "transparent" }}
-                                onMouseEnter={(event) => {
-                                  event.currentTarget.style.backgroundColor = theme.bgInput;
-                                  event.currentTarget.style.borderColor = theme.borderStrong;
-                                }}
-                                onMouseLeave={(event) => {
-                                  event.currentTarget.style.backgroundColor = "transparent";
-                                  event.currentTarget.style.borderColor = theme.borderMedium;
-                                }}
-                                aria-label={`${ts('labels.removeFromCounselCircle')}: ${contact.name}`}
-                                title={ts('labels.removeFromCounselCircle')}
-                              >
-                                <Trash2 size={16} />
-                              </button>
-                            </div>
-                          </div>
-                        ))}
+                  <div className="mt-4 rounded-[1.35rem] border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
+                          {ts('labels.moreCounselOptions')}
+                        </p>
+                        <h3 className="mt-1 text-lg font-semibold" style={{ color: theme.textPrimary }}>
+                          {hiddenCounselContacts.length} {hiddenCounselContacts.length === 1 ? ts('labels.moreTrustedVoice') : ts('labels.moreTrustedVoices')}
+                        </h3>
+                        <p className="mt-1.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                          {ts('labels.counselCircleSummary')}
+                        </p>
                       </div>
-                    </DisclosureSection>
+                    </div>
+                    {hiddenCounselRailHasOverflow ? (
+                      <div className="mt-4 flex justify-end text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: railText.railMuted }}>
+                        <span className="inline-flex items-center gap-1">
+                          <span>{ts('labels.swipeForMore')}</span>
+                          <span aria-hidden="true">→</span>
+                        </span>
+                      </div>
+                    ) : null}
+                    <div ref={hiddenCounselRailRef} className="mt-2 flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
+                      {hiddenCounselContacts.map((contact) => (
+                        <div key={contact.id} className="premium-tap-card relative flex min-h-[11.5rem] w-[13.5rem] shrink-0 snap-start flex-col overflow-hidden rounded-[1.35rem] border p-3.5 sm:w-[14.5rem]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, boxShadow: "0 8px 18px rgba(7, 10, 8, 0.06)" }}>
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                              <AvatarCircle
+                                avatarUrl={contact.avatarUrl}
+                                seed={contact.id}
+                                label={contact.name}
+                                size={30}
+                                className="size-[30px]"
+                              />
+                              <div>
+                                <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{contact.name}</p>
+                                <p className="text-xs uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
+                                  {localizedCounselRoleLabel(contact.role, ts)} · {contact.inviteStatus === "accepted" ? ts('status.accepted') : contact.inviteStatus === "pending" ? ts('status.invited') : ts('status.local')}
+                                </p>
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => onRemoveCounselContact(contact.id)}
+                              className="grid size-8 place-items-center rounded-full border transition"
+                              style={{ borderColor: theme.borderMedium, color: theme.textMuted, backgroundColor: "transparent" }}
+                              onMouseEnter={(event) => {
+                                event.currentTarget.style.backgroundColor = theme.bgInput;
+                                event.currentTarget.style.borderColor = theme.borderStrong;
+                              }}
+                              onMouseLeave={(event) => {
+                                event.currentTarget.style.backgroundColor = "transparent";
+                                event.currentTarget.style.borderColor = theme.borderMedium;
+                              }}
+                              aria-label={`${ts('labels.removeFromCounselCircle')}: ${contact.name}`}
+                              title={ts('labels.removeFromCounselCircle')}
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                   ) : null}
                   {!counselContacts.length ? (
                     <p className="rounded-[1rem] border border-dashed p-3 text-sm leading-6" style={{ borderColor: theme.borderMedium, color: theme.textSecondary }}>
                       {ts('labels.addTrustedPersonBeforeHighStakes')}
                     </p>
                   ) : null}
-              </DisclosureSection>
-            </section>
-          </DisclosureSection>
+                </div>
+              </section>
+          </div>
         ) : null}
 
         {decisionSection === "rhythm" ? (
           <div className="space-y-4">
-            <DisclosureSection title={ts('labels.formationRhythm')} summary={ts('labels.formationRhythmSummary')} eyebrow={ts('labels.rhythm')} compactCollapsed showDetailsLabel={ts('showDetails')} hideDetailsLabel={ts('hideDetails')} theme={theme}>
-              <section>
-                <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.formationRhythm')}</p>
-                {rhythmRailHasOverflow ? (
-                  <div className="mt-3 mb-2 flex justify-end text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
-                    <span className="inline-flex items-center gap-1">
-                      <span>{ts('labels.swipeForMore')}</span>
-                      <span aria-hidden="true">→</span>
-                    </span>
-                  </div>
-                ) : null}
-                <div ref={rhythmRailRef} className="mt-2 flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
-                  <RhythmItem label={ts('labels.threeMinuteMorningReflection')} body={ts('labels.namePressureBeforeDayNamesIt')} theme={theme} />
-                  <RhythmItem label={ts('labels.eveningExamen')} body={ts('labels.reviewMoneyWorkMomentHonestly')} theme={theme} />
-                  <RhythmItem label={ts('labels.weeklyPatternReview')} body={ts('labels.noticeRepeatedUrgencyComparison')} theme={theme} />
+            <div className="rounded-[1.35rem] border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
+                    {ts('labels.rhythm')}
+                  </p>
+                  <h3 className="mt-1 text-lg font-semibold" style={{ color: theme.textPrimary }}>
+                    {ts('labels.formationRhythm')}
+                  </h3>
+                  <p className="mt-1.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                    {ts('labels.formationRhythmSummary')}
+                  </p>
                 </div>
-              </section>
-            </DisclosureSection>
+              </div>
+              {rhythmRailHasOverflow ? (
+                <div className="mt-4 flex justify-end text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
+                  <span className="inline-flex items-center gap-1">
+                    <span>{ts('labels.swipeForMore')}</span>
+                    <span aria-hidden="true">→</span>
+                  </span>
+                </div>
+              ) : null}
+              <div ref={rhythmRailRef} className="mt-2 flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
+                <RhythmItem label={ts('labels.threeMinuteMorningReflection')} body={ts('labels.namePressureBeforeDayNamesIt')} theme={theme} />
+                <RhythmItem label={ts('labels.eveningExamen')} body={ts('labels.reviewMoneyWorkMomentHonestly')} theme={theme} />
+                <RhythmItem label={ts('labels.weeklyPatternReview')} body={ts('labels.noticeRepeatedUrgencyComparison')} theme={theme} />
+              </div>
+            </div>
 
-            <DisclosureSection title={`${runtime.ruleOfLife} · ${modeRules.length} ${modeRules.length === 1 ? runtime.ruleOfLifePrincipleSingular : runtime.ruleOfLifePrinciplePlural}`} summary={runtime.ruleOfLifeSummary} eyebrow={runtime.ruleOfLife} compactCollapsed showDetailsLabel={ts('showDetails')} hideDetailsLabel={ts('hideDetails')} theme={theme}>
-              <section>
-                <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{runtime.ruleOfLife}</p>
-                <form onSubmit={onAddRule} className="mt-3 grid gap-2">
-                  <textarea
-                    value={ruleText}
-                    onChange={(event) => setRuleText(event.target.value)}
-                    className="min-h-20 resize-none rounded-[1rem] border px-3 py-2 text-sm leading-6 outline-none"
-                    style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-                    placeholder={ts('placeholders.ruleExample')}
-                  />
-                  <button className="h-10 rounded-full px-3 text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>{ts('labels.savePrinciple')}</button>
-                </form>
-                {ruleRailHasOverflow ? (
-                  <div className="mt-3 mb-2 flex justify-end text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
-                    <span className="inline-flex items-center gap-1">
-                      <span>{ts('labels.swipeForMore')}</span>
-                      <span aria-hidden="true">→</span>
-                    </span>
-                  </div>
-                ) : null}
-                <div ref={ruleRailRef} className="mt-2 flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
-                  {modeRules.slice(0, 4).map((rule) => (
-                    <article key={rule.id} className="premium-tap-card flex h-full min-h-[10.75rem] w-[12rem] shrink-0 snap-start flex-col justify-between rounded-[1.35rem] border p-3.5 shadow-[0_8px_18px_rgba(7,10,8,0.06)] sm:w-[12.75rem]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
-                      <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
-                        {runtime.ruleOfLife}
-                      </p>
-                      <p className="mt-2 text-[0.92rem] leading-6" style={{ color: theme.textSecondary }}>
-                      {rule.principle}
-                      </p>
-                    </article>
-                  ))}
-                  {!modeRules.length ? (
-                    <p className="w-full min-w-full rounded-lg border border-dashed p-3 text-sm leading-6" style={{ borderColor: theme.borderMedium, color: theme.textSecondary }}>
-                      {ts('notifications.writePrincipleFirstBody')}
-                    </p>
-                  ) : null}
+            <div className="rounded-[1.35rem] border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
+                    {runtime.ruleOfLife}
+                  </p>
+                  <h3 className="mt-1 text-lg font-semibold" style={{ color: theme.textPrimary }}>
+                    {modeRules.length} {modeRules.length === 1 ? runtime.ruleOfLifePrincipleSingular : runtime.ruleOfLifePrinciplePlural}
+                  </h3>
+                  <p className="mt-1.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                    {runtime.ruleOfLifeSummary}
+                  </p>
                 </div>
-              </section>
-            </DisclosureSection>
+              </div>
+              <form onSubmit={onAddRule} className="mt-3 grid gap-2">
+                <textarea
+                  value={ruleText}
+                  onChange={(event) => setRuleText(event.target.value)}
+                  className="min-h-20 resize-none rounded-[1rem] border px-3 py-2 text-sm leading-6 outline-none"
+                  style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                  placeholder={ts('placeholders.ruleExample')}
+                />
+                <button className="h-10 rounded-full px-3 text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>{ts('labels.savePrinciple')}</button>
+              </form>
+              {ruleRailHasOverflow ? (
+                <div className="mt-4 flex justify-end text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
+                  <span className="inline-flex items-center gap-1">
+                    <span>{ts('labels.swipeForMore')}</span>
+                    <span aria-hidden="true">→</span>
+                  </span>
+                </div>
+              ) : null}
+              <div ref={ruleRailRef} className="mt-2 flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
+                {modeRules.slice(0, 4).map((rule) => (
+                  <article key={rule.id} className="premium-tap-card flex h-full min-h-[10.75rem] w-[12rem] shrink-0 snap-start flex-col justify-between rounded-[1.35rem] border p-3.5 shadow-[0_8px_18px_rgba(7,10,8,0.06)] sm:w-[12.75rem]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
+                      {runtime.ruleOfLife}
+                    </p>
+                    <p className="mt-2 text-[0.92rem] leading-6" style={{ color: theme.textSecondary }}>
+                    {rule.principle}
+                    </p>
+                  </article>
+                ))}
+                {!modeRules.length ? (
+                  <p className="w-full min-w-full rounded-lg border border-dashed p-3 text-sm leading-6" style={{ borderColor: theme.borderMedium, color: theme.textSecondary }}>
+                    {ts('notifications.writePrincipleFirstBody')}
+                  </p>
+                ) : null}
+              </div>
+            </div>
 
             <ReferenceRailSection
               eyebrow={ts('labels.scriptureIntegrity')}
@@ -25833,16 +25874,6 @@ function DecisionCompanionPanel({
           </div>
         ) : null}
 
-        {decisionSection === "memory" ? (
-          <div className="space-y-4">
-            <DecisionMemoryArchiveSection
-              theme={theme}
-              ts={ts}
-              language={language}
-              entries={visibleDecisionMemoryEntries}
-            />
-          </div>
-        ) : null}
       </section>
     </div>
   );
@@ -27558,20 +27589,31 @@ function JournalPanel({
       ) : null}
 
       {journalSection === "archive" ? (
-        <DisclosureSection
-          title={`${entries.length} ${entries.length === 1 ? runtime.savedReflectionSingular : runtime.savedReflectionPlural}`}
-          summary={entries.length ? runtime.reflectionHistorySummaryActive : runtime.reflectionHistorySummaryDefault}
-          eyebrow={runtime.reflectionHistory}
-          defaultOpen={entries.length > 0 && entries.length < 4}
-          compactCollapsed
-          showDetailsLabel={ts('showDetails')}
-          hideDetailsLabel={ts('hideDetails')}
-          theme={theme}
-        >
+        <div className="rounded-[1.35rem] border p-3.5 shadow-sm sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
+                {runtime.reflectionHistory}
+              </p>
+              <h3 className="mt-1 text-lg font-semibold" style={{ color: theme.textPrimary }}>
+                {entries.length} {entries.length === 1 ? runtime.savedReflectionSingular : runtime.savedReflectionPlural}
+              </h3>
+              <p className="mt-1.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                {entries.length ? runtime.reflectionHistorySummaryActive : runtime.reflectionHistorySummaryDefault}
+              </p>
+            </div>
+            <span
+              className="shrink-0 rounded-full border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.14em]"
+              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
+            >
+              {entries.length}
+            </span>
+          </div>
+
           {entries.length ? (
             <>
               {savedReflectionsRailHasOverflow ? (
-                <div className="mb-2 flex justify-end text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: railText.railMuted }}>
+                <div className="mt-4 flex justify-end text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: railText.railMuted }}>
                   <span className="inline-flex items-center gap-1">
                     <span>{ts('labels.swipeForMore')}</span>
                     <span aria-hidden="true">→</span>
@@ -27581,7 +27623,7 @@ function JournalPanel({
               <section
                 ref={savedReflectionsRailRef}
                 aria-label={ts('labels.savedReflections')}
-                className="flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]"
+                className="mt-2 flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]"
               >
                 {entries.map((entry, index) => (
                   <article key={entry.id} className="premium-tap-card relative flex w-full min-w-full shrink-0 snap-start flex-col overflow-hidden rounded-[1.45rem] border text-left shadow-[0_10px_24px_rgba(7,10,8,0.08)] transition" style={{ height: "calc(16rem + var(--aletheia-rail-card-height-offset, 0rem))", borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, boxShadow: "0 8px 18px rgba(7, 10, 8, 0.06)" }}>
@@ -27628,12 +27670,12 @@ function JournalPanel({
               </section>
             </>
           ) : (
-            <div className="rounded-lg border border-dashed p-4 text-sm leading-6" style={{ borderColor: theme.borderMedium, color: theme.textMuted }}>
+            <div className="mt-4 rounded-lg border border-dashed p-4 text-sm leading-6" style={{ borderColor: theme.borderMedium, color: theme.textMuted }}>
               {ts('labels.noReflectionsYet')}
             </div>
           )}
           <p className="mt-4 text-xs leading-5" style={{ color: theme.textMuted }}>{ts('labels.currentlyActiveMode')}: {localizedModeLabel(mode, language)}</p>
-        </DisclosureSection>
+        </div>
       ) : null}
     </div>
   );
