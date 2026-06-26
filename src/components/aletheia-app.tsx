@@ -3541,6 +3541,12 @@ type DecisionMemorySeed = {
   title: string;
   pressure: string;
   createdAt: string;
+  mode?: Mode | null;
+  readiness?: number | null;
+  summary?: string | null;
+  finalDecision?: string | null;
+  learning?: string | null;
+  updatedAt?: string | null;
 };
 
 type GratitudeEntry = {
@@ -3752,12 +3758,115 @@ function buildQaRailSampleDecisionSeeds(now = Date.now()): DecisionMemorySeed[] 
       title: "Wait for counsel before committing",
       pressure: "I want speed, but steadiness matters more.",
       createdAt: new Date(now - 2 * day).toISOString(),
+      mode: normalizeMode("money"),
+      readiness: 48,
+      summary: "I can feel urgency pushing me toward a quick yes, but the wiser path is to pause, compare the cost, and check whether peace is present.",
+      finalDecision: "Wait three days and ask two trusted voices before replying.",
+      updatedAt: new Date(now - 2 * day + 3 * 60 * 60 * 1000).toISOString(),
     },
     {
       id: "qa-decision-2",
       title: "Practice faithful stewardship today",
       pressure: "A quick yes feels easier than a wise yes.",
       createdAt: new Date(now - 3 * day).toISOString(),
+      mode: normalizeMode("work"),
+      readiness: 61,
+      summary: "This is less about saying yes or no and more about choosing a pace that keeps attention honest, generous, and calm.",
+      finalDecision: "Reduce scope, keep the commitment, and revisit the timeline tomorrow.",
+      learning: "Speed felt persuasive, but clarity grew when I named the actual limit.",
+      updatedAt: new Date(now - 3 * day + 90 * 60 * 1000).toISOString(),
+    },
+    {
+      id: "qa-decision-3",
+      title: "Name the pressure before acting",
+      pressure: "I can tell something is rushed, even if I cannot fully explain why.",
+      createdAt: new Date(now - 6 * day).toISOString(),
+      mode: normalizeMode("purpose"),
+      readiness: 72,
+      summary: "Not every urgent feeling is a signal to move. Naming the pressure first often reveals what needs counsel, not speed.",
+      finalDecision: "Hold the decision, write the pressure plainly, and return after prayer.",
+      updatedAt: new Date(now - 6 * day + 45 * 60 * 1000).toISOString(),
+    },
+  ];
+}
+
+function buildQaRailSampleConversationExchanges(mode: Mode, now = Date.now()): ConversationExchange[] {
+  const day = 24 * 60 * 60 * 1000;
+  const modeLabel = localizedModeLabel(mode, "en");
+  return [
+    {
+      id: "qa-conversation-1",
+      question: {
+        id: "qa-conversation-q1",
+        role: "user",
+        mode,
+        text: "How do I build wealth without greed?",
+        createdAt: new Date(now - 3 * day).toISOString(),
+      },
+      answer: {
+        id: "qa-conversation-a1",
+        role: "aletheia",
+        mode,
+        text: `Hold what you have with gratitude, not fear. Proverbs 30:8-9 invites enoughness before desire takes the lead.`,
+        sources: [
+          {
+            id: "qa-source-a1",
+            theme: modeLabel,
+            scripture: "Proverbs 30:8-9",
+            principle: "Enoughness frees the heart from both pride and panic.",
+            context: "Sample QA source",
+            application: "Use what is enough with thankfulness and restraint.",
+            keywords: [],
+            emotions: [],
+            questions: [],
+            createdAt: new Date(now - 3 * day).toISOString(),
+            updatedAt: new Date(now - 3 * day).toISOString(),
+          } as WisdomEntryData,
+        ],
+        createdAt: new Date(now - 3 * day).toISOString(),
+      },
+      mode,
+      createdLabel: "Earlier counsel",
+    },
+    {
+      id: "qa-conversation-2",
+      question: {
+        id: "qa-conversation-q2",
+        role: "user",
+        mode,
+        text: "What does faithful stewardship look like this week?",
+        createdAt: new Date(now - 2 * day).toISOString(),
+      },
+      answer: {
+        id: "qa-conversation-a2",
+        role: "aletheia",
+        mode,
+        text: `Choose one concrete act of stewardship, then let the rest wait. Small obedience often carries more wisdom than a rushed plan.`,
+        sources: [],
+        createdAt: new Date(now - 2 * day).toISOString(),
+      },
+      mode,
+      createdLabel: "Earlier counsel",
+    },
+    {
+      id: "qa-conversation-3",
+      question: {
+        id: "qa-conversation-q3",
+        role: "user",
+        mode,
+        text: "How should I balance generosity and prudence today?",
+        createdAt: new Date(now - day).toISOString(),
+      },
+      answer: {
+        id: "qa-conversation-a3",
+        role: "aletheia",
+        mode,
+        text: `Let generosity stay free of pressure and prudence stay free of fear. The best next step usually honors both.`,
+        sources: [],
+        createdAt: new Date(now - day).toISOString(),
+      },
+      mode,
+      createdLabel: "Earlier counsel",
     },
   ];
 }
@@ -8731,6 +8840,35 @@ export function AletheiaApp() {
   const activeLanguage = languages[preferences.language];
   const copy = languageCopy[preferences.language] ?? languageCopy.en!;
   const ui = buildUiFromTranslations(translations);
+  const homeGuardrailTopics: SystemReferenceTopic[] = [
+    {
+      id: "guardrail-boundaries",
+      eyebrow: ui.guardrails,
+      title: ts("labels.trustNeverDoTitle"),
+      teaser: ui.guardrailItems[0] ?? ui.guardrails,
+      body: ui.guardrailItems[0] ?? ui.guardrails,
+      points: [ui.guardrailItems[0] ?? ui.guardrails],
+      icon: ShieldCheck,
+    },
+    {
+      id: "guardrail-memory",
+      eyebrow: ui.guardrails,
+      title: ts("labels.trustDataSavedTitle"),
+      teaser: ui.guardrailItems[1] ?? ui.guardrails,
+      body: ui.guardrailItems[1] ?? ui.guardrails,
+      points: [ui.guardrailItems[1] ?? ui.guardrails],
+      icon: BookOpen,
+    },
+    {
+      id: "guardrail-counsel",
+      eyebrow: ui.guardrails,
+      title: ts("labels.trustDeleteExportTitle"),
+      teaser: ui.guardrailItems[2] ?? ui.guardrails,
+      body: ui.guardrailItems[2] ?? ui.guardrails,
+      points: [ui.guardrailItems[2] ?? ui.guardrails],
+      icon: Users,
+    },
+  ];
   const topBibleOptions = bibleTranslationOptionsForLanguage(preferences.language);
   const activeDecision = wisdomDecisions.find((item) => item.status !== "closed") ?? wisdomDecisions[0] ?? null;
   const todayPattern = timelineInsight.patterns[0] ?? activeMode.blindSpots[0];
@@ -11942,17 +12080,16 @@ export function AletheiaApp() {
       <div className="mx-auto grid max-w-7xl gap-5 px-3 pt-4 sm:px-4 sm:pt-5 xl:grid-cols-[320px_minmax(0,1fr)] xl:py-6" style={{ paddingBottom: "calc(var(--aletheia-bottom-nav-space, 8.5rem) + var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)))" }}>
         <aside className="hidden xl:block">
           <div className="sticky top-24 space-y-4">
-            <section className="rounded-lg border p-4 shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-              <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
-                <ShieldCheck size={14} />
-                {ui.guardrails}
-              </div>
-              <ul className="space-y-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
-                {(ui.guardrailItems as string[]).map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
-            </section>
+            <ReferenceRailSection
+              eyebrow={ui.guardrails}
+              title={ui.trustLayer}
+              icon={ShieldCheck}
+              topics={homeGuardrailTopics}
+              theme={theme}
+              ts={ts}
+              railLabel={ui.guardrails}
+              cardClassName="w-[12.5rem] sm:w-[13rem]"
+            />
 
             <section className="rounded-lg border p-4 shadow-sm" style={{ borderColor: theme.borderStrong, backgroundColor: theme.primary, color: theme.textOnPrimary }}>
               <div className="mb-4 flex items-center justify-between">
@@ -14041,75 +14178,69 @@ function HomeDashboard({
         className={`editorial-surface min-w-0 scroll-mt-28 rounded-[1.7rem] border p-4 shadow-[0_6px_16px_rgba(7,10,8,0.05)] outline-none sm:p-5 ${prioritizeToday ? "ring-1 ring-inset" : ""}`}
         style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textPrimary }}
       >
-        <div className="flex flex-col gap-4">
+        <div className="space-y-4">
           <div className="relative">
-            <InfoHint text={text.whatNextBody ?? ""} theme={theme} placement="corner" surface="hero" />
-            <h2 className="mt-2 pr-5 min-[390px]:pr-6 min-[430px]:pr-7 sm:pr-8 md:pr-9 text-[1.78rem] min-[390px]:text-[1.86rem] min-[430px]:text-[1.92rem] font-semibold leading-[1.03] text-balance sm:text-[2.25rem]" style={{ color: theme.textPrimary }}>
-              <span>{text.whatNext}</span>
+            <p className="text-[10.5px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.accentGold }}>
+              {text.whatNext}
+            </p>
+            <h2 className="mt-2 text-[1.72rem] font-semibold leading-[1.02] text-balance sm:text-[2.1rem]" style={{ color: theme.textPrimary }}>
+              {text.askOneQuestion}
             </h2>
-            <p className="mt-3 max-w-2xl text-[0.98rem] leading-7 sm:text-[1.03rem] sm:leading-8" style={{ color: theme.textSecondary }}>
-              {text.whatNextBody ?? ""}
+            <p className="mt-2 max-w-2xl text-[0.94rem] leading-6 sm:text-[0.98rem] sm:leading-7" style={{ color: theme.textSecondary }}>
+              {(text as { whatNextBodyShort?: string }).whatNextBodyShort ?? text.whatNextBody ?? ""}
             </p>
           </div>
 
-          <div>
-            <DashboardAction icon={primaryAction.icon} label={primaryAction.label} body={primaryAction.body} primary onClick={primaryAction.onClick} theme={theme} />
-          </div>
+          <DashboardAction
+            icon={primaryAction.icon}
+            label={primaryAction.label}
+            body={primaryAction.body}
+            primary
+            compact
+            onClick={primaryAction.onClick}
+            theme={theme}
+          />
 
-          <div className="grid gap-3 lg:grid-cols-2">
-            <section className="rounded-[1.15rem] border p-4 shadow-[0_6px_14px_rgba(7,10,8,0.04)]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-              <p className="text-[10.5px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
-                {text.todayQuestionLabel ?? ""}
-              </p>
-              <p className="mt-2 text-[1.05rem] font-semibold leading-7 text-balance sm:text-[1.1rem]" style={{ color: theme.textPrimary }}>
-                {companionCard.question}
-              </p>
+          <section className="rounded-[1.25rem] border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
+                  {text.todayQuestionLabel ?? ""}
+                </p>
+                <p className="mt-2 text-[1rem] font-semibold leading-6 text-balance sm:text-[1.05rem]" style={{ color: theme.textPrimary }}>
+                  {companionCard.question}
+                </p>
+              </div>
               <button
                 type="button"
                 onClick={todayQuestionCardAction.onClick}
-                className="premium-tap-card mt-4 inline-flex h-10 items-center rounded-full border px-4 text-sm font-semibold transition hover:-translate-y-0.5"
+                className="premium-tap-card inline-flex h-10 shrink-0 items-center rounded-full border px-3.5 text-[11px] font-semibold uppercase tracking-[0.12em] transition hover:-translate-y-0.5"
                 style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textPrimary }}
               >
                 {todayQuestionCardAction.label}
               </button>
-            </section>
+            </div>
 
-            <section className="rounded-[1.15rem] border p-4 shadow-[0_6px_14px_rgba(7,10,8,0.04)]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-              <p className="text-[10.5px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
-                {text.todayActionsLabel ?? ""}
-              </p>
-              <div className="mt-3 grid grid-cols-2 gap-2">
-                {visibleTodayActions.map((action) => (
-                  <CompanionCardAction
-                    key={action.label}
-                    icon={action.icon}
-                    label={action.label}
-                    onClick={action.onClick}
-                    theme={theme}
-                    primary={action.primary}
-                  />
-                ))}
-              </div>
-            </section>
-          </div>
+            <div className="mt-3 flex gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
+              {visibleTodayActions.map((action) => (
+                <CompanionCardAction
+                  key={action.label}
+                  icon={action.icon}
+                  label={action.label}
+                  onClick={action.onClick}
+                  theme={theme}
+                  primary={action.primary}
+                />
+              ))}
+            </div>
+          </section>
 
-          <div className="flex justify-center">
-            <button
-              type="button"
-              onClick={onAskOneQuestion}
-              className="premium-tap-card inline-flex h-12 items-center rounded-full border px-5 text-sm font-semibold transition hover:-translate-y-0.5"
-              style={{ borderColor: theme.primary, backgroundColor: theme.primary, color: theme.textOnPrimary }}
-            >
-              {text.askNewQuestion}
-            </button>
-          </div>
         </div>
       </section>
 
       <section className="editorial-surface rounded-[1.45rem] border p-4 shadow-[0_8px_20px_rgba(7,10,8,0.05)] sm:p-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
         <div className="flex flex-col gap-4">
           <div className="relative">
-            <InfoHint text={(text.weeklyReviewBody ?? "").replace("{pattern}", weeklyReview.pattern)} theme={theme} placement="corner" surface="hero" />
             <p className="text-[10.5px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.accentGold }}>
               {text.weeklyWisdomReview ?? ""}
             </p>
@@ -14477,7 +14608,6 @@ function ContextualNextAction({
   eyebrow,
   title,
   body,
-  infoTooltip,
   actionLabel,
   onAction,
   theme,
@@ -14485,7 +14615,6 @@ function ContextualNextAction({
   eyebrow: string;
   title: string;
   body: string;
-  infoTooltip?: string;
   actionLabel?: string;
   onAction?: () => void;
   theme: ThemeColors;
@@ -14494,7 +14623,6 @@ function ContextualNextAction({
     <section className="editorial-surface rounded-xl border p-4 shadow-sm sm:p-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div className="relative">
-          {infoTooltip ? <InfoHint text={infoTooltip} theme={theme} placement="corner" surface="standard" /> : null}
           <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{eyebrow}</p>
           <h2 className="mt-2 pr-5 sm:pr-6 md:pr-7 text-xl font-semibold" style={{ color: theme.textPrimary }}><span>{title}</span></h2>
           <p className="mt-2 max-w-2xl text-sm leading-6" style={{ color: theme.textSecondary }}>{body}</p>
@@ -14528,178 +14656,483 @@ function challengeContinuationProgressLabel(
     .replace("{total}", String(recommendation.totalDays));
 }
 
-function InfoHint({
-  text,
+type SystemReferenceTopic = {
+  id: string;
+  eyebrow: string;
+  title: string;
+  teaser: string;
+  body: string;
+  points: string[];
+  icon: typeof ShieldCheck;
+};
+
+function SystemReferenceModal({
+  open,
   theme,
-  placement = "inline",
-  surface = "standard",
+  topic,
+  ts,
+  onClose,
 }: {
-  text: string;
+  open: boolean;
   theme: ThemeColors;
-  placement?: "inline" | "corner";
-  surface?: "dense" | "standard" | "hero";
+  topic: SystemReferenceTopic | null;
+  ts: (key: string, fallback?: string) => string;
+  onClose: () => void;
 }) {
-  const [open, setOpen] = useState(false);
-  const tooltipId = useId();
-  const wrapperRef = useRef<HTMLSpanElement | null>(null);
-  const buttonRef = useRef<HTMLButtonElement | null>(null);
-  const tooltipRef = useRef<HTMLSpanElement | null>(null);
-  const [tooltipPosition, setTooltipPosition] = useState<{ top: number; left: number; width: number }>({ top: 0, left: 12, width: 240 });
   const canUsePortal = typeof document !== "undefined";
-
-  const positionTooltip = useCallback(() => {
-    if (!buttonRef.current || !canUsePortal) {
-      return;
-    }
-    const triggerRect = buttonRef.current.getBoundingClientRect();
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
-    const horizontalMargin = 12;
-    const preferredWidth = viewportWidth <= 390 ? 188 : 220;
-    const maxWidth = Math.min(preferredWidth, Math.max(160, viewportWidth - horizontalMargin * 2));
-    const tooltipHeight = tooltipRef.current?.getBoundingClientRect().height ?? 92;
-    const verticalGap = 8;
-
-    const centeredLeft = triggerRect.left + triggerRect.width / 2 - maxWidth / 2;
-    const left = Math.max(horizontalMargin, Math.min(centeredLeft, viewportWidth - maxWidth - horizontalMargin));
-
-    const hasRoomBelow = triggerRect.bottom + verticalGap + tooltipHeight <= viewportHeight - horizontalMargin;
-    const top = hasRoomBelow
-      ? triggerRect.bottom + verticalGap
-      : Math.max(horizontalMargin, triggerRect.top - tooltipHeight - verticalGap);
-
-    setTooltipPosition({ top, left, width: maxWidth });
-  }, [canUsePortal]);
+  useBodyScrollLock(open && canUsePortal);
 
   useEffect(() => {
-    if (!open) {
+    if (!open || !canUsePortal) {
       return;
     }
 
-    function closeIfOutside(event: Event) {
-      const target = event.target as Node | null;
-      if (target && wrapperRef.current && !wrapperRef.current.contains(target)) {
-        setOpen(false);
-      }
-    }
-
-    function closeOnEscape(event: globalThis.KeyboardEvent) {
+    const handleKeyDown = (event: globalThis.KeyboardEvent) => {
       if (event.key === "Escape") {
-        setOpen(false);
+        onClose();
       }
-    }
-
-    window.addEventListener("mousedown", closeIfOutside);
-    window.addEventListener("touchstart", closeIfOutside, { passive: true });
-    window.addEventListener("keydown", closeOnEscape);
-    window.addEventListener("resize", positionTooltip);
-    window.addEventListener("scroll", positionTooltip, true);
-
-    return () => {
-      window.removeEventListener("mousedown", closeIfOutside);
-      window.removeEventListener("touchstart", closeIfOutside);
-      window.removeEventListener("keydown", closeOnEscape);
-      window.removeEventListener("resize", positionTooltip);
-      window.removeEventListener("scroll", positionTooltip, true);
     };
-  }, [open, positionTooltip]);
 
-  useLayoutEffect(() => {
-    if (!open) {
-      return;
-    }
-    positionTooltip();
-    const raf = window.requestAnimationFrame(positionTooltip);
-    return () => {
-      window.cancelAnimationFrame(raf);
-    };
-  }, [open, text, positionTooltip]);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [canUsePortal, onClose, open]);
 
-  if (!text?.trim()) {
+  if (!open || !canUsePortal || !topic) {
     return null;
   }
 
-  const tooltipBody = (
-    <span
-      id={tooltipId}
-      ref={tooltipRef}
-      role="tooltip"
-      className="z-[90] rounded-lg border px-2.5 py-2 text-left text-[12px] font-normal leading-5 shadow-xl"
-      style={{
-        position: "fixed",
-        top: tooltipPosition.top,
-        left: tooltipPosition.left,
-        width: tooltipPosition.width,
-        borderColor: theme.borderLight,
-        backgroundColor: theme.bgCardElevated,
-        color: theme.textSecondary,
-      }}
-    >
-      {text}
-    </span>
-  );
+  const TopicIcon = topic.icon;
 
-  const cornerWrapperClassBySurface: Record<"dense" | "standard" | "hero", string> = {
-    dense: "absolute right-2 top-2 z-20 inline-flex shrink-0",
-    standard: "absolute right-2.5 top-2.5 z-20 inline-flex shrink-0",
-    hero: "absolute right-3 top-3 z-20 inline-flex shrink-0",
-  };
-  const buttonClassBySurface: Record<"dense" | "standard" | "hero", string> = {
-    dense: "inline-flex items-center justify-center rounded-full border text-[7px] font-semibold leading-none transition",
-    standard: "inline-flex items-center justify-center rounded-full border text-[8px] font-semibold leading-none transition",
-    hero: "inline-flex items-center justify-center rounded-full border text-[8px] font-semibold leading-none transition",
-  };
-  const buttonSizeBySurface: Record<"dense" | "standard" | "hero", number> = {
-    dense: 44,
-    standard: 44,
-    hero: 44,
-  };
-  const wrapperClassName = placement === "corner"
-    ? cornerWrapperClassBySurface[surface]
-    : "relative inline-flex shrink-0";
-  const buttonClassName = placement === "corner"
-    ? buttonClassBySurface[surface]
-    : buttonClassBySurface.standard;
-  const buttonSize = placement === "corner"
-    ? buttonSizeBySurface[surface]
-    : buttonSizeBySurface.standard;
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[9999] grid min-h-dvh place-items-end overflow-hidden overscroll-none px-3 py-3 backdrop-blur-sm sm:place-items-center"
+      style={{
+        backgroundColor: "rgba(13, 23, 20, 0.62)",
+        paddingTop: "calc(max(var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)), 0.75rem) + 0.25rem)",
+        paddingBottom: "calc(max(var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)), 0.75rem) + 0.25rem)",
+      }}
+      onClick={onClose}
+    >
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={`system-topic-${topic.id}`}
+        className="w-full max-w-2xl overflow-y-auto overscroll-contain rounded-[2rem] border shadow-[0_28px_90px_rgba(10,18,14,0.36)]"
+        style={{
+          borderColor: theme.borderStrong,
+          backgroundColor: theme.bgCard,
+          maxHeight: "calc(100dvh - max(var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)), 0.75rem) - max(var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)), 0.75rem) - 1rem)",
+        }}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div
+          className="relative overflow-hidden border-b px-4 py-4 sm:px-5 sm:py-5"
+          style={{
+            borderColor: theme.borderLight,
+            background: `linear-gradient(135deg, color-mix(in srgb, ${theme.bgCardElevated} 68%, white 32%), ${theme.bgCard}, color-mix(in srgb, ${theme.bgCardElevated} 84%, ${theme.accentGold} 16%))`,
+          }}
+        >
+          <div
+            className="absolute inset-0 opacity-90"
+            style={{
+              background: `radial-gradient(circle at 18% 18%, color-mix(in srgb, ${theme.accentGold} 18%, transparent), transparent 36%), radial-gradient(circle at 92% 0%, color-mix(in srgb, ${theme.primary} 10%, transparent), transparent 30%)`,
+            }}
+          />
+          <div className="relative flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] sm:text-xs" style={{ color: theme.accentGold }}>
+                {topic.eyebrow}
+              </p>
+              <div className="mt-2 flex items-start gap-3">
+                <div className="grid size-11 shrink-0 place-items-center rounded-full border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
+                  <TopicIcon size={18} />
+                </div>
+                <div className="min-w-0">
+                  <h2 id={`system-topic-${topic.id}`} className="text-xl font-semibold tracking-tight sm:text-2xl" style={{ color: theme.textPrimary }}>
+                    {topic.title}
+                  </h2>
+                  <p className="mt-1.5 text-sm leading-6 sm:text-[0.95rem]" style={{ color: theme.textSecondary }}>
+                    {topic.teaser}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="grid size-10 shrink-0 place-items-center rounded-full border transition shadow-sm"
+              style={{
+                borderColor: theme.borderMedium,
+                backgroundColor: theme.bgInput,
+                color: theme.textPrimary,
+              }}
+              aria-label={ts("labels.close")}
+            >
+              <X size={16} />
+            </button>
+          </div>
+        </div>
+
+        <div className="space-y-4 p-3.5 sm:p-4">
+          <section className="rounded-[1.35rem] border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+              {topic.title}
+            </p>
+            <p className="mt-2 text-[1rem] leading-7" style={{ color: theme.textPrimary }}>
+              {topic.body}
+            </p>
+          </section>
+
+          <div className="grid gap-2.5 sm:grid-cols-2">
+            {topic.points.map((point) => (
+              <div key={point} className="rounded-[1.2rem] border p-3.5 shadow-[0_8px_20px_rgba(10,18,14,0.05)]" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, color-mix(in srgb, ${theme.bgCardElevated} 92%, white 8%), ${theme.bgCard})` }}>
+                <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>
+                  {point}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex flex-wrap justify-end gap-2 border-t pt-4" style={{ borderColor: theme.borderLight }}>
+            <button
+              type="button"
+              onClick={onClose}
+              className="inline-flex h-11 items-center justify-center rounded-full border px-4 text-sm font-semibold transition"
+              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+            >
+              {ts("labels.close")}
+            </button>
+          </div>
+        </div>
+      </section>
+    </div>,
+    document.body
+  );
+}
+
+function SystemReferenceRailCard({
+  topic,
+  theme,
+  ts,
+  onOpen,
+  className = "",
+}: {
+  topic: SystemReferenceTopic;
+  theme: ThemeColors;
+  ts: (key: string, fallback?: string) => string;
+  onOpen: () => void;
+  className?: string;
+}) {
+  const TopicIcon = topic.icon;
 
   return (
-    <span ref={wrapperRef} className={`${wrapperClassName} info-hint-anchor`}>
-      <button
-        ref={buttonRef}
-        type="button"
-        className={`${buttonClassName} info-hint-trigger cursor-help touch-manipulation`}
-        style={{
-          borderColor: theme.borderMedium,
-          backgroundColor: theme.bgInput,
-          color: theme.textSecondary,
-          width: `${buttonSize}px`,
-          height: `${buttonSize}px`,
-          minWidth: `${buttonSize}px`,
-          minHeight: `${buttonSize}px`,
-          padding: 0,
-          lineHeight: 1,
-        }}
-        aria-label={text}
-        aria-expanded={open}
-        aria-controls={open ? tooltipId : undefined}
-        onClick={(event) => {
-          event.preventDefault();
-          event.stopPropagation();
-          setOpen((current) => {
-            const next = !current;
-            if (next) {
-              window.requestAnimationFrame(positionTooltip);
-            }
-            return next;
-          });
-        }}
+    <button
+      type="button"
+      onClick={onOpen}
+      className={`premium-tap-card flex shrink-0 snap-start flex-col overflow-hidden rounded-[1.35rem] border text-left shadow-[0_8px_20px_rgba(10,18,14,0.06)] transition active:scale-[0.995] ${className || "w-[16.5rem] sm:w-[17.5rem]"}`}
+      style={{
+        borderColor: theme.borderLight,
+        background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})`,
+      }}
+    >
+      <div className="flex min-h-[8.75rem] flex-col justify-between p-3.5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+              {topic.eyebrow}
+            </p>
+            <p className="mt-1.5 text-[1.02rem] font-semibold leading-6" style={{ color: theme.textPrimary }}>
+              {topic.title}
+            </p>
+          </div>
+          <div className="grid size-10 shrink-0 place-items-center rounded-full border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
+            <TopicIcon size={16} />
+          </div>
+        </div>
+        <div className="mt-3">
+          <p className="line-clamp-3 text-sm leading-6" style={{ color: theme.textSecondary }}>
+            {topic.teaser}
+          </p>
+        </div>
+      </div>
+      <div className="flex items-center justify-between gap-2 border-t px-3.5 py-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+        <span className="text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
+          {ts("showDetails")}
+        </span>
+        <ExternalLink size={12} style={{ color: theme.textMuted }} />
+      </div>
+    </button>
+  );
+}
+
+function ReferenceRailSection({
+  eyebrow,
+  title,
+  summary,
+  icon: HeaderIcon,
+  topics,
+  theme,
+  ts,
+  cardClassName,
+  railLabel,
+}: {
+  eyebrow: string;
+  title: string;
+  summary?: string;
+  icon: typeof ShieldCheck;
+  topics: SystemReferenceTopic[];
+  theme: ThemeColors;
+  ts: (key: string, fallback?: string) => string;
+  cardClassName?: string;
+  railLabel: string;
+}) {
+  const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null);
+  const railRef = useRef<HTMLDivElement | null>(null);
+  const railHasOverflow = useRailOverflow(railRef, topics.length > 1, [topics.length, selectedTopicId]);
+  const selectedTopic = topics.find((topic) => topic.id === selectedTopicId) ?? null;
+
+  return (
+    <section className="overflow-hidden rounded-[1.35rem] border shadow-[0_6px_16px_rgba(7,10,8,0.05)]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
+      <div className="border-b px-3.5 py-3.5 sm:px-4" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
+        <div className="flex items-start gap-2.5">
+          <div className="grid size-10 shrink-0 place-items-center rounded-full border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
+            <HeaderIcon size={17} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{eyebrow}</p>
+            <h3 className="mt-2 text-lg font-semibold sm:text-xl" style={{ color: theme.textPrimary }}>
+              {title}
+            </h3>
+            {summary ? (
+              <p className="mt-2 max-w-2xl text-sm leading-6" style={{ color: theme.textSecondary }}>
+                {summary}
+              </p>
+            ) : null}
+          </div>
+          {railHasOverflow ? (
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
+              {ts("labels.swipeForMore")}
+            </p>
+          ) : null}
+        </div>
+      </div>
+
+      <div
+        ref={railRef}
+        className="flex min-w-0 snap-x gap-3 overflow-x-auto px-3.5 py-3 pb-3.5 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:px-4"
+        aria-label={railLabel}
       >
-        i
-      </button>
-      {open ? (canUsePortal ? createPortal(tooltipBody, document.body) : tooltipBody) : null}
-    </span>
+        {topics.map((topic) => (
+          <SystemReferenceRailCard
+            key={topic.id}
+            topic={topic}
+            theme={theme}
+            ts={ts}
+            onOpen={() => setSelectedTopicId(topic.id)}
+            className={cardClassName}
+          />
+        ))}
+      </div>
+
+      <SystemReferenceModal
+        open={Boolean(selectedTopic)}
+        theme={theme}
+        topic={selectedTopic}
+        ts={ts}
+        onClose={() => setSelectedTopicId(null)}
+      />
+    </section>
+  );
+}
+
+function buildScriptureIntegrityTopics(ts: (key: string, fallback?: string) => string): SystemReferenceTopic[] {
+  return [
+    {
+      id: "scripture-library",
+      eyebrow: ts("labels.scriptureIntegrity"),
+      title: ts("labels.referencesFromCuratedLibrary"),
+      teaser: ts("labels.noFinancialOutcomesOrPredictions"),
+      body: ts("labels.scriptureIntegrity"),
+      points: [
+        ts("labels.referencesFromCuratedLibrary"),
+        ts("labels.noFinancialOutcomesOrPredictions"),
+        ts("labels.highStakesPointedToCounsel"),
+      ],
+      icon: BookOpen,
+    },
+    {
+      id: "scripture-no-predictions",
+      eyebrow: ts("labels.scriptureIntegrity"),
+      title: ts("labels.noFinancialOutcomesOrPredictions"),
+      teaser: ts("labels.prosperityFramingRefused"),
+      body: ts("labels.scriptureIntegrity"),
+      points: [
+        ts("labels.noFinancialOutcomesOrPredictions"),
+        ts("labels.prosperityFramingRefused"),
+        ts("labels.referencesFromCuratedLibrary"),
+      ],
+      icon: ShieldCheck,
+    },
+    {
+      id: "scripture-prosperity",
+      eyebrow: ts("labels.scriptureIntegrity"),
+      title: ts("labels.prosperityFramingRefused"),
+      teaser: ts("labels.highStakesPointedToCounsel"),
+      body: ts("labels.scriptureIntegrity"),
+      points: [
+        ts("labels.prosperityFramingRefused"),
+        ts("labels.highStakesPointedToCounsel"),
+        ts("labels.referencesFromCuratedLibrary"),
+      ],
+      icon: Minus,
+    },
+    {
+      id: "scripture-counsel",
+      eyebrow: ts("labels.scriptureIntegrity"),
+      title: ts("labels.highStakesPointedToCounsel"),
+      teaser: ts("labels.referencesFromCuratedLibrary"),
+      body: ts("labels.scriptureIntegrity"),
+      points: [
+        ts("labels.highStakesPointedToCounsel"),
+        ts("labels.referencesFromCuratedLibrary"),
+        ts("labels.noFinancialOutcomesOrPredictions"),
+      ],
+      icon: Check,
+    },
+  ];
+}
+
+function ModeGuidanceRailPanel({
+  theme,
+  ts,
+  ui,
+  modeProfile,
+  preferences,
+}: {
+  theme: ThemeColors;
+  ts: (key: string, fallback?: string) => string;
+  ui: UiText;
+  modeProfile: ReturnType<typeof localizedModeProfile>;
+  preferences: UserPreferences;
+}) {
+  const topics: SystemReferenceTopic[] = [
+    {
+      id: "mode-fit",
+      eyebrow: ui.modeGuidance,
+      title: localizedModeLabel(modeProfile.label, preferences.language),
+      teaser: modeProfile.intent,
+      body: modeProfile.useWhen,
+      points: [
+        modeProfile.focus,
+        modeProfile.prompts[0] ?? modeProfile.intent,
+        modeProfile.prompts[1] ?? modeProfile.prompts[0] ?? modeProfile.lens,
+      ].filter((point): point is string => Boolean(point)),
+      icon: Compass,
+    },
+    {
+      id: "deep-checks",
+      eyebrow: ui.deepChecks,
+      title: ui.deepChecks,
+      teaser: modeProfile.diagnosticTracks[0] ?? modeProfile.lens,
+      body: modeProfile.diagnosticTracks.slice(0, 3).join(" "),
+      points: modeProfile.diagnosticTracks.slice(0, 3),
+      icon: Search,
+    },
+    {
+      id: "blind-spots",
+      eyebrow: ui.blindSpots,
+      title: ui.blindSpots,
+      teaser: modeProfile.blindSpots[0] ?? modeProfile.lens,
+      body: modeProfile.blindSpots.slice(0, 3).join(" "),
+      points: modeProfile.blindSpots.slice(0, 3),
+      icon: Minus,
+    },
+    {
+      id: "maturity-signals",
+      eyebrow: ui.maturitySignals,
+      title: ui.maturitySignals,
+      teaser: modeProfile.maturitySignals[0] ?? modeProfile.lens,
+      body: modeProfile.maturitySignals.slice(0, 3).join(" "),
+      points: modeProfile.maturitySignals.slice(0, 3),
+      icon: Check,
+    },
+  ];
+
+  return (
+    <ReferenceRailSection
+      eyebrow={ui.modeGuidance}
+      title={localizedModeLabel(modeProfile.label, preferences.language)}
+      summary={modeProfile.intent}
+      icon={Compass}
+      topics={topics}
+      theme={theme}
+      ts={ts}
+      cardClassName="w-[12.75rem] sm:w-[13.25rem]"
+      railLabel={ui.modeGuidance}
+    />
+  );
+}
+
+function TrustLayerPanel({
+  theme,
+  ts,
+  ui,
+}: {
+  theme: ThemeColors;
+  ts: (key: string, fallback?: string) => string;
+  ui: UiText;
+}) {
+  const topics: SystemReferenceTopic[] = [
+    {
+      id: "boundaries",
+      eyebrow: ui.trustLayer,
+      title: ts('labels.trustNeverDoTitle'),
+      teaser: ui.trustBoundaryBody ?? englishText.trustBoundaryBody,
+      body: ui.trustBoundaryBody ?? englishText.trustBoundaryBody,
+      points: [
+        ui.trustBoundaryBody ?? englishText.trustBoundaryBody,
+        ui.trustScriptureBody ?? englishText.trustScriptureBody,
+      ].filter((point): point is string => Boolean(point)),
+      icon: ShieldCheck,
+    },
+    {
+      id: "memory",
+      eyebrow: ui.trustLayer,
+      title: ts('labels.trustDataSavedTitle'),
+      teaser: ui.trustMemoryBody ?? englishText.trustMemoryBody,
+      body: ui.trustMemoryBody ?? englishText.trustMemoryBody,
+      points: [
+        ui.trustMemoryBody ?? englishText.trustMemoryBody,
+        ts('labels.trustDeleteExportBody'),
+      ].filter((point): point is string => Boolean(point)),
+      icon: BookOpen,
+    },
+    {
+      id: "connected-data",
+      eyebrow: ui.trustLayer,
+      title: ts('labels.trustDeleteExportTitle'),
+      teaser: ui.trustConnectedDataBody ?? englishText.trustConnectedDataBody,
+      body: ui.trustConnectedDataBody ?? englishText.trustConnectedDataBody,
+      points: [
+        ui.trustConnectedDataBody ?? englishText.trustConnectedDataBody,
+        ts('labels.trustDeleteExportBody'),
+      ].filter((point): point is string => Boolean(point)),
+      icon: WifiOff,
+    },
+  ];
+
+  return (
+    <ReferenceRailSection
+      eyebrow={ui.trustLayer}
+      title={ts('labels.accountTrustPostureTitle')}
+      summary={ts('labels.accountTrustPostureSummary')}
+      icon={ShieldCheck}
+      topics={topics}
+      theme={theme}
+      ts={ts}
+      cardClassName="w-[12.75rem] sm:w-[13.25rem]"
+      railLabel={ui.trustLayer}
+    />
   );
 }
 
@@ -15249,33 +15682,17 @@ function AccountPanel({
 
       {accountSection === "system" ? (
         <div className="space-y-4">
-          <DisclosureSection
-            title={ts('labels.accountSystemTitle')}
-            summary={`${accountManageSummary} ${exchanges.length} ${ts('labels.accountHistoryConversations')} · ${activeDecisionCount} ${ts('labels.accountHistoryDecisions')}`}
-            eyebrow={ts('labels.accountSystemEyebrow')}
-            compactCollapsed
-            showDetailsLabel={text.showDetails}
-            hideDetailsLabel={text.hideDetails}
+          <SystemStatusCard
             theme={theme}
-          >
-            <SystemStatusCard
-              theme={theme}
-              ts={ts}
-              user={user}
-            />
-          </DisclosureSection>
+            ts={ts}
+            user={user}
+            mode={mode}
+            preferences={preferences}
+            ui={text}
+            accountManageSummary={accountManageSummary}
+          />
 
-          <DisclosureSection
-            title={ts('labels.supportReportIssue')}
-            summary={ts('labels.supportReportIssueSummary')}
-            eyebrow={ts('labels.support')}
-            compactCollapsed
-            showDetailsLabel={text.showDetails}
-            hideDetailsLabel={text.hideDetails}
-            theme={theme}
-          >
-            <SupportReportCard theme={theme} ts={ts} onReportIssue={onReportIssue} />
-          </DisclosureSection>
+          <SupportReportCard theme={theme} ts={ts} onReportIssue={onReportIssue} />
         </div>
       ) : null}
     </div>
@@ -15576,7 +15993,6 @@ function AccountShareCard({
   return (
     <section className="space-y-4">
       <div className="relative editorial-surface rounded-[1rem] border p-3.5 shadow-[0_4px_10px_rgba(7,10,8,0.04)] sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-        <InfoHint text={ts('share.accountShareBody')} theme={theme} placement="corner" surface="standard" />
         <div className="flex items-start gap-2.5">
           <div className="grid size-9 shrink-0 place-items-center rounded-md" style={{ backgroundColor: theme.bgInput, color: theme.primary }}>
             <Share2 size={18} />
@@ -15632,7 +16048,6 @@ function SupportMissionCard({
   return (
     <section className="space-y-4">
       <div className="relative editorial-surface overflow-hidden rounded-[1.35rem] border shadow-[0_6px_16px_rgba(7,10,8,0.05)]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-        <InfoHint text={ts('supportMission.body')} theme={theme} placement="corner" surface="hero" />
         <div className="p-3.5 sm:p-4">
           <div className="flex items-start gap-3">
             <div className="grid size-11 shrink-0 place-items-center rounded-full border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
@@ -17052,7 +17467,6 @@ function FormationRailSection({
             <div className="grid gap-4 xl:grid-cols-[minmax(0,1.16fr)_minmax(300px,0.84fr)]">
               <article className="overflow-hidden rounded-[1.55rem] border shadow-[0_12px_28px_rgba(15,23,42,0.06)]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
                 <div className="relative border-b p-4 sm:p-5" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
-                  <InfoHint text={ts("challenges.previewHint")} theme={theme} placement="corner" surface="hero" />
                   <h3 className="text-xl font-semibold sm:text-[1.7rem]" style={{ color: theme.textPrimary }}>
                     {ts(selectedChallenge.titleKey, selectedChallenge.title)}
                   </h3>
@@ -18178,7 +18592,6 @@ function AccountPersonalizationPanel({
               <Sparkles size={20} />
             </div>
             <div className="relative min-w-0">
-              <InfoHint text={ts('labels.accountPersonalizationSummary')} theme={theme} placement="corner" surface="hero" />
               <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
                 {ts('labels.accountPersonalizationTitle')}
               </p>
@@ -18591,32 +19004,90 @@ function SystemStatusCard({
   theme,
   ts,
   user,
+  mode,
+  preferences,
+  ui,
+  accountManageSummary,
 }: {
   theme: ThemeColors;
   ts: (key: string, fallback?: string) => string;
   user: User | null;
+  mode: Mode;
+  preferences: UserPreferences;
+  ui: UiText;
+  accountManageSummary: string;
 }) {
   const statusLabel = user ? ts('labels.accountSyncActive') : ts('auth.guestMode');
   const statusBody = user ? ts('labels.whatSyncsSignedIn') : ts('labels.whatSyncsGuest');
+  const modeProfile = localizedModeProfile(mode, preferences.language);
+  const topics: SystemReferenceTopic[] = [
+    {
+      id: "sync-status",
+      eyebrow: ts('labels.accountSystemEyebrow'),
+      title: ts('labels.accountSystemTitle'),
+      teaser: statusBody,
+      body: statusBody,
+      points: [
+        ts('labels.accountHistorySummary'),
+        ts('labels.accountFormationSummary'),
+        user ? ts('labels.accountNextActiveBody') : ts('labels.accountNextGuestBody'),
+      ],
+      icon: WifiOff,
+    },
+    {
+      id: "mode-guidance",
+      eyebrow: ui.modeGuidance,
+      title: localizedModeLabel(modeProfile.label, preferences.language),
+      teaser: modeProfile.intent,
+      body: `${modeProfile.intent} ${modeProfile.useWhen}`,
+      points: [
+        `${modeProfile.focus}.`,
+        modeProfile.prompts[0] ?? ui.modeGuidancePreview,
+        modeProfile.prompts[1] ?? modeProfile.prompts[0] ?? ui.modeGuidancePreview,
+      ].filter((point): point is string => Boolean(point)),
+      icon: Compass,
+    },
+    {
+      id: "trust-layer",
+      eyebrow: ui.trustLayer,
+      title: ts('labels.accountTrustPostureTitle'),
+      teaser: ts('labels.accountTrustPostureSummary'),
+      body: ts('labels.accountTrustPostureSummary'),
+      points: [
+        ts('labels.trustNeverDoBody'),
+        ts('labels.trustScriptureBody'),
+        ts('labels.trustDataSavedBody'),
+        ts('labels.trustDeleteExportBody'),
+      ],
+      icon: ShieldCheck,
+    },
+    {
+      id: "personalization",
+      eyebrow: ts('labels.accountPersonalizationTitle'),
+      title: ts('labels.personalizeAletheia'),
+      teaser: ts('labels.accountPersonalizationSummaryShort'),
+      body: ts('labels.accountPersonalizationSummary'),
+      points: [
+        ts('labels.customizeExperienceSummary'),
+        ts('labels.focusIntentionsHint'),
+        ts('labels.accountSuggestedReviewAvatarStudio'),
+      ],
+      icon: Sparkles,
+    },
+  ];
+
   return (
-    <section className="overflow-hidden rounded-[1.35rem] border shadow-[0_6px_16px_rgba(7,10,8,0.05)]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
-      <div className="border-b px-3.5 py-3.5 sm:px-4" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
-        <div className="flex items-start gap-2.5">
-          <div className="grid size-10 shrink-0 place-items-center rounded-full border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
-            <WifiOff size={17} />
-          </div>
-          <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.sync')}</p>
-            <h3 className="mt-2 text-lg font-semibold sm:text-xl" style={{ color: theme.textPrimary }}>
-              {statusLabel}
-            </h3>
-            <p className="mt-2 max-w-2xl text-sm leading-6" style={{ color: theme.textSecondary }}>
-              {statusBody}
-            </p>
-          </div>
-        </div>
-      </div>
-    </section>
+    <ReferenceRailSection
+      eyebrow={ts('labels.sync')}
+      title={statusLabel}
+      summary={`${accountManageSummary} ${statusBody}`}
+      icon={WifiOff}
+      topics={topics}
+      theme={theme}
+      ts={ts}
+      cardClassName="w-[12.75rem] sm:w-[13.25rem]"
+      railLabel={ts('labels.system')}
+    />
   );
 }
 
@@ -18682,159 +19153,105 @@ function TrustCenterCard({
   onRequestDeleteAccount: () => void;
   accountActionBusy: "export" | "delete" | "report" | null;
 }) {
-  const [open, setOpen] = useState(false);
-  const items = [
+  const topics: SystemReferenceTopic[] = [
     {
-      label: ts('labels.trustNeverDoTitle'),
+      id: "boundaries",
+      eyebrow: ts('labels.trustCenterTitle'),
+      title: ts('labels.trustNeverDoTitle'),
+      teaser: ts('labels.trustNeverDoBody'),
       body: ts('labels.trustNeverDoBody'),
+      points: [
+        ts('labels.trustNeverDoBody'),
+        ts('labels.trustScriptureBody'),
+      ],
+      icon: ShieldCheck,
     },
     {
-      label: ts('labels.trustScriptureSourceTitle'),
-      body: ts('labels.trustScriptureSourceBody'),
-    },
-    {
-      label: ts('labels.trustDataSavedTitle'),
+      id: "memory",
+      eyebrow: ts('labels.trustCenterTitle'),
+      title: ts('labels.trustDataSavedTitle'),
+      teaser: ts('labels.trustDataSavedBody'),
       body: ts('labels.trustDataSavedBody'),
+      points: [
+        ts('labels.trustDataSavedBody'),
+        ts('labels.signOutPrivacyBody'),
+      ],
+      icon: BookOpen,
     },
     {
-      label: ts('labels.trustDeleteExportTitle'),
+      id: "export-delete",
+      eyebrow: ts('labels.trustCenterTitle'),
+      title: ts('labels.trustDeleteExportTitle'),
+      teaser: ts('labels.trustDeleteExportBody'),
       body: ts('labels.trustDeleteExportBody'),
-    },
-  ];
-  const statusItems = [
-    {
-      label: ts('labels.whatSyncsLabel'),
-      body: user ? ts('labels.whatSyncsSignedIn') : ts('labels.whatSyncsGuest'),
-    },
-    {
-      label: ts('labels.whatStaysLocal'),
-      body: ts('labels.whatStaysLocalBody'),
-    },
-    {
-      label: ts('labels.signOutPrivacy'),
-      body: ts('labels.signOutPrivacyBody'),
+      points: [
+        ts('labels.trustDeleteExportBody'),
+        ts('labels.whatStaysLocalBody'),
+      ],
+      icon: ExternalLink,
     },
   ];
 
   return (
     <section className="overflow-hidden rounded-[1.35rem] border shadow-[0_8px_24px_rgba(15,23,42,0.05)]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
-      <button
-        type="button"
-        className="flex w-full items-center gap-2.5 px-3.5 py-3.5 text-left sm:px-4"
-        style={{ background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}
-        onClick={() => setOpen((value) => !value)}
-        aria-expanded={open}
-      >
-        <div className="grid size-10 shrink-0 place-items-center rounded-full border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
-          <ShieldCheck size={17} />
-        </div>
-        <div className="relative min-w-0 flex-1">
-          <InfoHint text={ts('labels.accountTrustPostureSummary')} theme={theme} placement="corner" surface="hero" />
-          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.trustCenterTitle')}</p>
-          <h3 className="mt-1 text-lg font-semibold sm:text-xl" style={{ color: theme.textPrimary }}>
-            <span className="inline-flex items-center gap-2 pr-6 sm:pr-8 md:pr-9">
-              <span>{ts('labels.accountTrustPostureTitle')}</span>
-            </span>
-          </h3>
-        </div>
-        <span className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold uppercase tracking-[0.08em]" style={{ color: theme.textSecondary }}>
-          {open ? ts('hideDetails') : ts('showDetails')}
-          <ChevronDown size={14} style={{ transform: open ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 180ms ease" }} />
-        </span>
-      </button>
-      {open ? (
-        <div className="border-t p-3.5 sm:p-4" style={{ borderColor: theme.borderLight }}>
-        <div className="space-y-3.5">
-          <div className="rounded-[1rem] border p-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-            <p className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>{ts('labels.yourDataBoundaries')}</p>
-            <p className="mt-1 text-sm leading-6" style={{ color: theme.textPrimary }}>
-              {ts('labels.accountTrustPostureSummary')}
-              </p>
-              <div className="mt-2.5 flex flex-col gap-2">
-                {statusItems.map((item) => (
-                  <div key={item.label} className="rounded-[1rem] border p-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-                    <p className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>{item.label}</p>
-                    <p className="mt-1 text-sm leading-6" style={{ color: theme.textPrimary }}>{item.body}</p>
-                  </div>
-              ))}
-            </div>
-          </div>
+      <ReferenceRailSection
+        eyebrow={ts('labels.trustCenterTitle')}
+        title={ts('labels.accountTrustPostureTitle')}
+        summary={ts('labels.accountTrustPostureSummary')}
+        icon={ShieldCheck}
+        topics={topics}
+        theme={theme}
+        ts={ts}
+        cardClassName="w-[12.75rem] sm:w-[13.25rem]"
+        railLabel={ts('labels.trustCenterTitle')}
+      />
+
+      <div className="border-t p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            className="h-10 rounded-full border px-3.5 text-sm font-semibold"
+            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+            onClick={onClearLocalPersonalization}
+          >
+            {ts('labels.clearLocalSettings')}
+          </button>
           {!user ? (
-            <div className="rounded-[1rem] border p-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
-              <p className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.accentGold }}>
-                {ts('labels.guestSetupReady')}
-              </p>
-              <p className="mt-1 text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>
-                {ts('labels.signInToExportDelete')}
-              </p>
-              <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
-                {ts('labels.accountGuestSummary')}
-              </p>
-              <button
-                type="button"
-                onClick={onRequestSignIn}
-                className="mt-3 inline-flex h-10 items-center justify-center rounded-full border px-4 text-sm font-semibold transition"
-                style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
-              >
-                {ts('auth.signInForSync')}
-              </button>
-            </div>
+            <button
+              type="button"
+              className="h-10 rounded-full border px-3.5 text-sm font-semibold"
+              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: hasLocalWorkspaceData ? theme.textPrimary : theme.textSecondary, opacity: hasLocalWorkspaceData ? 1 : 0.65 }}
+              disabled={!hasLocalWorkspaceData}
+              onClick={onClearGuestWorkspace}
+            >
+              {ts('labels.clearGuestWorkspace')}
+            </button>
           ) : null}
-          <div className="grid gap-2 sm:grid-cols-2">
-            {items.map((item) => (
-              <details key={item.label} className="rounded-[1rem] border p-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-                <summary className="cursor-pointer text-sm font-semibold" style={{ color: theme.textPrimary }}>{item.label}</summary>
-                <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>{item.body}</p>
-                </details>
-              ))}
-            </div>
-          </div>
-          <div className="mt-3.5 flex flex-wrap gap-2 border-t pt-3.5" style={{ borderColor: theme.borderLight }}>
-            <button
-              type="button"
-              className="h-10 rounded-full border px-3.5 text-sm font-semibold"
-              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-              onClick={onClearLocalPersonalization}
-            >
-              {ts('labels.clearLocalSettings')}
-            </button>
-            {!user ? (
-              <button
-                type="button"
-                className="h-10 rounded-full border px-3.5 text-sm font-semibold"
-                style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: hasLocalWorkspaceData ? theme.textPrimary : theme.textSecondary, opacity: hasLocalWorkspaceData ? 1 : 0.65 }}
-                disabled={!hasLocalWorkspaceData}
-                onClick={onClearGuestWorkspace}
-              >
-                {ts('labels.clearGuestWorkspace')}
-              </button>
-            ) : null}
-            <button
-              type="button"
-              className="h-10 rounded-full border px-3.5 text-sm font-semibold"
-              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: user ? theme.textPrimary : theme.textSecondary, opacity: user ? 1 : 0.65 }}
-              disabled={!user || accountActionBusy === "export"}
-              onClick={onExportData}
-            >
-              {accountActionBusy === "export" ? ts('labels.preparingExport') : ts('labels.exportData')}
-            </button>
-            <button
-              type="button"
-              className="h-10 rounded-full border px-3.5 text-sm font-semibold"
-              style={{ borderColor: theme.borderStrong, backgroundColor: theme.bgInput, color: user ? theme.textPrimary : theme.textSecondary, opacity: user ? 1 : 0.65 }}
-              disabled={!user || accountActionBusy === "delete"}
-              onClick={onRequestDeleteAccount}
-            >
-              {ts('labels.deleteAccount')}
-            </button>
-          </div>
-          {!user ? (
-            <p className="border-t px-3.5 py-2.5 text-xs leading-5 sm:px-4" style={{ borderColor: theme.borderLight, color: theme.textSecondary }}>
-              {ts('labels.signInToExportDelete')}
-            </p>
-          ) : null}
+          <button
+            type="button"
+            className="h-10 rounded-full border px-3.5 text-sm font-semibold"
+            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: user ? theme.textPrimary : theme.textSecondary, opacity: user ? 1 : 0.65 }}
+            disabled={!user || accountActionBusy === "export"}
+            onClick={onExportData}
+          >
+            {accountActionBusy === "export" ? ts('labels.preparingExport') : ts('labels.exportData')}
+          </button>
+          <button
+            type="button"
+            className="h-10 rounded-full border px-3.5 text-sm font-semibold"
+            style={{ borderColor: theme.borderStrong, backgroundColor: theme.bgInput, color: user ? theme.textPrimary : theme.textSecondary, opacity: user ? 1 : 0.65 }}
+            disabled={!user || accountActionBusy === "delete"}
+            onClick={onRequestDeleteAccount}
+          >
+            {ts('labels.deleteAccount')}
+          </button>
         </div>
-      ) : null}
+        {!user ? (
+          <p className="mt-3 text-xs leading-5" style={{ color: theme.textSecondary }}>
+            {ts('labels.signInToExportDelete')}
+          </p>
+        ) : null}
+      </div>
     </section>
   );
 }
@@ -19517,12 +19934,11 @@ function ManualContextPanel({
       <div className="p-4 sm:p-5">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div className="min-w-0 max-w-3xl">
-              <div className="flex items-start gap-3">
+            <div className="flex items-start gap-3">
                 <div className="mt-0.5 grid size-10 shrink-0 place-items-center rounded-xl border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
                   <ShieldCheck size={18} />
                 </div>
                 <div className="relative min-w-0">
-                  <InfoHint text={manualCopy.intro} theme={theme} placement="corner" surface="hero" />
                   <p className="text-xs font-semibold uppercase tracking-[0.12em] sm:tracking-[0.16em]" style={{ color: theme.accentGold }}>{manualCopy.privacyPosture}</p>
                   <h3 className="mt-2 text-2xl font-semibold sm:text-[2rem]" style={{ color: theme.textPrimary }}>
                     <span className="inline-flex items-center gap-2 pr-6 sm:pr-8 md:pr-9">
@@ -20989,10 +21405,6 @@ function ScriptureModal({
   const canonicalScripture = canonicalScriptureReference(scripture);
   const displayScripture = localizedScriptureReference(canonicalScripture, preferences.language);
   const translationLabel = scriptureDisplayLabel(canonicalScripture, preferences);
-  const curatedReadingNote = ts(
-    "labels.curatedReadingOrSummary",
-    "When Aletheia has a curated public-domain reading in your chosen translation, it shows that reading. Otherwise it uses a concise, clearly marked wisdom summary and keeps the reference exact."
-  );
   const studyModeTitle = ts('labels.scriptureStudyMode');
   const studyModeSubtitle = ts('labels.scriptureStudyModeSubtitle');
   const studyModeButton = ui.diveDeep ?? ts('labels.diveDeep');
@@ -21025,7 +21437,6 @@ function ScriptureModal({
             <div className="min-w-0 flex-1">
               {view === "quick" ? (
                 <div className="relative">
-                  <InfoHint text={curatedReadingNote} theme={theme} placement="corner" surface="hero" />
                   <p className="text-[0.68rem] font-semibold uppercase tracking-[0.24em]" style={{ color: theme.accentGold }}>
                     {ts('labels.scriptureQuickRead')}
                   </p>
@@ -21605,67 +22016,304 @@ function DecisionMemoryArchiveSection({
   entries: DecisionMemorySeed[];
 }) {
   const sortedEntries = [...entries].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-  return (
-    <section
-      aria-label={ts("labels.decisionMemory")}
-      className="space-y-3"
-    >
-        {sortedEntries.length ? (
-          sortedEntries.map((entry) => {
-            const createdDate = new Date(entry.createdAt);
-            const isExpanded = expandedId === entry.id;
-            return (
-              <button
-                key={entry.id}
-                type="button"
-                onClick={() => setExpandedId((current) => (current === entry.id ? null : entry.id))}
-                aria-expanded={isExpanded}
-                className="premium-tap-card block w-full overflow-hidden rounded-[1.35rem] border px-3.5 py-3.5 text-left shadow-[0_8px_20px_rgba(10,18,14,0.06)] transition active:scale-[0.995]"
-                style={{
-                  borderColor: isExpanded ? theme.accentGold : theme.borderLight,
-                  background: isExpanded
-                    ? `linear-gradient(180deg, color-mix(in srgb, ${theme.bgCardElevated} 88%, ${theme.accentGold} 12%), ${theme.bgCard})`
-                    : `linear-gradient(180deg, color-mix(in srgb, ${theme.bgCardElevated} 94%, ${theme.accentGold} 6%), ${theme.bgCard})`,
-                }}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textSecondary }}>
-                      {new Intl.DateTimeFormat(language, {
-                        month: "short",
-                        day: "numeric",
-                        year: "numeric",
-                      }).format(createdDate)}
-                    </p>
-                    <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
-                      {new Intl.DateTimeFormat(language, {
-                        hour: "numeric",
-                        minute: "2-digit",
-                      }).format(createdDate)}
-                    </p>
-                  </div>
-                  <span className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-                    {isExpanded ? ts("hideDetails") : ts("showDetails")}
-                    <ChevronDown size={11} style={{ transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)" }} />
-                  </span>
-                </div>
+  const railRef = useRef<HTMLDivElement | null>(null);
+  const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
+  const selectedEntry = sortedEntries.find((entry) => entry.id === selectedEntryId) ?? null;
+  const hasOverflow = useRailOverflow(railRef, true, [sortedEntries.length, language]);
+  const dateFormatter = new Intl.DateTimeFormat(language, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+  const timeFormatter = new Intl.DateTimeFormat(language, {
+    hour: "numeric",
+    minute: "2-digit",
+  });
 
-                <p className={`mt-3 text-[0.96rem] font-semibold leading-6 tracking-tight ${isExpanded ? "" : "line-clamp-2"}`} style={{ color: theme.textPrimary }}>
-                  {entry.title}
-                </p>
-                <p className={`mt-2 text-sm leading-6 ${isExpanded ? "" : "line-clamp-2"}`} style={{ color: theme.textSecondary }}>
-                  {entry.pressure}
-                </p>
-              </button>
-            );
-          })
-        ) : (
-          <div className="rounded-[1.35rem] border border-dashed px-4 py-5 text-sm leading-6" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
-            {ts("labels.noDecisionMemoryHelp")}
+  const formatDateTime = (value: string | null | undefined) => {
+    if (!value) {
+      return null;
+    }
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? null : `${dateFormatter.format(parsed)} · ${timeFormatter.format(parsed)}`;
+  };
+
+  return (
+    <section aria-label={ts("labels.decisionMemory")} className="space-y-3">
+      <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>
+        {ts("labels.decisionArchiveReadiness")}
+      </p>
+
+      {sortedEntries.length ? (
+        <>
+          {hasOverflow ? (
+            <div className="flex justify-end text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
+              <span className="inline-flex items-center gap-1">
+                <span>{ts("labels.swipeForMore")}</span>
+                <span aria-hidden="true">→</span>
+              </span>
+            </div>
+          ) : null}
+          <div ref={railRef} className="flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
+            {sortedEntries.map((entry) => {
+              const createdLabel = formatDateTime(entry.createdAt);
+              const modeLabel = entry.mode && isMode(entry.mode) ? ts(modeTranslationKey(entry.mode), entry.mode) : entry.mode;
+              const detailText = entry.summary || entry.pressure;
+              const readinessLabel = typeof entry.readiness === "number" ? `${ts("labels.readiness")} ${entry.readiness}/100` : null;
+              const finalDecisionLabel = entry.finalDecision ? ts("placeholders.finalDecision") : null;
+
+              return (
+                <button
+                  key={entry.id}
+                  type="button"
+                  onClick={() => setSelectedEntryId(entry.id)}
+                  className="premium-tap-card relative flex min-h-[12.5rem] w-[15rem] shrink-0 snap-start flex-col overflow-hidden rounded-[1.4rem] border text-left shadow-[0_12px_28px_rgba(10,18,14,0.07)] transition active:scale-[0.995] sm:w-[16rem]"
+                  style={{
+                    borderColor: theme.borderLight,
+                    background: `linear-gradient(180deg, color-mix(in srgb, ${theme.bgCardElevated} 92%, ${theme.accentGold} 8%), ${theme.bgCard})`,
+                  }}
+                >
+                  <div className="flex flex-1 flex-col px-3.5 py-3.5">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        {createdLabel ? (
+                          <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textSecondary }}>
+                            {createdLabel}
+                          </p>
+                        ) : null}
+                        {modeLabel ? (
+                          <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
+                            {modeLabel}
+                          </p>
+                        ) : null}
+                      </div>
+                      <span className="grid size-8 shrink-0 place-items-center rounded-full border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                        <Clock3 size={15} />
+                      </span>
+                    </div>
+
+                    <p className="mt-3 line-clamp-2 text-[1rem] font-semibold leading-6 tracking-tight" style={{ color: theme.textPrimary }}>
+                      {entry.title}
+                    </p>
+
+                    <p className="mt-2 line-clamp-3 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                      {detailText}
+                    </p>
+
+                    <div className="mt-auto pt-3">
+                      <div className="flex flex-wrap gap-2">
+                        {readinessLabel ? (
+                          <span className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textSecondary }}>
+                            {readinessLabel}
+                          </span>
+                        ) : null}
+                        {finalDecisionLabel ? (
+                          <span className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textSecondary }}>
+                            {finalDecisionLabel}
+                          </span>
+                        ) : null}
+                      </div>
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
           </div>
-        )}
+        </>
+      ) : (
+        <div className="rounded-[1.35rem] border border-dashed px-4 py-5 text-sm leading-6" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
+          {ts("labels.noDecisionMemoryHelp")}
+        </div>
+      )}
+
+      <DecisionMemoryDetailModal
+        open={Boolean(selectedEntry)}
+        theme={theme}
+        ts={ts}
+        language={language}
+        entry={selectedEntry}
+        onClose={() => setSelectedEntryId(null)}
+      />
     </section>
+  );
+}
+
+function DecisionMemoryDetailModal({
+  open,
+  theme,
+  ts,
+  language,
+  entry,
+  onClose,
+}: {
+  open: boolean;
+  theme: ThemeColors;
+  ts: (key: string, fallback?: string) => string;
+  language: LanguageCode;
+  entry: DecisionMemorySeed | null;
+  onClose: () => void;
+}) {
+  const canUsePortal = typeof document !== "undefined";
+  useBodyScrollLock(open && canUsePortal);
+
+  if (!open || !canUsePortal || !entry) {
+    return null;
+  }
+
+  const dateFormatter = new Intl.DateTimeFormat(language, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+  const timeFormatter = new Intl.DateTimeFormat(language, {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+  const formatDateTime = (value: string | null | undefined) => {
+    if (!value) {
+      return null;
+    }
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? null : `${dateFormatter.format(parsed)} · ${timeFormatter.format(parsed)}`;
+  };
+  const createdAt = formatDateTime(entry.createdAt);
+  const updatedAt = formatDateTime(entry.updatedAt ?? entry.createdAt);
+  const modeLabel = entry.mode && isMode(entry.mode) ? ts(modeTranslationKey(entry.mode), entry.mode) : entry.mode;
+  const readinessText = typeof entry.readiness === "number" ? `${entry.readiness}/100` : null;
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[9999] grid min-h-dvh place-items-end overflow-hidden overscroll-none px-3 py-3 backdrop-blur-sm sm:place-items-center"
+      style={{
+        backgroundColor: "rgba(13, 23, 20, 0.62)",
+        paddingTop: "calc(max(var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)), 0.75rem) + 0.25rem)",
+        paddingBottom: "calc(max(var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)), 0.75rem) + 0.25rem)",
+      }}
+      onClick={onClose}
+    >
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="decision-memory-modal-title"
+        className="w-full max-w-2xl overflow-y-auto overscroll-contain rounded-[2rem] border shadow-[0_28px_90px_rgba(10,18,14,0.36)]"
+        style={{
+          borderColor: theme.borderStrong,
+          backgroundColor: theme.bgCard,
+          maxHeight: "calc(100dvh - max(var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)), 0.75rem) - max(var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)), 0.75rem) - 1rem)",
+        }}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div
+          className="relative overflow-hidden border-b px-4 py-4 sm:px-5 sm:py-5"
+          style={{
+            borderColor: theme.borderLight,
+            background: `linear-gradient(135deg, color-mix(in srgb, ${theme.bgCardElevated} 64%, white 36%), ${theme.bgCard}, color-mix(in srgb, ${theme.bgCardElevated} 84%, ${theme.accentGold} 16%))`,
+          }}
+        >
+          <div
+            className="absolute inset-0 opacity-90"
+            style={{
+              background: `radial-gradient(circle at 18% 18%, color-mix(in srgb, ${theme.accentGold} 18%, transparent), transparent 36%), radial-gradient(circle at 92% 0%, color-mix(in srgb, ${theme.primary} 10%, transparent), transparent 30%)`,
+            }}
+          />
+          <div className="relative flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] sm:text-xs" style={{ color: theme.accentGold }}>
+                {ts("labels.decisionMemory")}
+              </p>
+              <h2 id="decision-memory-modal-title" className="mt-1.5 text-xl font-semibold tracking-tight sm:text-2xl" style={{ color: theme.textPrimary }}>
+                {entry.title}
+              </h2>
+              <p className="mt-1.5 text-sm leading-6 sm:text-[0.95rem]" style={{ color: theme.textSecondary }}>
+                {createdAt ?? ts("labels.decisionMemory")}
+                {modeLabel ? ` · ${modeLabel}` : ""}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="grid size-10 shrink-0 place-items-center rounded-full border transition shadow-sm"
+              style={{
+                borderColor: theme.borderMedium,
+                backgroundColor: theme.bgInput,
+                color: theme.textPrimary,
+              }}
+              aria-label={ts("labels.close")}
+            >
+              <X size={16} />
+            </button>
+          </div>
+        </div>
+
+        <div className="space-y-4 p-3.5 sm:p-4">
+          <div className="grid gap-2.5 sm:grid-cols-2">
+            <div className="rounded-[1.35rem] border p-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+              <div className="mb-3 h-1.5 rounded-full" style={{ background: `linear-gradient(90deg, ${theme.accentGold}, color-mix(in srgb, ${theme.accentGold} 22%, ${theme.borderLight} 78%))` }} />
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textSecondary }}>
+                {ts("labels.readiness")}
+              </p>
+              <p className="mt-1.5 text-lg font-semibold tracking-tight" style={{ color: theme.textPrimary }}>
+                {readinessText ?? ts("labels.decisionReviewed")}
+              </p>
+            </div>
+            <div className="rounded-[1.35rem] border p-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+              <div className="mb-3 h-1.5 rounded-full" style={{ background: `linear-gradient(90deg, ${theme.primary}, color-mix(in srgb, ${theme.primary} 30%, ${theme.accentGold} 70%))` }} />
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textSecondary }}>
+                {ts("labels.decisionLastReviewed")}
+              </p>
+              <p className="mt-1.5 text-lg font-semibold tracking-tight" style={{ color: theme.textPrimary }}>
+                {updatedAt ?? createdAt ?? ts("labels.decisionReviewed")}
+              </p>
+            </div>
+          </div>
+
+          {entry.pressure ? (
+            <section className="rounded-[1.35rem] border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+                {ts("labels.decisionOrPressure")}
+              </p>
+              <p className="mt-2 text-[1rem] leading-7" style={{ color: theme.textPrimary }}>
+                {entry.pressure}
+              </p>
+            </section>
+          ) : null}
+
+          {entry.summary ? (
+            <section className="rounded-[1.35rem] border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+                {ts("labels.decisionSummary")}
+              </p>
+              <p className="mt-2 text-[1rem] leading-7" style={{ color: theme.textPrimary }}>
+                {entry.summary}
+              </p>
+            </section>
+          ) : null}
+
+          {entry.finalDecision ? (
+            <section className="rounded-[1.35rem] border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+                {ts("placeholders.finalDecision")}
+              </p>
+              <p className="mt-2 text-[1rem] leading-7" style={{ color: theme.textPrimary }}>
+                {entry.finalDecision}
+              </p>
+            </section>
+          ) : null}
+
+          <div className="flex flex-wrap items-center justify-end gap-3 border-t pt-4" style={{ borderColor: theme.borderLight }}>
+            <button
+              type="button"
+              onClick={onClose}
+              className="inline-flex h-11 items-center justify-center rounded-full border px-4 text-sm font-semibold transition"
+              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+            >
+              {ts("labels.close")}
+            </button>
+          </div>
+        </div>
+      </section>
+    </div>,
+    document.body
   );
 }
 
@@ -22802,14 +23450,19 @@ function CompanionPanel({
 }) {
   const panelRef = useRef<HTMLElement | null>(null);
   const currentCounselRef = useRef<HTMLDivElement | null>(null);
-  const [expandedHistoryId, setExpandedHistoryId] = useState<string | null>(null);
-  const [showSidebarDeep, setShowSidebarDeep] = useState(false);
-  const [showHistory, setShowHistory] = useState(false);
+  const historyRailRef = useRef<HTMLDivElement | null>(null);
+  const [selectedHistoryExchange, setSelectedHistoryExchange] = useState<ConversationExchange | null>(null);
   const [voiceDetailsOpen, setVoiceDetailsOpen] = useState(false);
   const exchanges = conversationExchanges(messages);
   const currentExchange = exchanges[exchanges.length - 1] ?? null;
   const history = exchanges.slice(0, -1).reverse();
-  const hasCounselSurface = Boolean(currentExchange || history.length);
+  const visibleHistory = history.length
+    ? history
+    : process.env.NODE_ENV !== "production"
+      ? buildQaRailSampleConversationExchanges(mode)
+      : history;
+  const hasCounselSurface = Boolean(currentExchange || visibleHistory.length);
+  const historyRailHasOverflow = useRailOverflow(historyRailRef, visibleHistory.length > 1, [visibleHistory.length, selectedHistoryExchange?.id]);
   const focusLabels = focusIntentionLabels(focusIntentions, ts);
   const suggestedFocusPrompt = focusIntentionPrompt(focusIntentions, "companion", ts);
   const promptChips = [suggestedFocusPrompt, ...modeProfile.prompts].filter(Boolean).slice(0, 3);
@@ -22829,10 +23482,27 @@ function CompanionPanel({
 
   return (
     <div className="space-y-4">
+      <ConversationHistoryModal
+        open={Boolean(selectedHistoryExchange)}
+        theme={theme}
+        exchange={selectedHistoryExchange}
+        preferences={preferences}
+        ui={ui}
+        ts={ts}
+        onClose={() => setSelectedHistoryExchange(null)}
+        onContinue={() => {
+          if (!selectedHistoryExchange?.question) {
+            return;
+          }
+          onDraftPrompt(`${ts('labels.continueFromThis')}: ${cleanDisplayText(selectedHistoryExchange.question.text)}`);
+          panelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+          setSelectedHistoryExchange(null);
+        }}
+        onScriptureOpen={onScriptureOpen}
+      />
       <section id="companion-ask" ref={panelRef} className="min-w-0 scroll-mt-24 overflow-hidden rounded-xl border shadow-[0_18px_45px_rgba(33,58,53,0.08)]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
         <div className="flex flex-col gap-3 border-b px-3 py-3 sm:px-5 sm:py-4 md:flex-row md:items-center md:justify-between" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
           <div className="relative">
-            <InfoHint text={ui.askIntro} theme={theme} placement="corner" surface="standard" />
             <div className="flex items-center gap-2 text-lg font-semibold" style={{ color: theme.textPrimary }}>
               <MessageCircle size={18} />
               {ui.askTitle}
@@ -23036,8 +23706,7 @@ function CompanionPanel({
               ))}
             </div>
             {preferences.voiceEnabled ? (
-              <div className="relative mt-2 pr-5 sm:pr-6 text-xs leading-5" style={{ color: theme.textMuted }}>
-                <InfoHint text={copy.voiceHint} theme={theme} placement="corner" surface="dense" />
+              <div className="mt-2 text-xs leading-5" style={{ color: theme.textMuted }}>
                 <span>{ts('labels.voiceInput')}</span>
               </div>
             ) : null}
@@ -23078,106 +23747,53 @@ function CompanionPanel({
             </div>
           ) : null}
 
-          {history.length ? (
+          {visibleHistory.length ? (
             <section className="mt-4 rounded-lg border p-3 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.conversationHistory')}</p>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+                    {ts('labels.conversationHistory')}
+                  </p>
                   <p className="mt-1 text-sm leading-6" style={{ color: theme.textMuted }}>
                     {ts('labels.olderCounselKeptQuiet')}
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowHistory((value) => !value)}
-                    className="rounded-md border px-2 py-1 text-[11px] font-semibold transition"
-                    style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
-                  >
-                    {showHistory ? ui.hideDetails : ui.showDetails}
-                  </button>
-                </div>
+                {historyRailHasOverflow ? (
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textSecondary }}>
+                    {ts('labels.swipeForMore')}
+                  </p>
+                ) : null}
               </div>
-              {showHistory ? <div className="mt-3 space-y-2">
-                {history.map((exchange) => (
-                  <HistoryExchange
+              <div
+                ref={historyRailRef}
+                className="mt-3 flex min-w-0 snap-x gap-3 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                aria-label={ts('labels.conversationHistory')}
+              >
+                {visibleHistory.map((exchange) => (
+                  <HistoryExchangeRailCard
                     key={exchange.id}
                     theme={theme}
                     exchange={exchange}
                     preferences={preferences}
                     ui={ui}
                     ts={ts}
-                    expanded={expandedHistoryId === exchange.id}
-                    onToggle={() => setExpandedHistoryId((current) => (current === exchange.id ? null : exchange.id))}
-                    onContinue={() => {
-                      if (!exchange.question) return;
-                      onDraftPrompt(`${ts('labels.continueFromThis')}: ${cleanDisplayText(exchange.question.text)}`);
-                      panelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-                    }}
-                    onScriptureOpen={onScriptureOpen}
+                    onOpen={() => setSelectedHistoryExchange(exchange)}
                   />
                 ))}
-              </div> : null}
+              </div>
             </section>
           ) : null}
         </section>
 
       <aside className="space-y-4">
-        <section className={`rounded-xl border shadow-sm ${showSidebarDeep ? "p-4" : "p-3"}`} style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ui.modeGuidance}</p>
-            <button
-              type="button"
-              onClick={() => setShowSidebarDeep((v) => !v)}
-              className="rounded-md border px-2 py-1 text-[10px] font-semibold transition"
-              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
-            >
-              {showSidebarDeep ? ui.hideDetails : ui.showDetails}
-            </button>
-          </div>
-          {showSidebarDeep ? (
-            <div className="mt-3 space-y-3 editorial-sidebar">
-              <div className="rounded-lg border p-3" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
-                <h2 className="font-semibold" style={{ color: theme.textPrimary }}>{localizedModeLabel(modeProfile.label, preferences.language)}: {modeProfile.intent}</h2>
-                <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>{modeProfile.useWhen}</p>
-                <p className="mt-3 text-sm leading-6" style={{ color: theme.textSecondary }}>{modeProfile.lens}</p>
-              </div>
-              <div className="rounded-lg border p-3" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
-                <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{ui.deepChecks}</p>
-                <div className="mt-2 space-y-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
-                  {modeProfile.diagnosticTracks.slice(0, 3).map((track) => (
-                    <p key={track}>{track}</p>
-                  ))}
-                </div>
-              </div>
-              <div className="rounded-lg border p-3" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
-                <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{ui.blindSpots}</p>
-                <ul className="mt-2 space-y-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
-                  {modeProfile.blindSpots.slice(0, 3).map((spot) => (
-                    <li key={spot}>{spot}</li>
-                  ))}
-                </ul>
-              </div>
-              <div className="rounded-lg border p-3" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
-                <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{ui.maturitySignals}</p>
-                <ul className="mt-2 space-y-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
-                  {modeProfile.maturitySignals.slice(0, 3).map((signal) => (
-                    <li key={signal} className="flex gap-2">
-                      <Check className="mt-1 shrink-0" style={{ color: theme.primary }} size={15} />
-                      <span>{signal}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          ) : (
-            <div className="mt-2" style={{ color: theme.textSecondary }}>
-              <p className="text-sm leading-5">{modeProfile.intent}</p>
-            </div>
-          )}
-        </section>
-
-        <TrustLayerPanel theme={theme} ui={ui} />
+        <ModeGuidanceRailPanel
+          theme={theme}
+          ts={ts}
+          ui={ui}
+          modeProfile={modeProfile}
+          preferences={preferences}
+        />
+        <TrustLayerPanel theme={theme} ts={ts} ui={ui} />
         </aside>
       </div>
       ) : null}
@@ -23678,43 +24294,6 @@ function ScriptureStudyMode({
   );
 }
 
-function TrustLayerPanel({ theme, ui }: { theme: ThemeColors; ui: UiText }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <section className="rounded-xl border p-3.5 shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <ShieldCheck size={17} style={{ color: theme.primary }} />
-          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ui.trustLayer}</p>
-        </div>
-        <button
-          type="button"
-          onClick={() => setOpen((value) => !value)}
-          className="rounded-md border px-2 py-1 text-[11px] font-semibold transition"
-          style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
-        >
-          {open ? ui.hideDetails : ui.showDetails}
-        </button>
-      </div>
-      <div className="relative mt-3 rounded-lg border p-2.5 pr-6 sm:pr-7 md:pr-8 text-sm leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-        <InfoHint text={ui.trustScriptureBody ?? englishText.trustScriptureBody!} theme={theme} placement="corner" surface="dense" />
-        <span>{ui.trustLayer}</span>
-      </div>
-      {open ? <div className="mt-3 space-y-2.5 text-sm leading-5" style={{ color: theme.textSecondary }}>
-        <p className="rounded-lg border p-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
-          {ui.trustBoundaryBody ?? englishText.trustBoundaryBody}
-        </p>
-        <p className="rounded-lg border p-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
-          {ui.trustMemoryBody ?? englishText.trustMemoryBody}
-        </p>
-        <p className="rounded-lg border p-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
-          {ui.trustConnectedDataBody ?? englishText.trustConnectedDataBody}
-        </p>
-      </div> : null}
-    </section>
-  );
-}
-
 function ThemeOptionButton({
   icon: Icon,
   label,
@@ -23914,31 +24493,34 @@ function CurrentCounselCard({
   const isThinking = exchange.answer.id === "thinking";
   const showDecisionActions = Boolean(question) && !isThinking;
   const answerText = exchange.answer.id === "welcome" ? text.welcomeCounsel! : exchange.answer.text;
-  const [isCounselLensOpen, setIsCounselLensOpen] = useState(false);
 
   return (
-    <section className="rounded-[1.35rem] border p-3 shadow-[0_8px_24px_rgba(15,23,42,0.05)] sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+    <section className="rounded-[1.45rem] border p-3 shadow-[0_8px_24px_rgba(15,23,42,0.05)] sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
           {question ? text.currentCounsel : ui.startHere}
         </p>
-        <span className="rounded-full px-2 py-1 text-xs font-semibold" style={{ backgroundColor: isThinking || isWorking ? theme.bgCardElevated : theme.bgInput, color: isThinking || isWorking ? theme.accentGold : theme.textSecondary }}>
+        <span className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ borderColor: theme.borderLight, backgroundColor: isThinking || isWorking ? theme.bgCardElevated : theme.bgInput, color: isThinking || isWorking ? theme.accentGold : theme.textSecondary }}>
           {isThinking || isWorking ? "..." : ui.ready}
         </span>
       </div>
       {question ? (
-        <div className="rounded-[1rem] p-3" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>
-          <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textOnPrimary }}>{ui.yourQuestion}</p>
-          <p className="mt-2 text-sm leading-6">{cleanDisplayText(question)}</p>
+        <div className="rounded-[1.1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{ui.yourQuestion}</p>
+          <p className="mt-2 line-clamp-3 text-[0.95rem] leading-6" style={{ color: theme.textPrimary }}>
+            {cleanDisplayText(question)}
+          </p>
         </div>
       ) : null}
-      <article className="editorial-counsel mt-3 rounded-[1rem] border p-3 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-        <div className="mb-2 flex items-center justify-between gap-2">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{ts('labels.appName')}</p>
+      <article className="mt-3 rounded-[1.1rem] border p-3 sm:p-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
+            {ui.currentLens}
+          </p>
           {preferences.voiceEnabled && !isThinking ? (
             <div className="flex items-center gap-2">
               <span
-                className="inline-flex h-8 min-w-[7.75rem] items-center justify-end whitespace-nowrap text-right text-xs leading-none tabular-nums sm:min-w-[8.5rem]"
+                className="inline-flex h-7 min-w-[6.5rem] items-center justify-end whitespace-nowrap text-right text-[11px] leading-none tabular-nums sm:min-w-[7.5rem]"
                 style={{ color: theme.textMuted }}
                 aria-live="polite"
               >
@@ -23955,12 +24537,12 @@ function CurrentCounselCard({
               <button
                 type="button"
                 onClick={onSpeak}
-                className="inline-flex h-7 items-center justify-center gap-1 whitespace-nowrap rounded-full border px-2 text-[11px] font-semibold leading-none transition"
+                className="inline-flex h-7 items-center justify-center gap-1 whitespace-nowrap rounded-full border px-2 text-[10px] font-semibold uppercase tracking-[0.12em] leading-none transition"
                 style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
                 aria-label={isSpeaking ? ts('labels.stopReading') : ts('labels.readAnswerAloud')}
                 title={isSpeaking ? ts('labels.stop') : ts('labels.listenToThisAnswer')}
               >
-                <Volume2 size={13} style={isSpeaking ? { color: theme.accentGold } : undefined} />
+                <Volume2 size={12} style={isSpeaking ? { color: theme.accentGold } : undefined} />
                 {isSpeaking ? ts('labels.stop') : ts('labels.readAloud')}
               </button>
               {isSpeaking ? (
@@ -23968,7 +24550,7 @@ function CurrentCounselCard({
                   type="button"
                   onClick={onTogglePause}
                   disabled={speechLoading}
-                  className="inline-flex h-7 items-center justify-center gap-1 whitespace-nowrap rounded-full border px-2 text-[11px] font-semibold leading-none transition"
+                  className="inline-flex h-7 items-center justify-center gap-1 whitespace-nowrap rounded-full border px-2 text-[10px] font-semibold uppercase tracking-[0.12em] leading-none transition"
                   style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary, opacity: speechLoading ? 0.55 : 1 }}
                   aria-label={speechPaused ? ts('labels.resumeReading') : ts('labels.pauseReading')}
                   title={speechPaused ? ts('labels.resumeReading') : ts('labels.pauseReading')}
@@ -23979,35 +24561,7 @@ function CurrentCounselCard({
             </div>
           ) : null}
         </div>
-        <div
-          className={`mb-3 rounded-[1rem] border ${isCounselLensOpen ? "p-3" : "px-3 py-2"}`}
-          style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}
-        >
-          <button
-            type="button"
-            onClick={() => setIsCounselLensOpen((value) => !value)}
-            className="flex w-full items-center justify-between gap-3 text-left"
-            aria-expanded={isCounselLensOpen}
-          >
-            <span className="min-w-0">
-              <span className="block text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
-                {ui.wisdomMode}
-              </span>
-              <span className="mt-1 block text-sm font-semibold" style={{ color: theme.textPrimary }}>
-                {ui.currentLens}: {exchangeModeProfile.displayLabel ?? exchangeMode}
-              </span>
-            </span>
-            <span className="shrink-0 rounded-full border px-2 py-1 text-[11px] font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-              {isCounselLensOpen ? ui.hideDetails : ui.showDetails}
-            </span>
-          </button>
-          {isCounselLensOpen ? (
-            <p className="mt-2 text-xs leading-5">
-              {exchangeModeProfile.displayLabel ?? exchangeMode} {text.modeShapesCounsel} {exchangeModeProfile.lens.toLowerCase()}
-            </p>
-          ) : null}
-        </div>
-        <div className="calm-prose" style={{ color: theme.textPrimary }}>
+        <div className="calm-prose mt-3" style={{ color: theme.textPrimary }}>
           <ScriptureLinkedText
             theme={theme}
             text={answerText}
@@ -24043,7 +24597,7 @@ function CurrentCounselCard({
               </button>
             </div>
           ) : null}
-          <details className="mt-3 rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+          <details className="mt-3 rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
             <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
               {ts('labels.moreCounselOptions')}
             </summary>
@@ -24053,7 +24607,7 @@ function CurrentCounselCard({
               <CounselAction theme={theme} label={ts('labels.createAnswerCard')} onClick={() => onSharePostcard(exchange)} />
             </div>
             <AnswerFeedback theme={theme} ui={ui} onFeedback={onFeedback} />
-            <div className="mt-3 rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+            <div className="mt-3 rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
               <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{text.shareAnswerPrompt}</p>
               <p className="mt-1 text-xs leading-5" style={{ color: theme.textSecondary }}>
                 {text.sharePrivacyNote}
@@ -24118,81 +24672,226 @@ function CounselAction({ theme, label, onClick }: { theme: ThemeColors; label: s
   );
 }
 
-function HistoryExchange({
+function HistoryExchangeRailCard({
   theme,
   exchange,
   preferences,
   ui,
   ts,
-  expanded,
-  onToggle,
-  onContinue,
-  onScriptureOpen,
+  onOpen,
 }: {
   theme: ThemeColors;
   exchange: ConversationExchange;
   preferences: UserPreferences;
   ui: UiText;
   ts: (key: string, fallback?: string) => string;
-  expanded: boolean;
-  onToggle: () => void;
-  onContinue: () => void;
-  onScriptureOpen: (scripture: string) => void;
+  onOpen: () => void;
 }) {
-  const title = exchange.question?.text ?? ts('labels.welcomeGuidance');
-  const preview = localizeScriptureReferencesInText(
+  const title = cleanDisplayText(exchange.question?.text ?? ts('labels.welcomeGuidance'));
+  const answerText = localizeScriptureReferencesInText(
     cleanDisplayText(exchange.answer.text),
     preferences.language,
     exchange.answer.sources?.map((source) => source.scripture)
-  ).slice(0, 120);
+  ).replace(/\s+/g, " ").trim();
+  const previewSentence = answerText.split(/(?<=[.!?])\s+/)[0] ?? answerText;
+  const preview = previewSentence.length > 135 ? `${previewSentence.slice(0, 132).trimEnd()}…` : previewSentence;
   const exchangeModeProfile = localizedModeProfile(exchange.mode, preferences.language);
+  const createdAt = exchange.answer.createdAt ?? exchange.question?.createdAt ?? null;
+  const formattedDate = createdAt ? new Intl.DateTimeFormat(preferences.language, { month: "short", day: "numeric", year: "numeric" }).format(new Date(createdAt)) : null;
 
   return (
-    <article className="rounded-[1rem] border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-      <button
-        type="button"
-        onClick={onToggle}
-        className="flex w-full items-start justify-between gap-3 p-3 text-left transition"
-      >
-        <span className="min-w-0">
-          <span className="block break-words text-sm font-semibold leading-5" style={{ color: theme.textPrimary }}>{cleanDisplayText(title)}</span>
-          <span className="mt-1 inline-flex rounded-full px-2 py-1 text-[11px] font-semibold" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-            {ui.currentLens}: {exchangeModeProfile.displayLabel ?? exchange.mode}
+    <button
+      type="button"
+      onClick={onOpen}
+      className="premium-tap-card flex w-[16.5rem] shrink-0 snap-start flex-col overflow-hidden rounded-[1.45rem] border text-left shadow-[0_10px_24px_rgba(10,18,14,0.08)] transition active:scale-[0.995] sm:w-[17.5rem]"
+      style={{
+        borderColor: theme.borderLight,
+        background: `linear-gradient(180deg, color-mix(in srgb, ${theme.bgCardElevated} 94%, ${theme.accentGold} 6%), ${theme.bgCard})`,
+      }}
+      aria-label={title}
+    >
+      <div className="h-1.5 w-full" style={{ background: `linear-gradient(90deg, ${theme.accentGold}, color-mix(in srgb, ${theme.accentGold} 25%, ${theme.primary} 75%))` }} />
+      <div className="flex h-full flex-col p-3">
+        <div className="flex items-start justify-between gap-2">
+          <p className="min-w-0 text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textSecondary }}>
+            {formattedDate ?? ts('labels.welcomeGuidance')}
+          </p>
+          <span className="inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.14em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+            {ui.currentLens}
           </span>
-          <span className="mt-1 block line-clamp-2 text-xs leading-5" style={{ color: theme.textMuted }}>{preview}</span>
-        </span>
-        <span className="shrink-0 rounded-full px-2 py-1 text-[11px] font-semibold" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-          {expanded ? ts('hideDetails') : ts('showDetails')}
-        </span>
-      </button>
-      {expanded ? (
-        <div className="border-t p-3" style={{ borderColor: theme.borderLight }}>
-          {exchange.question ? (
-            <p className="rounded-[1rem] p-3 text-sm leading-6" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>{cleanDisplayText(exchange.question.text)}</p>
-          ) : null}
-          <div className="mt-3">
-            <ScriptureLinkedText
-              theme={theme}
-              text={exchange.answer.text}
-              language={preferences.language}
-              allowedScriptures={exchange.answer.sources?.map((source) => source.scripture)}
-              onScriptureOpen={onScriptureOpen}
-            />
+        </div>
+
+        <div className="mt-2 flex min-h-0 flex-1 flex-col">
+          <p className="text-[9.5px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+            {exchangeModeProfile.displayLabel ?? exchange.mode}
+          </p>
+          <p className="mt-2 line-clamp-2 text-[0.95rem] font-semibold leading-5 tracking-tight" style={{ color: theme.textPrimary }}>
+            {title}
+          </p>
+          <p className="mt-2 line-clamp-2 text-[0.82rem] leading-5" style={{ color: theme.textSecondary }}>
+            {preview}
+          </p>
+        </div>
+
+        <div className="mt-3 flex items-center justify-between gap-2 border-t pt-2.5" style={{ borderColor: theme.borderLight }}>
+          <span className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textSecondary }}>
+            <ExternalLink size={12} />
+            {ts('showDetails')}
+          </span>
+        </div>
+      </div>
+    </button>
+  );
+}
+
+function ConversationHistoryModal({
+  open,
+  theme,
+  exchange,
+  preferences,
+  ui,
+  ts,
+  onClose,
+  onContinue,
+  onScriptureOpen,
+}: {
+  open: boolean;
+  theme: ThemeColors;
+  exchange: ConversationExchange | null;
+  preferences: UserPreferences;
+  ui: UiText;
+  ts: (key: string, fallback?: string) => string;
+  onClose: () => void;
+  onContinue: () => void;
+  onScriptureOpen: (scripture: string) => void;
+}) {
+  const canUsePortal = typeof document !== "undefined";
+  useBodyScrollLock(open && canUsePortal);
+
+  if (!open || !canUsePortal || !exchange) {
+    return null;
+  }
+
+  const exchangeModeProfile = localizedModeProfile(exchange.mode, preferences.language);
+  const title = cleanDisplayText(exchange.question?.text ?? ts('labels.welcomeGuidance'));
+  const answerSources = exchange.answer.sources ?? [];
+  const createdAt = exchange.answer.createdAt ?? exchange.question?.createdAt ?? null;
+  const createdLabel = createdAt ? new Intl.DateTimeFormat(preferences.language, { month: "short", day: "numeric", year: "numeric" }).format(new Date(createdAt)) : ts('labels.welcomeGuidance');
+  const createdTime = createdAt ? new Intl.DateTimeFormat(preferences.language, { hour: "numeric", minute: "2-digit" }).format(new Date(createdAt)) : "";
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[9999] grid min-h-dvh place-items-end overflow-hidden overscroll-none px-3 py-3 backdrop-blur-sm sm:place-items-center"
+      style={{
+        backgroundColor: "rgba(13, 23, 20, 0.56)",
+        paddingTop: "calc(max(var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)), 0.75rem) + 0.25rem)",
+        paddingBottom: "calc(max(var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)), 0.75rem) + 0.25rem)",
+      }}
+      onClick={onClose}
+    >
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="conversation-history-modal-title"
+        className="w-full max-w-2xl overflow-y-auto overscroll-contain rounded-[2rem] border shadow-[0_28px_90px_rgba(10,18,14,0.36)]"
+        style={{
+          borderColor: theme.borderStrong,
+          backgroundColor: theme.bgCard,
+          maxHeight: "calc(100dvh - max(var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)), 0.75rem) - max(var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)), 0.75rem) - 1rem)",
+        }}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div
+          className="relative overflow-hidden border-b px-4 py-4 sm:px-5 sm:py-5"
+          style={{
+            borderColor: theme.borderLight,
+            background: `linear-gradient(135deg, color-mix(in srgb, ${theme.bgCardElevated} 66%, white 34%), ${theme.bgCard}, color-mix(in srgb, ${theme.bgCardElevated} 84%, ${theme.accentGold} 16%))`,
+          }}
+        >
+          <div
+            className="absolute inset-0 opacity-90"
+            style={{
+              background: `radial-gradient(circle at 18% 18%, color-mix(in srgb, ${theme.accentGold} 18%, transparent), transparent 36%), radial-gradient(circle at 92% 0%, color-mix(in srgb, ${theme.primary} 10%, transparent), transparent 30%)`,
+            }}
+          />
+          <div className="relative flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] sm:text-xs" style={{ color: theme.accentGold }}>
+                {ts('labels.conversationHistory')}
+              </p>
+              <h2 id="conversation-history-modal-title" className="mt-1.5 text-xl font-semibold tracking-tight sm:text-2xl" style={{ color: theme.textPrimary }}>
+                {title}
+              </h2>
+              <p className="mt-1.5 text-sm leading-6 sm:text-[0.95rem]" style={{ color: theme.textSecondary }}>
+                {createdLabel}{createdTime ? ` · ${createdTime}` : ""} · {ui.currentLens}: {exchangeModeProfile.displayLabel ?? exchange.mode}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="grid size-10 shrink-0 place-items-center rounded-full border transition shadow-sm"
+              style={{
+                borderColor: theme.borderMedium,
+                backgroundColor: theme.bgInput,
+                color: theme.textPrimary,
+              }}
+              aria-label={ts("labels.close")}
+            >
+              <X size={16} />
+            </button>
           </div>
-          <ScriptureChips theme={theme} sources={exchange.answer.sources} preferences={preferences} onScriptureOpen={onScriptureOpen} />
+        </div>
+
+        <div className="space-y-4 p-3.5 sm:p-4">
           {exchange.question ? (
+            <section className="rounded-[1.35rem] border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+                {ui.yourQuestion}
+              </p>
+              <p className="mt-2 text-[1rem] leading-7" style={{ color: theme.textPrimary }}>
+                {cleanDisplayText(exchange.question.text)}
+              </p>
+            </section>
+          ) : null}
+
+          <section className="rounded-[1.35rem] border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+              {ui.currentCounsel ?? ts('currentCounsel')}
+            </p>
+            <div className="mt-3">
+              <ScriptureLinkedText
+                theme={theme}
+                text={exchange.answer.text}
+                language={preferences.language}
+                allowedScriptures={answerSources.map((source) => source.scripture)}
+                onScriptureOpen={onScriptureOpen}
+              />
+            </div>
+            <ScriptureChips theme={theme} sources={answerSources} preferences={preferences} onScriptureOpen={onScriptureOpen} />
+          </section>
+
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-4" style={{ borderColor: theme.borderLight }}>
             <button
               type="button"
               onClick={onContinue}
-            className="mt-3 h-10 rounded-full border px-3 text-xs font-semibold transition"
-              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
+              className="inline-flex h-11 items-center justify-center rounded-full px-4 text-sm font-semibold transition"
+              style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
             >
               {ts('labels.continueFromThis')}
             </button>
-          ) : null}
+            <button
+              type="button"
+              onClick={onClose}
+              className="inline-flex h-11 items-center justify-center rounded-full border px-4 text-sm font-semibold transition"
+              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+            >
+              {ts('labels.close')}
+            </button>
+          </div>
         </div>
-      ) : null}
-    </article>
+      </section>
+    </div>,
+    document.body
   );
 }
 
@@ -24494,7 +25193,6 @@ function DecisionCompanionPanel({
             <section className="rounded-[1.35rem] border p-3.5 shadow-[0_8px_24px_rgba(15,23,42,0.05)] sm:p-4" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
               <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                 <div className="relative">
-                  <InfoHint text={runtime.decisionCompanionSub} theme={theme} placement="corner" surface="hero" />
                   <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.decisionCompanion')}</p>
                   <h2 className="mt-1.5 pr-5 min-[390px]:pr-6 min-[430px]:pr-7 text-[1.08rem] min-[390px]:text-[1.14rem] min-[430px]:text-xl font-semibold leading-tight" style={{ color: theme.textPrimary }}>{runtime.decisionCompanionHeading}</h2>
                   <div className="mt-1.5 max-w-2xl pr-6 sm:pr-7 md:pr-8">
@@ -24546,8 +25244,7 @@ function DecisionCompanionPanel({
           <DisclosureSection title={`${ts('labels.counselCircle')} · ${counselContacts.length} ${ts('labels.trustedVoices')}`} summary={ts('labels.counselCircleSummary')} eyebrow={ts('labels.counsel')} defaultOpen={Boolean(counselSummaryDraft)} compactCollapsed showDetailsLabel={ts('showDetails')} hideDetailsLabel={ts('hideDetails')} theme={theme}>
             <section id="counsel-circle" className="scroll-mt-24">
               <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.counselCircle')}</p>
-              <div className="relative mt-2 pr-5 sm:pr-6 text-sm leading-6" style={{ color: theme.textSecondary }}>
-                <InfoHint text={ts('labels.counselCircleSummary')} theme={theme} placement="corner" surface="dense" />
+              <div className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
                 <span>{ts('labels.inviteTrustedPeoplePrivate')}</span>
               </div>
               {counselSummaryDraft ? (
@@ -25033,15 +25730,16 @@ function DecisionCompanionPanel({
               </section>
             </DisclosureSection>
 
-            <section>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.scriptureIntegrity')}</p>
-              <ul className="mt-3 space-y-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
-                <li>{ts('labels.referencesFromCuratedLibrary')}</li>
-                <li>{ts('labels.noFinancialOutcomesOrPredictions')}</li>
-                <li>{ts('labels.prosperityFramingRefused')}</li>
-                <li>{ts('labels.highStakesPointedToCounsel')}</li>
-              </ul>
-            </section>
+            <ReferenceRailSection
+              eyebrow={ts('labels.scriptureIntegrity')}
+              title={ts('labels.referencesFromCuratedLibrary')}
+              icon={BookOpen}
+              topics={buildScriptureIntegrityTopics(ts)}
+              theme={theme}
+              ts={ts}
+              railLabel={ts('labels.scriptureIntegrity')}
+              cardClassName="w-[12.5rem] sm:w-[13rem]"
+            />
           </div>
         ) : null}
 
@@ -25509,7 +26207,6 @@ function ReflectPanel({
       <section className="rounded-[1.55rem] border p-4 shadow-[0_10px_28px_rgba(15,23,42,0.06)] sm:p-5" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="relative max-w-2xl">
-            <InfoHint text={runtime.reflectIntro} theme={theme} placement="corner" surface="hero" />
             <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>{ts('nav.reflect')}</p>
             <h2 className="mt-2 text-[1.42rem] font-semibold leading-[1.02] text-balance sm:text-[1.72rem]" style={{ color: theme.textPrimary }}>
               {ts('labels.discernmentReflectionQuietPlace')}
@@ -26005,12 +26702,6 @@ function GratitudeLensPanel({
       >
       <section className="grid min-w-0 gap-4 xl:grid-cols-[0.95fr_1.05fr]">
         <div className="relative rounded-xl border p-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-          <InfoHint
-            text={ts('labels.gratitudeLensBodyTooltip')}
-            theme={theme}
-            placement="corner"
-            surface="standard"
-          />
           <div className="flex items-start gap-3">
             <div className="grid size-10 shrink-0 place-items-center rounded-md" style={{ backgroundColor: theme.bgInput, color: theme.primary }}>
               <Camera size={18} />
@@ -26024,12 +26715,6 @@ function GratitudeLensPanel({
           </div>
 
           <div className="relative mt-3 rounded-xl border p-2.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
-            <InfoHint
-              text={ts('labels.gratitudeNoticingBodyTooltip')}
-              theme={theme}
-              placement="corner"
-              surface="dense"
-            />
             <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
               {ts('labels.gratitudeNoticingQuestion')}
             </p>
@@ -26066,7 +26751,6 @@ function GratitudeLensPanel({
               </div>
             ) : (
               <div className="relative aspect-[4/3] w-full">
-                <InfoHint text={ts('labels.gratitudePhotoPrivate')} theme={theme} placement="corner" surface="dense" />
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
@@ -26280,8 +26964,7 @@ function GratitudeLensPanel({
             <Plus size={16} />
             {isSaving ? ts('labels.saving') : ts('labels.saveGratitude')}
           </button>
-          <div className="relative mt-3 pr-5 sm:pr-6 text-xs leading-5" style={{ color: theme.textMuted }}>
-            <InfoHint text={`${ts('labels.gratitudePrivacyNote')} ${ts('labels.suggestedGratitudeRhythm').replace("{time}", gratitudeRhythmLabel)}`} theme={theme} placement="corner" surface="dense" />
+          <div className="mt-3 text-xs leading-5" style={{ color: theme.textMuted }}>
             <span>{ts('labels.privateByDefaultEyebrow')}</span>
           </div>
         </div>
@@ -26553,8 +27236,7 @@ function LibraryPanel({
       {librarySection === "explore" ? (
         <section className="min-w-0 rounded-xl border p-3.5 shadow-sm sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div className="relative">
-              <InfoHint text={runtime.libraryDescription} theme={theme} placement="corner" surface="standard" />
+            <div className="min-w-0">
               <div className="flex items-center gap-2 text-lg font-semibold" style={{ color: theme.textPrimary }}>
                 <span
                   className="grid size-9 shrink-0 place-items-center rounded-full border shadow-sm"
@@ -26569,7 +27251,7 @@ function LibraryPanel({
                 </span>
                 {ts('labels.wisdomLibrary')}
               </div>
-              <div className="mt-1.5 pr-5 sm:pr-6 md:pr-7 text-sm leading-5" style={{ color: theme.textSecondary }}>
+              <div className="mt-1.5 text-sm leading-5" style={{ color: theme.textSecondary }}>
                 <span>{runtime.libraryDescription}</span>
               </div>
             </div>
