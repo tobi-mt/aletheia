@@ -26741,15 +26741,7 @@ function GratitudeLensPanel({
   const selectedEntry = visibleEntries.find((entry) => entry.id === selectedEntryId) ?? latestEntry ?? null;
   const visibleTimelineEntries = visibleEntries;
   const summary = visibleEntries.length
-    ? `${visibleEntries.length} ${visibleEntries.length === 1 ? ts('labels.gratitudeMoment') : ts('labels.gratitudeMoments')} · ${
-      !signedIn
-        ? ts('labels.localOnly')
-        : syncStatus === "synced"
-          ? ts('labels.accountSyncActive')
-          : syncStatus === "syncing"
-            ? `${ts('labels.sync')}...`
-            : ts('labels.notSynced')
-    }`
+    ? `${visibleEntries.length} ${visibleEntries.length === 1 ? ts('labels.gratitudeMoment') : ts('labels.gratitudeMoments')}`
     : ts('labels.gratitudeEmptySummary');
   const weeklyEntries = visibleEntries.filter((entry) => {
     const entryTime = new Date(entry.createdAt).getTime();
@@ -26781,15 +26773,32 @@ function GratitudeLensPanel({
           setGratitudeDetailOpen(false);
         }}
       />
-      <DisclosureSection
-        title={ts('labels.gratitudeLens')}
-        summary={summary}
-        eyebrow={ts('labels.visualGratitude')}
-        defaultOpen={entries.length === 0}
-        showDetailsLabel={ts('showDetails')}
-        hideDetailsLabel={ts('hideDetails')}
-        theme={theme}
-      >
+      <div className="mb-4 flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
+            {ts('labels.visualGratitude')}
+          </p>
+          <h2 className="mt-1 text-2xl font-semibold tracking-tight" style={{ color: theme.textPrimary }}>
+            {ts('labels.gratitudeLens')}
+          </h2>
+          <p className="mt-1.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
+            {summary}
+          </p>
+        </div>
+        <span
+          className="shrink-0 rounded-full border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.14em]"
+          style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
+        >
+          {!signedIn
+            ? ts('labels.localOnly')
+            : syncStatus === "synced"
+              ? ts('labels.active')
+              : syncStatus === "syncing"
+                ? `${ts('labels.sync')}...`
+                : ts('labels.notSynced')}
+        </span>
+      </div>
+
       <section className="grid min-w-0 gap-4 xl:grid-cols-[0.95fr_1.05fr]">
         <div className="relative rounded-xl border p-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
           <div className="flex items-start gap-3">
@@ -27174,7 +27183,6 @@ function GratitudeLensPanel({
           )}
         </div>
       </section>
-      </DisclosureSection>
     </div>
   );
 }
