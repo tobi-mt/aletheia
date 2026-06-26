@@ -17212,9 +17212,7 @@ function FormationRailSection({
     target?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
   }, [selectedChallenge, selectedChallengeFocusedDay]);
 
-  const visibleChallengeCards = activeChallengeProgress
-    ? displayChallenges.filter((challenge) => challenge.id === activeChallengeProgress.id)
-    : displayChallenges;
+  const visibleChallengeCards = displayChallenges;
 
   function completedDaysFor(challenge: ChallengeWithProgress) {
     return challenge.completedDays.length;
