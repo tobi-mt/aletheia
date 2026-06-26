@@ -17493,7 +17493,7 @@ function FormationRailSection({
 
       {visibleChallengeCards.length ? (
         <>
-          <div className="flex gap-3 overflow-x-auto pb-2 [-webkit-overflow-scrolling:touch]">
+          <div className="flex gap-4 overflow-x-auto pb-3 [-webkit-overflow-scrolling:touch]">
             {visibleChallengeCards.map((challenge) => {
               const done = completedDaysFor(challenge);
               const circle = challengeCircles.find((item) => item.challengeId === challenge.id) ?? null;
@@ -17523,7 +17523,7 @@ function FormationRailSection({
                     setSelectedDayNumber(null);
                     setOpenDayDetailDay(null);
                   }}
-                  className="relative flex w-[17.25rem] shrink-0 snap-start flex-col rounded-[1.35rem] border p-3.5 text-left shadow-[0_6px_14px_rgba(7,10,8,0.05)] transition active:scale-[0.99]"
+                  className="relative flex w-[18.25rem] shrink-0 snap-start flex-col rounded-[1.45rem] border p-4 text-left shadow-[0_6px_14px_rgba(7,10,8,0.05)] transition active:scale-[0.99]"
                   style={{
                     borderColor: isActive ? theme.primary : theme.borderLight,
                     backgroundColor: isActive ? theme.bgCardElevated : theme.bgCard,
@@ -17535,24 +17535,26 @@ function FormationRailSection({
                       <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
                         {isActive ? ts("challenges.continueChallenge") : ts("challenges.eyebrow")}
                       </p>
-                      <p className="mt-1 text-sm font-semibold leading-5" style={{ color: theme.textPrimary }}>
+                      <p className="mt-1 text-[0.95rem] font-semibold leading-5" style={{ color: theme.textPrimary }}>
                         {ts(challenge.titleKey, challenge.title)}
                       </p>
                     </div>
-                    <span className="shrink-0 text-xs font-semibold tabular-nums leading-none" style={{ color: theme.textMuted }}>
+                    <span className="shrink-0 text-[11px] font-semibold tabular-nums leading-none" style={{ color: theme.textMuted }}>
                       {done}/{challenge.totalDays}
                     </span>
                   </div>
-                  <p className="mt-3 line-clamp-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                  <p className="mt-3 line-clamp-1 text-[0.92rem] leading-6" style={{ color: theme.textSecondary }}>
                     {ts(challenge.descriptionKey, challenge.description)}
                   </p>
-                  <div className="mt-3 flex items-center justify-between gap-2 text-xs leading-5" style={{ color: theme.textMuted }}>
-                    <span className="font-semibold" style={{ color: theme.textSecondary }}>
-                      {progressLabel}
-                    </span>
-                    <span className="truncate text-right">
-                      {circle ? `${circle.memberCount} ${ts("challenges.withFriends")}` : challenge.mode}
-                    </span>
+                  <div className="mt-4 border-t pt-2.5" style={{ borderColor: theme.borderLight }}>
+                    <div className="flex items-center justify-between gap-2 text-[11px] leading-5" style={{ color: theme.textMuted }}>
+                      <span className="font-semibold" style={{ color: theme.textSecondary }}>
+                        {progressLabel}
+                      </span>
+                      <span className="truncate text-right">
+                        {circle ? `${circle.memberCount} ${ts("challenges.withFriends")}` : challenge.mode}
+                      </span>
+                    </div>
                   </div>
                 </button>
               );
