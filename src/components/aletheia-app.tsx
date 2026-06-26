@@ -14216,11 +14216,8 @@ function HomeDashboard({
                 <p className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
                   {text.todayQuestionLabel ?? ""}
                 </p>
-                <p className="mt-2 max-w-2xl text-[1.12rem] font-semibold leading-7 text-balance sm:text-[1.22rem] sm:leading-8" style={{ color: theme.textPrimary }}>
+                <p className="mt-2 max-w-2xl text-[1.24rem] font-semibold leading-[1.18] tracking-[-0.03em] text-balance sm:text-[1.42rem] sm:leading-[1.12]" style={{ color: theme.textPrimary }}>
                   {companionCard.question}
-                </p>
-                <p className="mt-2 max-w-2xl text-[0.92rem] leading-6" style={{ color: theme.textSecondary }}>
-                  {text.whatNextBody ?? ""}
                 </p>
               </div>
               <div className="grid size-10 shrink-0 place-items-center rounded-[1rem] border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
@@ -14239,13 +14236,8 @@ function HomeDashboard({
                 boxShadow: `0 14px 26px color-mix(in srgb, ${theme.primary} 18%, transparent)`,
               }}
             >
-              <span className="min-w-0">
-                <span className="block text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: "rgba(255,255,255,0.82)" }}>
-                  {activeDecision ? text.continueDecision : text.askOneQuestion}
-                </span>
-                <span className="mt-1 block text-[0.98rem] font-semibold leading-6 text-balance sm:text-[1.04rem]">
-                  {todayQuestionCardAction.label}
-                </span>
+              <span className="min-w-0 text-[1rem] font-semibold leading-6 text-balance sm:text-[1.06rem]">
+                {todayQuestionCardAction.label}
               </span>
               <ArrowUpRight size={16} />
             </button>
