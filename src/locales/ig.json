@@ -1681,6 +1681,7 @@
     "startChallenge": "Malite omume",
     "continueChallenge": "Gaa n'ihu",
     "completedChallenge": "Ezubere",
+    "completedToday": "Emechara maka taa",
     "dayLabel": "Ụbọchị {day}",
     "dayOf": "Ụbọchị {day} nke {total}",
     "daysCompleted": "{count} nke {total} ụbọchị",

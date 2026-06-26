@@ -1681,6 +1681,7 @@
     "startChallenge": "Fara aiki",
     "continueChallenge": "Ci gaba",
     "completedChallenge": "Gama",
+    "completedToday": "An gama na yau",
     "dayLabel": "Rana {day}",
     "dayOf": "Rana {day} daga {total}",
     "daysCompleted": "{count} daga {total} ranaku",

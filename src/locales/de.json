@@ -1681,6 +1681,7 @@
     "startChallenge": "Praxis beginnen",
     "continueChallenge": "Fortsetzen",
     "completedChallenge": "Abgeschlossen",
+    "completedToday": "Für heute erledigt",
     "dayLabel": "Tag {day}",
     "dayOf": "Tag {day} von {total}",
     "daysCompleted": "{count} von {total} Tagen",

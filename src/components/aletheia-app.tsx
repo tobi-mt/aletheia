@@ -15827,6 +15827,7 @@ function FormationsSection({
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [savingDay, setSavingDay] = useState<{ challengeId: string; day: number } | null>(null);
   const [reflectionText, setReflectionText] = useState("");
+  const [renderTimestampMs] = useState(() => Date.now());
   const sectionRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -16066,10 +16067,16 @@ async function shareChallengeDayPostcard(challenge: ChallengeWithProgress, day: 
         const done = completedDaysFor(challenge);
         const total = challenge.totalDays;
         const next = nextDayFor(challenge);
+        const progressState = getChallengeProgressState({
+          completedDays: done,
+          totalDays: total,
+          lastCompletedAt: challenge.completedDays.at(-1)?.completedAt ?? null,
+        }, renderTimestampMs);
         const isComplete = done >= total;
+        const completedToday = progressState === "completed_today";
         const isExpanded = expandedId === challenge.id || pendingChallengeId === challenge.id;
         const isSaving = savingDay?.challengeId === challenge.id;
-        const nextPrompt = isComplete ? null : getDayPrompt(challenge.id, next);
+        const nextPrompt = isComplete || completedToday ? null : getDayPrompt(challenge.id, next);
 
         const titleText = ts(challenge.titleKey, challenge.title);
         const descText = ts(challenge.descriptionKey, challenge.description);
@@ -16146,7 +16153,7 @@ async function shareChallengeDayPostcard(challenge: ChallengeWithProgress, day: 
                 </div>
 
                 {/* Next day prompt */}
-                {!isComplete && nextPrompt && (
+                {!isComplete && !completedToday && nextPrompt && (
                   <div
                     className="rounded-[1rem] border p-3 space-y-2"
                     style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}
@@ -16189,9 +16196,15 @@ async function shareChallengeDayPostcard(challenge: ChallengeWithProgress, day: 
                   </div>
                 )}
 
+                {completedToday && !isComplete ? (
+                  <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>
+                    {ts("challenges.completedToday")}
+                  </p>
+                ) : null}
+
                 {/* Action row */}
                 <div className="flex items-center justify-between gap-2 flex-wrap">
-                  {!isComplete && (
+                  {!isComplete && !completedToday && (
                     <p className="text-xs" style={{ color: theme.textMuted }}>
                       {ts("challenges.dayLabel", `Day ${next}`).replace("{day}", String(next))} · {nextPrompt ? ts(nextPrompt.practiceKey, nextPrompt.practice) : ""}
                     </p>
@@ -16465,7 +16478,21 @@ function FormationRailSection({
   const readWithMeInviteRecipients = readWithMeInviteDetails?.recipients ?? [];
   const readWithMeInviteResponses = selectedCircle?.responses ?? [];
   const readWithMeInviteCreatedAt = selectedCircle?.invite.createdAt ?? null;
-  const selectedChallengeNextDay = selectedChallenge ? nextDayFor(selectedChallenge) : 1;
+  const selectedChallengeProgressState = selectedChallenge
+    ? getChallengeProgressState(
+        {
+          completedDays: selectedChallenge.completedDays.length,
+          totalDays: selectedChallenge.totalDays,
+          lastCompletedAt: selectedChallenge.completedDays.at(-1)?.completedAt ?? null,
+        },
+        currentTimestampMs
+      )
+    : null;
+  const selectedChallengeNextDay = selectedChallenge
+    ? selectedChallengeProgressState === "completed_today"
+      ? Math.min(selectedChallenge.completedDays.length, selectedChallenge.totalDays)
+      : nextDayFor(selectedChallenge)
+    : 1;
 
   function updateReadWithMeInviteDraft(patch: Partial<ReadWithMeInviteDetails>) {
     setReadWithMeInviteDraft((current) => ({ ...current, ...patch }));
@@ -16969,6 +16996,8 @@ function FormationRailSection({
               const progressLabel =
                 progressState === "completed"
                   ? ts("challenges.completedChallenge")
+                  : progressState === "completed_today"
+                    ? ts("challenges.completedToday")
                   : progressState === "not_started"
                     ? ts("challenges.startChallenge")
                     : progressState === "inactive"
@@ -17098,7 +17127,9 @@ function FormationRailSection({
                       {ts(selectedChallenge.titleKey, selectedChallenge.title)}
                     </h4>
                     <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
-                      Tap the current day card below to open the full practice.
+                      {selectedChallengeProgressState === "completed_today"
+                        ? ts("challenges.completedToday")
+                        : "Tap the current day card below to open the full practice."}
                     </p>
                     <div className="mt-4 h-2 overflow-hidden rounded-full" style={{ backgroundColor: theme.bgInput }}>
                       <div

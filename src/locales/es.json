@@ -1681,6 +1681,7 @@
     "startChallenge": "Comenzar práctica",
     "continueChallenge": "Continuar",
     "completedChallenge": "Completado",
+    "completedToday": "Hecho por hoy",
     "dayLabel": "Día {day}",
     "dayOf": "Día {day} de {total}",
     "daysCompleted": "{count} de {total} días",

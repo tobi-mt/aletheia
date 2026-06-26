@@ -1681,6 +1681,7 @@
     "startChallenge": "Bẹ̀rẹ̀ i'ṣẹ́",
     "continueChallenge": "Tẹ́síwájú",
     "completedChallenge": "Tan",
+    "completedToday": "Ti pari fún òní",
     "dayLabel": "Ọjọ́ {day}",
     "dayOf": "Ọjọ́ {day} nínú {total}",
     "daysCompleted": "{count} nínú {total} ọjọ́",

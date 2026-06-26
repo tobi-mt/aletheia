@@ -1681,6 +1681,7 @@
     "startChallenge": "अभ्यास शुरू करें",
     "continueChallenge": "जारी रखें",
     "completedChallenge": "पूर्ण",
+    "completedToday": "आज के लिए पूरा",
     "dayLabel": "दिन {day}",
     "dayOf": "दिन {day} का {total}",
     "daysCompleted": "{count} का {total} दिन",

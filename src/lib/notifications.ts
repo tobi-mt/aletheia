@@ -4,7 +4,7 @@ import { many, one, run } from "@/lib/db";
 import { localizedDailyWisdom, normalizePreferences, type BibleTranslation, type LanguageCode, type RegionCode } from "@/lib/localization";
 import { getWisdomEntries } from "@/lib/wisdom";
 import { selectDailyWisdomIndex } from "@/lib/wisdom-data";
-import { getChallengeById } from "@/lib/challenge-data";
+import { getChallengeById, type ChallengeId } from "@/lib/challenge-data";
 import { recommendChallenges } from "@/lib/challenge-recommendations";
 import { normalizeManualContext, type ManualContextProfile } from "@/lib/manual-context";
 import { loadTranslationsSync, getTranslation } from "@/lib/translations";
@@ -1017,6 +1017,828 @@ function reminderCopyLanguage(language: LanguageCode) {
   return copy[language] ?? copy.en!;
 }
 
+const challengeReminderReentryCopy: Partial<Record<LanguageCode, string>> = {
+  en: "You missed a day, and you do not need to start over. The practice is still here.",
+  es: "Perdiste un día, y no necesitas empezar de nuevo. La práctica sigue aquí.",
+  fr: "Tu as manqué un jour, et tu n'as pas besoin de recommencer. La pratique est toujours là.",
+  pt: "Você perdeu um dia, e não precisa recomeçar. A prática ainda está aqui.",
+  de: "Du hast einen Tag verpasst, und du musst nicht von vorne anfangen. Die Übung ist noch da.",
+  yo: "O padanu ọjọ́ kan, o kò sì nílò láti bẹ̀rẹ̀ láti ìbẹ̀rẹ̀. Ìṣe náà ṣi wà níbí.",
+  ig: "Ị tụfuru otu ụbọchị, ma ị gaghị amalite ọzọ. Omume ahụ ka nọ ebe a.",
+  ha: "Ka rasa wata rana, kuma ba ka bukatar ka fara daga farko. Aikin har yanzu yana nan.",
+  tl: "May isang araw na namiss ka, at hindi mo kailangang magsimula ulit. Nandito pa rin ang pagsasanay.",
+  ar: "فاتك يوم، ولا تحتاج أن تبدأ من جديد. ما زالت الممارسة هنا.",
+  hi: "आपने एक दिन छोड़ दिया, और आपको फिर से शुरू करने की ज़रूरत नहीं है। अभ्यास अभी भी यहाँ है।",
+};
+
+const challengeReentryToneCopy: Record<
+  LanguageCode,
+  { early: string; longer: string }
+> = {
+  en: {
+    early: "Let’s make this easy to pick back up.",
+    longer: "Let’s shrink the step and re-enter gently.",
+  },
+  es: {
+    early: "Hagamos que retomar esto sea fácil.",
+    longer: "Acortemos el paso y volvamos con suavidad.",
+  },
+  fr: {
+    early: "Rendons la reprise simple.",
+    longer: "Réduisons l'effort et revenons en douceur.",
+  },
+  pt: {
+    early: "Vamos facilitar retomar isso.",
+    longer: "Vamos diminuir o passo e voltar com gentileza.",
+  },
+  de: {
+    early: "Lass uns den Wiedereinstieg leicht machen.",
+    longer: "Lass uns den Schritt verkleinern und sanft zurückkehren.",
+  },
+  yo: {
+    early: "Jẹ́ kí padà sí i rọrùn.",
+    longer: "Ẹ jẹ́ ká dín ìgbésẹ̀ kù, ká sì padà pẹ̀lẹ́pẹ̀lẹ́.",
+  },
+  ig: {
+    early: "Ka mee ka ịlaghachi bụrụ ihe dị mfe.",
+    longer: "Ka anyị belata nzọụkwụ ma laghachi nwayọ.",
+  },
+  ha: {
+    early: "Mu dawowa ya zama mai sauki.",
+    longer: "Mu rage matakin, mu dawo a hankali.",
+  },
+  tl: {
+    early: "Gawin nating madali ang pagbalik.",
+    longer: "Paliitin natin ang hakbang at bumalik nang banayad.",
+  },
+  ar: {
+    early: "لنجعل العودة سهلة.",
+    longer: "لنصغّر الخطوة ونعود بلطف.",
+  },
+  hi: {
+    early: "इसे फिर से शुरू करना आसान बनाते हैं.",
+    longer: "चलिए कदम छोटा करें और नरमी से लौटें.",
+  },
+};
+
+const challengeReentryTitleCopy: Record<
+  LanguageCode,
+  { early: string; longer: string }
+> = {
+  en: {
+    early: "Easy restart",
+    longer: "Gentle return",
+  },
+  es: {
+    early: "Retoma fácil",
+    longer: "Regreso suave",
+  },
+  fr: {
+    early: "Reprise simple",
+    longer: "Retour en douceur",
+  },
+  pt: {
+    early: "Retomada fácil",
+    longer: "Retorno suave",
+  },
+  de: {
+    early: "Leichter Neustart",
+    longer: "Sanfte Rückkehr",
+  },
+  yo: {
+    early: "Padà rọrùn",
+    longer: "Padà pẹ̀lẹ́pẹ̀lẹ́",
+  },
+  ig: {
+    early: "Mmepụta mfe",
+    longer: "Nloghachi nwayọ",
+  },
+  ha: {
+    early: "Saukin farawa",
+    longer: "Dawowa a hankali",
+  },
+  tl: {
+    early: "Madaling balik",
+    longer: "Banayad na balik",
+  },
+  ar: {
+    early: "عودة سهلة",
+    longer: "عودة بلطف",
+  },
+  hi: {
+    early: "आसान शुरुआत",
+    longer: "नरम वापसी",
+  },
+};
+
+const challengeAwareReentryTitleCopy: Record<ChallengeId, Partial<Record<LanguageCode, { early: string; longer: string }>>> = {
+  "gratitude-3day": {
+    en: { early: "Back to gratitude", longer: "Returning to gratitude" },
+    es: { early: "Vuelve a la gratitud", longer: "Retorno a la gratitud" },
+    fr: { early: "Retour à la gratitude", longer: "Reprise de la gratitude" },
+    pt: { early: "De volta à gratidão", longer: "Retorno à gratidão" },
+    de: { early: "Zur Dankbarkeit zurück", longer: "Rückkehr zur Dankbarkeit" },
+    yo: { early: "Padà sí ìdúpẹ́", longer: "Padà sí ìdúpẹ́ pẹ̀lẹ́" },
+    ig: { early: "Laghachi na ekele", longer: "Nloghachi na ekele" },
+    ha: { early: "Komawa ga godiya", longer: "Komawa cikin godiya" },
+    tl: { early: "Balik sa pasasalamat", longer: "Pagbabalik sa pasasalamat" },
+    ar: { early: "عودة إلى الامتنان", longer: "العودة إلى الامتنان" },
+    hi: { early: "कृतज्ञता पर वापसी", longer: "कृतज्ञता की ओर लौटें" },
+  },
+  "shared-encouragement-3day": {
+    en: { early: "One encouraging word", longer: "A gentler encouragement" },
+    es: { early: "Una palabra de ánimo", longer: "Un ánimo más suave" },
+    fr: { early: "Un mot d'encouragement", longer: "Un encouragement plus doux" },
+    pt: { early: "Uma palavra de incentivo", longer: "Um incentivo mais suave" },
+    de: { early: "Ein ermutigendes Wort", longer: "Sanftere Ermutigung" },
+    yo: { early: "Ọ̀rọ̀ ìṣírí kan", longer: "Ìṣírí pẹ̀lẹ́pẹ̀lẹ́" },
+    ig: { early: "Otu okwu nkwado", longer: "Nkwado dị nro" },
+    ha: { early: "Kalma guda ta ƙarfafawa", longer: "Karfafawa mai laushi" },
+    tl: { early: "Isang salitang pampalakas", longer: "Mas banayad na pampalakas" },
+    ar: { early: "كلمة تشجيع واحدة", longer: "تشجيع ألطف" },
+    hi: { early: "एक उत्साहवर्धक शब्द", longer: "और कोमल उत्साह" },
+  },
+  "waiting-5day": {
+    en: { early: "Still waiting", longer: "Waiting with peace" },
+    es: { early: "Sigue esperando", longer: "Esperar en paz" },
+    fr: { early: "Toujours en attente", longer: "Attendre en paix" },
+    pt: { early: "Ainda esperando", longer: "Esperar em paz" },
+    de: { early: "Noch im Warten", longer: "Warten mit Frieden" },
+    yo: { early: "Ṣì ń dúró", longer: "Dúró pẹ̀lú àlàáfíà" },
+    ig: { early: "Ka na-echere", longer: "Ichere n'udo" },
+    ha: { early: "Har yanzu jira", longer: "Jira cikin salama" },
+    tl: { early: "Naghihintay pa rin", longer: "Paghihintay nang payapa" },
+    ar: { early: "ما زال الانتظار", longer: "انتظار بسلام" },
+    hi: { early: "अभी भी प्रतीक्षा", longer: "शांति से प्रतीक्षा" },
+  },
+  "stewardship-7day": {
+    en: { early: "Back to stewardship", longer: "Stewardship, calmly" },
+    es: { early: "Vuelve a la mayordomía", longer: "Mayordomía con calma" },
+    fr: { early: "Retour à l'intendance", longer: "Intendance en paix" },
+    pt: { early: "De volta à mordomia", longer: "Mordomia com calma" },
+    de: { early: "Zur Treue im Umgang", longer: "Treue im Umgang, ruhig" },
+    yo: { early: "Padà sí ìṣàkóso", longer: "Ìṣàkóso pẹ̀lú ìdákẹ́jẹ" },
+    ig: { early: "Laghachi na nlekọta", longer: "Nlekọta nwayọ" },
+    ha: { early: "Komawa ga kulawa", longer: "Kulawa cikin natsuwa" },
+    tl: { early: "Balik sa pagiging katiwala", longer: "Katiwala nang mahinahon" },
+    ar: { early: "عودة إلى الأمانة", longer: "الأمانة بهدوء" },
+    hi: { early: "अभिभावकता पर वापसी", longer: "शांति से अभिभावकता" },
+  },
+  "sabbath-rest-5day": {
+    en: { early: "Return to rest", longer: "Rest, gently" },
+    es: { early: "Vuelve al descanso", longer: "Descanso con suavidad" },
+    fr: { early: "Retour au repos", longer: "Repos en douceur" },
+    pt: { early: "Volte ao descanso", longer: "Descanso com gentileza" },
+    de: { early: "Zur Ruhe zurück", longer: "Sanfte Ruhe" },
+    yo: { early: "Padà sí ìsinmi", longer: "Ìsinmi pẹ̀lẹ́" },
+    ig: { early: "Laghachi na izu ike", longer: "Izu ike nwayọ" },
+    ha: { early: "Komawa ga hutu", longer: "Hutu a hankali" },
+    tl: { early: "Balik sa pahinga", longer: "Banayad na pahinga" },
+    ar: { early: "عودة إلى الراحة", longer: "راحة بلطف" },
+    hi: { early: "आराम पर वापसी", longer: "नरम आराम" },
+  },
+  "listening-3day": {
+    en: { early: "Listen first", longer: "Listening again" },
+    es: { early: "Escucha primero", longer: "Escuchar de nuevo" },
+    fr: { early: "Écoute d'abord", longer: "Écouter à nouveau" },
+    pt: { early: "Ouça primeiro", longer: "Voltando a ouvir" },
+    de: { early: "Erst zuhören", longer: "Wieder zuhören" },
+    yo: { early: "Gbọ́ kọ́kọ́", longer: "Gbọ́ lẹ́ẹ̀kansi" },
+    ig: { early: "Gee ntị mbụ", longer: "Ige ntị ọzọ" },
+    ha: { early: "Saurara da farko", longer: "Sauraro kuma" },
+    tl: { early: "Makinig muna", longer: "Makinig muli" },
+    ar: { early: "أنصت أولًا", longer: "الإنصات من جديد" },
+    hi: { early: "पहले सुनें", longer: "फिर से सुनना" },
+  },
+  "repair-4day": {
+    en: { early: "Repair, gently", longer: "A softer repair" },
+    es: { early: "Repara, con suavidad", longer: "Una reparación más suave" },
+    fr: { early: "Réparer, en douceur", longer: "Une réparation plus douce" },
+    pt: { early: "Reparar, com gentileza", longer: "Uma reparação mais suave" },
+    de: { early: "Sanft reparieren", longer: "Eine sanftere Reparatur" },
+    yo: { early: "Túnṣe pẹ̀lẹ́", longer: "Túnṣe tó rọrùn síi" },
+    ig: { early: "Dozie nwayọ", longer: "Ndozi dị nro" },
+    ha: { early: "Gyara a hankali", longer: "Gyara mai laushi" },
+    tl: { early: "Ayusin nang banayad", longer: "Mas banayad na pag-aayos" },
+    ar: { early: "إصلاح بلطف", longer: "إصلاح ألطف" },
+    hi: { early: "नरमी से सुधार", longer: "और कोमल सुधार" },
+  },
+  "generosity-7day": {
+    en: { early: "Open hands again", longer: "Give from margin" },
+    es: { early: "Manos abiertas otra vez", longer: "Dar desde el margen" },
+    fr: { early: "Mains ouvertes à nouveau", longer: "Donner depuis la marge" },
+    pt: { early: "Mãos abertas de novo", longer: "Dar a partir da sobra" },
+    de: { early: "Wieder offene Hände", longer: "Aus dem Spielraum geben" },
+    yo: { early: "Ọwọ́ ṣí lẹ́ẹ̀kansi", longer: "Fi láti àyè rẹ" },
+    ig: { early: "Aka-emeghe ọzọ", longer: "Nye site n'ụgwọ" },
+    ha: { early: "Bude hannu kuma", longer: "Ba daga abin da ya rage" },
+    tl: { early: "Bukas-kamay muli", longer: "Magbigay mula sa sobra" },
+    ar: { early: "الأيادي المفتوحة من جديد", longer: "أعطِ من السعة" },
+    hi: { early: "फिर से खुले हाथ", longer: "अपनी क्षमता से दें" },
+  },
+  "attention-fast-5day": {
+    en: { early: "A quieter focus", longer: "Return to silence" },
+    es: { early: "Un enfoque más quieto", longer: "Volver al silencio" },
+    fr: { early: "Un focus plus calme", longer: "Retour au silence" },
+    pt: { early: "Um foco mais quieto", longer: "Voltar ao silêncio" },
+    de: { early: "Mehr ruhiger Fokus", longer: "Zur Stille zurück" },
+    yo: { early: "Ìfojúsùn tó dakẹ́", longer: "Padà sí ìdákẹ́jẹ" },
+    ig: { early: "Elezigharị dị jụụ", longer: "Laghachi na nkịtị" },
+    ha: { early: "Hankali mai natsuwa", longer: "Komawa ga shiru" },
+    tl: { early: "Mas tahimik na pokus", longer: "Balik sa katahimikan" },
+    ar: { early: "تركيز أهدأ", longer: "عودة إلى الصمت" },
+    hi: { early: "अधिक शांत ध्यान", longer: "सन्नाटे में वापसी" },
+  },
+  "hidden-service-5day": {
+    en: { early: "Quiet service again", longer: "One hidden act" },
+    es: { early: "Servicio silencioso otra vez", longer: "Un acto oculto" },
+    fr: { early: "Service discret à nouveau", longer: "Un geste caché" },
+    pt: { early: "Serviço silencioso de novo", longer: "Um ato escondido" },
+    de: { early: "Wieder still dienen", longer: "Eine verborgene Tat" },
+    yo: { early: "Ìránṣẹ́ pẹ̀lẹ́ lẹ́ẹ̀kansi", longer: "Ìṣe tí ó farapamọ́ kan" },
+    ig: { early: "Ọrụ zoro ezo ọzọ", longer: "Otu omume zoro ezo" },
+    ha: { early: "Hidima a hankali kuma", longer: "Aiki guda a ɓoye" },
+    tl: { early: "Tahimik na paglilingkod muli", longer: "Isang nakatagong gawa" },
+    ar: { early: "خدمة هادئة من جديد", longer: "فعل خفي واحد" },
+    hi: { early: "फिर से शांत सेवा", longer: "एक छिपा हुआ काम" },
+  },
+  "read-with-me-7day": {
+    en: { early: "One page more", longer: "A quiet return" },
+    es: { early: "Una página más", longer: "Un regreso tranquilo" },
+    fr: { early: "Une page de plus", longer: "Un retour paisible" },
+    pt: { early: "Mais uma página", longer: "Um retorno silencioso" },
+    de: { early: "Eine Seite mehr", longer: "Ruhige Rückkehr" },
+    yo: { early: "Ojúewé kan síi", longer: "Padà pẹ̀lẹ́" },
+    ig: { early: "Otu ibe ọzọ", longer: "Nloghachi dị jụụ" },
+    ha: { early: "Shafi daya kuma", longer: "Dawowa mai natsuwa" },
+    tl: { early: "Isa pang pahina", longer: "Tahimik na pagbabalik" },
+    ar: { early: "صفحة أخرى", longer: "عودة هادئة" },
+    hi: { early: "एक और पन्ना", longer: "शांत वापसी" },
+  },
+};
+
+const challengeReminderContinueCopy: Partial<Record<LanguageCode, string>> = {
+  en: "Continue · {dayLabel}: {practice}",
+  es: "Continúa · {dayLabel}: {practice}",
+  fr: "Continue · {dayLabel} : {practice}",
+  pt: "Continue · {dayLabel}: {practice}",
+  de: "Weiter · {dayLabel}: {practice}",
+  yo: "Tẹ̀síwájú · {dayLabel}: {practice}",
+  ig: "Gaa n'ihu · {dayLabel}: {practice}",
+  ha: "Ci gaba · {dayLabel}: {practice}",
+  tl: "Magpatuloy · {dayLabel}: {practice}",
+  ar: "تابع · {dayLabel}: {practice}",
+  hi: "जारी रखें · {dayLabel}: {practice}",
+};
+
+const challengeReturnOnRampCopy: Record<ChallengeId, Partial<Record<LanguageCode, string[]>>> = {
+  "gratitude-3day": {
+    en: [
+      "Start with one ordinary mercy you can name in 10 seconds.",
+      "One gift is enough to reopen the practice.",
+    ],
+    es: [
+      "Empieza con una misericordia cotidiana que puedas nombrar en 10 segundos.",
+      "Un solo regalo basta para retomar la práctica.",
+    ],
+    fr: [
+      "Commence par une grâce ordinaire que tu peux nommer en 10 secondes.",
+      "Un seul don suffit pour rouvrir la pratique.",
+    ],
+    pt: [
+      "Comece com uma misericórdia comum que você possa nomear em 10 segundos.",
+      "Um único presente já basta para reabrir a prática.",
+    ],
+    de: [
+      "Beginne mit einer alltäglichen Gnade, die du in 10 Sekunden benennen kannst.",
+      "Eine einzige Gabe reicht, um die Übung wieder zu öffnen.",
+    ],
+    yo: [
+      "Bẹrẹ pẹlu aanu ojoojúmọ́ kan tí o lè darukọ ní aaya 10.",
+      "Ẹ̀bùn kan ṣoṣo tó láì tó láti tún ìṣe náà ṣí.",
+    ],
+    ig: [
+      "Bido na otu ebere kwa ụbọchị ị nwere ike ịkpọ aha n'ime sekọnd iri.",
+      "Onyinye otu zuru ezu iji mepee omume ahụ ọzọ.",
+    ],
+    ha: [
+      "Ka fara da wata alheri ta yau da kullum da za ka iya ambata cikin sakan 10.",
+      "Kyauta guda daya ta isa ta sake bude aikin.",
+    ],
+    tl: [
+      "Magsimula sa isang karaniwang biyaya na kaya mong pangalanan sa 10 segundo.",
+      "Sapat na ang isang handog para muling buksan ang pagsasanay.",
+    ],
+    ar: [
+      "ابدأ بنعمةٍ عادية تستطيع أن تذكرها في 10 ثوانٍ.",
+      "هدية واحدة تكفي لإعادة فتح الممارسة.",
+    ],
+    hi: [
+      "10 सेकंड में नाम ले सकने वाली एक साधारण कृपा से शुरू करें.",
+      "एक उपहार ही अभ्यास को फिर से खोलने के लिए पर्याप्त है.",
+    ],
+  },
+  "shared-encouragement-3day": {
+    en: [
+      "Send one plain, specific encouragement. That is the whole re-entry.",
+      "One kind sentence can restart the rhythm.",
+    ],
+    es: [
+      "Envía un ánimo concreto y sencillo. Esa es toda la vuelta.",
+      "Una frase amable puede reiniciar el ritmo.",
+    ],
+    fr: [
+      "Envoie un encouragement simple et précis. C'est tout le retour.",
+      "Une phrase bienveillante peut relancer le rythme.",
+    ],
+    pt: [
+      "Envie um encorajamento simples e específico. Isso já é o retorno.",
+      "Uma frase gentil pode reiniciar o ritmo.",
+    ],
+    de: [
+      "Sende eine einfache, konkrete Ermutigung. Das ist der ganze Wiedereinstieg.",
+      "Ein freundlicher Satz kann den Rhythmus neu starten.",
+    ],
+    yo: [
+      "Rán ọ̀rọ̀ ìṣírí kan tó rọrùn, tó sì dájú. Ìpadà náà niyẹn.",
+      "Gbólóhùn onínúure kan lè tún ìrìnàjò náà bẹ̀rẹ̀.",
+    ],
+    ig: [
+      "Ziga otu nkwado dị mfe, kpọmkwem. Nke ahụ bụ nloghachi ahụ dum.",
+      "Otu ahịrị obiọma nwere ike ịmaliteghachi usoro ahụ.",
+    ],
+    ha: [
+      "Aika kalmar karfafawa guda daya mai sauki kuma takamaimai. Wannan shi ne dawowa.",
+      "Jimla mai tausayi guda daya na iya dawo da tsarin.",
+    ],
+    tl: [
+      "Magpadala ng isang payak at tiyak na pampalakas-loob. Iyan na ang buong pagbabalik.",
+      "Isang mabait na pangungusap ang makapag-uumpisa muli ng ritmo.",
+    ],
+    ar: [
+      "أرسل تشجيعًا واحدًا بسيطًا ومحددًا. هذه هي العودة كاملة.",
+      "جملة واحدة لطيفة تكفي لإعادة الإيقاع.",
+    ],
+    hi: [
+      "एक सीधा, विशिष्ट उत्साहवर्धन भेजें. यही पूरी वापसी है.",
+      "एक दयालु वाक्य लय को फिर से शुरू कर सकता है.",
+    ],
+  },
+  "waiting-5day": {
+    en: [
+      "Return gently: one breath, one honest note, no rush.",
+      "Waiting can resume quietly. Begin where you are.",
+    ],
+    es: [
+      "Vuelve con calma: una respiración, una nota honesta, sin prisa.",
+      "La espera puede retomarse en silencio. Empieza donde estás.",
+    ],
+    fr: [
+      "Reviens doucement : une respiration, une note honnête, sans hâte.",
+      "L'attente peut reprendre en silence. Commence là où tu es.",
+    ],
+    pt: [
+      "Volte com calma: uma respiração, uma nota honesta, sem pressa.",
+      "A espera pode continuar em silêncio. Comece de onde você está.",
+    ],
+    de: [
+      "Kehre sanft zurück: ein Atemzug, eine ehrliche Notiz, keine Eile.",
+      "Warten darf leise weitergehen. Beginne dort, wo du bist.",
+    ],
+    yo: [
+      "Padà pẹ̀lẹ́: ìmí kan, àkọsílẹ̀ tòótọ́ kan, kó sì sí ìkánjú.",
+      "Dúró le tún bẹ̀rẹ̀ ní ìdákẹ́jẹ. Bẹ̀rẹ̀ níbi tí o wà.",
+    ],
+    ig: [
+      "Laghachi nwayọ: iku ume otu, ndetu eziokwu otu, enweghị ọsọ.",
+      "Ichere nwere ike ịga n'ihu nwayọ. Bido ebe ị nọ.",
+    ],
+    ha: [
+      "Ka dawo a hankali: numfashi daya, rubutu daya na gaskiya, babu gaggawa.",
+      "Jira na iya ci gaba a hankali. Fara daga inda kake.",
+    ],
+    tl: [
+      "Bumalik nang banayad: isang hininga, isang tapat na tala, walang pagmamadali.",
+      "Maaaring magpatuloy ang paghihintay nang tahimik. Magsimula kung nasaan ka.",
+    ],
+    ar: [
+      "ارجع بلطف: نفس واحد، وملاحظة صادقة، بلا استعجال.",
+      "يمكن للانتظار أن يستأنف بهدوء. ابدأ من حيث أنت.",
+    ],
+    hi: [
+      "नरमी से लौटें: एक साँस, एक ईमानदार नोट, कोई जल्दबाज़ी नहीं.",
+      "प्रतीक्षा शांतिपूर्वक जारी रह सकती है. जहाँ हैं वहीं से शुरू करें.",
+    ],
+  },
+  "stewardship-7day": {
+    en: [
+      "Come back to the numbers with kindness, not pressure.",
+      "One clear, honest check-in is enough to begin again.",
+    ],
+    es: [
+      "Vuelve a los números con amabilidad, no con presión.",
+      "Una revisión clara y honesta basta para empezar otra vez.",
+    ],
+    fr: [
+      "Reviens aux chiffres avec douceur, pas avec pression.",
+      "Un point clair et honnête suffit pour recommencer.",
+    ],
+    pt: [
+      "Volte aos números com gentileza, não com pressão.",
+      "Uma checagem clara e honesta basta para recomeçar.",
+    ],
+    de: [
+      "Kehre mit Freundlichkeit zu den Zahlen zurück, nicht mit Druck.",
+      "Ein klarer, ehrlicher Blick reicht, um neu zu beginnen.",
+    ],
+    yo: [
+      "Padà sí àwọn nǹkan ìṣírò pẹ̀lú inúure, kì í ṣe pẹ̀lú ìfipá.",
+      "Ìṣàyẹ̀wò kedere kan tó jẹ́ òtítọ́ tó láti bẹ̀rẹ̀ síi.",
+    ],
+    ig: [
+      "Laghachi na ọnụọgụgụ n'obiọma, ọ bụghị nrụgide.",
+      "Nlele doro anya, eziokwu otu zuru ezu iji malite ọzọ.",
+    ],
+    ha: [
+      "Ka dawo ga lambobi da tausayi, ba tare da matsin lamba ba.",
+      "Duba daya mai bayyana kuma na gaskiya ya isa ka fara kuma.",
+    ],
+    tl: [
+      "Bumalik sa mga numero nang may kabaitan, hindi presyon.",
+      "Sapat na ang isang malinaw at tapat na pagsusuri para magsimulang muli.",
+    ],
+    ar: [
+      "عد إلى الأرقام بلطف لا بضغط.",
+      "يكفي فحصٌ واحد واضح وصادق لتبدأ من جديد.",
+    ],
+    hi: [
+      "संख्याओं पर दया के साथ लौटें, दबाव के साथ नहीं.",
+      "एक स्पष्ट, ईमानदार जाँच फिर से शुरू करने के लिए काफी है.",
+    ],
+  },
+  "sabbath-rest-5day": {
+    en: [
+      "Let rest return without ceremony. Make one small pause.",
+      "Take a quieter breath and let the pace soften.",
+    ],
+    es: [
+      "Deja que el descanso vuelva sin ceremonia. Haz una pausa pequeña.",
+      "Toma una respiración más tranquila y deja que el ritmo afloje.",
+    ],
+    fr: [
+      "Laisse le repos revenir sans cérémonie. Fais une petite pause.",
+      "Prends une respiration plus calme et laisse le rythme s'adoucir.",
+    ],
+    pt: [
+      "Deixe o descanso voltar sem cerimônia. Faça uma pequena pausa.",
+      "Respire com mais calma e deixe o ritmo amolecer.",
+    ],
+    de: [
+      "Lass die Ruhe ohne Zeremonie zurückkommen. Mach eine kleine Pause.",
+      "Atme leiser und lass das Tempo sanfter werden.",
+    ],
+    yo: [
+      "Jẹ́ kí ìsinmi padà láìsí ìpẹ̀yà. Gba ìdákẹ́jẹ kékeré kan.",
+      "Mí sí i ní kíkankíkan kéré, kí ìtẹ̀síwájú rọra.",
+    ],
+    ig: [
+      "Ka ezumike lọghachi n'enweghị emume. Mee obere nkwụsị.",
+      "Kwụsị ume nwayọ ma hapụ ọsọ ndụ ka ọ dị nro.",
+    ],
+    ha: [
+      "Ka hutawa ta dawo ba tare da al'ada ba. Yi dan dakata kaɗan.",
+      "Yi numfashi a hankali, ka bar saurin ya lafa.",
+    ],
+    tl: [
+      "Hayaan ang pahinga na bumalik nang walang seremonya. Magpahinga sandali.",
+      "Huminga nang mas tahimik at hayaang lumambot ang bilis.",
+    ],
+    ar: [
+      "دع الراحة تعود بلا طقوس. خذ وقفة صغيرة.",
+      "خذ نفسًا أهدأ ودع الوتيرة تلين.",
+    ],
+    hi: [
+      "आराम को बिना रस्म के लौटने दें. एक छोटी-सी विराम लें.",
+      "थोड़ी शांत साँस लें और गति को नरम होने दें.",
+    ],
+  },
+  "listening-3day": {
+    en: [
+      "Begin again by listening for one minute before you answer.",
+      "Listen first, and let that be enough for today.",
+    ],
+    es: [
+      "Empieza de nuevo escuchando un minuto antes de responder.",
+      "Escucha primero y deja que eso baste por hoy.",
+    ],
+    fr: [
+      "Recommence en écoutant une minute avant de répondre.",
+      "Écoute d'abord, et cela suffit pour aujourd'hui.",
+    ],
+    pt: [
+      "Comece de novo ouvindo por um minuto antes de responder.",
+      "Ouça primeiro, e deixe isso bastar por hoje.",
+    ],
+    de: [
+      "Beginne neu, indem du eine Minute zuhörst, bevor du antwortest.",
+      "Hör zuerst zu, und lass das für heute genügen.",
+    ],
+    yo: [
+      "Bẹ̀rẹ̀ síi nípa fífi ìsẹ́jú kan gbọ́ kí o tó dáhùn.",
+      "Gbọ́ kọ́kọ́, kí ó sì tó fún òní.",
+    ],
+    ig: [
+      "Malite ọzọ site n'ige ntị otu nkeji tupu ịza.",
+      "Gee ntị mbụ, ma hapụ nke ahụ zuo ezu maka taa.",
+    ],
+    ha: [
+      "Fara kuma da sauraro na minti daya kafin ka amsa.",
+      "Saurara da farko, kuma hakan ya isa na yau.",
+    ],
+    tl: [
+      "Magsimulang muli sa pakikinig nang isang minuto bago sumagot.",
+      "Makinig muna, at hayaang sapat na iyon para ngayon.",
+    ],
+    ar: [
+      "ابدأ من جديد بالإنصات دقيقة واحدة قبل أن تجيب.",
+      "أنصت أولًا، ودع ذلك يكفي لليوم.",
+    ],
+    hi: [
+      "जवाब देने से पहले एक मिनट सुनकर फिर से शुरू करें.",
+      "पहले सुनें, और आज के लिए इतना ही काफी रहने दें.",
+    ],
+  },
+  "repair-4day": {
+    en: [
+      "You do not have to fix the whole story today.",
+      "Return with one truthful sentence and one kind step.",
+    ],
+    es: [
+      "No tienes que arreglar toda la historia hoy.",
+      "Vuelve con una frase honesta y un paso amable.",
+    ],
+    fr: [
+      "Tu n'as pas à réparer toute l'histoire aujourd'hui.",
+      "Reviens avec une phrase vraie et un geste bienveillant.",
+    ],
+    pt: [
+      "Você não precisa consertar toda a história hoje.",
+      "Volte com uma frase verdadeira e um passo gentil.",
+    ],
+    de: [
+      "Du musst heute nicht die ganze Geschichte reparieren.",
+      "Kehre mit einem ehrlichen Satz und einem freundlichen Schritt zurück.",
+    ],
+    yo: [
+      "O kò ní láti tún gbogbo ìtàn náà ṣe lónìí.",
+      "Padà pẹ̀lú gbolóhùn òtítọ́ kan àti ìgbésẹ̀ onínúure kan.",
+    ],
+    ig: [
+      "Ị gaghị edozi akụkọ dum taa.",
+      "Laghachi na ahịrịokwu eziokwu otu na nzọụkwụ obiọma otu.",
+    ],
+    ha: [
+      "Ba sai ka gyara dukan labarin yau ba.",
+      "Ka dawo da jimla guda ta gaskiya da mataki guda na alheri.",
+    ],
+    tl: [
+      "Hindi mo kailangang ayusin ang buong kuwento ngayon.",
+      "Bumalik na may isang tapat na pangungusap at isang mabait na hakbang.",
+    ],
+    ar: [
+      "لستَ مضطرًا لإصلاح القصة كلها اليوم.",
+      "ارجع بجملة صادقة وخطوة لطيفة.",
+    ],
+    hi: [
+      "आज पूरी कहानी सुधारने की ज़रूरत नहीं है.",
+      "एक सच्चे वाक्य और एक दयालु कदम के साथ लौटें.",
+    ],
+  },
+  "generosity-7day": {
+    en: [
+      "Give from margin, not pressure. One free act is enough.",
+      "Re-enter with one open-handed step.",
+    ],
+    es: [
+      "Da desde el margen, no desde la presión. Un acto libre basta.",
+      "Vuelve con un paso de mano abierta.",
+    ],
+    fr: [
+      "Donne depuis la marge, pas sous pression. Un geste libre suffit.",
+      "Reviens avec un pas ouvert.",
+    ],
+    pt: [
+      "Doe a partir da sobra, não da pressão. Um ato livre basta.",
+      "Volte com um passo de mão aberta.",
+    ],
+    de: [
+      "Gib aus dem Spielraum, nicht aus Druck. Eine freie Tat reicht.",
+      "Kehre mit einem offenen Schritt zurück.",
+    ],
+    yo: [
+      "Fi láti ẹ̀yà ìdákọja rẹ, kì í ṣe lábẹ́ ìfipá. Ìṣe òmìnira kan tó.",
+      "Padà pẹ̀lú ìgbésẹ̀ ọwọ́-ṣí kan.",
+    ],
+    ig: [
+      "Nyee site n'ókè ụsọ, ọ bụghị nrụgide. Omume nnwere onwe otu zuru ezu.",
+      "Laghachi na nzọụkwụ aka-emeghe otu.",
+    ],
+    ha: [
+      "Ka bayar daga abin da ya rage, ba daga matsin lamba ba. Aiki guda mai 'yanci ya isa.",
+      "Ka dawo da mataki guda mai bude hannu.",
+    ],
+    tl: [
+      "Magbigay mula sa sobra, hindi sa pressure. Sapat na ang isang malayang gawa.",
+      "Bumalik na may isang bukas-kamay na hakbang.",
+    ],
+    ar: [
+      "أعطِ من السعة لا من الضغط. يكفي فعلٌ واحدٌ حر.",
+      "ارجع بخطوة واحدة منفتحة اليد.",
+    ],
+    hi: [
+      "दबाव से नहीं, अपनी क्षमता से दें. एक मुक्त कार्य पर्याप्त है.",
+      "एक खुले हाथ वाले कदम के साथ लौटें.",
+    ],
+  },
+  "attention-fast-5day": {
+    en: [
+      "Choose one quiet gap from the noise and begin there.",
+      "Return by making one small pocket of silence.",
+    ],
+    es: [
+      "Elige un pequeño hueco de silencio dentro del ruido y empieza ahí.",
+      "Vuelve creando un pequeño bolsillo de silencio.",
+    ],
+    fr: [
+      "Choisis un petit espace de calme dans le bruit et commence là.",
+      "Reviens en créant une petite poche de silence.",
+    ],
+    pt: [
+      "Escolha um pequeno intervalo de silêncio no ruído e comece ali.",
+      "Volte criando um pequeno bolso de silêncio.",
+    ],
+    de: [
+      "Wähle eine kleine ruhige Lücke im Lärm und beginne dort.",
+      "Kehre zurück, indem du eine kleine Stille schaffst.",
+    ],
+    yo: [
+      "Yan ààyè ìdákẹ́jẹ kan nínú ariwo, kí o sì bẹ̀rẹ̀ níbẹ̀.",
+      "Padà nípa ṣíṣe àpò ìdákẹ́jẹ kékeré kan.",
+    ],
+    ig: [
+      "Họrọ oghere dị jụụ n'etiti mkpọtụ wee bido ebe ahụ.",
+      "Laghachi site n'ime obere akpa nke nkịtị.",
+    ],
+    ha: [
+      "Zabi wani karamin gurbi na natsuwa daga hayaniya ka fara daga can.",
+      "Ka dawo ta hanyar kirkirar karamin aljihun shiru.",
+    ],
+    tl: [
+      "Pumili ng isang tahimik na puwang sa gitna ng ingay at doon magsimula.",
+      "Bumalik sa paggawa ng isang maliit na bulsa ng katahimikan.",
+    ],
+    ar: [
+      "اختر فراغًا هادئًا صغيرًا من الضجيج وابدأ منه.",
+      "ارجع بصنع جيب صغير من الصمت.",
+    ],
+    hi: [
+      "शोर के बीच एक छोटा शांत विराम चुनें और वहीं से शुरू करें.",
+      "सन्नाटे की एक छोटी-सी जेब बनाकर लौटें.",
+    ],
+  },
+  "hidden-service-5day": {
+    en: [
+      "Do one quiet good thing unseen, and let that count.",
+      "Re-enter by serving without needing credit.",
+    ],
+    es: [
+      "Haz una buena acción silenciosa y oculta, y deja que cuente.",
+      "Vuelve sirviendo sin buscar reconocimiento.",
+    ],
+    fr: [
+      "Fais une bonne action discrète et cachée, et laisse-la compter.",
+      "Reviens en servant sans chercher de crédit.",
+    ],
+    pt: [
+      "Faça uma boa ação silenciosa e escondida, e deixe isso contar.",
+      "Volte servindo sem precisar de crédito.",
+    ],
+    de: [
+      "Tu eine stille, verborgene gute Tat und lass sie zählen.",
+      "Kehre zurück, indem du dienst, ohne Anerkennung zu brauchen.",
+    ],
+    yo: [
+      "Ṣe ohun rere kan ní ìdákẹ́jẹ, láì jẹ́ kó hàn, kí o sì jẹ́ kó ka.",
+      "Padà nípa sísin láì nílò ìyìn.",
+    ],
+    ig: [
+      "Mee ezigbo ihe otu nwayọ, nke a na-ahụghị, ma hapụ ka ọ gụọ.",
+      "Laghachi site n'ijere ozi na-enweghị mkpa otuto.",
+    ],
+    ha: [
+      "Yi abuɗe mai kyau guda daya a ɓoye, ka bar shi ya ƙidayu.",
+      "Ka dawo ta hanyar yin hidima ba tare da neman yabo ba.",
+    ],
+    tl: [
+      "Gumawa ng isang tahimik at hindi nakikitang kabutihan, at hayaang mabilang iyon.",
+      "Bumalik sa paglilingkod nang hindi naghahanap ng papuri.",
+    ],
+    ar: [
+      "افعل خيرًا هادئًا واحدًا في الخفاء، ودعه يُحتسب.",
+      "ارجع بالخدمة دون حاجةٍ إلى التصفيق.",
+    ],
+    hi: [
+      "एक शांत, अनदेखा भला काम करें, और उसे गिनने दें.",
+      "बिना श्रेय की ज़रूरत के सेवा करके लौटें.",
+    ],
+  },
+  "read-with-me-7day": {
+    en: [
+      "Open one page, not the whole book.",
+      "Ease back in with a single paragraph and no pressure.",
+    ],
+    es: [
+      "Abre una sola página, no todo el libro.",
+      "Vuelve con un solo párrafo y sin presión.",
+    ],
+    fr: [
+      "Ouvre une seule page, pas tout le livre.",
+      "Reviens avec un seul paragraphe, sans pression.",
+    ],
+    pt: [
+      "Abra uma página, não o livro inteiro.",
+      "Volte com um único parágrafo e sem pressão.",
+    ],
+    de: [
+      "Öffne nur eine Seite, nicht das ganze Buch.",
+      "Kehre mit einem einzigen Absatz und ohne Druck zurück.",
+    ],
+    yo: [
+      "Ṣí ojúewé kan ṣoṣo, kì í ṣe gbogbo ìwé.",
+      "Padà pẹ̀lú àrọ̀kọ kan ṣoṣo, láìsí ìfipá.",
+    ],
+    ig: [
+      "Mepee otu ibe naanị, ọ bụghị akwụkwọ dum.",
+      "Laghachi na paragraf otu, enweghị nrụgide.",
+    ],
+    ha: [
+      "Bude shafi daya kawai, ba dukan littafi ba.",
+      "Ka dawo da sakin layi guda daya ba tare da matsin lamba ba.",
+    ],
+    tl: [
+      "Buksan ang isang pahina, hindi ang buong libro.",
+      "Bumalik na may isang talata lang at walang pressure.",
+    ],
+    ar: [
+      "افتح صفحة واحدة، لا الكتاب كله.",
+      "ارجع بفقرة واحدة فقط، بلا ضغط.",
+    ],
+    hi: [
+      "सिर्फ एक पन्ना खोलें, पूरी किताब नहीं.",
+      "एक ही अनुच्छेद के साथ, बिना दबाव के वापस आएँ.",
+    ],
+  },
+};
+
+function challengeReminderReentryIntro(language: LanguageCode, challengeId: ChallengeId) {
+  const challengeCopy = challengeReturnOnRampCopy[challengeId];
+  const challengeSpecific = challengeCopy[language] ?? challengeCopy.en ?? [];
+  const base = challengeReminderReentryCopy[language] ?? challengeReminderReentryCopy.en!;
+  return [base, ...challengeSpecific];
+}
+
+function challengeReentryTone(language: LanguageCode, tone: "early" | "longer") {
+  return challengeReentryToneCopy[language]?.[tone] ?? challengeReentryToneCopy.en[tone];
+}
+
+function challengeReentryTitleSuffix(language: LanguageCode, tone: "early" | "longer") {
+  return challengeReentryTitleCopy[language]?.[tone] ?? challengeReentryTitleCopy.en[tone];
+}
+
+function challengeSpecificReentryTitle(input: {
+  language: LanguageCode;
+  challengeId: ChallengeId;
+  tone: "early" | "longer";
+}) {
+  const challengeCopy = challengeAwareReentryTitleCopy[input.challengeId];
+  const localized = challengeCopy[input.language] ?? challengeCopy.en;
+  if (localized) {
+    return localized[input.tone];
+  }
+
+  return challengeReentryTitleSuffix(input.language, input.tone);
+}
+
+function localCalendarDayGap(current: string, previous: string) {
+  const currentMs = Date.parse(`${current}T00:00:00Z`);
+  const previousMs = Date.parse(`${previous}T00:00:00Z`);
+  if (!Number.isFinite(currentMs) || !Number.isFinite(previousMs)) {
+    return 0;
+  }
+
+  return Math.floor((currentMs - previousMs) / (24 * 60 * 60 * 1000));
+}
+
 function followupNotificationPayload(reminder: DueDecisionReminder) {
   const trimmedTitle = reminder.title.replace(/\s+/g, " ").trim();
   const copy = reminderCopyLanguage(reminder.language);
@@ -1034,6 +1856,47 @@ function followupNotificationPayload(reminder: DueDecisionReminder) {
     reminderKind: reminder.kind,
     notificationKind: "decision_followup",
   };
+}
+
+function challengeReminderBody(input: {
+  language: LanguageCode;
+  challengeId: ChallengeId;
+  tone: "early" | "longer";
+  dayLabel: string;
+  practiceText: string;
+  reentry: boolean;
+}) {
+  const cleanDayLabel = compactNotificationCopy(normalizeNotificationSegment(input.dayLabel, "Day 1"), 24);
+  const cleanPractice = compactNotificationCopy(normalizeNotificationSegment(input.practiceText, "Open today's practice."), 104);
+  if (input.reentry) {
+    const intro = challengeReminderReentryIntro(input.language, input.challengeId);
+    const variant = stableHash(`${input.challengeId}:${input.language}:${cleanDayLabel}:${cleanPractice}`) % Math.max(1, intro.length);
+    const selectedIntro = intro[variant] ?? intro[0] ?? challengeReminderReentryCopy.en!;
+    return compactNotificationCopy(
+      `${challengeReentryTone(input.language, input.tone)} ${selectedIntro} ${cleanDayLabel}: ${cleanPractice}`,
+      156
+    );
+  }
+
+  const copy = challengeReminderContinueCopy[input.language] ?? challengeReminderContinueCopy.en!;
+  return compactNotificationCopy(copy.replace("{dayLabel}", cleanDayLabel).replace("{practice}", cleanPractice), 156);
+}
+
+function challengeReminderTitle(input: {
+  language: LanguageCode;
+  baseTitle: string;
+  challengeId: ChallengeId;
+  tone: "early" | "longer";
+  reentry: boolean;
+}) {
+  if (!input.reentry) {
+    return input.baseTitle;
+  }
+
+  return compactNotificationCopy(
+    `${input.baseTitle} · ${challengeSpecificReentryTitle(input)}`,
+    68
+  );
 }
 
 function localHourForTimezone(date: Date, timezone: string | null | undefined) {
@@ -1582,7 +2445,7 @@ export async function sendChallengeReminders(now = new Date()): Promise<{
       return challengeId;
     }
     const translations = loadTranslationsSync(language);
-    return getTranslation(translations, challenge.titleKey, challenge.title);
+    return String(getTranslation(translations, challenge.titleKey, challenge.title));
   }
 
   let attempted = 0;
@@ -1600,6 +2463,8 @@ export async function sendChallengeReminders(now = new Date()): Promise<{
 
   for (const [userId, userRows] of dueByUser.entries()) {
     const userProgress = progressByUser.get(userId) ?? [];
+    const userTimezone = userRows[0]?.preferred_timezone ?? "UTC";
+    const localToday = localDateForTimezone(now, userTimezone);
 
     // Find the in-progress challenge with the most recent activity
     const active = userProgress
@@ -1609,16 +2474,30 @@ export async function sendChallengeReminders(now = new Date()): Promise<{
       })
       .sort((a, b) => b.lastCompletedAt.getTime() - a.lastCompletedAt.getTime())[0];
 
+    const activeLastCompletedLocalDate = active
+      ? localDateForTimezone(active.lastCompletedAt, userTimezone)
+      : null;
+    const daysSinceLastCompletion =
+      activeLastCompletedLocalDate ? localCalendarDayGap(localToday, activeLastCompletedLocalDate) : null;
+
+    if (active && daysSinceLastCompletion === 0) {
+      continue;
+    }
+
     let challengeId: string;
     let nextDay: number;
     let practiceKey: string;
     let practiceFallback: string;
     let isSuggestion = false;
+    let shouldReengage = false;
+    let reentryTone: "early" | "longer" = "early";
 
     if (active) {
       const def = getChallengeById(active.challengeId)!;
       challengeId = active.challengeId;
       nextDay = active.daysCompleted + 1;
+      shouldReengage = Boolean(daysSinceLastCompletion !== null && daysSinceLastCompletion > 1);
+      reentryTone = daysSinceLastCompletion !== null && daysSinceLastCompletion >= 3 ? "longer" : "early";
       const dayPrompt = def.days.find((d) => d.day === nextDay);
       if (!dayPrompt) continue;
       practiceKey = dayPrompt.practiceKey;
@@ -1653,10 +2532,11 @@ export async function sendChallengeReminders(now = new Date()): Promise<{
 
     const language = normalizePreferences({ language: (userRows[0]?.language ?? "en") as LanguageCode }).language;
     const translations = loadTranslationsSync(language);
-    const title = localizedChallengeTitle(challengeId, language);
+    const baseTitle = localizedChallengeTitle(challengeId, language);
     
     // Translate the practice key if we have one
     let body: string;
+    let title = baseTitle;
     if (isSuggestion) {
       const challenge = getChallengeById(challengeId);
       body = compactNotificationCopy(
@@ -1666,8 +2546,21 @@ export async function sendChallengeReminders(now = new Date()): Promise<{
     } else {
       const practiceText = getTranslation(translations, practiceKey, practiceFallback);
       const dayLabel = String(getTranslation(translations, "challenges.dayLabel", "challenges.dayLabel")).replace("{day}", String(nextDay));
-      const continueLabel = String(getTranslation(translations, "challenges.continueChallenge", "challenges.continueChallenge"));
-      body = `${continueLabel} · ${dayLabel}: ${typeof practiceText === "string" ? practiceText : practiceText[0] ?? practiceFallback}`;
+      body = challengeReminderBody({
+        language,
+        challengeId: challengeId as ChallengeId,
+        tone: reentryTone,
+        dayLabel,
+        practiceText: typeof practiceText === "string" ? practiceText : practiceText[0] ?? practiceFallback,
+        reentry: shouldReengage,
+      });
+      title = challengeReminderTitle({
+        language,
+        baseTitle,
+        challengeId: challengeId as ChallengeId,
+        tone: reentryTone,
+        reentry: shouldReengage,
+      });
     }
 
     const payload = JSON.stringify({

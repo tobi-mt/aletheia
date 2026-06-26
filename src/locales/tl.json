@@ -1681,6 +1681,7 @@
     "startChallenge": "Simulan ang ehersisyo",
     "continueChallenge": "Magpatuloy",
     "completedChallenge": "Tapos",
+    "completedToday": "Tapos na ngayon",
     "dayLabel": "Araw {day}",
     "dayOf": "Araw {day} ng {total}",
     "daysCompleted": "{count} ng {total} araw",
