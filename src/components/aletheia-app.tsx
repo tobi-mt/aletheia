@@ -26251,65 +26251,67 @@ function ReflectPanel({
         />
       ) : null}
 
-      {visibleReflectSection !== "formation" ? (
+      {visibleReflectSection === "check" ? (
         <>
-      {challengeRecommendation ? (
-        <ContextualNextAction
-          eyebrow={challengeRecommendation.actionKind === "continue" ? ts("challenges.continueChallenge") : ts("labels.suggestedAction")}
-          title={ts(challengeRecommendation.titleKey, challengeRecommendation.title)}
-          body={challengeRecommendation.actionKind === "continue"
-            ? `${ts("challenges.continueChallenge")}: ${challengeContinuationProgressLabel(challengeRecommendation, ts)}`
-            : ts(challengeRecommendation.descriptionKey, challengeRecommendation.description)}
-          actionLabel={challengeRecommendation.actionKind === "continue" ? ts("challenges.continueChallenge") : ts("challenges.startChallenge")}
-          onAction={() => {
-            setReflectSection("formation");
-            onOpenRecommendedChallenge(challengeRecommendation.challengeId);
-          }}
-          theme={theme}
-        />
-      ) : null}
-      <ContextualNextAction
-        eyebrow={runtime.nextInReflect}
-        title={reflectNextTitle}
-        body={reflectNextBody}
-        actionLabel={body.trim() ? ts('labels.saveReflection') : undefined}
-        onAction={body.trim() ? onSave : undefined}
-        theme={theme}
-      />
-      <section className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
-        {reflectOverviewCards
-          .filter((card) => card.section === visibleReflectSection)
-          .map((card) => (
-          <div key={card.label} className="rounded-[1.1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-            <p className="text-[10.5px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
-              {card.label}
-            </p>
-            <p className="mt-1.5 text-xl font-semibold" style={{ color: theme.textPrimary }}>
-              {card.value}
-            </p>
-            <p className="mt-2 text-sm leading-5" style={{ color: theme.textSecondary }}>
-              {card.body}
-            </p>
-          </div>
-        ))}
-      </section>
+          {challengeRecommendation ? (
+            <ContextualNextAction
+              eyebrow={challengeRecommendation.actionKind === "continue" ? ts("challenges.continueChallenge") : ts("labels.suggestedAction")}
+              title={ts(challengeRecommendation.titleKey, challengeRecommendation.title)}
+              body={challengeRecommendation.actionKind === "continue"
+                ? `${ts("challenges.continueChallenge")}: ${challengeContinuationProgressLabel(challengeRecommendation, ts)}`
+                : ts(challengeRecommendation.descriptionKey, challengeRecommendation.description)}
+              actionLabel={challengeRecommendation.actionKind === "continue" ? ts("challenges.continueChallenge") : ts("challenges.startChallenge")}
+              onAction={() => {
+                setReflectSection("formation");
+                onOpenRecommendedChallenge(challengeRecommendation.challengeId);
+              }}
+              theme={theme}
+            />
+          ) : null}
+          <ContextualNextAction
+            eyebrow={runtime.nextInReflect}
+            title={reflectNextTitle}
+            body={reflectNextBody}
+            actionLabel={body.trim() ? ts('labels.saveReflection') : undefined}
+            onAction={body.trim() ? onSave : undefined}
+            theme={theme}
+          />
+          <section className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
+            {reflectOverviewCards
+              .filter((card) => card.section === visibleReflectSection)
+              .map((card) => (
+                <div key={card.label} className="rounded-[1.1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                  <p className="text-[10.5px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
+                    {card.label}
+                  </p>
+                  <p className="mt-1.5 text-xl font-semibold" style={{ color: theme.textPrimary }}>
+                    {card.value}
+                  </p>
+                  <p className="mt-2 text-sm leading-5" style={{ color: theme.textSecondary }}>
+                    {card.body}
+                  </p>
+                </div>
+              ))}
+          </section>
 
-      <section className="rounded-[1.55rem] border p-4 shadow-[0_10px_28px_rgba(15,23,42,0.06)] sm:p-5" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div className="relative max-w-2xl">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>{ts('nav.reflect')}</p>
-            <h2 className="mt-2 text-[1.42rem] font-semibold leading-[1.02] text-balance sm:text-[1.72rem]" style={{ color: theme.textPrimary }}>
-              {ts('labels.discernmentReflectionQuietPlace')}
-            </h2>
-            <p className="mt-2 max-w-2xl text-sm leading-6 sm:text-[0.96rem] sm:leading-7" style={{ color: theme.textSecondary }}>
-              {runtime.reflectIntro}
-            </p>
-          </div>
-          <span className="inline-flex w-fit items-center rounded-full border px-3 py-2 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-            {modeProfile.label}
-          </span>
-        </div>
-      </section>
+          <section className="rounded-[1.55rem] border p-4 shadow-[0_10px_28px_rgba(15,23,42,0.06)] sm:p-5" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+              <div className="relative max-w-2xl">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>{ts('nav.reflect')}</p>
+                <h2 className="mt-2 text-[1.42rem] font-semibold leading-[1.02] text-balance sm:text-[1.72rem]" style={{ color: theme.textPrimary }}>
+                  {ts('labels.discernmentReflectionQuietPlace')}
+                </h2>
+                <p className="mt-2 max-w-2xl text-sm leading-6 sm:text-[0.96rem] sm:leading-7" style={{ color: theme.textSecondary }}>
+                  {runtime.reflectIntro}
+                </p>
+              </div>
+              <span className="inline-flex w-fit items-center rounded-full border px-3 py-2 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                {modeProfile.label}
+              </span>
+            </div>
+          </section>
+        </>
+      ) : null}
 
       {visibleReflectSection === "check" ? (
         <>
@@ -26322,7 +26324,7 @@ function ReflectPanel({
             theme={theme}
             ts={ts}
           />
-        )}
+      )}
         <DisclosureSection
           title={runtime.wisdomCheck}
           summary={result ? `${ts('labels.readiness')} ${result.readiness}/100 · ${result.hasUrgency ? runtime.wisdomCheckUrgency : runtime.wisdomCheckSlower}` : runtime.wisdomCheckSummaryDefault}
@@ -26351,19 +26353,19 @@ function ReflectPanel({
       ) : null}
 
       {visibleReflectSection === "gratitude" ? (
-      <GratitudeLensPanel
-        entries={gratitudeEntries}
-        syncStatus={gratitudeSyncStatus}
-        signedIn={signedIn}
-        language={language}
-        ts={ts}
-        theme={theme}
-        onSave={onSaveGratitude}
-        onUpdateGratitude={onUpdateGratitude}
-        onDeleteGratitude={onDeleteGratitude}
-        onShareGratitudePostcard={onShareGratitudePostcard}
-        onUseGratitudeAsReflectionPrompt={onUseGratitudeAsReflectionPrompt}
-      />
+        <GratitudeLensPanel
+          entries={gratitudeEntries}
+          syncStatus={gratitudeSyncStatus}
+          signedIn={signedIn}
+          language={language}
+          ts={ts}
+          theme={theme}
+          onSave={onSaveGratitude}
+          onUpdateGratitude={onUpdateGratitude}
+          onDeleteGratitude={onDeleteGratitude}
+          onShareGratitudePostcard={onShareGratitudePostcard}
+          onUseGratitudeAsReflectionPrompt={onUseGratitudeAsReflectionPrompt}
+        />
       ) : null}
 
       {visibleReflectSection === "journal" ? (
@@ -26381,8 +26383,6 @@ function ReflectPanel({
           ts={ts}
           theme={theme}
         />
-      ) : null}
-        </>
       ) : null}
     </div>
   );
