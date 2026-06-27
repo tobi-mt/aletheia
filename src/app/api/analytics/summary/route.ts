@@ -17,6 +17,7 @@ export async function GET(request: Request) {
   const summary = await analyticsSummary({ includeAutomation });
   return NextResponse.json({
     ...summary,
+    generatedAt: new Date().toISOString(),
     config: {
       geo_enrichment_enabled: geoEnrichmentEnabled,
     },

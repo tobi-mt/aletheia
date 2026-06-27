@@ -36,6 +36,9 @@ export type ChallengeRecommendation = {
   actionLabel: string;
   actionKind: "start" | "continue";
   progressState?: ChallengeProgressState;
+  statusLabel?: string;
+  statusBody?: string;
+  statusTone?: "neutral" | "warning" | "success";
 };
 
 export type ChallengeRecommendationBundle = {
@@ -758,6 +761,25 @@ export function recommendChallenges(input: ChallengeRecommendationContext): Chal
         const def = getChallengeById(activeChallengeId);
         if (!def) return null;
         const daysCompleted = activeChallengeSnapshot?.daysCompleted ?? 0;
+        const nextDay = Math.min(daysCompleted + 1, def.totalDays);
+        const statusLabel =
+          activeChallengeState === "inactive"
+            ? "Inactive"
+            : activeChallengeState === "completed_today"
+              ? "Done today"
+              : "In progress";
+        const statusTone =
+          activeChallengeState === "inactive"
+            ? "warning"
+            : activeChallengeState === "completed_today"
+              ? "success"
+              : "neutral";
+        const statusBody =
+          activeChallengeState === "inactive"
+            ? `Inactive: You missed a day. You do not need to start over. Re-enter gently with day ${nextDay} of ${def.totalDays}.`
+            : activeChallengeState === "completed_today"
+              ? `Done today: day ${nextDay} of ${def.totalDays} is waiting for tomorrow.`
+              : `Continue with day ${nextDay} of ${def.totalDays}.`;
         return {
           challengeId: def.id,
           titleKey: def.titleKey,
@@ -779,6 +801,9 @@ export function recommendChallenges(input: ChallengeRecommendationContext): Chal
           actionLabel: "continue",
           actionKind: "continue" as const,
           progressState: activeChallengeState ?? undefined,
+          statusLabel,
+          statusBody,
+          statusTone,
           note: `You are already partway through this practice. Keep the rhythm going with day ${Math.min(daysCompleted + 1, def.totalDays)}.`,
         } satisfies ChallengeRecommendation;
       })()

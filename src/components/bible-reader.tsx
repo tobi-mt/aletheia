@@ -159,6 +159,7 @@ export default function BibleReader({ preferences, theme, initialBook, initialCh
   const [showBookSelector, setShowBookSelector] = useState(!initialBook);
   const abortRef = useRef<AbortController | null>(null);
   const studyAbortRef = useRef<AbortController | null>(null);
+  const verseRefs = useRef<Record<string, HTMLElement | null>>({});
 
   const chapterCount = selectedBook ? (CHAPTER_COUNTS[selectedBook] ?? 1) : 1;
   const chapterTitle = selectedBook ? `${localizedBookName(selectedBook, preferences.language)} ${selectedChapter}` : "";
@@ -174,6 +175,7 @@ export default function BibleReader({ preferences, theme, initialBook, initialCh
     });
   }, [chapterData, preferences.language, preferences.bibleTranslation]);
   const displayedStudyData = studyData ?? localStudyData;
+  const verseCountLabel = chapterData ? `${chapterData.verses.length} ${ui.verses}` : ui.loading;
 
   const loadChapter = useCallback(async (book: string, chapter: number) => {
     if (!book) return;
@@ -288,6 +290,19 @@ export default function BibleReader({ preferences, theme, initialBook, initialCh
     setActiveTab("read");
   }
 
+  const scrollToVerse = useCallback((verse: number) => {
+    const target = verseRefs.current[String(verse)];
+    target?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, []);
+
+  const setVerseRef = useCallback((verse: number, node: HTMLElement | null) => {
+    if (node) {
+      verseRefs.current[String(verse)] = node;
+      return;
+    }
+    delete verseRefs.current[String(verse)];
+  }, []);
+
   const normalizedBookSearch = bookSearch.toLowerCase();
   const matchesBookSearch = (book: string) => {
     const localized = localizedBookName(book, preferences.language).toLowerCase();
@@ -342,7 +357,6 @@ export default function BibleReader({ preferences, theme, initialBook, initialCh
             placeholder={ui.search}
             value={bookSearch}
             onChange={(e) => setBookSearch(e.target.value)}
-            autoFocus
           />
         </div>
 
@@ -388,62 +402,49 @@ export default function BibleReader({ preferences, theme, initialBook, initialCh
   // ── Chapter reader pane ─────────────────────
   return (
     <div className="space-y-4" dir={isRtl ? "rtl" : "ltr"}>
-      <section className="rounded-2xl border p-4 shadow-sm sm:p-5" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
-        <div className="flex items-start justify-between gap-4">
+      <section className="rounded-[1.5rem] border p-4 shadow-sm sm:p-6" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
+        <div className="flex items-start gap-3 sm:gap-4">
           <div className="min-w-0">
-            <p className="text-[0.68rem] font-semibold uppercase tracking-[0.24em]" style={{ color: theme.accentGold }}>
-              {ui.chapter}
-            </p>
-            <h2 className="mt-2 truncate text-2xl font-semibold sm:text-[2rem]" style={{ color: theme.textPrimary }}>
+            <h2 className="truncate text-[1.35rem] font-semibold tracking-[-0.03em] leading-tight sm:text-[1.85rem]" style={{ color: theme.textPrimary }}>
               {chapterTitle || ui.selectBook}
             </h2>
-              <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
-                {chapterData ? `${chapterData.verses.length} ${ui.verses} · ${languageLabel}` : ui.loading}
-              </p>
-          </div>
-          <div className="grid size-12 shrink-0 place-items-center rounded-2xl border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
-            <Book size={18} />
+            <div className="mt-2.5 flex flex-wrap items-center gap-2 text-[0.66rem] font-semibold uppercase tracking-[0.15em]">
+              <span className="inline-flex items-center rounded-full border px-2.5 py-1" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                {verseCountLabel}
+              </span>
+              <span className="inline-flex items-center rounded-full border px-2.5 py-1" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                {languageLabel}
+              </span>
+              <span className="inline-flex items-center rounded-full border px-2.5 py-1" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                {preferences.bibleTranslation}
+              </span>
+              {showCloseEquivalentEditionNote ? (
+                <span
+                  className="inline-flex items-center justify-center rounded-full border p-1"
+                  style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
+                  title={ui.closeEquivalentEdition}
+                  aria-label={ui.closeEquivalentEdition}
+                >
+                  <Info size={10} aria-hidden="true" />
+                </span>
+              ) : null}
+              {chapterData?.fallbackTranslation ? (
+                <span
+                  className="inline-flex items-center rounded-full border px-3 py-1"
+                  style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
+                  title={`${ui.via} ${chapterData.fallbackTranslation}`}
+                >
+                  {ui.via} {chapterData.fallbackTranslation}
+                </span>
+              ) : null}
+            </div>
           </div>
         </div>
 
-        <div className="mt-4 flex flex-wrap items-center gap-2">
-          <span
-            className="inline-flex items-center rounded-full border px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.16em]"
-            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
-          >
-            {preferences.bibleTranslation}
-          </span>
-          <span
-            className="inline-flex items-center rounded-full border px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.16em]"
-            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
-          >
-            {languageLabel}
-          </span>
-          {showCloseEquivalentEditionNote ? (
-            <span
-              className="inline-flex items-center justify-center rounded-full border p-1"
-              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
-              title={ui.closeEquivalentEdition}
-              aria-label={ui.closeEquivalentEdition}
-            >
-              <Info size={10} aria-hidden="true" />
-            </span>
-          ) : null}
-          {chapterData?.fallbackTranslation ? (
-            <span
-              className="inline-flex items-center rounded-full border px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.16em]"
-              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
-              title={`${ui.via} ${chapterData.fallbackTranslation}`}
-            >
-              {ui.via} {chapterData.fallbackTranslation}
-            </span>
-          ) : null}
-        </div>
-
-        <div className="mt-4 flex flex-wrap items-center gap-2">
+        <div className="mt-4 flex flex-wrap items-center gap-2 sm:mt-5">
           <button
             onClick={() => setShowBookSelector(true)}
-            className="inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm font-medium transition hover:-translate-y-px hover:shadow-sm"
+            className="inline-flex items-center gap-2 rounded-full border px-3.5 py-2.5 text-[0.95rem] font-medium transition hover:-translate-y-px hover:shadow-sm"
             style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textPrimary }}
           >
             <Book size={15} aria-hidden="true" style={{ flexShrink: 0, color: theme.accentGold }} />
@@ -454,7 +455,7 @@ export default function BibleReader({ preferences, theme, initialBook, initialCh
             <button
               disabled={selectedChapter <= 1}
               onClick={() => setSelectedChapter((c) => Math.max(1, c - 1))}
-              className="rounded-full p-1.5 transition hover:opacity-70 disabled:cursor-not-allowed disabled:opacity-30"
+              className="rounded-full p-[0.4375rem] transition hover:opacity-70 disabled:cursor-not-allowed disabled:opacity-30"
               aria-label={chapterUi.previous}
             >
               <ChevronLeft size={15} style={{ color: theme.textPrimary }} />
@@ -462,7 +463,7 @@ export default function BibleReader({ preferences, theme, initialBook, initialCh
             <select
               value={selectedChapter}
               onChange={(e) => setSelectedChapter(Number(e.target.value))}
-              className="bg-transparent text-sm outline-none"
+              className="bg-transparent text-[0.95rem] outline-none"
               style={{ color: theme.textPrimary }}
               aria-label={ui.chapter}
             >
@@ -475,7 +476,7 @@ export default function BibleReader({ preferences, theme, initialBook, initialCh
             <button
               disabled={selectedChapter >= chapterCount}
               onClick={() => setSelectedChapter((c) => Math.min(chapterCount, c + 1))}
-              className="rounded-full p-1.5 transition hover:opacity-70 disabled:cursor-not-allowed disabled:opacity-30"
+              className="rounded-full p-[0.4375rem] transition hover:opacity-70 disabled:cursor-not-allowed disabled:opacity-30"
               aria-label={chapterUi.next}
             >
               <ChevronRight size={15} style={{ color: theme.textPrimary }} />
@@ -487,7 +488,7 @@ export default function BibleReader({ preferences, theme, initialBook, initialCh
       <div className="inline-flex items-center gap-1 rounded-2xl border p-1 shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
         <button
           onClick={() => setActiveTab("read")}
-          className="rounded-xl px-4 py-2 text-xs font-semibold transition"
+          className="rounded-xl px-4 py-2 text-[0.72rem] font-semibold tracking-[0.12em] transition"
           style={{
             backgroundColor: activeTab === "read" ? theme.bgCard : "transparent",
             color: activeTab === "read" ? theme.textPrimary : theme.textSecondary,
@@ -497,7 +498,7 @@ export default function BibleReader({ preferences, theme, initialBook, initialCh
         </button>
         <button
           onClick={() => setActiveTab("study")}
-          className="rounded-xl px-4 py-2 text-xs font-semibold transition"
+          className="rounded-xl px-4 py-2 text-[0.72rem] font-semibold tracking-[0.12em] transition"
           style={{
             backgroundColor: activeTab === "study" ? theme.bgCard : "transparent",
             color: activeTab === "study" ? theme.textPrimary : theme.textSecondary,
@@ -527,30 +528,57 @@ export default function BibleReader({ preferences, theme, initialBook, initialCh
             {ui.error}
           </div>
         ) : chapterData ? (
-          <div className="space-y-3">
+          <div className="space-y-3.5">
+            <section className="rounded-[1.35rem] border p-3.5 shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-[0.64rem] font-semibold uppercase tracking-[0.24em]" style={{ color: theme.accentGold }}>
+                  {ui.verses}
+                </p>
+                <p className="text-[0.68rem] font-medium tracking-[0.04em]" style={{ color: theme.textMuted }}>
+                  {localizedBookChapterReference(selectedBook, selectedChapter, preferences.language)}
+                </p>
+              </div>
+              <div className="mt-3.5 flex min-w-0 items-center gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
+                {chapterData.verses.map((v) => (
+                  <button
+                    key={v.verse}
+                    type="button"
+                    onClick={() => scrollToVerse(v.verse)}
+                    className="inline-flex h-9 shrink-0 items-center justify-center rounded-full border px-3 text-[0.82rem] font-semibold tracking-[0.02em] transition hover:-translate-y-px hover:shadow-sm"
+                    style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                    aria-label={`${ui.chapter} ${selectedChapter}, ${ui.verses} ${v.verse}`}
+                  >
+                    {v.verse}
+                  </button>
+                ))}
+              </div>
+            </section>
             {chapterData.verses.map((v, index) => (
               <article
                 key={v.verse}
-                className="rounded-2xl border p-4 shadow-sm"
+                ref={(node) => setVerseRef(v.verse, node)}
+                id={`verse-${v.verse}`}
+                tabIndex={-1}
+                className="scroll-mt-24 rounded-[1.35rem] border p-4 shadow-[0_6px_16px_rgba(7,10,8,0.045)] sm:p-5"
                 style={{
                   borderColor: theme.borderLight,
                   backgroundColor: index % 2 === 0 ? theme.bgCard : theme.bgCardElevated,
                 }}
               >
-                <div className="flex items-center justify-between gap-3">
-                  <div
-                    className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-[0.7rem] font-semibold"
+                <div className="flex items-start gap-3.5">
+                  <button
+                    type="button"
+                    onClick={() => scrollToVerse(v.verse)}
+                    className="inline-flex h-[2.125rem] w-[2.125rem] shrink-0 items-center justify-center rounded-full border text-[0.68rem] font-semibold transition hover:-translate-y-px hover:shadow-sm"
                     style={{ borderColor: theme.borderMedium, color: theme.accentGold, backgroundColor: theme.bgInput }}
+                    aria-label={`${ui.chapter} ${selectedChapter}, ${ui.verses} ${v.verse}`}
                   >
                     {v.verse}
-                  </div>
-                  <span className="text-[0.68rem] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.textMuted }}>
-                    {ui.readTab}
-                  </span>
+                  </button>
+                  <p className="min-w-0 flex-1 pt-0.5 text-[1rem] leading-8 tracking-[-0.01em] sm:text-[1.04rem] sm:leading-9" style={{ color: theme.textPrimary }}>
+                    {v.text}
+                  </p>
                 </div>
-                <p className="mt-3 text-[1.02rem] leading-8 sm:text-[1.06rem] sm:leading-9" style={{ color: theme.textPrimary }}>
-                  {v.text}
-                </p>
               </article>
             ))}
           </div>

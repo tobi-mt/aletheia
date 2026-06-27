@@ -320,12 +320,12 @@ export async function analyticsSummary(options: { includeAutomation?: boolean } 
            ('authenticated', 'auth_email_login_success', 2),
            ('authenticated', 'auth_email_register_success', 2),
            ('authenticated', 'auth_google_success', 2),
-           ('completed_onboarding', 'onboarding_completed', 2),
-           ('asked_question', 'question_asked', 3),
-           ('saved_reflection', 'journal_entry_created', 4),
-           ('started_decision', 'decision_created', 5),
-           ('enabled_notifications', 'notification_enabled', 6),
-           ('shared_or_invited', 'app_shared', 7)
+           ('completed_onboarding', 'onboarding_completed', 3),
+           ('asked_question', 'question_asked', 4),
+           ('saved_reflection', 'journal_entry_created', 5),
+           ('started_decision', 'decision_created', 6),
+           ('enabled_notifications', 'notification_enabled', 7),
+           ('shared_or_invited', 'app_shared', 8)
        )
        SELECT funnel.stage,
               MIN(funnel.stage_order)::int AS stage_order,

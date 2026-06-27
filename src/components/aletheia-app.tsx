@@ -349,6 +349,41 @@ type NotificationTiming = {
   deliveryStrategy: "morning" | "midday" | "evening" | "custom";
 };
 
+type NotificationDiagnostics = {
+  configured: boolean;
+  server: {
+    cronSecretConfigured: boolean;
+    cronHealthy: boolean;
+    cronStatus: "missing_secret" | "stale" | "healthy";
+    lastDailyCheckedAt: string | null;
+    lastDailyCheckedMinutesAgo: number | null;
+    vapidConfigured: boolean;
+    vapidKeyPairValid: boolean;
+    vapidSubjectConfigured: boolean;
+    vapidReason: string;
+  };
+  account: {
+    subscriptions: number;
+    staleSubscriptions: number;
+    recommendedAction: string;
+    diagnostics: Array<{
+      id: string;
+      endpointHost: string;
+      preferredLocalHour: number;
+      preferredTimezone: string;
+      timezoneMode: "auto" | "manual";
+      deliveryStrategy: string;
+      updatedAt: string | null;
+      lastSentAt: string | null;
+      lastGratitudeSentAt: string | null;
+      lastChallengeNotifiedAt: string | null;
+      latestActivityAt: string | null;
+      daysSinceLastActivity: number | null;
+      stale: boolean;
+    }>;
+  };
+};
+
 const ALETHEIA_SHARE_URL = "https://aletheia.mirrortalkpodcast.com?ref=share";
 const MANUAL_CONTEXT_STORAGE_KEY = "aletheia_manual_context";
 const THEME_STORAGE_KEY = "aletheia_theme_preference";
@@ -6956,6 +6991,11 @@ export function AletheiaApp() {
       }
       return view;
     });
+    if (typeof window !== "undefined" && source !== "notification_click") {
+      window.requestAnimationFrame(() => {
+        scrollAppToTop("auto");
+      });
+    }
     if (typeof window !== "undefined") {
       window.localStorage.setItem("aletheia-active-view", view);
     }
@@ -6968,6 +7008,11 @@ export function AletheiaApp() {
       }
       return section;
     });
+    if (typeof window !== "undefined" && source !== "notification_click") {
+      window.requestAnimationFrame(() => {
+        scrollAppToTop("auto");
+      });
+    }
     if (typeof window !== "undefined") {
       window.localStorage.setItem("aletheia-home-section", section);
     }
@@ -7042,6 +7087,7 @@ export function AletheiaApp() {
   const [notificationDeviceSubscribed, setNotificationDeviceSubscribed] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [notificationsConfigured, setNotificationsConfigured] = useState(false);
+  const [notificationDiagnostics, setNotificationDiagnostics] = useState<NotificationDiagnostics | null>(null);
   const [isRefreshingForUpdate, setIsRefreshingForUpdate] = useState(false);
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>("default");
   const [notificationBusy, setNotificationBusy] = useState(false);
@@ -8735,10 +8781,30 @@ export function AletheiaApp() {
       } else {
         setNotificationStatus(ts('notifications.notificationsOptionalWhenReady'));
       }
+
+      if (!user) {
+        setNotificationDiagnostics(null);
+        return;
+      }
+
+      try {
+        const diagnosticsResponse = await fetch("/api/notifications/diagnostics", { cache: "no-store" });
+        if (!diagnosticsResponse.ok) {
+          setNotificationDiagnostics(null);
+          return;
+        }
+        const diagnosticsData = (await diagnosticsResponse.json()) as NotificationDiagnostics;
+        setNotificationDiagnostics(diagnosticsData);
+      } catch {
+        setNotificationDiagnostics(null);
+      }
     }
 
     loadNotificationStatus().catch(() =>
-      setNotificationStatus(ts('notifications.notificationStatusLoadFailed'))
+      {
+        setNotificationStatus(ts('notifications.notificationStatusLoadFailed'));
+        setNotificationDiagnostics(null);
+      }
     );
   // selfHealNotificationSubscription is intentionally omitted to keep bootstrap status checks stable.
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -8840,35 +8906,6 @@ export function AletheiaApp() {
   const activeLanguage = languages[preferences.language];
   const copy = languageCopy[preferences.language] ?? languageCopy.en!;
   const ui = buildUiFromTranslations(translations);
-  const homeGuardrailTopics: SystemReferenceTopic[] = [
-    {
-      id: "guardrail-boundaries",
-      eyebrow: ui.guardrails,
-      title: ts("labels.trustNeverDoTitle"),
-      teaser: ui.guardrailItems[0] ?? ui.guardrails,
-      body: ui.guardrailItems[0] ?? ui.guardrails,
-      points: [ui.guardrailItems[0] ?? ui.guardrails],
-      icon: ShieldCheck,
-    },
-    {
-      id: "guardrail-memory",
-      eyebrow: ui.guardrails,
-      title: ts("labels.trustDataSavedTitle"),
-      teaser: ui.guardrailItems[1] ?? ui.guardrails,
-      body: ui.guardrailItems[1] ?? ui.guardrails,
-      points: [ui.guardrailItems[1] ?? ui.guardrails],
-      icon: BookOpen,
-    },
-    {
-      id: "guardrail-counsel",
-      eyebrow: ui.guardrails,
-      title: ts("labels.trustDeleteExportTitle"),
-      teaser: ui.guardrailItems[2] ?? ui.guardrails,
-      body: ui.guardrailItems[2] ?? ui.guardrails,
-      points: [ui.guardrailItems[2] ?? ui.guardrails],
-      icon: Users,
-    },
-  ];
   const topBibleOptions = bibleTranslationOptionsForLanguage(preferences.language);
   const activeDecision = wisdomDecisions.find((item) => item.status !== "closed") ?? wisdomDecisions[0] ?? null;
   const todayPattern = timelineInsight.patterns[0] ?? activeMode.blindSpots[0];
@@ -9118,9 +9155,6 @@ export function AletheiaApp() {
 
   function showView(view: View) {
     setActiveView(view, "show_view");
-    window.requestAnimationFrame(() => {
-      scrollAppToTop("auto");
-    });
   }
 
   function scrollToSection(id: string, attempt = 0) {
@@ -12081,17 +12115,6 @@ export function AletheiaApp() {
       <div className="mx-auto grid max-w-7xl gap-5 px-3 pt-4 sm:px-4 sm:pt-5 xl:grid-cols-[320px_minmax(0,1fr)] xl:py-6" style={{ paddingBottom: "calc(var(--aletheia-bottom-nav-space, 8.5rem) + var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)))" }}>
         <aside className="hidden xl:block">
           <div className="sticky top-24 space-y-4">
-            <ReferenceRailSection
-              eyebrow={ui.guardrails}
-              title={ui.trustLayer}
-              icon={ShieldCheck}
-              topics={homeGuardrailTopics}
-              theme={theme}
-              ts={ts}
-              railLabel={ui.guardrails}
-              cardClassName="w-[12.5rem] sm:w-[13rem]"
-            />
-
             <section className="rounded-lg border p-4 shadow-sm" style={{ borderColor: theme.borderStrong, backgroundColor: theme.primary, color: theme.textOnPrimary }}>
               <div className="mb-4 flex items-center justify-between">
                 <h2 className="font-semibold">{ui.wisdomMode}</h2>
@@ -12389,6 +12412,7 @@ export function AletheiaApp() {
                       notificationAccountEnabled={notificationAccountEnabled}
                       notificationDeviceSubscribed={notificationDeviceSubscribed}
                       notificationStatus={notificationStatus}
+                      notificationDiagnostics={notificationDiagnostics}
                       notificationBusy={notificationBusy}
                       notificationTiming={notificationTiming}
                       onNotificationTimingChange={updateNotificationTiming}
@@ -14732,6 +14756,41 @@ function challengeContinuationProgressLabel(
     .replace("{total}", String(recommendation.totalDays));
 }
 
+function challengeRecommendationBody(
+  recommendation: ChallengeRecommendationBundle["primary"],
+  ts: (key: string, fallback?: string) => string
+) {
+  if (!recommendation) {
+    return "";
+  }
+
+  if (recommendation.statusBody) {
+    return recommendation.statusBody;
+  }
+
+  return recommendation.actionKind === "continue"
+    ? `${ts("challenges.continueChallenge")}: ${challengeContinuationProgressLabel(recommendation, ts)}`
+    : ts(recommendation.descriptionKey, recommendation.description);
+}
+
+function challengeRecommendationEyebrow(
+  recommendation: ChallengeRecommendationBundle["primary"],
+  ts: (key: string, fallback?: string) => string,
+  fallback = ts("labels.suggestedAction")
+) {
+  if (!recommendation) {
+    return fallback;
+  }
+
+  if (recommendation.statusLabel) {
+    return recommendation.statusLabel;
+  }
+
+  return recommendation.actionKind === "continue"
+    ? ts("challenges.continueChallenge")
+    : fallback;
+}
+
 type SystemReferenceTopic = {
   id: string;
   eyebrow: string;
@@ -15078,140 +15137,6 @@ function buildScriptureIntegrityTopics(ts: (key: string, fallback?: string) => s
   ];
 }
 
-function ModeGuidanceRailPanel({
-  theme,
-  ts,
-  ui,
-  modeProfile,
-  preferences,
-}: {
-  theme: ThemeColors;
-  ts: (key: string, fallback?: string) => string;
-  ui: UiText;
-  modeProfile: ReturnType<typeof localizedModeProfile>;
-  preferences: UserPreferences;
-}) {
-  const topics: SystemReferenceTopic[] = [
-    {
-      id: "mode-fit",
-      eyebrow: ui.modeGuidance,
-      title: localizedModeLabel(modeProfile.label, preferences.language),
-      teaser: modeProfile.intent,
-      body: modeProfile.useWhen,
-      points: [
-        modeProfile.focus,
-        modeProfile.prompts[0] ?? modeProfile.intent,
-        modeProfile.prompts[1] ?? modeProfile.prompts[0] ?? modeProfile.lens,
-      ].filter((point): point is string => Boolean(point)),
-      icon: Compass,
-    },
-    {
-      id: "deep-checks",
-      eyebrow: ui.deepChecks,
-      title: ui.deepChecks,
-      teaser: modeProfile.diagnosticTracks[0] ?? modeProfile.lens,
-      body: modeProfile.diagnosticTracks.slice(0, 3).join(" "),
-      points: modeProfile.diagnosticTracks.slice(0, 3),
-      icon: Search,
-    },
-    {
-      id: "blind-spots",
-      eyebrow: ui.blindSpots,
-      title: ui.blindSpots,
-      teaser: modeProfile.blindSpots[0] ?? modeProfile.lens,
-      body: modeProfile.blindSpots.slice(0, 3).join(" "),
-      points: modeProfile.blindSpots.slice(0, 3),
-      icon: Minus,
-    },
-    {
-      id: "maturity-signals",
-      eyebrow: ui.maturitySignals,
-      title: ui.maturitySignals,
-      teaser: modeProfile.maturitySignals[0] ?? modeProfile.lens,
-      body: modeProfile.maturitySignals.slice(0, 3).join(" "),
-      points: modeProfile.maturitySignals.slice(0, 3),
-      icon: Check,
-    },
-  ];
-
-  return (
-    <ReferenceRailSection
-      eyebrow={ui.modeGuidance}
-      title={localizedModeLabel(modeProfile.label, preferences.language)}
-      summary={modeProfile.intent}
-      icon={Compass}
-      topics={topics}
-      theme={theme}
-      ts={ts}
-      cardClassName="w-[12.75rem] sm:w-[13.25rem]"
-      railLabel={ui.modeGuidance}
-    />
-  );
-}
-
-function TrustLayerPanel({
-  theme,
-  ts,
-  ui,
-}: {
-  theme: ThemeColors;
-  ts: (key: string, fallback?: string) => string;
-  ui: UiText;
-}) {
-  const topics: SystemReferenceTopic[] = [
-    {
-      id: "boundaries",
-      eyebrow: ui.trustLayer,
-      title: ts('labels.trustNeverDoTitle'),
-      teaser: ui.trustBoundaryBody ?? englishText.trustBoundaryBody,
-      body: ui.trustBoundaryBody ?? englishText.trustBoundaryBody,
-      points: [
-        ui.trustBoundaryBody ?? englishText.trustBoundaryBody,
-        ui.trustScriptureBody ?? englishText.trustScriptureBody,
-      ].filter((point): point is string => Boolean(point)),
-      icon: ShieldCheck,
-    },
-    {
-      id: "memory",
-      eyebrow: ui.trustLayer,
-      title: ts('labels.trustDataSavedTitle'),
-      teaser: ui.trustMemoryBody ?? englishText.trustMemoryBody,
-      body: ui.trustMemoryBody ?? englishText.trustMemoryBody,
-      points: [
-        ui.trustMemoryBody ?? englishText.trustMemoryBody,
-        ts('labels.trustDeleteExportBody'),
-      ].filter((point): point is string => Boolean(point)),
-      icon: BookOpen,
-    },
-    {
-      id: "connected-data",
-      eyebrow: ui.trustLayer,
-      title: ts('labels.trustDeleteExportTitle'),
-      teaser: ui.trustConnectedDataBody ?? englishText.trustConnectedDataBody,
-      body: ui.trustConnectedDataBody ?? englishText.trustConnectedDataBody,
-      points: [
-        ui.trustConnectedDataBody ?? englishText.trustConnectedDataBody,
-        ts('labels.trustDeleteExportBody'),
-      ].filter((point): point is string => Boolean(point)),
-      icon: WifiOff,
-    },
-  ];
-
-  return (
-    <ReferenceRailSection
-      eyebrow={ui.trustLayer}
-      title={ts('labels.accountTrustPostureTitle')}
-      summary={ts('labels.accountTrustPostureSummary')}
-      icon={ShieldCheck}
-      topics={topics}
-      theme={theme}
-      ts={ts}
-      cardClassName="w-[12.75rem] sm:w-[13.25rem]"
-      railLabel={ui.trustLayer}
-    />
-  );
-}
-
 function DisclosureSection({
   title,
   summary,
@@ -15339,6 +15264,7 @@ function AccountPanel({
   notificationAccountEnabled,
   notificationDeviceSubscribed,
   notificationStatus,
+  notificationDiagnostics,
   notificationBusy,
   notificationTiming,
   onNotificationTimingChange,
@@ -15406,6 +15332,7 @@ function AccountPanel({
   notificationAccountEnabled: boolean;
   notificationDeviceSubscribed: boolean;
   notificationStatus: string;
+  notificationDiagnostics: NotificationDiagnostics | null;
   notificationBusy: boolean;
   notificationTiming: NotificationTiming;
   onNotificationTimingChange: (patch: Partial<NotificationTiming>) => void;
@@ -15488,19 +15415,12 @@ function AccountPanel({
       : ts("labels.accountRecommendationLead")
     : "";
   const accountRecommendationBody = challengeRecommendation
-    ? challengeRecommendation.actionKind === "continue"
-      ? [
-          accountRecommendationLead,
-          `${ts("challenges.continueChallenge")}: ${challengeContinuationProgressLabel(challengeRecommendation, ts)}`,
-        ]
-          .filter(Boolean)
-          .join(" ")
-      : [
-          accountRecommendationLead,
-          ts(challengeRecommendation.descriptionKey, challengeRecommendation.description),
-        ]
-          .filter(Boolean)
-          .join(" ")
+    ? [
+        accountRecommendationLead,
+        challengeRecommendationBody(challengeRecommendation, ts),
+      ]
+        .filter(Boolean)
+        .join(" ")
     : "";
 
   return (
@@ -15614,7 +15534,11 @@ function AccountPanel({
 
       {challengeRecommendation ? (
       <ContextualNextAction
-        eyebrow={challengeRecommendation.actionKind === "continue" ? ts("challenges.continueChallenge") : ts("labels.accountQuietFit")}
+        eyebrow={challengeRecommendationEyebrow(
+          challengeRecommendation,
+          ts,
+          ts("labels.accountQuietFit")
+        )}
         title={ts(challengeRecommendation.titleKey, challengeRecommendation.title)}
         body={accountRecommendationBody}
           actionLabel={challengeRecommendation.actionKind === "continue" ? ts("challenges.continueChallenge") : ts("challenges.startChallenge")}
@@ -15683,10 +15607,13 @@ function AccountPanel({
               language={preferences.language}
               user={user}
               enabled={notificationsEnabled}
+              accountEnabled={notificationAccountEnabled}
+              deviceSubscribed={notificationDeviceSubscribed}
               configured={notificationsConfigured}
               permission={typeof window !== "undefined" && "Notification" in window ? Notification.permission : "default"}
               busy={notificationBusy}
               timing={notificationTiming}
+              diagnostics={notificationDiagnostics}
               onTimingChange={onNotificationTimingChange}
               onEnable={onEnableNotifications}
               onDisable={onDisableNotifications}
@@ -15803,9 +15730,7 @@ function ChallengeRecommendationCard({
     ? ts("challenges.continueChallenge")
     : ts("challenges.startChallenge");
   const title = ts(recommendation.titleKey, recommendation.title);
-  const body = isContinuation
-    ? `${ts("challenges.continueChallenge")}: ${challengeContinuationProgressLabel(recommendation, ts)}`
-    : ts(recommendation.descriptionKey, recommendation.description);
+  const body = challengeRecommendationBody(recommendation, ts);
   const RecommendationIcon = recommendation.progressState === "inactive"
     ? Clock3
     : isContinuation
@@ -15823,10 +15748,10 @@ function ChallengeRecommendationCard({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
-            {isContinuation ? ts("challenges.continueChallenge") : ts("labels.suggestedAction")}
+            {challengeRecommendationEyebrow(recommendation, ts)}
           </p>
           <h3 className="mt-1 text-lg font-semibold" style={{ color: theme.textPrimary }}>
-            {isContinuation ? ts("challenges.continueChallenge") : ts("labels.recommendedForYou")}
+            {recommendation.statusLabel ?? (isContinuation ? ts("challenges.continueChallenge") : ts("labels.recommendedForYou"))}
           </h3>
           <p className="mt-1.5 text-[1.03rem] font-semibold leading-6 sm:text-[1.08rem]" style={{ color: theme.textPrimary }}>
             {title}
@@ -19147,7 +19072,7 @@ function SystemStatusCard({
       body: ts('labels.accountTrustPostureSummary'),
       points: [
         ts('labels.trustNeverDoBody'),
-        ts('labels.trustScriptureBody'),
+        // ts('labels.trustScriptureBody'),
         ts('labels.trustDataSavedBody'),
         ts('labels.trustDeleteExportBody'),
       ],
@@ -21218,10 +21143,13 @@ function NotificationPanel({
   language,
   user,
   enabled,
+  accountEnabled,
+  deviceSubscribed,
   configured,
   permission,
   busy,
   timing,
+  diagnostics,
   onTimingChange,
   onEnable,
   onDisable,
@@ -21232,10 +21160,13 @@ function NotificationPanel({
   language: LanguageCode;
   user: User | null;
   enabled: boolean;
+  accountEnabled: boolean;
+  deviceSubscribed: boolean;
   configured: boolean;
   permission: NotificationPermission;
   busy: boolean;
   timing: NotificationTiming;
+  diagnostics: NotificationDiagnostics | null;
   onTimingChange: (patch: Partial<NotificationTiming>) => void;
   onEnable: () => void;
   onDisable: () => void;
@@ -21250,6 +21181,43 @@ function NotificationPanel({
     (!("Notification" in window) || !("serviceWorker" in navigator) || !("PushManager" in window));
   const disabled = busy || !user || !configured || unsupported || permission === "denied";
   const signedIn = Boolean(user);
+  const browserSupport = {
+    supported: !unsupported,
+    notification: typeof window !== "undefined" && "Notification" in window,
+    serviceWorker: typeof window !== "undefined" && "serviceWorker" in navigator,
+    pushManager: typeof window !== "undefined" && "PushManager" in window,
+  };
+  const formatRelativeMinutes = (value: number | null) => {
+    if (value === null) {
+      return "not yet";
+    }
+    if (value < 60) {
+      return `${value}m ago`;
+    }
+    const hours = Math.round(value / 60);
+    if (hours < 24) {
+      return `${hours}h ago`;
+    }
+    const days = Math.round(hours / 24);
+    return `${days}d ago`;
+  };
+  const diagnosticsSummary = !browserSupport.supported
+    ? "This browser or app shell cannot post web push notifications."
+    : diagnostics?.server.cronStatus === "missing_secret"
+      ? "The daily notification cron secret is missing."
+      : diagnostics?.server.cronStatus === "stale"
+        ? diagnostics.server.lastDailyCheckedMinutesAgo !== null
+          ? `The daily notification job has not checked in for ${formatRelativeMinutes(diagnostics.server.lastDailyCheckedMinutesAgo)}.`
+          : "The daily notification job has not checked in yet."
+        : diagnostics?.account.recommendedAction === "none"
+          ? "Push setup looks healthy."
+          : diagnostics?.account.recommendedAction === "fix_vapid"
+            ? "Push keys or subject are incomplete."
+            : diagnostics?.account.recommendedAction === "subscribe"
+              ? "No saved subscription was found for this account."
+              : diagnostics?.account.recommendedAction === "resubscribe_or_send_test"
+                ? "A saved subscription looks stale or needs a fresh test."
+                : "Diagnostics available.";
   const deliveryOptions: Array<{ value: NotificationTiming["deliveryStrategy"]; label: string }> = [
     { value: "morning", label: ts('labels.morning') },
     { value: "midday", label: ts('labels.midday') },
@@ -21386,6 +21354,87 @@ function NotificationPanel({
               </button>
             </label>
           )}
+        </div>
+        <div className="mt-3 rounded-[0.9rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
+                {ts('labels.diagnostics', 'Diagnostics')}
+              </p>
+              <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                {diagnosticsSummary}
+              </p>
+            </div>
+            <span className="rounded-full border px-2.5 py-1 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textSecondary }}>
+              {diagnostics?.server.cronStatus === "healthy" ? "Healthy" : "Needs attention"}
+            </span>
+          </div>
+          <div className="mt-3 grid gap-2">
+            {[
+              {
+                label: "Browser support",
+                value: browserSupport.supported
+                  ? "Supported"
+                  : `Missing ${[
+                      !browserSupport.notification ? "Notification" : null,
+                      !browserSupport.pushManager ? "PushManager" : null,
+                      !browserSupport.serviceWorker ? "service worker" : null,
+                    ].filter(Boolean).join(", ")}`,
+                tone: browserSupport.supported ? "good" : "bad",
+              },
+              {
+                label: "VAPID / push config",
+                value: diagnostics
+                  ? diagnostics.server.vapidConfigured && diagnostics.server.vapidKeyPairValid
+                    ? "Configured"
+                    : diagnostics.server.vapidConfigured
+                      ? `Invalid key pair (${diagnostics.server.vapidReason})`
+                      : "Missing VAPID configuration"
+                  : "Diagnostics unavailable",
+                tone: diagnostics?.server.vapidConfigured && diagnostics.server.vapidKeyPairValid ? "good" : "bad",
+              },
+              {
+                label: "Cron / delivery",
+                value: diagnostics
+                  ? diagnostics.server.cronStatus === "healthy"
+                    ? diagnostics.server.lastDailyCheckedMinutesAgo !== null
+                      ? `Healthy, last checked ${formatRelativeMinutes(diagnostics.server.lastDailyCheckedMinutesAgo)}`
+                      : "Healthy"
+                    : diagnostics.server.cronStatus === "stale"
+                      ? "The daily job has not checked in recently"
+                      : "Cron secret is missing"
+                  : "Diagnostics unavailable",
+                tone: diagnostics?.server.cronStatus === "healthy" ? "good" : "bad",
+              },
+              {
+                label: "Subscription",
+                value: diagnostics?.account.subscriptions
+                  ? enabled
+                    ? "Device subscription active"
+                    : accountEnabled
+                      ? "Account is on, but this device is not subscribed"
+                      : `${diagnostics.account.subscriptions} saved subscription${diagnostics.account.subscriptions === 1 ? "" : "s"}`
+                  : "No saved subscription",
+                tone: deviceSubscribed ? "good" : "bad",
+              },
+            ].map((item) => (
+              <div
+                key={item.label}
+                className="flex items-start justify-between gap-3 rounded-[0.85rem] border px-3 py-2"
+                style={{
+                  borderColor: item.tone === "good" ? theme.borderLight : "#d8c0b3",
+                  backgroundColor: theme.bgCard,
+                }}
+              >
+                <p className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
+                  {item.label}
+                </p>
+                <p className="max-w-[15rem] text-right text-sm leading-5" style={{ color: item.tone === "good" ? theme.textPrimary : "#8c3f28" }}>
+                  {item.value}
+                </p>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </section>
@@ -23594,40 +23643,50 @@ function CompanionPanel({
         }}
         onScriptureOpen={onScriptureOpen}
       />
-      <section id="companion-ask" ref={panelRef} className="min-w-0 scroll-mt-24 overflow-hidden rounded-xl border shadow-[0_18px_45px_rgba(33,58,53,0.08)]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
-        <div className="flex flex-col gap-3 border-b px-3 py-3 sm:px-5 sm:py-4 md:flex-row md:items-center md:justify-between" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
+      <section id="companion-ask" ref={panelRef} className="min-w-0 scroll-mt-24 overflow-hidden rounded-[1.4rem] border shadow-[0_18px_45px_rgba(33,58,53,0.08)]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+        <div className="flex flex-col gap-2.5 border-b px-4 py-4 sm:px-5 sm:py-5 md:flex-row md:items-center md:justify-between" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
           <div className="relative">
-            <div className="flex items-center gap-2 text-lg font-semibold" style={{ color: theme.textPrimary }}>
-              <MessageCircle size={18} />
+            <div className="flex items-center gap-2 text-[1.02rem] font-semibold tracking-[-0.02em] sm:text-[1.08rem]" style={{ color: theme.textPrimary }}>
+              <MessageCircle size={17} />
               {ui.askTitle}
             </div>
-            <div className="mt-1 pr-5 sm:pr-6 md:pr-7">
-              <p className="text-sm leading-5" style={{ color: theme.textSecondary }}>
+            <div className="mt-1.5 pr-4 sm:pr-6 md:pr-7">
+              <p className="text-[0.93rem] leading-6 sm:text-sm sm:leading-6" style={{ color: theme.textSecondary }}>
                 {ui.askIntro}
               </p>
             </div>
           </div>
         </div>
 
-        <form onSubmit={onAsk} className="p-3 sm:p-5" style={{ backgroundColor: theme.bgMain + 'E0' }}>
-          <div className="rounded-lg border p-3 shadow-sm sm:p-4" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-              <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ui.yourQuestion}</p>
-            </div>
-            <div className="mb-3 rounded-xl border p-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
-              <div className="flex items-center gap-3 rounded-lg border p-2.5" style={{ borderColor: theme.primary, backgroundColor: theme.bgCard }}>
-                <span className="grid size-10 shrink-0 place-items-center rounded-lg" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>
-                  <CurrentLensIcon size={18} />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block text-[0.68rem] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{ui.currentLens}</span>
-                  <span className="mt-0.5 flex min-w-0 items-center gap-2">
-                    <span className="truncate text-base font-semibold" style={{ color: theme.textPrimary }}>{localizedModeLabel(mode, preferences.language)}</span>
-                    <Check className="shrink-0" size={16} style={{ color: theme.primary }} />
+        <form onSubmit={onAsk} className="p-4 sm:p-6" style={{ backgroundColor: theme.bgMain + 'E0' }}>
+          <div className="space-y-5">
+            <div className="flex flex-wrap items-start gap-3">
+              <div className="min-w-0">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.accentGold }}>
+                  {ui.yourQuestion}
+                </p>
+                <div className="mt-2.5 flex flex-wrap items-center gap-2.5 rounded-[1.25rem] border-2 px-3.5 py-3 shadow-[0_8px_18px_rgba(7,10,8,0.05)]" style={{ borderColor: theme.primary, backgroundColor: theme.bgCardElevated }}>
+                  <span className="grid size-10 shrink-0 place-items-center rounded-[0.95rem]" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>
+                    <CurrentLensIcon size={18} />
                   </span>
-                </span>
+                  <span className="min-w-0">
+                    <span className="block text-[0.66rem] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
+                      {ui.currentLens}
+                    </span>
+                    <span className="mt-0.5 flex min-w-0 items-center gap-2">
+                      <span className="truncate text-[1.02rem] font-semibold tracking-[-0.015em]" style={{ color: theme.textPrimary }}>
+                        {localizedModeLabel(mode, preferences.language)}
+                      </span>
+                      <Check className="shrink-0" size={16} style={{ color: theme.primary }} />
+                    </span>
+                  </span>
+                </div>
               </div>
-              <div className="mt-2 flex min-w-0 snap-x gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]" aria-label={ui.currentLens}>
+
+            </div>
+
+            <div className="rounded-[1.35rem] border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+              <div className="flex min-w-0 snap-x gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]" aria-label={ui.currentLens}>
                 {modeCards.map((item) => (
                   <ModeLensCard
                     key={item.label}
@@ -23639,148 +23698,152 @@ function CompanionPanel({
                 ))}
               </div>
             </div>
-            <div className="flex flex-col gap-3">
-              <textarea
-                id="companion-question-input"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder={`${copy.askPlaceholder} ${(focusLabels[0] ?? modeProfile.focus).toLowerCase()}...`}
-                className="min-h-32 flex-1 resize-none rounded-md border px-4 py-4 text-base leading-7 outline-none transition sm:text-sm"
-                style={{
-                  borderColor: theme.borderMedium,
-                  backgroundColor: theme.bgInput,
-                  color: theme.textPrimary,
-                }}
-                onFocus={(e) => e.currentTarget.style.borderColor = theme.primary}
-                onBlur={(e) => e.currentTarget.style.borderColor = theme.borderMedium}
-              />
-              <div className="flex items-stretch gap-2">
-                {preferences.voiceEnabled ? (
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={onListen}
-                      className="grid h-12 w-12 shrink-0 place-items-center rounded-lg border px-3 transition"
+
+            <textarea
+              id="companion-question-input"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder={`${copy.askPlaceholder} ${(focusLabels[0] ?? modeProfile.focus).toLowerCase()}...`}
+              className="min-h-44 w-full resize-none rounded-[1.4rem] border-2 px-4 py-4 text-[1rem] leading-7 outline-none transition placeholder:text-[0.96rem] sm:min-h-48 sm:text-sm"
+              style={{
+                borderColor: theme.borderStrong,
+                backgroundColor: theme.bgInput,
+                color: theme.textPrimary,
+                boxShadow: `0 10px 22px color-mix(in srgb, ${theme.primary} 8%, transparent)`,
+              }}
+              onFocus={(e) => e.currentTarget.style.borderColor = theme.primary}
+              onBlur={(e) => e.currentTarget.style.borderColor = theme.borderStrong}
+            />
+
+            <div className="flex items-stretch gap-2">
+              {preferences.voiceEnabled ? (
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={onListen}
+                    className="grid h-12 w-12 shrink-0 place-items-center rounded-xl border px-3 transition"
+                    style={{
+                      borderColor: isListening ? theme.primary : theme.borderMedium,
+                      backgroundColor: isListening ? theme.activeBg : theme.bgInput,
+                      color: isListening ? theme.primary : theme.textPrimary,
+                      boxShadow: isListening ? `0 0 0 2px ${theme.primary}1f` : "none",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = isListening ? theme.activeBg : theme.bgCardElevated;
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = isListening ? theme.activeBg : theme.bgInput;
+                    }}
+                    aria-label={isListening ? ts('labels.stopDictation') : ts('labels.startDictation')}
+                    title={isListening ? ts('labels.stopDictation') : ts('labels.startDictation')}
+                  >
+                    {isListening ? <MicOff size={18} /> : <Mic size={18} />}
+                  </button>
+                  {isListening ? (
+                    <span
+                      className="inline-flex h-12 items-center gap-2 rounded-xl border px-3 text-[11px] font-semibold uppercase tracking-[0.12em]"
                       style={{
-                        borderColor: isListening ? theme.primary : theme.borderMedium,
-                        backgroundColor: isListening ? theme.activeBg : theme.bgInput,
-                        color: isListening ? theme.primary : theme.textPrimary,
-                        boxShadow: isListening ? `0 0 0 2px ${theme.primary}1f` : "none",
+                        borderColor: theme.primary,
+                        backgroundColor: theme.bgCardElevated,
+                        color: theme.primary,
                       }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = isListening ? theme.activeBg : theme.bgCardElevated;
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = isListening ? theme.activeBg : theme.bgInput;
-                      }}
-                      aria-label={isListening ? ts('labels.stopDictation') : ts('labels.startDictation')}
-                      title={isListening ? ts('labels.stopDictation') : ts('labels.startDictation')}
+                      aria-live="polite"
                     >
-                      {isListening ? <MicOff size={18} /> : <Mic size={18} />}
-                    </button>
-                    {isListening ? (
-                      <span
-                        className="inline-flex h-12 items-center gap-2 rounded-lg border px-3 text-[11px] font-semibold uppercase tracking-[0.12em]"
-                        style={{
-                          borderColor: theme.primary,
-                          backgroundColor: theme.bgCardElevated,
-                          color: theme.primary,
-                        }}
-                        aria-live="polite"
-                      >
-                        <span className="relative flex size-3 items-center justify-center" aria-hidden="true">
-                          <span className="absolute inline-flex size-3 animate-ping rounded-full bg-red-500 opacity-70" />
-                          <span className="relative size-2 rounded-full bg-red-500" />
-                        </span>
-                        REC
+                      <span className="relative flex size-3 items-center justify-center" aria-hidden="true">
+                        <span className="absolute inline-flex size-3 animate-ping rounded-full bg-red-500 opacity-70" />
+                        <span className="relative size-2 rounded-full bg-red-500" />
                       </span>
-                    ) : null}
-                  </div>
-                ) : null}
-                <button
-                  disabled={isWorking}
-                  className="inline-flex h-12 min-w-0 flex-1 items-center justify-center gap-2 rounded-md px-5 text-sm font-semibold shadow-lg transition disabled:opacity-60 sm:flex-none"
-                  style={{
-                    backgroundColor: theme.primary,
-                    color: theme.textOnPrimary,
-                  }}
-                  onMouseEnter={(e) => !isWorking && (e.currentTarget.style.backgroundColor = theme.primaryHover)}
-                  onMouseLeave={(e) => !isWorking && (e.currentTarget.style.backgroundColor = theme.primary)}
-                >
-                  <Send size={17} />
-                  {isWorking ? "..." : ui.askButton}
-                </button>
-              </div>
-              {isListening || voiceDraft ? (
-                <DisclosureSection
-                  title={isListening ? ts('notifications.voiceInputListening') : ts('labels.voiceTranscription')}
-                  summary={voiceDraft || (isListening ? ts('notifications.voiceInputListeningBody') : "")}
-                  eyebrow={ui.yourQuestion}
-                  isOpen={isListening || Boolean(voiceDraft) || voiceDetailsOpen}
-                  onOpenChange={setVoiceDetailsOpen}
-                  compactCollapsed
-                  showDetailsLabel={ts('showDetails')}
-                  hideDetailsLabel={ts('hideDetails')}
-                  className="pt-1"
-                  theme={theme}
-                >
-                  <div className="text-xs leading-5" style={{ color: theme.textSecondary }}>
-                    <p className="font-semibold" style={{ color: theme.textPrimary }}>
-                      {isListening ? ts('notifications.voiceInputListening') : ts('labels.voiceTranscription')}
-                    </p>
-                    <p className="mt-1 text-xs leading-5" style={{ color: theme.textSecondary }}>
-                      {isListening ? ts('labels.listening') : ts('labels.voiceDraftReady')}
-                    </p>
-                    <p className="mt-2 whitespace-pre-wrap text-sm leading-6" style={{ color: theme.textPrimary }}>
-                      {voiceDraft || (isListening ? ts('notifications.voiceInputListeningBody') : "")}
-                    </p>
-                    {!isListening && voiceDraft ? (
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setQuery([query.trim(), voiceDraft].filter(Boolean).join(" "));
-                            onClearVoiceTranscript();
-                          }}
-                          className="rounded-md border px-3 py-2 font-semibold transition"
-                          style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-                        >
-                          {ts('labels.insertTranscript')}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={async () => {
-                            const mergedQuestion = [query.trim(), voiceDraft].filter(Boolean).join(" ").trim();
-                            onClearVoiceTranscript();
-                            await onAskQuestion(mergedQuestion);
-                          }}
-                          className="rounded-md px-3 py-2 font-semibold transition"
-                          style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
-                        >
-                          {ts('labels.askTranscript')}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => onClearVoiceTranscript()}
-                          className="rounded-md border px-3 py-2 font-semibold transition"
-                          style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
-                        >
-                          {ts('labels.clearTranscript')}
-                        </button>
-                      </div>
-                    ) : null}
-                  </div>
-                </DisclosureSection>
+                      REC
+                    </span>
+                  ) : null}
+                </div>
               ) : null}
+              <button
+                type="submit"
+                disabled={isWorking}
+                className="inline-flex h-12 min-w-0 flex-1 items-center justify-center gap-2 rounded-full px-5 text-sm font-semibold shadow-lg transition disabled:opacity-60 sm:flex-none"
+                style={{
+                  backgroundColor: theme.primary,
+                  color: theme.textOnPrimary,
+                }}
+                onMouseEnter={(e) => !isWorking && (e.currentTarget.style.backgroundColor = theme.primaryHover)}
+                onMouseLeave={(e) => !isWorking && (e.currentTarget.style.backgroundColor = theme.primary)}
+              >
+                <Send size={17} />
+                {isWorking ? "..." : ui.askButton}
+              </button>
             </div>
-            <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+
+            {isListening || voiceDraft ? (
+              <DisclosureSection
+                title={isListening ? ts('notifications.voiceInputListening') : ts('labels.voiceTranscription')}
+                summary={voiceDraft || (isListening ? ts('notifications.voiceInputListeningBody') : "")}
+                eyebrow={ui.yourQuestion}
+                isOpen={isListening || Boolean(voiceDraft) || voiceDetailsOpen}
+                onOpenChange={setVoiceDetailsOpen}
+                compactCollapsed
+                showDetailsLabel={ts('showDetails')}
+                hideDetailsLabel={ts('hideDetails')}
+                className="pt-1"
+                theme={theme}
+              >
+                <div className="text-xs leading-6" style={{ color: theme.textSecondary }}>
+                  <p className="font-semibold" style={{ color: theme.textPrimary }}>
+                    {isListening ? ts('notifications.voiceInputListening') : ts('labels.voiceTranscription')}
+                  </p>
+                  <p className="mt-1 text-xs leading-5" style={{ color: theme.textSecondary }}>
+                    {isListening ? ts('labels.listening') : ts('labels.voiceDraftReady')}
+                  </p>
+                  <p className="mt-2 whitespace-pre-wrap text-sm leading-6" style={{ color: theme.textPrimary }}>
+                    {voiceDraft || (isListening ? ts('notifications.voiceInputListeningBody') : "")}
+                  </p>
+                  {!isListening && voiceDraft ? (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setQuery([query.trim(), voiceDraft].filter(Boolean).join(" "));
+                          onClearVoiceTranscript();
+                        }}
+                        className="rounded-md border px-3 py-2 font-semibold transition"
+                        style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                      >
+                        {ts('labels.insertTranscript')}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const mergedQuestion = [query.trim(), voiceDraft].filter(Boolean).join(" ").trim();
+                          onClearVoiceTranscript();
+                          await onAskQuestion(mergedQuestion);
+                        }}
+                        className="rounded-md px-3 py-2 font-semibold transition"
+                        style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                      >
+                        {ts('labels.askTranscript')}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onClearVoiceTranscript()}
+                        className="rounded-md border px-3 py-2 font-semibold transition"
+                        style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
+                      >
+                        {ts('labels.clearTranscript')}
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
+              </DisclosureSection>
+            ) : null}
+
+            <div className="flex gap-2 overflow-x-auto pb-1">
               {promptChips.map((prompt) => (
                 <button
                   key={prompt}
                   type="button"
                   onClick={() => onDraftPrompt(prompt)}
                   disabled={isWorking}
-                  className="shrink-0 rounded-md border px-3 py-3 text-left text-xs font-semibold leading-5 shadow-sm transition disabled:opacity-60"
+                  className="shrink-0 rounded-full border px-3 py-3 text-left text-[0.76rem] font-semibold leading-5 shadow-sm transition disabled:opacity-60"
                   style={{
                     borderColor: theme.borderMedium,
                     backgroundColor: theme.bgCard,
@@ -23799,18 +23862,12 @@ function CompanionPanel({
                 </button>
               ))}
             </div>
-            {preferences.voiceEnabled ? (
-              <div className="mt-2 text-xs leading-5" style={{ color: theme.textMuted }}>
-                <span>{ts('labels.voiceInput')}</span>
-              </div>
-            ) : null}
           </div>
         </form>
       </section>
 
       {hasCounselSurface ? (
-      <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_300px] xl:grid-cols-[minmax(0,1fr)_320px]">
-        <section className="min-w-0 rounded-xl border p-3 shadow-sm sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+        <div className="min-w-0 space-y-4">
           {currentExchange ? (
             <div ref={currentCounselRef} className="scroll-mt-24">
               <CurrentCounselCard
@@ -23842,7 +23899,7 @@ function CompanionPanel({
           ) : null}
 
           {visibleHistory.length ? (
-            <section className="mt-4 rounded-lg border p-3 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+            <section className="rounded-[1.35rem] border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
               <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                 <div className="min-w-0">
                   <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
@@ -23877,19 +23934,7 @@ function CompanionPanel({
               </div>
             </section>
           ) : null}
-        </section>
-
-      <aside className="space-y-4">
-        <ModeGuidanceRailPanel
-          theme={theme}
-          ts={ts}
-          ui={ui}
-          modeProfile={modeProfile}
-          preferences={preferences}
-        />
-        <TrustLayerPanel theme={theme} ts={ts} ui={ui} />
-        </aside>
-      </div>
+        </div>
       ) : null}
     </div>
   );
@@ -24581,36 +24626,48 @@ function CurrentCounselCard({
   onRequestSignIn: () => void;
 }) {
   const text = { ...englishText, ...ui };
+  const calmerActionCopy = preferences.language === "en" ? {
+    goDeeper: "Explore gently",
+    waitThreeDays: "Pause for 3 days",
+    createAnswerCard: "Save as a wisdom card",
+    shareAletheia: "Share this counsel",
+  } : null;
+  const exchangeModeProfile = localizedModeProfile(exchange.mode, preferences.language);
   const question = exchange.question?.text;
-  const exchangeMode = exchange.mode;
-  const exchangeModeProfile = localizedModeProfile(exchangeMode, preferences.language);
   const isThinking = exchange.answer.id === "thinking";
   const showDecisionActions = Boolean(question) && !isThinking;
   const answerText = exchange.answer.id === "welcome" ? text.welcomeCounsel! : exchange.answer.text;
+  const lensLabel = exchangeModeProfile.displayLabel ?? exchange.mode;
 
   return (
-    <section className="rounded-[1.45rem] border p-3 shadow-[0_8px_24px_rgba(15,23,42,0.05)] sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
-          {question ? text.currentCounsel : ui.startHere}
+    <section className="rounded-[1.5rem] border p-4 shadow-[0_8px_24px_rgba(15,23,42,0.05)] sm:p-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.accentGold }}>
+          {text.currentCounsel ?? ts('currentCounsel')}
         </p>
         <span className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ borderColor: theme.borderLight, backgroundColor: isThinking || isWorking ? theme.bgCardElevated : theme.bgInput, color: isThinking || isWorking ? theme.accentGold : theme.textSecondary }}>
           {isThinking || isWorking ? "..." : ui.ready}
         </span>
       </div>
       {question ? (
-        <div className="rounded-[1.1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{ui.yourQuestion}</p>
-          <p className="mt-2 line-clamp-3 text-[0.95rem] leading-6" style={{ color: theme.textPrimary }}>
+        <div className="rounded-[1.25rem] border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>{ui.yourQuestion}</p>
+          <p className="mt-2.5 line-clamp-3 text-[0.98rem] leading-7 tracking-[-0.01em]" style={{ color: theme.textPrimary }}>
             {cleanDisplayText(question)}
           </p>
         </div>
       ) : null}
-      <article className="mt-3 rounded-[1.1rem] border p-3 sm:p-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+      <article className="mt-3.5 rounded-[1.25rem] border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
-            {ui.currentLens}
-          </p>
+          <span
+            className="inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.16em]"
+            style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}
+          >
+            <span className="grid size-4 place-items-center rounded-full" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>
+              <span className="size-1.5 rounded-full" style={{ backgroundColor: theme.textOnPrimary }} />
+            </span>
+            {lensLabel}
+          </span>
           {preferences.voiceEnabled && !isThinking ? (
             <div className="flex items-center gap-2">
               <span
@@ -24691,32 +24748,46 @@ function CurrentCounselCard({
               </button>
             </div>
           ) : null}
-          <details className="mt-3 rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-            <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
-              {ts('labels.moreCounselOptions')}
-            </summary>
-            <div className="mt-3 grid gap-2 sm:grid-cols-2">
-              <CounselAction theme={theme} label={text.goDeeper!} onClick={() => onGoDeeper(exchange)} />
-              <CounselAction theme={theme} label={text.waitThreeDays!} onClick={() => onWait(exchange)} />
-              <CounselAction theme={theme} label={ts('labels.createAnswerCard')} onClick={() => onSharePostcard(exchange)} />
+          <section className="mt-3 rounded-[1.35rem] border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
+                  {ts('labels.moreCounselOptions')}
+                </p>
+                <p className="mt-1 text-[0.92rem] leading-6" style={{ color: theme.textSecondary }}>
+                  {ts('labels.swipeForMore')}
+                </p>
+              </div>
+              <span className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                {ts('showDetails')}
+              </span>
             </div>
-            <AnswerFeedback theme={theme} ui={ui} onFeedback={onFeedback} />
-            <div className="mt-3 rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-              <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{text.shareAnswerPrompt}</p>
-              <p className="mt-1 text-xs leading-5" style={{ color: theme.textSecondary }}>
-                {text.sharePrivacyNote}
-              </p>
-              <button
-                type="button"
-                onClick={() => onShare("native")}
-                className="mt-3 inline-flex h-11 items-center gap-2 rounded-full border px-3 text-xs font-semibold transition"
-                style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-              >
-                <Share2 size={14} />
-                {text.shareAletheia}
-              </button>
+            <div className="mt-3 flex min-w-0 snap-x gap-3 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <CounselRailAction theme={theme} ts={ts} icon={Compass} label={calmerActionCopy?.goDeeper ?? text.goDeeper!} onClick={() => onGoDeeper(exchange)} />
+              <CounselRailAction theme={theme} ts={ts} icon={Clock3} label={calmerActionCopy?.waitThreeDays ?? text.waitThreeDays!} onClick={() => onWait(exchange)} />
+              <CounselRailAction theme={theme} ts={ts} icon={Share2} label={calmerActionCopy?.createAnswerCard ?? ts('labels.createAnswerCard')} onClick={() => onSharePostcard(exchange)} />
             </div>
-          </details>
+          </section>
+
+          <AnswerFeedback theme={theme} ui={ui} onFeedback={onFeedback} />
+
+          <section className="rounded-[1.35rem] border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+            <p className="text-[0.95rem] font-semibold leading-6 tracking-[-0.01em]" style={{ color: theme.textPrimary }}>
+              {text.shareAnswerPrompt}
+            </p>
+            <p className="mt-1 text-xs leading-6" style={{ color: theme.textSecondary }}>
+              {text.sharePrivacyNote}
+            </p>
+            <button
+              type="button"
+              onClick={() => onShare("native")}
+              className="mt-3 inline-flex h-11 items-center gap-2 rounded-full border px-3 text-xs font-semibold transition"
+              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+            >
+              <Share2 size={14} />
+              {calmerActionCopy?.shareAletheia ?? text.shareAletheia}
+            </button>
+          </section>
         </>
       ) : null}
     </section>
@@ -24762,6 +24833,59 @@ function CounselAction({ theme, label, onClick }: { theme: ThemeColors; label: s
       style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
     >
       {label}
+    </button>
+  );
+}
+
+function CounselRailAction({
+  theme,
+  ts,
+  icon: Icon,
+  label,
+  onClick,
+}: {
+  theme: ThemeColors;
+  ts: (key: string, fallback?: string) => string;
+  icon: typeof Compass;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="group flex w-[12.5rem] shrink-0 snap-start flex-col justify-between rounded-[1.35rem] border p-3.5 text-left transition duration-200 ease-out active:scale-[0.985] hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(7,10,8,0.12)]"
+      style={{
+        borderColor: theme.borderLight,
+        background: `linear-gradient(180deg, color-mix(in srgb, ${theme.bgCardElevated} 96%, white 4%), ${theme.bgCard})`,
+        color: theme.textPrimary,
+        boxShadow: `0 10px 24px color-mix(in srgb, ${theme.bgMain} 10%, transparent)`,
+      }}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
+            {label}
+          </p>
+        </div>
+        <span
+          className="grid size-10 shrink-0 place-items-center rounded-[1rem] border transition duration-200"
+          style={{
+            borderColor: theme.borderLight,
+            backgroundColor: theme.bgCardElevated,
+            color: theme.primary,
+            boxShadow: `inset 0 1px 0 color-mix(in srgb, white 18%, transparent)`,
+          }}
+        >
+          <Icon size={16} />
+        </span>
+      </div>
+      <div className="mt-4 flex items-center justify-between gap-2 border-t pt-2.5" style={{ borderColor: theme.borderLight }}>
+        <span className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textMuted }}>
+          {ts('showDetails')}
+        </span>
+        <ArrowUpRight size={15} style={{ color: theme.textSecondary }} />
+      </div>
     </button>
   );
 }
@@ -26231,12 +26355,11 @@ function ReflectPanel({
       section: "formation",
       label: ts("challenges.sectionTitle"),
       value: challengeRecommendation
-        ? (challengeRecommendation.actionKind === "continue" ? ts("challenges.continueChallenge") : ts("challenges.startChallenge"))
+        ? (challengeRecommendation.statusLabel
+          ?? (challengeRecommendation.actionKind === "continue" ? ts("challenges.continueChallenge") : ts("challenges.startChallenge")))
         : ts("challenges.eyebrow"),
       body: challengeRecommendation
-        ? challengeRecommendation.actionKind === "continue"
-          ? `${ts("challenges.continueChallenge")}: ${challengeContinuationProgressLabel(challengeRecommendation, ts)}`
-          : ts(challengeRecommendation.descriptionKey, challengeRecommendation.description)
+        ? challengeRecommendationBody(challengeRecommendation, ts)
         : ts("challenges.sectionSummary"),
     },
   ];
@@ -26286,11 +26409,13 @@ function ReflectPanel({
         <>
           {challengeRecommendation ? (
             <ContextualNextAction
-              eyebrow={challengeRecommendation.actionKind === "continue" ? ts("challenges.continueChallenge") : ts("labels.suggestedAction")}
+              eyebrow={challengeRecommendationEyebrow(
+                challengeRecommendation,
+                ts,
+                ts("labels.suggestedAction")
+              )}
               title={ts(challengeRecommendation.titleKey, challengeRecommendation.title)}
-              body={challengeRecommendation.actionKind === "continue"
-                ? `${ts("challenges.continueChallenge")}: ${challengeContinuationProgressLabel(challengeRecommendation, ts)}`
-                : ts(challengeRecommendation.descriptionKey, challengeRecommendation.description)}
+              body={challengeRecommendationBody(challengeRecommendation, ts)}
               actionLabel={challengeRecommendation.actionKind === "continue" ? ts("challenges.continueChallenge") : ts("challenges.startChallenge")}
               onAction={() => {
                 setReflectSection("formation");
@@ -26844,14 +26969,21 @@ function GratitudeLensPanel({
             </div>
           </div>
 
-          <div className="relative mt-3 rounded-xl border p-2.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
-            <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
-              {ts('labels.gratitudeNoticingQuestion')}
-            </p>
-            <p className="mt-1 pr-5 sm:pr-6 text-xs leading-5" style={{ color: theme.textSecondary }}>
-              {ts('labels.gratitudeNoticingBodyShort')}
-            </p>
-            <div className="mt-2">
+          <div className="relative mt-3 rounded-[1.35rem] border p-3 sm:p-3.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
+                  {ts('labels.gratitudeNoticingQuestion')}
+                </p>
+                <p className="mt-1.5 pr-5 text-xs leading-5 sm:pr-6" style={{ color: theme.textSecondary }}>
+                  {ts('labels.gratitudeNoticingBodyShort')}
+                </p>
+              </div>
+              <span className="inline-flex shrink-0 items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                {ts('labels.gratitudePreview')}
+              </span>
+            </div>
+            <div className="mt-3">
               <ScreenTabs
                 value={formation}
                 onChange={setFormation}
@@ -26884,13 +27016,15 @@ function GratitudeLensPanel({
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="flex h-full w-full flex-col items-center justify-center gap-2.5 p-4 text-center"
+                  className="flex h-full w-full flex-col items-center justify-center gap-3 px-4 py-5 text-center sm:px-5"
                   style={{ color: theme.textSecondary }}
                 >
-                  <Camera size={28} />
-                  <span className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.chooseGratitudePhoto')}</span>
-                  <span className="inline-flex max-w-xs items-center gap-2 text-xs leading-5">
-                    <span>{ts('labels.photoPrivacy')}</span>
+                  <span className="grid size-14 place-items-center rounded-full border shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.primary }}>
+                    <Camera size={28} />
+                  </span>
+                  <span className="text-base font-semibold tracking-tight" style={{ color: theme.textPrimary }}>{ts('labels.chooseGratitudePhoto')}</span>
+                  <span className="max-w-xs text-xs leading-5" style={{ color: theme.textSecondary }}>
+                    {ts('labels.photoPrivacy')}
                   </span>
                 </button>
               </div>
@@ -26912,150 +27046,161 @@ function GratitudeLensPanel({
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="h-10 rounded-md border px-4 text-sm font-semibold"
+              className="h-11 rounded-full border px-4 text-sm font-semibold"
               style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
             >
-              {previewUrl ? ts('labels.changePhoto') : ts('labels.addPhoto')}
+              {previewUrl ? ts('labels.changePhoto') : ts('labels.chooseGratitudePhoto')}
             </button>
             <button
               type="button"
               onClick={resetForm}
-              className="h-10 rounded-md border px-4 text-sm font-semibold"
+              className="h-11 rounded-full border px-4 text-sm font-semibold"
               style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textSecondary }}
             >
               {ts('labels.clear')}
             </button>
           </div>
-
-          <DisclosureSection
-            title={ts('labels.advanced')}
-            summary={activeStyleSummary || ts('labels.gratitudeStyleBody')}
-            eyebrow={ts('labels.gratitudeStyleCard')}
-            compactCollapsed
-            showDetailsLabel={ts('showDetails')}
-            hideDetailsLabel={ts('hideDetails')}
-            theme={theme}
-            className="mt-3"
-          >
-            <div className="space-y-3">
-              <p className="text-xs leading-5" style={{ color: theme.textSecondary }}>
-                {ts('labels.gratitudeStyleBody')}
-              </p>
-
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
+          <div className="mt-3 grid gap-3 lg:grid-cols-[1fr_1fr]">
+            <section className="rounded-[1.35rem] border p-3.5 shadow-[0_8px_20px_rgba(7,10,8,0.05)]" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
+                    {ts('labels.gratitudeStyleCard')}
+                  </p>
+                  <p className="mt-1.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                    {activeStyleSummary || ts('labels.gratitudeStyleBody')}
+                  </p>
+                </div>
+                <span className="inline-flex shrink-0 items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
                   {ts('labels.gratitudeFilters')}
-                </p>
-                <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
-                  {GRATITUDE_FILTERS.map((filter) => {
-                    const isActive = visual.filter === filter;
-                    return (
-                      <button
-                        key={filter}
-                        type="button"
-                        onClick={() => setVisual((current) => ({ ...current, filter }))}
-                        className="shrink-0 rounded-full border px-2.5 py-1.5 text-xs font-semibold transition active:scale-[0.98]"
-                        style={{
-                          borderColor: isActive ? theme.primary : theme.borderMedium,
-                          backgroundColor: isActive ? theme.primary : theme.bgInput,
-                          color: isActive ? theme.textOnPrimary : theme.textPrimary,
-                        }}
-                      >
-                        {gratitudeFilterLabel(filter)}
-                      </button>
-                    );
-                  })}
+                </span>
+              </div>
+              <div className="mt-3 flex gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                {GRATITUDE_FILTERS.map((filter) => {
+                  const isActive = visual.filter === filter;
+                  return (
+                    <button
+                      key={filter}
+                      type="button"
+                      onClick={() => setVisual((current) => ({ ...current, filter }))}
+                      className="premium-tap-card min-h-10 shrink-0 rounded-full border px-3.5 py-2 text-xs font-semibold transition active:scale-[0.98]"
+                      style={{
+                        borderColor: isActive ? theme.primary : theme.borderMedium,
+                        backgroundColor: isActive ? theme.primary : theme.bgInput,
+                        color: isActive ? theme.textOnPrimary : theme.textPrimary,
+                        boxShadow: isActive ? `0 10px 18px color-mix(in srgb, ${theme.primary} 18%, transparent)` : "none",
+                      }}
+                    >
+                      {gratitudeFilterLabel(filter)}
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+
+            <section className="rounded-[1.35rem] border p-3.5 shadow-[0_8px_20px_rgba(7,10,8,0.05)]" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
+                    {ts('labels.gratitudeOverlays')}
+                  </p>
+                </div>
+                <span className="inline-flex shrink-0 items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                  {ts('labels.gratitudeStickerLimit')}
+                </span>
+              </div>
+
+              <div className="mt-3 space-y-3">
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textMuted }}>
+                    {ts('labels.gratitudeOverlayNote')}
+                  </p>
+                  <div className="mt-2 flex gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                    {[
+                      ["showNote", ts('labels.gratitudeOverlayNote')],
+                      ["showDate", ts('labels.gratitudeOverlayDate')],
+                      ["showPlace", ts('labels.gratitudeOverlayPlace')],
+                      ["showSignature", ts('labels.gratitudeOverlaySignature')],
+                    ].map(([key, label]) => {
+                      const settingKey = key as keyof Pick<GratitudeVisualSettings, "showDate" | "showPlace" | "showNote" | "showSignature">;
+                      const isActive = visual[settingKey];
+                      return (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() => toggleOverlay(settingKey)}
+                          className="premium-tap-card inline-flex min-h-10 shrink-0 items-center gap-2 rounded-full border px-3.5 py-2 text-xs font-semibold transition active:scale-[0.98]"
+                          style={{
+                            borderColor: isActive ? theme.primary : theme.borderMedium,
+                            backgroundColor: isActive ? theme.bgCardElevated : theme.bgInput,
+                            color: theme.textPrimary,
+                            boxShadow: isActive ? `0 10px 18px color-mix(in srgb, ${theme.primary} 14%, transparent)` : "none",
+                          }}
+                        >
+                          <span className="truncate">{label}</span>
+                          {isActive ? <Check size={14} style={{ color: theme.accentGold }} /> : null}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textMuted }}>
+                    {ts('labels.gratitudeStickers')}
+                  </p>
+                  <div className="mt-2 flex gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                    {GRATITUDE_STICKERS.map((sticker) => {
+                      const isActive = visual.stickers.includes(sticker);
+                      return (
+                        <button
+                          key={sticker}
+                          type="button"
+                          onClick={() => toggleSticker(sticker)}
+                          className="premium-tap-card inline-flex min-h-10 shrink-0 items-center gap-2 rounded-full border px-3.5 py-2 text-xs font-semibold transition active:scale-[0.98]"
+                          style={{
+                            borderColor: isActive ? theme.primary : theme.borderMedium,
+                            backgroundColor: isActive ? theme.bgCardElevated : theme.bgInput,
+                            color: theme.textPrimary,
+                            boxShadow: isActive ? `0 10px 18px color-mix(in srgb, ${theme.primary} 14%, transparent)` : "none",
+                          }}
+                        >
+                          <span aria-hidden="true">{GRATITUDE_STICKER_MARK[sticker]}</span>
+                          <span className="truncate">{gratitudeStickerLabel(sticker)}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textMuted }}>
+                    {ts('labels.gratitudeEmoji')}
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {GRATITUDE_EMOJIS.map((emoji) => {
+                      const isActive = visual.emoji === emoji;
+                      return (
+                        <button
+                          key={emoji || "none"}
+                          type="button"
+                          onClick={() => setVisual((current) => ({ ...current, emoji }))}
+                          className="premium-tap-card min-h-10 rounded-full border px-3.5 text-sm font-semibold transition active:scale-[0.98]"
+                          style={{
+                            borderColor: isActive ? theme.primary : theme.borderMedium,
+                            backgroundColor: isActive ? theme.primary : theme.bgInput,
+                            color: isActive ? theme.textOnPrimary : theme.textPrimary,
+                          }}
+                        >
+                          {emoji || ts('labels.gratitudeNoEmoji')}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
-
-              <div className="rounded-xl border p-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-                <DisclosureSection
-                  title={ts('labels.gratitudeEmoji')}
-                  summary={visual.emoji ? `${visual.emoji} ${ts('labels.gratitudeNoEmoji')}` : ts('labels.gratitudeNoEmoji')}
-                  eyebrow={ts('labels.gratitudeOverlays')}
-                  compactCollapsed
-                  showDetailsLabel={ts('showDetails')}
-                  hideDetailsLabel={ts('hideDetails')}
-                  theme={theme}
-                >
-                  <div>
-                    <div className="grid grid-cols-2 gap-2">
-                      {[
-                        ["showNote", ts('labels.gratitudeOverlayNote')],
-                        ["showDate", ts('labels.gratitudeOverlayDate')],
-                        ["showPlace", ts('labels.gratitudeOverlayPlace')],
-                        ["showSignature", ts('labels.gratitudeOverlaySignature')],
-                      ].map(([key, label]) => {
-                        const settingKey = key as keyof Pick<GratitudeVisualSettings, "showDate" | "showPlace" | "showNote" | "showSignature">;
-                        const isActive = visual[settingKey];
-                        return (
-                          <button
-                            key={key}
-                            type="button"
-                            onClick={() => toggleOverlay(settingKey)}
-                            className="inline-flex min-h-9 items-center justify-between gap-2 rounded-lg border px-2.5 py-2 text-left text-xs font-semibold transition active:scale-[0.98]"
-                            style={{ borderColor: isActive ? theme.primary : theme.borderMedium, backgroundColor: isActive ? theme.bgCardElevated : theme.bgInput, color: theme.textPrimary }}
-                          >
-                            <span className="min-w-0">{label}</span>
-                            {isActive ? <Check size={14} style={{ color: theme.accentGold }} /> : null}
-                          </button>
-                        );
-                      })}
-                    </div>
-
-                    <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
-                      {ts('labels.gratitudeStickers')}
-                    </p>
-                    <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
-                      {GRATITUDE_STICKERS.map((sticker) => {
-                        const isActive = visual.stickers.includes(sticker);
-                        return (
-                          <button
-                            key={sticker}
-                            type="button"
-                            onClick={() => toggleSticker(sticker)}
-                            className="inline-flex min-h-9 items-center justify-center gap-2 rounded-lg border px-2.5 py-2 text-xs font-semibold transition active:scale-[0.98]"
-                            style={{
-                              borderColor: isActive ? theme.primary : theme.borderMedium,
-                              backgroundColor: isActive ? theme.bgCardElevated : theme.bgInput,
-                              color: theme.textPrimary,
-                            }}
-                          >
-                            <span aria-hidden="true">{GRATITUDE_STICKER_MARK[sticker]}</span>
-                            <span className="min-w-0 truncate">{gratitudeStickerLabel(sticker)}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                    <p className="mt-2 text-[11px] leading-5" style={{ color: theme.textMuted }}>
-                      {ts('labels.gratitudeStickerLimit')}
-                    </p>
-
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {GRATITUDE_EMOJIS.map((emoji) => {
-                        const isActive = visual.emoji === emoji;
-                        return (
-                          <button
-                            key={emoji || "none"}
-                            type="button"
-                            onClick={() => setVisual((current) => ({ ...current, emoji }))}
-                            className="min-h-9 rounded-full border px-2.5 text-sm font-semibold transition active:scale-[0.98]"
-                            style={{
-                              borderColor: isActive ? theme.primary : theme.borderMedium,
-                              backgroundColor: isActive ? theme.primary : theme.bgInput,
-                              color: isActive ? theme.textOnPrimary : theme.textPrimary,
-                            }}
-                          >
-                            {emoji || ts('labels.gratitudeNoEmoji')}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </DisclosureSection>
-              </div>
-            </div>
-          </DisclosureSection>
+            </section>
+          </div>
 
             <label className="mt-3 block text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
             {ts('labels.gratefulFor')}
@@ -27530,66 +27675,61 @@ function JournalPanel({
 }) {
   const runtime = runtimeCopyFor(language);
   const railText = railTextColors(theme);
-  const [journalSection, setJournalSection] = useState<"write" | "archive">("write");
   const savedReflectionsRailRef = useRef<HTMLDivElement | null>(null);
-  const savedReflectionsRailHasOverflow = useRailOverflow(savedReflectionsRailRef, journalSection === "archive" && entries.length > 0, [entries.length, language]);
+  const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
+  const selectedEntry = entries.find((entry) => entry.id === selectedEntryId) ?? null;
+  const savedReflectionsRailHasOverflow = useRailOverflow(savedReflectionsRailRef, entries.length > 0, [entries.length, language]);
 
   return (
     <div className="min-w-0 space-y-4">
-      <ScreenTabs
-        value={journalSection}
-        onChange={setJournalSection}
-        ariaLabel={ts('labels.journalSections')}
-        theme={theme}
-        tabs={[
-          { key: "write", label: ts('labels.writeReflection') },
-          { key: "archive", label: ts('labels.savedReflections') },
-        ]}
-      />
-
-      {journalSection === "write" ? (
-        <section className="min-w-0 rounded-xl border p-3.5 shadow-sm sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-          <div className="mb-4 flex items-center gap-2 text-lg font-semibold" style={{ color: theme.textPrimary }}>
-            <Feather size={20} />
-            {ts('labels.reflectionJournal')}
+      <section className="min-w-0 rounded-[1.35rem] border p-3.5 shadow-sm sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+        <div className="mb-4 flex items-center gap-2 text-lg font-semibold" style={{ color: theme.textPrimary }}>
+          <Feather size={20} />
+          {ts('labels.reflectionJournal')}
+        </div>
+        <div className="grid gap-4">
+          <div className="rounded-[1.35rem] border p-3.5 shadow-[0_8px_20px_rgba(7,10,8,0.05)]" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
+              {ts('labels.writeReflection')}
+            </p>
+            <p className="mt-1.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
+              {runtime.reflectionHistorySummaryDefault}
+            </p>
+            <input
+              value={title}
+              onChange={(event) => setTitle(event.target.value)}
+              className="mt-3 h-11 w-full rounded-[1rem] border px-3 text-sm outline-none"
+              placeholder={ts('placeholders.reflectionTitle')}
+              style={{
+                borderColor: theme.borderMedium,
+                backgroundColor: theme.bgInput,
+                color: theme.textPrimary,
+              }}
+              onFocus={(e) => e.currentTarget.style.borderColor = theme.primary}
+              onBlur={(e) => e.currentTarget.style.borderColor = theme.borderMedium}
+            />
+            <textarea
+              value={body}
+              onChange={(event) => setBody(event.target.value)}
+              className="mt-3 min-h-40 w-full resize-none rounded-[1rem] border px-3 py-2.5 text-sm leading-6 outline-none"
+              placeholder={ts('placeholders.reflectionBody')}
+              style={{
+                borderColor: theme.borderMedium,
+                backgroundColor: theme.bgInput,
+                color: theme.textPrimary,
+              }}
+              onFocus={(e) => e.currentTarget.style.borderColor = theme.primary}
+              onBlur={(e) => e.currentTarget.style.borderColor = theme.borderMedium}
+            />
+            <div className="mt-3">
+              <button onClick={onSave} className="premium-tap-card inline-flex h-11 items-center justify-center gap-2 rounded-full px-4 text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary, boxShadow: `0 10px 15px -3px ${theme.primary}15` }}>
+                <Plus size={16} />
+                {ts('labels.saveReflection')}
+              </button>
+            </div>
           </div>
-          <input
-            value={title}
-            onChange={(event) => setTitle(event.target.value)}
-            className="h-10 w-full rounded-lg border px-3 text-sm outline-none"
-            placeholder={ts('placeholders.reflectionTitle')}
-            style={{
-              borderColor: theme.borderMedium,
-              backgroundColor: theme.bgInput,
-              color: theme.textPrimary,
-            }}
-            onFocus={(e) => e.currentTarget.style.borderColor = theme.primary}
-            onBlur={(e) => e.currentTarget.style.borderColor = theme.borderMedium}
-          />
-          <textarea
-            value={body}
-            onChange={(event) => setBody(event.target.value)}
-            className="mt-3 min-h-40 w-full resize-none rounded-lg border px-3 py-2.5 text-sm leading-5 outline-none"
-            placeholder={ts('placeholders.reflectionBody')}
-            style={{
-              borderColor: theme.borderMedium,
-              backgroundColor: theme.bgInput,
-              color: theme.textPrimary,
-            }}
-            onFocus={(e) => e.currentTarget.style.borderColor = theme.primary}
-            onBlur={(e) => e.currentTarget.style.borderColor = theme.borderMedium}
-          />
-          <div className="mt-3 grid gap-2 sm:grid-cols-2">
-            <button onClick={onSave} className="premium-tap-card inline-flex h-10 items-center justify-center gap-2 rounded-md px-4 text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary, boxShadow: `0 10px 15px -3px ${theme.primary}15` }}>
-              <Plus size={16} />
-              {ts('labels.saveReflection')}
-            </button>
-          </div>
-        </section>
-      ) : null}
 
-      {journalSection === "archive" ? (
-        <div className="rounded-[1.35rem] border p-3.5 shadow-sm sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+          <div className="rounded-[1.35rem] border p-3.5 shadow-sm sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
@@ -27626,10 +27766,17 @@ function JournalPanel({
                 className="mt-2 flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]"
               >
                 {entries.map((entry, index) => (
-                  <article key={entry.id} className="premium-tap-card relative flex w-full min-w-full shrink-0 snap-start flex-col overflow-hidden rounded-[1.45rem] border text-left shadow-[0_10px_24px_rgba(7,10,8,0.08)] transition" style={{ height: "calc(16rem + var(--aletheia-rail-card-height-offset, 0rem))", borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, boxShadow: "0 8px 18px rgba(7, 10, 8, 0.06)" }}>
+                  <button
+                    key={entry.id}
+                    type="button"
+                    className="premium-tap-card relative flex w-full min-w-full shrink-0 snap-start flex-col overflow-hidden rounded-[1.45rem] border text-left shadow-[0_10px_24px_rgba(7,10,14,0.08)] transition active:scale-[0.995]"
+                    style={{ height: "calc(15.25rem + var(--aletheia-rail-card-height-offset, 0rem))", borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, boxShadow: "0 8px 18px rgba(7, 10, 8, 0.06)" }}
+                    onClick={() => setSelectedEntryId(entry.id)}
+                    aria-label={`${ts('labels.savedReflections')}: ${entry.title}`}
+                  >
                     <div className="relative overflow-hidden" style={{ height: "calc(4.25rem + var(--aletheia-rail-card-hero-height-offset, 0rem))", background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryHover} 100%)` }}>
                       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.18),transparent_40%),radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.08),transparent_38%)]" />
-                      <div className="absolute left-2.5 top-2.5 grid size-[1.375rem] place-items-center rounded-full border border-white/20 bg-white/12 shadow-[0_8px_16px_rgba(0,0,0,0.12)]">
+                      <div className="absolute left-2.5 top-2.5 grid size-[1.5rem] place-items-center rounded-full border shadow-[0_8px_16px_rgba(0,0,0,0.12)]" style={{ borderColor: "rgba(255,255,255,0.22)", backgroundColor: theme.primary, color: theme.textOnPrimary }}>
                         <Feather size={12} style={{ color: theme.textOnPrimary }} />
                       </div>
                     </div>
@@ -27638,34 +27785,24 @@ function JournalPanel({
                         <div className="min-w-0">
                           <p className="line-clamp-2 text-[0.97rem] font-semibold leading-[1.22rem]" style={{ color: theme.textPrimary }}>{entry.title}</p>
                           <p className="mt-1 text-[9px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
-                            {localizedModeLabel(entry.mode, language)} · {new Date(entry.createdAt).toLocaleDateString()}
+                            {localizedModeLabel(entry.mode, language)} · {new Date(entry.createdAt).toLocaleDateString(language, { month: "short", day: "numeric" })}
                           </p>
                         </div>
-                        <button onClick={() => {
-                          if (window.confirm(ts('confirm.deleteJournalEntry'))) {
-                            onDelete(entry.id);
-                          }
-                        }} className="grid size-9 shrink-0 place-items-center rounded-full border" aria-label={`${ts('labels.delete')} ${entry.title}`} style={{ borderColor: theme.borderMedium, color: theme.textMuted }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.bgInput} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
-                          <Trash2 size={15} />
-                        </button>
+                        <span className="inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.12em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                          {ts('showDetails')}
+                        </span>
                       </div>
                       <p className="line-clamp-4 text-[0.85rem] leading-5" style={{ color: railText.railSecondary }}>{entry.body}</p>
                       <div className="mt-auto flex items-center justify-between gap-2">
-                        <button
-                          type="button"
-                          onClick={() => onSharePostcard(entry)}
-                          className="premium-tap-card inline-flex h-8 items-center gap-1.5 rounded-full border px-2.5 text-[9px] font-semibold uppercase tracking-[0.12em]"
-                          style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-                        >
-                          <Share2 size={14} />
-                          {ts('labels.createCard')}
-                        </button>
                         <span className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
                           {index + 1}
                         </span>
+                        <span className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.12em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textSecondary }}>
+                          {ts('labels.savedReflections')}
+                        </span>
                       </div>
                     </div>
-                  </article>
+                  </button>
                 ))}
               </section>
             </>
@@ -27676,7 +27813,173 @@ function JournalPanel({
           )}
           <p className="mt-4 text-xs leading-5" style={{ color: theme.textMuted }}>{ts('labels.currentlyActiveMode')}: {localizedModeLabel(mode, language)}</p>
         </div>
-      ) : null}
+        </div>
+      </section>
+
+      <JournalEntryDetailModal
+        open={Boolean(selectedEntry)}
+        theme={theme}
+        ts={ts}
+        language={language}
+        entry={selectedEntry}
+        onClose={() => setSelectedEntryId(null)}
+        onDelete={async (id) => {
+          await onDelete(id);
+          setSelectedEntryId(null);
+        }}
+      />
     </div>
+  );
+}
+
+function JournalEntryDetailModal({
+  open,
+  theme,
+  ts,
+  language,
+  entry,
+  onClose,
+  onDelete,
+}: {
+  open: boolean;
+  theme: ThemeColors;
+  ts: (key: string, fallback?: string) => string;
+  language: LanguageCode;
+  entry: JournalEntry | null;
+  onClose: () => void;
+  onDelete: (id: string) => void;
+}) {
+  const canUsePortal = typeof document !== "undefined";
+  useBodyScrollLock(open && canUsePortal);
+
+  if (!open || !canUsePortal || !entry) {
+    return null;
+  }
+
+  const createdAt = new Date(entry.createdAt);
+  const dateLabel = new Intl.DateTimeFormat(language, { month: "short", day: "numeric", year: "numeric" }).format(createdAt);
+  const timeLabel = new Intl.DateTimeFormat(language, { hour: "numeric", minute: "2-digit" }).format(createdAt);
+  const modeLabel = localizedModeLabel(entry.mode, language);
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[9999] grid min-h-dvh place-items-end overflow-hidden overscroll-none px-3 py-3 backdrop-blur-sm sm:place-items-center"
+      style={{
+        backgroundColor: "rgba(13, 23, 20, 0.62)",
+        paddingTop: "calc(max(var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)), 0.75rem) + 0.25rem)",
+        paddingBottom: "calc(max(var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)), 0.75rem) + 0.25rem)",
+      }}
+      onClick={onClose}
+    >
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="journal-detail-title"
+        className="w-full max-w-2xl overflow-y-auto overscroll-contain rounded-[2rem] border shadow-[0_28px_90px_rgba(10,18,14,0.36)]"
+        style={{
+          borderColor: theme.borderStrong,
+          backgroundColor: theme.bgCard,
+          maxHeight: "calc(100dvh - max(var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)), 0.75rem) - max(var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)), 0.75rem) - 1rem)",
+        }}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div
+          className="relative overflow-hidden border-b px-4 py-4 sm:px-5 sm:py-5"
+          style={{
+            borderColor: theme.borderLight,
+            background: `linear-gradient(135deg, color-mix(in srgb, ${theme.bgCardElevated} 64%, white 36%), ${theme.bgCard}, color-mix(in srgb, ${theme.bgCardElevated} 84%, ${theme.accentGold} 16%))`,
+          }}
+        >
+          <div
+            className="absolute inset-0 opacity-90"
+            style={{
+              background: `radial-gradient(circle at 18% 18%, color-mix(in srgb, ${theme.accentGold} 18%, transparent), transparent 36%), radial-gradient(circle at 92% 0%, color-mix(in srgb, ${theme.primary} 10%, transparent), transparent 30%)`,
+            }}
+          />
+          <div className="relative flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] sm:text-xs" style={{ color: theme.accentGold }}>
+                {ts("labels.reflectionJournal")}
+              </p>
+              <h2 id="journal-detail-title" className="mt-1.5 text-xl font-semibold tracking-tight sm:text-2xl" style={{ color: theme.textPrimary }}>
+                {entry.title}
+              </h2>
+              <p className="mt-1.5 text-sm leading-6 sm:text-[0.95rem]" style={{ color: theme.textSecondary }}>
+                {dateLabel} · {timeLabel} · {modeLabel}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="grid size-10 shrink-0 place-items-center rounded-full border transition shadow-sm"
+              style={{
+                borderColor: theme.borderMedium,
+                backgroundColor: theme.bgInput,
+                color: theme.textPrimary,
+              }}
+              aria-label={ts("labels.close")}
+            >
+              <X size={16} />
+            </button>
+          </div>
+        </div>
+
+        <div className="space-y-4 p-3.5 sm:p-4">
+          <div className="grid gap-2.5 sm:grid-cols-2">
+            <div className="rounded-[1.35rem] border p-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textSecondary }}>
+                {ts("labels.date")}
+              </p>
+              <p className="mt-1.5 text-sm font-semibold tracking-tight" style={{ color: theme.textPrimary }}>
+                {dateLabel}
+              </p>
+              <p className="mt-1 text-xs" style={{ color: theme.textMuted }}>
+                {timeLabel}
+              </p>
+            </div>
+            <div className="rounded-[1.35rem] border p-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textSecondary }}>
+                {ts("labels.currentlyActiveMode")}
+              </p>
+              <p className="mt-1.5 text-sm font-semibold tracking-tight" style={{ color: theme.textPrimary }}>
+                {modeLabel}
+              </p>
+              <p className="mt-1 text-xs" style={{ color: theme.textMuted }}>
+                {ts("labels.reflectionJournal")}
+              </p>
+            </div>
+          </div>
+
+          <section className="rounded-[1.35rem] border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+              {ts("labels.writeReflection")}
+            </p>
+            <p className="mt-2 text-[1rem] leading-7" style={{ color: theme.textPrimary, whiteSpace: "pre-wrap" }}>
+              {entry.body}
+            </p>
+          </section>
+
+          <div className="flex flex-wrap items-center justify-end gap-3 border-t pt-4" style={{ borderColor: theme.borderLight }}>
+            <button
+              type="button"
+              onClick={() => onDelete(entry.id)}
+              className="inline-flex h-11 items-center justify-center rounded-full border px-4 text-sm font-semibold transition"
+              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+            >
+              {ts("labels.delete")}
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="inline-flex h-11 items-center justify-center rounded-full px-4 text-sm font-semibold transition"
+              style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+            >
+              {ts("labels.close")}
+            </button>
+          </div>
+        </div>
+      </section>
+    </div>,
+    document.body
   );
 }

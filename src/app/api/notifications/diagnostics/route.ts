@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth";
+import { many, one } from "@/lib/db";
 import { apiError } from "@/lib/api-errors";
-import { many } from "@/lib/db";
-import { isPushConfigured } from "@/lib/notifications";
+import { getVapidKeyPairStatus, getVapidPublicKey, isPushConfigured } from "@/lib/notifications";
 
 export const dynamic = "force-dynamic";
 
@@ -19,15 +19,16 @@ type DiagnosticsRow = {
   last_challenge_notified_at: string | null;
 };
 
+type CronEventRow = {
+  created_at: string;
+};
+
 function parseTimestamp(value: string | null) {
   if (!value) {
     return null;
   }
   const ts = Date.parse(value);
-  if (Number.isNaN(ts)) {
-    return null;
-  }
-  return ts;
+  return Number.isNaN(ts) ? null : ts;
 }
 
 function daysSince(value: string | null) {
@@ -36,6 +37,14 @@ function daysSince(value: string | null) {
     return null;
   }
   return Math.floor((Date.now() - ts) / 86400000);
+}
+
+function minutesSince(value: string | null) {
+  const ts = parseTimestamp(value);
+  if (ts === null) {
+    return null;
+  }
+  return Math.floor((Date.now() - ts) / 60000);
 }
 
 function latestActivityAt(row: DiagnosticsRow) {
@@ -54,24 +63,32 @@ function latestActivityAt(row: DiagnosticsRow) {
 }
 
 export async function GET() {
-  if (!isPushConfigured()) {
-    return apiError(503, "not_configured", "Notifications are not configured yet.");
-  }
-
   try {
     const user = await requireUser();
-    const rows = await many<DiagnosticsRow>(
-      `SELECT id, endpoint, preferred_local_hour, preferred_timezone, timezone_mode, delivery_strategy,
-              updated_at, last_sent_at, last_gratitude_sent_at, last_challenge_notified_at
-       FROM push_subscriptions
-       WHERE user_id = ? AND enabled = TRUE
-       ORDER BY updated_at DESC`,
-      user.id
-    );
+    const vapidStatus = getVapidKeyPairStatus();
 
-    const diagnostics = rows.map((row) => {
+    const [subscriptionRows, cronRows] = await Promise.all([
+      many<DiagnosticsRow>(
+        `SELECT id, endpoint, preferred_local_hour, preferred_timezone, timezone_mode, delivery_strategy,
+                updated_at, last_sent_at, last_gratitude_sent_at, last_challenge_notified_at
+         FROM push_subscriptions
+         WHERE user_id = ? AND enabled = TRUE
+         ORDER BY updated_at DESC`,
+        user.id
+      ),
+      one<CronEventRow>(
+        `SELECT created_at
+         FROM analytics_events
+         WHERE event_name = 'notification_daily_checked'
+           AND source = 'cron'
+         ORDER BY created_at DESC
+         LIMIT 1`
+      ),
+    ]);
+
+    const diagnostics = subscriptionRows.map((row) => {
       const activityAt = latestActivityAt(row);
-      const stale = activityAt ? daysSince(activityAt) !== null && (daysSince(activityAt) as number) > 7 : true;
+      const stale = activityAt ? (daysSince(activityAt) ?? 0) > 7 : true;
       return {
         id: row.id,
         endpointHost: (() => {
@@ -95,17 +112,50 @@ export async function GET() {
       };
     });
 
+    const lastDailyCheckedAt = cronRows?.created_at ?? null;
+    const lastDailyCheckedMinutesAgo = minutesSince(lastDailyCheckedAt);
+    const cronSecretConfigured = Boolean(process.env.NOTIFICATION_CRON_SECRET?.trim());
+    const cronHealthy =
+      cronSecretConfigured &&
+      lastDailyCheckedMinutesAgo !== null &&
+      lastDailyCheckedMinutesAgo <= 36 * 60;
+    const cronStatus: "missing_secret" | "stale" | "healthy" = !cronSecretConfigured
+      ? "missing_secret"
+      : cronHealthy
+        ? "healthy"
+        : "stale";
+
+    const recommendedAction =
+      !vapidStatus.configured || !vapidStatus.keyPairValid
+        ? "fix_vapid"
+        : cronStatus !== "healthy"
+          ? "check_cron"
+          : diagnostics.length === 0
+            ? "subscribe"
+            : diagnostics.some((row) => row.stale)
+              ? "resubscribe_or_send_test"
+              : "none";
+
     return NextResponse.json({
-      configured: true,
-      subscriptions: diagnostics.length,
-      staleSubscriptions: diagnostics.filter((row) => row.stale).length,
-      recommendedAction:
-        diagnostics.length === 0
-          ? "subscribe"
-          : diagnostics.some((row) => row.stale)
-            ? "resubscribe_or_send_test"
-            : "none",
-      diagnostics,
+      configured: isPushConfigured(),
+      server: {
+        cronSecretConfigured,
+        cronHealthy,
+        cronStatus,
+        lastDailyCheckedAt,
+        lastDailyCheckedMinutesAgo,
+        vapidConfigured: vapidStatus.configured,
+        vapidKeyPairValid: vapidStatus.keyPairValid,
+        vapidSubjectConfigured: Boolean((process.env.VAPID_SUBJECT || process.env.VAPID_CLAIM_EMAIL || "").trim()),
+        vapidPublicKeyConfigured: Boolean(getVapidPublicKey().trim()),
+        vapidReason: vapidStatus.reason,
+      },
+      account: {
+        subscriptions: diagnostics.length,
+        staleSubscriptions: diagnostics.filter((row) => row.stale).length,
+        recommendedAction,
+        diagnostics,
+      },
       generatedAt: new Date().toISOString(),
     });
   } catch {

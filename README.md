@@ -101,7 +101,7 @@ The database adapter creates required tables and seeds the curated wisdom entrie
 - Set `NEXT_PUBLIC_APP_URL` to the Railway/custom production URL.
 - Set `NEXTAUTH_SECRET`, `NEXTAUTH_URL`, `AUTH_TRUST_HOST`, `AUTH_GOOGLE_ID`, and `AUTH_GOOGLE_SECRET` for Google sign-in.
 - Set VAPID keys for daily wisdom push notifications.
-- Set `NOTIFICATION_CRON_SECRET` and use it from your Railway scheduled job.
+- Set `NOTIFICATION_CRON_SECRET` and use it from your Railway scheduled job against `/api/notifications/daily`.
 - Set `ANALYTICS_ADMIN_SECRET` to protect aggregate analytics exports.
 - Use `npm run build` as the build command.
 - Use `npm run start` as the start command.
@@ -255,6 +255,8 @@ Authorization: Bearer YOUR_NOTIFICATION_CRON_SECRET
 ```
 
 The current implementation sends only to users whose preferred notification hour matches the current UTC hour and avoids repeat sends within 20 hours.
+
+The legacy `/api/notifications/send` route remains as a compatibility alias, but new scheduler wiring should point at `/api/notifications/daily`.
 
 ### Notifications Health Endpoint
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 
 type FunnelStage = {
@@ -137,6 +137,7 @@ type AnalyticsPayload = {
     closes: AuthPromptCloseRow[];
     daily14d: AuthPromptDailyRow[];
   };
+  generatedAt?: string;
   config?: {
     geo_enrichment_enabled?: boolean;
   };
@@ -184,11 +185,22 @@ export default function InternalAnalyticsDashboardPage() {
       return "";
     }
   });
+  const [lastSuccessfulSecret, setLastSuccessfulSecret] = useState(() => {
+    if (typeof window === "undefined") {
+      return "";
+    }
+    try {
+      return window.sessionStorage.getItem(SECRET_KEY) ?? "";
+    } catch {
+      return "";
+    }
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [payload, setPayload] = useState<AnalyticsPayload | null>(null);
   const [includeAutomation, setIncludeAutomation] = useState(false);
   const [lastLoaded, setLastLoaded] = useState<{ atIso: string; mode: string } | null>(null);
+  const skipNextAutoRefreshRef = useRef(false);
 
   const hourlyGrid = useMemo(() => {
     const hours = Array.from({ length: 24 }, (_, hour) => ({ hour, events: 0, unique_people: 0 }));
@@ -255,6 +267,25 @@ export default function InternalAnalyticsDashboardPage() {
   const geoEnrichmentEnabled = payload?.config?.geo_enrichment_enabled;
   const geoEnrichmentLabel = geoEnrichmentEnabled == null ? "Unknown" : geoEnrichmentEnabled ? "On" : "Off";
 
+  async function loadAnalyticsData(token: string, automation: boolean) {
+    const params = new URLSearchParams();
+    if (automation) {
+      params.set("includeAutomation", "1");
+    }
+
+    const response = await fetch(`/api/analytics/summary${params.size ? `?${params.toString()}` : ""}`, {
+      method: "GET",
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      throw new Error(response.status === 401 ? "Unauthorized. Check your analytics secret." : "Failed to load analytics data.");
+    }
+
+    return (await response.json()) as AnalyticsPayload;
+  }
+
   async function loadAnalytics(event?: FormEvent) {
     event?.preventDefault();
     const token = secret.trim();
@@ -263,41 +294,81 @@ export default function InternalAnalyticsDashboardPage() {
       return;
     }
 
-    setLoading(true);
     setError(null);
+    setLoading(true);
 
-    try {
-      const params = new URLSearchParams();
-      if (includeAutomation) {
-        params.set("includeAutomation", "1");
-      }
-
-      const response = await fetch(`/api/analytics/summary${params.size ? `?${params.toString()}` : ""}`, {
-        method: "GET",
-        headers: { Authorization: `Bearer ${token}` },
-        cache: "no-store",
-      });
-
-      if (!response.ok) {
-        throw new Error(response.status === 401 ? "Unauthorized. Check your analytics secret." : "Failed to load analytics data.");
-      }
-
-      const nextPayload = (await response.json()) as AnalyticsPayload;
-      setPayload(nextPayload);
-      setLastLoaded({ atIso: new Date().toISOString(), mode: trafficModeLabel });
-
+    const refresh = async () => {
       try {
-        window.sessionStorage.setItem(SECRET_KEY, token);
-      } catch {
-        // Session storage is optional for this internal tool.
+        const nextPayload = await loadAnalyticsData(token, includeAutomation);
+        setPayload(nextPayload);
+        setLastLoaded({ atIso: new Date().toISOString(), mode: includeAutomation ? "All traffic" : "Human-only" });
+        setLastSuccessfulSecret(token);
+        skipNextAutoRefreshRef.current = true;
+
+        try {
+          window.sessionStorage.setItem(SECRET_KEY, token);
+        } catch {
+          // Session storage is optional for this internal tool.
+        }
+      } catch (err) {
+        setPayload(null);
+        setError(err instanceof Error ? err.message : "Failed to load analytics data.");
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      setPayload(null);
-      setError(err instanceof Error ? err.message : "Failed to load analytics data.");
-    } finally {
-      setLoading(false);
-    }
+    };
+
+    void refresh();
   }
+
+  useEffect(() => {
+    const token = lastSuccessfulSecret.trim();
+    if (!token) {
+      return;
+    }
+
+    let cancelled = false;
+    let refreshTimer: number | null = null;
+
+    const refresh = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const nextPayload = await loadAnalyticsData(token, includeAutomation);
+        if (cancelled) {
+          return;
+        }
+        setPayload(nextPayload);
+        setLastLoaded({ atIso: new Date().toISOString(), mode: includeAutomation ? "All traffic" : "Human-only" });
+      } catch (err) {
+        if (cancelled) {
+          return;
+        }
+        setError(err instanceof Error ? err.message : "Failed to load analytics data.");
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    const shouldSkipImmediateRefresh = skipNextAutoRefreshRef.current;
+    skipNextAutoRefreshRef.current = false;
+
+    if (!shouldSkipImmediateRefresh) {
+      void refresh();
+    }
+    refreshTimer = window.setInterval(() => {
+      void refresh();
+    }, 60000);
+
+    return () => {
+      cancelled = true;
+      if (refreshTimer !== null) {
+        window.clearInterval(refreshTimer);
+      }
+    };
+  }, [includeAutomation, lastSuccessfulSecret]);
 
   const overview = payload?.overview ?? {};
 
@@ -337,7 +408,10 @@ export default function InternalAnalyticsDashboardPage() {
                 </span>
               </div>
               {lastLoaded ? (
-                <p className="text-xs text-slate-500">Last loaded with mode {lastLoaded.mode}: {lastLoaded.atIso}</p>
+                <div className="space-y-0.5 text-xs text-slate-500">
+                  <p>Last loaded with mode {lastLoaded.mode}: {lastLoaded.atIso}</p>
+                  {payload?.generatedAt ? <p>Data generated at: {payload.generatedAt}</p> : null}
+                </div>
               ) : null}
             </div>
           </div>
@@ -557,14 +631,14 @@ export default function InternalAnalyticsDashboardPage() {
 
         <section className="grid gap-6 lg:grid-cols-2">
           <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <h2 className="text-lg font-semibold">Funnel (30d)</h2>
+            <h2 className="text-lg font-semibold">Journey Milestones (30d)</h2>
             <div className="mt-4 space-y-3">
               {(payload?.funnel30d ?? []).map((stage) => (
                 <div key={stage.stage}>
                   <div className="flex items-center justify-between text-sm">
                     <span className="font-medium text-slate-800">{formatStageName(stage.stage)}</span>
                     <span className="text-slate-600">
-                      {stage.unique_people} users | {stage.conversion_from_previous_pct}% from prev
+                      {stage.unique_people} users | {stage.conversion_from_first_pct}% of openers
                     </span>
                   </div>
                   <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-slate-200">
