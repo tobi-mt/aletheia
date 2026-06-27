@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { ChevronLeft, ChevronRight, Book, Search, Info, Sparkles, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronUp, Book, Search, Info, Sparkles, Plus } from "lucide-react";
 import type { BibleTranslation, LanguageCode } from "@/lib/localization";
 import { languages, localizedBookChapterReference, localizedScriptureReference } from "@/lib/localization";
 import { buildBibleStudyGuide, type BibleStudyData } from "@/lib/bible-study";
@@ -68,18 +68,21 @@ const UI: Partial<Record<LanguageCode, {
   saved: string;
   closeEquivalentEdition: string;
   via: string;
+  tapToChangeBook: string;
+  jumpToVerses: string;
+  tapToChangePassage: string;
 }>> = {
-  en: { ot: "Old Testament", nt: "New Testament", selectBook: "Select a book", chapter: "Chapter", verses: "verses", loading: "Loading…", error: "Could not load this passage. Please try again.", noChapter: "Chapter not available in this translation.", search: "Search books…", bookSelectorHelp: "Search by English or localized book name, then move between reading and study without losing your place.", readTab: "Read", studyTab: "Study", studyLoading: "Preparing study notes…", studyError: "Could not load study notes. Please try again.", studySummary: "Summary", studyThemes: "Themes", studyRelatedVerses: "Related verses", studyQuestions: "Reflection questions", studyActions: "Practice actions", saveToRuleOfLife: "Save to Rule of Life", saved: "Saved", closeEquivalentEdition: "close equivalent edition", via: "via" },
-  es: { ot: "Antiguo Testamento", nt: "Nuevo Testamento", selectBook: "Selecciona un libro", chapter: "Capítulo", verses: "versículos", loading: "Cargando…", error: "No se pudo cargar el pasaje. Inténtalo de nuevo.", noChapter: "Capítulo no disponible en esta traducción.", search: "Buscar libros…", bookSelectorHelp: "Busca por el nombre en inglés o en la forma local, y luego cambia entre lectura y estudio sin perder tu lugar.", readTab: "Lectura", studyTab: "Estudio", studyLoading: "Preparando notas de estudio…", studyError: "No se pudieron cargar las notas de estudio.", studySummary: "Resumen", studyThemes: "Temas", studyRelatedVerses: "Versículos relacionados", studyQuestions: "Preguntas de reflexión", studyActions: "Acciones prácticas", saveToRuleOfLife: "Guardar en mi regla de vida", saved: "Guardado", closeEquivalentEdition: "edición equivalente cercana", via: "vía" },
-  fr: { ot: "Ancien Testament", nt: "Nouveau Testament", selectBook: "Choisir un livre", chapter: "Chapitre", verses: "versets", loading: "Chargement…", error: "Impossible de charger ce passage. Réessaie.", noChapter: "Chapitre non disponible dans cette traduction.", search: "Rechercher un livre…", bookSelectorHelp: "Recherche le nom anglais ou localisé du livre, puis passe entre lecture et étude sans perdre ta place.", readTab: "Lecture", studyTab: "Étude", studyLoading: "Préparation des notes d’étude…", studyError: "Impossible de charger les notes d’étude.", studySummary: "Résumé", studyThemes: "Thèmes", studyRelatedVerses: "Versets liés", studyQuestions: "Questions de réflexion", studyActions: "Actions pratiques", saveToRuleOfLife: "L’ajouter à ma règle de vie", saved: "Enregistré", closeEquivalentEdition: "édition équivalente proche", via: "via" },
-  pt: { ot: "Antigo Testamento", nt: "Novo Testamento", selectBook: "Selecione um livro", chapter: "Capítulo", verses: "versículos", loading: "Carregando…", error: "Não foi possível carregar esta passagem. Tente novamente.", noChapter: "Capítulo não disponível nesta tradução.", search: "Pesquisar livros…", bookSelectorHelp: "Pesquise pelo nome em inglês ou na forma local e alterne entre leitura e estudo sem perder o ponto em que estava.", readTab: "Leitura", studyTab: "Estudo", studyLoading: "Preparando notas de estudo…", studyError: "Não foi possível carregar as notas de estudo.", studySummary: "Resumo", studyThemes: "Temas", studyRelatedVerses: "Versículos relacionados", studyQuestions: "Perguntas de reflexão", studyActions: "Ações práticas", saveToRuleOfLife: "Adicionar à minha regra de vida", saved: "Salvo", closeEquivalentEdition: "edição equivalente próxima", via: "via" },
-  de: { ot: "Altes Testament", nt: "Neues Testament", selectBook: "Buch wählen", chapter: "Kapitel", verses: "Verse", loading: "Laden…", error: "Dieser Abschnitt konnte nicht geladen werden. Bitte versuche es erneut.", noChapter: "Kapitel in dieser Übersetzung nicht verfügbar.", search: "Bücher suchen…", bookSelectorHelp: "Suche nach dem englischen oder lokalisierten Buchnamen und wechsle dann zwischen Lesen und Studium, ohne die Stelle zu verlieren.", readTab: "Lesen", studyTab: "Studium", studyLoading: "Studiennotizen werden vorbereitet…", studyError: "Studiennotizen konnten nicht geladen werden.", studySummary: "Zusammenfassung", studyThemes: "Themen", studyRelatedVerses: "Verwandte Verse", studyQuestions: "Reflexionsfragen", studyActions: "Praktische Schritte", saveToRuleOfLife: "Zur Lebensregel hinzufügen", saved: "Gespeichert", closeEquivalentEdition: "nahezu gleichwertige Ausgabe", via: "über" },
-  yo: { ot: "Majẹmu Laelae", nt: "Majẹmu Tuntun", selectBook: "Yan ìwé kan", chapter: "Ìpíndọ̀", verses: "àwọn ẹsẹ", loading: "Ń gbé eré…", error: "A kò le gba ìpín yìí. Ẹ jọ̀wọ́ gbìyànjú lẹ́ẹ̀kan síi.", noChapter: "Ìpíndọ̀ kò wà nínú ìtumọ̀ yìí.", search: "Wá àwọn ìwé…", bookSelectorHelp: "Wá orúkọ ìwé náà ní èdè Gẹ̀ẹ́sì tàbí nínú fọ́ọ̀mù agbègbè, lẹ́yìn náà yípadà láàárín kíkà àti ìkẹ́kọ̀ọ́ láì pàdánù ibi tí o wà.", readTab: "Kà", studyTab: "Ìkẹ́kọ̀ọ́", studyLoading: "Ń pèsè àkọsílẹ̀ ìkẹ́kọ̀ọ́…", studyError: "A kò le gba àkọsílẹ̀ ìkẹ́kọ̀ọ́.", studySummary: "Àkótán", studyThemes: "Àwọn kókó", studyRelatedVerses: "Àwọn ẹsẹ tó jọra", studyQuestions: "Àwọn ìbéèrè ìronú", studyActions: "Àwọn ìgbésẹ̀ ìṣe", saveToRuleOfLife: "Fi kún ìlànà ìgbésí ayé", saved: "Ti fipamọ́", closeEquivalentEdition: "ẹ̀dà tó sún mọ́ ìbámu", via: "nípasẹ̀" },
-  ig: { ot: "Akwụkwọ Ochie", nt: "Akwụkwọ Ọhụrụ", selectBook: "Họrọ akwụkwọ", chapter: "Isi", verses: "amaokwu", loading: "Na-ebu…", error: "Enweghị ike ibufe isiakwụkwọ a. Nwaa ọzọ.", noChapter: "Isi ahụ adịghị n'ntụgharị a.", search: "Chọọ akwụkwọ…", bookSelectorHelp: "Chọọ aha akwụkwọ n’asụsụ Bekee ma ọ bụ n’ụdị mpaghara, mgbe ahụ gbanwee n’etiti ịgụ na ọmụmụ n’enweghị mfu ebe ị nọ.", readTab: "Gụọ", studyTab: "Nyocha", studyLoading: "Na-akwadebe ndetu ọmụmụ…", studyError: "Enweghị ike ibufe ndetu ọmụmụ.", studySummary: "Nchịkọta", studyThemes: "Isiokwu", studyRelatedVerses: "Amaokwu metụtara ya", studyQuestions: "Ajụjụ ntụgharị uche", studyActions: "Omume bara uru", saveToRuleOfLife: "Tinye ya n’Iwu Ndụ", saved: "Echekwara", closeEquivalentEdition: "mbipụta nso kwekọrọ", via: "site na" },
-  ha: { ot: "Tsohon Alkawari", nt: "Sabon Alkawari", selectBook: "Zaɓi littafi", chapter: "Sura", verses: "ayoyi", loading: "Ana lodawa…", error: "Ba a iya loda wannan ɗan littafin. Da fatan za a sake gwadawa.", noChapter: "Sura ba ta da wannan fassarar.", search: "Bincika littattafai…", bookSelectorHelp: "Bincika sunan littafin a Turanci ko a sigar yankin, sannan ka sauya tsakanin karatu da nazari ba tare da rasa inda kake ba.", readTab: "Karatu", studyTab: "Nazari", studyLoading: "Ana shirya bayanan nazari…", studyError: "Ba a iya loda bayanan nazari ba.", studySummary: "Taƙaitawa", studyThemes: "Jigo", studyRelatedVerses: "Ayoyi masu alaƙa", studyQuestions: "Tambayoyin tunani", studyActions: "Ayyukan aiwatarwa", saveToRuleOfLife: "Ajiye a ka'idar rayuwa", saved: "An ajiye", closeEquivalentEdition: "bugu mai kusan daidaito", via: "ta" },
-  tl: { ot: "Lumang Tipan", nt: "Bagong Tipan", selectBook: "Pumili ng aklat", chapter: "Kabanata", verses: "mga talata", loading: "Naglo-load…", error: "Hindi ma-load ang talatang ito. Pakisubukang muli.", noChapter: "Kabanata ay hindi available sa salin na ito.", search: "Maghanap ng aklat…", bookSelectorHelp: "Maghanap gamit ang pangalan sa Ingles o sa lokal na anyo, pagkatapos ay lumipat sa pagbabasa at pag-aaral nang hindi nawawala ang iyong lugar.", readTab: "Basa", studyTab: "Pag-aaral", studyLoading: "Inihahanda ang study notes…", studyError: "Hindi ma-load ang study notes.", studySummary: "Buod", studyThemes: "Mga Tema", studyRelatedVerses: "Mga kaugnay na talata", studyQuestions: "Mga tanong sa pagninilay", studyActions: "Praktikal na hakbang", saveToRuleOfLife: "I-save sa tuntunin ng buhay", saved: "Na-save", closeEquivalentEdition: "malapit na katumbas na edisyon", via: "sa pamamagitan ng" },
-  ar: { ot: "العهد القديم", nt: "العهد الجديد", selectBook: "اختر كتابًا", chapter: "الإصحاح", verses: "آيات", loading: "جارٍ التحميل…", error: "تعذّر تحميل هذه الفقرة. يرجى المحاولة مرة أخرى.", noChapter: "هذا الإصحاح غير متوفر في هذه الترجمة.", search: "ابحث في الكتب…", bookSelectorHelp: "ابحث باسم الكتاب بالإنجليزية أو بالصيغة المحلية، ثم انتقل بين القراءة والدراسة دون أن تفقد موضعك.", readTab: "قراءة", studyTab: "دراسة", studyLoading: "جارٍ إعداد ملاحظات الدراسة…", studyError: "تعذّر تحميل ملاحظات الدراسة.", studySummary: "ملخص", studyThemes: "الموضوعات", studyRelatedVerses: "آيات ذات صلة", studyQuestions: "أسئلة للتأمل", studyActions: "خطوات عملية", saveToRuleOfLife: "حفظ في قاعدة الحياة", saved: "تم الحفظ", closeEquivalentEdition: "نسخة مكافئة قريبة", via: "عبر" },
-  hi: { ot: "पुराना नियम", nt: "नया नियम", selectBook: "एक पुस्तक चुनें", chapter: "अध्याय", verses: "पद", loading: "लोड हो रहा है…", error: "यह अनुच्छेद लोड नहीं हो सका। कृपया पुनः प्रयास करें।", noChapter: "यह अध्याय इस अनुवाद में उपलब्ध नहीं है।", search: "पुस्तकें खोजें…", bookSelectorHelp: "पुस्तक का नाम अंग्रेज़ी या स्थानीय रूप में खोजें, फिर अपनी जगह खोए बिना पढ़ने और अध्ययन के बीच बदलें।", readTab: "पढ़ें", studyTab: "अध्ययन", studyLoading: "अध्ययन नोट तैयार हो रहे हैं…", studyError: "अध्ययन नोट लोड नहीं हो सके।", studySummary: "सार", studyThemes: "विषय", studyRelatedVerses: "संबंधित पद", studyQuestions: "चिंतन प्रश्न", studyActions: "व्यावहारिक कदम", saveToRuleOfLife: "जीवन नियम में सहेजें", saved: "सहेजा गया", closeEquivalentEdition: "निकट समतुल्य संस्करण", via: "के माध्यम से" },
+  en: { ot: "Old Testament", nt: "New Testament", selectBook: "Select a book", chapter: "Chapter", verses: "verses", loading: "Loading…", error: "Could not load this passage. Please try again.", noChapter: "Chapter not available in this translation.", search: "Search books…", bookSelectorHelp: "Search by English or localized book name, then move between reading and study without losing your place.", readTab: "Read", studyTab: "Study", studyLoading: "Preparing study notes…", studyError: "Could not load study notes. Please try again.", studySummary: "Summary", studyThemes: "Themes", studyRelatedVerses: "Related verses", studyQuestions: "Reflection questions", studyActions: "Practice actions", saveToRuleOfLife: "Save to Rule of Life", saved: "Saved", closeEquivalentEdition: "close equivalent edition", via: "via", tapToChangeBook: "Tap to change book", jumpToVerses: "Jump to verses", tapToChangePassage: "Tap to change passage" },
+  es: { ot: "Antiguo Testamento", nt: "Nuevo Testamento", selectBook: "Selecciona un libro", chapter: "Capítulo", verses: "versículos", loading: "Cargando…", error: "No se pudo cargar el pasaje. Inténtalo de nuevo.", noChapter: "Capítulo no disponible en esta traducción.", search: "Buscar libros…", bookSelectorHelp: "Busca por el nombre en inglés o en la forma local, y luego cambia entre lectura y estudio sin perder tu lugar.", readTab: "Lectura", studyTab: "Estudio", studyLoading: "Preparando notas de estudio…", studyError: "No se pudieron cargar las notas de estudio.", studySummary: "Resumen", studyThemes: "Temas", studyRelatedVerses: "Versículos relacionados", studyQuestions: "Preguntas de reflexión", studyActions: "Acciones prácticas", saveToRuleOfLife: "Guardar en mi regla de vida", saved: "Guardado", closeEquivalentEdition: "edición equivalente cercana", via: "vía", tapToChangeBook: "Toca para cambiar de libro", jumpToVerses: "Ir a los versículos", tapToChangePassage: "Toca para cambiar de pasaje" },
+  fr: { ot: "Ancien Testament", nt: "Nouveau Testament", selectBook: "Choisir un livre", chapter: "Chapitre", verses: "versets", loading: "Chargement…", error: "Impossible de charger ce passage. Réessaie.", noChapter: "Chapitre non disponible dans cette traduction.", search: "Rechercher un livre…", bookSelectorHelp: "Recherche le nom anglais ou localisé du livre, puis passe entre lecture et étude sans perdre ta place.", readTab: "Lecture", studyTab: "Étude", studyLoading: "Préparation des notes d’étude…", studyError: "Impossible de charger les notes d’étude.", studySummary: "Résumé", studyThemes: "Thèmes", studyRelatedVerses: "Versets liés", studyQuestions: "Questions de réflexion", studyActions: "Actions pratiques", saveToRuleOfLife: "L’ajouter à ma règle de vie", saved: "Enregistré", closeEquivalentEdition: "édition équivalente proche", via: "via", tapToChangeBook: "Touchez pour changer de livre", jumpToVerses: "Aller aux versets", tapToChangePassage: "Touchez pour changer de passage" },
+  pt: { ot: "Antigo Testamento", nt: "Novo Testamento", selectBook: "Selecione um livro", chapter: "Capítulo", verses: "versículos", loading: "Carregando…", error: "Não foi possível carregar esta passagem. Tente novamente.", noChapter: "Capítulo não disponível nesta tradução.", search: "Pesquisar livros…", bookSelectorHelp: "Pesquise pelo nome em inglês ou na forma local e alterne entre leitura e estudo sem perder o ponto em que estava.", readTab: "Leitura", studyTab: "Estudo", studyLoading: "Preparando notas de estudo…", studyError: "Não foi possível carregar as notas de estudo.", studySummary: "Resumo", studyThemes: "Temas", studyRelatedVerses: "Versículos relacionados", studyQuestions: "Perguntas de reflexão", studyActions: "Ações práticas", saveToRuleOfLife: "Adicionar à minha regra de vida", saved: "Salvo", closeEquivalentEdition: "edição equivalente próxima", via: "via", tapToChangeBook: "Toque para trocar de livro", jumpToVerses: "Ir para os versículos", tapToChangePassage: "Toque para trocar de passagem" },
+  de: { ot: "Altes Testament", nt: "Neues Testament", selectBook: "Buch wählen", chapter: "Kapitel", verses: "Verse", loading: "Laden…", error: "Dieser Abschnitt konnte nicht geladen werden. Bitte versuche es erneut.", noChapter: "Kapitel in dieser Übersetzung nicht verfügbar.", search: "Bücher suchen…", bookSelectorHelp: "Suche nach dem englischen oder lokalisierten Buchnamen und wechsle dann zwischen Lesen und Studium, ohne die Stelle zu verlieren.", readTab: "Lesen", studyTab: "Studium", studyLoading: "Studiennotizen werden vorbereitet…", studyError: "Studiennotizen konnten nicht geladen werden.", studySummary: "Zusammenfassung", studyThemes: "Themen", studyRelatedVerses: "Verwandte Verse", studyQuestions: "Reflexionsfragen", studyActions: "Praktische Schritte", saveToRuleOfLife: "Zur Lebensregel hinzufügen", saved: "Gespeichert", closeEquivalentEdition: "nahezu gleichwertige Ausgabe", via: "über", tapToChangeBook: "Zum Buchwechsel tippen", jumpToVerses: "Zu den Versen springen", tapToChangePassage: "Zum Abschnitt wechseln" },
+  yo: { ot: "Majẹmu Laelae", nt: "Majẹmu Tuntun", selectBook: "Yan ìwé kan", chapter: "Ìpíndọ̀", verses: "àwọn ẹsẹ", loading: "Ń gbé eré…", error: "A kò le gba ìpín yìí. Ẹ jọ̀wọ́ gbìyànjú lẹ́ẹ̀kan síi.", noChapter: "Ìpíndọ̀ kò wà nínú ìtumọ̀ yìí.", search: "Wá àwọn ìwé…", bookSelectorHelp: "Wá orúkọ ìwé náà ní èdè Gẹ̀ẹ́sì tàbí nínú fọ́ọ̀mù agbègbè, lẹ́yìn náà yípadà láàárín kíkà àti ìkẹ́kọ̀ọ́ láì pàdánù ibi tí o wà.", readTab: "Kà", studyTab: "Ìkẹ́kọ̀ọ́", studyLoading: "Ń pèsè àkọsílẹ̀ ìkẹ́kọ̀ọ́…", studyError: "A kò le gba àkọsílẹ̀ ìkẹ́kọ̀ọ́.", studySummary: "Àkótán", studyThemes: "Àwọn kókó", studyRelatedVerses: "Àwọn ẹsẹ tó jọra", studyQuestions: "Àwọn ìbéèrè ìronú", studyActions: "Àwọn ìgbésẹ̀ ìṣe", saveToRuleOfLife: "Fi kún ìlànà ìgbésí ayé", saved: "Ti fipamọ́", closeEquivalentEdition: "ẹ̀dà tó sún mọ́ ìbámu", via: "nípasẹ̀", tapToChangeBook: "Fọwọ́ kan láti yí ìwé padà", jumpToVerses: "Lọ sí àwọn ẹsẹ", tapToChangePassage: "Fọwọ́ kan láti yí ìpín padà" },
+  ig: { ot: "Akwụkwọ Ochie", nt: "Akwụkwọ Ọhụrụ", selectBook: "Họrọ akwụkwọ", chapter: "Isi", verses: "amaokwu", loading: "Na-ebu…", error: "Enweghị ike ibufe isiakwụkwọ a. Nwaa ọzọ.", noChapter: "Isi ahụ adịghị n'ntụgharị a.", search: "Chọọ akwụkwọ…", bookSelectorHelp: "Chọọ aha akwụkwọ n’asụsụ Bekee ma ọ bụ n’ụdị mpaghara, mgbe ahụ gbanwee n’etiti ịgụ na ọmụmụ n’enweghị mfu ebe ị nọ.", readTab: "Gụọ", studyTab: "Nyocha", studyLoading: "Na-akwadebe ndetu ọmụmụ…", studyError: "Enweghị ike ibufe ndetu ọmụmụ.", studySummary: "Nchịkọta", studyThemes: "Isiokwu", studyRelatedVerses: "Amaokwu metụtara ya", studyQuestions: "Ajụjụ ntụgharị uche", studyActions: "Omume bara uru", saveToRuleOfLife: "Tinye ya n’Iwu Ndụ", saved: "Echekwara", closeEquivalentEdition: "mbipụta nso kwekọrọ", via: "site na", tapToChangeBook: "Pịa ka ị gbanwee akwụkwọ", jumpToVerses: "Laa na amaokwu", tapToChangePassage: "Pịa ka ị gbanwee akụkụ" },
+  ha: { ot: "Tsohon Alkawari", nt: "Sabon Alkawari", selectBook: "Zaɓi littafi", chapter: "Sura", verses: "ayoyi", loading: "Ana lodawa…", error: "Ba a iya loda wannan ɗan littafin. Da fatan za a sake gwadawa.", noChapter: "Sura ba ta da wannan fassarar.", search: "Bincika littattafai…", bookSelectorHelp: "Bincika sunan littafin a Turanci ko a sigar yankin, sannan ka sauya tsakanin karatu da nazari ba tare da rasa inda kake ba.", readTab: "Karatu", studyTab: "Nazari", studyLoading: "Ana shirya bayanan nazari…", studyError: "Ba a iya loda bayanan nazari ba.", studySummary: "Taƙaitawa", studyThemes: "Jigo", studyRelatedVerses: "Ayoyi masu alaƙa", studyQuestions: "Tambayoyin tunani", studyActions: "Ayyukan aiwatarwa", saveToRuleOfLife: "Ajiye a ka'idar rayuwa", saved: "An ajiye", closeEquivalentEdition: "bugu mai kusan daidaito", via: "ta", tapToChangeBook: "Taɓa don canza littafi", jumpToVerses: "Tsallaka zuwa ayoyi", tapToChangePassage: "Taɓa don canza nassi" },
+  tl: { ot: "Lumang Tipan", nt: "Bagong Tipan", selectBook: "Pumili ng aklat", chapter: "Kabanata", verses: "mga talata", loading: "Naglo-load…", error: "Hindi ma-load ang talatang ito. Pakisubukang muli.", noChapter: "Kabanata ay hindi available sa salin na ito.", search: "Maghanap ng aklat…", bookSelectorHelp: "Maghanap gamit ang pangalan sa Ingles o sa lokal na anyo, pagkatapos ay lumipat sa pagbabasa at pag-aaral nang hindi nawawala ang iyong lugar.", readTab: "Basa", studyTab: "Pag-aaral", studyLoading: "Inihahanda ang study notes…", studyError: "Hindi ma-load ang study notes.", studySummary: "Buod", studyThemes: "Mga Tema", studyRelatedVerses: "Mga kaugnay na talata", studyQuestions: "Mga tanong sa pagninilay", studyActions: "Praktikal na hakbang", saveToRuleOfLife: "I-save sa tuntunin ng buhay", saved: "Na-save", closeEquivalentEdition: "malapit na katumbas na edisyon", via: "sa pamamagitan ng", tapToChangeBook: "I-tap para palitan ang aklat", jumpToVerses: "Lumundag sa mga talata", tapToChangePassage: "I-tap para palitan ang bahagi" },
+  ar: { ot: "العهد القديم", nt: "العهد الجديد", selectBook: "اختر كتابًا", chapter: "الإصحاح", verses: "آيات", loading: "جارٍ التحميل…", error: "تعذّر تحميل هذه الفقرة. يرجى المحاولة مرة أخرى.", noChapter: "هذا الإصحاح غير متوفر في هذه الترجمة.", search: "ابحث في الكتب…", bookSelectorHelp: "ابحث باسم الكتاب بالإنجليزية أو بالصيغة المحلية، ثم انتقل بين القراءة والدراسة دون أن تفقد موضعك.", readTab: "قراءة", studyTab: "دراسة", studyLoading: "جارٍ إعداد ملاحظات الدراسة…", studyError: "تعذّر تحميل ملاحظات الدراسة.", studySummary: "ملخص", studyThemes: "الموضوعات", studyRelatedVerses: "آيات ذات صلة", studyQuestions: "أسئلة للتأمل", studyActions: "خطوات عملية", saveToRuleOfLife: "حفظ في قاعدة الحياة", saved: "تم الحفظ", closeEquivalentEdition: "نسخة مكافئة قريبة", via: "عبر", tapToChangeBook: "انقر لتغيير السفر", jumpToVerses: "انتقل إلى الآيات", tapToChangePassage: "انقر لتغيير المقطع" },
+  hi: { ot: "पुराना नियम", nt: "नया नियम", selectBook: "एक पुस्तक चुनें", chapter: "अध्याय", verses: "पद", loading: "लोड हो रहा है…", error: "यह अनुच्छेद लोड नहीं हो सका। कृपया पुनः प्रयास करें।", noChapter: "यह अध्याय इस अनुवाद में उपलब्ध नहीं है।", search: "पुस्तकें खोजें…", bookSelectorHelp: "पुस्तक का नाम अंग्रेज़ी या स्थानीय रूप में खोजें, फिर अपनी जगह खोए बिना पढ़ने और अध्ययन के बीच बदलें।", readTab: "पढ़ें", studyTab: "अध्ययन", studyLoading: "अध्ययन नोट तैयार हो रहे हैं…", studyError: "अध्ययन नोट लोड नहीं हो सके।", studySummary: "सार", studyThemes: "विषय", studyRelatedVerses: "संबंधित पद", studyQuestions: "चिंतन प्रश्न", studyActions: "व्यावहारिक कदम", saveToRuleOfLife: "जीवन नियम में सहेजें", saved: "सहेजा गया", closeEquivalentEdition: "निकट समतुल्य संस्करण", via: "के माध्यम से", tapToChangeBook: "पुस्तक बदलने के लिए टैप करें", jumpToVerses: "पदों पर जाएँ", tapToChangePassage: "अनुच्छेद बदलने के लिए टैप करें" },
 };
 
 function getUI(language: LanguageCode) {
@@ -157,9 +160,13 @@ export default function BibleReader({ preferences, theme, initialBook, initialCh
   const [studyError, setStudyError] = useState(false);
   const [savedActionId, setSavedActionId] = useState<string | null>(null);
   const [showBookSelector, setShowBookSelector] = useState(!initialBook);
+  const [showQuickNav, setShowQuickNav] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const studyAbortRef = useRef<AbortController | null>(null);
   const verseRefs = useRef<Record<string, HTMLElement | null>>({});
+  const chapterControlsRef = useRef<HTMLDivElement | null>(null);
+  const verseSelectorRef = useRef<HTMLDivElement | null>(null);
+  const verseRailRef = useRef<HTMLDivElement | null>(null);
 
   const chapterCount = selectedBook ? (CHAPTER_COUNTS[selectedBook] ?? 1) : 1;
   const chapterTitle = selectedBook ? `${localizedBookName(selectedBook, preferences.language)} ${selectedChapter}` : "";
@@ -176,6 +183,9 @@ export default function BibleReader({ preferences, theme, initialBook, initialCh
   }, [chapterData, preferences.language, preferences.bibleTranslation]);
   const displayedStudyData = studyData ?? localStudyData;
   const verseCountLabel = chapterData ? `${chapterData.verses.length} ${ui.verses}` : ui.loading;
+  const tapToChangeBook = ui.tapToChangeBook ?? "Tap to change book";
+  const jumpToVerses = ui.jumpToVerses ?? "Jump to verses";
+  const tapToChangePassage = ui.tapToChangePassage ?? "Tap to change passage";
 
   const loadChapter = useCallback(async (book: string, chapter: number) => {
     if (!book) return;
@@ -294,7 +304,9 @@ export default function BibleReader({ preferences, theme, initialBook, initialCh
     const target = verseRefs.current[String(verse)];
     target?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, []);
-
+  const scrollToVerseRail = useCallback(() => {
+    verseSelectorRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, []);
   const setVerseRef = useCallback((verse: number, node: HTMLElement | null) => {
     if (node) {
       verseRefs.current[String(verse)] = node;
@@ -302,6 +314,23 @@ export default function BibleReader({ preferences, theme, initialBook, initialCh
     }
     delete verseRefs.current[String(verse)];
   }, []);
+
+  useEffect(() => {
+    if (!chapterControlsRef.current || showBookSelector || !chapterData || activeTab !== "read") {
+      setShowQuickNav(false);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setShowQuickNav(!entry.isIntersecting);
+      },
+      { threshold: 0.15 }
+    );
+
+    observer.observe(chapterControlsRef.current);
+    return () => observer.disconnect();
+  }, [activeTab, chapterData, showBookSelector, selectedBook, selectedChapter]);
 
   const normalizedBookSearch = bookSearch.toLowerCase();
   const matchesBookSearch = (book: string) => {
@@ -404,10 +433,13 @@ export default function BibleReader({ preferences, theme, initialBook, initialCh
     <div className="space-y-4" dir={isRtl ? "rtl" : "ltr"}>
       <section className="rounded-[1.5rem] border p-4 shadow-sm sm:p-6" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
         <div className="flex items-start gap-3 sm:gap-4">
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <h2 className="truncate text-[1.35rem] font-semibold tracking-[-0.03em] leading-tight sm:text-[1.85rem]" style={{ color: theme.textPrimary }}>
               {chapterTitle || ui.selectBook}
             </h2>
+            <p className="mt-1 text-[0.72rem] font-medium uppercase tracking-[0.16em]" style={{ color: theme.textMuted }}>
+              {tapToChangeBook}
+            </p>
             <div className="mt-2.5 flex flex-wrap items-center gap-2 text-[0.66rem] font-semibold uppercase tracking-[0.15em]">
               <span className="inline-flex items-center rounded-full border px-2.5 py-1" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
                 {verseCountLabel}
@@ -441,69 +473,100 @@ export default function BibleReader({ preferences, theme, initialBook, initialCh
           </div>
         </div>
 
-        <div className="mt-4 flex flex-wrap items-center gap-2 sm:mt-5">
-          <button
-            onClick={() => setShowBookSelector(true)}
-            className="inline-flex items-center gap-2 rounded-full border px-3.5 py-2.5 text-[0.95rem] font-medium transition hover:-translate-y-px hover:shadow-sm"
-            style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textPrimary }}
-          >
-            <Book size={15} aria-hidden="true" style={{ flexShrink: 0, color: theme.accentGold }} />
-            <span className="truncate">{localizedBookName(selectedBook, preferences.language)}</span>
-          </button>
+        <div ref={chapterControlsRef} className="mt-4 rounded-[1.45rem] border p-2.5 shadow-[0_14px_28px_rgba(7,10,8,0.10)] backdrop-blur-md sm:mt-5" style={{ borderColor: theme.borderLight, backgroundColor: `color-mix(in srgb, ${theme.bgCardElevated} 92%, transparent)` }}>
+          <div className="grid gap-2 sm:grid-cols-[minmax(0,1.25fr)_minmax(0,0.95fr)] sm:items-stretch">
+            <button
+              onClick={() => setShowBookSelector(true)}
+              className="inline-flex min-h-14 items-center justify-between gap-3 rounded-[1.35rem] border px-4 py-3 text-left transition duration-200 hover:-translate-y-px hover:shadow-sm active:scale-[0.99]"
+              style={{
+                borderColor: theme.borderLight,
+                backgroundColor: theme.bgCard,
+                color: theme.textPrimary,
+                boxShadow: `0 10px 20px color-mix(in srgb, ${theme.bgMain} 8%, transparent)`,
+              }}
+            >
+              <span className="flex min-w-0 items-center gap-3">
+                <span className="grid size-10 shrink-0 place-items-center rounded-[0.95rem] border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.accentGold }}>
+                  <Book size={16} aria-hidden="true" />
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-[0.68rem] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.textSecondary }}>
+                    {ui.selectBook}
+                  </span>
+                  <span className="block truncate text-[0.99rem] font-semibold tracking-[-0.01em]" style={{ color: theme.textPrimary }}>
+                    {localizedBookName(selectedBook, preferences.language)}
+                  </span>
+                </span>
+              </span>
+              <ChevronRight size={16} aria-hidden="true" style={{ flexShrink: 0, color: theme.textMuted }} />
+            </button>
 
-          <div className="inline-flex items-center gap-1 rounded-full border p-1" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
-            <button
-              disabled={selectedChapter <= 1}
-              onClick={() => setSelectedChapter((c) => Math.max(1, c - 1))}
-              className="rounded-full p-[0.4375rem] transition hover:opacity-70 disabled:cursor-not-allowed disabled:opacity-30"
-              aria-label={chapterUi.previous}
+            <div
+              className="inline-flex min-h-14 items-center gap-1.5 rounded-[1.35rem] border p-1.5 shadow-[0_8px_18px_rgba(7,10,8,0.05)]"
+              style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}
             >
-              <ChevronLeft size={15} style={{ color: theme.textPrimary }} />
-            </button>
-            <select
-              value={selectedChapter}
-              onChange={(e) => setSelectedChapter(Number(e.target.value))}
-              className="bg-transparent text-[0.95rem] outline-none"
-              style={{ color: theme.textPrimary }}
-              aria-label={ui.chapter}
-            >
-              {Array.from({ length: chapterCount }, (_, i) => i + 1).map((ch) => (
-                <option key={ch} value={ch}>
-                  {ui.chapter} {ch}
-                </option>
-              ))}
-            </select>
-            <button
-              disabled={selectedChapter >= chapterCount}
-              onClick={() => setSelectedChapter((c) => Math.min(chapterCount, c + 1))}
-              className="rounded-full p-[0.4375rem] transition hover:opacity-70 disabled:cursor-not-allowed disabled:opacity-30"
-              aria-label={chapterUi.next}
-            >
-              <ChevronRight size={15} style={{ color: theme.textPrimary }} />
-            </button>
+              <button
+                disabled={selectedChapter <= 1}
+                onClick={() => setSelectedChapter((c) => Math.max(1, c - 1))}
+                className="grid size-11 place-items-center rounded-[1rem] transition duration-200 hover:-translate-y-px hover:shadow-sm active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-30"
+                aria-label={chapterUi.previous}
+              >
+                <ChevronLeft size={15} style={{ color: theme.textPrimary }} />
+              </button>
+              <div className="flex min-w-0 flex-1 flex-col px-1">
+                <span className="text-[0.64rem] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.textSecondary }}>
+                  {tapToChangePassage}
+                </span>
+                <select
+                  value={selectedChapter}
+                  onChange={(e) => setSelectedChapter(Number(e.target.value))}
+                  className="min-h-8 bg-transparent px-0.5 text-[0.96rem] font-semibold outline-none"
+                  style={{ color: theme.textPrimary }}
+                  aria-label={ui.chapter}
+                >
+                  {Array.from({ length: chapterCount }, (_, i) => i + 1).map((ch) => (
+                    <option key={ch} value={ch}>
+                      {ui.chapter} {ch}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <button
+                disabled={selectedChapter >= chapterCount}
+                onClick={() => setSelectedChapter((c) => Math.min(chapterCount, c + 1))}
+                className="grid size-11 place-items-center rounded-[1rem] transition duration-200 hover:-translate-y-px hover:shadow-sm active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-30"
+                aria-label={chapterUi.next}
+              >
+                <ChevronRight size={15} style={{ color: theme.textPrimary }} />
+              </button>
+            </div>
           </div>
         </div>
       </section>
 
-      <div className="inline-flex items-center gap-1 rounded-2xl border p-1 shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
+      <div className="grid grid-cols-2 gap-2 rounded-[1.4rem] border p-1.5 shadow-[0_10px_24px_rgba(7,10,8,0.06)]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
         <button
           onClick={() => setActiveTab("read")}
-          className="rounded-xl px-4 py-2 text-[0.72rem] font-semibold tracking-[0.12em] transition"
+          className="inline-flex min-h-12 items-center justify-center gap-2 rounded-[1.05rem] px-4 py-3 text-[0.75rem] font-semibold tracking-[0.13em] transition duration-200 hover:-translate-y-px active:scale-[0.99]"
           style={{
             backgroundColor: activeTab === "read" ? theme.bgCard : "transparent",
             color: activeTab === "read" ? theme.textPrimary : theme.textSecondary,
+            boxShadow: activeTab === "read" ? "0 8px 18px rgba(7,10,8,0.08)" : "none",
           }}
         >
+          <Book size={14} aria-hidden="true" />
           {ui.readTab}
         </button>
         <button
           onClick={() => setActiveTab("study")}
-          className="rounded-xl px-4 py-2 text-[0.72rem] font-semibold tracking-[0.12em] transition"
+          className="inline-flex min-h-12 items-center justify-center gap-2 rounded-[1.05rem] px-4 py-3 text-[0.75rem] font-semibold tracking-[0.13em] transition duration-200 hover:-translate-y-px active:scale-[0.99]"
           style={{
             backgroundColor: activeTab === "study" ? theme.bgCard : "transparent",
             color: activeTab === "study" ? theme.textPrimary : theme.textSecondary,
+            boxShadow: activeTab === "study" ? "0 8px 18px rgba(7,10,8,0.08)" : "none",
           }}
         >
+          <Sparkles size={14} aria-hidden="true" />
           {ui.studyTab}
         </button>
       </div>
@@ -528,8 +591,8 @@ export default function BibleReader({ preferences, theme, initialBook, initialCh
             {ui.error}
           </div>
         ) : chapterData ? (
-          <div className="space-y-3.5">
-            <section className="rounded-[1.35rem] border p-3.5 shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+          <div className="space-y-3.5 pb-36">
+            <section ref={verseRailRef} className="rounded-[1.35rem] border p-3.5 shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
               <div className="flex items-center justify-between gap-3">
                 <p className="text-[0.64rem] font-semibold uppercase tracking-[0.24em]" style={{ color: theme.accentGold }}>
                   {ui.verses}
@@ -538,7 +601,7 @@ export default function BibleReader({ preferences, theme, initialBook, initialCh
                   {localizedBookChapterReference(selectedBook, selectedChapter, preferences.language)}
                 </p>
               </div>
-              <div className="mt-3.5 flex min-w-0 items-center gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
+              <div ref={verseSelectorRef} className="mt-3.5 flex min-w-0 items-center gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
                 {chapterData.verses.map((v) => (
                   <button
                     key={v.verse}
@@ -553,29 +616,64 @@ export default function BibleReader({ preferences, theme, initialBook, initialCh
                 ))}
               </div>
             </section>
+
+            {showQuickNav ? (
+              <div className="fixed left-3 bottom-[6.25rem] z-40 sm:left-4 sm:bottom-5">
+              <div className="flex flex-col gap-2 rounded-[1.35rem] border p-2 shadow-[0_14px_32px_rgba(7,10,8,0.12)] backdrop-blur-md" style={{ borderColor: theme.borderLight, backgroundColor: `color-mix(in srgb, ${theme.bgCardElevated} 88%, transparent)` }}>
+                <button
+                  type="button"
+                  onClick={() => setShowBookSelector(true)}
+                  className="inline-flex size-11 items-center justify-center rounded-[1rem] border transition duration-200 hover:-translate-y-px active:scale-[0.99]"
+                  style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textPrimary }}
+                  aria-label={ui.selectBook}
+                  title={ui.selectBook}
+                >
+                  <Book size={15} aria-hidden="true" />
+                </button>
+                <button
+                  type="button"
+                  onClick={scrollToVerseRail}
+                  className="inline-flex size-11 items-center justify-center rounded-[1rem] transition duration-200 hover:-translate-y-px active:scale-[0.99]"
+                  style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                  aria-label={jumpToVerses}
+                  title={jumpToVerses}
+                >
+                  <ChevronUp size={15} aria-hidden="true" />
+                </button>
+              </div>
+              </div>
+            ) : null}
+
             {chapterData.verses.map((v, index) => (
               <article
                 key={v.verse}
                 ref={(node) => setVerseRef(v.verse, node)}
                 id={`verse-${v.verse}`}
                 tabIndex={-1}
-                className="scroll-mt-24 rounded-[1.35rem] border p-4 shadow-[0_6px_16px_rgba(7,10,8,0.045)] sm:p-5"
+                className="scroll-mt-24 rounded-[1.55rem] border px-4 py-[1.05rem] shadow-[0_10px_22px_rgba(7,10,8,0.05)] sm:px-5 sm:py-5"
                 style={{
                   borderColor: theme.borderLight,
-                  backgroundColor: index % 2 === 0 ? theme.bgCard : theme.bgCardElevated,
+                  background: index % 2 === 0
+                    ? `linear-gradient(180deg, color-mix(in srgb, ${theme.bgCard} 97%, white 3%), ${theme.bgCard})`
+                    : `linear-gradient(180deg, color-mix(in srgb, ${theme.bgCardElevated} 95%, white 5%), ${theme.bgCardElevated})`,
                 }}
               >
-                <div className="flex items-start gap-3.5">
+                <div className="flex items-start gap-3.5 sm:gap-4">
                   <button
                     type="button"
                     onClick={() => scrollToVerse(v.verse)}
-                    className="inline-flex h-[2.125rem] w-[2.125rem] shrink-0 items-center justify-center rounded-full border text-[0.68rem] font-semibold transition hover:-translate-y-px hover:shadow-sm"
-                    style={{ borderColor: theme.borderMedium, color: theme.accentGold, backgroundColor: theme.bgInput }}
+                    className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-[0.95rem] border px-3 text-[0.78rem] font-semibold tracking-[0.06em] transition duration-200 hover:-translate-y-px hover:shadow-sm active:scale-[0.98] sm:min-h-12 sm:min-w-12 sm:px-3.5 sm:text-[0.82rem]"
+                    style={{
+                      borderColor: theme.borderMedium,
+                      color: theme.accentGold,
+                      backgroundColor: theme.bgInput,
+                      boxShadow: `inset 0 1px 0 color-mix(in srgb, white 10%, transparent)`,
+                    }}
                     aria-label={`${ui.chapter} ${selectedChapter}, ${ui.verses} ${v.verse}`}
                   >
                     {v.verse}
                   </button>
-                  <p className="min-w-0 flex-1 pt-0.5 text-[1rem] leading-8 tracking-[-0.01em] sm:text-[1.04rem] sm:leading-9" style={{ color: theme.textPrimary }}>
+                  <p className="min-w-0 flex-1 pt-0.5 text-[1rem] leading-[1.9] tracking-[-0.01em] sm:max-w-[38rem] sm:text-[1.06rem] sm:leading-[1.95]" style={{ color: theme.textPrimary }}>
                     {v.text}
                   </p>
                 </div>

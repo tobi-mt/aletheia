@@ -24505,6 +24505,166 @@ function localizedCounselRoleLabel(role: string, ts: (key: string, fallback?: st
   }
 }
 
+function CounselDecisionShareRail({
+  theme,
+  ts,
+  decisions,
+  contactId,
+  onShareDecisionWithCounsel,
+  onBulkShareDecisionsWithCounsel,
+}: {
+  theme: ThemeColors;
+  ts: (key: string, fallback?: string) => string;
+  decisions: WisdomDecision[];
+  contactId: string;
+  onShareDecisionWithCounsel: (contactId: string, decisionId: string) => void;
+  onBulkShareDecisionsWithCounsel: (contactId: string, decisionIds: string[]) => void;
+}) {
+  if (!decisions.length) {
+    return (
+      <p className="mt-3 rounded-[1rem] border px-3 py-2 text-xs leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
+        {ts('labels.noSharedDecisionsYet')}
+      </p>
+    );
+  }
+
+  return (
+    <div className="mt-3 border-t pt-3" style={{ borderColor: theme.borderLight }}>
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+          {ts('labels.shareDecisions')}
+        </p>
+        <span className="rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+          {decisions.length}
+        </span>
+      </div>
+      <div className="mt-3 flex min-w-0 snap-x gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {decisions.map((decision) => {
+          const modeLabel = isMode(decision.mode) ? ts(modeTranslationKey(decision.mode), decision.mode) : decision.mode;
+          return (
+            <button
+              key={decision.id}
+              type="button"
+              className="group flex w-[11.75rem] shrink-0 snap-start flex-col justify-between rounded-[1.15rem] border p-3 text-left transition duration-200 ease-out active:scale-[0.985] hover:-translate-y-0.5"
+              style={{
+                borderColor: theme.borderLight,
+                background: `linear-gradient(180deg, color-mix(in srgb, ${theme.bgCardElevated} 96%, white 4%), ${theme.bgCard})`,
+                color: theme.textPrimary,
+                boxShadow: `0 10px 24px color-mix(in srgb, ${theme.bgMain} 10%, transparent)`,
+              }}
+              onClick={() => onShareDecisionWithCounsel(contactId, decision.id)}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <span className="inline-flex min-w-0 items-center rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                  {modeLabel}
+                </span>
+                <Share2 size={13} style={{ color: theme.textMuted }} />
+              </div>
+              <p className="mt-3 text-sm font-semibold leading-6 tracking-[-0.01em]" style={{ color: theme.textPrimary }}>
+                {decision.title}
+              </p>
+            </button>
+          );
+        })}
+      </div>
+      {decisions.length > 1 ? (
+        <button
+          type="button"
+          className="mt-3 h-10 w-full rounded-full px-4 text-xs font-semibold transition"
+          style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+          onClick={() => onBulkShareDecisionsWithCounsel(contactId, decisions.map((decision) => decision.id))}
+        >
+          {ts('labels.shareAllDecisions')} ({decisions.length})
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+function CounselVoiceCard({
+  theme,
+  ts,
+  contact,
+  decisions,
+  onRemoveCounselContact,
+  onShareDecisionWithCounsel,
+  onBulkShareDecisionsWithCounsel,
+  showShareDecisions = false,
+}: {
+  theme: ThemeColors;
+  ts: (key: string, fallback?: string) => string;
+  contact: CounselContact;
+  decisions: WisdomDecision[];
+  onRemoveCounselContact: (contactId: string) => void;
+  onShareDecisionWithCounsel: (contactId: string, decisionId: string) => void;
+  onBulkShareDecisionsWithCounsel: (contactId: string, decisionIds: string[]) => void;
+  showShareDecisions?: boolean;
+}) {
+  return (
+    <div
+      className="premium-tap-card relative flex min-h-[12.5rem] w-[14rem] shrink-0 snap-start flex-col overflow-hidden rounded-[1.45rem] border p-4 sm:w-[15rem]"
+      style={{
+        borderColor: theme.borderMedium,
+        background: `linear-gradient(180deg, color-mix(in srgb, ${theme.bgCardElevated} 94%, white 6%), ${theme.bgCard})`,
+        boxShadow: "0 10px 22px rgba(7, 10, 8, 0.06)",
+      }}
+    >
+      <div className="flex items-start justify-between gap-2.5">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <AvatarCircle
+            avatarUrl={contact.avatarUrl}
+            seed={contact.id}
+            label={contact.name}
+            size={30}
+            className="size-[30px]"
+          />
+          <div className="min-w-0">
+            <p className="text-[0.98rem] font-semibold leading-5 tracking-[-0.01em]" style={{ color: theme.textPrimary }}>{contact.name}</p>
+            <p className="mt-0.5 text-[0.7rem] font-medium uppercase tracking-[0.14em] leading-4" style={{ color: theme.textMuted }}>
+              {localizedCounselRoleLabel(contact.role, ts)} · {contact.inviteStatus === "accepted" ? ts('status.accepted') : contact.inviteStatus === "pending" ? ts('status.invited') : ts('status.local')}
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => onRemoveCounselContact(contact.id)}
+          className="grid size-8 place-items-center rounded-full border transition"
+          style={{ borderColor: theme.borderMedium, color: theme.textMuted, backgroundColor: "transparent" }}
+          onMouseEnter={(event) => {
+            event.currentTarget.style.backgroundColor = theme.bgInput;
+            event.currentTarget.style.borderColor = theme.borderStrong;
+          }}
+          onMouseLeave={(event) => {
+            event.currentTarget.style.backgroundColor = "transparent";
+            event.currentTarget.style.borderColor = theme.borderMedium;
+          }}
+          aria-label={`${ts('labels.removeFromCounselCircle')}: ${contact.name}`}
+          title={ts('labels.removeFromCounselCircle')}
+        >
+          <Trash2 size={16} />
+        </button>
+      </div>
+
+      <div className="mt-3.5 flex flex-wrap gap-1.5 text-[0.64rem] font-semibold uppercase tracking-[0.1em]" style={{ color: theme.textSecondary }}>
+        {contact.canViewSummaries ? <span className="rounded-full px-2.5 py-1" style={{ backgroundColor: theme.bgInput }}>{ts('labels.summaries')}</span> : null}
+        {contact.canCommentOnDecisions ? <span className="rounded-full px-2.5 py-1" style={{ backgroundColor: theme.bgInput }}>{ts('labels.comments')}</span> : null}
+        {contact.canReceiveCheckins ? <span className="rounded-full px-2.5 py-1" style={{ backgroundColor: theme.bgInput }}>{ts('labels.checkIns')}</span> : null}
+      </div>
+
+      {showShareDecisions ? (
+        <CounselDecisionShareRail
+          theme={theme}
+          ts={ts}
+          decisions={decisions}
+          contactId={contact.id}
+          onShareDecisionWithCounsel={onShareDecisionWithCounsel}
+          onBulkShareDecisionsWithCounsel={onBulkShareDecisionsWithCounsel}
+        />
+      ) : null}
+    </div>
+  );
+}
+
 function RangeField({
   label,
   value,
@@ -24771,7 +24931,7 @@ function CurrentCounselCard({
 
           <AnswerFeedback theme={theme} ui={ui} onFeedback={onFeedback} />
 
-          <section className="rounded-[1.35rem] border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+          <section className="mt-3 rounded-[1.35rem] border p-3.5 sm:mt-4 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
             <p className="text-[0.95rem] font-semibold leading-6 tracking-[-0.01em]" style={{ color: theme.textPrimary }}>
               {text.shareAnswerPrompt}
             </p>
@@ -25732,99 +25892,17 @@ function DecisionCompanionPanel({
                 ) : null}
                 <div ref={visibleCounselRailRef} className="mt-2 flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
                   {visibleCounselContacts.map((contact) => (
-                  <div key={contact.id} className="premium-tap-card relative flex min-h-[12rem] w-[14rem] shrink-0 snap-start flex-col overflow-hidden rounded-[1.35rem] border p-3.5 sm:w-[15rem]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, boxShadow: "0 8px 18px rgba(7, 10, 8, 0.06)" }}>
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <AvatarCircle
-                          avatarUrl={contact.avatarUrl}
-                          seed={contact.id}
-                          label={contact.name}
-                          size={30}
-                          className="size-[30px]"
-                        />
-                        <div>
-                          <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{contact.name}</p>
-                          <p className="text-xs uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
-                            {localizedCounselRoleLabel(contact.role, ts)} · {contact.inviteStatus === "accepted" ? ts('status.accepted') : contact.inviteStatus === "pending" ? ts('status.invited') : ts('status.local')}
-                          </p>
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => onRemoveCounselContact(contact.id)}
-                        className="grid size-8 place-items-center rounded-full border transition"
-                        style={{ borderColor: theme.borderMedium, color: theme.textMuted, backgroundColor: "transparent" }}
-                        onMouseEnter={(event) => {
-                          event.currentTarget.style.backgroundColor = theme.bgInput;
-                          event.currentTarget.style.borderColor = theme.borderStrong;
-                        }}
-                        onMouseLeave={(event) => {
-                          event.currentTarget.style.backgroundColor = "transparent";
-                          event.currentTarget.style.borderColor = theme.borderMedium;
-                        }}
-                        aria-label={`${ts('labels.removeFromCounselCircle')}: ${contact.name}`}
-                        title={ts('labels.removeFromCounselCircle')}
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                    <div className="mt-2 flex flex-wrap gap-1 text-[0.68rem] font-semibold uppercase tracking-[0.08em]" style={{ color: theme.textSecondary }}>
-                      {contact.canViewSummaries ? <span className="rounded-full px-2 py-1" style={{ backgroundColor: theme.bgCardElevated }}>{ts('labels.summaries')}</span> : null}
-                      {contact.canCommentOnDecisions ? <span className="rounded-full px-2 py-1" style={{ backgroundColor: theme.bgCardElevated }}>{ts('labels.comments')}</span> : null}
-                      {contact.canReceiveCheckins ? <span className="rounded-full px-2 py-1" style={{ backgroundColor: theme.bgCardElevated }}>{ts('labels.checkIns')}</span> : null}
-                    </div>
-                    <details className="mt-3 rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-                      <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
-                        {ts('labels.shareDecisions')}
-                      </summary>
-                      {contact.canViewSummaries && decisions.length > 0 ? (
-                        <div className="mt-3 space-y-2">
-                          <p className="text-xs font-semibold" style={{ color: theme.textSecondary }}>{ts('labels.shareDecisions')}</p>
-                          <div className="max-h-48 space-y-1 overflow-y-auto rounded-[1rem] border p-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-                            {decisions.map((decision) => (
-                              <button
-                                key={decision.id}
-                                type="button"
-                                className="flex w-full items-start gap-2 rounded-[1rem] border px-2 py-2 text-left text-xs transition"
-                                style={{
-                                  borderColor: theme.borderMedium,
-                                  backgroundColor: theme.bgCard,
-                                }}
-                                onMouseEnter={(e) => {
-                                  e.currentTarget.style.borderColor = theme.primary;
-                                  e.currentTarget.style.backgroundColor = theme.bgCardElevated;
-                                }}
-                                onMouseLeave={(e) => {
-                                  e.currentTarget.style.borderColor = theme.borderMedium;
-                                  e.currentTarget.style.backgroundColor = theme.bgCard;
-                                }}
-                                onClick={() => onShareDecisionWithCounsel(contact.id, decision.id)}
-                              >
-                                <span className="mt-0.5 shrink-0 rounded-full px-1.5 py-0.5 text-[0.65rem] font-semibold" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-                                  {isMode(decision.mode) ? ts(modeTranslationKey(decision.mode), decision.mode) : decision.mode}
-                                </span>
-                                <span className="min-w-0 flex-1 break-words font-medium leading-5" style={{ color: theme.textPrimary }}>{decision.title}</span>
-                              </button>
-                            ))}
-                          </div>
-                          {decisions.length > 1 ? (
-                            <button
-                              type="button"
-                              className="w-full rounded-full px-3 py-2 text-xs font-semibold transition"
-                              style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
-                              onClick={() => onBulkShareDecisionsWithCounsel(contact.id, decisions.map((d) => d.id))}
-                            >
-                              {ts('labels.shareAllDecisions')} ({decisions.length})
-                            </button>
-                          ) : null}
-                        </div>
-                      ) : (
-                        <p className="mt-3 text-xs leading-5" style={{ color: theme.textSecondary }}>
-                          {ts('labels.noSharedDecisionsYet')}
-                        </p>
-                      )}
-                    </details>
-                  </div>
+                    <CounselVoiceCard
+                      key={contact.id}
+                      theme={theme}
+                      ts={ts}
+                      contact={contact}
+                      decisions={decisions}
+                      onRemoveCounselContact={onRemoveCounselContact}
+                      onShareDecisionWithCounsel={onShareDecisionWithCounsel}
+                      onBulkShareDecisionsWithCounsel={onBulkShareDecisionsWithCounsel}
+                      showShareDecisions
+                    />
                   ))}
                 </div>
                 {hiddenCounselContacts.length ? (
@@ -25852,43 +25930,16 @@ function DecisionCompanionPanel({
                     ) : null}
                     <div ref={hiddenCounselRailRef} className="mt-2 flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
                       {hiddenCounselContacts.map((contact) => (
-                        <div key={contact.id} className="premium-tap-card relative flex min-h-[11.5rem] w-[13.5rem] shrink-0 snap-start flex-col overflow-hidden rounded-[1.35rem] border p-3.5 sm:w-[14.5rem]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, boxShadow: "0 8px 18px rgba(7, 10, 8, 0.06)" }}>
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="flex items-center gap-2">
-                              <AvatarCircle
-                                avatarUrl={contact.avatarUrl}
-                                seed={contact.id}
-                                label={contact.name}
-                                size={30}
-                                className="size-[30px]"
-                              />
-                              <div>
-                                <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{contact.name}</p>
-                                <p className="text-xs uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
-                                  {localizedCounselRoleLabel(contact.role, ts)} · {contact.inviteStatus === "accepted" ? ts('status.accepted') : contact.inviteStatus === "pending" ? ts('status.invited') : ts('status.local')}
-                                </p>
-                              </div>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => onRemoveCounselContact(contact.id)}
-                              className="grid size-8 place-items-center rounded-full border transition"
-                              style={{ borderColor: theme.borderMedium, color: theme.textMuted, backgroundColor: "transparent" }}
-                              onMouseEnter={(event) => {
-                                event.currentTarget.style.backgroundColor = theme.bgInput;
-                                event.currentTarget.style.borderColor = theme.borderStrong;
-                              }}
-                              onMouseLeave={(event) => {
-                                event.currentTarget.style.backgroundColor = "transparent";
-                                event.currentTarget.style.borderColor = theme.borderMedium;
-                              }}
-                              aria-label={`${ts('labels.removeFromCounselCircle')}: ${contact.name}`}
-                              title={ts('labels.removeFromCounselCircle')}
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          </div>
-                        </div>
+                        <CounselVoiceCard
+                          key={contact.id}
+                          theme={theme}
+                          ts={ts}
+                          contact={contact}
+                          decisions={decisions}
+                          onRemoveCounselContact={onRemoveCounselContact}
+                          onShareDecisionWithCounsel={onShareDecisionWithCounsel}
+                          onBulkShareDecisionsWithCounsel={onBulkShareDecisionsWithCounsel}
+                        />
                       ))}
                     </div>
                   </div>
