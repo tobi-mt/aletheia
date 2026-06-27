@@ -14476,8 +14476,9 @@ function ScreenTabs<T extends string>({
             type="button"
             role="tab"
             aria-selected={active}
+            title={tab.label}
             onClick={() => onChange(tab.key)}
-            className={`premium-tap-card relative min-h-12 min-w-0 rounded-xl px-3 py-3 text-center font-semibold leading-tight tracking-normal transition ${useScrollableRail ? "min-w-[7.25rem] shrink-0 whitespace-nowrap text-sm" : "px-2 py-2.5 text-[0.72rem] sm:px-3 sm:py-3 sm:text-sm"}`}
+            className={`premium-tap-card relative min-h-12 min-w-0 overflow-hidden rounded-xl px-3 py-3 text-center font-semibold leading-tight tracking-normal transition ${useScrollableRail ? "min-w-[8.25rem] shrink-0 text-[0.74rem] sm:min-w-[9.25rem] sm:text-[0.84rem]" : "px-2 py-2.5 text-[0.72rem] sm:px-3 sm:py-3 sm:text-sm"}`}
             style={{
               backgroundColor: active ? (variant === "primary" ? theme.primary : theme.bgCard) : "transparent",
               color: active ? (variant === "primary" ? theme.textOnPrimary : theme.textPrimary) : theme.textSecondary,
@@ -14488,11 +14489,8 @@ function ScreenTabs<T extends string>({
                 : "none",
               borderColor: active ? theme.primary : "transparent",
             }}
-          >
-            <span
-              className={useScrollableRail ? "whitespace-nowrap" : "block"}
-              style={useScrollableRail ? undefined : { wordBreak: "normal", overflowWrap: "normal", hyphens: "none" }}
             >
+            <span className={useScrollableRail ? "block truncate" : "block whitespace-normal break-words"}>
               {tab.label}
             </span>
           </button>
@@ -17055,6 +17053,19 @@ function FormationRailSection({
     ? completionForDay(selectedChallenge, openDayDetailDay)
     : null;
   const dayCarouselHasOverflow = useRailOverflow(dayCarouselRef, Boolean(selectedChallenge), [selectedChallenge?.id, selectedChallenge?.totalDays, selectedChallengeFocusedDay, selectedChallenge?.completedDays.length]);
+  const currentDayPracticeHint = ({
+    en: "Tap the current day card below to open the full practice.",
+    es: "Toca la tarjeta del día de hoy abajo para abrir la práctica completa.",
+    fr: "Touchez la carte du jour ci-dessous pour ouvrir la pratique complète.",
+    pt: "Toque no cartão do dia de hoje abaixo para abrir a prática completa.",
+    de: "Tippe die heutige Karte unten an, um die ganze Praxis zu öffnen.",
+    yo: "Fọwọ́ kan kaadi ọjọ́ yìí ní isalẹ láti ṣí gbogbo ìṣe náà.",
+    ig: "Pịa kaadị ụbọchị taa dị n'okpuru ka o mepee omume dum.",
+    ha: "Taɓa katin ranar yau da ke ƙasa don buɗe cikakken aikin.",
+    tl: "I-tap ang card ng kasalukuyang araw sa ibaba para buksan ang buong praktis.",
+    ar: "انقر بطاقة اليوم أدناه لفتح الممارسة كاملة.",
+    hi: "पूरा अभ्यास खोलने के लिए नीचे वाले आज के कार्ड पर टैप करें.",
+  } as Partial<Record<LanguageCode, string>>)[language] ?? "Tap the current day card below to open the full practice.";
 
   useEffect(() => {
     if (process.env.NODE_ENV === "production" || typeof window === "undefined") {
@@ -17560,7 +17571,7 @@ function FormationRailSection({
                     <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
                       {selectedChallengeProgressState === "completed_today"
                         ? ts("challenges.completedToday")
-                        : "Tap the current day card below to open the full practice."}
+                        : currentDayPracticeHint}
                     </p>
                     <div className="mt-4 h-2 overflow-hidden rounded-full" style={{ backgroundColor: theme.bgInput }}>
                       <div
@@ -27040,8 +27051,8 @@ function GratitudeLensPanel({
                 onChange={setFormation}
                 ariaLabel={ts('labels.gratitudeNoticingQuestion')}
                 theme={theme}
-                layout="scroll"
-                className="border-0 p-0 shadow-none"
+                layout="grid"
+                className="border-0 p-0 shadow-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
                 tabs={GRATITUDE_FORMATIONS.map((item) => ({
                   key: item,
                   label: `${GRATITUDE_FORMATION_ICON[item]} ${gratitudeFormationLabel(item)}`,

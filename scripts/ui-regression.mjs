@@ -52,7 +52,7 @@ const markers = {
   Home: 'Ask Aletheia',
   Decide: 'Name the decision under pressure',
   Decisions: 'Name the decision under pressure',
-  Reflect: 'Begin with one honest sentence',
+  Reflect: 'Reflection Journal',
   Library: 'Search one wisdom theme',
   Account: 'Sign in or continue as guest',
 };

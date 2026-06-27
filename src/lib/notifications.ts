@@ -1280,8 +1280,8 @@ const challengeAwareReentryTitleCopy: Record<ChallengeId, Partial<Record<Languag
 const challengeReminderContinueCopy: Partial<Record<LanguageCode, string>> = {
   en: "Continue · {dayLabel}: {practice}",
   es: "Continúa · {dayLabel}: {practice}",
-  fr: "Continue · {dayLabel} : {practice}",
-  pt: "Continue · {dayLabel}: {practice}",
+  fr: "Poursuis · {dayLabel} : {practice}",
+  pt: "Continua · {dayLabel}: {practice}",
   de: "Weiter · {dayLabel}: {practice}",
   yo: "Tẹ̀síwájú · {dayLabel}: {practice}",
   ig: "Gaa n'ihu · {dayLabel}: {practice}",
