@@ -2,15 +2,6 @@
   "originHash" : "78220a1f1f90ce8102e820c1f7bfea87adde352eaf4cb7ea49ff980fc97feb85",
   "pins" : [
     {
-      "identity" : "capacitor-haptics",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/ionic-team/capacitor-haptics.git",
-      "state" : {
-        "revision" : "bfa03b7169071242875fff188866c6d7aa7dc32b",
-        "version" : "8.0.2"
-      }
-    },
-    {
       "identity" : "capacitor-swift-pm",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/ionic-team/capacitor-swift-pm.git",

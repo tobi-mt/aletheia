@@ -6,7 +6,6 @@ import { signIn as authSignIn, signOut as authSignOut } from "next-auth/react";
 import { ChangeEvent, FormEvent, type KeyboardEvent, type ReactNode, type RefObject, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Capacitor, SystemBars, SystemBarsStyle, type PluginListenerHandle } from "@capacitor/core";
-import { Haptics, ImpactStyle } from "@capacitor/haptics";
 import {
   BookOpen,
   BriefcaseBusiness,
@@ -13166,9 +13165,10 @@ function MobileNav({
 }) {
   const handleClick = async () => {
     // Haptic feedback for better tactile experience
-    if (!Capacitor.isNativePlatform()) return onClick();
     try {
-      await Haptics.impact({ style: ImpactStyle.Light });
+      if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+        navigator.vibrate?.(8);
+      }
       onClick();
     } catch {
       onClick();
