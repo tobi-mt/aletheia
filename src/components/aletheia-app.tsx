@@ -415,6 +415,8 @@ const GRATITUDE_LENS_STORAGE_KEY = "aletheia_gratitude_lens";
 const AUTH_PROMPT_STATE_STORAGE_KEY = "aletheia_auth_prompt_state";
 const AUTH_PROMPT_MIN_ENGAGEMENT_MS = 20_000;
 const AUTH_PROMPT_WEEKLY_LIMIT = 3;
+const FIRST_RUN_GATE_COMPLETE_STORAGE_KEY = "aletheia_first_run_gate_complete";
+const ONBOARDING_PROGRESS_STORAGE_KEY = "aletheia_onboarding_progress";
 const AUTH_PROMPT_FIRST_COOLDOWN_MS = 72 * 60 * 60 * 1000;
 const AUTH_PROMPT_REPEAT_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000;
 const GRATITUDE_INDEXED_DB_NAME = "aletheia-gratitude";
@@ -3198,11 +3200,40 @@ function shouldShowOnboarding() {
   }
 
   try {
+    const params = new URLSearchParams(window.location.search);
+    const forceFirstRun = params.get("resetFirstRun") === "1" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
+    if (forceFirstRun) {
+      return false;
+    }
+    const completed = window.localStorage.getItem("aletheia_onboarding_complete") === "yes";
+    if (completed) {
+      return false;
+    }
+    const progress = window.localStorage.getItem(ONBOARDING_PROGRESS_STORAGE_KEY);
+    return progress === "guest";
+  } catch {
+    return false;
+  }
+}
+
+function shouldShowWelcomeGate() {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const forceFirstRun = params.get("resetFirstRun") === "1" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
+    if (forceFirstRun) {
+      return true;
+    }
     const completed = window.localStorage.getItem("aletheia_onboarding_complete") === "yes";
     const hasPreferences = Boolean(window.localStorage.getItem("aletheia_preferences"));
+    const gateComplete = window.localStorage.getItem(FIRST_RUN_GATE_COMPLETE_STORAGE_KEY) === "yes";
+    const progress = window.localStorage.getItem(ONBOARDING_PROGRESS_STORAGE_KEY);
     // Don't check hasAnonId - it's auto-created by analytics, not user-initiated
     // Don't check sessionStorage - it's cleared on hard refresh, causing onboarding to disappear
-    return !completed && !hasPreferences;
+    return !completed && !hasPreferences && !gateComplete && progress !== "guest";
   } catch {
     return false;
   }
@@ -7150,6 +7181,8 @@ export function AletheiaApp() {
   const [themePreference, setThemePreference] = useState<ThemePreference>("system");
   const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>("classic");
   const theme = themeColors[resolvedTheme];
+  const [showWelcomeGate, setShowWelcomeGate] = useState(false);
+  const [onboardingPath, setOnboardingPath] = useState<"guest" | "account" | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboardingConcern, setOnboardingConcern] = useState("");
   const [onboardingTone, setOnboardingTone] = useState("gentle");
@@ -7333,10 +7366,13 @@ export function AletheiaApp() {
       const params = new URLSearchParams(window.location.search);
       const shouldHonorNotificationFocus = params.get("source") === "notification";
       const restoredPreferences = storedPreferences();
+      const restoredOnboardingProgress = window.localStorage.getItem(ONBOARDING_PROGRESS_STORAGE_KEY);
       setStartupLanguage(restoredPreferences.language);
       setPreferences(restoredPreferences);
       setManualContext(storedManualContext());
       setThemePreference(storedThemePreference());
+      setOnboardingPath(restoredOnboardingProgress === "guest" ? "guest" : null);
+      setShowWelcomeGate(shouldShowWelcomeGate());
       setShowOnboarding(shouldShowOnboarding());
       setCarryToday(storedCarryToday(restoredPreferences));
       setScriptureMemory(storedScriptureMemory(restoredPreferences));
@@ -8610,9 +8646,13 @@ export function AletheiaApp() {
         setAuthNotice(params.get("auth")?.startsWith("google_") ? signedInMessage : "");
         try {
           window.localStorage.setItem("aletheia_onboarding_complete", "yes");
+          window.localStorage.removeItem(ONBOARDING_PROGRESS_STORAGE_KEY);
+          window.localStorage.setItem(FIRST_RUN_GATE_COMPLETE_STORAGE_KEY, "yes");
         } catch {
           // Signed-in users should not be blocked by local onboarding storage.
         }
+        setOnboardingPath(null);
+        setShowWelcomeGate(false);
         setShowOnboarding(false);
         if (params.get("view") === "account" || params.get("auth")?.startsWith("google_")) {
           setActiveView("account");
@@ -9283,6 +9323,8 @@ export function AletheiaApp() {
   function completeOnboarding() {
     try {
       window.localStorage.setItem("aletheia_onboarding_complete", "yes");
+      window.localStorage.removeItem(ONBOARDING_PROGRESS_STORAGE_KEY);
+      window.localStorage.setItem(FIRST_RUN_GATE_COMPLETE_STORAGE_KEY, "yes");
       window.localStorage.setItem("aletheia_context_privacy_level", onboardingPrivacyLevel);
     } catch {
       // Onboarding can still close if storage is unavailable.
@@ -9313,6 +9355,8 @@ export function AletheiaApp() {
       hasConcern: Boolean(onboardingConcern.trim()),
       ...analyticsQuestionMetadata(onboardingConcern, mode),
     });
+    setOnboardingPath(null);
+    setShowWelcomeGate(false);
     setShowOnboarding(false);
   }
 
@@ -9333,8 +9377,29 @@ export function AletheiaApp() {
     announceWorkflow(ts('notifications.timelineOpened'), ts('notifications.timelineOpenedBody'), "info");
   }
 
-  function openAccountFlow() {
+  function openAccountFlow(nextAuthMode?: AuthMode) {
+    if (nextAuthMode) {
+      setAuthMode(nextAuthMode);
+    }
     showView("account");
+  }
+
+  function startFirstRunGuestFlow() {
+    try {
+      window.localStorage.setItem(ONBOARDING_PROGRESS_STORAGE_KEY, "guest");
+      window.localStorage.setItem(FIRST_RUN_GATE_COMPLETE_STORAGE_KEY, "yes");
+    } catch {
+      // Guest onboarding can still continue in-memory if storage is unavailable.
+    }
+    setOnboardingPath("guest");
+    setShowWelcomeGate(false);
+    setShowOnboarding(true);
+  }
+
+  function startFirstRunAuthFlow(nextAuthMode: AuthMode) {
+    setOnboardingPath(null);
+    setShowWelcomeGate(false);
+    openAccountFlow(nextAuthMode);
   }
 
   function openRecommendedChallenge(challengeId: string) {
@@ -9889,10 +9954,16 @@ export function AletheiaApp() {
       window.localStorage.removeItem(CARRY_TODAY_STORAGE_KEY);
       window.localStorage.removeItem(SCRIPTURE_MEMORY_STORAGE_KEY);
       window.localStorage.removeItem(MANUAL_CONTEXT_STORAGE_KEY);
+      window.localStorage.removeItem("aletheia_onboarding_complete");
+      window.localStorage.removeItem(ONBOARDING_PROGRESS_STORAGE_KEY);
+      window.localStorage.removeItem(FIRST_RUN_GATE_COMPLETE_STORAGE_KEY);
       window.localStorage.removeItem("aletheia-counsel-summary-draft");
     } catch {
       // In-memory reset still gives immediate safety.
     }
+    setOnboardingPath(null);
+    setShowWelcomeGate(shouldShowWelcomeGate());
+    setShowOnboarding(shouldShowOnboarding());
     announceWorkflow(ts('notifications.localSettingsCleared'), ts('notifications.localSettingsClearedBody'), "success");
   }
 
@@ -9919,6 +9990,16 @@ export function AletheiaApp() {
       return;
     }
     clearLocalPrivateWorkspace();
+    try {
+      window.localStorage.removeItem(ONBOARDING_PROGRESS_STORAGE_KEY);
+      window.localStorage.removeItem(FIRST_RUN_GATE_COMPLETE_STORAGE_KEY);
+      window.localStorage.removeItem("aletheia_onboarding_complete");
+    } catch {
+      // Guest workspace can still reset in-memory state.
+    }
+    setOnboardingPath(null);
+    setShowWelcomeGate(shouldShowWelcomeGate());
+    setShowOnboarding(shouldShowOnboarding());
     announceWorkflow(
       ts('notifications.guestWorkspaceCleared'),
       ts('notifications.guestWorkspaceClearedBody'),
@@ -10641,10 +10722,14 @@ export function AletheiaApp() {
       announceWorkflow(authMode === "register" ? ts('notifications.accountCreated') : ts('notifications.signedIn'), successMessage, "success");
       try {
         window.localStorage.setItem("aletheia_onboarding_complete", "yes");
+        window.localStorage.removeItem(ONBOARDING_PROGRESS_STORAGE_KEY);
+        window.localStorage.setItem(FIRST_RUN_GATE_COMPLETE_STORAGE_KEY, "yes");
       } catch {
         // Auth still succeeds if local onboarding storage is unavailable.
       }
       setActiveView("account");
+      setShowWelcomeGate(false);
+      setOnboardingPath(null);
       setShowOnboarding(false);
     } catch (error) {
       setAuthStatus("guest");
@@ -12604,8 +12689,20 @@ export function AletheiaApp() {
         </div>
       </div>
 
+      <WelcomeGateScreen
+        open={showWelcomeGate}
+        theme={theme}
+        ts={ts}
+        googleAuthAvailable={googleAuthAvailable}
+        onCreateAccount={() => startFirstRunAuthFlow("register")}
+        onSignIn={() => startFirstRunAuthFlow("login")}
+        onGoogleSignIn={handleGoogleSignIn}
+        onContinueWithoutAccount={startFirstRunGuestFlow}
+      />
+
       <OnboardingModal
         open={showOnboarding}
+        audience={onboardingPath}
         mode={mode}
         modeCards={activeModeCards}
         preferences={preferences}
@@ -12626,9 +12723,9 @@ export function AletheiaApp() {
         onPreferenceChange={updatePreferences}
         onComplete={completeOnboarding}
         onRequestSignIn={() => {
+          setOnboardingPath("account");
           setShowOnboarding(false);
-          setAuthMode("login");
-          openAccountFlow();
+          startFirstRunAuthFlow("login");
         }}
         theme={theme}
       />
@@ -13542,6 +13639,7 @@ function pushSubscriptionUsesPublicKey(subscription: PushSubscription, publicKey
 
 function OnboardingModal({
   open,
+  audience,
   mode,
   modeCards,
   preferences,
@@ -13565,6 +13663,7 @@ function OnboardingModal({
   theme,
 }: {
   open: boolean;
+  audience?: "guest" | "account" | null;
   mode: Mode;
   modeCards: ModeCard[];
   preferences: UserPreferences;
@@ -13588,7 +13687,7 @@ function OnboardingModal({
   theme: ThemeColors;
 }) {
   const [activeSetupStep, setActiveSetupStep] = useState("mode");
-  const modalScrollRef = useRef<HTMLElement | null>(null);
+  const modalScrollRef = useRef<HTMLDivElement | null>(null);
   const modeSectionRef = useRef<HTMLElement | null>(null);
   const toneSectionRef = useRef<HTMLElement | null>(null);
   const languageSectionRef = useRef<HTMLElement | null>(null);
@@ -13674,6 +13773,14 @@ function OnboardingModal({
 
   const bibleOptions = bibleTranslationOptionsForLanguage(preferences.language);
   const selectedTranslation = bibleTranslations[preferences.bibleTranslation];
+  const onboardingTitle =
+    audience === "account"
+      ? ts("labels.onboardingTitleSignedIn")
+      : ts('labels.onboardingTitle');
+  const onboardingLead =
+    audience === "account"
+      ? ts("labels.onboardingSignedInBody")
+      : ts('labels.chooseLensAndSettings');
   const setupSteps = [
     { key: "mode", label: ts('labels.setupStepMode') },
     { key: "tone", label: ts('labels.setupStepTone') },
@@ -13700,7 +13807,7 @@ function OnboardingModal({
   ];
   const onboardingHighlights = [
     {
-      title: ts('labels.appLikeSetup'),
+      title: audience === "account" ? ts("labels.accountLinkedSetup") : ts('labels.appLikeSetup'),
       body: ts('labels.changeLaterInAccount'),
     },
     {
@@ -13723,30 +13830,30 @@ function OnboardingModal({
       }}
     >
       <section
-        ref={modalScrollRef}
-        className="editorial-surface box-border max-h-[92vh] min-w-0 overflow-x-hidden overflow-y-auto overscroll-contain rounded-xl border p-3.5 shadow-2xl [touch-action:pan-y] sm:p-4"
+        className="editorial-surface box-border flex max-h-[92vh] min-w-0 flex-col overflow-hidden overscroll-contain rounded-xl border p-3.5 shadow-2xl sm:p-4"
         style={{
           borderColor: `color-mix(in srgb, ${theme.borderLight} 82%, transparent)`,
           backgroundColor: theme.bgCard,
-          maxHeight: "calc(100dvh - max(var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)), var(--aletheia-top-reserve, 20px)) - max(var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)), var(--aletheia-bottom-reserve, 12px)) - 1.5rem)",
+          maxHeight: "calc(100svh - max(var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)), var(--aletheia-top-reserve, 20px)) - max(var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)), var(--aletheia-bottom-reserve, 12px)) - 1.5rem)",
           width: "min(100%, calc(100vw - 1.5rem), 42rem)",
         }}
       >
+        <div ref={modalScrollRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch] [touch-action:pan-y]">
         <div className="flex items-start justify-between gap-3">
           <div className="max-w-2xl rounded-[1.25rem] border p-4 shadow-sm sm:p-5" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
             <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>{ts('labels.beginQuietly')}</p>
             <h2 className="mt-2 text-[1.42rem] font-semibold leading-[1.02] text-balance sm:text-[1.76rem]" style={{ color: theme.textPrimary }}>
-              {ts('labels.onboardingTitle')}
+              {onboardingTitle}
             </h2>
             <p className="mt-2 max-w-xl text-sm leading-6 sm:text-[0.96rem] sm:leading-7" style={{ color: theme.textSecondary }}>
-              {ts('labels.chooseLensAndSettings')}
+              {onboardingLead}
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
               <span className="rounded-full border px-2.5 py-1 text-[11px] font-semibold" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}>
                 5 {ts('labels.setupSteps')}
               </span>
               <span className="rounded-full border px-2.5 py-1 text-[11px] font-semibold" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-                {ts('labels.appLikeSetup')}
+                {audience === "account" ? ts("labels.accountLinkedSetup") : ts('labels.appLikeSetup')}
               </span>
               <span className="rounded-full border px-2.5 py-1 text-[11px] font-semibold" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
                 {ts('labels.changeLaterInAccount')}
@@ -14033,6 +14140,7 @@ function OnboardingModal({
         >
           {ts('labels.enterAletheia')}
         </button>
+        </div>
       </section>
     </div>
   );
@@ -14955,11 +15063,11 @@ function SystemReferenceModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby={`system-topic-${topic.id}`}
-        className="w-full max-w-2xl overflow-y-auto overscroll-contain rounded-[2rem] border shadow-[0_28px_90px_rgba(10,18,14,0.36)]"
+        className="w-full max-w-2xl overflow-y-auto overscroll-contain rounded-[2rem] border [-webkit-overflow-scrolling:touch] [touch-action:pan-y] shadow-[0_28px_90px_rgba(10,18,14,0.36)]"
         style={{
           borderColor: theme.borderStrong,
           backgroundColor: theme.bgCard,
-          maxHeight: "calc(100dvh - max(var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)), 0.75rem) - max(var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)), 0.75rem) - 1rem)",
+          maxHeight: "calc(100svh - max(var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)), 0.75rem) - max(var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)), 0.75rem) - 1rem)",
         }}
         onClick={(event) => event.stopPropagation()}
       >
@@ -17351,11 +17459,11 @@ function FormationRailSection({
         role="dialog"
         aria-modal="true"
         aria-labelledby="formation-day-modal-title"
-        className="w-full max-w-2xl overflow-y-auto overscroll-contain rounded-[2rem] border p-4 shadow-[0_28px_90px_rgba(10,18,14,0.36)] sm:p-5"
+        className="w-full max-w-2xl overflow-y-auto overscroll-contain rounded-[2rem] border p-4 [-webkit-overflow-scrolling:touch] [touch-action:pan-y] shadow-[0_28px_90px_rgba(10,18,14,0.36)] sm:p-5"
         style={{
           borderColor: theme.borderStrong,
           backgroundColor: theme.bgCard,
-          maxHeight: "calc(100dvh - var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)) - var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)) - 1rem)",
+          maxHeight: "calc(100svh - var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)) - var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)) - 1rem)",
         }}
         onClick={(event) => event.stopPropagation()}
       >
@@ -20394,6 +20502,175 @@ function useBodyScrollLock(active: boolean) {
   }, [active]);
 }
 
+function WelcomeGateScreen({
+  open,
+  theme,
+  ts,
+  googleAuthAvailable,
+  onSignIn,
+  onGoogleSignIn,
+  onCreateAccount,
+  onContinueWithoutAccount,
+}: {
+  open: boolean;
+  theme: ThemeColors;
+  ts: (key: string, fallback?: string) => string;
+  googleAuthAvailable: boolean;
+  onSignIn: () => void;
+  onGoogleSignIn: () => void;
+  onCreateAccount: () => void;
+  onContinueWithoutAccount: () => void;
+}) {
+  const canUsePortal = typeof document !== "undefined";
+  useBodyScrollLock(open && canUsePortal);
+
+  if (!open || !canUsePortal) {
+    return null;
+  }
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[10000] grid min-h-dvh place-items-center overflow-y-auto overscroll-contain px-4 py-4 [-webkit-overflow-scrolling:touch] [touch-action:pan-y]"
+      style={{
+        background: `radial-gradient(circle at top, color-mix(in srgb, ${theme.primary} 28%, transparent), transparent 42%), linear-gradient(180deg, color-mix(in srgb, ${theme.bgMain} 64%, ${theme.primary} 36%), ${theme.bgMain})`,
+      }}
+    >
+      <div
+        className="absolute inset-0 opacity-60"
+        style={{
+          background: `radial-gradient(circle at 12% 18%, color-mix(in srgb, ${theme.accentGold} 18%, transparent), transparent 28%), radial-gradient(circle at 84% 0%, color-mix(in srgb, ${theme.primary} 14%, transparent), transparent 28%)`,
+        }}
+      />
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="welcome-gate-title"
+        className="relative flex w-full max-w-5xl max-h-[calc(100svh-2rem)] flex-col overflow-hidden overscroll-contain rounded-[2rem] border shadow-[0_28px_100px_rgba(10,18,14,0.42)] [-webkit-overflow-scrolling:touch] [touch-action:pan-y]"
+        style={{
+          borderColor: theme.borderStrong,
+          backgroundColor: theme.bgCard,
+          maxHeight: "calc(100svh - 2rem)",
+        }}
+      >
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch] [touch-action:pan-y]">
+          <div className="grid gap-0 md:grid-cols-[1.05fr_0.95fr]">
+            <div className="relative overflow-hidden border-b md:border-b-0 md:border-r" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
+              <div className="absolute inset-0 opacity-80" style={{ background: `radial-gradient(circle at 25% 20%, color-mix(in srgb, ${theme.accentGold} 18%, transparent), transparent 42%), radial-gradient(circle at 82% 18%, color-mix(in srgb, ${theme.primary} 10%, transparent), transparent 30%)` }} />
+              <div className="relative flex h-full flex-col justify-between p-5 sm:p-6 md:p-7">
+                <div>
+                  <div className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.accentGold }}>
+                    {ts("labels.welcome", "Welcome")}
+                  </div>
+                  <div className="mt-4 flex items-center gap-4">
+                    <Image
+                      src="/brand/aletheia-app-icon-192.png"
+                      alt="Aletheia"
+                      width={88}
+                      height={88}
+                      className="rounded-2xl border shadow-lg"
+                      style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}
+                    />
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold uppercase tracking-[0.22em]" style={{ color: theme.accentGold }}>
+                        Aletheia
+                      </p>
+                      <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                        {ts("labels.appTagline")}
+                      </p>
+                    </div>
+                  </div>
+                  <h2 id="welcome-gate-title" className="mt-4 text-[1.9rem] font-semibold leading-[1.02] text-balance sm:text-[2.4rem]" style={{ color: theme.textPrimary }}>
+                    {ts("labels.welcomeGateTitle")}
+                  </h2>
+                  <p className="mt-3 max-w-lg text-[0.96rem] leading-6 sm:text-[1rem] sm:leading-7" style={{ color: theme.textSecondary }}>
+                    {ts("labels.welcomeGateBody")}
+                  </p>
+                </div>
+                <div className="mt-5 space-y-2.5">
+                  <button
+                    type="button"
+                    onClick={onCreateAccount}
+                    className="flex h-11 w-full items-center justify-center rounded-full border px-4 text-sm font-semibold transition"
+                    style={{
+                      borderColor: theme.primary,
+                      backgroundColor: theme.primary,
+                      color: theme.textOnPrimary,
+                    }}
+                  >
+                    {ts("auth.createNewAccount")}
+                  </button>
+                  {googleAuthAvailable ? (
+                    <button
+                      type="button"
+                      onClick={onGoogleSignIn}
+                      className="flex h-11 w-full items-center justify-center rounded-full border px-4 text-sm font-semibold transition"
+                      style={{
+                        borderColor: theme.borderMedium,
+                        backgroundColor: theme.bgCardElevated,
+                        color: theme.textPrimary,
+                      }}
+                    >
+                      {ts("auth.continueWithGoogle")}
+                    </button>
+                  ) : null}
+                  <button
+                    type="button"
+                    onClick={onSignIn}
+                    className="flex h-11 w-full items-center justify-center rounded-full border px-4 text-sm font-semibold transition"
+                    style={{
+                      borderColor: theme.borderMedium,
+                      backgroundColor: theme.bgCardElevated,
+                      color: theme.textPrimary,
+                    }}
+                  >
+                    {ts("auth.signIn")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onContinueWithoutAccount}
+                    className="block pt-1 text-left text-[11px] font-semibold uppercase tracking-[0.14em] transition"
+                    style={{ color: theme.textMuted }}
+                  >
+                    {ts("labels.continueWithoutAccount")}
+                  </button>
+                  <p className="pt-0.5 text-[11px] font-medium leading-5" style={{ color: theme.textMuted }}>
+                    {ts("labels.welcomeGateTrust")}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="hidden min-w-0 flex-col justify-between gap-5 p-5 md:flex md:p-6">
+              <div className="rounded-[1.35rem] border p-4 shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+                  {ts("labels.welcomeGateBenefitsTitle")}
+                </p>
+                <div className="mt-4 grid gap-2.5">
+                  <div className="rounded-2xl border px-3.5 py-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                    <p className="text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>
+                      {ts("labels.welcomeGateBenefitOne")}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border px-3.5 py-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                    <p className="text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>
+                      {ts("labels.welcomeGateBenefitTwo")}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border px-3.5 py-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                    <p className="text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>
+                      {ts("labels.welcomeGateBenefitThree")}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>,
+    document.body
+  );
+}
+
 function AvatarPickerModal({
   theme,
   ts,
@@ -20447,11 +20724,11 @@ function AvatarPickerModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="avatar-picker-title"
-        className="w-full max-w-3xl overflow-y-auto overscroll-contain rounded-3xl border p-3.5 shadow-2xl sm:p-4"
+        className="w-full max-w-3xl overflow-y-auto overscroll-contain rounded-3xl border p-3.5 [-webkit-overflow-scrolling:touch] [touch-action:pan-y] shadow-2xl sm:p-4"
         style={{
           borderColor: theme.borderMedium,
           backgroundColor: theme.bgCard,
-          maxHeight: "calc(100dvh - var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)) - var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)) - 1.5rem)",
+          maxHeight: "calc(100svh - var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)) - var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)) - 1.5rem)",
         }}
       >
         <div className="flex items-start justify-between gap-3">
@@ -20555,11 +20832,11 @@ function AvatarUploadTipsModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="avatar-photo-tips-title"
-        className="w-full max-w-lg overflow-y-auto overscroll-contain rounded-3xl border p-3.5 shadow-2xl sm:p-4"
+        className="w-full max-w-lg overflow-y-auto overscroll-contain rounded-3xl border p-3.5 [-webkit-overflow-scrolling:touch] [touch-action:pan-y] shadow-2xl sm:p-4"
         style={{
           borderColor: theme.borderMedium,
           backgroundColor: theme.bgCard,
-          maxHeight: "calc(100dvh - var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)) - var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)) - 1.5rem)",
+          maxHeight: "calc(100svh - var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)) - var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)) - 1.5rem)",
         }}
       >
         <div className="flex items-start justify-between gap-3">
@@ -21682,7 +21959,7 @@ function ScriptureModal({
         style={{
           borderColor: theme.borderMedium,
           backgroundColor: theme.bgCard,
-          maxHeight: "calc(100dvh - var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)) - var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)) - 1.5rem)",
+          maxHeight: "calc(100svh - var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)) - var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)) - 1.5rem)",
         }}
         onClick={(event) => event.stopPropagation()}
       >
@@ -21868,7 +22145,7 @@ function DeleteAccountModal({
 
   return (
     <div className="fixed inset-0 z-[70] grid place-items-end overflow-hidden overscroll-none p-3 backdrop-blur-sm sm:place-items-center" style={{ backgroundColor: "rgba(13, 23, 20, 0.48)" }}>
-      <section className="w-full max-w-lg max-h-[88vh] overflow-y-auto overscroll-contain rounded-3xl border p-4 shadow-2xl sm:p-3.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+      <section className="w-full max-w-lg max-h-[88vh] overflow-y-auto overscroll-contain rounded-3xl border p-4 [-webkit-overflow-scrolling:touch] [touch-action:pan-y] shadow-2xl sm:p-3.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.deleteAccount')}</p>
@@ -21986,7 +22263,7 @@ function ReportIssueModal({
 
   return (
     <div className="fixed inset-0 z-[70] grid place-items-end overflow-hidden overscroll-none p-3 backdrop-blur-sm sm:place-items-center" style={{ backgroundColor: "rgba(13, 23, 20, 0.48)" }}>
-      <section className="max-h-[90vh] w-full max-w-lg overflow-y-auto overscroll-contain rounded-3xl border p-4 shadow-2xl sm:p-3.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+      <section className="max-h-[90vh] w-full max-w-lg overflow-y-auto overscroll-contain rounded-3xl border p-4 [-webkit-overflow-scrolling:touch] [touch-action:pan-y] shadow-2xl sm:p-3.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.reportIssueTitle')}</p>
@@ -22117,11 +22394,11 @@ function WisdomTimelineModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="wisdom-timeline-title"
-        className="w-full max-w-2xl overflow-y-auto overscroll-contain rounded-[2rem] border shadow-[0_28px_90px_rgba(10,18,14,0.36)]"
+        className="w-full max-w-2xl overflow-y-auto overscroll-contain rounded-[2rem] border [-webkit-overflow-scrolling:touch] [touch-action:pan-y] shadow-[0_28px_90px_rgba(10,18,14,0.36)]"
         style={{
           borderColor: theme.borderStrong,
           backgroundColor: theme.bgCard,
-          maxHeight: "calc(100dvh - max(var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)), 0.75rem) - max(var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)), 0.75rem) - 1rem)",
+          maxHeight: "calc(100svh - max(var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)), 0.75rem) - max(var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)), 0.75rem) - 1rem)",
         }}
       >
         <div
@@ -22451,11 +22728,11 @@ function DecisionMemoryDetailModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="decision-memory-modal-title"
-        className="w-full max-w-2xl overflow-y-auto overscroll-contain rounded-[2rem] border shadow-[0_28px_90px_rgba(10,18,14,0.36)]"
+        className="w-full max-w-2xl overflow-y-auto overscroll-contain rounded-[2rem] border [-webkit-overflow-scrolling:touch] [touch-action:pan-y] shadow-[0_28px_90px_rgba(10,18,14,0.36)]"
         style={{
           borderColor: theme.borderStrong,
           backgroundColor: theme.bgCard,
-          maxHeight: "calc(100dvh - max(var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)), 0.75rem) - max(var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)), 0.75rem) - 1rem)",
+          maxHeight: "calc(100svh - max(var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)), 0.75rem) - max(var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)), 0.75rem) - 1rem)",
         }}
         onClick={(event) => event.stopPropagation()}
       >
@@ -22652,11 +22929,11 @@ function StreakMilestonesModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="streak-milestones-title"
-        className="w-full max-w-2xl overflow-y-auto overscroll-contain rounded-[2rem] border shadow-[0_28px_90px_rgba(10,18,14,0.36)]"
+        className="w-full max-w-2xl overflow-y-auto overscroll-contain rounded-[2rem] border [-webkit-overflow-scrolling:touch] [touch-action:pan-y] shadow-[0_28px_90px_rgba(10,18,14,0.36)]"
         style={{
           borderColor: theme.borderStrong,
           backgroundColor: theme.bgCard,
-          maxHeight: "calc(100dvh - max(var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)), 0.75rem) - max(var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)), 0.75rem) - 1rem)",
+          maxHeight: "calc(100svh - max(var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)), 0.75rem) - max(var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)), 0.75rem) - 1rem)",
         }}
       >
         <div
@@ -22862,7 +23139,7 @@ function CounselInviteModal({
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-end overflow-hidden overscroll-none p-3 backdrop-blur-sm sm:place-items-center" style={{ backgroundColor: 'rgba(13, 23, 20, 0.42)' }}>
-      <section className="max-h-[88vh] w-full max-w-2xl overflow-y-auto overscroll-contain rounded-3xl border p-4 shadow-2xl sm:p-3.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+      <section className="max-h-[88vh] w-full max-w-2xl overflow-y-auto overscroll-contain rounded-3xl border p-4 [-webkit-overflow-scrolling:touch] [touch-action:pan-y] shadow-2xl sm:p-3.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3">
             <AvatarCircle
@@ -23108,7 +23385,7 @@ function ChallengeInviteModal({
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-end overflow-hidden overscroll-none p-3 backdrop-blur-sm sm:place-items-center" style={{ backgroundColor: 'rgba(13, 23, 20, 0.42)' }}>
-      <section className="max-h-[88vh] w-full max-w-2xl overflow-y-auto overscroll-contain rounded-3xl border p-4 shadow-2xl sm:p-3.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+      <section className="max-h-[88vh] w-full max-w-2xl overflow-y-auto overscroll-contain rounded-3xl border p-4 [-webkit-overflow-scrolling:touch] [touch-action:pan-y] shadow-2xl sm:p-3.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3">
             <div className="grid size-10 place-items-center rounded-2xl border" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.primary }}>
@@ -23377,7 +23654,7 @@ function CounselRemovalConfirmModal({
 
   return (
     <div className="fixed inset-0 z-[70] grid place-items-end overflow-hidden overscroll-none p-3 backdrop-blur-sm sm:place-items-center" style={{ backgroundColor: "rgba(13, 23, 20, 0.45)" }}>
-      <section className="w-full max-w-lg max-h-[88vh] overflow-y-auto overscroll-contain rounded-3xl border p-5 shadow-2xl" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+      <section className="w-full max-w-lg max-h-[88vh] overflow-y-auto overscroll-contain rounded-3xl border p-5 [-webkit-overflow-scrolling:touch] [touch-action:pan-y] shadow-2xl" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.finalConfirmationAction')}</p>
@@ -25284,11 +25561,11 @@ function ConversationHistoryModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="conversation-history-modal-title"
-        className="w-full max-w-2xl overflow-y-auto overscroll-contain rounded-[2rem] border shadow-[0_28px_90px_rgba(10,18,14,0.36)]"
+        className="w-full max-w-2xl overflow-y-auto overscroll-contain rounded-[2rem] border [-webkit-overflow-scrolling:touch] [touch-action:pan-y] shadow-[0_28px_90px_rgba(10,18,14,0.36)]"
         style={{
           borderColor: theme.borderStrong,
           backgroundColor: theme.bgCard,
-          maxHeight: "calc(100dvh - max(var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)), 0.75rem) - max(var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)), 0.75rem) - 1rem)",
+          maxHeight: "calc(100svh - max(var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)), 0.75rem) - max(var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)), 0.75rem) - 1rem)",
         }}
         onClick={(event) => event.stopPropagation()}
       >
@@ -26799,10 +27076,10 @@ function GratitudeEntryModal({
         style={{
           borderColor: theme.borderStrong,
           backgroundColor: theme.bgCard,
-          maxHeight: "calc(100dvh - max(var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)), 0.75rem) - max(var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)), 0.75rem) - 1rem)",
+          maxHeight: "calc(100svh - max(var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)), 0.75rem) - max(var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)), 0.75rem) - 1rem)",
         }}
       >
-        <div className="grid max-h-[inherit] overflow-y-auto overscroll-contain lg:grid-cols-[1.1fr_0.9fr]">
+        <div className="grid max-h-[inherit] overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch] [touch-action:pan-y] lg:grid-cols-[1.1fr_0.9fr]">
           <div className="relative min-h-[18rem] bg-black/5 lg:min-h-full">
             <Image
               src={entry.imageDataUrl}
@@ -28053,11 +28330,11 @@ function JournalEntryDetailModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="journal-detail-title"
-        className="w-full max-w-2xl overflow-y-auto overscroll-contain rounded-[2rem] border shadow-[0_28px_90px_rgba(10,18,14,0.36)]"
+        className="w-full max-w-2xl overflow-y-auto overscroll-contain rounded-[2rem] border [-webkit-overflow-scrolling:touch] [touch-action:pan-y] shadow-[0_28px_90px_rgba(10,18,14,0.36)]"
         style={{
           borderColor: theme.borderStrong,
           backgroundColor: theme.bgCard,
-          maxHeight: "calc(100dvh - max(var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)), 0.75rem) - max(var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)), 0.75rem) - 1rem)",
+          maxHeight: "calc(100svh - max(var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)), 0.75rem) - max(var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)), 0.75rem) - 1rem)",
         }}
         onClick={(event) => event.stopPropagation()}
       >
