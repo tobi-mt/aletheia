@@ -242,12 +242,12 @@
     "apiSignInRequired": "Sign in to continue.",
     "apiRateLimited": "Please wait a few minutes and try again.",
     "apiInvalidInput": "The information you entered is not valid.",
-    "apiNotConfigured": "This feature is not configured yet.",
+    "apiNotConfigured": "Diese Funktion ist noch nicht konfiguriert.",
     "apiUnavailable": "This feature is temporarily unavailable.",
     "apiNotFound": "We could not find that item.",
     "apiPermissionDenied": "You do not have permission to do that.",
     "apiSaveFailed": "The change could not be saved.",
-    "apiInvalidSubscription": "The notification subscription is invalid.",
+    "apiInvalidSubscription": "Das Benachrichtigungsabonnement ist ungültig.",
     "apiConfirmDelete": "Type DELETE to confirm account deletion.",
     "apiInvalidImage": "Use a valid image URL or upload.",
     "signedOut": "Abgemeldet",
@@ -430,7 +430,36 @@
     "scriptureMemoryCleared": "Schriftgedächtnis gelöscht",
     "scriptureMemoryClearedBody": "Der wöchentliche Schriftanker wurde von der Startseite entfernt.",
     "answerReadyGuestTitle": "Sign in to save this answer",
-    "answerReadyGuestBody": "Keep this answer and your history synced across devices."
+    "answerReadyGuestBody": "Keep this answer and your history synced across devices.",
+    "diagnosticsHealthy": "In Ordnung",
+    "diagnosticsNeedsAttention": "Handlungsbedarf",
+    "diagnosticsBrowserUnsupported": "Dieser Browser oder diese App-Shell kann keine Web-Push-Benachrichtigungen senden.",
+    "diagnosticsCronSecretMissing": "Das Cron-Geheimnis für die täglichen Benachrichtigungen fehlt.",
+    "diagnosticsCronStale": "Der tägliche Benachrichtigungsjob hat sich seit {relative} nicht mehr gemeldet.",
+    "diagnosticsCronNotCheckedInYet": "Der tägliche Benachrichtigungsjob hat sich noch nicht gemeldet.",
+    "diagnosticsPushLooksHealthy": "Die Push-Einrichtung sieht gut aus.",
+    "diagnosticsPushKeysIncomplete": "Die Push-Schlüssel oder der Betreff sind unvollständig.",
+    "diagnosticsNoSavedSubscription": "Für dieses Konto wurde kein gespeichertes Abonnement gefunden.",
+    "diagnosticsSavedSubscriptionStale": "Ein gespeichertes Abonnement wirkt veraltet oder braucht einen neuen Test.",
+    "diagnosticsAvailable": "Diagnosen verfügbar.",
+    "browserSupportLabel": "Browser-Unterstützung",
+    "browserSupportSupported": "Unterstützt",
+    "browserSupportMissing": "Fehlt {items}",
+    "vapidPushConfigLabel": "VAPID / Push-Konfiguration",
+    "vapidConfigured": "Konfiguriert",
+    "vapidInvalidKeyPair": "Ungültiges Schlüsselpaar ({reason})",
+    "vapidMissingConfig": "VAPID-Konfiguration fehlt",
+    "cronDeliveryLabel": "Cron / Zustellung",
+    "cronHealthyWithCheck": "In Ordnung, zuletzt vor {relative} geprüft",
+    "cronHealthy": "In Ordnung",
+    "cronNotCheckedRecently": "Der tägliche Job hat sich kürzlich nicht gemeldet",
+    "cronSecretMissing": "Cron-Geheimnis fehlt",
+    "subscriptionLabel": "Abonnement",
+    "deviceSubscriptionActive": "Geräte-Abonnement aktiv",
+    "accountSubscribedButDeviceNot": "Das Konto ist aktiv, aber dieses Gerät ist nicht abonniert",
+    "savedSubscription": "1 gespeichertes Abonnement",
+    "savedSubscriptions": "{count} gespeicherte Abonnements",
+    "noSavedSubscription": "Kein gespeichertes Abonnement"
   },
   "status": {
     "guestMode": "Gast-Modus aktiv. Melde dich an, um Entscheidungen zu synchronisieren.",
@@ -483,7 +512,7 @@
     "challengeInviteDeclineFailed": "Could not decline the invite.",
     "declined": "Declined",
     "pending": "Pending",
-    "loading": "Loading…"
+    "loading": "Lädt…"
   },
   "placeholders": {
     "decisionExample": "Geldstress, eine Karriereentscheidung, Großzügigkeitsdruck...",
@@ -1195,8 +1224,8 @@
     "relatedScriptures": "Verwandte Schriftstellen",
     "aWiseNextStep": "Ein kluger nächster Schritt",
     "swipeForMore": "Für mehr wischen",
-    "loading": "Loading…",
-    "diveDeep": "Dive Deep",
+    "loading": "Lädt…",
+    "diveDeep": "Tiefer eintauchen",
     "backToQuickRead": "Zur Schnellansicht zurück",
     "continueFromThis": "Hier fortfahren",
     "reflectionQuestion": "Reflexionsfrage",
@@ -1257,7 +1286,8 @@
     "progressVisible": "Fortschritt sichtbar",
     "responsiveNudges": "Hinweise",
     "openScripture": "Öffnen",
-    "translationFallback": "Mit der nächstverfügbaren gemeinfreien Übersetzung angezeigt."
+    "translationFallback": "Mit der nächstverfügbaren gemeinfreien Übersetzung angezeigt.",
+    "diagnostics": "Diagnose"
   },
   "personalizationNudgeTitle": "Möchtest du persönlicheren Rat?",
   "personalizationNudgeBody": "Füge ein Detail zu Geld, Arbeit oder Rhythmus hinzu.",
@@ -1564,8 +1594,8 @@
     "useGoogleOrEmail": "Nutze Google oder E-Mail.",
     "signedIn": "Angemeldet",
     "authenticationFailed": "Authentication failed.",
-    "welcomeToAletheiaReady": "Welcome to Aletheia, {name}. Your account is ready and sync is active.",
-    "welcomeBackMemoryReady": "Welcome back, {name}. Your Aletheia memory is ready.",
+    "welcomeToAletheiaReady": "Willkommen bei Aletheia, {name}. Dein Konto ist bereit und die Synchronisierung ist aktiv.",
+    "welcomeBackMemoryReady": "Willkommen zurück, {name}. Dein Aletheia-Gedächtnis ist bereit.",
     "signedInSyncDatabase": "Signed in. Conversations and reflections sync to the database.",
     "googleMissingProfile": "Google sign-in did not return your email address. Please try again or use email below instead.",
     "googleServerError": "Google sign-in reached Aletheia, but we could not finish it right now. Please try again in a moment or use email below instead.",
@@ -1833,6 +1863,36 @@
         "practice": "Schreibe klar auf, was für diese Zeit genug ist."
       }
     },
+
+    "sabbathRest5day": {
+      "title": "5-Tage-Sabbatruhe-Praxis",
+      "description": "Fünf Tage geschützte Ruhe: den Arbeitstakt benennen, die Last darunter wahrnehmen und Raum zum langsamer werden schaffen.",
+      "day1": {
+        "principle": "Gedenke des Sabbattages und heilige ihn.",
+        "prompt": "Benenne den Arbeitstakt, den du trägst. Schreib einen Satz darüber, was Ruhe schwer macht.",
+        "practice": "Benenne den Takt und was Ruhe erschwert."
+      },
+      "day2": {
+        "principle": "Der Sabbat ist um des Menschen willen gemacht, nicht der Mensch um des Sabbats willen.",
+        "prompt": "Wie sähe es aus, wenn Ruhe dir dient, statt zu einer weiteren Aufgabe zu werden?",
+        "practice": "Schreibe auf, wie Ruhe dir heute dienen könnte."
+      },
+      "day3": {
+        "principle": "Seid still und erkennt: Ich bin Gott.",
+        "prompt": "Welche Geräusche, welches Tempo oder welcher Druck darf zuerst leiser werden?",
+        "practice": "Nenne eine Sache, die still werden darf."
+      },
+      "day4": {
+        "principle": "Martha, Martha, du machst dir Sorgen und bist unruhig über vieles.",
+        "prompt": "Wo ist deine Aufmerksamkeit auf viele Dinge verteilt? Schreib die eine Sache auf, die jetzt am meisten zählt.",
+        "practice": "Nenne die eine Sache, die deine Aufmerksamkeit am meisten braucht."
+      },
+      "day5": {
+        "principle": "Wenn du den Sabbat eine Lust nennst ... dann wirst du deine Lust am Herrn haben.",
+        "prompt": "Was würde Ruhe in dieser Woche eher zu Freude als zu Pflicht machen?",
+        "practice": "Wähle eine kleine Freude, die dich erneuert."
+      }
+    },
     "whyThisFits": "Why this fits",
     "readWithMeInviteTitle": "Shared reading plan",
     "readWithMeInviteDetails": "Fixed reading details",
@@ -1872,7 +1932,14 @@
     "shareDayBody": "Ein abgeschlossener Tag dieser Praxis, mit Schriftstelle, Praxis und Notiz.",
     "shareDayCta": "Diesen Tag ausprobieren",
     "shareDayEyebrow": "Challenge-Tag",
-    "shareDayProgress": "Tag {day} von {totalDays}"
+    "shareDayProgress": "Tag {day} von {totalDays}",
+    "inactive": "Inaktiv",
+    "inProgress": "Läuft",
+    "inactiveReentryBody": "Du hast einen Tag verpasst. Du musst nicht von vorn anfangen. Steige behutsam mit Tag {nextDay} von {total} wieder ein.",
+    "completedTodayBody": "Tag {nextDay} von {total} wartet bis morgen.",
+    "inProgressBody": "Mach mit Tag {nextDay} von {total} weiter.",
+    "continueCurrentPractice": "Mit der aktuellen Praxis weitermachen",
+    "reentryNote": "Du bist bereits mitten in dieser Praxis. Halte den Rhythmus mit Tag {nextDay} aufrecht."
   },
   "streak": {
     "openMilestones": "Meilensteine öffnen",
@@ -1989,13 +2056,13 @@
     "gratitudeImageLoadFailed": "Could not load gratitude image.",
     "wisdomCardPreparationFailed": "Could not prepare wisdom card.",
     "wisdomCardExportFailed": "Could not export wisdom card.",
-    "responseStreamingNotSupported": "Response streaming not supported.",
-    "audioRequestFailedStatus": "Audio request failed with status {status}.",
+    "responseStreamingNotSupported": "Antwort-Streaming wird nicht unterstützt.",
+    "audioRequestFailedStatus": "Audioanfrage fehlgeschlagen mit Status {status}.",
     "imageProcessingFailed": "Image processing failed.",
     "optimizedImageTooLarge": "The selected image is too large after optimization."
   },
   "noticePatternBeforeDecision": "Notice {pattern} before it drives the decision.",
-  "onboardingQuestionPrompt": "I am seeking wisdom for this right now: {concern}. Please guide me with a {tone} tone. My faith familiarity is {familiarity}.",
+  "onboardingQuestionPrompt": "Ich suche dafür gerade Weisheit: {concern}. Bitte leite mich mit einem {tone}-Ton an. Meine Vertrautheit mit dem Glauben ist {familiarity}.",
   "reflectionDraftTitle": "Reflection: {question}",
   "timezones": {
     "utc": "UTC"
@@ -2006,12 +2073,12 @@
     "decisionNextTitleDefault": "Name the decision under pressure",
     "decisionNextBodyActive": "Update counsel, cost, waiting, and peace signals so the decision has a real timeline.",
     "decisionNextBodyEmpty": "Start with one decision and the pressure attached to it. Aletheia will track wisdom, counsel, and readiness over time.",
-    "decisionCompanionHeading": "Track the decision until wisdom has had time to work.",
-    "decisionCompanionSub": "Memory, counsel, waiting, summary export, and a calm readiness signal for major choices.",
-    "ruleOfLife": "Rule of Life",
-    "ruleOfLifePrincipleSingular": "principle",
-    "ruleOfLifePrinciplePlural": "principles",
-    "ruleOfLifeSummary": "Personal principles stay close, but collapsed until you are shaping a decision.",
+    "decisionCompanionHeading": "Verfolge die Entscheidung, bis Weisheit Zeit hatte zu wirken.",
+    "decisionCompanionSub": "Speicher, Rat, Warten, Zusammenfassungsexport und ein ruhiges Bereitschaftssignal für wichtige Entscheidungen.",
+    "ruleOfLife": "Lebensregel",
+    "ruleOfLifePrincipleSingular": "Grundsatz",
+    "ruleOfLifePrinciplePlural": "Grundsätze",
+    "ruleOfLifeSummary": "Persönliche Grundsätze bleiben nah, werden aber eingeklappt, bis du eine Entscheidung formst.",
     "decisionPracticeLine": "Name what is enough for this season",
     "nextInReflect": "Next in Reflect",
     "reflectNextTitleDefault": "Begin with one honest sentence",
@@ -2019,10 +2086,10 @@
     "reflectNextBodyDefault": "Use Wisdom Check for a quick discernment scan, or write what you notice about money, work, fear, generosity, or pace.",
     "reflectNextBodyActive": "Save what you are noticing while the insight is still fresh.",
     "reflectIntro": "Use Wisdom Check to slow a decision down, then save what you notice before the moment passes.",
-    "wisdomCheck": "Wisdom Check",
-    "wisdomCheckSummaryDefault": "Open when a decision needs a quick discernment scan.",
-    "wisdomCheckUrgency": "urgency noticed",
-    "wisdomCheckSlower": "pressure looks slower",
+    "wisdomCheck": "Weisheitscheck",
+    "wisdomCheckSummaryDefault": "Öffnen, wenn eine Entscheidung einen schnellen Unterscheidungscheck braucht.",
+    "wisdomCheckUrgency": "Dringlichkeit bemerkt",
+    "wisdomCheckSlower": "Druck wirkt langsamer",
     "decisionScan": "Decision scan",
     "reflectionHistory": "Reflection history",
     "savedReflectionSingular": "saved reflection",
@@ -2036,5 +2103,9 @@
     "libraryDescription": "A curated wisdom base with language-aware application notes and public-domain translation labels.",
     "fullWisdomLibrary": "Full wisdom library",
     "moreAnchors": "more anchors"
-  }
+  },
+  "apiNotConfigured": "Diese Funktion ist noch nicht konfiguriert.",
+  "apiInvalidSubscription": "Das Benachrichtigungsabonnement ist ungültig.",
+  "responseStreamingNotSupported": "Antwort-Streaming wird nicht unterstützt.",
+  "loading": "Lädt…"
 }

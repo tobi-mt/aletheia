@@ -3124,7 +3124,7 @@ async function shareChallengeDayPostcardImage({
         },
       sections: [
         { label: ts("labels.scripture"), text: localizedScriptureReference(prompt.scripture, language) },
-        { label: ts("labels.practice"), text: ts(prompt.practiceKey, prompt.practice) },
+        { label: ts("labels.practice"), text: ts(prompt.practiceKey) },
         completion?.reflection?.trim()
           ? { label: ts("labels.note"), text: completion.reflection.trim() }
           : null,
@@ -9234,6 +9234,7 @@ export function AletheiaApp() {
     ].filter(Boolean);
 
     return recommendChallenges({
+      language: preferences.language,
       manualContext,
       guestManualContext: user ? null : manualContext,
       focusIntentions,
@@ -9252,7 +9253,7 @@ export function AletheiaApp() {
           }
         : null,
     });
-  }, [challengeProgress, focusIntentions, journalEntries, manualContext, messages, mode, user, wisdomDecisions]);
+  }, [challengeProgress, focusIntentions, journalEntries, manualContext, messages, mode, preferences.language, user, wisdomDecisions]);
 
   function handleModeChange(nextMode: Mode) {
     setMode(nextMode);
@@ -9377,7 +9378,7 @@ export function AletheiaApp() {
     }
     if (onboardingConcern.trim()) {
       setQuery(
-        englishText.onboardingQuestionPrompt
+        ts('onboardingQuestionPrompt')
           .replace("{concern}", onboardingConcern.trim())
           .replace("{tone}", onboardingTone)
           .replace("{familiarity}", faithFamiliarity)
@@ -10505,12 +10506,12 @@ export function AletheiaApp() {
 
         if (!response.ok) {
           const message = await response.text().catch(() => "");
-          throw new Error(message || englishText.errors.audioRequestFailedStatus.replace("{status}", String(response.status)));
+          throw new Error(message || ts('errors.audioRequestFailedStatus').replace("{status}", String(response.status)));
         }
 
         const reader = response.body?.getReader();
         if (!reader) {
-          throw new Error(englishText.errors.responseStreamingNotSupported);
+          throw new Error(ts('errors.responseStreamingNotSupported'));
         }
 
         const audioBytes: Uint8Array[] = [];
@@ -10562,7 +10563,7 @@ export function AletheiaApp() {
           };
           const handleError = () => {
             cleanup();
-            reject(new Error(englishText.errors.audioRequestFailedStatus.replace("{status}", "playback")));
+            reject(new Error(ts('errors.audioRequestFailedStatus').replace("{status}", "playback")));
           };
 
           audio.addEventListener("ended", handleEnded);
@@ -10759,6 +10760,7 @@ export function AletheiaApp() {
           email: authEmail,
           password: authPassword,
           website: authMode === "register" ? authWebsite : "",
+          language: preferences.language,
         }),
       });
       const data = (await response.json()) as { user?: User; error?: string; errorCode?: string; isNewUser?: boolean; welcomeMessage?: string };
@@ -12058,6 +12060,9 @@ export function AletheiaApp() {
     if (response.ok && isCounselInvitePreview(data)) {
       setCounselInvitePreview(data);
       setCounselInviteStatus(ts('status.inviteAccepted'));
+      setCounselInviteToken(null);
+      setCounselInvitePreview(null);
+      setCounselInviteStatus("");
     } else {
       setCounselInviteStatus(ts('status.inviteNotAccepted'));
     }
@@ -12130,6 +12135,12 @@ export function AletheiaApp() {
           ? ts("status.challengeInviteAccepted")
           : ts("status.challengeInviteDeclined")
       );
+      if (action === "accept") {
+        setChallengeInviteToken(null);
+        setChallengeInvitePreview(null);
+        setChallengeInviteStatus("");
+        setChallengeInviteUrl(null);
+      }
       refreshChallengeCircles();
       return;
     }
@@ -13952,7 +13963,7 @@ function OnboardingModal({
         }}
       >
         <div ref={modalScrollRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch] [touch-action:pan-y]">
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="max-w-2xl rounded-[1.25rem] border p-4 shadow-sm sm:p-5" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
             <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>{ts('labels.beginQuietly')}</p>
             <h2 className="mt-2 text-[1.42rem] font-semibold leading-[1.02] text-balance sm:text-[1.76rem]" style={{ color: theme.textPrimary }}>
@@ -13976,7 +13987,7 @@ function OnboardingModal({
           <button
             type="button"
             onClick={onComplete}
-            className="grid size-10 shrink-0 place-items-center rounded-full border transition"
+            className="grid size-10 shrink-0 place-items-center self-start rounded-full border transition"
             style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
             aria-label={ts('labels.closeOnboarding')}
           >
@@ -14409,7 +14420,7 @@ function HomeDashboard({
         }}
       >
           <div className="flex flex-col gap-4">
-            <div className="flex items-start justify-between gap-4">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
                 <p className="text-[10.5px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.accentGold }}>
                   {homeWelcomeEyebrow}
@@ -14417,11 +14428,11 @@ function HomeDashboard({
               <h1 className="mt-2 text-[1.88rem] font-semibold leading-[1.01] text-balance sm:text-[2.35rem]" style={{ color: theme.textPrimary }} suppressHydrationWarning>
                 {greeting}
               </h1>
-              <p className="mt-2 max-w-2xl text-sm leading-6 sm:text-[0.98rem] sm:leading-7" style={{ color: theme.textSecondary }} suppressHydrationWarning>
-                {homeWelcomeSeasonal}
-              </p>
+                <p className="mt-2 max-w-2xl text-sm leading-6 sm:text-[0.98rem] sm:leading-7" style={{ color: theme.textSecondary }} suppressHydrationWarning>
+                  {homeWelcomeSeasonal}
+                </p>
             </div>
-              <span className="grid size-12 shrink-0 place-items-center rounded-2xl border shadow-[0_8px_16px_rgba(7,10,8,0.08)]" style={{ borderColor: theme.primary, backgroundColor: theme.primary, color: theme.textOnPrimary }}>
+              <span className="grid size-12 shrink-0 place-items-center self-start rounded-2xl border shadow-[0_8px_16px_rgba(7,10,8,0.08)]" style={{ borderColor: theme.primary, backgroundColor: theme.primary, color: theme.textOnPrimary }}>
                 <Sparkles size={22} />
               </span>
             </div>
@@ -14558,7 +14569,7 @@ function HomeDashboard({
               background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})`,
             }}
           >
-            <div className="flex items-start justify-between gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
                   {text.todayQuestionLabel ?? ""}
@@ -14567,7 +14578,7 @@ function HomeDashboard({
                   {companionCard.question}
                 </p>
               </div>
-              <div className="grid size-10 shrink-0 place-items-center rounded-[1rem] border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
+              <div className="grid size-10 shrink-0 place-items-center self-start rounded-[1rem] border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
                 <MessageCircle size={14} />
               </div>
             </div>
@@ -15045,17 +15056,17 @@ function ContextualNextAction({
 }) {
   return (
     <section className="editorial-surface rounded-xl border p-4 shadow-sm sm:p-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div className="relative">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{eyebrow}</p>
-          <h2 className="mt-2 pr-5 sm:pr-6 md:pr-7 text-xl font-semibold" style={{ color: theme.textPrimary }}><span>{title}</span></h2>
+          <h2 className="mt-2 text-xl font-semibold leading-tight text-balance" style={{ color: theme.textPrimary }}>{title}</h2>
           <p className="mt-2 max-w-2xl text-sm leading-6" style={{ color: theme.textSecondary }}>{body}</p>
         </div>
         {actionLabel && onAction ? (
           <button
             type="button"
             onClick={onAction}
-            className="premium-tap-card h-10 rounded-md px-4 text-sm font-semibold shadow-sm"
+            className="premium-tap-card h-10 w-full shrink-0 rounded-md px-4 text-sm font-semibold shadow-sm sm:w-auto"
             style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
           >
             {actionLabel}
@@ -15075,7 +15086,7 @@ function challengeContinuationProgressLabel(
   }
 
   const nextDay = Math.min(recommendation.completedDays + 1, recommendation.totalDays);
-  return ts("challenges.dayOf", "Day {day} of {total}")
+  return ts("challenges.dayOf")
     .replace("{day}", String(nextDay))
     .replace("{total}", String(recommendation.totalDays));
 }
@@ -15094,7 +15105,7 @@ function challengeRecommendationBody(
 
   return recommendation.actionKind === "continue"
     ? `${ts("challenges.continueChallenge")}: ${challengeContinuationProgressLabel(recommendation, ts)}`
-    : ts(recommendation.descriptionKey, recommendation.description);
+    : ts(recommendation.descriptionKey);
 }
 
 function challengeRecommendationEyebrow(
@@ -15863,7 +15874,7 @@ function AccountPanel({
           ts,
           ts("labels.accountQuietFit")
         )}
-        title={ts(challengeRecommendation.titleKey, challengeRecommendation.title)}
+        title={ts(challengeRecommendation.titleKey)}
         body={accountRecommendationBody}
           actionLabel={challengeRecommendation.actionKind === "continue" ? ts("challenges.continueChallenge") : ts("challenges.startChallenge")}
           onAction={() => onOpenRecommendedChallenge(challengeRecommendation.challengeId)}
@@ -16053,7 +16064,7 @@ function ChallengeRecommendationCard({
   const actionLabel = recommendation.actionKind === "continue"
     ? ts("challenges.continueChallenge")
     : ts("challenges.startChallenge");
-  const title = ts(recommendation.titleKey, recommendation.title);
+  const title = ts(recommendation.titleKey);
   const body = challengeRecommendationBody(recommendation, ts);
   const RecommendationIcon = recommendation.progressState === "inactive"
     ? Clock3
@@ -16069,7 +16080,7 @@ function ChallengeRecommendationCard({
         background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})`,
       }}
     >
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
             {challengeRecommendationEyebrow(recommendation, ts)}
@@ -16084,7 +16095,7 @@ function ChallengeRecommendationCard({
             {body}
           </p>
         </div>
-        <div className="grid size-11 shrink-0 place-items-center rounded-[1rem] border" style={{ borderColor: theme.borderLight, backgroundColor: isContinuation ? theme.primary : theme.bgInput, color: isContinuation ? theme.textOnPrimary : theme.primary }}>
+        <div className="grid size-11 shrink-0 place-items-center self-start rounded-[1rem] border" style={{ borderColor: theme.borderLight, backgroundColor: isContinuation ? theme.primary : theme.bgInput, color: isContinuation ? theme.textOnPrimary : theme.primary }}>
           <RecommendationIcon size={18} />
         </div>
       </div>
@@ -16666,9 +16677,9 @@ function FormationsSection({
   }
 
   async function shareChallenge(challenge: ChallengeWithProgress) {
-    const title = ts(challenge.titleKey, challenge.title);
+    const title = ts(challenge.titleKey);
     const url = buildShareUrl(challenge.id);
-    const text = ts("challenges.shareChallengeBody", `Join me in this ${challenge.totalDays}-day practice on Aletheia.`).replace("{days}", String(challenge.totalDays));
+    const text = ts("challenges.shareChallengeBody").replace("{days}", String(challenge.totalDays));
     if (navigator.share) {
       await navigator.share({ title, text, url }).catch(() => undefined);
     } else {
@@ -16684,7 +16695,7 @@ async function shareChallengeDayPostcard(challenge: ChallengeWithProgress, day: 
       return;
     }
 
-    const challengeTitle = ts(challenge.titleKey, challenge.title);
+    const challengeTitle = ts(challenge.titleKey);
     const title = challengeTitle;
     const body = ts("challenges.shareDayBody");
     const blob = await createWisdomPostcardBlob(
@@ -16701,8 +16712,8 @@ async function shareChallengeDayPostcard(challenge: ChallengeWithProgress, day: 
             .replace("{totalDays}", String(challenge.totalDays)),
         },
         sections: [
-          { label: ts("labels.scripture"), text: localizedScriptureReference(prompt.scripture, language) },
-          { label: ts("labels.practice"), text: ts(prompt.practiceKey, prompt.practice) },
+        { label: ts("labels.scripture"), text: localizedScriptureReference(prompt.scripture, language) },
+        { label: ts("labels.practice"), text: ts(prompt.practiceKey) },
           completion?.reflection?.trim()
             ? { label: ts("labels.note"), text: completion.reflection.trim() }
             : null,
@@ -16844,8 +16855,8 @@ async function shareChallengeDayPostcard(challenge: ChallengeWithProgress, day: 
         const isSaving = savingDay?.challengeId === challenge.id;
         const nextPrompt = isComplete || completedToday ? null : getDayPrompt(challenge.id, next);
 
-        const titleText = ts(challenge.titleKey, challenge.title);
-        const descText = ts(challenge.descriptionKey, challenge.description);
+        const titleText = ts(challenge.titleKey);
+        const descText = ts(challenge.descriptionKey);
 
         return (
           <div
@@ -16931,10 +16942,10 @@ async function shareChallengeDayPostcard(challenge: ChallengeWithProgress, day: 
                       {localizedScriptureReference(nextPrompt.scripture, language)}
                     </p>
                     <p className="text-sm leading-5 font-medium" style={{ color: theme.textPrimary }}>
-                      {ts(nextPrompt.principleKey, nextPrompt.principle)}
+                      {ts(nextPrompt.principleKey)}
                     </p>
                     <p className="text-sm leading-5" style={{ color: theme.textSecondary }}>
-                      {ts(nextPrompt.promptKey, nextPrompt.prompt)}
+                      {ts(nextPrompt.promptKey)}
                     </p>
 
                     <textarea
@@ -16972,7 +16983,7 @@ async function shareChallengeDayPostcard(challenge: ChallengeWithProgress, day: 
                 <div className="flex items-center justify-between gap-2 flex-wrap">
                   {!isComplete && !completedToday && (
                     <p className="text-xs" style={{ color: theme.textMuted }}>
-                      {ts("challenges.dayLabel", `Day ${next}`).replace("{day}", String(next))} · {nextPrompt ? ts(nextPrompt.practiceKey, nextPrompt.practice) : ""}
+                      {ts("challenges.dayLabel").replace("{day}", String(next))} · {nextPrompt ? ts(nextPrompt.practiceKey) : ""}
                     </p>
                   )}
                   <button
@@ -17187,6 +17198,7 @@ function FormationRailSection({
     ].filter(Boolean);
 
     return recommendChallenges({
+      language,
       manualContext,
       focusIntentions,
       modeCounts: counts,
@@ -17201,7 +17213,7 @@ function FormationRailSection({
           }
         : null,
     });
-  }, [activeChallengeProgress, completionChallengeIds, focusIntentions, journalEntries, manualContext, messages, mode, wisdomDecisions]);
+  }, [activeChallengeProgress, completionChallengeIds, focusIntentions, journalEntries, language, manualContext, messages, mode, wisdomDecisions]);
 
   const effectiveSelectedChallengeId =
     pendingChallengeId ??
@@ -17428,7 +17440,7 @@ function FormationRailSection({
           {
             kind: "challenge",
             eyebrow: ts("challenges.shareDayEyebrow"),
-            title: ts(selectedChallenge.titleKey, selectedChallenge.title),
+            title: ts(selectedChallenge.titleKey),
             body: ts("challenges.shareDayBody"),
             challengeMeta: {
               day: selectedChallengeModalDay.day,
@@ -17439,7 +17451,7 @@ function FormationRailSection({
             },
             sections: [
               { label: ts("labels.scripture"), text: localizedScriptureReference(selectedChallengeModalPrompt.scripture, language) },
-              { label: ts("labels.practice"), text: selectedChallengeModalPrompt.practice },
+              { label: ts("labels.practice"), text: ts(selectedChallengeModalPrompt.practiceKey) },
               selectedChallengeModalCompletion.reflection?.trim()
                 ? { label: ts("labels.note"), text: selectedChallengeModalCompletion.reflection.trim() }
                 : null,
@@ -17506,11 +17518,11 @@ function FormationRailSection({
     const prompt = getDayPrompt(challenge.id, day);
     const completion = completionForDay(challenge, day);
     const dayTitle = ts("challenges.dayLabel").replace("{day}", String(day));
-    const challengeTitle = ts(challenge.titleKey, challenge.title);
+    const challengeTitle = ts(challenge.titleKey);
     const parts = [
       `${dayTitle} · ${challengeTitle}`,
       prompt?.scripture ? `${ts("labels.scripture")}:\n${localizedScriptureReference(prompt.scripture, language)}` : null,
-      prompt ? `${ts("labels.practice")}:\n${ts(prompt.practiceKey, prompt.practice)}` : null,
+      prompt ? `${ts("labels.practice")}:\n${ts(prompt.practiceKey)}` : null,
       completion?.reflection?.trim()
         ? `${ts("labels.note")}:\n${completion.reflection.trim()}`
         : null,
@@ -17520,7 +17532,7 @@ function FormationRailSection({
 
   async function shareChallengeDay(challenge: ChallengeWithProgress, day: number) {
     const prompt = getDayPrompt(challenge.id, day);
-    const title = `${ts("challenges.dayLabel").replace("{day}", String(day))} · ${ts(challenge.titleKey, challenge.title)}`;
+    const title = `${ts("challenges.dayLabel").replace("{day}", String(day))} · ${ts(challenge.titleKey)}`;
     const text = buildChallengeDayShareText(challenge, day);
     const url = typeof window !== "undefined"
       ? `${window.location.origin}/?tab=reflect&challenge=${encodeURIComponent(challenge.id)}&day=${day}`
@@ -17568,6 +17580,8 @@ function FormationRailSection({
           source: "challenges",
           challengeId: challenge.id,
         });
+        setOpenDayDetailDay(null);
+        setSelectedDayNumber(null);
       }
     } catch {
       // Let user retry.
@@ -17609,7 +17623,7 @@ function FormationRailSection({
               {localizedScriptureReference(selectedChallengeModalPrompt.scripture, language)}
             </h2>
             <p className="mt-1.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
-              {ts(selectedChallengeModalPrompt.principleKey, selectedChallengeModalPrompt.principle)}
+              {ts(selectedChallengeModalPrompt.principleKey)}
             </p>
           </div>
           <button
@@ -17628,14 +17642,14 @@ function FormationRailSection({
             {ts("labels.practice")}
           </p>
           <p className="mt-1.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
-            {selectedChallengeModalPrompt.practice}
+            {ts(selectedChallengeModalPrompt.practiceKey)}
           </p>
         </div>
 
         {selectedChallengeModalState === "current" ? (
           <div className="mt-4 space-y-3">
             <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>
-              {selectedChallengeModalPrompt.prompt}
+              {ts(selectedChallengeModalPrompt.promptKey)}
             </p>
             <textarea
               rows={4}
@@ -17673,7 +17687,7 @@ function FormationRailSection({
               <button
                 type="button"
                 onClick={() => void shareChallengeDayPostcardImage({
-                  challengeTitle: ts(selectedChallenge.titleKey, selectedChallenge.title),
+                  challengeTitle: ts(selectedChallenge.titleKey),
                   totalDays: selectedChallenge.totalDays,
                   day: selectedChallengeModalDay.day,
                   prompt: selectedChallengeModalPrompt,
@@ -17812,7 +17826,7 @@ function FormationRailSection({
                         {isActive ? ts("challenges.continueChallenge") : ts("challenges.eyebrow")}
                       </p>
                       <p className="mt-1 text-[0.95rem] font-semibold leading-5" style={{ color: theme.textPrimary }}>
-                        {ts(challenge.titleKey, challenge.title)}
+                        {ts(challenge.titleKey)}
                       </p>
                     </div>
                     <span className="shrink-0 text-[11px] font-semibold tabular-nums leading-none" style={{ color: theme.textMuted }}>
@@ -17820,7 +17834,7 @@ function FormationRailSection({
                     </span>
                   </div>
                   <p className="mt-3 line-clamp-1 text-[0.92rem] leading-6" style={{ color: theme.textSecondary }}>
-                    {ts(challenge.descriptionKey, challenge.description)}
+                    {ts(challenge.descriptionKey)}
                   </p>
                   <div className="mt-4 border-t pt-2.5" style={{ borderColor: theme.borderLight }}>
                     <div className="flex items-center justify-between gap-2 text-[11px] leading-5" style={{ color: theme.textMuted }}>
@@ -17842,10 +17856,10 @@ function FormationRailSection({
               <article className="overflow-hidden rounded-[1.55rem] border shadow-[0_12px_28px_rgba(15,23,42,0.06)]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
                 <div className="relative border-b p-4 sm:p-5" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
                   <h3 className="text-xl font-semibold sm:text-[1.7rem]" style={{ color: theme.textPrimary }}>
-                    {ts(selectedChallenge.titleKey, selectedChallenge.title)}
+                    {ts(selectedChallenge.titleKey)}
                   </h3>
                   <p className="mt-2 text-sm leading-6 sm:text-[0.98rem] sm:leading-7" style={{ color: theme.textSecondary }}>
-                    {ts(selectedChallenge.descriptionKey, selectedChallenge.description)}
+                    {ts(selectedChallenge.descriptionKey)}
                   </p>
                   <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs leading-5" style={{ color: theme.textMuted }}>
                     <span className="font-semibold uppercase tracking-[0.08em]" style={{ color: theme.textSecondary }}>
@@ -17952,7 +17966,7 @@ function FormationRailSection({
                         const completion = completionForDay(selectedChallenge, day.day);
                         const isFocused = selectedChallengeFocusedDay === day.day;
                         const isLocked = day.day > selectedChallengeNextDay;
-                        const teaserText = ts(day.promptKey, day.prompt);
+                        const teaserText = ts(day.promptKey);
                         const statusLabel = state === "completed"
                           ? ts("challenges.completedChallenge")
                           : ts("challenges.continueChallenge");
@@ -18226,7 +18240,7 @@ function FormationRailSection({
 
                       {selectedCircleInviteDetails ? (
                         <div className="overflow-hidden rounded-[1.15rem] border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-                          <div className="flex items-start justify-between gap-3 border-b p-3" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
+                          <div className="flex flex-col gap-3 border-b p-3 sm:flex-row sm:items-start sm:justify-between" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
                             <div className="min-w-0">
                               <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
                                 {ts("challenges.responseDashboard")}
@@ -18235,7 +18249,7 @@ function FormationRailSection({
                                 {ts("challenges.responseDashboardBody")}
                               </p>
                             </div>
-                            <div className="flex shrink-0 flex-wrap justify-end gap-2">
+                            <div className="flex shrink-0 flex-wrap gap-2 sm:justify-end">
                               <span className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.primary }}>
                                 {readWithMeResponseTotals.accepted} {ts("status.accepted")}
                               </span>
@@ -18273,7 +18287,7 @@ function FormationRailSection({
 
                                 return (
                                   <div key={recipient.id} className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-                                    <div className="flex items-start gap-3">
+                                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
                                       <AvatarCircle
                                         avatarUrl={null}
                                         seed={recipient.id}
@@ -18282,7 +18296,7 @@ function FormationRailSection({
                                         className="size-[34px]"
                                       />
                                       <div className="min-w-0 flex-1">
-                                        <div className="flex flex-wrap items-center justify-between gap-2">
+                                        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                                           <div className="min-w-0">
                                             <p className="text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>
                                               {recipient.name}
@@ -18293,7 +18307,7 @@ function FormationRailSection({
                                               </p>
                                             ) : null}
                                           </div>
-                                          <span className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={statusStyles}>
+                                          <span className="self-start rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={statusStyles}>
                                             {statusLabel}
                                           </span>
                                         </div>
@@ -20837,6 +20851,7 @@ function AvatarPickerModal({
     const choice = pool[Math.floor(Math.random() * pool.length)];
     if (choice) {
       onPick(choice.src);
+      onClose();
     }
   };
 
@@ -20864,7 +20879,7 @@ function AvatarPickerModal({
           maxHeight: "calc(100svh - var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)) - var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)) - 1.5rem)",
         }}
       >
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('avatar.pickerEyebrow')}</p>
             <h2 id="avatar-picker-title" className="mt-1.5 text-lg font-semibold" style={{ color: theme.textPrimary }}>{title}</h2>
@@ -20899,7 +20914,10 @@ function AvatarPickerModal({
               <button
                 key={option.id}
                 type="button"
-                onClick={() => onPick(option.src)}
+                onClick={() => {
+                  onPick(option.src);
+                  onClose();
+                }}
                 className="rounded-2xl border p-1.5 text-left transition"
                 style={{
                   borderColor: selected ? theme.accentLight : theme.borderMedium,
@@ -20972,7 +20990,7 @@ function AvatarUploadTipsModal({
           maxHeight: "calc(100svh - var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)) - var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)) - 1.5rem)",
         }}
       >
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('avatar.photoTipsEyebrow')}</p>
             <h2 id="avatar-photo-tips-title" className="mt-1.5 text-lg font-semibold" style={{ color: theme.textPrimary }}>{ts('avatar.photoTipsTitle')}</h2>
@@ -21717,35 +21735,36 @@ function NotificationPanel({
   };
   const formatRelativeMinutes = (value: number | null) => {
     if (value === null) {
-      return "not yet";
+      return ts("labels.notYet", "Not yet");
     }
+    const formatter = new Intl.RelativeTimeFormat(language, { numeric: "auto" });
     if (value < 60) {
-      return `${value}m ago`;
+      return formatter.format(-value, "minute");
     }
     const hours = Math.round(value / 60);
     if (hours < 24) {
-      return `${hours}h ago`;
+      return formatter.format(-hours, "hour");
     }
     const days = Math.round(hours / 24);
-    return `${days}d ago`;
+    return formatter.format(-days, "day");
   };
   const diagnosticsSummary = !browserSupport.supported
-    ? "This browser or app shell cannot post web push notifications."
+    ? ts("notifications.diagnosticsBrowserUnsupported")
     : diagnostics?.server.cronStatus === "missing_secret"
-      ? "The daily notification cron secret is missing."
+      ? ts("notifications.diagnosticsCronSecretMissing")
       : diagnostics?.server.cronStatus === "stale"
         ? diagnostics.server.lastDailyCheckedMinutesAgo !== null
-          ? `The daily notification job has not checked in for ${formatRelativeMinutes(diagnostics.server.lastDailyCheckedMinutesAgo)}.`
-          : "The daily notification job has not checked in yet."
+          ? ts("notifications.diagnosticsCronStale").replace("{relative}", formatRelativeMinutes(diagnostics.server.lastDailyCheckedMinutesAgo))
+          : ts("notifications.diagnosticsCronNotCheckedInYet")
         : diagnostics?.account.recommendedAction === "none"
-          ? "Push setup looks healthy."
+          ? ts("notifications.diagnosticsPushLooksHealthy")
           : diagnostics?.account.recommendedAction === "fix_vapid"
-            ? "Push keys or subject are incomplete."
+            ? ts("notifications.diagnosticsPushKeysIncomplete")
             : diagnostics?.account.recommendedAction === "subscribe"
-              ? "No saved subscription was found for this account."
+              ? ts("notifications.diagnosticsNoSavedSubscription")
               : diagnostics?.account.recommendedAction === "resubscribe_or_send_test"
-                ? "A saved subscription looks stale or needs a fresh test."
-                : "Diagnostics available.";
+                ? ts("notifications.diagnosticsSavedSubscriptionStale")
+                : ts("notifications.diagnosticsAvailable");
   const deliveryOptions: Array<{ value: NotificationTiming["deliveryStrategy"]; label: string }> = [
     { value: "morning", label: ts('labels.morning') },
     { value: "midday", label: ts('labels.midday') },
@@ -21884,7 +21903,7 @@ function NotificationPanel({
           )}
         </div>
         <div className="mt-3 rounded-[0.9rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-          <div className="flex items-start justify-between gap-3">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
               <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
                 {ts('labels.diagnostics', 'Diagnostics')}
@@ -21893,56 +21912,58 @@ function NotificationPanel({
                 {diagnosticsSummary}
               </p>
             </div>
-            <span className="rounded-full border px-2.5 py-1 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textSecondary }}>
-              {diagnostics?.server.cronStatus === "healthy" ? "Healthy" : "Needs attention"}
+            <span className="self-start rounded-full border px-2.5 py-1 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textSecondary }}>
+              {diagnostics?.server.cronStatus === "healthy" ? ts("notifications.diagnosticsHealthy") : ts("notifications.diagnosticsNeedsAttention")}
             </span>
           </div>
           <div className="mt-3 grid gap-2">
             {[
               {
-                label: "Browser support",
+                label: ts("notifications.browserSupportLabel"),
                 value: browserSupport.supported
-                  ? "Supported"
-                  : `Missing ${[
+                  ? ts("notifications.browserSupportSupported")
+                  : ts("notifications.browserSupportMissing").replace("{items}", [
                       !browserSupport.notification ? "Notification" : null,
                       !browserSupport.pushManager ? "PushManager" : null,
                       !browserSupport.serviceWorker ? "service worker" : null,
-                    ].filter(Boolean).join(", ")}`,
+                    ].filter(Boolean).join(", ")),
                 tone: browserSupport.supported ? "good" : "bad",
               },
               {
-                label: "VAPID / push config",
+                label: ts("notifications.vapidPushConfigLabel"),
                 value: diagnostics
                   ? diagnostics.server.vapidConfigured && diagnostics.server.vapidKeyPairValid
-                    ? "Configured"
+                    ? ts("notifications.vapidConfigured")
                     : diagnostics.server.vapidConfigured
-                      ? `Invalid key pair (${diagnostics.server.vapidReason})`
-                      : "Missing VAPID configuration"
-                  : "Diagnostics unavailable",
+                      ? ts("notifications.vapidInvalidKeyPair").replace("{reason}", diagnostics.server.vapidReason)
+                      : ts("notifications.vapidMissingConfig")
+                  : ts("notifications.diagnosticsUnavailable"),
                 tone: diagnostics?.server.vapidConfigured && diagnostics.server.vapidKeyPairValid ? "good" : "bad",
               },
               {
-                label: "Cron / delivery",
+                label: ts("notifications.cronDeliveryLabel"),
                 value: diagnostics
                   ? diagnostics.server.cronStatus === "healthy"
                     ? diagnostics.server.lastDailyCheckedMinutesAgo !== null
-                      ? `Healthy, last checked ${formatRelativeMinutes(diagnostics.server.lastDailyCheckedMinutesAgo)}`
-                      : "Healthy"
+                      ? ts("notifications.cronHealthyWithCheck").replace("{relative}", formatRelativeMinutes(diagnostics.server.lastDailyCheckedMinutesAgo))
+                      : ts("notifications.cronHealthy")
                     : diagnostics.server.cronStatus === "stale"
-                      ? "The daily job has not checked in recently"
-                      : "Cron secret is missing"
-                  : "Diagnostics unavailable",
+                      ? ts("notifications.cronNotCheckedRecently")
+                      : ts("notifications.cronSecretMissing")
+                  : ts("notifications.diagnosticsUnavailable"),
                 tone: diagnostics?.server.cronStatus === "healthy" ? "good" : "bad",
               },
               {
-                label: "Subscription",
+                label: ts("notifications.subscriptionLabel"),
                 value: diagnostics?.account.subscriptions
                   ? enabled
-                    ? "Device subscription active"
+                    ? ts("notifications.deviceSubscriptionActive")
                     : accountEnabled
-                      ? "Account is on, but this device is not subscribed"
-                      : `${diagnostics.account.subscriptions} saved subscription${diagnostics.account.subscriptions === 1 ? "" : "s"}`
-                  : "No saved subscription",
+                      ? ts("notifications.accountSubscribedButDeviceNot")
+                      : diagnostics.account.subscriptions === 1
+                        ? ts("notifications.savedSubscription")
+                        : ts("notifications.savedSubscriptions").replace("{count}", String(diagnostics.account.subscriptions))
+                  : ts("notifications.noSavedSubscription"),
                 tone: deviceSubscribed ? "good" : "bad",
               },
             ].map((item) => (
@@ -22745,7 +22766,7 @@ function DecisionMemoryArchiveSection({
                   }}
                 >
                   <div className="flex flex-1 flex-col px-3.5 py-3.5">
-                    <div className="flex items-start justify-between gap-3">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                       <div className="min-w-0">
                         {createdLabel ? (
                           <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textSecondary }}>
@@ -22758,7 +22779,7 @@ function DecisionMemoryArchiveSection({
                           </p>
                         ) : null}
                       </div>
-                      <span className="grid size-8 shrink-0 place-items-center rounded-full border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                      <span className="grid size-8 shrink-0 place-items-center self-start rounded-full border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
                         <Clock3 size={15} />
                       </span>
                     </div>
@@ -23091,7 +23112,7 @@ function StreakMilestonesModal({
             className="absolute inset-y-0 left-0 w-px"
             style={{ background: `linear-gradient(to bottom, transparent, ${theme.accentGold}, transparent)` }}
           />
-          <div className="relative flex items-start justify-between gap-3">
+          <div className="relative flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
               <p className="text-[11px] font-semibold uppercase tracking-[0.22em] sm:text-xs" style={{ color: theme.accentGold }}>
                 {ts("streak.modalEyebrow")}
@@ -23106,7 +23127,7 @@ function StreakMilestonesModal({
             <button
               type="button"
               onClick={onClose}
-              className="grid size-10 shrink-0 place-items-center rounded-full border transition shadow-sm"
+              className="grid size-10 shrink-0 place-items-center self-start rounded-full border transition shadow-sm"
               style={{
                 borderColor: theme.borderMedium,
                 backgroundColor: theme.bgInput,
@@ -23185,7 +23206,7 @@ function StreakMilestonesModal({
                           : `linear-gradient(180deg, color-mix(in srgb, ${theme.bgCardElevated} 88%, white 12%), ${theme.bgCard})`,
                       }}
                     >
-                      <div className="flex items-start justify-between gap-2">
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
                             <h3 className="text-[1.02rem] font-semibold tracking-tight sm:text-[1.08rem]" style={{ color: theme.textPrimary }}>
@@ -23207,7 +23228,7 @@ function StreakMilestonesModal({
                           </p>
                         </div>
                         <span
-                          className="inline-flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]"
+                          className="inline-flex shrink-0 items-center gap-1 self-start rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]"
                           style={{
                             borderColor: item.achieved ? theme.accentLight : theme.borderLight,
                             backgroundColor: item.achieved ? theme.activeBg : theme.bgInput,
@@ -23278,7 +23299,7 @@ function CounselInviteModal({
   return (
     <div className="fixed inset-0 z-50 grid place-items-end overflow-hidden overscroll-none p-3 backdrop-blur-sm sm:place-items-center" style={{ backgroundColor: 'rgba(13, 23, 20, 0.42)' }}>
       <section className="max-h-[88vh] w-full max-w-2xl overflow-y-auto overscroll-contain rounded-3xl border p-4 [-webkit-overflow-scrolling:touch] [touch-action:pan-y] shadow-2xl sm:p-3.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex items-start gap-3">
             <AvatarCircle
               avatarUrl={preview?.invite.avatarUrl}
@@ -23297,7 +23318,7 @@ function CounselInviteModal({
               </p>
             </div>
           </div>
-          <button className="grid size-9 place-items-center rounded-full border transition" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={onClose} aria-label={ts('labels.closeInvite')}>
+          <button className="grid size-9 place-items-center self-start rounded-full border transition" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={onClose} aria-label={ts('labels.closeInvite')}>
             <X size={16} />
           </button>
         </div>
@@ -23499,7 +23520,7 @@ function ChallengeInviteModal({
     }
     const challengeTitle = details?.bookTitle?.trim()
       ? `${ts("challenges.readWithMeSharePrefix")} · ${details.bookTitle.trim()}`
-      : ts(challenge.challenge.titleKey, challenge.challenge.title);
+      : ts(challenge.challenge.titleKey);
     const text = details?.bookTitle?.trim()
       ? [
           `${details.bookTitle.trim()}${details.author?.trim() ? ` by ${details.author.trim()}` : ""}`,
@@ -23509,7 +23530,7 @@ function ChallengeInviteModal({
         ]
           .filter(Boolean)
           .join(" · ")
-      : ts("challenges.shareChallengeBody", `Join me in this ${challenge.challenge.totalDays}-day practice on Aletheia.`).replace("{days}", String(challenge.challenge.totalDays));
+      : ts("challenges.shareChallengeBody").replace("{days}", String(challenge.challenge.totalDays));
     try {
       if (navigator.share) {
         await navigator.share({ title: challengeTitle, text, url: shareUrl });
@@ -23524,7 +23545,7 @@ function ChallengeInviteModal({
   return (
     <div className="fixed inset-0 z-50 grid place-items-end overflow-hidden overscroll-none p-3 backdrop-blur-sm sm:place-items-center" style={{ backgroundColor: 'rgba(13, 23, 20, 0.42)' }}>
       <section className="max-h-[88vh] w-full max-w-2xl overflow-y-auto overscroll-contain rounded-3xl border p-4 [-webkit-overflow-scrolling:touch] [touch-action:pan-y] shadow-2xl sm:p-3.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex items-start gap-3">
             <div className="grid size-10 place-items-center rounded-2xl border" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.primary }}>
               <Users size={18} />
@@ -23532,19 +23553,19 @@ function ChallengeInviteModal({
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>{ts("challenges.inviteEyebrow")}</p>
               <h2 className="mt-1.5 text-lg font-semibold" style={{ color: theme.textPrimary }}>
-                {details?.bookTitle?.trim() ? details.bookTitle.trim() : ts(challenge.challenge.titleKey, challenge.challenge.title)}
+                {details?.bookTitle?.trim() ? details.bookTitle.trim() : ts(challenge.challenge.titleKey)}
               </h2>
               <p className="mt-1.5 text-sm leading-5" style={{ color: theme.textSecondary }}>
                 {details?.bookTitle?.trim()
                   ? ts("challenges.readWithMeInviteSubtitle")
-                  : ts(challenge.challenge.descriptionKey, challenge.challenge.description)}
+                  : ts(challenge.challenge.descriptionKey)}
               </p>
             </div>
           </div>
-          <button className="grid size-9 place-items-center rounded-full border transition" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={onClose} aria-label={ts('labels.closeInvite')}>
-            <X size={16} />
-          </button>
-        </div>
+            <button className="grid size-9 place-items-center self-start rounded-full border transition" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={onClose} aria-label={ts('labels.closeInvite')}>
+              <X size={16} />
+            </button>
+          </div>
 
         {status ? <p className="mt-3.5 rounded-2xl border p-3 text-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>{status}</p> : null}
 
@@ -23793,7 +23814,7 @@ function CounselRemovalConfirmModal({
   return (
     <div className="fixed inset-0 z-[70] grid place-items-end overflow-hidden overscroll-none p-3 backdrop-blur-sm sm:place-items-center" style={{ backgroundColor: "rgba(13, 23, 20, 0.45)" }}>
       <section className="w-full max-w-lg max-h-[88vh] overflow-y-auto overscroll-contain rounded-3xl border p-5 [-webkit-overflow-scrolling:touch] [touch-action:pan-y] shadow-2xl" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.finalConfirmationAction')}</p>
             <h2 className="mt-2 text-xl font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.removeFromCounselCircle')}: {pending.contactName}</h2>
@@ -23804,7 +23825,7 @@ function CounselRemovalConfirmModal({
           <button
             type="button"
             onClick={onCancel}
-            className="grid size-10 shrink-0 place-items-center rounded-full border transition"
+            className="grid size-10 shrink-0 place-items-center self-start rounded-full border transition"
             style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
             aria-label={ts('labels.closeConfirmation')}
           >
@@ -24851,11 +24872,11 @@ function ScriptureStudyMode({
                     className="group w-full border-b border-dashed pb-4 text-left transition last:border-b-0 last:pb-0 hover:-translate-y-px"
                     style={{ borderColor: theme.borderLight, color: theme.textPrimary }}
                   >
-                    <div className="flex items-start justify-between gap-3">
-                      <p className="text-sm font-semibold sm:text-[0.98rem] group-hover:underline group-hover:underline-offset-4">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                      <p className="min-w-0 break-words text-sm font-semibold leading-6 sm:text-[0.98rem] group-hover:underline group-hover:underline-offset-4">
                         {related.reference}
                       </p>
-                      <span className="shrink-0 text-[0.68rem] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.accentGold }}>
+                      <span className="inline-flex w-fit max-w-full shrink-0 text-[0.68rem] font-semibold uppercase tracking-[0.2em] leading-4 sm:ml-2" style={{ color: theme.accentGold }}>
                         {related.theme}
                       </span>
                     </div>
@@ -24925,11 +24946,11 @@ function ScriptureStudyMode({
               className="group w-full border-b border-dashed pb-4 text-left transition last:border-b-0 last:pb-0 hover:-translate-y-px"
               style={{ borderColor: theme.borderLight, color: theme.textPrimary }}
             >
-              <div className="flex items-start justify-between gap-3">
-                <p className="text-sm font-semibold sm:text-[0.98rem] group-hover:underline group-hover:underline-offset-4">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                <p className="min-w-0 break-words text-sm font-semibold leading-6 sm:text-[0.98rem] group-hover:underline group-hover:underline-offset-4">
                   {localizedScriptureReference(related.scripture, preferences.language)}
                 </p>
-                <span className="shrink-0 text-[0.68rem] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.accentGold }}>
+                <span className="inline-flex w-fit max-w-full shrink-0 text-[0.68rem] font-semibold uppercase tracking-[0.2em] leading-4 sm:ml-2" style={{ color: theme.accentGold }}>
                   {related.theme}
                 </span>
               </div>
@@ -25058,11 +25079,11 @@ function CounselDecisionShareRail({
 
   return (
     <div className="mt-3 border-t pt-3" style={{ borderColor: theme.borderLight }}>
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <p className="min-w-0 text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
           {ts('labels.shareDecisions')}
         </p>
-        <span className="rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+        <span className="self-start rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
           {decisions.length}
         </span>
       </div>
@@ -25329,11 +25350,11 @@ function CurrentCounselCard({
 
   return (
     <section className="rounded-[1.5rem] border p-4 shadow-[0_8px_24px_rgba(15,23,42,0.05)] sm:p-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.accentGold }}>
+      <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <p className="min-w-0 text-[10px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.accentGold }}>
           {text.currentCounsel ?? ts('currentCounsel')}
         </p>
-        <span className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ borderColor: theme.borderLight, backgroundColor: isThinking || isWorking ? theme.bgCardElevated : theme.bgInput, color: isThinking || isWorking ? theme.accentGold : theme.textSecondary }}>
+        <span className="self-start rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ borderColor: theme.borderLight, backgroundColor: isThinking || isWorking ? theme.bgCardElevated : theme.bgInput, color: isThinking || isWorking ? theme.accentGold : theme.textSecondary }}>
           {isThinking || isWorking ? "..." : ui.ready}
         </span>
       </div>
@@ -25346,9 +25367,9 @@ function CurrentCounselCard({
         </div>
       ) : null}
       <article className="mt-3.5 rounded-[1.25rem] border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-        <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <span
-            className="inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.16em]"
+            className="inline-flex items-center gap-2 self-start rounded-full border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.16em]"
             style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}
           >
             <span className="grid size-4 place-items-center rounded-full" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>
@@ -25618,11 +25639,11 @@ function HistoryExchangeRailCard({
     >
       <div className="h-1.5 w-full" style={{ background: `linear-gradient(90deg, ${theme.accentGold}, color-mix(in srgb, ${theme.accentGold} 25%, ${theme.primary} 75%))` }} />
       <div className="flex h-full flex-col p-3">
-        <div className="flex items-start justify-between gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <p className="min-w-0 text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textSecondary }}>
             {formattedDate ?? ts('labels.welcomeGuidance')}
           </p>
-          <span className="inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.14em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+          <span className="inline-flex shrink-0 items-center self-start rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.14em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
             {ui.currentLens}
           </span>
         </div>
@@ -25720,7 +25741,7 @@ function ConversationHistoryModal({
               background: `radial-gradient(circle at 18% 18%, color-mix(in srgb, ${theme.accentGold} 18%, transparent), transparent 36%), radial-gradient(circle at 92% 0%, color-mix(in srgb, ${theme.primary} 10%, transparent), transparent 30%)`,
             }}
           />
-          <div className="relative flex items-start justify-between gap-3">
+          <div className="relative flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
               <p className="text-[11px] font-semibold uppercase tracking-[0.22em] sm:text-xs" style={{ color: theme.accentGold }}>
                 {ts('labels.conversationHistory')}
@@ -25735,7 +25756,7 @@ function ConversationHistoryModal({
             <button
               type="button"
               onClick={onClose}
-              className="grid size-10 shrink-0 place-items-center rounded-full border transition shadow-sm"
+              className="grid size-10 shrink-0 place-items-center self-start rounded-full border transition shadow-sm"
               style={{
                 borderColor: theme.borderMedium,
                 backgroundColor: theme.bgInput,
@@ -26061,7 +26082,7 @@ function DecisionCompanionPanel({
                 background: `radial-gradient(circle at 18% 18%, color-mix(in srgb, ${theme.accentGold} 20%, transparent), transparent 36%), radial-gradient(circle at 100% 0%, color-mix(in srgb, ${theme.primary} 14%, transparent), transparent 30%)`,
               }}
             />
-            <div className="relative flex items-start justify-between gap-3">
+            <div className="relative flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
                   {ts('labels.wisdomTimeline')}
@@ -26075,7 +26096,7 @@ function DecisionCompanionPanel({
                     : ts('labels.startDecisionToBeginTimeline')}
                 </p>
               </div>
-              <span className="mt-1 inline-flex shrink-0 items-center gap-2 rounded-full border px-3 py-2 text-xs font-semibold shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textPrimary }}>
+              <span className="mt-1 inline-flex shrink-0 items-center self-start gap-2 rounded-full border px-3 py-2 text-xs font-semibold shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textPrimary }}>
                 <Clock3 size={14} />
                 {ts('labels.wisdomTimeline')}
               </span>
@@ -26096,17 +26117,17 @@ function DecisionCompanionPanel({
         {decisionSection === "decisions" ? (
           <>
             <section className="rounded-[1.35rem] border p-3.5 shadow-[0_8px_24px_rgba(15,23,42,0.05)] sm:p-4" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
-              <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                <div className="relative">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0">
                   <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.decisionCompanion')}</p>
-                  <h2 className="mt-1.5 pr-5 min-[390px]:pr-6 min-[430px]:pr-7 text-[1.08rem] min-[390px]:text-[1.14rem] min-[430px]:text-xl font-semibold leading-tight" style={{ color: theme.textPrimary }}>{runtime.decisionCompanionHeading}</h2>
-                  <div className="mt-1.5 max-w-2xl pr-6 sm:pr-7 md:pr-8">
-                    <p className="text-sm leading-5" style={{ color: theme.textSecondary }}>
+                  <h2 className="mt-1.5 text-[1.08rem] min-[390px]:text-[1.14rem] min-[430px]:text-xl font-semibold leading-tight text-balance" style={{ color: theme.textPrimary }}>{runtime.decisionCompanionHeading}</h2>
+                  <div className="mt-1.5 max-w-2xl">
+                    <p className="text-sm leading-5 text-balance" style={{ color: theme.textSecondary }}>
                       {runtime.decisionCompanionSub}
                     </p>
                   </div>
                 </div>
-                <span className="w-fit rounded-full px-3 py-2 text-xs font-semibold" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>{localizedModeLabel(modeProfile.label, language)}</span>
+                <span className="w-fit shrink-0 self-start rounded-full px-3 py-2 text-xs font-semibold" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>{localizedModeLabel(modeProfile.label, language)}</span>
               </div>
 
               <form onSubmit={onCreateDecision} className="mt-4 grid gap-2.5 xl:grid-cols-[1fr_1.2fr_auto]">
@@ -26485,7 +26506,7 @@ function DecisionCompanionPanel({
         {decisionSection === "rhythm" ? (
           <div className="space-y-4">
             <div className="rounded-[1.35rem] border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-              <div className="flex items-start justify-between gap-3">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                 <div className="min-w-0">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
                     {ts('labels.rhythm')}
@@ -26514,7 +26535,7 @@ function DecisionCompanionPanel({
             </div>
 
             <div className="rounded-[1.35rem] border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-              <div className="flex items-start justify-between gap-3">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                 <div className="min-w-0">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
                     {runtime.ruleOfLife}
@@ -26736,7 +26757,7 @@ function WisdomCheck({
       </section>
 
       <section className="min-w-0 rounded-[1.35rem] border p-3.5 shadow-[0_8px_24px_rgba(15,23,42,0.05)] sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-        <div className="mb-4 flex items-center justify-between gap-3">
+        <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <h2 className="text-lg font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.discernmentReadout')}</h2>
           {result ? (
             <button
@@ -26755,7 +26776,7 @@ function WisdomCheck({
         {result ? (
           <div className="space-y-3.5" aria-live="polite">
             <div>
-              <div className="mb-2 flex items-center justify-between text-sm font-semibold" style={{ color: theme.textPrimary }}>
+              <div className="mb-2 flex items-center justify-between gap-2 text-sm font-semibold" style={{ color: theme.textPrimary }}>
                 <span>{ts('labels.readinessSignal')}</span>
                 <span>{result.readiness}%</span>
               </div>
@@ -26996,7 +27017,7 @@ function ReflectPanel({
                 ts,
                 ts("labels.suggestedAction")
               )}
-              title={ts(challengeRecommendation.titleKey, challengeRecommendation.title)}
+              title={ts(challengeRecommendation.titleKey)}
               body={challengeRecommendationBody(challengeRecommendation, ts)}
               actionLabel={challengeRecommendation.actionKind === "continue" ? ts("challenges.continueChallenge") : ts("challenges.startChallenge")}
               onAction={() => {
@@ -27188,11 +27209,14 @@ function GratitudeEntryModal({
   const entryFormation = normalizeGratitudeFormation(entry.formation);
   const hasChanges = draftNote.trim() !== entry.note || draftPlace.trim() !== entry.place;
 
-  const saveChanges = () => {
-    onSave(entry.id, {
-      note: draftNote.trim().slice(0, 280),
-      place: draftPlace.trim().slice(0, 120),
-    });
+  const saveChanges = async () => {
+    await Promise.resolve(
+      onSave(entry.id, {
+        note: draftNote.trim().slice(0, 280),
+        place: draftPlace.trim().slice(0, 120),
+      })
+    );
+    onClose();
   };
 
   return createPortal(
@@ -27289,9 +27313,9 @@ function GratitudeEntryModal({
             </div>
 
             <div className="space-y-3 rounded-[1.35rem] border p-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-              <div className="flex items-center justify-between gap-2">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.edit')}</p>
-                <span className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>{ts('labels.note')}</span>
+                <span className="self-start text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>{ts('labels.note')}</span>
               </div>
               <textarea
                 value={draftNote}
@@ -27511,7 +27535,7 @@ function GratitudeLensPanel({
           setGratitudeDetailOpen(false);
         }}
       />
-      <div className="mb-4 flex items-start justify-between gap-3">
+      <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
             {ts('labels.visualGratitude')}
@@ -27524,7 +27548,7 @@ function GratitudeLensPanel({
           </p>
         </div>
         <span
-          className="shrink-0 rounded-full border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.14em]"
+          className="shrink-0 self-start rounded-full border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.14em]"
           style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
         >
           {!signedIn
@@ -27538,10 +27562,10 @@ function GratitudeLensPanel({
       </div>
 
       <section className="grid min-w-0 gap-4 xl:grid-cols-[0.95fr_1.05fr]">
-        <div className="relative rounded-xl border p-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-          <div className="flex items-start gap-3">
-            <div className="grid size-10 shrink-0 place-items-center rounded-md" style={{ backgroundColor: theme.bgInput, color: theme.primary }}>
-              <Camera size={18} />
+          <div className="relative rounded-xl border p-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+            <div className="flex items-start gap-3">
+              <div className="grid size-10 shrink-0 place-items-center rounded-md" style={{ backgroundColor: theme.bgInput, color: theme.primary }}>
+                <Camera size={18} />
             </div>
             <div>
               <h3 className="text-base font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.captureGratitude')}</h3>
@@ -27551,8 +27575,8 @@ function GratitudeLensPanel({
             </div>
           </div>
 
-          <div className="relative mt-3 rounded-[1.35rem] border p-3 sm:p-3.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
-            <div className="flex items-start justify-between gap-3">
+            <div className="relative mt-3 rounded-[1.35rem] border p-3 sm:p-3.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
                 <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
                   {ts('labels.gratitudeNoticingQuestion')}
@@ -27561,7 +27585,7 @@ function GratitudeLensPanel({
                   {ts('labels.gratitudeNoticingBodyShort')}
                 </p>
               </div>
-              <span className="inline-flex shrink-0 items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+              <span className="inline-flex shrink-0 items-center self-start rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
                 {ts('labels.gratitudePreview')}
               </span>
             </div>
@@ -27645,7 +27669,7 @@ function GratitudeLensPanel({
           </div>
           <div className="mt-3 grid gap-3 lg:grid-cols-[1fr_1fr]">
             <section className="rounded-[1.35rem] border p-3.5 shadow-[0_8px_20px_rgba(7,10,8,0.05)]" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
-              <div className="flex items-start justify-between gap-3">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                 <div className="min-w-0">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
                     {ts('labels.gratitudeStyleCard')}
@@ -27654,7 +27678,7 @@ function GratitudeLensPanel({
                     {activeStyleSummary || ts('labels.gratitudeStyleBody')}
                   </p>
                 </div>
-                <span className="inline-flex shrink-0 items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                <span className="inline-flex shrink-0 items-center self-start rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
                   {ts('labels.gratitudeFilters')}
                 </span>
               </div>
@@ -27682,13 +27706,13 @@ function GratitudeLensPanel({
             </section>
 
             <section className="rounded-[1.35rem] border p-3.5 shadow-[0_8px_20px_rgba(7,10,8,0.05)]" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
-              <div className="flex items-start justify-between gap-3">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                 <div className="min-w-0">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
                     {ts('labels.gratitudeOverlays')}
                   </p>
                 </div>
-                <span className="inline-flex shrink-0 items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                <span className="inline-flex shrink-0 items-center self-start rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
                   {ts('labels.gratitudeStickerLimit')}
                 </span>
               </div>
@@ -27841,18 +27865,18 @@ function GratitudeLensPanel({
         </div>
 
         <div className="rounded-xl border p-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
               <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.gratitudeTimeline')}</p>
               <h3 className="mt-1 text-base font-semibold" style={{ color: theme.textPrimary }}>
                 {visibleEntries.length ? ts('labels.latestGratitude') : ts('labels.noGratitudeYet')}
               </h3>
             </div>
-            <Sprout size={24} style={{ color: theme.primary }} />
+            <Sprout className="self-start" size={24} style={{ color: theme.primary }} />
           </div>
 
           <div className="mt-3 rounded-xl border p-2.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput }}>
-            <div className="flex items-center justify-between gap-3">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div className="min-w-0">
                 <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
                   {ts('labels.gratitudeWeeklyRecap')}
@@ -27861,7 +27885,7 @@ function GratitudeLensPanel({
                   {ts('labels.weeklyMomentsNoticed').replace("{count}", String(weeklyEntries.length))}
                 </p>
               </div>
-              <span className="shrink-0 rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
+              <span className="shrink-0 self-start rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
                 {!signedIn
                   ? ts('labels.localOnly')
                   : syncStatus === "synced"
@@ -28046,11 +28070,11 @@ function LibraryPanel({
             {(() => {
               const translationLabel = scriptureDisplayLabel(scriptureMemory.scripture, preferences);
               return (
-                <div className="mb-2 flex flex-wrap items-center gap-2">
+                <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
                   <span className="inline-flex items-center rounded-full border px-3 py-1 text-[0.72rem] font-semibold uppercase tracking-[0.16em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
                     {translationLabel}
                   </span>
-                  <span className="text-xs leading-5" style={{ color: theme.textSecondary }}>
+                  <span className="min-w-0 text-xs leading-5" style={{ color: theme.textSecondary }}>
                     {ts('labels.bibleTranslation')}
                   </span>
                 </div>
@@ -28107,7 +28131,7 @@ function LibraryPanel({
         <section className="min-w-0 rounded-xl border p-3.5 shadow-sm sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="min-w-0">
-              <div className="flex items-center gap-2 text-lg font-semibold" style={{ color: theme.textPrimary }}>
+              <div className="flex flex-wrap items-start gap-2 text-lg font-semibold" style={{ color: theme.textPrimary }}>
                 <span
                   className="grid size-9 shrink-0 place-items-center rounded-full border shadow-sm"
                   style={{
@@ -28326,7 +28350,7 @@ function JournalPanel({
           </div>
 
           <div className="rounded-[1.35rem] border p-3.5 shadow-sm sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-          <div className="flex items-start justify-between gap-3">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
                 {runtime.reflectionHistory}
@@ -28377,14 +28401,14 @@ function JournalPanel({
                       </div>
                     </div>
                     <div className="flex min-w-0 flex-1 flex-col gap-1.5 p-3.5">
-                      <div className="flex items-start justify-between gap-3">
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                         <div className="min-w-0">
                           <p className="line-clamp-2 text-[0.97rem] font-semibold leading-[1.22rem]" style={{ color: theme.textPrimary }}>{entry.title}</p>
                           <p className="mt-1 text-[9px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
                             {localizedModeLabel(entry.mode, language)} · {new Date(entry.createdAt).toLocaleDateString(language, { month: "short", day: "numeric" })}
                           </p>
                         </div>
-                        <span className="inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.12em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                        <span className="inline-flex shrink-0 items-center self-start rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.12em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
                           {ts('showDetails')}
                         </span>
                       </div>
@@ -28492,7 +28516,7 @@ function JournalEntryDetailModal({
               background: `radial-gradient(circle at 18% 18%, color-mix(in srgb, ${theme.accentGold} 18%, transparent), transparent 36%), radial-gradient(circle at 92% 0%, color-mix(in srgb, ${theme.primary} 10%, transparent), transparent 30%)`,
             }}
           />
-          <div className="relative flex items-start justify-between gap-3">
+          <div className="relative flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
               <p className="text-[11px] font-semibold uppercase tracking-[0.22em] sm:text-xs" style={{ color: theme.accentGold }}>
                 {ts("labels.reflectionJournal")}

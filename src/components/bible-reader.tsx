@@ -347,8 +347,8 @@ export default function BibleReader({ preferences, theme, initialBook, initialCh
     return (
       <div className="space-y-4" dir={isRtl ? "rtl" : "ltr"}>
         <section className="rounded-2xl border p-4 shadow-sm" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0 flex-1">
               <p className="text-[0.68rem] font-semibold uppercase tracking-[0.24em]" style={{ color: theme.accentGold }}>
                 {ui.readTab} · {ui.studyTab}
               </p>
@@ -359,7 +359,7 @@ export default function BibleReader({ preferences, theme, initialBook, initialCh
                 {ui.bookSelectorHelp}
               </p>
             </div>
-            <div className="grid size-11 shrink-0 place-items-center rounded-2xl border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
+            <div className="grid size-11 shrink-0 place-items-center self-start rounded-2xl border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
               <Book size={18} />
             </div>
           </div>
@@ -693,14 +693,14 @@ export default function BibleReader({ preferences, theme, initialBook, initialCh
       ) : displayedStudyData ? (
         <div className="space-y-4">
           <section className="rounded-2xl border p-4 shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-            <div className="flex items-start justify-between gap-3">
-              <div>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+              <div className="min-w-0 flex-1">
                 <p className="text-[0.68rem] font-semibold uppercase tracking-[0.22em]" style={{ color: theme.accentGold }}>{ui.studySummary}</p>
                 <p className="mt-2 text-sm leading-7" style={{ color: theme.textPrimary }}>{displayedStudyData.summary}</p>
               </div>
               {displayedStudyData.fallbackTranslation ? (
                 <span
-                  className="inline-flex items-center rounded-full border px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.16em]"
+                  className="inline-flex w-fit max-w-full items-center rounded-full border px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.16em] leading-4 sm:ml-2"
                   style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
                   title={`${ui.via} ${displayedStudyData.fallbackTranslation}`}
                 >
@@ -723,11 +723,11 @@ export default function BibleReader({ preferences, theme, initialBook, initialCh
                   className="group rounded-2xl border p-3 text-left transition hover:-translate-y-px hover:shadow-sm"
                   style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <p className="text-sm font-semibold group-hover:underline group-hover:underline-offset-4" style={{ color: theme.textPrimary }}>
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                    <p className="min-w-0 break-words text-sm font-semibold leading-6 group-hover:underline group-hover:underline-offset-4" style={{ color: theme.textPrimary }}>
                       {related.reference}
                     </p>
-                    <span className="shrink-0 rounded-full border px-2 py-0.5 text-[0.68rem] font-semibold uppercase tracking-[0.16em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textSecondary }}>
+                    <span className="inline-flex w-fit max-w-full shrink-0 rounded-full border px-2 py-0.5 text-[0.68rem] font-semibold uppercase tracking-[0.16em] leading-4 sm:ml-2" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textSecondary }}>
                       {related.theme}
                     </span>
                   </div>

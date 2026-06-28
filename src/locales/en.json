@@ -490,7 +490,36 @@
     "counselRemovedLocally": "Counsel contact removed locally",
     "counselRemovedLocallyBody": "The contact was removed from this device.",
     "scriptureMemoryCleared": "Scripture memory cleared",
-    "scriptureMemoryClearedBody": "The weekly scripture anchor was removed from Home."
+    "scriptureMemoryClearedBody": "The weekly scripture anchor was removed from Home.",
+    "diagnosticsHealthy": "Healthy",
+    "diagnosticsNeedsAttention": "Needs attention",
+    "diagnosticsBrowserUnsupported": "This browser or app shell cannot post web push notifications.",
+    "diagnosticsCronSecretMissing": "The daily notification cron secret is missing.",
+    "diagnosticsCronStale": "The daily notification job has not checked in for {relative}.",
+    "diagnosticsCronNotCheckedInYet": "The daily notification job has not checked in yet.",
+    "diagnosticsPushLooksHealthy": "Push setup looks healthy.",
+    "diagnosticsPushKeysIncomplete": "Push keys or subject are incomplete.",
+    "diagnosticsNoSavedSubscription": "No saved subscription was found for this account.",
+    "diagnosticsSavedSubscriptionStale": "A saved subscription looks stale or needs a fresh test.",
+    "diagnosticsAvailable": "Diagnostics available.",
+    "browserSupportLabel": "Browser support",
+    "browserSupportSupported": "Supported",
+    "browserSupportMissing": "Missing {items}",
+    "vapidPushConfigLabel": "VAPID / push config",
+    "vapidConfigured": "Configured",
+    "vapidInvalidKeyPair": "Invalid key pair ({reason})",
+    "vapidMissingConfig": "Missing VAPID configuration",
+    "cronDeliveryLabel": "Cron / delivery",
+    "cronHealthyWithCheck": "Healthy, last checked {relative}",
+    "cronHealthy": "Healthy",
+    "cronNotCheckedRecently": "The daily job has not checked in recently",
+    "cronSecretMissing": "Cron secret is missing",
+    "subscriptionLabel": "Subscription",
+    "deviceSubscriptionActive": "Device subscription active",
+    "accountSubscribedButDeviceNot": "Account is on, but this device is not subscribed",
+    "savedSubscription": "1 saved subscription",
+    "savedSubscriptions": "{count} saved subscriptions",
+    "noSavedSubscription": "No saved subscription"
   },
   "status": {
     "guestMode": "Guest mode is active. Sign in to keep your history synced.",
@@ -1317,7 +1346,8 @@
     "responsiveNudges": "Nudges",
     "openScripture": "Open",
     "translationFallback": "Shown with the closest available public-domain translation.",
-    "swipeForMore": "Swipe for more"
+    "swipeForMore": "Swipe for more",
+    "diagnostics": "Diagnostics"
   },
   "personalizationNudgeTitle": "Want more personal counsel?",
   "personalizationNudgeBody": "Add one detail about money, work, or rhythm.",
@@ -1900,6 +1930,36 @@
         "practice": "Write what is enough for this season, plainly."
       }
     },
+
+    "sabbathRest5day": {
+      "title": "5-Day Sabbath Rest Practice",
+      "description": "Five days of protected rest, naming the work rhythm, the strain beneath it, and making space to slow down.",
+      "day1": {
+        "principle": "Remember the Sabbath day and keep it holy.",
+        "prompt": "Name the work rhythm you are carrying. Write one line about what keeps rest from feeling easy.",
+        "practice": "Name the rhythm and what makes rest feel hard."
+      },
+      "day2": {
+        "principle": "The Sabbath was made for people, not people for the Sabbath.",
+        "prompt": "What would it look like to let rest serve you instead of making rest another task?",
+        "practice": "Write one way rest could serve you today."
+      },
+      "day3": {
+        "principle": "Be still, and know that I am God.",
+        "prompt": "What noise, pace, or demand needs to quiet down first?",
+        "practice": "Name one thing to let grow still."
+      },
+      "day4": {
+        "principle": "Martha, Martha, you are anxious and troubled about many things.",
+        "prompt": "Where is your attention scattered between many things? Write the single need that matters most.",
+        "practice": "Name the one thing that needs your attention most."
+      },
+      "day5": {
+        "principle": "If you call the Sabbath a delight ... then you shall take delight in the Lord.",
+        "prompt": "What would make rest feel like delight rather than duty this week?",
+        "practice": "Choose one small delight that restores you."
+      }
+    },
     "readWithMeInviteTitle": "Shared reading plan",
     "readWithMeInviteDetails": "Fixed reading details",
     "readWithMeInviteDetailsBody": "Everyone sees the same book, cadence, and response window.",
@@ -1938,7 +1998,14 @@
     "shareDayBody": "A completed day of this practice, with scripture, practice, and note.",
     "shareDayCta": "Try this day",
     "shareDayEyebrow": "Challenge day",
-    "shareDayProgress": "Day {day} of {totalDays}"
+    "shareDayProgress": "Day {day} of {totalDays}",
+    "inactive": "Inactive",
+    "inProgress": "In progress",
+    "inactiveReentryBody": "You missed a day. You do not need to start over. Re-enter gently with day {nextDay} of {total}.",
+    "completedTodayBody": "Day {nextDay} of {total} is waiting for tomorrow.",
+    "inProgressBody": "Continue with day {nextDay} of {total}.",
+    "continueCurrentPractice": "Continue your current practice",
+    "reentryNote": "You are already partway through this practice. Keep the rhythm going with day {nextDay}."
   },
   "runtimePanel": {
     "timelineReady": "Your timeline is ready to track decisions, patterns, counsel, and learning.",
@@ -2036,5 +2103,9 @@
       "day30Prompt": "How did this decision turn out?"
     },
     "completed": "The arc is fully visible now."
-  }
+  },
+  "apiNotConfigured": "This feature is not configured yet.",
+  "apiInvalidSubscription": "The notification subscription is invalid.",
+  "responseStreamingNotSupported": "Response streaming not supported.",
+  "loading": "Loading…"
 }

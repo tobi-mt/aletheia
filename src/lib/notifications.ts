@@ -2445,7 +2445,7 @@ export async function sendChallengeReminders(now = new Date()): Promise<{
       return challengeId;
     }
     const translations = loadTranslationsSync(language);
-    return String(getTranslation(translations, challenge.titleKey, challenge.title));
+    return String(getTranslation(translations, challenge.titleKey));
   }
 
   let attempted = 0;
@@ -2463,6 +2463,7 @@ export async function sendChallengeReminders(now = new Date()): Promise<{
 
   for (const [userId, userRows] of dueByUser.entries()) {
     const userProgress = progressByUser.get(userId) ?? [];
+    const language = normalizePreferences({ language: (userRows[0]?.language ?? "en") as LanguageCode }).language;
     const userTimezone = userRows[0]?.preferred_timezone ?? "UTC";
     const localToday = localDateForTimezone(now, userTimezone);
 
@@ -2487,7 +2488,6 @@ export async function sendChallengeReminders(now = new Date()): Promise<{
     let challengeId: string;
     let nextDay: number;
     let practiceKey: string;
-    let practiceFallback: string;
     let isSuggestion = false;
     let shouldReengage = false;
     let reentryTone: "early" | "longer" = "early";
@@ -2501,7 +2501,6 @@ export async function sendChallengeReminders(now = new Date()): Promise<{
       const dayPrompt = def.days.find((d) => d.day === nextDay);
       if (!dayPrompt) continue;
       practiceKey = dayPrompt.practiceKey;
-      practiceFallback = dayPrompt.practice;
     } else {
       const completedChallengeIds = userProgress
         .filter((progress) => {
@@ -2510,6 +2509,7 @@ export async function sendChallengeReminders(now = new Date()): Promise<{
         })
         .map((progress) => progress.challengeId);
       const recommendation = recommendChallenges({
+        language,
         manualContext: manualContextByUser.get(userId) ?? null,
         modeCounts: modeCountsByUser.get(userId) ?? {},
         currentMode: dominantModeFor(userId),
@@ -2525,12 +2525,10 @@ export async function sendChallengeReminders(now = new Date()): Promise<{
       challengeId = suggest;
       nextDay = 1;
       practiceKey = def.days[0]?.practiceKey ?? "";
-      practiceFallback = def.days[0]?.practice ?? "";
       isSuggestion = true;
       suggested++;
     }
 
-    const language = normalizePreferences({ language: (userRows[0]?.language ?? "en") as LanguageCode }).language;
     const translations = loadTranslationsSync(language);
     const baseTitle = localizedChallengeTitle(challengeId, language);
     
@@ -2540,18 +2538,18 @@ export async function sendChallengeReminders(now = new Date()): Promise<{
     if (isSuggestion) {
       const challenge = getChallengeById(challengeId);
       body = compactNotificationCopy(
-        challenge ? String(getTranslation(translations, challenge.descriptionKey, challenge.description)) : "",
+        challenge ? String(getTranslation(translations, challenge.descriptionKey)) : "",
         136
       );
     } else {
-      const practiceText = getTranslation(translations, practiceKey, practiceFallback);
-      const dayLabel = String(getTranslation(translations, "challenges.dayLabel", "challenges.dayLabel")).replace("{day}", String(nextDay));
+      const practiceText = getTranslation(translations, practiceKey);
+      const dayLabel = String(getTranslation(translations, "challenges.dayLabel")).replace("{day}", String(nextDay));
       body = challengeReminderBody({
         language,
         challengeId: challengeId as ChallengeId,
         tone: reentryTone,
         dayLabel,
-        practiceText: typeof practiceText === "string" ? practiceText : practiceText[0] ?? practiceFallback,
+        practiceText: typeof practiceText === "string" ? practiceText : practiceText[0] ?? "",
         reentry: shouldReengage,
       });
       title = challengeReminderTitle({

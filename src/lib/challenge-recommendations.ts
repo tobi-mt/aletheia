@@ -1,10 +1,13 @@
 import { challengeDefinitions, getChallengeById, type ChallengeId } from "@/lib/challenge-data";
+import { normalizePreferences, type LanguageCode } from "@/lib/localization";
 import { normalizeManualContext, type ManualContextProfile } from "@/lib/manual-context";
 import { getChallengeProgressState, type ChallengeProgressState } from "@/lib/challenge-progress";
+import { loadTranslationsSync, getTranslation } from "@/lib/translations";
 
 type ModeCounts = Partial<Record<string, number>>;
 
 export type ChallengeRecommendationContext = {
+  language?: LanguageCode;
   manualContext?: Partial<ManualContextProfile> | null;
   guestManualContext?: Partial<ManualContextProfile> | null;
   focusIntentions?: string[] | null;
@@ -721,6 +724,9 @@ export function recommendChallenges(input: ChallengeRecommendationContext): Chal
     ...(input.manualContext ?? {}),
   });
   const currentMode = input.currentMode ?? topMode(input.modeCounts);
+  const language = normalizePreferences({ language: input.language ?? "en" }).language;
+  const translations = loadTranslationsSync(language);
+  const t = (key: string) => String(getTranslation(translations, key));
   const text = [
     manualContextText(context),
     ...(input.recentTexts ?? []),
@@ -764,10 +770,10 @@ export function recommendChallenges(input: ChallengeRecommendationContext): Chal
         const nextDay = Math.min(daysCompleted + 1, def.totalDays);
         const statusLabel =
           activeChallengeState === "inactive"
-            ? "Inactive"
+            ? t("challenges.inactive")
             : activeChallengeState === "completed_today"
-              ? "Done today"
-              : "In progress";
+              ? t("challenges.completedToday")
+              : t("challenges.inProgress");
         const statusTone =
           activeChallengeState === "inactive"
             ? "warning"
@@ -776,42 +782,53 @@ export function recommendChallenges(input: ChallengeRecommendationContext): Chal
               : "neutral";
         const statusBody =
           activeChallengeState === "inactive"
-            ? `Inactive: You missed a day. You do not need to start over. Re-enter gently with day ${nextDay} of ${def.totalDays}.`
+            ? t("challenges.inactiveReentryBody")
+                .replace("{nextDay}", String(nextDay))
+                .replace("{total}", String(def.totalDays))
             : activeChallengeState === "completed_today"
-              ? `Done today: day ${nextDay} of ${def.totalDays} is waiting for tomorrow.`
-              : `Continue with day ${nextDay} of ${def.totalDays}.`;
+              ? t("challenges.completedTodayBody")
+                  .replace("{nextDay}", String(nextDay))
+                  .replace("{total}", String(def.totalDays))
+              : t("challenges.inProgressBody")
+                  .replace("{nextDay}", String(nextDay))
+                  .replace("{total}", String(def.totalDays));
         return {
           challengeId: def.id,
           titleKey: def.titleKey,
-          title: def.title,
+          title: "",
           descriptionKey: def.descriptionKey,
-          description: def.description,
+          description: "",
           totalDays: def.totalDays,
           mode: def.mode,
           completedDays: daysCompleted,
           score: 100,
           signals: [
-            `${daysCompleted}/${def.totalDays} days complete`,
-            "continue your current practice",
+            t("challenges.daysCompleted")
+              .replace("{completed}", String(daysCompleted))
+              .replace("{total}", String(def.totalDays)),
+            t("challenges.continueCurrentPractice"),
           ],
           fitChips: [
-            `${daysCompleted}/${def.totalDays} days complete`,
-            "Continue your current practice",
+            t("challenges.daysCompleted")
+              .replace("{completed}", String(daysCompleted))
+              .replace("{total}", String(def.totalDays)),
+            t("challenges.continueCurrentPractice"),
           ],
-          actionLabel: "continue",
+          actionLabel: t("challenges.continueChallenge"),
           actionKind: "continue" as const,
           progressState: activeChallengeState ?? undefined,
           statusLabel,
           statusBody,
           statusTone,
-          note: `You are already partway through this practice. Keep the rhythm going with day ${Math.min(daysCompleted + 1, def.totalDays)}.`,
+          note: t("challenges.reentryNote")
+            .replace("{nextDay}", String(Math.min(daysCompleted + 1, def.totalDays))),
         } satisfies ChallengeRecommendation;
       })()
     : null;
 
   const suggestions = scored.slice(0, 3).map((item) => ({
     ...item,
-    actionLabel: "start",
+    actionLabel: t("challenges.startChallenge"),
     actionKind: "start" as const,
   }));
 

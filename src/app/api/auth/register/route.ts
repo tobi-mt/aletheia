@@ -3,7 +3,9 @@ import { createSession, hashPassword } from "@/lib/auth";
 import { trackServerEvent } from "@/lib/analytics";
 import { apiError } from "@/lib/api-errors";
 import { one, run } from "@/lib/db";
+import { normalizePreferences, type LanguageCode } from "@/lib/localization";
 import { checkRateLimit, getClientIdentity, rateLimitHeaders } from "@/lib/rate-limit";
+import { loadTranslationsSync, getTranslation } from "@/lib/translations";
 
 const BLOCKED_EMAIL_DOMAIN_PATTERNS = [
   /\.local$/i,
@@ -53,11 +55,13 @@ export async function POST(request: Request) {
       name?: string;
       password?: string;
       website?: string;
+      language?: LanguageCode;
     };
 
     const email = body.email?.trim().toLowerCase();
     const password = body.password ?? "";
     const honeypot = body.website?.trim();
+    const language = normalizePreferences({ language: body.language }).language;
 
     if (honeypot) {
       await trackServerEvent({
@@ -140,6 +144,9 @@ export async function POST(request: Request) {
       metadata: { method: "email" },
     });
 
+    const translations = loadTranslationsSync(language);
+    const firstName = user.name?.split(" ")[0] || user.email.split("@")[0];
+
     return NextResponse.json({
       user: {
         id: user.id,
@@ -149,7 +156,8 @@ export async function POST(request: Request) {
         loginCount: 1,
       },
       isNewUser: true,
-      welcomeMessage: "Welcome to Aletheia. Your account is ready and sync is active.",
+      welcomeMessage: String(getTranslation(translations, "auth.welcomeToAletheiaReady", "Welcome to Aletheia, {name}. Your account is ready and sync is active."))
+        .replace("{name}", firstName),
     }, { headers: rateLimitHeaders(rateLimit) });
   } catch (error) {
     console.error("Email registration failed:", error);

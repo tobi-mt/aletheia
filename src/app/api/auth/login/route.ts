@@ -3,7 +3,9 @@ import { createSession, recordUserLogin, verifyPassword } from "@/lib/auth";
 import { trackServerEvent } from "@/lib/analytics";
 import { apiError } from "@/lib/api-errors";
 import { one } from "@/lib/db";
+import { normalizePreferences, type LanguageCode } from "@/lib/localization";
 import { checkRateLimit, getClientIdentity, rateLimitHeaders } from "@/lib/rate-limit";
+import { loadTranslationsSync, getTranslation } from "@/lib/translations";
 
 export async function POST(request: Request) {
   try {
@@ -31,10 +33,12 @@ export async function POST(request: Request) {
     const body = (await request.json()) as {
       email?: string;
       password?: string;
+      language?: LanguageCode;
     };
 
     const email = body.email?.trim().toLowerCase();
     const password = body.password ?? "";
+    const language = normalizePreferences({ language: body.language }).language;
 
     if (!email || !password) {
       await trackServerEvent({
@@ -80,6 +84,9 @@ export async function POST(request: Request) {
       metadata: { method: "email" },
     });
 
+    const translations = loadTranslationsSync(language);
+    const firstName = user.name?.split(" ")[0] || user.email.split("@")[0];
+
     return NextResponse.json({
       user: {
         id: user.id,
@@ -89,7 +96,8 @@ export async function POST(request: Request) {
         loginCount: (user.login_count ?? 0) + 1,
       },
       isNewUser: false,
-      welcomeMessage: `Welcome back${user.name ? `, ${user.name}` : ""}. Your Aletheia memory is ready.`,
+      welcomeMessage: String(getTranslation(translations, "auth.welcomeBackMemoryReady", "Welcome back, {name}. Your Aletheia memory is ready."))
+        .replace("{name}", firstName),
     }, { headers: rateLimitHeaders(rateLimit) });
   } catch (error) {
     console.error("Email sign-in failed:", error);

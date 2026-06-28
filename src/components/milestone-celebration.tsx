@@ -844,7 +844,8 @@ export function MilestoneCelebrationLayer({
 
   return createPortal(
     <AnimatePresence>
-      <div className="pointer-events-none fixed inset-0 z-[45] overflow-hidden" aria-hidden="true">
+      {/* Keep celebration above full-screen dialogs so completion feedback is always visible. */}
+      <div className="pointer-events-none fixed inset-0 z-[10050] overflow-hidden" aria-hidden="true">
         <motion.div
           key={celebration.id}
           className="absolute inset-0"

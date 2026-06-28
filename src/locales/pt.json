@@ -430,7 +430,36 @@
     "scriptureMemoryCleared": "Memória bíblica limpa",
     "scriptureMemoryClearedBody": "A memória bíblica semanal foi removida da página inicial.",
     "answerReadyGuestTitle": "Sign in to save this answer",
-    "answerReadyGuestBody": "Keep this answer and your history synced across devices."
+    "answerReadyGuestBody": "Keep this answer and your history synced across devices.",
+    "diagnosticsHealthy": "Healthy",
+    "diagnosticsNeedsAttention": "Needs attention",
+    "diagnosticsBrowserUnsupported": "This browser or app shell cannot post web push notifications.",
+    "diagnosticsCronSecretMissing": "The daily notification cron secret is missing.",
+    "diagnosticsCronStale": "The daily notification job has not checked in for {relative}.",
+    "diagnosticsCronNotCheckedInYet": "The daily notification job has not checked in yet.",
+    "diagnosticsPushLooksHealthy": "Push setup looks healthy.",
+    "diagnosticsPushKeysIncomplete": "Push keys or subject are incomplete.",
+    "diagnosticsNoSavedSubscription": "No saved subscription was found for this account.",
+    "diagnosticsSavedSubscriptionStale": "A saved subscription looks stale or needs a fresh test.",
+    "diagnosticsAvailable": "Diagnostics available.",
+    "browserSupportLabel": "Browser support",
+    "browserSupportSupported": "Supported",
+    "browserSupportMissing": "Missing {items}",
+    "vapidPushConfigLabel": "VAPID / push config",
+    "vapidConfigured": "Configured",
+    "vapidInvalidKeyPair": "Invalid key pair ({reason})",
+    "vapidMissingConfig": "Missing VAPID configuration",
+    "cronDeliveryLabel": "Cron / delivery",
+    "cronHealthyWithCheck": "Healthy, last checked {relative}",
+    "cronHealthy": "Healthy",
+    "cronNotCheckedRecently": "The daily job has not checked in recently",
+    "cronSecretMissing": "Cron secret is missing",
+    "subscriptionLabel": "Subscription",
+    "deviceSubscriptionActive": "Device subscription active",
+    "accountSubscribedButDeviceNot": "Account is on, but this device is not subscribed",
+    "savedSubscription": "1 saved subscription",
+    "savedSubscriptions": "{count} saved subscriptions",
+    "noSavedSubscription": "No saved subscription"
   },
   "status": {
     "guestMode": "Modo convidado ativo. Entre para sincronizar decisões.",
@@ -1196,21 +1225,21 @@
     "aWiseNextStep": "Um próximo passo prudente",
     "swipeForMore": "Deslize para ver mais",
     "loading": "Loading…",
-    "diveDeep": "Dive Deep",
-    "backToQuickRead": "Back to Quick Read",
+    "diveDeep": "Aprofundar",
+    "backToQuickRead": "Voltar para a leitura rápida",
     "continueFromThis": "Continuar a partir daqui",
-    "reflectionQuestion": "Reflection question",
-    "gratitudeLensBodyTooltip": "The photo stays on this device unless you export or share a postcard.",
-    "gratitudeNoticingBodyTooltip": "Notice the gift before you style or share anything.",
+    "reflectionQuestion": "Pergunta de reflexão",
+    "gratitudeLensBodyTooltip": "A foto permanece neste dispositivo, a menos que você exporte ou compartilhe um cartão.",
+    "gratitudeNoticingBodyTooltip": "Perceba o presente antes de editar ou compartilhar qualquer coisa.",
     "privateByDefaultEyebrow": "Private by default",
-    "accountManageSummary": "Manage sign-in, sync, language, notifications, history, and formation milestones without crowding the wisdom companion.",
-    "wisdomCheckUrgency": "urgency noticed",
-    "wisdomCheckSlower": "pressure looks slower",
-    "whatNextBodyShort": "Aletheia helps you choose one wise next step first. Ask first, then switch modes when you want a different lens.",
+    "accountManageSummary": "Gerencie login, sincronização, idioma, notificações, histórico e marcos de formação sem sobrecarregar o companheiro de sabedoria.",
+    "wisdomCheckUrgency": "urgência percebida",
+    "wisdomCheckSlower": "a pressão parece mais lenta",
+    "whatNextBodyShort": "Aletheia ajuda você a escolher primeiro um próximo passo sábio. Pergunte primeiro e depois mude de modo quando quiser outro olhar.",
     "weeklyReviewBodyShort": "No streaks or pressure. Just notice how {pattern} has been shaping your discernment.",
     "gratitudeLensBodyShort": "Tire uma foto calma, diga pelo que você é grato e guarde um registro visual privado.",
-    "gratitudeNoticingBodyShort": "Notice the kind of gift before you style or share anything.",
-    "photoPrivacy": "The image stays on this device unless you export or share a postcard.",
+    "gratitudeNoticingBodyShort": "Perceba o tipo de presente antes de editar ou compartilhar qualquer coisa.",
+    "photoPrivacy": "A imagem permanece neste dispositivo, a menos que você a exporte ou compartilhe um cartão.",
     "advanced": "Advanced",
     "accountContextMoney": "money feels tight",
     "accountContextPace": "your pace needs room",
@@ -1257,7 +1286,8 @@
     "progressVisible": "Progresso visível",
     "responsiveNudges": "Lembretes",
     "openScripture": "Abrir",
-    "translationFallback": "Mostrado com a tradução de domínio público mais próxima disponível."
+    "translationFallback": "Mostrado com a tradução de domínio público mais próxima disponível.",
+    "diagnostics": "Diagnostics"
   },
   "personalizationNudgeTitle": "Quer um conselho mais pessoal?",
   "personalizationNudgeBody": "Adicione um detalhe sobre dinheiro, trabalho ou ritmo.",
@@ -1725,7 +1755,7 @@
     "noProgressYet": "Comece com o Dia 1 quando estiver pronto.",
     "allDaysComplete": "Todos os {total} dias concluídos. Muito bem.",
     "signInToTrack": "Entre para rastrear seu progresso em todos os dispositivos.",
-    "loading": "Carregando…",
+    "loading": "Loading…",
     "saving": "Salvando…",
     "gratitude3day": {
       "title": "Prática de Gratidão de 3 Dias",
@@ -1833,6 +1863,36 @@
         "practice": "Escreva com clareza o que é suficiente para esta estação."
       }
     },
+
+    "sabbathRest5day": {
+      "title": "Prática de descanso sabático de 5 dias",
+      "description": "Cinco dias de descanso protegido: nomear o ritmo do trabalho, perceber a tensão por baixo e abrir espaço para desacelerar.",
+      "day1": {
+        "principle": "Lembra-te do dia de sábado, para o santificar.",
+        "prompt": "Nomeie o ritmo de trabalho que você está carregando. Escreva uma linha sobre o que torna o descanso difícil.",
+        "practice": "Nomeie o ritmo e o que dificulta o descanso."
+      },
+      "day2": {
+        "principle": "O sábado foi feito por causa do ser humano, e não o ser humano por causa do sábado.",
+        "prompt": "Como seria deixar o descanso servir você em vez de virar mais uma tarefa?",
+        "practice": "Escreva uma forma de o descanso servir você hoje."
+      },
+      "day3": {
+        "principle": "Aquietai-vos e sabei que eu sou Deus.",
+        "prompt": "Que ruído, ritmo ou exigência precisa primeiro ficar em silêncio?",
+        "practice": "Nomeie uma coisa a acalmar."
+      },
+      "day4": {
+        "principle": "Marta, Marta, andas ansiosa e afadigada com muitas coisas.",
+        "prompt": "Onde a tua atenção se dispersa por muitas coisas? Escreve a necessidade única que mais importa.",
+        "practice": "Nomeie a única coisa que mais precisa da sua atenção."
+      },
+      "day5": {
+        "principle": "Se chamares ao sábado deleite ... então te deleitarás no Senhor.",
+        "prompt": "O que faria do descanso um prazer, e não um dever, esta semana?",
+        "practice": "Escolha um pequeno deleite que te restaure."
+      }
+    },
     "whyThisFits": "Why this fits",
     "readWithMeInviteTitle": "Shared reading plan",
     "readWithMeInviteDetails": "Fixed reading details",
@@ -1872,7 +1932,14 @@
     "shareDayBody": "Um dia concluído desta prática, com a escritura, a prática e a nota.",
     "shareDayCta": "Experimente este dia",
     "shareDayEyebrow": "Dia do desafio",
-    "shareDayProgress": "Dia {day} de {totalDays}"
+    "shareDayProgress": "Dia {day} de {totalDays}",
+    "inactive": "Inactive",
+    "inProgress": "In progress",
+    "inactiveReentryBody": "Você perdeu um dia. Não precisa recomeçar. Retome com gentileza no dia {nextDay} de {total}.",
+    "completedTodayBody": "O dia {nextDay} de {total} está esperando por amanhã.",
+    "inProgressBody": "Continue com o dia {nextDay} de {total}.",
+    "continueCurrentPractice": "Continue sua prática atual",
+    "reentryNote": "You are already partway through this practice. Keep the rhythm going with day {nextDay}."
   },
   "streak": {
     "openMilestones": "Abrir marcos da sequência",
@@ -2006,12 +2073,12 @@
     "decisionNextTitleDefault": "Name the decision under pressure",
     "decisionNextBodyActive": "Update counsel, cost, waiting, and peace signals so the decision has a real timeline.",
     "decisionNextBodyEmpty": "Start with one decision and the pressure attached to it. Aletheia will track wisdom, counsel, and readiness over time.",
-    "decisionCompanionHeading": "Track the decision until wisdom has had time to work.",
-    "decisionCompanionSub": "Memory, counsel, waiting, summary export, and a calm readiness signal for major choices.",
-    "ruleOfLife": "Rule of Life",
-    "ruleOfLifePrincipleSingular": "principle",
-    "ruleOfLifePrinciplePlural": "principles",
-    "ruleOfLifeSummary": "Personal principles stay close, but collapsed until you are shaping a decision.",
+    "decisionCompanionHeading": "Acompanhe a decisão até que a sabedoria tenha tempo de agir.",
+    "decisionCompanionSub": "Memória, conselho, espera, exportação do resumo e um sinal calmo de prontidão para escolhas importantes.",
+    "ruleOfLife": "Regra de vida",
+    "ruleOfLifePrincipleSingular": "princípio",
+    "ruleOfLifePrinciplePlural": "princípios",
+    "ruleOfLifeSummary": "Os princípios pessoais ficam por perto, mas recolhidos até você dar forma a uma decisão.",
     "decisionPracticeLine": "Name what is enough for this season",
     "nextInReflect": "Next in Reflect",
     "reflectNextTitleDefault": "Begin with one honest sentence",
@@ -2019,10 +2086,10 @@
     "reflectNextBodyDefault": "Use Wisdom Check for a quick discernment scan, or write what you notice about money, work, fear, generosity, or pace.",
     "reflectNextBodyActive": "Save what you are noticing while the insight is still fresh.",
     "reflectIntro": "Use Wisdom Check to slow a decision down, then save what you notice before the moment passes.",
-    "wisdomCheck": "Wisdom Check",
-    "wisdomCheckSummaryDefault": "Open when a decision needs a quick discernment scan.",
-    "wisdomCheckUrgency": "urgency noticed",
-    "wisdomCheckSlower": "pressure looks slower",
+    "wisdomCheck": "Verificação de sabedoria",
+    "wisdomCheckSummaryDefault": "Abra quando uma decisão precisar de uma rápida avaliação de discernimento.",
+    "wisdomCheckUrgency": "urgência percebida",
+    "wisdomCheckSlower": "a pressão parece mais lenta",
     "decisionScan": "Decision scan",
     "reflectionHistory": "Reflection history",
     "savedReflectionSingular": "saved reflection",
@@ -2036,5 +2103,9 @@
     "libraryDescription": "A curated wisdom base with language-aware application notes and public-domain translation labels.",
     "fullWisdomLibrary": "Full wisdom library",
     "moreAnchors": "more anchors"
-  }
+  },
+  "apiNotConfigured": "This feature is not configured yet.",
+  "apiInvalidSubscription": "The notification subscription is invalid.",
+  "responseStreamingNotSupported": "Response streaming not supported.",
+  "loading": "Loading…"
 }

@@ -430,7 +430,36 @@
     "scriptureMemoryCleared": "E wepụrụ ncheta Akwụkwọ Nsọ",
     "scriptureMemoryClearedBody": "A wepụrụ isi Akwụkwọ Nsọ kwa izu na ibe mbụ.",
     "answerReadyGuestTitle": "Sign in to save this answer",
-    "answerReadyGuestBody": "Keep this answer and your history synced across devices."
+    "answerReadyGuestBody": "Keep this answer and your history synced across devices.",
+    "diagnosticsHealthy": "Healthy",
+    "diagnosticsNeedsAttention": "Needs attention",
+    "diagnosticsBrowserUnsupported": "This browser or app shell cannot post web push notifications.",
+    "diagnosticsCronSecretMissing": "The daily notification cron secret is missing.",
+    "diagnosticsCronStale": "The daily notification job has not checked in for {relative}.",
+    "diagnosticsCronNotCheckedInYet": "The daily notification job has not checked in yet.",
+    "diagnosticsPushLooksHealthy": "Push setup looks healthy.",
+    "diagnosticsPushKeysIncomplete": "Push keys or subject are incomplete.",
+    "diagnosticsNoSavedSubscription": "No saved subscription was found for this account.",
+    "diagnosticsSavedSubscriptionStale": "A saved subscription looks stale or needs a fresh test.",
+    "diagnosticsAvailable": "Diagnostics available.",
+    "browserSupportLabel": "Browser support",
+    "browserSupportSupported": "Supported",
+    "browserSupportMissing": "Missing {items}",
+    "vapidPushConfigLabel": "VAPID / push config",
+    "vapidConfigured": "Configured",
+    "vapidInvalidKeyPair": "Invalid key pair ({reason})",
+    "vapidMissingConfig": "Missing VAPID configuration",
+    "cronDeliveryLabel": "Cron / delivery",
+    "cronHealthyWithCheck": "Healthy, last checked {relative}",
+    "cronHealthy": "Healthy",
+    "cronNotCheckedRecently": "The daily job has not checked in recently",
+    "cronSecretMissing": "Cron secret is missing",
+    "subscriptionLabel": "Subscription",
+    "deviceSubscriptionActive": "Device subscription active",
+    "accountSubscribedButDeviceNot": "Account is on, but this device is not subscribed",
+    "savedSubscription": "1 saved subscription",
+    "savedSubscriptions": "{count} saved subscriptions",
+    "noSavedSubscription": "No saved subscription"
   },
   "status": {
     "guestMode": "Ọnọdụ ọbịa na-arụ ọrụ. Banye ka ịmekọrịta mkpebi.",
@@ -1196,21 +1225,21 @@
     "aWiseNextStep": "Nzọụkwụ amamihe ọzọ",
     "swipeForMore": "Pịgharịa maka ihe ndị ọzọ",
     "loading": "Loading…",
-    "diveDeep": "Dive Deep",
-    "backToQuickRead": "Back to Quick Read",
+    "diveDeep": "Banye omimi",
+    "backToQuickRead": "Laghachi n'ịgụ ngwa ngwa",
     "continueFromThis": "Gaa n'ihu site na nke a",
-    "reflectionQuestion": "Reflection question",
-    "gratitudeLensBodyTooltip": "The photo stays on this device unless you export or share a postcard.",
-    "gratitudeNoticingBodyTooltip": "Notice the gift before you style or share anything.",
-    "privateByDefaultEyebrow": "Private by default",
-    "accountManageSummary": "Manage sign-in, sync, language, notifications, history, and formation milestones without crowding the wisdom companion.",
-    "wisdomCheckUrgency": "urgency noticed",
-    "wisdomCheckSlower": "pressure looks slower",
-    "whatNextBodyShort": "Aletheia helps you choose one wise next step first. Ask first, then switch modes when you want a different lens.",
+    "reflectionQuestion": "Ajụjụ ntụgharị uche",
+    "gratitudeLensBodyTooltip": "Foto ahụ ga-anọ na ngwaọrụ a ma ọ bụrụ na ị naghị ebupụ ya ma ọ bụ kesaa kaadị.",
+    "gratitudeNoticingBodyTooltip": "Lelee onyinye ahụ tupu ị maa ya mma ma ọ bụ kesaa ihe ọ bụla.",
+    "privateByDefaultEyebrow": "Nzuzo na ndabara",
+    "accountManageSummary": "Jikwaa nbanye, mmekọrịta, asụsụ, ngosi, akụkọ ihe mere eme, na ogo ọmụmụ na-enweghị ime ka onye ibe amamihe juo oke.",
+    "wisdomCheckUrgency": "e hụrụ ịdị ngwa",
+    "wisdomCheckSlower": "nrụgide yiri ka ọ na-aga nwayọ",
+    "whatNextBodyShort": "Aletheia na-enyere gị ịhọrọ nzọụkwụ amamihe ọzọ mbụ. Jụọ mbụ, mgbe ahụ gbanwee ụdị mgbe ịchọrọ anya ọzọ.",
     "weeklyReviewBodyShort": "No streaks or pressure. Just notice how {pattern} has been shaping your discernment.",
     "gratitudeLensBodyShort": "Were otu foto dị jụụ, kpọọ ihe ị na-ekele maka ya, ma debe ndekọ anya nkeonwe.",
-    "gratitudeNoticingBodyShort": "Notice the kind of gift before you style or share anything.",
-    "photoPrivacy": "The image stays on this device unless you export or share a postcard.",
+    "gratitudeNoticingBodyShort": "Lelee ụdị onyinye ahụ tupu ị maa ya mma ma ọ bụ kesaa ihe ọ bụla.",
+    "photoPrivacy": "Foto ahụ ga-anọ na ngwaọrụ a ma ọ bụrụ na ị naghị ebupụ ya ma ọ bụ kesaa kaadị.",
     "advanced": "Advanced",
     "accountContextMoney": "money feels tight",
     "accountContextPace": "your pace needs room",
@@ -1257,7 +1286,8 @@
     "progressVisible": "Ọganihu a na-ahụ anya",
     "responsiveNudges": "Ncheta",
     "openScripture": "Meghee",
-    "translationFallback": "E gosipụtara ya na ntụgharị asụsụ ọha kacha nso dị."
+    "translationFallback": "E gosipụtara ya na ntụgharị asụsụ ọha kacha nso dị.",
+    "diagnostics": "Diagnostics"
   },
   "personalizationNudgeTitle": "Ị chọrọ ndụmọdụ ka ọ bụrụ nke onwe gị?",
   "personalizationNudgeBody": "Tinye otu nkọwa gbasara ego, ọrụ, ma ọ bụ rhythm ndụ.",
@@ -1725,7 +1755,7 @@
     "noProgressYet": "Malite site na Ụbọchị 1 mgbe i dị njikere.",
     "allDaysComplete": "Nile {total} ụbọchị ezubere. Ọ dị mma.",
     "signInToTrack": "Banye iji lelee ihu gị na ngwaike.",
-    "loading": "Na-ebuli…",
+    "loading": "Loading…",
     "saving": "Na-eche…",
     "gratitude3day": {
       "title": "Ekele 3-ụbọchị",
@@ -1833,6 +1863,36 @@
         "practice": "Dee ihe zuru ezu maka oge a n’ụzọ doro anya."
       }
     },
+
+    "sabbathRest5day": {
+      "title": "Omume izu ike Sọbat nke ụbọchị 5",
+      "description": "Ụbọchị ise nke izu ike echekwabara: ịkpọ aha usoro ọrụ, ịhụ nrụgide dị n'okpuru ya, ma mee ohere iji jiri nwayọ.",
+      "day1": {
+        "principle": "Cheta ụbọchị Sọbat, mee ka ọ dị nsọ.",
+        "prompt": "Kpọọ aha usoro ọrụ ị na-ebu. Dee ahịrị otu banyere ihe na-eme ka izu ike sie ike.",
+        "practice": "Kpọọ aha usoro ahụ na ihe na-eme ka izu ike sie ike."
+      },
+      "day2": {
+        "principle": "E mere Sọbat maka mmadụ, ọ bụghị mmadụ maka Sọbat.",
+        "prompt": "Kedu ka ọ ga-adị ma izu ike na-ejere gị ozi kama ịbụ ọrụ ọzọ?",
+        "practice": "Dee otu ụzọ izu ike nwere ike isi nyere gị taa."
+      },
+      "day3": {
+        "principle": "Daa jụụ, mara na Mụ bụ Chineke.",
+        "prompt": "Kedu mkpọtụ, ọsọ, ma ọ bụ ọrụ kwesịrị ibu ụzọ daa jụụ?",
+        "practice": "Kpọọ otu ihe ka ọ daa jụụ."
+      },
+      "day4": {
+        "principle": "Marta, Marta, ị na-echegbu onwe gị ma na-adị ọkụ n'obi banyere ọtụtụ ihe.",
+        "prompt": "Ebee ka uche gị na-agbasasị n'ọtụtụ ihe? Dee otu mkpa kacha mkpa.",
+        "practice": "Kpọọ otu ihe kacha mkpa chọrọ uche gị."
+      },
+      "day5": {
+        "principle": "Ọ bụrụ na ị kpọọ Sọbat ihe ụtọ ... mgbe ahụ ị ga-enwe ụtọ n'ime Onyenwe anyị.",
+        "prompt": "Kedu ihe ga-eme ka izu ike bụrụ ihe ụtọ, ọ bụghị ọrụ, n'izu a?",
+        "practice": "Họrọ obere ihe ụtọ nke na-eme ka ị dị ọhụrụ."
+      }
+    },
     "whyThisFits": "Why this fits",
     "readWithMeInviteTitle": "Shared reading plan",
     "readWithMeInviteDetails": "Fixed reading details",
@@ -1872,7 +1932,14 @@
     "shareDayBody": "Ụbọchị emechara nke omume a, nwere akụkụ Akwụkwọ Nsọ, omume, na ndetu.",
     "shareDayCta": "Nwale ụbọchị a",
     "shareDayEyebrow": "Ụbọchị ịma aka",
-    "shareDayProgress": "Ụbọchị {day} n’ime {totalDays}"
+    "shareDayProgress": "Ụbọchị {day} n’ime {totalDays}",
+    "inactive": "Inactive",
+    "inProgress": "In progress",
+    "inactiveReentryBody": "Ị tụfuru otu ụbọchị. Ị chọghị ịmalite ọzọ. Bụghachite nwayọ na ụbọchị {nextDay} nke {total}.",
+    "completedTodayBody": "Ụbọchị {nextDay} nke {total} na-eche ruo echi.",
+    "inProgressBody": "Gaa n'ihu na ụbọchị {nextDay} nke {total}.",
+    "continueCurrentPractice": "Gaa n'ihu na omume gị ugbu a",
+    "reentryNote": "You are already partway through this practice. Keep the rhythm going with day {nextDay}."
   },
   "streak": {
     "openMilestones": "Meghee ụzọ ọhụụ",
@@ -2006,12 +2073,12 @@
     "decisionNextTitleDefault": "Name the decision under pressure",
     "decisionNextBodyActive": "Update counsel, cost, waiting, and peace signals so the decision has a real timeline.",
     "decisionNextBodyEmpty": "Start with one decision and the pressure attached to it. Aletheia will track wisdom, counsel, and readiness over time.",
-    "decisionCompanionHeading": "Track the decision until wisdom has had time to work.",
-    "decisionCompanionSub": "Memory, counsel, waiting, summary export, and a calm readiness signal for major choices.",
-    "ruleOfLife": "Rule of Life",
-    "ruleOfLifePrincipleSingular": "principle",
-    "ruleOfLifePrinciplePlural": "principles",
-    "ruleOfLifeSummary": "Personal principles stay close, but collapsed until you are shaping a decision.",
+    "decisionCompanionHeading": "Soro mkpebi ahụ ruo mgbe amamihe nwetara oge ịrụ ọrụ.",
+    "decisionCompanionSub": "Ncheta, ndụmọdụ, ichere, mbupụ nchịkọta, na akara ịdị njikere dị jụụ maka nnukwu nhọrọ.",
+    "ruleOfLife": "Iwu ndụ",
+    "ruleOfLifePrincipleSingular": "ụkpụrụ",
+    "ruleOfLifePrinciplePlural": "ụkpụrụ",
+    "ruleOfLifeSummary": "Ụkpụrụ onwe onye na-anọ nso, ma a na-emechi ha ruo mgbe ị na-edozi mkpebi.",
     "decisionPracticeLine": "Name what is enough for this season",
     "nextInReflect": "Next in Reflect",
     "reflectNextTitleDefault": "Begin with one honest sentence",
@@ -2019,10 +2086,10 @@
     "reflectNextBodyDefault": "Use Wisdom Check for a quick discernment scan, or write what you notice about money, work, fear, generosity, or pace.",
     "reflectNextBodyActive": "Save what you are noticing while the insight is still fresh.",
     "reflectIntro": "Use Wisdom Check to slow a decision down, then save what you notice before the moment passes.",
-    "wisdomCheck": "Wisdom Check",
-    "wisdomCheckSummaryDefault": "Open when a decision needs a quick discernment scan.",
-    "wisdomCheckUrgency": "urgency noticed",
-    "wisdomCheckSlower": "pressure looks slower",
+    "wisdomCheck": "Nlele amamihe",
+    "wisdomCheckSummaryDefault": "Mepee ya mgbe mkpebi chọrọ nlele dị mkpirikpi nke ịghọta ihe.",
+    "wisdomCheckUrgency": "e hụrụ ịdị ngwa",
+    "wisdomCheckSlower": "nrụgide yiri ka ọ na-aga nwayọ",
     "decisionScan": "Decision scan",
     "reflectionHistory": "Reflection history",
     "savedReflectionSingular": "saved reflection",
@@ -2036,5 +2103,9 @@
     "libraryDescription": "A curated wisdom base with language-aware application notes and public-domain translation labels.",
     "fullWisdomLibrary": "Full wisdom library",
     "moreAnchors": "more anchors"
-  }
+  },
+  "apiNotConfigured": "This feature is not configured yet.",
+  "apiInvalidSubscription": "The notification subscription is invalid.",
+  "responseStreamingNotSupported": "Response streaming not supported.",
+  "loading": "Loading…"
 }
