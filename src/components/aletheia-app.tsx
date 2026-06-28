@@ -111,6 +111,7 @@ import { ManagedAudio } from "@/lib/native-audio";
 import BibleReader from "@/components/bible-reader";
 import { ToastContainer, useToast } from "@/components/toast-notification";
 import { StreakBadge, StreakAchievementNotification } from "@/components/streak-badge";
+import { MilestoneCelebrationLayer, useMilestoneCelebration, type CelebrationAnalyticsPayload, type CelebrationRequest } from "@/components/milestone-celebration";
 import { DecisionTimeline, generateDecisionCheckpoints } from "@/components/decision-timeline";
 import { getUserStreak, checkStreakAchievements } from "@/lib/streak-tracker";
 import { STREAK_MILESTONES, formatStreak, type StreakData } from "@/lib/streak-shared";
@@ -7272,6 +7273,30 @@ export function AletheiaApp() {
   
   const [streakData, setStreakData] = useState<StreakData>({ consecutiveDays: 0, lastUseDate: null, achievements: {} });
   const [showStreakAchievement, setShowStreakAchievement] = useState<number | null>(null);
+  const handleCelebrationTriggered = useCallback((payload: CelebrationAnalyticsPayload) => {
+    trackClientEvent("milestone_celebration_triggered", {
+      celebration_event: payload.event,
+      celebration_tier: payload.tier,
+      celebration_source: payload.source ?? null,
+      celebration_challenge_id: payload.challengeId ?? null,
+      celebration_milestone: payload.milestone ?? null,
+      celebration_timestamp: payload.timestamp ?? null,
+      celebration_style: payload.style,
+    });
+  }, []);
+  const handleCelebrationShown = useCallback((payload: CelebrationAnalyticsPayload) => {
+    trackClientEvent("milestone_celebration_shown", {
+      celebration_event: payload.event,
+      celebration_tier: payload.tier,
+      celebration_source: payload.source ?? null,
+      celebration_challenge_id: payload.challengeId ?? null,
+      celebration_milestone: payload.milestone ?? null,
+      celebration_timestamp: payload.timestamp ?? null,
+      celebration_style: payload.style,
+    });
+  }, []);
+  const celebrationOptions = useMemo(() => ({ onTriggered: handleCelebrationTriggered }), [handleCelebrationTriggered]);
+  const { celebration, celebrate } = useMilestoneCelebration(celebrationOptions);
   
   const [counselSummaryDraft, setCounselSummaryDraftState] = useState<CounselSummaryDraft | null>(null);
   
@@ -8626,6 +8651,21 @@ export function AletheiaApp() {
             if (streakData.unlockedMilestones?.length > 0) {
               const firstMilestone = streakData.unlockedMilestones[0];
               setShowStreakAchievement(firstMilestone);
+              celebrate({
+                event: "streak_milestone_unlocked",
+                tier: firstMilestone >= 100 ? "peak" : "milestone",
+                title:
+                  firstMilestone === 7
+                    ? ts("streak.achievement7")
+                    : firstMilestone === 30
+                      ? ts("streak.achievement30")
+                      : firstMilestone === 100
+                        ? ts("streak.achievement100")
+                        : ts("streak.achievement365"),
+                body: ts("streak.achievementUnlocked"),
+                source: "home",
+                milestone: firstMilestone,
+              });
             }
           }
         } catch (error) {
@@ -8683,7 +8723,7 @@ export function AletheiaApp() {
       setAuthStatus("guest");
       setStatusMessage(ts('status.backendUnavailable'));
     });
-  }, [announceWorkflow, loadSignedInWorkspace, setActiveView, ts]);
+  }, [announceWorkflow, celebrate, loadSignedInWorkspace, setActiveView, ts]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -9340,8 +9380,22 @@ export function AletheiaApp() {
       showView("companion");
       setStatusMessage(ts('status.startingQuestionReady'));
       announceWorkflow(ts('notifications.startingPathPrepared'), ts('notifications.startingPathPreparedBody'), "success");
+      celebrate({
+        event: "onboarding_completed",
+        tier: "whisper",
+        title: ts('notifications.startingPathPrepared'),
+        body: ts('notifications.startingPathPreparedBody'),
+        source: "onboarding",
+      });
     } else {
       announceWorkflow(ts('notifications.setupSaved'), ts('notifications.setupSavedBody'), "success");
+      celebrate({
+        event: "onboarding_completed",
+        tier: "whisper",
+        title: ts('notifications.setupSaved'),
+        body: ts('notifications.setupSavedBody'),
+        source: "onboarding",
+      });
     }
     trackClientEvent("onboarding_completed", {
       mode,
@@ -11194,6 +11248,15 @@ export function AletheiaApp() {
           isFirstReflection ? ts('notifications.firstReflectionMilestoneBody') : ts('notifications.reflectionSavedBody'),
           "success"
         );
+        if (isFirstReflection) {
+          celebrate({
+            event: "first_reflection_saved",
+            tier: "milestone",
+            title: ts('notifications.firstReflectionMilestone'),
+            body: ts('notifications.firstReflectionMilestoneBody'),
+            source: "reflect",
+          });
+        }
       }
     } else {
       trackClientEvent("journal_entry_created_local", { mode });
@@ -11213,6 +11276,15 @@ export function AletheiaApp() {
         isFirstReflection ? ts('notifications.firstReflectionMilestoneBody') : ts('notifications.reflectionSavedLocallyBody'),
         "success"
       );
+      if (isFirstReflection) {
+        celebrate({
+          event: "first_reflection_saved",
+          tier: "milestone",
+          title: ts('notifications.firstReflectionMilestone'),
+          body: ts('notifications.firstReflectionMilestoneBody'),
+          source: "reflect",
+        });
+      }
       scheduleSignInPrompt("guest_saved_reflection", {
         location: "reflect_tab",
         mode,
@@ -12106,6 +12178,7 @@ export function AletheiaApp() {
   async function addRuleOfLife(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const principle = ruleText.trim();
+    const isFirstRule = rulesOfLife.length === 0;
     if (!principle) {
       announceWorkflow(ts('notifications.writePrincipleFirst'), ts('notifications.writePrincipleFirstBody'), "warning");
       return;
@@ -12121,6 +12194,15 @@ export function AletheiaApp() {
         setRulesOfLife((current) => [data.rule!, ...current]);
         trackClientEvent("rule_created", { mode });
         announceWorkflow(ts('notifications.ruleOfLifeSaved'), ts('notifications.ruleOfLifeSavedBody'), "success");
+        if (isFirstRule) {
+          celebrate({
+            event: "first_rule_saved",
+            tier: "milestone",
+            title: ts('notifications.ruleOfLifeSaved'),
+            body: ts('notifications.ruleOfLifeSavedBody'),
+            source: "reflect",
+          });
+        }
       }
     } else {
       trackClientEvent("rule_created_local", { mode });
@@ -12129,6 +12211,15 @@ export function AletheiaApp() {
         ...current,
       ]);
       announceWorkflow(ts('notifications.ruleSavedLocally'), ts('notifications.ruleSavedLocallyBody'), "success");
+      if (isFirstRule) {
+        celebrate({
+          event: "first_rule_saved",
+          tier: "milestone",
+          title: ts('notifications.ruleSavedLocally'),
+          body: ts('notifications.ruleSavedLocallyBody'),
+          source: "reflect",
+        });
+      }
     }
     setRuleText("");
   }
@@ -12527,6 +12618,7 @@ export function AletheiaApp() {
                         onUseGratitudeAsReflectionPrompt={useGratitudeAsReflectionPrompt}
                         onSpeakText={speakText}
                         onShareReflectionPostcard={shareReflectionPostcard}
+                        celebrate={celebrate}
                         theme={theme}
                       />
                     </div>
@@ -12900,6 +12992,7 @@ export function AletheiaApp() {
         ) : null}
       </AnimatePresence>
       <ToastContainer toasts={toasts} onRemove={removeToast} />
+      <MilestoneCelebrationLayer celebration={celebration} theme={theme} onShown={handleCelebrationShown} />
       <AnimatePresence>
         {showStreakAchievement && (
           <StreakAchievementNotification
@@ -16455,6 +16548,7 @@ function FormationsSection({
   user,
   pendingChallengeId,
   onClearPendingChallenge,
+  celebrate,
   language,
 }: {
   theme: ThemeColors;
@@ -16462,6 +16556,7 @@ function FormationsSection({
   user: { id: string } | null;
   pendingChallengeId: string | null;
   onClearPendingChallenge: () => void;
+  celebrate: (request: CelebrationRequest) => boolean;
   language: LanguageCode;
 }) {
   const [challenges, setChallenges] = useState<ChallengeWithProgress[]>([]);
@@ -16529,6 +16624,14 @@ function FormationsSection({
         );
         setReflectionText("");
         trackClientEvent("challenge_day_marked_complete", { challengeId: challenge.id, day });
+        celebrate({
+          event: day >= challenge.totalDays ? "challenge_completed" : "challenge_day_marked_complete",
+          tier: day >= challenge.totalDays ? "peak" : "whisper",
+          title: day >= challenge.totalDays ? ts("challenges.completedChallenge") : ts("challenges.completedToday"),
+          body: day >= challenge.totalDays ? ts("challenges.challengeCompleteBody") : undefined,
+          source: "challenges",
+          challengeId: challenge.id,
+        });
       }
     } catch {
       // Let user retry
@@ -16887,6 +16990,7 @@ function FormationRailSection({
   challengeCircleRefreshKey,
   onChallengeCircleChanged,
   onChallengeInviteReady,
+  celebrate,
   language,
 }: {
   theme: ThemeColors;
@@ -16904,6 +17008,7 @@ function FormationRailSection({
   challengeCircleRefreshKey: number;
   onChallengeCircleChanged: () => void;
   onChallengeInviteReady: (payload: { inviteUrl: string; circle: ChallengeCircleSummary }) => void;
+  celebrate: (request: CelebrationRequest) => boolean;
   language: LanguageCode;
 }) {
   const [challenges, setChallenges] = useState<ChallengeWithProgress[]>([]);
@@ -17435,6 +17540,14 @@ function FormationRailSection({
         setReflectionText("");
         onChallengeCircleChanged();
         trackClientEvent("challenge_day_marked_complete", { challengeId: challenge.id, day });
+        celebrate({
+          event: day >= challenge.totalDays ? "challenge_completed" : "challenge_day_marked_complete",
+          tier: day >= challenge.totalDays ? "peak" : "whisper",
+          title: day >= challenge.totalDays ? ts("challenges.completedChallenge") : ts("challenges.completedToday"),
+          body: day >= challenge.totalDays ? ts("challenges.challengeCompleteBody") : undefined,
+          source: "challenges",
+          challengeId: challenge.id,
+        });
       }
     } catch {
       // Let user retry.
@@ -26716,6 +26829,7 @@ function ReflectPanel({
   onUseGratitudeAsReflectionPrompt,
   onSpeakText,
   onShareReflectionPostcard,
+  celebrate,
   theme,
 }: {
   language: LanguageCode;
@@ -26741,6 +26855,7 @@ function ReflectPanel({
   challengeCircleRefreshKey: number;
   onChallengeCircleChanged: () => void;
   onChallengeInviteReady: (payload: { inviteUrl: string; circle: ChallengeCircleSummary }) => void;
+  celebrate: (request: CelebrationRequest) => boolean;
   ts: (key: string, fallback?: string) => string;
   entries: JournalEntry[];
   gratitudeEntries: GratitudeEntry[];
@@ -26842,6 +26957,7 @@ function ReflectPanel({
           challengeCircleRefreshKey={challengeCircleRefreshKey}
           onChallengeCircleChanged={onChallengeCircleChanged}
           onChallengeInviteReady={onChallengeInviteReady}
+          celebrate={celebrate}
           language={language}
         />
       ) : null}
