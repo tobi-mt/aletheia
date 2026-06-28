@@ -119,20 +119,31 @@ function determineSkipReason(row: DiagnosticsRow, now: Date): DiagnosticsStatus 
   return null;
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const user = await requireUser();
+    const adminSecret = process.env.ANALYTICS_ADMIN_SECRET?.trim();
+    const bearerToken = (request.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
+    const isAdminRequest = Boolean(adminSecret && bearerToken === adminSecret);
+    const user = isAdminRequest ? null : await requireUser();
     const vapidStatus = getVapidKeyPairStatus();
 
     const [subscriptionRows, cronRows] = await Promise.all([
-      many<DiagnosticsRow>(
-        `SELECT id, endpoint, preferred_local_hour, preferred_timezone, timezone_mode, delivery_strategy,
-                updated_at, last_sent_at, last_gratitude_sent_at, last_challenge_notified_at
-         FROM push_subscriptions
-         WHERE user_id = ? AND enabled = TRUE
-         ORDER BY updated_at DESC`,
-        user.id
-      ),
+      isAdminRequest
+        ? many<DiagnosticsRow>(
+            `SELECT id, endpoint, preferred_local_hour, preferred_timezone, timezone_mode, delivery_strategy,
+                    updated_at, last_sent_at, last_gratitude_sent_at, last_challenge_notified_at
+             FROM push_subscriptions
+             WHERE enabled = TRUE
+             ORDER BY updated_at DESC`
+          )
+        : many<DiagnosticsRow>(
+            `SELECT id, endpoint, preferred_local_hour, preferred_timezone, timezone_mode, delivery_strategy,
+                    updated_at, last_sent_at, last_gratitude_sent_at, last_challenge_notified_at
+             FROM push_subscriptions
+             WHERE user_id = ? AND enabled = TRUE
+             ORDER BY updated_at DESC`,
+            user!.id
+          ),
       one<CronEventRow>(
         `SELECT created_at
          FROM analytics_events
@@ -216,6 +227,7 @@ export async function GET() {
         diagnostics,
       },
       generatedAt: new Date().toISOString(),
+      scope: isAdminRequest ? "admin" : "account",
     });
   } catch {
     return apiError(401, "sign_in_required", "Sign in to view notification diagnostics.");

@@ -345,15 +345,16 @@ export default function InternalAnalyticsDashboardPage() {
     return (await response.json()) as AnalyticsPayload;
   }
 
-  async function loadNotificationDiagnostics() {
+  async function loadNotificationDiagnostics(token: string) {
     const response = await fetch("/api/notifications/diagnostics", {
       method: "GET",
+      headers: { Authorization: `Bearer ${token}` },
       cache: "no-store",
     });
 
     if (response.status === 401) {
       setNotificationDiagnostics(null);
-      setNotificationDiagnosticsError("Sign in to load notification diagnostics for the current account.");
+      setNotificationDiagnosticsError("Unauthorized. Check the analytics admin secret or account session.");
       return;
     }
 
@@ -386,7 +387,7 @@ export default function InternalAnalyticsDashboardPage() {
         skipNextAutoRefreshRef.current = true;
 
         try {
-          await loadNotificationDiagnostics();
+          await loadNotificationDiagnostics(token);
         } catch (diagnosticsError) {
           setNotificationDiagnostics(null);
           setNotificationDiagnosticsError(
@@ -430,7 +431,7 @@ export default function InternalAnalyticsDashboardPage() {
         setPayload(nextPayload);
         setLastLoaded({ atIso: new Date().toISOString(), mode: includeAutomation ? "All traffic" : "Human-only" });
         try {
-          await loadNotificationDiagnostics();
+          await loadNotificationDiagnostics(token);
         } catch (diagnosticsError) {
           if (cancelled) {
             return;
@@ -627,7 +628,7 @@ export default function InternalAnalyticsDashboardPage() {
               </p>
             </div>
             <p className="text-xs text-slate-500">
-              {notificationDiag?.generatedAt ? `Updated ${notificationDiag.generatedAt}` : "Waiting for a signed-in account session"}
+              {notificationDiag?.generatedAt ? `Updated ${notificationDiag.generatedAt}` : "Waiting for notification diagnostics"}
             </p>
           </div>
 
