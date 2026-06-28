@@ -1,7 +1,8 @@
 // swift-tools-version: 5.9
 import PackageDescription
 
-// DO NOT MODIFY THIS FILE - managed by Capacitor CLI commands
+// Managed by Capacitor CLI commands, with the Haptics package pinned to a
+// remote Swift Package so archive builds do not depend on local node_modules.
 let package = Package(
     name: "CapApp-SPM",
     platforms: [.iOS(.v15)],
@@ -12,7 +13,7 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/ionic-team/capacitor-swift-pm.git", exact: "8.4.0"),
-        .package(name: "CapacitorHaptics", path: "../../../node_modules/@capacitor/haptics")
+        .package(url: "https://github.com/ionic-team/capacitor-haptics.git", exact: "8.0.2")
     ],
     targets: [
         .target(
@@ -20,7 +21,7 @@ let package = Package(
             dependencies: [
                 .product(name: "Capacitor", package: "capacitor-swift-pm"),
                 .product(name: "Cordova", package: "capacitor-swift-pm"),
-                .product(name: "CapacitorHaptics", package: "CapacitorHaptics")
+                .product(name: "CapacitorHaptics", package: "capacitor-haptics")
             ]
         )
     ]

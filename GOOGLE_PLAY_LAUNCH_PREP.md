@@ -120,6 +120,8 @@ Be conservative and accurate. If the feature exists in the shipped build, disclo
 
 ## Build Commands
 
+For the exact Android SDK install/config steps, see [ANDROID_SDK_SETUP.md](/Users/tobi/PycharmProjects/pythonProject/aletheia/ANDROID_SDK_SETUP.md).
+
 ```bash
 cd android
 ./gradlew bundleRelease

@@ -169,6 +169,10 @@ The signed bundle will be in `android/app/build/outputs/bundle/release/`.
 
 ### iOS
 
+For the exact click-by-click Xcode signing fix path, see [IOS_XCODE_SIGNING_FIXES.md](/Users/tobi/PycharmProjects/pythonProject/aletheia/IOS_XCODE_SIGNING_FIXES.md).
+
+Do not attach a Routing App Coverage File for Aletheia. The app is not a point-to-point directions app, and App Store Connect will reject the upload if the binary is not declared as a routing app.
+
 1. Open the Xcode project from `ios/App/App.xcodeproj`.
 2. Set the correct Apple Developer Team in Signing & Capabilities.
 3. Confirm bundle identifier `com.tobi.aletheia.app`.

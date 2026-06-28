@@ -195,7 +195,7 @@ public class ManagedAudioPlugin: CAPPlugin, CAPBridgedPlugin, AVAudioPlayerDeleg
                 return
             }
 
-            if let error {
+            if error != nil {
                 DispatchQueue.main.async {
                     self.emitState("error")
                 }
@@ -210,7 +210,7 @@ public class ManagedAudioPlugin: CAPPlugin, CAPBridgedPlugin, AVAudioPlayerDeleg
             }
 
             do {
-                try self.configureAudioSessionForSpeech()
+                self.configureAudioSessionForSpeech()
                 let player = try AVAudioPlayer(data: data)
                 player.enableRate = true
                 player.rate = Float(max(0.25, min(4.0, speed)))
