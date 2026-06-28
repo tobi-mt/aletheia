@@ -3228,6 +3228,10 @@ function shouldShowWelcomeGate() {
     if (forceFirstRun) {
       return true;
     }
+    const authState = params.get("auth") || "";
+    if (authState.startsWith("google_") || authState === "oauth_failed") {
+      return false;
+    }
     const completed = window.localStorage.getItem("aletheia_onboarding_complete") === "yes";
     const hasPreferences = Boolean(window.localStorage.getItem("aletheia_preferences"));
     const gateComplete = window.localStorage.getItem(FIRST_RUN_GATE_COMPLETE_STORAGE_KEY) === "yes";
@@ -7270,6 +7274,8 @@ export function AletheiaApp() {
   const [currentLocalHour, setCurrentLocalHour] = useState<number | null>(null);
   const [currentLocalMonth, setCurrentLocalMonth] = useState<number | null>(null);
   const [currentLocalDayOfWeek, setCurrentLocalDayOfWeek] = useState<number | null>(null);
+  const authCallbackState = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("auth") || "" : "";
+  const isReturningFromGoogleOAuth = authCallbackState.startsWith("google_");
   
   const [streakData, setStreakData] = useState<StreakData>({ consecutiveDays: 0, lastUseDate: null, achievements: {} });
   const [showStreakAchievement, setShowStreakAchievement] = useState<number | null>(null);
@@ -12234,6 +12240,18 @@ export function AletheiaApp() {
     );
   }
 
+  if (authStatus === "checking" && isReturningFromGoogleOAuth) {
+    return (
+      <StartupSplash
+        language={startupLanguage}
+        theme={theme}
+        resolvedTheme={resolvedTheme}
+        title={ts("status.finishingSignIn")}
+        body={ts("status.finishingSignInBody")}
+      />
+    );
+  }
+
   return (
     <main ref={appShellRef} className={`app-shell min-h-screen overflow-x-hidden ${resolvedTheme === "dark" || resolvedTheme === "black" ? "theme-dark-root" : ""}`} style={{ backgroundColor: theme.bgMain, color: theme.textPrimary, minHeight: '100dvh' }}>
       <div
@@ -13010,18 +13028,20 @@ function StartupSplash({
   language,
   theme,
   resolvedTheme,
+  title,
+  body,
 }: {
   language: LanguageCode;
   theme: ThemeColors;
   resolvedTheme: ResolvedTheme;
+  title?: string;
+  body?: string;
 }) {
   const splashTranslations = useMemo(() => loadTranslationsWithFallbackSync(language), [language]);
   const appName = String(getTranslation(splashTranslations, "labels.appName"));
   const appTagline = String(getTranslation(splashTranslations, "labels.appTagline"));
-  const loadingLabel = String(getTranslation(splashTranslations, "labels.loading"));
-  const restoringPreferences = String(
-    getTranslation(splashTranslations, "status.restoringPreferences")
-  );
+  const loadingLabel = title ?? String(getTranslation(splashTranslations, "labels.loading"));
+  const restoringPreferences = body ?? String(getTranslation(splashTranslations, "status.restoringPreferences"));
 
   return (
     <main
@@ -21515,6 +21535,11 @@ function AuthPanel({
         </p>
         <p className="mt-1.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
           {status} {googleAuthAvailable ? ts('auth.useGoogleOrEmail') : ts('auth.useEmailToContinue')}
+        </p>
+        <p className="mt-2 text-xs leading-5" style={{ color: theme.textMuted }}>
+          {authMode === "register"
+            ? ts('auth.signUpPolishBody')
+            : ts('auth.signInPolishBody')}
         </p>
       </div>
       {notice ? (
