@@ -1,7 +1,7 @@
 import webpush, { PushSubscription } from "web-push";
 import { createECDH, timingSafeEqual } from "node:crypto";
 import { many, one, run } from "@/lib/db";
-import { localizedDailyWisdom, normalizePreferences, type BibleTranslation, type LanguageCode, type RegionCode } from "@/lib/localization";
+import { localizedDailyWisdom, localizedScriptureReference, normalizePreferences, type BibleTranslation, type LanguageCode, type RegionCode } from "@/lib/localization";
 import { getWisdomEntries } from "@/lib/wisdom";
 import { selectDailyWisdomIndex } from "@/lib/wisdom-data";
 import { getChallengeById, type ChallengeId } from "@/lib/challenge-data";
@@ -816,7 +816,7 @@ function buildDailyNotificationTitle(input: {
 }) {
   const copy = dailyNotificationCopy[input.language] ?? dailyNotificationCopy.en!;
   const cleanTheme = compactNotificationCopy(normalizeNotificationSegment(input.theme, input.label), 34);
-  const scriptureReference = compactNotificationCopy(input.scripture, 44);
+  const scriptureReference = compactNotificationCopy(localizedScriptureReference(input.scripture, input.language), 44);
   const cleanLabel = compactNotificationCopy(normalizeNotificationSegment(input.label, "Aletheia"), 34);
   const title = copy.titles[input.variant % copy.titles.length]({
     label: cleanLabel,
@@ -838,7 +838,7 @@ function buildDailyNotificationBody(input: {
   const cleanTheme = compactNotificationCopy(normalizeNotificationSegment(input.theme, "wisdom"), 34);
   const cleanPractice = compactNotificationCopy(normalizeNotificationSegment(input.practice, "Open today's wisdom card."), 104);
   const cleanPrinciple = compactNotificationCopy(normalizeNotificationSegment(input.principle, cleanPractice), 104);
-  const scriptureReference = compactNotificationCopy(input.scripture, 48);
+  const scriptureReference = compactNotificationCopy(localizedScriptureReference(input.scripture, input.language), 48);
   const distinctPrinciple = cleanPrinciple.toLowerCase() !== cleanPractice.toLowerCase() ? cleanPrinciple : cleanPractice;
   const body = copy.bodies[input.variant % copy.bodies.length]({
     theme: cleanTheme,

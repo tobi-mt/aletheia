@@ -1,6 +1,7 @@
 import {
   defaultPreferences,
   localizedModeProfile,
+  localizedScriptureReference,
   localizedWisdomEntry,
   scriptureDisplayLabel,
   type UserPreferences,
@@ -142,7 +143,8 @@ export function buildDecisionSummary({
     .slice(0, 3)
     .map((source) => {
       const localizedSource = localizedWisdomEntry(source, preferences);
-      return `${localizedSource.scripture} (${scriptureDisplayLabel(localizedSource.scripture, preferences)}): ${localizedSource.principle}`;
+      const scriptureReference = localizedScriptureReference(source.scripture, preferences.language);
+      return `${scriptureReference} (${scriptureDisplayLabel(localizedSource.scripture, preferences)}): ${localizedSource.principle}`;
     })
     .join("\n");
 

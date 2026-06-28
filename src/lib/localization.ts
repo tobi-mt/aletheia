@@ -402,6 +402,32 @@ export function scriptureDisplayLabel(scripture: string, preferences: UserPrefer
 const localizedScriptureBookNames: Partial<Record<LanguageCode, Record<string, string>>> =
   localizedScriptureBookNamesGenerated;
 
+const bibleBookAliases: Record<string, string> = {
+  psalms: "psalm",
+  "song of songs": "song of solomon",
+};
+
+function normalizeBibleBookKey(book: string) {
+  const cleaned = book
+    .toLowerCase()
+    .replace(/[’']/g, "'")
+    .replace(/[^\p{L}\p{N}\s']/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  return bibleBookAliases[cleaned] ?? cleaned;
+}
+
+export function localizedBibleBookName(book: string, language: LanguageCode): string {
+  if (language === "en") {
+    return book;
+  }
+
+  const bookNames = localizedScriptureBookNames[language];
+  const localizedBook = bookNames?.[normalizeBibleBookKey(book)];
+  return localizedBook ?? book;
+}
+
 export function localizedScriptureReference(scripture: string, language: LanguageCode): string {
   if (language === "en") {
     return canonicalScriptureReference(scripture);
@@ -414,11 +440,9 @@ export function localizedScriptureReference(scripture: string, language: Languag
     return canonical;
   }
 
-  const bookKey = match[1].trim().toLowerCase().replace(/\s+/g, " ");
+  const bookKey = normalizeBibleBookKey(match[1]);
   const bookNames = localizedScriptureBookNames[language];
-  const localizedBook =
-    bookNames?.[bookKey] ??
-    (bookKey === "psalms" ? bookNames?.psalm : undefined);
+  const localizedBook = bookNames?.[bookKey];
   if (!localizedBook) {
     return canonical;
   }

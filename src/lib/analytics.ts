@@ -1,5 +1,6 @@
 import { headers } from "next/headers";
 import { many, run } from "@/lib/db";
+import { getNotificationHealthSnapshot, getVapidKeyPairStatus } from "@/lib/notifications";
 
 const ALLOWED_EVENTS = new Set([
   "app_opened",
@@ -72,6 +73,26 @@ const ALLOWED_EVENTS = new Set([
 ]);
 
 type AnalyticsMetadata = Record<string, string | number | boolean | null>;
+
+type NotificationHealthSummary = {
+  enabledSubscriptions: number;
+  dueNow: number;
+  scanned: number;
+  unauthorizedHits: number;
+  hourUtc: number;
+  generatedAt: string;
+  cronSecretConfigured: boolean;
+  cronHealthy: boolean;
+  cronStatus: "missing_secret" | "stale" | "healthy";
+  lastDailyCheckedAt: string | null;
+  lastDailyCheckedMinutesAgo: number | null;
+  vapidConfigured: boolean;
+  vapidKeyPairValid: boolean;
+  vapidSubjectConfigured: boolean;
+  vapidPublicKeyConfigured: boolean;
+  vapidReason: string;
+  recommendedAction: "fix_vapid" | "check_cron" | "subscribe" | "resubscribe_or_send_test" | "none";
+};
 
 const AUTOMATION_USER_AGENT_PATTERN =
   "headlesschrome|lighthouse|bot|spider|crawler|curl|wget|python-requests|uptime|monitor|playwright|puppeteer|selenium";
@@ -208,6 +229,7 @@ export async function analyticsSummary(options: { includeAutomation?: boolean } 
     authPromptReasonRows,
     authPromptCloseRows,
     authPromptDailyRows,
+    notificationHealthRows,
   ] = await Promise.all([
     many<{ metric: string; value: number }>(
       `SELECT 'registered_users' AS metric, COUNT(*)::int AS value FROM users
@@ -681,6 +703,60 @@ export async function analyticsSummary(options: { includeAutomation?: boolean } 
        LEFT JOIN grouped ON grouped.day = days.day
        ORDER BY days.day ASC`
     ),
+    (async () => {
+      const [snapshot, vapidStatus, lastDailyCheckedRows] = await Promise.all([
+        getNotificationHealthSnapshot(),
+        Promise.resolve(getVapidKeyPairStatus()),
+        many<{ created_at: string }>(
+          `SELECT created_at
+           FROM analytics_events
+           WHERE event_name = 'notification_daily_checked'
+             AND source = 'cron'
+           ORDER BY created_at DESC
+           LIMIT 1`
+        ),
+      ]);
+
+      const lastDailyCheckedAt = lastDailyCheckedRows[0]?.created_at ?? null;
+      const lastDailyCheckedMinutesAgo = lastDailyCheckedAt
+        ? Math.floor((Date.now() - Date.parse(lastDailyCheckedAt)) / 60000)
+        : null;
+      const cronSecretConfigured = Boolean(process.env.NOTIFICATION_CRON_SECRET?.trim());
+      const cronHealthy =
+        cronSecretConfigured &&
+        lastDailyCheckedMinutesAgo !== null &&
+        lastDailyCheckedMinutesAgo <= 36 * 60;
+      const cronStatus: "missing_secret" | "stale" | "healthy" = !cronSecretConfigured
+        ? "missing_secret"
+        : cronHealthy
+          ? "healthy"
+          : "stale";
+      const recommendedAction =
+        !vapidStatus.configured || !vapidStatus.keyPairValid
+          ? "fix_vapid"
+          : cronStatus !== "healthy"
+            ? "check_cron"
+            : snapshot.enabledSubscriptions === 0
+              ? "subscribe"
+              : snapshot.dueNow === 0
+                ? "resubscribe_or_send_test"
+                : "none";
+
+      return {
+        ...snapshot,
+        cronSecretConfigured,
+        cronHealthy,
+        cronStatus,
+        lastDailyCheckedAt,
+        lastDailyCheckedMinutesAgo,
+        vapidConfigured: vapidStatus.configured,
+        vapidKeyPairValid: vapidStatus.keyPairValid,
+        vapidSubjectConfigured: Boolean((process.env.VAPID_SUBJECT || process.env.VAPID_CLAIM_EMAIL || "").trim()),
+        vapidPublicKeyConfigured: Boolean((process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || process.env.VAPID_PUBLIC_KEY || "").trim()),
+        vapidReason: vapidStatus.reason,
+        recommendedAction,
+      } satisfies NotificationHealthSummary;
+    })(),
   ]);
 
   const funnelSorted = [...funnelRows].sort((a, b) => a.stage_order - b.stage_order);
@@ -717,6 +793,7 @@ export async function analyticsSummary(options: { includeAutomation?: boolean } 
     themeDistribution30d: themeRows,
     frictionSignals30d: frictionRows,
     notificationSelfHeal14d: notificationSelfHealRows,
+    notificationHealth: notificationHealthRows,
     authPrompts30d: {
       overview: authPromptOverviewRows[0] ?? {
         shown_count: 0,

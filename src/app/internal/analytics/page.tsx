@@ -131,6 +131,25 @@ type AnalyticsPayload = {
   themeDistribution30d: ThemeRow[];
   frictionSignals30d: FrictionRow[];
   notificationSelfHeal14d: NotificationSelfHealDayRow[];
+  notificationHealth?: {
+    enabledSubscriptions: number;
+    dueNow: number;
+    scanned: number;
+    unauthorizedHits: number;
+    hourUtc: number;
+    generatedAt: string;
+    cronSecretConfigured: boolean;
+    cronHealthy: boolean;
+    cronStatus: "missing_secret" | "stale" | "healthy";
+    lastDailyCheckedAt: string | null;
+    lastDailyCheckedMinutesAgo: number | null;
+    vapidConfigured: boolean;
+    vapidKeyPairValid: boolean;
+    vapidSubjectConfigured: boolean;
+    vapidPublicKeyConfigured: boolean;
+    vapidReason: string;
+    recommendedAction: "fix_vapid" | "check_cron" | "subscribe" | "resubscribe_or_send_test" | "none";
+  };
   authPrompts30d: {
     overview: AuthPromptOverview;
     reasons: AuthPromptReasonRow[];
@@ -141,6 +160,44 @@ type AnalyticsPayload = {
   config?: {
     geo_enrichment_enabled?: boolean;
   };
+};
+
+type NotificationDiagnosticsPayload = {
+  configured: boolean;
+  server: {
+    cronSecretConfigured: boolean;
+    cronHealthy: boolean;
+    cronStatus: "missing_secret" | "stale" | "healthy";
+    lastDailyCheckedAt: string | null;
+    lastDailyCheckedMinutesAgo: number | null;
+    vapidConfigured: boolean;
+    vapidKeyPairValid: boolean;
+    vapidSubjectConfigured: boolean;
+    vapidPublicKeyConfigured: boolean;
+    vapidReason: string;
+  };
+  account: {
+    subscriptions: number;
+    staleSubscriptions: number;
+    recommendedAction: "fix_vapid" | "check_cron" | "subscribe" | "resubscribe_or_send_test" | "none";
+    diagnostics: Array<{
+      id: string;
+      endpointHost: string;
+      preferredLocalHour: number;
+      preferredTimezone: string;
+      timezoneMode: "auto" | "manual";
+      deliveryStrategy: string;
+      updatedAt: string | null;
+      lastSentAt: string | null;
+      lastGratitudeSentAt: string | null;
+      lastChallengeNotifiedAt: string | null;
+      latestActivityAt: string | null;
+      daysSinceLastActivity: number | null;
+      stale: boolean;
+      skipReason: "before_window" | "already_sent_today" | "subscription_stale" | null;
+    }>;
+  };
+  generatedAt: string;
 };
 
 const SECRET_KEY = "aletheia_analytics_admin_secret";
@@ -198,6 +255,8 @@ export default function InternalAnalyticsDashboardPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [payload, setPayload] = useState<AnalyticsPayload | null>(null);
+  const [notificationDiagnostics, setNotificationDiagnostics] = useState<NotificationDiagnosticsPayload | null>(null);
+  const [notificationDiagnosticsError, setNotificationDiagnosticsError] = useState<string | null>(null);
   const [includeAutomation, setIncludeAutomation] = useState(false);
   const [lastLoaded, setLastLoaded] = useState<{ atIso: string; mode: string } | null>(null);
   const skipNextAutoRefreshRef = useRef(false);
@@ -286,6 +345,27 @@ export default function InternalAnalyticsDashboardPage() {
     return (await response.json()) as AnalyticsPayload;
   }
 
+  async function loadNotificationDiagnostics() {
+    const response = await fetch("/api/notifications/diagnostics", {
+      method: "GET",
+      cache: "no-store",
+    });
+
+    if (response.status === 401) {
+      setNotificationDiagnostics(null);
+      setNotificationDiagnosticsError("Sign in to load notification diagnostics for the current account.");
+      return;
+    }
+
+    if (!response.ok) {
+      throw new Error("Failed to load notification diagnostics.");
+    }
+
+    const data = (await response.json()) as NotificationDiagnosticsPayload;
+    setNotificationDiagnostics(data);
+    setNotificationDiagnosticsError(null);
+  }
+
   async function loadAnalytics(event?: FormEvent) {
     event?.preventDefault();
     const token = secret.trim();
@@ -304,6 +384,15 @@ export default function InternalAnalyticsDashboardPage() {
         setLastLoaded({ atIso: new Date().toISOString(), mode: includeAutomation ? "All traffic" : "Human-only" });
         setLastSuccessfulSecret(token);
         skipNextAutoRefreshRef.current = true;
+
+        try {
+          await loadNotificationDiagnostics();
+        } catch (diagnosticsError) {
+          setNotificationDiagnostics(null);
+          setNotificationDiagnosticsError(
+            diagnosticsError instanceof Error ? diagnosticsError.message : "Failed to load notification diagnostics."
+          );
+        }
 
         try {
           window.sessionStorage.setItem(SECRET_KEY, token);
@@ -340,6 +429,17 @@ export default function InternalAnalyticsDashboardPage() {
         }
         setPayload(nextPayload);
         setLastLoaded({ atIso: new Date().toISOString(), mode: includeAutomation ? "All traffic" : "Human-only" });
+        try {
+          await loadNotificationDiagnostics();
+        } catch (diagnosticsError) {
+          if (cancelled) {
+            return;
+          }
+          setNotificationDiagnostics(null);
+          setNotificationDiagnosticsError(
+            diagnosticsError instanceof Error ? diagnosticsError.message : "Failed to load notification diagnostics."
+          );
+        }
       } catch (err) {
         if (cancelled) {
           return;
@@ -371,6 +471,9 @@ export default function InternalAnalyticsDashboardPage() {
   }, [includeAutomation, lastSuccessfulSecret]);
 
   const overview = payload?.overview ?? {};
+  const notificationDiag = notificationDiagnostics;
+  const notificationDiagStatus = notificationDiag?.server.cronStatus ?? "missing_secret";
+  const notificationDiagRecommended = notificationDiag?.account.recommendedAction ?? "check_cron";
 
   return (
     <main className="min-h-screen bg-slate-100 text-slate-900">
@@ -469,6 +572,172 @@ export default function InternalAnalyticsDashboardPage() {
             <p className="text-xs uppercase text-slate-500">New Users (30d)</p>
             <p className="mt-2 text-2xl font-semibold">{overview.new_users_30d ?? 0}</p>
           </article>
+        </section>
+
+        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 className="text-lg font-semibold">Global Notification Ops</h2>
+              <p className="text-sm text-slate-600">
+                Summary from <span className="font-mono">/api/analytics/summary</span> so notification health is visible even without a user session.
+              </p>
+            </div>
+            <p className="text-xs text-slate-500">
+              {payload?.notificationHealth?.generatedAt ? `Updated ${payload.notificationHealth.generatedAt}` : "No notification summary yet"}
+            </p>
+          </div>
+          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+            <article className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+              <p className="text-[11px] uppercase text-slate-500">Cron</p>
+              <p className="mt-1 text-xl font-semibold text-slate-900">{payload?.notificationHealth?.cronStatus ?? "unknown"}</p>
+            </article>
+            <article className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+              <p className="text-[11px] uppercase text-slate-500">Enabled Subs</p>
+              <p className="mt-1 text-xl font-semibold text-slate-900">{payload?.notificationHealth?.enabledSubscriptions ?? 0}</p>
+            </article>
+            <article className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+              <p className="text-[11px] uppercase text-slate-500">Due Now</p>
+              <p className="mt-1 text-xl font-semibold text-slate-900">{payload?.notificationHealth?.dueNow ?? 0}</p>
+            </article>
+            <article className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+              <p className="text-[11px] uppercase text-slate-500">VAPID</p>
+              <p className="mt-1 text-xl font-semibold text-slate-900">
+                {payload?.notificationHealth?.vapidConfigured && payload.notificationHealth.vapidKeyPairValid ? "Ready" : "Needs fix"}
+              </p>
+            </article>
+            <article className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+              <p className="text-[11px] uppercase text-slate-500">UTC Hour</p>
+              <p className="mt-1 text-xl font-semibold text-slate-900">{payload?.notificationHealth?.hourUtc ?? 0}</p>
+            </article>
+            <article className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+              <p className="text-[11px] uppercase text-slate-500">Action</p>
+              <p className="mt-1 text-sm font-semibold text-slate-900">
+                {(payload?.notificationHealth?.recommendedAction ?? "check_cron").replace(/_/g, " ")}
+              </p>
+            </article>
+          </div>
+        </section>
+
+        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 className="text-lg font-semibold">Notification Diagnostics</h2>
+              <p className="text-sm text-slate-600">
+                Pulled from <span className="font-mono">/api/notifications/diagnostics</span> so cron health and subscription state stay in one place.
+              </p>
+            </div>
+            <p className="text-xs text-slate-500">
+              {notificationDiag?.generatedAt ? `Updated ${notificationDiag.generatedAt}` : "Waiting for a signed-in account session"}
+            </p>
+          </div>
+
+          {notificationDiagnosticsError ? (
+            <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+              {notificationDiagnosticsError}
+            </p>
+          ) : null}
+
+          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+            <article className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+              <p className="text-[11px] uppercase text-slate-500">Cron</p>
+              <p className="mt-1 text-xl font-semibold text-slate-900">{notificationDiag?.server.cronStatus ?? "unknown"}</p>
+            </article>
+            <article className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+              <p className="text-[11px] uppercase text-slate-500">Enabled Subs</p>
+              <p className="mt-1 text-xl font-semibold text-slate-900">{notificationDiag?.account.subscriptions ?? 0}</p>
+            </article>
+            <article className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+              <p className="text-[11px] uppercase text-slate-500">Stale Subs</p>
+              <p className="mt-1 text-xl font-semibold text-slate-900">{notificationDiag?.account.staleSubscriptions ?? 0}</p>
+            </article>
+            <article className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+              <p className="text-[11px] uppercase text-slate-500">Cron Health</p>
+              <p className="mt-1 text-xl font-semibold text-slate-900">{notificationDiag?.server.cronHealthy ? "Healthy" : "Needs check"}</p>
+            </article>
+            <article className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+              <p className="text-[11px] uppercase text-slate-500">VAPID</p>
+              <p className="mt-1 text-xl font-semibold text-slate-900">
+                {notificationDiag?.server.vapidConfigured && notificationDiag?.server.vapidKeyPairValid ? "Ready" : "Needs fix"}
+              </p>
+            </article>
+            <article className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+              <p className="text-[11px] uppercase text-slate-500">Action</p>
+              <p className="mt-1 text-sm font-semibold text-slate-900">{notificationDiagRecommended.replace(/_/g, " ")}</p>
+            </article>
+          </div>
+
+          <div className="mt-4 grid gap-4 lg:grid-cols-2">
+            <article className="rounded-xl border border-slate-200 p-4">
+              <h3 className="text-sm font-semibold text-slate-900">Server health</h3>
+              <dl className="mt-3 grid gap-2 text-sm">
+                <div className="flex items-center justify-between gap-3">
+                  <dt className="text-slate-500">Cron secret</dt>
+                  <dd className="font-medium text-slate-900">{notificationDiag?.server.cronSecretConfigured ? "Configured" : "Missing"}</dd>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <dt className="text-slate-500">Cron status</dt>
+                  <dd className="font-medium text-slate-900">{notificationDiagStatus.replace(/_/g, " ")}</dd>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <dt className="text-slate-500">Last daily check</dt>
+                  <dd className="font-medium text-slate-900">
+                    {notificationDiag?.server.lastDailyCheckedMinutesAgo !== null && notificationDiag?.server.lastDailyCheckedMinutesAgo !== undefined
+                      ? `${notificationDiag.server.lastDailyCheckedMinutesAgo} minutes ago`
+                      : "Not seen yet"}
+                  </dd>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <dt className="text-slate-500">VAPID key pair</dt>
+                  <dd className="font-medium text-slate-900">
+                    {notificationDiag?.server.vapidConfigured && notificationDiag.server.vapidKeyPairValid
+                      ? "Valid"
+                      : notificationDiag?.server.vapidReason ?? "Unknown"}
+                  </dd>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <dt className="text-slate-500">Public key</dt>
+                  <dd className="font-medium text-slate-900">{notificationDiag?.server.vapidPublicKeyConfigured ? "Configured" : "Missing"}</dd>
+                </div>
+              </dl>
+            </article>
+
+            <article className="rounded-xl border border-slate-200 p-4">
+              <h3 className="text-sm font-semibold text-slate-900">Account diagnostics</h3>
+              {notificationDiag?.account.diagnostics?.length ? (
+                <div className="mt-3 space-y-2">
+                  {notificationDiag.account.diagnostics.slice(0, 5).map((row) => (
+                    <div key={row.id} className="rounded-lg bg-slate-50 px-3 py-2">
+                      <div className="flex items-center justify-between gap-3 text-sm">
+                        <span className="font-medium text-slate-800">{row.endpointHost}</span>
+                        <span className={`font-semibold ${row.stale ? "text-amber-700" : "text-emerald-700"}`}>
+                          {row.stale ? "Stale" : "Fresh"}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-xs text-slate-500">
+                        {row.preferredLocalHour}:00 {row.preferredTimezone} · {row.timezoneMode} · {row.deliveryStrategy}
+                      </p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        {row.latestActivityAt ? `Last activity ${row.daysSinceLastActivity ?? 0}d ago` : "No activity recorded yet"}
+                      </p>
+                      {row.skipReason ? (
+                        <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-slate-600">
+                          Skip reason: {row.skipReason.replace(/_/g, " ")}
+                        </p>
+                      ) : (
+                        <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-emerald-700">
+                          Ready to send
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-3 text-sm text-slate-500">
+                  Sign in with a user account to see the per-subscription diagnostics from <span className="font-mono">/api/notifications/diagnostics</span>.
+                </p>
+              )}
+            </article>
+          </div>
         </section>
 
         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">

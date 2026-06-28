@@ -6,6 +6,7 @@ import {
   localizedCrisisSupportCopy,
   localizedModeProfile,
   localizedScriptureRead,
+  localizedScriptureReference,
   localizedWisdomEntry,
   regions,
   scriptureDisplayLabel,
@@ -153,7 +154,8 @@ export async function retrieveWisdom(query: string, mode: Mode, limit = 3) {
 }
 
 function sourceReference(source: Pick<WisdomSource, "scripture">, preferences: UserPreferences) {
-  return `${source.scripture} (${scriptureDisplayLabel(source.scripture, preferences)})`;
+  const scriptureReference = localizedScriptureReference(source.scripture, preferences.language);
+  return `${scriptureReference} (${scriptureDisplayLabel(source.scripture, preferences)})`;
 }
 
 export function composeFallbackResponse(

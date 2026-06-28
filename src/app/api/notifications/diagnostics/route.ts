@@ -19,6 +19,8 @@ type DiagnosticsRow = {
   last_challenge_notified_at: string | null;
 };
 
+type DiagnosticsStatus = "before_window" | "already_sent_today" | "subscription_stale" | null;
+
 type CronEventRow = {
   created_at: string;
 };
@@ -62,6 +64,61 @@ function latestActivityAt(row: DiagnosticsRow) {
   return new Date(Math.max(...candidates)).toISOString();
 }
 
+function localHourForTimezone(date: Date, timezone: string | null | undefined) {
+  const safeTimezone = timezone || "UTC";
+  try {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: safeTimezone,
+      hour: "2-digit",
+      hour12: false,
+    }).formatToParts(date);
+    const hour = Number(parts.find((part) => part.type === "hour")?.value ?? date.getUTCHours());
+    return hour === 24 ? 0 : hour;
+  } catch {
+    return date.getUTCHours();
+  }
+}
+
+function localDateForTimezone(date: Date, timezone: string | null | undefined) {
+  const safeTimezone = timezone || "UTC";
+  try {
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone: safeTimezone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(date);
+  } catch {
+    return date.toISOString().slice(0, 10);
+  }
+}
+
+function determineSkipReason(row: DiagnosticsRow, now: Date): DiagnosticsStatus {
+  const activityAt = latestActivityAt(row);
+  const stale = activityAt ? (daysSince(activityAt) ?? 0) > 7 : true;
+  if (stale) {
+    return "subscription_stale";
+  }
+
+  const preferredLocalHour = Number.isInteger(row.preferred_local_hour)
+    ? Math.min(23, Math.max(0, Number(row.preferred_local_hour)))
+    : 8;
+  const localHour = localHourForTimezone(now, row.preferred_timezone);
+  if (localHour < preferredLocalHour) {
+    return "before_window";
+  }
+
+  const alreadySentToday =
+    row.last_sent_at &&
+    localDateForTimezone(new Date(row.last_sent_at), row.preferred_timezone) ===
+      localDateForTimezone(now, row.preferred_timezone);
+  if (alreadySentToday) {
+    return "already_sent_today";
+  }
+
+  return null;
+}
+
 export async function GET() {
   try {
     const user = await requireUser();
@@ -89,6 +146,7 @@ export async function GET() {
     const diagnostics = subscriptionRows.map((row) => {
       const activityAt = latestActivityAt(row);
       const stale = activityAt ? (daysSince(activityAt) ?? 0) > 7 : true;
+      const skipReason = determineSkipReason(row, new Date());
       return {
         id: row.id,
         endpointHost: (() => {
@@ -109,6 +167,7 @@ export async function GET() {
         latestActivityAt: activityAt,
         daysSinceLastActivity: activityAt ? daysSince(activityAt) : null,
         stale,
+        skipReason,
       };
     });
 

@@ -3,6 +3,7 @@ import {
   defaultPreferences,
   localizedModeProfile,
   localizedScriptureRead,
+  localizedScriptureReference,
   localizedWisdomEntry,
   promptPreferenceContext,
   type UserPreferences,
@@ -37,9 +38,10 @@ export async function generateWisdomResponse({
     .map((source, index) => {
       const localizedSource = localizedWisdomEntry(source, preferences);
       const scriptureRead = localizedScriptureRead(source.scripture, preferences);
+      const scriptureReference = localizedScriptureReference(source.scripture, preferences.language);
       return `Source ${index + 1}
 Theme: ${localizedSource.theme}
-Scripture: ${localizedSource.scripture}
+Scripture: ${scriptureReference}
 Selected translation reading: ${scriptureRead.label} (${scriptureRead.translation})
 Available reading text: ${scriptureRead.text}
 Principle: ${localizedSource.principle}
@@ -88,7 +90,7 @@ Write a human response that feels personal and grounded. Requirements:
 - Start with a brief empathetic acknowledgment.
 - Weave in 3-6 relevant scripture references from the retrieved sources naturally when the question has enough substance; use 1-2 for a simple question and more for complex discernment.
 - Use references as connected biblical counsel, not as a verse dump. Explain how each reference contributes a distinct angle.
-- Mention only exact references present in Retrieved sources, with the same book/chapter/verse spelling.
+- Mention only exact references present in Retrieved sources, translated into the user's preferred display language when possible.
 - Explain what the biblical principle means in ordinary life today.
 - Write in the preferred response language unless the user's question clearly asks for another language.
 - Adapt examples to the user's region without pretending to know local law, tax, or regulated financial details.

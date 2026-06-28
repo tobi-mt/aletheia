@@ -3120,7 +3120,7 @@ async function shareChallengeDayPostcardImage({
             .replace("{totalDays}", String(totalDays)),
         },
       sections: [
-        { label: ts("labels.scripture"), text: prompt.scripture },
+        { label: ts("labels.scripture"), text: localizedScriptureReference(prompt.scripture, language) },
         { label: ts("labels.practice"), text: ts(prompt.practiceKey, prompt.practice) },
         completion?.reflection?.trim()
           ? { label: ts("labels.note"), text: completion.reflection.trim() }
@@ -3607,7 +3607,20 @@ type GratitudeContextSummary = {
   latestCreatedAt?: string;
 };
 
-type GratitudeFormation = "provision" | "beauty" | "enoughness" | "answeredPrayer" | "ordinaryMercy";
+type GratitudeFormation =
+  | "provision"
+  | "beauty"
+  | "enoughness"
+  | "answeredPrayer"
+  | "ordinaryMercy"
+  | "shelter"
+  | "friendship"
+  | "rest"
+  | "healing"
+  | "guidance"
+  | "family"
+  | "creation"
+  | "forgiveness";
 type GratitudeFilter = "none" | "warm" | "soft" | "mono" | "forest" | "golden" | "calm";
 type GratitudeSticker = "leaf" | "cross" | "heart" | "spark" | "book" | "seedling" | "sun" | "thankful" | "enough" | "grace";
 
@@ -3622,16 +3635,38 @@ type GratitudeVisualSettings = {
 };
 
 const GRATITUDE_FILTERS: GratitudeFilter[] = ["none", "warm", "soft", "mono", "forest", "golden", "calm"];
-const GRATITUDE_FORMATIONS: GratitudeFormation[] = ["provision", "beauty", "enoughness", "answeredPrayer", "ordinaryMercy"];
+const GRATITUDE_FORMATIONS: GratitudeFormation[] = [
+  "provision",
+  "shelter",
+  "rest",
+  "ordinaryMercy",
+  "beauty",
+  "creation",
+  "friendship",
+  "family",
+  "guidance",
+  "healing",
+  "enoughness",
+  "answeredPrayer",
+  "forgiveness",
+];
 const GRATITUDE_FORMATION_LABELS: Record<GratitudeFormation, string> = {
   provision: "provision",
+  shelter: "shelter",
+  rest: "rest",
+  ordinaryMercy: "ordinary mercy",
   beauty: "beauty",
+  creation: "creation",
+  friendship: "friendship",
+  family: "family",
+  guidance: "guidance",
+  healing: "healing",
   enoughness: "enoughness",
   answeredPrayer: "answered prayer",
-  ordinaryMercy: "ordinary mercy",
+  forgiveness: "forgiveness",
 };
 const GRATITUDE_STICKERS: GratitudeSticker[] = ["leaf", "cross", "heart", "spark", "book", "seedling", "sun", "thankful", "enough", "grace"];
-const GRATITUDE_EMOJIS = ["", "🙏", "✨", "🌿", "☀️", "💛", "🕊️"];
+const GRATITUDE_EMOJIS = ["", "🙏", "✨", "🌿", "☀️", "💛", "🕊️", "🌸", "🌙", "🕯️", "⭐", "🫶", "🍞", "💧", "🏡", "🙌", "🍂"];
 const MAX_GRATITUDE_STICKERS = 4;
 const DEFAULT_GRATITUDE_FORMATION: GratitudeFormation = "ordinaryMercy";
 
@@ -3680,10 +3715,18 @@ const GRATITUDE_STICKER_MARK: Record<GratitudeSticker, string> = {
 
 const GRATITUDE_FORMATION_ICON: Record<GratitudeFormation, string> = {
   provision: "☕",
+  shelter: "🏡",
+  rest: "🌙",
+  ordinaryMercy: "💛",
   beauty: "✦",
+  creation: "🌿",
+  friendship: "🫶",
+  family: "👨‍👩‍👧‍👦",
+  guidance: "🧭",
+  healing: "✨",
   enoughness: "∞",
   answeredPrayer: "🙏",
-  ordinaryMercy: "💛",
+  forgiveness: "🕊️",
 };
 
 function escapeSvgText(value: string) {
@@ -3761,6 +3804,63 @@ function buildQaRailSampleGratitudeEntries(now = Date.now()): GratitudeEntry[] {
       },
       postcardCreatedAt: new Date(now - 5 * day + 8 * 60 * 1000).toISOString(),
       reflectedAt: new Date(now - 5 * day + 22 * 60 * 1000).toISOString(),
+    },
+    {
+      id: "qa-gratitude-3",
+      imageDataUrl: buildQaRailSampleImageDataUrl("Rest", "#56606f", "#232a33"),
+      note: "A slow evening and a clear boundary felt like a gift.",
+      place: "Living room",
+      createdAt: new Date(now - 8 * day).toISOString(),
+      formation: "rest",
+      visual: {
+        filter: "calm",
+        showDate: true,
+        showPlace: true,
+        showNote: true,
+        showSignature: true,
+        stickers: ["spark", "grace"],
+        emoji: "🌙",
+      },
+      postcardCreatedAt: new Date(now - 8 * day + 6 * 60 * 1000).toISOString(),
+      reflectedAt: new Date(now - 8 * day + 20 * 60 * 1000).toISOString(),
+    },
+    {
+      id: "qa-gratitude-4",
+      imageDataUrl: buildQaRailSampleImageDataUrl("Shelter", "#5d7f6b", "#25362d"),
+      note: "Shelter showed up in a safe roof, warm light, and a quiet room.",
+      place: "Home",
+      createdAt: new Date(now - 11 * day).toISOString(),
+      formation: "shelter",
+      visual: {
+        filter: "forest",
+        showDate: true,
+        showPlace: true,
+        showNote: true,
+        showSignature: true,
+        stickers: ["leaf", "sun"],
+        emoji: "🏡",
+      },
+      postcardCreatedAt: new Date(now - 11 * day + 4 * 60 * 1000).toISOString(),
+      reflectedAt: new Date(now - 11 * day + 16 * 60 * 1000).toISOString(),
+    },
+    {
+      id: "qa-gratitude-5",
+      imageDataUrl: buildQaRailSampleImageDataUrl("Friendship", "#8a6570", "#4f3140"),
+      note: "A friend’s message arrived right when encouragement was needed.",
+      place: "Phone screen",
+      createdAt: new Date(now - 14 * day).toISOString(),
+      formation: "friendship",
+      visual: {
+        filter: "soft",
+        showDate: true,
+        showPlace: true,
+        showNote: true,
+        showSignature: true,
+        stickers: ["heart", "thankful"],
+        emoji: "🫶",
+      },
+      postcardCreatedAt: new Date(now - 14 * day + 7 * 60 * 1000).toISOString(),
+      reflectedAt: new Date(now - 14 * day + 19 * 60 * 1000).toISOString(),
     },
   ];
 }
@@ -4805,7 +4905,7 @@ function composeResponse(question: string, mode: Mode, preferences: UserPreferen
               : `It makes sense to bring care to this. Your question touches ${primary.theme.toLowerCase()}, and it deserves more than a rushed answer or a fear-driven reaction.`,
       "",
       "Biblical Wisdom",
-      `${primary.scripture} points toward this principle: ${primary.principle} ${secondary.scripture} adds a second guardrail: ${secondary.principle}`,
+      `${localizedScriptureReference(primary.scripture, preferences.language)} points toward this principle: ${primary.principle} ${localizedScriptureReference(secondary.scripture, preferences.language)} adds a second guardrail: ${secondary.principle}`,
       "",
       "Practical Perspective",
       `${primary.application} This is wisdom support, not financial, legal, or investment advice, so any high-stakes decision should also be reviewed with qualified counsel.`,
@@ -9401,13 +9501,15 @@ export function AletheiaApp() {
   function shareScriptureMemoryCard(memory: ScriptureMemory) {
     const read = localizedScriptureRead(memory.scripture, preferences);
     const translationLabel = scriptureDisplayLabel(memory.scripture, preferences);
+    const scriptureLabel = localizedScriptureReference(memory.scripture, preferences.language);
     void shareWisdomPostcard({
       kind: "scripture",
       eyebrow: `${ts('labels.scriptureMemory')} · ${translationLabel}`,
-      title: memory.scripture,
-      body: `${read.text}\n\n${translationLabel}\n\n${memory.principle}`,
+      title: scriptureLabel,
+      body: `${read.text}\n\n${scriptureLabel}\n\n${translationLabel}\n\n${memory.principle}`,
       sections: [
         { label: ts('labels.scriptureQuotedText'), text: read.text },
+        { label: ts('labels.scripture'), text: scriptureLabel },
         { label: ts('labels.bibleTranslation'), text: translationLabel },
         { label: ts('labels.principle'), text: memory.principle },
       ],
@@ -14444,6 +14546,7 @@ function ScreenTabs<T extends string>({
   variant = "surface",
   layout = "auto",
   className = "",
+  scrollItemMinWidth,
 }: {
   value: T;
   onChange: (value: T) => void;
@@ -14453,12 +14556,13 @@ function ScreenTabs<T extends string>({
   variant?: "surface" | "primary";
   layout?: "auto" | "grid" | "scroll";
   className?: string;
+  scrollItemMinWidth?: string;
 }) {
   const useScrollableRail = layout === "scroll" || (layout === "auto" && tabs.length > 4);
   return (
     <div
       className={useScrollableRail
-        ? `relative z-20 flex min-w-0 gap-1 overflow-x-auto rounded-2xl border p-1.5 shadow-sm ${className}`
+        ? `relative z-20 flex min-w-0 snap-x snap-mandatory gap-1 overflow-x-auto rounded-2xl border p-1.5 shadow-sm ${className}`
         : `relative z-20 grid min-w-0 gap-1 rounded-2xl border p-1.5 shadow-sm ${className}`}
       role="tablist"
       aria-label={ariaLabel}
@@ -14478,8 +14582,9 @@ function ScreenTabs<T extends string>({
             aria-selected={active}
             title={tab.label}
             onClick={() => onChange(tab.key)}
-            className={`premium-tap-card relative min-h-12 min-w-0 overflow-hidden rounded-xl px-3 py-3 text-center font-semibold leading-tight tracking-normal transition ${useScrollableRail ? "min-w-[8.25rem] shrink-0 text-[0.74rem] sm:min-w-[9.25rem] sm:text-[0.84rem]" : "px-2 py-2.5 text-[0.72rem] sm:px-3 sm:py-3 sm:text-sm"}`}
+            className={`premium-tap-card relative min-h-12 min-w-0 overflow-hidden rounded-xl px-3 py-3 text-center font-semibold leading-tight tracking-normal transition ${useScrollableRail ? "min-w-[8.25rem] shrink-0 snap-start text-[0.74rem] sm:min-w-[9.25rem] sm:text-[0.84rem]" : "px-2 py-2.5 text-[0.72rem] sm:px-3 sm:py-3 sm:text-sm"}`}
             style={{
+              minWidth: useScrollableRail && scrollItemMinWidth ? scrollItemMinWidth : undefined,
               backgroundColor: active ? (variant === "primary" ? theme.primary : theme.bgCard) : "transparent",
               color: active ? (variant === "primary" ? theme.textOnPrimary : theme.textPrimary) : theme.textSecondary,
               boxShadow: active
@@ -16365,7 +16470,7 @@ async function shareChallengeDayPostcard(challenge: ChallengeWithProgress, day: 
             .replace("{totalDays}", String(challenge.totalDays)),
         },
         sections: [
-          { label: ts("labels.scripture"), text: prompt.scripture },
+          { label: ts("labels.scripture"), text: localizedScriptureReference(prompt.scripture, language) },
           { label: ts("labels.practice"), text: ts(prompt.practiceKey, prompt.practice) },
           completion?.reflection?.trim()
             ? { label: ts("labels.note"), text: completion.reflection.trim() }
@@ -16592,7 +16697,7 @@ async function shareChallengeDayPostcard(challenge: ChallengeWithProgress, day: 
                       {ts("challenges.dayOf").replace("{day}", String(next)).replace("{total}", String(total))}
                     </p>
                     <p className="text-xs leading-4 italic" style={{ color: theme.textMuted }}>
-                      {nextPrompt.scripture}
+                      {localizedScriptureReference(nextPrompt.scripture, language)}
                     </p>
                     <p className="text-sm leading-5 font-medium" style={{ color: theme.textPrimary }}>
                       {ts(nextPrompt.principleKey, nextPrompt.principle)}
@@ -17100,7 +17205,7 @@ function FormationRailSection({
                 .replace("{totalDays}", String(selectedChallenge.totalDays)),
             },
             sections: [
-              { label: ts("labels.scripture"), text: selectedChallengeModalPrompt.scripture },
+              { label: ts("labels.scripture"), text: localizedScriptureReference(selectedChallengeModalPrompt.scripture, language) },
               { label: ts("labels.practice"), text: selectedChallengeModalPrompt.practice },
               selectedChallengeModalCompletion.reflection?.trim()
                 ? { label: ts("labels.note"), text: selectedChallengeModalCompletion.reflection.trim() }
@@ -17171,7 +17276,7 @@ function FormationRailSection({
     const challengeTitle = ts(challenge.titleKey, challenge.title);
     const parts = [
       `${dayTitle} · ${challengeTitle}`,
-      prompt?.scripture ? `${ts("labels.scripture")}:\n${prompt.scripture}` : null,
+      prompt?.scripture ? `${ts("labels.scripture")}:\n${localizedScriptureReference(prompt.scripture, language)}` : null,
       prompt ? `${ts("labels.practice")}:\n${ts(prompt.practiceKey, prompt.practice)}` : null,
       completion?.reflection?.trim()
         ? `${ts("labels.note")}:\n${completion.reflection.trim()}`
@@ -17260,7 +17365,7 @@ function FormationRailSection({
               {ts("challenges.dayLabel").replace("{day}", String(selectedChallengeModalDay.day))}
             </p>
             <h2 id="formation-day-modal-title" className="mt-1.5 text-xl font-semibold tracking-tight" style={{ color: theme.textPrimary }}>
-              {selectedChallengeModalPrompt.scripture}
+              {localizedScriptureReference(selectedChallengeModalPrompt.scripture, language)}
             </h2>
             <p className="mt-1.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
               {ts(selectedChallengeModalPrompt.principleKey, selectedChallengeModalPrompt.principle)}
@@ -17566,7 +17671,7 @@ function FormationRailSection({
                       {ts("labels.currentlyActiveMode")}
                     </p>
                     <h4 className="mt-1.5 text-[1.05rem] font-semibold leading-6 sm:text-[1.1rem]" style={{ color: theme.textPrimary }}>
-                      {ts(selectedChallenge.titleKey, selectedChallenge.title)}
+                      {ts("challenges.dayOf").replace("{day}", String(selectedChallengeFocusedDay ?? 1)).replace("{total}", String(selectedChallenge.totalDays))}
                     </h4>
                     <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
                       {selectedChallengeProgressState === "completed_today"
@@ -17656,7 +17761,7 @@ function FormationRailSection({
                                   {ts("challenges.dayLabel").replace("{day}", String(day.day))}
                                 </p>
                                 <p className="mt-1 line-clamp-2 text-sm font-semibold leading-5" style={{ color: theme.textPrimary }}>
-                                  {day.scripture}
+                                  {localizedScriptureReference(day.scripture, language)}
                                 </p>
                               </div>
                               <div className="flex shrink-0 items-center gap-2">
@@ -17725,8 +17830,8 @@ function FormationRailSection({
                         </h3>
                       </div>
                       {selectedCircle ? (
-                        <span className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-                          {selectedCircle.memberCount} {ts("challenges.withFriends")}
+                        <span className="whitespace-nowrap rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                          {ts("labels.active")}
                         </span>
                       ) : null}
                     </div>
@@ -26971,7 +27076,7 @@ function GratitudeLensPanel({
     count: weeklyEntries.filter((entry) => normalizeGratitudeFormation(entry.formation) === item).length,
   }));
   const topFormation = formationCounts.reduce((top, item) => item.count > top.count ? item : top, formationCounts[0]);
-  const gratitudeRhythmLabel = notificationTimeLabel(GRATITUDE_REFLECTION_DEFAULT_HOUR, language);
+  const gratitudeRailChipClass = "premium-tap-card inline-flex min-h-16 min-w-[8.6rem] shrink-0 snap-start flex-col items-center justify-center gap-1 rounded-2xl border px-3 py-2 text-center text-sm font-semibold leading-tight transition active:scale-[0.98]";
 
   return (
     <div id="gratitude-lens-card" tabIndex={-1} className="scroll-mt-28 outline-none">
@@ -27051,7 +27156,8 @@ function GratitudeLensPanel({
                 onChange={setFormation}
                 ariaLabel={ts('labels.gratitudeNoticingQuestion')}
                 theme={theme}
-                layout="grid"
+                layout="scroll"
+                scrollItemMinWidth="9.75rem"
                 className="border-0 p-0 shadow-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
                 tabs={GRATITUDE_FORMATIONS.map((item) => ({
                   key: item,
@@ -27177,7 +27283,7 @@ function GratitudeLensPanel({
                   <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textMuted }}>
                     {ts('labels.gratitudeOverlayNote')}
                   </p>
-                  <div className="mt-2 flex gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  <div className="mt-2 flex gap-2 overflow-x-auto snap-x snap-mandatory pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                     {[
                       ["showNote", ts('labels.gratitudeOverlayNote')],
                       ["showDate", ts('labels.gratitudeOverlayDate')],
@@ -27191,7 +27297,7 @@ function GratitudeLensPanel({
                           key={key}
                           type="button"
                           onClick={() => toggleOverlay(settingKey)}
-                          className="premium-tap-card inline-flex min-h-10 shrink-0 items-center gap-2 rounded-full border px-3.5 py-2 text-xs font-semibold transition active:scale-[0.98]"
+                          className={gratitudeRailChipClass}
                           style={{
                             borderColor: isActive ? theme.primary : theme.borderMedium,
                             backgroundColor: isActive ? theme.bgCardElevated : theme.bgInput,
@@ -27199,8 +27305,12 @@ function GratitudeLensPanel({
                             boxShadow: isActive ? `0 10px 18px color-mix(in srgb, ${theme.primary} 14%, transparent)` : "none",
                           }}
                         >
-                          <span className="truncate">{label}</span>
-                          {isActive ? <Check size={14} style={{ color: theme.accentGold }} /> : null}
+                          <span aria-hidden="true" className="text-lg leading-none">
+                            {settingKey === "showNote" ? "📝" : settingKey === "showDate" ? "📅" : settingKey === "showPlace" ? "📍" : "✍️"}
+                          </span>
+                          <span className="max-w-full whitespace-nowrap text-[0.82rem] leading-4">
+                            {label}
+                          </span>
                         </button>
                       );
                     })}
@@ -27211,7 +27321,7 @@ function GratitudeLensPanel({
                   <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textMuted }}>
                     {ts('labels.gratitudeStickers')}
                   </p>
-                  <div className="mt-2 flex gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  <div className="mt-2 flex gap-2 overflow-x-auto snap-x snap-mandatory pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                     {GRATITUDE_STICKERS.map((sticker) => {
                       const isActive = visual.stickers.includes(sticker);
                       return (
@@ -27219,7 +27329,7 @@ function GratitudeLensPanel({
                           key={sticker}
                           type="button"
                           onClick={() => toggleSticker(sticker)}
-                          className="premium-tap-card inline-flex min-h-10 shrink-0 items-center gap-2 rounded-full border px-3.5 py-2 text-xs font-semibold transition active:scale-[0.98]"
+                          className={gratitudeRailChipClass}
                           style={{
                             borderColor: isActive ? theme.primary : theme.borderMedium,
                             backgroundColor: isActive ? theme.bgCardElevated : theme.bgInput,
@@ -27227,8 +27337,12 @@ function GratitudeLensPanel({
                             boxShadow: isActive ? `0 10px 18px color-mix(in srgb, ${theme.primary} 14%, transparent)` : "none",
                           }}
                         >
-                          <span aria-hidden="true">{GRATITUDE_STICKER_MARK[sticker]}</span>
-                          <span className="truncate">{gratitudeStickerLabel(sticker)}</span>
+                          <span aria-hidden="true" className="text-lg leading-none">
+                            {GRATITUDE_STICKER_MARK[sticker]}
+                          </span>
+                          <span className="max-w-full whitespace-nowrap text-[0.82rem] leading-4">
+                            {gratitudeStickerLabel(sticker)}
+                          </span>
                         </button>
                       );
                     })}
@@ -27239,7 +27353,7 @@ function GratitudeLensPanel({
                   <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textMuted }}>
                     {ts('labels.gratitudeEmoji')}
                   </p>
-                  <div className="mt-2 flex flex-wrap gap-2">
+                  <div className="mt-2 flex flex-nowrap gap-2 overflow-x-auto snap-x snap-mandatory pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                     {GRATITUDE_EMOJIS.map((emoji) => {
                       const isActive = visual.emoji === emoji;
                       return (
@@ -27247,14 +27361,19 @@ function GratitudeLensPanel({
                           key={emoji || "none"}
                           type="button"
                           onClick={() => setVisual((current) => ({ ...current, emoji }))}
-                          className="premium-tap-card min-h-10 rounded-full border px-3.5 text-sm font-semibold transition active:scale-[0.98]"
+                          className="premium-tap-card inline-flex min-h-16 min-w-[5.8rem] shrink-0 snap-start flex-col items-center justify-center gap-1 rounded-2xl border px-3 py-2 text-center text-sm font-semibold leading-tight transition active:scale-[0.98]"
                           style={{
                             borderColor: isActive ? theme.primary : theme.borderMedium,
                             backgroundColor: isActive ? theme.primary : theme.bgInput,
                             color: isActive ? theme.textOnPrimary : theme.textPrimary,
                           }}
                         >
-                          {emoji || ts('labels.gratitudeNoEmoji')}
+                          <span aria-hidden="true" className="text-lg leading-none">
+                            {emoji || "◯"}
+                          </span>
+                          <span className="max-w-full text-[0.82rem] leading-4">
+                            {emoji ? "\u00a0" : ts('labels.gratitudeNoEmoji')}
+                          </span>
                         </button>
                       );
                     })}

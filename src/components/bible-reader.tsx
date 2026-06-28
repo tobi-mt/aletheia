@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { ChevronLeft, ChevronRight, ChevronUp, Book, Search, Info, Sparkles, Plus } from "lucide-react";
 import type { BibleTranslation, LanguageCode } from "@/lib/localization";
-import { languages, localizedBookChapterReference, localizedScriptureReference } from "@/lib/localization";
+import { languages, localizedBibleBookName, localizedBookChapterReference, localizedScriptureReference } from "@/lib/localization";
 import { buildBibleStudyGuide, type BibleStudyData } from "@/lib/bible-study";
 import type { ThemeColors } from "@/lib/themes";
 
@@ -108,9 +108,7 @@ function chapterNavUi(language: LanguageCode) {
 }
 
 function localizedBookName(book: string, language: LanguageCode) {
-  const localizedReference = localizedScriptureReference(`${book} 1:1`, language);
-  const match = localizedReference.match(/^(.+?)\s+1:1$/);
-  return match ? match[1] : book;
+  return localizedBibleBookName(book, language);
 }
 
 // ──────────────────────────────────────────────
