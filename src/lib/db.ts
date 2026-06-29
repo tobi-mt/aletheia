@@ -1,10 +1,16 @@
 import "server-only";
-import { Pool } from "pg";
+import { Pool, type PoolClient, type QueryResult, type QueryResultRow } from "pg";
 import { wisdomEntries } from "@/lib/wisdom-data";
 
 const connectionString = process.env.DATABASE_URL;
 const shouldBootstrapDatabase =
   process.env.DB_BOOTSTRAP_ON_STARTUP === "1" || process.env.NODE_ENV !== "production";
+const dbQueryRetries = Math.max(0, Number(process.env.DB_QUERY_RETRIES ?? 2));
+const dbRetryBaseDelayMs = Math.max(100, Number(process.env.DB_RETRY_BASE_DELAY_MS ?? 250));
+const dbConnectionTimeoutMillis = Math.max(
+  1000,
+  Number(process.env.DB_CONNECTION_TIMEOUT_MS ?? 5000)
+);
 
 if (!connectionString) {
   throw new Error("DATABASE_URL is required. Set it to your Neon Postgres connection string.");
@@ -29,7 +35,7 @@ function poolConfig(url: string) {
     ssl: needsSsl ? true : undefined,
     max: 5,
     idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 10000,
+    connectionTimeoutMillis: dbConnectionTimeoutMillis,
   };
 }
 
@@ -46,8 +52,80 @@ function postgresParams(sql: string) {
   return sql.replace(/\?/g, () => `$${++index}`);
 }
 
+function normalizeDbErrorMessage(error: unknown) {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  if (typeof error === "string") {
+    return error;
+  }
+  return "";
+}
+
+function isTransientDbError(error: unknown) {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+
+  const { code, message } = error as { code?: string; message?: string };
+  const normalizedMessage = `${code ?? ""} ${message ?? normalizeDbErrorMessage(error)}`.toLowerCase();
+
+  return (
+    [
+      "08000",
+      "08001",
+      "08003",
+      "08006",
+      "08007",
+      "08p01",
+      "57p01",
+      "57p02",
+      "57p03",
+      "53300",
+      "53400",
+      "etimedout",
+      "econreset",
+      "econnreset",
+      "econnrefused",
+      "socket hang up",
+      "server closed the connection unexpectedly",
+      "connection terminated unexpectedly",
+      "connection terminated due to connection timeout",
+      "terminating connection",
+      "could not connect to server",
+    ].some((fragment) => normalizedMessage.includes(fragment))
+  );
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function withDbRetry<T>(operation: string, task: () => Promise<T>) {
+  let attempt = 0;
+
+  while (true) {
+    try {
+      return await task();
+    } catch (error) {
+      attempt += 1;
+      if (attempt > dbQueryRetries || !isTransientDbError(error)) {
+        throw error;
+      }
+
+      const delayMs = dbRetryBaseDelayMs * Math.pow(2, attempt - 1);
+      console.warn(
+        `Aletheia DB ${operation} failed on attempt ${attempt}/${dbQueryRetries + 1}; retrying in ${delayMs}ms.`,
+        error
+      );
+      await sleep(delayMs);
+    }
+  }
+}
+
 async function initializeDatabase() {
-  await pool.query(`
+  await withDbRetry("bootstrap", () =>
+    pool.query(`
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
       email TEXT NOT NULL UNIQUE,
@@ -438,10 +516,11 @@ async function initializeDatabase() {
 
     CREATE INDEX IF NOT EXISTS challenge_progress_user_challenge_idx ON challenge_progress(user_id, challenge_id, day);
     CREATE INDEX IF NOT EXISTS challenge_progress_user_completed_idx ON challenge_progress(user_id, completed_at DESC);
-  `);
+  `)
+  );
 
-  const { rows } = await pool.query<{ count: string }>(
-    "SELECT COUNT(*) as count FROM wisdom_entries"
+  const { rows } = await withDbRetry("bootstrap count", () =>
+    pool.query<{ count: string }>("SELECT COUNT(*) as count FROM wisdom_entries")
   );
 
   if (Number(rows[0]?.count ?? 0) > 0) {
@@ -450,24 +529,26 @@ async function initializeDatabase() {
 
   const now = new Date().toISOString();
   for (const entry of wisdomEntries) {
-    await pool.query(
-      `INSERT INTO wisdom_entries (
-        id, theme, scripture, principle, context, application, keywords, emotions, questions, created_at, updated_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, $8::jsonb, $9::jsonb, $10, $11)
-      ON CONFLICT (scripture) DO NOTHING`,
-      [
-        crypto.randomUUID(),
-        entry.theme,
-        entry.scripture,
-        entry.principle,
-        entry.context,
-        entry.application,
-        JSON.stringify(entry.keywords),
-        JSON.stringify(entry.emotions),
-        JSON.stringify(entry.questions),
-        now,
-        now,
-      ]
+    await withDbRetry("bootstrap wisdom entry", () =>
+      pool.query(
+        `INSERT INTO wisdom_entries (
+          id, theme, scripture, principle, context, application, keywords, emotions, questions, created_at, updated_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, $8::jsonb, $9::jsonb, $10, $11)
+        ON CONFLICT (scripture) DO NOTHING`,
+        [
+          crypto.randomUUID(),
+          entry.theme,
+          entry.scripture,
+          entry.principle,
+          entry.context,
+          entry.application,
+          JSON.stringify(entry.keywords),
+          JSON.stringify(entry.emotions),
+          JSON.stringify(entry.questions),
+          now,
+          now,
+        ]
+      )
     );
   }
 }
@@ -480,12 +561,20 @@ export async function ensureDbReady() {
   return globalForDb.aletheiaDbReady;
 }
 
+async function queryWithRetry<T extends QueryResultRow>(
+  sql: string,
+  params: unknown[],
+  operation: string
+): Promise<QueryResult<T>> {
+  await ensureDbReady();
+  return withDbRetry(operation, () => pool.query<T>(postgresParams(sql), params));
+}
+
 export async function one<T extends Record<string, unknown>>(
   sql: string,
   ...params: unknown[]
 ) {
-  await ensureDbReady();
-  const result = await pool.query(postgresParams(sql), params);
+  const result = await queryWithRetry<T>(sql, params, "query");
   return result.rows[0] as T | undefined;
 }
 
@@ -493,12 +582,23 @@ export async function many<T extends Record<string, unknown>>(
   sql: string,
   ...params: unknown[]
 ) {
-  await ensureDbReady();
-  const result = await pool.query(postgresParams(sql), params);
+  const result = await queryWithRetry<T>(sql, params, "query");
   return result.rows as T[];
 }
 
 export async function run(sql: string, ...params: unknown[]) {
+  return queryWithRetry(sql, params, "query");
+}
+
+export async function withDbClient<T>(operation: string, task: (client: PoolClient) => Promise<T>) {
   await ensureDbReady();
-  return pool.query(postgresParams(sql), params);
+
+  return withDbRetry(operation, async () => {
+    const client = await pool.connect();
+    try {
+      return await task(client);
+    } finally {
+      client.release();
+    }
+  });
 }

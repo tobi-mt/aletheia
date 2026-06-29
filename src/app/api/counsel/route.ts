@@ -3,7 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { trackServerEvent } from "@/lib/analytics";
 import { normalizeAvatarUrl } from "@/lib/avatars";
 import { counselInviteUrl, createCounselInviteToken, hashCounselInviteToken } from "@/lib/counsel-invites";
-import { many, one, pool, run } from "@/lib/db";
+import { many, one, run, withDbClient } from "@/lib/db";
 import { counselInviteEmail, emailConfigured, isEmailAddress, sendEmail } from "@/lib/email";
 import { readJsonBody } from "@/lib/request";
 import { apiError } from "@/lib/api-errors";
@@ -196,30 +196,33 @@ export async function DELETE(request: Request) {
     return apiError(404, "not_found", "Contact not found.");
   }
 
-  const client = await pool.connect();
   let revokedSharedCount = 0;
   let revokedCommentCount = 0;
   try {
-    await client.query("BEGIN");
+    await withDbClient("remove counsel contact", async (client) => {
+      await client.query("BEGIN");
 
-    const sharedResult = await client.query(
-      "DELETE FROM counsel_shared_decisions WHERE contact_id = $1 AND user_id = $2",
-      [contactId, user.id]
-    );
-    revokedSharedCount = sharedResult.rowCount ?? 0;
+      try {
+        const sharedResult = await client.query(
+          "DELETE FROM counsel_shared_decisions WHERE contact_id = $1 AND user_id = $2",
+          [contactId, user.id]
+        );
+        revokedSharedCount = sharedResult.rowCount ?? 0;
 
-    const commentResult = await client.query("DELETE FROM counsel_comments WHERE contact_id = $1", [contactId]);
-    revokedCommentCount = commentResult.rowCount ?? 0;
+        const commentResult = await client.query("DELETE FROM counsel_comments WHERE contact_id = $1", [contactId]);
+        revokedCommentCount = commentResult.rowCount ?? 0;
 
-    await client.query("DELETE FROM counsel_contacts WHERE id = $1 AND user_id = $2", [contactId, user.id]);
+        await client.query("DELETE FROM counsel_contacts WHERE id = $1 AND user_id = $2", [contactId, user.id]);
 
-    await client.query("COMMIT");
+        await client.query("COMMIT");
+      } catch (error) {
+        await client.query("ROLLBACK").catch(() => undefined);
+        throw error;
+      }
+    });
   } catch (error) {
-    await client.query("ROLLBACK");
     console.error("Failed to remove counsel contact", error);
     return apiError(500, "save_failed", "Could not remove this counsel contact.");
-  } finally {
-    client.release();
   }
 
   await trackServerEvent({
