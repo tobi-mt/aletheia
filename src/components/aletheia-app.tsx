@@ -16096,14 +16096,14 @@ function ChallengeRecommendationCard({
 
   return (
     <section
-      className={`overflow-hidden rounded-[1.55rem] border shadow-[0_10px_24px_rgba(7,10,8,0.06)] ${compact ? "p-3.5 sm:p-4" : "p-4 sm:p-5"} ${className}`}
+      className={`relative overflow-hidden rounded-[1.55rem] border shadow-[0_10px_24px_rgba(7,10,8,0.06)] ${compact ? "p-3.5 sm:p-4" : "p-4 sm:p-5"} ${className}`}
       style={{
         borderColor: theme.primary,
         background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})`,
       }}
     >
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0">
+      <div className={compact ? "min-w-0 pr-12" : "min-w-0 pr-14"}>
+        <div className="max-w-2xl">
           <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
             {challengeRecommendationEyebrow(recommendation, ts)}
           </p>
@@ -16117,9 +16117,9 @@ function ChallengeRecommendationCard({
             {body}
           </p>
         </div>
-        <div className="grid size-11 shrink-0 place-items-center self-start rounded-[1rem] border" style={{ borderColor: theme.borderLight, backgroundColor: isContinuation ? theme.primary : theme.bgInput, color: isContinuation ? theme.textOnPrimary : theme.primary }}>
-          <RecommendationIcon size={18} />
-        </div>
+      </div>
+      <div className="pointer-events-none absolute right-4 top-4 grid size-11 place-items-center rounded-[1rem] border" style={{ borderColor: theme.borderLight, backgroundColor: isContinuation ? theme.primary : theme.bgInput, color: isContinuation ? theme.textOnPrimary : theme.primary }}>
+        <RecommendationIcon size={18} />
       </div>
 
       {!isContinuation ? (
