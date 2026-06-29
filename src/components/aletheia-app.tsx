@@ -17705,7 +17705,7 @@ function FormationRailSection({
     }
     setSavingDay({ challengeId: challenge.id, day });
     try {
-      const res = await fetch(isFastingChallenge ? `/api/challenge-circles/${encodeURIComponent(fastingCircle!.id)}/days/complete` : "/api/challenges/complete", {
+      const res = await fetch(isFastingChallenge ? `/api/challenge-circles/by-id/${encodeURIComponent(fastingCircle!.id)}/days/complete` : "/api/challenges/complete", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(isFastingChallenge ? { day, reflection: reflectionText.trim() } : { challengeId: challenge.id, day, reflection: reflectionText.trim() }),
