@@ -7127,6 +7127,7 @@ export function AletheiaApp() {
       return view;
     });
     if (typeof window !== "undefined" && source !== "notification_click") {
+      pendingViewportResetRef.current = true;
       window.requestAnimationFrame(() => {
         scrollAppToTop("auto");
       });
@@ -7144,6 +7145,7 @@ export function AletheiaApp() {
       return section;
     });
     if (typeof window !== "undefined" && source !== "notification_click") {
+      pendingViewportResetRef.current = true;
       window.requestAnimationFrame(() => {
         scrollAppToTop("auto");
       });
@@ -7386,6 +7388,7 @@ export function AletheiaApp() {
   const workspaceRef = useRef<HTMLElement | null>(null);
   const bottomNavRef = useRef<HTMLDivElement | null>(null);
   const updateRefreshTimeoutRef = useRef<number | null>(null);
+  const pendingViewportResetRef = useRef(false);
   const notificationFocusHandledRef = useRef(false);
   const notificationSelfHealInFlightRef = useRef(false);
 
@@ -8630,6 +8633,23 @@ export function AletheiaApp() {
   }, []);
 
   useEffect(() => {
+    if (!pendingViewportResetRef.current) {
+      return;
+    }
+
+    pendingViewportResetRef.current = false;
+    const firstFrame = window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        scrollAppToTop("auto");
+      });
+    });
+
+    return () => {
+      window.cancelAnimationFrame(firstFrame);
+    };
+  }, [activeView, homeSection, clientStateRestored]);
+
+  useEffect(() => {
     async function loadSession() {
       // authStatus is already "checking" from initial state - no need to set it again
       const [response, providersResponse] = await Promise.all([
@@ -9320,28 +9340,26 @@ export function AletheiaApp() {
   }
 
   function scrollAppToTop(behavior: ScrollBehavior = "auto") {
-    const shell = appShellRef.current;
-    if (shell) {
-      shell.scrollTo({ top: 0, left: 0, behavior });
-      return;
+    const scrollingElement = document.scrollingElement ?? document.documentElement;
+    scrollingElement?.scrollTo({ top: 0, left: 0, behavior });
+    if (scrollingElement) {
+      scrollingElement.scrollTop = 0;
     }
+    document.body.scrollTop = 0;
+    document.documentElement.scrollTop = 0;
     window.scrollTo({ top: 0, left: 0, behavior });
   }
 
   function scrollTargetBelowTopChrome(target: HTMLElement, behavior: ScrollBehavior = "smooth") {
     const topNav = document.querySelector(".app-top-nav");
     const topOffset = topNav instanceof HTMLElement ? topNav.getBoundingClientRect().height + 18 : 112;
-    const shell = appShellRef.current;
     const targetRect = target.getBoundingClientRect();
-
-    if (shell) {
-      const shellRect = shell.getBoundingClientRect();
-      const top = Math.max(0, shell.scrollTop + targetRect.top - shellRect.top - topOffset);
-      shell.scrollTo({ top, behavior });
-      return;
-    }
-
     const top = Math.max(0, window.scrollY + targetRect.top - topOffset);
+    const scrollingElement = document.scrollingElement ?? document.documentElement;
+    scrollingElement?.scrollTo({ top, behavior });
+    if (scrollingElement) {
+      scrollingElement.scrollTop = top;
+    }
     window.scrollTo({ top, behavior });
   }
 
