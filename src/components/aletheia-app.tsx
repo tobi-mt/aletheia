@@ -14584,8 +14584,8 @@ function HomeDashboard({
               background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})`,
             }}
           >
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-              <div className="min-w-0">
+            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
+              <div className="min-w-0 pr-0 sm:pr-2">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
                   {text.todayQuestionLabel ?? ""}
                 </p>
@@ -14593,7 +14593,7 @@ function HomeDashboard({
                   {companionCard.question}
                 </p>
               </div>
-              <div className="grid size-10 shrink-0 place-items-center self-start rounded-[1rem] border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
+              <div className="grid size-10 shrink-0 place-items-center justify-self-end rounded-[1rem] border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
                 <MessageCircle size={14} />
               </div>
             </div>
