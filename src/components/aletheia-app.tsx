@@ -3123,7 +3123,7 @@ async function shareChallengeDayPostcardImage({
         },
       sections: [
         { label: ts("labels.scripture"), text: localizedScriptureReference(prompt.scripture, language) },
-        { label: ts("labels.practice"), text: ts(prompt.practiceKey) },
+        { label: ts("labels.practice"), text: ts(prompt.practiceKey, prompt.practice) },
         completion?.reflection?.trim()
           ? { label: ts("labels.note"), text: completion.reflection.trim() }
           : null,
@@ -15145,7 +15145,7 @@ function challengeRecommendationBody(
 
   return recommendation.actionKind === "continue"
     ? `${ts("challenges.continueChallenge")}: ${challengeContinuationProgressLabel(recommendation, ts)}`
-    : ts(recommendation.descriptionKey);
+    : ts(recommendation.descriptionKey, recommendation.description);
 }
 
 function challengeRecommendationEyebrow(
@@ -15914,7 +15914,7 @@ function AccountPanel({
           ts,
           ts("labels.accountQuietFit")
         )}
-        title={ts(challengeRecommendation.titleKey)}
+        title={ts(challengeRecommendation.titleKey, challengeRecommendation.title)}
         body={accountRecommendationBody}
           actionLabel={challengeRecommendation.actionKind === "continue" ? ts("challenges.continueChallenge") : ts("challenges.startChallenge")}
           onAction={() => onOpenRecommendedChallenge(challengeRecommendation.challengeId)}
@@ -16104,7 +16104,7 @@ function ChallengeRecommendationCard({
   const actionLabel = recommendation.actionKind === "continue"
     ? ts("challenges.continueChallenge")
     : ts("challenges.startChallenge");
-  const title = ts(recommendation.titleKey);
+  const title = ts(recommendation.titleKey, recommendation.title);
   const body = challengeRecommendationBody(recommendation, ts);
   const RecommendationIcon = recommendation.progressState === "inactive"
     ? Clock3
@@ -16717,7 +16717,7 @@ function FormationsSection({
   }
 
   async function shareChallenge(challenge: ChallengeWithProgress) {
-    const title = ts(challenge.titleKey);
+    const title = ts(challenge.titleKey, challenge.title);
     const url = buildShareUrl(challenge.id);
     const text = ts("challenges.shareChallengeBody").replace("{days}", String(challenge.totalDays));
     if (navigator.share) {
@@ -16735,7 +16735,7 @@ async function shareChallengeDayPostcard(challenge: ChallengeWithProgress, day: 
       return;
     }
 
-    const challengeTitle = ts(challenge.titleKey);
+    const challengeTitle = ts(challenge.titleKey, challenge.title);
     const title = challengeTitle;
     const body = ts("challenges.shareDayBody");
     const blob = await createWisdomPostcardBlob(
@@ -16753,7 +16753,7 @@ async function shareChallengeDayPostcard(challenge: ChallengeWithProgress, day: 
         },
         sections: [
         { label: ts("labels.scripture"), text: localizedScriptureReference(prompt.scripture, language) },
-        { label: ts("labels.practice"), text: ts(prompt.practiceKey) },
+        { label: ts("labels.practice"), text: ts(prompt.practiceKey, prompt.practice) },
           completion?.reflection?.trim()
             ? { label: ts("labels.note"), text: completion.reflection.trim() }
             : null,
@@ -16895,8 +16895,8 @@ async function shareChallengeDayPostcard(challenge: ChallengeWithProgress, day: 
         const isSaving = savingDay?.challengeId === challenge.id;
         const nextPrompt = isComplete || completedToday ? null : getDayPrompt(challenge.id, next);
 
-        const titleText = ts(challenge.titleKey);
-        const descText = ts(challenge.descriptionKey);
+        const titleText = ts(challenge.titleKey, challenge.title);
+        const descText = ts(challenge.descriptionKey, challenge.description);
 
         return (
           <div
@@ -16982,10 +16982,10 @@ async function shareChallengeDayPostcard(challenge: ChallengeWithProgress, day: 
                       {localizedScriptureReference(nextPrompt.scripture, language)}
                     </p>
                     <p className="text-sm leading-5 font-medium" style={{ color: theme.textPrimary }}>
-                      {ts(nextPrompt.principleKey)}
+                      {ts(nextPrompt.principleKey, nextPrompt.principle)}
                     </p>
                     <p className="text-sm leading-5" style={{ color: theme.textSecondary }}>
-                      {ts(nextPrompt.promptKey)}
+                      {ts(nextPrompt.promptKey, nextPrompt.prompt)}
                     </p>
 
                     <textarea
@@ -17023,7 +17023,7 @@ async function shareChallengeDayPostcard(challenge: ChallengeWithProgress, day: 
                 <div className="flex items-center justify-between gap-2 flex-wrap">
                   {!isComplete && !completedToday && (
                     <p className="text-xs" style={{ color: theme.textMuted }}>
-                      {ts("challenges.dayLabel").replace("{day}", String(next))} · {nextPrompt ? ts(nextPrompt.practiceKey) : ""}
+                      {ts("challenges.dayLabel").replace("{day}", String(next))} · {nextPrompt ? ts(nextPrompt.practiceKey, nextPrompt.practice) : ""}
                     </p>
                   )}
                   <button
@@ -17480,7 +17480,7 @@ function FormationRailSection({
           {
             kind: "challenge",
             eyebrow: ts("challenges.shareDayEyebrow"),
-            title: ts(selectedChallenge.titleKey),
+            title: ts(selectedChallenge.titleKey, selectedChallenge.title),
             body: ts("challenges.shareDayBody"),
             challengeMeta: {
               day: selectedChallengeModalDay.day,
@@ -17491,7 +17491,7 @@ function FormationRailSection({
             },
             sections: [
               { label: ts("labels.scripture"), text: localizedScriptureReference(selectedChallengeModalPrompt.scripture, language) },
-              { label: ts("labels.practice"), text: ts(selectedChallengeModalPrompt.practiceKey) },
+              { label: ts("labels.practice"), text: ts(selectedChallengeModalPrompt.practiceKey, selectedChallengeModalPrompt.practice) },
               selectedChallengeModalCompletion.reflection?.trim()
                 ? { label: ts("labels.note"), text: selectedChallengeModalCompletion.reflection.trim() }
                 : null,
@@ -17558,11 +17558,11 @@ function FormationRailSection({
     const prompt = getDayPrompt(challenge.id, day);
     const completion = completionForDay(challenge, day);
     const dayTitle = ts("challenges.dayLabel").replace("{day}", String(day));
-    const challengeTitle = ts(challenge.titleKey);
+    const challengeTitle = ts(challenge.titleKey, challenge.title);
     const parts = [
       `${dayTitle} · ${challengeTitle}`,
       prompt?.scripture ? `${ts("labels.scripture")}:\n${localizedScriptureReference(prompt.scripture, language)}` : null,
-      prompt ? `${ts("labels.practice")}:\n${ts(prompt.practiceKey)}` : null,
+      prompt ? `${ts("labels.practice")}:\n${ts(prompt.practiceKey, prompt.practice)}` : null,
       completion?.reflection?.trim()
         ? `${ts("labels.note")}:\n${completion.reflection.trim()}`
         : null,
@@ -17572,7 +17572,7 @@ function FormationRailSection({
 
   async function shareChallengeDay(challenge: ChallengeWithProgress, day: number) {
     const prompt = getDayPrompt(challenge.id, day);
-    const title = `${ts("challenges.dayLabel").replace("{day}", String(day))} · ${ts(challenge.titleKey)}`;
+    const title = `${ts("challenges.dayLabel").replace("{day}", String(day))} · ${ts(challenge.titleKey, challenge.title)}`;
     const text = buildChallengeDayShareText(challenge, day);
     const url = typeof window !== "undefined"
       ? `${window.location.origin}/?tab=reflect&challenge=${encodeURIComponent(challenge.id)}&day=${day}`
@@ -17663,7 +17663,7 @@ function FormationRailSection({
               {localizedScriptureReference(selectedChallengeModalPrompt.scripture, language)}
             </h2>
             <p className="mt-1.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
-              {ts(selectedChallengeModalPrompt.principleKey)}
+              {ts(selectedChallengeModalPrompt.principleKey, selectedChallengeModalPrompt.principle)}
             </p>
           </div>
           <button
@@ -17682,14 +17682,14 @@ function FormationRailSection({
             {ts("labels.practice")}
           </p>
           <p className="mt-1.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
-            {ts(selectedChallengeModalPrompt.practiceKey)}
+            {ts(selectedChallengeModalPrompt.practiceKey, selectedChallengeModalPrompt.practice)}
           </p>
         </div>
 
         {selectedChallengeModalState === "current" ? (
           <div className="mt-4 space-y-3">
             <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>
-              {ts(selectedChallengeModalPrompt.promptKey)}
+              {ts(selectedChallengeModalPrompt.promptKey, selectedChallengeModalPrompt.prompt)}
             </p>
             <textarea
               rows={4}
@@ -17727,7 +17727,7 @@ function FormationRailSection({
               <button
                 type="button"
                 onClick={() => void shareChallengeDayPostcardImage({
-                  challengeTitle: ts(selectedChallenge.titleKey),
+                  challengeTitle: ts(selectedChallenge.titleKey, selectedChallenge.title),
                   totalDays: selectedChallenge.totalDays,
                   day: selectedChallengeModalDay.day,
                   prompt: selectedChallengeModalPrompt,
@@ -17866,7 +17866,7 @@ function FormationRailSection({
                         {isActive ? ts("challenges.continueChallenge") : ts("challenges.eyebrow")}
                       </p>
                       <p className="mt-1 text-[0.95rem] font-semibold leading-5" style={{ color: theme.textPrimary }}>
-                        {ts(challenge.titleKey)}
+                        {ts(challenge.titleKey, challenge.title)}
                       </p>
                     </div>
                     <span className="shrink-0 text-[11px] font-semibold tabular-nums leading-none" style={{ color: theme.textMuted }}>
@@ -17874,7 +17874,7 @@ function FormationRailSection({
                     </span>
                   </div>
                   <p className="mt-3 line-clamp-1 text-[0.92rem] leading-6" style={{ color: theme.textSecondary }}>
-                    {ts(challenge.descriptionKey)}
+                    {ts(challenge.descriptionKey, challenge.description)}
                   </p>
                   <div className="mt-4 border-t pt-2.5" style={{ borderColor: theme.borderLight }}>
                     <div className="flex items-center justify-between gap-2 text-[11px] leading-5" style={{ color: theme.textMuted }}>
@@ -17896,10 +17896,10 @@ function FormationRailSection({
               <article className="overflow-hidden rounded-[1.55rem] border shadow-[0_12px_28px_rgba(15,23,42,0.06)]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
                 <div className="relative border-b p-4 sm:p-5" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
                   <h3 className="text-xl font-semibold sm:text-[1.7rem]" style={{ color: theme.textPrimary }}>
-                    {ts(selectedChallenge.titleKey)}
+                    {ts(selectedChallenge.titleKey, selectedChallenge.title)}
                   </h3>
                   <p className="mt-2 text-sm leading-6 sm:text-[0.98rem] sm:leading-7" style={{ color: theme.textSecondary }}>
-                    {ts(selectedChallenge.descriptionKey)}
+                    {ts(selectedChallenge.descriptionKey, selectedChallenge.description)}
                   </p>
                   <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs leading-5" style={{ color: theme.textMuted }}>
                     <span className="font-semibold uppercase tracking-[0.08em]" style={{ color: theme.textSecondary }}>
@@ -18006,7 +18006,7 @@ function FormationRailSection({
                         const completion = completionForDay(selectedChallenge, day.day);
                         const isFocused = selectedChallengeFocusedDay === day.day;
                         const isLocked = day.day > selectedChallengeNextDay;
-                        const teaserText = ts(day.promptKey);
+                        const teaserText = ts(day.promptKey, day.prompt);
                         const statusLabel = state === "completed"
                           ? ts("challenges.completedChallenge")
                           : ts("challenges.continueChallenge");
@@ -23560,7 +23560,7 @@ function ChallengeInviteModal({
     }
     const challengeTitle = details?.bookTitle?.trim()
       ? `${ts("challenges.readWithMeSharePrefix")} · ${details.bookTitle.trim()}`
-      : ts(challenge.challenge.titleKey);
+      : ts(challenge.challenge.titleKey, challenge.challenge.title);
     const text = details?.bookTitle?.trim()
       ? [
           `${details.bookTitle.trim()}${details.author?.trim() ? ` by ${details.author.trim()}` : ""}`,
@@ -23593,12 +23593,12 @@ function ChallengeInviteModal({
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>{ts("challenges.inviteEyebrow")}</p>
               <h2 className="mt-1.5 text-lg font-semibold" style={{ color: theme.textPrimary }}>
-                {details?.bookTitle?.trim() ? details.bookTitle.trim() : ts(challenge.challenge.titleKey)}
+                {details?.bookTitle?.trim() ? details.bookTitle.trim() : ts(challenge.challenge.titleKey, challenge.challenge.title)}
               </h2>
               <p className="mt-1.5 text-sm leading-5" style={{ color: theme.textSecondary }}>
                 {details?.bookTitle?.trim()
                   ? ts("challenges.readWithMeInviteSubtitle")
-                  : ts(challenge.challenge.descriptionKey)}
+                  : ts(challenge.challenge.descriptionKey, challenge.challenge.description)}
               </p>
             </div>
           </div>
@@ -27060,7 +27060,7 @@ function ReflectPanel({
                 ts,
                 ts("labels.suggestedAction")
               )}
-              title={ts(challengeRecommendation.titleKey)}
+              title={ts(challengeRecommendation.titleKey, challengeRecommendation.title)}
               body={challengeRecommendationBody(challengeRecommendation, ts)}
               actionLabel={challengeRecommendation.actionKind === "continue" ? ts("challenges.continueChallenge") : ts("challenges.startChallenge")}
               onAction={() => {

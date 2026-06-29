@@ -795,9 +795,9 @@ export function recommendChallenges(input: ChallengeRecommendationContext): Chal
         return {
           challengeId: def.id,
           titleKey: def.titleKey,
-          title: "",
+          title: def.title,
           descriptionKey: def.descriptionKey,
-          description: "",
+          description: def.description,
           totalDays: def.totalDays,
           mode: def.mode,
           completedDays: daysCompleted,

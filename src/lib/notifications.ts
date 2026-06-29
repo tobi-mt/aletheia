@@ -2445,7 +2445,7 @@ export async function sendChallengeReminders(now = new Date()): Promise<{
       return challengeId;
     }
     const translations = loadTranslationsSync(language);
-    return String(getTranslation(translations, challenge.titleKey));
+    return String(getTranslation(translations, challenge.titleKey, challenge.title));
   }
 
   let attempted = 0;
@@ -2488,6 +2488,7 @@ export async function sendChallengeReminders(now = new Date()): Promise<{
     let challengeId: string;
     let nextDay: number;
     let practiceKey: string;
+    let practiceFallback = "";
     let isSuggestion = false;
     let shouldReengage = false;
     let reentryTone: "early" | "longer" = "early";
@@ -2501,6 +2502,7 @@ export async function sendChallengeReminders(now = new Date()): Promise<{
       const dayPrompt = def.days.find((d) => d.day === nextDay);
       if (!dayPrompt) continue;
       practiceKey = dayPrompt.practiceKey;
+      practiceFallback = dayPrompt.practice;
     } else {
       const completedChallengeIds = userProgress
         .filter((progress) => {
@@ -2525,6 +2527,7 @@ export async function sendChallengeReminders(now = new Date()): Promise<{
       challengeId = suggest;
       nextDay = 1;
       practiceKey = def.days[0]?.practiceKey ?? "";
+      practiceFallback = def.days[0]?.practice ?? "";
       isSuggestion = true;
       suggested++;
     }
@@ -2538,11 +2541,11 @@ export async function sendChallengeReminders(now = new Date()): Promise<{
     if (isSuggestion) {
       const challenge = getChallengeById(challengeId);
       body = compactNotificationCopy(
-        challenge ? String(getTranslation(translations, challenge.descriptionKey)) : "",
+        challenge ? String(getTranslation(translations, challenge.descriptionKey, challenge.description)) : "",
         136
       );
     } else {
-      const practiceText = getTranslation(translations, practiceKey);
+      const practiceText = getTranslation(translations, practiceKey, practiceFallback);
       const dayLabel = String(getTranslation(translations, "challenges.dayLabel")).replace("{day}", String(nextDay));
       body = challengeReminderBody({
         language,
