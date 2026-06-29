@@ -9,7 +9,7 @@ const dbQueryRetries = Math.max(0, Number(process.env.DB_QUERY_RETRIES ?? 2));
 const dbRetryBaseDelayMs = Math.max(100, Number(process.env.DB_RETRY_BASE_DELAY_MS ?? 250));
 const dbConnectionTimeoutMillis = Math.max(
   1000,
-  Number(process.env.DB_CONNECTION_TIMEOUT_MS ?? 5000)
+  Number(process.env.DB_CONNECTION_TIMEOUT_MS ?? (process.env.NODE_ENV === "production" ? 15000 : 5000))
 );
 
 if (!connectionString) {
