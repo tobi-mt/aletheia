@@ -14426,7 +14426,7 @@ function HomeDashboard({
         }}
       >
           <div className="flex flex-col gap-4">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
               <div className="min-w-0">
                 <p className="text-[10.5px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.accentGold }}>
                   {homeWelcomeEyebrow}
@@ -14438,7 +14438,7 @@ function HomeDashboard({
                   {homeWelcomeSeasonal}
                 </p>
             </div>
-              <span className="grid size-12 shrink-0 place-items-center self-start rounded-2xl border shadow-[0_8px_16px_rgba(7,10,8,0.08)]" style={{ borderColor: theme.primary, backgroundColor: theme.primary, color: theme.textOnPrimary }}>
+              <span className="grid size-12 shrink-0 place-items-center justify-self-end rounded-2xl border shadow-[0_8px_16px_rgba(7,10,8,0.08)]" style={{ borderColor: theme.primary, backgroundColor: theme.primary, color: theme.textOnPrimary }}>
                 <Sparkles size={22} />
               </span>
             </div>
@@ -14920,7 +14920,7 @@ function CompanionCardAction({
     <button
       type="button"
       onClick={onClick}
-      className="premium-tap-card flex min-h-[7.75rem] w-[10.4rem] shrink-0 snap-start flex-col justify-between rounded-[1.28rem] border p-3.5 text-left text-sm font-semibold shadow-sm transition hover:-translate-y-0.5 hover:shadow-md sm:w-[10.9rem]"
+      className="premium-tap-card flex min-h-[7.25rem] w-[10.4rem] shrink-0 snap-start flex-col justify-between rounded-[1.28rem] border p-3.5 text-left text-sm font-semibold shadow-sm transition hover:-translate-y-0.5 hover:shadow-md sm:w-[10.9rem]"
       style={primary
         ? {
             borderColor: theme.primary,
@@ -14934,15 +14934,20 @@ function CompanionCardAction({
             color: theme.textPrimary,
           }}
     >
-      <span
-        className="grid size-8 place-items-center rounded-full border"
-        style={primary
-          ? { borderColor: "rgba(255,255,255,0.22)", backgroundColor: "rgba(255,255,255,0.12)", color: theme.textOnPrimary }
-          : { borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}
-      >
-        <Icon size={14} />
-      </span>
-      <span className="max-w-[8.5rem] leading-[1.15] text-balance">{label}</span>
+      <div className="flex items-start justify-between gap-2">
+        <span className="min-w-0 flex-1 leading-[1.15] text-balance">{label}</span>
+        <span
+          className="grid size-8 shrink-0 place-items-center rounded-full border"
+          style={primary
+            ? { borderColor: "rgba(255,255,255,0.22)", backgroundColor: "rgba(255,255,255,0.12)", color: theme.textOnPrimary }
+            : { borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}
+        >
+          <Icon size={14} />
+        </span>
+      </div>
+      <div className="flex items-end justify-end">
+        <ArrowUpRight size={15} style={{ color: primary ? "rgba(255,255,255,0.88)" : theme.textMuted, opacity: 0.88 }} />
+      </div>
     </button>
   );
 }
@@ -25384,7 +25389,7 @@ function CurrentCounselCard({
         </div>
       ) : null}
       <article className="mt-3.5 rounded-[1.25rem] border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
           <span
             className="inline-flex items-center gap-2 self-start rounded-full border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.16em]"
             style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}
@@ -25395,7 +25400,7 @@ function CurrentCounselCard({
             {lensLabel}
           </span>
           {preferences.voiceEnabled && !isThinking ? (
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col items-end gap-2 justify-self-end">
               <span
                 className="inline-flex h-7 min-w-[6.5rem] items-center justify-end whitespace-nowrap text-right text-[11px] leading-none tabular-nums sm:min-w-[7.5rem]"
                 style={{ color: theme.textMuted }}
