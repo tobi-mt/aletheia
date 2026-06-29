@@ -4,6 +4,7 @@ import { apiError } from "@/lib/api-errors";
 import { many, one, run } from "@/lib/db";
 import { hashChallengeInviteToken } from "@/lib/challenge-circles";
 import { normalizeReadWithMeInviteDetails, type ReadWithMeInviteDetails } from "@/lib/read-with-me-invite";
+import { buildFastingDayPlan, normalizeFastingInviteDetails, type FastingInviteDetails } from "@/lib/fasting-invite";
 import { readJsonBody } from "@/lib/request";
 import { trackServerEvent } from "@/lib/analytics";
 import { getChallengeById } from "@/lib/challenge-data";
@@ -56,8 +57,18 @@ type NudgeRow = {
   sender_avatar_url: string | null;
 };
 
-function formatInviteDetails(challengeId: string, rawDetails: unknown): ReadWithMeInviteDetails | null {
-  if (challengeId !== "read-with-me-7day" || !rawDetails || typeof rawDetails !== "object" || Array.isArray(rawDetails)) {
+const FASTING_CHALLENGE_ID = "fasting-custom";
+
+function formatInviteDetails(challengeId: string, rawDetails: unknown): ReadWithMeInviteDetails | FastingInviteDetails | null {
+  if (!rawDetails || typeof rawDetails !== "object" || Array.isArray(rawDetails)) {
+    return null;
+  }
+
+  if (challengeId === FASTING_CHALLENGE_ID) {
+    return normalizeFastingInviteDetails(rawDetails as Partial<FastingInviteDetails>);
+  }
+
+  if (challengeId !== "read-with-me-7day") {
     return null;
   }
 
@@ -97,6 +108,7 @@ async function inviteResponses(circleId: string) {
 }
 
 async function circleMembers(circleId: string, challengeId: string) {
+  const progressKey = challengeId === FASTING_CHALLENGE_ID ? `fasting:${circleId}` : challengeId;
   return many<MemberRow>(
     `SELECT m.user_id, m.role, m.joined_at, u.name, u.avatar_url,
             COALESCE(progress.days_completed, 0) AS completed_days,
@@ -111,7 +123,7 @@ async function circleMembers(circleId: string, challengeId: string) {
      ) AS progress ON progress.user_id = m.user_id
      WHERE m.circle_id = ?
      ORDER BY CASE WHEN m.role = 'host' THEN 0 ELSE 1 END, m.joined_at ASC`,
-    challengeId,
+    progressKey,
     circleId
   );
 }
@@ -129,10 +141,16 @@ async function circleNudges(circleId: string) {
 }
 
 async function formatCircle(circle: CircleRow, viewerUserId?: string) {
-  const challenge = getChallengeById(circle.challenge_id);
-  if (!challenge) {
+  const isFastingChallenge = circle.challenge_id === FASTING_CHALLENGE_ID;
+  const challenge = isFastingChallenge ? null : getChallengeById(circle.challenge_id);
+  if (!challenge && !isFastingChallenge) {
     return null;
   }
+
+  const inviteDetails = formatInviteDetails(circle.challenge_id, circle.invite_details_json);
+  const fastingInviteDetails = inviteDetails?.kind === "fasting" ? inviteDetails : null;
+  const totalDays = isFastingChallenge && inviteDetails?.durationValue ? inviteDetails.durationValue : challenge!.totalDays;
+  const days = fastingInviteDetails ? buildFastingDayPlan(fastingInviteDetails.durationValue, fastingInviteDetails.goal) : null;
 
   const [members, nudges, responses, viewer] = await Promise.all([
     circleMembers(circle.id, circle.challenge_id),
@@ -145,20 +163,23 @@ async function formatCircle(circle: CircleRow, viewerUserId?: string) {
     id: circle.id,
     challengeId: circle.challenge_id,
     challenge: {
-      id: challenge.id,
-      titleKey: challenge.titleKey,
-      descriptionKey: challenge.descriptionKey,
-      title: "",
-      description: "",
-      totalDays: challenge.totalDays,
-      mode: challenge.mode,
+      id: isFastingChallenge ? circle.challenge_id : challenge!.id,
+      titleKey: isFastingChallenge ? "challenges.fastingCustom.title" : challenge!.titleKey,
+      descriptionKey: isFastingChallenge ? "challenges.fastingCustom.description" : challenge!.descriptionKey,
+      title: isFastingChallenge ? "Fasting Practice" : challenge!.title,
+      description: isFastingChallenge
+        ? "Choose a duration, name a goal, and follow a tailored day-by-day fast."
+        : challenge!.description,
+      totalDays,
+      mode: isFastingChallenge ? "Life" : challenge!.mode,
+      days: days ?? undefined,
     },
     invite: {
       status: circle.invite_status,
       note: circle.note,
       acceptedAt: circle.accepted_at,
       createdAt: circle.created_at,
-      details: formatInviteDetails(circle.challenge_id, circle.invite_details_json),
+      details: inviteDetails,
       owner: {
         id: circle.owner_user_id,
         name: circle.owner_name,

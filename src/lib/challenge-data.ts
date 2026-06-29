@@ -325,8 +325,8 @@ export const challengeDefinitions: ChallengeDefinition[] = [
     id: "listening-3day",
     titleKey: "challenges.listening3day.title",
     descriptionKey: "challenges.listening3day.description",
-    title: "3-Day Listening Practice",
-    description: "Three days of slowing down, listening first, and hearing what is being said beneath the first answer.",
+    title: "Listening Practice",
+    description: "Three days to slow down, listen first, and hear what lies beneath the first answer.",
     totalDays: 3,
     mode: MODE_KEYS.LIFE,
     days: [
@@ -366,8 +366,8 @@ export const challengeDefinitions: ChallengeDefinition[] = [
     id: "repair-4day",
     titleKey: "challenges.repair4day.title",
     descriptionKey: "challenges.repair4day.description",
-    title: "4-Day Repair Practice",
-    description: "Four days of naming hurt honestly, lowering defensiveness, and moving toward repair with care.",
+    title: "Repair Practice",
+    description: "Four days to name hurt honestly, lower defensiveness, and move toward repair.",
     totalDays: 4,
     mode: MODE_KEYS.LIFE,
     days: [
@@ -417,8 +417,8 @@ export const challengeDefinitions: ChallengeDefinition[] = [
     id: "generosity-7day",
     titleKey: "challenges.generosity7day.title",
     descriptionKey: "challenges.generosity7day.description",
-    title: "7-Day Generosity Practice",
-    description: "Seven days of giving from conviction, not pressure, while naming capacity, joy, and wise limits.",
+    title: "Generosity Practice",
+    description: "Seven days of giving from conviction, not pressure, while honoring capacity and wise limits.",
     totalDays: 7,
     mode: MODE_KEYS.GENEROSITY,
     days: [
@@ -498,8 +498,8 @@ export const challengeDefinitions: ChallengeDefinition[] = [
     id: "attention-fast-5day",
     titleKey: "challenges.attentionFast5day.title",
     descriptionKey: "challenges.attentionFast5day.description",
-    title: "5-Day Attention Fast",
-    description: "Five days of clearing noise, recovering focus, and choosing what deserves your attention.",
+    title: "Attention Fast",
+    description: "Five days to clear noise, recover focus, and choose what deserves attention.",
     totalDays: 5,
     mode: MODE_KEYS.PURPOSE,
     days: [
@@ -559,8 +559,8 @@ export const challengeDefinitions: ChallengeDefinition[] = [
     id: "hidden-service-5day",
     titleKey: "challenges.hiddenService5day.title",
     descriptionKey: "challenges.hiddenService5day.description",
-    title: "5-Day Hidden Service Practice",
-    description: "Five days of serving quietly, releasing credit, and noticing faithfulness that does not need to be seen.",
+    title: "Hidden Service",
+    description: "Five days to serve quietly, release credit, and notice faithfulness no one needs to see.",
     totalDays: 5,
     mode: MODE_KEYS.LIFE,
     days: [
@@ -620,8 +620,8 @@ export const challengeDefinitions: ChallengeDefinition[] = [
     id: "read-with-me-7day",
     titleKey: "challenges.readWithMe7day.title",
     descriptionKey: "challenges.readWithMe7day.description",
-    title: "7-Day Reading Practice",
-    description: "Seven days of reading with attention, asking what is true, and letting wisdom shape how you listen.",
+    title: "Reading Practice",
+    description: "Seven days of careful reading, asking what is true, and letting wisdom shape your hearing.",
     totalDays: 7,
     mode: MODE_KEYS.PURPOSE,
     days: [
@@ -633,7 +633,7 @@ export const challengeDefinitions: ChallengeDefinition[] = [
         practiceKey: "challenges.readWithMe7day.day1.practice",
         principle: "An intelligent heart acquires knowledge, and the ear of the wise seeks knowledge.",
         prompt: "What do you want to understand more deeply?",
-        practice: "Read one passage with fuller attention.",
+        practice: "Read one passage with full attention.",
       },
       {
         day: 2,
@@ -663,7 +663,7 @@ export const challengeDefinitions: ChallengeDefinition[] = [
         practiceKey: "challenges.readWithMe7day.day4.practice",
         principle: "Your word is a lamp to my feet and a light to my path.",
         prompt: "What is the lamp for the next step, not the whole map?",
-        practice: "Let one line guide your next step.",
+        practice: "Let one line guide the next step.",
       },
       {
         day: 5,
@@ -683,7 +683,7 @@ export const challengeDefinitions: ChallengeDefinition[] = [
         practiceKey: "challenges.readWithMe7day.day6.practice",
         principle: "Let the word of Christ dwell in you richly.",
         prompt: "What word needs to dwell richly in you today?",
-        practice: "Sit with one passage longer than usual.",
+        practice: "Sit with one passage a little longer.",
       },
       {
         day: 7,

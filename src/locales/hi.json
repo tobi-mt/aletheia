@@ -1265,6 +1265,7 @@
     "author": "Author",
     "notSet": "सेट नहीं",
     "duration": "Duration",
+    "goal": "लक्ष्य",
     "startDate": "Start date",
     "edition": "Edition / translation",
     "cadence": "Cadence",
@@ -1732,9 +1733,9 @@
     "inviteReady": "आमंत्रण तैयार",
     "inviteEyebrow": "साझा अभ्यास आमंत्रण",
     "initiatedBy": "आरंभकर्ता",
-    "sharedProgress": "साझा प्रगति",
-    "nudges": "प्रोत्साहन",
-    "noNudgesYet": "अभी कोई प्रोत्साहन नहीं। पहला संदेश भेजें।",
+    "sharedProgress": "सर्कल प्रगति",
+    "nudges": "चेक-इन",
+    "noNudgesYet": "अभी कोई चेक-इन नहीं। पहली नोट भेजें।",
     "sendNudge": "प्रोत्साहन भेजें",
     "nudgePlaceholder": "एक छोटा प्रोत्साहन या चेक-इन लिखें…",
     "sendNudgeButton": "भेजें",
@@ -1863,7 +1864,6 @@
         "practice": "इस मौसम के लिए क्या पर्याप्त है, साफ़-साफ़ लिखें।"
       }
     },
-
     "sabbathRest5day": {
       "title": "5-दिन का सब्त विश्राम अभ्यास",
       "description": "पाँच दिन की संरक्षित विश्राम-प्रथा: काम की गति को नाम देना, उसके नीचे के तनाव को पहचानना, और धीमा होने की जगह बनाना.",
@@ -1894,6 +1894,185 @@
       }
     },
     "whyThisFits": "Why this fits",
+    "listening3day": {
+      "title": "सुनने का अभ्यास",
+      "description": "तीन दिन धीमे होने, पहले सुनने, और पहली प्रतिक्रिया के नीचे छिपी बात सुनने के लिए।",
+      "day1": {
+        "principle": "हर व्यक्ति सुनने में तत्पर, बोलने में धीमा, और क्रोध में धीमा हो।",
+        "prompt": "आज किस व्यक्ति या चीज़ को आपका पूरा ध्यान चाहिए?",
+        "practice": "आज एक बार जवाब देने से पहले सुनिए।"
+      },
+      "day2": {
+        "principle": "जो सुने बिना उत्तर देता है, उसके लिए यह मूर्खता और लज्जा है।",
+        "prompt": "आप कौन-सा प्रश्न बहुत जल्दी पार कर रहे हैं?",
+        "practice": "उत्तर देने से पहले थोड़ा ठहरिए।"
+      },
+      "day3": {
+        "principle": "मनुष्य के हृदय का उद्देश्य गहरे जल के समान है, पर समझदार मनुष्य उसे निकाल लेता है।",
+        "prompt": "कहाँ एक अच्छा प्रश्न तेज़ राय से अधिक मदद करेगा?",
+        "practice": "एक धीमा, अधिक समझदार प्रश्न पूछिए।"
+      }
+    },
+    "repair4day": {
+      "title": "मरम्मत का अभ्यास",
+      "description": "चार दिन चोट को ईमानदारी से नाम देने, रक्षात्मकता कम करने, और सावधानी से सुधार की ओर बढ़ने के लिए।",
+      "day1": {
+        "principle": "पहले जाकर अपने भाई से मेल-मिलाप कर।",
+        "prompt": "किसे आपकी ध्यान की ज़रूरत है क्योंकि कुछ अधूरा रह गया है?",
+        "practice": "उस संबंध को नाम दीजिए जिसे मरम्मत चाहिए।"
+      },
+      "day2": {
+        "principle": "क्रोध तो करो, पर पाप मत करो; सूर्य अस्त होने तक तुम्हारा क्रोध न रहे।",
+        "prompt": "क्रोध कहाँ धीमी आँच पर बना हुआ है?",
+        "practice": "सूर्य अस्त होने से पहले एक कदम उठाइए।"
+      },
+      "day3": {
+        "principle": "अपने पाप एक दूसरे के सामने मान लो, और एक दूसरे के लिए प्रार्थना करो।",
+        "prompt": "कौन-सा स्वीकार या क्षमा-याचना अगली बातचीत को अधिक ईमानदार बना देगी?",
+        "practice": "उस क्षमा-याचना को लिखिए जिससे आप बच रहे हैं।"
+      },
+      "day4": {
+        "principle": "जहाँ तक हो सके, और जहाँ तक तुम पर निर्भर है, सब मनुष्यों के साथ मेल से रहो।",
+        "prompt": "ऐसी कौन-सी निष्ठावान शांति है जिसे आप बिना दिखावा किए खोज सकते हैं?",
+        "practice": "जहाँ तक आप पर निर्भर है, शांति चुनिए।"
+      }
+    },
+    "generosity7day": {
+      "title": "उदारता का अभ्यास",
+      "description": "सात दिन, दबाव नहीं बल्कि विश्वास से देने, और क्षमता, आनंद, तथा बुद्धिमान सीमाओं का ध्यान रखने के लिए।",
+      "day1": {
+        "principle": "उदार देने वाला हरा-भरा होगा, और सींचने वाला भी सींचा जाएगा।",
+        "prompt": "आपने कहाँ अपनी समझ से अधिक पाया है?",
+        "practice": "एक स्थान पर ध्यान दीजिए जहाँ बहुतायत आगे बढ़ना चाहती है।"
+      },
+      "day2": {
+        "principle": "दान उसी के अनुसार स्वीकार्य है जो किसी के पास है, जो उसके पास नहीं है उसके अनुसार नहीं।",
+        "prompt": "इस मौसम के लिए कौन-सी मात्रा उदार होगी, आदर्श मौसम के लिए नहीं?",
+        "practice": "अपनी क्षमता के अनुसार एक अनुपात नाम दीजिए।"
+      },
+      "day3": {
+        "principle": "देना लेना से अधिक धन्य है।",
+        "prompt": "आपके हाथ में जो है उससे किसे बल मिलेगा?",
+        "practice": "बिना दिखावे के कुछ उपयोगी दीजिए।"
+      },
+      "day4": {
+        "principle": "जो दीन पर अनुग्रह करता है वह यहोवा को उधार देता है।",
+        "prompt": "कौन-सा दया का काम आप भय के बजाय याद रखना चाहेंगे?",
+        "practice": "एक व्यावहारिक दयालुता का तरीका लिखिए।"
+      },
+      "day5": {
+        "principle": "अपनी आशा परमेश्वर पर रखो, जो हमें बहुतायत से सब कुछ देता है कि हम उसका आनंद लें।",
+        "prompt": "जब धन केंद्र में न हो तो आशा कैसी दिखती है?",
+        "practice": "अपनी आशा धन से अधिक स्थिर किसी चीज़ पर रखिए।"
+      },
+      "day6": {
+        "principle": "तुम्हें सब प्रकार से समृद्ध किया जाएगा कि तुम हर प्रकार की उदारता कर सको।",
+        "prompt": "कहाँ कृतज्ञता देने को अधिक मुक्त बनाती है?",
+        "practice": "जो आप बाँट सकते हैं उसके लिए धन्यवाद दीजिए।"
+      },
+      "day7": {
+        "principle": "तुम्हारा परमेश्वर यहोवा तुम्हारे सब कामों में तुम्हें आशीष देगा।",
+        "prompt": "कौन-सा उपहार अभी आनंदमय और टिकाऊ लगता है?",
+        "practice": "आनंद के साथ अगला उदार कदम चुनिए।"
+      }
+    },
+    "attentionFast5day": {
+      "title": "ध्यान-उपवास",
+      "description": "पाँच दिन शोर हटाने, ध्यान लौटाने, और यह चुनने के लिए कि किसे आपका ध्यान चाहिए।",
+      "day1": {
+        "principle": "हमें अपने दिन गिनना सिखा, ताकि हम बुद्धिमान मन प्राप्त करें।",
+        "prompt": "आपका समय कहाँ बह रहा है?",
+        "practice": "ध्यान की एक हानि का नाम दीजिए।"
+      },
+      "day2": {
+        "principle": "सब से अधिक अपने मन की रक्षा कर, क्योंकि जीवन का स्रोत उसी से निकलता है।",
+        "prompt": "आपके भीतरी जीवन को बिना अनुमति क्या आकार दे रहा है?",
+        "practice": "ध्यान के चारों ओर एक सीमा लगाइए।"
+      },
+      "day3": {
+        "principle": "शरीर की ज्योति आँख है।",
+        "prompt": "क्या स्पष्टता लाता है, और क्या उसे धुंधला करता है?",
+        "practice": "अपना ध्यान एक साफ़ चीज़ पर टिकाइए।"
+      },
+      "day4": {
+        "principle": "अपने मन के नए हो जाने से रूपांतरित हो जाओ।",
+        "prompt": "कौन-सा पैटर्न सामान्य है पर बुद्धिमान नहीं?",
+        "practice": "आज एक शोरभरा पैटर्न छोड़ दीजिए।"
+      },
+      "day5": {
+        "principle": "जो कुछ सत्य, आदरणीय, न्यायसंगत, पवित्र, मनोहर, और प्रशंसनीय है, उन्हीं पर ध्यान लगाओ।",
+        "prompt": "क्या सत्य है, आदरणीय है, और देखने योग्य है?",
+        "practice": "एक ऐसी चीज़ का नाम दीजिए जो आपके ध्यान योग्य है।"
+      }
+    },
+    "hiddenService5day": {
+      "title": "छिपी सेवा का अभ्यास",
+      "description": "पाँच दिन चुपचाप सेवा करने, श्रेय छोड़ने, और ऐसी निष्ठा को देखने के लिए जिसे देखे जाने की जरूरत नहीं।",
+      "day1": {
+        "principle": "तुम्हारा पिता, जो गुप्त में देखता है, तुम्हें प्रतिफल देगा।",
+        "prompt": "आप बिना बताए कहाँ भलाई कर सकते हैं?",
+        "practice": "एक छिपा हुआ सेवा कार्य चुनिए।"
+      },
+      "day2": {
+        "principle": "प्रेम से एक दूसरे की सेवा करो।",
+        "prompt": "स्वतंत्रता आत्म-केंद्रित होने के बजाय प्रेमपूर्ण कार्य कैसे बन सकती है?",
+        "practice": "ऐसे सेवा कीजिए कि किसी को प्रशंसा करने की ज़रूरत न पड़े।"
+      },
+      "day3": {
+        "principle": "जिसने जैसा वरदान पाया है, उसे उसी के अनुसार एक दूसरे की सेवा में लगाओ।",
+        "prompt": "आज आप किस वरदान का उपयोग किसी की मदद के लिए कर सकते हैं?",
+        "practice": "एक वरदान से किसी को आशीष दीजिए।"
+      },
+      "day4": {
+        "principle": "जो कुछ भी करो, मन से करो, जैसे प्रभु के लिए, मनुष्यों के लिए नहीं।",
+        "prompt": "जब आप प्रशंसा के बजाय परमेश्वर के लिए सेवा करते हैं तो क्या बदलता है?",
+        "practice": "शांत, अदृश्य निष्ठा के साथ काम कीजिए।"
+      },
+      "day5": {
+        "principle": "परमेश्वर अन्यायी नहीं कि तुम्हारे काम और उस प्रेम को भूल जाए जो तुमने दिखाया है।",
+        "prompt": "आपकी निरंतरता से चुपचाप किसे सहायता मिली है?",
+        "practice": "उस भलाई को देखिए जो पहले ही हो चुकी है।"
+      }
+    },
+    "readWithMe7day": {
+      "title": "पढ़ने का अभ्यास",
+      "description": "सात दिन ध्यान से पढ़ने, यह पूछने कि क्या सत्य है, और बुद्धि को आपके सुनने का तरीका बनाने देने के लिए।",
+      "day1": {
+        "principle": "समझदार हृदय ज्ञान प्राप्त करता है, और बुद्धिमानों का कान ज्ञान खोजता है।",
+        "prompt": "आप किसे और गहराई से समझना चाहते हैं?",
+        "practice": "एक अंश को अधिक ध्यान से पढ़िए।"
+      },
+      "day2": {
+        "principle": "हर व्यक्ति सुनने में तत्पर, बोलने में धीमा, और क्रोध में धीमा हो।",
+        "prompt": "जल्दी सुनने और धीरे बोलने जैसा क्या होगा?",
+        "practice": "समझाने से पहले सुनिए।"
+      },
+      "day3": {
+        "principle": "बुद्धि का आरम्भ यह है: बुद्धि प्राप्त कर।",
+        "prompt": "आपको जानकारी से अधिक कहाँ बुद्धि चाहिए?",
+        "practice": "गति के बजाय बुद्धि चुनिए।"
+      },
+      "day4": {
+        "principle": "तेरा वचन मेरे पाँव के लिए दीपक और मेरे मार्ग के लिए उजियाला है।",
+        "prompt": "अगले कदम के लिए दीपक कौन-सा है, पूरी मानचित्र के लिए नहीं?",
+        "practice": "एक पंक्ति को अगला कदम मार्गदर्शन करने दीजिए।"
+      },
+      "day5": {
+        "principle": "उन्होंने बड़ी उत्सुकता से वचन को ग्रहण किया और प्रतिदिन पवित्र शास्त्रों की जाँच की।",
+        "prompt": "सावधानी से जाँचना कैसा होगा जो आप सुनते हैं?",
+        "practice": "स्वीकार करने से पहले जाँचिए।"
+      },
+      "day6": {
+        "principle": "मसीह का वचन तुम में बहुतायत से वास करे।",
+        "prompt": "आज कौन-सा वचन आपके भीतर अधिकता से बसना चाहिए?",
+        "practice": "एक अंश के साथ सामान्य से अधिक समय बिताइए।"
+      },
+      "day7": {
+        "principle": "अपने आप को परमेश्वर के सामने ऐसा सिद्ध करने का यत्न कर कि तू सत्य के वचन को ठीक रीति से बाँटे।",
+        "prompt": "अभी सत्य को निष्ठा से संभालना कैसा दिखता है?",
+        "practice": "सावधानी, धैर्य, और नम्रता से पढ़िए।"
+      }
+    },
     "readWithMeInviteTitle": "Shared reading plan",
     "readWithMeInviteDetails": "Fixed reading details",
     "readWithMeInviteDetailsBody": "Everyone sees the same book, cadence, and response window.",
@@ -1901,8 +2080,8 @@
     "responseDashboardBody": "Accepted, declined, and time-based pending states update from the invite roster.",
     "noInviteRosterYet": "Add a roster to start tracking responses.",
     "unmatchedResponses": "Other responses",
-    "readWithMeInvitePrompt": "Invitation draft",
-    "readWithMeDetailsBody": "Keep the subject line simple and the duration unmistakable.",
+    "readWithMeInvitePrompt": "पढ़ने की योजना बनाएं",
+    "readWithMeDetailsBody": "पुस्तक और अवधि को स्पष्ट रखें.",
     "readWithMeBookPlaceholder": "The book you want everyone to read",
     "readWithMeAuthorPlaceholder": "Optional, but helpful for clarity",
     "readWithMeEditionPlaceholder": "Optional edition, translation, or format",
@@ -1911,18 +2090,18 @@
     "readWithMeRecipientsEmpty": "Start by naming one or two people.",
     "responseWindowHelper": "Set a start date and the window before responses move to Pending.",
     "responseWindow": "Response window",
-    "readWithMeToneBody": "Use this space for the pace, the why, and the actual note you want them to feel.",
+    "readWithMeToneBody": "इस जगह का उपयोग गति, उद्देश्य, और उस नोट के लिए करें जिसे आप महसूस कराना चाहते हैं.",
     "readWithMeCadencePlaceholder": "Read at a steady pace and hold one brief check-in each week.",
     "readWithMeFocusPlaceholder": "What do you hope this book will clarify, stretch, or shape?",
     "readWithMeNotePlaceholder": "A short note to the people you are inviting",
-    "readWithMeInvitePreview": "निमंत्रण पूर्वावलोकन",
+    "readWithMeInvitePreview": "योजना पूर्वावलोकन",
     "createReadWithMeInvite": "Create reading invite",
     "inviteFriendsTitle": "Shared invite",
     "inviteFriendsSharedPlanBody": "Everyone follows the same practice and sees the same progress.",
     "inviteFriendsProgressBody": "You can see who joined and where the group is up to.",
     "inviteFriendsNudgesBody": "हल्के अनुस्मारक निमंत्रण को जीवंत रखते हैं, बिना शोर किए।",
     "readWithMeSharePrefix": "Read with me",
-    "readWithMeInviteSubtitle": "A shared reading invite",
+    "readWithMeInviteSubtitle": "एक साझा पढ़ने की योजना",
     "leaveInvite": "Leave invite",
     "declinedInviteBody": "You declined this reading invitation. You can still join if you change your mind.",
     "joinAnyway": "Join anyway",
@@ -1939,7 +2118,23 @@
     "completedTodayBody": "दिन {nextDay} का {total} कल के लिए इंतज़ार कर रहा है।",
     "inProgressBody": "दिन {nextDay} का {total} जारी रखें।",
     "continueCurrentPractice": "अपनी वर्तमान अभ्यास को जारी रखें",
-    "reentryNote": "You are already partway through this practice. Keep the rhythm going with day {nextDay}."
+    "reentryNote": "You are already partway through this practice. Keep the rhythm going with day {nextDay}.",
+    "communitySummaryTitle": "सर्कल गतिविधि एक नज़र में",
+    "communitySummaryBody": "प्रगति, प्रोत्साहन, और जाँच-इन यहाँ दिखते हैं जब अभ्यास आगे बढ़ता है।",
+    "fastingCustom": {
+      "title": "उपवास अभ्यास",
+      "description": "स्पष्ट अवधि, केंद्रित उद्देश्य और दैनिक मार्गदर्शन के साथ साझा उपवास.",
+      "formTitle": "उपवास को आकार दें",
+      "formBody": "अवधि तय करें, उद्देश्य लिखें, और हम उसके अनुसार दैनिक मार्ग बनाएँगे.",
+      "durationHint": "अवधि से शुरू करें. दैनिक मार्गदर्शिका उसी के अनुसार ढल जाएगी.",
+      "goalPlaceholder": "आप चाहते हैं कि यह उपवास किसके लिए जगह बनाए?",
+      "dailyPlanTitle": "दैनिक मार्गिका का पूर्वावलोकन",
+      "dailyPlanBody": "पहले तीन दिन लय दिखाते हैं. पूरी योजना अवधि के अनुसार फैलती है.",
+      "createInvite": "उपवास निमंत्रण बनाएँ",
+      "previewTitle": "उपवास विवरण",
+      "previewBody": "अवधि, उद्देश्य, आरंभ तिथि, और नोट एक साफ़ सारांश में साथ रहते हैं."
+    },
+    "readWithMeInvitePromptBody": "पुस्तक, गति, लोग, और समय तय करें. निमंत्रण साफ़ और सीधा रहेगा."
   },
   "streak": {
     "openMilestones": "माइलस्टोन खोलें",

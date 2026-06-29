@@ -103,6 +103,12 @@ import {
   type ReadWithMeInviteRecipient,
   type ReadWithMeInvitePendingWindowUnit,
 } from "@/lib/read-with-me-invite";
+import {
+  buildFastingDayPlan,
+  defaultFastingInviteDetails,
+  formatFastingDurationLabel,
+  type FastingInviteDetails,
+} from "@/lib/fasting-invite";
 import type { ChallengeRecommendationBundle } from "@/lib/challenge-recommendations";
 import { SERVICE_WORKER_URL } from "@/lib/build-version";
 import { loadTranslationsSync, loadTranslationsWithFallbackSync, getTranslation, type TranslationData } from "@/lib/translations";
@@ -16593,13 +16599,15 @@ type ChallengeCircleSummary = {
     description: string;
     totalDays: number;
     mode: string;
+    days?: ChallengeDefinitionPreview["days"];
   };
+  viewerProgress?: ChallengeProgressEntry[];
   invite: {
     status: string;
     note: string | null;
     acceptedAt: string | null;
     createdAt: string;
-    details: ReadWithMeInviteDetails | null;
+    details: ReadWithMeInviteDetails | FastingInviteDetails | null;
     owner: {
       id: string;
       name: string | null;
@@ -16612,6 +16620,8 @@ type ChallengeCircleSummary = {
   responses: ChallengeCircleResponse[];
   nudges: ChallengeCircleNudge[];
 };
+
+const FASTING_CHALLENGE_ID = "fasting-custom";
 
 function FormationsSection({
   theme,
@@ -17092,10 +17102,15 @@ function FormationRailSection({
   const [savingDay, setSavingDay] = useState<{ challengeId: string; day: number } | null>(null);
   const [creatingInviteId, setCreatingInviteId] = useState<string | null>(null);
   const [readWithMeInviteDraft, setReadWithMeInviteDraft] = useState<ReadWithMeInviteDetails>(defaultReadWithMeInviteDetails);
+  const [fastingInviteDraft, setFastingInviteDraft] = useState<FastingInviteDetails>(defaultFastingInviteDetails);
+  const [sharedCircleNudgeDraft, setSharedCircleNudgeDraft] = useState("");
+  const [sharedCircleNudgeStatus, setSharedCircleNudgeStatus] = useState("");
+  const [sharedCircleNudgeBusy, setSharedCircleNudgeBusy] = useState(false);
   const [recipientNameDraft, setRecipientNameDraft] = useState("");
   const [recipientNoteDraft, setRecipientNoteDraft] = useState("");
   const [currentTimestampMs, setCurrentTimestampMs] = useState(() => Date.now());
   const sectionRef = useRef<HTMLElement | null>(null);
+  const selectedChallengeDetailRef = useRef<HTMLElement | null>(null);
   const dayCarouselRef = useRef<HTMLDivElement | null>(null);
   const dayCardRefs = useRef<Record<number, HTMLElement | null>>({});
 
@@ -17175,23 +17190,44 @@ function FormationRailSection({
 
   function getDayPrompt(challengeId: string, day: number) {
     const def = challengeDefs.find((d) => d.id === challengeId);
-    return def?.days.find((d) => d.day === day) ?? null;
+    if (def) {
+      return def.days.find((d) => d.day === day) ?? null;
+    }
+    return displayChallenges.find((challenge) => challenge.id === challengeId)?.days?.find((d) => d.day === day) ?? null;
   }
 
+  const latestFastingCircle = [...challengeCircles]
+    .filter((circle) => circle.challengeId === FASTING_CHALLENGE_ID)
+    .sort((a, b) => Date.parse(b.invite.createdAt) - Date.parse(a.invite.createdAt))[0] ?? null;
+
   const displayChallenges = challengeDefs.length > 0
-    ? challengeDefs.map((def) => {
-        const withProgress = challenges.find((c) => c.id === def.id);
-        return {
-          id: def.id,
-          titleKey: def.titleKey,
-          title: def.title,
-          descriptionKey: def.descriptionKey,
-          description: def.description,
-          totalDays: def.days.length,
-          mode: withProgress?.mode ?? "Life",
-          completedDays: withProgress?.completedDays ?? [],
-        } as ChallengeWithProgress;
-      })
+    ? [
+        ...challengeDefs.map((def) => {
+          const withProgress = challenges.find((c) => c.id === def.id);
+          return {
+            id: def.id,
+            titleKey: def.titleKey,
+            title: def.title,
+            descriptionKey: def.descriptionKey,
+            description: def.description,
+            totalDays: def.days.length,
+            mode: withProgress?.mode ?? "Life",
+            completedDays: withProgress?.completedDays ?? [],
+            days: def.days,
+          } as ChallengeWithProgress;
+        }),
+        {
+          id: FASTING_CHALLENGE_ID,
+          titleKey: "challenges.fastingCustom.title",
+          title: ts("challenges.fastingCustom.title"),
+          descriptionKey: "challenges.fastingCustom.description",
+          description: ts("challenges.fastingCustom.description"),
+          totalDays: latestFastingCircle?.challenge.totalDays ?? fastingInviteDraft.durationValue ?? 7,
+          mode: latestFastingCircle?.challenge.mode ?? "Life",
+          completedDays: latestFastingCircle?.viewerProgress ?? [],
+          days: latestFastingCircle?.challenge.days ?? buildFastingDayPlan(fastingInviteDraft.durationValue ?? 7, fastingInviteDraft.goal),
+        } as ChallengeWithProgress,
+      ]
     : challenges;
 
   const activeChallengeProgress = useMemo(
@@ -17257,8 +17293,8 @@ function FormationRailSection({
 
   const effectiveSelectedChallengeId =
     pendingChallengeId ??
-    activeChallengeProgress?.id ??
     selectedChallengeId ??
+    activeChallengeProgress?.id ??
     recommendationSignals.primary?.challengeId ??
     displayChallenges[0]?.id ??
     null;
@@ -17269,17 +17305,30 @@ function FormationRailSection({
         .sort((a, b) => Date.parse(b.invite.createdAt) - Date.parse(a.invite.createdAt))[0] ?? null
     : null;
   const selectedCircleInviteDetails = selectedCircle?.invite.details ?? null;
+  const selectedCircleHasCurrentMember = selectedCircle?.members.some((member) => member.userId === user?.id) ?? false;
   const isReadWithMeChallenge = selectedChallenge?.id === "read-with-me-7day";
-  const readWithMeInviteDetails = selectedCircleInviteDetails ?? (isReadWithMeChallenge ? readWithMeInviteDraft : null);
+  const isFastingChallenge = selectedChallenge?.id === FASTING_CHALLENGE_ID;
+  const readWithMeInviteDetails = selectedCircle?.challengeId === "read-with-me-7day"
+    ? (selectedCircleInviteDetails as ReadWithMeInviteDetails | null)
+    : isReadWithMeChallenge
+      ? readWithMeInviteDraft
+      : null;
+  const fastingInviteDetails = selectedCircle?.challengeId === FASTING_CHALLENGE_ID
+    ? (selectedCircleInviteDetails as FastingInviteDetails | null)
+    : isFastingChallenge
+      ? fastingInviteDraft
+      : null;
   const canCreateReadWithMeInvite =
     readWithMeInviteDraft.bookTitle.trim().length > 0 &&
     readWithMeInviteDraft.durationValue !== null &&
     readWithMeInviteDraft.durationValue > 0 &&
     readWithMeInviteDraft.recipients.length > 0;
+  const canCreateFastingInvite = fastingInviteDraft.durationValue !== null && fastingInviteDraft.durationValue > 0;
   const readWithMeDurationLabel = formatReadWithMeDurationLabel(
     readWithMeInviteDetails?.durationValue ?? null,
     readWithMeInviteDetails?.durationUnit ?? defaultReadWithMeInviteDetails.durationUnit
   );
+  const fastingDurationLabel = formatFastingDurationLabel(fastingInviteDetails?.durationValue ?? null);
   const readWithMePendingWindowValue =
     readWithMeInviteDetails?.pendingAfterValue ?? defaultReadWithMeInviteDetails.pendingAfterValue;
   const readWithMePendingWindowUnit =
@@ -17295,27 +17344,83 @@ function FormationRailSection({
         year: "numeric",
       })
     : "";
+  const fastingStartDate = fastingInviteDetails?.startDate
+    ? new Date(`${fastingInviteDetails.startDate}T00:00:00`).toLocaleDateString(undefined, {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      })
+    : "";
   const readWithMeInviteRecipients = readWithMeInviteDetails?.recipients ?? [];
   const readWithMeInviteResponses = selectedCircle?.responses ?? [];
   const readWithMeInviteCreatedAt = selectedCircle?.invite.createdAt ?? null;
+  const selectedChallengeCompletedDays = isFastingChallenge
+    ? selectedCircle?.viewerProgress ?? selectedChallenge?.completedDays ?? []
+    : selectedChallenge?.completedDays ?? [];
   const selectedChallengeProgressState = selectedChallenge
     ? getChallengeProgressState(
         {
-          completedDays: selectedChallenge.completedDays.length,
+          completedDays: selectedChallengeCompletedDays.length,
           totalDays: selectedChallenge.totalDays,
-          lastCompletedAt: selectedChallenge.completedDays.at(-1)?.completedAt ?? null,
+          lastCompletedAt: selectedChallengeCompletedDays.at(-1)?.completedAt ?? null,
         },
         currentTimestampMs
       )
     : null;
+
+  async function postSharedCircleNudge() {
+    const body = sharedCircleNudgeDraft.trim();
+    if (!selectedCircle || !selectedCircleHasCurrentMember || !body) {
+      return;
+    }
+
+    setSharedCircleNudgeBusy(true);
+    setSharedCircleNudgeStatus("");
+    try {
+      const response = await fetch(`/api/challenge-circles/${encodeURIComponent(selectedCircle.id)}/nudges`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ body }),
+      });
+      const data = (await response.json().catch(() => ({}))) as {
+        nudge?: { id: string; body: string; createdAt: string; senderUserId: string };
+        error?: string;
+        errorCode?: string;
+      };
+      if (response.ok && data.nudge) {
+        setSharedCircleNudgeDraft("");
+        setSharedCircleNudgeStatus(ts("status.challengeInviteNudgeSent"));
+        onChallengeCircleChanged();
+        return;
+      }
+      setSharedCircleNudgeStatus(ts("status.challengeInviteNudgeFailed"));
+    } catch {
+      setSharedCircleNudgeStatus(ts("status.challengeInviteNudgeFailed"));
+    } finally {
+      setSharedCircleNudgeBusy(false);
+    }
+  }
   const selectedChallengeNextDay = selectedChallenge
     ? selectedChallengeProgressState === "completed_today"
-      ? Math.min(selectedChallenge.completedDays.length, selectedChallenge.totalDays)
+      ? Math.min(selectedChallengeCompletedDays.length, selectedChallenge.totalDays)
       : nextDayFor(selectedChallenge)
     : 1;
 
+  useEffect(() => {
+    if (!selectedChallenge) {
+      return;
+    }
+    window.requestAnimationFrame(() => {
+      selectedChallengeDetailRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }, [selectedChallenge?.id]);
+
   function updateReadWithMeInviteDraft(patch: Partial<ReadWithMeInviteDetails>) {
     setReadWithMeInviteDraft((current) => ({ ...current, ...patch }));
+  }
+
+  function updateFastingInviteDraft(patch: Partial<FastingInviteDetails>) {
+    setFastingInviteDraft((current) => ({ ...current, ...patch }));
   }
 
   function normalizeRosterKey(value: string) {
@@ -17424,7 +17529,7 @@ function FormationRailSection({
       ? dayStateFor(selectedChallenge, selectedChallengeFocusedDay)
       : "upcoming";
   const selectedChallengeFocusedCompletion = selectedChallenge && selectedChallengeFocusedDay !== null
-    ? selectedChallenge.completedDays.find((day) => day.day === selectedChallengeFocusedDay) ?? null
+    ? selectedChallengeCompletedDays.find((day) => day.day === selectedChallengeFocusedDay) ?? null
     : null;
   const selectedChallengeDefinition = selectedChallenge
     ? challengeDefs.find((def) => def.id === selectedChallenge.id) ?? null
@@ -17593,22 +17698,43 @@ function FormationRailSection({
   async function markDayComplete(challenge: ChallengeWithProgress) {
     const day = nextDayFor(challenge);
     if (day > challenge.totalDays) return;
+    const isFastingChallenge = challenge.id === FASTING_CHALLENGE_ID;
+    const fastingCircle = isFastingChallenge ? selectedCircle : null;
+    if (isFastingChallenge && !fastingCircle) {
+      return;
+    }
     setSavingDay({ challengeId: challenge.id, day });
     try {
-      const res = await fetch("/api/challenges/complete", {
+      const res = await fetch(isFastingChallenge ? `/api/challenge-circles/${encodeURIComponent(fastingCircle!.id)}/days/complete` : "/api/challenges/complete", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ challengeId: challenge.id, day, reflection: reflectionText.trim() }),
+        body: JSON.stringify(isFastingChallenge ? { day, reflection: reflectionText.trim() } : { challengeId: challenge.id, day, reflection: reflectionText.trim() }),
       });
       if (res.ok) {
         const now = new Date().toISOString();
-        setChallenges((prev) =>
-          prev.map((c) =>
-            c.id === challenge.id
-              ? { ...c, completedDays: [...c.completedDays, { day, reflection: reflectionText.trim(), completedAt: now }] }
-              : c
-          )
-        );
+        if (isFastingChallenge) {
+          setChallengeCircles((prev) =>
+            prev.map((circle) =>
+              circle.id === fastingCircle!.id
+                ? {
+                    ...circle,
+                    viewerProgress: [
+                      ...(circle.viewerProgress ?? []).filter((entry) => entry.day !== day),
+                      { day, reflection: reflectionText.trim(), completedAt: now },
+                    ].sort((a, b) => a.day - b.day),
+                  }
+                : circle
+            )
+          );
+        } else {
+          setChallenges((prev) =>
+            prev.map((c) =>
+              c.id === challenge.id
+                ? { ...c, completedDays: [...c.completedDays, { day, reflection: reflectionText.trim(), completedAt: now }] }
+                : c
+            )
+          );
+        }
         setReflectionText("");
         onChallengeCircleChanged();
         trackClientEvent("challenge_day_marked_complete", { challengeId: challenge.id, day });
@@ -17752,7 +17878,7 @@ function FormationRailSection({
 
   async function createChallengeInvite(
     challenge: ChallengeWithProgress,
-    inviteDetails?: ReadWithMeInviteDetails
+    inviteDetails?: ReadWithMeInviteDetails | FastingInviteDetails
   ) {
     setCreatingInviteId(challenge.id);
     try {
@@ -17893,7 +18019,7 @@ function FormationRailSection({
 
           {selectedChallenge ? (
             <div className="grid gap-4 xl:grid-cols-[minmax(0,1.16fr)_minmax(300px,0.84fr)]">
-              <article className="overflow-hidden rounded-[1.55rem] border shadow-[0_12px_28px_rgba(15,23,42,0.06)]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+              <article ref={selectedChallengeDetailRef} className="overflow-hidden rounded-[1.55rem] border shadow-[0_12px_28px_rgba(15,23,42,0.06)]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
                 <div className="relative border-b p-4 sm:p-5" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
                   <h3 className="text-xl font-semibold sm:text-[1.7rem]" style={{ color: theme.textPrimary }}>
                     {ts(selectedChallenge.titleKey, selectedChallenge.title)}
@@ -17948,16 +18074,22 @@ function FormationRailSection({
                         </p>
                       ) : null}
                     </div>
+                  ) : fastingInviteDetails ? (
+                    <div className="mt-4 rounded-[1.1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+                        {ts("challenges.fastingCustom.previewTitle")}
+                      </p>
+                      <p className="mt-1.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                        {ts("challenges.fastingCustom.previewBody")}
+                      </p>
+                      <p className="mt-2 text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>
+                        {[fastingDurationLabel, fastingStartDate].filter(Boolean).join(" · ") || ts("labels.duration")}
+                      </p>
+                      <p className="mt-1.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                        {[fastingInviteDetails?.goal ?? "", fastingInviteDetails?.note ?? ""].filter(Boolean).join(" · ")}
+                      </p>
+                    </div>
                   ) : null}
-                  <div className="mt-4 h-2 overflow-hidden rounded-full" style={{ backgroundColor: theme.bgInput }}>
-                    <div
-                      className="h-full rounded-full"
-                      style={{
-                        width: `${Math.max(0, Math.min(100, (selectedChallenge.completedDays.length / selectedChallenge.totalDays) * 100))}%`,
-                        background: `linear-gradient(90deg, ${theme.primary}, ${theme.accentGold})`,
-                      }}
-                    />
-                  </div>
                 </div>
 
                 <div className="space-y-4 p-4 sm:p-5">
@@ -17977,7 +18109,7 @@ function FormationRailSection({
                       <div
                         className="h-full rounded-full"
                         style={{
-                          width: `${Math.max(0, Math.min(100, (selectedChallenge.completedDays.length / selectedChallenge.totalDays) * 100))}%`,
+                          width: `${Math.max(0, Math.min(100, (selectedChallengeCompletedDays.length / selectedChallenge.totalDays) * 100))}%`,
                           background: `linear-gradient(90deg, ${theme.primary}, ${theme.accentGold})`,
                         }}
                       />
@@ -18121,14 +18253,9 @@ function FormationRailSection({
                           {ts("challenges.communityTitle")}
                         </p>
                         <h3 className="mt-1.5 text-lg font-semibold" style={{ color: theme.textPrimary }}>
-                          {selectedCircle ? ts("challenges.communitySummary") : ts("challenges.noCommunityYet")}
+                          {selectedCircle ? ts("challenges.communitySummaryTitle") : ts("challenges.noCommunityYet")}
                         </h3>
                       </div>
-                      {selectedCircle ? (
-                        <span className="whitespace-nowrap rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-                          {ts("labels.active")}
-                        </span>
-                      ) : null}
                     </div>
                     {selectedCircleInviteDetails?.bookTitle ? (
                       <div className="mt-3 flex flex-wrap gap-2">
@@ -18148,7 +18275,7 @@ function FormationRailSection({
                       </div>
                     ) : null}
                     <p className="mt-3 text-sm leading-6" style={{ color: theme.textSecondary }}>
-                      {selectedCircle ? ts("challenges.communitySummary") : ts("challenges.inviteFriendsBody")}
+                      {selectedCircle ? ts("challenges.communitySummaryBody") : ts("challenges.inviteFriendsBody")}
                     </p>
                   </div>
 
@@ -18159,13 +18286,14 @@ function FormationRailSection({
                           <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
                             {ts("challenges.sharedProgress")}
                           </p>
-                          <p className="text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ color: theme.textMuted }}>
-                            {selectedCircle.members.length} {ts("challenges.withFriends")}
-                          </p>
                         </div>
                         <div className="mt-3 flex flex-wrap gap-2">
                           {selectedCircle.members.map((member) => (
-                            <div key={member.userId} className="flex items-center gap-2 rounded-full border px-2.5 py-1.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput }}>
+                            <div
+                              key={member.userId}
+                              className="flex min-w-[12rem] items-center gap-2.5 rounded-[1rem] border px-3 py-2"
+                              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput }}
+                            >
                               <AvatarCircle
                                 avatarUrl={member.avatarUrl}
                                 seed={member.userId}
@@ -18173,20 +18301,20 @@ function FormationRailSection({
                                 size={22}
                                 className="size-[22px]"
                               />
-                              <div className="min-w-0">
-                                <div className="flex items-center gap-1.5">
-                                  <span className="text-xs font-semibold leading-4" style={{ color: theme.textPrimary }}>
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center justify-between gap-2">
+                                  <span className="truncate text-xs font-semibold leading-4" style={{ color: theme.textPrimary }}>
                                     {member.name ?? ts("labels.counselContact")}
                                   </span>
-                                  {member.role === "host" ? (
-                                    <span className="rounded-full border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.accentGold }}>
-                                      {ts("labels.host")}
-                                    </span>
-                                  ) : null}
+                                  <span className="shrink-0 text-[10px] uppercase tracking-[0.08em]" style={{ color: theme.textMuted }}>
+                                    {member.completedDays}/{selectedChallenge.totalDays}
+                                  </span>
                                 </div>
-                                <span className="text-[10px] uppercase tracking-[0.08em]" style={{ color: theme.textMuted }}>
-                                  {member.completedDays}/{selectedChallenge.totalDays}
-                                </span>
+                                {member.role === "host" ? (
+                                  <p className="mt-0.5 text-[10px] uppercase tracking-[0.08em]" style={{ color: theme.textMuted }}>
+                                    {ts("labels.host")}
+                                  </p>
+                                ) : null}
                               </div>
                             </div>
                           ))}
@@ -18194,88 +18322,147 @@ function FormationRailSection({
                       </div>
 
                       {selectedCircleInviteDetails ? (
-                        <div className="overflow-hidden rounded-[1.15rem] border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-                          <div className="border-b p-3" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="min-w-0">
-                                <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
-                                  {ts("challenges.readWithMeInviteDetails")}
+                        selectedCircleInviteDetails.kind === "fasting" ? (
+                          <div className="overflow-hidden rounded-[1.15rem] border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                            <div className="border-b p-3" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
+                                    {ts("challenges.fastingCustom.title")}
+                                  </p>
+                                  <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                                    {ts("challenges.fastingCustom.formBody")}
+                                  </p>
+                                </div>
+                                {fastingDurationLabel ? (
+                                  <span className="shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                                    {fastingDurationLabel}
+                                  </span>
+                                ) : null}
+                              </div>
+                            </div>
+
+                            <div className="grid gap-2 p-3 text-sm leading-6 sm:grid-cols-2">
+                              <div className="rounded-[1rem] border p-3 sm:col-span-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                                <p className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
+                                  {ts("labels.goal")}
                                 </p>
-                                <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
-                                  {ts("challenges.readWithMeInviteDetailsBody")}
+                              <p className="mt-1 font-semibold" style={{ color: theme.textPrimary }}>
+                                  {fastingInviteDetails?.goal || ts("labels.notSet")}
+                              </p>
+                              </div>
+                              <div className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                                <p className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
+                                  {ts("labels.duration")}
+                                </p>
+                                <p className="mt-1 font-semibold" style={{ color: theme.textPrimary }}>
+                                  {fastingDurationLabel || ts("labels.notSet")}
                                 </p>
                               </div>
-                              {readWithMePendingWindowLabel ? (
-                                <span className="shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-                                  {readWithMePendingWindowLabel}
-                                </span>
+                              <div className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                                <p className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
+                                  {ts("labels.startDate")}
+                                </p>
+                                <p className="mt-1 font-semibold" style={{ color: theme.textPrimary }}>
+                                  {fastingStartDate || ts("labels.notSet")}
+                                </p>
+                              </div>
+                              {selectedCircleInviteDetails.note ? (
+                                <div className="rounded-[1rem] border p-3 sm:col-span-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                                  <p className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
+                                    {ts("labels.note")}
+                                  </p>
+                                  <p className="mt-1 leading-6 italic" style={{ color: theme.textSecondary }}>
+                                    {selectedCircleInviteDetails.note}
+                                  </p>
+                                </div>
                               ) : null}
                             </div>
                           </div>
+                        ) : (
+                          <div className="overflow-hidden rounded-[1.15rem] border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                            <div className="border-b p-3" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
+                                    {ts("challenges.readWithMeInviteDetails")}
+                                  </p>
+                                  <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                                    {ts("challenges.readWithMeInviteDetailsBody")}
+                                  </p>
+                                </div>
+                                {readWithMePendingWindowLabel ? (
+                                  <span className="shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                                    {readWithMePendingWindowLabel}
+                                  </span>
+                                ) : null}
+                              </div>
+                            </div>
 
-                          <div className="grid gap-2 p-3 text-sm leading-6 sm:grid-cols-2">
-                            <div className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-                              <p className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
-                                {ts("labels.bookTitle")}
-                              </p>
-                              <p className="mt-1 font-semibold" style={{ color: theme.textPrimary }}>
-                                {selectedCircleInviteDetails.bookTitle}
-                              </p>
-                            </div>
-                            <div className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-                              <p className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
-                                {ts("labels.author")}
-                              </p>
-                              <p className="mt-1 font-semibold" style={{ color: theme.textPrimary }}>
-                                {selectedCircleInviteDetails.author || ts("labels.notSet")}
-                              </p>
-                            </div>
-                            <div className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-                              <p className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
-                                {ts("labels.duration")}
-                              </p>
-                              <p className="mt-1 font-semibold" style={{ color: theme.textPrimary }}>
-                                {readWithMeDurationLabel || ts("labels.notSet")}
-                              </p>
-                            </div>
-                            <div className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-                              <p className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
-                                {ts("labels.startDate")}
-                              </p>
-                              <p className="mt-1 font-semibold" style={{ color: theme.textPrimary }}>
-                                {readWithMeStartDate || ts("labels.notSet")}
-                              </p>
-                            </div>
-                            <div className="rounded-[1rem] border p-3 sm:col-span-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-                              <p className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
-                                {ts("labels.edition")}
-                              </p>
-                              <p className="mt-1 leading-6" style={{ color: theme.textSecondary }}>
-                                {selectedCircleInviteDetails.edition || ts("labels.notSet")}
-                              </p>
-                            </div>
-                            {selectedCircleInviteDetails.cadence ? (
-                              <div className="rounded-[1rem] border p-3 sm:col-span-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                            <div className="grid gap-2 p-3 text-sm leading-6 sm:grid-cols-2">
+                              <div className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
                                 <p className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
-                                  {ts("labels.cadence")}
+                                  {ts("labels.bookTitle")}
                                 </p>
-                                <p className="mt-1 leading-6" style={{ color: theme.textSecondary }}>
-                                  {selectedCircleInviteDetails.cadence}
+                                <p className="mt-1 font-semibold" style={{ color: theme.textPrimary }}>
+                                  {selectedCircleInviteDetails.bookTitle}
                                 </p>
                               </div>
-                            ) : null}
-                            {selectedCircleInviteDetails.focus ? (
-                              <div className="rounded-[1rem] border p-3 sm:col-span-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                              <div className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
                                 <p className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
-                                  {ts("labels.focus")}
+                                  {ts("labels.author")}
                                 </p>
-                                <p className="mt-1 leading-6" style={{ color: theme.textSecondary }}>
-                                  {selectedCircleInviteDetails.focus}
+                                <p className="mt-1 font-semibold" style={{ color: theme.textPrimary }}>
+                                  {selectedCircleInviteDetails.author || ts("labels.notSet")}
                                 </p>
                               </div>
-                            ) : null}
+                              <div className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                                <p className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
+                                  {ts("labels.duration")}
+                                </p>
+                                <p className="mt-1 font-semibold" style={{ color: theme.textPrimary }}>
+                                  {readWithMeDurationLabel || ts("labels.notSet")}
+                                </p>
+                              </div>
+                              <div className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                                <p className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
+                                  {ts("labels.startDate")}
+                                </p>
+                                <p className="mt-1 font-semibold" style={{ color: theme.textPrimary }}>
+                                  {readWithMeStartDate || ts("labels.notSet")}
+                                </p>
+                              </div>
+                              <div className="rounded-[1rem] border p-3 sm:col-span-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                                <p className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
+                                  {ts("labels.edition")}
+                                </p>
+                                <p className="mt-1 leading-6" style={{ color: theme.textSecondary }}>
+                                  {selectedCircleInviteDetails.edition || ts("labels.notSet")}
+                                </p>
+                              </div>
+                              {selectedCircleInviteDetails.cadence ? (
+                                <div className="rounded-[1rem] border p-3 sm:col-span-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                                  <p className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
+                                    {ts("labels.cadence")}
+                                  </p>
+                                  <p className="mt-1 leading-6" style={{ color: theme.textSecondary }}>
+                                    {selectedCircleInviteDetails.cadence}
+                                  </p>
+                                </div>
+                              ) : null}
+                              {selectedCircleInviteDetails.focus ? (
+                                <div className="rounded-[1rem] border p-3 sm:col-span-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                                  <p className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
+                                    {ts("labels.focus")}
+                                  </p>
+                                  <p className="mt-1 leading-6" style={{ color: theme.textSecondary }}>
+                                    {selectedCircleInviteDetails.focus}
+                                  </p>
+                                </div>
+                              ) : null}
+                            </div>
                           </div>
-                        </div>
+                        )
                       ) : null}
 
                       {selectedCircleInviteDetails ? (
@@ -18399,9 +18586,43 @@ function FormationRailSection({
                             {ts("challenges.nudges")}
                           </p>
                           <p className="text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ color: theme.textMuted }}>
-                            {selectedCircle.nudges.length} {ts("labels.notes")}
+                            {selectedCircle.nudges.length} {ts("labels.checkIns")}
                           </p>
                         </div>
+                        {selectedCircleHasCurrentMember ? (
+                          <form
+                            className="mt-3 grid gap-2 rounded-[1rem] border p-3"
+                            style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}
+                            onSubmit={(event) => {
+                              event.preventDefault();
+                              void postSharedCircleNudge();
+                            }}
+                          >
+                            <p className="text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
+                              {ts("challenges.sendNudge")}
+                            </p>
+                            <textarea
+                              value={sharedCircleNudgeDraft}
+                              onChange={(event) => setSharedCircleNudgeDraft(event.target.value)}
+                              className="min-h-24 resize-none rounded-[0.9rem] border px-3 py-2 text-sm leading-6 outline-none"
+                              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                              placeholder={ts("challenges.nudgePlaceholder")}
+                            />
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <p className="text-[11px] leading-5" style={{ color: theme.textMuted }}>
+                                {sharedCircleNudgeStatus || ts("challenges.noNudgesYet")}
+                              </p>
+                              <button
+                                type="submit"
+                                disabled={sharedCircleNudgeBusy || sharedCircleNudgeDraft.trim().length === 0}
+                                className="h-10 rounded-full px-4 text-sm font-semibold"
+                                style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                              >
+                                {sharedCircleNudgeBusy ? ts("status.saving") : ts("challenges.sendNudgeButton")}
+                              </button>
+                            </div>
+                          </form>
+                        ) : null}
                         <div className="mt-3 space-y-2">
                           {selectedCircle.nudges.length ? (
                             selectedCircle.nudges.slice(0, 3).map((nudge) => (
@@ -18412,6 +18633,10 @@ function FormationRailSection({
                                 </p>
                               </div>
                             ))
+                          ) : selectedCircleHasCurrentMember ? (
+                            <p className="text-sm leading-6" style={{ color: theme.textMuted }}>
+                              {ts("challenges.noNudgesYet")}
+                            </p>
                           ) : (
                             <p className="text-sm leading-6" style={{ color: theme.textMuted }}>
                               {ts("challenges.noNudgesYet")}
@@ -18773,39 +18998,35 @@ function FormationRailSection({
                         </div>
 
                         <div className="space-y-4 px-4 py-4">
-                          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                            <div className="rounded-[1rem] border p-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-                              <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textMuted }}>
-                                {ts("labels.duration")}
-                              </p>
-                              <p className="mt-1.5 text-sm font-semibold" style={{ color: theme.textPrimary }}>
-                                {readWithMeDurationLabel || "—"}
-                              </p>
-                            </div>
-                            <div className="rounded-[1rem] border p-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-                              <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textMuted }}>
-                                {ts("labels.startDate")}
-                              </p>
-                              <p className="mt-1.5 text-sm font-semibold" style={{ color: theme.textPrimary }}>
-                                {readWithMeStartDate || "—"}
-                              </p>
-                            </div>
-                            <div className="rounded-[1rem] border p-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-                              <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textMuted }}>
-                                {ts("challenges.responseWindow")}
-                              </p>
-                              <p className="mt-1.5 text-sm font-semibold" style={{ color: theme.textPrimary }}>
-                                {readWithMePendingWindowLabel || "—"}
-                              </p>
-                            </div>
-                            <div className="rounded-[1rem] border p-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-                              <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textMuted }}>
-                                {ts("labels.cadence")}
-                              </p>
-                              <p className="mt-1.5 text-sm font-semibold" style={{ color: theme.textPrimary }}>
-                                {readWithMeInviteDraft.cadence || "—"}
-                              </p>
-                            </div>
+                          <div className="flex flex-wrap gap-2">
+                            <span className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                              {readWithMeDurationLabel || ts("labels.duration")}
+                            </span>
+                            <span className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                              {readWithMeStartDate || ts("labels.startDate")}
+                            </span>
+                            <span className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                              {readWithMePendingWindowLabel || ts("challenges.responseWindow")}
+                            </span>
+                            <span className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                              {readWithMeInviteDraft.recipients.length} {ts("labels.selected")}
+                            </span>
+                          </div>
+
+                          <div className="grid gap-2 sm:grid-cols-3">
+                            {(selectedChallenge.days ?? []).slice(0, 3).map((day) => (
+                              <div key={day.day} className="rounded-[1rem] border p-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                                <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+                                  {ts("challenges.dayLabel").replace("{day}", String(day.day))}
+                                </p>
+                                <p className="mt-1.5 text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>
+                                  {localizedScriptureReference(day.scripture, language)}
+                                </p>
+                                <p className="mt-1.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                                  {day.principle}
+                                </p>
+                              </div>
+                            ))}
                           </div>
 
                           <div className="grid gap-3 sm:grid-cols-2">
@@ -18876,6 +19097,133 @@ function FormationRailSection({
                         style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
                       >
                         {creatingInviteId === selectedChallenge.id ? ts("challenges.creatingInvite") : ts("challenges.createReadWithMeInvite")}
+                      </button>
+                    </form>
+                  ) : isFastingChallenge ? (
+                    <form
+                      className="space-y-4 p-4"
+                      onSubmit={(event) => {
+                        event.preventDefault();
+                        if (!selectedChallenge || !canCreateFastingInvite) {
+                          return;
+                        }
+                        void createChallengeInvite(selectedChallenge, fastingInviteDraft);
+                      }}
+                    >
+                      <div className="rounded-[1.1rem] border p-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                        <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+                          {ts("challenges.fastingCustom.formTitle")}
+                        </p>
+                        <p className="mt-1.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                          {ts("challenges.fastingCustom.formBody")}
+                        </p>
+                      </div>
+
+                      <div className="grid gap-4 lg:grid-cols-[1fr_0.92fr]">
+                        <div className="space-y-4">
+                          <div className="overflow-hidden rounded-[1.25rem] border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                            <div className="border-b px-4 py-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                              <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+                                {ts("labels.details")}
+                              </p>
+                              <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                                {ts("challenges.fastingCustom.durationHint")}
+                              </p>
+                            </div>
+                            <div className="space-y-3 p-4">
+                              <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_9rem]">
+                                <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
+                                  {ts("labels.duration")}
+                                  <input
+                                    type="number"
+                                    min={1}
+                                    max={30}
+                                    step={1}
+                                    value={fastingInviteDraft.durationValue ?? ""}
+                                    onChange={(event) => updateFastingInviteDraft({ durationValue: event.target.value ? Number(event.target.value) : null })}
+                                    className="mt-2 h-11 w-full rounded-[0.9rem] border px-3 text-sm outline-none"
+                                    style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                                    placeholder="7"
+                                  />
+                                </label>
+                                <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
+                                  {ts("labels.startDate")}
+                                  <input
+                                    type="date"
+                                    value={fastingInviteDraft.startDate}
+                                    onChange={(event) => updateFastingInviteDraft({ startDate: event.target.value })}
+                                    className="mt-2 h-11 w-full rounded-[0.9rem] border px-3 text-sm outline-none"
+                                    style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                                  />
+                                </label>
+                              </div>
+
+                              <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
+                                {ts("labels.goal")}
+                                <textarea
+                                  rows={2}
+                                  value={fastingInviteDraft.goal}
+                                  onChange={(event) => updateFastingInviteDraft({ goal: event.target.value })}
+                                  className="mt-2 w-full resize-none rounded-[0.9rem] border px-3 py-2.5 text-sm leading-6 outline-none"
+                                  style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                                  placeholder={ts("challenges.fastingCustom.goalPlaceholder")}
+                                />
+                              </label>
+
+                              <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
+                                {ts("labels.note")}
+                                <textarea
+                                  rows={3}
+                                  value={fastingInviteDraft.note}
+                                  onChange={(event) => updateFastingInviteDraft({ note: event.target.value })}
+                                  className="mt-2 w-full resize-none rounded-[0.9rem] border px-3 py-2.5 text-sm leading-6 outline-none"
+                                  style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                                  placeholder={ts("challenges.readWithMeNotePlaceholder")}
+                                />
+                              </label>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="overflow-hidden rounded-[1.25rem] border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                          <div className="border-b px-4 py-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                            <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+                              {ts("challenges.fastingCustom.dailyPlanTitle")}
+                            </p>
+                            <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                              {ts("challenges.fastingCustom.dailyPlanBody")}
+                            </p>
+                          </div>
+                          <div className="space-y-2 p-4">
+                            {buildFastingDayPlan(fastingInviteDraft.durationValue, fastingInviteDraft.goal).slice(0, 3).map((day) => (
+                              <div key={day.day} className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                                <p className="text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
+                                  {ts("challenges.dayLabel").replace("{day}", String(day.day))}
+                                </p>
+                                <p className="mt-1 text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>
+                                  {day.scripture}
+                                </p>
+                                <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                                  {day.principle}
+                                </p>
+                              </div>
+                            ))}
+                            {(fastingInviteDraft.durationValue ?? 0) > 3 ? (
+                              <p className="text-xs leading-5" style={{ color: theme.textMuted }}>
+                                {ts("challenges.fastingCustom.dailyPlanBody")}
+                              </p>
+                            ) : null}
+                          </div>
+                        </div>
+                      </div>
+
+                      <button
+                        type="submit"
+                        disabled={!canCreateFastingInvite || creatingInviteId === selectedChallenge.id}
+                        className="inline-flex h-11 w-full items-center justify-center rounded-full px-4 text-sm font-semibold transition disabled:opacity-60"
+                        style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                      >
+                        {creatingInviteId === selectedChallenge.id ? ts("challenges.creatingInvite") : ts("challenges.fastingCustom.createInvite")}
                       </button>
                     </form>
                   ) : (
@@ -23536,7 +23884,12 @@ function ChallengeInviteModal({
   const accepted = responseStatus === "accepted";
   const declined = responseStatus === "declined";
   const details = challenge.invite.details;
-  const detailSummaryDuration = details ? formatReadWithMeDurationLabel(details.durationValue, details.durationUnit) : "";
+  const isFastingInvite = details?.kind === "fasting";
+  const detailSummaryDuration = details
+    ? isFastingInvite
+      ? formatFastingDurationLabel(details.durationValue)
+      : formatReadWithMeDurationLabel(details.durationValue, details.durationUnit)
+    : "";
   const detailSummaryStartDate = details?.startDate
     ? new Date(`${details.startDate}T00:00:00`).toLocaleDateString(undefined, {
         month: "short",
@@ -23544,6 +23897,7 @@ function ChallengeInviteModal({
         year: "numeric",
       })
     : "";
+  const detailSummaryGoal = isFastingInvite ? details.goal : "";
   const shareUrl = inviteUrl ?? (token ? buildChallengeInviteUrl(token) : null);
   const nudgeToken = token ?? (() => {
     if (!inviteUrl) return null;
@@ -23558,19 +23912,30 @@ function ChallengeInviteModal({
     if (!shareUrl) {
       return;
     }
-    const challengeTitle = details?.bookTitle?.trim()
-      ? `${ts("challenges.readWithMeSharePrefix")} · ${details.bookTitle.trim()}`
-      : ts(challenge.challenge.titleKey, challenge.challenge.title);
-    const text = details?.bookTitle?.trim()
+    const challengeTitle = details?.kind === "fasting"
+      ? ts("challenges.fastingCustom.title")
+      : details?.bookTitle?.trim()
+        ? `${ts("challenges.readWithMeSharePrefix")} · ${details.bookTitle.trim()}`
+        : ts(challenge.challenge.titleKey, challenge.challenge.title);
+    const text = details?.kind === "fasting"
       ? [
-          `${details.bookTitle.trim()}${details.author?.trim() ? ` by ${details.author.trim()}` : ""}`,
-          detailSummaryDuration ? `for ${detailSummaryDuration}` : "",
-          details.cadence ? `Cadence: ${details.cadence}` : "",
-          details.focus ? `Focus: ${details.focus}` : "",
+          detailSummaryDuration ? `${detailSummaryDuration} fast` : "",
+          detailSummaryGoal ? `Goal: ${detailSummaryGoal}` : "",
+          detailSummaryStartDate ? `Start: ${detailSummaryStartDate}` : "",
+          details.note?.trim() ? details.note.trim() : "",
         ]
           .filter(Boolean)
           .join(" · ")
-      : ts("challenges.shareChallengeBody").replace("{days}", String(challenge.challenge.totalDays));
+      : details?.bookTitle?.trim()
+        ? [
+            `${details.bookTitle.trim()}${details.author?.trim() ? ` by ${details.author.trim()}` : ""}`,
+            detailSummaryDuration ? `for ${detailSummaryDuration}` : "",
+            details.cadence ? `Cadence: ${details.cadence}` : "",
+            details.focus ? `Focus: ${details.focus}` : "",
+          ]
+            .filter(Boolean)
+            .join(" · ")
+        : ts("challenges.shareChallengeBody").replace("{days}", String(challenge.challenge.totalDays));
     try {
       if (navigator.share) {
         await navigator.share({ title: challengeTitle, text, url: shareUrl });
@@ -23593,12 +23958,18 @@ function ChallengeInviteModal({
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>{ts("challenges.inviteEyebrow")}</p>
               <h2 className="mt-1.5 text-lg font-semibold" style={{ color: theme.textPrimary }}>
-                {details?.bookTitle?.trim() ? details.bookTitle.trim() : ts(challenge.challenge.titleKey, challenge.challenge.title)}
+                {details?.kind === "fasting"
+                  ? ts("challenges.fastingCustom.title")
+                  : details?.bookTitle?.trim()
+                    ? details.bookTitle.trim()
+                    : ts(challenge.challenge.titleKey, challenge.challenge.title)}
               </h2>
               <p className="mt-1.5 text-sm leading-5" style={{ color: theme.textSecondary }}>
-                {details?.bookTitle?.trim()
-                  ? ts("challenges.readWithMeInviteSubtitle")
-                  : ts(challenge.challenge.descriptionKey, challenge.challenge.description)}
+                {details?.kind === "fasting"
+                  ? ts("challenges.fastingCustom.description")
+                  : details?.bookTitle?.trim()
+                    ? ts("challenges.readWithMeInviteSubtitle")
+                    : ts(challenge.challenge.descriptionKey, challenge.challenge.description)}
               </p>
             </div>
           </div>
@@ -23612,82 +23983,126 @@ function ChallengeInviteModal({
         {details ? (
           <div className="mt-3.5 rounded-2xl border p-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
             <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
-              {ts("challenges.readWithMeInviteDetails")}
+              {details.kind === "fasting" ? ts("challenges.fastingCustom.previewTitle") : ts("challenges.readWithMeInviteDetails")}
             </p>
-            <div className="mt-3 grid gap-2 sm:grid-cols-2">
-              <div className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
-                  {ts("labels.bookTitle")}
-                </p>
-                <p className="mt-1 text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>
-                  {details.bookTitle || ts("labels.notSet")}
-                </p>
-              </div>
-              <div className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
-                  {ts("labels.author")}
-                </p>
-                <p className="mt-1 text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>
-                  {details.author || ts("labels.notSet")}
-                </p>
-              </div>
-              <div className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
-                  {ts("labels.duration")}
-                </p>
-                <p className="mt-1 text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>
-                  {detailSummaryDuration || ts("labels.notSet")}
-                </p>
-              </div>
-              <div className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
-                  {ts("labels.startDate")}
-                </p>
-                <p className="mt-1 text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>
-                  {detailSummaryStartDate || details.startDate || ts("labels.notSet")}
-                </p>
-              </div>
-              {details.edition ? (
-                <div className="rounded-[1rem] border p-3 sm:col-span-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+            {details.kind === "fasting" ? (
+              <p className="mt-1.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                {ts("challenges.fastingCustom.previewBody")}
+              </p>
+            ) : null}
+            {details.kind === "fasting" ? (
+              <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                <div className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
                   <p className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
-                    {ts("labels.edition")}
+                    {ts("labels.duration")}
                   </p>
                   <p className="mt-1 text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>
-                    {details.edition}
+                    {detailSummaryDuration || ts("labels.notSet")}
                   </p>
                 </div>
-              ) : null}
-              {details.cadence ? (
-                <div className="rounded-[1rem] border p-3 sm:col-span-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                <div className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
                   <p className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
-                    {ts("labels.cadence")}
+                    {ts("labels.goal")}
                   </p>
-                  <p className="mt-1 text-sm leading-6" style={{ color: theme.textPrimary }}>
-                    {details.cadence}
+                  <p className="mt-1 text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>
+                    {details.goal || ts("labels.notSet")}
                   </p>
                 </div>
-              ) : null}
-              {details.focus ? (
-                <div className="rounded-[1rem] border p-3 sm:col-span-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                <div className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
                   <p className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
-                    {ts("labels.focus")}
+                    {ts("labels.startDate")}
                   </p>
-                  <p className="mt-1 text-sm leading-6" style={{ color: theme.textPrimary }}>
-                    {details.focus}
+                  <p className="mt-1 text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>
+                    {detailSummaryStartDate || details.startDate || ts("labels.notSet")}
                   </p>
                 </div>
-              ) : null}
-              {details.note ? (
-                <div className="rounded-[1rem] border p-3 sm:col-span-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                {details.note ? (
+                  <div className="rounded-[1rem] border p-3 sm:col-span-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
+                      {ts("labels.note")}
+                    </p>
+                    <p className="mt-1 text-sm leading-6 italic" style={{ color: theme.textPrimary }}>
+                      {details.note}
+                    </p>
+                  </div>
+                ) : null}
+              </div>
+            ) : (
+              <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                <div className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
                   <p className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
-                    {ts("labels.note")}
+                    {ts("labels.bookTitle")}
                   </p>
-                  <p className="mt-1 text-sm leading-6 italic" style={{ color: theme.textPrimary }}>
-                    {details.note}
+                  <p className="mt-1 text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>
+                    {details.bookTitle || ts("labels.notSet")}
                   </p>
                 </div>
-              ) : null}
-            </div>
+                <div className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
+                    {ts("labels.author")}
+                  </p>
+                  <p className="mt-1 text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>
+                    {details.author || ts("labels.notSet")}
+                  </p>
+                </div>
+                <div className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
+                    {ts("labels.duration")}
+                  </p>
+                  <p className="mt-1 text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>
+                    {detailSummaryDuration || ts("labels.notSet")}
+                  </p>
+                </div>
+                <div className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
+                    {ts("labels.startDate")}
+                  </p>
+                  <p className="mt-1 text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>
+                    {detailSummaryStartDate || details.startDate || ts("labels.notSet")}
+                  </p>
+                </div>
+                {details.edition ? (
+                  <div className="rounded-[1rem] border p-3 sm:col-span-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
+                      {ts("labels.edition")}
+                    </p>
+                    <p className="mt-1 text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>
+                      {details.edition}
+                    </p>
+                  </div>
+                ) : null}
+                {details.cadence ? (
+                  <div className="rounded-[1rem] border p-3 sm:col-span-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
+                      {ts("labels.cadence")}
+                    </p>
+                    <p className="mt-1 text-sm leading-6" style={{ color: theme.textPrimary }}>
+                      {details.cadence}
+                    </p>
+                  </div>
+                ) : null}
+                {details.focus ? (
+                  <div className="rounded-[1rem] border p-3 sm:col-span-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
+                      {ts("labels.focus")}
+                    </p>
+                    <p className="mt-1 text-sm leading-6" style={{ color: theme.textPrimary }}>
+                      {details.focus}
+                    </p>
+                  </div>
+                ) : null}
+                {details.note ? (
+                  <div className="rounded-[1rem] border p-3 sm:col-span-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
+                      {ts("labels.note")}
+                    </p>
+                    <p className="mt-1 text-sm leading-6 italic" style={{ color: theme.textPrimary }}>
+                      {details.note}
+                    </p>
+                  </div>
+                ) : null}
+              </div>
+            )}
           </div>
         ) : null}
 

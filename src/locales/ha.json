@@ -1265,6 +1265,7 @@
     "author": "Author",
     "notSet": "Ba a saita ba",
     "duration": "Duration",
+    "goal": "Manufa",
     "startDate": "Start date",
     "edition": "Edition / translation",
     "cadence": "Cadence",
@@ -1732,9 +1733,9 @@
     "inviteReady": "Gayyata ta shirya",
     "inviteEyebrow": "Gayyatar aikin tare",
     "initiatedBy": "An fara ta da",
-    "sharedProgress": "Ci gaba na tare",
-    "nudges": "Ƙarfafawa",
-    "noNudgesYet": "Har yanzu babu ƙarfafawa. Aika na farko.",
+    "sharedProgress": "Ci gaban ƙungiya",
+    "nudges": "Saƙonnin dubawa",
+    "noNudgesYet": "Har yanzu babu saƙonnin dubawa. Aika na farko.",
     "sendNudge": "Aika ƙarfafawa",
     "nudgePlaceholder": "Rubuta gajeren ƙarfafawa ko duba halin…",
     "sendNudgeButton": "Aika",
@@ -1863,7 +1864,6 @@
         "practice": "Rubuta abin da ya isa ga wannan lokaci, a fili."
       }
     },
-
     "sabbathRest5day": {
       "title": "Aikin Hutu na Saba na Kwana 5",
       "description": "Kwana biyar na hutawar da aka kiyaye: a ambaci yanayin aikin, a gane nauyin da ke ƙasa, kuma a ba wa jiki sarari ya yi sanyi.",
@@ -1894,6 +1894,185 @@
       }
     },
     "whyThisFits": "Why this fits",
+    "listening3day": {
+      "title": "Aikin sauraro",
+      "description": "Kwanaki uku na rage sauri, fara da sauraro, da jin abin da ke ƙasa da amsar farko.",
+      "day1": {
+        "principle": "Kowane mutum ya kasance da saurin sauraro, jinkirin magana, jinkirin fushi.",
+        "prompt": "Wane ne ko menene yake bukatar cikakken hankalinka a yau?",
+        "practice": "Ka saurara kafin ka amsa sau ɗaya a yau."
+      },
+      "day2": {
+        "principle": "Mai ba da amsa kafin ya ji, wauta ce gare shi da kunya.",
+        "prompt": "Wace tambaya kake wucewa da sauri?",
+        "practice": "Ka tsaya kaɗan kafin ka amsa."
+      },
+      "day3": {
+        "principle": "Nufin da ke zuciyar mutum kamar ruwa mai zurfi ne, amma mai hankali zai fitar da shi.",
+        "prompt": "A ina tambaya mai kyau za ta fi amfani fiye da ra’ayi mai sauri?",
+        "practice": "Ka yi tambaya ɗaya mai hankali da sannu."
+      }
+    },
+    "repair4day": {
+      "title": "Aikin gyara",
+      "description": "Kwanaki huɗu na faɗin rauni da gaskiya, rage kariya, da matsawa zuwa gyara cikin kulawa.",
+      "day1": {
+        "principle": "Ka fara ka sulhunta da ɗan’uwanka.",
+        "prompt": "Wa ya bukaci hankalinka saboda wani abu bai gama ba?",
+        "practice": "Ka faɗi dangantakar da ke bukatar gyara."
+      },
+      "day2": {
+        "principle": "Ku yi fushi amma kada ku yi zunubi; kada rana ta fāɗi a kan fushinku.",
+        "prompt": "A ina fushi yake ci gaba da tafasa?",
+        "practice": "Ka ɗauki mataki kafin rana ta faɗi."
+      },
+      "day3": {
+        "principle": "Ku furta zunubanku ga juna, ku yi addu’a ga juna.",
+        "prompt": "Wane furci ko neman gafara zai sa tattaunawa ta gaba ta fi gaskiya?",
+        "practice": "Ka rubuta neman gafarar da kake guje masa."
+      },
+      "day4": {
+        "principle": "In ya yiwu, gwargwadon abin da ya danganta da ku, ku kasance da salama da kowa.",
+        "prompt": "Wace salama ce mafi aminci za ka iya bi ba tare da nuna kamar komai lafiya ba?",
+        "practice": "Ka zaɓi salama gwargwadon abin da ya rage gare ka."
+      }
+    },
+    "generosity7day": {
+      "title": "Aikin karimci",
+      "description": "Kwanaki bakwai na bayarwa da tabbaci, ba da matsin lamba ba, tare da ƙima, farin ciki, da iyaka mai hikima.",
+      "day1": {
+        "principle": "Mai karimci zai ƙaru, wanda yake shayarwa kuma za a shayar da shi.",
+        "prompt": "A ina ka karɓi fiye da abin da kake lura?",
+        "practice": "Ka lura da wurin da yalwa ke son motsawa."
+      },
+      "day2": {
+        "principle": "A yadda mutum yake da shi ake karɓa, ba bisa abin da bai da shi ba.",
+        "prompt": "Wane adadi ne zai zama mai karimci a wannan lokaci, ba a lokacin mafarki ba?",
+        "practice": "Ka ambaci rabon da ya dace da iyawarka."
+      },
+      "day3": {
+        "principle": "Daga ba da ne ya fi albarka fiye da karɓa.",
+        "prompt": "Wa zai ƙarfafa da abin da yake hannunka yanzu?",
+        "practice": "Ka ba da abu mai amfani ba tare da hayaniya ba."
+      },
+      "day4": {
+        "principle": "Wanda yake tausaya wa matalauci yana ba da rance ga Ubangiji.",
+        "prompt": "Wane aikin jinƙai kake so ka tuna maimakon tsoro?",
+        "practice": "Ka rubuta hanya ɗaya ta alheri mai amfani."
+      },
+      "day5": {
+        "principle": "Ka sa bege ga Allah wanda yake ba mu kome da yalwa domin mu more.",
+        "prompt": "Yaya bege yake idan arziki ba shine cibiyar ba?",
+        "practice": "Ka sa bege ga abu mai ɗorewa fiye da kuɗi."
+      },
+      "day6": {
+        "principle": "Za a arzurta ku a kowane abu domin kowace karimci.",
+        "prompt": "A ina godiya take sa bayarwa ya fi sauƙi?",
+        "practice": "Ka gode don abin da za ka iya rabawa."
+      },
+      "day7": {
+        "principle": "Ubangiji Allahnka zai albarkace ka cikin duk abin da ka yi.",
+        "prompt": "Wace kyauta ce ke ji mai daɗi kuma mai dorewa yanzu?",
+        "practice": "Ka zaɓi mataki na gaba mai karimci da farin ciki."
+      }
+    },
+    "attentionFast5day": {
+      "title": "Azumin hankali",
+      "description": "Kwanaki biyar na rage hayaniya, dawo da hankali, da zaɓar abin da ya cancanci kulawa.",
+      "day1": {
+        "principle": "Ka koya mana mu ƙirga kwanakinmu domin mu sami zuciyar hikima.",
+        "prompt": "A ina lokacinka yake zubewa?",
+        "practice": "Ka ambaci wata hanyar zubewar hankali."
+      },
+      "day2": {
+        "principle": "Ka kiyaye zuciyarka da dukan tsaro, domin daga gare ta ne rijiyoyin rai suke fita.",
+        "prompt": "Me ke siffanta rayuwarka ta ciki ba tare da izini ba?",
+        "practice": "Ka sa iyaka ɗaya a hankali."
+      },
+      "day3": {
+        "principle": "Iya ido fitila ce ga jiki.",
+        "prompt": "Me ke kawo haske, me kuma ke rufe shi?",
+        "practice": "Ka bar hankalinka ya huta a kan abu ɗaya mai haske."
+      },
+      "day4": {
+        "principle": "Ku rikide ta hanyar sabunta tunaninku.",
+        "prompt": "Wane salo ne ya zama na al’ada amma ba mai hikima ba?",
+        "practice": "Ka ƙi ɗaukar wani salo mai hayaniya yau."
+      },
+      "day5": {
+        "principle": "Duk abin da yake gaskiya, mai daraja, adali, mai tsabta, mai daɗi, da abin yabawa, ku yi tunani a kansu.",
+        "prompt": "Me ne gaskiya, mai daraja, kuma ya cancanci kasancewa a gaba?",
+        "practice": "Ka ambaci abu ɗaya da ya cancanci hankalinka."
+      }
+    },
+    "hiddenService5day": {
+      "title": "Aikin hidima a ɓoye",
+      "description": "Kwanaki biyar na yin hidima a ɓoye, barin yabo, da lura da aminci ba tare da a gan shi ba.",
+      "day1": {
+        "principle": "Ubanku wanda yake gani a ɓoye zai saka muku.",
+        "prompt": "A ina za ka iya yin alheri ba tare da sanarwa ba?",
+        "practice": "Ka zaɓi aikin hidima ɗaya a ɓoye."
+      },
+      "day2": {
+        "principle": "Ku yi wa juna hidima cikin ƙauna.",
+        "prompt": "Ta yaya ’yanci zai koma aikin ƙauna maimakon kai-da-kai?",
+        "practice": "Ka yi hidima ta yadda ba sai an yaba maka ba."
+      },
+      "day3": {
+        "principle": "Kamar yadda kowane ɗaya ya sami baiwa, ku yi amfani da ita wajen yi wa juna hidima.",
+        "prompt": "Wace baiwa za ka iya amfani da ita yau don taimakon wani?",
+        "practice": "Ka yi amfani da baiwa ɗaya don albarkar wani."
+      },
+      "day4": {
+        "principle": "Duk abin da kuka yi, ku yi daga zuciya kamar ga Ubangiji ba ga mutane ba.",
+        "prompt": "Me ke canzawa idan kana yi wa Allah hidima maimakon jiran yabo?",
+        "practice": "Ka yi aiki da aminci mai natsuwa da ɓoye."
+      },
+      "day5": {
+        "principle": "Allah ba mai rashin adalci ba ne har ya manta da aikinku da ƙaunar da kuka nuna.",
+        "prompt": "Wa ka taimaka a ɓoye ta hanyar dawwamar ka?",
+        "practice": "Ka lura da alherin da ya riga ya faru."
+      }
+    },
+    "readWithMe7day": {
+      "title": "Aikin karatu",
+      "description": "Kwanaki bakwai na karatu da hankali, tambayar abin da gaskiya ce, da barin hikima ta tsara yadda kake sauraro.",
+      "day1": {
+        "principle": "Zuciyar mai hankali tana samun ilimi, kunnen masu hikima kuma yana neman ilimi.",
+        "prompt": "Me kake so ka fahimta da zurfi?",
+        "practice": "Ka karanta wani sashe da ƙarin hankali."
+      },
+      "day2": {
+        "principle": "Kowane mutum ya kasance da saurin sauraro, jinkirin magana, jinkirin fushi.",
+        "prompt": "Yaya zai kasance ka zama mai saurin sauraro kuma mai jinkirin magana?",
+        "practice": "Ka saurara kafin ka bayyana."
+      },
+      "day3": {
+        "principle": "Farkon hikima shi ne: ka sami hikima.",
+        "prompt": "A ina kake bukatar hikima fiye da bayanai?",
+        "practice": "Ka zaɓi hikima maimakon gaggawa."
+      },
+      "day4": {
+        "principle": "Maganarka fitila ce ga ƙafafuna, haske kuma ga tafiyata.",
+        "prompt": "Wace ce fitila ga mataki na gaba, ba ga taswira duka ba?",
+        "practice": "Ka bar layi ɗaya ya jagoranci mataki na gaba."
+      },
+      "day5": {
+        "principle": "Sun karɓi maganar da nishaɗi sosai, suna binciken Nassi kowace rana.",
+        "prompt": "Me yake nufin ka gwada da kulawa abin da kake ji?",
+        "practice": "Ka tabbatar kafin ka ɗauka."
+      },
+      "day6": {
+        "principle": "Maganar Kristi ta zauna a cikinku da yalwa.",
+        "prompt": "Wace magana ce ke bukatar ta zauna a cikin ka da yalwa yau?",
+        "practice": "Ka tsaya da wani sashe na dogon lokaci."
+      },
+      "day7": {
+        "principle": "Ka yi ƙoƙari ka nuna kanka ga Allah a matsayin wanda aka yarda da shi, kana rarraba maganar gaskiya daidai.",
+        "prompt": "Yaya bin gaskiya da aminci yake yanzu?",
+        "practice": "Ka karanta da kulawa, haƙuri, da tawali’u."
+      }
+    },
     "readWithMeInviteTitle": "Shared reading plan",
     "readWithMeInviteDetails": "Fixed reading details",
     "readWithMeInviteDetailsBody": "Everyone sees the same book, cadence, and response window.",
@@ -1901,8 +2080,8 @@
     "responseDashboardBody": "Accepted, declined, and time-based pending states update from the invite roster.",
     "noInviteRosterYet": "Add a roster to start tracking responses.",
     "unmatchedResponses": "Other responses",
-    "readWithMeInvitePrompt": "Invitation draft",
-    "readWithMeDetailsBody": "Keep the subject line simple and the duration unmistakable.",
+    "readWithMeInvitePrompt": "Tsara tsarin karatu",
+    "readWithMeDetailsBody": "Ka bar littafi da tsawon lokaci a fili.",
     "readWithMeBookPlaceholder": "The book you want everyone to read",
     "readWithMeAuthorPlaceholder": "Optional, but helpful for clarity",
     "readWithMeEditionPlaceholder": "Optional edition, translation, or format",
@@ -1911,18 +2090,18 @@
     "readWithMeRecipientsEmpty": "Start by naming one or two people.",
     "responseWindowHelper": "Set a start date and the window before responses move to Pending.",
     "responseWindow": "Response window",
-    "readWithMeToneBody": "Use this space for the pace, the why, and the actual note you want them to feel.",
+    "readWithMeToneBody": "Yi amfani da wannan wajen sauti, dalili, da saƙon da kake son su ji.",
     "readWithMeCadencePlaceholder": "Read at a steady pace and hold one brief check-in each week.",
     "readWithMeFocusPlaceholder": "What do you hope this book will clarify, stretch, or shape?",
     "readWithMeNotePlaceholder": "A short note to the people you are inviting",
-    "readWithMeInvitePreview": "Duban gayyata",
+    "readWithMeInvitePreview": "Duban tsarin",
     "createReadWithMeInvite": "Create reading invite",
     "inviteFriendsTitle": "Shared invite",
     "inviteFriendsSharedPlanBody": "Everyone follows the same practice and sees the same progress.",
     "inviteFriendsProgressBody": "You can see who joined and where the group is up to.",
     "inviteFriendsNudgesBody": "Tunatarwa masu laushi suna sa gayyatar ta ci gaba ba tare da hayaniya ba.",
     "readWithMeSharePrefix": "Read with me",
-    "readWithMeInviteSubtitle": "A shared reading invite",
+    "readWithMeInviteSubtitle": "Tsarin karatu na tare",
     "leaveInvite": "Leave invite",
     "declinedInviteBody": "You declined this reading invitation. You can still join if you change your mind.",
     "joinAnyway": "Join anyway",
@@ -1939,7 +2118,23 @@
     "completedTodayBody": "Rana {nextDay} ta {total} tana jiran gobe.",
     "inProgressBody": "Ci gaba da rana {nextDay} ta {total}.",
     "continueCurrentPractice": "Ci gaba da aikin da kake yi yanzu",
-    "reentryNote": "You are already partway through this practice. Keep the rhythm going with day {nextDay}."
+    "reentryNote": "You are already partway through this practice. Keep the rhythm going with day {nextDay}.",
+    "communitySummaryTitle": "Ayyukan ƙungiya a taƙaice",
+    "communitySummaryBody": "Ci gaba, ƙarfafawa, da dubawa sukan bayyana a nan yayin da aikin ke tafiya.",
+    "fastingCustom": {
+      "title": "Aikin azumi",
+      "description": "Azumi na tare tare da tsayayyen lokaci, manufa mai ma’ana, da jagorar kowace rana.",
+      "formTitle": "Tsara azumin",
+      "formBody": "Saita tsawon lokaci, ayyana manufar, kuma za mu gina hanyar kowace rana a kanta.",
+      "durationHint": "Fara da tsawon lokaci. Jagorar kowace rana za ta daidaita da shi.",
+      "goalPlaceholder": "Me kake so wannan azumi ya ba da wuri a kai?",
+      "dailyPlanTitle": "Duban jagorar kowace rana",
+      "dailyPlanBody": "Kwanaki uku na farko suna nuna tsarin. Dukan shirin zai faɗaɗa bisa tsawon lokacin.",
+      "createInvite": "Ƙirƙiri gayyatar azumi",
+      "previewTitle": "Bayanan azumi",
+      "previewBody": "Tsawon lokaci, manufa, ranar farawa, da bayanin kula suna tare cikin taƙaitaccen bayani."
+    },
+    "readWithMeInvitePromptBody": "Saita littafi, gudu, mutane, da lokaci. Gayyatar ta kasance a sarari kuma kai tsaye."
   },
   "streak": {
     "openMilestones": "Buɗe matakan jerin",

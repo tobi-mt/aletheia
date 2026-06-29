@@ -1265,6 +1265,7 @@
     "author": "Author",
     "notSet": "Não definido",
     "duration": "Duration",
+    "goal": "Objetivo",
     "startDate": "Start date",
     "edition": "Edition / translation",
     "cadence": "Cadence",
@@ -1732,9 +1733,9 @@
     "inviteReady": "Convite pronto",
     "inviteEyebrow": "Convite para prática compartilhada",
     "initiatedBy": "Iniciado por",
-    "sharedProgress": "Progresso compartilhado",
-    "nudges": "Incentivos",
-    "noNudgesYet": "Ainda não há incentivos. Envie o primeiro.",
+    "sharedProgress": "Progresso do círculo",
+    "nudges": "Check-ins",
+    "noNudgesYet": "Ainda não há check-ins. Envie a primeira nota.",
     "sendNudge": "Enviar incentivo",
     "nudgePlaceholder": "Escreva um incentivo curto ou uma atualização…",
     "sendNudgeButton": "Enviar incentivo",
@@ -1863,7 +1864,6 @@
         "practice": "Escreva com clareza o que é suficiente para esta estação."
       }
     },
-
     "sabbathRest5day": {
       "title": "Prática de descanso sabático de 5 dias",
       "description": "Cinco dias de descanso protegido: nomear o ritmo do trabalho, perceber a tensão por baixo e abrir espaço para desacelerar.",
@@ -1894,6 +1894,185 @@
       }
     },
     "whyThisFits": "Why this fits",
+    "listening3day": {
+      "title": "Prática de escuta",
+      "description": "Três dias para desacelerar, ouvir primeiro e perceber o que há sob a primeira resposta.",
+      "day1": {
+        "principle": "Todo homem seja pronto para ouvir, tardio para falar, tardio para se irar.",
+        "prompt": "Quem ou o que precisa da sua atenção total hoje?",
+        "practice": "Ouça antes de responder uma vez hoje."
+      },
+      "day2": {
+        "principle": "Quem responde antes de ouvir mostra insensatez e vergonha.",
+        "prompt": "Que pergunta você está passando rápido demais?",
+        "practice": "Faça uma pausa antes de responder."
+      },
+      "day3": {
+        "principle": "O propósito no coração do homem é como águas profundas, mas o homem de entendimento o traz para fora.",
+        "prompt": "Onde uma boa pergunta ajudaria mais do que uma opinião rápida?",
+        "practice": "Faça uma pergunta mais lenta e sábia."
+      }
+    },
+    "repair4day": {
+      "title": "Prática de reparo",
+      "description": "Quatro dias para nomear a ferida com honestidade, baixar a defensiva e seguir em direção ao reparo.",
+      "day1": {
+        "principle": "Vai primeiro reconciliar-te com teu irmão.",
+        "prompt": "Quem precisa da sua atenção porque algo ficou pendente?",
+        "practice": "Nomeie o relacionamento que precisa de reparo."
+      },
+      "day2": {
+        "principle": "Irai-vos e não pequeis; não se ponha o sol sobre a vossa ira.",
+        "prompt": "Onde a ira ficou em fogo baixo?",
+        "practice": "Dê um passo antes que o sol se ponha."
+      },
+      "day3": {
+        "principle": "Confessem os seus pecados uns aos outros e orem uns pelos outros.",
+        "prompt": "Que confissão ou pedido de desculpas tornaria a próxima conversa mais honesta?",
+        "practice": "Escreva o pedido de desculpas que você tem evitado."
+      },
+      "day4": {
+        "principle": "Se possível, no que depender de vós, tende paz com todos.",
+        "prompt": "Qual é a paz mais fiel que você pode buscar sem fingir que tudo está bem?",
+        "practice": "Escolha a paz no que depender de você."
+      }
+    },
+    "generosity7day": {
+      "title": "Prática de generosidade",
+      "description": "Sete dias para dar por convicção, não por pressão, respeitando capacidade, alegria e limites sábios.",
+      "day1": {
+        "principle": "A pessoa generosa prosperará, e quem rega será também regado.",
+        "prompt": "Onde você recebeu mais do que percebe?",
+        "practice": "Perceba um lugar para onde a abundância quer se mover."
+      },
+      "day2": {
+        "principle": "É aceitável segundo o que alguém tem, e não segundo o que não tem.",
+        "prompt": "Que quantia seria generosa para esta estação, e não para uma estação ideal?",
+        "practice": "Nomeie uma proporção que caiba na sua capacidade."
+      },
+      "day3": {
+        "principle": "Mais bem-aventurado é dar do que receber.",
+        "prompt": "Quem poderia ser fortalecido pelo que já está nas suas mãos?",
+        "practice": "Dê algo útil sem alarde."
+      },
+      "day4": {
+        "principle": "Quem se compadece do pobre empresta ao Senhor.",
+        "prompt": "Que ato de misericórdia você gostaria de lembrar em vez do medo?",
+        "practice": "Escreva uma forma prática de bondade."
+      },
+      "day5": {
+        "principle": "Ponha a sua esperança em Deus, que nos dá ricamente tudo para desfrutarmos.",
+        "prompt": "Como é a esperança quando a riqueza não está no centro?",
+        "practice": "Ponha sua esperança em algo mais firme do que dinheiro."
+      },
+      "day6": {
+        "principle": "Vocês serão enriquecidos em tudo para toda generosidade.",
+        "prompt": "Onde a gratidão faz o dar parecer mais livre?",
+        "practice": "Agradeça pelo que você pode compartilhar."
+      },
+      "day7": {
+        "principle": "O Senhor teu Deus te abençoará em tudo o que fizeres.",
+        "prompt": "Que presente parece alegre e sustentável agora?",
+        "practice": "Escolha o próximo passo generoso com alegria."
+      }
+    },
+    "attentionFast5day": {
+      "title": "Jejum de atenção",
+      "description": "Cinco dias para limpar o ruído, recuperar o foco e escolher o que merece atenção.",
+      "day1": {
+        "principle": "Ensina-nos a contar os nossos dias, para que alcancemos coração sábio.",
+        "prompt": "Onde o seu tempo está vazando?",
+        "practice": "Nomeie uma fuga de atenção."
+      },
+      "day2": {
+        "principle": "Sobre tudo o que se deve guardar, guarda o teu coração, porque dele procedem as fontes da vida.",
+        "prompt": "O que está moldando sua vida interior sem permissão?",
+        "practice": "Estabeleça um limite para a atenção."
+      },
+      "day3": {
+        "principle": "A lâmpada do corpo são os olhos.",
+        "prompt": "O que traz clareza e o que a obscurece?",
+        "practice": "Deixe sua atenção repousar em uma coisa clara."
+      },
+      "day4": {
+        "principle": "Transformai-vos pela renovação da vossa mente.",
+        "prompt": "Que padrão é normal, mas não sábio?",
+        "practice": "Recuse hoje um padrão barulhento."
+      },
+      "day5": {
+        "principle": "Tudo o que é verdadeiro, honesto, justo, puro, amável e de boa fama, nisso pensai.",
+        "prompt": "O que é verdadeiro, honroso e vale a pena manter em vista?",
+        "practice": "Nomeie uma coisa que mereça sua atenção."
+      }
+    },
+    "hiddenService5day": {
+      "title": "Prática de serviço oculto",
+      "description": "Cinco dias para servir em silêncio, abrir mão do crédito e notar uma fidelidade que ninguém precisa ver.",
+      "day1": {
+        "principle": "Teu Pai, que vê em secreto, te recompensará.",
+        "prompt": "Onde você pode fazer o bem sem anunciar?",
+        "practice": "Escolha um ato de serviço escondido."
+      },
+      "day2": {
+        "principle": "Servi-vos uns aos outros pelo amor.",
+        "prompt": "Como a liberdade pode virar ação amorosa em vez de autocentramento?",
+        "practice": "Sirva de um jeito que ninguém precise aplaudir."
+      },
+      "day3": {
+        "principle": "Servi uns aos outros com o dom que receberam.",
+        "prompt": "Que dom você pode usar hoje para ajudar outra pessoa?",
+        "practice": "Use um dom para abençoar alguém."
+      },
+      "day4": {
+        "principle": "Tudo o que fizerdes, fazei-o de todo o coração, como para o Senhor e não para homens.",
+        "prompt": "O que muda quando você serve a Deus em vez de buscar aplauso?",
+        "practice": "Trabalhe com fidelidade tranquila e invisível."
+      },
+      "day5": {
+        "principle": "Deus não é injusto para se esquecer do vosso trabalho e do amor que mostrastes.",
+        "prompt": "Quem foi ajudado em silêncio pela sua constância?",
+        "practice": "Perceba o bem que já foi feito."
+      }
+    },
+    "readWithMe7day": {
+      "title": "Prática de leitura",
+      "description": "Sete dias para ler com atenção, perguntar o que é verdadeiro e deixar a sabedoria moldar o ouvir.",
+      "day1": {
+        "principle": "O coração entendido adquire conhecimento, e o ouvido dos sábios busca conhecimento.",
+        "prompt": "O que você quer entender com mais profundidade?",
+        "practice": "Leia uma passagem com mais atenção."
+      },
+      "day2": {
+        "principle": "Todo homem seja pronto para ouvir, tardio para falar, tardio para se irar.",
+        "prompt": "Como seria ser pronto para ouvir e lento para falar?",
+        "practice": "Ouça antes de explicar."
+      },
+      "day3": {
+        "principle": "O princípio da sabedoria é: adquire a sabedoria.",
+        "prompt": "Onde você precisa de sabedoria mais do que de informação?",
+        "practice": "Escolha sabedoria em vez de pressa."
+      },
+      "day4": {
+        "principle": "Lâmpada para os meus pés é a tua palavra e luz para o meu caminho.",
+        "prompt": "Qual é a lâmpada para o próximo passo, não para todo o mapa?",
+        "practice": "Deixe uma única linha guiar o próximo passo."
+      },
+      "day5": {
+        "principle": "Receberam a palavra com toda a avidez, examinando diariamente as Escrituras.",
+        "prompt": "O que significaria testar com cuidado o que você ouve?",
+        "practice": "Verifique antes de absorver."
+      },
+      "day6": {
+        "principle": "Habite ricamente em vós a palavra de Cristo.",
+        "prompt": "Que palavra precisa habitar ricamente em você hoje?",
+        "practice": "Fique mais tempo do que o habitual com uma passagem."
+      },
+      "day7": {
+        "principle": "Procure apresentar-se a Deus aprovado, que maneja bem a palavra da verdade.",
+        "prompt": "Como é agora lidar com a verdade com fidelidade?",
+        "practice": "Leia com cuidado, paciência e humildade."
+      }
+    },
     "readWithMeInviteTitle": "Shared reading plan",
     "readWithMeInviteDetails": "Fixed reading details",
     "readWithMeInviteDetailsBody": "Everyone sees the same book, cadence, and response window.",
@@ -1901,8 +2080,8 @@
     "responseDashboardBody": "Accepted, declined, and time-based pending states update from the invite roster.",
     "noInviteRosterYet": "Add a roster to start tracking responses.",
     "unmatchedResponses": "Other responses",
-    "readWithMeInvitePrompt": "Invitation draft",
-    "readWithMeDetailsBody": "Keep the subject line simple and the duration unmistakable.",
+    "readWithMeInvitePrompt": "Dar forma ao plano de leitura",
+    "readWithMeDetailsBody": "Deixe o livro e a duração sem dúvida.",
     "readWithMeBookPlaceholder": "The book you want everyone to read",
     "readWithMeAuthorPlaceholder": "Optional, but helpful for clarity",
     "readWithMeEditionPlaceholder": "Optional edition, translation, or format",
@@ -1911,18 +2090,18 @@
     "readWithMeRecipientsEmpty": "Start by naming one or two people.",
     "responseWindowHelper": "Set a start date and the window before responses move to Pending.",
     "responseWindow": "Response window",
-    "readWithMeToneBody": "Use this space for the pace, the why, and the actual note you want them to feel.",
+    "readWithMeToneBody": "Use este espaço para o ritmo, o propósito e a nota que você quer que sintam.",
     "readWithMeCadencePlaceholder": "Read at a steady pace and hold one brief check-in each week.",
     "readWithMeFocusPlaceholder": "What do you hope this book will clarify, stretch, or shape?",
     "readWithMeNotePlaceholder": "A short note to the people you are inviting",
-    "readWithMeInvitePreview": "Pré-visualização do convite",
+    "readWithMeInvitePreview": "Prévia do plano",
     "createReadWithMeInvite": "Create reading invite",
     "inviteFriendsTitle": "Shared invite",
     "inviteFriendsSharedPlanBody": "Everyone follows the same practice and sees the same progress.",
     "inviteFriendsProgressBody": "You can see who joined and where the group is up to.",
     "inviteFriendsNudgesBody": "Lembretes suaves mantêm o convite vivo sem ficar invasivos.",
     "readWithMeSharePrefix": "Read with me",
-    "readWithMeInviteSubtitle": "A shared reading invite",
+    "readWithMeInviteSubtitle": "Um plano de leitura compartilhado",
     "leaveInvite": "Leave invite",
     "declinedInviteBody": "You declined this reading invitation. You can still join if you change your mind.",
     "joinAnyway": "Join anyway",
@@ -1939,7 +2118,23 @@
     "completedTodayBody": "O dia {nextDay} de {total} está esperando por amanhã.",
     "inProgressBody": "Continue com o dia {nextDay} de {total}.",
     "continueCurrentPractice": "Continue sua prática atual",
-    "reentryNote": "You are already partway through this practice. Keep the rhythm going with day {nextDay}."
+    "reentryNote": "You are already partway through this practice. Keep the rhythm going with day {nextDay}.",
+    "communitySummaryTitle": "Atividade do círculo",
+    "communitySummaryBody": "O progresso, os incentivos e os acompanhamentos aparecem aqui enquanto a prática avança.",
+    "fastingCustom": {
+      "title": "Prática de jejum",
+      "description": "Um jejum em grupo com duração clara, objetivo definido e orientação diária.",
+      "formTitle": "Estruture o jejum",
+      "formBody": "Defina a duração, nomeie o propósito e montamos o caminho diário a partir disso.",
+      "durationHint": "Comece pela duração. O guia diário vai se adaptar a ela.",
+      "goalPlaceholder": "Para que você quer abrir espaço com este jejum?",
+      "dailyPlanTitle": "Prévia do guia diário",
+      "dailyPlanBody": "Os primeiros três dias mostram o ritmo. O plano completo se ajusta à duração.",
+      "createInvite": "Criar convite de jejum",
+      "previewTitle": "Detalhes do jejum",
+      "previewBody": "Duração, objetivo, data de início e nota ficam juntos em um resumo claro."
+    },
+    "readWithMeInvitePromptBody": "Defina o livro, o ritmo, as pessoas e o momento. O convite fica limpo e direto."
   },
   "streak": {
     "openMilestones": "Abrir marcos da sequência",

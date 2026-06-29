@@ -8,6 +8,7 @@ export type ReadWithMeInviteRecipient = {
 };
 
 export type ReadWithMeInviteDetails = {
+  kind: "read-with-me";
   bookTitle: string;
   author: string;
   edition: string;
@@ -23,6 +24,7 @@ export type ReadWithMeInviteDetails = {
 };
 
 export const defaultReadWithMeInviteDetails: ReadWithMeInviteDetails = {
+  kind: "read-with-me",
   bookTitle: "",
   author: "",
   edition: "",
@@ -100,6 +102,7 @@ export function normalizeReadWithMeInviteDetails(
     : [];
 
   return {
+    kind: "read-with-me",
     bookTitle: cleanText(input.bookTitle, 160),
     author: cleanText(input.author, 120),
     edition: cleanText(input.edition, 120),

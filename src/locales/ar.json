@@ -1265,6 +1265,7 @@
     "author": "Author",
     "notSet": "غير محدد",
     "duration": "Duration",
+    "goal": "الهدف",
     "startDate": "Start date",
     "edition": "Edition / translation",
     "cadence": "Cadence",
@@ -1732,9 +1733,9 @@
     "inviteReady": "الدعوة جاهزة",
     "inviteEyebrow": "دعوة لممارسة مشتركة",
     "initiatedBy": "بدأها",
-    "sharedProgress": "التقدم المشترك",
-    "nudges": "تنبيهات",
-    "noNudgesYet": "لا توجد تنبيهات بعد. أرسل أول تشجيع.",
+    "sharedProgress": "تقدم الدائرة",
+    "nudges": "ملاحظات",
+    "noNudgesYet": "لا توجد ملاحظات بعد. أرسل أول رسالة.",
     "sendNudge": "أرسل تنبيهًا",
     "nudgePlaceholder": "اكتب تشجيعًا قصيرًا أو تسجيل وصول…",
     "sendNudgeButton": "إرسال",
@@ -1863,7 +1864,6 @@
         "practice": "اكتب بوضوح ما يكفي لهذا الموسم."
       }
     },
-
     "sabbathRest5day": {
       "title": "ممارسة راحة السبت لمدة 5 أيام",
       "description": "خمسة أيام من الراحة المحفوظة: تسمية وتيرة العمل، وملاحظة الثقل تحتها، وخلق مساحة للتهدئة.",
@@ -1894,6 +1894,185 @@
       }
     },
     "whyThisFits": "Why this fits",
+    "listening3day": {
+      "title": "ممارسة الاستماع",
+      "description": "ثلاثة أيام لتهدئة الوتيرة، والاستماع أولًا، وسماع ما وراء الإجابة الأولى.",
+      "day1": {
+        "principle": "ليكن كل إنسان سريعًا في الاستماع، بطيئًا في التكلّم، بطيئًا في الغضب.",
+        "prompt": "من أو ما الذي يحتاج اليوم إلى انتباهك الكامل؟",
+        "practice": "استمع قبل أن تجيب مرة واحدة اليوم."
+      },
+      "day2": {
+        "principle": "من يجيب قبل أن يسمع فذلك حماقة وعار له.",
+        "prompt": "ما السؤال الذي تمرّ عليه بسرعة كبيرة؟",
+        "practice": "توقف قليلًا قبل أن تجيب."
+      },
+      "day3": {
+        "principle": "قصد الإنسان في قلبه مياه عميقة، لكن الإنسان الفهيم يستخرجها.",
+        "prompt": "أين سيساعد السؤال الجيد أكثر من الرأي السريع؟",
+        "practice": "اسأل سؤالًا أبطأ وأكثر حكمة."
+      }
+    },
+    "repair4day": {
+      "title": "ممارسة الإصلاح",
+      "description": "أربعة أيام لذكر الأذى بصدق، وتخفيف الدفاعية، والتقدم نحو الإصلاح بعناية.",
+      "day1": {
+        "principle": "اذهب أولًا وصالح أخاك.",
+        "prompt": "من يحتاج إلى انتباهك لأن أمرًا بقي غير محسوم؟",
+        "practice": "سمِّ العلاقة التي تحتاج إلى إصلاح."
+      },
+      "day2": {
+        "principle": "اغضبوا ولا تخطئوا، ولا تغرب الشمس على غيظكم.",
+        "prompt": "أين تُرك الغضب يغلي بهدوء؟",
+        "practice": "اتخذ خطوة قبل أن تغرب الشمس."
+      },
+      "day3": {
+        "principle": "اعترفوا بعضكم لبعض بالزلات، وصلّوا بعضكم لأجل بعض.",
+        "prompt": "ما الاعتراف أو الاعتذار الذي يجعل الحديث التالي أكثر صدقًا؟",
+        "practice": "اكتب الاعتذار الذي كنت تتجنبه."
+      },
+      "day4": {
+        "principle": "إن كان ممكنا، فحسب طاقتكم، سالموا جميع الناس.",
+        "prompt": "ما السلام الأمين الذي يمكنك السعي إليه من دون أن تتظاهر أن كل شيء بخير؟",
+        "practice": "اختر السلام بقدر ما يعتمد عليك."
+      }
+    },
+    "generosity7day": {
+      "title": "ممارسة الكرم",
+      "description": "سبعة أيام للعطاء عن قناعة لا عن ضغط، مع مراعاة القدرة والفرح والحدود الحكيمة.",
+      "day1": {
+        "principle": "الكرماء يُخصَبون، ومن يروي يُروى أيضًا.",
+        "prompt": "أين أخذت أكثر مما تلاحظ؟",
+        "practice": "انتبه إلى موضع تريد فيه الوفرة أن تتحرك."
+      },
+      "day2": {
+        "principle": "القبول يكون بحسب ما للإنسان لا بحسب ما ليس له.",
+        "prompt": "ما المقدار السخيّ في هذه المرحلة، لا في مرحلة مثالية؟",
+        "practice": "سمِّ نسبة تناسب قدرتك."
+      },
+      "day3": {
+        "principle": "العطاء أكثر بركة من الأخذ.",
+        "prompt": "من الذي يمكن أن يقوى بما في يدك بالفعل؟",
+        "practice": "أعطِ شيئًا نافعًا من دون استعراض."
+      },
+      "day4": {
+        "principle": "من يرحم المسكين يُقرض الرب.",
+        "prompt": "أي عمل رحمة تود أن تتذكره بدلًا من الخوف؟",
+        "practice": "اكتب طريقة عملية للّطف."
+      },
+      "day5": {
+        "principle": "اجعل رجاءك في الله الذي يمنحنا كل شيء بغنى لنتمتع به.",
+        "prompt": "كيف يبدو الرجاء عندما لا تكون الثروة في المركز؟",
+        "practice": "اجعل رجاءك في شيء أثبت من المال."
+      },
+      "day6": {
+        "principle": "تُغنَوْن في كل شيء لكل سخاء.",
+        "prompt": "أين تجعل الشكرُ العطاءَ أكثر حرية؟",
+        "practice": "اشكر على ما يمكنك مشاركته."
+      },
+      "day7": {
+        "principle": "يباركك الرب إلهك في كل ما تعمل.",
+        "prompt": "ما الهدية التي تبدو مفرِحة ومستدامة الآن؟",
+        "practice": "اختر الخطوة الكريمة التالية بفرح."
+      }
+    },
+    "attentionFast5day": {
+      "title": "صوم الانتباه",
+      "description": "خمسة أيام لتصفية الضجيج، واستعادة التركيز، واختيار ما يستحق انتباهك.",
+      "day1": {
+        "principle": "علّمنا أن نحصي أيامنا فنؤتى قلب حكمة.",
+        "prompt": "أين يتسرب وقتك؟",
+        "practice": "سمِّ تسربًا واحدًا في الانتباه."
+      },
+      "day2": {
+        "principle": "فوق كل تحفظ احفظ قلبك، لأن منه مخارج الحياة.",
+        "prompt": "ما الذي يشكّل حياتك الداخلية من غير إذن؟",
+        "practice": "ضع حدًا واحدًا حول الانتباه."
+      },
+      "day3": {
+        "principle": "العين مصباح الجسد.",
+        "prompt": "ما الذي يجلب الوضوح وما الذي يطمسه؟",
+        "practice": "دع انتباهك يستقر على شيء واحد واضح."
+      },
+      "day4": {
+        "principle": "تغيّروا بتجديد أذهانكم.",
+        "prompt": "ما النمط الذي صار عاديًا لكنه ليس حكيمًا؟",
+        "practice": "ارفض اليوم نمطًا صاخبًا واحدًا."
+      },
+      "day5": {
+        "principle": "كل ما هو حق، وكل ما هو جليل، وكل ما هو عادل، وكل ما هو طاهر، وكل ما هو مُستَحسَن، افتكروا في هذه الأمور.",
+        "prompt": "ما هو الحق والجليل والذي يستحق أن يبقى في نظرك؟",
+        "practice": "سمِّ شيئًا يستحق انتباهك."
+      }
+    },
+    "hiddenService5day": {
+      "title": "ممارسة الخدمة الخفية",
+      "description": "خمسة أيام للخدمة في الخفاء، وترك الثناء، وملاحظة أمانة لا تحتاج إلى أن تُرى.",
+      "day1": {
+        "principle": "أبوك الذي يرى في الخفاء يجازيك علانية.",
+        "prompt": "أين يمكنك أن تفعل الخير من دون أن تعلن عنه؟",
+        "practice": "اختر عمل خدمة خفيًا واحدًا."
+      },
+      "day2": {
+        "principle": "بالـمحبة اخدموا بعضكم بعضًا.",
+        "prompt": "كيف يمكن للحرية أن تصبح عمل محبة بدلًا من التمركز حول الذات؟",
+        "practice": "اخدم بطريقة لا تحتاج إلى تصفيق أحد."
+      },
+      "day3": {
+        "principle": "كما نال كل واحد موهبة، فليخدم بها بعضكم بعضًا.",
+        "prompt": "ما الموهبة التي يمكنك استخدامها اليوم لمساعدة شخص آخر؟",
+        "practice": "استخدم موهبة واحدة لتبارك بها غيرك."
+      },
+      "day4": {
+        "principle": "كل ما فعلتم فاعملوا من القلب كما للرب لا للناس.",
+        "prompt": "ما الذي يتغير عندما تخدم الله بدلًا من طلب التصفيق؟",
+        "practice": "اعمل بأمانة هادئة وغير مرئية."
+      },
+      "day5": {
+        "principle": "الله ليس بظالم حتى ينسى عملكم والمحبة التي أظهرتموها.",
+        "prompt": "من الذي ساعدته في الخفاء بثباتك؟",
+        "practice": "لاحظ الخير الذي تم بالفعل."
+      }
+    },
+    "readWithMe7day": {
+      "title": "ممارسة القراءة",
+      "description": "سبعة أيام للقراءة بانتباه، وسؤال ما هو الحق، وترك الحكمة تشكّل طريقة الإصغاء.",
+      "day1": {
+        "principle": "القلب الفهيم يقتني معرفة، وأذن الحكماء تطلب معرفة.",
+        "prompt": "ما الذي تريد أن تفهمه بعمق أكبر؟",
+        "practice": "اقرأ فقرة باهتمام أعمق."
+      },
+      "day2": {
+        "principle": "ليكن كل إنسان سريعًا في الاستماع، بطيئًا في التكلّم، بطيئًا في الغضب.",
+        "prompt": "كيف يكون الإنسان سريعًا في الاستماع وبطيئًا في الكلام؟",
+        "practice": "استمع قبل أن تشرح."
+      },
+      "day3": {
+        "principle": "بدء الحكمة اقتنِ الحكمة.",
+        "prompt": "أين تحتاج إلى الحكمة أكثر من المعلومات؟",
+        "practice": "اختر الحكمة بدلًا من السرعة."
+      },
+      "day4": {
+        "principle": "كلامك سراج لرجلي ونور لسبيلي.",
+        "prompt": "ما هو السراج للخطوة التالية، لا للخريطة كلها؟",
+        "practice": "دع سطرًا واحدًا يوجّه خطوتك التالية."
+      },
+      "day5": {
+        "principle": "قبلوا الكلمة بكل نشاط، فاحصين الكتب كل يوم.",
+        "prompt": "ماذا يعني أن تختبر بعناية ما تسمعه؟",
+        "practice": "تحقق قبل أن تستوعب."
+      },
+      "day6": {
+        "principle": "لتسكن فيكم كلمة المسيح بغنى.",
+        "prompt": "أي كلمة تحتاج أن تسكن فيك بغنى اليوم؟",
+        "practice": "ابقَ مع مقطع واحد وقتًا أطول من المعتاد."
+      },
+      "day7": {
+        "principle": "اجتهد أن تقيم نفسك لله مزكّى، عاملًا كلمة الحق باستقامة.",
+        "prompt": "كيف يبدو الآن التعامل مع الحق بأمانة؟",
+        "practice": "اقرأ بعناية وصبر وتواضع."
+      }
+    },
     "readWithMeInviteTitle": "Shared reading plan",
     "readWithMeInviteDetails": "Fixed reading details",
     "readWithMeInviteDetailsBody": "Everyone sees the same book, cadence, and response window.",
@@ -1901,8 +2080,8 @@
     "responseDashboardBody": "Accepted, declined, and time-based pending states update from the invite roster.",
     "noInviteRosterYet": "Add a roster to start tracking responses.",
     "unmatchedResponses": "Other responses",
-    "readWithMeInvitePrompt": "Invitation draft",
-    "readWithMeDetailsBody": "Keep the subject line simple and the duration unmistakable.",
+    "readWithMeInvitePrompt": "صِغ خطة القراءة",
+    "readWithMeDetailsBody": "اجعل الكتاب والمدة واضحين بلا لبس.",
     "readWithMeBookPlaceholder": "The book you want everyone to read",
     "readWithMeAuthorPlaceholder": "Optional, but helpful for clarity",
     "readWithMeEditionPlaceholder": "Optional edition, translation, or format",
@@ -1911,18 +2090,18 @@
     "readWithMeRecipientsEmpty": "Start by naming one or two people.",
     "responseWindowHelper": "Set a start date and the window before responses move to Pending.",
     "responseWindow": "Response window",
-    "readWithMeToneBody": "Use this space for the pace, the why, and the actual note you want them to feel.",
+    "readWithMeToneBody": "استخدم هذا المكان للإيقاع والغاية والملاحظة التي تريدهم أن يشعروا بها.",
     "readWithMeCadencePlaceholder": "Read at a steady pace and hold one brief check-in each week.",
     "readWithMeFocusPlaceholder": "What do you hope this book will clarify, stretch, or shape?",
     "readWithMeNotePlaceholder": "A short note to the people you are inviting",
-    "readWithMeInvitePreview": "معاينة الدعوة",
+    "readWithMeInvitePreview": "معاينة الخطة",
     "createReadWithMeInvite": "Create reading invite",
     "inviteFriendsTitle": "Shared invite",
     "inviteFriendsSharedPlanBody": "Everyone follows the same practice and sees the same progress.",
     "inviteFriendsProgressBody": "You can see who joined and where the group is up to.",
     "inviteFriendsNudgesBody": "تُبقي التذكيرات اللطيفة الدعوة حية من دون أن تكون مزعجة.",
     "readWithMeSharePrefix": "Read with me",
-    "readWithMeInviteSubtitle": "A shared reading invite",
+    "readWithMeInviteSubtitle": "خطة قراءة مشتركة",
     "leaveInvite": "Leave invite",
     "declinedInviteBody": "You declined this reading invitation. You can still join if you change your mind.",
     "joinAnyway": "Join anyway",
@@ -1939,7 +2118,23 @@
     "completedTodayBody": "اليوم {nextDay} من {total} ينتظر الغد.",
     "inProgressBody": "واصل مع اليوم {nextDay} من {total}.",
     "continueCurrentPractice": "واصل ممارستك الحالية",
-    "reentryNote": "You are already partway through this practice. Keep the rhythm going with day {nextDay}."
+    "reentryNote": "You are already partway through this practice. Keep the rhythm going with day {nextDay}.",
+    "communitySummaryTitle": "نشاط الدائرة",
+    "communitySummaryBody": "يظهر التقدم والتنبيهات والمتابعات هنا مع استمرار الممارسة.",
+    "fastingCustom": {
+      "title": "ممارسة الصوم",
+      "description": "صوم مشترك بمدة واضحة وهدف محدد وتوجيه يومي.",
+      "formTitle": "صِغ الصوم",
+      "formBody": "حدّد المدة وسمِّ الغاية، وسنبني المسار اليومي حولها.",
+      "durationHint": "ابدأ بالمدة. سيتكيّف الدليل اليومي معها.",
+      "goalPlaceholder": "ماذا تريد أن يفتح هذا الصوم له مساحة؟",
+      "dailyPlanTitle": "معاينة الدليل اليومي",
+      "dailyPlanBody": "تُظهر الأيام الثلاثة الأولى الإيقاع. أما الخطة الكاملة فتتوسع لتناسب المدة.",
+      "createInvite": "إنشاء دعوة صوم",
+      "previewTitle": "تفاصيل الصوم",
+      "previewBody": "المدة والغاية وتاريخ البداية والملاحظة تبقى معًا في ملخص واضح."
+    },
+    "readWithMeInvitePromptBody": "حدّد الكتاب والإيقاع والأشخاص والتوقيت. تبقى الدعوة واضحة ومباشرة."
   },
   "streak": {
     "openMilestones": "فتح معالم السجل",

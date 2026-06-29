@@ -5,6 +5,7 @@ import { localizedDailyWisdom, localizedScriptureReference, normalizePreferences
 import { getWisdomEntries } from "@/lib/wisdom";
 import { selectDailyWisdomIndex } from "@/lib/wisdom-data";
 import { getChallengeById, type ChallengeId } from "@/lib/challenge-data";
+import { buildFastingDayPlan, formatFastingDurationLabel, normalizeFastingInviteDetails, type FastingInviteDetails } from "@/lib/fasting-invite";
 import { recommendChallenges } from "@/lib/challenge-recommendations";
 import { normalizeManualContext, type ManualContextProfile } from "@/lib/manual-context";
 import { loadTranslationsSync, getTranslation } from "@/lib/translations";
@@ -48,6 +49,27 @@ type DueDecisionReminder = {
   kind: ReminderKind;
   dueAt: string;
   language: LanguageCode;
+};
+
+type FastingProgressRow = {
+  user_id: string;
+  challenge_id: string;
+  days_completed: string;
+  last_completed_at: string;
+};
+
+type FastingCircleRow = {
+  id: string;
+  invite_details_json: unknown;
+};
+
+type ActiveChallengeProgressRow = {
+  challengeId: string;
+  daysCompleted: number;
+  totalDays: number;
+  lastCompletedAt: Date;
+  fastingCircleId?: string;
+  fastingInviteDetails?: FastingInviteDetails;
 };
 
 const DAILY_UNAUTHORIZED_METRIC_KEY = "daily_unauthorized_hits";
@@ -1899,6 +1921,43 @@ function challengeReminderTitle(input: {
   );
 }
 
+function fastingReminderBody(input: {
+  language: LanguageCode;
+  tone: "early" | "longer";
+  reentry: boolean;
+  dayLabel: string;
+  scripture: string;
+  practice: string;
+  totalLabel: string;
+  goal: string;
+  translations: ReturnType<typeof loadTranslationsSync>;
+}) {
+  const lead = input.reentry
+    ? challengeReentryTone(input.language, input.tone)
+    : compactNotificationCopy(String(getTranslation(input.translations, "challenges.fastingCustom.title", "Fasting Practice")), 48);
+  const daySegment = compactNotificationCopy(normalizeNotificationSegment(input.dayLabel, "Day 1"), 24);
+  const scriptureSegment = compactNotificationCopy(normalizeNotificationSegment(input.scripture, "Matthew 6:16-18"), 56);
+  const practiceSegment = compactNotificationCopy(normalizeNotificationSegment(input.practice, "Begin with one clear intention."), 100);
+  const totalSegment = compactNotificationCopy(normalizeNotificationSegment(input.totalLabel, ""), 24);
+  const goalLabel = String(getTranslation(input.translations, "labels.goal", "Goal"));
+  const goalSegment = input.goal.trim()
+    ? compactNotificationCopy(`${goalLabel}: ${normalizeNotificationSegment(input.goal, "")}`, 56)
+    : "";
+
+  return compactNotificationCopy(
+    [
+      lead,
+      totalSegment ? `${daySegment} of ${totalSegment}` : daySegment,
+      scriptureSegment,
+      practiceSegment,
+      goalSegment,
+    ]
+      .filter(Boolean)
+      .join(" · "),
+    156
+  );
+}
+
 function localHourForTimezone(date: Date, timezone: string | null | undefined) {
   const safeTimezone = timezone || "UTC";
   try {
@@ -2292,6 +2351,7 @@ export async function sendChallengeReminders(now = new Date()): Promise<{
 
   // ------------------------------------------------------------------
   // 3. Load active challenge progress per user (started, not finished)
+  //    including instance-based fasting circles.
   // ------------------------------------------------------------------
   const userIds = [...new Set(dueRows.map((r) => r.user_id))];
 
@@ -2303,22 +2363,61 @@ export async function sendChallengeReminders(now = new Date()): Promise<{
   }>(
     `SELECT user_id, challenge_id, COUNT(*) as days_completed,
             MAX(completed_at) as last_completed_at
-     FROM challenge_progress
+      FROM challenge_progress
      WHERE user_id = ANY(?)
      GROUP BY user_id, challenge_id`,
     userIds
   );
 
-  type ProgressMap = Map<string, { challengeId: string; daysCompleted: number; lastCompletedAt: Date }[]>;
+  const fastingProgressRows = progressRows.filter((row): row is FastingProgressRow => row.challenge_id.startsWith("fasting:"));
+  const fastingCircleIds = [...new Set(fastingProgressRows.map((row) => row.challenge_id.slice("fasting:".length)).filter(Boolean))];
+  const fastingCircleRows = fastingCircleIds.length
+    ? await many<FastingCircleRow>(
+        `SELECT id, invite_details_json
+         FROM challenge_circles
+         WHERE challenge_id = ?
+           AND id = ANY(?)`,
+        "fasting-custom",
+        fastingCircleIds
+      )
+    : [];
+  const fastingCircleById = new Map(
+    fastingCircleRows.map((row) => [row.id, normalizeFastingInviteDetails(row.invite_details_json as Partial<FastingInviteDetails>)])
+  );
+
+  type ProgressMap = Map<string, ActiveChallengeProgressRow[]>;
   const progressByUser: ProgressMap = new Map();
   for (const row of progressRows) {
     const bucket = progressByUser.get(row.user_id) ?? [];
-    bucket.push({
-      challengeId: row.challenge_id,
-      daysCompleted: Number(row.days_completed),
-      lastCompletedAt: new Date(row.last_completed_at),
-    });
+    if (row.challenge_id.startsWith("fasting:")) {
+      const circleId = row.challenge_id.slice("fasting:".length);
+      const inviteDetails = fastingCircleById.get(circleId);
+      if (inviteDetails?.durationValue) {
+        bucket.push({
+          challengeId: row.challenge_id,
+          daysCompleted: Number(row.days_completed),
+          totalDays: inviteDetails.durationValue,
+          lastCompletedAt: new Date(row.last_completed_at),
+          fastingCircleId: circleId,
+          fastingInviteDetails: inviteDetails,
+        });
+      }
+    } else {
+      const def = getChallengeById(row.challenge_id as ChallengeId);
+      if (def) {
+        bucket.push({
+          challengeId: row.challenge_id,
+          daysCompleted: Number(row.days_completed),
+          totalDays: def.totalDays,
+          lastCompletedAt: new Date(row.last_completed_at),
+        });
+      }
+    }
     progressByUser.set(row.user_id, bucket);
+  }
+
+  function isActiveProgress(progress: ActiveChallengeProgressRow) {
+    return progress.daysCompleted < progress.totalDays;
   }
 
   // ------------------------------------------------------------------
@@ -2327,10 +2426,7 @@ export async function sendChallengeReminders(now = new Date()): Promise<{
   // ------------------------------------------------------------------
   const usersWithNoActive = userIds.filter((uid) => {
     const progress = progressByUser.get(uid) ?? [];
-    return !progress.some((p) => {
-      const def = getChallengeById(p.challengeId);
-      return def && p.daysCompleted < def.totalDays;
-    });
+    return !progress.some(isActiveProgress);
   });
 
   type ManualContextRow = {
@@ -2469,10 +2565,7 @@ export async function sendChallengeReminders(now = new Date()): Promise<{
 
     // Find the in-progress challenge with the most recent activity
     const active = userProgress
-      .filter((p) => {
-        const def = getChallengeById(p.challengeId);
-        return def && p.daysCompleted < def.totalDays;
-      })
+      .filter(isActiveProgress)
       .sort((a, b) => b.lastCompletedAt.getTime() - a.lastCompletedAt.getTime())[0];
 
     const activeLastCompletedLocalDate = active
@@ -2494,15 +2587,25 @@ export async function sendChallengeReminders(now = new Date()): Promise<{
     let reentryTone: "early" | "longer" = "early";
 
     if (active) {
-      const def = getChallengeById(active.challengeId)!;
       challengeId = active.challengeId;
       nextDay = active.daysCompleted + 1;
       shouldReengage = Boolean(daysSinceLastCompletion !== null && daysSinceLastCompletion > 1);
       reentryTone = daysSinceLastCompletion !== null && daysSinceLastCompletion >= 3 ? "longer" : "early";
-      const dayPrompt = def.days.find((d) => d.day === nextDay);
-      if (!dayPrompt) continue;
-      practiceKey = dayPrompt.practiceKey;
-      practiceFallback = dayPrompt.practice;
+      if (active.challengeId.startsWith("fasting:")) {
+        const fastingInviteDetails = active.fastingInviteDetails;
+        if (!fastingInviteDetails) continue;
+        const fastingDays = buildFastingDayPlan(fastingInviteDetails.durationValue, fastingInviteDetails.goal);
+        const dayPrompt = fastingDays.find((d) => d.day === nextDay);
+        if (!dayPrompt) continue;
+        practiceKey = "";
+        practiceFallback = dayPrompt.practice;
+      } else {
+        const def = getChallengeById(active.challengeId as ChallengeId)!;
+        const dayPrompt = def.days.find((d) => d.day === nextDay);
+        if (!dayPrompt) continue;
+        practiceKey = dayPrompt.practiceKey;
+        practiceFallback = dayPrompt.practice;
+      }
     } else {
       const completedChallengeIds = userProgress
         .filter((progress) => {
@@ -2538,7 +2641,27 @@ export async function sendChallengeReminders(now = new Date()): Promise<{
     // Translate the practice key if we have one
     let body: string;
     let title = baseTitle;
-    if (isSuggestion) {
+    if (active?.challengeId.startsWith("fasting:")) {
+      const fastingInviteDetails = active.fastingInviteDetails;
+      if (!fastingInviteDetails) continue;
+      const fastingDays = buildFastingDayPlan(fastingInviteDetails.durationValue, fastingInviteDetails.goal);
+      const dayPrompt = fastingDays.find((d) => d.day === nextDay);
+      if (!dayPrompt) continue;
+      const dayLabel = String(getTranslation(translations, "challenges.dayLabel")).replace("{day}", String(nextDay));
+      const totalLabel = formatFastingDurationLabel(fastingInviteDetails.durationValue);
+      body = fastingReminderBody({
+        language,
+        tone: reentryTone,
+        reentry: shouldReengage,
+        dayLabel,
+        scripture: dayPrompt.scripture,
+        practice: dayPrompt.practice,
+        totalLabel,
+        goal: fastingInviteDetails.goal,
+        translations,
+      });
+      title = String(getTranslation(translations, "challenges.fastingCustom.title", "Fasting Practice"));
+    } else if (isSuggestion) {
       const challenge = getChallengeById(challengeId);
       body = compactNotificationCopy(
         challenge ? String(getTranslation(translations, challenge.descriptionKey, challenge.description)) : "",

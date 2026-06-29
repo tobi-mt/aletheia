@@ -1265,6 +1265,7 @@
     "author": "Author",
     "notSet": "A kò tíì ṣètò",
     "duration": "Duration",
+    "goal": "Ète",
     "startDate": "Start date",
     "edition": "Edition / translation",
     "cadence": "Cadence",
@@ -1732,9 +1733,9 @@
     "inviteReady": "Ìpè ti ṣetan",
     "inviteEyebrow": "Ìpè ìṣe pínpín",
     "initiatedBy": "Bẹrẹ nipasẹ",
-    "sharedProgress": "Ilọsiwaju pínpín",
-    "nudges": "Ìmúnilọ́kànlẹ́",
-    "noNudgesYet": "Ko si ìmúnilọ́kànlẹ́ sibẹ. Rán akọkọ.",
+    "sharedProgress": "Ilọsiwaju ẹgbẹ́",
+    "nudges": "Ìṣàyẹ̀wò",
+    "noNudgesYet": "Ko si ìṣàyẹ̀wò sibẹ. Rán àkọ́kọ́.",
     "sendNudge": "Rán ìmúnilọ́kànlẹ́",
     "nudgePlaceholder": "Kọ ìmúnilọ́kànlẹ́ kékeré tàbí check-in…",
     "sendNudgeButton": "Rán",
@@ -1863,7 +1864,6 @@
         "practice": "Kọ ohun tí ó tó fún asiko yìí ní kedere."
       }
     },
-
     "sabbathRest5day": {
       "title": "Ìṣe ìsinmi Sábàtì fún ọjọ́ 5",
       "description": "Ọjọ́ márùn-ún ti ìsinmi tí a dáàbò bo: darukọ ìtòlẹ́sẹẹsẹ iṣẹ́, rí ìnira tó wà lábẹ́ rẹ, kí o sì ṣe àyè fún ìdákẹ́jẹ.",
@@ -1894,6 +1894,185 @@
       }
     },
     "whyThisFits": "Why this fits",
+    "listening3day": {
+      "title": "Ìṣe ìgbọ́ràn",
+      "description": "Ọjọ́ mẹ́ta láti rọra, gbọ́ kọ́kọ́, kí o sì gbọ́ ohun tí ó wà nísàlẹ̀ ìdáhùn àkọ́kọ́.",
+      "day1": {
+        "principle": "Kí ènìyàn kọọkan máa yára gbọ́, kí ó lọra láti sọ̀rọ̀, kí ó lọra láti bínú.",
+        "prompt": "Ta ni tàbí kí ni ń béèrè fún ìfọkànsìn rẹ pátápátá lónìí?",
+        "practice": "Gbọ́ kí o tó dáhùn lẹ́ẹ̀kan lónìí."
+      },
+      "day2": {
+        "principle": "Ẹni tí ó dáhùn kí ó tó gbọ́, ìwà òmùgọ̀ àti ẹ̀gàn ni fún un.",
+        "prompt": "Ìbéèrè wo ni o ń kọjá lọ́fàìgbẹ̀?",
+        "practice": "Dúró díẹ̀ kí o tó dáhùn."
+      },
+      "day3": {
+        "principle": "Ète inú ènìyàn dàbí omi jinlẹ̀, ṣùgbọ́n ènìyàn olóye yóò mú un jáde.",
+        "prompt": "Níbo ni ìbéèrè tó dára yóò ṣe ràn ju èrò kíákíá lọ?",
+        "practice": "Béèrè ìbéèrè kan tó rọra, tó tún ní ọgbọ́n."
+      }
+    },
+    "repair4day": {
+      "title": "Ìṣe atunṣe",
+      "description": "Ọjọ́ mẹ́rin láti sọ ìfarapa ní tòótọ́, dín ìdènà kù, kí o sì lọ sí ìmúpadàbọ̀rẹ̀ pẹ̀lú ìtọ́jú.",
+      "day1": {
+        "principle": "Kọ́kọ́ lọ kí o sì bá arákùnrin rẹ ṣe àlàáfíà.",
+        "prompt": "Ta ni ó nílò ìfọkànsìn rẹ nítorí pé nnkan kan kò tíì parí?",
+        "practice": "Darúkọ ìbáṣepọ̀ tí ó nílò ìtúnṣe."
+      },
+      "day2": {
+        "principle": "Ẹ bínú, ṣùgbọ́n kí ẹ má ṣe ṣẹ̀; kí oòrùn má bà a lọ lórí ìbínú yín.",
+        "prompt": "Níbo ni ìbínú ti ń jó lọ́nà díẹ̀?",
+        "practice": "Gbé ìgbésẹ̀ kan kí o tó di alẹ́."
+      },
+      "day3": {
+        "principle": "Ẹ jẹ́wọ́ ẹ̀ṣẹ̀ yín fún ara yín, kí ẹ sì gbàdúrà fún ara yín.",
+        "prompt": "Ìjẹ́wọ́ tàbí ìbéèrè ìdáríjì wo ni yóò mú kí ìjíròrò tó ń bọ̀ jẹ́ òtítọ́ síi?",
+        "practice": "Kọ ìbéèrè ìdáríjì tí o ti ń yàgò fún."
+      },
+      "day4": {
+        "principle": "Bí ó bá ṣeé ṣe, gẹ́gẹ́ bí ó ti wà lọ́wọ́ yín, ẹ máa gbé ní àlàáfíà pẹ̀lú gbogbo ènìyàn.",
+        "prompt": "Àlàáfíà tó ṣọ́ra jù lọ wo ni o lè lepa láì ṣe bí ẹni pé ohun gbogbo dára?",
+        "practice": "Yan àlàáfíà nípa ohun tí ó wà lọ́wọ́ rẹ."
+      }
+    },
+    "generosity7day": {
+      "title": "Ìṣe onínúure",
+      "description": "Ọjọ́ meje láti fi ẹ̀bùn kúnlẹ̀ láti inú ìdánilójú, kì í ṣe lábẹ́ ìfipá, pẹ̀lú mímọ̀ agbára, ayọ̀, àti ààlà ọlọ́gbọ́n.",
+      "day1": {
+        "principle": "Eni oninure yio sanra, ẹniti o ba fi omi funni yio tun jẹ́ ẹni tí a fi omi fun.",
+        "prompt": "Níbo ni o ti gba ju bí o ṣe ń rí lọ?",
+        "practice": "Ṣàkíyèsí ibi kan tí ìkúnrẹ́rẹ́ fẹ́ láti lọ sí."
+      },
+      "day2": {
+        "principle": "Ó yẹ gẹ́gẹ́ bí ohun tí ènìyàn ní, kì í ṣe gẹ́gẹ́ bí ohun tí kò ní.",
+        "prompt": "Ìwọn wo ni yóò jẹ́ onínúure fún asiko yìí, kì í ṣe asiko pípé?",
+        "practice": "Darúkọ ìpín tó bá agbára rẹ mu."
+      },
+      "day3": {
+        "principle": "Ó dára jù láti fún ju láti gba.",
+        "prompt": "Ta ni ohun tí ó wà lọ́wọ́ rẹ báyìí lè fún ni agbára?",
+        "practice": "Fún ohun kan tó wúlò láì ṣe ariwo."
+      },
+      "day4": {
+        "principle": "Ẹni tí ó ṣe àánú fún tálákà ń yá fún Olúwa.",
+        "prompt": "Ìṣe àánú wo ni o fẹ́ rántí dípò ìbẹ̀rù?",
+        "practice": "Kọ ọ̀nà kan níbi tí inú-rere ṣe lè wúlò."
+      },
+      "day5": {
+        "principle": "Fi ìrètí rẹ sí Ọlọ́run, ẹni tí ń fún wa ní gbogbo ohun pẹ̀lú ọ̀pọ̀lọpọ̀ fún ìgbádùn.",
+        "prompt": "Báwo ni ìrètí ṣe rí nígbà tí ọrọ̀ kò ṣe àárín?",
+        "practice": "Fi ìrètí rẹ sí ohun tó lágbára ju owó lọ."
+      },
+      "day6": {
+        "principle": "A ó sọ yín di ọlọ́rọ̀ nínú gbogbo ohun fún onínúure gbogbo.",
+        "prompt": "Níbo ni ọpẹ́ ń mú kí fífún rọrùn síi?",
+        "practice": "Dupẹ́ fún ohun tí o lè pín."
+      },
+      "day7": {
+        "principle": "Olúwa Ọlọ́run rẹ yóò bù kún ọ nínú gbogbo ohun tí o bá ṣe.",
+        "prompt": "Ẹ̀bùn wo ni ó ń dùn, tí ó sì lè dúró báyìí?",
+        "practice": "Yan ìgbésẹ̀ onínúure tó ń bọ̀ pẹ̀lú ayọ̀."
+      }
+    },
+    "attentionFast5day": {
+      "title": "Ìṣe ìfọkànsìn",
+      "description": "Ọjọ́ márùn-ún láti yọ ariwo kúrò, gba ifọkànsìn padà, kí o sì yan ohun tí ó tọ́ sí i.",
+      "day1": {
+        "principle": "Kọ́ wa láti ka ọjọ́ wa, kí a lè ní ọkàn ọlọ́gbọ́n.",
+        "prompt": "Níbo ni àkókò rẹ ti ń sọnù?",
+        "practice": "Darúkọ ìṣànà ifọkànsìn kan."
+      },
+      "day2": {
+        "principle": "Pa ọkàn rẹ mọ́ ju gbogbo ohun tí a ń ṣọ́ lọ, nítorí láti inú rẹ ni àwọn ìsun ayé ti ń jáde.",
+        "prompt": "Kí ni ń dá ìgbé ayé inú rẹ sílẹ̀ láì gba àṣẹ?",
+        "practice": "Fi ààlà kan sí ifọkànsìn."
+      },
+      "day3": {
+        "principle": "Ojú ni fitila ara.",
+        "prompt": "Kí ni ń mú kedere, kí ni sì ń mú ìkùnlẹ̀?",
+        "practice": "Jẹ́ kí ifọkànsìn rẹ sinmi lórí ohun kan tó ṣalaye."
+      },
+      "day4": {
+        "principle": "Ẹ jẹ́ kí a yípadà nípasẹ̀ ìtúnṣe ọkàn wa.",
+        "prompt": "Àwòṣe wo ni o wọ́pọ̀ ṣùgbọ́n kò fi ọgbọ́n hàn?",
+        "practice": "Kọ ìmúlò ariwo kan sílẹ̀ lónìí."
+      },
+      "day5": {
+        "principle": "Ohun gbogbo tí ó jẹ́ òtítọ́, ọlá, òdodo, mímọ́, ẹlẹ́wà, àti ohun tí a lè yin, ẹ máa rántí àwọn nnkan wọ̀nyí.",
+        "prompt": "Kí ni òtítọ́, ọlá, tí ó sì yẹ kí o máa fi oju sí?",
+        "practice": "Darúkọ ohun kan tó tọ́ sí ifọkànsìn rẹ."
+      }
+    },
+    "hiddenService5day": {
+      "title": "Ìṣe ìránṣẹ́ tí a fi pamọ́",
+      "description": "Ọjọ́ márùn-ún láti ṣe ìránṣẹ́ ní ìdákẹ́jẹ, fi ìyìn sílẹ̀, kí o sì rí ìdúróṣinṣin tí kò nílò kí a rí i.",
+      "day1": {
+        "principle": "Baba rẹ tí ó ń rí ní ìkọ̀kọ̀ yóò san ẹ̀san fún ọ.",
+        "prompt": "Níbo ni o lè ṣe rere láì kéde rẹ?",
+        "practice": "Yan ìṣe ìránṣẹ́ kan tí ó farasin."
+      },
+      "day2": {
+        "principle": "Ẹ fi ifẹ́ ṣe ìránṣẹ́ fún ara yín.",
+        "prompt": "Báwo ni òmìnira ṣe lè di ìṣe ìfẹ́ dípò fífi ara rẹ sí àárín?",
+        "practice": "Ṣe ìránṣẹ́ ní ọ̀nà tí kò nílò ìyìn kankan."
+      },
+      "day3": {
+        "principle": "Gẹ́gẹ́ bí olukuluku ti gba ẹ̀bùn, ẹ fi fún ara yín ní ìránṣẹ́.",
+        "prompt": "Ẹ̀bùn wo ni o lè lo lónìí láti ran ẹlòmíràn lọ́wọ́?",
+        "practice": "Lo ẹ̀bùn kan láti bù kún ẹlòmíràn."
+      },
+      "day4": {
+        "principle": "Ohunkóhun tí ẹ bá ń ṣe, ẹ ṣe é láti inú ọkàn, bí ẹni pé fún Oluwa ni, kì í ṣe fún ènìyàn.",
+        "prompt": "Kí ni ń yí padà nígbà tí o bá ń ṣe ìránṣẹ́ fún Ọlọ́run dípò wíwá ìyìn?",
+        "practice": "Ṣe iṣẹ́ pẹ̀lú ìdúróṣinṣin pẹ̀lú ìdákẹ́jẹ."
+      },
+      "day5": {
+        "principle": "Ọlọ́run kì í ṣe aláìṣèdájọ́ láti gbàgbé iṣẹ́ yín àti ìfẹ́ tí ẹ ti fi hàn.",
+        "prompt": "Ta ni o ti ràn lọ́wọ́ ní ìkọ̀kọ̀ pẹ̀lú ìdúróṣinṣin rẹ?",
+        "practice": "Ṣàkíyèsí rere tí ó ti ṣe tán."
+      }
+    },
+    "readWithMe7day": {
+      "title": "Ìṣe kika",
+      "description": "Ọjọ́ meje láti ka pẹ̀lú ìfọkànsìn, béèrè ohun tí ó jẹ́ òtítọ́, kí ọgbọ́n sì tọ́ ìgbọ́ràn rẹ.",
+      "day1": {
+        "principle": "Ọkàn ọlọ́gbọ́n ń gba ìmọ̀, etí ọlọ́gbọ́n sì ń wá ìmọ̀.",
+        "prompt": "Kí ni o fẹ́ lóye jinlẹ̀ síi?",
+        "practice": "Ka apá kan pẹ̀lú ìfọkànsìn tó pọ̀ síi."
+      },
+      "day2": {
+        "principle": "Kí ènìyàn kọọkan máa yára gbọ́, kí ó lọra láti sọ̀rọ̀, kí ó lọra láti bínú.",
+        "prompt": "Báwo ni ó ṣe rí bí ẹni pé o yára gbọ́, o sì lọra láti sọ̀rọ̀?",
+        "practice": "Gbọ́ kí o tó ṣàlàyé."
+      },
+      "day3": {
+        "principle": "Ìbẹ̀rẹ̀ ọgbọ́n ni: Gba ọgbọ́n.",
+        "prompt": "Níbo ni o nilo ọgbọ́n ju ìmọ̀ lọ?",
+        "practice": "Yan ọgbọ́n dípò ìkánjú."
+      },
+      "day4": {
+        "principle": "Ọ̀rọ̀ rẹ ni fitila fún ẹsẹ̀ mi, àti ìmọ́lẹ̀ fún ọ̀nà mi.",
+        "prompt": "Kí ni fitila fún ìgbésẹ̀ tó ń bọ̀, kì í ṣe maapu gbogbo rẹ?",
+        "practice": "Jẹ́ kí laini kan dari ìgbésẹ̀ tó ń bọ̀."
+      },
+      "day5": {
+        "principle": "Wọ́n gba ọ̀rọ̀ náà pẹ̀lú ìtara, wọ́n ń ṣàyẹ̀wò Ìwé Mímọ́ lojoojúmọ́.",
+        "prompt": "Kí ni yóò túmọ̀ sí láti ṣàyẹ̀wò ohun tí o gbọ́ pẹ̀lú ìtọ́jú?",
+        "practice": "Ṣàyẹ̀wò kí o tó gba wọlé."
+      },
+      "day6": {
+        "principle": "Ẹ jẹ́ kí ọ̀rọ̀ Kristi máa gbé inú yín lọ́pọ̀lọpọ̀.",
+        "prompt": "Ọ̀rọ̀ wo ni o nílò kí ó gbé inú rẹ lọ́pọ̀lọpọ̀ lónìí?",
+        "practice": "Dúró pẹ́ díẹ̀ pẹlu apá kan ju bó ṣe máa ń rí lọ."
+      },
+      "day7": {
+        "principle": "Ṣe gbogbo ipa rẹ láti fi ara rẹ hàn sí Ọlọ́run gẹ́gẹ́ bí ẹni tí a fọwọ́sowọ́pọ̀, ẹni tí ń pín ọ̀rọ̀ òtítọ́ dáadáa.",
+        "prompt": "Báwo ni mímú òtítọ́ lọ́nà olóòótọ́ ṣe rí báyìí?",
+        "practice": "Ka pẹ̀lú ìtọ́jú, sùúrù, àti ìrẹ̀lẹ̀."
+      }
+    },
     "readWithMeInviteTitle": "Shared reading plan",
     "readWithMeInviteDetails": "Fixed reading details",
     "readWithMeInviteDetailsBody": "Everyone sees the same book, cadence, and response window.",
@@ -1901,8 +2080,8 @@
     "responseDashboardBody": "Accepted, declined, and time-based pending states update from the invite roster.",
     "noInviteRosterYet": "Add a roster to start tracking responses.",
     "unmatchedResponses": "Other responses",
-    "readWithMeInvitePrompt": "Invitation draft",
-    "readWithMeDetailsBody": "Keep the subject line simple and the duration unmistakable.",
+    "readWithMeInvitePrompt": "Ṣètò ètò kíkà",
+    "readWithMeDetailsBody": "Jẹ́ kó ye iwe ati iye akoko.",
     "readWithMeBookPlaceholder": "The book you want everyone to read",
     "readWithMeAuthorPlaceholder": "Optional, but helpful for clarity",
     "readWithMeEditionPlaceholder": "Optional edition, translation, or format",
@@ -1911,18 +2090,18 @@
     "readWithMeRecipientsEmpty": "Start by naming one or two people.",
     "responseWindowHelper": "Set a start date and the window before responses move to Pending.",
     "responseWindow": "Response window",
-    "readWithMeToneBody": "Use this space for the pace, the why, and the actual note you want them to feel.",
+    "readWithMeToneBody": "Lo ibi yìí fún ìgà, ìdí, àti akọsilẹ̀ tí o fẹ́ kí wọ́n ní lára.",
     "readWithMeCadencePlaceholder": "Read at a steady pace and hold one brief check-in each week.",
     "readWithMeFocusPlaceholder": "What do you hope this book will clarify, stretch, or shape?",
     "readWithMeNotePlaceholder": "A short note to the people you are inviting",
-    "readWithMeInvitePreview": "Àwòrán àfojúsùn ìkésí",
+    "readWithMeInvitePreview": "Àwòrán ètò",
     "createReadWithMeInvite": "Create reading invite",
     "inviteFriendsTitle": "Shared invite",
     "inviteFriendsSharedPlanBody": "Everyone follows the same practice and sees the same progress.",
     "inviteFriendsProgressBody": "You can see who joined and where the group is up to.",
     "inviteFriendsNudgesBody": "Àwọn ìránṣẹ́ pẹ̀lẹ́ ń jẹ́ kí ìkésí náà dùn mọ́ra láì dáru.",
     "readWithMeSharePrefix": "Read with me",
-    "readWithMeInviteSubtitle": "A shared reading invite",
+    "readWithMeInviteSubtitle": "Ètò kíkà pẹ̀lú àwọn mìíràn",
     "leaveInvite": "Leave invite",
     "declinedInviteBody": "You declined this reading invitation. You can still join if you change your mind.",
     "joinAnyway": "Join anyway",
@@ -1939,7 +2118,23 @@
     "completedTodayBody": "Ọjọ́ {nextDay} nínú {total} ń dúró de ọ̀la.",
     "inProgressBody": "Tẹ̀síwájú pẹ̀lú ọjọ́ {nextDay} nínú {total}.",
     "continueCurrentPractice": "Tẹ̀síwájú pẹ̀lú ìṣe rẹ lọwọlọwọ",
-    "reentryNote": "You are already partway through this practice. Keep the rhythm going with day {nextDay}."
+    "reentryNote": "You are already partway through this practice. Keep the rhythm going with day {nextDay}.",
+    "communitySummaryTitle": "Iṣẹ́ ẹgbẹ́ ni kánkán",
+    "communitySummaryBody": "Ilọsiwaju, ìmúnilọ́kànlẹ́, àti ìṣàyẹ̀wò máa hàn níbí bí ìṣe ṣe ń lọ.",
+    "fastingCustom": {
+      "title": "Ìṣe ààwẹ̀",
+      "description": "Ààwẹ̀ tí a pín pẹ̀lú ìwọ̀n àkókò kedere, àfojúsùn tó ye kedere, àti ìtọnisọna ojoojúmọ́.",
+      "formTitle": "Ṣètò ààwẹ̀",
+      "formBody": "Yan ìwọ̀n àkókò, sọ ìdí rẹ̀, a ó sì kọ ọ̀nà ojoojúmọ́ ká a.",
+      "durationHint": "Bẹ̀rẹ̀ pẹ̀lú ìwọ̀n àkókò. Ìtọnisọna ojoojúmọ́ yóò bá a mu.",
+      "goalPlaceholder": "Kí ni o fẹ́ kí ààwẹ̀ yìí ṣe àyè fún?",
+      "dailyPlanTitle": "Ìfihàn ìtọnisọna ojoojúmọ́",
+      "dailyPlanBody": "Ọjọ́ mẹ́ta àkọ́kọ́ fi ìtẹ̀sí hàn. Ètò kikún yóò fa gbooro sí ìwọ̀n àkókò.",
+      "createInvite": "Ṣẹ̀dá ìpè ààwẹ̀",
+      "previewTitle": "Àlàyé ààwẹ̀",
+      "previewBody": "Ìwọ̀n àkókò, àfojúsùn, ọjọ́ ìbẹ̀rẹ̀, àti akọsilẹ̀ wà papọ̀ nínú àkótán tó mọ́."
+    },
+    "readWithMeInvitePromptBody": "Yan ìwé, ìgà, àwọn ènìyàn, àti àkókò. Ìkésí náà yóò dúró ní kedere àti ní kíkún."
   },
   "streak": {
     "openMilestones": "Ṣí àwọn ìpele ṣiṣàn",

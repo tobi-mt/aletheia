@@ -1265,6 +1265,7 @@
     "author": "Author",
     "notSet": "Hindi pa nakatakda",
     "duration": "Duration",
+    "goal": "Layunin",
     "startDate": "Start date",
     "edition": "Edition / translation",
     "cadence": "Cadence",
@@ -1732,9 +1733,9 @@
     "inviteReady": "Handa na ang imbitasyon",
     "inviteEyebrow": "Imbitasyon sa pinagsasaluhang pagsasanay",
     "initiatedBy": "Sinimulan ni",
-    "sharedProgress": "Pinagsasaluhang progreso",
-    "nudges": "Mga himok",
-    "noNudgesYet": "Wala pang himok. Ipadala ang una.",
+    "sharedProgress": "Progreso ng pangkat",
+    "nudges": "Mga check-in",
+    "noNudgesYet": "Wala pang mga check-in. Ipadala ang unang tala.",
     "sendNudge": "Magpadala ng himok",
     "nudgePlaceholder": "Sumulat ng maikling himok o check-in…",
     "sendNudgeButton": "Ipadala",
@@ -1863,7 +1864,6 @@
         "practice": "Isulat kung ano ang sapat para sa panahong ito, nang malinaw."
       }
     },
-
     "sabbathRest5day": {
       "title": "5-Araw na Pahinga sa Sabbath",
       "description": "Limang araw ng pinangangalagaang pahinga: pangalanan ang bilis ng trabaho, damhin ang bigat sa ilalim nito, at gumawa ng puwang para bumagal.",
@@ -1894,6 +1894,185 @@
       }
     },
     "whyThisFits": "Why this fits",
+    "listening3day": {
+      "title": "Pagsasanay sa Pakikinig",
+      "description": "Tatlong araw para bumagal, unahin ang pakikinig, at marinig ang nasa ilalim ng unang sagot.",
+      "day1": {
+        "principle": "Ang bawat tao ay maging mabilis sa pakikinig, mabagal sa pagsasalita, mabagal sa pagkagalit.",
+        "prompt": "Sino o ano ang kailangang bigyan mo ng buong atensyon ngayon?",
+        "practice": "Makinig muna bago sumagot kahit isang beses ngayon."
+      },
+      "day2": {
+        "principle": "Ang sumasagot bago nakikinig ay kahangalan at kahihiyan sa kanya.",
+        "prompt": "Anong tanong ang napapadaan mo nang napakabilis?",
+        "practice": "Huminto muna bago sumagot."
+      },
+      "day3": {
+        "principle": "Ang layunin sa puso ng tao ay parang malalim na tubig, ngunit ang taong may unawa ang maglalabas nito.",
+        "prompt": "Saan makakatulong ang mabuting tanong nang higit sa mabilis na opinyon?",
+        "practice": "Magtanong ng mas mabagal at mas matalinong tanong."
+      }
+    },
+    "repair4day": {
+      "title": "Pagsasanay sa Pag-ayos",
+      "description": "Apat na araw para pangalanan nang tapat ang sugat, ibaba ang depensa, at dahan-dahang lumapit sa pag-ayos.",
+      "day1": {
+        "principle": "Una kang makipagkasundo sa iyong kapatid.",
+        "prompt": "Sino ang kailangan ng iyong atensyon dahil may hindi pa tapos?",
+        "practice": "Pangalanan ang relasyong kailangan ng pag-ayos."
+      },
+      "day2": {
+        "principle": "Magalit kayo, ngunit huwag magkasala; huwag hayaang lumubog ang araw sa inyong poot.",
+        "prompt": "Saan nakababad ang galit?",
+        "practice": "Kumilos muna bago lumubog ang araw."
+      },
+      "day3": {
+        "principle": "Ipahayag ninyo ang inyong mga kasalanan sa isa’t isa, at ipanalangin ninyo ang isa’t isa.",
+        "prompt": "Anong pag-amin o paghingi ng tawad ang magpapakatotoo sa susunod na usapan?",
+        "practice": "Isulat ang paghingi ng tawad na iniiwasan mo."
+      },
+      "day4": {
+        "principle": "Kung maaari, hangga’t sa inyo, mamuhay kayong payapa sa lahat.",
+        "prompt": "Anong tapat na kapayapaan ang maaari mong hanapin nang hindi nagkukunwaring maayos ang lahat?",
+        "practice": "Piliin ang kapayapaan hangga’t nasa iyo ito."
+      }
+    },
+    "generosity7day": {
+      "title": "Pagsasanay sa Pagiging Mapagbigay",
+      "description": "Pitong araw ng pagbibigay mula sa paninindigan, hindi sa pressure, habang iginagalang ang kakayahan, kagalakan, at matalinong hangganan.",
+      "day1": {
+        "principle": "Ang taong mapagbigay ay luluwalhatiin, at ang nagdidilig ay didiligin din.",
+        "prompt": "Saan ka nakatanggap nang higit sa napapansin mo?",
+        "practice": "Pansinin ang isang lugar na gustong gumalaw ang kasaganaan."
+      },
+      "day2": {
+        "principle": "Tinatanggap ayon sa kung ano ang mayroon ang tao, hindi ayon sa wala siya.",
+        "prompt": "Anong halaga ang magiging mapagbigay para sa panahong ito, hindi sa ideal na panahon?",
+        "practice": "Pangalanan ang bahaging angkop sa kakayahan mo."
+      },
+      "day3": {
+        "principle": "Higit na mapalad ang magbigay kaysa tumanggap.",
+        "prompt": "Sino ang mapapalakas ng hawak mo na ngayon?",
+        "practice": "Magbigay ng kapaki-pakinabang na bagay nang walang ingay."
+      },
+      "day4": {
+        "principle": "Ang mahabagin sa dukha ay nagpapautang sa Panginoon.",
+        "prompt": "Anong gawa ng habag ang nais mong alalahanin sa halip na takot?",
+        "practice": "Sumulat ng isang praktikal na paraan ng kabaitan."
+      },
+      "day5": {
+        "principle": "Ilapat mo ang iyong pag-asa sa Diyos, na nagbibigay sa atin ng sagana ng lahat ng bagay para ikagalak natin.",
+        "prompt": "Ano ang hitsura ng pag-asa kapag hindi pera ang sentro?",
+        "practice": "Ilapat ang pag-asa mo sa mas matibay kaysa pera."
+      },
+      "day6": {
+        "principle": "Pagyayamanin kayo sa lahat ng paraan upang maging mapagbigay sa lahat ng paraan.",
+        "prompt": "Saan ginagawang mas malaya ng pasasalamat ang pagbibigay?",
+        "practice": "Magpasalamat sa maaaring mong ibahagi."
+      },
+      "day7": {
+        "principle": "Pagpapalain ka ng Panginoon mong Diyos sa lahat ng iyong gagawin.",
+        "prompt": "Anong regalo ang mukhang masaya at sustainable ngayon?",
+        "practice": "Piliin ang susunod na mapagbigay na hakbang nang may kagalakan."
+      }
+    },
+    "attentionFast5day": {
+      "title": "Pag-aayuno sa Atensyon",
+      "description": "Limang araw para linisin ang ingay, maibalik ang focus, at piliin kung ano ang karapat-dapat sa iyong atensyon.",
+      "day1": {
+        "principle": "Turuan mo kaming bilangin ang aming mga araw, upang magkaroon kami ng pusong marunong.",
+        "prompt": "Saan tumatagas ang oras mo?",
+        "practice": "Pangalanan ang isang tagas sa atensyon."
+      },
+      "day2": {
+        "principle": "Ingatan mo ang iyong puso nang buong sikap, sapagkat mula rito ang bukal ng buhay.",
+        "prompt": "Ano ang humuhubog sa iyong loob nang walang pahintulot?",
+        "practice": "Magtakda ng isang hangganan sa atensyon."
+      },
+      "day3": {
+        "principle": "Ang ilaw ng katawan ay ang mata.",
+        "prompt": "Ano ang nagdadala ng linaw, at ano ang nagpapalabo?",
+        "practice": "Hayaan mong magpahinga ang atensyon mo sa isang malinaw na bagay."
+      },
+      "day4": {
+        "principle": "Magbagong-anyo kayo sa pamamagitan ng pagbabago ng inyong pag-iisip.",
+        "prompt": "Anong pattern ang normal pero hindi matalino?",
+        "practice": "Tanggihan ngayon ang isang maingay na pattern."
+      },
+      "day5": {
+        "principle": "Lahat ng totoo, marangal, matuwid, malinis, kaibig-ibig, at kapuri-puri ay isipin ninyo.",
+        "prompt": "Ano ang totoo, marangal, at sulit panatilihing nakikita?",
+        "practice": "Pangalanan ang isang bagay na karapat-dapat sa iyong atensyon."
+      }
+    },
+    "hiddenService5day": {
+      "title": "Nakatagong Paglilingkod",
+      "description": "Limang araw para maglingkod nang tahimik, bitawan ang pagkilala, at mapansin ang katapatang hindi kailangang makita.",
+      "day1": {
+        "principle": "Ang iyong Ama na nakakakita sa lihim ang magbibigay sa iyo ng gantimpala.",
+        "prompt": "Saan ka maaaring gumawa ng mabuti nang hindi ipinapaalam?",
+        "practice": "Pumili ng isang nakatagong gawa ng paglilingkod."
+      },
+      "day2": {
+        "principle": "Sa pag-ibig ay maglingkod kayo sa isa’t isa.",
+        "prompt": "Paano nagiging mapagmahal na pagkilos ang kalayaan sa halip na pagtuon sa sarili?",
+        "practice": "Maglingkod sa paraang walang kailangang pumalakpak."
+      },
+      "day3": {
+        "principle": "Kung paanong ang bawat isa ay tumanggap ng kaloob, gamitin ninyo ito sa paglilingkod sa isa’t isa.",
+        "prompt": "Anong kaloob ang magagamit mo ngayon para tumulong sa iba?",
+        "practice": "Gamitin ang isang kaloob para pagpalain ang iba."
+      },
+      "day4": {
+        "principle": "Anuman ang inyong gawin, gawin ninyo nang buong puso, na parang para sa Panginoon at hindi para sa mga tao.",
+        "prompt": "Ano ang nagbabago kapag naglilingkod ka para sa Diyos kaysa para sa palakpakan?",
+        "practice": "Magtrabaho nang tahimik at tapat."
+      },
+      "day5": {
+        "principle": "Ang Diyos ay hindi hindi-makatarungan upang limutin ang inyong gawa at ang pag-ibig na ipinakita ninyo.",
+        "prompt": "Sino ang natulungan mo nang tahimik sa pamamagitan ng iyong pagiging tapat?",
+        "practice": "Pansinin ang kabutihang nagawa na."
+      }
+    },
+    "readWithMe7day": {
+      "title": "Pagsasanay sa Pagbasa",
+      "description": "Pitong araw para magbasa nang may pansin, itanong kung ano ang totoo, at hayaang hubugin ng karunungan ang pakikinig.",
+      "day1": {
+        "principle": "Ang pusong may unawa ay nagkakamit ng kaalaman, at ang pandinig ng marurunong ay naghahanap ng kaalaman.",
+        "prompt": "Ano ang gusto mong mas maunawaan?",
+        "practice": "Basahin ang isang sipi nang mas may pansin."
+      },
+      "day2": {
+        "principle": "Ang bawat tao ay maging mabilis sa pakikinig, mabagal sa pagsasalita, mabagal sa pagkagalit.",
+        "prompt": "Ano ang itsura ng pagiging mabilis makinig at mabagal magsalita?",
+        "practice": "Makinig bago magpaliwanag."
+      },
+      "day3": {
+        "principle": "Ang pasimula ng karunungan ay ito: magtamo ka ng karunungan.",
+        "prompt": "Saan mo kailangan ng karunungan higit sa impormasyon?",
+        "practice": "Piliin ang karunungan kaysa bilis."
+      },
+      "day4": {
+        "principle": "Ang iyong salita ay ilawan sa aking mga paa at liwanag sa aking landas.",
+        "prompt": "Ano ang ilawan para sa susunod na hakbang, hindi para sa buong mapa?",
+        "practice": "Hayaan ang isang linya na gumabay sa susunod mong hakbang."
+      },
+      "day5": {
+        "principle": "Tinanggap nila ang salita nang buong sigasig, na sinusuri ang mga Kasulatan araw-araw.",
+        "prompt": "Ano ang ibig sabihin ng subukin nang maingat ang iyong naririnig?",
+        "practice": "Suriin bago tanggapin."
+      },
+      "day6": {
+        "principle": "Manahan nawa sa inyo nang sagana ang salita ni Cristo.",
+        "prompt": "Anong salita ang kailangang manahan nang sagana sa iyo ngayon?",
+        "practice": "Manatili nang mas matagal kaysa karaniwan sa isang sipi."
+      },
+      "day7": {
+        "principle": "Pagsikapan mong iharap ang iyong sarili sa Diyos na subok, na tama ang paghawak sa salita ng katotohanan.",
+        "prompt": "Ano ang hitsura ng tapat na paghawak sa katotohanan ngayon?",
+        "practice": "Magbasa nang may pag-iingat, tiyaga, at pagpapakumbaba."
+      }
+    },
     "readWithMeInviteTitle": "Shared reading plan",
     "readWithMeInviteDetails": "Fixed reading details",
     "readWithMeInviteDetailsBody": "Everyone sees the same book, cadence, and response window.",
@@ -1901,8 +2080,8 @@
     "responseDashboardBody": "Accepted, declined, and time-based pending states update from the invite roster.",
     "noInviteRosterYet": "Add a roster to start tracking responses.",
     "unmatchedResponses": "Other responses",
-    "readWithMeInvitePrompt": "Invitation draft",
-    "readWithMeDetailsBody": "Keep the subject line simple and the duration unmistakable.",
+    "readWithMeInvitePrompt": "Ayusin ang plano sa pagbabasa",
+    "readWithMeDetailsBody": "Panatilihing malinaw ang libro at haba.",
     "readWithMeBookPlaceholder": "The book you want everyone to read",
     "readWithMeAuthorPlaceholder": "Optional, but helpful for clarity",
     "readWithMeEditionPlaceholder": "Optional edition, translation, or format",
@@ -1911,18 +2090,18 @@
     "readWithMeRecipientsEmpty": "Start by naming one or two people.",
     "responseWindowHelper": "Set a start date and the window before responses move to Pending.",
     "responseWindow": "Response window",
-    "readWithMeToneBody": "Use this space for the pace, the why, and the actual note you want them to feel.",
+    "readWithMeToneBody": "Gamitin ito para sa bilis, layunin, at tala na gusto mong maramdaman nila.",
     "readWithMeCadencePlaceholder": "Read at a steady pace and hold one brief check-in each week.",
     "readWithMeFocusPlaceholder": "What do you hope this book will clarify, stretch, or shape?",
     "readWithMeNotePlaceholder": "A short note to the people you are inviting",
-    "readWithMeInvitePreview": "Sulyap ng paanyaya",
+    "readWithMeInvitePreview": "Silip ng plano",
     "createReadWithMeInvite": "Create reading invite",
     "inviteFriendsTitle": "Shared invite",
     "inviteFriendsSharedPlanBody": "Everyone follows the same practice and sees the same progress.",
     "inviteFriendsProgressBody": "You can see who joined and where the group is up to.",
     "inviteFriendsNudgesBody": "Ang banayad na mga paalala ay nagpapanatiling mainit ang paanyaya nang hindi maingay.",
     "readWithMeSharePrefix": "Read with me",
-    "readWithMeInviteSubtitle": "A shared reading invite",
+    "readWithMeInviteSubtitle": "Isang pinagsasaluhang plano sa pagbabasa",
     "leaveInvite": "Leave invite",
     "declinedInviteBody": "You declined this reading invitation. You can still join if you change your mind.",
     "joinAnyway": "Join anyway",
@@ -1939,7 +2118,23 @@
     "completedTodayBody": "Ang araw {nextDay} ng {total} ay naghihintay hanggang bukas.",
     "inProgressBody": "Magpatuloy sa araw {nextDay} ng {total}.",
     "continueCurrentPractice": "Ituloy ang iyong kasalukuyang pagsasanay",
-    "reentryNote": "You are already partway through this practice. Keep the rhythm going with day {nextDay}."
+    "reentryNote": "You are already partway through this practice. Keep the rhythm going with day {nextDay}.",
+    "communitySummaryTitle": "Aktibidad ng pangkat",
+    "communitySummaryBody": "Lumilitaw dito ang progreso, mga himok, at mga check-in habang umuusad ang pagsasanay.",
+    "fastingCustom": {
+      "title": "Gawain ng pag-aayuno",
+      "description": "Isang pinagsasaluhang pag-aayuno na may malinaw na haba, malinaw na layunin, at araw-araw na gabay.",
+      "formTitle": "Ayusin ang pag-aayuno",
+      "formBody": "Itakda ang haba, pangalanan ang layunin, at bubuuin namin ang araw-araw na landas batay dito.",
+      "durationHint": "Simulan sa haba. Aangkop dito ang pang-araw-araw na gabay.",
+      "goalPlaceholder": "Para saan mo gustong magbigay ng puwang ang pag-aayunong ito?",
+      "dailyPlanTitle": "Sulyap sa pang-araw-araw na gabay",
+      "dailyPlanBody": "Ipinapakita ng unang tatlong araw ang ritmo. Lalawak ang buong plano ayon sa haba.",
+      "createInvite": "Gumawa ng paanyaya sa pag-aayuno",
+      "previewTitle": "Mga detalye ng pag-aayuno",
+      "previewBody": "Magkakasama ang haba, layunin, petsa ng pagsisimula, at tala sa isang malinaw na buod."
+    },
+    "readWithMeInvitePromptBody": "Itakda ang libro, bilis, mga tao, at oras. Mananatiling malinaw at tuwiran ang paanyaya."
   },
   "streak": {
     "openMilestones": "Buksan ang mga antas",

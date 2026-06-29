@@ -1265,6 +1265,7 @@
     "author": "Author",
     "notSet": "A naghị edobe",
     "duration": "Duration",
+    "goal": "Ebumnuche",
     "startDate": "Start date",
     "edition": "Edition / translation",
     "cadence": "Cadence",
@@ -1732,9 +1733,9 @@
     "inviteReady": "Oku dị njikere",
     "inviteEyebrow": "Oku maka omume kesara",
     "initiatedBy": "Bido site na",
-    "sharedProgress": "Ọganihu kesara",
-    "nudges": "Mkpali",
-    "noNudgesYet": "Enweghị mkpali ka e zigara. Ziga nke mbụ.",
+    "sharedProgress": "Ọganihu okirikiri",
+    "nudges": "Nyocha",
+    "noNudgesYet": "Enweghị nyocha ka e zigara. Ziga nke mbụ.",
     "sendNudge": "Ziga mkpali",
     "nudgePlaceholder": "Dee mkpali dị mkpirikpi ma ọ bụ check-in…",
     "sendNudgeButton": "Ziga",
@@ -1863,7 +1864,6 @@
         "practice": "Dee ihe zuru ezu maka oge a n’ụzọ doro anya."
       }
     },
-
     "sabbathRest5day": {
       "title": "Omume izu ike Sọbat nke ụbọchị 5",
       "description": "Ụbọchị ise nke izu ike echekwabara: ịkpọ aha usoro ọrụ, ịhụ nrụgide dị n'okpuru ya, ma mee ohere iji jiri nwayọ.",
@@ -1894,6 +1894,185 @@
       }
     },
     "whyThisFits": "Why this fits",
+    "listening3day": {
+      "title": "Omume ige ntị",
+      "description": "Ụbọchị atọ iji wedata ọsọ, gee ntị mbụ, ma nụ ihe dị n’okpuru azịza mbụ.",
+      "day1": {
+        "principle": "Ka mmadụ ọ bụla dị ngwa ịnụ, dịrị nwayọ ikwu okwu, dịrị nwayọ iwe.",
+        "prompt": "Ònye ma ọ bụ gịnị chọrọ nlebara anya gị zuru ezu taa?",
+        "practice": "Gee ntị tupu i zaa otu ugboro taa."
+      },
+      "day2": {
+        "principle": "Onye na-aza okwu tupu ọ nụ, nzuzu na ihere ka ọ bụ.",
+        "prompt": "Gịnị bụ ajụjụ ị na-agafe ngwa ngwa?",
+        "practice": "Kwụsị obere oge tupu i zaa."
+      },
+      "day3": {
+        "principle": "Ebumnobi nke dị n’obi mmadụ dị ka mmiri miri emi, ma onye nwere nghọta ga-adọpụta ya.",
+        "prompt": "Ebee ka ajụjụ ọma ga-enyere karịa echiche ngwa ngwa?",
+        "practice": "Jụọ otu ajụjụ dị nwayọ ma nwee amamihe."
+      }
+    },
+    "repair4day": {
+      "title": "Omume idozi",
+      "description": "Ụbọchị anọ iji kpọọ mmerụ ahụ n’eziokwu, wedata nchebe, ma gaa n’ihu n’ịgwọ nlekọta.",
+      "day1": {
+        "principle": "Buru ụzọ laa kpebisie ike ka gị na nwanne gị dị n’udo.",
+        "prompt": "Ònye chọrọ nlebara anya gị n’ihi na ihe ka na-emegheghị?",
+        "practice": "Kpọọ mmekọrịta ahụ nke chọrọ idozi."
+      },
+      "day2": {
+        "principle": "Kpasuo iwe, ma emehiela; anyanwụ adịghị edo n’elu iwe unu.",
+        "prompt": "Ebee ka iwe ka na-esi esi nwayọ?",
+        "practice": "Were otu nzọụkwụ tupu anyanwụ ada."
+      },
+      "day3": {
+        "principle": "Kwupụtaworị mmehie unu n’otu n’otu, kpee ekpere maka ibe unu.",
+        "prompt": "Kedu nkwupụta ma ọ bụ mgbaghara ga-eme ka mkparịta ụka na-esote bụrụ eziokwu karị?",
+        "practice": "Dee mgbaghara ị na-ezere."
+      },
+      "day4": {
+        "principle": "Ọ bụrụ na o kwere mee, dịka ọ dị n’aka unu, na-adị n’udo na mmadụ niile.",
+        "prompt": "Kedu udo kachasị ntụkwasị obi ị nwere ike ịchọ na-enweghị ime ka ihe niile dị mma?",
+        "practice": "Họrọ udo dịka ọ dị n’aka gị."
+      }
+    },
+    "generosity7day": {
+      "title": "Omume mmesapụ aka",
+      "description": "Ụbọchị asaa iji nye site n’ime nkwenkwe, ọ bụghị nrụgide, ma kwanyere ikike, ọṅụ, na ókè amamihe.",
+      "day1": {
+        "principle": "Onye mmesapụ aka ga-aba ụba, onye na-agba mmiri a ga-agbakwa mmiri n’elu ya.",
+        "prompt": "Ebee ka i nwetara karịa ka ị na-ahụ?",
+        "practice": "Lelee otu ebe ụba chọrọ ịkwaga."
+      },
+      "day2": {
+        "principle": "Ọ bụ dịka onye nwere ya ka e si anabata ya, ọ bụghị dịka onye enweghị ya.",
+        "prompt": "Kedu ego ga-abụ mmesapụ aka maka oge a, ọ bụghị oge zuru oke?",
+        "practice": "Kpọọ akụkụ kwekọrọ na ikike gị."
+      },
+      "day3": {
+        "principle": "Ọ bụ nke ka mma inye karịa ịnata.",
+        "prompt": "Ònye ga-esi ike site na ihe dị n’aka gị ugbu a?",
+        "practice": "Nye ihe bara uru n’enweghị mkpọsa."
+      },
+      "day4": {
+        "principle": "Onye na-emere ogbenye ebere na-agbazinye Onyenwe anyị.",
+        "prompt": "Kedu omume ebere ịchọrọ icheta kama ụjọ?",
+        "practice": "Dee otu ụzọ ịdị mma nwere ike isi baa uru."
+      },
+      "day5": {
+        "principle": "Tinye olileanya gị n’ebe Chineke nọ, onye na-enye anyị ihe niile n’ụba ka anyị nwee obi ụtọ.",
+        "prompt": "Olileanya dị ka gịnị mgbe akụ na ụba abụghị etiti?",
+        "practice": "Tinye olileanya gị n’ihe siri ike karịa ego."
+      },
+      "day6": {
+        "principle": "A ga-eme ka unu baa ụba n’ihe niile maka mmesapụ aka niile.",
+        "prompt": "Ebee ka ekele na-eme ka inye bụrụ nke nweere onwe ya?",
+        "practice": "Daalụ maka ihe ị nwere ike ịkekọrịta."
+      },
+      "day7": {
+        "principle": "Onyenwe gị Chineke ga-agọzi gị n’ihe niile i na-eme.",
+        "prompt": "Kedu onyinye na-adị ụtọ ma dịgide ugbu a?",
+        "practice": "Họrọ nzọụkwụ mmesapụ aka na-esote n’ọṅụ."
+      }
+    },
+    "attentionFast5day": {
+      "title": "Omume ilekwasị anya",
+      "description": "Ụbọchị ise iji wepụ mkpọtụ, weghachi itinyekwu uche, ma họrọ ihe kwesịrị nlebara anya gị.",
+      "day1": {
+        "principle": "Kụziere anyị ịgụ ụbọchị anyị, ka anyị nwee obi amamihe.",
+        "prompt": "Ebee ka oge gị na-adaba?",
+        "practice": "Kpọọ otu ụzọ nlebara anya na-agbaba."
+      },
+      "day2": {
+        "principle": "Chekwaa obi gị karịa ihe niile echekwara, n’ihi na site na ya ka isi iyi ndụ si apụta.",
+        "prompt": "Gịnị na-akpụ ndụ gị n’ime n’enweghị ikike?",
+        "practice": "Tinye ókè n’ụzọ nlebara anya."
+      },
+      "day3": {
+        "principle": "Anya bụ ìhè nke ahụ.",
+        "prompt": "Gịnị na-eweta ido anya, gịnịkwa na-eme ka ọ bụrụ ọchịchịrị?",
+        "practice": "Mee ka nlebara anya gị zuru ike n’ihe doro anya otu."
+      },
+      "day4": {
+        "principle": "Jikọọ onwe unu site n’imegharị uche unu ọhụrụ.",
+        "prompt": "Kedu usoro bụ nke nkịtị ma ọ bụghị nke amamihe?",
+        "practice": "Jụ otu usoro mkpọtụ taa."
+      },
+      "day5": {
+        "principle": "Ihe niile bụ eziokwu, dị nsọ, ziri ezi, dị ọcha, mara mma, ma a na-eto eto, chee echiche banyere ihe ndị a.",
+        "prompt": "Kedu ihe bụ eziokwu, a na-asọpụrụ, ma kwesịrị ịdị n’ihu gị?",
+        "practice": "Kpọọ otu ihe kwesịrị nlebara anya gị."
+      }
+    },
+    "hiddenService5day": {
+      "title": "Omume ozi zoro ezo",
+      "description": "Ụbọchị ise iji jee ozi nwayọ, hapụ otuto, ma hụ ntụkwasị obi nke na-achọghị ka a hụ ya.",
+      "day1": {
+        "principle": "Nna gị nke na-ahụ n’ime nzuzo ga-akwụ gị ụgwọ.",
+        "prompt": "Ebee ka i nwere ike ime ihe ọma n’enweghị ikwu ya?",
+        "practice": "Họrọ otu omume ọrụ zoro ezo."
+      },
+      "day2": {
+        "principle": "Jenụ ozi n’ihunanya n’otu n’otu.",
+        "prompt": "Kedu ka nnwere onwe ga-esi ghọọ omume ịhụnanya kama ịtụgharị n’ime onwe?",
+        "practice": "Jere ozi n’ụzọ na-achọghị ka e tie aka."
+      },
+      "day3": {
+        "principle": "Dịka onye ọ bụla natara onyinye, jiri ya jee ozi n’otu n’otu.",
+        "prompt": "Kedu onyinye i nwere ike iji taa nyere onye ọzọ aka?",
+        "practice": "Jiri otu onyinye gọzie onye ọzọ."
+      },
+      "day4": {
+        "principle": "Ihe niile unu na-eme, mee ya site n’obi dịka maka Onyenwe anyị ọ bụghị maka mmadụ.",
+        "prompt": "Gịnị na-agbanwe mgbe ị na-ejere Chineke ozi kama ịna-achọ otuto?",
+        "practice": "Rụọ ọrụ n’ụzọ dị jụụ ma kwụsie ike."
+      },
+      "day5": {
+        "principle": "Chineke abụghị onye na-adịghị ezi omume ka ọ chefuo ọrụ unu na ịhụnanya unu gosipụtara.",
+        "prompt": "Ònye ka ị nyere n’ime nzuzo site n’ịkwụsi ike gị?",
+        "practice": "Hụ ihe ọma a rụgoro ugbua."
+      }
+    },
+    "readWithMe7day": {
+      "title": "Omume ịgụ akwụkwọ",
+      "description": "Ụbọchị asaa iji gụọ nke ọma, jụọ ihe bụ eziokwu, ma hapụ amamihe ka o duzie otú i si ege ntị.",
+      "day1": {
+        "principle": "Obi nwere nghọta na-enweta ihe ọmụma, ntị nke ndị amamihe na-achọkwa ihe ọmụma.",
+        "prompt": "Gịnị ka ịchọrọ ịghọta nke ọma?",
+        "practice": "Gụọ otu akụkụ nwere nlebara anya karị."
+      },
+      "day2": {
+        "principle": "Ka mmadụ ọ bụla dị ngwa ịnụ, dịrị nwayọ ikwu okwu, dịrị nwayọ iwe.",
+        "prompt": "Kedu ka ọ ga-adị ka ị bụrụ onye dị ngwa ịnụ ma dị nwayọ ikwu okwu?",
+        "practice": "Gee ntị tupu i kọwaa."
+      },
+      "day3": {
+        "principle": "Mmalite amamihe bụ: nweta amamihe.",
+        "prompt": "Ebee ka ị chọrọ amamihe karịa ozi?",
+        "practice": "Họrọ amamihe kama ọsọ."
+      },
+      "day4": {
+        "principle": "Okwu gị bụ ìhè n’ụkwụ m, ọkụkwa n’ụzọ m.",
+        "prompt": "Kedu bụ ìhè maka nzọụkwụ na-esote, ọ bụghị maka map niile?",
+        "practice": "Kwe ka otu ahịrị duzie nzọụkwụ na-esote."
+      },
+      "day5": {
+        "principle": "Ha natara okwu ahụ n’ọṅụ dị ukwuu, na-enyocha Akwụkwọ Nsọ kwa ụbọchị.",
+        "prompt": "Gịnị ka ọ ga-apụta ịnwale n’aka nlezianya ihe ị na-anụ?",
+        "practice": "Lelee tupu ị nabata ya."
+      },
+      "day6": {
+        "principle": "Ka okwu Kraịst biri n’ime unu nke ukwuu.",
+        "prompt": "Kedu okwu kwesịrị ibi n’ime gị nke ukwuu taa?",
+        "practice": "Nọgide na otu akụkụ ogologo oge karịa ka ọ na-adịkarị."
+      },
+      "day7": {
+        "principle": "Mee ike gị ka ị gosipụta onwe gị n’ihu Chineke dịka onye a kwadoro, na-ekewa okwu nke eziokwu nke ọma.",
+        "prompt": "Kedu ka iji eziokwu n’ụzọ ntụkwasị obi si dị ugbu a?",
+        "practice": "Gụọ n’ụzọ nlezianya, ndidi, na ịdị umeala n’obi."
+      }
+    },
     "readWithMeInviteTitle": "Shared reading plan",
     "readWithMeInviteDetails": "Fixed reading details",
     "readWithMeInviteDetailsBody": "Everyone sees the same book, cadence, and response window.",
@@ -1901,8 +2080,8 @@
     "responseDashboardBody": "Accepted, declined, and time-based pending states update from the invite roster.",
     "noInviteRosterYet": "Add a roster to start tracking responses.",
     "unmatchedResponses": "Other responses",
-    "readWithMeInvitePrompt": "Invitation draft",
-    "readWithMeDetailsBody": "Keep the subject line simple and the duration unmistakable.",
+    "readWithMeInvitePrompt": "Hazie atụmatụ ọgụgụ",
+    "readWithMeDetailsBody": "Mee ka akwụkwọ na ogologo oge doo anya.",
     "readWithMeBookPlaceholder": "The book you want everyone to read",
     "readWithMeAuthorPlaceholder": "Optional, but helpful for clarity",
     "readWithMeEditionPlaceholder": "Optional edition, translation, or format",
@@ -1911,18 +2090,18 @@
     "readWithMeRecipientsEmpty": "Start by naming one or two people.",
     "responseWindowHelper": "Set a start date and the window before responses move to Pending.",
     "responseWindow": "Response window",
-    "readWithMeToneBody": "Use this space for the pace, the why, and the actual note you want them to feel.",
+    "readWithMeToneBody": "Jiri ebe a maka ọsọ, ebumnuche, na ndetu ịchọrọ ka ha nwee mmetụta.",
     "readWithMeCadencePlaceholder": "Read at a steady pace and hold one brief check-in each week.",
     "readWithMeFocusPlaceholder": "What do you hope this book will clarify, stretch, or shape?",
     "readWithMeNotePlaceholder": "A short note to the people you are inviting",
-    "readWithMeInvitePreview": "Nlele òkù",
+    "readWithMeInvitePreview": "Nlele atụmatụ",
     "createReadWithMeInvite": "Create reading invite",
     "inviteFriendsTitle": "Shared invite",
     "inviteFriendsSharedPlanBody": "Everyone follows the same practice and sees the same progress.",
     "inviteFriendsProgressBody": "You can see who joined and where the group is up to.",
     "inviteFriendsNudgesBody": "Ncheta dị nro na-eme ka òkù ahụ dị ndụ n’enweghị mkpọtụ.",
     "readWithMeSharePrefix": "Read with me",
-    "readWithMeInviteSubtitle": "A shared reading invite",
+    "readWithMeInviteSubtitle": "Atụmatụ ọgụgụ ọnụ",
     "leaveInvite": "Leave invite",
     "declinedInviteBody": "You declined this reading invitation. You can still join if you change your mind.",
     "joinAnyway": "Join anyway",
@@ -1939,7 +2118,23 @@
     "completedTodayBody": "Ụbọchị {nextDay} nke {total} na-eche ruo echi.",
     "inProgressBody": "Gaa n'ihu na ụbọchị {nextDay} nke {total}.",
     "continueCurrentPractice": "Gaa n'ihu na omume gị ugbu a",
-    "reentryNote": "You are already partway through this practice. Keep the rhythm going with day {nextDay}."
+    "reentryNote": "You are already partway through this practice. Keep the rhythm going with day {nextDay}.",
+    "communitySummaryTitle": "Ọnọdụ okirikiri n’otu anya",
+    "communitySummaryBody": "Ọganihu, mkpali, na nyocha na-apụta ebe a ka omume na-aga.",
+    "fastingCustom": {
+      "title": "Omume ibu ọnụ",
+      "description": "Ibu ọnụ a na-ekekọrịta nke nwere ogologo doro anya, ebumnuche kpọmkwem, na nduzi kwa ụbọchị.",
+      "formTitle": "Hazie ibu ọnụ",
+      "formBody": "Tọọ ogologo ya, kpọọ ebumnuche ya, anyị ga-ewu ụzọ kwa ụbọchị gburugburu ya.",
+      "durationHint": "Bido na ogologo ahụ. Nduzi kwa ụbọchị ga-adaba na ya.",
+      "goalPlaceholder": "Kedu ihe ịchọrọ ka ibu ọnụ a mee ohere maka ya?",
+      "dailyPlanTitle": "Nlele nduzi kwa ụbọchị",
+      "dailyPlanBody": "Ụbọchị atọ mbụ na-egosi usoro ahụ. Atụmatụ zuru ezu ga-agbatị ka ogologo ahụ si dị.",
+      "createInvite": "Mepụta òkù ibu ọnụ",
+      "previewTitle": "Nkọwa ibu ọnụ",
+      "previewBody": "Ogologo oge, ebumnuche, ụbọchị mbido, na ndetu na-anọkọ ọnụ n’otu nchịkọta doro anya."
+    },
+    "readWithMeInvitePromptBody": "Tọọ akwụkwọ, ọsọ, ndị mmadụ, na oge. Òkù ahụ ga-adị ọcha ma doo anya."
   },
   "streak": {
     "openMilestones": "Meghee ụzọ ọhụụ",

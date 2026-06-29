@@ -1324,6 +1324,7 @@
     "author": "Author",
     "notSet": "Not set",
     "duration": "Duration",
+    "goal": "Goal",
     "startDate": "Start date",
     "edition": "Edition / translation",
     "cadence": "Cadence",
@@ -1815,9 +1816,9 @@
     "inviteReady": "Invitation ready",
     "inviteEyebrow": "Shared practice invite",
     "initiatedBy": "Initiated by",
-    "sharedProgress": "Shared progress",
-    "nudges": "Nudges",
-    "noNudgesYet": "No nudges yet. Send the first encouragement.",
+    "sharedProgress": "Circle progress",
+    "nudges": "Check-ins",
+    "noNudgesYet": "No check-ins yet. Send the first note.",
     "sendNudge": "Send a nudge",
     "nudgePlaceholder": "Write a short encouragement or check-in…",
     "sendNudgeButton": "Send nudge",
@@ -1930,7 +1931,6 @@
         "practice": "Write what is enough for this season, plainly."
       }
     },
-
     "sabbathRest5day": {
       "title": "5-Day Sabbath Rest Practice",
       "description": "Five days of protected rest, naming the work rhythm, the strain beneath it, and making space to slow down.",
@@ -1960,6 +1960,185 @@
         "practice": "Choose one small delight that restores you."
       }
     },
+    "listening3day": {
+      "title": "Listening Practice",
+      "description": "Three days to slow down, listen first, and hear what lies beneath the first answer.",
+      "day1": {
+        "principle": "Let every person be quick to hear, slow to speak, slow to anger.",
+        "prompt": "Who or what needs your first full attention today?",
+        "practice": "Listen before answering once today."
+      },
+      "day2": {
+        "principle": "If one gives an answer before he hears, it is his folly and shame.",
+        "prompt": "What question are you rushing past?",
+        "practice": "Pause before you respond."
+      },
+      "day3": {
+        "principle": "The purpose in a man's heart is like deep water, but a man of understanding will draw it out.",
+        "prompt": "Where would a better question help more than a quick opinion?",
+        "practice": "Ask one slower, wiser question."
+      }
+    },
+    "repair4day": {
+      "title": "Repair Practice",
+      "description": "Four days to name hurt honestly, lower defensiveness, and move toward repair.",
+      "day1": {
+        "principle": "First be reconciled to your brother.",
+        "prompt": "Who needs your attention because something is unresolved?",
+        "practice": "Name the relationship that needs repair."
+      },
+      "day2": {
+        "principle": "Be angry and do not sin; do not let the sun go down on your anger.",
+        "prompt": "Where has anger been left to simmer?",
+        "practice": "Take one step before the sun sets."
+      },
+      "day3": {
+        "principle": "Confess your sins to one another and pray for one another.",
+        "prompt": "What confession or apology would make the next conversation more honest?",
+        "practice": "Write the apology you have been avoiding."
+      },
+      "day4": {
+        "principle": "If possible, so far as it depends on you, live peaceably with all.",
+        "prompt": "What is the most faithful peace you can pursue without pretending everything is fine?",
+        "practice": "Choose peace as far as it depends on you."
+      }
+    },
+    "generosity7day": {
+      "title": "Generosity Practice",
+      "description": "Seven days of giving from conviction, not pressure, while honoring capacity and wise limits.",
+      "day1": {
+        "principle": "A generous person will be enriched, and one who waters will himself be watered.",
+        "prompt": "Where have you received more than you notice?",
+        "practice": "Notice one place abundance wants to move."
+      },
+      "day2": {
+        "principle": "It is acceptable according to what a person has, not according to what he does not have.",
+        "prompt": "What is a generous amount for this season, not an ideal season?",
+        "practice": "Name a proportion that fits your capacity."
+      },
+      "day3": {
+        "principle": "It is more blessed to give than to receive.",
+        "prompt": "Who could be strengthened by what is already in your hand?",
+        "practice": "Give something helpful without fanfare."
+      },
+      "day4": {
+        "principle": "Whoever is generous to the poor lends to the Lord.",
+        "prompt": "What act of mercy would you like to remember instead of fear?",
+        "practice": "Write one way kindness can be practical."
+      },
+      "day5": {
+        "principle": "Set your hope on God, who richly provides us with everything to enjoy.",
+        "prompt": "What does hope look like when riches are not the center?",
+        "practice": "Set your hope on something sturdier than money."
+      },
+      "day6": {
+        "principle": "You will be enriched in every way to be generous in every way.",
+        "prompt": "Where does gratitude make giving feel freer?",
+        "practice": "Give thanks for what you can share."
+      },
+      "day7": {
+        "principle": "Because of this the Lord your God will bless you in all your work and in all that you undertake.",
+        "prompt": "What gift feels cheerful and sustainable right now?",
+        "practice": "Choose the next generous step with joy."
+      }
+    },
+    "attentionFast5day": {
+      "title": "Attention Fast",
+      "description": "Five days to clear noise, recover focus, and choose what deserves attention.",
+      "day1": {
+        "principle": "Teach us to number our days that we may get a heart of wisdom.",
+        "prompt": "Where is your time leaking away?",
+        "practice": "Name one attention leak."
+      },
+      "day2": {
+        "principle": "Keep your heart with all vigilance, for from it flow the springs of life.",
+        "prompt": "What is shaping your inner life without permission?",
+        "practice": "Guard one boundary around attention."
+      },
+      "day3": {
+        "principle": "The eye is the lamp of the body.",
+        "prompt": "What brings clarity, and what clouds it?",
+        "practice": "Let your attention rest on one clear thing."
+      },
+      "day4": {
+        "principle": "Be transformed by the renewal of your mind.",
+        "prompt": "What pattern is normal but not wise?",
+        "practice": "Refuse one noisy pattern today."
+      },
+      "day5": {
+        "principle": "Whatever is true, honorable, just, pure, lovely, and commendable, think about these things.",
+        "prompt": "What is true, honorable, and worth keeping in view?",
+        "practice": "Name one thing worth your attention."
+      }
+    },
+    "hiddenService5day": {
+      "title": "Hidden Service",
+      "description": "Five days to serve quietly, release credit, and notice faithfulness no one needs to see.",
+      "day1": {
+        "principle": "Your Father who sees in secret will reward you.",
+        "prompt": "Where can you do good without announcing it?",
+        "practice": "Choose one hidden act of service."
+      },
+      "day2": {
+        "principle": "Through love serve one another.",
+        "prompt": "How can freedom become loving action instead of self-focus?",
+        "practice": "Serve in a way no one needs to praise."
+      },
+      "day3": {
+        "principle": "As each has received a gift, use it to serve one another.",
+        "prompt": "What gift can you use to help someone else today?",
+        "practice": "Use one gift to bless another."
+      },
+      "day4": {
+        "principle": "Whatever you do, work heartily, as for the Lord and not for men.",
+        "prompt": "What changes when you serve for God rather than applause?",
+        "practice": "Work with steady, unseen faithfulness."
+      },
+      "day5": {
+        "principle": "God is not unjust so as to overlook your work and the love you have shown.",
+        "prompt": "Who has been quietly helped by your consistency?",
+        "practice": "Notice the good that has already been done."
+      }
+    },
+    "readWithMe7day": {
+      "title": "Reading Practice",
+      "description": "Seven days of reading attentively, asking what is true, and letting wisdom shape your hearing.",
+      "day1": {
+        "principle": "An intelligent heart acquires knowledge, and the ear of the wise seeks knowledge.",
+        "prompt": "What do you want to understand more deeply?",
+        "practice": "Read one passage with fuller attention."
+      },
+      "day2": {
+        "principle": "Let every person be quick to hear, slow to speak, slow to anger.",
+        "prompt": "What would it look like to be quick to hear and slow to speak?",
+        "practice": "Listen before you explain."
+      },
+      "day3": {
+        "principle": "The beginning of wisdom is this: Get wisdom.",
+        "prompt": "Where do you need wisdom more than more information?",
+        "practice": "Choose wisdom over speed."
+      },
+      "day4": {
+        "principle": "Your word is a lamp to my feet and a light to my path.",
+        "prompt": "What is the lamp for the next step, not the whole map?",
+        "practice": "Let one line guide your next step."
+      },
+      "day5": {
+        "principle": "They received the word with all eagerness, examining the Scriptures daily.",
+        "prompt": "What would it mean to test what you hear with care?",
+        "practice": "Verify before you absorb."
+      },
+      "day6": {
+        "principle": "Let the word of Christ dwell in you richly.",
+        "prompt": "What word needs to dwell richly in you today?",
+        "practice": "Sit with one passage longer than usual."
+      },
+      "day7": {
+        "principle": "Do your best to present yourself to God as one approved, rightly handling the word of truth.",
+        "prompt": "What does faithful handling of truth look like now?",
+        "practice": "Read with care, patience, and humility."
+      }
+    },
     "readWithMeInviteTitle": "Shared reading plan",
     "readWithMeInviteDetails": "Fixed reading details",
     "readWithMeInviteDetailsBody": "Everyone sees the same book, cadence, and response window.",
@@ -1967,8 +2146,8 @@
     "responseDashboardBody": "Accepted, declined, and time-based pending states update from the invite roster.",
     "noInviteRosterYet": "Add a roster to start tracking responses.",
     "unmatchedResponses": "Other responses",
-    "readWithMeInvitePrompt": "Invitation draft",
-    "readWithMeDetailsBody": "Keep the subject line simple and the duration unmistakable.",
+    "readWithMeInvitePrompt": "Shape the reading plan",
+    "readWithMeDetailsBody": "Keep the book and duration unmistakable.",
     "readWithMeBookPlaceholder": "The book you want everyone to read",
     "readWithMeAuthorPlaceholder": "Optional, but helpful for clarity",
     "readWithMeEditionPlaceholder": "Optional edition, translation, or format",
@@ -1977,18 +2156,18 @@
     "readWithMeRecipientsEmpty": "Start by naming one or two people.",
     "responseWindowHelper": "Set a start date and the window before responses move to Pending.",
     "responseWindow": "Response window",
-    "readWithMeToneBody": "Use this space for the pace, the why, and the actual note you want them to feel.",
+    "readWithMeToneBody": "Use this space for the pace, the purpose, and the note you want them to feel.",
     "readWithMeCadencePlaceholder": "Read at a steady pace and hold one brief check-in each week.",
     "readWithMeFocusPlaceholder": "What do you hope this book will clarify, stretch, or shape?",
     "readWithMeNotePlaceholder": "A short note to the people you are inviting",
-    "readWithMeInvitePreview": "Invite preview",
+    "readWithMeInvitePreview": "Reading plan preview",
     "createReadWithMeInvite": "Create reading invite",
     "inviteFriendsTitle": "Shared invite",
     "inviteFriendsSharedPlanBody": "Everyone follows the same practice and sees the same progress.",
     "inviteFriendsProgressBody": "You can see who joined and where the group is up to.",
     "inviteFriendsNudgesBody": "Gentle reminders keep the invite warm without feeling noisy.",
     "readWithMeSharePrefix": "Read with me",
-    "readWithMeInviteSubtitle": "A shared reading invite",
+    "readWithMeInviteSubtitle": "A shared reading plan",
     "leaveInvite": "Leave invite",
     "declinedInviteBody": "You declined this reading invitation. You can still join if you change your mind.",
     "joinAnyway": "Join anyway",
@@ -2005,7 +2184,23 @@
     "completedTodayBody": "Day {nextDay} of {total} is waiting for tomorrow.",
     "inProgressBody": "Continue with day {nextDay} of {total}.",
     "continueCurrentPractice": "Continue your current practice",
-    "reentryNote": "You are already partway through this practice. Keep the rhythm going with day {nextDay}."
+    "reentryNote": "You are already partway through this practice. Keep the rhythm going with day {nextDay}.",
+    "communitySummaryTitle": "Circle activity at a glance",
+    "communitySummaryBody": "Progress, nudges, and check-ins show up here as the practice moves.",
+    "fastingCustom": {
+      "title": "Fasting Practice",
+      "description": "A shared fast with a clear length, a focused goal, and daily guidance.",
+      "formTitle": "Shape the fast",
+      "formBody": "Set the length, name the purpose, and we will build the daily path around it.",
+      "durationHint": "Pick the length first. The daily guide will adapt to it.",
+      "goalPlaceholder": "What do you want this fast to make room for?",
+      "dailyPlanTitle": "Daily guide preview",
+      "dailyPlanBody": "The first three days show the rhythm. The full plan expands to fit the fast.",
+      "createInvite": "Create fasting invite",
+      "previewTitle": "Fast details",
+      "previewBody": "Length, goal, start date, and note stay together in one clean summary."
+    },
+    "readWithMeInvitePromptBody": "Set the book, pace, people, and timing. The invite stays clean and direct."
   },
   "runtimePanel": {
     "timelineReady": "Your timeline is ready to track decisions, patterns, counsel, and learning.",
