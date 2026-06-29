@@ -347,8 +347,8 @@ export default function BibleReader({ preferences, theme, initialBook, initialCh
     return (
       <div className="space-y-4" dir={isRtl ? "rtl" : "ltr"}>
         <section className="rounded-2xl border p-4 shadow-sm" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div className="min-w-0 flex-1">
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
+            <div className="min-w-0">
               <p className="text-[0.68rem] font-semibold uppercase tracking-[0.24em]" style={{ color: theme.accentGold }}>
                 {ui.readTab} · {ui.studyTab}
               </p>
@@ -359,8 +359,9 @@ export default function BibleReader({ preferences, theme, initialBook, initialCh
                 {ui.bookSelectorHelp}
               </p>
             </div>
-            <div className="grid size-11 shrink-0 place-items-center self-start rounded-2xl border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
-              <Book size={18} />
+            <div className="grid size-9 shrink-0 place-items-center self-start rounded-xl border sm:size-11 sm:rounded-2xl" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
+              <Book size={16} className="sm:hidden" />
+              <Book size={18} className="hidden sm:block" />
             </div>
           </div>
           <div className="mt-4 flex flex-wrap gap-2">
@@ -369,9 +370,6 @@ export default function BibleReader({ preferences, theme, initialBook, initialCh
             </span>
             <span className="inline-flex items-center rounded-full border px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.16em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
               {preferences.bibleTranslation}
-            </span>
-            <span className="inline-flex items-center rounded-full border px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.16em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-              {ui.studyRelatedVerses}
             </span>
           </div>
         </section>

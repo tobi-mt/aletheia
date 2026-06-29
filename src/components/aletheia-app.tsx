@@ -8186,6 +8186,12 @@ export function AletheiaApp() {
         const focused = focusDecisionCard();
         if (focused && delay >= 1400) {
           settled = true;
+          setPendingDecisionNotificationFocus(null);
+          return;
+        }
+        if (!focused && delay === 5200) {
+          settled = true;
+          setPendingDecisionNotificationFocus(null);
         }
       }, delay)
     );
@@ -14540,16 +14546,25 @@ function HomeDashboard({
         style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textPrimary }}
       >
         <div className="space-y-4">
-          <div className="relative">
-            <p className="text-[10.5px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.accentGold }}>
-              {text.whatNext}
-            </p>
-            <h2 className="mt-2 text-[1.72rem] font-semibold leading-[1.02] text-balance sm:text-[2.1rem]" style={{ color: theme.textPrimary }}>
-              {text.askOneQuestion}
-            </h2>
-            <p className="mt-2 max-w-2xl text-[0.94rem] leading-6 sm:text-[0.98rem] sm:leading-7" style={{ color: theme.textSecondary }}>
-              {(text as { whatNextBodyShort?: string }).whatNextBodyShort ?? text.whatNextBody ?? ""}
-            </p>
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 items-start">
+            <div className="min-w-0">
+              <p className="text-[10.5px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.accentGold }}>
+                {text.whatNext}
+              </p>
+              <h2 className="mt-2 text-[1.72rem] font-semibold leading-[1.02] text-balance sm:text-[2.1rem]" style={{ color: theme.textPrimary }}>
+                {text.askOneQuestion}
+              </h2>
+              <p className="mt-2 max-w-2xl text-[0.94rem] leading-6 sm:text-[0.98rem] sm:leading-7" style={{ color: theme.textSecondary }}>
+                {(text as { whatNextBodyShort?: string }).whatNextBodyShort ?? text.whatNextBody ?? ""}
+              </p>
+            </div>
+            <div
+              className="grid size-10 shrink-0 place-items-center self-start rounded-[1rem] border"
+              style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}
+              aria-hidden="true"
+            >
+              <MessageCircle size={14} />
+            </div>
           </div>
 
           <DashboardAction
@@ -14948,12 +14963,12 @@ function DashboardAction({
   compact?: boolean;
   onClick: () => void;
   theme: ThemeColors;
-}) {
+  }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`premium-tap-card group flex h-full w-full min-w-0 items-start gap-3 rounded-[1.15rem] border text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${compact ? "p-3.5" : "p-4"}`}
+      className={`premium-tap-card group grid h-full w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-3 rounded-[1.15rem] border text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${compact ? "p-3.5" : "p-4"}`}
       style={primary
         ? {
             borderColor: theme.primary,
@@ -14963,26 +14978,28 @@ function DashboardAction({
           }
         : { borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
     >
-      <span
-        className="mt-0.5 grid size-10 shrink-0 place-items-center rounded-xl border"
-        style={
-          primary
-            ? {
-                borderColor: "rgba(255,255,255,0.18)",
-                backgroundColor: "rgba(255,255,255,0.12)",
-                color: theme.textOnPrimary,
-              }
-            : { borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }
-        }
-      >
-        <Icon size={16} />
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className={`${primary ? "text-[1.02rem] sm:text-[1.08rem]" : "text-sm"} block font-semibold leading-5`}>{label}</span>
+      <span className="min-w-0">
+        <span className={`${primary ? "text-[1.02rem] sm:text-[1.08rem]" : "text-sm"} block font-semibold leading-5 text-balance`}>{label}</span>
         <span className={`${compact ? "home-secondary-action-body " : ""}mt-1 block line-clamp-2 text-xs leading-5 opacity-85`}>{body}</span>
       </span>
-      {primary ? <ArrowUpRight className="ml-auto mt-0.5 shrink-0" size={16} /> : null}
-  </button>
+      <span className="flex items-start justify-end gap-2">
+        <span
+          className="grid size-9 shrink-0 place-items-center rounded-xl border sm:size-10"
+          style={
+            primary
+              ? {
+                  borderColor: "rgba(255,255,255,0.18)",
+                  backgroundColor: "rgba(255,255,255,0.12)",
+                  color: theme.textOnPrimary,
+                }
+              : { borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }
+          }
+        >
+          <Icon size={16} />
+        </span>
+        {primary ? <ArrowUpRight className="mt-0.5 shrink-0" size={16} /> : null}
+      </span>
+    </button>
 );
 }
 
@@ -15761,7 +15778,7 @@ function AccountPanel({
   return (
     <div className="mx-auto grid min-w-0 max-w-5xl gap-4">
       <section className="overflow-hidden rounded-[1.35rem] border shadow-[0_8px_24px_rgba(15,23,42,0.05)]" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
-        <div className="flex flex-col items-center gap-4 p-4 text-center sm:p-5">
+        <div className="flex flex-col items-center gap-3.5 p-3.5 text-center sm:p-4">
           <div className="grid place-items-center">
             <div
               className="grid place-items-center rounded-full border p-[3px]"
@@ -15775,8 +15792,8 @@ function AccountPanel({
                 avatarUrl={user?.avatarUrl}
                 seed={user?.id ?? user?.email ?? "guest"}
                 label={profileName}
-                size={72}
-                className="size-[72px]"
+                size={64}
+                className="size-16"
               />
             </div>
           </div>
@@ -15784,10 +15801,10 @@ function AccountPanel({
             <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
               {ts('labels.profileTitle')}
             </p>
-            <h2 className="mt-1 text-2xl font-semibold leading-tight text-balance sm:text-3xl" style={{ color: theme.textPrimary }}>
+            <h2 className="mt-1 text-[1.55rem] font-semibold leading-tight text-balance sm:text-3xl" style={{ color: theme.textPrimary }}>
               {profileGreeting}
             </h2>
-            <p className="mt-2 text-sm leading-6 sm:text-base sm:leading-7" style={{ color: theme.textSecondary }}>
+            <p className="mt-2 text-[0.9rem] leading-6 sm:text-base sm:leading-7" style={{ color: theme.textSecondary }}>
               {user ? `${ts('labels.accountSignedInWith')} ${profileSummary}` : profileSummary}
             </p>
           </div>
@@ -15795,7 +15812,7 @@ function AccountPanel({
             <button
               type="button"
               onClick={onOpenStreakMilestones}
-              className="mt-4 inline-flex rounded-[1.35rem] outline-none transition-transform duration-200 hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-offset-2"
+              className="mt-2 inline-flex rounded-[1.15rem] outline-none transition-transform duration-200 hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-offset-2"
               style={{ WebkitTapHighlightColor: "transparent" }}
               aria-label={ts('streak.openMilestones')}
             >
@@ -15809,7 +15826,7 @@ function AccountPanel({
               />
             </button>
           )}
-          <div className="grid grid-cols-3 gap-2 border-t px-3 py-3 sm:px-5" style={{ borderColor: theme.borderLight }}>
+          <div className="grid grid-cols-3 gap-1.5 border-t px-2.5 py-2.5 sm:px-4" style={{ borderColor: theme.borderLight }}>
             {profileStats.map((stat) => (
               <AccountHeaderStat key={stat.detail} icon={stat.icon} value={stat.value} detail={stat.detail} theme={theme} />
             ))}
@@ -16170,15 +16187,15 @@ function AccountHeaderStat({
   const accessibleLabel = `${value} ${detail}`;
   return (
     <span
-      className="flex min-h-11 min-w-0 items-center justify-between gap-2 rounded-xl border px-3 py-2 text-left shadow-[0_4px_10px_rgba(7,10,8,0.03)]"
+      className="flex min-h-10 min-w-0 items-center justify-between gap-2 rounded-lg border px-2.5 py-1.5 text-left shadow-[0_4px_10px_rgba(7,10,8,0.03)]"
       style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}
       aria-label={accessibleLabel}
       title={accessibleLabel}
     >
-      <span className="grid size-8 shrink-0 place-items-center rounded-full border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
+      <span className="grid size-7 shrink-0 place-items-center rounded-full border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
         <Icon size={14} aria-hidden="true" />
       </span>
-      <span className="text-[15px] font-semibold leading-none tracking-[-0.02em]" style={{ color: theme.textPrimary }}>{value}</span>
+      <span className="text-sm font-semibold leading-none tracking-[-0.02em]" style={{ color: theme.textPrimary }}>{value}</span>
     </span>
   );
 }
@@ -16344,26 +16361,26 @@ function AccountShareCard({
     <section className="space-y-4">
       <div className="relative editorial-surface rounded-[1rem] border p-3.5 shadow-[0_4px_10px_rgba(7,10,8,0.04)] sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
         <div className="flex items-start gap-2.5">
-          <div className="grid size-9 shrink-0 place-items-center rounded-md" style={{ backgroundColor: theme.bgInput, color: theme.primary }}>
+          <div className="grid size-8 shrink-0 place-items-center rounded-md" style={{ backgroundColor: theme.bgInput, color: theme.primary }}>
             <Share2 size={18} />
           </div>
           <div className="min-w-0">
-            <p className="inline-flex items-center gap-2 pr-6 text-sm font-semibold leading-6 sm:pr-7 md:pr-8" style={{ color: theme.textPrimary }}>
+            <p className="text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>
               <span>{ts('share.accountShareBodyTitle')}</span>
             </p>
           </div>
         </div>
       </div>
-      <div className="flex flex-col gap-2">
+      <div className="grid gap-2 sm:grid-cols-2">
         {shareActions.map(({ channel, label, icon: Icon }) => (
           <button
             key={channel}
             type="button"
             onClick={() => onShare(channel)}
-            className="premium-tap-card flex min-h-10 items-center gap-2.5 rounded-[1rem] border px-2.5 py-2.5 text-left text-sm font-semibold transition hover:-translate-y-0.5"
+            className="premium-tap-card flex min-h-10 items-center gap-2.5 rounded-[0.85rem] border px-3 py-2 text-left text-sm font-semibold transition hover:-translate-y-0.5"
             style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textPrimary }}
           >
-            <span className="grid size-8 shrink-0 place-items-center rounded-full" style={{ backgroundColor: theme.bgCardElevated, color: theme.primary }}>
+            <span className="grid size-7 shrink-0 place-items-center rounded-full" style={{ backgroundColor: theme.bgCardElevated, color: theme.primary }}>
               <Icon size={15} />
             </span>
             <span className="min-w-0 flex-1 leading-5">{label}</span>
@@ -16400,15 +16417,15 @@ function SupportMissionCard({
       <div className="relative editorial-surface overflow-hidden rounded-[1.35rem] border shadow-[0_6px_16px_rgba(7,10,8,0.05)]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
         <div className="p-3.5 sm:p-4">
           <div className="flex items-start gap-3">
-            <div className="grid size-11 shrink-0 place-items-center rounded-full border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
-              <HandHeart size={20} />
+            <div className="grid size-10 shrink-0 place-items-center rounded-lg border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
+              <HandHeart size={18} />
             </div>
             <div className="min-w-0">
               <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('supportMission.eyebrow')}</p>
-              <h3 className="mt-1.5 inline-flex items-center gap-2 pr-6 sm:pr-8 md:pr-9 text-lg font-semibold sm:text-xl" style={{ color: theme.textPrimary }}>
-                <span>{ts('supportMission.cardTitle')}</span>
+              <h3 className="mt-1 text-lg font-semibold sm:text-xl" style={{ color: theme.textPrimary }}>
+                {ts('supportMission.cardTitle')}
               </h3>
-              <p className="mt-1.5 text-sm leading-5" style={{ color: theme.textSecondary }}>
+              <p className="mt-1 text-sm leading-5" style={{ color: theme.textSecondary }}>
                 {ts('supportMission.summary')}
               </p>
             </div>
@@ -16426,9 +16443,9 @@ function SupportMissionCard({
             theme={theme}
             className="mt-4"
           >
-            <div className="flex flex-col gap-2">
+            <div className="grid gap-2">
               {impactItems.map((item) => (
-                <div key={item} className="rounded-[1rem] border p-2.5 text-sm leading-5 shadow-[0_4px_10px_rgba(7,10,8,0.04)]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                <div key={item} className="rounded-[0.85rem] border p-2.5 text-sm leading-5 shadow-[0_4px_10px_rgba(7,10,8,0.04)]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
                   <span className="flex items-start gap-2">
                     <Check size={15} className="mt-0.5 shrink-0" style={{ color: theme.accentGold }} />
                     <span>{item}</span>
@@ -16442,7 +16459,7 @@ function SupportMissionCard({
         <div className="border-t p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
           <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{ts('supportMission.chooseMethod')}</p>
           {links.length ? (
-            <div className="mt-3 flex flex-col gap-2">
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
               {links.map(({ channel, href, labelKey }) => (
                 <a
                   key={channel}
@@ -16450,11 +16467,11 @@ function SupportMissionCard({
                   target={href.startsWith("mailto:") ? undefined : "_blank"}
                   rel={href.startsWith("mailto:") ? undefined : "noreferrer"}
                   onClick={() => trackSupportClick(channel)}
-                  className="premium-tap-card flex min-h-10 items-center justify-between gap-2.5 rounded-[1rem] border px-2.5 py-2.5 text-sm font-semibold transition hover:-translate-y-0.5"
+                  className="premium-tap-card flex min-h-10 items-center justify-between gap-2.5 rounded-[0.85rem] border px-3 py-2 text-sm font-semibold transition hover:-translate-y-0.5"
                   style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textPrimary }}
                 >
                   <span className="flex min-w-0 items-center gap-3">
-                    <span className="grid size-8 shrink-0 place-items-center rounded-full" style={{ backgroundColor: theme.bgCardElevated, color: theme.primary }}>
+                    <span className="grid size-7 shrink-0 place-items-center rounded-full" style={{ backgroundColor: theme.bgCardElevated, color: theme.primary }}>
                       {channel === "contact" ? <Mail size={15} /> : <HandHeart size={15} />}
                     </span>
                     <span className="min-w-0 leading-5">{ts(labelKey)}</span>
@@ -19595,10 +19612,10 @@ function TrustCenterCard({
       />
 
       <div className="border-t p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-        <div className="flex flex-wrap gap-2">
+        <div className="grid gap-2 sm:grid-cols-2">
           <button
             type="button"
-            className="h-10 rounded-full border px-3.5 text-sm font-semibold"
+            className="h-10 rounded-[0.85rem] border px-3.5 text-sm font-semibold"
             style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
             onClick={onClearLocalPersonalization}
           >
@@ -19607,7 +19624,7 @@ function TrustCenterCard({
           {!user ? (
             <button
               type="button"
-              className="h-10 rounded-full border px-3.5 text-sm font-semibold"
+              className="h-10 rounded-[0.85rem] border px-3.5 text-sm font-semibold"
               style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: hasLocalWorkspaceData ? theme.textPrimary : theme.textSecondary, opacity: hasLocalWorkspaceData ? 1 : 0.65 }}
               disabled={!hasLocalWorkspaceData}
               onClick={onClearGuestWorkspace}
@@ -19617,7 +19634,7 @@ function TrustCenterCard({
           ) : null}
           <button
             type="button"
-            className="h-10 rounded-full border px-3.5 text-sm font-semibold"
+            className="h-10 rounded-[0.85rem] border px-3.5 text-sm font-semibold"
             style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: user ? theme.textPrimary : theme.textSecondary, opacity: user ? 1 : 0.65 }}
             disabled={!user || accountActionBusy === "export"}
             onClick={onExportData}
@@ -19626,7 +19643,7 @@ function TrustCenterCard({
           </button>
           <button
             type="button"
-            className="h-10 rounded-full border px-3.5 text-sm font-semibold"
+            className="h-10 rounded-[0.85rem] border px-3.5 text-sm font-semibold"
             style={{ borderColor: theme.borderStrong, backgroundColor: theme.bgInput, color: user ? theme.textPrimary : theme.textSecondary, opacity: user ? 1 : 0.65 }}
             disabled={!user || accountActionBusy === "delete"}
             onClick={onRequestDeleteAccount}
@@ -22577,7 +22594,7 @@ function WisdomTimelineModal({
             className="absolute inset-y-0 left-0 w-px"
             style={{ background: `linear-gradient(to bottom, transparent, ${theme.accentGold}, transparent)` }}
           />
-          <div className="relative flex items-start justify-between gap-3">
+          <div className="relative grid gap-3 pr-12 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start sm:pr-0">
             <div className="min-w-0">
               <p className="text-[11px] font-semibold uppercase tracking-[0.22em] sm:text-xs" style={{ color: theme.accentGold }}>
                 {ts('labels.wisdomTimeline')}
@@ -22592,7 +22609,7 @@ function WisdomTimelineModal({
             <button
               type="button"
               onClick={onClose}
-              className="grid size-10 shrink-0 place-items-center rounded-full border transition shadow-sm"
+              className="absolute right-4 top-4 grid size-9 shrink-0 place-items-center rounded-full border transition shadow-sm sm:static sm:size-10"
               style={{
                 borderColor: theme.borderMedium,
                 backgroundColor: theme.bgInput,
@@ -23112,7 +23129,7 @@ function StreakMilestonesModal({
             className="absolute inset-y-0 left-0 w-px"
             style={{ background: `linear-gradient(to bottom, transparent, ${theme.accentGold}, transparent)` }}
           />
-          <div className="relative flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="relative grid gap-3 pr-12 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start sm:pr-0">
             <div className="min-w-0">
               <p className="text-[11px] font-semibold uppercase tracking-[0.22em] sm:text-xs" style={{ color: theme.accentGold }}>
                 {ts("streak.modalEyebrow")}
@@ -23127,7 +23144,7 @@ function StreakMilestonesModal({
             <button
               type="button"
               onClick={onClose}
-              className="grid size-10 shrink-0 place-items-center self-start rounded-full border transition shadow-sm"
+              className="absolute right-4 top-4 grid size-9 shrink-0 place-items-center rounded-full border transition shadow-sm sm:static sm:size-10"
               style={{
                 borderColor: theme.borderMedium,
                 backgroundColor: theme.bgInput,
@@ -26082,7 +26099,7 @@ function DecisionCompanionPanel({
                 background: `radial-gradient(circle at 18% 18%, color-mix(in srgb, ${theme.accentGold} 20%, transparent), transparent 36%), radial-gradient(circle at 100% 0%, color-mix(in srgb, ${theme.primary} 14%, transparent), transparent 30%)`,
               }}
             />
-            <div className="relative flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
               <div className="min-w-0">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
                   {ts('labels.wisdomTimeline')}
@@ -26096,10 +26113,13 @@ function DecisionCompanionPanel({
                     : ts('labels.startDecisionToBeginTimeline')}
                 </p>
               </div>
-              <span className="mt-1 inline-flex shrink-0 items-center self-start gap-2 rounded-full border px-3 py-2 text-xs font-semibold shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textPrimary }}>
+              <div
+                className="grid size-10 shrink-0 place-items-center self-start rounded-[1rem] border"
+                style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}
+                aria-hidden="true"
+              >
                 <Clock3 size={14} />
-                {ts('labels.wisdomTimeline')}
-              </span>
+              </div>
             </div>
           </button>
           <section
@@ -27053,18 +27073,18 @@ function ReflectPanel({
               ))}
           </section>
 
-          <section className="rounded-[1.55rem] border p-4 shadow-[0_10px_28px_rgba(15,23,42,0.06)] sm:p-5" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <section className="rounded-[1.45rem] border p-3.5 shadow-[0_10px_28px_rgba(15,23,42,0.06)] sm:p-4" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
+            <div className="flex flex-col gap-3.5 lg:flex-row lg:items-end lg:justify-between">
               <div className="relative max-w-2xl">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>{ts('nav.reflect')}</p>
-                <h2 className="mt-2 text-[1.42rem] font-semibold leading-[1.02] text-balance sm:text-[1.72rem]" style={{ color: theme.textPrimary }}>
+                <h2 className="mt-1.5 text-[1.33rem] font-semibold leading-[1.02] text-balance sm:text-[1.72rem]" style={{ color: theme.textPrimary }}>
                   {ts('labels.discernmentReflectionQuietPlace')}
                 </h2>
-                <p className="mt-2 max-w-2xl text-sm leading-6 sm:text-[0.96rem] sm:leading-7" style={{ color: theme.textSecondary }}>
+                <p className="mt-1.5 max-w-2xl text-[0.9rem] leading-6 sm:text-[0.96rem] sm:leading-7" style={{ color: theme.textSecondary }}>
                   {runtime.reflectIntro}
                 </p>
               </div>
-              <span className="inline-flex w-fit items-center rounded-full border px-3 py-2 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+              <span className="inline-flex w-fit items-center rounded-full border px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
                 {modeProfile.label}
               </span>
             </div>
@@ -27515,7 +27535,7 @@ function GratitudeLensPanel({
     count: weeklyEntries.filter((entry) => normalizeGratitudeFormation(entry.formation) === item).length,
   }));
   const topFormation = formationCounts.reduce((top, item) => item.count > top.count ? item : top, formationCounts[0]);
-  const gratitudeRailChipClass = "premium-tap-card inline-flex min-h-16 min-w-[8.6rem] shrink-0 snap-start flex-col items-center justify-center gap-1 rounded-2xl border px-3 py-2 text-center text-sm font-semibold leading-tight transition active:scale-[0.98]";
+  const gratitudeRailChipClass = "premium-tap-card inline-flex min-h-14 min-w-[7.9rem] shrink-0 snap-start flex-col items-center justify-center gap-1 rounded-[1.1rem] border px-3 py-2 text-center text-sm font-semibold leading-tight transition active:scale-[0.98]";
 
   return (
     <div id="gratitude-lens-card" tabIndex={-1} className="scroll-mt-28 outline-none">
@@ -27535,7 +27555,7 @@ function GratitudeLensPanel({
           setGratitudeDetailOpen(false);
         }}
       />
-      <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+      <div className="mb-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
         <div className="min-w-0">
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
             {ts('labels.visualGratitude')}
@@ -27547,32 +27567,20 @@ function GratitudeLensPanel({
             {summary}
           </p>
         </div>
-        <span
-          className="shrink-0 self-start rounded-full border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.14em]"
-          style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
-        >
-          {!signedIn
-            ? ts('labels.localOnly')
-            : syncStatus === "synced"
-              ? ts('labels.active')
-              : syncStatus === "syncing"
-                ? `${ts('labels.sync')}...`
-                : ts('labels.notSynced')}
-        </span>
       </div>
 
       <section className="grid min-w-0 gap-4 xl:grid-cols-[0.95fr_1.05fr]">
           <div className="relative rounded-xl border p-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-            <div className="flex items-start gap-3">
-              <div className="grid size-10 shrink-0 place-items-center rounded-md" style={{ backgroundColor: theme.bgInput, color: theme.primary }}>
-                <Camera size={18} />
-            </div>
-            <div>
-              <h3 className="text-base font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.captureGratitude')}</h3>
-              <p className="mt-1 pr-5 sm:pr-6 md:pr-7 text-sm leading-5" style={{ color: theme.textSecondary }}>
-                {ts('labels.gratitudeLensBodyShort')}
-              </p>
-            </div>
+            <div className="grid grid-cols-[auto_minmax(0,1fr)] items-start gap-3">
+              <div className="grid size-9 shrink-0 place-items-center rounded-lg" style={{ backgroundColor: theme.bgInput, color: theme.primary }}>
+                <Camera size={17} />
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-base font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.captureGratitude')}</h3>
+                <p className="mt-1 text-sm leading-5" style={{ color: theme.textSecondary }}>
+                  {ts('labels.gratitudeLensBodyShort')}
+                </p>
+              </div>
           </div>
 
             <div className="relative mt-3 rounded-[1.35rem] border p-3 sm:p-3.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
@@ -27585,9 +27593,6 @@ function GratitudeLensPanel({
                   {ts('labels.gratitudeNoticingBodyShort')}
                 </p>
               </div>
-              <span className="inline-flex shrink-0 items-center self-start rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-                {ts('labels.gratitudePreview')}
-              </span>
             </div>
             <div className="mt-3">
               <ScreenTabs
@@ -27678,9 +27683,9 @@ function GratitudeLensPanel({
                     {activeStyleSummary || ts('labels.gratitudeStyleBody')}
                   </p>
                 </div>
-                <span className="inline-flex shrink-0 items-center self-start rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
                   {ts('labels.gratitudeFilters')}
-                </span>
+                </p>
               </div>
               <div className="mt-3 flex gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 {GRATITUDE_FILTERS.map((filter) => {
@@ -27712,9 +27717,9 @@ function GratitudeLensPanel({
                     {ts('labels.gratitudeOverlays')}
                   </p>
                 </div>
-                <span className="inline-flex shrink-0 items-center self-start rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
                   {ts('labels.gratitudeStickerLimit')}
-                </span>
+                </p>
               </div>
 
               <div className="mt-3 space-y-3">
@@ -27885,7 +27890,7 @@ function GratitudeLensPanel({
                   {ts('labels.weeklyMomentsNoticed').replace("{count}", String(weeklyEntries.length))}
                 </p>
               </div>
-              <span className="shrink-0 self-start rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ color: theme.textSecondary }}>
                 {!signedIn
                   ? ts('labels.localOnly')
                   : syncStatus === "synced"
@@ -27893,7 +27898,7 @@ function GratitudeLensPanel({
                     : syncStatus === "syncing"
                       ? `${ts('labels.sync')}...`
                       : ts('labels.notSynced')}
-              </span>
+              </p>
             </div>
             <p className="mt-2 text-xs leading-5" style={{ color: theme.textSecondary }}>
               {weeklyEntries.length && topFormation.count
@@ -28400,25 +28405,22 @@ function JournalPanel({
                         <Feather size={12} style={{ color: theme.textOnPrimary }} />
                       </div>
                     </div>
-                    <div className="flex min-w-0 flex-1 flex-col gap-1.5 p-3.5">
-                      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                        <div className="min-w-0">
-                          <p className="line-clamp-2 text-[0.97rem] font-semibold leading-[1.22rem]" style={{ color: theme.textPrimary }}>{entry.title}</p>
-                          <p className="mt-1 text-[9px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
-                            {localizedModeLabel(entry.mode, language)} · {new Date(entry.createdAt).toLocaleDateString(language, { month: "short", day: "numeric" })}
-                          </p>
-                        </div>
-                        <span className="inline-flex shrink-0 items-center self-start rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.12em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                      <div className="flex min-w-0 flex-1 flex-col gap-1.5 p-3.5">
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                          <div className="min-w-0">
+                            <p className="line-clamp-2 text-[0.97rem] font-semibold leading-[1.22rem]" style={{ color: theme.textPrimary }}>{entry.title}</p>
+                            <p className="mt-1 text-[9px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
+                              {localizedModeLabel(entry.mode, language)} · {new Date(entry.createdAt).toLocaleDateString(language, { month: "short", day: "numeric" })}
+                            </p>
+                          </div>
+                        <span className="text-[9px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
                           {ts('showDetails')}
                         </span>
-                      </div>
+                        </div>
                       <p className="line-clamp-4 text-[0.85rem] leading-5" style={{ color: railText.railSecondary }}>{entry.body}</p>
                       <div className="mt-auto flex items-center justify-between gap-2">
                         <span className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
                           {index + 1}
-                        </span>
-                        <span className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.12em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textSecondary }}>
-                          {ts('labels.savedReflections')}
                         </span>
                       </div>
                     </div>
