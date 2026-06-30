@@ -2125,16 +2125,16 @@
       "title": "Ìṣe ààwẹ̀",
       "description": "Ààwẹ̀ tí a pín pẹ̀lú ìwọ̀n àkókò kedere, àfojúsùn tó ye kedere, àti ìtọnisọna ojoojúmọ́.",
       "formTitle": "Ṣètò ààwẹ̀",
-      "formBody": "Yan ìwọ̀n àkókò, sọ ìdí rẹ̀, a ó sì kọ ọ̀nà ojoojúmọ́ ká a.",
+      "formBody": "Yan ìwọ̀n àti ète. A ó kọ ọ̀nà ojoojúmọ́ ká a.",
       "durationHint": "Bẹ̀rẹ̀ pẹ̀lú ìwọ̀n àkókò. Ìtọnisọna ojoojúmọ́ yóò bá a mu.",
       "goalPlaceholder": "Kí ni o fẹ́ kí ààwẹ̀ yìí ṣe àyè fún?",
       "dailyPlanTitle": "Ìfihàn ìtọnisọna ojoojúmọ́",
       "dailyPlanBody": "Ọjọ́ mẹ́ta àkọ́kọ́ fi ìtẹ̀sí hàn. Ètò kikún yóò fa gbooro sí ìwọ̀n àkókò.",
       "createInvite": "Ṣẹ̀dá ìpè ààwẹ̀",
       "previewTitle": "Àlàyé ààwẹ̀",
-      "previewBody": "Ìwọ̀n àkókò, àfojúsùn, ọjọ́ ìbẹ̀rẹ̀, àti akọsilẹ̀ wà papọ̀ nínú àkótán tó mọ́."
+      "previewBody": "Ìwọ̀n, ète, àti ọjọ́ ìbẹ̀rẹ̀ wà nínú wiwo kan."
     },
-    "readWithMeInvitePromptBody": "Yan ìwé, ìgà, àwọn ènìyàn, àti àkókò. Ìkésí náà yóò dúró ní kedere àti ní kíkún."
+    "readWithMeInvitePromptBody": "Yan ìwé, ìgà, àwọn ènìyàn, àti àkókò."
   },
   "streak": {
     "openMilestones": "Ṣí àwọn ìpele ṣiṣàn",

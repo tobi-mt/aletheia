@@ -2080,7 +2080,7 @@
     "responseDashboardBody": "Accepted, declined, and time-based pending states update from the invite roster.",
     "noInviteRosterYet": "Add a roster to start tracking responses.",
     "unmatchedResponses": "Other responses",
-    "readWithMeInvitePrompt": "Dar forma ao plano de leitura",
+    "readWithMeInvitePrompt": "Montar o plano de leitura",
     "readWithMeDetailsBody": "Deixe o livro e a duração sem dúvida.",
     "readWithMeBookPlaceholder": "The book you want everyone to read",
     "readWithMeAuthorPlaceholder": "Optional, but helpful for clarity",
@@ -2124,17 +2124,17 @@
     "fastingCustom": {
       "title": "Prática de jejum",
       "description": "Um jejum em grupo com duração clara, objetivo definido e orientação diária.",
-      "formTitle": "Estruture o jejum",
-      "formBody": "Defina a duração, nomeie o propósito e montamos o caminho diário a partir disso.",
+      "formTitle": "Montar o jejum",
+      "formBody": "Escolha a duração e o propósito. Vamos construir o caminho diário a partir disso.",
       "durationHint": "Comece pela duração. O guia diário vai se adaptar a ela.",
       "goalPlaceholder": "Para que você quer abrir espaço com este jejum?",
       "dailyPlanTitle": "Prévia do guia diário",
       "dailyPlanBody": "Os primeiros três dias mostram o ritmo. O plano completo se ajusta à duração.",
       "createInvite": "Criar convite de jejum",
       "previewTitle": "Detalhes do jejum",
-      "previewBody": "Duração, objetivo, data de início e nota ficam juntos em um resumo claro."
+      "previewBody": "Duração, objetivo e data de início ficam em uma só visão."
     },
-    "readWithMeInvitePromptBody": "Defina o livro, o ritmo, as pessoas e o momento. O convite fica limpo e direto."
+    "readWithMeInvitePromptBody": "Escolha o livro, o ritmo, as pessoas e o momento."
   },
   "streak": {
     "openMilestones": "Abrir marcos da sequência",

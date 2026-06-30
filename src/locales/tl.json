@@ -2125,16 +2125,16 @@
       "title": "Gawain ng pag-aayuno",
       "description": "Isang pinagsasaluhang pag-aayuno na may malinaw na haba, malinaw na layunin, at araw-araw na gabay.",
       "formTitle": "Ayusin ang pag-aayuno",
-      "formBody": "Itakda ang haba, pangalanan ang layunin, at bubuuin namin ang araw-araw na landas batay dito.",
+      "formBody": "Piliin ang haba at layunin. Bubuuin namin ang araw-araw na landas batay dito.",
       "durationHint": "Simulan sa haba. Aangkop dito ang pang-araw-araw na gabay.",
       "goalPlaceholder": "Para saan mo gustong magbigay ng puwang ang pag-aayunong ito?",
       "dailyPlanTitle": "Sulyap sa pang-araw-araw na gabay",
       "dailyPlanBody": "Ipinapakita ng unang tatlong araw ang ritmo. Lalawak ang buong plano ayon sa haba.",
       "createInvite": "Gumawa ng paanyaya sa pag-aayuno",
       "previewTitle": "Mga detalye ng pag-aayuno",
-      "previewBody": "Magkakasama ang haba, layunin, petsa ng pagsisimula, at tala sa isang malinaw na buod."
+      "previewBody": "Magkakasama ang haba, layunin, at petsa ng pagsisimula sa isang tingin."
     },
-    "readWithMeInvitePromptBody": "Itakda ang libro, bilis, mga tao, at oras. Mananatiling malinaw at tuwiran ang paanyaya."
+    "readWithMeInvitePromptBody": "Piliin ang aklat, bilis, mga tao, at oras."
   },
   "streak": {
     "openMilestones": "Buksan ang mga antas",

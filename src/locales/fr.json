@@ -2080,7 +2080,7 @@
     "responseDashboardBody": "Accepted, declined, and time-based pending states update from the invite roster.",
     "noInviteRosterYet": "Add a roster to start tracking responses.",
     "unmatchedResponses": "Other responses",
-    "readWithMeInvitePrompt": "Structurer le plan de lecture",
+    "readWithMeInvitePrompt": "Préparer le plan de lecture",
     "readWithMeDetailsBody": "Garde le livre et la durée sans ambiguïté.",
     "readWithMeBookPlaceholder": "The book you want everyone to read",
     "readWithMeAuthorPlaceholder": "Optional, but helpful for clarity",
@@ -2124,17 +2124,17 @@
     "fastingCustom": {
       "title": "Pratique du jeûne",
       "description": "Un jeûne partagé avec une durée claire, un objectif précis et une guidance quotidienne.",
-      "formTitle": "Structurer le jeûne",
-      "formBody": "Choisissez la durée, nommez l’objectif, et nous construirons le parcours quotidien autour.",
+      "formTitle": "Préparer le jeûne",
+      "formBody": "Choisissez la durée et le but. Nous construirons le parcours quotidien autour.",
       "durationHint": "Commencez par la durée. Le guide quotidien s’y adaptera.",
       "goalPlaceholder": "À quoi voulez-vous faire de la place avec ce jeûne ?",
       "dailyPlanTitle": "Aperçu du guide quotidien",
       "dailyPlanBody": "Les trois premiers jours montrent le rythme. Le plan complet s’adapte à la durée.",
       "createInvite": "Créer l’invitation de jeûne",
       "previewTitle": "Détails du jeûne",
-      "previewBody": "Durée, objectif, date de début et note restent réunis dans un résumé clair."
+      "previewBody": "Durée, objectif et date de début restent dans un seul aperçu."
     },
-    "readWithMeInvitePromptBody": "Fixe le livre, le rythme, les personnes et le moment. L'invitation reste claire et directe."
+    "readWithMeInvitePromptBody": "Choisis le livre, le rythme, les personnes et le moment."
   },
   "streak": {
     "openMilestones": "Ouvrir les paliers de régularité",

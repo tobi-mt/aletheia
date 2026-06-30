@@ -2080,7 +2080,7 @@
     "responseDashboardBody": "Accepted, declined, and time-based pending states update from the invite roster.",
     "noInviteRosterYet": "Add a roster to start tracking responses.",
     "unmatchedResponses": "Other responses",
-    "readWithMeInvitePrompt": "Dar forma al plan de lectura",
+    "readWithMeInvitePrompt": "Preparar el plan de lectura",
     "readWithMeDetailsBody": "Deja el libro y la duración sin dudas.",
     "readWithMeBookPlaceholder": "The book you want everyone to read",
     "readWithMeAuthorPlaceholder": "Optional, but helpful for clarity",
@@ -2124,17 +2124,17 @@
     "fastingCustom": {
       "title": "Práctica de ayuno",
       "description": "Un ayuno compartido con duración clara, una meta concreta y guía diaria.",
-      "formTitle": "Diseña el ayuno",
-      "formBody": "Elige la duración, nombra el propósito y construiremos el camino diario a su alrededor.",
+      "formTitle": "Preparar el ayuno",
+      "formBody": "Elige la duración y el propósito. Construiremos el camino diario a su alrededor.",
       "durationHint": "Empieza por la duración. La guía diaria se adaptará a ella.",
       "goalPlaceholder": "¿Qué quieres que este ayuno deje espacio para?",
       "dailyPlanTitle": "Vista previa de la guía diaria",
       "dailyPlanBody": "Los primeros tres días muestran el ritmo. El plan completo se ajusta a la duración.",
       "createInvite": "Crear invitación de ayuno",
       "previewTitle": "Detalles del ayuno",
-      "previewBody": "Duración, meta, fecha de inicio y nota quedan juntas en un resumen claro."
+      "previewBody": "Duración, meta y fecha de inicio quedan en una sola vista."
     },
-    "readWithMeInvitePromptBody": "Define el libro, el ritmo, las personas y el momento. La invitación queda clara y directa."
+    "readWithMeInvitePromptBody": "Elige libro, ritmo, personas y momento."
   },
   "streak": {
     "openMilestones": "Abrir hitos de racha",

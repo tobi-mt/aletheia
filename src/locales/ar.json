@@ -2080,7 +2080,7 @@
     "responseDashboardBody": "Accepted, declined, and time-based pending states update from the invite roster.",
     "noInviteRosterYet": "Add a roster to start tracking responses.",
     "unmatchedResponses": "Other responses",
-    "readWithMeInvitePrompt": "صِغ خطة القراءة",
+    "readWithMeInvitePrompt": "إعداد خطة القراءة",
     "readWithMeDetailsBody": "اجعل الكتاب والمدة واضحين بلا لبس.",
     "readWithMeBookPlaceholder": "The book you want everyone to read",
     "readWithMeAuthorPlaceholder": "Optional, but helpful for clarity",
@@ -2124,17 +2124,17 @@
     "fastingCustom": {
       "title": "ممارسة الصوم",
       "description": "صوم مشترك بمدة واضحة وهدف محدد وتوجيه يومي.",
-      "formTitle": "صِغ الصوم",
-      "formBody": "حدّد المدة وسمِّ الغاية، وسنبني المسار اليومي حولها.",
+      "formTitle": "إعداد الصوم",
+      "formBody": "اختر المدة والغاية. سنبني المسار اليومي حولهما.",
       "durationHint": "ابدأ بالمدة. سيتكيّف الدليل اليومي معها.",
       "goalPlaceholder": "ماذا تريد أن يفتح هذا الصوم له مساحة؟",
       "dailyPlanTitle": "معاينة الدليل اليومي",
       "dailyPlanBody": "تُظهر الأيام الثلاثة الأولى الإيقاع. أما الخطة الكاملة فتتوسع لتناسب المدة.",
       "createInvite": "إنشاء دعوة صوم",
       "previewTitle": "تفاصيل الصوم",
-      "previewBody": "المدة والغاية وتاريخ البداية والملاحظة تبقى معًا في ملخص واضح."
+      "previewBody": "المدة والغاية وتاريخ البداية تبقى في عرض واحد."
     },
-    "readWithMeInvitePromptBody": "حدّد الكتاب والإيقاع والأشخاص والتوقيت. تبقى الدعوة واضحة ومباشرة."
+    "readWithMeInvitePromptBody": "اختر الكتاب والإيقاع والأشخاص والتوقيت."
   },
   "streak": {
     "openMilestones": "فتح معالم السجل",

@@ -2146,7 +2146,7 @@
     "responseDashboardBody": "Accepted, declined, and time-based pending states update from the invite roster.",
     "noInviteRosterYet": "Add a roster to start tracking responses.",
     "unmatchedResponses": "Other responses",
-    "readWithMeInvitePrompt": "Shape the reading plan",
+    "readWithMeInvitePrompt": "Set up the reading plan",
     "readWithMeDetailsBody": "Keep the book and duration unmistakable.",
     "readWithMeBookPlaceholder": "The book you want everyone to read",
     "readWithMeAuthorPlaceholder": "Optional, but helpful for clarity",
@@ -2190,17 +2190,17 @@
     "fastingCustom": {
       "title": "Fasting Practice",
       "description": "A shared fast with a clear length, a focused goal, and daily guidance.",
-      "formTitle": "Shape the fast",
-      "formBody": "Set the length, name the purpose, and we will build the daily path around it.",
+      "formTitle": "Set up the fast",
+      "formBody": "Choose the length and purpose. We’ll build the daily path around them.",
       "durationHint": "Pick the length first. The daily guide will adapt to it.",
       "goalPlaceholder": "What do you want this fast to make room for?",
       "dailyPlanTitle": "Daily guide preview",
       "dailyPlanBody": "The first three days show the rhythm. The full plan expands to fit the fast.",
       "createInvite": "Create fasting invite",
       "previewTitle": "Fast details",
-      "previewBody": "Length, goal, start date, and note stay together in one clean summary."
+      "previewBody": "Length, goal, and start date stay in one view."
     },
-    "readWithMeInvitePromptBody": "Set the book, pace, people, and timing. The invite stays clean and direct."
+    "readWithMeInvitePromptBody": "Choose the book, pace, people, and timing."
   },
   "runtimePanel": {
     "timelineReady": "Your timeline is ready to track decisions, patterns, counsel, and learning.",

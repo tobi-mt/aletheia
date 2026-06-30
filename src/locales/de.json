@@ -2080,7 +2080,7 @@
     "responseDashboardBody": "Accepted, declined, and time-based pending states update from the invite roster.",
     "noInviteRosterYet": "Add a roster to start tracking responses.",
     "unmatchedResponses": "Other responses",
-    "readWithMeInvitePrompt": "Den Leseplan gestalten",
+    "readWithMeInvitePrompt": "Leseplan festlegen",
     "readWithMeDetailsBody": "Buch und Dauer sollen eindeutig sein.",
     "readWithMeBookPlaceholder": "The book you want everyone to read",
     "readWithMeAuthorPlaceholder": "Optional, but helpful for clarity",
@@ -2125,16 +2125,16 @@
       "title": "Fastenpraxis",
       "description": "Ein gemeinsames Fasten mit klarer Dauer, einem fokussierten Ziel und täglicher Orientierung.",
       "formTitle": "Das Fasten gestalten",
-      "formBody": "Lege die Dauer fest, benenne das Ziel, und wir bauen den Tagesweg darum herum.",
+      "formBody": "Wähle Dauer und Ziel. Wir bauen den Tagesweg darum herum.",
       "durationHint": "Beginne mit der Dauer. Die Tagesführung passt sich daran an.",
       "goalPlaceholder": "Wofür soll dieses Fasten Raum schaffen?",
       "dailyPlanTitle": "Vorschau des Tagesplans",
       "dailyPlanBody": "Die ersten drei Tage zeigen den Rhythmus. Der komplette Plan wächst mit der Dauer.",
       "createInvite": "Fasteneinladung erstellen",
       "previewTitle": "Details zum Fasten",
-      "previewBody": "Dauer, Ziel, Startdatum und Notiz bleiben in einer klaren Übersicht zusammen."
+      "previewBody": "Dauer, Ziel und Startdatum bleiben in einer Übersicht."
     },
-    "readWithMeInvitePromptBody": "Lege Buch, Tempo, Personen und Zeitpunkt fest. Die Einladung bleibt klar und direkt."
+    "readWithMeInvitePromptBody": "Wähle Buch, Tempo, Personen und Zeitpunkt."
   },
   "streak": {
     "openMilestones": "Meilensteine öffnen",

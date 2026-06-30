@@ -2080,7 +2080,7 @@
     "responseDashboardBody": "Accepted, declined, and time-based pending states update from the invite roster.",
     "noInviteRosterYet": "Add a roster to start tracking responses.",
     "unmatchedResponses": "Other responses",
-    "readWithMeInvitePrompt": "पढ़ने की योजना बनाएं",
+    "readWithMeInvitePrompt": "पठन योजना तय करें",
     "readWithMeDetailsBody": "पुस्तक और अवधि को स्पष्ट रखें.",
     "readWithMeBookPlaceholder": "The book you want everyone to read",
     "readWithMeAuthorPlaceholder": "Optional, but helpful for clarity",
@@ -2124,17 +2124,17 @@
     "fastingCustom": {
       "title": "उपवास अभ्यास",
       "description": "स्पष्ट अवधि, केंद्रित उद्देश्य और दैनिक मार्गदर्शन के साथ साझा उपवास.",
-      "formTitle": "उपवास को आकार दें",
-      "formBody": "अवधि तय करें, उद्देश्य लिखें, और हम उसके अनुसार दैनिक मार्ग बनाएँगे.",
+      "formTitle": "उपवास तय करें",
+      "formBody": "अवधि और उद्देश्य चुनें. हम उसी के अनुसार दैनिक मार्ग बनाएँगे.",
       "durationHint": "अवधि से शुरू करें. दैनिक मार्गदर्शिका उसी के अनुसार ढल जाएगी.",
       "goalPlaceholder": "आप चाहते हैं कि यह उपवास किसके लिए जगह बनाए?",
       "dailyPlanTitle": "दैनिक मार्गिका का पूर्वावलोकन",
       "dailyPlanBody": "पहले तीन दिन लय दिखाते हैं. पूरी योजना अवधि के अनुसार फैलती है.",
       "createInvite": "उपवास निमंत्रण बनाएँ",
       "previewTitle": "उपवास विवरण",
-      "previewBody": "अवधि, उद्देश्य, आरंभ तिथि, और नोट एक साफ़ सारांश में साथ रहते हैं."
+      "previewBody": "अवधि, उद्देश्य, और आरंभ तिथि एक ही दृश्य में रहेंगी."
     },
-    "readWithMeInvitePromptBody": "पुस्तक, गति, लोग, और समय तय करें. निमंत्रण साफ़ और सीधा रहेगा."
+    "readWithMeInvitePromptBody": "पुस्तक, गति, लोग, और समय चुनें."
   },
   "streak": {
     "openMilestones": "माइलस्टोन खोलें",

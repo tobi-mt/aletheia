@@ -2125,16 +2125,16 @@
       "title": "Aikin azumi",
       "description": "Azumi na tare tare da tsayayyen lokaci, manufa mai ma’ana, da jagorar kowace rana.",
       "formTitle": "Tsara azumin",
-      "formBody": "Saita tsawon lokaci, ayyana manufar, kuma za mu gina hanyar kowace rana a kanta.",
+      "formBody": "Zaɓi tsawon lokaci da manufa. Za mu gina hanyar kowace rana a kanta.",
       "durationHint": "Fara da tsawon lokaci. Jagorar kowace rana za ta daidaita da shi.",
       "goalPlaceholder": "Me kake so wannan azumi ya ba da wuri a kai?",
       "dailyPlanTitle": "Duban jagorar kowace rana",
       "dailyPlanBody": "Kwanaki uku na farko suna nuna tsarin. Dukan shirin zai faɗaɗa bisa tsawon lokacin.",
       "createInvite": "Ƙirƙiri gayyatar azumi",
       "previewTitle": "Bayanan azumi",
-      "previewBody": "Tsawon lokaci, manufa, ranar farawa, da bayanin kula suna tare cikin taƙaitaccen bayani."
+      "previewBody": "Tsawon lokaci, manufa, da ranar farawa suna a kallon ɗaya."
     },
-    "readWithMeInvitePromptBody": "Saita littafi, gudu, mutane, da lokaci. Gayyatar ta kasance a sarari kuma kai tsaye."
+    "readWithMeInvitePromptBody": "Saita littafi, gudu, mutane, da lokaci."
   },
   "streak": {
     "openMilestones": "Buɗe matakan jerin",

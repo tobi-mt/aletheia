@@ -2125,16 +2125,16 @@
       "title": "Omume ibu ọnụ",
       "description": "Ibu ọnụ a na-ekekọrịta nke nwere ogologo doro anya, ebumnuche kpọmkwem, na nduzi kwa ụbọchị.",
       "formTitle": "Hazie ibu ọnụ",
-      "formBody": "Tọọ ogologo ya, kpọọ ebumnuche ya, anyị ga-ewu ụzọ kwa ụbọchị gburugburu ya.",
+      "formBody": "Họrọ ogologo na ebumnuche. Anyị ga-ewu ụzọ kwa ụbọchị gburugburu ya.",
       "durationHint": "Bido na ogologo ahụ. Nduzi kwa ụbọchị ga-adaba na ya.",
       "goalPlaceholder": "Kedu ihe ịchọrọ ka ibu ọnụ a mee ohere maka ya?",
       "dailyPlanTitle": "Nlele nduzi kwa ụbọchị",
       "dailyPlanBody": "Ụbọchị atọ mbụ na-egosi usoro ahụ. Atụmatụ zuru ezu ga-agbatị ka ogologo ahụ si dị.",
       "createInvite": "Mepụta òkù ibu ọnụ",
       "previewTitle": "Nkọwa ibu ọnụ",
-      "previewBody": "Ogologo oge, ebumnuche, ụbọchị mbido, na ndetu na-anọkọ ọnụ n’otu nchịkọta doro anya."
+      "previewBody": "Ogologo oge, ebumnuche, na ụbọchị mbido dị n'otu nlele."
     },
-    "readWithMeInvitePromptBody": "Tọọ akwụkwọ, ọsọ, ndị mmadụ, na oge. Òkù ahụ ga-adị ọcha ma doo anya."
+    "readWithMeInvitePromptBody": "Họrọ akwụkwọ, ọsọ, ndị mmadụ, na oge."
   },
   "streak": {
     "openMilestones": "Meghee ụzọ ọhụụ",
