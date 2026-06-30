@@ -9,6 +9,8 @@ import { readJsonBody } from "@/lib/request";
 import { trackServerEvent } from "@/lib/analytics";
 import { getChallengeById } from "@/lib/challenge-data";
 
+export const dynamic = "force-dynamic";
+
 type Params = { params: Promise<{ token: string }> };
 
 type CircleRow = {

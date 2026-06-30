@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getCurrentUser } from "@/lib/auth";
 import { apiError } from "@/lib/api-errors";
 import { hashCounselInviteToken } from "@/lib/counsel-invites";
 import { many, one, run } from "@/lib/db";
@@ -116,6 +117,10 @@ export async function GET(_request: Request, { params }: Params) {
 
 export async function POST(_request: Request, { params }: Params) {
   const { token } = await params;
+  const user = await getCurrentUser();
+  if (!user) {
+    return apiError(401, "sign_in_required", "Sign in to accept the counsel invite.");
+  }
   const contact = await findContact(token);
   if (!contact) {
     return apiError(404, "not_found", "Invite not found.");

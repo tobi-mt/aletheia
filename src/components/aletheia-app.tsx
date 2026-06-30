@@ -112,6 +112,7 @@ import {
   normalizeFastingInviteDetails,
   type FastingInviteDetails,
 } from "@/lib/fasting-invite";
+import { counselInviteUrl as buildCounselInviteUrl } from "@/lib/counsel-invites";
 import type { ChallengeRecommendationBundle } from "@/lib/challenge-recommendations";
 import { SERVICE_WORKER_URL } from "@/lib/build-version";
 import { loadTranslationsSync, loadTranslationsWithFallbackSync, getTranslation, type TranslationData } from "@/lib/translations";
@@ -401,6 +402,7 @@ const NOTIFICATION_TIMING_STORAGE_KEY = "aletheia_notification_timing";
 const COUNSEL_STATUS_TRACKING_KEY = "aletheia_counsel_status_tracking";
 const CARRY_TODAY_STORAGE_KEY = "aletheia_carry_today";
 const SCRIPTURE_MEMORY_STORAGE_KEY = "aletheia_scripture_memory";
+const COUNSEL_INVITE_STORAGE_KEY = "aletheia_counsel_invite_token";
 const CHALLENGE_INVITE_STORAGE_KEY = "aletheia_challenge_invite_token";
 const UPDATE_REFRESH_PENDING_KEY = "aletheia_update_refresh_pending";
 type AuthPromptReason =
@@ -458,6 +460,34 @@ function writeStoredChallengeInviteToken(token: string | null) {
     }
   } catch {
     // Invite handoff can still work in-memory if session storage is unavailable.
+  }
+}
+
+function readStoredCounselInviteToken() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    return window.sessionStorage.getItem(COUNSEL_INVITE_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredCounselInviteToken(token: string | null) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    if (token) {
+      window.sessionStorage.setItem(COUNSEL_INVITE_STORAGE_KEY, token);
+    } else {
+      window.sessionStorage.removeItem(COUNSEL_INVITE_STORAGE_KEY);
+    }
+  } catch {
+    // Counsel invite handoff can still work in-memory if session storage is unavailable.
   }
 }
 
@@ -3274,6 +3304,13 @@ function shouldShowWelcomeGate() {
 
   try {
     const params = new URLSearchParams(window.location.search);
+    if (params.has("challengeInvite") || params.has("counselInvite")) {
+      return false;
+    }
+    const pendingInvite = window.localStorage.getItem(CHALLENGE_INVITE_STORAGE_KEY);
+    if (pendingInvite) {
+      return false;
+    }
     const forceFirstRun = params.get("resetFirstRun") === "1" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
     if (forceFirstRun) {
       return true;
@@ -7314,6 +7351,7 @@ export function AletheiaApp() {
   const [counselInviteToken, setCounselInviteToken] = useState<string | null>(null);
   const [counselInvitePreview, setCounselInvitePreview] = useState<CounselInvitePreview | null>(null);
   const [counselInviteStatus, setCounselInviteStatus] = useState("");
+  const [counselInviteAuthOpen, setCounselInviteAuthOpen] = useState(false);
   const [challengeInviteToken, setChallengeInviteToken] = useState<string | null>(null);
   const [challengeInvitePreview, setChallengeInvitePreview] = useState<ChallengeCircleSummary | null>(null);
   const [challengeInviteStatus, setChallengeInviteStatus] = useState("");
@@ -8810,13 +8848,16 @@ export function AletheiaApp() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const token = params.get("counselInvite");
+    const token = params.get("counselInvite") ?? readStoredCounselInviteToken();
     if (!token) {
       return;
     }
     Promise.resolve().then(() => {
       setCounselInviteToken(token);
       setCounselInviteStatus(ts('status.loadingInvite'));
+      if (params.get("counselInvite")) {
+        writeStoredCounselInviteToken(token);
+      }
       fetch(`/api/counsel/invite/${encodeURIComponent(token)}`)
         .then(async (response) => {
           const data = (await response.json()) as CounselInvitePreview | { error?: string };
@@ -8825,7 +8866,9 @@ export function AletheiaApp() {
           }
           setCounselInvitePreview(data);
           setCounselInviteStatus("");
-          window.history.replaceState({}, "", window.location.pathname);
+          if (params.get("counselInvite")) {
+            window.history.replaceState({}, "", window.location.pathname);
+          }
         })
         .catch(() => {
           setCounselInviteStatus(ts('status.inviteCouldNotOpen'));
@@ -10922,7 +10965,13 @@ export function AletheiaApp() {
       } catch {
         // Auth still succeeds if local onboarding storage is unavailable.
       }
-      if (!challengeInviteAuthOpen) {
+      if (challengeInviteToken || challengeInviteAuthOpen || counselInviteToken || counselInviteAuthOpen) {
+        setChallengeInviteAuthOpen(false);
+        setCounselInviteAuthOpen(false);
+        setChallengeInviteStatus("");
+        setCounselInviteStatus("");
+      }
+      if (!challengeInviteAuthOpen && !counselInviteAuthOpen) {
         setActiveView("account");
       }
       setShowWelcomeGate(false);
@@ -11000,9 +11049,13 @@ export function AletheiaApp() {
     setStatusMessage(ts('status.openingGoogleSignIn'));
     announceWorkflow(ts('notifications.openingGoogle'), ts('notifications.openingGoogleBody'), "info");
     try {
-      const inviteReturnUrl = challengeInviteToken
+      const challengeInviteReturnUrl = challengeInviteToken
         ? challengeInviteUrl ?? (challengeInviteToken ? buildChallengeInviteUrl(challengeInviteToken, window.location.href) : window.location.href)
         : null;
+      const counselInviteReturnUrl = counselInviteToken
+        ? buildCounselInviteUrl(counselInviteToken, window.location.href)
+        : null;
+      const inviteReturnUrl = challengeInviteReturnUrl ?? counselInviteReturnUrl;
       await authSignIn("google", {
         callbackUrl: inviteReturnUrl
           ? `/api/auth/oauth/complete?next=${encodeURIComponent(inviteReturnUrl)}`
@@ -12200,11 +12253,13 @@ export function AletheiaApp() {
     if (response.ok && isCounselInvitePreview(data)) {
       setCounselInvitePreview(data);
       setCounselInviteStatus(ts('status.inviteAccepted'));
+      writeStoredCounselInviteToken(null);
       setCounselInviteToken(null);
       setCounselInvitePreview(null);
       setCounselInviteStatus("");
+      setCounselInviteAuthOpen(false);
     } else {
-      setCounselInviteStatus(ts('status.inviteNotAccepted'));
+      setCounselInviteStatus(resolveApiErrorMessage((data as { error?: string }).error, undefined, 'status.inviteNotAccepted'));
     }
   }
 
@@ -12997,12 +13052,43 @@ export function AletheiaApp() {
         preview={counselInvitePreview}
         status={counselInviteStatus}
         ts={ts}
+        user={user}
+        authOpen={counselInviteAuthOpen}
+        authMode={authMode}
+        setAuthMode={setAuthMode}
+        authName={authName}
+        setAuthName={setAuthName}
+        authEmail={authEmail}
+        setAuthEmail={setAuthEmail}
+        authPassword={authPassword}
+        setAuthPassword={setAuthPassword}
+        authWebsite={authWebsite}
+        setAuthWebsite={setAuthWebsite}
+        authError={authError}
+        authNotice={authNotice}
+        authStatus={authStatus}
+        googleAuthAvailable={googleAuthAvailable}
+        isWorking={isWorking}
+        onSubmitAuth={handleAuth}
+        onGoogleSignIn={handleGoogleSignIn}
         onAccept={acceptCounselInvite}
         onComment={addCounselInviteComment}
+        onRequestSignIn={() => {
+          if (counselInviteToken) {
+            writeStoredCounselInviteToken(counselInviteToken);
+          }
+          setAuthError("");
+          setAuthNotice("");
+          setCounselInviteAuthOpen(true);
+          setAuthMode("login");
+        }}
+        onCloseAuth={() => setCounselInviteAuthOpen(false)}
         onClose={() => {
+          writeStoredCounselInviteToken(null);
           setCounselInviteToken(null);
           setCounselInvitePreview(null);
           setCounselInviteStatus("");
+          setCounselInviteAuthOpen(false);
         }}
       />
       <ChallengeInviteModal
@@ -17453,7 +17539,10 @@ function FormationRailSection({
         .sort((a, b) => Date.parse(b.invite.createdAt) - Date.parse(a.invite.createdAt))[0] ?? null
     : null;
   const selectedCircleInviteDetails = selectedCircle?.invite.details ?? null;
-  const selectedCircleHasCurrentMember = selectedCircle?.members.some((member) => member.userId === user?.id) ?? false;
+  const selectedCircleHasCurrentMember =
+    selectedCircle?.members.some((member) => member.userId === user?.id) ||
+    selectedCircle?.viewerResponse === "accepted" ||
+    false;
   const isReadWithMeChallenge = selectedChallenge?.id === "read-with-me-7day";
   const isFastingChallenge = selectedChallenge?.id === FASTING_CHALLENGE_ID;
   const inviteEditorChallenge = inviteEditorChallengeId
@@ -21232,7 +21321,7 @@ function WelcomeGateScreen({
               <div className="relative flex h-full flex-col justify-between p-5 sm:p-6 md:p-7">
                 <div>
                   <div className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.accentGold }}>
-                    {ts("labels.welcome", "Welcome")}
+                    {ts("auth.welcome")}
                   </div>
                   <div className="mt-4 flex items-center gap-4">
                     <Image
@@ -23801,8 +23890,29 @@ function CounselInviteModal({
   preview,
   status,
   ts,
+  user,
+  authOpen,
+  authMode,
+  setAuthMode,
+  authName,
+  setAuthName,
+  authEmail,
+  setAuthEmail,
+  authPassword,
+  setAuthPassword,
+  authWebsite,
+  setAuthWebsite,
+  authError,
+  authNotice,
+  authStatus,
+  googleAuthAvailable,
+  isWorking,
+  onSubmitAuth,
+  onGoogleSignIn,
   onAccept,
   onComment,
+  onRequestSignIn,
+  onCloseAuth,
   onClose,
 }: {
   theme: ThemeColors;
@@ -23810,12 +23920,34 @@ function CounselInviteModal({
   preview: CounselInvitePreview | null;
   status: string;
   ts: (key: string, fallback?: string) => string;
+  user: User | null;
+  authOpen: boolean;
+  authMode: AuthMode;
+  setAuthMode: (value: AuthMode) => void;
+  authName: string;
+  setAuthName: (value: string) => void;
+  authEmail: string;
+  setAuthEmail: (value: string) => void;
+  authPassword: string;
+  setAuthPassword: (value: string) => void;
+  authWebsite: string;
+  setAuthWebsite: (value: string) => void;
+  authError: string;
+  authNotice: string;
+  authStatus: AuthStatus;
+  googleAuthAvailable: boolean;
+  isWorking: boolean;
+  onSubmitAuth: (event: FormEvent<HTMLFormElement>) => void;
+  onGoogleSignIn: () => void;
   onAccept: () => void;
   onComment: (decisionId: string, body: string) => void;
+  onRequestSignIn: () => void;
+  onCloseAuth: () => void;
   onClose: () => void;
 }) {
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   useBodyScrollLock(Boolean(token));
+  const authBusy = isWorking || authStatus === "checking" || authStatus === "signing-in" || authStatus === "signing-out";
   if (!token) {
     return null;
   }
@@ -23866,9 +23998,123 @@ function CounselInviteModal({
             </div>
 
             {!accepted ? (
-              <button className="mt-4 h-11 w-full rounded-full px-4 text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }} onClick={onAccept}>
-                {ts('labels.acceptPrivateCounselInvite')}
-              </button>
+              !user ? (
+                authOpen ? (
+                  <div className="mt-4 space-y-3 rounded-2xl border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{ts("labels.privateCounselInvite")}</p>
+                      <h3 className="mt-1.5 text-base font-semibold" style={{ color: theme.textPrimary }}>
+                        {authMode === "register" ? ts("auth.createNewAccount") : ts("auth.signInForSync")}
+                      </h3>
+                      <div className="mt-3 rounded-2xl border px-3 py-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                        <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>
+                          {ts("challenges.afterSignInTapAcceptInvite")}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <button className="h-10 rounded-full px-4 text-sm font-semibold" style={{ backgroundColor: authMode === "login" ? theme.primary : theme.bgInput, color: authMode === "login" ? theme.textOnPrimary : theme.textPrimary, borderColor: theme.borderMedium, borderStyle: "solid", borderWidth: authMode === "login" ? 0 : 1 }} onClick={() => setAuthMode("login")}>
+                        {ts("auth.signIn")}
+                      </button>
+                      <button className="h-10 rounded-full px-4 text-sm font-semibold" style={{ backgroundColor: authMode === "register" ? theme.primary : theme.bgInput, color: authMode === "register" ? theme.textOnPrimary : theme.textPrimary, borderColor: theme.borderMedium, borderStyle: "solid", borderWidth: authMode === "register" ? 0 : 1 }} onClick={() => setAuthMode("register")}>
+                        {ts("auth.createNewAccount")}
+                      </button>
+                      <button className="h-10 rounded-full border px-4 text-sm font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={onCloseAuth}>
+                        {ts("labels.cancel")}
+                      </button>
+                    </div>
+                    {googleAuthAvailable ? (
+                      <button className="h-11 w-full rounded-full border px-4 text-sm font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} disabled={authBusy} onClick={onGoogleSignIn}>
+                        {authStatus === "signing-in" ? ts("auth.openingGoogle") : ts("auth.continueWithGoogle")}
+                      </button>
+                    ) : null}
+                    <div className="flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
+                      <span className="h-px flex-1" style={{ backgroundColor: theme.borderLight }} />
+                      {ts("placeholders.email")}
+                      <span className="h-px flex-1" style={{ backgroundColor: theme.borderLight }} />
+                    </div>
+                    <form className="grid gap-2 sm:grid-cols-2" onSubmit={onSubmitAuth}>
+                      {authMode === "register" ? (
+                        <input
+                          value={authName}
+                          onChange={(event) => setAuthName(event.target.value)}
+                          className="h-10 rounded-full border px-3 text-sm outline-none"
+                          style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                          placeholder={ts("placeholders.name")}
+                        />
+                      ) : null}
+                      <input
+                        value={authEmail}
+                        onChange={(event) => setAuthEmail(event.target.value)}
+                        className="h-10 rounded-full border px-3 text-sm outline-none"
+                        style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                        placeholder={ts("placeholders.email")}
+                        type="email"
+                      />
+                      <input
+                        value={authPassword}
+                        onChange={(event) => setAuthPassword(event.target.value)}
+                        className="h-10 rounded-full border px-3 text-sm outline-none"
+                        style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                        placeholder={ts("placeholders.password")}
+                        type="password"
+                      />
+                      {authMode === "register" ? (
+                        <input
+                          value={authWebsite}
+                          onChange={(event) => setAuthWebsite(event.target.value)}
+                          className="sr-only"
+                          style={{ display: "none" }}
+                          tabIndex={-1}
+                          autoComplete="off"
+                          placeholder={ts("placeholders.website")}
+                          type="text"
+                          name="website"
+                        />
+                      ) : null}
+                      <button
+                        disabled={authBusy}
+                        className="h-10 rounded-md px-4 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60 sm:col-span-2"
+                        style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                      >
+                        {authStatus === "signing-in" ? ts("labels.working") : authMode === "register" ? ts("auth.create") : ts("auth.signIn")}
+                      </button>
+                    </form>
+                    {authNotice ? (
+                      <p className="rounded-2xl border px-3 py-2 text-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textSecondary }}>
+                        {authNotice}
+                      </p>
+                    ) : null}
+                    {authError ? (
+                      <p className="rounded-2xl border px-3 py-2 text-sm" style={{ borderColor: "#e0c3b7", backgroundColor: "#fff6f1", color: "#8c3f28" }}>
+                        {authError}
+                      </p>
+                    ) : null}
+                  </div>
+                ) : (
+                  <div className="mt-4 space-y-3">
+                    <div className="rounded-2xl border px-3 py-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                      <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>
+                        {ts("challenges.afterSignInTapAcceptInvite")}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <button className="h-11 rounded-full px-4 text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }} onClick={onRequestSignIn}>
+                        {ts("auth.signInForSync")}
+                      </button>
+                      {googleAuthAvailable ? (
+                        <button className="h-11 rounded-full border px-4 text-sm font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={onGoogleSignIn}>
+                          {ts("auth.continueWithGoogle")}
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
+                )
+              ) : (
+                <button className="mt-4 h-11 w-full rounded-full px-4 text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }} onClick={onAccept}>
+                  {ts('labels.acceptPrivateCounselInvite')}
+                </button>
+              )
             ) : (
               <div className="mt-4 space-y-3">
                 {preview.sharedDecisions.map((decision) => (
@@ -23928,7 +24174,7 @@ function CounselInviteModal({
                       <div>
                         <p className="font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.youAreConnected')}</p>
                         <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
-                          {preview.invite.name} {ts('labels.noSharedDecisionsYet')}
+                          {ts('labels.noSharedDecisionsYet')}
                         </p>
                         {preview.invite.permissions.canCommentOnDecisions ? (
                           <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
@@ -24306,14 +24552,24 @@ function ChallengeInviteModal({
               </form>
             ) : null}
 
-            <button
-              type="button"
-              onClick={onDecline}
-              className="inline-flex h-10 items-center justify-center rounded-full border px-4 text-sm font-semibold transition"
-              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-            >
-              {ts("challenges.leaveInvite")}
-            </button>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="inline-flex h-10 items-center justify-center rounded-full border px-4 text-sm font-semibold transition"
+                style={{ borderColor: theme.primary, backgroundColor: theme.primary, color: theme.textOnPrimary }}
+              >
+                {ts("labels.viewInvite")}
+              </button>
+              <button
+                type="button"
+                onClick={onDecline}
+                className="inline-flex h-10 items-center justify-center rounded-full border px-4 text-sm font-semibold transition"
+                style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+              >
+                {ts("challenges.leaveInvite")}
+              </button>
+            </div>
           </div>
         ) : (
           <div className="mt-3.5 space-y-3 rounded-2xl border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
@@ -24328,6 +24584,11 @@ function ChallengeInviteModal({
                     <p className="mt-1.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
                       {declined ? ts("challenges.declinedInviteBody") : ts("challenges.joinPrompt")}
                     </p>
+                    <div className="mt-3 rounded-2xl border px-3 py-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                      <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>
+                        {ts("challenges.afterSignInTapAcceptInvite")}
+                      </p>
+                    </div>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <button className="h-10 rounded-full px-4 text-sm font-semibold" style={{ backgroundColor: authMode === "login" ? theme.primary : theme.bgInput, color: authMode === "login" ? theme.textOnPrimary : theme.textPrimary, borderColor: theme.borderMedium, borderStyle: "solid", borderWidth: authMode === "login" ? 0 : 1 }} onClick={() => setAuthMode("login")}>

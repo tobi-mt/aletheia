@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getCurrentUser } from "@/lib/auth";
 import { apiError } from "@/lib/api-errors";
 import { hashCounselInviteToken } from "@/lib/counsel-invites";
 import { one, run } from "@/lib/db";
@@ -17,6 +18,10 @@ type SharedRow = {
 
 export async function POST(request: Request, { params }: Params) {
   const { token } = await params;
+  const user = await getCurrentUser();
+  if (!user) {
+    return apiError(401, "sign_in_required", "Sign in to comment on this invite.");
+  }
   const contact = await one<ContactRow>(
     `SELECT id, invite_status, can_comment_on_decisions
      FROM counsel_contacts
