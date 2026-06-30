@@ -13995,7 +13995,7 @@ function OnboardingModal({
         }}
       >
         <div ref={modalScrollRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch] [touch-action:pan-y]">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="relative flex flex-col gap-3 pr-12 sm:pr-14">
           <div className="max-w-2xl rounded-[1.25rem] border p-4 shadow-sm sm:p-5" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
             <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>{ts('labels.beginQuietly')}</p>
             <h2 className="mt-2 text-[1.42rem] font-semibold leading-[1.02] text-balance sm:text-[1.76rem]" style={{ color: theme.textPrimary }}>
@@ -17427,13 +17427,13 @@ function FormationRailSection({
     : 1;
 
   useEffect(() => {
-    if (!selectedChallenge) {
+    if (!selectedChallenge || inviteEditorChallengeId) {
       return;
     }
     window.requestAnimationFrame(() => {
       selectedChallengeDetailRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
-  }, [selectedChallenge?.id]);
+  }, [inviteEditorChallengeId, selectedChallenge?.id]);
 
   function updateReadWithMeInviteDraft(patch: Partial<ReadWithMeInviteDetails>) {
     setReadWithMeInviteDraft((current) => ({ ...current, ...patch }));
@@ -17443,26 +17443,33 @@ function FormationRailSection({
     setFastingInviteDraft((current) => ({ ...current, ...patch }));
   }
 
-  function openInviteEditor() {
-    if (!selectedChallenge || (!isReadWithMeChallenge && !isFastingChallenge)) {
+  function openInviteEditor(challenge: ChallengeWithProgress | null = selectedChallenge) {
+    if (!challenge || (challenge.id !== "read-with-me-7day" && challenge.id !== FASTING_CHALLENGE_ID)) {
       return;
     }
 
-    if (selectedCircleInviteDetails?.kind === "read-with-me") {
-      setReadWithMeInviteDraft(normalizeReadWithMeInviteDetails(selectedCircleInviteDetails));
+    const circle = challengeCircles.find((item) => item.challengeId === challenge.id) ?? null;
+    const inviteDetails = circle?.invite.details ?? null;
+
+    setSelectedChallengeId(challenge.id);
+    setSelectedDayNumber(null);
+    setOpenDayDetailDay(null);
+
+    if (inviteDetails?.kind === "read-with-me") {
+      setReadWithMeInviteDraft(normalizeReadWithMeInviteDetails(inviteDetails));
       setRecipientNameDraft("");
       setRecipientNoteDraft("");
-    } else if (selectedCircleInviteDetails?.kind === "fasting") {
-      setFastingInviteDraft(normalizeFastingInviteDetails(selectedCircleInviteDetails));
-    } else if (isReadWithMeChallenge) {
+    } else if (inviteDetails?.kind === "fasting") {
+      setFastingInviteDraft(normalizeFastingInviteDetails(inviteDetails));
+    } else if (challenge.id === "read-with-me-7day") {
       setReadWithMeInviteDraft(defaultReadWithMeInviteDetails);
       setRecipientNameDraft("");
       setRecipientNoteDraft("");
-    } else if (isFastingChallenge) {
+    } else {
       setFastingInviteDraft(defaultFastingInviteDetails);
     }
 
-    setInviteEditorChallengeId(selectedChallenge.id);
+    setInviteEditorChallengeId(challenge.id);
   }
 
   function closeInviteEditor() {
@@ -17966,7 +17973,7 @@ function FormationRailSection({
                 {inviteEditorIsFasting ? ts("challenges.fastingCustom.formTitle") : ts("challenges.readWithMeInvitePrompt")}
               </p>
               <h2 id="invite-editor-title" className="mt-1.5 text-lg font-semibold" style={{ color: theme.textPrimary }}>
-                {inviteEditorChallenge?.titleKey ? ts(inviteEditorChallenge.titleKey, inviteEditorChallenge.title) : ts("labels.create")}
+                {inviteEditorChallenge?.titleKey ? ts(inviteEditorChallenge.titleKey, inviteEditorChallenge.title) : ts("labels.customizePractice")}
               </h2>
               <p className="mt-1.5 max-w-2xl text-sm leading-6" style={{ color: theme.textSecondary }}>
                 {inviteEditorIsFasting
@@ -17978,7 +17985,7 @@ function FormationRailSection({
           <button
             type="button"
             onClick={closeInviteEditor}
-            className="grid size-9 place-items-center self-start rounded-full border transition"
+            className="absolute right-4 top-4 grid size-9 place-items-center rounded-full border transition sm:right-5 sm:top-5"
             style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
             aria-label={ts("labels.close")}
           >
@@ -18437,7 +18444,7 @@ function FormationRailSection({
               ? ts("challenges.creatingInvite")
               : inviteEditorCircle
                 ? ts("labels.edit")
-                : ts("labels.create")}
+                : ts("labels.customizePractice")}
           </button>
         </div>
       </section>
@@ -18542,7 +18549,9 @@ function FormationRailSection({
               const done = completedDaysFor(challenge);
               const circle = challengeCircles.find((item) => item.challengeId === challenge.id) ?? null;
               const isActive = selectedChallenge?.id === challenge.id;
+              const isReadWithMeCard = challenge.id === "read-with-me-7day";
               const isFastingCard = challenge.id === FASTING_CHALLENGE_ID;
+              const isCustomizableCard = isReadWithMeCard || isFastingCard;
               const lastCompletedAt = challenge.completedDays.at(-1)?.completedAt ?? null;
               const progressState = getChallengeProgressState({
                 completedDays: done,
@@ -18564,6 +18573,10 @@ function FormationRailSection({
                   key={challenge.id}
                   type="button"
                   onClick={() => {
+                    if (isCustomizableCard) {
+                      openInviteEditor(challenge);
+                      return;
+                    }
                     setSelectedChallengeId(challenge.id);
                     setSelectedDayNumber(null);
                     setOpenDayDetailDay(null);
@@ -18584,7 +18597,7 @@ function FormationRailSection({
                         {ts(challenge.titleKey, challenge.title)}
                       </p>
                     </div>
-                    {isFastingCard ? (
+                    {isCustomizableCard ? (
                       <span className="shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
                         {ts("labels.custom")}
                       </span>
@@ -18600,7 +18613,7 @@ function FormationRailSection({
                   <div className="mt-3.5 border-t pt-2" style={{ borderColor: theme.borderLight }}>
                     <div className="flex items-center justify-between gap-2 text-[11px] leading-5" style={{ color: theme.textMuted }}>
                       <span className="font-semibold" style={{ color: theme.textSecondary }}>
-                        {progressLabel}
+                        {isCustomizableCard ? ts("labels.customizePractice") : progressLabel}
                       </span>
                       <span className="truncate text-right">
                         {circle ? `${circle.memberCount} ${ts("challenges.withFriends")}` : challenge.mode}
@@ -18938,11 +18951,11 @@ function FormationRailSection({
                             {selectedChallenge && (isReadWithMeChallenge || isFastingChallenge) ? (
                               <button
                                 type="button"
-                                onClick={openInviteEditor}
+                                onClick={() => openInviteEditor(selectedChallenge)}
                                 className="shrink-0 rounded-full border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] transition"
                                 style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
                               >
-                                {selectedCircleInviteDetails ? ts("labels.edit") : isReadWithMeChallenge ? ts("challenges.createReadWithMeInvite") : ts("challenges.fastingCustom.createInvite")}
+                                {selectedCircleInviteDetails ? ts("labels.edit") : ts("labels.customizePractice")}
                               </button>
                             ) : null}
                           </div>
@@ -19217,7 +19230,7 @@ function FormationRailSection({
                               disabled={creatingInviteId === selectedChallenge?.id}
                               onClick={() => {
                                 if (isReadWithMeChallenge || isFastingChallenge) {
-                                  openInviteEditor();
+                                  openInviteEditor(selectedChallenge);
                                   return;
                                 }
                                 if (selectedChallenge) {
@@ -19240,7 +19253,7 @@ function FormationRailSection({
                             <div className="grid gap-2 sm:grid-cols-2">
                               <div className="rounded-[0.95rem] border px-3 py-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
                                 <p className="text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>
-                                  {selectedCircleInviteDetails ? ts("labels.edit") : ts("labels.create")}
+                                  {selectedCircleInviteDetails ? ts("labels.edit") : ts("labels.customizePractice")}
                                 </p>
                                 <p className="text-xs leading-5" style={{ color: theme.textSecondary }}>
                                   {isReadWithMeChallenge
@@ -19307,7 +19320,7 @@ function FormationRailSection({
                         disabled={creatingInviteId === selectedChallenge?.id}
                         onClick={() => {
                           if (isReadWithMeChallenge || isFastingChallenge) {
-                            openInviteEditor();
+                            openInviteEditor(selectedChallenge);
                             return;
                           }
                           if (selectedChallenge) {
@@ -19319,11 +19332,9 @@ function FormationRailSection({
                       >
                         {creatingInviteId === selectedChallenge?.id
                           ? ts("challenges.creatingInvite")
-                          : isReadWithMeChallenge
-                            ? ts("challenges.createReadWithMeInvite")
-                            : isFastingChallenge
-                              ? ts("challenges.fastingCustom.createInvite")
-                              : ts("challenges.inviteFriends")}
+                          : isReadWithMeChallenge || isFastingChallenge
+                            ? ts("labels.customizePractice")
+                            : ts("challenges.inviteFriends")}
                       </button>
                     </div>
                   )}
@@ -23883,8 +23894,8 @@ function ChallengeInviteModal({
 
     return (
       <div className="fixed inset-0 z-50 grid place-items-end overflow-hidden overscroll-none p-3 backdrop-blur-sm sm:place-items-center" style={{ backgroundColor: 'rgba(13, 23, 20, 0.42)' }}>
-        <section className="max-h-[88vh] w-full max-w-2xl overflow-y-auto overscroll-contain rounded-3xl border p-4 shadow-2xl sm:p-3.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
-          <div className="flex items-start justify-between gap-3">
+        <section className="relative max-h-[88vh] w-full max-w-2xl overflow-y-auto overscroll-contain rounded-3xl border p-4 shadow-2xl sm:p-3.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+          <div className="relative flex items-start gap-3 pr-12 sm:pr-14">
             <div className="flex items-start gap-3">
               <div className="grid size-10 place-items-center rounded-2xl border" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.primary }}>
                 <Users size={18} />
@@ -23899,7 +23910,7 @@ function ChallengeInviteModal({
                 </p>
               </div>
             </div>
-            <button className="grid size-9 place-items-center rounded-full border transition" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={onClose} aria-label={ts('labels.closeInvite')}>
+            <button className="absolute right-4 top-4 grid size-9 place-items-center rounded-full border transition sm:right-5 sm:top-5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={onClose} aria-label={ts('labels.closeInvite')}>
               <X size={16} />
             </button>
           </div>
@@ -23986,8 +23997,8 @@ function ChallengeInviteModal({
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-end overflow-hidden overscroll-none p-3 backdrop-blur-sm sm:place-items-center" style={{ backgroundColor: 'rgba(13, 23, 20, 0.42)' }}>
-      <section className="max-h-[88vh] w-full max-w-2xl overflow-y-auto overscroll-contain rounded-3xl border p-4 [-webkit-overflow-scrolling:touch] [touch-action:pan-y] shadow-2xl sm:p-3.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <section className="relative max-h-[88vh] w-full max-w-2xl overflow-y-auto overscroll-contain rounded-3xl border p-4 [-webkit-overflow-scrolling:touch] [touch-action:pan-y] shadow-2xl sm:p-3.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+        <div className="flex flex-col gap-3 pr-12 sm:pr-14">
           <div className="flex items-start gap-3">
             <div className="grid size-10 place-items-center rounded-2xl border" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.primary }}>
               <Users size={18} />
@@ -24010,7 +24021,7 @@ function ChallengeInviteModal({
               </p>
             </div>
           </div>
-            <button className="grid size-9 place-items-center self-start rounded-full border transition" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={onClose} aria-label={ts('labels.closeInvite')}>
+            <button className="absolute right-4 top-4 grid size-9 place-items-center rounded-full border transition sm:right-5 sm:top-5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={onClose} aria-label={ts('labels.closeInvite')}>
               <X size={16} />
             </button>
           </div>
