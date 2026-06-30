@@ -18955,7 +18955,7 @@ function FormationRailSection({
                                 className="shrink-0 rounded-full border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] transition"
                                 style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
                               >
-                                {selectedCircleInviteDetails ? ts("labels.edit") : ts("labels.customizePractice")}
+                                {selectedCircleInviteDetails ? ts("labels.viewInvite") : ts("challenges.inviteFriends")}
                               </button>
                             ) : null}
                           </div>
@@ -18963,62 +18963,26 @@ function FormationRailSection({
 
                         {selectedCircleInviteDetails ? (
                           <div className="space-y-2 p-3">
-                            <div className="flex flex-wrap gap-2">
-                              {selectedCircleInviteDetails.kind === "fasting" ? (
-                                <>
-                                  <span className="rounded-full border px-2.5 py-1 text-[11px] font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}>
-                                    {ts("labels.duration")}: {fastingDurationLabel || ts("labels.notSet")}
-                                  </span>
-                                  <span className="rounded-full border px-2.5 py-1 text-[11px] font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}>
-                                    {ts("labels.goal")}: {selectedCircleInviteDetails.goal || ts("labels.notSet")}
-                                  </span>
-                                  <span className="rounded-full border px-2.5 py-1 text-[11px] font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}>
-                                    {ts("labels.startDate")}: {fastingStartDate || ts("labels.notSet")}
-                                  </span>
-                                </>
-                              ) : (
-                                <>
-                                  <span className="rounded-full border px-2.5 py-1 text-[11px] font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}>
-                                    {ts("labels.bookTitle")}: {selectedCircleInviteDetails.bookTitle}
-                                  </span>
-                                  <span className="rounded-full border px-2.5 py-1 text-[11px] font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}>
-                                    {ts("labels.duration")}: {readWithMeDurationLabel || ts("labels.notSet")}
-                                  </span>
-                                  <span className="rounded-full border px-2.5 py-1 text-[11px] font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}>
-                                    {ts("labels.startDate")}: {readWithMeStartDate || ts("labels.notSet")}
-                                  </span>
-                                  {selectedCircleInviteDetails.author ? (
-                                    <span className="rounded-full border px-2.5 py-1 text-[11px] font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}>
-                                      {ts("labels.author")}: {selectedCircleInviteDetails.author}
-                                    </span>
-                                  ) : null}
-                                </>
-                              )}
-                            </div>
-                            {selectedCircleInviteDetails.kind === "fasting" ? null : selectedCircleInviteDetails.edition || selectedCircleInviteDetails.cadence || selectedCircleInviteDetails.focus ? (
-                              <div className="flex flex-wrap gap-2">
-                                {selectedCircleInviteDetails.edition ? (
-                                  <span className="rounded-full border px-2.5 py-1 text-[11px] font-medium" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
-                                    {selectedCircleInviteDetails.edition}
-                                  </span>
-                                ) : null}
-                                {selectedCircleInviteDetails.cadence ? (
-                                  <span className="rounded-full border px-2.5 py-1 text-[11px] font-medium" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
-                                    {selectedCircleInviteDetails.cadence}
-                                  </span>
-                                ) : null}
-                                {selectedCircleInviteDetails.focus ? (
-                                  <span className="rounded-full border px-2.5 py-1 text-[11px] font-medium" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
-                                    {selectedCircleInviteDetails.focus}
-                                  </span>
-                                ) : null}
+                            <div className="rounded-[0.95rem] border px-3 py-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <p className="text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>
+                                    {ts("labels.inviteDetails")}
+                                  </p>
+                                  <p className="text-xs leading-5" style={{ color: theme.textSecondary }}>
+                                    {ts("labels.inviteDetailsBody")}
+                                  </p>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => openInviteEditor(selectedChallenge)}
+                                  className="shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] transition"
+                                  style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                                >
+                                  {ts("labels.manageInvite")}
+                                </button>
                               </div>
-                            ) : null}
-                            {selectedCircleInviteDetails.note ? (
-                              <p className="text-sm leading-6 italic" style={{ color: theme.textSecondary }}>
-                                {selectedCircleInviteDetails.note}
-                              </p>
-                            ) : null}
+                            </div>
                           </div>
                         ) : null}
                       </div>
@@ -19250,25 +19214,13 @@ function FormationRailSection({
                         </div>
                         <div className="space-y-2 p-4">
                           {isReadWithMeChallenge || isFastingChallenge ? (
-                            <div className="grid gap-2 sm:grid-cols-2">
-                              <div className="rounded-[0.95rem] border px-3 py-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-                                <p className="text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>
-                                  {selectedCircleInviteDetails ? ts("labels.edit") : ts("labels.customizePractice")}
-                                </p>
-                                <p className="text-xs leading-5" style={{ color: theme.textSecondary }}>
-                                  {isReadWithMeChallenge
-                                    ? ts("challenges.readWithMeInviteDetailsBody")
-                                    : ts("challenges.fastingCustom.previewBody")}
-                                </p>
-                              </div>
-                              <div className="rounded-[0.95rem] border px-3 py-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-                                <p className="text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>
-                                  {ts("labels.sharedPlan")}
-                                </p>
-                                <p className="text-xs leading-5" style={{ color: theme.textSecondary }}>
-                                  {ts("challenges.inviteFriendsSharedPlanBody")}
-                                </p>
-                              </div>
+                            <div className="rounded-[0.95rem] border px-3 py-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                              <p className="text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>
+                                {ts("labels.inviteDetails")}
+                              </p>
+                              <p className="mt-1 text-xs leading-5" style={{ color: theme.textSecondary }}>
+                                {selectedCircleInviteDetails ? ts("labels.inviteDetailsBody") : ts("challenges.inviteFriendsBody")}
+                              </p>
                             </div>
                           ) : (
                             <>
@@ -19333,7 +19285,9 @@ function FormationRailSection({
                         {creatingInviteId === selectedChallenge?.id
                           ? ts("challenges.creatingInvite")
                           : isReadWithMeChallenge || isFastingChallenge
-                            ? ts("labels.customizePractice")
+                            ? selectedCircleInviteDetails
+                              ? ts("labels.manageInvite")
+                              : ts("challenges.inviteFriends")
                             : ts("challenges.inviteFriends")}
                       </button>
                     </div>
