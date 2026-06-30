@@ -52,7 +52,9 @@ export async function GET(request: NextRequest) {
     const next = requestedNext.startsWith("/") && !requestedNext.startsWith("//") ? requestedNext : "/";
     const redirectUrl = new URL(next, appUrl);
     redirectUrl.searchParams.set("auth", isNewUser ? "google_new" : "google_returning");
-    redirectUrl.searchParams.set("view", "account");
+    if (!redirectUrl.searchParams.has("challengeInvite") && !redirectUrl.searchParams.has("view")) {
+      redirectUrl.searchParams.set("view", "account");
+    }
     return NextResponse.redirect(redirectUrl);
   } catch (error) {
     console.error("Google auth completion failed:", error);

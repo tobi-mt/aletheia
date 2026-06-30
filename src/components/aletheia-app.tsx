@@ -6,6 +6,7 @@ import { signIn as authSignIn, signOut as authSignOut } from "next-auth/react";
 import { ChangeEvent, FormEvent, type KeyboardEvent, type ReactNode, type RefObject, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Capacitor, SystemBars, SystemBarsStyle, type PluginListenerHandle } from "@capacitor/core";
+import { App } from "@capacitor/app";
 import {
   BookOpen,
   BriefcaseBusiness,
@@ -400,6 +401,7 @@ const NOTIFICATION_TIMING_STORAGE_KEY = "aletheia_notification_timing";
 const COUNSEL_STATUS_TRACKING_KEY = "aletheia_counsel_status_tracking";
 const CARRY_TODAY_STORAGE_KEY = "aletheia_carry_today";
 const SCRIPTURE_MEMORY_STORAGE_KEY = "aletheia_scripture_memory";
+const CHALLENGE_INVITE_STORAGE_KEY = "aletheia_challenge_invite_token";
 const UPDATE_REFRESH_PENDING_KEY = "aletheia_update_refresh_pending";
 type AuthPromptReason =
   | "guest_second_question"
@@ -430,6 +432,47 @@ const AUTH_PROMPT_REPEAT_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000;
 const GRATITUDE_INDEXED_DB_NAME = "aletheia-gratitude";
 const GRATITUDE_INDEXED_DB_VERSION = 1;
 const GRATITUDE_INDEXED_DB_STORE = "gratitude_entries";
+
+function readStoredChallengeInviteToken() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    return window.sessionStorage.getItem(CHALLENGE_INVITE_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredChallengeInviteToken(token: string | null) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    if (token) {
+      window.sessionStorage.setItem(CHALLENGE_INVITE_STORAGE_KEY, token);
+    } else {
+      window.sessionStorage.removeItem(CHALLENGE_INVITE_STORAGE_KEY);
+    }
+  } catch {
+    // Invite handoff can still work in-memory if session storage is unavailable.
+  }
+}
+
+function challengeInviteTokenFromLocation(value: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  try {
+    const fallbackOrigin = typeof window !== "undefined" ? window.location.origin : "http://localhost:3000";
+    return new URL(value, fallbackOrigin).searchParams.get("challengeInvite");
+  } catch {
+    return null;
+  }
+}
 const GRATITUDE_SYNC_ENABLED = process.env.NEXT_PUBLIC_ENABLE_GRATITUDE_SYNC === "1";
 const GRATITUDE_SYNC_MIGRATION_KEY_PREFIX = "aletheia_gratitude_sync_migrated_";
 const MAX_GRATITUDE_ENTRIES = Number.POSITIVE_INFINITY;
@@ -7275,6 +7318,7 @@ export function AletheiaApp() {
   const [challengeInvitePreview, setChallengeInvitePreview] = useState<ChallengeCircleSummary | null>(null);
   const [challengeInviteStatus, setChallengeInviteStatus] = useState("");
   const [challengeInviteUrl, setChallengeInviteUrl] = useState<string | null>(null);
+  const [challengeInviteAuthOpen, setChallengeInviteAuthOpen] = useState(false);
   const [challengeCircleRefreshKey, setChallengeCircleRefreshKey] = useState(0);
   const [challengeProgress, setChallengeProgress] = useState<ChallengeWithProgress[]>([]);
   const [counselRemovalPrompt, setCounselRemovalPrompt] = useState<CounselRemovalConfirmationState | null>(null);
@@ -8790,29 +8834,87 @@ export function AletheiaApp() {
   }, [ts]);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const token = params.get("challengeInvite");
-    if (!token) {
-      return;
-    }
-    Promise.resolve().then(() => {
+    let cancelled = false;
+    let appUrlOpenHandle: PluginListenerHandle | null = null;
+
+    async function openChallengeInvite(rawUrl: string, persistToken: boolean, replaceHistory: boolean) {
+      const token = challengeInviteTokenFromLocation(rawUrl);
+      if (!token || cancelled) {
+        return false;
+      }
+
+      if (persistToken) {
+        writeStoredChallengeInviteToken(token);
+      }
+
       setChallengeInviteToken(token);
-      setChallengeInviteUrl(buildChallengeInviteUrl(token, window.location.href));
+      setChallengeInviteUrl(buildChallengeInviteUrl(token, rawUrl));
       setChallengeInviteStatus(ts('status.challengeInviteLoading'));
-      fetch(`/api/challenge-circles/${encodeURIComponent(token)}`)
-        .then(async (response) => {
-          const data = (await response.json()) as ChallengeCircleSummary | { errorCode?: string; error?: string };
-          if (!response.ok || !isChallengeCircleSummary(data)) {
-            throw new Error("error" in data ? data.error : "Invite could not be loaded.");
-          }
-          setChallengeInvitePreview(data);
-          setChallengeInviteStatus("");
+
+      try {
+        const response = await fetch(`/api/challenge-circles/${encodeURIComponent(token)}`);
+        const data = (await response.json()) as ChallengeCircleSummary | { errorCode?: string; error?: string };
+        if (!response.ok || !isChallengeCircleSummary(data)) {
+          throw new Error("error" in data ? data.error : "Invite could not be loaded.");
+        }
+        if (cancelled) {
+          return true;
+        }
+        setChallengeInvitePreview(data);
+        setChallengeInviteStatus("");
+        if (replaceHistory) {
           window.history.replaceState({}, "", window.location.pathname);
-        })
-        .catch(() => {
+        }
+      } catch {
+        if (!cancelled) {
           setChallengeInviteStatus(ts('status.challengeInviteCouldNotOpen'));
+        }
+      }
+
+      return true;
+    }
+
+    async function bootstrapChallengeInvite() {
+      const launchedFromNative = Capacitor.isNativePlatform();
+      if (launchedFromNative) {
+        const launchUrl = await App.getLaunchUrl().catch(() => undefined);
+        if (launchUrl?.url) {
+          const handled = await openChallengeInvite(launchUrl.url, true, false);
+          if (handled) {
+            appUrlOpenHandle = await App.addListener("appUrlOpen", ({ url }) => {
+              void openChallengeInvite(url, true, false);
+            });
+            return;
+          }
+        }
+      }
+
+      const browserToken = challengeInviteTokenFromLocation(window.location.href) ?? readStoredChallengeInviteToken();
+      if (!browserToken) {
+        if (launchedFromNative) {
+          appUrlOpenHandle = await App.addListener("appUrlOpen", ({ url }) => {
+            void openChallengeInvite(url, true, false);
+          });
+        }
+        return;
+      }
+
+      const sourceUrl = challengeInviteTokenFromLocation(window.location.href) ? window.location.href : buildChallengeInviteUrl(browserToken, window.location.href);
+      await openChallengeInvite(sourceUrl, true, !launchedFromNative);
+
+      if (launchedFromNative && !appUrlOpenHandle) {
+        appUrlOpenHandle = await App.addListener("appUrlOpen", ({ url }) => {
+          void openChallengeInvite(url, true, false);
         });
-    });
+      }
+    }
+
+    void bootstrapChallengeInvite();
+
+    return () => {
+      cancelled = true;
+      void appUrlOpenHandle?.remove();
+    };
   }, [ts]);
 
   useEffect(() => {
@@ -10820,7 +10922,9 @@ export function AletheiaApp() {
       } catch {
         // Auth still succeeds if local onboarding storage is unavailable.
       }
-      setActiveView("account");
+      if (!challengeInviteAuthOpen) {
+        setActiveView("account");
+      }
       setShowWelcomeGate(false);
       setOnboardingPath(null);
       setShowOnboarding(false);
@@ -10896,8 +11000,13 @@ export function AletheiaApp() {
     setStatusMessage(ts('status.openingGoogleSignIn'));
     announceWorkflow(ts('notifications.openingGoogle'), ts('notifications.openingGoogleBody'), "info");
     try {
+      const inviteReturnUrl = challengeInviteToken
+        ? challengeInviteUrl ?? (challengeInviteToken ? buildChallengeInviteUrl(challengeInviteToken, window.location.href) : window.location.href)
+        : null;
       await authSignIn("google", {
-        callbackUrl: "/api/auth/oauth/complete?next=%2F%3Fauth%3Dgoogle_success%26view%3Daccount",
+        callbackUrl: inviteReturnUrl
+          ? `/api/auth/oauth/complete?next=${encodeURIComponent(inviteReturnUrl)}`
+          : "/api/auth/oauth/complete?next=%2F%3Fauth%3Dgoogle_success%26view%3Daccount",
       });
     } catch (error) {
       const message = error instanceof Error
@@ -12140,7 +12249,7 @@ export function AletheiaApp() {
   }
 
   function challengeInviteActiveToken() {
-    return challengeInviteToken ?? challengeInviteTokenFromUrl(challengeInviteUrl);
+    return challengeInviteToken ?? challengeInviteTokenFromUrl(challengeInviteUrl) ?? readStoredChallengeInviteToken();
   }
 
   async function respondToChallengeInvite(action: "accept" | "decline") {
@@ -12167,6 +12276,7 @@ export function AletheiaApp() {
           : ts("status.challengeInviteDeclined")
       );
       if (action === "accept") {
+        writeStoredChallengeInviteToken(null);
         setChallengeInviteToken(null);
         setChallengeInvitePreview(null);
         setChallengeInviteStatus("");
@@ -12903,18 +13013,44 @@ export function AletheiaApp() {
         status={challengeInviteStatus}
         ts={ts}
         user={user}
+        authOpen={challengeInviteAuthOpen}
+        authMode={authMode}
+        setAuthMode={setAuthMode}
+        authName={authName}
+        setAuthName={setAuthName}
+        authEmail={authEmail}
+        setAuthEmail={setAuthEmail}
+        authPassword={authPassword}
+        setAuthPassword={setAuthPassword}
+        authWebsite={authWebsite}
+        setAuthWebsite={setAuthWebsite}
+        authError={authError}
+        authNotice={authNotice}
+        authStatus={authStatus}
+        googleAuthAvailable={googleAuthAvailable}
+        isWorking={isWorking}
+        onSubmitAuth={handleAuth}
+        onGoogleSignIn={handleGoogleSignIn}
         onAccept={() => respondToChallengeInvite("accept")}
         onDecline={() => respondToChallengeInvite("decline")}
         onNudge={addChallengeInviteNudge}
         onRequestSignIn={() => {
+          if (challengeInviteToken) {
+            writeStoredChallengeInviteToken(challengeInviteToken);
+          }
+          setAuthError("");
+          setAuthNotice("");
+          setChallengeInviteAuthOpen(true);
           setAuthMode("login");
-          openAccountFlow();
         }}
+        onCloseAuth={() => setChallengeInviteAuthOpen(false)}
         onClose={() => {
+          writeStoredChallengeInviteToken(null);
           setChallengeInviteToken(null);
           setChallengeInvitePreview(null);
           setChallengeInviteStatus("");
           setChallengeInviteUrl(null);
+          setChallengeInviteAuthOpen(false);
         }}
       />
       <CounselRemovalConfirmModal
@@ -23820,10 +23956,29 @@ function ChallengeInviteModal({
   status,
   ts,
   user,
+  authOpen,
+  authMode,
+  setAuthMode,
+  authName,
+  setAuthName,
+  authEmail,
+  setAuthEmail,
+  authPassword,
+  setAuthPassword,
+  authWebsite,
+  setAuthWebsite,
+  authError,
+  authNotice,
+  authStatus,
+  googleAuthAvailable,
+  isWorking,
+  onSubmitAuth,
+  onGoogleSignIn,
   onAccept,
   onDecline,
   onNudge,
   onRequestSignIn,
+  onCloseAuth,
   onClose,
 }: {
   theme: ThemeColors;
@@ -23833,14 +23988,34 @@ function ChallengeInviteModal({
   status: string;
   ts: (key: string, fallback?: string) => string;
   user: User | null;
+  authOpen: boolean;
+  authMode: AuthMode;
+  setAuthMode: (value: AuthMode) => void;
+  authName: string;
+  setAuthName: (value: string) => void;
+  authEmail: string;
+  setAuthEmail: (value: string) => void;
+  authPassword: string;
+  setAuthPassword: (value: string) => void;
+  authWebsite: string;
+  setAuthWebsite: (value: string) => void;
+  authError: string;
+  authNotice: string;
+  authStatus: AuthStatus;
+  googleAuthAvailable: boolean;
+  isWorking: boolean;
+  onSubmitAuth: (event: FormEvent<HTMLFormElement>) => void;
+  onGoogleSignIn: () => void;
   onAccept: () => void;
   onDecline: () => void;
   onNudge: (body: string) => void;
   onRequestSignIn: () => void;
+  onCloseAuth: () => void;
   onClose: () => void;
 }) {
   const [nudgeDraft, setNudgeDraft] = useState("");
   useBodyScrollLock(Boolean(token));
+  const authBusy = isWorking || authStatus === "checking" || authStatus === "signing-in" || authStatus === "signing-out";
   if (!preview) {
     if (!token) {
       return null;
@@ -24142,17 +24317,125 @@ function ChallengeInviteModal({
           </div>
         ) : (
           <div className="mt-3.5 space-y-3 rounded-2xl border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-            <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>
-              {declined ? ts("challenges.declinedInviteBody") : ts("challenges.joinPrompt")}
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {!user ? (
-                <button className="h-11 rounded-full px-4 text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }} onClick={onRequestSignIn}>
-                  {ts("auth.signIn")}
-                </button>
-              ) : null}
-              {user ? (
-                <>
+            {!user ? (
+              authOpen ? (
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{ts("challenges.inviteEyebrow")}</p>
+                    <h3 className="mt-1.5 text-base font-semibold" style={{ color: theme.textPrimary }}>
+                      {authMode === "register" ? ts("auth.createNewAccount") : ts("auth.signInForSync")}
+                    </h3>
+                    <p className="mt-1.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                      {declined ? ts("challenges.declinedInviteBody") : ts("challenges.joinPrompt")}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <button className="h-10 rounded-full px-4 text-sm font-semibold" style={{ backgroundColor: authMode === "login" ? theme.primary : theme.bgInput, color: authMode === "login" ? theme.textOnPrimary : theme.textPrimary, borderColor: theme.borderMedium, borderStyle: "solid", borderWidth: authMode === "login" ? 0 : 1 }} onClick={() => setAuthMode("login")}>
+                      {ts("auth.signIn")}
+                    </button>
+                    <button className="h-10 rounded-full px-4 text-sm font-semibold" style={{ backgroundColor: authMode === "register" ? theme.primary : theme.bgInput, color: authMode === "register" ? theme.textOnPrimary : theme.textPrimary, borderColor: theme.borderMedium, borderStyle: "solid", borderWidth: authMode === "register" ? 0 : 1 }} onClick={() => setAuthMode("register")}>
+                      {ts("auth.createNewAccount")}
+                    </button>
+                    <button className="h-10 rounded-full border px-4 text-sm font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={onCloseAuth}>
+                      {ts("labels.cancel")}
+                    </button>
+                  </div>
+                  {googleAuthAvailable ? (
+                    <button className="h-11 w-full rounded-full border px-4 text-sm font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} disabled={authBusy} onClick={onGoogleSignIn}>
+                      {authStatus === "signing-in" ? ts('auth.openingGoogle') : ts('auth.continueWithGoogle')}
+                    </button>
+                  ) : null}
+                  <div className="flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
+                    <span className="h-px flex-1" style={{ backgroundColor: theme.borderLight }} />
+                    {ts("placeholders.email")}
+                    <span className="h-px flex-1" style={{ backgroundColor: theme.borderLight }} />
+                  </div>
+                  <form className="grid gap-2 sm:grid-cols-2" onSubmit={onSubmitAuth}>
+                    {authMode === "register" ? (
+                      <input
+                        value={authName}
+                        onChange={(event) => setAuthName(event.target.value)}
+                        className="h-10 rounded-full border px-3 text-sm outline-none"
+                        style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                        placeholder={ts('placeholders.name')}
+                      />
+                    ) : null}
+                    <input
+                      value={authEmail}
+                      onChange={(event) => setAuthEmail(event.target.value)}
+                      className="h-10 rounded-full border px-3 text-sm outline-none"
+                      style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                      placeholder={ts('placeholders.email')}
+                      type="email"
+                    />
+                    <input
+                      value={authPassword}
+                      onChange={(event) => setAuthPassword(event.target.value)}
+                      className="h-10 rounded-full border px-3 text-sm outline-none"
+                      style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                      placeholder={ts('placeholders.password')}
+                      type="password"
+                    />
+                    {authMode === "register" ? (
+                      <input
+                        value={authWebsite}
+                        onChange={(event) => setAuthWebsite(event.target.value)}
+                        className="sr-only"
+                        style={{ display: "none" }}
+                        tabIndex={-1}
+                        autoComplete="off"
+                        placeholder={ts('placeholders.website')}
+                        type="text"
+                        name="website"
+                      />
+                    ) : null}
+                    <button
+                      disabled={authBusy}
+                      className="h-10 rounded-md px-4 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60 sm:col-span-2"
+                      style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                    >
+                      {authStatus === "signing-in" ? ts('labels.working') : authMode === "register" ? ts('auth.create') : ts('auth.signIn')}
+                    </button>
+                  </form>
+                  {authNotice ? (
+                    <p className="rounded-2xl border px-3 py-2 text-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textSecondary }}>
+                      {authNotice}
+                    </p>
+                  ) : null}
+                  {authError ? (
+                    <p className="rounded-2xl border px-3 py-2 text-sm" style={{ borderColor: "#e0c3b7", backgroundColor: "#fff6f1", color: "#8c3f28" }}>
+                      {authError}
+                    </p>
+                  ) : null}
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>
+                    {declined ? ts("challenges.declinedInviteBody") : ts("challenges.joinPrompt")}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <button className="h-11 rounded-full px-4 text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }} onClick={onRequestSignIn}>
+                      {ts("auth.signInForSync")}
+                    </button>
+                    {googleAuthAvailable ? (
+                      <button className="h-11 rounded-full border px-4 text-sm font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={onGoogleSignIn}>
+                        {ts("auth.continueWithGoogle")}
+                      </button>
+                    ) : null}
+                  </div>
+                  {shareUrl ? (
+                    <button className="h-11 rounded-full border px-4 text-sm font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={shareChallengeInvite}>
+                      {ts("labels.copyLink")}
+                    </button>
+                  ) : null}
+                </div>
+              )
+            ) : (
+              <div className="space-y-3">
+                <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>
+                  {declined ? ts("challenges.declinedInviteBody") : ts("challenges.joinPrompt")}
+                </p>
+                <div className="flex flex-wrap gap-2">
                   <button className="h-11 rounded-full px-4 text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }} onClick={onAccept}>
                     {declined ? ts("challenges.joinAnyway") : ts("challenges.acceptInvite")}
                   </button>
@@ -24161,14 +24444,14 @@ function ChallengeInviteModal({
                       {ts("challenges.declineInvite")}
                     </button>
                   ) : null}
-                </>
-              ) : null}
-              {shareUrl ? (
-                <button className="h-11 rounded-full border px-4 text-sm font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={shareChallengeInvite}>
-                  {ts("labels.copyLink")}
-                </button>
-              ) : null}
-            </div>
+                </div>
+                {shareUrl ? (
+                  <button className="h-11 rounded-full border px-4 text-sm font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={shareChallengeInvite}>
+                    {ts("labels.copyLink")}
+                  </button>
+                ) : null}
+              </div>
+            )}
           </div>
         )}
 
