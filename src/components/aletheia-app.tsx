@@ -29882,6 +29882,7 @@ function JournalPanel({
           )}
           <p className="mt-4 text-xs leading-5" style={{ color: theme.textMuted }}>{ts('labels.currentlyActiveMode')}: {localizedModeLabel(mode, language)}</p>
         </div>
+      </div>
 
       <JournalEntryDetailModal
         open={Boolean(selectedEntry)}
