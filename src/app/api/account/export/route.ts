@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { apiError } from "@/lib/api-errors";
+import { ensureCounselInviteAcceptanceSchema } from "@/lib/counsel-invites";
 import { many, one } from "@/lib/db";
 import { trackServerEvent } from "@/lib/analytics";
 
@@ -16,6 +17,8 @@ export async function GET() {
     return apiError(401, "sign_in_required", "Sign in to export your Aletheia data.");
   }
 
+  await ensureCounselInviteAcceptanceSchema();
+
   const [
     profile,
     preferences,
@@ -27,6 +30,7 @@ export async function GET() {
     decisionEvents,
     counselContacts,
     counselSharedDecisions,
+    counselInviteAcceptances,
     counselComments,
     rulesOfLife,
     answerFeedback,
@@ -43,6 +47,7 @@ export async function GET() {
     userRows("decision_events", user.id),
     userRows("counsel_contacts", user.id),
     userRows("counsel_shared_decisions", user.id),
+    many("SELECT * FROM counsel_invite_acceptances WHERE recipient_user_id = ? ORDER BY accepted_at DESC", user.id),
     many(
       `SELECT counsel_comments.*
        FROM counsel_comments
@@ -87,6 +92,7 @@ export async function GET() {
     decisionEvents,
     counselContacts,
     counselSharedDecisions,
+    counselInviteAcceptances,
     counselComments,
     rulesOfLife,
     answerFeedback,

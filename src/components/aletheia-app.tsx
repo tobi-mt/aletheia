@@ -403,6 +403,7 @@ const COUNSEL_STATUS_TRACKING_KEY = "aletheia_counsel_status_tracking";
 const CARRY_TODAY_STORAGE_KEY = "aletheia_carry_today";
 const SCRIPTURE_MEMORY_STORAGE_KEY = "aletheia_scripture_memory";
 const COUNSEL_INVITE_STORAGE_KEY = "aletheia_counsel_invite_token";
+const COUNSEL_ACCEPTED_INVITE_STORAGE_KEY = "aletheia_counsel_accepted_invite_token";
 const CHALLENGE_INVITE_STORAGE_KEY = "aletheia_challenge_invite_token";
 const UPDATE_REFRESH_PENDING_KEY = "aletheia_update_refresh_pending";
 type AuthPromptReason =
@@ -488,6 +489,34 @@ function writeStoredCounselInviteToken(token: string | null) {
     }
   } catch {
     // Counsel invite handoff can still work in-memory if session storage is unavailable.
+  }
+}
+
+function readPersistedCounselInviteToken() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    return window.localStorage.getItem(COUNSEL_ACCEPTED_INVITE_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function writePersistedCounselInviteToken(token: string | null) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    if (token) {
+      window.localStorage.setItem(COUNSEL_ACCEPTED_INVITE_STORAGE_KEY, token);
+    } else {
+      window.localStorage.removeItem(COUNSEL_ACCEPTED_INVITE_STORAGE_KEY);
+    }
+  } catch {
+    // Persisted counsel invite handoff can still work in-memory if storage is unavailable.
   }
 }
 
@@ -4241,6 +4270,7 @@ type CounselContact = {
 
 type CounselInvitePreview = {
   invite: {
+    contactId?: string;
     name: string;
     role: string;
     avatarUrl?: string | null;
@@ -4263,6 +4293,11 @@ type CounselInvitePreview = {
     sharedAt: string;
     comments: Array<{ id: string; body: string; createdAt: string }>;
   }>;
+};
+
+type CounselWorkspaceData = {
+  contacts: CounselContact[];
+  receivedInvites?: CounselInvitePreview[];
 };
 
 const DEFAULT_AUTH_PROMPT_STATE: AuthPromptState = {
@@ -7341,6 +7376,7 @@ export function AletheiaApp() {
     gentleObservation: runtimeCopyFor(storedPreferences().language).timelineReady,
   });
   const [counselContacts, setCounselContacts] = useState<CounselContact[]>([]);
+  const [receivedCounselInvites, setReceivedCounselInvites] = useState<CounselInvitePreview[]>([]);
   const [rulesOfLife, setRulesOfLife] = useState<RuleOfLife[]>([]);
   const [decisionTitle, setDecisionTitle] = useState("");
   const [decisionPressure, setDecisionPressure] = useState("");
@@ -7363,6 +7399,7 @@ export function AletheiaApp() {
   const [latestCounselInvite, setLatestCounselInvite] = useState<{ name: string; url: string } | null>(null);
   const [counselInviteToken, setCounselInviteToken] = useState<string | null>(null);
   const [counselInvitePreview, setCounselInvitePreview] = useState<CounselInvitePreview | null>(null);
+  const [counselInviteContactId, setCounselInviteContactId] = useState<string | null>(null);
   const [counselInviteStatus, setCounselInviteStatus] = useState("");
   const [counselInviteAuthOpen, setCounselInviteAuthOpen] = useState(false);
   const [challengeInviteToken, setChallengeInviteToken] = useState<string | null>(null);
@@ -8517,8 +8554,8 @@ export function AletheiaApp() {
     };
     const counselData = await readJsonOrFallback(
       counselResponse.status === "fulfilled" ? counselResponse.value : null,
-      { contacts: [] as CounselContact[] }
-    );
+      { contacts: [] as CounselContact[], receivedInvites: [] as CounselInvitePreview[] }
+    ) as CounselWorkspaceData;
     const rulesData = await readJsonOrFallback(
       rulesResponse.status === "fulfilled" ? rulesResponse.value : null,
       { rules: [] as RuleOfLife[] }
@@ -8564,6 +8601,7 @@ export function AletheiaApp() {
       setTimelineInsight(decisionsData.insight);
     }
     setCounselContacts(counselData.contacts ?? []);
+    setReceivedCounselInvites(counselData.receivedInvites ?? []);
     setRulesOfLife(rulesData.rules ?? []);
     if (preferencesData.preferences) {
       setPreferences(preferencesData.preferences);
@@ -8886,6 +8924,7 @@ export function AletheiaApp() {
           return true;
         }
         setCounselInvitePreview(data);
+        setCounselInviteContactId(data.invite.contactId ?? null);
         setCounselInviteStatus("");
         if (replaceHistory) {
           window.history.replaceState({}, "", window.location.pathname);
@@ -8914,7 +8953,10 @@ export function AletheiaApp() {
         }
       }
 
-      const browserToken = counselInviteTokenFromLocation(window.location.href) ?? readStoredCounselInviteToken();
+      const browserToken =
+        counselInviteTokenFromLocation(window.location.href) ??
+        readStoredCounselInviteToken() ??
+        readPersistedCounselInviteToken();
       if (!browserToken) {
         if (launchedFromNative) {
           appUrlOpenHandle = await App.addListener("appUrlOpen", ({ url }) => {
@@ -10319,6 +10361,8 @@ export function AletheiaApp() {
     setWisdomDecisions([]);
     setDecisionEvents([]);
     setCounselContacts([]);
+    setReceivedCounselInvites([]);
+    setCounselInviteContactId(null);
     setRulesOfLife([]);
     setCounselSummaryDraft(null);
     try {
@@ -10408,6 +10452,8 @@ export function AletheiaApp() {
       setWisdomDecisions([]);
       setDecisionEvents([]);
       setCounselContacts([]);
+      setReceivedCounselInvites([]);
+      setCounselInviteContactId(null);
       setRulesOfLife([]);
       setNotificationsEnabled(false);
       setNotificationAccountEnabled(false);
@@ -11074,13 +11120,14 @@ export function AletheiaApp() {
       } catch {
         // Auth still succeeds if local onboarding storage is unavailable.
       }
-      if (challengeInviteToken || challengeInviteAuthOpen || counselInviteToken || counselInviteAuthOpen) {
+      const inviteFlowActive = Boolean(challengeInviteToken || challengeInviteAuthOpen || counselInviteToken || counselInviteAuthOpen);
+      if (inviteFlowActive) {
         setChallengeInviteAuthOpen(false);
         setCounselInviteAuthOpen(false);
         setChallengeInviteStatus("");
         setCounselInviteStatus("");
       }
-      if (!challengeInviteAuthOpen && !counselInviteAuthOpen) {
+      if (!inviteFlowActive) {
         setActiveView("account");
       }
       setShowWelcomeGate(false);
@@ -12361,26 +12408,31 @@ export function AletheiaApp() {
     const data = (await response.json()) as CounselInvitePreview | { error?: string };
     if (response.ok && isCounselInvitePreview(data)) {
       setCounselInvitePreview(data);
+      setCounselInviteContactId(data.invite.contactId ?? null);
       setCounselInviteStatus(ts('status.inviteAccepted'));
-      writeStoredCounselInviteToken(null);
-      setCounselInviteToken(null);
-      setCounselInvitePreview(null);
-      setCounselInviteStatus("");
+      writeStoredCounselInviteToken(counselInviteToken);
+      writePersistedCounselInviteToken(counselInviteToken);
       setCounselInviteAuthOpen(false);
     } else {
       setCounselInviteStatus(resolveApiErrorMessage((data as { error?: string }).error, undefined, 'status.inviteNotAccepted'));
     }
   }
 
-  async function addCounselInviteComment(decisionId: string, body: string) {
-    if (!counselInviteToken) {
+  async function addCounselInviteComment(decisionId: string, body: string, contactIdOverride?: string | null) {
+    const contactId = contactIdOverride ?? counselInviteContactId;
+    if (!counselInviteToken && !contactId) {
       return;
     }
-    const response = await fetch(`/api/counsel/invite/${encodeURIComponent(counselInviteToken)}/comments`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ decisionId, body }),
-    });
+    const response = await fetch(
+      contactId
+        ? `/api/counsel/acceptances/${encodeURIComponent(contactId)}/comments`
+        : `/api/counsel/invite/${encodeURIComponent(counselInviteToken ?? "")}/comments`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ decisionId, body }),
+      }
+    );
     const data = (await response.json()) as { comment?: { id: string; body: string; createdAt: string }; error?: string; errorCode?: string };
     if (response.ok && data.comment) {
       setCounselInvitePreview((current) =>
@@ -12399,6 +12451,14 @@ export function AletheiaApp() {
     } else {
       setCounselInviteStatus(resolveApiErrorMessage(data.error, data.errorCode, 'notifications.summaryNotSharedBody'));
     }
+  }
+
+  function openReceivedCounselInvite(invite: CounselInvitePreview) {
+    setCounselInviteToken(null);
+    setCounselInvitePreview(invite);
+    setCounselInviteContactId(invite.invite.contactId ?? null);
+    setCounselInviteStatus("");
+    setCounselInviteAuthOpen(false);
   }
 
   function challengeInviteTokenFromUrl(value: string | null) {
@@ -12860,6 +12920,7 @@ export function AletheiaApp() {
                       events={decisionEvents}
                       insight={timelineInsight}
                       counselContacts={counselContacts}
+                      receivedCounselInvites={receivedCounselInvites}
                       counselSummaryDraft={counselSummaryDraft}
                       setCounselSummaryDraft={setCounselSummaryDraft}
                       announceWorkflow={announceWorkflow}
@@ -12895,6 +12956,7 @@ export function AletheiaApp() {
                       onShareCounselInvite={shareCounselInvite}
                       onShareDecisionWithCounsel={shareDecisionWithCounsel}
                       onBulkShareDecisionsWithCounsel={bulkShareDecisionsWithCounsel}
+                      onOpenReceivedCounselInvite={openReceivedCounselInvite}
                       onRemoveCounselContact={removeCounselContact}
                       onAddRule={addRuleOfLife}
                       theme={theme}
@@ -13120,6 +13182,7 @@ export function AletheiaApp() {
         theme={theme}
         ts={ts}
         googleAuthAvailable={googleAuthAvailable}
+        inviteContextActive={Boolean(challengeInviteToken || counselInviteToken)}
         onCreateAccount={() => startFirstRunAuthFlow("register")}
         onSignIn={() => startFirstRunAuthFlow("login")}
         onGoogleSignIn={handleGoogleSignIn}
@@ -13159,6 +13222,7 @@ export function AletheiaApp() {
         theme={theme}
         token={counselInviteToken}
         preview={counselInvitePreview}
+        contactId={counselInviteContactId}
         status={counselInviteStatus}
         ts={ts}
         user={user}
@@ -13193,9 +13257,17 @@ export function AletheiaApp() {
         }}
         onCloseAuth={() => setCounselInviteAuthOpen(false)}
         onClose={() => {
-          writeStoredCounselInviteToken(null);
+          if (counselInviteToken) {
+            if (counselInvitePreview?.invite.status === "accepted") {
+              writePersistedCounselInviteToken(counselInviteToken);
+            } else {
+              writeStoredCounselInviteToken(null);
+              writePersistedCounselInviteToken(null);
+            }
+          }
           setCounselInviteToken(null);
           setCounselInvitePreview(null);
+          setCounselInviteContactId(null);
           setCounselInviteStatus("");
           setCounselInviteAuthOpen(false);
         }}
@@ -17446,6 +17518,7 @@ function FormationRailSection({
   const [readWithMeInviteDraft, setReadWithMeInviteDraft] = useState<ReadWithMeInviteDetails>(defaultReadWithMeInviteDetails);
   const [fastingInviteDraft, setFastingInviteDraft] = useState<FastingInviteDetails>(defaultFastingInviteDetails);
   const [inviteEditorChallengeId, setInviteEditorChallengeId] = useState<string | null>(null);
+  const [inviteViewerChallengeId, setInviteViewerChallengeId] = useState<string | null>(null);
   const [sharedCircleNudgeDraft, setSharedCircleNudgeDraft] = useState("");
   const [sharedCircleNudgeStatus, setSharedCircleNudgeStatus] = useState("");
   const [sharedCircleNudgeBusy, setSharedCircleNudgeBusy] = useState(false);
@@ -17662,6 +17735,15 @@ function FormationRailSection({
     : null;
   const inviteEditorIsReadWithMe = inviteEditorChallenge?.id === "read-with-me-7day";
   const inviteEditorIsFasting = inviteEditorChallenge?.id === FASTING_CHALLENGE_ID;
+  const inviteViewerChallenge = inviteViewerChallengeId
+    ? displayChallenges.find((challenge) => challenge.id === inviteViewerChallengeId) ?? null
+    : null;
+  const inviteViewerCircle = inviteViewerChallenge
+    ? challengeCircles.find((circle) => circle.challengeId === inviteViewerChallenge.id) ?? null
+    : null;
+  const inviteViewerIsReadWithMe = inviteViewerChallenge?.id === "read-with-me-7day";
+  const inviteViewerIsFasting = inviteViewerChallenge?.id === FASTING_CHALLENGE_ID;
+  const inviteViewerInviteDetails = inviteViewerCircle?.invite.details ?? null;
   const readWithMeInviteDetails = selectedCircle?.challengeId === "read-with-me-7day"
     ? (selectedCircleInviteDetails as ReadWithMeInviteDetails | null)
     : isReadWithMeChallenge
@@ -17761,13 +17843,13 @@ function FormationRailSection({
     : 1;
 
   useEffect(() => {
-    if (!selectedChallenge || inviteEditorChallengeId) {
+    if (!selectedChallenge || inviteEditorChallengeId || inviteViewerChallengeId) {
       return;
     }
     window.requestAnimationFrame(() => {
       selectedChallengeDetailRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
-  }, [inviteEditorChallengeId, selectedChallenge?.id]);
+  }, [inviteEditorChallengeId, inviteViewerChallengeId, selectedChallenge?.id]);
 
   function updateReadWithMeInviteDraft(patch: Partial<ReadWithMeInviteDetails>) {
     setReadWithMeInviteDraft((current) => ({ ...current, ...patch }));
@@ -17781,6 +17863,8 @@ function FormationRailSection({
     if (!challenge || (challenge.id !== "read-with-me-7day" && challenge.id !== FASTING_CHALLENGE_ID)) {
       return;
     }
+
+    setInviteViewerChallengeId(null);
 
     const circle = challengeCircles.find((item) => item.challengeId === challenge.id) ?? null;
     const inviteDetails = circle?.invite.details ?? null;
@@ -17806,8 +17890,24 @@ function FormationRailSection({
     setInviteEditorChallengeId(challenge.id);
   }
 
+  function openInviteViewer(challenge: ChallengeWithProgress | null = selectedChallenge) {
+    if (!challenge || (challenge.id !== "read-with-me-7day" && challenge.id !== FASTING_CHALLENGE_ID)) {
+      return;
+    }
+
+    setInviteEditorChallengeId(null);
+    setSelectedChallengeId(challenge.id);
+    setSelectedDayNumber(null);
+    setOpenDayDetailDay(null);
+    setInviteViewerChallengeId(challenge.id);
+  }
+
   function closeInviteEditor() {
     setInviteEditorChallengeId(null);
+  }
+
+  function closeInviteViewer() {
+    setInviteViewerChallengeId(null);
   }
 
   function normalizeRosterKey(value: string) {
@@ -18156,7 +18256,7 @@ function FormationRailSection({
   }
 
   const canUsePortal = typeof document !== "undefined";
-  useBodyScrollLock(Boolean((selectedChallengeModalDay || inviteEditorChallenge) && canUsePortal));
+  useBodyScrollLock(Boolean((selectedChallengeModalDay || inviteEditorChallenge || inviteViewerChallenge) && canUsePortal));
   const dayModal = selectedChallenge && selectedChallengeModalDay && selectedChallengeModalPrompt && canUsePortal ? createPortal(
     <div
       className="fixed inset-0 z-[9999] grid min-h-dvh place-items-end overflow-hidden overscroll-none px-3 backdrop-blur-sm sm:place-items-center"
@@ -18270,6 +18370,142 @@ function FormationRailSection({
             </div>
           </div>
         ) : null}
+      </section>
+    </div>,
+    document.body
+  ) : null;
+
+  const inviteViewerModal = inviteViewerChallenge && canUsePortal ? createPortal(
+    <div
+      className="fixed inset-0 z-[9997] grid min-h-dvh place-items-end overflow-hidden overscroll-none px-3 backdrop-blur-sm sm:place-items-center"
+      style={{
+        backgroundColor: "rgba(13, 23, 20, 0.56)",
+        paddingTop: "calc(var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)) + 0.75rem)",
+        paddingBottom: "calc(var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)) + 0.75rem)",
+      }}
+      onClick={closeInviteViewer}
+    >
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="invite-viewer-title"
+        className="w-full max-w-3xl overflow-y-auto overscroll-contain rounded-[2rem] border p-4 [-webkit-overflow-scrolling:touch] [touch-action:pan-y] shadow-[0_28px_90px_rgba(10,18,14,0.36)] sm:p-5"
+        style={{
+          borderColor: theme.borderStrong,
+          backgroundColor: theme.bgCard,
+          maxHeight: "calc(100svh - var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)) - var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)) - 1rem)",
+        }}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.accentGold }}>
+              {inviteViewerIsFasting ? ts("challenges.fastingCustom.previewTitle") : ts("labels.inviteDetails")}
+            </p>
+            <h2 id="invite-viewer-title" className="mt-1.5 text-xl font-semibold tracking-tight" style={{ color: theme.textPrimary }}>
+              {inviteViewerChallenge ? ts(inviteViewerChallenge.titleKey, inviteViewerChallenge.title) : ts("labels.inviteDetails")}
+            </h2>
+            <p className="mt-1.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
+              {inviteViewerIsFasting
+                ? ts("challenges.fastingCustom.previewBody")
+                : ts("labels.inviteDetailsBody")}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={closeInviteViewer}
+            className="grid size-10 shrink-0 place-items-center rounded-full border transition"
+            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+            aria-label={ts("labels.closeInvite")}
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        {inviteViewerInviteDetails ? (
+          <div className="mt-4 rounded-[1.35rem] border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+            {inviteViewerInviteDetails.kind === "read-with-me" ? (
+              <div className="space-y-3">
+                <div className="flex flex-wrap gap-2">
+                  <span className="rounded-full border px-2.5 py-1 text-[11px] font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}>
+                    {inviteViewerInviteDetails.bookTitle || ts("labels.notSet")}
+                  </span>
+                  <span className="rounded-full border px-2.5 py-1 text-[11px] font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                    {formatReadWithMeDurationLabel(inviteViewerInviteDetails.durationValue, inviteViewerInviteDetails.durationUnit)}
+                  </span>
+                  {inviteViewerInviteDetails.startDate ? (
+                    <span className="rounded-full border px-2.5 py-1 text-[11px] font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                      {new Date(`${inviteViewerInviteDetails.startDate}T00:00:00`).toLocaleDateString(undefined, {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      })}
+                    </span>
+                  ) : null}
+                </div>
+                <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>
+                  {[inviteViewerInviteDetails.author, inviteViewerInviteDetails.edition].filter(Boolean).join(" · ")}
+                </p>
+                {inviteViewerInviteDetails.focus ? (
+                  <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>
+                    {inviteViewerInviteDetails.focus}
+                  </p>
+                ) : null}
+                {inviteViewerInviteDetails.cadence ? (
+                  <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>
+                    {inviteViewerInviteDetails.cadence}
+                  </p>
+                ) : null}
+                {inviteViewerInviteDetails.note ? (
+                  <p className="text-sm leading-6 italic" style={{ color: theme.textSecondary }}>
+                    {inviteViewerInviteDetails.note}
+                  </p>
+                ) : null}
+                <p className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.accentGold }}>
+                  {inviteViewerInviteDetails.recipients.length} {ts("labels.invited")}
+                </p>
+              </div>
+            ) : inviteViewerInviteDetails.kind === "fasting" ? (
+              <div className="space-y-3">
+                <div className="flex flex-wrap gap-2">
+                  <span className="rounded-full border px-2.5 py-1 text-[11px] font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}>
+                    {formatFastingDurationLabel(inviteViewerInviteDetails.durationValue)}
+                  </span>
+                  {inviteViewerInviteDetails.startDate ? (
+                    <span className="rounded-full border px-2.5 py-1 text-[11px] font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                      {new Date(`${inviteViewerInviteDetails.startDate}T00:00:00`).toLocaleDateString(undefined, {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      })}
+                    </span>
+                  ) : null}
+                </div>
+                {inviteViewerInviteDetails.goal ? (
+                  <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>
+                    {inviteViewerInviteDetails.goal}
+                  </p>
+                ) : null}
+                {inviteViewerInviteDetails.note ? (
+                  <p className="text-sm leading-6 italic" style={{ color: theme.textSecondary }}>
+                    {inviteViewerInviteDetails.note}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+
+        <div className="mt-4 flex justify-end">
+          <button
+            type="button"
+            onClick={closeInviteViewer}
+            className="h-10 rounded-full px-4 text-sm font-semibold"
+            style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+          >
+            {ts("labels.close")}
+          </button>
+        </div>
       </section>
     </div>,
     document.body
@@ -19285,7 +19521,13 @@ function FormationRailSection({
                             {selectedChallenge && (isReadWithMeChallenge || isFastingChallenge) ? (
                               <button
                                 type="button"
-                                onClick={() => openInviteEditor(selectedChallenge)}
+                                onClick={() => {
+                                  if (selectedCircleInviteDetails) {
+                                    openInviteViewer(selectedChallenge);
+                                    return;
+                                  }
+                                  openInviteEditor(selectedChallenge);
+                                }}
                                 className="shrink-0 rounded-full border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] transition"
                                 style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
                               >
@@ -19298,24 +19540,12 @@ function FormationRailSection({
                         {selectedCircleInviteDetails ? (
                           <div className="space-y-2 p-3">
                             <div className="rounded-[0.95rem] border px-3 py-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-                              <div className="flex items-start justify-between gap-3">
-                                <div className="min-w-0">
-                                  <p className="text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>
-                                    {ts("labels.inviteDetails")}
-                                  </p>
-                                  <p className="text-xs leading-5" style={{ color: theme.textSecondary }}>
-                                    {ts("labels.inviteDetailsBody")}
-                                  </p>
-                                </div>
-                                <button
-                                  type="button"
-                                  onClick={() => openInviteEditor(selectedChallenge)}
-                                  className="shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] transition"
-                                  style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-                                >
-                                  {ts("labels.manageInvite")}
-                                </button>
-                              </div>
+                              <p className="text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>
+                                {ts("labels.inviteDetails")}
+                              </p>
+                              <p className="text-xs leading-5" style={{ color: theme.textSecondary }}>
+                                {ts("labels.inviteDetailsBody")}
+                              </p>
                             </div>
                           </div>
                         ) : null}
@@ -19605,6 +19835,10 @@ function FormationRailSection({
                         type="button"
                         disabled={creatingInviteId === selectedChallenge?.id}
                         onClick={() => {
+                          if (selectedCircleInviteDetails) {
+                            openInviteViewer(selectedChallenge);
+                            return;
+                          }
                           if (isReadWithMeChallenge || isFastingChallenge) {
                             openInviteEditor(selectedChallenge);
                             return;
@@ -19620,7 +19854,7 @@ function FormationRailSection({
                           ? ts("challenges.creatingInvite")
                           : isReadWithMeChallenge || isFastingChallenge
                             ? selectedCircleInviteDetails
-                              ? ts("labels.manageInvite")
+                              ? ts("labels.viewInvite")
                               : ts("challenges.inviteFriends")
                             : ts("challenges.inviteFriends")}
                       </button>
@@ -21378,6 +21612,7 @@ function WelcomeGateScreen({
   theme,
   ts,
   googleAuthAvailable,
+  inviteContextActive,
   onSignIn,
   onGoogleSignIn,
   onCreateAccount,
@@ -21387,6 +21622,7 @@ function WelcomeGateScreen({
   theme: ThemeColors;
   ts: (key: string, fallback?: string) => string;
   googleAuthAvailable: boolean;
+  inviteContextActive: boolean;
   onSignIn: () => void;
   onGoogleSignIn: () => void;
   onCreateAccount: () => void;
@@ -21496,14 +21732,16 @@ function WelcomeGateScreen({
                   >
                     {ts("auth.signIn")}
                   </button>
-                  <button
-                    type="button"
-                    onClick={onContinueWithoutAccount}
-                    className="block pt-1 text-left text-[11px] font-semibold uppercase tracking-[0.14em] transition"
-                    style={{ color: theme.textMuted }}
-                  >
-                    {ts("labels.continueWithoutAccount")}
-                  </button>
+                  {inviteContextActive ? null : (
+                    <button
+                      type="button"
+                      onClick={onContinueWithoutAccount}
+                      className="block pt-1 text-left text-[11px] font-semibold uppercase tracking-[0.14em] transition"
+                      style={{ color: theme.textMuted }}
+                    >
+                      {ts("labels.continueWithoutAccount")}
+                    </button>
+                  )}
                   <p className="pt-0.5 text-[11px] font-medium leading-5" style={{ color: theme.textMuted }}>
                     {ts("labels.welcomeGateTrust")}
                   </p>
@@ -23997,6 +24235,7 @@ function CounselInviteModal({
   theme,
   token,
   preview,
+  contactId,
   status,
   ts,
   user,
@@ -24027,6 +24266,7 @@ function CounselInviteModal({
   theme: ThemeColors;
   token: string | null;
   preview: CounselInvitePreview | null;
+  contactId: string | null;
   status: string;
   ts: (key: string, fallback?: string) => string;
   user: User | null;
@@ -24049,17 +24289,17 @@ function CounselInviteModal({
   onSubmitAuth: (event: FormEvent<HTMLFormElement>) => void;
   onGoogleSignIn: () => void;
   onAccept: () => void;
-  onComment: (decisionId: string, body: string) => void;
+  onComment: (decisionId: string, body: string, contactId?: string | null) => void;
   onRequestSignIn: () => void;
   onCloseAuth: () => void;
   onClose: () => void;
 }) {
   const [drafts, setDrafts] = useState<Record<string, string>>({});
-  useBodyScrollLock(Boolean(token));
+  useBodyScrollLock(Boolean(token || preview));
   const authBusy = isWorking || authStatus === "checking" || authStatus === "signing-in" || authStatus === "signing-out";
-  const showOpenInApp = !Capacitor.isNativePlatform();
+  const showOpenInApp = Boolean(token) && !Capacitor.isNativePlatform();
   const inviteToken = token ?? "";
-  if (!token) {
+  if (!token && !preview) {
     return null;
   }
   const accepted = preview?.invite.status === "accepted";
@@ -24072,7 +24312,7 @@ function CounselInviteModal({
           <div className="flex items-start gap-3">
             <AvatarCircle
               avatarUrl={preview?.invite.avatarUrl}
-              seed={token}
+              seed={preview?.invite.contactId ?? preview?.invite.name ?? token ?? ""}
               label={preview?.invite.name ?? ts('labels.counselContact')}
               size={40}
               className="size-10"
@@ -24278,7 +24518,7 @@ function CounselInviteModal({
                           if (!body) {
                             return;
                           }
-                          onComment(decision.id, body);
+                          onComment(decision.id, body, contactId);
                           setDrafts((current) => ({ ...current, [decision.id]: "" }));
                         }}
                       >
@@ -24814,6 +25054,11 @@ function ChallengeInviteModal({
                     <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>
                       {declined ? ts("challenges.declinedInviteBody") : ts("challenges.joinPrompt")}
                     </p>
+                    <div className="rounded-2xl border px-3 py-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                      <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>
+                        {ts("challenges.afterSignInTapAcceptInvite")}
+                      </p>
+                    </div>
                     {showOpenInApp ? (
                     <a
                       href={buildChallengeInviteAppUrl(inviteToken)}
@@ -26941,6 +27186,7 @@ function DecisionCompanionPanel({
   events,
   insight,
   counselContacts,
+  receivedCounselInvites,
   counselSummaryDraft,
   setCounselSummaryDraft,
   announceWorkflow,
@@ -26959,6 +27205,7 @@ function DecisionCompanionPanel({
   counselCanReceiveCheckins,
   latestCounselInvite,
   userSignedIn,
+  onOpenReceivedCounselInvite,
   ruleText,
   setTitle,
   setPressure,
@@ -26987,6 +27234,7 @@ function DecisionCompanionPanel({
   events: DecisionEvent[];
   insight: TimelineInsight;
   counselContacts: CounselContact[];
+  receivedCounselInvites: CounselInvitePreview[];
   counselSummaryDraft: CounselSummaryDraft | null;
   setCounselSummaryDraft: (value: CounselSummaryDraft | null) => void;
   announceWorkflow: (title: string, body: string, tone?: WorkflowTone, action?: { label: string; onClick: () => void }) => void;
@@ -27005,6 +27253,7 @@ function DecisionCompanionPanel({
   counselCanReceiveCheckins: boolean;
   latestCounselInvite: { name: string; url: string } | null;
   userSignedIn: boolean;
+  onOpenReceivedCounselInvite: (invite: CounselInvitePreview) => void;
   ruleText: string;
   setTitle: (value: string) => void;
   setPressure: (value: string) => void;
@@ -27626,11 +27875,103 @@ function DecisionCompanionPanel({
                     </div>
                   </div>
                   ) : null}
-                  {!counselContacts.length ? (
-                    <p className="rounded-[1rem] border border-dashed p-3 text-sm leading-6" style={{ borderColor: theme.borderMedium, color: theme.textSecondary }}>
-                      {ts('labels.addTrustedPersonBeforeHighStakes')}
-                    </p>
-                  ) : null}
+                {receivedCounselInvites.length ? (
+                  <div className="mt-4 rounded-[1.35rem] border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
+                          {ts('labels.youAreConnected')}
+                        </p>
+                        <h3 className="mt-1 text-lg font-semibold" style={{ color: theme.textPrimary }}>
+                          {ts('labels.sharedProgress')}
+                        </h3>
+                        <p className="mt-1.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                          {ts('labels.counselCircleSummaryShort')}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mt-3 space-y-3">
+                      {receivedCounselInvites.map((invite) => {
+                        const acceptedAt = invite.invite.acceptedAt
+                          ? new Date(invite.invite.acceptedAt).toLocaleDateString(undefined, {
+                              month: "short",
+                              day: "numeric",
+                              year: "numeric",
+                            })
+                          : null;
+                        return (
+                          <button
+                            type="button"
+                            key={`${invite.invite.name}:${invite.invite.acceptedAt ?? invite.sharedDecisions[0]?.id ?? "received"}`}
+                            className="w-full rounded-[1.25rem] border p-3.5 text-left transition active:scale-[0.995]"
+                            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}
+                            aria-haspopup="dialog"
+                            aria-label={`${ts('labels.viewInvite')}: ${invite.invite.name}`}
+                            onClick={() => onOpenReceivedCounselInvite(invite)}
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex min-w-0 items-start gap-2.5">
+                                <AvatarCircle
+                                  avatarUrl={invite.invite.avatarUrl}
+                                  seed={invite.invite.name}
+                                  label={invite.invite.name}
+                                  size={30}
+                                  className="size-[30px]"
+                                />
+                                <div className="min-w-0">
+                                  <p className="text-[0.98rem] font-semibold leading-5 tracking-[-0.01em]" style={{ color: theme.textPrimary }}>
+                                    {invite.invite.name}
+                                  </p>
+                                  <p className="mt-0.5 text-[0.7rem] font-medium uppercase tracking-[0.14em] leading-4" style={{ color: theme.textMuted }}>
+                                    {localizedCounselRoleLabel(invite.invite.role, ts)} · {ts('status.accepted')}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex shrink-0 flex-col items-end gap-1">
+                                <span className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                                  {invite.sharedDecisions.length} {invite.sharedDecisions.length === 1 ? ts('labels.decisionSingular') : ts('labels.decisionPlural')}
+                                </span>
+                                {acceptedAt ? (
+                                  <span className="text-[10px] font-medium uppercase tracking-[0.08em]" style={{ color: theme.textMuted }}>
+                                    {acceptedAt}
+                                  </span>
+                                ) : null}
+                              </div>
+                            </div>
+                            <div className="mt-3 space-y-2">
+                              {invite.sharedDecisions.length ? (
+                                invite.sharedDecisions.slice(0, 2).map((decision) => (
+                                  <div key={decision.id} className="rounded-[1rem] border px-3 py-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                                    <p className="text-sm font-semibold leading-5" style={{ color: theme.textPrimary }}>
+                                      {decision.title}
+                                    </p>
+                                    <p className="mt-1 text-xs leading-5" style={{ color: theme.textSecondary }}>
+                                      {decision.summary || ts('labels.sharedDecisionSummaryPending')}
+                                    </p>
+                                  </div>
+                                ))
+                              ) : (
+                                <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>
+                                  {ts('labels.noSharedDecisionsYet')}
+                                </p>
+                              )}
+                              {invite.sharedDecisions.length > 2 ? (
+                                <p className="text-xs font-semibold uppercase tracking-[0.1em]" style={{ color: theme.textMuted }}>
+                                  +{invite.sharedDecisions.length - 2}
+                                </p>
+                              ) : null}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : null}
+                {!counselContacts.length && !receivedCounselInvites.length ? (
+                  <p className="rounded-[1rem] border border-dashed p-3 text-sm leading-6" style={{ borderColor: theme.borderMedium, color: theme.textSecondary }}>
+                    {ts('labels.addTrustedPersonBeforeHighStakes')}
+                  </p>
+                ) : null}
                 </div>
               </section>
           </div>

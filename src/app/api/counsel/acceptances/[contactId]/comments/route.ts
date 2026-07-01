@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { apiError } from "@/lib/api-errors";
-import { ensureCounselInviteAcceptanceSchema, hashCounselInviteToken } from "@/lib/counsel-invites";
+import { ensureCounselInviteAcceptanceSchema } from "@/lib/counsel-invites";
 import { one, run } from "@/lib/db";
 
-type Params = { params: Promise<{ token: string }> };
+type Params = { params: Promise<{ contactId: string }> };
 
 type ContactRow = {
   id: string;
@@ -23,17 +23,19 @@ type SharedRow = {
 };
 
 export async function POST(request: Request, { params }: Params) {
-  const { token } = await params;
+  const { contactId } = await params;
   const user = await getCurrentUser();
   if (!user) {
     return apiError(401, "sign_in_required", "Sign in to comment on this invite.");
   }
+
   await ensureCounselInviteAcceptanceSchema();
+
   const contact = await one<ContactRow>(
     `SELECT id, invite_status, can_comment_on_decisions
      FROM counsel_contacts
-     WHERE invite_token_hash = ?`,
-    hashCounselInviteToken(token)
+     WHERE id = ?`,
+    contactId
   );
   if (!contact) {
     return apiError(404, "not_found", "Invite not found.");
@@ -43,6 +45,17 @@ export async function POST(request: Request, { params }: Params) {
   }
   if (!contact.can_comment_on_decisions) {
     return apiError(403, "permission_denied", "This invite does not allow comments.");
+  }
+
+  const acceptance = await one<AcceptanceRow>(
+    `SELECT id, contact_id, recipient_user_id
+     FROM counsel_invite_acceptances
+     WHERE contact_id = ? AND recipient_user_id = ?`,
+    contact.id,
+    user.id
+  );
+  if (!acceptance) {
+    return apiError(403, "permission_denied", "Open the accepted invite before commenting.");
   }
 
   const body = (await request.json()) as { decisionId?: string; body?: string };
@@ -61,14 +74,6 @@ export async function POST(request: Request, { params }: Params) {
     return apiError(403, "permission_denied", "That decision summary has not been shared with this counselor.");
   }
 
-  const acceptance = await one<AcceptanceRow>(
-    `SELECT id, contact_id, recipient_user_id
-     FROM counsel_invite_acceptances
-     WHERE contact_id = ? AND recipient_user_id = ?`,
-    contact.id,
-    user.id
-  );
-
   const now = new Date().toISOString();
   const id = crypto.randomUUID();
   await run(
@@ -77,7 +82,7 @@ export async function POST(request: Request, { params }: Params) {
     contact.id,
     decisionId,
     comment,
-    acceptance?.id ?? null,
+    acceptance.id,
     now
   );
 

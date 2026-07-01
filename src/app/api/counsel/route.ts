@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { trackServerEvent } from "@/lib/analytics";
 import { normalizeAvatarUrl } from "@/lib/avatars";
-import { counselInviteUrl, createCounselInviteToken, hashCounselInviteToken } from "@/lib/counsel-invites";
+import { counselInviteUrl, createCounselInviteToken, ensureCounselInviteAcceptanceSchema, hashCounselInviteToken } from "@/lib/counsel-invites";
 import { many, one, run, withDbClient } from "@/lib/db";
 import { counselInviteEmail, emailConfigured, isEmailAddress, sendEmail } from "@/lib/email";
 import { readJsonBody } from "@/lib/request";
@@ -23,11 +23,161 @@ type CounselRow = {
   created_at: string;
 };
 
+type SharedDecisionRow = {
+  id: string;
+  title: string;
+  mode: string;
+  status: string;
+  readiness: number;
+  summary: string | null;
+  waiting_until: string | null;
+  shared_at: string;
+};
+
+type CommentRow = {
+  id: string;
+  decision_id: string;
+  body: string;
+  created_at: string;
+};
+
+type ReceivedInviteRow = {
+  id: string;
+  invite_token_hash: string;
+  contact_id: string;
+  recipient_user_id: string;
+  accepted_at: string;
+  created_at: string;
+};
+
+type CounselInvitePreviewPayload = {
+  invite: {
+    contactId: string;
+    acceptanceId?: string;
+    name: string;
+    role: string;
+    avatarUrl: string | null;
+    status: "pending" | "accepted";
+    acceptedAt: string | null;
+    permissions: {
+      canViewSummaries: boolean;
+      canCommentOnDecisions: boolean;
+      canReceiveCheckins: boolean;
+    };
+  };
+  sharedDecisions: Array<{
+    id: string;
+    title: string;
+    mode: string;
+    status: string;
+    readiness: number;
+    summary: string | null;
+    waitingUntil: string | null;
+    sharedAt: string;
+    comments: Array<{ id: string; body: string; createdAt: string }>;
+  }>;
+};
+
+async function sharedDecisions(contactId: string) {
+  return many<SharedDecisionRow>(
+    `SELECT d.id, d.title, d.mode, d.status, d.readiness, d.summary, d.waiting_until, s.created_at AS shared_at
+     FROM counsel_shared_decisions s
+     JOIN wisdom_decisions d ON d.id = s.decision_id
+     WHERE s.contact_id = ?
+     ORDER BY s.created_at DESC
+     LIMIT 20`,
+    contactId
+  );
+}
+
+async function comments(contactId: string) {
+  return many<CommentRow>(
+    `SELECT id, decision_id, body, created_at
+     FROM counsel_comments
+     WHERE contact_id = ?
+     ORDER BY created_at DESC
+     LIMIT 50`,
+    contactId
+  );
+}
+
+async function receivedInvitePreviews(userId: string) {
+  const acceptedRows = await many<ReceivedInviteRow>(
+    `SELECT a.id, a.invite_token_hash, a.contact_id, a.recipient_user_id, a.accepted_at, a.created_at
+     FROM counsel_invite_acceptances a
+     WHERE a.recipient_user_id = ?
+     ORDER BY a.accepted_at DESC`,
+    userId
+  );
+
+  if (!acceptedRows.length) {
+    return [];
+  }
+
+  const contactIds = acceptedRows.map((row) => row.contact_id);
+  const placeholders = contactIds.map(() => "?").join(",");
+  const contacts = await many<CounselRow>(
+    `SELECT id, name, role, avatar_url, contact, notes, invite_status, can_view_summaries,
+            can_comment_on_decisions, can_receive_checkins, accepted_at, created_at
+     FROM counsel_contacts
+     WHERE id IN (${placeholders})`,
+    ...contactIds
+  );
+  const contactsById = new Map(contacts.map((contact) => [contact.id, contact]));
+
+  const inviteRows = await Promise.all(
+    acceptedRows.map(async (row) => {
+      const contact = contactsById.get(row.contact_id);
+      if (!contact) {
+        return null;
+      }
+      const [decisionRows, commentRows] = await Promise.all([sharedDecisions(contact.id), comments(contact.id)]);
+      return {
+        invite: {
+          contactId: contact.id,
+          acceptanceId: row.id,
+          name: contact.name,
+          role: contact.role,
+          avatarUrl: contact.avatar_url,
+          status: "accepted" as const,
+          acceptedAt: row.accepted_at,
+          permissions: {
+            canViewSummaries: contact.can_view_summaries,
+            canCommentOnDecisions: contact.can_comment_on_decisions,
+            canReceiveCheckins: contact.can_receive_checkins,
+          },
+        },
+        sharedDecisions: decisionRows.map((decision) => ({
+          id: decision.id,
+          title: decision.title,
+          mode: decision.mode,
+          status: decision.status,
+          readiness: decision.readiness,
+          summary: decision.summary,
+          waitingUntil: decision.waiting_until,
+          sharedAt: decision.shared_at,
+          comments: commentRows
+            .filter((comment) => comment.decision_id === decision.id)
+            .map((comment) => ({
+              id: comment.id,
+              body: comment.body,
+              createdAt: comment.created_at,
+            })),
+        })),
+      } satisfies CounselInvitePreviewPayload;
+    })
+  );
+
+  return inviteRows.filter(Boolean) as CounselInvitePreviewPayload[];
+}
+
 export async function GET() {
   const user = await getCurrentUser();
   if (!user) {
-    return NextResponse.json({ contacts: [] });
+    return NextResponse.json({ contacts: [], receivedInvites: [] });
   }
+
+  await ensureCounselInviteAcceptanceSchema();
 
   const contacts = await many<CounselRow>(
     `SELECT id, name, role, avatar_url, contact, notes, invite_status, can_view_summaries,
@@ -37,6 +187,7 @@ export async function GET() {
      ORDER BY created_at DESC`,
     user.id
   );
+  const receivedInvites = await receivedInvitePreviews(user.id);
 
   return NextResponse.json({
     contacts: contacts.map((contact) => ({
@@ -53,6 +204,7 @@ export async function GET() {
       acceptedAt: contact.accepted_at,
       createdAt: contact.created_at,
     })),
+    receivedInvites,
   });
 }
 
@@ -61,6 +213,8 @@ export async function POST(request: Request) {
   if (!user) {
     return apiError(401, "sign_in_required", "Sign in to save your counsel circle.");
   }
+
+  await ensureCounselInviteAcceptanceSchema();
 
   const body = (await request.json()) as {
     name?: string;

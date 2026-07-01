@@ -255,18 +255,6 @@ export async function POST(request: Request, { params }: Params) {
   }
 
   const now = new Date().toISOString();
-  if (action === "accept" && circle.invite_status !== "accepted") {
-    await run(
-      "UPDATE challenge_circles SET invite_status = ?, accepted_at = ?, updated_at = ? WHERE id = ?",
-      "accepted",
-      now,
-      now,
-      circle.id
-    );
-    circle.invite_status = "accepted";
-    circle.accepted_at = now;
-  }
-
   await run(
     `INSERT INTO challenge_circle_invite_responses (id, circle_id, user_id, response_status, responded_at, updated_at)
      VALUES (?, ?, ?, ?, ?, ?)

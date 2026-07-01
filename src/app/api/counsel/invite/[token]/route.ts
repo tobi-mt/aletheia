@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { apiError } from "@/lib/api-errors";
-import { hashCounselInviteToken } from "@/lib/counsel-invites";
-import { many, one, run } from "@/lib/db";
+import { ensureCounselInviteAcceptanceSchema, hashCounselInviteToken } from "@/lib/counsel-invites";
+import { many, one, withDbClient } from "@/lib/db";
 
 type Params = { params: Promise<{ token: string }> };
 
@@ -72,6 +72,7 @@ async function comments(contactId: string) {
 function publicPayload(contact: ContactRow, decisions: SharedDecisionRow[], commentRows: CommentRow[]) {
   return {
     invite: {
+      contactId: contact.id,
       name: contact.name,
       role: contact.role,
       avatarUrl: contact.avatar_url,
@@ -105,6 +106,7 @@ function publicPayload(contact: ContactRow, decisions: SharedDecisionRow[], comm
 
 export async function GET(_request: Request, { params }: Params) {
   const { token } = await params;
+  await ensureCounselInviteAcceptanceSchema();
   const contact = await findContact(token);
   if (!contact) {
     return apiError(404, "not_found", "Invite not found.");
@@ -121,23 +123,45 @@ export async function POST(_request: Request, { params }: Params) {
   if (!user) {
     return apiError(401, "sign_in_required", "Sign in to accept the counsel invite.");
   }
+  await ensureCounselInviteAcceptanceSchema();
   const contact = await findContact(token);
   if (!contact) {
     return apiError(404, "not_found", "Invite not found.");
   }
 
   const now = new Date().toISOString();
-  if (contact.invite_status !== "accepted") {
-    await run(
-      "UPDATE counsel_contacts SET invite_status = ?, accepted_at = ?, updated_at = ? WHERE id = ?",
-      "accepted",
-      now,
-      now,
-      contact.id
-    );
-    contact.invite_status = "accepted";
-    contact.accepted_at = now;
-  }
+  await withDbClient("accept counsel invite", async (client) => {
+    await client.query("BEGIN");
+
+    try {
+      if (contact.invite_status !== "accepted") {
+        await client.query(
+          "UPDATE counsel_contacts SET invite_status = $1, accepted_at = $2, updated_at = $3 WHERE id = $4",
+          ["accepted", now, now, contact.id]
+        );
+        contact.invite_status = "accepted";
+        contact.accepted_at = now;
+      }
+
+      await client.query(
+        `INSERT INTO counsel_invite_acceptances (
+          id, invite_token_hash, contact_id, recipient_user_id, accepted_at, created_at, updated_at
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        ON CONFLICT (contact_id, recipient_user_id)
+        DO UPDATE SET
+          invite_token_hash = EXCLUDED.invite_token_hash,
+          accepted_at = EXCLUDED.accepted_at,
+          updated_at = EXCLUDED.updated_at`,
+        [crypto.randomUUID(), hashCounselInviteToken(token), contact.id, user.id, now, now, now]
+      );
+
+      await client.query("COMMIT");
+    } catch (error) {
+      await client.query("ROLLBACK").catch(() => undefined);
+      throw error;
+    }
+  });
 
   const decisions = await sharedDecisions(contact.id);
   const commentRows = await comments(contact.id);
