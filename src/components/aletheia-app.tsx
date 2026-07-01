@@ -26709,15 +26709,21 @@ function CurrentCounselCard({
   const CurrentLensIcon = currentModeCard.icon;
 
   return (
-      <section className="rounded-[1.5rem] border p-4 shadow-[0_8px_24px_rgba(15,23,42,0.05)] sm:p-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-        <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <p className="min-w-0 text-[10px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.accentGold }}>
+      <section className="relative rounded-[1.5rem] border p-4 shadow-[0_8px_24px_rgba(15,23,42,0.05)] sm:p-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+        <div className="mb-4 pr-14 sm:pr-16">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.accentGold }}>
             {text.currentCounsel ?? ts('currentCounsel')}
           </p>
-        <span className="self-start rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ borderColor: theme.borderLight, backgroundColor: isThinking || isWorking ? theme.bgCardElevated : theme.bgInput, color: isThinking || isWorking ? theme.accentGold : theme.textSecondary }}>
-          {isThinking || isWorking ? "..." : ui.ready}
+        </div>
+        <span
+          className="absolute right-4 top-4 grid size-8 shrink-0 place-items-center rounded-[0.8rem] border shadow-sm"
+          style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}
+          aria-label={`${ui.currentLens}: ${lensLabel}`}
+          title={`${ui.currentLens}: ${lensLabel}`}
+        >
+          <CurrentLensIcon size={15} aria-hidden="true" />
+          <span className="sr-only">{`${ui.currentLens}: ${lensLabel}`}</span>
         </span>
-      </div>
       {question ? (
         <div className="relative rounded-[1.25rem] border p-3.5 pr-14 sm:p-4 sm:pr-16" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>{ui.yourQuestion}</p>
@@ -26726,25 +26732,25 @@ function CurrentCounselCard({
           </p>
         </div>
       ) : null}
-      <article className="relative mt-3.5 rounded-[1.25rem] border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+      <article className="mt-3.5 rounded-[1.25rem] border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
         {preferences.voiceEnabled && !isThinking ? (
           <div className="flex flex-col items-center gap-2">
-            <span
-              className="inline-flex h-7 min-w-[6.5rem] items-center justify-center whitespace-nowrap text-center text-[11px] leading-none tabular-nums sm:min-w-[7.5rem]"
-              style={{ color: theme.textMuted }}
-              aria-live="polite"
-            >
-              {speechLoading ? (
-                <span className="font-semibold animate-pulse">
-                  {ts('status.preparingAudio')}
-                </span>
-              ) : isSpeaking && speechProgress > 0 ? (
-                <span>{speechProgress}%</span>
-              ) : (
-                <span aria-hidden="true">&nbsp;</span>
-              )}
-            </span>
-            <div className="flex flex-wrap items-center justify-center gap-2">
+            {speechLoading || (isSpeaking && speechProgress > 0) ? (
+              <span
+                className="inline-flex min-h-5 items-center justify-center whitespace-nowrap text-center text-[11px] leading-none tabular-nums"
+                style={{ color: theme.textMuted }}
+                aria-live="polite"
+              >
+                {speechLoading ? (
+                  <span className="font-semibold animate-pulse">
+                    {ts('status.preparingAudio')}
+                  </span>
+                ) : (
+                  <span>{speechProgress}%</span>
+                )}
+              </span>
+            ) : null}
+            <div className="flex w-full flex-wrap items-center justify-center gap-2">
               <button
                 type="button"
                 onClick={onSpeak}
@@ -26772,15 +26778,6 @@ function CurrentCounselCard({
             </div>
           </div>
         ) : null}
-        <span
-          className="absolute right-3 top-3 grid size-8 shrink-0 place-items-center rounded-[0.8rem] border shadow-sm"
-          style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}
-          aria-label={`${ui.currentLens}: ${lensLabel}`}
-          title={`${ui.currentLens}: ${lensLabel}`}
-        >
-          <CurrentLensIcon size={15} aria-hidden="true" />
-          <span className="sr-only">{`${ui.currentLens}: ${lensLabel}`}</span>
-        </span>
         <div className="calm-prose mt-3" style={{ color: theme.textPrimary }}>
           <ScriptureLinkedText
             theme={theme}
