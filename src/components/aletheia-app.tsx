@@ -25550,8 +25550,8 @@ function CompanionPanel({
         onScriptureOpen={onScriptureOpen}
       />
       <section id="companion-ask" ref={panelRef} className="min-w-0 scroll-mt-24 overflow-hidden rounded-[1.4rem] border shadow-[0_18px_45px_rgba(33,58,53,0.08)]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
-        <div className="flex flex-col gap-2.5 border-b px-4 py-4 sm:px-5 sm:py-5 md:flex-row md:items-center md:justify-between" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
-          <div className="relative">
+        <div className="relative flex flex-col gap-2.5 border-b px-4 py-4 sm:px-5 sm:py-5 md:flex-row md:items-center md:justify-between" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
+          <div className="relative pr-14 sm:pr-16">
             <div className="flex items-center gap-2 text-[1.02rem] font-semibold tracking-[-0.02em] sm:text-[1.08rem]" style={{ color: theme.textPrimary }}>
               <MessageCircle size={17} />
               {ui.askTitle}
@@ -25562,27 +25562,19 @@ function CompanionPanel({
               </p>
             </div>
           </div>
+          <span
+            className="absolute right-4 top-4 grid size-11 shrink-0 place-items-center rounded-[1rem] border-2 shadow-[0_8px_18px_rgba(7,10,8,0.05)] sm:right-5 sm:top-5"
+            style={{ borderColor: theme.primary, backgroundColor: theme.bgCardElevated, color: theme.primary }}
+            aria-label={`${ui.currentLens}: ${localizedModeLabel(mode, preferences.language)}`}
+            title={`${ui.currentLens}: ${localizedModeLabel(mode, preferences.language)}`}
+          >
+            <CurrentLensIcon size={18} aria-hidden="true" />
+            <span className="sr-only">{`${ui.currentLens}: ${localizedModeLabel(mode, preferences.language)}`}</span>
+          </span>
         </div>
 
         <form onSubmit={onAsk} className="p-4 sm:p-6" style={{ backgroundColor: theme.bgMain + 'E0' }}>
           <div className="space-y-5">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0 flex-1">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.accentGold }}>
-                  {ui.yourQuestion}
-                </p>
-              </div>
-              <span
-                className="grid size-11 shrink-0 place-items-center rounded-[1rem] border-2 shadow-[0_8px_18px_rgba(7,10,8,0.05)]"
-                style={{ borderColor: theme.primary, backgroundColor: theme.bgCardElevated, color: theme.primary }}
-                aria-label={`${ui.currentLens}: ${localizedModeLabel(mode, preferences.language)}`}
-                title={`${ui.currentLens}: ${localizedModeLabel(mode, preferences.language)}`}
-              >
-                <CurrentLensIcon size={18} aria-hidden="true" />
-                <span className="sr-only">{`${ui.currentLens}: ${localizedModeLabel(mode, preferences.language)}`}</span>
-              </span>
-            </div>
-
             <div className="rounded-[1.35rem] border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
               <div className="flex min-w-0 snap-x gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]" aria-label={ui.currentLens}>
                 {modeCards.map((item) => (
@@ -25597,21 +25589,26 @@ function CompanionPanel({
               </div>
             </div>
 
-            <textarea
-              id="companion-question-input"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder={`${copy.askPlaceholder} ${(focusLabels[0] ?? modeProfile.focus).toLowerCase()}...`}
-              className="min-h-44 w-full resize-none rounded-[1.4rem] border-2 px-4 py-4 text-[1rem] leading-7 outline-none transition placeholder:text-[0.96rem] sm:min-h-48 sm:text-sm"
-              style={{
-                borderColor: theme.borderStrong,
-                backgroundColor: theme.bgInput,
-                color: theme.textPrimary,
-                boxShadow: `0 10px 22px color-mix(in srgb, ${theme.primary} 8%, transparent)`,
-              }}
-              onFocus={(e) => e.currentTarget.style.borderColor = theme.primary}
-              onBlur={(e) => e.currentTarget.style.borderColor = theme.borderStrong}
-            />
+            <div className="space-y-2">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.accentGold }}>
+                {ui.yourQuestion}
+              </p>
+              <textarea
+                id="companion-question-input"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder={`${copy.askPlaceholder} ${(focusLabels[0] ?? modeProfile.focus).toLowerCase()}...`}
+                className="min-h-44 w-full resize-none rounded-[1.4rem] border-2 px-4 py-4 text-[1rem] leading-7 outline-none transition placeholder:text-[0.96rem] sm:min-h-48 sm:text-sm"
+                style={{
+                  borderColor: theme.borderStrong,
+                  backgroundColor: theme.bgInput,
+                  color: theme.textPrimary,
+                  boxShadow: `0 10px 22px color-mix(in srgb, ${theme.primary} 8%, transparent)`,
+                }}
+                onFocus={(e) => e.currentTarget.style.borderColor = theme.primary}
+                onBlur={(e) => e.currentTarget.style.borderColor = theme.borderStrong}
+              />
+            </div>
 
             <div className="flex items-stretch gap-2">
               {preferences.voiceEnabled ? (
