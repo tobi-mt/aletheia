@@ -95,6 +95,7 @@ import { analyticsQuestionMetadata } from "@/lib/analytics-taxonomy";
 import { decisionStartedDiscerningBody, decisionTimelineObservation, localizeDecisionEventBody } from "@/lib/decision-copy";
 import { curatedAvatarOptions, defaultAvatarDataUrl, normalizeAvatarUrl } from "@/lib/avatars";
 import { challengeInviteAppUrl as buildChallengeInviteAppUrl, challengeInviteUrl as buildChallengeInviteUrl } from "@/lib/challenge-circles";
+import { counselInviteAppUrl as buildCounselInviteAppUrl, counselInviteUrl as buildCounselInviteUrl } from "@/lib/counsel-invite-links";
 import {
   defaultReadWithMeInviteDetails,
   formatReadWithMeDurationLabel,
@@ -112,7 +113,6 @@ import {
   normalizeFastingInviteDetails,
   type FastingInviteDetails,
 } from "@/lib/fasting-invite";
-import { counselInviteAppUrl as buildCounselInviteAppUrl, counselInviteUrl as buildCounselInviteUrl } from "@/lib/counsel-invites";
 import type { ChallengeRecommendationBundle } from "@/lib/challenge-recommendations";
 import { BUILD_ID, SERVICE_WORKER_URL } from "@/lib/build-version";
 import { loadTranslationsSync, loadTranslationsWithFallbackSync, getTranslation, type TranslationData } from "@/lib/translations";
@@ -18705,13 +18705,13 @@ function FormationRailSection({
                       </div>
 
                       {counselContacts.length ? (
-                        <div className="flex flex-wrap gap-2">
+                        <RailButtonTray theme={theme} label={ts("labels.counselContacts")}>
                           {counselContacts.slice(0, 8).map((contact) => (
                             <button
                               key={contact.id}
                               type="button"
                               onClick={() => addContactToRecipientDraft(contact)}
-                              className="inline-flex items-center gap-2 rounded-full border px-2.5 py-1.5 text-xs font-semibold transition"
+                              className="inline-flex shrink-0 snap-start items-center gap-2 whitespace-nowrap rounded-full border px-2.5 py-1.5 text-xs font-semibold transition"
                               style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
                             >
                               <span>{contact.name}</span>
@@ -18720,7 +18720,7 @@ function FormationRailSection({
                               </span>
                             </button>
                           ))}
-                        </div>
+                        </RailButtonTray>
                       ) : null}
 
                       {readWithMeInviteDraft.recipients.length ? (
@@ -22370,10 +22370,10 @@ function AvatarStudioCard({
             </button>
           </div>
         ) : null}
-        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+        <RailButtonTray theme={theme} label={ts('avatar.choosePhoto')}>
           <button
             type="button"
-            className="h-11 w-full rounded-full border px-4 text-sm font-semibold sm:w-auto"
+            className="h-11 shrink-0 snap-start whitespace-nowrap rounded-full border px-4 text-sm font-semibold"
             style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
             onClick={() => {
               if (avatarTipsOptOut) {
@@ -22386,10 +22386,18 @@ function AvatarStudioCard({
           >
             {ts('avatar.choosePhoto')}
           </button>
-          <button type="button" className="h-11 w-full rounded-full border px-4 text-sm font-semibold sm:w-auto" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={() => setAvatarPickerOpen(true)} disabled={savingAvatar}>{ts('avatar.pickFunAvatar')}</button>
           <button
             type="button"
-            className="h-11 w-full rounded-full border px-4 text-sm font-semibold sm:w-auto"
+            className="h-11 shrink-0 snap-start whitespace-nowrap rounded-full border px-4 text-sm font-semibold"
+            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+            onClick={() => setAvatarPickerOpen(true)}
+            disabled={savingAvatar}
+          >
+            {ts('avatar.pickFunAvatar')}
+          </button>
+          <button
+            type="button"
+            className="h-11 shrink-0 snap-start whitespace-nowrap rounded-full border px-4 text-sm font-semibold"
             style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
             onClick={() => {
               const available = curatedAvatarOptions.filter((option) => (normalizeAvatarUrl(option.src) ?? option.src) !== canonicalDraft);
@@ -22403,15 +22411,23 @@ function AvatarStudioCard({
           >
             {ts('avatar.surpriseMe')}
           </button>
-          <button type="button" className="h-11 w-full rounded-full border px-4 text-sm font-semibold sm:w-auto" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={() => {
-            void applyAvatarChoice("", ts('avatar.restoringDefault'), ts('avatar.defaultApplied'), "default");
-          }} disabled={savingAvatar}>{ts('avatar.useDefault')}</button>
+          <button
+            type="button"
+            className="h-11 shrink-0 snap-start whitespace-nowrap rounded-full border px-4 text-sm font-semibold"
+            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+            onClick={() => {
+              void applyAvatarChoice("", ts('avatar.restoringDefault'), ts('avatar.defaultApplied'), "default");
+            }}
+            disabled={savingAvatar}
+          >
+            {ts('avatar.useDefault')}
+          </button>
           {savingAvatar ? (
-            <span className="col-span-2 flex h-11 items-center rounded-full px-4 text-sm font-semibold sm:col-span-1" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+            <span className="inline-flex h-11 shrink-0 items-center rounded-full px-4 text-sm font-semibold" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>
               {ts('labels.applying')}
             </span>
           ) : null}
-        </div>
+        </RailButtonTray>
       </div>
       <AvatarPickerModal
         theme={theme}
@@ -23123,12 +23139,12 @@ function ScriptureModal({
                 </>
               )}
             </div>
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-[auto_auto_auto] sm:justify-end sm:gap-2">
+            <RailButtonTray theme={theme} label={ts('labels.scriptureQuickRead')}>
               <button
                 type="button"
                 onClick={onReadAloud}
                 disabled={speechLoading}
-                className="inline-flex h-10 items-center justify-center gap-2 rounded-full border px-4 text-xs font-semibold transition sm:justify-start"
+                className="inline-flex h-10 shrink-0 snap-start items-center justify-center gap-2 whitespace-nowrap rounded-full border px-4 text-xs font-semibold transition"
                 style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textPrimary, opacity: speechLoading ? 0.62 : 1 }}
               >
                 <Volume2 size={15} />
@@ -23140,7 +23156,7 @@ function ScriptureModal({
                 <button
                   type="button"
                   onClick={() => setView("deep")}
-                  className="inline-flex h-10 items-center justify-center rounded-full border px-4 text-xs font-semibold transition"
+                  className="inline-flex h-10 shrink-0 snap-start items-center justify-center whitespace-nowrap rounded-full border px-4 text-xs font-semibold transition"
                   style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
                 >
                   {studyModeButton}
@@ -23149,7 +23165,7 @@ function ScriptureModal({
                 <button
                   type="button"
                   onClick={() => setView("quick")}
-                  className="inline-flex h-10 items-center justify-center rounded-full border px-4 text-xs font-semibold transition"
+                  className="inline-flex h-10 shrink-0 snap-start items-center justify-center whitespace-nowrap rounded-full border px-4 text-xs font-semibold transition"
                   style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
                 >
                   {backToQuickRead}
@@ -23158,18 +23174,18 @@ function ScriptureModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="grid h-10 w-full place-items-center rounded-full border transition sm:size-10 sm:w-10"
+                className="grid h-10 w-10 shrink-0 snap-start place-items-center rounded-full border transition"
                 style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
                 aria-label={ts('labels.closeScriptureQuickRead')}
               >
                 <X size={17} />
               </button>
-              {speechLoading ? (
-                <p className="text-[0.72rem] font-semibold sm:col-span-3" style={{ color: theme.textMuted }}>
-                  {ts('status.preparingAudio')}
-                </p>
-              ) : null}
-            </div>
+            </RailButtonTray>
+            {speechLoading ? (
+              <p className="mt-2 text-[0.72rem] font-semibold" style={{ color: theme.textMuted }}>
+                {ts('status.preparingAudio')}
+              </p>
+            ) : null}
           </div>
         </div>
         <div ref={contentRef} className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
@@ -24372,17 +24388,17 @@ function CounselInviteModal({
                       </a>
                     ) : null}
                   </div>
-                    <div className="flex flex-wrap gap-2">
-                      <button className="h-10 rounded-full px-4 text-sm font-semibold" style={{ backgroundColor: authMode === "login" ? theme.primary : theme.bgInput, color: authMode === "login" ? theme.textOnPrimary : theme.textPrimary, borderColor: theme.borderMedium, borderStyle: "solid", borderWidth: authMode === "login" ? 0 : 1 }} onClick={() => setAuthMode("login")}>
+                    <RailButtonTray theme={theme} label={ts("auth.signInForSync")}>
+                      <button className="h-10 shrink-0 snap-start whitespace-nowrap rounded-full px-4 text-sm font-semibold" style={{ backgroundColor: authMode === "login" ? theme.primary : theme.bgInput, color: authMode === "login" ? theme.textOnPrimary : theme.textPrimary, borderColor: theme.borderMedium, borderStyle: "solid", borderWidth: authMode === "login" ? 0 : 1 }} onClick={() => setAuthMode("login")}>
                         {ts("auth.signIn")}
                       </button>
-                      <button className="h-10 rounded-full px-4 text-sm font-semibold" style={{ backgroundColor: authMode === "register" ? theme.primary : theme.bgInput, color: authMode === "register" ? theme.textOnPrimary : theme.textPrimary, borderColor: theme.borderMedium, borderStyle: "solid", borderWidth: authMode === "register" ? 0 : 1 }} onClick={() => setAuthMode("register")}>
+                      <button className="h-10 shrink-0 snap-start whitespace-nowrap rounded-full px-4 text-sm font-semibold" style={{ backgroundColor: authMode === "register" ? theme.primary : theme.bgInput, color: authMode === "register" ? theme.textOnPrimary : theme.textPrimary, borderColor: theme.borderMedium, borderStyle: "solid", borderWidth: authMode === "register" ? 0 : 1 }} onClick={() => setAuthMode("register")}>
                         {ts("auth.createNewAccount")}
                       </button>
-                      <button className="h-10 rounded-full border px-4 text-sm font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={onCloseAuth}>
+                      <button className="h-10 shrink-0 snap-start whitespace-nowrap rounded-full border px-4 text-sm font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={onCloseAuth}>
                         {ts("labels.cancel")}
                       </button>
-                    </div>
+                    </RailButtonTray>
                     {googleAuthAvailable ? (
                       <button className="h-11 w-full rounded-full border px-4 text-sm font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} disabled={authBusy} onClick={onGoogleSignIn}>
                         {authStatus === "signing-in" ? ts("auth.openingGoogle") : ts("auth.continueWithGoogle")}
@@ -24467,16 +24483,16 @@ function CounselInviteModal({
                         {ts("labels.openInApp")}
                       </a>
                     ) : null}
-                    <div className="flex flex-wrap gap-2">
-                      <button className="h-11 rounded-full px-4 text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }} onClick={onRequestSignIn}>
+                    <RailButtonTray theme={theme} label={ts("auth.signInForSync")}>
+                      <button className="h-11 shrink-0 snap-start whitespace-nowrap rounded-full px-4 text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }} onClick={onRequestSignIn}>
                         {ts("auth.signInForSync")}
                       </button>
                       {googleAuthAvailable ? (
-                        <button className="h-11 rounded-full border px-4 text-sm font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={onGoogleSignIn}>
+                        <button className="h-11 shrink-0 snap-start whitespace-nowrap rounded-full border px-4 text-sm font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={onGoogleSignIn}>
                           {ts("auth.continueWithGoogle")}
                         </button>
                       ) : null}
-                    </div>
+                    </RailButtonTray>
                   </div>
                 )
               ) : (
@@ -24779,56 +24795,56 @@ function ChallengeInviteModal({
             <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
               {details.kind === "fasting" ? ts("challenges.fastingCustom.previewTitle") : ts("challenges.readWithMeInviteDetails")}
             </p>
-            <div className="mt-3 flex flex-wrap gap-2">
+            <RailButtonTray theme={theme} label={details.kind === "fasting" ? ts("challenges.fastingCustom.previewTitle") : ts("challenges.readWithMeInviteDetails")}>
               {details.kind === "fasting" ? (
                 <>
-                  <span className="rounded-full border px-2.5 py-1 text-[11px] font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}>
+                  <span className="shrink-0 whitespace-nowrap rounded-full border px-2.5 py-1 text-[11px] font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}>
                     {ts("labels.duration")}: {detailSummaryDuration || ts("labels.notSet")}
                   </span>
-                  <span className="rounded-full border px-2.5 py-1 text-[11px] font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}>
+                  <span className="shrink-0 whitespace-nowrap rounded-full border px-2.5 py-1 text-[11px] font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}>
                     {ts("labels.goal")}: {details.goal || ts("labels.notSet")}
                   </span>
-                  <span className="rounded-full border px-2.5 py-1 text-[11px] font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}>
+                  <span className="shrink-0 whitespace-nowrap rounded-full border px-2.5 py-1 text-[11px] font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}>
                     {ts("labels.startDate")}: {detailSummaryStartDate || details.startDate || ts("labels.notSet")}
                   </span>
                 </>
               ) : (
                 <>
-                  <span className="rounded-full border px-2.5 py-1 text-[11px] font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}>
+                  <span className="shrink-0 whitespace-nowrap rounded-full border px-2.5 py-1 text-[11px] font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}>
                     {ts("labels.bookTitle")}: {details.bookTitle || ts("labels.notSet")}
                   </span>
-                  <span className="rounded-full border px-2.5 py-1 text-[11px] font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}>
+                  <span className="shrink-0 whitespace-nowrap rounded-full border px-2.5 py-1 text-[11px] font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}>
                     {ts("labels.duration")}: {detailSummaryDuration || ts("labels.notSet")}
                   </span>
-                  <span className="rounded-full border px-2.5 py-1 text-[11px] font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}>
+                  <span className="shrink-0 whitespace-nowrap rounded-full border px-2.5 py-1 text-[11px] font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}>
                     {ts("labels.startDate")}: {detailSummaryStartDate || details.startDate || ts("labels.notSet")}
                   </span>
                   {details.author ? (
-                    <span className="rounded-full border px-2.5 py-1 text-[11px] font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}>
+                    <span className="shrink-0 whitespace-nowrap rounded-full border px-2.5 py-1 text-[11px] font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}>
                       {ts("labels.author")}: {details.author}
                     </span>
                   ) : null}
                   {details.edition ? (
-                    <span className="rounded-full border px-2.5 py-1 text-[11px] font-medium" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textSecondary }}>
+                    <span className="shrink-0 whitespace-nowrap rounded-full border px-2.5 py-1 text-[11px] font-medium" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textSecondary }}>
                       {details.edition}
                     </span>
                   ) : null}
                 </>
               )}
-            </div>
+            </RailButtonTray>
             {details.kind === "fasting" ? null : details.cadence || details.focus ? (
-              <div className="mt-2 flex flex-wrap gap-2">
+              <RailButtonTray theme={theme} label={ts("labels.details")}>
                 {details.cadence ? (
-                  <span className="rounded-full border px-2.5 py-1 text-[11px] font-medium" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textSecondary }}>
+                  <span className="shrink-0 whitespace-nowrap rounded-full border px-2.5 py-1 text-[11px] font-medium" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textSecondary }}>
                     {details.cadence}
                   </span>
                 ) : null}
                 {details.focus ? (
-                  <span className="rounded-full border px-2.5 py-1 text-[11px] font-medium" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textSecondary }}>
+                  <span className="shrink-0 whitespace-nowrap rounded-full border px-2.5 py-1 text-[11px] font-medium" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textSecondary }}>
                     {details.focus}
                   </span>
                 ) : null}
-              </div>
+              </RailButtonTray>
             ) : null}
             {details.kind === "fasting" && details.note ? (
               <p className="mt-2 text-sm leading-6 italic" style={{ color: theme.textSecondary }}>
@@ -24856,9 +24872,9 @@ function ChallengeInviteModal({
 
         <div className="mt-3.5 rounded-2xl border p-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
           <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{ts("challenges.sharedProgress")}</p>
-          <div className="mt-3 flex flex-wrap gap-2">
+          <RailButtonTray theme={theme} label={ts("challenges.sharedProgress")}>
             {challenge.members.map((member) => (
-              <div key={member.userId} className="flex items-center gap-2 rounded-full border px-2.5 py-1.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput }}>
+              <div key={member.userId} className="flex shrink-0 snap-start items-center gap-2 whitespace-nowrap rounded-full border px-2.5 py-1.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput }}>
                 <AvatarCircle
                   avatarUrl={member.avatarUrl}
                   seed={member.userId}
@@ -24874,7 +24890,7 @@ function ChallengeInviteModal({
                 </span>
               </div>
             ))}
-          </div>
+          </RailButtonTray>
         </div>
 
         {accepted ? (
@@ -24923,11 +24939,11 @@ function ChallengeInviteModal({
               </form>
             ) : null}
 
-            <div className="flex flex-wrap gap-2">
+            <RailButtonTray theme={theme} label={ts("challenges.viewInvite")}>
               <button
                 type="button"
                 onClick={onClose}
-                className="inline-flex h-10 items-center justify-center rounded-full border px-4 text-sm font-semibold transition"
+                className="inline-flex h-10 shrink-0 snap-start items-center justify-center whitespace-nowrap rounded-full border px-4 text-sm font-semibold transition"
                 style={{ borderColor: theme.primary, backgroundColor: theme.primary, color: theme.textOnPrimary }}
               >
                 {ts("labels.viewInvite")}
@@ -24935,12 +24951,12 @@ function ChallengeInviteModal({
               <button
                 type="button"
                 onClick={onDecline}
-                className="inline-flex h-10 items-center justify-center rounded-full border px-4 text-sm font-semibold transition"
+                className="inline-flex h-10 shrink-0 snap-start items-center justify-center whitespace-nowrap rounded-full border px-4 text-sm font-semibold transition"
                 style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
               >
                 {ts("challenges.leaveInvite")}
               </button>
-            </div>
+            </RailButtonTray>
           </div>
         ) : (
           <div className="mt-3.5 space-y-3 rounded-2xl border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
@@ -24970,17 +24986,17 @@ function ChallengeInviteModal({
                       </a>
                     ) : null}
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    <button className="h-10 rounded-full px-4 text-sm font-semibold" style={{ backgroundColor: authMode === "login" ? theme.primary : theme.bgInput, color: authMode === "login" ? theme.textOnPrimary : theme.textPrimary, borderColor: theme.borderMedium, borderStyle: "solid", borderWidth: authMode === "login" ? 0 : 1 }} onClick={() => setAuthMode("login")}>
+                  <RailButtonTray theme={theme} label={ts("auth.signInForSync")}>
+                    <button className="h-10 shrink-0 snap-start whitespace-nowrap rounded-full px-4 text-sm font-semibold" style={{ backgroundColor: authMode === "login" ? theme.primary : theme.bgInput, color: authMode === "login" ? theme.textOnPrimary : theme.textPrimary, borderColor: theme.borderMedium, borderStyle: "solid", borderWidth: authMode === "login" ? 0 : 1 }} onClick={() => setAuthMode("login")}>
                       {ts("auth.signIn")}
                     </button>
-                    <button className="h-10 rounded-full px-4 text-sm font-semibold" style={{ backgroundColor: authMode === "register" ? theme.primary : theme.bgInput, color: authMode === "register" ? theme.textOnPrimary : theme.textPrimary, borderColor: theme.borderMedium, borderStyle: "solid", borderWidth: authMode === "register" ? 0 : 1 }} onClick={() => setAuthMode("register")}>
+                    <button className="h-10 shrink-0 snap-start whitespace-nowrap rounded-full px-4 text-sm font-semibold" style={{ backgroundColor: authMode === "register" ? theme.primary : theme.bgInput, color: authMode === "register" ? theme.textOnPrimary : theme.textPrimary, borderColor: theme.borderMedium, borderStyle: "solid", borderWidth: authMode === "register" ? 0 : 1 }} onClick={() => setAuthMode("register")}>
                       {ts("auth.createNewAccount")}
                     </button>
-                    <button className="h-10 rounded-full border px-4 text-sm font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={onCloseAuth}>
+                    <button className="h-10 shrink-0 snap-start whitespace-nowrap rounded-full border px-4 text-sm font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={onCloseAuth}>
                       {ts("labels.cancel")}
                     </button>
-                  </div>
+                  </RailButtonTray>
                   {googleAuthAvailable ? (
                     <button className="h-11 w-full rounded-full border px-4 text-sm font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} disabled={authBusy} onClick={onGoogleSignIn}>
                       {authStatus === "signing-in" ? ts('auth.openingGoogle') : ts('auth.continueWithGoogle')}
@@ -25068,16 +25084,16 @@ function ChallengeInviteModal({
                         {ts("labels.openInApp")}
                       </a>
                     ) : null}
-                    <div className="flex flex-wrap gap-2">
-                      <button className="h-11 rounded-full px-4 text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }} onClick={onRequestSignIn}>
+                    <RailButtonTray theme={theme} label={ts("auth.signInForSync")}>
+                      <button className="h-11 shrink-0 snap-start whitespace-nowrap rounded-full px-4 text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }} onClick={onRequestSignIn}>
                         {ts("auth.signInForSync")}
-                    </button>
-                    {googleAuthAvailable ? (
-                      <button className="h-11 rounded-full border px-4 text-sm font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={onGoogleSignIn}>
-                        {ts("auth.continueWithGoogle")}
                       </button>
-                    ) : null}
-                  </div>
+                      {googleAuthAvailable ? (
+                        <button className="h-11 shrink-0 snap-start whitespace-nowrap rounded-full border px-4 text-sm font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={onGoogleSignIn}>
+                          {ts("auth.continueWithGoogle")}
+                        </button>
+                      ) : null}
+                    </RailButtonTray>
                   {showOpenInApp ? (
                     <a
                       href={buildChallengeInviteAppUrl(inviteToken)}
@@ -25099,16 +25115,16 @@ function ChallengeInviteModal({
                 <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>
                   {declined ? ts("challenges.declinedInviteBody") : ts("challenges.joinPrompt")}
                 </p>
-                <div className="flex flex-wrap gap-2">
-                  <button className="h-11 rounded-full px-4 text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }} onClick={onAccept}>
+                <RailButtonTray theme={theme} label={ts("challenges.acceptInvite")}>
+                  <button className="h-11 shrink-0 snap-start whitespace-nowrap rounded-full px-4 text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }} onClick={onAccept}>
                     {declined ? ts("challenges.joinAnyway") : ts("challenges.acceptInvite")}
                   </button>
                   {!declined ? (
-                    <button className="h-11 rounded-full border px-4 text-sm font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={onDecline}>
+                    <button className="h-11 shrink-0 snap-start whitespace-nowrap rounded-full border px-4 text-sm font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={onDecline}>
                       {ts("challenges.declineInvite")}
                     </button>
                   ) : null}
-                </div>
+                </RailButtonTray>
                 {shareUrl ? (
                   <button className="h-11 rounded-full border px-4 text-sm font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={shareChallengeInvite}>
                     {ts("labels.copyLink")}
@@ -25119,14 +25135,14 @@ function ChallengeInviteModal({
           </div>
         )}
 
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
-          <button className="h-10 rounded-full border px-4 text-sm font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={shareChallengeInvite}>
+        <RailButtonTray theme={theme} label={ts("labels.shareInvite")}>
+          <button className="h-10 shrink-0 snap-start whitespace-nowrap rounded-full border px-4 text-sm font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={shareChallengeInvite}>
             {ts("labels.shareInvite")}
           </button>
-          <button className="h-10 rounded-full px-4 text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }} onClick={onClose}>
+          <button className="h-10 shrink-0 snap-start whitespace-nowrap rounded-full px-4 text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }} onClick={onClose}>
             {ts("labels.close")}
           </button>
-        </div>
+        </RailButtonTray>
       </section>
     </div>
   );
@@ -25555,29 +25571,21 @@ function CompanionPanel({
 
         <form onSubmit={onAsk} className="p-4 sm:p-6" style={{ backgroundColor: theme.bgMain + 'E0' }}>
           <div className="space-y-5">
-            <div className="flex flex-wrap items-start gap-3">
-              <div className="min-w-0">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.accentGold }}>
                   {ui.yourQuestion}
                 </p>
-                <div className="mt-2.5 flex flex-wrap items-center gap-2.5 rounded-[1.25rem] border-2 px-3.5 py-3 shadow-[0_8px_18px_rgba(7,10,8,0.05)]" style={{ borderColor: theme.primary, backgroundColor: theme.bgCardElevated }}>
-                  <span className="grid size-10 shrink-0 place-items-center rounded-[0.95rem]" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>
-                    <CurrentLensIcon size={18} />
-                  </span>
-                  <span className="min-w-0">
-                    <span className="block text-[0.66rem] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
-                      {ui.currentLens}
-                    </span>
-                    <span className="mt-0.5 flex min-w-0 items-center gap-2">
-                      <span className="truncate text-[1.02rem] font-semibold tracking-[-0.015em]" style={{ color: theme.textPrimary }}>
-                        {localizedModeLabel(mode, preferences.language)}
-                      </span>
-                      <Check className="shrink-0" size={16} style={{ color: theme.primary }} />
-                    </span>
-                  </span>
-                </div>
               </div>
-
+              <span
+                className="grid size-11 shrink-0 place-items-center rounded-[1rem] border-2 shadow-[0_8px_18px_rgba(7,10,8,0.05)]"
+                style={{ borderColor: theme.primary, backgroundColor: theme.bgCardElevated, color: theme.primary }}
+                aria-label={`${ui.currentLens}: ${localizedModeLabel(mode, preferences.language)}`}
+                title={`${ui.currentLens}: ${localizedModeLabel(mode, preferences.language)}`}
+              >
+                <CurrentLensIcon size={18} aria-hidden="true" />
+                <span className="sr-only">{`${ui.currentLens}: ${localizedModeLabel(mode, preferences.language)}`}</span>
+              </span>
             </div>
 
             <div className="rounded-[1.35rem] border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
@@ -25693,14 +25701,14 @@ function CompanionPanel({
                     {voiceDraft || (isListening ? ts('notifications.voiceInputListeningBody') : "")}
                   </p>
                   {!isListening && voiceDraft ? (
-                    <div className="mt-2 flex flex-wrap gap-2">
+                    <RailButtonTray theme={theme} label={ts('labels.voiceTranscription')}>
                       <button
                         type="button"
                         onClick={() => {
                           setQuery([query.trim(), voiceDraft].filter(Boolean).join(" "));
                           onClearVoiceTranscript();
                         }}
-                        className="rounded-md border px-3 py-2 font-semibold transition"
+                        className="h-10 shrink-0 snap-start whitespace-nowrap rounded-md border px-3 py-2 font-semibold transition"
                         style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
                       >
                         {ts('labels.insertTranscript')}
@@ -25712,7 +25720,7 @@ function CompanionPanel({
                           onClearVoiceTranscript();
                           await onAskQuestion(mergedQuestion);
                         }}
-                        className="rounded-md px-3 py-2 font-semibold transition"
+                        className="h-10 shrink-0 snap-start whitespace-nowrap rounded-md px-3 py-2 font-semibold transition"
                         style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
                       >
                         {ts('labels.askTranscript')}
@@ -25720,12 +25728,12 @@ function CompanionPanel({
                       <button
                         type="button"
                         onClick={() => onClearVoiceTranscript()}
-                        className="rounded-md border px-3 py-2 font-semibold transition"
+                        className="h-10 shrink-0 snap-start whitespace-nowrap rounded-md border px-3 py-2 font-semibold transition"
                         style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
                       >
                         {ts('labels.clearTranscript')}
                       </button>
-                    </div>
+                    </RailButtonTray>
                   ) : null}
                 </div>
               </DisclosureSection>
@@ -25769,6 +25777,7 @@ function CompanionPanel({
                 ts={ts}
                 theme={theme}
                 exchange={currentExchange}
+                currentModeCard={currentModeCard}
                 preferences={preferences}
                 ui={ui}
                 isWorking={isWorking}
@@ -26645,6 +26654,7 @@ function CurrentCounselCard({
   ts,
   theme,
   exchange,
+  currentModeCard,
   preferences,
   ui,
   isWorking,
@@ -26669,6 +26679,7 @@ function CurrentCounselCard({
   ts: (key: string, fallback?: string) => string;
   theme: ThemeColors;
   exchange: ConversationExchange;
+  currentModeCard: ModeCard;
   preferences: UserPreferences;
   ui: UiText;
   isWorking: boolean;
@@ -26703,6 +26714,7 @@ function CurrentCounselCard({
   const showDecisionActions = Boolean(question) && !isThinking;
   const answerText = exchange.answer.id === "welcome" ? text.welcomeCounsel! : exchange.answer.text;
   const lensLabel = exchangeModeProfile.displayLabel ?? exchange.mode;
+  const CurrentLensIcon = currentModeCard.icon;
 
   return (
     <section className="rounded-[1.5rem] border p-4 shadow-[0_8px_24px_rgba(15,23,42,0.05)] sm:p-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
@@ -26723,15 +26735,15 @@ function CurrentCounselCard({
         </div>
       ) : null}
       <article className="mt-3.5 rounded-[1.25rem] border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
+        <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3">
           <span
-            className="inline-flex items-center gap-2 self-start rounded-full border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.16em]"
-            style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}
+            className="grid size-10 shrink-0 place-items-center rounded-[0.95rem] border shadow-sm"
+            style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}
+            aria-label={`${ui.currentLens}: ${lensLabel}`}
+            title={`${ui.currentLens}: ${lensLabel}`}
           >
-            <span className="grid size-4 place-items-center rounded-full" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>
-              <span className="size-1.5 rounded-full" style={{ backgroundColor: theme.textOnPrimary }} />
-            </span>
-            {lensLabel}
+            <CurrentLensIcon size={18} aria-hidden="true" />
+            <span className="sr-only">{`${ui.currentLens}: ${lensLabel}`}</span>
           </span>
           {preferences.voiceEnabled && !isThinking ? (
             <div className="flex flex-col items-end gap-2 justify-self-end">
@@ -26872,19 +26884,19 @@ function AnswerFeedback({ theme, ui, onFeedback }: { theme: ThemeColors; ui: UiT
   return (
     <div className="mt-3 rounded-[1rem] border p-3" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
       <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{text.feedbackQuestion}</p>
-      <div className="mt-2 flex flex-wrap gap-2">
+      <RailButtonTray theme={theme} label={text.feedbackQuestion}>
         {items.map(([value, label]) => (
           <button
             key={value}
             type="button"
             onClick={() => onFeedback(value)}
-            className="h-8 rounded-full border px-3 text-xs font-semibold transition"
+            className="h-8 shrink-0 snap-start whitespace-nowrap rounded-full border px-3 text-xs font-semibold transition"
             style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
           >
             {label}
           </button>
         ))}
-      </div>
+      </RailButtonTray>
     </div>
   );
 }
@@ -26899,6 +26911,27 @@ function CounselAction({ theme, label, onClick }: { theme: ThemeColors; label: s
     >
       {label}
     </button>
+  );
+}
+
+function RailButtonTray({
+  theme,
+  label,
+  children,
+}: {
+  theme: ThemeColors;
+  label: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="overflow-hidden rounded-[1rem] border p-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+      <div
+        className="flex min-w-0 snap-x gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        aria-label={label}
+      >
+        {children}
+      </div>
+    </div>
   );
 }
 
@@ -27613,11 +27646,11 @@ function DecisionCompanionPanel({
                       </p>
                     </div>
                   </div>
-                  <div className="mt-3 flex flex-wrap gap-2">
+                  <RailButtonTray theme={theme} label={ts("labels.counselPhoto")}>
                     <button
                       type="button"
                       onClick={() => counselAvatarFileInputRef.current?.click()}
-                      className="h-9 rounded-full border px-3 text-xs font-semibold"
+                      className="h-9 shrink-0 snap-start whitespace-nowrap rounded-full border px-3 text-xs font-semibold"
                       style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
                     >
                       {ts('labels.choosePhoto')}
@@ -27625,7 +27658,7 @@ function DecisionCompanionPanel({
                     <button
                       type="button"
                       onClick={() => setCounselAvatarPickerOpen(true)}
-                      className="h-9 rounded-full border px-3 text-xs font-semibold"
+                      className="h-9 shrink-0 snap-start whitespace-nowrap rounded-full border px-3 text-xs font-semibold"
                       style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
                     >
                       {ts('labels.pickFunAvatar')}
@@ -27636,12 +27669,12 @@ function DecisionCompanionPanel({
                         setCounselAvatarUrl("");
                         setCounselAvatarStatus(ts('status.usingDefaultAvatarForContact'));
                       }}
-                      className="h-9 rounded-full border px-3 text-xs font-semibold"
+                      className="h-9 shrink-0 snap-start whitespace-nowrap rounded-full border px-3 text-xs font-semibold"
                       style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
                     >
                       {ts('labels.useDefault')}
                     </button>
-                  </div>
+                  </RailButtonTray>
                   {counselAvatarStatus ? (
                     <p className="mt-2 text-xs leading-5" style={{ color: theme.textSecondary }}>
                       {counselAvatarStatus}
@@ -27728,9 +27761,9 @@ function DecisionCompanionPanel({
                         {ts('labels.emailSentPrivateLinkFallback')}
                       </p>
                     ) : null}
-                    <div className="mt-3 flex flex-wrap gap-2">
+                    <RailButtonTray theme={theme} label={ts('labels.shareInvite')}>
                       <button
-                        className="rounded-full border px-3 py-2 text-xs font-semibold"
+                        className="h-10 shrink-0 snap-start whitespace-nowrap rounded-full border px-3 py-2 text-xs font-semibold"
                         style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
                         onClick={() => onShareCounselInvite("copy")}
                         type="button"
@@ -27738,7 +27771,7 @@ function DecisionCompanionPanel({
                         {ts('labels.copyLink')}
                       </button>
                       <button
-                        className="rounded-full px-3 py-2 text-xs font-semibold"
+                        className="h-10 shrink-0 snap-start whitespace-nowrap rounded-full px-3 py-2 text-xs font-semibold"
                         style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
                         onClick={() => onShareCounselInvite("native")}
                         type="button"
@@ -27746,7 +27779,7 @@ function DecisionCompanionPanel({
                         {ts('labels.shareInvite')}
                       </button>
                       <button
-                        className="rounded-full border px-3 py-2 text-xs font-semibold"
+                        className="h-10 shrink-0 snap-start whitespace-nowrap rounded-full border px-3 py-2 text-xs font-semibold"
                         style={{ borderColor: theme.borderMedium, color: theme.textPrimary }}
                         onClick={() => onShareCounselInvite("email")}
                         type="button"
@@ -27754,7 +27787,7 @@ function DecisionCompanionPanel({
                         {ts('labels.email')}
                       </button>
                       <button
-                        className="rounded-full border px-3 py-2 text-xs font-semibold"
+                        className="h-10 shrink-0 snap-start whitespace-nowrap rounded-full border px-3 py-2 text-xs font-semibold"
                         style={{ borderColor: theme.borderMedium, color: theme.textPrimary }}
                         onClick={() => onShareCounselInvite("sms")}
                         type="button"
@@ -27762,14 +27795,14 @@ function DecisionCompanionPanel({
                         {ts('labels.sms')}
                       </button>
                       <button
-                        className="rounded-full border px-3 py-2 text-xs font-semibold"
+                        className="h-10 shrink-0 snap-start whitespace-nowrap rounded-full border px-3 py-2 text-xs font-semibold"
                         style={{ borderColor: theme.borderMedium, color: theme.textPrimary }}
                         onClick={() => onShareCounselInvite("whatsapp")}
                         type="button"
                       >
                         {ts('labels.whatsApp')}
                       </button>
-                    </div>
+                    </RailButtonTray>
                   </div>
                 ) : (
                   <p className="mt-3 rounded-[1rem] border p-3 text-sm leading-6" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
@@ -29558,25 +29591,27 @@ function LibraryPanel({
               </button>
             </div>
             <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>{scriptureMemory.principle}</p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => onSaveScriptureMemory(scriptureMemory.scripture, scriptureMemory.principle)}
-                className="rounded-md border px-3 py-2 text-xs font-semibold"
-                style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-              >
-                {ts('labels.carryScriptureForWeek')}
-              </button>
-              <button
-                type="button"
-                onClick={() => setLibrarySection("explore")}
-                className="rounded-md border px-3 py-2 text-xs font-semibold"
-                style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
-              >
-                {ts('labels.backToLibrary')}
-              </button>
-            </div>
-          </div>
+                    <div className="mt-3">
+                      <RailButtonTray theme={theme} label={ts('labels.scriptureMemory')}>
+                        <button
+                          type="button"
+                          onClick={() => onSaveScriptureMemory(scriptureMemory.scripture, scriptureMemory.principle)}
+                          className="h-10 shrink-0 snap-start whitespace-nowrap rounded-full border px-3 py-2 text-xs font-semibold"
+                          style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                        >
+                          {ts('labels.carryScriptureForWeek')}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setLibrarySection("explore")}
+                          className="h-10 shrink-0 snap-start whitespace-nowrap rounded-full border px-3 py-2 text-xs font-semibold"
+                          style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
+                        >
+                          {ts('labels.backToLibrary')}
+                        </button>
+                      </RailButtonTray>
+                    </div>
+                  </div>
         </DisclosureSection>
       ) : null}
 

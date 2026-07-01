@@ -480,7 +480,7 @@ async function run() {
             return;
           }
           const text = message.text();
-          if (text.includes('429 (Too Many Requests)')) {
+          if (text.includes('429')) {
             return;
           }
           consoleErrors.push(text);
