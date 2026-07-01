@@ -17739,6 +17739,7 @@ function FormationRailSection({
   const inviteViewerIsReadWithMe = inviteViewerChallenge?.id === "read-with-me-7day";
   const inviteViewerIsFasting = inviteViewerChallenge?.id === FASTING_CHALLENGE_ID;
   const inviteViewerInviteDetails = inviteViewerCircle?.invite.details ?? null;
+  const inviteViewerExpanded = inviteViewerChallengeId === selectedChallenge?.id && Boolean(selectedCircleInviteDetails);
   const readWithMeInviteDetails = selectedCircle?.challengeId === "read-with-me-7day"
     ? (selectedCircleInviteDetails as ReadWithMeInviteDetails | null)
     : isReadWithMeChallenge
@@ -18365,142 +18366,6 @@ function FormationRailSection({
             </div>
           </div>
         ) : null}
-      </section>
-    </div>,
-    document.body
-  ) : null;
-
-  const inviteViewerModal = inviteViewerChallenge && canUsePortal ? createPortal(
-    <div
-      className="fixed inset-0 z-[9997] grid min-h-dvh place-items-end overflow-hidden overscroll-none px-3 backdrop-blur-sm sm:place-items-center"
-      style={{
-        backgroundColor: "rgba(13, 23, 20, 0.56)",
-        paddingTop: "calc(var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)) + 0.75rem)",
-        paddingBottom: "calc(var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)) + 0.75rem)",
-      }}
-      onClick={closeInviteViewer}
-    >
-      <section
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="invite-viewer-title"
-        className="w-full max-w-3xl overflow-y-auto overscroll-contain rounded-[2rem] border p-4 [-webkit-overflow-scrolling:touch] [touch-action:pan-y] shadow-[0_28px_90px_rgba(10,18,14,0.36)] sm:p-5"
-        style={{
-          borderColor: theme.borderStrong,
-          backgroundColor: theme.bgCard,
-          maxHeight: "calc(100svh - var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)) - var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)) - 1rem)",
-        }}
-        onClick={(event) => event.stopPropagation()}
-      >
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.accentGold }}>
-              {inviteViewerIsFasting ? ts("challenges.fastingCustom.previewTitle") : ts("labels.inviteDetails")}
-            </p>
-            <h2 id="invite-viewer-title" className="mt-1.5 text-xl font-semibold tracking-tight" style={{ color: theme.textPrimary }}>
-              {inviteViewerChallenge ? ts(inviteViewerChallenge.titleKey, inviteViewerChallenge.title) : ts("labels.inviteDetails")}
-            </h2>
-            <p className="mt-1.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
-              {inviteViewerIsFasting
-                ? ts("challenges.fastingCustom.previewBody")
-                : ts("labels.inviteDetailsBody")}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={closeInviteViewer}
-            className="grid size-10 shrink-0 place-items-center rounded-full border transition"
-            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-            aria-label={ts("labels.closeInvite")}
-          >
-            <X size={16} />
-          </button>
-        </div>
-
-        {inviteViewerInviteDetails ? (
-          <div className="mt-4 rounded-[1.35rem] border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-            {inviteViewerInviteDetails.kind === "read-with-me" ? (
-              <div className="space-y-3">
-                <div className="flex flex-wrap gap-2">
-                  <span className="rounded-full border px-2.5 py-1 text-[11px] font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}>
-                    {inviteViewerInviteDetails.bookTitle || ts("labels.notSet")}
-                  </span>
-                  <span className="rounded-full border px-2.5 py-1 text-[11px] font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-                    {formatReadWithMeDurationLabel(inviteViewerInviteDetails.durationValue, inviteViewerInviteDetails.durationUnit)}
-                  </span>
-                  {inviteViewerInviteDetails.startDate ? (
-                    <span className="rounded-full border px-2.5 py-1 text-[11px] font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-                      {new Date(`${inviteViewerInviteDetails.startDate}T00:00:00`).toLocaleDateString(undefined, {
-                        month: "short",
-                        day: "numeric",
-                        year: "numeric",
-                      })}
-                    </span>
-                  ) : null}
-                </div>
-                <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>
-                  {[inviteViewerInviteDetails.author, inviteViewerInviteDetails.edition].filter(Boolean).join(" · ")}
-                </p>
-                {inviteViewerInviteDetails.focus ? (
-                  <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>
-                    {inviteViewerInviteDetails.focus}
-                  </p>
-                ) : null}
-                {inviteViewerInviteDetails.cadence ? (
-                  <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>
-                    {inviteViewerInviteDetails.cadence}
-                  </p>
-                ) : null}
-                {inviteViewerInviteDetails.note ? (
-                  <p className="text-sm leading-6 italic" style={{ color: theme.textSecondary }}>
-                    {inviteViewerInviteDetails.note}
-                  </p>
-                ) : null}
-                <p className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.accentGold }}>
-                  {inviteViewerInviteDetails.recipients.length} {ts("labels.invited")}
-                </p>
-              </div>
-            ) : inviteViewerInviteDetails.kind === "fasting" ? (
-              <div className="space-y-3">
-                <div className="flex flex-wrap gap-2">
-                  <span className="rounded-full border px-2.5 py-1 text-[11px] font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}>
-                    {formatFastingDurationLabel(inviteViewerInviteDetails.durationValue)}
-                  </span>
-                  {inviteViewerInviteDetails.startDate ? (
-                    <span className="rounded-full border px-2.5 py-1 text-[11px] font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-                      {new Date(`${inviteViewerInviteDetails.startDate}T00:00:00`).toLocaleDateString(undefined, {
-                        month: "short",
-                        day: "numeric",
-                        year: "numeric",
-                      })}
-                    </span>
-                  ) : null}
-                </div>
-                {inviteViewerInviteDetails.goal ? (
-                  <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>
-                    {inviteViewerInviteDetails.goal}
-                  </p>
-                ) : null}
-                {inviteViewerInviteDetails.note ? (
-                  <p className="text-sm leading-6 italic" style={{ color: theme.textSecondary }}>
-                    {inviteViewerInviteDetails.note}
-                  </p>
-                ) : null}
-              </div>
-            ) : null}
-          </div>
-        ) : null}
-
-        <div className="mt-4 flex justify-end">
-          <button
-            type="button"
-            onClick={closeInviteViewer}
-            className="h-10 rounded-full px-4 text-sm font-semibold"
-            style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
-          >
-            {ts("labels.close")}
-          </button>
-        </div>
       </section>
     </div>,
     document.body
@@ -19518,7 +19383,7 @@ function FormationRailSection({
                                 type="button"
                                 onClick={() => {
                                   if (selectedCircleInviteDetails) {
-                                    openInviteViewer(selectedChallenge);
+                                    inviteViewerExpanded ? closeInviteViewer() : openInviteViewer(selectedChallenge);
                                     return;
                                   }
                                   openInviteEditor(selectedChallenge);
@@ -19526,7 +19391,11 @@ function FormationRailSection({
                                 className="shrink-0 rounded-full border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] transition"
                                 style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
                               >
-                                {selectedCircleInviteDetails ? ts("labels.viewInvite") : ts("challenges.inviteFriends")}
+                                {selectedCircleInviteDetails
+                                  ? inviteViewerExpanded
+                                    ? ts("labels.hideDetails")
+                                    : ts("labels.viewInvite")
+                                  : ts("challenges.inviteFriends")}
                               </button>
                             ) : null}
                           </div>
@@ -19542,40 +19411,128 @@ function FormationRailSection({
                                 {ts("labels.inviteDetailsBody")}
                               </p>
                             </div>
+                            {inviteViewerExpanded && inviteViewerInviteDetails ? (
+                              <div className="rounded-[0.95rem] border px-3 py-3" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+                                <div className="flex items-start justify-between gap-3">
+                                  <div className="min-w-0">
+                                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+                                      {ts("labels.inviteDetails")}
+                                    </p>
+                                    <p className="mt-1 text-xs leading-5" style={{ color: theme.textSecondary }}>
+                                      {inviteViewerIsFasting ? ts("challenges.fastingCustom.previewBody") : ts("labels.inviteDetailsBody")}
+                                    </p>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={closeInviteViewer}
+                                    className="grid size-8 shrink-0 place-items-center rounded-full border transition"
+                                    style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                                    aria-label={ts("labels.closeInvite")}
+                                  >
+                                    <X size={13} />
+                                  </button>
+                                </div>
+
+                                {inviteViewerInviteDetails.kind === "read-with-me" ? (
+                                  <div className="mt-3 space-y-2">
+                                    <div className="flex flex-wrap gap-2">
+                                      <span className="rounded-full border px-2.5 py-1 text-[10px] font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}>
+                                        {inviteViewerInviteDetails.bookTitle || ts("labels.notSet")}
+                                      </span>
+                                      <span className="rounded-full border px-2.5 py-1 text-[10px] font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                                        {formatReadWithMeDurationLabel(inviteViewerInviteDetails.durationValue, inviteViewerInviteDetails.durationUnit)}
+                                      </span>
+                                      {inviteViewerInviteDetails.startDate ? (
+                                        <span className="rounded-full border px-2.5 py-1 text-[10px] font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                                          {new Date(`${inviteViewerInviteDetails.startDate}T00:00:00`).toLocaleDateString(undefined, {
+                                            month: "short",
+                                            day: "numeric",
+                                            year: "numeric",
+                                          })}
+                                        </span>
+                                      ) : null}
+                                    </div>
+                                    <p className="text-xs leading-5" style={{ color: theme.textSecondary }}>
+                                      {[inviteViewerInviteDetails.author, inviteViewerInviteDetails.edition].filter(Boolean).join(" · ")}
+                                    </p>
+                                    {(inviteViewerInviteDetails.focus || inviteViewerInviteDetails.cadence) ? (
+                                      <p className="text-xs leading-5" style={{ color: theme.textSecondary }}>
+                                        {[inviteViewerInviteDetails.focus, inviteViewerInviteDetails.cadence].filter(Boolean).join(" · ")}
+                                      </p>
+                                    ) : null}
+                                    {inviteViewerInviteDetails.note ? (
+                                      <p className="text-xs leading-5 italic" style={{ color: theme.textSecondary }}>
+                                        {inviteViewerInviteDetails.note}
+                                      </p>
+                                    ) : null}
+                                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.accentGold }}>
+                                      {inviteViewerInviteDetails.recipients.length} {ts("labels.invited")}
+                                    </p>
+                                  </div>
+                                ) : inviteViewerInviteDetails.kind === "fasting" ? (
+                                  <div className="mt-3 space-y-2">
+                                    <div className="flex flex-wrap gap-2">
+                                      <span className="rounded-full border px-2.5 py-1 text-[10px] font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}>
+                                        {formatFastingDurationLabel(inviteViewerInviteDetails.durationValue)}
+                                      </span>
+                                      {inviteViewerInviteDetails.startDate ? (
+                                        <span className="rounded-full border px-2.5 py-1 text-[10px] font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                                          {new Date(`${inviteViewerInviteDetails.startDate}T00:00:00`).toLocaleDateString(undefined, {
+                                            month: "short",
+                                            day: "numeric",
+                                            year: "numeric",
+                                          })}
+                                        </span>
+                                      ) : null}
+                                    </div>
+                                    {inviteViewerInviteDetails.goal ? (
+                                      <p className="text-xs leading-5" style={{ color: theme.textSecondary }}>
+                                        {inviteViewerInviteDetails.goal}
+                                      </p>
+                                    ) : null}
+                                    {inviteViewerInviteDetails.note ? (
+                                      <p className="text-xs leading-5 italic" style={{ color: theme.textSecondary }}>
+                                        {inviteViewerInviteDetails.note}
+                                      </p>
+                                    ) : null}
+                                  </div>
+                                ) : null}
+                              </div>
+                            ) : null}
                           </div>
                         ) : null}
                       </div>
 
                       {selectedCircleInviteDetails ? (
-                        <div className="overflow-hidden rounded-[1.15rem] border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-                          <div className="border-b p-3" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
-                            <div className="flex flex-col gap-2">
-                              <div className="min-w-0">
-                                <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
-                                  {ts("challenges.responseDashboard")}
-                                </p>
-                                <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
-                                  {ts("challenges.responseDashboardBody")}
-                                </p>
-                              </div>
-                              <div className="flex flex-wrap gap-2">
-                                <span className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.primary }}>
-                                  {readWithMeResponseTotals.accepted} {ts("status.accepted")}
-                                </span>
-                                <span className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-                                  {readWithMeResponseTotals.declined} {ts("status.declined")}
-                                </span>
-                                <span className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.accentGold }}>
-                                  {readWithMeResponseTotals.pending} {ts("status.pending")}
-                                </span>
-                                <span className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textMuted }}>
-                                  {readWithMeResponseTotals.waiting} {ts("status.waitingForAcceptance")}
-                                </span>
-                              </div>
+                      <div className="overflow-hidden rounded-[0.95rem] border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                        <div className="border-b px-3 py-2.5" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
+                          <div className="flex flex-col gap-1.5">
+                            <div className="min-w-0">
+                              <p className="text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
+                                {ts("challenges.responseDashboard")}
+                              </p>
+                              <p className="mt-1 text-xs leading-5" style={{ color: theme.textSecondary }}>
+                                {ts("challenges.responseDashboardBody")}
+                              </p>
+                            </div>
+                            <div className="flex flex-wrap gap-1.5">
+                              <span className="rounded-full border px-2 py-[3px] text-[9px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.primary }}>
+                                {readWithMeResponseTotals.accepted} {ts("status.accepted")}
+                              </span>
+                              <span className="rounded-full border px-2 py-[3px] text-[9px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                                {readWithMeResponseTotals.declined} {ts("status.declined")}
+                              </span>
+                              <span className="rounded-full border px-2 py-[3px] text-[9px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.accentGold }}>
+                                {readWithMeResponseTotals.pending} {ts("status.pending")}
+                              </span>
+                              <span className="rounded-full border px-2 py-[3px] text-[9px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textMuted }}>
+                                {readWithMeResponseTotals.waiting} {ts("status.waitingForAcceptance")}
+                              </span>
                             </div>
                           </div>
+                        </div>
 
-                          <div className="space-y-2 p-3">
+                          <div className="space-y-1.5 px-3 py-2.5">
                             {readWithMeRecipientStatuses.length ? (
                               readWithMeRecipientStatuses.map(({ recipient, response, status }) => {
                                 const statusLabel =
@@ -19596,33 +19553,33 @@ function FormationRailSection({
                                         : { borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textMuted };
 
                                 return (
-                                  <div key={recipient.id} className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-                                    <div className="flex items-start gap-3">
+                                  <div key={recipient.id} className="rounded-[0.9rem] border px-2.5 py-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                                    <div className="flex items-start gap-2.5">
                                       <AvatarCircle
                                         avatarUrl={null}
                                         seed={recipient.id}
                                         label={recipient.name}
-                                        size={34}
-                                        className="size-[34px]"
+                                        size={30}
+                                        className="size-[30px]"
                                       />
                                       <div className="min-w-0 flex-1">
                                         <div className="flex items-start justify-between gap-3">
                                           <div className="min-w-0">
-                                            <p className="truncate text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>
+                                            <p className="truncate text-[13px] font-semibold leading-5" style={{ color: theme.textPrimary }}>
                                               {recipient.name}
                                             </p>
                                             {recipient.note ? (
-                                              <p className="mt-0.5 text-xs leading-5" style={{ color: theme.textSecondary }}>
+                                              <p className="mt-0.5 text-[11px] leading-4" style={{ color: theme.textSecondary }}>
                                                 {recipient.note}
                                               </p>
                                             ) : null}
                                           </div>
-                                          <span className="shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={statusStyles}>
+                                          <span className="shrink-0 rounded-full border px-2 py-[3px] text-[9px] font-semibold uppercase tracking-[0.08em]" style={statusStyles}>
                                             {statusLabel}
                                           </span>
                                         </div>
                                         {response?.respondedAt ? (
-                                          <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] uppercase tracking-[0.08em]" style={{ color: theme.textMuted }}>
+                                          <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[10px] uppercase tracking-[0.08em]" style={{ color: theme.textMuted }}>
                                             <span>
                                               {ts("labels.responded")}{" "}
                                               {new Date(response.respondedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
@@ -19644,13 +19601,13 @@ function FormationRailSection({
                             )}
 
                             {unmatchedReadWithMeResponses.length ? (
-                              <div className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
-                                <p className="text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
+                              <div className="rounded-[0.9rem] border px-2.5 py-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
+                                <p className="text-[9px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
                                   {ts("challenges.unmatchedResponses")}
                                 </p>
-                                <div className="mt-2 flex flex-wrap gap-2">
+                                <div className="mt-1.5 flex flex-wrap gap-1.5">
                                   {unmatchedReadWithMeResponses.map((response) => (
-                                    <span key={`${response.userId}-${response.responseStatus}`} className="rounded-full border px-2.5 py-1 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textSecondary }}>
+                                    <span key={`${response.userId}-${response.responseStatus}`} className="rounded-full border px-2 py-[3px] text-[10px] font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textSecondary }}>
                                       {response.name ?? ts("labels.counselContact")}{" "}
                                       {response.responseStatus}
                                     </span>
@@ -19849,7 +19806,9 @@ function FormationRailSection({
                           ? ts("challenges.creatingInvite")
                           : isReadWithMeChallenge || isFastingChallenge
                             ? selectedCircleInviteDetails
-                              ? ts("labels.viewInvite")
+                              ? inviteViewerExpanded
+                                ? ts("labels.hideDetails")
+                                : ts("labels.viewInvite")
                               : ts("challenges.inviteFriends")
                             : ts("challenges.inviteFriends")}
                       </button>
