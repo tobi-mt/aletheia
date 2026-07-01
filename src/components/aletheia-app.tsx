@@ -14975,8 +14975,8 @@ function HomeDashboard({
         style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textPrimary }}
       >
         <div className="space-y-4">
-          <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 items-start">
-            <div className="min-w-0">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
               <p className="text-[10.5px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.accentGold }}>
                 {text.whatNext}
               </p>
@@ -15013,17 +15013,14 @@ function HomeDashboard({
               background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})`,
             }}
           >
-            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
-              <div className="min-w-0 pr-0 sm:pr-2">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1 pr-0 sm:pr-2">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
                   {text.todayQuestionLabel ?? ""}
                 </p>
                 <p className="mt-2 max-w-2xl text-[1.24rem] font-semibold leading-[1.18] tracking-[-0.03em] text-balance sm:text-[1.42rem] sm:leading-[1.12]" style={{ color: theme.textPrimary }}>
                   {companionCard.question}
                 </p>
-              </div>
-              <div className="grid size-10 shrink-0 place-items-center justify-self-end rounded-[1rem] border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
-                <MessageCircle size={14} />
               </div>
             </div>
 
@@ -15638,7 +15635,7 @@ function SystemReferenceModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby={`system-topic-${topic.id}`}
-        className="w-full max-w-2xl overflow-y-auto overscroll-contain rounded-[2rem] border [-webkit-overflow-scrolling:touch] [touch-action:pan-y] shadow-[0_28px_90px_rgba(10,18,14,0.36)]"
+        className="relative w-full max-w-2xl overflow-y-auto overscroll-contain rounded-[2rem] border [-webkit-overflow-scrolling:touch] [touch-action:pan-y] shadow-[0_28px_90px_rgba(10,18,14,0.36)]"
         style={{
           borderColor: theme.borderStrong,
           backgroundColor: theme.bgCard,
@@ -15647,7 +15644,7 @@ function SystemReferenceModal({
         onClick={(event) => event.stopPropagation()}
       >
         <div
-          className="relative overflow-hidden border-b px-4 py-4 sm:px-5 sm:py-5"
+          className="relative overflow-hidden border-b px-4 py-4 pr-16 sm:px-5 sm:py-5 sm:pr-16"
           style={{
             borderColor: theme.borderLight,
             background: `linear-gradient(135deg, color-mix(in srgb, ${theme.bgCardElevated} 68%, white 32%), ${theme.bgCard}, color-mix(in srgb, ${theme.bgCardElevated} 84%, ${theme.accentGold} 16%))`,
@@ -26735,7 +26732,7 @@ function CurrentCounselCard({
         </div>
       ) : null}
       <article className="mt-3.5 rounded-[1.25rem] border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-        <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3">
+        <div className="flex items-start justify-between gap-3">
           <span
             className="grid size-10 shrink-0 place-items-center rounded-[0.95rem] border shadow-sm"
             style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}
@@ -26746,7 +26743,7 @@ function CurrentCounselCard({
             <span className="sr-only">{`${ui.currentLens}: ${lensLabel}`}</span>
           </span>
           {preferences.voiceEnabled && !isThinking ? (
-            <div className="flex flex-col items-end gap-2 justify-self-end">
+            <div className="flex flex-col items-end gap-2">
               <span
                 className="inline-flex h-7 min-w-[6.5rem] items-center justify-end whitespace-nowrap text-right text-[11px] leading-none tabular-nums sm:min-w-[7.5rem]"
                 style={{ color: theme.textMuted }}
@@ -26762,30 +26759,32 @@ function CurrentCounselCard({
                   <span aria-hidden="true">&nbsp;</span>
                 )}
               </span>
-              <button
-                type="button"
-                onClick={onSpeak}
-                className="inline-flex h-7 items-center justify-center gap-1 whitespace-nowrap rounded-full border px-2 text-[10px] font-semibold uppercase tracking-[0.12em] leading-none transition"
-                style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
-                aria-label={isSpeaking ? ts('labels.stopReading') : ts('labels.readAnswerAloud')}
-                title={isSpeaking ? ts('labels.stop') : ts('labels.listenToThisAnswer')}
-              >
-                <Volume2 size={12} style={isSpeaking ? { color: theme.accentGold } : undefined} />
-                {isSpeaking ? ts('labels.stop') : ts('labels.readAloud')}
-              </button>
-              {isSpeaking ? (
+              <div className="flex flex-wrap items-center justify-end gap-2">
                 <button
                   type="button"
-                  onClick={onTogglePause}
-                  disabled={speechLoading}
+                  onClick={onSpeak}
                   className="inline-flex h-7 items-center justify-center gap-1 whitespace-nowrap rounded-full border px-2 text-[10px] font-semibold uppercase tracking-[0.12em] leading-none transition"
-                  style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary, opacity: speechLoading ? 0.55 : 1 }}
-                  aria-label={speechPaused ? ts('labels.resumeReading') : ts('labels.pauseReading')}
-                  title={speechPaused ? ts('labels.resumeReading') : ts('labels.pauseReading')}
+                  style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
+                  aria-label={isSpeaking ? ts('labels.stopReading') : ts('labels.readAnswerAloud')}
+                  title={isSpeaking ? ts('labels.stop') : ts('labels.listenToThisAnswer')}
                 >
-                  {speechPaused ? ts('labels.resumeReading') : ts('labels.pauseReading')}
+                  <Volume2 size={12} style={isSpeaking ? { color: theme.accentGold } : undefined} />
+                  {isSpeaking ? ts('labels.stop') : ts('labels.readAloud')}
                 </button>
-              ) : null}
+                {isSpeaking ? (
+                  <button
+                    type="button"
+                    onClick={onTogglePause}
+                    disabled={speechLoading}
+                    className="inline-flex h-7 items-center justify-center gap-1 whitespace-nowrap rounded-full border px-2 text-[10px] font-semibold uppercase tracking-[0.12em] leading-none transition"
+                    style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary, opacity: speechLoading ? 0.55 : 1 }}
+                    aria-label={speechPaused ? ts('labels.resumeReading') : ts('labels.pauseReading')}
+                    title={speechPaused ? ts('labels.resumeReading') : ts('labels.pauseReading')}
+                  >
+                    {speechPaused ? ts('labels.resumeReading') : ts('labels.pauseReading')}
+                  </button>
+                ) : null}
+              </div>
             </div>
           ) : null}
         </div>
@@ -26882,7 +26881,7 @@ function AnswerFeedback({ theme, ui, onFeedback }: { theme: ThemeColors; ui: UiT
   ] as const;
 
   return (
-    <div className="mt-3 rounded-[1rem] border p-3" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
+    <div className="mt-3">
       <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{text.feedbackQuestion}</p>
       <RailButtonTray theme={theme} label={text.feedbackQuestion}>
         {items.map(([value, label]) => (
@@ -27628,7 +27627,7 @@ function DecisionCompanionPanel({
                   style={{ display: "none" }}
                   onChange={onCounselAvatarFileSelected}
                 />
-                <div className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                <div className="space-y-2">
                   <div className="flex items-center gap-3">
                     <AvatarCircle
                       avatarUrl={counselAvatarUrl || null}
@@ -27676,7 +27675,7 @@ function DecisionCompanionPanel({
                     </button>
                   </RailButtonTray>
                   {counselAvatarStatus ? (
-                    <p className="mt-2 text-xs leading-5" style={{ color: theme.textSecondary }}>
+                    <p className="text-xs leading-5" style={{ color: theme.textSecondary }}>
                       {counselAvatarStatus}
                     </p>
                   ) : null}
@@ -28561,19 +28560,14 @@ function ReflectPanel({
           </section>
 
           <section className="rounded-[1.45rem] border p-3.5 shadow-[0_10px_28px_rgba(15,23,42,0.06)] sm:p-4" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
-            <div className="flex flex-col gap-3.5 lg:flex-row lg:items-end lg:justify-between">
-              <div className="relative max-w-2xl">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>{ts('nav.reflect')}</p>
-                <h2 className="mt-1.5 text-[1.33rem] font-semibold leading-[1.02] text-balance sm:text-[1.72rem]" style={{ color: theme.textPrimary }}>
-                  {ts('labels.discernmentReflectionQuietPlace')}
-                </h2>
-                <p className="mt-1.5 max-w-2xl text-[0.9rem] leading-6 sm:text-[0.96rem] sm:leading-7" style={{ color: theme.textSecondary }}>
-                  {runtime.reflectIntro}
-                </p>
-              </div>
-              <span className="inline-flex w-fit items-center rounded-full border px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-                {modeProfile.label}
-              </span>
+            <div className="max-w-2xl">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>{ts('nav.reflect')}</p>
+              <h2 className="mt-1.5 text-[1.33rem] font-semibold leading-[1.02] text-balance sm:text-[1.72rem]" style={{ color: theme.textPrimary }}>
+                {ts('labels.discernmentReflectionQuietPlace')}
+              </h2>
+              <p className="mt-1.5 max-w-2xl text-[0.9rem] leading-6 sm:text-[0.96rem] sm:leading-7" style={{ color: theme.textSecondary }}>
+                {runtime.reflectIntro}
+              </p>
             </div>
           </section>
         </>
@@ -28939,6 +28933,8 @@ function GratitudeLensPanel({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const gratitudeRailRef = useRef<HTMLDivElement | null>(null);
   const gratitudeRailHasOverflow = useRailOverflow(gratitudeRailRef, entries.length > 0, [entries.length, language]);
+  const gratitudeOverlayRailRef = useRef<HTMLDivElement | null>(null);
+  const gratitudeOverlayRailHasOverflow = useRailOverflow(gratitudeOverlayRailRef, true, [visual.showNote, visual.showDate, visual.showPlace, visual.showSignature, language]);
 
   useEffect(() => {
     return () => {
@@ -29214,7 +29210,19 @@ function GratitudeLensPanel({
                   <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textMuted }}>
                     {ts('labels.gratitudeOverlayNote')}
                   </p>
-                  <div className="mt-2 flex gap-2 overflow-x-auto snap-x snap-mandatory pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  {gratitudeOverlayRailHasOverflow ? (
+                    <p className="mt-1.5 text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: railText.railMuted }}>
+                      <span className="inline-flex items-center gap-1">
+                        <span>{ts('labels.swipeForMore')}</span>
+                        <span aria-hidden="true">→</span>
+                      </span>
+                    </p>
+                  ) : null}
+                  <div
+                    ref={gratitudeOverlayRailRef}
+                    className="mt-2 flex gap-2 overflow-x-auto snap-x snap-mandatory pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                    aria-label={ts('labels.gratitudeOverlayNote')}
+                  >
                     {[
                       ["showNote", ts('labels.gratitudeOverlayNote')],
                       ["showDate", ts('labels.gratitudeOverlayDate')],
@@ -29357,14 +29365,14 @@ function GratitudeLensPanel({
         </div>
 
         <div className="rounded-xl border p-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="relative pr-12">
             <div className="min-w-0">
               <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.gratitudeTimeline')}</p>
               <h3 className="mt-1 text-base font-semibold" style={{ color: theme.textPrimary }}>
                 {visibleEntries.length ? ts('labels.latestGratitude') : ts('labels.noGratitudeYet')}
               </h3>
             </div>
-            <Sprout className="self-start" size={24} style={{ color: theme.primary }} />
+            <Sprout className="absolute right-0 top-0" size={24} style={{ color: theme.primary }} />
           </div>
 
           <div className="mt-3 rounded-xl border p-2.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput }}>
@@ -30007,7 +30015,7 @@ function JournalEntryDetailModal({
               background: `radial-gradient(circle at 18% 18%, color-mix(in srgb, ${theme.accentGold} 18%, transparent), transparent 36%), radial-gradient(circle at 92% 0%, color-mix(in srgb, ${theme.primary} 10%, transparent), transparent 30%)`,
             }}
           />
-          <div className="relative flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+          <div className="relative">
             <div className="min-w-0">
               <p className="text-[11px] font-semibold uppercase tracking-[0.22em] sm:text-xs" style={{ color: theme.accentGold }}>
                 {ts("labels.reflectionJournal")}
@@ -30022,7 +30030,7 @@ function JournalEntryDetailModal({
             <button
               type="button"
               onClick={onClose}
-              className="grid size-10 shrink-0 place-items-center rounded-full border transition shadow-sm"
+              className="absolute right-0 top-0 grid size-10 shrink-0 place-items-center rounded-full border transition shadow-sm"
               style={{
                 borderColor: theme.borderMedium,
                 backgroundColor: theme.bgInput,
