@@ -750,6 +750,7 @@
     "browserReadingMayPause": "Maaaring ma-pause ang pagbabasa ng browser kung mababawasan ang app. Maaaring gamitin ng hinaharap na binuong-audio mode ang parehong player na ito para sa pag-playback sa background.",
     "dismissWorkflowNotice": "I-dismiss ang abiso sa daloy ng trabaho",
     "closeInvite": "Isara ang imbitasyon",
+    "openInApp": "Buksan sa app",
     "closeConfirmation": "Isara ang kumpirmasyon",
     "removeKeyword": "ALISIN",
     "stop": "Tumigil ka",

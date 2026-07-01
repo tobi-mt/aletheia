@@ -699,6 +699,7 @@
     "browserReadingMayPause": "La lecture du navigateur peut se mettre en pause si l’app est réduite. Un futur mode audio généré pourra utiliser ce même lecteur en arrière-plan.",
     "dismissWorkflowNotice": "Fermer l’avis de flux",
     "closeInvite": "Fermer l’invitation",
+    "openInApp": "Ouvrir dans l’app",
     "closeConfirmation": "Fermer la confirmation",
     "removeKeyword": "SUPPRIMER",
     "stop": "Arrêter",

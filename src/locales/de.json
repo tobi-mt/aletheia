@@ -750,6 +750,7 @@
     "browserReadingMayPause": "Die Browser-Wiedergabe kann pausieren, wenn die App minimiert wird. Ein zukünftiger generierter Audio-Modus kann denselben Player für Hintergrundwiedergabe nutzen.",
     "dismissWorkflowNotice": "Workflow-Hinweis schließen",
     "closeInvite": "Einladung schließen",
+    "openInApp": "In App öffnen",
     "closeConfirmation": "Bestätigung schließen",
     "removeKeyword": "ENTFERNEN",
     "stop": "Stopp",

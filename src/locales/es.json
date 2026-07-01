@@ -754,6 +754,7 @@
     "browserReadingMayPause": "La lectura del navegador puede pausarse si la app se minimiza. Un futuro modo de audio generado podrá usar este mismo reproductor para reproducción en segundo plano.",
     "dismissWorkflowNotice": "Descartar aviso del flujo",
     "closeInvite": "Cerrar invitación",
+    "openInApp": "Abrir en la app",
     "closeConfirmation": "Cerrar confirmación",
     "removeKeyword": "ELIMINAR",
     "stop": "Detener",

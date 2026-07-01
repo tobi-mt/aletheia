@@ -161,6 +161,11 @@ The checked-in iOS project currently uses:
 
 If you change the bundle identifier, update App Store Connect to match the new value before upload.
 
+Note:
+
+- This archive path currently ships without the `Associated Domains` entitlement.
+- If you add universal links back later, make sure the Apple Developer App ID and provisioning profile both include the capability first, or Xcode archive/export will fail again.
+
 ## Fast Checklist
 
 - Paid Apple Developer team selected
@@ -171,4 +176,3 @@ If you change the bundle identifier, update App Store Connect to match the new v
 - Archive built from a generic iOS device
 - Organizer shows a valid archive
 - App Store Connect upload starts without signing errors
-

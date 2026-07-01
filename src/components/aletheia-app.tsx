@@ -94,7 +94,7 @@ import type { Mode } from "@/lib/wisdom-data";
 import { analyticsQuestionMetadata } from "@/lib/analytics-taxonomy";
 import { decisionStartedDiscerningBody, decisionTimelineObservation, localizeDecisionEventBody } from "@/lib/decision-copy";
 import { curatedAvatarOptions, defaultAvatarDataUrl, normalizeAvatarUrl } from "@/lib/avatars";
-import { challengeInviteUrl as buildChallengeInviteUrl } from "@/lib/challenge-circles";
+import { challengeInviteAppUrl as buildChallengeInviteAppUrl, challengeInviteUrl as buildChallengeInviteUrl } from "@/lib/challenge-circles";
 import {
   defaultReadWithMeInviteDetails,
   formatReadWithMeDurationLabel,
@@ -112,9 +112,9 @@ import {
   normalizeFastingInviteDetails,
   type FastingInviteDetails,
 } from "@/lib/fasting-invite";
-import { counselInviteUrl as buildCounselInviteUrl } from "@/lib/counsel-invites";
+import { counselInviteAppUrl as buildCounselInviteAppUrl, counselInviteUrl as buildCounselInviteUrl } from "@/lib/counsel-invites";
 import type { ChallengeRecommendationBundle } from "@/lib/challenge-recommendations";
-import { SERVICE_WORKER_URL } from "@/lib/build-version";
+import { BUILD_ID, SERVICE_WORKER_URL } from "@/lib/build-version";
 import { loadTranslationsSync, loadTranslationsWithFallbackSync, getTranslation, type TranslationData } from "@/lib/translations";
 import { ManagedAudio } from "@/lib/native-audio";
 import BibleReader from "@/components/bible-reader";
@@ -499,6 +499,19 @@ function challengeInviteTokenFromLocation(value: string | null) {
   try {
     const fallbackOrigin = typeof window !== "undefined" ? window.location.origin : "http://localhost:3000";
     return new URL(value, fallbackOrigin).searchParams.get("challengeInvite");
+  } catch {
+    return null;
+  }
+}
+
+function counselInviteTokenFromLocation(value: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  try {
+    const fallbackOrigin = typeof window !== "undefined" ? window.location.origin : "http://localhost:3000";
+    return new URL(value, fallbackOrigin).searchParams.get("counselInvite");
   } catch {
     return null;
   }
@@ -8847,33 +8860,86 @@ export function AletheiaApp() {
   }, [announceWorkflow, celebrate, loadSignedInWorkspace, setActiveView, ts]);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const token = params.get("counselInvite") ?? readStoredCounselInviteToken();
-    if (!token) {
-      return;
-    }
-    Promise.resolve().then(() => {
-      setCounselInviteToken(token);
-      setCounselInviteStatus(ts('status.loadingInvite'));
-      if (params.get("counselInvite")) {
+    let cancelled = false;
+    let appUrlOpenHandle: PluginListenerHandle | null = null;
+
+    async function openCounselInvite(rawUrl: string, persistToken: boolean, replaceHistory: boolean) {
+      const token = counselInviteTokenFromLocation(rawUrl);
+      if (!token || cancelled) {
+        return false;
+      }
+
+      if (persistToken) {
         writeStoredCounselInviteToken(token);
       }
-      fetch(`/api/counsel/invite/${encodeURIComponent(token)}`)
-        .then(async (response) => {
-          const data = (await response.json()) as CounselInvitePreview | { error?: string };
-          if (!response.ok || !isCounselInvitePreview(data)) {
-            throw new Error("error" in data ? data.error : "Invite could not be loaded.");
+
+      setCounselInviteToken(token);
+      setCounselInviteStatus(ts("status.loadingInvite"));
+
+      try {
+        const response = await fetch(`/api/counsel/invite/${encodeURIComponent(token)}`);
+        const data = (await response.json()) as CounselInvitePreview | { error?: string };
+        if (!response.ok || !isCounselInvitePreview(data)) {
+          throw new Error("error" in data ? data.error : "Invite could not be loaded.");
+        }
+        if (cancelled) {
+          return true;
+        }
+        setCounselInvitePreview(data);
+        setCounselInviteStatus("");
+        if (replaceHistory) {
+          window.history.replaceState({}, "", window.location.pathname);
+        }
+      } catch {
+        if (!cancelled) {
+          setCounselInviteStatus(ts("status.inviteCouldNotOpen"));
+        }
+      }
+
+      return true;
+    }
+
+    async function bootstrapCounselInvite() {
+      const launchedFromNative = Capacitor.isNativePlatform();
+      if (launchedFromNative) {
+        const launchUrl = await App.getLaunchUrl().catch(() => undefined);
+        if (launchUrl?.url) {
+          const handled = await openCounselInvite(launchUrl.url, true, false);
+          if (handled) {
+            appUrlOpenHandle = await App.addListener("appUrlOpen", ({ url }) => {
+              void openCounselInvite(url, true, false);
+            });
+            return;
           }
-          setCounselInvitePreview(data);
-          setCounselInviteStatus("");
-          if (params.get("counselInvite")) {
-            window.history.replaceState({}, "", window.location.pathname);
-          }
-        })
-        .catch(() => {
-          setCounselInviteStatus(ts('status.inviteCouldNotOpen'));
+        }
+      }
+
+      const browserToken = counselInviteTokenFromLocation(window.location.href) ?? readStoredCounselInviteToken();
+      if (!browserToken) {
+        if (launchedFromNative) {
+          appUrlOpenHandle = await App.addListener("appUrlOpen", ({ url }) => {
+            void openCounselInvite(url, true, false);
+          });
+        }
+        return;
+      }
+
+      const sourceUrl = counselInviteTokenFromLocation(window.location.href) ? window.location.href : buildCounselInviteUrl(browserToken, window.location.href);
+      await openCounselInvite(sourceUrl, true, !launchedFromNative);
+
+      if (launchedFromNative && !appUrlOpenHandle) {
+        appUrlOpenHandle = await App.addListener("appUrlOpen", ({ url }) => {
+          void openCounselInvite(url, true, false);
         });
-    });
+      }
+    }
+
+    void bootstrapCounselInvite();
+
+    return () => {
+      cancelled = true;
+      void appUrlOpenHandle?.remove();
+    };
   }, [ts]);
 
   useEffect(() => {
@@ -8962,8 +9028,50 @@ export function AletheiaApp() {
 
   useEffect(() => {
     let swCleanup: (() => void) | null = null;
+    let cancelled = false;
+
+    async function resetStaleBuildState() {
+      try {
+        const response = await fetch("/api/build-version", { cache: "no-store" });
+        if (!response.ok) {
+          return;
+        }
+        const data = (await response.json()) as { buildId?: string };
+        const latestBuildId = data.buildId?.trim();
+        if (!latestBuildId || latestBuildId === BUILD_ID) {
+          return;
+        }
+
+        try {
+          if ("serviceWorker" in navigator) {
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            await Promise.all(registrations.map((registration) => registration.unregister()));
+          }
+        } catch {
+          // Continue with the refresh even if service worker cleanup fails.
+        }
+
+        try {
+          if ("caches" in window) {
+            const cacheKeys = await caches.keys();
+            await Promise.all(cacheKeys.map((key) => caches.delete(key)));
+          }
+        } catch {
+          // Cache cleanup is best-effort only.
+        }
+
+        if (!cancelled) {
+          window.location.reload();
+        }
+      } catch {
+        // If version lookup fails, fall back to the existing update flow.
+      }
+    }
+
     if ("serviceWorker" in navigator) {
       if (process.env.NODE_ENV === "production") {
+        void resetStaleBuildState();
+
         let refreshing = false;
         let visibilityListener: (() => void) | null = null;
         const handleControllerChange = () => {
@@ -9046,6 +9154,7 @@ export function AletheiaApp() {
     window.addEventListener("online", updateOnline);
     window.addEventListener("offline", updateOnline);
     return () => {
+      cancelled = true;
       if (swCleanup) {
         swCleanup();
       }
@@ -23948,6 +24057,8 @@ function CounselInviteModal({
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   useBodyScrollLock(Boolean(token));
   const authBusy = isWorking || authStatus === "checking" || authStatus === "signing-in" || authStatus === "signing-out";
+  const showOpenInApp = !Capacitor.isNativePlatform();
+  const inviteToken = token ?? "";
   if (!token) {
     return null;
   }
@@ -24006,12 +24117,21 @@ function CounselInviteModal({
                       <h3 className="mt-1.5 text-base font-semibold" style={{ color: theme.textPrimary }}>
                         {authMode === "register" ? ts("auth.createNewAccount") : ts("auth.signInForSync")}
                       </h3>
-                      <div className="mt-3 rounded-2xl border px-3 py-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-                        <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>
-                          {ts("challenges.afterSignInTapAcceptInvite")}
-                        </p>
-                      </div>
+                    <div className="mt-3 rounded-2xl border px-3 py-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                      <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>
+                        {ts("challenges.afterSignInTapAcceptInvite")}
+                      </p>
                     </div>
+                    {showOpenInApp ? (
+                      <a
+                        href={buildCounselInviteAppUrl(inviteToken)}
+                        className="inline-flex h-10 items-center justify-center rounded-full border px-4 text-sm font-semibold transition"
+                        style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                      >
+                        {ts("labels.openInApp")}
+                      </a>
+                    ) : null}
+                  </div>
                     <div className="flex flex-wrap gap-2">
                       <button className="h-10 rounded-full px-4 text-sm font-semibold" style={{ backgroundColor: authMode === "login" ? theme.primary : theme.bgInput, color: authMode === "login" ? theme.textOnPrimary : theme.textPrimary, borderColor: theme.borderMedium, borderStyle: "solid", borderWidth: authMode === "login" ? 0 : 1 }} onClick={() => setAuthMode("login")}>
                         {ts("auth.signIn")}
@@ -24098,6 +24218,15 @@ function CounselInviteModal({
                         {ts("challenges.afterSignInTapAcceptInvite")}
                       </p>
                     </div>
+                    {showOpenInApp ? (
+                      <a
+                        href={buildCounselInviteAppUrl(inviteToken)}
+                        className="inline-flex h-10 items-center justify-center rounded-full border px-4 text-sm font-semibold transition"
+                        style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                      >
+                        {ts("labels.openInApp")}
+                      </a>
+                    ) : null}
                     <div className="flex flex-wrap gap-2">
                       <button className="h-11 rounded-full px-4 text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }} onClick={onRequestSignIn}>
                         {ts("auth.signInForSync")}
@@ -24262,6 +24391,8 @@ function ChallengeInviteModal({
   const [nudgeDraft, setNudgeDraft] = useState("");
   useBodyScrollLock(Boolean(token));
   const authBusy = isWorking || authStatus === "checking" || authStatus === "signing-in" || authStatus === "signing-out";
+  const showOpenInApp = Boolean(token) && !Capacitor.isNativePlatform();
+  const inviteToken = token ?? "";
   if (!preview) {
     if (!token) {
       return null;
@@ -24589,6 +24720,15 @@ function ChallengeInviteModal({
                         {ts("challenges.afterSignInTapAcceptInvite")}
                       </p>
                     </div>
+                    {showOpenInApp ? (
+                      <a
+                        href={buildChallengeInviteAppUrl(inviteToken)}
+                        className="inline-flex h-10 items-center justify-center rounded-full border px-4 text-sm font-semibold transition"
+                        style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                      >
+                        {ts("labels.openInApp")}
+                      </a>
+                    ) : null}
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <button className="h-10 rounded-full px-4 text-sm font-semibold" style={{ backgroundColor: authMode === "login" ? theme.primary : theme.bgInput, color: authMode === "login" ? theme.textOnPrimary : theme.textPrimary, borderColor: theme.borderMedium, borderStyle: "solid", borderWidth: authMode === "login" ? 0 : 1 }} onClick={() => setAuthMode("login")}>
@@ -24670,13 +24810,22 @@ function ChallengeInviteModal({
                   ) : null}
                 </div>
               ) : (
-                <div className="space-y-3">
-                  <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>
-                    {declined ? ts("challenges.declinedInviteBody") : ts("challenges.joinPrompt")}
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    <button className="h-11 rounded-full px-4 text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }} onClick={onRequestSignIn}>
-                      {ts("auth.signInForSync")}
+                  <div className="space-y-3">
+                    <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>
+                      {declined ? ts("challenges.declinedInviteBody") : ts("challenges.joinPrompt")}
+                    </p>
+                    {showOpenInApp ? (
+                    <a
+                      href={buildChallengeInviteAppUrl(inviteToken)}
+                        className="inline-flex h-10 items-center justify-center rounded-full border px-4 text-sm font-semibold transition"
+                        style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                      >
+                        {ts("labels.openInApp")}
+                      </a>
+                    ) : null}
+                    <div className="flex flex-wrap gap-2">
+                      <button className="h-11 rounded-full px-4 text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }} onClick={onRequestSignIn}>
+                        {ts("auth.signInForSync")}
                     </button>
                     {googleAuthAvailable ? (
                       <button className="h-11 rounded-full border px-4 text-sm font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={onGoogleSignIn}>
@@ -24684,6 +24833,15 @@ function ChallengeInviteModal({
                       </button>
                     ) : null}
                   </div>
+                  {showOpenInApp ? (
+                    <a
+                      href={buildChallengeInviteAppUrl(inviteToken)}
+                      className="inline-flex h-10 items-center justify-center rounded-full border px-4 text-sm font-semibold transition"
+                      style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                    >
+                      {ts("labels.openInApp")}
+                    </a>
+                  ) : null}
                   {shareUrl ? (
                     <button className="h-11 rounded-full border px-4 text-sm font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={shareChallengeInvite}>
                       {ts("labels.copyLink")}

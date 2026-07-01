@@ -837,6 +837,7 @@
     "browserReadingMayPause": "Managed audio can keep playing when the app is minimized on supported mobile apps. Browser playback still depends on the host environment.",
     "dismissWorkflowNotice": "Dismiss workflow notice",
     "closeInvite": "Close invite",
+    "openInApp": "Open in app",
     "closeConfirmation": "Close confirmation",
     "removeKeyword": "REMOVE",
     "stop": "Stop",
