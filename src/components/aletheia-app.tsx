@@ -18276,7 +18276,7 @@ function FormationRailSection({
         }}
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex items-start justify-between gap-3">
+        <div className="relative pr-14 sm:pr-16">
           <div className="min-w-0">
             <p className="text-[11px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.accentGold }}>
               {ts("challenges.dayLabel").replace("{day}", String(selectedChallengeModalDay.day))}
@@ -18291,7 +18291,7 @@ function FormationRailSection({
           <button
             type="button"
             onClick={() => setOpenDayDetailDay(null)}
-            className="grid size-10 shrink-0 place-items-center rounded-full border transition"
+            className="absolute right-0 top-0 grid size-10 shrink-0 place-items-center rounded-full border transition sm:right-0 sm:top-0"
             style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
             aria-label={ts("labels.close")}
           >
@@ -23871,7 +23871,7 @@ function DecisionMemoryDetailModal({
         onClick={(event) => event.stopPropagation()}
       >
         <div
-          className="relative overflow-hidden border-b px-4 py-4 sm:px-5 sm:py-5"
+          className="relative overflow-hidden border-b px-4 py-4 pr-16 sm:px-5 sm:py-5 sm:pr-16"
           style={{
             borderColor: theme.borderLight,
             background: `linear-gradient(135deg, color-mix(in srgb, ${theme.bgCardElevated} 64%, white 36%), ${theme.bgCard}, color-mix(in srgb, ${theme.bgCardElevated} 84%, ${theme.accentGold} 16%))`,
@@ -23883,7 +23883,7 @@ function DecisionMemoryDetailModal({
               background: `radial-gradient(circle at 18% 18%, color-mix(in srgb, ${theme.accentGold} 18%, transparent), transparent 36%), radial-gradient(circle at 92% 0%, color-mix(in srgb, ${theme.primary} 10%, transparent), transparent 30%)`,
             }}
           />
-          <div className="relative flex items-start justify-between gap-3">
+          <div className="relative">
             <div className="min-w-0">
               <p className="text-[11px] font-semibold uppercase tracking-[0.22em] sm:text-xs" style={{ color: theme.accentGold }}>
                 {ts("labels.decisionMemory")}
@@ -23899,7 +23899,7 @@ function DecisionMemoryDetailModal({
             <button
               type="button"
               onClick={onClose}
-              className="grid size-10 shrink-0 place-items-center rounded-full border transition shadow-sm"
+              className="absolute right-0 top-0 grid size-10 shrink-0 place-items-center rounded-full border transition shadow-sm"
               style={{
                 borderColor: theme.borderMedium,
                 backgroundColor: theme.bgInput,
@@ -27117,7 +27117,7 @@ function ConversationHistoryModal({
         onClick={(event) => event.stopPropagation()}
       >
         <div
-          className="relative overflow-hidden border-b px-4 py-4 sm:px-5 sm:py-5"
+          className="relative overflow-hidden border-b px-4 py-4 pr-16 sm:px-5 sm:py-5 sm:pr-16"
           style={{
             borderColor: theme.borderLight,
             background: `linear-gradient(135deg, color-mix(in srgb, ${theme.bgCardElevated} 66%, white 34%), ${theme.bgCard}, color-mix(in srgb, ${theme.bgCardElevated} 84%, ${theme.accentGold} 16%))`,
@@ -27129,7 +27129,7 @@ function ConversationHistoryModal({
               background: `radial-gradient(circle at 18% 18%, color-mix(in srgb, ${theme.accentGold} 18%, transparent), transparent 36%), radial-gradient(circle at 92% 0%, color-mix(in srgb, ${theme.primary} 10%, transparent), transparent 30%)`,
             }}
           />
-          <div className="relative flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="relative">
             <div className="min-w-0">
               <p className="text-[11px] font-semibold uppercase tracking-[0.22em] sm:text-xs" style={{ color: theme.accentGold }}>
                 {ts('labels.conversationHistory')}
@@ -27144,7 +27144,7 @@ function ConversationHistoryModal({
             <button
               type="button"
               onClick={onClose}
-              className="grid size-10 shrink-0 place-items-center self-start rounded-full border transition shadow-sm"
+              className="absolute right-0 top-0 grid size-10 shrink-0 place-items-center rounded-full border transition shadow-sm"
               style={{
                 borderColor: theme.borderMedium,
                 backgroundColor: theme.bgInput,
