@@ -26709,30 +26709,30 @@ function CurrentCounselCard({
   const CurrentLensIcon = currentModeCard.icon;
 
   return (
-      <section className="relative rounded-[1.5rem] border p-4 shadow-[0_8px_24px_rgba(15,23,42,0.05)] sm:p-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-        <div className="mb-4 pr-14 sm:pr-16">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.accentGold }}>
-            {text.currentCounsel ?? ts('currentCounsel')}
-          </p>
-        </div>
-        <span
-          className="absolute right-4 top-4 grid size-8 shrink-0 place-items-center rounded-[0.8rem] border shadow-sm"
-          style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}
-          aria-label={`${ui.currentLens}: ${lensLabel}`}
-          title={`${ui.currentLens}: ${lensLabel}`}
-        >
-          <CurrentLensIcon size={15} aria-hidden="true" />
-          <span className="sr-only">{`${ui.currentLens}: ${lensLabel}`}</span>
-        </span>
+    <section className="space-y-3">
+      <div className="px-1 pt-0.5">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.accentGold }}>
+          {text.currentCounsel ?? ts('currentCounsel')}
+        </p>
+      </div>
       {question ? (
         <div className="relative rounded-[1.25rem] border p-3.5 pr-14 sm:p-4 sm:pr-16" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
+          <span
+            className="absolute right-3 top-3 grid size-8 shrink-0 place-items-center rounded-[0.8rem] border shadow-sm"
+            style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}
+            aria-label={`${ui.currentLens}: ${lensLabel}`}
+            title={`${ui.currentLens}: ${lensLabel}`}
+          >
+            <CurrentLensIcon size={15} aria-hidden="true" />
+            <span className="sr-only">{`${ui.currentLens}: ${lensLabel}`}</span>
+          </span>
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>{ui.yourQuestion}</p>
           <p className="mt-2.5 line-clamp-3 text-[0.98rem] leading-7 tracking-[-0.01em]" style={{ color: theme.textPrimary }}>
             {cleanDisplayText(question)}
           </p>
         </div>
       ) : null}
-      <article className="mt-3.5 rounded-[1.25rem] border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+      <article className="rounded-[1.25rem] border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
         {preferences.voiceEnabled && !isThinking ? (
           <div className="flex flex-col items-center gap-2">
             {speechLoading || (isSpeaking && speechProgress > 0) ? (
