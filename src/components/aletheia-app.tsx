@@ -26727,18 +26727,9 @@ function CurrentCounselCard({
           <p className="mt-2.5 line-clamp-3 text-[0.98rem] leading-7 tracking-[-0.01em]" style={{ color: theme.textPrimary }}>
             {cleanDisplayText(question)}
           </p>
-          <span
-            className="absolute right-3 top-3 grid size-10 shrink-0 place-items-center rounded-[0.95rem] border shadow-sm"
-            style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}
-            aria-label={`${ui.currentLens}: ${lensLabel}`}
-            title={`${ui.currentLens}: ${lensLabel}`}
-          >
-            <CurrentLensIcon size={18} aria-hidden="true" />
-            <span className="sr-only">{`${ui.currentLens}: ${lensLabel}`}</span>
-          </span>
         </div>
       ) : null}
-      <article className="mt-3.5 rounded-[1.25rem] border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+      <article className="relative mt-3.5 rounded-[1.25rem] border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
         {preferences.voiceEnabled && !isThinking ? (
           <div className="flex flex-col items-center gap-2">
             <span
@@ -26784,6 +26775,15 @@ function CurrentCounselCard({
             </div>
           </div>
         ) : null}
+        <span
+          className="absolute right-3 top-3 grid size-8 shrink-0 place-items-center rounded-[0.8rem] border shadow-sm"
+          style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}
+          aria-label={`${ui.currentLens}: ${lensLabel}`}
+          title={`${ui.currentLens}: ${lensLabel}`}
+        >
+          <CurrentLensIcon size={15} aria-hidden="true" />
+          <span className="sr-only">{`${ui.currentLens}: ${lensLabel}`}</span>
+        </span>
         <div className="calm-prose mt-3" style={{ color: theme.textPrimary }}>
           <ScriptureLinkedText
             theme={theme}
