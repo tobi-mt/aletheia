@@ -14855,10 +14855,10 @@ function HomeDashboard({
         }}
       >
           <div className="flex flex-col gap-4">
-            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
-              <div className="min-w-0">
-                <p className="text-[10.5px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.accentGold }}>
-                  {homeWelcomeEyebrow}
+          <div className="relative pr-14 sm:pr-16">
+            <div className="min-w-0">
+              <p className="text-[10.5px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.accentGold }}>
+                {homeWelcomeEyebrow}
               </p>
               <h1 className="mt-2 text-[1.88rem] font-semibold leading-[1.01] text-balance sm:text-[2.35rem]" style={{ color: theme.textPrimary }} suppressHydrationWarning>
                 {greeting}
@@ -14867,10 +14867,10 @@ function HomeDashboard({
                   {homeWelcomeSeasonal}
                 </p>
             </div>
-              <span className="grid size-12 shrink-0 place-items-center justify-self-end rounded-2xl border shadow-[0_8px_16px_rgba(7,10,8,0.08)]" style={{ borderColor: theme.primary, backgroundColor: theme.primary, color: theme.textOnPrimary }}>
-                <Sparkles size={22} />
-              </span>
-            </div>
+            <span className="absolute right-0 top-0 grid size-12 shrink-0 place-items-center rounded-2xl border shadow-[0_8px_16px_rgba(7,10,8,0.08)]" style={{ borderColor: theme.primary, backgroundColor: theme.primary, color: theme.textOnPrimary }}>
+              <Sparkles size={22} />
+            </span>
+          </div>
 
           {personalizationContextEmpty ? (
             <button
@@ -14975,20 +14975,18 @@ function HomeDashboard({
         style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textPrimary }}
       >
         <div className="space-y-4">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0 flex-1">
-              <p className="text-[10.5px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.accentGold }}>
-                {text.whatNext}
-              </p>
-              <h2 className="mt-2 text-[1.72rem] font-semibold leading-[1.02] text-balance sm:text-[2.1rem]" style={{ color: theme.textPrimary }}>
-                {text.askOneQuestion}
-              </h2>
-              <p className="mt-2 max-w-2xl text-[0.94rem] leading-6 sm:text-[0.98rem] sm:leading-7" style={{ color: theme.textSecondary }}>
-                {(text as { whatNextBodyShort?: string }).whatNextBodyShort ?? text.whatNextBody ?? ""}
-              </p>
-            </div>
+          <div className="relative rounded-[1.25rem] border p-3.5 pr-14 sm:p-4 sm:pr-16" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
+            <p className="text-[10.5px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.accentGold }}>
+              {text.whatNext}
+            </p>
+            <h2 className="mt-2 text-[1.72rem] font-semibold leading-[1.02] text-balance sm:text-[2.1rem]" style={{ color: theme.textPrimary }}>
+              {text.askOneQuestion}
+            </h2>
+            <p className="mt-2 max-w-2xl text-[0.94rem] leading-6 sm:text-[0.98rem] sm:leading-7" style={{ color: theme.textSecondary }}>
+              {(text as { whatNextBodyShort?: string }).whatNextBodyShort ?? text.whatNextBody ?? ""}
+            </p>
             <div
-              className="grid size-10 shrink-0 place-items-center self-start rounded-[1rem] border"
+              className="absolute right-3 top-3 grid size-10 shrink-0 place-items-center rounded-[1rem] border"
               style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}
               aria-hidden="true"
             >
