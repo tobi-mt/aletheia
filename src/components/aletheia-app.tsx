@@ -26714,27 +26714,23 @@ function CurrentCounselCard({
   const CurrentLensIcon = currentModeCard.icon;
 
   return (
-    <section className="rounded-[1.5rem] border p-4 shadow-[0_8px_24px_rgba(15,23,42,0.05)] sm:p-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-      <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <p className="min-w-0 text-[10px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.accentGold }}>
-          {text.currentCounsel ?? ts('currentCounsel')}
-        </p>
+      <section className="rounded-[1.5rem] border p-4 shadow-[0_8px_24px_rgba(15,23,42,0.05)] sm:p-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+        <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <p className="min-w-0 text-[10px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.accentGold }}>
+            {text.currentCounsel ?? ts('currentCounsel')}
+          </p>
         <span className="self-start rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ borderColor: theme.borderLight, backgroundColor: isThinking || isWorking ? theme.bgCardElevated : theme.bgInput, color: isThinking || isWorking ? theme.accentGold : theme.textSecondary }}>
           {isThinking || isWorking ? "..." : ui.ready}
         </span>
       </div>
       {question ? (
-        <div className="rounded-[1.25rem] border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
+        <div className="relative rounded-[1.25rem] border p-3.5 pr-14 sm:p-4 sm:pr-16" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>{ui.yourQuestion}</p>
           <p className="mt-2.5 line-clamp-3 text-[0.98rem] leading-7 tracking-[-0.01em]" style={{ color: theme.textPrimary }}>
             {cleanDisplayText(question)}
           </p>
-        </div>
-      ) : null}
-      <article className="mt-3.5 rounded-[1.25rem] border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-        <div className="flex items-start justify-between gap-3">
           <span
-            className="grid size-10 shrink-0 place-items-center rounded-[0.95rem] border shadow-sm"
+            className="absolute right-3 top-3 grid size-10 shrink-0 place-items-center rounded-[0.95rem] border shadow-sm"
             style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}
             aria-label={`${ui.currentLens}: ${lensLabel}`}
             title={`${ui.currentLens}: ${lensLabel}`}
@@ -26742,52 +26738,54 @@ function CurrentCounselCard({
             <CurrentLensIcon size={18} aria-hidden="true" />
             <span className="sr-only">{`${ui.currentLens}: ${lensLabel}`}</span>
           </span>
-          {preferences.voiceEnabled && !isThinking ? (
-            <div className="flex flex-col items-end gap-2">
-              <span
-                className="inline-flex h-7 min-w-[6.5rem] items-center justify-end whitespace-nowrap text-right text-[11px] leading-none tabular-nums sm:min-w-[7.5rem]"
-                style={{ color: theme.textMuted }}
-                aria-live="polite"
+        </div>
+      ) : null}
+      <article className="mt-3.5 rounded-[1.25rem] border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+        {preferences.voiceEnabled && !isThinking ? (
+          <div className="flex flex-col items-center gap-2">
+            <span
+              className="inline-flex h-7 min-w-[6.5rem] items-center justify-center whitespace-nowrap text-center text-[11px] leading-none tabular-nums sm:min-w-[7.5rem]"
+              style={{ color: theme.textMuted }}
+              aria-live="polite"
+            >
+              {speechLoading ? (
+                <span className="font-semibold animate-pulse">
+                  {ts('status.preparingAudio')}
+                </span>
+              ) : isSpeaking && speechProgress > 0 ? (
+                <span>{speechProgress}%</span>
+              ) : (
+                <span aria-hidden="true">&nbsp;</span>
+              )}
+            </span>
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <button
+                type="button"
+                onClick={onSpeak}
+                className="inline-flex h-7 items-center justify-center gap-1 whitespace-nowrap rounded-full border px-2 text-[10px] font-semibold uppercase tracking-[0.12em] leading-none transition"
+                style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
+                aria-label={isSpeaking ? ts('labels.stopReading') : ts('labels.readAnswerAloud')}
+                title={isSpeaking ? ts('labels.stop') : ts('labels.listenToThisAnswer')}
               >
-                {speechLoading ? (
-                  <span className="font-semibold animate-pulse">
-                    {ts('status.preparingAudio')}
-                  </span>
-                ) : isSpeaking && speechProgress > 0 ? (
-                  <span>{speechProgress}%</span>
-                ) : (
-                  <span aria-hidden="true">&nbsp;</span>
-                )}
-              </span>
-              <div className="flex flex-wrap items-center justify-end gap-2">
+                <Volume2 size={12} style={isSpeaking ? { color: theme.accentGold } : undefined} />
+                {isSpeaking ? ts('labels.stop') : ts('labels.readAloud')}
+              </button>
+              {isSpeaking ? (
                 <button
                   type="button"
-                  onClick={onSpeak}
+                  onClick={onTogglePause}
+                  disabled={speechLoading}
                   className="inline-flex h-7 items-center justify-center gap-1 whitespace-nowrap rounded-full border px-2 text-[10px] font-semibold uppercase tracking-[0.12em] leading-none transition"
-                  style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
-                  aria-label={isSpeaking ? ts('labels.stopReading') : ts('labels.readAnswerAloud')}
-                  title={isSpeaking ? ts('labels.stop') : ts('labels.listenToThisAnswer')}
+                  style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary, opacity: speechLoading ? 0.55 : 1 }}
+                  aria-label={speechPaused ? ts('labels.resumeReading') : ts('labels.pauseReading')}
+                  title={speechPaused ? ts('labels.resumeReading') : ts('labels.pauseReading')}
                 >
-                  <Volume2 size={12} style={isSpeaking ? { color: theme.accentGold } : undefined} />
-                  {isSpeaking ? ts('labels.stop') : ts('labels.readAloud')}
+                  {speechPaused ? ts('labels.resumeReading') : ts('labels.pauseReading')}
                 </button>
-                {isSpeaking ? (
-                  <button
-                    type="button"
-                    onClick={onTogglePause}
-                    disabled={speechLoading}
-                    className="inline-flex h-7 items-center justify-center gap-1 whitespace-nowrap rounded-full border px-2 text-[10px] font-semibold uppercase tracking-[0.12em] leading-none transition"
-                    style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary, opacity: speechLoading ? 0.55 : 1 }}
-                    aria-label={speechPaused ? ts('labels.resumeReading') : ts('labels.pauseReading')}
-                    title={speechPaused ? ts('labels.resumeReading') : ts('labels.pauseReading')}
-                  >
-                    {speechPaused ? ts('labels.resumeReading') : ts('labels.pauseReading')}
-                  </button>
-                ) : null}
-              </div>
+              ) : null}
             </div>
-          ) : null}
-        </div>
+          </div>
+        ) : null}
         <div className="calm-prose mt-3" style={{ color: theme.textPrimary }}>
           <ScriptureLinkedText
             theme={theme}
