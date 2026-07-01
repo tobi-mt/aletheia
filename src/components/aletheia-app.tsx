@@ -18558,7 +18558,7 @@ function FormationRailSection({
                           type="date"
                           value={fastingInviteDraft.startDate}
                           onChange={(event) => updateFastingInviteDraft({ startDate: event.target.value })}
-                          className="mt-2 h-11 w-full rounded-[0.9rem] border px-3 text-sm outline-none"
+                          className="mt-2 h-11 w-full max-w-[11rem] rounded-[0.9rem] border px-3 text-sm outline-none sm:max-w-none"
                           style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
                         />
                       </label>
@@ -26012,6 +26012,9 @@ function CounselDecisionShareRail({
   onShareDecisionWithCounsel: (contactId: string, decisionId: string) => void;
   onBulkShareDecisionsWithCounsel: (contactId: string, decisionIds: string[]) => void;
 }) {
+  const shareRailRef = useRef<HTMLDivElement | null>(null);
+  const shareRailHasOverflow = useRailOverflow(shareRailRef, decisions.length > 1, [decisions.length, contactId]);
+
   if (!decisions.length) {
     return (
       <p className="mt-3 rounded-[1rem] border px-3 py-2 text-xs leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
@@ -26026,11 +26029,16 @@ function CounselDecisionShareRail({
         <p className="min-w-0 text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
           {ts('labels.shareDecisions')}
         </p>
-        <span className="self-start rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-          {decisions.length}
-        </span>
       </div>
-      <div className="mt-3 flex min-w-0 snap-x gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      {shareRailHasOverflow ? (
+        <div className="mt-2 flex justify-end text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
+          <span className="inline-flex items-center gap-1">
+            <span>{ts('labels.swipeForMore')}</span>
+            <span aria-hidden="true">→</span>
+          </span>
+        </div>
+      ) : null}
+      <div ref={shareRailRef} className="mt-3 flex min-w-0 snap-x gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {decisions.map((decision) => {
           const modeLabel = isMode(decision.mode) ? ts(modeTranslationKey(decision.mode), decision.mode) : decision.mode;
           return (
@@ -26082,6 +26090,7 @@ function CounselVoiceCard({
   onShareDecisionWithCounsel,
   onBulkShareDecisionsWithCounsel,
   showShareDecisions = false,
+  stretch = false,
 }: {
   theme: ThemeColors;
   ts: (key: string, fallback?: string) => string;
@@ -26091,10 +26100,11 @@ function CounselVoiceCard({
   onShareDecisionWithCounsel: (contactId: string, decisionId: string) => void;
   onBulkShareDecisionsWithCounsel: (contactId: string, decisionIds: string[]) => void;
   showShareDecisions?: boolean;
+  stretch?: boolean;
 }) {
   return (
     <div
-      className="premium-tap-card relative flex min-h-[12.5rem] w-[14rem] shrink-0 snap-start flex-col overflow-hidden rounded-[1.45rem] border p-4 sm:w-[15rem]"
+      className={`premium-tap-card relative flex min-h-[12.5rem] shrink-0 snap-start flex-col overflow-hidden rounded-[1.45rem] border p-4 ${stretch ? "w-full max-w-[18rem] sm:max-w-[20rem]" : "w-[14rem] sm:w-[15rem]"}`}
       style={{
         borderColor: theme.borderMedium,
         background: `linear-gradient(180deg, color-mix(in srgb, ${theme.bgCardElevated} 94%, white 6%), ${theme.bgCard})`,
@@ -27377,29 +27387,48 @@ function DecisionCompanionPanel({
                     </p>
                   </div>
                 </div>
-                {visibleCounselRailHasOverflow ? (
-                  <div className="mt-4 flex justify-end text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: railText.railMuted }}>
-                    <span className="inline-flex items-center gap-1">
-                      <span>{ts('labels.swipeForMore')}</span>
-                      <span aria-hidden="true">→</span>
-                    </span>
-                  </div>
-                ) : null}
-                <div ref={visibleCounselRailRef} className="mt-2 flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
-                  {visibleCounselContacts.map((contact) => (
+                {visibleCounselContacts.length === 1 && !hiddenCounselContacts.length ? (
+                  <div className="mt-3 flex justify-center">
                     <CounselVoiceCard
-                      key={contact.id}
+                      key={visibleCounselContacts[0].id}
                       theme={theme}
                       ts={ts}
-                      contact={contact}
+                      contact={visibleCounselContacts[0]}
                       decisions={decisions}
                       onRemoveCounselContact={onRemoveCounselContact}
                       onShareDecisionWithCounsel={onShareDecisionWithCounsel}
                       onBulkShareDecisionsWithCounsel={onBulkShareDecisionsWithCounsel}
                       showShareDecisions
+                      stretch
                     />
-                  ))}
-                </div>
+                  </div>
+                ) : (
+                  <>
+                    {visibleCounselRailHasOverflow ? (
+                      <div className="mt-4 flex justify-end text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: railText.railMuted }}>
+                        <span className="inline-flex items-center gap-1">
+                          <span>{ts('labels.swipeForMore')}</span>
+                          <span aria-hidden="true">→</span>
+                        </span>
+                      </div>
+                    ) : null}
+                    <div ref={visibleCounselRailRef} className="mt-2 flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
+                      {visibleCounselContacts.map((contact) => (
+                        <CounselVoiceCard
+                          key={contact.id}
+                          theme={theme}
+                          ts={ts}
+                          contact={contact}
+                          decisions={decisions}
+                          onRemoveCounselContact={onRemoveCounselContact}
+                          onShareDecisionWithCounsel={onShareDecisionWithCounsel}
+                          onBulkShareDecisionsWithCounsel={onBulkShareDecisionsWithCounsel}
+                          showShareDecisions
+                        />
+                      ))}
+                    </div>
+                  </>
+                )}
                 {hiddenCounselContacts.length ? (
                   <div className="mt-4 rounded-[1.35rem] border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
                     <div className="flex items-start justify-between gap-3">

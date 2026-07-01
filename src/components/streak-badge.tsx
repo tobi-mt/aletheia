@@ -143,9 +143,9 @@ export function StreakAchievementNotification({
       initial={{ opacity: 0, scale: 0.8, y: 20 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.8, y: 20 }}
-      className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50"
+      className="pointer-events-none fixed top-1/2 left-1/2 z-[10060] -translate-x-1/2 -translate-y-1/2"
     >
-      <div className="max-w-[19rem] rounded-2xl bg-gradient-to-br from-yellow-400 to-orange-500 px-6 py-4 text-white shadow-2xl sm:max-w-sm">
+      <div className="pointer-events-auto max-w-[19rem] rounded-2xl bg-gradient-to-br from-yellow-400 to-orange-500 px-6 py-4 text-white shadow-2xl sm:max-w-sm">
         <p className="text-xl font-bold text-center">{getMessage()}</p>
         <div className="mt-4 flex flex-col gap-2 sm:flex-row">
           <button
