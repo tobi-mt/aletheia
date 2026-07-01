@@ -57,6 +57,8 @@ type NudgeRow = {
   sender_user_id: string;
   sender_name: string | null;
   sender_avatar_url: string | null;
+  recipient_user_id: string | null;
+  recipient_name: string | null;
 };
 
 const FASTING_CHALLENGE_ID = "fasting-custom";
@@ -132,9 +134,12 @@ async function circleMembers(circleId: string, challengeId: string) {
 
 async function circleNudges(circleId: string) {
   return many<NudgeRow>(
-    `SELECT n.id, n.body, n.created_at, n.sender_user_id, u.name AS sender_name, u.avatar_url AS sender_avatar_url
+    `SELECT n.id, n.body, n.created_at, n.sender_user_id, n.recipient_user_id,
+            sender_u.name AS sender_name, sender_u.avatar_url AS sender_avatar_url,
+            recipient_u.name AS recipient_name
      FROM challenge_circle_nudges n
-     JOIN users u ON u.id = n.sender_user_id
+     JOIN users sender_u ON sender_u.id = n.sender_user_id
+     LEFT JOIN users recipient_u ON recipient_u.id = n.recipient_user_id
      WHERE n.circle_id = ?
      ORDER BY n.created_at DESC
      LIMIT 12`,
@@ -213,6 +218,8 @@ async function formatCircle(circle: CircleRow, viewerUserId?: string) {
       senderUserId: nudge.sender_user_id,
       senderName: nudge.sender_name,
       senderAvatarUrl: nudge.sender_avatar_url,
+      recipientUserId: nudge.recipient_user_id,
+      recipientName: nudge.recipient_name,
     })),
   };
 }

@@ -15,6 +15,10 @@ type CircleRow = {
   invite_status: string;
 };
 
+type MemberNameRow = {
+  name: string | null;
+};
+
 async function findCircle(token: string) {
   return one<CircleRow>(
     `SELECT id, challenge_id, owner_user_id, invite_status
@@ -49,7 +53,7 @@ export async function POST(request: Request, { params }: Params) {
     return apiError(403, "permission_denied", "Join the shared practice before sending nudges.");
   }
 
-  const parsed = await readJsonBody<{ body?: string }>(request, { maxBytes: 2_000, emptyBody: {} });
+  const parsed = await readJsonBody<{ body?: string; recipientUserId?: string | null }>(request, { maxBytes: 2_000, emptyBody: {} });
   if (!parsed.ok) {
     return parsed.response;
   }
@@ -58,15 +62,30 @@ export async function POST(request: Request, { params }: Params) {
   if (!body) {
     return apiError(400, "invalid_input", "A nudge message is required.");
   }
+  const recipientUserId = parsed.data.recipientUserId?.trim() ?? null;
+  if (recipientUserId === user.id) {
+    return apiError(400, "invalid_input", "Choose another person for a direct nudge.");
+  }
+  if (recipientUserId) {
+    const recipientMembership = await one<{ id: string }>(
+      "SELECT id FROM challenge_circle_members WHERE circle_id = ? AND user_id = ?",
+      circle.id,
+      recipientUserId
+    );
+    if (!recipientMembership) {
+      return apiError(400, "invalid_input", "Choose a person who is in this shared practice.");
+    }
+  }
 
   const now = new Date().toISOString();
   const nudgeId = crypto.randomUUID();
   await run(
-    `INSERT INTO challenge_circle_nudges (id, circle_id, sender_user_id, body, created_at)
-     VALUES (?, ?, ?, ?, ?)`,
+    `INSERT INTO challenge_circle_nudges (id, circle_id, sender_user_id, recipient_user_id, body, created_at)
+     VALUES (?, ?, ?, ?, ?, ?)`,
     nudgeId,
     circle.id,
     user.id,
+    recipientUserId,
     body,
     now
   );
@@ -77,8 +96,20 @@ export async function POST(request: Request, { params }: Params) {
     metadata: {
       challengeId: circle.challenge_id,
       inviteStatus: circle.invite_status,
+      recipientUserId,
     },
   }).catch(() => undefined);
+
+  const recipientName = recipientUserId
+    ? (await one<MemberNameRow>(
+        `SELECT u.name
+         FROM challenge_circle_members m
+         JOIN users u ON u.id = m.user_id
+         WHERE m.circle_id = ? AND m.user_id = ?`,
+        circle.id,
+        recipientUserId
+      ))?.name ?? null
+    : null;
 
   return NextResponse.json({
     ok: true,
@@ -87,6 +118,8 @@ export async function POST(request: Request, { params }: Params) {
       body,
       createdAt: now,
       senderUserId: user.id,
+      recipientUserId,
+      recipientName,
     },
   });
 }

@@ -8100,6 +8100,18 @@ export function AletheiaApp() {
 
   useLayoutEffect(() => {
     const updateViewportChrome = () => {
+      const activeElement = document.activeElement as HTMLElement | null;
+      const isEditable =
+        activeElement instanceof HTMLInputElement ||
+        activeElement instanceof HTMLTextAreaElement ||
+        activeElement?.isContentEditable === true;
+
+      // Keep the shell stable while the keyboard is open so mobile typing doesn't
+      // reflow the whole app on every viewport tick.
+      if (isEditable) {
+        return;
+      }
+
       const viewport = window.visualViewport;
       const viewportWidth = Math.max(0, Math.round(viewport?.width ?? window.innerWidth));
       const viewportHeight = Math.max(0, Math.round(viewport?.height ?? window.innerHeight));
@@ -9654,7 +9666,7 @@ export function AletheiaApp() {
     window.scrollTo({ top: 0, left: 0, behavior });
   }
 
-  function scrollTargetBelowTopChrome(target: HTMLElement, behavior: ScrollBehavior = "smooth") {
+function scrollTargetBelowTopChrome(target: HTMLElement, behavior: ScrollBehavior = "smooth") {
     const topNav = document.querySelector(".app-top-nav");
     const topOffset = topNav instanceof HTMLElement ? topNav.getBoundingClientRect().height + 18 : 112;
     const targetRect = target.getBoundingClientRect();
@@ -9682,8 +9694,7 @@ export function AletheiaApp() {
         if (id === "companion-ask") {
           window.setTimeout(() => {
             const input = document.getElementById("companion-question-input") as HTMLTextAreaElement | null;
-            input?.focus();
-            input?.scrollIntoView({ behavior: "smooth", block: "center" });
+            input?.focus({ preventScroll: true });
           }, 220);
         }
         return;
@@ -12500,11 +12511,14 @@ export function AletheiaApp() {
           : ts("status.challengeInviteDeclined")
       );
       if (action === "accept") {
+        setPendingChallengeId(data.challengeId);
+        showView("reflect");
         writeStoredChallengeInviteToken(null);
         setChallengeInviteToken(null);
         setChallengeInvitePreview(null);
         setChallengeInviteStatus("");
         setChallengeInviteUrl(null);
+        setChallengeInviteAuthOpen(false);
       }
       refreshChallengeCircles();
       return;
@@ -12544,6 +12558,8 @@ export function AletheiaApp() {
                   senderUserId: data.nudge!.senderUserId,
                   senderName: user?.name ?? user?.email ?? null,
                   senderAvatarUrl: user?.avatarUrl ?? null,
+                  recipientUserId: null,
+                  recipientName: null,
                 },
                 ...current.nudges,
               ],
@@ -13301,14 +13317,14 @@ export function AletheiaApp() {
         onAccept={() => respondToChallengeInvite("accept")}
         onDecline={() => respondToChallengeInvite("decline")}
         onNudge={addChallengeInviteNudge}
-        onRequestSignIn={() => {
+        onRequestSignIn={(mode = "login") => {
           if (challengeInviteToken) {
             writeStoredChallengeInviteToken(challengeInviteToken);
           }
           setAuthError("");
           setAuthNotice("");
           setChallengeInviteAuthOpen(true);
-          setAuthMode("login");
+          setAuthMode(mode);
         }}
         onCloseAuth={() => setChallengeInviteAuthOpen(false)}
         onClose={() => {
@@ -13467,6 +13483,13 @@ export function AletheiaApp() {
       </AnimatePresence>
     </main>
   );
+}
+
+function shouldAutoFocusOnThisDevice() {
+  if (typeof window === "undefined") {
+    return true;
+  }
+  return !window.matchMedia("(pointer: coarse)").matches;
 }
 
 function StartupSplash({
@@ -14242,7 +14265,7 @@ function OnboardingModal({
   onModeChange: (mode: Mode) => void;
   onPreferenceChange: (patch: Partial<UserPreferences>) => void;
   onComplete: () => void;
-  onRequestSignIn: () => void;
+  onRequestSignIn: (mode?: AuthMode) => void;
   theme: ThemeColors;
 }) {
   const [activeSetupStep, setActiveSetupStep] = useState("mode");
@@ -14668,7 +14691,7 @@ function OnboardingModal({
                 </div>
                 <button
                   type="button"
-                  onClick={onRequestSignIn}
+                  onClick={() => onRequestSignIn()}
                   className="inline-flex h-10 shrink-0 items-center justify-center rounded-full border px-4 text-sm font-semibold transition"
                   style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textPrimary }}
                 >
@@ -16976,6 +16999,8 @@ type ChallengeCircleNudge = {
   senderUserId: string;
   senderName: string | null;
   senderAvatarUrl: string | null;
+  recipientUserId: string | null;
+  recipientName: string | null;
 };
 
 type ChallengeCircleResponse = {
@@ -17517,6 +17542,7 @@ function FormationRailSection({
   const [sharedCircleNudgeDraft, setSharedCircleNudgeDraft] = useState("");
   const [sharedCircleNudgeStatus, setSharedCircleNudgeStatus] = useState("");
   const [sharedCircleNudgeBusy, setSharedCircleNudgeBusy] = useState(false);
+  const [sharedCircleNudgeRecipientId, setSharedCircleNudgeRecipientId] = useState<string | null>(null);
   const [recipientNameDraft, setRecipientNameDraft] = useState("");
   const [recipientNoteDraft, setRecipientNoteDraft] = useState("");
   const [currentTimestampMs, setCurrentTimestampMs] = useState(() => Date.now());
@@ -17800,6 +17826,10 @@ function FormationRailSection({
       )
     : null;
 
+  useEffect(() => {
+    setSharedCircleNudgeRecipientId(null);
+  }, [selectedCircle?.id]);
+
   const postSharedCircleNudge = useCallback(async () => {
     const body = sharedCircleNudgeDraft.trim();
     if (!selectedCircle || !selectedCircleHasCurrentMember || !body) {
@@ -17812,10 +17842,10 @@ function FormationRailSection({
       const response = await fetch(`/api/challenge-circles/${encodeURIComponent(selectedCircle.id)}/nudges`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ body }),
+        body: JSON.stringify({ body, recipientUserId: sharedCircleNudgeRecipientId }),
       });
       const data = (await response.json().catch(() => ({}))) as {
-        nudge?: { id: string; body: string; createdAt: string; senderUserId: string };
+        nudge?: { id: string; body: string; createdAt: string; senderUserId: string; recipientUserId?: string | null; recipientName?: string | null };
         error?: string;
         errorCode?: string;
       };
@@ -17825,7 +17855,7 @@ function FormationRailSection({
         onChallengeCircleChanged();
         return;
       }
-      setSharedCircleNudgeStatus(ts("status.challengeInviteNudgeFailed"));
+      setSharedCircleNudgeStatus(data.error ?? ts("status.challengeInviteNudgeFailed"));
     } catch {
       setSharedCircleNudgeStatus(ts("status.challengeInviteNudgeFailed"));
     } finally {
@@ -17836,6 +17866,7 @@ function FormationRailSection({
     selectedCircle,
     selectedCircleHasCurrentMember,
     sharedCircleNudgeDraft,
+    sharedCircleNudgeRecipientId,
     ts,
   ]);
   const selectedChallengeNextDay = selectedChallenge
@@ -19298,6 +19329,7 @@ function FormationRailSection({
                       <ChallengeSharedProgressPanel
                         theme={theme}
                         ts={ts}
+                        inviteOwner={selectedCircle.invite.owner}
                         members={selectedCircle.members}
                         totalDays={selectedChallenge.totalDays}
                       />
@@ -19337,10 +19369,14 @@ function FormationRailSection({
                         nudgeCount={selectedCircle.nudges.length}
                         nudges={selectedCircle.nudges}
                         selectedCircleHasCurrentMember={selectedCircleHasCurrentMember}
+                        currentUserId={user?.id ?? null}
+                        members={selectedCircle.members}
                         sharedCircleNudgeDraft={sharedCircleNudgeDraft}
                         sharedCircleNudgeStatus={sharedCircleNudgeStatus}
                         sharedCircleNudgeBusy={sharedCircleNudgeBusy}
+                        sharedCircleNudgeRecipientId={sharedCircleNudgeRecipientId}
                         onSharedCircleNudgeDraftChange={setSharedCircleNudgeDraft}
+                        onSharedCircleNudgeRecipientChange={setSharedCircleNudgeRecipientId}
                         onPostSharedCircleNudge={postSharedCircleNudge}
                       />
                     </div>
@@ -19531,9 +19567,13 @@ const ChallengeResponseDashboard = memo(function ChallengeResponseDashboard({
         .filter((entry): entry is readonly [string, ChallengeCircleResponse] => Boolean(entry))
     );
     const inviteCreatedAtMs = inviteCreatedAt ? Date.parse(inviteCreatedAt) : NaN;
-    const recipientStatuses = recipients.map((recipient) => {
+    const recipientStatuses: Array<{
+      recipient: ReadWithMeInviteRecipient;
+      response: ChallengeCircleResponse | null;
+      status: ReadWithMeRecipientStatus;
+    }> = recipients.map((recipient) => {
       const response = responseLookup.get(normalizeRosterKey(recipient.name)) ?? null;
-      const status = response?.responseStatus === "accepted"
+      const status: ReadWithMeRecipientStatus = response?.responseStatus === "accepted"
         ? "accepted"
         : response?.responseStatus === "declined"
           ? "declined"
@@ -19906,27 +19946,39 @@ const ChallengeNudgePanel = memo(function ChallengeNudgePanel({
   nudgeCount,
   nudges,
   selectedCircleHasCurrentMember,
+  currentUserId,
   sharedCircleNudgeDraft,
   sharedCircleNudgeStatus,
   sharedCircleNudgeBusy,
+  sharedCircleNudgeRecipientId,
   onSharedCircleNudgeDraftChange,
+  onSharedCircleNudgeRecipientChange,
   onPostSharedCircleNudge,
+  members,
 }: {
   theme: ThemeColors;
   ts: (key: string, fallback?: string) => string;
   nudgeCount: number;
   nudges: ChallengeCircleNudge[];
   selectedCircleHasCurrentMember: boolean;
+  currentUserId: string | null;
   sharedCircleNudgeDraft: string;
   sharedCircleNudgeStatus: string;
   sharedCircleNudgeBusy: boolean;
+  sharedCircleNudgeRecipientId: string | null;
   onSharedCircleNudgeDraftChange: (value: string) => void;
+  onSharedCircleNudgeRecipientChange: (value: string | null) => void;
   onPostSharedCircleNudge: () => Promise<void>;
+  members: ChallengeCircleMember[];
 }) {
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     void onPostSharedCircleNudge();
   };
+  const selectableMembers = members.filter((member) => member.userId !== currentUserId);
+  const selectedRecipientLabel = sharedCircleNudgeRecipientId
+    ? selectableMembers.find((member) => member.userId === sharedCircleNudgeRecipientId)?.name ?? ts("labels.counselContact")
+    : ts("challenges.nudgeRecipientEveryone");
 
   return (
     <div className="rounded-[1.1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
@@ -19947,6 +19999,68 @@ const ChallengeNudgePanel = memo(function ChallengeNudgePanel({
           <p className="text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
             {ts("challenges.sendNudge")}
           </p>
+          <div className="grid gap-2">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
+                {ts("challenges.nudgeRecipientLabel")}
+              </p>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.08em]" style={{ color: theme.accentGold }}>
+                {selectedRecipientLabel}
+              </p>
+            </div>
+            <p className="text-[11px] leading-5" style={{ color: theme.textMuted }}>
+              {ts("challenges.nudgeRecipientHelper")}
+            </p>
+            <div className="-mx-1 flex snap-x snap-mandatory gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [-webkit-overflow-scrolling:touch] [&::-webkit-scrollbar]:hidden">
+              <button
+                type="button"
+                onClick={() => onSharedCircleNudgeRecipientChange(null)}
+                className="inline-flex min-h-14 min-w-[9.5rem] snap-start items-center gap-3 rounded-[1.1rem] border px-3.5 py-2 text-left text-sm font-semibold transition"
+                style={{
+                  borderColor: sharedCircleNudgeRecipientId === null ? theme.primary : theme.borderMedium,
+                  backgroundColor: sharedCircleNudgeRecipientId === null ? theme.primary : theme.bgInput,
+                  color: sharedCircleNudgeRecipientId === null ? theme.textOnPrimary : theme.textPrimary,
+                }}
+              >
+                <span className="grid size-8 shrink-0 place-items-center rounded-full border text-xs font-bold" style={{ borderColor: sharedCircleNudgeRecipientId === null ? "rgba(255,255,255,0.26)" : theme.borderMedium, backgroundColor: sharedCircleNudgeRecipientId === null ? "rgba(255,255,255,0.16)" : theme.bgCard, color: sharedCircleNudgeRecipientId === null ? theme.textOnPrimary : theme.primary }}>
+                  {ts("labels.sharedPlan")}
+                </span>
+                <span className="min-w-0">
+                  <span className="block truncate">{ts("challenges.nudgeRecipientEveryone")}</span>
+                  <span className="mt-0.5 block text-[10px] font-medium uppercase tracking-[0.08em]" style={{ color: sharedCircleNudgeRecipientId === null ? theme.textOnPrimary : theme.textMuted }}>
+                    {ts("challenges.nudgeRecipientCircleHint")}
+                  </span>
+                </span>
+              </button>
+              {selectableMembers.map((member) => (
+                <button
+                  key={member.userId}
+                  type="button"
+                  onClick={() => onSharedCircleNudgeRecipientChange(member.userId)}
+                  className="inline-flex min-h-14 min-w-[9.5rem] snap-start items-center gap-3 rounded-[1.1rem] border px-3.5 py-2 text-left text-sm font-semibold transition"
+                  style={{
+                    borderColor: sharedCircleNudgeRecipientId === member.userId ? theme.primary : theme.borderMedium,
+                    backgroundColor: sharedCircleNudgeRecipientId === member.userId ? theme.primary : theme.bgInput,
+                    color: sharedCircleNudgeRecipientId === member.userId ? theme.textOnPrimary : theme.textPrimary,
+                  }}
+                >
+                  <AvatarCircle
+                    avatarUrl={member.avatarUrl}
+                    seed={member.userId}
+                    label={member.name ?? ts("labels.counselContact")}
+                    size={24}
+                    className="size-6"
+                  />
+                  <span className="min-w-0">
+                    <span className="block truncate">{member.name ?? ts("labels.counselContact")}</span>
+                    <span className="mt-0.5 block text-[10px] font-medium uppercase tracking-[0.08em]" style={{ color: sharedCircleNudgeRecipientId === member.userId ? theme.textOnPrimary : theme.textMuted }}>
+                      {member.role === "host" ? ts("labels.host") : ts("labels.person")}
+                    </span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
           <textarea
             value={sharedCircleNudgeDraft}
             onChange={(event) => onSharedCircleNudgeDraftChange(event.target.value)}
@@ -19954,6 +20068,9 @@ const ChallengeNudgePanel = memo(function ChallengeNudgePanel({
             style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
             placeholder={ts("challenges.nudgePlaceholder")}
           />
+          <p className="text-[11px] leading-5" style={{ color: theme.textMuted }}>
+            {ts("challenges.circleNudgeBody")}
+          </p>
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="text-[11px] leading-5" style={{ color: theme.textMuted }}>
               {sharedCircleNudgeStatus || ts("challenges.noNudgesYet")}
@@ -19964,7 +20081,7 @@ const ChallengeNudgePanel = memo(function ChallengeNudgePanel({
               className="h-10 rounded-full px-4 text-sm font-semibold"
               style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
             >
-              {sharedCircleNudgeBusy ? ts("status.saving") : ts("challenges.sendNudgeButton")}
+              {sharedCircleNudgeBusy ? ts("labels.saving") : ts("challenges.sendNudgeButton")}
             </button>
           </div>
         </form>
@@ -19976,6 +20093,11 @@ const ChallengeNudgePanel = memo(function ChallengeNudgePanel({
               <p style={{ color: theme.textSecondary }}>{nudge.body}</p>
               <p className="mt-1 text-[11px] uppercase tracking-[0.08em]" style={{ color: theme.textMuted }}>
                 {nudge.senderName ?? ts("labels.counselContact")}
+              </p>
+              <p className="mt-0.5 text-[11px] uppercase tracking-[0.08em]" style={{ color: theme.textMuted }}>
+                {nudge.recipientName
+                  ? ts("challenges.nudgeRecipientPerson").replace("{name}", nudge.recipientName)
+                  : ts("challenges.nudgeRecipientEveryone")}
               </p>
             </div>
           ))
@@ -19997,28 +20119,45 @@ const ChallengeNudgePanel = memo(function ChallengeNudgePanel({
   prev.nudgeCount === next.nudgeCount &&
   prev.nudges === next.nudges &&
   prev.selectedCircleHasCurrentMember === next.selectedCircleHasCurrentMember &&
+  prev.currentUserId === next.currentUserId &&
+  prev.members === next.members &&
   prev.sharedCircleNudgeDraft === next.sharedCircleNudgeDraft &&
   prev.sharedCircleNudgeStatus === next.sharedCircleNudgeStatus &&
+  prev.sharedCircleNudgeRecipientId === next.sharedCircleNudgeRecipientId &&
   prev.sharedCircleNudgeBusy === next.sharedCircleNudgeBusy
 ));
 
 const ChallengeSharedProgressPanel = memo(function ChallengeSharedProgressPanel({
   theme,
   ts,
+  inviteOwner,
   members,
   totalDays,
 }: {
   theme: ThemeColors;
   ts: (key: string, fallback?: string) => string;
+  inviteOwner: {
+    id: string;
+    name: string | null;
+    avatarUrl: string | null;
+  } | null;
   members: ChallengeCircleMember[];
   totalDays: number;
 }) {
   return (
     <div className="rounded-[1.1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
           {ts("challenges.sharedProgress")}
         </p>
+        {inviteOwner ? (
+          <span className="rounded-full border px-2 py-[3px] text-[9px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+            {ts("challenges.initiatedBy")}{" "}
+            <span className="normal-case tracking-normal">
+              {inviteOwner.name ?? ts("labels.counselContact")}
+            </span>
+          </span>
+        ) : null}
       </div>
       <div className="mt-3 flex flex-wrap gap-2">
         {members.map((member) => (
@@ -20057,6 +20196,7 @@ const ChallengeSharedProgressPanel = memo(function ChallengeSharedProgressPanel(
 }, (prev, next) => (
   prev.theme === next.theme &&
   prev.ts === next.ts &&
+  prev.inviteOwner === next.inviteOwner &&
   prev.members === next.members &&
   prev.totalDays === next.totalDays
 ));
@@ -20087,7 +20227,7 @@ function AccountPersonalizationPanel({
   availableVoices: ManagedVoiceOption[];
   selectedVoice: string | null;
   user: User | null;
-  onRequestSignIn: () => void;
+  onRequestSignIn: (mode?: AuthMode) => void;
   focusIntentions: string[];
   onPreferenceChange: (patch: Partial<UserPreferences>) => void;
   onThemePreferenceChange: (value: ThemePreference) => void;
@@ -20168,7 +20308,7 @@ function AccountPersonalizationPanel({
                 {item.onAction ? (
                   <button
                     type="button"
-                    onClick={item.onAction}
+                    onClick={() => item.onAction?.()}
                     className="mt-3 inline-flex h-10 items-center justify-center rounded-full border px-4 text-sm font-semibold transition"
                     style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
                   >
@@ -20683,7 +20823,7 @@ function TrustCenterCard({
   ts: (key: string, fallback?: string) => string;
   user: User | null;
   hasLocalWorkspaceData: boolean;
-  onRequestSignIn: () => void;
+  onRequestSignIn: (mode?: AuthMode) => void;
   onClearLocalPersonalization: () => void;
   onClearGuestWorkspace: () => void;
   onExportData: () => void;
@@ -22225,7 +22365,7 @@ function AccountStatusCard({
   notificationDeviceSubscribed: boolean;
   notificationStatus: string;
   onLogout: () => void;
-  onRequestSignIn: () => void;
+  onRequestSignIn: (mode?: AuthMode) => void;
   ts: (key: string, fallback?: string) => string;
 }) {
   const signedIn = Boolean(user);
@@ -22280,7 +22420,7 @@ function AccountStatusCard({
               </div>
               <button
                 type="button"
-                onClick={onRequestSignIn}
+                onClick={() => onRequestSignIn()}
                 className="inline-flex h-10 shrink-0 items-center justify-center rounded-full border px-4 text-sm font-semibold transition"
                 style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
               >
@@ -22885,7 +23025,7 @@ function NotificationPanel({
   onTimingChange: (patch: Partial<NotificationTiming>) => void;
   onEnable: () => void;
   onDisable: () => void;
-  onRequestSignIn: () => void;
+  onRequestSignIn: (mode?: AuthMode) => void;
 }) {
   const timezoneOptions = useMemo(
     () => notificationTimezoneOptions(timing.preferredTimezone),
@@ -22955,7 +23095,7 @@ function NotificationPanel({
             {ts('labels.signInToSyncIt')}
           </p>
           <button
-            onClick={onRequestSignIn}
+            onClick={() => onRequestSignIn()}
             className="mt-3 inline-flex h-10 items-center justify-center rounded-full border px-4 text-sm font-semibold transition"
             style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textPrimary }}
           >
@@ -23515,7 +23655,7 @@ function DeleteAccountModal({
               className="mt-2 h-10 w-full rounded-xl border px-3 text-sm normal-case tracking-normal outline-none"
               style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
               placeholder={confirmationWord}
-              autoFocus
+              autoFocus={shouldAutoFocusOnThisDevice()}
             />
           </label>
           <div className="flex flex-wrap justify-end gap-2">
@@ -24831,7 +24971,7 @@ function ChallengeInviteModal({
   onAccept: () => void;
   onDecline: () => void;
   onNudge: (body: string) => void;
-  onRequestSignIn: () => void;
+  onRequestSignIn: (mode?: AuthMode) => void;
   onCloseAuth: () => void;
   onClose: () => void;
 }) {
@@ -24884,6 +25024,7 @@ function ChallengeInviteModal({
   const responseStatus = challenge.viewerResponse ?? challenge.invite.status;
   const accepted = responseStatus === "accepted";
   const declined = responseStatus === "declined";
+  const isInviteOwner = Boolean(user && user.id === challenge.invite.owner.id);
   const details = challenge.invite.details;
   const isFastingInvite = details?.kind === "fasting";
   const detailSummaryDuration = details
@@ -25095,6 +25236,11 @@ function ChallengeInviteModal({
                     <p className="mt-1 text-[11px] uppercase tracking-[0.08em]" style={{ color: theme.textMuted }}>
                       {nudge.senderName ?? ts("labels.counselContact")}
                     </p>
+                    <p className="mt-0.5 text-[11px] uppercase tracking-[0.08em]" style={{ color: theme.textMuted }}>
+                      {nudge.recipientName
+                        ? ts("challenges.nudgeRecipientPerson").replace("{name}", nudge.recipientName)
+                        : ts("challenges.nudgeRecipientEveryone")}
+                    </p>
                   </div>
                 )) : (
                   <p className="text-sm leading-6" style={{ color: theme.textMuted }}>
@@ -25149,6 +25295,41 @@ function ChallengeInviteModal({
               </button>
             </RailButtonTray>
           </div>
+        ) : isInviteOwner ? (
+          <div className="mt-3.5 space-y-3 rounded-2xl border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+            <div className="rounded-2xl border px-3 py-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+              <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
+                {ts("challenges.inviteReady")}
+              </p>
+              <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                {ts("challenges.shareChallengeBody").replace("{days}", String(challenge.challenge.totalDays))}
+              </p>
+            </div>
+
+            <div className="grid gap-3 rounded-2xl border p-3.5 text-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
+              <p>
+                <span className="font-semibold" style={{ color: theme.textPrimary }}>{ts("challenges.initiatedBy")}:</span>{" "}
+                {challenge.invite.owner.name ?? ts("labels.counselContact")}
+              </p>
+              <p>
+                <span className="font-semibold" style={{ color: theme.textPrimary }}>{ts("labels.status")}:</span>{" "}
+                {ts("status.waitingForAcceptance")}
+              </p>
+              {challenge.invite.note ? (
+                <p className="leading-6">{challenge.invite.note}</p>
+              ) : null}
+            </div>
+
+            {showOpenInApp ? (
+              <a
+                href={buildChallengeInviteAppUrl(inviteToken)}
+                className="inline-flex h-10 items-center justify-center rounded-full border px-4 text-sm font-semibold transition"
+                style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+              >
+                {ts("labels.openInApp")}
+              </a>
+            ) : null}
+          </div>
         ) : (
           <div className="mt-3.5 space-y-3 rounded-2xl border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
             {!user ? (
@@ -25167,37 +25348,12 @@ function ChallengeInviteModal({
                         {ts("challenges.afterSignInTapAcceptInvite")}
                       </p>
                     </div>
-                    {showOpenInApp ? (
-                      <a
-                        href={buildChallengeInviteAppUrl(inviteToken)}
-                        className="inline-flex h-10 items-center justify-center rounded-full border px-4 text-sm font-semibold transition"
-                        style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-                      >
-                        {ts("labels.openInApp")}
-                      </a>
-                    ) : null}
                   </div>
-                  <RailButtonTray theme={theme} label={ts("auth.signInForSync")}>
-                    <button className="h-10 shrink-0 snap-start whitespace-nowrap rounded-full px-4 text-sm font-semibold" style={{ backgroundColor: authMode === "login" ? theme.primary : theme.bgInput, color: authMode === "login" ? theme.textOnPrimary : theme.textPrimary, borderColor: theme.borderMedium, borderStyle: "solid", borderWidth: authMode === "login" ? 0 : 1 }} onClick={() => setAuthMode("login")}>
-                      {ts("auth.signIn")}
-                    </button>
-                    <button className="h-10 shrink-0 snap-start whitespace-nowrap rounded-full px-4 text-sm font-semibold" style={{ backgroundColor: authMode === "register" ? theme.primary : theme.bgInput, color: authMode === "register" ? theme.textOnPrimary : theme.textPrimary, borderColor: theme.borderMedium, borderStyle: "solid", borderWidth: authMode === "register" ? 0 : 1 }} onClick={() => setAuthMode("register")}>
-                      {ts("auth.createNewAccount")}
-                    </button>
-                    <button className="h-10 shrink-0 snap-start whitespace-nowrap rounded-full border px-4 text-sm font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={onCloseAuth}>
-                      {ts("labels.cancel")}
-                    </button>
-                  </RailButtonTray>
                   {googleAuthAvailable ? (
                     <button className="h-11 w-full rounded-full border px-4 text-sm font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} disabled={authBusy} onClick={onGoogleSignIn}>
-                      {authStatus === "signing-in" ? ts('auth.openingGoogle') : ts('auth.continueWithGoogle')}
+                      {authStatus === "signing-in" ? ts("auth.openingGoogle") : ts("auth.continueWithGoogle")}
                     </button>
                   ) : null}
-                  <div className="flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
-                    <span className="h-px flex-1" style={{ backgroundColor: theme.borderLight }} />
-                    {ts("placeholders.email")}
-                    <span className="h-px flex-1" style={{ backgroundColor: theme.borderLight }} />
-                  </div>
                   <form className="grid gap-2 sm:grid-cols-2" onSubmit={onSubmitAuth}>
                     {authMode === "register" ? (
                       <input
@@ -25205,7 +25361,7 @@ function ChallengeInviteModal({
                         onChange={(event) => setAuthName(event.target.value)}
                         className="h-10 rounded-full border px-3 text-sm outline-none"
                         style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-                        placeholder={ts('placeholders.name')}
+                        placeholder={ts("placeholders.name")}
                       />
                     ) : null}
                     <input
@@ -25213,7 +25369,7 @@ function ChallengeInviteModal({
                       onChange={(event) => setAuthEmail(event.target.value)}
                       className="h-10 rounded-full border px-3 text-sm outline-none"
                       style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-                      placeholder={ts('placeholders.email')}
+                      placeholder={ts("placeholders.email")}
                       type="email"
                     />
                     <input
@@ -25221,7 +25377,7 @@ function ChallengeInviteModal({
                       onChange={(event) => setAuthPassword(event.target.value)}
                       className="h-10 rounded-full border px-3 text-sm outline-none"
                       style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-                      placeholder={ts('placeholders.password')}
+                      placeholder={ts("placeholders.password")}
                       type="password"
                     />
                     {authMode === "register" ? (
@@ -25232,7 +25388,7 @@ function ChallengeInviteModal({
                         style={{ display: "none" }}
                         tabIndex={-1}
                         autoComplete="off"
-                        placeholder={ts('placeholders.website')}
+                        placeholder={ts("placeholders.website")}
                         type="text"
                         name="website"
                       />
@@ -25242,9 +25398,25 @@ function ChallengeInviteModal({
                       className="h-10 rounded-md px-4 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60 sm:col-span-2"
                       style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
                     >
-                      {authStatus === "signing-in" ? ts('labels.working') : authMode === "register" ? ts('auth.create') : ts('auth.signIn')}
+                      {authStatus === "signing-in" ? ts("labels.working") : authMode === "register" ? ts("auth.create") : ts("auth.signIn")}
                     </button>
                   </form>
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
+                    <button
+                      type="button"
+                      className="text-left transition hover:opacity-80"
+                      onClick={() => onRequestSignIn(authMode === "login" ? "register" : "login")}
+                    >
+                      {authMode === "login" ? ts("auth.createNewAccount") : ts("auth.signIn")}
+                    </button>
+                    <button
+                      type="button"
+                      className="text-left transition hover:opacity-80"
+                      onClick={onCloseAuth}
+                    >
+                      {ts("labels.cancel")}
+                    </button>
+                  </div>
                   {authNotice ? (
                     <p className="rounded-2xl border px-3 py-2 text-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textSecondary }}>
                       {authNotice}
@@ -25257,34 +25429,38 @@ function ChallengeInviteModal({
                   ) : null}
                 </div>
               ) : (
-                  <div className="space-y-3">
+                <div className="space-y-3">
+                  <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>
+                    {declined ? ts("challenges.declinedInviteBody") : ts("challenges.joinPrompt")}
+                  </p>
+                  <div className="rounded-2xl border px-3 py-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
                     <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>
-                      {declined ? ts("challenges.declinedInviteBody") : ts("challenges.joinPrompt")}
+                      {ts("challenges.afterSignInTapAcceptInvite")}
                     </p>
-                    <div className="rounded-2xl border px-3 py-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-                      <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>
-                        {ts("challenges.afterSignInTapAcceptInvite")}
-                      </p>
-                    </div>
-                    {showOpenInApp ? (
-                    <a
-                      href={buildChallengeInviteAppUrl(inviteToken)}
-                        className="inline-flex h-10 items-center justify-center rounded-full border px-4 text-sm font-semibold transition"
-                        style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-                      >
-                        {ts("labels.openInApp")}
-                      </a>
-                    ) : null}
-                    <RailButtonTray theme={theme} label={ts("auth.signInForSync")}>
-                      <button className="h-11 shrink-0 snap-start whitespace-nowrap rounded-full px-4 text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }} onClick={onRequestSignIn}>
-                        {ts("auth.signInForSync")}
-                      </button>
-                      {googleAuthAvailable ? (
-                        <button className="h-11 shrink-0 snap-start whitespace-nowrap rounded-full border px-4 text-sm font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={onGoogleSignIn}>
-                          {ts("auth.continueWithGoogle")}
-                        </button>
-                      ) : null}
-                    </RailButtonTray>
+                  </div>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <button
+                      type="button"
+                      className="h-11 rounded-full px-4 text-sm font-semibold"
+                      style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                      onClick={() => onRequestSignIn("login")}
+                    >
+                      {ts("auth.signIn")}
+                    </button>
+                    <button
+                      type="button"
+                      className="h-11 rounded-full border px-4 text-sm font-semibold"
+                      style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                      onClick={() => onRequestSignIn("register")}
+                    >
+                      {ts("auth.createNewAccount")}
+                    </button>
+                  </div>
+                  {googleAuthAvailable ? (
+                    <button className="h-11 w-full rounded-full border px-4 text-sm font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} disabled={authBusy} onClick={onGoogleSignIn}>
+                      {authStatus === "signing-in" ? ts("auth.openingGoogle") : ts("auth.continueWithGoogle")}
+                    </button>
+                  ) : null}
                   {showOpenInApp ? (
                     <a
                       href={buildChallengeInviteAppUrl(inviteToken)}
@@ -25293,11 +25469,6 @@ function ChallengeInviteModal({
                     >
                       {ts("labels.openInApp")}
                     </a>
-                  ) : null}
-                  {shareUrl ? (
-                    <button className="h-11 rounded-full border px-4 text-sm font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={shareChallengeInvite}>
-                      {ts("labels.copyLink")}
-                    </button>
                   ) : null}
                 </div>
               )
@@ -25316,24 +25487,27 @@ function ChallengeInviteModal({
                     </button>
                   ) : null}
                 </RailButtonTray>
-                {shareUrl ? (
-                  <button className="h-11 rounded-full border px-4 text-sm font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={shareChallengeInvite}>
-                    {ts("labels.copyLink")}
-                  </button>
-                ) : null}
               </div>
             )}
           </div>
         )}
 
-        <RailButtonTray theme={theme} label={ts("labels.shareInvite")}>
-          <button className="h-10 shrink-0 snap-start whitespace-nowrap rounded-full border px-4 text-sm font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={shareChallengeInvite}>
-            {ts("labels.shareInvite")}
-          </button>
-          <button className="h-10 shrink-0 snap-start whitespace-nowrap rounded-full px-4 text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }} onClick={onClose}>
-            {ts("labels.close")}
-          </button>
-        </RailButtonTray>
+        {isInviteOwner ? (
+          <RailButtonTray theme={theme} label={ts("labels.shareInvite")}>
+            <button className="h-10 shrink-0 snap-start whitespace-nowrap rounded-full border px-4 text-sm font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={shareChallengeInvite}>
+              {ts("labels.shareInvite")}
+            </button>
+            <button className="h-10 shrink-0 snap-start whitespace-nowrap rounded-full px-4 text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }} onClick={onClose}>
+              {ts("labels.close")}
+            </button>
+          </RailButtonTray>
+        ) : (
+          <div className="flex justify-end">
+            <button className="h-10 rounded-full px-4 text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }} onClick={onClose}>
+              {ts("labels.close")}
+            </button>
+          </div>
+        )}
       </section>
     </div>
   );
@@ -25402,7 +25576,7 @@ function CounselRemovalConfirmModal({
             className="h-11 rounded-xl border px-3 text-sm outline-none"
             style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
             placeholder={`${ts('labels.type')} ${confirmationWord}`}
-            autoFocus
+            autoFocus={shouldAutoFocusOnThisDevice()}
           />
           <div className="flex flex-wrap justify-end gap-2">
             <button

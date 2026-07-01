@@ -382,9 +382,11 @@ async function initializeDatabase() {
       id TEXT PRIMARY KEY,
       circle_id TEXT NOT NULL REFERENCES challenge_circles(id) ON DELETE CASCADE,
       sender_user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      recipient_user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
       body TEXT NOT NULL,
       created_at TIMESTAMPTZ NOT NULL
     );
+    ALTER TABLE challenge_circle_nudges ADD COLUMN IF NOT EXISTS recipient_user_id TEXT REFERENCES users(id) ON DELETE SET NULL;
 
     CREATE TABLE IF NOT EXISTS challenge_circle_invite_responses (
       id TEXT PRIMARY KEY,
@@ -500,6 +502,7 @@ async function initializeDatabase() {
     CREATE INDEX IF NOT EXISTS challenge_circle_members_circle_idx ON challenge_circle_members(circle_id, joined_at DESC);
     CREATE INDEX IF NOT EXISTS challenge_circle_members_user_idx ON challenge_circle_members(user_id, joined_at DESC);
     CREATE INDEX IF NOT EXISTS challenge_circle_nudges_circle_idx ON challenge_circle_nudges(circle_id, created_at DESC);
+    CREATE INDEX IF NOT EXISTS challenge_circle_nudges_circle_recipient_idx ON challenge_circle_nudges(circle_id, recipient_user_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS challenge_circle_invite_responses_circle_idx ON challenge_circle_invite_responses(circle_id, responded_at DESC);
     CREATE INDEX IF NOT EXISTS challenge_circle_invite_responses_user_idx ON challenge_circle_invite_responses(user_id, responded_at DESC);
     CREATE INDEX IF NOT EXISTS wisdom_decisions_user_updated_idx ON wisdom_decisions(user_id, updated_at DESC);
