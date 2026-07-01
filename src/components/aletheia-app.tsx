@@ -29768,127 +29768,120 @@ function JournalPanel({
 
   return (
     <div className="min-w-0 space-y-4">
-      <section className="min-w-0 rounded-[1.35rem] border p-3.5 shadow-sm sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-        <div className="mb-4 flex items-center gap-2 text-lg font-semibold" style={{ color: theme.textPrimary }}>
-          <Feather size={20} />
-          {ts('labels.reflectionJournal')}
+      <div className="grid gap-4">
+        <div className="rounded-[1.35rem] border p-3.5 shadow-[0_8px_20px_rgba(7,10,8,0.05)]" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
+            {ts('labels.writeReflection')}
+          </p>
+          <p className="mt-1.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
+            {runtime.reflectionHistorySummaryDefault}
+          </p>
+          <input
+            value={title}
+            onChange={(event) => setTitle(event.target.value)}
+            className="mt-3 h-11 w-full rounded-[1rem] border px-3 text-sm outline-none"
+            placeholder={ts('placeholders.reflectionTitle')}
+            style={{
+              borderColor: theme.borderMedium,
+              backgroundColor: theme.bgInput,
+              color: theme.textPrimary,
+            }}
+            onFocus={(e) => e.currentTarget.style.borderColor = theme.primary}
+            onBlur={(e) => e.currentTarget.style.borderColor = theme.borderMedium}
+          />
+          <textarea
+            value={body}
+            onChange={(event) => setBody(event.target.value)}
+            className="mt-3 min-h-40 w-full resize-none rounded-[1rem] border px-3 py-2.5 text-sm leading-6 outline-none"
+            placeholder={ts('placeholders.reflectionBody')}
+            style={{
+              borderColor: theme.borderMedium,
+              backgroundColor: theme.bgInput,
+              color: theme.textPrimary,
+            }}
+            onFocus={(e) => e.currentTarget.style.borderColor = theme.primary}
+            onBlur={(e) => e.currentTarget.style.borderColor = theme.borderMedium}
+          />
+          <div className="mt-3">
+            <button onClick={onSave} className="premium-tap-card inline-flex h-11 items-center justify-center gap-2 rounded-full px-4 text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary, boxShadow: `0 10px 15px -3px ${theme.primary}15` }}>
+              <Plus size={16} />
+              {ts('labels.saveReflection')}
+            </button>
+          </div>
         </div>
-        <div className="grid gap-4">
-          <div className="rounded-[1.35rem] border p-3.5 shadow-[0_8px_20px_rgba(7,10,8,0.05)]" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
-              {ts('labels.writeReflection')}
-            </p>
-            <p className="mt-1.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
-              {runtime.reflectionHistorySummaryDefault}
-            </p>
-            <input
-              value={title}
-              onChange={(event) => setTitle(event.target.value)}
-              className="mt-3 h-11 w-full rounded-[1rem] border px-3 text-sm outline-none"
-              placeholder={ts('placeholders.reflectionTitle')}
-              style={{
-                borderColor: theme.borderMedium,
-                backgroundColor: theme.bgInput,
-                color: theme.textPrimary,
-              }}
-              onFocus={(e) => e.currentTarget.style.borderColor = theme.primary}
-              onBlur={(e) => e.currentTarget.style.borderColor = theme.borderMedium}
-            />
-            <textarea
-              value={body}
-              onChange={(event) => setBody(event.target.value)}
-              className="mt-3 min-h-40 w-full resize-none rounded-[1rem] border px-3 py-2.5 text-sm leading-6 outline-none"
-              placeholder={ts('placeholders.reflectionBody')}
-              style={{
-                borderColor: theme.borderMedium,
-                backgroundColor: theme.bgInput,
-                color: theme.textPrimary,
-              }}
-              onFocus={(e) => e.currentTarget.style.borderColor = theme.primary}
-              onBlur={(e) => e.currentTarget.style.borderColor = theme.borderMedium}
-            />
-            <div className="mt-3">
-              <button onClick={onSave} className="premium-tap-card inline-flex h-11 items-center justify-center gap-2 rounded-full px-4 text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary, boxShadow: `0 10px 15px -3px ${theme.primary}15` }}>
-                <Plus size={16} />
-                {ts('labels.saveReflection')}
-              </button>
+
+        <div className="rounded-[1.35rem] border p-3.5 shadow-sm sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
+                {runtime.reflectionHistory}
+              </p>
+              <p className="mt-1.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                {entries.length ? runtime.reflectionHistorySummaryActive : runtime.reflectionHistorySummaryDefault}
+              </p>
             </div>
           </div>
 
-          <div className="rounded-[1.35rem] border p-3.5 shadow-sm sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-              <div className="min-w-0">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
-                  {runtime.reflectionHistory}
-                </p>
-                <p className="mt-1.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
-                  {entries.length ? runtime.reflectionHistorySummaryActive : runtime.reflectionHistorySummaryDefault}
-                </p>
-              </div>
-            </div>
-
-            {entries.length ? (
-              <>
-                {savedReflectionsRailHasOverflow ? (
-                  <div className="mt-4 flex justify-end text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: railText.railMuted }}>
-                    <span className="inline-flex items-center gap-1">
-                      <span>{ts('labels.swipeForMore')}</span>
-                      <span aria-hidden="true">→</span>
-                    </span>
-                  </div>
-                ) : null}
-                <section
-                  ref={savedReflectionsRailRef}
-                  aria-label={ts('labels.savedReflections')}
-                  className="mt-2 flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]"
-                >
-                  {entries.map((entry, index) => (
-                    <button
-                      key={entry.id}
-                      type="button"
-                      className="premium-tap-card relative flex w-full min-w-full shrink-0 snap-start flex-col overflow-hidden rounded-[1.45rem] border text-left shadow-[0_10px_24px_rgba(7,10,14,0.08)] transition active:scale-[0.995]"
-                      style={{ height: "calc(15.25rem + var(--aletheia-rail-card-height-offset, 0rem))", borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, boxShadow: "0 8px 18px rgba(7, 10, 8, 0.06)" }}
-                      onClick={() => setSelectedEntryId(entry.id)}
-                      aria-label={`${ts('labels.savedReflections')}: ${entry.title}`}
-                    >
-                      <div className="relative overflow-hidden" style={{ height: "calc(4.25rem + var(--aletheia-rail-card-hero-height-offset, 0rem))", background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryHover} 100%)` }}>
-                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.18),transparent_40%),radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.08),transparent_38%)]" />
-                        <div className="absolute left-2.5 top-2.5 grid size-[1.5rem] place-items-center rounded-full border shadow-[0_8px_16px_rgba(0,0,0,0.12)]" style={{ borderColor: "rgba(255,255,255,0.22)", backgroundColor: theme.primary, color: theme.textOnPrimary }}>
-                          <Feather size={12} style={{ color: theme.textOnPrimary }} />
+          {entries.length ? (
+            <>
+              {savedReflectionsRailHasOverflow ? (
+                <div className="mt-4 flex justify-end text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: railText.railMuted }}>
+                  <span className="inline-flex items-center gap-1">
+                    <span>{ts('labels.swipeForMore')}</span>
+                    <span aria-hidden="true">→</span>
+                  </span>
+                </div>
+              ) : null}
+              <section
+                ref={savedReflectionsRailRef}
+                aria-label={ts('labels.savedReflections')}
+                className="mt-2 flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]"
+              >
+                {entries.map((entry, index) => (
+                  <button
+                    key={entry.id}
+                    type="button"
+                    className="premium-tap-card relative flex w-full min-w-full shrink-0 snap-start flex-col overflow-hidden rounded-[1.45rem] border text-left shadow-[0_10px_24px_rgba(7,10,14,0.08)] transition active:scale-[0.995]"
+                    style={{ height: "calc(15.25rem + var(--aletheia-rail-card-height-offset, 0rem))", borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, boxShadow: "0 8px 18px rgba(7, 10, 8, 0.06)" }}
+                    onClick={() => setSelectedEntryId(entry.id)}
+                    aria-label={`${ts('labels.savedReflections')}: ${entry.title}`}
+                  >
+                    <div className="relative overflow-hidden" style={{ height: "calc(4.25rem + var(--aletheia-rail-card-hero-height-offset, 0rem))", background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryHover} 100%)` }}>
+                      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.18),transparent_40%),radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.08),transparent_38%)]" />
+                      <div className="absolute left-2.5 top-2.5 grid size-[1.5rem] place-items-center rounded-full border shadow-[0_8px_16px_rgba(0,0,0,0.12)]" style={{ borderColor: "rgba(255,255,255,0.22)", backgroundColor: theme.primary, color: theme.textOnPrimary }}>
+                        <Feather size={12} style={{ color: theme.textOnPrimary }} />
+                      </div>
+                    </div>
+                    <div className="flex min-w-0 flex-1 flex-col gap-1.5 p-3.5">
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="min-w-0">
+                          <p className="line-clamp-2 text-[0.97rem] font-semibold leading-[1.22rem]" style={{ color: theme.textPrimary }}>{entry.title}</p>
+                          <p className="mt-1 text-[9px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
+                            {localizedModeLabel(entry.mode, language)} · {new Date(entry.createdAt).toLocaleDateString(language, { month: "short", day: "numeric" })}
+                          </p>
                         </div>
+                        <span className="text-[9px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
+                          {ts('showDetails')}
+                        </span>
                       </div>
-                        <div className="flex min-w-0 flex-1 flex-col gap-1.5 p-3.5">
-                          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                            <div className="min-w-0">
-                              <p className="line-clamp-2 text-[0.97rem] font-semibold leading-[1.22rem]" style={{ color: theme.textPrimary }}>{entry.title}</p>
-                              <p className="mt-1 text-[9px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
-                                {localizedModeLabel(entry.mode, language)} · {new Date(entry.createdAt).toLocaleDateString(language, { month: "short", day: "numeric" })}
-                              </p>
-                            </div>
-                            <span className="text-[9px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
-                              {ts('showDetails')}
-                            </span>
-                          </div>
-                          <p className="line-clamp-4 text-[0.85rem] leading-5" style={{ color: railText.railSecondary }}>{entry.body}</p>
-                          <div className="mt-auto flex items-center justify-between gap-2">
-                            <span className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
-                              {index + 1}
-                            </span>
-                          </div>
+                      <p className="line-clamp-4 text-[0.85rem] leading-5" style={{ color: railText.railSecondary }}>{entry.body}</p>
+                      <div className="mt-auto flex items-center justify-between gap-2">
+                        <span className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
+                          {index + 1}
+                        </span>
                       </div>
-                    </button>
-                  ))}
-                </section>
-              </>
-            ) : (
-              <div className="mt-4 rounded-lg border border-dashed p-4 text-sm leading-6" style={{ borderColor: theme.borderMedium, color: theme.textMuted }}>
-                {ts('labels.noReflectionsYet')}
-              </div>
-            )}
-            <p className="mt-4 text-xs leading-5" style={{ color: theme.textMuted }}>{ts('labels.currentlyActiveMode')}: {localizedModeLabel(mode, language)}</p>
-          </div>
+                    </div>
+                  </button>
+                ))}
+              </section>
+            </>
+          ) : (
+            <div className="mt-4 rounded-lg border border-dashed p-4 text-sm leading-6" style={{ borderColor: theme.borderMedium, color: theme.textMuted }}>
+              {ts('labels.noReflectionsYet')}
+            </div>
+          )}
+          <p className="mt-4 text-xs leading-5" style={{ color: theme.textMuted }}>{ts('labels.currentlyActiveMode')}: {localizedModeLabel(mode, language)}</p>
         </div>
-      </section>
 
       <JournalEntryDetailModal
         open={Boolean(selectedEntry)}
