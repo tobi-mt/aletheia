@@ -14,6 +14,9 @@ export interface NotificationSchedule {
 }
 
 type NotificationCopySet = Record<1 | 3 | 7 | 30, (decisionTitle: string) => { title: string; body: string }>;
+type DecisionNotificationRow = {
+  notification_sequence_sent: Record<string, string> | null;
+};
 
 const NOTIFICATION_COPY: Partial<Record<LanguageCode, NotificationCopySet>> = {
   en: {
@@ -163,14 +166,14 @@ export async function markNotificationSent(
   );
 
   // Update decision's notification_sequence_sent tracking
-  const decision = await one(
+  const decision = await one<DecisionNotificationRow>(
     `SELECT notification_sequence_sent FROM wisdom_decisions WHERE id = ? AND user_id = ?`,
     decisionId,
     userId
   );
 
   if (decision) {
-    const sequence = (decision as any).notification_sequence_sent || {};
+    const sequence = { ...(decision.notification_sequence_sent ?? {}) };
     sequence[day] = now;
 
     await run(
@@ -193,11 +196,11 @@ export function getNotificationCopy(day: 1 | 3 | 7 | 30, decisionTitle: string, 
  * Get all sent notifications for a decision
  */
 export async function getDecisionNotificationHistory(decisionId: string, userId: string) {
-  const history = await one(
+  const history = await one<DecisionNotificationRow>(
     `SELECT notification_sequence_sent FROM wisdom_decisions WHERE id = ? AND user_id = ?`,
     decisionId,
     userId
   );
 
-  return ((history as any)?.notification_sequence_sent as Record<number, string>) || {};
+  return history?.notification_sequence_sent ?? {};
 }

@@ -17827,10 +17827,10 @@ function FormationRailSection({
     : null;
 
   useEffect(() => {
-    setSharedCircleNudgeRecipientId(null);
+    queueMicrotask(() => setSharedCircleNudgeRecipientId(null));
   }, [selectedCircle?.id]);
 
-  const postSharedCircleNudge = useCallback(async () => {
+  async function postSharedCircleNudge() {
     const body = sharedCircleNudgeDraft.trim();
     if (!selectedCircle || !selectedCircleHasCurrentMember || !body) {
       return;
@@ -17861,14 +17861,7 @@ function FormationRailSection({
     } finally {
       setSharedCircleNudgeBusy(false);
     }
-  }, [
-    onChallengeCircleChanged,
-    selectedCircle,
-    selectedCircleHasCurrentMember,
-    sharedCircleNudgeDraft,
-    sharedCircleNudgeRecipientId,
-    ts,
-  ]);
+  }
   const selectedChallengeNextDay = selectedChallenge
     ? selectedChallengeProgressState === "completed_today"
       ? Math.min(selectedChallengeCompletedDays.length, selectedChallenge.totalDays)
@@ -17892,7 +17885,7 @@ function FormationRailSection({
     setFastingInviteDraft((current) => ({ ...current, ...patch }));
   }
 
-  const openInviteEditor = useCallback((challenge: ChallengeWithProgress | null = selectedChallenge) => {
+  function openInviteEditor(challenge: ChallengeWithProgress | null = selectedChallenge) {
     if (!challenge || (challenge.id !== "read-with-me-7day" && challenge.id !== FASTING_CHALLENGE_ID)) {
       return;
     }
@@ -17921,21 +17914,9 @@ function FormationRailSection({
     }
 
     setInviteEditorChallengeId(challenge.id);
-  }, [
-    challengeCircles,
-    selectedChallenge,
-    setInviteViewerChallengeId,
-    setSelectedChallengeId,
-    setSelectedDayNumber,
-    setOpenDayDetailDay,
-    setReadWithMeInviteDraft,
-    setRecipientNameDraft,
-    setRecipientNoteDraft,
-    setFastingInviteDraft,
-    setInviteEditorChallengeId,
-  ]);
+  }
 
-  const openInviteViewer = useCallback((challenge: ChallengeWithProgress | null = selectedChallenge) => {
+  function openInviteViewer(challenge: ChallengeWithProgress | null = selectedChallenge) {
     if (!challenge || (challenge.id !== "read-with-me-7day" && challenge.id !== FASTING_CHALLENGE_ID)) {
       return;
     }
@@ -17945,15 +17926,15 @@ function FormationRailSection({
     setSelectedDayNumber(null);
     setOpenDayDetailDay(null);
     setInviteViewerChallengeId(challenge.id);
-  }, [selectedChallenge, setInviteEditorChallengeId, setSelectedChallengeId, setSelectedDayNumber, setOpenDayDetailDay, setInviteViewerChallengeId]);
+  }
 
-  const closeInviteEditor = useCallback(() => {
+  function closeInviteEditor() {
     setInviteEditorChallengeId(null);
-  }, [setInviteEditorChallengeId]);
+  }
 
-  const closeInviteViewer = useCallback(() => {
+  function closeInviteViewer() {
     setInviteViewerChallengeId(null);
-  }, [setInviteViewerChallengeId]);
+  }
 
   function normalizeRosterKey(value: string) {
     return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
@@ -18052,6 +18033,10 @@ function FormationRailSection({
     hi: "पूरा अभ्यास खोलने के लिए नीचे वाले आज के कार्ड पर टैप करें.",
   } as Partial<Record<LanguageCode, string>>)[language] ?? "Tap the current day card below to open the full practice.";
 
+  function localizedDayPractice(day: { practice: string; practiceKey?: string }) {
+    return typeof day.practiceKey === "string" ? ts(day.practiceKey, day.practice) : day.practice;
+  }
+
   useEffect(() => {
     if (process.env.NODE_ENV === "production" || typeof window === "undefined") {
       return;
@@ -18065,6 +18050,7 @@ function FormationRailSection({
       __aletheiaLastChallengePostcardUrl?: string;
     };
 
+    // eslint-disable-next-line react-hooks/immutability
     debugWindow.__aletheiaDebug = {
       async renderSelectedChallengeDayPostcard() {
         if (!selectedChallenge || !selectedChallengeModalPrompt || !selectedChallengeModalCompletion || !selectedChallengeModalDay) {
@@ -18151,10 +18137,6 @@ function FormationRailSection({
 
   function localizedDayPrinciple(day: { principle: string; principleKey?: string }) {
     return typeof day.principleKey === "string" ? ts(day.principleKey, day.principle) : day.principle;
-  }
-
-  function localizedDayPractice(day: { practice: string; practiceKey?: string }) {
-    return typeof day.practiceKey === "string" ? ts(day.practiceKey, day.practice) : day.practice;
   }
 
   function localizedDayPrompt(day: { prompt: string; promptKey?: string }) {
@@ -18377,6 +18359,53 @@ function FormationRailSection({
     </div>,
     document.body
   ) : null;
+
+  async function saveChallengeInvite(
+    challenge: ChallengeWithProgress,
+    inviteDetails?: ReadWithMeInviteDetails | FastingInviteDetails,
+    circleId?: string | null
+  ): Promise<boolean> {
+    setCreatingInviteId(challenge.id);
+    try {
+      const response = await fetch(
+        circleId ? `/api/challenge-circles/by-id/${encodeURIComponent(circleId)}` : "/api/challenge-circles",
+        {
+          method: circleId ? "PATCH" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(
+            circleId
+              ? {
+                  note: inviteDetails?.note ?? undefined,
+                  inviteDetails,
+                }
+              : {
+                  challengeId: challenge.id,
+                  note: inviteDetails?.note ?? undefined,
+                  inviteDetails,
+                }
+          ),
+        }
+      );
+      const data = (await response.json()) as { circle?: ChallengeCircleSummary; inviteUrl?: string; error?: string };
+      if (!response.ok || !data.circle || (!circleId && !data.inviteUrl)) {
+        throw new Error(data.error || ts("status.challengeInviteCouldNotOpen"));
+      }
+      if (circleId) {
+        setChallengeCircles((prev) => prev.map((circle) => (circle.id === data.circle!.id ? data.circle! : circle)));
+        onChallengeCircleChanged();
+      } else {
+        onChallengeInviteReady({ inviteUrl: data.inviteUrl!, circle: data.circle });
+        onChallengeCircleChanged();
+      }
+      trackClientEvent(circleId ? "challenge_circle_updated" : "challenge_shared", { challengeId: challenge.id });
+      return true;
+    } catch {
+      // Invite creation can be retried.
+      return false;
+    } finally {
+      setCreatingInviteId(null);
+    }
+  }
 
   const inviteEditorModal = inviteEditorChallenge && canUsePortal ? createPortal(
     <div
@@ -18888,53 +18917,6 @@ function FormationRailSection({
     </div>,
     document.body
   ) : null;
-
-  const saveChallengeInvite = useCallback(async (
-    challenge: ChallengeWithProgress,
-    inviteDetails?: ReadWithMeInviteDetails | FastingInviteDetails,
-    circleId?: string | null
-  ): Promise<boolean> => {
-    setCreatingInviteId(challenge.id);
-    try {
-      const response = await fetch(
-        circleId ? `/api/challenge-circles/by-id/${encodeURIComponent(circleId)}` : "/api/challenge-circles",
-        {
-          method: circleId ? "PATCH" : "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(
-            circleId
-              ? {
-                  note: inviteDetails?.note ?? undefined,
-                  inviteDetails,
-                }
-              : {
-                  challengeId: challenge.id,
-                  note: inviteDetails?.note ?? undefined,
-                  inviteDetails,
-                }
-          ),
-        }
-      );
-      const data = (await response.json()) as { circle?: ChallengeCircleSummary; inviteUrl?: string; error?: string };
-      if (!response.ok || !data.circle || (!circleId && !data.inviteUrl)) {
-        throw new Error(data.error || ts("status.challengeInviteCouldNotOpen"));
-      }
-      if (circleId) {
-        setChallengeCircles((prev) => prev.map((circle) => (circle.id === data.circle!.id ? data.circle! : circle)));
-        onChallengeCircleChanged();
-      } else {
-        onChallengeInviteReady({ inviteUrl: data.inviteUrl!, circle: data.circle });
-        onChallengeCircleChanged();
-      }
-      trackClientEvent(circleId ? "challenge_circle_updated" : "challenge_shared", { challengeId: challenge.id });
-      return true;
-    } catch {
-      // Invite creation can be retried.
-      return false;
-    } finally {
-      setCreatingInviteId(null);
-    }
-  }, [onChallengeCircleChanged, onChallengeInviteReady, setCreatingInviteId, setChallengeCircles, trackClientEvent, ts]);
 
   if (!user) {
     return (
@@ -19541,10 +19523,6 @@ const ChallengeResponseDashboard = memo(function ChallengeResponseDashboard({
   pendingAfterUnit: ReadWithMeInvitePendingWindowUnit;
   currentTimestampMs: number;
 }) {
-  if (!show) {
-    return null;
-  }
-
   const normalizeRosterKey = (value: string) =>
     value.trim().toLowerCase().replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
 
@@ -19605,6 +19583,10 @@ const ChallengeResponseDashboard = memo(function ChallengeResponseDashboard({
       unmatchedReadWithMeResponses: unmatched,
     };
   }, [currentTimestampMs, inviteCreatedAt, pendingThresholdMs, recipients, responses]);
+
+  if (!show) {
+    return null;
+  }
 
   return (
     <div className="overflow-hidden rounded-[0.95rem] border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>

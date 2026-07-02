@@ -5,7 +5,7 @@ import { one, run } from "@/lib/db";
 type StreakRow = {
   consecutive_use_days: number | null;
   last_use_date: string | null;
-  streak_achievements: any;
+  streak_achievements: Record<string, { milestone: number; unlockedAt: string }> | null;
 };
 
 export async function GET() {
@@ -53,7 +53,9 @@ export async function POST() {
     const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
 
     let newStreak = row.consecutive_use_days || 0;
-    let newAchievements = row.streak_achievements || {};
+    const newAchievements: Record<string, { milestone: number; unlockedAt: string }> = {
+      ...(row.streak_achievements ?? {}),
+    };
     const unlockedMilestones: number[] = [];
 
     // If user hasn't used app today, increment streak if they used it yesterday
