@@ -459,7 +459,9 @@
     "accountSubscribedButDeviceNot": "Naka-on ang account, ngunit hindi naka-subscribe ang device na ito",
     "savedSubscription": "1 naka-save na subscription",
     "savedSubscriptions": "{count} naka-save na mga subscription",
-    "noSavedSubscription": "Walang naka-save na subscription"
+    "noSavedSubscription": "Walang naka-save na subscription",
+    "counselDecisionSharedTitle": "Nagbahagi si {name} ng pasya para sa payo",
+    "counselDecisionSharedBody": "Buksan para suriin: {title}"
   },
   "status": {
     "guestMode": "Aktibo ang guest mode.",
@@ -514,7 +516,14 @@
     "challengeInviteDeclineFailed": "Hindi ma-decline ang imbitasyon.",
     "declined": "Tinanggihan",
     "pending": "Nakabinbin",
-    "loading": "Naglo-load…"
+    "loading": "Naglo-load…",
+    "counselShareSent": "Naipadala",
+    "counselShareDelivered": "Naihatid",
+    "counselShareWaitingForAcceptance": "Naghihintay ng pagtanggap",
+    "counselShareNoPushSubscription": "Walang push subscription",
+    "counselSharePartial": "Bahagyang naihatid",
+    "counselShareFailed": "Nabigo ang paghahatid",
+    "counselSharePushFailed": "Nabigo ang push delivery"
   },
   "placeholders": {
     "decisionExample": "Ang stress sa pera, isang desisyon sa karera, presyon ng kabutihang-loob...",
@@ -1553,7 +1562,7 @@
     "applyingPhoto": "Inilalapat ang iyong larawan...",
     "photoApplied": "Inilapat ang larawan sa iyong profile.",
     "processFailed": "Hindi maproseso ang larawang ito.",
-  "studioEyebrow": "Studio ng avatar",
+    "studioEyebrow": "Studio ng avatar",
     "studioTitle": "I-personalize ang iyong pagkakakilanlan sa profile",
     "studioBody": "Naka-sync sa mga naka-sign in na device. Available lahat ang gallery, mga napiling na-curate, at Surprise me.",
     "lastChanged": "Huling nagbago",

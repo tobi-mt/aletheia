@@ -43,6 +43,42 @@ type ChallengeCircleNudgePushInput = {
   recipientUserId: string | null;
 };
 
+type CounselShareTargetRow = {
+  recipient_user_id: string;
+};
+
+type CounselDecisionSharePushInput = {
+  sharedDecisionId: string;
+  contactId: string;
+  decisionId: string;
+  decisionTitle: string;
+  senderUserId: string;
+  senderName: string | null;
+};
+
+type CounselShareDeliveryStatus = "waiting_for_acceptance" | "sent" | "delivered" | "partial" | "failed";
+
+type CounselShareDeliveryReason = "no_push_subscription" | "push_failed" | null;
+
+export type CounselShareDeliverySummary = {
+  id: string;
+  sharedDecisionId: string;
+  userId: string;
+  contactId: string;
+  decisionId: string;
+  decisionTitle: string;
+  status: CounselShareDeliveryStatus;
+  reason: CounselShareDeliveryReason;
+  acceptedRecipientCount: number;
+  pushSubscriptionCount: number;
+  deliveredCount: number;
+  failedCount: number;
+  attemptedAt: string | null;
+  deliveredAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
 type DueDecisionReminderRow = {
   id: string;
   user_id: string;
@@ -225,6 +261,208 @@ function challengeCircleNudgeNotificationPayload(row: PushRow, input: ChallengeC
     senderUserId: input.senderUserId,
     recipientUserId: row.user_id,
   };
+}
+
+function counselShareNotificationTitle(language: LanguageCode, senderName: string) {
+  const translations = loadTranslationsSync(language);
+  const normalizedSender = senderName.trim() || "Aletheia";
+  return String(getTranslation(translations, "notifications.counselDecisionSharedTitle")).replace("{name}", normalizedSender);
+}
+
+function counselShareNotificationPayload(row: PushRow, input: CounselDecisionSharePushInput) {
+  const preferences = normalizePreferences({
+    language: row.language as LanguageCode,
+    region: row.region as RegionCode,
+    bibleTranslation: row.bible_translation as BibleTranslation,
+    voiceEnabled: Boolean(row.voice_enabled),
+  });
+  const translations = loadTranslationsSync(preferences.language);
+  const senderName = input.senderName?.trim() || "Aletheia";
+  const title = counselShareNotificationTitle(preferences.language, senderName);
+  const body = compactNotificationCopy(String(getTranslation(translations, "notifications.counselDecisionSharedBody")).replace("{title}", input.decisionTitle), 160);
+
+  return {
+    title,
+    body,
+    url: `/?source=notification&focus=decision&decisionId=${encodeURIComponent(input.decisionId)}&tab=decisions`,
+    tag: `aletheia-counsel-share-${input.sharedDecisionId}-${row.user_id}`,
+    notificationKind: "counsel_decision_shared",
+    sharedDecisionId: input.sharedDecisionId,
+    contactId: input.contactId,
+    decisionId: input.decisionId,
+    senderUserId: input.senderUserId,
+    recipientUserId: row.user_id,
+  };
+}
+
+async function upsertCounselShareDelivery(summary: CounselShareDeliverySummary) {
+  const now = new Date().toISOString();
+  await run(
+    `INSERT INTO counsel_shared_decision_deliveries (
+       id, shared_decision_id, user_id, contact_id, decision_id, status, status_reason,
+       accepted_recipient_count, push_subscription_count, delivered_count, failed_count,
+       attempted_at, delivered_at, created_at, updated_at
+     )
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT (shared_decision_id)
+     DO UPDATE SET
+       user_id = EXCLUDED.user_id,
+       contact_id = EXCLUDED.contact_id,
+       decision_id = EXCLUDED.decision_id,
+       status = EXCLUDED.status,
+       status_reason = EXCLUDED.status_reason,
+       accepted_recipient_count = EXCLUDED.accepted_recipient_count,
+       push_subscription_count = EXCLUDED.push_subscription_count,
+       delivered_count = EXCLUDED.delivered_count,
+       failed_count = EXCLUDED.failed_count,
+       attempted_at = EXCLUDED.attempted_at,
+       delivered_at = EXCLUDED.delivered_at,
+       updated_at = EXCLUDED.updated_at`,
+    summary.id,
+    summary.sharedDecisionId,
+    summary.userId,
+    summary.contactId,
+    summary.decisionId,
+    summary.status,
+    summary.reason,
+    summary.acceptedRecipientCount,
+    summary.pushSubscriptionCount,
+    summary.deliveredCount,
+    summary.failedCount,
+    summary.attemptedAt,
+    summary.deliveredAt,
+    summary.createdAt,
+    now
+  );
+}
+
+async function targetRecipientsForCounselShare(contactId: string) {
+  return many<CounselShareTargetRow>(
+    `SELECT DISTINCT recipient_user_id
+     FROM counsel_invite_acceptances
+     WHERE contact_id = ?
+       AND recipient_user_id IS NOT NULL
+     ORDER BY recipient_user_id`,
+    contactId
+  );
+}
+
+async function pushRecipientsForCounselShare(recipientUserIds: string[]) {
+  if (!recipientUserIds.length) {
+    return [];
+  }
+
+  return many<PushRow>(
+    `SELECT push_subscriptions.id, push_subscriptions.user_id, endpoint, p256dh, auth, preferred_hour, last_sent_at,
+            preferred_local_hour, preferred_timezone, delivery_strategy, last_gratitude_sent_at,
+            user_preferences.language, user_preferences.region, user_preferences.bible_translation, user_preferences.voice_enabled
+     FROM push_subscriptions
+     LEFT JOIN user_preferences ON user_preferences.user_id = push_subscriptions.user_id
+     WHERE enabled = TRUE
+       AND push_subscriptions.user_id = ANY(?)`,
+    recipientUserIds
+  );
+}
+
+export async function sendCounselShareNotifications(input: CounselDecisionSharePushInput) {
+  const acceptedRecipients = await targetRecipientsForCounselShare(input.contactId);
+  const acceptedRecipientIds = acceptedRecipients.map((row) => row.recipient_user_id);
+
+  if (acceptedRecipientIds.length === 0) {
+    const now = new Date().toISOString();
+    const summary: CounselShareDeliverySummary = {
+      id: crypto.randomUUID(),
+      sharedDecisionId: input.sharedDecisionId,
+      userId: input.senderUserId,
+      contactId: input.contactId,
+      decisionId: input.decisionId,
+      decisionTitle: input.decisionTitle,
+      status: "waiting_for_acceptance",
+      reason: null,
+      acceptedRecipientCount: 0,
+      pushSubscriptionCount: 0,
+      deliveredCount: 0,
+      failedCount: 0,
+      attemptedAt: null,
+      deliveredAt: null,
+      createdAt: now,
+      updatedAt: now,
+    };
+    await upsertCounselShareDelivery(summary);
+    return summary;
+  }
+
+  const pushRows = await pushRecipientsForCounselShare(acceptedRecipientIds);
+  const rowsByRecipient = new Map<string, PushRow[]>();
+  for (const row of pushRows) {
+    const bucket = rowsByRecipient.get(row.user_id) ?? [];
+    bucket.push(row);
+    rowsByRecipient.set(row.user_id, bucket);
+  }
+
+  const recipientsWithoutPush = acceptedRecipientIds.filter((recipientUserId) => !rowsByRecipient.has(recipientUserId));
+  const attemptedAt = new Date().toISOString();
+  let deliveredCount = 0;
+  let failedCount = 0;
+  let status: CounselShareDeliveryStatus = "sent";
+  let reason: CounselShareDeliveryReason = recipientsWithoutPush.length > 0 ? "no_push_subscription" : null;
+
+  if (pushRows.length > 0) {
+    try {
+      configureWebPush();
+      const { sent, failed } = await sendPushRows(
+        pushRows,
+        (row) => JSON.stringify(counselShareNotificationPayload(row, input)),
+        { lastSentColumn: null }
+      );
+      deliveredCount = sent;
+      failedCount = failed;
+
+      if (sent > 0 && failed === 0 && recipientsWithoutPush.length === 0) {
+        status = "delivered";
+        reason = null;
+      } else if (sent > 0 && (failed > 0 || recipientsWithoutPush.length > 0)) {
+        status = "partial";
+        reason = recipientsWithoutPush.length > 0 ? "no_push_subscription" : "push_failed";
+      } else if (failed > 0) {
+        status = "failed";
+        reason = "push_failed";
+      } else if (recipientsWithoutPush.length > 0) {
+        status = "sent";
+        reason = "no_push_subscription";
+      } else {
+        status = "sent";
+        reason = null;
+      }
+    } catch {
+      deliveredCount = 0;
+      failedCount = pushRows.length;
+      status = "failed";
+      reason = "push_failed";
+    }
+  }
+
+  const summary: CounselShareDeliverySummary = {
+    id: crypto.randomUUID(),
+    sharedDecisionId: input.sharedDecisionId,
+    userId: input.senderUserId,
+    contactId: input.contactId,
+    decisionId: input.decisionId,
+    decisionTitle: input.decisionTitle,
+    status,
+    reason,
+    acceptedRecipientCount: acceptedRecipientIds.length,
+    pushSubscriptionCount: pushRows.length,
+    deliveredCount,
+    failedCount,
+    attemptedAt,
+    deliveredAt: deliveredCount > 0 ? attemptedAt : null,
+    createdAt: attemptedAt,
+    updatedAt: attemptedAt,
+  };
+
+  await upsertCounselShareDelivery(summary);
+  return summary;
 }
 
 function dailyNotificationPayload(row: PushRow, wisdomEntries: Awaited<ReturnType<typeof getWisdomEntries>>) {

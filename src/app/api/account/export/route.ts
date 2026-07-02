@@ -30,6 +30,7 @@ export async function GET() {
     decisionEvents,
     counselContacts,
     counselSharedDecisions,
+    counselSharedDecisionDeliveries,
     counselInviteAcceptances,
     counselComments,
     rulesOfLife,
@@ -47,6 +48,7 @@ export async function GET() {
     userRows("decision_events", user.id),
     userRows("counsel_contacts", user.id),
     userRows("counsel_shared_decisions", user.id),
+    userRows("counsel_shared_decision_deliveries", user.id),
     many("SELECT * FROM counsel_invite_acceptances WHERE recipient_user_id = ? ORDER BY accepted_at DESC", user.id),
     many(
       `SELECT counsel_comments.*
@@ -92,6 +94,7 @@ export async function GET() {
     decisionEvents,
     counselContacts,
     counselSharedDecisions,
+    counselSharedDecisionDeliveries,
     counselInviteAcceptances,
     counselComments,
     rulesOfLife,

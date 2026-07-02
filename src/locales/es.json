@@ -459,7 +459,9 @@
     "accountSubscribedButDeviceNot": "La cuenta está activada, pero este dispositivo no está suscrito",
     "savedSubscription": "1 suscripción guardada",
     "savedSubscriptions": "{count} suscripciones guardadas",
-    "noSavedSubscription": "Sin suscripción guardada"
+    "noSavedSubscription": "Sin suscripción guardada",
+    "counselDecisionSharedTitle": "{name} compartió una decisión de consejo",
+    "counselDecisionSharedBody": "Abre para revisar: {title}"
   },
   "status": {
     "guestMode": "Modo invitado activo. Inicia sesión para sincronizar decisiones.",
@@ -514,7 +516,14 @@
     "challengeInviteDeclineFailed": "No se pudo rechazar la invitación.",
     "declined": "Rechazado",
     "pending": "Pendiente",
-    "loading": "Cargando…"
+    "loading": "Cargando…",
+    "counselShareSent": "Enviado",
+    "counselShareDelivered": "Entregado",
+    "counselShareWaitingForAcceptance": "Esperando aceptación",
+    "counselShareNoPushSubscription": "Sin suscripción push",
+    "counselSharePartial": "Entregado parcialmente",
+    "counselShareFailed": "Error de entrega",
+    "counselSharePushFailed": "Error de entrega push"
   },
   "placeholders": {
     "decisionExample": "Estrés por dinero, una decisión de carrera, presión de generosidad...",

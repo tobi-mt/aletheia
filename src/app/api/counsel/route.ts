@@ -35,6 +35,28 @@ type SharedDecisionRow = {
   shared_at: string;
 };
 
+type SharedDecisionDeliveryRow = {
+  contact_id: string;
+  shared_id: string;
+  decision_id: string;
+  title: string;
+  mode: string;
+  status: string;
+  readiness: number;
+  summary: string | null;
+  waiting_until: string | null;
+  shared_at: string;
+  delivery_status: string | null;
+  delivery_reason: string | null;
+  accepted_recipient_count: number | string | null;
+  push_subscription_count: number | string | null;
+  delivered_count: number | string | null;
+  failed_count: number | string | null;
+  attempted_at: string | null;
+  delivered_at: string | null;
+  delivery_updated_at: string | null;
+};
+
 type CommentRow = {
   id: string;
   decision_id: string;
@@ -99,6 +121,43 @@ async function comments(contactId: string) {
      ORDER BY created_at DESC
      LIMIT 50`,
     contactId
+  );
+}
+
+async function recentSharedDecisions(userId: string) {
+  return many<SharedDecisionDeliveryRow>(
+    `WITH ranked AS (
+       SELECT
+         s.contact_id,
+         s.id AS shared_id,
+         d.id AS decision_id,
+         d.title,
+         d.mode,
+         d.status,
+         d.readiness,
+         d.summary,
+         d.waiting_until,
+         s.created_at AS shared_at,
+         delivery.status AS delivery_status,
+         delivery.status_reason AS delivery_reason,
+         delivery.accepted_recipient_count,
+         delivery.push_subscription_count,
+         delivery.delivered_count,
+         delivery.failed_count,
+         delivery.attempted_at,
+         delivery.delivered_at,
+         delivery.updated_at AS delivery_updated_at,
+         ROW_NUMBER() OVER (PARTITION BY s.contact_id ORDER BY s.created_at DESC) AS rn
+       FROM counsel_shared_decisions s
+       JOIN wisdom_decisions d ON d.id = s.decision_id
+       LEFT JOIN counsel_shared_decision_deliveries delivery ON delivery.shared_decision_id = s.id
+       WHERE s.user_id = ?
+     )
+     SELECT *
+     FROM ranked
+     WHERE rn <= 3
+     ORDER BY shared_at DESC`,
+    userId
   );
 }
 
@@ -189,6 +248,52 @@ export async function GET() {
     user.id
   );
   const receivedInvites = await receivedInvitePreviews(user.id);
+  const recentShares = await recentSharedDecisions(user.id);
+  const recentSharesByContact = new Map<string, Array<{
+    id: string;
+    decisionId: string;
+    title: string;
+    mode: string;
+    status: string;
+    readiness: number;
+    summary: string | null;
+    waitingUntil: string | null;
+    sharedAt: string;
+    deliveryStatus: string;
+    deliveryReason: string | null;
+    acceptedRecipientCount: number;
+    pushSubscriptionCount: number;
+    deliveredCount: number;
+    failedCount: number;
+    attemptedAt: string | null;
+    deliveredAt: string | null;
+    deliveryUpdatedAt: string | null;
+  }>>();
+
+  for (const share of recentShares) {
+    const bucket = recentSharesByContact.get(share.contact_id) ?? [];
+    bucket.push({
+      id: share.shared_id,
+      decisionId: share.decision_id,
+      title: share.title,
+      mode: share.mode,
+      status: share.status,
+      readiness: share.readiness,
+      summary: share.summary,
+      waitingUntil: share.waiting_until,
+      sharedAt: share.shared_at,
+      deliveryStatus: share.delivery_status ?? "sent",
+      deliveryReason: share.delivery_reason,
+      acceptedRecipientCount: Number(share.accepted_recipient_count ?? 0),
+      pushSubscriptionCount: Number(share.push_subscription_count ?? 0),
+      deliveredCount: Number(share.delivered_count ?? 0),
+      failedCount: Number(share.failed_count ?? 0),
+      attemptedAt: share.attempted_at,
+      deliveredAt: share.delivered_at,
+      deliveryUpdatedAt: share.delivery_updated_at,
+    });
+    recentSharesByContact.set(share.contact_id, bucket);
+  }
 
   return NextResponse.json({
     contacts: contacts.map((contact) => ({
@@ -204,6 +309,7 @@ export async function GET() {
       canReceiveCheckins: contact.can_receive_checkins,
       acceptedAt: contact.accepted_at,
       createdAt: contact.created_at,
+      recentShares: recentSharesByContact.get(contact.id) ?? [],
     })),
     receivedInvites,
   });

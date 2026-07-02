@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { trackServerEvent } from "@/lib/analytics";
-import { many, run } from "@/lib/db";
+import { many, one } from "@/lib/db";
 import { apiError } from "@/lib/api-errors";
+import { sendCounselShareNotifications } from "@/lib/notifications";
 
 type ContactRow = {
   id: string;
@@ -12,6 +13,7 @@ type ContactRow = {
 
 type DecisionRow = {
   id: string;
+  title: string;
   summary: string | null;
 };
 
@@ -47,7 +49,7 @@ export async function POST(request: Request) {
   // Verify all decisions belong to user
   const placeholders = decisionIds.map(() => "?").join(",");
   const decisions = await many<DecisionRow>(
-    `SELECT id, summary FROM wisdom_decisions WHERE id IN (${placeholders}) AND user_id = ?`,
+    `SELECT id, title, summary FROM wisdom_decisions WHERE id IN (${placeholders}) AND user_id = ?`,
     ...decisionIds,
     user.id
   );
@@ -61,18 +63,33 @@ export async function POST(request: Request) {
   let sharedCount = 0;
   
   for (const decisionId of decisionIds) {
+    const decision = decisions.find((item) => item.id === decisionId);
+    if (!decision) {
+      continue;
+    }
     try {
-      await run(
+      const insertedShare = await one<{ id: string; created_at: string }>(
         `INSERT INTO counsel_shared_decisions (id, user_id, contact_id, decision_id, created_at)
          VALUES (?, ?, ?, ?, ?)
-         ON CONFLICT (contact_id, decision_id) DO NOTHING`,
+         ON CONFLICT (contact_id, decision_id) DO NOTHING
+         RETURNING id, created_at`,
         crypto.randomUUID(),
         user.id,
         contactId,
         decisionId,
         now
       );
-      sharedCount++;
+      if (insertedShare) {
+        sharedCount++;
+        await sendCounselShareNotifications({
+          sharedDecisionId: insertedShare.id,
+          contactId,
+          decisionId,
+          decisionTitle: decision.title,
+          senderUserId: user.id,
+          senderName: user.name ?? null,
+        });
+      }
     } catch (error) {
       // Continue on error - log but don't fail the whole batch
       console.error("Failed to share decision:", decisionId, error);

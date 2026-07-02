@@ -459,7 +459,9 @@
     "accountSubscribedButDeviceNot": "Asusu yana kunne, amma wannan na'urar ba ta shiga ba",
     "savedSubscription": "1 ajiye biyan kuɗi",
     "savedSubscriptions": "{count} adana biyan kuɗi",
-    "noSavedSubscription": "Babu ajiyar kuɗi da aka ajiye"
+    "noSavedSubscription": "Babu ajiyar kuɗi da aka ajiye",
+    "counselDecisionSharedTitle": "{name} ya raba shawarar shawara",
+    "counselDecisionSharedBody": "Buɗe don dubawa: {title}"
   },
   "status": {
     "guestMode": "Matsayin baƙo yana aiki. Shiga don daidaita shawara.",
@@ -514,7 +516,14 @@
     "challengeInviteDeclineFailed": "An kasa ƙin gayyatar.",
     "declined": "An ƙi",
     "pending": "Ana jiran",
-    "loading": "Ana lodawa…"
+    "loading": "Ana lodawa…",
+    "counselShareSent": "An aika",
+    "counselShareDelivered": "An isar",
+    "counselShareWaitingForAcceptance": "Ana jiran amincewa",
+    "counselShareNoPushSubscription": "Babu rajistar push",
+    "counselSharePartial": "An isar da shi kaɗan",
+    "counselShareFailed": "Isarwa ta gaza",
+    "counselSharePushFailed": "Isar da push ta gaza"
   },
   "placeholders": {
     "decisionExample": "Matsin lamba na kuɗi, shawara ta aiki, matsin lamba na dangantaka...",

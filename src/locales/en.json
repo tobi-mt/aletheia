@@ -519,7 +519,9 @@
     "accountSubscribedButDeviceNot": "Account is on, but this device is not subscribed",
     "savedSubscription": "1 saved subscription",
     "savedSubscriptions": "{count} saved subscriptions",
-    "noSavedSubscription": "No saved subscription"
+    "noSavedSubscription": "No saved subscription",
+    "counselDecisionSharedTitle": "{name} shared a counsel decision",
+    "counselDecisionSharedBody": "Open to review: {title}"
   },
   "status": {
     "guestMode": "Guest mode is active. Sign in to keep your history synced.",
@@ -574,7 +576,14 @@
     "challengeInviteDeclineFailed": "Could not decline the invite.",
     "declined": "Declined",
     "pending": "Pending",
-    "loading": "Loading…"
+    "loading": "Loading…",
+    "counselShareSent": "Sent",
+    "counselShareDelivered": "Delivered",
+    "counselShareWaitingForAcceptance": "Waiting for acceptance",
+    "counselShareNoPushSubscription": "No push subscription",
+    "counselSharePartial": "Partially delivered",
+    "counselShareFailed": "Delivery failed",
+    "counselSharePushFailed": "Push delivery failed"
   },
   "placeholders": {
     "decisionExample": "Money stress, a career decision, generosity pressure...",

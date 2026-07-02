@@ -459,7 +459,9 @@
     "accountSubscribedButDeviceNot": "Das Konto ist aktiv, aber dieses Gerät ist nicht abonniert",
     "savedSubscription": "1 gespeichertes Abonnement",
     "savedSubscriptions": "{count} gespeicherte Abonnements",
-    "noSavedSubscription": "Kein gespeichertes Abonnement"
+    "noSavedSubscription": "Kein gespeichertes Abonnement",
+    "counselDecisionSharedTitle": "{name} hat eine Ratsentscheidung geteilt",
+    "counselDecisionSharedBody": "Zum Prüfen öffnen: {title}"
   },
   "status": {
     "guestMode": "Gast-Modus aktiv. Melde dich an, um Entscheidungen zu synchronisieren.",
@@ -514,7 +516,14 @@
     "challengeInviteDeclineFailed": "Die Einladung konnte nicht abgelehnt werden.",
     "declined": "Abgelehnt",
     "pending": "Ausstehend",
-    "loading": "Lädt…"
+    "loading": "Lädt…",
+    "counselShareSent": "Gesendet",
+    "counselShareDelivered": "Zugestellt",
+    "counselShareWaitingForAcceptance": "Wartet auf Annahme",
+    "counselShareNoPushSubscription": "Kein Push-Abonnement",
+    "counselSharePartial": "Teilweise zugestellt",
+    "counselShareFailed": "Zustellung fehlgeschlagen",
+    "counselSharePushFailed": "Push-Zustellung fehlgeschlagen"
   },
   "placeholders": {
     "decisionExample": "Geldstress, eine Karriereentscheidung, Großzügigkeitsdruck...",

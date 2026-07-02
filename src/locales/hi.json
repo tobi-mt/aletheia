@@ -459,7 +459,9 @@
     "accountSubscribedButDeviceNot": "खाता चालू है, लेकिन यह डिवाइस सब्सक्राइब नहीं है",
     "savedSubscription": "1 सहेजी गई सदस्यता",
     "savedSubscriptions": "{count} सहेजी गई सदस्यताएँ",
-    "noSavedSubscription": "कोई सहेजी गई सदस्यता नहीं"
+    "noSavedSubscription": "कोई सहेजी गई सदस्यता नहीं",
+    "counselDecisionSharedTitle": "{name} ने एक परामर्श निर्णय साझा किया",
+    "counselDecisionSharedBody": "समीक्षा करने के लिए खोलें: {title}"
   },
   "status": {
     "guestMode": "गेस्ट मोड सक्रिय है।",
@@ -514,7 +516,14 @@
     "challengeInviteDeclineFailed": "आमंत्रण अस्वीकार नहीं किया जा सका.",
     "declined": "अस्वीकृत",
     "pending": "लंबित",
-    "loading": "लोड हो रहा है..."
+    "loading": "लोड हो रहा है...",
+    "counselShareSent": "भेजा गया",
+    "counselShareDelivered": "वितरित",
+    "counselShareWaitingForAcceptance": "स्वीकृति की प्रतीक्षा में",
+    "counselShareNoPushSubscription": "कोई पुश सदस्यता नहीं",
+    "counselSharePartial": "आंशिक रूप से वितरित",
+    "counselShareFailed": "वितरण विफल",
+    "counselSharePushFailed": "पुश वितरण विफल रहा"
   },
   "placeholders": {
     "decisionExample": "पैसों का तनाव, करियर संबंधी निर्णय, उदारता का दबाव...",

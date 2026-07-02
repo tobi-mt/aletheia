@@ -459,7 +459,9 @@
     "accountSubscribedButDeviceNot": "Akaụntụ dị, mana anabataghị ngwaọrụ a",
     "savedSubscription": "1 echekwara ndebanye aha",
     "savedSubscriptions": "{count} ndebanye aha echekwara",
-    "noSavedSubscription": "Enweghị ndenye aha echekwara"
+    "noSavedSubscription": "Enweghị ndenye aha echekwara",
+    "counselDecisionSharedTitle": "{name} kesara mkpebi ndụmọdụ",
+    "counselDecisionSharedBody": "Meghee iji lelee: {title}"
   },
   "status": {
     "guestMode": "Ọnọdụ ọbịa na-arụ ọrụ. Banye ka ịmekọrịta mkpebi.",
@@ -514,7 +516,14 @@
     "challengeInviteDeclineFailed": "Enweghị ike ịjụ òkù a.",
     "declined": "Ajụjụ",
     "pending": "Na-echere",
-    "loading": "Na-ebugo…"
+    "loading": "Na-ebugo…",
+    "counselShareSent": "Ezigaala",
+    "counselShareDelivered": "Ezigara",
+    "counselShareWaitingForAcceptance": "Na-eche nnabata",
+    "counselShareNoPushSubscription": "Enweghị push subscription",
+    "counselSharePartial": "Ezigara akụkụ ụfọdụ",
+    "counselShareFailed": "Mbupu dara",
+    "counselSharePushFailed": "Push delivery dara"
   },
   "placeholders": {
     "decisionExample": "Nrụgide ego, mkpebi ọrụ, nrụgide mmekọrịta...",

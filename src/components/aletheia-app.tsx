@@ -4263,9 +4263,33 @@ type CounselContact = {
   canCommentOnDecisions: boolean;
   canReceiveCheckins: boolean;
   acceptedAt: string | null;
+  recentShares?: CounselShareDeliverySummaryView[];
   emailSent?: boolean;
   emailError?: string | null;
   createdAt: string;
+};
+
+type CounselShareDeliveryStatus = "waiting_for_acceptance" | "sent" | "delivered" | "partial" | "failed";
+type CounselShareDeliveryReason = "no_push_subscription" | "push_failed" | null;
+
+type CounselShareDeliverySummaryView = {
+  id: string;
+  decisionId: string;
+  title: string;
+  mode: string;
+  status: string;
+  readiness: number;
+  summary: string | null;
+  waitingUntil: string | null;
+  sharedAt: string;
+  deliveryStatus: CounselShareDeliveryStatus;
+  deliveryReason: CounselShareDeliveryReason;
+  acceptedRecipientCount: number;
+  pushSubscriptionCount: number;
+  deliveredCount: number;
+  failedCount: number;
+  attemptedAt: string | null;
+  deliveredAt: string | null;
 };
 
 type CounselInvitePreview = {
@@ -17910,8 +17934,6 @@ function FormationRailSection({
         window.setTimeout(() => {
           nudgeComposerRef.current?.focus({ preventScroll: true });
         }, 0);
-      } else {
-        sectionRef.current?.scrollIntoView({ behavior: "auto", block: "start" });
       }
 
       pendingChallengeLandingRef.current = null;
@@ -18229,14 +18251,6 @@ function FormationRailSection({
     theme,
     ts,
   ]);
-
-  useEffect(() => {
-    if (!selectedChallenge || selectedChallengeFocusedDay === null) {
-      return;
-    }
-    const target = dayCardRefs.current[selectedChallengeFocusedDay];
-    target?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
-  }, [selectedChallenge, selectedChallengeFocusedDay]);
 
   const visibleChallengeCards = displayChallenges;
 
@@ -19088,7 +19102,7 @@ function FormationRailSection({
 
       {visibleChallengeCards.length ? (
         <>
-          <div className="flex gap-4 overflow-x-auto px-1 pb-3 [-webkit-overflow-scrolling:touch] sm:px-0">
+          <div className="formation-card-rail flex gap-4 overflow-x-auto px-1 pb-3 [-webkit-overflow-scrolling:touch] sm:px-0">
             {visibleChallengeCards.map((challenge) => {
               const done = completedDaysFor(challenge);
               const circle = challengeCircles.find((item) => item.challengeId === challenge.id) ?? null;
@@ -19125,7 +19139,7 @@ function FormationRailSection({
                     setSelectedDayNumber(null);
                     setOpenDayDetailDay(null);
                   }}
-                  className="relative flex w-[17rem] shrink-0 snap-start flex-col rounded-[1.45rem] border p-4 text-left shadow-[0_6px_14px_rgba(7,10,8,0.05)] transition active:scale-[0.99] sm:w-[18.25rem]"
+                  className="formation-card premium-tap-card relative flex w-[17rem] shrink-0 snap-start flex-col rounded-[1.45rem] border p-4 text-left shadow-[0_6px_14px_rgba(7,10,8,0.05)] transition active:scale-[0.99] sm:w-[18.25rem]"
                   style={{
                     borderColor: isActive ? theme.primary : theme.borderLight,
                     backgroundColor: isActive ? theme.bgCardElevated : theme.bgCard,
@@ -19245,7 +19259,7 @@ function FormationRailSection({
                     )}
                     <div
                       ref={dayCarouselRef}
-                      className="flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto pb-2 [-webkit-overflow-scrolling:touch]"
+                      className="formation-day-rail flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto pb-2 [-webkit-overflow-scrolling:touch]"
                       aria-label={ts("labels.day")}
                     >
                       {selectedChallengeDays.map((day) => {
@@ -19286,7 +19300,7 @@ function FormationRailSection({
                                     }
                                   }
                             }
-                            className="premium-tap-card relative flex h-[11.75rem] w-[15.25rem] shrink-0 snap-center flex-col rounded-[1.15rem] border p-3.5 text-left transition sm:w-[16rem]"
+                            className="formation-day-card premium-tap-card relative flex h-[11.75rem] w-[15.25rem] shrink-0 snap-center flex-col rounded-[1.15rem] border p-3.5 text-left transition sm:w-[16rem]"
                             style={{
                               borderColor: isFocused ? theme.primary : theme.borderLight,
                               backgroundColor: isFocused && !isLocked ? theme.bgCardElevated : theme.bgCard,
@@ -19339,7 +19353,7 @@ function FormationRailSection({
                                       void shareChallengeDay(selectedChallenge, day.day);
                                     }}
                                     disabled={!completion}
-                                    className="grid size-8 shrink-0 place-items-center rounded-full border transition hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-40"
+                                  className="formation-day-share-button grid size-8 shrink-0 place-items-center rounded-full border transition hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-40"
                                     aria-label={`${ts("share.shareAletheia")} ${ts("challenges.dayLabel").replace("{day}", String(day.day))}`}
                                     style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
                                   >
@@ -20166,9 +20180,9 @@ const ChallengeNudgePanel = memo(function ChallengeNudgePanel({
   onPostSharedCircleNudge: () => Promise<void>;
   members: ChallengeCircleMember[];
 }) {
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    void onPostSharedCircleNudge();
+    await onPostSharedCircleNudge();
   };
   const statusLines = sharedCircleNudgeStatus
     .split("\n")
@@ -20180,7 +20194,11 @@ const ChallengeNudgePanel = memo(function ChallengeNudgePanel({
     : ts("challenges.nudgeRecipientEveryone");
 
   return (
-    <div ref={panelRef} className="rounded-[1.1rem] border p-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+    <div
+      ref={panelRef}
+      className="nudge-composer-shell rounded-[1.1rem] border p-3.5"
+      style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}
+    >
       <div className="flex items-start justify-between gap-3">
         <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
           {ts("challenges.nudges")}
@@ -20191,7 +20209,7 @@ const ChallengeNudgePanel = memo(function ChallengeNudgePanel({
       </div>
       {selectedCircleHasCurrentMember ? (
         <form
-          className="mt-3.5 grid gap-3 rounded-[1rem] border p-3.5"
+          className="nudge-composer-shell__form mt-3.5 grid gap-3 rounded-[1rem] border p-3.5"
           style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}
           onSubmit={handleSubmit}
         >
@@ -20213,7 +20231,10 @@ const ChallengeNudgePanel = memo(function ChallengeNudgePanel({
             <div className="-mx-1 flex snap-x snap-mandatory gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [-webkit-overflow-scrolling:touch] [&::-webkit-scrollbar]:hidden">
               <button
                 type="button"
-                onClick={() => onSharedCircleNudgeRecipientChange(null)}
+                onClick={(event) => {
+                  onSharedCircleNudgeRecipientChange(null);
+                  event.currentTarget.blur();
+                }}
                 className="inline-flex min-h-14 min-w-[10rem] snap-start items-center gap-3 rounded-[1.1rem] border px-3.5 py-2 text-left text-sm font-semibold transition"
                 style={{
                   borderColor: sharedCircleNudgeRecipientId === null ? theme.primary : theme.borderMedium,
@@ -20235,7 +20256,10 @@ const ChallengeNudgePanel = memo(function ChallengeNudgePanel({
                 <button
                   key={member.userId}
                   type="button"
-                  onClick={() => onSharedCircleNudgeRecipientChange(member.userId)}
+                  onClick={(event) => {
+                    onSharedCircleNudgeRecipientChange(member.userId);
+                    event.currentTarget.blur();
+                  }}
                   className="inline-flex min-h-14 min-w-[9.5rem] snap-start items-center gap-3 rounded-[1.1rem] border px-3.5 py-2 text-left text-sm font-semibold transition"
                   style={{
                     borderColor: sharedCircleNudgeRecipientId === member.userId ? theme.primary : theme.borderMedium,
@@ -20261,8 +20285,12 @@ const ChallengeNudgePanel = memo(function ChallengeNudgePanel({
             ref={composerRef}
             value={sharedCircleNudgeDraft}
             onChange={(event) => onSharedCircleNudgeDraftChange(event.target.value)}
-            className="min-h-24 resize-none rounded-[0.9rem] border px-3 py-2.5 text-sm leading-6 outline-none"
-            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+            className="nudge-composer-shell__textarea min-h-24 resize-none rounded-[0.9rem] border px-3 py-2.5 text-sm leading-6 outline-none"
+            style={{
+              borderColor: theme.borderMedium,
+              backgroundColor: theme.bgInput,
+              color: theme.textPrimary,
+            }}
             placeholder={ts("challenges.nudgePlaceholder")}
           />
           <p className="text-[11px] leading-5" style={{ color: theme.textMuted }}>
@@ -20285,6 +20313,9 @@ const ChallengeNudgePanel = memo(function ChallengeNudgePanel({
             </div>
             <button
               type="submit"
+              onPointerDown={(event) => {
+                event.currentTarget.blur();
+              }}
               disabled={sharedCircleNudgeBusy || sharedCircleNudgeDraft.trim().length === 0}
               className="h-10 rounded-full px-4 text-sm font-semibold"
               style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
@@ -27154,6 +27185,33 @@ function localizedCounselRoleLabel(role: string, ts: (key: string, fallback?: st
   }
 }
 
+function localizedCounselShareDeliveryCopy(
+  share: CounselShareDeliverySummaryView,
+  ts: (key: string, fallback?: string) => string
+) {
+  const statusLabel =
+    share.deliveryStatus === "delivered"
+      ? ts("status.counselShareDelivered")
+      : share.deliveryStatus === "partial"
+        ? ts("status.counselSharePartial")
+        : share.deliveryStatus === "failed"
+          ? ts("status.counselShareFailed")
+          : share.deliveryStatus === "waiting_for_acceptance"
+            ? ts("status.counselShareWaitingForAcceptance")
+            : ts("status.counselShareSent");
+
+  let note: string | null = null;
+  if (share.deliveryStatus === "sent" && share.pushSubscriptionCount === 0) {
+    note = ts("status.counselShareNoPushSubscription");
+  } else if (share.deliveryStatus === "partial" && share.deliveryReason === "no_push_subscription") {
+    note = ts("status.counselShareNoPushSubscription");
+  } else if (share.deliveryStatus === "partial" || share.deliveryStatus === "failed") {
+    note = ts("status.counselSharePushFailed");
+  }
+
+  return { statusLabel, note };
+}
+
 function CounselDecisionShareRail({
   theme,
   ts,
@@ -27309,6 +27367,38 @@ function CounselVoiceCard({
         {contact.canCommentOnDecisions ? <span className="rounded-full px-2.5 py-1" style={{ backgroundColor: theme.bgInput }}>{ts('labels.comments')}</span> : null}
         {contact.canReceiveCheckins ? <span className="rounded-full px-2.5 py-1" style={{ backgroundColor: theme.bgInput }}>{ts('labels.checkIns')}</span> : null}
       </div>
+
+      {contact.recentShares?.length ? (
+        <div className="mt-3 space-y-2">
+          {contact.recentShares.slice(0, 2).map((share) => {
+            const { statusLabel, note } = localizedCounselShareDeliveryCopy(share, ts);
+            return (
+              <div
+                key={share.id}
+                className="rounded-[1rem] border px-3 py-2.5"
+                style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <p className="min-w-0 text-sm font-semibold leading-5 tracking-[-0.01em]" style={{ color: theme.textPrimary }}>
+                    {share.title}
+                  </p>
+                  <span
+                    className="shrink-0 rounded-full px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.12em]"
+                    style={{ backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}
+                  >
+                    {statusLabel}
+                  </span>
+                </div>
+                {note ? (
+                  <p className="mt-1 text-[11px] leading-4" style={{ color: theme.textSecondary }}>
+                    {note}
+                  </p>
+                ) : null}
+              </div>
+            );
+          })}
+        </div>
+      ) : null}
 
       {showShareDecisions ? (
         <CounselDecisionShareRail

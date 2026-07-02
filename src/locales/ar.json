@@ -459,7 +459,9 @@
     "accountSubscribedButDeviceNot": "الحساب قيد التشغيل، ولكن هذا الجهاز غير مشترك",
     "savedSubscription": "اشتراك واحد محفوظ",
     "savedSubscriptions": "{count} الاشتراكات المحفوظة",
-    "noSavedSubscription": "لا يوجد اشتراك محفوظ"
+    "noSavedSubscription": "لا يوجد اشتراك محفوظ",
+    "counselDecisionSharedTitle": "{name} شارك قرارًا للمشورة",
+    "counselDecisionSharedBody": "افتح للمراجعة: {title}"
   },
   "status": {
     "guestMode": "وضع الضيف نشط.",
@@ -514,7 +516,14 @@
     "challengeInviteDeclineFailed": "تعذر رفض الدعوة.",
     "declined": "انخفض",
     "pending": "قيد الانتظار",
-    "loading": "تحميل…"
+    "loading": "تحميل…",
+    "counselShareSent": "تم الإرسال",
+    "counselShareDelivered": "تم التسليم",
+    "counselShareWaitingForAcceptance": "بانتظار القبول",
+    "counselShareNoPushSubscription": "لا يوجد اشتراك في الإشعارات",
+    "counselSharePartial": "تم التسليم جزئيًا",
+    "counselShareFailed": "فشل التسليم",
+    "counselSharePushFailed": "فشل تسليم الإشعار"
   },
   "placeholders": {
     "decisionExample": "الضغط المالي، القرار المهني، الكرم الضغط...",

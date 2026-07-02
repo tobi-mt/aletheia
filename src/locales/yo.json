@@ -459,7 +459,9 @@
     "accountSubscribedButDeviceNot": "Akọọlẹ wa ni titan, ṣugbọn ẹrọ yii ko ṣe alabapin",
     "savedSubscription": "1 ti o fipamọ",
     "savedSubscriptions": "{count} ti o fipamọ",
-    "noSavedSubscription": "Ko si ṣiṣe alabapin ti o fipamọ"
+    "noSavedSubscription": "Ko si ṣiṣe alabapin ti o fipamọ",
+    "counselDecisionSharedTitle": "{name} pín ipinnu ìmọ̀ràn kan",
+    "counselDecisionSharedBody": "Ṣí i láti ṣàyẹ̀wò: {title}"
   },
   "status": {
     "guestMode": "Ìpò àlejò ń ṣiṣẹ́. Wọlé láti fọ́kàn sọ́ àwọn ìpinnu.",
@@ -514,7 +516,14 @@
     "challengeInviteDeclineFailed": "Ko le kọ ifiwepe naa.",
     "declined": "Ti kọ",
     "pending": "Ni isunmọtosi",
-    "loading": "Nkojọpọ…"
+    "loading": "Nkojọpọ…",
+    "counselShareSent": "A ránṣẹ́",
+    "counselShareDelivered": "A fi ránṣẹ́",
+    "counselShareWaitingForAcceptance": "N dúró de ìtẹwọ́gbà",
+    "counselShareNoPushSubscription": "Kò sí ìforúkọsílẹ̀ push",
+    "counselSharePartial": "A fi ránṣẹ́ díẹ̀",
+    "counselShareFailed": "Ìfiránṣẹ́ kuna",
+    "counselSharePushFailed": "Ìfiránṣẹ́ push kuna"
   },
   "placeholders": {
     "decisionExample": "Ìpọ́njú owó, ìpinnu iṣẹ́, títẹ ọ̀fẹ́...",

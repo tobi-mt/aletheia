@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { trackServerEvent } from "@/lib/analytics";
-import { one, run } from "@/lib/db";
+import { one } from "@/lib/db";
 import { apiError } from "@/lib/api-errors";
+import { sendCounselShareNotifications } from "@/lib/notifications";
 
 type ContactRow = {
   id: string;
@@ -12,6 +13,7 @@ type ContactRow = {
 
 type DecisionRow = {
   id: string;
+  title: string;
   summary: string | null;
 };
 
@@ -35,7 +37,7 @@ export async function POST(request: Request) {
       user.id
     ),
     one<DecisionRow>(
-      "SELECT id, summary FROM wisdom_decisions WHERE id = ? AND user_id = ?",
+      "SELECT id, title, summary FROM wisdom_decisions WHERE id = ? AND user_id = ?",
       decisionId,
       user.id
     ),
@@ -48,21 +50,37 @@ export async function POST(request: Request) {
     return apiError(403, "permission_denied", "This counselor does not have summary-view permission.");
   }
 
-  await run(
+  const now = new Date().toISOString();
+  const insertedShare = await one<{ id: string; created_at: string }>(
     `INSERT INTO counsel_shared_decisions (id, user_id, contact_id, decision_id, created_at)
      VALUES (?, ?, ?, ?, ?)
-     ON CONFLICT (contact_id, decision_id) DO NOTHING`,
+     ON CONFLICT (contact_id, decision_id) DO NOTHING
+     RETURNING id, created_at`,
     crypto.randomUUID(),
     user.id,
     contactId,
     decisionId,
-    new Date().toISOString()
+    now
   );
+
+  if (!insertedShare) {
+    return NextResponse.json({ ok: true, alreadyShared: true });
+  }
+
+  const delivery = await sendCounselShareNotifications({
+    sharedDecisionId: insertedShare.id,
+    contactId,
+    decisionId,
+    decisionTitle: decision.title,
+    senderUserId: user.id,
+    senderName: user.name ?? null,
+  });
+
   await trackServerEvent({
     userId: user.id,
     eventName: "counsel_decision_shared",
     metadata: { hasSummary: Boolean(decision.summary) },
   });
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, delivery });
 }

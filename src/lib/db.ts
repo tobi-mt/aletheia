@@ -329,6 +329,25 @@ async function initializeDatabase() {
       UNIQUE(contact_id, decision_id)
     );
 
+    CREATE TABLE IF NOT EXISTS counsel_shared_decision_deliveries (
+      id TEXT PRIMARY KEY,
+      shared_decision_id TEXT NOT NULL REFERENCES counsel_shared_decisions(id) ON DELETE CASCADE,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      contact_id TEXT NOT NULL REFERENCES counsel_contacts(id) ON DELETE CASCADE,
+      decision_id TEXT NOT NULL REFERENCES wisdom_decisions(id) ON DELETE CASCADE,
+      status TEXT NOT NULL,
+      status_reason TEXT,
+      accepted_recipient_count INTEGER NOT NULL DEFAULT 0,
+      push_subscription_count INTEGER NOT NULL DEFAULT 0,
+      delivered_count INTEGER NOT NULL DEFAULT 0,
+      failed_count INTEGER NOT NULL DEFAULT 0,
+      attempted_at TIMESTAMPTZ,
+      delivered_at TIMESTAMPTZ,
+      created_at TIMESTAMPTZ NOT NULL,
+      updated_at TIMESTAMPTZ NOT NULL,
+      UNIQUE(shared_decision_id)
+    );
+
     CREATE TABLE IF NOT EXISTS counsel_comments (
       id TEXT PRIMARY KEY,
       contact_id TEXT NOT NULL REFERENCES counsel_contacts(id) ON DELETE CASCADE,
@@ -496,6 +515,8 @@ async function initializeDatabase() {
     CREATE INDEX IF NOT EXISTS counsel_contacts_invite_hash_idx ON counsel_contacts(invite_token_hash);
     CREATE INDEX IF NOT EXISTS counsel_shared_decisions_user_idx ON counsel_shared_decisions(user_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS counsel_shared_decisions_contact_idx ON counsel_shared_decisions(contact_id, created_at DESC);
+    CREATE INDEX IF NOT EXISTS counsel_shared_decision_deliveries_contact_idx ON counsel_shared_decision_deliveries(contact_id, created_at DESC);
+    CREATE INDEX IF NOT EXISTS counsel_shared_decision_deliveries_shared_idx ON counsel_shared_decision_deliveries(shared_decision_id);
     CREATE INDEX IF NOT EXISTS counsel_comments_contact_decision_idx ON counsel_comments(contact_id, decision_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS challenge_circles_owner_idx ON challenge_circles(owner_user_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS challenge_circles_invite_hash_idx ON challenge_circles(invite_token_hash);
