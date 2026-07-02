@@ -7529,6 +7529,7 @@ export function AletheiaApp() {
   const bottomNavRef = useRef<HTMLDivElement | null>(null);
   const updateRefreshTimeoutRef = useRef<number | null>(null);
   const pendingViewportResetRef = useRef(false);
+  const keyboardOpenRef = useRef(false);
   const notificationFocusHandledRef = useRef(false);
   const notificationSelfHealInFlightRef = useRef(false);
 
@@ -8099,16 +8100,29 @@ export function AletheiaApp() {
   }, [user]);
 
   useLayoutEffect(() => {
+    const isEditableElement = (element: Element | null) =>
+      element instanceof HTMLInputElement ||
+      element instanceof HTMLTextAreaElement ||
+      (element instanceof HTMLElement && element.isContentEditable === true);
+
+    const syncKeyboardOpenState = () => {
+      keyboardOpenRef.current = isEditableElement(document.activeElement);
+    };
+
+    const handleFocusOut = () => {
+      window.setTimeout(syncKeyboardOpenState, 0);
+    };
+
+    syncKeyboardOpenState();
+    document.addEventListener("focusin", syncKeyboardOpenState, true);
+    document.addEventListener("focusout", handleFocusOut, true);
+
     const updateViewportChrome = () => {
-      const activeElement = document.activeElement as HTMLElement | null;
-      const isEditable =
-        activeElement instanceof HTMLInputElement ||
-        activeElement instanceof HTMLTextAreaElement ||
-        activeElement?.isContentEditable === true;
+      const isEditable = isEditableElement(document.activeElement);
 
       // Keep the shell stable while the keyboard is open so mobile typing doesn't
       // reflow the whole app on every viewport tick.
-      if (isEditable) {
+      if (isEditable || keyboardOpenRef.current) {
         return;
       }
 
@@ -8164,6 +8178,8 @@ export function AletheiaApp() {
     window.addEventListener("orientationchange", updateViewportChrome);
     window.visualViewport?.addEventListener("resize", updateViewportChrome);
     return () => {
+      document.removeEventListener("focusin", syncKeyboardOpenState, true);
+      document.removeEventListener("focusout", handleFocusOut, true);
       window.removeEventListener("resize", updateViewportChrome);
       window.removeEventListener("orientationchange", updateViewportChrome);
       window.visualViewport?.removeEventListener("resize", updateViewportChrome);
@@ -8399,6 +8415,10 @@ export function AletheiaApp() {
     }
 
     const updateBottomNavSpace = () => {
+      if (keyboardOpenRef.current) {
+        return;
+      }
+
       const viewport = window.visualViewport;
       const viewportHeight = Math.max(0, Math.round(viewport?.height ?? window.innerHeight));
       const viewportWidth = Math.max(0, Math.round(viewport?.width ?? window.innerWidth));
@@ -8415,11 +8435,13 @@ export function AletheiaApp() {
     resizeObserver.observe(nav);
     window.addEventListener("resize", updateBottomNavSpace);
     window.addEventListener("orientationchange", updateBottomNavSpace);
+    window.visualViewport?.addEventListener("resize", updateBottomNavSpace);
 
     return () => {
       resizeObserver.disconnect();
       window.removeEventListener("resize", updateBottomNavSpace);
       window.removeEventListener("orientationchange", updateBottomNavSpace);
+      window.visualViewport?.removeEventListener("resize", updateBottomNavSpace);
     };
   }, [clientStateRestored]);
 
@@ -12645,7 +12667,7 @@ function scrollTargetBelowTopChrome(target: HTMLElement, behavior: ScrollBehavio
   }
 
   return (
-    <main ref={appShellRef} className={`app-shell min-h-screen overflow-x-hidden ${resolvedTheme === "dark" || resolvedTheme === "black" ? "theme-dark-root" : ""}`} style={{ backgroundColor: theme.bgMain, color: theme.textPrimary, minHeight: '100dvh' }}>
+    <main ref={appShellRef} className={`app-shell min-h-screen overflow-x-hidden ${resolvedTheme === "dark" || resolvedTheme === "black" ? "theme-dark-root" : ""}`} style={{ backgroundColor: theme.bgMain, color: theme.textPrimary, minHeight: "100svh" }}>
       <div
         className={`fixed inset-0 -z-10 ${theme.bgGradient}`}
         style={{ backgroundColor: theme.bgMain }}
@@ -13514,7 +13536,7 @@ function StartupSplash({
   return (
     <main
       className={`app-shell min-h-screen overflow-hidden ${resolvedTheme === "dark" || resolvedTheme === "black" ? "theme-dark-root" : ""}`}
-      style={{ backgroundColor: theme.bgMain, color: theme.textPrimary, minHeight: "100dvh" }}
+      style={{ backgroundColor: theme.bgMain, color: theme.textPrimary, minHeight: "100svh" }}
     >
       <div className={`fixed inset-0 -z-10 ${theme.bgGradient}`} style={{ backgroundColor: theme.bgMain }} />
       <div
@@ -17838,7 +17860,7 @@ function FormationRailSection({
     setSharedCircleNudgeBusy(true);
     setSharedCircleNudgeStatus("");
     try {
-      const response = await fetch(`/api/challenge-circles/${encodeURIComponent(selectedCircle.id)}/nudges`, {
+      const response = await fetch(`/api/challenge-circles/by-id/${encodeURIComponent(selectedCircle.id)}/nudges`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ body, recipientUserId: sharedCircleNudgeRecipientId }),
@@ -17854,7 +17876,11 @@ function FormationRailSection({
         onChallengeCircleChanged();
         return;
       }
-      setSharedCircleNudgeStatus(data.error ?? ts("status.challengeInviteNudgeFailed"));
+      setSharedCircleNudgeStatus(
+        data.errorCode === "not_found"
+          ? ts("apiNotFound")
+          : data.error ?? ts("status.challengeInviteNudgeFailed")
+      );
     } catch {
       setSharedCircleNudgeStatus(ts("status.challengeInviteNudgeFailed"));
     } finally {
@@ -19978,9 +20004,6 @@ const ChallengeNudgePanel = memo(function ChallengeNudgePanel({
                   />
                   <span className="min-w-0">
                     <span className="block truncate">{member.name ?? ts("labels.counselContact")}</span>
-                    <span className="mt-0.5 block text-[10px] font-medium uppercase tracking-[0.08em]" style={{ color: sharedCircleNudgeRecipientId === member.userId ? theme.textOnPrimary : theme.textMuted }}>
-                      {member.role === "host" ? ts("labels.host") : ts("labels.person")}
-                    </span>
                   </span>
                 </button>
               ))}
