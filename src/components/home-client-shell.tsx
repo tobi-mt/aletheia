@@ -1,13 +1,17 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Image from "next/image";
 import { startTransition, useEffect, useRef, useState } from "react";
-import { AletheiaApp } from "@/components/aletheia-app";
 import { getTranslation, loadTranslationsSync } from "@/lib/translations";
 
 type SplashLanguage = "en" | "es" | "fr" | "de" | "pt" | "yo" | "ig" | "ha" | "tl" | "ar" | "hi";
 
 const supportedSplashLanguages = new Set<SplashLanguage>(["en", "es", "fr", "de", "pt", "yo", "ig", "ha", "tl", "ar", "hi"]);
+const LazyAletheiaApp = dynamic(
+  () => import("@/components/aletheia-app").then((mod) => mod.AletheiaApp),
+  { ssr: false, loading: () => null }
+);
 
 const SPLASH_LAST_SHOWN_AT_KEY = "aletheia_splash_last_shown_at";
 
@@ -32,6 +36,7 @@ function readStoredSplashLanguage(): SplashLanguage {
 
 export default function HomeClientShell() {
   const [showSplash, setShowSplash] = useState(true);
+  const [showApp, setShowApp] = useState(false);
   const [splashLanguage, setSplashLanguage] = useState<SplashLanguage>("en");
   const [splashCopyReady, setSplashCopyReady] = useState(false);
   const lastHiddenAtRef = useRef<number | null>(null);
@@ -49,8 +54,12 @@ export default function HomeClientShell() {
         setSplashCopyReady(true);
       });
     });
+    const showAppTimer = window.setTimeout(() => {
+      setShowApp(true);
+    }, 1100);
     return () => {
       window.cancelAnimationFrame(firstFrame);
+      window.clearTimeout(showAppTimer);
     };
   }, []);
 
@@ -114,7 +123,7 @@ export default function HomeClientShell() {
 
   return (
     <>
-      <AletheiaApp />
+      {showApp ? <LazyAletheiaApp /> : null}
       {showSplash ? (
         <div
           data-testid="app-launch-splash"

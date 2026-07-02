@@ -7314,6 +7314,7 @@ export function AletheiaApp() {
   const [authNotice, setAuthNotice] = useState("");
   const [authStatus, setAuthStatus] = useState<AuthStatus>("checking");
   const [googleAuthAvailable, setGoogleAuthAvailable] = useState(false);
+  const [welcomeAuthOpen, setWelcomeAuthOpen] = useState(false);
   const [preferences, setPreferences] = useState<UserPreferences>(defaultPreferences);
   const [startupLanguage, setStartupLanguage] = useState<LanguageCode>(defaultPreferences.language);
   const [preferencesStatus, setPreferencesStatus] = useState("");
@@ -9810,6 +9811,14 @@ function scrollTargetBelowTopChrome(target: HTMLElement, behavior: ScrollBehavio
     showView("account");
   }
 
+  function startWelcomeAuthFlow(nextAuthMode: AuthMode) {
+    setAuthMode(nextAuthMode);
+    setAuthError("");
+    setAuthNotice("");
+    setShowWelcomeGate(false);
+    setWelcomeAuthOpen(true);
+  }
+
   function startFirstRunGuestFlow() {
     try {
       window.localStorage.setItem(ONBOARDING_PROGRESS_STORAGE_KEY, "guest");
@@ -9824,8 +9833,7 @@ function scrollTargetBelowTopChrome(target: HTMLElement, behavior: ScrollBehavio
 
   function startFirstRunAuthFlow(nextAuthMode: AuthMode) {
     setOnboardingPath(null);
-    setShowWelcomeGate(false);
-    openAccountFlow(nextAuthMode);
+    startWelcomeAuthFlow(nextAuthMode);
   }
 
   function openRecommendedChallenge(challengeId: string) {
@@ -11164,8 +11172,9 @@ function scrollTargetBelowTopChrome(target: HTMLElement, behavior: ScrollBehavio
         setCounselInviteAuthOpen(false);
         setChallengeInviteStatus("");
         setCounselInviteStatus("");
-      }
-      if (!inviteFlowActive) {
+      } else if (welcomeAuthOpen) {
+        setWelcomeAuthOpen(false);
+      } else {
         setActiveView("account");
       }
       setShowWelcomeGate(false);
@@ -13234,6 +13243,35 @@ function scrollTargetBelowTopChrome(target: HTMLElement, behavior: ScrollBehavio
         onSignIn={() => startFirstRunAuthFlow("login")}
         onGoogleSignIn={handleGoogleSignIn}
         onContinueWithoutAccount={startFirstRunGuestFlow}
+      />
+
+      <WelcomeAuthModal
+        open={welcomeAuthOpen}
+        theme={theme}
+        ts={ts}
+        authMode={authMode}
+        setAuthMode={setAuthMode}
+        authName={authName}
+        setAuthName={setAuthName}
+        authEmail={authEmail}
+        setAuthEmail={setAuthEmail}
+        authPassword={authPassword}
+        setAuthPassword={setAuthPassword}
+        authWebsite={authWebsite}
+        setAuthWebsite={setAuthWebsite}
+        authError={authError}
+        authNotice={authNotice}
+        authStatus={authStatus}
+        googleAuthAvailable={googleAuthAvailable}
+        isWorking={isWorking}
+        onSubmitAuth={handleAuth}
+        onGoogleSignIn={handleGoogleSignIn}
+        onClose={() => {
+          setWelcomeAuthOpen(false);
+          if (!user) {
+            setShowWelcomeGate(true);
+          }
+        }}
       />
 
       <OnboardingModal
@@ -16323,6 +16361,7 @@ function AccountPanel({
         title={user ? ts('labels.accountControls') : ts('labels.accountSignInOrGuest')}
         summary={user ? accountManageSummary : profileSummary}
         eyebrow={ts('labels.accountTitle')}
+        defaultOpen={!user}
         compactCollapsed
         showDetailsLabel={text.showDetails}
         hideDetailsLabel={text.hideDetails}
@@ -22251,6 +22290,201 @@ function WelcomeGateScreen({
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>,
+    document.body
+  );
+}
+
+function WelcomeAuthModal({
+  open,
+  theme,
+  ts,
+  authMode,
+  setAuthMode,
+  authName,
+  setAuthName,
+  authEmail,
+  setAuthEmail,
+  authPassword,
+  setAuthPassword,
+  authWebsite,
+  setAuthWebsite,
+  authError,
+  authNotice,
+  authStatus,
+  googleAuthAvailable,
+  isWorking,
+  onSubmitAuth,
+  onGoogleSignIn,
+  onClose,
+}: {
+  open: boolean;
+  theme: ThemeColors;
+  ts: (key: string, fallback?: string) => string;
+  authMode: AuthMode;
+  setAuthMode: (value: AuthMode) => void;
+  authName: string;
+  setAuthName: (value: string) => void;
+  authEmail: string;
+  setAuthEmail: (value: string) => void;
+  authPassword: string;
+  setAuthPassword: (value: string) => void;
+  authWebsite: string;
+  setAuthWebsite: (value: string) => void;
+  authError: string;
+  authNotice: string;
+  authStatus: AuthStatus;
+  googleAuthAvailable: boolean;
+  isWorking: boolean;
+  onSubmitAuth: (event: FormEvent<HTMLFormElement>) => void;
+  onGoogleSignIn: () => void;
+  onClose: () => void;
+}) {
+  const canUsePortal = typeof document !== "undefined";
+  useBodyScrollLock(open && canUsePortal);
+
+  if (!open || !canUsePortal) {
+    return null;
+  }
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[10001] grid min-h-dvh place-items-center overflow-y-auto overscroll-contain px-4 py-4 [-webkit-overflow-scrolling:touch] [touch-action:pan-y]"
+      style={{
+        background: `radial-gradient(circle at top, color-mix(in srgb, ${theme.primary} 24%, transparent), transparent 42%), linear-gradient(180deg, color-mix(in srgb, ${theme.bgMain} 70%, ${theme.primary} 30%), ${theme.bgMain})`,
+      }}
+    >
+      <div
+        className="absolute inset-0 opacity-55"
+        style={{
+          background: `radial-gradient(circle at 12% 18%, color-mix(in srgb, ${theme.accentGold} 16%, transparent), transparent 28%), radial-gradient(circle at 84% 0%, color-mix(in srgb, ${theme.primary} 14%, transparent), transparent 28%)`,
+        }}
+      />
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="welcome-auth-title"
+        className="relative w-full max-w-2xl overflow-hidden rounded-[2rem] border shadow-[0_28px_100px_rgba(10,18,14,0.42)] [-webkit-overflow-scrolling:touch]"
+        style={{
+          borderColor: theme.borderStrong,
+          backgroundColor: theme.bgCard,
+          maxHeight: "calc(100svh - 2rem)",
+        }}
+      >
+        <div className="flex items-start justify-between gap-3 border-b px-4 py-4 sm:px-5 sm:py-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
+              {ts("auth.welcome")}
+            </p>
+            <h2 id="welcome-auth-title" className="mt-1.5 text-lg font-semibold" style={{ color: theme.textPrimary }}>
+              {authMode === "register" ? ts("auth.createNewAccount") : ts("auth.signInForSync")}
+            </h2>
+            <p className="mt-1.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
+              {ts("labels.appTagline")}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="grid size-9 shrink-0 place-items-center rounded-full border transition"
+            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+            aria-label={ts("labels.close")}
+          >
+            <X size={16} />
+          </button>
+        </div>
+        <div className="max-h-[calc(100svh-9rem)] overflow-y-auto p-3.5 sm:p-4">
+          <div className="grid gap-3.5 rounded-[1.35rem] border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+            {googleAuthAvailable ? (
+              <button
+                type="button"
+                onClick={onGoogleSignIn}
+                disabled={isWorking || authStatus === "checking" || authStatus === "signing-in" || authStatus === "signing-out"}
+                className="inline-flex h-11 w-full items-center justify-center rounded-full border px-4 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60"
+                style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+              >
+                {authStatus === "signing-in" ? ts("auth.openingGoogle") : ts("auth.continueWithGoogle")}
+              </button>
+            ) : null}
+
+            <form className="grid gap-2 sm:grid-cols-2" onSubmit={onSubmitAuth}>
+              {authMode === "register" ? (
+                <input
+                  value={authName}
+                  onChange={(event) => setAuthName(event.target.value)}
+                  className="h-10 rounded-full border px-3 text-sm outline-none"
+                  style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                  placeholder={ts("placeholders.name")}
+                />
+              ) : null}
+              <input
+                value={authEmail}
+                onChange={(event) => setAuthEmail(event.target.value)}
+                className="h-10 rounded-full border px-3 text-sm outline-none"
+                style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                placeholder={ts("placeholders.email")}
+                type="email"
+              />
+              <input
+                value={authPassword}
+                onChange={(event) => setAuthPassword(event.target.value)}
+                className="h-10 rounded-full border px-3 text-sm outline-none"
+                style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                placeholder={ts("placeholders.password")}
+                type="password"
+              />
+              {authMode === "register" ? (
+                <input
+                  value={authWebsite}
+                  onChange={(event) => setAuthWebsite(event.target.value)}
+                  className="sr-only"
+                  style={{ display: "none" }}
+                  tabIndex={-1}
+                  autoComplete="off"
+                  placeholder={ts("placeholders.website")}
+                  type="text"
+                  name="website"
+                />
+              ) : null}
+              <button
+                disabled={isWorking || authStatus === "checking" || authStatus === "signing-in" || authStatus === "signing-out"}
+                className="h-10 rounded-md px-4 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60 sm:col-span-2"
+                style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+              >
+                {authStatus === "signing-in" ? ts("labels.working") : authMode === "register" ? ts("auth.create") : ts("auth.signIn")}
+              </button>
+            </form>
+
+            {authNotice ? (
+              <p className="rounded-2xl border px-3 py-2 text-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textSecondary }}>
+                {authNotice}
+              </p>
+            ) : null}
+            {authError ? (
+              <p className="rounded-2xl border px-3 py-2 text-sm" style={{ borderColor: "#e0c3b7", backgroundColor: "#fff6f1", color: "#8c3f28" }}>
+                {authError}
+              </p>
+            ) : null}
+
+            <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
+              <button
+                type="button"
+                className="text-left transition hover:opacity-80"
+                onClick={() => setAuthMode(authMode === "register" ? "login" : "register")}
+              >
+                {authMode === "register" ? ts("auth.alreadyHaveAccount") : ts("auth.createNewAccount")}
+              </button>
+              <button
+                type="button"
+                className="text-left transition hover:opacity-80"
+                onClick={onClose}
+              >
+                {ts("labels.cancel")}
+              </button>
             </div>
           </div>
         </div>
@@ -29016,9 +29250,8 @@ function ReflectPanel({
                         pendingChallengeFocus={pendingChallengeFocus}
                         onClearPendingChallenge={() => {
                           setReflectSection("formation");
-                          setPendingChallengeFocus(null);
                           onClearPendingChallenge();
-          }}
+                        }}
           challengeCircleRefreshKey={challengeCircleRefreshKey}
           onChallengeCircleChanged={onChallengeCircleChanged}
           onChallengeInviteReady={onChallengeInviteReady}
