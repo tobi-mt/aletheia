@@ -4,6 +4,7 @@ import { apiError } from "@/lib/api-errors";
 import { one, run } from "@/lib/db";
 import { readJsonBody } from "@/lib/request";
 import { trackServerEvent } from "@/lib/analytics";
+import { sendChallengeCircleNudgeNotifications } from "@/lib/notifications";
 
 export const dynamic = "force-dynamic";
 
@@ -97,6 +98,16 @@ export async function POST(request: Request, { params }: Params) {
     },
   }).catch(() => undefined);
 
+  const delivery = await sendChallengeCircleNudgeNotifications({
+    circleId: circle.id,
+    challengeId: circle.challenge_id,
+    nudgeId,
+    senderUserId: user.id,
+    senderName: user.name,
+    body,
+    recipientUserId,
+  }).catch(() => ({ configured: false, attempted: 0, sent: 0, failed: 0, failureSamples: [] }));
+
   const recipientName = recipientUserId
     ? (await one<MemberNameRow>(
         `SELECT u.name
@@ -118,5 +129,6 @@ export async function POST(request: Request, { params }: Params) {
       recipientUserId,
       recipientName,
     },
+    delivery,
   });
 }

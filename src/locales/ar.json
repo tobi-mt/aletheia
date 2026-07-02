@@ -471,6 +471,8 @@
     "challengeInviteAccepted": "تم قبول دعوة الممارسة المشتركة. يمكنكما الآن متابعة التقدم معًا.",
     "challengeInviteNotAccepted": "تعذر قبول دعوة الممارسة المشتركة هذه.",
     "challengeInviteNudgeSent": "تم إرسال التشجيع.",
+    "challengeInviteNudgeNoSubscription": "{name} لا يملك إشعارات push مفعلة.",
+    "challengeInviteNudgeNoCircleSubscription": "لا أحد في هذه الدائرة لديه إشعارات push مفعلة.",
     "challengeInviteNudgeFailed": "تعذر إرسال التشجيع.",
     "restoringPreferences": "Restaurando preferencias…",
     "finishingSignInBody": "لحظة واحدة بينما تُظهر أليثيا حسابك.",

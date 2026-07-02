@@ -471,6 +471,8 @@
     "challengeInviteAccepted": "Ìpè ìṣe pínpín ti gba. Ẹ lè tọ́pa ìlọsiwaju pọ̀ báyìí.",
     "challengeInviteNotAccepted": "A kò le gba ìpè ìṣe pínpín yìí.",
     "challengeInviteNudgeSent": "A rán ìmúnilọ́kànlẹ́.",
+    "challengeInviteNudgeNoSubscription": "Push notifications kò ṣiṣẹ́ fún {name}.",
+    "challengeInviteNudgeNoCircleSubscription": "Kò sí ẹnikẹ́ni nínú yí ká tó ní push notifications ṣiṣẹ́.",
     "challengeInviteNudgeFailed": "A kò le rán ìmúnilọ́kànlẹ́ náà.",
     "restoringPreferences": "A ń da àwọn ààyò padà…",
     "finishingSignInBody": "Dákẹ́ díẹ̀, Aletheia ń fi àkọọ́lẹ̀ rẹ hàn.",

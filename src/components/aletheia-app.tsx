@@ -17867,12 +17867,47 @@ function FormationRailSection({
       });
       const data = (await response.json().catch(() => ({}))) as {
         nudge?: { id: string; body: string; createdAt: string; senderUserId: string; recipientUserId?: string | null; recipientName?: string | null };
+        delivery?: { configured: boolean; attempted: number; sent: number; failed: number };
         error?: string;
         errorCode?: string;
       };
       if (response.ok && data.nudge) {
         setSharedCircleNudgeDraft("");
-        setSharedCircleNudgeStatus(ts("status.challengeInviteNudgeSent"));
+        const deliveryUnavailable = Boolean(data.delivery && !data.delivery.configured);
+        const directRecipientHasNoPush = Boolean(
+          sharedCircleNudgeRecipientId &&
+          data.delivery &&
+          data.delivery.configured &&
+          data.delivery.attempted === 0 &&
+          data.delivery.sent === 0
+        );
+        const circleHasNoPush = Boolean(
+          !sharedCircleNudgeRecipientId &&
+          data.delivery &&
+          data.delivery.configured &&
+          data.delivery.attempted === 0 &&
+          data.delivery.sent === 0
+        );
+        if (deliveryUnavailable) {
+          setSharedCircleNudgeStatus(
+            `${ts("status.challengeInviteNudgeSent")}\n${ts("status.notificationsNotEnabled")}`
+          );
+        } else if (directRecipientHasNoPush) {
+          const recipientLabel = data.nudge.recipientName
+            ?? challengeCircles
+              .flatMap((circle) => circle.members)
+              .find((member) => member.userId === sharedCircleNudgeRecipientId)?.name
+            ?? ts("labels.counselContact");
+          setSharedCircleNudgeStatus(
+            `${ts("status.challengeInviteNudgeSent")}\n${ts("status.challengeInviteNudgeNoSubscription").replace("{name}", recipientLabel)}`
+          );
+        } else if (circleHasNoPush) {
+          setSharedCircleNudgeStatus(
+            `${ts("status.challengeInviteNudgeSent")}\n${ts("status.challengeInviteNudgeNoCircleSubscription")}`
+          );
+        } else {
+          setSharedCircleNudgeStatus(ts("status.challengeInviteNudgeSent"));
+        }
         onChallengeCircleChanged();
         return;
       }
@@ -19926,6 +19961,10 @@ const ChallengeNudgePanel = memo(function ChallengeNudgePanel({
     event.preventDefault();
     void onPostSharedCircleNudge();
   };
+  const statusLines = sharedCircleNudgeStatus
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
   const selectableMembers = members.filter((member) => member.userId !== currentUserId);
   const selectedRecipientLabel = sharedCircleNudgeRecipientId
     ? selectableMembers.find((member) => member.userId === sharedCircleNudgeRecipientId)?.name ?? ts("labels.counselContact")
@@ -20020,9 +20059,20 @@ const ChallengeNudgePanel = memo(function ChallengeNudgePanel({
             {ts("challenges.circleNudgeBody")}
           </p>
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-[11px] leading-5" style={{ color: theme.textMuted }}>
-              {sharedCircleNudgeStatus || ts("challenges.noNudgesYet")}
-            </p>
+            <div className="min-w-0 flex-1 text-[11px] leading-5" style={{ color: theme.textMuted }}>
+              {statusLines.length ? (
+                <div className="space-y-0.5">
+                  <p className="font-medium" style={{ color: theme.textPrimary }}>
+                    {statusLines[0]}
+                  </p>
+                  {statusLines[1] ? (
+                    <p>{statusLines[1]}</p>
+                  ) : null}
+                </div>
+              ) : (
+                <p>{ts("challenges.noNudgesYet")}</p>
+              )}
+            </div>
             <button
               type="submit"
               disabled={sharedCircleNudgeBusy || sharedCircleNudgeDraft.trim().length === 0}

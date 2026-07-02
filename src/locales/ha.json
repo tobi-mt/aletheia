@@ -471,6 +471,8 @@
     "challengeInviteAccepted": "An karɓi gayyatar aikin tare. Yanzu za ku iya bin ci gaba tare.",
     "challengeInviteNotAccepted": "Ba a iya karɓar wannan gayyatar aikin tare ba.",
     "challengeInviteNudgeSent": "An aika ƙarfafawa.",
+    "challengeInviteNudgeNoSubscription": "Ba a kunna sanarwar tura ga {name} ba.",
+    "challengeInviteNudgeNoCircleSubscription": "Babu wanda a cikin wannan rukuni da aka kunna masa sanarwar tura.",
     "challengeInviteNudgeFailed": "Ba a iya aika ƙarfafawar ba.",
     "restoringPreferences": "Ana maido da abubuwan da aka fi so…",
     "finishingSignInBody": "Ka ɗan jira, Aletheia na kawo asusunka.",

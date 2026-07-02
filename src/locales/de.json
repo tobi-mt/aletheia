@@ -471,6 +471,8 @@
     "challengeInviteAccepted": "Einladung zur gemeinsamen Praxis angenommen. Ihr könnt den Fortschritt jetzt gemeinsam verfolgen.",
     "challengeInviteNotAccepted": "Diese Einladung zur gemeinsamen Praxis konnte nicht angenommen werden.",
     "challengeInviteNudgeSent": "Anstoß gesendet.",
+    "challengeInviteNudgeNoSubscription": "{name} hat keine Push-Benachrichtigungen aktiviert.",
+    "challengeInviteNudgeNoCircleSubscription": "Niemand in diesem Kreis hat Push-Benachrichtigungen aktiviert.",
     "challengeInviteNudgeFailed": "Der Anstoß konnte nicht gesendet werden.",
     "restoringPreferences": "Einstellungen werden wiederhergestellt…",
     "finishingSignInBody": "Einen Moment noch, Aletheia ruft dein Konto auf.",

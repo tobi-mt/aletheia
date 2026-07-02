@@ -471,6 +471,8 @@
     "challengeInviteAccepted": "साझा अभ्यास आमंत्रण स्वीकार हो गया। अब आप साथ मिलकर प्रगति ट्रैक कर सकते हैं।",
     "challengeInviteNotAccepted": "यह साझा अभ्यास आमंत्रण स्वीकार नहीं किया जा सका।",
     "challengeInviteNudgeSent": "प्रोत्साहन भेज दिया गया।",
+    "challengeInviteNudgeNoSubscription": "{name} के लिए पुश सूचनाएँ सक्षम नहीं हैं।",
+    "challengeInviteNudgeNoCircleSubscription": "इस वृत्त में किसी के लिए भी पुश सूचनाएँ सक्षम नहीं हैं।",
     "challengeInviteNudgeFailed": "प्रोत्साहन नहीं भेजा जा सका।",
     "restoringPreferences": "वरीयताएँ पुनर्स्थापित की जा रही हैं…",
     "finishingSignInBody": "एक क्षण, Aletheia आपका खाता सामने ला रहा है।",

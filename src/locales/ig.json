@@ -471,6 +471,8 @@
     "challengeInviteAccepted": "E nwetara oku omume kesara. Ị nwere ike soro ọganihu ọnụ ugbu a.",
     "challengeInviteNotAccepted": "Enweghị ike ịnakwere oku omume kesara a.",
     "challengeInviteNudgeSent": "E zigara mkpali.",
+    "challengeInviteNudgeNoSubscription": "Push notifications anaghị arụ ọrụ maka {name}.",
+    "challengeInviteNudgeNoCircleSubscription": "Onye ọbụla n'ime okirikiri a enweghị push notifications na-arụ ọrụ.",
     "challengeInviteNudgeFailed": "Enweghị ike iziga mkpali ahụ.",
     "restoringPreferences": "A na-eweghachi mmasị…",
     "finishingSignInBody": "Kwụsị obere oge ka Aletheia gosipụta akaụntụ gị.",

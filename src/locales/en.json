@@ -554,6 +554,8 @@
     "challengeInviteAccepted": "Shared practice invite accepted. You can now track progress together.",
     "challengeInviteNotAccepted": "This shared practice invite could not be accepted.",
     "challengeInviteNudgeSent": "Nudge sent.",
+    "challengeInviteNudgeNoSubscription": "{name} does not have push notifications enabled.",
+    "challengeInviteNudgeNoCircleSubscription": "No one in this circle has push notifications enabled.",
     "challengeInviteNudgeFailed": "The nudge could not be sent.",
     "invited": "invited",
     "local": "local",

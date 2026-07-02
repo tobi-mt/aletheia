@@ -29,6 +29,20 @@ type PushRow = {
   voice_enabled: boolean | null;
 };
 
+type ChallengeCircleNudgeTargetRow = {
+  user_id: string;
+};
+
+type ChallengeCircleNudgePushInput = {
+  circleId: string;
+  challengeId: string;
+  nudgeId: string;
+  senderUserId: string;
+  senderName: string | null;
+  body: string;
+  recipientUserId: string | null;
+};
+
 type DueDecisionReminderRow = {
   id: string;
   user_id: string;
@@ -170,6 +184,47 @@ export function configureWebPush() {
   }
 
   webpush.setVapidDetails(subject, publicKey, privateKey);
+}
+
+const challengeCircleNudgeTitleByLanguage: Partial<Record<LanguageCode, (senderName: string) => string>> = {
+  en: (senderName) => `${senderName} sent a nudge`,
+  de: (senderName) => `${senderName} hat einen Anstoß gesendet`,
+  fr: (senderName) => `${senderName} a envoyé un rappel`,
+  es: (senderName) => `${senderName} envió un ánimo`,
+  pt: (senderName) => `${senderName} enviou um incentivo`,
+  ar: (senderName) => `${senderName} أرسل تشجيعًا`,
+  hi: (senderName) => `${senderName} ने एक प्रोत्साहन भेजा`,
+  tl: (senderName) => `${senderName} ay nagpadala ng himok`,
+  yo: (senderName) => `${senderName} rán ìmúnilọ́kànlẹ́`,
+  ig: (senderName) => `${senderName} zigara mkpali`,
+  ha: (senderName) => `${senderName} ya aika ƙarfafawa`,
+};
+
+function challengeCircleNudgeNotificationTitle(language: LanguageCode, senderName: string) {
+  const normalizedSender = senderName.trim() || "Aletheia";
+  return challengeCircleNudgeTitleByLanguage[language]?.(normalizedSender) ?? `${normalizedSender} sent a nudge`;
+}
+
+function challengeCircleNudgeNotificationPayload(row: PushRow, input: ChallengeCircleNudgePushInput) {
+  const preferences = normalizePreferences({
+    language: row.language as LanguageCode,
+    region: row.region as RegionCode,
+    bibleTranslation: row.bible_translation as BibleTranslation,
+    voiceEnabled: Boolean(row.voice_enabled),
+  });
+
+  return {
+    title: challengeCircleNudgeNotificationTitle(preferences.language, input.senderName ?? ""),
+    body: compactNotificationCopy(input.body, 160),
+    url: `/?source=notification&focus=challenge&challenge=${encodeURIComponent(input.challengeId)}&tab=reflect`,
+    tag: `aletheia-circle-nudge-${input.circleId}-${input.nudgeId}-${row.user_id}`,
+    notificationKind: "challenge_circle_nudge",
+    circleId: input.circleId,
+    challengeId: input.challengeId,
+    nudgeId: input.nudgeId,
+    senderUserId: input.senderUserId,
+    recipientUserId: row.user_id,
+  };
 }
 
 function dailyNotificationPayload(row: PushRow, wisdomEntries: Awaited<ReturnType<typeof getWisdomEntries>>) {
@@ -2121,6 +2176,71 @@ async function sendPushRows(
   }
 
   return { sent, failed, failureSamples };
+}
+
+async function challengeCircleNudgeTargetUserIds(circleId: string, senderUserId: string, recipientUserId: string | null) {
+  if (recipientUserId) {
+    return [recipientUserId];
+  }
+
+  const rows = await many<ChallengeCircleNudgeTargetRow>(
+    `SELECT user_id
+     FROM challenge_circle_members
+     WHERE circle_id = ?
+       AND user_id <> ?`,
+    circleId,
+    senderUserId
+  );
+
+  return rows.map((row) => row.user_id);
+}
+
+export async function sendChallengeCircleNudgeNotifications(input: ChallengeCircleNudgePushInput) {
+  if (!isPushConfigured()) {
+    return {
+      configured: false,
+      attempted: 0,
+      sent: 0,
+      failed: 0,
+      failureSamples: [],
+    };
+  }
+
+  const targetUserIds = await challengeCircleNudgeTargetUserIds(input.circleId, input.senderUserId, input.recipientUserId);
+  if (targetUserIds.length === 0) {
+    return {
+      configured: true,
+      attempted: 0,
+      sent: 0,
+      failed: 0,
+      failureSamples: [],
+    };
+  }
+
+  const rows = await many<PushRow>(
+    `SELECT push_subscriptions.id, push_subscriptions.user_id, endpoint, p256dh, auth, preferred_hour, last_sent_at,
+            preferred_local_hour, preferred_timezone, delivery_strategy, last_gratitude_sent_at,
+            user_preferences.language, user_preferences.region, user_preferences.bible_translation, user_preferences.voice_enabled
+     FROM push_subscriptions
+     LEFT JOIN user_preferences ON user_preferences.user_id = push_subscriptions.user_id
+     WHERE enabled = TRUE
+       AND push_subscriptions.user_id = ANY(?)`,
+    targetUserIds
+  );
+
+  const { sent, failed, failureSamples } = await sendPushRows(
+    rows,
+    (row) => JSON.stringify(challengeCircleNudgeNotificationPayload(row, input)),
+    { lastSentColumn: null }
+  );
+
+  return {
+    configured: true,
+    attempted: rows.length,
+    sent,
+    failed,
+    failureSamples,
+  };
 }
 
 async function findDueDecisionReminders() {

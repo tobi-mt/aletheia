@@ -471,6 +471,8 @@
     "challengeInviteAccepted": "Invitación de práctica compartida aceptada. Ahora pueden seguir el progreso juntos.",
     "challengeInviteNotAccepted": "No se pudo aceptar esta invitación de práctica compartida.",
     "challengeInviteNudgeSent": "Ánimo enviado.",
+    "challengeInviteNudgeNoSubscription": "{name} no tiene notificaciones push activadas.",
+    "challengeInviteNudgeNoCircleSubscription": "Nadie en este círculo tiene notificaciones push activadas.",
     "challengeInviteNudgeFailed": "No se pudo enviar el ánimo.",
     "restoringPreferences": "Restaurando preferencias…",
     "finishingSignInBody": "Un momento mientras Aletheia abre tu cuenta.",

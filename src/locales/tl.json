@@ -471,6 +471,8 @@
     "challengeInviteAccepted": "Tinanggap ang imbitasyon sa pinagsasaluhang pagsasanay. Maaari ninyong subaybayan ang progreso nang magkasama.",
     "challengeInviteNotAccepted": "Hindi matanggap ang imbitasyon sa pinagsasaluhang pagsasanay na ito.",
     "challengeInviteNudgeSent": "Naipadala ang himok.",
+    "challengeInviteNudgeNoSubscription": "Walang naka-enable na push notifications si {name}.",
+    "challengeInviteNudgeNoCircleSubscription": "Walang may naka-enable na push notifications sa bilog na ito.",
     "challengeInviteNudgeFailed": "Hindi maipadala ang himok.",
     "restoringPreferences": "Ibinabalik ang mga kagustuhan…",
     "finishingSignInBody": "Sandali lang habang inilalabas ni Aletheia ang account mo.",
