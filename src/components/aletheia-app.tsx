@@ -12685,26 +12685,26 @@ function scrollTargetBelowTopChrome(target: HTMLElement, behavior: ScrollBehavio
         ts={ts}
       />
 
-      <nav ref={topNavRef} className="app-top-nav fixed inset-x-0 z-50 border-b px-3 pb-3 backdrop-blur-2xl sm:px-4" style={{ borderColor: theme.bgNavBorder, backgroundColor: resolvedTheme === "black"
-        ? "rgba(7, 10, 8, 0.28)"
+      <nav ref={topNavRef} className="app-top-nav fixed inset-x-0 z-50 border-b px-3 pb-3 backdrop-blur-xl sm:px-4" style={{ borderColor: theme.bgNavBorder, backgroundColor: resolvedTheme === "black"
+        ? "rgba(7, 10, 8, 0.18)"
         : resolvedTheme === "dark"
-          ? "rgba(14, 21, 20, 0.24)"
+          ? "rgba(14, 21, 20, 0.16)"
           : resolvedTheme === "warm"
-            ? "rgba(250, 246, 241, 0.28)"
+            ? "rgba(250, 246, 241, 0.18)"
             : resolvedTheme === "ocean"
-              ? "rgba(241, 246, 250, 0.28)"
+              ? "rgba(241, 246, 250, 0.18)"
               : resolvedTheme === "forest"
-                ? "rgba(241, 246, 241, 0.28)"
+                ? "rgba(241, 246, 241, 0.18)"
                 : resolvedTheme === "sunset"
-                  ? "rgba(250, 241, 246, 0.28)"
-                  : "rgba(238, 242, 239, 0.28)", top: 0 }}>
+                  ? "rgba(250, 241, 246, 0.18)"
+                  : "rgba(238, 242, 239, 0.18)", top: 0 }}>
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3">
           <button
             className="app-brand-button flex min-w-0 items-center gap-2.5 text-left"
             onClick={() => showView("companion")}
             aria-label={ts('labels.goToAletheiaHome')}
           >
-            <div className="app-brand-logo relative size-10 shrink-0 overflow-hidden rounded-xl border shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
+            <div className="app-brand-logo relative size-10 shrink-0 overflow-hidden rounded-xl border" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
               <Image
                 src="/brand/aletheia-app-icon-192.png"
                 alt=""
@@ -12720,7 +12720,7 @@ function scrollTargetBelowTopChrome(target: HTMLElement, behavior: ScrollBehavio
             </div>
           </button>
 
-          <div className="editorial-surface hidden items-center gap-1 rounded-full border p-1 shadow-sm md:flex" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+          <div className="editorial-surface hidden items-center gap-1 rounded-full border p-1 md:flex" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
             <NavButton active={activeView === "companion"} icon={Home} label={ui.nav.companion} onClick={() => showView("companion")} theme={theme} />
             <NavButton active={activeView === "decisions"} icon={FileText} label={ui.nav.decisions} onClick={() => showView("decisions")} theme={theme} />
             <NavButton active={activeView === "reflect"} icon={Feather} label={ui.nav.reflect} onClick={() => showView("reflect")} theme={theme} />
@@ -12736,7 +12736,7 @@ function scrollTargetBelowTopChrome(target: HTMLElement, behavior: ScrollBehavio
               </span>
             ) : null}
             <label
-              className="app-chrome-control premium-tap-card relative grid h-[46px] w-[46px] shrink-0 place-items-center overflow-hidden rounded-full border shadow-sm transition"
+              className="app-chrome-control premium-tap-card relative grid h-[46px] w-[46px] shrink-0 place-items-center overflow-hidden rounded-full border transition"
               style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textPrimary }}
               title={`${ui.languageSelect}: ${languages[preferences.language].nativeName}`}
               suppressHydrationWarning
@@ -12757,7 +12757,7 @@ function scrollTargetBelowTopChrome(target: HTMLElement, behavior: ScrollBehavio
               </select>
             </label>
             <label
-              className="app-chrome-control premium-tap-card relative grid h-[46px] w-[46px] shrink-0 place-items-center overflow-hidden rounded-full border shadow-sm transition"
+              className="app-chrome-control premium-tap-card relative grid h-[46px] w-[46px] shrink-0 place-items-center overflow-hidden rounded-full border transition"
               style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textPrimary }}
               title={`${ui.bibleSelect}: ${preferences.bibleTranslation}`}
               suppressHydrationWarning
@@ -12782,12 +12782,12 @@ function scrollTargetBelowTopChrome(target: HTMLElement, behavior: ScrollBehavio
               </select>
             </label>
             <button
-              className="app-chrome-control premium-tap-card relative grid h-[46px] w-[46px] place-items-center overflow-hidden rounded-full border shadow-sm transition"
+              className="app-chrome-control premium-tap-card relative grid h-[46px] w-[46px] place-items-center overflow-hidden rounded-full border transition"
               style={{
                 borderColor: theme.accentLight,
                 background: `linear-gradient(145deg, ${theme.primary} 0%, color-mix(in srgb, ${theme.primary} 76%, ${theme.accentLight}) 100%)`,
                 color: theme.primaryText,
-                boxShadow: `0 12px 26px color-mix(in srgb, ${theme.primary} 24%, transparent), inset 0 1px 0 rgba(255,255,255,0.16)`,
+                boxShadow: `0 8px 18px color-mix(in srgb, ${theme.primary} 16%, transparent), inset 0 1px 0 rgba(255,255,255,0.1)`,
               }}
               aria-label={ui.askTitle}
               title={ui.askTitle}
@@ -13154,7 +13154,7 @@ function scrollTargetBelowTopChrome(target: HTMLElement, behavior: ScrollBehavio
       />
       ) : null}
 
-      <div ref={bottomNavRef} className="app-bottom-nav fixed left-1/2 z-40 -translate-x-1/2 overflow-hidden border shadow-[0_18px_48px_rgba(7,10,8,0.26)] md:hidden" style={{
+      <div ref={bottomNavRef} className="app-bottom-nav fixed left-1/2 z-40 -translate-x-1/2 overflow-hidden border shadow-[0_10px_24px_rgba(7,10,8,0.14)] backdrop-blur-xl md:hidden" style={{
         borderColor: theme.bgNavBorder,
         backgroundColor: (() => {
           // Get accent color for current view for ambient blending
@@ -13165,18 +13165,18 @@ function scrollTargetBelowTopChrome(target: HTMLElement, behavior: ScrollBehavio
           else if (activeView === "account") viewAccent = "#6f6a78";
           // Blend view accent into nav background at 8% for subtle ambient effect
           const baseBg = resolvedTheme === "black"
-            ? "rgba(7, 10, 8, 0.68)"
+            ? "rgba(7, 10, 8, 0.56)"
             : resolvedTheme === "dark"
-              ? "rgba(14, 21, 20, 0.66)"
+              ? "rgba(14, 21, 20, 0.54)"
               : resolvedTheme === "warm"
-                ? "rgba(250, 246, 241, 0.62)"
+                ? "rgba(250, 246, 241, 0.52)"
                 : resolvedTheme === "ocean"
-                  ? "rgba(241, 246, 250, 0.62)"
+                  ? "rgba(241, 246, 250, 0.52)"
                   : resolvedTheme === "forest"
-                    ? "rgba(241, 246, 241, 0.62)"
+                    ? "rgba(241, 246, 241, 0.52)"
                     : resolvedTheme === "sunset"
-                      ? "rgba(250, 241, 246, 0.62)"
-                      : "rgba(238, 242, 239, 0.62)";
+                      ? "rgba(250, 241, 246, 0.52)"
+                      : "rgba(238, 242, 239, 0.52)";
           return `color-mix(in srgb, ${viewAccent} 8%, ${baseBg})`;
         })(),
         width: "var(--aletheia-bottom-nav-width, min(calc(100vw - 1.5rem), 28rem))",
@@ -13637,11 +13637,12 @@ function MobileNav({
     <button
       type="button"
       onClick={handleClick}
-      className={`flex h-12 min-w-0 flex-col items-center justify-center gap-1 rounded-[1.8rem] px-1 text-[10px] font-semibold sm:text-[11px] transition-all duration-300 ease-out ${
+      className={`flex h-12 min-w-0 flex-col items-center justify-center gap-1 rounded-[1.8rem] border px-1 text-[10px] font-semibold sm:text-[11px] transition-all duration-300 ease-out ${
         active ? "font-bold" : "font-semibold"
       }`}
       style={{
-        backgroundColor: active ? theme.primary : "transparent",
+        borderColor: active ? `color-mix(in srgb, ${theme.primary} 28%, ${theme.borderLight})` : "transparent",
+        backgroundColor: active ? `color-mix(in srgb, ${theme.primary} 88%, ${theme.bgCardElevated} 12%)` : "transparent",
         color: active ? theme.textOnPrimary : theme.textSecondary,
         transform: "scale(1)",
         transitionProperty: "all",
@@ -13817,9 +13818,10 @@ function NavButton({
   return (
     <button
       onClick={onClick}
-      className="premium-tap-card inline-flex h-10 items-center gap-1.5 rounded-full px-3 text-[0.82rem] font-semibold transition"
+      className="premium-tap-card inline-flex h-10 items-center gap-1.5 rounded-full border px-3 text-[0.82rem] font-semibold transition"
       style={{
-        backgroundColor: active ? theme.primary : 'transparent',
+        borderColor: active ? `color-mix(in srgb, ${theme.primary} 30%, ${theme.borderLight})` : "transparent",
+        backgroundColor: active ? `color-mix(in srgb, ${theme.primary} 88%, ${theme.bgCardElevated} 12%)` : 'transparent',
         color: active ? theme.textOnPrimary : theme.textSecondary,
       }}
       onMouseEnter={(e) => !active && (e.currentTarget.style.backgroundColor = theme.hoverBg)}
@@ -15983,7 +15985,7 @@ function DisclosureSection({
   const useCompactClosedState = compactCollapsed && !open;
 
   return (
-    <section id={sectionId} className={`editorial-surface min-w-0 max-w-full overflow-hidden rounded-xl border shadow-sm ${className}`} style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+    <section id={sectionId} className={`editorial-surface min-w-0 max-w-full overflow-hidden rounded-xl border ${className}`} style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
       <button
         type="button"
         aria-expanded={open}
@@ -16229,7 +16231,7 @@ function AccountPanel({
 
   return (
     <div className="mx-auto grid min-w-0 max-w-5xl gap-4">
-      <section className="overflow-hidden rounded-[1.35rem] border shadow-[0_8px_24px_rgba(15,23,42,0.05)]" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
+      <section className="overflow-hidden rounded-[1.35rem] border" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
         <div className="flex flex-col items-center gap-3.5 p-3.5 text-center sm:p-4">
           <div className="grid place-items-center">
             <div
@@ -16669,7 +16671,7 @@ function AccountSettingRow({
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="relative editorial-surface premium-tap-card rounded-[1rem] border p-1.5 shadow-[0_4px_10px_rgba(7,10,8,0.04)] sm:p-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+    <div className="relative editorial-surface premium-tap-card rounded-[1rem] border p-1.5 sm:p-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
@@ -16811,7 +16813,7 @@ function AccountShareCard({
 
   return (
     <section className="space-y-4">
-      <div className="relative editorial-surface rounded-[1rem] border p-3.5 shadow-[0_4px_10px_rgba(7,10,8,0.04)] sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+      <div className="relative editorial-surface rounded-[1rem] border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
         <div className="flex items-start gap-2.5">
           <div className="grid size-8 shrink-0 place-items-center rounded-md" style={{ backgroundColor: theme.bgInput, color: theme.primary }}>
             <Share2 size={18} />
@@ -16866,7 +16868,7 @@ function SupportMissionCard({
 
   return (
     <section className="space-y-4">
-      <div className="relative editorial-surface overflow-hidden rounded-[1.35rem] border shadow-[0_6px_16px_rgba(7,10,8,0.05)]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+      <div className="relative editorial-surface overflow-hidden rounded-[1.35rem] border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
         <div className="p-3.5 sm:p-4">
           <div className="flex items-start gap-3">
             <div className="grid size-10 shrink-0 place-items-center rounded-lg border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
@@ -17076,9 +17078,6 @@ function FormationsSection({
     if (pendingChallengeId) {
       queueMicrotask(() => {
         onClearPendingChallenge();
-        window.requestAnimationFrame(() => {
-          sectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-        });
       });
     }
   }, [pendingChallengeId, onClearPendingChallenge]);
@@ -17867,15 +17866,6 @@ function FormationRailSection({
       ? Math.min(selectedChallengeCompletedDays.length, selectedChallenge.totalDays)
       : nextDayFor(selectedChallenge)
     : 1;
-
-  useEffect(() => {
-    if (!selectedChallenge || inviteEditorChallengeId || inviteViewerChallengeId) {
-      return;
-    }
-    window.requestAnimationFrame(() => {
-      selectedChallengeDetailRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
-  }, [inviteEditorChallengeId, inviteViewerChallengeId, selectedChallenge?.id]);
 
   function updateReadWithMeInviteDraft(patch: Partial<ReadWithMeInviteDetails>) {
     setReadWithMeInviteDraft((current) => ({ ...current, ...patch }));
@@ -19046,7 +19036,7 @@ function FormationRailSection({
 
           {selectedChallenge ? (
             <div className="grid gap-4 xl:grid-cols-[minmax(0,1.16fr)_minmax(300px,0.84fr)]">
-              <article ref={selectedChallengeDetailRef} className="overflow-hidden rounded-[1.55rem] border shadow-[0_12px_28px_rgba(15,23,42,0.06)]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+              <article ref={selectedChallengeDetailRef} className="overflow-hidden rounded-[1.55rem] border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
                 <div className="relative border-b p-4 sm:p-5" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
                   <h3 className="text-xl font-semibold sm:text-[1.7rem]" style={{ color: theme.textPrimary }}>
                     {ts(selectedChallenge.titleKey, selectedChallenge.title)}
@@ -19068,59 +19058,22 @@ function FormationRailSection({
                     ) : null}
                   </div>
                   {readWithMeInviteDetails?.bookTitle ? (
-                    <div className="mt-4 rounded-[1.1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
-                        {ts("challenges.readWithMeInviteTitle")}
-                      </p>
-                      <p className="mt-1.5 text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>
-                        {readWithMeInviteDetails.bookTitle}
-                      </p>
-                      {readWithMeInviteDetails.author ? (
-                        <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>
-                          {readWithMeInviteDetails.author}
-                        </p>
-                      ) : null}
-                      <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
-                        {[readWithMeDurationLabel, readWithMeStartDate, readWithMeInviteDetails.recipients.length ? `${readWithMeInviteDetails.recipients.length} ${ts("labels.invited")}` : ""]
-                          .filter(Boolean)
-                          .join(" · ")}
-                      </p>
-                      {readWithMeInviteDetails.cadence ? (
-                        <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
-                          {readWithMeInviteDetails.cadence}
-                        </p>
-                      ) : null}
-                      {readWithMeInviteDetails.focus ? (
-                        <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
-                          {readWithMeInviteDetails.focus}
-                        </p>
-                      ) : null}
-                      {readWithMeInviteDetails.note ? (
-                        <p className="mt-2 text-sm leading-6 italic" style={{ color: theme.textSecondary }}>
-                          {readWithMeInviteDetails.note}
-                        </p>
-                      ) : null}
-                    </div>
+                    <p className="mt-4 text-sm leading-6 text-balance" style={{ color: theme.textSecondary }}>
+                      {readWithMeInviteDetails.bookTitle}
+                      {readWithMeDurationLabel ? ` · ${readWithMeDurationLabel}` : ""}
+                      {readWithMeStartDate ? ` · ${readWithMeStartDate}` : ""}
+                    </p>
                   ) : fastingInviteDetails ? (
-                    <div className="mt-4 rounded-[1.1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
-                        {ts("challenges.fastingCustom.previewTitle")}
-                      </p>
-                      <p className="mt-1.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
-                        {ts("challenges.fastingCustom.previewBody")}
-                      </p>
-                      <p className="mt-2 text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>
-                        {[fastingDurationLabel, fastingStartDate].filter(Boolean).join(" · ") || ts("labels.duration")}
-                      </p>
-                      <p className="mt-1.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
-                        {[fastingInviteDetails?.goal ?? "", fastingInviteDetails?.note ?? ""].filter(Boolean).join(" · ")}
-                      </p>
-                    </div>
+                    <p className="mt-4 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                      {ts("challenges.fastingCustom.previewBody")}
+                      {fastingDurationLabel ? ` · ${fastingDurationLabel}` : ""}
+                      {fastingStartDate ? ` · ${fastingStartDate}` : ""}
+                    </p>
                   ) : null}
                 </div>
 
                 <div className="space-y-4 p-4 sm:p-5">
-                  <section className="rounded-[1.35rem] border p-4 shadow-[0_8px_20px_rgba(7,10,8,0.04)]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                  <section className="rounded-[1.35rem] border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
                     <p className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
                       {ts("labels.currentlyActiveMode")}
                     </p>
@@ -19202,7 +19155,7 @@ function FormationRailSection({
                             style={{
                               borderColor: isFocused ? theme.primary : theme.borderLight,
                               backgroundColor: isFocused && !isLocked ? theme.bgCardElevated : theme.bgCard,
-                              boxShadow: isFocused ? `0 0 0 1px ${theme.primary}` : "0 6px 14px rgba(7, 10, 8, 0.04)",
+                              boxShadow: isFocused ? `0 0 0 1px ${theme.primary}` : "none",
                               opacity: isLocked ? 0.45 : 1,
                               filter: isLocked ? "grayscale(0.55) saturate(0.7)" : "none",
                               transform: isLocked ? "translateY(0)" : undefined,
@@ -19272,7 +19225,7 @@ function FormationRailSection({
               </article>
 
               <aside className="space-y-3">
-                <div className="overflow-hidden rounded-[1.45rem] border shadow-[0_10px_24px_rgba(7,10,8,0.06)]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                <div className="overflow-hidden rounded-[1.45rem] border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
                   <div className="border-b px-4 py-4" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
@@ -19285,21 +19238,11 @@ function FormationRailSection({
                       </div>
                     </div>
                     {selectedCircleInviteDetails?.bookTitle ? (
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        <span className="rounded-full border px-2.5 py-1 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}>
-                          {selectedCircleInviteDetails.bookTitle}
-                        </span>
-                        {readWithMeDurationLabel ? (
-                          <span className="rounded-full border px-2.5 py-1 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-                            {readWithMeDurationLabel}
-                          </span>
-                        ) : null}
-                        {selectedCircleInviteDetails.startDate ? (
-                          <span className="rounded-full border px-2.5 py-1 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-                            {readWithMeStartDate || selectedCircleInviteDetails.startDate}
-                          </span>
-                        ) : null}
-                      </div>
+                      <p className="mt-3 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                        {selectedCircleInviteDetails.bookTitle}
+                        {readWithMeDurationLabel ? ` · ${readWithMeDurationLabel}` : ""}
+                        {readWithMeStartDate ? ` · ${readWithMeStartDate}` : ""}
+                      </p>
                     ) : null}
                     <p className="mt-3 text-sm leading-6" style={{ color: theme.textSecondary }}>
                       {selectedCircle ? ts("challenges.communitySummaryBody") : ts("challenges.inviteFriendsBody")}
@@ -19963,8 +19906,8 @@ const ChallengeNudgePanel = memo(function ChallengeNudgePanel({
     : ts("challenges.nudgeRecipientEveryone");
 
   return (
-    <div className="rounded-[1.1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-      <div className="flex items-center justify-between gap-2">
+    <div className="rounded-[1.1rem] border p-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+      <div className="flex items-start justify-between gap-3">
         <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
           {ts("challenges.nudges")}
         </p>
@@ -19974,7 +19917,7 @@ const ChallengeNudgePanel = memo(function ChallengeNudgePanel({
       </div>
       {selectedCircleHasCurrentMember ? (
         <form
-          className="mt-3 grid gap-2 rounded-[1rem] border p-3"
+          className="mt-3.5 grid gap-3 rounded-[1rem] border p-3.5"
           style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}
           onSubmit={handleSubmit}
         >
@@ -19982,7 +19925,7 @@ const ChallengeNudgePanel = memo(function ChallengeNudgePanel({
             {ts("challenges.sendNudge")}
           </p>
           <div className="grid gap-2">
-            <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <div className="flex flex-wrap items-baseline justify-between gap-3">
               <p className="text-[11px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
                 {ts("challenges.nudgeRecipientLabel")}
               </p>
@@ -19997,18 +19940,18 @@ const ChallengeNudgePanel = memo(function ChallengeNudgePanel({
               <button
                 type="button"
                 onClick={() => onSharedCircleNudgeRecipientChange(null)}
-                className="inline-flex min-h-14 min-w-[9.5rem] snap-start items-center gap-3 rounded-[1.1rem] border px-3.5 py-2 text-left text-sm font-semibold transition"
+                className="inline-flex min-h-14 min-w-[10rem] snap-start items-center gap-3 rounded-[1.1rem] border px-3.5 py-2 text-left text-sm font-semibold transition"
                 style={{
                   borderColor: sharedCircleNudgeRecipientId === null ? theme.primary : theme.borderMedium,
                   backgroundColor: sharedCircleNudgeRecipientId === null ? theme.primary : theme.bgInput,
                   color: sharedCircleNudgeRecipientId === null ? theme.textOnPrimary : theme.textPrimary,
                 }}
               >
-                <span className="grid size-8 shrink-0 place-items-center rounded-full border text-xs font-bold" style={{ borderColor: sharedCircleNudgeRecipientId === null ? "rgba(255,255,255,0.26)" : theme.borderMedium, backgroundColor: sharedCircleNudgeRecipientId === null ? "rgba(255,255,255,0.16)" : theme.bgCard, color: sharedCircleNudgeRecipientId === null ? theme.textOnPrimary : theme.primary }}>
-                  {ts("labels.sharedPlan")}
+                <span className="grid size-8 shrink-0 place-items-center rounded-full border" style={{ borderColor: sharedCircleNudgeRecipientId === null ? "rgba(255,255,255,0.26)" : theme.borderMedium, backgroundColor: sharedCircleNudgeRecipientId === null ? "rgba(255,255,255,0.16)" : theme.bgCard, color: sharedCircleNudgeRecipientId === null ? theme.textOnPrimary : theme.primary }}>
+                  <Users size={13} />
                 </span>
                 <span className="min-w-0">
-                  <span className="block truncate">{ts("challenges.nudgeRecipientEveryone")}</span>
+                  <span className="block text-sm font-semibold leading-5">{ts("challenges.nudgeRecipientEveryone")}</span>
                   <span className="mt-0.5 block text-[10px] font-medium uppercase tracking-[0.08em]" style={{ color: sharedCircleNudgeRecipientId === null ? theme.textOnPrimary : theme.textMuted }}>
                     {ts("challenges.nudgeRecipientCircleHint")}
                   </span>
@@ -20046,14 +19989,14 @@ const ChallengeNudgePanel = memo(function ChallengeNudgePanel({
           <textarea
             value={sharedCircleNudgeDraft}
             onChange={(event) => onSharedCircleNudgeDraftChange(event.target.value)}
-            className="min-h-20 resize-none rounded-[0.9rem] border px-3 py-2 text-sm leading-6 outline-none"
+            className="min-h-24 resize-none rounded-[0.9rem] border px-3 py-2.5 text-sm leading-6 outline-none"
             style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
             placeholder={ts("challenges.nudgePlaceholder")}
           />
           <p className="text-[11px] leading-5" style={{ color: theme.textMuted }}>
             {ts("challenges.circleNudgeBody")}
           </p>
-          <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-[11px] leading-5" style={{ color: theme.textMuted }}>
               {sharedCircleNudgeStatus || ts("challenges.noNudgesYet")}
             </p>
@@ -20068,7 +20011,7 @@ const ChallengeNudgePanel = memo(function ChallengeNudgePanel({
           </div>
         </form>
       ) : null}
-      <div className="mt-3 space-y-2">
+      <div className="mt-4 space-y-2.5">
         {nudges.length ? (
           nudges.slice(0, 3).map((nudge) => (
             <div key={nudge.id} className="rounded-[1rem] border p-3 text-sm leading-6" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
@@ -20132,14 +20075,6 @@ const ChallengeSharedProgressPanel = memo(function ChallengeSharedProgressPanel(
         <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
           {ts("challenges.sharedProgress")}
         </p>
-        {inviteOwner ? (
-          <span className="rounded-full border px-2 py-[3px] text-[9px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-            {ts("challenges.initiatedBy")}{" "}
-            <span className="normal-case tracking-normal">
-              {inviteOwner.name ?? ts("labels.counselContact")}
-            </span>
-          </span>
-        ) : null}
       </div>
       <div className="mt-3 flex flex-wrap gap-2">
         {members.map((member) => (
@@ -22358,7 +22293,7 @@ function AccountStatusCard({
       : notificationStatus;
 
   return (
-      <section className="overflow-hidden rounded-[1.35rem] border shadow-[0_8px_24px_rgba(15,23,42,0.05)]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
+      <section className="overflow-hidden rounded-[1.35rem] border" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
       <div className="border-b px-3.5 py-3.5 sm:px-4" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
         <div className="flex flex-col gap-3.5 md:flex-row md:items-start md:justify-between">
           <div className="min-w-0">
@@ -22825,7 +22760,7 @@ function AuthPanel({
           : ts('auth.guest');
 
   return (
-    <section className="mb-5 overflow-hidden rounded-[1.35rem] border shadow-[0_6px_16px_rgba(7,10,8,0.05)]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+    <section className="mb-5 overflow-hidden rounded-[1.35rem] border" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
       <div className="border-b px-3.5 py-3.5 sm:px-4" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
         <div className="flex flex-wrap items-center justify-between gap-2">
           <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.accountTab')}</p>
@@ -23064,7 +22999,7 @@ function NotificationPanel({
   ];
 
   return (
-    <section className="mb-5 rounded-[1.35rem] border p-3.5 shadow-[0_6px_16px_rgba(7,10,8,0.05)]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+    <section className="mb-5 rounded-[1.35rem] border p-3.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
       {!signedIn ? (
         <div className="mb-3 rounded-[1rem] border p-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
           <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
@@ -28901,7 +28836,7 @@ function ReflectPanel({
               ))}
           </section>
 
-          <section className="rounded-[1.45rem] border p-3.5 shadow-[0_10px_28px_rgba(15,23,42,0.06)] sm:p-4" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
+          <section className="rounded-[1.45rem] border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
             <div className="max-w-2xl">
               <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>{ts('nav.reflect')}</p>
               <h2 className="mt-1.5 text-[1.33rem] font-semibold leading-[1.02] text-balance sm:text-[1.72rem]" style={{ color: theme.textPrimary }}>
@@ -29940,13 +29875,13 @@ function LibraryPanel({
       ) : null}
 
       {librarySection === "bible" ? (
-        <section className="min-w-0 rounded-xl border p-3.5 shadow-sm sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+        <section className="min-w-0 rounded-xl border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
           <BibleReader preferences={preferences} theme={theme} onSaveStudyAction={onSaveStudyActionAsRule} />
         </section>
       ) : null}
 
       {librarySection === "explore" ? (
-        <section className="min-w-0 rounded-xl border p-3.5 shadow-sm sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+        <section className="min-w-0 rounded-xl border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="min-w-0">
               <div className="flex flex-wrap items-start gap-2 text-lg font-semibold" style={{ color: theme.textPrimary }}>
@@ -30121,7 +30056,7 @@ function JournalPanel({
   return (
     <div className="min-w-0 space-y-4">
       <div className="grid gap-4">
-        <div className="rounded-[1.35rem] border p-3.5 shadow-[0_8px_20px_rgba(7,10,8,0.05)]" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
+        <div className="rounded-[1.35rem] border p-3.5" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
             {ts('labels.writeReflection')}
           </p>
@@ -30162,7 +30097,7 @@ function JournalPanel({
           </div>
         </div>
 
-        <div className="rounded-[1.35rem] border p-3.5 shadow-sm sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+        <div className="rounded-[1.35rem] border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
