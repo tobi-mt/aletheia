@@ -216,7 +216,7 @@ function challengeCircleNudgeNotificationPayload(row: PushRow, input: ChallengeC
   return {
     title: challengeCircleNudgeNotificationTitle(preferences.language, input.senderName ?? ""),
     body: compactNotificationCopy(input.body, 160),
-    url: `/?source=notification&focus=challenge&challenge=${encodeURIComponent(input.challengeId)}&tab=reflect`,
+    url: `/?source=notification&focus=challenge&challenge=${encodeURIComponent(input.challengeId)}&tab=reflect&section=nudges`,
     tag: `aletheia-circle-nudge-${input.circleId}-${input.nudgeId}-${row.user_id}`,
     notificationKind: "challenge_circle_nudge",
     circleId: input.circleId,
@@ -2810,7 +2810,7 @@ export async function sendChallengeReminders(now = new Date()): Promise<{
     const payload = JSON.stringify({
       title,
       body,
-      url: `/?source=notification&focus=challenge&challenge=${encodeURIComponent(challengeId)}&tab=reflect`,
+      url: `/?source=notification&focus=challenge&challenge=${encodeURIComponent(challengeId)}&tab=reflect&section=nudges`,
     });
 
     for (const pushRow of userRows) {

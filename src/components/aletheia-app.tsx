@@ -7465,6 +7465,7 @@ export function AletheiaApp() {
   const [pendingGratitudeNotificationFocus, setPendingGratitudeNotificationFocus] = useState(false);
   const [pendingDecisionNotificationFocus, setPendingDecisionNotificationFocus] = useState<string | null>(null);
   const [pendingChallengeId, setPendingChallengeId] = useState<string | null>(null);
+  const [pendingChallengeFocus, setPendingChallengeFocus] = useState<"nudges" | null>(null);
   const appOpenedAtRef = useRef<number>(Date.now());
   const guestQuestionCountRef = useRef(0);
   const authPromptSessionIdRef = useRef<string | null>(null);
@@ -8235,9 +8236,13 @@ export function AletheiaApp() {
         setPendingGratitudeNotificationFocus(true);
       } else if (focus === "challenge") {
         const challengeId = params.get("challenge");
+        const section = params.get("section");
         setActiveView("reflect", "notification_click");
         if (challengeId) {
           setPendingChallengeId(challengeId);
+        }
+        if (section === "nudges") {
+          setPendingChallengeFocus("nudges");
         }
       } else if (focus === "library") {
         setActiveView("library", "notification_click");
@@ -13025,7 +13030,11 @@ function scrollTargetBelowTopChrome(target: HTMLElement, behavior: ScrollBehavio
                         challengeRecommendation={null}
                         onOpenRecommendedChallenge={openRecommendedChallenge}
                         pendingChallengeId={pendingChallengeId}
-                        onClearPendingChallenge={() => setPendingChallengeId(null)}
+                        pendingChallengeFocus={pendingChallengeFocus}
+                        onClearPendingChallenge={() => {
+                          setPendingChallengeId(null);
+                          setPendingChallengeFocus(null);
+                        }}
                         challengeCircleRefreshKey={challengeCircleRefreshKey}
                         onChallengeCircleChanged={refreshChallengeCircles}
                         onChallengeInviteReady={({ inviteUrl, circle }) => {
@@ -17522,6 +17531,7 @@ function FormationRailSection({
   journalEntries,
   wisdomDecisions,
   pendingChallengeId,
+  pendingChallengeFocus,
   onClearPendingChallenge,
   challengeCircleRefreshKey,
   onChallengeCircleChanged,
@@ -17540,6 +17550,7 @@ function FormationRailSection({
   journalEntries: JournalEntry[];
   wisdomDecisions: WisdomDecision[];
   pendingChallengeId: string | null;
+  pendingChallengeFocus: "nudges" | null;
   onClearPendingChallenge: () => void;
   challengeCircleRefreshKey: number;
   onChallengeCircleChanged: () => void;
@@ -17570,21 +17581,21 @@ function FormationRailSection({
   const sectionRef = useRef<HTMLElement | null>(null);
   const selectedChallengeDetailRef = useRef<HTMLElement | null>(null);
   const dayCarouselRef = useRef<HTMLDivElement | null>(null);
+  const nudgePanelRef = useRef<HTMLDivElement | null>(null);
+  const nudgeComposerRef = useRef<HTMLTextAreaElement | null>(null);
+  const pendingChallengeLandingRef = useRef<"formation" | "nudges" | null>(null);
   const dayCardRefs = useRef<Record<number, HTMLElement | null>>({});
 
   useEffect(() => {
     if (pendingChallengeId) {
+      pendingChallengeLandingRef.current = pendingChallengeFocus === "nudges" ? "nudges" : "formation";
       queueMicrotask(() => {
         setSelectedChallengeId(pendingChallengeId);
         setSelectedDayNumber(null);
         setOpenDayDetailDay(null);
-        onClearPendingChallenge();
-        window.requestAnimationFrame(() => {
-          sectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-        });
       });
     }
-  }, [pendingChallengeId, onClearPendingChallenge]);
+  }, [pendingChallengeFocus, pendingChallengeId]);
 
   useEffect(() => {
     import("@/lib/challenge-data").then((mod) => {
@@ -17762,6 +17773,7 @@ function FormationRailSection({
         .filter((circle) => circle.challengeId === selectedChallenge.id)
         .sort((a, b) => Date.parse(b.invite.createdAt) - Date.parse(a.invite.createdAt))[0] ?? null
     : null;
+  const currentUserName = user?.name ?? user?.email ?? ts("labels.counselContact");
   const selectedCircleInviteDetails = selectedCircle?.invite.details ?? null;
   const selectedCircleHasCurrentMember =
     selectedCircle?.members.some((member) => member.userId === user?.id) ||
@@ -17846,6 +17858,29 @@ function FormationRailSection({
         currentTimestampMs
       )
     : null;
+
+  useEffect(() => {
+    const landing = pendingChallengeLandingRef.current;
+    if (!pendingChallengeId || !selectedChallengeId || !selectedCircle || !landing) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      if (landing === "nudges") {
+        nudgePanelRef.current?.scrollIntoView({ behavior: "auto", block: "start" });
+        window.setTimeout(() => {
+          nudgeComposerRef.current?.focus({ preventScroll: true });
+        }, 0);
+      } else {
+        sectionRef.current?.scrollIntoView({ behavior: "auto", block: "start" });
+      }
+
+      pendingChallengeLandingRef.current = null;
+      onClearPendingChallenge();
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, [onClearPendingChallenge, pendingChallengeId, selectedChallengeId, selectedCircle?.id]);
 
   useEffect(() => {
     queueMicrotask(() => setSharedCircleNudgeRecipientId(null));
@@ -19323,6 +19358,10 @@ function FormationRailSection({
                       <ChallengeInviteDetailsPanel
                         theme={theme}
                         ts={ts}
+                        language={language}
+                        currentUserId={user?.id ?? null}
+                        currentUserName={currentUserName}
+                        nudges={selectedCircle.nudges}
                         selectedChallenge={selectedChallenge}
                         selectedCircleInviteDetails={selectedCircleInviteDetails}
                         inviteViewerExpanded={inviteViewerExpanded}
@@ -19352,15 +19391,19 @@ function FormationRailSection({
                       <ChallengeNudgePanel
                         theme={theme}
                         ts={ts}
+                        language={language}
                         nudgeCount={selectedCircle.nudges.length}
                         nudges={selectedCircle.nudges}
                         selectedCircleHasCurrentMember={selectedCircleHasCurrentMember}
                         currentUserId={user?.id ?? null}
+                        currentUserName={currentUserName}
                         members={selectedCircle.members}
+                        panelRef={nudgePanelRef}
                         sharedCircleNudgeDraft={sharedCircleNudgeDraft}
                         sharedCircleNudgeStatus={sharedCircleNudgeStatus}
                         sharedCircleNudgeBusy={sharedCircleNudgeBusy}
                         sharedCircleNudgeRecipientId={sharedCircleNudgeRecipientId}
+                        composerRef={nudgeComposerRef}
                         onSharedCircleNudgeDraftChange={setSharedCircleNudgeDraft}
                         onSharedCircleNudgeRecipientChange={setSharedCircleNudgeRecipientId}
                         onPostSharedCircleNudge={postSharedCircleNudge}
@@ -19709,9 +19752,104 @@ const ChallengeResponseDashboard = memo(function ChallengeResponseDashboard({
   );
 });
 
+function formatNudgeTimestamp(createdAt: string, language: LanguageCode) {
+  const date = new Date(createdAt);
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+  return new Intl.DateTimeFormat(language, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(date);
+}
+
+const ChallengeNudgeThread = memo(function ChallengeNudgeThread({
+  theme,
+  ts,
+  language,
+  nudges,
+  currentUserId,
+  currentUserName,
+  limit = 4,
+  compact = false,
+}: {
+  theme: ThemeColors;
+  ts: (key: string, fallback?: string) => string;
+  language: LanguageCode;
+  nudges: ChallengeCircleNudge[];
+  currentUserId: string | null;
+  currentUserName: string | null;
+  limit?: number;
+  compact?: boolean;
+}) {
+  const thread = [...nudges]
+    .sort((left, right) => Date.parse(left.createdAt) - Date.parse(right.createdAt))
+    .slice(Math.max(0, nudges.length - limit));
+
+  if (thread.length === 0) {
+    return <p className="text-sm leading-6" style={{ color: theme.textMuted }}>{ts("challenges.noNudgesYet")}</p>;
+  }
+
+  return (
+    <div className={compact ? "space-y-2" : "space-y-3"}>
+      {thread.map((nudge) => {
+        const outgoing = nudge.senderUserId === currentUserId;
+        const timeLabel = formatNudgeTimestamp(nudge.createdAt, language);
+        const senderLabel = outgoing ? currentUserName ?? ts("labels.counselContact") : (nudge.senderName ?? ts("labels.counselContact"));
+        const recipientLabel = nudge.recipientName
+          ? ts("challenges.nudgeRecipientPerson").replace("{name}", nudge.recipientName)
+          : ts("challenges.nudgeRecipientEveryone");
+
+        return (
+          <div key={nudge.id} className={`flex ${outgoing ? "justify-end" : "justify-start"}`}>
+            <div className={`flex max-w-[86%] items-end gap-2 ${outgoing ? "flex-row-reverse" : "flex-row"}`}>
+              {!outgoing ? (
+                <AvatarCircle
+                  avatarUrl={nudge.senderAvatarUrl}
+                  seed={nudge.senderUserId}
+                  label={senderLabel}
+                  size={22}
+                  className="mb-0.5 size-[22px] shrink-0"
+                />
+              ) : null}
+              <div className="min-w-0">
+                <div
+                  className="rounded-[1.15rem] border px-3 py-2.5 shadow-[0_1px_0_rgba(0,0,0,0.02)]"
+                  style={{
+                    borderColor: outgoing ? theme.primary : theme.borderLight,
+                    backgroundColor: outgoing ? theme.primary : theme.bgInput,
+                    color: outgoing ? theme.textOnPrimary : theme.textPrimary,
+                  }}
+                >
+                  <p className="text-sm leading-6" style={{ color: outgoing ? theme.textOnPrimary : theme.textPrimary }}>
+                    {nudge.body}
+                  </p>
+                </div>
+                <div className={`mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] uppercase tracking-[0.08em] ${outgoing ? "justify-end" : "justify-start"}`} style={{ color: theme.textMuted }}>
+                  <span className="font-semibold" style={{ color: outgoing ? theme.primary : theme.textPrimary }}>
+                    {senderLabel}
+                  </span>
+                  <span>{timeLabel}</span>
+                  <span>{recipientLabel}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+});
+
 const ChallengeInviteDetailsPanel = memo(function ChallengeInviteDetailsPanel({
   theme,
   ts,
+  language,
+  currentUserId,
+  currentUserName,
+  nudges,
   selectedChallenge,
   selectedCircleInviteDetails,
   inviteViewerExpanded,
@@ -19727,6 +19865,10 @@ const ChallengeInviteDetailsPanel = memo(function ChallengeInviteDetailsPanel({
 }: {
   theme: ThemeColors;
   ts: (key: string, fallback?: string) => string;
+  language: LanguageCode;
+  currentUserId: string | null;
+  currentUserName: string | null;
+  nudges: ChallengeCircleNudge[];
   selectedChallenge: ChallengeWithProgress | null;
   selectedCircleInviteDetails: ReadWithMeInviteDetails | FastingInviteDetails | null;
   inviteViewerExpanded: boolean;
@@ -19762,7 +19904,11 @@ const ChallengeInviteDetailsPanel = memo(function ChallengeInviteDetailsPanel({
       return;
     }
     if (selectedCircleInviteDetails) {
-      inviteViewerExpanded ? onCloseInviteViewer() : onOpenInviteViewer(selectedChallenge);
+      if (inviteViewerExpanded) {
+        onCloseInviteViewer();
+      } else {
+        onOpenInviteViewer(selectedChallenge);
+      }
       return;
     }
     if (isReadWithMeChallenge || isFastingChallenge) {
@@ -19893,6 +20039,18 @@ const ChallengeInviteDetailsPanel = memo(function ChallengeInviteDetailsPanel({
                   ) : null}
                 </div>
               ) : null}
+              {nudges.length ? (
+                <ChallengeNudgeThread
+                  nudges={nudges}
+                  currentUserId={currentUserId}
+                  currentUserName={currentUserName}
+                  language={language}
+                  theme={theme}
+                  ts={ts}
+                  limit={4}
+                  compact
+                />
+              ) : null}
             </div>
           ) : null}
         </div>
@@ -19916,6 +20074,10 @@ const ChallengeInviteDetailsPanel = memo(function ChallengeInviteDetailsPanel({
 }, (prev, next) => (
   prev.theme === next.theme &&
   prev.ts === next.ts &&
+  prev.language === next.language &&
+  prev.currentUserId === next.currentUserId &&
+  prev.currentUserName === next.currentUserName &&
+  prev.nudges === next.nudges &&
   prev.selectedChallenge?.id === next.selectedChallenge?.id &&
   prev.selectedCircleInviteDetails === next.selectedCircleInviteDetails &&
   prev.inviteViewerExpanded === next.inviteViewerExpanded &&
@@ -19929,14 +20091,18 @@ const ChallengeInviteDetailsPanel = memo(function ChallengeInviteDetailsPanel({
 const ChallengeNudgePanel = memo(function ChallengeNudgePanel({
   theme,
   ts,
+  language,
   nudgeCount,
   nudges,
   selectedCircleHasCurrentMember,
   currentUserId,
+  currentUserName,
   sharedCircleNudgeDraft,
   sharedCircleNudgeStatus,
   sharedCircleNudgeBusy,
   sharedCircleNudgeRecipientId,
+  composerRef,
+  panelRef,
   onSharedCircleNudgeDraftChange,
   onSharedCircleNudgeRecipientChange,
   onPostSharedCircleNudge,
@@ -19944,14 +20110,18 @@ const ChallengeNudgePanel = memo(function ChallengeNudgePanel({
 }: {
   theme: ThemeColors;
   ts: (key: string, fallback?: string) => string;
+  language: LanguageCode;
   nudgeCount: number;
   nudges: ChallengeCircleNudge[];
   selectedCircleHasCurrentMember: boolean;
   currentUserId: string | null;
+  currentUserName: string | null;
   sharedCircleNudgeDraft: string;
   sharedCircleNudgeStatus: string;
   sharedCircleNudgeBusy: boolean;
   sharedCircleNudgeRecipientId: string | null;
+  composerRef: RefObject<HTMLTextAreaElement | null>;
+  panelRef: RefObject<HTMLDivElement | null>;
   onSharedCircleNudgeDraftChange: (value: string) => void;
   onSharedCircleNudgeRecipientChange: (value: string | null) => void;
   onPostSharedCircleNudge: () => Promise<void>;
@@ -19971,7 +20141,7 @@ const ChallengeNudgePanel = memo(function ChallengeNudgePanel({
     : ts("challenges.nudgeRecipientEveryone");
 
   return (
-    <div className="rounded-[1.1rem] border p-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+    <div ref={panelRef} className="rounded-[1.1rem] border p-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
       <div className="flex items-start justify-between gap-3">
         <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
           {ts("challenges.nudges")}
@@ -20049,6 +20219,7 @@ const ChallengeNudgePanel = memo(function ChallengeNudgePanel({
             </div>
           </div>
           <textarea
+            ref={composerRef}
             value={sharedCircleNudgeDraft}
             onChange={(event) => onSharedCircleNudgeDraftChange(event.target.value)}
             className="min-h-24 resize-none rounded-[0.9rem] border px-3 py-2.5 text-sm leading-6 outline-none"
@@ -20084,40 +20255,28 @@ const ChallengeNudgePanel = memo(function ChallengeNudgePanel({
           </div>
         </form>
       ) : null}
-      <div className="mt-4 space-y-2.5">
-        {nudges.length ? (
-          nudges.slice(0, 3).map((nudge) => (
-            <div key={nudge.id} className="rounded-[1rem] border p-3 text-sm leading-6" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-              <p style={{ color: theme.textSecondary }}>{nudge.body}</p>
-              <p className="mt-1 text-[11px] uppercase tracking-[0.08em]" style={{ color: theme.textMuted }}>
-                {nudge.senderName ?? ts("labels.counselContact")}
-              </p>
-              <p className="mt-0.5 text-[11px] uppercase tracking-[0.08em]" style={{ color: theme.textMuted }}>
-                {nudge.recipientName
-                  ? ts("challenges.nudgeRecipientPerson").replace("{name}", nudge.recipientName)
-                  : ts("challenges.nudgeRecipientEveryone")}
-              </p>
-            </div>
-          ))
-        ) : selectedCircleHasCurrentMember ? (
-          <p className="text-sm leading-6" style={{ color: theme.textMuted }}>
-            {ts("challenges.noNudgesYet")}
-          </p>
-        ) : (
-          <p className="text-sm leading-6" style={{ color: theme.textMuted }}>
-            {ts("challenges.noNudgesYet")}
-          </p>
-        )}
+      <div className="mt-4">
+        <ChallengeNudgeThread
+          theme={theme}
+          ts={ts}
+          language={language}
+          nudges={nudges}
+          currentUserId={currentUserId}
+          currentUserName={currentUserName}
+          limit={8}
+        />
       </div>
     </div>
   );
 }, (prev, next) => (
   prev.theme === next.theme &&
   prev.ts === next.ts &&
+  prev.language === next.language &&
   prev.nudgeCount === next.nudgeCount &&
   prev.nudges === next.nudges &&
   prev.selectedCircleHasCurrentMember === next.selectedCircleHasCurrentMember &&
   prev.currentUserId === next.currentUserId &&
+  prev.currentUserName === next.currentUserName &&
   prev.members === next.members &&
   prev.sharedCircleNudgeDraft === next.sharedCircleNudgeDraft &&
   prev.sharedCircleNudgeStatus === next.sharedCircleNudgeStatus &&
@@ -28709,6 +28868,7 @@ function ReflectPanel({
   challengeRecommendation,
   onOpenRecommendedChallenge,
   pendingChallengeId,
+  pendingChallengeFocus,
   onClearPendingChallenge,
   challengeCircleRefreshKey,
   onChallengeCircleChanged,
@@ -28753,6 +28913,7 @@ function ReflectPanel({
   challengeRecommendation: ChallengeRecommendationBundle["primary"];
   onOpenRecommendedChallenge: (challengeId: string) => void;
   pendingChallengeId: string | null;
+  pendingChallengeFocus: "nudges" | null;
   onClearPendingChallenge: () => void;
   challengeCircleRefreshKey: number;
   onChallengeCircleChanged: () => void;
@@ -28850,11 +29011,13 @@ function ReflectPanel({
           focusIntentions={focusIntentions}
           messages={messages}
           journalEntries={entries}
-          wisdomDecisions={wisdomDecisions}
-          pendingChallengeId={pendingChallengeId}
-          onClearPendingChallenge={() => {
-            setReflectSection("formation");
-            onClearPendingChallenge();
+                        wisdomDecisions={wisdomDecisions}
+                        pendingChallengeId={pendingChallengeId}
+                        pendingChallengeFocus={pendingChallengeFocus}
+                        onClearPendingChallenge={() => {
+                          setReflectSection("formation");
+                          setPendingChallengeFocus(null);
+                          onClearPendingChallenge();
           }}
           challengeCircleRefreshKey={challengeCircleRefreshKey}
           onChallengeCircleChanged={onChallengeCircleChanged}
