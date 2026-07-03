@@ -475,6 +475,10 @@
     "challengeInviteNudgeSent": "Encouragement envoyé.",
     "challengeInviteNudgeNoSubscription": "{name} n’a pas les notifications push activées.",
     "challengeInviteNudgeNoCircleSubscription": "Personne dans ce cercle n’a les notifications push activées.",
+    "challengeInviteNudgeSentToPushService": "Envoyé au service push.",
+    "challengeInviteNudgeOpened": "Ouvert.",
+    "challengeInviteNudgePartial": "Envoyé partiellement.",
+    "challengeInviteNudgeDisabledPushSubscription": "L’abonnement push est désactivé.",
     "challengeInviteNudgeFailed": "L’encouragement n’a pas pu être envoyé.",
     "restoringPreferences": "Restauration des préférences…",
     "finishingSignInBody": "Encore un instant, Aletheia ouvre votre compte.",
@@ -521,6 +525,9 @@
     "counselShareDelivered": "Livré",
     "counselShareWaitingForAcceptance": "En attente d’acceptation",
     "counselShareNoPushSubscription": "Aucun abonnement push",
+    "counselShareSentToPushService": "Envoyé au service push",
+    "counselShareOpened": "Ouvert",
+    "counselShareDisabledPushSubscription": "Abonnement push désactivé",
     "counselSharePartial": "Partiellement livré",
     "counselShareFailed": "Échec de la remise",
     "counselSharePushFailed": "Échec de la remise push"
@@ -2320,5 +2327,8 @@
   "apiNotConfigured": "Cette fonctionnalité n'est pas encore configurée.",
   "apiInvalidSubscription": "L'abonnement aux notifications n'est pas valide.",
   "responseStreamingNotSupported": "Streaming de réponse non pris en charge.",
-  "loading": "Chargement…"
+  "loading": "Chargement…",
+  "viewThread": "Voir le fil",
+  "thread": "Fil",
+  "threadNoActivity": "Aucune activité dans ce fil pour le moment."
 }

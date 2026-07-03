@@ -475,6 +475,10 @@
     "challengeInviteNudgeSent": "Naipadala ang himok.",
     "challengeInviteNudgeNoSubscription": "Walang naka-enable na push notifications si {name}.",
     "challengeInviteNudgeNoCircleSubscription": "Walang may naka-enable na push notifications sa bilog na ito.",
+    "challengeInviteNudgeSentToPushService": "Naipadala sa push service.",
+    "challengeInviteNudgeOpened": "Binuksan.",
+    "challengeInviteNudgePartial": "Bahagyang naipadala.",
+    "challengeInviteNudgeDisabledPushSubscription": "Naka-disable ang push subscription.",
     "challengeInviteNudgeFailed": "Hindi maipadala ang himok.",
     "restoringPreferences": "Ibinabalik ang mga kagustuhan…",
     "finishingSignInBody": "Sandali lang habang inilalabas ni Aletheia ang account mo.",
@@ -521,6 +525,9 @@
     "counselShareDelivered": "Naihatid",
     "counselShareWaitingForAcceptance": "Naghihintay ng pagtanggap",
     "counselShareNoPushSubscription": "Walang push subscription",
+    "counselShareSentToPushService": "Naipadala sa push service",
+    "counselShareOpened": "Binuksan",
+    "counselShareDisabledPushSubscription": "Naka-disable ang push subscription",
     "counselSharePartial": "Bahagyang naihatid",
     "counselShareFailed": "Nabigo ang paghahatid",
     "counselSharePushFailed": "Nabigo ang push delivery"
@@ -2320,5 +2327,8 @@
   "apiNotConfigured": "Hindi pa naka-configure ang feature na ito.",
   "apiInvalidSubscription": "Di-wasto ang subscription sa notification.",
   "responseStreamingNotSupported": "Hindi suportado ang pag-stream ng tugon.",
-  "loading": "Naglo-load…"
+  "loading": "Naglo-load…",
+  "viewThread": "Tingnan ang thread",
+  "thread": "Thread",
+  "threadNoActivity": "Wala pang aktibidad sa thread na ito."
 }

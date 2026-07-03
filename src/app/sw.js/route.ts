@@ -110,6 +110,14 @@ self.addEventListener("push", (event) => {
       reminderKind: data.reminderKind || null,
       notificationKind: data.notificationKind || null,
       wisdomTheme: data.wisdomTheme || null,
+      notificationId: data.notificationId || null,
+      sharedDecisionId: data.sharedDecisionId || null,
+      contactId: data.contactId || null,
+      circleId: data.circleId || null,
+      challengeId: data.challengeId || null,
+      nudgeId: data.nudgeId || null,
+      senderUserId: data.senderUserId || null,
+      recipientUserId: data.recipientUserId || null,
     },
   };
 
@@ -123,6 +131,20 @@ self.addEventListener("notificationclick", (event) => {
 
   event.waitUntil(
     Promise.allSettled([
+      fetch("/api/notifications/ack", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          notificationKind: event.notification.data?.notificationKind || null,
+          notificationId: event.notification.data?.notificationId || event.notification.data?.sharedDecisionId || event.notification.data?.nudgeId || null,
+          senderUserId: event.notification.data?.senderUserId || null,
+          recipientUserId: event.notification.data?.recipientUserId || null,
+          sharedDecisionId: event.notification.data?.sharedDecisionId || null,
+          contactId: event.notification.data?.contactId || null,
+          circleId: event.notification.data?.circleId || null,
+          challengeId: event.notification.data?.challengeId || null,
+        }),
+      }),
       fetch("/api/analytics/events", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

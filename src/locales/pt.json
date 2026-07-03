@@ -475,6 +475,10 @@
     "challengeInviteNudgeSent": "Incentivo enviado.",
     "challengeInviteNudgeNoSubscription": "{name} não tem notificações por push ativadas.",
     "challengeInviteNudgeNoCircleSubscription": "Ninguém neste círculo tem notificações por push ativadas.",
+    "challengeInviteNudgeSentToPushService": "Enviado ao serviço push.",
+    "challengeInviteNudgeOpened": "Aberto.",
+    "challengeInviteNudgePartial": "Enviado parcialmente.",
+    "challengeInviteNudgeDisabledPushSubscription": "A assinatura push está desativada.",
     "challengeInviteNudgeFailed": "O incentivo não pôde ser enviado.",
     "restoringPreferences": "Restaurando preferências…",
     "finishingSignInBody": "Só um instante enquanto a Aletheia traz sua conta para a tela.",
@@ -521,6 +525,9 @@
     "counselShareDelivered": "Entregue",
     "counselShareWaitingForAcceptance": "Aguardando aceitação",
     "counselShareNoPushSubscription": "Sem assinatura de push",
+    "counselShareSentToPushService": "Enviado ao serviço push",
+    "counselShareOpened": "Aberto",
+    "counselShareDisabledPushSubscription": "Assinatura push desativada",
     "counselSharePartial": "Entregue parcialmente",
     "counselShareFailed": "Falha na entrega",
     "counselSharePushFailed": "Falha na entrega por push"
@@ -2320,5 +2327,8 @@
   "apiNotConfigured": "Este recurso ainda não está configurado.",
   "apiInvalidSubscription": "A assinatura de notificação é inválida.",
   "responseStreamingNotSupported": "Streaming de resposta não suportado.",
-  "loading": "Carregando…"
+  "loading": "Carregando…",
+  "viewThread": "Ver thread",
+  "thread": "Thread",
+  "threadNoActivity": "Ainda não há atividade neste thread."
 }

@@ -475,6 +475,10 @@
     "challengeInviteNudgeSent": "A rán ìmúnilọ́kànlẹ́.",
     "challengeInviteNudgeNoSubscription": "Push notifications kò ṣiṣẹ́ fún {name}.",
     "challengeInviteNudgeNoCircleSubscription": "Kò sí ẹnikẹ́ni nínú yí ká tó ní push notifications ṣiṣẹ́.",
+    "challengeInviteNudgeSentToPushService": "A rán sí iṣẹ́ push.",
+    "challengeInviteNudgeOpened": "A ṣí.",
+    "challengeInviteNudgePartial": "A rán díẹ̀.",
+    "challengeInviteNudgeDisabledPushSubscription": "Ìforúkọsílẹ̀ push ti dáwọ́ dúró.",
     "challengeInviteNudgeFailed": "A kò le rán ìmúnilọ́kànlẹ́ náà.",
     "restoringPreferences": "A ń da àwọn ààyò padà…",
     "finishingSignInBody": "Dákẹ́ díẹ̀, Aletheia ń fi àkọọ́lẹ̀ rẹ hàn.",
@@ -521,6 +525,9 @@
     "counselShareDelivered": "A fi ránṣẹ́",
     "counselShareWaitingForAcceptance": "N dúró de ìtẹwọ́gbà",
     "counselShareNoPushSubscription": "Kò sí ìforúkọsílẹ̀ push",
+    "counselShareSentToPushService": "A rán sí iṣẹ́ push",
+    "counselShareOpened": "A ṣí",
+    "counselShareDisabledPushSubscription": "Ìforúkọsílẹ̀ push ti dáwọ́ dúró",
     "counselSharePartial": "A fi ránṣẹ́ díẹ̀",
     "counselShareFailed": "Ìfiránṣẹ́ kuna",
     "counselSharePushFailed": "Ìfiránṣẹ́ push kuna"
@@ -2320,5 +2327,8 @@
   "apiNotConfigured": "Ẹya yii ko tunto sibẹsibẹ.",
   "apiInvalidSubscription": "Ṣiṣe alabapin iwifunni ko wulo.",
   "responseStreamingNotSupported": "Sisanwọle Idahun ko ni atilẹyin.",
-  "loading": "Nkojọpọ…"
+  "loading": "Nkojọpọ…",
+  "viewThread": "Wo okun",
+  "thread": "Okun",
+  "threadNoActivity": "Ko si iṣẹ ṣiṣe ninu okun yii sibẹsibẹ."
 }

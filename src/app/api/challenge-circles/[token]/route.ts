@@ -59,6 +59,13 @@ type NudgeRow = {
   sender_avatar_url: string | null;
   recipient_user_id: string | null;
   recipient_name: string | null;
+  delivery_status: string | null;
+  delivery_reason: string | null;
+  delivered_count: number | string | null;
+  failed_count: number | string | null;
+  opened_count: number | string | null;
+  attempted_at: string | null;
+  delivered_at: string | null;
 };
 
 const FASTING_CHALLENGE_ID = "fasting-custom";
@@ -136,10 +143,24 @@ async function circleNudges(circleId: string) {
   return many<NudgeRow>(
     `SELECT n.id, n.body, n.created_at, n.sender_user_id, n.recipient_user_id,
             sender_u.name AS sender_name, sender_u.avatar_url AS sender_avatar_url,
-            recipient_u.name AS recipient_name
+            recipient_u.name AS recipient_name,
+            delivery.status AS delivery_status,
+            delivery.status_reason AS delivery_reason,
+            delivery.delivered_count,
+            delivery.failed_count,
+            COALESCE(receipts.opened_count, 0) AS opened_count,
+            delivery.attempted_at,
+            delivery.delivered_at
      FROM challenge_circle_nudges n
      JOIN users sender_u ON sender_u.id = n.sender_user_id
      LEFT JOIN users recipient_u ON recipient_u.id = n.recipient_user_id
+     LEFT JOIN challenge_circle_nudge_deliveries delivery ON delivery.nudge_id = n.id
+     LEFT JOIN (
+       SELECT notification_id, COUNT(*)::int AS opened_count
+       FROM notification_delivery_receipts
+       WHERE notification_kind = 'challenge_circle_nudge'
+       GROUP BY notification_id
+     ) receipts ON receipts.notification_id = n.id
      WHERE n.circle_id = ?
      ORDER BY n.created_at DESC
      LIMIT 12`,
@@ -220,6 +241,16 @@ async function formatCircle(circle: CircleRow, viewerUserId?: string) {
       senderAvatarUrl: nudge.sender_avatar_url,
       recipientUserId: nudge.recipient_user_id,
       recipientName: nudge.recipient_name,
+      deliveryStatus:
+        Number(nudge.opened_count ?? 0) > 0
+          ? "opened"
+          : nudge.delivery_status ?? "sent_to_push_service",
+      deliveryReason: nudge.delivery_reason,
+      deliveredCount: Number(nudge.delivered_count ?? 0),
+      failedCount: Number(nudge.failed_count ?? 0),
+      openedCount: Number(nudge.opened_count ?? 0),
+      attemptedAt: nudge.attempted_at,
+      deliveredAt: nudge.delivered_at,
     })),
   };
 }

@@ -475,6 +475,10 @@
     "challengeInviteNudgeSent": "E zigara mkpali.",
     "challengeInviteNudgeNoSubscription": "Push notifications anaghị arụ ọrụ maka {name}.",
     "challengeInviteNudgeNoCircleSubscription": "Onye ọbụla n'ime okirikiri a enweghị push notifications na-arụ ọrụ.",
+    "challengeInviteNudgeSentToPushService": "E zigara na ọrụ push.",
+    "challengeInviteNudgeOpened": "Meghere.",
+    "challengeInviteNudgePartial": "E zigara akụkụ ụfọdụ.",
+    "challengeInviteNudgeDisabledPushSubscription": "A kwụsịrị push subscription.",
     "challengeInviteNudgeFailed": "Enweghị ike iziga mkpali ahụ.",
     "restoringPreferences": "A na-eweghachi mmasị…",
     "finishingSignInBody": "Kwụsị obere oge ka Aletheia gosipụta akaụntụ gị.",
@@ -521,6 +525,9 @@
     "counselShareDelivered": "Ezigara",
     "counselShareWaitingForAcceptance": "Na-eche nnabata",
     "counselShareNoPushSubscription": "Enweghị push subscription",
+    "counselShareSentToPushService": "E zigara na ọrụ push",
+    "counselShareOpened": "Meghere",
+    "counselShareDisabledPushSubscription": "A kwụsịrị push subscription",
     "counselSharePartial": "Ezigara akụkụ ụfọdụ",
     "counselShareFailed": "Mbupu dara",
     "counselSharePushFailed": "Push delivery dara"
@@ -2320,5 +2327,8 @@
   "apiNotConfigured": "Ahazibeghị atụmatụ a.",
   "apiInvalidSubscription": "Ndebanye aha ngosi ezighi ezi.",
   "responseStreamingNotSupported": "Akwadoghi nkwanye nzaghachi.",
-  "loading": "Na-ebugo…"
+  "loading": "Na-ebugo…",
+  "viewThread": "Lee eriri",
+  "thread": "Eriri",
+  "threadNoActivity": "Enwebeghi ọrụ n'ime eriri a ugbu a."
 }

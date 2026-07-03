@@ -348,6 +348,41 @@ async function initializeDatabase() {
       UNIQUE(shared_decision_id)
     );
 
+    CREATE TABLE IF NOT EXISTS challenge_circle_nudge_deliveries (
+      id TEXT PRIMARY KEY,
+      nudge_id TEXT NOT NULL REFERENCES challenge_circle_nudges(id) ON DELETE CASCADE,
+      circle_id TEXT NOT NULL REFERENCES challenge_circles(id) ON DELETE CASCADE,
+      challenge_id TEXT NOT NULL,
+      sender_user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      recipient_user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+      status TEXT NOT NULL,
+      status_reason TEXT,
+      accepted_recipient_count INTEGER NOT NULL DEFAULT 0,
+      push_subscription_count INTEGER NOT NULL DEFAULT 0,
+      delivered_count INTEGER NOT NULL DEFAULT 0,
+      failed_count INTEGER NOT NULL DEFAULT 0,
+      attempted_at TIMESTAMPTZ,
+      delivered_at TIMESTAMPTZ,
+      created_at TIMESTAMPTZ NOT NULL,
+      updated_at TIMESTAMPTZ NOT NULL,
+      UNIQUE(nudge_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS notification_delivery_receipts (
+      id TEXT PRIMARY KEY,
+      notification_kind TEXT NOT NULL,
+      notification_id TEXT NOT NULL,
+      sender_user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      recipient_user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      circle_id TEXT REFERENCES challenge_circles(id) ON DELETE CASCADE,
+      contact_id TEXT REFERENCES counsel_contacts(id) ON DELETE CASCADE,
+      challenge_id TEXT,
+      opened_at TIMESTAMPTZ NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL,
+      updated_at TIMESTAMPTZ NOT NULL,
+      UNIQUE(notification_kind, notification_id, recipient_user_id)
+    );
+
     CREATE TABLE IF NOT EXISTS counsel_comments (
       id TEXT PRIMARY KEY,
       contact_id TEXT NOT NULL REFERENCES counsel_contacts(id) ON DELETE CASCADE,
@@ -517,6 +552,10 @@ async function initializeDatabase() {
     CREATE INDEX IF NOT EXISTS counsel_shared_decisions_contact_idx ON counsel_shared_decisions(contact_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS counsel_shared_decision_deliveries_contact_idx ON counsel_shared_decision_deliveries(contact_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS counsel_shared_decision_deliveries_shared_idx ON counsel_shared_decision_deliveries(shared_decision_id);
+    CREATE INDEX IF NOT EXISTS challenge_circle_nudge_deliveries_circle_idx ON challenge_circle_nudge_deliveries(circle_id, created_at DESC);
+    CREATE INDEX IF NOT EXISTS challenge_circle_nudge_deliveries_nudge_idx ON challenge_circle_nudge_deliveries(nudge_id);
+    CREATE INDEX IF NOT EXISTS notification_delivery_receipts_lookup_idx ON notification_delivery_receipts(notification_kind, notification_id, recipient_user_id);
+    CREATE INDEX IF NOT EXISTS notification_delivery_receipts_sender_idx ON notification_delivery_receipts(sender_user_id, opened_at DESC);
     CREATE INDEX IF NOT EXISTS counsel_comments_contact_decision_idx ON counsel_comments(contact_id, decision_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS challenge_circles_owner_idx ON challenge_circles(owner_user_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS challenge_circles_invite_hash_idx ON challenge_circles(invite_token_hash);

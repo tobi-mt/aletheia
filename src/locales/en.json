@@ -558,6 +558,10 @@
     "challengeInviteNudgeSent": "Nudge sent.",
     "challengeInviteNudgeNoSubscription": "{name} does not have push notifications enabled.",
     "challengeInviteNudgeNoCircleSubscription": "No one in this circle has push notifications enabled.",
+    "challengeInviteNudgeSentToPushService": "Sent to push service.",
+    "challengeInviteNudgeOpened": "Opened.",
+    "challengeInviteNudgePartial": "Partially sent.",
+    "challengeInviteNudgeDisabledPushSubscription": "Push subscription is disabled.",
     "challengeInviteNudgeFailed": "The nudge could not be sent.",
     "invited": "invited",
     "local": "local",
@@ -581,6 +585,9 @@
     "counselShareDelivered": "Delivered",
     "counselShareWaitingForAcceptance": "Waiting for acceptance",
     "counselShareNoPushSubscription": "No push subscription",
+    "counselShareSentToPushService": "Sent to push service",
+    "counselShareOpened": "Opened",
+    "counselShareDisabledPushSubscription": "Push subscription disabled",
     "counselSharePartial": "Partially delivered",
     "counselShareFailed": "Delivery failed",
     "counselSharePushFailed": "Push delivery failed"
@@ -2327,5 +2334,8 @@
   "apiNotConfigured": "This feature is not configured yet.",
   "apiInvalidSubscription": "The notification subscription is invalid.",
   "responseStreamingNotSupported": "Response streaming not supported.",
-  "loading": "Loading…"
+  "loading": "Loading…",
+  "viewThread": "View thread",
+  "thread": "Thread",
+  "threadNoActivity": "No thread activity yet."
 }

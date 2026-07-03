@@ -17,6 +17,7 @@ type PushRow = {
   endpoint: string;
   p256dh: string;
   auth: string;
+  enabled: boolean;
   preferred_hour: number;
   preferred_local_hour: number | null;
   preferred_timezone: string | null;
@@ -56,9 +57,9 @@ type CounselDecisionSharePushInput = {
   senderName: string | null;
 };
 
-type CounselShareDeliveryStatus = "waiting_for_acceptance" | "sent" | "delivered" | "partial" | "failed";
+type DeliveryStatus = "waiting_for_acceptance" | "sent_to_push_service" | "opened" | "partial" | "no_push_subscription" | "failed";
 
-type CounselShareDeliveryReason = "no_push_subscription" | "push_failed" | null;
+type CounselShareDeliveryReason = "no_push_subscription" | "disabled_push_subscription" | "push_failed" | null;
 
 export type CounselShareDeliverySummary = {
   id: string;
@@ -67,12 +68,33 @@ export type CounselShareDeliverySummary = {
   contactId: string;
   decisionId: string;
   decisionTitle: string;
-  status: CounselShareDeliveryStatus;
+  status: DeliveryStatus;
   reason: CounselShareDeliveryReason;
   acceptedRecipientCount: number;
   pushSubscriptionCount: number;
   deliveredCount: number;
   failedCount: number;
+  openedCount: number;
+  attemptedAt: string | null;
+  deliveredAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ChallengeCircleNudgeDeliverySummary = {
+  id: string;
+  nudgeId: string;
+  circleId: string;
+  challengeId: string;
+  senderUserId: string;
+  recipientUserId: string | null;
+  status: DeliveryStatus;
+  reason: CounselShareDeliveryReason;
+  acceptedRecipientCount: number;
+  pushSubscriptionCount: number;
+  deliveredCount: number;
+  failedCount: number;
+  openedCount: number;
   attemptedAt: string | null;
   deliveredAt: string | null;
   createdAt: string;
@@ -255,6 +277,7 @@ function challengeCircleNudgeNotificationPayload(row: PushRow, input: ChallengeC
     url: `/?source=notification&focus=challenge&challenge=${encodeURIComponent(input.challengeId)}&tab=reflect&section=nudges`,
     tag: `aletheia-circle-nudge-${input.circleId}-${input.nudgeId}-${row.user_id}`,
     notificationKind: "challenge_circle_nudge",
+    notificationId: input.nudgeId,
     circleId: input.circleId,
     challengeId: input.challengeId,
     nudgeId: input.nudgeId,
@@ -287,6 +310,7 @@ function counselShareNotificationPayload(row: PushRow, input: CounselDecisionSha
     url: `/?source=notification&focus=decision&decisionId=${encodeURIComponent(input.decisionId)}&tab=decisions`,
     tag: `aletheia-counsel-share-${input.sharedDecisionId}-${row.user_id}`,
     notificationKind: "counsel_decision_shared",
+    notificationId: input.sharedDecisionId,
     sharedDecisionId: input.sharedDecisionId,
     contactId: input.contactId,
     decisionId: input.decisionId,
@@ -336,6 +360,49 @@ async function upsertCounselShareDelivery(summary: CounselShareDeliverySummary) 
   );
 }
 
+async function upsertChallengeCircleNudgeDelivery(summary: ChallengeCircleNudgeDeliverySummary) {
+  const now = new Date().toISOString();
+  await run(
+    `INSERT INTO challenge_circle_nudge_deliveries (
+       id, nudge_id, circle_id, challenge_id, sender_user_id, recipient_user_id, status, status_reason,
+       accepted_recipient_count, push_subscription_count, delivered_count, failed_count,
+       attempted_at, delivered_at, created_at, updated_at
+     )
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT (nudge_id)
+     DO UPDATE SET
+       circle_id = EXCLUDED.circle_id,
+       challenge_id = EXCLUDED.challenge_id,
+       sender_user_id = EXCLUDED.sender_user_id,
+       recipient_user_id = EXCLUDED.recipient_user_id,
+       status = EXCLUDED.status,
+       status_reason = EXCLUDED.status_reason,
+       accepted_recipient_count = EXCLUDED.accepted_recipient_count,
+       push_subscription_count = EXCLUDED.push_subscription_count,
+       delivered_count = EXCLUDED.delivered_count,
+       failed_count = EXCLUDED.failed_count,
+       attempted_at = EXCLUDED.attempted_at,
+       delivered_at = EXCLUDED.delivered_at,
+       updated_at = EXCLUDED.updated_at`,
+    summary.id,
+    summary.nudgeId,
+    summary.circleId,
+    summary.challengeId,
+    summary.senderUserId,
+    summary.recipientUserId,
+    summary.status,
+    summary.reason,
+    summary.acceptedRecipientCount,
+    summary.pushSubscriptionCount,
+    summary.deliveredCount,
+    summary.failedCount,
+    summary.attemptedAt,
+    summary.deliveredAt,
+    summary.createdAt,
+    now
+  );
+}
+
 async function targetRecipientsForCounselShare(contactId: string) {
   return many<CounselShareTargetRow>(
     `SELECT DISTINCT recipient_user_id
@@ -347,21 +414,35 @@ async function targetRecipientsForCounselShare(contactId: string) {
   );
 }
 
-async function pushRecipientsForCounselShare(recipientUserIds: string[]) {
-  if (!recipientUserIds.length) {
+async function pushSubscriptionsForUsers(userIds: string[]) {
+  if (!userIds.length) {
     return [];
   }
 
   return many<PushRow>(
-    `SELECT push_subscriptions.id, push_subscriptions.user_id, endpoint, p256dh, auth, preferred_hour, last_sent_at,
+    `SELECT push_subscriptions.id, push_subscriptions.user_id, endpoint, p256dh, auth, push_subscriptions.enabled, preferred_hour, last_sent_at,
             preferred_local_hour, preferred_timezone, delivery_strategy, last_gratitude_sent_at,
             user_preferences.language, user_preferences.region, user_preferences.bible_translation, user_preferences.voice_enabled
      FROM push_subscriptions
      LEFT JOIN user_preferences ON user_preferences.user_id = push_subscriptions.user_id
-     WHERE enabled = TRUE
-       AND push_subscriptions.user_id = ANY(?)`,
-    recipientUserIds
+     WHERE push_subscriptions.user_id = ANY(?)`,
+    userIds
   );
+}
+
+function splitPushSubscriptionRows(rows: PushRow[], recipientUserIds: string[]) {
+  const enabledRows = rows.filter((row) => row.enabled);
+  const enabledUserIds = new Set(enabledRows.map((row) => row.user_id));
+  const activeRecipients = new Set(enabledUserIds);
+  const missingActiveRecipientCount = recipientUserIds.filter((recipientUserId) => !activeRecipients.has(recipientUserId)).length;
+  const disabledUserIds = new Set(rows.filter((row) => !row.enabled).map((row) => row.user_id));
+
+  return {
+    enabledRows,
+    enabledRecipientCount: enabledUserIds.size,
+    disabledRecipientCount: disabledUserIds.size,
+    missingActiveRecipientCount,
+  };
 }
 
 export async function sendCounselShareNotifications(input: CounselDecisionSharePushInput) {
@@ -383,6 +464,7 @@ export async function sendCounselShareNotifications(input: CounselDecisionShareP
       pushSubscriptionCount: 0,
       deliveredCount: 0,
       failedCount: 0,
+      openedCount: 0,
       attemptedAt: null,
       deliveredAt: null,
       createdAt: now,
@@ -392,9 +474,10 @@ export async function sendCounselShareNotifications(input: CounselDecisionShareP
     return summary;
   }
 
-  const pushRows = await pushRecipientsForCounselShare(acceptedRecipientIds);
+  const pushRows = await pushSubscriptionsForUsers(acceptedRecipientIds);
+  const { enabledRows, enabledRecipientCount, disabledRecipientCount } = splitPushSubscriptionRows(pushRows, acceptedRecipientIds);
   const rowsByRecipient = new Map<string, PushRow[]>();
-  for (const row of pushRows) {
+  for (const row of enabledRows) {
     const bucket = rowsByRecipient.get(row.user_id) ?? [];
     bucket.push(row);
     rowsByRecipient.set(row.user_id, bucket);
@@ -404,14 +487,19 @@ export async function sendCounselShareNotifications(input: CounselDecisionShareP
   const attemptedAt = new Date().toISOString();
   let deliveredCount = 0;
   let failedCount = 0;
-  let status: CounselShareDeliveryStatus = "sent";
-  let reason: CounselShareDeliveryReason = recipientsWithoutPush.length > 0 ? "no_push_subscription" : null;
+  const openedCount = 0;
+  let status: DeliveryStatus = "sent_to_push_service";
+  let reason: CounselShareDeliveryReason = recipientsWithoutPush.length > 0
+    ? disabledRecipientCount > 0
+      ? "disabled_push_subscription"
+      : "no_push_subscription"
+    : null;
 
-  if (pushRows.length > 0) {
+  if (enabledRows.length > 0) {
     try {
       configureWebPush();
       const { sent, failed } = await sendPushRows(
-        pushRows,
+        enabledRows,
         (row) => JSON.stringify(counselShareNotificationPayload(row, input)),
         { lastSentColumn: null }
       );
@@ -419,27 +507,34 @@ export async function sendCounselShareNotifications(input: CounselDecisionShareP
       failedCount = failed;
 
       if (sent > 0 && failed === 0 && recipientsWithoutPush.length === 0) {
-        status = "delivered";
+        status = "sent_to_push_service";
         reason = null;
       } else if (sent > 0 && (failed > 0 || recipientsWithoutPush.length > 0)) {
         status = "partial";
-        reason = recipientsWithoutPush.length > 0 ? "no_push_subscription" : "push_failed";
+        reason = recipientsWithoutPush.length > 0
+          ? disabledRecipientCount > 0
+            ? "disabled_push_subscription"
+            : "no_push_subscription"
+          : "push_failed";
       } else if (failed > 0) {
         status = "failed";
         reason = "push_failed";
       } else if (recipientsWithoutPush.length > 0) {
-        status = "sent";
-        reason = "no_push_subscription";
+        status = "no_push_subscription";
+        reason = disabledRecipientCount > 0 ? "disabled_push_subscription" : "no_push_subscription";
       } else {
-        status = "sent";
+        status = "sent_to_push_service";
         reason = null;
       }
     } catch {
       deliveredCount = 0;
-      failedCount = pushRows.length;
+      failedCount = enabledRows.length;
       status = "failed";
       reason = "push_failed";
     }
+  } else if (disabledRecipientCount > 0) {
+    status = "no_push_subscription";
+    reason = "disabled_push_subscription";
   }
 
   const summary: CounselShareDeliverySummary = {
@@ -452,9 +547,10 @@ export async function sendCounselShareNotifications(input: CounselDecisionShareP
     status,
     reason,
     acceptedRecipientCount: acceptedRecipientIds.length,
-    pushSubscriptionCount: pushRows.length,
+    pushSubscriptionCount: enabledRecipientCount,
     deliveredCount,
     failedCount,
+    openedCount,
     attemptedAt,
     deliveredAt: deliveredCount > 0 ? attemptedAt : null,
     createdAt: attemptedAt,
@@ -2446,6 +2542,27 @@ export async function sendChallengeCircleNudgeNotifications(input: ChallengeCirc
 
   const targetUserIds = await challengeCircleNudgeTargetUserIds(input.circleId, input.senderUserId, input.recipientUserId);
   if (targetUserIds.length === 0) {
+    const now = new Date().toISOString();
+    const summary: ChallengeCircleNudgeDeliverySummary = {
+      id: crypto.randomUUID(),
+      nudgeId: input.nudgeId,
+      circleId: input.circleId,
+      challengeId: input.challengeId,
+      senderUserId: input.senderUserId,
+      recipientUserId: input.recipientUserId,
+      status: "no_push_subscription",
+      reason: "no_push_subscription",
+      acceptedRecipientCount: 0,
+      pushSubscriptionCount: 0,
+      deliveredCount: 0,
+      failedCount: 0,
+      openedCount: 0,
+      attemptedAt: null,
+      deliveredAt: null,
+      createdAt: now,
+      updatedAt: now,
+    };
+    await upsertChallengeCircleNudgeDelivery(summary);
     return {
       configured: true,
       attempted: 0,
@@ -2456,25 +2573,60 @@ export async function sendChallengeCircleNudgeNotifications(input: ChallengeCirc
   }
 
   const rows = await many<PushRow>(
-    `SELECT push_subscriptions.id, push_subscriptions.user_id, endpoint, p256dh, auth, preferred_hour, last_sent_at,
+    `SELECT push_subscriptions.id, push_subscriptions.user_id, endpoint, p256dh, auth, push_subscriptions.enabled, preferred_hour, last_sent_at,
             preferred_local_hour, preferred_timezone, delivery_strategy, last_gratitude_sent_at,
             user_preferences.language, user_preferences.region, user_preferences.bible_translation, user_preferences.voice_enabled
      FROM push_subscriptions
      LEFT JOIN user_preferences ON user_preferences.user_id = push_subscriptions.user_id
-     WHERE enabled = TRUE
-       AND push_subscriptions.user_id = ANY(?)`,
+     WHERE push_subscriptions.user_id = ANY(?)`,
     targetUserIds
   );
+  const { enabledRows, enabledRecipientCount, disabledRecipientCount, missingActiveRecipientCount } = splitPushSubscriptionRows(rows, targetUserIds);
 
   const { sent, failed, failureSamples } = await sendPushRows(
-    rows,
+    enabledRows,
     (row) => JSON.stringify(challengeCircleNudgeNotificationPayload(row, input)),
     { lastSentColumn: null }
   );
 
+  const summary: ChallengeCircleNudgeDeliverySummary = {
+    id: crypto.randomUUID(),
+    nudgeId: input.nudgeId,
+    circleId: input.circleId,
+    challengeId: input.challengeId,
+    senderUserId: input.senderUserId,
+    recipientUserId: input.recipientUserId,
+    status:
+      sent > 0 && failed === 0 && missingActiveRecipientCount === 0
+        ? "sent_to_push_service"
+        : sent > 0 && (failed > 0 || missingActiveRecipientCount > 0)
+          ? "partial"
+          : failed > 0
+            ? "failed"
+            : "no_push_subscription",
+    reason:
+      missingActiveRecipientCount > 0
+        ? disabledRecipientCount > 0
+          ? "disabled_push_subscription"
+          : "no_push_subscription"
+        : failed > 0
+          ? "push_failed"
+          : null,
+    acceptedRecipientCount: targetUserIds.length,
+    pushSubscriptionCount: enabledRecipientCount,
+    deliveredCount: sent,
+    failedCount: failed,
+    openedCount: 0,
+    attemptedAt: new Date().toISOString(),
+    deliveredAt: sent > 0 ? new Date().toISOString() : null,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+  await upsertChallengeCircleNudgeDelivery(summary);
+
   return {
     configured: true,
-    attempted: rows.length,
+    attempted: enabledRows.length,
     sent,
     failed,
     failureSamples,

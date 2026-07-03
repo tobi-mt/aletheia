@@ -475,6 +475,10 @@
     "challengeInviteNudgeSent": "Anstoß gesendet.",
     "challengeInviteNudgeNoSubscription": "{name} hat keine Push-Benachrichtigungen aktiviert.",
     "challengeInviteNudgeNoCircleSubscription": "Niemand in diesem Kreis hat Push-Benachrichtigungen aktiviert.",
+    "challengeInviteNudgeSentToPushService": "An den Push-Dienst gesendet.",
+    "challengeInviteNudgeOpened": "Geöffnet.",
+    "challengeInviteNudgePartial": "Teilweise gesendet.",
+    "challengeInviteNudgeDisabledPushSubscription": "Push-Abonnement ist deaktiviert.",
     "challengeInviteNudgeFailed": "Der Anstoß konnte nicht gesendet werden.",
     "restoringPreferences": "Einstellungen werden wiederhergestellt…",
     "finishingSignInBody": "Einen Moment noch, Aletheia ruft dein Konto auf.",
@@ -521,6 +525,9 @@
     "counselShareDelivered": "Zugestellt",
     "counselShareWaitingForAcceptance": "Wartet auf Annahme",
     "counselShareNoPushSubscription": "Kein Push-Abonnement",
+    "counselShareSentToPushService": "An den Push-Dienst gesendet",
+    "counselShareOpened": "Geöffnet",
+    "counselShareDisabledPushSubscription": "Push-Abonnement deaktiviert",
     "counselSharePartial": "Teilweise zugestellt",
     "counselShareFailed": "Zustellung fehlgeschlagen",
     "counselSharePushFailed": "Push-Zustellung fehlgeschlagen"
@@ -2327,5 +2334,8 @@
   "apiNotConfigured": "Diese Funktion ist noch nicht konfiguriert.",
   "apiInvalidSubscription": "Das Benachrichtigungsabonnement ist ungültig.",
   "responseStreamingNotSupported": "Antwort-Streaming wird nicht unterstützt.",
-  "loading": "Lädt…"
+  "loading": "Lädt…",
+  "viewThread": "Thread anzeigen",
+  "thread": "Thread",
+  "threadNoActivity": "Noch keine Aktivitäten in diesem Thread."
 }

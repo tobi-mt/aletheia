@@ -52,6 +52,7 @@ type SharedDecisionDeliveryRow = {
   push_subscription_count: number | string | null;
   delivered_count: number | string | null;
   failed_count: number | string | null;
+  opened_count: number | string | null;
   attempted_at: string | null;
   delivered_at: string | null;
   delivery_updated_at: string | null;
@@ -144,6 +145,7 @@ async function recentSharedDecisions(userId: string) {
          delivery.push_subscription_count,
          delivery.delivered_count,
          delivery.failed_count,
+         COALESCE(receipts.opened_count, 0) AS opened_count,
          delivery.attempted_at,
          delivery.delivered_at,
          delivery.updated_at AS delivery_updated_at,
@@ -151,11 +153,17 @@ async function recentSharedDecisions(userId: string) {
        FROM counsel_shared_decisions s
        JOIN wisdom_decisions d ON d.id = s.decision_id
        LEFT JOIN counsel_shared_decision_deliveries delivery ON delivery.shared_decision_id = s.id
+       LEFT JOIN (
+         SELECT notification_id, COUNT(*)::int AS opened_count
+         FROM notification_delivery_receipts
+         WHERE notification_kind = 'counsel_decision_shared'
+         GROUP BY notification_id
+       ) receipts ON receipts.notification_id = s.id
        WHERE s.user_id = ?
      )
      SELECT *
      FROM ranked
-     WHERE rn <= 3
+     WHERE rn <= 12
      ORDER BY shared_at DESC`,
     userId
   );
@@ -265,6 +273,7 @@ export async function GET() {
     pushSubscriptionCount: number;
     deliveredCount: number;
     failedCount: number;
+    openedCount: number;
     attemptedAt: string | null;
     deliveredAt: string | null;
     deliveryUpdatedAt: string | null;
@@ -272,22 +281,26 @@ export async function GET() {
 
   for (const share of recentShares) {
     const bucket = recentSharesByContact.get(share.contact_id) ?? [];
-    bucket.push({
-      id: share.shared_id,
-      decisionId: share.decision_id,
-      title: share.title,
-      mode: share.mode,
-      status: share.status,
-      readiness: share.readiness,
-      summary: share.summary,
-      waitingUntil: share.waiting_until,
-      sharedAt: share.shared_at,
-      deliveryStatus: share.delivery_status ?? "sent",
+      bucket.push({
+        id: share.shared_id,
+        decisionId: share.decision_id,
+        title: share.title,
+        mode: share.mode,
+        status: share.status,
+        readiness: share.readiness,
+        summary: share.summary,
+        waitingUntil: share.waiting_until,
+        sharedAt: share.shared_at,
+        deliveryStatus:
+          Number(share.opened_count ?? 0) > 0
+            ? "opened"
+            : share.delivery_status ?? "sent_to_push_service",
       deliveryReason: share.delivery_reason,
       acceptedRecipientCount: Number(share.accepted_recipient_count ?? 0),
       pushSubscriptionCount: Number(share.push_subscription_count ?? 0),
       deliveredCount: Number(share.delivered_count ?? 0),
       failedCount: Number(share.failed_count ?? 0),
+      openedCount: Number(share.opened_count ?? 0),
       attemptedAt: share.attempted_at,
       deliveredAt: share.delivered_at,
       deliveryUpdatedAt: share.delivery_updated_at,

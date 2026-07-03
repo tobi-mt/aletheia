@@ -475,6 +475,10 @@
     "challengeInviteNudgeSent": "Ánimo enviado.",
     "challengeInviteNudgeNoSubscription": "{name} no tiene notificaciones push activadas.",
     "challengeInviteNudgeNoCircleSubscription": "Nadie en este círculo tiene notificaciones push activadas.",
+    "challengeInviteNudgeSentToPushService": "Enviado al servicio push.",
+    "challengeInviteNudgeOpened": "Abierto.",
+    "challengeInviteNudgePartial": "Enviado parcialmente.",
+    "challengeInviteNudgeDisabledPushSubscription": "La suscripción push está desactivada.",
     "challengeInviteNudgeFailed": "No se pudo enviar el ánimo.",
     "restoringPreferences": "Restaurando preferencias…",
     "finishingSignInBody": "Un momento mientras Aletheia abre tu cuenta.",
@@ -521,6 +525,9 @@
     "counselShareDelivered": "Entregado",
     "counselShareWaitingForAcceptance": "Esperando aceptación",
     "counselShareNoPushSubscription": "Sin suscripción push",
+    "counselShareSentToPushService": "Enviado al servicio push",
+    "counselShareOpened": "Abierto",
+    "counselShareDisabledPushSubscription": "Suscripción push desactivada",
     "counselSharePartial": "Entregado parcialmente",
     "counselShareFailed": "Error de entrega",
     "counselSharePushFailed": "Error de entrega push"
@@ -2320,5 +2327,8 @@
   "apiNotConfigured": "Esta característica aún no está configurada.",
   "apiInvalidSubscription": "La suscripción de notificación no es válida.",
   "responseStreamingNotSupported": "No se admite la transmisión de respuesta.",
-  "loading": "Cargando…"
+  "loading": "Cargando…",
+  "viewThread": "Ver hilo",
+  "thread": "Hilo",
+  "threadNoActivity": "Todavía no hay actividad en este hilo."
 }

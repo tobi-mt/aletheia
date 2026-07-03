@@ -475,6 +475,10 @@
     "challengeInviteNudgeSent": "An aika ƙarfafawa.",
     "challengeInviteNudgeNoSubscription": "Ba a kunna sanarwar tura ga {name} ba.",
     "challengeInviteNudgeNoCircleSubscription": "Babu wanda a cikin wannan rukuni da aka kunna masa sanarwar tura.",
+    "challengeInviteNudgeSentToPushService": "An aika zuwa sabis ɗin push.",
+    "challengeInviteNudgeOpened": "An buɗe.",
+    "challengeInviteNudgePartial": "An aika wani ɓangare.",
+    "challengeInviteNudgeDisabledPushSubscription": "An kashe rajistar push.",
     "challengeInviteNudgeFailed": "Ba a iya aika ƙarfafawar ba.",
     "restoringPreferences": "Ana maido da abubuwan da aka fi so…",
     "finishingSignInBody": "Ka ɗan jira, Aletheia na kawo asusunka.",
@@ -521,6 +525,9 @@
     "counselShareDelivered": "An isar",
     "counselShareWaitingForAcceptance": "Ana jiran amincewa",
     "counselShareNoPushSubscription": "Babu rajistar push",
+    "counselShareSentToPushService": "An aika zuwa sabis ɗin push",
+    "counselShareOpened": "An buɗe",
+    "counselShareDisabledPushSubscription": "An kashe rajistar push",
     "counselSharePartial": "An isar da shi kaɗan",
     "counselShareFailed": "Isarwa ta gaza",
     "counselSharePushFailed": "Isar da push ta gaza"
@@ -2320,5 +2327,8 @@
   "apiNotConfigured": "Ba a saita wannan fasalin ba tukuna.",
   "apiInvalidSubscription": "Biyan kuɗin sanarwar ba shi da inganci.",
   "responseStreamingNotSupported": "Ba a goyan bayan watsa martani.",
-  "loading": "Ana lodawa…"
+  "loading": "Ana lodawa…",
+  "viewThread": "Duba zaren",
+  "thread": "Zare",
+  "threadNoActivity": "Babu wani aiki a cikin wannan zaren tukuna."
 }

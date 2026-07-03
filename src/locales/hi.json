@@ -475,6 +475,10 @@
     "challengeInviteNudgeSent": "प्रोत्साहन भेज दिया गया।",
     "challengeInviteNudgeNoSubscription": "{name} के लिए पुश सूचनाएँ सक्षम नहीं हैं।",
     "challengeInviteNudgeNoCircleSubscription": "इस वृत्त में किसी के लिए भी पुश सूचनाएँ सक्षम नहीं हैं।",
+    "challengeInviteNudgeSentToPushService": "पुश सेवा को भेजा गया।",
+    "challengeInviteNudgeOpened": "खोला गया।",
+    "challengeInviteNudgePartial": "आंशिक रूप से भेजा गया।",
+    "challengeInviteNudgeDisabledPushSubscription": "पुश सदस्यता निष्क्रिय है।",
     "challengeInviteNudgeFailed": "प्रोत्साहन नहीं भेजा जा सका।",
     "restoringPreferences": "वरीयताएँ पुनर्स्थापित की जा रही हैं…",
     "finishingSignInBody": "एक क्षण, Aletheia आपका खाता सामने ला रहा है।",
@@ -521,6 +525,9 @@
     "counselShareDelivered": "वितरित",
     "counselShareWaitingForAcceptance": "स्वीकृति की प्रतीक्षा में",
     "counselShareNoPushSubscription": "कोई पुश सदस्यता नहीं",
+    "counselShareSentToPushService": "पुश सेवा को भेजा गया",
+    "counselShareOpened": "खोला गया",
+    "counselShareDisabledPushSubscription": "पुश सदस्यता निष्क्रिय है",
     "counselSharePartial": "आंशिक रूप से वितरित",
     "counselShareFailed": "वितरण विफल",
     "counselSharePushFailed": "पुश वितरण विफल रहा"
@@ -2320,5 +2327,8 @@
   "apiNotConfigured": "यह सुविधा अभी तक कॉन्फ़िगर नहीं की गई है.",
   "apiInvalidSubscription": "अधिसूचना सदस्यता अमान्य है.",
   "responseStreamingNotSupported": "प्रतिक्रिया स्ट्रीमिंग समर्थित नहीं है.",
-  "loading": "लोड हो रहा है..."
+  "loading": "लोड हो रहा है...",
+  "viewThread": "थ्रेड देखें",
+  "thread": "थ्रेड",
+  "threadNoActivity": "अभी इस थ्रेड में कोई गतिविधि नहीं है।"
 }

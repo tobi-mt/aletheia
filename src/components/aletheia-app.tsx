@@ -4269,8 +4269,8 @@ type CounselContact = {
   createdAt: string;
 };
 
-type CounselShareDeliveryStatus = "waiting_for_acceptance" | "sent" | "delivered" | "partial" | "failed";
-type CounselShareDeliveryReason = "no_push_subscription" | "push_failed" | null;
+type CounselShareDeliveryStatus = "waiting_for_acceptance" | "sent_to_push_service" | "opened" | "partial" | "no_push_subscription" | "failed";
+type CounselShareDeliveryReason = "no_push_subscription" | "disabled_push_subscription" | "push_failed" | null;
 
 type CounselShareDeliverySummaryView = {
   id: string;
@@ -4288,6 +4288,7 @@ type CounselShareDeliverySummaryView = {
   pushSubscriptionCount: number;
   deliveredCount: number;
   failedCount: number;
+  openedCount: number;
   attemptedAt: string | null;
   deliveredAt: string | null;
 };
@@ -12620,13 +12621,20 @@ function scrollTargetBelowTopChrome(target: HTMLElement, behavior: ScrollBehavio
                   senderAvatarUrl: user?.avatarUrl ?? null,
                   recipientUserId: null,
                   recipientName: null,
+                  deliveryStatus: "sent_to_push_service",
+                  deliveryReason: null,
+                  deliveredCount: 0,
+                  failedCount: 0,
+                  openedCount: 0,
+                  attemptedAt: null,
+                  deliveredAt: null,
                 },
                 ...current.nudges,
               ],
             }
           : current
       );
-      setChallengeInviteStatus(ts("status.challengeInviteNudgeSent"));
+      setChallengeInviteStatus(ts("status.challengeInviteNudgeSentToPushService"));
       refreshChallengeCircles();
       return;
     }
@@ -15760,7 +15768,7 @@ function SystemReferenceModal({
         onClick={(event) => event.stopPropagation()}
       >
         <div
-          className="relative overflow-hidden border-b px-4 py-4 pr-16 sm:px-5 sm:py-5 sm:pr-16"
+          className="relative overflow-hidden border-b px-5 py-5 pr-16 sm:px-6 sm:py-6 sm:pr-16"
           style={{
             borderColor: theme.borderLight,
             background: `linear-gradient(135deg, color-mix(in srgb, ${theme.bgCardElevated} 68%, white 32%), ${theme.bgCard}, color-mix(in srgb, ${theme.bgCardElevated} 84%, ${theme.accentGold} 16%))`,
@@ -17097,6 +17105,13 @@ type ChallengeCircleNudge = {
   senderAvatarUrl: string | null;
   recipientUserId: string | null;
   recipientName: string | null;
+  deliveryStatus: "waiting_for_acceptance" | "sent_to_push_service" | "opened" | "partial" | "no_push_subscription" | "failed";
+  deliveryReason: "no_push_subscription" | "disabled_push_subscription" | "push_failed" | null;
+  deliveredCount: number;
+  failedCount: number;
+  openedCount: number;
+  attemptedAt: string | null;
+  deliveredAt: string | null;
 };
 
 type ChallengeCircleResponse = {
@@ -17638,6 +17653,7 @@ function FormationRailSection({
   const [sharedCircleNudgeStatus, setSharedCircleNudgeStatus] = useState("");
   const [sharedCircleNudgeBusy, setSharedCircleNudgeBusy] = useState(false);
   const [sharedCircleNudgeRecipientId, setSharedCircleNudgeRecipientId] = useState<string | null>(null);
+  const [challengeNudgeThreadOpen, setChallengeNudgeThreadOpen] = useState(false);
   const [recipientNameDraft, setRecipientNameDraft] = useState("");
   const [recipientNoteDraft, setRecipientNoteDraft] = useState("");
   const [currentTimestampMs, setCurrentTimestampMs] = useState(() => Date.now());
@@ -17921,6 +17937,46 @@ function FormationRailSection({
         currentTimestampMs
       )
     : null;
+  const challengeNudgeThreadEntries = (selectedCircle?.nudges ?? []).map((nudge) => {
+    const outgoing = nudge.senderUserId === user?.id;
+    const senderLabel = outgoing ? currentUserName : nudge.senderName ?? ts("labels.counselContact");
+    const recipientLabel = nudge.recipientName
+      ? ts("challenges.nudgeRecipientPerson").replace("{name}", nudge.recipientName)
+      : ts("challenges.nudgeRecipientEveryone");
+    const deliveryLabel = outgoing
+      ? nudge.deliveryStatus === "opened"
+        ? ts("status.challengeInviteNudgeOpened")
+        : nudge.deliveryStatus === "sent_to_push_service"
+          ? ts("status.challengeInviteNudgeSentToPushService")
+          : nudge.deliveryStatus === "partial"
+            ? ts("status.challengeInviteNudgePartial")
+            : nudge.deliveryStatus === "no_push_subscription"
+              ? ts("status.challengeInviteNudgeNoSubscription")
+              : ts("status.challengeInviteNudgeFailed")
+      : null;
+    const deliveryNote = outgoing
+      ? nudge.deliveryReason === "disabled_push_subscription"
+        ? ts("status.challengeInviteNudgeDisabledPushSubscription")
+        : nudge.deliveryReason === "no_push_subscription" && nudge.deliveryStatus !== "opened"
+          ? ts("status.challengeInviteNudgeNoSubscription")
+          : nudge.deliveryReason === "push_failed"
+            ? ts("status.challengeInviteNudgeFailed")
+            : null
+      : null;
+
+    return {
+      id: nudge.id,
+      createdAt: nudge.createdAt,
+      title: outgoing ? recipientLabel : senderLabel,
+      body: nudge.body,
+      direction: outgoing ? "out" : "in",
+      avatarUrl: outgoing ? user?.avatarUrl ?? null : nudge.senderAvatarUrl,
+      avatarSeed: outgoing ? user?.id ?? nudge.senderUserId : nudge.senderUserId,
+      name: outgoing ? currentUserName : senderLabel,
+      meta: [recipientLabel, deliveryLabel].filter((item): item is string => Boolean(item)),
+      note: deliveryNote,
+    } satisfies ThreadFeedEntry;
+  });
 
   useEffect(() => {
     const landing = pendingChallengeLandingRef.current;
@@ -17970,6 +18026,8 @@ function FormationRailSection({
       if (response.ok && data.nudge) {
         setSharedCircleNudgeDraft("");
         const deliveryUnavailable = Boolean(data.delivery && !data.delivery.configured);
+        const deliveryFailed = Boolean(data.delivery && data.delivery.failed > 0 && data.delivery.sent === 0);
+        const deliveryPartial = Boolean(data.delivery && data.delivery.sent > 0 && data.delivery.failed > 0);
         const directRecipientHasNoPush = Boolean(
           sharedCircleNudgeRecipientId &&
           data.delivery &&
@@ -17986,8 +18044,12 @@ function FormationRailSection({
         );
         if (deliveryUnavailable) {
           setSharedCircleNudgeStatus(
-            `${ts("status.challengeInviteNudgeSent")}\n${ts("status.notificationsNotEnabled")}`
+            `${ts("status.challengeInviteNudgeFailed")}\n${ts("status.notificationsNotEnabled")}`
           );
+        } else if (deliveryFailed) {
+          setSharedCircleNudgeStatus(ts("status.challengeInviteNudgeFailed"));
+        } else if (deliveryPartial) {
+          setSharedCircleNudgeStatus(ts("status.challengeInviteNudgePartial"));
         } else if (directRecipientHasNoPush) {
           const recipientLabel = data.nudge.recipientName
             ?? challengeCircles
@@ -17995,14 +18057,16 @@ function FormationRailSection({
               .find((member) => member.userId === sharedCircleNudgeRecipientId)?.name
             ?? ts("labels.counselContact");
           setSharedCircleNudgeStatus(
-            `${ts("status.challengeInviteNudgeSent")}\n${ts("status.challengeInviteNudgeNoSubscription").replace("{name}", recipientLabel)}`
+            `${ts("status.challengeInviteNudgeNoSubscription").replace("{name}", recipientLabel)}`
           );
         } else if (circleHasNoPush) {
           setSharedCircleNudgeStatus(
-            `${ts("status.challengeInviteNudgeSent")}\n${ts("status.challengeInviteNudgeNoCircleSubscription")}`
+            ts("status.challengeInviteNudgeNoCircleSubscription")
           );
+        } else if (data.delivery && data.delivery.sent > 0) {
+          setSharedCircleNudgeStatus(ts("status.challengeInviteNudgeSentToPushService"));
         } else {
-          setSharedCircleNudgeStatus(ts("status.challengeInviteNudgeSent"));
+          setSharedCircleNudgeStatus(ts("status.challengeInviteNudgeSentToPushService"));
         }
         onChallengeCircleChanged();
         return;
@@ -18374,10 +18438,25 @@ function FormationRailSection({
       }
     } catch {
       // Let user retry.
-    } finally {
-      setSavingDay(null);
-    }
+  } finally {
+    setSavingDay(null);
   }
+}
+
+  const challengeNudgeThreadModal =
+    selectedCircle && selectedChallenge ? (
+      <ThreadStreamModal
+        open={challengeNudgeThreadOpen && selectedCircle.challengeId === selectedChallenge.id}
+        theme={theme}
+        title={selectedChallenge.title}
+        subtitle={ts("challenges.circleNudgeBody")}
+        entries={challengeNudgeThreadEntries}
+        emptyLabel={ts("challenges.noNudgesYet")}
+        language={language}
+        ts={ts}
+        onClose={() => setChallengeNudgeThreadOpen(false)}
+      />
+    ) : null;
 
   const canUsePortal = typeof document !== "undefined";
   useBodyScrollLock(Boolean((selectedChallengeModalDay || inviteEditorChallenge || inviteViewerChallenge) && canUsePortal));
@@ -19091,6 +19170,7 @@ function FormationRailSection({
         </p>
       </div>
 
+      {challengeNudgeThreadModal}
       {dayModal}
       {inviteEditorModal}
 
@@ -19460,6 +19540,7 @@ function FormationRailSection({
                         onSharedCircleNudgeDraftChange={setSharedCircleNudgeDraft}
                         onSharedCircleNudgeRecipientChange={setSharedCircleNudgeRecipientId}
                         onPostSharedCircleNudge={postSharedCircleNudge}
+                        onOpenThread={() => setChallengeNudgeThreadOpen(true)}
                       />
                     </div>
                   ) : (
@@ -19854,6 +19935,24 @@ const ChallengeNudgeThread = memo(function ChallengeNudgeThread({
         const recipientLabel = nudge.recipientName
           ? ts("challenges.nudgeRecipientPerson").replace("{name}", nudge.recipientName)
           : ts("challenges.nudgeRecipientEveryone");
+        const deliveryLabel = outgoing
+          ? nudge.deliveryStatus === "opened"
+            ? ts("status.challengeInviteNudgeOpened")
+            : nudge.deliveryStatus === "sent_to_push_service"
+              ? ts("status.challengeInviteNudgeSentToPushService")
+              : nudge.deliveryStatus === "partial"
+                ? ts("status.challengeInviteNudgePartial")
+                : nudge.deliveryStatus === "no_push_subscription"
+                  ? ts("status.challengeInviteNudgeNoSubscription")
+                  : ts("status.challengeInviteNudgeFailed")
+          : null;
+        const deliveryNote = outgoing
+          ? nudge.deliveryReason === "disabled_push_subscription"
+            ? ts("status.challengeInviteNudgeDisabledPushSubscription")
+            : nudge.deliveryReason === "no_push_subscription" && nudge.deliveryStatus !== "opened"
+              ? ts("status.challengeInviteNudgeNoSubscription")
+              : null
+          : null;
 
         return (
           <div key={nudge.id} className={`flex ${outgoing ? "justify-end" : "justify-start"}`}>
@@ -19886,6 +19985,16 @@ const ChallengeNudgeThread = memo(function ChallengeNudgeThread({
                   </span>
                   <span>{timeLabel}</span>
                   <span>{recipientLabel}</span>
+                  {deliveryLabel ? (
+                    <span className="rounded-full border px-2 py-[2px] font-semibold tracking-[0.08em]" style={{ borderColor: theme.borderLight, color: theme.textMuted }}>
+                      {deliveryLabel}
+                    </span>
+                  ) : null}
+                  {deliveryNote ? (
+                    <span className="rounded-full border px-2 py-[2px] font-semibold tracking-[0.08em]" style={{ borderColor: theme.borderLight, color: theme.textMuted }}>
+                      {deliveryNote}
+                    </span>
+                  ) : null}
                 </div>
               </div>
             </div>
@@ -20159,6 +20268,7 @@ const ChallengeNudgePanel = memo(function ChallengeNudgePanel({
   onSharedCircleNudgeDraftChange,
   onSharedCircleNudgeRecipientChange,
   onPostSharedCircleNudge,
+  onOpenThread,
   members,
 }: {
   theme: ThemeColors;
@@ -20178,6 +20288,7 @@ const ChallengeNudgePanel = memo(function ChallengeNudgePanel({
   onSharedCircleNudgeDraftChange: (value: string) => void;
   onSharedCircleNudgeRecipientChange: (value: string | null) => void;
   onPostSharedCircleNudge: () => Promise<void>;
+  onOpenThread: () => void;
   members: ChallengeCircleMember[];
 }) {
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -20200,12 +20311,23 @@ const ChallengeNudgePanel = memo(function ChallengeNudgePanel({
       style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}
     >
       <div className="flex items-start justify-between gap-3">
-        <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
-          {ts("challenges.nudges")}
-        </p>
-        <p className="text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ color: theme.textMuted }}>
-          {nudgeCount} {ts("labels.checkIns")}
-        </p>
+        <div className="min-w-0">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
+            {ts("challenges.nudges")}
+          </p>
+          <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ color: theme.textMuted }}>
+            {nudgeCount} {ts("labels.checkIns")}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onOpenThread}
+          className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border px-3 text-[10px] font-semibold uppercase tracking-[0.12em] transition"
+          style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+        >
+          <MessageCircle size={12} />
+          {ts("labels.viewThread")}
+        </button>
       </div>
       {selectedCircleHasCurrentMember ? (
         <form
@@ -20333,7 +20455,7 @@ const ChallengeNudgePanel = memo(function ChallengeNudgePanel({
           nudges={nudges}
           currentUserId={currentUserId}
           currentUserName={currentUserName}
-          limit={8}
+          limit={4}
         />
       </div>
     </div>
@@ -27190,19 +27312,25 @@ function localizedCounselShareDeliveryCopy(
   ts: (key: string, fallback?: string) => string
 ) {
   const statusLabel =
-    share.deliveryStatus === "delivered"
-      ? ts("status.counselShareDelivered")
+    share.deliveryStatus === "opened"
+      ? ts("status.counselShareOpened")
+      : share.deliveryStatus === "sent_to_push_service"
+        ? ts("status.counselShareSentToPushService")
       : share.deliveryStatus === "partial"
         ? ts("status.counselSharePartial")
         : share.deliveryStatus === "failed"
           ? ts("status.counselShareFailed")
           : share.deliveryStatus === "waiting_for_acceptance"
             ? ts("status.counselShareWaitingForAcceptance")
-            : ts("status.counselShareSent");
+            : share.deliveryStatus === "no_push_subscription"
+              ? ts("status.counselShareNoPushSubscription")
+              : ts("status.counselShareSentToPushService");
 
   let note: string | null = null;
-  if (share.deliveryStatus === "sent" && share.pushSubscriptionCount === 0) {
+  if (share.deliveryStatus === "sent_to_push_service" && share.pushSubscriptionCount === 0) {
     note = ts("status.counselShareNoPushSubscription");
+  } else if (share.deliveryReason === "disabled_push_subscription") {
+    note = ts("status.counselShareDisabledPushSubscription");
   } else if (share.deliveryStatus === "partial" && share.deliveryReason === "no_push_subscription") {
     note = ts("status.counselShareNoPushSubscription");
   } else if (share.deliveryStatus === "partial" || share.deliveryStatus === "failed") {
@@ -27211,6 +27339,250 @@ function localizedCounselShareDeliveryCopy(
 
   return { statusLabel, note };
 }
+
+type ThreadFeedEntry = {
+  id: string;
+  createdAt: string;
+  title?: string | null;
+  body: string;
+  direction: "in" | "out";
+  avatarUrl?: string | null;
+  avatarSeed: string;
+  name: string;
+  meta: string[];
+  note?: string | null;
+};
+
+function formatThreadTimestamp(createdAt: string, language: LanguageCode) {
+  const date = new Date(createdAt);
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  return new Intl.DateTimeFormat(language, {
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(date);
+}
+
+function threadDateKey(createdAt: string) {
+  const date = new Date(createdAt);
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+  return [date.getFullYear(), String(date.getMonth() + 1).padStart(2, "0"), String(date.getDate()).padStart(2, "0")].join("-");
+}
+
+function formatThreadDayLabel(createdAt: string, language: LanguageCode, ts: (key: string, fallback?: string) => string) {
+  const date = new Date(createdAt);
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  const now = new Date();
+  const todayKey = [now.getFullYear(), String(now.getMonth() + 1).padStart(2, "0"), String(now.getDate()).padStart(2, "0")].join("-");
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayKey = [yesterday.getFullYear(), String(yesterday.getMonth() + 1).padStart(2, "0"), String(yesterday.getDate()).padStart(2, "0")].join("-");
+  const key = threadDateKey(createdAt);
+
+  if (key === todayKey) {
+    return ts("labels.today");
+  }
+  if (key === yesterdayKey) {
+    return ts("labels.yesterday");
+  }
+
+  return new Intl.DateTimeFormat(language, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  }).format(date);
+}
+
+function groupThreadFeedEntries(entries: ThreadFeedEntry[], language: LanguageCode, ts: (key: string, fallback?: string) => string) {
+  const sorted = [...entries].sort((left, right) => Date.parse(left.createdAt) - Date.parse(right.createdAt));
+  const groups: Array<{ key: string; label: string; entries: ThreadFeedEntry[] }> = [];
+
+  for (const entry of sorted) {
+    const key = threadDateKey(entry.createdAt);
+    const label = formatThreadDayLabel(entry.createdAt, language, ts);
+    const last = groups[groups.length - 1];
+    if (last && last.key === key) {
+      last.entries.push(entry);
+      continue;
+    }
+
+    groups.push({ key, label, entries: [entry] });
+  }
+
+  return groups;
+}
+
+const ThreadStreamModal = memo(function ThreadStreamModal({
+  open,
+  theme,
+  title,
+  subtitle,
+  entries,
+  emptyLabel,
+  language,
+  ts,
+  onClose,
+}: {
+  open: boolean;
+  theme: ThemeColors;
+  title: string;
+  subtitle?: string | null;
+  entries: ThreadFeedEntry[];
+  emptyLabel: string;
+  language: LanguageCode;
+  ts: (key: string, fallback?: string) => string;
+  onClose: () => void;
+}) {
+  const canUsePortal = typeof document !== "undefined";
+  useBodyScrollLock(open && canUsePortal);
+
+  if (!open || !canUsePortal) {
+    return null;
+  }
+
+  const groups = groupThreadFeedEntries(entries, language, ts);
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[9999] grid min-h-dvh place-items-end overflow-hidden overscroll-none px-3 py-3 backdrop-blur-sm sm:place-items-center"
+      style={{
+        backgroundColor: "rgba(13, 23, 20, 0.56)",
+        paddingTop: "calc(max(var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)), 0.75rem) + 0.25rem)",
+        paddingBottom: "calc(max(var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)), 0.75rem) + 0.25rem)",
+      }}
+      onClick={onClose}
+    >
+      <section
+        role="dialog"
+        aria-modal="true"
+        className="w-full max-w-2xl overflow-y-auto overscroll-contain rounded-[2rem] border [-webkit-overflow-scrolling:touch] [touch-action:pan-y] shadow-[0_28px_90px_rgba(10,18,14,0.36)]"
+        style={{
+          borderColor: theme.borderStrong,
+          backgroundColor: theme.bgCard,
+          maxHeight: "calc(100svh - max(var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)), 0.75rem) - max(var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)), 0.75rem) - 1rem)",
+        }}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div
+          className="relative overflow-hidden border-b px-4 py-4 pr-16 sm:px-5 sm:py-5 sm:pr-16"
+          style={{
+            borderColor: theme.borderLight,
+            background: `linear-gradient(135deg, color-mix(in srgb, ${theme.bgCardElevated} 70%, white 30%), ${theme.bgCard}, color-mix(in srgb, ${theme.bgCardElevated} 84%, ${theme.accentGold} 16%))`,
+          }}
+        >
+          <div
+            className="absolute inset-0 opacity-90"
+            style={{
+              background: `radial-gradient(circle at 18% 18%, color-mix(in srgb, ${theme.accentGold} 18%, transparent), transparent 36%), radial-gradient(circle at 92% 0%, color-mix(in srgb, ${theme.primary} 10%, transparent), transparent 30%)`,
+            }}
+          />
+          <div className="relative">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] sm:text-xs" style={{ color: theme.accentGold }}>
+              {ts("labels.thread")}
+            </p>
+            <h2 className="mt-2 text-xl font-semibold tracking-tight leading-tight sm:text-2xl" style={{ color: theme.textPrimary }}>
+              {title}
+            </h2>
+            {subtitle ? (
+              <p className="mt-2 max-w-xl text-sm leading-6 sm:text-[0.95rem]" style={{ color: theme.textSecondary }}>
+                {subtitle}
+              </p>
+            ) : null}
+            <button
+              type="button"
+              onClick={onClose}
+              className="absolute right-0 top-0 grid size-11 shrink-0 place-items-center rounded-full border transition shadow-sm"
+              style={{
+                borderColor: theme.borderMedium,
+                backgroundColor: theme.bgInput,
+                color: theme.textPrimary,
+              }}
+              aria-label={ts("labels.close")}
+            >
+              <X size={16} />
+            </button>
+          </div>
+        </div>
+
+        <div className="space-y-5 p-4 sm:p-5">
+          {groups.length ? (
+            groups.map((group) => (
+              <div key={group.key} className="space-y-4">
+                <div className="flex justify-center">
+                  <span className="rounded-full border px-3.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                    {group.label}
+                  </span>
+                </div>
+                <div className="space-y-3.5">
+                  {group.entries.map((entry) => (
+                    <div key={entry.id} className={`flex ${entry.direction === "out" ? "justify-end" : "justify-start"}`}>
+                      <div className={`flex max-w-[92%] items-end gap-3 ${entry.direction === "out" ? "flex-row-reverse" : "flex-row"}`}>
+                        <AvatarCircle
+                          avatarUrl={entry.avatarUrl}
+                          seed={entry.avatarSeed}
+                          label={entry.name}
+                          size={28}
+                          className="size-7 shrink-0"
+                        />
+                        <div className="min-w-0">
+                          <div
+                            className="rounded-[1.25rem] border px-4 py-3"
+                            style={{
+                              borderColor: entry.direction === "out" ? theme.primary : theme.borderLight,
+                              backgroundColor: entry.direction === "out" ? theme.primary : theme.bgInput,
+                              color: entry.direction === "out" ? theme.textOnPrimary : theme.textPrimary,
+                            }}
+                          >
+                            {entry.title ? (
+                              <p className="text-[11px] font-semibold uppercase tracking-[0.12em]" style={{ color: entry.direction === "out" ? theme.textOnPrimary : theme.accentGold }}>
+                                {entry.title}
+                              </p>
+                            ) : null}
+                            <p className="mt-1.5 text-sm leading-6" style={{ color: entry.direction === "out" ? theme.textOnPrimary : theme.textPrimary }}>
+                              {entry.body}
+                            </p>
+                            {entry.note ? (
+                              <p className="mt-1.5 text-[11px] leading-4" style={{ color: entry.direction === "out" ? "rgba(255,255,255,0.84)" : theme.textSecondary }}>
+                                {entry.note}
+                              </p>
+                            ) : null}
+                          </div>
+                          <div className={`mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] uppercase tracking-[0.08em] ${entry.direction === "out" ? "justify-end" : "justify-start"}`} style={{ color: theme.textMuted }}>
+                            <span className="font-semibold" style={{ color: entry.direction === "out" ? theme.primary : theme.textSecondary }}>
+                              {entry.name}
+                            </span>
+                            <span>{formatThreadTimestamp(entry.createdAt, language)}</span>
+                            {entry.meta.map((meta) => (
+                              <span key={`${entry.id}:${meta}`} className="rounded-full border px-2 py-[2px] font-semibold tracking-[0.08em]" style={{ borderColor: theme.borderLight, color: theme.textMuted }}>
+                                {meta}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="rounded-[1.35rem] border border-dashed p-5 text-sm leading-6" style={{ borderColor: theme.borderMedium, color: theme.textSecondary }}>
+              {emptyLabel}
+            </div>
+          )}
+        </div>
+      </section>
+    </div>,
+    document.body
+  );
+});
 
 function CounselDecisionShareRail({
   theme,
@@ -27304,6 +27676,7 @@ function CounselVoiceCard({
   onRemoveCounselContact,
   onShareDecisionWithCounsel,
   onBulkShareDecisionsWithCounsel,
+  onOpenThread,
   showShareDecisions = false,
   stretch = false,
 }: {
@@ -27314,6 +27687,7 @@ function CounselVoiceCard({
   onRemoveCounselContact: (contactId: string) => void;
   onShareDecisionWithCounsel: (contactId: string, decisionId: string) => void;
   onBulkShareDecisionsWithCounsel: (contactId: string, decisionIds: string[]) => void;
+  onOpenThread: (contactId: string) => void;
   showShareDecisions?: boolean;
   stretch?: boolean;
 }) {
@@ -27399,6 +27773,21 @@ function CounselVoiceCard({
           })}
         </div>
       ) : null}
+
+      <div className="mt-3 flex items-center justify-between gap-2">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
+          {contact.recentShares?.length ? `${contact.recentShares.length} ${ts('labels.sharedProgress')}` : ts('labels.threadNoActivity')}
+        </span>
+        <button
+          type="button"
+          onClick={() => onOpenThread(contact.id)}
+          className="inline-flex h-9 items-center gap-1.5 rounded-full border px-3 text-[10px] font-semibold uppercase tracking-[0.12em] transition"
+          style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+        >
+          <MessageCircle size={12} />
+          {ts('labels.viewThread')}
+        </button>
+      </div>
 
       {showShareDecisions ? (
         <CounselDecisionShareRail
@@ -28145,6 +28534,7 @@ function DecisionCompanionPanel({
   const [counselAvatarStatus, setCounselAvatarStatus] = useState("");
   const [counselAvatarPickerOpen, setCounselAvatarPickerOpen] = useState(false);
   const [wisdomTimelineOpen, setWisdomTimelineOpen] = useState(false);
+  const [counselThreadContactId, setCounselThreadContactId] = useState<string | null>(null);
   const counselAvatarFileInputRef = useRef<HTMLInputElement | null>(null);
   const rhythmRailRef = useRef<HTMLDivElement | null>(null);
   const visibleCounselRailRef = useRef<HTMLDivElement | null>(null);
@@ -28167,6 +28557,24 @@ function DecisionCompanionPanel({
   const visibleCounselRailHasOverflow = useRailOverflow(visibleCounselRailRef, decisionSection === "counsel", [counselContacts.length]);
   const hiddenCounselRailHasOverflow = useRailOverflow(hiddenCounselRailRef, decisionSection === "counsel" && counselContacts.length > 3, [counselContacts.length]);
   const ruleRailHasOverflow = useRailOverflow(ruleRailRef, decisionSection === "rhythm", [modeRules.length]);
+  const selectedCounselThreadContact = counselThreadContactId
+    ? counselContacts.find((contact) => contact.id === counselThreadContactId) ?? null
+    : null;
+  const counselThreadEntries = selectedCounselThreadContact?.recentShares?.map((share) => {
+    const { statusLabel, note } = localizedCounselShareDeliveryCopy(share, ts);
+    return {
+      id: share.id,
+      createdAt: share.sharedAt,
+      title: share.title,
+      body: share.summary ?? ts("labels.sharedDecisionSummaryPending"),
+      direction: "out",
+      avatarUrl: selectedCounselThreadContact.avatarUrl ?? null,
+      avatarSeed: selectedCounselThreadContact.id,
+      name: selectedCounselThreadContact.name,
+      meta: [statusLabel].filter(Boolean),
+      note: note ?? null,
+    } satisfies ThreadFeedEntry;
+  }) ?? [];
   const visibleDecisionMemoryEntries = decisions.length > 0 ? decisions : process.env.NODE_ENV !== "production" ? buildQaRailSampleDecisionSeeds() : decisions;
   const decisionOverviewCards = [
     {
@@ -28261,6 +28669,21 @@ function DecisionCompanionPanel({
 
   return (
     <div className="min-w-0 space-y-4">
+      <ThreadStreamModal
+        open={Boolean(selectedCounselThreadContact)}
+        theme={theme}
+        title={selectedCounselThreadContact?.name ?? ts("labels.thread")}
+        subtitle={
+          selectedCounselThreadContact
+            ? `${localizedCounselRoleLabel(selectedCounselThreadContact.role, ts)} · ${selectedCounselThreadContact.recentShares?.length ?? 0} ${ts("labels.sharedProgress")}`
+            : null
+        }
+        entries={counselThreadEntries}
+        emptyLabel={ts("labels.threadNoActivity")}
+        language={language}
+        ts={ts}
+        onClose={() => setCounselThreadContactId(null)}
+      />
       <WisdomTimelineModal
         open={wisdomTimelineOpen}
         theme={theme}
@@ -28670,6 +29093,7 @@ function DecisionCompanionPanel({
                       onRemoveCounselContact={onRemoveCounselContact}
                       onShareDecisionWithCounsel={onShareDecisionWithCounsel}
                       onBulkShareDecisionsWithCounsel={onBulkShareDecisionsWithCounsel}
+                      onOpenThread={setCounselThreadContactId}
                       showShareDecisions
                       stretch
                     />
@@ -28695,6 +29119,7 @@ function DecisionCompanionPanel({
                           onRemoveCounselContact={onRemoveCounselContact}
                           onShareDecisionWithCounsel={onShareDecisionWithCounsel}
                           onBulkShareDecisionsWithCounsel={onBulkShareDecisionsWithCounsel}
+                          onOpenThread={setCounselThreadContactId}
                           showShareDecisions
                         />
                       ))}
@@ -28735,6 +29160,7 @@ function DecisionCompanionPanel({
                           onRemoveCounselContact={onRemoveCounselContact}
                           onShareDecisionWithCounsel={onShareDecisionWithCounsel}
                           onBulkShareDecisionsWithCounsel={onBulkShareDecisionsWithCounsel}
+                          onOpenThread={setCounselThreadContactId}
                         />
                       ))}
                     </div>

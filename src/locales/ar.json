@@ -475,6 +475,10 @@
     "challengeInviteNudgeSent": "تم إرسال التشجيع.",
     "challengeInviteNudgeNoSubscription": "{name} لا يملك إشعارات push مفعلة.",
     "challengeInviteNudgeNoCircleSubscription": "لا أحد في هذه الدائرة لديه إشعارات push مفعلة.",
+    "challengeInviteNudgeSentToPushService": "تم الإرسال إلى خدمة push.",
+    "challengeInviteNudgeOpened": "تم الفتح.",
+    "challengeInviteNudgePartial": "تم الإرسال جزئيًا.",
+    "challengeInviteNudgeDisabledPushSubscription": "اشتراك push معطّل.",
     "challengeInviteNudgeFailed": "تعذر إرسال التشجيع.",
     "restoringPreferences": "Restaurando preferencias…",
     "finishingSignInBody": "لحظة واحدة بينما تُظهر أليثيا حسابك.",
@@ -521,6 +525,9 @@
     "counselShareDelivered": "تم التسليم",
     "counselShareWaitingForAcceptance": "بانتظار القبول",
     "counselShareNoPushSubscription": "لا يوجد اشتراك في الإشعارات",
+    "counselShareSentToPushService": "تم الإرسال إلى خدمة push",
+    "counselShareOpened": "تم الفتح",
+    "counselShareDisabledPushSubscription": "اشتراك push معطّل",
     "counselSharePartial": "تم التسليم جزئيًا",
     "counselShareFailed": "فشل التسليم",
     "counselSharePushFailed": "فشل تسليم الإشعار"
@@ -2320,5 +2327,8 @@
   "apiNotConfigured": "لم يتم تكوين هذه الميزة بعد.",
   "apiInvalidSubscription": "اشتراك الإشعارات غير صالح.",
   "responseStreamingNotSupported": "تدفق الاستجابة غير مدعوم.",
-  "loading": "تحميل…"
+  "loading": "تحميل…",
+  "viewThread": "عرض المحادثة",
+  "thread": "المحادثة",
+  "threadNoActivity": "لا توجد أنشطة في هذه المحادثة بعد."
 }
