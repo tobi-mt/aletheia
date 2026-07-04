@@ -13075,6 +13075,7 @@ function scrollTargetBelowTopChrome(target: HTMLElement, behavior: ScrollBehavio
                         challengeRecommendation={null}
                         onOpenRecommendedChallenge={openRecommendedChallenge}
                         pendingChallengeId={pendingChallengeId}
+                        pendingGratitudeNotificationFocus={pendingGratitudeNotificationFocus}
                         pendingChallengeFocus={pendingChallengeFocus}
                         onClearPendingChallenge={() => {
                           setPendingChallengeId(null);
@@ -18006,23 +18007,56 @@ function FormationRailSection({
 
   useEffect(() => {
     const landing = pendingChallengeLandingRef.current;
-    if (!pendingChallengeId || !selectedChallengeId || !selectedCircle || !landing) {
+    if (!pendingChallengeId || !selectedChallengeId || !landing) {
       return;
     }
 
-    const timer = window.setTimeout(() => {
+    let settled = false;
+    const focusChallengeLanding = () => {
       if (landing === "nudges") {
-        nudgePanelRef.current?.scrollIntoView({ behavior: "auto", block: "start" });
-        window.setTimeout(() => {
-          nudgeComposerRef.current?.focus({ preventScroll: true });
-        }, 0);
+        if (selectedCircle) {
+          nudgePanelRef.current?.scrollIntoView({ behavior: "auto", block: "start" });
+          window.setTimeout(() => {
+            nudgeComposerRef.current?.focus({ preventScroll: true });
+          }, 0);
+          return Boolean(nudgeComposerRef.current);
+        }
+
+        const fallbackTarget = document.getElementById("challenge-nudges-card");
+        if (fallbackTarget) {
+          fallbackTarget.focus({ preventScroll: true });
+          scrollTargetBelowTopChrome(fallbackTarget);
+          return true;
+        }
       }
 
-      pendingChallengeLandingRef.current = null;
-      onClearPendingChallenge();
-    }, 0);
+      return false;
+    };
 
-    return () => window.clearTimeout(timer);
+    const timers = [0, 180, 720, 1400, 2600, 3600, 5200].map((delay) =>
+      window.setTimeout(() => {
+        if (settled) {
+          return;
+        }
+        const focused = focusChallengeLanding();
+        if (focused && delay >= 1400) {
+          settled = true;
+          pendingChallengeLandingRef.current = null;
+          onClearPendingChallenge();
+          return;
+        }
+        if (!focused && delay === 5200) {
+          settled = true;
+          pendingChallengeLandingRef.current = null;
+          onClearPendingChallenge();
+        }
+      }, delay)
+    );
+
+    return () => {
+      settled = true;
+      timers.forEach((timer) => window.clearTimeout(timer));
+    };
   }, [onClearPendingChallenge, pendingChallengeId, selectedChallengeId, selectedCircle]);
 
   useEffect(() => {
@@ -19640,7 +19674,12 @@ function FormationRailSection({
                             </div>
                           ) : (
                             <>
-                              <div className="flex items-start gap-3 rounded-[0.95rem] border px-3 py-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                              <div
+                                id="challenge-nudges-card"
+                                tabIndex={-1}
+                                className="flex items-start gap-3 rounded-[0.95rem] border px-3 py-2.5 outline-none"
+                                style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}
+                              >
                                 <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full border" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.primary }}>
                                   <Check size={11} />
                                 </span>
@@ -24650,6 +24689,7 @@ function DecisionMemoryArchiveSection({
                 <button
                   key={entry.id}
                   type="button"
+                  id={`decision-card-${entry.id}`}
                   onClick={() => setSelectedEntryId(entry.id)}
                   className="premium-tap-card relative flex min-h-[12.5rem] w-[15rem] shrink-0 snap-start flex-col overflow-hidden rounded-[1.4rem] border text-left shadow-[0_12px_28px_rgba(10,18,14,0.07)] transition active:scale-[0.995] sm:w-[16rem]"
                   style={{
@@ -29665,6 +29705,7 @@ function ReflectPanel({
   challengeRecommendation,
   onOpenRecommendedChallenge,
   pendingChallengeId,
+  pendingGratitudeNotificationFocus,
   pendingChallengeFocus,
   onClearPendingChallenge,
   challengeCircleRefreshKey,
@@ -29710,6 +29751,7 @@ function ReflectPanel({
   challengeRecommendation: ChallengeRecommendationBundle["primary"];
   onOpenRecommendedChallenge: (challengeId: string) => void;
   pendingChallengeId: string | null;
+  pendingGratitudeNotificationFocus: boolean;
   pendingChallengeFocus: "nudges" | null;
   onClearPendingChallenge: () => void;
   challengeCircleRefreshKey: number;
@@ -29745,7 +29787,17 @@ function ReflectPanel({
   const [reflectSection, setReflectSection] = useState<"check" | "gratitude" | "journal" | "formation">(
     pendingChallengeId ? "formation" : "check"
   );
-  const visibleReflectSection = pendingChallengeId ? "formation" : reflectSection;
+  const visibleReflectSection = pendingChallengeId
+    ? "formation"
+    : pendingGratitudeNotificationFocus
+      ? "gratitude"
+      : reflectSection;
+
+  useEffect(() => {
+    if (pendingGratitudeNotificationFocus) {
+      setReflectSection("gratitude");
+    }
+  }, [pendingGratitudeNotificationFocus]);
   const reflectOverviewCards = [
     {
       section: "check",

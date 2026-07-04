@@ -1,9 +1,11 @@
 import { BUILD_ID } from "@/lib/build-version";
 
 export const dynamic = "force-dynamic";
+const APP_BASE_URL = (process.env.NEXT_PUBLIC_APP_URL || process.env.AUTH_URL || "").trim().replace(/\/$/, "");
 
 const swScript = String.raw`
 const buildId = "__BUILD_ID__";
+const appBaseUrl = __APP_BASE_URL__;
 const CACHE_NAME = "aletheia-" + buildId;
 const MANIFEST_URL = "/manifest.webmanifest?v=" + encodeURIComponent(buildId);
 const APP_SHELL = [
@@ -127,7 +129,32 @@ self.addEventListener("push", (event) => {
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   const url = event.notification.data?.url || "/";
-  const targetUrl = new URL(url, self.location.origin).href;
+  const resolveTargetUrl = (rawUrl) => {
+    const preferredBase = appBaseUrl || self.location.origin || "/";
+    let preferredOrigin = null;
+    try {
+      preferredOrigin = new URL(preferredBase).origin;
+    } catch {
+      preferredOrigin = null;
+    }
+
+    try {
+      const directUrl = new URL(rawUrl || "/", self.location.origin);
+      if ((directUrl.protocol === "http:" || directUrl.protocol === "https:") && (!preferredOrigin || directUrl.origin === preferredOrigin)) {
+        return directUrl.href;
+      }
+    } catch {
+      // Fall back to the configured app base when the service worker origin is unusable.
+    }
+
+    try {
+      return new URL(rawUrl || "/", preferredBase).href;
+    } catch {
+      return new URL("/", preferredBase).href;
+    }
+  };
+
+  const targetUrl = resolveTargetUrl(url);
 
   event.waitUntil(
     Promise.allSettled([
@@ -186,12 +213,17 @@ self.addEventListener("notificationclick", (event) => {
 `;
 
 export async function GET() {
-  return new Response(swScript.replaceAll("__BUILD_ID__", BUILD_ID), {
-    headers: {
-      "Content-Type": "application/javascript; charset=utf-8",
-      "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
-      "Pragma": "no-cache",
-      "Expires": "0",
-    },
-  });
+  return new Response(
+    swScript
+      .replaceAll("__BUILD_ID__", BUILD_ID)
+      .replaceAll("__APP_BASE_URL__", JSON.stringify(APP_BASE_URL)),
+    {
+      headers: {
+        "Content-Type": "application/javascript; charset=utf-8",
+        "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "Pragma": "no-cache",
+        "Expires": "0",
+      },
+    }
+  );
 }
