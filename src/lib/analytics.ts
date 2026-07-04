@@ -97,9 +97,57 @@ type NotificationHealthSummary = {
   recommendedAction: "fix_vapid" | "check_cron" | "subscribe" | "resubscribe_or_send_test" | "none";
 };
 
+type AnalyticsPeriod = "daily" | "weekly" | "monthly" | "yearly";
+
+type TimeSeriesRow = {
+  bucket_start: string;
+  bucket_label: string;
+  events: number;
+  unique_people: number;
+  new_users: number;
+};
+
+type FeatureTrendRow = {
+  bucket_start: string;
+  bucket_label: string;
+  feature: string;
+  event_name: string;
+  actions: number;
+  unique_people: number;
+};
+
+type CohortBreakdownRow = {
+  cohort: string;
+  signups: number;
+  retained: number;
+  retention_pct: number;
+};
+
+type AnalyticsDateRange = {
+  startDate: string;
+  endDate: string;
+};
+
 const AUTOMATION_USER_AGENT_PATTERN =
   "headlesschrome|lighthouse|bot|spider|crawler|curl|wget|python-requests|uptime|monitor|playwright|puppeteer|selenium";
 const TEST_SOURCE_PATTERN = "test|qa|e2e|automation|playwright|cypress|loadtest|stress";
+
+const TIME_SERIES_CONFIG: Record<AnalyticsPeriod, { unit: "day" | "week" | "month" | "year"; points: number }> = {
+  daily: { unit: "day", points: 30 },
+  weekly: { unit: "week", points: 12 },
+  monthly: { unit: "month", points: 12 },
+  yearly: { unit: "year", points: 5 },
+};
+
+const CORE_FEATURE_MAP = [
+  { feature: "questions_asked", event_name: "question_asked" },
+  { feature: "mode_switches", event_name: "wisdom_mode_selected" },
+  { feature: "decisions_started", event_name: "decision_created" },
+  { feature: "reflections_saved", event_name: "journal_entry_created" },
+  { feature: "counsel_contacts", event_name: "counsel_contact_created" },
+  { feature: "notifications_enabled", event_name: "notification_enabled" },
+  { feature: "app_shares", event_name: "app_shared" },
+] as const;
 
 export type AnalyticsEventInput = {
   userId?: string | null;
@@ -133,6 +181,122 @@ function sanitizeMetadata(metadata: AnalyticsMetadata = {}) {
 
 function hasRegexMatch(value: string | null | undefined, regex: RegExp) {
   return typeof value === "string" && regex.test(value);
+}
+
+function utcDateString(date: Date) {
+  return date.toISOString().slice(0, 10);
+}
+
+function isValidDateString(value: string | undefined | null): value is string {
+  return Boolean(value && /^\d{4}-\d{2}-\d{2}$/.test(value));
+}
+
+function normalizeAnalyticsDateRange(options: { startDate?: string; endDate?: string } = {}): AnalyticsDateRange {
+  const today = utcDateString(new Date());
+  const defaultStart = utcDateString(new Date(Date.now() - 29 * 24 * 60 * 60 * 1000));
+  const candidateStart = isValidDateString(options.startDate) ? options.startDate : defaultStart;
+  const candidateEnd = isValidDateString(options.endDate) ? options.endDate : today;
+
+  return candidateStart <= candidateEnd
+    ? { startDate: candidateStart, endDate: candidateEnd }
+    : { startDate: candidateEnd, endDate: candidateStart };
+}
+
+function sqlDateLiteral(value: string) {
+  return `'${value}'`;
+}
+
+function buildTimeSeriesBounds(unit: "day" | "week" | "month" | "year", range: AnalyticsDateRange) {
+  return {
+    start: `date_trunc('${unit}', ${sqlDateLiteral(range.startDate)}::date)`,
+    end: `date_trunc('${unit}', ${sqlDateLiteral(range.endDate)}::date)`,
+    step: `interval '1 ${unit}'`,
+  };
+}
+
+function buildUsageTrendQuery(
+  period: AnalyticsPeriod,
+  range: AnalyticsDateRange,
+  trafficFilter: string
+) {
+  const { unit } = TIME_SERIES_CONFIG[period];
+  const { start, end, step } = buildTimeSeriesBounds(unit, range);
+
+  return `
+    WITH buckets AS (
+      SELECT generate_series(${start}::date, ${end}::date, ${step}) AS bucket_start
+    ),
+    activity AS (
+      SELECT date_trunc('${unit}', created_at) AS bucket_start,
+             COUNT(*)::int AS events,
+             COUNT(DISTINCT COALESCE(user_id, anon_id, session_id))::int AS unique_people
+      FROM analytics_events
+      WHERE created_at::date >= ${sqlDateLiteral(range.startDate)}::date
+        AND created_at::date <= ${sqlDateLiteral(range.endDate)}::date
+        AND ${trafficFilter}
+      GROUP BY 1
+    ),
+    signups AS (
+      SELECT date_trunc('${unit}', created_at) AS bucket_start,
+             COUNT(*)::int AS new_users
+      FROM users
+      WHERE created_at::date >= ${sqlDateLiteral(range.startDate)}::date
+        AND created_at::date <= ${sqlDateLiteral(range.endDate)}::date
+      GROUP BY 1
+    )
+    SELECT buckets.bucket_start::date::text AS bucket_start,
+           TO_CHAR(buckets.bucket_start, 'YYYY-MM-DD') AS bucket_label,
+           COALESCE(activity.events, 0)::int AS events,
+           COALESCE(activity.unique_people, 0)::int AS unique_people,
+           COALESCE(signups.new_users, 0)::int AS new_users
+    FROM buckets
+    LEFT JOIN activity ON activity.bucket_start = buckets.bucket_start
+    LEFT JOIN signups ON signups.bucket_start = buckets.bucket_start
+    ORDER BY buckets.bucket_start ASC`;
+}
+
+function buildFeatureTrendQuery(
+  period: AnalyticsPeriod,
+  range: AnalyticsDateRange,
+  trafficFilter: string
+) {
+  const { unit } = TIME_SERIES_CONFIG[period];
+  const { start, end, step } = buildTimeSeriesBounds(unit, range);
+  const featureValues = CORE_FEATURE_MAP.map(({ feature, event_name }) => `('${feature}', '${event_name}')`).join(",\n           ");
+
+  return `
+    WITH buckets AS (
+      SELECT generate_series(${start}::date, ${end}::date, ${step}) AS bucket_start
+    ),
+    feature_map(feature, event_name) AS (
+      VALUES
+           ${featureValues}
+    ),
+    activity AS (
+      SELECT date_trunc('${unit}', analytics_events.created_at) AS bucket_start,
+             feature_map.feature AS feature,
+             feature_map.event_name AS event_name,
+             COUNT(*)::int AS actions,
+             COUNT(DISTINCT COALESCE(analytics_events.user_id, analytics_events.anon_id, analytics_events.session_id))::int AS unique_people
+      FROM analytics_events
+      JOIN feature_map ON feature_map.event_name = analytics_events.event_name
+      WHERE analytics_events.created_at::date >= ${sqlDateLiteral(range.startDate)}::date
+        AND analytics_events.created_at::date <= ${sqlDateLiteral(range.endDate)}::date
+        AND ${trafficFilter}
+      GROUP BY 1, 2, 3
+    )
+    SELECT buckets.bucket_start::date::text AS bucket_start,
+           TO_CHAR(buckets.bucket_start, 'YYYY-MM-DD') AS bucket_label,
+           feature_map.feature,
+           feature_map.event_name,
+           COALESCE(activity.actions, 0)::int AS actions,
+           COALESCE(activity.unique_people, 0)::int AS unique_people
+    FROM buckets
+    CROSS JOIN feature_map
+    LEFT JOIN activity
+      ON activity.bucket_start = buckets.bucket_start
+     AND activity.feature = feature_map.feature
+    ORDER BY buckets.bucket_start ASC, feature_map.feature ASC`;
 }
 
 export function deriveTrafficLabel(input: {
@@ -202,9 +366,21 @@ export async function trackServerEvent(input: Omit<AnalyticsEventInput, "userAge
   });
 }
 
-export async function analyticsSummary(options: { includeAutomation?: boolean } = {}) {
+export async function analyticsSummary(
+  options: { includeAutomation?: boolean; startDate?: string; endDate?: string } = {}
+) {
   const includeAutomation = options.includeAutomation ?? false;
+  const dateRange = normalizeAnalyticsDateRange({ startDate: options.startDate, endDate: options.endDate });
+  const startDateSql = sqlDateLiteral(dateRange.startDate);
+  const endDateSql = sqlDateLiteral(dateRange.endDate);
+  const selectedDateFilter = `created_at::date >= ${startDateSql}::date AND created_at::date <= ${endDateSql}::date`;
   const trafficFilter = trafficFilterWhere(includeAutomation, "analytics_events");
+  const usageTrendPromises = (Object.keys(TIME_SERIES_CONFIG) as AnalyticsPeriod[]).map((period) =>
+    many<TimeSeriesRow>(buildUsageTrendQuery(period, dateRange, trafficFilter))
+  );
+  const featureTrendPromises = (Object.keys(TIME_SERIES_CONFIG) as AnalyticsPeriod[]).map((period) =>
+    many<FeatureTrendRow>(buildFeatureTrendQuery(period, dateRange, trafficFilter))
+  );
 
   const [
     overviewRows,
@@ -232,6 +408,9 @@ export async function analyticsSummary(options: { includeAutomation?: boolean } 
     authPromptReasonRows,
     authPromptCloseRows,
     authPromptDailyRows,
+    retentionMonthlyRows,
+    usageTrendRows,
+    featureTrendRows,
     notificationHealthRows,
   ] = await Promise.all([
     many<{ metric: string; value: number }>(
@@ -239,24 +418,24 @@ export async function analyticsSummary(options: { includeAutomation?: boolean } 
        UNION ALL
        SELECT 'active_sessions', COUNT(DISTINCT user_id)::int FROM sessions WHERE expires_at > now()
         UNION ALL
-        SELECT 'new_users_30d', COUNT(*)::int FROM users WHERE created_at >= now() - interval '30 days'
+       SELECT 'new_users_30d', COUNT(*)::int FROM users WHERE created_at::date >= ${startDateSql}::date AND created_at::date <= ${endDateSql}::date
        UNION ALL
        SELECT 'anonymous_devices_30d', COUNT(DISTINCT anon_id)::int FROM analytics_events
-          WHERE anon_id IS NOT NULL AND created_at >= now() - interval '30 days' AND ${trafficFilter}
+          WHERE anon_id IS NOT NULL AND ${selectedDateFilter} AND ${trafficFilter}
        UNION ALL
        SELECT 'identified_active_users_30d', COUNT(DISTINCT user_id)::int FROM analytics_events
-          WHERE user_id IS NOT NULL AND created_at >= now() - interval '30 days' AND ${trafficFilter}
+          WHERE user_id IS NOT NULL AND ${selectedDateFilter} AND ${trafficFilter}
        UNION ALL
-               SELECT 'events_24h', COUNT(*)::int FROM analytics_events WHERE created_at >= now() - interval '24 hours' AND ${trafficFilter}
+               SELECT 'events_24h', COUNT(*)::int FROM analytics_events WHERE ${selectedDateFilter} AND ${trafficFilter}
        UNION ALL
-               SELECT 'events_30d', COUNT(*)::int FROM analytics_events WHERE created_at >= now() - interval '30 days' AND ${trafficFilter}`
+               SELECT 'events_30d', COUNT(*)::int FROM analytics_events WHERE ${selectedDateFilter} AND ${trafficFilter}`
     ),
     many<{ event_name: string; count: number; unique_people: number }>(
       `SELECT event_name,
               COUNT(*)::int AS count,
               COUNT(DISTINCT COALESCE(user_id, anon_id))::int AS unique_people
        FROM analytics_events
-       WHERE created_at >= now() - interval '30 days'
+       WHERE ${selectedDateFilter}
          AND ${trafficFilter}
        GROUP BY event_name
        ORDER BY count DESC`
@@ -265,19 +444,19 @@ export async function analyticsSummary(options: { includeAutomation?: boolean } 
       `SELECT metadata->>'mode' AS mode, COUNT(*)::int AS count
        FROM analytics_events
        WHERE metadata->>'mode' IS NOT NULL
-         AND created_at >= now() - interval '30 days'
+         AND ${selectedDateFilter}
          AND ${trafficFilter}
        GROUP BY metadata->>'mode'
        ORDER BY count DESC`
     ),
     many<{ day: string; signups: number; active_people: number; events: number }>(
       `WITH days AS (
-         SELECT generate_series(current_date - interval '13 days', current_date, interval '1 day')::date AS day
+         SELECT generate_series(${startDateSql}::date, ${endDateSql}::date, interval '1 day')::date AS day
        ),
        signup_counts AS (
          SELECT created_at::date AS day, COUNT(DISTINCT id)::int AS signups
          FROM users
-         WHERE created_at::date >= current_date - interval '13 days'
+         WHERE ${selectedDateFilter}
          GROUP BY created_at::date
        ),
        event_counts AS (
@@ -285,7 +464,7 @@ export async function analyticsSummary(options: { includeAutomation?: boolean } 
                 COUNT(DISTINCT COALESCE(user_id, anon_id))::int AS active_people,
                 COUNT(*)::int AS events
          FROM analytics_events
-         WHERE created_at::date >= current_date - interval '13 days'
+         WHERE ${selectedDateFilter}
            AND ${trafficFilter}
          GROUP BY created_at::date
        )
@@ -303,7 +482,7 @@ export async function analyticsSummary(options: { includeAutomation?: boolean } 
          SELECT event_name,
                 COALESCE(user_id, anon_id, session_id) AS person_id
          FROM analytics_events
-         WHERE created_at >= now() - interval '30 days'
+         WHERE ${selectedDateFilter}
            AND ${trafficFilter}
        ),
        feature_map(feature, event_name) AS (
@@ -336,7 +515,7 @@ export async function analyticsSummary(options: { includeAutomation?: boolean } 
          SELECT event_name,
                 COALESCE(user_id, anon_id, session_id) AS person_id
          FROM analytics_events
-         WHERE created_at >= now() - interval '30 days'
+         WHERE ${selectedDateFilter}
            AND ${trafficFilter}
        ),
        funnel(stage, event_name, stage_order) AS (
@@ -365,7 +544,7 @@ export async function analyticsSummary(options: { includeAutomation?: boolean } 
               COUNT(*)::int AS count
        FROM analytics_events
        WHERE event_name = 'answer_feedback'
-         AND created_at >= now() - interval '30 days'
+         AND ${selectedDateFilter}
          AND ${trafficFilter}
          AND metadata->>'value' IS NOT NULL
        GROUP BY metadata->>'value'
@@ -377,7 +556,7 @@ export async function analyticsSummary(options: { includeAutomation?: boolean } 
               COUNT(DISTINCT COALESCE(user_id, anon_id, session_id))::int AS unique_people
        FROM analytics_events
        WHERE event_name = 'app_view_changed'
-         AND created_at >= now() - interval '30 days'
+         AND ${selectedDateFilter}
          AND ${trafficFilter}
          AND metadata->>'to_view' IS NOT NULL
        GROUP BY metadata->>'to_view'
@@ -389,7 +568,7 @@ export async function analyticsSummary(options: { includeAutomation?: boolean } 
               COUNT(DISTINCT COALESCE(user_id, anon_id, session_id))::int AS unique_people
        FROM analytics_events
        WHERE source IS NOT NULL
-         AND created_at >= now() - interval '30 days'
+         AND ${selectedDateFilter}
          AND ${trafficFilter}
        GROUP BY source
        ORDER BY count DESC`
@@ -400,7 +579,7 @@ export async function analyticsSummary(options: { includeAutomation?: boolean } 
               COUNT(DISTINCT COALESCE(user_id, anon_id, session_id))::int AS unique_people
        FROM analytics_events
        WHERE path IS NOT NULL
-         AND created_at >= now() - interval '30 days'
+         AND ${selectedDateFilter}
          AND ${trafficFilter}
        GROUP BY path
        ORDER BY count DESC
@@ -411,7 +590,7 @@ export async function analyticsSummary(options: { includeAutomation?: boolean } 
               COUNT(*)::int AS events,
               COUNT(DISTINCT COALESCE(user_id, anon_id, session_id))::int AS unique_people
        FROM analytics_events
-       WHERE created_at >= now() - interval '30 days'
+       WHERE ${selectedDateFilter}
          AND ${trafficFilter}
        GROUP BY EXTRACT(HOUR FROM created_at)
        ORDER BY hour_of_day_utc ASC`
@@ -422,7 +601,7 @@ export async function analyticsSummary(options: { includeAutomation?: boolean } 
                 id AS user_id,
                 created_at AS signup_at
          FROM users
-         WHERE created_at >= now() - interval '8 weeks'
+         WHERE ${selectedDateFilter}
        ),
        retention AS (
          SELECT signup_cohorts.cohort_week,
@@ -454,7 +633,7 @@ export async function analyticsSummary(options: { includeAutomation?: boolean } 
               COUNT(DISTINCT COALESCE(user_id, anon_id, session_id))::int AS unique_people
        FROM analytics_events
        WHERE event_name = 'auth_failure'
-         AND created_at >= now() - interval '30 days'
+         AND ${selectedDateFilter}
          AND ${trafficFilter}
        GROUP BY metadata->>'method', metadata->>'flow', metadata->>'category', metadata->>'reason'
        ORDER BY count DESC, unique_people DESC, method ASC, flow ASC, category ASC, reason ASC`
@@ -463,18 +642,18 @@ export async function analyticsSummary(options: { includeAutomation?: boolean } 
       `WITH questions AS (
          SELECT COALESCE(metadata->>'topic', 'unknown') AS topic,
                 COALESCE(user_id, anon_id, session_id) AS person_id
-         FROM analytics_events
-         WHERE event_name IN ('question_asked', 'chat_question_sent')
-           AND created_at >= now() - interval '30 days'
+       FROM analytics_events
+       WHERE event_name IN ('question_asked', 'chat_question_sent')
+           AND ${selectedDateFilter}
            AND ${trafficFilter}
        ),
        feedback AS (
          SELECT COALESCE(metadata->>'topic', 'unknown') AS topic,
                 COUNT(*) FILTER (WHERE metadata->>'value' IN ('helpful', 'mildly_helpful'))::int AS positive,
                 COUNT(*)::int AS total
-         FROM analytics_events
-         WHERE event_name = 'answer_feedback'
-           AND created_at >= now() - interval '30 days'
+        FROM analytics_events
+        WHERE event_name = 'answer_feedback'
+           AND ${selectedDateFilter}
            AND ${trafficFilter}
          GROUP BY COALESCE(metadata->>'topic', 'unknown')
        )
@@ -493,7 +672,7 @@ export async function analyticsSummary(options: { includeAutomation?: boolean } 
               COUNT(*) FILTER (WHERE metadata->>'decision_like' = 'true')::int AS decision_like_count
        FROM analytics_events
        WHERE event_name IN ('question_asked', 'chat_question_sent')
-         AND created_at >= now() - interval '30 days'
+         AND ${selectedDateFilter}
          AND ${trafficFilter}
        GROUP BY COALESCE(metadata->>'emotional_tone', 'unknown')
        ORDER BY count DESC`
@@ -504,7 +683,7 @@ export async function analyticsSummary(options: { includeAutomation?: boolean } 
               COUNT(*)::int AS count
        FROM analytics_events
        WHERE event_name = 'answer_feedback'
-         AND created_at >= now() - interval '30 days'
+         AND ${selectedDateFilter}
          AND ${trafficFilter}
        GROUP BY COALESCE(metadata->>'mode', 'unknown'), COALESCE(metadata->>'value', 'unknown')
        ORDER BY mode ASC, count DESC`
@@ -520,7 +699,7 @@ export async function analyticsSummary(options: { includeAutomation?: boolean } 
                 BOOL_OR(event_name = 'notification_enabled') AS notified,
                 BOOL_OR(event_name IN ('app_shared', 'share_started')) AS shared
          FROM analytics_events
-         WHERE created_at >= now() - interval '30 days'
+         WHERE ${selectedDateFilter}
            AND ${trafficFilter}
            AND COALESCE(user_id, anon_id, session_id) IS NOT NULL
          GROUP BY COALESCE(user_id, anon_id, session_id)
@@ -546,7 +725,7 @@ export async function analyticsSummary(options: { includeAutomation?: boolean } 
               COUNT(DISTINCT COALESCE(user_id, anon_id, session_id))::int AS unique_people
        FROM analytics_events
        WHERE event_name IN ('language_changed', 'question_asked', 'chat_question_sent')
-         AND created_at >= now() - interval '30 days'
+         AND ${selectedDateFilter}
          AND ${trafficFilter}
        GROUP BY COALESCE(metadata->>'language', 'unknown')
        ORDER BY unique_people DESC, count DESC`
@@ -557,7 +736,7 @@ export async function analyticsSummary(options: { includeAutomation?: boolean } 
               COUNT(DISTINCT COALESCE(user_id, anon_id, session_id))::int AS unique_people
        FROM analytics_events
        WHERE event_name = 'theme_changed'
-         AND created_at >= now() - interval '30 days'
+         AND ${selectedDateFilter}
          AND ${trafficFilter}
        GROUP BY COALESCE(metadata->>'theme', 'unknown')
        ORDER BY unique_people DESC, count DESC`
@@ -575,7 +754,7 @@ export async function analyticsSummary(options: { includeAutomation?: boolean } 
               COUNT(*)::int AS count,
               COUNT(DISTINCT COALESCE(user_id, anon_id, session_id))::int AS unique_people
        FROM analytics_events
-       WHERE created_at >= now() - interval '30 days'
+       WHERE ${selectedDateFilter}
          AND ${trafficFilter}
          AND event_name IN ('auth_failure', 'notification_enable_failed', 'error_seen', 'notification_daily_checked', 'disclosure_section_toggled', 'app_view_changed', 'pwa_install_prompt_available', 'app_update_refresh_landed')
        GROUP BY area
@@ -583,7 +762,7 @@ export async function analyticsSummary(options: { includeAutomation?: boolean } 
     ),
     many<{ day: string; healed: number; failed: number; attempts: number; success_rate: number }>(
       `WITH days AS (
-         SELECT generate_series(current_date - interval '13 days', current_date, interval '1 day')::date AS day
+         SELECT generate_series(${startDateSql}::date, ${endDateSql}::date, interval '1 day')::date AS day
        ),
        grouped AS (
          SELECT
@@ -591,7 +770,7 @@ export async function analyticsSummary(options: { includeAutomation?: boolean } 
            COUNT(*) FILTER (WHERE event_name = 'notification_self_healed')::int AS healed,
            COUNT(*) FILTER (WHERE event_name = 'notification_self_heal_failed')::int AS failed
          FROM analytics_events
-         WHERE created_at::date >= current_date - interval '13 days'
+         WHERE ${selectedDateFilter}
            AND ${trafficFilter}
            AND event_name IN ('notification_self_healed', 'notification_self_heal_failed')
          GROUP BY created_at::date
@@ -623,11 +802,11 @@ export async function analyticsSummary(options: { includeAutomation?: boolean } 
       cta_rate_pct: number;
       cta_per_shown_person_pct: number;
     }>(
-            `WITH events AS (
+        `WITH events AS (
           SELECT event_name,
             COALESCE(user_id, anon_id, session_id) AS person_id
           FROM analytics_events
-          WHERE created_at >= now() - interval '30 days'
+          WHERE ${selectedDateFilter}
             AND ${trafficFilter}
             AND event_name IN ('auth_prompt_shown', 'auth_prompt_dismissed', 'auth_prompt_cta_clicked', 'gate_hit_notifications')
         ),
@@ -637,7 +816,7 @@ export async function analyticsSummary(options: { includeAutomation?: boolean } 
                 BOOL_OR(event_name = 'auth_prompt_dismissed') AS dismissed,
                 BOOL_OR(event_name = 'auth_prompt_cta_clicked') AS clicked
          FROM analytics_events
-         WHERE created_at >= now() - interval '30 days'
+         WHERE ${selectedDateFilter}
            AND ${trafficFilter}
            AND event_name IN ('auth_prompt_shown', 'auth_prompt_dismissed', 'auth_prompt_cta_clicked')
            AND COALESCE(user_id, anon_id, session_id) IS NOT NULL
@@ -660,7 +839,7 @@ export async function analyticsSummary(options: { includeAutomation?: boolean } 
               COUNT(DISTINCT COALESCE(user_id, anon_id, session_id))::int AS unique_people
        FROM analytics_events
        WHERE event_name = 'auth_prompt_shown'
-         AND created_at >= now() - interval '30 days'
+         AND ${selectedDateFilter}
          AND ${trafficFilter}
        GROUP BY COALESCE(metadata->>'prompt_reason', 'unknown')
        ORDER BY shown_count DESC, unique_people DESC, prompt_reason ASC`
@@ -671,14 +850,14 @@ export async function analyticsSummary(options: { includeAutomation?: boolean } 
               COUNT(DISTINCT COALESCE(user_id, anon_id, session_id))::int AS unique_people
        FROM analytics_events
        WHERE event_name = 'auth_prompt_dismissed'
-         AND created_at >= now() - interval '30 days'
+         AND ${selectedDateFilter}
          AND ${trafficFilter}
        GROUP BY COALESCE(metadata->>'close_reason', 'unknown')
        ORDER BY dismissed_count DESC, unique_people DESC, close_reason ASC`
     ),
     many<{ day: string; shown_count: number; cta_count: number; cta_rate_pct: number }>(
       `WITH days AS (
-         SELECT generate_series(current_date - interval '13 days', current_date, interval '1 day')::date AS day
+         SELECT generate_series(${startDateSql}::date, ${endDateSql}::date, interval '1 day')::date AS day
        ),
        grouped AS (
          SELECT
@@ -686,7 +865,7 @@ export async function analyticsSummary(options: { includeAutomation?: boolean } 
            COUNT(*) FILTER (WHERE event_name = 'auth_prompt_shown')::int AS shown_count,
            COUNT(*) FILTER (WHERE event_name = 'auth_prompt_cta_clicked')::int AS cta_count
          FROM analytics_events
-         WHERE created_at::date >= current_date - interval '13 days'
+         WHERE ${selectedDateFilter}
            AND ${trafficFilter}
            AND event_name IN ('auth_prompt_shown', 'auth_prompt_cta_clicked')
          GROUP BY created_at::date
@@ -706,6 +885,37 @@ export async function analyticsSummary(options: { includeAutomation?: boolean } 
        LEFT JOIN grouped ON grouped.day = days.day
        ORDER BY days.day ASC`
     ),
+    many<CohortBreakdownRow>(
+      `WITH signup_cohorts AS (
+         SELECT date_trunc('month', created_at)::date AS cohort,
+                id AS user_id,
+                created_at AS signup_at
+         FROM users
+         WHERE ${selectedDateFilter}
+       ),
+       retention AS (
+         SELECT signup_cohorts.cohort,
+                signup_cohorts.user_id,
+                EXISTS (
+                  SELECT 1
+                  FROM analytics_events
+                  WHERE analytics_events.user_id = signup_cohorts.user_id
+                    AND analytics_events.created_at > signup_cohorts.signup_at
+                    AND analytics_events.created_at <= signup_cohorts.signup_at + interval '30 days'
+                    AND ${trafficFilter}
+                ) AS retained
+         FROM signup_cohorts
+       )
+       SELECT retention.cohort::text AS cohort,
+              COUNT(*)::int AS signups,
+              COUNT(*) FILTER (WHERE retention.retained)::int AS retained,
+              COALESCE(ROUND((100.0 * COUNT(*) FILTER (WHERE retention.retained) / NULLIF(COUNT(*), 0))::numeric, 1), 0)::double precision AS retention_pct
+       FROM retention
+       GROUP BY retention.cohort
+       ORDER BY retention.cohort ASC`
+    ),
+    Promise.all(usageTrendPromises),
+    Promise.all(featureTrendPromises),
     (async () => {
       const [snapshot, vapidStatus, lastDailyCheckedRows] = await Promise.all([
         getNotificationHealthSnapshot(),
@@ -762,6 +972,9 @@ export async function analyticsSummary(options: { includeAutomation?: boolean } 
     })(),
   ]);
 
+  const [usageDailyRows, usageWeeklyRows, usageMonthlyRows, usageYearlyRows] = usageTrendRows;
+  const [featureDailyRows, featureWeeklyRows, featureMonthlyRows, featureYearlyRows] = featureTrendRows;
+
   const funnelSorted = [...funnelRows].sort((a, b) => a.stage_order - b.stage_order);
   const firstStage = funnelSorted[0]?.unique_people ?? 0;
 
@@ -771,6 +984,18 @@ export async function analyticsSummary(options: { includeAutomation?: boolean } 
     modes30d: modeRows.filter((row) => row.mode),
     daily14d: dailyRows,
     features30d: featureRows,
+    featureUsageTrends: {
+      daily: featureDailyRows,
+      weekly: featureWeeklyRows,
+      monthly: featureMonthlyRows,
+      yearly: featureYearlyRows,
+    },
+    usageTrends: {
+      daily: usageDailyRows,
+      weekly: usageWeeklyRows,
+      monthly: usageMonthlyRows,
+      yearly: usageYearlyRows,
+    },
     funnel30d: funnelSorted.map((stage, index) => {
       const previous = index > 0 ? funnelSorted[index - 1]?.unique_people ?? 0 : stage.unique_people;
       const fromPrevious = previous > 0 ? Number(((stage.unique_people / previous) * 100).toFixed(1)) : 0;
@@ -783,10 +1008,22 @@ export async function analyticsSummary(options: { includeAutomation?: boolean } 
     }),
     feedback30d: feedbackRows,
     views30d: viewRows,
+    topScreens30d: viewRows,
     acquisitionSources30d: sourceRows,
     paths30d: pathRows,
     hourlyUsage30d: hourlyRows,
     retentionWeekly: retentionRows,
+    retentionMonthly: retentionMonthlyRows,
+    cohortBreakdowns: {
+      weekly: retentionRows.map((row) => ({
+        cohort: row.cohort_week,
+        signups: row.signups,
+        retained: row.retained_7d,
+        retention_pct: row.retention_7d_pct,
+      })),
+      monthly: retentionMonthlyRows,
+    },
+    selectedRange: dateRange,
     authFailures30d: authFailureRows,
     topics30d: topicRows,
     emotionalTones30d: emotionRows,
