@@ -27921,7 +27921,6 @@ function CounselDecisionShareRail({
 }) {
   const shareRailRef = useRef<HTMLDivElement | null>(null);
   const shareRailHasOverflow = useRailOverflow(shareRailRef, decisions.length > 1, [decisions.length, selectedContactId]);
-  const selectedContact = selectedContactId ? counselContacts.find((contact) => contact.id === selectedContactId) ?? null : null;
 
   if (!decisions.length) {
     return (
@@ -27932,18 +27931,8 @@ function CounselDecisionShareRail({
   }
 
   return (
-    <div className="mt-3 rounded-[1.25rem] border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <p className="min-w-0 text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
-          {ts('labels.shareDecisions')}
-        </p>
-        {selectedContact ? (
-          <span className="w-fit rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-            {selectedContact.name}
-          </span>
-        ) : null}
-      </div>
-      <div className="mt-3 flex min-w-0 snap-x gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    <div className="mt-3">
+      <div className="flex min-w-0 snap-x gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {counselContacts.map((contact) => {
           const active = contact.id === selectedContactId;
           return (
@@ -28946,38 +28935,6 @@ function DecisionCompanionPanel({
     ? counselContacts.find((contact) => contact.id === selectedShareContactId) ?? null
     : null;
   const visibleDecisionMemoryEntries = decisions.length > 0 ? decisions : process.env.NODE_ENV !== "production" ? buildQaRailSampleDecisionSeeds() : decisions;
-  const decisionOverviewCards = [
-    {
-      icon: Clock3,
-      label: ts('labels.activeDecisions'),
-      value: String(activeDecisions.length),
-      detail: activeDecisions.length ? (selectedDecision?.title ?? runtime.nextInDecisions) : runtime.decisionNextBodyEmpty,
-    },
-    {
-      icon: Sparkles,
-      label: ts('labels.daysDiscerning'),
-      value: String(insight.daysDiscerning),
-      detail: runtime.decisionNextBodyActive,
-    },
-    {
-      icon: ShieldCheck,
-      label: ts('labels.patternsNoticed'),
-      value: String(insight.patterns.length),
-      detail: insight.gentleObservation,
-    },
-    {
-      icon: Users,
-      label: ts('labels.trustedVoices'),
-      value: String(counselContacts.length),
-      detail: counselContacts.length ? ts('labels.counselCircleSummary') : ts('labels.inviteTrustedPeoplePrivate'),
-    },
-    {
-      icon: FileText,
-      label: ts('labels.eventsRecorded'),
-      value: String(events.length),
-      detail: insight.gentleObservation,
-    },
-  ];
   const rhythmRailHasOverflow = useRailOverflow(rhythmRailRef, decisionSection === "rhythm", [modeRules.length]);
 
   async function optimizeCounselAvatarFile(file: File): Promise<string> {
@@ -29115,51 +29072,79 @@ function DecisionCompanionPanel({
             body={decisionNextBodyWithFocus}
             theme={theme}
           />
-          <button
-            type="button"
-            onClick={() => setWisdomTimelineOpen(true)}
-            className="relative w-full overflow-hidden rounded-[1.5rem] border px-4 py-4 text-left shadow-[0_10px_24px_rgba(7,10,8,0.06)] transition active:scale-[0.99]"
-            style={{
-              borderColor: theme.borderMedium,
-              background: `linear-gradient(135deg, color-mix(in srgb, ${theme.bgCard} 88%, ${theme.accentGold} 12%), ${theme.bgCard}, color-mix(in srgb, ${theme.bgCardElevated} 86%, ${theme.primary} 14%))`,
-            }}
-          >
-            <div
-              className="absolute inset-0 opacity-[0.28]"
-              style={{
-                background: `radial-gradient(circle at 18% 18%, color-mix(in srgb, ${theme.accentGold} 20%, transparent), transparent 36%), radial-gradient(circle at 100% 0%, color-mix(in srgb, ${theme.primary} 14%, transparent), transparent 30%)`,
-              }}
-            />
-            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
-              <div className="min-w-0">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
-                  {ts('labels.wisdomTimeline')}
-                </p>
-                <p className="mt-1 text-lg font-semibold leading-tight" style={{ color: theme.textPrimary }}>
-                  {ts('decisionTimeline.title')}
-                </p>
-                <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
-                  {events.length
-                    ? `${events.length} ${ts('labels.eventsRecorded')}`
-                    : ts('labels.startDecisionToBeginTimeline')}
-                </p>
-              </div>
-              <div
-                className="grid size-10 shrink-0 place-items-center self-start rounded-[1rem] border"
-                style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}
-                aria-hidden="true"
-              >
-                <Clock3 size={14} />
-              </div>
-            </div>
-          </button>
           <section
             aria-label={ts('labels.decisionMemory')}
-            className="flex min-w-0 snap-x gap-1.5 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]"
+            className="rounded-[1.35rem] border p-3.5 shadow-[0_8px_24px_rgba(15,23,42,0.05)] sm:p-4"
+            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}
           >
-            {decisionOverviewCards.map((card) => (
-              <DecisionOverviewRailStat key={card.label} {...card} theme={theme} />
-            ))}
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div className="min-w-0">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+                  {ts('labels.wisdomTimeline')}
+                </p>
+                <h2 className="mt-1.5 text-[1.08rem] min-[390px]:text-[1.14rem] min-[430px]:text-xl font-semibold leading-tight text-balance" style={{ color: theme.textPrimary }}>
+                  {ts('decisionTimeline.title')}
+                </h2>
+                <p className="mt-1.5 max-w-2xl text-sm leading-6 text-balance" style={{ color: theme.textSecondary }}>
+                  {events.length ? ts('labels.timelineReady') : ts('labels.startDecisionToBeginTimeline')}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setWisdomTimelineOpen(true)}
+                className="premium-tap-card h-10 shrink-0 rounded-full px-4 text-xs font-semibold"
+                style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+              >
+                {ts('labels.wisdomTimeline')}
+              </button>
+            </div>
+
+            <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+                  {ts('labels.activeDecisions')}
+                </p>
+                <p className="mt-1 text-2xl font-semibold leading-none" style={{ color: theme.textPrimary }}>
+                  {activeDecisions.length}
+                </p>
+                <p className="mt-1.5 text-xs leading-5" style={{ color: theme.textSecondary }}>
+                  {activeDecisions.length ? (selectedDecision?.title ?? runtime.nextInDecisions) : runtime.decisionNextBodyEmpty}
+                </p>
+              </div>
+              <div className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+                  {ts('labels.daysDiscerning')}
+                </p>
+                <p className="mt-1 text-2xl font-semibold leading-none" style={{ color: theme.textPrimary }}>
+                  {insight.daysDiscerning}
+                </p>
+                <p className="mt-1.5 text-xs leading-5" style={{ color: theme.textSecondary }}>
+                  {runtime.decisionNextBodyActive}
+                </p>
+              </div>
+              <div className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+                  {ts('labels.patternsNoticed')}
+                </p>
+                <p className="mt-1 text-2xl font-semibold leading-none" style={{ color: theme.textPrimary }}>
+                  {insight.patterns.length}
+                </p>
+                <p className="mt-1.5 text-xs leading-5" style={{ color: theme.textSecondary }}>
+                  {insight.gentleObservation}
+                </p>
+              </div>
+              <div className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+                  {ts('labels.trustedVoices')}
+                </p>
+                <p className="mt-1 text-2xl font-semibold leading-none" style={{ color: theme.textPrimary }}>
+                  {counselContacts.length}
+                </p>
+                <p className="mt-1.5 text-xs leading-5" style={{ color: theme.textSecondary }}>
+                  {counselContacts.length ? ts('labels.counselCircleSummary') : ts('labels.inviteTrustedPeoplePrivate')}
+                </p>
+              </div>
+            </div>
           </section>
         </>
       ) : null}
@@ -29168,20 +29153,17 @@ function DecisionCompanionPanel({
         {decisionSection === "decisions" ? (
           <>
             <section className="rounded-[1.35rem] border p-3.5 shadow-[0_8px_24px_rgba(15,23,42,0.05)] sm:p-4" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                 <div className="min-w-0">
                   <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.decisionCompanion')}</p>
                   <h2 className="mt-1.5 text-[1.08rem] min-[390px]:text-[1.14rem] min-[430px]:text-xl font-semibold leading-tight text-balance" style={{ color: theme.textPrimary }}>{runtime.decisionCompanionHeading}</h2>
-                  <div className="mt-1.5 max-w-2xl">
-                    <p className="text-sm leading-5 text-balance" style={{ color: theme.textSecondary }}>
-                      {runtime.decisionCompanionSub}
-                    </p>
+                  <div className="mt-2 inline-flex items-center rounded-full px-3 py-1.5 text-xs font-semibold" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                    {localizedModeLabel(modeProfile.label, language)}
                   </div>
                 </div>
-                <span className="w-fit shrink-0 self-start rounded-full px-3 py-2 text-xs font-semibold" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>{localizedModeLabel(modeProfile.label, language)}</span>
               </div>
 
-              <form onSubmit={onCreateDecision} className="mt-4 grid gap-2.5 xl:grid-cols-[1fr_1.2fr_auto]">
+              <form onSubmit={onCreateDecision} className="mt-4 grid gap-2.5 xl:grid-cols-[1fr_1.2fr]">
                 <input
                   value={title}
                   onChange={(event) => setTitle(event.target.value)}
@@ -29196,22 +29178,24 @@ function DecisionCompanionPanel({
                   style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
                   placeholder={ts('placeholders.decisionPressure')}
                 />
-                <select
-                  value={emotion}
-                  onChange={(event) => setEmotion(event.target.value)}
-                  className="min-h-10 rounded-lg border px-3 py-2 text-sm outline-none md:min-h-11 md:px-4 md:text-base"
-                  style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-                  aria-label={ts('labels.initialEmotion')}
-                >
-                  <option value="uncertain">{ts('emotion.uncertain')}</option>
-                  <option value="anxious">{ts('emotion.anxious')}</option>
-                  <option value="excited">{ts('emotion.excited')}</option>
-                  <option value="pressured">{ts('emotion.pressured')}</option>
-                  <option value="peaceful">{ts('emotion.peaceful')}</option>
-                </select>
-                <button className="h-10 rounded-lg px-4 text-sm font-semibold lg:col-span-full" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>
-                  {ts('labels.startDecisionMemory')}
-                </button>
+                <div className="grid gap-2.5 sm:grid-cols-[minmax(0,12rem)_auto] xl:col-span-full">
+                  <select
+                    value={emotion}
+                    onChange={(event) => setEmotion(event.target.value)}
+                    className="min-h-10 rounded-lg border px-3 py-2 text-sm outline-none md:min-h-11 md:px-4 md:text-base"
+                    style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                    aria-label={ts('labels.initialEmotion')}
+                  >
+                    <option value="uncertain">{ts('emotion.uncertain')}</option>
+                    <option value="anxious">{ts('emotion.anxious')}</option>
+                    <option value="excited">{ts('emotion.excited')}</option>
+                    <option value="pressured">{ts('emotion.pressured')}</option>
+                    <option value="peaceful">{ts('emotion.peaceful')}</option>
+                  </select>
+                  <button className="h-10 rounded-lg px-4 text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>
+                    {ts('labels.startDecisionMemory')}
+                  </button>
+                </div>
               </form>
 
               <DecisionMemoryArchiveSection
@@ -29222,7 +29206,7 @@ function DecisionCompanionPanel({
                 entries={visibleDecisionMemoryEntries}
               />
 
-              {counselContacts.length ? (
+              {counselContacts.length || sharedDecisionItems.length ? (
                 <section className="mt-5 rounded-[1.35rem] border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                     <div className="min-w-0">
@@ -29232,10 +29216,12 @@ function DecisionCompanionPanel({
                       <h3 className="mt-1 text-lg font-semibold" style={{ color: theme.textPrimary }}>
                         {selectedShareContact ? selectedShareContact.name : ts('labels.trustedVoices')}
                       </h3>
-                      <p className="mt-1.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
-                        {ts('labels.swipeForMore')}
-                      </p>
                     </div>
+                    {sharedDecisionItems.length ? (
+                      <span className="w-fit rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                        {sharedDecisionCount} {sharedDecisionCount === 1 ? ts('labels.decisionSingular') : ts('labels.decisionPlural')}
+                      </span>
+                    ) : null}
                   </div>
                   <CounselDecisionShareRail
                     theme={theme}
@@ -29248,66 +29234,56 @@ function DecisionCompanionPanel({
                     onToggleDecision={toggleSharedDecision}
                     onShareSelected={shareSelectedDecisions}
                   />
-                </section>
-              ) : null}
-
-              {sharedDecisionItems.length ? (
-                <section className="mt-5 rounded-[1.35rem] border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                    <div className="min-w-0">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
-                        {ts('labels.sharedProgress')}
-                      </p>
-                      <h3 className="mt-1 text-lg font-semibold" style={{ color: theme.textPrimary }}>
-                        {sharedDecisionCount} {sharedDecisionCount === 1 ? ts('labels.decisionSingular') : ts('labels.decisionPlural')}
-                      </h3>
-                      <p className="mt-1.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                  {sharedDecisionItems.length ? (
+                    <>
+                      <div className="my-4 h-px w-full" style={{ backgroundColor: theme.borderLight }} />
+                      <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>
                         {ts('labels.counselCircleSummaryShort')}
                       </p>
-                    </div>
-                  </div>
-                  <div className="mt-3 flex min-w-0 snap-x snap-mandatory gap-2.5 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                    {sharedDecisionItems.map(({ invite, decision }) => (
-                      <button
-                        key={`${invite.invite.contactId}:${decision.id}`}
-                        id={`decision-card-${decision.id}`}
-                        type="button"
-                        onClick={() => setSelectedSharedDecision({ invite, decision })}
-                        className="premium-tap-card flex w-[15rem] shrink-0 snap-start flex-col justify-between rounded-[1.25rem] border p-3 text-left transition duration-200 ease-out active:scale-[0.985] hover:-translate-y-0.5"
-                        style={{
-                          borderColor: theme.borderMedium,
-                          background: `linear-gradient(180deg, color-mix(in srgb, ${theme.bgCardElevated} 92%, ${theme.accentGold} 8%), ${theme.bgCard})`,
-                          boxShadow: `0 10px 22px color-mix(in srgb, ${theme.bgMain} 10%, transparent)`,
-                        }}
-                        aria-label={`${ts('labels.viewInvite')}: ${invite.invite.name} · ${decision.title}`}
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
-                              {localizedCounselRoleLabel(invite.invite.role, ts)}
+                      <div className="mt-3 flex min-w-0 snap-x snap-mandatory gap-2.5 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                        {sharedDecisionItems.map(({ invite, decision }) => (
+                          <button
+                            key={`${invite.invite.contactId}:${decision.id}`}
+                            id={`decision-card-${decision.id}`}
+                            type="button"
+                            onClick={() => setSelectedSharedDecision({ invite, decision })}
+                            className="premium-tap-card flex w-[15rem] shrink-0 snap-start flex-col justify-between rounded-[1.25rem] border p-3 text-left transition duration-200 ease-out active:scale-[0.985] hover:-translate-y-0.5"
+                            style={{
+                              borderColor: theme.borderMedium,
+                              background: `linear-gradient(180deg, color-mix(in srgb, ${theme.bgCardElevated} 92%, ${theme.accentGold} 8%), ${theme.bgCard})`,
+                              boxShadow: `0 10px 22px color-mix(in srgb, ${theme.bgMain} 10%, transparent)`,
+                            }}
+                            aria-label={`${ts('labels.viewInvite')}: ${invite.invite.name} · ${decision.title}`}
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+                                  {localizedCounselRoleLabel(invite.invite.role, ts)}
+                                </p>
+                                <p className="mt-1 text-sm font-semibold leading-5 line-clamp-3" style={{ color: theme.textPrimary }}>
+                                  {decision.title}
+                                </p>
+                                <p className="mt-0.5 text-[0.72rem] leading-4" style={{ color: theme.textMuted }}>
+                                  {invite.invite.name}
+                                </p>
+                              </div>
+                            </div>
+                            <p className="mt-3 line-clamp-3 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                              {decision.summary || ts('labels.sharedDecisionSummaryPending')}
                             </p>
-                            <p className="mt-1 text-sm font-semibold leading-5 line-clamp-3" style={{ color: theme.textPrimary }}>
-                              {decision.title}
-                            </p>
-                            <p className="mt-0.5 text-[0.72rem] leading-4" style={{ color: theme.textMuted }}>
-                              {invite.invite.name}
-                            </p>
-                          </div>
-                        </div>
-                        <p className="mt-3 line-clamp-3 text-sm leading-6" style={{ color: theme.textSecondary }}>
-                          {decision.summary || ts('labels.sharedDecisionSummaryPending')}
-                        </p>
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          <span className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textSecondary }}>
-                            {(isMode(decision.mode) ? ts(modeTranslationKey(decision.mode), decision.mode) : decision.mode) || ts('labels.decisionSingular')}
-                          </span>
-                          <span className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textSecondary }}>
-                            {ts('labels.readiness')} {decision.readiness}/100
-                          </span>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              <span className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textSecondary }}>
+                                {(isMode(decision.mode) ? ts(modeTranslationKey(decision.mode), decision.mode) : decision.mode) || ts('labels.decisionSingular')}
+                              </span>
+                              <span className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textSecondary }}>
+                                {ts('labels.readiness')} {decision.readiness}/100
+                              </span>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  ) : null}
                 </section>
               ) : null}
               <SharedDecisionDetailModal
@@ -29832,43 +29808,6 @@ function DecisionCompanionPanel({
         ) : null}
 
       </section>
-    </div>
-  );
-}
-
-function DecisionOverviewRailStat({
-  icon: Icon,
-  label,
-  value,
-  detail,
-  theme,
-}: {
-  icon: typeof Clock3;
-  label: string;
-  value: string;
-  detail: string;
-  theme: ThemeColors;
-}) {
-  const accessibleLabel = `${label}: ${value}. ${detail}`;
-
-  return (
-    <div
-      className="premium-tap-card relative flex min-h-[5.55rem] w-[10.9rem] shrink-0 snap-start flex-col justify-between overflow-hidden rounded-[0.92rem] border p-2.5 text-left shadow-[0_6px_14px_rgba(7,10,8,0.04)] sm:w-[11.75rem]"
-      style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}
-      aria-label={accessibleLabel}
-      title={accessibleLabel}
-    >
-      <div className="relative z-10 flex items-start justify-between gap-2">
-        <p className="min-w-0 text-[8.5px] font-semibold uppercase leading-4 tracking-[0.2em]" style={{ color: theme.accentGold }}>
-          {label}
-        </p>
-        <span className="grid size-7 shrink-0 place-items-center rounded-full border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-          <Icon size={14} />
-        </span>
-      </div>
-      <p className="relative z-10 mt-2 text-[1.72rem] font-semibold leading-none" style={{ color: theme.textPrimary }}>
-        {value}
-      </p>
     </div>
   );
 }
