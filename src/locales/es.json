@@ -2146,6 +2146,8 @@
     "reentryNote": "Ya estás en la mitad de esta práctica. Mantenga el ritmo con el día {nextDay}.",
     "communitySummaryTitle": "Actividad del círculo",
     "communitySummaryBody": "El progreso, los ánimos y los seguimientos aparecen aquí mientras avanza la práctica.",
+    "formationAutoSwitchedLabel": "Círculo activo seleccionado",
+    "formationAutoSwitchedBody": "Cambiamos al círculo con participantes para que la lista y los avisos sigan visibles.",
     "fastingCustom": {
       "title": "Práctica de ayuno",
       "description": "Un ayuno compartido con duración clara, una meta concreta y guía diaria.",

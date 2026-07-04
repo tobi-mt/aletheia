@@ -2146,6 +2146,8 @@
     "reentryNote": "Vous êtes déjà à mi-chemin de cette pratique. Gardez le rythme avec le jour {nextDay}.",
     "communitySummaryTitle": "Activité du cercle",
     "communitySummaryBody": "La progression, les encouragements et les suivis apparaissent ici au fil de la pratique.",
+    "formationAutoSwitchedLabel": "Cercle actif sélectionné",
+    "formationAutoSwitchedBody": "Nous avons basculé vers le cercle avec des participants afin de garder la liste et les rappels visibles.",
     "fastingCustom": {
       "title": "Pratique du jeûne",
       "description": "Un jeûne partagé avec une durée claire, un objectif précis et une guidance quotidienne.",

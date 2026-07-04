@@ -2146,6 +2146,8 @@
     "reentryNote": "O ti wa ni apakan tẹlẹ nipasẹ iṣe yii. Jeki ariwo naa lọ pẹlu ọjọ {nextDay}.",
     "communitySummaryTitle": "Iṣẹ́ ẹgbẹ́ ni kánkán",
     "communitySummaryBody": "Ilọsiwaju, ìmúnilọ́kànlẹ́, àti ìṣàyẹ̀wò máa hàn níbí bí ìṣe ṣe ń lọ.",
+    "formationAutoSwitchedLabel": "A yan ẹgbẹ́ tó ń ṣiṣẹ́",
+    "formationAutoSwitchedBody": "A yí padà sí ẹgbẹ́ tí ó ní àwọn olùkópa kí àtòjọ àti àwọn ìrántí lè máa hàn.",
     "fastingCustom": {
       "title": "Ìṣe ààwẹ̀",
       "description": "Ààwẹ̀ tí a pín pẹ̀lú ìwọ̀n àkókò kedere, àfojúsùn tó ye kedere, àti ìtọnisọna ojoojúmọ́.",

@@ -2146,6 +2146,8 @@
     "reentryNote": "Você já está no meio desta prática. Mantenha o ritmo com o dia {nextDay}.",
     "communitySummaryTitle": "Atividade do círculo",
     "communitySummaryBody": "O progresso, os incentivos e os acompanhamentos aparecem aqui enquanto a prática avança.",
+    "formationAutoSwitchedLabel": "Círculo ativo selecionado",
+    "formationAutoSwitchedBody": "Mudamos para o círculo com participantes para manter a lista e os avisos visíveis.",
     "fastingCustom": {
       "title": "Prática de jejum",
       "description": "Um jejum em grupo com duração clara, objetivo definido e orientação diária.",

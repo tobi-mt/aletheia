@@ -2219,6 +2219,8 @@
     "reentryNote": "You are already partway through this practice. Keep the rhythm going with day {nextDay}.",
     "communitySummaryTitle": "Circle activity at a glance",
     "communitySummaryBody": "Progress, nudges, and check-ins show up here as the practice moves.",
+    "formationAutoSwitchedLabel": "Active circle selected",
+    "formationAutoSwitchedBody": "We switched to the circle with participants so the roster and nudges stay visible.",
     "fastingCustom": {
       "title": "Fasting Practice",
       "description": "A shared fast with a clear length, a focused goal, and daily guidance.",

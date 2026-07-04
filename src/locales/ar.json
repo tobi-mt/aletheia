@@ -2146,6 +2146,8 @@
     "reentryNote": "أنت بالفعل في منتصف الطريق من خلال هذه الممارسة. حافظ على إيقاعك مع اليوم {nextDay}.",
     "communitySummaryTitle": "نشاط الدائرة",
     "communitySummaryBody": "يظهر التقدم والتنبيهات والمتابعات هنا مع استمرار الممارسة.",
+    "formationAutoSwitchedLabel": "تم اختيار الدائرة النشطة",
+    "formationAutoSwitchedBody": "انتقلنا إلى الدائرة التي تضم المشاركين حتى تبقى القائمة والتنبيهات ظاهرة.",
     "fastingCustom": {
       "title": "ممارسة الصوم",
       "description": "صوم مشترك بمدة واضحة وهدف محدد وتوجيه يومي.",

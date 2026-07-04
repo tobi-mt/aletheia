@@ -2153,6 +2153,8 @@
     "reentryNote": "Du bist bereits mitten in dieser Praxis. Halte den Rhythmus mit Tag {nextDay} aufrecht.",
     "communitySummaryTitle": "Kreisaktivität auf einen Blick",
     "communitySummaryBody": "Fortschritt, Anstöße und Rückmeldungen erscheinen hier, während die Praxis weitergeht.",
+    "formationAutoSwitchedLabel": "Aktiver Kreis ausgewählt",
+    "formationAutoSwitchedBody": "Wir haben zum Kreis mit Teilnehmenden gewechselt, damit Liste und Anstöße sichtbar bleiben.",
     "fastingCustom": {
       "title": "Fastenpraxis",
       "description": "Ein gemeinsames Fasten mit klarer Dauer, einem fokussierten Ziel und täglicher Orientierung.",

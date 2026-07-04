@@ -2146,6 +2146,8 @@
     "reentryNote": "Ị banyelarị site na omume a. Debe ụda ahụ n'ụbọchị {nextDay}.",
     "communitySummaryTitle": "Ọnọdụ okirikiri n’otu anya",
     "communitySummaryBody": "Ọganihu, mkpali, na nyocha na-apụta ebe a ka omume na-aga.",
+    "formationAutoSwitchedLabel": "Họrọ okirikiri na-arụ ọrụ",
+    "formationAutoSwitchedBody": "Anyị gbanwere gaa n’okirikiri nwere ndị sonyere ka ndepụta na ncheta nọgide na-ahụ anya.",
     "fastingCustom": {
       "title": "Omume ibu ọnụ",
       "description": "Ibu ọnụ a na-ekekọrịta nke nwere ogologo doro anya, ebumnuche kpọmkwem, na nduzi kwa ụbọchị.",

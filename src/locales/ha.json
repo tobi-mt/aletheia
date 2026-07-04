@@ -2146,6 +2146,8 @@
     "reentryNote": "Kun riga kun rabu ta wannan aikin. Ci gaba da zazzagewa tare da rana {nextDay}.",
     "communitySummaryTitle": "Ayyukan ƙungiya a taƙaice",
     "communitySummaryBody": "Ci gaba, ƙarfafawa, da dubawa sukan bayyana a nan yayin da aikin ke tafiya.",
+    "formationAutoSwitchedLabel": "An zaɓi ƙungiyar da ke aiki",
+    "formationAutoSwitchedBody": "Mun koma zuwa ƙungiyar da ke da mahalarta domin jerin sunaye da tunasarwa su kasance a bayyane.",
     "fastingCustom": {
       "title": "Aikin azumi",
       "description": "Azumi na tare tare da tsayayyen lokaci, manufa mai ma’ana, da jagorar kowace rana.",

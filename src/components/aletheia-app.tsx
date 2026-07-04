@@ -8617,10 +8617,7 @@ export function AletheiaApp() {
       events?: DecisionEvent[];
       insight?: TimelineInsight;
     };
-    const counselData = await readJsonOrFallback(
-      counselResponse.status === "fulfilled" ? counselResponse.value : null,
-      { contacts: [] as CounselContact[], receivedInvites: [] as CounselInvitePreview[] }
-    ) as CounselWorkspaceData;
+    const counselResponseValue = counselResponse.status === "fulfilled" ? counselResponse.value : null;
     const rulesData = await readJsonOrFallback(
       rulesResponse.status === "fulfilled" ? rulesResponse.value : null,
       { rules: [] as RuleOfLife[] }
@@ -8665,8 +8662,15 @@ export function AletheiaApp() {
     if (decisionsData.insight) {
       setTimelineInsight(decisionsData.insight);
     }
-    setCounselContacts(counselData.contacts ?? []);
-    setReceivedCounselInvites(counselData.receivedInvites ?? []);
+    if (counselResponseValue?.ok) {
+      try {
+        const counselData = (await counselResponseValue.json()) as CounselWorkspaceData;
+        setCounselContacts(counselData.contacts ?? []);
+        setReceivedCounselInvites(counselData.receivedInvites ?? []);
+      } catch {
+        // Keep the last known counsel roster if the payload cannot be parsed.
+      }
+    }
     setRulesOfLife(rulesData.rules ?? []);
     if (preferencesData.preferences) {
       setPreferences(preferencesData.preferences);
@@ -17407,7 +17411,7 @@ async function shareChallengeDayPostcard(challenge: ChallengeWithProgress, day: 
     : challenges;
 
   return (
-    <section ref={sectionRef} className="space-y-4">
+    <section ref={sectionRef} className="space-y-3.5">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
@@ -17711,20 +17715,29 @@ function FormationRailSection({
           fetch("/api/challenges", { cache: "no-store" }),
           fetch("/api/challenge-circles", { cache: "no-store" }),
         ]);
-        const challengeData = (await challengeResponse.json()) as { challenges?: ChallengeWithProgress[] };
-        const circleData = (await circleResponse.json()) as { circles?: ChallengeCircleSummary[] };
         if (cancelled) return;
-        if (challengeData.challenges) {
-          setChallenges(challengeData.challenges);
+        if (challengeResponse.ok) {
+          try {
+            const challengeData = (await challengeResponse.json()) as { challenges?: ChallengeWithProgress[] };
+            if (challengeData.challenges) {
+              setChallenges(challengeData.challenges);
+            }
+          } catch {
+            // Keep the current challenge list if the payload is malformed.
+          }
         }
-        if (circleData.circles) {
-          setChallengeCircles(circleData.circles);
+        if (circleResponse.ok) {
+          try {
+            const circleData = (await circleResponse.json()) as { circles?: ChallengeCircleSummary[] };
+            if (circleData.circles) {
+              setChallengeCircles(circleData.circles);
+            }
+          } catch {
+            // Keep the current circle list if the payload is malformed.
+          }
         }
       } catch {
-        if (!cancelled) {
-          setChallenges([]);
-          setChallengeCircles([]);
-        }
+        // Keep the last known lists instead of replacing them with empty state.
       }
     }
 
@@ -17846,7 +17859,20 @@ function FormationRailSection({
     recommendationSignals.primary?.challengeId ??
     displayChallenges[0]?.id ??
     null;
-  const selectedChallenge = displayChallenges.find((challenge) => challenge.id === effectiveSelectedChallengeId) ?? null;
+  const baseSelectedChallenge = displayChallenges.find((challenge) => challenge.id === effectiveSelectedChallengeId) ?? null;
+  const baseSelectedCircle = baseSelectedChallenge
+    ? [...challengeCircles]
+        .filter((circle) => circle.challengeId === baseSelectedChallenge.id)
+        .sort((a, b) => Date.parse(b.invite.createdAt) - Date.parse(a.invite.createdAt))[0] ?? null
+    : null;
+  const latestChallengeCircle = [...challengeCircles]
+    .sort((a, b) => Date.parse(b.invite.createdAt) - Date.parse(a.invite.createdAt))[0] ?? null;
+  const selectedChallenge = baseSelectedCircle
+    ? baseSelectedChallenge
+    : latestChallengeCircle
+      ? displayChallenges.find((challenge) => challenge.id === latestChallengeCircle.challengeId) ?? baseSelectedChallenge
+      : baseSelectedChallenge;
+  const formationAutoSwitched = Boolean(baseSelectedChallenge && selectedChallenge && selectedChallenge.id !== baseSelectedChallenge.id);
   const selectedCircle = selectedChallenge
     ? [...challengeCircles]
         .filter((circle) => circle.challengeId === selectedChallenge.id)
@@ -17997,7 +18023,7 @@ function FormationRailSection({
     }, 0);
 
     return () => window.clearTimeout(timer);
-  }, [onClearPendingChallenge, pendingChallengeId, selectedChallengeId, selectedCircle?.id]);
+  }, [onClearPendingChallenge, pendingChallengeId, selectedChallengeId, selectedCircle]);
 
   useEffect(() => {
     queueMicrotask(() => setSharedCircleNudgeRecipientId(null));
@@ -19182,7 +19208,7 @@ function FormationRailSection({
 
       {visibleChallengeCards.length ? (
         <>
-          <div className="formation-card-rail flex gap-4 overflow-x-auto px-1 pb-3 [-webkit-overflow-scrolling:touch] sm:px-0">
+          <div className="formation-card-rail flex gap-3.5 overflow-x-auto px-1 pb-2.5 [-webkit-overflow-scrolling:touch] sm:px-0">
             {visibleChallengeCards.map((challenge) => {
               const done = completedDaysFor(challenge);
               const circle = challengeCircles.find((item) => item.challengeId === challenge.id) ?? null;
@@ -19219,7 +19245,7 @@ function FormationRailSection({
                     setSelectedDayNumber(null);
                     setOpenDayDetailDay(null);
                   }}
-                  className="formation-card premium-tap-card relative flex w-[17rem] shrink-0 snap-start flex-col rounded-[1.45rem] border p-4 text-left shadow-[0_6px_14px_rgba(7,10,8,0.05)] transition active:scale-[0.99] sm:w-[18.25rem]"
+                  className="formation-card premium-tap-card relative flex w-[17rem] shrink-0 snap-start flex-col rounded-[1.45rem] border p-3.5 text-left shadow-[0_6px_14px_rgba(7,10,8,0.05)] transition active:scale-[0.99] sm:w-[18.25rem]"
                   style={{
                     borderColor: isActive ? theme.primary : theme.borderLight,
                     backgroundColor: isActive ? theme.bgCardElevated : theme.bgCard,
@@ -19245,10 +19271,10 @@ function FormationRailSection({
                       </span>
                     )}
                   </div>
-                  <p className="mt-3 line-clamp-1 text-[0.92rem] leading-6" style={{ color: theme.textSecondary }}>
+                  <p className="mt-2.5 line-clamp-1 text-[0.92rem] leading-6" style={{ color: theme.textSecondary }}>
                     {ts(challenge.descriptionKey, challenge.description)}
                   </p>
-                  <div className="mt-3.5 border-t pt-2" style={{ borderColor: theme.borderLight }}>
+                  <div className="mt-3 border-t pt-2" style={{ borderColor: theme.borderLight }}>
                     <div className="flex items-center justify-between gap-2 text-[11px] leading-5" style={{ color: theme.textMuted }}>
                       <span className="font-semibold" style={{ color: theme.textSecondary }}>
                         {isCustomizableCard ? ts("labels.customizePractice") : progressLabel}
@@ -19266,14 +19292,29 @@ function FormationRailSection({
           {selectedChallenge ? (
             <div className="grid gap-4 xl:grid-cols-[minmax(0,1.16fr)_minmax(300px,0.84fr)]">
               <article ref={selectedChallengeDetailRef} className="overflow-hidden rounded-[1.55rem] border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-                <div className="relative border-b p-4 sm:p-5" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
-                  <h3 className="text-xl font-semibold sm:text-[1.7rem]" style={{ color: theme.textPrimary }}>
+                <div className="relative border-b px-3.5 py-3.5 sm:px-4 sm:py-4" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
+                  <h3 className="text-[1.05rem] font-semibold leading-tight sm:text-[1.55rem]" style={{ color: theme.textPrimary }}>
                     {ts(selectedChallenge.titleKey, selectedChallenge.title)}
                   </h3>
-                  <p className="mt-2 text-sm leading-6 sm:text-[0.98rem] sm:leading-7" style={{ color: theme.textSecondary }}>
+                  <p className="mt-1.5 text-[0.95rem] leading-5 sm:text-[0.98rem] sm:leading-6" style={{ color: theme.textSecondary }}>
                     {ts(selectedChallenge.descriptionKey, selectedChallenge.description)}
                   </p>
-                  <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs leading-5" style={{ color: theme.textMuted }}>
+                  {formationAutoSwitched ? (
+                    <div className="mt-2.5 inline-flex max-w-full items-center gap-2 rounded-full border px-3 py-2 sm:mt-3 sm:rounded-[0.85rem] sm:items-start" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                      <span className="grid size-5 shrink-0 place-items-center rounded-full" style={{ backgroundColor: theme.bgInput, color: theme.primary }} aria-hidden="true">
+                        <Sparkles size={10} />
+                      </span>
+                      <div className="min-w-0">
+                        <p className="truncate text-[9px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
+                          {ts("challenges.formationAutoSwitchedLabel")}
+                        </p>
+                        <p className="mt-0.5 hidden text-[11px] leading-4 sm:block" style={{ color: theme.textSecondary }}>
+                          {ts("challenges.formationAutoSwitchedBody")}
+                        </p>
+                      </div>
+                    </div>
+                  ) : null}
+                  <div className="mt-3.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] leading-5" style={{ color: theme.textMuted }}>
                     <span className="font-semibold uppercase tracking-[0.08em]" style={{ color: theme.textSecondary }}>
                       {selectedChallenge.mode}
                     </span>
@@ -19287,13 +19328,13 @@ function FormationRailSection({
                     ) : null}
                   </div>
                   {readWithMeInviteDetails?.bookTitle ? (
-                    <p className="mt-4 text-sm leading-6 text-balance" style={{ color: theme.textSecondary }}>
+                    <p className="mt-3.5 text-sm leading-6 text-balance" style={{ color: theme.textSecondary }}>
                       {readWithMeInviteDetails.bookTitle}
                       {readWithMeDurationLabel ? ` · ${readWithMeDurationLabel}` : ""}
                       {readWithMeStartDate ? ` · ${readWithMeStartDate}` : ""}
                     </p>
                   ) : fastingInviteDetails ? (
-                    <p className="mt-4 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                    <p className="mt-3.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
                       {ts("challenges.fastingCustom.previewBody")}
                       {fastingDurationLabel ? ` · ${fastingDurationLabel}` : ""}
                       {fastingStartDate ? ` · ${fastingStartDate}` : ""}
@@ -19301,8 +19342,8 @@ function FormationRailSection({
                   ) : null}
                 </div>
 
-                <div className="space-y-4 p-4 sm:p-5">
-                  <section className="rounded-[1.35rem] border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                <div className="space-y-3.5 p-3.5 sm:p-4">
+                  <section className="rounded-[1.35rem] border p-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
                     <p className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
                       {ts("labels.currentlyActiveMode")}
                     </p>
@@ -19455,31 +19496,31 @@ function FormationRailSection({
 
               <aside className="space-y-3">
                 <div className="overflow-hidden rounded-[1.45rem] border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-                  <div className="border-b px-4 py-4" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
+                  <div className="border-b px-3.5 py-3.5 sm:px-4 sm:py-4" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
                           {ts("challenges.communityTitle")}
                         </p>
-                        <h3 className="mt-1.5 text-lg font-semibold" style={{ color: theme.textPrimary }}>
+                        <h3 className="mt-1 text-[1.02rem] font-semibold leading-tight sm:text-lg" style={{ color: theme.textPrimary }}>
                           {selectedCircle ? ts("challenges.communitySummaryTitle") : ts("challenges.noCommunityYet")}
                         </h3>
                       </div>
                     </div>
                     {selectedCircleInviteDetails?.bookTitle ? (
-                      <p className="mt-3 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                      <p className="mt-2.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
                         {selectedCircleInviteDetails.bookTitle}
                         {readWithMeDurationLabel ? ` · ${readWithMeDurationLabel}` : ""}
                         {readWithMeStartDate ? ` · ${readWithMeStartDate}` : ""}
                       </p>
                     ) : null}
-                    <p className="mt-3 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                    <p className="mt-2.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
                       {selectedCircle ? ts("challenges.communitySummaryBody") : ts("challenges.inviteFriendsBody")}
                     </p>
                   </div>
 
                   {selectedCircle ? (
-                    <div className="space-y-3 p-4">
+                    <div className="space-y-3 p-3.5 sm:p-4">
                       <ChallengeSharedProgressPanel
                         theme={theme}
                         ts={ts}
@@ -19544,7 +19585,7 @@ function FormationRailSection({
                       />
                     </div>
                   ) : (
-                    <div className="space-y-3 p-4">
+            <div className="space-y-2.5 p-3.5 sm:p-4">
                       <div className="overflow-hidden rounded-[1.25rem] border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
                         <div className="border-b px-4 py-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
                           <div className="flex items-start justify-between gap-3">
@@ -19587,7 +19628,7 @@ function FormationRailSection({
                             </button>
                           </div>
                         </div>
-                        <div className="space-y-2 p-4">
+                        <div className="space-y-2 p-3.5 sm:p-4">
                           {isReadWithMeChallenge || isFastingChallenge ? (
                             <div className="rounded-[0.95rem] border px-3 py-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
                               <p className="text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>
@@ -19923,11 +19964,17 @@ const ChallengeNudgeThread = memo(function ChallengeNudgeThread({
     .slice(Math.max(0, nudges.length - limit));
 
   if (thread.length === 0) {
-    return <p className="text-sm leading-6" style={{ color: theme.textMuted }}>{ts("challenges.noNudgesYet")}</p>;
+    return (
+      <div className="rounded-[0.95rem] border px-3 py-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+        <p className="text-xs leading-5" style={{ color: theme.textMuted }}>
+          {ts("challenges.noNudgesYet")}
+        </p>
+      </div>
+    );
   }
 
   return (
-    <div className={compact ? "space-y-2" : "space-y-3"}>
+    <div className={compact ? "space-y-2" : "space-y-2.5"}>
       {thread.map((nudge) => {
         const outgoing = nudge.senderUserId === currentUserId;
         const timeLabel = formatNudgeTimestamp(nudge.createdAt, language);
@@ -19956,30 +20003,30 @@ const ChallengeNudgeThread = memo(function ChallengeNudgeThread({
 
         return (
           <div key={nudge.id} className={`flex ${outgoing ? "justify-end" : "justify-start"}`}>
-            <div className={`flex max-w-[86%] items-end gap-2 ${outgoing ? "flex-row-reverse" : "flex-row"}`}>
+            <div className={`flex max-w-[84%] items-end gap-1.5 sm:gap-2 ${outgoing ? "flex-row-reverse" : "flex-row"}`}>
               {!outgoing ? (
                 <AvatarCircle
                   avatarUrl={nudge.senderAvatarUrl}
                   seed={nudge.senderUserId}
                   label={senderLabel}
-                  size={22}
-                  className="mb-0.5 size-[22px] shrink-0"
+                  size={20}
+                  className="mb-0.5 size-[20px] shrink-0"
                 />
               ) : null}
               <div className="min-w-0">
                 <div
-                  className="rounded-[1.15rem] border px-3 py-2.5 shadow-[0_1px_0_rgba(0,0,0,0.02)]"
+                  className="rounded-[1.05rem] border px-2.5 py-2 shadow-[0_1px_0_rgba(0,0,0,0.02)]"
                   style={{
                     borderColor: outgoing ? theme.primary : theme.borderLight,
                     backgroundColor: outgoing ? theme.primary : theme.bgInput,
                     color: outgoing ? theme.textOnPrimary : theme.textPrimary,
                   }}
                 >
-                  <p className="text-sm leading-6" style={{ color: outgoing ? theme.textOnPrimary : theme.textPrimary }}>
+                  <p className="text-[0.94rem] leading-5.5" style={{ color: outgoing ? theme.textOnPrimary : theme.textPrimary }}>
                     {nudge.body}
                   </p>
                 </div>
-                <div className={`mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] uppercase tracking-[0.08em] ${outgoing ? "justify-end" : "justify-start"}`} style={{ color: theme.textMuted }}>
+                <div className={`mt-1.25 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[9px] uppercase tracking-[0.08em] ${outgoing ? "justify-end" : "justify-start"}`} style={{ color: theme.textMuted }}>
                   <span className="font-semibold" style={{ color: outgoing ? theme.primary : theme.textPrimary }}>
                     {senderLabel}
                   </span>
@@ -20307,7 +20354,7 @@ const ChallengeNudgePanel = memo(function ChallengeNudgePanel({
   return (
     <div
       ref={panelRef}
-      className="nudge-composer-shell rounded-[1.1rem] border p-3.5"
+      className="nudge-composer-shell rounded-[1.1rem] border p-3"
       style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}
     >
       <div className="flex items-start justify-between gap-3">
@@ -20322,7 +20369,7 @@ const ChallengeNudgePanel = memo(function ChallengeNudgePanel({
         <button
           type="button"
           onClick={onOpenThread}
-          className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border px-3 text-[10px] font-semibold uppercase tracking-[0.12em] transition"
+          className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border px-3 text-[10px] font-semibold uppercase tracking-[0.12em] transition"
           style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
         >
           <MessageCircle size={12} />
@@ -20331,7 +20378,7 @@ const ChallengeNudgePanel = memo(function ChallengeNudgePanel({
       </div>
       {selectedCircleHasCurrentMember ? (
         <form
-          className="nudge-composer-shell__form mt-3.5 grid gap-3 rounded-[1rem] border p-3.5"
+          className="nudge-composer-shell__form mt-3 grid gap-2.5 rounded-[1rem] border p-2.5"
           style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}
           onSubmit={handleSubmit}
         >
@@ -20357,7 +20404,7 @@ const ChallengeNudgePanel = memo(function ChallengeNudgePanel({
                   onSharedCircleNudgeRecipientChange(null);
                   event.currentTarget.blur();
                 }}
-                className="inline-flex min-h-14 min-w-[10rem] snap-start items-center gap-3 rounded-[1.1rem] border px-3.5 py-2 text-left text-sm font-semibold transition"
+                className="inline-flex min-h-11 min-w-[10rem] snap-start items-center gap-3 rounded-[1.1rem] border px-2.5 py-2 text-left text-sm font-semibold transition"
                 style={{
                   borderColor: sharedCircleNudgeRecipientId === null ? theme.primary : theme.borderMedium,
                   backgroundColor: sharedCircleNudgeRecipientId === null ? theme.primary : theme.bgInput,
@@ -20382,7 +20429,7 @@ const ChallengeNudgePanel = memo(function ChallengeNudgePanel({
                     onSharedCircleNudgeRecipientChange(member.userId);
                     event.currentTarget.blur();
                   }}
-                  className="inline-flex min-h-14 min-w-[9.5rem] snap-start items-center gap-3 rounded-[1.1rem] border px-3.5 py-2 text-left text-sm font-semibold transition"
+                  className="inline-flex min-h-11 min-w-[9.5rem] snap-start items-center gap-3 rounded-[1.1rem] border px-2.5 py-2 text-left text-sm font-semibold transition"
                   style={{
                     borderColor: sharedCircleNudgeRecipientId === member.userId ? theme.primary : theme.borderMedium,
                     backgroundColor: sharedCircleNudgeRecipientId === member.userId ? theme.primary : theme.bgInput,
@@ -20418,7 +20465,7 @@ const ChallengeNudgePanel = memo(function ChallengeNudgePanel({
           <p className="text-[11px] leading-5" style={{ color: theme.textMuted }}>
             {ts("challenges.circleNudgeBody")}
           </p>
-          <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0 flex-1 text-[11px] leading-5" style={{ color: theme.textMuted }}>
               {statusLines.length ? (
                 <div className="space-y-0.5">
@@ -20439,7 +20486,7 @@ const ChallengeNudgePanel = memo(function ChallengeNudgePanel({
                 event.currentTarget.blur();
               }}
               disabled={sharedCircleNudgeBusy || sharedCircleNudgeDraft.trim().length === 0}
-              className="h-10 rounded-full px-4 text-sm font-semibold"
+              className="h-10 w-full rounded-full px-4 text-sm font-semibold sm:w-auto"
               style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
             >
               {sharedCircleNudgeBusy ? ts("labels.saving") : ts("challenges.sendNudgeButton")}
@@ -20447,7 +20494,7 @@ const ChallengeNudgePanel = memo(function ChallengeNudgePanel({
           </div>
         </form>
       ) : null}
-      <div className="mt-4">
+      <div className="mt-3.5">
         <ChallengeNudgeThread
           theme={theme}
           ts={ts}

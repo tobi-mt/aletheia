@@ -2146,6 +2146,8 @@
     "reentryNote": "Nasa kalagitnaan ka na ng pagsasanay na ito. Panatilihin ang ritmo sa araw na {nextDay}.",
     "communitySummaryTitle": "Aktibidad ng pangkat",
     "communitySummaryBody": "Lumilitaw dito ang progreso, mga himok, at mga check-in habang umuusad ang pagsasanay.",
+    "formationAutoSwitchedLabel": "Napiling aktibong grupo",
+    "formationAutoSwitchedBody": "Lumipat kami sa grupong may mga kalahok para manatiling kita ang listahan at mga paalala.",
     "fastingCustom": {
       "title": "Gawain ng pag-aayuno",
       "description": "Isang pinagsasaluhang pag-aayuno na may malinaw na haba, malinaw na layunin, at araw-araw na gabay.",
