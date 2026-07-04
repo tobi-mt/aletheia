@@ -1313,7 +1313,12 @@
     "responsiveNudges": "Hinweise",
     "openScripture": "Öffnen",
     "translationFallback": "Mit der nächstverfügbaren gemeinfreien Übersetzung angezeigt.",
-    "diagnostics": "Diagnose"
+    "diagnostics": "Diagnose",
+    "thread": "Thread",
+    "viewThread": "Thread anzeigen",
+    "threadNoActivity": "Noch keine Aktivitäten in diesem Thread.",
+    "notYet": "Noch nicht",
+    "sharedProgress": "Kreisfortschritt"
   },
   "personalizationNudgeTitle": "Möchtest du persönlicheren Rat?",
   "personalizationNudgeBody": "Füge ein Detail zu Geld, Arbeit oder Rhythmus hinzu.",

@@ -1312,7 +1312,12 @@
     "responsiveNudges": "Tunatarwa",
     "openScripture": "Buɗe",
     "translationFallback": "An nuna shi da fassarar yaren jama'a mafi kusa da ake da ita.",
-    "diagnostics": "Bincike"
+    "diagnostics": "Bincike",
+    "thread": "Zare",
+    "viewThread": "Duba zaren",
+    "threadNoActivity": "Babu wani aiki a cikin wannan zaren tukuna.",
+    "notYet": "Ba tukuna",
+    "sharedProgress": "Ci gaban ƙungiya"
   },
   "personalizationNudgeTitle": "Kana son shawara ta fi zama ta kanka?",
   "personalizationNudgeBody": "Ƙara bayani ɗaya game da kuɗi, aiki, ko tsarin rayuwa.",

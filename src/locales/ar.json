@@ -1312,7 +1312,12 @@
     "responsiveNudges": "تذكيرات",
     "openScripture": "فتح",
     "translationFallback": "معروض بأقرب ترجمة متاحة ضمن الملكية العامة.",
-    "diagnostics": "التشخيص"
+    "diagnostics": "التشخيص",
+    "thread": "المحادثة",
+    "viewThread": "عرض المحادثة",
+    "threadNoActivity": "لا توجد أنشطة في هذه المحادثة بعد.",
+    "notYet": "ليس بعد",
+    "sharedProgress": "تقدم الدائرة"
   },
   "personalizationNudgeTitle": "¿Quieres un consejo más personal?",
   "personalizationNudgeBody": "Agrega un detalle sobre dinero, trabajo o ritmo.",

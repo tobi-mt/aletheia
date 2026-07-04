@@ -1312,7 +1312,12 @@
     "responsiveNudges": "Àwọn ìránṣẹ́",
     "openScripture": "Ṣí",
     "translationFallback": "A fi hàn pẹ̀lú ìtumọ̀ olófin-òfin gbogbo tó súnmọ́ jù lọ tó wà.",
-    "diagnostics": "Awọn iwadii aisan"
+    "diagnostics": "Awọn iwadii aisan",
+    "thread": "Okun",
+    "viewThread": "Wo okun",
+    "threadNoActivity": "Ko si iṣẹ ṣiṣe ninu okun yii sibẹsibẹ.",
+    "notYet": "Kò tíì rí",
+    "sharedProgress": "Ilọsiwaju ẹgbẹ́"
   },
   "personalizationNudgeTitle": "Ṣe o fẹ́ ìmọ̀ràn tó mọ̀ ọ́ síi?",
   "personalizationNudgeBody": "Fi alaye kan kun nípa owó, iṣẹ́, tàbí ìlànà ìgbé-ayé.",

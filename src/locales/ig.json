@@ -1312,7 +1312,12 @@
     "responsiveNudges": "Ncheta",
     "openScripture": "Meghee",
     "translationFallback": "E gosipụtara ya na ntụgharị asụsụ ọha kacha nso dị.",
-    "diagnostics": "Nchọpụta nchọpụta"
+    "diagnostics": "Nchọpụta nchọpụta",
+    "thread": "Eriri",
+    "viewThread": "Lee eriri",
+    "threadNoActivity": "Enwebeghi ọrụ n'ime eriri a ugbu a.",
+    "notYet": "Ọ bụghị ugbu a",
+    "sharedProgress": "Ọganihu okirikiri"
   },
   "personalizationNudgeTitle": "Ị chọrọ ndụmọdụ ka ọ bụrụ nke onwe gị?",
   "personalizationNudgeBody": "Tinye otu nkọwa gbasara ego, ọrụ, ma ọ bụ rhythm ndụ.",

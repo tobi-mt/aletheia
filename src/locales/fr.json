@@ -1312,7 +1312,12 @@
     "responsiveNudges": "Rappels",
     "openScripture": "Ouvrir",
     "translationFallback": "Affiché avec la traduction libre de droits la plus proche disponible.",
-    "diagnostics": "Diagnostic"
+    "diagnostics": "Diagnostic",
+    "thread": "Fil",
+    "viewThread": "Voir le fil",
+    "threadNoActivity": "Aucune activité dans ce fil pour le moment.",
+    "notYet": "Pas encore",
+    "sharedProgress": "Progression du cercle"
   },
   "personalizationNudgeTitle": "Vous voulez un conseil plus personnel ?",
   "personalizationNudgeBody": "Ajoutez un détail sur l’argent, le travail ou le rythme.",

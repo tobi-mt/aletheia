@@ -399,7 +399,7 @@ const MANUAL_CONTEXT_STORAGE_KEY = "aletheia_manual_context";
 const THEME_STORAGE_KEY = "aletheia_theme_preference";
 const VOICE_STORAGE_KEY = "aletheia_selected_voice";
 const NOTIFICATION_TIMING_STORAGE_KEY = "aletheia_notification_timing";
-const COUNSEL_STATUS_TRACKING_KEY = "aletheia_counsel_status_tracking";
+const COUNSEL_ACCEPTANCE_TRACKING_KEY = "aletheia_counsel_acceptance_tracking";
 const CARRY_TODAY_STORAGE_KEY = "aletheia_carry_today";
 const SCRIPTURE_MEMORY_STORAGE_KEY = "aletheia_scripture_memory";
 const COUNSEL_INVITE_STORAGE_KEY = "aletheia_counsel_invite_token";
@@ -7274,6 +7274,19 @@ function getInitialHomeSection(): HomeSection {
   return "today";
 }
 
+function scrollTargetBelowTopChrome(target: HTMLElement, behavior: ScrollBehavior = "smooth") {
+  const topNav = document.querySelector(".app-top-nav");
+  const topOffset = topNav instanceof HTMLElement ? topNav.getBoundingClientRect().height + 18 : 112;
+  const targetRect = target.getBoundingClientRect();
+  const top = Math.max(0, window.scrollY + targetRect.top - topOffset);
+  const scrollingElement = document.scrollingElement ?? document.documentElement;
+  scrollingElement?.scrollTo({ top, behavior });
+  if (scrollingElement) {
+    scrollingElement.scrollTop = top;
+  }
+  window.scrollTo({ top, behavior });
+}
+
 export function AletheiaApp() {
   const [activeView, setActiveViewState] = useState<View>(() => getInitialActiveView());
   const [homeSection, setHomeSectionState] = useState<HomeSection>(() => getInitialHomeSection());
@@ -7428,6 +7441,7 @@ export function AletheiaApp() {
   const [counselInviteContactId, setCounselInviteContactId] = useState<string | null>(null);
   const [counselInviteStatus, setCounselInviteStatus] = useState("");
   const [counselInviteAuthOpen, setCounselInviteAuthOpen] = useState(false);
+  const counselInviteAuthGateTokenRef = useRef<string | null>(null);
   const [challengeInviteToken, setChallengeInviteToken] = useState<string | null>(null);
   const [challengeInvitePreview, setChallengeInvitePreview] = useState<ChallengeCircleSummary | null>(null);
   const [challengeInviteStatus, setChallengeInviteStatus] = useState("");
@@ -9138,6 +9152,25 @@ export function AletheiaApp() {
   }, [ts]);
 
   useEffect(() => {
+    if (!counselInviteToken || !counselInvitePreview || authStatus !== "guest" || user || counselInvitePreview.invite.status === "accepted") {
+      if (!counselInviteToken) {
+        counselInviteAuthGateTokenRef.current = null;
+      }
+      return;
+    }
+
+    if (counselInviteAuthGateTokenRef.current === counselInviteToken) {
+      return;
+    }
+
+    counselInviteAuthGateTokenRef.current = counselInviteToken;
+    setAuthError("");
+    setAuthNotice("");
+    setAuthMode("register");
+    setCounselInviteAuthOpen(true);
+  }, [authStatus, counselInvitePreview, counselInviteToken, user]);
+
+  useEffect(() => {
     let swCleanup: (() => void) | null = null;
     let cancelled = false;
 
@@ -9429,23 +9462,25 @@ export function AletheiaApp() {
 
   // Detect newly accepted counsel invites
   useEffect(() => {
-    if (counselContacts.length === 0 || wisdomDecisions.length === 0) {
+    if (counselContacts.length === 0) {
       return;
     }
     
-    const previousStatusJson = window.localStorage.getItem(COUNSEL_STATUS_TRACKING_KEY);
-    const previousStatus: Record<string, string> = previousStatusJson ? JSON.parse(previousStatusJson) : {};
+    const previousAcceptanceJson = window.localStorage.getItem(COUNSEL_ACCEPTANCE_TRACKING_KEY);
+    const previousAcceptance: Record<string, string> = previousAcceptanceJson ? JSON.parse(previousAcceptanceJson) : {};
     
     const newlyAccepted = counselContacts.filter(
-      (contact) => contact.inviteStatus === "accepted" && previousStatus[contact.id] === "pending"
+      (contact) => contact.inviteStatus === "accepted" && Boolean(contact.acceptedAt) && previousAcceptance[contact.id] !== contact.acceptedAt
     );
     
-    // Update tracked statuses
-    const currentStatus: Record<string, string> = {};
+    // Update tracked acceptance timestamps
+    const currentAcceptance: Record<string, string> = {};
     counselContacts.forEach((contact) => {
-      currentStatus[contact.id] = contact.inviteStatus;
+      if (contact.inviteStatus === "accepted" && contact.acceptedAt) {
+        currentAcceptance[contact.id] = contact.acceptedAt;
+      }
     });
-    window.localStorage.setItem(COUNSEL_STATUS_TRACKING_KEY, JSON.stringify(currentStatus));
+    window.localStorage.setItem(COUNSEL_ACCEPTANCE_TRACKING_KEY, JSON.stringify(currentAcceptance));
     
     // Show notification for first newly accepted contact
     if (newlyAccepted.length > 0) {
@@ -9721,19 +9756,6 @@ export function AletheiaApp() {
     document.body.scrollTop = 0;
     document.documentElement.scrollTop = 0;
     window.scrollTo({ top: 0, left: 0, behavior });
-  }
-
-function scrollTargetBelowTopChrome(target: HTMLElement, behavior: ScrollBehavior = "smooth") {
-    const topNav = document.querySelector(".app-top-nav");
-    const topOffset = topNav instanceof HTMLElement ? topNav.getBoundingClientRect().height + 18 : 112;
-    const targetRect = target.getBoundingClientRect();
-    const top = Math.max(0, window.scrollY + targetRect.top - topOffset);
-    const scrollingElement = document.scrollingElement ?? document.documentElement;
-    scrollingElement?.scrollTo({ top, behavior });
-    if (scrollingElement) {
-      scrollingElement.scrollTop = top;
-    }
-    window.scrollTo({ top, behavior });
   }
 
   function showView(view: View) {
@@ -12483,12 +12505,45 @@ function scrollTargetBelowTopChrome(target: HTMLElement, behavior: ScrollBehavio
     });
     const data = (await response.json()) as CounselInvitePreview | { error?: string };
     if (response.ok && isCounselInvitePreview(data)) {
-      setCounselInvitePreview(data);
-      setCounselInviteContactId(data.invite.contactId ?? null);
+      const firstSharedDecisionId = data.sharedDecisions[0]?.id ?? null;
       setCounselInviteStatus(ts('status.inviteAccepted'));
-      writeStoredCounselInviteToken(counselInviteToken);
-      writePersistedCounselInviteToken(counselInviteToken);
+      writeStoredCounselInviteToken(null);
+      writePersistedCounselInviteToken(null);
       setCounselInviteAuthOpen(false);
+      setCounselInviteToken(null);
+      setCounselInvitePreview(null);
+      setCounselInviteContactId(null);
+      setStatusMessage(ts('status.inviteAccepted'));
+      setActiveView("decisions", "counsel_invite_accepted");
+      if (firstSharedDecisionId) {
+        setPendingDecisionNotificationFocus(firstSharedDecisionId);
+      }
+      setReceivedCounselInvites((current) => {
+        const nextInvite = data;
+        const existingIndex = current.findIndex((invite) => invite.invite.contactId === nextInvite.invite.contactId);
+        if (existingIndex === -1) {
+          return [nextInvite, ...current];
+        }
+
+        return current.map((invite, index) =>
+          index === existingIndex
+            ? {
+                ...invite,
+                invite: { ...invite.invite, ...nextInvite.invite },
+                sharedDecisions: nextInvite.sharedDecisions,
+              }
+            : invite
+        );
+      });
+      announceWorkflow(
+        ts('status.inviteAccepted'),
+        ts('status.inviteAccepted'),
+        "success",
+        {
+          label: ts('nav.decisions'),
+          onClick: () => setActiveView("decisions"),
+        }
+      );
     } else {
       setCounselInviteStatus(resolveApiErrorMessage((data as { error?: string }).error, undefined, 'status.inviteNotAccepted'));
     }
@@ -13375,7 +13430,7 @@ function scrollTargetBelowTopChrome(target: HTMLElement, behavior: ScrollBehavio
           setAuthError("");
           setAuthNotice("");
           setCounselInviteAuthOpen(true);
-          setAuthMode("login");
+          setAuthMode("register");
         }}
         onCloseAuth={() => setCounselInviteAuthOpen(false)}
         onClose={() => {
@@ -20140,7 +20195,6 @@ const ChallengeInviteDetailsPanel = memo(function ChallengeInviteDetailsPanel({
       ? ts("challenges.fastingCustom.previewBody")
       : ts("challenges.readWithMeInviteDetailsBody")
     : ts("challenges.inviteFriendsBody");
-  const hasInviteActions = Boolean(selectedChallenge && (isReadWithMeChallenge || isFastingChallenge));
   const primaryLabel = selectedCircleInviteDetails
     ? inviteViewerExpanded
       ? ts("hideDetails")
@@ -20178,16 +20232,6 @@ const ChallengeInviteDetailsPanel = memo(function ChallengeInviteDetailsPanel({
               {inviteDetailsBody}
             </p>
           </div>
-          {hasInviteActions ? (
-            <button
-              type="button"
-              onClick={handlePrimaryAction}
-              className="shrink-0 rounded-full border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] transition"
-              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-            >
-              {primaryLabel}
-            </button>
-          ) : null}
         </div>
       </div>
 
@@ -20203,7 +20247,7 @@ const ChallengeInviteDetailsPanel = memo(function ChallengeInviteDetailsPanel({
           </div>
           {inviteViewerExpanded && inviteViewerInviteDetails ? (
             <div className="rounded-[0.95rem] border px-3 py-3" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
-              <div className="flex items-start justify-between gap-3">
+              <div className="relative flex items-start justify-between gap-3 pr-14 sm:pr-16">
                 <div className="min-w-0">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
                     {ts("labels.inviteDetails")}
@@ -20215,7 +20259,7 @@ const ChallengeInviteDetailsPanel = memo(function ChallengeInviteDetailsPanel({
                 <button
                   type="button"
                   onClick={onCloseInviteViewer}
-                  className="grid size-8 shrink-0 place-items-center rounded-full border transition"
+                  className="absolute right-0 top-0 grid size-8 shrink-0 place-items-center rounded-full border transition sm:right-0 sm:top-0"
                   style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
                   aria-label={ts("labels.closeInvite")}
                 >
@@ -20412,7 +20456,7 @@ const ChallengeNudgePanel = memo(function ChallengeNudgePanel({
           style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
         >
           <MessageCircle size={12} />
-          {ts("labels.viewThread")}
+          {ts("viewThread")}
         </button>
       </div>
       {selectedCircleHasCurrentMember ? (
@@ -22614,7 +22658,7 @@ function WelcomeAuthModal({
           maxHeight: "calc(100svh - 2rem)",
         }}
       >
-        <div className="flex items-start justify-between gap-3 border-b px-4 py-4 sm:px-5 sm:py-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+        <div className="relative flex items-start justify-between gap-3 border-b px-4 py-4 pr-14 sm:px-5 sm:py-5 sm:pr-16" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
           <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
               {ts("auth.welcome")}
@@ -22629,7 +22673,7 @@ function WelcomeAuthModal({
           <button
             type="button"
             onClick={onClose}
-            className="grid size-9 shrink-0 place-items-center rounded-full border transition"
+            className="absolute right-4 top-4 grid size-9 shrink-0 place-items-center rounded-full border transition sm:right-5 sm:top-5"
             style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
             aria-label={ts("labels.close")}
           >
@@ -22794,7 +22838,7 @@ function AvatarPickerModal({
           maxHeight: "calc(100svh - var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)) - var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)) - 1.5rem)",
         }}
       >
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="relative flex flex-col gap-3 pr-14 sm:flex-row sm:items-start sm:justify-between sm:pr-16">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('avatar.pickerEyebrow')}</p>
             <h2 id="avatar-picker-title" className="mt-1.5 text-lg font-semibold" style={{ color: theme.textPrimary }}>{title}</h2>
@@ -22803,7 +22847,7 @@ function AvatarPickerModal({
           <button
             type="button"
             onClick={onClose}
-            className="grid size-9 shrink-0 place-items-center rounded-full border transition"
+            className="absolute right-0 top-0 grid size-9 shrink-0 place-items-center rounded-full border transition sm:right-0 sm:top-0"
             style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
             aria-label={ts('avatar.closePicker')}
           >
@@ -22905,7 +22949,7 @@ function AvatarUploadTipsModal({
           maxHeight: "calc(100svh - var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)) - var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)) - 1.5rem)",
         }}
       >
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="relative flex flex-col gap-3 pr-14 sm:flex-row sm:items-start sm:justify-between sm:pr-16">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('avatar.photoTipsEyebrow')}</p>
             <h2 id="avatar-photo-tips-title" className="mt-1.5 text-lg font-semibold" style={{ color: theme.textPrimary }}>{ts('avatar.photoTipsTitle')}</h2>
@@ -22916,7 +22960,7 @@ function AvatarUploadTipsModal({
           <button
             type="button"
             onClick={onClose}
-            className="grid size-9 shrink-0 place-items-center rounded-full border transition"
+            className="absolute right-0 top-0 grid size-9 shrink-0 place-items-center rounded-full border transition sm:right-0 sm:top-0"
             style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
             aria-label={ts('avatar.closePhotoTips')}
           >
@@ -24236,7 +24280,7 @@ function DeleteAccountModal({
   return (
     <div className="fixed inset-0 z-[70] grid place-items-end overflow-hidden overscroll-none p-3 backdrop-blur-sm sm:place-items-center" style={{ backgroundColor: "rgba(13, 23, 20, 0.48)" }}>
       <section className="w-full max-w-lg max-h-[88vh] overflow-y-auto overscroll-contain rounded-3xl border p-4 [-webkit-overflow-scrolling:touch] [touch-action:pan-y] shadow-2xl sm:p-3.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
-          <div className="flex items-start justify-between gap-3">
+          <div className="relative flex items-start justify-between gap-3 pr-14 sm:pr-16">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.deleteAccount')}</p>
               <h2 className="mt-1.5 text-lg font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.deleteAccountTitle')}</h2>
@@ -24252,7 +24296,7 @@ function DeleteAccountModal({
             <button
               type="button"
               onClick={cancel}
-              className="grid size-9 shrink-0 place-items-center rounded-full border transition"
+              className="absolute right-0 top-0 grid size-9 shrink-0 place-items-center rounded-full border transition sm:right-0 sm:top-0"
               style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
               aria-label={ts('labels.close')}
             >
@@ -24354,7 +24398,7 @@ function ReportIssueModal({
   return (
     <div className="fixed inset-0 z-[70] grid place-items-end overflow-hidden overscroll-none p-3 backdrop-blur-sm sm:place-items-center" style={{ backgroundColor: "rgba(13, 23, 20, 0.48)" }}>
       <section className="max-h-[90vh] w-full max-w-lg overflow-y-auto overscroll-contain rounded-3xl border p-4 [-webkit-overflow-scrolling:touch] [touch-action:pan-y] shadow-2xl sm:p-3.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
-        <div className="flex items-start justify-between gap-3">
+        <div className="relative flex items-start justify-between gap-3 pr-14 sm:pr-16">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.reportIssueTitle')}</p>
             <h2 className="mt-1.5 text-lg font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.helpImproveAletheia')}</h2>
@@ -24365,7 +24409,7 @@ function ReportIssueModal({
           <button
             type="button"
             onClick={cancel}
-            className="grid size-9 shrink-0 place-items-center rounded-full border transition"
+            className="absolute right-0 top-0 grid size-9 shrink-0 place-items-center rounded-full border transition sm:right-0 sm:top-0"
             style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
             aria-label={ts('labels.close')}
           >
@@ -25260,7 +25304,7 @@ function CounselInviteModal({
   onGoogleSignIn: () => void;
   onAccept: () => void;
   onComment: (decisionId: string, body: string, contactId?: string | null) => void;
-  onRequestSignIn: () => void;
+  onRequestSignIn: (mode?: AuthMode) => void;
   onCloseAuth: () => void;
   onClose: () => void;
 }) {
@@ -25438,8 +25482,8 @@ function CounselInviteModal({
                       </a>
                     ) : null}
                     <RailButtonTray theme={theme} label={ts("auth.signInForSync")}>
-                      <button className="h-11 shrink-0 snap-start whitespace-nowrap rounded-full px-4 text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }} onClick={onRequestSignIn}>
-                        {ts("auth.signInForSync")}
+                      <button className="h-11 shrink-0 snap-start whitespace-nowrap rounded-full px-4 text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }} onClick={() => onRequestSignIn("register")}>
+                        {ts("auth.createNewAccount")}
                       </button>
                       {googleAuthAvailable ? (
                         <button className="h-11 shrink-0 snap-start whitespace-nowrap rounded-full border px-4 text-sm font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={onGoogleSignIn}>
@@ -26762,7 +26806,6 @@ function CompanionPanel({
                 ts={ts}
                 theme={theme}
                 exchange={currentExchange}
-                currentModeCard={currentModeCard}
                 preferences={preferences}
                 ui={ui}
                 isWorking={isWorking}
@@ -27572,7 +27615,7 @@ const ThreadStreamModal = memo(function ThreadStreamModal({
           />
           <div className="relative">
             <p className="text-[11px] font-semibold uppercase tracking-[0.22em] sm:text-xs" style={{ color: theme.accentGold }}>
-              {ts("labels.thread")}
+              {ts("thread")}
             </p>
             <h2 className="mt-2 text-xl font-semibold tracking-tight leading-tight sm:text-2xl" style={{ color: theme.textPrimary }}>
               {title}
@@ -27719,7 +27762,7 @@ function CounselDecisionShareRail({
             <button
               key={decision.id}
               type="button"
-              className="group flex w-[11.75rem] shrink-0 snap-start flex-col justify-between rounded-[1.15rem] border p-3 text-left transition duration-200 ease-out active:scale-[0.985] hover:-translate-y-0.5"
+              className="group flex w-[14.5rem] shrink-0 snap-start flex-col justify-between rounded-[1.15rem] border p-3 text-left transition duration-200 ease-out active:scale-[0.985] hover:-translate-y-0.5"
               style={{
                 borderColor: theme.borderLight,
                 background: `linear-gradient(180deg, color-mix(in srgb, ${theme.bgCardElevated} 96%, white 4%), ${theme.bgCard})`,
@@ -27734,7 +27777,7 @@ function CounselDecisionShareRail({
                 </span>
                 <Share2 size={13} style={{ color: theme.textMuted }} />
               </div>
-              <p className="mt-3 text-sm font-semibold leading-6 tracking-[-0.01em]" style={{ color: theme.textPrimary }}>
+              <p className="mt-3 line-clamp-3 text-sm font-semibold leading-6 tracking-[-0.01em]" style={{ color: theme.textPrimary }}>
                 {decision.title}
               </p>
             </button>
@@ -27780,7 +27823,7 @@ function CounselVoiceCard({
 }) {
   return (
     <div
-      className={`premium-tap-card relative flex min-h-[12.5rem] shrink-0 snap-start flex-col overflow-hidden rounded-[1.45rem] border p-4 ${stretch ? "w-full max-w-[18rem] sm:max-w-[20rem]" : "w-[14rem] sm:w-[15rem]"}`}
+      className={`premium-tap-card relative flex min-h-[13rem] shrink-0 snap-start flex-col overflow-hidden rounded-[1.25rem] border p-3.5 ${stretch ? "w-full max-w-[19rem] sm:max-w-[21rem]" : "w-[15.5rem] sm:w-[16.5rem]"}`}
       style={{
         borderColor: theme.borderMedium,
         background: `linear-gradient(180deg, color-mix(in srgb, ${theme.bgCardElevated} 94%, white 6%), ${theme.bgCard})`,
@@ -27823,35 +27866,30 @@ function CounselVoiceCard({
         </button>
       </div>
 
-      <div className="mt-3.5 flex flex-wrap gap-1.5 text-[0.64rem] font-semibold uppercase tracking-[0.1em]" style={{ color: theme.textSecondary }}>
-        {contact.canViewSummaries ? <span className="rounded-full px-2.5 py-1" style={{ backgroundColor: theme.bgInput }}>{ts('labels.summaries')}</span> : null}
-        {contact.canCommentOnDecisions ? <span className="rounded-full px-2.5 py-1" style={{ backgroundColor: theme.bgInput }}>{ts('labels.comments')}</span> : null}
-        {contact.canReceiveCheckins ? <span className="rounded-full px-2.5 py-1" style={{ backgroundColor: theme.bgInput }}>{ts('labels.checkIns')}</span> : null}
-      </div>
+      <p className="mt-3 text-[10px] leading-5" style={{ color: theme.textSecondary }}>
+        {[contact.canViewSummaries ? ts('labels.summaries') : null, contact.canCommentOnDecisions ? ts('labels.comments') : null, contact.canReceiveCheckins ? ts('labels.checkIns') : null].filter(Boolean).join(" · ")}
+      </p>
 
       {contact.recentShares?.length ? (
-        <div className="mt-3 space-y-2">
+        <div className="mt-2.5 space-y-1.5">
           {contact.recentShares.slice(0, 2).map((share) => {
             const { statusLabel, note } = localizedCounselShareDeliveryCopy(share, ts);
             return (
               <div
                 key={share.id}
-                className="rounded-[1rem] border px-3 py-2.5"
-                style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}
+                className="rounded-[0.9rem] px-2.5 py-2"
+                style={{ backgroundColor: theme.bgInput }}
               >
                 <div className="flex items-start justify-between gap-2">
-                  <p className="min-w-0 text-sm font-semibold leading-5 tracking-[-0.01em]" style={{ color: theme.textPrimary }}>
+                  <p className="min-w-0 text-[0.82rem] font-semibold leading-5 tracking-[-0.01em]" style={{ color: theme.textPrimary }}>
                     {share.title}
                   </p>
-                  <span
-                    className="shrink-0 rounded-full px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.12em]"
-                    style={{ backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}
-                  >
+                  <span className="shrink-0 text-[9px] font-semibold uppercase tracking-[0.08em]" style={{ color: theme.textMuted }}>
                     {statusLabel}
                   </span>
                 </div>
                 {note ? (
-                  <p className="mt-1 text-[11px] leading-4" style={{ color: theme.textSecondary }}>
+                  <p className="mt-0.5 text-[10px] leading-4" style={{ color: theme.textSecondary }}>
                     {note}
                   </p>
                 ) : null}
@@ -27861,18 +27899,18 @@ function CounselVoiceCard({
         </div>
       ) : null}
 
-      <div className="mt-3 flex items-center justify-between gap-2">
+      <div className="mt-2.5 flex items-center justify-between gap-2">
         <span className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
-          {contact.recentShares?.length ? `${contact.recentShares.length} ${ts('labels.sharedProgress')}` : ts('labels.threadNoActivity')}
+          {contact.recentShares?.length ? `${contact.recentShares.length} ${ts('sharedProgress')}` : ts('threadNoActivity')}
         </span>
         <button
           type="button"
           onClick={() => onOpenThread(contact.id)}
-          className="inline-flex h-9 items-center gap-1.5 rounded-full border px-3 text-[10px] font-semibold uppercase tracking-[0.12em] transition"
+          className="inline-flex h-8 items-center gap-1.5 rounded-full border px-2.5 text-[11px] font-medium transition"
           style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
         >
           <MessageCircle size={12} />
-          {ts('labels.viewThread')}
+          {ts('viewThread')}
         </button>
       </div>
 
@@ -27965,7 +28003,6 @@ function CurrentCounselCard({
   ts,
   theme,
   exchange,
-  currentModeCard,
   preferences,
   ui,
   isWorking,
@@ -27990,7 +28027,6 @@ function CurrentCounselCard({
   ts: (key: string, fallback?: string) => string;
   theme: ThemeColors;
   exchange: ConversationExchange;
-  currentModeCard: ModeCard;
   preferences: UserPreferences;
   ui: UiText;
   isWorking: boolean;
@@ -28025,7 +28061,7 @@ function CurrentCounselCard({
   const showDecisionActions = Boolean(question) && !isThinking;
   const answerText = exchange.answer.id === "welcome" ? text.welcomeCounsel! : exchange.answer.text;
   const lensLabel = exchangeModeProfile.displayLabel ?? exchange.mode;
-  const CurrentLensIcon = currentModeCard.icon;
+  const CurrentLensIcon = (modes.find((item) => item.label === exchange.mode) ?? modes[0]).icon;
 
   return (
     <section className="space-y-3">
@@ -28662,6 +28698,10 @@ function DecisionCompanionPanel({
       note: note ?? null,
     } satisfies ThreadFeedEntry;
   }) ?? [];
+  const sharedDecisionItems = receivedCounselInvites.flatMap((invite) =>
+    invite.sharedDecisions.map((decision) => ({ invite, decision }))
+  );
+  const sharedDecisionCount = sharedDecisionItems.length;
   const visibleDecisionMemoryEntries = decisions.length > 0 ? decisions : process.env.NODE_ENV !== "production" ? buildQaRailSampleDecisionSeeds() : decisions;
   const decisionOverviewCards = [
     {
@@ -28759,14 +28799,14 @@ function DecisionCompanionPanel({
       <ThreadStreamModal
         open={Boolean(selectedCounselThreadContact)}
         theme={theme}
-        title={selectedCounselThreadContact?.name ?? ts("labels.thread")}
+        title={selectedCounselThreadContact?.name ?? ts("thread")}
         subtitle={
           selectedCounselThreadContact
-            ? `${localizedCounselRoleLabel(selectedCounselThreadContact.role, ts)} · ${selectedCounselThreadContact.recentShares?.length ?? 0} ${ts("labels.sharedProgress")}`
+            ? `${localizedCounselRoleLabel(selectedCounselThreadContact.role, ts)} · ${selectedCounselThreadContact.recentShares?.length ?? 0} ${ts("sharedProgress")}`
             : null
         }
         entries={counselThreadEntries}
-        emptyLabel={ts("labels.threadNoActivity")}
+        emptyLabel={ts("threadNoActivity")}
         language={language}
         ts={ts}
         onClose={() => setCounselThreadContactId(null)}
@@ -28908,6 +28948,68 @@ function DecisionCompanionPanel({
                 language={language}
                 entries={visibleDecisionMemoryEntries}
               />
+
+              {sharedDecisionItems.length ? (
+                <section className="mt-5 rounded-[1.35rem] border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
+                        {ts('sharedProgress')}
+                      </p>
+                      <h3 className="mt-1 text-lg font-semibold" style={{ color: theme.textPrimary }}>
+                        {sharedDecisionCount} {sharedDecisionCount === 1 ? ts('labels.decisionSingular') : ts('labels.decisionPlural')}
+                      </h3>
+                      <p className="mt-1.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                        {ts('labels.counselCircleSummaryShort')}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-3 space-y-3">
+                    {sharedDecisionItems.map(({ invite, decision }) => (
+                      <button
+                        key={`${invite.invite.contactId}:${decision.id}`}
+                        id={`decision-card-${decision.id}`}
+                        type="button"
+                        onClick={() => onOpenReceivedCounselInvite(invite)}
+                        className="premium-tap-card w-full rounded-[1.2rem] border p-3.5 text-left transition active:scale-[0.995]"
+                        style={{
+                          borderColor: theme.borderMedium,
+                          background: `linear-gradient(180deg, color-mix(in srgb, ${theme.bgCardElevated} 92%, ${theme.accentGold} 8%), ${theme.bgCard})`,
+                        }}
+                        aria-label={`${ts('labels.viewInvite')}: ${invite.invite.name} · ${decision.title}`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+                        {ts('sharedProgress')}
+                            </p>
+                            <p className="mt-1 text-sm font-semibold leading-5" style={{ color: theme.textPrimary }}>
+                              {decision.title}
+                            </p>
+                            <p className="mt-0.5 text-[0.72rem] font-medium uppercase tracking-[0.14em] leading-4" style={{ color: theme.textMuted }}>
+                              {invite.invite.name} · {localizedCounselRoleLabel(invite.invite.role, ts)}
+                            </p>
+                          </div>
+                          <span className="shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                            {ts('labels.viewInvite')}
+                          </span>
+                        </div>
+                        <p className="mt-3 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                          {decision.summary || ts('labels.sharedDecisionSummaryPending')}
+                        </p>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <span className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textSecondary }}>
+                            {(isMode(decision.mode) ? ts(modeTranslationKey(decision.mode), decision.mode) : decision.mode) || ts('labels.decisionSingular')}
+                          </span>
+                          <span className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textSecondary }}>
+                            {ts('labels.readiness')} {decision.readiness}/100
+                          </span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </section>
+              ) : null}
             </section>
           </>
         ) : null}
@@ -29042,7 +29144,7 @@ function DecisionCompanionPanel({
                   <option value="advisor">{ts('labels.counselRoleAdvisor')}</option>
                   <option value="friend">{ts('labels.counselRoleFriend')}</option>
                 </select>
-                <div className="space-y-2 rounded-[1rem] border p-3 text-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
+                <div className="space-y-2 rounded-[1rem] border p-2.5 text-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
                   <PermissionToggle
                     checked={counselCanViewSummaries}
                     label={ts('labels.canViewSelectedDecisionSummaries')}
@@ -29059,12 +29161,72 @@ function DecisionCompanionPanel({
                     onChange={setCounselCanReceiveCheckins}
                   />
                 </div>
-                <p className="rounded-[1rem] border p-3 text-xs leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
+                <p className="text-[11px] leading-5" style={{ color: theme.textSecondary }}>
                   {ts('labels.privateChatsNeverVisible')}
                 </p>
-                <button className="h-10 rounded-full px-3 text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>
+                <button className="h-9 rounded-full px-3 text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>
                   {userSignedIn ? ts('labels.createPrivateInvite') : ts('labels.addLocally')}
                 </button>
+                {latestCounselInvite ? (
+                  <div className="space-y-2 rounded-[0.95rem] border px-2.5 py-2.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
+                      {ts('labels.shareInvite')}
+                    </p>
+                    <p className="text-sm font-semibold leading-5" style={{ color: theme.textPrimary }}>
+                      {ts('labels.inviteReadyFor')} {latestCounselInvite.name}
+                    </p>
+                    <p className="break-all text-[11px] leading-5" style={{ color: theme.textSecondary }}>
+                      {latestCounselInvite.url}
+                    </p>
+                    {counselContacts[0]?.name === latestCounselInvite.name && counselContacts[0]?.emailSent ? (
+                      <p className="inline-flex w-fit rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ backgroundColor: theme.bgCard, color: theme.primary }}>
+                        {ts('labels.emailSentPrivateLinkFallback')}
+                      </p>
+                    ) : null}
+                    <RailButtonTray theme={theme} label={ts('labels.shareInvite')}>
+                      <button
+                        className="h-9 shrink-0 snap-start whitespace-nowrap rounded-full border px-2.5 py-2 text-[11px] font-semibold"
+                        style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                        onClick={() => onShareCounselInvite("copy")}
+                        type="button"
+                      >
+                        {ts('labels.copyLink')}
+                      </button>
+                      <button
+                        className="h-9 shrink-0 snap-start whitespace-nowrap rounded-full px-2.5 py-2 text-[11px] font-semibold"
+                        style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                        onClick={() => onShareCounselInvite("native")}
+                        type="button"
+                      >
+                        {ts('labels.shareInvite')}
+                      </button>
+                      <button
+                        className="h-9 shrink-0 snap-start whitespace-nowrap rounded-full border px-2.5 py-2 text-[11px] font-semibold"
+                        style={{ borderColor: theme.borderMedium, color: theme.textPrimary }}
+                        onClick={() => onShareCounselInvite("email")}
+                        type="button"
+                      >
+                        {ts('labels.email')}
+                      </button>
+                      <button
+                        className="h-9 shrink-0 snap-start whitespace-nowrap rounded-full border px-2.5 py-2 text-[11px] font-semibold"
+                        style={{ borderColor: theme.borderMedium, color: theme.textPrimary }}
+                        onClick={() => onShareCounselInvite("sms")}
+                        type="button"
+                      >
+                        {ts('labels.sms')}
+                      </button>
+                      <button
+                        className="h-9 shrink-0 snap-start whitespace-nowrap rounded-full border px-2.5 py-2 text-[11px] font-semibold"
+                        style={{ borderColor: theme.borderMedium, color: theme.textPrimary }}
+                        onClick={() => onShareCounselInvite("whatsapp")}
+                        type="button"
+                      >
+                        {ts('labels.whatsApp')}
+                      </button>
+                    </RailButtonTray>
+                  </div>
+                ) : null}
               </form>
               <AvatarPickerModal
                 theme={theme}
@@ -29081,88 +29243,16 @@ function DecisionCompanionPanel({
                 }}
               />
 
-              <div className="mt-5 rounded-[1.35rem] border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
-                      {ts('labels.shareInvite')}
-                    </p>
-                    <h3 className="mt-1 text-lg font-semibold" style={{ color: theme.textPrimary }}>
-                      {latestCounselInvite ? `${ts('labels.inviteReadyFor')} ${latestCounselInvite.name}` : ts('labels.shareInvite')}
-                    </h3>
-                    <p className="mt-1.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
-                      {latestCounselInvite ? ts('labels.privateChatsNeverVisible') : ts('labels.counselCircleSummary')}
-                    </p>
-                  </div>
-                </div>
-                {latestCounselInvite ? (
-                  <div className="mt-3 rounded-[1rem] border p-3" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
-                    <p className="break-all text-xs leading-5" style={{ color: theme.textSecondary }}>{latestCounselInvite.url}</p>
-                    {counselContacts[0]?.name === latestCounselInvite.name && counselContacts[0]?.emailSent ? (
-                      <p className="mt-2 rounded-full px-2 py-1 text-xs font-semibold" style={{ backgroundColor: theme.bgCardElevated, color: theme.primary }}>
-                        {ts('labels.emailSentPrivateLinkFallback')}
-                      </p>
-                    ) : null}
-                    <RailButtonTray theme={theme} label={ts('labels.shareInvite')}>
-                      <button
-                        className="h-10 shrink-0 snap-start whitespace-nowrap rounded-full border px-3 py-2 text-xs font-semibold"
-                        style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-                        onClick={() => onShareCounselInvite("copy")}
-                        type="button"
-                      >
-                        {ts('labels.copyLink')}
-                      </button>
-                      <button
-                        className="h-10 shrink-0 snap-start whitespace-nowrap rounded-full px-3 py-2 text-xs font-semibold"
-                        style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
-                        onClick={() => onShareCounselInvite("native")}
-                        type="button"
-                      >
-                        {ts('labels.shareInvite')}
-                      </button>
-                      <button
-                        className="h-10 shrink-0 snap-start whitespace-nowrap rounded-full border px-3 py-2 text-xs font-semibold"
-                        style={{ borderColor: theme.borderMedium, color: theme.textPrimary }}
-                        onClick={() => onShareCounselInvite("email")}
-                        type="button"
-                      >
-                        {ts('labels.email')}
-                      </button>
-                      <button
-                        className="h-10 shrink-0 snap-start whitespace-nowrap rounded-full border px-3 py-2 text-xs font-semibold"
-                        style={{ borderColor: theme.borderMedium, color: theme.textPrimary }}
-                        onClick={() => onShareCounselInvite("sms")}
-                        type="button"
-                      >
-                        {ts('labels.sms')}
-                      </button>
-                      <button
-                        className="h-10 shrink-0 snap-start whitespace-nowrap rounded-full border px-3 py-2 text-xs font-semibold"
-                        style={{ borderColor: theme.borderMedium, color: theme.textPrimary }}
-                        onClick={() => onShareCounselInvite("whatsapp")}
-                        type="button"
-                      >
-                        {ts('labels.whatsApp')}
-                      </button>
-                    </RailButtonTray>
-                  </div>
-                ) : (
-                  <p className="mt-3 rounded-[1rem] border p-3 text-sm leading-6" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
-                    {ts('labels.privateChatsNeverVisible')}
-                  </p>
-                )}
-              </div>
-
               <div className="mt-4 rounded-[1.35rem] border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
                       {ts('labels.trustedVoices')}
                     </p>
-                    <h3 className="mt-1 text-lg font-semibold" style={{ color: theme.textPrimary }}>
+                    <h3 className="mt-0.5 text-[1rem] font-semibold leading-6" style={{ color: theme.textPrimary }}>
                       {visibleCounselContacts.length} {visibleCounselContacts.length === 1 ? ts('labels.trustedVoice') : ts('labels.trustedVoices')}
                     </h3>
-                    <p className="mt-1.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                    <p className="mt-1 text-[11px] leading-5" style={{ color: theme.textSecondary }}>
                       {hiddenCounselContacts.length
                         ? `${hiddenCounselContacts.length} ${hiddenCounselContacts.length === 1 ? ts('labels.moreTrustedVoice') : ts('labels.moreTrustedVoices')} ${ts('labels.stayCollapsedUntilNeeded')}`
                         : ts('labels.counselCircleSummary')}
@@ -29170,7 +29260,7 @@ function DecisionCompanionPanel({
                   </div>
                 </div>
                 {visibleCounselContacts.length === 1 && !hiddenCounselContacts.length ? (
-                  <div className="mt-3 flex justify-center">
+                  <div className="mt-2.5 flex justify-center">
                     <CounselVoiceCard
                       key={visibleCounselContacts[0].id}
                       theme={theme}
@@ -29188,14 +29278,14 @@ function DecisionCompanionPanel({
                 ) : (
                   <>
                     {visibleCounselRailHasOverflow ? (
-                      <div className="mt-4 flex justify-end text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: railText.railMuted }}>
+                      <div className="mt-3 flex justify-end text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: railText.railMuted }}>
                         <span className="inline-flex items-center gap-1">
                           <span>{ts('labels.swipeForMore')}</span>
                           <span aria-hidden="true">→</span>
                         </span>
                       </div>
                     ) : null}
-                    <div ref={visibleCounselRailRef} className="mt-2 flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
+                    <div ref={visibleCounselRailRef} className="mt-2 flex min-w-0 snap-x snap-mandatory gap-2.5 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
                       {visibleCounselContacts.map((contact) => (
                         <CounselVoiceCard
                           key={contact.id}
@@ -29217,26 +29307,26 @@ function DecisionCompanionPanel({
                   <div className="mt-4 rounded-[1.35rem] border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
                           {ts('labels.moreCounselOptions')}
                         </p>
-                        <h3 className="mt-1 text-lg font-semibold" style={{ color: theme.textPrimary }}>
+                        <h3 className="mt-0.5 text-[1rem] font-semibold leading-6" style={{ color: theme.textPrimary }}>
                           {hiddenCounselContacts.length} {hiddenCounselContacts.length === 1 ? ts('labels.moreTrustedVoice') : ts('labels.moreTrustedVoices')}
                         </h3>
-                        <p className="mt-1.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                        <p className="mt-1 text-[11px] leading-5" style={{ color: theme.textSecondary }}>
                           {ts('labels.counselCircleSummary')}
                         </p>
                       </div>
                     </div>
                     {hiddenCounselRailHasOverflow ? (
-                      <div className="mt-4 flex justify-end text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: railText.railMuted }}>
+                      <div className="mt-3 flex justify-end text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: railText.railMuted }}>
                         <span className="inline-flex items-center gap-1">
                           <span>{ts('labels.swipeForMore')}</span>
                           <span aria-hidden="true">→</span>
                         </span>
                       </div>
                     ) : null}
-                    <div ref={hiddenCounselRailRef} className="mt-2 flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
+                    <div ref={hiddenCounselRailRef} className="mt-2 flex min-w-0 snap-x snap-mandatory gap-2.5 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
                       {hiddenCounselContacts.map((contact) => (
                         <CounselVoiceCard
                           key={contact.id}
@@ -29252,23 +29342,23 @@ function DecisionCompanionPanel({
                       ))}
                     </div>
                   </div>
-                  ) : null}
+                ) : null}
                 {receivedCounselInvites.length ? (
                   <div className="mt-4 rounded-[1.35rem] border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
                           {ts('labels.youAreConnected')}
                         </p>
-                        <h3 className="mt-1 text-lg font-semibold" style={{ color: theme.textPrimary }}>
-                          {ts('labels.sharedProgress')}
+                        <h3 className="mt-0.5 text-[1rem] font-semibold leading-6" style={{ color: theme.textPrimary }}>
+                          {ts('sharedProgress')}
                         </h3>
-                        <p className="mt-1.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                        <p className="mt-1 text-[11px] leading-5" style={{ color: theme.textSecondary }}>
                           {ts('labels.counselCircleSummaryShort')}
                         </p>
                       </div>
                     </div>
-                    <div className="mt-3 space-y-3">
+                    <div className="mt-2.5 space-y-2.5">
                       {receivedCounselInvites.map((invite) => {
                         const acceptedAt = invite.invite.acceptedAt
                           ? new Date(invite.invite.acceptedAt).toLocaleDateString(undefined, {
@@ -29281,7 +29371,7 @@ function DecisionCompanionPanel({
                           <button
                             type="button"
                             key={`${invite.invite.name}:${invite.invite.acceptedAt ?? invite.sharedDecisions[0]?.id ?? "received"}`}
-                            className="w-full rounded-[1.25rem] border p-3.5 text-left transition active:scale-[0.995]"
+                            className="w-full rounded-[1.15rem] border p-3 text-left transition active:scale-[0.995]"
                             style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}
                             aria-haspopup="dialog"
                             aria-label={`${ts('labels.viewInvite')}: ${invite.invite.name}`}
@@ -29300,36 +29390,30 @@ function DecisionCompanionPanel({
                                   <p className="text-[0.98rem] font-semibold leading-5 tracking-[-0.01em]" style={{ color: theme.textPrimary }}>
                                     {invite.invite.name}
                                   </p>
-                                  <p className="mt-0.5 text-[0.7rem] font-medium uppercase tracking-[0.14em] leading-4" style={{ color: theme.textMuted }}>
+                                  <p className="mt-0.5 text-[0.72rem] leading-5" style={{ color: theme.textMuted }}>
                                     {localizedCounselRoleLabel(invite.invite.role, ts)} · {ts('status.accepted')}
                                   </p>
                                 </div>
                               </div>
-                              <div className="flex shrink-0 flex-col items-end gap-1">
-                                <span className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-                                  {invite.sharedDecisions.length} {invite.sharedDecisions.length === 1 ? ts('labels.decisionSingular') : ts('labels.decisionPlural')}
-                                </span>
-                                {acceptedAt ? (
-                                  <span className="text-[10px] font-medium uppercase tracking-[0.08em]" style={{ color: theme.textMuted }}>
-                                    {acceptedAt}
-                                  </span>
-                                ) : null}
-                              </div>
                             </div>
-                            <div className="mt-3 space-y-2">
+                            <p className="mt-1.5 text-[10px] leading-5" style={{ color: theme.textSecondary }}>
+                              {acceptedAt ? `${acceptedAt} · ` : ""}
+                              {invite.sharedDecisions.length} {invite.sharedDecisions.length === 1 ? ts('labels.decisionSingular') : ts('labels.decisionPlural')}
+                            </p>
+                            <div className="mt-2 space-y-1.5">
                               {invite.sharedDecisions.length ? (
                                 invite.sharedDecisions.slice(0, 2).map((decision) => (
-                                  <div key={decision.id} className="rounded-[1rem] border px-3 py-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                                  <div key={decision.id} className="rounded-[0.9rem] px-2.5 py-2" style={{ backgroundColor: theme.bgCard }}>
                                     <p className="text-sm font-semibold leading-5" style={{ color: theme.textPrimary }}>
                                       {decision.title}
                                     </p>
-                                    <p className="mt-1 text-xs leading-5" style={{ color: theme.textSecondary }}>
+                                    <p className="mt-0.5 text-[10px] leading-4" style={{ color: theme.textSecondary }}>
                                       {decision.summary || ts('labels.sharedDecisionSummaryPending')}
                                     </p>
                                   </div>
                                 ))
                               ) : (
-                                <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>
+                                <p className="text-sm leading-5" style={{ color: theme.textSecondary }}>
                                   {ts('labels.noSharedDecisionsYet')}
                                 </p>
                               )}

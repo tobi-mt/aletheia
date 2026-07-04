@@ -1373,7 +1373,12 @@
     "openScripture": "Open",
     "translationFallback": "Shown with the closest available public-domain translation.",
     "swipeForMore": "Swipe for more",
-    "diagnostics": "Diagnostics"
+    "diagnostics": "Diagnostics",
+    "thread": "Thread",
+    "viewThread": "View thread",
+    "threadNoActivity": "No thread activity yet.",
+    "notYet": "Not yet",
+    "sharedProgress": "Circle progress"
   },
   "personalizationNudgeTitle": "Want more personal counsel?",
   "personalizationNudgeBody": "Add one detail about money, work, or rhythm.",

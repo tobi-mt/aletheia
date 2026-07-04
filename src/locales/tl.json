@@ -1312,7 +1312,12 @@
     "responsiveNudges": "Mga paalala",
     "openScripture": "Buksan",
     "translationFallback": "Ipinapakita gamit ang pinakamalapit na available na pampublikong-dominyong salin.",
-    "diagnostics": "Mga diagnostic"
+    "diagnostics": "Mga diagnostic",
+    "thread": "Thread",
+    "viewThread": "Tingnan ang thread",
+    "threadNoActivity": "Wala pang aktibidad sa thread na ito.",
+    "notYet": "Hindi pa",
+    "sharedProgress": "Progreso ng pangkat"
   },
   "personalizationNudgeTitle": "Gusto mo ng mas personal na payo?",
   "personalizationNudgeBody": "Magdagdag ng isang detalye tungkol sa pera, trabaho, o ritmo.",

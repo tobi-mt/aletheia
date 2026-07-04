@@ -1312,7 +1312,12 @@
     "responsiveNudges": "संकेत",
     "openScripture": "खोलें",
     "translationFallback": "निकटतम उपलब्ध सार्वजनिक-डोमेन अनुवाद के साथ दिखाया गया है।",
-    "diagnostics": "निदान"
+    "diagnostics": "निदान",
+    "thread": "थ्रेड",
+    "viewThread": "थ्रेड देखें",
+    "threadNoActivity": "अभी इस थ्रेड में कोई गतिविधि नहीं है।",
+    "notYet": "अभी नहीं",
+    "sharedProgress": "सर्कल प्रगति"
   },
   "personalizationNudgeTitle": "क्या आप अधिक व्यक्तिगत परामर्श चाहते हैं?",
   "personalizationNudgeBody": "धन, कार्य या लय के बारे में एक विवरण जोड़ें।",
