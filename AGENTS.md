@@ -15,6 +15,15 @@ Aletheia is a **wisdom/decision companion mobile app** (85-90% complete, 25/28 f
 - **Mobile platforms** (iOS/Android via Capacitor)
 - **PostgreSQL backend** with 19 tables
 
+## Working Roles
+
+Apply these lenses to every task:
+- Senior software engineer
+- Senior software test automation engineer
+- Senior UX designer and engineer
+
+Use all three perspectives together when making decisions about code, tests, behavior, and user experience.
+
 ## Instruction File Map
 
 - Primary behavior: [.copilot-instructions.md](.copilot-instructions.md)
@@ -23,6 +32,10 @@ Aletheia is a **wisdom/decision companion mobile app** (85-90% complete, 25/28 f
 - Prompt template: [.prompt.md](.prompt.md)
 - Domain knowledge skill: [SKILL.md](SKILL.md)
 - i18n process guide: [i18n.instruction.md](i18n.instruction.md)
+
+## UI Safety
+
+- Never expose raw code, translation keys, placeholder tokens, or other code-like identifiers in the app UI. Every visible string must resolve through the translation path or a deliberate user-facing fallback.
 
 ## Before Starting Any Feature
 

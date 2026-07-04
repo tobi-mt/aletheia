@@ -38,6 +38,7 @@ import {
   Sprout,
   ArrowDownRight,
   ArrowUpRight,
+  ChevronRight,
   Minus,
   Trash2,
   WifiOff,
@@ -15409,6 +15410,7 @@ function ScreenTabs<T extends string>({
   layout = "auto",
   className = "",
   scrollItemMinWidth,
+  railRef,
 }: {
   value: T;
   onChange: (value: T) => void;
@@ -15419,10 +15421,12 @@ function ScreenTabs<T extends string>({
   layout?: "auto" | "grid" | "scroll";
   className?: string;
   scrollItemMinWidth?: string;
+  railRef?: RefObject<HTMLDivElement | null>;
 }) {
   const useScrollableRail = layout === "scroll" || (layout === "auto" && tabs.length > 4);
   return (
     <div
+      ref={railRef}
       className={useScrollableRail
         ? `relative z-20 flex min-w-0 snap-x snap-mandatory gap-1 overflow-x-auto rounded-2xl border p-1.5 shadow-sm ${className}`
         : `relative z-20 grid min-w-0 gap-1 rounded-2xl border p-1.5 shadow-sm ${className}`}
@@ -29086,7 +29090,7 @@ function DecisionCompanionPanel({
                   {ts('decisionTimeline.title')}
                 </h2>
                 <p className="mt-1.5 max-w-2xl text-sm leading-6 text-balance" style={{ color: theme.textSecondary }}>
-                  {events.length ? ts('labels.timelineReady') : ts('labels.startDecisionToBeginTimeline')}
+                  {events.length ? ts('runtimePanel.timelineReady') : ts('labels.startDecisionToBeginTimeline')}
                 </p>
               </div>
               <button
@@ -29099,52 +29103,52 @@ function DecisionCompanionPanel({
               </button>
             </div>
 
-            <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-              <div className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+            <RailButtonTray theme={theme} label={ts('labels.decisionMemory')}>
+              <div className="premium-tap-card flex w-[11.25rem] shrink-0 snap-start flex-col justify-between rounded-[1.15rem] border p-3 text-left" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
                 <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
                   {ts('labels.activeDecisions')}
                 </p>
-                <p className="mt-1 text-2xl font-semibold leading-none" style={{ color: theme.textPrimary }}>
+                <p className="mt-2 text-2xl font-semibold leading-none" style={{ color: theme.textPrimary }}>
                   {activeDecisions.length}
                 </p>
-                <p className="mt-1.5 text-xs leading-5" style={{ color: theme.textSecondary }}>
+                <p className="mt-2 text-xs leading-5" style={{ color: theme.textSecondary }}>
                   {activeDecisions.length ? (selectedDecision?.title ?? runtime.nextInDecisions) : runtime.decisionNextBodyEmpty}
                 </p>
               </div>
-              <div className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+              <div className="premium-tap-card flex w-[11.25rem] shrink-0 snap-start flex-col justify-between rounded-[1.15rem] border p-3 text-left" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
                 <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
                   {ts('labels.daysDiscerning')}
                 </p>
-                <p className="mt-1 text-2xl font-semibold leading-none" style={{ color: theme.textPrimary }}>
+                <p className="mt-2 text-2xl font-semibold leading-none" style={{ color: theme.textPrimary }}>
                   {insight.daysDiscerning}
                 </p>
-                <p className="mt-1.5 text-xs leading-5" style={{ color: theme.textSecondary }}>
+                <p className="mt-2 text-xs leading-5" style={{ color: theme.textSecondary }}>
                   {runtime.decisionNextBodyActive}
                 </p>
               </div>
-              <div className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+              <div className="premium-tap-card flex w-[11.25rem] shrink-0 snap-start flex-col justify-between rounded-[1.15rem] border p-3 text-left" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
                 <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
                   {ts('labels.patternsNoticed')}
                 </p>
-                <p className="mt-1 text-2xl font-semibold leading-none" style={{ color: theme.textPrimary }}>
+                <p className="mt-2 text-2xl font-semibold leading-none" style={{ color: theme.textPrimary }}>
                   {insight.patterns.length}
                 </p>
-                <p className="mt-1.5 text-xs leading-5" style={{ color: theme.textSecondary }}>
+                <p className="mt-2 text-xs leading-5" style={{ color: theme.textSecondary }}>
                   {insight.gentleObservation}
                 </p>
               </div>
-              <div className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+              <div className="premium-tap-card flex w-[11.25rem] shrink-0 snap-start flex-col justify-between rounded-[1.15rem] border p-3 text-left" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
                 <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
                   {ts('labels.trustedVoices')}
                 </p>
-                <p className="mt-1 text-2xl font-semibold leading-none" style={{ color: theme.textPrimary }}>
+                <p className="mt-2 text-2xl font-semibold leading-none" style={{ color: theme.textPrimary }}>
                   {counselContacts.length}
                 </p>
-                <p className="mt-1.5 text-xs leading-5" style={{ color: theme.textSecondary }}>
+                <p className="mt-2 text-xs leading-5" style={{ color: theme.textSecondary }}>
                   {counselContacts.length ? ts('labels.counselCircleSummary') : ts('labels.inviteTrustedPeoplePrivate')}
                 </p>
               </div>
-            </div>
+            </RailButtonTray>
           </section>
         </>
       ) : null}
@@ -30614,6 +30618,8 @@ function GratitudeLensPanel({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const gratitudeRailRef = useRef<HTMLDivElement | null>(null);
   const gratitudeRailHasOverflow = useRailOverflow(gratitudeRailRef, entries.length > 0, [entries.length, language]);
+  const gratitudeFormationRailRef = useRef<HTMLDivElement | null>(null);
+  const gratitudeFormationRailHasOverflow = useRailOverflow(gratitudeFormationRailRef, true, [language]);
   const gratitudeOverlayRailRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -30740,20 +30746,42 @@ function GratitudeLensPanel({
                 </p>
               </div>
             </div>
-            <div className="mt-3">
+            <div className="mt-3 relative">
               <ScreenTabs
+                railRef={gratitudeFormationRailRef}
                 value={formation}
                 onChange={setFormation}
                 ariaLabel={ts('labels.gratitudeNoticingQuestion')}
                 theme={theme}
                 layout="scroll"
                 scrollItemMinWidth="9.75rem"
-                className="border-0 p-0 shadow-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                className="border-0 p-0 pr-10 shadow-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
                 tabs={GRATITUDE_FORMATIONS.map((item) => ({
                   key: item,
                   label: `${GRATITUDE_FORMATION_ICON[item]} ${gratitudeFormationLabel(item)}`,
                 }))}
               />
+              {gratitudeFormationRailHasOverflow ? (
+                <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-0 z-30 flex items-center">
+                  <div
+                    className="h-full w-14"
+                    style={{
+                      background: `linear-gradient(270deg, ${theme.bgCard} 14%, color-mix(in srgb, ${theme.bgCard} 68%, transparent) 58%, transparent 100%)`,
+                    }}
+                  />
+                  <div
+                    className="absolute right-0 z-40 flex size-9 items-center justify-center rounded-full border shadow-sm"
+                    style={{
+                      borderColor: theme.borderMedium,
+                      backgroundColor: theme.bgCardElevated,
+                      color: theme.accentGold,
+                      boxShadow: `0 8px 18px color-mix(in srgb, ${theme.accentGold} 12%, transparent)`,
+                    }}
+                  >
+                    <ChevronRight size={17} />
+                  </div>
+                </div>
+              ) : null}
             </div>
           </div>
 
