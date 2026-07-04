@@ -4320,6 +4320,11 @@ type CounselInvitePreview = {
   }>;
 };
 
+type SharedCounselDecisionItem = {
+  invite: CounselInvitePreview;
+  decision: CounselInvitePreview["sharedDecisions"][number];
+};
+
 type CounselWorkspaceData = {
   contacts: CounselContact[];
   receivedInvites?: CounselInvitePreview[];
@@ -7743,7 +7748,7 @@ export function AletheiaApp() {
     if (fallbackKey) {
       return ts(fallbackKey);
     }
-    return error ?? ts('apiUnavailable');
+    return error ?? ts('notifications.apiUnavailable');
   };
 
   // Build ui object from translations for backward compatibility
@@ -18159,7 +18164,7 @@ function FormationRailSection({
         );
         if (deliveryUnavailable) {
           setSharedCircleNudgeStatus(
-            `${ts("status.challengeInviteNudgeFailed")}\n${ts("status.notificationsNotEnabled")}`
+            `${ts("status.challengeInviteNudgeFailed")}\n${ts("notifications.notificationsNotEnabled")}`
           );
         } else if (deliveryFailed) {
           setSharedCircleNudgeStatus(ts("status.challengeInviteNudgeFailed"));
@@ -18188,7 +18193,7 @@ function FormationRailSection({
       }
       setSharedCircleNudgeStatus(
         data.errorCode === "not_found"
-          ? ts("apiNotFound")
+          ? ts("notifications.apiNotFound")
           : data.error ?? ts("status.challengeInviteNudgeFailed")
       );
     } catch {
@@ -18664,7 +18669,7 @@ function FormationRailSection({
               {ts("labels.note")}
             </p>
             <p className="mt-2 whitespace-pre-wrap text-sm leading-6" style={{ color: theme.textSecondary }}>
-              {selectedChallengeModalCompletion.reflection || ts("noReflectionsYet")}
+              {selectedChallengeModalCompletion.reflection || ts("labels.noReflectionsYet")}
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
               <button
@@ -21203,7 +21208,7 @@ function SystemStatusCard({
       body: ts('labels.accountTrustPostureSummary'),
       points: [
         ts('labels.trustNeverDoBody'),
-        // ts('labels.trustScriptureBody'),
+        // ts('trustScriptureBody'),
         ts('labels.trustDataSavedBody'),
         ts('labels.trustDeleteExportBody'),
       ],
@@ -21310,7 +21315,7 @@ function TrustCenterCard({
       body: ts('labels.trustNeverDoBody'),
       points: [
         ts('labels.trustNeverDoBody'),
-        ts('labels.trustScriptureBody'),
+        ts('trustScriptureBody'),
       ],
       icon: ShieldCheck,
     },
@@ -22728,7 +22733,7 @@ function WelcomeAuthModal({
                   style={{ display: "none" }}
                   tabIndex={-1}
                   autoComplete="off"
-                  placeholder={ts("placeholders.website")}
+                  placeholder=""
                   type="text"
                   name="website"
                 />
@@ -23629,7 +23634,7 @@ function AuthPanel({
                 style={{ display: "none" }}
                 tabIndex={-1}
                 autoComplete="off"
-                placeholder={ts('placeholders.website')}
+                placeholder=""
                 type="text"
                 name="website"
               />
@@ -23912,7 +23917,7 @@ function NotificationPanel({
                     : diagnostics.server.vapidConfigured
                       ? ts("notifications.vapidInvalidKeyPair").replace("{reason}", diagnostics.server.vapidReason)
                       : ts("notifications.vapidMissingConfig")
-                  : ts("notifications.diagnosticsUnavailable"),
+                  : ts("notifications.apiUnavailable"),
                 tone: diagnostics?.server.vapidConfigured && diagnostics.server.vapidKeyPairValid ? "good" : "bad",
               },
               {
@@ -23925,7 +23930,7 @@ function NotificationPanel({
                     : diagnostics.server.cronStatus === "stale"
                       ? ts("notifications.cronNotCheckedRecently")
                       : ts("notifications.cronSecretMissing")
-                  : ts("notifications.diagnosticsUnavailable"),
+                  : ts("notifications.apiUnavailable"),
                 tone: diagnostics?.server.cronStatus === "healthy" ? "good" : "bad",
               },
               {
@@ -24985,6 +24990,184 @@ function DecisionMemoryDetailModal({
   );
 }
 
+function SharedDecisionDetailModal({
+  open,
+  theme,
+  ts,
+  language,
+  item,
+  onClose,
+}: {
+  open: boolean;
+  theme: ThemeColors;
+  ts: (key: string, fallback?: string) => string;
+  language: LanguageCode;
+  item: SharedCounselDecisionItem | null;
+  onClose: () => void;
+}) {
+  const canUsePortal = typeof document !== "undefined";
+  useBodyScrollLock(open && canUsePortal);
+
+  if (!open || !canUsePortal || !item) {
+    return null;
+  }
+
+  const { invite, decision } = item;
+  const dateFormatter = new Intl.DateTimeFormat(language, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+  const formatDate = (value: string | null | undefined) => {
+    if (!value) {
+      return null;
+    }
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? null : dateFormatter.format(parsed);
+  };
+  const sharedAt = formatDate(decision.sharedAt);
+  const waitingUntil = formatDate(decision.waitingUntil);
+  const modeLabel = isMode(decision.mode) ? ts(modeTranslationKey(decision.mode), decision.mode) : decision.mode;
+  const roleLabel = localizedCounselRoleLabel(invite.invite.role, ts);
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[9999] grid min-h-dvh place-items-end overflow-hidden overscroll-none px-3 py-3 backdrop-blur-sm sm:place-items-center"
+      style={{
+        backgroundColor: "rgba(13, 23, 20, 0.62)",
+        paddingTop: "calc(max(var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)), 0.75rem) + 0.25rem)",
+        paddingBottom: "calc(max(var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)), 0.75rem) + 0.25rem)",
+      }}
+      onClick={onClose}
+    >
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="shared-decision-modal-title"
+        className="w-full max-w-2xl overflow-y-auto overscroll-contain rounded-[2rem] border [-webkit-overflow-scrolling:touch] [touch-action:pan-y] shadow-[0_28px_90px_rgba(10,18,14,0.36)]"
+        style={{
+          borderColor: theme.borderStrong,
+          backgroundColor: theme.bgCard,
+          maxHeight: "calc(100svh - max(var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)), 0.75rem) - max(var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)), 0.75rem) - 1rem)",
+        }}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div
+          className="relative overflow-hidden border-b px-4 py-4 pr-16 sm:px-5 sm:py-5 sm:pr-16"
+          style={{
+            borderColor: theme.borderLight,
+            background: `linear-gradient(135deg, color-mix(in srgb, ${theme.bgCardElevated} 68%, white 32%), ${theme.bgCard}, color-mix(in srgb, ${theme.bgCardElevated} 82%, ${theme.accentGold} 18%))`,
+          }}
+        >
+          <div
+            className="absolute inset-0 opacity-90"
+            style={{
+              background: `radial-gradient(circle at 18% 18%, color-mix(in srgb, ${theme.accentGold} 18%, transparent), transparent 36%), radial-gradient(circle at 92% 0%, color-mix(in srgb, ${theme.primary} 10%, transparent), transparent 30%)`,
+            }}
+          />
+          <div className="relative">
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] sm:text-xs" style={{ color: theme.accentGold }}>
+                {ts("labels.sharedProgress")}
+              </p>
+              <h2 id="shared-decision-modal-title" className="mt-1.5 text-xl font-semibold tracking-tight sm:text-2xl" style={{ color: theme.textPrimary }}>
+                {decision.title}
+              </h2>
+              <p className="mt-1.5 text-sm leading-6 sm:text-[0.95rem]" style={{ color: theme.textSecondary }}>
+                {invite.invite.name} · {roleLabel}
+                {sharedAt ? ` · ${sharedAt}` : ""}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="absolute right-0 top-0 grid size-10 shrink-0 place-items-center rounded-full border transition shadow-sm"
+              style={{
+                borderColor: theme.borderMedium,
+                backgroundColor: theme.bgInput,
+                color: theme.textPrimary,
+              }}
+              aria-label={ts("labels.close")}
+            >
+              <X size={16} />
+            </button>
+          </div>
+        </div>
+
+        <div className="space-y-4 p-3.5 sm:p-4">
+          <div className="grid gap-2.5 sm:grid-cols-2">
+            <div className="rounded-[1.35rem] border p-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textSecondary }}>
+                {ts("labels.readiness")}
+              </p>
+              <p className="mt-1.5 text-lg font-semibold tracking-tight" style={{ color: theme.textPrimary }}>
+                {decision.readiness}/100
+              </p>
+            </div>
+            <div className="rounded-[1.35rem] border p-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textSecondary }}>
+                {ts("labels.status")}
+              </p>
+              <p className="mt-1.5 text-lg font-semibold tracking-tight" style={{ color: theme.textPrimary }}>
+                {decision.status}
+              </p>
+            </div>
+          </div>
+
+          {decision.summary ? (
+            <section className="rounded-[1.35rem] border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+                {ts("labels.decisionSummary")}
+              </p>
+              <p className="mt-2 text-[1rem] leading-7" style={{ color: theme.textPrimary }}>
+                {decision.summary}
+              </p>
+            </section>
+          ) : null}
+
+          {waitingUntil ? (
+            <section className="rounded-[1.35rem] border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+                {ts("labels.waitingUntil")}
+              </p>
+              <p className="mt-2 text-[1rem] leading-7" style={{ color: theme.textPrimary }}>
+                {waitingUntil}
+              </p>
+            </section>
+          ) : null}
+
+          {decision.comments.length ? (
+            <section className="rounded-[1.35rem] border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+                {ts("labels.comments")}
+              </p>
+              <div className="mt-3 space-y-2.5">
+                {decision.comments.map((comment) => (
+                  <p key={comment.id} className="rounded-[1rem] border px-3 py-2.5 text-sm leading-6" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
+                    {comment.body}
+                  </p>
+                ))}
+              </div>
+            </section>
+          ) : null}
+
+          <div className="flex flex-wrap items-center justify-end gap-3 border-t pt-4" style={{ borderColor: theme.borderLight }}>
+            <button
+              type="button"
+              onClick={onClose}
+              className="inline-flex h-11 items-center justify-center rounded-full border px-4 text-sm font-semibold transition"
+              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+            >
+              {ts("labels.close")}
+            </button>
+          </div>
+        </div>
+      </section>
+    </div>,
+    document.body
+  );
+}
+
 function StreakMilestonesModal({
   open,
   theme,
@@ -25441,7 +25624,7 @@ function CounselInviteModal({
                           style={{ display: "none" }}
                           tabIndex={-1}
                           autoComplete="off"
-                          placeholder={ts("placeholders.website")}
+                  placeholder=""
                           type="text"
                           name="website"
                         />
@@ -25943,7 +26126,7 @@ function ChallengeInviteModal({
               </form>
             ) : null}
 
-            <RailButtonTray theme={theme} label={ts("challenges.viewInvite")}>
+            <RailButtonTray theme={theme} label={ts("labels.viewInvite")}>
               <button
                 type="button"
                 onClick={onClose}
@@ -26055,7 +26238,7 @@ function ChallengeInviteModal({
                         style={{ display: "none" }}
                         tabIndex={-1}
                         autoComplete="off"
-                        placeholder={ts("placeholders.website")}
+                        placeholder=""
                         type="text"
                         name="website"
                       />
@@ -26376,7 +26559,7 @@ function PreferencesPanel({
       </div>
       <details className="mt-3 rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
         <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
-          {ui.preferencesTitle} · {activeRegion.label} · {preferences.voiceEnabled ? ts('on') : ts('off')}
+          {ui.preferencesTitle} · {activeRegion.label} · {preferences.voiceEnabled ? ts('labels.on') : ts('labels.off')}
         </summary>
         <div className="mt-3 grid gap-3 md:grid-cols-2">
           <div className="rounded-[1rem] border p-3 md:col-span-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
@@ -27441,7 +27624,7 @@ function localizedCounselShareDeliveryCopy(
   share: CounselShareDeliverySummaryView,
   ts: (key: string, fallback?: string) => string
 ) {
-  const statusLabel =
+  let statusLabel =
     share.deliveryStatus === "opened"
       ? ts("status.counselShareOpened")
       : share.deliveryStatus === "sent_to_push_service"
@@ -27452,13 +27635,14 @@ function localizedCounselShareDeliveryCopy(
           ? ts("status.counselShareFailed")
           : share.deliveryStatus === "waiting_for_acceptance"
             ? ts("status.counselShareWaitingForAcceptance")
-            : share.deliveryStatus === "no_push_subscription"
+      : share.deliveryStatus === "no_push_subscription"
               ? ts("status.counselShareNoPushSubscription")
               : ts("status.counselShareSentToPushService");
 
   let note: string | null = null;
   if (share.deliveryStatus === "sent_to_push_service" && share.pushSubscriptionCount === 0) {
-    note = ts("status.counselShareNoPushSubscription");
+    statusLabel = "";
+    note = null;
   } else if (share.deliveryReason === "disabled_push_subscription") {
     note = ts("status.counselShareDisabledPushSubscription");
   } else if (share.deliveryStatus === "partial" && share.deliveryReason === "no_push_subscription") {
@@ -27689,7 +27873,7 @@ const ThreadStreamModal = memo(function ThreadStreamModal({
                               {entry.name}
                             </span>
                             <span>{formatThreadTimestamp(entry.createdAt, language)}</span>
-                            {entry.meta.map((meta) => (
+                            {entry.meta.filter(Boolean).map((meta) => (
                               <span key={`${entry.id}:${meta}`} className="rounded-full border px-2 py-[2px] font-semibold tracking-[0.08em]" style={{ borderColor: theme.borderLight, color: theme.textMuted }}>
                                 {meta}
                               </span>
@@ -27718,19 +27902,26 @@ function CounselDecisionShareRail({
   theme,
   ts,
   decisions,
-  contactId,
-  onShareDecisionWithCounsel,
-  onBulkShareDecisionsWithCounsel,
+  counselContacts,
+  selectedContactId,
+  onSelectContact,
+  selectedDecisionIds,
+  onToggleDecision,
+  onShareSelected,
 }: {
   theme: ThemeColors;
   ts: (key: string, fallback?: string) => string;
   decisions: WisdomDecision[];
-  contactId: string;
-  onShareDecisionWithCounsel: (contactId: string, decisionId: string) => void;
-  onBulkShareDecisionsWithCounsel: (contactId: string, decisionIds: string[]) => void;
+  counselContacts: CounselContact[];
+  selectedContactId: string | null;
+  onSelectContact: (contactId: string) => void;
+  selectedDecisionIds: string[];
+  onToggleDecision: (decisionId: string) => void;
+  onShareSelected: () => void;
 }) {
   const shareRailRef = useRef<HTMLDivElement | null>(null);
-  const shareRailHasOverflow = useRailOverflow(shareRailRef, decisions.length > 1, [decisions.length, contactId]);
+  const shareRailHasOverflow = useRailOverflow(shareRailRef, decisions.length > 1, [decisions.length, selectedContactId]);
+  const selectedContact = selectedContactId ? counselContacts.find((contact) => contact.id === selectedContactId) ?? null : null;
 
   if (!decisions.length) {
     return (
@@ -27741,11 +27932,61 @@ function CounselDecisionShareRail({
   }
 
   return (
-    <div className="mt-3 border-t pt-3" style={{ borderColor: theme.borderLight }}>
+    <div className="mt-3 rounded-[1.25rem] border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <p className="min-w-0 text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
           {ts('labels.shareDecisions')}
         </p>
+        {selectedContact ? (
+          <span className="w-fit rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+            {selectedContact.name}
+          </span>
+        ) : null}
+      </div>
+      <div className="mt-3 flex min-w-0 snap-x gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {counselContacts.map((contact) => {
+          const active = contact.id === selectedContactId;
+          return (
+            <button
+              key={contact.id}
+              type="button"
+              onClick={() => onSelectContact(contact.id)}
+              className="premium-tap-card flex w-[15rem] shrink-0 snap-start items-center gap-2.5 rounded-[1.25rem] border p-3 text-left transition duration-200 ease-out hover:-translate-y-0.5"
+              style={{
+                borderColor: active ? theme.accentLight : theme.borderMedium,
+                background: active
+                  ? `linear-gradient(180deg, color-mix(in srgb, ${theme.bgCardElevated} 94%, ${theme.accentGold} 6%), ${theme.bgCard})`
+                  : `linear-gradient(180deg, color-mix(in srgb, ${theme.bgCardElevated} 96%, white 4%), ${theme.bgCard})`,
+                boxShadow: active ? `0 10px 22px color-mix(in srgb, ${theme.primary} 12%, transparent)` : `0 10px 22px color-mix(in srgb, ${theme.bgMain} 10%, transparent)`,
+              }}
+            >
+              <AvatarCircle
+                avatarUrl={contact.avatarUrl}
+                seed={contact.id}
+                label={contact.name}
+                size={30}
+                className="size-[30px] shrink-0"
+              />
+              <div className="min-w-0">
+                <p className="truncate text-[0.98rem] font-semibold leading-5 tracking-[-0.01em]" style={{ color: theme.textPrimary }}>{contact.name}</p>
+                <p className="truncate text-[10px] font-medium uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
+                  {localizedCounselRoleLabel(contact.role, ts)}
+                </p>
+              </div>
+              <span
+                className="ml-auto grid size-6 shrink-0 place-items-center rounded-full border"
+                style={{
+                  borderColor: active ? theme.primary : theme.borderLight,
+                  backgroundColor: active ? theme.primary : theme.bgInput,
+                  color: active ? theme.textOnPrimary : theme.textMuted,
+                }}
+                aria-hidden="true"
+              >
+                <Check size={12} />
+              </span>
+            </button>
+          );
+        })}
       </div>
       {shareRailHasOverflow ? (
         <div className="mt-2 flex justify-end text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
@@ -27758,24 +27999,37 @@ function CounselDecisionShareRail({
       <div ref={shareRailRef} className="mt-3 flex min-w-0 snap-x gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {decisions.map((decision) => {
           const modeLabel = isMode(decision.mode) ? ts(modeTranslationKey(decision.mode), decision.mode) : decision.mode;
+          const selected = selectedDecisionIds.includes(decision.id);
           return (
             <button
               key={decision.id}
               type="button"
-              className="group flex w-[14.5rem] shrink-0 snap-start flex-col justify-between rounded-[1.15rem] border p-3 text-left transition duration-200 ease-out active:scale-[0.985] hover:-translate-y-0.5"
+              className="group flex w-[15rem] shrink-0 snap-start flex-col justify-between rounded-[1.25rem] border p-3 text-left transition duration-200 ease-out active:scale-[0.985] hover:-translate-y-0.5"
               style={{
-                borderColor: theme.borderLight,
-                background: `linear-gradient(180deg, color-mix(in srgb, ${theme.bgCardElevated} 96%, white 4%), ${theme.bgCard})`,
+                borderColor: selected ? theme.accentLight : theme.borderMedium,
+                background: selected
+                  ? `linear-gradient(180deg, color-mix(in srgb, ${theme.bgCardElevated} 90%, ${theme.accentGold} 10%), ${theme.bgCard})`
+                  : `linear-gradient(180deg, color-mix(in srgb, ${theme.bgCardElevated} 95%, white 5%), ${theme.bgCard})`,
                 color: theme.textPrimary,
-                boxShadow: `0 10px 24px color-mix(in srgb, ${theme.bgMain} 10%, transparent)`,
+                boxShadow: selected ? `0 10px 24px color-mix(in srgb, ${theme.primary} 14%, transparent)` : `0 10px 24px color-mix(in srgb, ${theme.bgMain} 10%, transparent)`,
               }}
-              onClick={() => onShareDecisionWithCounsel(contactId, decision.id)}
+              onClick={() => onToggleDecision(decision.id)}
             >
               <div className="flex items-start justify-between gap-2">
                 <span className="inline-flex min-w-0 items-center rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>
                   {modeLabel}
                 </span>
-                <Share2 size={13} style={{ color: theme.textMuted }} />
+                <span
+                  className="grid size-6 shrink-0 place-items-center rounded-full border"
+                  style={{
+                    borderColor: selected ? theme.primary : theme.borderLight,
+                    backgroundColor: selected ? theme.primary : theme.bgInput,
+                    color: selected ? theme.textOnPrimary : theme.textMuted,
+                  }}
+                  aria-hidden="true"
+                >
+                  <Check size={12} />
+                </span>
               </div>
               <p className="mt-3 line-clamp-3 text-sm font-semibold leading-6 tracking-[-0.01em]" style={{ color: theme.textPrimary }}>
                 {decision.title}
@@ -27788,10 +28042,11 @@ function CounselDecisionShareRail({
         <button
           type="button"
           className="mt-3 h-10 w-full rounded-full px-4 text-xs font-semibold transition"
-          style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
-          onClick={() => onBulkShareDecisionsWithCounsel(contactId, decisions.map((decision) => decision.id))}
+          style={{ backgroundColor: theme.primary, color: theme.textOnPrimary, opacity: selectedContactId && selectedDecisionIds.length ? 1 : 0.55 }}
+          onClick={onShareSelected}
+          disabled={!selectedContactId || !selectedDecisionIds.length}
         >
-          {ts('labels.shareAllDecisions')} ({decisions.length})
+          {ts('labels.shareDecisions')} ({selectedDecisionIds.length})
         </button>
       ) : null}
     </div>
@@ -27802,23 +28057,15 @@ function CounselVoiceCard({
   theme,
   ts,
   contact,
-  decisions,
   onRemoveCounselContact,
-  onShareDecisionWithCounsel,
-  onBulkShareDecisionsWithCounsel,
   onOpenThread,
-  showShareDecisions = false,
   stretch = false,
 }: {
   theme: ThemeColors;
   ts: (key: string, fallback?: string) => string;
   contact: CounselContact;
-  decisions: WisdomDecision[];
   onRemoveCounselContact: (contactId: string) => void;
-  onShareDecisionWithCounsel: (contactId: string, decisionId: string) => void;
-  onBulkShareDecisionsWithCounsel: (contactId: string, decisionIds: string[]) => void;
   onOpenThread: (contactId: string) => void;
-  showShareDecisions?: boolean;
   stretch?: boolean;
 }) {
   return (
@@ -27901,7 +28148,7 @@ function CounselVoiceCard({
 
       <div className="mt-2.5 flex items-center justify-between gap-2">
         <span className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
-          {contact.recentShares?.length ? `${contact.recentShares.length} ${ts('sharedProgress')}` : ts('threadNoActivity')}
+          {contact.recentShares?.length ? `${contact.recentShares.length} ${ts('labels.sharedProgress')}` : ts('labels.threadNoActivity')}
         </span>
         <button
           type="button"
@@ -27914,16 +28161,6 @@ function CounselVoiceCard({
         </button>
       </div>
 
-      {showShareDecisions ? (
-        <CounselDecisionShareRail
-          theme={theme}
-          ts={ts}
-          decisions={decisions}
-          contactId={contact.id}
-          onShareDecisionWithCounsel={onShareDecisionWithCounsel}
-          onBulkShareDecisionsWithCounsel={onBulkShareDecisionsWithCounsel}
-        />
-      ) : null}
     </div>
   );
 }
@@ -28658,6 +28895,9 @@ function DecisionCompanionPanel({
   const [counselAvatarPickerOpen, setCounselAvatarPickerOpen] = useState(false);
   const [wisdomTimelineOpen, setWisdomTimelineOpen] = useState(false);
   const [counselThreadContactId, setCounselThreadContactId] = useState<string | null>(null);
+  const [selectedSharedDecision, setSelectedSharedDecision] = useState<SharedCounselDecisionItem | null>(null);
+  const [selectedShareContactId, setSelectedShareContactId] = useState<string | null>(null);
+  const [selectedShareDecisionIds, setSelectedShareDecisionIds] = useState<string[]>([]);
   const counselAvatarFileInputRef = useRef<HTMLInputElement | null>(null);
   const rhythmRailRef = useRef<HTMLDivElement | null>(null);
   const visibleCounselRailRef = useRef<HTMLDivElement | null>(null);
@@ -28700,8 +28940,11 @@ function DecisionCompanionPanel({
   }) ?? [];
   const sharedDecisionItems = receivedCounselInvites.flatMap((invite) =>
     invite.sharedDecisions.map((decision) => ({ invite, decision }))
-  );
+  ) as SharedCounselDecisionItem[];
   const sharedDecisionCount = sharedDecisionItems.length;
+  const selectedShareContact = selectedShareContactId
+    ? counselContacts.find((contact) => contact.id === selectedShareContactId) ?? null
+    : null;
   const visibleDecisionMemoryEntries = decisions.length > 0 ? decisions : process.env.NODE_ENV !== "production" ? buildQaRailSampleDecisionSeeds() : decisions;
   const decisionOverviewCards = [
     {
@@ -28794,6 +29037,36 @@ function DecisionCompanionPanel({
     }
   }
 
+  useEffect(() => {
+    if (!counselContacts.length) {
+      setSelectedShareContactId(null);
+      setSelectedShareDecisionIds([]);
+      return;
+    }
+
+    setSelectedShareContactId((current) => current && counselContacts.some((contact) => contact.id === current) ? current : counselContacts[0]?.id ?? null);
+  }, [counselContacts]);
+
+  useEffect(() => {
+    setSelectedShareDecisionIds((current) => current.filter((decisionId) => decisions.some((decision) => decision.id === decisionId && decision.status !== "closed")));
+  }, [decisions]);
+
+  function toggleSharedDecision(decisionId: string) {
+    setSelectedShareDecisionIds((current) =>
+      current.includes(decisionId)
+        ? current.filter((item) => item !== decisionId)
+        : [...current, decisionId]
+    );
+  }
+
+  function shareSelectedDecisions() {
+    if (!selectedShareContactId || !selectedShareDecisionIds.length) {
+      return;
+    }
+    onBulkShareDecisionsWithCounsel(selectedShareContactId, selectedShareDecisionIds);
+    setSelectedShareDecisionIds([]);
+  }
+
   return (
     <div className="min-w-0 space-y-4">
       <ThreadStreamModal
@@ -28802,11 +29075,11 @@ function DecisionCompanionPanel({
         title={selectedCounselThreadContact?.name ?? ts("thread")}
         subtitle={
           selectedCounselThreadContact
-            ? `${localizedCounselRoleLabel(selectedCounselThreadContact.role, ts)} · ${selectedCounselThreadContact.recentShares?.length ?? 0} ${ts("sharedProgress")}`
+            ? `${localizedCounselRoleLabel(selectedCounselThreadContact.role, ts)} · ${selectedCounselThreadContact.recentShares?.length ?? 0} ${ts("labels.sharedProgress")}`
             : null
         }
         entries={counselThreadEntries}
-        emptyLabel={ts("threadNoActivity")}
+        emptyLabel={ts("labels.threadNoActivity")}
         language={language}
         ts={ts}
         onClose={() => setCounselThreadContactId(null)}
@@ -28949,12 +29222,41 @@ function DecisionCompanionPanel({
                 entries={visibleDecisionMemoryEntries}
               />
 
+              {counselContacts.length ? (
+                <section className="mt-5 rounded-[1.35rem] border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
+                        {ts('labels.shareDecisions')}
+                      </p>
+                      <h3 className="mt-1 text-lg font-semibold" style={{ color: theme.textPrimary }}>
+                        {selectedShareContact ? selectedShareContact.name : ts('labels.trustedVoices')}
+                      </h3>
+                      <p className="mt-1.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                        {ts('labels.swipeForMore')}
+                      </p>
+                    </div>
+                  </div>
+                  <CounselDecisionShareRail
+                    theme={theme}
+                    ts={ts}
+                    decisions={activeDecisions}
+                    counselContacts={counselContacts}
+                    selectedContactId={selectedShareContactId}
+                    onSelectContact={setSelectedShareContactId}
+                    selectedDecisionIds={selectedShareDecisionIds}
+                    onToggleDecision={toggleSharedDecision}
+                    onShareSelected={shareSelectedDecisions}
+                  />
+                </section>
+              ) : null}
+
               {sharedDecisionItems.length ? (
                 <section className="mt-5 rounded-[1.35rem] border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                     <div className="min-w-0">
                       <p className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
-                        {ts('sharedProgress')}
+                        {ts('labels.sharedProgress')}
                       </p>
                       <h3 className="mt-1 text-lg font-semibold" style={{ color: theme.textPrimary }}>
                         {sharedDecisionCount} {sharedDecisionCount === 1 ? ts('labels.decisionSingular') : ts('labels.decisionPlural')}
@@ -28964,37 +29266,35 @@ function DecisionCompanionPanel({
                       </p>
                     </div>
                   </div>
-                  <div className="mt-3 space-y-3">
+                  <div className="mt-3 flex min-w-0 snap-x snap-mandatory gap-2.5 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                     {sharedDecisionItems.map(({ invite, decision }) => (
                       <button
                         key={`${invite.invite.contactId}:${decision.id}`}
                         id={`decision-card-${decision.id}`}
                         type="button"
-                        onClick={() => onOpenReceivedCounselInvite(invite)}
-                        className="premium-tap-card w-full rounded-[1.2rem] border p-3.5 text-left transition active:scale-[0.995]"
+                        onClick={() => setSelectedSharedDecision({ invite, decision })}
+                        className="premium-tap-card flex w-[15rem] shrink-0 snap-start flex-col justify-between rounded-[1.25rem] border p-3 text-left transition duration-200 ease-out active:scale-[0.985] hover:-translate-y-0.5"
                         style={{
                           borderColor: theme.borderMedium,
                           background: `linear-gradient(180deg, color-mix(in srgb, ${theme.bgCardElevated} 92%, ${theme.accentGold} 8%), ${theme.bgCard})`,
+                          boxShadow: `0 10px 22px color-mix(in srgb, ${theme.bgMain} 10%, transparent)`,
                         }}
                         aria-label={`${ts('labels.viewInvite')}: ${invite.invite.name} · ${decision.title}`}
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
                             <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
-                        {ts('sharedProgress')}
+                              {localizedCounselRoleLabel(invite.invite.role, ts)}
                             </p>
-                            <p className="mt-1 text-sm font-semibold leading-5" style={{ color: theme.textPrimary }}>
+                            <p className="mt-1 text-sm font-semibold leading-5 line-clamp-3" style={{ color: theme.textPrimary }}>
                               {decision.title}
                             </p>
-                            <p className="mt-0.5 text-[0.72rem] font-medium uppercase tracking-[0.14em] leading-4" style={{ color: theme.textMuted }}>
-                              {invite.invite.name} · {localizedCounselRoleLabel(invite.invite.role, ts)}
+                            <p className="mt-0.5 text-[0.72rem] leading-4" style={{ color: theme.textMuted }}>
+                              {invite.invite.name}
                             </p>
                           </div>
-                          <span className="shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-                            {ts('labels.viewInvite')}
-                          </span>
                         </div>
-                        <p className="mt-3 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                        <p className="mt-3 line-clamp-3 text-sm leading-6" style={{ color: theme.textSecondary }}>
                           {decision.summary || ts('labels.sharedDecisionSummaryPending')}
                         </p>
                         <div className="mt-3 flex flex-wrap gap-2">
@@ -29010,6 +29310,14 @@ function DecisionCompanionPanel({
                   </div>
                 </section>
               ) : null}
+              <SharedDecisionDetailModal
+                open={Boolean(selectedSharedDecision)}
+                theme={theme}
+                ts={ts}
+                language={language}
+                item={selectedSharedDecision}
+                onClose={() => setSelectedSharedDecision(null)}
+              />
             </section>
           </>
         ) : null}
@@ -29266,12 +29574,8 @@ function DecisionCompanionPanel({
                       theme={theme}
                       ts={ts}
                       contact={visibleCounselContacts[0]}
-                      decisions={decisions}
                       onRemoveCounselContact={onRemoveCounselContact}
-                      onShareDecisionWithCounsel={onShareDecisionWithCounsel}
-                      onBulkShareDecisionsWithCounsel={onBulkShareDecisionsWithCounsel}
                       onOpenThread={setCounselThreadContactId}
-                      showShareDecisions
                       stretch
                     />
                   </div>
@@ -29287,21 +29591,17 @@ function DecisionCompanionPanel({
                     ) : null}
                     <div ref={visibleCounselRailRef} className="mt-2 flex min-w-0 snap-x snap-mandatory gap-2.5 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
                       {visibleCounselContacts.map((contact) => (
-                        <CounselVoiceCard
-                          key={contact.id}
-                          theme={theme}
-                          ts={ts}
-                          contact={contact}
-                          decisions={decisions}
-                          onRemoveCounselContact={onRemoveCounselContact}
-                          onShareDecisionWithCounsel={onShareDecisionWithCounsel}
-                          onBulkShareDecisionsWithCounsel={onBulkShareDecisionsWithCounsel}
-                          onOpenThread={setCounselThreadContactId}
-                          showShareDecisions
-                        />
-                      ))}
-                    </div>
-                  </>
+                      <CounselVoiceCard
+                        key={contact.id}
+                        theme={theme}
+                        ts={ts}
+                        contact={contact}
+                        onRemoveCounselContact={onRemoveCounselContact}
+                        onOpenThread={setCounselThreadContactId}
+                      />
+                    ))}
+                  </div>
+                </>
                 )}
                 {hiddenCounselContacts.length ? (
                   <div className="mt-4 rounded-[1.35rem] border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
@@ -29333,10 +29633,7 @@ function DecisionCompanionPanel({
                           theme={theme}
                           ts={ts}
                           contact={contact}
-                          decisions={decisions}
                           onRemoveCounselContact={onRemoveCounselContact}
-                          onShareDecisionWithCounsel={onShareDecisionWithCounsel}
-                          onBulkShareDecisionsWithCounsel={onBulkShareDecisionsWithCounsel}
                           onOpenThread={setCounselThreadContactId}
                         />
                       ))}
@@ -29351,7 +29648,7 @@ function DecisionCompanionPanel({
                           {ts('labels.youAreConnected')}
                         </p>
                         <h3 className="mt-0.5 text-[1rem] font-semibold leading-6" style={{ color: theme.textPrimary }}>
-                          {ts('sharedProgress')}
+                          {ts('labels.sharedProgress')}
                         </h3>
                         <p className="mt-1 text-[11px] leading-5" style={{ color: theme.textSecondary }}>
                           {ts('labels.counselCircleSummaryShort')}

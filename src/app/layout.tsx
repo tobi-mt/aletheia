@@ -17,15 +17,11 @@ export const metadata: Metadata = {
   metadataBase: new URL(
     process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
   ),
-  title: "Aletheia | Biblical Wisdom for Money and Work",
-  description:
-    "A calm AI-powered wisdom companion for stewardship, work, generosity, and thoughtful financial decisions.",
+  title: "Aletheia",
   applicationName: "Aletheia",
   manifest: MANIFEST_URL,
   openGraph: {
     title: "Aletheia",
-    description:
-      "AI-powered biblical wisdom for money, work, and stewardship.",
     siteName: "Aletheia",
     type: "website",
     images: [

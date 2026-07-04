@@ -5,8 +5,6 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Aletheia",
     short_name: "Aletheia",
-    description:
-      "Biblical wisdom for stewardship, work, generosity, and thoughtful financial decisions.",
     start_url: PWA_START_URL,
     scope: "/",
     display: "standalone",
