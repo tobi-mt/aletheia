@@ -3,7 +3,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import Image from "next/image";
 import { signIn as authSignIn, signOut as authSignOut } from "next-auth/react";
-import { ChangeEvent, FormEvent, memo, type KeyboardEvent, type ReactNode, type RefObject, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { ChangeEvent, FormEvent, memo, type CSSProperties, type KeyboardEvent, type ReactNode, type RefObject, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Capacitor, SystemBars, SystemBarsStyle, type PluginListenerHandle } from "@capacitor/core";
 import { App } from "@capacitor/app";
@@ -15047,7 +15047,7 @@ function HomeDashboard({
         }}
       >
           <div className="flex flex-col gap-4">
-          <div className="relative pr-14 sm:pr-16">
+          <div className="relative pr-16 sm:pr-20">
             <div className="min-w-0">
               <p className="text-[10.5px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.accentGold }}>
                 {homeWelcomeEyebrow}
@@ -15059,9 +15059,12 @@ function HomeDashboard({
                   {homeWelcomeSeasonal}
                 </p>
             </div>
-            <span className="absolute right-0 top-1/2 grid size-12 shrink-0 -translate-y-1/2 place-items-center rounded-2xl border shadow-[0_8px_16px_rgba(7,10,8,0.08)]" style={{ borderColor: theme.primary, backgroundColor: theme.primary, color: theme.textOnPrimary }}>
+            <CardCornerBadge
+              className="rounded-2xl border shadow-[0_8px_16px_rgba(7,10,8,0.08)]"
+              style={{ borderColor: theme.primary, backgroundColor: theme.primary, color: theme.textOnPrimary }}
+            >
               <Sparkles size={22} />
-            </span>
+            </CardCornerBadge>
           </div>
 
           {personalizationContextEmpty ? (
@@ -15167,7 +15170,7 @@ function HomeDashboard({
         style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textPrimary }}
       >
         <div className="space-y-4">
-          <div className="relative rounded-[1.25rem] border p-3.5 pr-14 sm:p-4 sm:pr-16" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
+          <div className="relative rounded-[1.25rem] border p-3.5 pr-16 sm:p-4 sm:pr-20" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
             <p className="text-[10.5px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.accentGold }}>
               {text.whatNext}
             </p>
@@ -15177,13 +15180,13 @@ function HomeDashboard({
             <p className="mt-2 max-w-2xl text-[0.94rem] leading-6 sm:text-[0.98rem] sm:leading-7" style={{ color: theme.textSecondary }}>
               {(text as { whatNextBodyShort?: string }).whatNextBodyShort ?? text.whatNextBody ?? ""}
             </p>
-            <div
-              className="absolute right-3 top-1/2 grid size-10 shrink-0 -translate-y-1/2 place-items-center rounded-[1rem] border"
+            <CardCornerBadge
+              className="rounded-[1rem] border"
               style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}
               aria-hidden="true"
             >
               <MessageCircle size={14} />
-            </div>
+            </CardCornerBadge>
           </div>
 
           <DashboardAction
@@ -15751,6 +15754,33 @@ function RailOverflowCue({ theme, className = "" }: { theme: ThemeColors; classN
       }}
     >
       <ChevronRight size={16} />
+    </span>
+  );
+}
+
+function CardCornerBadge({
+  children,
+  className = "",
+  style,
+  ariaLabel,
+  title,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  style?: CSSProperties;
+  ariaLabel?: string;
+  title?: string;
+}) {
+  return (
+    <span
+      className={`pointer-events-none absolute right-4 top-4 grid size-11 shrink-0 place-items-center ${className}`.trim()}
+      style={style}
+      role={ariaLabel ? "img" : undefined}
+      aria-label={ariaLabel}
+      title={title}
+      aria-hidden={ariaLabel ? undefined : true}
+    >
+      {children}
     </span>
   );
 }
@@ -16795,7 +16825,7 @@ function ChallengeRecommendationCard({
         background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})`,
       }}
     >
-      <div className={compact ? "min-w-0 pr-12" : "min-w-0 pr-14"}>
+      <div className={compact ? "min-w-0 pr-16" : "min-w-0 pr-16 sm:pr-20"}>
         <div className="max-w-2xl">
           <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
             {challengeRecommendationEyebrow(recommendation, ts)}
@@ -16811,9 +16841,12 @@ function ChallengeRecommendationCard({
           </p>
         </div>
       </div>
-      <div className="pointer-events-none absolute right-0 top-1/2 grid size-11 -translate-y-1/2 place-items-center rounded-[1rem] border" style={{ borderColor: theme.borderLight, backgroundColor: isContinuation ? theme.primary : theme.bgInput, color: isContinuation ? theme.textOnPrimary : theme.primary }}>
+      <CardCornerBadge
+        className="rounded-[1rem] border"
+        style={{ borderColor: theme.borderLight, backgroundColor: isContinuation ? theme.primary : theme.bgInput, color: isContinuation ? theme.textOnPrimary : theme.primary }}
+      >
         <RecommendationIcon size={18} />
-      </div>
+      </CardCornerBadge>
 
       {!isContinuation ? (
         <div className="mt-3">
@@ -26845,7 +26878,7 @@ function CompanionPanel({
       />
       <section id="companion-ask" ref={panelRef} className="min-w-0 scroll-mt-24 overflow-hidden rounded-[1.4rem] border shadow-[0_18px_45px_rgba(33,58,53,0.08)]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
         <div className="relative flex flex-col gap-2.5 border-b px-4 py-4 sm:px-5 sm:py-5 md:flex-row md:items-center md:justify-between" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
-          <div className="relative pr-14 sm:pr-16">
+          <div className="relative pr-16 sm:pr-20">
             <div className="flex items-center gap-2 text-[1.02rem] font-semibold tracking-[-0.02em] sm:text-[1.08rem]" style={{ color: theme.textPrimary }}>
               <MessageCircle size={17} />
               {ui.askTitle}
@@ -26856,15 +26889,15 @@ function CompanionPanel({
               </p>
             </div>
           </div>
-          <span
-            className="absolute right-0 top-1/2 grid size-11 shrink-0 -translate-y-1/2 place-items-center rounded-[1rem] border-2 shadow-[0_8px_18px_rgba(7,10,8,0.05)]"
+          <CardCornerBadge
+            className="rounded-[1rem] border-2 shadow-[0_8px_18px_rgba(7,10,8,0.05)]"
             style={{ borderColor: theme.primary, backgroundColor: theme.bgCardElevated, color: theme.primary }}
-            aria-label={`${ui.currentLens}: ${localizedModeLabel(mode, preferences.language)}`}
+            ariaLabel={`${ui.currentLens}: ${localizedModeLabel(mode, preferences.language)}`}
             title={`${ui.currentLens}: ${localizedModeLabel(mode, preferences.language)}`}
           >
             <CurrentLensIcon size={18} aria-hidden="true" />
             <span className="sr-only">{`${ui.currentLens}: ${localizedModeLabel(mode, preferences.language)}`}</span>
-          </span>
+          </CardCornerBadge>
         </div>
 
         <form onSubmit={onAsk} className="p-4 sm:p-6" style={{ backgroundColor: theme.bgMain + 'E0' }}>
@@ -28380,14 +28413,14 @@ function CurrentCounselCard({
         </p>
       </div>
       {question ? (
-        <div className="relative rounded-[1.25rem] border p-3.5 pr-14 sm:p-4 sm:pr-16" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
+        <div className="relative rounded-[1.25rem] border p-3.5 pr-16 sm:p-4 sm:pr-20" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
           <span
-            className="absolute right-3 top-1/2 grid size-8 shrink-0 -translate-y-1/2 place-items-center rounded-[0.8rem] border shadow-sm"
+            className="pointer-events-none absolute right-4 top-4 grid size-11 shrink-0 place-items-center rounded-[0.8rem] border shadow-sm"
             style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}
             aria-label={`${ui.currentLens}: ${lensLabel}`}
             title={`${ui.currentLens}: ${lensLabel}`}
           >
-            <CurrentLensIcon size={15} aria-hidden="true" />
+            <CurrentLensIcon size={16} aria-hidden="true" />
             <span className="sr-only">{`${ui.currentLens}: ${lensLabel}`}</span>
           </span>
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>{ui.yourQuestion}</p>
