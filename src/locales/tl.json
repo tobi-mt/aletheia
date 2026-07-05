@@ -693,6 +693,10 @@
     "trustedVoices": "pinagkakatiwalaang boses",
     "counselCircleSummary": "Ang mga pribadong imbitasyon at mga kontrol sa pagbabahagi ay tahasan. Walang nakakakita ng mga chat, journal, o desisyon maliban kung ibinahagi.",
     "counselCircleSummaryShort": "Anyayahan ang mga mapagkakatiwalaang tao nang may malinaw na pagbabahagi.",
+
+    "sharedWithYou": "Ibinahagi sa'yo",
+    "sharedByYou": "Ibinahagi mo",
+    "openSharedDecision": "Buksan ang detalye ng desisyon",
     "inviteTrustedPeoplePrivateShort": "Anyayahan ang mga mapagkakatiwalaang tao nang pribado.",
     "reflectIntroShort": "Bagalan ang sandali at pangalanan ang totoo.",
     "counsel": "Payo",

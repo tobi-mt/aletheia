@@ -693,6 +693,10 @@
     "trustedVoices": "الأصوات الموثوقة",
     "counselCircleSummary": "الدعوات الخاصة وعناصر التحكم في المشاركة واضحة. لا أحد يرى الدردشات أو المجلات أو القرارات ما لم تتم مشاركتها. ",
     "counselCircleSummaryShort": "ادعُ الأصوات الموثوقة مع مشاركة واضحة.",
+
+    "sharedWithYou": "مشاركة معك",
+    "sharedByYou": "مشاركة منك",
+    "openSharedDecision": "فتح تفاصيل القرار",
     "inviteTrustedPeoplePrivateShort": "ادعُ أشخاصًا موثوقين على انفراد.",
     "reflectIntroShort": "أبطئ اللحظة وسمِّ ما هو حقيقي.",
     "counsel": "مستشار",

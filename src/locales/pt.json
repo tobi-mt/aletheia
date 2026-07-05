@@ -693,6 +693,10 @@
     "trustedVoices": "vozes de confiança",
     "counselCircleSummary": "Convites privados e controles de compartilhamento são explícitos. Ninguém vê chats, diários ou decisões a menos que sejam compartilhados.",
     "counselCircleSummaryShort": "Convide vozes de confiança com compartilhamento explícito.",
+
+    "sharedWithYou": "Compartilhadas com você",
+    "sharedByYou": "Compartilhadas por você",
+    "openSharedDecision": "Abrir detalhes da decisão",
     "inviteTrustedPeoplePrivateShort": "Convide pessoas de confiança em privado.",
     "reflectIntroShort": "Desacelere o momento e nomeie o que é verdadeiro.",
     "counsel": "Aconselhamento",

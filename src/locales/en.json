@@ -780,6 +780,10 @@
     "trustedVoices": "trusted voices",
     "counselCircleSummary": "Private invites and sharing controls are explicit. No one sees chats, journals, or decisions unless shared.",
     "counselCircleSummaryShort": "Invite trusted voices with explicit sharing.",
+
+    "sharedWithYou": "Shared with you",
+    "sharedByYou": "Shared by you",
+    "openSharedDecision": "Open decision details",
     "inviteTrustedPeoplePrivateShort": "Invite trusted people privately.",
     "reflectIntroShort": "Slow the moment and name what is true.",
     "counsel": "Counsel",

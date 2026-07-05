@@ -693,6 +693,10 @@
     "trustedVoices": "vertraute Stimmen",
     "counselCircleSummary": "Private Einladungen und Freigabekontrollen sind explizit. Niemand sieht Chats, Tagebücher oder Entscheidungen, es sei denn, sie werden geteilt.",
     "counselCircleSummaryShort": "Lade vertraute Stimmen mit klarer Freigabe ein.",
+
+    "sharedWithYou": "Mit dir geteilt",
+    "sharedByYou": "Von dir geteilt",
+    "openSharedDecision": "Entscheidungsdetails öffnen",
     "inviteTrustedPeoplePrivateShort": "Lade vertrauenswürdige Personen privat ein.",
     "reflectIntroShort": "Verlangsame den Moment und benenne, was wahr ist.",
     "counsel": "Beratung",

@@ -15059,7 +15059,7 @@ function HomeDashboard({
                   {homeWelcomeSeasonal}
                 </p>
             </div>
-            <span className="absolute right-0 top-0 grid size-12 shrink-0 place-items-center rounded-2xl border shadow-[0_8px_16px_rgba(7,10,8,0.08)]" style={{ borderColor: theme.primary, backgroundColor: theme.primary, color: theme.textOnPrimary }}>
+            <span className="absolute right-0 top-1/2 grid size-12 shrink-0 -translate-y-1/2 place-items-center rounded-2xl border shadow-[0_8px_16px_rgba(7,10,8,0.08)]" style={{ borderColor: theme.primary, backgroundColor: theme.primary, color: theme.textOnPrimary }}>
               <Sparkles size={22} />
             </span>
           </div>
@@ -15178,7 +15178,7 @@ function HomeDashboard({
               {(text as { whatNextBodyShort?: string }).whatNextBodyShort ?? text.whatNextBody ?? ""}
             </p>
             <div
-              className="absolute right-3 top-3 grid size-10 shrink-0 place-items-center rounded-[1rem] border"
+              className="absolute right-3 top-1/2 grid size-10 shrink-0 -translate-y-1/2 place-items-center rounded-[1rem] border"
               style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}
               aria-hidden="true"
             >
@@ -15430,8 +15430,10 @@ function ScreenTabs<T extends string>({
       railRef.current = node;
     }
   }, [railRef]);
-  const showSwipeCue = useRailOverflowCue(internalRailRef, tabs.length > 1, [tabs.length, value, layout, scrollItemMinWidth]);
-  const compactRail = layout === "grid";
+  const compactTwoTabGrid = layout !== "scroll" && tabs.length === 2;
+  const useGridLayout = layout === "grid" || compactTwoTabGrid;
+  const showSwipeCue = useRailOverflowCue(internalRailRef, tabs.length > 1 && !useGridLayout, [tabs.length, value, layout, scrollItemMinWidth, useGridLayout]);
+  const compactRail = useGridLayout;
   return (
     <div
       className={`relative z-20 rounded-2xl border p-1.5 shadow-sm ${className}`.trim()}
@@ -15445,7 +15447,9 @@ function ScreenTabs<T extends string>({
     >
       <div
         ref={setRailRef}
-        className={`flex min-w-0 snap-x snap-mandatory gap-1 overflow-x-auto rounded-[0.95rem] [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${showSwipeCue ? "pr-10" : ""}`.trim()}
+        className={useGridLayout
+          ? "grid min-w-0 grid-cols-2 gap-1 rounded-[0.95rem]"
+          : `flex min-w-0 snap-x snap-mandatory gap-1 overflow-x-auto rounded-[0.95rem] [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${showSwipeCue ? "pr-10" : ""}`.trim()}
       >
         {tabs.map((tab) => {
           const active = value === tab.key;
@@ -15457,7 +15461,7 @@ function ScreenTabs<T extends string>({
               aria-selected={active}
               title={tab.label}
               onClick={() => onChange(tab.key)}
-              className={`premium-tap-card relative flex min-h-12 shrink-0 snap-start items-center justify-center rounded-xl px-4 py-3 text-center font-semibold leading-tight tracking-normal transition ${compactRail ? "min-w-[6.9rem] max-w-[11rem] text-[0.76rem] sm:min-w-[7.75rem] sm:max-w-[12rem] sm:text-[0.82rem]" : "min-w-[7.25rem] max-w-[12rem] text-[0.8rem] sm:min-w-[8rem] sm:max-w-[13rem] sm:text-[0.86rem]"}`}
+              className={`premium-tap-card relative flex min-h-12 shrink-0 items-center justify-center rounded-xl px-4 py-3 text-center font-semibold leading-tight tracking-normal transition ${compactRail ? "w-full min-w-0 max-w-none snap-none text-[0.76rem] sm:text-[0.82rem]" : "min-w-[7.25rem] max-w-[12rem] snap-start text-[0.8rem] sm:min-w-[8rem] sm:max-w-[13rem] sm:text-[0.86rem]"}`}
               style={{
                 minWidth: scrollItemMinWidth ?? undefined,
                 backgroundColor: active ? (variant === "primary" ? theme.primary : theme.bgCard) : "transparent",
@@ -15622,7 +15626,7 @@ function DashboardAction({
         <span className={`${primary ? "text-[1.02rem] sm:text-[1.08rem]" : "text-sm"} block font-semibold leading-5 text-balance`}>{label}</span>
         <span className={`${compact ? "home-secondary-action-body " : ""}mt-1 block line-clamp-2 text-xs leading-5 opacity-85`}>{body}</span>
       </span>
-      <span className="flex items-start justify-end gap-2">
+      <span className="flex items-center justify-end gap-2 self-center">
         <span
           className="grid size-9 shrink-0 place-items-center rounded-xl border sm:size-10"
           style={
@@ -15942,7 +15946,7 @@ function SystemReferenceModal({
             <button
               type="button"
               onClick={onClose}
-              className="absolute right-0 top-0 grid size-10 shrink-0 place-items-center rounded-full border transition shadow-sm"
+              className="absolute right-0 top-1/2 grid size-10 shrink-0 -translate-y-1/2 place-items-center rounded-full border transition shadow-sm"
               style={{
                 borderColor: theme.borderMedium,
                 backgroundColor: theme.bgInput,
@@ -16807,7 +16811,7 @@ function ChallengeRecommendationCard({
           </p>
         </div>
       </div>
-      <div className="pointer-events-none absolute right-0 top-0 grid size-11 place-items-center rounded-[1rem] border" style={{ borderColor: theme.borderLight, backgroundColor: isContinuation ? theme.primary : theme.bgInput, color: isContinuation ? theme.textOnPrimary : theme.primary }}>
+      <div className="pointer-events-none absolute right-0 top-1/2 grid size-11 -translate-y-1/2 place-items-center rounded-[1rem] border" style={{ borderColor: theme.borderLight, backgroundColor: isContinuation ? theme.primary : theme.bgInput, color: isContinuation ? theme.textOnPrimary : theme.primary }}>
         <RecommendationIcon size={18} />
       </div>
 
@@ -18690,7 +18694,7 @@ function FormationRailSection({
           <button
             type="button"
             onClick={() => setOpenDayDetailDay(null)}
-            className="absolute right-0 top-0 grid size-10 shrink-0 place-items-center rounded-full border transition sm:right-0 sm:top-0"
+            className="absolute right-0 top-1/2 grid size-10 shrink-0 -translate-y-1/2 place-items-center rounded-full border transition sm:right-0 sm:top-1/2 sm:-translate-y-1/2"
             style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
             aria-label={ts("labels.close")}
           >
@@ -18862,7 +18866,7 @@ function FormationRailSection({
           <button
             type="button"
             onClick={closeInviteEditor}
-            className="absolute right-0 top-0 grid size-9 place-items-center rounded-full border transition"
+            className="absolute right-0 top-1/2 grid size-9 place-items-center -translate-y-1/2 rounded-full border transition"
             style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
             aria-label={ts("labels.close")}
           >
@@ -20335,7 +20339,7 @@ const ChallengeInviteDetailsPanel = memo(function ChallengeInviteDetailsPanel({
                 <button
                   type="button"
                   onClick={onCloseInviteViewer}
-                  className="absolute right-0 top-0 grid size-8 shrink-0 place-items-center rounded-full border transition sm:right-0 sm:top-0"
+                  className="absolute right-0 top-1/2 grid size-8 shrink-0 -translate-y-1/2 place-items-center rounded-full border transition sm:right-0 sm:top-1/2 sm:-translate-y-1/2"
                   style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
                   aria-label={ts("labels.closeInvite")}
                 >
@@ -22749,7 +22753,7 @@ function WelcomeAuthModal({
           <button
             type="button"
             onClick={onClose}
-            className="absolute right-0 top-0 grid size-9 shrink-0 place-items-center rounded-full border transition"
+            className="absolute right-0 top-1/2 grid size-9 shrink-0 -translate-y-1/2 place-items-center rounded-full border transition"
             style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
             aria-label={ts("labels.close")}
           >
@@ -22923,7 +22927,7 @@ function AvatarPickerModal({
           <button
             type="button"
             onClick={onClose}
-            className="absolute right-0 top-0 grid size-9 shrink-0 place-items-center rounded-full border transition sm:right-0 sm:top-0"
+            className="absolute right-0 top-1/2 grid size-9 shrink-0 -translate-y-1/2 place-items-center rounded-full border transition sm:right-0 sm:top-1/2 sm:-translate-y-1/2"
             style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
             aria-label={ts('avatar.closePicker')}
           >
@@ -23036,7 +23040,7 @@ function AvatarUploadTipsModal({
           <button
             type="button"
             onClick={onClose}
-            className="absolute right-0 top-0 grid size-9 shrink-0 place-items-center rounded-full border transition sm:right-0 sm:top-0"
+            className="absolute right-0 top-1/2 grid size-9 shrink-0 -translate-y-1/2 place-items-center rounded-full border transition sm:right-0 sm:top-1/2 sm:-translate-y-1/2"
             style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
             aria-label={ts('avatar.closePhotoTips')}
           >
@@ -24372,7 +24376,7 @@ function DeleteAccountModal({
             <button
               type="button"
               onClick={cancel}
-              className="absolute right-0 top-0 grid size-9 shrink-0 place-items-center rounded-full border transition"
+              className="absolute right-0 top-1/2 grid size-9 shrink-0 -translate-y-1/2 place-items-center rounded-full border transition"
               style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
               aria-label={ts('labels.close')}
             >
@@ -24485,7 +24489,7 @@ function ReportIssueModal({
           <button
             type="button"
             onClick={cancel}
-            className="absolute right-0 top-0 grid size-9 shrink-0 place-items-center rounded-full border transition"
+            className="absolute right-0 top-1/2 grid size-9 shrink-0 -translate-y-1/2 place-items-center rounded-full border transition"
             style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
             aria-label={ts('labels.close')}
           >
@@ -24643,7 +24647,7 @@ function WisdomTimelineModal({
             <button
               type="button"
               onClick={onClose}
-              className="absolute right-0 top-0 grid size-9 shrink-0 place-items-center rounded-full border transition shadow-sm"
+              className="absolute right-0 top-1/2 grid size-9 shrink-0 -translate-y-1/2 place-items-center rounded-full border transition shadow-sm"
               style={{
                 borderColor: theme.borderMedium,
                 backgroundColor: theme.bgInput,
@@ -24973,7 +24977,7 @@ function DecisionMemoryDetailModal({
             <button
               type="button"
               onClick={onClose}
-              className="absolute right-0 top-0 grid size-10 shrink-0 place-items-center rounded-full border transition shadow-sm"
+              className="absolute right-0 top-1/2 grid size-10 shrink-0 -translate-y-1/2 place-items-center rounded-full border transition shadow-sm"
               style={{
                 borderColor: theme.borderMedium,
                 backgroundColor: theme.bgInput,
@@ -25150,7 +25154,7 @@ function SharedDecisionDetailModal({
           <button
             type="button"
             onClick={onClose}
-            className="absolute right-0 top-0 grid size-10 shrink-0 place-items-center rounded-full border transition shadow-sm"
+            className="absolute right-0 top-1/2 grid size-10 shrink-0 -translate-y-1/2 place-items-center rounded-full border transition shadow-sm"
             style={{
               borderColor: theme.borderMedium,
               backgroundColor: theme.bgInput,
@@ -25354,7 +25358,7 @@ function StreakMilestonesModal({
             <button
               type="button"
               onClick={onClose}
-              className="absolute right-0 top-0 grid size-9 shrink-0 place-items-center rounded-full border transition shadow-sm"
+              className="absolute right-0 top-1/2 grid size-9 shrink-0 -translate-y-1/2 place-items-center rounded-full border transition shadow-sm"
               style={{
                 borderColor: theme.borderMedium,
                 backgroundColor: theme.bgInput,
@@ -25592,7 +25596,7 @@ function CounselInviteModal({
               </p>
             </div>
           </div>
-          <button className="absolute right-0 top-0 grid size-9 place-items-center rounded-full border transition" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={onClose} aria-label={ts('labels.closeInvite')}>
+          <button className="absolute right-0 top-1/2 grid size-9 -translate-y-1/2 place-items-center rounded-full border transition" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={onClose} aria-label={ts('labels.closeInvite')}>
             <X size={16} />
           </button>
         </div>
@@ -25921,7 +25925,7 @@ function ChallengeInviteModal({
                 </p>
               </div>
             </div>
-            <button className="absolute right-0 top-0 grid size-9 place-items-center rounded-full border transition" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={onClose} aria-label={ts('labels.closeInvite')}>
+            <button className="absolute right-0 top-1/2 grid size-9 -translate-y-1/2 place-items-center rounded-full border transition" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={onClose} aria-label={ts('labels.closeInvite')}>
               <X size={16} />
             </button>
           </div>
@@ -26033,7 +26037,7 @@ function ChallengeInviteModal({
               </p>
             </div>
           </div>
-            <button className="absolute right-0 top-0 grid size-9 place-items-center rounded-full border transition" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={onClose} aria-label={ts('labels.closeInvite')}>
+            <button className="absolute right-0 top-1/2 grid size-9 -translate-y-1/2 place-items-center rounded-full border transition" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={onClose} aria-label={ts('labels.closeInvite')}>
               <X size={16} />
             </button>
           </div>
@@ -26470,7 +26474,7 @@ function CounselRemovalConfirmModal({
           <button
             type="button"
             onClick={onCancel}
-            className="absolute right-0 top-0 grid size-10 shrink-0 place-items-center rounded-full border transition"
+            className="absolute right-0 top-1/2 grid size-10 shrink-0 -translate-y-1/2 place-items-center rounded-full border transition"
             style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
             aria-label={ts('labels.closeConfirmation')}
           >
@@ -26853,7 +26857,7 @@ function CompanionPanel({
             </div>
           </div>
           <span
-            className="absolute right-0 top-0 grid size-11 shrink-0 place-items-center rounded-[1rem] border-2 shadow-[0_8px_18px_rgba(7,10,8,0.05)]"
+            className="absolute right-0 top-1/2 grid size-11 shrink-0 -translate-y-1/2 place-items-center rounded-[1rem] border-2 shadow-[0_8px_18px_rgba(7,10,8,0.05)]"
             style={{ borderColor: theme.primary, backgroundColor: theme.bgCardElevated, color: theme.primary }}
             aria-label={`${ui.currentLens}: ${localizedModeLabel(mode, preferences.language)}`}
             title={`${ui.currentLens}: ${localizedModeLabel(mode, preferences.language)}`}
@@ -27885,7 +27889,7 @@ const ThreadStreamModal = memo(function ThreadStreamModal({
             <button
               type="button"
               onClick={onClose}
-              className="absolute right-0 top-0 grid size-11 shrink-0 place-items-center rounded-full border transition shadow-sm"
+            className="absolute right-0 top-1/2 grid size-11 shrink-0 -translate-y-1/2 place-items-center rounded-full border transition shadow-sm"
               style={{
                 borderColor: theme.borderMedium,
                 backgroundColor: theme.bgInput,
@@ -28136,7 +28140,7 @@ function CounselVoiceCard({
 }) {
   return (
     <div
-      className={`premium-tap-card relative flex min-h-[13rem] shrink-0 snap-start flex-col overflow-hidden rounded-[1.25rem] border p-3.5 ${stretch ? "w-full max-w-[19rem] sm:max-w-[21rem]" : "w-[15.5rem] sm:w-[16.5rem]"}`}
+      className={`premium-tap-card relative flex min-h-[13rem] shrink-0 snap-start flex-col overflow-hidden rounded-[1.25rem] border p-3.5 ${stretch ? "w-full max-w-[19rem] sm:max-w-[21rem]" : "w-[14.75rem] sm:w-[16rem]"}`}
       style={{
         borderColor: theme.borderMedium,
         background: `linear-gradient(180deg, color-mix(in srgb, ${theme.bgCardElevated} 94%, white 6%), ${theme.bgCard})`,
@@ -28378,7 +28382,7 @@ function CurrentCounselCard({
       {question ? (
         <div className="relative rounded-[1.25rem] border p-3.5 pr-14 sm:p-4 sm:pr-16" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
           <span
-            className="absolute right-3 top-3 grid size-8 shrink-0 place-items-center rounded-[0.8rem] border shadow-sm"
+            className="absolute right-3 top-1/2 grid size-8 shrink-0 -translate-y-1/2 place-items-center rounded-[0.8rem] border shadow-sm"
             style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}
             aria-label={`${ui.currentLens}: ${lensLabel}`}
             title={`${ui.currentLens}: ${lensLabel}`}
@@ -28562,24 +28566,31 @@ function RailButtonTray({
   theme,
   label,
   children,
+  dense = false,
 }: {
   theme: ThemeColors;
   label: string;
   children: ReactNode;
+  dense?: boolean;
 }) {
   const railRef = useRef<HTMLDivElement | null>(null);
   const showCue = useRailOverflowCue(railRef, true, [label]);
+  const trayPadding = dense ? "p-2" : "p-2.5";
+  const railGap = dense ? "gap-1.5" : "gap-2";
+  const overflowPadding = dense ? "pr-8" : "pr-10";
+  const cuePosition = dense ? "right-1.5 top-1.5" : "right-2 top-2";
+  const cueSize = dense ? "size-6" : "size-7";
 
   return (
-    <div className="relative overflow-hidden rounded-[1rem] border p-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+    <div className={`relative overflow-hidden rounded-[1rem] border ${trayPadding}`} style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
       {showCue ? (
-        <div className="pointer-events-none absolute right-2 top-2 z-20">
-          <RailOverflowCue theme={theme} className="size-7" />
+        <div className={`pointer-events-none absolute ${cuePosition} z-20`}>
+          <RailOverflowCue theme={theme} className={cueSize} />
         </div>
       ) : null}
       <div
         ref={railRef}
-        className={`flex min-w-0 snap-x gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${showCue ? "pr-10" : ""}`.trim()}
+        className={`flex min-w-0 snap-x ${railGap} overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${showCue ? overflowPadding : ""}`.trim()}
         aria-label={label}
       >
         {children}
@@ -28798,7 +28809,7 @@ function ConversationHistoryModal({
             <button
               type="button"
               onClick={onClose}
-              className="absolute right-0 top-0 grid size-10 shrink-0 place-items-center rounded-full border transition shadow-sm"
+              className="absolute right-0 top-1/2 grid size-10 shrink-0 -translate-y-1/2 place-items-center rounded-full border transition shadow-sm"
               style={{
                 borderColor: theme.borderMedium,
                 backgroundColor: theme.bgInput,
@@ -28967,13 +28978,15 @@ function DecisionCompanionPanel({
   const [wisdomTimelineOpen, setWisdomTimelineOpen] = useState(false);
   const [counselThreadContactId, setCounselThreadContactId] = useState<string | null>(null);
   const [selectedSharedDecision, setSelectedSharedDecision] = useState<SharedCounselDecisionItem | null>(null);
-  const [selectedShareContactId, setSelectedShareContactId] = useState<string | null>(null);
-  const [selectedShareDecisionIds, setSelectedShareDecisionIds] = useState<string[]>([]);
+  const [selectedShareContactIdState, setSelectedShareContactIdState] = useState<string | null>(null);
+  const [selectedShareDecisionIdsState, setSelectedShareDecisionIdsState] = useState<string[]>([]);
   const counselAvatarFileInputRef = useRef<HTMLInputElement | null>(null);
   const rhythmRailRef = useRef<HTMLDivElement | null>(null);
   const visibleCounselRailRef = useRef<HTMLDivElement | null>(null);
   const hiddenCounselRailRef = useRef<HTMLDivElement | null>(null);
   const ruleRailRef = useRef<HTMLDivElement | null>(null);
+  const incomingSharedDecisionRailRef = useRef<HTMLDivElement | null>(null);
+  const outgoingSharedDecisionRailRef = useRef<HTMLDivElement | null>(null);
   const activeDecisions = decisions.filter((decision) => decision.status !== "closed");
   const selectedDecision = decisions[0];
   const [decisionSection, setDecisionSection] = useState<"decisions" | "counsel" | "rhythm">("decisions");
@@ -28988,9 +29001,21 @@ function DecisionCompanionPanel({
     : decisionNextBody;
   const visibleCounselContacts = counselContacts.slice(0, 3);
   const hiddenCounselContacts = counselContacts.slice(3);
+  const incomingSharedDecisionItems = receivedCounselInvites
+    .flatMap((invite) =>
+      invite.sharedDecisions.map((decision) => ({ invite, decision }))
+    )
+    .sort((left, right) => Date.parse(right.decision.sharedAt) - Date.parse(left.decision.sharedAt));
+  const outgoingSharedDecisionItems = counselContacts
+    .flatMap((contact) =>
+      (contact.recentShares ?? []).map((share) => ({ contact, share }))
+    )
+    .sort((left, right) => Date.parse(right.share.sharedAt) - Date.parse(left.share.sharedAt));
   const visibleCounselRailHasOverflow = useRailOverflowCue(visibleCounselRailRef, decisionSection === "counsel", [counselContacts.length]);
   const hiddenCounselRailHasOverflow = useRailOverflowCue(hiddenCounselRailRef, decisionSection === "counsel" && counselContacts.length > 3, [counselContacts.length]);
   const ruleRailHasOverflow = useRailOverflowCue(ruleRailRef, decisionSection === "rhythm", [modeRules.length]);
+  const incomingSharedDecisionRailHasOverflow = useRailOverflowCue(incomingSharedDecisionRailRef, decisionSection === "counsel", [incomingSharedDecisionItems.length]);
+  const outgoingSharedDecisionRailHasOverflow = useRailOverflowCue(outgoingSharedDecisionRailRef, decisionSection === "counsel", [outgoingSharedDecisionItems.length]);
   const selectedCounselThreadContact = counselThreadContactId
     ? counselContacts.find((contact) => contact.id === counselThreadContactId) ?? null
     : null;
@@ -29009,15 +29034,26 @@ function DecisionCompanionPanel({
       note: note ?? null,
     } satisfies ThreadFeedEntry;
   }) ?? [];
-  const sharedDecisionItems = receivedCounselInvites.flatMap((invite) =>
-    invite.sharedDecisions.map((decision) => ({ invite, decision }))
-  ) as SharedCounselDecisionItem[];
-  const sharedDecisionCount = sharedDecisionItems.length;
+  const selectedShareContactId = selectedShareContactIdState && counselContacts.some((contact) => contact.id === selectedShareContactIdState)
+    ? selectedShareContactIdState
+    : counselContacts[0]?.id ?? null;
+  const selectedShareDecisionIds = selectedShareDecisionIdsState.filter((decisionId) =>
+    decisions.some((decision) => decision.id === decisionId && decision.status !== "closed")
+  );
   const selectedShareContact = selectedShareContactId
     ? counselContacts.find((contact) => contact.id === selectedShareContactId) ?? null
     : null;
   const visibleDecisionMemoryEntries = decisions.length > 0 ? decisions : process.env.NODE_ENV !== "production" ? buildQaRailSampleDecisionSeeds() : decisions;
   const rhythmRailHasOverflow = useRailOverflowCue(rhythmRailRef, decisionSection === "rhythm", [modeRules.length]);
+  const decisionShareDateFormatter = new Intl.DateTimeFormat(language, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+  const formatDecisionShareDate = (value: string) => {
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? null : decisionShareDateFormatter.format(date);
+  };
 
   async function optimizeCounselAvatarFile(file: File): Promise<string> {
     const imageBitmap = await createImageBitmap(file);
@@ -29076,22 +29112,8 @@ function DecisionCompanionPanel({
     }
   }
 
-  useEffect(() => {
-    if (!counselContacts.length) {
-      setSelectedShareContactId(null);
-      setSelectedShareDecisionIds([]);
-      return;
-    }
-
-    setSelectedShareContactId((current) => current && counselContacts.some((contact) => contact.id === current) ? current : counselContacts[0]?.id ?? null);
-  }, [counselContacts]);
-
-  useEffect(() => {
-    setSelectedShareDecisionIds((current) => current.filter((decisionId) => decisions.some((decision) => decision.id === decisionId && decision.status !== "closed")));
-  }, [decisions]);
-
   function toggleSharedDecision(decisionId: string) {
-    setSelectedShareDecisionIds((current) =>
+    setSelectedShareDecisionIdsState((current) =>
       current.includes(decisionId)
         ? current.filter((item) => item !== decisionId)
         : [...current, decisionId]
@@ -29103,7 +29125,7 @@ function DecisionCompanionPanel({
       return;
     }
     onBulkShareDecisionsWithCounsel(selectedShareContactId, selectedShareDecisionIds);
-    setSelectedShareDecisionIds([]);
+    setSelectedShareDecisionIdsState([]);
   }
 
   return (
@@ -29288,7 +29310,7 @@ function DecisionCompanionPanel({
                 entries={visibleDecisionMemoryEntries}
               />
 
-              {counselContacts.length || sharedDecisionItems.length ? (
+              {counselContacts.length || activeDecisions.length ? (
                 <section className="mt-5 rounded-[1.35rem] border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                     <div className="min-w-0">
@@ -29299,93 +29321,199 @@ function DecisionCompanionPanel({
                         {selectedShareContact ? selectedShareContact.name : ts('labels.trustedVoices')}
                       </h3>
                     </div>
-                    {sharedDecisionItems.length ? (
-                      <span className="w-fit rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-                        {sharedDecisionCount} {sharedDecisionCount === 1 ? ts('labels.decisionSingular') : ts('labels.decisionPlural')}
-                      </span>
-                    ) : null}
                   </div>
                   <CounselDecisionShareRail
-                    theme={theme}
-                    ts={ts}
-                    decisions={activeDecisions}
-                    counselContacts={counselContacts}
-                    selectedContactId={selectedShareContactId}
-                    onSelectContact={setSelectedShareContactId}
-                    selectedDecisionIds={selectedShareDecisionIds}
-                    onToggleDecision={toggleSharedDecision}
-                    onShareSelected={shareSelectedDecisions}
+                  theme={theme}
+                  ts={ts}
+                  decisions={activeDecisions}
+                  counselContacts={counselContacts}
+                  selectedContactId={selectedShareContactId}
+                  onSelectContact={setSelectedShareContactIdState}
+                  selectedDecisionIds={selectedShareDecisionIds}
+                  onToggleDecision={toggleSharedDecision}
+                  onShareSelected={shareSelectedDecisions}
                   />
-                  {sharedDecisionItems.length ? (
-                    <>
-                      <div className="my-4 h-px w-full" style={{ backgroundColor: theme.borderLight }} />
-                      <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>
-                        {ts('labels.counselCircleSummaryShort')}
-                      </p>
-                      <div className="mt-3 flex min-w-0 snap-x snap-mandatory gap-2.5 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                        {sharedDecisionItems.map(({ invite, decision }) => (
-                          <button
-                            key={`${invite.invite.contactId}:${decision.id}`}
-                            id={`decision-card-${decision.id}`}
-                            type="button"
-                            onClick={() => setSelectedSharedDecision({ invite, decision })}
-                            className="premium-tap-card flex w-[15rem] shrink-0 snap-start flex-col justify-between rounded-[1.25rem] border p-3 text-left transition duration-200 ease-out active:scale-[0.985] hover:-translate-y-0.5"
-                            style={{
-                              borderColor: theme.borderMedium,
-                              background: `linear-gradient(180deg, color-mix(in srgb, ${theme.bgCardElevated} 92%, ${theme.accentGold} 8%), ${theme.bgCard})`,
-                              boxShadow: `0 10px 22px color-mix(in srgb, ${theme.bgMain} 10%, transparent)`,
-                            }}
-                            aria-label={`${ts('labels.viewInvite')}: ${invite.invite.name} · ${decision.title}`}
-                          >
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="min-w-0">
-                                <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
-                                  {localizedCounselRoleLabel(invite.invite.role, ts)}
-                                </p>
-                                <p className="mt-1 text-sm font-semibold leading-5 line-clamp-3" style={{ color: theme.textPrimary }}>
-                                  {decision.title}
-                                </p>
-                                <p className="mt-0.5 text-[0.72rem] leading-4" style={{ color: theme.textMuted }}>
-                                  {invite.invite.name}
-                                </p>
-                              </div>
-                            </div>
-                            <p className="mt-3 line-clamp-3 text-sm leading-6" style={{ color: theme.textSecondary }}>
-                              {decision.summary || ts('labels.sharedDecisionSummaryPending')}
-                            </p>
-                            <div className="mt-3 flex flex-wrap gap-2">
-                              <span className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textSecondary }}>
-                                {(isMode(decision.mode) ? ts(modeTranslationKey(decision.mode), decision.mode) : decision.mode) || ts('labels.decisionSingular')}
-                              </span>
-                              <span className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textSecondary }}>
-                                {ts('labels.readiness')} {decision.readiness}/100
-                              </span>
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                    </>
-                  ) : null}
                 </section>
               ) : null}
-              <SharedDecisionDetailModal
-                open={Boolean(selectedSharedDecision)}
-                theme={theme}
-                ts={ts}
-                language={language}
-                item={selectedSharedDecision}
-                onClose={() => setSelectedSharedDecision(null)}
-              />
             </section>
           </>
         ) : null}
 
         {decisionSection === "counsel" ? (
           <div className="space-y-4">
-            <section id="counsel-circle" className="scroll-mt-24">
-              <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.counselCircle')}</p>
-              <div className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
-                <span>{ts('labels.inviteTrustedPeoplePrivate')}</span>
+            {incomingSharedDecisionItems.length ? (
+              <section className="rounded-[1.35rem] border p-3.5 shadow-[0_8px_24px_rgba(15,23,42,0.05)] sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
+                      {ts('labels.sharedWithYou')}
+                    </p>
+                    <h3 className="mt-1 text-lg font-semibold" style={{ color: theme.textPrimary }}>
+                      {incomingSharedDecisionItems.length} {incomingSharedDecisionItems.length === 1 ? ts('labels.decisionSingular') : ts('labels.decisionPlural')}
+                    </h3>
+                  </div>
+                </div>
+                {incomingSharedDecisionRailHasOverflow ? (
+                  <div className="mt-4 flex justify-end">
+                    <RailOverflowCue theme={theme} className="size-7" />
+                  </div>
+                ) : null}
+                <div ref={incomingSharedDecisionRailRef} className="mt-2 flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  {incomingSharedDecisionItems.map(({ invite, decision }) => {
+                    const sharedAt = formatDecisionShareDate(decision.sharedAt);
+                    const commentCount = decision.comments.length;
+                    const modeLabel = isMode(decision.mode) ? ts(modeTranslationKey(decision.mode), decision.mode) : decision.mode;
+                    return (
+                      <button
+                        type="button"
+                        key={`${invite.invite.contactId ?? invite.invite.name}:${decision.id}`}
+                        id={`decision-card-${decision.id}`}
+              className="premium-tap-card flex w-[15rem] shrink-0 snap-start flex-col justify-between rounded-[1.25rem] border p-3.5 text-left transition duration-200 ease-out active:scale-[0.985] hover:-translate-y-0.5"
+                        style={{
+                          borderColor: theme.borderMedium,
+                          background: `linear-gradient(180deg, color-mix(in srgb, ${theme.bgCardElevated} 92%, ${theme.accentGold} 8%), ${theme.bgCard})`,
+                          boxShadow: `0 10px 22px color-mix(in srgb, ${theme.bgMain} 10%, transparent)`,
+                        }}
+                        aria-label={`${ts('labels.openSharedDecision')}: ${decision.title}`}
+                        onClick={() => setSelectedSharedDecision({ invite, decision })}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+                              {localizedCounselRoleLabel(invite.invite.role, ts)} · {invite.invite.name}
+                            </p>
+                            <p className="mt-1 text-sm font-semibold leading-5 line-clamp-3" style={{ color: theme.textPrimary }}>
+                              {decision.title}
+                            </p>
+                          </div>
+                          {commentCount > 0 ? (
+                            <span className="shrink-0 rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textSecondary }}>
+                              {commentCount} {commentCount === 1 ? ts('labels.commentSingular') : ts('labels.commentPlural')}
+                            </span>
+                          ) : null}
+                        </div>
+                        <p className="mt-3 line-clamp-3 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                          {decision.summary || ts('labels.sharedDecisionSummaryPending')}
+                        </p>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <span className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textSecondary }}>
+                            {modeLabel}
+                          </span>
+                          <span className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textSecondary }}>
+                            {ts('labels.readiness')} {decision.readiness}/100
+                          </span>
+                        </div>
+                        <div className="mt-3 flex items-center justify-between gap-3 text-[10px] uppercase tracking-[0.1em]" style={{ color: theme.textMuted }}>
+                          <span>{sharedAt ?? ts('labels.sharedProgress')}</span>
+                          <span className="font-semibold" style={{ color: theme.textSecondary }}>
+                            {ts('labels.openSharedDecision')}
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+            ) : null}
+
+            {outgoingSharedDecisionItems.length ? (
+              <section className="rounded-[1.35rem] border p-3.5 shadow-[0_8px_24px_rgba(15,23,42,0.05)] sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
+                      {ts('labels.sharedByYou')}
+                    </p>
+                    <h3 className="mt-1 text-lg font-semibold" style={{ color: theme.textPrimary }}>
+                      {outgoingSharedDecisionItems.length} {outgoingSharedDecisionItems.length === 1 ? ts('labels.decisionSingular') : ts('labels.decisionPlural')}
+                    </h3>
+                  </div>
+                </div>
+                {outgoingSharedDecisionRailHasOverflow ? (
+                  <div className="mt-4 flex justify-end">
+                    <RailOverflowCue theme={theme} className="size-7" />
+                  </div>
+                ) : null}
+                <div ref={outgoingSharedDecisionRailRef} className="mt-2 flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  {outgoingSharedDecisionItems.map(({ contact, share }) => {
+                    const sharedAt = formatDecisionShareDate(share.sharedAt);
+                    const { statusLabel, note } = localizedCounselShareDeliveryCopy(share, ts);
+                    const modeLabel = isMode(share.mode) ? ts(modeTranslationKey(share.mode), share.mode) : share.mode;
+                    return (
+                      <button
+                        type="button"
+                        key={`${contact.id}:${share.id}`}
+                        className="premium-tap-card flex w-[15rem] shrink-0 snap-start flex-col justify-between rounded-[1.25rem] border p-3.5 text-left transition duration-200 ease-out active:scale-[0.985] hover:-translate-y-0.5"
+                        style={{
+                          borderColor: theme.borderMedium,
+                          background: `linear-gradient(180deg, color-mix(in srgb, ${theme.bgCardElevated} 94%, white 6%), ${theme.bgCard})`,
+                          boxShadow: `0 10px 22px color-mix(in srgb, ${theme.bgMain} 10%, transparent)`,
+                        }}
+                        aria-label={`${ts('labels.viewThread')}: ${contact.name} · ${share.title}`}
+                        onClick={() => setCounselThreadContactId(contact.id)}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+                              {localizedCounselRoleLabel(contact.role, ts)} · {contact.name}
+                            </p>
+                            <p className="mt-1 text-sm font-semibold leading-5 line-clamp-3" style={{ color: theme.textPrimary }}>
+                              {share.title}
+                            </p>
+                          </div>
+                          <span className="shrink-0 rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textSecondary }}>
+                            {share.acceptedRecipientCount} {share.acceptedRecipientCount === 1 ? ts('labels.person') : ts('labels.recipients')}
+                          </span>
+                        </div>
+                        <p className="mt-3 line-clamp-3 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                          {share.summary || ts('labels.sharedDecisionSummaryPending')}
+                        </p>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <span className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textSecondary }}>
+                            {modeLabel}
+                          </span>
+                          <span className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textSecondary }}>
+                            {statusLabel || ts('status.counselShareSentToPushService')}
+                          </span>
+                        </div>
+                        {note ? (
+                          <p className="mt-2 text-[10px] leading-4" style={{ color: theme.textSecondary }}>
+                            {note}
+                          </p>
+                        ) : null}
+                        <div className="mt-3 flex items-center justify-between gap-3 text-[10px] uppercase tracking-[0.1em]" style={{ color: theme.textMuted }}>
+                          <span>{sharedAt ?? ts('labels.sharedProgress')}</span>
+                          <span className="font-semibold" style={{ color: theme.textSecondary }}>
+                            {ts('labels.viewThread')}
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+            ) : null}
+
+            <SharedDecisionDetailModal
+              open={Boolean(selectedSharedDecision)}
+              theme={theme}
+              ts={ts}
+              language={language}
+              item={selectedSharedDecision}
+              onClose={() => setSelectedSharedDecision(null)}
+            />
+
+            {!incomingSharedDecisionItems.length && !outgoingSharedDecisionItems.length ? (
+              <p className="rounded-[1rem] border border-dashed p-3 text-sm leading-6" style={{ borderColor: theme.borderMedium, color: theme.textSecondary }}>
+                {ts('labels.noSharedDecisionsYet')}
+              </p>
+            ) : null}
+
+            <section id="counsel-circle" className="scroll-mt-24 rounded-[1.35rem] border p-3.5 shadow-[0_8px_24px_rgba(15,23,42,0.05)] sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.counselCircle')}</p>
+                  <h3 className="mt-1 text-lg font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.inviteTrustedPeoplePrivate')}</h3>
+                </div>
               </div>
               {counselSummaryDraft ? (
                 <div className="mt-3 rounded-[1rem] border p-2.5" style={{ borderColor: theme.accentGold, backgroundColor: theme.bgCardElevated }}>
@@ -29456,11 +29584,11 @@ function DecisionCompanionPanel({
                       </p>
                     </div>
                   </div>
-                  <RailButtonTray theme={theme} label={ts("labels.counselPhoto")}>
+                  <RailButtonTray theme={theme} label={ts("labels.counselPhoto")} dense>
                     <button
                       type="button"
                       onClick={() => counselAvatarFileInputRef.current?.click()}
-                      className="h-9 shrink-0 snap-start whitespace-nowrap rounded-full border px-3 text-xs font-semibold"
+                      className="h-8 shrink-0 snap-start whitespace-nowrap rounded-full border px-2.5 text-[11px] font-semibold sm:h-9 sm:px-3 sm:text-xs"
                       style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
                     >
                       {ts('labels.choosePhoto')}
@@ -29468,7 +29596,7 @@ function DecisionCompanionPanel({
                     <button
                       type="button"
                       onClick={() => setCounselAvatarPickerOpen(true)}
-                      className="h-9 shrink-0 snap-start whitespace-nowrap rounded-full border px-3 text-xs font-semibold"
+                      className="h-8 shrink-0 snap-start whitespace-nowrap rounded-full border px-2.5 text-[11px] font-semibold sm:h-9 sm:px-3 sm:text-xs"
                       style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
                     >
                       {ts('labels.pickFunAvatar')}
@@ -29479,7 +29607,7 @@ function DecisionCompanionPanel({
                         setCounselAvatarUrl("");
                         setCounselAvatarStatus(ts('status.usingDefaultAvatarForContact'));
                       }}
-                      className="h-9 shrink-0 snap-start whitespace-nowrap rounded-full border px-3 text-xs font-semibold"
+                      className="h-8 shrink-0 snap-start whitespace-nowrap rounded-full border px-2.5 text-[11px] font-semibold sm:h-9 sm:px-3 sm:text-xs"
                       style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
                     >
                       {ts('labels.useDefault')}
@@ -29646,17 +29774,17 @@ function DecisionCompanionPanel({
                     ) : null}
                     <div ref={visibleCounselRailRef} className="mt-2 flex min-w-0 snap-x snap-mandatory gap-2.5 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
                       {visibleCounselContacts.map((contact) => (
-                      <CounselVoiceCard
-                        key={contact.id}
-                        theme={theme}
-                        ts={ts}
-                        contact={contact}
-                        onRemoveCounselContact={onRemoveCounselContact}
-                        onOpenThread={setCounselThreadContactId}
-                      />
-                    ))}
-                  </div>
-                </>
+                        <CounselVoiceCard
+                          key={contact.id}
+                          theme={theme}
+                          ts={ts}
+                          contact={contact}
+                          onRemoveCounselContact={onRemoveCounselContact}
+                          onOpenThread={setCounselThreadContactId}
+                        />
+                      ))}
+                    </div>
+                  </>
                 )}
                 {hiddenCounselContacts.length ? (
                   <div className="mt-4 rounded-[1.35rem] border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
@@ -29692,99 +29820,8 @@ function DecisionCompanionPanel({
                     </div>
                   </div>
                 ) : null}
-                {receivedCounselInvites.length ? (
-                  <div className="mt-4 rounded-[1.35rem] border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
-                          {ts('labels.youAreConnected')}
-                        </p>
-                        <h3 className="mt-0.5 text-[1rem] font-semibold leading-6" style={{ color: theme.textPrimary }}>
-                          {ts('labels.sharedProgress')}
-                        </h3>
-                        <p className="mt-1 text-[11px] leading-5" style={{ color: theme.textSecondary }}>
-                          {ts('labels.counselCircleSummaryShort')}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="mt-2.5 space-y-2.5">
-                      {receivedCounselInvites.map((invite) => {
-                        const acceptedAt = invite.invite.acceptedAt
-                          ? new Date(invite.invite.acceptedAt).toLocaleDateString(undefined, {
-                              month: "short",
-                              day: "numeric",
-                              year: "numeric",
-                            })
-                          : null;
-                        return (
-                          <button
-                            type="button"
-                            key={`${invite.invite.name}:${invite.invite.acceptedAt ?? invite.sharedDecisions[0]?.id ?? "received"}`}
-                            className="w-full rounded-[1.15rem] border p-3 text-left transition active:scale-[0.995]"
-                            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}
-                            aria-haspopup="dialog"
-                            aria-label={`${ts('labels.viewInvite')}: ${invite.invite.name}`}
-                            onClick={() => onOpenReceivedCounselInvite(invite)}
-                          >
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="flex min-w-0 items-start gap-2.5">
-                                <AvatarCircle
-                                  avatarUrl={invite.invite.avatarUrl}
-                                  seed={invite.invite.name}
-                                  label={invite.invite.name}
-                                  size={30}
-                                  className="size-[30px]"
-                                />
-                                <div className="min-w-0">
-                                  <p className="text-[0.98rem] font-semibold leading-5 tracking-[-0.01em]" style={{ color: theme.textPrimary }}>
-                                    {invite.invite.name}
-                                  </p>
-                                  <p className="mt-0.5 text-[0.72rem] leading-5" style={{ color: theme.textMuted }}>
-                                    {localizedCounselRoleLabel(invite.invite.role, ts)} · {ts('status.accepted')}
-                                  </p>
-                                </div>
-                              </div>
-                            </div>
-                            <p className="mt-1.5 text-[10px] leading-5" style={{ color: theme.textSecondary }}>
-                              {acceptedAt ? `${acceptedAt} · ` : ""}
-                              {invite.sharedDecisions.length} {invite.sharedDecisions.length === 1 ? ts('labels.decisionSingular') : ts('labels.decisionPlural')}
-                            </p>
-                            <div className="mt-2 space-y-1.5">
-                              {invite.sharedDecisions.length ? (
-                                invite.sharedDecisions.slice(0, 2).map((decision) => (
-                                  <div key={decision.id} className="rounded-[0.9rem] px-2.5 py-2" style={{ backgroundColor: theme.bgCard }}>
-                                    <p className="text-sm font-semibold leading-5" style={{ color: theme.textPrimary }}>
-                                      {decision.title}
-                                    </p>
-                                    <p className="mt-0.5 text-[10px] leading-4" style={{ color: theme.textSecondary }}>
-                                      {decision.summary || ts('labels.sharedDecisionSummaryPending')}
-                                    </p>
-                                  </div>
-                                ))
-                              ) : (
-                                <p className="text-sm leading-5" style={{ color: theme.textSecondary }}>
-                                  {ts('labels.noSharedDecisionsYet')}
-                                </p>
-                              )}
-                              {invite.sharedDecisions.length > 2 ? (
-                                <p className="text-xs font-semibold uppercase tracking-[0.1em]" style={{ color: theme.textMuted }}>
-                                  +{invite.sharedDecisions.length - 2}
-                                </p>
-                              ) : null}
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ) : null}
-                {!counselContacts.length && !receivedCounselInvites.length ? (
-                  <p className="rounded-[1rem] border border-dashed p-3 text-sm leading-6" style={{ borderColor: theme.borderMedium, color: theme.textSecondary }}>
-                    {ts('labels.addTrustedPersonBeforeHighStakes')}
-                  </p>
-                ) : null}
-                </div>
-              </section>
+              </div>
+            </section>
           </div>
         ) : null}
 
@@ -30183,11 +30220,6 @@ function ReflectPanel({
       ? "gratitude"
       : reflectSection;
 
-  useEffect(() => {
-    if (pendingGratitudeNotificationFocus) {
-      setReflectSection("gratitude");
-    }
-  }, [pendingGratitudeNotificationFocus]);
   const reflectOverviewCards = [
     {
       section: "check",
@@ -30913,7 +30945,7 @@ function GratitudeLensPanel({
           </div>
           <div className="mt-3 grid gap-3 lg:grid-cols-[1fr_1fr]">
             <section className="rounded-[1.35rem] border p-3.5 shadow-[0_8px_20px_rgba(7,10,8,0.05)]" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+              <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
                     {ts('labels.gratitudeStyleCard')}
@@ -30922,18 +30954,16 @@ function GratitudeLensPanel({
                     {activeStyleSummary || ts('labels.gratitudeStyleBody')}
                   </p>
                 </div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
-                  {ts('labels.gratitudeFilters')}
-                </p>
-              </div>
-              {gratitudeFilterRailHasOverflow ? (
-                <div className="mt-2 flex justify-end">
-                  <RailOverflowCue theme={theme} className="size-7" />
+                <div className="flex shrink-0 items-center gap-2">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
+                    {ts('labels.gratitudeFilters')}
+                  </p>
+                  {gratitudeFilterRailHasOverflow ? <RailOverflowCue theme={theme} className="size-7" /> : null}
                 </div>
-              ) : null}
+              </div>
               <div
                 ref={gratitudeFilterRailRef}
-                className={`mt-3 flex gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${gratitudeFilterRailHasOverflow ? "pr-10" : ""}`.trim()}
+                className={`mt-2 flex gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${gratitudeFilterRailHasOverflow ? "pr-10" : ""}`.trim()}
               >
                 {GRATITUDE_FILTERS.map((filter) => {
                   const isActive = visual.filter === filter;
@@ -30958,18 +30988,21 @@ function GratitudeLensPanel({
             </section>
 
             <section className="rounded-[1.35rem] border p-3.5 shadow-[0_8px_20px_rgba(7,10,8,0.05)]" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+              <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
                     {ts('labels.gratitudeOverlays')}
                   </p>
                 </div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
-                  {ts('labels.gratitudeStickerLimit')}
-                </p>
+                <div className="flex shrink-0 items-center gap-2">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
+                    {ts('labels.gratitudeStickerLimit')}
+                  </p>
+                  {gratitudeOverlayRailHasOverflow ? <RailOverflowCue theme={theme} className="size-7" /> : null}
+                </div>
               </div>
 
-              <div className="mt-3 space-y-3">
+              <div className="mt-2 space-y-3">
                 <div>
                   <div className="flex items-center justify-between gap-3">
                     <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textMuted }}>
@@ -31143,7 +31176,7 @@ function GratitudeLensPanel({
                 {visibleEntries.length ? ts('labels.latestGratitude') : ts('labels.noGratitudeYet')}
               </h3>
             </div>
-            <Sprout className="absolute right-0 top-0" size={24} style={{ color: theme.primary }} />
+            <Sprout className="absolute right-0 top-1/2 -translate-y-1/2" size={24} style={{ color: theme.primary }} />
           </div>
 
           <div className="mt-3 rounded-xl border p-2.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput }}>
@@ -31777,7 +31810,7 @@ function JournalEntryDetailModal({
             <button
               type="button"
               onClick={onClose}
-              className="absolute right-0 top-0 grid size-10 shrink-0 place-items-center rounded-full border transition shadow-sm"
+              className="absolute right-0 top-1/2 grid size-10 shrink-0 -translate-y-1/2 place-items-center rounded-full border transition shadow-sm"
               style={{
                 borderColor: theme.borderMedium,
                 backgroundColor: theme.bgInput,
