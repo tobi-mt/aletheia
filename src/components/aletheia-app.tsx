@@ -7684,6 +7684,7 @@ export function AletheiaApp({
   const [pendingNotificationFocus, setPendingNotificationFocus] = useState(false);
   const [pendingGratitudeNotificationFocus, setPendingGratitudeNotificationFocus] = useState(false);
   const [pendingDecisionNotificationFocus, setPendingDecisionNotificationFocus] = useState<string | null>(null);
+  const [pendingDecisionShareSurfaceFocusContactId, setPendingDecisionShareSurfaceFocusContactId] = useState<string | null>(null);
   const [pendingChallengeId, setPendingChallengeId] = useState<string | null>(null);
   const [pendingChallengeFocus, setPendingChallengeFocus] = useState<"nudges" | null>(null);
   const appOpenedAtRef = useRef<number>(Date.now());
@@ -8471,6 +8472,9 @@ export function AletheiaApp({
           "success"
         );
         setPendingDecisionNotificationFocus(decisionId);
+        if (params.get("section") === "share") {
+          setPendingDecisionShareSurfaceFocusContactId(params.get("contactId"));
+        }
       } else if (focus === "reflect") {
         setActiveView("reflect", "notification_click");
         setStatusMessage(ts('status.reflectionReminderReady'));
@@ -12603,8 +12607,8 @@ function startFirstRunGuestFlow() {
           ? {
               label: ts('labels.shareMore'),
               onClick: () => {
-                // Keep user on decisions view
-                setActiveView("decisions");
+                setActiveView("decisions", "notification_click");
+                setPendingDecisionShareSurfaceFocusContactId(contactId);
               },
             }
           : undefined
@@ -13367,6 +13371,8 @@ function startFirstRunGuestFlow() {
                       onShareDecisionWithCounsel={shareDecisionWithCounsel}
                       onBulkShareDecisionsWithCounsel={bulkShareDecisionsWithCounsel}
                       onSendSharedDecisionComment={addSharedDecisionComment}
+                      pendingDecisionShareSurfaceFocusContactId={pendingDecisionShareSurfaceFocusContactId}
+                      onPendingDecisionShareSurfaceFocusHandled={() => setPendingDecisionShareSurfaceFocusContactId(null)}
                       onOpenReceivedCounselInvite={openReceivedCounselInvite}
                       onRemoveCounselContact={removeCounselContact}
                       onAddRule={addRuleOfLife}
@@ -29311,6 +29317,8 @@ function DecisionCompanionPanel({
   onShareDecisionWithCounsel,
   onBulkShareDecisionsWithCounsel,
   onSendSharedDecisionComment,
+  pendingDecisionShareSurfaceFocusContactId,
+  onPendingDecisionShareSurfaceFocusHandled,
   onRemoveCounselContact,
   onAddRule,
   theme,
@@ -29360,6 +29368,8 @@ function DecisionCompanionPanel({
   onShareDecisionWithCounsel: (contactId: string, decisionId: string) => void;
   onBulkShareDecisionsWithCounsel: (contactId: string, decisionIds: string[]) => void;
   onSendSharedDecisionComment: (sharedDecisionId: string, body: string) => Promise<CounselConversationComment | void> | CounselConversationComment | void;
+  pendingDecisionShareSurfaceFocusContactId: string | null;
+  onPendingDecisionShareSurfaceFocusHandled: () => void;
   onRemoveCounselContact: (contactId: string) => void;
   onAddRule: (event: FormEvent<HTMLFormElement>) => void;
   theme: ThemeColors;
@@ -29382,6 +29392,7 @@ function DecisionCompanionPanel({
   const ruleRailRef = useRef<HTMLDivElement | null>(null);
   const incomingSharedDecisionRailRef = useRef<HTMLDivElement | null>(null);
   const outgoingSharedDecisionRailRef = useRef<HTMLDivElement | null>(null);
+  const shareDecisionSurfaceRef = useRef<HTMLDivElement | null>(null);
   const activeDecisions = decisions.filter((decision) => decision.status !== "closed");
   const selectedDecision = decisions[0];
   const [decisionSection, setDecisionSection] = useState<"decisions" | "counsel" | "rhythm">("decisions");
@@ -29504,6 +29515,39 @@ function DecisionCompanionPanel({
     onBulkShareDecisionsWithCounsel(selectedShareContactId, selectedShareDecisionIds);
     setSelectedShareDecisionIdsState([]);
   }
+
+  useEffect(() => {
+    if (!pendingDecisionShareSurfaceFocusContactId) {
+      return;
+    }
+
+    if (decisionSection !== "decisions") {
+      const openTabHandle = window.requestAnimationFrame(() => {
+        setDecisionSection("decisions");
+      });
+      return () => window.cancelAnimationFrame(openTabHandle);
+    }
+
+    const target = shareDecisionSurfaceRef.current;
+    if (!target) {
+      return;
+    }
+
+    const preferredContactId = counselContacts.some((contact) => contact.id === pendingDecisionShareSurfaceFocusContactId)
+      ? pendingDecisionShareSurfaceFocusContactId
+      : counselContacts[0]?.id ?? null;
+    if (preferredContactId) {
+      setSelectedShareContactIdState(preferredContactId);
+    }
+    target.focus({ preventScroll: true });
+    scrollTargetBelowTopChrome(target);
+    onPendingDecisionShareSurfaceFocusHandled();
+  }, [
+    counselContacts,
+    decisionSection,
+    onPendingDecisionShareSurfaceFocusHandled,
+    pendingDecisionShareSurfaceFocusContactId,
+  ]);
 
   return (
     <div className="min-w-0 space-y-4">
@@ -29675,7 +29719,14 @@ function DecisionCompanionPanel({
               />
 
               {counselContacts.length || activeDecisions.length ? (
-                <section className="mt-5 rounded-[1.35rem] border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                <section
+                  id="decision-share-surface"
+                  ref={shareDecisionSurfaceRef}
+                  tabIndex={-1}
+                  aria-label={ts('labels.shareDecisions')}
+                  className="mt-5 rounded-[1.35rem] border p-3.5 sm:p-4 outline-none"
+                  style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}
+                >
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                     <div className="min-w-0">
                       <p className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
