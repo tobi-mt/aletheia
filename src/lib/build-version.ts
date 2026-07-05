@@ -6,4 +6,4 @@ const encodedBuildId = encodeURIComponent(BUILD_ID);
 
 export const SERVICE_WORKER_URL = `/sw.js?v=${encodedBuildId}`;
 export const MANIFEST_URL = `/manifest.webmanifest?v=${encodedBuildId}`;
-export const PWA_START_URL = `/?pwa=true&v=${encodedBuildId}`;
+export const PWA_START_URL = "/";

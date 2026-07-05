@@ -3,12 +3,147 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#0c120f" />
+    <meta name="theme-color" content="#0e1514" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta http-equiv="refresh" content="0; url=/" />
     <title>Aletheia</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #0e1514;
+        --panel: rgba(18, 28, 25, 0.94);
+        --border: rgba(208, 173, 85, 0.24);
+        --text: #f8f5e8;
+        --muted: #c7d4cd;
+        --accent: #d0ad55;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        margin: 0;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        background:
+          radial-gradient(circle at 50% 18%, rgba(208, 173, 85, 0.12), transparent 26%),
+          radial-gradient(circle at 50% 82%, rgba(109, 143, 130, 0.12), transparent 24%),
+          linear-gradient(180deg, #08110f 0%, #0b1513 54%, #0e1514 100%);
+        color: var(--text);
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+      main {
+        width: min(100%, 360px);
+        border: 1px solid var(--border);
+        border-radius: 28px;
+        background: var(--panel);
+        box-shadow: 0 24px 80px rgba(0, 0, 0, 0.34);
+        padding: 28px 24px 24px;
+        text-align: center;
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+      }
+      .mark {
+        width: 72px;
+        height: 72px;
+        margin: 0 auto 18px;
+        border-radius: 22px;
+        display: grid;
+        place-items: center;
+        background: linear-gradient(160deg, rgba(208, 173, 85, 0.2), rgba(140, 181, 166, 0.18));
+        color: var(--accent);
+        font-size: 1.7rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+      }
+      h1 {
+        margin: 0;
+        font-size: 1.4rem;
+        line-height: 1.15;
+        letter-spacing: -0.03em;
+      }
+      p {
+        margin: 12px 0 0;
+        color: var(--muted);
+        font-size: 0.98rem;
+        line-height: 1.55;
+      }
+      .status {
+        margin-top: 18px;
+        min-height: 1.4em;
+        color: #dce4de;
+        font-weight: 600;
+      }
+      button {
+        margin-top: 18px;
+        width: 100%;
+        border: 0;
+        border-radius: 999px;
+        padding: 14px 18px;
+        background: #f8f5e8;
+        color: #111814;
+        font-size: 0.98rem;
+        font-weight: 700;
+      }
+      button:disabled {
+        opacity: 0.72;
+      }
+    </style>
   </head>
   <body>
-    <p>Aletheia is loading.</p>
+    <main>
+      <div class="mark">A</div>
+      <h1>Aletheia is starting</h1>
+      <p>We are checking the app connection. If the app does not open, make sure this device has internet access and try again.</p>
+      <div class="status" data-status>Checking for the app URL…</div>
+      <button type="button" data-retry>Retry</button>
+    </main>
+    <script>
+      const statusEl = document.querySelector("[data-status]");
+      const retryButton = document.querySelector("[data-retry]");
+      const configPaths = ["./capacitor.config.json", "../capacitor.config.json", "/capacitor.config.json"];
+
+      async function resolveConfiguredAppUrl() {
+        for (const path of configPaths) {
+          try {
+            const response = await fetch(path, { cache: "no-store" });
+            if (!response.ok) {
+              continue;
+            }
+
+            const config = await response.json();
+            const appUrl = config?.server?.url?.trim();
+            if (appUrl) {
+              return appUrl;
+            }
+          } catch {
+            // Continue trying the other known config locations.
+          }
+        }
+
+        return "";
+      }
+
+      async function bootstrap() {
+        retryButton.disabled = true;
+        statusEl.textContent = navigator.onLine ? "Opening Aletheia…" : "No connection detected yet.";
+
+        const appUrl = await resolveConfiguredAppUrl();
+        if (appUrl) {
+          window.location.replace(appUrl);
+          return;
+        }
+
+        statusEl.textContent = "Aletheia needs a live connection to open. Try again when the network is available.";
+        retryButton.disabled = false;
+      }
+
+      retryButton.addEventListener("click", bootstrap);
+      window.addEventListener("online", bootstrap);
+      void bootstrap();
+    </script>
   </body>
 </html>

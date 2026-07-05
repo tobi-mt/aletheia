@@ -10,6 +10,7 @@ AI-powered biblical wisdom for money, work, stewardship, generosity, and reflect
 - Translation-first: no English leaks or visible fallback references.
 - Wisdom companion: clarity, warmth, and discernment over "AI" vibes.
 - Quiet luxury: deep neutrals, warm gold, subtle motion, strong type.
+- Horizontal rails and compact chip trays: keep labels single-line, add an overflow-aware right-edge cue only when it is actually useful, and never let choice text overlap or block adjacent controls.
 
 ## Current MVP
 

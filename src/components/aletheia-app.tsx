@@ -15035,7 +15035,7 @@ function HomeDashboard({
     ? { label: text.askAboutThis!, onClick: () => onAskAboutCard(companionCard) }
     : { label: text.askNewQuestion!, onClick: onAskOneQuestion };
   const todayActionsRailRef = useRef<HTMLDivElement | null>(null);
-  const todayActionsRailHasOverflow = useRailOverflow(todayActionsRailRef, visibleTodayActions.length > 2, [visibleTodayActions.length]);
+  const todayActionsRailHasOverflow = useRailOverflowCue(todayActionsRailRef, visibleTodayActions.length > 2, [visibleTodayActions.length]);
 
   return (
     <div className="grid gap-5 sm:gap-6">
@@ -15233,9 +15233,9 @@ function HomeDashboard({
 
             <div className="mt-4">
               {todayActionsRailHasOverflow ? (
-                <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
-                  {ts("labels.swipeForMore")}
-                </p>
+                <div className="mb-2 flex justify-end">
+                  <RailOverflowCue theme={theme} className="size-7" />
+                </div>
               ) : null}
               <div
                 ref={todayActionsRailRef}
@@ -15423,50 +15423,66 @@ function ScreenTabs<T extends string>({
   scrollItemMinWidth?: string;
   railRef?: RefObject<HTMLDivElement | null>;
 }) {
-  const useScrollableRail = layout === "scroll" || (layout === "auto" && tabs.length > 4);
+  const internalRailRef = useRef<HTMLDivElement | null>(null);
+  const setRailRef = useCallback((node: HTMLDivElement | null) => {
+    internalRailRef.current = node;
+    if (railRef) {
+      railRef.current = node;
+    }
+  }, [railRef]);
+  const showSwipeCue = useRailOverflowCue(internalRailRef, tabs.length > 1, [tabs.length, value, layout, scrollItemMinWidth]);
+  const compactRail = layout === "grid";
   return (
     <div
-      ref={railRef}
-      className={useScrollableRail
-        ? `relative z-20 flex min-w-0 snap-x snap-mandatory gap-1 overflow-x-auto rounded-2xl border p-1.5 shadow-sm ${className}`
-        : `relative z-20 grid min-w-0 gap-1 rounded-2xl border p-1.5 shadow-sm ${className}`}
+      className={`relative z-20 rounded-2xl border p-1.5 shadow-sm ${className}`.trim()}
       role="tablist"
+      aria-orientation="horizontal"
       aria-label={ariaLabel}
       style={{
         borderColor: theme.borderLight,
         backgroundColor: theme.bgCardElevated,
-        ...(useScrollableRail ? {} : { gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` }),
       }}
     >
-      {tabs.map((tab) => {
-        const active = value === tab.key;
-        return (
-          <button
-            key={tab.key}
-            type="button"
-            role="tab"
-            aria-selected={active}
-            title={tab.label}
-            onClick={() => onChange(tab.key)}
-            className={`premium-tap-card relative min-h-12 min-w-0 overflow-hidden rounded-xl px-3 py-3 text-center font-semibold leading-tight tracking-normal transition ${useScrollableRail ? "min-w-[8.25rem] shrink-0 snap-start text-[0.74rem] sm:min-w-[9.25rem] sm:text-[0.84rem]" : "px-2 py-2.5 text-[0.72rem] sm:px-3 sm:py-3 sm:text-sm"}`}
-            style={{
-              minWidth: useScrollableRail && scrollItemMinWidth ? scrollItemMinWidth : undefined,
-              backgroundColor: active ? (variant === "primary" ? theme.primary : theme.bgCard) : "transparent",
-              color: active ? (variant === "primary" ? theme.textOnPrimary : theme.textPrimary) : theme.textSecondary,
-              boxShadow: active
-                ? (variant === "primary"
-                    ? "0 10px 24px rgba(7, 10, 8, 0.12)"
-                    : `inset 0 -3px 0 ${theme.primary}, 0 10px 24px rgba(7, 10, 8, 0.12)`)
-                : "none",
-              borderColor: active ? theme.primary : "transparent",
-            }}
+      <div
+        ref={setRailRef}
+        className={`flex min-w-0 snap-x snap-mandatory gap-1 overflow-x-auto rounded-[0.95rem] [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${showSwipeCue ? "pr-10" : ""}`.trim()}
+      >
+        {tabs.map((tab) => {
+          const active = value === tab.key;
+          return (
+            <button
+              key={tab.key}
+              type="button"
+              role="tab"
+              aria-selected={active}
+              title={tab.label}
+              onClick={() => onChange(tab.key)}
+              className={`premium-tap-card relative flex min-h-12 shrink-0 snap-start items-center justify-center rounded-xl px-4 py-3 text-center font-semibold leading-tight tracking-normal transition ${compactRail ? "min-w-[6.9rem] max-w-[11rem] text-[0.76rem] sm:min-w-[7.75rem] sm:max-w-[12rem] sm:text-[0.82rem]" : "min-w-[7.25rem] max-w-[12rem] text-[0.8rem] sm:min-w-[8rem] sm:max-w-[13rem] sm:text-[0.86rem]"}`}
+              style={{
+                minWidth: scrollItemMinWidth ?? undefined,
+                backgroundColor: active ? (variant === "primary" ? theme.primary : theme.bgCard) : "transparent",
+                color: active ? (variant === "primary" ? theme.textOnPrimary : theme.textPrimary) : theme.textSecondary,
+                boxShadow: active
+                  ? (variant === "primary"
+                      ? "0 10px 24px rgba(7, 10, 8, 0.12)"
+                      : `inset 0 -3px 0 ${theme.primary}, 0 10px 24px rgba(7, 10, 8, 0.12)`)
+                  : "none",
+                borderColor: active ? theme.primary : "transparent",
+              }}
             >
-            <span className={useScrollableRail ? "block truncate" : "block whitespace-normal break-words"}>
-              {tab.label}
-            </span>
-          </button>
-        );
-      })}
+              <span className="block min-w-0 truncate whitespace-nowrap">
+                {tab.label}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {showSwipeCue ? (
+        <div aria-hidden="true" className="pointer-events-none absolute right-1.5 top-1.5 z-30">
+          <RailOverflowCue theme={theme} />
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -15680,6 +15696,61 @@ function useRailOverflow(ref: RefObject<HTMLElement | null>, enabled: boolean, d
   return hasOverflow;
 }
 
+function useRailOverflowCue(ref: RefObject<HTMLElement | null>, enabled: boolean, deps: unknown[] = []) {
+  const hasOverflow = useRailOverflow(ref, enabled, deps);
+  const [showCue, setShowCue] = useState(false);
+
+  useLayoutEffect(() => {
+    if (!hasOverflow) {
+      queueMicrotask(() => setShowCue(false));
+      return;
+    }
+
+    const rail = ref.current;
+    if (!rail) {
+      queueMicrotask(() => setShowCue(false));
+      return;
+    }
+
+    const measure = () => {
+      const maxScrollLeft = rail.scrollWidth - rail.clientWidth;
+      setShowCue(maxScrollLeft > 8 && rail.scrollLeft < maxScrollLeft - 8);
+    };
+
+    measure();
+
+    const resizeObserver = typeof ResizeObserver !== "undefined" ? new ResizeObserver(measure) : null;
+    resizeObserver?.observe(rail);
+    rail.addEventListener("scroll", measure, { passive: true });
+    window.addEventListener("resize", measure);
+
+    return () => {
+      resizeObserver?.disconnect();
+      rail.removeEventListener("scroll", measure);
+      window.removeEventListener("resize", measure);
+    };
+  }, [hasOverflow, ref, ...deps]);
+
+  return showCue;
+}
+
+function RailOverflowCue({ theme, className = "" }: { theme: ThemeColors; className?: string }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={`grid size-8 shrink-0 place-items-center rounded-full border shadow-sm animate-pulse motion-reduce:animate-none ${className}`.trim()}
+      style={{
+        borderColor: theme.borderMedium,
+        backgroundColor: theme.bgCardElevated,
+        color: theme.accentGold,
+        boxShadow: `0 8px 18px color-mix(in srgb, ${theme.accentGold} 12%, transparent)`,
+      }}
+    >
+      <ChevronRight size={16} />
+    </span>
+  );
+}
+
 function ContextualNextAction({
   eyebrow,
   title,
@@ -15849,7 +15920,7 @@ function SystemReferenceModal({
               background: `radial-gradient(circle at 18% 18%, color-mix(in srgb, ${theme.accentGold} 18%, transparent), transparent 36%), radial-gradient(circle at 92% 0%, color-mix(in srgb, ${theme.primary} 10%, transparent), transparent 30%)`,
             }}
           />
-          <div className="relative flex items-start justify-between gap-3">
+          <div className="relative min-w-0 pr-14 sm:pr-16">
             <div className="min-w-0">
               <p className="text-[11px] font-semibold uppercase tracking-[0.22em] sm:text-xs" style={{ color: theme.accentGold }}>
                 {topic.eyebrow}
@@ -15871,7 +15942,7 @@ function SystemReferenceModal({
             <button
               type="button"
               onClick={onClose}
-              className="grid size-10 shrink-0 place-items-center rounded-full border transition shadow-sm"
+              className="absolute right-0 top-0 grid size-10 shrink-0 place-items-center rounded-full border transition shadow-sm"
               style={{
                 borderColor: theme.borderMedium,
                 backgroundColor: theme.bgInput,
@@ -15999,7 +16070,7 @@ function ReferenceRailSection({
 }) {
   const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null);
   const railRef = useRef<HTMLDivElement | null>(null);
-  const railHasOverflow = useRailOverflow(railRef, topics.length > 1, [topics.length, selectedTopicId]);
+  const railHasOverflow = useRailOverflowCue(railRef, topics.length > 1, [topics.length, selectedTopicId]);
   const selectedTopic = topics.find((topic) => topic.id === selectedTopicId) ?? null;
 
   return (
@@ -16021,9 +16092,7 @@ function ReferenceRailSection({
             ) : null}
           </div>
           {railHasOverflow ? (
-            <p className="text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
-              {ts("labels.swipeForMore")}
-            </p>
+            <RailOverflowCue theme={theme} className="size-7" />
           ) : null}
         </div>
       </div>
@@ -16738,7 +16807,7 @@ function ChallengeRecommendationCard({
           </p>
         </div>
       </div>
-      <div className="pointer-events-none absolute right-4 top-4 grid size-11 place-items-center rounded-[1rem] border" style={{ borderColor: theme.borderLight, backgroundColor: isContinuation ? theme.primary : theme.bgInput, color: isContinuation ? theme.textOnPrimary : theme.primary }}>
+      <div className="pointer-events-none absolute right-0 top-0 grid size-11 place-items-center rounded-[1rem] border" style={{ borderColor: theme.borderLight, backgroundColor: isContinuation ? theme.primary : theme.bgInput, color: isContinuation ? theme.textOnPrimary : theme.primary }}>
         <RecommendationIcon size={18} />
       </div>
 
@@ -18353,7 +18422,7 @@ function FormationRailSection({
   const selectedChallengeModalCompletion = selectedChallenge && openDayDetailDay !== null
     ? completionForDay(selectedChallenge, openDayDetailDay)
     : null;
-  const dayCarouselHasOverflow = useRailOverflow(dayCarouselRef, Boolean(selectedChallenge), [selectedChallenge?.id, selectedChallenge?.totalDays, selectedChallengeFocusedDay, selectedChallenge?.completedDays.length]);
+  const dayCarouselHasOverflow = useRailOverflowCue(dayCarouselRef, Boolean(selectedChallenge), [selectedChallenge?.id, selectedChallenge?.totalDays, selectedChallengeFocusedDay, selectedChallenge?.completedDays.length]);
   const currentDayPracticeHint = ({
     en: "Tap the current day card below to open the full practice.",
     es: "Toca la tarjeta del día de hoy abajo para abrir la práctica completa.",
@@ -18771,7 +18840,7 @@ function FormationRailSection({
         }}
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="relative flex flex-col gap-3 pr-12 sm:pr-14">
           <div className="flex items-start gap-3">
             <div className="grid size-10 place-items-center rounded-2xl border" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.primary }}>
               <Users size={18} />
@@ -18793,7 +18862,7 @@ function FormationRailSection({
           <button
             type="button"
             onClick={closeInviteEditor}
-            className="absolute right-4 top-4 grid size-9 place-items-center rounded-full border transition sm:right-5 sm:top-5"
+            className="absolute right-0 top-0 grid size-9 place-items-center rounded-full border transition"
             style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
             aria-label={ts("labels.close")}
           >
@@ -19467,9 +19536,7 @@ function FormationRailSection({
                   <section className="space-y-2">
                     {dayCarouselHasOverflow ? (
                       <div className="flex items-center justify-between gap-3">
-                        <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
-                          {ts("labels.swipeForMore")}
-                        </p>
+                        <RailOverflowCue theme={theme} className="size-7" />
                       </div>
                     ) : (
                       <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
@@ -22682,7 +22749,7 @@ function WelcomeAuthModal({
           <button
             type="button"
             onClick={onClose}
-            className="absolute right-4 top-4 grid size-9 shrink-0 place-items-center rounded-full border transition sm:right-5 sm:top-5"
+            className="absolute right-0 top-0 grid size-9 shrink-0 place-items-center rounded-full border transition"
             style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
             aria-label={ts("labels.close")}
           >
@@ -24288,9 +24355,9 @@ function DeleteAccountModal({
 
   return (
     <div className="fixed inset-0 z-[70] grid place-items-end overflow-hidden overscroll-none p-3 backdrop-blur-sm sm:place-items-center" style={{ backgroundColor: "rgba(13, 23, 20, 0.48)" }}>
-      <section className="w-full max-w-lg max-h-[88vh] overflow-y-auto overscroll-contain rounded-3xl border p-4 [-webkit-overflow-scrolling:touch] [touch-action:pan-y] shadow-2xl sm:p-3.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
-          <div className="relative flex items-start justify-between gap-3 pr-14 sm:pr-16">
-            <div>
+      <section className="relative w-full max-w-lg max-h-[88vh] overflow-y-auto overscroll-contain rounded-3xl border p-4 [-webkit-overflow-scrolling:touch] [touch-action:pan-y] shadow-2xl sm:p-3.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+        <div className="relative flex items-start gap-3 pr-12 sm:pr-14">
+          <div className="min-w-0">
               <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.deleteAccount')}</p>
               <h2 className="mt-1.5 text-lg font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.deleteAccountTitle')}</h2>
               <p className="mt-1.5 text-sm leading-5" style={{ color: theme.textSecondary }}>
@@ -24305,7 +24372,7 @@ function DeleteAccountModal({
             <button
               type="button"
               onClick={cancel}
-              className="absolute right-0 top-0 grid size-9 shrink-0 place-items-center rounded-full border transition sm:right-0 sm:top-0"
+              className="absolute right-0 top-0 grid size-9 shrink-0 place-items-center rounded-full border transition"
               style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
               aria-label={ts('labels.close')}
             >
@@ -24406,9 +24473,9 @@ function ReportIssueModal({
 
   return (
     <div className="fixed inset-0 z-[70] grid place-items-end overflow-hidden overscroll-none p-3 backdrop-blur-sm sm:place-items-center" style={{ backgroundColor: "rgba(13, 23, 20, 0.48)" }}>
-      <section className="max-h-[90vh] w-full max-w-lg overflow-y-auto overscroll-contain rounded-3xl border p-4 [-webkit-overflow-scrolling:touch] [touch-action:pan-y] shadow-2xl sm:p-3.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
-        <div className="relative flex items-start justify-between gap-3 pr-14 sm:pr-16">
-          <div>
+      <section className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto overscroll-contain rounded-3xl border p-4 [-webkit-overflow-scrolling:touch] [touch-action:pan-y] shadow-2xl sm:p-3.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+        <div className="relative flex items-start gap-3 pr-12 sm:pr-14">
+          <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.reportIssueTitle')}</p>
             <h2 className="mt-1.5 text-lg font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.helpImproveAletheia')}</h2>
             <p className="mt-1.5 text-sm leading-5" style={{ color: theme.textSecondary }}>
@@ -24418,7 +24485,7 @@ function ReportIssueModal({
           <button
             type="button"
             onClick={cancel}
-            className="absolute right-0 top-0 grid size-9 shrink-0 place-items-center rounded-full border transition sm:right-0 sm:top-0"
+            className="absolute right-0 top-0 grid size-9 shrink-0 place-items-center rounded-full border transition"
             style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
             aria-label={ts('labels.close')}
           >
@@ -24576,7 +24643,7 @@ function WisdomTimelineModal({
             <button
               type="button"
               onClick={onClose}
-              className="absolute right-4 top-4 grid size-9 shrink-0 place-items-center rounded-full border transition shadow-sm sm:static sm:size-10"
+              className="absolute right-0 top-0 grid size-9 shrink-0 place-items-center rounded-full border transition shadow-sm"
               style={{
                 borderColor: theme.borderMedium,
                 backgroundColor: theme.bgInput,
@@ -24695,7 +24762,7 @@ function DecisionMemoryArchiveSection({
   const railRef = useRef<HTMLDivElement | null>(null);
   const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
   const selectedEntry = sortedEntries.find((entry) => entry.id === selectedEntryId) ?? null;
-  const hasOverflow = useRailOverflow(railRef, true, [sortedEntries.length, language]);
+  const hasOverflow = useRailOverflowCue(railRef, true, [sortedEntries.length, language]);
   const dateFormatter = new Intl.DateTimeFormat(language, {
     month: "short",
     day: "numeric",
@@ -24723,11 +24790,8 @@ function DecisionMemoryArchiveSection({
       {sortedEntries.length ? (
         <>
           {hasOverflow ? (
-            <div className="flex justify-end text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
-              <span className="inline-flex items-center gap-1">
-                <span>{ts("labels.swipeForMore")}</span>
-                <span aria-hidden="true">→</span>
-              </span>
+            <div className="mb-2 flex justify-end">
+              <RailOverflowCue theme={theme} className="size-7" />
             </div>
           ) : null}
           <div ref={railRef} className="flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
@@ -25069,7 +25133,7 @@ function SharedDecisionDetailModal({
               background: `radial-gradient(circle at 18% 18%, color-mix(in srgb, ${theme.accentGold} 18%, transparent), transparent 36%), radial-gradient(circle at 92% 0%, color-mix(in srgb, ${theme.primary} 10%, transparent), transparent 30%)`,
             }}
           />
-          <div className="relative">
+          <div className="relative min-w-0">
             <div className="min-w-0">
               <p className="text-[11px] font-semibold uppercase tracking-[0.22em] sm:text-xs" style={{ color: theme.accentGold }}>
                 {ts("labels.sharedProgress")}
@@ -25082,20 +25146,20 @@ function SharedDecisionDetailModal({
                 {sharedAt ? ` · ${sharedAt}` : ""}
               </p>
             </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="absolute right-0 top-0 grid size-10 shrink-0 place-items-center rounded-full border transition shadow-sm"
-              style={{
-                borderColor: theme.borderMedium,
-                backgroundColor: theme.bgInput,
-                color: theme.textPrimary,
-              }}
-              aria-label={ts("labels.close")}
-            >
-              <X size={16} />
-            </button>
           </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="absolute right-0 top-0 grid size-10 shrink-0 place-items-center rounded-full border transition shadow-sm"
+            style={{
+              borderColor: theme.borderMedium,
+              backgroundColor: theme.bgInput,
+              color: theme.textPrimary,
+            }}
+            aria-label={ts("labels.close")}
+          >
+            <X size={16} />
+          </button>
         </div>
 
         <div className="space-y-4 p-3.5 sm:p-4">
@@ -25290,7 +25354,7 @@ function StreakMilestonesModal({
             <button
               type="button"
               onClick={onClose}
-              className="absolute right-4 top-4 grid size-9 shrink-0 place-items-center rounded-full border transition shadow-sm sm:static sm:size-10"
+              className="absolute right-0 top-0 grid size-9 shrink-0 place-items-center rounded-full border transition shadow-sm"
               style={{
                 borderColor: theme.borderMedium,
                 backgroundColor: theme.bgInput,
@@ -25509,7 +25573,7 @@ function CounselInviteModal({
   return (
     <div className="fixed inset-0 z-50 grid place-items-end overflow-hidden overscroll-none p-3 backdrop-blur-sm sm:place-items-center" style={{ backgroundColor: 'rgba(13, 23, 20, 0.42)' }}>
       <section className="max-h-[88vh] w-full max-w-2xl overflow-y-auto overscroll-contain rounded-3xl border p-4 [-webkit-overflow-scrolling:touch] [touch-action:pan-y] shadow-2xl sm:p-3.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="relative flex items-start gap-3 pr-12 sm:pr-14">
           <div className="flex items-start gap-3">
             <AvatarCircle
               avatarUrl={preview?.invite.avatarUrl}
@@ -25518,7 +25582,7 @@ function CounselInviteModal({
               size={40}
               className="size-10"
             />
-            <div>
+            <div className="min-w-0">
               <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>{ts('labels.privateCounselInvite')}</p>
               <h2 className="mt-1.5 text-lg font-semibold" style={{ color: theme.textPrimary }}>
               {preview ? `${ts('labels.counselRequestFor')} ${preview.invite.name}` : ts('status.openingInvite')}
@@ -25528,7 +25592,7 @@ function CounselInviteModal({
               </p>
             </div>
           </div>
-          <button className="grid size-9 place-items-center self-start rounded-full border transition" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={onClose} aria-label={ts('labels.closeInvite')}>
+          <button className="absolute right-0 top-0 grid size-9 place-items-center rounded-full border transition" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={onClose} aria-label={ts('labels.closeInvite')}>
             <X size={16} />
           </button>
         </div>
@@ -25857,7 +25921,7 @@ function ChallengeInviteModal({
                 </p>
               </div>
             </div>
-            <button className="absolute right-4 top-4 grid size-9 place-items-center rounded-full border transition sm:right-5 sm:top-5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={onClose} aria-label={ts('labels.closeInvite')}>
+            <button className="absolute right-0 top-0 grid size-9 place-items-center rounded-full border transition" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={onClose} aria-label={ts('labels.closeInvite')}>
               <X size={16} />
             </button>
           </div>
@@ -25946,7 +26010,7 @@ function ChallengeInviteModal({
   return (
     <div className="fixed inset-0 z-50 grid place-items-end overflow-hidden overscroll-none p-3 backdrop-blur-sm sm:place-items-center" style={{ backgroundColor: 'rgba(13, 23, 20, 0.42)' }}>
       <section className="relative max-h-[88vh] w-full max-w-2xl overflow-y-auto overscroll-contain rounded-3xl border p-4 [-webkit-overflow-scrolling:touch] [touch-action:pan-y] shadow-2xl sm:p-3.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
-        <div className="flex flex-col gap-3 pr-12 sm:pr-14">
+        <div className="relative flex flex-col gap-3 pr-12 sm:pr-14">
           <div className="flex items-start gap-3">
             <div className="grid size-10 place-items-center rounded-2xl border" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.primary }}>
               <Users size={18} />
@@ -25969,7 +26033,7 @@ function ChallengeInviteModal({
               </p>
             </div>
           </div>
-            <button className="absolute right-4 top-4 grid size-9 place-items-center rounded-full border transition sm:right-5 sm:top-5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={onClose} aria-label={ts('labels.closeInvite')}>
+            <button className="absolute right-0 top-0 grid size-9 place-items-center rounded-full border transition" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={onClose} aria-label={ts('labels.closeInvite')}>
               <X size={16} />
             </button>
           </div>
@@ -26394,9 +26458,9 @@ function CounselRemovalConfirmModal({
 
   return (
     <div className="fixed inset-0 z-[70] grid place-items-end overflow-hidden overscroll-none p-3 backdrop-blur-sm sm:place-items-center" style={{ backgroundColor: "rgba(13, 23, 20, 0.45)" }}>
-      <section className="w-full max-w-lg max-h-[88vh] overflow-y-auto overscroll-contain rounded-3xl border p-5 [-webkit-overflow-scrolling:touch] [touch-action:pan-y] shadow-2xl" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div>
+      <section className="relative w-full max-w-lg max-h-[88vh] overflow-y-auto overscroll-contain rounded-3xl border p-5 [-webkit-overflow-scrolling:touch] [touch-action:pan-y] shadow-2xl" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+        <div className="relative flex items-start gap-3 pr-12 sm:pr-14">
+          <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.finalConfirmationAction')}</p>
             <h2 className="mt-2 text-xl font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.removeFromCounselCircle')}: {pending.contactName}</h2>
             <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
@@ -26406,7 +26470,7 @@ function CounselRemovalConfirmModal({
           <button
             type="button"
             onClick={onCancel}
-            className="grid size-10 shrink-0 place-items-center self-start rounded-full border transition"
+            className="absolute right-0 top-0 grid size-10 shrink-0 place-items-center rounded-full border transition"
             style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
             aria-label={ts('labels.closeConfirmation')}
           >
@@ -26735,13 +26799,15 @@ function CompanionPanel({
       ? buildQaRailSampleConversationExchanges(mode)
       : history;
   const hasCounselSurface = Boolean(currentExchange || visibleHistory.length);
-  const historyRailHasOverflow = useRailOverflow(historyRailRef, visibleHistory.length > 1, [visibleHistory.length, selectedHistoryExchange?.id]);
+  const historyRailHasOverflow = useRailOverflowCue(historyRailRef, visibleHistory.length > 1, [visibleHistory.length, selectedHistoryExchange?.id]);
   const focusLabels = focusIntentionLabels(focusIntentions, ts);
   const suggestedFocusPrompt = focusIntentionPrompt(focusIntentions, "companion", ts);
   const promptChips = [suggestedFocusPrompt, ...modeProfile.prompts].filter(Boolean).slice(0, 3);
   const currentModeCard = modeCards.find((item) => item.label === mode) ?? modeCards[0];
   const CurrentLensIcon = currentModeCard.icon;
   const voiceDraft = voiceTranscriptPreview.trim();
+  const modeLensRailRef = useRef<HTMLDivElement | null>(null);
+  const modeLensRailHasOverflow = useRailOverflowCue(modeLensRailRef, modeCards.length > 1, [modeCards.length, mode, preferences.language]);
 
   useEffect(() => {
     if (!answerFocusId || !currentExchange?.question) {
@@ -26787,7 +26853,7 @@ function CompanionPanel({
             </div>
           </div>
           <span
-            className="absolute right-4 top-4 grid size-11 shrink-0 place-items-center rounded-[1rem] border-2 shadow-[0_8px_18px_rgba(7,10,8,0.05)] sm:right-5 sm:top-5"
+            className="absolute right-0 top-0 grid size-11 shrink-0 place-items-center rounded-[1rem] border-2 shadow-[0_8px_18px_rgba(7,10,8,0.05)]"
             style={{ borderColor: theme.primary, backgroundColor: theme.bgCardElevated, color: theme.primary }}
             aria-label={`${ui.currentLens}: ${localizedModeLabel(mode, preferences.language)}`}
             title={`${ui.currentLens}: ${localizedModeLabel(mode, preferences.language)}`}
@@ -26800,7 +26866,12 @@ function CompanionPanel({
         <form onSubmit={onAsk} className="p-4 sm:p-6" style={{ backgroundColor: theme.bgMain + 'E0' }}>
           <div className="space-y-5">
             <div className="rounded-[1.35rem] border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-              <div className="flex min-w-0 snap-x gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]" aria-label={ui.currentLens}>
+              {modeLensRailHasOverflow ? (
+                <div className="mb-2 flex justify-end">
+                  <RailOverflowCue theme={theme} className="size-7" />
+                </div>
+              ) : null}
+              <div ref={modeLensRailRef} className={`flex min-w-0 snap-x gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] ${modeLensRailHasOverflow ? "pr-10" : ""}`.trim()} aria-label={ui.currentLens}>
                 {modeCards.map((item) => (
                   <ModeLensCard
                     key={item.label}
@@ -27029,9 +27100,7 @@ function CompanionPanel({
                   </p>
                 </div>
                 {historyRailHasOverflow ? (
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textSecondary }}>
-                    {ts('labels.swipeForMore')}
-                  </p>
+                  <RailOverflowCue theme={theme} className="size-7" />
                 ) : null}
               </div>
               <div
@@ -27923,8 +27992,10 @@ function CounselDecisionShareRail({
   onToggleDecision: (decisionId: string) => void;
   onShareSelected: () => void;
 }) {
+  const contactRailRef = useRef<HTMLDivElement | null>(null);
   const shareRailRef = useRef<HTMLDivElement | null>(null);
-  const shareRailHasOverflow = useRailOverflow(shareRailRef, decisions.length > 1, [decisions.length, selectedContactId]);
+  const contactRailHasOverflow = useRailOverflowCue(contactRailRef, counselContacts.length > 1, [counselContacts.length, selectedContactId]);
+  const shareRailHasOverflow = useRailOverflowCue(shareRailRef, decisions.length > 1, [decisions.length, selectedContactId]);
 
   if (!decisions.length) {
     return (
@@ -27936,7 +28007,12 @@ function CounselDecisionShareRail({
 
   return (
     <div className="mt-3">
-      <div className="flex min-w-0 snap-x gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      {contactRailHasOverflow ? (
+        <div className="mb-2 flex justify-end">
+          <RailOverflowCue theme={theme} className="size-7" />
+        </div>
+      ) : null}
+      <div ref={contactRailRef} className="flex min-w-0 snap-x gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {counselContacts.map((contact) => {
           const active = contact.id === selectedContactId;
           return (
@@ -27982,11 +28058,8 @@ function CounselDecisionShareRail({
         })}
       </div>
       {shareRailHasOverflow ? (
-        <div className="mt-2 flex justify-end text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
-          <span className="inline-flex items-center gap-1">
-            <span>{ts('labels.swipeForMore')}</span>
-            <span aria-hidden="true">→</span>
-          </span>
+        <div className="mt-2 flex justify-end">
+          <RailOverflowCue theme={theme} className="size-7" />
         </div>
       ) : null}
       <div ref={shareRailRef} className="mt-3 flex min-w-0 snap-x gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -28289,6 +28362,8 @@ function CurrentCounselCard({
   const question = exchange.question?.text;
   const isThinking = exchange.answer.id === "thinking";
   const showDecisionActions = Boolean(question) && !isThinking;
+  const moreCounselRailRef = useRef<HTMLDivElement | null>(null);
+  const moreCounselRailHasOverflow = useRailOverflowCue(moreCounselRailRef, showDecisionActions, [showDecisionActions, exchange.id]);
   const answerText = exchange.answer.id === "welcome" ? text.welcomeCounsel! : exchange.answer.text;
   const lensLabel = exchangeModeProfile.displayLabel ?? exchange.mode;
   const CurrentLensIcon = (modes.find((item) => item.label === exchange.mode) ?? modes[0]).icon;
@@ -28405,15 +28480,10 @@ function CurrentCounselCard({
                 <p className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
                   {ts('labels.moreCounselOptions')}
                 </p>
-                <p className="mt-1 text-[0.92rem] leading-6" style={{ color: theme.textSecondary }}>
-                  {ts('labels.swipeForMore')}
-                </p>
               </div>
-              <span className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-                {ts('showDetails')}
-              </span>
+              {moreCounselRailHasOverflow ? <RailOverflowCue theme={theme} className="size-7" /> : <span className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>{ts('showDetails')}</span>}
             </div>
-            <div className="mt-3 flex min-w-0 snap-x gap-3 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div ref={moreCounselRailRef} className={`mt-3 flex min-w-0 snap-x gap-3 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${moreCounselRailHasOverflow ? "pr-10" : ""}`.trim()}>
               <CounselRailAction theme={theme} ts={ts} icon={Compass} label={calmerActionCopy?.goDeeper ?? text.goDeeper!} onClick={() => onGoDeeper(exchange)} />
               <CounselRailAction theme={theme} ts={ts} icon={Clock3} label={calmerActionCopy?.waitThreeDays ?? text.waitThreeDays!} onClick={() => onWait(exchange)} />
               <CounselRailAction theme={theme} ts={ts} icon={Share2} label={calmerActionCopy?.createAnswerCard ?? ts('labels.createAnswerCard')} onClick={() => onSharePostcard(exchange)} />
@@ -28497,10 +28567,19 @@ function RailButtonTray({
   label: string;
   children: ReactNode;
 }) {
+  const railRef = useRef<HTMLDivElement | null>(null);
+  const showCue = useRailOverflowCue(railRef, true, [label]);
+
   return (
-    <div className="overflow-hidden rounded-[1rem] border p-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+    <div className="relative overflow-hidden rounded-[1rem] border p-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+      {showCue ? (
+        <div className="pointer-events-none absolute right-2 top-2 z-20">
+          <RailOverflowCue theme={theme} className="size-7" />
+        </div>
+      ) : null}
       <div
-        className="flex min-w-0 snap-x gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        ref={railRef}
+        className={`flex min-w-0 snap-x gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${showCue ? "pr-10" : ""}`.trim()}
         aria-label={label}
       >
         {children}
@@ -28883,7 +28962,6 @@ function DecisionCompanionPanel({
   theme: ThemeColors;
 }) {
   const runtime = runtimeCopyFor(language);
-  const railText = railTextColors(theme);
   const [counselAvatarStatus, setCounselAvatarStatus] = useState("");
   const [counselAvatarPickerOpen, setCounselAvatarPickerOpen] = useState(false);
   const [wisdomTimelineOpen, setWisdomTimelineOpen] = useState(false);
@@ -28910,9 +28988,9 @@ function DecisionCompanionPanel({
     : decisionNextBody;
   const visibleCounselContacts = counselContacts.slice(0, 3);
   const hiddenCounselContacts = counselContacts.slice(3);
-  const visibleCounselRailHasOverflow = useRailOverflow(visibleCounselRailRef, decisionSection === "counsel", [counselContacts.length]);
-  const hiddenCounselRailHasOverflow = useRailOverflow(hiddenCounselRailRef, decisionSection === "counsel" && counselContacts.length > 3, [counselContacts.length]);
-  const ruleRailHasOverflow = useRailOverflow(ruleRailRef, decisionSection === "rhythm", [modeRules.length]);
+  const visibleCounselRailHasOverflow = useRailOverflowCue(visibleCounselRailRef, decisionSection === "counsel", [counselContacts.length]);
+  const hiddenCounselRailHasOverflow = useRailOverflowCue(hiddenCounselRailRef, decisionSection === "counsel" && counselContacts.length > 3, [counselContacts.length]);
+  const ruleRailHasOverflow = useRailOverflowCue(ruleRailRef, decisionSection === "rhythm", [modeRules.length]);
   const selectedCounselThreadContact = counselThreadContactId
     ? counselContacts.find((contact) => contact.id === counselThreadContactId) ?? null
     : null;
@@ -28939,7 +29017,7 @@ function DecisionCompanionPanel({
     ? counselContacts.find((contact) => contact.id === selectedShareContactId) ?? null
     : null;
   const visibleDecisionMemoryEntries = decisions.length > 0 ? decisions : process.env.NODE_ENV !== "production" ? buildQaRailSampleDecisionSeeds() : decisions;
-  const rhythmRailHasOverflow = useRailOverflow(rhythmRailRef, decisionSection === "rhythm", [modeRules.length]);
+  const rhythmRailHasOverflow = useRailOverflowCue(rhythmRailRef, decisionSection === "rhythm", [modeRules.length]);
 
   async function optimizeCounselAvatarFile(file: File): Promise<string> {
     const imageBitmap = await createImageBitmap(file);
@@ -29060,7 +29138,7 @@ function DecisionCompanionPanel({
         ariaLabel={ts('labels.decisionSections')}
         theme={theme}
         variant="primary"
-        layout="grid"
+        layout="scroll"
       tabs={[
         { key: "decisions", label: ts('nav.decisions') },
         { key: "counsel", label: ts('labels.counsel') },
@@ -29562,11 +29640,8 @@ function DecisionCompanionPanel({
                 ) : (
                   <>
                     {visibleCounselRailHasOverflow ? (
-                      <div className="mt-3 flex justify-end text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: railText.railMuted }}>
-                        <span className="inline-flex items-center gap-1">
-                          <span>{ts('labels.swipeForMore')}</span>
-                          <span aria-hidden="true">→</span>
-                        </span>
+                      <div className="mt-3 flex justify-end">
+                        <RailOverflowCue theme={theme} className="size-7" />
                       </div>
                     ) : null}
                     <div ref={visibleCounselRailRef} className="mt-2 flex min-w-0 snap-x snap-mandatory gap-2.5 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
@@ -29599,11 +29674,8 @@ function DecisionCompanionPanel({
                       </div>
                     </div>
                     {hiddenCounselRailHasOverflow ? (
-                      <div className="mt-3 flex justify-end text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: railText.railMuted }}>
-                        <span className="inline-flex items-center gap-1">
-                          <span>{ts('labels.swipeForMore')}</span>
-                          <span aria-hidden="true">→</span>
-                        </span>
+                      <div className="mt-3 flex justify-end">
+                        <RailOverflowCue theme={theme} className="size-7" />
                       </div>
                     ) : null}
                     <div ref={hiddenCounselRailRef} className="mt-2 flex min-w-0 snap-x snap-mandatory gap-2.5 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
@@ -29733,11 +29805,8 @@ function DecisionCompanionPanel({
                 </div>
               </div>
               {rhythmRailHasOverflow ? (
-                <div className="mt-4 flex justify-end text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
-                  <span className="inline-flex items-center gap-1">
-                    <span>{ts('labels.swipeForMore')}</span>
-                    <span aria-hidden="true">→</span>
-                  </span>
+                <div className="mt-4 flex justify-end">
+                  <RailOverflowCue theme={theme} className="size-7" />
                 </div>
               ) : null}
               <div ref={rhythmRailRef} className="mt-2 flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
@@ -29772,11 +29841,8 @@ function DecisionCompanionPanel({
                 <button className="h-10 rounded-full px-3 text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>{ts('labels.savePrinciple')}</button>
               </form>
               {ruleRailHasOverflow ? (
-                <div className="mt-4 flex justify-end text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
-                  <span className="inline-flex items-center gap-1">
-                    <span>{ts('labels.swipeForMore')}</span>
-                    <span aria-hidden="true">→</span>
-                  </span>
+                <div className="mt-4 flex justify-end">
+                  <RailOverflowCue theme={theme} className="size-7" />
                 </div>
               ) : null}
               <div ref={ruleRailRef} className="mt-2 flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
@@ -30164,7 +30230,7 @@ function ReflectPanel({
         ariaLabel={ts('labels.reflectSections')}
         theme={theme}
         variant="primary"
-        layout="grid"
+        layout="scroll"
         tabs={[
           { key: "check", label: ts('labels.wisdomCheck') },
           { key: "gratitude", label: ts('labels.gratitudeLens') },
@@ -30617,10 +30683,17 @@ function GratitudeLensPanel({
   const [weekStartTime] = useState(() => Date.now() - 7 * 24 * 60 * 60 * 1000);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const gratitudeRailRef = useRef<HTMLDivElement | null>(null);
-  const gratitudeRailHasOverflow = useRailOverflow(gratitudeRailRef, entries.length > 0, [entries.length, language]);
+  const gratitudeRailHasOverflow = useRailOverflowCue(gratitudeRailRef, entries.length > 0, [entries.length, language]);
   const gratitudeFormationRailRef = useRef<HTMLDivElement | null>(null);
-  const gratitudeFormationRailHasOverflow = useRailOverflow(gratitudeFormationRailRef, true, [language]);
+  const gratitudeFormationRailHasOverflow = useRailOverflowCue(gratitudeFormationRailRef, true, [language]);
+  const gratitudeFilterRailRef = useRef<HTMLDivElement | null>(null);
+  const gratitudeFilterRailHasOverflow = useRailOverflowCue(gratitudeFilterRailRef, GRATITUDE_FILTERS.length > 1, [language]);
   const gratitudeOverlayRailRef = useRef<HTMLDivElement | null>(null);
+  const gratitudeOverlayRailHasOverflow = useRailOverflowCue(gratitudeOverlayRailRef, true, [language]);
+  const gratitudeStickerRailRef = useRef<HTMLDivElement | null>(null);
+  const gratitudeStickerRailHasOverflow = useRailOverflowCue(gratitudeStickerRailRef, GRATITUDE_STICKERS.length > 1, [language]);
+  const gratitudeEmojiRailRef = useRef<HTMLDivElement | null>(null);
+  const gratitudeEmojiRailHasOverflow = useRailOverflowCue(gratitudeEmojiRailRef, GRATITUDE_EMOJIS.length > 1, [language]);
 
   useEffect(() => {
     return () => {
@@ -30769,16 +30842,8 @@ function GratitudeLensPanel({
                       background: `linear-gradient(270deg, ${theme.bgCard} 14%, color-mix(in srgb, ${theme.bgCard} 68%, transparent) 58%, transparent 100%)`,
                     }}
                   />
-                  <div
-                    className="absolute right-0 z-40 flex size-9 items-center justify-center rounded-full border shadow-sm"
-                    style={{
-                      borderColor: theme.borderMedium,
-                      backgroundColor: theme.bgCardElevated,
-                      color: theme.accentGold,
-                      boxShadow: `0 8px 18px color-mix(in srgb, ${theme.accentGold} 12%, transparent)`,
-                    }}
-                  >
-                    <ChevronRight size={17} />
+                  <div className="absolute right-0 z-40">
+                    <RailOverflowCue theme={theme} className="size-9" />
                   </div>
                 </div>
               ) : null}
@@ -30861,7 +30926,15 @@ function GratitudeLensPanel({
                   {ts('labels.gratitudeFilters')}
                 </p>
               </div>
-              <div className="mt-3 flex gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {gratitudeFilterRailHasOverflow ? (
+                <div className="mt-2 flex justify-end">
+                  <RailOverflowCue theme={theme} className="size-7" />
+                </div>
+              ) : null}
+              <div
+                ref={gratitudeFilterRailRef}
+                className={`mt-3 flex gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${gratitudeFilterRailHasOverflow ? "pr-10" : ""}`.trim()}
+              >
                 {GRATITUDE_FILTERS.map((filter) => {
                   const isActive = visual.filter === filter;
                   return (
@@ -30898,12 +30971,15 @@ function GratitudeLensPanel({
 
               <div className="mt-3 space-y-3">
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textMuted }}>
-                    {ts('labels.gratitudeOverlayNote')}
-                  </p>
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textMuted }}>
+                      {ts('labels.gratitudeOverlayNote')}
+                    </p>
+                    {gratitudeOverlayRailHasOverflow ? <RailOverflowCue theme={theme} className="size-7" /> : null}
+                  </div>
                   <div
                     ref={gratitudeOverlayRailRef}
-                    className="mt-2 flex gap-2 overflow-x-auto snap-x snap-mandatory pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                    className={`mt-2 flex gap-2 overflow-x-auto snap-x snap-mandatory pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${gratitudeOverlayRailHasOverflow ? "pr-10" : ""}`.trim()}
                     aria-label={ts('labels.gratitudeOverlayNote')}
                   >
                     {[
@@ -30940,10 +31016,16 @@ function GratitudeLensPanel({
                 </div>
 
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textMuted }}>
-                    {ts('labels.gratitudeStickers')}
-                  </p>
-                  <div className="mt-2 flex gap-2 overflow-x-auto snap-x snap-mandatory pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textMuted }}>
+                      {ts('labels.gratitudeStickers')}
+                    </p>
+                    {gratitudeStickerRailHasOverflow ? <RailOverflowCue theme={theme} className="size-7" /> : null}
+                  </div>
+                  <div
+                    ref={gratitudeStickerRailRef}
+                    className={`mt-2 flex gap-2 overflow-x-auto snap-x snap-mandatory pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${gratitudeStickerRailHasOverflow ? "pr-10" : ""}`.trim()}
+                  >
                     {GRATITUDE_STICKERS.map((sticker) => {
                       const isActive = visual.stickers.includes(sticker);
                       return (
@@ -30972,10 +31054,16 @@ function GratitudeLensPanel({
                 </div>
 
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textMuted }}>
-                    {ts('labels.gratitudeEmoji')}
-                  </p>
-                  <div className="mt-2 flex flex-nowrap gap-2 overflow-x-auto snap-x snap-mandatory pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textMuted }}>
+                      {ts('labels.gratitudeEmoji')}
+                    </p>
+                    {gratitudeEmojiRailHasOverflow ? <RailOverflowCue theme={theme} className="size-7" /> : null}
+                  </div>
+                  <div
+                    ref={gratitudeEmojiRailRef}
+                    className={`mt-2 flex flex-nowrap gap-2 overflow-x-auto snap-x snap-mandatory pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${gratitudeEmojiRailHasOverflow ? "pr-10" : ""}`.trim()}
+                  >
                     {GRATITUDE_EMOJIS.map((emoji) => {
                       const isActive = visual.emoji === emoji;
                       return (
@@ -31091,11 +31179,8 @@ function GratitudeLensPanel({
           {visibleEntries.length ? (
             <>
               {gratitudeRailHasOverflow ? (
-                <div className="mt-4 flex justify-end text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
-                  <span className="inline-flex items-center gap-1">
-                    <span>{ts('labels.swipeForMore')}</span>
-                    <span aria-hidden="true">→</span>
-                  </span>
+                <div className="mt-4 flex justify-end">
+                  <RailOverflowCue theme={theme} className="size-7" />
                 </div>
               ) : null}
               <section
@@ -31198,7 +31283,7 @@ function LibraryPanel({
   const localizedModeSearchLabel = localizedModeLabel(mode, preferences.language).toLowerCase();
   const [librarySection, setLibrarySection] = useState<"explore" | "memory" | "bible">("explore");
   const libraryRailRef = useRef<HTMLDivElement | null>(null);
-  const libraryRailHasOverflow = useRailOverflow(libraryRailRef, librarySection === "explore" && entries.length > 0, [entries.length, preferences.language]);
+  const libraryRailHasOverflow = useRailOverflowCue(libraryRailRef, librarySection === "explore" && entries.length > 0, [entries.length, preferences.language]);
   const libraryNextTitle = search.trim()
     ? (entries.length === 1
         ? ts('labels.libraryMatchingWisdomAnchorSingular')
@@ -31355,10 +31440,7 @@ function LibraryPanel({
             <div className="mt-3 flex items-center justify-between gap-3 text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: railText.railMuted }}>
               <span>{ts('labels.wisdomLibrary')}</span>
               {libraryRailHasOverflow ? (
-                <span className="inline-flex items-center gap-1">
-                  <span>{ts('labels.swipeForMore')}</span>
-                  <span aria-hidden="true">→</span>
-                </span>
+                <RailOverflowCue theme={theme} className="size-7" />
               ) : null}
             </div>
           ) : null}
@@ -31483,7 +31565,7 @@ function JournalPanel({
   const savedReflectionsRailRef = useRef<HTMLDivElement | null>(null);
   const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
   const selectedEntry = entries.find((entry) => entry.id === selectedEntryId) ?? null;
-  const savedReflectionsRailHasOverflow = useRailOverflow(savedReflectionsRailRef, entries.length > 0, [entries.length, language]);
+  const savedReflectionsRailHasOverflow = useRailOverflowCue(savedReflectionsRailRef, entries.length > 0, [entries.length, language]);
 
   return (
     <div className="min-w-0 space-y-4">
@@ -31544,11 +31626,8 @@ function JournalPanel({
           {entries.length ? (
             <>
               {savedReflectionsRailHasOverflow ? (
-                <div className="mt-4 flex justify-end text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: railText.railMuted }}>
-                  <span className="inline-flex items-center gap-1">
-                    <span>{ts('labels.swipeForMore')}</span>
-                    <span aria-hidden="true">→</span>
-                  </span>
+                <div className="mt-4 flex justify-end">
+                  <RailOverflowCue theme={theme} className="size-7" />
                 </div>
               ) : null}
               <section
