@@ -15478,8 +15478,8 @@ function ScreenTabs<T extends string>({
       </div>
 
       {showSwipeCue ? (
-        <div aria-hidden="true" className="pointer-events-none absolute right-1.5 top-1.5 z-30">
-          <RailOverflowCue theme={theme} />
+        <div aria-hidden="true" className="pointer-events-none absolute inset-y-1.5 right-1.5 z-30 flex w-14 items-center justify-end">
+          <RailOverflowCue theme={theme} className="h-full w-full" />
         </div>
       ) : null}
     </div>
@@ -15733,35 +15733,33 @@ function useRailOverflowCue(ref: RefObject<HTMLElement | null>, enabled: boolean
   return showCue;
 }
 
-function RailOverflowCue({ theme, className = "" }: { theme: ThemeColors; className?: string }) {
+function RailOverflowCue({ theme, className = "h-6 w-10" }: { theme: ThemeColors; className?: string }) {
   return (
     <span
       aria-hidden="true"
-      className={`relative grid size-8 shrink-0 place-items-center rounded-full border shadow-sm animate-pulse motion-reduce:animate-none ${className}`.trim()}
+      className={`relative block overflow-hidden ${className}`.trim()}
       style={{
-        borderColor: "color-mix(in srgb, " + theme.borderMedium + " 62%, transparent)",
-        background: `linear-gradient(135deg, color-mix(in srgb, ${theme.bgCardElevated} 42%, transparent) 0%, color-mix(in srgb, ${theme.bgCardElevated} 12%, transparent) 100%)`,
-        color: theme.accentGold,
-        backdropFilter: "blur(8px)",
-        WebkitBackdropFilter: "blur(8px)",
-        boxShadow: `0 6px 14px color-mix(in srgb, ${theme.accentGold} 8%, transparent)`,
+        background: `linear-gradient(90deg, transparent 0%, color-mix(in srgb, ${theme.bgCardElevated} 14%, transparent) 58%, color-mix(in srgb, ${theme.bgCardElevated} 24%, transparent) 100%)`,
       }}
     >
       <span
         aria-hidden="true"
-        className="absolute inset-0 rounded-full"
+        className="absolute inset-y-0 right-0 flex items-center pr-1.5"
         style={{
-          background: `radial-gradient(circle at 35% 30%, color-mix(in srgb, ${theme.accentGold} 18%, transparent) 0%, transparent 68%)`,
+          color: theme.accentGold,
+          opacity: 0.78,
+          filter: `drop-shadow(0 1px 1px color-mix(in srgb, ${theme.bgMain} 10%, transparent))`,
         }}
-      />
-      <ChevronRight size={16} />
+      >
+        <ChevronRight size={15} />
+      </span>
     </span>
   );
 }
 
 function RailOverflowCorner({
   theme,
-  cueClassName = "size-6",
+  cueClassName = "h-6 w-10",
   className = "right-3 top-3",
 }: {
   theme: ThemeColors;
@@ -26847,8 +26845,8 @@ function CompanionPanel({
                   ))}
                 </div>
                 {modeLensRailHasOverflow ? (
-                  <div aria-hidden="true" className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2">
-                    <RailOverflowCue theme={theme} className="size-6" />
+                  <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-0 z-20 flex w-14 items-center justify-end">
+                    <RailOverflowCue theme={theme} className="h-full w-full" />
                   </div>
                 ) : null}
               </div>
@@ -28435,7 +28433,7 @@ function CurrentCounselCard({
                   {ts('labels.moreCounselOptions')}
                 </p>
               </div>
-              {moreCounselRailHasOverflow ? <RailOverflowCue theme={theme} className="size-7" /> : <span className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>{ts('showDetails')}</span>}
+              {moreCounselRailHasOverflow ? <ChevronRight size={15} style={{ color: theme.accentGold }} /> : <span className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>{ts('showDetails')}</span>}
             </div>
             <div ref={moreCounselRailRef} className={`mt-3 flex min-w-0 snap-x gap-3 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${moreCounselRailHasOverflow ? "pr-10" : ""}`.trim()}>
               <CounselRailAction theme={theme} ts={ts} icon={Compass} label={calmerActionCopy?.goDeeper ?? text.goDeeper!} onClick={() => onGoDeeper(exchange)} />
@@ -28527,9 +28525,9 @@ function RailButtonTray({
   const showCue = useRailOverflowCue(railRef, true, [label]);
   const trayPadding = dense ? "p-2" : "p-2.5";
   const railGap = dense ? "gap-1.5" : "gap-2";
-  const overflowPadding = dense ? "pr-7" : "pr-8";
-  const cuePosition = dense ? "right-1 top-1" : "right-1.5 top-1.5";
-  const cueSize = dense ? "size-6" : "size-[26px]";
+  const overflowPadding = dense ? "pr-7" : "pr-9";
+  const cuePosition = "inset-y-0 right-0 w-14";
+  const cueSize = "h-full w-full";
 
   return (
     <div className={`relative overflow-hidden rounded-[1rem] border ${trayPadding}`} style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
@@ -29335,8 +29333,8 @@ function DecisionCompanionPanel({
                   </div>
                 </div>
                 {incomingSharedDecisionRailHasOverflow ? (
-                  <div aria-hidden="true" className="pointer-events-none absolute right-3 top-3 z-20">
-                    <RailOverflowCue theme={theme} className="size-6" />
+                  <div aria-hidden="true" className="pointer-events-none absolute inset-y-3 right-3 z-20 flex w-14 items-center justify-end">
+                    <RailOverflowCue theme={theme} className="h-full w-full" />
                   </div>
                 ) : null}
               </section>
@@ -29414,8 +29412,8 @@ function DecisionCompanionPanel({
                   </div>
                 </div>
                 {outgoingSharedDecisionRailHasOverflow ? (
-                  <div aria-hidden="true" className="pointer-events-none absolute right-3 top-3 z-20">
-                    <RailOverflowCue theme={theme} className="size-6" />
+                  <div aria-hidden="true" className="pointer-events-none absolute inset-y-3 right-3 z-20 flex w-14 items-center justify-end">
+                    <RailOverflowCue theme={theme} className="h-full w-full" />
                   </div>
                 ) : null}
               </section>
@@ -30775,16 +30773,8 @@ function GratitudeLensPanel({
                 }))}
               />
               {gratitudeFormationRailHasOverflow ? (
-                <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-0 z-30 flex items-center">
-                  <div
-                    className="h-full w-14"
-                    style={{
-                      background: `linear-gradient(270deg, ${theme.bgCard} 14%, color-mix(in srgb, ${theme.bgCard} 68%, transparent) 58%, transparent 100%)`,
-                    }}
-                  />
-                  <div className="absolute right-0 z-40">
-                    <RailOverflowCue theme={theme} className="size-9" />
-                  </div>
+                <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-0 z-30 flex w-16 items-center justify-end">
+                  <RailOverflowCue theme={theme} className="h-full w-full" />
                 </div>
               ) : null}
             </div>
