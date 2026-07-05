@@ -15230,7 +15230,7 @@ function HomeDashboard({
               <ArrowUpRight size={16} />
             </button>
 
-            <div className={`relative mt-4 ${todayActionsRailHasOverflow ? "pr-10 sm:pr-12" : ""}`.trim()}>
+            <div className="relative mt-4">
               <div
                 ref={todayActionsRailRef}
                 className="flex snap-x gap-3 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
@@ -15406,6 +15406,7 @@ function ScreenTabs<T extends string>({
   className = "",
   scrollItemMinWidth,
   railRef,
+  cuePaddingClassName = "pr-10",
 }: {
   value: T;
   onChange: (value: T) => void;
@@ -15417,6 +15418,7 @@ function ScreenTabs<T extends string>({
   className?: string;
   scrollItemMinWidth?: string;
   railRef?: RefObject<HTMLDivElement | null>;
+  cuePaddingClassName?: string;
 }) {
   const internalRailRef = useRef<HTMLDivElement | null>(null);
   const setRailRef = useCallback((node: HTMLDivElement | null) => {
@@ -15443,8 +15445,11 @@ function ScreenTabs<T extends string>({
       <div
         ref={setRailRef}
         className={useGridLayout
-          ? "grid min-w-0 grid-cols-2 gap-1 rounded-[0.95rem]"
-          : `flex min-w-0 snap-x snap-mandatory gap-1 overflow-x-auto rounded-[0.95rem] [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${showSwipeCue ? "pr-10" : ""}`.trim()}
+          ? "grid min-w-0 gap-1 rounded-[0.95rem]"
+          : `flex min-w-0 snap-x snap-mandatory gap-1 overflow-x-auto rounded-[0.95rem] [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${showSwipeCue ? cuePaddingClassName : ""}`.trim()}
+        style={useGridLayout
+          ? { gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` }
+          : undefined}
       >
         {tabs.map((tab) => {
           const active = value === tab.key;
@@ -15760,6 +15765,13 @@ function RailOverflowCorner({
 }) {
   return (
     <div aria-hidden="true" className={`pointer-events-none absolute ${className} z-20`.trim()}>
+      <span
+        aria-hidden="true"
+        className="absolute inset-y-[-0.5rem] right-0 w-16 rounded-l-[1.4rem] sm:w-24"
+        style={{
+          background: `linear-gradient(90deg, transparent 0%, color-mix(in srgb, ${theme.bgCardElevated} 4%, transparent) 56%, color-mix(in srgb, ${theme.bgCardElevated} 8%, transparent) 82%, color-mix(in srgb, ${theme.bgCardElevated} 12%, transparent) 100%)`,
+        }}
+      />
       <RailOverflowCue theme={theme} className={cueClassName} />
     </div>
   );
@@ -16203,7 +16215,7 @@ function ReferenceRailSection({
   return (
     <section className="overflow-hidden rounded-[1.35rem] border shadow-[0_6px_16px_rgba(7,10,8,0.05)]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
       <div className="border-b px-3.5 py-3.5 sm:px-4" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
-        <div className={`relative flex items-start gap-2.5 ${railHasOverflow ? "pr-10 sm:pr-12" : ""}`.trim()}>
+        <div className="relative flex items-start gap-2.5">
           <div className="grid size-10 shrink-0 place-items-center rounded-full border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
             <HeaderIcon size={17} />
           </div>
@@ -16225,7 +16237,7 @@ function ReferenceRailSection({
       <div className="relative">
         <div
           ref={railRef}
-          className={`flex min-w-0 snap-x gap-3 overflow-x-auto px-3.5 py-3 pb-3.5 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:px-4 ${railHasOverflow ? "pr-10 sm:pr-12" : ""}`.trim()}
+          className="flex min-w-0 snap-x gap-3 overflow-x-auto px-3.5 py-3 pb-3.5 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:px-4"
           aria-label={railLabel}
         >
           {topics.map((topic) => (
@@ -16727,6 +16739,7 @@ function AccountPanel({
         ariaLabel={ts('labels.accountSections')}
         theme={theme}
         layout="scroll"
+        cuePaddingClassName=""
         tabs={[
           { key: "personalization", label: ts('labels.accountPersonalizationTab') },
           { key: "privacy", label: ts('labels.accountPrivacyTab') },
@@ -19648,7 +19661,7 @@ function FormationRailSection({
                     </div>
                   </section>
 
-                  <section className={`relative space-y-2 ${dayCarouselHasOverflow ? "pr-10 sm:pr-12" : ""}`.trim()}>
+                  <section className="relative space-y-2">
                     {!dayCarouselHasOverflow ? (
                       <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
                         {ts("labels.currentlyActiveMode")}
@@ -22464,6 +22477,7 @@ function ManualContextPanel({
                   onChange={setContextTab}
                   ariaLabel={ts('manualContext.editContextTitle')}
                   theme={theme}
+                  cuePaddingClassName=""
                   tabs={[
                     { key: "current", label: manualCopy.currentState },
                     { key: "future", label: manualCopy.futureState },
@@ -24820,7 +24834,7 @@ function DecisionMemoryArchiveSection({
       </p>
 
       {sortedEntries.length ? (
-        <div className={`relative pt-0.5 ${hasOverflow ? "pr-10 sm:pr-12" : ""}`.trim()}>
+        <div className="relative pt-0.5">
           <div ref={railRef} className="flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
             {sortedEntries.map((entry) => {
               const createdLabel = formatDateTime(entry.createdAt);
@@ -27060,7 +27074,7 @@ function CompanionPanel({
                   </p>
                 </div>
               </div>
-              <div className={`relative mt-3 ${historyRailHasOverflow ? "pr-10 sm:pr-12" : ""}`.trim()}>
+              <div className="relative mt-3">
                 <div
                   ref={historyRailRef}
                   className="flex min-w-0 snap-x gap-3 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
@@ -27955,7 +27969,7 @@ function CounselDecisionShareRail({
 
   return (
     <div className="space-y-3">
-      <div className={`relative ${contactRailHasOverflow ? "pr-10 sm:pr-12" : ""}`.trim()}>
+      <div className="relative">
         <div ref={contactRailRef} className="flex min-w-0 snap-x gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {counselContacts.map((contact) => {
             const active = contact.id === selectedContactId;
@@ -28003,7 +28017,7 @@ function CounselDecisionShareRail({
         </div>
         {contactRailHasOverflow ? <RailOverflowCorner theme={theme} /> : null}
       </div>
-      <div className={`relative ${shareRailHasOverflow ? "pr-10 sm:pr-12" : ""}`.trim()}>
+      <div className="relative">
         <div ref={shareRailRef} className="flex min-w-0 snap-x gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {decisions.map((decision) => {
             const modeLabel = isMode(decision.mode) ? ts(modeTranslationKey(decision.mode), decision.mode) : decision.mode;
@@ -28427,7 +28441,7 @@ function CurrentCounselCard({
               </div>
               {moreCounselRailHasOverflow ? <ChevronRight size={15} style={{ color: theme.accentGold, opacity: 0.76 }} /> : <span className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>{ts('showDetails')}</span>}
             </div>
-            <div ref={moreCounselRailRef} className={`mt-3 flex min-w-0 snap-x gap-3 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${moreCounselRailHasOverflow ? "pr-10" : ""}`.trim()}>
+            <div ref={moreCounselRailRef} className="mt-3 flex min-w-0 snap-x gap-3 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               <CounselRailAction theme={theme} ts={ts} icon={Compass} label={calmerActionCopy?.goDeeper ?? text.goDeeper!} onClick={() => onGoDeeper(exchange)} />
               <CounselRailAction theme={theme} ts={ts} icon={Clock3} label={calmerActionCopy?.waitThreeDays ?? text.waitThreeDays!} onClick={() => onWait(exchange)} />
               <CounselRailAction theme={theme} ts={ts} icon={Share2} label={calmerActionCopy?.createAnswerCard ?? ts('labels.createAnswerCard')} onClick={() => onSharePostcard(exchange)} />
@@ -28517,16 +28531,12 @@ function RailButtonTray({
   const showCue = useRailOverflowCue(railRef, true, [label]);
   const trayPadding = dense ? "p-2" : "p-2.5";
   const railGap = dense ? "gap-1.5" : "gap-2";
-  const overflowPadding = dense ? "pr-5" : "pr-6";
-  const cuePosition = "right-1 top-1/2 -translate-y-1/2";
-  const cueSize = "size-6";
+  const overflowPadding = "";
 
   return (
     <div className={`relative overflow-hidden rounded-[1rem] border ${trayPadding}`} style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
       {showCue ? (
-        <div className={`pointer-events-none absolute ${cuePosition} z-20`}>
-          <RailOverflowCue theme={theme} className={cueSize} />
-        </div>
+        <RailOverflowCorner theme={theme} className="right-1 top-1/2 -translate-y-1/2" />
       ) : null}
       <div
         ref={railRef}
@@ -29074,7 +29084,7 @@ function DecisionCompanionPanel({
         ariaLabel={ts('labels.decisionSections')}
         theme={theme}
         variant="primary"
-        layout="scroll"
+        layout="grid"
       tabs={[
         { key: "decisions", label: ts('nav.decisions') },
         { key: "counsel", label: ts('labels.counsel') },
@@ -29117,52 +29127,54 @@ function DecisionCompanionPanel({
               </button>
             </div>
 
-            <RailButtonTray theme={theme} label={ts('labels.decisionMemory')}>
-              <div className="premium-tap-card flex w-[11.25rem] shrink-0 snap-start flex-col justify-between rounded-[1.15rem] border p-3 text-left" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
-                  {ts('labels.activeDecisions')}
-                </p>
-                <p className="mt-2 text-2xl font-semibold leading-none" style={{ color: theme.textPrimary }}>
-                  {activeDecisions.length}
-                </p>
-                <p className="mt-2 text-xs leading-5" style={{ color: theme.textSecondary }}>
-                  {activeDecisions.length ? (selectedDecision?.title ?? runtime.nextInDecisions) : runtime.decisionNextBodyEmpty}
-                </p>
-              </div>
-              <div className="premium-tap-card flex w-[11.25rem] shrink-0 snap-start flex-col justify-between rounded-[1.15rem] border p-3 text-left" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
-                  {ts('labels.daysDiscerning')}
-                </p>
-                <p className="mt-2 text-2xl font-semibold leading-none" style={{ color: theme.textPrimary }}>
-                  {insight.daysDiscerning}
-                </p>
-                <p className="mt-2 text-xs leading-5" style={{ color: theme.textSecondary }}>
-                  {runtime.decisionNextBodyActive}
-                </p>
-              </div>
-              <div className="premium-tap-card flex w-[11.25rem] shrink-0 snap-start flex-col justify-between rounded-[1.15rem] border p-3 text-left" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
-                  {ts('labels.patternsNoticed')}
-                </p>
-                <p className="mt-2 text-2xl font-semibold leading-none" style={{ color: theme.textPrimary }}>
-                  {insight.patterns.length}
-                </p>
-                <p className="mt-2 text-xs leading-5" style={{ color: theme.textSecondary }}>
-                  {insight.gentleObservation}
-                </p>
-              </div>
-              <div className="premium-tap-card flex w-[11.25rem] shrink-0 snap-start flex-col justify-between rounded-[1.15rem] border p-3 text-left" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
-                  {ts('labels.trustedVoices')}
-                </p>
-                <p className="mt-2 text-2xl font-semibold leading-none" style={{ color: theme.textPrimary }}>
-                  {counselContacts.length}
-                </p>
-                <p className="mt-2 text-xs leading-5" style={{ color: theme.textSecondary }}>
-                  {counselContacts.length ? ts('labels.counselCircleSummary') : ts('labels.inviteTrustedPeoplePrivate')}
-                </p>
-              </div>
-            </RailButtonTray>
+            <div className="mt-4">
+              <RailButtonTray theme={theme} label={ts('labels.decisionMemory')}>
+                <div className="premium-tap-card flex w-[11.25rem] shrink-0 snap-start flex-col justify-between rounded-[1.15rem] border p-3 text-left" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+                    {ts('labels.activeDecisions')}
+                  </p>
+                  <p className="mt-2 text-2xl font-semibold leading-none" style={{ color: theme.textPrimary }}>
+                    {activeDecisions.length}
+                  </p>
+                  <p className="mt-2 text-xs leading-5" style={{ color: theme.textSecondary }}>
+                    {activeDecisions.length ? (selectedDecision?.title ?? runtime.nextInDecisions) : runtime.decisionNextBodyEmpty}
+                  </p>
+                </div>
+                <div className="premium-tap-card flex w-[11.25rem] shrink-0 snap-start flex-col justify-between rounded-[1.15rem] border p-3 text-left" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+                    {ts('labels.daysDiscerning')}
+                  </p>
+                  <p className="mt-2 text-2xl font-semibold leading-none" style={{ color: theme.textPrimary }}>
+                    {insight.daysDiscerning}
+                  </p>
+                  <p className="mt-2 text-xs leading-5" style={{ color: theme.textSecondary }}>
+                    {runtime.decisionNextBodyActive}
+                  </p>
+                </div>
+                <div className="premium-tap-card flex w-[11.25rem] shrink-0 snap-start flex-col justify-between rounded-[1.15rem] border p-3 text-left" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+                    {ts('labels.patternsNoticed')}
+                  </p>
+                  <p className="mt-2 text-2xl font-semibold leading-none" style={{ color: theme.textPrimary }}>
+                    {insight.patterns.length}
+                  </p>
+                  <p className="mt-2 text-xs leading-5" style={{ color: theme.textSecondary }}>
+                    {insight.gentleObservation}
+                  </p>
+                </div>
+                <div className="premium-tap-card flex w-[11.25rem] shrink-0 snap-start flex-col justify-between rounded-[1.15rem] border p-3 text-left" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+                    {ts('labels.trustedVoices')}
+                  </p>
+                  <p className="mt-2 text-2xl font-semibold leading-none" style={{ color: theme.textPrimary }}>
+                    {counselContacts.length}
+                  </p>
+                  <p className="mt-2 text-xs leading-5" style={{ color: theme.textSecondary }}>
+                    {counselContacts.length ? ts('labels.counselCircleSummary') : ts('labels.inviteTrustedPeoplePrivate')}
+                  </p>
+                </div>
+              </RailButtonTray>
+            </div>
           </section>
         </>
       ) : null}
@@ -29267,7 +29279,7 @@ function DecisionCompanionPanel({
                     </h3>
                   </div>
                 </div>
-                <div className={`mt-2 ${incomingSharedDecisionRailHasOverflow ? "pr-10 sm:pr-12" : ""}`.trim()}>
+                <div className="mt-2">
                   <div ref={incomingSharedDecisionRailRef} className="flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                   {incomingSharedDecisionItems.map(({ invite, decision }) => {
                     const sharedAt = formatDecisionShareDate(decision.sharedAt);
@@ -29325,9 +29337,7 @@ function DecisionCompanionPanel({
                   </div>
                 </div>
                 {incomingSharedDecisionRailHasOverflow ? (
-                  <div aria-hidden="true" className="pointer-events-none absolute right-4 top-4 z-20">
-                    <RailOverflowCue theme={theme} className="size-6" />
-                  </div>
+                  <RailOverflowCorner theme={theme} className="right-4 top-4" />
                 ) : null}
               </section>
             ) : null}
@@ -29344,7 +29354,7 @@ function DecisionCompanionPanel({
                     </h3>
                   </div>
                 </div>
-                <div className={`mt-2 ${outgoingSharedDecisionRailHasOverflow ? "pr-10 sm:pr-12" : ""}`.trim()}>
+                <div className="mt-2">
                   <div ref={outgoingSharedDecisionRailRef} className="flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                   {outgoingSharedDecisionItems.map(({ contact, share }) => {
                     const sharedAt = formatDecisionShareDate(share.sharedAt);
@@ -29404,9 +29414,7 @@ function DecisionCompanionPanel({
                   </div>
                 </div>
                 {outgoingSharedDecisionRailHasOverflow ? (
-                  <div aria-hidden="true" className="pointer-events-none absolute right-4 top-4 z-20">
-                    <RailOverflowCue theme={theme} className="size-6" />
-                  </div>
+                  <RailOverflowCorner theme={theme} className="right-4 top-4" />
                 ) : null}
               </section>
             ) : null}
@@ -29685,7 +29693,7 @@ function DecisionCompanionPanel({
                   </div>
                 ) : (
                   <>
-                    <div className={`relative mt-2 ${visibleCounselRailHasOverflow ? "pr-10 sm:pr-12" : ""}`.trim()}>
+                    <div className="relative mt-2">
                       <div ref={visibleCounselRailRef} className="flex min-w-0 snap-x snap-mandatory gap-2.5 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
                       {visibleCounselContacts.map((contact) => (
                         <CounselVoiceCard
@@ -29717,7 +29725,7 @@ function DecisionCompanionPanel({
                         </p>
                       </div>
                     </div>
-                    <div className={`relative mt-2 ${hiddenCounselRailHasOverflow ? "pr-10 sm:pr-12" : ""}`.trim()}>
+                    <div className="relative mt-2">
                       <div ref={hiddenCounselRailRef} className="flex min-w-0 snap-x snap-mandatory gap-2.5 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
                       {hiddenCounselContacts.map((contact) => (
                         <CounselVoiceCard
@@ -29755,7 +29763,7 @@ function DecisionCompanionPanel({
                   </p>
                 </div>
               </div>
-              <div className={`relative mt-2 ${rhythmRailHasOverflow ? "pr-10 sm:pr-12" : ""}`.trim()}>
+              <div className="relative mt-2">
                 <div ref={rhythmRailRef} className="flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
                 <RhythmItem label={ts('labels.threeMinuteMorningReflection')} body={ts('labels.namePressureBeforeDayNamesIt')} theme={theme} />
                 <RhythmItem label={ts('labels.eveningExamen')} body={ts('labels.reviewMoneyWorkMomentHonestly')} theme={theme} />
@@ -29789,7 +29797,7 @@ function DecisionCompanionPanel({
                 />
                 <button className="h-10 rounded-full px-3 text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>{ts('labels.savePrinciple')}</button>
               </form>
-              <div className={`relative mt-2 ${ruleRailHasOverflow ? "pr-10 sm:pr-12" : ""}`.trim()}>
+              <div className="relative mt-2">
                 <div ref={ruleRailRef} className="flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
                 {modeRules.slice(0, 4).map((rule) => (
                   <article key={rule.id} className="premium-tap-card flex h-full min-h-[10.75rem] w-[12rem] shrink-0 snap-start flex-col justify-between rounded-[1.35rem] border p-3.5 shadow-[0_8px_18px_rgba(7,10,8,0.06)] sm:w-[12.75rem]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
@@ -30173,6 +30181,7 @@ function ReflectPanel({
         theme={theme}
         variant="primary"
         layout="scroll"
+        cuePaddingClassName=""
         tabs={[
           { key: "check", label: ts('labels.wisdomCheck') },
           { key: "gratitude", label: ts('labels.gratitudeLens') },
@@ -30758,16 +30767,15 @@ function GratitudeLensPanel({
                 theme={theme}
                 layout="scroll"
                 scrollItemMinWidth="9.75rem"
-                className="border-0 p-0 pr-10 shadow-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                className="border-0 p-0 shadow-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                cuePaddingClassName=""
                 tabs={GRATITUDE_FORMATIONS.map((item) => ({
                   key: item,
                   label: `${GRATITUDE_FORMATION_ICON[item]} ${gratitudeFormationLabel(item)}`,
                 }))}
-              />
+                />
               {gratitudeFormationRailHasOverflow ? (
-                <div aria-hidden="true" className="pointer-events-none absolute right-4 top-1/2 z-30 -translate-y-1/2">
-                  <RailOverflowCue theme={theme} className="size-6" />
-                </div>
+                <RailOverflowCorner theme={theme} className="right-4 top-1/2 -translate-y-1/2" />
               ) : null}
             </div>
           </div>
@@ -30853,7 +30861,7 @@ function GratitudeLensPanel({
               <div className="relative mt-2">
                 <div
                   ref={gratitudeFilterRailRef}
-                  className={`flex gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${gratitudeFilterRailHasOverflow ? "pr-10 sm:pr-12" : ""}`.trim()}
+                  className="flex gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
                 >
                   {GRATITUDE_FILTERS.map((filter) => {
                     const isActive = visual.filter === filter;
@@ -30903,7 +30911,7 @@ function GratitudeLensPanel({
                   <div className="relative mt-2">
                     <div
                       ref={gratitudeOverlayRailRef}
-                      className={`flex gap-2 overflow-x-auto snap-x snap-mandatory pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${gratitudeOverlayRailHasOverflow ? "pr-10 sm:pr-12" : ""}`.trim()}
+                      className="flex gap-2 overflow-x-auto snap-x snap-mandatory pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
                       aria-label={ts('labels.gratitudeOverlayNote')}
                     >
                       {[
@@ -30950,7 +30958,7 @@ function GratitudeLensPanel({
                   <div className="relative mt-2">
                     <div
                       ref={gratitudeStickerRailRef}
-                      className={`flex gap-2 overflow-x-auto snap-x snap-mandatory pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${gratitudeStickerRailHasOverflow ? "pr-10 sm:pr-12" : ""}`.trim()}
+                      className="flex gap-2 overflow-x-auto snap-x snap-mandatory pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
                     >
                       {GRATITUDE_STICKERS.map((sticker) => {
                         const isActive = visual.stickers.includes(sticker);
@@ -30990,7 +30998,7 @@ function GratitudeLensPanel({
                   <div className="relative mt-2">
                     <div
                       ref={gratitudeEmojiRailRef}
-                      className={`flex flex-nowrap gap-2 overflow-x-auto snap-x snap-mandatory pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${gratitudeEmojiRailHasOverflow ? "pr-10 sm:pr-12" : ""}`.trim()}
+                      className="flex flex-nowrap gap-2 overflow-x-auto snap-x snap-mandatory pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
                     >
                       {GRATITUDE_EMOJIS.map((emoji) => {
                         const isActive = visual.emoji === emoji;
@@ -31107,7 +31115,7 @@ function GratitudeLensPanel({
           </div>
 
           {visibleEntries.length ? (
-            <div className={`relative ${gratitudeRailHasOverflow ? "pr-10 sm:pr-12" : ""}`.trim()}>
+            <div className="relative">
               <section
                 ref={gratitudeRailRef}
                 aria-label={ts('labels.gratitudeTimeline')}
@@ -31242,6 +31250,7 @@ function LibraryPanel({
           onChange={(v) => setLibrarySection(v as typeof librarySection)}
           ariaLabel={ts('labels.librarySections')}
           theme={theme}
+          cuePaddingClassName=""
           tabs={[
             { key: "explore", label: ts('labels.libraryExplore') },
             { key: "bible", label: ts('labels.bibleLibrary') },
@@ -31373,7 +31382,7 @@ function LibraryPanel({
               <section
                 ref={libraryRailRef}
                 aria-label={ts('labels.wisdomLibrary')}
-                className={`flex min-w-0 snap-x gap-3 overflow-x-auto pb-1 sm:gap-4 [-webkit-overflow-scrolling:touch] ${libraryRailHasOverflow ? "pr-10 sm:pr-12" : ""}`.trim()}
+                className="flex min-w-0 snap-x gap-3 overflow-x-auto pb-1 sm:gap-4 [-webkit-overflow-scrolling:touch]"
               >
                 {railEntries.map((entry, index) => {
                   const localizedEntry = localizedWisdomLibraryEntry(entry, preferences);
@@ -31550,7 +31559,7 @@ function JournalPanel({
           </div>
 
           {entries.length ? (
-            <div className={`relative ${savedReflectionsRailHasOverflow ? "pr-10 sm:pr-12" : ""}`.trim()}>
+            <div className="relative">
               <section
                 ref={savedReflectionsRailRef}
                 aria-label={ts('labels.savedReflections')}
