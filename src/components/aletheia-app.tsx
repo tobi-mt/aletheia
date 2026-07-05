@@ -25558,7 +25558,7 @@ function SharedDecisionDetailModal({
               <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
                 {ts("labels.decisionSummary")}
               </p>
-              <p className="mt-2 text-[1rem] leading-7" style={{ color: theme.textPrimary }}>
+              <p className="mt-2 whitespace-pre-line text-[1rem] leading-7" style={{ color: theme.textPrimary }}>
                 {decision.summary}
               </p>
             </section>
@@ -25792,7 +25792,7 @@ function OutgoingSharedDecisionDetailModal({
               <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
                 {ts("labels.decisionSummary")}
               </p>
-              <p className="mt-2 text-[1rem] leading-7" style={{ color: theme.textPrimary }}>
+              <p className="mt-2 whitespace-pre-line text-[1rem] leading-7" style={{ color: theme.textPrimary }}>
                 {item.share.summary}
               </p>
             </section>
@@ -29947,7 +29947,7 @@ function DecisionCompanionPanel({
                             </span>
                           ) : null}
                         </div>
-                        <p className="mt-3 line-clamp-3 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                        <p className="mt-3 line-clamp-3 whitespace-pre-line text-sm leading-6" style={{ color: theme.textSecondary }}>
                           {decision.summary || ts('labels.sharedDecisionSummaryPending')}
                         </p>
                         <div className="mt-3 flex flex-wrap gap-2">
@@ -30022,7 +30022,7 @@ function DecisionCompanionPanel({
                               : ts("status.waitingForAcceptance")}
                           </span>
                         </div>
-                        <p className="mt-3 line-clamp-3 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                        <p className="mt-3 line-clamp-3 whitespace-pre-line text-sm leading-6" style={{ color: theme.textSecondary }}>
                           {share.summary || ts('labels.sharedDecisionSummaryPending')}
                         </p>
                         <div className="mt-3 flex flex-wrap gap-2">
