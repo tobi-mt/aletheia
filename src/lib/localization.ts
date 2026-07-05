@@ -24,6 +24,8 @@ export type UserPreferences = {
   region: RegionCode;
   bibleTranslation: BibleTranslation;
   voiceEnabled: boolean;
+  counselNotificationsEnabled: boolean;
+  formationNotificationsEnabled: boolean;
 };
 
 export const defaultPreferences: UserPreferences = {
@@ -31,6 +33,8 @@ export const defaultPreferences: UserPreferences = {
   region: "global",
   bibleTranslation: "WEB",
   voiceEnabled: true,
+  counselNotificationsEnabled: true,
+  formationNotificationsEnabled: true,
 };
 
 export const languages: Record<LanguageCode, { name: string; nativeName: string; speech: string; direction: "ltr" | "rtl" }> = {
@@ -4817,6 +4821,14 @@ export function normalizePreferences(input: Partial<UserPreferences> = {}): User
     region,
     bibleTranslation,
     voiceEnabled: typeof input.voiceEnabled === "boolean" ? input.voiceEnabled : defaultPreferences.voiceEnabled,
+    counselNotificationsEnabled:
+      typeof input.counselNotificationsEnabled === "boolean"
+        ? input.counselNotificationsEnabled
+        : defaultPreferences.counselNotificationsEnabled,
+    formationNotificationsEnabled:
+      typeof input.formationNotificationsEnabled === "boolean"
+        ? input.formationNotificationsEnabled
+        : defaultPreferences.formationNotificationsEnabled,
   };
 }
 

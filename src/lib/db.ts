@@ -471,6 +471,8 @@ async function initializeDatabase() {
       region TEXT NOT NULL DEFAULT 'global',
       bible_translation TEXT NOT NULL DEFAULT 'WEB',
       voice_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+      counsel_notifications_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+      formation_notifications_enabled BOOLEAN NOT NULL DEFAULT TRUE,
       notification_preferred_local_hour INTEGER NOT NULL DEFAULT 8,
       notification_preferred_timezone TEXT NOT NULL DEFAULT 'UTC',
       notification_timezone_mode TEXT NOT NULL DEFAULT 'auto',
@@ -481,6 +483,8 @@ async function initializeDatabase() {
     );
 
     ALTER TABLE user_preferences ALTER COLUMN voice_enabled SET DEFAULT TRUE;
+    ALTER TABLE user_preferences ADD COLUMN IF NOT EXISTS counsel_notifications_enabled BOOLEAN NOT NULL DEFAULT TRUE;
+    ALTER TABLE user_preferences ADD COLUMN IF NOT EXISTS formation_notifications_enabled BOOLEAN NOT NULL DEFAULT TRUE;
     ALTER TABLE user_preferences ADD COLUMN IF NOT EXISTS notification_preferred_local_hour INTEGER NOT NULL DEFAULT 8;
     ALTER TABLE user_preferences ADD COLUMN IF NOT EXISTS notification_preferred_timezone TEXT NOT NULL DEFAULT 'UTC';
     ALTER TABLE user_preferences ADD COLUMN IF NOT EXISTS notification_timezone_mode TEXT NOT NULL DEFAULT 'auto';

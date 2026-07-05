@@ -22,6 +22,7 @@ import {
   Mail,
   MapPin,
   MessageCircle,
+  MessageCircleMore,
   Moon,
   Pause,
   Play,
@@ -17069,6 +17070,7 @@ function AccountPanel({
               ts={ts}
               language={preferences.language}
               user={user}
+              preferences={preferences}
               enabled={notificationsEnabled}
               accountEnabled={notificationAccountEnabled}
               deviceSubscribed={notificationDeviceSubscribed}
@@ -17077,6 +17079,7 @@ function AccountPanel({
               busy={notificationBusy}
               timing={notificationTiming}
               diagnostics={notificationDiagnostics}
+              onPreferenceChange={onPreferenceChange}
               onTimingChange={onNotificationTimingChange}
               onEnable={onEnableNotifications}
               onDisable={onDisableNotifications}
@@ -17365,6 +17368,7 @@ function AccountSettingRow({
 function AccountToggleRow({
   icon: Icon,
   label,
+  body,
   checked,
   onChange,
   onLabel,
@@ -17388,8 +17392,11 @@ function AccountToggleRow({
             <Icon size={14} />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="flex items-center gap-2 text-[12.5px] font-semibold leading-5 sm:text-sm" style={{ color: theme.textPrimary }}>
-              <span>{label}</span>
+            <span className="block text-[12.5px] font-semibold leading-5 sm:text-sm" style={{ color: theme.textPrimary }}>
+              {label}
+            </span>
+            <span className="mt-0.5 block text-[11px] leading-5 sm:text-xs" style={{ color: theme.textSecondary }}>
+              {body}
             </span>
           </span>
         </div>
@@ -24125,6 +24132,7 @@ function NotificationPanel({
   ts,
   language,
   user,
+  preferences,
   enabled,
   accountEnabled,
   deviceSubscribed,
@@ -24133,6 +24141,7 @@ function NotificationPanel({
   busy,
   timing,
   diagnostics,
+  onPreferenceChange,
   onTimingChange,
   onEnable,
   onDisable,
@@ -24142,6 +24151,7 @@ function NotificationPanel({
   ts: (key: string, fallback?: string) => string;
   language: LanguageCode;
   user: User | null;
+  preferences: UserPreferences;
   enabled: boolean;
   accountEnabled: boolean;
   deviceSubscribed: boolean;
@@ -24150,6 +24160,7 @@ function NotificationPanel({
   busy: boolean;
   timing: NotificationTiming;
   diagnostics: NotificationDiagnostics | null;
+  onPreferenceChange: (patch: Partial<UserPreferences>) => void;
   onTimingChange: (patch: Partial<NotificationTiming>) => void;
   onEnable: () => void;
   onDisable: () => void;
@@ -24253,11 +24264,11 @@ function NotificationPanel({
           )}
         </div>
       )}
-      <div className="mt-3.5 rounded-[1rem] border p-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
-        <div className="mb-3 rounded-[0.9rem] border px-3 py-2 text-sm leading-6" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
-          <span className="font-semibold" style={{ color: theme.textPrimary }}>
-            {ts('notifications.dailyWisdomSetFor')} {notificationTimeLabel(timing.preferredLocalHour, language)}.
-          </span>{" "}
+        <div className="mt-3.5 rounded-[1rem] border p-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
+          <div className="mb-3 rounded-[0.9rem] border px-3 py-2 text-sm leading-6" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
+            <span className="font-semibold" style={{ color: theme.textPrimary }}>
+              {ts('notifications.dailyWisdomSetFor')} {notificationTimeLabel(timing.preferredLocalHour, language)}.
+            </span>{" "}
           {ts('notifications.savedLocalTimingPreference')}
         </div>
         <div className="grid gap-3 sm:grid-cols-2 sm:items-end">
@@ -24338,6 +24349,46 @@ function NotificationPanel({
               </button>
             </label>
           )}
+        </div>
+        <div className="mt-3 rounded-[0.9rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
+                {ts('labels.notifications', 'Notifications')}
+              </p>
+              <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                {ts('notifications.counselAndFormationSettingsBody', 'Keep counsel and formation alerts separate from daily wisdom timing.')}
+              </p>
+            </div>
+            <span className="shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.1em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textSecondary }}>
+              {ts('notifications.privateByDefault', 'Privacy-first')}
+            </span>
+          </div>
+          <div className="mt-3 grid gap-2">
+            <AccountToggleRow
+              icon={MessageCircleMore}
+              label={ts('notifications.counselNotificationsTitle', 'Counsel notifications')}
+              body={ts('notifications.counselNotificationsBody', 'Shared decisions and private counsel replies.')}
+              checked={preferences.counselNotificationsEnabled}
+              onChange={(checked) => onPreferenceChange({ counselNotificationsEnabled: checked })}
+              onLabel={ts('labels.on')}
+              offLabel={ts('labels.off')}
+              theme={theme}
+            />
+            <AccountToggleRow
+              icon={Bell}
+              label={ts('notifications.formationNotificationsTitle', 'Formation notifications')}
+              body={ts('notifications.formationNotificationsBody', 'Nudges and challenge activity in your circles.')}
+              checked={preferences.formationNotificationsEnabled}
+              onChange={(checked) => onPreferenceChange({ formationNotificationsEnabled: checked })}
+              onLabel={ts('labels.on')}
+              offLabel={ts('labels.off')}
+              theme={theme}
+            />
+          </div>
+          <p className="mt-3 text-xs leading-5" style={{ color: theme.textSecondary }}>
+            {ts('notifications.counselCardDeepLinkNote', 'Taps from alerts open the exact card or reply surface, not just the tab.')}
+          </p>
         </div>
         <div className="mt-3 rounded-[0.9rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">

@@ -28,6 +28,8 @@ type PushRow = {
   region: string | null;
   bible_translation: string | null;
   voice_enabled: boolean | null;
+  counsel_notifications_enabled?: boolean | null;
+  formation_notifications_enabled?: boolean | null;
 };
 
 type ChallengeCircleNudgeTargetRow = {
@@ -59,7 +61,7 @@ type CounselDecisionSharePushInput = {
 
 type DeliveryStatus = "waiting_for_acceptance" | "sent_to_push_service" | "opened" | "partial" | "no_push_subscription" | "failed";
 
-type CounselShareDeliveryReason = "no_push_subscription" | "disabled_push_subscription" | "push_failed" | null;
+type CounselShareDeliveryReason = "no_push_subscription" | "disabled_push_subscription" | "push_failed" | "muted_by_preferences" | null;
 
 export type CounselShareDeliverySummary = {
   id: string;
@@ -244,23 +246,110 @@ export function configureWebPush() {
   webpush.setVapidDetails(subject, publicKey, privateKey);
 }
 
-const challengeCircleNudgeTitleByLanguage: Partial<Record<LanguageCode, (senderName: string) => string>> = {
-  en: (senderName) => `${senderName} sent a nudge`,
-  de: (senderName) => `${senderName} hat einen Anstoß gesendet`,
-  fr: (senderName) => `${senderName} a envoyé un rappel`,
-  es: (senderName) => `${senderName} envió un ánimo`,
-  pt: (senderName) => `${senderName} enviou um incentivo`,
-  ar: (senderName) => `${senderName} أرسل تشجيعًا`,
-  hi: (senderName) => `${senderName} ने एक प्रोत्साहन भेजा`,
-  tl: (senderName) => `${senderName} ay nagpadala ng himok`,
-  yo: (senderName) => `${senderName} rán ìmúnilọ́kànlẹ́`,
-  ig: (senderName) => `${senderName} zigara mkpali`,
-  ha: (senderName) => `${senderName} ya aika ƙarfafawa`,
+const counselDecisionSharedNotificationCopyByLanguage: Partial<Record<LanguageCode, { title: string; body: string }>> = {
+  en: {
+    title: "New activity on a shared decision",
+    body: "Open Aletheia to review the shared decision and private counsel.",
+  },
+  de: {
+    title: "Neue Aktivität bei einer geteilten Entscheidung",
+    body: "Öffne Aletheia, um die geteilte Entscheidung und die private Beratung zu prüfen.",
+  },
+  fr: {
+    title: "Nouvelle activité sur une décision partagée",
+    body: "Ouvre Aletheia pour consulter la décision partagée et le conseil privé.",
+  },
+  es: {
+    title: "Nueva actividad en una decisión compartida",
+    body: "Abre Aletheia para revisar la decisión compartida y el consejo privado.",
+  },
+  pt: {
+    title: "Nova atividade em uma decisão compartilhada",
+    body: "Abra o Aletheia para revisar a decisão compartilhada e o conselho privado.",
+  },
+  ar: {
+    title: "نشاط جديد على قرار مشترك",
+    body: "افتح Aletheia لمراجعة القرار المشترك والمشورة الخاصة.",
+  },
+  hi: {
+    title: "साझा निर्णय पर नई गतिविधि",
+    body: "साझा निर्णय और निजी सलाह की समीक्षा करने के लिए Aletheia खोलें।",
+  },
+  tl: {
+    title: "Bagong aktibidad sa isang pinagsasaluhang pasya",
+    body: "Buksan ang Aletheia para repasuhin ang pinagsasaluhang pasya at pribadong payo.",
+  },
+  yo: {
+    title: "Ìṣe tuntun lórí ìpinnu tí a pín",
+    body: "Ṣí Aletheia láti tún wo ìpinnu tí a pín àti ìmọ̀ràn aláìkọ̀kọ̀.",
+  },
+  ig: {
+    title: "Ọrụ ọhụrụ na mkpebi e kesara",
+    body: "Mepee Aletheia ka i nyochaa mkpebi e kesara na ndụmọdụ nke onwe.",
+  },
+  ha: {
+    title: "Sabuwar aiki a kan shawarar da aka raba",
+    body: "Buɗe Aletheia don duba shawarar da aka raba da kuma shawara ta sirri.",
+  },
 };
 
-function challengeCircleNudgeNotificationTitle(language: LanguageCode, senderName: string) {
-  const normalizedSender = senderName.trim() || "Aletheia";
-  return challengeCircleNudgeTitleByLanguage[language]?.(normalizedSender) ?? `${normalizedSender} sent a nudge`;
+const challengeCircleNudgeNotificationCopyByLanguage: Partial<Record<LanguageCode, { title: string; body: string }>> = {
+  en: {
+    title: "New activity in your circle",
+    body: "Open Aletheia to review the latest circle nudge.",
+  },
+  de: {
+    title: "Neue Aktivität in deinem Kreis",
+    body: "Öffne Aletheia, um den neuesten Anstoß im Kreis zu sehen.",
+  },
+  fr: {
+    title: "Nouvelle activité dans votre cercle",
+    body: "Ouvre Aletheia pour consulter le dernier rappel du cercle.",
+  },
+  es: {
+    title: "Nueva actividad en tu círculo",
+    body: "Abre Aletheia para revisar el último aviso del círculo.",
+  },
+  pt: {
+    title: "Nova atividade no seu círculo",
+    body: "Abra o Aletheia para ver o último incentivo do círculo.",
+  },
+  ar: {
+    title: "نشاط جديد في دائرتك",
+    body: "افتح Aletheia لمراجعة آخر تنبيه في الدائرة.",
+  },
+  hi: {
+    title: "आपके सर्कल में नई गतिविधि",
+    body: "Aletheia खोलकर सर्कल का नया चेक-इन देखें।",
+  },
+  tl: {
+    title: "Bagong aktibidad sa iyong circle",
+    body: "Buksan ang Aletheia para tingnan ang pinakabagong check-in ng circle.",
+  },
+  yo: {
+    title: "Ìṣe tuntun nínú ẹgbẹ́ rẹ",
+    body: "Ṣí Aletheia láti ṣàyẹ̀wò ìfọkànsìn tuntun jù lọ nínú ẹgbẹ́.",
+  },
+  ig: {
+    title: "Ọrụ ọhụrụ n'okirikiri gị",
+    body: "Mepee Aletheia ka i nyochaa check-in ọhụrụ nke okirikiri.",
+  },
+  ha: {
+    title: "Sabuwar aiki a cikin da'irarka",
+    body: "Buɗe Aletheia don duba sabon sakon dubawa na da'irar.",
+  },
+};
+
+function counselNotificationsEnabled(row: PushRow) {
+  return row.counsel_notifications_enabled !== false;
+}
+
+function formationNotificationsEnabled(row: PushRow) {
+  return row.formation_notifications_enabled !== false;
+}
+
+function challengeCircleNudgeNotificationTitle(language: LanguageCode) {
+  return challengeCircleNudgeNotificationCopyByLanguage[language]?.title ?? challengeCircleNudgeNotificationCopyByLanguage.en!.title;
 }
 
 function challengeCircleNudgeNotificationPayload(row: PushRow, input: ChallengeCircleNudgePushInput) {
@@ -272,9 +361,9 @@ function challengeCircleNudgeNotificationPayload(row: PushRow, input: ChallengeC
   });
 
   return {
-    title: challengeCircleNudgeNotificationTitle(preferences.language, input.senderName ?? ""),
-    body: compactNotificationCopy(input.body, 160),
-    url: `/?source=notification&focus=challenge&challenge=${encodeURIComponent(input.challengeId)}&tab=reflect&section=nudges`,
+    title: challengeCircleNudgeNotificationTitle(preferences.language),
+    body: challengeCircleNudgeNotificationCopyByLanguage[preferences.language]?.body ?? challengeCircleNudgeNotificationCopyByLanguage.en!.body,
+    url: `/?source=notification&focus=challenge&challenge=${encodeURIComponent(input.challengeId)}&circleId=${encodeURIComponent(input.circleId)}&nudgeId=${encodeURIComponent(input.nudgeId)}&tab=reflect&section=nudges`,
     tag: `aletheia-circle-nudge-${input.circleId}-${input.nudgeId}-${row.user_id}`,
     notificationKind: "challenge_circle_nudge",
     notificationId: input.nudgeId,
@@ -286,10 +375,8 @@ function challengeCircleNudgeNotificationPayload(row: PushRow, input: ChallengeC
   };
 }
 
-function counselShareNotificationTitle(language: LanguageCode, senderName: string) {
-  const translations = loadTranslationsSync(language);
-  const normalizedSender = senderName.trim() || "Aletheia";
-  return String(getTranslation(translations, "notifications.counselDecisionSharedTitle")).replace("{name}", normalizedSender);
+function counselShareNotificationTitle(language: LanguageCode) {
+  return counselDecisionSharedNotificationCopyByLanguage[language]?.title ?? counselDecisionSharedNotificationCopyByLanguage.en!.title;
 }
 
 function counselShareNotificationPayload(row: PushRow, input: CounselDecisionSharePushInput) {
@@ -299,15 +386,13 @@ function counselShareNotificationPayload(row: PushRow, input: CounselDecisionSha
     bibleTranslation: row.bible_translation as BibleTranslation,
     voiceEnabled: Boolean(row.voice_enabled),
   });
-  const translations = loadTranslationsSync(preferences.language);
-  const senderName = input.senderName?.trim() || "Aletheia";
-  const title = counselShareNotificationTitle(preferences.language, senderName);
-  const body = compactNotificationCopy(String(getTranslation(translations, "notifications.counselDecisionSharedBody")).replace("{title}", input.decisionTitle), 160);
+  const title = counselShareNotificationTitle(preferences.language);
+  const body = counselDecisionSharedNotificationCopyByLanguage[preferences.language]?.body ?? counselDecisionSharedNotificationCopyByLanguage.en!.body;
 
   return {
     title,
     body,
-    url: `/?source=notification&focus=decision&decisionId=${encodeURIComponent(input.decisionId)}&tab=decisions`,
+    url: `/?source=notification&focus=decision&decisionId=${encodeURIComponent(input.decisionId)}&sharedDecisionId=${encodeURIComponent(input.sharedDecisionId)}&contactId=${encodeURIComponent(input.contactId)}&tab=decisions&section=share&surface=incoming`,
     tag: `aletheia-counsel-share-${input.sharedDecisionId}-${row.user_id}`,
     notificationKind: "counsel_decision_shared",
     notificationId: input.sharedDecisionId,
@@ -422,7 +507,8 @@ async function pushSubscriptionsForUsers(userIds: string[]) {
   return many<PushRow>(
     `SELECT push_subscriptions.id, push_subscriptions.user_id, endpoint, p256dh, auth, push_subscriptions.enabled, preferred_hour, last_sent_at,
             preferred_local_hour, preferred_timezone, delivery_strategy, last_gratitude_sent_at,
-            user_preferences.language, user_preferences.region, user_preferences.bible_translation, user_preferences.voice_enabled
+            user_preferences.language, user_preferences.region, user_preferences.bible_translation, user_preferences.voice_enabled,
+            user_preferences.counsel_notifications_enabled, user_preferences.formation_notifications_enabled
      FROM push_subscriptions
      LEFT JOIN user_preferences ON user_preferences.user_id = push_subscriptions.user_id
      WHERE push_subscriptions.user_id = ANY(?)`,
@@ -475,31 +561,39 @@ export async function sendCounselShareNotifications(input: CounselDecisionShareP
   }
 
   const pushRows = await pushSubscriptionsForUsers(acceptedRecipientIds);
-  const { enabledRows, enabledRecipientCount, disabledRecipientCount } = splitPushSubscriptionRows(pushRows, acceptedRecipientIds);
+  const { enabledRows, disabledRecipientCount } = splitPushSubscriptionRows(pushRows, acceptedRecipientIds);
+  const eligibleRows = enabledRows.filter((row) => counselNotificationsEnabled(row));
   const rowsByRecipient = new Map<string, PushRow[]>();
-  for (const row of enabledRows) {
+  for (const row of eligibleRows) {
     const bucket = rowsByRecipient.get(row.user_id) ?? [];
     bucket.push(row);
     rowsByRecipient.set(row.user_id, bucket);
   }
 
   const recipientsWithoutPush = acceptedRecipientIds.filter((recipientUserId) => !rowsByRecipient.has(recipientUserId));
+  const recipientsMutedByPreference = acceptedRecipientIds.filter(
+    (recipientUserId) =>
+      enabledRows.some((row) => row.user_id === recipientUserId) && !rowsByRecipient.has(recipientUserId)
+  );
+  const eligibleRecipientCount = new Set(eligibleRows.map((row) => row.user_id)).size;
   const attemptedAt = new Date().toISOString();
   let deliveredCount = 0;
   let failedCount = 0;
   const openedCount = 0;
   let status: DeliveryStatus = "sent_to_push_service";
-  let reason: CounselShareDeliveryReason = recipientsWithoutPush.length > 0
-    ? disabledRecipientCount > 0
-      ? "disabled_push_subscription"
-      : "no_push_subscription"
-    : null;
+  let reason: CounselShareDeliveryReason = recipientsMutedByPreference.length > 0
+    ? "muted_by_preferences"
+    : recipientsWithoutPush.length > 0
+      ? disabledRecipientCount > 0
+        ? "disabled_push_subscription"
+        : "no_push_subscription"
+      : null;
 
-  if (enabledRows.length > 0) {
+  if (eligibleRows.length > 0) {
     try {
       configureWebPush();
       const { sent, failed } = await sendPushRows(
-        enabledRows,
+        eligibleRows,
         (row) => JSON.stringify(counselShareNotificationPayload(row, input)),
         { lastSentColumn: null }
       );
@@ -508,33 +602,39 @@ export async function sendCounselShareNotifications(input: CounselDecisionShareP
 
       if (sent > 0 && failed === 0 && recipientsWithoutPush.length === 0) {
         status = "sent_to_push_service";
-        reason = null;
-      } else if (sent > 0 && (failed > 0 || recipientsWithoutPush.length > 0)) {
+        reason = recipientsMutedByPreference.length > 0 ? "muted_by_preferences" : null;
+      } else if (sent > 0 && (failed > 0 || recipientsWithoutPush.length > 0 || recipientsMutedByPreference.length > 0)) {
         status = "partial";
-        reason = recipientsWithoutPush.length > 0
-          ? disabledRecipientCount > 0
-            ? "disabled_push_subscription"
-            : "no_push_subscription"
-          : "push_failed";
+        reason = recipientsMutedByPreference.length > 0
+          ? "muted_by_preferences"
+          : recipientsWithoutPush.length > 0
+            ? disabledRecipientCount > 0
+              ? "disabled_push_subscription"
+              : "no_push_subscription"
+            : "push_failed";
       } else if (failed > 0) {
         status = "failed";
         reason = "push_failed";
-      } else if (recipientsWithoutPush.length > 0) {
+      } else if (recipientsMutedByPreference.length > 0 || recipientsWithoutPush.length > 0) {
         status = "no_push_subscription";
-        reason = disabledRecipientCount > 0 ? "disabled_push_subscription" : "no_push_subscription";
+        reason = recipientsMutedByPreference.length > 0
+          ? "muted_by_preferences"
+          : disabledRecipientCount > 0
+            ? "disabled_push_subscription"
+            : "no_push_subscription";
       } else {
         status = "sent_to_push_service";
         reason = null;
       }
     } catch {
       deliveredCount = 0;
-      failedCount = enabledRows.length;
+      failedCount = eligibleRows.length;
       status = "failed";
       reason = "push_failed";
     }
-  } else if (disabledRecipientCount > 0) {
+  } else if (disabledRecipientCount > 0 || recipientsMutedByPreference.length > 0) {
     status = "no_push_subscription";
-    reason = "disabled_push_subscription";
+    reason = recipientsMutedByPreference.length > 0 ? "muted_by_preferences" : "disabled_push_subscription";
   }
 
   const summary: CounselShareDeliverySummary = {
@@ -547,7 +647,7 @@ export async function sendCounselShareNotifications(input: CounselDecisionShareP
     status,
     reason,
     acceptedRecipientCount: acceptedRecipientIds.length,
-    pushSubscriptionCount: enabledRecipientCount,
+    pushSubscriptionCount: eligibleRecipientCount,
     deliveredCount,
     failedCount,
     openedCount,
@@ -2575,16 +2675,19 @@ export async function sendChallengeCircleNudgeNotifications(input: ChallengeCirc
   const rows = await many<PushRow>(
     `SELECT push_subscriptions.id, push_subscriptions.user_id, endpoint, p256dh, auth, push_subscriptions.enabled, preferred_hour, last_sent_at,
             preferred_local_hour, preferred_timezone, delivery_strategy, last_gratitude_sent_at,
-            user_preferences.language, user_preferences.region, user_preferences.bible_translation, user_preferences.voice_enabled
+            user_preferences.language, user_preferences.region, user_preferences.bible_translation, user_preferences.voice_enabled,
+            user_preferences.counsel_notifications_enabled, user_preferences.formation_notifications_enabled
      FROM push_subscriptions
      LEFT JOIN user_preferences ON user_preferences.user_id = push_subscriptions.user_id
      WHERE push_subscriptions.user_id = ANY(?)`,
     targetUserIds
   );
-  const { enabledRows, enabledRecipientCount, disabledRecipientCount, missingActiveRecipientCount } = splitPushSubscriptionRows(rows, targetUserIds);
+  const { enabledRows, disabledRecipientCount, missingActiveRecipientCount } = splitPushSubscriptionRows(rows, targetUserIds);
+  const eligibleRows = enabledRows.filter((row) => formationNotificationsEnabled(row));
+  const eligibleRecipientCount = new Set(eligibleRows.map((row) => row.user_id)).size;
 
   const { sent, failed, failureSamples } = await sendPushRows(
-    enabledRows,
+    eligibleRows,
     (row) => JSON.stringify(challengeCircleNudgeNotificationPayload(row, input)),
     { lastSentColumn: null }
   );
@@ -2605,7 +2708,9 @@ export async function sendChallengeCircleNudgeNotifications(input: ChallengeCirc
             ? "failed"
             : "no_push_subscription",
     reason:
-      missingActiveRecipientCount > 0
+      eligibleRows.length === 0 && enabledRows.length > 0
+        ? "muted_by_preferences"
+        : missingActiveRecipientCount > 0
         ? disabledRecipientCount > 0
           ? "disabled_push_subscription"
           : "no_push_subscription"
@@ -2613,7 +2718,7 @@ export async function sendChallengeCircleNudgeNotifications(input: ChallengeCirc
           ? "push_failed"
           : null,
     acceptedRecipientCount: targetUserIds.length,
-    pushSubscriptionCount: enabledRecipientCount,
+    pushSubscriptionCount: eligibleRecipientCount,
     deliveredCount: sent,
     failedCount: failed,
     openedCount: 0,
@@ -2825,7 +2930,8 @@ export async function sendChallengeReminders(now = new Date()): Promise<{
             preferred_hour, preferred_local_hour, preferred_timezone, delivery_strategy,
             last_sent_at, last_gratitude_sent_at, last_challenge_notified_at,
             user_preferences.language, user_preferences.region, user_preferences.bible_translation,
-            user_preferences.voice_enabled
+            user_preferences.voice_enabled,
+            user_preferences.counsel_notifications_enabled, user_preferences.formation_notifications_enabled
      FROM push_subscriptions
      LEFT JOIN user_preferences ON user_preferences.user_id = push_subscriptions.user_id
      WHERE push_subscriptions.enabled = TRUE`
@@ -2839,6 +2945,9 @@ export async function sendChallengeReminders(now = new Date()): Promise<{
   // 2. Respect the user's preferred notification hour + dedup per day
   // ------------------------------------------------------------------
   const dueRows = allRows.filter((row) => {
+    if (!formationNotificationsEnabled(row)) {
+      return false;
+    }
     const localHour = localHourForTimezone(now, row.preferred_timezone);
     const preferredLocalHour = Number.isInteger(row.preferred_local_hour)
       ? Math.min(23, Math.max(0, Number(row.preferred_local_hour)))

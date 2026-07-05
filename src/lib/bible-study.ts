@@ -166,6 +166,8 @@ export function buildBibleStudyGuide(chapterData: BibleChapterData, preferences:
     region: "global",
     bibleTranslation: preferences.bibleTranslation,
     voiceEnabled: false,
+    counselNotificationsEnabled: false,
+    formationNotificationsEnabled: false,
   } satisfies UserPreferences;
   const chapterText = normalizeStudyText(chapterData.verses.map((verse) => verse.text).join(" "));
 
