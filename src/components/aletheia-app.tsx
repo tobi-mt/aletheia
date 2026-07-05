@@ -28562,7 +28562,7 @@ function CounselDecisionShareRail({
         </div>
         {shareRailHasOverflow ? <RailOverflowCorner theme={theme} /> : null}
       </div>
-      {decisions.length > 1 ? (
+      {decisions.length > 0 ? (
         <button
           type="button"
           className="mt-3 h-10 w-full rounded-full px-4 text-xs font-semibold transition"
