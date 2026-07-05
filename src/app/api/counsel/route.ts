@@ -56,6 +56,21 @@ type SharedDecisionDeliveryRow = {
   attempted_at: string | null;
   delivered_at: string | null;
   delivery_updated_at: string | null;
+  comments: Array<{
+    id: string;
+    body: string;
+    createdAt: string;
+    acceptanceId: string | null;
+  }>;
+};
+
+type SharedDecisionCommentRow = {
+  id: string;
+  contact_id: string;
+  decision_id: string;
+  body: string;
+  created_at: string;
+  acceptance_id: string | null;
 };
 
 type CommentRow = {
@@ -257,6 +272,34 @@ export async function GET() {
   );
   const receivedInvites = await receivedInvitePreviews(user.id);
   const recentShares = await recentSharedDecisions(user.id);
+  const recentShareComments = await many<SharedDecisionCommentRow>(
+    `SELECT c.id, c.contact_id, c.decision_id, c.body, c.created_at, c.acceptance_id
+     FROM counsel_comments c
+     JOIN counsel_shared_decisions s
+       ON s.contact_id = c.contact_id
+      AND s.decision_id = c.decision_id
+     WHERE s.user_id = ?
+     ORDER BY c.created_at ASC
+     LIMIT 200`,
+    user.id
+  );
+  const commentsByShareKey = new Map<string, Array<{
+    id: string;
+    body: string;
+    createdAt: string;
+    acceptanceId: string | null;
+  }>>();
+  for (const comment of recentShareComments) {
+    const key = `${comment.contact_id}:${comment.decision_id}`;
+    const bucket = commentsByShareKey.get(key) ?? [];
+    bucket.push({
+      id: comment.id,
+      body: comment.body,
+      createdAt: comment.created_at,
+      acceptanceId: comment.acceptance_id,
+    });
+    commentsByShareKey.set(key, bucket);
+  }
   const recentSharesByContact = new Map<string, Array<{
     id: string;
     decisionId: string;
@@ -277,6 +320,12 @@ export async function GET() {
     attemptedAt: string | null;
     deliveredAt: string | null;
     deliveryUpdatedAt: string | null;
+    comments: Array<{
+      id: string;
+      body: string;
+      createdAt: string;
+      acceptanceId: string | null;
+    }>;
   }>>();
 
   for (const share of recentShares) {
@@ -304,6 +353,7 @@ export async function GET() {
       attemptedAt: share.attempted_at,
       deliveredAt: share.delivered_at,
       deliveryUpdatedAt: share.delivery_updated_at,
+      comments: commentsByShareKey.get(`${share.contact_id}:${share.decision_id}`) ?? [],
     });
     recentSharesByContact.set(share.contact_id, bucket);
   }

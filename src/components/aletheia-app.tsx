@@ -4381,6 +4381,19 @@ type CounselShareDeliverySummaryView = {
   openedCount: number;
   attemptedAt: string | null;
   deliveredAt: string | null;
+  comments: Array<{
+    id: string;
+    body: string;
+    createdAt: string;
+    acceptanceId: string | null;
+  }>;
+};
+
+type CounselConversationComment = {
+  id: string;
+  body: string;
+  createdAt: string;
+  acceptanceId: string | null;
 };
 
 type CounselInvitePreview = {
@@ -12726,6 +12739,19 @@ export function AletheiaApp({
     }
   }
 
+  async function addSharedDecisionComment(sharedDecisionId: string, body: string) {
+    const response = await fetch(`/api/counsel/shared/${encodeURIComponent(sharedDecisionId)}/comments`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ body }),
+    });
+    const data = (await response.json()) as { comment?: { id: string; body: string; createdAt: string; acceptanceId: string | null }; error?: string; errorCode?: string };
+    if (!response.ok || !data.comment) {
+      throw new Error(resolveApiErrorMessage(data.error, data.errorCode, "notifications.summaryNotSharedBody"));
+    }
+    return data.comment;
+  }
+
   function openReceivedCounselInvite(invite: CounselInvitePreview) {
     setCounselInviteToken(null);
     setCounselInvitePreview(invite);
@@ -13241,6 +13267,7 @@ export function AletheiaApp({
                       onShareCounselInvite={shareCounselInvite}
                       onShareDecisionWithCounsel={shareDecisionWithCounsel}
                       onBulkShareDecisionsWithCounsel={bulkShareDecisionsWithCounsel}
+                      onSendSharedDecisionComment={addSharedDecisionComment}
                       onOpenReceivedCounselInvite={openReceivedCounselInvite}
                       onRemoveCounselContact={removeCounselContact}
                       onAddRule={addRuleOfLife}
@@ -25362,6 +25389,224 @@ function SharedDecisionDetailModal({
   );
 }
 
+function OutgoingSharedDecisionDetailModal({
+  open,
+  theme,
+  ts,
+  language,
+  item,
+  onClose,
+  onSendComment,
+}: {
+  open: boolean;
+  theme: ThemeColors;
+  ts: (key: string, fallback?: string) => string;
+  language: LanguageCode;
+  item: {
+    contact: CounselContact;
+    share: CounselShareDeliverySummaryView;
+  } | null;
+  onClose: () => void;
+  onSendComment: (sharedDecisionId: string, body: string) => Promise<CounselConversationComment | void> | CounselConversationComment | void;
+}) {
+  const canUsePortal = typeof document !== "undefined";
+  const [draft, setDraft] = useState("");
+  const [sending, setSending] = useState(false);
+  const [threadComments, setThreadComments] = useState<CounselConversationComment[]>(() => item?.share.comments ?? []);
+  useBodyScrollLock(open && canUsePortal);
+
+  if (!open || !canUsePortal || !item) {
+    return null;
+  }
+
+  const dateFormatter = new Intl.DateTimeFormat(language, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+  const sharedAt = Number.isNaN(new Date(item.share.sharedAt).getTime()) ? null : dateFormatter.format(new Date(item.share.sharedAt));
+  const roleLabel = localizedCounselRoleLabel(item.contact.role, ts);
+  const recipientCount = Math.max(item.share.acceptedRecipientCount, item.contact.inviteStatus === "accepted" ? 1 : 0);
+  const sortedComments = [...threadComments].sort((left, right) => Date.parse(left.createdAt) - Date.parse(right.createdAt));
+
+  async function submitComment(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const body = draft.trim();
+    if (!body || sending) {
+      return;
+    }
+    setSending(true);
+    try {
+      const createdComment = await onSendComment(item.share.id, body);
+      setDraft("");
+      if (createdComment) {
+        setThreadComments((current) => [
+          ...current,
+          {
+            id: createdComment.id,
+            body: createdComment.body,
+            createdAt: createdComment.createdAt,
+            acceptanceId: createdComment.acceptanceId,
+          },
+        ]);
+      }
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[9999] grid min-h-dvh place-items-end overflow-hidden overscroll-none px-3 py-3 backdrop-blur-sm sm:place-items-center"
+      style={{
+        backgroundColor: "rgba(13, 23, 20, 0.56)",
+        paddingTop: "calc(max(var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)), 0.75rem) + 0.25rem)",
+        paddingBottom: "calc(max(var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)), 0.75rem) + 0.25rem)",
+      }}
+      onClick={onClose}
+    >
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={`outgoing-shared-decision-modal-${item.share.id}`}
+        className="w-full max-w-2xl overflow-y-auto overscroll-contain rounded-[2rem] border [-webkit-overflow-scrolling:touch] [touch-action:pan-y] shadow-[0_28px_90px_rgba(10,18,14,0.36)]"
+        style={{
+          borderColor: theme.borderStrong,
+          backgroundColor: theme.bgCard,
+          maxHeight: "calc(100svh - max(var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)), 0.75rem) - max(var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)), 0.75rem) - 1rem)",
+        }}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <ModalHeaderChrome
+          theme={theme}
+          eyebrow={ts("labels.sharedByYou")}
+          title={item.share.title}
+          subtitle={`${item.contact.name} · ${roleLabel}${sharedAt ? ` · ${sharedAt}` : ""}`}
+          onClose={onClose}
+          closeAriaLabel={ts("labels.close")}
+          titleId={`outgoing-shared-decision-modal-${item.share.id}`}
+          className="border-b"
+          style={{
+            borderColor: theme.borderLight,
+            background: `linear-gradient(135deg, color-mix(in srgb, ${theme.bgCardElevated} 68%, white 32%), ${theme.bgCard}, color-mix(in srgb, ${theme.bgCardElevated} 82%, ${theme.accentGold} 18%))`,
+          }}
+        />
+
+        <div className="space-y-4 p-3.5 sm:p-4">
+          <div className="grid gap-2.5 sm:grid-cols-3">
+            <div className="rounded-[1.35rem] border p-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textSecondary }}>
+                {ts("labels.readiness")}
+              </p>
+              <p className="mt-1.5 text-lg font-semibold tracking-tight" style={{ color: theme.textPrimary }}>
+                {item.share.readiness}/100
+              </p>
+            </div>
+            <div className="rounded-[1.35rem] border p-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textSecondary }}>
+                {ts("labels.recipients")}
+              </p>
+              <p className="mt-1.5 text-lg font-semibold tracking-tight" style={{ color: theme.textPrimary }}>
+                {recipientCount > 0 ? `${recipientCount}` : ts("status.waitingForAcceptance")}
+              </p>
+            </div>
+            <div className="rounded-[1.35rem] border p-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textSecondary }}>
+                {ts("labels.comments")}
+              </p>
+              <p className="mt-1.5 text-lg font-semibold tracking-tight" style={{ color: theme.textPrimary }}>
+                {sortedComments.length}
+              </p>
+            </div>
+          </div>
+
+          {item.share.summary ? (
+            <section className="rounded-[1.35rem] border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+                {ts("labels.decisionSummary")}
+              </p>
+              <p className="mt-2 text-[1rem] leading-7" style={{ color: theme.textPrimary }}>
+                {item.share.summary}
+              </p>
+            </section>
+          ) : null}
+
+          <section className="rounded-[1.35rem] border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+                  {ts("labels.comments")}
+                </p>
+                <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                  {ts("labels.privateChatsNeverVisible")}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-3 space-y-2.5">
+              {sortedComments.length ? (
+                sortedComments.map((comment) => {
+                  const direction = comment.acceptanceId ? "in" : "out";
+                  return (
+                    <div key={comment.id} className={`flex ${direction === "out" ? "justify-end" : "justify-start"}`}>
+                      <div className={`max-w-[92%] rounded-[1.15rem] border px-4 py-3 ${direction === "out" ? "text-right" : "text-left"}`} style={{
+                        borderColor: direction === "out" ? theme.primary : theme.borderLight,
+                        backgroundColor: direction === "out" ? theme.primary : theme.bgCard,
+                        color: direction === "out" ? theme.textOnPrimary : theme.textPrimary,
+                      }}>
+                        <p className="text-sm leading-6">
+                          {comment.body}
+                        </p>
+                        <p className="mt-1 text-[10px] uppercase tracking-[0.08em]" style={{ color: direction === "out" ? "rgba(255,255,255,0.82)" : theme.textMuted }}>
+                          {direction === "out" ? ts("labels.me", "You") : item.contact.name} · {formatThreadTimestamp(comment.createdAt, language)}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <p className="rounded-[1rem] border border-dashed p-3 text-sm leading-6" style={{ borderColor: theme.borderMedium, color: theme.textSecondary }}>
+                  {ts("labels.noSharedDecisionsYet", "No private messages yet.")}
+                </p>
+              )}
+            </div>
+
+            <form className="mt-4 grid gap-2" onSubmit={submitComment}>
+              <textarea
+                value={draft}
+                onChange={(event) => setDraft(event.target.value)}
+                className="min-h-24 resize-none rounded-[1rem] border px-3 py-2 text-sm leading-6 outline-none"
+                style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                placeholder={ts("placeholders.counselPlaceholder")}
+              />
+              <button
+                type="submit"
+                disabled={sending || !draft.trim()}
+                className="h-11 rounded-full px-4 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60"
+                style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+              >
+                {sending ? ts("labels.working") : ts("labels.sendPrivateComment")}
+              </button>
+            </form>
+          </section>
+
+          <div className="flex flex-wrap items-center justify-end gap-3 border-t pt-4" style={{ borderColor: theme.borderLight }}>
+            <button
+              type="button"
+              onClick={onClose}
+              className="inline-flex h-11 items-center justify-center rounded-full border px-4 text-sm font-semibold transition"
+              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+            >
+              {ts("labels.close")}
+            </button>
+          </div>
+        </div>
+      </section>
+    </div>,
+    document.body
+  );
+}
+
 function StreakMilestonesModal({
   open,
   theme,
@@ -27810,11 +28055,11 @@ function localizedCounselShareDeliveryCopy(
   share: CounselShareDeliverySummaryView,
   ts: (key: string, fallback?: string) => string
 ) {
-  let statusLabel =
+  const statusLabel =
     share.deliveryStatus === "opened"
       ? ts("status.counselShareOpened")
       : share.deliveryStatus === "sent_to_push_service"
-        ? ts("status.counselShareSentToPushService")
+        ? ""
       : share.deliveryStatus === "partial"
         ? ts("status.counselSharePartial")
         : share.deliveryStatus === "failed"
@@ -27823,13 +28068,10 @@ function localizedCounselShareDeliveryCopy(
             ? ts("status.counselShareWaitingForAcceptance")
       : share.deliveryStatus === "no_push_subscription"
               ? ts("status.counselShareNoPushSubscription")
-              : ts("status.counselShareSentToPushService");
+              : "";
 
   let note: string | null = null;
-  if (share.deliveryStatus === "sent_to_push_service" && share.pushSubscriptionCount === 0) {
-    statusLabel = "";
-    note = null;
-  } else if (share.deliveryReason === "disabled_push_subscription") {
+  if (share.deliveryReason === "disabled_push_subscription") {
     note = ts("status.counselShareDisabledPushSubscription");
   } else if (share.deliveryStatus === "partial" && share.deliveryReason === "no_push_subscription") {
     note = ts("status.counselShareNoPushSubscription");
@@ -28221,16 +28463,15 @@ function CounselVoiceCard({
   ts,
   contact,
   onRemoveCounselContact,
-  onOpenThread,
   stretch = false,
 }: {
   theme: ThemeColors;
   ts: (key: string, fallback?: string) => string;
   contact: CounselContact;
   onRemoveCounselContact: (contactId: string) => void;
-  onOpenThread: (contactId: string) => void;
   stretch?: boolean;
 }) {
+  const sharedCount = contact.recentShares?.length ?? 0;
   return (
     <div
       className={`premium-tap-card relative flex min-h-[13rem] shrink-0 snap-start flex-col overflow-hidden rounded-[1.25rem] border p-3.5 ${stretch ? "w-full max-w-[19rem] sm:max-w-[21rem]" : "w-[14.75rem] sm:w-[16rem]"}`}
@@ -28280,48 +28521,15 @@ function CounselVoiceCard({
         {[contact.canViewSummaries ? ts('labels.summaries') : null, contact.canCommentOnDecisions ? ts('labels.comments') : null, contact.canReceiveCheckins ? ts('labels.checkIns') : null].filter(Boolean).join(" · ")}
       </p>
 
-      {contact.recentShares?.length ? (
-        <div className="mt-2.5 space-y-1.5">
-          {contact.recentShares.slice(0, 2).map((share) => {
-            const { statusLabel, note } = localizedCounselShareDeliveryCopy(share, ts);
-            return (
-              <div
-                key={share.id}
-                className="rounded-[0.9rem] px-2.5 py-2"
-                style={{ backgroundColor: theme.bgInput }}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <p className="min-w-0 text-[0.82rem] font-semibold leading-5 tracking-[-0.01em]" style={{ color: theme.textPrimary }}>
-                    {share.title}
-                  </p>
-                  <span className="shrink-0 text-[9px] font-semibold uppercase tracking-[0.08em]" style={{ color: theme.textMuted }}>
-                    {statusLabel}
-                  </span>
-                </div>
-                {note ? (
-                  <p className="mt-0.5 text-[10px] leading-4" style={{ color: theme.textSecondary }}>
-                    {note}
-                  </p>
-                ) : null}
-              </div>
-            );
-          })}
-        </div>
-      ) : null}
-
-      <div className="mt-2.5 flex items-center justify-between gap-2">
-        <span className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
-          {contact.recentShares?.length ? `${contact.recentShares.length} ${ts('labels.sharedProgress')}` : ts('labels.threadNoActivity')}
-        </span>
-        <button
-          type="button"
-          onClick={() => onOpenThread(contact.id)}
-          className="inline-flex h-8 items-center gap-1.5 rounded-full border px-2.5 text-[11px] font-medium transition"
-          style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-        >
-          <MessageCircle size={12} />
-          {ts('viewThread')}
-        </button>
+      <div className="mt-3 rounded-[0.9rem] border px-2.5 py-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
+        <p className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
+          {sharedCount ? `${sharedCount} ${sharedCount === 1 ? "shared decision" : "shared decisions"}` : ts("labels.noSharedDecisionsYet")}
+        </p>
+        <p className="mt-1 text-[0.82rem] leading-5" style={{ color: theme.textSecondary }}>
+          {sharedCount
+            ? "Tap a shared decision card to open its conversation."
+            : "Ready when you share the first decision."}
+        </p>
       </div>
 
     </div>
@@ -28983,6 +29191,7 @@ function DecisionCompanionPanel({
   onShareCounselInvite,
   onShareDecisionWithCounsel,
   onBulkShareDecisionsWithCounsel,
+  onSendSharedDecisionComment,
   onRemoveCounselContact,
   onAddRule,
   theme,
@@ -29031,6 +29240,7 @@ function DecisionCompanionPanel({
   onShareCounselInvite: (channel?: ShareChannel) => void;
   onShareDecisionWithCounsel: (contactId: string, decisionId: string) => void;
   onBulkShareDecisionsWithCounsel: (contactId: string, decisionIds: string[]) => void;
+  onSendSharedDecisionComment: (sharedDecisionId: string, body: string) => Promise<CounselConversationComment | void> | CounselConversationComment | void;
   onRemoveCounselContact: (contactId: string) => void;
   onAddRule: (event: FormEvent<HTMLFormElement>) => void;
   theme: ThemeColors;
@@ -29039,8 +29249,11 @@ function DecisionCompanionPanel({
   const [counselAvatarStatus, setCounselAvatarStatus] = useState("");
   const [counselAvatarPickerOpen, setCounselAvatarPickerOpen] = useState(false);
   const [wisdomTimelineOpen, setWisdomTimelineOpen] = useState(false);
-  const [counselThreadContactId, setCounselThreadContactId] = useState<string | null>(null);
   const [selectedSharedDecision, setSelectedSharedDecision] = useState<SharedCounselDecisionItem | null>(null);
+  const [selectedOutgoingSharedDecision, setSelectedOutgoingSharedDecision] = useState<{
+    contact: CounselContact;
+    share: CounselShareDeliverySummaryView;
+  } | null>(null);
   const [selectedShareContactIdState, setSelectedShareContactIdState] = useState<string | null>(null);
   const [selectedShareDecisionIdsState, setSelectedShareDecisionIdsState] = useState<string[]>([]);
   const counselAvatarFileInputRef = useRef<HTMLInputElement | null>(null);
@@ -29079,24 +29292,6 @@ function DecisionCompanionPanel({
   const ruleRailHasOverflow = useRailOverflowCue(ruleRailRef, decisionSection === "rhythm", [modeRules.length]);
   const incomingSharedDecisionRailHasOverflow = useRailOverflowCue(incomingSharedDecisionRailRef, decisionSection === "counsel", [incomingSharedDecisionItems.length]);
   const outgoingSharedDecisionRailHasOverflow = useRailOverflowCue(outgoingSharedDecisionRailRef, decisionSection === "counsel", [outgoingSharedDecisionItems.length]);
-  const selectedCounselThreadContact = counselThreadContactId
-    ? counselContacts.find((contact) => contact.id === counselThreadContactId) ?? null
-    : null;
-  const counselThreadEntries = selectedCounselThreadContact?.recentShares?.map((share) => {
-    const { statusLabel, note } = localizedCounselShareDeliveryCopy(share, ts);
-    return {
-      id: share.id,
-      createdAt: share.sharedAt,
-      title: share.title,
-      body: share.summary ?? ts("labels.sharedDecisionSummaryPending"),
-      direction: "out",
-      avatarUrl: selectedCounselThreadContact.avatarUrl ?? null,
-      avatarSeed: selectedCounselThreadContact.id,
-      name: selectedCounselThreadContact.name,
-      meta: [statusLabel].filter(Boolean),
-      note: note ?? null,
-    } satisfies ThreadFeedEntry;
-  }) ?? [];
   const selectedShareContactId = selectedShareContactIdState && counselContacts.some((contact) => contact.id === selectedShareContactIdState)
     ? selectedShareContactIdState
     : counselContacts[0]?.id ?? null;
@@ -29193,21 +29388,6 @@ function DecisionCompanionPanel({
 
   return (
     <div className="min-w-0 space-y-4">
-      <ThreadStreamModal
-        open={Boolean(selectedCounselThreadContact)}
-        theme={theme}
-        title={selectedCounselThreadContact?.name ?? ts("thread")}
-        subtitle={
-          selectedCounselThreadContact
-            ? `${localizedCounselRoleLabel(selectedCounselThreadContact.role, ts)} · ${selectedCounselThreadContact.recentShares?.length ?? 0} ${ts("labels.sharedProgress")}`
-            : null
-        }
-        entries={counselThreadEntries}
-        emptyLabel={ts("labels.threadNoActivity")}
-        language={language}
-        ts={ts}
-        onClose={() => setCounselThreadContactId(null)}
-      />
       <WisdomTimelineModal
         open={wisdomTimelineOpen}
         theme={theme}
@@ -29499,6 +29679,7 @@ function DecisionCompanionPanel({
                     const sharedAt = formatDecisionShareDate(share.sharedAt);
                     const { statusLabel, note } = localizedCounselShareDeliveryCopy(share, ts);
                     const modeLabel = isMode(share.mode) ? ts(modeTranslationKey(share.mode), share.mode) : share.mode;
+                    const recipientCount = Math.max(share.acceptedRecipientCount, contact.inviteStatus === "accepted" ? 1 : 0);
                     return (
                       <button
                         type="button"
@@ -29509,8 +29690,8 @@ function DecisionCompanionPanel({
                           background: `linear-gradient(180deg, color-mix(in srgb, ${theme.bgCardElevated} 94%, white 6%), ${theme.bgCard})`,
                           boxShadow: `0 10px 22px color-mix(in srgb, ${theme.bgMain} 10%, transparent)`,
                         }}
-                        aria-label={`${ts('labels.viewThread')}: ${contact.name} · ${share.title}`}
-                        onClick={() => setCounselThreadContactId(contact.id)}
+                        aria-label={`${ts('labels.openSharedDecision')}: ${share.title}`}
+                        onClick={() => setSelectedOutgoingSharedDecision({ contact, share })}
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
@@ -29522,7 +29703,9 @@ function DecisionCompanionPanel({
                             </p>
                           </div>
                           <span className="shrink-0 rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textSecondary }}>
-                            {share.acceptedRecipientCount} {share.acceptedRecipientCount === 1 ? ts('labels.person') : ts('labels.recipients')}
+                            {recipientCount > 0
+                              ? `${recipientCount} ${recipientCount === 1 ? ts('labels.person') : ts('labels.recipients')}`
+                              : ts("status.waitingForAcceptance")}
                           </span>
                         </div>
                         <p className="mt-3 line-clamp-3 text-sm leading-6" style={{ color: theme.textSecondary }}>
@@ -29532,9 +29715,11 @@ function DecisionCompanionPanel({
                           <span className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textSecondary }}>
                             {modeLabel}
                           </span>
-                          <span className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textSecondary }}>
-                            {statusLabel || ts('status.counselShareSentToPushService')}
-                          </span>
+                          {statusLabel ? (
+                            <span className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textSecondary }}>
+                              {statusLabel}
+                            </span>
+                          ) : null}
                         </div>
                         {note ? (
                           <p className="mt-2 text-[10px] leading-4" style={{ color: theme.textSecondary }}>
@@ -29544,7 +29729,7 @@ function DecisionCompanionPanel({
                         <div className="mt-3 flex items-center justify-between gap-3 text-[10px] uppercase tracking-[0.1em]" style={{ color: theme.textMuted }}>
                           <span>{sharedAt ?? ts('labels.sharedProgress')}</span>
                           <span className="font-semibold" style={{ color: theme.textSecondary }}>
-                            {ts('labels.viewThread')}
+                            {ts('labels.openSharedDecision')}
                           </span>
                         </div>
                       </button>
@@ -29565,6 +29750,16 @@ function DecisionCompanionPanel({
               language={language}
               item={selectedSharedDecision}
               onClose={() => setSelectedSharedDecision(null)}
+            />
+            <OutgoingSharedDecisionDetailModal
+              key={selectedOutgoingSharedDecision?.share.id ?? "outgoing-shared-decision"}
+              open={Boolean(selectedOutgoingSharedDecision)}
+              theme={theme}
+              ts={ts}
+              language={language}
+              item={selectedOutgoingSharedDecision}
+              onClose={() => setSelectedOutgoingSharedDecision(null)}
+              onSendComment={onSendSharedDecisionComment}
             />
 
             {!incomingSharedDecisionItems.length && !outgoingSharedDecisionItems.length ? (
@@ -29826,7 +30021,6 @@ function DecisionCompanionPanel({
                       ts={ts}
                       contact={visibleCounselContacts[0]}
                       onRemoveCounselContact={onRemoveCounselContact}
-                      onOpenThread={setCounselThreadContactId}
                       stretch
                     />
                   </div>
@@ -29841,7 +30035,6 @@ function DecisionCompanionPanel({
                           ts={ts}
                           contact={contact}
                           onRemoveCounselContact={onRemoveCounselContact}
-                          onOpenThread={setCounselThreadContactId}
                         />
                       ))}
                       </div>
@@ -29873,7 +30066,6 @@ function DecisionCompanionPanel({
                           ts={ts}
                           contact={contact}
                           onRemoveCounselContact={onRemoveCounselContact}
-                          onOpenThread={setCounselThreadContactId}
                         />
                       ))}
                       </div>
