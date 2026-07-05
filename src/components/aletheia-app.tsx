@@ -14123,19 +14123,22 @@ function ModeLensCard({
   onClick,
   theme,
   stretch = false,
+  compact = false,
 }: {
   item: (typeof modes)[number];
   active: boolean;
   onClick: () => void;
   theme: ThemeColors;
   stretch?: boolean;
+  compact?: boolean;
 }) {
+  const compactCard = compact && !stretch;
   return (
     <button
       type="button"
       aria-pressed={active}
       onClick={onClick}
-      className={`premium-tap-card flex border text-left shadow-sm transition hover:-translate-y-0.5 ${stretch ? "min-h-[4.75rem] w-full items-start gap-3 rounded-xl p-3 sm:p-3.5" : "min-h-24 w-[12.75rem] shrink-0 snap-start flex-col justify-between rounded-xl p-2.5 sm:w-[13.5rem]"}`}
+      className={`premium-tap-card flex border text-left shadow-sm transition hover:-translate-y-0.5 ${stretch ? "min-h-[4.75rem] w-full items-start gap-3 rounded-xl p-3 sm:p-3.5" : compactCard ? "min-h-[5.75rem] w-[12.75rem] shrink-0 snap-start flex-col justify-between rounded-xl p-2 sm:w-[13.5rem] sm:p-2.5" : "min-h-24 w-[12.75rem] shrink-0 snap-start flex-col justify-between rounded-xl p-2.5 sm:w-[13.5rem]"}`}
       style={{
         borderColor: active ? theme.primary : theme.borderLight,
         backgroundColor: active ? theme.primary : theme.bgCard,
@@ -14147,20 +14150,20 @@ function ModeLensCard({
     >
       <span className="flex items-start justify-between gap-3">
         <span
-          className={`grid shrink-0 place-items-center rounded-md ${stretch ? "size-9" : "size-8"}`}
+          className={`grid shrink-0 place-items-center rounded-md ${stretch ? "size-9" : compactCard ? "size-[1.875rem]" : "size-8"}`}
           style={{
             backgroundColor: active ? 'rgba(255,255,255,0.14)' : theme.bgInput,
             color: active ? theme.textOnPrimary : theme.textPrimary,
           }}
         >
-          <item.icon size={16} />
+          <item.icon size={compactCard ? 15 : 16} />
         </span>
-        <span className="grid size-7 place-items-center rounded-full border" style={{ borderColor: active ? 'rgba(255,255,255,0.32)' : theme.borderLight, color: active ? theme.textOnPrimary : theme.textMuted, backgroundColor: active ? 'rgba(255,255,255,0.1)' : 'transparent' }}>
-          {active ? <Check size={14} /> : <span className="size-1.5 rounded-full" style={{ backgroundColor: theme.borderMedium }} />}
+        <span className={`grid ${compactCard ? "size-[1.625rem]" : "size-7"} place-items-center rounded-full border`} style={{ borderColor: active ? 'rgba(255,255,255,0.32)' : theme.borderLight, color: active ? theme.textOnPrimary : theme.textMuted, backgroundColor: active ? 'rgba(255,255,255,0.1)' : 'transparent' }}>
+          {active ? <Check size={compactCard ? 13 : 14} /> : <span className="size-1.5 rounded-full" style={{ backgroundColor: theme.borderMedium }} />}
         </span>
       </span>
       <span className={`min-w-0 ${stretch ? "mt-0 flex-1" : "mt-2"}`}>
-        <span className="block text-sm font-semibold">{item.displayLabel ?? item.label}</span>
+        <span className={`block font-semibold ${compactCard ? "text-[0.8rem]" : "text-sm"}`}>{item.displayLabel ?? item.label}</span>
         <span className="mt-1 block line-clamp-2 text-[11px] leading-4" style={{ color: active ? theme.textOnPrimary : theme.textSecondary, opacity: active ? 0.92 : 1 }}>{item.copy}</span>
       </span>
     </button>
@@ -14696,8 +14699,8 @@ function OnboardingModal({
           </nav>
 
           <section ref={modeSectionRef} tabIndex={-1} className="scroll-mt-4 outline-none">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{ts('labels.setupStepMode')}</p>
-            <p className="mt-1 text-sm font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.whatBringsYou')}</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em]" style={{ color: theme.accentGold }}>{ui.wisdomMode}</p>
+            <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>{ts('labels.whatBringsYou')}</p>
             <div className="mt-2 flex min-w-0 snap-x gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
               {modeCards.map((item) => (
                 <ModeLensCard
@@ -14706,6 +14709,7 @@ function OnboardingModal({
                   active={mode === item.label}
                   onClick={() => onModeChange(item.label)}
                   theme={theme}
+                  compact
                 />
               ))}
             </div>
@@ -26902,22 +26906,35 @@ function CompanionPanel({
 
         <form onSubmit={onAsk} className="p-4 sm:p-6" style={{ backgroundColor: theme.bgMain + 'E0' }}>
           <div className="space-y-5">
-            <div className="rounded-[1.35rem] border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-              {modeLensRailHasOverflow ? (
-                <div className="mb-2 flex justify-end">
-                  <RailOverflowCue theme={theme} className="size-7" />
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-3 px-1">
+                <div className="min-w-0">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.accentGold }}>
+                    {ui.wisdomMode}
+                  </p>
                 </div>
-              ) : null}
-              <div ref={modeLensRailRef} className={`flex min-w-0 snap-x gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] ${modeLensRailHasOverflow ? "pr-10" : ""}`.trim()} aria-label={ui.currentLens}>
-                {modeCards.map((item) => (
-                  <ModeLensCard
-                    key={item.label}
-                    item={item}
-                    active={mode === item.label}
-                    onClick={() => onModeChange(item.label)}
-                    theme={theme}
-                  />
-                ))}
+              </div>
+              <div className="relative">
+                <div
+                  ref={modeLensRailRef}
+                  className={`flex min-w-0 snap-x gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${modeLensRailHasOverflow ? "pr-8" : ""}`.trim()}
+                  aria-label={ui.wisdomMode}
+                >
+                  {modeCards.map((item) => (
+                    <ModeLensCard
+                      key={item.label}
+                      item={item}
+                      active={mode === item.label}
+                      onClick={() => onModeChange(item.label)}
+                      theme={theme}
+                    />
+                  ))}
+                </div>
+                {modeLensRailHasOverflow ? (
+                  <div aria-hidden="true" className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2">
+                    <RailOverflowCue theme={theme} className="size-6" />
+                  </div>
+                ) : null}
               </div>
             </div>
 
