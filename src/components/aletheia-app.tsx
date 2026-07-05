@@ -429,6 +429,8 @@ type AuthPromptState = {
 const FOCUS_INTENTIONS_STORAGE_KEY = "aletheia_focus_intentions";
 const GRATITUDE_LENS_STORAGE_KEY = "aletheia_gratitude_lens";
 const AUTH_PROMPT_STATE_STORAGE_KEY = "aletheia_auth_prompt_state";
+const POST_SIGN_OUT_WELCOME_STORAGE_KEY = "aletheia_post_sign_out_welcome";
+const POST_SIGN_OUT_WELCOME_NAME_STORAGE_KEY = "aletheia_post_sign_out_welcome_name";
 const AUTH_PROMPT_MIN_ENGAGEMENT_MS = 20_000;
 const AUTH_PROMPT_WEEKLY_LIMIT = 3;
 const FIRST_RUN_GATE_COMPLETE_STORAGE_KEY = "aletheia_first_run_gate_complete";
@@ -3326,6 +3328,9 @@ function shouldShowOnboarding() {
   }
 
   try {
+    if (window.localStorage.getItem(POST_SIGN_OUT_WELCOME_STORAGE_KEY) === "yes") {
+      return false;
+    }
     const params = new URLSearchParams(window.location.search);
     const forceFirstRun = params.get("resetFirstRun") === "1" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
     if (forceFirstRun) {
@@ -3356,6 +3361,9 @@ function shouldShowWelcomeGate() {
     if (pendingInvite) {
       return false;
     }
+    if (window.localStorage.getItem(POST_SIGN_OUT_WELCOME_STORAGE_KEY) === "yes") {
+      return true;
+    }
     const forceFirstRun = params.get("resetFirstRun") === "1" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
     if (forceFirstRun) {
       return true;
@@ -3373,6 +3381,64 @@ function shouldShowWelcomeGate() {
     return !completed && !hasPreferences && !gateComplete && progress !== "guest";
   } catch {
     return false;
+  }
+}
+
+function setPostSignOutWelcomeState(enabled: boolean) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    if (enabled) {
+      window.localStorage.setItem(POST_SIGN_OUT_WELCOME_STORAGE_KEY, "yes");
+    } else {
+      window.localStorage.removeItem(POST_SIGN_OUT_WELCOME_STORAGE_KEY);
+    }
+  } catch {
+    // The welcome state still works for this session if storage is unavailable.
+  }
+}
+
+function setPostSignOutWelcomeName(name: string | null) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    const trimmed = name?.trim() ?? "";
+    if (trimmed) {
+      window.localStorage.setItem(POST_SIGN_OUT_WELCOME_NAME_STORAGE_KEY, trimmed);
+    } else {
+      window.localStorage.removeItem(POST_SIGN_OUT_WELCOME_NAME_STORAGE_KEY);
+    }
+  } catch {
+    // The welcome name still works for this session if storage is unavailable.
+  }
+}
+
+function readPostSignOutWelcomeName() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    return window.localStorage.getItem(POST_SIGN_OUT_WELCOME_NAME_STORAGE_KEY)?.trim() || null;
+  } catch {
+    return null;
+  }
+}
+
+function clearPersistedPrimaryNavigation() {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.localStorage.removeItem("aletheia-active-view");
+    window.localStorage.removeItem("aletheia-home-section");
+  } catch {
+    // Navigation falls back to the in-memory defaults if storage is unavailable.
   }
 }
 
@@ -7476,6 +7542,7 @@ export function AletheiaApp({
   const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>("classic");
   const theme = themeColors[resolvedTheme];
   const [showWelcomeGate, setShowWelcomeGate] = useState(false);
+  const [postSignOutWelcomeName, setPostSignOutWelcomeNameState] = useState<string | null>(null);
   const [onboardingPath, setOnboardingPath] = useState<"guest" | "account" | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboardingConcern, setOnboardingConcern] = useState("");
@@ -7723,7 +7790,9 @@ export function AletheiaApp({
       setManualContext(storedManualContext());
       setThemePreference(storedThemePreference());
       setOnboardingPath(restoredOnboardingProgress === "guest" ? "guest" : null);
-      setShowWelcomeGate(shouldShowWelcomeGate());
+      const restoreWelcomeGate = shouldShowWelcomeGate();
+      setShowWelcomeGate(restoreWelcomeGate);
+      setPostSignOutWelcomeNameState(restoreWelcomeGate ? readPostSignOutWelcomeName() : null);
       setShowOnboarding(shouldShowOnboarding());
       setCarryToday(storedCarryToday(restoredPreferences));
       setScriptureMemory(storedScriptureMemory(restoredPreferences));
@@ -9035,6 +9104,9 @@ export function AletheiaApp({
       if (data.user) {
         setUser(data.user);
         setAuthStatus("signed-in");
+        setPostSignOutWelcomeState(false);
+        setPostSignOutWelcomeName(null);
+        setPostSignOutWelcomeNameState(null);
         
         // Update streak on app load
         try {
@@ -10025,13 +10097,16 @@ export function AletheiaApp({
     setWelcomeAuthOpen(true);
   }
 
-  function startFirstRunGuestFlow() {
+function startFirstRunGuestFlow() {
     try {
       window.localStorage.setItem(ONBOARDING_PROGRESS_STORAGE_KEY, "guest");
       window.localStorage.setItem(FIRST_RUN_GATE_COMPLETE_STORAGE_KEY, "yes");
     } catch {
       // Guest onboarding can still continue in-memory if storage is unavailable.
     }
+    setPostSignOutWelcomeState(false);
+    setPostSignOutWelcomeName(null);
+    setPostSignOutWelcomeNameState(null);
     setOnboardingPath("guest");
     setShowWelcomeGate(false);
     setShowOnboarding(true);
@@ -10711,7 +10786,15 @@ export function AletheiaApp({
       setNotificationAccountEnabled(false);
       setNotificationDeviceSubscribed(false);
       clearLocalPersonalization();
-      setActiveView("companion", "account_deleted");
+      clearPersistedPrimaryNavigation();
+      setPostSignOutWelcomeState(true);
+      setPostSignOutWelcomeName(null);
+      setPostSignOutWelcomeNameState(null);
+      setShowWelcomeGate(true);
+      setShowOnboarding(false);
+      setOnboardingPath(null);
+      setActiveViewState("companion");
+      setHomeSectionState("today");
       announceWorkflow(ts('notifications.accountDeleted'), ts('notifications.accountDeletedBody'), "success");
     } catch (error) {
       announceWorkflow(ts('notifications.deleteFailed'), error instanceof Error ? error.message : ts('notifications.deleteFailedBody'), "error");
@@ -11353,6 +11436,9 @@ export function AletheiaApp({
       setAuthPassword("");
       setUser(data.user);
       setAuthStatus("signed-in");
+      setPostSignOutWelcomeState(false);
+      setPostSignOutWelcomeName(null);
+      setPostSignOutWelcomeNameState(null);
       const firstName = data.user.name?.split(" ")[0] || data.user.email.split("@")[0];
       const successMessage =
         data.welcomeMessage ??
@@ -11431,12 +11517,25 @@ export function AletheiaApp({
     setAuthStatus("signing-out");
     trackClientEvent("auth_logout", { hadUser: Boolean(user) });
     setAuthNotice(ts('auth.signingOut'));
+    const signOutName =
+      user?.name?.trim().split(/\s+/).filter(Boolean)[0] ||
+      user?.email?.trim().split("@")[0] ||
+      null;
     await fetch("/api/auth/logout", { method: "POST" });
     await authSignOut({ redirect: false }).catch(() => undefined);
     setUser(null);
     setAuthStatus("guest");
     setAuthNotice(ts('status.signedOutGuest'));
     clearLocalPrivateWorkspace();
+    clearPersistedPrimaryNavigation();
+    setPostSignOutWelcomeState(true);
+    setPostSignOutWelcomeName(signOutName);
+    setPostSignOutWelcomeNameState(signOutName);
+    setShowWelcomeGate(true);
+    setShowOnboarding(false);
+    setOnboardingPath(null);
+    setActiveViewState("companion");
+    setHomeSectionState("today");
     setNotificationsEnabled(false);
     setNotificationAccountEnabled(false);
     setNotificationDeviceSubscribed(false);
@@ -13498,6 +13597,7 @@ export function AletheiaApp({
         open={showWelcomeGate}
         theme={theme}
         ts={ts}
+        signedOutName={postSignOutWelcomeName}
         googleAuthAvailable={googleAuthAvailable}
         inviteContextActive={Boolean(challengeInviteToken || counselInviteToken)}
         onCreateAccount={() => startFirstRunAuthFlow("register")}
@@ -13512,6 +13612,7 @@ export function AletheiaApp({
         ts={ts}
         authMode={authMode}
         setAuthMode={setAuthMode}
+        signedOutName={postSignOutWelcomeName}
         authName={authName}
         setAuthName={setAuthName}
         authEmail={authEmail}
@@ -22773,6 +22874,7 @@ function WelcomeGateScreen({
   open,
   theme,
   ts,
+  signedOutName,
   googleAuthAvailable,
   inviteContextActive,
   onSignIn,
@@ -22783,6 +22885,7 @@ function WelcomeGateScreen({
   open: boolean;
   theme: ThemeColors;
   ts: (key: string, fallback?: string) => string;
+  signedOutName: string | null;
   googleAuthAvailable: boolean;
   inviteContextActive: boolean;
   onSignIn: () => void;
@@ -22792,6 +22895,7 @@ function WelcomeGateScreen({
 }) {
   const canUsePortal = typeof document !== "undefined";
   useBodyScrollLock(open && canUsePortal);
+  const gateBody = signedOutName ? ts("labels.welcomeGateSignedOutBody") : ts("labels.welcomeGateBody");
 
   if (!open || !canUsePortal) {
     return null;
@@ -22849,10 +22953,10 @@ function WelcomeGateScreen({
                     </div>
                   </div>
                   <h2 id="welcome-gate-title" className="mt-4 text-[1.9rem] font-semibold leading-[1.02] text-balance sm:text-[2.4rem]" style={{ color: theme.textPrimary }}>
-                    {ts("labels.welcomeGateTitle")}
+                    {signedOutName ? `${ts("auth.welcomeBack")}, ${signedOutName}` : ts("labels.welcomeGateTitle")}
                   </h2>
                   <p className="mt-3 max-w-lg text-[0.96rem] leading-6 sm:text-[1rem] sm:leading-7" style={{ color: theme.textSecondary }}>
-                    {ts("labels.welcomeGateBody")}
+                    {gateBody}
                   </p>
                 </div>
                 <div className="mt-5 space-y-2.5">
@@ -22948,6 +23052,7 @@ function WelcomeAuthModal({
   ts,
   authMode,
   setAuthMode,
+  signedOutName,
   authName,
   setAuthName,
   authEmail,
@@ -22970,6 +23075,7 @@ function WelcomeAuthModal({
   ts: (key: string, fallback?: string) => string;
   authMode: AuthMode;
   setAuthMode: (value: AuthMode) => void;
+  signedOutName: string | null;
   authName: string;
   setAuthName: (value: string) => void;
   authEmail: string;
@@ -22989,6 +23095,17 @@ function WelcomeAuthModal({
 }) {
   const canUsePortal = typeof document !== "undefined";
   useBodyScrollLock(open && canUsePortal);
+  const warmReentryMode = authMode === "login" && Boolean(signedOutName);
+  const modalTitle = warmReentryMode && signedOutName
+    ? `${ts("auth.welcomeBack")}, ${signedOutName}`
+    : authMode === "register"
+      ? ts("auth.createNewAccount")
+      : ts("auth.signInForSync");
+  const modalBody = warmReentryMode
+    ? ts("auth.signInReturnBody")
+    : authMode === "register"
+      ? ts("auth.signUpPolishBody")
+      : ts("labels.appTagline");
 
   if (!open || !canUsePortal) {
     return null;
@@ -23024,10 +23141,10 @@ function WelcomeAuthModal({
               {ts("auth.welcome")}
             </p>
             <h2 id="welcome-auth-title" className="mt-1.5 text-lg font-semibold" style={{ color: theme.textPrimary }}>
-              {authMode === "register" ? ts("auth.createNewAccount") : ts("auth.signInForSync")}
+              {modalTitle}
             </h2>
             <p className="mt-1.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
-              {ts("labels.appTagline")}
+              {modalBody}
             </p>
           </div>
           <ModalCornerCloseButton onClick={onClose} theme={theme} ariaLabel={ts("labels.close")} className="size-9" />
