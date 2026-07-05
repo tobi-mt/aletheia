@@ -4477,6 +4477,7 @@ type CounselInvitePreview = {
     };
   };
   sharedDecisions: Array<{
+    sharedId: string;
     id: string;
     title: string;
     mode: string;
@@ -4485,7 +4486,7 @@ type CounselInvitePreview = {
     summary: string | null;
     waitingUntil: string | null;
     sharedAt: string;
-    comments: Array<{ id: string; body: string; createdAt: string }>;
+    comments: Array<{ id: string; body: string; createdAt: string; acceptanceId: string | null }>;
   }>;
 };
 
@@ -12822,7 +12823,7 @@ function startFirstRunGuestFlow() {
         body: JSON.stringify({ decisionId, body }),
       }
     );
-    const data = (await response.json()) as { comment?: { id: string; body: string; createdAt: string }; error?: string; errorCode?: string };
+    const data = (await response.json()) as { comment?: { id: string; body: string; createdAt: string; acceptanceId: string | null }; error?: string; errorCode?: string };
     if (response.ok && data.comment) {
       setCounselInvitePreview((current) =>
         current
@@ -12837,6 +12838,7 @@ function startFirstRunGuestFlow() {
           : current
       );
       setCounselInviteStatus(ts('status.commentShared'));
+      return data.comment;
     } else {
       setCounselInviteStatus(resolveApiErrorMessage(data.error, data.errorCode, 'notifications.summaryNotSharedBody'));
     }
@@ -13371,6 +13373,7 @@ function startFirstRunGuestFlow() {
                       onShareDecisionWithCounsel={shareDecisionWithCounsel}
                       onBulkShareDecisionsWithCounsel={bulkShareDecisionsWithCounsel}
                       onSendSharedDecisionComment={addSharedDecisionComment}
+                      onSendCounselInviteComment={addCounselInviteComment}
                       pendingDecisionShareSurfaceFocusContactId={pendingDecisionShareSurfaceFocusContactId}
                       onPendingDecisionShareSurfaceFocusHandled={() => setPendingDecisionShareSurfaceFocusContactId(null)}
                       onOpenReceivedCounselInvite={openReceivedCounselInvite}
@@ -25368,6 +25371,7 @@ function SharedDecisionDetailModal({
   ts,
   language,
   item,
+  onSendComment,
   onClose,
 }: {
   open: boolean;
@@ -25375,10 +25379,23 @@ function SharedDecisionDetailModal({
   ts: (key: string, fallback?: string) => string;
   language: LanguageCode;
   item: SharedCounselDecisionItem | null;
+  onSendComment: (decisionId: string, body: string, contactIdOverride?: string | null) => Promise<{ id: string; body: string; createdAt: string; acceptanceId: string | null } | void> | { id: string; body: string; createdAt: string; acceptanceId: string | null } | void;
   onClose: () => void;
 }) {
   const canUsePortal = typeof document !== "undefined";
+  const [draft, setDraft] = useState("");
+  const [sending, setSending] = useState(false);
+  const [threadComments, setThreadComments] = useState<CounselConversationComment[]>(() => item?.decision.comments ?? []);
   useBodyScrollLock(open && canUsePortal);
+
+  useEffect(() => {
+    if (!item) {
+      return;
+    }
+    setDraft("");
+    setSending(false);
+    setThreadComments(item.decision.comments ?? []);
+  }, [item]);
 
   if (!open || !canUsePortal || !item) {
     return null;
@@ -25400,6 +25417,33 @@ function SharedDecisionDetailModal({
   const sharedAt = formatDate(decision.sharedAt);
   const waitingUntil = formatDate(decision.waitingUntil);
   const roleLabel = localizedCounselRoleLabel(invite.invite.role, ts);
+  const sortedComments = [...threadComments].sort((left, right) => Date.parse(left.createdAt) - Date.parse(right.createdAt));
+
+  async function submitComment(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const body = draft.trim();
+    if (!body || sending) {
+      return;
+    }
+    setSending(true);
+    try {
+      const createdComment = await onSendComment(decision.id, body, invite.invite.contactId ?? null);
+      setDraft("");
+      if (createdComment) {
+        setThreadComments((current) => [
+          ...current,
+          {
+            id: createdComment.id,
+            body: createdComment.body,
+            createdAt: createdComment.createdAt,
+            acceptanceId: createdComment.acceptanceId ?? null,
+          },
+        ]);
+      }
+    } finally {
+      setSending(false);
+    }
+  }
 
   return createPortal(
     <div
@@ -25480,20 +25524,67 @@ function SharedDecisionDetailModal({
             </section>
           ) : null}
 
-          {decision.comments.length ? (
-            <section className="rounded-[1.35rem] border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
-                {ts("labels.comments")}
-              </p>
-              <div className="mt-3 space-y-2.5">
-                {decision.comments.map((comment) => (
-                  <p key={comment.id} className="rounded-[1rem] border px-3 py-2.5 text-sm leading-6" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
-                    {comment.body}
-                  </p>
-                ))}
+          <section className="rounded-[1.35rem] border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+                  {ts("labels.comments")}
+                </p>
+                <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                  {ts("labels.privateChatsNeverVisible")}
+                </p>
               </div>
-            </section>
-          ) : null}
+            </div>
+
+            <div className="mt-3 space-y-2.5">
+              {sortedComments.length ? (
+                sortedComments.map((comment) => {
+                  const direction = comment.acceptanceId ? "out" : "in";
+                  return (
+                    <div key={comment.id} className={`flex ${direction === "out" ? "justify-end" : "justify-start"}`}>
+                      <div
+                        className={`max-w-[92%] rounded-[1.15rem] border px-4 py-3 ${direction === "out" ? "text-right" : "text-left"}`}
+                        style={{
+                          borderColor: direction === "out" ? theme.primary : theme.borderLight,
+                          backgroundColor: direction === "out" ? theme.primary : theme.bgCardElevated,
+                          color: direction === "out" ? theme.textOnPrimary : theme.textPrimary,
+                        }}
+                      >
+                        <p className="text-sm leading-6">
+                          {comment.body}
+                        </p>
+                        <p className="mt-1 text-[10px] uppercase tracking-[0.08em]" style={{ color: direction === "out" ? "rgba(255,255,255,0.82)" : theme.textMuted }}>
+                          {direction === "out" ? ts("labels.me", "You") : invite.invite.name} · {formatThreadTimestamp(comment.createdAt, language)}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <p className="rounded-[1rem] border border-dashed p-3 text-sm leading-6" style={{ borderColor: theme.borderMedium, color: theme.textSecondary }}>
+                  {ts("labels.noSharedDecisionsYet", "No private messages yet.")}
+                </p>
+              )}
+            </div>
+
+            <form className="mt-4 grid gap-2" onSubmit={submitComment}>
+              <textarea
+                value={draft}
+                onChange={(event) => setDraft(event.target.value)}
+                className="min-h-24 resize-none rounded-[1rem] border px-3 py-2 text-sm leading-6 outline-none"
+                style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                placeholder={ts("placeholders.counselPlaceholder")}
+              />
+              <button
+                type="submit"
+                disabled={sending || !draft.trim()}
+                className="h-11 rounded-full px-4 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60"
+                style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+              >
+                {sending ? ts("labels.working") : ts("labels.sendPrivateComment")}
+              </button>
+            </form>
+          </section>
 
           <div className="flex flex-wrap items-center justify-end gap-3 border-t pt-4" style={{ borderColor: theme.borderLight }}>
             <button
@@ -29317,6 +29408,7 @@ function DecisionCompanionPanel({
   onShareDecisionWithCounsel,
   onBulkShareDecisionsWithCounsel,
   onSendSharedDecisionComment,
+  onSendCounselInviteComment,
   pendingDecisionShareSurfaceFocusContactId,
   onPendingDecisionShareSurfaceFocusHandled,
   onRemoveCounselContact,
@@ -29368,6 +29460,7 @@ function DecisionCompanionPanel({
   onShareDecisionWithCounsel: (contactId: string, decisionId: string) => void;
   onBulkShareDecisionsWithCounsel: (contactId: string, decisionIds: string[]) => void;
   onSendSharedDecisionComment: (sharedDecisionId: string, body: string) => Promise<CounselConversationComment | void> | CounselConversationComment | void;
+  onSendCounselInviteComment: (decisionId: string, body: string, contactIdOverride?: string | null) => Promise<{ id: string; body: string; createdAt: string; acceptanceId: string | null } | void> | { id: string; body: string; createdAt: string; acceptanceId: string | null } | void;
   pendingDecisionShareSurfaceFocusContactId: string | null;
   onPendingDecisionShareSurfaceFocusHandled: () => void;
   onRemoveCounselContact: (contactId: string) => void;
@@ -29777,8 +29870,8 @@ function DecisionCompanionPanel({
                     return (
                       <button
                         type="button"
-                        key={`${invite.invite.contactId ?? invite.invite.name}:${decision.id}`}
-                        id={`decision-card-${decision.id}`}
+                        key={decision.sharedId}
+                        id={`decision-card-${decision.sharedId}`}
               className="premium-tap-card flex w-[15rem] shrink-0 snap-start flex-col justify-between rounded-[1.25rem] border p-3.5 text-left transition duration-200 ease-out active:scale-[0.985] hover:-translate-y-0.5"
                         style={{
                           borderColor: theme.borderMedium,
@@ -29919,6 +30012,7 @@ function DecisionCompanionPanel({
               ts={ts}
               language={language}
               item={selectedSharedDecision}
+              onSendComment={onSendCounselInviteComment}
               onClose={() => setSelectedSharedDecision(null)}
             />
             <OutgoingSharedDecisionDetailModal

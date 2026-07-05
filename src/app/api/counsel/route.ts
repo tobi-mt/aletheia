@@ -25,6 +25,7 @@ type CounselRow = {
 };
 
 type SharedDecisionRow = {
+  shared_id: string;
   id: string;
   title: string;
   mode: string;
@@ -78,6 +79,7 @@ type CommentRow = {
   decision_id: string;
   body: string;
   created_at: string;
+  acceptance_id: string | null;
 };
 
 type ReceivedInviteRow = {
@@ -105,6 +107,7 @@ type CounselInvitePreviewPayload = {
     };
   };
   sharedDecisions: Array<{
+    sharedId: string;
     id: string;
     title: string;
     mode: string;
@@ -113,13 +116,13 @@ type CounselInvitePreviewPayload = {
     summary: string | null;
     waitingUntil: string | null;
     sharedAt: string;
-    comments: Array<{ id: string; body: string; createdAt: string }>;
+    comments: Array<{ id: string; body: string; createdAt: string; acceptanceId: string | null }>;
   }>;
 };
 
 async function sharedDecisions(contactId: string) {
   return many<SharedDecisionRow>(
-    `SELECT d.id, d.title, d.mode, d.status, d.readiness, d.summary, d.waiting_until, s.created_at AS shared_at
+    `SELECT s.id AS shared_id, d.id, d.title, d.mode, d.status, d.readiness, d.summary, d.waiting_until, s.created_at AS shared_at
      FROM counsel_shared_decisions s
      JOIN wisdom_decisions d ON d.id = s.decision_id
      WHERE s.contact_id = ?
@@ -131,7 +134,7 @@ async function sharedDecisions(contactId: string) {
 
 async function comments(contactId: string) {
   return many<CommentRow>(
-    `SELECT id, decision_id, body, created_at
+    `SELECT id, decision_id, body, created_at, acceptance_id
      FROM counsel_comments
      WHERE contact_id = ?
      ORDER BY created_at DESC
@@ -231,6 +234,7 @@ async function receivedInvitePreviews(userId: string) {
           },
         },
         sharedDecisions: decisionRows.map((decision) => ({
+          sharedId: decision.shared_id,
           id: decision.id,
           title: decision.title,
           mode: decision.mode,
@@ -245,6 +249,7 @@ async function receivedInvitePreviews(userId: string) {
               id: comment.id,
               body: comment.body,
               createdAt: comment.created_at,
+              acceptanceId: comment.acceptance_id,
             })),
         })),
       } satisfies CounselInvitePreviewPayload;

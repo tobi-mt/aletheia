@@ -86,6 +86,7 @@ export async function POST(request: Request, { params }: Params) {
       id,
       body: comment,
       createdAt: now,
+      acceptanceId: acceptance?.id ?? null,
     },
   });
 }
