@@ -31103,7 +31103,7 @@ function GratitudeLensPanel({
           </div>
 
           {visibleEntries.length ? (
-            <div className={`relative ${savedReflectionsRailHasOverflow ? "pr-10 sm:pr-12" : ""}`.trim()}>
+            <div className={`relative ${gratitudeRailHasOverflow ? "pr-10 sm:pr-12" : ""}`.trim()}>
               <section
                 ref={gratitudeRailRef}
                 aria-label={ts('labels.gratitudeTimeline')}

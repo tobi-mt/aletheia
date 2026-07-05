@@ -41,3 +41,4 @@ Use this checklist before production releases that touch chat, memory, manual co
 - `node test-comprehensive.mjs` passes.
 - `npm run ui:regression` passes.
 - `npm run build` passes with production-like environment variables.
+- After any shared UI/layout refactor, run `npm run build` and confirm TypeScript still passes before deploying.
