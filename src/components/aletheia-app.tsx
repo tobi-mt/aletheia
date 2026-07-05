@@ -25419,14 +25419,16 @@ function OutgoingSharedDecisionDetailModal({
     return null;
   }
 
+  const share = item.share;
+  const contact = item.contact;
   const dateFormatter = new Intl.DateTimeFormat(language, {
     month: "short",
     day: "numeric",
     year: "numeric",
   });
-  const sharedAt = Number.isNaN(new Date(item.share.sharedAt).getTime()) ? null : dateFormatter.format(new Date(item.share.sharedAt));
-  const roleLabel = localizedCounselRoleLabel(item.contact.role, ts);
-  const recipientCount = Math.max(item.share.acceptedRecipientCount, item.contact.inviteStatus === "accepted" ? 1 : 0);
+  const sharedAt = Number.isNaN(new Date(share.sharedAt).getTime()) ? null : dateFormatter.format(new Date(share.sharedAt));
+  const roleLabel = localizedCounselRoleLabel(contact.role, ts);
+  const recipientCount = Math.max(share.acceptedRecipientCount, contact.inviteStatus === "accepted" ? 1 : 0);
   const sortedComments = [...threadComments].sort((left, right) => Date.parse(left.createdAt) - Date.parse(right.createdAt));
 
   async function submitComment(event: FormEvent<HTMLFormElement>) {
@@ -25437,7 +25439,7 @@ function OutgoingSharedDecisionDetailModal({
     }
     setSending(true);
     try {
-      const createdComment = await onSendComment(item.share.id, body);
+      const createdComment = await onSendComment(share.id, body);
       setDraft("");
       if (createdComment) {
         setThreadComments((current) => [
@@ -25480,11 +25482,11 @@ function OutgoingSharedDecisionDetailModal({
         <ModalHeaderChrome
           theme={theme}
           eyebrow={ts("labels.sharedByYou")}
-          title={item.share.title}
-          subtitle={`${item.contact.name} · ${roleLabel}${sharedAt ? ` · ${sharedAt}` : ""}`}
+          title={share.title}
+          subtitle={`${contact.name} · ${roleLabel}${sharedAt ? ` · ${sharedAt}` : ""}`}
           onClose={onClose}
           closeAriaLabel={ts("labels.close")}
-          titleId={`outgoing-shared-decision-modal-${item.share.id}`}
+          titleId={`outgoing-shared-decision-modal-${share.id}`}
           className="border-b"
           style={{
             borderColor: theme.borderLight,
@@ -25558,7 +25560,7 @@ function OutgoingSharedDecisionDetailModal({
                           {comment.body}
                         </p>
                         <p className="mt-1 text-[10px] uppercase tracking-[0.08em]" style={{ color: direction === "out" ? "rgba(255,255,255,0.82)" : theme.textMuted }}>
-                          {direction === "out" ? ts("labels.me", "You") : item.contact.name} · {formatThreadTimestamp(comment.createdAt, language)}
+                          {direction === "out" ? ts("labels.me", "You") : contact.name} · {formatThreadTimestamp(comment.createdAt, language)}
                         </p>
                       </div>
                     </div>
