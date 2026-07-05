@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 
+import os from 'node:os';
 import { spawn } from 'node:child_process';
+import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
@@ -523,12 +525,169 @@ async function checkHome(page, mobile) {
   };
 }
 
+const modalScreenshotDir = path.join(os.tmpdir(), 'aletheia-modal-chrome');
+
+function boxesOverlap(left, right) {
+  return !(
+    left.x + left.width <= right.x ||
+    right.x + right.width <= left.x ||
+    left.y + left.height <= right.y ||
+    right.y + right.height <= left.y
+  );
+}
+
+async function captureModalScreenshot(page, fileName) {
+  await mkdir(modalScreenshotDir, { recursive: true });
+  const screenshotPath = path.join(modalScreenshotDir, fileName.endsWith('.png') ? fileName : `${fileName}.png`);
+  await page.screenshot({ path: screenshotPath, fullPage: false });
+  return screenshotPath;
+}
+
+async function verifyModalChrome(page, {
+  openLocator,
+  closeLabel,
+  titleSelector = 'h2',
+  screenshotName,
+  railSelector = null,
+}) {
+  await openLocator.evaluate((element) => {
+    if (element instanceof HTMLElement) {
+      element.click();
+    }
+  });
+
+  const closeButtons = page.locator(`button[aria-label="${closeLabel}"]`);
+  const visibleCloseIndex = await closeButtons.evaluateAll((buttons) => buttons.findIndex((button) => {
+    const rect = button.getBoundingClientRect();
+    const style = window.getComputedStyle(button);
+    return rect.width > 0 && rect.height > 0 && style.visibility !== 'hidden' && style.display !== 'none';
+  }));
+
+  if (visibleCloseIndex < 0) {
+    throw new Error(`Unable to find a visible close button for ${screenshotName}`);
+  }
+
+  const closeButton = closeButtons.nth(visibleCloseIndex);
+  await closeButton.waitFor({ state: 'visible', timeout: 5000 });
+  const dialog = closeButton.locator('xpath=ancestor::*[@role="dialog"][1]');
+  await dialog.waitFor({ state: 'visible', timeout: 5000 });
+  await page.waitForTimeout(150);
+
+  const title = dialog.locator(titleSelector).first();
+
+  const [dialogBox, closeBox, titleBox] = await Promise.all([
+    dialog.boundingBox(),
+    closeButton.boundingBox(),
+    title.boundingBox(),
+  ]);
+
+  if (!dialogBox || !closeBox || !titleBox) {
+    throw new Error(`Unable to measure modal chrome for ${screenshotName}`);
+  }
+
+  const failures = [];
+  if (closeBox.x < dialogBox.x || closeBox.y < dialogBox.y) {
+    failures.push('close button escaped modal bounds');
+  }
+  if (closeBox.x + closeBox.width > dialogBox.x + dialogBox.width) {
+    failures.push('close button clipped the right edge');
+  }
+  if (closeBox.y + closeBox.height > dialogBox.y + dialogBox.height) {
+    failures.push('close button clipped the bottom edge');
+  }
+  if (boxesOverlap(closeBox, titleBox)) {
+    failures.push('close button overlaps modal title');
+  }
+
+  if (railSelector) {
+    const rail = dialog.locator(railSelector).first();
+    const railBox = await rail.boundingBox().catch(() => null);
+    if (railBox && closeBox.y + closeBox.height > railBox.y - 4) {
+      failures.push('close button intrudes into the action rail');
+    }
+  }
+
+  const screenshotPath = await captureModalScreenshot(page, screenshotName);
+
+  await closeButton.click();
+  await dialog.waitFor({ state: 'hidden', timeout: 5000 });
+
+  return {
+    screenshotPath,
+    failures,
+  };
+}
+
+async function checkScriptureQuickReadChrome(page, viewport, colorScheme) {
+  const shouldRun = viewport.mobile && colorScheme === colorSchemes[0] && ['iPhone SE', 'iPhone 14 Pro'].includes(viewport.name);
+  if (!shouldRun) {
+    return { ran: false, failures: [] };
+  }
+
+  const failures = [];
+
+  try {
+    await clickTab(page, 'Home', viewport.mobile);
+    const quickRead = await verifyModalChrome(page, {
+      openLocator: page.getByRole('button', { name: /^Scripture/i }).first(),
+      closeLabel: 'Close scripture quick read',
+      titleSelector: 'h2',
+      screenshotName: `${viewport.name.replace(/\s+/g, '-').toLowerCase()}-${colorScheme}-scripture-quick-read`,
+      railSelector: 'div[aria-label="Scripture quick read"]',
+    });
+    failures.push(...quickRead.failures);
+  } catch (error) {
+    failures.push(`scripture quick read modal check failed: ${error.message}`);
+    try {
+      await page.keyboard.press('Escape');
+    } catch {
+      // Best effort recovery.
+    }
+  }
+
+  return {
+    ran: true,
+    failures,
+  };
+}
+
+async function checkConversationHistoryChrome(page, viewport, colorScheme) {
+  const shouldRun = viewport.mobile && colorScheme === colorSchemes[0] && ['iPhone SE', 'iPhone 14 Pro'].includes(viewport.name);
+  if (!shouldRun) {
+    return { ran: false, failures: [] };
+  }
+
+  const failures = [];
+
+  try {
+    const history = await verifyModalChrome(page, {
+      openLocator: page.locator('div[aria-label="Conversation history"] button').first(),
+      closeLabel: 'Close',
+      titleSelector: 'h2',
+      screenshotName: `${viewport.name.replace(/\s+/g, '-').toLowerCase()}-${colorScheme}-conversation-history`,
+    });
+    failures.push(...history.failures);
+  } catch (error) {
+    failures.push(`conversation history modal check failed: ${error.message}`);
+    try {
+      await page.keyboard.press('Escape');
+    } catch {
+      // Best effort recovery.
+    }
+  }
+
+  return {
+    ran: true,
+    failures,
+  };
+}
+
 async function checkAccount(page, mobile) {
   await clickTab(page, 'Account', mobile);
   let initial = { markerVisible: false, canToggle: false, before: '' };
   for (let attempt = 0; attempt < 10; attempt += 1) {
     initial = await page.evaluate((marker) => {
-      const markerVisible = document.body.innerText.includes(marker);
+      const markerVisible = document.body.innerText.toLowerCase().includes(marker.toLowerCase());
       const profileButton = Array.from(document.querySelectorAll('button')).find((button) => {
         const text = (button.textContent || '').toLowerCase();
         const isAccountProfileDisclosure = text.includes('sign in or continue as guest') || text.includes('signed in as');
@@ -554,6 +713,7 @@ async function checkAccount(page, mobile) {
     };
   }
 
+  let afterFirst = '';
   await page.evaluate(() => {
     const profileButton = Array.from(document.querySelectorAll('button')).find((button) => {
       const text = (button.textContent || '').toLowerCase();
@@ -565,29 +725,47 @@ async function checkAccount(page, mobile) {
     }
   });
 
-  let after = '';
-  let expandedContentVisible = false;
   for (let attempt = 0; attempt < 8; attempt += 1) {
-    ({ after, expandedContentVisible } = await page.evaluate(() => {
+    ({ after: afterFirst } = await page.evaluate(() => {
       const profileButton = Array.from(document.querySelectorAll('button')).find((button) => {
         const text = (button.textContent || '').toLowerCase();
         const isAccountProfileDisclosure = text.includes('sign in or continue as guest') || text.includes('signed in as');
         return isAccountProfileDisclosure && (text.includes('show details') || text.includes('hide details'));
       });
-      const bodyText = document.body.innerText.toLowerCase();
       return {
         after: profileButton instanceof HTMLButtonElement ? profileButton.textContent || '' : '',
-        expandedContentVisible:
-          bodyText.includes('continue with google') ||
-          bodyText.includes('create your aletheia account') ||
-          bodyText.includes('guest mode is active') ||
-          bodyText.includes('i already have an account') ||
-          bodyText.includes('guest only') ||
-          bodyText.includes('sign out') ||
-          bodyText.includes('avatar studio'),
       };
     }));
-    if (after && after !== initial.before && expandedContentVisible) {
+    if (afterFirst && afterFirst !== initial.before) {
+      break;
+    }
+    await page.waitForTimeout(120);
+  }
+
+  await page.evaluate(() => {
+    const profileButton = Array.from(document.querySelectorAll('button')).find((button) => {
+      const text = (button.textContent || '').toLowerCase();
+      const isAccountProfileDisclosure = text.includes('sign in or continue as guest') || text.includes('signed in as');
+      return isAccountProfileDisclosure && (text.includes('show details') || text.includes('hide details'));
+    });
+    if (profileButton instanceof HTMLButtonElement) {
+      profileButton.click();
+    }
+  });
+
+  let afterSecond = '';
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    ({ after: afterSecond } = await page.evaluate(() => {
+      const profileButton = Array.from(document.querySelectorAll('button')).find((button) => {
+        const text = (button.textContent || '').toLowerCase();
+        const isAccountProfileDisclosure = text.includes('sign in or continue as guest') || text.includes('signed in as');
+        return isAccountProfileDisclosure && (text.includes('show details') || text.includes('hide details'));
+      });
+      return {
+        after: profileButton instanceof HTMLButtonElement ? profileButton.textContent || '' : '',
+      };
+    }));
+    if (afterSecond && afterSecond === initial.before) {
       break;
     }
     await page.waitForTimeout(120);
@@ -595,8 +773,8 @@ async function checkAccount(page, mobile) {
 
   return {
     markerVisible: initial.markerVisible,
-    extraPass: initial.before !== after && expandedContentVisible,
-    pass: initial.markerVisible && initial.before !== after && expandedContentVisible,
+    extraPass: initial.before !== afterFirst && afterSecond === initial.before,
+    pass: initial.markerVisible && initial.before !== afterFirst && afterSecond === initial.before,
   };
 }
 
@@ -712,7 +890,13 @@ async function run() {
 
       const globalLayout = await checkGlobalLayout(page);
       const tapTargets = await checkTapTargets(page, viewport.touch);
+      const quickReadModalChrome = await checkScriptureQuickReadChrome(page, viewport, colorScheme);
       const home = await checkHome(page, viewport.mobile);
+      const conversationModalChrome = await checkConversationHistoryChrome(page, viewport, colorScheme);
+      const modalChrome = {
+        ran: quickReadModalChrome.ran || conversationModalChrome.ran,
+        failures: [...quickReadModalChrome.failures, ...conversationModalChrome.failures],
+      };
       const decision = await checkSimpleMarker(page, viewport.tabs.includes('Decisions') ? 'Decisions' : 'Decide', viewport.mobile, 'decision');
       const reflect = await checkSimpleMarker(page, 'Reflect', viewport.mobile, 'reflect');
       const library = await checkSimpleMarker(page, 'Library', viewport.mobile, 'library');
@@ -730,6 +914,7 @@ async function run() {
         colorScheme,
         globalLayout,
         home,
+        modalChrome,
         decision,
         reflect,
         library,
@@ -754,6 +939,9 @@ async function run() {
       const failures = [];
       if (result.globalLayout.overflowX > 0 || result.globalLayout.overlap > 0) {
         failures.push(`layout overflow=${result.globalLayout.overflowX} overlap=${result.globalLayout.overlap}`);
+      }
+      if (result.modalChrome.failures.length) {
+        failures.push(...result.modalChrome.failures.slice(0, 6));
       }
       for (const [name, check] of Object.entries({ home: result.home, decision: result.decision, reflect: result.reflect, library: result.library, account: result.account })) {
         if (!check.pass) {

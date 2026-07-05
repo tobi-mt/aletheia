@@ -15737,14 +15737,23 @@ function RailOverflowCue({ theme, className = "" }: { theme: ThemeColors; classN
   return (
     <span
       aria-hidden="true"
-      className={`grid size-8 shrink-0 place-items-center rounded-full border shadow-sm animate-pulse motion-reduce:animate-none ${className}`.trim()}
+      className={`relative grid size-8 shrink-0 place-items-center rounded-full border shadow-sm animate-pulse motion-reduce:animate-none ${className}`.trim()}
       style={{
-        borderColor: theme.borderMedium,
-        backgroundColor: theme.bgCardElevated,
+        borderColor: "color-mix(in srgb, " + theme.borderMedium + " 62%, transparent)",
+        background: `linear-gradient(135deg, color-mix(in srgb, ${theme.bgCardElevated} 42%, transparent) 0%, color-mix(in srgb, ${theme.bgCardElevated} 12%, transparent) 100%)`,
         color: theme.accentGold,
-        boxShadow: `0 8px 18px color-mix(in srgb, ${theme.accentGold} 12%, transparent)`,
+        backdropFilter: "blur(8px)",
+        WebkitBackdropFilter: "blur(8px)",
+        boxShadow: `0 6px 14px color-mix(in srgb, ${theme.accentGold} 8%, transparent)`,
       }}
     >
+      <span
+        aria-hidden="true"
+        className="absolute inset-0 rounded-full"
+        style={{
+          background: `radial-gradient(circle at 35% 30%, color-mix(in srgb, ${theme.accentGold} 18%, transparent) 0%, transparent 68%)`,
+        }}
+      />
       <ChevronRight size={16} />
     </span>
   );
@@ -15818,6 +15827,76 @@ function ModalCornerCloseButton({
     >
       <X size={16} />
     </button>
+  );
+}
+
+function ModalHeaderChrome({
+  theme,
+  eyebrow,
+  title,
+  subtitle,
+  onClose,
+  closeAriaLabel,
+  titleId,
+  className = "",
+  style,
+  closeClassName = "",
+  eyebrowClassName = "",
+  titleClassName = "",
+  subtitleClassName = "",
+}: {
+  theme: ThemeColors;
+  eyebrow?: ReactNode;
+  title: ReactNode;
+  subtitle?: ReactNode;
+  onClose: () => void;
+  closeAriaLabel: string;
+  titleId?: string;
+  className?: string;
+  style?: CSSProperties;
+  closeClassName?: string;
+  eyebrowClassName?: string;
+  titleClassName?: string;
+  subtitleClassName?: string;
+}) {
+  const hasEyebrow = Boolean(eyebrow);
+  const titleSizeClassName = titleClassName ? "" : "text-xl sm:text-2xl";
+  const subtitleSizeClassName = subtitleClassName ? "" : "text-sm leading-6 sm:text-[0.95rem]";
+
+  return (
+    <div
+      className={`relative overflow-hidden border-b px-4 py-4 sm:px-5 sm:py-5 ${className}`.trim()}
+      style={style}
+    >
+      <div className="relative pr-16 sm:pr-16">
+        <div className="min-w-0">
+          {eyebrow ? (
+            <p
+              className={`text-[11px] font-semibold uppercase tracking-[0.22em] sm:text-xs ${eyebrowClassName}`.trim()}
+              style={{ color: theme.accentGold }}
+            >
+              {eyebrow}
+            </p>
+          ) : null}
+          <h2
+            id={titleId}
+            className={`${hasEyebrow ? "mt-1.5" : ""} font-semibold tracking-tight ${titleSizeClassName} ${titleClassName}`.trim()}
+            style={{ color: theme.textPrimary }}
+          >
+            {title}
+          </h2>
+          {subtitle ? (
+            <p
+              className={`mt-1.5 ${subtitleSizeClassName} ${subtitleClassName}`.trim()}
+              style={{ color: theme.textSecondary }}
+            >
+              {subtitle}
+            </p>
+          ) : null}
+        </div>
+        <ModalCornerCloseButton onClick={onClose} theme={theme} ariaLabel={closeAriaLabel} className={closeClassName} />
+      </div>
+    </div>
   );
 }
 
@@ -24184,44 +24263,33 @@ function ScriptureModal({
         }}
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="border-b px-4 pb-4 pt-4 sm:px-6 sm:pb-5 sm:pt-5" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-5">
-            <div className="min-w-0 flex-1">
+        <ModalHeaderChrome
+          theme={theme}
+          eyebrow={view === "quick" ? ts('labels.scriptureQuickRead') : studyModeTitle}
+          title={view === "quick" ? displayScripture : studyModeTitle}
+          subtitle={view === "quick" ? undefined : studyModeSubtitle}
+          onClose={onClose}
+          closeAriaLabel={ts('labels.closeScriptureQuickRead')}
+          titleId={view === "quick" ? "scripture-quick-read-title" : "scripture-study-mode-title"}
+          closeClassName="size-10"
+          className="border-b"
+          titleClassName={view === "quick"
+            ? "text-[1.82rem] min-[390px]:text-[1.92rem] min-[430px]:text-[2rem] leading-[1.05] sm:text-[2.45rem]"
+            : "text-[2rem] leading-[1.05] sm:text-[2.45rem]"
+          }
+          style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}
+        />
+        <div className="border-b px-4 pb-4 pt-4 sm:px-6 sm:pb-5 sm:pt-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center rounded-full border px-3 py-1 text-[0.72rem] font-semibold uppercase tracking-[0.16em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
+                {translationLabel}
+              </span>
               {view === "quick" ? (
-                <div className="relative">
-                  <p className="text-[0.68rem] font-semibold uppercase tracking-[0.24em]" style={{ color: theme.accentGold }}>
-                    {ts('labels.scriptureQuickRead')}
-                  </p>
-                  <h2 id="scripture-quick-read-title" className="mt-2 pr-5 min-[390px]:pr-6 min-[430px]:pr-7 sm:pr-8 md:pr-10 text-[1.82rem] min-[390px]:text-[1.92rem] min-[430px]:text-[2rem] font-semibold leading-[1.05] sm:text-[2.45rem]" style={{ color: theme.textPrimary }}>
-                    {displayScripture}
-                  </h2>
-                  <div className="mt-3 flex flex-wrap items-center gap-2">
-                    <span className="inline-flex items-center rounded-full border px-3 py-1 text-[0.72rem] font-semibold uppercase tracking-[0.16em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
-                      {translationLabel}
-                    </span>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <p className="text-[0.68rem] font-semibold uppercase tracking-[0.24em]" style={{ color: theme.accentGold }}>
-                    {studyModeTitle}
-                  </p>
-                  <h2 id="scripture-study-mode-title" className="mt-2 text-[2rem] font-semibold leading-[1.05] sm:text-[2.45rem]" style={{ color: theme.textPrimary }}>
-                    {studyModeTitle}
-                  </h2>
-                  <p className="mt-2 text-sm leading-6 sm:text-[0.98rem]" style={{ color: theme.textSecondary }}>
-                    {studyModeSubtitle}
-                  </p>
-                  <div className="mt-3 flex flex-wrap items-center gap-2">
-                    <span className="inline-flex items-center rounded-full border px-3 py-1 text-[0.72rem] font-semibold uppercase tracking-[0.16em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
-                      {translationLabel}
-                    </span>
-                    <span className="text-[0.72rem] font-semibold uppercase tracking-[0.22em]" style={{ color: theme.textMuted }}>
-                      {displayScripture}
-                    </span>
-                  </div>
-                </>
-              )}
+                <span className="text-[0.72rem] font-semibold uppercase tracking-[0.22em]" style={{ color: theme.textMuted }}>
+                  {displayScripture}
+                </span>
+              ) : null}
             </div>
             <RailButtonTray theme={theme} label={ts('labels.scriptureQuickRead')}>
               <button
@@ -24255,10 +24323,9 @@ function ScriptureModal({
                   {backToQuickRead}
                 </button>
               )}
-              <ModalCornerCloseButton onClick={onClose} theme={theme} ariaLabel={ts('labels.closeScriptureQuickRead')} className="size-10" />
             </RailButtonTray>
             {speechLoading ? (
-              <p className="mt-2 text-[0.72rem] font-semibold" style={{ color: theme.textMuted }}>
+              <p className="text-[0.72rem] font-semibold" style={{ color: theme.textMuted }}>
                 {ts('status.preparingAudio')}
               </p>
             ) : null}
@@ -24915,35 +24982,20 @@ function DecisionMemoryDetailModal({
         }}
         onClick={(event) => event.stopPropagation()}
       >
-        <div
-          className="relative overflow-hidden border-b px-4 py-4 pr-16 sm:px-5 sm:py-5 sm:pr-16"
+        <ModalHeaderChrome
+          theme={theme}
+          eyebrow={ts("labels.decisionMemory")}
+          title={entry.title}
+          subtitle={`${createdAt ?? ts("labels.decisionMemory")}${modeLabel ? ` · ${modeLabel}` : ""}`}
+          onClose={onClose}
+          closeAriaLabel={ts("labels.close")}
+          titleId="decision-memory-modal-title"
+          className="border-b"
           style={{
             borderColor: theme.borderLight,
             background: `linear-gradient(135deg, color-mix(in srgb, ${theme.bgCardElevated} 64%, white 36%), ${theme.bgCard}, color-mix(in srgb, ${theme.bgCardElevated} 84%, ${theme.accentGold} 16%))`,
           }}
-        >
-          <div
-            className="absolute inset-0 opacity-90"
-            style={{
-              background: `radial-gradient(circle at 18% 18%, color-mix(in srgb, ${theme.accentGold} 18%, transparent), transparent 36%), radial-gradient(circle at 92% 0%, color-mix(in srgb, ${theme.primary} 10%, transparent), transparent 30%)`,
-            }}
-          />
-          <div className="relative">
-            <div className="min-w-0">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] sm:text-xs" style={{ color: theme.accentGold }}>
-                {ts("labels.decisionMemory")}
-              </p>
-              <h2 id="decision-memory-modal-title" className="mt-1.5 text-xl font-semibold tracking-tight sm:text-2xl" style={{ color: theme.textPrimary }}>
-                {entry.title}
-              </h2>
-              <p className="mt-1.5 text-sm leading-6 sm:text-[0.95rem]" style={{ color: theme.textSecondary }}>
-                {createdAt ?? ts("labels.decisionMemory")}
-                {modeLabel ? ` · ${modeLabel}` : ""}
-              </p>
-            </div>
-            <ModalCornerCloseButton onClick={onClose} theme={theme} ariaLabel={ts("labels.close")} />
-          </div>
-        </div>
+        />
 
         <div className="space-y-4 p-3.5 sm:p-4">
           <div className="grid gap-2.5 sm:grid-cols-2">
@@ -25054,7 +25106,6 @@ function SharedDecisionDetailModal({
   };
   const sharedAt = formatDate(decision.sharedAt);
   const waitingUntil = formatDate(decision.waitingUntil);
-  const modeLabel = isMode(decision.mode) ? ts(modeTranslationKey(decision.mode), decision.mode) : decision.mode;
   const roleLabel = localizedCounselRoleLabel(invite.invite.role, ts);
 
   return createPortal(
@@ -25079,35 +25130,20 @@ function SharedDecisionDetailModal({
         }}
         onClick={(event) => event.stopPropagation()}
       >
-        <div
-          className="relative overflow-hidden border-b px-4 py-4 pr-16 sm:px-5 sm:py-5 sm:pr-16"
+        <ModalHeaderChrome
+          theme={theme}
+          eyebrow={ts("labels.sharedProgress")}
+          title={decision.title}
+          subtitle={`${invite.invite.name} · ${roleLabel}${sharedAt ? ` · ${sharedAt}` : ""}`}
+          onClose={onClose}
+          closeAriaLabel={ts("labels.close")}
+          titleId="shared-decision-modal-title"
+          className="border-b"
           style={{
             borderColor: theme.borderLight,
             background: `linear-gradient(135deg, color-mix(in srgb, ${theme.bgCardElevated} 68%, white 32%), ${theme.bgCard}, color-mix(in srgb, ${theme.bgCardElevated} 82%, ${theme.accentGold} 18%))`,
           }}
-        >
-          <div
-            className="absolute inset-0 opacity-90"
-            style={{
-              background: `radial-gradient(circle at 18% 18%, color-mix(in srgb, ${theme.accentGold} 18%, transparent), transparent 36%), radial-gradient(circle at 92% 0%, color-mix(in srgb, ${theme.primary} 10%, transparent), transparent 30%)`,
-            }}
-          />
-          <div className="relative min-w-0">
-            <div className="min-w-0">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] sm:text-xs" style={{ color: theme.accentGold }}>
-                {ts("labels.sharedProgress")}
-              </p>
-              <h2 id="shared-decision-modal-title" className="mt-1.5 text-xl font-semibold tracking-tight sm:text-2xl" style={{ color: theme.textPrimary }}>
-                {decision.title}
-              </h2>
-              <p className="mt-1.5 text-sm leading-6 sm:text-[0.95rem]" style={{ color: theme.textSecondary }}>
-                {invite.invite.name} · {roleLabel}
-                {sharedAt ? ` · ${sharedAt}` : ""}
-              </p>
-            </div>
-          </div>
-          <ModalCornerCloseButton onClick={onClose} theme={theme} ariaLabel={ts("labels.close")} />
-        </div>
+        />
 
         <div className="space-y-4 p-3.5 sm:p-4">
           <div className="grid gap-2.5 sm:grid-cols-2">
@@ -28491,9 +28527,9 @@ function RailButtonTray({
   const showCue = useRailOverflowCue(railRef, true, [label]);
   const trayPadding = dense ? "p-2" : "p-2.5";
   const railGap = dense ? "gap-1.5" : "gap-2";
-  const overflowPadding = dense ? "pr-8" : "pr-10";
-  const cuePosition = dense ? "right-1.5 top-1.5" : "right-2 top-2";
-  const cueSize = dense ? "size-6" : "size-7";
+  const overflowPadding = dense ? "pr-7" : "pr-8";
+  const cuePosition = dense ? "right-1 top-1" : "right-1.5 top-1.5";
+  const cueSize = dense ? "size-6" : "size-[26px]";
 
   return (
     <div className={`relative overflow-hidden rounded-[1rem] border ${trayPadding}`} style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
@@ -28695,34 +28731,20 @@ function ConversationHistoryModal({
         }}
         onClick={(event) => event.stopPropagation()}
       >
-        <div
-          className="relative overflow-hidden border-b px-4 py-4 pr-16 sm:px-5 sm:py-5 sm:pr-16"
+        <ModalHeaderChrome
+          theme={theme}
+          eyebrow={ts('labels.conversationHistory')}
+          title={title}
+          subtitle={`${createdLabel}${createdTime ? ` · ${createdTime}` : ""} · ${ui.currentLens}: ${exchangeModeProfile.displayLabel ?? exchange.mode}`}
+          onClose={onClose}
+          closeAriaLabel={ts("labels.close")}
+          titleId="conversation-history-modal-title"
+          className="border-b"
           style={{
             borderColor: theme.borderLight,
             background: `linear-gradient(135deg, color-mix(in srgb, ${theme.bgCardElevated} 66%, white 34%), ${theme.bgCard}, color-mix(in srgb, ${theme.bgCardElevated} 84%, ${theme.accentGold} 16%))`,
           }}
-        >
-          <div
-            className="absolute inset-0 opacity-90"
-            style={{
-              background: `radial-gradient(circle at 18% 18%, color-mix(in srgb, ${theme.accentGold} 18%, transparent), transparent 36%), radial-gradient(circle at 92% 0%, color-mix(in srgb, ${theme.primary} 10%, transparent), transparent 30%)`,
-            }}
-          />
-          <div className="relative">
-            <div className="min-w-0">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] sm:text-xs" style={{ color: theme.accentGold }}>
-                {ts('labels.conversationHistory')}
-              </p>
-              <h2 id="conversation-history-modal-title" className="mt-1.5 text-xl font-semibold tracking-tight sm:text-2xl" style={{ color: theme.textPrimary }}>
-                {title}
-              </h2>
-              <p className="mt-1.5 text-sm leading-6 sm:text-[0.95rem]" style={{ color: theme.textSecondary }}>
-                {createdLabel}{createdTime ? ` · ${createdTime}` : ""} · {ui.currentLens}: {exchangeModeProfile.displayLabel ?? exchange.mode}
-              </p>
-            </div>
-            <ModalCornerCloseButton onClick={onClose} theme={theme} ariaLabel={ts("labels.close")} />
-          </div>
-        </div>
+        />
 
         <div className="space-y-4 p-3.5 sm:p-4">
           {exchange.question ? (
