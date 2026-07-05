@@ -407,6 +407,7 @@ const COUNSEL_INVITE_STORAGE_KEY = "aletheia_counsel_invite_token";
 const COUNSEL_ACCEPTED_INVITE_STORAGE_KEY = "aletheia_counsel_accepted_invite_token";
 const CHALLENGE_INVITE_STORAGE_KEY = "aletheia_challenge_invite_token";
 const UPDATE_REFRESH_PENDING_KEY = "aletheia_update_refresh_pending";
+const NATIVE_BOOTSTRAP_ORIGIN_STORAGE_KEY = "aletheia_native_bootstrap_origin";
 type AuthPromptReason =
   | "guest_second_question"
   | "guest_first_answer"
@@ -3422,6 +3423,69 @@ async function getReliableServiceWorkerRegistration() {
   });
   registration.update().catch(() => undefined);
   return navigator.serviceWorker.ready;
+}
+
+function readNativeBootstrapOrigin() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    const storedOrigin = window.sessionStorage.getItem(NATIVE_BOOTSTRAP_ORIGIN_STORAGE_KEY)?.trim() || "";
+    if (storedOrigin) {
+      return new URL(storedOrigin).origin;
+    }
+  } catch {
+    // Fall back to the native bridge when session storage is unavailable.
+  }
+
+  try {
+    const bridgeOrigin = ((Capacitor as unknown) as { getServerUrl?: () => string }).getServerUrl?.().trim() || "";
+    if (bridgeOrigin) {
+      return new URL(bridgeOrigin).origin;
+    }
+  } catch {
+    // Ignore malformed bridge state and keep the update flow on the current page.
+  }
+
+  return null;
+}
+
+async function clearAppShellState() {
+  try {
+    if ("serviceWorker" in navigator) {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(registrations.map((registration) => registration.unregister()));
+    }
+  } catch {
+    // Continue with the refresh even if service worker cleanup fails.
+  }
+
+  try {
+    if ("caches" in window) {
+      const cacheKeys = await caches.keys();
+      await Promise.all(cacheKeys.map((key) => caches.delete(key)));
+    }
+  } catch {
+    // Cache cleanup is best-effort only.
+  }
+}
+
+function buildNativeBootstrapUrl(mode?: "update") {
+  const bootstrapOrigin = readNativeBootstrapOrigin();
+  if (!bootstrapOrigin) {
+    return null;
+  }
+
+  try {
+    const nextUrl = new URL("/", bootstrapOrigin);
+    if (mode) {
+      nextUrl.searchParams.set("mode", mode);
+    }
+    return nextUrl.href;
+  } catch {
+    return null;
+  }
 }
 
 function sharePlatformUrl(channel: ShareChannel) {
@@ -7293,7 +7357,11 @@ function scrollTargetBelowTopChrome(target: HTMLElement, behavior: ScrollBehavio
   window.scrollTo({ top, behavior });
 }
 
-export function AletheiaApp() {
+export function AletheiaApp({
+  onBootReady,
+}: {
+  onBootReady?: () => void;
+} = {}) {
   const [activeView, setActiveViewState] = useState<View>(() => getInitialActiveView());
   const [homeSection, setHomeSectionState] = useState<HomeSection>(() => getInitialHomeSection());
   const { toasts, addToast, removeToast } = useToast();
@@ -7365,6 +7433,7 @@ export function AletheiaApp() {
   const [manualContext, setManualContext] = useState<ManualContextProfile>(defaultManualContext);
   const [manualContextStatus, setManualContextStatus] = useState("");
   const [clientStateRestored, setClientStateRestored] = useState(false);
+  const bootReadyReportedRef = useRef(false);
   const [themePreference, setThemePreference] = useState<ThemePreference>("system");
   const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>("classic");
   const theme = themeColors[resolvedTheme];
@@ -7520,6 +7589,29 @@ export function AletheiaApp() {
   const refreshChallengeCircles = () => {
     setChallengeCircleRefreshKey((value) => value + 1);
   };
+
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) {
+      return;
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    const launchOrigin = params.get("launchOrigin")?.trim() || "";
+    if (!launchOrigin) {
+      return;
+    }
+
+    try {
+      window.sessionStorage.setItem(NATIVE_BOOTSTRAP_ORIGIN_STORAGE_KEY, new URL(launchOrigin).origin);
+    } catch {
+      // Keep the current session usable even if storage is blocked.
+    }
+
+    params.delete("launchOrigin");
+    const nextSearch = params.toString();
+    const nextUrl = `${window.location.pathname}${nextSearch ? `?${nextSearch}` : ""}${window.location.hash}`;
+    window.history.replaceState(window.history.state, "", nextUrl);
+  }, []);
 
   useEffect(() => {
     window.setTimeout(() => {
@@ -7691,6 +7783,15 @@ export function AletheiaApp() {
       window.clearTimeout(restoreId);
     };
   }, []);
+
+  useEffect(() => {
+    if (!clientStateRestored || bootReadyReportedRef.current) {
+      return;
+    }
+
+    bootReadyReportedRef.current = true;
+    onBootReady?.();
+  }, [clientStateRestored, onBootReady]);
 
   const translationHelpers = useMemo(() => {
     const missingTranslationToken = "__aletheia_missing_translation__";
@@ -9192,26 +9293,15 @@ export function AletheiaApp() {
           return;
         }
 
-        try {
-          if ("serviceWorker" in navigator) {
-            const registrations = await navigator.serviceWorker.getRegistrations();
-            await Promise.all(registrations.map((registration) => registration.unregister()));
-          }
-        } catch {
-          // Continue with the refresh even if service worker cleanup fails.
-        }
-
-        try {
-          if ("caches" in window) {
-            const cacheKeys = await caches.keys();
-            await Promise.all(cacheKeys.map((key) => caches.delete(key)));
-          }
-        } catch {
-          // Cache cleanup is best-effort only.
-        }
+        const nativeBootstrapUrl = Capacitor.isNativePlatform() ? buildNativeBootstrapUrl("update") : null;
+        await clearAppShellState();
 
         if (!cancelled) {
-          window.location.reload();
+          if (nativeBootstrapUrl) {
+            window.location.replace(nativeBootstrapUrl);
+          } else {
+            window.location.reload();
+          }
         }
       } catch {
         // If version lookup fails, fall back to the existing update flow.
@@ -9252,7 +9342,15 @@ export function AletheiaApp() {
             window.clearTimeout(updateRefreshTimeoutRef.current);
           }
           updateRefreshTimeoutRef.current = window.setTimeout(() => {
-            window.location.reload();
+            void (async () => {
+              const nativeBootstrapUrl = Capacitor.isNativePlatform() ? buildNativeBootstrapUrl("update") : null;
+              await clearAppShellState();
+              if (nativeBootstrapUrl) {
+                window.location.replace(nativeBootstrapUrl);
+                return;
+              }
+              window.location.reload();
+            })();
           }, 1300);
         };
 
@@ -13620,6 +13718,9 @@ export function AletheiaApp() {
                 </p>
                 <p className="mt-4 text-base font-semibold" style={{ color: theme.textPrimary }}>
                   {ts('labels.loading')}
+                </p>
+                <p className="mt-1 text-sm" style={{ color: theme.textSecondary }}>
+                  {ts('status.restoringPreferences')}
                 </p>
                 <motion.div
                   className="mx-auto mt-4 h-1.5 w-28 overflow-hidden rounded-full"

@@ -96,17 +96,35 @@
   <body>
     <main>
       <div class="mark">A</div>
-      <h1>Aletheia is starting</h1>
-      <p>We are checking the app connection. If the app does not open, make sure this device has internet access and try again.</p>
-      <div class="status" data-status>Checking for the app URL…</div>
+      <h1 data-title>Aletheia is preparing</h1>
+      <p data-body>We are warming up the app connection before handing you into the full experience.</p>
+      <div class="status" data-status>Preparing the launch path…</div>
       <button type="button" data-retry>Retry</button>
     </main>
     <script>
+      const titleEl = document.querySelector("[data-title]");
+      const bodyEl = document.querySelector("[data-body]");
       const statusEl = document.querySelector("[data-status]");
       const retryButton = document.querySelector("[data-retry]");
+      const fallbackLaunchUrl = "https://aletheia.mirrortalkpodcast.com";
       const configPaths = ["./capacitor.config.json", "../capacitor.config.json", "/capacitor.config.json"];
+      let launchSequence = 0;
+      const updateMode = new URLSearchParams(window.location.search).get("mode") === "update";
+      const currentLaunchOrigin = window.location.origin;
 
-      async function resolveConfiguredAppUrl() {
+      if (updateMode) {
+        if (titleEl) {
+          titleEl.textContent = "Aletheia is updating";
+        }
+        if (bodyEl) {
+          bodyEl.textContent = "We are warming up the latest version before handing you back in.";
+        }
+        if (statusEl) {
+          statusEl.textContent = "Preparing the latest version…";
+        }
+      }
+
+      async function resolveLaunchUrl() {
         for (const path of configPaths) {
           try {
             const response = await fetch(path, { cache: "no-store" });
@@ -115,7 +133,7 @@
             }
 
             const config = await response.json();
-            const appUrl = config?.server?.url?.trim();
+            const appUrl = config?.launchUrl?.trim() || config?.bootstrapUrl?.trim() || config?.server?.url?.trim();
             if (appUrl) {
               return appUrl;
             }
@@ -124,25 +142,58 @@
           }
         }
 
-        return "";
+        return fallbackLaunchUrl;
+      }
+
+      async function probeLaunchUrl(url) {
+        try {
+          await fetch(url, {
+            cache: "no-store",
+            credentials: "omit",
+            mode: "no-cors",
+          });
+          return true;
+        } catch {
+          return false;
+        }
       }
 
       async function bootstrap() {
+        const launchId = ++launchSequence;
         retryButton.disabled = true;
-        statusEl.textContent = navigator.onLine ? "Opening Aletheia…" : "No connection detected yet.";
+        statusEl.textContent = navigator.onLine ? "Preparing Aletheia…" : "Waiting for a connection…";
 
-        const appUrl = await resolveConfiguredAppUrl();
-        if (appUrl) {
-          window.location.replace(appUrl);
+        if (!navigator.onLine) {
+          statusEl.textContent = "Aletheia needs a connection before it can open.";
+          retryButton.disabled = false;
           return;
         }
 
-        statusEl.textContent = "Aletheia needs a live connection to open. Try again when the network is available.";
+        const appUrl = await resolveLaunchUrl();
+        const reachable = await probeLaunchUrl(appUrl);
+
+        if (launchId !== launchSequence) {
+          return;
+        }
+
+        if (reachable) {
+          statusEl.textContent = "Opening Aletheia…";
+          const nextUrl = new URL(appUrl);
+          nextUrl.searchParams.set("launchOrigin", currentLaunchOrigin);
+          if (updateMode) {
+            nextUrl.searchParams.set("update", "1");
+          }
+          window.location.replace(nextUrl.href);
+          return;
+        }
+
+        statusEl.textContent = "We could not reach Aletheia yet. Check the network and try again.";
         retryButton.disabled = false;
       }
 
       retryButton.addEventListener("click", bootstrap);
       window.addEventListener("online", bootstrap);
+      window.addEventListener("focus", bootstrap);
       void bootstrap();
     </script>
   </body>

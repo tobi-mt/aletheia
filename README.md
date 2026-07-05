@@ -327,7 +327,8 @@ The project includes `capacitor.config.ts` with:
 
 - app name: `Aletheia`
 - app id: `com.aletheia.app`
-- remote server URL: `NEXT_PUBLIC_APP_URL`
+- local web bundle: `capacitor-web`
+- bootstrap handoff target: `NEXT_PUBLIC_APP_URL`
 
 The checked-in native shells currently use:
 
@@ -343,7 +344,7 @@ npx cap add android
 npx cap sync
 ```
 
-For this cloud-backed app, Capacitor should load the deployed Railway URL rather than a static export, because auth, OpenAI, and journal persistence depend on server routes.
+For this cloud-backed app, Capacitor now opens the local bundled launch screen first and then hands off to the deployed app URL after the connection and launch target are ready. That keeps the native shells resilient while still relying on the hosted app for auth, OpenAI, and journal persistence.
 
 ## Launch Notes
 

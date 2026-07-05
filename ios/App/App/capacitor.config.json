@@ -10,11 +10,8 @@
 			"animation": "NONE"
 		}
 	},
-	"server": {
-		"url": "https://aletheia.mirrortalkpodcast.com",
-		"cleartext": false
-	},
 	"packageClassList": [
+		"AppPlugin",
 		"HapticsPlugin"
 	]
 }

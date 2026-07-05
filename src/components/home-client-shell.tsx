@@ -13,8 +13,6 @@ const LazyAletheiaApp = dynamic(
   { ssr: false, loading: () => null }
 );
 
-const SPLASH_LAST_SHOWN_AT_KEY = "aletheia_splash_last_shown_at";
-
 function readStoredSplashLanguage(): SplashLanguage {
   if (typeof window === "undefined") {
     return "en";
@@ -36,7 +34,7 @@ function readStoredSplashLanguage(): SplashLanguage {
 
 export default function HomeClientShell() {
   const [showSplash, setShowSplash] = useState(true);
-  const [showApp, setShowApp] = useState(false);
+  const [launchReady, setLaunchReady] = useState(false);
   const [splashLanguage, setSplashLanguage] = useState<SplashLanguage>("en");
   const [splashCopyReady, setSplashCopyReady] = useState(false);
   const lastHiddenAtRef = useRef<number | null>(null);
@@ -54,12 +52,8 @@ export default function HomeClientShell() {
         setSplashCopyReady(true);
       });
     });
-    const showAppTimer = window.setTimeout(() => {
-      setShowApp(true);
-    }, 1100);
     return () => {
       window.cancelAnimationFrame(firstFrame);
-      window.clearTimeout(showAppTimer);
     };
   }, []);
 
@@ -72,25 +66,17 @@ export default function HomeClientShell() {
         window.clearTimeout(dismissTimer);
       }
       dismissTimer = window.setTimeout(() => {
-        if (active) {
+        if (active && launchReady) {
           setShowSplash(false);
         }
       }, visibleMs);
     };
 
-    try {
-      const lastShownAt = Number(window.sessionStorage.getItem(SPLASH_LAST_SHOWN_AT_KEY) || "0");
-      if (lastShownAt > 0 && Date.now() - lastShownAt > 12000) {
-        queueMicrotask(() => {
-          setShowSplash(false);
-        });
-        return;
-      }
-    } catch {
-      // Ignore session storage errors.
+    if (launchReady) {
+      showSplashFor(180);
+    } else {
+      setShowSplash(true);
     }
-
-    showSplashFor(1400);
 
     const onVisibility = () => {
       if (document.visibilityState === "hidden") {
@@ -119,11 +105,11 @@ export default function HomeClientShell() {
       }
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, []);
+  }, [launchReady]);
 
   return (
     <>
-      {showApp ? <LazyAletheiaApp /> : null}
+      <LazyAletheiaApp onBootReady={() => setLaunchReady(true)} />
       {showSplash ? (
         <div
           data-testid="app-launch-splash"
