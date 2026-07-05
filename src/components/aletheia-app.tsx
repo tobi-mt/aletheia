@@ -408,6 +408,7 @@ const COUNSEL_ACCEPTED_INVITE_STORAGE_KEY = "aletheia_counsel_accepted_invite_to
 const CHALLENGE_INVITE_STORAGE_KEY = "aletheia_challenge_invite_token";
 const UPDATE_REFRESH_PENDING_KEY = "aletheia_update_refresh_pending";
 const NATIVE_BOOTSTRAP_ORIGIN_STORAGE_KEY = "aletheia_native_bootstrap_origin";
+const SW_REFRESH_ATTEMPTED_BUILD_KEY = "aletheia_sw_refresh_attempted_build";
 type AuthPromptReason =
   | "guest_second_question"
   | "guest_first_answer"
@@ -3485,6 +3486,30 @@ function buildNativeBootstrapUrl(mode?: "update") {
     return nextUrl.href;
   } catch {
     return null;
+  }
+}
+
+function readRefreshAttemptedBuild() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    return window.sessionStorage.getItem(SW_REFRESH_ATTEMPTED_BUILD_KEY)?.trim() || null;
+  } catch {
+    return null;
+  }
+}
+
+function markRefreshAttemptedForCurrentBuild() {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.sessionStorage.setItem(SW_REFRESH_ATTEMPTED_BUILD_KEY, BUILD_ID);
+  } catch {
+    // Best-effort only.
   }
 }
 
@@ -9278,11 +9303,19 @@ export function AletheiaApp({
   }, [authStatus, counselInvitePreview, counselInviteToken, user]);
 
   useEffect(() => {
+    if (!clientStateRestored) {
+      return;
+    }
+
     let swCleanup: (() => void) | null = null;
     let cancelled = false;
 
     async function resetStaleBuildState() {
       try {
+        if (readRefreshAttemptedBuild() === BUILD_ID) {
+          return;
+        }
+
         const response = await fetch("/api/build-version", { cache: "no-store" });
         if (!response.ok) {
           return;
@@ -9297,6 +9330,7 @@ export function AletheiaApp({
         await clearAppShellState();
 
         if (!cancelled) {
+          markRefreshAttemptedForCurrentBuild();
           if (nativeBootstrapUrl) {
             window.location.replace(nativeBootstrapUrl);
           } else {
@@ -9318,7 +9352,11 @@ export function AletheiaApp({
           if (refreshing) {
             return;
           }
+          if (readRefreshAttemptedBuild() === BUILD_ID) {
+            return;
+          }
           refreshing = true;
+          markRefreshAttemptedForCurrentBuild();
           const cycleId = crypto.randomUUID();
           try {
             window.sessionStorage.setItem(
@@ -9412,7 +9450,7 @@ export function AletheiaApp({
         window.clearTimeout(updateRefreshTimeoutRef.current);
       }
     };
-  }, []);
+  }, [clientStateRestored]);
 
   useEffect(() => {
     async function loadNotificationStatus() {
