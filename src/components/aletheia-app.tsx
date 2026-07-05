@@ -14699,7 +14699,7 @@ function OnboardingModal({
           </nav>
 
           <section ref={modeSectionRef} tabIndex={-1} className="scroll-mt-4 outline-none">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em]" style={{ color: theme.accentGold }}>{ui.wisdomMode}</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em]" style={{ color: theme.accentGold }}>{ts('wisdomMode')}</p>
             <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>{ts('labels.whatBringsYou')}</p>
             <div className="mt-2 flex min-w-0 snap-x gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
               {modeCards.map((item) => (

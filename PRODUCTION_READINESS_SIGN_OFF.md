@@ -178,6 +178,7 @@ The Aletheia app is **production-ready** with no critical blockers.
 - [x] No console errors
 - [x] No hydration errors
 - [x] Manual testing complete
+- [ ] Before deploy, run `npm run build` and confirm any new UI text uses in-scope translations/props only, not variables from a different component scope
 
 ### Launch Day
 - [ ] Deploy to production (Vercel/Netlify recommended)
