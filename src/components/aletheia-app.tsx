@@ -14614,15 +14614,7 @@ function OnboardingModal({
               </span>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={onComplete}
-            className="grid size-10 shrink-0 place-items-center self-start rounded-full border transition"
-            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
-            aria-label={ts('labels.closeOnboarding')}
-          >
-            <X size={17} />
-          </button>
+          <ModalCornerCloseButton onClick={onComplete} theme={theme} ariaLabel={ts('labels.closeOnboarding')} />
         </div>
 
         <div className="mt-4 grid gap-3 md:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
@@ -15238,12 +15230,7 @@ function HomeDashboard({
               <ArrowUpRight size={16} />
             </button>
 
-            <div className="mt-4">
-              {todayActionsRailHasOverflow ? (
-                <div className="mb-2 flex justify-end">
-                  <RailOverflowCue theme={theme} className="size-7" />
-                </div>
-              ) : null}
+            <div className={`relative mt-4 ${todayActionsRailHasOverflow ? "pr-10 sm:pr-12" : ""}`.trim()}>
               <div
                 ref={todayActionsRailRef}
                 className="flex snap-x gap-3 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
@@ -15260,6 +15247,7 @@ function HomeDashboard({
                   />
                 ))}
               </div>
+              {todayActionsRailHasOverflow ? <RailOverflowCorner theme={theme} /> : null}
             </div>
           </section>
 
@@ -15762,6 +15750,22 @@ function RailOverflowCue({ theme, className = "" }: { theme: ThemeColors; classN
   );
 }
 
+function RailOverflowCorner({
+  theme,
+  cueClassName = "size-6",
+  className = "right-3 top-3",
+}: {
+  theme: ThemeColors;
+  cueClassName?: string;
+  className?: string;
+}) {
+  return (
+    <div aria-hidden="true" className={`pointer-events-none absolute ${className} z-20`.trim()}>
+      <RailOverflowCue theme={theme} className={cueClassName} />
+    </div>
+  );
+}
+
 function CardCornerBadge({
   children,
   className = "",
@@ -15786,6 +15790,34 @@ function CardCornerBadge({
     >
       {children}
     </span>
+  );
+}
+
+function ModalCornerCloseButton({
+  onClick,
+  theme,
+  ariaLabel,
+  className = "",
+}: {
+  onClick: () => void;
+  theme: ThemeColors;
+  ariaLabel: string;
+  className?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`absolute right-4 top-4 z-20 grid size-10 shrink-0 place-items-center rounded-full border transition shadow-sm ${className}`.trim()}
+      style={{
+        borderColor: theme.borderMedium,
+        backgroundColor: theme.bgInput,
+        color: theme.textPrimary,
+      }}
+      aria-label={ariaLabel}
+    >
+      <X size={16} />
+    </button>
   );
 }
 
@@ -15977,19 +16009,7 @@ function SystemReferenceModal({
                 </div>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="absolute right-0 top-1/2 grid size-10 shrink-0 -translate-y-1/2 place-items-center rounded-full border transition shadow-sm"
-              style={{
-                borderColor: theme.borderMedium,
-                backgroundColor: theme.bgInput,
-                color: theme.textPrimary,
-              }}
-              aria-label={ts("labels.close")}
-            >
-              <X size={16} />
-            </button>
+            <ModalCornerCloseButton onClick={onClose} theme={theme} ariaLabel={ts("labels.close")} />
           </div>
         </div>
 
@@ -16114,7 +16134,7 @@ function ReferenceRailSection({
   return (
     <section className="overflow-hidden rounded-[1.35rem] border shadow-[0_6px_16px_rgba(7,10,8,0.05)]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
       <div className="border-b px-3.5 py-3.5 sm:px-4" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
-        <div className="flex items-start gap-2.5">
+        <div className={`relative flex items-start gap-2.5 ${railHasOverflow ? "pr-10 sm:pr-12" : ""}`.trim()}>
           <div className="grid size-10 shrink-0 place-items-center rounded-full border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
             <HeaderIcon size={17} />
           </div>
@@ -16129,27 +16149,28 @@ function ReferenceRailSection({
               </p>
             ) : null}
           </div>
-          {railHasOverflow ? (
-            <RailOverflowCue theme={theme} className="size-7" />
-          ) : null}
+          {railHasOverflow ? <RailOverflowCorner theme={theme} /> : null}
         </div>
       </div>
 
-      <div
-        ref={railRef}
-        className="flex min-w-0 snap-x gap-3 overflow-x-auto px-3.5 py-3 pb-3.5 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:px-4"
-        aria-label={railLabel}
-      >
-        {topics.map((topic) => (
-          <SystemReferenceRailCard
-            key={topic.id}
-            topic={topic}
-            theme={theme}
-            ts={ts}
-            onOpen={() => setSelectedTopicId(topic.id)}
-            className={cardClassName}
-          />
-        ))}
+      <div className="relative">
+        <div
+          ref={railRef}
+          className={`flex min-w-0 snap-x gap-3 overflow-x-auto px-3.5 py-3 pb-3.5 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:px-4 ${railHasOverflow ? "pr-10 sm:pr-12" : ""}`.trim()}
+          aria-label={railLabel}
+        >
+          {topics.map((topic) => (
+            <SystemReferenceRailCard
+              key={topic.id}
+              topic={topic}
+              theme={theme}
+              ts={ts}
+              onOpen={() => setSelectedTopicId(topic.id)}
+              className={cardClassName}
+            />
+          ))}
+        </div>
+        {railHasOverflow ? <RailOverflowCorner theme={theme} /> : null}
       </div>
 
       <SystemReferenceModal
@@ -18728,15 +18749,7 @@ function FormationRailSection({
               {localizedDayPrinciple(selectedChallengeModalPrompt)}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => setOpenDayDetailDay(null)}
-            className="absolute right-0 top-1/2 grid size-10 shrink-0 -translate-y-1/2 place-items-center rounded-full border transition sm:right-0 sm:top-1/2 sm:-translate-y-1/2"
-            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-            aria-label={ts("labels.close")}
-          >
-            <X size={16} />
-          </button>
+          <ModalCornerCloseButton onClick={() => setOpenDayDetailDay(null)} theme={theme} ariaLabel={ts("labels.close")} />
         </div>
 
         <div className="mt-4 rounded-[1.35rem] border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
@@ -18900,15 +18913,7 @@ function FormationRailSection({
               </p>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={closeInviteEditor}
-            className="absolute right-0 top-1/2 grid size-9 place-items-center -translate-y-1/2 rounded-full border transition"
-            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-            aria-label={ts("labels.close")}
-          >
-            <X size={16} />
-          </button>
+          <ModalCornerCloseButton onClick={closeInviteEditor} theme={theme} ariaLabel={ts("labels.close")} className="size-9" />
         </div>
 
         <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1.02fr)_minmax(280px,0.86fr)]">
@@ -19574,16 +19579,12 @@ function FormationRailSection({
                     </div>
                   </section>
 
-                  <section className="space-y-2">
-                    {dayCarouselHasOverflow ? (
-                      <div className="flex items-center justify-between gap-3">
-                        <RailOverflowCue theme={theme} className="size-7" />
-                      </div>
-                    ) : (
+                  <section className={`relative space-y-2 ${dayCarouselHasOverflow ? "pr-10 sm:pr-12" : ""}`.trim()}>
+                    {!dayCarouselHasOverflow ? (
                       <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
                         {ts("labels.currentlyActiveMode")}
                       </p>
-                    )}
+                    ) : null}
                     <div
                       ref={dayCarouselRef}
                       className="formation-day-rail flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto pb-2 [-webkit-overflow-scrolling:touch]"
@@ -19696,6 +19697,7 @@ function FormationRailSection({
                         );
                       })}
                     </div>
+                    {dayCarouselHasOverflow ? <RailOverflowCorner theme={theme} /> : null}
                   </section>
                 </div>
               </article>
@@ -20373,15 +20375,7 @@ const ChallengeInviteDetailsPanel = memo(function ChallengeInviteDetailsPanel({
                     {inviteViewerIsFasting ? ts("challenges.fastingCustom.previewBody") : ts("labels.inviteDetailsBody")}
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={onCloseInviteViewer}
-                  className="absolute right-0 top-1/2 grid size-8 shrink-0 -translate-y-1/2 place-items-center rounded-full border transition sm:right-0 sm:top-1/2 sm:-translate-y-1/2"
-                  style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-                  aria-label={ts("labels.closeInvite")}
-                >
-                  <X size={13} />
-                </button>
+                <ModalCornerCloseButton onClick={onCloseInviteViewer} theme={theme} ariaLabel={ts("labels.closeInvite")} className="size-8" />
               </div>
 
               {inviteViewerInviteDetails.kind === "read-with-me" ? (
@@ -22787,15 +22781,7 @@ function WelcomeAuthModal({
               {ts("labels.appTagline")}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="absolute right-0 top-1/2 grid size-9 shrink-0 -translate-y-1/2 place-items-center rounded-full border transition"
-            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-            aria-label={ts("labels.close")}
-          >
-            <X size={16} />
-          </button>
+          <ModalCornerCloseButton onClick={onClose} theme={theme} ariaLabel={ts("labels.close")} className="size-9" />
         </div>
         <div className="max-h-[calc(100svh-9rem)] overflow-y-auto p-3.5 sm:p-4">
           <div className="grid gap-3.5 rounded-[1.35rem] border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
@@ -22961,15 +22947,7 @@ function AvatarPickerModal({
             <h2 id="avatar-picker-title" className="mt-1.5 text-lg font-semibold" style={{ color: theme.textPrimary }}>{title}</h2>
             <p className="mt-1 text-sm leading-5" style={{ color: theme.textSecondary }}>{subtitle}</p>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="absolute right-0 top-1/2 grid size-9 shrink-0 -translate-y-1/2 place-items-center rounded-full border transition sm:right-0 sm:top-1/2 sm:-translate-y-1/2"
-            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-            aria-label={ts('avatar.closePicker')}
-          >
-            <X size={16} />
-          </button>
+          <ModalCornerCloseButton onClick={onClose} theme={theme} ariaLabel={ts('avatar.closePicker')} className="size-9" />
         </div>
 
         <div className="mt-3 flex justify-end">
@@ -23074,15 +23052,7 @@ function AvatarUploadTipsModal({
               {ts('avatar.photoTipsBody')}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="absolute right-0 top-1/2 grid size-9 shrink-0 -translate-y-1/2 place-items-center rounded-full border transition sm:right-0 sm:top-1/2 sm:-translate-y-1/2"
-            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-            aria-label={ts('avatar.closePhotoTips')}
-          >
-            <X size={16} />
-          </button>
+          <ModalCornerCloseButton onClick={onClose} theme={theme} ariaLabel={ts('avatar.closePhotoTips')} className="size-9" />
         </div>
 
         <div className="mt-3.5 rounded-2xl border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
@@ -24285,15 +24255,7 @@ function ScriptureModal({
                   {backToQuickRead}
                 </button>
               )}
-              <button
-                type="button"
-                onClick={onClose}
-                className="grid h-10 w-10 shrink-0 snap-start place-items-center rounded-full border transition"
-                style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
-                aria-label={ts('labels.closeScriptureQuickRead')}
-              >
-                <X size={17} />
-              </button>
+              <ModalCornerCloseButton onClick={onClose} theme={theme} ariaLabel={ts('labels.closeScriptureQuickRead')} className="size-10" />
             </RailButtonTray>
             {speechLoading ? (
               <p className="mt-2 text-[0.72rem] font-semibold" style={{ color: theme.textMuted }}>
@@ -24410,15 +24372,7 @@ function DeleteAccountModal({
               </p>
               ) : null}
             </div>
-            <button
-              type="button"
-              onClick={cancel}
-              className="absolute right-0 top-1/2 grid size-9 shrink-0 -translate-y-1/2 place-items-center rounded-full border transition"
-              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-              aria-label={ts('labels.close')}
-            >
-              <X size={16} />
-            </button>
+            <ModalCornerCloseButton onClick={cancel} theme={theme} ariaLabel={ts('labels.close')} className="size-9" />
           </div>
 
           <form
@@ -24523,15 +24477,7 @@ function ReportIssueModal({
               {ts('labels.reportIssuePrivacy')}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={cancel}
-            className="absolute right-0 top-1/2 grid size-9 shrink-0 -translate-y-1/2 place-items-center rounded-full border transition"
-            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-            aria-label={ts('labels.close')}
-          >
-            <X size={16} />
-          </button>
+          <ModalCornerCloseButton onClick={cancel} theme={theme} ariaLabel={ts('labels.close')} className="size-9" />
         </div>
         <form
           className="mt-3.5 grid gap-3"
@@ -24681,19 +24627,7 @@ function WisdomTimelineModal({
                 {summary}
               </p>
             </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="absolute right-0 top-1/2 grid size-9 shrink-0 -translate-y-1/2 place-items-center rounded-full border transition shadow-sm"
-              style={{
-                borderColor: theme.borderMedium,
-                backgroundColor: theme.bgInput,
-                color: theme.textPrimary,
-              }}
-              aria-label={ts("labels.close")}
-            >
-              <X size={16} />
-            </button>
+            <ModalCornerCloseButton onClick={onClose} theme={theme} ariaLabel={ts("labels.close")} className="size-9" />
           </div>
 
           <div className="relative mt-4 grid gap-2.5 sm:grid-cols-2">
@@ -24829,12 +24763,7 @@ function DecisionMemoryArchiveSection({
       </p>
 
       {sortedEntries.length ? (
-        <>
-          {hasOverflow ? (
-            <div className="mb-2 flex justify-end">
-              <RailOverflowCue theme={theme} className="size-7" />
-            </div>
-          ) : null}
+        <div className={`relative pt-0.5 ${hasOverflow ? "pr-10 sm:pr-12" : ""}`.trim()}>
           <div ref={railRef} className="flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
             {sortedEntries.map((entry) => {
               const createdLabel = formatDateTime(entry.createdAt);
@@ -24901,7 +24830,8 @@ function DecisionMemoryArchiveSection({
               );
             })}
           </div>
-        </>
+          {hasOverflow ? <RailOverflowCorner theme={theme} /> : null}
+        </div>
       ) : (
         <div className="rounded-[1.35rem] border border-dashed px-4 py-5 text-sm leading-6" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
           {ts("labels.noDecisionMemoryHelp")}
@@ -25011,19 +24941,7 @@ function DecisionMemoryDetailModal({
                 {modeLabel ? ` · ${modeLabel}` : ""}
               </p>
             </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="absolute right-0 top-1/2 grid size-10 shrink-0 -translate-y-1/2 place-items-center rounded-full border transition shadow-sm"
-              style={{
-                borderColor: theme.borderMedium,
-                backgroundColor: theme.bgInput,
-                color: theme.textPrimary,
-              }}
-              aria-label={ts("labels.close")}
-            >
-              <X size={16} />
-            </button>
+            <ModalCornerCloseButton onClick={onClose} theme={theme} ariaLabel={ts("labels.close")} />
           </div>
         </div>
 
@@ -25188,19 +25106,7 @@ function SharedDecisionDetailModal({
               </p>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="absolute right-0 top-1/2 grid size-10 shrink-0 -translate-y-1/2 place-items-center rounded-full border transition shadow-sm"
-            style={{
-              borderColor: theme.borderMedium,
-              backgroundColor: theme.bgInput,
-              color: theme.textPrimary,
-            }}
-            aria-label={ts("labels.close")}
-          >
-            <X size={16} />
-          </button>
+          <ModalCornerCloseButton onClick={onClose} theme={theme} ariaLabel={ts("labels.close")} />
         </div>
 
         <div className="space-y-4 p-3.5 sm:p-4">
@@ -25392,19 +25298,7 @@ function StreakMilestonesModal({
                 {ts("streak.modalBody")}
               </p>
             </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="absolute right-0 top-1/2 grid size-9 shrink-0 -translate-y-1/2 place-items-center rounded-full border transition shadow-sm"
-              style={{
-                borderColor: theme.borderMedium,
-                backgroundColor: theme.bgInput,
-                color: theme.textPrimary,
-              }}
-              aria-label={ts("labels.close")}
-            >
-              <X size={16} />
-            </button>
+            <ModalCornerCloseButton onClick={onClose} theme={theme} ariaLabel={ts("labels.close")} className="size-9" />
           </div>
 
           <div className="relative mt-4 grid gap-2.5 sm:grid-cols-3">
@@ -25633,9 +25527,7 @@ function CounselInviteModal({
               </p>
             </div>
           </div>
-          <button className="absolute right-0 top-1/2 grid size-9 -translate-y-1/2 place-items-center rounded-full border transition" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={onClose} aria-label={ts('labels.closeInvite')}>
-            <X size={16} />
-          </button>
+          <ModalCornerCloseButton onClick={onClose} theme={theme} ariaLabel={ts('labels.closeInvite')} className="size-9" />
         </div>
 
         {status ? <p className="mt-3.5 rounded-2xl border p-3 text-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>{status}</p> : null}
@@ -25962,9 +25854,7 @@ function ChallengeInviteModal({
                 </p>
               </div>
             </div>
-            <button className="absolute right-0 top-1/2 grid size-9 -translate-y-1/2 place-items-center rounded-full border transition" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={onClose} aria-label={ts('labels.closeInvite')}>
-              <X size={16} />
-            </button>
+            <ModalCornerCloseButton onClick={onClose} theme={theme} ariaLabel={ts('labels.closeInvite')} className="size-9" />
           </div>
 
           {status ? <p className="mt-3.5 rounded-2xl border p-3 text-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>{status}</p> : null}
@@ -26074,9 +25964,7 @@ function ChallengeInviteModal({
               </p>
             </div>
           </div>
-            <button className="absolute right-0 top-1/2 grid size-9 -translate-y-1/2 place-items-center rounded-full border transition" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} onClick={onClose} aria-label={ts('labels.closeInvite')}>
-              <X size={16} />
-            </button>
+            <ModalCornerCloseButton onClick={onClose} theme={theme} ariaLabel={ts('labels.closeInvite')} className="size-9" />
           </div>
 
         {status ? <p className="mt-3.5 rounded-2xl border p-3 text-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>{status}</p> : null}
@@ -26508,15 +26396,7 @@ function CounselRemovalConfirmModal({
               {ts('labels.typeToRemoveContactPrefix')} <span className="font-semibold" style={{ color: theme.textPrimary }}>{confirmationWord}</span> {ts('labels.typeToRemoveContactSuffix')}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={onCancel}
-            className="absolute right-0 top-1/2 grid size-10 shrink-0 -translate-y-1/2 place-items-center rounded-full border transition"
-            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-            aria-label={ts('labels.closeConfirmation')}
-          >
-            <X size={17} />
-          </button>
+          <ModalCornerCloseButton onClick={onCancel} theme={theme} ariaLabel={ts('labels.closeConfirmation')} />
         </div>
 
         <form
@@ -27153,26 +27033,26 @@ function CompanionPanel({
                     {ts('labels.olderCounselKeptQuiet')}
                   </p>
                 </div>
-                {historyRailHasOverflow ? (
-                  <RailOverflowCue theme={theme} className="size-7" />
-                ) : null}
               </div>
-              <div
-                ref={historyRailRef}
-                className="mt-3 flex min-w-0 snap-x gap-3 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-                aria-label={ts('labels.conversationHistory')}
-              >
-                {visibleHistory.map((exchange) => (
-                  <HistoryExchangeRailCard
-                    key={exchange.id}
-                    theme={theme}
-                    exchange={exchange}
-                    preferences={preferences}
-                    ui={ui}
-                    ts={ts}
-                    onOpen={() => setSelectedHistoryExchange(exchange)}
-                  />
-                ))}
+              <div className={`relative mt-3 ${historyRailHasOverflow ? "pr-10 sm:pr-12" : ""}`.trim()}>
+                <div
+                  ref={historyRailRef}
+                  className="flex min-w-0 snap-x gap-3 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                  aria-label={ts('labels.conversationHistory')}
+                >
+                  {visibleHistory.map((exchange) => (
+                    <HistoryExchangeRailCard
+                      key={exchange.id}
+                      theme={theme}
+                      exchange={exchange}
+                      preferences={preferences}
+                      ui={ui}
+                      ts={ts}
+                      onOpen={() => setSelectedHistoryExchange(exchange)}
+                    />
+                  ))}
+                </div>
+                {historyRailHasOverflow ? <RailOverflowCorner theme={theme} /> : null}
               </div>
             </section>
           ) : null}
@@ -27936,19 +27816,7 @@ const ThreadStreamModal = memo(function ThreadStreamModal({
                 {subtitle}
               </p>
             ) : null}
-            <button
-              type="button"
-              onClick={onClose}
-            className="absolute right-0 top-1/2 grid size-11 shrink-0 -translate-y-1/2 place-items-center rounded-full border transition shadow-sm"
-              style={{
-                borderColor: theme.borderMedium,
-                backgroundColor: theme.bgInput,
-                color: theme.textPrimary,
-              }}
-              aria-label={ts("labels.close")}
-            >
-              <X size={16} />
-            </button>
+            <ModalCornerCloseButton onClick={onClose} theme={theme} ariaLabel={ts("labels.close")} className="size-11" />
           </div>
         </div>
 
@@ -28060,103 +27928,99 @@ function CounselDecisionShareRail({
   }
 
   return (
-    <div className="mt-3">
-      {contactRailHasOverflow ? (
-        <div className="mb-2 flex justify-end">
-          <RailOverflowCue theme={theme} className="size-7" />
-        </div>
-      ) : null}
-      <div ref={contactRailRef} className="flex min-w-0 snap-x gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {counselContacts.map((contact) => {
-          const active = contact.id === selectedContactId;
-          return (
-            <button
-              key={contact.id}
-              type="button"
-              onClick={() => onSelectContact(contact.id)}
-              className="premium-tap-card flex w-[15rem] shrink-0 snap-start items-center gap-2.5 rounded-[1.25rem] border p-3 text-left transition duration-200 ease-out hover:-translate-y-0.5"
-              style={{
-                borderColor: active ? theme.accentLight : theme.borderMedium,
-                background: active
-                  ? `linear-gradient(180deg, color-mix(in srgb, ${theme.bgCardElevated} 94%, ${theme.accentGold} 6%), ${theme.bgCard})`
-                  : `linear-gradient(180deg, color-mix(in srgb, ${theme.bgCardElevated} 96%, white 4%), ${theme.bgCard})`,
-                boxShadow: active ? `0 10px 22px color-mix(in srgb, ${theme.primary} 12%, transparent)` : `0 10px 22px color-mix(in srgb, ${theme.bgMain} 10%, transparent)`,
-              }}
-            >
-              <AvatarCircle
-                avatarUrl={contact.avatarUrl}
-                seed={contact.id}
-                label={contact.name}
-                size={30}
-                className="size-[30px] shrink-0"
-              />
-              <div className="min-w-0">
-                <p className="truncate text-[0.98rem] font-semibold leading-5 tracking-[-0.01em]" style={{ color: theme.textPrimary }}>{contact.name}</p>
-                <p className="truncate text-[10px] font-medium uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
-                  {localizedCounselRoleLabel(contact.role, ts)}
-                </p>
-              </div>
-              <span
-                className="ml-auto grid size-6 shrink-0 place-items-center rounded-full border"
+    <div className="space-y-3">
+      <div className={`relative ${contactRailHasOverflow ? "pr-10 sm:pr-12" : ""}`.trim()}>
+        <div ref={contactRailRef} className="flex min-w-0 snap-x gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {counselContacts.map((contact) => {
+            const active = contact.id === selectedContactId;
+            return (
+              <button
+                key={contact.id}
+                type="button"
+                onClick={() => onSelectContact(contact.id)}
+                className="premium-tap-card flex w-[15rem] shrink-0 snap-start items-center gap-2.5 rounded-[1.25rem] border p-3 text-left transition duration-200 ease-out hover:-translate-y-0.5"
                 style={{
-                  borderColor: active ? theme.primary : theme.borderLight,
-                  backgroundColor: active ? theme.primary : theme.bgInput,
-                  color: active ? theme.textOnPrimary : theme.textMuted,
+                  borderColor: active ? theme.accentLight : theme.borderMedium,
+                  background: active
+                    ? `linear-gradient(180deg, color-mix(in srgb, ${theme.bgCardElevated} 94%, ${theme.accentGold} 6%), ${theme.bgCard})`
+                    : `linear-gradient(180deg, color-mix(in srgb, ${theme.bgCardElevated} 96%, white 4%), ${theme.bgCard})`,
+                  boxShadow: active ? `0 10px 22px color-mix(in srgb, ${theme.primary} 12%, transparent)` : `0 10px 22px color-mix(in srgb, ${theme.bgMain} 10%, transparent)`,
                 }}
-                aria-hidden="true"
               >
-                <Check size={12} />
-              </span>
-            </button>
-          );
-        })}
-      </div>
-      {shareRailHasOverflow ? (
-        <div className="mt-2 flex justify-end">
-          <RailOverflowCue theme={theme} className="size-7" />
-        </div>
-      ) : null}
-      <div ref={shareRailRef} className="mt-3 flex min-w-0 snap-x gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {decisions.map((decision) => {
-          const modeLabel = isMode(decision.mode) ? ts(modeTranslationKey(decision.mode), decision.mode) : decision.mode;
-          const selected = selectedDecisionIds.includes(decision.id);
-          return (
-            <button
-              key={decision.id}
-              type="button"
-              className="group flex w-[15rem] shrink-0 snap-start flex-col justify-between rounded-[1.25rem] border p-3 text-left transition duration-200 ease-out active:scale-[0.985] hover:-translate-y-0.5"
-              style={{
-                borderColor: selected ? theme.accentLight : theme.borderMedium,
-                background: selected
-                  ? `linear-gradient(180deg, color-mix(in srgb, ${theme.bgCardElevated} 90%, ${theme.accentGold} 10%), ${theme.bgCard})`
-                  : `linear-gradient(180deg, color-mix(in srgb, ${theme.bgCardElevated} 95%, white 5%), ${theme.bgCard})`,
-                color: theme.textPrimary,
-                boxShadow: selected ? `0 10px 24px color-mix(in srgb, ${theme.primary} 14%, transparent)` : `0 10px 24px color-mix(in srgb, ${theme.bgMain} 10%, transparent)`,
-              }}
-              onClick={() => onToggleDecision(decision.id)}
-            >
-              <div className="flex items-start justify-between gap-2">
-                <span className="inline-flex min-w-0 items-center rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-                  {modeLabel}
-                </span>
+                <AvatarCircle
+                  avatarUrl={contact.avatarUrl}
+                  seed={contact.id}
+                  label={contact.name}
+                  size={30}
+                  className="size-[30px] shrink-0"
+                />
+                <div className="min-w-0">
+                  <p className="truncate text-[0.98rem] font-semibold leading-5 tracking-[-0.01em]" style={{ color: theme.textPrimary }}>{contact.name}</p>
+                  <p className="truncate text-[10px] font-medium uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
+                    {localizedCounselRoleLabel(contact.role, ts)}
+                  </p>
+                </div>
                 <span
-                  className="grid size-6 shrink-0 place-items-center rounded-full border"
+                  className="ml-auto grid size-6 shrink-0 place-items-center rounded-full border"
                   style={{
-                    borderColor: selected ? theme.primary : theme.borderLight,
-                    backgroundColor: selected ? theme.primary : theme.bgInput,
-                    color: selected ? theme.textOnPrimary : theme.textMuted,
+                    borderColor: active ? theme.primary : theme.borderLight,
+                    backgroundColor: active ? theme.primary : theme.bgInput,
+                    color: active ? theme.textOnPrimary : theme.textMuted,
                   }}
                   aria-hidden="true"
                 >
                   <Check size={12} />
                 </span>
-              </div>
-              <p className="mt-3 line-clamp-3 text-sm font-semibold leading-6 tracking-[-0.01em]" style={{ color: theme.textPrimary }}>
-                {decision.title}
-              </p>
-            </button>
-          );
-        })}
+              </button>
+            );
+          })}
+        </div>
+        {contactRailHasOverflow ? <RailOverflowCorner theme={theme} /> : null}
+      </div>
+      <div className={`relative ${shareRailHasOverflow ? "pr-10 sm:pr-12" : ""}`.trim()}>
+        <div ref={shareRailRef} className="flex min-w-0 snap-x gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {decisions.map((decision) => {
+            const modeLabel = isMode(decision.mode) ? ts(modeTranslationKey(decision.mode), decision.mode) : decision.mode;
+            const selected = selectedDecisionIds.includes(decision.id);
+            return (
+              <button
+                key={decision.id}
+                type="button"
+                className="group flex w-[15rem] shrink-0 snap-start flex-col justify-between rounded-[1.25rem] border p-3 text-left transition duration-200 ease-out active:scale-[0.985] hover:-translate-y-0.5"
+                style={{
+                  borderColor: selected ? theme.accentLight : theme.borderMedium,
+                  background: selected
+                    ? `linear-gradient(180deg, color-mix(in srgb, ${theme.bgCardElevated} 90%, ${theme.accentGold} 10%), ${theme.bgCard})`
+                    : `linear-gradient(180deg, color-mix(in srgb, ${theme.bgCardElevated} 95%, white 5%), ${theme.bgCard})`,
+                  color: theme.textPrimary,
+                  boxShadow: selected ? `0 10px 24px color-mix(in srgb, ${theme.primary} 14%, transparent)` : `0 10px 24px color-mix(in srgb, ${theme.bgMain} 10%, transparent)`,
+                }}
+                onClick={() => onToggleDecision(decision.id)}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <span className="inline-flex min-w-0 items-center rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                    {modeLabel}
+                  </span>
+                  <span
+                    className="grid size-6 shrink-0 place-items-center rounded-full border"
+                    style={{
+                      borderColor: selected ? theme.primary : theme.borderLight,
+                      backgroundColor: selected ? theme.primary : theme.bgInput,
+                      color: selected ? theme.textOnPrimary : theme.textMuted,
+                    }}
+                    aria-hidden="true"
+                  >
+                    <Check size={12} />
+                  </span>
+                </div>
+                <p className="mt-3 line-clamp-3 text-sm font-semibold leading-6 tracking-[-0.01em]" style={{ color: theme.textPrimary }}>
+                  {decision.title}
+                </p>
+              </button>
+            );
+          })}
+        </div>
+        {shareRailHasOverflow ? <RailOverflowCorner theme={theme} /> : null}
       </div>
       {decisions.length > 1 ? (
         <button
@@ -28856,19 +28720,7 @@ function ConversationHistoryModal({
                 {createdLabel}{createdTime ? ` · ${createdTime}` : ""} · {ui.currentLens}: {exchangeModeProfile.displayLabel ?? exchange.mode}
               </p>
             </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="absolute right-0 top-1/2 grid size-10 shrink-0 -translate-y-1/2 place-items-center rounded-full border transition shadow-sm"
-              style={{
-                borderColor: theme.borderMedium,
-                backgroundColor: theme.bgInput,
-                color: theme.textPrimary,
-              }}
-              aria-label={ts("labels.close")}
-            >
-              <X size={16} />
-            </button>
+            <ModalCornerCloseButton onClick={onClose} theme={theme} ariaLabel={ts("labels.close")} />
           </div>
         </div>
 
@@ -29392,7 +29244,7 @@ function DecisionCompanionPanel({
         {decisionSection === "counsel" ? (
           <div className="space-y-4">
             {incomingSharedDecisionItems.length ? (
-              <section className="rounded-[1.35rem] border p-3.5 shadow-[0_8px_24px_rgba(15,23,42,0.05)] sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+              <section className="relative overflow-hidden rounded-[1.35rem] border p-3.5 shadow-[0_8px_24px_rgba(15,23,42,0.05)] sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
@@ -29403,12 +29255,8 @@ function DecisionCompanionPanel({
                     </h3>
                   </div>
                 </div>
-                {incomingSharedDecisionRailHasOverflow ? (
-                  <div className="mt-4 flex justify-end">
-                    <RailOverflowCue theme={theme} className="size-7" />
-                  </div>
-                ) : null}
-                <div ref={incomingSharedDecisionRailRef} className="mt-2 flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <div className={`mt-2 ${incomingSharedDecisionRailHasOverflow ? "pr-10 sm:pr-12" : ""}`.trim()}>
+                  <div ref={incomingSharedDecisionRailRef} className="flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                   {incomingSharedDecisionItems.map(({ invite, decision }) => {
                     const sharedAt = formatDecisionShareDate(decision.sharedAt);
                     const commentCount = decision.comments.length;
@@ -29462,12 +29310,18 @@ function DecisionCompanionPanel({
                       </button>
                     );
                   })}
+                  </div>
                 </div>
+                {incomingSharedDecisionRailHasOverflow ? (
+                  <div aria-hidden="true" className="pointer-events-none absolute right-3 top-3 z-20">
+                    <RailOverflowCue theme={theme} className="size-6" />
+                  </div>
+                ) : null}
               </section>
             ) : null}
 
             {outgoingSharedDecisionItems.length ? (
-              <section className="rounded-[1.35rem] border p-3.5 shadow-[0_8px_24px_rgba(15,23,42,0.05)] sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+              <section className="relative overflow-hidden rounded-[1.35rem] border p-3.5 shadow-[0_8px_24px_rgba(15,23,42,0.05)] sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
@@ -29478,12 +29332,8 @@ function DecisionCompanionPanel({
                     </h3>
                   </div>
                 </div>
-                {outgoingSharedDecisionRailHasOverflow ? (
-                  <div className="mt-4 flex justify-end">
-                    <RailOverflowCue theme={theme} className="size-7" />
-                  </div>
-                ) : null}
-                <div ref={outgoingSharedDecisionRailRef} className="mt-2 flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <div className={`mt-2 ${outgoingSharedDecisionRailHasOverflow ? "pr-10 sm:pr-12" : ""}`.trim()}>
+                  <div ref={outgoingSharedDecisionRailRef} className="flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                   {outgoingSharedDecisionItems.map(({ contact, share }) => {
                     const sharedAt = formatDecisionShareDate(share.sharedAt);
                     const { statusLabel, note } = localizedCounselShareDeliveryCopy(share, ts);
@@ -29539,7 +29389,13 @@ function DecisionCompanionPanel({
                       </button>
                     );
                   })}
+                  </div>
                 </div>
+                {outgoingSharedDecisionRailHasOverflow ? (
+                  <div aria-hidden="true" className="pointer-events-none absolute right-3 top-3 z-20">
+                    <RailOverflowCue theme={theme} className="size-6" />
+                  </div>
+                ) : null}
               </section>
             ) : null}
 
@@ -29817,12 +29673,8 @@ function DecisionCompanionPanel({
                   </div>
                 ) : (
                   <>
-                    {visibleCounselRailHasOverflow ? (
-                      <div className="mt-3 flex justify-end">
-                        <RailOverflowCue theme={theme} className="size-7" />
-                      </div>
-                    ) : null}
-                    <div ref={visibleCounselRailRef} className="mt-2 flex min-w-0 snap-x snap-mandatory gap-2.5 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
+                    <div className={`relative mt-2 ${visibleCounselRailHasOverflow ? "pr-10 sm:pr-12" : ""}`.trim()}>
+                      <div ref={visibleCounselRailRef} className="flex min-w-0 snap-x snap-mandatory gap-2.5 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
                       {visibleCounselContacts.map((contact) => (
                         <CounselVoiceCard
                           key={contact.id}
@@ -29833,6 +29685,8 @@ function DecisionCompanionPanel({
                           onOpenThread={setCounselThreadContactId}
                         />
                       ))}
+                      </div>
+                      {visibleCounselRailHasOverflow ? <RailOverflowCorner theme={theme} /> : null}
                     </div>
                   </>
                 )}
@@ -29851,12 +29705,8 @@ function DecisionCompanionPanel({
                         </p>
                       </div>
                     </div>
-                    {hiddenCounselRailHasOverflow ? (
-                      <div className="mt-3 flex justify-end">
-                        <RailOverflowCue theme={theme} className="size-7" />
-                      </div>
-                    ) : null}
-                    <div ref={hiddenCounselRailRef} className="mt-2 flex min-w-0 snap-x snap-mandatory gap-2.5 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
+                    <div className={`relative mt-2 ${hiddenCounselRailHasOverflow ? "pr-10 sm:pr-12" : ""}`.trim()}>
+                      <div ref={hiddenCounselRailRef} className="flex min-w-0 snap-x snap-mandatory gap-2.5 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
                       {hiddenCounselContacts.map((contact) => (
                         <CounselVoiceCard
                           key={contact.id}
@@ -29867,6 +29717,8 @@ function DecisionCompanionPanel({
                           onOpenThread={setCounselThreadContactId}
                         />
                       ))}
+                      </div>
+                      {hiddenCounselRailHasOverflow ? <RailOverflowCorner theme={theme} /> : null}
                     </div>
                   </div>
                 ) : null}
@@ -29891,15 +29743,13 @@ function DecisionCompanionPanel({
                   </p>
                 </div>
               </div>
-              {rhythmRailHasOverflow ? (
-                <div className="mt-4 flex justify-end">
-                  <RailOverflowCue theme={theme} className="size-7" />
-                </div>
-              ) : null}
-              <div ref={rhythmRailRef} className="mt-2 flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
+              <div className={`relative mt-2 ${rhythmRailHasOverflow ? "pr-10 sm:pr-12" : ""}`.trim()}>
+                <div ref={rhythmRailRef} className="flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
                 <RhythmItem label={ts('labels.threeMinuteMorningReflection')} body={ts('labels.namePressureBeforeDayNamesIt')} theme={theme} />
                 <RhythmItem label={ts('labels.eveningExamen')} body={ts('labels.reviewMoneyWorkMomentHonestly')} theme={theme} />
                 <RhythmItem label={ts('labels.weeklyPatternReview')} body={ts('labels.noticeRepeatedUrgencyComparison')} theme={theme} />
+                </div>
+                {rhythmRailHasOverflow ? <RailOverflowCorner theme={theme} /> : null}
               </div>
             </div>
 
@@ -29927,12 +29777,8 @@ function DecisionCompanionPanel({
                 />
                 <button className="h-10 rounded-full px-3 text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>{ts('labels.savePrinciple')}</button>
               </form>
-              {ruleRailHasOverflow ? (
-                <div className="mt-4 flex justify-end">
-                  <RailOverflowCue theme={theme} className="size-7" />
-                </div>
-              ) : null}
-              <div ref={ruleRailRef} className="mt-2 flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
+              <div className={`relative mt-2 ${ruleRailHasOverflow ? "pr-10 sm:pr-12" : ""}`.trim()}>
+                <div ref={ruleRailRef} className="flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
                 {modeRules.slice(0, 4).map((rule) => (
                   <article key={rule.id} className="premium-tap-card flex h-full min-h-[10.75rem] w-[12rem] shrink-0 snap-start flex-col justify-between rounded-[1.35rem] border p-3.5 shadow-[0_8px_18px_rgba(7,10,8,0.06)] sm:w-[12.75rem]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
                     <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
@@ -29948,6 +29794,8 @@ function DecisionCompanionPanel({
                     {ts('notifications.writePrincipleFirstBody')}
                   </p>
                 ) : null}
+                </div>
+                {ruleRailHasOverflow ? <RailOverflowCorner theme={theme} /> : null}
               </div>
             </div>
 
@@ -30593,19 +30441,7 @@ function GratitudeEntryModal({
               <div className="rounded-full border px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] backdrop-blur-md" style={{ borderColor: "rgba(255,255,255,0.22)", backgroundColor: "rgba(255,255,255,0.12)", color: theme.textOnPrimary }}>
                 {ts('labels.gratitudeLens')}
               </div>
-              <button
-                type="button"
-                onClick={onClose}
-                className="grid size-10 shrink-0 place-items-center rounded-full border backdrop-blur-md transition"
-                style={{
-                  borderColor: "rgba(255,255,255,0.22)",
-                  backgroundColor: "rgba(255,255,255,0.14)",
-                  color: theme.textOnPrimary,
-                }}
-                aria-label={ts("labels.close")}
-              >
-                <X size={16} />
-              </button>
+              <ModalCornerCloseButton onClick={onClose} theme={theme} ariaLabel={ts("labels.close")} className="border-white/20 bg-white/15 text-white backdrop-blur-md" />
             </div>
             <div className="absolute inset-x-0 bottom-0 p-4 text-white">
               <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/80">
@@ -31008,32 +30844,34 @@ function GratitudeLensPanel({
                   <p className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
                     {ts('labels.gratitudeFilters')}
                   </p>
-                  {gratitudeFilterRailHasOverflow ? <RailOverflowCue theme={theme} className="size-7" /> : null}
                 </div>
               </div>
-              <div
-                ref={gratitudeFilterRailRef}
-                className={`mt-2 flex gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${gratitudeFilterRailHasOverflow ? "pr-10" : ""}`.trim()}
-              >
-                {GRATITUDE_FILTERS.map((filter) => {
-                  const isActive = visual.filter === filter;
-                  return (
-                    <button
-                      key={filter}
-                      type="button"
-                      onClick={() => setVisual((current) => ({ ...current, filter }))}
-                      className="premium-tap-card min-h-10 shrink-0 rounded-full border px-3.5 py-2 text-xs font-semibold transition active:scale-[0.98]"
-                      style={{
-                        borderColor: isActive ? theme.primary : theme.borderMedium,
-                        backgroundColor: isActive ? theme.primary : theme.bgInput,
-                        color: isActive ? theme.textOnPrimary : theme.textPrimary,
-                        boxShadow: isActive ? `0 10px 18px color-mix(in srgb, ${theme.primary} 18%, transparent)` : "none",
-                      }}
-                    >
-                      {gratitudeFilterLabel(filter)}
-                    </button>
-                  );
-                })}
+              <div className="relative mt-2">
+                <div
+                  ref={gratitudeFilterRailRef}
+                  className={`flex gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${gratitudeFilterRailHasOverflow ? "pr-10 sm:pr-12" : ""}`.trim()}
+                >
+                  {GRATITUDE_FILTERS.map((filter) => {
+                    const isActive = visual.filter === filter;
+                    return (
+                      <button
+                        key={filter}
+                        type="button"
+                        onClick={() => setVisual((current) => ({ ...current, filter }))}
+                        className="premium-tap-card min-h-10 shrink-0 rounded-full border px-3.5 py-2 text-xs font-semibold transition active:scale-[0.98]"
+                        style={{
+                          borderColor: isActive ? theme.primary : theme.borderMedium,
+                          backgroundColor: isActive ? theme.primary : theme.bgInput,
+                          color: isActive ? theme.textOnPrimary : theme.textPrimary,
+                          boxShadow: isActive ? `0 10px 18px color-mix(in srgb, ${theme.primary} 18%, transparent)` : "none",
+                        }}
+                      >
+                        {gratitudeFilterLabel(filter)}
+                      </button>
+                    );
+                  })}
+                </div>
+                {gratitudeFilterRailHasOverflow ? <RailOverflowCorner theme={theme} /> : null}
               </div>
             </section>
 
@@ -31048,7 +30886,6 @@ function GratitudeLensPanel({
                   <p className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
                     {ts('labels.gratitudeStickerLimit')}
                   </p>
-                  {gratitudeOverlayRailHasOverflow ? <RailOverflowCue theme={theme} className="size-7" /> : null}
                 </div>
               </div>
 
@@ -31058,43 +30895,45 @@ function GratitudeLensPanel({
                     <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textMuted }}>
                       {ts('labels.gratitudeOverlayNote')}
                     </p>
-                    {gratitudeOverlayRailHasOverflow ? <RailOverflowCue theme={theme} className="size-7" /> : null}
                   </div>
-                  <div
-                    ref={gratitudeOverlayRailRef}
-                    className={`mt-2 flex gap-2 overflow-x-auto snap-x snap-mandatory pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${gratitudeOverlayRailHasOverflow ? "pr-10" : ""}`.trim()}
-                    aria-label={ts('labels.gratitudeOverlayNote')}
-                  >
-                    {[
-                      ["showNote", ts('labels.gratitudeOverlayNote')],
-                      ["showDate", ts('labels.gratitudeOverlayDate')],
-                      ["showPlace", ts('labels.gratitudeOverlayPlace')],
-                      ["showSignature", ts('labels.gratitudeOverlaySignature')],
-                    ].map(([key, label]) => {
-                      const settingKey = key as keyof Pick<GratitudeVisualSettings, "showDate" | "showPlace" | "showNote" | "showSignature">;
-                      const isActive = visual[settingKey];
-                      return (
-                        <button
-                          key={key}
-                          type="button"
-                          onClick={() => toggleOverlay(settingKey)}
-                          className={gratitudeRailChipClass}
-                          style={{
-                            borderColor: isActive ? theme.primary : theme.borderMedium,
-                            backgroundColor: isActive ? theme.bgCardElevated : theme.bgInput,
-                            color: theme.textPrimary,
-                            boxShadow: isActive ? `0 10px 18px color-mix(in srgb, ${theme.primary} 14%, transparent)` : "none",
-                          }}
-                        >
-                          <span aria-hidden="true" className="text-lg leading-none">
-                            {settingKey === "showNote" ? "📝" : settingKey === "showDate" ? "📅" : settingKey === "showPlace" ? "📍" : "✍️"}
-                          </span>
-                          <span className="max-w-full whitespace-nowrap text-[0.82rem] leading-4">
-                            {label}
-                          </span>
-                        </button>
-                      );
-                    })}
+                  <div className="relative mt-2">
+                    <div
+                      ref={gratitudeOverlayRailRef}
+                      className={`flex gap-2 overflow-x-auto snap-x snap-mandatory pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${gratitudeOverlayRailHasOverflow ? "pr-10 sm:pr-12" : ""}`.trim()}
+                      aria-label={ts('labels.gratitudeOverlayNote')}
+                    >
+                      {[
+                        ["showNote", ts('labels.gratitudeOverlayNote')],
+                        ["showDate", ts('labels.gratitudeOverlayDate')],
+                        ["showPlace", ts('labels.gratitudeOverlayPlace')],
+                        ["showSignature", ts('labels.gratitudeOverlaySignature')],
+                      ].map(([key, label]) => {
+                        const settingKey = key as keyof Pick<GratitudeVisualSettings, "showDate" | "showPlace" | "showNote" | "showSignature">;
+                        const isActive = visual[settingKey];
+                        return (
+                          <button
+                            key={key}
+                            type="button"
+                            onClick={() => toggleOverlay(settingKey)}
+                            className={gratitudeRailChipClass}
+                            style={{
+                              borderColor: isActive ? theme.primary : theme.borderMedium,
+                              backgroundColor: isActive ? theme.bgCardElevated : theme.bgInput,
+                              color: theme.textPrimary,
+                              boxShadow: isActive ? `0 10px 18px color-mix(in srgb, ${theme.primary} 14%, transparent)` : "none",
+                            }}
+                          >
+                            <span aria-hidden="true" className="text-lg leading-none">
+                              {settingKey === "showNote" ? "📝" : settingKey === "showDate" ? "📅" : settingKey === "showPlace" ? "📍" : "✍️"}
+                            </span>
+                            <span className="max-w-full whitespace-nowrap text-[0.82rem] leading-4">
+                              {label}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {gratitudeOverlayRailHasOverflow ? <RailOverflowCorner theme={theme} /> : null}
                   </div>
                 </div>
 
@@ -31103,36 +30942,38 @@ function GratitudeLensPanel({
                     <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textMuted }}>
                       {ts('labels.gratitudeStickers')}
                     </p>
-                    {gratitudeStickerRailHasOverflow ? <RailOverflowCue theme={theme} className="size-7" /> : null}
                   </div>
-                  <div
-                    ref={gratitudeStickerRailRef}
-                    className={`mt-2 flex gap-2 overflow-x-auto snap-x snap-mandatory pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${gratitudeStickerRailHasOverflow ? "pr-10" : ""}`.trim()}
-                  >
-                    {GRATITUDE_STICKERS.map((sticker) => {
-                      const isActive = visual.stickers.includes(sticker);
-                      return (
-                        <button
-                          key={sticker}
-                          type="button"
-                          onClick={() => toggleSticker(sticker)}
-                          className={gratitudeRailChipClass}
-                          style={{
-                            borderColor: isActive ? theme.primary : theme.borderMedium,
-                            backgroundColor: isActive ? theme.bgCardElevated : theme.bgInput,
-                            color: theme.textPrimary,
-                            boxShadow: isActive ? `0 10px 18px color-mix(in srgb, ${theme.primary} 14%, transparent)` : "none",
-                          }}
-                        >
-                          <span aria-hidden="true" className="text-lg leading-none">
-                            {GRATITUDE_STICKER_MARK[sticker]}
-                          </span>
-                          <span className="max-w-full whitespace-nowrap text-[0.82rem] leading-4">
-                            {gratitudeStickerLabel(sticker)}
-                          </span>
-                        </button>
-                      );
-                    })}
+                  <div className="relative mt-2">
+                    <div
+                      ref={gratitudeStickerRailRef}
+                      className={`flex gap-2 overflow-x-auto snap-x snap-mandatory pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${gratitudeStickerRailHasOverflow ? "pr-10 sm:pr-12" : ""}`.trim()}
+                    >
+                      {GRATITUDE_STICKERS.map((sticker) => {
+                        const isActive = visual.stickers.includes(sticker);
+                        return (
+                          <button
+                            key={sticker}
+                            type="button"
+                            onClick={() => toggleSticker(sticker)}
+                            className={gratitudeRailChipClass}
+                            style={{
+                              borderColor: isActive ? theme.primary : theme.borderMedium,
+                              backgroundColor: isActive ? theme.bgCardElevated : theme.bgInput,
+                              color: theme.textPrimary,
+                              boxShadow: isActive ? `0 10px 18px color-mix(in srgb, ${theme.primary} 14%, transparent)` : "none",
+                            }}
+                          >
+                            <span aria-hidden="true" className="text-lg leading-none">
+                              {GRATITUDE_STICKER_MARK[sticker]}
+                            </span>
+                            <span className="max-w-full whitespace-nowrap text-[0.82rem] leading-4">
+                              {gratitudeStickerLabel(sticker)}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {gratitudeStickerRailHasOverflow ? <RailOverflowCorner theme={theme} /> : null}
                   </div>
                 </div>
 
@@ -31141,35 +30982,37 @@ function GratitudeLensPanel({
                     <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textMuted }}>
                       {ts('labels.gratitudeEmoji')}
                     </p>
-                    {gratitudeEmojiRailHasOverflow ? <RailOverflowCue theme={theme} className="size-7" /> : null}
                   </div>
-                  <div
-                    ref={gratitudeEmojiRailRef}
-                    className={`mt-2 flex flex-nowrap gap-2 overflow-x-auto snap-x snap-mandatory pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${gratitudeEmojiRailHasOverflow ? "pr-10" : ""}`.trim()}
-                  >
-                    {GRATITUDE_EMOJIS.map((emoji) => {
-                      const isActive = visual.emoji === emoji;
-                      return (
-                        <button
-                          key={emoji || "none"}
-                          type="button"
-                          onClick={() => setVisual((current) => ({ ...current, emoji }))}
-                          className="premium-tap-card inline-flex min-h-16 min-w-[5.8rem] shrink-0 snap-start flex-col items-center justify-center gap-1 rounded-2xl border px-3 py-2 text-center text-sm font-semibold leading-tight transition active:scale-[0.98]"
-                          style={{
-                            borderColor: isActive ? theme.primary : theme.borderMedium,
-                            backgroundColor: isActive ? theme.primary : theme.bgInput,
-                            color: isActive ? theme.textOnPrimary : theme.textPrimary,
-                          }}
-                        >
-                          <span aria-hidden="true" className="text-lg leading-none">
-                            {emoji || "◯"}
-                          </span>
-                          <span className="max-w-full text-[0.82rem] leading-4">
-                            {emoji ? "\u00a0" : ts('labels.gratitudeNoEmoji')}
-                          </span>
-                        </button>
-                      );
-                    })}
+                  <div className="relative mt-2">
+                    <div
+                      ref={gratitudeEmojiRailRef}
+                      className={`flex flex-nowrap gap-2 overflow-x-auto snap-x snap-mandatory pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${gratitudeEmojiRailHasOverflow ? "pr-10 sm:pr-12" : ""}`.trim()}
+                    >
+                      {GRATITUDE_EMOJIS.map((emoji) => {
+                        const isActive = visual.emoji === emoji;
+                        return (
+                          <button
+                            key={emoji || "none"}
+                            type="button"
+                            onClick={() => setVisual((current) => ({ ...current, emoji }))}
+                            className="premium-tap-card inline-flex min-h-16 min-w-[5.8rem] shrink-0 snap-start flex-col items-center justify-center gap-1 rounded-2xl border px-3 py-2 text-center text-sm font-semibold leading-tight transition active:scale-[0.98]"
+                            style={{
+                              borderColor: isActive ? theme.primary : theme.borderMedium,
+                              backgroundColor: isActive ? theme.primary : theme.bgInput,
+                              color: isActive ? theme.textOnPrimary : theme.textPrimary,
+                            }}
+                          >
+                            <span aria-hidden="true" className="text-lg leading-none">
+                              {emoji || "◯"}
+                            </span>
+                            <span className="max-w-full text-[0.82rem] leading-4">
+                              {emoji ? "\u00a0" : ts('labels.gratitudeNoEmoji')}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {gratitudeEmojiRailHasOverflow ? <RailOverflowCorner theme={theme} /> : null}
                   </div>
                 </div>
               </div>
@@ -31260,12 +31103,7 @@ function GratitudeLensPanel({
           </div>
 
           {visibleEntries.length ? (
-            <>
-              {gratitudeRailHasOverflow ? (
-                <div className="mt-4 flex justify-end">
-                  <RailOverflowCue theme={theme} className="size-7" />
-                </div>
-              ) : null}
+            <div className={`relative ${savedReflectionsRailHasOverflow ? "pr-10 sm:pr-12" : ""}`.trim()}>
               <section
                 ref={gratitudeRailRef}
                 aria-label={ts('labels.gratitudeTimeline')}
@@ -31322,7 +31160,8 @@ function GratitudeLensPanel({
                   );
                 })}
               </section>
-            </>
+              {gratitudeRailHasOverflow ? <RailOverflowCorner theme={theme} /> : null}
+            </div>
           ) : (
             <div className="mt-4 rounded-xl border border-dashed p-4 text-sm leading-6" style={{ borderColor: theme.borderMedium, color: theme.textSecondary }}>
               {ts('labels.gratitudeTimelineEmpty')}
@@ -31522,49 +31361,47 @@ function LibraryPanel({
           {railEntries.length ? (
             <div className="mt-3 flex items-center justify-between gap-3 text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: railText.railMuted }}>
               <span>{ts('labels.wisdomLibrary')}</span>
-              {libraryRailHasOverflow ? (
-                <RailOverflowCue theme={theme} className="size-7" />
-              ) : null}
             </div>
           ) : null}
 
           {railEntries.length ? (
-            <section
-              ref={libraryRailRef}
-              aria-label={ts('labels.wisdomLibrary')}
-              className="mt-2 flex min-w-0 snap-x gap-3 overflow-x-auto pb-1 sm:mt-2.5 sm:gap-4 [-webkit-overflow-scrolling:touch]"
-            >
-              {railEntries.map((entry, index) => {
-                const localizedEntry = localizedWisdomLibraryEntry(entry, preferences);
-                return (
-                  <article
-                    key={entry.scripture}
-                    className="premium-tap-card relative flex w-full min-w-full shrink-0 snap-start flex-col overflow-hidden rounded-[1.45rem] border text-left shadow-[0_10px_24px_rgba(7,10,8,0.08)] transition"
-                    style={{
-                      height: "calc(15rem + var(--aletheia-rail-card-height-offset, 0rem))",
-                      borderColor: theme.borderMedium,
-                      backgroundColor: theme.bgCardElevated,
-                      boxShadow: "0 8px 18px rgba(7, 10, 8, 0.06)",
-                    }}
-                    >
-                      <div
-                      className="relative overflow-hidden"
+            <div className="relative mt-2.5">
+              <section
+                ref={libraryRailRef}
+                aria-label={ts('labels.wisdomLibrary')}
+                className={`flex min-w-0 snap-x gap-3 overflow-x-auto pb-1 sm:gap-4 [-webkit-overflow-scrolling:touch] ${libraryRailHasOverflow ? "pr-10 sm:pr-12" : ""}`.trim()}
+              >
+                {railEntries.map((entry, index) => {
+                  const localizedEntry = localizedWisdomLibraryEntry(entry, preferences);
+                  return (
+                    <article
+                      key={entry.scripture}
+                      className="premium-tap-card relative flex w-full min-w-full shrink-0 snap-start flex-col overflow-hidden rounded-[1.45rem] border text-left shadow-[0_10px_24px_rgba(7,10,8,0.08)] transition"
                       style={{
-                        height: "calc(4.15rem + var(--aletheia-rail-card-hero-height-offset, 0rem))",
-                        background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryHover} 100%)`,
+                        height: "calc(15rem + var(--aletheia-rail-card-height-offset, 0rem))",
+                        borderColor: theme.borderMedium,
+                        backgroundColor: theme.bgCardElevated,
+                        boxShadow: "0 8px 18px rgba(7, 10, 8, 0.06)",
                       }}
                     >
-                      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.18),transparent_40%),radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.08),transparent_38%)]" />
                       <div
-                        className="absolute left-2.5 top-2.5 grid size-[1.55rem] place-items-center rounded-full border shadow-[0_10px_18px_rgba(0,0,0,0.18)]"
+                        className="relative overflow-hidden"
                         style={{
-                          borderColor: theme.borderLight,
-                          backgroundColor: theme.bgInput,
+                          height: "calc(4.15rem + var(--aletheia-rail-card-hero-height-offset, 0rem))",
+                          background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryHover} 100%)`,
                         }}
                       >
-                        <BookOpen size={12} style={{ color: theme.textPrimary }} />
+                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.18),transparent_40%),radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.08),transparent_38%)]" />
+                        <div
+                          className="absolute left-2.5 top-2.5 grid size-[1.55rem] place-items-center rounded-full border shadow-[0_10px_18px_rgba(0,0,0,0.18)]"
+                          style={{
+                            borderColor: theme.borderLight,
+                            backgroundColor: theme.bgInput,
+                          }}
+                        >
+                          <BookOpen size={12} style={{ color: theme.textPrimary }} />
+                        </div>
                       </div>
-                    </div>
 
                     <div className="flex flex-1 flex-col gap-1.5 p-3.5">
                       <button
@@ -31601,10 +31438,12 @@ function LibraryPanel({
                         </span>
                       </div>
                     </div>
-                  </article>
-                );
-              })}
-            </section>
+                    </article>
+                  );
+                })}
+              </section>
+              {libraryRailHasOverflow ? <RailOverflowCorner theme={theme} /> : null}
+            </div>
           ) : (
             <div className="mt-4 rounded-xl border border-dashed p-4 text-sm leading-6" style={{ borderColor: theme.borderMedium, color: theme.textSecondary }}>
               No wisdom entries yet.
@@ -31707,12 +31546,7 @@ function JournalPanel({
           </div>
 
           {entries.length ? (
-            <>
-              {savedReflectionsRailHasOverflow ? (
-                <div className="mt-4 flex justify-end">
-                  <RailOverflowCue theme={theme} className="size-7" />
-                </div>
-              ) : null}
+            <div className={`relative ${savedReflectionsRailHasOverflow ? "pr-10 sm:pr-12" : ""}`.trim()}>
               <section
                 ref={savedReflectionsRailRef}
                 aria-label={ts('labels.savedReflections')}
@@ -31753,9 +31587,10 @@ function JournalPanel({
                       </div>
                     </div>
                   </button>
-                ))}
+                  ))}
               </section>
-            </>
+              {savedReflectionsRailHasOverflow ? <RailOverflowCorner theme={theme} /> : null}
+            </div>
           ) : (
             <div className="mt-4 rounded-lg border border-dashed p-4 text-sm leading-6" style={{ borderColor: theme.borderMedium, color: theme.textMuted }}>
               {ts('labels.noReflectionsYet')}
@@ -31857,19 +31692,7 @@ function JournalEntryDetailModal({
                 {dateLabel} · {timeLabel} · {modeLabel}
               </p>
             </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="absolute right-0 top-1/2 grid size-10 shrink-0 -translate-y-1/2 place-items-center rounded-full border transition shadow-sm"
-              style={{
-                borderColor: theme.borderMedium,
-                backgroundColor: theme.bgInput,
-                color: theme.textPrimary,
-              }}
-              aria-label={ts("labels.close")}
-            >
-              <X size={16} />
-            </button>
+            <ModalCornerCloseButton onClick={onClose} theme={theme} ariaLabel={ts("labels.close")} />
           </div>
         </div>
 
