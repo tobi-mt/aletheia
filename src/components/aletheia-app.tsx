@@ -55,7 +55,7 @@ import {
   Volume2,
   X,
 } from "lucide-react";
-import { buildDecisionDraftPrefill, buildDecisionSummary, detectPatterns, scoreDecision } from "@/lib/decision-intelligence";
+import { buildDecisionCardPreview, buildDecisionDraftPrefill, buildDecisionSummary, detectPatterns, scoreDecision } from "@/lib/decision-intelligence";
 import enTranslations from "@/locales/en.json";
 import { DEFAULT_TODAY_VISUAL_THEME, THEME_KEYS } from "@/lib/theme-keys";
 import {
@@ -25239,7 +25239,7 @@ function DecisionMemoryArchiveSection({
             {sortedEntries.map((entry) => {
               const createdLabel = formatDateTime(entry.createdAt);
               const modeLabel = entry.mode && isMode(entry.mode) ? ts(modeTranslationKey(entry.mode), entry.mode) : entry.mode;
-              const detailText = entry.summary || entry.pressure;
+              const detailText = buildDecisionCardPreview(entry.summary, entry.pressure);
               const readinessLabel = typeof entry.readiness === "number" ? `${ts("labels.readiness")} ${entry.readiness}/100` : null;
               const finalDecisionLabel = entry.finalDecision ? ts("placeholders.finalDecision") : null;
 
@@ -30138,8 +30138,8 @@ function DecisionCompanionPanel({
                             </span>
                           ) : null}
                         </div>
-                        <p className="mt-3 line-clamp-3 whitespace-pre-line text-sm leading-6" style={{ color: theme.textSecondary }}>
-                          {decision.summary || ts('labels.sharedDecisionSummaryPending')}
+                        <p className="mt-3 line-clamp-2 whitespace-pre-line text-sm leading-6" style={{ color: theme.textSecondary }}>
+                          {buildDecisionCardPreview(decision.summary, ts('labels.sharedDecisionSummaryPending'))}
                         </p>
                         <div className="mt-3 flex flex-wrap gap-2">
                           <span className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textSecondary }}>
@@ -30213,8 +30213,8 @@ function DecisionCompanionPanel({
                               : ts("status.waitingForAcceptance")}
                           </span>
                         </div>
-                        <p className="mt-3 line-clamp-3 whitespace-pre-line text-sm leading-6" style={{ color: theme.textSecondary }}>
-                          {share.summary || ts('labels.sharedDecisionSummaryPending')}
+                        <p className="mt-3 line-clamp-2 whitespace-pre-line text-sm leading-6" style={{ color: theme.textSecondary }}>
+                          {buildDecisionCardPreview(share.summary, ts('labels.sharedDecisionSummaryPending'))}
                         </p>
                         <div className="mt-3 flex flex-wrap gap-2">
                           <span className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textSecondary }}>

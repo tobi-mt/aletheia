@@ -107,6 +107,42 @@ export function buildDecisionDraftPrefill(question: string, answer: string) {
   return { title, pressure, emotion };
 }
 
+export function buildDecisionCardPreview(summary: string | null | undefined, fallback: string) {
+  const normalizedSummary = (summary ?? "").trim();
+  if (!normalizedSummary) {
+    return fallback;
+  }
+
+  const lines = normalizedSummary
+    .split(/\n+/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  const bodyLines = lines.length > 1 ? lines.slice(1) : lines;
+  const stripLabel = (value: string, label: string) => value.replace(new RegExp(`^${label}\\s*:?\\s*`, "i"), "").trim();
+  const nextFaithfulStep = bodyLines.find((line) => /^next faithful step/i.test(line));
+  if (nextFaithfulStep) {
+    return stripLabel(nextFaithfulStep, "next faithful step");
+  }
+
+  const mainConcern = bodyLines.find((line) => /^main concern/i.test(line));
+  if (mainConcern) {
+    return stripLabel(mainConcern, "main concern");
+  }
+
+  const firstQuestion = bodyLines.find((line) => /^questions to ask/i.test(line));
+  if (firstQuestion) {
+    return stripLabel(firstQuestion, "questions to ask");
+  }
+
+  const previewLines = bodyLines.filter(
+    (line) =>
+      !/^(?:title|mode|initial pressure|initial emotion|wisdom lens|scripture anchors|discernment signal|questions to ask|next faithful step)\b/i.test(line)
+  );
+  const candidate = previewLines[0] ?? bodyLines[0] ?? lines[0] ?? fallback;
+  return candidate.length > 120 ? `${candidate.slice(0, 119).trimEnd()}…` : candidate;
+}
+
 export function scoreDecision({
   pressure,
   emotion,
