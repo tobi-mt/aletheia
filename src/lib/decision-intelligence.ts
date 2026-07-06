@@ -155,6 +155,79 @@ export function buildDecisionCardPreview(summary: string | null | undefined, fal
   return candidate.length > 120 ? `${candidate.slice(0, 119).trimEnd()}…` : candidate;
 }
 
+export type ParsedDecisionSummary = {
+  title: string | null;
+  mode: string | null;
+  initialPressure: string | null;
+  initialEmotion: string | null;
+  wisdomLens: string | null;
+  scriptureAnchors: string[];
+  discernmentSignals: string[];
+  questionsToAsk: string[];
+  nextFaithfulStep: string | null;
+};
+
+export function parseDecisionSummary(summary: string | null | undefined): ParsedDecisionSummary {
+  const normalizedSummary = (summary ?? "").trim();
+  if (!normalizedSummary) {
+    return {
+      title: null,
+      mode: null,
+      initialPressure: null,
+      initialEmotion: null,
+      wisdomLens: null,
+      scriptureAnchors: [],
+      discernmentSignals: [],
+      questionsToAsk: [],
+      nextFaithfulStep: null,
+    };
+  }
+
+  const lines = normalizedSummary
+    .split(/\n+/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const bodyLines = lines.length > 1 ? lines.slice(1) : [];
+  const findLine = (pattern: RegExp) => bodyLines.find((line) => pattern.test(line)) ?? null;
+  const extractField = (label: string) => {
+    const matched = findLine(new RegExp(`^${label}\\s*:?\\s*`, "i"));
+    return matched ? matched.replace(new RegExp(`^${label}\\s*:?\\s*`, "i"), "").trim() || null : null;
+  };
+  const findSectionIndex = (label: string) => bodyLines.findIndex((line) => new RegExp(`^${label}$`, "i").test(line));
+  const sectionLines = (startLabel: string, endLabel?: string) => {
+    const startIndex = findSectionIndex(startLabel);
+    if (startIndex < 0) {
+      return [];
+    }
+    const endIndex = endLabel ? findSectionIndex(endLabel) : -1;
+    return bodyLines
+      .slice(startIndex + 1, endIndex >= 0 ? endIndex : undefined)
+      .map((line) => line.replace(/^[-•]\s*/, "").trim())
+      .filter(Boolean);
+  };
+
+  const questionsStartIndex = findSectionIndex("Questions to ask");
+  const nextFaithfulStepIndex = findSectionIndex("Next faithful step");
+
+  return {
+    title: lines[0] ?? null,
+    mode: extractField("Mode"),
+    initialPressure: extractField("Initial pressure"),
+    initialEmotion: extractField("Initial emotion"),
+    wisdomLens: sectionLines("Wisdom lens", "Scripture anchors")[0] ?? null,
+    scriptureAnchors: sectionLines("Scripture anchors", "Discernment signal"),
+    discernmentSignals: sectionLines("Discernment signal", "Questions to ask"),
+    questionsToAsk:
+      questionsStartIndex >= 0
+        ? bodyLines
+            .slice(questionsStartIndex + 1, nextFaithfulStepIndex >= 0 ? nextFaithfulStepIndex : undefined)
+            .map((line) => line.replace(/^[-•]\s*/, "").trim())
+            .filter(Boolean)
+        : [],
+    nextFaithfulStep: nextFaithfulStepIndex >= 0 ? bodyLines[nextFaithfulStepIndex + 1] ?? null : null,
+  };
+}
+
 export function scoreDecision({
   pressure,
   emotion,

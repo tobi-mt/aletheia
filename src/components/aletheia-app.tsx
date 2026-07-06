@@ -55,7 +55,7 @@ import {
   Volume2,
   X,
 } from "lucide-react";
-import { buildDecisionCardPreview, buildDecisionDraftPrefill, buildDecisionSummary, detectPatterns, scoreDecision } from "@/lib/decision-intelligence";
+import { buildDecisionCardPreview, buildDecisionDraftPrefill, buildDecisionSummary, detectPatterns, parseDecisionSummary, scoreDecision } from "@/lib/decision-intelligence";
 import enTranslations from "@/locales/en.json";
 import { DEFAULT_TODAY_VISUAL_THEME, THEME_KEYS } from "@/lib/theme-keys";
 import {
@@ -25166,6 +25166,171 @@ function WisdomTimelineModal({
   );
 }
 
+function SummaryMetricCard({
+  theme,
+  label,
+  value,
+  subtle = false,
+}: {
+  theme: ThemeColors;
+  label: string;
+  value: string;
+  subtle?: boolean;
+}) {
+  return (
+    <div
+      className="rounded-[1.1rem] border px-3 py-2.5"
+      style={{
+        borderColor: theme.borderLight,
+        backgroundColor: subtle ? theme.bgCardElevated : theme.bgCard,
+      }}
+    >
+      <p className="text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textSecondary }}>
+        {label}
+      </p>
+      <p className="mt-1.5 text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function DecisionSummaryBreakdown({
+  theme,
+  ts,
+  summary,
+  readiness,
+  modeLabel,
+  showInitialPressure = true,
+  pressureLabel,
+}: {
+  theme: ThemeColors;
+  ts: (key: string, fallback?: string) => string;
+  summary: string | null | undefined;
+  readiness?: number | null;
+  modeLabel?: string | null;
+  showInitialPressure?: boolean;
+  pressureLabel?: string | null;
+}) {
+  const parsed = parseDecisionSummary(summary);
+  const signalRows = parsed.discernmentSignals
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  if (!parsed.title && !signalRows.length && !parsed.nextFaithfulStep && !parsed.scriptureAnchors.length && !parsed.wisdomLens) {
+    return null;
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="grid gap-2.5 sm:grid-cols-3">
+        <SummaryMetricCard
+          theme={theme}
+          label={ts("labels.mode", "Mode")}
+          value={parsed.mode ?? modeLabel ?? ts("labels.notSet", "Not set")}
+          subtle
+        />
+        <SummaryMetricCard
+          theme={theme}
+          label={ts("labels.initialEmotion", "Initial emotion")}
+          value={parsed.initialEmotion ?? ts("labels.notSet", "Not set")}
+          subtle
+        />
+        <SummaryMetricCard
+          theme={theme}
+          label={ts("labels.readiness")}
+          value={typeof readiness === "number" ? `${readiness}/100` : ts("labels.notSet", "Not set")}
+          subtle
+        />
+      </div>
+
+      {showInitialPressure ? (
+        <section className="rounded-[1.35rem] border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+            {ts("labels.initialPressure", "Initial pressure")}
+          </p>
+          <p className="mt-2 text-[1rem] leading-7 text-balance" style={{ color: theme.textPrimary }}>
+            {pressureLabel ?? parsed.initialPressure ?? ts("labels.notSet", "Not set")}
+          </p>
+        </section>
+      ) : null}
+
+      {parsed.wisdomLens ? (
+        <section className="rounded-[1.35rem] border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+            {ts("labels.wisdomLens", "Wisdom lens")}
+          </p>
+          <p className="mt-2 text-[1rem] leading-7 text-balance" style={{ color: theme.textPrimary }}>
+            {parsed.wisdomLens}
+          </p>
+        </section>
+      ) : null}
+
+      {parsed.scriptureAnchors.length ? (
+        <section className="rounded-[1.35rem] border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+            {ts("labels.scriptureAnchors", "Scripture anchors")}
+          </p>
+          <div className="mt-3 space-y-2">
+            {parsed.scriptureAnchors.map((anchor) => (
+              <div key={anchor} className="rounded-[1rem] border px-3 py-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                <p className="text-sm leading-6" style={{ color: theme.textPrimary }}>
+                  {anchor}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {signalRows.length ? (
+        <section className="rounded-[1.35rem] border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+            {ts("labels.discernmentSignals")}
+          </p>
+          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+            {signalRows.map((signal) => (
+              <div key={signal} className="rounded-[1rem] border px-3 py-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                <p className="text-sm leading-6" style={{ color: theme.textPrimary }}>
+                  {signal}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {parsed.questionsToAsk.length ? (
+        <section className="rounded-[1.35rem] border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+            {ts("labels.questionsToAsk", "Questions to ask")}
+          </p>
+          <div className="mt-3 space-y-2">
+            {parsed.questionsToAsk.map((question) => (
+              <div key={question} className="rounded-[1rem] border px-3 py-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                <p className="text-sm leading-6" style={{ color: theme.textPrimary }}>
+                  {question}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {parsed.nextFaithfulStep ? (
+        <section className="rounded-[1.35rem] border p-4" style={{ borderColor: theme.accentLight, backgroundColor: theme.bgCard }}>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+            {ts("nextFaithfulStep")}
+          </p>
+          <p className="mt-2 text-[1rem] leading-7 text-balance" style={{ color: theme.textPrimary }}>
+            {parsed.nextFaithfulStep}
+          </p>
+        </section>
+      ) : null}
+    </div>
+  );
+}
+
 function DecisionMemoryArchiveSection({
   theme,
   ts,
@@ -25513,9 +25678,16 @@ function DecisionMemoryDetailModal({
               <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
                 {ts("labels.decisionSummary")}
               </p>
-              <p className="mt-2 text-[1rem] leading-7" style={{ color: theme.textPrimary }}>
-                {entry.summary}
-              </p>
+              <div className="mt-3">
+                <DecisionSummaryBreakdown
+                  theme={theme}
+                  ts={ts}
+                  summary={entry.summary}
+                  readiness={entry.readiness}
+                  modeLabel={modeLabel}
+                  showInitialPressure={false}
+                />
+              </div>
             </section>
           ) : null}
 
@@ -25687,6 +25859,7 @@ function SharedDecisionDetailModal({
   const sharedAt = formatDate(decision.sharedAt);
   const waitingUntil = formatDate(decision.waitingUntil);
   const roleLabel = localizedCounselRoleLabel(invite.invite.role, ts);
+  const modeLabel = isMode(decision.mode) ? ts(modeTranslationKey(decision.mode), decision.mode) : decision.mode;
   const sortedComments = [...threadComments].sort((left, right) => Date.parse(left.createdAt) - Date.parse(right.createdAt));
 
   async function submitComment(event: FormEvent<HTMLFormElement>) {
@@ -25777,9 +25950,16 @@ function SharedDecisionDetailModal({
               <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
                 {ts("labels.decisionSummary")}
               </p>
-              <p className="mt-2 whitespace-pre-line text-[1rem] leading-7" style={{ color: theme.textPrimary }}>
-                {decision.summary}
-              </p>
+              <div className="mt-3">
+                <DecisionSummaryBreakdown
+                  theme={theme}
+                  ts={ts}
+                  summary={decision.summary}
+                  readiness={decision.readiness}
+                  modeLabel={modeLabel}
+                  showInitialPressure
+                />
+              </div>
             </section>
           ) : null}
 
@@ -25912,6 +26092,7 @@ function OutgoingSharedDecisionDetailModal({
   });
   const sharedAt = Number.isNaN(new Date(share.sharedAt).getTime()) ? null : dateFormatter.format(new Date(share.sharedAt));
   const roleLabel = localizedCounselRoleLabel(contact.role, ts);
+  const modeLabel = isMode(share.mode) ? ts(modeTranslationKey(share.mode), share.mode) : share.mode;
   const recipientCount = Math.max(share.acceptedRecipientCount, contact.inviteStatus === "accepted" ? 1 : 0);
   const sortedComments = [...threadComments].sort((left, right) => Date.parse(left.createdAt) - Date.parse(right.createdAt));
 
@@ -26011,9 +26192,16 @@ function OutgoingSharedDecisionDetailModal({
               <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
                 {ts("labels.decisionSummary")}
               </p>
-              <p className="mt-2 whitespace-pre-line text-[1rem] leading-7" style={{ color: theme.textPrimary }}>
-                {item.share.summary}
-              </p>
+              <div className="mt-3">
+                <DecisionSummaryBreakdown
+                  theme={theme}
+                  ts={ts}
+                  summary={item.share.summary}
+                  readiness={item.share.readiness}
+                  modeLabel={modeLabel}
+                  showInitialPressure
+                />
+              </div>
             </section>
           ) : null}
 
