@@ -12420,15 +12420,39 @@ function startFirstRunGuestFlow() {
         }),
       };
     });
-    const eventBody =
-      patch.event ??
-      (patch.waitingDays
-        ? `Entered waiting mode for ${patch.waitingDays} day${patch.waitingDays === 1 ? "" : "s"}.`
-        : patch.revisitDays
-          ? `Scheduled a decision revisit for ${patch.revisitDays} day${patch.revisitDays === 1 ? "" : "s"} from now.`
-          : patch.outcomeReviewDays
-            ? `Scheduled an outcome review for ${patch.outcomeReviewDays} days from now.`
-            : "");
+    const eventParts: string[] = [];
+    if (patch.counselSought !== undefined && patch.counselSought !== current.counselSought) {
+      eventParts.push(patch.counselSought ? "Counsel marked as sought." : "Counsel marked as still needed.");
+    }
+    if (patch.costCounted !== undefined && patch.costCounted !== current.costCounted) {
+      eventParts.push(patch.costCounted ? "Real cost marked as counted." : "Cost review reopened.");
+    }
+    if (patch.peaceOverUrgency !== undefined && patch.peaceOverUrgency !== current.peaceOverUrgency) {
+      eventParts.push(patch.peaceOverUrgency ? "Peace marked as leading." : "Urgency marked as leading.");
+    }
+    if (patch.waitingDays !== undefined) {
+      if (typeof patch.waitingDays === "number" && patch.waitingDays > 0) {
+        eventParts.push(`Waiting period set to ${patch.waitingDays} day${patch.waitingDays === 1 ? "" : "s"}.`);
+      } else {
+        eventParts.push("Waiting period cleared.");
+      }
+    }
+    if (patch.revisitDays !== undefined) {
+      if (typeof patch.revisitDays === "number" && patch.revisitDays > 0) {
+        eventParts.push(`Decision revisit set for ${patch.revisitDays} day${patch.revisitDays === 1 ? "" : "s"} from now.`);
+      } else {
+        eventParts.push("Decision revisit cleared.");
+      }
+    }
+    if (patch.outcomeReviewDays !== undefined) {
+      if (typeof patch.outcomeReviewDays === "number" && patch.outcomeReviewDays > 0) {
+        eventParts.push(`Outcome review set for ${patch.outcomeReviewDays} day${patch.outcomeReviewDays === 1 ? "" : "s"} from now.`);
+      } else {
+        eventParts.push("Outcome review cleared.");
+      }
+    }
+
+    const eventBody = patch.event ?? eventParts.join(" ");
     const events = eventBody
       ? [
           {
@@ -13375,6 +13399,7 @@ function startFirstRunGuestFlow() {
                       onBulkShareDecisionsWithCounsel={bulkShareDecisionsWithCounsel}
                       onSendSharedDecisionComment={addSharedDecisionComment}
                       onSendCounselInviteComment={addCounselInviteComment}
+                      onUpdateDecision={updateDecision}
                       pendingDecisionShareSurfaceFocusContactId={pendingDecisionShareSurfaceFocusContactId}
                       onPendingDecisionShareSurfaceFocusHandled={() => setPendingDecisionShareSurfaceFocusContactId(null)}
                       onOpenReceivedCounselInvite={openReceivedCounselInvite}
@@ -25139,18 +25164,25 @@ function DecisionMemoryArchiveSection({
   ts,
   language,
   entries,
+  decisions,
+  onOpenTimeline,
+  onUpdateDecision,
   className,
 }: {
   theme: ThemeColors;
   ts: (key: string, fallback?: string) => string;
   language: LanguageCode;
   entries: DecisionMemorySeed[];
+  decisions: WisdomDecision[];
+  onOpenTimeline: () => void;
+  onUpdateDecision: (id: string, patch: Partial<WisdomDecision> & { waitingDays?: number | null; revisitDays?: number | null; outcomeReviewDays?: number | null; event?: string; }) => Promise<void> | void;
   className?: string;
 }) {
   const sortedEntries = [...entries].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   const railRef = useRef<HTMLDivElement | null>(null);
   const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
   const selectedEntry = sortedEntries.find((entry) => entry.id === selectedEntryId) ?? null;
+  const selectedDecision = selectedEntry ? decisions.find((decision) => decision.id === selectedEntry.id) ?? null : null;
   const hasOverflow = useRailOverflowCue(railRef, true, [sortedEntries.length, language]);
   const dateFormatter = new Intl.DateTimeFormat(language, {
     month: "short",
@@ -25172,9 +25204,27 @@ function DecisionMemoryArchiveSection({
 
   return (
     <section aria-label={ts("labels.decisionMemory")} className={`space-y-3 ${className ?? ""}`.trim()}>
-      <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>
-        {ts("labels.decisionArchiveReadiness")}
-      </p>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
+            {ts("labels.wisdomTimeline")}
+          </p>
+          <h2 className="mt-1.5 text-[1.08rem] min-[390px]:text-[1.14rem] min-[430px]:text-xl font-semibold leading-tight text-balance" style={{ color: theme.textPrimary }}>
+            {ts('decisionTimeline.title')}
+          </h2>
+          <p className="mt-1.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
+            {ts("labels.decisionArchiveReadiness")}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onOpenTimeline}
+          className="premium-tap-card inline-flex h-10 shrink-0 items-center justify-center rounded-full px-4 text-xs font-semibold"
+          style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+        >
+          {ts('labels.wisdomTimeline')}
+        </button>
+      </div>
 
       {sortedEntries.length ? (
         <div className="relative pt-0.5">
@@ -25258,6 +25308,8 @@ function DecisionMemoryArchiveSection({
         ts={ts}
         language={language}
         entry={selectedEntry}
+        decision={selectedDecision}
+        onUpdateDecision={onUpdateDecision}
         onClose={() => setSelectedEntryId(null)}
       />
     </section>
@@ -25270,6 +25322,8 @@ function DecisionMemoryDetailModal({
   ts,
   language,
   entry,
+  decision,
+  onUpdateDecision,
   onClose,
 }: {
   open: boolean;
@@ -25277,10 +25331,40 @@ function DecisionMemoryDetailModal({
   ts: (key: string, fallback?: string) => string;
   language: LanguageCode;
   entry: DecisionMemorySeed | null;
+  decision: WisdomDecision | null;
+  onUpdateDecision: (id: string, patch: Partial<WisdomDecision> & { waitingDays?: number | null; revisitDays?: number | null; outcomeReviewDays?: number | null; event?: string; }) => Promise<void> | void;
   onClose: () => void;
 }) {
   const canUsePortal = typeof document !== "undefined";
+  const [counselSought, setCounselSought] = useState(false);
+  const [costCounted, setCostCounted] = useState(false);
+  const [peaceOverUrgency, setPeaceOverUrgency] = useState(false);
+  const [waitingDays, setWaitingDays] = useState<string>("");
+  const [saving, setSaving] = useState(false);
   useBodyScrollLock(open && canUsePortal);
+
+  useEffect(() => {
+    if (!decision) {
+      setCounselSought(false);
+      setCostCounted(false);
+      setPeaceOverUrgency(false);
+      setWaitingDays("");
+      setSaving(false);
+      return;
+    }
+
+    setCounselSought(Boolean(decision.counselSought));
+    setCostCounted(Boolean(decision.costCounted));
+    setPeaceOverUrgency(Boolean(decision.peaceOverUrgency));
+    if (decision.waitingUntil) {
+      const diffMs = Date.parse(decision.waitingUntil) - Date.now();
+      const diffDays = Math.max(1, Math.round(diffMs / 86400000));
+      setWaitingDays(Number.isFinite(diffDays) && diffDays > 0 ? String(diffDays) : "");
+    } else {
+      setWaitingDays("");
+    }
+    setSaving(false);
+  }, [decision]);
 
   if (!open || !canUsePortal || !entry) {
     return null;
@@ -25306,6 +25390,46 @@ function DecisionMemoryDetailModal({
   const updatedAt = formatDateTime(entry.updatedAt ?? entry.createdAt);
   const modeLabel = entry.mode && isMode(entry.mode) ? ts(modeTranslationKey(entry.mode), entry.mode) : entry.mode;
   const readinessText = typeof entry.readiness === "number" ? `${entry.readiness}/100` : null;
+  const waitingOptions = [
+    { value: "", label: ts("labels.notYet", "No wait") },
+    { value: "1", label: `1 ${ts("labels.day", "day")}` },
+    { value: "3", label: `3 ${ts("labels.days", "days")}` },
+    { value: "7", label: `7 ${ts("labels.days", "days")}` },
+    { value: "14", label: `14 ${ts("labels.days", "days")}` },
+  ];
+  const hasEditableDecision = Boolean(decision);
+  const currentWaitingValue = waitingDays;
+  const hasChanges = hasEditableDecision
+    ? counselSought !== Boolean(decision?.counselSought) ||
+      costCounted !== Boolean(decision?.costCounted) ||
+      peaceOverUrgency !== Boolean(decision?.peaceOverUrgency) ||
+      currentWaitingValue !== (decision?.waitingUntil ? String(Math.max(1, Math.round((Date.parse(decision.waitingUntil) - Date.now()) / 86400000))) : "")
+    : false;
+
+  async function saveSignalUpdates() {
+    if (!decision || saving) {
+      return;
+    }
+
+    const nextWaitingDays = waitingDays ? Number(waitingDays) : null;
+    const nextPatch: Partial<WisdomDecision> & {
+      waitingDays?: number | null;
+      revisitDays?: number | null;
+      outcomeReviewDays?: number | null;
+      event?: string;
+    } = {
+      counselSought,
+      costCounted,
+      peaceOverUrgency,
+      waitingDays: nextWaitingDays,
+    };
+    setSaving(true);
+    try {
+      await onUpdateDecision(decision.id, nextPatch);
+    } finally {
+      setSaving(false);
+    }
+  }
 
   return createPortal(
     <div
@@ -25396,6 +25520,94 @@ function DecisionMemoryDetailModal({
               <p className="mt-2 text-[1rem] leading-7" style={{ color: theme.textPrimary }}>
                 {entry.finalDecision}
               </p>
+            </section>
+          ) : null}
+
+          {decision ? (
+            <section className="rounded-[1.35rem] border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+                {ts("labels.readinessDetails", "Readiness details")}
+              </p>
+              <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                {ts("labels.decisionArchiveReadiness")}
+              </p>
+              <div className="mt-3 grid gap-2">
+                <AccountToggleRow
+                  icon={Compass}
+                  label={ts("labels.counsel", "Counsel")}
+                  body={ts("labels.counselSoughtPrompt", "Did you seek counsel yet?")}
+                  checked={counselSought}
+                  onChange={setCounselSought}
+                  onLabel={ts("labels.yes", "Yes")}
+                  offLabel={ts("labels.notYet", "Not yet")}
+                  theme={theme}
+                />
+                <AccountToggleRow
+                  icon={Scale}
+                  label={ts("labels.cost", "Cost")}
+                  body={ts("labels.costCountedPrompt", "Have you counted the real cost?")}
+                  checked={costCounted}
+                  onChange={setCostCounted}
+                  onLabel={ts("labels.counted", "Counted")}
+                  offLabel={ts("labels.notYet", "Not yet")}
+                  theme={theme}
+                />
+                <AccountToggleRow
+                  icon={Sparkles}
+                  label={ts("labels.peace", "Peace")}
+                  body={ts("labels.peaceOverUrgencyPrompt", "Is peace leading over urgency?")}
+                  checked={peaceOverUrgency}
+                  onChange={setPeaceOverUrgency}
+                  onLabel={ts("labels.yes", "Yes")}
+                  offLabel={ts("labels.notYet", "Not yet")}
+                  theme={theme}
+                />
+                <label className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                  <span className="block text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textSecondary }}>
+                    {ts("labels.waitDays", "Wait")}
+                  </span>
+                  <span className="mt-1 block text-sm leading-5" style={{ color: theme.textSecondary }}>
+                    {ts("labels.waitingPeriodPrompt", "Choose the next waiting period for this decision.")}
+                  </span>
+                  <select
+                    value={currentWaitingValue}
+                    onChange={(event) => setWaitingDays(event.target.value)}
+                    className="mt-3 h-10 w-full rounded-full border px-3 text-sm outline-none"
+                    style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                  >
+                    {waitingOptions.map((option) => (
+                      <option key={option.value || "none"} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              <div className="mt-3 flex flex-wrap items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!decision) return;
+                    setCounselSought(Boolean(decision.counselSought));
+                    setCostCounted(Boolean(decision.costCounted));
+                    setPeaceOverUrgency(Boolean(decision.peaceOverUrgency));
+                    setWaitingDays(decision.waitingUntil ? String(Math.max(1, Math.round((Date.parse(decision.waitingUntil) - Date.now()) / 86400000))) : "");
+                  }}
+                  className="inline-flex h-11 items-center justify-center rounded-full border px-4 text-sm font-semibold transition"
+                  style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                >
+                  {ts("labels.reset", "Reset")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void saveSignalUpdates()}
+                  disabled={!hasChanges || saving}
+                  className="inline-flex h-11 items-center justify-center rounded-full px-4 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60"
+                  style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                >
+                  {saving ? ts("labels.working") : ts("labels.saveChanges", "Save changes")}
+                </button>
+              </div>
             </section>
           ) : null}
 
@@ -29460,6 +29672,7 @@ function DecisionCompanionPanel({
   onBulkShareDecisionsWithCounsel,
   onSendSharedDecisionComment,
   onSendCounselInviteComment,
+  onUpdateDecision,
   pendingDecisionShareSurfaceFocusContactId,
   onPendingDecisionShareSurfaceFocusHandled,
   onRemoveCounselContact,
@@ -29512,6 +29725,7 @@ function DecisionCompanionPanel({
   onBulkShareDecisionsWithCounsel: (contactId: string, decisionIds: string[]) => void;
   onSendSharedDecisionComment: (sharedDecisionId: string, body: string) => Promise<CounselConversationComment | void> | CounselConversationComment | void;
   onSendCounselInviteComment: (decisionId: string, body: string, contactIdOverride?: string | null) => Promise<{ id: string; body: string; createdAt: string; acceptanceId: string | null } | void> | { id: string; body: string; createdAt: string; acceptanceId: string | null } | void;
+  onUpdateDecision: (id: string, patch: Partial<WisdomDecision> & { waitingDays?: number | null; revisitDays?: number | null; outcomeReviewDays?: number | null; event?: string; }) => Promise<void> | void;
   pendingDecisionShareSurfaceFocusContactId: string | null;
   onPendingDecisionShareSurfaceFocusHandled: () => void;
   onRemoveCounselContact: (contactId: string) => void;
@@ -29726,82 +29940,6 @@ function DecisionCompanionPanel({
             body={decisionNextBodyWithFocus}
             theme={theme}
           />
-          <section
-            aria-label={ts('labels.decisionMemory')}
-            className="rounded-[1.35rem] border p-3.5 shadow-[0_8px_24px_rgba(15,23,42,0.05)] sm:p-4"
-            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}
-          >
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-              <div className="min-w-0">
-                <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
-                  {ts('labels.wisdomTimeline')}
-                </p>
-                <h2 className="mt-1.5 text-[1.08rem] min-[390px]:text-[1.14rem] min-[430px]:text-xl font-semibold leading-tight text-balance" style={{ color: theme.textPrimary }}>
-                  {ts('decisionTimeline.title')}
-                </h2>
-                <p className="mt-1.5 max-w-2xl text-sm leading-6 text-balance" style={{ color: theme.textSecondary }}>
-                  {events.length ? ts('runtimePanel.timelineReady') : ts('labels.startDecisionToBeginTimeline')}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setWisdomTimelineOpen(true)}
-                className="premium-tap-card h-10 shrink-0 rounded-full px-4 text-xs font-semibold"
-                style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
-              >
-                {ts('labels.wisdomTimeline')}
-              </button>
-            </div>
-
-            <div className="mt-4">
-              <RailButtonTray theme={theme} label={ts('labels.decisionMemory')}>
-                <div className="premium-tap-card flex w-[11.25rem] shrink-0 snap-start flex-col justify-between rounded-[1.15rem] border p-3 text-left" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
-                    {ts('labels.activeDecisions')}
-                  </p>
-                  <p className="mt-2 text-2xl font-semibold leading-none" style={{ color: theme.textPrimary }}>
-                    {activeDecisions.length}
-                  </p>
-                  <p className="mt-2 text-xs leading-5" style={{ color: theme.textSecondary }}>
-                    {activeDecisions.length ? (selectedDecision?.title ?? runtime.nextInDecisions) : runtime.decisionNextBodyEmpty}
-                  </p>
-                </div>
-                <div className="premium-tap-card flex w-[11.25rem] shrink-0 snap-start flex-col justify-between rounded-[1.15rem] border p-3 text-left" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
-                    {ts('labels.daysDiscerning')}
-                  </p>
-                  <p className="mt-2 text-2xl font-semibold leading-none" style={{ color: theme.textPrimary }}>
-                    {insight.daysDiscerning}
-                  </p>
-                  <p className="mt-2 text-xs leading-5" style={{ color: theme.textSecondary }}>
-                    {runtime.decisionNextBodyActive}
-                  </p>
-                </div>
-                <div className="premium-tap-card flex w-[11.25rem] shrink-0 snap-start flex-col justify-between rounded-[1.15rem] border p-3 text-left" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
-                    {ts('labels.patternsNoticed')}
-                  </p>
-                  <p className="mt-2 text-2xl font-semibold leading-none" style={{ color: theme.textPrimary }}>
-                    {insight.patterns.length}
-                  </p>
-                  <p className="mt-2 text-xs leading-5" style={{ color: theme.textSecondary }}>
-                    {insight.gentleObservation}
-                  </p>
-                </div>
-                <div className="premium-tap-card flex w-[11.25rem] shrink-0 snap-start flex-col justify-between rounded-[1.15rem] border p-3 text-left" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
-                    {ts('labels.trustedVoices')}
-                  </p>
-                  <p className="mt-2 text-2xl font-semibold leading-none" style={{ color: theme.textPrimary }}>
-                    {counselContacts.length}
-                  </p>
-                  <p className="mt-2 text-xs leading-5" style={{ color: theme.textSecondary }}>
-                    {counselContacts.length ? ts('labels.counselCircleSummary') : ts('labels.inviteTrustedPeoplePrivate')}
-                  </p>
-                </div>
-              </RailButtonTray>
-            </div>
-          </section>
         </>
       ) : null}
 
@@ -29860,6 +29998,9 @@ function DecisionCompanionPanel({
                 ts={ts}
                 language={language}
                 entries={visibleDecisionMemoryEntries}
+                decisions={decisions}
+                onOpenTimeline={() => setWisdomTimelineOpen(true)}
+                onUpdateDecision={onUpdateDecision}
               />
 
               {counselContacts.length || activeDecisions.length ? (
