@@ -15386,6 +15386,7 @@ function HomeDashboard({
             theme={theme}
             ts={ts}
             onOpenChallenge={onOpenRecommendedChallenge}
+            homeGlow
             compact
           />
 
@@ -17212,6 +17213,7 @@ function ChallengeRecommendationCard({
   theme,
   ts,
   onOpenChallenge,
+  homeGlow = false,
   alternatives = [],
   showAlternatives = false,
   compact = false,
@@ -17221,6 +17223,7 @@ function ChallengeRecommendationCard({
   theme: ThemeColors;
   ts: (key: string, fallback?: string) => string;
   onOpenChallenge: (challengeId: string) => void;
+  homeGlow?: boolean;
   alternatives?: ChallengeRecommendationBundle["alternatives"];
   showAlternatives?: boolean;
   compact?: boolean;
@@ -17243,6 +17246,12 @@ function ChallengeRecommendationCard({
       ? Check
       : Compass;
   const missedDaysLabel = recommendation.missedDays === 1 ? ts("labels.day") : ts("labels.days");
+  const homeGlowStyles = homeGlow
+    ? ({
+        ["--formation-base-shadow" as "--formation-base-shadow"]: "0 12px 28px rgba(7, 10, 8, 0.08)",
+        ["--formation-glow-base" as "--formation-glow-base"]: theme.accentGold,
+      } as CSSProperties)
+    : undefined;
   const statusToneStyle =
     recommendation.statusTone === "warning"
       ? { borderColor: theme.accentGold, backgroundColor: theme.activeBg, color: theme.textPrimary }
@@ -17252,10 +17261,11 @@ function ChallengeRecommendationCard({
 
   return (
     <section
-      className={`relative overflow-hidden rounded-[1.55rem] border shadow-[0_12px_28px_rgba(7,10,8,0.08)] ${compact ? "p-3.5 sm:p-4" : "p-4 sm:p-5"} ${className}`}
+      className={`relative overflow-hidden rounded-[1.55rem] border shadow-[0_12px_28px_rgba(7,10,8,0.08)] ${compact ? "p-3.5 sm:p-4" : "p-4 sm:p-5"} ${homeGlow ? "formation-card-home-glow" : ""} ${className}`}
       style={{
         borderColor: theme.primary,
         background: `linear-gradient(180deg, color-mix(in srgb, ${theme.bgCardElevated} 90%, ${theme.accentGold} 10%), ${theme.bgCard})`,
+        ...(homeGlowStyles ?? {}),
       }}
     >
       <div className="absolute inset-x-0 top-0 h-1.5" style={{ background: `linear-gradient(90deg, ${theme.accentGold}, ${theme.primary})` }} />

@@ -255,6 +255,32 @@ button, [role="button"] {
   transform: none;
 }
 
+@keyframes formation-card-home-glow {
+  0%, 100% {
+    box-shadow:
+      var(--formation-base-shadow, 0 12px 28px rgba(7, 10, 8, 0.08)),
+      0 0 0 1px color-mix(in srgb, var(--formation-glow-base, #d7bd77) 16%, transparent);
+  }
+
+  50% {
+    box-shadow:
+      var(--formation-base-shadow, 0 12px 28px rgba(7, 10, 8, 0.08)),
+      0 0 0 1px color-mix(in srgb, var(--formation-glow-base, #d7bd77) 34%, transparent),
+      0 0 20px 2px color-mix(in srgb, var(--formation-glow-base, #d7bd77) 18%, transparent);
+  }
+}
+
+.formation-card-home-glow {
+  animation: formation-card-home-glow 6.5s ease-in-out infinite;
+  will-change: box-shadow;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .formation-card-home-glow {
+    animation: none;
+  }
+}
+
 .editorial-surface {
   position: relative;
   overflow: hidden;
