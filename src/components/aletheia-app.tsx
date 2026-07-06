@@ -55,7 +55,7 @@ import {
   Volume2,
   X,
 } from "lucide-react";
-import { buildDecisionSummary, detectPatterns, scoreDecision } from "@/lib/decision-intelligence";
+import { buildDecisionDraftPrefill, buildDecisionSummary, detectPatterns, scoreDecision } from "@/lib/decision-intelligence";
 import enTranslations from "@/locales/en.json";
 import { DEFAULT_TODAY_VISUAL_THEME, THEME_KEYS } from "@/lib/theme-keys";
 import {
@@ -7686,6 +7686,7 @@ export function AletheiaApp({
   const [pendingNotificationFocus, setPendingNotificationFocus] = useState(false);
   const [pendingGratitudeNotificationFocus, setPendingGratitudeNotificationFocus] = useState(false);
   const [pendingDecisionNotificationFocus, setPendingDecisionNotificationFocus] = useState<string | null>(null);
+  const [pendingDecisionComposerFocus, setPendingDecisionComposerFocus] = useState<"title" | "pressure" | null>(null);
   const [pendingDecisionShareSurfaceFocusContactId, setPendingDecisionShareSurfaceFocusContactId] = useState<string | null>(null);
   const [pendingChallengeId, setPendingChallengeId] = useState<string | null>(null);
   const [pendingChallengeFocus, setPendingChallengeFocus] = useState<"nudges" | null>(null);
@@ -10439,9 +10440,11 @@ function startFirstRunGuestFlow() {
       showView("decisions");
       return;
     }
-    setDecisionTitle(question);
-    setDecisionPressure(question);
-    setDecisionEmotion("uncertain");
+    const prefill = buildDecisionDraftPrefill(question, cleanDisplayText(exchange.answer.text));
+    setDecisionTitle((current) => current || prefill.title);
+    setDecisionPressure((current) => current || prefill.pressure);
+    setDecisionEmotion(prefill.emotion);
+    setPendingDecisionComposerFocus("title");
     trackClientEvent("answer_saved_or_acted", { action: "track_decision", mode, ...analyticsQuestionMetadata(question, mode) });
     if (!user) {
       scheduleSignInPrompt("post_answer_action", {
@@ -10487,6 +10490,7 @@ function startFirstRunGuestFlow() {
 
     const question = cleanDisplayText(exchange.question?.text ?? "");
     const answer = cleanDisplayText(exchange.answer.text);
+    const prefill = buildDecisionDraftPrefill(question, answer);
     const sources = (exchange.answer.sources ?? []).map((source) => ({
       ...source,
       modern_application: source.application,
@@ -10494,7 +10498,7 @@ function startFirstRunGuestFlow() {
     }));
     const signals = scoreDecision({
       pressure: `${question}\n\n${answer}`,
-      emotion: "uncertain",
+      emotion: prefill.emotion,
       counselSought: counselContacts.length > 0,
       costCounted: /cost|budget|risk|time|debt|income|expense/i.test(`${question} ${answer}`),
       alignmentClear: /values|calling|steward|wisdom|faithful|peace/i.test(`${question} ${answer}`),
@@ -10502,22 +10506,24 @@ function startFirstRunGuestFlow() {
       peaceOverUrgency: !/urgent|rush|panic|asap|immediately/i.test(question),
     });
     const body = buildDecisionSummary({
-      title: question,
+      title: prefill.title,
       mode,
-      pressure: question,
-      emotion: "uncertain",
+      pressure: prefill.pressure,
+      emotion: prefill.emotion,
       sources,
       signals,
       preferences,
     });
     setCounselSummaryDraft({
       id: crypto.randomUUID(),
-      title: question,
+      title: prefill.title,
       body,
       createdAt: new Date().toISOString(),
     });
-    setDecisionTitle((current) => current || question);
-    setDecisionPressure((current) => current || question);
+    setDecisionTitle((current) => current || prefill.title);
+    setDecisionPressure((current) => current || prefill.pressure);
+    setDecisionEmotion(prefill.emotion);
+    setPendingDecisionComposerFocus("title");
     trackClientEvent("counsel_summary_created", { mode, ...analyticsQuestionMetadata(question, mode) });
     trackClientEvent("answer_saved_or_acted", { action: "create_counsel_summary", mode, ...analyticsQuestionMetadata(question, mode) });
     if (!user) {
@@ -10528,7 +10534,6 @@ function startFirstRunGuestFlow() {
       });
     }
     showView("decisions");
-    scrollToSection("counsel-circle");
     announceWorkflow(ts('notifications.counselSummaryCreated'), ts('notifications.counselSummaryCreatedBody'), "success");
   }
 
@@ -13400,6 +13405,8 @@ function startFirstRunGuestFlow() {
                       onSendSharedDecisionComment={addSharedDecisionComment}
                       onSendCounselInviteComment={addCounselInviteComment}
                       onUpdateDecision={updateDecision}
+                      pendingDecisionComposerFocus={pendingDecisionComposerFocus}
+                      onPendingDecisionComposerFocusHandled={() => setPendingDecisionComposerFocus(null)}
                       pendingDecisionShareSurfaceFocusContactId={pendingDecisionShareSurfaceFocusContactId}
                       onPendingDecisionShareSurfaceFocusHandled={() => setPendingDecisionShareSurfaceFocusContactId(null)}
                       onOpenReceivedCounselInvite={openReceivedCounselInvite}
@@ -29673,6 +29680,8 @@ function DecisionCompanionPanel({
   onSendSharedDecisionComment,
   onSendCounselInviteComment,
   onUpdateDecision,
+  pendingDecisionComposerFocus,
+  onPendingDecisionComposerFocusHandled,
   pendingDecisionShareSurfaceFocusContactId,
   onPendingDecisionShareSurfaceFocusHandled,
   onRemoveCounselContact,
@@ -29726,6 +29735,8 @@ function DecisionCompanionPanel({
   onSendSharedDecisionComment: (sharedDecisionId: string, body: string) => Promise<CounselConversationComment | void> | CounselConversationComment | void;
   onSendCounselInviteComment: (decisionId: string, body: string, contactIdOverride?: string | null) => Promise<{ id: string; body: string; createdAt: string; acceptanceId: string | null } | void> | { id: string; body: string; createdAt: string; acceptanceId: string | null } | void;
   onUpdateDecision: (id: string, patch: Partial<WisdomDecision> & { waitingDays?: number | null; revisitDays?: number | null; outcomeReviewDays?: number | null; event?: string; }) => Promise<void> | void;
+  pendingDecisionComposerFocus: "title" | "pressure" | null;
+  onPendingDecisionComposerFocusHandled: () => void;
   pendingDecisionShareSurfaceFocusContactId: string | null;
   onPendingDecisionShareSurfaceFocusHandled: () => void;
   onRemoveCounselContact: (contactId: string) => void;
@@ -29751,6 +29762,9 @@ function DecisionCompanionPanel({
   const incomingSharedDecisionRailRef = useRef<HTMLDivElement | null>(null);
   const outgoingSharedDecisionRailRef = useRef<HTMLDivElement | null>(null);
   const shareDecisionSurfaceRef = useRef<HTMLDivElement | null>(null);
+  const decisionCompanionCardRef = useRef<HTMLElement | null>(null);
+  const decisionTitleInputRef = useRef<HTMLInputElement | null>(null);
+  const decisionPressureInputRef = useRef<HTMLInputElement | null>(null);
   const activeDecisions = decisions.filter((decision) => decision.status !== "closed");
   const selectedDecision = decisions[0];
   const [decisionSection, setDecisionSection] = useState<"decisions" | "counsel" | "rhythm">("decisions");
@@ -29800,6 +29814,38 @@ function DecisionCompanionPanel({
     const date = new Date(value);
     return Number.isNaN(date.getTime()) ? null : decisionShareDateFormatter.format(date);
   };
+
+  useEffect(() => {
+    if (!pendingDecisionComposerFocus) {
+      return;
+    }
+
+    if (decisionSection !== "decisions") {
+      const openTabHandle = window.requestAnimationFrame(() => {
+        setDecisionSection("decisions");
+      });
+      return () => window.cancelAnimationFrame(openTabHandle);
+    }
+
+    const target = decisionCompanionCardRef.current;
+    if (!target) {
+      return;
+    }
+
+    scrollTargetBelowTopChrome(target);
+    window.requestAnimationFrame(() => {
+      const focusTarget =
+        pendingDecisionComposerFocus === "pressure"
+          ? decisionPressureInputRef.current
+          : decisionTitleInputRef.current;
+      focusTarget?.focus({ preventScroll: true });
+      onPendingDecisionComposerFocusHandled();
+    });
+  }, [
+    decisionSection,
+    onPendingDecisionComposerFocusHandled,
+    pendingDecisionComposerFocus,
+  ]);
 
   async function optimizeCounselAvatarFile(file: File): Promise<string> {
     const imageBitmap = await createImageBitmap(file);
@@ -29946,7 +29992,7 @@ function DecisionCompanionPanel({
       <section className="space-y-4">
         {decisionSection === "decisions" ? (
           <>
-            <section className="rounded-[1.35rem] border p-3.5 shadow-[0_8px_24px_rgba(15,23,42,0.05)] sm:p-4" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+            <section id="decision-companion-card" ref={decisionCompanionCardRef} className="rounded-[1.35rem] border p-3.5 shadow-[0_8px_24px_rgba(15,23,42,0.05)] sm:p-4" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
               <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                 <div className="min-w-0">
                   <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.decisionCompanion')}</p>
@@ -29959,6 +30005,8 @@ function DecisionCompanionPanel({
 
               <form onSubmit={onCreateDecision} className="mt-4 grid gap-2.5 xl:grid-cols-[1fr_1.2fr]">
                 <input
+                  id="decision-title-input"
+                  ref={decisionTitleInputRef}
                   value={title}
                   onChange={(event) => setTitle(event.target.value)}
                   className="min-h-10 rounded-lg border px-3 py-2 text-sm outline-none md:min-h-11 md:px-4 md:text-base"
@@ -29966,6 +30014,8 @@ function DecisionCompanionPanel({
                   placeholder={ts('placeholders.decisionTitle')}
                 />
                 <input
+                  id="decision-pressure-input"
+                  ref={decisionPressureInputRef}
                   value={pressure}
                   onChange={(event) => setPressure(event.target.value)}
                   className="min-h-10 rounded-lg border px-3 py-2 text-sm outline-none md:min-h-11 md:px-4 md:text-base"

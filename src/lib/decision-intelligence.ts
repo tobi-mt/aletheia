@@ -40,6 +40,73 @@ export function detectPatterns(text: string) {
     .map(([pattern]) => pattern);
 }
 
+function normalizeDraftText(value: string) {
+  return value.trim().replace(/\s+/g, " ");
+}
+
+function truncateDraftText(value: string, maxLength: number) {
+  const trimmed = normalizeDraftText(value);
+  if (trimmed.length <= maxLength) {
+    return trimmed;
+  }
+  return `${trimmed.slice(0, Math.max(0, maxLength - 1)).trimEnd()}…`;
+}
+
+function sentenceCaseDraftText(value: string) {
+  const trimmed = normalizeDraftText(value);
+  if (!trimmed) {
+    return trimmed;
+  }
+  return `${trimmed.charAt(0).toUpperCase()}${trimmed.slice(1)}`;
+}
+
+function stripQuestionPrefix(value: string) {
+  return normalizeDraftText(value)
+    .replace(/^(how do i|how can i|how should i|what should i|what do i do to|what is the best way to|should i|do i|can i|is it wise to|is it okay to|how do we|how can we)\s+/i, "")
+    .replace(/\?+$/g, "")
+    .trim();
+}
+
+function cleanAnswerLead(value: string) {
+  const lead = normalizeDraftText(value)
+    .replace(/^(it sounds like|you may be|this seems to be|the pressure may be|the main pressure is|it may help to|consider|try|one next step is|a good next step is)\s+/i, "")
+    .split(/(?:[.!?]\s+|\n)+/)[0]
+    .trim();
+  return lead;
+}
+
+export function buildDecisionDraftPrefill(question: string, answer: string) {
+  const normalizedQuestion = normalizeDraftText(question);
+  const normalizedAnswer = normalizeDraftText(answer);
+  const title = sentenceCaseDraftText(truncateDraftText(stripQuestionPrefix(normalizedQuestion) || normalizedQuestion.replace(/\?+$/g, ""), 64));
+  const patterns = detectPatterns(`${normalizedQuestion} ${normalizedAnswer}`);
+  const pressureTopics = [
+    patterns.includes("comparison") ? "comparison" : "",
+    patterns.includes("urgency") ? "urgency" : "",
+    patterns.includes("fear") ? "fear" : "",
+    patterns.includes("shame") ? "shame" : "",
+    patterns.includes("approval") ? "approval" : "",
+    patterns.includes("burnout") ? "burnout" : "",
+    patterns.includes("overgiving") ? "overgiving" : "",
+  ].filter((topic): topic is string => Boolean(topic));
+  const pressure =
+    pressureTopics.length > 0
+      ? sentenceCaseDraftText(truncateDraftText(`Pressure around ${pressureTopics.join(" and ")}`, 96))
+      : sentenceCaseDraftText(truncateDraftText(cleanAnswerLead(normalizedAnswer) || `Pressure around ${stripQuestionPrefix(normalizedQuestion).toLowerCase() || normalizedQuestion.toLowerCase()}`, 96));
+  const emotion =
+    /peace|calm|steady|settled|rest|quiet/i.test(`${normalizedQuestion} ${normalizedAnswer}`)
+      ? "peaceful"
+      : patterns.includes("urgency") || patterns.includes("burnout")
+        ? "pressured"
+        : patterns.includes("fear") || patterns.includes("shame")
+          ? "anxious"
+          : /excited|hopeful|opportunity|open door/i.test(`${normalizedQuestion} ${normalizedAnswer}`)
+            ? "excited"
+            : "uncertain";
+
+  return { title, pressure, emotion };
+}
+
 export function scoreDecision({
   pressure,
   emotion,
