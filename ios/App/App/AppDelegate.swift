@@ -62,7 +62,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
 @objc(ManagedAudioBridgeViewController)
 class ManagedAudioBridgeViewController: CAPBridgeViewController {
-    private let startupChromeColor = UIColor(red: 0.047, green: 0.071, blue: 0.059, alpha: 1)
+    private let startupChromeColor = UIColor(red: 0.063, green: 0.106, blue: 0.090, alpha: 1)
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -101,6 +101,8 @@ public class ManagedAudioPlugin: CAPPlugin, CAPBridgedPlugin, AVAudioPlayerDeleg
     private var player: AVAudioPlayer?
     private var progressTimer: Timer?
     private var playbackToken = UUID()
+    private let defaultPublicAppOrigin = "https://aletheia.mirrortalkpodcast.com"
+    private let publicAppOriginKey = "ALETHEIA_PUBLIC_APP_ORIGIN"
 
     @objc override public func load() {
         configureAudioSessionForSpeech()
@@ -150,8 +152,25 @@ public class ManagedAudioPlugin: CAPPlugin, CAPBridgedPlugin, AVAudioPlayerDeleg
         }
     }
 
+    private func publicAppOrigin() -> URL? {
+        if let serverURL = bridge?.config.serverURL,
+           let scheme = serverURL.scheme?.lowercased(),
+           scheme == "http" || scheme == "https" {
+            return serverURL
+        }
+
+        if let configuredOrigin = Bundle.main.object(forInfoDictionaryKey: publicAppOriginKey) as? String,
+           let originURL = URL(string: configuredOrigin),
+           let scheme = originURL.scheme?.lowercased(),
+           scheme == "http" || scheme == "https" {
+            return originURL
+        }
+
+        return URL(string: defaultPublicAppOrigin)
+    }
+
     private func serverSpeechURL() -> URL? {
-        guard let baseURL = bridge?.config.serverURL else {
+        guard let baseURL = publicAppOrigin() else {
             return nil
         }
         return baseURL.appendingPathComponent("api").appendingPathComponent("audio").appendingPathComponent("speech")

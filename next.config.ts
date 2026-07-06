@@ -15,6 +15,8 @@ const COMMON_AVATAR_HOSTS = [
   "upload.wikimedia.org",
 ];
 
+const nativeWebBundle = process.env.NEXT_PUBLIC_NATIVE_WEB_BUNDLE === "1";
+
 function toRemotePattern(value: string) {
   try {
     const normalized = value.includes("://") ? value : `https://${value}`;
@@ -78,6 +80,7 @@ const nextConfig: NextConfig = {
   },
   images: {
     remotePatterns: parseAvatarRemotePatterns(),
+    unoptimized: nativeWebBundle,
   },
   async headers() {
     return [

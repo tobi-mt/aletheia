@@ -3,7 +3,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import Image from "next/image";
 import { signIn as authSignIn, signOut as authSignOut } from "next-auth/react";
-import { ChangeEvent, FormEvent, memo, type CSSProperties, type KeyboardEvent, type ReactNode, type RefObject, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { ChangeEvent, FormEvent, memo, type CSSProperties, type KeyboardEvent, type ReactNode, type RefObject, useCallback, useEffect, useEffectEvent, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Capacitor, SystemBars, SystemBarsStyle, type PluginListenerHandle } from "@capacitor/core";
 import { App } from "@capacitor/app";
@@ -15,7 +15,6 @@ import {
   Compass,
   Copy,
   ChevronDown,
-  Download,
   Feather,
   HandHeart,
   Home,
@@ -101,7 +100,6 @@ import { counselInviteAppUrl as buildCounselInviteAppUrl, counselInviteUrl as bu
 import {
   defaultReadWithMeInviteDetails,
   formatReadWithMeDurationLabel,
-  formatReadWithMePendingWindowLabel,
   normalizeReadWithMeInviteDetails,
   type ReadWithMeInviteDetails,
   type ReadWithMeInviteDurationUnit,
@@ -117,15 +115,29 @@ import {
 } from "@/lib/fasting-invite";
 import type { ChallengeRecommendationBundle } from "@/lib/challenge-recommendations";
 import { BUILD_ID, SERVICE_WORKER_URL } from "@/lib/build-version";
+import { NATIVE_WEB_BUNDLE, getPublicAppOrigin, installNativeWebFetchProxy } from "@/lib/native-web";
 import { loadTranslationsSync, loadTranslationsWithFallbackSync, getTranslation, type TranslationData } from "@/lib/translations";
 import { ManagedAudio } from "@/lib/native-audio";
 import BibleReader from "@/components/bible-reader";
 import { ToastContainer, useToast } from "@/components/toast-notification";
 import { StreakBadge, StreakAchievementNotification } from "@/components/streak-badge";
 import { MilestoneCelebrationLayer, useMilestoneCelebration, type CelebrationAnalyticsPayload, type CelebrationRequest } from "@/components/milestone-celebration";
-import { getUserStreak, checkStreakAchievements } from "@/lib/streak-tracker";
 import { STREAK_MILESTONES, formatStreak, type StreakData } from "@/lib/streak-shared";
 import type { BibleStudyData } from "@/lib/bible-study";
+
+installNativeWebFetchProxy();
+
+function getBrowserNotificationApi(): typeof Notification | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  return window.Notification ?? null;
+}
+
+function getBrowserNotificationPermission(): NotificationPermission {
+  return getBrowserNotificationApi()?.permission ?? "default";
+}
 
 type View = "companion" | "decisions" | "reflect" | "library" | "account";
 type HomeSection = "today" | "ask";
@@ -531,7 +543,7 @@ function challengeInviteTokenFromLocation(value: string | null) {
   }
 
   try {
-    const fallbackOrigin = typeof window !== "undefined" ? window.location.origin : "http://localhost:3000";
+    const fallbackOrigin = typeof window !== "undefined" ? getPublicAppOrigin() : "http://localhost:3000";
     return new URL(value, fallbackOrigin).searchParams.get("challengeInvite");
   } catch {
     return null;
@@ -544,7 +556,7 @@ function counselInviteTokenFromLocation(value: string | null) {
   }
 
   try {
-    const fallbackOrigin = typeof window !== "undefined" ? window.location.origin : "http://localhost:3000";
+    const fallbackOrigin = typeof window !== "undefined" ? getPublicAppOrigin() : "http://localhost:3000";
     return new URL(value, fallbackOrigin).searchParams.get("counselInvite");
   } catch {
     return null;
@@ -553,7 +565,6 @@ function counselInviteTokenFromLocation(value: string | null) {
 const GRATITUDE_SYNC_ENABLED = process.env.NEXT_PUBLIC_ENABLE_GRATITUDE_SYNC === "1";
 const GRATITUDE_SYNC_MIGRATION_KEY_PREFIX = "aletheia_gratitude_sync_migrated_";
 const MAX_GRATITUDE_ENTRIES = Number.POSITIVE_INFINITY;
-const GRATITUDE_REFLECTION_DEFAULT_HOUR = 19;
 const DEFAULT_TIMEZONE = enTranslations.timezones.utc;
 const SUPPORT_MISSION_LINKS: Array<{ channel: SupportMissionChannel; href: string; labelKey: string }> = [
   {
@@ -3300,6 +3311,83 @@ async function shareChallengeDayPostcardImage({
   });
 }
 
+function installSelectedChallengePostcardDebugApi({
+  selectedChallenge,
+  selectedChallengeModalPrompt,
+  selectedChallengeModalCompletion,
+  selectedChallengeModalDay,
+  language,
+  localizedDayPractice,
+  theme,
+  ts,
+}: {
+  selectedChallenge: { titleKey: string; title: string; totalDays: number } | null;
+  selectedChallengeModalPrompt: { scripture: string; practiceKey: string; practice: string } | null;
+  selectedChallengeModalCompletion: { reflection?: string | null } | null;
+  selectedChallengeModalDay: { day: number } | null;
+  language: LanguageCode;
+  localizedDayPractice: (day: { practice: string; practiceKey?: string }) => string;
+  theme: ThemeColors;
+  ts: (key: string, fallback?: string) => string;
+}) {
+  if (process.env.NODE_ENV === "production" || typeof window === "undefined") {
+    return () => undefined;
+  }
+
+  const debugWindow = window as Window & {
+    __aletheiaDebug?: {
+      renderSelectedChallengeDayPostcard?: () => Promise<Blob | null>;
+    };
+    __aletheiaLastChallengePostcardBlob?: Blob;
+    __aletheiaLastChallengePostcardUrl?: string;
+  };
+
+  debugWindow.__aletheiaDebug = {
+    async renderSelectedChallengeDayPostcard() {
+      if (!selectedChallenge || !selectedChallengeModalPrompt || !selectedChallengeModalCompletion || !selectedChallengeModalDay) {
+        return null;
+      }
+
+      const blob = await createWisdomPostcardBlob(
+        {
+          kind: "challenge",
+          eyebrow: ts("challenges.shareDayEyebrow"),
+          title: ts(selectedChallenge.titleKey, selectedChallenge.title),
+          body: ts("challenges.shareDayBody"),
+          challengeMeta: {
+            day: selectedChallengeModalDay.day,
+            totalDays: selectedChallenge.totalDays,
+            progressLabel: ts("challenges.shareDayProgress")
+              .replace("{day}", String(selectedChallengeModalDay.day))
+              .replace("{totalDays}", String(selectedChallenge.totalDays)),
+          },
+          sections: [
+            { label: ts("labels.scripture"), text: localizedScriptureReference(selectedChallengeModalPrompt.scripture, language) },
+            { label: ts("labels.practice"), text: localizedDayPractice(selectedChallengeModalPrompt) },
+            selectedChallengeModalCompletion.reflection?.trim()
+              ? { label: ts("labels.note"), text: selectedChallengeModalCompletion.reflection.trim() }
+              : null,
+          ].filter(Boolean) as Array<{ label?: string; text: string }>,
+          footer: ts("challenges.shareDayCta"),
+        },
+        theme,
+        language
+      );
+
+      debugWindow.__aletheiaLastChallengePostcardBlob = blob;
+      debugWindow.__aletheiaLastChallengePostcardUrl = URL.createObjectURL(blob);
+      return blob;
+    },
+  };
+
+  return () => {
+    if (debugWindow.__aletheiaLastChallengePostcardUrl) {
+      URL.revokeObjectURL(debugWindow.__aletheiaLastChallengePostcardUrl);
+    }
+    delete debugWindow.__aletheiaDebug;
+  };
+}
+
 type UiText = NonNullable<(typeof uiText)[LanguageCode]> & typeof enTranslations;
 
 const englishText: UiText = uiText.en as UiText;
@@ -3484,6 +3572,9 @@ function trackAuthFailure(metadata: AnalyticsMetadata) {
 }
 
 async function getReliableServiceWorkerRegistration() {
+  if (NATIVE_WEB_BUNDLE) {
+    throw new Error("Service workers are disabled in the native bundle.");
+  }
   const registration = await navigator.serviceWorker.register(SERVICE_WORKER_URL, {
     scope: "/",
     updateViaCache: "none",
@@ -3520,7 +3611,7 @@ function readNativeBootstrapOrigin() {
 
 async function clearAppShellState() {
   try {
-    if ("serviceWorker" in navigator) {
+    if (!NATIVE_WEB_BUNDLE && "serviceWorker" in navigator) {
       const registrations = await navigator.serviceWorker.getRegistrations();
       await Promise.all(registrations.map((registration) => registration.unregister()));
     }
@@ -7358,15 +7449,6 @@ function storedScriptureMemory(preferences: UserPreferences): ScriptureMemory | 
   }
 }
 
-function buildDecisionBlessing(decision: WisdomDecision, ts: (key: string, fallback?: string) => string) {
-  return [
-    ts('labels.decisionBlessingOpening'),
-    ts('labels.decisionBlessingClarity'),
-    ts('labels.decisionBlessingDecision').replace("{decision}", decision.title),
-    ts('labels.decisionBlessingEnding'),
-  ].join("\n\n");
-}
-
 function companionCardFromDaily({
   daily,
   entry,
@@ -7464,12 +7546,14 @@ function scrollTargetBelowTopChrome(target: HTMLElement, behavior: ScrollBehavio
 
 export function AletheiaApp({
   onBootReady,
+  startupPaintReady = true,
 }: {
   onBootReady?: () => void;
+  startupPaintReady?: boolean;
 } = {}) {
   const [activeView, setActiveViewState] = useState<View>(() => getInitialActiveView());
   const [homeSection, setHomeSectionState] = useState<HomeSection>(() => getInitialHomeSection());
-  const { toasts, addToast, removeToast } = useToast();
+  const { toasts, removeToast } = useToast();
   
   // Wrapper to persist active view and track navigation usage.
   const setActiveView = useCallback((view: View, source = "navigation") => {
@@ -7558,7 +7642,7 @@ export function AletheiaApp({
   const [speechProgress, setSpeechProgress] = useState(0);
   const [readingLabel, setReadingLabel] = useState("");
   const [readingVoiceId, setReadingVoiceId] = useState<string | null>(null);
-  const [carryToday, setCarryToday] = useState<CarryToday | null>(null);
+  const [, setCarryToday] = useState<CarryToday | null>(null);
   const [scriptureMemory, setScriptureMemory] = useState<ScriptureMemory | null>(null);
   const [availableVoices] = useState<ManagedVoiceOption[]>(managedSpeechVoices);
   const [selectedVoice, setSelectedVoice] = useState<string | null>(() => {
@@ -7699,7 +7783,7 @@ export function AletheiaApp({
   };
 
   useEffect(() => {
-    if (!Capacitor.isNativePlatform()) {
+    if (!Capacitor.isNativePlatform() || !startupPaintReady) {
       return;
     }
 
@@ -7719,7 +7803,7 @@ export function AletheiaApp({
     const nextSearch = params.toString();
     const nextUrl = `${window.location.pathname}${nextSearch ? `?${nextSearch}` : ""}${window.location.hash}`;
     window.history.replaceState(window.history.state, "", nextUrl);
-  }, []);
+  }, [startupPaintReady]);
 
   useEffect(() => {
     window.setTimeout(() => {
@@ -7735,6 +7819,10 @@ export function AletheiaApp({
   }, []);
 
   useEffect(() => {
+    if (!startupPaintReady) {
+      return;
+    }
+
     if (!user) {
       queueMicrotask(() => {
         setChallengeProgress([]);
@@ -7760,7 +7848,7 @@ export function AletheiaApp({
     return () => {
       cancelled = true;
     };
-  }, [challengeCircleRefreshKey, user]);
+  }, [challengeCircleRefreshKey, startupPaintReady, user]);
   
   // Load translations synchronously using useMemo to ensure they're available immediately
   const translations = useMemo(() => {
@@ -8026,6 +8114,17 @@ export function AletheiaApp({
     setWorkflowNotice(null);
   }, [authPromptState.dismissCount, authPromptState.lastReason, updateAuthPromptState, workflowNotice]);
 
+  const showView = useCallback((view: View) => {
+    setActiveView(view, "show_view");
+  }, [setActiveView]);
+
+  const openAccountFlow = useCallback((nextAuthMode?: AuthMode) => {
+    if (nextAuthMode) {
+      setAuthMode(nextAuthMode);
+    }
+    showView("account");
+  }, [showView]);
+
   const maybeShowSignInPrompt = useCallback((reason: AuthPromptReason, metadata: AnalyticsMetadata = {}, options?: { bypassMinEngagement?: boolean }) => {
     if (typeof window === "undefined" || user || authStatus === "signing-in" || authStatus === "signing-out" || showOnboarding) {
       return false;
@@ -8114,7 +8213,7 @@ export function AletheiaApp({
     void maybeShowSignInPrompt("notifications_gate", { location: "account_notifications" }, { bypassMinEngagement: true });
   }, [maybeShowSignInPrompt, user]);
 
-  function getFriendlyAuthError(params: URLSearchParams) {
+  const getFriendlyAuthError = useCallback((params: URLSearchParams) => {
     const oauthReason = params.get("reason");
     const authError = params.get("error");
 
@@ -8139,7 +8238,7 @@ export function AletheiaApp({
           ? ts("auth.googleSigninDidNotFinish")
           : null;
     }
-  }
+  }, [ts]);
 
   function getAuthFailureAnalytics(params: URLSearchParams): AnalyticsMetadata | null {
     const oauthReason = params.get("reason");
@@ -8267,6 +8366,14 @@ export function AletheiaApp({
           }
         });
       } catch (error) {
+        if (
+          typeof error === "object" &&
+          error !== null &&
+          "code" in error &&
+          (error as { code?: unknown }).code === "UNIMPLEMENTED"
+        ) {
+          return;
+        }
         console.error("Failed to register native audio listeners:", error);
       }
     }
@@ -8278,7 +8385,7 @@ export function AletheiaApp({
       void progressHandle?.remove();
       void stateHandle?.remove();
     };
-  }, []);
+  }, [startupPaintReady, ts]);
 
   useEffect(() => {
     return () => {
@@ -9094,6 +9201,10 @@ export function AletheiaApp({
   }, [activeView, homeSection, clientStateRestored]);
 
   useEffect(() => {
+    if (!startupPaintReady) {
+      return;
+    }
+
     async function loadSession() {
       // authStatus is already "checking" from initial state - no need to set it again
       const [response, providersResponse] = await Promise.all([
@@ -9201,7 +9312,7 @@ export function AletheiaApp({
       setAuthStatus("guest");
       setStatusMessage(ts('status.backendUnavailable'));
     });
-  }, [announceWorkflow, celebrate, loadSignedInWorkspace, setActiveView, ts]);
+  }, [announceWorkflow, celebrate, getFriendlyAuthError, loadSignedInWorkspace, setActiveView, startupPaintReady, ts]);
 
   useEffect(() => {
     let cancelled = false;
@@ -9544,11 +9655,25 @@ export function AletheiaApp({
   }, [clientStateRestored]);
 
   useEffect(() => {
+    if (!startupPaintReady) {
+      return;
+    }
+
     async function loadNotificationStatus() {
-      if ("Notification" in window) {
-        setNotificationPermission(Notification.permission);
+      const notificationApi = getBrowserNotificationApi();
+      if (notificationApi) {
+        setNotificationPermission(notificationApi.permission);
       } else {
         setNotificationStatus(ts('notifications.notificationsUnavailableBody'));
+      }
+      if (NATIVE_WEB_BUNDLE) {
+        setNotificationsConfigured(false);
+        setNotificationAccountEnabled(false);
+        setNotificationDeviceSubscribed(false);
+        setNotificationsEnabled(false);
+        setNotificationDiagnostics(null);
+        setNotificationStatus(ts('notifications.notificationsUnavailableBody'));
+        return;
       }
       const response = await fetch("/api/notifications/status");
       const data = (await response.json()) as {
@@ -9562,7 +9687,7 @@ export function AletheiaApp({
         deliveryStrategy?: NotificationTiming["deliveryStrategy"];
       };
       const localSubscription =
-        "serviceWorker" in navigator && "PushManager" in window
+        !NATIVE_WEB_BUNDLE && "serviceWorker" in navigator && "PushManager" in window
           ? await navigator.serviceWorker
               .getRegistration("/")
               .then((registration) => registration?.pushManager.getSubscription())
@@ -9608,10 +9733,12 @@ export function AletheiaApp({
         });
         void saveNotificationTimingPreference(fallbackTiming).catch(() => undefined);
       }
+      const notificationPermission = getBrowserNotificationPermission();
       const shouldAttemptSelfHeal =
         Boolean(user) &&
         Boolean(data.configured) &&
-        Notification.permission === "granted" &&
+        !NATIVE_WEB_BUNDLE &&
+        notificationPermission === "granted" &&
         (!accountEnabled || !deviceSubscribed);
       if (shouldAttemptSelfHeal) {
         void selfHealNotificationSubscription("status_load");
@@ -9626,7 +9753,7 @@ export function AletheiaApp({
         setNotificationStatus(ts('notifications.notificationsNeedReenableDevice'));
       } else if (accountEnabled) {
         setNotificationStatus(ts('notifications.accountEnabledDeviceOff'));
-      } else if (data.timingConfigured || Notification.permission === "granted") {
+      } else if (data.timingConfigured || notificationPermission === "granted") {
         setNotificationStatus(ts('notifications.notificationsNeedReenableDevice'));
       } else {
         setNotificationStatus(ts('notifications.notificationsOptionalWhenReady'));
@@ -9656,9 +9783,7 @@ export function AletheiaApp({
         setNotificationDiagnostics(null);
       }
     );
-  // selfHealNotificationSubscription is intentionally omitted to keep bootstrap status checks stable.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ts, user]);
+  }, [startupPaintReady, ts, user]);
 
   useEffect(() => {
     if (notificationTiming.timezoneMode !== "auto") {
@@ -9669,14 +9794,14 @@ export function AletheiaApp({
       if (document.visibilityState === "hidden") {
         return;
       }
-      if (Notification.permission === "granted" && (!notificationsEnabled || !notificationDeviceSubscribed)) {
+      if (getBrowserNotificationPermission() === "granted" && (!notificationsEnabled || !notificationDeviceSubscribed)) {
         void selfHealNotificationSubscription("focus");
       }
       const detectedTimezone = browserTimezone();
       if (detectedTimezone === notificationTiming.preferredTimezone) {
         return;
       }
-      void updateNotificationTiming({
+      void updateNotificationTimingInEffect({
         timezoneMode: "auto",
         preferredTimezone: detectedTimezone,
       });
@@ -9689,8 +9814,6 @@ export function AletheiaApp({
       window.removeEventListener("focus", syncDeviceTimezone);
       document.removeEventListener("visibilitychange", syncDeviceTimezone);
     };
-  // updateNotificationTiming is intentionally omitted to avoid effect churn; this effect is scoped to timezone changes.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [notificationTiming.timezoneMode, notificationTiming.preferredTimezone, notificationBusy, user, notificationsEnabled, notificationDeviceSubscribed]);
 
   // Detect newly accepted counsel invites
@@ -9991,10 +10114,6 @@ export function AletheiaApp({
     window.scrollTo({ top: 0, left: 0, behavior });
   }
 
-  function showView(view: View) {
-    setActiveView(view, "show_view");
-  }
-
   function scrollToSection(id: string, attempt = 0) {
     window.setTimeout(() => {
       const target = document.getElementById(id);
@@ -10074,25 +10193,6 @@ export function AletheiaApp({
   function continueDecisionFlow() {
     showView("decisions");
     announceWorkflow(ts('notifications.decisionCompanionOpened'), ts('notifications.decisionCompanionOpenedBody'), "info");
-  }
-
-  function reflectOnToday() {
-    setJournalTitle(`${localizedWisdomThemeLabel(daily.theme, preferences.language)} ${ts('labels.reflection')}`);
-    setJournalBody(`${daily.practice}\n\n${ui.whatINotice ?? ""}:\n`);
-    showView("reflect");
-    announceWorkflow(ts('notifications.reflectionPrepared'), ts('notifications.reflectionPreparedBody'), "success");
-  }
-
-  function reviewPatternFlow() {
-    showView("decisions");
-    announceWorkflow(ts('notifications.timelineOpened'), ts('notifications.timelineOpenedBody'), "info");
-  }
-
-  function openAccountFlow(nextAuthMode?: AuthMode) {
-    if (nextAuthMode) {
-      setAuthMode(nextAuthMode);
-    }
-    showView("account");
   }
 
   function startWelcomeAuthFlow(nextAuthMode: AuthMode) {
@@ -10215,32 +10315,6 @@ function startFirstRunGuestFlow() {
     }
   }
 
-  function shareTodayWisdomPostcard(card: TodayCompanionCard) {
-    void shareWisdomPostcard({
-      kind: "daily",
-      eyebrow: ts('labels.todaysCompanion'),
-      title: `${ts('todayPrefix')}: ${card.title}`,
-      body: `${card.principle}\n\n${card.practice}\n\n${card.carryPhrase}\n\n${dailyEntry.context}\n\n${dailyEntry.application}`,
-      sections: [
-        { label: ts('labels.principle'), text: card.principle },
-        { label: ts('labels.tinyPractice'), text: card.practice },
-        { label: ts('labels.carryThisToday'), text: card.carryPhrase },
-        { label: ui.context ?? "", text: dailyEntry.context },
-        { label: ui.application ?? "", text: dailyEntry.application },
-      ],
-    }, "today_companion_card");
-  }
-
-  function shareCarryPostcard() {
-    const phrase = carryToday?.phrase || todayCompanionCard.carryPhrase;
-    void shareWisdomPostcard({
-      kind: "carry",
-      eyebrow: ts('labels.carryCard'),
-      title: phrase,
-      body: ts('labels.carryCardBody'),
-    }, "carry_card");
-  }
-
   function saveScriptureMemory(scripture: string, principle: string) {
     const next: ScriptureMemory = {
       scripture,
@@ -10263,24 +10337,6 @@ function startFirstRunGuestFlow() {
       ts('notifications.scriptureMemorySaved'),
       ts('notifications.scriptureMemorySavedBody'),
       "success"
-    );
-  }
-
-  function clearScriptureMemory() {
-    setScriptureMemory(null);
-    try {
-      window.localStorage.removeItem(SCRIPTURE_MEMORY_STORAGE_KEY);
-    } catch {
-      // The visible memory is cleared for this session even if storage is unavailable.
-    }
-    trackClientEvent("scripture_memory_cleared", {
-      language: preferences.language,
-      bibleTranslation: preferences.bibleTranslation,
-    });
-    announceWorkflow(
-      ts('notifications.scriptureMemoryCleared'),
-      ts('notifications.scriptureMemoryClearedBody'),
-      "info"
     );
   }
 
@@ -10335,15 +10391,6 @@ function startFirstRunGuestFlow() {
     announceWorkflow(ts('notifications.ruleDrafted'), ts('notifications.ruleDraftedBody'), "success");
   }
 
-  function shareReflectionPostcard(entry: JournalEntry) {
-    void shareWisdomPostcard({
-      kind: "reflection",
-      eyebrow: ts('labels.reflectionJournal'),
-      title: entry.title,
-      body: cleanDisplayText(entry.body).slice(0, 520),
-    }, "reflection_entry");
-  }
-
   function shareAnswerPostcard(exchange: ConversationExchange) {
     const source = exchange.answer.sources?.[0];
     const modeLabel = localizedModeProfile(exchange.mode, preferences.language).displayLabel ?? exchange.mode;
@@ -10353,16 +10400,6 @@ function startFirstRunGuestFlow() {
       title: source?.principle || modeLabel,
       body: source?.application || cleanDisplayText(exchange.answer.text).slice(0, 520),
     }, "current_answer");
-  }
-
-  function shareDecisionPostcard(decision: WisdomDecision, kind: "summary" | "blessing", text?: string) {
-    const body = cleanDisplayText(text || decision.summary || decision.pressure).slice(0, 620);
-    void shareWisdomPostcard({
-      kind: kind === "blessing" ? "blessing" : "decision",
-      eyebrow: kind === "blessing" ? ts('labels.decisionBlessing') : ts('labels.decisionSummaryExport'),
-      title: decision.title,
-      body,
-    }, kind === "blessing" ? "decision_blessing" : "decision_summary");
   }
 
   async function shareAletheia(channel: ShareChannel, placement: string) {
@@ -11657,6 +11694,11 @@ function startFirstRunGuestFlow() {
     if (notificationBusy) {
       return;
     }
+    if (NATIVE_WEB_BUNDLE) {
+      setNotificationStatus(ts('notifications.notificationsUnavailableBody'));
+      announceWorkflow(ts('notifications.notificationsUnavailable'), ts('notifications.notificationsUnavailableBody'), "warning");
+      return;
+    }
     if (!user) {
       setNotificationStatus(ts('notifications.signInRequiredBody'));
       announceWorkflow(ts('notifications.signInRequired'), ts('notifications.signInRequiredBody'), "warning");
@@ -11676,7 +11718,14 @@ function startFirstRunGuestFlow() {
     setNotificationBusy(true);
     setNotificationStatus(ts('notifications.preparingDeviceNotifications'));
     try {
-      const permission = Notification.permission === "granted" ? "granted" : await Notification.requestPermission();
+      const notificationApi = getBrowserNotificationApi();
+      if (!notificationApi) {
+        setNotificationStatus(ts('notifications.notificationsUnavailableBody'));
+        announceWorkflow(ts('notifications.notificationsUnavailable'), ts('notifications.notificationsUnavailableBody'), "warning");
+        return;
+      }
+
+      const permission = notificationApi.permission === "granted" ? "granted" : await notificationApi.requestPermission();
       setNotificationPermission(permission);
       if (permission !== "granted") {
         trackClientEvent("notification_enable_failed", { reason: "permission_denied", permission });
@@ -11750,6 +11799,14 @@ function startFirstRunGuestFlow() {
     if (notificationBusy) {
       return;
     }
+    if (NATIVE_WEB_BUNDLE) {
+      setNotificationsEnabled(false);
+      setNotificationAccountEnabled(false);
+      setNotificationDeviceSubscribed(false);
+      setNotificationStatus(ts('notifications.notificationsUnavailableBody'));
+      announceWorkflow(ts('notifications.notificationsUnavailable'), ts('notifications.notificationsUnavailableBody'), "warning");
+      return;
+    }
     if (!window.confirm(ts('confirm.turnOffNotifications'))) {
       return;
     }
@@ -11800,8 +11857,11 @@ function startFirstRunGuestFlow() {
     });
   }
 
-  async function selfHealNotificationSubscription(trigger: "status_load" | "focus") {
+  const selfHealNotificationSubscription = useEffectEvent(async (trigger: "status_load" | "focus") => {
     if (!user) {
+      return false;
+    }
+    if (NATIVE_WEB_BUNDLE) {
       return false;
     }
     if (notificationSelfHealInFlightRef.current) {
@@ -11810,7 +11870,7 @@ function startFirstRunGuestFlow() {
     if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
       return false;
     }
-    if (Notification.permission !== "granted") {
+    if (getBrowserNotificationPermission() !== "granted") {
       return false;
     }
 
@@ -11864,7 +11924,7 @@ function startFirstRunGuestFlow() {
     } finally {
       notificationSelfHealInFlightRef.current = false;
     }
-  }
+  });
 
   async function saveNotificationTimingPreference(timing: NotificationTiming) {
     return fetch("/api/notifications/status", {
@@ -11942,6 +12002,10 @@ function startFirstRunGuestFlow() {
       setNotificationBusy(false);
     }
   }
+
+  const updateNotificationTimingInEffect = useEffectEvent((patch: Partial<NotificationTiming>) => {
+    void updateNotificationTiming(patch);
+  });
 
   async function saveReflection() {
     const title = journalTitle.trim() || `${localizedModeLabel(mode, preferences.language)} ${ts('labels.reflection')}`;
@@ -12476,27 +12540,6 @@ function startFirstRunGuestFlow() {
     announceWorkflow(ts('notifications.decisionUpdated'), eventBody || ts('notifications.decisionUpdated'), "success");
   }
 
-  async function deleteDecision(id: string) {
-    const decision = wisdomDecisions.find((d) => d.id === id);
-    if (!decision) return;
-    
-    if (!window.confirm(ts('confirm.deleteDecision').replace('{title}', decision.title))) {
-      return;
-    }
-    
-    if (user) {
-      const response = await fetch(`/api/decisions/${id}`, { method: "DELETE" });
-      if (!response.ok) {
-        announceWorkflow(ts('notifications.decisionUpdateFailed'), ts('notifications.deleteDecisionFailedBody'), "error");
-        return;
-      }
-    }
-    
-    setWisdomDecisions((current) => current.filter((d) => d.id !== id));
-    setDecisionEvents((current) => current.filter((e) => e.decisionId !== id));
-    announceWorkflow(ts('notifications.decisionDeleted'), ts('notifications.decisionDeletedBody'), "info");
-  }
-
   async function addCounselContact(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const name = counselName.trim();
@@ -12594,58 +12637,6 @@ function startFirstRunGuestFlow() {
       sms: `sms:?&body=${encodedText}`,
     };
     window.open(hrefs[channel], "_blank", "noopener,noreferrer");
-  }
-
-  async function shareDecisionWithCounsel(contactId: string, decisionId: string) {
-    const contact = counselContacts.find((c) => c.id === contactId);
-    const contactName = contact?.name || ts('labels.thisContact');
-    const decision = wisdomDecisions.find((d) => d.id === decisionId);
-    const decisionTitle = decision?.title || ts('labels.thisDecision');
-    
-    if (!window.confirm(ts('confirm.shareDecisionWithCounsel').replace('{decision}', decisionTitle).replace('{contact}', contactName))) {
-      return;
-    }
-    
-    const response = await fetch("/api/counsel/share", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ contactId, decisionId }),
-    });
-    const data = (await response.json()) as { ok?: boolean; error?: string; errorCode?: string };
-    if (response.ok && data.ok) {
-      setWisdomDecisions((current) =>
-        current.map((decision) =>
-          decision.id === decisionId ? { ...decision, counselSought: true, updatedAt: new Date().toISOString() } : decision
-        )
-      );
-      
-      const totalDecisions = wisdomDecisions.length;
-      const hasMoreDecisions = totalDecisions > 1;
-      const bodyMessage = hasMoreDecisions
-        ? ts('notifications.summarySharedMoreAvailableBody')
-            .replace('{contact}', contactName)
-            .replace('{count}', String(totalDecisions - 1))
-            .replace('{item}', totalDecisions === 2 ? ts('labels.decisionSingular') : ts('labels.decisionPlural'))
-        : ts('notifications.summarySharedBody')
-            .replace('{contact}', contactName);
-      
-      announceWorkflow(
-        ts('notifications.summaryShared'),
-        bodyMessage,
-        "success",
-        hasMoreDecisions
-          ? {
-              label: ts('labels.shareMore'),
-              onClick: () => {
-                setActiveView("decisions", "notification_click");
-                setPendingDecisionShareSurfaceFocusContactId(contactId);
-              },
-            }
-          : undefined
-      );
-    } else {
-      announceWorkflow(ts('notifications.summariesNotShared'), resolveApiErrorMessage(data.error, data.errorCode, 'notifications.summaryNotSharedBody'), "error");
-    }
   }
 
   async function bulkShareDecisionsWithCounsel(contactId: string, decisionIds: string[]) {
@@ -12884,14 +12875,6 @@ function startFirstRunGuestFlow() {
       throw new Error(resolveApiErrorMessage(data.error, data.errorCode, "notifications.summaryNotSharedBody"));
     }
     return data.comment;
-  }
-
-  function openReceivedCounselInvite(invite: CounselInvitePreview) {
-    setCounselInviteToken(null);
-    setCounselInvitePreview(invite);
-    setCounselInviteContactId(invite.invite.contactId ?? null);
-    setCounselInviteStatus("");
-    setCounselInviteAuthOpen(false);
   }
 
   function challengeInviteTokenFromUrl(value: string | null) {
@@ -13280,11 +13263,7 @@ function startFirstRunGuestFlow() {
                         user={user}
                         preferences={preferences}
                         ui={ui}
-                        notificationsEnabled={notificationsEnabled}
-                        todayPattern={todayPattern}
                         companionCard={todayCompanionCard}
-                        carryToday={carryToday}
-                        scriptureMemory={scriptureMemory}
                         weeklyReview={weeklyReview}
                         personalizationContextEmpty={!manualContextHasContent(manualContext)}
                         prioritizeToday={pendingNotificationFocus}
@@ -13292,19 +13271,12 @@ function startFirstRunGuestFlow() {
                         ts={ts}
                         onScriptureOpen={openScripture}
                         onContinueDecision={continueDecisionFlow}
-                        onReflectToday={reflectOnToday}
-                        onReviewPattern={reviewPatternFlow}
                         onOpenAccount={openAccountFlow}
                         onAskOneQuestion={askOneQuestionFlow}
                         onCarryToday={carryCompanionCard}
                         onReflectCard={reflectOnCompanionCard}
                         onAskAboutCard={askAboutCompanionCard}
                         onSaveCardAsRule={saveCompanionRule}
-                        onShareCard={() => shareTodayWisdomPostcard(todayCompanionCard)}
-                        onShareCarryCard={shareCarryPostcard}
-                        onSaveScriptureMemory={() => saveScriptureMemory(dailyEntry.scripture, daily.principle)}
-                        onClearScriptureMemory={clearScriptureMemory}
-                        onShareScriptureMemory={shareScriptureMemoryCard}
                         onOpenRecommendedChallenge={openRecommendedChallenge}
                         theme={theme}
                       />
@@ -13346,7 +13318,6 @@ function startFirstRunGuestFlow() {
                         onSharePostcard={shareAnswerPostcard}
                         onShare={(channel) => shareAletheia(channel, "answer")}
                         onFeedback={(value) => recordAnswerFeedback(value, "answer")}
-                        onRequestSignIn={openAccountFlow}
                         voiceTranscriptPreview={voiceTranscriptPreview}
                         signedIn={Boolean(user)}
                         theme={theme}
@@ -13399,7 +13370,6 @@ function startFirstRunGuestFlow() {
                       onCreateDecision={createDecision}
                       onAddCounsel={addCounselContact}
                       onShareCounselInvite={shareCounselInvite}
-                      onShareDecisionWithCounsel={shareDecisionWithCounsel}
                       onBulkShareDecisionsWithCounsel={bulkShareDecisionsWithCounsel}
                       onSendSharedDecisionComment={addSharedDecisionComment}
                       onSendCounselInviteComment={addCounselInviteComment}
@@ -13408,7 +13378,6 @@ function startFirstRunGuestFlow() {
                       onPendingDecisionComposerFocusHandled={() => setPendingDecisionComposerFocus(null)}
                       pendingDecisionShareSurfaceFocusContactId={pendingDecisionShareSurfaceFocusContactId}
                       onPendingDecisionShareSurfaceFocusHandled={() => setPendingDecisionShareSurfaceFocusContactId(null)}
-                      onOpenReceivedCounselInvite={openReceivedCounselInvite}
                       onRemoveCounselContact={removeCounselContact}
                       onAddRule={addRuleOfLife}
                       theme={theme}
@@ -13468,7 +13437,6 @@ function startFirstRunGuestFlow() {
                         onShareGratitudePostcard={shareGratitudePostcard}
                         onUseGratitudeAsReflectionPrompt={useGratitudeAsReflectionPrompt}
                         onSpeakText={speakText}
-                        onShareReflectionPostcard={shareReflectionPostcard}
                         celebrate={celebrate}
                         theme={theme}
                       />
@@ -13732,14 +13700,14 @@ function startFirstRunGuestFlow() {
         onGoogleSignIn={handleGoogleSignIn}
         onAccept={acceptCounselInvite}
         onComment={addCounselInviteComment}
-        onRequestSignIn={() => {
+        onRequestSignIn={(nextMode) => {
           if (counselInviteToken) {
             writeStoredCounselInviteToken(counselInviteToken);
           }
           setAuthError("");
           setAuthNotice("");
           setCounselInviteAuthOpen(true);
-          setAuthMode("register");
+          setAuthMode(nextMode ?? "register");
         }}
         onCloseAuth={() => setCounselInviteAuthOpen(false)}
         onClose={() => {
@@ -13768,7 +13736,6 @@ function startFirstRunGuestFlow() {
         user={user}
         authOpen={challengeInviteAuthOpen}
         authMode={authMode}
-        setAuthMode={setAuthMode}
         authName={authName}
         setAuthName={setAuthName}
         authEmail={authEmail}
@@ -13787,14 +13754,14 @@ function startFirstRunGuestFlow() {
         onAccept={() => respondToChallengeInvite("accept")}
         onDecline={() => respondToChallengeInvite("decline")}
         onNudge={addChallengeInviteNudge}
-        onRequestSignIn={(mode = "login") => {
+        onRequestSignIn={(nextMode) => {
           if (challengeInviteToken) {
             writeStoredChallengeInviteToken(challengeInviteToken);
           }
           setAuthError("");
           setAuthNotice("");
           setChallengeInviteAuthOpen(true);
-          setAuthMode(mode);
+          setAuthMode(nextMode ?? "register");
         }}
         onCloseAuth={() => setChallengeInviteAuthOpen(false)}
         onClose={() => {
@@ -15210,11 +15177,7 @@ function HomeDashboard({
   user,
   preferences,
   ui,
-  notificationsEnabled,
-  todayPattern,
   companionCard,
-  carryToday,
-  scriptureMemory,
   weeklyReview,
   personalizationContextEmpty,
   prioritizeToday,
@@ -15222,19 +15185,12 @@ function HomeDashboard({
   challengeRecommendation,
   onScriptureOpen,
   onContinueDecision,
-  onReflectToday,
-  onReviewPattern,
   onOpenAccount,
   onAskOneQuestion,
   onCarryToday,
   onReflectCard,
   onAskAboutCard,
   onSaveCardAsRule,
-  onShareCard,
-  onShareCarryCard,
-  onSaveScriptureMemory,
-  onClearScriptureMemory,
-  onShareScriptureMemory,
   onOpenRecommendedChallenge,
   theme,
 }: {
@@ -15249,29 +15205,18 @@ function HomeDashboard({
   user: User | null;
   preferences: UserPreferences;
   ui: UiText;
-  notificationsEnabled: boolean;
-  todayPattern: string;
   companionCard: TodayCompanionCard;
-  carryToday: CarryToday | null;
-  scriptureMemory: ScriptureMemory | null;
   weeklyReview: WeeklyWisdomReview;
   personalizationContextEmpty: boolean;
   prioritizeToday: boolean;
   onScriptureOpen: (scripture: string) => void;
   onContinueDecision: () => void;
-  onReflectToday: () => void;
-  onReviewPattern: () => void;
   onOpenAccount: () => void;
   onAskOneQuestion: () => void;
   onCarryToday: (card: TodayCompanionCard) => void;
   onReflectCard: (card: TodayCompanionCard) => void;
   onAskAboutCard: (card: TodayCompanionCard) => void;
   onSaveCardAsRule: (card: TodayCompanionCard) => void;
-  onShareCard: () => void;
-  onShareCarryCard: () => void;
-  onSaveScriptureMemory: () => void;
-  onClearScriptureMemory: () => void;
-  onShareScriptureMemory: (memory: ScriptureMemory) => void;
   challengeRecommendation: ChallengeRecommendationBundle["primary"];
   onOpenRecommendedChallenge: (challengeId: string) => void;
   theme: ThemeColors;
@@ -15693,15 +15638,6 @@ function WeeklyReviewTrend({
   );
 }
 
-function MiniReviewStat({ label, value, theme }: { label: string; value: number; theme: ThemeColors }) {
-  return (
-    <div className="rounded-lg border px-3 py-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-      <p className="text-xl font-semibold" style={{ color: theme.textPrimary }}>{value}</p>
-      <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>{label}</p>
-    </div>
-  );
-}
-
 function ScreenTabs<T extends string>({
   value,
   onChange,
@@ -15975,6 +15911,7 @@ function RhythmItem({
 
 function useRailOverflow(ref: RefObject<HTMLElement | null>, enabled: boolean, deps: unknown[] = []) {
   const [hasOverflow, setHasOverflow] = useState(false);
+  const depsKey = JSON.stringify(deps);
 
   useLayoutEffect(() => {
     if (!enabled) {
@@ -16002,7 +15939,7 @@ function useRailOverflow(ref: RefObject<HTMLElement | null>, enabled: boolean, d
       resizeObserver?.disconnect();
       window.removeEventListener("resize", measure);
     };
-  }, [enabled, ref, ...deps]);
+  }, [enabled, ref, depsKey]);
 
   return hasOverflow;
 }
@@ -16010,6 +15947,7 @@ function useRailOverflow(ref: RefObject<HTMLElement | null>, enabled: boolean, d
 function useRailOverflowCue(ref: RefObject<HTMLElement | null>, enabled: boolean, deps: unknown[] = []) {
   const hasOverflow = useRailOverflow(ref, enabled, deps);
   const [showCue, setShowCue] = useState(false);
+  const depsKey = JSON.stringify(deps);
 
   useLayoutEffect(() => {
     if (!hasOverflow) {
@@ -16040,7 +15978,7 @@ function useRailOverflowCue(ref: RefObject<HTMLElement | null>, enabled: boolean
       rail.removeEventListener("scroll", measure);
       window.removeEventListener("resize", measure);
     };
-  }, [hasOverflow, ref, ...deps]);
+  }, [hasOverflow, ref, depsKey]);
 
   return showCue;
 }
@@ -16867,7 +16805,6 @@ function AccountPanel({
   const text = { ...englishText, ...ui };
   const [accountSection, setAccountSection] = useState<"personalization" | "privacy" | "share" | "system">("personalization");
   const exchanges = conversationExchanges(messages).filter((exchange) => exchange.question);
-  const activeDecisionCount = decisions.filter((decision) => decision.status !== "closed").length;
   const hasLocalWorkspaceData = exchanges.length > 0 || decisions.length > 0 || journalEntries.length > 0 || counselContacts.length > 0 || rulesOfLife.length > 0;
   const profileName = user?.name || user?.email || ts('auth.guest');
   const profileFirstName = user?.name?.split(" ")[0] || user?.email?.split("@")[0];
@@ -17115,7 +17052,7 @@ function AccountPanel({
               accountEnabled={notificationAccountEnabled}
               deviceSubscribed={notificationDeviceSubscribed}
               configured={notificationsConfigured}
-              permission={typeof window !== "undefined" && "Notification" in window ? Notification.permission : "default"}
+              permission={getBrowserNotificationPermission()}
               busy={notificationBusy}
               timing={notificationTiming}
               diagnostics={notificationDiagnostics}
@@ -17147,7 +17084,6 @@ function AccountPanel({
             ts={ts}
             user={user}
             hasLocalWorkspaceData={hasLocalWorkspaceData}
-            onRequestSignIn={() => setAuthMode("login")}
             onClearLocalPersonalization={onClearLocalPersonalization}
             onClearGuestWorkspace={onClearGuestWorkspace}
             onExportData={onExportData}
@@ -17234,7 +17170,6 @@ function ChallengeRecommendationCard({
   }
 
   const isContinuation = recommendation.actionKind === "continue";
-  const isInactive = recommendation.progressState === "inactive";
   const actionLabel = recommendation.actionKind === "continue"
     ? ts("challenges.continueChallenge")
     : ts("challenges.startChallenge");
@@ -17247,8 +17182,8 @@ function ChallengeRecommendationCard({
       : Compass;
   const homeGlowStyles = homeGlow
     ? ({
-        ["--formation-base-shadow" as "--formation-base-shadow"]: "0 12px 28px rgba(7, 10, 8, 0.08)",
-        ["--formation-glow-base" as "--formation-glow-base"]: theme.accentGold,
+        "--formation-base-shadow": "0 12px 28px rgba(7, 10, 8, 0.08)",
+        "--formation-glow-base": theme.accentGold,
       } as CSSProperties)
     : undefined;
 
@@ -17779,444 +17714,6 @@ type ChallengeCircleSummary = {
 
 const FASTING_CHALLENGE_ID = "fasting-custom";
 
-function FormationsSection({
-  theme,
-  ts,
-  user,
-  pendingChallengeId,
-  onClearPendingChallenge,
-  celebrate,
-  language,
-}: {
-  theme: ThemeColors;
-  ts: (key: string, fallback?: string) => string;
-  user: { id: string } | null;
-  pendingChallengeId: string | null;
-  onClearPendingChallenge: () => void;
-  celebrate: (request: CelebrationRequest) => boolean;
-  language: LanguageCode;
-}) {
-  const [challenges, setChallenges] = useState<ChallengeWithProgress[]>([]);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [savingDay, setSavingDay] = useState<{ challengeId: string; day: number } | null>(null);
-  const [reflectionText, setReflectionText] = useState("");
-  const [renderTimestampMs] = useState(() => Date.now());
-  const sectionRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    if (pendingChallengeId) {
-      queueMicrotask(() => {
-        onClearPendingChallenge();
-      });
-    }
-  }, [pendingChallengeId, onClearPendingChallenge]);
-
-  useEffect(() => {
-    if (!user) return;
-    queueMicrotask(() => {
-      fetch("/api/challenges")
-        .then((res) => res.json())
-        .then((data: { challenges?: ChallengeWithProgress[] }) => {
-          if (data.challenges) setChallenges(data.challenges);
-        })
-        .catch(() => undefined)
-    });
-  }, [user]);
-
-  function completedDaysFor(challenge: ChallengeWithProgress) {
-    return challenge.completedDays.length;
-  }
-
-  function nextDayFor(challenge: ChallengeWithProgress) {
-    return completedDaysFor(challenge) + 1;
-  }
-
-  async function markDayComplete(challenge: ChallengeWithProgress) {
-    const day = nextDayFor(challenge);
-    if (day > challenge.totalDays) return;
-    setSavingDay({ challengeId: challenge.id, day });
-    try {
-      const res = await fetch("/api/challenges/complete", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ challengeId: challenge.id, day, reflection: reflectionText.trim() }),
-      });
-      if (res.ok) {
-        const now = new Date().toISOString();
-        setChallenges((prev) =>
-          prev.map((c) =>
-            c.id === challenge.id
-              ? {
-                  ...c,
-                  completedDays: [
-                    ...c.completedDays,
-                    { day, reflection: reflectionText.trim(), completedAt: now },
-                  ],
-                }
-              : c
-          )
-        );
-        setReflectionText("");
-        trackClientEvent("challenge_day_marked_complete", { challengeId: challenge.id, day });
-        celebrate({
-          event: day >= challenge.totalDays ? "challenge_completed" : "challenge_day_marked_complete",
-          tier: day >= challenge.totalDays ? "peak" : "whisper",
-          title: day >= challenge.totalDays ? ts("challenges.completedChallenge") : ts("challenges.completedToday"),
-          body: day >= challenge.totalDays ? ts("challenges.challengeCompleteBody") : undefined,
-          source: "challenges",
-          challengeId: challenge.id,
-        });
-      }
-    } catch {
-      // Let user retry
-    } finally {
-      setSavingDay(null);
-    }
-  }
-
-  function buildShareUrl(challengeId: string) {
-    const base = typeof window !== "undefined" ? window.location.origin : "https://app.aletheia.dev";
-    return `${base}/?tab=reflect&challenge=${encodeURIComponent(challengeId)}`;
-  }
-
-  async function shareChallenge(challenge: ChallengeWithProgress) {
-    const title = ts(challenge.titleKey, challenge.title);
-    const url = buildShareUrl(challenge.id);
-    const text = ts("challenges.shareChallengeBody").replace("{days}", String(challenge.totalDays));
-    if (navigator.share) {
-      await navigator.share({ title, text, url }).catch(() => undefined);
-    } else {
-      await navigator.clipboard.writeText(url).catch(() => undefined);
-    }
-    trackClientEvent("challenge_shared", { challengeId: challenge.id });
-  }
-
-async function shareChallengeDayPostcard(challenge: ChallengeWithProgress, day: number) {
-    const prompt = getDayPrompt(challenge.id, day);
-    const completion = challenge.completedDays.find((entry) => entry.day === day) ?? null;
-    if (!prompt) {
-      return;
-    }
-
-    const challengeTitle = ts(challenge.titleKey, challenge.title);
-    const title = challengeTitle;
-    const body = ts("challenges.shareDayBody");
-    const blob = await createWisdomPostcardBlob(
-      {
-        kind: "challenge",
-        eyebrow: ts("challenges.shareDayEyebrow"),
-        title,
-        body,
-        challengeMeta: {
-          day,
-          totalDays: challenge.totalDays,
-          progressLabel: ts("challenges.shareDayProgress")
-            .replace("{day}", String(day))
-            .replace("{totalDays}", String(challenge.totalDays)),
-        },
-        sections: [
-          { label: ts("labels.scripture"), text: localizedScriptureReference(prompt.scripture, language) },
-          {
-            label: ts("labels.practice"),
-            text: typeof (prompt as { practiceKey?: unknown }).practiceKey === "string"
-              ? ts((prompt as { practiceKey: string }).practiceKey, prompt.practice)
-              : prompt.practice,
-          },
-          completion?.reflection?.trim()
-            ? { label: ts("labels.note"), text: completion.reflection.trim() }
-            : null,
-        ].filter(Boolean) as Array<{ label?: string; text: string }>,
-        footer: ts("challenges.shareDayCta"),
-      },
-      theme,
-      language
-    );
-    const file = new File([blob], `aletheia-challenge-${challenge.id}-day-${day}.png`, { type: "image/png" });
-    const canShareFile =
-      typeof navigator !== "undefined" &&
-      "share" in navigator &&
-      "canShare" in navigator &&
-      navigator.canShare({ files: [file] });
-
-    if (canShareFile) {
-      await navigator.share({
-        title,
-        text: `${body} ${ts("challenges.shareDayCta")}`,
-        files: [file],
-      }).catch(() => undefined);
-    } else {
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = file.name;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(url);
-    }
-
-    trackClientEvent("challenge_day_postcard_shared", {
-      challengeId: challenge.id,
-      day,
-      language,
-      channel: canShareFile ? "native" : "download",
-    });
-  }
-
-  // Import challenge data client-side (static import via dynamic loading)
-  const [challengeDefs, setChallengeDefs] = useState<ChallengeDefinitionPreview[]>([]);
-
-  useEffect(() => {
-    import("@/lib/challenge-data").then((mod) => {
-      setChallengeDefs(
-        mod.challengeDefinitions.map((def) => ({
-          id: def.id,
-          titleKey: def.titleKey,
-          title: def.title,
-          descriptionKey: def.descriptionKey,
-          description: def.description,
-          days: def.days,
-        }))
-      );
-    });
-  }, []);
-
-  const loading = Boolean(user) && challengeDefs.length === 0 && challenges.length === 0;
-
-  function getDayPrompt(challengeId: string, day: number) {
-    const def = challengeDefs.find((d) => d.id === challengeId);
-    return def?.days.find((d) => d.day === day) ?? null;
-  }
-
-  if (!user) {
-    return (
-      <section
-        ref={sectionRef}
-        className="rounded-[1.35rem] border p-3.5 sm:p-4"
-        style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}
-      >
-        <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
-          {ts("challenges.eyebrow")}
-        </p>
-        <h2 className="mt-1.5 text-xl font-semibold" style={{ color: theme.textPrimary }}>
-          {ts("challenges.sectionTitle")}
-        </h2>
-        <p className="mt-1.5 text-sm leading-5" style={{ color: theme.textSecondary }}>
-          {ts("challenges.signInToTrack")}
-        </p>
-      </section>
-    );
-  }
-
-  // Use local challenge defs (title/description) when API data has loaded
-  const displayChallenges = challengeDefs.length > 0
-    ? challengeDefs.map((def) => {
-        const withProgress = challenges.find((c) => c.id === def.id);
-      return {
-        id: def.id,
-        titleKey: def.titleKey,
-        title: def.title,
-        descriptionKey: def.descriptionKey,
-        description: def.description,
-        totalDays: def.days.length,
-        mode: withProgress?.mode ?? "Life",
-        completedDays: withProgress?.completedDays ?? [],
-        days: def.days,
-      } as ChallengeWithProgress;
-    })
-    : challenges;
-
-  return (
-    <section ref={sectionRef} className="space-y-3.5">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
-            {ts("challenges.eyebrow")}
-          </p>
-          <h2 className="mt-1 text-2xl font-semibold tracking-tight" style={{ color: theme.textPrimary }}>
-            {ts("challenges.sectionTitle")}
-          </h2>
-          <p className="mt-1.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
-            {ts("challenges.sectionSummary")}
-          </p>
-        </div>
-      </div>
-
-      {loading && displayChallenges.length === 0 && (
-        <div className="rounded-[1.35rem] border p-4 text-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textMuted }}>
-          {ts("challenges.loading")}
-        </div>
-      )}
-
-      {displayChallenges.map((challenge) => {
-        const done = completedDaysFor(challenge);
-        const total = challenge.totalDays;
-        const next = nextDayFor(challenge);
-        const progressState = getChallengeProgressState({
-          completedDays: done,
-          totalDays: total,
-          lastCompletedAt: challenge.completedDays.at(-1)?.completedAt ?? null,
-        }, renderTimestampMs);
-        const isComplete = done >= total;
-        const completedToday = progressState === "completed_today";
-        const isExpanded = expandedId === challenge.id || pendingChallengeId === challenge.id;
-        const isSaving = savingDay?.challengeId === challenge.id;
-        const nextPrompt = isComplete || completedToday ? null : getDayPrompt(challenge.id, next);
-
-        const titleText = ts(challenge.titleKey, challenge.title);
-        const descText = ts(challenge.descriptionKey, challenge.description);
-
-        return (
-          <div
-            key={challenge.id}
-            className="overflow-hidden rounded-[1.35rem] border shadow-[0_4px_12px_rgba(7,10,8,0.04)]"
-            style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}
-          >
-            {/* Card header */}
-            <button
-              type="button"
-              className="flex w-full items-start gap-3 p-3.5 text-left sm:p-4"
-              onClick={() => setExpandedId(isExpanded ? null : challenge.id)}
-            >
-              {/* Progress ring */}
-              <div
-                className="grid size-11 shrink-0 place-items-center rounded-full border text-xs font-semibold"
-                style={{
-                  borderColor: isComplete ? theme.accentGold : theme.borderMedium,
-                  backgroundColor: isComplete ? `${theme.accentGold}18` : theme.bgInput,
-                  color: isComplete ? theme.accentGold : theme.textSecondary,
-                }}
-              >
-                {isComplete ? <Check size={18} style={{ color: theme.accentGold }} /> : `${done}/${total}`}
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold leading-5" style={{ color: theme.textPrimary }}>{titleText}</p>
-                <p className="mt-0.5 text-xs leading-4" style={{ color: theme.textMuted }}>
-                  {isComplete
-                    ? ts("challenges.allDaysComplete").replace("{total}", String(total))
-                    : done === 0
-                      ? ts("challenges.noProgressYet")
-                      : ts("challenges.daysCompleted").replace("{count}", String(done)).replace("{total}", String(total))}
-                </p>
-              </div>
-              <ChevronDown
-                size={16}
-                className="mt-0.5 shrink-0 transition-transform"
-                style={{
-                  color: theme.textMuted,
-                  transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)",
-                }}
-              />
-            </button>
-
-            {/* Expanded body */}
-            {isExpanded && (
-              <div className="border-t p-3.5 sm:p-4 space-y-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-                {descText && (
-                  <p className="text-sm leading-5" style={{ color: theme.textSecondary }}>{descText}</p>
-                )}
-
-                {/* Progress dots */}
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  {Array.from({ length: total }, (_, i) => {
-                    const dayNum = i + 1;
-                    const isDone = challenge.completedDays.some((d) => d.day === dayNum);
-                    return (
-                      <span
-                        key={dayNum}
-                        className="flex size-7 items-center justify-center rounded-full text-xs font-semibold"
-                        style={{
-                          backgroundColor: isDone ? theme.accentGold : theme.bgCardElevated,
-                          color: isDone ? theme.bgMain : theme.textMuted,
-                          border: `1.5px solid ${isDone ? theme.accentGold : theme.borderLight}`,
-                        }}
-                      >
-                        {isDone ? <Check size={12} /> : dayNum}
-                      </span>
-                    );
-                  })}
-                </div>
-
-                {/* Next day prompt */}
-                {!isComplete && !completedToday && nextPrompt && (
-                  <div
-                    className="rounded-[1rem] border p-3 space-y-2"
-                    style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}
-                  >
-                    <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
-                      {ts("challenges.dayOf").replace("{day}", String(next)).replace("{total}", String(total))}
-                    </p>
-                    <p className="text-xs leading-4 italic" style={{ color: theme.textMuted }}>
-                      {localizedScriptureReference(nextPrompt.scripture, language)}
-                    </p>
-                    <p className="text-sm leading-5 font-medium" style={{ color: theme.textPrimary }}>
-                      {typeof (nextPrompt as { principleKey?: unknown }).principleKey === "string"
-                        ? ts((nextPrompt as { principleKey: string }).principleKey, nextPrompt.principle)
-                        : nextPrompt.principle}
-                    </p>
-                    <p className="text-sm leading-5" style={{ color: theme.textSecondary }}>
-                      {typeof (nextPrompt as { promptKey?: unknown }).promptKey === "string"
-                        ? ts((nextPrompt as { promptKey: string }).promptKey, nextPrompt.prompt)
-                        : nextPrompt.prompt}
-                    </p>
-
-                    <textarea
-                      rows={2}
-                      className="mt-1 w-full resize-none rounded-[0.75rem] border px-3 py-2 text-sm leading-5 outline-none"
-                      style={{
-                        borderColor: theme.borderLight,
-                        backgroundColor: theme.bgInput,
-                        color: theme.textPrimary,
-                      }}
-                      placeholder={ts("challenges.reflectionPlaceholder")}
-                      value={reflectionText}
-                      onChange={(e) => setReflectionText(e.target.value)}
-                    />
-
-                    <button
-                      type="button"
-                      disabled={isSaving}
-                      onClick={() => markDayComplete(challenge)}
-                      className="mt-1 flex w-full items-center justify-center rounded-[0.85rem] px-4 py-2.5 text-sm font-semibold transition hover:opacity-90 disabled:opacity-50"
-                      style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
-                    >
-                      {isSaving ? ts("challenges.saving") : ts("challenges.saveReflection")}
-                    </button>
-                  </div>
-                )}
-
-                {completedToday && !isComplete ? (
-                  <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>
-                    {ts("challenges.completedToday")}
-                  </p>
-                ) : null}
-
-                {/* Action row */}
-                <div className="flex items-center justify-between gap-2 flex-wrap">
-                  {!isComplete && !completedToday && (
-                    <p className="text-xs" style={{ color: theme.textMuted }}>
-                      {ts("challenges.dayLabel").replace("{day}", String(next))} · {nextPrompt ? (typeof (nextPrompt as { practiceKey?: unknown }).practiceKey === "string" ? ts((nextPrompt as { practiceKey: string }).practiceKey, nextPrompt.practice) : nextPrompt.practice) : ""}
-                    </p>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => shareChallenge(challenge)}
-                    className="ml-auto flex items-center gap-1.5 rounded-[0.75rem] border px-3 py-1.5 text-xs font-semibold transition hover:opacity-80"
-                    style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}
-                  >
-                    <Share2 size={13} />
-                    {ts("challenges.shareChallenge")}
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        );
-      })}
-    </section>
-  );
-}
-
 function FormationRailSection({
   theme,
   ts,
@@ -18516,7 +18013,6 @@ function FormationRailSection({
   const inviteViewerCircle = inviteViewerChallenge
     ? challengeCircles.find((circle) => circle.challengeId === inviteViewerChallenge.id) ?? null
     : null;
-  const inviteViewerIsReadWithMe = inviteViewerChallenge?.id === "read-with-me-7day";
   const inviteViewerIsFasting = inviteViewerChallenge?.id === FASTING_CHALLENGE_ID;
   const inviteViewerInviteDetails = inviteViewerCircle?.invite.details ?? null;
   const inviteViewerExpanded = inviteViewerChallengeId === selectedChallenge?.id && Boolean(selectedCircleInviteDetails);
@@ -18545,10 +18041,6 @@ function FormationRailSection({
     readWithMeInviteDetails?.pendingAfterValue ?? defaultReadWithMeInviteDetails.pendingAfterValue;
   const readWithMePendingWindowUnit =
     readWithMeInviteDetails?.pendingAfterUnit ?? defaultReadWithMeInviteDetails.pendingAfterUnit;
-  const readWithMePendingWindowLabel = formatReadWithMePendingWindowLabel(
-    readWithMePendingWindowValue,
-    readWithMePendingWindowUnit
-  );
   const readWithMeStartDate = readWithMeInviteDetails?.startDate
     ? new Date(`${readWithMeInviteDetails.startDate}T00:00:00`).toLocaleDateString(undefined, {
         month: "short",
@@ -18822,17 +18314,6 @@ function FormationRailSection({
     setInviteViewerChallengeId(null);
   }
 
-  function normalizeRosterKey(value: string) {
-    return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
-  }
-
-  function pendingWindowMs(value: number | null, unit: ReadWithMeInvitePendingWindowUnit) {
-    if (value === null) {
-      return null;
-    }
-    return unit === "days" ? value * 24 * 60 * 60 * 1000 : value * 60 * 60 * 1000;
-  }
-
   function addRecipientDraft(name: string, note: string = "") {
     const cleanName = name.trim();
     if (!cleanName) {
@@ -18877,17 +18358,6 @@ function FormationRailSection({
         selectedChallenge.totalDays
       )
     : null;
-  const selectedChallengeFocusedPrompt =
-    selectedChallenge && selectedChallengeFocusedDay !== null
-      ? getDayPrompt(selectedChallenge.id, selectedChallengeFocusedDay)
-      : null;
-  const selectedChallengeFocusState =
-    selectedChallenge && selectedChallengeFocusedDay !== null
-      ? dayStateFor(selectedChallenge, selectedChallengeFocusedDay)
-      : "upcoming";
-  const selectedChallengeFocusedCompletion = selectedChallenge && selectedChallengeFocusedDay !== null
-    ? selectedChallengeCompletedDays.find((day) => day.day === selectedChallengeFocusedDay) ?? null
-    : null;
   const selectedChallengeDefinition = selectedChallenge
     ? challengeDefs.find((def) => def.id === selectedChallenge.id) ?? null
     : null;
@@ -18919,70 +18389,24 @@ function FormationRailSection({
     hi: "पूरा अभ्यास खोलने के लिए नीचे वाले आज के कार्ड पर टैप करें.",
   } as Partial<Record<LanguageCode, string>>)[language] ?? "Tap the current day card below to open the full practice.";
 
-  function localizedDayPractice(day: { practice: string; practiceKey?: string }) {
+  const localizedDayPractice = useCallback((day: { practice: string; practiceKey?: string }) => {
     return typeof day.practiceKey === "string" ? ts(day.practiceKey, day.practice) : day.practice;
-  }
+  }, [ts]);
 
   useEffect(() => {
-    if (process.env.NODE_ENV === "production" || typeof window === "undefined") {
-      return;
-    }
-
-    const debugWindow = window as Window & {
-      __aletheiaDebug?: {
-        renderSelectedChallengeDayPostcard?: () => Promise<Blob | null>;
-      };
-      __aletheiaLastChallengePostcardBlob?: Blob;
-      __aletheiaLastChallengePostcardUrl?: string;
-    };
-
-    // eslint-disable-next-line react-hooks/immutability
-    debugWindow.__aletheiaDebug = {
-      async renderSelectedChallengeDayPostcard() {
-        if (!selectedChallenge || !selectedChallengeModalPrompt || !selectedChallengeModalCompletion || !selectedChallengeModalDay) {
-          return null;
-        }
-
-        const blob = await createWisdomPostcardBlob(
-          {
-            kind: "challenge",
-            eyebrow: ts("challenges.shareDayEyebrow"),
-            title: ts(selectedChallenge.titleKey, selectedChallenge.title),
-            body: ts("challenges.shareDayBody"),
-            challengeMeta: {
-              day: selectedChallengeModalDay.day,
-              totalDays: selectedChallenge.totalDays,
-              progressLabel: ts("challenges.shareDayProgress")
-                .replace("{day}", String(selectedChallengeModalDay.day))
-                .replace("{totalDays}", String(selectedChallenge.totalDays)),
-            },
-            sections: [
-              { label: ts("labels.scripture"), text: localizedScriptureReference(selectedChallengeModalPrompt.scripture, language) },
-              { label: ts("labels.practice"), text: localizedDayPractice(selectedChallengeModalPrompt) },
-              selectedChallengeModalCompletion.reflection?.trim()
-                ? { label: ts("labels.note"), text: selectedChallengeModalCompletion.reflection.trim() }
-                : null,
-            ].filter(Boolean) as Array<{ label?: string; text: string }>,
-            footer: ts("challenges.shareDayCta"),
-          },
-          theme,
-          language
-        );
-
-        debugWindow.__aletheiaLastChallengePostcardBlob = blob;
-        debugWindow.__aletheiaLastChallengePostcardUrl = URL.createObjectURL(blob);
-        return blob;
-      },
-    };
-
-    return () => {
-      if (debugWindow.__aletheiaLastChallengePostcardUrl) {
-        URL.revokeObjectURL(debugWindow.__aletheiaLastChallengePostcardUrl);
-      }
-      delete debugWindow.__aletheiaDebug;
-    };
+    return installSelectedChallengePostcardDebugApi({
+      selectedChallenge,
+      selectedChallengeModalPrompt,
+      selectedChallengeModalCompletion,
+      selectedChallengeModalDay,
+      language,
+      localizedDayPractice,
+      theme,
+      ts,
+    });
   }, [
     language,
+    localizedDayPractice,
     selectedChallenge,
     selectedChallengeModalCompletion,
     selectedChallengeModalDay,
@@ -19041,9 +18465,7 @@ function FormationRailSection({
     const prompt = getDayPrompt(challenge.id, day);
     const title = `${ts("challenges.dayLabel").replace("{day}", String(day))} · ${ts(challenge.titleKey, challenge.title)}`;
     const text = buildChallengeDayShareText(challenge, day);
-    const url = typeof window !== "undefined"
-      ? `${window.location.origin}/?tab=reflect&challenge=${encodeURIComponent(challenge.id)}&day=${day}`
-      : `https://app.aletheia.dev/?tab=reflect&challenge=${encodeURIComponent(challenge.id)}&day=${day}`;
+    const url = `${getPublicAppOrigin()}/?tab=reflect&challenge=${encodeURIComponent(challenge.id)}&day=${day}`;
     if (navigator.share) {
       await navigator.share({ title, text, url }).catch(() => undefined);
     } else {
@@ -20152,7 +19574,6 @@ function FormationRailSection({
                       <ChallengeSharedProgressPanel
                         theme={theme}
                         ts={ts}
-                        inviteOwner={selectedCircle.invite.owner}
                         members={selectedCircle.members}
                         totalDays={selectedChallenge.totalDays}
                       />
@@ -21140,17 +20561,11 @@ const ChallengeNudgePanel = memo(function ChallengeNudgePanel({
 const ChallengeSharedProgressPanel = memo(function ChallengeSharedProgressPanel({
   theme,
   ts,
-  inviteOwner,
   members,
   totalDays,
 }: {
   theme: ThemeColors;
   ts: (key: string, fallback?: string) => string;
-  inviteOwner: {
-    id: string;
-    name: string | null;
-    avatarUrl: string | null;
-  } | null;
   members: ChallengeCircleMember[];
   totalDays: number;
 }) {
@@ -21198,7 +20613,6 @@ const ChallengeSharedProgressPanel = memo(function ChallengeSharedProgressPanel(
 }, (prev, next) => (
   prev.theme === next.theme &&
   prev.ts === next.ts &&
-  prev.inviteOwner === next.inviteOwner &&
   prev.members === next.members &&
   prev.totalDays === next.totalDays
 ));
@@ -21814,7 +21228,6 @@ function TrustCenterCard({
   ts,
   user,
   hasLocalWorkspaceData,
-  onRequestSignIn,
   onClearLocalPersonalization,
   onClearGuestWorkspace,
   onExportData,
@@ -21825,7 +21238,6 @@ function TrustCenterCard({
   ts: (key: string, fallback?: string) => string;
   user: User | null;
   hasLocalWorkspaceData: boolean;
-  onRequestSignIn: (mode?: AuthMode) => void;
   onClearLocalPersonalization: () => void;
   onClearGuestWorkspace: () => void;
   onExportData: () => void;
@@ -24227,13 +23639,13 @@ function NotificationPanel({
   );
   const unsupported =
     typeof window !== "undefined" &&
-    (!("Notification" in window) || !("serviceWorker" in navigator) || !("PushManager" in window));
+    (NATIVE_WEB_BUNDLE || !("Notification" in window) || !("serviceWorker" in navigator) || !("PushManager" in window));
   const disabled = busy || !user || !configured || unsupported || permission === "denied";
   const signedIn = Boolean(user);
   const browserSupport = {
     supported: !unsupported,
     notification: typeof window !== "undefined" && "Notification" in window,
-    serviceWorker: typeof window !== "undefined" && "serviceWorker" in navigator,
+    serviceWorker: typeof window !== "undefined" && !NATIVE_WEB_BUNDLE && "serviceWorker" in navigator,
     pushManager: typeof window !== "undefined" && "PushManager" in window,
   };
   const formatRelativeMinutes = (value: number | null) => {
@@ -25498,6 +24910,7 @@ function DecisionMemoryArchiveSection({
       )}
 
       <DecisionMemoryDetailModal
+        key={`${selectedEntry?.id ?? "decision-memory-detail"}:${selectedDecision?.updatedAt ?? "no-decision"}`}
         open={Boolean(selectedEntry)}
         theme={theme}
         ts={ts}
@@ -25531,35 +24944,13 @@ function DecisionMemoryDetailModal({
   onClose: () => void;
 }) {
   const canUsePortal = typeof document !== "undefined";
-  const [counselSought, setCounselSought] = useState(false);
-  const [costCounted, setCostCounted] = useState(false);
-  const [peaceOverUrgency, setPeaceOverUrgency] = useState(false);
-  const [waitingDays, setWaitingDays] = useState<string>("");
+  const [counselSought, setCounselSought] = useState(() => Boolean(decision?.counselSought));
+  const [costCounted, setCostCounted] = useState(() => Boolean(decision?.costCounted));
+  const [peaceOverUrgency, setPeaceOverUrgency] = useState(() => Boolean(decision?.peaceOverUrgency));
+  const [waitingDays, setWaitingDays] = useState<string>(() => getWaitingDaysFromWaitingUntil(decision?.waitingUntil));
+  const [initialWaitingDays] = useState(() => getWaitingDaysFromWaitingUntil(decision?.waitingUntil));
   const [saving, setSaving] = useState(false);
   useBodyScrollLock(open && canUsePortal);
-
-  useEffect(() => {
-    if (!decision) {
-      setCounselSought(false);
-      setCostCounted(false);
-      setPeaceOverUrgency(false);
-      setWaitingDays("");
-      setSaving(false);
-      return;
-    }
-
-    setCounselSought(Boolean(decision.counselSought));
-    setCostCounted(Boolean(decision.costCounted));
-    setPeaceOverUrgency(Boolean(decision.peaceOverUrgency));
-    if (decision.waitingUntil) {
-      const diffMs = Date.parse(decision.waitingUntil) - Date.now();
-      const diffDays = Math.max(1, Math.round(diffMs / 86400000));
-      setWaitingDays(Number.isFinite(diffDays) && diffDays > 0 ? String(diffDays) : "");
-    } else {
-      setWaitingDays("");
-    }
-    setSaving(false);
-  }, [decision]);
 
   if (!open || !canUsePortal || !entry) {
     return null;
@@ -25598,7 +24989,7 @@ function DecisionMemoryDetailModal({
     ? counselSought !== Boolean(decision?.counselSought) ||
       costCounted !== Boolean(decision?.costCounted) ||
       peaceOverUrgency !== Boolean(decision?.peaceOverUrgency) ||
-      currentWaitingValue !== (decision?.waitingUntil ? String(Math.max(1, Math.round((Date.parse(decision.waitingUntil) - Date.now()) / 86400000))) : "")
+      currentWaitingValue !== initialWaitingDays
     : false;
 
   async function saveSignalUpdates() {
@@ -25793,7 +25184,7 @@ function DecisionMemoryDetailModal({
                     setCounselSought(Boolean(decision.counselSought));
                     setCostCounted(Boolean(decision.costCounted));
                     setPeaceOverUrgency(Boolean(decision.peaceOverUrgency));
-                    setWaitingDays(decision.waitingUntil ? String(Math.max(1, Math.round((Date.parse(decision.waitingUntil) - Date.now()) / 86400000))) : "");
+                    setWaitingDays(initialWaitingDays);
                   }}
                   className="inline-flex h-11 items-center justify-center rounded-full border px-4 text-sm font-semibold transition"
                   style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
@@ -25852,15 +25243,6 @@ function SharedDecisionDetailModal({
   const [sending, setSending] = useState(false);
   const [threadComments, setThreadComments] = useState<CounselConversationComment[]>(() => item?.decision.comments ?? []);
   useBodyScrollLock(open && canUsePortal);
-
-  useEffect(() => {
-    if (!item) {
-      return;
-    }
-    setDraft("");
-    setSending(false);
-    setThreadComments(item.decision.comments ?? []);
-  }, [item]);
 
   if (!open || !canUsePortal || !item) {
     return null;
@@ -26892,7 +26274,6 @@ function ChallengeInviteModal({
   user,
   authOpen,
   authMode,
-  setAuthMode,
   authName,
   setAuthName,
   authEmail,
@@ -26924,7 +26305,6 @@ function ChallengeInviteModal({
   user: User | null;
   authOpen: boolean;
   authMode: AuthMode;
-  setAuthMode: (value: AuthMode) => void;
   authName: string;
   setAuthName: (value: string) => void;
   authEmail: string;
@@ -27567,8 +26947,7 @@ function CounselRemovalConfirmModal({
   );
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function PreferencesPanel({
+export function PreferencesPanel({
   panelRef,
   ts,
   preferences,
@@ -27773,7 +27152,6 @@ function CompanionPanel({
   onSharePostcard,
   onShare,
   onFeedback,
-  onRequestSignIn,
   isWorking,
   isListening,
   voiceTranscriptPreview,
@@ -27814,7 +27192,6 @@ function CompanionPanel({
   onSharePostcard: (exchange: ConversationExchange) => void;
   onShare: (channel: ShareChannel) => void;
   onFeedback: (value: string) => void;
-  onRequestSignIn: () => void;
   isWorking: boolean;
   isListening: boolean;
   voiceTranscriptPreview: string;
@@ -28115,16 +27492,15 @@ function CompanionPanel({
         <div className="min-w-0 space-y-4">
           {currentExchange ? (
             <div ref={currentCounselRef} className="scroll-mt-24">
-              <CurrentCounselCard
-                ts={ts}
-                theme={theme}
-                exchange={currentExchange}
-                preferences={preferences}
-                ui={ui}
-                isWorking={isWorking}
-                isSpeaking={isSpeaking}
-                speechLoading={speechLoading}
-                speechPaused={speechPaused}
+                <CurrentCounselCard
+                  ts={ts}
+                  theme={theme}
+                  exchange={currentExchange}
+                  preferences={preferences}
+                  ui={ui}
+                  isSpeaking={isSpeaking}
+                  speechLoading={speechLoading}
+                  speechPaused={speechPaused}
                 speechProgress={speechProgress}
                 onSpeak={onSpeak}
                 onTogglePause={onTogglePause}
@@ -28138,7 +27514,6 @@ function CompanionPanel({
                 onShare={onShare}
                 onFeedback={onFeedback}
                 signedIn={signedIn}
-                onRequestSignIn={onRequestSignIn}
               />
             </div>
           ) : null}
@@ -28748,6 +28123,16 @@ function localizedCounselRoleLabel(role: string, ts: (key: string, fallback?: st
   }
 }
 
+function getWaitingDaysFromWaitingUntil(waitingUntil: string | null | undefined) {
+  if (!waitingUntil) {
+    return "";
+  }
+
+  const diffMs = Date.parse(waitingUntil) - Date.now();
+  const diffDays = Math.max(1, Math.round(diffMs / 86400000));
+  return Number.isFinite(diffDays) && diffDays > 0 ? String(diffDays) : "";
+}
+
 function localizedCounselShareDeliveryCopy(
   share: CounselShareDeliverySummaryView,
   ts: (key: string, fallback?: string) => string
@@ -29310,7 +28695,6 @@ function CurrentCounselCard({
   exchange,
   preferences,
   ui,
-  isWorking,
   isSpeaking,
   speechLoading,
   speechPaused,
@@ -29327,14 +28711,12 @@ function CurrentCounselCard({
   onShare,
   onFeedback,
   signedIn,
-  onRequestSignIn,
 }: {
   ts: (key: string, fallback?: string) => string;
   theme: ThemeColors;
   exchange: ConversationExchange;
   preferences: UserPreferences;
   ui: UiText;
-  isWorking: boolean;
   isSpeaking: boolean;
   speechLoading: boolean;
   speechPaused: boolean;
@@ -29351,7 +28733,6 @@ function CurrentCounselCard({
   onShare: (channel: ShareChannel) => void;
   onFeedback: (value: string) => void;
   signedIn: boolean;
-  onRequestSignIn: () => void;
 }) {
   const text = { ...englishText, ...ui };
   const calmerActionCopy = preferences.language === "en" ? {
@@ -29468,7 +28849,6 @@ function CurrentCounselCard({
               </div>
               <button
                 type="button"
-                onClick={onRequestSignIn}
                 className="inline-flex h-10 shrink-0 items-center justify-center rounded-full border px-4 text-sm font-semibold transition"
                 style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
               >
@@ -29870,7 +29250,6 @@ function DecisionCompanionPanel({
   counselCanReceiveCheckins,
   latestCounselInvite,
   userSignedIn,
-  onOpenReceivedCounselInvite,
   ruleText,
   setTitle,
   setPressure,
@@ -29886,7 +29265,6 @@ function DecisionCompanionPanel({
   onCreateDecision,
   onAddCounsel,
   onShareCounselInvite,
-  onShareDecisionWithCounsel,
   onBulkShareDecisionsWithCounsel,
   onSendSharedDecisionComment,
   onSendCounselInviteComment,
@@ -29925,7 +29303,6 @@ function DecisionCompanionPanel({
   counselCanReceiveCheckins: boolean;
   latestCounselInvite: { name: string; url: string } | null;
   userSignedIn: boolean;
-  onOpenReceivedCounselInvite: (invite: CounselInvitePreview) => void;
   ruleText: string;
   setTitle: (value: string) => void;
   setPressure: (value: string) => void;
@@ -29941,7 +29318,6 @@ function DecisionCompanionPanel({
   onCreateDecision: (event: FormEvent<HTMLFormElement>) => void;
   onAddCounsel: (event: FormEvent<HTMLFormElement>) => void;
   onShareCounselInvite: (channel?: ShareChannel) => void;
-  onShareDecisionWithCounsel: (contactId: string, decisionId: string) => void;
   onBulkShareDecisionsWithCounsel: (contactId: string, decisionIds: string[]) => void;
   onSendSharedDecisionComment: (sharedDecisionId: string, body: string) => Promise<CounselConversationComment | void> | CounselConversationComment | void;
   onSendCounselInviteComment: (decisionId: string, body: string, contactIdOverride?: string | null) => Promise<{ id: string; body: string; createdAt: string; acceptanceId: string | null } | void> | { id: string; body: string; createdAt: string; acceptanceId: string | null } | void;
@@ -30007,7 +29383,9 @@ function DecisionCompanionPanel({
   const outgoingSharedDecisionRailHasOverflow = useRailOverflowCue(outgoingSharedDecisionRailRef, decisionSection === "counsel", [outgoingSharedDecisionItems.length]);
   const selectedShareContactId = selectedShareContactIdState && counselContacts.some((contact) => contact.id === selectedShareContactIdState)
     ? selectedShareContactIdState
-    : counselContacts[0]?.id ?? null;
+    : pendingDecisionShareSurfaceFocusContactId && counselContacts.some((contact) => contact.id === pendingDecisionShareSurfaceFocusContactId)
+      ? pendingDecisionShareSurfaceFocusContactId
+      : counselContacts[0]?.id ?? null;
   const selectedShareDecisionIds = selectedShareDecisionIdsState.filter((decisionId) =>
     decisions.some((decision) => decision.id === decisionId && decision.status !== "closed")
   );
@@ -30148,12 +29526,6 @@ function DecisionCompanionPanel({
       return;
     }
 
-    const preferredContactId = counselContacts.some((contact) => contact.id === pendingDecisionShareSurfaceFocusContactId)
-      ? pendingDecisionShareSurfaceFocusContactId
-      : counselContacts[0]?.id ?? null;
-    if (preferredContactId) {
-      setSelectedShareContactIdState(preferredContactId);
-    }
     target.focus({ preventScroll: true });
     scrollTargetBelowTopChrome(target);
     onPendingDecisionShareSurfaceFocusHandled();
@@ -30460,6 +29832,7 @@ function DecisionCompanionPanel({
             ) : null}
 
             <SharedDecisionDetailModal
+              key={selectedSharedDecision?.decision.id ?? "shared-decision-detail"}
               open={Boolean(selectedSharedDecision)}
               theme={theme}
               ts={ts}
@@ -31231,7 +30604,6 @@ function ReflectPanel({
   onShareGratitudePostcard,
   onUseGratitudeAsReflectionPrompt,
   onSpeakText,
-  onShareReflectionPostcard,
   celebrate,
   theme,
 }: {
@@ -31276,7 +30648,6 @@ function ReflectPanel({
   onShareGratitudePostcard: (entry: GratitudeEntry) => void;
   onUseGratitudeAsReflectionPrompt: (entry: GratitudeEntry) => void;
   onSpeakText: (text: string, notice?: string, label?: string) => void;
-  onShareReflectionPostcard: (entry: JournalEntry) => void;
   theme: ThemeColors;
 }) {
   const runtime = runtimeCopyFor(language);
@@ -31378,7 +30749,6 @@ function ReflectPanel({
           setBody={setBody}
           onSave={onSave}
           onDelete={onDelete}
-          onSharePostcard={onShareReflectionPostcard}
           ts={ts}
           theme={theme}
         />
@@ -32515,7 +31885,6 @@ function JournalPanel({
   setBody,
   onSave,
   onDelete,
-  onSharePostcard,
   ts,
   theme,
 }: {
@@ -32528,7 +31897,6 @@ function JournalPanel({
   setBody: (value: string) => void;
   onSave: () => void;
   onDelete: (id: string) => void;
-  onSharePostcard: (entry: JournalEntry) => void;
   ts: (key: string, fallback?: string) => string;
   theme: ThemeColors;
 }) {

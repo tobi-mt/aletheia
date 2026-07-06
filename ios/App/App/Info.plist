@@ -37,6 +37,8 @@
 			</array>
 		</dict>
 	</array>
+	<key>ALETHEIA_PUBLIC_APP_ORIGIN</key>
+	<string>https://aletheia.mirrortalkpodcast.com</string>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>

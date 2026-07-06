@@ -2,6 +2,9 @@
 
 import { FormEvent, useState } from "react";
 import Link from "next/link";
+import { installNativeWebFetchProxy } from "@/lib/native-web";
+
+installNativeWebFetchProxy();
 
 type UserRow = {
   id: string;

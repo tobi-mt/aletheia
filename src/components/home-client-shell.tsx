@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import Image from "next/image";
 import { startTransition, useEffect, useRef, useState } from "react";
 import { getTranslation, loadTranslationsSync } from "@/lib/translations";
+import { installNativeWebFetchProxy } from "@/lib/native-web";
 
 type SplashLanguage = "en" | "es" | "fr" | "de" | "pt" | "yo" | "ig" | "ha" | "tl" | "ar" | "hi";
 
@@ -12,6 +13,8 @@ const LazyAletheiaApp = dynamic(
   () => import("@/components/aletheia-app").then((mod) => mod.AletheiaApp),
   { ssr: false, loading: () => null }
 );
+
+installNativeWebFetchProxy();
 
 function readStoredSplashLanguage(): SplashLanguage {
   if (typeof window === "undefined") {
@@ -35,6 +38,8 @@ function readStoredSplashLanguage(): SplashLanguage {
 export default function HomeClientShell() {
   const [showSplash, setShowSplash] = useState(true);
   const [launchReady, setLaunchReady] = useState(false);
+  const [paintReady, setPaintReady] = useState(false);
+  const [fontsReady, setFontsReady] = useState(false);
   const [splashLanguage, setSplashLanguage] = useState<SplashLanguage>("en");
   const [splashCopyReady, setSplashCopyReady] = useState(false);
   const lastHiddenAtRef = useRef<number | null>(null);
@@ -58,6 +63,62 @@ export default function HomeClientShell() {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+    const fonts = document.fonts;
+    if (!fonts) {
+      const fallbackFrame = window.requestAnimationFrame(() => {
+        if (!cancelled) {
+          setFontsReady(true);
+        }
+      });
+      return () => {
+        cancelled = true;
+        window.cancelAnimationFrame(fallbackFrame);
+      };
+    }
+
+    void fonts.ready
+      .then(() => {
+        if (!cancelled) {
+          setFontsReady(true);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setFontsReady(true);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!launchReady) {
+      return;
+    }
+
+    let cancelled = false;
+    const firstFrame = window.requestAnimationFrame(() => {
+      const secondFrame = window.requestAnimationFrame(() => {
+        if (!cancelled) {
+          setPaintReady(true);
+        }
+      });
+
+      if (cancelled) {
+        window.cancelAnimationFrame(secondFrame);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+      window.cancelAnimationFrame(firstFrame);
+    };
+  }, [launchReady]);
+
+  useEffect(() => {
     let active = true;
     let dismissTimer: number | null = null;
     const showSplashFor = (visibleMs: number) => {
@@ -72,10 +133,8 @@ export default function HomeClientShell() {
       }, visibleMs);
     };
 
-    if (launchReady) {
+    if (launchReady && paintReady && fontsReady) {
       showSplashFor(180);
-    } else {
-      setShowSplash(true);
     }
 
     const onVisibility = () => {
@@ -105,11 +164,11 @@ export default function HomeClientShell() {
       }
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, [launchReady]);
+  }, [launchReady, paintReady, fontsReady]);
 
   return (
     <>
-      <LazyAletheiaApp onBootReady={() => setLaunchReady(true)} />
+      <LazyAletheiaApp onBootReady={() => setLaunchReady(true)} startupPaintReady={paintReady} />
       {showSplash ? (
         <div
           data-testid="app-launch-splash"

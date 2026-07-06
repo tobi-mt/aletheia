@@ -132,16 +132,11 @@ The service worker is registered only in production so local development does no
 
 Aletheia can be packaged for iOS and Android with Capacitor while keeping the hosted app as the source of truth.
 
-Use a production URL when building the native shells:
-
-```bash
-CAPACITOR_SERVER_URL="https://your-production-domain"
-```
-
 Useful commands:
 
 ```bash
 npm run mobile:assets
+npm run mobile:bundle:web
 npm run mobile:sync
 npm run mobile:bundle:android
 npm run mobile:archive:ios
@@ -328,7 +323,7 @@ The project includes `capacitor.config.ts` with:
 - app name: `Aletheia`
 - app id: `com.aletheia.app`
 - local web bundle: `capacitor-web`
-- bootstrap handoff target: `NEXT_PUBLIC_APP_URL`
+- native bundle generator: `npm run mobile:bundle:web`
 
 The checked-in native shells currently use:
 
@@ -344,7 +339,7 @@ npx cap add android
 npx cap sync
 ```
 
-For this cloud-backed app, Capacitor now opens the local bundled launch screen first and then hands off to the deployed app URL after the connection and launch target are ready. That keeps the native shells resilient while still relying on the hosted app for auth, OpenAI, and journal persistence.
+For the native shells, `npm run mobile:bundle:web` builds the Next.js app, copies the prerendered shell and static assets into `capacitor-web`, and rewrites API traffic back to the hosted backend. That keeps the mobile app self-contained at launch while still relying on the deployed backend for auth, OpenAI, and journal persistence.
 
 ## Launch Notes
 

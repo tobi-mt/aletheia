@@ -1,3 +1,6 @@
 {
-  "launchUrl": "https://aletheia.mirrortalkpodcast.com"
+  "appId": "com.aletheia.app",
+  "appName": "Aletheia",
+  "webDir": "capacitor-web",
+  "bundle": "local"
 }

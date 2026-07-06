@@ -2,6 +2,9 @@
 
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { installNativeWebFetchProxy } from "@/lib/native-web";
+
+installNativeWebFetchProxy();
 
 type PeriodKey = "daily" | "weekly" | "monthly" | "yearly";
 

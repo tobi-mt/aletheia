@@ -36,6 +36,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.os.Bundle;
 
 /**
  * StreamingMediaDataSource buffers audio bytes as they arrive from the network.
@@ -128,6 +129,8 @@ class StreamingMediaDataSource extends MediaDataSource {
 
 @CapacitorPlugin(name = "ManagedAudio")
 public class ManagedAudioPlugin extends Plugin implements MediaPlayer.OnCompletionListener, MediaPlayer.OnErrorListener {
+    private static final String DEFAULT_PUBLIC_APP_ORIGIN = "https://aletheia.mirrortalkpodcast.com";
+    private static final String PUBLIC_APP_ORIGIN_META_KEY = "ALETHEIA_PUBLIC_APP_ORIGIN";
     private static final int NOTIFICATION_MODE_NONE = 0;
     private static final int NOTIFICATION_MODE_LOADING = 1;
     private static final int NOTIFICATION_MODE_PLAYING = 2;
@@ -206,15 +209,42 @@ public class ManagedAudioPlugin extends Plugin implements MediaPlayer.OnCompleti
         }
     };
 
-    private String speechUrl() {
+    private String publicAppOrigin() {
         String serverUrl = getBridge().getConfig().getServerUrl();
-        if (serverUrl == null || serverUrl.isEmpty()) {
-            return null;
+        if (serverUrl != null && !serverUrl.isEmpty()) {
+            try {
+                URL parsed = new URL(serverUrl);
+                String protocol = parsed.getProtocol();
+                if ("http".equals(protocol) || "https".equals(protocol)) {
+                    return parsed.getProtocol() + "://" + parsed.getAuthority();
+                }
+            } catch (Exception ignored) {
+                // Fall back to the explicit metadata origin below.
+            }
         }
-        if (serverUrl.endsWith("/")) {
-            return serverUrl + "api/audio/speech";
+
+        Bundle metadata = getContext().getApplicationInfo().metaData;
+        if (metadata != null) {
+            String configuredOrigin = metadata.getString(PUBLIC_APP_ORIGIN_META_KEY);
+            if (configuredOrigin != null && !configuredOrigin.isEmpty()) {
+                try {
+                    URL parsed = new URL(configuredOrigin);
+                    return parsed.getProtocol() + "://" + parsed.getAuthority();
+                } catch (Exception ignored) {
+                    // Keep falling back to the built-in default.
+                }
+            }
         }
-        return serverUrl + "/api/audio/speech";
+
+        return DEFAULT_PUBLIC_APP_ORIGIN;
+    }
+
+    private String speechUrl() {
+        String baseUrl = publicAppOrigin();
+        if (baseUrl.endsWith("/")) {
+            return baseUrl + "api/audio/speech";
+        }
+        return baseUrl + "/api/audio/speech";
     }
 
     private void emitState(String state) {
