@@ -2223,7 +2223,7 @@
     "shareDayProgress": "Day {day} of {totalDays}",
     "inactive": "Inactive",
     "inProgress": "In progress",
-    "inactiveReentryBody": "You missed a day. You do not need to start over. Re-enter gently with day {nextDay} of {total}.",
+    "inactiveReentryBody": "You missed {missedDays} day(s). You do not need to start over. Re-enter gently with day {nextDay} of {total}.",
     "completedTodayBody": "Day {nextDay} of {total} is waiting for tomorrow.",
     "inProgressBody": "Continue with day {nextDay} of {total}.",
     "continueCurrentPractice": "Continue your current practice",

@@ -27,6 +27,16 @@ function isSameLocalDay(leftMs: number, rightMs: number) {
   );
 }
 
+function localDayStartMs(value: number) {
+  const date = new Date(value);
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+}
+
+function localDayDifference(leftMs: number, rightMs: number) {
+  const delta = localDayStartMs(rightMs) - localDayStartMs(leftMs);
+  return Math.max(0, Math.round(delta / DAY_MS));
+}
+
 export function getChallengeProgressState(
   snapshot: ChallengeProgressSnapshot,
   nowMs = Date.now()
@@ -54,6 +64,20 @@ export function getChallengeProgressState(
 
   const elapsedDays = (nowMs - completedAtMs) / DAY_MS;
   return elapsedDays > CHALLENGE_INACTIVE_AFTER_DAYS ? "inactive" : "active";
+}
+
+export function getChallengeMissedDays(snapshot: ChallengeProgressSnapshot, nowMs = Date.now()) {
+  if (snapshot.completedDays <= 0 || !snapshot.lastCompletedAt) {
+    return 0;
+  }
+
+  const completedAtMs = Date.parse(snapshot.lastCompletedAt);
+  if (!Number.isFinite(completedAtMs)) {
+    return 0;
+  }
+
+  const gapDays = localDayDifference(completedAtMs, nowMs) - 1;
+  return Math.max(0, gapDays);
 }
 
 export function isChallengeInProgress(snapshot: ChallengeProgressSnapshot, nowMs = Date.now()) {

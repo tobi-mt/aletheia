@@ -123,7 +123,6 @@ import BibleReader from "@/components/bible-reader";
 import { ToastContainer, useToast } from "@/components/toast-notification";
 import { StreakBadge, StreakAchievementNotification } from "@/components/streak-badge";
 import { MilestoneCelebrationLayer, useMilestoneCelebration, type CelebrationAnalyticsPayload, type CelebrationRequest } from "@/components/milestone-celebration";
-import { DecisionTimeline, generateDecisionCheckpoints } from "@/components/decision-timeline";
 import { getUserStreak, checkStreakAchievements } from "@/lib/streak-tracker";
 import { STREAK_MILESTONES, formatStreak, type StreakData } from "@/lib/streak-shared";
 import type { BibleStudyData } from "@/lib/bible-study";
@@ -13437,8 +13436,6 @@ function startFirstRunGuestFlow() {
                         focusIntentions={focusIntentions}
                         messages={messages}
                         wisdomDecisions={wisdomDecisions}
-                        challengeRecommendation={null}
-                        onOpenRecommendedChallenge={openRecommendedChallenge}
                         pendingChallengeId={pendingChallengeId}
                         pendingGratitudeNotificationFocus={pendingGratitudeNotificationFocus}
                         pendingChallengeFocus={pendingChallengeFocus}
@@ -16227,19 +16224,29 @@ function ContextualNextAction({
   theme: ThemeColors;
 }) {
   return (
-    <section className="editorial-surface rounded-xl border p-4 shadow-sm sm:p-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+    <section
+      className="editorial-surface overflow-hidden rounded-[1.35rem] border shadow-[0_10px_24px_rgba(7,10,8,0.05)]"
+      style={{
+        borderColor: theme.borderLight,
+        background: `linear-gradient(180deg, color-mix(in srgb, ${theme.bgCardElevated} 92%, white 8%), ${theme.bgCard})`,
+      }}
+    >
+      <div className="h-1 w-full" style={{ background: `linear-gradient(90deg, ${theme.accentGold}, color-mix(in srgb, ${theme.primary} 72%, ${theme.accentGold} 28%))` }} />
+      <div className="flex flex-col gap-4 p-4 sm:p-5 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{eyebrow}</p>
-          <h2 className="mt-2 text-xl font-semibold leading-tight text-balance" style={{ color: theme.textPrimary }}>{title}</h2>
-          <p className="mt-2 max-w-2xl text-sm leading-6" style={{ color: theme.textSecondary }}>{body}</p>
+          <p className="text-[10.5px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>{eyebrow}</p>
+          <h2 className="mt-2 text-[1.22rem] font-semibold leading-tight text-balance sm:text-[1.45rem]" style={{ color: theme.textPrimary }}>{title}</h2>
+          <p className="mt-2 max-w-2xl text-[0.93rem] leading-6 sm:text-[0.98rem] sm:leading-7" style={{ color: theme.textSecondary }}>{body}</p>
         </div>
         {actionLabel && onAction ? (
           <button
             type="button"
             onClick={onAction}
-            className="premium-tap-card h-10 w-full shrink-0 rounded-md px-4 text-sm font-semibold shadow-sm sm:w-auto"
-            style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+            className="premium-tap-card inline-flex h-11 w-full shrink-0 items-center justify-center rounded-full px-4 text-sm font-semibold shadow-[0_12px_22px_rgba(7,10,8,0.08)] sm:w-auto"
+            style={{
+              background: `linear-gradient(180deg, color-mix(in srgb, ${theme.primary} 96%, white 4%), ${theme.primary})`,
+              color: theme.textOnPrimary,
+            }}
           >
             {actionLabel}
           </button>
@@ -17224,6 +17231,7 @@ function ChallengeRecommendationCard({
   }
 
   const isContinuation = recommendation.actionKind === "continue";
+  const isInactive = recommendation.progressState === "inactive";
   const actionLabel = recommendation.actionKind === "continue"
     ? ts("challenges.continueChallenge")
     : ts("challenges.startChallenge");
@@ -17234,37 +17242,63 @@ function ChallengeRecommendationCard({
     : isContinuation
       ? Check
       : Compass;
+  const missedDaysLabel = recommendation.missedDays === 1 ? ts("labels.day") : ts("labels.days");
+  const statusToneStyle =
+    recommendation.statusTone === "warning"
+      ? { borderColor: theme.accentGold, backgroundColor: theme.activeBg, color: theme.textPrimary }
+      : recommendation.statusTone === "success"
+        ? { borderColor: theme.primary, backgroundColor: theme.bgInput, color: theme.textPrimary }
+        : { borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary };
 
   return (
     <section
-      className={`relative overflow-hidden rounded-[1.55rem] border shadow-[0_10px_24px_rgba(7,10,8,0.06)] ${compact ? "p-3.5 sm:p-4" : "p-4 sm:p-5"} ${className}`}
+      className={`relative overflow-hidden rounded-[1.55rem] border shadow-[0_12px_28px_rgba(7,10,8,0.08)] ${compact ? "p-3.5 sm:p-4" : "p-4 sm:p-5"} ${className}`}
       style={{
         borderColor: theme.primary,
-        background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})`,
+        background: `linear-gradient(180deg, color-mix(in srgb, ${theme.bgCardElevated} 90%, ${theme.accentGold} 10%), ${theme.bgCard})`,
       }}
     >
-      <div className={compact ? "min-w-0 pr-16" : "min-w-0 pr-16 sm:pr-20"}>
+      <div className="absolute inset-x-0 top-0 h-1.5" style={{ background: `linear-gradient(90deg, ${theme.accentGold}, ${theme.primary})` }} />
+      <div className={compact ? "min-w-0 pr-16 pt-1" : "min-w-0 pr-16 pt-1 sm:pr-20"}>
         <div className="max-w-2xl">
           <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
             {challengeRecommendationEyebrow(recommendation, ts)}
           </p>
-          <h3 className="mt-1 text-lg font-semibold" style={{ color: theme.textPrimary }}>
+          <h3 className="mt-1.5 text-lg font-semibold" style={{ color: theme.textPrimary }}>
             {recommendation.statusLabel ?? (isContinuation ? ts("challenges.continueChallenge") : ts("labels.recommendedForYou"))}
           </h3>
-          <p className="mt-1.5 text-[1.03rem] font-semibold leading-6 sm:text-[1.08rem]" style={{ color: theme.textPrimary }}>
+          <p className="mt-2 text-[1.03rem] font-semibold leading-6 sm:text-[1.08rem]" style={{ color: theme.textPrimary }}>
             {title}
           </p>
-          <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
+          <p className="mt-2.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
             {body}
           </p>
         </div>
       </div>
       <CardCornerBadge
         className="rounded-[1rem] border"
-        style={{ borderColor: theme.borderLight, backgroundColor: isContinuation ? theme.primary : theme.bgInput, color: isContinuation ? theme.textOnPrimary : theme.primary }}
+        style={{
+          borderColor: theme.borderLight,
+          backgroundColor: isContinuation ? theme.primary : theme.bgInput,
+          color: isContinuation ? theme.textOnPrimary : theme.primary,
+        }}
       >
         <RecommendationIcon size={18} />
       </CardCornerBadge>
+
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <span className="inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={statusToneStyle}>
+          {recommendation.statusLabel ?? (isContinuation ? ts("challenges.continueChallenge") : ts("labels.recommendedForYou"))}
+        </span>
+        {isInactive && typeof recommendation.missedDays === "number" && recommendation.missedDays > 0 ? (
+          <span className="inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textSecondary }}>
+            {recommendation.missedDays} {missedDaysLabel}
+          </span>
+        ) : null}
+        <span className="inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textSecondary }}>
+          {isContinuation ? ts("challenges.continueCurrentPractice") : recommendation.mode}
+        </span>
+      </div>
 
       {!isContinuation ? (
         <div className="mt-3">
@@ -30897,6 +30931,7 @@ function WisdomCheck({
   theme,
   language,
   onSpeakText,
+  intro,
 }: {
   decision: string;
   setDecision: (value: string) => void;
@@ -30910,13 +30945,14 @@ function WisdomCheck({
   theme: ThemeColors;
   language: LanguageCode;
   onSpeakText: (text: string, notice?: string, label?: string) => void;
+  intro: string;
 }) {
   const readoutText = result
     ? [
         `${ts('labels.discernmentReadout')}. ${ts('labels.readiness')}: ${result.readiness}/100.`,
         result.hasUrgency
-          ? ts('labels.wisdomCheckUrgency')
-          : ts('labels.wisdomCheckSlower'),
+          ? ts('runtimePanel.wisdomCheckUrgency')
+          : ts('runtimePanel.wisdomCheckSlower'),
         result.sources[0]?.scripture
           ? `${ts('labels.grounding')}: ${localizedScriptureReference(result.sources[0].scripture, language)}. ${result.sources[0].principle}`
           : "",
@@ -30925,133 +30961,243 @@ function WisdomCheck({
         .filter(Boolean)
         .join(" ")
     : "";
+  const resultSummary = result
+    ? `${ts('labels.readiness')} ${result.readiness}/100 · ${result.hasUrgency ? ts('runtimePanel.wisdomCheckUrgency') : ts('runtimePanel.wisdomCheckSlower')} · ${result.hasCounsel ? ts('labels.counselIsVisible') : ts('labels.counselStillNeeded')}`
+    : ts('runtimePanel.wisdomCheckSummaryDefault');
+  const emptyStateCards = [
+    {
+      title: ts('runtimePanel.decisionScan'),
+      body: modeProfile.intent,
+    },
+    {
+      title: ts('labels.watchFor'),
+      body: modeProfile.blindSpots[0],
+    },
+    {
+      title: ts('labels.practice'),
+      body: modeProfile.practices[0],
+    },
+  ];
 
   return (
-    <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
-      <section className="min-w-0 rounded-[1.35rem] border p-3.5 shadow-[0_8px_24px_rgba(15,23,42,0.05)] sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-        <div className="mb-4 flex items-center gap-2 text-lg font-semibold" style={{ color: theme.textPrimary }}>
-          <Scale size={20} />
-          {ts('labels.wisdomCheck')}
-        </div>
-        <div className="mb-4 rounded-lg border p-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{localizedModeLabel(modeProfile.label, language)} · {ts('labels.discernmentReadout')}</p>
-          <p className="mt-1.5 text-sm leading-5" style={{ color: theme.textSecondary }}>{modeProfile.intent}</p>
-        </div>
-        <label className="text-sm font-semibold" htmlFor="decision" style={{ color: theme.textPrimary }}>
-          {ts('labels.decisionOrPressure')}
-        </label>
-        <textarea
-          id="decision"
-          value={decision}
-          onChange={(event) => setDecision(event.target.value)}
-          className="mt-2 min-h-32 w-full resize-none rounded-lg border px-3 py-2.5 text-sm leading-5 outline-none"
-          placeholder={ts('placeholders.journalExample')}
-          style={{
-            borderColor: theme.borderMedium,
-            backgroundColor: theme.bgInput,
-            color: theme.textPrimary,
-          }}
-          onFocus={(e) => e.currentTarget.style.borderColor = theme.primary}
-          onBlur={(e) => e.currentTarget.style.borderColor = theme.borderMedium}
-        />
+    <section className="overflow-hidden rounded-[1.5rem] border shadow-[0_8px_24px_rgba(15,23,42,0.05)]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+      <div
+        className="border-b p-4 sm:p-5"
+        style={{
+          borderColor: theme.borderLight,
+          background: `linear-gradient(180deg, color-mix(in srgb, ${theme.bgCardElevated} 94%, white 6%), ${theme.bgCard})`,
+        }}
+      >
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="min-w-0 max-w-2xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>{ts('labels.wisdomCheck')}</p>
+            <h2 className="mt-2 text-[1.45rem] font-semibold leading-tight text-balance sm:text-[1.8rem]" style={{ color: theme.textPrimary }}>
+              {ts('labels.discernmentReflectionQuietPlace')}
+            </h2>
+            <p className="mt-2 max-w-2xl text-sm leading-6 sm:text-[0.96rem] sm:leading-7" style={{ color: theme.textSecondary }}>
+              {intro}
+            </p>
+          </div>
 
-        <div className="mt-3 grid gap-2.5 sm:grid-cols-2">
-          <label className="text-sm font-semibold" style={{ color: theme.textPrimary }}>
-            {ts('labels.currentEmotion')}
-            <select value={emotion} onChange={(event) => setEmotion(event.target.value)} className="mt-2 h-10 w-full rounded-full border px-3 text-sm outline-none" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}>
-              <option value="uncertain">{ts('emotion.uncertain')}</option>
-              <option value="anxious">{ts('emotion.anxious')}</option>
-              <option value="excited">{ts('emotion.excited')}</option>
-              <option value="pressured">{ts('emotion.pressured')}</option>
-              <option value="peaceful">{ts('emotion.peaceful')}</option>
-            </select>
-          </label>
-          <label className="text-sm font-semibold" style={{ color: theme.textPrimary }}>
-            {ts('labels.timeHorizon')}
-            <select value={timeframe} onChange={(event) => setTimeframe(event.target.value)} className="mt-2 h-10 w-full rounded-full border px-3 text-sm outline-none" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}>
-              <option value="Long-term">{ts('labels.longTerm')}</option>
-              <option value="Next 90 days">{ts('labels.next90Days')}</option>
-              <option value="This month">{ts('labels.thisMonth')}</option>
-              <option value="This week">{ts('labels.thisWeek')}</option>
-            </select>
-          </label>
+          <div className="grid min-w-0 gap-2.5 sm:grid-cols-3 lg:w-[22rem] lg:min-w-[22rem]">
+            <div className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+              <p className="text-[10.5px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+                {ts('labels.readinessSignal')}
+              </p>
+              <p className="mt-1.5 text-2xl font-semibold" style={{ color: theme.textPrimary }}>
+                {result ? `${result.readiness}%` : ts('labels.notSet')}
+              </p>
+            </div>
+            <div className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+              <p className="text-[10.5px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+                {ts('labels.paceIsCalmEnough')}
+              </p>
+              <p className="mt-1.5 text-sm font-semibold leading-5" style={{ color: theme.textPrimary }}>
+                {result ? (result.hasUrgency ? ts('runtimePanel.wisdomCheckUrgency') : ts('runtimePanel.wisdomCheckSlower')) : ts('runtimePanel.wisdomCheckSummaryDefault')}
+              </p>
+            </div>
+            <div className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+              <p className="text-[10.5px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+                {ts('labels.grounding')}
+              </p>
+              <p className="mt-1.5 text-sm font-semibold leading-5" style={{ color: theme.textPrimary }}>
+                {result?.sources[0]?.scripture
+                  ? `${localizedScriptureReference(result.sources[0].scripture, language)}: ${result.sources[0].principle}`
+                  : modeProfile.intent}
+              </p>
+            </div>
+          </div>
         </div>
-      </section>
+      </div>
 
-      <section className="min-w-0 rounded-[1.35rem] border p-3.5 shadow-[0_8px_24px_rgba(15,23,42,0.05)] sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-        <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <h2 className="text-lg font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.discernmentReadout')}</h2>
-          {result ? (
-            <button
-              type="button"
-              onClick={() => onSpeakText(readoutText, ts('notifications.readingAloud'), ts('labels.discernmentReadout'))}
-              className="inline-flex h-8 items-center gap-1.5 rounded-full border px-2.5 text-xs font-semibold transition"
-              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
-              aria-label={ts('labels.readAloud')}
-              title={ts('labels.readAloud')}
-            >
-              <Volume2 size={14} />
-              {ts('labels.readAloud')}
-            </button>
-          ) : null}
-        </div>
-        {result ? (
-          <div className="space-y-3.5" aria-live="polite">
+      <div className="grid gap-4 p-4 sm:p-5 xl:grid-cols-[0.95fr_1.05fr]">
+        <section className="min-w-0 rounded-[1.35rem] border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+          <div className="mb-4 flex items-center gap-2 text-lg font-semibold" style={{ color: theme.textPrimary }}>
+            <Scale size={20} />
+            {ts('runtimePanel.decisionScan')}
+          </div>
+          <div className="mb-4 rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+            <p className="text-[10.5px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+              {localizedModeLabel(modeProfile.label, language)}
+            </p>
+            <p className="mt-1.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
+              {modeProfile.intent}
+            </p>
+          </div>
+          <label className="text-sm font-semibold" htmlFor="decision" style={{ color: theme.textPrimary }}>
+            {ts('labels.decisionOrPressure')}
+          </label>
+          <textarea
+            id="decision"
+            value={decision}
+            onChange={(event) => setDecision(event.target.value)}
+            className="mt-2 min-h-36 w-full resize-none rounded-[1rem] border px-3 py-2.5 text-sm leading-6 outline-none"
+            placeholder={ts('placeholders.journalExample')}
+            style={{
+              borderColor: theme.borderMedium,
+              backgroundColor: theme.bgInput,
+              color: theme.textPrimary,
+            }}
+            onFocus={(e) => e.currentTarget.style.borderColor = theme.primary}
+            onBlur={(e) => e.currentTarget.style.borderColor = theme.borderMedium}
+          />
+
+          <div className="mt-3 grid gap-2.5 sm:grid-cols-2">
+            <label className="text-sm font-semibold" style={{ color: theme.textPrimary }}>
+              {ts('labels.currentEmotion')}
+              <select value={emotion} onChange={(event) => setEmotion(event.target.value)} className="mt-2 h-11 w-full rounded-full border px-3 text-sm outline-none" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}>
+                <option value="uncertain">{ts('emotion.uncertain')}</option>
+                <option value="anxious">{ts('emotion.anxious')}</option>
+                <option value="excited">{ts('emotion.excited')}</option>
+                <option value="pressured">{ts('emotion.pressured')}</option>
+                <option value="peaceful">{ts('emotion.peaceful')}</option>
+              </select>
+            </label>
+            <label className="text-sm font-semibold" style={{ color: theme.textPrimary }}>
+              {ts('labels.timeHorizon')}
+              <select value={timeframe} onChange={(event) => setTimeframe(event.target.value)} className="mt-2 h-11 w-full rounded-full border px-3 text-sm outline-none" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}>
+                <option value="Long-term">{ts('labels.longTerm')}</option>
+                <option value="Next 90 days">{ts('labels.next90Days')}</option>
+                <option value="This month">{ts('labels.thisMonth')}</option>
+                <option value="This week">{ts('labels.thisWeek')}</option>
+              </select>
+            </label>
+          </div>
+        </section>
+
+        <section className="min-w-0 rounded-[1.35rem] border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+          <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <div className="mb-2 flex items-center justify-between gap-2 text-sm font-semibold" style={{ color: theme.textPrimary }}>
-                <span>{ts('labels.readinessSignal')}</span>
-                <span>{result.readiness}%</span>
-              </div>
-              <div className="h-3 overflow-hidden rounded-full" style={{ backgroundColor: theme.borderLight }}>
-                <div className="h-full rounded-full" style={{ width: `${result.readiness}%`, backgroundColor: theme.primary }} />
-              </div>
-            </div>
-            <div className="grid gap-2.5 sm:grid-cols-2">
-              <Signal active={!result.hasUrgency} label={ts('labels.paceIsCalmEnough')} theme={theme} />
-              <Signal
-                active={result.hasCounsel}
-                label={result.hasCounsel ? ts('labels.counselIsVisible') : ts('labels.counselStillNeeded')}
-                theme={theme}
-              />
-            </div>
-            <div className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>{ts('labels.grounding')}</p>
-              <p className="mt-1.5 text-sm leading-5" style={{ color: theme.textSecondary }}>
-                {result.sources[0]?.scripture ? localizedScriptureReference(result.sources[0].scripture, language) : ""}: {result.sources[0]?.principle}
+              <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+                {ts('labels.discernmentReadout')}
+              </p>
+              <h3 className="mt-1.5 text-lg font-semibold" style={{ color: theme.textPrimary }}>
+                {ts('labels.readinessSignal')}
+              </h3>
+              <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                {result ? resultSummary : ts('labels.writeDecisionForReadout')}
               </p>
             </div>
-            <div className="rounded-[1rem] border p-3" style={{ backgroundColor: theme.primary, borderColor: theme.borderMedium, color: theme.textOnPrimary }}>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.textOnPrimary, opacity: 0.9 }}>{ts('labels.modeDiagnostic')}</p>
-              <ul className="mt-2.5 space-y-1.5 text-sm leading-5" style={{ color: theme.textOnPrimary }}>
-                {modeProfile.diagnosticTracks.slice(0, 2).map((track) => (
-                  <li key={track}>{track}</li>
+            {result ? (
+              <button
+                type="button"
+                onClick={() => onSpeakText(readoutText, ts('notifications.readingAloud'), ts('labels.discernmentReadout'))}
+                className="inline-flex h-9 items-center gap-1.5 rounded-full border px-3 text-xs font-semibold transition"
+                style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
+                aria-label={ts('labels.readAloud')}
+                title={ts('labels.readAloud')}
+              >
+                <Volume2 size={14} />
+                {ts('labels.readAloud')}
+              </button>
+            ) : null}
+          </div>
+          {result ? (
+            <div className="space-y-3.5" aria-live="polite">
+              <div>
+                <div className="mb-2 flex items-center justify-between gap-2 text-sm font-semibold" style={{ color: theme.textPrimary }}>
+                  <span>{ts('labels.readinessSignal')}</span>
+                  <span>{result.readiness}%</span>
+                </div>
+                <div className="h-3 overflow-hidden rounded-full" style={{ backgroundColor: theme.borderLight }}>
+                  <div className="h-full rounded-full" style={{ width: `${result.readiness}%`, backgroundColor: theme.primary }} />
+                </div>
+              </div>
+              <div className="grid gap-2.5 sm:grid-cols-2">
+                <Signal active={!result.hasUrgency} label={ts('labels.paceIsCalmEnough')} theme={theme} />
+                <Signal
+                  active={result.hasCounsel}
+                  label={result.hasCounsel ? ts('labels.counselIsVisible') : ts('labels.counselStillNeeded')}
+                  theme={theme}
+                />
+              </div>
+              <div className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
+                  {ts('labels.grounding')}
+                </p>
+                <p className="mt-1.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                  {result.sources[0]?.scripture ? localizedScriptureReference(result.sources[0].scripture, language) : ""}: {result.sources[0]?.principle}
+                </p>
+              </div>
+              <div className="rounded-[1rem] border p-3" style={{ backgroundColor: theme.primary, borderColor: theme.borderMedium, color: theme.textOnPrimary }}>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.textOnPrimary, opacity: 0.9 }}>
+                  {ts('labels.modeDiagnostic')}
+                </p>
+                <ul className="mt-2.5 space-y-1.5 text-sm leading-6" style={{ color: theme.textOnPrimary }}>
+                  {modeProfile.diagnosticTracks.slice(0, 2).map((track) => (
+                    <li key={track}>{track}</li>
+                  ))}
+                </ul>
+              </div>
+              <div className="grid gap-2.5 sm:grid-cols-2">
+                <div className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
+                    {ts('labels.watchFor')}
+                  </p>
+                  <p className="mt-1.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                    {modeProfile.blindSpots[0]}
+                  </p>
+                </div>
+                <div className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
+                    {ts('labels.practice')}
+                  </p>
+                  <p className="mt-1.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                    {modeProfile.practices[0]}
+                  </p>
+                </div>
+              </div>
+              <div className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
+                  {ts('labels.nextFaithfulAction')}
+                </p>
+                <p className="mt-1.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                  {ts('labels.nextFaithfulActionBody')}
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3" aria-live="polite">
+              <div className="rounded-[1rem] border border-dashed p-4 text-sm leading-6" style={{ borderColor: theme.borderMedium, color: theme.textSecondary }}>
+                {ts('labels.writeDecisionForReadout')}
+              </div>
+              <div className="grid gap-2.5">
+                {emptyStateCards.map((card) => (
+                  <div key={card.title} className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
+                      {card.title}
+                    </p>
+                    <p className="mt-1.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                      {card.body}
+                    </p>
+                  </div>
                 ))}
-              </ul>
-            </div>
-            <div className="grid gap-2.5 sm:grid-cols-2">
-              <div className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>{ts('labels.watchFor')}</p>
-                <p className="mt-1.5 text-sm leading-5" style={{ color: theme.textSecondary }}>{modeProfile.blindSpots[0]}</p>
-              </div>
-              <div className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>{ts('labels.practice')}</p>
-                <p className="mt-1.5 text-sm leading-5" style={{ color: theme.textSecondary }}>{modeProfile.practices[0]}</p>
               </div>
             </div>
-            <div className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>{ts('labels.nextFaithfulAction')}</p>
-              <p className="mt-1.5 text-sm leading-5" style={{ color: theme.textSecondary }}>
-                {ts('labels.nextFaithfulActionBody')}
-              </p>
-            </div>
-          </div>
-        ) : (
-          <div className="mt-4 rounded-[1rem] border border-dashed p-4 text-sm leading-6" style={{ borderColor: theme.borderMedium, color: theme.textSecondary }}>
-            {ts('labels.writeDecisionForReadout')}
-          </div>
-        )}
-      </section>
-    </div>
+          )}
+        </section>
+      </div>
+    </section>
   );
 }
 
@@ -31072,8 +31218,6 @@ function ReflectPanel({
   focusIntentions,
   messages,
   wisdomDecisions,
-  challengeRecommendation,
-  onOpenRecommendedChallenge,
   pendingChallengeId,
   pendingGratitudeNotificationFocus,
   pendingChallengeFocus,
@@ -31118,8 +31262,6 @@ function ReflectPanel({
   focusIntentions: string[];
   messages: ChatMessage[];
   wisdomDecisions: WisdomDecision[];
-  challengeRecommendation: ChallengeRecommendationBundle["primary"];
-  onOpenRecommendedChallenge: (challengeId: string) => void;
   pendingChallengeId: string | null;
   pendingGratitudeNotificationFocus: boolean;
   pendingChallengeFocus: "nudges" | null;
@@ -31149,11 +31291,6 @@ function ReflectPanel({
   theme: ThemeColors;
 }) {
   const runtime = runtimeCopyFor(language);
-  const [timelineNowMs] = useState(() => Date.now());
-  const reflectNextTitle = body.trim() || decision.trim() ? runtime.reflectNextTitleActive : runtime.reflectNextTitleDefault;
-  const reflectNextBody = body.trim() || decision.trim()
-    ? runtime.reflectNextBodyActive
-    : runtime.reflectNextBodyDefault;
   const [reflectSection, setReflectSection] = useState<"check" | "gratitude" | "journal" | "formation">(
     pendingChallengeId ? "formation" : "check"
   );
@@ -31162,40 +31299,6 @@ function ReflectPanel({
     : pendingGratitudeNotificationFocus
       ? "gratitude"
       : reflectSection;
-
-  const reflectOverviewCards = [
-    {
-      section: "check",
-      label: ts('labels.wisdomCheck'),
-      value: result ? `${result.readiness}%` : ts('labels.notSet'),
-      body: result
-        ? (result.hasUrgency ? runtime.wisdomCheckUrgency : runtime.wisdomCheckSlower)
-        : runtime.wisdomCheckSummaryDefault,
-    },
-    {
-      section: "gratitude",
-      label: ts('labels.gratitudeLens'),
-      value: String(gratitudeEntries.length),
-      body: gratitudeEntries.length ? ts('labels.gratitudeMoments') : ts('labels.gratitudeEmptySummary'),
-    },
-    {
-      section: "journal",
-      label: ts('labels.reflectionJournal'),
-      value: String(entries.length),
-      body: signedIn ? ts('labels.accountSyncActive') : ts('labels.localOnly'),
-    },
-    {
-      section: "formation",
-      label: ts("challenges.sectionTitle"),
-      value: challengeRecommendation
-        ? (challengeRecommendation.statusLabel
-          ?? (challengeRecommendation.actionKind === "continue" ? ts("challenges.continueChallenge") : ts("challenges.startChallenge")))
-        : ts("challenges.eyebrow"),
-      body: challengeRecommendation
-        ? challengeRecommendationBody(challengeRecommendation, ts)
-        : ts("challenges.sectionSummary"),
-    },
-  ];
 
   return (
     <div className="min-w-0 space-y-4">
@@ -31226,13 +31329,13 @@ function ReflectPanel({
           focusIntentions={focusIntentions}
           messages={messages}
           journalEntries={entries}
-                        wisdomDecisions={wisdomDecisions}
-                        pendingChallengeId={pendingChallengeId}
-                        pendingChallengeFocus={pendingChallengeFocus}
-                        onClearPendingChallenge={() => {
-                          setReflectSection("formation");
-                          onClearPendingChallenge();
-                        }}
+          wisdomDecisions={wisdomDecisions}
+          pendingChallengeId={pendingChallengeId}
+          pendingChallengeFocus={pendingChallengeFocus}
+          onClearPendingChallenge={() => {
+            setReflectSection("formation");
+            onClearPendingChallenge();
+          }}
           challengeCircleRefreshKey={challengeCircleRefreshKey}
           onChallengeCircleChanged={onChallengeCircleChanged}
           onChallengeInviteReady={onChallengeInviteReady}
@@ -31242,101 +31345,21 @@ function ReflectPanel({
       ) : null}
 
       {visibleReflectSection === "check" ? (
-        <>
-          {challengeRecommendation ? (
-            <ContextualNextAction
-              eyebrow={challengeRecommendationEyebrow(
-                challengeRecommendation,
-                ts,
-                ts("labels.suggestedAction")
-              )}
-              title={ts(challengeRecommendation.titleKey, challengeRecommendation.title)}
-              body={challengeRecommendationBody(challengeRecommendation, ts)}
-              actionLabel={challengeRecommendation.actionKind === "continue" ? ts("challenges.continueChallenge") : ts("challenges.startChallenge")}
-              onAction={() => {
-                setReflectSection("formation");
-                onOpenRecommendedChallenge(challengeRecommendation.challengeId);
-              }}
-              theme={theme}
-            />
-          ) : null}
-          <ContextualNextAction
-            eyebrow={runtime.nextInReflect}
-            title={reflectNextTitle}
-            body={reflectNextBody}
-            actionLabel={body.trim() ? ts('labels.saveReflection') : undefined}
-            onAction={body.trim() ? onSave : undefined}
-            theme={theme}
-          />
-          <section className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
-            {reflectOverviewCards
-              .filter((card) => card.section === visibleReflectSection)
-              .map((card) => (
-                <div key={card.label} className="rounded-[1.1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-                  <p className="text-[10.5px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
-                    {card.label}
-                  </p>
-                  <p className="mt-1.5 text-xl font-semibold" style={{ color: theme.textPrimary }}>
-                    {card.value}
-                  </p>
-                  <p className="mt-2 text-sm leading-5" style={{ color: theme.textSecondary }}>
-                    {card.body}
-                  </p>
-                </div>
-              ))}
-          </section>
-
-          <section className="rounded-[1.45rem] border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
-            <div className="max-w-2xl">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>{ts('nav.reflect')}</p>
-              <h2 className="mt-1.5 text-[1.33rem] font-semibold leading-[1.02] text-balance sm:text-[1.72rem]" style={{ color: theme.textPrimary }}>
-                {ts('labels.discernmentReflectionQuietPlace')}
-              </h2>
-              <p className="mt-1.5 max-w-2xl text-[0.9rem] leading-6 sm:text-[0.96rem] sm:leading-7" style={{ color: theme.textSecondary }}>
-                {runtime.reflectIntro}
-              </p>
-            </div>
-          </section>
-        </>
-      ) : null}
-
-      {visibleReflectSection === "check" ? (
-        <>
-        {wisdomDecisions.length > 0 && wisdomDecisions[0]?.status !== "closed" && (
-          <DecisionTimeline
-            createdAt={wisdomDecisions[0].createdAt}
-            status={wisdomDecisions[0].status}
-            daysElapsed={Math.floor((timelineNowMs - new Date(wisdomDecisions[0].createdAt).getTime()) / (1000 * 60 * 60 * 24))}
-            checkpoints={generateDecisionCheckpoints(new Date(wisdomDecisions[0].createdAt), Math.floor((timelineNowMs - new Date(wisdomDecisions[0].createdAt).getTime()) / (1000 * 60 * 60 * 24)), ts)}
-            theme={theme}
-            ts={ts}
-          />
-      )}
-        <DisclosureSection
-          title={runtime.wisdomCheck}
-          summary={result ? `${ts('labels.readiness')} ${result.readiness}/100 · ${result.hasUrgency ? runtime.wisdomCheckUrgency : runtime.wisdomCheckSlower}` : runtime.wisdomCheckSummaryDefault}
-          eyebrow={runtime.decisionScan}
-          defaultOpen={Boolean(decision.trim())}
-          showDetailsLabel={ts('showDetails')}
-          hideDetailsLabel={ts('hideDetails')}
+        <WisdomCheck
+          decision={decision}
+          setDecision={setDecision}
+          emotion={emotion}
+          setEmotion={setEmotion}
+          timeframe={timeframe}
+          setTimeframe={setTimeframe}
+          result={result}
+          modeProfile={modeProfile}
+          ts={ts}
           theme={theme}
-        >
-          <WisdomCheck
-            decision={decision}
-            setDecision={setDecision}
-            emotion={emotion}
-            setEmotion={setEmotion}
-            timeframe={timeframe}
-            setTimeframe={setTimeframe}
-            result={result}
-            modeProfile={modeProfile}
-            ts={ts}
-            theme={theme}
-            language={language}
-            onSpeakText={onSpeakText}
-          />
-        </DisclosureSection>
-        </>
+          language={language}
+          onSpeakText={onSpeakText}
+          intro={runtime.reflectIntro}
+        />
       ) : null}
 
       {visibleReflectSection === "gratitude" ? (

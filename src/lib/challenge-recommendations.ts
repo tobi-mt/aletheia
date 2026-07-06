@@ -1,7 +1,7 @@
 import { challengeDefinitions, getChallengeById, type ChallengeId } from "@/lib/challenge-data";
 import { normalizePreferences, type LanguageCode } from "@/lib/localization";
 import { normalizeManualContext, type ManualContextProfile } from "@/lib/manual-context";
-import { getChallengeProgressState, type ChallengeProgressState } from "@/lib/challenge-progress";
+import { getChallengeMissedDays, getChallengeProgressState, type ChallengeProgressState } from "@/lib/challenge-progress";
 import { loadTranslationsSync, getTranslation } from "@/lib/translations";
 
 type ModeCounts = Partial<Record<string, number>>;
@@ -39,6 +39,7 @@ export type ChallengeRecommendation = {
   actionLabel: string;
   actionKind: "start" | "continue";
   progressState?: ChallengeProgressState;
+  missedDays?: number | null;
   statusLabel?: string;
   statusBody?: string;
   statusTone?: "neutral" | "warning" | "success";
@@ -767,6 +768,17 @@ export function recommendChallenges(input: ChallengeRecommendationContext): Chal
         const def = getChallengeById(activeChallengeId);
         if (!def) return null;
         const daysCompleted = activeChallengeSnapshot?.daysCompleted ?? 0;
+        const missedDays =
+          activeChallengeState === "inactive"
+            ? getChallengeMissedDays(
+                {
+                  completedDays: daysCompleted,
+                  totalDays: def.totalDays,
+                  lastCompletedAt: activeChallengeSnapshot?.lastCompletedAt ?? null,
+                },
+                Date.now()
+              )
+            : null;
         const nextDay = Math.min(daysCompleted + 1, def.totalDays);
         const statusLabel =
           activeChallengeState === "inactive"
@@ -783,6 +795,7 @@ export function recommendChallenges(input: ChallengeRecommendationContext): Chal
         const statusBody =
           activeChallengeState === "inactive"
             ? t("challenges.inactiveReentryBody")
+                .replace("{missedDays}", String(missedDays ?? 0))
                 .replace("{nextDay}", String(nextDay))
                 .replace("{total}", String(def.totalDays))
             : activeChallengeState === "completed_today"
@@ -817,6 +830,7 @@ export function recommendChallenges(input: ChallengeRecommendationContext): Chal
           actionLabel: t("challenges.continueChallenge"),
           actionKind: "continue" as const,
           progressState: activeChallengeState ?? undefined,
+          missedDays,
           statusLabel,
           statusBody,
           statusTone,

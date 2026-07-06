@@ -2157,7 +2157,7 @@
     "shareDayProgress": "दिन {day} में से {totalDays}",
     "inactive": "निष्क्रिय",
     "inProgress": "प्रगति पर है",
-    "inactiveReentryBody": "आपसे एक दिन छूट गया। आपको फिर से शुरू करने की ज़रूरत नहीं है। दिन {nextDay} से {total} पर धीरे से वापस आएँ।",
+    "inactiveReentryBody": "आपसे {missedDays} दिन छूट गए। आपको फिर से शुरू करने की ज़रूरत नहीं है। दिन {nextDay} से {total} पर धीरे से वापस आएँ।",
     "completedTodayBody": "दिन {nextDay} का {total} कल के लिए इंतज़ार कर रहा है।",
     "inProgressBody": "दिन {nextDay} का {total} जारी रखें।",
     "continueCurrentPractice": "अपनी वर्तमान अभ्यास को जारी रखें",
