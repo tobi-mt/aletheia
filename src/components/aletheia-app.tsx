@@ -17245,19 +17245,12 @@ function ChallengeRecommendationCard({
     : isContinuation
       ? Check
       : Compass;
-  const missedDaysLabel = recommendation.missedDays === 1 ? ts("labels.day") : ts("labels.days");
   const homeGlowStyles = homeGlow
     ? ({
         ["--formation-base-shadow" as "--formation-base-shadow"]: "0 12px 28px rgba(7, 10, 8, 0.08)",
         ["--formation-glow-base" as "--formation-glow-base"]: theme.accentGold,
       } as CSSProperties)
     : undefined;
-  const statusToneStyle =
-    recommendation.statusTone === "warning"
-      ? { borderColor: theme.accentGold, backgroundColor: theme.activeBg, color: theme.textPrimary }
-      : recommendation.statusTone === "success"
-        ? { borderColor: theme.primary, backgroundColor: theme.bgInput, color: theme.textPrimary }
-        : { borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary };
 
   return (
     <section
@@ -17295,20 +17288,6 @@ function ChallengeRecommendationCard({
       >
         <RecommendationIcon size={18} />
       </CardCornerBadge>
-
-      <div className="mt-3 flex flex-wrap items-center gap-2">
-        <span className="inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={statusToneStyle}>
-          {recommendation.statusLabel ?? (isContinuation ? ts("challenges.continueChallenge") : ts("labels.recommendedForYou"))}
-        </span>
-        {isInactive && typeof recommendation.missedDays === "number" && recommendation.missedDays > 0 ? (
-          <span className="inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textSecondary }}>
-            {recommendation.missedDays} {missedDaysLabel}
-          </span>
-        ) : null}
-        <span className="inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textSecondary }}>
-          {isContinuation ? ts("challenges.continueCurrentPractice") : recommendation.mode}
-        </span>
-      </div>
 
       {!isContinuation ? (
         <div className="mt-3">

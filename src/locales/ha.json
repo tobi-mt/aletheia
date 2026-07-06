@@ -2157,7 +2157,7 @@
     "shareDayProgress": "Rana ta {day} daga {totalDays}",
     "inactive": "Mara aiki",
     "inProgress": "Ana kai",
-    "inactiveReentryBody": "Ka rasa kwanaki {missedDays}. Ba sai ka fara daga farko ba. Ka dawo a hankali da rana {nextDay} ta {total}.",
+    "inactiveReentryBody": "Ka rasa kwanaki {missedDays} a cikin wannan aikin na kwanaki {total}. Ka dawo a hankali da rana {nextDay} ta {total}.",
     "completedTodayBody": "Rana {nextDay} ta {total} tana jiran gobe.",
     "inProgressBody": "Ci gaba da rana {nextDay} ta {total}.",
     "continueCurrentPractice": "Ci gaba da aikin da kake yi yanzu",

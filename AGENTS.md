@@ -38,6 +38,7 @@ Use all three perspectives together when making decisions about code, tests, beh
 - Never expose raw code, translation keys, placeholder tokens, or other code-like identifiers in the app UI. Every visible string must resolve through the translation path or a deliberate user-facing fallback.
 - Horizontal rails and compact chip trays must stay single-line, use an overflow-aware right-edge cue only when more content exists, and never allow labels to overlap or block neighboring controls.
 - Avoid nested cards and nested section layers in decision and counsel surfaces; prefer one clear surface per section and flatter rail-based collections for shared decisions and interactions.
+- Formation-practice nudges should favor one concise status line over stacked status pills or repeated metadata chips; keep the card calm, readable, and immediately actionable.
 - If a decision or counsel area needs more detail, expand in place or open a focused modal or tray rather than stacking cards inside cards.
 
 ## Before Starting Any Feature

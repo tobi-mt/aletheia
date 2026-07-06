@@ -2157,7 +2157,7 @@
     "shareDayProgress": "Araw {day} sa {totalDays}",
     "inactive": "Hindi aktibo",
     "inProgress": "Isinasagawa",
-    "inactiveReentryBody": "May {missedDays} araw kang namiss. Hindi mo kailangang magsimula ulit. Bumalik nang banayad sa araw {nextDay} ng {total}.",
+    "inactiveReentryBody": "May {missedDays} araw kang namiss sa praktis na {total} araw. Bumalik nang banayad sa araw {nextDay} ng {total}.",
     "completedTodayBody": "Ang araw {nextDay} ng {total} ay naghihintay hanggang bukas.",
     "inProgressBody": "Magpatuloy sa araw {nextDay} ng {total}.",
     "continueCurrentPractice": "Ituloy ang iyong kasalukuyang pagsasanay",
