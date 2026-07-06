@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { apiError } from "@/lib/api-errors";
 import { ensureCounselInviteAcceptanceSchema, hashCounselInviteToken } from "@/lib/counsel-invites";
 import { one, run } from "@/lib/db";
+import { sendCounselCommentNotifications } from "@/lib/notifications";
 
 type Params = { params: Promise<{ token: string }> };
 
@@ -19,17 +20,42 @@ type AcceptanceRow = {
 };
 
 type SharedRow = {
+  id: string;
+  user_id: string;
   decision_id: string;
 };
 
-export async function POST(request: Request, { params }: Params) {
-  const { token } = await params;
-  const user = await getCurrentUser();
+export type InviteCommentRouteDeps = {
+  getCurrentUser: typeof getCurrentUser;
+  ensureCounselInviteAcceptanceSchema: typeof ensureCounselInviteAcceptanceSchema;
+  one: typeof one;
+  run: typeof run;
+  sendCounselCommentNotifications: typeof sendCounselCommentNotifications;
+  now: () => Date;
+  randomUUID: () => string;
+};
+
+export const inviteCommentRouteDeps: InviteCommentRouteDeps = {
+  getCurrentUser,
+  ensureCounselInviteAcceptanceSchema,
+  one,
+  run,
+  sendCounselCommentNotifications,
+  now: () => new Date(),
+  randomUUID: () => crypto.randomUUID(),
+};
+
+export async function postInviteComment(
+  request: Request,
+  token: string,
+  deps: InviteCommentRouteDeps = inviteCommentRouteDeps
+) {
+  const user = await deps.getCurrentUser();
   if (!user) {
     return apiError(401, "sign_in_required", "Sign in to comment on this invite.");
   }
-  await ensureCounselInviteAcceptanceSchema();
-  const contact = await one<ContactRow>(
+  await deps.ensureCounselInviteAcceptanceSchema();
+  const contact = await deps.one<ContactRow>(
     `SELECT id, invite_status, can_comment_on_decisions
      FROM counsel_contacts
      WHERE invite_token_hash = ?`,
@@ -52,8 +78,8 @@ export async function POST(request: Request, { params }: Params) {
     return apiError(400, "invalid_input", "Decision and comment are required.");
   }
 
-  const shared = await one<SharedRow>(
-    "SELECT decision_id FROM counsel_shared_decisions WHERE contact_id = ? AND decision_id = ?",
+  const shared = await deps.one<SharedRow>(
+    "SELECT id, user_id, decision_id FROM counsel_shared_decisions WHERE contact_id = ? AND decision_id = ?",
     contact.id,
     decisionId
   );
@@ -61,7 +87,7 @@ export async function POST(request: Request, { params }: Params) {
     return apiError(403, "permission_denied", "That decision summary has not been shared with this counselor.");
   }
 
-  const acceptance = await one<AcceptanceRow>(
+  const acceptance = await deps.one<AcceptanceRow>(
     `SELECT id, contact_id, recipient_user_id
      FROM counsel_invite_acceptances
      WHERE contact_id = ? AND recipient_user_id = ?`,
@@ -69,9 +95,9 @@ export async function POST(request: Request, { params }: Params) {
     user.id
   );
 
-  const now = new Date().toISOString();
-  const id = crypto.randomUUID();
-  await run(
+  const now = deps.now().toISOString();
+  const id = deps.randomUUID();
+  await deps.run(
     "INSERT INTO counsel_comments (id, contact_id, decision_id, body, acceptance_id, created_at) VALUES (?, ?, ?, ?, ?, ?)",
     id,
     contact.id,
@@ -81,6 +107,17 @@ export async function POST(request: Request, { params }: Params) {
     now
   );
 
+  await deps.sendCounselCommentNotifications({
+    notificationId: id,
+    sharedDecisionId: shared.id,
+    contactId: contact.id,
+    decisionId,
+    senderUserId: user.id,
+    senderName: user.name ?? null,
+    body: comment,
+    targetUserIds: [shared.user_id],
+  }).catch(() => null);
+
   return NextResponse.json({
     comment: {
       id,
@@ -89,4 +126,9 @@ export async function POST(request: Request, { params }: Params) {
       acceptanceId: acceptance?.id ?? null,
     },
   });
+}
+
+export async function POST(request: Request, { params }: Params) {
+  const { token } = await params;
+  return postInviteComment(request, token);
 }

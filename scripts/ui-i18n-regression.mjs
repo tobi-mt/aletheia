@@ -138,6 +138,53 @@ async function loadLocale(language) {
   return JSON.parse(raw);
 }
 
+function normalizeTemplateText(value) {
+  return String(value)
+    .replace(/\{missedDays\}|\{nextDay\}|\{total\}/g, '{token}')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+}
+
+function checkChallengeCopyLocalization(language, locale, englishLocale) {
+  if (language === 'en') {
+    return [];
+  }
+
+  const challengeKeys = ['inactiveReentryBody', 'completedTodayBody', 'inProgressBody'];
+  const englishChallenges = englishLocale?.challenges || {};
+  const localeChallenges = locale?.challenges || {};
+  const englishFragments = [
+    'pick back up on day',
+    'is waiting for tomorrow',
+    'continue with day',
+    'you missed {misseddays} day(s) in this {token}-day practice',
+  ];
+
+  const failures = [];
+
+  for (const key of challengeKeys) {
+    const localeValue = localeChallenges[key];
+    const englishValue = englishChallenges[key];
+
+    if (typeof localeValue !== 'string' || !localeValue.trim()) {
+      failures.push(`missing challenge copy for ${language}: challenges.${key}`);
+      continue;
+    }
+
+    if (typeof englishValue === 'string' && normalizeTemplateText(localeValue) === normalizeTemplateText(englishValue)) {
+      failures.push(`challenge copy for ${language} still matches English fallback: challenges.${key}`);
+    }
+
+    const normalizedLocaleValue = normalizeTemplateText(localeValue);
+    if (englishFragments.some((fragment) => normalizedLocaleValue.includes(fragment))) {
+      failures.push(`challenge copy for ${language} contains English phrasing: challenges.${key}`);
+    }
+  }
+
+  return failures;
+}
+
 function tabLabelsFromLocale(locale, mobile) {
   const decisionsLabel = mobile && locale.decideShort ? locale.decideShort : locale.nav?.decisions;
   return [
@@ -449,6 +496,7 @@ async function run() {
 
     const browser = await chromium.launch({ headless: true });
     const allResults = [];
+    const englishLocale = await loadLocale('en');
 
     for (const language of requestedLanguages) {
       const profile = languageProfiles[language];
@@ -461,6 +509,7 @@ async function run() {
         continue;
       }
       const locale = await loadLocale(language);
+      const challengeLocalizationFailures = checkChallengeCopyLocalization(language, locale, englishLocale);
 
       for (const viewport of viewports) {
         for (const colorScheme of colorSchemes) {
@@ -515,6 +564,7 @@ async function run() {
         const finalLeaks = await getUntranslatedTokenLeaks(page);
 
         const failures = [];
+        failures.push(...challengeLocalizationFailures);
         if (globalLayout.overflowX > 0 || globalLayout.overlap > 0) {
           failures.push(`layout overflow=${globalLayout.overflowX} overlap=${globalLayout.overlap}`);
         }

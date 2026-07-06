@@ -2157,7 +2157,7 @@
     "shareDayProgress": "Ọjọ́ {day} nínú {totalDays}",
     "inactive": "Aiṣiṣẹ",
     "inProgress": "Ni ilọsiwaju",
-    "inactiveReentryBody": "O padanu ọjọ́ {missedDays} nínú ìṣe ọjọ́ {total} yìí. Padà wọlé pẹ̀lẹ́pẹ̀lẹ́ lórí ọjọ́ {nextDay} nínú {total}.",
+    "inactiveReentryBody": "O padanu ọjọ́ {missedDays} nínú ìṣe ọjọ́ {total} yìí. Bá a ṣe ń lọ lórí ọjọ́ {nextDay}.",
     "completedTodayBody": "Ọjọ́ {nextDay} nínú {total} ń dúró de ọ̀la.",
     "inProgressBody": "Tẹ̀síwájú pẹ̀lú ọjọ́ {nextDay} nínú {total}.",
     "continueCurrentPractice": "Tẹ̀síwájú pẹ̀lú ìṣe rẹ lọwọlọwọ",

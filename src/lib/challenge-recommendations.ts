@@ -797,14 +797,14 @@ export function recommendChallenges(input: ChallengeRecommendationContext): Chal
             ? t("challenges.inactiveReentryBody")
                 .replace("{missedDays}", String(missedDays ?? 0))
                 .replace("{nextDay}", String(nextDay))
-                .replace("{total}", String(def.totalDays))
+                .replaceAll("{total}", String(def.totalDays))
             : activeChallengeState === "completed_today"
               ? t("challenges.completedTodayBody")
                   .replace("{nextDay}", String(nextDay))
-                  .replace("{total}", String(def.totalDays))
+                  .replaceAll("{total}", String(def.totalDays))
               : t("challenges.inProgressBody")
                   .replace("{nextDay}", String(nextDay))
-                  .replace("{total}", String(def.totalDays));
+                  .replaceAll("{total}", String(def.totalDays));
         return {
           challengeId: def.id,
           titleKey: def.titleKey,

@@ -126,8 +126,8 @@ export async function scheduleDecisionNotifications(
 /**
  * Get pending notifications due for sending
  */
-export async function getPendingNotifications() {
-  const now = new Date().toISOString();
+export async function getPendingNotifications(now = new Date()) {
+  const currentTime = now.toISOString();
   const notifications = await many<{
     id: string;
     decision_id: string;
@@ -141,7 +141,7 @@ export async function getPendingNotifications() {
      WHERE status = 'pending' AND scheduled_for <= ?
      ORDER BY scheduled_for ASC
      LIMIT 100`,
-    now
+    currentTime
   );
   return notifications || [];
 }

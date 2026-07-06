@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { trackEvent } from "@/lib/analytics";
-import { recordDailyNotificationUnauthorizedHit, sendChallengeReminders, sendDailyWisdomNotifications } from "@/lib/notifications";
+import {
+  recordDailyNotificationUnauthorizedHit,
+  sendChallengeReminders,
+  sendDailyWisdomNotifications,
+  sendPendingDecisionNotifications,
+} from "@/lib/notifications";
 import { apiError } from "@/lib/api-errors";
 
 // Allow longer execution time for notification processing
@@ -20,20 +25,52 @@ function hasValidSecret(request: Request) {
   return [bearerSecret, headerSecret, urlSecret].some((candidate) => candidate === secret);
 }
 
-async function runDailyNotifications(request: Request) {
+export type DailyNotificationRouteDeps = {
+  recordDailyNotificationUnauthorizedHit: typeof recordDailyNotificationUnauthorizedHit;
+  sendPendingDecisionNotifications: typeof sendPendingDecisionNotifications;
+  sendDailyWisdomNotifications: typeof sendDailyWisdomNotifications;
+  sendChallengeReminders: typeof sendChallengeReminders;
+  trackEvent: typeof trackEvent;
+  now: () => Date;
+};
+
+export const dailyNotificationRouteDeps: DailyNotificationRouteDeps = {
+  recordDailyNotificationUnauthorizedHit,
+  sendPendingDecisionNotifications,
+  sendDailyWisdomNotifications,
+  sendChallengeReminders,
+  trackEvent,
+  now: () => new Date(),
+};
+
+export async function runDailyNotifications(request: Request, deps: DailyNotificationRouteDeps = dailyNotificationRouteDeps) {
   const secret = process.env.NOTIFICATION_CRON_SECRET;
 
   if (!secret || !hasValidSecret(request)) {
-    await recordDailyNotificationUnauthorizedHit().catch(() => undefined);
+    await deps.recordDailyNotificationUnauthorizedHit().catch(() => undefined);
     return apiError(401, "permission_denied", "Unauthorized.");
   }
 
-  const result = await sendDailyWisdomNotifications();
-  const challengeResult = await sendChallengeReminders().catch(() => ({ attempted: 0, sent: 0, failed: 0, suggested: 0 }));
-  await trackEvent({
+  const now = deps.now();
+  const decisionResult = await deps.sendPendingDecisionNotifications(now).catch(() => ({
+    attempted: 0,
+    sent: 0,
+    failed: 0,
+    pending: 0,
+    processed: 0,
+    failureSamples: [],
+  }));
+  const result = await deps.sendDailyWisdomNotifications(now);
+  const challengeResult = await deps.sendChallengeReminders(now).catch(() => ({ attempted: 0, sent: 0, failed: 0, suggested: 0 }));
+  await deps.trackEvent({
     eventName: "notification_daily_checked",
     source: "cron",
     metadata: {
+      decisionAttempted: decisionResult.attempted,
+      decisionSent: decisionResult.sent,
+      decisionFailed: decisionResult.failed,
+      decisionPending: decisionResult.pending,
+      decisionProcessed: decisionResult.processed,
       attempted: result.attempted,
       sent: result.sent,
       failed: result.failed,
@@ -53,7 +90,7 @@ async function runDailyNotifications(request: Request) {
       challengeSuggested: challengeResult.suggested,
     },
   }).catch(() => undefined);
-  return NextResponse.json({ ...result, challengeResult });
+  return NextResponse.json({ ...result, decisionResult, challengeResult });
 }
 
 export async function POST(request: Request) {

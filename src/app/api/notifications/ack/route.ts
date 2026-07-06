@@ -3,7 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { run } from "@/lib/db";
 import { apiError } from "@/lib/api-errors";
 
-type NotificationKind = "counsel_decision_shared" | "challenge_circle_nudge";
+type NotificationKind = "counsel_decision_shared" | "challenge_circle_nudge" | "decision_followup" | "counsel_comment";
 
 export async function POST(request: Request) {
   const user = await getCurrentUser();
@@ -23,7 +23,12 @@ export async function POST(request: Request) {
 
   const notificationKind = body.notificationKind;
   const notificationId = body.notificationId?.trim();
-  if (notificationKind !== "counsel_decision_shared" && notificationKind !== "challenge_circle_nudge") {
+  if (
+    notificationKind !== "counsel_decision_shared" &&
+    notificationKind !== "challenge_circle_nudge" &&
+    notificationKind !== "decision_followup" &&
+    notificationKind !== "counsel_comment"
+  ) {
     return apiError(400, "invalid_input", "Unsupported notification kind.");
   }
   if (!notificationId) {

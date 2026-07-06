@@ -4,6 +4,7 @@ import {
   recordDailyNotificationUnauthorizedHit,
   sendChallengeReminders,
   sendDailyWisdomNotifications,
+  sendPendingDecisionNotifications,
 } from "@/lib/notifications";
 import { trackEvent } from "@/lib/analytics";
 
@@ -38,13 +39,27 @@ async function runLegacyDailyNotifications(request: Request) {
     return apiError(401, "permission_denied", "Unauthorized.");
   }
 
-  const result = await sendDailyWisdomNotifications();
-  const challengeResult = await sendChallengeReminders().catch(() => ({ attempted: 0, sent: 0, failed: 0, suggested: 0 }));
+  const now = new Date();
+  const decisionResult = await sendPendingDecisionNotifications(now).catch(() => ({
+    attempted: 0,
+    sent: 0,
+    failed: 0,
+    pending: 0,
+    processed: 0,
+    failureSamples: [],
+  }));
+  const result = await sendDailyWisdomNotifications(now);
+  const challengeResult = await sendChallengeReminders(now).catch(() => ({ attempted: 0, sent: 0, failed: 0, suggested: 0 }));
 
   await trackEvent({
     eventName: "notification_daily_checked",
     source: "cron",
     metadata: {
+      decisionAttempted: decisionResult.attempted,
+      decisionSent: decisionResult.sent,
+      decisionFailed: decisionResult.failed,
+      decisionPending: decisionResult.pending,
+      decisionProcessed: decisionResult.processed,
       attempted: result.attempted,
       sent: result.sent,
       failed: result.failed,
@@ -68,6 +83,7 @@ async function runLegacyDailyNotifications(request: Request) {
 
   return NextResponse.json({
     ...result,
+    decisionResult,
     challengeResult,
     legacyRoute: true,
     deprecationNotice: "Deprecated alias. Use /api/notifications/daily with NOTIFICATION_CRON_SECRET.",

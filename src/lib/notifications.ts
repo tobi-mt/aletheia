@@ -10,6 +10,7 @@ import { recommendChallenges } from "@/lib/challenge-recommendations";
 import { normalizeManualContext, type ManualContextProfile } from "@/lib/manual-context";
 import { loadTranslationsSync, getTranslation } from "@/lib/translations";
 import { MODE_KEYS, type Mode } from "@/lib/mode-keys";
+import { getPendingNotifications, markNotificationSent } from "@/lib/notification-sequencing";
 
 type PushRow = {
   id: string;
@@ -59,6 +60,26 @@ type CounselDecisionSharePushInput = {
   senderName: string | null;
 };
 
+type CounselCommentPushInput = {
+  notificationId: string;
+  sharedDecisionId: string | null;
+  contactId: string;
+  decisionId: string;
+  senderUserId: string;
+  senderName: string | null;
+  body: string;
+  targetUserIds: string[];
+};
+
+type PendingDecisionNotificationRow = {
+  id: string;
+  decision_id: string;
+  user_id: string;
+  day: number;
+  title: string;
+  body: string;
+};
+
 type DeliveryStatus = "waiting_for_acceptance" | "sent_to_push_service" | "opened" | "partial" | "no_push_subscription" | "failed";
 
 type CounselShareDeliveryReason = "no_push_subscription" | "disabled_push_subscription" | "push_failed" | "muted_by_preferences" | null;
@@ -101,6 +122,15 @@ export type ChallengeCircleNudgeDeliverySummary = {
   deliveredAt: string | null;
   createdAt: string;
   updatedAt: string;
+};
+
+export type PendingDecisionNotificationDeliverySummary = {
+  attempted: number;
+  sent: number;
+  failed: number;
+  pending: number;
+  processed: number;
+  failureSamples: PushFailureSample[];
 };
 
 type DueDecisionReminderRow = {
@@ -293,6 +323,53 @@ const counselDecisionSharedNotificationCopyByLanguage: Partial<Record<LanguageCo
   },
 };
 
+const counselCommentNotificationCopyByLanguage: Partial<Record<LanguageCode, { title: string; body: string }>> = {
+  en: {
+    title: "New private comment",
+    body: "Open Aletheia to read the latest message on your shared decision.",
+  },
+  de: {
+    title: "Neuer privater Kommentar",
+    body: "Öffne Aletheia, um die neueste Nachricht zu deiner geteilten Entscheidung zu lesen.",
+  },
+  fr: {
+    title: "Nouveau commentaire privé",
+    body: "Ouvre Aletheia pour lire le dernier message sur votre décision partagée.",
+  },
+  es: {
+    title: "Nuevo comentario privado",
+    body: "Abre Aletheia para leer el último mensaje sobre tu decisión compartida.",
+  },
+  pt: {
+    title: "Novo comentário privado",
+    body: "Abra o Aletheia para ler a mensagem mais recente sobre sua decisão compartilhada.",
+  },
+  ar: {
+    title: "تعليق خاص جديد",
+    body: "افتح Aletheia لقراءة أحدث رسالة حول قرارك المشترك.",
+  },
+  hi: {
+    title: "नई निजी टिप्पणी",
+    body: "अपना साझा निर्णय देखने के लिए Aletheia खोलें और नया संदेश पढ़ें।",
+  },
+  tl: {
+    title: "Bagong pribadong komento",
+    body: "Buksan ang Aletheia para basahin ang pinakabagong mensahe sa iyong pinagsasaluhang pasya.",
+  },
+  yo: {
+    title: "Ọ̀rọ̀ àdáni tuntun",
+    body: "Ṣí Aletheia láti ka ifiranṣẹ tuntun lori ìpinnu tí o pín.",
+  },
+  ig: {
+    title: "Nkwuputa nke onwe ọhụrụ",
+    body: "Mepee Aletheia ka i gụọ ozi ọhụrụ banyere mkpebi gị e kesara.",
+  },
+  ha: {
+    title: "Sabon sharhi na sirri",
+    body: "Buɗe Aletheia don karanta sabon saƙo game da shawarar da kuka raba.",
+  },
+};
+
 const challengeCircleNudgeNotificationCopyByLanguage: Partial<Record<LanguageCode, { title: string; body: string }>> = {
   en: {
     title: "New activity in your circle",
@@ -396,6 +473,44 @@ function counselShareNotificationPayload(row: PushRow, input: CounselDecisionSha
     tag: `aletheia-counsel-share-${input.sharedDecisionId}-${row.user_id}`,
     notificationKind: "counsel_decision_shared",
     notificationId: input.sharedDecisionId,
+    sharedDecisionId: input.sharedDecisionId,
+    contactId: input.contactId,
+    decisionId: input.decisionId,
+    senderUserId: input.senderUserId,
+    recipientUserId: row.user_id,
+  };
+}
+
+function counselCommentNotificationTitle(language: LanguageCode) {
+  return counselCommentNotificationCopyByLanguage[language]?.title ?? counselCommentNotificationCopyByLanguage.en!.title;
+}
+
+function counselCommentNotificationPayload(row: PushRow, input: CounselCommentPushInput) {
+  const preferences = normalizePreferences({
+    language: row.language as LanguageCode,
+    region: row.region as RegionCode,
+    bibleTranslation: row.bible_translation as BibleTranslation,
+    voiceEnabled: Boolean(row.voice_enabled),
+  });
+  const title = counselCommentNotificationTitle(preferences.language);
+  const body =
+    counselCommentNotificationCopyByLanguage[preferences.language]?.body ??
+    counselCommentNotificationCopyByLanguage.en!.body;
+
+  const sharedDecisionQuery = input.sharedDecisionId
+    ? `&sharedDecisionId=${encodeURIComponent(input.sharedDecisionId)}`
+    : "";
+  const url =
+    `/?source=notification&focus=decision&decisionId=${encodeURIComponent(input.decisionId)}` +
+    `${sharedDecisionQuery}&contactId=${encodeURIComponent(input.contactId)}&tab=decisions&section=share&surface=incoming`;
+
+  return {
+    title,
+    body,
+    url,
+    tag: `aletheia-counsel-comment-${notificationTagPart(input.notificationId)}-${row.user_id}`,
+    notificationKind: "counsel_comment",
+    notificationId: input.notificationId,
     sharedDecisionId: input.sharedDecisionId,
     contactId: input.contactId,
     decisionId: input.decisionId,
@@ -514,6 +629,19 @@ async function pushSubscriptionsForUsers(userIds: string[]) {
      WHERE push_subscriptions.user_id = ANY(?)`,
     userIds
   );
+}
+
+async function sendPushRowsToUserIds(
+  userIds: string[],
+  payloadForRow: (row: PushRow) => string
+) {
+  const pushRows = await pushSubscriptionsForUsers(userIds);
+  const { enabledRows } = splitPushSubscriptionRows(pushRows, userIds);
+
+  return {
+    enabledRows,
+    result: await sendPushRows(enabledRows, payloadForRow, { lastSentColumn: null }),
+  };
 }
 
 function splitPushSubscriptionRows(rows: PushRow[], recipientUserIds: string[]) {
@@ -659,6 +787,53 @@ export async function sendCounselShareNotifications(input: CounselDecisionShareP
 
   await upsertCounselShareDelivery(summary);
   return summary;
+}
+
+export async function sendCounselCommentNotifications(input: CounselCommentPushInput) {
+  if (!isPushConfigured()) {
+    return {
+      configured: false,
+      attempted: 0,
+      sent: 0,
+      failed: 0,
+      failureSamples: [],
+    };
+  }
+
+  const uniqueTargetIds = [...new Set(input.targetUserIds.map((id) => id.trim()).filter(Boolean))];
+  if (uniqueTargetIds.length === 0) {
+    return {
+      configured: true,
+      attempted: 0,
+      sent: 0,
+      failed: 0,
+      failureSamples: [],
+    };
+  }
+
+  try {
+    configureWebPush();
+    const { enabledRows, result } = await sendPushRowsToUserIds(
+      uniqueTargetIds,
+      (row) => JSON.stringify(counselCommentNotificationPayload(row, input))
+    );
+
+    return {
+      configured: true,
+      attempted: enabledRows.length,
+      sent: result.sent,
+      failed: result.failed,
+      failureSamples: result.failureSamples,
+    };
+  } catch {
+    return {
+      configured: true,
+      attempted: uniqueTargetIds.length,
+      sent: 0,
+      failed: uniqueTargetIds.length,
+      failureSamples: [],
+    };
+  }
 }
 
 function dailyNotificationPayload(row: PushRow, wisdomEntries: Awaited<ReturnType<typeof getWisdomEntries>>) {
@@ -2811,10 +2986,9 @@ async function markDecisionReminderNotified(reminder: DueDecisionReminder, deliv
   );
 }
 
-export async function sendDailyWisdomNotifications() {
+export async function sendDailyWisdomNotifications(now = new Date()) {
   configureWebPush();
 
-  const now = new Date();
   const currentHour = now.getUTCHours();
 
   // Fetch wisdom entries once for all notifications
@@ -2907,6 +3081,77 @@ export async function sendDailyWisdomNotifications() {
     gratitudeSent: gratitudeResult.sent,
     gratitudeFailed: gratitudeResult.failed,
     failureSamples: [...followupFailureSamples, ...failureSamples, ...gratitudeResult.failureSamples].slice(0, 5),
+  };
+}
+
+export async function sendPendingDecisionNotifications(now = new Date()): Promise<PendingDecisionNotificationDeliverySummary> {
+  configureWebPush();
+
+  const pending = await getPendingNotifications(now);
+  if (pending.length === 0) {
+    return {
+      attempted: 0,
+      sent: 0,
+      failed: 0,
+      pending: 0,
+      processed: 0,
+      failureSamples: [],
+    };
+  }
+
+  const pendingByUser = new Map<string, PendingDecisionNotificationRow[]>();
+  for (const row of pending) {
+    const bucket = pendingByUser.get(row.user_id) ?? [];
+    bucket.push(row);
+    pendingByUser.set(row.user_id, bucket);
+  }
+
+  let attempted = 0;
+  let sent = 0;
+  let failed = 0;
+  let processed = 0;
+  const failureSamples: PushFailureSample[] = [];
+
+  for (const [userId, rowsForUser] of pendingByUser.entries()) {
+    const pushRows = await pushSubscriptionsForUsers([userId]);
+    const { enabledRows } = splitPushSubscriptionRows(pushRows, [userId]);
+    if (enabledRows.length === 0) {
+      continue;
+    }
+
+    for (const row of rowsForUser) {
+      attempted += enabledRows.length;
+      const payload = JSON.stringify({
+        title: row.title,
+        body: row.body,
+        url: `/?source=notification&focus=decision&decisionId=${encodeURIComponent(row.decision_id)}&day=${row.day}&tab=decisions`,
+        tag: `aletheia-decision-followup-${notificationTagPart(row.decision_id)}-${row.day}`,
+        notificationKind: "decision_followup",
+        notificationId: row.id,
+        decisionId: row.decision_id,
+        day: row.day,
+        recipientUserId: row.user_id,
+      });
+
+      const result = await sendPushRows(enabledRows, () => payload, { lastSentColumn: null });
+      sent += result.sent;
+      failed += result.failed;
+      failureSamples.push(...result.failureSamples);
+
+      if (result.sent > 0) {
+        await markNotificationSent(row.id, row.decision_id, row.user_id, row.day);
+        processed += 1;
+      }
+    }
+  }
+
+  return {
+    attempted,
+    sent,
+    failed,
+    pending: pending.length,
+    processed,
+    failureSamples: failureSamples.slice(0, 5),
   };
 }
 

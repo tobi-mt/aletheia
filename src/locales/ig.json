@@ -2157,7 +2157,7 @@
     "shareDayProgress": "Ụbọchị {day} n’ime {totalDays}",
     "inactive": "Arụghị ọrụ",
     "inProgress": "Na-aga n'ihu",
-    "inactiveReentryBody": "Ị tụfuru ụbọchị {missedDays} n’ọrụ ụbọchị {total} a. Bụghachite nwayọ na ụbọchị {nextDay} nke {total}.",
+    "inactiveReentryBody": "Ị tụfuru ụbọchị {missedDays} n’ọrụ ụbọchị {total} a. Bido ọzọ na ụbọchị {nextDay}.",
     "completedTodayBody": "Ụbọchị {nextDay} nke {total} na-eche ruo echi.",
     "inProgressBody": "Gaa n'ihu na ụbọchị {nextDay} nke {total}.",
     "continueCurrentPractice": "Gaa n'ihu na omume gị ugbu a",
