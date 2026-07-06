@@ -120,9 +120,17 @@ export function buildDecisionCardPreview(summary: string | null | undefined, fal
 
   const bodyLines = lines.length > 1 ? lines.slice(1) : lines;
   const stripLabel = (value: string, label: string) => value.replace(new RegExp(`^${label}\\s*:?\\s*`, "i"), "").trim();
-  const nextFaithfulStep = bodyLines.find((line) => /^next faithful step/i.test(line));
+  const getNextLineAfterHeading = (heading: RegExp) => {
+    const index = bodyLines.findIndex((line) => heading.test(line));
+    if (index < 0) {
+      return null;
+    }
+    return bodyLines.slice(index + 1).find((line) => Boolean(line)) ?? null;
+  };
+
+  const nextFaithfulStep = getNextLineAfterHeading(/^next faithful step/i);
   if (nextFaithfulStep) {
-    return stripLabel(nextFaithfulStep, "next faithful step");
+    return nextFaithfulStep.length > 120 ? `${nextFaithfulStep.slice(0, 119).trimEnd()}…` : nextFaithfulStep;
   }
 
   const mainConcern = bodyLines.find((line) => /^main concern/i.test(line));
@@ -130,9 +138,13 @@ export function buildDecisionCardPreview(summary: string | null | undefined, fal
     return stripLabel(mainConcern, "main concern");
   }
 
-  const firstQuestion = bodyLines.find((line) => /^questions to ask/i.test(line));
-  if (firstQuestion) {
-    return stripLabel(firstQuestion, "questions to ask");
+  const questionHeadingIndex = bodyLines.findIndex((line) => /^questions to ask/i.test(line));
+  if (questionHeadingIndex >= 0) {
+    const firstQuestion = bodyLines.slice(questionHeadingIndex + 1).find((line) => /^[-•]/.test(line) || Boolean(line));
+    if (firstQuestion) {
+      const cleaned = firstQuestion.replace(/^[-•]\s*/, "").trim();
+      return cleaned.length > 120 ? `${cleaned.slice(0, 119).trimEnd()}…` : cleaned;
+    }
   }
 
   const previewLines = bodyLines.filter(
