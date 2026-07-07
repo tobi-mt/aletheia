@@ -23746,7 +23746,7 @@ function NotificationPanel({
   const diagnosticsGeneratedAt = diagnostics?.generatedAt ?? null;
   const formatRelativeMinutes = (value: number | null) => {
     if (value === null) {
-      return ts("labels.notYet", "Not yet");
+      return ts("labels.notYet");
     }
     const formatter = new Intl.RelativeTimeFormat(language, { numeric: "auto" });
     if (value < 60) {
@@ -23768,7 +23768,7 @@ function NotificationPanel({
           ? ts("notifications.diagnosticsCronStale").replace("{relative}", formatRelativeMinutes(diagnostics.server.lastDailyCheckedMinutesAgo))
           : ts("notifications.diagnosticsCronNotCheckedInYet")
         : diagnostics?.account.refreshDueSubscriptions
-          ? ts("notifications.diagnosticsRefreshDue", "{count} subscriptions need a refresh").replace("{count}", String(diagnostics.account.refreshDueSubscriptions))
+          ? ts("notifications.diagnosticsRefreshDue").replace("{count}", String(diagnostics.account.refreshDueSubscriptions))
         : diagnostics?.account.recommendedAction === "none"
           ? ts("notifications.diagnosticsPushLooksHealthy")
           : diagnostics?.account.recommendedAction === "fix_vapid"
@@ -23827,45 +23827,48 @@ function NotificationPanel({
   };
   const formatRefreshDue = (value: string | null, due: boolean) => {
     if (due) {
-      return ts("notifications.refreshDueNow", "Refresh due now");
+      return ts("notifications.refreshDueNow");
     }
     if (!value) {
-      return ts("notifications.refreshDueUnknown", "Refresh due soon");
+      return ts("notifications.refreshDueUnknown");
     }
 
-    return ts("notifications.refreshDueOn", "Refresh due {when}").replace("{when}", formatRelativeIso(value) ?? value);
+    return ts("notifications.refreshDueOn").replace("{when}", formatRelativeIso(value) ?? ts("labels.notYet"));
   };
+  const browserSupportMissingItems = [
+    !browserSupport.notification ? ts("notifications.browserSupportItemNotification") : null,
+    !browserSupport.pushManager ? ts("notifications.browserSupportItemPushManager") : null,
+    !browserSupport.serviceWorker ? ts("notifications.browserSupportItemServiceWorker") : null,
+  ]
+    .filter(Boolean)
+    .join(", ");
   const freshnessLabel = diagnostics?.account.refreshDueSubscriptions
-    ? ts("notifications.refreshDueNow", "Refresh due now")
+    ? ts("notifications.refreshDueNow")
     : diagnostics?.account.subscriptions
-      ? ts("notifications.refreshFresh", "Fresh")
-      : ts("notifications.refreshUnknown", "Unknown");
+      ? ts("notifications.refreshFresh")
+      : ts("notifications.refreshUnknown");
   const primaryDiagnostic = diagnostics?.account.diagnostics[0] ?? null;
   const notificationHealthRows = diagnostics
     ? [
         {
-          label: ts("notifications.refreshFreshness", "Freshness"),
+          label: ts("notifications.refreshFreshness"),
           value: primaryDiagnostic
             ? formatRefreshDue(primaryDiagnostic.refreshDueAt, primaryDiagnostic.refreshDue)
-            : ts("notifications.refreshUnknown", "Unknown"),
+            : ts("notifications.refreshUnknown"),
           detail: primaryDiagnostic?.lastRefreshedAt
-            ? ts("notifications.lastRefreshedAt", "Last refreshed {when}").replace(
+            ? ts("notifications.lastRefreshedAt").replace(
                 "{when}",
                 formatExactDateTime(primaryDiagnostic.lastRefreshedAt) ?? primaryDiagnostic.lastRefreshedAt
               )
-            : ts("notifications.refreshNeverVerified", "Not refreshed yet"),
+            : ts("notifications.refreshNeverVerified"),
           tone: primaryDiagnostic?.refreshDue ? "warn" : "good",
         },
         {
           label: ts("notifications.browserSupportLabel"),
           value: browserSupport.supported
             ? ts("notifications.browserSupportSupported")
-            : ts("notifications.browserSupportMissing").replace("{items}", [
-                !browserSupport.notification ? "Notification" : null,
-                !browserSupport.pushManager ? "PushManager" : null,
-                !browserSupport.serviceWorker ? "service worker" : null,
-              ].filter(Boolean).join(", ")),
-          detail: ts("notifications.browserSupportDetail", "Browser push APIs and service worker support."),
+            : ts("notifications.browserSupportMissing").replace("{items}", browserSupportMissingItems),
+          detail: ts("notifications.browserSupportDetail"),
           tone: browserSupport.supported ? "good" : "bad",
         },
         {
@@ -23875,7 +23878,7 @@ function NotificationPanel({
             : diagnostics.server.vapidConfigured
               ? ts("notifications.vapidInvalidKeyPair").replace("{reason}", diagnostics.server.vapidReason)
               : ts("notifications.vapidMissingConfig"),
-          detail: ts("notifications.vapidConfigDetail", "Required to deliver pushes from the server."),
+          detail: ts("notifications.vapidConfigDetail"),
           tone: diagnostics.server.vapidConfigured && diagnostics.server.vapidKeyPairValid ? "good" : "bad",
         },
         {
@@ -23887,7 +23890,7 @@ function NotificationPanel({
             : diagnostics.server.cronStatus === "stale"
               ? ts("notifications.cronNotCheckedRecently")
               : ts("notifications.cronSecretMissing"),
-          detail: ts("notifications.cronDetail", "Keeps daily delivery and retries moving."),
+          detail: ts("notifications.cronDetail"),
           tone: diagnostics.server.cronStatus === "healthy" ? "good" : "bad",
         },
       ]
@@ -23918,7 +23921,7 @@ function NotificationPanel({
         <div className="mb-3 flex items-center justify-between gap-3">
           <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
-              {ts('labels.notifications', 'Notifications')}
+              {ts('labels.notifications')}
             </p>
             <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
               {diagnosticsSummary}
@@ -23950,7 +23953,7 @@ function NotificationPanel({
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
             <h3 className="text-sm font-semibold" style={{ color: theme.textPrimary }}>
-              {ts('notifications.deliveryTimingTitle', 'Delivery timing')}
+              {ts('notifications.deliveryTimingTitle')}
             </h3>
             <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
               {ts('notifications.dailyWisdomSetFor')} {notificationTimeLabel(timing.preferredLocalHour, language)}. {ts('notifications.savedLocalTimingPreference')}
@@ -24049,21 +24052,21 @@ function NotificationPanel({
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <h3 className="text-sm font-semibold" style={{ color: theme.textPrimary }}>
-              {ts('notifications.alertTypesTitle', 'Alert types')}
+              {ts('notifications.alertTypesTitle')}
             </h3>
             <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
-              {ts('notifications.counselAndFormationSettingsBody', 'Keep counsel and formation alerts separate from daily wisdom timing.')}
+              {ts('notifications.counselAndFormationSettingsBody')}
             </p>
           </div>
           <span className="shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.1em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textSecondary }}>
-            {ts('notifications.privateByDefault', 'Privacy-first')}
+            {ts('notifications.privateByDefault')}
           </span>
         </div>
         <div className="mt-1 divide-y" style={{ borderColor: theme.borderLight }}>
           <AccountToggleRow
             icon={MessageCircleMore}
-            label={ts('notifications.counselNotificationsTitle', 'Counsel notifications')}
-            body={ts('notifications.counselNotificationsBody', 'Shared decisions and private counsel replies.')}
+            label={ts('notifications.counselNotificationsTitle')}
+            body={ts('notifications.counselNotificationsBody')}
             checked={preferences.counselNotificationsEnabled}
             onChange={(checked) => onPreferenceChange({ counselNotificationsEnabled: checked })}
             onLabel={ts('labels.on')}
@@ -24073,8 +24076,8 @@ function NotificationPanel({
           />
           <AccountToggleRow
             icon={Bell}
-            label={ts('notifications.formationNotificationsTitle', 'Formation notifications')}
-            body={ts('notifications.formationNotificationsBody', 'Nudges and challenge activity in your circles.')}
+            label={ts('notifications.formationNotificationsTitle')}
+            body={ts('notifications.formationNotificationsBody')}
             checked={preferences.formationNotificationsEnabled}
             onChange={(checked) => onPreferenceChange({ formationNotificationsEnabled: checked })}
             onLabel={ts('labels.on')}
@@ -24084,7 +24087,7 @@ function NotificationPanel({
           />
         </div>
         <p className="mt-3 text-xs leading-5" style={{ color: theme.textSecondary }}>
-          {ts('notifications.counselCardDeepLinkNote', 'Taps from alerts open the exact card or reply surface, not just the tab.')}
+          {ts('notifications.counselCardDeepLinkNote')}
         </p>
       </div>
 
@@ -24092,7 +24095,7 @@ function NotificationPanel({
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <h3 className="text-sm font-semibold" style={{ color: theme.textPrimary }}>
-              {ts('labels.diagnostics', 'Diagnostics')}
+              {ts('labels.diagnostics')}
             </h3>
             <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
               {diagnosticsSummary}
@@ -24146,8 +24149,8 @@ function NotificationPanel({
             </div>
             <p className="mt-1 text-xs leading-5" style={{ color: theme.textSecondary }}>
               {diagnostics?.account.refreshDueSubscriptions
-                ? ts("notifications.refreshDueCount", "{count} subscriptions need a refresh").replace("{count}", String(diagnostics.account.refreshDueSubscriptions))
-                : ts("notifications.refreshFresh", "All subscriptions are fresh.")}
+                ? ts("notifications.refreshDueCount").replace("{count}", String(diagnostics.account.refreshDueSubscriptions))
+                : ts("notifications.refreshFreshAll")}
             </p>
           </div>
         </div>

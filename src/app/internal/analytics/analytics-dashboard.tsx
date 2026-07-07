@@ -2,9 +2,13 @@
 
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { getTranslation, loadTranslationsWithFallbackSync, type TranslationData } from "@/lib/translations";
+import { type LanguageCode } from "@/lib/localization";
 import { installNativeWebFetchProxy } from "@/lib/native-web";
 
 installNativeWebFetchProxy();
+
+const SUPPORTED_ANALYTICS_LANGUAGES: LanguageCode[] = ["en", "es", "fr", "pt", "de", "yo", "ig", "ha", "tl", "ar", "hi"];
 
 type PeriodKey = "daily" | "weekly" | "monthly" | "yearly";
 
@@ -198,9 +202,14 @@ function formatCount(value: number) {
   return value.toLocaleString();
 }
 
-function formatRelativeTime(value: string | null) {
+function normalizeAnalyticsLanguage(value: string | undefined | null): LanguageCode {
+  const candidate = value?.split("-")?.[0]?.toLowerCase() as LanguageCode | undefined;
+  return candidate && SUPPORTED_ANALYTICS_LANGUAGES.includes(candidate) ? candidate : "en";
+}
+
+function formatRelativeTime(value: string | null, reportTs: (key: string) => string) {
   if (!value) {
-    return "Not yet";
+    return reportTs("internalAnalytics.notYet");
   }
 
   const ts = Date.parse(value);
@@ -229,9 +238,9 @@ function getDefaultDateRange() {
   return { startDate, endDate };
 }
 
-function formatRangeLabel(range?: { startDate: string; endDate: string } | null) {
+function formatRangeLabel(range?: { startDate: string; endDate: string } | null, reportTs?: (key: string) => string) {
   if (!range?.startDate || !range?.endDate) {
-    return "Selected range";
+    return reportTs ? reportTs("internalAnalytics.selectedRange") : "";
   }
 
   const formatter = new Intl.DateTimeFormat(undefined, {
@@ -250,8 +259,51 @@ function formatRangeLabel(range?: { startDate: string; endDate: string } | null)
   return `${formatter.format(start)} - ${formatter.format(end)}`;
 }
 
-function formatNotificationReason(reason: NotificationDeliveryReason) {
-  return reason ?? "Ready";
+function formatNotificationReason(reason: NotificationDeliveryReason, reportTs: (key: string) => string) {
+  switch (reason) {
+    case null:
+      return reportTs("internalAnalytics.ready");
+    case "before window":
+      return reportTs("internalAnalytics.beforeWindow");
+    case "already sent today":
+      return reportTs("internalAnalytics.alreadySentToday");
+    case "no active subscription":
+      return reportTs("internalAnalytics.noActiveSubscription");
+    case "VAPID failure":
+      return reportTs("internalAnalytics.vapidFailure");
+    case "no recipient row":
+      return reportTs("internalAnalytics.noRecipientRow");
+    case "push endpoint rejected":
+      return reportTs("internalAnalytics.pushEndpointRejected");
+    default:
+      return reportTs("internalAnalytics.ready");
+  }
+}
+
+function formatNotificationDeliveryStrategy(strategy: string | null, reportTs: (key: string) => string) {
+  switch (strategy) {
+    case "morning":
+      return reportTs("internalAnalytics.deliveryStrategyMorning");
+    case "midday":
+      return reportTs("internalAnalytics.deliveryStrategyMidday");
+    case "evening":
+      return reportTs("internalAnalytics.deliveryStrategyEvening");
+    case "custom":
+      return reportTs("internalAnalytics.deliveryStrategyCustom");
+    default:
+      return reportTs("internalAnalytics.none");
+  }
+}
+
+function formatNotificationTimezoneMode(mode: string | null, reportTs: (key: string) => string) {
+  switch (mode) {
+    case "auto":
+      return reportTs("internalAnalytics.timezoneModeAutomatic");
+    case "manual":
+      return reportTs("internalAnalytics.timezoneModeManual");
+    default:
+      return reportTs("internalAnalytics.none");
+  }
 }
 
 function notificationReasonTone(reason: NotificationDeliveryReason) {
@@ -665,6 +717,26 @@ export default function AnalyticsDashboard() {
   const notificationReportSummary = notificationReport?.summary ?? null;
   const notificationReportIssueRows = notificationReportRows.filter((row) => row.issueCount > 0);
   const notificationReportVisibleRows = notificationReportIssueRows.length > 0 ? notificationReportIssueRows : notificationReportRows;
+  const analyticsLanguage = useMemo(
+    () => normalizeAnalyticsLanguage(typeof navigator !== "undefined" ? navigator.language : "en"),
+    []
+  );
+  const analyticsTranslations = useMemo(
+    () => loadTranslationsWithFallbackSync(analyticsLanguage),
+    [analyticsLanguage]
+  );
+  const reportTs = useMemo(() => {
+    const missingFallback = "__missing__";
+    const resolve = (key: string, fallback?: string) => {
+      const value = getTranslation(analyticsTranslations as TranslationData, key, fallback ?? missingFallback);
+      if (value === missingFallback) {
+        return key;
+      }
+
+      return Array.isArray(value) ? value.join(", ") : String(value);
+    };
+    return (key: string, fallback?: string) => resolve(key, fallback);
+  }, [analyticsTranslations]);
 
   return (
     <main className="min-h-screen bg-slate-100 text-slate-900">
@@ -702,7 +774,7 @@ export default function AnalyticsDashboard() {
                     Last loaded in {lastLoaded.mode}: {lastLoaded.atIso}
                   </p>
                   {payload?.generatedAt ? <p>Data generated at: {payload.generatedAt}</p> : null}
-                  <p>Range: {formatRangeLabel(selectedRange)}</p>
+              <p>Range: {formatRangeLabel(selectedRange, reportTs)}</p>
                 </div>
               ) : null}
             </div>
@@ -800,22 +872,22 @@ export default function AnalyticsDashboard() {
         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-3xl">
-              <h2 className="text-lg font-semibold">Push Delivery Report</h2>
+              <h2 className="text-lg font-semibold">{reportTs("internalAnalytics.pushDeliveryReportTitle")}</h2>
               <p className="text-sm text-slate-600">
-                Exact blockers for daily wisdom, gratitude, challenge reminders, private comments, and circle nudges.
+                {reportTs("internalAnalytics.pushDeliveryReportBody")}
               </p>
             </div>
             <div className="flex flex-wrap gap-2 text-xs font-medium uppercase tracking-wide text-slate-500">
               <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
-                Lookback: {notificationReport?.lookbackDays ?? 30} days
+                {reportTs("internalAnalytics.lookback").replace("{days}", String(notificationReport?.lookbackDays ?? 30))}
               </span>
               <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
-                VAPID:{" "}
+                {reportTs("internalAnalytics.vapid")}:{" "}
                 {notificationReport
                   ? notificationReport.vapid.configured && notificationReport.vapid.keyPairValid
-                    ? "Healthy"
+                    ? reportTs("internalAnalytics.healthy")
                     : notificationReport.vapid.reason
-                  : "Unavailable"}
+                  : reportTs("internalAnalytics.unavailable")}
               </span>
             </div>
           </div>
@@ -823,31 +895,31 @@ export default function AnalyticsDashboard() {
           {notificationReportSummary ? (
             <>
               <div className="mt-4 grid grid-cols-2 gap-3 xl:grid-cols-4">
-                <MetricCard label="Users with issues" value={formatCount(notificationReportSummary.usersWithIssues)} tone="slate" />
-                <MetricCard label="No active subscription" value={formatCount(notificationReportSummary.usersWithoutActiveSubscriptions)} tone="rose" />
-                <MetricCard label="Before window" value={formatCount(notificationReportSummary.usersBeforeWindow)} tone="amber" />
-                <MetricCard label="Already sent today" value={formatCount(notificationReportSummary.usersAlreadySentToday)} tone="blue" />
-                <MetricCard label="No recipient row" value={formatCount(notificationReportSummary.usersWithNoRecipientRow)} tone="teal" />
-                <MetricCard label="Push endpoint rejected" value={formatCount(notificationReportSummary.usersWithPushEndpointRejected)} tone="rose" />
-                <MetricCard label="VAPID failure" value={formatCount(notificationReportSummary.usersWithVapidFailure)} tone="amber" />
-                <MetricCard label="Refresh due now" value={formatCount(notificationReportSummary.usersWithRefreshDue)} tone="slate" />
-                <MetricCard label="Active subscriptions" value={formatCount(notificationReportSummary.usersWithActiveSubscriptions)} tone="slate" />
+                <MetricCard label={reportTs("internalAnalytics.usersWithIssues")} value={formatCount(notificationReportSummary.usersWithIssues)} tone="slate" />
+                <MetricCard label={reportTs("internalAnalytics.noActiveSubscription")} value={formatCount(notificationReportSummary.usersWithoutActiveSubscriptions)} tone="rose" />
+                <MetricCard label={reportTs("internalAnalytics.beforeWindow")} value={formatCount(notificationReportSummary.usersBeforeWindow)} tone="amber" />
+                <MetricCard label={reportTs("internalAnalytics.alreadySentToday")} value={formatCount(notificationReportSummary.usersAlreadySentToday)} tone="blue" />
+                <MetricCard label={reportTs("internalAnalytics.noRecipientRow")} value={formatCount(notificationReportSummary.usersWithNoRecipientRow)} tone="teal" />
+                <MetricCard label={reportTs("internalAnalytics.pushEndpointRejected")} value={formatCount(notificationReportSummary.usersWithPushEndpointRejected)} tone="rose" />
+                <MetricCard label={reportTs("internalAnalytics.vapidFailure")} value={formatCount(notificationReportSummary.usersWithVapidFailure)} tone="amber" />
+                <MetricCard label={reportTs("internalAnalytics.refreshDueNow")} value={formatCount(notificationReportSummary.usersWithRefreshDue)} tone="slate" />
+                <MetricCard label={reportTs("internalAnalytics.activeSubscriptions")} value={formatCount(notificationReportSummary.usersWithActiveSubscriptions)} tone="slate" />
               </div>
 
               <div className="mt-5 overflow-x-auto">
                 <table className="w-full min-w-[92rem] text-left text-sm">
                   <thead className="text-slate-500">
                     <tr>
-                      <th className="pb-2 pr-3 font-medium">User</th>
-                      <th className="pb-2 pr-3 font-medium">Subs</th>
-                      <th className="pb-2 pr-3 font-medium">Daily wisdom</th>
-                      <th className="pb-2 pr-3 font-medium">Gratitude</th>
-                      <th className="pb-2 pr-3 font-medium">Challenge reminder</th>
-                      <th className="pb-2 pr-3 font-medium">Private comment</th>
-                      <th className="pb-2 pr-3 font-medium">Circle nudge</th>
-                      <th className="pb-2 pr-3 font-medium">Recent push failure</th>
-                      <th className="pb-2 font-medium">Timing</th>
-                      <th className="pb-2 pl-3 font-medium">Freshness</th>
+                      <th className="pb-2 pr-3 font-medium">{reportTs("internalAnalytics.user")}</th>
+                      <th className="pb-2 pr-3 font-medium">{reportTs("internalAnalytics.subs")}</th>
+                      <th className="pb-2 pr-3 font-medium">{reportTs("internalAnalytics.dailyWisdom")}</th>
+                      <th className="pb-2 pr-3 font-medium">{reportTs("internalAnalytics.gratitude")}</th>
+                      <th className="pb-2 pr-3 font-medium">{reportTs("internalAnalytics.challengeReminder")}</th>
+                      <th className="pb-2 pr-3 font-medium">{reportTs("internalAnalytics.privateComment")}</th>
+                      <th className="pb-2 pr-3 font-medium">{reportTs("internalAnalytics.circleNudge")}</th>
+                      <th className="pb-2 pr-3 font-medium">{reportTs("internalAnalytics.recentPushFailure")}</th>
+                      <th className="pb-2 font-medium">{reportTs("internalAnalytics.timing")}</th>
+                      <th className="pb-2 pl-3 font-medium">{reportTs("internalAnalytics.freshness")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -863,7 +935,7 @@ export default function AnalyticsDashboard() {
                           <div className="space-y-1">
                             <div>{formatCount(row.activeSubscriptionCount)}</div>
                             <div className="text-[11px] text-slate-500">
-                              {row.deliveryStrategy ?? "morning"} · {row.timezoneMode ?? "auto"} · {row.preferredTimezone ?? "UTC"}
+                              {formatNotificationDeliveryStrategy(row.deliveryStrategy, reportTs)} · {formatNotificationTimezoneMode(row.timezoneMode, reportTs)} · {row.preferredTimezone ?? reportTs("internalAnalytics.utc")}
                             </div>
                           </div>
                         </td>
@@ -873,7 +945,7 @@ export default function AnalyticsDashboard() {
                               row.dailyWisdomReason
                             )}`}
                           >
-                            {formatNotificationReason(row.dailyWisdomReason)}
+                            {formatNotificationReason(row.dailyWisdomReason, reportTs)}
                           </span>
                         </td>
                         <td className="py-3 pr-3">
@@ -882,7 +954,7 @@ export default function AnalyticsDashboard() {
                               row.gratitudeReason
                             )}`}
                           >
-                            {formatNotificationReason(row.gratitudeReason)}
+                            {formatNotificationReason(row.gratitudeReason, reportTs)}
                           </span>
                         </td>
                         <td className="py-3 pr-3">
@@ -891,7 +963,7 @@ export default function AnalyticsDashboard() {
                               row.challengeReminderReason
                             )}`}
                           >
-                            {formatNotificationReason(row.challengeReminderReason)}
+                            {formatNotificationReason(row.challengeReminderReason, reportTs)}
                           </span>
                         </td>
                         <td className="py-3 pr-3">
@@ -900,7 +972,7 @@ export default function AnalyticsDashboard() {
                               row.commentReason
                             )}`}
                           >
-                            {formatNotificationReason(row.commentReason)}
+                            {formatNotificationReason(row.commentReason, reportTs)}
                           </span>
                         </td>
                         <td className="py-3 pr-3">
@@ -909,7 +981,7 @@ export default function AnalyticsDashboard() {
                               row.nudgeReason
                             )}`}
                           >
-                            {formatNotificationReason(row.nudgeReason)}
+                            {formatNotificationReason(row.nudgeReason, reportTs)}
                           </span>
                         </td>
                         <td className="py-3 pr-3">
@@ -923,22 +995,31 @@ export default function AnalyticsDashboard() {
                                     : null
                               )}`}
                             >
-                              {row.recentPushFailureReason ?? "Ready"}
+                              {row.recentPushFailureReason
+                                ? formatNotificationReason(
+                                    row.recentPushFailureReason === "push endpoint rejected"
+                                      ? "push endpoint rejected"
+                                      : row.recentPushFailureReason === "VAPID failure"
+                                        ? "VAPID failure"
+                                        : null,
+                                    reportTs
+                                  )
+                                : reportTs("internalAnalytics.ready")}
                             </span>
                             {row.recentPushFailureCount > 0 ? (
                               <p className="text-[11px] text-slate-500">
-                                {formatCount(row.recentPushFailureCount)} recent failure{row.recentPushFailureCount === 1 ? "" : "s"}
+                                {reportTs("internalAnalytics.recentFailureCount").replace("{count}", formatCount(row.recentPushFailureCount))}
                               </p>
                             ) : null}
                           </div>
                         </td>
                         <td className="py-3 text-[11px] text-slate-500">
                           <div className="space-y-1">
-                            <p>Preferred hour: {row.preferredLocalHour ?? 8}:00</p>
-                            <p>Daily sent: {row.lastSentAt ?? "none"}</p>
-                            <p>Gratitude sent: {row.lastGratitudeSentAt ?? "none"}</p>
-                            <p>Formation sent: {row.lastChallengeNotifiedAt ?? "none"}</p>
-                            <p>Refreshed: {row.lastRefreshedAt ?? "never"}</p>
+                            <p>{reportTs("internalAnalytics.preferredHour").replace("{hour}", `${row.preferredLocalHour ?? 8}:00`)}</p>
+                            <p>{reportTs("internalAnalytics.dailySent").replace("{value}", row.lastSentAt ?? reportTs("internalAnalytics.none"))}</p>
+                            <p>{reportTs("internalAnalytics.gratitudeSent").replace("{value}", row.lastGratitudeSentAt ?? reportTs("internalAnalytics.none"))}</p>
+                            <p>{reportTs("internalAnalytics.formationSent").replace("{value}", row.lastChallengeNotifiedAt ?? reportTs("internalAnalytics.none"))}</p>
+                            <p>{reportTs("internalAnalytics.refreshed").replace("{value}", row.lastRefreshedAt ?? reportTs("internalAnalytics.never"))}</p>
                           </div>
                         </td>
                         <td className="py-3 pl-3">
@@ -948,10 +1029,14 @@ export default function AnalyticsDashboard() {
                                 row.refreshDue ? "border-amber-200 bg-amber-50 text-amber-800" : "border-emerald-200 bg-emerald-50 text-emerald-800"
                               }`}
                             >
-                              {row.refreshDue ? "Refresh due now" : "Fresh"}
+                              {row.refreshDue ? reportTs("internalAnalytics.refreshDueNow") : reportTs("internalAnalytics.fresh")}
                             </span>
                             <p className="text-[11px] text-slate-500">
-                              {row.refreshDueAt ? `Due ${formatRelativeTime(row.refreshDueAt)}` : row.lastRefreshedAt ? "No refresh due time" : "Refresh due now"}
+                              {row.refreshDueAt
+                                ? reportTs("internalAnalytics.dueRelative").replace("{relative}", formatRelativeTime(row.refreshDueAt, reportTs))
+                                : row.lastRefreshedAt
+                                  ? reportTs("internalAnalytics.noRefreshDueTime")
+                                  : reportTs("internalAnalytics.refreshDueNow")}
                             </p>
                           </div>
                         </td>
@@ -959,16 +1044,16 @@ export default function AnalyticsDashboard() {
                     ))}
                   </tbody>
                 </table>
-                {notificationReportVisibleRows.length === 0 ? <p className="mt-2 text-sm text-slate-500">No notification report rows yet.</p> : null}
+                {notificationReportVisibleRows.length === 0 ? <p className="mt-2 text-sm text-slate-500">{reportTs("internalAnalytics.noNotificationReportRows")}</p> : null}
                 {notificationReportVisibleRows.length > 30 ? (
-                  <p className="mt-2 text-xs text-slate-500">Showing the top 30 users with blockers.</p>
+                  <p className="mt-2 text-xs text-slate-500">{reportTs("internalAnalytics.showingTopBlockers")}</p>
                 ) : notificationReportIssueRows.length > 0 ? (
-                  <p className="mt-2 text-xs text-slate-500">Showing all users with blockers.</p>
+                  <p className="mt-2 text-xs text-slate-500">{reportTs("internalAnalytics.showingAllBlockers")}</p>
                 ) : null}
               </div>
             </>
           ) : (
-            <p className="mt-4 text-sm text-slate-500">Notification delivery report unavailable. Load the dashboard again to retry.</p>
+            <p className="mt-4 text-sm text-slate-500">{reportTs("internalAnalytics.reportUnavailable")}</p>
           )}
         </section>
 
@@ -978,7 +1063,7 @@ export default function AnalyticsDashboard() {
               <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
                 <div>
                   <h2 className="text-lg font-semibold">{card.meta.title}</h2>
-                  <p className="text-sm text-slate-600">{formatRangeLabel(selectedRange)}</p>
+                  <p className="text-sm text-slate-600">{formatRangeLabel(selectedRange, reportTs)}</p>
                 </div>
                 <div className="text-right text-xs text-slate-500">
                   <p>{card.usageRows.length} buckets</p>
