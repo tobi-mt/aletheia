@@ -73,12 +73,75 @@ type AnalyticsPayload = {
     weekly: CohortBreakdownRow[];
     monthly: CohortBreakdownRow[];
   };
+  notificationDeliveryReport?: NotificationDeliveryReportPayload | null;
   selectedRange?: {
     startDate: string;
     endDate: string;
   };
   views30d?: ScreenRow[];
   generatedAt?: string;
+};
+
+type NotificationDeliveryReason =
+  | "before window"
+  | "already sent today"
+  | "no active subscription"
+  | "VAPID failure"
+  | "no recipient row"
+  | "push endpoint rejected"
+  | null;
+
+type NotificationDeliveryReportRow = {
+  userId: string;
+  name: string | null;
+  avatarUrl: string | null;
+  activeSubscriptionCount: number;
+  latestSubscriptionId: string | null;
+  preferredLocalHour: number | null;
+  preferredTimezone: string | null;
+  timezoneMode: string | null;
+  deliveryStrategy: string | null;
+  lastSentAt: string | null;
+  lastGratitudeSentAt: string | null;
+  lastChallengeNotifiedAt: string | null;
+  lastRefreshedAt: string | null;
+  refreshDueAt: string | null;
+  refreshDue: boolean;
+  dailyWisdomReason: NotificationDeliveryReason;
+  gratitudeReason: NotificationDeliveryReason;
+  challengeReminderReason: NotificationDeliveryReason;
+  commentReason: NotificationDeliveryReason;
+  nudgeReason: NotificationDeliveryReason;
+  recentPushFailureReason: string | null;
+  recentPushFailureAt: string | null;
+  recentPushFailureCount: number;
+  recentEndpointRejectedCount: number;
+  recentVapidFailureCount: number;
+  recentNoRecipientRowCount: number;
+  issueCount: number;
+};
+
+type NotificationDeliveryReportPayload = {
+  generatedAt: string;
+  lookbackDays: number;
+  vapid: {
+    configured: boolean;
+    keyPairValid: boolean;
+    reason: string;
+  };
+  summary: {
+    totalUsers: number;
+    usersWithActiveSubscriptions: number;
+    usersWithoutActiveSubscriptions: number;
+    usersBeforeWindow: number;
+    usersAlreadySentToday: number;
+    usersWithNoRecipientRow: number;
+    usersWithPushEndpointRejected: number;
+    usersWithVapidFailure: number;
+    usersWithRefreshDue: number;
+    usersWithIssues: number;
+  };
+  rows: NotificationDeliveryReportRow[];
 };
 
 const SECRET_KEY = "aletheia_analytics_admin_secret";
@@ -135,6 +198,31 @@ function formatCount(value: number) {
   return value.toLocaleString();
 }
 
+function formatRelativeTime(value: string | null) {
+  if (!value) {
+    return "Not yet";
+  }
+
+  const ts = Date.parse(value);
+  if (Number.isNaN(ts)) {
+    return value;
+  }
+
+  const diffMs = ts - Date.now();
+  const absoluteMinutes = Math.abs(Math.round(diffMs / 60000));
+  const formatter = new Intl.RelativeTimeFormat(undefined, { numeric: "auto" });
+  if (absoluteMinutes < 60) {
+    return formatter.format(Math.round(diffMs / 60000), "minute");
+  }
+
+  const absoluteHours = Math.abs(Math.round(diffMs / 3600000));
+  if (absoluteHours < 24) {
+    return formatter.format(Math.round(diffMs / 3600000), "hour");
+  }
+
+  return formatter.format(Math.round(diffMs / 86400000), "day");
+}
+
 function getDefaultDateRange() {
   const endDate = new Date().toISOString().slice(0, 10);
   const startDate = new Date(Date.now() - 29 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
@@ -160,6 +248,31 @@ function formatRangeLabel(range?: { startDate: string; endDate: string } | null)
   }
 
   return `${formatter.format(start)} - ${formatter.format(end)}`;
+}
+
+function formatNotificationReason(reason: NotificationDeliveryReason) {
+  return reason ?? "Ready";
+}
+
+function notificationReasonTone(reason: NotificationDeliveryReason) {
+  switch (reason) {
+    case null:
+      return "border-emerald-200 bg-emerald-50 text-emerald-800";
+    case "before window":
+      return "border-amber-200 bg-amber-50 text-amber-800";
+    case "already sent today":
+      return "border-sky-200 bg-sky-50 text-sky-800";
+    case "no active subscription":
+      return "border-rose-200 bg-rose-50 text-rose-800";
+    case "VAPID failure":
+      return "border-orange-200 bg-orange-50 text-orange-800";
+    case "no recipient row":
+      return "border-violet-200 bg-violet-50 text-violet-800";
+    case "push endpoint rejected":
+      return "border-red-200 bg-red-50 text-red-800";
+    default:
+      return "border-slate-200 bg-slate-50 text-slate-700";
+  }
 }
 
 function buildUsageSeries(rows: UsageTrendRow[]) {
@@ -289,12 +402,21 @@ function LineChart({
   );
 }
 
-function MetricCard({ label, value, tone = "slate" }: { label: string; value: number | string; tone?: "slate" | "teal" | "blue" | "amber" }) {
+function MetricCard({
+  label,
+  value,
+  tone = "slate",
+}: {
+  label: string;
+  value: number | string;
+  tone?: "slate" | "teal" | "blue" | "amber" | "rose";
+}) {
   const toneClasses = {
     slate: "text-slate-900",
     teal: "text-teal-700",
     blue: "text-blue-700",
     amber: "text-amber-700",
+    rose: "text-rose-700",
   } as const;
 
   return (
@@ -358,17 +480,33 @@ export default function AnalyticsDashboard() {
     params.set("startDate", range.startDate);
     params.set("endDate", range.endDate);
 
-    const response = await fetch(`/api/analytics/summary${params.size ? `?${params.toString()}` : ""}`, {
-      method: "GET",
-      headers: { Authorization: `Bearer ${token}` },
-      cache: "no-store",
-    });
+    const reportParams = new URLSearchParams();
+    reportParams.set("lookbackDays", "30");
 
-    if (!response.ok) {
-      throw new Error(response.status === 401 ? "Unauthorized. Check your analytics secret." : "Failed to load analytics data.");
+    const [summaryResponse, reportResponse] = await Promise.all([
+      fetch(`/api/analytics/summary${params.size ? `?${params.toString()}` : ""}`, {
+        method: "GET",
+        headers: { Authorization: `Bearer ${token}` },
+        cache: "no-store",
+      }),
+      fetch(`/api/analytics/notification-delivery-report?${reportParams.toString()}`, {
+        method: "GET",
+        headers: { Authorization: `Bearer ${token}` },
+        cache: "no-store",
+      }).catch(() => null),
+    ]);
+
+    if (!summaryResponse.ok) {
+      throw new Error(summaryResponse.status === 401 ? "Unauthorized. Check your analytics secret." : "Failed to load analytics data.");
     }
 
-    return (await response.json()) as AnalyticsPayload;
+    const summary = (await summaryResponse.json()) as AnalyticsPayload;
+    const report = reportResponse?.ok ? ((await reportResponse.json()) as NotificationDeliveryReportPayload) : null;
+
+    return {
+      ...summary,
+      notificationDeliveryReport: report,
+    } as AnalyticsPayload;
   }
 
   async function loadAnalytics(event?: FormEvent, nextRange = rangeDraft, tokenOverride?: string) {
@@ -443,6 +581,7 @@ export default function AnalyticsDashboard() {
       retentionMonthly: payload.retentionMonthly,
       cohortBreakdowns: payload.cohortBreakdowns,
       views30d: payload.views30d ?? payload.topScreens30d,
+      notificationDeliveryReport: payload.notificationDeliveryReport ?? null,
     };
 
     const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: "application/json" });
@@ -521,6 +660,11 @@ export default function AnalyticsDashboard() {
   const monthlyCohorts = payload?.cohortBreakdowns?.monthly ?? [];
   const funnelRows = payload?.funnel30d ?? [];
   const topScreensMax = topScreens.reduce((max, row) => Math.max(max, row.count), 0);
+  const notificationReport = payload?.notificationDeliveryReport ?? null;
+  const notificationReportRows = notificationReport?.rows ?? [];
+  const notificationReportSummary = notificationReport?.summary ?? null;
+  const notificationReportIssueRows = notificationReportRows.filter((row) => row.issueCount > 0);
+  const notificationReportVisibleRows = notificationReportIssueRows.length > 0 ? notificationReportIssueRows : notificationReportRows;
 
   return (
     <main className="min-h-screen bg-slate-100 text-slate-900">
@@ -651,6 +795,181 @@ export default function AnalyticsDashboard() {
           <MetricCard label="Events" value={formatCount(overview.events_30d ?? 0)} tone="blue" />
           <MetricCard label="Tracked Features" value={formatCount(payload?.features30d.length ?? 0)} tone="amber" />
           <MetricCard label="Top Screens" value={formatCount(topScreens.length)} tone="slate" />
+        </section>
+
+        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
+            <div className="max-w-3xl">
+              <h2 className="text-lg font-semibold">Push Delivery Report</h2>
+              <p className="text-sm text-slate-600">
+                Exact blockers for daily wisdom, gratitude, challenge reminders, private comments, and circle nudges.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2 text-xs font-medium uppercase tracking-wide text-slate-500">
+              <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
+                Lookback: {notificationReport?.lookbackDays ?? 30} days
+              </span>
+              <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
+                VAPID:{" "}
+                {notificationReport
+                  ? notificationReport.vapid.configured && notificationReport.vapid.keyPairValid
+                    ? "Healthy"
+                    : notificationReport.vapid.reason
+                  : "Unavailable"}
+              </span>
+            </div>
+          </div>
+
+          {notificationReportSummary ? (
+            <>
+              <div className="mt-4 grid grid-cols-2 gap-3 xl:grid-cols-4">
+                <MetricCard label="Users with issues" value={formatCount(notificationReportSummary.usersWithIssues)} tone="slate" />
+                <MetricCard label="No active subscription" value={formatCount(notificationReportSummary.usersWithoutActiveSubscriptions)} tone="rose" />
+                <MetricCard label="Before window" value={formatCount(notificationReportSummary.usersBeforeWindow)} tone="amber" />
+                <MetricCard label="Already sent today" value={formatCount(notificationReportSummary.usersAlreadySentToday)} tone="blue" />
+                <MetricCard label="No recipient row" value={formatCount(notificationReportSummary.usersWithNoRecipientRow)} tone="teal" />
+                <MetricCard label="Push endpoint rejected" value={formatCount(notificationReportSummary.usersWithPushEndpointRejected)} tone="rose" />
+                <MetricCard label="VAPID failure" value={formatCount(notificationReportSummary.usersWithVapidFailure)} tone="amber" />
+                <MetricCard label="Refresh due now" value={formatCount(notificationReportSummary.usersWithRefreshDue)} tone="slate" />
+                <MetricCard label="Active subscriptions" value={formatCount(notificationReportSummary.usersWithActiveSubscriptions)} tone="slate" />
+              </div>
+
+              <div className="mt-5 overflow-x-auto">
+                <table className="w-full min-w-[92rem] text-left text-sm">
+                  <thead className="text-slate-500">
+                    <tr>
+                      <th className="pb-2 pr-3 font-medium">User</th>
+                      <th className="pb-2 pr-3 font-medium">Subs</th>
+                      <th className="pb-2 pr-3 font-medium">Daily wisdom</th>
+                      <th className="pb-2 pr-3 font-medium">Gratitude</th>
+                      <th className="pb-2 pr-3 font-medium">Challenge reminder</th>
+                      <th className="pb-2 pr-3 font-medium">Private comment</th>
+                      <th className="pb-2 pr-3 font-medium">Circle nudge</th>
+                      <th className="pb-2 pr-3 font-medium">Recent push failure</th>
+                      <th className="pb-2 font-medium">Timing</th>
+                      <th className="pb-2 pl-3 font-medium">Freshness</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {notificationReportVisibleRows.slice(0, 30).map((row) => (
+                      <tr key={row.userId} className="border-t border-slate-100 align-top">
+                        <td className="py-3 pr-3">
+                          <div className="flex flex-col gap-1">
+                            <span className="font-medium text-slate-800">{row.name ?? row.userId}</span>
+                            <span className="font-mono text-[11px] text-slate-500">{row.userId}</span>
+                          </div>
+                        </td>
+                        <td className="py-3 pr-3 text-slate-700">
+                          <div className="space-y-1">
+                            <div>{formatCount(row.activeSubscriptionCount)}</div>
+                            <div className="text-[11px] text-slate-500">
+                              {row.deliveryStrategy ?? "morning"} · {row.timezoneMode ?? "auto"} · {row.preferredTimezone ?? "UTC"}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-3 pr-3">
+                          <span
+                            className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide ${notificationReasonTone(
+                              row.dailyWisdomReason
+                            )}`}
+                          >
+                            {formatNotificationReason(row.dailyWisdomReason)}
+                          </span>
+                        </td>
+                        <td className="py-3 pr-3">
+                          <span
+                            className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide ${notificationReasonTone(
+                              row.gratitudeReason
+                            )}`}
+                          >
+                            {formatNotificationReason(row.gratitudeReason)}
+                          </span>
+                        </td>
+                        <td className="py-3 pr-3">
+                          <span
+                            className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide ${notificationReasonTone(
+                              row.challengeReminderReason
+                            )}`}
+                          >
+                            {formatNotificationReason(row.challengeReminderReason)}
+                          </span>
+                        </td>
+                        <td className="py-3 pr-3">
+                          <span
+                            className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide ${notificationReasonTone(
+                              row.commentReason
+                            )}`}
+                          >
+                            {formatNotificationReason(row.commentReason)}
+                          </span>
+                        </td>
+                        <td className="py-3 pr-3">
+                          <span
+                            className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide ${notificationReasonTone(
+                              row.nudgeReason
+                            )}`}
+                          >
+                            {formatNotificationReason(row.nudgeReason)}
+                          </span>
+                        </td>
+                        <td className="py-3 pr-3">
+                          <div className="space-y-1">
+                            <span
+                              className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide ${notificationReasonTone(
+                                row.recentPushFailureReason === "push endpoint rejected"
+                                  ? "push endpoint rejected"
+                                  : row.recentPushFailureReason === "VAPID failure"
+                                    ? "VAPID failure"
+                                    : null
+                              )}`}
+                            >
+                              {row.recentPushFailureReason ?? "Ready"}
+                            </span>
+                            {row.recentPushFailureCount > 0 ? (
+                              <p className="text-[11px] text-slate-500">
+                                {formatCount(row.recentPushFailureCount)} recent failure{row.recentPushFailureCount === 1 ? "" : "s"}
+                              </p>
+                            ) : null}
+                          </div>
+                        </td>
+                        <td className="py-3 text-[11px] text-slate-500">
+                          <div className="space-y-1">
+                            <p>Preferred hour: {row.preferredLocalHour ?? 8}:00</p>
+                            <p>Daily sent: {row.lastSentAt ?? "none"}</p>
+                            <p>Gratitude sent: {row.lastGratitudeSentAt ?? "none"}</p>
+                            <p>Formation sent: {row.lastChallengeNotifiedAt ?? "none"}</p>
+                            <p>Refreshed: {row.lastRefreshedAt ?? "never"}</p>
+                          </div>
+                        </td>
+                        <td className="py-3 pl-3">
+                          <div className="space-y-1">
+                            <span
+                              className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide ${
+                                row.refreshDue ? "border-amber-200 bg-amber-50 text-amber-800" : "border-emerald-200 bg-emerald-50 text-emerald-800"
+                              }`}
+                            >
+                              {row.refreshDue ? "Refresh due now" : "Fresh"}
+                            </span>
+                            <p className="text-[11px] text-slate-500">
+                              {row.refreshDueAt ? `Due ${formatRelativeTime(row.refreshDueAt)}` : row.lastRefreshedAt ? "No refresh due time" : "Refresh due now"}
+                            </p>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {notificationReportVisibleRows.length === 0 ? <p className="mt-2 text-sm text-slate-500">No notification report rows yet.</p> : null}
+                {notificationReportVisibleRows.length > 30 ? (
+                  <p className="mt-2 text-xs text-slate-500">Showing the top 30 users with blockers.</p>
+                ) : notificationReportIssueRows.length > 0 ? (
+                  <p className="mt-2 text-xs text-slate-500">Showing all users with blockers.</p>
+                ) : null}
+              </div>
+            </>
+          ) : (
+            <p className="mt-4 text-sm text-slate-500">Notification delivery report unavailable. Load the dashboard again to retry.</p>
+          )}
         </section>
 
         <section className="grid gap-6 lg:grid-cols-2">

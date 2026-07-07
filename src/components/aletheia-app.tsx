@@ -373,6 +373,7 @@ type NotificationTiming = {
 };
 
 type NotificationDiagnostics = {
+  generatedAt: string;
   configured: boolean;
   server: {
     cronSecretConfigured: boolean;
@@ -388,6 +389,7 @@ type NotificationDiagnostics = {
   account: {
     subscriptions: number;
     staleSubscriptions: number;
+    refreshDueSubscriptions: number;
     recommendedAction: string;
     diagnostics: Array<{
       id: string;
@@ -400,9 +402,14 @@ type NotificationDiagnostics = {
       lastSentAt: string | null;
       lastGratitudeSentAt: string | null;
       lastChallengeNotifiedAt: string | null;
+      lastRefreshedAt: string | null;
+      refreshDueAt: string | null;
+      refreshDue: boolean;
+      refreshDueMinutes: number | null;
       latestActivityAt: string | null;
       daysSinceLastActivity: number | null;
       stale: boolean;
+      skipReason: string | null;
     }>;
   };
 };
@@ -412,6 +419,8 @@ const MANUAL_CONTEXT_STORAGE_KEY = "aletheia_manual_context";
 const THEME_STORAGE_KEY = "aletheia_theme_preference";
 const VOICE_STORAGE_KEY = "aletheia_selected_voice";
 const NOTIFICATION_TIMING_STORAGE_KEY = "aletheia_notification_timing";
+const NOTIFICATION_SUBSCRIPTION_REFRESH_STORAGE_KEY = "aletheia_notification_subscription_refresh_at";
+const NOTIFICATION_SUBSCRIPTION_REFRESH_INTERVAL_MS = 24 * 60 * 60 * 1000;
 const COUNSEL_ACCEPTANCE_TRACKING_KEY = "aletheia_counsel_acceptance_tracking";
 const CARRY_TODAY_STORAGE_KEY = "aletheia_carry_today";
 const SCRIPTURE_MEMORY_STORAGE_KEY = "aletheia_scripture_memory";
@@ -3865,6 +3874,38 @@ function persistNotificationTiming(timing: NotificationTiming) {
   } catch {
     // Timing remains active for this session if storage is unavailable.
   }
+}
+
+function readLastNotificationSubscriptionRefreshAt() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+  try {
+    const saved = window.localStorage.getItem(NOTIFICATION_SUBSCRIPTION_REFRESH_STORAGE_KEY)?.trim();
+    if (!saved) {
+      return null;
+    }
+    const timestamp = Date.parse(saved);
+    return Number.isNaN(timestamp) ? null : timestamp;
+  } catch {
+    return null;
+  }
+}
+
+function persistNotificationSubscriptionRefreshAt() {
+  if (typeof window === "undefined") {
+    return;
+  }
+  try {
+    window.localStorage.setItem(NOTIFICATION_SUBSCRIPTION_REFRESH_STORAGE_KEY, new Date().toISOString());
+  } catch {
+    // Freshness tracking is best-effort.
+  }
+}
+
+function shouldRefreshNotificationSubscription() {
+  const lastRefreshAt = readLastNotificationSubscriptionRefreshAt();
+  return lastRefreshAt === null || Date.now() - lastRefreshAt >= NOTIFICATION_SUBSCRIPTION_REFRESH_INTERVAL_MS;
 }
 
 function conversationExchanges(messages: ChatMessage[]) {
@@ -9739,7 +9780,7 @@ export function AletheiaApp({
         Boolean(data.configured) &&
         !NATIVE_WEB_BUNDLE &&
         notificationPermission === "granted" &&
-        (!accountEnabled || !deviceSubscribed);
+        (!accountEnabled || !deviceSubscribed || shouldRefreshNotificationSubscription());
       if (shouldAttemptSelfHeal) {
         void selfHealNotificationSubscription("status_load");
       }
@@ -9794,7 +9835,10 @@ export function AletheiaApp({
       if (document.visibilityState === "hidden") {
         return;
       }
-      if (getBrowserNotificationPermission() === "granted" && (!notificationsEnabled || !notificationDeviceSubscribed)) {
+      if (
+        getBrowserNotificationPermission() === "granted" &&
+        (!notificationsEnabled || !notificationDeviceSubscribed || shouldRefreshNotificationSubscription())
+      ) {
         void selfHealNotificationSubscription("focus");
       }
       const detectedTimezone = browserTimezone();
@@ -11782,6 +11826,7 @@ function startFirstRunGuestFlow() {
       });
       setNotificationTiming(nextTiming);
       persistNotificationTiming(nextTiming);
+      persistNotificationSubscriptionRefreshAt();
       setNotificationStatus(ts('notifications.notificationsEnabledBody'));
       announceWorkflow(ts('notifications.notificationsEnabled'), ts('notifications.notificationsEnabledBodyTime').replace('{time}', notificationTimeLabel(preferredLocalHour, preferences.language)), "success");
     } catch {
@@ -11826,6 +11871,11 @@ function startFirstRunGuestFlow() {
       }
     } finally {
       setNotificationBusy(false);
+    }
+    try {
+      window.localStorage.removeItem(NOTIFICATION_SUBSCRIPTION_REFRESH_STORAGE_KEY);
+    } catch {
+      // Ignore storage failures during teardown.
     }
     setNotificationsEnabled(false);
     setNotificationAccountEnabled(false);
@@ -11916,6 +11966,7 @@ function startFirstRunGuestFlow() {
       setNotificationDeviceSubscribed(true);
       setNotificationPermission("granted");
       setNotificationStatus(ts('notifications.notificationsEnabledBody'));
+      persistNotificationSubscriptionRefreshAt();
       trackClientEvent("notification_self_healed", { trigger });
       return true;
     } catch {
@@ -11994,6 +12045,7 @@ function startFirstRunGuestFlow() {
         setNotificationStatus(ts('notifications.preferencesSavedLocallyBody'));
         return;
       }
+      persistNotificationSubscriptionRefreshAt();
       setNotificationStatus(ts('notifications.preferencesSynced'));
       announceWorkflow(ts('notifications.notificationTimingSaved'), ts('notifications.notificationTimingSavedBody').replace('{time}', notificationTimeLabel(nextTiming.preferredLocalHour, preferences.language)), "success");
     } catch {
@@ -17364,6 +17416,7 @@ function AccountToggleRow({
   onLabel,
   offLabel,
   theme,
+  variant = "card",
 }: {
   icon: typeof Globe2;
   label: string;
@@ -17373,7 +17426,49 @@ function AccountToggleRow({
   onLabel: string;
   offLabel: string;
   theme: ThemeColors;
+  variant?: "card" | "flat";
 }) {
+  if (variant === "flat") {
+    return (
+      <div className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
+        <span className="grid size-[1.625rem] shrink-0 place-items-center rounded-full border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
+          <Icon size={14} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <span className="block text-[12.5px] font-semibold leading-5 sm:text-sm" style={{ color: theme.textPrimary }}>
+            {label}
+          </span>
+          <span className="mt-0.5 block text-[11px] leading-5 sm:text-xs" style={{ color: theme.textSecondary }}>
+            {body}
+          </span>
+        </div>
+        <span className="grid w-[7.25rem] shrink-0 grid-cols-2 rounded-full border p-0.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
+          {[
+            { value: false, label: offLabel },
+            { value: true, label: onLabel },
+          ].map((option) => {
+            const active = checked === option.value;
+            return (
+              <button
+                key={option.label}
+                type="button"
+                onClick={() => onChange(option.value)}
+                className="min-h-9 min-w-0 rounded-full px-2 text-[11px] font-semibold transition"
+                style={{
+                  backgroundColor: active ? theme.primary : "transparent",
+                  color: active ? theme.textOnPrimary : theme.textSecondary,
+                }}
+                aria-pressed={active}
+              >
+                <span className="truncate">{option.label}</span>
+              </button>
+            );
+          })}
+        </span>
+      </div>
+    );
+  }
+
   return (
     <div className="relative editorial-surface premium-tap-card rounded-[1rem] border p-1.5 shadow-[0_4px_10px_rgba(7,10,8,0.04)] sm:p-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-2.5">
@@ -23648,6 +23743,7 @@ function NotificationPanel({
     serviceWorker: typeof window !== "undefined" && !NATIVE_WEB_BUNDLE && "serviceWorker" in navigator,
     pushManager: typeof window !== "undefined" && "PushManager" in window,
   };
+  const diagnosticsGeneratedAt = diagnostics?.generatedAt ?? null;
   const formatRelativeMinutes = (value: number | null) => {
     if (value === null) {
       return ts("labels.notYet", "Not yet");
@@ -23671,6 +23767,8 @@ function NotificationPanel({
         ? diagnostics.server.lastDailyCheckedMinutesAgo !== null
           ? ts("notifications.diagnosticsCronStale").replace("{relative}", formatRelativeMinutes(diagnostics.server.lastDailyCheckedMinutesAgo))
           : ts("notifications.diagnosticsCronNotCheckedInYet")
+        : diagnostics?.account.refreshDueSubscriptions
+          ? ts("notifications.diagnosticsRefreshDue", "{count} subscriptions need a refresh").replace("{count}", String(diagnostics.account.refreshDueSubscriptions))
         : diagnostics?.account.recommendedAction === "none"
           ? ts("notifications.diagnosticsPushLooksHealthy")
           : diagnostics?.account.recommendedAction === "fix_vapid"
@@ -23686,11 +23784,119 @@ function NotificationPanel({
     { value: "evening", label: ts('labels.evening') },
     { value: "custom", label: ts('labels.custom') },
   ];
+  const formatExactDateTime = (value: string | null) => {
+    if (!value) {
+      return null;
+    }
+
+    const tsValue = Date.parse(value);
+    if (Number.isNaN(tsValue)) {
+      return value;
+    }
+
+    return new Intl.DateTimeFormat(language, {
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    }).format(new Date(tsValue));
+  };
+  const formatRelativeIso = (value: string | null) => {
+    if (!value) {
+      return null;
+    }
+
+    const tsValue = Date.parse(value);
+    if (Number.isNaN(tsValue)) {
+      return null;
+    }
+
+    const referenceTs = diagnosticsGeneratedAt ? Date.parse(diagnosticsGeneratedAt) : 0;
+    const diffMinutes = Math.round((tsValue - referenceTs) / 60000);
+    const formatter = new Intl.RelativeTimeFormat(language, { numeric: "auto" });
+    if (Math.abs(diffMinutes) < 60) {
+      return formatter.format(diffMinutes, "minute");
+    }
+
+    const diffHours = Math.round(diffMinutes / 60);
+    if (Math.abs(diffHours) < 24) {
+      return formatter.format(diffHours, "hour");
+    }
+
+    return formatter.format(Math.round(diffHours / 24), "day");
+  };
+  const formatRefreshDue = (value: string | null, due: boolean) => {
+    if (due) {
+      return ts("notifications.refreshDueNow", "Refresh due now");
+    }
+    if (!value) {
+      return ts("notifications.refreshDueUnknown", "Refresh due soon");
+    }
+
+    return ts("notifications.refreshDueOn", "Refresh due {when}").replace("{when}", formatRelativeIso(value) ?? value);
+  };
+  const freshnessLabel = diagnostics?.account.refreshDueSubscriptions
+    ? ts("notifications.refreshDueNow", "Refresh due now")
+    : diagnostics?.account.subscriptions
+      ? ts("notifications.refreshFresh", "Fresh")
+      : ts("notifications.refreshUnknown", "Unknown");
+  const primaryDiagnostic = diagnostics?.account.diagnostics[0] ?? null;
+  const notificationHealthRows = diagnostics
+    ? [
+        {
+          label: ts("notifications.refreshFreshness", "Freshness"),
+          value: primaryDiagnostic
+            ? formatRefreshDue(primaryDiagnostic.refreshDueAt, primaryDiagnostic.refreshDue)
+            : ts("notifications.refreshUnknown", "Unknown"),
+          detail: primaryDiagnostic?.lastRefreshedAt
+            ? ts("notifications.lastRefreshedAt", "Last refreshed {when}").replace(
+                "{when}",
+                formatExactDateTime(primaryDiagnostic.lastRefreshedAt) ?? primaryDiagnostic.lastRefreshedAt
+              )
+            : ts("notifications.refreshNeverVerified", "Not refreshed yet"),
+          tone: primaryDiagnostic?.refreshDue ? "warn" : "good",
+        },
+        {
+          label: ts("notifications.browserSupportLabel"),
+          value: browserSupport.supported
+            ? ts("notifications.browserSupportSupported")
+            : ts("notifications.browserSupportMissing").replace("{items}", [
+                !browserSupport.notification ? "Notification" : null,
+                !browserSupport.pushManager ? "PushManager" : null,
+                !browserSupport.serviceWorker ? "service worker" : null,
+              ].filter(Boolean).join(", ")),
+          detail: ts("notifications.browserSupportDetail", "Browser push APIs and service worker support."),
+          tone: browserSupport.supported ? "good" : "bad",
+        },
+        {
+          label: ts("notifications.vapidPushConfigLabel"),
+          value: diagnostics.server.vapidConfigured && diagnostics.server.vapidKeyPairValid
+            ? ts("notifications.vapidConfigured")
+            : diagnostics.server.vapidConfigured
+              ? ts("notifications.vapidInvalidKeyPair").replace("{reason}", diagnostics.server.vapidReason)
+              : ts("notifications.vapidMissingConfig"),
+          detail: ts("notifications.vapidConfigDetail", "Required to deliver pushes from the server."),
+          tone: diagnostics.server.vapidConfigured && diagnostics.server.vapidKeyPairValid ? "good" : "bad",
+        },
+        {
+          label: ts("notifications.cronDeliveryLabel"),
+          value: diagnostics.server.cronStatus === "healthy"
+            ? diagnostics.server.lastDailyCheckedMinutesAgo !== null
+              ? ts("notifications.cronHealthyWithCheck").replace("{relative}", formatRelativeMinutes(diagnostics.server.lastDailyCheckedMinutesAgo))
+              : ts("notifications.cronHealthy")
+            : diagnostics.server.cronStatus === "stale"
+              ? ts("notifications.cronNotCheckedRecently")
+              : ts("notifications.cronSecretMissing"),
+          detail: ts("notifications.cronDetail", "Keeps daily delivery and retries moving."),
+          tone: diagnostics.server.cronStatus === "healthy" ? "good" : "bad",
+        },
+      ]
+    : [];
 
   return (
     <section className="mb-5 rounded-[1.35rem] border p-3.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
       {!signedIn ? (
-        <div className="mb-3 rounded-[1rem] border p-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+        <div className="rounded-[1rem] border p-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
           <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
             {ts('labels.guestSetupReady')}
           </p>
@@ -23709,7 +23915,15 @@ function NotificationPanel({
           </button>
         </div>
       ) : (
-        <div className="mb-3 flex items-center gap-2">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
+              {ts('labels.notifications', 'Notifications')}
+            </p>
+            <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
+              {diagnosticsSummary}
+            </p>
+          </div>
           {enabled ? (
             <button
               onClick={onDisable}
@@ -23731,14 +23945,26 @@ function NotificationPanel({
           )}
         </div>
       )}
-        <div className="mt-3.5 rounded-[1rem] border p-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
-          <div className="mb-3 rounded-[0.9rem] border px-3 py-2 text-sm leading-6" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
-            <span className="font-semibold" style={{ color: theme.textPrimary }}>
-              {ts('notifications.dailyWisdomSetFor')} {notificationTimeLabel(timing.preferredLocalHour, language)}.
-            </span>{" "}
-          {ts('notifications.savedLocalTimingPreference')}
+
+      <div className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <h3 className="text-sm font-semibold" style={{ color: theme.textPrimary }}>
+              {ts('notifications.deliveryTimingTitle', 'Delivery timing')}
+            </h3>
+            <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
+              {ts('notifications.dailyWisdomSetFor')} {notificationTimeLabel(timing.preferredLocalHour, language)}. {ts('notifications.savedLocalTimingPreference')}
+            </p>
+          </div>
+          <span
+            className="rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.1em]"
+            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textSecondary }}
+          >
+            {freshnessLabel}
+          </span>
         </div>
-        <div className="grid gap-3 sm:grid-cols-2 sm:items-end">
+
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">
           <label className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
             {ts('labels.deliveryRhythm')}
             <select
@@ -23772,7 +23998,7 @@ function NotificationPanel({
             </select>
           </label>
           {timing.timezoneMode === "auto" ? (
-            <div>
+            <div className="sm:col-span-2">
               <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
                 {ts('notifications.timezone')}
               </p>
@@ -23790,7 +24016,7 @@ function NotificationPanel({
               </div>
             </div>
           ) : (
-            <label className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
+            <label className="sm:col-span-2 text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
               {ts('notifications.timezone')}
               <select
                 value={timing.preferredTimezone || browserTimezone()}
@@ -23817,100 +24043,97 @@ function NotificationPanel({
             </label>
           )}
         </div>
-        <div className="mt-3 rounded-[0.9rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
-                {ts('labels.notifications', 'Notifications')}
-              </p>
-              <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
-                {ts('notifications.counselAndFormationSettingsBody', 'Keep counsel and formation alerts separate from daily wisdom timing.')}
-              </p>
-            </div>
-            <span className="shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.1em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textSecondary }}>
-              {ts('notifications.privateByDefault', 'Privacy-first')}
-            </span>
+      </div>
+
+      <div className="mt-3 rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h3 className="text-sm font-semibold" style={{ color: theme.textPrimary }}>
+              {ts('notifications.alertTypesTitle', 'Alert types')}
+            </h3>
+            <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
+              {ts('notifications.counselAndFormationSettingsBody', 'Keep counsel and formation alerts separate from daily wisdom timing.')}
+            </p>
           </div>
-          <div className="mt-3 grid gap-2">
-            <AccountToggleRow
-              icon={MessageCircleMore}
-              label={ts('notifications.counselNotificationsTitle', 'Counsel notifications')}
-              body={ts('notifications.counselNotificationsBody', 'Shared decisions and private counsel replies.')}
-              checked={preferences.counselNotificationsEnabled}
-              onChange={(checked) => onPreferenceChange({ counselNotificationsEnabled: checked })}
-              onLabel={ts('labels.on')}
-              offLabel={ts('labels.off')}
-              theme={theme}
-            />
-            <AccountToggleRow
-              icon={Bell}
-              label={ts('notifications.formationNotificationsTitle', 'Formation notifications')}
-              body={ts('notifications.formationNotificationsBody', 'Nudges and challenge activity in your circles.')}
-              checked={preferences.formationNotificationsEnabled}
-              onChange={(checked) => onPreferenceChange({ formationNotificationsEnabled: checked })}
-              onLabel={ts('labels.on')}
-              offLabel={ts('labels.off')}
-              theme={theme}
-            />
-          </div>
-          <p className="mt-3 text-xs leading-5" style={{ color: theme.textSecondary }}>
-            {ts('notifications.counselCardDeepLinkNote', 'Taps from alerts open the exact card or reply surface, not just the tab.')}
-          </p>
+          <span className="shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.1em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textSecondary }}>
+            {ts('notifications.privateByDefault', 'Privacy-first')}
+          </span>
         </div>
-        <div className="mt-3 rounded-[0.9rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-            <div className="min-w-0">
-              <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
-                {ts('labels.diagnostics', 'Diagnostics')}
-              </p>
-              <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
-                {diagnosticsSummary}
+        <div className="mt-1 divide-y" style={{ borderColor: theme.borderLight }}>
+          <AccountToggleRow
+            icon={MessageCircleMore}
+            label={ts('notifications.counselNotificationsTitle', 'Counsel notifications')}
+            body={ts('notifications.counselNotificationsBody', 'Shared decisions and private counsel replies.')}
+            checked={preferences.counselNotificationsEnabled}
+            onChange={(checked) => onPreferenceChange({ counselNotificationsEnabled: checked })}
+            onLabel={ts('labels.on')}
+            offLabel={ts('labels.off')}
+            theme={theme}
+            variant="flat"
+          />
+          <AccountToggleRow
+            icon={Bell}
+            label={ts('notifications.formationNotificationsTitle', 'Formation notifications')}
+            body={ts('notifications.formationNotificationsBody', 'Nudges and challenge activity in your circles.')}
+            checked={preferences.formationNotificationsEnabled}
+            onChange={(checked) => onPreferenceChange({ formationNotificationsEnabled: checked })}
+            onLabel={ts('labels.on')}
+            offLabel={ts('labels.off')}
+            theme={theme}
+            variant="flat"
+          />
+        </div>
+        <p className="mt-3 text-xs leading-5" style={{ color: theme.textSecondary }}>
+          {ts('notifications.counselCardDeepLinkNote', 'Taps from alerts open the exact card or reply surface, not just the tab.')}
+        </p>
+      </div>
+
+      <div className="mt-3 rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h3 className="text-sm font-semibold" style={{ color: theme.textPrimary }}>
+              {ts('labels.diagnostics', 'Diagnostics')}
+            </h3>
+            <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
+              {diagnosticsSummary}
+            </p>
+          </div>
+          <span className="self-start rounded-full border px-2.5 py-1 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textSecondary }}>
+            {diagnostics?.server.cronStatus === "healthy" ? ts("notifications.diagnosticsHealthy") : ts("notifications.diagnosticsNeedsAttention")}
+          </span>
+        </div>
+
+        <div className="mt-3 grid gap-2">
+          {notificationHealthRows.map((item) => (
+            <div
+              key={item.label}
+              className="rounded-[0.85rem] border px-3 py-2"
+              style={{
+                borderColor: item.tone === "good" ? theme.borderLight : item.tone === "warn" ? "#e2c07d" : "#d8c0b3",
+                backgroundColor: theme.bgCard,
+              }}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
+                  {item.label}
+                </p>
+                <p className="max-w-[15rem] text-right text-sm leading-5" style={{ color: item.tone === "good" ? theme.textPrimary : item.tone === "warn" ? "#8c6a00" : "#8c3f28" }}>
+                  {item.value}
+                </p>
+              </div>
+              <p className="mt-1 text-xs leading-5" style={{ color: theme.textSecondary }}>
+                {item.detail}
               </p>
             </div>
-            <span className="self-start rounded-full border px-2.5 py-1 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textSecondary }}>
-              {diagnostics?.server.cronStatus === "healthy" ? ts("notifications.diagnosticsHealthy") : ts("notifications.diagnosticsNeedsAttention")}
-            </span>
-          </div>
-          <div className="mt-3 grid gap-2">
-            {[
-              {
-                label: ts("notifications.browserSupportLabel"),
-                value: browserSupport.supported
-                  ? ts("notifications.browserSupportSupported")
-                  : ts("notifications.browserSupportMissing").replace("{items}", [
-                      !browserSupport.notification ? "Notification" : null,
-                      !browserSupport.pushManager ? "PushManager" : null,
-                      !browserSupport.serviceWorker ? "service worker" : null,
-                    ].filter(Boolean).join(", ")),
-                tone: browserSupport.supported ? "good" : "bad",
-              },
-              {
-                label: ts("notifications.vapidPushConfigLabel"),
-                value: diagnostics
-                  ? diagnostics.server.vapidConfigured && diagnostics.server.vapidKeyPairValid
-                    ? ts("notifications.vapidConfigured")
-                    : diagnostics.server.vapidConfigured
-                      ? ts("notifications.vapidInvalidKeyPair").replace("{reason}", diagnostics.server.vapidReason)
-                      : ts("notifications.vapidMissingConfig")
-                  : ts("notifications.apiUnavailable"),
-                tone: diagnostics?.server.vapidConfigured && diagnostics.server.vapidKeyPairValid ? "good" : "bad",
-              },
-              {
-                label: ts("notifications.cronDeliveryLabel"),
-                value: diagnostics
-                  ? diagnostics.server.cronStatus === "healthy"
-                    ? diagnostics.server.lastDailyCheckedMinutesAgo !== null
-                      ? ts("notifications.cronHealthyWithCheck").replace("{relative}", formatRelativeMinutes(diagnostics.server.lastDailyCheckedMinutesAgo))
-                      : ts("notifications.cronHealthy")
-                    : diagnostics.server.cronStatus === "stale"
-                      ? ts("notifications.cronNotCheckedRecently")
-                      : ts("notifications.cronSecretMissing")
-                  : ts("notifications.apiUnavailable"),
-                tone: diagnostics?.server.cronStatus === "healthy" ? "good" : "bad",
-              },
-              {
-                label: ts("notifications.subscriptionLabel"),
-                value: diagnostics?.account.subscriptions
+          ))}
+
+          <div className="rounded-[0.85rem] border px-3 py-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+            <div className="flex items-start justify-between gap-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
+                {ts("notifications.subscriptionLabel")}
+              </p>
+              <p className="max-w-[15rem] text-right text-sm leading-5" style={{ color: deviceSubscribed ? theme.textPrimary : "#8c3f28" }}>
+                {diagnostics?.account.subscriptions
                   ? enabled
                     ? ts("notifications.deviceSubscriptionActive")
                     : accountEnabled
@@ -23918,26 +24141,14 @@ function NotificationPanel({
                       : diagnostics.account.subscriptions === 1
                         ? ts("notifications.savedSubscription")
                         : ts("notifications.savedSubscriptions").replace("{count}", String(diagnostics.account.subscriptions))
-                  : ts("notifications.noSavedSubscription"),
-                tone: deviceSubscribed ? "good" : "bad",
-              },
-            ].map((item) => (
-              <div
-                key={item.label}
-                className="flex items-start justify-between gap-3 rounded-[0.85rem] border px-3 py-2"
-                style={{
-                  borderColor: item.tone === "good" ? theme.borderLight : "#d8c0b3",
-                  backgroundColor: theme.bgCard,
-                }}
-              >
-                <p className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
-                  {item.label}
-                </p>
-                <p className="max-w-[15rem] text-right text-sm leading-5" style={{ color: item.tone === "good" ? theme.textPrimary : "#8c3f28" }}>
-                  {item.value}
-                </p>
-              </div>
-            ))}
+                  : ts("notifications.noSavedSubscription")}
+              </p>
+            </div>
+            <p className="mt-1 text-xs leading-5" style={{ color: theme.textSecondary }}>
+              {diagnostics?.account.refreshDueSubscriptions
+                ? ts("notifications.refreshDueCount", "{count} subscriptions need a refresh").replace("{count}", String(diagnostics.account.refreshDueSubscriptions))
+                : ts("notifications.refreshFresh", "All subscriptions are fresh.")}
+            </p>
           </div>
         </div>
       </div>

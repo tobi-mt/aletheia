@@ -56,8 +56,8 @@ export async function POST(request: Request) {
     await run(
       `INSERT INTO push_subscriptions (
         id, user_id, endpoint, p256dh, auth, user_agent, enabled, preferred_hour,
-        preferred_local_hour, preferred_timezone, timezone_mode, delivery_strategy, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, TRUE, ?, ?, ?, ?, ?, ?, ?)
+        preferred_local_hour, preferred_timezone, timezone_mode, delivery_strategy, last_verified_at, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, TRUE, ?, ?, ?, ?, ?, NULL, ?, ?)
       ON CONFLICT (endpoint)
       DO UPDATE SET
         user_id = EXCLUDED.user_id,
@@ -70,6 +70,7 @@ export async function POST(request: Request) {
         preferred_timezone = EXCLUDED.preferred_timezone,
         timezone_mode = EXCLUDED.timezone_mode,
         delivery_strategy = EXCLUDED.delivery_strategy,
+        last_verified_at = NULL,
         updated_at = EXCLUDED.updated_at`,
       crypto.randomUUID(),
       user.id,
@@ -150,6 +151,18 @@ export async function POST(request: Request) {
       eventName: "notification_subscription_verified",
       metadata: verification,
     }).catch(() => undefined);
+
+    if (verification.attempted > 0 && verification.failed === 0) {
+      await run(
+        `UPDATE push_subscriptions
+         SET last_verified_at = ?, updated_at = ?
+         WHERE user_id = ? AND endpoint = ?`,
+        now,
+        now,
+        user.id,
+        endpoint
+      );
+    }
 
     return NextResponse.json({ ok: true, verification });
   } catch {

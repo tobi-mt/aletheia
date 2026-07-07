@@ -2,6 +2,10 @@ export async function getCurrentUser() {
   return null;
 }
 
+export async function requireUser() {
+  return null;
+}
+
 export async function ensureCounselInviteAcceptanceSchema() {}
 
 export function hashCounselInviteToken(token) {
@@ -17,6 +21,22 @@ export async function many() {
 }
 
 export async function run() {}
+
+export function getVapidKeyPairStatus() {
+  return {
+    configured: true,
+    keyPairValid: true,
+    reason: "ok",
+  };
+}
+
+export function getVapidPublicKey() {
+  return "public-key";
+}
+
+export function isPushConfigured() {
+  return true;
+}
 
 export async function sendCounselCommentNotifications() {
   return { configured: false, attempted: 0, sent: 0, failed: 0, failureSamples: [] };

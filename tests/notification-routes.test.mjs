@@ -3,6 +3,8 @@ import test from "node:test";
 import { postSharedDecisionComment } from "../src/app/api/counsel/shared/[sharedDecisionId]/comments/route.ts";
 import { postInviteComment } from "../src/app/api/counsel/invite/[token]/comments/route.ts";
 import { postAcceptanceComment } from "../src/app/api/counsel/acceptances/[contactId]/comments/route.ts";
+import { getNotificationDiagnosticsRoute } from "../src/app/api/notifications/diagnostics/route.ts";
+import { getNotificationDeliveryReportRoute } from "../src/app/api/analytics/notification-delivery-report/route.ts";
 import { runDailyNotifications } from "../src/app/api/notifications/daily/route.ts";
 
 function createCallLog() {
@@ -287,4 +289,137 @@ test("daily notification cron sends pending decisions before the other jobs", as
   } finally {
     process.env.NOTIFICATION_CRON_SECRET = previousSecret;
   }
+});
+
+test("notification diagnostics exposes freshness and refresh due for active subscriptions", async () => {
+  const calls = createCallLog();
+  const deps = {
+    getAdminSecret: () => "analytics-secret",
+    requireUser: async () => {
+      throw new Error("admin diagnostics should not require a user");
+    },
+    many: async (sql) => {
+      calls.manyCalls.push({ sql });
+      return [
+        {
+          id: "sub-1",
+          endpoint: "https://push.example.test/endpoint",
+          preferred_local_hour: 8,
+          preferred_timezone: "Europe/Berlin",
+          timezone_mode: "auto",
+          delivery_strategy: "morning",
+          updated_at: "2026-07-06T09:00:00.000Z",
+          last_sent_at: "2026-07-06T08:30:00.000Z",
+          last_gratitude_sent_at: null,
+          last_challenge_notified_at: null,
+          last_verified_at: "2026-07-06T09:00:00.000Z",
+        },
+      ];
+    },
+    one: async (sql) => {
+      calls.oneCalls.push({ sql });
+      return { created_at: "2026-07-07T08:55:00.000Z" };
+    },
+    getVapidKeyPairStatus: () => ({ configured: true, keyPairValid: true, reason: "ok" }),
+    getVapidPublicKey: () => "public-key",
+    isPushConfigured: () => true,
+    now: () => new Date("2026-07-07T09:30:00.000Z"),
+  };
+
+  const response = await getNotificationDiagnosticsRoute(
+    new Request("http://localhost/api/notifications/diagnostics", {
+      headers: { authorization: "Bearer analytics-secret" },
+    }),
+    deps
+  );
+
+  assert.equal(response.status, 200);
+  const data = await response.json();
+  assert.equal(data.account.subscriptions, 1);
+  assert.equal(data.account.refreshDueSubscriptions, 1);
+  assert.equal(data.account.recommendedAction, "resubscribe_or_send_test");
+  assert.deepEqual(data.account.diagnostics[0], {
+    id: "sub-1",
+    endpointHost: "push.example.test",
+    preferredLocalHour: 8,
+    preferredTimezone: "Europe/Berlin",
+    timezoneMode: "auto",
+    deliveryStrategy: "morning",
+    updatedAt: "2026-07-06T09:00:00.000Z",
+    lastSentAt: "2026-07-06T08:30:00.000Z",
+    lastGratitudeSentAt: null,
+    lastChallengeNotifiedAt: null,
+    lastRefreshedAt: "2026-07-06T09:00:00.000Z",
+    refreshDueAt: "2026-07-07T09:00:00.000Z",
+    refreshDue: true,
+    refreshDueMinutes: -30,
+    latestActivityAt: "2026-07-06T09:00:00.000Z",
+    daysSinceLastActivity: 1,
+    stale: false,
+    skipReason: null,
+  });
+});
+
+test("notification delivery report route forwards the lookback window to the report helper", async () => {
+  const calls = createCallLog();
+  const deps = {
+    getAdminSecret: () => "analytics-secret",
+    getNotificationDeliveryReport: async (lookbackDays) => {
+      calls.events.push({ lookbackDays });
+      return {
+        generatedAt: "2026-07-07T00:00:00.000Z",
+        lookbackDays,
+        vapid: {
+          configured: true,
+          keyPairValid: true,
+          reason: "ok",
+        },
+        summary: {
+          totalUsers: 1,
+          usersWithActiveSubscriptions: 1,
+          usersWithoutActiveSubscriptions: 0,
+          usersBeforeWindow: 0,
+          usersAlreadySentToday: 0,
+          usersWithNoRecipientRow: 0,
+          usersWithPushEndpointRejected: 0,
+          usersWithVapidFailure: 0,
+          usersWithRefreshDue: 0,
+          usersWithIssues: 0,
+        },
+        rows: [],
+      };
+    },
+  };
+
+  const response = await getNotificationDeliveryReportRoute(
+    new Request("http://localhost/api/analytics/notification-delivery-report?lookbackDays=14", {
+      headers: { Authorization: "Bearer analytics-secret" },
+    }),
+    deps
+  );
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), {
+    generatedAt: "2026-07-07T00:00:00.000Z",
+    lookbackDays: 14,
+    vapid: {
+      configured: true,
+      keyPairValid: true,
+      reason: "ok",
+    },
+    summary: {
+      totalUsers: 1,
+      usersWithActiveSubscriptions: 1,
+      usersWithoutActiveSubscriptions: 0,
+      usersBeforeWindow: 0,
+      usersAlreadySentToday: 0,
+      usersWithNoRecipientRow: 0,
+      usersWithPushEndpointRejected: 0,
+      usersWithVapidFailure: 0,
+      usersWithRefreshDue: 0,
+      usersWithIssues: 0,
+    },
+    rows: [],
+  });
+  assert.deepEqual(calls.events, [{ lookbackDays: 14 }]);
 });

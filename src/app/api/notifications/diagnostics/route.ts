@@ -6,6 +6,8 @@ import { getVapidKeyPairStatus, getVapidPublicKey, isPushConfigured } from "@/li
 
 export const dynamic = "force-dynamic";
 
+const NOTIFICATION_SUBSCRIPTION_REFRESH_INTERVAL_MS = 24 * 60 * 60 * 1000;
+
 type DiagnosticsRow = {
   id: string;
   endpoint: string;
@@ -17,9 +19,32 @@ type DiagnosticsRow = {
   last_sent_at: string | null;
   last_gratitude_sent_at: string | null;
   last_challenge_notified_at: string | null;
+  last_verified_at: string | null;
 };
 
 type DiagnosticsStatus = "before_window" | "already_sent_today" | "subscription_stale" | null;
+
+type NotificationDiagnosticsRouteDeps = {
+  getAdminSecret: () => string | undefined;
+  requireUser: typeof requireUser;
+  many: typeof many;
+  one: typeof one;
+  getVapidKeyPairStatus: typeof getVapidKeyPairStatus;
+  getVapidPublicKey: typeof getVapidPublicKey;
+  isPushConfigured: typeof isPushConfigured;
+  now: () => Date;
+};
+
+export const notificationDiagnosticsRouteDeps: NotificationDiagnosticsRouteDeps = {
+  getAdminSecret: () => process.env.ANALYTICS_ADMIN_SECRET?.trim(),
+  requireUser,
+  many,
+  one,
+  getVapidKeyPairStatus,
+  getVapidPublicKey,
+  isPushConfigured,
+  now: () => new Date(),
+};
 
 type CronEventRow = {
   created_at: string;
@@ -33,20 +58,28 @@ function parseTimestamp(value: string | null) {
   return Number.isNaN(ts) ? null : ts;
 }
 
-function daysSince(value: string | null) {
+function daysSince(value: string | null, reference = new Date()) {
   const ts = parseTimestamp(value);
   if (ts === null) {
     return null;
   }
-  return Math.floor((Date.now() - ts) / 86400000);
+  return Math.floor((reference.getTime() - ts) / 86400000);
 }
 
-function minutesSince(value: string | null) {
+function minutesSince(value: string | null, reference = new Date()) {
   const ts = parseTimestamp(value);
   if (ts === null) {
     return null;
   }
-  return Math.floor((Date.now() - ts) / 60000);
+  return Math.floor((reference.getTime() - ts) / 60000);
+}
+
+function minutesUntil(value: string | null, now: Date) {
+  const ts = parseTimestamp(value);
+  if (ts === null) {
+    return null;
+  }
+  return Math.ceil((ts - now.getTime()) / 60000);
 }
 
 function latestActivityAt(row: DiagnosticsRow) {
@@ -62,6 +95,10 @@ function latestActivityAt(row: DiagnosticsRow) {
   }
 
   return new Date(Math.max(...candidates)).toISOString();
+}
+
+function latestRefreshAt(row: DiagnosticsRow) {
+  return row.last_verified_at ?? null;
 }
 
 function localHourForTimezone(date: Date, timezone: string | null | undefined) {
@@ -95,7 +132,7 @@ function localDateForTimezone(date: Date, timezone: string | null | undefined) {
 
 function determineSkipReason(row: DiagnosticsRow, now: Date): DiagnosticsStatus {
   const activityAt = latestActivityAt(row);
-  const stale = activityAt ? (daysSince(activityAt) ?? 0) > 7 : true;
+  const stale = activityAt ? (daysSince(activityAt, now) ?? 0) > 7 : true;
   if (stale) {
     return "subscription_stale";
   }
@@ -119,32 +156,53 @@ function determineSkipReason(row: DiagnosticsRow, now: Date): DiagnosticsStatus 
   return null;
 }
 
-export async function GET(request: Request) {
+function refreshDueAt(row: DiagnosticsRow) {
+  const ts = parseTimestamp(latestRefreshAt(row));
+  if (ts === null) {
+    return null;
+  }
+  return new Date(ts + NOTIFICATION_SUBSCRIPTION_REFRESH_INTERVAL_MS).toISOString();
+}
+
+function refreshDue(row: DiagnosticsRow, now: Date) {
+  const lastRefreshAt = latestRefreshAt(row);
+  if (!lastRefreshAt) {
+    return true;
+  }
+  const dueAt = refreshDueAt(row);
+  return dueAt ? parseTimestamp(dueAt) !== null && now.getTime() >= Date.parse(dueAt) : true;
+}
+
+export async function getNotificationDiagnosticsRoute(
+  request: Request,
+  deps: NotificationDiagnosticsRouteDeps = notificationDiagnosticsRouteDeps
+) {
   try {
-    const adminSecret = process.env.ANALYTICS_ADMIN_SECRET?.trim();
+    const adminSecret = deps.getAdminSecret();
     const bearerToken = (request.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
     const isAdminRequest = Boolean(adminSecret && bearerToken === adminSecret);
-    const user = isAdminRequest ? null : await requireUser();
-    const vapidStatus = getVapidKeyPairStatus();
+    const user = isAdminRequest ? null : await deps.requireUser();
+    const vapidStatus = deps.getVapidKeyPairStatus();
+    const now = deps.now();
 
     const [subscriptionRows, cronRows] = await Promise.all([
       isAdminRequest
-        ? many<DiagnosticsRow>(
+        ? deps.many<DiagnosticsRow>(
             `SELECT id, endpoint, preferred_local_hour, preferred_timezone, timezone_mode, delivery_strategy,
-                    updated_at, last_sent_at, last_gratitude_sent_at, last_challenge_notified_at
+                    updated_at, last_sent_at, last_gratitude_sent_at, last_challenge_notified_at, last_verified_at
              FROM push_subscriptions
              WHERE enabled = TRUE
              ORDER BY updated_at DESC`
           )
-        : many<DiagnosticsRow>(
+        : deps.many<DiagnosticsRow>(
             `SELECT id, endpoint, preferred_local_hour, preferred_timezone, timezone_mode, delivery_strategy,
-                    updated_at, last_sent_at, last_gratitude_sent_at, last_challenge_notified_at
+                    updated_at, last_sent_at, last_gratitude_sent_at, last_challenge_notified_at, last_verified_at
              FROM push_subscriptions
              WHERE user_id = ? AND enabled = TRUE
              ORDER BY updated_at DESC`,
             user!.id
           ),
-      one<CronEventRow>(
+      deps.one<CronEventRow>(
         `SELECT created_at
          FROM analytics_events
          WHERE event_name = 'notification_daily_checked'
@@ -156,8 +214,10 @@ export async function GET(request: Request) {
 
     const diagnostics = subscriptionRows.map((row) => {
       const activityAt = latestActivityAt(row);
-      const stale = activityAt ? (daysSince(activityAt) ?? 0) > 7 : true;
-      const skipReason = determineSkipReason(row, new Date());
+      const stale = activityAt ? (daysSince(activityAt, now) ?? 0) > 7 : true;
+      const skipReason = determineSkipReason(row, now);
+      const lastRefreshedAt = latestRefreshAt(row);
+      const dueAt = refreshDueAt(row);
       return {
         id: row.id,
         endpointHost: (() => {
@@ -175,15 +235,19 @@ export async function GET(request: Request) {
         lastSentAt: row.last_sent_at,
         lastGratitudeSentAt: row.last_gratitude_sent_at,
         lastChallengeNotifiedAt: row.last_challenge_notified_at,
+        lastRefreshedAt,
+        refreshDueAt: dueAt,
+        refreshDue: refreshDue(row, now),
+        refreshDueMinutes: dueAt ? minutesUntil(dueAt, now) : null,
         latestActivityAt: activityAt,
-        daysSinceLastActivity: activityAt ? daysSince(activityAt) : null,
+        daysSinceLastActivity: activityAt ? daysSince(activityAt, now) : null,
         stale,
         skipReason,
       };
     });
 
     const lastDailyCheckedAt = cronRows?.created_at ?? null;
-    const lastDailyCheckedMinutesAgo = minutesSince(lastDailyCheckedAt);
+    const lastDailyCheckedMinutesAgo = minutesSince(lastDailyCheckedAt, now);
     const cronSecretConfigured = Boolean(process.env.NOTIFICATION_CRON_SECRET?.trim());
     const cronHealthy =
       cronSecretConfigured &&
@@ -202,12 +266,12 @@ export async function GET(request: Request) {
           ? "check_cron"
           : diagnostics.length === 0
             ? "subscribe"
-            : diagnostics.some((row) => row.stale)
+            : diagnostics.some((row) => row.refreshDue || row.stale)
               ? "resubscribe_or_send_test"
               : "none";
 
     return NextResponse.json({
-      configured: isPushConfigured(),
+      configured: deps.isPushConfigured(),
       server: {
         cronSecretConfigured,
         cronHealthy,
@@ -223,6 +287,7 @@ export async function GET(request: Request) {
       account: {
         subscriptions: diagnostics.length,
         staleSubscriptions: diagnostics.filter((row) => row.stale).length,
+        refreshDueSubscriptions: diagnostics.filter((row) => row.refreshDue).length,
         recommendedAction,
         diagnostics,
       },
@@ -232,4 +297,8 @@ export async function GET(request: Request) {
   } catch {
     return apiError(401, "sign_in_required", "Sign in to view notification diagnostics.");
   }
+}
+
+export async function GET(request: Request) {
+  return getNotificationDiagnosticsRoute(request);
 }

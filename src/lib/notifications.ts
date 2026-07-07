@@ -194,6 +194,28 @@ type PushFailureSample = {
   deleted: boolean;
 };
 
+type PushFailureKind = "endpoint_rejected" | "vapid_failure" | "retryable_failure" | "unknown_failure";
+
+export type CounselCommentDeliverySummary = {
+  id: string;
+  commentId: string;
+  sharedDecisionId: string;
+  userId: string;
+  contactId: string;
+  decisionId: string;
+  status: DeliveryStatus;
+  reason: "no_recipient_row" | "no_active_subscription" | "vapid_failure" | "push_endpoint_rejected" | "push_failed" | "muted_by_preferences" | null;
+  acceptedRecipientCount: number;
+  pushSubscriptionCount: number;
+  deliveredCount: number;
+  failedCount: number;
+  openedCount: number;
+  attemptedAt: string | null;
+  deliveredAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type NotificationHealthSnapshot = {
   enabledSubscriptions: number;
   dueNow: number;
@@ -603,6 +625,49 @@ async function upsertChallengeCircleNudgeDelivery(summary: ChallengeCircleNudgeD
   );
 }
 
+async function upsertCounselCommentDelivery(summary: CounselCommentDeliverySummary) {
+  const now = new Date().toISOString();
+  await run(
+    `INSERT INTO counsel_comment_deliveries (
+       id, comment_id, shared_decision_id, contact_id, decision_id, sender_user_id, status, status_reason,
+       accepted_recipient_count, push_subscription_count, delivered_count, failed_count,
+       attempted_at, delivered_at, created_at, updated_at
+     )
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT (comment_id)
+     DO UPDATE SET
+       shared_decision_id = EXCLUDED.shared_decision_id,
+       contact_id = EXCLUDED.contact_id,
+       decision_id = EXCLUDED.decision_id,
+       sender_user_id = EXCLUDED.sender_user_id,
+       status = EXCLUDED.status,
+       status_reason = EXCLUDED.status_reason,
+       accepted_recipient_count = EXCLUDED.accepted_recipient_count,
+       push_subscription_count = EXCLUDED.push_subscription_count,
+       delivered_count = EXCLUDED.delivered_count,
+       failed_count = EXCLUDED.failed_count,
+       attempted_at = EXCLUDED.attempted_at,
+       delivered_at = EXCLUDED.delivered_at,
+       updated_at = EXCLUDED.updated_at`,
+    summary.id,
+    summary.commentId,
+    summary.sharedDecisionId,
+    summary.contactId,
+    summary.decisionId,
+    summary.userId,
+    summary.status,
+    summary.reason,
+    summary.acceptedRecipientCount,
+    summary.pushSubscriptionCount,
+    summary.deliveredCount,
+    summary.failedCount,
+    summary.attemptedAt,
+    summary.deliveredAt,
+    summary.createdAt,
+    now
+  );
+}
+
 async function targetRecipientsForCounselShare(contactId: string) {
   return many<CounselShareTargetRow>(
     `SELECT DISTINCT recipient_user_id
@@ -629,19 +694,6 @@ async function pushSubscriptionsForUsers(userIds: string[]) {
      WHERE push_subscriptions.user_id = ANY(?)`,
     userIds
   );
-}
-
-async function sendPushRowsToUserIds(
-  userIds: string[],
-  payloadForRow: (row: PushRow) => string
-) {
-  const pushRows = await pushSubscriptionsForUsers(userIds);
-  const { enabledRows } = splitPushSubscriptionRows(pushRows, userIds);
-
-  return {
-    enabledRows,
-    result: await sendPushRows(enabledRows, payloadForRow, { lastSentColumn: null }),
-  };
 }
 
 function splitPushSubscriptionRows(rows: PushRow[], recipientUserIds: string[]) {
@@ -790,7 +842,59 @@ export async function sendCounselShareNotifications(input: CounselDecisionShareP
 }
 
 export async function sendCounselCommentNotifications(input: CounselCommentPushInput) {
-  if (!isPushConfigured()) {
+  const uniqueTargetIds = [...new Set(input.targetUserIds.map((id) => id.trim()).filter(Boolean))];
+  const now = new Date().toISOString();
+  const configured = isPushConfigured();
+
+  if (uniqueTargetIds.length === 0) {
+    await upsertCounselCommentDelivery({
+      id: crypto.randomUUID(),
+      commentId: input.notificationId,
+      sharedDecisionId: input.sharedDecisionId ?? input.notificationId,
+      contactId: input.contactId,
+      decisionId: input.decisionId,
+      userId: input.senderUserId,
+      status: "no_push_subscription",
+      reason: "no_recipient_row",
+      acceptedRecipientCount: 0,
+      pushSubscriptionCount: 0,
+      deliveredCount: 0,
+      failedCount: 0,
+      openedCount: 0,
+      attemptedAt: null,
+      deliveredAt: null,
+      createdAt: now,
+      updatedAt: now,
+    });
+    return {
+      configured,
+      attempted: 0,
+      sent: 0,
+      failed: 0,
+      failureSamples: [],
+    };
+  }
+
+  if (!configured) {
+    await upsertCounselCommentDelivery({
+      id: crypto.randomUUID(),
+      commentId: input.notificationId,
+      sharedDecisionId: input.sharedDecisionId ?? input.notificationId,
+      contactId: input.contactId,
+      decisionId: input.decisionId,
+      userId: input.senderUserId,
+      status: "failed",
+      reason: "vapid_failure",
+      acceptedRecipientCount: uniqueTargetIds.length,
+      pushSubscriptionCount: 0,
+      deliveredCount: 0,
+      failedCount: 0,
+      openedCount: 0,
+      attemptedAt: null,
+      deliveredAt: null,
+      createdAt: now,
+      updatedAt: now,
+    });
     return {
       configured: false,
       attempted: 0,
@@ -800,8 +904,118 @@ export async function sendCounselCommentNotifications(input: CounselCommentPushI
     };
   }
 
-  const uniqueTargetIds = [...new Set(input.targetUserIds.map((id) => id.trim()).filter(Boolean))];
-  if (uniqueTargetIds.length === 0) {
+  try {
+    configureWebPush();
+    const pushRows = await pushSubscriptionsForUsers(uniqueTargetIds);
+    const { enabledRows, missingActiveRecipientCount, disabledRecipientCount } = splitPushSubscriptionRows(pushRows, uniqueTargetIds);
+    const eligibleRows = enabledRows.filter((row) => counselNotificationsEnabled(row));
+    const eligibleRecipientCount = new Set(eligibleRows.map((row) => row.user_id)).size;
+    const attemptedAt = new Date().toISOString();
+    let deliveredCount = 0;
+    let failedCount = 0;
+    let status: DeliveryStatus = "sent_to_push_service";
+    let reason: CounselCommentDeliverySummary["reason"] = null;
+
+    if (eligibleRows.length > 0) {
+      const result = await sendPushRows(
+        eligibleRows,
+        (row) => JSON.stringify(counselCommentNotificationPayload(row, input)),
+        { lastSentColumn: null }
+      );
+      deliveredCount = result.sent;
+      failedCount = result.failed;
+
+      const failureReasons = result.failureSamples.map((sample) => {
+        const normalized = sample.reason.toLowerCase();
+        if (sample.deleted && (sample.statusCode === 404 || sample.statusCode === 410)) {
+          return "push_endpoint_rejected" as const;
+        }
+        if (normalized.includes("vapid")) {
+          return "vapid_failure" as const;
+        }
+        return "push_failed" as const;
+      });
+
+      if (result.sent > 0 && result.failed === 0 && missingActiveRecipientCount === 0) {
+        status = "sent_to_push_service";
+        reason = null;
+      } else if (result.sent > 0 || missingActiveRecipientCount > 0) {
+        status = "partial";
+        reason = failureReasons.includes("push_endpoint_rejected")
+          ? "push_endpoint_rejected"
+          : failureReasons.includes("vapid_failure")
+            ? "vapid_failure"
+            : missingActiveRecipientCount > 0
+              ? "no_active_subscription"
+              : disabledRecipientCount > 0
+                ? "muted_by_preferences"
+                : result.failed > 0
+                  ? "push_failed"
+                  : null;
+      } else if (result.failed > 0) {
+        status = "failed";
+        reason = failureReasons.includes("push_endpoint_rejected")
+          ? "push_endpoint_rejected"
+          : failureReasons.includes("vapid_failure")
+            ? "vapid_failure"
+            : "push_failed";
+      } else if (disabledRecipientCount > 0 || missingActiveRecipientCount > 0) {
+        status = "no_push_subscription";
+        reason = disabledRecipientCount > 0 ? "muted_by_preferences" : "no_active_subscription";
+      }
+
+      await upsertCounselCommentDelivery({
+        id: crypto.randomUUID(),
+        commentId: input.notificationId,
+        sharedDecisionId: input.sharedDecisionId ?? input.notificationId,
+        contactId: input.contactId,
+        decisionId: input.decisionId,
+        userId: input.senderUserId,
+        status,
+        reason,
+        acceptedRecipientCount: uniqueTargetIds.length,
+        pushSubscriptionCount: eligibleRecipientCount,
+        deliveredCount,
+        failedCount,
+        openedCount: 0,
+        attemptedAt,
+        deliveredAt: deliveredCount > 0 ? attemptedAt : null,
+        createdAt: attemptedAt,
+        updatedAt: attemptedAt,
+      });
+
+      return {
+        configured: true,
+        attempted: eligibleRows.length,
+        sent: deliveredCount,
+        failed: failedCount,
+        failureSamples: result.failureSamples,
+      };
+    }
+
+    reason = enabledRows.length > 0 ? "muted_by_preferences" : missingActiveRecipientCount > 0 ? "no_active_subscription" : null;
+    status = reason ? "no_push_subscription" : "sent_to_push_service";
+
+    await upsertCounselCommentDelivery({
+      id: crypto.randomUUID(),
+      commentId: input.notificationId,
+      sharedDecisionId: input.sharedDecisionId ?? input.notificationId,
+      contactId: input.contactId,
+      decisionId: input.decisionId,
+      userId: input.senderUserId,
+      status,
+      reason,
+      acceptedRecipientCount: uniqueTargetIds.length,
+      pushSubscriptionCount: eligibleRecipientCount,
+      deliveredCount: 0,
+      failedCount: 0,
+      openedCount: 0,
+      attemptedAt: null,
+      deliveredAt: null,
+      createdAt: now,
+      updatedAt: now,
+    });
+
     return {
       configured: true,
       attempted: 0,
@@ -809,23 +1023,26 @@ export async function sendCounselCommentNotifications(input: CounselCommentPushI
       failed: 0,
       failureSamples: [],
     };
-  }
-
-  try {
-    configureWebPush();
-    const { enabledRows, result } = await sendPushRowsToUserIds(
-      uniqueTargetIds,
-      (row) => JSON.stringify(counselCommentNotificationPayload(row, input))
-    );
-
-    return {
-      configured: true,
-      attempted: enabledRows.length,
-      sent: result.sent,
-      failed: result.failed,
-      failureSamples: result.failureSamples,
-    };
   } catch {
+    await upsertCounselCommentDelivery({
+      id: crypto.randomUUID(),
+      commentId: input.notificationId,
+      sharedDecisionId: input.sharedDecisionId ?? input.notificationId,
+      contactId: input.contactId,
+      decisionId: input.decisionId,
+      userId: input.senderUserId,
+      status: "failed",
+      reason: "push_failed",
+      acceptedRecipientCount: uniqueTargetIds.length,
+      pushSubscriptionCount: 0,
+      deliveredCount: 0,
+      failedCount: uniqueTargetIds.length,
+      openedCount: 0,
+      attemptedAt: now,
+      deliveredAt: null,
+      createdAt: now,
+      updatedAt: now,
+    });
     return {
       configured: true,
       attempted: uniqueTargetIds.length,
@@ -2705,6 +2922,33 @@ function shouldDeleteBrokenSubscription(error: unknown) {
   return false;
 }
 
+function classifyPushFailure(error: unknown): PushFailureKind {
+  const statusCode = pushErrorStatusCode(error);
+  const body =
+    typeof error === "object" && error && "body" in error
+      ? String((error as { body?: unknown }).body ?? "")
+      : "";
+  const message =
+    typeof error === "object" && error && "message" in error
+      ? String((error as { message?: unknown }).message ?? "")
+      : String(error ?? "");
+  const details = `${body} ${message}`.toLowerCase();
+
+  if (details.includes("vapidpkhashmismatch")) {
+    return "vapid_failure";
+  }
+  if (details.includes("vapid credentials") && details.includes("do not correspond")) {
+    return "vapid_failure";
+  }
+  if (statusCode === 404 || statusCode === 410) {
+    return "endpoint_rejected";
+  }
+  if (isRetryablePushError(error)) {
+    return "retryable_failure";
+  }
+  return "unknown_failure";
+}
+
 function summarizePushFailure(error: unknown, row: PushRow, deleted: boolean): PushFailureSample {
   const statusCode =
     typeof error === "object" && error && "statusCode" in error
@@ -2730,6 +2974,39 @@ function summarizePushFailure(error: unknown, row: PushRow, deleted: boolean): P
     reason: reason || "Unknown push error",
     deleted,
   };
+}
+
+async function recordPushDeliveryFailure(error: unknown, row: PushRow, deleted: boolean) {
+  const failureKind = classifyPushFailure(error);
+  const statusCode = pushErrorStatusCode(error);
+  const body =
+    typeof error === "object" && error && "body" in error
+      ? String((error as { body?: unknown }).body ?? "")
+      : "";
+  const message =
+    typeof error === "object" && error && "message" in error
+      ? String((error as { message?: unknown }).message ?? "")
+      : String(error ?? "Unknown push error");
+  const reason = `${statusCode ? `${statusCode}: ` : ""}${body || message}`
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 240);
+  const now = new Date().toISOString();
+
+  await run(
+    `INSERT INTO push_delivery_failures (
+       id, subscription_id, user_id, failure_kind, status_code, reason, deleted, created_at, updated_at
+     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    crypto.randomUUID(),
+    row.id,
+    row.user_id,
+    failureKind,
+    statusCode,
+    reason || "Unknown push error",
+    deleted,
+    now,
+    now
+  ).catch(() => undefined);
 }
 
 async function sendPushRows(
@@ -2773,6 +3050,7 @@ async function sendPushRows(
           const deleted = shouldDeleteBrokenSubscription(error);
           const failure = summarizePushFailure(error, row, deleted);
           failureSamples.push(failure);
+          await recordPushDeliveryFailure(error, row, deleted);
           console.warn(
             `Push notification failed: subscription=${failure.id} user=${failure.userId} status=${failure.statusCode ?? "n/a"} deleted=${failure.deleted} reason=${failure.reason}`
           );
