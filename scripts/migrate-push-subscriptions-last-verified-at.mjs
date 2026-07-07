@@ -26,7 +26,9 @@ function getClientConfig() {
 
 async function main() {
   const __dirname = path.dirname(fileURLToPath(import.meta.url));
-  const sqlPath = path.resolve(__dirname, "../migrations/2026-07-07_add_push_subscriptions_last_verified_at.sql");
+  const migrationFile =
+    process.env.MIGRATION_FILE?.trim() || "../migrations/2026-07-07_add_push_subscriptions_last_verified_at.sql";
+  const sqlPath = path.isAbsolute(migrationFile) ? migrationFile : path.resolve(__dirname, migrationFile);
   const sql = await readFile(sqlPath, "utf8");
   const client = new Client(getClientConfig());
 
