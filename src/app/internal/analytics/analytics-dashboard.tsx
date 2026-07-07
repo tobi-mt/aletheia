@@ -64,6 +64,19 @@ type ScreenRow = {
   unique_people: number;
 };
 
+type NotificationSyncFailureCauseRow = {
+  cause: string;
+  count: number;
+  unique_people: number;
+};
+
+type NotificationSyncFailureTrendRow = {
+  day: string;
+  cause: string;
+  count: number;
+  total_count: number;
+};
+
 type AnalyticsPayload = {
   overview: Record<string, number>;
   features30d: FeatureRow[];
@@ -78,6 +91,8 @@ type AnalyticsPayload = {
     monthly: CohortBreakdownRow[];
   };
   notificationDeliveryReport?: NotificationDeliveryReportPayload | null;
+  notificationSyncFailuresByCause?: NotificationSyncFailureCauseRow[];
+  notificationSyncFailureTrend?: NotificationSyncFailureTrendRow[];
   selectedRange?: {
     startDate: string;
     endDate: string;
@@ -280,6 +295,27 @@ function formatNotificationReason(reason: NotificationDeliveryReason, reportTs: 
   }
 }
 
+function formatNotificationSyncFailureCause(cause: string, reportTs: (key: string) => string) {
+  switch (cause) {
+    case "sign_in_required":
+      return reportTs("apiSignInRequired");
+    case "invalid_subscription":
+      return reportTs("apiInvalidSubscription");
+    case "invalid_json":
+    case "body_required":
+    case "body_too_large":
+      return reportTs("apiInvalidInput");
+    case "not_configured":
+      return reportTs("apiNotConfigured");
+    case "save_failed":
+      return reportTs("apiSaveFailed");
+    case "unknown":
+      return reportTs("internalAnalytics.unknownCause");
+    default:
+      return reportTs("internalAnalytics.unknownCause");
+  }
+}
+
 function formatNotificationDeliveryStrategy(strategy: string | null, reportTs: (key: string) => string) {
   switch (strategy) {
     case "morning":
@@ -373,6 +409,80 @@ function buildFeatureSeries(rows: FeatureTrendRow[]) {
       color: definition.color,
       values: valuesByFeature.get(definition.key) ?? Array(labels.length).fill(0),
     })) satisfies ChartSeries[],
+  };
+}
+
+function buildNotificationSyncFailureSeries(
+  rows: NotificationSyncFailureTrendRow[],
+  reportTs: (key: string) => string
+) {
+  const labels = Array.from(new Set(rows.map((row) => row.day)));
+  const causeTotals = new Map<string, number>();
+  const valuesByCause = new Map<string, number[]>();
+  const dayIndex = new Map(labels.map((label, index) => [label, index]));
+  const palette = ["#0f766e", "#2563eb", "#d97706", "#7c3aed", "#dc2626", "#0891b2"];
+
+  for (const row of rows) {
+    causeTotals.set(row.cause, (causeTotals.get(row.cause) ?? 0) + row.count);
+  }
+
+  const sortedCauses = [...causeTotals.entries()]
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .map(([cause]) => cause);
+
+  for (const cause of sortedCauses) {
+    valuesByCause.set(cause, Array(labels.length).fill(0));
+  }
+
+  for (const row of rows) {
+    const slot = dayIndex.get(row.day);
+    const values = valuesByCause.get(row.cause);
+    if (slot === undefined || !values) {
+      continue;
+    }
+
+    values[slot] = row.total_count > 0 ? Number(((row.count / row.total_count) * 100).toFixed(1)) : 0;
+  }
+
+  return {
+    labels,
+    series: sortedCauses.map((cause, index) => ({
+      label: formatNotificationSyncFailureCause(cause, reportTs),
+      color: palette[index % palette.length],
+      values: valuesByCause.get(cause) ?? Array(labels.length).fill(0),
+    })) satisfies ChartSeries[],
+  };
+}
+
+function buildNotificationSyncFailureSpike(rows: NotificationSyncFailureTrendRow[]) {
+  const totalsByDay = new Map<string, number>();
+  for (const row of rows) {
+    totalsByDay.set(row.day, (totalsByDay.get(row.day) ?? 0) + row.count);
+  }
+
+  const orderedDays = [...totalsByDay.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+  const latest = orderedDays.at(-1);
+  if (!latest) {
+    return {
+      detected: false,
+      latestDay: null,
+      latestCount: 0,
+      trailingAverage: 0,
+      ratio: 0,
+    };
+  }
+
+  const trailingWindow = orderedDays.slice(Math.max(0, orderedDays.length - 8), -1);
+  const trailingAverage = trailingWindow.length > 0 ? trailingWindow.reduce((sum, [, count]) => sum + count, 0) / trailingWindow.length : 0;
+  const latestCount = latest[1];
+  const detected = latestCount >= 5 && (trailingAverage === 0 ? latestCount >= 5 : latestCount >= trailingAverage * 2);
+
+  return {
+    detected,
+    latestDay: latest[0],
+    latestCount,
+    trailingAverage,
+    ratio: trailingAverage > 0 ? latestCount / trailingAverage : latestCount,
   };
 }
 
@@ -634,6 +744,8 @@ export default function AnalyticsDashboard() {
       cohortBreakdowns: payload.cohortBreakdowns,
       views30d: payload.views30d ?? payload.topScreens30d,
       notificationDeliveryReport: payload.notificationDeliveryReport ?? null,
+      notificationSyncFailuresByCause: payload.notificationSyncFailuresByCause ?? [],
+      notificationSyncFailureTrend: payload.notificationSyncFailureTrend ?? [],
     };
 
     const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: "application/json" });
@@ -717,6 +829,8 @@ export default function AnalyticsDashboard() {
   const notificationReportSummary = notificationReport?.summary ?? null;
   const notificationReportIssueRows = notificationReportRows.filter((row) => row.issueCount > 0);
   const notificationReportVisibleRows = notificationReportIssueRows.length > 0 ? notificationReportIssueRows : notificationReportRows;
+  const notificationSyncFailureRows = payload?.notificationSyncFailuresByCause ?? [];
+  const notificationSyncFailureTrendRows = payload?.notificationSyncFailureTrend ?? [];
   const analyticsLanguage = useMemo(
     () => normalizeAnalyticsLanguage(typeof navigator !== "undefined" ? navigator.language : "en"),
     []
@@ -737,6 +851,8 @@ export default function AnalyticsDashboard() {
     };
     return (key: string, fallback?: string) => resolve(key, fallback);
   }, [analyticsTranslations]);
+  const notificationSyncFailureTrend = buildNotificationSyncFailureSeries(notificationSyncFailureTrendRows, reportTs);
+  const notificationSyncFailureSpike = buildNotificationSyncFailureSpike(notificationSyncFailureTrendRows);
 
   return (
     <main className="min-h-screen bg-slate-100 text-slate-900">
@@ -1054,6 +1170,55 @@ export default function AnalyticsDashboard() {
             </>
           ) : (
             <p className="mt-4 text-sm text-slate-500">{reportTs("internalAnalytics.reportUnavailable")}</p>
+          )}
+        </section>
+
+        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
+            <div className="max-w-3xl">
+              <h2 className="text-lg font-semibold">{reportTs("internalAnalytics.notificationSyncFailureTitle")}</h2>
+              <p className="text-sm text-slate-600">{reportTs("internalAnalytics.notificationSyncFailureBody")}</p>
+            </div>
+            <p className="text-xs text-slate-500">{formatRangeLabel(selectedRange, reportTs)}</p>
+          </div>
+
+          {notificationSyncFailureRows.length > 0 ? (
+            <>
+              {notificationSyncFailureSpike.detected ? (
+                <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 p-4">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0">
+                      <h3 className="text-sm font-semibold text-rose-900">{reportTs("internalAnalytics.notificationSyncFailureTitle")}</h3>
+                      <p className="mt-1 text-sm leading-6 text-rose-800">{reportTs("internalAnalytics.notificationSyncFailureBody")}</p>
+                    </div>
+                    <span className="shrink-0 rounded-full border border-rose-200 bg-white px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-rose-800">
+                      {formatCount(notificationSyncFailureSpike.latestCount)}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-xs text-rose-700">
+                    {notificationSyncFailureSpike.latestDay} · {formatCount(Math.round(notificationSyncFailureSpike.trailingAverage))} · {notificationSyncFailureSpike.ratio.toFixed(1)}×
+                  </p>
+                </div>
+              ) : null}
+              <div className="mt-4">
+                <LineChart
+                  labels={notificationSyncFailureTrend.labels.map((bucket) => formatPeriodBucket("daily", bucket))}
+                  series={notificationSyncFailureTrend.series}
+                  height={200}
+                />
+              </div>
+
+              <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                {notificationSyncFailureRows.map((row) => (
+                  <div key={row.cause} className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
+                    <span className="text-sm font-medium text-slate-800">{formatNotificationSyncFailureCause(row.cause, reportTs)}</span>
+                    <span className="text-sm text-slate-600">{formatCount(row.count)}</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <p className="mt-4 text-sm text-slate-500">{reportTs("internalAnalytics.noNotificationSyncFailures")}</p>
           )}
         </section>
 

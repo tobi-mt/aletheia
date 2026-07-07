@@ -116,6 +116,19 @@ type FeatureTrendRow = {
   unique_people: number;
 };
 
+type NotificationSyncFailureCauseRow = {
+  cause: string;
+  count: number;
+  unique_people: number;
+};
+
+type NotificationSyncFailureTrendRow = {
+  day: string;
+  cause: string;
+  count: number;
+  total_count: number;
+};
+
 type CohortBreakdownRow = {
   cohort: string;
   signups: number;
@@ -404,6 +417,8 @@ export async function analyticsSummary(
     themeRows,
     frictionRows,
     notificationSelfHealRows,
+    notificationSyncFailureCauseRows,
+    notificationSyncFailureTrendRows,
     authPromptOverviewRows,
     authPromptReasonRows,
     authPromptCloseRows,
@@ -743,7 +758,7 @@ export async function analyticsSummary(
     ),
     many<{ area: string; count: number; unique_people: number }>(
       `SELECT CASE
-                WHEN event_name IN ('auth_failure', 'notification_enable_failed', 'error_seen') THEN 'failures'
+                WHEN event_name IN ('auth_failure', 'notification_enable_failed', 'notification_self_heal_failed', 'error_seen') THEN 'failures'
                 WHEN event_name = 'notification_daily_checked' AND metadata->>'failed' <> '0' THEN 'notification_delivery_failed'
                 WHEN event_name = 'disclosure_section_toggled' THEN 'section_expansion'
                 WHEN event_name = 'app_view_changed' AND metadata->>'to_view' = 'account' THEN 'account_reopens'
@@ -756,7 +771,7 @@ export async function analyticsSummary(
        FROM analytics_events
        WHERE ${selectedDateFilter}
          AND ${trafficFilter}
-         AND event_name IN ('auth_failure', 'notification_enable_failed', 'error_seen', 'notification_daily_checked', 'disclosure_section_toggled', 'app_view_changed', 'pwa_install_prompt_available', 'app_update_refresh_landed')
+         AND event_name IN ('auth_failure', 'notification_enable_failed', 'notification_self_heal_failed', 'error_seen', 'notification_daily_checked', 'disclosure_section_toggled', 'app_view_changed', 'pwa_install_prompt_available', 'app_update_refresh_landed')
        GROUP BY area
        ORDER BY count DESC`
     ),
@@ -790,6 +805,53 @@ export async function analyticsSummary(
        FROM days
        LEFT JOIN grouped ON grouped.day = days.day
        ORDER BY days.day ASC`
+    ),
+    many<NotificationSyncFailureCauseRow>(
+      `SELECT COALESCE(NULLIF(metadata->>'server_error_code', ''), 'unknown') AS cause,
+              COUNT(*)::int AS count,
+              COUNT(DISTINCT COALESCE(user_id, anon_id, session_id))::int AS unique_people
+       FROM analytics_events
+       WHERE event_name IN ('notification_enable_failed', 'notification_self_heal_failed')
+         AND ${selectedDateFilter}
+         AND ${trafficFilter}
+       GROUP BY COALESCE(NULLIF(metadata->>'server_error_code', ''), 'unknown')
+       ORDER BY count DESC, unique_people DESC, cause ASC`
+    ),
+    many<NotificationSyncFailureTrendRow>(
+      `WITH days AS (
+         SELECT generate_series(${startDateSql}::date, ${endDateSql}::date, interval '1 day')::date AS day
+       ),
+       cause_counts AS (
+         SELECT created_at::date AS day,
+                COALESCE(NULLIF(metadata->>'server_error_code', ''), 'unknown') AS cause,
+                COUNT(*)::int AS count
+         FROM analytics_events
+         WHERE event_name IN ('notification_enable_failed', 'notification_self_heal_failed')
+           AND ${selectedDateFilter}
+           AND ${trafficFilter}
+         GROUP BY created_at::date, COALESCE(NULLIF(metadata->>'server_error_code', ''), 'unknown')
+       ),
+       cause_totals AS (
+         SELECT cause,
+                SUM(count)::int AS total_count
+         FROM cause_counts
+         GROUP BY cause
+       ),
+       day_totals AS (
+         SELECT day,
+                SUM(count)::int AS total_count
+         FROM cause_counts
+         GROUP BY day
+       )
+       SELECT days.day::text AS day,
+              cause_totals.cause AS cause,
+              COALESCE(cause_counts.count, 0)::int AS count,
+              COALESCE(day_totals.total_count, 0)::int AS total_count
+       FROM days
+       CROSS JOIN cause_totals
+       LEFT JOIN cause_counts ON cause_counts.day = days.day AND cause_counts.cause = cause_totals.cause
+       LEFT JOIN day_totals ON day_totals.day = days.day
+       ORDER BY days.day ASC, cause_totals.total_count DESC, cause_totals.cause ASC`
     ),
     many<{
       shown_count: number;
@@ -1033,6 +1095,8 @@ export async function analyticsSummary(
     themeDistribution30d: themeRows,
     frictionSignals30d: frictionRows,
     notificationSelfHeal14d: notificationSelfHealRows,
+    notificationSyncFailuresByCause: notificationSyncFailureCauseRows,
+    notificationSyncFailureTrend: notificationSyncFailureTrendRows,
     notificationHealth: notificationHealthRows,
     authPrompts30d: {
       overview: authPromptOverviewRows[0] ?? {

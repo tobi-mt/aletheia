@@ -694,7 +694,6 @@
     "trustedVoices": "Muryoyin da aka amince da su",
     "counselCircleSummary": "Gayyatar sirri da sarrafa rabawa suna nan a fili. Ba a bayyana tattaunawar sirri, kundin tunani, ko shawarwari da ba a raba ba.",
     "counselCircleSummaryShort": "Gayyato muryoyin da ka amince da su tare da bayyanannen rabawa.",
-
     "sharedWithYou": "An raba maka",
     "sharedByYou": "Ka raba",
     "openSharedDecision": "Bude bayanan shawara",
@@ -2350,5 +2349,11 @@
   "loading": "Ana lodawa…",
   "viewThread": "Duba zaren",
   "thread": "Zare",
-  "threadNoActivity": "Babu wani aiki a cikin wannan zaren tukuna."
+  "threadNoActivity": "Babu wani aiki a cikin wannan zaren tukuna.",
+  "internalAnalytics": {
+    "notificationSyncFailureTitle": "Adadin gazawar daidaita sanarwa",
+    "notificationSyncFailureBody": "Ana tara ainihin lambobin kuskuren sabar cikin lokaci don ka ga waɗanne dalilai ke jawo gazawar daidaitawa.",
+    "unknownCause": "Dalili mara sani",
+    "noNotificationSyncFailures": "Har yanzu babu gazawar daidaita sanarwa."
+  }
 }

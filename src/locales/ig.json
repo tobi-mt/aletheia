@@ -694,7 +694,6 @@
     "trustedVoices": "Olu a tụkwasịrị obi",
     "counselCircleSummary": "Òkù ndụmọdụ na njikwa ịkekọrịta ka e depụtara ebe a. Ọ dịghị ihe a na-akpughe site n’ime mkparịta ụka nzuzo, akwụkwọ ndekọ onwe, ma ọ bụ mkpebi ndị e kesara.",
     "counselCircleSummaryShort": "Kpọọ olu a tụkwasịrị obi na ịkekọrịta doro anya.",
-
     "sharedWithYou": "Kekọrịtara gị",
     "sharedByYou": "Ị kesara",
     "openSharedDecision": "Meghee nkọwa mkpebi",
@@ -2350,5 +2349,11 @@
   "loading": "Na-ebugo…",
   "viewThread": "Lee eriri",
   "thread": "Eriri",
-  "threadNoActivity": "Enwebeghi ọrụ n'ime eriri a ugbu a."
+  "threadNoActivity": "Enwebeghi ọrụ n'ime eriri a ugbu a.",
+  "internalAnalytics": {
+    "notificationSyncFailureTitle": "Ọnụego mmebi nhazi ngosi ozi",
+    "notificationSyncFailureBody": "A na-achịkọta koodu njehie sava ziri ezi n’oge ka i hụ ihe kpatara na-akpata mmebi nhazi.",
+    "unknownCause": "Ihe kpatara amaghị",
+    "noNotificationSyncFailures": "Enweghị mmebi nhazi ngosi ozi ka ọ dị ugbu a."
+  }
 }

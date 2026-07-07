@@ -1,63 +1,108 @@
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth";
-import { trackServerEvent } from "@/lib/analytics";
 import { apiError } from "@/lib/api-errors";
 import { run } from "@/lib/db";
-import { isPushConfigured, sendTestWisdomNotification } from "@/lib/notifications";
+import { isPushConfigured } from "@/lib/notifications";
+import { readJsonBody } from "@/lib/request";
 
-export async function POST(request: Request) {
-  if (!isPushConfigured()) {
+type NotificationSubscriptionBody = {
+  subscription?: {
+    endpoint?: string;
+    keys?: {
+      p256dh?: string;
+      auth?: string;
+    };
+  };
+  preferredHour?: number;
+  preferredLocalHour?: number;
+  preferredTimezone?: string;
+  timezoneMode?: string;
+  deliveryStrategy?: string;
+};
+
+type NotificationSubscribeRouteDeps = {
+  isPushConfigured: typeof isPushConfigured;
+  requireUser: typeof requireUser;
+  readJsonBody: typeof readJsonBody;
+  headers: typeof headers;
+  run: typeof run;
+  consoleError: (message: string, details?: unknown) => void;
+};
+
+export const notificationSubscribeRouteDeps: NotificationSubscribeRouteDeps = {
+  isPushConfigured,
+  requireUser,
+  readJsonBody,
+  headers,
+  run,
+  consoleError: (message, details) => console.error(message, details),
+};
+
+function signInRequiredResponse(message: string) {
+  return apiError(401, "sign_in_required", message);
+}
+
+async function parseSubscriptionBody(request: Request, deps: NotificationSubscribeRouteDeps) {
+  return deps.readJsonBody<NotificationSubscriptionBody>(request, { maxBytes: 4_000 });
+}
+
+export async function postNotificationSubscription(
+  request: Request,
+  deps: NotificationSubscribeRouteDeps = notificationSubscribeRouteDeps
+) {
+  if (!deps.isPushConfigured()) {
     return apiError(503, "not_configured", "Notifications are not configured yet.");
   }
 
+  let user;
   try {
-    const user = await requireUser();
-    const body = (await request.json()) as {
-      subscription?: {
-        endpoint?: string;
-        keys?: {
-          p256dh?: string;
-          auth?: string;
-        };
-      };
-      preferredHour?: number;
-      preferredLocalHour?: number;
-      preferredTimezone?: string;
-      timezoneMode?: string;
-      deliveryStrategy?: string;
-    };
-
-    const endpoint = body.subscription?.endpoint;
-    const p256dh = body.subscription?.keys?.p256dh;
-    const auth = body.subscription?.keys?.auth;
-    const preferredHour = Number.isInteger(body.preferredHour)
-      ? Math.min(23, Math.max(0, body.preferredHour ?? 8))
-      : 8;
-    const preferredLocalHour = Number.isInteger(body.preferredLocalHour)
-      ? Math.min(23, Math.max(0, body.preferredLocalHour ?? 8))
-      : 8;
-    const preferredTimezone = typeof body.preferredTimezone === "string" && body.preferredTimezone.trim()
-      ? body.preferredTimezone.trim().slice(0, 80)
-      : "UTC";
-    const timezoneMode = body.timezoneMode === "manual" ? "manual" : "auto";
-    const deliveryStrategy = typeof body.deliveryStrategy === "string" && body.deliveryStrategy.trim()
-      ? body.deliveryStrategy.trim().slice(0, 40)
-      : "morning";
-
-    if (!endpoint || !p256dh || !auth) {
-      return apiError(400, "invalid_subscription", "Invalid push subscription.");
+    user = await deps.requireUser();
+  } catch (error) {
+    if (error instanceof Error && error.message === "UNAUTHORIZED") {
+      return signInRequiredResponse("Sign in to enable notifications.");
     }
+    deps.consoleError("notification subscription auth failed", error);
+    return apiError(500, "save_failed", "Notification subscription could not be saved.");
+  }
 
-    const headerStore = await headers();
+  const parsedBody = await parseSubscriptionBody(request, deps);
+  if (!parsedBody.ok) {
+    return parsedBody.response;
+  }
+
+  const body = parsedBody.data;
+  const endpoint = body.subscription?.endpoint;
+  const p256dh = body.subscription?.keys?.p256dh;
+  const auth = body.subscription?.keys?.auth;
+  const preferredHour = Number.isInteger(body.preferredHour)
+    ? Math.min(23, Math.max(0, body.preferredHour ?? 8))
+    : 8;
+  const preferredLocalHour = Number.isInteger(body.preferredLocalHour)
+    ? Math.min(23, Math.max(0, body.preferredLocalHour ?? 8))
+    : 8;
+  const preferredTimezone = typeof body.preferredTimezone === "string" && body.preferredTimezone.trim()
+    ? body.preferredTimezone.trim().slice(0, 80)
+    : "UTC";
+  const timezoneMode = body.timezoneMode === "manual" ? "manual" : "auto";
+  const deliveryStrategy = typeof body.deliveryStrategy === "string" && body.deliveryStrategy.trim()
+    ? body.deliveryStrategy.trim().slice(0, 40)
+    : "morning";
+
+  if (!endpoint || !p256dh || !auth) {
+    return apiError(400, "invalid_subscription", "Invalid push subscription.");
+  }
+
+  try {
+    const headerStore = await deps.headers();
     const userAgent = headerStore.get("user-agent");
     const now = new Date().toISOString();
 
-    await run(
+    await deps.run(
       `INSERT INTO push_subscriptions (
         id, user_id, endpoint, p256dh, auth, user_agent, enabled, preferred_hour,
         preferred_local_hour, preferred_timezone, timezone_mode, delivery_strategy, last_verified_at, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, TRUE, ?, ?, ?, ?, ?, NULL, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, TRUE, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT (endpoint)
       DO UPDATE SET
         user_id = EXCLUDED.user_id,
@@ -70,7 +115,7 @@ export async function POST(request: Request) {
         preferred_timezone = EXCLUDED.preferred_timezone,
         timezone_mode = EXCLUDED.timezone_mode,
         delivery_strategy = EXCLUDED.delivery_strategy,
-        last_verified_at = NULL,
+        last_verified_at = EXCLUDED.last_verified_at,
         updated_at = EXCLUDED.updated_at`,
       crypto.randomUUID(),
       user.id,
@@ -84,10 +129,11 @@ export async function POST(request: Request) {
       timezoneMode,
       deliveryStrategy,
       now,
+      now,
       now
     );
 
-    await run(
+    await deps.run(
       `INSERT INTO user_preferences (
          user_id, notification_preferred_local_hour, notification_preferred_timezone,
          notification_timezone_mode, notification_delivery_strategy, notification_timing_updated_at, created_at, updated_at
@@ -110,7 +156,7 @@ export async function POST(request: Request) {
       now
     );
 
-    await run(
+    await deps.run(
       `UPDATE push_subscriptions
        SET preferred_hour = ?,
            preferred_local_hour = ?,
@@ -122,50 +168,19 @@ export async function POST(request: Request) {
       preferredHour,
       preferredLocalHour,
       preferredTimezone,
-        timezoneMode,
+      timezoneMode,
       deliveryStrategy,
       now,
       user.id
     );
 
-    await trackServerEvent({
-      userId: user.id,
-      eventName: "notification_enabled",
-      metadata: { preferredHour, preferredLocalHour, preferredTimezone, timezoneMode, deliveryStrategy },
-    });
-
-    const verification = await sendTestWisdomNotification(user.id)
-      .then((result) => ({
-        attempted: result.attempted,
-        sent: result.sent,
-        failed: result.failed,
-      }))
-      .catch(() => ({
-        attempted: 0,
-        sent: 0,
-        failed: 0,
-      }));
-
-    await trackServerEvent({
-      userId: user.id,
-      eventName: "notification_subscription_verified",
-      metadata: verification,
-    }).catch(() => undefined);
-
-    if (verification.attempted > 0 && verification.failed === 0) {
-      await run(
-        `UPDATE push_subscriptions
-         SET last_verified_at = ?, updated_at = ?
-         WHERE user_id = ? AND endpoint = ?`,
-        now,
-        now,
-        user.id,
-        endpoint
-      );
-    }
-
-    return NextResponse.json({ ok: true, verification });
-  } catch {
-    return apiError(401, "sign_in_required", "Sign in to enable notifications.");
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    deps.consoleError("notification subscription save failed", { userId: user.id, error });
+    return apiError(500, "save_failed", "Notification subscription could not be saved.");
   }
+}
+
+export async function POST(request: Request) {
+  return postNotificationSubscription(request);
 }

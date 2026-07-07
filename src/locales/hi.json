@@ -694,7 +694,6 @@
     "trustedVoices": "विश्वसनीय आवाज़ें",
     "counselCircleSummary": "निजी आमंत्रण और साझाकरण नियंत्रण स्पष्ट हैं। जब तक साझा नहीं किया जाता तब तक कोई भी चैट, जर्नल या निर्णय नहीं देखता।",
     "counselCircleSummaryShort": "स्पष्ट साझा करने के साथ भरोसेमंद लोगों को आमंत्रित करें।",
-
     "sharedWithYou": "आपके साथ साझा",
     "sharedByYou": "आपके द्वारा साझा",
     "openSharedDecision": "निर्णय विवरण खोलें",
@@ -2350,5 +2349,11 @@
   "loading": "लोड हो रहा है...",
   "viewThread": "थ्रेड देखें",
   "thread": "थ्रेड",
-  "threadNoActivity": "अभी इस थ्रेड में कोई गतिविधि नहीं है।"
+  "threadNoActivity": "अभी इस थ्रेड में कोई गतिविधि नहीं है।",
+  "internalAnalytics": {
+    "notificationSyncFailureTitle": "सूचनाओं की सिंक विफलता दरें",
+    "notificationSyncFailureBody": "सटीक सर्वर त्रुटि कोड समय के साथ समूहित किए जाते हैं ताकि आप देख सकें कि कौन-से कारण सिंक विफलताओं को चला रहे हैं।",
+    "unknownCause": "अज्ञात कारण",
+    "noNotificationSyncFailures": "अभी तक कोई सूचना सिंक विफलता नहीं है।"
+  }
 }

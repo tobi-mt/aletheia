@@ -694,7 +694,6 @@
     "trustedVoices": "pinagkakatiwalaang boses",
     "counselCircleSummary": "Ang mga pribadong imbitasyon at mga kontrol sa pagbabahagi ay tahasan. Walang nakakakita ng mga chat, journal, o desisyon maliban kung ibinahagi.",
     "counselCircleSummaryShort": "Anyayahan ang mga mapagkakatiwalaang tao nang may malinaw na pagbabahagi.",
-
     "sharedWithYou": "Ibinahagi sa'yo",
     "sharedByYou": "Ibinahagi mo",
     "openSharedDecision": "Buksan ang detalye ng desisyon",
@@ -2350,5 +2349,11 @@
   "loading": "Naglo-load…",
   "viewThread": "Tingnan ang thread",
   "thread": "Thread",
-  "threadNoActivity": "Wala pang aktibidad sa thread na ito."
+  "threadNoActivity": "Wala pang aktibidad sa thread na ito.",
+  "internalAnalytics": {
+    "notificationSyncFailureTitle": "Mga rate ng pagkabigo sa pag-sync ng notification",
+    "notificationSyncFailureBody": "Pinagsasama-sama ang eksaktong mga server error code sa paglipas ng panahon para makita mo kung aling mga sanhi ang nagtutulak sa mga pagkabigo sa pag-sync.",
+    "unknownCause": "Hindi kilalang sanhi",
+    "noNotificationSyncFailures": "Wala pang pagkabigo sa pag-sync ng notification."
+  }
 }

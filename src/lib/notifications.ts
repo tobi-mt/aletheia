@@ -181,6 +181,7 @@ const GRATITUDE_REFLECTION_LOCAL_HOUR = 19;
 const PUSH_DELIVERY_TIMEOUT_MS = Number(process.env.PUSH_DELIVERY_TIMEOUT_MS ?? 10000);
 const PUSH_DELIVERY_MAX_ATTEMPTS = Math.max(1, Number(process.env.PUSH_DELIVERY_MAX_ATTEMPTS ?? 3));
 const PUSH_DELIVERY_RETRY_BASE_DELAY_MS = Number(process.env.PUSH_DELIVERY_RETRY_BASE_DELAY_MS ?? 800);
+const PUSH_DELIVERY_RETRY_JITTER_MS = Number(process.env.PUSH_DELIVERY_RETRY_JITTER_MS ?? 250);
 
 type MetricRow = {
   metric_value: string | number;
@@ -1156,6 +1157,14 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+export function calculatePushRetryDelayMs(attempt: number) {
+  const boundedAttempt = Math.max(1, Math.floor(attempt));
+  const baseDelay = PUSH_DELIVERY_RETRY_BASE_DELAY_MS * Math.pow(2, boundedAttempt - 1);
+  const jitterSpan = Math.max(0, PUSH_DELIVERY_RETRY_JITTER_MS);
+  const jitter = jitterSpan > 0 ? Math.round((Math.random() * 2 - 1) * jitterSpan) : 0;
+  return Math.max(0, baseDelay + jitter);
+}
+
 function pushErrorStatusCode(error: unknown) {
   if (typeof error !== "object" || !error || !("statusCode" in error)) {
     return null;
@@ -1196,7 +1205,7 @@ async function sendNotificationWithTimeout(subscription: PushSubscription, paylo
   });
 }
 
-async function sendNotificationWithRetry(subscription: PushSubscription, payload: string) {
+export async function sendNotificationWithRetry(subscription: PushSubscription, payload: string) {
   let lastError: unknown = null;
 
   for (let attempt = 1; attempt <= PUSH_DELIVERY_MAX_ATTEMPTS; attempt += 1) {
@@ -1207,11 +1216,38 @@ async function sendNotificationWithRetry(subscription: PushSubscription, payload
       if (!isRetryablePushError(error) || attempt === PUSH_DELIVERY_MAX_ATTEMPTS) {
         throw error;
       }
-      await sleep(PUSH_DELIVERY_RETRY_BASE_DELAY_MS * attempt);
+      await sleep(calculatePushRetryDelayMs(attempt));
     }
   }
 
   throw lastError ?? new Error("Unknown push delivery error");
+}
+
+async function markPushSubscriptionFreshness(rowId: string, deliveredAt: string, lastSentColumn: "last_sent_at" | "last_gratitude_sent_at" | null = "last_sent_at") {
+  if (lastSentColumn) {
+    await run(
+      `UPDATE push_subscriptions
+       SET ${lastSentColumn} = ?,
+           last_verified_at = ?,
+           updated_at = ?
+       WHERE id = ?`,
+      deliveredAt,
+      deliveredAt,
+      deliveredAt,
+      rowId
+    );
+    return;
+  }
+
+  await run(
+    `UPDATE push_subscriptions
+     SET last_verified_at = ?,
+         updated_at = ?
+     WHERE id = ?`,
+    deliveredAt,
+    deliveredAt,
+    rowId
+  );
 }
 
 function notificationTagPart(value: string) {
@@ -3034,16 +3070,8 @@ async function sendPushRows(
 
         try {
           await sendNotificationWithRetry(subscription, payloadForRow(row));
-
-          if (lastSentColumn) {
-            const deliveredAt = new Date().toISOString();
-            await run(
-              `UPDATE push_subscriptions SET ${lastSentColumn} = ?, updated_at = ? WHERE id = ?`,
-              deliveredAt,
-              deliveredAt,
-              row.id
-            );
-          }
+          const deliveredAt = new Date().toISOString();
+          await markPushSubscriptionFreshness(row.id, deliveredAt, lastSentColumn);
           sent += 1;
         } catch (error) {
           failed += 1;
@@ -3838,15 +3866,13 @@ export async function sendChallengeReminders(now = new Date()): Promise<{
     for (const pushRow of userRows) {
       attempted++;
       try {
-        await webpush.sendNotification(
+        await sendNotificationWithRetry(
           { endpoint: pushRow.endpoint, keys: { p256dh: pushRow.p256dh, auth: pushRow.auth } },
           payload
         );
-        await run(
-          `UPDATE push_subscriptions SET last_challenge_notified_at = ? WHERE id = ?`,
-          now.toISOString(),
-          pushRow.id
-        );
+        const deliveredAt = now.toISOString();
+        await markPushSubscriptionFreshness(pushRow.id, deliveredAt, null);
+        await run(`UPDATE push_subscriptions SET last_challenge_notified_at = ? WHERE id = ?`, deliveredAt, pushRow.id);
         sent++;
       } catch (err) {
         if (shouldDeleteBrokenSubscription(err)) {

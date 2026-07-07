@@ -694,7 +694,6 @@
     "trustedVoices": "vozes de confiança",
     "counselCircleSummary": "Convites privados e controles de compartilhamento são explícitos. Ninguém vê chats, diários ou decisões a menos que sejam compartilhados.",
     "counselCircleSummaryShort": "Convide vozes de confiança com compartilhamento explícito.",
-
     "sharedWithYou": "Compartilhadas com você",
     "sharedByYou": "Compartilhadas por você",
     "openSharedDecision": "Abrir detalhes da decisão",
@@ -2350,5 +2349,11 @@
   "loading": "Carregando…",
   "viewThread": "Ver thread",
   "thread": "Thread",
-  "threadNoActivity": "Ainda não há atividade neste thread."
+  "threadNoActivity": "Ainda não há atividade neste thread.",
+  "internalAnalytics": {
+    "notificationSyncFailureTitle": "Taxas de falha da sincronização de notificações",
+    "notificationSyncFailureBody": "Os códigos exatos de erro do servidor são agrupados ao longo do tempo para mostrar quais causas estão gerando as falhas de sincronização.",
+    "unknownCause": "Causa desconhecida",
+    "noNotificationSyncFailures": "Ainda não há falhas de sincronização de notificações."
+  }
 }

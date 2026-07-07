@@ -11810,9 +11810,14 @@ function startFirstRunGuestFlow() {
         preferredTimezone,
       }, preferredHour);
       if (!response.ok) {
-        trackClientEvent("notification_enable_failed", { reason: "subscription_save_failed" });
-        setNotificationStatus(ts('notifications.notificationSyncFailedBody'));
-        announceWorkflow(ts('notifications.notificationSyncFailed'), ts('notifications.notificationSyncFailedBody'), "error");
+        const failureBody = notificationSyncFailureBody(response.errorCode);
+        trackClientEvent("notification_enable_failed", {
+          reason: response.errorCode ?? "subscription_save_failed",
+          server_error_code: response.errorCode,
+          status: response.status,
+        });
+        setNotificationStatus(failureBody);
+        announceWorkflow(ts('notifications.notificationSyncFailed'), failureBody, "error");
         return;
       }
 
@@ -11892,9 +11897,10 @@ function startFirstRunGuestFlow() {
     subscription: PushSubscription,
     timing: NotificationTiming,
     preferredHour = localHourToUtcHour(timing.preferredLocalHour)
-  ) {
-    return fetch("/api/notifications/subscribe", {
+  ): Promise<{ ok: boolean; status: number; errorCode: string | null; error: string | null }> {
+    const response = await fetch("/api/notifications/subscribe", {
       method: "POST",
+      credentials: "same-origin",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         subscription,
@@ -11905,6 +11911,40 @@ function startFirstRunGuestFlow() {
         deliveryStrategy: timing.deliveryStrategy,
       }),
     });
+
+    if (response.ok) {
+      return { ok: true, status: response.status, errorCode: null, error: null };
+    }
+
+    try {
+      const payload = (await response.json()) as { errorCode?: unknown; error?: unknown };
+      return {
+        ok: false,
+        status: response.status,
+        errorCode: typeof payload.errorCode === "string" ? payload.errorCode : null,
+        error: typeof payload.error === "string" ? payload.error : null,
+      };
+    } catch {
+      return { ok: false, status: response.status, errorCode: null, error: null };
+    }
+  }
+
+  function notificationSyncFailureBody(errorCode: string | null) {
+    switch (errorCode) {
+      case "sign_in_required":
+        return ts("notifications.notificationSyncFailedSignInBody");
+      case "invalid_subscription":
+      case "invalid_json":
+      case "body_required":
+      case "body_too_large":
+        return ts("notifications.notificationSyncFailedInvalidBody");
+      case "not_configured":
+        return ts("notifications.notificationsNotConfiguredBody");
+      case "save_failed":
+        return ts("notifications.notificationSyncFailedServerBody");
+      default:
+        return ts("notifications.notificationSyncFailedBody");
+    }
   }
 
   const selfHealNotificationSubscription = useEffectEvent(async (trigger: "status_load" | "focus") => {
@@ -11957,7 +11997,12 @@ function startFirstRunGuestFlow() {
       }, localHourToUtcHour(preferredLocalHour));
 
       if (!response.ok) {
-        trackClientEvent("notification_self_heal_failed", { trigger, reason: "subscribe_api_failed", status: response.status });
+        trackClientEvent("notification_self_heal_failed", {
+          trigger,
+          reason: response.errorCode ?? "subscribe_api_failed",
+          server_error_code: response.errorCode,
+          status: response.status,
+        });
         return false;
       }
 
@@ -11980,6 +12025,7 @@ function startFirstRunGuestFlow() {
   async function saveNotificationTimingPreference(timing: NotificationTiming) {
     return fetch("/api/notifications/status", {
       method: "POST",
+      credentials: "same-origin",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         preferredLocalHour: timing.preferredLocalHour,
@@ -12042,7 +12088,7 @@ function startFirstRunGuestFlow() {
       }
       const response = await saveNotificationSubscription(subscription, nextTiming);
       if (!response.ok) {
-        setNotificationStatus(ts('notifications.preferencesSavedLocallyBody'));
+        setNotificationStatus(notificationSyncFailureBody(response.errorCode));
         return;
       }
       persistNotificationSubscriptionRefreshAt();
@@ -23949,7 +23995,7 @@ function NotificationPanel({
         </div>
       )}
 
-      <div className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+      <div className="mt-3 space-y-4">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
             <h3 className="text-sm font-semibold" style={{ color: theme.textPrimary }}>
@@ -24048,7 +24094,7 @@ function NotificationPanel({
         </div>
       </div>
 
-      <div className="mt-3 rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+      <div className="border-t pt-4" style={{ borderColor: theme.borderLight }}>
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <h3 className="text-sm font-semibold" style={{ color: theme.textPrimary }}>
@@ -24091,7 +24137,7 @@ function NotificationPanel({
         </p>
       </div>
 
-      <div className="mt-3 rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+      <div className="border-t pt-4" style={{ borderColor: theme.borderLight }}>
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <h3 className="text-sm font-semibold" style={{ color: theme.textPrimary }}>

@@ -1086,7 +1086,6 @@
     "noReflectionsYet": "Aucune réflexion pour l’instant.",
     "currentlyActiveMode": "Mode actuel",
     "counselCircleSummaryShort": "Invitez des voix de confiance avec un partage explicite.",
-
     "sharedWithYou": "Partagées avec vous",
     "sharedByYou": "Partagées par vous",
     "openSharedDecision": "Ouvrir le détail de la décision",
@@ -2350,5 +2349,11 @@
   "loading": "Chargement…",
   "viewThread": "Voir le fil",
   "thread": "Fil",
-  "threadNoActivity": "Aucune activité dans ce fil pour le moment."
+  "threadNoActivity": "Aucune activité dans ce fil pour le moment.",
+  "internalAnalytics": {
+    "notificationSyncFailureTitle": "Taux d'échec de synchronisation des notifications",
+    "notificationSyncFailureBody": "Les codes d'erreur serveur exacts sont regroupés dans le temps pour voir quelles causes génèrent les échecs de synchronisation.",
+    "unknownCause": "Cause inconnue",
+    "noNotificationSyncFailures": "Aucun échec de synchronisation des notifications pour le moment."
+  }
 }

@@ -694,7 +694,6 @@
     "trustedVoices": "àwọn ohun ìtọ́",
     "counselCircleSummary": "Àwọn àfisérín aláigbérò àti àkójọpọ̀ pípin yẹ àsàfihàn. Kò sí irú ara ninu ìwòrán ìkọ̀kọ̀ọ, àwọn ìwé ọ̀rọ̀ tàbí àwọn ipinnu nítìí wọn pípin.",
     "counselCircleSummaryShort": "Pe awọn ohùn ti o gbẹkẹle pẹlu pinpin kedere.",
-
     "sharedWithYou": "A pín fún ọ",
     "sharedByYou": "O pín",
     "openSharedDecision": "Ṣí àwọn alaye ìpinnu",
@@ -2350,5 +2349,11 @@
   "loading": "Nkojọpọ…",
   "viewThread": "Wo okun",
   "thread": "Okun",
-  "threadNoActivity": "Ko si iṣẹ ṣiṣe ninu okun yii sibẹsibẹ."
+  "threadNoActivity": "Ko si iṣẹ ṣiṣe ninu okun yii sibẹsibẹ.",
+  "internalAnalytics": {
+    "notificationSyncFailureTitle": "Awọn oṣuwọn ikuna amuṣiṣẹpọ iwifunni",
+    "notificationSyncFailureBody": "A n ṣajọ awọn koodu aṣiṣe olupin gangan lori akoko ki o le rii awọn idi ti o nfa ikuna amuṣiṣẹpọ.",
+    "unknownCause": "Idi aimọ",
+    "noNotificationSyncFailures": "Ko si ikuna amuṣiṣẹpọ iwifunni sibẹsibẹ."
+  }
 }

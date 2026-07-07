@@ -694,7 +694,6 @@
     "trustedVoices": "vertraute Stimmen",
     "counselCircleSummary": "Private Einladungen und Freigabekontrollen sind explizit. Niemand sieht Chats, Tagebücher oder Entscheidungen, es sei denn, sie werden geteilt.",
     "counselCircleSummaryShort": "Lade vertraute Stimmen mit klarer Freigabe ein.",
-
     "sharedWithYou": "Mit dir geteilt",
     "sharedByYou": "Von dir geteilt",
     "openSharedDecision": "Entscheidungsdetails öffnen",
@@ -2350,5 +2349,11 @@
   "loading": "Lädt…",
   "viewThread": "Thread anzeigen",
   "thread": "Thread",
-  "threadNoActivity": "Noch keine Aktivitäten in diesem Thread."
+  "threadNoActivity": "Noch keine Aktivitäten in diesem Thread.",
+  "internalAnalytics": {
+    "notificationSyncFailureTitle": "Fehlerraten der Benachrichtigungssynchronisierung",
+    "notificationSyncFailureBody": "Exakte Server-Fehlercodes werden im Zeitverlauf gruppiert, damit du siehst, welche Ursachen die Sync-Fehler auslösen.",
+    "unknownCause": "Unbekannte Ursache",
+    "noNotificationSyncFailures": "Noch keine fehlgeschlagenen Benachrichtigungssynchronisierungen."
+  }
 }

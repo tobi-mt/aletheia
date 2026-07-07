@@ -1,11 +1,15 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import webpush from "web-push";
 import { postSharedDecisionComment } from "../src/app/api/counsel/shared/[sharedDecisionId]/comments/route.ts";
 import { postInviteComment } from "../src/app/api/counsel/invite/[token]/comments/route.ts";
 import { postAcceptanceComment } from "../src/app/api/counsel/acceptances/[contactId]/comments/route.ts";
 import { getNotificationDiagnosticsRoute } from "../src/app/api/notifications/diagnostics/route.ts";
 import { getNotificationDeliveryReportRoute } from "../src/app/api/analytics/notification-delivery-report/route.ts";
+import { getAnalyticsSummaryRoute } from "../src/app/api/analytics/summary/route.ts";
+import { postNotificationSubscription } from "../src/app/api/notifications/subscribe/route.ts";
 import { runDailyNotifications } from "../src/app/api/notifications/daily/route.ts";
+import { calculatePushRetryDelayMs, sendNotificationWithRetry } from "../src/lib/notifications.ts";
 
 function createCallLog() {
   return {
@@ -422,4 +426,255 @@ test("notification delivery report route forwards the lookback window to the rep
     rows: [],
   });
   assert.deepEqual(calls.events, [{ lookbackDays: 14 }]);
+});
+
+test("analytics summary route forwards notification sync failure causes and filters", async () => {
+  const calls = createCallLog();
+  const previousSecret = process.env.ANALYTICS_ADMIN_SECRET;
+  process.env.ANALYTICS_ADMIN_SECRET = "analytics-secret";
+  try {
+    const response = await getAnalyticsSummaryRoute(
+      new Request("http://localhost/api/analytics/summary?includeAutomation=1&startDate=2026-06-01&endDate=2026-06-30", {
+        headers: { Authorization: "Bearer analytics-secret" },
+      }),
+      {
+        analyticsSummary: async (options) => {
+          calls.events.push(options);
+          return {
+            overview: {},
+            features30d: [],
+            usageTrends: { daily: [], weekly: [], monthly: [], yearly: [] },
+            featureUsageTrends: { daily: [], weekly: [], monthly: [], yearly: [] },
+            topScreens30d: [],
+            funnel30d: [],
+            retentionWeekly: [],
+            retentionMonthly: [],
+            cohortBreakdowns: { weekly: [], monthly: [] },
+            notificationDeliveryReport: null,
+            notificationSyncFailuresByCause: [
+              { cause: "save_failed", count: 3, unique_people: 2 },
+            ],
+            notificationSyncFailureTrend: [
+              { day: "2026-06-01", cause: "save_failed", count: 1, total_count: 1 },
+            ],
+            selectedRange: { startDate: "2026-06-01", endDate: "2026-06-30" },
+            generatedAt: "2026-07-07T00:00:00.000Z",
+          };
+        },
+      }
+    );
+
+    assert.equal(response.status, 200);
+    const data = await response.json();
+    assert.equal(data.config.geo_enrichment_enabled, false);
+    assert.equal(data.notificationSyncFailuresByCause[0].cause, "save_failed");
+    assert.equal(data.notificationSyncFailureTrend[0].cause, "save_failed");
+    assert.equal(typeof data.generatedAt, "string");
+    assert.deepEqual(calls.events, [
+      {
+        includeAutomation: true,
+        startDate: "2026-06-01",
+        endDate: "2026-06-30",
+      },
+    ]);
+  } finally {
+    process.env.ANALYTICS_ADMIN_SECRET = previousSecret;
+  }
+});
+
+test("notification subscribe route returns sign-in required when the session is missing", async () => {
+  const response = await postNotificationSubscription(
+    jsonRequest("http://localhost/api/notifications/subscribe", {
+      subscription: {
+        endpoint: "https://push.example.test/endpoint",
+        keys: {
+          p256dh: "p256dh",
+          auth: "auth",
+        },
+      },
+    }),
+    {
+      isPushConfigured: () => true,
+      requireUser: async () => {
+        throw new Error("UNAUTHORIZED");
+      },
+      readJsonBody: async () => ({ ok: true, data: {} }),
+      headers: async () => new Headers(),
+      run: async () => {
+        throw new Error("should not run");
+      },
+      consoleError: () => undefined,
+    }
+  );
+
+  assert.equal(response.status, 401);
+  assert.deepEqual(await response.json(), {
+    errorCode: "sign_in_required",
+    error: "Sign in to enable notifications.",
+  });
+});
+
+test("notification subscribe route returns save_failed when the database write throws", async () => {
+  const response = await postNotificationSubscription(
+    jsonRequest("http://localhost/api/notifications/subscribe", {
+      subscription: {
+        endpoint: "https://push.example.test/endpoint",
+        keys: {
+          p256dh: "p256dh",
+          auth: "auth",
+        },
+      },
+      preferredHour: 8,
+      preferredLocalHour: 8,
+      preferredTimezone: "Europe/Berlin",
+      timezoneMode: "auto",
+      deliveryStrategy: "morning",
+    }),
+    {
+      isPushConfigured: () => true,
+      requireUser: async () => ({
+        id: "user-1",
+        name: "Jordan",
+        email: "jordan@example.com",
+        avatarUrl: null,
+        loginCount: 1,
+        lastSeenAt: null,
+        createdAt: "2026-07-01T00:00:00.000Z",
+      }),
+      readJsonBody: async () => ({
+        ok: true,
+        data: {
+          subscription: {
+            endpoint: "https://push.example.test/endpoint",
+            keys: {
+              p256dh: "p256dh",
+              auth: "auth",
+            },
+          },
+          preferredHour: 8,
+          preferredLocalHour: 8,
+          preferredTimezone: "Europe/Berlin",
+          timezoneMode: "auto",
+          deliveryStrategy: "morning",
+        },
+      }),
+      headers: async () => new Headers({ "user-agent": "Mozilla/5.0" }),
+      run: async () => {
+        throw new Error("database unavailable");
+      },
+      consoleError: () => undefined,
+    }
+  );
+
+  assert.equal(response.status, 500);
+  assert.deepEqual(await response.json(), {
+    errorCode: "save_failed",
+    error: "Notification subscription could not be saved.",
+  });
+});
+
+test("notification subscribe route marks subscriptions as freshly verified on save", async () => {
+  const calls = createCallLog();
+  const response = await postNotificationSubscription(
+    jsonRequest("http://localhost/api/notifications/subscribe", {
+      subscription: {
+        endpoint: "https://push.example.test/endpoint",
+        keys: {
+          p256dh: "p256dh",
+          auth: "auth",
+        },
+      },
+      preferredHour: 9,
+      preferredLocalHour: 10,
+      preferredTimezone: "Europe/Berlin",
+      timezoneMode: "manual",
+      deliveryStrategy: "evening",
+    }),
+    {
+      isPushConfigured: () => true,
+      requireUser: async () => ({
+        id: "user-1",
+        name: "Jordan",
+        email: "jordan@example.com",
+        avatarUrl: null,
+        loginCount: 1,
+        lastSeenAt: null,
+        createdAt: "2026-07-01T00:00:00.000Z",
+      }),
+      readJsonBody: async () => ({
+        ok: true,
+        data: {
+          subscription: {
+            endpoint: "https://push.example.test/endpoint",
+            keys: {
+              p256dh: "p256dh",
+              auth: "auth",
+            },
+          },
+          preferredHour: 9,
+          preferredLocalHour: 10,
+          preferredTimezone: "Europe/Berlin",
+          timezoneMode: "manual",
+          deliveryStrategy: "evening",
+        },
+      }),
+      headers: async () => new Headers({ "user-agent": "Mozilla/5.0" }),
+      run: async (sql, ...params) => {
+        calls.runs.push({ sql, params });
+      },
+      consoleError: () => undefined,
+    }
+  );
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), { ok: true });
+  assert.equal(calls.runs.length, 3);
+  assert.match(calls.runs[0].sql, /last_verified_at/);
+  assert.equal(calls.runs[0].params.at(-3), calls.runs[0].params.at(-2));
+  assert.equal(calls.runs[0].params.at(-2), calls.runs[0].params.at(-1));
+});
+
+test("push notification retry helper uses exponential backoff and retries transient failures", async () => {
+  const originalRandom = Math.random;
+  const originalSetTimeout = globalThis.setTimeout;
+  const originalSendNotification = webpush.sendNotification;
+  const delays = [];
+  let calls = 0;
+
+  Math.random = () => 0.5;
+  globalThis.setTimeout = ((callback, delay, ...args) => {
+    delays.push(delay);
+    return originalSetTimeout(callback, 0, ...args);
+  });
+  webpush.sendNotification = async () => {
+    calls += 1;
+    if (calls === 1) {
+      throw new Error("timeout");
+    }
+    return undefined;
+  };
+
+  try {
+    assert.equal(calculatePushRetryDelayMs(0), 800);
+    assert.equal(calculatePushRetryDelayMs(1), 800);
+    assert.equal(calculatePushRetryDelayMs(2), 1600);
+
+    await sendNotificationWithRetry(
+      {
+        endpoint: "https://push.example.test/endpoint",
+        keys: {
+          p256dh: "p256dh",
+          auth: "auth",
+        },
+      },
+      "{\"title\":\"Retry test\"}"
+    );
+
+    assert.equal(calls, 2);
+    assert.ok(delays.includes(800));
+  } finally {
+    Math.random = originalRandom;
+    globalThis.setTimeout = originalSetTimeout;
+    webpush.sendNotification = originalSendNotification;
+  }
 });

@@ -694,7 +694,6 @@
     "trustedVoices": "الأصوات الموثوقة",
     "counselCircleSummary": "الدعوات الخاصة وعناصر التحكم في المشاركة واضحة. لا أحد يرى الدردشات أو المجلات أو القرارات ما لم تتم مشاركتها. ",
     "counselCircleSummaryShort": "ادعُ الأصوات الموثوقة مع مشاركة واضحة.",
-
     "sharedWithYou": "مشاركة معك",
     "sharedByYou": "مشاركة منك",
     "openSharedDecision": "فتح تفاصيل القرار",
@@ -2350,5 +2349,11 @@
   "loading": "تحميل…",
   "viewThread": "عرض المحادثة",
   "thread": "المحادثة",
-  "threadNoActivity": "لا توجد أنشطة في هذه المحادثة بعد."
+  "threadNoActivity": "لا توجد أنشطة في هذه المحادثة بعد.",
+  "internalAnalytics": {
+    "notificationSyncFailureTitle": "معدلات فشل مزامنة الإشعارات",
+    "notificationSyncFailureBody": "تُجمَّع رموز خطأ الخادم الدقيقة عبر الوقت لتتضح لك الأسباب التي تقود فشل المزامنة.",
+    "unknownCause": "سبب غير معروف",
+    "noNotificationSyncFailures": "لا توجد حالات فشل مزامنة للإشعارات حتى الآن."
+  }
 }

@@ -328,6 +328,9 @@
     "notificationKeyMissingBody": "The server did not provide a VAPID public key.",
     "notificationSyncFailed": "Notification sync failed",
     "notificationSyncFailedBody": "Permission was granted, but the subscription could not be saved.",
+    "notificationSyncFailedSignInBody": "Your sign-in expired before Aletheia could save this device.",
+    "notificationSyncFailedInvalidBody": "The browser sent an invalid push subscription. Reload and try again.",
+    "notificationSyncFailedServerBody": "The server could not save this subscription right now. Please try again.",
     "notificationSetupFailed": "Notification setup failed",
     "notificationSetupFailedBody": "Aletheia could not finish device subscription. Please try again.",
     "notificationsEnabled": "Notifications enabled",
@@ -599,7 +602,11 @@
     "showingTopBlockers": "Showing the top 30 users with blockers.",
     "showingAllBlockers": "Showing all users with blockers.",
     "noNotificationReportRows": "No notification report rows yet.",
-    "reportUnavailable": "Notification delivery report unavailable. Load the dashboard again to retry."
+    "reportUnavailable": "Notification delivery report unavailable. Load the dashboard again to retry.",
+    "notificationSyncFailureTitle": "Notification Sync Failure Rates",
+    "notificationSyncFailureBody": "Exact server error codes are grouped over time so you can see which causes are driving sync failures.",
+    "unknownCause": "Unknown cause",
+    "noNotificationSyncFailures": "No notification sync failures yet."
   },
   "status": {
     "guestMode": "Guest mode is active. Sign in to keep your history synced.",
@@ -859,7 +866,6 @@
     "trustedVoices": "trusted voices",
     "counselCircleSummary": "Private invites and sharing controls are explicit. No one sees chats, journals, or decisions unless shared.",
     "counselCircleSummaryShort": "Invite trusted voices with explicit sharing.",
-
     "sharedWithYou": "Shared with you",
     "sharedByYou": "Shared by you",
     "openSharedDecision": "Open decision details",
