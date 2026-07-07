@@ -101,8 +101,8 @@ export async function postNotificationSubscription(
     await deps.run(
       `INSERT INTO push_subscriptions (
         id, user_id, endpoint, p256dh, auth, user_agent, enabled, preferred_hour,
-        preferred_local_hour, preferred_timezone, timezone_mode, delivery_strategy, last_verified_at, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, TRUE, ?, ?, ?, ?, ?, ?, ?, ?)
+        preferred_local_hour, preferred_timezone, timezone_mode, delivery_strategy, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, TRUE, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT (endpoint)
       DO UPDATE SET
         user_id = EXCLUDED.user_id,
@@ -115,7 +115,6 @@ export async function postNotificationSubscription(
         preferred_timezone = EXCLUDED.preferred_timezone,
         timezone_mode = EXCLUDED.timezone_mode,
         delivery_strategy = EXCLUDED.delivery_strategy,
-        last_verified_at = EXCLUDED.last_verified_at,
         updated_at = EXCLUDED.updated_at`,
       crypto.randomUUID(),
       user.id,
@@ -128,7 +127,6 @@ export async function postNotificationSubscription(
       preferredTimezone,
       timezoneMode,
       deliveryStrategy,
-      now,
       now,
       now
     );

@@ -14,7 +14,7 @@ type ReportRow = {
   last_sent_at: string | null;
   last_gratitude_sent_at: string | null;
   last_challenge_notified_at: string | null;
-  last_verified_at: string | null;
+  updated_at: string | null;
   failure_count: string | number;
   comment_no_recipient_row_count: string | number;
   nudge_no_recipient_row_count: string | number;
@@ -199,7 +199,7 @@ export async function getNotificationDeliveryReport(lookbackDays = 30): Promise<
               last_sent_at,
               last_gratitude_sent_at,
               last_challenge_notified_at,
-              last_verified_at
+              updated_at
        FROM push_subscriptions
        WHERE enabled = TRUE
        ORDER BY user_id, updated_at DESC, created_at DESC
@@ -305,7 +305,7 @@ export async function getNotificationDeliveryReport(lookbackDays = 30): Promise<
       lastSentAt: row.last_challenge_notified_at,
       currentDate,
     });
-    const lastRefreshedAt = row.last_verified_at ?? null;
+    const lastRefreshedAt = row.updated_at ?? null;
     const refreshDueAt = lastRefreshedAt ? addHours(lastRefreshedAt, 24) : null;
     const refreshDue = hasActiveSubscription && (!lastRefreshedAt || (refreshDueAt ? currentDate.getTime() >= Date.parse(refreshDueAt) : true));
 

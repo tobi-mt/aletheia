@@ -19,6 +19,7 @@ if (!connectionString) {
 const globalForDb = globalThis as unknown as {
   aletheiaPool?: Pool;
   aletheiaDbReady?: Promise<void>;
+  aletheiaPushSubscriptionSchemaReady?: Promise<void>;
 };
 
 function poolConfig(url: string) {
@@ -674,12 +675,28 @@ async function initializeDatabase() {
   }
 }
 
+async function ensurePushSubscriptionSchema() {
+  await withDbRetry("notification schema", () =>
+    pool.query(`
+    ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS preferred_local_hour INTEGER NOT NULL DEFAULT 8;
+    ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS preferred_timezone TEXT NOT NULL DEFAULT 'UTC';
+    ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS timezone_mode TEXT NOT NULL DEFAULT 'auto';
+    ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS delivery_strategy TEXT NOT NULL DEFAULT 'morning';
+    ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS last_gratitude_sent_at TIMESTAMPTZ;
+    ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS last_challenge_notified_at TIMESTAMPTZ;
+    ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS last_verified_at TIMESTAMPTZ;
+  `)
+  );
+}
+
 export async function ensureDbReady() {
-  if (!shouldBootstrapDatabase) {
-    return;
+  if (shouldBootstrapDatabase) {
+    globalForDb.aletheiaDbReady ??= initializeDatabase();
+    return globalForDb.aletheiaDbReady;
   }
-  globalForDb.aletheiaDbReady ??= initializeDatabase();
-  return globalForDb.aletheiaDbReady;
+
+  globalForDb.aletheiaPushSubscriptionSchemaReady ??= ensurePushSubscriptionSchema();
+  return globalForDb.aletheiaPushSubscriptionSchemaReady;
 }
 
 async function queryWithRetry<T extends QueryResultRow>(

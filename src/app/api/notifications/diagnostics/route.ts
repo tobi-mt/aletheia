@@ -19,7 +19,6 @@ type DiagnosticsRow = {
   last_sent_at: string | null;
   last_gratitude_sent_at: string | null;
   last_challenge_notified_at: string | null;
-  last_verified_at: string | null;
 };
 
 type DiagnosticsStatus = "before_window" | "already_sent_today" | "subscription_stale" | null;
@@ -98,7 +97,7 @@ function latestActivityAt(row: DiagnosticsRow) {
 }
 
 function latestRefreshAt(row: DiagnosticsRow) {
-  return row.last_verified_at ?? null;
+  return row.updated_at ?? null;
 }
 
 function localHourForTimezone(date: Date, timezone: string | null | undefined) {
@@ -189,14 +188,14 @@ export async function getNotificationDiagnosticsRoute(
       isAdminRequest
         ? deps.many<DiagnosticsRow>(
             `SELECT id, endpoint, preferred_local_hour, preferred_timezone, timezone_mode, delivery_strategy,
-                    updated_at, last_sent_at, last_gratitude_sent_at, last_challenge_notified_at, last_verified_at
+                    updated_at, last_sent_at, last_gratitude_sent_at, last_challenge_notified_at
              FROM push_subscriptions
              WHERE enabled = TRUE
              ORDER BY updated_at DESC`
           )
         : deps.many<DiagnosticsRow>(
             `SELECT id, endpoint, preferred_local_hour, preferred_timezone, timezone_mode, delivery_strategy,
-                    updated_at, last_sent_at, last_gratitude_sent_at, last_challenge_notified_at, last_verified_at
+                    updated_at, last_sent_at, last_gratitude_sent_at, last_challenge_notified_at
              FROM push_subscriptions
              WHERE user_id = ? AND enabled = TRUE
              ORDER BY updated_at DESC`,

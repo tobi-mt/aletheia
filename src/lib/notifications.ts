@@ -1228,10 +1228,8 @@ async function markPushSubscriptionFreshness(rowId: string, deliveredAt: string,
     await run(
       `UPDATE push_subscriptions
        SET ${lastSentColumn} = ?,
-           last_verified_at = ?,
            updated_at = ?
        WHERE id = ?`,
-      deliveredAt,
       deliveredAt,
       deliveredAt,
       rowId
@@ -1241,10 +1239,8 @@ async function markPushSubscriptionFreshness(rowId: string, deliveredAt: string,
 
   await run(
     `UPDATE push_subscriptions
-     SET last_verified_at = ?,
-         updated_at = ?
+     SET updated_at = ?
      WHERE id = ?`,
-    deliveredAt,
     deliveredAt,
     rowId
   );

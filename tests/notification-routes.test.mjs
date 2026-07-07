@@ -316,7 +316,6 @@ test("notification diagnostics exposes freshness and refresh due for active subs
           last_sent_at: "2026-07-06T08:30:00.000Z",
           last_gratitude_sent_at: null,
           last_challenge_notified_at: null,
-          last_verified_at: "2026-07-06T09:00:00.000Z",
         },
       ];
     },
@@ -629,8 +628,8 @@ test("notification subscribe route marks subscriptions as freshly verified on sa
   assert.equal(response.status, 200);
   assert.deepEqual(await response.json(), { ok: true });
   assert.equal(calls.runs.length, 3);
-  assert.match(calls.runs[0].sql, /last_verified_at/);
-  assert.equal(calls.runs[0].params.at(-3), calls.runs[0].params.at(-2));
+  assert.doesNotMatch(calls.runs[0].sql, /last_verified_at/);
+  assert.equal(calls.runs[0].params.at(-3), "evening");
   assert.equal(calls.runs[0].params.at(-2), calls.runs[0].params.at(-1));
 });
 
