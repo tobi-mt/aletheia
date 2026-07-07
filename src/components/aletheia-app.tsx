@@ -24152,15 +24152,11 @@ function NotificationPanel({
           </span>
         </div>
 
-        <div className="mt-3 grid gap-2">
+        <div className="mt-3 divide-y" style={{ borderColor: theme.borderLight }}>
           {notificationHealthRows.map((item) => (
             <div
               key={item.label}
-              className="rounded-[0.85rem] border px-3 py-2"
-              style={{
-                borderColor: item.tone === "good" ? theme.borderLight : item.tone === "warn" ? "#e2c07d" : "#d8c0b3",
-                backgroundColor: theme.bgCard,
-              }}
+              className="py-3 first:pt-0 last:pb-0"
             >
               <div className="flex items-start justify-between gap-3">
                 <p className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
@@ -24176,7 +24172,7 @@ function NotificationPanel({
             </div>
           ))}
 
-          <div className="rounded-[0.85rem] border px-3 py-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+          <div className="py-3 first:pt-0 last:pb-0">
             <div className="flex items-start justify-between gap-3">
               <p className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
                 {ts("notifications.subscriptionLabel")}
