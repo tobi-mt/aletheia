@@ -7928,6 +7928,86 @@ export function AletheiaApp({
   const keyboardOpenRef = useRef(false);
   const notificationFocusHandledRef = useRef(false);
   const notificationSelfHealInFlightRef = useRef(false);
+  type NotificationLaunchRoute = NonNullable<ReturnType<typeof parseNotificationLaunchUrl>>;
+
+  const applyNotificationRoute = useEffectEvent((notificationRoute: NotificationLaunchRoute) => {
+    setShowOnboarding(false);
+    if (notificationRoute.focus === "decision" && notificationRoute.decisionId) {
+      setActiveView("decisions", "notification_click");
+      setStatusMessage(ts('status.decisionReminderReady'));
+      announceWorkflow(
+        ts('notifications.decisionReminderReady'),
+        ts('notifications.decisionReminderReadyBody'),
+        "success"
+      );
+
+      if (notificationRoute.notificationKind === "counsel_comment" || notificationRoute.notificationKind === "counsel_decision_shared") {
+        setPendingCounselThreadTarget({
+          sharedDecisionId: notificationRoute.sharedDecisionId ?? notificationRoute.decisionId,
+          contactId: notificationRoute.contactId,
+          surface: notificationRoute.surface === "outgoing" ? "outgoing" : "incoming",
+          focusComposer: notificationRoute.open === "comment" || notificationRoute.notificationKind === "counsel_comment",
+        });
+      } else {
+        setPendingDecisionNotificationFocus(notificationRoute.decisionId);
+        if (notificationRoute.section === "share") {
+          setPendingDecisionShareSurfaceFocusContactId(notificationRoute.contactId);
+        }
+      }
+      return;
+    }
+
+    if (notificationRoute.focus === "reflect") {
+      setActiveView("reflect", "notification_click");
+      setStatusMessage(ts('status.reflectionReminderReady'));
+      announceWorkflow(
+        ts('notifications.reflectionReminderReady'),
+        ts('notifications.reflectionReminderReadyBody'),
+        "success"
+      );
+      return;
+    }
+
+    if (notificationRoute.focus === "gratitude") {
+      setActiveView("reflect", "notification_click");
+      setStatusMessage(ts('status.gratitudeReminderReady'));
+      announceWorkflow(
+        ts('notifications.gratitudeReminderReady'),
+        ts('notifications.gratitudeReminderReadyBody'),
+        "success"
+      );
+      setPendingGratitudeNotificationFocus(true);
+      return;
+    }
+
+    if (notificationRoute.focus === "challenge") {
+      setActiveView("reflect", "notification_click");
+      if (notificationRoute.challengeId) {
+        setPendingChallengeId(notificationRoute.challengeId);
+      }
+      if (notificationRoute.section === "nudges") {
+        setPendingChallengeFocus("nudges");
+      }
+      return;
+    }
+
+    if (notificationRoute.focus === "library") {
+      setActiveView("library", "notification_click");
+      setStatusMessage(ts('status.libraryWisdomReady'));
+      announceWorkflow(
+        ts('notifications.libraryWisdomReady'),
+        ts('notifications.libraryWisdomReadyBody'),
+        "success"
+      );
+      return;
+    }
+
+    setActiveView("companion", "notification_click");
+    setHomeSection("today", "notification_click");
+    setStatusMessage(ts('status.todayWisdomReady'));
+    announceWorkflow(ts('notifications.todayWisdomReady'), ts('notifications.todayWisdomReadyBody'), "success");
+    setPendingNotificationFocus(true);
+  });
 
   // Hydration-safe restore of client-only persisted state.
   useEffect(() => {
@@ -8627,73 +8707,10 @@ export function AletheiaApp({
 
     notificationFocusHandledRef.current = true;
     window.requestAnimationFrame(() => {
-      setShowOnboarding(false);
-      if (notificationRoute.focus === "decision" && notificationRoute.decisionId) {
-        setActiveView("decisions", "notification_click");
-        setStatusMessage(ts('status.decisionReminderReady'));
-        announceWorkflow(
-          ts('notifications.decisionReminderReady'),
-          ts('notifications.decisionReminderReadyBody'),
-          "success"
-        );
-        setPendingDecisionNotificationFocus(notificationRoute.decisionId);
-        if (notificationRoute.section === "share") {
-          setPendingDecisionShareSurfaceFocusContactId(notificationRoute.contactId);
-        }
-        if (
-          notificationRoute.notificationKind === "counsel_comment" ||
-          notificationRoute.notificationKind === "counsel_decision_shared"
-        ) {
-          setPendingCounselThreadTarget({
-            sharedDecisionId: notificationRoute.sharedDecisionId ?? notificationRoute.decisionId,
-            contactId: notificationRoute.contactId,
-            surface: notificationRoute.surface === "outgoing" ? "outgoing" : "incoming",
-            focusComposer: notificationRoute.open === "comment" || notificationRoute.notificationKind === "counsel_comment",
-          });
-        }
-      } else if (notificationRoute.focus === "reflect") {
-        setActiveView("reflect", "notification_click");
-        setStatusMessage(ts('status.reflectionReminderReady'));
-        announceWorkflow(
-          ts('notifications.reflectionReminderReady'),
-          ts('notifications.reflectionReminderReadyBody'),
-          "success"
-        );
-      } else if (notificationRoute.focus === "gratitude") {
-        setActiveView("reflect", "notification_click");
-        setStatusMessage(ts('status.gratitudeReminderReady'));
-        announceWorkflow(
-          ts('notifications.gratitudeReminderReady'),
-          ts('notifications.gratitudeReminderReadyBody'),
-          "success"
-        );
-        setPendingGratitudeNotificationFocus(true);
-      } else if (notificationRoute.focus === "challenge") {
-        setActiveView("reflect", "notification_click");
-        if (notificationRoute.challengeId) {
-          setPendingChallengeId(notificationRoute.challengeId);
-        }
-        if (notificationRoute.section === "nudges") {
-          setPendingChallengeFocus("nudges");
-        }
-      } else if (notificationRoute.focus === "library") {
-        setActiveView("library", "notification_click");
-        setStatusMessage(ts('status.libraryWisdomReady'));
-        announceWorkflow(
-          ts('notifications.libraryWisdomReady'),
-          ts('notifications.libraryWisdomReadyBody'),
-          "success"
-        );
-      } else {
-        setActiveView("companion", "notification_click");
-        setHomeSection("today", "notification_click");
-        setStatusMessage(ts('status.todayWisdomReady'));
-        announceWorkflow(ts('notifications.todayWisdomReady'), ts('notifications.todayWisdomReadyBody'), "success");
-        setPendingNotificationFocus(true);
-      }
+      applyNotificationRoute(notificationRoute);
       window.history.replaceState({}, "", window.location.pathname);
     });
-  }, [announceWorkflow, clientStateRestored, setActiveView, setHomeSection, ts]);
+  }, [clientStateRestored]);
 
   useEffect(() => {
     if (!pendingGratitudeNotificationFocus || activeView !== "reflect" || showOnboarding) {
@@ -8828,8 +8845,14 @@ export function AletheiaApp({
           return;
         }
 
-        notificationFocusHandledRef.current = false;
-        window.location.assign(targetUrl.toString());
+        const notificationRoute = parseNotificationLaunchUrl(targetUrl.toString());
+        if (!notificationRoute) {
+          return;
+        }
+
+        notificationFocusHandledRef.current = true;
+        applyNotificationRoute(notificationRoute);
+        window.history.replaceState({}, "", window.location.pathname);
       } catch {
         // Ignore malformed notification payloads.
       }
