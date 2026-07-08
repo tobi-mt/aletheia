@@ -98,6 +98,7 @@ export async function postSharedDecisionComment(
     senderName: user.name ?? null,
     body: message,
     targetUserIds: recipients.map((recipient) => recipient.recipient_user_id),
+    surface: "incoming",
   }).catch(() => null);
 
   return NextResponse.json({

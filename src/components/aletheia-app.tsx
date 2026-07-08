@@ -117,6 +117,7 @@ import {
 import type { ChallengeRecommendationBundle } from "@/lib/challenge-recommendations";
 import { BUILD_ID, SERVICE_WORKER_URL } from "@/lib/build-version";
 import { NATIVE_WEB_BUNDLE, getPublicAppOrigin, installNativeWebFetchProxy } from "@/lib/native-web";
+import { notificationUrlFromData, parseNotificationLaunchUrl } from "@/lib/notification-routing";
 import { loadTranslationsSync, loadTranslationsWithFallbackSync, getTranslation, type TranslationData } from "@/lib/translations";
 import { ManagedAudio } from "@/lib/native-audio";
 import BibleReader from "@/components/bible-reader";
@@ -7825,6 +7826,12 @@ export function AletheiaApp({
   const [pendingDecisionNotificationFocus, setPendingDecisionNotificationFocus] = useState<string | null>(null);
   const [pendingDecisionComposerFocus, setPendingDecisionComposerFocus] = useState<"title" | "pressure" | null>(null);
   const [pendingDecisionShareSurfaceFocusContactId, setPendingDecisionShareSurfaceFocusContactId] = useState<string | null>(null);
+  const [pendingCounselThreadTarget, setPendingCounselThreadTarget] = useState<{
+    sharedDecisionId: string;
+    contactId: string | null;
+    surface: "incoming" | "outgoing";
+    focusComposer: boolean;
+  } | null>(null);
   const [pendingChallengeId, setPendingChallengeId] = useState<string | null>(null);
   const [pendingChallengeFocus, setPendingChallengeFocus] = useState<"nudges" | null>(null);
   const appOpenedAtRef = useRef<number>(Date.now());
@@ -8613,20 +8620,15 @@ export function AletheiaApp({
       return;
     }
 
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("source") !== "notification") {
-      return;
-    }
-    const focus = params.get("focus");
-    const decisionId = params.get("decisionId");
-    if (focus !== "today" && focus !== "reflect" && focus !== "gratitude" && focus !== "library" && !(focus === "decision" && decisionId) && focus !== "challenge") {
+    const notificationRoute = parseNotificationLaunchUrl(window.location.href);
+    if (!notificationRoute) {
       return;
     }
 
     notificationFocusHandledRef.current = true;
     window.requestAnimationFrame(() => {
       setShowOnboarding(false);
-      if (focus === "decision" && decisionId) {
+      if (notificationRoute.focus === "decision" && notificationRoute.decisionId) {
         setActiveView("decisions", "notification_click");
         setStatusMessage(ts('status.decisionReminderReady'));
         announceWorkflow(
@@ -8634,11 +8636,22 @@ export function AletheiaApp({
           ts('notifications.decisionReminderReadyBody'),
           "success"
         );
-        setPendingDecisionNotificationFocus(decisionId);
-        if (params.get("section") === "share") {
-          setPendingDecisionShareSurfaceFocusContactId(params.get("contactId"));
+        setPendingDecisionNotificationFocus(notificationRoute.decisionId);
+        if (notificationRoute.section === "share") {
+          setPendingDecisionShareSurfaceFocusContactId(notificationRoute.contactId);
         }
-      } else if (focus === "reflect") {
+        if (
+          notificationRoute.notificationKind === "counsel_comment" ||
+          notificationRoute.notificationKind === "counsel_decision_shared"
+        ) {
+          setPendingCounselThreadTarget({
+            sharedDecisionId: notificationRoute.sharedDecisionId ?? notificationRoute.decisionId,
+            contactId: notificationRoute.contactId,
+            surface: notificationRoute.surface === "outgoing" ? "outgoing" : "incoming",
+            focusComposer: notificationRoute.open === "comment" || notificationRoute.notificationKind === "counsel_comment",
+          });
+        }
+      } else if (notificationRoute.focus === "reflect") {
         setActiveView("reflect", "notification_click");
         setStatusMessage(ts('status.reflectionReminderReady'));
         announceWorkflow(
@@ -8646,7 +8659,7 @@ export function AletheiaApp({
           ts('notifications.reflectionReminderReadyBody'),
           "success"
         );
-      } else if (focus === "gratitude") {
+      } else if (notificationRoute.focus === "gratitude") {
         setActiveView("reflect", "notification_click");
         setStatusMessage(ts('status.gratitudeReminderReady'));
         announceWorkflow(
@@ -8655,17 +8668,15 @@ export function AletheiaApp({
           "success"
         );
         setPendingGratitudeNotificationFocus(true);
-      } else if (focus === "challenge") {
-        const challengeId = params.get("challenge");
-        const section = params.get("section");
+      } else if (notificationRoute.focus === "challenge") {
         setActiveView("reflect", "notification_click");
-        if (challengeId) {
-          setPendingChallengeId(challengeId);
+        if (notificationRoute.challengeId) {
+          setPendingChallengeId(notificationRoute.challengeId);
         }
-        if (section === "nudges") {
+        if (notificationRoute.section === "nudges") {
           setPendingChallengeFocus("nudges");
         }
-      } else if (focus === "library") {
+      } else if (notificationRoute.focus === "library") {
         setActiveView("library", "notification_click");
         setStatusMessage(ts('status.libraryWisdomReady'));
         announceWorkflow(
@@ -8806,7 +8817,7 @@ export function AletheiaApp({
       }
 
       const data = notification.notification?.data;
-      const rawUrl = typeof data?.url === "string" ? data.url : null;
+      const rawUrl = typeof data?.url === "string" ? data.url : notificationUrlFromData(data ?? null);
       if (!rawUrl) {
         return;
       }
@@ -13722,6 +13733,8 @@ function startFirstRunGuestFlow() {
                       onPendingDecisionComposerFocusHandled={() => setPendingDecisionComposerFocus(null)}
                       pendingDecisionShareSurfaceFocusContactId={pendingDecisionShareSurfaceFocusContactId}
                       onPendingDecisionShareSurfaceFocusHandled={() => setPendingDecisionShareSurfaceFocusContactId(null)}
+                      pendingCounselThreadTarget={pendingCounselThreadTarget}
+                      onPendingCounselThreadTargetHandled={() => setPendingCounselThreadTarget(null)}
                       onRemoveCounselContact={removeCounselContact}
                       onAddRule={addRuleOfLife}
                       theme={theme}
@@ -17366,7 +17379,6 @@ function AccountPanel({
               availableVoices={availableVoices}
               selectedVoice={selectedVoice}
               user={user}
-              onRequestSignIn={() => setAuthMode("login")}
               focusIntentions={focusIntentions}
               onPreferenceChange={onPreferenceChange}
               onThemePreferenceChange={onThemePreferenceChange}
@@ -17412,60 +17424,69 @@ function AccountPanel({
 
       {accountSection === "privacy" ? (
         <div className="space-y-4">
-          <ManualContextPanel
+          <AccountFlatSection
             theme={theme}
-            ts={ts}
-            user={user}
-            preferences={preferences}
-            context={manualContext}
-            status={manualContextStatus}
-            onPreferenceChange={onPreferenceChange}
-            onChange={onManualContextChange}
-          />
+            eyebrow={ts('labels.accountPreferencesEyebrow')}
+            summary={ts('labels.accountPreferencesSummary')}
+            icon={ShieldCheck}
+          >
+            <ManualContextPanel
+              theme={theme}
+              ts={ts}
+              user={user}
+              preferences={preferences}
+              context={manualContext}
+              status={manualContextStatus}
+              onPreferenceChange={onPreferenceChange}
+              onChange={onManualContextChange}
+            />
+          </AccountFlatSection>
 
-          <TrustCenterCard
+          <AccountFlatSection
             theme={theme}
-            ts={ts}
-            user={user}
-            hasLocalWorkspaceData={hasLocalWorkspaceData}
-            onClearLocalPersonalization={onClearLocalPersonalization}
-            onClearGuestWorkspace={onClearGuestWorkspace}
-            onExportData={onExportData}
-            onRequestDeleteAccount={onRequestDeleteAccount}
-            accountActionBusy={accountActionBusy}
-          />
+            eyebrow={ts('labels.trustCenterTitle')}
+            summary={ts('labels.accountTrustPostureSummary')}
+            icon={ShieldCheck}
+          >
+            <TrustCenterCard
+              theme={theme}
+              ts={ts}
+              user={user}
+              hasLocalWorkspaceData={hasLocalWorkspaceData}
+              onClearLocalPersonalization={onClearLocalPersonalization}
+              onClearGuestWorkspace={onClearGuestWorkspace}
+              onExportData={onExportData}
+              onRequestDeleteAccount={onRequestDeleteAccount}
+              accountActionBusy={accountActionBusy}
+            />
+          </AccountFlatSection>
         </div>
       ) : null}
 
       {accountSection === "share" ? (
-        <div className="flex flex-col gap-4">
-          <DisclosureSection
-            title={ts('share.accountShareTitle')}
-            summary={ts('share.accountShareSummary')}
-            eyebrow={ts('share.accountShareEyebrow')}
-            compactCollapsed
-            showDetailsLabel={text.showDetails}
-            hideDetailsLabel={text.hideDetails}
+        <div className="space-y-4">
+          <AccountFlatSection
             theme={theme}
+            eyebrow={ts('share.accountShareEyebrow')}
+            summary={ts('share.accountShareSummary')}
+            icon={Share2}
           >
             <AccountShareCard
               theme={theme}
               ts={ts}
+              compact
               onShare={(channel) => onShare(channel, "account")}
             />
-          </DisclosureSection>
+          </AccountFlatSection>
 
-          <DisclosureSection
-            title={ts('supportMission.title')}
-            summary={ts('supportMission.summary')}
-            eyebrow={ts('supportMission.eyebrow')}
-            compactCollapsed
-            showDetailsLabel={text.showDetails}
-            hideDetailsLabel={text.hideDetails}
+          <AccountFlatSection
             theme={theme}
+            eyebrow={ts('supportMission.eyebrow')}
+            summary={ts('supportMission.summary')}
+            icon={HandHeart}
           >
-            <SupportMissionCard theme={theme} ts={ts} />
-          </DisclosureSection>
+            <SupportMissionCard theme={theme} ts={ts} compact />
+          </AccountFlatSection>
         </div>
       ) : null}
 
@@ -17654,9 +17675,11 @@ function AccountHeaderStat({
 function AccountSettingRow({
   icon: Icon,
   label,
+  body,
   currentValue,
   control,
   theme,
+  variant = "card",
 }: {
   icon: typeof Globe2;
   label: string;
@@ -17664,8 +17687,47 @@ function AccountSettingRow({
   currentValue: string;
   control: ReactNode;
   theme: ThemeColors;
+  variant?: "card" | "flat";
 }) {
   const [open, setOpen] = useState(false);
+
+  if (variant === "flat") {
+    return (
+      <div className="border-t px-4 py-3 first:border-t-0 sm:px-5">
+        <button
+          type="button"
+          onClick={() => setOpen((value) => !value)}
+          className="flex w-full items-start gap-3 text-left transition"
+          aria-expanded={open}
+        >
+          <span className="grid size-[1.625rem] shrink-0 place-items-center rounded-full border sm:size-[1.875rem]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
+            <Icon size={14} />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-[12.5px] font-semibold leading-5 sm:text-sm" style={{ color: theme.textPrimary }}>
+              {label}
+            </span>
+            <span className="mt-0.5 block text-[11px] leading-5 sm:text-xs" style={{ color: theme.textSecondary }}>
+              {body}
+            </span>
+          </span>
+          <span className="min-w-[3.5rem] shrink-0 text-right sm:min-w-[5.75rem]">
+            <span className="block max-w-[5rem] text-[10px] font-semibold leading-4 sm:max-w-40 sm:text-xs" style={{ color: theme.accentGold }}>
+              {currentValue}
+            </span>
+            <span className="mt-1 inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.08em]" style={{ color: theme.textSecondary }}>
+              <ChevronDown size={12} style={{ transform: open ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 180ms ease" }} />
+            </span>
+          </span>
+        </button>
+        {open ? (
+          <div className="pl-[2.375rem] pt-3 sm:pl-[2.75rem]">
+            {control}
+          </div>
+        ) : null}
+      </div>
+    );
+  }
 
   return (
     <div className="relative editorial-surface premium-tap-card rounded-[1rem] border p-1.5 sm:p-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
@@ -17722,7 +17784,7 @@ function AccountToggleRow({
 }) {
   if (variant === "flat") {
     return (
-      <div className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
+      <div className="flex items-center gap-3 border-t px-4 py-3 first:border-t-0 sm:px-5">
         <span className="grid size-[1.625rem] shrink-0 place-items-center rounded-full border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
           <Icon size={14} />
         </span>
@@ -17835,13 +17897,50 @@ function accountLabel(value: string) {
   return value ? `${value.charAt(0).toLocaleUpperCase()}${value.slice(1)}` : value;
 }
 
+function AccountFlatSection({
+  theme,
+  eyebrow,
+  summary,
+  icon: Icon,
+  children,
+}: {
+  theme: ThemeColors;
+  eyebrow: string;
+  summary: string;
+  icon: typeof Share2;
+  children: ReactNode;
+}) {
+  return (
+    <section className="overflow-hidden rounded-[1.25rem] border shadow-[0_6px_16px_rgba(7,10,8,0.04)]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+      <div className="flex items-start gap-3 p-4 sm:p-5">
+        <div className="grid size-9 shrink-0 place-items-center rounded-full border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
+          <Icon size={16} />
+        </div>
+        <div className="min-w-0">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+            {eyebrow}
+          </p>
+          <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
+            {summary}
+          </p>
+        </div>
+      </div>
+      <div className="border-t p-4 sm:p-5" style={{ borderColor: theme.borderLight }}>
+        {children}
+      </div>
+    </section>
+  );
+}
+
 function AccountShareCard({
   theme,
   ts,
+  compact = false,
   onShare,
 }: {
   theme: ThemeColors;
   ts: (key: string, fallback?: string) => string;
+  compact?: boolean;
   onShare: (channel: ShareChannel) => void;
 }) {
   const shareActions: Array<{ channel: ShareChannel; label: string; icon: typeof Share2 }> = [
@@ -17857,18 +17956,20 @@ function AccountShareCard({
 
   return (
     <section className="space-y-4">
-      <div className="relative editorial-surface rounded-[1rem] border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-        <div className="flex items-start gap-2.5">
-          <div className="grid size-8 shrink-0 place-items-center rounded-md" style={{ backgroundColor: theme.bgInput, color: theme.primary }}>
-            <Share2 size={18} />
-          </div>
-          <div className="min-w-0">
-            <p className="text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>
-              <span>{ts('share.accountShareBodyTitle')}</span>
-            </p>
+      {compact ? null : (
+        <div className="relative editorial-surface rounded-[1rem] border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+          <div className="flex items-start gap-2.5">
+            <div className="grid size-8 shrink-0 place-items-center rounded-md" style={{ backgroundColor: theme.bgInput, color: theme.primary }}>
+              <Share2 size={18} />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>
+                <span>{ts('share.accountShareBodyTitle')}</span>
+              </p>
+            </div>
           </div>
         </div>
-      </div>
+      )}
       <div className="grid gap-2 sm:grid-cols-2">
         {shareActions.map(({ channel, label, icon: Icon }) => (
           <button
@@ -17893,9 +17994,11 @@ function AccountShareCard({
 function SupportMissionCard({
   theme,
   ts,
+  compact = false,
 }: {
   theme: ThemeColors;
   ts: (key: string, fallback?: string) => string;
+  compact?: boolean;
 }) {
   const [impactOpen, setImpactOpen] = useState(false);
   const links = SUPPORT_MISSION_LINKS.filter(({ href }) => /^https?:\/\//.test(href) || /^mailto:/i.test(href));
@@ -17912,81 +18015,83 @@ function SupportMissionCard({
 
   return (
     <section className="space-y-4">
-      <div className="relative editorial-surface overflow-hidden rounded-[1.35rem] border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-        <div className="p-3.5 sm:p-4">
-          <div className="flex items-start gap-3">
-            <div className="grid size-10 shrink-0 place-items-center rounded-lg border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
-              <HandHeart size={18} />
+      {compact ? null : (
+        <div className="relative editorial-surface overflow-hidden rounded-[1.35rem] border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+          <div className="p-3.5 sm:p-4">
+            <div className="flex items-start gap-3">
+              <div className="grid size-10 shrink-0 place-items-center rounded-lg border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
+                <HandHeart size={18} />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('supportMission.eyebrow')}</p>
+                <h3 className="mt-1 text-lg font-semibold sm:text-xl" style={{ color: theme.textPrimary }}>
+                  {ts('supportMission.cardTitle')}
+                </h3>
+                <p className="mt-1 text-sm leading-5" style={{ color: theme.textSecondary }}>
+                  {ts('supportMission.summary')}
+                </p>
+              </div>
             </div>
-            <div className="min-w-0">
-              <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('supportMission.eyebrow')}</p>
-              <h3 className="mt-1 text-lg font-semibold sm:text-xl" style={{ color: theme.textPrimary }}>
-                {ts('supportMission.cardTitle')}
-              </h3>
-              <p className="mt-1 text-sm leading-5" style={{ color: theme.textSecondary }}>
-                {ts('supportMission.summary')}
-              </p>
-            </div>
-          </div>
 
-          <DisclosureSection
-            title={ts('supportMission.impactTitle')}
-            summary={ts('supportMission.impactSummary')}
-            eyebrow={ts('supportMission.eyebrow')}
-            compactCollapsed
-            isOpen={impactOpen}
-            onOpenChange={setImpactOpen}
-            showDetailsLabel={ts('showDetails')}
-            hideDetailsLabel={ts('hideDetails')}
-            theme={theme}
-            className="mt-4"
-          >
-            <div className="grid gap-2">
-              {impactItems.map((item) => (
-                <div key={item} className="rounded-[0.85rem] border p-2.5 text-sm leading-5 shadow-[0_4px_10px_rgba(7,10,8,0.04)]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-                  <span className="flex items-start gap-2">
-                    <Check size={15} className="mt-0.5 shrink-0" style={{ color: theme.accentGold }} />
-                    <span>{item}</span>
-                  </span>
-                </div>
-              ))}
-            </div>
-          </DisclosureSection>
-        </div>
-
-        <div className="border-t p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-          <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{ts('supportMission.chooseMethod')}</p>
-          {links.length ? (
-            <div className="mt-3 grid gap-2 sm:grid-cols-2">
-              {links.map(({ channel, href, labelKey }) => (
-                <a
-                  key={channel}
-                  href={href}
-                  target={href.startsWith("mailto:") ? undefined : "_blank"}
-                  rel={href.startsWith("mailto:") ? undefined : "noreferrer"}
-                  onClick={() => trackSupportClick(channel)}
-                  className="premium-tap-card flex min-h-10 items-center justify-between gap-2.5 rounded-[0.85rem] border px-3 py-2 text-sm font-semibold transition hover:-translate-y-0.5"
-                  style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-                >
-                  <span className="flex min-w-0 items-center gap-3">
-                    <span className="grid size-7 shrink-0 place-items-center rounded-full" style={{ backgroundColor: theme.bgCardElevated, color: theme.primary }}>
-                      {channel === "contact" ? <Mail size={15} /> : <HandHeart size={15} />}
+            <DisclosureSection
+              title={ts('supportMission.impactTitle')}
+              summary={ts('supportMission.impactSummary')}
+              eyebrow={ts('supportMission.eyebrow')}
+              compactCollapsed
+              isOpen={impactOpen}
+              onOpenChange={setImpactOpen}
+              showDetailsLabel={ts('showDetails')}
+              hideDetailsLabel={ts('hideDetails')}
+              theme={theme}
+              className="mt-4"
+            >
+              <div className="grid gap-2">
+                {impactItems.map((item) => (
+                  <div key={item} className="rounded-[0.85rem] border p-2.5 text-sm leading-5 shadow-[0_4px_10px_rgba(7,10,8,0.04)]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+                    <span className="flex items-start gap-2">
+                      <Check size={15} className="mt-0.5 shrink-0" style={{ color: theme.accentGold }} />
+                      <span>{item}</span>
                     </span>
-                    <span className="min-w-0 leading-5">{ts(labelKey)}</span>
-                  </span>
-                  <ExternalLink size={13} className="shrink-0 opacity-70" />
-                </a>
-              ))}
-            </div>
-          ) : (
-            <div className="mt-3 rounded-[1rem] border p-3 text-sm leading-6" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-              {ts('supportMission.notConfigured')}
-            </div>
-          )}
-          <p className="mt-3 text-xs leading-5" style={{ color: theme.textMuted }}>
-            {ts('supportMission.trustNote')}
-          </p>
+                  </div>
+                ))}
+              </div>
+            </DisclosureSection>
+          </div>
         </div>
+      )}
+
+      <div className="border-t p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+        <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{ts('supportMission.chooseMethod')}</p>
+        {links.length ? (
+          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+            {links.map(({ channel, href, labelKey }) => (
+              <a
+                key={channel}
+                href={href}
+                target={href.startsWith("mailto:") ? undefined : "_blank"}
+                rel={href.startsWith("mailto:") ? undefined : "noreferrer"}
+                onClick={() => trackSupportClick(channel)}
+                className="premium-tap-card flex min-h-10 items-center justify-between gap-2.5 rounded-[0.85rem] border px-3 py-2 text-sm font-semibold transition hover:-translate-y-0.5"
+                style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+              >
+                <span className="flex min-w-0 items-center gap-3">
+                  <span className="grid size-7 shrink-0 place-items-center rounded-full" style={{ backgroundColor: theme.bgCardElevated, color: theme.primary }}>
+                    {channel === "contact" ? <Mail size={15} /> : <HandHeart size={15} />}
+                  </span>
+                  <span className="min-w-0 leading-5">{ts(labelKey)}</span>
+                </span>
+                <ExternalLink size={13} className="shrink-0 opacity-70" />
+              </a>
+            ))}
+          </div>
+        ) : (
+          <div className="mt-3 rounded-[1rem] border p-3 text-sm leading-6" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+            {ts('supportMission.notConfigured')}
+          </div>
+        )}
+        <p className="mt-3 text-xs leading-5" style={{ color: theme.textMuted }}>
+          {ts('supportMission.trustNote')}
+        </p>
       </div>
     </section>
   );
@@ -21013,7 +21118,6 @@ function AccountPersonalizationPanel({
   availableVoices,
   selectedVoice,
   user,
-  onRequestSignIn,
   focusIntentions,
   onPreferenceChange,
   onThemePreferenceChange,
@@ -21030,7 +21134,6 @@ function AccountPersonalizationPanel({
   availableVoices: ManagedVoiceOption[];
   selectedVoice: string | null;
   user: User | null;
-  onRequestSignIn: (mode?: AuthMode) => void;
   focusIntentions: string[];
   onPreferenceChange: (patch: Partial<UserPreferences>) => void;
   onThemePreferenceChange: (value: ThemePreference) => void;
@@ -21042,96 +21145,22 @@ function AccountPersonalizationPanel({
   const bibleOptions = bibleTranslationOptionsForLanguage(preferences.language);
   const selectedVoiceObject = availableVoices.find((voice) => voice.id === selectedVoice);
   const selectedVoiceLabel = selectedVoiceObject ? selectedVoiceObject.label : managedVoiceLabel(selectedVoice);
-  const signedIn = Boolean(user);
-  const suggestionCards = [
-    {
-      icon: signedIn ? Sparkles : Users,
-      title: signedIn ? ts('labels.accountSuggestedPickFocus') : ts('labels.accountSuggestedSignInSync'),
-      body: signedIn ? ts('labels.focusIntentionsHint') : ts('labels.signInToSyncIt'),
-      actionLabel: signedIn ? null : ts('auth.signInForSync'),
-      onAction: signedIn ? null : onRequestSignIn,
-    },
-    {
-      icon: Sparkles,
-      title: ts('labels.accountSuggestedReviewAvatarStudio'),
-      body: ts('labels.accountPersonalizationSummaryShort'),
-    },
-    ...signedIn ? [] : [{
-      icon: Bell,
-      title: ts('labels.accountSuggestedEnableNotifications'),
-      body: ts('labels.notificationsOptionalAfterSignIn'),
-    }],
-  ];
 
   return (
     <section className="space-y-3">
-      <div className="overflow-hidden rounded-[1.35rem] border shadow-[0_6px_16px_rgba(7,10,8,0.05)]" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
-        <div className="flex flex-col gap-4 p-4 sm:p-5">
-          <div className="flex items-center gap-3">
-            <div className="grid size-12 shrink-0 place-items-center rounded-[1rem] border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
-              <Sparkles size={20} />
-            </div>
-            <div className="relative min-w-0">
-              <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
-                {ts('labels.accountPersonalizationTitle')}
-              </p>
-              <h3 className="mt-1 text-lg font-semibold sm:text-xl" style={{ color: theme.textPrimary }}>
-                <span className="inline-flex items-center gap-2 pr-6 sm:pr-8 md:pr-9">
-                  <span>{ts('labels.personalizeAletheia')}</span>
-                </span>
-              </h3>
-            </div>
-          </div>
-
-        </div>
-      </div>
-
-      <div className="rounded-[1.35rem] border p-4 shadow-[0_6px_16px_rgba(7,10,8,0.05)]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-        <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
-          {ts('labels.suggestedAction')}
-        </p>
-        <div className="mt-3 grid gap-2">
-          {suggestionCards.map((item) => {
-            const Icon = item.icon;
-            return (
-              <div key={item.title} className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-                <div className="flex items-start gap-3">
-                  <div className="grid size-9 shrink-0 place-items-center rounded-full border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
-                    <Icon size={16} />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>
-                      {item.title}
-                    </p>
-                    <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
-                      {item.body}
-                    </p>
-                  </div>
-                </div>
-                {item.onAction ? (
-                  <button
-                    type="button"
-                    onClick={() => item.onAction?.()}
-                    className="mt-3 inline-flex h-10 items-center justify-center rounded-full border px-4 text-sm font-semibold transition"
-                    style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
-                  >
-                    {item.actionLabel}
-                  </button>
-                ) : null}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.05fr)_minmax(320px,0.95fr)]">
-        <div className="space-y-3">
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+        <div
+          className="overflow-hidden rounded-[1.25rem] border shadow-[0_6px_16px_rgba(7,10,8,0.04)]"
+          style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}
+        >
+          <div>
           <AccountSettingRow
             icon={Languages}
             label={accountLabel(ts('labels.language'))}
             body={ts('labels.accountLanguageBody')}
             currentValue={languages[preferences.language]?.nativeName ?? preferences.language}
             theme={theme}
+            variant="flat"
             control={(
               <AccountSelect
                 ariaLabel={ts('languageSelect')}
@@ -21151,6 +21180,7 @@ function AccountPersonalizationPanel({
             body={ts('labels.accountBibleBody')}
             currentValue={bibleTranslations[preferences.bibleTranslation]?.label ?? preferences.bibleTranslation}
             theme={theme}
+            variant="flat"
             control={(
               <AccountSelect
                 ariaLabel={ts('bibleSelect')}
@@ -21175,6 +21205,7 @@ function AccountPersonalizationPanel({
             body={ts('labels.accountThemeBody')}
             currentValue={ts(`theme.${themePreference}`, themePreference)}
             theme={theme}
+            variant="flat"
             control={(
               <ThemeSwatchGrid
                 theme={theme}
@@ -21193,6 +21224,7 @@ function AccountPersonalizationPanel({
             onLabel={ts('labels.enabled')}
             offLabel={ts('labels.disabled')}
             theme={theme}
+            variant="flat"
           />
           {preferences.voiceEnabled ? (
             <AccountSettingRow
@@ -21201,6 +21233,7 @@ function AccountPersonalizationPanel({
               body={ts('labels.accountVoiceBody')}
               currentValue={selectedVoiceLabel}
               theme={theme}
+              variant="flat"
               control={(
                 <VoicePreferenceSelector
                   theme={theme}
@@ -21214,20 +21247,18 @@ function AccountPersonalizationPanel({
             />
           ) : null}
         </div>
+        </div>
 
-        <div className="space-y-3">
-          <DisclosureSection
-            title={ts('labels.focusIntentions')}
-            summary={focusIntentions.length
-              ? `${focusIntentions.length}/3 selected`
-              : ts('labels.focusIntentionsNoneSelected')}
-            eyebrow={ts('labels.accountPersonalizationTitle')}
-            compactCollapsed
-            defaultOpen={focusIntentions.length === 0}
-            showDetailsLabel={ts('showDetails')}
-            hideDetailsLabel={ts('hideDetails')}
-            theme={theme}
-          >
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <div className="flex items-start gap-2.5">
+              <div className="grid size-9 shrink-0 place-items-center rounded-full border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
+                <Sparkles size={16} />
+              </div>
+              <p className="min-w-0 text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>
+                {ts('labels.focusIntentions')}
+              </p>
+            </div>
             <FocusIntentionsCard
               theme={theme}
               ts={ts}
@@ -21235,11 +21266,12 @@ function AccountPersonalizationPanel({
               onChange={onFocusIntentionsChange}
               compact
             />
-          </DisclosureSection>
+          </div>
           <AvatarStudioCard theme={theme} user={user} ts={ts} onUpdateProfileAvatar={onUpdateProfileAvatar} />
         </div>
       </div>
-      <p className="rounded-[1rem] border px-3 py-2 text-xs leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
+
+      <p className="text-xs leading-5" style={{ color: theme.textSecondary }}>
         {preferencesStatus || ts('notifications.preferencesReady')}
       </p>
     </section>
@@ -21423,7 +21455,7 @@ function VoicePreferenceSelector({
         </p>
       ) : null}
       {previewStatus ? (
-        <p className="rounded-[1rem] border px-3 py-2 text-xs leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }} aria-live="polite">
+        <p className="text-xs leading-5" style={{ color: theme.textSecondary }} aria-live="polite">
           {previewStatus}
         </p>
       ) : null}
@@ -21457,7 +21489,7 @@ function FocusIntentionsCard({
   return (
     <section className={`space-y-3 ${compact ? "" : ""}`}>
       <p className="text-xs leading-5" style={{ color: theme.textSecondary }}>
-        {ts('labels.focusIntentionsHint')}
+        {compact ? ts('labels.focusIntentionsSummary') : ts('labels.focusIntentionsHint')}
       </p>
       <div className="flex min-w-0 snap-x gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
         {options.map((option) => {
@@ -24132,13 +24164,13 @@ function NotificationPanel({
         title: ts("notifications.notificationsOff"),
         body: ts("notifications.notificationsOffBody"),
       }
-    : diagnosticsHasIssue || !deviceSubscribed
+      : diagnosticsHasIssue || !deviceSubscribed
       ? {
           title: ts("notifications.diagnosticsNeedsAttention"),
           body: !deviceSubscribed ? ts("notifications.accountSubscribedButDeviceNot") : "",
         }
       : {
-          title: ts("labels.ready"),
+          title: ts("notifications.notificationsEnabled"),
           body: ts("notifications.notificationsEnabledBody"),
         };
   const primaryDiagnostic = diagnostics?.account.diagnostics[0] ?? null;
@@ -25854,6 +25886,7 @@ function SharedDecisionDetailModal({
   language,
   item,
   onSendComment,
+  focusComposer = false,
   onClose,
 }: {
   open: boolean;
@@ -25862,13 +25895,25 @@ function SharedDecisionDetailModal({
   language: LanguageCode;
   item: SharedCounselDecisionItem | null;
   onSendComment: (decisionId: string, body: string, contactIdOverride?: string | null) => Promise<{ id: string; body: string; createdAt: string; acceptanceId: string | null } | void> | { id: string; body: string; createdAt: string; acceptanceId: string | null } | void;
+  focusComposer?: boolean;
   onClose: () => void;
 }) {
   const canUsePortal = typeof document !== "undefined";
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [threadComments, setThreadComments] = useState<CounselConversationComment[]>(() => item?.decision.comments ?? []);
+  const draftTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   useBodyScrollLock(open && canUsePortal);
+
+  useEffect(() => {
+    if (!open || !focusComposer || !canUsePortal) {
+      return;
+    }
+    const focusHandle = window.requestAnimationFrame(() => {
+      draftTextareaRef.current?.focus({ preventScroll: true });
+    });
+    return () => window.cancelAnimationFrame(focusHandle);
+  }, [canUsePortal, focusComposer, open]);
 
   if (!open || !canUsePortal || !item) {
     return null;
@@ -26050,6 +26095,7 @@ function SharedDecisionDetailModal({
 
             <form className="mt-4 grid gap-2" onSubmit={submitComment}>
               <textarea
+                ref={draftTextareaRef}
                 value={draft}
                 onChange={(event) => setDraft(event.target.value)}
                 className="min-h-24 resize-none rounded-[1rem] border px-3 py-2 text-sm leading-6 outline-none"
@@ -26092,6 +26138,7 @@ function OutgoingSharedDecisionDetailModal({
   item,
   onClose,
   onSendComment,
+  focusComposer = false,
 }: {
   open: boolean;
   theme: ThemeColors;
@@ -26103,12 +26150,24 @@ function OutgoingSharedDecisionDetailModal({
   } | null;
   onClose: () => void;
   onSendComment: (sharedDecisionId: string, body: string) => Promise<CounselConversationComment | void> | CounselConversationComment | void;
+  focusComposer?: boolean;
 }) {
   const canUsePortal = typeof document !== "undefined";
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [threadComments, setThreadComments] = useState<CounselConversationComment[]>(() => item?.share.comments ?? []);
+  const draftTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   useBodyScrollLock(open && canUsePortal);
+
+  useEffect(() => {
+    if (!open || !focusComposer || !canUsePortal) {
+      return;
+    }
+    const focusHandle = window.requestAnimationFrame(() => {
+      draftTextareaRef.current?.focus({ preventScroll: true });
+    });
+    return () => window.cancelAnimationFrame(focusHandle);
+  }, [canUsePortal, focusComposer, open]);
 
   if (!open || !canUsePortal || !item) {
     return null;
@@ -26278,6 +26337,7 @@ function OutgoingSharedDecisionDetailModal({
 
             <form className="mt-4 grid gap-2" onSubmit={submitComment}>
               <textarea
+                ref={draftTextareaRef}
                 value={draft}
                 onChange={(event) => setDraft(event.target.value)}
                 className="min-h-24 resize-none rounded-[1rem] border px-3 py-2 text-sm leading-6 outline-none"
@@ -29899,6 +29959,8 @@ function DecisionCompanionPanel({
   onPendingDecisionComposerFocusHandled,
   pendingDecisionShareSurfaceFocusContactId,
   onPendingDecisionShareSurfaceFocusHandled,
+  pendingCounselThreadTarget,
+  onPendingCounselThreadTargetHandled,
   onRemoveCounselContact,
   onAddRule,
   theme,
@@ -29952,6 +30014,13 @@ function DecisionCompanionPanel({
   onPendingDecisionComposerFocusHandled: () => void;
   pendingDecisionShareSurfaceFocusContactId: string | null;
   onPendingDecisionShareSurfaceFocusHandled: () => void;
+  pendingCounselThreadTarget: {
+    sharedDecisionId: string;
+    contactId: string | null;
+    surface: "incoming" | "outgoing";
+    focusComposer: boolean;
+  } | null;
+  onPendingCounselThreadTargetHandled: () => void;
   onRemoveCounselContact: (contactId: string) => void;
   onAddRule: (event: FormEvent<HTMLFormElement>) => void;
   theme: ThemeColors;
@@ -29967,6 +30036,7 @@ function DecisionCompanionPanel({
   } | null>(null);
   const [selectedShareContactIdState, setSelectedShareContactIdState] = useState<string | null>(null);
   const [selectedShareDecisionIdsState, setSelectedShareDecisionIdsState] = useState<string[]>([]);
+  const [pendingCounselThreadFocusComposer, setPendingCounselThreadFocusComposer] = useState(false);
   const counselAvatarFileInputRef = useRef<HTMLInputElement | null>(null);
   const rhythmRailRef = useRef<HTMLDivElement | null>(null);
   const visibleCounselRailRef = useRef<HTMLDivElement | null>(null);
@@ -30161,6 +30231,67 @@ function DecisionCompanionPanel({
     onPendingDecisionShareSurfaceFocusHandled,
     pendingDecisionShareSurfaceFocusContactId,
   ]);
+
+  useEffect(() => {
+    if (!pendingCounselThreadTarget) {
+      return;
+    }
+
+    if (decisionSection !== "counsel") {
+      const openTabHandle = window.requestAnimationFrame(() => {
+        setDecisionSection("counsel");
+      });
+      return () => window.cancelAnimationFrame(openTabHandle);
+    }
+
+    const { sharedDecisionId, contactId, surface } = pendingCounselThreadTarget;
+    const incomingMatch = incomingSharedDecisionItems.find(({ invite, decision }) =>
+      decision.sharedId === sharedDecisionId && (!contactId || invite.invite.contactId === contactId)
+    );
+    const outgoingMatch = outgoingSharedDecisionItems.find(({ contact, share }) =>
+      share.id === sharedDecisionId && (!contactId || contact.id === contactId)
+    );
+    const selectedItem =
+      surface === "outgoing"
+        ? outgoingMatch ?? incomingMatch
+        : incomingMatch ?? outgoingMatch;
+
+    if (!selectedItem) {
+      return;
+    }
+
+    const openThreadHandle = window.requestAnimationFrame(() => {
+      if ("invite" in selectedItem) {
+        setSelectedOutgoingSharedDecision(null);
+        setSelectedSharedDecision(selectedItem);
+      } else {
+        setSelectedSharedDecision(null);
+        setSelectedOutgoingSharedDecision(selectedItem);
+      }
+      setPendingCounselThreadFocusComposer(pendingCounselThreadTarget.focusComposer);
+      onPendingCounselThreadTargetHandled();
+    });
+
+    return () => window.cancelAnimationFrame(openThreadHandle);
+  }, [
+    decisionSection,
+    incomingSharedDecisionItems,
+    onPendingCounselThreadTargetHandled,
+    outgoingSharedDecisionItems,
+    pendingCounselThreadTarget,
+  ]);
+
+  useEffect(() => {
+    if (!pendingCounselThreadFocusComposer) {
+      return;
+    }
+
+    const clearHandle = window.setTimeout(() => {
+      setPendingCounselThreadFocusComposer(false);
+    }, 750);
+
+    return () => window.clearTimeout(clearHandle);
+  }, [pendingCounselThreadFocusComposer]);
 
   return (
     <div className="min-w-0 space-y-4">
@@ -30465,6 +30596,7 @@ function DecisionCompanionPanel({
               language={language}
               item={selectedSharedDecision}
               onSendComment={onSendCounselInviteComment}
+              focusComposer={pendingCounselThreadFocusComposer}
               onClose={() => setSelectedSharedDecision(null)}
             />
             <OutgoingSharedDecisionDetailModal
@@ -30476,6 +30608,7 @@ function DecisionCompanionPanel({
               item={selectedOutgoingSharedDecision}
               onClose={() => setSelectedOutgoingSharedDecision(null)}
               onSendComment={onSendSharedDecisionComment}
+              focusComposer={pendingCounselThreadFocusComposer}
             />
 
             {!incomingSharedDecisionItems.length && !outgoingSharedDecisionItems.length ? (

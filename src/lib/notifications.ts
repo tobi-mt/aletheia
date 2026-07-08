@@ -11,6 +11,7 @@ import { normalizeManualContext, type ManualContextProfile } from "@/lib/manual-
 import { loadTranslationsSync, getTranslation } from "@/lib/translations";
 import { MODE_KEYS, type Mode } from "@/lib/mode-keys";
 import { getPendingNotifications, markNotificationSent } from "@/lib/notification-sequencing";
+import { buildNotificationUrl, type NotificationSurface } from "@/lib/notification-routing";
 import {
   loadNativePushTargets,
   isNativePushConfigured,
@@ -80,6 +81,7 @@ type CounselCommentPushInput = {
   senderName: string | null;
   body: string;
   targetUserIds: string[];
+  surface?: NotificationSurface | null;
 };
 
 type PendingDecisionNotificationRow = {
@@ -474,7 +476,16 @@ function challengeCircleNudgeNotificationPayload(row: NotificationRecipientRow, 
   return {
     title: challengeCircleNudgeNotificationTitle(preferences.language),
     body: challengeCircleNudgeNotificationCopyByLanguage[preferences.language]?.body ?? challengeCircleNudgeNotificationCopyByLanguage.en!.body,
-    url: `/?source=notification&focus=challenge&challenge=${encodeURIComponent(input.challengeId)}&circleId=${encodeURIComponent(input.circleId)}&nudgeId=${encodeURIComponent(input.nudgeId)}&tab=reflect&section=nudges`,
+    url: buildNotificationUrl({
+      notificationKind: "challenge_circle_nudge",
+      notificationId: input.nudgeId,
+      focus: "challenge",
+      challengeId: input.challengeId,
+      circleId: input.circleId,
+      nudgeId: input.nudgeId,
+      tab: "reflect",
+      section: "nudges",
+    }),
     tag: `aletheia-circle-nudge-${input.circleId}-${input.nudgeId}-${row.user_id}`,
     notificationKind: "challenge_circle_nudge",
     notificationId: input.nudgeId,
@@ -503,7 +514,18 @@ function counselShareNotificationPayload(row: NotificationRecipientRow, input: C
   return {
     title,
     body,
-    url: `/?source=notification&focus=decision&decisionId=${encodeURIComponent(input.decisionId)}&sharedDecisionId=${encodeURIComponent(input.sharedDecisionId)}&contactId=${encodeURIComponent(input.contactId)}&tab=decisions&section=share&surface=incoming`,
+    url: buildNotificationUrl({
+      notificationKind: "counsel_decision_shared",
+      notificationId: input.sharedDecisionId,
+      focus: "decision",
+      decisionId: input.decisionId,
+      sharedDecisionId: input.sharedDecisionId,
+      contactId: input.contactId,
+      surface: "incoming",
+      open: "thread",
+      tab: "decisions",
+      section: "share",
+    }),
     tag: `aletheia-counsel-share-${input.sharedDecisionId}-${row.user_id}`,
     notificationKind: "counsel_decision_shared",
     notificationId: input.sharedDecisionId,
@@ -531,12 +553,18 @@ function counselCommentNotificationPayload(row: NotificationRecipientRow, input:
     counselCommentNotificationCopyByLanguage[preferences.language]?.body ??
     counselCommentNotificationCopyByLanguage.en!.body;
 
-  const sharedDecisionQuery = input.sharedDecisionId
-    ? `&sharedDecisionId=${encodeURIComponent(input.sharedDecisionId)}`
-    : "";
-  const url =
-    `/?source=notification&focus=decision&decisionId=${encodeURIComponent(input.decisionId)}` +
-    `${sharedDecisionQuery}&contactId=${encodeURIComponent(input.contactId)}&tab=decisions&section=share&surface=incoming`;
+  const url = buildNotificationUrl({
+    notificationKind: "counsel_comment",
+    notificationId: input.notificationId,
+    focus: "decision",
+    decisionId: input.decisionId,
+    sharedDecisionId: input.sharedDecisionId,
+    contactId: input.contactId,
+    surface: input.surface ?? "incoming",
+    open: "comment",
+    tab: "decisions",
+    section: "share",
+  });
 
   return {
     title,
@@ -1161,7 +1189,11 @@ function dailyNotificationPayload(row: PushRow, wisdomEntries: Awaited<ReturnTyp
   return {
     title,
     body: premiumBody,
-    url: "/?source=notification&focus=today",
+    url: buildNotificationUrl({
+      notificationKind: "daily_wisdom",
+      notificationId: `daily-${row.user_id}-${notificationTagPart(localDate)}-${index}`,
+      focus: "today",
+    }),
     scripture: daily.scripture,
     tag: `aletheia-daily-${notificationTagPart(localDate)}-${index}`,
     notificationId: `daily-${row.user_id}-${notificationTagPart(localDate)}-${index}`,
@@ -1188,7 +1220,11 @@ function gratitudeNotificationPayload(row: PushRow) {
   return {
     title: compactNotificationCopy(copy.titles[variant](), 68),
     body: appendPremiumCloser(body, preferences.language, variant, localHour, premiumGratitudeClosers),
-    url: "/?source=notification&focus=gratitude",
+    url: buildNotificationUrl({
+      notificationKind: "gratitude_reflection",
+      notificationId: `gratitude-${row.user_id}-${notificationTagPart(localDate)}`,
+      focus: "gratitude",
+    }),
     tag: `aletheia-gratitude-${notificationTagPart(localDate)}`,
     notificationId: `gratitude-${row.user_id}-${notificationTagPart(localDate)}`,
     notificationKind: "gratitude_reflection",
@@ -3506,10 +3542,17 @@ export async function sendPendingDecisionNotifications(now = new Date()): Promis
     const { enabledRows } = splitPushSubscriptionRows(pushRows, [userId]);
 
     for (const row of rowsForUser) {
+      const notificationUrl = buildNotificationUrl({
+        notificationKind: "decision_followup",
+        notificationId: row.id,
+        focus: "decision",
+        decisionId: row.decision_id,
+        tab: "decisions",
+      });
       const payload = JSON.stringify({
         title: row.title,
         body: row.body,
-        url: `/?source=notification&focus=decision&decisionId=${encodeURIComponent(row.decision_id)}&day=${row.day}&tab=decisions`,
+        url: notificationUrl,
         tag: `aletheia-decision-followup-${notificationTagPart(row.decision_id)}-${row.day}`,
         notificationKind: "decision_followup",
         notificationId: row.id,
@@ -3520,7 +3563,7 @@ export async function sendPendingDecisionNotifications(now = new Date()): Promis
       const nativePayload: NativePushMessagePayload = {
         title: row.title,
         body: row.body,
-        url: `/?source=notification&focus=decision&decisionId=${encodeURIComponent(row.decision_id)}&day=${row.day}&tab=decisions`,
+        url: notificationUrl,
         tag: `aletheia-decision-followup-${notificationTagPart(row.decision_id)}-${row.day}`,
         notificationKind: "decision_followup",
         notificationId: row.id,

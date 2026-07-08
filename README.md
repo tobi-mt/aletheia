@@ -374,6 +374,12 @@ For production, keep the APNs bundle ID aligned with the iOS app bundle identifi
 3. Confirm the Firebase Android app package name matches the Capacitor app id.
 4. Sync and rebuild so the Firebase Messaging plugin can register and receive tokens.
 
+### Tiny QA Checklist
+
+- iOS: tap a daily wisdom push, a gratitude push, and a counsel/private comment push.
+- Android: tap a challenge nudge push, a daily wisdom push, and a counsel/private comment push.
+- PWA: tap the same notification types in the browser and confirm the correct in-app screen opens after the service worker click handler runs.
+
 ## Launch Notes
 
 This MVP is intentionally not a financial advisor and does not promise financial outcomes. The current wisdom engine retrieves curated entries before any AI generation and keeps the same guardrails:

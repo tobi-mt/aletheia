@@ -9,6 +9,7 @@ import { getNotificationDeliveryReportRoute } from "../src/app/api/analytics/not
 import { getAnalyticsSummaryRoute } from "../src/app/api/analytics/summary/route.ts";
 import { postNotificationSubscription } from "../src/app/api/notifications/subscribe/route.ts";
 import { runDailyNotifications } from "../src/app/api/notifications/daily/route.ts";
+import { buildNotificationUrl, parseNotificationLaunchUrl } from "../src/lib/notification-routing.ts";
 import { calculatePushRetryDelayMs, sendNotificationWithRetry } from "../src/lib/notifications.ts";
 
 function createCallLog() {
@@ -83,6 +84,7 @@ test("shared decision comment route saves the comment and notifies the accepted 
     senderName: "Jordan",
     body: "Please pray with me.",
     targetUserIds: ["recipient-1", "recipient-2"],
+    surface: "incoming",
   });
 });
 
@@ -140,6 +142,7 @@ test("invite comment route saves the comment and notifies the decision owner", a
     senderName: "Taylor",
     body: "I agree with this nudge",
     targetUserIds: ["owner-1"],
+    surface: "outgoing",
   });
 });
 
@@ -197,7 +200,54 @@ test("acceptance comment route saves the comment and notifies the decision owner
     senderName: "Taylor",
     body: "Thanks, this helps.",
     targetUserIds: ["owner-1"],
+    surface: "outgoing",
   });
+});
+
+test("notification routing helper builds the right deep links for push launches", () => {
+  assert.equal(
+    buildNotificationUrl({
+      notificationKind: "daily_wisdom",
+      notificationId: "daily-1",
+      focus: "today",
+    }),
+    "/?source=notification&notificationKind=daily_wisdom&notificationId=daily-1&focus=today"
+  );
+
+  assert.equal(
+    buildNotificationUrl({
+      notificationKind: "counsel_comment",
+      notificationId: "comment-1",
+      focus: "decision",
+      decisionId: "decision-1",
+      sharedDecisionId: "shared-1",
+      contactId: "contact-1",
+      surface: "outgoing",
+      open: "comment",
+      tab: "decisions",
+      section: "share",
+    }),
+    "/?source=notification&notificationKind=counsel_comment&notificationId=comment-1&focus=decision&decisionId=decision-1&sharedDecisionId=shared-1&contactId=contact-1&tab=decisions&section=share&open=comment&surface=outgoing"
+  );
+
+  assert.deepEqual(
+    parseNotificationLaunchUrl("https://aletheia.example/?source=notification&focus=challenge&challenge=challenge-1&section=nudges&tab=reflect&notificationKind=challenge_circle_nudge"),
+    {
+      notificationKind: "challenge_circle_nudge",
+      notificationId: null,
+      focus: "challenge",
+      decisionId: null,
+      sharedDecisionId: null,
+      contactId: null,
+      circleId: null,
+      challengeId: "challenge-1",
+      nudgeId: null,
+      surface: null,
+      open: null,
+      section: "nudges",
+      tab: "reflect",
+    }
+  );
 });
 
 test("daily notification cron sends pending decisions before the other jobs", async () => {

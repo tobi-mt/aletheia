@@ -116,6 +116,7 @@ export async function postInviteComment(
     senderName: user.name ?? null,
     body: comment,
     targetUserIds: [shared.user_id],
+    surface: "outgoing",
   }).catch(() => null);
 
   return NextResponse.json({
