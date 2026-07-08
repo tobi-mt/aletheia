@@ -80,7 +80,7 @@ export default function RootLayout({
       lang="en"
       dir="ltr"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-      style={{ backgroundColor: "#0e1514" }}
+      style={{ backgroundColor: "#eef2ef" }}
     >
       <body className="min-h-full flex flex-col">
         {children}

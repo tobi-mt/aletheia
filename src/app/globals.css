@@ -3,7 +3,7 @@
 :root {
   --background: #eef2ef;
   --foreground: #171917;
-  --pwa-status-background: #0b100f;
+  --pwa-status-background: #eef2ef;
   --aletheia-safe-top-tint: rgba(238, 242, 239, 0.9);
   --aletheia-safe-bottom-tint: rgba(238, 242, 239, 0.92);
   --aletheia-safe-top-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.18) 0%, rgba(255, 255, 255, 0.06) 56%, rgba(255, 255, 255, 0) 100%);

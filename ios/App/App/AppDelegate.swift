@@ -70,7 +70,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
 @objc(ManagedAudioBridgeViewController)
 class ManagedAudioBridgeViewController: CAPBridgeViewController {
-    private let startupChromeColor = UIColor(red: 0.063, green: 0.106, blue: 0.090, alpha: 1)
+    private let startupChromeColor = UIColor(red: 0.933, green: 0.949, blue: 0.937, alpha: 1)
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -90,7 +90,7 @@ class ManagedAudioBridgeViewController: CAPBridgeViewController {
         webView?.scrollView.contentInsetAdjustmentBehavior = .never
         webView?.scrollView.contentInset = .zero
         webView?.scrollView.scrollIndicatorInsets = .zero
-        statusBarStyle = .lightContent
+        statusBarStyle = .darkContent
         setNeedsStatusBarAppearanceUpdate()
     }
 }
