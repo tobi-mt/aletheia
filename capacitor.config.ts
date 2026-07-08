@@ -5,6 +5,9 @@ const config: CapacitorConfig = {
   appName: "Aletheia",
   webDir: "capacitor-web",
   plugins: {
+    PushNotifications: {
+      presentationOptions: ["badge", "sound", "banner", "list"],
+    },
     SystemBars: {
       insetsHandling: "css",
       style: "DARK",

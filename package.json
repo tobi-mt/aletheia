@@ -40,6 +40,7 @@
     "@capacitor/core": "^8.3.4",
     "@capacitor/haptics": "^8.0.2",
     "@capacitor/ios": "^8.4.0",
+    "@capacitor/push-notifications": "^8.1.1",
     "@types/nodemailer": "^8.0.0",
     "framer-motion": "^12.39.0",
     "lucide-react": "^1.16.0",

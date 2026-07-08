@@ -341,6 +341,39 @@ npx cap sync
 
 For the native shells, `npm run mobile:bundle:web` builds the Next.js app, copies the prerendered shell and static assets into `capacitor-web`, and rewrites API traffic back to the hosted backend. That keeps the mobile app self-contained at launch while still relying on the deployed backend for auth, OpenAI, and journal persistence.
 
+## Native Push Setup
+
+Aletheia supports native push through Capacitor on iOS and Android, while PWA users keep using Web Push.
+
+### Server Environment Variables
+
+Set one native transport path, or both:
+
+- APNs:
+  - `NATIVE_PUSH_APNS_TEAM_ID`
+  - `NATIVE_PUSH_APNS_KEY_ID`
+  - `NATIVE_PUSH_APNS_PRIVATE_KEY` or `NATIVE_PUSH_APNS_KEY_P8`
+  - `NATIVE_PUSH_APNS_BUNDLE_ID`
+  - `NATIVE_PUSH_APNS_ENVIRONMENT` (`development` or `production`)
+- FCM:
+  - `NATIVE_PUSH_FCM_SERVICE_ACCOUNT_JSON` or `GOOGLE_APPLICATION_CREDENTIALS_JSON`
+
+For production, keep the APNs bundle ID aligned with the iOS app bundle identifier and make sure the FCM service account belongs to the Firebase project for the Android app.
+
+### iOS Project Steps
+
+1. Open the iOS project with `npx cap open ios`.
+2. In Xcode, enable the Push Notifications capability for the app target.
+3. Make sure the signing team and bundle identifier match the APNs bundle ID you set in the environment.
+4. Rebuild the app after the capability is added.
+
+### Android Project Steps
+
+1. Open the Android project with `npx cap open android`.
+2. Add Firebase's `google-services.json` to `android/app/`.
+3. Confirm the Firebase Android app package name matches the Capacitor app id.
+4. Sync and rebuild so the Firebase Messaging plugin can register and receive tokens.
+
 ## Launch Notes
 
 This MVP is intentionally not a financial advisor and does not promise financial outcomes. The current wisdom engine retrieves curated entries before any AI generation and keeps the same guardrails:

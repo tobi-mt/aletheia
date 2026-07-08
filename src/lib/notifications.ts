@@ -11,6 +11,14 @@ import { normalizeManualContext, type ManualContextProfile } from "@/lib/manual-
 import { loadTranslationsSync, getTranslation } from "@/lib/translations";
 import { MODE_KEYS, type Mode } from "@/lib/mode-keys";
 import { getPendingNotifications, markNotificationSent } from "@/lib/notification-sequencing";
+import {
+  loadNativePushTargets,
+  isNativePushConfigured,
+  sendNativePushRows,
+  type NativePushMessagePayload,
+  type NativePushFailureSample,
+  type NativePushTargetRow,
+} from "@/lib/native-push";
 
 type PushRow = {
   id: string;
@@ -32,6 +40,9 @@ type PushRow = {
   counsel_notifications_enabled?: boolean | null;
   formation_notifications_enabled?: boolean | null;
 };
+
+type NotificationRecipientRow = Pick<PushRow, "user_id" | "language" | "region" | "bible_translation" | "voice_enabled">;
+type NotificationPreferenceRow = Pick<PushRow, "counsel_notifications_enabled" | "formation_notifications_enabled">;
 
 type ChallengeCircleNudgeTargetRow = {
   user_id: string;
@@ -440,11 +451,11 @@ const challengeCircleNudgeNotificationCopyByLanguage: Partial<Record<LanguageCod
   },
 };
 
-function counselNotificationsEnabled(row: PushRow) {
+function counselNotificationsEnabled(row: NotificationPreferenceRow) {
   return row.counsel_notifications_enabled !== false;
 }
 
-function formationNotificationsEnabled(row: PushRow) {
+function formationNotificationsEnabled(row: NotificationPreferenceRow) {
   return row.formation_notifications_enabled !== false;
 }
 
@@ -452,7 +463,7 @@ function challengeCircleNudgeNotificationTitle(language: LanguageCode) {
   return challengeCircleNudgeNotificationCopyByLanguage[language]?.title ?? challengeCircleNudgeNotificationCopyByLanguage.en!.title;
 }
 
-function challengeCircleNudgeNotificationPayload(row: PushRow, input: ChallengeCircleNudgePushInput) {
+function challengeCircleNudgeNotificationPayload(row: NotificationRecipientRow, input: ChallengeCircleNudgePushInput) {
   const preferences = normalizePreferences({
     language: row.language as LanguageCode,
     region: row.region as RegionCode,
@@ -479,7 +490,7 @@ function counselShareNotificationTitle(language: LanguageCode) {
   return counselDecisionSharedNotificationCopyByLanguage[language]?.title ?? counselDecisionSharedNotificationCopyByLanguage.en!.title;
 }
 
-function counselShareNotificationPayload(row: PushRow, input: CounselDecisionSharePushInput) {
+function counselShareNotificationPayload(row: NotificationRecipientRow, input: CounselDecisionSharePushInput) {
   const preferences = normalizePreferences({
     language: row.language as LanguageCode,
     region: row.region as RegionCode,
@@ -508,7 +519,7 @@ function counselCommentNotificationTitle(language: LanguageCode) {
   return counselCommentNotificationCopyByLanguage[language]?.title ?? counselCommentNotificationCopyByLanguage.en!.title;
 }
 
-function counselCommentNotificationPayload(row: PushRow, input: CounselCommentPushInput) {
+function counselCommentNotificationPayload(row: NotificationRecipientRow, input: CounselCommentPushInput) {
   const preferences = normalizePreferences({
     language: row.language as LanguageCode,
     region: row.region as RegionCode,
@@ -712,6 +723,46 @@ function splitPushSubscriptionRows(rows: PushRow[], recipientUserIds: string[]) 
   };
 }
 
+function splitNativePushTargetRows(rows: NativePushTargetRow[], recipientUserIds: string[]) {
+  const enabledRows = rows.filter((row) => row.enabled);
+  const enabledUserIds = new Set(enabledRows.map((row) => row.user_id));
+  const activeRecipients = new Set(enabledUserIds);
+  const missingActiveRecipientCount = recipientUserIds.filter((recipientUserId) => !activeRecipients.has(recipientUserId)).length;
+  const disabledUserIds = new Set(rows.filter((row) => !row.enabled).map((row) => row.user_id));
+
+  return {
+    enabledRows,
+    enabledRecipientCount: enabledUserIds.size,
+    disabledRecipientCount: disabledUserIds.size,
+    missingActiveRecipientCount,
+  };
+}
+
+function asPushRow(row: NativePushTargetRow): PushRow {
+  return row as unknown as PushRow;
+}
+
+async function sendNativePushFanOut(
+  userIds: string[],
+  filterRow: (row: NativePushTargetRow) => boolean,
+  payloadForRow: (row: NativePushTargetRow) => NativePushMessagePayload
+) {
+  if (!isNativePushConfigured() || userIds.length === 0) {
+    return {
+      configured: isNativePushConfigured(),
+      attempted: 0,
+      sent: 0,
+      failed: 0,
+      failureSamples: [] as NativePushFailureSample[],
+    };
+  }
+
+  const nativeRows = await loadNativePushTargets(userIds);
+  const { enabledRows } = splitNativePushTargetRows(nativeRows, userIds);
+  const nativeEligibleRows = enabledRows.filter(filterRow);
+  return sendNativePushRows(nativeEligibleRows, payloadForRow);
+}
+
 export async function sendCounselShareNotifications(input: CounselDecisionSharePushInput) {
   const acceptedRecipients = await targetRecipientsForCounselShare(input.contactId);
   const acceptedRecipientIds = acceptedRecipients.map((row) => row.recipient_user_id);
@@ -839,6 +890,11 @@ export async function sendCounselShareNotifications(input: CounselDecisionShareP
   };
 
   await upsertCounselShareDelivery(summary);
+  await sendNativePushFanOut(
+    acceptedRecipientIds,
+    (row) => counselNotificationsEnabled(row),
+    (row) => counselShareNotificationPayload(row, input)
+  );
   return summary;
 }
 
@@ -985,6 +1041,12 @@ export async function sendCounselCommentNotifications(input: CounselCommentPushI
         updatedAt: attemptedAt,
       });
 
+      await sendNativePushFanOut(
+        uniqueTargetIds,
+        (row) => counselNotificationsEnabled(row),
+        (row) => counselCommentNotificationPayload(row, input)
+      );
+
       return {
         configured: true,
         attempted: eligibleRows.length,
@@ -1016,6 +1078,12 @@ export async function sendCounselCommentNotifications(input: CounselCommentPushI
       createdAt: now,
       updatedAt: now,
     });
+
+    await sendNativePushFanOut(
+      uniqueTargetIds,
+      (row) => counselNotificationsEnabled(row),
+      (row) => counselCommentNotificationPayload(row, input)
+    );
 
     return {
       configured: true,
@@ -1096,6 +1164,7 @@ function dailyNotificationPayload(row: PushRow, wisdomEntries: Awaited<ReturnTyp
     url: "/?source=notification&focus=today",
     scripture: daily.scripture,
     tag: `aletheia-daily-${notificationTagPart(localDate)}-${index}`,
+    notificationId: `daily-${row.user_id}-${notificationTagPart(localDate)}-${index}`,
     notificationKind: "daily_wisdom",
     wisdomTheme: wisdom.theme,
     campaignArchetype,
@@ -1121,6 +1190,7 @@ function gratitudeNotificationPayload(row: PushRow) {
     body: appendPremiumCloser(body, preferences.language, variant, localHour, premiumGratitudeClosers),
     url: "/?source=notification&focus=gratitude",
     tag: `aletheia-gratitude-${notificationTagPart(localDate)}`,
+    notificationId: `gratitude-${row.user_id}-${notificationTagPart(localDate)}`,
     notificationKind: "gratitude_reflection",
   };
 }
@@ -1845,6 +1915,7 @@ function testNotificationPayload(row: PushRow) {
     url: "/?source=notification&focus=today",
     scripture: "Proverbs 3:5-6",
     tag: "aletheia-notification-test",
+    notificationId: `test-${row.user_id}`,
     notificationKind: "notification_test",
     test: true,
   };
@@ -2787,6 +2858,7 @@ function followupNotificationPayload(reminder: DueDecisionReminder) {
     body: compactNotificationCopy(body, 156),
     url: `/?source=notification&focus=decision&decisionId=${encodeURIComponent(reminder.decisionId)}&kind=${reminder.kind}`,
     tag: `aletheia-decision-${reminder.kind}-${notificationTagPart(reminder.decisionId)}-${notificationTagPart(reminder.dueAt.slice(0, 10))}`,
+    notificationId: `${reminder.decisionId}:${reminder.kind}:${reminder.dueAt}`,
     decisionId: reminder.decisionId,
     reminderKind: reminder.kind,
     notificationKind: "decision_followup",
@@ -3206,6 +3278,12 @@ export async function sendChallengeCircleNudgeNotifications(input: ChallengeCirc
   };
   await upsertChallengeCircleNudgeDelivery(summary);
 
+  await sendNativePushFanOut(
+    targetUserIds,
+    (row) => formationNotificationsEnabled(row),
+    (row) => challengeCircleNudgeNotificationPayload(row, input)
+  );
+
   return {
     configured: true,
     attempted: enabledRows.length,
@@ -3337,17 +3415,16 @@ export async function sendDailyWisdomNotifications(now = new Date()) {
       continue;
     }
 
-    followupAttempted += userRows.length;
-    const result = await sendPushRows(
-      userRows,
-      () => JSON.stringify(followupNotificationPayload(reminder)),
-      { lastSentColumn: null }
-    );
-    followupSent += result.sent;
-    followupFailed += result.failed;
-    followupFailureSamples.push(...result.failureSamples);
+    const payload = followupNotificationPayload(reminder);
+    const result = await sendPushRows(userRows, () => JSON.stringify(payload), { lastSentColumn: null });
+    const nativeResult = await sendNativePushFanOut([userId], () => true, () => payload);
 
-    if (result.sent > 0) {
+    followupAttempted += userRows.length + nativeResult.attempted;
+    followupSent += result.sent + nativeResult.sent;
+    followupFailed += result.failed + nativeResult.failed;
+    followupFailureSamples.push(...result.failureSamples, ...nativeResult.failureSamples);
+
+    if (result.sent > 0 || nativeResult.sent > 0) {
       await markDecisionReminderNotified(reminder, now.toISOString());
       followupDecisionsNotified += 1;
     }
@@ -3356,6 +3433,11 @@ export async function sendDailyWisdomNotifications(now = new Date()) {
   const dueRows = rows.filter((row) => !followupUsers.has(row.user_id) && shouldSendAtLocalHour(row, now));
   const { sent, failed, failureSamples } = await sendPushRows(dueRows, (row) =>
     JSON.stringify(dailyNotificationPayload(row, wisdomEntries))
+  );
+  const dailyNativeResult = await sendNativePushFanOut(
+    [...new Set(dueRows.map((row) => row.user_id))],
+    () => true,
+    (row) => dailyNotificationPayload(asPushRow(row), wisdomEntries)
   );
   const dailyUsers = new Set(dueRows.map((row) => row.user_id));
   const gratitudeRows = rows.filter(
@@ -3366,11 +3448,16 @@ export async function sendDailyWisdomNotifications(now = new Date()) {
     (row) => JSON.stringify(gratitudeNotificationPayload(row)),
     { lastSentColumn: "last_gratitude_sent_at" }
   );
+  const gratitudeNativeResult = await sendNativePushFanOut(
+    [...new Set(gratitudeRows.map((row) => row.user_id))],
+    () => true,
+    (row) => gratitudeNotificationPayload(asPushRow(row))
+  );
 
   return {
-    attempted: dueRows.length + followupAttempted + gratitudeRows.length,
-    sent: sent + followupSent + gratitudeResult.sent,
-    failed: failed + followupFailed + gratitudeResult.failed,
+    attempted: dueRows.length + followupAttempted + gratitudeRows.length + dailyNativeResult.attempted + gratitudeNativeResult.attempted,
+    sent: sent + followupSent + gratitudeResult.sent + dailyNativeResult.sent + gratitudeNativeResult.sent,
+    failed: failed + followupFailed + gratitudeResult.failed + dailyNativeResult.failed + gratitudeNativeResult.failed,
     scanned: rows.length,
     skipped: Math.max(0, rows.length - dueRows.length - followupAttempted - gratitudeRows.length),
     catchupAttempted: 0,
@@ -3379,10 +3466,10 @@ export async function sendDailyWisdomNotifications(now = new Date()) {
     followupSent,
     followupFailed,
     followupDecisionsNotified,
-    gratitudeAttempted: gratitudeRows.length,
-    gratitudeSent: gratitudeResult.sent,
-    gratitudeFailed: gratitudeResult.failed,
-    failureSamples: [...followupFailureSamples, ...failureSamples, ...gratitudeResult.failureSamples].slice(0, 5),
+    gratitudeAttempted: gratitudeRows.length + gratitudeNativeResult.attempted,
+    gratitudeSent: gratitudeResult.sent + gratitudeNativeResult.sent,
+    gratitudeFailed: gratitudeResult.failed + gratitudeNativeResult.failed,
+    failureSamples: [...followupFailureSamples, ...failureSamples, ...gratitudeResult.failureSamples, ...dailyNativeResult.failureSamples, ...gratitudeNativeResult.failureSamples].slice(0, 5),
   };
 }
 
@@ -3417,12 +3504,8 @@ export async function sendPendingDecisionNotifications(now = new Date()): Promis
   for (const [userId, rowsForUser] of pendingByUser.entries()) {
     const pushRows = await pushSubscriptionsForUsers([userId]);
     const { enabledRows } = splitPushSubscriptionRows(pushRows, [userId]);
-    if (enabledRows.length === 0) {
-      continue;
-    }
 
     for (const row of rowsForUser) {
-      attempted += enabledRows.length;
       const payload = JSON.stringify({
         title: row.title,
         body: row.body,
@@ -3434,13 +3517,31 @@ export async function sendPendingDecisionNotifications(now = new Date()): Promis
         day: row.day,
         recipientUserId: row.user_id,
       });
+      const nativePayload: NativePushMessagePayload = {
+        title: row.title,
+        body: row.body,
+        url: `/?source=notification&focus=decision&decisionId=${encodeURIComponent(row.decision_id)}&day=${row.day}&tab=decisions`,
+        tag: `aletheia-decision-followup-${notificationTagPart(row.decision_id)}-${row.day}`,
+        notificationKind: "decision_followup",
+        notificationId: row.id,
+        data: {
+          decisionId: row.decision_id,
+          day: row.day,
+          recipientUserId: row.user_id,
+        },
+      };
 
-      const result = await sendPushRows(enabledRows, () => payload, { lastSentColumn: null });
-      sent += result.sent;
-      failed += result.failed;
-      failureSamples.push(...result.failureSamples);
+      const result = enabledRows.length > 0
+        ? await sendPushRows(enabledRows, () => payload, { lastSentColumn: null })
+        : { sent: 0, failed: 0, failureSamples: [] as PushFailureSample[] };
+      const nativeResult = await sendNativePushFanOut([userId], () => true, () => nativePayload);
 
-      if (result.sent > 0) {
+      attempted += enabledRows.length + nativeResult.attempted;
+      sent += result.sent + nativeResult.sent;
+      failed += result.failed + nativeResult.failed;
+      failureSamples.push(...result.failureSamples, ...nativeResult.failureSamples);
+
+      if (result.sent > 0 || nativeResult.sent > 0) {
         await markNotificationSent(row.id, row.decision_id, row.user_id, row.day);
         processed += 1;
       }
@@ -3853,18 +3954,33 @@ export async function sendChallengeReminders(now = new Date()): Promise<{
       });
     }
 
-    const payload = JSON.stringify({
+    const payload = {
       title,
       body,
       url: `/?source=notification&focus=challenge&challenge=${encodeURIComponent(challengeId)}&tab=reflect&section=nudges`,
-    });
+    };
+    const nativePayload: NativePushMessagePayload = {
+      title,
+      body,
+      url: `/?source=notification&focus=challenge&challenge=${encodeURIComponent(challengeId)}&tab=reflect&section=nudges`,
+      tag: `aletheia-challenge-reminder-${notificationTagPart(challengeId)}-${userId}`,
+      notificationKind: "challenge_reminder",
+      notificationId: `${userId}:${challengeId}`,
+      data: {
+        challengeId,
+        userId,
+        suggestion: isSuggestion,
+        reengage: shouldReengage,
+      },
+    };
 
+    const nativeResult = await sendNativePushFanOut([userId], () => true, () => nativePayload);
     for (const pushRow of userRows) {
       attempted++;
       try {
         await sendNotificationWithRetry(
           { endpoint: pushRow.endpoint, keys: { p256dh: pushRow.p256dh, auth: pushRow.auth } },
-          payload
+          JSON.stringify(payload)
         );
         const deliveredAt = now.toISOString();
         await markPushSubscriptionFreshness(pushRow.id, deliveredAt, null);
@@ -3876,6 +3992,18 @@ export async function sendChallengeReminders(now = new Date()): Promise<{
         }
         failed++;
       }
+    }
+    attempted += nativeResult.attempted;
+    sent += nativeResult.sent;
+    failed += nativeResult.failed;
+
+    if (nativeResult.sent > 0) {
+      const deliveredAt = now.toISOString();
+      await Promise.all(
+        userRows.map((pushRow) =>
+          run(`UPDATE push_subscriptions SET last_challenge_notified_at = ? WHERE id = ?`, deliveredAt, pushRow.id)
+        )
+      );
     }
   }
 
@@ -3900,14 +4028,19 @@ export async function sendTestWisdomNotification(userId: string) {
     (row) => JSON.stringify(testNotificationPayload(row)),
     { lastSentColumn: null }
   );
+  const nativeResult = await sendNativePushFanOut(
+    [userId],
+    () => true,
+    (row) => testNotificationPayload(asPushRow(row))
+  );
 
   return {
-    attempted: rows.length,
-    sent,
-    failed,
+    attempted: rows.length + nativeResult.attempted,
+    sent: sent + nativeResult.sent,
+    failed: failed + nativeResult.failed,
     scanned: rows.length,
     skipped: 0,
-    failureSamples: failureSamples.slice(0, 5),
+    failureSamples: [...failureSamples, ...nativeResult.failureSamples].slice(0, 5),
   };
 }
 

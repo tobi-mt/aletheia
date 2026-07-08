@@ -30,6 +30,11 @@ export async function POST(request: Request) {
       );
     }
 
+    await run(
+      "DELETE FROM native_push_devices WHERE user_id = ?",
+      user.id
+    );
+
     return NextResponse.json({ ok: true });
   } catch {
     return apiError(401, "sign_in_required", "Sign in to manage notifications.");

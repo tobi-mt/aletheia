@@ -7,6 +7,7 @@ import { ChangeEvent, FormEvent, memo, type CSSProperties, type KeyboardEvent, t
 import { createPortal } from "react-dom";
 import { Capacitor, SystemBars, SystemBarsStyle, type PluginListenerHandle } from "@capacitor/core";
 import { App } from "@capacitor/app";
+import { PushNotifications } from "@capacitor/push-notifications";
 import {
   BookOpen,
   BriefcaseBusiness,
@@ -137,6 +138,18 @@ function getBrowserNotificationApi(): typeof Notification | null {
 
 function getBrowserNotificationPermission(): NotificationPermission {
   return getBrowserNotificationApi()?.permission ?? "default";
+}
+
+function getNativePushPlatform() {
+  if (!Capacitor.isNativePlatform()) {
+    return null;
+  }
+  const platform = Capacitor.getPlatform();
+  return platform === "ios" || platform === "android" ? platform : null;
+}
+
+function isNativePushShell() {
+  return Capacitor.isNativePlatform() && Boolean(getNativePushPlatform());
 }
 
 type View = "companion" | "decisions" | "reflect" | "library" | "account";
@@ -8786,6 +8799,57 @@ export function AletheiaApp({
     };
   }, [activeView, pendingDecisionNotificationFocus, showOnboarding]);
 
+  const handleNativePushActionPerformed = useEffectEvent(
+    (notification: { notification?: { data?: Record<string, unknown> | null } }) => {
+      if (typeof window === "undefined") {
+        return;
+      }
+
+      const data = notification.notification?.data;
+      const rawUrl = typeof data?.url === "string" ? data.url : null;
+      if (!rawUrl) {
+        return;
+      }
+
+      try {
+        const targetUrl = new URL(rawUrl, window.location.origin);
+        if (targetUrl.origin !== window.location.origin) {
+          return;
+        }
+
+        notificationFocusHandledRef.current = false;
+        window.location.assign(targetUrl.toString());
+      } catch {
+        // Ignore malformed notification payloads.
+      }
+    }
+  );
+
+  useEffect(() => {
+    if (!isNativePushShell() || typeof window === "undefined") {
+      return;
+    }
+
+    let active = true;
+    let actionHandle: PluginListenerHandle | null = null;
+
+    void PushNotifications.addListener("pushNotificationActionPerformed", (notification) => {
+      if (!active) {
+        return;
+      }
+      handleNativePushActionPerformed(notification);
+    })
+      .then((handle) => {
+        actionHandle = handle;
+      })
+      .catch(() => undefined);
+
+    return () => {
+      active = false;
+      void actionHandle?.remove().catch(() => undefined);
+    };
+  }, []);
+
   useEffect(() => {
     if (!clientStateRestored) {
       return;
@@ -9707,19 +9771,25 @@ export function AletheiaApp({
       } else {
         setNotificationStatus(ts('notifications.notificationsUnavailableBody'));
       }
-      if (NATIVE_WEB_BUNDLE) {
-        setNotificationsConfigured(false);
+      if (isNativePushShell()) {
+        setNotificationsConfigured(true);
         setNotificationAccountEnabled(false);
         setNotificationDeviceSubscribed(false);
         setNotificationsEnabled(false);
         setNotificationDiagnostics(null);
-        setNotificationStatus(ts('notifications.notificationsUnavailableBody'));
+        setNotificationPermission("default");
+        setNotificationStatus(user ? ts('notifications.notificationsOptionalWhenReady') : ts('notifications.signInRequiredBody'));
+        if (user) {
+          void selfHealNotificationSubscription("status_load");
+        }
         return;
       }
       const response = await fetch("/api/notifications/status");
       const data = (await response.json()) as {
         configured?: boolean;
+        nativeConfigured?: boolean;
         enabled?: boolean;
+        nativeDevices?: number;
         timingConfigured?: boolean;
         hasExplicitTiming?: boolean;
         preferredLocalHour?: number;
@@ -9728,7 +9798,7 @@ export function AletheiaApp({
         deliveryStrategy?: NotificationTiming["deliveryStrategy"];
       };
       const localSubscription =
-        !NATIVE_WEB_BUNDLE && "serviceWorker" in navigator && "PushManager" in window
+        !isNativePushShell() && "serviceWorker" in navigator && "PushManager" in window
           ? await navigator.serviceWorker
               .getRegistration("/")
               .then((registration) => registration?.pushManager.getSubscription())
@@ -9778,7 +9848,7 @@ export function AletheiaApp({
       const shouldAttemptSelfHeal =
         Boolean(user) &&
         Boolean(data.configured) &&
-        !NATIVE_WEB_BUNDLE &&
+        !isNativePushShell() &&
         notificationPermission === "granted" &&
         (!accountEnabled || !deviceSubscribed || shouldRefreshNotificationSubscription());
       if (shouldAttemptSelfHeal) {
@@ -11734,13 +11804,173 @@ function startFirstRunGuestFlow() {
     return true;
   }
 
+  async function saveNativePushSubscription(token: string) {
+    const platform = getNativePushPlatform();
+    if (!platform) {
+      return { ok: false, status: 400, errorCode: "native_unsupported", error: "Native push is not available." };
+    }
+
+    const appInfo = await App.getInfo().catch(() => null);
+    const response = await fetch("/api/notifications/native", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        token,
+        platform,
+        deviceName: appInfo?.name ?? null,
+        appVersion: appInfo?.version ?? null,
+        buildVersion: appInfo?.build ?? null,
+        pushEnvironment: Capacitor.isNativePlatform() ? Capacitor.getPlatform() : null,
+      }),
+    });
+
+    if (response.ok) {
+      return { ok: true, status: response.status, errorCode: null, error: null };
+    }
+
+    try {
+      const payload = (await response.json()) as { errorCode?: unknown; error?: unknown };
+      return {
+        ok: false,
+        status: response.status,
+        errorCode: typeof payload.errorCode === "string" ? payload.errorCode : null,
+        error: typeof payload.error === "string" ? payload.error : null,
+      };
+    } catch {
+      return { ok: false, status: response.status, errorCode: null, error: null };
+    }
+  }
+
+  async function disableNativePushSubscription() {
+    try {
+      await PushNotifications.unregister();
+    } catch {
+      // Ignore unregister failures and still clear the backend state.
+    }
+
+    await fetch("/api/notifications/native", {
+      method: "DELETE",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    }).catch(() => undefined);
+  }
+
+  async function registerNativePushSubscription() {
+    const platform = getNativePushPlatform();
+    if (!platform) {
+      setNotificationStatus(ts('notifications.notificationsUnavailableBody'));
+      announceWorkflow(ts('notifications.notificationsUnavailable'), ts('notifications.notificationsUnavailableBody'), "warning");
+      return false;
+    }
+
+    const currentPermission = await PushNotifications.checkPermissions().catch(() => ({ receive: "prompt" as const }));
+    const permission = currentPermission.receive === "granted"
+      ? currentPermission
+      : await PushNotifications.requestPermissions().catch(() => ({ receive: "denied" as const }));
+    if (permission.receive !== "granted") {
+      trackClientEvent("notification_enable_failed", { reason: "permission_denied", platform });
+      setNotificationStatus(ts('notifications.notificationsNotEnabledBody'));
+      announceWorkflow(ts('notifications.notificationsNotEnabled'), ts('notifications.notificationsNotEnabledBody'), "warning");
+      return false;
+    }
+
+    if (platform === "android") {
+      await PushNotifications.createChannel({
+        id: "aletheia-default",
+        name: ts('labels.notifications'),
+        description: ts('labels.dailyWisdomNotifications'),
+      }).catch(() => undefined);
+    }
+
+    let settled = false;
+    let registrationHandle: PluginListenerHandle | null = null;
+    let registrationErrorHandle: PluginListenerHandle | null = null;
+    let timeoutId: number | null = null;
+    let resolveToken: ((value: string) => void) | null = null;
+    let rejectToken: ((reason?: unknown) => void) | null = null;
+    const tokenPromise = new Promise<string>((resolve, reject) => {
+      resolveToken = resolve;
+      rejectToken = reject;
+    });
+
+    const cleanup = (timeoutId: number | null) => {
+      if (timeoutId !== null) {
+        window.clearTimeout(timeoutId);
+      }
+      void registrationHandle?.remove().catch(() => undefined);
+      void registrationErrorHandle?.remove().catch(() => undefined);
+    };
+
+    const [registrationHandleResolved, registrationErrorHandleResolved] = await Promise.all([
+      PushNotifications.addListener("registration", (tokenResult) => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        cleanup(timeoutId);
+        resolveToken?.(tokenResult.value);
+      }),
+      PushNotifications.addListener("registrationError", (error) => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        cleanup(timeoutId);
+        rejectToken?.(new Error(error.error || "Native push registration failed."));
+      }),
+    ]);
+    registrationHandle = registrationHandleResolved;
+    registrationErrorHandle = registrationErrorHandleResolved;
+
+    timeoutId = window.setTimeout(() => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      cleanup(timeoutId);
+      rejectToken?.(new Error("Native push registration timed out."));
+    }, 15000);
+
+    await PushNotifications.register();
+    const token = await tokenPromise;
+
+    const response = await saveNativePushSubscription(token);
+    if (!response.ok) {
+      const failureBody = notificationSyncFailureBody(response.errorCode);
+      trackClientEvent("notification_enable_failed", {
+        reason: response.errorCode ?? "native_subscription_save_failed",
+        server_error_code: response.errorCode,
+        status: response.status,
+      });
+      setNotificationStatus(failureBody);
+      announceWorkflow(ts('notifications.notificationSyncFailed'), failureBody, "error");
+      return false;
+    }
+
+    setNotificationsEnabled(true);
+    setNotificationsConfigured(true);
+    setNotificationAccountEnabled(true);
+    setNotificationDeviceSubscribed(true);
+    setNotificationPermission("granted");
+    setNotificationStatus(ts('notifications.notificationsEnabledBody'));
+    trackClientEvent("notification_self_healed", { trigger: "native_register" });
+    announceWorkflow(ts('notifications.notificationsEnabled'), ts('notifications.notificationsEnabledBody'), "success");
+    return true;
+  }
+
   async function enableNotifications() {
     if (notificationBusy) {
       return;
     }
-    if (NATIVE_WEB_BUNDLE) {
-      setNotificationStatus(ts('notifications.notificationsUnavailableBody'));
-      announceWorkflow(ts('notifications.notificationsUnavailable'), ts('notifications.notificationsUnavailableBody'), "warning");
+    if (isNativePushShell()) {
+      setNotificationBusy(true);
+      try {
+        await registerNativePushSubscription();
+      } finally {
+        setNotificationBusy(false);
+      }
       return;
     }
     if (!user) {
@@ -11849,12 +12079,27 @@ function startFirstRunGuestFlow() {
     if (notificationBusy) {
       return;
     }
-    if (NATIVE_WEB_BUNDLE) {
+    if (isNativePushShell()) {
+      setNotificationBusy(true);
+      try {
+        await disableNativePushSubscription();
+      } finally {
+        setNotificationBusy(false);
+      }
+      try {
+        window.localStorage.removeItem(NOTIFICATION_SUBSCRIPTION_REFRESH_STORAGE_KEY);
+      } catch {
+        // Ignore storage failures during teardown.
+      }
       setNotificationsEnabled(false);
       setNotificationAccountEnabled(false);
       setNotificationDeviceSubscribed(false);
-      setNotificationStatus(ts('notifications.notificationsUnavailableBody'));
-      announceWorkflow(ts('notifications.notificationsUnavailable'), ts('notifications.notificationsUnavailableBody'), "warning");
+      trackClientEvent("notification_disabled", {
+        hadPermission: notificationPermission === "granted",
+        wasEnabled: true,
+      });
+      setNotificationStatus(ts('notifications.notificationsOffBody'));
+      announceWorkflow(ts('notifications.notificationsOff'), ts('notifications.notificationsOffBody'), "info");
       return;
     }
     if (!window.confirm(ts('confirm.turnOffNotifications'))) {
@@ -11951,21 +12196,22 @@ function startFirstRunGuestFlow() {
     if (!user) {
       return false;
     }
-    if (NATIVE_WEB_BUNDLE) {
-      return false;
-    }
     if (notificationSelfHealInFlightRef.current) {
-      return false;
-    }
-    if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
-      return false;
-    }
-    if (getBrowserNotificationPermission() !== "granted") {
       return false;
     }
 
     notificationSelfHealInFlightRef.current = true;
     try {
+      if (isNativePushShell()) {
+        return await registerNativePushSubscription();
+      }
+      if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
+        return false;
+      }
+      if (getBrowserNotificationPermission() !== "granted") {
+        return false;
+      }
+
       const keyResponse = await fetch("/api/notifications/key", { cache: "no-store" });
       const keyData = (await keyResponse.json()) as { publicKey?: string };
       if (!keyResponse.ok || !keyData.publicKey) {
@@ -23778,10 +24024,12 @@ function NotificationPanel({
     () => notificationTimezoneOptions(timing.preferredTimezone),
     [timing.preferredTimezone]
   );
+  const [supportModalOpen, setSupportModalOpen] = useState(false);
   const unsupported =
     typeof window !== "undefined" &&
-    (NATIVE_WEB_BUNDLE || !("Notification" in window) || !("serviceWorker" in navigator) || !("PushManager" in window));
-  const disabled = busy || !user || !configured || unsupported || permission === "denied";
+    (!NATIVE_WEB_BUNDLE && (!("Notification" in window) || !("serviceWorker" in navigator) || !("PushManager" in window)));
+  const enableDisabled = busy || !user || !configured || unsupported || permission === "denied";
+  const switchDisabled = enabled ? busy : enableDisabled;
   const signedIn = Boolean(user);
   const browserSupport = {
     supported: !unsupported,
@@ -23805,25 +24053,6 @@ function NotificationPanel({
     const days = Math.round(hours / 24);
     return formatter.format(-days, "day");
   };
-  const diagnosticsSummary = !browserSupport.supported
-    ? ts("notifications.diagnosticsBrowserUnsupported")
-    : diagnostics?.server.cronStatus === "missing_secret"
-      ? ts("notifications.diagnosticsCronSecretMissing")
-      : diagnostics?.server.cronStatus === "stale"
-        ? diagnostics.server.lastDailyCheckedMinutesAgo !== null
-          ? ts("notifications.diagnosticsCronStale").replace("{relative}", formatRelativeMinutes(diagnostics.server.lastDailyCheckedMinutesAgo))
-          : ts("notifications.diagnosticsCronNotCheckedInYet")
-        : diagnostics?.account.refreshDueSubscriptions
-          ? ts("notifications.diagnosticsRefreshDue").replace("{count}", String(diagnostics.account.refreshDueSubscriptions))
-        : diagnostics?.account.recommendedAction === "none"
-          ? ts("notifications.diagnosticsPushLooksHealthy")
-          : diagnostics?.account.recommendedAction === "fix_vapid"
-            ? ts("notifications.diagnosticsPushKeysIncomplete")
-            : diagnostics?.account.recommendedAction === "subscribe"
-              ? ts("notifications.diagnosticsNoSavedSubscription")
-              : diagnostics?.account.recommendedAction === "resubscribe_or_send_test"
-                ? ts("notifications.diagnosticsSavedSubscriptionStale")
-                : ts("notifications.diagnosticsAvailable");
   const deliveryOptions: Array<{ value: NotificationTiming["deliveryStrategy"]; label: string }> = [
     { value: "morning", label: ts('labels.morning') },
     { value: "midday", label: ts('labels.midday') },
@@ -23888,13 +24117,32 @@ function NotificationPanel({
   ]
     .filter(Boolean)
     .join(", ");
-  const freshnessLabel = diagnostics?.account.refreshDueSubscriptions
-    ? ts("notifications.refreshDueNow")
-    : diagnostics?.account.subscriptions
-      ? ts("notifications.refreshFresh")
-      : ts("notifications.refreshUnknown");
+  const diagnosticsHasIssue = Boolean(
+    diagnostics &&
+      (!browserSupport.supported ||
+        permission === "denied" ||
+        !configured ||
+        diagnostics.server.cronStatus !== "healthy" ||
+        !diagnostics.server.vapidConfigured ||
+        !diagnostics.server.vapidKeyPairValid ||
+        Boolean(diagnostics.account.refreshDueSubscriptions))
+  );
+  const notificationsSummary = !enabled
+    ? {
+        title: ts("notifications.notificationsOff"),
+        body: ts("notifications.notificationsOffBody"),
+      }
+    : diagnosticsHasIssue || !deviceSubscribed
+      ? {
+          title: ts("notifications.diagnosticsNeedsAttention"),
+          body: !deviceSubscribed ? ts("notifications.accountSubscribedButDeviceNot") : "",
+        }
+      : {
+          title: ts("labels.ready"),
+          body: ts("notifications.notificationsEnabledBody"),
+        };
   const primaryDiagnostic = diagnostics?.account.diagnostics[0] ?? null;
-  const notificationHealthRows = diagnostics
+  const notificationHealthRows: Array<{ label: string; value: string; detail: string; tone: "good" | "warn" | "bad" }> = diagnostics
     ? [
         {
           label: ts("notifications.refreshFreshness"),
@@ -23969,29 +24217,22 @@ function NotificationPanel({
             <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
               {ts('labels.notifications')}
             </p>
-            <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
-              {diagnosticsSummary}
+            <p className="mt-1 text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>
+              {notificationsSummary.title}
             </p>
+            {notificationsSummary.body ? (
+              <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                {notificationsSummary.body}
+              </p>
+            ) : null}
           </div>
-          {enabled ? (
-            <button
-              onClick={onDisable}
-              disabled={busy}
-              className="h-10 rounded-full border px-4 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60"
-              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}
-            >
-              {busy ? ts('labels.updating') : ts('labels.turnOff')}
-            </button>
-          ) : (
-            <button
-              onClick={onEnable}
-              disabled={disabled}
-              className="h-10 rounded-full px-4 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-55"
-              style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
-            >
-              {busy ? ts('notifications.enabling') : ts('labels.enable')}
-            </button>
-          )}
+          <NotificationSwitch
+            checked={enabled}
+            disabled={switchDisabled}
+            label={ts('labels.dailyWisdomNotifications')}
+            theme={theme}
+            onToggle={enabled ? onDisable : onEnable}
+          />
         </div>
       )}
 
@@ -24005,12 +24246,6 @@ function NotificationPanel({
               {ts('notifications.dailyWisdomSetFor')} {notificationTimeLabel(timing.preferredLocalHour, language)}. {ts('notifications.savedLocalTimingPreference')}
             </p>
           </div>
-          <span
-            className="rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.1em]"
-            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textSecondary }}
-          >
-            {freshnessLabel}
-          </span>
         </div>
 
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
@@ -24104,9 +24339,6 @@ function NotificationPanel({
               {ts('notifications.counselAndFormationSettingsBody')}
             </p>
           </div>
-          <span className="shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.1em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textSecondary }}>
-            {ts('notifications.privateByDefault')}
-          </span>
         </div>
         <div className="mt-1 divide-y" style={{ borderColor: theme.borderLight }}>
           <AccountToggleRow
@@ -24144,60 +24376,198 @@ function NotificationPanel({
               {ts('labels.diagnostics')}
             </h3>
             <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
-              {diagnosticsSummary}
+              {notificationsSummary.title}
             </p>
           </div>
-          <span className="self-start rounded-full border px-2.5 py-1 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textSecondary }}>
-            {diagnostics?.server.cronStatus === "healthy" ? ts("notifications.diagnosticsHealthy") : ts("notifications.diagnosticsNeedsAttention")}
-          </span>
+          <button
+            type="button"
+            disabled={!diagnostics}
+            onClick={() => setSupportModalOpen(true)}
+            className="inline-flex h-10 shrink-0 items-center rounded-full border px-3.5 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-55"
+            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}
+          >
+            {ts("support")}
+          </button>
         </div>
 
-        <div className="mt-3 divide-y" style={{ borderColor: theme.borderLight }}>
-          {notificationHealthRows.map((item) => (
-            <div
-              key={item.label}
-              className="py-3 first:pt-0 last:pb-0"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <p className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
-                  {item.label}
-                </p>
-                <p className="max-w-[15rem] text-right text-sm leading-5" style={{ color: item.tone === "good" ? theme.textPrimary : item.tone === "warn" ? "#8c6a00" : "#8c3f28" }}>
-                  {item.value}
-                </p>
-              </div>
-              <p className="mt-1 text-xs leading-5" style={{ color: theme.textSecondary }}>
-                {item.detail}
-              </p>
-            </div>
-          ))}
-
-          <div className="py-3 first:pt-0 last:pb-0">
-            <div className="flex items-start justify-between gap-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
-                {ts("notifications.subscriptionLabel")}
-              </p>
-              <p className="max-w-[15rem] text-right text-sm leading-5" style={{ color: deviceSubscribed ? theme.textPrimary : "#8c3f28" }}>
-                {diagnostics?.account.subscriptions
-                  ? enabled
-                    ? ts("notifications.deviceSubscriptionActive")
-                    : accountEnabled
-                      ? ts("notifications.accountSubscribedButDeviceNot")
-                      : diagnostics.account.subscriptions === 1
-                        ? ts("notifications.savedSubscription")
-                        : ts("notifications.savedSubscriptions").replace("{count}", String(diagnostics.account.subscriptions))
-                  : ts("notifications.noSavedSubscription")}
-              </p>
-            </div>
-            <p className="mt-1 text-xs leading-5" style={{ color: theme.textSecondary }}>
-              {diagnostics?.account.refreshDueSubscriptions
-                ? ts("notifications.refreshDueCount").replace("{count}", String(diagnostics.account.refreshDueSubscriptions))
-                : ts("notifications.refreshFreshAll")}
-            </p>
-          </div>
-        </div>
+        <NotificationSupportModal
+          open={supportModalOpen}
+          theme={theme}
+          ts={ts}
+          summary={notificationsSummary}
+          rows={notificationHealthRows}
+          enabled={enabled}
+          accountEnabled={accountEnabled}
+          deviceSubscribed={deviceSubscribed}
+          diagnostics={diagnostics}
+          onClose={() => setSupportModalOpen(false)}
+        />
       </div>
     </section>
+  );
+}
+
+function NotificationSwitch({
+  checked,
+  disabled,
+  label,
+  onToggle,
+  theme,
+}: {
+  checked: boolean;
+  disabled: boolean;
+  label: string;
+  onToggle: () => void;
+  theme: ThemeColors;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      disabled={disabled}
+      onClick={onToggle}
+      className="relative inline-flex h-9 w-[3.65rem] shrink-0 items-center rounded-full border p-1 transition duration-200 ease-out disabled:cursor-not-allowed disabled:opacity-60"
+      style={{
+        borderColor: checked ? theme.primary : theme.borderMedium,
+        backgroundColor: checked ? theme.primary : theme.bgCardElevated,
+        boxShadow: checked ? `0 0 0 1px color-mix(in srgb, ${theme.primary} 18%, transparent)` : "none",
+      }}
+    >
+      <span
+        aria-hidden="true"
+        className="inline-block size-7 rounded-full border shadow-sm transition-transform duration-200 ease-out"
+        style={{
+          transform: checked ? "translateX(1.35rem)" : "translateX(0)",
+          borderColor: checked ? "rgba(255,255,255,0.24)" : theme.borderLight,
+          backgroundColor: checked ? theme.textOnPrimary : theme.bgCard,
+        }}
+      />
+    </button>
+  );
+}
+
+function NotificationSupportModal({
+  open,
+  theme,
+  ts,
+  summary,
+  rows,
+  enabled,
+  accountEnabled,
+  deviceSubscribed,
+  diagnostics,
+  onClose,
+}: {
+  open: boolean;
+  theme: ThemeColors;
+  ts: (key: string, fallback?: string) => string;
+  summary: { title: string; body: string };
+  rows: Array<{ label: string; value: string; detail: string; tone: "good" | "warn" | "bad" }>;
+  enabled: boolean;
+  accountEnabled: boolean;
+  deviceSubscribed: boolean;
+  diagnostics: NotificationDiagnostics | null;
+  onClose: () => void;
+}) {
+  const canUsePortal = typeof document !== "undefined";
+  useBodyScrollLock(open && canUsePortal);
+
+  if (!open || !canUsePortal || !diagnostics) {
+    return null;
+  }
+
+  const subscriptionValue = diagnostics.account.subscriptions
+    ? enabled
+      ? ts("notifications.deviceSubscriptionActive")
+      : accountEnabled
+        ? ts("notifications.accountSubscribedButDeviceNot")
+        : diagnostics.account.subscriptions === 1
+          ? ts("notifications.savedSubscription")
+          : ts("notifications.savedSubscriptions").replace("{count}", String(diagnostics.account.subscriptions))
+    : ts("notifications.noSavedSubscription");
+  const subscriptionDetail = diagnostics.account.refreshDueSubscriptions
+    ? ts("notifications.refreshDueCount").replace("{count}", String(diagnostics.account.refreshDueSubscriptions))
+    : ts("notifications.refreshFreshAll");
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[9999] grid min-h-dvh place-items-center overflow-hidden overscroll-none px-3 py-3 backdrop-blur-sm"
+      style={{
+        backgroundColor: "rgba(13, 23, 20, 0.62)",
+        paddingTop: "calc(max(var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)), 0.75rem) + 0.25rem)",
+        paddingBottom: "calc(max(var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)), 0.75rem) + 0.25rem)",
+      }}
+      onClick={onClose}
+    >
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="notification-support-title"
+        className="w-full max-w-xl overflow-y-auto overscroll-contain rounded-[2rem] border [-webkit-overflow-scrolling:touch] [touch-action:pan-y] shadow-[0_28px_90px_rgba(10,18,14,0.36)]"
+        style={{
+          borderColor: theme.borderStrong,
+          backgroundColor: theme.bgCard,
+          maxHeight: "calc(100svh - max(var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)), 0.75rem) - max(var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)), 0.75rem) - 1rem)",
+        }}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <ModalHeaderChrome
+          theme={theme}
+          eyebrow={ts("labels.notifications")}
+          title={ts("labels.diagnostics")}
+          subtitle={summary.body || summary.title}
+          onClose={onClose}
+          closeAriaLabel={ts("labels.close")}
+          titleId="notification-support-title"
+          closeClassName="size-9"
+          className="border-b"
+          titleClassName="text-xl sm:text-2xl"
+          style={{
+            borderColor: theme.borderLight,
+            background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})`,
+          }}
+        />
+
+        <div className="space-y-3.5 p-3.5 sm:p-4">
+          <div className="rounded-[1rem] border p-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+            <div className="space-y-3 divide-y" style={{ borderColor: theme.borderLight }}>
+              {rows.map((item) => (
+                <div key={item.label} className="pt-3 first:pt-0">
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
+                      {item.label}
+                    </p>
+                    <p className="max-w-[15rem] text-right text-sm leading-5" style={{ color: item.tone === "good" ? theme.textPrimary : item.tone === "warn" ? "#8c6a00" : "#8c3f28" }}>
+                      {item.value}
+                    </p>
+                  </div>
+                  <p className="mt-1 text-xs leading-5" style={{ color: theme.textSecondary }}>
+                    {item.detail}
+                  </p>
+                </div>
+              ))}
+
+              <div className="pt-3">
+                <div className="flex items-start justify-between gap-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
+                    {ts("notifications.subscriptionLabel")}
+                  </p>
+                  <p className="max-w-[15rem] text-right text-sm leading-5" style={{ color: deviceSubscribed ? theme.textPrimary : "#8c3f28" }}>
+                    {subscriptionValue}
+                  </p>
+                </div>
+                <p className="mt-1 text-xs leading-5" style={{ color: theme.textSecondary }}>
+                  {subscriptionDetail}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>,
+    document.body
   );
 }
 
