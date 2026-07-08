@@ -22469,8 +22469,8 @@ function ManualContextPanel({
             </div>
           </div>
 
-          <div className="mt-4 grid gap-3 2xl:grid-cols-[1.15fr_0.85fr]">
-            <div className="rounded-[1.3rem] border p-4 sm:p-5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+          <div className="mt-4 grid gap-4 2xl:grid-cols-[1.15fr_0.85fr]">
+            <div className="space-y-3">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-xs font-semibold uppercase tracking-[0.12em] sm:tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('manualContext.quickTitle')}</p>
@@ -22528,8 +22528,8 @@ function ManualContextPanel({
             onSubmit={handleManualContextSubmit}
           >
             <div className="grid gap-3 2xl:grid-cols-[0.88fr_1.12fr]">
-              <div className="space-y-3">
-                <div className="rounded-[1.2rem] border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+              <div className="space-y-4">
+                <div className="space-y-3">
                   <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                     <div className="min-w-0">
                       <p className="text-xs font-semibold uppercase tracking-[0.12em] sm:tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('manualContext.vaultControlsEyebrow')}</p>
@@ -22572,7 +22572,7 @@ function ManualContextPanel({
                   </div>
                 </div>
 
-                <div className="rounded-[1.2rem] border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                <div className="space-y-3">
                   <div className="min-w-0">
                     <p className="text-xs font-semibold uppercase tracking-[0.12em] sm:tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('manualContext.answerUseEyebrow')}</p>
                     <p className="mt-2 text-lg font-semibold" style={{ color: theme.textPrimary }}>{ts('manualContext.answerUseTitle')}</p>
@@ -22633,9 +22633,9 @@ function ManualContextPanel({
                   hideDetailsLabel={ts('hideDetails')}
                   theme={theme}
                 >
-                  <div className="rounded-[1rem] border p-3 text-xs leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
+                  <div className="space-y-1 text-xs leading-5" style={{ color: theme.textSecondary }}>
                     <p>{manualCopy.privacyBody}</p>
-                    <p className="mt-1">{syncSummary} {hasContent ? manualCopy.clearFields : ""}</p>
+                    <p>{syncSummary} {hasContent ? manualCopy.clearFields : ""}</p>
                   </div>
                 </DisclosureSection>
               </div>
