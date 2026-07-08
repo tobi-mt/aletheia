@@ -5,8 +5,6 @@ import Capacitor
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
 
-    var window: UIWindow?
-
     private func configureAudioSessionForSpeech() {
         let session = AVAudioSession.sharedInstance()
         do {
@@ -41,6 +39,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         configureAudioSessionForSpeech()
     }
 
+    func application(_ application: UIApplication, configurationForConnecting connectingSceneSession: UISceneSession, options: UIScene.ConnectionOptions) -> UISceneConfiguration {
+        let configuration = UISceneConfiguration(name: "Default Configuration", sessionRole: connectingSceneSession.role)
+        configuration.delegateClass = SceneDelegate.self
+        return configuration
+    }
+
     func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
         NotificationCenter.default.post(name: .capacitorDidRegisterForRemoteNotifications, object: deviceToken)
     }
@@ -70,7 +74,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
 @objc(ManagedAudioBridgeViewController)
 class ManagedAudioBridgeViewController: CAPBridgeViewController {
-    private let startupChromeColor = UIColor(red: 0.933, green: 0.949, blue: 0.937, alpha: 1)
+    static let startupChromeColor = UIColor(red: 0.933, green: 0.949, blue: 0.937, alpha: 1)
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -83,7 +87,7 @@ class ManagedAudioBridgeViewController: CAPBridgeViewController {
     }
 
     private func configureEdgeToEdgeChrome() {
-        view.backgroundColor = startupChromeColor
+        view.backgroundColor = Self.startupChromeColor
         webView?.isOpaque = false
         webView?.backgroundColor = .clear
         webView?.scrollView.backgroundColor = .clear
