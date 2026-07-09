@@ -1,5 +1,6 @@
 import UIKit
 import AVFoundation
+import WebKit
 import Capacitor
 
 @UIApplicationMain
@@ -75,6 +76,15 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 @objc(ManagedAudioBridgeViewController)
 class ManagedAudioBridgeViewController: CAPBridgeViewController {
     static let startupChromeColor = UIColor(red: 0.933, green: 0.949, blue: 0.937, alpha: 1)
+    private let startupTraceHandler = StartupTraceScriptMessageHandler()
+    private let startupTraceHandlerName = "aletheiaStartupTrace"
+
+    override func webView(with frame: CGRect, configuration: WKWebViewConfiguration) -> WKWebView {
+        installStartupDiagnostics(on: configuration.userContentController, label: "startup:native-webview-hook")
+        configuration.userContentController.removeScriptMessageHandler(forName: startupTraceHandlerName)
+        configuration.userContentController.add(startupTraceHandler, name: startupTraceHandlerName)
+        return super.webView(with: frame, configuration: configuration)
+    }
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -96,6 +106,105 @@ class ManagedAudioBridgeViewController: CAPBridgeViewController {
         webView?.scrollView.scrollIndicatorInsets = .zero
         statusBarStyle = .darkContent
         setNeedsStatusBarAppearanceUpdate()
+    }
+
+    private func installStartupDiagnostics(on userContentController: WKUserContentController?, label: String = "startup:native-ios-hook") {
+        guard let userContentController else { return }
+
+        let script = """
+        (function () {
+          if (window.__aletheiaNativeStartupDiagnosticsInstalled) {
+            return;
+          }
+          window.__aletheiaNativeStartupDiagnosticsInstalled = true;
+
+          var post = function (phase, payload) {
+            try {
+              var handlers = window.webkit && window.webkit.messageHandlers;
+              if (handlers && handlers.aletheiaStartupTrace) {
+                handlers.aletheiaStartupTrace.postMessage({
+                  phase: phase,
+                  payload: payload || null,
+                });
+              }
+            } catch (error) {
+            }
+          };
+
+          var summarize = function (value) {
+            if (!value) return null;
+            if (typeof value === "string") return value;
+            if (value instanceof Error) return value.stack || value.message || String(value);
+            if (typeof value === "object") {
+              try {
+                return JSON.stringify(value);
+              } catch (error) {
+                return String(value);
+              }
+            }
+            return String(value);
+          };
+
+          console.error("[\(label)] installed");
+          post("[\(label)] installed");
+
+          window.addEventListener("error", function (event) {
+            try {
+              var payload = {
+                message: event.message,
+                filename: event.filename,
+                lineno: event.lineno,
+                colno: event.colno,
+                error: summarize(event.error),
+              };
+              post("[startup:native-ios-error]", payload);
+              console.error("[startup:native-ios-error]", {
+                message: payload.message,
+                filename: payload.filename,
+                lineno: payload.lineno,
+                colno: payload.colno,
+                error: payload.error,
+              });
+            } catch (error) {
+              console.error("[startup:native-ios-error:logging-failed]", summarize(error));
+            }
+          });
+
+          window.addEventListener("unhandledrejection", function (event) {
+            try {
+              var payload = {
+                reason: summarize(event.reason),
+              };
+              post("[startup:native-ios-unhandledrejection]", payload);
+              console.error("[startup:native-ios-unhandledrejection]", {
+                reason: payload.reason,
+              });
+            } catch (error) {
+              console.error("[startup:native-ios-unhandledrejection:logging-failed]", summarize(error));
+            }
+          });
+        })();
+        """
+
+        userContentController.addUserScript(
+        WKUserScript(source: script, injectionTime: .atDocumentStart, forMainFrameOnly: true)
+        )
+    }
+}
+
+@objc(StartupTraceScriptMessageHandler)
+final class StartupTraceScriptMessageHandler: NSObject, WKScriptMessageHandler {
+    func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+        guard message.name == "aletheiaStartupTrace" else {
+            return
+        }
+
+        if let body = message.body as? [String: Any] {
+            print("[startup:native-js-message] \(body)")
+            return
+        }
+
+        print("[startup:native-js-message] \(message.body)")
     }
 }
 

@@ -1,3 +1,5 @@
+import { traceStartup } from "@/lib/startup-trace";
+
 const DEFAULT_PUBLIC_APP_ORIGIN = "https://aletheia.mirrortalkpodcast.com";
 
 export const NATIVE_WEB_BUNDLE = process.env.NEXT_PUBLIC_NATIVE_WEB_BUNDLE === "1";
@@ -54,6 +56,8 @@ export function installNativeWebFetchProxy() {
   if (!NATIVE_WEB_BUNDLE || nativeFetchProxyInstalled || typeof window === "undefined") {
     return;
   }
+
+  traceStartup("native-web:fetch-proxy-install");
 
   const originalFetch = window.fetch.bind(window);
   window.fetch = ((input: RequestInfo | URL, init?: RequestInit) => {

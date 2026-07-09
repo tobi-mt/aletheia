@@ -2,9 +2,10 @@
 
 import dynamic from "next/dynamic";
 import Image from "next/image";
-import { startTransition, useEffect, useRef, useState } from "react";
+import { startTransition, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { getTranslation, loadTranslationsSync } from "@/lib/translations";
-import { installNativeWebFetchProxy } from "@/lib/native-web";
+import { NATIVE_WEB_BUNDLE, installNativeWebFetchProxy } from "@/lib/native-web";
+import { traceStartup } from "@/lib/startup-trace";
 
 type SplashLanguage = "en" | "es" | "fr" | "de" | "pt" | "yo" | "ig" | "ha" | "tl" | "ar" | "hi";
 
@@ -44,9 +45,18 @@ export default function HomeClientShell() {
   const [splashLanguage, setSplashLanguage] = useState<SplashLanguage>("en");
   const [splashCopyReady, setSplashCopyReady] = useState(false);
   const lastHiddenAtRef = useRef<number | null>(null);
+  const bootGateLoggedRef = useRef(false);
+  const fontsReadyLoggedRef = useRef(false);
+  const paintReadyLoggedRef = useRef(false);
   const splashTranslations = loadTranslationsSync(splashLanguage);
   const appTagline = String(getTranslation(splashTranslations, "labels.appTagline", "Curated wisdom, translation-aware."));
   const loadingLabel = String(getTranslation(splashTranslations, "labels.loading", "Loading…"));
+
+  useLayoutEffect(() => {
+    traceStartup("home-client-shell:first-commit", {
+      nativeWebBundle: NATIVE_WEB_BUNDLE,
+    });
+  }, []);
 
   useEffect(() => {
     const nextLanguage = readStoredSplashLanguage();
@@ -81,11 +91,19 @@ export default function HomeClientShell() {
     void fonts.ready
       .then(() => {
         if (!cancelled) {
+          if (!fontsReadyLoggedRef.current) {
+            fontsReadyLoggedRef.current = true;
+            traceStartup("home-client-shell:fonts-ready");
+          }
           setFontsReady(true);
         }
       })
       .catch(() => {
         if (!cancelled) {
+          if (!fontsReadyLoggedRef.current) {
+            fontsReadyLoggedRef.current = true;
+            traceStartup("home-client-shell:fonts-ready");
+          }
           setFontsReady(true);
         }
       });
@@ -104,6 +122,10 @@ export default function HomeClientShell() {
     const firstFrame = window.requestAnimationFrame(() => {
       const secondFrame = window.requestAnimationFrame(() => {
         if (!cancelled) {
+          if (!paintReadyLoggedRef.current) {
+            paintReadyLoggedRef.current = true;
+            traceStartup("home-client-shell:paint-ready");
+          }
           setPaintReady(true);
         }
       });
@@ -162,6 +184,14 @@ export default function HomeClientShell() {
     };
 
     if (launchReady && paintReady && fontsReady) {
+      if (!bootGateLoggedRef.current) {
+        bootGateLoggedRef.current = true;
+        traceStartup("home-client-shell:boot-gate-open", {
+          launchReady,
+          paintReady,
+          fontsReady,
+        });
+      }
       showSplashFor(160);
     }
 
@@ -194,7 +224,16 @@ export default function HomeClientShell() {
 
   return (
     <>
-      <LazyAletheiaApp onBootReady={() => setLaunchReady(true)} startupPaintReady={paintReady} />
+      <LazyAletheiaApp
+        onBootReady={() => {
+          traceStartup("home-client-shell:on-boot-ready", {
+            paintReady,
+            fontsReady,
+          });
+          setLaunchReady(true);
+        }}
+        startupPaintReady={paintReady}
+      />
       {showSplash ? (
         <div
           data-testid="app-launch-splash"

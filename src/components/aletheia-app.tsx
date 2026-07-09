@@ -117,6 +117,7 @@ import {
 import type { ChallengeRecommendationBundle } from "@/lib/challenge-recommendations";
 import { BUILD_ID, SERVICE_WORKER_URL } from "@/lib/build-version";
 import { NATIVE_WEB_BUNDLE, getPublicAppOrigin, installNativeWebFetchProxy } from "@/lib/native-web";
+import { traceStartup, traceStartupError } from "@/lib/startup-trace";
 import { notificationUrlFromData, parseNotificationLaunchUrl } from "@/lib/notification-routing";
 import { loadTranslationsSync, loadTranslationsWithFallbackSync, getTranslation, type TranslationData } from "@/lib/translations";
 import { ManagedAudio } from "@/lib/native-audio";
@@ -151,6 +152,37 @@ function getNativePushPlatform() {
 
 function isNativePushShell() {
   return Capacitor.isNativePlatform() && Boolean(getNativePushPlatform());
+}
+
+async function traceAppLaunchUrl(flow: "counsel" | "challenge") {
+  traceStartup(`native-bridge:App.getLaunchUrl:${flow}:start`);
+  try {
+    const launchUrl = await App.getLaunchUrl();
+    traceStartup(`native-bridge:App.getLaunchUrl:${flow}:ok`, {
+      hasLaunchUrl: Boolean(launchUrl?.url),
+    });
+    return launchUrl;
+  } catch (error) {
+    traceStartupError(`native-bridge:App.getLaunchUrl:${flow}:error`, error);
+    return undefined;
+  }
+}
+
+async function traceAppUrlOpenListener(
+  flow: "counsel" | "challenge",
+  onUrlOpen: (url: string) => void
+) {
+  traceStartup(`native-bridge:App.addListener(appUrlOpen):${flow}:start`);
+  try {
+    const listener = await App.addListener("appUrlOpen", ({ url }) => {
+      onUrlOpen(url);
+    });
+    traceStartup(`native-bridge:App.addListener(appUrlOpen):${flow}:ok`);
+    return listener;
+  } catch (error) {
+    traceStartupError(`native-bridge:App.addListener(appUrlOpen):${flow}:error`, error);
+    return null;
+  }
 }
 
 type View = "companion" | "decisions" | "reflect" | "library" | "account";
@@ -7609,6 +7641,18 @@ export function AletheiaApp({
   const [activeView, setActiveViewState] = useState<View>(() => getInitialActiveView());
   const [homeSection, setHomeSectionState] = useState<HomeSection>(() => getInitialHomeSection());
   const { toasts, removeToast } = useToast();
+  const firstCommitLoggedRef = useRef(false);
+
+  useLayoutEffect(() => {
+    if (firstCommitLoggedRef.current) {
+      return;
+    }
+    firstCommitLoggedRef.current = true;
+    traceStartup("aletheia-app:first-commit", {
+      nativeWebBundle: NATIVE_WEB_BUNDLE,
+      startupPaintReady,
+    });
+  }, [startupPaintReady]);
   
   // Wrapper to persist active view and track navigation usage.
   const setActiveView = useCallback((view: View, source = "navigation") => {
@@ -8129,8 +8173,11 @@ export function AletheiaApp({
     }
 
     bootReadyReportedRef.current = true;
+    traceStartup("aletheia-app:client-state-restored", {
+      startupPaintReady,
+    });
     onBootReady?.();
-  }, [clientStateRestored, onBootReady]);
+  }, [clientStateRestored, onBootReady, startupPaintReady]);
 
   const translationHelpers = useMemo(() => {
     const missingTranslationToken = "__aletheia_missing_translation__";
@@ -8461,10 +8508,14 @@ export function AletheiaApp({
 
     async function registerNativeAudioListeners() {
       try {
+        traceStartup("native-bridge:ManagedAudio.addListener:progress:start");
         progressHandle = await ManagedAudio.addListener("progress", ({ progress }) => {
           if (cancelled) return;
           setSpeechProgress(Math.max(0, Math.min(100, Math.round(progress))));
         });
+        traceStartup("native-bridge:ManagedAudio.addListener:progress:ok");
+
+        traceStartup("native-bridge:ManagedAudio.addListener:state:start");
         stateHandle = await ManagedAudio.addListener("state", ({ state }) => {
           if (cancelled) return;
           if (state === "loading") {
@@ -8506,6 +8557,7 @@ export function AletheiaApp({
             setStatusMessage("");
           }
         });
+        traceStartup("native-bridge:ManagedAudio.addListener:state:ok");
       } catch (error) {
         if (
           typeof error === "object" &&
@@ -8513,9 +8565,11 @@ export function AletheiaApp({
           "code" in error &&
           (error as { code?: unknown }).code === "UNIMPLEMENTED"
         ) {
+          traceStartup("native-bridge:ManagedAudio.addListener:unimplemented");
           return;
         }
         console.error("Failed to register native audio listeners:", error);
+        traceStartupError("native-bridge:ManagedAudio.addListener:error", error);
       }
     }
 
@@ -9344,6 +9398,10 @@ export function AletheiaApp({
       return;
     }
 
+    traceStartup("aletheia-app:session-restore:start", {
+      startupPaintReady,
+    });
+
     async function loadSession() {
       // authStatus is already "checking" from initial state - no need to set it again
       const [response, providersResponse] = await Promise.all([
@@ -9445,11 +9503,17 @@ export function AletheiaApp({
           window.history.replaceState({}, "", window.location.pathname);
         }
       }
+
+      traceStartup("aletheia-app:session-restore:complete", {
+        signedIn: Boolean(data.user),
+      });
     }
 
-    loadSession().catch(() => {
+    loadSession().catch((error) => {
       setAuthStatus("guest");
       setStatusMessage(ts('status.backendUnavailable'));
+      traceStartupError("aletheia-app:session-restore:error", error);
+      traceStartup("aletheia-app:session-restore:fallback-guest");
     });
   }, [announceWorkflow, celebrate, getFriendlyAuthError, loadSignedInWorkspace, setActiveView, startupPaintReady, ts]);
 
@@ -9497,11 +9561,11 @@ export function AletheiaApp({
     async function bootstrapCounselInvite() {
       const launchedFromNative = Capacitor.isNativePlatform();
       if (launchedFromNative) {
-        const launchUrl = await App.getLaunchUrl().catch(() => undefined);
+        const launchUrl = await traceAppLaunchUrl("counsel");
         if (launchUrl?.url) {
           const handled = await openCounselInvite(launchUrl.url, true, false);
           if (handled) {
-            appUrlOpenHandle = await App.addListener("appUrlOpen", ({ url }) => {
+            appUrlOpenHandle = await traceAppUrlOpenListener("counsel", (url) => {
               void openCounselInvite(url, true, false);
             });
             return;
@@ -9515,7 +9579,7 @@ export function AletheiaApp({
         readPersistedCounselInviteToken();
       if (!browserToken) {
         if (launchedFromNative) {
-          appUrlOpenHandle = await App.addListener("appUrlOpen", ({ url }) => {
+          appUrlOpenHandle = await traceAppUrlOpenListener("counsel", (url) => {
             void openCounselInvite(url, true, false);
           });
         }
@@ -9526,7 +9590,7 @@ export function AletheiaApp({
       await openCounselInvite(sourceUrl, true, !launchedFromNative);
 
       if (launchedFromNative && !appUrlOpenHandle) {
-        appUrlOpenHandle = await App.addListener("appUrlOpen", ({ url }) => {
+        appUrlOpenHandle = await traceAppUrlOpenListener("counsel", (url) => {
           void openCounselInvite(url, true, false);
         });
       }
@@ -9584,11 +9648,11 @@ export function AletheiaApp({
     async function bootstrapChallengeInvite() {
       const launchedFromNative = Capacitor.isNativePlatform();
       if (launchedFromNative) {
-        const launchUrl = await App.getLaunchUrl().catch(() => undefined);
+        const launchUrl = await traceAppLaunchUrl("challenge");
         if (launchUrl?.url) {
           const handled = await openChallengeInvite(launchUrl.url, true, false);
           if (handled) {
-            appUrlOpenHandle = await App.addListener("appUrlOpen", ({ url }) => {
+            appUrlOpenHandle = await traceAppUrlOpenListener("challenge", (url) => {
               void openChallengeInvite(url, true, false);
             });
             return;
@@ -9599,7 +9663,7 @@ export function AletheiaApp({
       const browserToken = challengeInviteTokenFromLocation(window.location.href) ?? readStoredChallengeInviteToken();
       if (!browserToken) {
         if (launchedFromNative) {
-          appUrlOpenHandle = await App.addListener("appUrlOpen", ({ url }) => {
+          appUrlOpenHandle = await traceAppUrlOpenListener("challenge", (url) => {
             void openChallengeInvite(url, true, false);
           });
         }
@@ -9610,7 +9674,7 @@ export function AletheiaApp({
       await openChallengeInvite(sourceUrl, true, !launchedFromNative);
 
       if (launchedFromNative && !appUrlOpenHandle) {
-        appUrlOpenHandle = await App.addListener("appUrlOpen", ({ url }) => {
+        appUrlOpenHandle = await traceAppUrlOpenListener("challenge", (url) => {
           void openChallengeInvite(url, true, false);
         });
       }
