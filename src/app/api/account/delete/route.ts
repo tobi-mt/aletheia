@@ -4,6 +4,7 @@ import { run } from "@/lib/db";
 import { trackServerEvent } from "@/lib/analytics";
 import { readJsonBody } from "@/lib/request";
 import { apiError } from "@/lib/api-errors";
+import { revokeAppleCredentialForUser } from "@/lib/apple-oauth";
 
 export async function POST(request: Request) {
   const user = await getCurrentUser();
@@ -30,6 +31,13 @@ export async function POST(request: Request) {
     eventName: "account_delete_requested",
     metadata: { confirmed: true },
   });
+
+  try {
+    await revokeAppleCredentialForUser(user.id);
+  } catch (error) {
+    console.error("Apple credential revocation failed; account deletion was not started:", error);
+    return apiError(502, "apple_revocation_failed", "We could not disconnect Sign in with Apple. Your account was not deleted. Please try again.");
+  }
 
   await run("DELETE FROM users WHERE id = ?", user.id);
   await clearSession().catch(() => undefined);

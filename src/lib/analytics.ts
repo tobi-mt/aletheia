@@ -22,6 +22,7 @@ const ALLOWED_EVENTS = new Set([
   "auth_email_login_success",
   "auth_email_register_success",
   "auth_google_success",
+  "auth_apple_success",
   "auth_logout",
   "bible_translation_changed",
   "chat_question_sent",

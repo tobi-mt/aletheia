@@ -47,6 +47,11 @@ AUTH_TRUST_HOST="true"
 AUTH_URL="https://your-production-domain"
 AUTH_GOOGLE_ID=""
 AUTH_GOOGLE_SECRET=""
+AUTH_APPLE_AUDIENCE="com.tobi.aletheia.app"
+AUTH_APPLE_TEAM_ID=""
+AUTH_APPLE_KEY_ID=""
+AUTH_APPLE_PRIVATE_KEY=""
+AUTH_APPLE_TOKEN_ENCRYPTION_KEY=""
 NEXT_PUBLIC_VAPID_PUBLIC_KEY=""
 VAPID_PUBLIC_KEY=""
 VAPID_PRIVATE_KEY=""
@@ -101,6 +106,7 @@ The database adapter creates required tables and seeds the curated wisdom entrie
 - Set `OPENAI_API_KEY` server-side only.
 - Set `NEXT_PUBLIC_APP_URL` to the Railway/custom production URL.
 - Set `NEXTAUTH_SECRET`, `NEXTAUTH_URL`, `AUTH_TRUST_HOST`, `AUTH_GOOGLE_ID`, and `AUTH_GOOGLE_SECRET` for Google sign-in.
+- Set `AUTH_APPLE_AUDIENCE`, `AUTH_APPLE_TEAM_ID`, `AUTH_APPLE_KEY_ID`, `AUTH_APPLE_PRIVATE_KEY`, and `AUTH_APPLE_TOKEN_ENCRYPTION_KEY` for Sign in with Apple and account-deletion revocation. Store the `.p8` private key with newlines encoded as `\n`.
 - Set VAPID keys for daily wisdom push notifications.
 - Set `NOTIFICATION_CRON_SECRET` and use it from your Railway scheduled job against `/api/notifications/daily`.
 - Set `ANALYTICS_ADMIN_SECRET` to protect aggregate analytics exports.

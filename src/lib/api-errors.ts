@@ -18,7 +18,8 @@ export type ApiErrorCode =
   | "invalid_credentials"
   | "authentication_failed"
   | "account_exists"
-  | "sign_in_not_finish";
+  | "sign_in_not_finish"
+  | "apple_revocation_failed";
 
 export function apiError(
   status: number,

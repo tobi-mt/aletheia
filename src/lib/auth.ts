@@ -137,6 +137,36 @@ export async function createSession(userId: string) {
   });
 }
 
+export async function createNativeAuthHandoff(userId: string, provider: string) {
+  const code = randomBytes(32).toString("base64url");
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + 5 * 60 * 1000);
+  await run("DELETE FROM native_auth_handoffs WHERE expires_at < ? OR consumed_at IS NOT NULL", now.toISOString());
+  await run(
+    "INSERT INTO native_auth_handoffs (code_hash, user_id, provider, expires_at, created_at) VALUES (?, ?, ?, ?, ?)",
+    hashToken(code),
+    userId,
+    provider,
+    expiresAt.toISOString(),
+    now.toISOString()
+  );
+  return code;
+}
+
+export async function consumeNativeAuthHandoff(code: string) {
+  const now = new Date().toISOString();
+  const result = await run(
+    `UPDATE native_auth_handoffs
+     SET consumed_at = ?
+     WHERE code_hash = ? AND consumed_at IS NULL AND expires_at > ?
+     RETURNING user_id, provider`,
+    now,
+    hashToken(code),
+    now
+  );
+  return result.rows[0] as { user_id: string; provider: string } | undefined;
+}
+
 export async function clearSession() {
   const cookieStore = await cookies();
   const token = cookieStore.get(COOKIE_NAME)?.value;

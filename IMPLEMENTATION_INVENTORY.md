@@ -31,6 +31,8 @@ This document provides a comprehensive audit of the Aletheia app codebase, compa
 **Implemented:**
 - ✅ **Next-Auth Configuration** ([src/auth.ts](src/auth.ts))
   - Google OAuth provider (conditional on `AUTH_GOOGLE_ID`/`AUTH_GOOGLE_SECRET`)
+  - Native iOS Sign in with Apple with server-side identity-token and nonce verification
+  - In-app Google authentication session with a single-use native-to-web session handoff
   - JWT session strategy
   - Fallback to derived secret for local dev
 
@@ -44,11 +46,12 @@ This document provides a comprehensive audit of the Aletheia app codebase, compa
 
 - ✅ **Auth Features** (from aletheia-app.tsx)
   - Sign in with Google
+  - Sign in with Apple on iOS
   - Email login/register (guest can convert to signed-in)
   - Sign out
   - Session persistence
 
-**Status:** ✅ **COMPLETE** - Google OAuth + email/guest modes working
+**Status:** ✅ **COMPLETE** - In-app Apple/Google authentication + email/guest modes working
 
 ---
 

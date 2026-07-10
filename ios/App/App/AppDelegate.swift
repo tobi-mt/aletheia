@@ -2,6 +2,8 @@ import UIKit
 import AVFoundation
 import WebKit
 import Capacitor
+import AuthenticationServices
+import CryptoKit
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -93,6 +95,7 @@ class ManagedAudioBridgeViewController: CAPBridgeViewController {
 
     override func capacitorDidLoad() {
         bridge?.registerPluginType(ManagedAudioPlugin.self)
+        bridge?.registerPluginType(NativeAuthPlugin.self)
         configureEdgeToEdgeChrome()
     }
 
@@ -189,6 +192,121 @@ class ManagedAudioBridgeViewController: CAPBridgeViewController {
         userContentController.addUserScript(
         WKUserScript(source: script, injectionTime: .atDocumentStart, forMainFrameOnly: true)
         )
+    }
+}
+
+@objc(NativeAuthPlugin)
+public class NativeAuthPlugin: CAPPlugin, CAPBridgedPlugin, ASAuthorizationControllerDelegate, ASAuthorizationControllerPresentationContextProviding, ASWebAuthenticationPresentationContextProviding {
+    public let identifier = "NativeAuthPlugin"
+    public let jsName = "NativeAuth"
+    public let pluginMethods: [CAPPluginMethod] = [
+        CAPPluginMethod(name: "signInWithApple", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "authenticateWeb", returnType: CAPPluginReturnPromise)
+    ]
+
+    private var pendingAppleCall: CAPPluginCall?
+    private var pendingAppleNonce: String?
+    private var webAuthenticationSession: ASWebAuthenticationSession?
+
+    @objc func signInWithApple(_ call: CAPPluginCall) {
+        print("[native-auth] Sign in with Apple requested")
+        guard pendingAppleCall == nil else {
+            call.reject("Another Apple sign-in is already in progress.")
+            return
+        }
+
+        let rawNonce = UUID().uuidString + UUID().uuidString
+        let nonceHash = SHA256.hash(data: Data(rawNonce.utf8)).map { String(format: "%02x", $0) }.joined()
+        let request = ASAuthorizationAppleIDProvider().createRequest()
+        request.requestedScopes = [.fullName, .email]
+        request.nonce = nonceHash
+        pendingAppleCall = call
+        pendingAppleNonce = rawNonce
+
+        let controller = ASAuthorizationController(authorizationRequests: [request])
+        controller.delegate = self
+        controller.presentationContextProvider = self
+        controller.performRequests()
+    }
+
+    @objc func authenticateWeb(_ call: CAPPluginCall) {
+        guard let rawUrl = call.getString("url"), let url = URL(string: rawUrl) else {
+            call.reject("A valid authentication URL is required.")
+            return
+        }
+        let callbackScheme = call.getString("callbackScheme") ?? "com.aletheia.app"
+        let session = ASWebAuthenticationSession(url: url, callbackURLScheme: callbackScheme) { [weak self] callbackUrl, error in
+            self?.webAuthenticationSession = nil
+            if let authError = error as? ASWebAuthenticationSessionError, authError.code == .canceledLogin {
+                call.reject("AUTH_CANCELLED", "AUTH_CANCELLED", error)
+                return
+            }
+            if let error {
+                call.reject("Authentication could not be completed.", nil, error)
+                return
+            }
+            guard let callbackUrl else {
+                call.reject("Authentication returned without a callback URL.")
+                return
+            }
+            call.resolve(["url": callbackUrl.absoluteString])
+        }
+        session.presentationContextProvider = self
+        session.prefersEphemeralWebBrowserSession = false
+        webAuthenticationSession = session
+        if !session.start() {
+            webAuthenticationSession = nil
+            call.reject("Authentication session could not be started.")
+        }
+    }
+
+    public func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
+        return bridge?.viewController?.view.window ?? ASPresentationAnchor()
+    }
+
+    @objc(presentationAnchorForWebAuthenticationSession:)
+    public func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
+        return bridge?.viewController?.view.window ?? ASPresentationAnchor()
+    }
+
+    public func authorizationController(controller: ASAuthorizationController, didCompleteWithAuthorization authorization: ASAuthorization) {
+        print("[native-auth] Sign in with Apple authorization completed")
+        guard let call = pendingAppleCall,
+              let credential = authorization.credential as? ASAuthorizationAppleIDCredential,
+              let tokenData = credential.identityToken,
+              let identityToken = String(data: tokenData, encoding: .utf8),
+              let authorizationCodeData = credential.authorizationCode,
+              let authorizationCode = String(data: authorizationCodeData, encoding: .utf8),
+              let rawNonce = pendingAppleNonce else {
+            pendingAppleCall?.reject("Apple did not return a usable identity credential.")
+            pendingAppleCall = nil
+            pendingAppleNonce = nil
+            return
+        }
+
+        let formatter = PersonNameComponentsFormatter()
+        let name = credential.fullName.map { formatter.string(from: $0) } ?? ""
+        call.resolve([
+            "identityToken": identityToken,
+            "authorizationCode": authorizationCode,
+            "nonce": rawNonce,
+            "name": name,
+        ])
+        pendingAppleCall = nil
+        pendingAppleNonce = nil
+    }
+
+    public func authorizationController(controller: ASAuthorizationController, didCompleteWithError error: Error) {
+        let nsError = error as NSError
+        print("[native-auth] Sign in with Apple failed domain=\(nsError.domain) code=\(nsError.code) description=\(nsError.localizedDescription)")
+        guard let call = pendingAppleCall else { return }
+        if let authError = error as? ASAuthorizationError, authError.code == .canceled {
+            call.reject("AUTH_CANCELLED", "AUTH_CANCELLED", error)
+        } else {
+            call.reject("Apple sign-in could not be completed.", nil, error)
+        }
+        pendingAppleCall = nil
+        pendingAppleNonce = nil
     }
 }
 
