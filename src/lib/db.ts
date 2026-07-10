@@ -760,6 +760,38 @@ async function ensurePushSubscriptionSchema() {
     );
     CREATE INDEX IF NOT EXISTS oauth_credentials_user_provider_idx
       ON oauth_credentials (user_id, provider);
+
+    -- Native push may be introduced after a production database already exists.
+    -- Keep this narrow migration on the notification path so device registration
+    -- does not depend on full bootstrap being enabled in production.
+    CREATE TABLE IF NOT EXISTS native_push_devices (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      platform TEXT NOT NULL,
+      token TEXT NOT NULL,
+      enabled BOOLEAN NOT NULL DEFAULT TRUE,
+      device_name TEXT,
+      app_version TEXT,
+      build_version TEXT,
+      push_environment TEXT,
+      last_seen_at TIMESTAMPTZ,
+      last_registered_at TIMESTAMPTZ,
+      last_sent_at TIMESTAMPTZ,
+      created_at TIMESTAMPTZ NOT NULL,
+      updated_at TIMESTAMPTZ NOT NULL
+    );
+    ALTER TABLE native_push_devices ADD COLUMN IF NOT EXISTS enabled BOOLEAN NOT NULL DEFAULT TRUE;
+    ALTER TABLE native_push_devices ADD COLUMN IF NOT EXISTS device_name TEXT;
+    ALTER TABLE native_push_devices ADD COLUMN IF NOT EXISTS app_version TEXT;
+    ALTER TABLE native_push_devices ADD COLUMN IF NOT EXISTS build_version TEXT;
+    ALTER TABLE native_push_devices ADD COLUMN IF NOT EXISTS push_environment TEXT;
+    ALTER TABLE native_push_devices ADD COLUMN IF NOT EXISTS last_seen_at TIMESTAMPTZ;
+    ALTER TABLE native_push_devices ADD COLUMN IF NOT EXISTS last_registered_at TIMESTAMPTZ;
+    ALTER TABLE native_push_devices ADD COLUMN IF NOT EXISTS last_sent_at TIMESTAMPTZ;
+    CREATE UNIQUE INDEX IF NOT EXISTS native_push_devices_token_unique_idx
+      ON native_push_devices (token);
+    CREATE INDEX IF NOT EXISTS native_push_devices_user_idx
+      ON native_push_devices (user_id, platform, updated_at DESC);
   `)
   );
 }

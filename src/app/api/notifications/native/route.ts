@@ -79,7 +79,10 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const user = await requireUser();
+  const user = await getCurrentUser();
+  if (!user) {
+    return apiError(401, "sign_in_required", "Sign in to enable notifications.");
+  }
   if (!isNativePushConfigured()) {
     return apiError(
       503,
@@ -100,16 +103,24 @@ export async function POST(request: Request) {
     return apiError(400, "invalid_subscription", "A native push token and platform are required.");
   }
 
-  const registration = await registerNativePushDevice(user.id, {
-    token,
-    platform,
-    deviceName: parsedBody.data.deviceName ?? null,
-    appVersion: parsedBody.data.appVersion ?? null,
-    buildVersion: parsedBody.data.buildVersion ?? null,
-    pushEnvironment: parsedBody.data.pushEnvironment ?? null,
-  });
-
-  return NextResponse.json(registration);
+  try {
+    const registration = await registerNativePushDevice(user.id, {
+      token,
+      platform,
+      deviceName: parsedBody.data.deviceName ?? null,
+      appVersion: parsedBody.data.appVersion ?? null,
+      buildVersion: parsedBody.data.buildVersion ?? null,
+      pushEnvironment: parsedBody.data.pushEnvironment ?? null,
+    });
+    return NextResponse.json(registration);
+  } catch (error) {
+    console.error("Native push device registration failed", {
+      userId: user.id,
+      platform,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return apiError(500, "save_failed", "The device could not be saved for notifications.");
+  }
 }
 
 export async function DELETE(request: Request) {

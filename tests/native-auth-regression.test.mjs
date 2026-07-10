@@ -98,3 +98,13 @@ test("signed-in native account UX supports identity editing, push, and one onboa
   assert.match(entitlements, /aps-environment/);
   assert.match(client, /nativeRegistrationFailedBody/);
 });
+
+test("native push registration remains safe on production databases without full bootstrap", async () => {
+  const db = await read("src/lib/db.ts");
+  const route = await read("src/app/api/notifications/native/route.ts");
+  assert.match(db, /CREATE TABLE IF NOT EXISTS native_push_devices/);
+  assert.match(db, /native_push_devices_token_unique_idx/);
+  assert.match(route, /getCurrentUser\(\)/);
+  assert.match(route, /Native push device registration failed/);
+  assert.match(route, /apiError\(500, "save_failed"/);
+});
