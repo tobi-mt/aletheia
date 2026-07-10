@@ -8,14 +8,18 @@ import CryptoKit
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
 
+    private let audioSessionQueue = DispatchQueue(label: "com.aletheia.app.audio-session", qos: .userInitiated)
+
     private func configureAudioSessionForSpeech() {
-        let session = AVAudioSession.sharedInstance()
-        do {
-            // Keep spoken playback audible even when the hardware mute switch is on.
-            try session.setCategory(.playback, mode: .spokenAudio, options: [.mixWithOthers])
-            try session.setActive(true)
-        } catch {
-            print("Failed to configure audio session for speech playback: \(error)")
+        audioSessionQueue.async {
+            let session = AVAudioSession.sharedInstance()
+            do {
+                // Keep spoken playback audible even when the hardware mute switch is on.
+                try session.setCategory(.playback, mode: .spokenAudio, options: [.mixWithOthers])
+                try session.setActive(true)
+            } catch {
+                print("Failed to configure audio session for speech playback: \(error)")
+            }
         }
     }
 
@@ -94,8 +98,11 @@ class ManagedAudioBridgeViewController: CAPBridgeViewController {
     }
 
     override func capacitorDidLoad() {
-        bridge?.registerPluginType(ManagedAudioPlugin.self)
-        bridge?.registerPluginType(NativeAuthPlugin.self)
+        // Capacitor 8 enables automatic plugin discovery, which makes
+        // registerPluginType(_:) a no-op for app-local plugins. Explicit
+        // instances ensure these custom bridges are exported to JavaScript.
+        bridge?.registerPluginInstance(ManagedAudioPlugin())
+        bridge?.registerPluginInstance(NativeAuthPlugin())
         configureEdgeToEdgeChrome()
     }
 
@@ -201,11 +208,13 @@ public class NativeAuthPlugin: CAPPlugin, CAPBridgedPlugin, ASAuthorizationContr
     public let jsName = "NativeAuth"
     public let pluginMethods: [CAPPluginMethod] = [
         CAPPluginMethod(name: "signInWithApple", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "authenticateWeb", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "authenticateWeb", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "postAuthenticatedJson", returnType: CAPPluginReturnPromise)
     ]
 
     private var pendingAppleCall: CAPPluginCall?
     private var pendingAppleNonce: String?
+    private var appleAuthorizationController: ASAuthorizationController?
     private var webAuthenticationSession: ASWebAuthenticationSession?
 
     @objc func signInWithApple(_ call: CAPPluginCall) {
@@ -223,10 +232,17 @@ public class NativeAuthPlugin: CAPPlugin, CAPBridgedPlugin, ASAuthorizationContr
         pendingAppleCall = call
         pendingAppleNonce = rawNonce
 
-        let controller = ASAuthorizationController(authorizationRequests: [request])
-        controller.delegate = self
-        controller.presentationContextProvider = self
-        controller.performRequests()
+        DispatchQueue.main.async { [weak self] in
+            guard let self else {
+                call.reject("Apple sign-in could not be started.")
+                return
+            }
+            let controller = ASAuthorizationController(authorizationRequests: [request])
+            controller.delegate = self
+            controller.presentationContextProvider = self
+            self.appleAuthorizationController = controller
+            controller.performRequests()
+        }
     }
 
     @objc func authenticateWeb(_ call: CAPPluginCall) {
@@ -260,17 +276,89 @@ public class NativeAuthPlugin: CAPPlugin, CAPBridgedPlugin, ASAuthorizationContr
         }
     }
 
+    @objc func postAuthenticatedJson(_ call: CAPPluginCall) {
+        guard let rawUrl = call.getString("url"), let url = URL(string: rawUrl), url.scheme == "https" else {
+            call.reject("A secure authentication URL is required.")
+            return
+        }
+        let body = call.getObject("body") ?? [:]
+        guard JSONSerialization.isValidJSONObject(body),
+              let bodyData = try? JSONSerialization.data(withJSONObject: body) else {
+            call.reject("Authentication request data is invalid.")
+            return
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.httpBody = bodyData
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+
+        URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
+            if let error {
+                call.reject("Authentication request failed.", nil, error)
+                return
+            }
+            guard let httpResponse = response as? HTTPURLResponse else {
+                call.reject("Authentication server returned no response.")
+                return
+            }
+
+            let responseBody = data.flatMap { try? JSONSerialization.jsonObject(with: $0) } as? [String: Any] ?? [:]
+            let headerFields = httpResponse.allHeaderFields.reduce(into: [String: String]()) { fields, entry in
+                guard let key = entry.key as? String else { return }
+                fields[key] = String(describing: entry.value)
+            }
+            let cookies = HTTPCookie.cookies(withResponseHeaderFields: headerFields, for: url)
+            guard httpResponse.statusCode >= 200 && httpResponse.statusCode < 300, !cookies.isEmpty else {
+                call.resolve(["status": httpResponse.statusCode, "body": responseBody, "cookiesInstalled": false])
+                return
+            }
+
+            DispatchQueue.main.async {
+                guard let cookieStore = self?.bridge?.webView?.configuration.websiteDataStore.httpCookieStore else {
+                    call.reject("The app session cookie store is unavailable.")
+                    return
+                }
+                let group = DispatchGroup()
+                for cookie in cookies {
+                    group.enter()
+                    cookieStore.setCookie(cookie) { group.leave() }
+                }
+                group.notify(queue: .main) {
+                    print("[native-auth] Installed \(cookies.count) authentication cookie(s) in WKWebView")
+                    call.resolve(["status": httpResponse.statusCode, "body": responseBody, "cookiesInstalled": true])
+                }
+            }
+        }.resume()
+    }
+
     public func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
-        return bridge?.viewController?.view.window ?? ASPresentationAnchor()
+        return activePresentationWindow()
     }
 
     @objc(presentationAnchorForWebAuthenticationSession:)
     public func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
-        return bridge?.viewController?.view.window ?? ASPresentationAnchor()
+        return activePresentationWindow()
+    }
+
+    private func activePresentationWindow() -> ASPresentationAnchor {
+        if let bridgeWindow = bridge?.viewController?.view.window {
+            return bridgeWindow
+        }
+        if let sceneWindow = UIApplication.shared.connectedScenes
+            .compactMap({ $0 as? UIWindowScene })
+            .flatMap({ $0.windows })
+            .first(where: { $0.isKeyWindow }) {
+            return sceneWindow
+        }
+        print("[native-auth] No active presentation window was found")
+        return ASPresentationAnchor(frame: UIScreen.main.bounds)
     }
 
     public func authorizationController(controller: ASAuthorizationController, didCompleteWithAuthorization authorization: ASAuthorization) {
         print("[native-auth] Sign in with Apple authorization completed")
+        appleAuthorizationController = nil
         guard let call = pendingAppleCall,
               let credential = authorization.credential as? ASAuthorizationAppleIDCredential,
               let tokenData = credential.identityToken,
@@ -299,6 +387,7 @@ public class NativeAuthPlugin: CAPPlugin, CAPBridgedPlugin, ASAuthorizationContr
     public func authorizationController(controller: ASAuthorizationController, didCompleteWithError error: Error) {
         let nsError = error as NSError
         print("[native-auth] Sign in with Apple failed domain=\(nsError.domain) code=\(nsError.code) description=\(nsError.localizedDescription)")
+        appleAuthorizationController = nil
         guard let call = pendingAppleCall else { return }
         if let authError = error as? ASAuthorizationError, authError.code == .canceled {
             call.reject("AUTH_CANCELLED", "AUTH_CANCELLED", error)

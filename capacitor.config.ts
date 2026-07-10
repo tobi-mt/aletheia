@@ -5,6 +5,9 @@ const config: CapacitorConfig = {
   appName: "Aletheia",
   webDir: "capacitor-web",
   plugins: {
+    CapacitorHttp: {
+      enabled: true,
+    },
     PushNotifications: {
       presentationOptions: ["badge", "sound", "banner", "list"],
     },

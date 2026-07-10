@@ -3516,7 +3516,7 @@ function shouldShowWelcomeGate() {
       return true;
     }
     const authState = params.get("auth") || "";
-    if (authState.startsWith("google_") || authState === "oauth_failed") {
+    if (authState.startsWith("google_") || authState.startsWith("apple_") || authState === "oauth_failed") {
       return false;
     }
     const completed = window.localStorage.getItem("aletheia_onboarding_complete") === "yes";
@@ -7825,7 +7825,7 @@ export function AletheiaApp({
   const [currentLocalMonth, setCurrentLocalMonth] = useState<number | null>(null);
   const [currentLocalDayOfWeek, setCurrentLocalDayOfWeek] = useState<number | null>(null);
   const authCallbackState = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("auth") || "" : "";
-  const isReturningFromGoogleOAuth = authCallbackState.startsWith("google_");
+  const isReturningFromSocialAuth = authCallbackState.startsWith("google_") || authCallbackState.startsWith("apple_");
   
   const [streakData, setStreakData] = useState<StreakData>({ consecutiveDays: 0, lastUseDate: null, achievements: {} });
   const [showStreakAchievement, setShowStreakAchievement] = useState<number | null>(null);
@@ -8212,20 +8212,20 @@ export function AletheiaApp({
   }, [preferences.language, rawTranslations, translations]);
   const { ts } = translationHelpers;
   const apiErrorKeyMap: Record<string, string> = {
-    sign_in_required: "apiSignInRequired",
-    rate_limited: "apiRateLimited",
-    invalid_input: "apiInvalidInput",
-    invalid_json: "apiInvalidInput",
-    body_required: "apiInvalidInput",
-    body_too_large: "apiInvalidInput",
-    not_configured: "apiNotConfigured",
-    unavailable: "apiUnavailable",
-    not_found: "apiNotFound",
-    permission_denied: "apiPermissionDenied",
-    save_failed: "apiSaveFailed",
-    invalid_subscription: "apiInvalidSubscription",
-    confirm_delete: "apiConfirmDelete",
-    invalid_image: "apiInvalidImage",
+    sign_in_required: "notifications.apiSignInRequired",
+    rate_limited: "notifications.apiRateLimited",
+    invalid_input: "notifications.apiInvalidInput",
+    invalid_json: "notifications.apiInvalidInput",
+    body_required: "notifications.apiInvalidInput",
+    body_too_large: "notifications.apiInvalidInput",
+    not_configured: "notifications.apiNotConfigured",
+    unavailable: "notifications.apiUnavailable",
+    not_found: "notifications.apiNotFound",
+    permission_denied: "notifications.apiPermissionDenied",
+    save_failed: "notifications.apiSaveFailed",
+    invalid_subscription: "notifications.apiInvalidSubscription",
+    confirm_delete: "notifications.apiConfirmDelete",
+    invalid_image: "notifications.apiInvalidImage",
     invalid_credentials: "auth.authenticationFailed",
     authentication_failed: "auth.authenticationFailed",
     account_exists: "status.accountAlreadyExistsSignIn",
@@ -9535,24 +9535,29 @@ export function AletheiaApp({
         });
         const firstName = data.user.name?.split(" ")[0] || data.user.email.split("@")[0];
         const signedInMessage =
-          params.get("auth") === "google_new"
+          params.get("auth") === "google_new" || params.get("auth") === "apple_new"
             ? ts("auth.welcomeToAletheiaReady").replace("{name}", firstName)
-            : params.get("auth") === "google_returning" || (data.user.loginCount ?? 0) > 1
+            : params.get("auth") === "google_returning" || params.get("auth") === "apple_returning" || (data.user.loginCount ?? 0) > 1
               ? ts("auth.welcomeBackMemoryReady").replace("{name}", firstName)
               : ts("auth.signedInSyncDatabase");
         setStatusMessage(signedInMessage);
-        setAuthNotice(params.get("auth")?.startsWith("google_") ? signedInMessage : "");
+        setAuthNotice(params.get("auth")?.match(/^(google|apple)_/) ? signedInMessage : "");
+        const isNewSocialAccount = params.get("auth") === "google_new" || params.get("auth") === "apple_new";
         try {
-          window.localStorage.setItem("aletheia_onboarding_complete", "yes");
           window.localStorage.removeItem(ONBOARDING_PROGRESS_STORAGE_KEY);
           window.localStorage.setItem(FIRST_RUN_GATE_COMPLETE_STORAGE_KEY, "yes");
+          if (isNewSocialAccount) {
+            window.localStorage.removeItem("aletheia_onboarding_complete");
+          } else {
+            window.localStorage.setItem("aletheia_onboarding_complete", "yes");
+          }
         } catch {
-          // Signed-in users should not be blocked by local onboarding storage.
+          // The signed-in onboarding decision still works for this session.
         }
-        setOnboardingPath(null);
+        setOnboardingPath(isNewSocialAccount ? "account" : null);
         setShowWelcomeGate(false);
-        setShowOnboarding(false);
-        if (params.get("view") === "account" || params.get("auth")?.startsWith("google_")) {
+        setShowOnboarding(isNewSocialAccount);
+        if (!isNewSocialAccount && (params.get("view") === "account" || params.get("auth")?.match(/^(google|apple)_/))) {
           traceStartup("aletheia-app:session-restore:replace-state:start", {
             view: params.get("view"),
             auth: params.get("auth"),
@@ -9956,16 +9961,27 @@ export function AletheiaApp({
         setNotificationStatus(ts('notifications.notificationsUnavailableBody'));
       }
       if (isNativePushShell()) {
-        setNotificationsConfigured(true);
-        setNotificationAccountEnabled(false);
-        setNotificationDeviceSubscribed(false);
-        setNotificationsEnabled(false);
+        const nativeStatusResponse = await fetch("/api/notifications/native", { cache: "no-store" }).catch(() => null);
+        const nativeStatus = nativeStatusResponse?.ok
+          ? await nativeStatusResponse.json() as { configured?: boolean; devices?: number; latestDevice?: { enabled?: boolean } | null }
+          : null;
+        const nativeConfigured = Boolean(nativeStatus?.configured);
+        const nativeDeviceSubscribed = Boolean(nativeStatus?.devices && nativeStatus.devices > 0 && nativeStatus.latestDevice?.enabled !== false);
+        setNotificationsConfigured(nativeConfigured);
+        setNotificationAccountEnabled(nativeDeviceSubscribed);
+        setNotificationDeviceSubscribed(nativeDeviceSubscribed);
+        setNotificationsEnabled(nativeDeviceSubscribed);
         setNotificationDiagnostics(null);
         setNotificationPermission("default");
-        setNotificationStatus(user ? ts('notifications.notificationsOptionalWhenReady') : ts('notifications.signInRequiredBody'));
-        if (user) {
-          void selfHealNotificationSubscription("status_load");
-        }
+        setNotificationStatus(
+          !user
+            ? ts('notifications.signInRequiredBody')
+            : nativeConfigured
+              ? nativeDeviceSubscribed
+                ? ts('notifications.notificationsEnabledBody')
+                : ts('notifications.notificationsOptionalWhenReady')
+              : ts('notifications.nativeServerSetupRequiredBody')
+        );
         return;
       }
       const response = await fetch("/api/notifications/status");
@@ -11763,19 +11779,32 @@ function startFirstRunGuestFlow() {
     setAuthNotice(ts('auth.signingIn'));
 
     try {
-      const response = await fetch(`/api/auth/${authMode}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: authName,
-          email: authEmail,
-          password: authPassword,
-          website: authMode === "register" ? authWebsite : "",
-          language: preferences.language,
-        }),
-      });
-      const data = (await response.json()) as { user?: User; error?: string; errorCode?: string; isNewUser?: boolean; welcomeMessage?: string };
-      if (!response.ok || !data.user) {
+      const requestBody = {
+        name: authName,
+        email: authEmail,
+        password: authPassword,
+        website: authMode === "register" ? authWebsite : "",
+        language: preferences.language,
+      };
+      let responseOk = false;
+      let data: { user?: User; error?: string; errorCode?: string; isNewUser?: boolean; welcomeMessage?: string };
+      if (Capacitor.isNativePlatform()) {
+        const nativeResponse = await NativeAuth.postAuthenticatedJson({
+          url: `${getPublicAppOrigin()}/api/auth/${authMode}`,
+          body: requestBody,
+        });
+        data = nativeResponse.body as typeof data;
+        responseOk = nativeResponse.status >= 200 && nativeResponse.status < 300 && nativeResponse.cookiesInstalled;
+      } else {
+        const response = await fetch(`/api/auth/${authMode}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(requestBody),
+        });
+        data = (await response.json()) as typeof data;
+        responseOk = response.ok;
+      }
+      if (!responseOk || !data.user) {
         throw new Error(resolveApiErrorMessage(data.error, data.errorCode, 'auth.authenticationFailed'));
       }
       setAuthPassword("");
@@ -11796,12 +11825,17 @@ function startFirstRunGuestFlow() {
       setStatusMessage(successMessage);
       setAuthNotice(successMessage);
       announceWorkflow(authMode === "register" ? ts('notifications.accountCreated') : ts('notifications.signedIn'), successMessage, "success");
+      const needsAccountOnboarding = Boolean(data.isNewUser) || authMode === "register";
       try {
-        window.localStorage.setItem("aletheia_onboarding_complete", "yes");
         window.localStorage.removeItem(ONBOARDING_PROGRESS_STORAGE_KEY);
         window.localStorage.setItem(FIRST_RUN_GATE_COMPLETE_STORAGE_KEY, "yes");
+        if (needsAccountOnboarding) {
+          window.localStorage.removeItem("aletheia_onboarding_complete");
+        } else {
+          window.localStorage.setItem("aletheia_onboarding_complete", "yes");
+        }
       } catch {
-        // Auth still succeeds if local onboarding storage is unavailable.
+        // The signed-in onboarding decision still works for this session.
       }
       const inviteFlowActive = Boolean(challengeInviteToken || challengeInviteAuthOpen || counselInviteToken || counselInviteAuthOpen);
       if (inviteFlowActive) {
@@ -11811,12 +11845,12 @@ function startFirstRunGuestFlow() {
         setCounselInviteStatus("");
       } else if (welcomeAuthOpen) {
         setWelcomeAuthOpen(false);
-      } else {
+      } else if (!needsAccountOnboarding) {
         setActiveView("account");
       }
       setShowWelcomeGate(false);
-      setOnboardingPath(null);
-      setShowOnboarding(false);
+      setOnboardingPath(needsAccountOnboarding ? "account" : null);
+      setShowOnboarding(needsAccountOnboarding);
     } catch (error) {
       setAuthStatus("guest");
       const message = error instanceof Error ? error.message : ts('auth.authenticationFailed');
@@ -11920,12 +11954,11 @@ function startFirstRunGuestFlow() {
         const handoffUrl = new URL(nativeResult.url);
         const code = handoffUrl.searchParams.get("code");
         if (!code) throw new Error("Google authentication handoff was incomplete.");
-        const exchange = await fetch("/api/auth/native/complete", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ code }),
+        const exchange = await NativeAuth.postAuthenticatedJson({
+          url: `${getPublicAppOrigin()}/api/auth/native/complete`,
+          body: { code },
         });
-        if (!exchange.ok) throw new Error("Google authentication handoff could not be completed.");
+        if (exchange.status < 200 || exchange.status >= 300 || !exchange.cookiesInstalled) throw new Error("Google authentication handoff could not be completed.");
         window.location.reload();
         return;
       }
@@ -11957,15 +11990,22 @@ function startFirstRunGuestFlow() {
     setAuthNotice(ts("auth.openingApple"));
     trackClientEvent("auth_signin_started", { method: "apple", flow: "native" });
     try {
+      console.info("[native-auth] Requesting native Apple authorization");
       const credential = await NativeAuth.signInWithApple();
-      const response = await fetch("/api/auth/apple", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(credential),
+      console.info("[native-auth] Native Apple authorization completed; verifying with server");
+      const response = await NativeAuth.postAuthenticatedJson({
+        url: `${getPublicAppOrigin()}/api/auth/apple`,
+        body: credential,
       });
-      if (!response.ok) throw new Error("Apple credential verification failed.");
-      window.location.reload();
+      if (response.status < 200 || response.status >= 300 || !response.cookiesInstalled) {
+        console.error("[native-auth] Apple server verification failed", { status: response.status, error: response.body.error ?? null, cookiesInstalled: response.cookiesInstalled });
+        throw new Error("APPLE_SERVER_VERIFICATION_FAILED");
+      }
+      console.info("[native-auth] Apple server verification completed");
+      const appleResult = response.body as { isNewUser?: boolean };
+      window.location.replace(`/?auth=${appleResult.isNewUser ? "apple_new" : "apple_returning"}&view=account`);
     } catch (error) {
+      console.error("[native-auth] Apple sign-in failed", error);
       const cancelled = error instanceof Error && error.message.includes("AUTH_CANCELLED");
       const message = cancelled ? ts("auth.appleSigninCancelled") : ts("auth.appleSigninFailed");
       setAuthStatus("guest");
@@ -12028,6 +12068,28 @@ function startFirstRunGuestFlow() {
     }
 
     announceWorkflow(ts('notifications.profileUpdated'), ts('notifications.profileUpdatedBody'), "success");
+    return true;
+  }
+
+  async function updateProfileName(name: string) {
+    if (!user) return false;
+    const cleanName = name.trim().replace(/\s+/g, " ");
+    if (!cleanName || cleanName.length > 80) {
+      announceWorkflow(ts('notifications.profileUpdateFailed'), ts('labels.profileNameRequirement'), "warning");
+      return false;
+    }
+    const response = await fetch("/api/auth/profile", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: cleanName }),
+    });
+    const data = (await response.json()) as { user?: User; error?: string; errorCode?: string };
+    if (!response.ok || !data.user) {
+      announceWorkflow(ts('notifications.profileUpdateFailed'), resolveApiErrorMessage(data.error, data.errorCode, 'notifications.profileUpdateFailedBody'), "error");
+      return false;
+    }
+    setUser((current) => current ? { ...current, ...data.user } : data.user!);
+    announceWorkflow(ts('notifications.profileUpdated'), ts('labels.profileNameUpdated'), "success");
     return true;
   }
 
@@ -12160,8 +12222,30 @@ function startFirstRunGuestFlow() {
       rejectToken?.(new Error("Native push registration timed out."));
     }, 15000);
 
-    await PushNotifications.register();
-    const token = await tokenPromise;
+    try {
+      await PushNotifications.register();
+    } catch (error) {
+      if (!settled) {
+        settled = true;
+        cleanup(timeoutId);
+      }
+      trackClientEvent("notification_enable_failed", { reason: "native_registration_failed", platform });
+      setNotificationStatus(ts('notifications.nativeRegistrationFailedBody'));
+      announceWorkflow(ts('notifications.notificationSetupFailed'), ts('notifications.nativeRegistrationFailedBody'), "error");
+      console.error("Native push registration failed", error);
+      return false;
+    }
+
+    let token: string;
+    try {
+      token = await tokenPromise;
+    } catch (error) {
+      trackClientEvent("notification_enable_failed", { reason: "native_registration_failed", platform });
+      setNotificationStatus(ts('notifications.nativeRegistrationFailedBody'));
+      announceWorkflow(ts('notifications.notificationSetupFailed'), ts('notifications.nativeRegistrationFailedBody'), "error");
+      console.error("Native push registration failed", error);
+      return false;
+    }
 
     const response = await saveNativePushSubscription(token);
     if (!response.ok) {
@@ -12548,6 +12632,11 @@ function startFirstRunGuestFlow() {
         return;
       }
       if (!notificationsEnabled) {
+        setNotificationStatus(ts('notifications.preferencesSyncedBody'));
+        announceWorkflow(ts('notifications.notificationTimingSaved'), ts('notifications.notificationTimingSavedBody').replace('{time}', notificationTimeLabel(nextTiming.preferredLocalHour, preferences.language)), "success");
+        return;
+      }
+      if (isNativePushShell()) {
         setNotificationStatus(ts('notifications.preferencesSyncedBody'));
         announceWorkflow(ts('notifications.notificationTimingSaved'), ts('notifications.notificationTimingSavedBody').replace('{time}', notificationTimeLabel(nextTiming.preferredLocalHour, preferences.language)), "success");
         return;
@@ -13615,7 +13704,7 @@ function startFirstRunGuestFlow() {
     );
   }
 
-  if (authStatus === "checking" && isReturningFromGoogleOAuth) {
+  if (authStatus === "checking" && isReturningFromSocialAuth) {
     return (
       <StartupSplash
         language={startupLanguage}
@@ -14069,6 +14158,7 @@ function startFirstRunGuestFlow() {
                       onAppleSignIn={handleAppleSignIn}
                       onLogout={logout}
                       onUpdateProfileAvatar={updateProfileAvatar}
+                      onUpdateProfileName={updateProfileName}
                       mode={mode}
                       preferences={preferences}
                       preferencesStatus={preferencesStatus}
@@ -15424,7 +15514,7 @@ function OnboardingModal({
     },
     {
       title: signedIn ? ts('labels.accountNotice') : ts('labels.guestSetupReady'),
-      body: ts('labels.accountNoticeBody'),
+      body: signedIn ? ts('labels.onboardingSignedInBody') : ts('labels.accountNoticeBody'),
     },
     {
       title: notificationsEnabled ? ts('labels.notificationsAlreadyEnabledDevice') : ts('labels.notificationsOptionalAfterSignIn'),
@@ -15450,9 +15540,9 @@ function OnboardingModal({
           width: "min(100%, calc(100vw - 1.5rem), 42rem)",
         }}
       >
-        <div ref={modalScrollRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch] [touch-action:pan-y]">
-        <div className="relative flex flex-col gap-3 pr-12 sm:pr-14">
-          <div className="max-w-2xl rounded-[1.25rem] border p-4 shadow-sm sm:p-5" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
+        <div ref={modalScrollRef} className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch] [touch-action:pan-y] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="relative flex flex-col gap-3">
+          <div className="max-w-2xl rounded-[1.25rem] border p-4 pr-16 shadow-sm sm:p-5 sm:pr-16" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
             <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>{ts('labels.beginQuietly')}</p>
             <h2 className="mt-2 text-[1.42rem] font-semibold leading-[1.02] text-balance sm:text-[1.76rem]" style={{ color: theme.textPrimary }}>
               {onboardingTitle}
@@ -15475,47 +15565,18 @@ function OnboardingModal({
           <ModalCornerCloseButton onClick={onComplete} theme={theme} ariaLabel={ts('labels.closeOnboarding')} />
         </div>
 
-        <div className="mt-4 grid gap-3 md:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
+        <div className="mt-4 grid gap-3">
           <div className="rounded-[1.25rem] border p-4 shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
             <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
               {ts('labels.changeLaterInAccount')}
             </p>
-            <div className="mt-3 space-y-2">
+            <div className="mt-3 flex snap-x gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
               {onboardingHighlights.map((item) => (
-                <div key={item.title} className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                <div key={item.title} className="w-[17rem] shrink-0 snap-start rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
                   <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{item.title}</p>
                   <p className="mt-1 text-xs leading-5" style={{ color: theme.textSecondary }}>{item.body}</p>
                 </div>
               ))}
-            </div>
-          </div>
-          <div className="rounded-[1.25rem] border p-4 shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-            <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
-              {ts('labels.setupSteps')}
-            </p>
-            <div className="mt-3 space-y-2">
-              {setupSteps.map((step, index) => {
-                const active = activeSetupStep === step.key;
-                return (
-                  <button
-                    key={step.key}
-                    type="button"
-                    onClick={() => scrollToSetupStep(step.key, getSetupStepRef(step.key))}
-                    className="flex w-full items-center gap-3 rounded-[1rem] border px-3 py-2.5 text-left transition"
-                    style={{
-                      borderColor: active ? theme.primary : theme.borderLight,
-                      backgroundColor: active ? theme.activeBg : theme.bgCard,
-                      color: active ? theme.textPrimary : theme.textSecondary,
-                    }}
-                    aria-current={active ? "step" : undefined}
-                  >
-                    <span className="grid size-8 shrink-0 place-items-center rounded-full border text-[11px] font-semibold" style={{ borderColor: active ? theme.primary : theme.borderLight, backgroundColor: active ? theme.primary : theme.bgInput, color: active ? theme.textOnPrimary : theme.textSecondary }}>
-                      {index + 1}
-                    </span>
-                    <span className="min-w-0 text-sm font-semibold">{step.label}</span>
-                  </button>
-                );
-              })}
             </div>
           </div>
         </div>
@@ -15523,7 +15584,7 @@ function OnboardingModal({
         <div className="mt-5 space-y-4">
           <nav
             aria-label={ts('labels.onboardingSetupNav')}
-            className="sticky top-0 z-20 -mx-4 overflow-x-auto px-4 pb-2 pt-2 backdrop-blur-xl sm:-mx-5 sm:px-5"
+            className="sticky top-0 z-20 -mx-4 max-w-[calc(100%+2rem)] overflow-x-auto px-4 pb-2 pt-2 backdrop-blur-xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:-mx-5 sm:max-w-[calc(100%+2.5rem)] sm:px-5"
             style={{ backgroundColor: theme.bgCard }}
           >
             <div className="flex min-w-max gap-1 rounded-xl border p-1 shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
@@ -15725,7 +15786,7 @@ function OnboardingModal({
               <>
                 <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.accountNotice')}</p>
                 <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
-                  {ts('labels.accountNoticeBody')}
+                  {ts('labels.onboardingSignedInBody')}
                 </p>
                 <p className="mt-2 text-xs leading-5" style={{ color: theme.textSecondary }}>
                   {notificationsEnabled ? ts('labels.notificationsAlreadyEnabledDevice') : ts('labels.notificationsOptionalAfterSignIn')}
@@ -15734,7 +15795,7 @@ function OnboardingModal({
             )}
           </section>
 
-          <InstallGuideCard theme={theme} compact ts={ts} />
+          {!Capacitor.isNativePlatform() ? <InstallGuideCard theme={theme} compact ts={ts} /> : null}
         </div>
 
         <button
@@ -17275,6 +17336,7 @@ function AccountPanel({
   onAppleSignIn,
   onLogout,
   onUpdateProfileAvatar,
+  onUpdateProfileName,
   mode,
   preferences,
   preferencesStatus,
@@ -17345,6 +17407,7 @@ function AccountPanel({
   onAppleSignIn: () => void;
   onLogout: () => void;
   onUpdateProfileAvatar: (avatarUrl: string) => Promise<boolean>;
+  onUpdateProfileName: (name: string) => Promise<boolean>;
   mode: Mode;
   preferences: UserPreferences;
   preferencesStatus: string;
@@ -17620,6 +17683,7 @@ function AccountPanel({
               onPreviewVoice={onPreviewVoice}
               onFocusIntentionsChange={onFocusIntentionsChange}
               onUpdateProfileAvatar={onUpdateProfileAvatar}
+              onUpdateProfileName={onUpdateProfileName}
             />
           </DisclosureSection>
 
@@ -21359,6 +21423,7 @@ function AccountPersonalizationPanel({
   onPreviewVoice,
   onFocusIntentionsChange,
   onUpdateProfileAvatar,
+  onUpdateProfileName,
 }: {
   theme: ThemeColors;
   ts: (key: string, fallback?: string) => string;
@@ -21375,6 +21440,7 @@ function AccountPersonalizationPanel({
   onPreviewVoice: (voiceId: string) => Promise<void>;
   onFocusIntentionsChange: (intentions: string[]) => void;
   onUpdateProfileAvatar: (avatarUrl: string) => Promise<boolean>;
+  onUpdateProfileName: (name: string) => Promise<boolean>;
 }) {
   const bibleOptions = bibleTranslationOptionsForLanguage(preferences.language);
   const selectedVoiceObject = availableVoices.find((voice) => voice.id === selectedVoice);
@@ -21501,7 +21567,7 @@ function AccountPersonalizationPanel({
               compact
             />
           </div>
-          <AvatarStudioCard theme={theme} user={user} ts={ts} onUpdateProfileAvatar={onUpdateProfileAvatar} />
+          <AvatarStudioCard theme={theme} user={user} ts={ts} onUpdateProfileAvatar={onUpdateProfileAvatar} onUpdateProfileName={onUpdateProfileName} />
         </div>
       </div>
 
@@ -23749,13 +23815,18 @@ function AvatarStudioCard({
   user,
   ts,
   onUpdateProfileAvatar,
+  onUpdateProfileName,
 }: {
   theme: ThemeColors;
   user: User | null;
   ts: (key: string, fallback?: string) => string;
   onUpdateProfileAvatar: (avatarUrl: string) => Promise<boolean>;
+  onUpdateProfileName: (name: string) => Promise<boolean>;
 }) {
   const [savingAvatar, setSavingAvatar] = useState(false);
+  const [savingName, setSavingName] = useState(false);
+  const [nameDraft, setNameDraft] = useState(user?.name ?? "");
+  const [nameStatus, setNameStatus] = useState("");
   const [avatarDraft, setAvatarDraft] = useState(user?.avatarUrl ?? "");
   const [avatarDraftStatus, setAvatarDraftStatus] = useState("");
   const [avatarPickerOpen, setAvatarPickerOpen] = useState(false);
@@ -23923,6 +23994,23 @@ function AvatarStudioCard({
   const canonicalDraft = normalizeAvatarUrl(avatarDraft ?? "") ?? "";
   const canonicalSaved = normalizeAvatarUrl(user.avatarUrl ?? "") ?? "";
 
+  async function saveDisplayName(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const cleanName = nameDraft.trim().replace(/\s+/g, " ");
+    if (!cleanName || cleanName.length > 80) {
+      setNameStatus(ts('labels.profileNameRequirement'));
+      return;
+    }
+    setSavingName(true);
+    setNameStatus(ts('labels.updating'));
+    try {
+      const updated = await onUpdateProfileName(cleanName);
+      setNameStatus(updated ? ts('labels.profileNameUpdated') : ts('notifications.profileUpdateFailedBody'));
+    } finally {
+      setSavingName(false);
+    }
+  }
+
   return (
     <section className="rounded-[1.35rem] border p-3.5 shadow-[0_6px_16px_rgba(7,10,8,0.05)]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
       <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
@@ -23940,6 +24028,31 @@ function AvatarStudioCard({
           </span>
         ) : null}
       </div>
+      <form onSubmit={saveDisplayName} className="mt-3.5 rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+        <label className="block text-xs font-semibold" style={{ color: theme.textSecondary }}>
+          {ts('labels.profileDisplayName')}
+          <span className="mt-1 block font-normal leading-5">{ts('labels.profileDisplayNameBody')}</span>
+          <input
+            value={nameDraft}
+            onChange={(event) => { setNameDraft(event.target.value); setNameStatus(""); }}
+            maxLength={80}
+            autoComplete="name"
+            className="mt-2 h-11 w-full rounded-full border px-3 text-sm outline-none"
+            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textPrimary }}
+          />
+        </label>
+        <div className="mt-2 flex flex-col gap-2 min-[380px]:flex-row min-[380px]:items-center min-[380px]:justify-between">
+          <p className="min-h-5 text-xs leading-5" aria-live="polite" style={{ color: theme.textSecondary }}>{nameStatus}</p>
+          <button
+            type="submit"
+            disabled={savingName || !nameDraft.trim() || nameDraft.trim() === (user.name ?? "")}
+            className="h-10 shrink-0 rounded-full border px-4 text-sm font-semibold disabled:opacity-50"
+            style={{ borderColor: theme.borderMedium, backgroundColor: theme.primary, color: theme.textOnPrimary }}
+          >
+            {savingName ? ts('labels.updating') : ts('labels.saveProfileName')}
+          </button>
+        </div>
+      </form>
       <div
         className="mt-3.5 rounded-[1rem] border p-2.5"
         style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}
@@ -24449,7 +24562,12 @@ function NotificationPanel({
         !diagnostics.server.vapidKeyPairValid ||
         Boolean(diagnostics.account.refreshDueSubscriptions))
   );
-  const notificationsSummary = !enabled
+  const notificationsSummary = !configured
+    ? {
+        title: ts("notifications.notificationsNotConfigured"),
+        body: isNativePushShell() ? ts("notifications.nativeServerSetupRequiredBody") : ts("notifications.notificationsNotConfiguredBody"),
+      }
+    : !enabled
     ? {
         title: ts("notifications.notificationsOff"),
         body: ts("notifications.notificationsOffBody"),
@@ -24703,10 +24821,9 @@ function NotificationPanel({
           </div>
           <button
             type="button"
-            disabled={!diagnostics}
             onClick={() => setSupportModalOpen(true)}
-            className="inline-flex h-10 shrink-0 items-center rounded-full border px-3.5 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-55"
-            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}
+            className="inline-flex h-10 shrink-0 items-center rounded-full border px-3.5 text-xs font-semibold transition"
+            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
           >
             {ts("support")}
           </button>
@@ -24796,11 +24913,11 @@ function NotificationSupportModal({
   const canUsePortal = typeof document !== "undefined";
   useBodyScrollLock(open && canUsePortal);
 
-  if (!open || !canUsePortal || !diagnostics) {
+  if (!open || !canUsePortal) {
     return null;
   }
 
-  const subscriptionValue = diagnostics.account.subscriptions
+  const subscriptionValue = diagnostics?.account.subscriptions
     ? enabled
       ? ts("notifications.deviceSubscriptionActive")
       : accountEnabled
@@ -24809,9 +24926,9 @@ function NotificationSupportModal({
           ? ts("notifications.savedSubscription")
           : ts("notifications.savedSubscriptions").replace("{count}", String(diagnostics.account.subscriptions))
     : ts("notifications.noSavedSubscription");
-  const subscriptionDetail = diagnostics.account.refreshDueSubscriptions
+  const subscriptionDetail = diagnostics?.account.refreshDueSubscriptions
     ? ts("notifications.refreshDueCount").replace("{count}", String(diagnostics.account.refreshDueSubscriptions))
-    : ts("notifications.refreshFreshAll");
+    : diagnostics ? ts("notifications.refreshFreshAll") : summary.body;
 
   return createPortal(
     <div

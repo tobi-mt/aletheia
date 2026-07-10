@@ -53,3 +53,48 @@ test("Sign in with Apple capability and callback scheme are configured", async (
   assert.match(entitlements, /com\.apple\.developer\.applesignin/);
   assert.match(info, /com\.aletheia\.app/);
 });
+
+test("app-local native auth is explicitly registered with Capacitor 8", async () => {
+  const swift = await read("ios/App/App/AppDelegate.swift");
+  const client = await read("src/lib/native-auth.ts");
+  assert.match(swift, /registerPluginInstance\(NativeAuthPlugin\(\)\)/);
+  assert.doesNotMatch(swift, /registerPluginType\(NativeAuthPlugin\.self\)/);
+  assert.match(client, /isPluginAvailable\("NativeAuth"\)/);
+});
+
+test("native authentication installs secure session cookies before reload", async () => {
+  const swift = await read("ios/App/App/AppDelegate.swift");
+  const client = await read("src/components/aletheia-app.tsx");
+  assert.match(swift, /postAuthenticatedJson/);
+  assert.match(swift, /cookieStore\.setCookie/);
+  assert.match(client, /NativeAuth\.postAuthenticatedJson/);
+  assert.match(client, /cookiesInstalled/);
+  assert.match(client, /apple_new/);
+});
+
+test("native API requests use the iOS HTTP cookie jar and new social users enter onboarding", async () => {
+  const config = await read("capacitor.config.ts");
+  const client = await read("src/components/aletheia-app.tsx");
+  assert.match(config, /CapacitorHttp:\s*\{\s*enabled:\s*true/);
+  assert.match(client, /isNewSocialAccount/);
+  assert.match(client, /setOnboardingPath\(isNewSocialAccount \? "account" : null\)/);
+  assert.match(client, /setShowOnboarding\(isNewSocialAccount\)/);
+});
+
+test("signed-in native account UX supports identity editing, push, and one onboarding step rail", async () => {
+  const client = await read("src/components/aletheia-app.tsx");
+  const profileRoute = await read("src/app/api/auth/profile/route.ts");
+  const entitlements = await read("ios/App/App/App.entitlements");
+  assert.match(profileRoute, /hasNameField/);
+  assert.match(profileRoute, /UPDATE users SET avatar_url.*name = CASE/s);
+  assert.match(client, /onUpdateProfileName/);
+  assert.match(client, /profileDisplayName/);
+  assert.match(client, /AvatarStudioCard[\s\S]*onUpdateProfileName/);
+  assert.match(client, /fetch\("\/api\/notifications\/native", \{ cache: "no-store" \}\)/);
+  assert.match(client, /nativeServerSetupRequiredBody/);
+  assert.match(client, /invalid_input: "notifications\.apiInvalidInput"/);
+  assert.match(client, /!Capacitor\.isNativePlatform\(\) \? <InstallGuideCard/);
+  assert.equal([...client.matchAll(/aria-label=\{ts\('labels\.onboardingSetupNav'\)\}/g)].length, 1);
+  assert.match(entitlements, /aps-environment/);
+  assert.match(client, /nativeRegistrationFailedBody/);
+});
