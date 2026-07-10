@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import { MANIFEST_URL } from "@/lib/build-version";
 
@@ -83,8 +84,9 @@ export default function RootLayout({
       style={{ backgroundColor: "#eef2ef" }}
     >
       <head>
-        <script
+        <Script
           id="aletheia-startup-error-hook"
+          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
             __html: `
               (function () {
@@ -92,6 +94,19 @@ export default function RootLayout({
                   return;
                 }
                 window.__aletheiaStartupErrorHookInstalled = true;
+
+                var post = function (phase, payload) {
+                  try {
+                    var handlers = window.webkit && window.webkit.messageHandlers;
+                    if (handlers && handlers.aletheiaStartupTrace) {
+                      handlers.aletheiaStartupTrace.postMessage({
+                        phase: phase,
+                        payload: payload || null,
+                      });
+                    }
+                  } catch (error) {
+                  }
+                };
 
                 var summarize = function (value) {
                   if (!value) return null;
@@ -108,15 +123,24 @@ export default function RootLayout({
                 };
 
                 console.error("[startup:native-head-hook] installed");
+                post("[startup:native-head-hook] installed");
 
                 window.addEventListener("error", function (event) {
                   try {
-                    console.error("[startup:native-head-error]", {
+                    var payload = {
                       message: event.message,
                       filename: event.filename,
                       lineno: event.lineno,
                       colno: event.colno,
                       error: summarize(event.error),
+                    };
+                    post("[startup:native-head-error]", payload);
+                    console.error("[startup:native-head-error]", {
+                      message: payload.message,
+                      filename: payload.filename,
+                      lineno: payload.lineno,
+                      colno: payload.colno,
+                      error: payload.error,
                     });
                   } catch (error) {
                     console.error("[startup:native-head-error:logging-failed]", summarize(error));
@@ -125,8 +149,12 @@ export default function RootLayout({
 
                 window.addEventListener("unhandledrejection", function (event) {
                   try {
-                    console.error("[startup:native-head-unhandledrejection]", {
+                    var payload = {
                       reason: summarize(event.reason),
+                    };
+                    post("[startup:native-head-unhandledrejection]", payload);
+                    console.error("[startup:native-head-unhandledrejection]", {
+                      reason: payload.reason,
                     });
                   } catch (error) {
                     console.error("[startup:native-head-unhandledrejection:logging-failed]", summarize(error));

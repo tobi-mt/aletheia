@@ -5,17 +5,30 @@ import Image from "next/image";
 import { startTransition, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { getTranslation, loadTranslationsSync } from "@/lib/translations";
 import { NATIVE_WEB_BUNDLE, installNativeWebFetchProxy } from "@/lib/native-web";
-import { traceStartup } from "@/lib/startup-trace";
+import { traceStartup, traceStartupError } from "@/lib/startup-trace";
 
 type SplashLanguage = "en" | "es" | "fr" | "de" | "pt" | "yo" | "ig" | "ha" | "tl" | "ar" | "hi";
 
 const supportedSplashLanguages = new Set<SplashLanguage>(["en", "es", "fr", "de", "pt", "yo", "ig", "ha", "tl", "ar", "hi"]);
 const LazyAletheiaApp = dynamic(
-  () => import("@/components/aletheia-app").then((mod) => mod.AletheiaApp),
+  async () => {
+    traceStartup("home-client-shell:aletheia-app-import:start");
+    try {
+      const mod = await import("@/components/aletheia-app");
+      traceStartup("home-client-shell:aletheia-app-import:ok");
+      return mod.AletheiaApp;
+    } catch (error) {
+      traceStartupError("home-client-shell:aletheia-app-import:error", error);
+      throw error;
+    }
+  },
   { ssr: false, loading: () => null }
 );
 
 installNativeWebFetchProxy();
+traceStartup("home-client-shell:module-eval", {
+  nativeWebBundle: NATIVE_WEB_BUNDLE,
+});
 
 function readStoredSplashLanguage(): SplashLanguage {
   if (typeof window === "undefined") {

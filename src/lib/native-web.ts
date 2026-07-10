@@ -66,11 +66,32 @@ export function installNativeWebFetchProxy() {
       return originalFetch(input, init);
     }
 
-    if (input instanceof Request) {
-      return originalFetch(new Request(rewritten, input));
+    const requestUrl = input instanceof Request ? input.url : input instanceof URL ? input.href : String(input);
+    try {
+      const parsed = new URL(requestUrl, window.location.href);
+      if (parsed.pathname.startsWith("/api/auth/")) {
+        traceStartup("native-web:fetch-rewrite", {
+          pathname: parsed.pathname,
+          requestOrigin: parsed.origin,
+          publicAppOrigin: PUBLIC_APP_ORIGIN,
+          rewrittenUrl: rewritten,
+          sameOrigin: parsed.origin === PUBLIC_APP_ORIGIN,
+        });
+      }
+    } catch {
+      // Ignore malformed diagnostics-only URLs.
     }
 
-    return originalFetch(rewritten, init);
+    const rewrittenInit = {
+      ...(init ?? {}),
+      credentials: "include" as RequestCredentials,
+    };
+
+    if (input instanceof Request) {
+      return originalFetch(new Request(rewritten, input), rewrittenInit);
+    }
+
+    return originalFetch(rewritten, rewrittenInit);
   }) as typeof window.fetch;
 
   nativeFetchProxyInstalled = true;

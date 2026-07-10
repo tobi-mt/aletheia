@@ -129,6 +129,9 @@ import { STREAK_MILESTONES, formatStreak, type StreakData } from "@/lib/streak-s
 import type { BibleStudyData } from "@/lib/bible-study";
 
 installNativeWebFetchProxy();
+traceStartup("aletheia-app:module-eval", {
+  nativeWebBundle: NATIVE_WEB_BUNDLE,
+});
 
 function getBrowserNotificationApi(): typeof Notification | null {
   if (typeof window === "undefined") {
@@ -9400,22 +9403,81 @@ export function AletheiaApp({
 
     traceStartup("aletheia-app:session-restore:start", {
       startupPaintReady,
+      currentOrigin: window.location.origin,
+      publicAppOrigin: getPublicAppOrigin(),
+      sameOrigin: window.location.origin === getPublicAppOrigin(),
+      nativeWebBundle: NATIVE_WEB_BUNDLE,
     });
 
     async function loadSession() {
       // authStatus is already "checking" from initial state - no need to set it again
-      const [response, providersResponse] = await Promise.all([
-        fetch("/api/auth/me", { cache: "no-store" }),
-        fetch("/api/auth/providers").catch(() => null),
-      ]);
+      const requestOrigin = window.location.origin;
+      const publicAppOrigin = getPublicAppOrigin();
+      const authMeUrl = `${publicAppOrigin}/api/auth/me`;
+      traceStartup("aletheia-app:session-restore:me:fetch:start", {
+        requestOrigin,
+        publicAppOrigin,
+        authMeUrl,
+        sameOrigin: requestOrigin === publicAppOrigin,
+        nativeWebBundle: NATIVE_WEB_BUNDLE,
+      });
+
+      let response: Response;
+      try {
+        response = await fetch("/api/auth/me", { cache: "no-store" });
+        traceStartup("aletheia-app:session-restore:me:fetch:ok", {
+          meStatus: response.status,
+        });
+      } catch (error) {
+        traceStartup("aletheia-app:session-restore:me:fetch:failed", {
+          requestOrigin,
+          publicAppOrigin,
+          authMeUrl,
+          sameOrigin: requestOrigin === publicAppOrigin,
+          nativeWebBundle: NATIVE_WEB_BUNDLE,
+          errorName: error instanceof Error ? error.name : typeof error,
+          errorMessage: error instanceof Error ? error.message : String(error),
+        });
+        setUser(null);
+        setAuthStatus("guest");
+        setGratitudeSyncStatus("local");
+        setStatusMessage(ts("status.guestMode"));
+        traceStartup("aletheia-app:session-restore:guest-fallback", {
+          reason: "auth_me_fetch_failed",
+        });
+        return;
+      }
+
+      traceStartup("aletheia-app:session-restore:providers:fetch:start");
+      let providersResponse: Response | null = null;
+      try {
+        providersResponse = await fetch("/api/auth/providers");
+        traceStartup("aletheia-app:session-restore:providers:fetch:ok", {
+          providersStatus: providersResponse.status,
+        });
+      } catch (error) {
+        traceStartupError("aletheia-app:session-restore:providers:fetch:error", error);
+      }
+
       if (providersResponse?.ok) {
+        traceStartup("aletheia-app:session-restore:providers:json:start");
         const providers = (await providersResponse.json()) as Record<string, unknown>;
+        traceStartup("aletheia-app:session-restore:providers:json:ok", {
+          providerKeys: Object.keys(providers).slice(0, 10),
+        });
         setGoogleAuthAvailable(Boolean(providers.google));
       }
+      traceStartup("aletheia-app:session-restore:me:json:start");
       const data = (await response.json()) as { user: User | null };
+      traceStartup("aletheia-app:session-restore:me:json:ok", {
+        hasUser: Boolean(data.user),
+      });
       const params = new URLSearchParams(window.location.search);
 
       if (data.user) {
+        traceStartup("aletheia-app:session-restore:signed-in:start", {
+          userId: data.user.id ?? null,
+        });
         setUser(data.user);
         setAuthStatus("signed-in");
         setPostSignOutWelcomeState(false);
@@ -9458,8 +9520,15 @@ export function AletheiaApp({
           console.error("Error updating streak:", error);
         }
         
+        traceStartup("aletheia-app:session-restore:workspace:start", {
+          userId: data.user.id ?? null,
+        });
         await loadSignedInWorkspace(data.user).catch((workspaceError) => {
           console.error("Workspace hydration on session restore failed:", workspaceError);
+          traceStartupError("aletheia-app:session-restore:workspace:error", workspaceError);
+        });
+        traceStartup("aletheia-app:session-restore:workspace:ok", {
+          userId: data.user.id ?? null,
         });
         const firstName = data.user.name?.split(" ")[0] || data.user.email.split("@")[0];
         const signedInMessage =
@@ -9481,10 +9550,16 @@ export function AletheiaApp({
         setShowWelcomeGate(false);
         setShowOnboarding(false);
         if (params.get("view") === "account" || params.get("auth")?.startsWith("google_")) {
+          traceStartup("aletheia-app:session-restore:replace-state:start", {
+            view: params.get("view"),
+            auth: params.get("auth"),
+          });
           setActiveView("account");
           window.history.replaceState({}, "", window.location.pathname);
+          traceStartup("aletheia-app:session-restore:replace-state:ok");
         }
       } else {
+        traceStartup("aletheia-app:session-restore:guest:start");
         setUser(null);
         setAuthStatus("guest");
         setGratitudeSyncStatus("local");
@@ -9502,6 +9577,7 @@ export function AletheiaApp({
           announceWorkflow(ts('notifications.signInNotFinish'), authFailureMessage, "error");
           window.history.replaceState({}, "", window.location.pathname);
         }
+        traceStartup("aletheia-app:session-restore:guest:ok");
       }
 
       traceStartup("aletheia-app:session-restore:complete", {
@@ -9511,9 +9587,16 @@ export function AletheiaApp({
 
     loadSession().catch((error) => {
       setAuthStatus("guest");
-      setStatusMessage(ts('status.backendUnavailable'));
-      traceStartupError("aletheia-app:session-restore:error", error);
-      traceStartup("aletheia-app:session-restore:fallback-guest");
+      setStatusMessage(ts("status.guestMode"));
+      traceStartupError("aletheia-app:session-restore:error", error, {
+        currentOrigin: window.location.origin,
+        publicAppOrigin: getPublicAppOrigin(),
+        sameOrigin: window.location.origin === getPublicAppOrigin(),
+        nativeWebBundle: NATIVE_WEB_BUNDLE,
+      });
+      traceStartup("aletheia-app:session-restore:fallback-guest", {
+        reason: "unexpected-session-restore-failure",
+      });
     });
   }, [announceWorkflow, celebrate, getFriendlyAuthError, loadSignedInWorkspace, setActiveView, startupPaintReady, ts]);
 

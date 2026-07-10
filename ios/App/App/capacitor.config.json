@@ -3,6 +3,14 @@
 	"appName": "Aletheia",
 	"webDir": "capacitor-web",
 	"plugins": {
+		"PushNotifications": {
+			"presentationOptions": [
+				"badge",
+				"sound",
+				"banner",
+				"list"
+			]
+		},
 		"SystemBars": {
 			"insetsHandling": "css",
 			"style": "DARK",
@@ -12,6 +20,7 @@
 	},
 	"packageClassList": [
 		"AppPlugin",
-		"HapticsPlugin"
+		"HapticsPlugin",
+		"PushNotificationsPlugin"
 	]
 }
