@@ -405,6 +405,11 @@ function railTextColors(theme: ThemeColors) {
     railSecondary: isDarkTheme ? "rgba(248, 245, 232, 0.88)" : theme.textSecondary,
   };
 }
+
+function accessibleAccentText(theme: ThemeColors) {
+  const isDarkTheme = theme.bgMain === "#0e1514" || theme.bgMain === "#050605";
+  return isDarkTheme ? theme.accentGold : theme.primary;
+}
 type WorkflowNoticeState = {
   id: string;
   title: string;
@@ -15992,6 +15997,7 @@ function HomeDashboard({
   theme: ThemeColors;
 }) {
   const text = { ...englishText, ...ui };
+  const accentText = accessibleAccentText(theme);
   const greeting = useMemo(() => {
     if (currentLocalHour === null) {
       return text.greetingFallback || "";
@@ -16094,7 +16100,7 @@ function HomeDashboard({
               <span className="min-w-0 flex-1">
                 <span className="block" style={{ color: theme.textPrimary }}>{text.personalizationNudgeTitle}</span>
                 <span className="mt-1 block text-sm font-normal leading-6" style={{ color: theme.textSecondary }}>{text.personalizationNudgeBody}</span>
-                <span className="mt-2 block text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.primary }}>
+                <span className="mt-2 block text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: accentText }}>
                   {text.personalizationNudgeAction}
                 </span>
               </span>
@@ -22303,6 +22309,7 @@ function ManualContextPanel({
   onPreferenceChange: (patch: Partial<UserPreferences>) => void;
   onChange: (patch: Partial<ManualContextProfile>) => void | Promise<void>;
 }) {
+  const accentText = accessibleAccentText(theme);
   const [draft, setDraft] = useState(context);
   const [contextTab, setContextTab] = useState<"current" | "future">("current");
   const [currentContextFocus, setCurrentContextFocus] = useState<"money" | "work" | "health" | "relationships" | "values" | "counsel">("money");
@@ -22873,7 +22880,7 @@ function ManualContextPanel({
           <div className="flex flex-col gap-3">
             <div className="min-w-0 max-w-3xl">
             <div className="flex items-start gap-3">
-                <div className="mt-0.5 grid size-10 shrink-0 place-items-center rounded-xl border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
+                <div className="mt-0.5 grid size-10 shrink-0 place-items-center rounded-xl border" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: accentText }}>
                   <ShieldCheck size={18} />
                 </div>
                 <div className="relative min-w-0">
@@ -22917,7 +22924,7 @@ function ManualContextPanel({
                       type="button"
                       onClick={() => setQuickDetailType(option.key)}
                       className="premium-tap-card inline-flex min-h-11 shrink-0 items-center gap-2 rounded-full border px-3.5 py-2 text-sm font-semibold transition active:scale-[0.98]"
-                      style={{ borderColor: active ? theme.primary : theme.borderLight, backgroundColor: active ? theme.activeBg : theme.bgInput, color: active ? theme.primary : theme.textSecondary }}
+                      style={{ borderColor: active ? theme.accentGold : theme.borderLight, backgroundColor: active ? theme.activeBg : theme.bgInput, color: active ? theme.textPrimary : theme.textSecondary }}
                       aria-pressed={active}
                     >
                       <Icon size={16} />
@@ -22944,7 +22951,7 @@ function ManualContextPanel({
                 <button
                   type="button"
                   className="h-11 rounded-full px-4 text-sm font-semibold"
-                  style={{ backgroundColor: theme.primary, color: theme.textOnPrimary, opacity: quickDetail.trim() && !manualContextSaving ? 1 : 0.65 }}
+                  style={{ backgroundColor: quickDetail.trim() && !manualContextSaving ? theme.primary : theme.bgInput, color: quickDetail.trim() && !manualContextSaving ? theme.textOnPrimary : theme.textSecondary, border: `1px solid ${quickDetail.trim() && !manualContextSaving ? theme.primary : theme.borderLight}` }}
                   disabled={!quickDetail.trim() || manualContextSaving}
                   onClick={() => void applyQuickDetail()}
                 >
@@ -22966,7 +22973,7 @@ function ManualContextPanel({
             <span className="block text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.accentGold }}>{ts('manualContext.vaultControlsEyebrow')}</span>
             <span className="mt-1 block text-base font-semibold" style={{ color: theme.textPrimary }}>{ts('manualContext.vaultControlsTitle')}</span>
           </span>
-          <span className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold" style={{ color: theme.primary }}>
+          <span className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold" style={{ color: accentText }}>
             {advancedVaultOpen ? ts('hideDetails') : ts('showDetails')}
             <ChevronDown size={16} className={`transition-transform ${advancedVaultOpen ? "rotate-180" : ""}`} />
           </span>
