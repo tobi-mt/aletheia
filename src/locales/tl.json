@@ -1479,6 +1479,7 @@
   },
   "personalizationNudgeTitle": "Gusto mo ng mas personal na payo?",
   "personalizationNudgeBody": "Magdagdag ng isang detalye tungkol sa pera, trabaho, o ritmo.",
+  "personalizationNudgeAction": "Buksan ang Context Vault",
   "personalization": {
     "tooVagueTitle": "Gawing mas tiyak ang mga sagot sa hinaharap",
     "tooVagueBody": "Magdagdag ng isang detalye tungkol sa iyong kasalukuyang pressure, buffer ng pagtitipid, ritmo ng trabaho, o antas ng suporta.",

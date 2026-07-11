@@ -1479,6 +1479,7 @@
   },
   "personalizationNudgeTitle": "Quer um conselho mais pessoal?",
   "personalizationNudgeBody": "Adicione um detalhe sobre dinheiro, trabalho ou ritmo.",
+  "personalizationNudgeAction": "Abrir cofre de contexto",
   "personalization": {
     "tooVagueTitle": "Torne as próximas respostas mais específicas",
     "tooVagueBody": "Adicione um detalhe sobre sua pressão atual, reserva financeira, ritmo de trabalho ou nível de apoio.",

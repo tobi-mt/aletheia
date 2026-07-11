@@ -1479,6 +1479,7 @@
   },
   "personalizationNudgeTitle": "Möchtest du persönlicheren Rat?",
   "personalizationNudgeBody": "Füge ein Detail zu Geld, Arbeit oder Rhythmus hinzu.",
+  "personalizationNudgeAction": "Kontext-Tresor öffnen",
   "personalization": {
     "tooVagueTitle": "Mach künftige Antworten konkreter",
     "tooVagueBody": "Füge ein Detail zu deinem aktuellen Druck, Sparpuffer, Arbeitsrhythmus oder Unterstützungsniveau hinzu.",

@@ -874,6 +874,7 @@ const uiText: Partial<Record<
     whatNextBody?: string;
     personalizationNudgeTitle?: string;
     personalizationNudgeBody?: string;
+    personalizationNudgeAction?: string;
     continueDecision?: string;
     askOneQuestion?: string;
     askOneQuestionBody?: string;
@@ -7727,6 +7728,7 @@ export function AletheiaApp({
   const [preferencesStatus, setPreferencesStatus] = useState("");
   const [manualContext, setManualContext] = useState<ManualContextProfile>(defaultManualContext);
   const [manualContextStatus, setManualContextStatus] = useState("");
+  const [requestedAccountSection, setRequestedAccountSection] = useState<"personalization" | "privacy" | "share" | "system">("personalization");
   const [clientStateRestored, setClientStateRestored] = useState(false);
   const bootReadyReportedRef = useRef(false);
   const [themePreference, setThemePreference] = useState<ThemePreference>("system");
@@ -8318,6 +8320,11 @@ export function AletheiaApp({
     if (nextAuthMode) {
       setAuthMode(nextAuthMode);
     }
+    showView("account");
+  }, [showView]);
+
+  const openManualContextFlow = useCallback(() => {
+    setRequestedAccountSection("privacy");
     showView("account");
   }, [showView]);
 
@@ -14045,7 +14052,7 @@ function startFirstRunGuestFlow() {
                         ts={ts}
                         onScriptureOpen={openScripture}
                         onContinueDecision={continueDecisionFlow}
-                        onOpenAccount={openAccountFlow}
+                        onOpenAccount={openManualContextFlow}
                         onAskOneQuestion={askOneQuestionFlow}
                         onCarryToday={carryCompanionCard}
                         onReflectCard={reflectOnCompanionCard}
@@ -14243,6 +14250,7 @@ function startFirstRunGuestFlow() {
                   <ViewIdentityFrame identity="account" theme={theme}>
                     <AccountPanel
                       ts={ts}
+                      requestedSection={requestedAccountSection}
                       user={user}
                       onOpenStreakMilestones={() => setShowStreakMilestonesModal(true)}
                       authMode={authMode}
@@ -16080,11 +16088,19 @@ function HomeDashboard({
             <button
               type="button"
               onClick={onOpenAccount}
-              className="rounded-2xl border px-3.5 py-3 text-left text-sm font-semibold leading-6 transition shadow-[0_6px_14px_rgba(7,10,8,0.04)]"
-              style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}
+              className="premium-tap-card group flex w-full items-center gap-3 rounded-2xl border px-3.5 py-3 text-left text-sm font-semibold leading-6 shadow-[0_6px_14px_rgba(7,10,8,0.04)] outline-none transition active:scale-[0.99] focus-visible:ring-2 focus-visible:ring-offset-2"
+              style={{ borderColor: theme.primary, backgroundColor: theme.bgCardElevated, color: theme.textSecondary, '--tw-ring-color': theme.primary, '--tw-ring-offset-color': theme.bgCard } as CSSProperties}
             >
-              <span className="block" style={{ color: theme.textPrimary }}>{text.personalizationNudgeTitle}</span>
-              <span className="mt-1 block text-sm font-normal leading-6" style={{ color: theme.textSecondary }}>{text.personalizationNudgeBody}</span>
+              <span className="min-w-0 flex-1">
+                <span className="block" style={{ color: theme.textPrimary }}>{text.personalizationNudgeTitle}</span>
+                <span className="mt-1 block text-sm font-normal leading-6" style={{ color: theme.textSecondary }}>{text.personalizationNudgeBody}</span>
+                <span className="mt-2 block text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.primary }}>
+                  {text.personalizationNudgeAction}
+                </span>
+              </span>
+              <span className="grid size-10 shrink-0 place-items-center rounded-full transition-transform group-hover:translate-x-0.5" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }} aria-hidden="true">
+                <ChevronRight size={19} strokeWidth={2.25} />
+              </span>
             </button>
           ) : null}
 
@@ -17429,6 +17445,7 @@ function DisclosureSection({
 
 function AccountPanel({
   ts,
+  requestedSection,
   user,
   authMode,
   setAuthMode,
@@ -17500,6 +17517,7 @@ function AccountPanel({
   theme,
 }: {
   ts: (key: string, fallback?: string) => string;
+  requestedSection: "personalization" | "privacy" | "share" | "system";
   user: User | null;
   authMode: AuthMode;
   setAuthMode: (value: AuthMode) => void;
@@ -17571,7 +17589,7 @@ function AccountPanel({
   theme: ThemeColors;
 }) {
   const text = { ...englishText, ...ui };
-  const [accountSection, setAccountSection] = useState<"personalization" | "privacy" | "share" | "system">("personalization");
+  const [accountSection, setAccountSection] = useState<"personalization" | "privacy" | "share" | "system">(requestedSection);
   const exchanges = conversationExchanges(messages).filter((exchange) => exchange.question);
   const hasLocalWorkspaceData = exchanges.length > 0 || decisions.length > 0 || journalEntries.length > 0 || counselContacts.length > 0 || rulesOfLife.length > 0;
   const profileName = user?.name || user?.email || ts('auth.guest');
@@ -17838,23 +17856,16 @@ function AccountPanel({
 
       {accountSection === "privacy" ? (
         <div className="space-y-4">
-          <AccountFlatSection
+          <ManualContextPanel
             theme={theme}
-            eyebrow={ts('labels.accountPreferencesEyebrow')}
-            summary={ts('labels.accountPreferencesSummary')}
-            icon={ShieldCheck}
-          >
-            <ManualContextPanel
-              theme={theme}
-              ts={ts}
-              user={user}
-              preferences={preferences}
-              context={manualContext}
-              status={manualContextStatus}
-              onPreferenceChange={onPreferenceChange}
-              onChange={onManualContextChange}
-            />
-          </AccountFlatSection>
+            ts={ts}
+            user={user}
+            preferences={preferences}
+            context={manualContext}
+            status={manualContextStatus}
+            onPreferenceChange={onPreferenceChange}
+            onChange={onManualContextChange}
+          />
 
           <AccountFlatSection
             theme={theme}
@@ -22300,7 +22311,8 @@ function ManualContextPanel({
   const [quickDetail, setQuickDetail] = useState("");
   const [manualContextFeedback, setManualContextFeedback] = useState("");
   const [manualContextSaving, setManualContextSaving] = useState(false);
-  const [contextEditorOpen, setContextEditorOpen] = useState(true);
+  const [contextEditorOpen, setContextEditorOpen] = useState(false);
+  const [advancedVaultOpen, setAdvancedVaultOpen] = useState(false);
   const [privacyPostureOpen, setPrivacyPostureOpen] = useState(false);
   const manualCopy = {
     title: ts('labels.manualContextTitle'),
@@ -22533,7 +22545,7 @@ function ManualContextPanel({
       const diffMs = now.getTime() - date.getTime();
       const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
       const diffMonths = Math.floor(diffDays / 30);
-      if (diffDays === 0) return 'today';
+      if (diffDays === 0) return ts('labels.today');
       if (diffDays < 30) return `${diffDays} ${ts('manualContext.daysAgo')}`;
       return `${diffMonths} ${ts('manualContext.monthsAgo')}`;
     } catch {
@@ -22858,7 +22870,7 @@ function ManualContextPanel({
   return (
     <section className="overflow-hidden rounded-[1.4rem] border shadow-[0_6px_16px_rgba(7,10,8,0.05)]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
       <div className="p-4 sm:p-5">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="flex flex-col gap-3">
             <div className="min-w-0 max-w-3xl">
             <div className="flex items-start gap-3">
                 <div className="mt-0.5 grid size-10 shrink-0 place-items-center rounded-xl border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
@@ -22871,18 +22883,20 @@ function ManualContextPanel({
                       <span>{manualCopy.title}</span>
                     </span>
                   </h3>
+                  <p className="mt-2 max-w-2xl text-sm leading-6" style={{ color: theme.textSecondary }}>{manualCopy.intro}</p>
                 </div>
               </div>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <span className="inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.06em] sm:tracking-[0.1em]" style={{ borderColor: theme.borderLight, backgroundColor: draft.useInAnswers ? theme.activeBg : theme.bgInput, color: draft.useInAnswers ? theme.accentGold : theme.textSecondary }}>
+            <p className="flex flex-wrap items-center gap-x-2 text-xs leading-5" style={{ color: theme.textSecondary }}>
+              <span className="inline-flex items-center gap-1.5 font-semibold" style={{ color: draft.useInAnswers ? theme.accentGold : theme.textSecondary }}>
                 {draft.useInAnswers ? <Check size={13} /> : null}
                 {vaultStateLabel}
               </span>
-              <span className="inline-flex items-center rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.06em] sm:tracking-[0.1em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+              <span aria-hidden="true">·</span>
+              <span>
                 {activeContextSections} {activeContextSections === 1 ? manualCopy.areaSingular : manualCopy.areaPlural} {manualCopy.added}
               </span>
-            </div>
+            </p>
           </div>
 
           <div className="mt-4 grid gap-4 2xl:grid-cols-[1.15fr_0.85fr]">
@@ -22893,19 +22907,22 @@ function ManualContextPanel({
                   <p className="mt-2 text-lg font-semibold" style={{ color: theme.textPrimary }}>{ts('manualContext.quickAddHeadline')}</p>
                 </div>
               </div>
-              <div className="mt-4 flex min-w-0 snap-x gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
+              <div className="mt-4 flex min-w-0 gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
                 {quickDetailOptions.map((option) => {
+                  const Icon = option.icon;
+                  const active = quickDetailType === option.key;
                   return (
-                    <SelectionRailCard
+                    <button
                       key={option.key}
-                      icon={option.icon}
-                      title={option.label}
-                      body={option.prompt}
-                      active={quickDetailType === option.key}
+                      type="button"
                       onClick={() => setQuickDetailType(option.key)}
-                      theme={theme}
-                      className="w-[16.75rem] shrink-0 snap-start"
-                    />
+                      className="premium-tap-card inline-flex min-h-11 shrink-0 items-center gap-2 rounded-full border px-3.5 py-2 text-sm font-semibold transition active:scale-[0.98]"
+                      style={{ borderColor: active ? theme.primary : theme.borderLight, backgroundColor: active ? theme.activeBg : theme.bgInput, color: active ? theme.primary : theme.textSecondary }}
+                      aria-pressed={active}
+                    >
+                      <Icon size={16} />
+                      {option.label}
+                    </button>
                   );
                 })}
               </div>
@@ -22939,8 +22956,24 @@ function ManualContextPanel({
         </div>
 
       <div className="border-t p-4 sm:p-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+        <button
+          type="button"
+          onClick={() => setAdvancedVaultOpen((open) => !open)}
+          className="premium-tap-card flex w-full items-center justify-between gap-3 rounded-xl px-1 py-2 text-left"
+          aria-expanded={advancedVaultOpen}
+        >
+          <span>
+            <span className="block text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.accentGold }}>{ts('manualContext.vaultControlsEyebrow')}</span>
+            <span className="mt-1 block text-base font-semibold" style={{ color: theme.textPrimary }}>{ts('manualContext.vaultControlsTitle')}</span>
+          </span>
+          <span className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold" style={{ color: theme.primary }}>
+            {advancedVaultOpen ? ts('hideDetails') : ts('showDetails')}
+            <ChevronDown size={16} className={`transition-transform ${advancedVaultOpen ? "rotate-180" : ""}`} />
+          </span>
+        </button>
+        {advancedVaultOpen ? (
           <form
-            className="space-y-4"
+            className="mt-4 space-y-4"
             onSubmit={handleManualContextSubmit}
           >
             <div className="grid gap-3 2xl:grid-cols-[0.88fr_1.12fr]">
@@ -23140,6 +23173,7 @@ function ManualContextPanel({
               </button>
             </div>
           </form>
+        ) : null}
       </div>
     </section>
   );

@@ -1479,6 +1479,7 @@
   },
   "personalizationNudgeTitle": "Want more personal counsel?",
   "personalizationNudgeBody": "Add one detail about money, work, or rhythm.",
+  "personalizationNudgeAction": "Open Context Vault",
   "personalization": {
     "tooVagueTitle": "Make future answers more specific",
     "tooVagueBody": "Add one detail about your current pressure, savings buffer, work rhythm, or support level.",

@@ -1479,6 +1479,7 @@
   },
   "personalizationNudgeTitle": "क्या आप अधिक व्यक्तिगत परामर्श चाहते हैं?",
   "personalizationNudgeBody": "धन, कार्य या लय के बारे में एक विवरण जोड़ें।",
+  "personalizationNudgeAction": "कॉन्टेक्स्ट वॉल्ट खोलें",
   "personalization": {
     "tooVagueTitle": "भविष्य के उत्तरों को और अधिक विशिष्ट बनाएं",
     "tooVagueBody": "अपने वर्तमान दबाव, बचत बफर, कार्य लय, या समर्थन स्तर के बारे में एक विवरण जोड़ें।",
