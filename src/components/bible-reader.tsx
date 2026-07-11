@@ -44,7 +44,7 @@ const CHAPTER_COUNTS: Record<string, number> = {
 // Localized labels (minimal, using runtime copy)
 // ──────────────────────────────────────────────
 
-const UI: Partial<Record<LanguageCode, {
+type BibleReaderCopy = {
   ot: string;
   nt: string;
   selectBook: string;
@@ -71,7 +71,9 @@ const UI: Partial<Record<LanguageCode, {
   tapToChangeBook: string;
   jumpToVerses: string;
   tapToChangePassage: string;
-}>> = {
+};
+
+const UI: Record<LanguageCode, BibleReaderCopy> = {
   en: { ot: "Old Testament", nt: "New Testament", selectBook: "Select a book", chapter: "Chapter", verses: "verses", loading: "Loading…", error: "Could not load this passage. Please try again.", noChapter: "Chapter not available in this translation.", search: "Search books…", bookSelectorHelp: "Search by English or localized book name, then move between reading and study without losing your place.", readTab: "Read", studyTab: "Study", studyLoading: "Preparing study notes…", studyError: "Could not load study notes. Please try again.", studySummary: "Summary", studyThemes: "Themes", studyRelatedVerses: "Related verses", studyQuestions: "Reflection questions", studyActions: "Practice actions", saveToRuleOfLife: "Save to Rule of Life", saved: "Saved", closeEquivalentEdition: "close equivalent edition", via: "via", tapToChangeBook: "Tap to change book", jumpToVerses: "Jump to verses", tapToChangePassage: "Tap to change passage" },
   es: { ot: "Antiguo Testamento", nt: "Nuevo Testamento", selectBook: "Selecciona un libro", chapter: "Capítulo", verses: "versículos", loading: "Cargando…", error: "No se pudo cargar el pasaje. Inténtalo de nuevo.", noChapter: "Capítulo no disponible en esta traducción.", search: "Buscar libros…", bookSelectorHelp: "Busca por el nombre en inglés o en la forma local, y luego cambia entre lectura y estudio sin perder tu lugar.", readTab: "Lectura", studyTab: "Estudio", studyLoading: "Preparando notas de estudio…", studyError: "No se pudieron cargar las notas de estudio.", studySummary: "Resumen", studyThemes: "Temas", studyRelatedVerses: "Versículos relacionados", studyQuestions: "Preguntas de reflexión", studyActions: "Acciones prácticas", saveToRuleOfLife: "Guardar en mi regla de vida", saved: "Guardado", closeEquivalentEdition: "edición equivalente cercana", via: "vía", tapToChangeBook: "Toca para cambiar de libro", jumpToVerses: "Ir a los versículos", tapToChangePassage: "Toca para cambiar de pasaje" },
   fr: { ot: "Ancien Testament", nt: "Nouveau Testament", selectBook: "Choisir un livre", chapter: "Chapitre", verses: "versets", loading: "Chargement…", error: "Impossible de charger ce passage. Réessaie.", noChapter: "Chapitre non disponible dans cette traduction.", search: "Rechercher un livre…", bookSelectorHelp: "Recherche le nom anglais ou localisé du livre, puis passe entre lecture et étude sans perdre ta place.", readTab: "Lecture", studyTab: "Étude", studyLoading: "Préparation des notes d’étude…", studyError: "Impossible de charger les notes d’étude.", studySummary: "Résumé", studyThemes: "Thèmes", studyRelatedVerses: "Versets liés", studyQuestions: "Questions de réflexion", studyActions: "Actions pratiques", saveToRuleOfLife: "L’ajouter à ma règle de vie", saved: "Enregistré", closeEquivalentEdition: "édition équivalente proche", via: "via", tapToChangeBook: "Touchez pour changer de livre", jumpToVerses: "Aller aux versets", tapToChangePassage: "Touchez pour changer de passage" },
@@ -86,10 +88,10 @@ const UI: Partial<Record<LanguageCode, {
 };
 
 function getUI(language: LanguageCode) {
-  return UI[language] ?? UI.en!;
+  return UI[language];
 }
 
-const chapterNavLabels: Partial<Record<LanguageCode, { previous: string; next: string }>> = {
+const chapterNavLabels: Record<LanguageCode, { previous: string; next: string }> = {
   en: { previous: "Previous chapter", next: "Next chapter" },
   es: { previous: "Capítulo anterior", next: "Capítulo siguiente" },
   fr: { previous: "Chapitre précédent", next: "Chapitre suivant" },
@@ -104,7 +106,7 @@ const chapterNavLabels: Partial<Record<LanguageCode, { previous: string; next: s
 };
 
 function chapterNavUi(language: LanguageCode) {
-  return chapterNavLabels[language] ?? chapterNavLabels.en!;
+  return chapterNavLabels[language];
 }
 
 function localizedBookName(book: string, language: LanguageCode) {
@@ -181,9 +183,9 @@ export default function BibleReader({ preferences, theme, initialBook, initialCh
   }, [chapterData, preferences.language, preferences.bibleTranslation]);
   const displayedStudyData = studyData ?? localStudyData;
   const verseCountLabel = chapterData ? `${chapterData.verses.length} ${ui.verses}` : ui.loading;
-  const tapToChangeBook = ui.tapToChangeBook ?? "Tap to change book";
-  const jumpToVerses = ui.jumpToVerses ?? "Jump to verses";
-  const tapToChangePassage = ui.tapToChangePassage ?? "Tap to change passage";
+  const tapToChangeBook = ui.tapToChangeBook;
+  const jumpToVerses = ui.jumpToVerses;
+  const tapToChangePassage = ui.tapToChangePassage;
 
   const loadChapter = useCallback(async (book: string, chapter: number) => {
     if (!book) return;

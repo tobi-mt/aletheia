@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
+import { createHash } from "node:crypto";
 import { apiError } from "@/lib/api-errors";
 import { checkRateLimit, getClientIdentity, rateLimitHeaders } from "@/lib/rate-limit";
 
@@ -14,6 +15,35 @@ const MANAGED_TTS_VOICES = new Set([
   "coral",
   "sage",
 ]);
+const SCRIPTURE_AUDIO_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+const SCRIPTURE_AUDIO_CACHE_LIMIT = 48;
+
+type CachedSpeech = { bytes: Buffer; expiresAt: number };
+const speechCache = new Map<string, CachedSpeech>();
+
+function scriptureCacheKey(text: string, voice: string, language: string, speed: number) {
+  return createHash("sha256")
+    .update(`${voice}\u0000${language}\u0000${speed}\u0000${text}`)
+    .digest("hex");
+}
+
+function readCachedScriptureSpeech(key: string) {
+  const cached = speechCache.get(key);
+  if (!cached) return null;
+  if (cached.expiresAt <= Date.now()) {
+    speechCache.delete(key);
+    return null;
+  }
+  return cached.bytes;
+}
+
+function cacheScriptureSpeech(key: string, bytes: Buffer) {
+  if (speechCache.size >= SCRIPTURE_AUDIO_CACHE_LIMIT) {
+    const oldestKey = speechCache.keys().next().value;
+    if (oldestKey) speechCache.delete(oldestKey);
+  }
+  speechCache.set(key, { bytes, expiresAt: Date.now() + SCRIPTURE_AUDIO_CACHE_TTL_MS });
+}
 
 function managedVoiceInstructions(language: string) {
   const base = "Use a natural, human-like narrator voice at a calm, conversational speed. Prioritize audibility, intelligibility, crisp consonants, full word endings, and steady pacing with brief natural pauses. Avoid a robotic, breathy, whispery, rushed, overly dramatic, or sing-song delivery.";
@@ -67,6 +97,7 @@ export async function POST(request: Request) {
       voice?: string;
       language?: string;
       speed?: number;
+      cacheScope?: "scripture";
     };
 
     const text = body.text?.trim();
@@ -82,6 +113,26 @@ export async function POST(request: Request) {
     const language = body.language?.trim().toLowerCase() || "en";
     const requestedSpeed = typeof body.speed === "number" && Number.isFinite(body.speed) ? body.speed : 1;
     const speed = Math.max(0.75, Math.min(0.9, requestedSpeed));
+    const cacheKey = body.cacheScope === "scripture"
+      ? scriptureCacheKey(text, voice, language, speed)
+      : null;
+    const cachedSpeech = cacheKey ? readCachedScriptureSpeech(cacheKey) : null;
+    if (cachedSpeech) {
+      const cachedBody = cachedSpeech.buffer.slice(
+        cachedSpeech.byteOffset,
+        cachedSpeech.byteOffset + cachedSpeech.byteLength,
+      ) as ArrayBuffer;
+      return new NextResponse(cachedBody, {
+        headers: {
+          "Content-Type": "audio/mpeg",
+          "Content-Length": String(cachedSpeech.byteLength),
+          "Cache-Control": "private, max-age=86400",
+          "Accept-Ranges": "bytes",
+          "X-Aletheia-Audio-Cache": "hit",
+          ...rateLimitHeaders(rateLimit),
+        },
+      });
+    }
 
     const speech = await client.audio.speech.create({
       model: "gpt-4o-mini-tts",
@@ -97,22 +148,45 @@ export async function POST(request: Request) {
 
     if (!speech.body) {
       const audioBytes = await speech.arrayBuffer();
-      return new NextResponse(Buffer.from(audioBytes), {
+      const bytes = Buffer.from(audioBytes);
+      if (cacheKey) cacheScriptureSpeech(cacheKey, bytes);
+      return new NextResponse(bytes, {
         headers: {
           "Content-Type": contentType,
           "Content-Length": String(audioBytes.byteLength),
-          "Cache-Control": "no-store",
+          "Cache-Control": cacheKey ? "private, max-age=86400" : "no-store",
           "Accept-Ranges": "bytes",
+          "X-Aletheia-Audio-Cache": cacheKey ? "miss" : "bypass",
           ...rateLimitHeaders(rateLimit),
         },
       });
     }
 
-    return new NextResponse(speech.body, {
+    if (!cacheKey) {
+      return new NextResponse(speech.body, {
+        headers: {
+          "Content-Type": contentType,
+          "Cache-Control": "no-store",
+          "Accept-Ranges": "bytes",
+          "X-Aletheia-Audio-Cache": "bypass",
+          ...rateLimitHeaders(rateLimit),
+        },
+      });
+    }
+
+    const [playbackStream, cacheStream] = speech.body.tee();
+    void new Response(cacheStream).arrayBuffer().then((audioBytes) => {
+      cacheScriptureSpeech(cacheKey, Buffer.from(audioBytes));
+    }).catch(() => {
+      // Playback remains successful even if this optional local server cache misses.
+    });
+
+    return new NextResponse(playbackStream, {
       headers: {
         "Content-Type": contentType,
-        "Cache-Control": "no-store",
+        "Cache-Control": "private, max-age=86400",
         "Accept-Ranges": "bytes",
+        "X-Aletheia-Audio-Cache": "miss",
         ...rateLimitHeaders(rateLimit),
       },
     });

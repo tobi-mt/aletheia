@@ -781,7 +781,7 @@
     "inviteSomeone": "Inviter quelqu'un",
     "profileTitle": "Profil",
     "profileDisplayName": "Nom affiché",
-    "profileDisplayNameBody": "Choisis comment Aletheia doit s’adresser à toi. Ton adresse relais privée reste ton identifiant de connexion.",
+    "profileDisplayNameBody": "C’est ainsi qu’Aletheia te salue et identifie tes réflexions.",
     "saveProfileName": "Enregistrer le nom",
     "profileNameRequirement": "Saisis un nom de 1 à 80 caractères.",
     "profileNameUpdated": "Ton nom affiché a été mis à jour.",

@@ -155,7 +155,7 @@ class ManagedAudioBridgeViewController: CAPBridgeViewController {
             return String(value);
           };
 
-          console.error("[\(label)] installed");
+          console.info("[\(label)] installed");
           post("[\(label)] installed");
 
           window.addEventListener("error", function (event) {
@@ -429,6 +429,7 @@ public class ManagedAudioPlugin: CAPPlugin, CAPBridgedPlugin, AVAudioPlayerDeleg
     private var player: AVAudioPlayer?
     private var progressTimer: Timer?
     private var playbackToken = UUID()
+    private let audioSessionQueue = DispatchQueue(label: "com.aletheia.app.managed-audio-session", qos: .userInitiated)
     private let defaultPublicAppOrigin = "https://aletheia.mirrortalkpodcast.com"
     private let publicAppOriginKey = "ALETHEIA_PUBLIC_APP_ORIGIN"
 
@@ -437,12 +438,14 @@ public class ManagedAudioPlugin: CAPPlugin, CAPBridgedPlugin, AVAudioPlayerDeleg
     }
 
     private func configureAudioSessionForSpeech() {
-        let session = AVAudioSession.sharedInstance()
-        do {
-            try session.setCategory(.playback, mode: .spokenAudio, options: [.mixWithOthers])
-            try session.setActive(true)
-        } catch {
-            print("Failed to configure audio session for speech playback: \(error)")
+        audioSessionQueue.async {
+            let session = AVAudioSession.sharedInstance()
+            do {
+                try session.setCategory(.playback, mode: .spokenAudio, options: [.mixWithOthers])
+                try session.setActive(true)
+            } catch {
+                print("Failed to configure audio session for speech playback: \(error)")
+            }
         }
     }
 
@@ -518,6 +521,7 @@ public class ManagedAudioPlugin: CAPPlugin, CAPBridgedPlugin, AVAudioPlayerDeleg
         let voice = call.getString("voice") ?? "alloy"
         let language = call.getString("language") ?? "en"
         let speed = call.getDouble("speed") ?? 1.0
+        let cacheScope = call.getString("cacheScope")
         let token = UUID()
         playbackToken = token
         resetPlayer(keepToken: true)
@@ -529,12 +533,16 @@ public class ManagedAudioPlugin: CAPPlugin, CAPBridgedPlugin, AVAudioPlayerDeleg
         request.timeoutInterval = 45
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("audio/mpeg", forHTTPHeaderField: "Accept")
-        request.httpBody = try? JSONSerialization.data(withJSONObject: [
+        var requestPayload: [String: Any] = [
             "text": text,
             "voice": voice,
             "language": language,
             "speed": speed,
-        ])
+        ]
+        if cacheScope == "scripture" {
+            requestPayload["cacheScope"] = "scripture"
+        }
+        request.httpBody = try? JSONSerialization.data(withJSONObject: requestPayload)
 
         URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
             guard let self else { return }

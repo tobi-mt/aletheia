@@ -3,9 +3,24 @@ import { BUILD_ID } from "@/lib/build-version";
 export const dynamic = "force-dynamic";
 const APP_BASE_URL = (process.env.NEXT_PUBLIC_APP_URL || process.env.AUTH_URL || "").trim().replace(/\/$/, "");
 
+const OFFLINE_COPY = {
+  en: { starting: "Aletheia is starting", description: "We are checking the app connection. If the app does not open, make sure this device has internet access and try again.", checking: "Checking for the app URL…", retry: "Retry", opening: "Opening Aletheia…", noConnection: "No connection detected yet.", unavailable: "Aletheia needs a live connection to open. Try again when the network is available." },
+  es: { starting: "Aletheia se está iniciando", description: "Estamos comprobando la conexión de la app. Si no se abre, asegúrate de que este dispositivo tenga acceso a internet e inténtalo de nuevo.", checking: "Comprobando la dirección de la app…", retry: "Reintentar", opening: "Abriendo Aletheia…", noConnection: "Aún no se detecta conexión.", unavailable: "Aletheia necesita una conexión activa para abrirse. Inténtalo de nuevo cuando haya red disponible." },
+  fr: { starting: "Aletheia démarre", description: "Nous vérifions la connexion de l’application. Si elle ne s’ouvre pas, vérifiez l’accès à Internet de cet appareil, puis réessayez.", checking: "Vérification de l’adresse de l’application…", retry: "Réessayer", opening: "Ouverture d’Aletheia…", noConnection: "Aucune connexion détectée pour le moment.", unavailable: "Aletheia a besoin d’une connexion active pour s’ouvrir. Réessayez lorsque le réseau est disponible." },
+  pt: { starting: "Aletheia está iniciando", description: "Estamos verificando a conexão do aplicativo. Se ele não abrir, confirme que este dispositivo tem acesso à internet e tente novamente.", checking: "Verificando o endereço do aplicativo…", retry: "Tentar novamente", opening: "Abrindo Aletheia…", noConnection: "Ainda não foi detectada nenhuma conexão.", unavailable: "Aletheia precisa de uma conexão ativa para abrir. Tente novamente quando a rede estiver disponível." },
+  de: { starting: "Aletheia wird gestartet", description: "Wir prüfen die App-Verbindung. Falls die App nicht geöffnet wird, stelle sicher, dass dieses Gerät Internetzugang hat, und versuche es erneut.", checking: "App-Adresse wird geprüft…", retry: "Erneut versuchen", opening: "Aletheia wird geöffnet…", noConnection: "Noch keine Verbindung erkannt.", unavailable: "Aletheia benötigt zum Öffnen eine aktive Verbindung. Versuche es erneut, sobald ein Netzwerk verfügbar ist." },
+  yo: { starting: "Aletheia ń bẹ̀rẹ̀", description: "A ń ṣàyẹ̀wò ìsopọ̀ app náà. Bí app náà kò bá ṣí, rí i dájú pé ẹ̀rọ yìí ní ìsọ̀kan ayélujára kí o sì tún gbìyànjú.", checking: "A ń ṣàyẹ̀wò àdírẹ́sì app náà…", retry: "Tún gbìyànjú", opening: "A ń ṣí Aletheia…", noConnection: "A kò tíì rí ìsopọ̀ kan.", unavailable: "Aletheia nílò ìsopọ̀ tó ń ṣiṣẹ́ láti ṣí. Tún gbìyànjú nígbà tí nẹ́tíwọ́ọ̀kì bá wà." },
+  ig: { starting: "Aletheia na-amalite", description: "Anyị na-enyocha njikọ ngwa a. Ọ bụrụ na ngwa a emepeghị, hụ na ngwaọrụ a nwere ịntanetị ma gbalịa ọzọ.", checking: "Na-enyocha adreesị ngwa a…", retry: "Gbalịa ọzọ", opening: "Na-emepe Aletheia…", noConnection: "Ahụbeghị njikọ ugbu a.", unavailable: "Aletheia chọrọ njikọ dị ndụ iji mepee. Gbalịa ọzọ mgbe netwọk dị." },
+  ha: { starting: "Aletheia na farawa", description: "Muna duba haɗin app ɗin. Idan app ɗin bai buɗe ba, tabbatar wannan na’urar tana da intanet sannan ka sake gwadawa.", checking: "Ana duba adireshin app ɗin…", retry: "Sake gwadawa", opening: "Ana buɗe Aletheia…", noConnection: "Ba a gano haɗi ba tukuna.", unavailable: "Aletheia tana buƙatar haɗi mai aiki don buɗewa. Sake gwadawa idan cibiyar sadarwa ta samu." },
+  tl: { starting: "Nagsisimula ang Aletheia", description: "Sinusuri namin ang koneksyon ng app. Kung hindi ito magbukas, tiyaking may internet ang device na ito at subukang muli.", checking: "Sinusuri ang address ng app…", retry: "Subukang muli", opening: "Binubuksan ang Aletheia…", noConnection: "Wala pang natukoy na koneksyon.", unavailable: "Kailangan ng Aletheia ng aktibong koneksyon upang magbukas. Subukang muli kapag may network na." },
+  ar: { starting: "يتم تشغيل أليثيا", description: "نتحقق من اتصال التطبيق. إذا لم يُفتح التطبيق، فتأكد من أن هذا الجهاز متصل بالإنترنت ثم حاول مرة أخرى.", checking: "جارٍ التحقق من عنوان التطبيق…", retry: "إعادة المحاولة", opening: "جارٍ فتح أليثيا…", noConnection: "لم يتم اكتشاف اتصال بعد.", unavailable: "يحتاج أليثيا إلى اتصال نشط ليفتح. حاول مرة أخرى عند توفر الشبكة." },
+  hi: { starting: "अलेथिया शुरू हो रहा है", description: "हम ऐप कनेक्शन की जाँच कर रहे हैं। यदि ऐप नहीं खुलता है, तो सुनिश्चित करें कि इस डिवाइस में इंटरनेट है और फिर से प्रयास करें।", checking: "ऐप पते की जाँच हो रही है…", retry: "फिर से प्रयास करें", opening: "अलेथिया खुल रहा है…", noConnection: "अभी कोई कनेक्शन नहीं मिला।", unavailable: "अलेथिया को खुलने के लिए सक्रिय कनेक्शन चाहिए। नेटवर्क उपलब्ध होने पर फिर से प्रयास करें।" },
+} as const;
+
 const swScript = String.raw`
 const buildId = "__BUILD_ID__";
 const appBaseUrl = __APP_BASE_URL__;
+const offlineCopyByLanguage = __OFFLINE_COPY__;
 const CACHE_NAME = "aletheia-" + buildId;
 const MANIFEST_URL = "/manifest.webmanifest?v=" + encodeURIComponent(buildId);
 const APP_SHELL = [
@@ -108,14 +123,21 @@ const OFFLINE_HTML = [
   "  <body>",
   "    <main>",
   '      <div class="mark">A</div>',
-  "      <h1>Aletheia is starting</h1>",
-  "      <p>We are checking the app connection. If the app does not open, make sure this device has internet access and try again.</p>",
-  '      <div class="status" data-status>Checking for the app URL…</div>',
-  '      <button type="button" data-retry>Retry</button>',
+  '      <h1 data-title></h1>',
+  '      <p data-description></p>',
+  '      <div class="status" data-status></div>',
+  '      <button type="button" data-retry></button>',
   "    </main>",
   "    <script>",
+  '      const language = (navigator.language || "en").toLowerCase().split("-")[0];',
+  '      const copy = offlineCopyByLanguage[language] || offlineCopyByLanguage.en;',
+  '      document.documentElement.lang = language in offlineCopyByLanguage ? language : "en";',
   '      const statusEl = document.querySelector("[data-status]");',
   '      const retryButton = document.querySelector("[data-retry]");',
+  '      document.querySelector("[data-title]").textContent = copy.starting;',
+  '      document.querySelector("[data-description]").textContent = copy.description;',
+  '      statusEl.textContent = copy.checking;',
+  '      retryButton.textContent = copy.retry;',
   '      const configPaths = ["./capacitor.config.json", "../capacitor.config.json", "/capacitor.config.json"];',
   "",
   "      async function resolveConfiguredAppUrl() {",
@@ -140,7 +162,7 @@ const OFFLINE_HTML = [
   "",
   "      async function bootstrap() {",
   "        retryButton.disabled = true;",
-  '        statusEl.textContent = navigator.onLine ? "Opening Aletheia…" : "No connection detected yet.";',
+  '        statusEl.textContent = navigator.onLine ? copy.opening : copy.noConnection;',
   "",
   "        const appUrl = await resolveConfiguredAppUrl();",
   "        if (appUrl) {",
@@ -148,7 +170,7 @@ const OFFLINE_HTML = [
   "          return;",
   "        }",
   "",
-  '        statusEl.textContent = "Aletheia needs a live connection to open. Try again when the network is available.";',
+  '        statusEl.textContent = copy.unavailable;',
   "        retryButton.disabled = false;",
   "      }",
   "",
@@ -408,7 +430,8 @@ export async function GET() {
   return new Response(
     swScript
       .replaceAll("__BUILD_ID__", BUILD_ID)
-      .replaceAll("__APP_BASE_URL__", JSON.stringify(APP_BASE_URL)),
+      .replaceAll("__APP_BASE_URL__", JSON.stringify(APP_BASE_URL))
+      .replaceAll("__OFFLINE_COPY__", JSON.stringify(OFFLINE_COPY)),
     {
       headers: {
         "Content-Type": "application/javascript; charset=utf-8",

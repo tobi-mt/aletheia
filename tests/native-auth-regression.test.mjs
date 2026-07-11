@@ -108,3 +108,16 @@ test("native push registration remains safe on production databases without full
   assert.match(route, /Native push device registration failed/);
   assert.match(route, /apiError\(500, "save_failed"/);
 });
+
+test("native uses ManagedAudio before browser speech and verifies push configuration per platform", async () => {
+  const client = await read("src/components/aletheia-app.tsx");
+  const nativePush = await read("src/lib/native-push.ts");
+  const route = await read("src/app/api/notifications/native/route.ts");
+  const nativeAudioIndex = client.indexOf("if (Capacitor.isNativePlatform()) {", client.indexOf("async function speakText"));
+  const browserSpeechIndex = client.indexOf('"speechSynthesis" in window', client.indexOf("async function speakText"));
+  assert.ok(nativeAudioIndex >= 0 && nativeAudioIndex < browserSpeechIndex);
+  assert.match(client, /await ManagedAudio\.speak/);
+  assert.match(nativePush, /isNativePushPlatformConfigured/);
+  assert.match(nativePush, /apnsConfigured/);
+  assert.match(route, /isNativePushPlatformConfigured\(platform\)/);
+});

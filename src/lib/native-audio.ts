@@ -17,6 +17,7 @@ export type ManagedAudioSpeakOptions = {
   speed?: number;
   notice?: string;
   label?: string;
+  cacheScope?: "scripture";
 };
 
 export interface ManagedAudioPlugin {

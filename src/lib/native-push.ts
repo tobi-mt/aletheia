@@ -164,6 +164,11 @@ export function isNativePushConfigured() {
   return getNativePushConfigStatus().configured;
 }
 
+export function isNativePushPlatformConfigured(platform: NativePushPlatform) {
+  const status = getNativePushConfigStatus();
+  return platform === "ios" ? status.apnsConfigured : status.fcmConfigured;
+}
+
 export async function registerNativePushDevice(userId: string, input: NativePushDeviceRegistrationInput) {
   const now = new Date().toISOString();
   const deviceId = randomUUID();

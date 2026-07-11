@@ -781,7 +781,7 @@
     "inviteSomeone": "किसी को आमंत्रित",
     "profileTitle": "प्रोफ़ाइल",
     "profileDisplayName": "प्रदर्शित नाम",
-    "profileDisplayNameBody": "चुनें कि Aletheia आपको किस नाम से संबोधित करे। आपका निजी रिले ईमेल आपका साइन-इन पता बना रहेगा।",
+    "profileDisplayNameBody": "Aletheia आपको इसी नाम से संबोधित करेगा और आपके चिंतन की पहचान करेगा।",
     "saveProfileName": "नाम सहेजें",
     "profileNameRequirement": "1 से 80 अक्षरों के बीच का नाम दर्ज करें।",
     "profileNameUpdated": "आपका प्रदर्शित नाम अपडेट कर दिया गया है।",

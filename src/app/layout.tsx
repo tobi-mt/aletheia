@@ -122,7 +122,7 @@ export default function RootLayout({
                   return String(value);
                 };
 
-                console.error("[startup:native-head-hook] installed");
+                console.info("[startup:native-head-hook] installed");
                 post("[startup:native-head-hook] installed");
 
                 window.addEventListener("error", function (event) {

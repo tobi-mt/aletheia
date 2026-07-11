@@ -3,7 +3,7 @@ import { getCurrentUser, requireUser } from "@/lib/auth";
 import { apiError } from "@/lib/api-errors";
 import { many } from "@/lib/db";
 import { readJsonBody } from "@/lib/request";
-import { isNativePushConfigured, registerNativePushDevice, unregisterNativePushDevice } from "@/lib/native-push";
+import { getNativePushConfigStatus, isNativePushPlatformConfigured, registerNativePushDevice, unregisterNativePushDevice } from "@/lib/native-push";
 
 type NativePushPlatform = "ios" | "android";
 
@@ -40,9 +40,10 @@ function normalizePlatform(value: unknown): NativePushPlatform | null {
 
 export async function GET() {
   const user = await getCurrentUser();
+  const configStatus = getNativePushConfigStatus();
   if (!user) {
     return NextResponse.json({
-      configured: isNativePushConfigured(),
+      ...configStatus,
       devices: 0,
       platforms: [],
     });
@@ -58,7 +59,7 @@ export async function GET() {
   );
 
   return NextResponse.json({
-    configured: isNativePushConfigured(),
+    ...configStatus,
     devices: devices.length,
     platforms: [...new Set(devices.map((device) => device.platform))],
     latestDevice: devices[0]
@@ -83,13 +84,6 @@ export async function POST(request: Request) {
   if (!user) {
     return apiError(401, "sign_in_required", "Sign in to enable notifications.");
   }
-  if (!isNativePushConfigured()) {
-    return apiError(
-      503,
-      "not_configured",
-      "Native push transport is not configured on the server."
-    );
-  }
   const parsedBody = await readJsonBody<NativePushRegistrationBody>(request, {
     maxBytes: 4_000,
   });
@@ -101,6 +95,13 @@ export async function POST(request: Request) {
   const platform = normalizePlatform(parsedBody.data.platform);
   if (!token || !platform) {
     return apiError(400, "invalid_subscription", "A native push token and platform are required.");
+  }
+  if (!isNativePushPlatformConfigured(platform)) {
+    return apiError(
+      503,
+      "not_configured",
+      `${platform === "ios" ? "APNs" : "FCM"} is not configured on the server.`
+    );
   }
 
   try {

@@ -669,7 +669,9 @@ const managedSpeechVoices: ManagedVoiceOption[] = [
 
 // Prefer generated audio for selected voices; browser speech is only a last fallback.
 const browserSpeechFallbackLength = Number.POSITIVE_INFINITY;
-const SPEECH_AUDIO_CHUNK_TARGET = 700;
+// A short first segment reduces time-to-first-word; later segments are requested
+// while the current one is playing.
+const SPEECH_AUDIO_CHUNK_TARGET = 280;
 
 const defaultManagedVoiceByLanguage: Partial<Record<LanguageCode, string>> = {
   en: "marin",
@@ -8561,6 +8563,8 @@ export function AletheiaApp({
             setReadingLabel("");
             setReadingVoiceId(null);
             setStatusMessage("");
+            setPreferencesStatus(ts('notifications.voiceOutputUnavailableBody'));
+            announceWorkflow(ts('notifications.voiceOutputUnavailable'), ts('notifications.voiceOutputUnavailableBody'), "warning");
           }
         });
         traceStartup("native-bridge:ManagedAudio.addListener:state:ok");
@@ -8586,7 +8590,7 @@ export function AletheiaApp({
       void progressHandle?.remove();
       void stateHandle?.remove();
     };
-  }, [startupPaintReady, ts]);
+  }, [announceWorkflow, startupPaintReady, ts]);
 
   useEffect(() => {
     return () => {
@@ -9963,9 +9967,14 @@ export function AletheiaApp({
       if (isNativePushShell()) {
         const nativeStatusResponse = await fetch("/api/notifications/native", { cache: "no-store" }).catch(() => null);
         const nativeStatus = nativeStatusResponse?.ok
-          ? await nativeStatusResponse.json() as { configured?: boolean; devices?: number; latestDevice?: { enabled?: boolean } | null }
+          ? await nativeStatusResponse.json() as { configured?: boolean; apnsConfigured?: boolean; fcmConfigured?: boolean; devices?: number; latestDevice?: { enabled?: boolean } | null }
           : null;
-        const nativeConfigured = Boolean(nativeStatus?.configured);
+        const nativePlatform = getNativePushPlatform();
+        const nativeConfigured = nativePlatform === "ios"
+          ? Boolean(nativeStatus?.apnsConfigured)
+          : nativePlatform === "android"
+            ? Boolean(nativeStatus?.fcmConfigured)
+            : Boolean(nativeStatus?.configured);
         const nativeDeviceSubscribed = Boolean(nativeStatus?.devices && nativeStatus.devices > 0 && nativeStatus.latestDevice?.enabled !== false);
         setNotificationsConfigured(nativeConfigured);
         setNotificationAccountEnabled(nativeDeviceSubscribed);
@@ -11380,6 +11389,7 @@ function startFirstRunGuestFlow() {
     notice = ts('notifications.readingAloud'),
     label = ts('currentCounsel'),
     voiceId = selectedVoice ?? managedVoiceForLanguage(preferences.language),
+    cacheScope?: "scripture",
   ) {
     const cleanText = cleanDisplayText(text);
     if (!cleanText) {
@@ -11408,6 +11418,20 @@ function startFirstRunGuestFlow() {
     setSpeechPaused(false);
 
     try {
+      if (Capacitor.isNativePlatform()) {
+        browserSpeechActiveRef.current = false;
+        await ManagedAudio.speak({
+          text: cleanText,
+          voice: voiceId,
+          language: preferences.language,
+          speed: pacing.rate,
+          notice,
+          label,
+          cacheScope,
+        });
+        return;
+      }
+
       if (
         typeof window !== "undefined" &&
         "speechSynthesis" in window &&
@@ -11517,7 +11541,7 @@ function startFirstRunGuestFlow() {
         });
       }
 
-      async function fetchAudioChunk(chunkText: string, chunkIndex: number, reportProgress: boolean) {
+      async function fetchAudioChunk(chunkText: string) {
         const response = await fetch("/api/audio/speech", {
           method: "POST",
           headers: {
@@ -11528,6 +11552,7 @@ function startFirstRunGuestFlow() {
             voice: voiceId,
             language: preferences.language,
             speed: pacing.rate,
+            cacheScope,
           }),
         });
 
@@ -11536,6 +11561,10 @@ function startFirstRunGuestFlow() {
           throw new Error(message || ts('errors.audioRequestFailedStatus').replace("{status}", String(response.status)));
         }
 
+        return response;
+      }
+
+      async function responseToBlob(response: Response, chunkIndex: number, reportProgress: boolean) {
         const reader = response.body?.getReader();
         if (!reader) {
           throw new Error(ts('errors.responseStreamingNotSupported'));
@@ -11607,8 +11636,93 @@ function startFirstRunGuestFlow() {
         });
       }
 
+      async function playAudioStream(response: Response, chunkIndex: number, hasNextChunk: boolean) {
+        const mimeType = response.headers.get("content-type")?.split(";")[0] || "audio/mpeg";
+        const canStream = typeof MediaSource !== "undefined" && MediaSource.isTypeSupported(mimeType);
+        if (!canStream) {
+          await playAudioBlob(await responseToBlob(response, chunkIndex, true), chunkIndex, hasNextChunk);
+          return;
+        }
+
+        const reader = response.body?.getReader();
+        if (!reader) {
+          throw new Error(ts('errors.responseStreamingNotSupported'));
+        }
+
+        managedAudioProgressBaseRef.current = (chunkIndex / textChunks.length) * 100;
+        managedAudioProgressSpanRef.current = 100 / textChunks.length;
+        managedAudioHasQueuedSegmentRef.current = hasNextChunk;
+
+        const mediaSource = new MediaSource();
+        const audioUrl = URL.createObjectURL(mediaSource);
+        if (managedAudioUrlRef.current) URL.revokeObjectURL(managedAudioUrlRef.current);
+        managedAudioUrlRef.current = audioUrl;
+        audio.pause();
+        audio.currentTime = 0;
+        audio.src = audioUrl;
+
+        await new Promise<void>((resolve, reject) => {
+          const open = () => {
+            mediaSource.removeEventListener("sourceopen", open);
+            try {
+              const sourceBuffer = mediaSource.addSourceBuffer(mimeType);
+              let started = false;
+              let receivedChunks = 0;
+
+              const append = (chunk: Uint8Array) => new Promise<void>((appendResolve, appendReject) => {
+                const complete = () => {
+                  sourceBuffer.removeEventListener("updateend", complete);
+                  sourceBuffer.removeEventListener("error", failed);
+                  appendResolve();
+                };
+                const failed = () => {
+                  sourceBuffer.removeEventListener("updateend", complete);
+                  sourceBuffer.removeEventListener("error", failed);
+                  appendReject(new Error("Audio stream append failed"));
+                };
+                sourceBuffer.addEventListener("updateend", complete, { once: true });
+                sourceBuffer.addEventListener("error", failed, { once: true });
+                const bytes = chunk.buffer.slice(chunk.byteOffset, chunk.byteOffset + chunk.byteLength) as ArrayBuffer;
+                sourceBuffer.appendBuffer(bytes);
+              });
+
+              void (async () => {
+                try {
+                  while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    if (!value?.length) continue;
+                    await append(value);
+                    receivedChunks += 1;
+                    setSpeechProgress((current) => Math.max(current, Math.min(99, Math.floor(managedAudioProgressBaseRef.current + Math.min(8, receivedChunks * 2)))));
+                    if (!started) {
+                      started = true;
+                      await audio.play();
+                      setSpeechLoading(false);
+                    }
+                  }
+                  if (mediaSource.readyState === "open") mediaSource.endOfStream();
+                } catch (error) {
+                  if (mediaSource.readyState === "open") mediaSource.endOfStream("network");
+                  reject(error);
+                }
+              })();
+
+              const ended = () => {
+                audio.removeEventListener("ended", ended);
+                resolve();
+              };
+              audio.addEventListener("ended", ended, { once: true });
+            } catch (error) {
+              reject(error);
+            }
+          };
+          mediaSource.addEventListener("sourceopen", open, { once: true });
+        });
+      }
+
       const textChunks = speechAudioChunks(cleanText);
-      let nextAudio = fetchAudioChunk(textChunks[0], 0, true);
+      let nextAudio = fetchAudioChunk(textChunks[0]);
 
       for (let index = 0; index < textChunks.length; index += 1) {
         const currentAudio = await nextAudio;
@@ -11616,9 +11730,9 @@ function startFirstRunGuestFlow() {
           return;
         }
         nextAudio = index + 1 < textChunks.length
-          ? fetchAudioChunk(textChunks[index + 1], index + 1, false)
-          : Promise.resolve(new Blob());
-        await playAudioBlob(currentAudio, index, index + 1 < textChunks.length);
+          ? fetchAudioChunk(textChunks[index + 1])
+          : Promise.resolve(new Response());
+        await playAudioStream(currentAudio, index, index + 1 < textChunks.length);
       }
 
       if ('wakeLock' in navigator) {
@@ -14473,7 +14587,9 @@ function startFirstRunGuestFlow() {
           speakText(
             cleanDisplayText(quickRead.text),
             ts('labels.readingScriptureQuickRead'),
-            scriptureDisplayLabel(selectedScripture, preferences)
+            scriptureDisplayLabel(selectedScripture, preferences),
+            undefined,
+            "scripture"
           );
         }}
         onScriptureOpen={openScripture}
@@ -24028,30 +24144,30 @@ function AvatarStudioCard({
           </span>
         ) : null}
       </div>
-      <form onSubmit={saveDisplayName} className="mt-3.5 rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-        <label className="block text-xs font-semibold" style={{ color: theme.textSecondary }}>
+      <form onSubmit={saveDisplayName} className="mt-3.5 border-y py-3.5" style={{ borderColor: theme.borderLight }}>
+        <label className="block text-sm font-semibold" style={{ color: theme.textPrimary }}>
           {ts('labels.profileDisplayName')}
-          <span className="mt-1 block font-normal leading-5">{ts('labels.profileDisplayNameBody')}</span>
+          <span className="mt-1 block text-xs font-normal leading-5" style={{ color: theme.textSecondary }}>{ts('labels.profileDisplayNameBody')}</span>
+        </label>
+        <div className="mt-3 flex flex-col gap-2 min-[380px]:flex-row min-[380px]:items-center">
           <input
             value={nameDraft}
             onChange={(event) => { setNameDraft(event.target.value); setNameStatus(""); }}
             maxLength={80}
             autoComplete="name"
-            className="mt-2 h-11 w-full rounded-full border px-3 text-sm outline-none"
-            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textPrimary }}
+            className="h-11 min-w-0 flex-1 rounded-full border px-4 text-base outline-none"
+            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
           />
-        </label>
-        <div className="mt-2 flex flex-col gap-2 min-[380px]:flex-row min-[380px]:items-center min-[380px]:justify-between">
-          <p className="min-h-5 text-xs leading-5" aria-live="polite" style={{ color: theme.textSecondary }}>{nameStatus}</p>
           <button
             type="submit"
             disabled={savingName || !nameDraft.trim() || nameDraft.trim() === (user.name ?? "")}
-            className="h-10 shrink-0 rounded-full border px-4 text-sm font-semibold disabled:opacity-50"
-            style={{ borderColor: theme.borderMedium, backgroundColor: theme.primary, color: theme.textOnPrimary }}
+            className="h-11 shrink-0 rounded-full border px-5 text-sm font-semibold disabled:opacity-50"
+            style={{ borderColor: theme.primary, backgroundColor: theme.primary, color: theme.textOnPrimary }}
           >
             {savingName ? ts('labels.updating') : ts('labels.saveProfileName')}
           </button>
         </div>
+        <p className="mt-2 min-h-5 text-xs leading-5" aria-live="polite" style={{ color: theme.textSecondary }}>{nameStatus}</p>
       </form>
       <div
         className="mt-3.5 rounded-[1rem] border p-2.5"

@@ -781,7 +781,7 @@
     "inviteSomeone": "Invite someone",
     "profileTitle": "Profile",
     "profileDisplayName": "Display name",
-    "profileDisplayNameBody": "Choose how Aletheia addresses you. Your private relay email remains your sign-in address.",
+    "profileDisplayNameBody": "This is how Aletheia greets you and identifies your reflections.",
     "saveProfileName": "Save name",
     "profileNameRequirement": "Enter a name between 1 and 80 characters.",
     "profileNameUpdated": "Your display name has been updated.",
