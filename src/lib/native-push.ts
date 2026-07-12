@@ -17,6 +17,7 @@ export type NativePushTargetRow = {
   last_seen_at: string | null;
   last_registered_at: string | null;
   last_sent_at: string | null;
+  badge_count: number;
   language: string | null;
   region: string | null;
   bible_translation: string | null;
@@ -254,6 +255,7 @@ export async function loadNativePushTargets(userIds: string[]) {
             native_push_devices.last_seen_at,
             native_push_devices.last_registered_at,
             native_push_devices.last_sent_at,
+            native_push_devices.badge_count,
             user_preferences.language,
             user_preferences.region,
             user_preferences.bible_translation,
@@ -281,6 +283,7 @@ export async function loadEnabledNativePushTargets() {
             native_push_devices.last_seen_at,
             native_push_devices.last_registered_at,
             native_push_devices.last_sent_at,
+            native_push_devices.badge_count,
             user_preferences.language,
             user_preferences.region,
             user_preferences.bible_translation,
@@ -298,18 +301,33 @@ export async function loadEnabledNativePushTargets() {
   );
 }
 
-async function updateNativePushFreshness(deviceId: string, deliveredAt: string) {
+async function updateNativePushFreshness(deviceId: string, deliveredAt: string, badgeCount: number) {
   await run(
     `UPDATE native_push_devices
      SET last_sent_at = ?,
          last_seen_at = ?,
+         badge_count = ?,
          updated_at = ?
      WHERE id = ?`,
     deliveredAt,
     deliveredAt,
+    badgeCount,
     deliveredAt,
     deviceId
   );
+}
+
+export async function clearNativePushBadge(userId: string) {
+  const now = new Date().toISOString();
+  await run(
+    `UPDATE native_push_devices
+     SET badge_count = 0, last_seen_at = ?, updated_at = ?
+     WHERE user_id = ? AND enabled = TRUE`,
+    now,
+    now,
+    userId
+  );
+  return { ok: true, badgeCount: 0 };
 }
 
 function stringifyFcmData(data: NativePushMessagePayload["data"]) {
@@ -365,7 +383,13 @@ function apnsAuthToken(config: ApnsConfig) {
   const payload = { iss: config.teamId, iat };
   const signingInput = `${base64Url(JSON.stringify(header))}.${base64Url(JSON.stringify(payload))}`;
   const privateKey = createPrivateKey(config.privateKey);
-  const signature = createSign("sha256").update(signingInput).sign(privateKey);
+  // JWT ES256 uses the JOSE/P1363 representation (r || s), not OpenSSL's
+  // default DER-encoded ECDSA signature. APNs rejects DER signatures with
+  // InvalidProviderToken even when the key, team, topic, and device are valid.
+  const signature = createSign("sha256").update(signingInput).sign({
+    key: privateKey,
+    dsaEncoding: "ieee-p1363",
+  });
   const token = `${signingInput}.${base64Url(signature)}`;
   cachedApnsToken = {
     token,
@@ -389,6 +413,7 @@ async function sendApnsNotification(row: NativePushTargetRow, message: NativePus
         body: message.body,
       },
       sound: "default",
+      badge: Math.min(99, Math.max(1, Number(row.badge_count ?? 0) + 1)),
     },
     ...payload.data,
   });
@@ -566,7 +591,11 @@ export async function sendNativePushRows(
         await sendNativePush(row, payloadForRow(row));
         const deliveredAt = new Date().toISOString();
         sent += 1;
-        await updateNativePushFreshness(row.id, deliveredAt);
+        await updateNativePushFreshness(
+          row.id,
+          deliveredAt,
+          row.platform === "ios" ? Math.min(99, Math.max(1, Number(row.badge_count ?? 0) + 1)) : Number(row.badge_count ?? 0)
+        );
       } catch (error) {
         failed += 1;
         const reason = error instanceof Error ? error.message : String(error ?? "Unknown native push error");

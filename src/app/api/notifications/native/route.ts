@@ -3,7 +3,7 @@ import { getCurrentUser, requireUser } from "@/lib/auth";
 import { apiError } from "@/lib/api-errors";
 import { many } from "@/lib/db";
 import { readJsonBody } from "@/lib/request";
-import { getNativePushConfigStatus, isNativePushPlatformConfigured, registerNativePushDevice, unregisterNativePushDevice } from "@/lib/native-push";
+import { clearNativePushBadge, getNativePushConfigStatus, isNativePushPlatformConfigured, registerNativePushDevice, unregisterNativePushDevice } from "@/lib/native-push";
 
 type NativePushPlatform = "ios" | "android";
 
@@ -137,4 +137,9 @@ export async function DELETE(request: Request) {
   const token = parsedBody.data.token?.trim() || undefined;
   const result = await unregisterNativePushDevice(user.id, token);
   return NextResponse.json(result);
+}
+
+export async function PATCH() {
+  const user = await requireUser();
+  return NextResponse.json(await clearNativePushBadge(user.id));
 }

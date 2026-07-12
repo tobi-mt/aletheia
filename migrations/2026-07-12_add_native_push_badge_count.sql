@@ -1,0 +1,6 @@
+BEGIN;
+
+ALTER TABLE native_push_devices
+  ADD COLUMN IF NOT EXISTS badge_count INTEGER NOT NULL DEFAULT 0;
+
+COMMIT;

@@ -8942,6 +8942,27 @@ export function AletheiaApp({
 
     let active = true;
     let actionHandle: PluginListenerHandle | null = null;
+    let appStateHandle: PluginListenerHandle | null = null;
+
+    const clearNativeBadge = () => {
+      void PushNotifications.removeAllDeliveredNotifications().catch(() => undefined);
+      void fetch("/api/notifications/native", {
+        method: "PATCH",
+        credentials: "same-origin",
+      }).catch(() => undefined);
+    };
+
+    clearNativeBadge();
+
+    void App.addListener("appStateChange", ({ isActive }) => {
+      if (active && isActive) {
+        clearNativeBadge();
+      }
+    })
+      .then((handle) => {
+        appStateHandle = handle;
+      })
+      .catch(() => undefined);
 
     void PushNotifications.addListener("pushNotificationActionPerformed", (notification) => {
       if (!active) {
@@ -8957,6 +8978,7 @@ export function AletheiaApp({
     return () => {
       active = false;
       void actionHandle?.remove().catch(() => undefined);
+      void appStateHandle?.remove().catch(() => undefined);
     };
   }, []);
 

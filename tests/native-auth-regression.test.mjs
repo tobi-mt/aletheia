@@ -109,6 +109,24 @@ test("native push registration remains safe on production databases without full
   assert.match(route, /apiError\(500, "save_failed"/);
 });
 
+test("APNs provider tokens use the JOSE ES256 signature representation", async () => {
+  const nativePush = await read("src/lib/native-push.ts");
+  assert.match(nativePush, /dsaEncoding:\s*"ieee-p1363"/);
+});
+
+test("native notification badges increment on delivery and clear when iOS becomes active", async () => {
+  const nativePush = await read("src/lib/native-push.ts");
+  const nativeRoute = await read("src/app/api/notifications/native/route.ts");
+  const client = await read("src/components/aletheia-app.tsx");
+  const appDelegate = await read("ios/App/App/AppDelegate.swift");
+  assert.match(nativePush, /badge:\s*Math\.min\(99/);
+  assert.match(nativePush, /SET badge_count = 0/);
+  assert.match(nativeRoute, /export async function PATCH/);
+  assert.match(client, /removeAllDeliveredNotifications/);
+  assert.match(client, /App\.addListener\("appStateChange"/);
+  assert.match(appDelegate, /applicationIconBadgeNumber = 0/);
+});
+
 test("native uses ManagedAudio before browser speech and verifies push configuration per platform", async () => {
   const client = await read("src/components/aletheia-app.tsx");
   const nativePush = await read("src/lib/native-push.ts");
