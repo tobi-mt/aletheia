@@ -25014,7 +25014,6 @@ function NotificationPanel({
           ts={ts}
           summary={notificationsSummary}
           rows={notificationHealthRows}
-          enabled={enabled}
           accountEnabled={accountEnabled}
           deviceSubscribed={deviceSubscribed}
           diagnostics={diagnostics}
@@ -25072,7 +25071,6 @@ function NotificationSupportModal({
   ts,
   summary,
   rows,
-  enabled,
   accountEnabled,
   deviceSubscribed,
   diagnostics,
@@ -25083,7 +25081,6 @@ function NotificationSupportModal({
   ts: (key: string, fallback?: string) => string;
   summary: { title: string; body: string };
   rows: Array<{ label: string; value: string; detail: string; tone: "good" | "warn" | "bad" }>;
-  enabled: boolean;
   accountEnabled: boolean;
   deviceSubscribed: boolean;
   diagnostics: NotificationDiagnostics | null;
@@ -25096,10 +25093,10 @@ function NotificationSupportModal({
     return null;
   }
 
-  const subscriptionValue = diagnostics?.account.subscriptions
-    ? enabled
-      ? ts("notifications.deviceSubscriptionActive")
-      : accountEnabled
+  const subscriptionValue = deviceSubscribed
+    ? ts("notifications.deviceSubscriptionActive")
+    : diagnostics?.account.subscriptions
+      ? accountEnabled
         ? ts("notifications.accountSubscribedButDeviceNot")
         : diagnostics.account.subscriptions === 1
           ? ts("notifications.savedSubscription")
