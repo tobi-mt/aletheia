@@ -23,6 +23,11 @@ export type NativePushTargetRow = {
   voice_enabled: boolean | null;
   counsel_notifications_enabled?: boolean | null;
   formation_notifications_enabled?: boolean | null;
+  preferred_hour?: number | null;
+  preferred_local_hour?: number | null;
+  preferred_timezone?: string | null;
+  delivery_strategy?: string | null;
+  last_gratitude_sent_at?: string | null;
 };
 
 export type NativePushDeviceRegistrationInput = {
@@ -259,6 +264,37 @@ export async function loadNativePushTargets(userIds: string[]) {
      LEFT JOIN user_preferences ON user_preferences.user_id = native_push_devices.user_id
      WHERE native_push_devices.user_id = ANY(?)`,
     userIds
+  );
+}
+
+export async function loadEnabledNativePushTargets() {
+  return many<NativePushTargetRow>(
+    `SELECT native_push_devices.id,
+            native_push_devices.user_id,
+            native_push_devices.platform,
+            native_push_devices.token,
+            native_push_devices.enabled,
+            native_push_devices.device_name,
+            native_push_devices.app_version,
+            native_push_devices.build_version,
+            native_push_devices.push_environment,
+            native_push_devices.last_seen_at,
+            native_push_devices.last_registered_at,
+            native_push_devices.last_sent_at,
+            user_preferences.language,
+            user_preferences.region,
+            user_preferences.bible_translation,
+            user_preferences.voice_enabled,
+            user_preferences.counsel_notifications_enabled,
+            user_preferences.formation_notifications_enabled,
+            COALESCE(user_preferences.notification_preferred_local_hour, 8) AS preferred_hour,
+            COALESCE(user_preferences.notification_preferred_local_hour, 8) AS preferred_local_hour,
+            COALESCE(user_preferences.notification_preferred_timezone, 'UTC') AS preferred_timezone,
+            COALESCE(user_preferences.notification_delivery_strategy, 'morning') AS delivery_strategy,
+            NULL::TIMESTAMPTZ AS last_gratitude_sent_at
+     FROM native_push_devices
+     LEFT JOIN user_preferences ON user_preferences.user_id = native_push_devices.user_id
+     WHERE native_push_devices.enabled = TRUE`
   );
 }
 

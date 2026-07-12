@@ -14,6 +14,7 @@ import { getPendingNotifications, markNotificationSent } from "@/lib/notificatio
 import { buildNotificationUrl, type NotificationSurface } from "@/lib/notification-routing";
 import {
   loadNativePushTargets,
+  loadEnabledNativePushTargets,
   isNativePushConfigured,
   sendNativePushRows,
   type NativePushMessagePayload,
@@ -3409,6 +3410,7 @@ export async function sendDailyWisdomNotifications(now = new Date()) {
 
   // Fetch wisdom entries once for all notifications
   const wisdomEntries = await getWisdomEntries();
+  const nativeRows = isNativePushConfigured() ? await loadEnabledNativePushTargets() : [];
 
   const rows = await many<PushRow>(
     `SELECT push_subscriptions.id, push_subscriptions.user_id, endpoint, p256dh, auth, preferred_hour, last_sent_at,
@@ -3447,13 +3449,14 @@ export async function sendDailyWisdomNotifications(now = new Date()) {
 
   for (const [userId, reminder] of selectedReminders.entries()) {
     const userRows = rows.filter((row) => row.user_id === userId);
-    if (!userRows.length) {
+    const userNativeRows = nativeRows.filter((row) => row.user_id === userId);
+    if (!userRows.length && !userNativeRows.length) {
       continue;
     }
 
     const payload = followupNotificationPayload(reminder);
     const result = await sendPushRows(userRows, () => JSON.stringify(payload), { lastSentColumn: null });
-    const nativeResult = await sendNativePushFanOut([userId], () => true, () => payload);
+    const nativeResult = await sendNativePushRows(userNativeRows, () => payload);
 
     followupAttempted += userRows.length + nativeResult.attempted;
     followupSent += result.sent + nativeResult.sent;
@@ -3470,12 +3473,17 @@ export async function sendDailyWisdomNotifications(now = new Date()) {
   const { sent, failed, failureSamples } = await sendPushRows(dueRows, (row) =>
     JSON.stringify(dailyNotificationPayload(row, wisdomEntries))
   );
-  const dailyNativeResult = await sendNativePushFanOut(
-    [...new Set(dueRows.map((row) => row.user_id))],
-    () => true,
+  const dailyNativeRows = nativeRows.filter(
+    (row) => !followupUsers.has(row.user_id) && shouldSendAtLocalHour(asPushRow(row), now)
+  );
+  const dailyNativeResult = await sendNativePushRows(
+    dailyNativeRows,
     (row) => dailyNotificationPayload(asPushRow(row), wisdomEntries)
   );
-  const dailyUsers = new Set(dueRows.map((row) => row.user_id));
+  const dailyUsers = new Set([
+    ...dueRows.map((row) => row.user_id),
+    ...dailyNativeRows.map((row) => row.user_id),
+  ]);
   const gratitudeRows = rows.filter(
     (row) => !followupUsers.has(row.user_id) && !dailyUsers.has(row.user_id) && shouldSendGratitudeAtLocalHour(row, now)
   );
@@ -3484,9 +3492,14 @@ export async function sendDailyWisdomNotifications(now = new Date()) {
     (row) => JSON.stringify(gratitudeNotificationPayload(row)),
     { lastSentColumn: "last_gratitude_sent_at" }
   );
-  const gratitudeNativeResult = await sendNativePushFanOut(
-    [...new Set(gratitudeRows.map((row) => row.user_id))],
-    () => true,
+  const gratitudeNativeRows = nativeRows.filter(
+    (row) =>
+      !followupUsers.has(row.user_id) &&
+      !dailyUsers.has(row.user_id) &&
+      shouldSendGratitudeAtLocalHour(asPushRow(row), now)
+  );
+  const gratitudeNativeResult = await sendNativePushRows(
+    gratitudeNativeRows,
     (row) => gratitudeNotificationPayload(asPushRow(row))
   );
 

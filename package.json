@@ -1,4 +1,7 @@
 {
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "name": "aletheia",
   "version": "0.2.0",
   "private": true,
