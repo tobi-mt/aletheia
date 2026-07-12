@@ -127,6 +127,12 @@ test("native notification badges increment on delivery and clear when iOS become
   assert.match(appDelegate, /applicationIconBadgeNumber = 0/);
 });
 
+test("session checks stay on the splash instead of flashing the welcome gate", async () => {
+  const client = await read("src/components/aletheia-app.tsx");
+  assert.match(client, /if \(authStatus === "checking"\) \{[\s\S]*?<StartupSplash/);
+  assert.doesNotMatch(client, /authStatus === "checking" && isReturningFromSocialAuth/);
+});
+
 test("native uses ManagedAudio before browser speech and verifies push configuration per platform", async () => {
   const client = await read("src/components/aletheia-app.tsx");
   const nativePush = await read("src/lib/native-push.ts");

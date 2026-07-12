@@ -13852,14 +13852,14 @@ function startFirstRunGuestFlow() {
     );
   }
 
-  if (authStatus === "checking" && isReturningFromSocialAuth) {
+  if (authStatus === "checking") {
     return (
       <StartupSplash
         language={startupLanguage}
         theme={theme}
         resolvedTheme={resolvedTheme}
-        title={ts("status.finishingSignIn")}
-        body={ts("status.finishingSignInBody")}
+        title={isReturningFromSocialAuth ? ts("status.finishingSignIn") : undefined}
+        body={isReturningFromSocialAuth ? ts("status.finishingSignInBody") : undefined}
       />
     );
   }

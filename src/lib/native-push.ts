@@ -603,6 +603,15 @@ export async function sendNativePushRows(
         const statusCode = statusCodeMatch ? Number(statusCodeMatch[1]) : null;
         const deleted = shouldDeleteBrokenNativeDevice(statusCode, reason);
         failureSamples.push(summarizeNativePushFailure(error, row, deleted));
+        console.error("Native push delivery failed", {
+          deviceId: row.id,
+          userId: row.user_id,
+          platform: row.platform,
+          pushEnvironment: row.push_environment,
+          statusCode,
+          reason: reason.replace(/\s+/g, " ").trim().slice(0, 500),
+          deleted,
+        });
         if (deleted) {
           await run("DELETE FROM native_push_devices WHERE id = ?", row.id).catch(() => undefined);
         }
