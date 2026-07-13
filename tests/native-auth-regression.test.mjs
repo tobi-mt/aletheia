@@ -129,6 +129,7 @@ test("native notification badges increment on delivery and clear when iOS become
   assert.match(nativePush, /badge:\s*Math\.min\(99/);
   assert.match(nativePush, /SET badge_count = 0/);
   assert.match(nativeRoute, /export async function PATCH/);
+  assert.match(nativeRoute, /cleared: false, reason: "not_signed_in"/);
   assert.match(client, /removeAllDeliveredNotifications/);
   assert.match(client, /App\.addListener\("appStateChange"/);
   assert.match(appDelegate, /applicationIconBadgeNumber = 0/);

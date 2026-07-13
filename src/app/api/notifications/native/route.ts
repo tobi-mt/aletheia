@@ -140,6 +140,9 @@ export async function DELETE(request: Request) {
 }
 
 export async function PATCH() {
-  const user = await requireUser();
-  return NextResponse.json(await clearNativePushBadge(user.id));
+  const user = await getCurrentUser();
+  if (!user) {
+    return NextResponse.json({ ok: true, cleared: false, reason: "not_signed_in" });
+  }
+  return NextResponse.json({ ...(await clearNativePushBadge(user.id)), cleared: true });
 }
