@@ -351,40 +351,9 @@ For the native shells, `npm run mobile:bundle:web` builds the Next.js app, copie
 
 Aletheia supports native push through Capacitor on iOS and Android, while PWA users keep using Web Push.
 
-### Server Environment Variables
-
-Set one native transport path, or both:
-
-- APNs:
-  - `NATIVE_PUSH_APNS_TEAM_ID`
-  - `NATIVE_PUSH_APNS_KEY_ID`
-  - `NATIVE_PUSH_APNS_PRIVATE_KEY` or `NATIVE_PUSH_APNS_KEY_P8`
-  - `NATIVE_PUSH_APNS_BUNDLE_ID`
-  - `NATIVE_PUSH_APNS_ENVIRONMENT` (`development` or `production`)
-- FCM:
-  - `NATIVE_PUSH_FCM_SERVICE_ACCOUNT_JSON` or `GOOGLE_APPLICATION_CREDENTIALS_JSON`
+For the full env-var map, where each value comes from, and the iOS/Android setup steps, see [`NATIVE_PUSH_SETUP.md`](./NATIVE_PUSH_SETUP.md).
 
 For production, keep the APNs bundle ID aligned with the iOS app bundle identifier and make sure the FCM service account belongs to the Firebase project for the Android app.
-
-### iOS Project Steps
-
-1. Open the iOS project with `npx cap open ios`.
-2. In Xcode, enable the Push Notifications capability for the app target.
-3. Make sure the signing team and bundle identifier match the APNs bundle ID you set in the environment.
-4. Rebuild the app after the capability is added.
-
-### Android Project Steps
-
-1. Open the Android project with `npx cap open android`.
-2. Add Firebase's `google-services.json` to `android/app/`.
-3. Confirm the Firebase Android app package name matches the Capacitor app id.
-4. Sync and rebuild so the Firebase Messaging plugin can register and receive tokens.
-
-### Tiny QA Checklist
-
-- iOS: tap a daily wisdom push, a gratitude push, and a counsel/private comment push.
-- Android: tap a challenge nudge push, a daily wisdom push, and a counsel/private comment push.
-- PWA: tap the same notification types in the browser and confirm the correct in-app screen opens after the service worker click handler runs.
 
 ## Launch Notes
 

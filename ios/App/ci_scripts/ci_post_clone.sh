@@ -7,25 +7,17 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 
 cd "$REPO_ROOT"
 
-# Capacitor 8's CLI requires Node.js 22 or newer. Xcode Cloud images may expose
-# an older preinstalled Node release, so select a compatible Homebrew runtime
-# before installing the local Swift-package dependencies under node_modules.
-NODE_MAJOR=0
-if command -v node >/dev/null 2>&1; then
-  NODE_MAJOR="$(node -p 'process.versions.node.split(".")[0]')"
-fi
-
-if [ "$NODE_MAJOR" -lt 22 ]; then
+# Xcode resolves the committed CapApp-SPM package from the Capacitor packages
+# under node_modules. It does not need a web build or a fresh `cap sync` here.
+if ! command -v node >/dev/null 2>&1 || ! command -v npm >/dev/null 2>&1; then
   if ! command -v brew >/dev/null 2>&1; then
-    echo "Node.js 22 or newer is required by Capacitor 8, and Homebrew is unavailable."
+    echo "Node.js and npm are required to install Capacitor packages, and Homebrew is unavailable."
     exit 1
   fi
 
   brew list node@22 >/dev/null 2>&1 || brew install node@22
   NODE_PREFIX="$(brew --prefix node@22)"
   export PATH="$NODE_PREFIX/bin:$PATH"
-  export LDFLAGS="-L$NODE_PREFIX/lib ${LDFLAGS:-}"
-  export CPPFLAGS="-I$NODE_PREFIX/include ${CPPFLAGS:-}"
 fi
 
 if ! command -v npm >/dev/null 2>&1; then
@@ -35,5 +27,15 @@ fi
 
 echo "Using Node.js $(node --version) and npm $(npm --version)"
 
-npm ci --no-audit --no-fund
-npx --no-install cap sync ios
+# Ignore unrelated package lifecycle scripts (for example native web tooling)
+# and dev-only tooling. Capacitor's iOS runtime and plugins are dependencies.
+npm ci --omit=dev --ignore-scripts --no-audit --no-fund
+
+for package in core ios app haptics push-notifications; do
+  if [ ! -d "$REPO_ROOT/node_modules/@capacitor/$package" ]; then
+    echo "Required Capacitor package is missing after npm ci: @capacitor/$package"
+    exit 1
+  fi
+done
+
+echo "Capacitor Swift package dependencies are ready."
