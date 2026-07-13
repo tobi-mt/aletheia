@@ -431,6 +431,32 @@ async function sendApnsNotification(row: NativePushTargetRow, message: NativePus
     const request = client.request(headers);
     let responseStatus: number | null = null;
     let responseBody = "";
+    let settled = false;
+    const timeout = setTimeout(() => {
+      finish(new Error("APNs push timed out after 15 seconds."), true);
+    }, 15_000);
+
+    const finish = (error?: Error, destroyClient = false) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      clearTimeout(timeout);
+      if (destroyClient) {
+        client.destroy();
+      } else {
+        client.close();
+      }
+      if (error) {
+        reject(error);
+      } else {
+        resolve();
+      }
+    };
+
+    client.on("error", (error) => {
+      finish(error, true);
+    });
 
     request.on("response", (responseHeaders) => {
       responseStatus = Number(responseHeaders[":status"] ?? 0) || null;
@@ -439,16 +465,14 @@ async function sendApnsNotification(row: NativePushTargetRow, message: NativePus
       responseBody += chunk.toString("utf8");
     });
     request.on("end", () => {
-      client.close();
       if (responseStatus && responseStatus >= 200 && responseStatus < 300) {
-        resolve();
+        finish();
         return;
       }
-      reject(new Error(`APNs push failed (${responseStatus ?? "n/a"}): ${responseBody || "unknown error"}`));
+      finish(new Error(`APNs push failed (${responseStatus ?? "n/a"}): ${responseBody || "unknown error"}`));
     });
     request.on("error", (error) => {
-      client.close();
-      reject(error);
+      finish(error, true);
     });
     request.end(body);
   });

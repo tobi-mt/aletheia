@@ -114,6 +114,13 @@ test("APNs provider tokens use the JOSE ES256 signature representation", async (
   assert.match(nativePush, /dsaEncoding:\s*"ieee-p1363"/);
 });
 
+test("APNs transport handles HTTP2 session resets and timeouts", async () => {
+  const nativePush = await read("src/lib/native-push.ts");
+  assert.match(nativePush, /client\.on\("error"/);
+  assert.match(nativePush, /APNs push timed out after 15 seconds/);
+  assert.match(nativePush, /if \(settled\)/);
+});
+
 test("native notification badges increment on delivery and clear when iOS becomes active", async () => {
   const nativePush = await read("src/lib/native-push.ts");
   const nativeRoute = await read("src/app/api/notifications/native/route.ts");
@@ -131,6 +138,27 @@ test("session checks stay on the splash instead of flashing the welcome gate", a
   const client = await read("src/components/aletheia-app.tsx");
   assert.match(client, /if \(authStatus === "checking"\) \{[\s\S]*?<StartupSplash/);
   assert.doesNotMatch(client, /authStatus === "checking" && isReturningFromSocialAuth/);
+});
+
+test("successful authentication cannot reveal logged-out surfaces during workspace hydration", async () => {
+  const client = await read("src/components/aletheia-app.tsx");
+  assert.match(client, /open=\{showWelcomeGate && !user && authStatus !== "signed-in"\}/);
+  assert.match(client, /open=\{welcomeAuthOpen && !user && authStatus !== "signed-in"\}/);
+
+  const emailAuth = client.slice(client.indexOf("async function handleAuth"), client.indexOf("async function handleLogout"));
+  assert.ok(emailAuth.indexOf("setShowWelcomeGate(false)") < emailAuth.indexOf('setAuthStatus("signed-in")'));
+  assert.match(emailAuth, /void loadSignedInWorkspace\(data\.user\)/);
+
+  const sessionRestore = client.slice(client.indexOf("if (data.user) {"), client.indexOf("} else {", client.indexOf("if (data.user) {")));
+  assert.ok(sessionRestore.indexOf("setShowWelcomeGate(false)") < sessionRestore.indexOf('setAuthStatus("signed-in")'));
+});
+
+test("native Google return marks the reload as an in-progress auth completion", async () => {
+  const client = await read("src/components/aletheia-app.tsx");
+  const googleAuth = client.slice(client.indexOf("async function handleGoogleSignIn"), client.indexOf("async function handleAppleSignIn"));
+  assert.match(googleAuth, /returnUrl\.searchParams\.set\("auth", "google_success"\)/);
+  assert.match(googleAuth, /window\.location\.replace\(returnUrl\.toString\(\)\)/);
+  assert.doesNotMatch(googleAuth, /window\.location\.reload\(\)/);
 });
 
 test("native uses ManagedAudio before browser speech and verifies push configuration per platform", async () => {

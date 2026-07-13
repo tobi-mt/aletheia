@@ -9519,11 +9519,16 @@ export function AletheiaApp({
         traceStartup("aletheia-app:session-restore:signed-in:start", {
           userId: data.user.id ?? null,
         });
-        setUser(data.user);
-        setAuthStatus("signed-in");
+        // Clear every logged-out surface in the same transition that publishes the
+        // authenticated user. Workspace and streak hydration must never reveal the
+        // welcome gate while their secondary requests are still in flight.
         setPostSignOutWelcomeState(false);
         setPostSignOutWelcomeName(null);
         setPostSignOutWelcomeNameState(null);
+        setShowWelcomeGate(false);
+        setWelcomeAuthOpen(false);
+        setUser(data.user);
+        setAuthStatus("signed-in");
         
         // Update streak on app load
         try {
@@ -11956,18 +11961,22 @@ function startFirstRunGuestFlow() {
         throw new Error(resolveApiErrorMessage(data.error, data.errorCode, 'auth.authenticationFailed'));
       }
       setAuthPassword("");
-      setUser(data.user);
-      setAuthStatus("signed-in");
+      // Authentication is complete. Suppress logged-out UI before publishing the
+      // signed-in shell; the workspace can hydrate progressively behind it.
       setPostSignOutWelcomeState(false);
       setPostSignOutWelcomeName(null);
       setPostSignOutWelcomeNameState(null);
+      setShowWelcomeGate(false);
+      setWelcomeAuthOpen(false);
+      setUser(data.user);
+      setAuthStatus("signed-in");
       const firstName = data.user.name?.split(" ")[0] || data.user.email.split("@")[0];
       const successMessage =
         data.welcomeMessage ??
         (authMode === "register"
           ? ts("auth.welcomeToAletheiaReady").replace("{name}", firstName)
           : ts("auth.welcomeBackMemoryReady").replace("{name}", firstName));
-      await loadSignedInWorkspace(data.user).catch((workspaceError) => {
+      void loadSignedInWorkspace(data.user).catch((workspaceError) => {
         console.error("Workspace hydration after auth failed:", workspaceError);
       });
       setStatusMessage(successMessage);
@@ -11991,12 +12000,9 @@ function startFirstRunGuestFlow() {
         setCounselInviteAuthOpen(false);
         setChallengeInviteStatus("");
         setCounselInviteStatus("");
-      } else if (welcomeAuthOpen) {
-        setWelcomeAuthOpen(false);
       } else if (!needsAccountOnboarding) {
         setActiveView("account");
       }
-      setShowWelcomeGate(false);
       setOnboardingPath(needsAccountOnboarding ? "account" : null);
       setShowOnboarding(needsAccountOnboarding);
     } catch (error) {
@@ -12107,7 +12113,12 @@ function startFirstRunGuestFlow() {
           body: { code },
         });
         if (exchange.status < 200 || exchange.status >= 300 || !exchange.cookiesInstalled) throw new Error("Google authentication handoff could not be completed.");
-        window.location.reload();
+        const returnUrl = new URL(window.location.href);
+        returnUrl.searchParams.set("auth", "google_success");
+        if (!challengeInviteToken && !counselInviteToken) {
+          returnUrl.searchParams.set("view", "account");
+        }
+        window.location.replace(returnUrl.toString());
         return;
       }
       await authSignIn("google", {
@@ -14415,7 +14426,7 @@ function startFirstRunGuestFlow() {
       </div>
 
       <WelcomeGateScreen
-        open={showWelcomeGate}
+        open={showWelcomeGate && !user && authStatus !== "signed-in"}
         theme={theme}
         ts={ts}
         signedOutName={postSignOutWelcomeName}
@@ -14432,7 +14443,7 @@ function startFirstRunGuestFlow() {
       />
 
       <WelcomeAuthModal
-        open={welcomeAuthOpen}
+        open={welcomeAuthOpen && !user && authStatus !== "signed-in"}
         theme={theme}
         ts={ts}
         authMode={authMode}
