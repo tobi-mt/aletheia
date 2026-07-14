@@ -409,6 +409,8 @@
     "appleRevocationFailed": "We could not disconnect Sign in with Apple, so your account was not deleted. Please try again.",
     "accountDeleted": "Account deleted",
     "accountDeletedBody": "Your Aletheia account and synced private data have been deleted.",
+    "accountDeletedFarewellTitle": "Your account has been deleted",
+    "accountDeletedFarewellBody": "Thank you for the time you shared with Aletheia. Your synced private data is no longer connected to this account.",
     "deleteFailed": "Delete failed",
     "deleteFailedBody": "Could not delete your account.",
     "reportSent": "Report sent",

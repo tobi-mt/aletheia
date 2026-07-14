@@ -409,6 +409,8 @@
     "appleRevocationFailed": "Nous n’avons pas pu déconnecter Connexion avec Apple. Votre compte n’a donc pas été supprimé. Veuillez réessayer.",
     "accountDeleted": "Compte supprimé",
     "accountDeletedBody": "Votre compte Aletheia et vos données privées synchronisées ont été supprimés.",
+    "accountDeletedFarewellTitle": "Votre compte a été supprimé",
+    "accountDeletedFarewellBody": "Merci pour le temps partagé avec Aletheia. Vos données privées synchronisées ne sont plus associées à ce compte.",
     "deleteFailed": "Échec de la suppression",
     "deleteFailedBody": "Impossible de supprimer votre compte.",
     "reportSent": "Signalement envoyé",

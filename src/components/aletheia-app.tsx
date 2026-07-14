@@ -7775,6 +7775,7 @@ export function AletheiaApp({
   const [workflowNotice, setWorkflowNotice] = useState<WorkflowNoticeState | null>(null);
   const [authPromptState, setAuthPromptState] = useState<AuthPromptState>(DEFAULT_AUTH_PROMPT_STATE);
   const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
+  const [showAccountDeletedFarewell, setShowAccountDeletedFarewell] = useState(false);
   const [showAiConsentModal, setShowAiConsentModal] = useState(false);
   const [pendingAiQuestion, setPendingAiQuestion] = useState("");
   const [aiConsentDeclined, setAiConsentDeclined] = useState(() => {
@@ -11233,7 +11234,8 @@ function startFirstRunGuestFlow() {
       setPostSignOutWelcomeState(true);
       setPostSignOutWelcomeName(null);
       setPostSignOutWelcomeNameState(null);
-      setShowWelcomeGate(true);
+      setShowWelcomeGate(false);
+      setShowAccountDeletedFarewell(true);
       setShowOnboarding(false);
       setOnboardingPath(null);
       setActiveViewState("companion");
@@ -13914,6 +13916,24 @@ function startFirstRunGuestFlow() {
     );
   }
 
+  if (showAccountDeletedFarewell) {
+    return (
+      <StartupSplash
+        language={startupLanguage}
+        theme={theme}
+        resolvedTheme={resolvedTheme}
+        title={ts("status.accountDeletedFarewellTitle")}
+        body={ts("status.accountDeletedFarewellBody")}
+        tone="complete"
+        onComplete={() => {
+          setShowAccountDeletedFarewell(false);
+          setShowWelcomeGate(true);
+        }}
+        completeLabel={ts("challenges.continueChallenge")}
+      />
+    );
+  }
+
   if (authStatus === "checking") {
     const preparationName = authPreparationUser?.name?.trim().split(/\s+/).filter(Boolean)[0]
       || authPreparationUser?.email?.trim().split("@")[0]
@@ -14885,12 +14905,18 @@ function StartupSplash({
   resolvedTheme,
   title,
   body,
+  tone = "loading",
+  onComplete,
+  completeLabel,
 }: {
   language: LanguageCode;
   theme: ThemeColors;
   resolvedTheme: ResolvedTheme;
   title?: string;
   body?: string;
+  tone?: "loading" | "complete";
+  onComplete?: () => void;
+  completeLabel?: string;
 }) {
   const splashTranslations = useMemo(() => loadTranslationsWithFallbackSync(language), [language]);
   const appName = String(getTranslation(splashTranslations, "labels.appName"));
@@ -14918,37 +14944,29 @@ function StartupSplash({
           initial={{ y: 10, opacity: 0, scale: 0.98 }}
           animate={{ y: 0, opacity: 1, scale: 1 }}
           transition={{ duration: 0.32, ease: "easeOut" }}
-          className="w-full max-w-sm rounded-3xl border px-7 py-8 text-center shadow-[0_28px_80px_rgba(12,20,16,0.18)]"
-          style={{
-            borderColor: theme.borderStrong,
-            backgroundColor: resolvedTheme === "black"
-              ? "rgba(8, 12, 10, 0.88)"
-              : resolvedTheme === "dark"
-                ? "rgba(17, 27, 24, 0.86)"
-                : "rgba(245, 250, 247, 0.88)",
-            backdropFilter: "blur(18px) saturate(140%)",
-            WebkitBackdropFilter: "blur(18px) saturate(140%)",
-          }}
+          className="w-full max-w-sm px-7 py-8 text-center"
           role="status"
           aria-live="polite"
         >
-          <motion.div
-            className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-2xl border"
+          <div
+            className="mx-auto mb-5 flex h-24 w-24 items-center justify-center rounded-full border shadow-[0_16px_44px_rgba(12,20,16,0.14)]"
             style={{ borderColor: theme.borderStrong, backgroundColor: theme.bgCardElevated }}
-            animate={{ rotate: 360 }}
-            transition={{ duration: 1.6, ease: "linear", repeat: Number.POSITIVE_INFINITY }}
           >
-            <div className="relative h-14 w-14 overflow-hidden rounded-xl">
-              <Image
-                src="/brand/aletheia-app-icon-192.png"
-                alt="Aletheia"
-                fill
-                sizes="56px"
-                className="object-cover"
-                priority
-              />
-            </div>
-          </motion.div>
+            {tone === "complete" ? (
+              <Check size={38} strokeWidth={1.8} aria-hidden="true" style={{ color: theme.primary }} />
+            ) : (
+              <div className="relative h-16 w-16 overflow-hidden rounded-2xl">
+                <Image
+                  src="/brand/aletheia-app-icon-192.png"
+                  alt={appName}
+                  fill
+                  sizes="64px"
+                  className="object-cover"
+                  priority
+                />
+              </div>
+            )}
+          </div>
           <p className="text-[0.69rem] font-semibold uppercase tracking-[0.24em]" style={{ color: theme.textSecondary }}>
             {appName}
           </p>
@@ -14961,17 +14979,28 @@ function StartupSplash({
           <p className="mt-1 text-sm" style={{ color: theme.textSecondary }}>
             {restoringPreferences}
           </p>
-          <motion.div
-            className="mx-auto mt-4 h-1.5 w-28 overflow-hidden rounded-full"
-            style={{ backgroundColor: theme.borderMedium }}
-          >
+          {tone === "complete" ? (
+            <button
+              type="button"
+              className="mx-auto mt-5 h-11 rounded-full px-6 text-sm font-semibold"
+              style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+              onClick={onComplete}
+            >
+              {completeLabel}
+            </button>
+          ) : (
             <motion.div
-              className="h-full rounded-full"
-              style={{ backgroundColor: theme.borderStrong }}
-              animate={{ x: ["-100%", "120%"] }}
-              transition={{ duration: 0.9, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
-            />
-          </motion.div>
+              className="mx-auto mt-4 h-1.5 w-28 overflow-hidden rounded-full"
+              style={{ backgroundColor: theme.borderMedium }}
+            >
+              <motion.div
+                className="h-full rounded-full"
+                style={{ backgroundColor: theme.borderStrong }}
+                animate={{ x: ["-100%", "120%"] }}
+                transition={{ duration: 0.9, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
+              />
+            </motion.div>
+          )}
         </motion.div>
       </div>
     </main>
@@ -25740,6 +25769,7 @@ function DeleteAccountModal({
 }) {
   const [typedValue, setTypedValue] = useState("");
   const confirmationInputRef = useRef<HTMLInputElement | null>(null);
+  const [visualViewportFrame, setVisualViewportFrame] = useState<{ height: number; offsetTop: number } | null>(null);
   useBodyScrollLock(Boolean(open));
 
   useEffect(() => {
@@ -25751,6 +25781,27 @@ function DeleteAccountModal({
     });
     return () => window.cancelAnimationFrame(frame);
   }, [isWorking, open]);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+    const viewport = window.visualViewport;
+    if (!viewport) {
+      return;
+    }
+    const updateViewportFrame = () => {
+      setVisualViewportFrame({ height: viewport.height, offsetTop: viewport.offsetTop });
+      window.requestAnimationFrame(() => {
+        confirmationInputRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+      });
+    };
+    updateViewportFrame();
+    viewport.addEventListener("resize", updateViewportFrame);
+    return () => {
+      viewport.removeEventListener("resize", updateViewportFrame);
+    };
+  }, [open]);
 
   if (!open) {
     return null;
@@ -25764,8 +25815,22 @@ function DeleteAccountModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[70] grid place-items-end overflow-hidden overscroll-none p-3 backdrop-blur-sm sm:place-items-center" style={{ backgroundColor: "rgba(13, 23, 20, 0.48)" }}>
-      <section className="relative w-full max-w-lg max-h-[88vh] overflow-y-auto overscroll-contain rounded-3xl border p-4 [-webkit-overflow-scrolling:touch] [touch-action:pan-y] shadow-2xl sm:p-3.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+    <div
+      className="fixed inset-x-0 top-0 z-[70] grid place-items-center overflow-hidden overscroll-none p-3 backdrop-blur-sm"
+      style={{
+        backgroundColor: "rgba(13, 23, 20, 0.48)",
+        height: visualViewportFrame?.height ?? "100dvh",
+        transform: `translateY(${visualViewportFrame?.offsetTop ?? 0}px)`,
+      }}
+    >
+      <section
+        className="relative w-full max-w-lg overflow-y-auto overscroll-contain rounded-3xl border p-4 [-webkit-overflow-scrolling:touch] [touch-action:pan-y] shadow-2xl sm:p-3.5"
+        style={{
+          borderColor: theme.borderMedium,
+          backgroundColor: theme.bgCard,
+          maxHeight: visualViewportFrame ? Math.max(240, visualViewportFrame.height - 24) : "calc(100dvh - 1.5rem)",
+        }}
+      >
         <div className="relative flex items-start gap-3 pr-12 sm:pr-14">
           <div className="min-w-0">
               <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.deleteAccount')}</p>

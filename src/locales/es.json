@@ -409,6 +409,8 @@
     "appleRevocationFailed": "No pudimos desconectar Iniciar sesión con Apple, por lo que tu cuenta no se eliminó. Inténtalo de nuevo.",
     "accountDeleted": "Cuenta eliminada",
     "accountDeletedBody": "Tu cuenta de Aletheia y tus datos privados sincronizados fueron eliminados.",
+    "accountDeletedFarewellTitle": "Tu cuenta ha sido eliminada",
+    "accountDeletedFarewellBody": "Gracias por el tiempo que compartiste con Aletheia. Tus datos privados sincronizados ya no están vinculados a esta cuenta.",
     "deleteFailed": "La eliminación falló",
     "deleteFailedBody": "No se pudo eliminar tu cuenta.",
     "reportSent": "Reporte enviado",

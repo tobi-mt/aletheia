@@ -41,7 +41,34 @@ test("account deletion confirmation receives focus on touch devices", async () =
   assert.match(modal, /confirmationInputRef\.current\?\.focus\(\{ preventScroll: true \}\)/);
   assert.match(modal, /ref=\{confirmationInputRef\}/);
   assert.match(modal, /autoFocus/);
+  assert.match(modal, /window\.visualViewport/);
+  assert.match(modal, /height: visualViewportFrame\?\.height/);
+  assert.match(modal, /scrollIntoView\(\{ block: "center", behavior: "smooth" \}\)/);
   assert.doesNotMatch(modal, /autoFocus=\{shouldAutoFocusOnThisDevice\(\)\}/);
+});
+
+test("successful deletion shows a translated farewell before the welcome gate", async () => {
+  const client = await read("src/components/aletheia-app.tsx");
+  const deleteFlow = client.slice(client.indexOf("async function deleteAccount"), client.indexOf("async function reportIssue"));
+
+  assert.match(deleteFlow, /setShowWelcomeGate\(false\)/);
+  assert.match(deleteFlow, /setShowAccountDeletedFarewell\(true\)/);
+  assert.match(client, /title=\{ts\("status\.accountDeletedFarewellTitle"\)\}/);
+  assert.match(client, /body=\{ts\("status\.accountDeletedFarewellBody"\)\}/);
+  assert.match(client, /tone="complete"/);
+  assert.match(client, /setShowAccountDeletedFarewell\(false\)[\s\S]*?setShowWelcomeGate\(true\)/);
+});
+
+test("startup and completion transitions share one uncarded splash system", async () => {
+  const client = await read("src/components/aletheia-app.tsx");
+  const splashStart = client.indexOf("function StartupSplash(");
+  const splashEnd = client.indexOf("function Screen(", splashStart);
+  const splash = client.slice(splashStart, splashEnd);
+
+  assert.match(splash, /tone\?: "loading" \| "complete"/);
+  assert.match(splash, /rounded-full border/);
+  assert.doesNotMatch(splash, /max-w-sm rounded-3xl border/);
+  assert.doesNotMatch(splash, /animate=\{\{ rotate: 360 \}\}/);
 });
 
 test("Apple authorization is revoked before the user record is deleted", async () => {

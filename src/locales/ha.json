@@ -409,6 +409,8 @@
     "appleRevocationFailed": "Ba mu iya cire haɗin shiga ta Apple ba, saboda haka ba a goge asusunka ba. Da fatan za a sake gwadawa.",
     "accountDeleted": "An goge asusu",
     "accountDeletedBody": "An goge asusun Aletheia ɗinka da bayanan sirri da aka daidaita.",
+    "accountDeletedFarewellTitle": "An goge asusunka",
+    "accountDeletedFarewellBody": "Mun gode da lokacin da ka yi tare da Aletheia. Bayananka na sirri da aka daidaita ba su da alaƙa da wannan asusun kuma.",
     "deleteFailed": "Goge ya gaza",
     "deleteFailedBody": "Ba a iya goge asusunka ba.",
     "reportSent": "An aika rahoto",

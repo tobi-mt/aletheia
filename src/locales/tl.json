@@ -409,6 +409,8 @@
     "appleRevocationFailed": "Hindi namin ma-disconnect ang pag-sign in sa Apple, kaya hindi tinanggal ang iyong account. Pakisubukang muli.",
     "accountDeleted": "Na-delete ang account",
     "accountDeletedBody": "Ang iyong Aletheia account at naka-sync na pribadong data ay tinanggal na.",
+    "accountDeletedFarewellTitle": "Na-delete na ang iyong account",
+    "accountDeletedFarewellBody": "Salamat sa panahong ibinahagi mo sa Aletheia. Hindi na nakakonekta sa account na ito ang iyong naka-sync na pribadong data.",
     "deleteFailed": "Nabigo ang pagtanggal",
     "deleteFailedBody": "Hindi matanggal ang iyong account.",
     "reportSent": "Ipinadala ang ulat",

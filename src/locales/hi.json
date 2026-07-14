@@ -409,6 +409,8 @@
     "appleRevocationFailed": "हम Apple साइन-इन को डिस्कनेक्ट नहीं कर सके, इसलिए आपका खाता हटाया नहीं गया। कृपया फिर से प्रयास करें।",
     "accountDeleted": "खाता हटा दिया गया",
     "accountDeletedBody": "आपका Aletheia खाता और समन्वयित निजी डेटा हटा दिया गया है।",
+    "accountDeletedFarewellTitle": "आपका खाता हटा दिया गया है",
+    "accountDeletedFarewellBody": "Aletheia के साथ बिताए समय के लिए धन्यवाद। आपका सिंक किया गया निजी डेटा अब इस खाते से जुड़ा नहीं है।",
     "deleteFailed": "हटाना विफल",
     "deleteFailedBody": "आपका खाता हटाया नहीं जा सका.",
     "reportSent": "रिपोर्ट भेज दी गई है",

@@ -409,6 +409,8 @@
     "appleRevocationFailed": "Enweghị ike ịkwụsị njikọ nbanye Apple, ya mere ehichapụghị akaụntụ gị. Biko nwaa ọzọ.",
     "accountDeleted": "Akaụntụ ehichapụrụ",
     "accountDeletedBody": "Akaụntụ Aletheia gị na data nzuzo emekọrịtara ehichapụrụla.",
+    "accountDeletedFarewellTitle": "Ehichapụla akaụntụ gị",
+    "accountDeletedFarewellBody": "Daalụ maka oge gị na Aletheia. Data nzuzo gị emekọrịtara ejikọghịzi na akaụntụ a.",
     "deleteFailed": "Ihichapụ dara",
     "deleteFailedBody": "Enweghị ike ihichapụ akaụntụ gị.",
     "reportSent": "Ezitere mkpesa",

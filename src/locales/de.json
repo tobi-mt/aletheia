@@ -409,6 +409,8 @@
     "appleRevocationFailed": "Die Verbindung zu „Mit Apple anmelden“ konnte nicht getrennt werden. Dein Konto wurde daher nicht gelöscht. Bitte versuche es erneut.",
     "accountDeleted": "Konto gelöscht",
     "accountDeletedBody": "Dein Aletheia-Konto und synchronisierte private Daten wurden gelöscht.",
+    "accountDeletedFarewellTitle": "Dein Konto wurde gelöscht",
+    "accountDeletedFarewellBody": "Danke für deine Zeit mit Aletheia. Deine synchronisierten privaten Daten sind nicht mehr mit diesem Konto verbunden.",
     "deleteFailed": "Löschen fehlgeschlagen",
     "deleteFailedBody": "Dein Konto konnte nicht gelöscht werden.",
     "reportSent": "Bericht gesendet",

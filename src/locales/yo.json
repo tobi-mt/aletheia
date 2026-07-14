@@ -409,6 +409,8 @@
     "appleRevocationFailed": "A kò lè yọ ìsopọ̀ ìwọlé Apple, nítorí náà a kò pa àkọọ́lẹ̀ rẹ rẹ́. Jọ̀wọ́ gbìyànjú lẹ́ẹ̀kan sí i.",
     "accountDeleted": "A ti pa àkántì rẹ́",
     "accountDeletedBody": "A ti pa àkántì Aletheia rẹ àti data aládàáni tó ti múpọ̀ rẹ́.",
+    "accountDeletedFarewellTitle": "A ti pa àkọọ́lẹ̀ rẹ",
+    "accountDeletedFarewellBody": "A dúpẹ́ fún àkókò tí o pín pẹ̀lú Aletheia. Data ìkọ̀kọ̀ rẹ tí a múṣiṣẹpọ̀ kò sopọ̀ mọ́ àkọọ́lẹ̀ yìí mọ́.",
     "deleteFailed": "Pípaarẹ kuna",
     "deleteFailedBody": "A kò lè pa àkántì rẹ́ rẹ́.",
     "reportSent": "A ti fi ìròyìn ránṣẹ́",

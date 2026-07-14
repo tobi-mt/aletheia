@@ -409,6 +409,8 @@
     "appleRevocationFailed": "تعذر فصل تسجيل الدخول باستخدام Apple، لذلك لم يتم حذف حسابك. يرجى المحاولة مرة أخرى.",
     "accountDeleted": "تم حذف الحساب",
     "accountDeletedBody": "تم حذف حساب Aletheia والبيانات الخاصة التي تمت مزامنتها.",
+    "accountDeletedFarewellTitle": "تم حذف حسابك",
+    "accountDeletedFarewellBody": "شكرًا للوقت الذي شاركته مع أليثيا. لم تعد بياناتك الخاصة المتزامنة مرتبطة بهذا الحساب.",
     "deleteFailed": "فشل الحذف",
     "deleteFailedBody": "تعذر حذف حسابك.",
     "reportSent": "تم إرسال التقرير",
