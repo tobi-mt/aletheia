@@ -31,6 +31,19 @@ test("account deletion remains permanent, confirmed, and clears the server sessi
   assert.doesNotMatch(route, /deactivat|disable account/i);
 });
 
+test("account deletion confirmation receives focus on touch devices", async () => {
+  const client = await read("src/components/aletheia-app.tsx");
+  const modalStart = client.indexOf("function DeleteAccountModal(");
+  const modalEnd = client.indexOf("function AiConsentModal(", modalStart);
+  const modal = client.slice(modalStart, modalEnd);
+
+  assert.ok(modalStart >= 0 && modalEnd > modalStart);
+  assert.match(modal, /confirmationInputRef\.current\?\.focus\(\{ preventScroll: true \}\)/);
+  assert.match(modal, /ref=\{confirmationInputRef\}/);
+  assert.match(modal, /autoFocus/);
+  assert.doesNotMatch(modal, /autoFocus=\{shouldAutoFocusOnThisDevice\(\)\}/);
+});
+
 test("Apple authorization is revoked before the user record is deleted", async () => {
   const route = await read("src/app/api/account/delete/route.ts");
   const revokeIndex = route.indexOf("await revokeAppleCredentialForUser(user.id)");

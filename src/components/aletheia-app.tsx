@@ -25739,7 +25739,18 @@ function DeleteAccountModal({
   onConfirm: (confirmation: string) => void;
 }) {
   const [typedValue, setTypedValue] = useState("");
+  const confirmationInputRef = useRef<HTMLInputElement | null>(null);
   useBodyScrollLock(Boolean(open));
+
+  useEffect(() => {
+    if (!open || isWorking) {
+      return;
+    }
+    const frame = window.requestAnimationFrame(() => {
+      confirmationInputRef.current?.focus({ preventScroll: true });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [isWorking, open]);
 
   if (!open) {
     return null;
@@ -25783,12 +25794,16 @@ function DeleteAccountModal({
           <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
             {ts('labels.typeDeleteToConfirm')}
             <input
+              ref={confirmationInputRef}
               value={typedValue}
               onChange={(event) => setTypedValue(event.target.value)}
               className="mt-2 h-10 w-full rounded-xl border px-3 text-sm normal-case tracking-normal outline-none"
               style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
               placeholder={confirmationWord}
-              autoFocus={shouldAutoFocusOnThisDevice()}
+              autoFocus
+              autoCapitalize="characters"
+              autoComplete="off"
+              spellCheck={false}
             />
           </label>
           <div className="flex flex-wrap justify-end gap-2">
