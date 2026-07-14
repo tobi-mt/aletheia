@@ -4,6 +4,7 @@ import WebKit
 import Capacitor
 import AuthenticationServices
 import CryptoKit
+import StoreKit
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -104,6 +105,7 @@ class ManagedAudioBridgeViewController: CAPBridgeViewController {
         // instances ensure these custom bridges are exported to JavaScript.
         bridge?.registerPluginInstance(ManagedAudioPlugin())
         bridge?.registerPluginInstance(NativeAuthPlugin())
+        bridge?.registerPluginInstance(NativeSupportPlugin())
         configureEdgeToEdgeChrome()
     }
 
@@ -200,6 +202,77 @@ class ManagedAudioBridgeViewController: CAPBridgeViewController {
         userContentController.addUserScript(
         WKUserScript(source: script, injectionTime: .atDocumentStart, forMainFrameOnly: true)
         )
+    }
+}
+
+@objc(NativeSupportPlugin)
+public class NativeSupportPlugin: CAPPlugin, CAPBridgedPlugin {
+    public let identifier = "NativeSupportPlugin"
+    public let jsName = "NativeSupport"
+    public let pluginMethods: [CAPPluginMethod] = [
+        CAPPluginMethod(name: "products", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "purchase", returnType: CAPPluginReturnPromise)
+    ]
+
+    private let productIds = [
+        "aletheia.support.small",
+        "aletheia.support.meaningful",
+        "aletheia.support.generous"
+    ]
+
+    @objc func products(_ call: CAPPluginCall) {
+        Task {
+            do {
+                let products = try await Product.products(for: productIds)
+                let order = Dictionary(uniqueKeysWithValues: productIds.enumerated().map { ($0.element, $0.offset) })
+                let payload = products.sorted { (order[$0.id] ?? 99) < (order[$1.id] ?? 99) }.map { product in
+                    [
+                        "id": product.id,
+                        "displayName": product.displayName,
+                        "description": product.description,
+                        "displayPrice": product.displayPrice
+                    ]
+                }
+                call.resolve(["products": payload])
+            } catch {
+                call.reject("Support options are temporarily unavailable", nil, error)
+            }
+        }
+    }
+
+    @objc func purchase(_ call: CAPPluginCall) {
+        guard let productId = call.getString("productId"), productIds.contains(productId) else {
+            call.reject("Unknown support option")
+            return
+        }
+
+        Task {
+            do {
+                guard let product = try await Product.products(for: [productId]).first else {
+                    call.reject("Support option is unavailable")
+                    return
+                }
+                let result = try await product.purchase()
+                switch result {
+                case .success(let verification):
+                    switch verification {
+                    case .verified(let transaction):
+                        await transaction.finish()
+                        call.resolve(["status": "purchased", "transactionId": String(transaction.id)])
+                    case .unverified:
+                        call.reject("The App Store could not verify this purchase")
+                    }
+                case .pending:
+                    call.resolve(["status": "pending"])
+                case .userCancelled:
+                    call.resolve(["status": "cancelled"])
+                @unknown default:
+                    call.reject("Unknown App Store purchase result")
+                }
+            } catch {
+                call.reject("The purchase could not be completed", nil, error)
+            }
+        }
     }
 }
 
@@ -523,6 +596,7 @@ public class ManagedAudioPlugin: CAPPlugin, CAPBridgedPlugin, AVAudioPlayerDeleg
         let language = call.getString("language") ?? "en"
         let speed = call.getDouble("speed") ?? 1.0
         let cacheScope = call.getString("cacheScope")
+        let thirdPartyAiConsent = call.getBool("thirdPartyAiConsent") ?? false
         let token = UUID()
         playbackToken = token
         resetPlayer(keepToken: true)
@@ -539,6 +613,7 @@ public class ManagedAudioPlugin: CAPPlugin, CAPBridgedPlugin, AVAudioPlayerDeleg
             "voice": voice,
             "language": language,
             "speed": speed,
+            "thirdPartyAiConsent": thirdPartyAiConsent,
         ]
         if cacheScope == "scripture" {
             requestPayload["cacheScope"] = "scripture"

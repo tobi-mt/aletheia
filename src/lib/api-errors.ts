@@ -19,7 +19,8 @@ export type ApiErrorCode =
   | "authentication_failed"
   | "account_exists"
   | "sign_in_not_finish"
-  | "apple_revocation_failed";
+  | "apple_revocation_failed"
+  | "unsafe_content";
 
 export function apiError(
   status: number,

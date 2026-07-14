@@ -8,6 +8,7 @@ import { createPortal } from "react-dom";
 import { Capacitor, SystemBars, SystemBarsStyle, type PluginListenerHandle } from "@capacitor/core";
 import { App } from "@capacitor/app";
 import { PushNotifications } from "@capacitor/push-notifications";
+import { NativeSupport, supportsNativeSupport, type NativeSupportProduct } from "@/lib/native-support";
 import {
   BookOpen,
   BriefcaseBusiness,
@@ -7771,6 +7772,15 @@ export function AletheiaApp({
   const [workflowNotice, setWorkflowNotice] = useState<WorkflowNoticeState | null>(null);
   const [authPromptState, setAuthPromptState] = useState<AuthPromptState>(DEFAULT_AUTH_PROMPT_STATE);
   const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
+  const [showAiConsentModal, setShowAiConsentModal] = useState(false);
+  const [pendingAiQuestion, setPendingAiQuestion] = useState("");
+  const [aiConsentDeclined, setAiConsentDeclined] = useState(() => {
+    try {
+      return window.localStorage.getItem("aletheia_third_party_ai_declined") === "yes";
+    } catch {
+      return false;
+    }
+  });
   const [showReportIssueModal, setShowReportIssueModal] = useState(false);
   const [showStreakMilestonesModal, setShowStreakMilestonesModal] = useState(false);
   const [accountActionBusy, setAccountActionBusy] = useState<"export" | "delete" | "report" | null>(null);
@@ -8240,6 +8250,7 @@ export function AletheiaApp({
     account_exists: "status.accountAlreadyExistsSignIn",
     sign_in_not_finish: "notifications.signInNotFinish",
     apple_revocation_failed: "notifications.appleRevocationFailed",
+    unsafe_content: "notifications.apiInvalidInput",
   };
   const resolveApiErrorMessage = (error?: string | null, errorCode?: string | null, fallbackKey?: string) => {
     // Prefer structured error codes, then locale keys, and only then raw English text.
@@ -10964,7 +10975,7 @@ function startFirstRunGuestFlow() {
     announceWorkflow(ts('notifications.waitingRhythmPrepared'), ts('notifications.waitingRhythmPreparedBody'), "success");
   }
 
-  async function updatePreferences(patch: Partial<UserPreferences>) {
+  async function updatePreferences(patch: Partial<UserPreferences>, options: { silent?: boolean } = {}) {
     const next = { ...preferences, ...patch };
     const nextTranslations = loadTranslationsWithFallbackSync(next.language);
     const getNextTranslation = (key: string) => {
@@ -10988,11 +10999,26 @@ function startFirstRunGuestFlow() {
     }
     setPreferences(next);
     setCarryToday(storedCarryToday(next));
-    setPreferencesStatus(
-      user
-        ? getNextTranslation('notifications.preferencesSaving')
-        : getNextTranslation('notifications.preferencesSavedBody')
-    );
+    if (patch.thirdPartyAiConsent !== undefined) {
+      const declined = patch.thirdPartyAiConsent === false;
+      setAiConsentDeclined(declined);
+      try {
+        if (declined) {
+          window.localStorage.setItem("aletheia_third_party_ai_declined", "yes");
+        } else {
+          window.localStorage.removeItem("aletheia_third_party_ai_declined");
+        }
+      } catch {
+        // The choice still applies for this session if storage is unavailable.
+      }
+    }
+    if (!options.silent) {
+      setPreferencesStatus(
+        user
+          ? getNextTranslation('notifications.preferencesSaving')
+          : getNextTranslation('notifications.preferencesSavedBody')
+      );
+    }
     try {
       window.localStorage.setItem("aletheia_preferences", JSON.stringify(next));
     } catch {
@@ -11006,17 +11032,19 @@ function startFirstRunGuestFlow() {
         body: JSON.stringify(next),
       });
       const saved = response.ok;
-      setPreferencesStatus(
-        saved
-          ? getNextTranslation('notifications.preferencesReady')
-          : getNextTranslation('notifications.preferencesSavedLocallyBody')
-      );
-      announceWorkflow(
-        saved ? getNextTranslation('notifications.preferencesSynced') : getNextTranslation('notifications.preferencesSavedLocally'),
-        saved ? getNextTranslation('notifications.preferencesSyncedBody') : getNextTranslation('notifications.preferencesSavedLocallyBody'),
-        saved ? "success" : "warning"
-      );
-    } else {
+      if (!options.silent) {
+        setPreferencesStatus(
+          saved
+            ? getNextTranslation('notifications.preferencesReady')
+            : getNextTranslation('notifications.preferencesSavedLocallyBody')
+        );
+        announceWorkflow(
+          saved ? getNextTranslation('notifications.preferencesSynced') : getNextTranslation('notifications.preferencesSavedLocally'),
+          saved ? getNextTranslation('notifications.preferencesSyncedBody') : getNextTranslation('notifications.preferencesSavedLocallyBody'),
+          saved ? "success" : "warning"
+        );
+      }
+    } else if (!options.silent) {
       announceWorkflow(getNextTranslation('notifications.preferencesSaved'), getNextTranslation('notifications.preferencesSavedBody'), "success");
     }
   }
@@ -11457,7 +11485,7 @@ function startFirstRunGuestFlow() {
     setSpeechPaused(false);
 
     try {
-      if (Capacitor.isNativePlatform()) {
+      if (Capacitor.isNativePlatform() && preferences.thirdPartyAiConsent) {
         browserSpeechActiveRef.current = false;
         await ManagedAudio.speak({
           text: cleanText,
@@ -11467,6 +11495,7 @@ function startFirstRunGuestFlow() {
           notice,
           label,
           cacheScope,
+          thirdPartyAiConsent: preferences.thirdPartyAiConsent,
         });
         return;
       }
@@ -11474,7 +11503,7 @@ function startFirstRunGuestFlow() {
       if (
         typeof window !== "undefined" &&
         "speechSynthesis" in window &&
-        cleanText.length >= browserSpeechFallbackLength
+        (cleanText.length >= browserSpeechFallbackLength || !preferences.thirdPartyAiConsent)
       ) {
         const speechSynthesis = window.speechSynthesis;
         const utterance = new SpeechSynthesisUtterance(cleanText);
@@ -11592,6 +11621,7 @@ function startFirstRunGuestFlow() {
             language: preferences.language,
             speed: pacing.rate,
             cacheScope,
+            thirdPartyAiConsent: preferences.thirdPartyAiConsent,
           }),
         });
 
@@ -11799,13 +11829,18 @@ function startFirstRunGuestFlow() {
     }
   }
 
-  async function askAletheia(rawQuestion: string) {
+  async function askAletheia(rawQuestion: string, consentOverride?: boolean) {
     if (isWorking) {
       return;
     }
     const trimmed = rawQuestion.trim();
     if (!trimmed) {
       announceWorkflow(ts('notifications.askQuestionFirst'), ts('notifications.askQuestionFirstBody'), "warning");
+      return;
+    }
+    if (!preferences.thirdPartyAiConsent && !aiConsentDeclined && consentOverride === undefined) {
+      setPendingAiQuestion(trimmed);
+      setShowAiConsentModal(true);
       return;
     }
 
@@ -11851,7 +11886,10 @@ function startFirstRunGuestFlow() {
         body: JSON.stringify({
           message: trimmed,
           mode,
-          preferences,
+          preferences: {
+            ...preferences,
+            thirdPartyAiConsent: consentOverride ?? preferences.thirdPartyAiConsent,
+          },
           manualContext,
           focusIntentions,
           gratitudeContext: gratitudeContextSummary(gratitudeEntries),
@@ -11873,9 +11911,7 @@ function startFirstRunGuestFlow() {
       setAnswerFocusId(data.reply.id);
       const responseMessage =
         data.persisted
-          ? data.usedOpenAI
-            ? "Answered with server-side OpenAI/RAG and saved to your account."
-            : "Answered with server-side retrieval fallback and saved to your account."
+          ? ts('notifications.answerReady')
           : ts('notifications.answerReadyGuestBody');
       setStatusMessage(responseMessage);
       announceWorkflow(ts('notifications.answerReady'), responseMessage, "success");
@@ -14649,6 +14685,35 @@ function startFirstRunGuestFlow() {
         isWorking={accountActionBusy === "delete"}
         onCancel={() => setShowDeleteAccountModal(false)}
         onConfirm={deleteAccount}
+      />
+      <AiConsentModal
+        open={showAiConsentModal}
+        theme={theme}
+        ts={ts}
+        onUseGroundedFallback={() => {
+          const question = pendingAiQuestion;
+          setShowAiConsentModal(false);
+          setPendingAiQuestion("");
+          setAiConsentDeclined(true);
+          try {
+            window.localStorage.setItem("aletheia_third_party_ai_declined", "yes");
+          } catch {
+            // The choice still applies for this session if storage is unavailable.
+          }
+          void askAletheia(question, false);
+        }}
+        onAllowAi={() => {
+          const question = pendingAiQuestion;
+          setShowAiConsentModal(false);
+          setPendingAiQuestion("");
+          setAiConsentDeclined(false);
+          try {
+            window.localStorage.removeItem("aletheia_third_party_ai_declined");
+          } catch {
+            // The choice still applies for this session if storage is unavailable.
+          }
+          void updatePreferences({ thirdPartyAiConsent: true }, { silent: true }).then(() => askAletheia(question, true));
+        }}
       />
       <ReportIssueModal
         open={showReportIssueModal}
@@ -17750,7 +17815,7 @@ function AccountPanel({
         title={user ? ts('labels.accountControls') : ts('labels.accountSignInOrGuest')}
         summary={user ? accountManageSummary : profileSummary}
         eyebrow={ts('labels.accountTitle')}
-        defaultOpen={!user}
+        defaultOpen
         compactCollapsed
         showDetailsLabel={text.showDetails}
         hideDetailsLabel={text.hideDetails}
@@ -17793,6 +17858,8 @@ function AccountPanel({
               notificationDeviceSubscribed={notificationDeviceSubscribed}
               notificationStatus={notificationStatus}
               onLogout={onLogout}
+              onRequestDeleteAccount={onRequestDeleteAccount}
+              deleteAccountBusy={accountActionBusy === "delete"}
               onRequestSignIn={() => setAuthMode("login")}
               ts={ts}
             />
@@ -17895,6 +17962,25 @@ function AccountPanel({
 
       {accountSection === "privacy" ? (
         <div className="space-y-4">
+          <AccountFlatSection
+            theme={theme}
+            eyebrow={ts('aiConsent.eyebrow')}
+            summary={ts('aiConsent.settingBody')}
+            icon={ShieldCheck}
+          >
+            <AccountToggleRow
+              icon={ShieldCheck}
+              label={ts('aiConsent.settingTitle')}
+              body={ts('aiConsent.settingBody')}
+              checked={preferences.thirdPartyAiConsent}
+              onChange={(checked) => onPreferenceChange({ thirdPartyAiConsent: checked })}
+              onLabel={ts('labels.enabled')}
+              offLabel={ts('labels.disabled')}
+              theme={theme}
+              variant="flat"
+            />
+          </AccountFlatSection>
+
           <ManualContextPanel
             theme={theme}
             ts={ts}
@@ -17949,7 +18035,11 @@ function AccountPanel({
             summary={ts('supportMission.summary')}
             icon={HandHeart}
           >
-            <SupportMissionCard theme={theme} ts={ts} compact />
+            {Capacitor.getPlatform() === "ios" ? (
+              <NativeSupportCard theme={theme} ts={ts} />
+            ) : (
+              <SupportMissionCard theme={theme} ts={ts} compact />
+            )}
           </AccountFlatSection>
         </div>
       ) : null}
@@ -18451,6 +18541,81 @@ function AccountShareCard({
           </button>
         ))}
       </div>
+    </section>
+  );
+}
+
+function NativeSupportCard({ theme, ts }: { theme: ThemeColors; ts: (key: string, fallback?: string) => string }) {
+  const supportAvailable = supportsNativeSupport();
+  const [products, setProducts] = useState<NativeSupportProduct[]>([]);
+  const [loading, setLoading] = useState(() => supportAvailable);
+  const [busyProductId, setBusyProductId] = useState<string | null>(null);
+  const [status, setStatus] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    if (!supportAvailable) {
+      return () => { active = false; };
+    }
+    void NativeSupport.products()
+      .then((result) => {
+        if (active) setProducts(result.products);
+      })
+      .catch(() => {
+        if (active) setStatus(ts("supportMission.notConfigured"));
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => { active = false; };
+  }, [supportAvailable, ts]);
+
+  async function purchase(productId: string) {
+    setBusyProductId(productId);
+    setStatus("");
+    try {
+      const result = await NativeSupport.purchase({ productId });
+      if (result.status === "purchased") {
+        setStatus(ts("supportMission.trustNote"));
+        trackClientEvent("support_mission_clicked", { channel: "apple_iap", completed: true });
+      } else if (result.status === "pending") {
+        setStatus(ts("labels.saving"));
+      }
+    } catch {
+      setStatus(ts("notifications.apiUnavailable"));
+    } finally {
+      setBusyProductId(null);
+    }
+  }
+
+  return (
+    <section className="space-y-3 p-3.5 sm:p-4">
+      <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>{ts("supportMission.body")}</p>
+      {loading ? (
+        <p className="text-sm" style={{ color: theme.textMuted }}>{ts("loading")}</p>
+      ) : products.length ? (
+        <div className="grid gap-2 sm:grid-cols-3">
+          {products.map((product) => (
+            <button
+              key={product.id}
+              type="button"
+              disabled={busyProductId !== null}
+              onClick={() => void purchase(product.id)}
+              className="min-h-16 rounded-[0.95rem] border px-3 py-2.5 text-left disabled:opacity-60"
+              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+            >
+              <span className="block text-sm font-semibold leading-5">{product.displayName}</span>
+              <span className="mt-1 block text-xs" style={{ color: theme.accentGold }}>
+                {busyProductId === product.id ? ts("labels.saving") : product.displayPrice}
+              </span>
+            </button>
+          ))}
+        </div>
+      ) : (
+        <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>{status || ts("supportMission.notConfigured")}</p>
+      )}
+      {status && products.length ? <p role="status" className="text-xs leading-5" style={{ color: theme.textSecondary }}>{status}</p> : null}
+      <p className="text-xs leading-5" style={{ color: theme.textMuted }}>{ts("supportMission.trustNote")}</p>
     </section>
   );
 }
@@ -19203,6 +19368,25 @@ function FormationRailSection({
       setSharedCircleNudgeStatus(ts("status.challengeInviteNudgeFailed"));
     } finally {
       setSharedCircleNudgeBusy(false);
+    }
+  }
+
+  async function leaveSharedCircle() {
+    if (!selectedCircle || selectedCircle.invite.owner.id === user?.id) {
+      return;
+    }
+    if (!window.confirm(ts("challenges.leaveInvite"))) {
+      return;
+    }
+    const response = await fetch(`/api/challenge-circles/by-id/${encodeURIComponent(selectedCircle.id)}`, {
+      method: "DELETE",
+    });
+    if (response.ok) {
+      setSharedCircleNudgeStatus("");
+      setChallengeNudgeThreadOpen(false);
+      onChallengeCircleChanged();
+    } else {
+      setSharedCircleNudgeStatus(ts("notifications.apiUnavailable"));
     }
   }
   const selectedChallengeNextDay = selectedChallenge
@@ -20588,6 +20772,16 @@ function FormationRailSection({
                         onPostSharedCircleNudge={postSharedCircleNudge}
                         onOpenThread={() => setChallengeNudgeThreadOpen(true)}
                       />
+                      {selectedCircle.invite.owner.id !== user?.id ? (
+                        <button
+                          type="button"
+                          className="h-10 rounded-full border px-4 text-sm font-semibold"
+                          style={{ borderColor: theme.borderStrong, backgroundColor: theme.bgInput, color: theme.textSecondary }}
+                          onClick={leaveSharedCircle}
+                        >
+                          {ts("challenges.leaveInvite")}
+                        </button>
+                      ) : null}
                     </div>
                   ) : (
             <div className="space-y-2.5 p-3.5 sm:p-4">
@@ -23904,6 +24098,8 @@ function AccountStatusCard({
   notificationDeviceSubscribed,
   notificationStatus,
   onLogout,
+  onRequestDeleteAccount,
+  deleteAccountBusy,
   onRequestSignIn,
   ts,
 }: {
@@ -23915,6 +24111,8 @@ function AccountStatusCard({
   notificationDeviceSubscribed: boolean;
   notificationStatus: string;
   onLogout: () => void;
+  onRequestDeleteAccount: () => void;
+  deleteAccountBusy: boolean;
   onRequestSignIn: (mode?: AuthMode) => void;
   ts: (key: string, fallback?: string) => string;
 }) {
@@ -23941,15 +24139,26 @@ function AccountStatusCard({
             </p>
           </div>
           {signedIn ? (
-            <button
-              type="button"
-              onClick={onLogout}
-              disabled={authStatus === "signing-out"}
-              className="inline-flex h-10 items-center justify-center rounded-full border px-4 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60"
-              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-            >
-              {authStatus === "signing-out" ? ts('auth.signingOut') : ts('auth.signOut')}
-            </button>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={onRequestDeleteAccount}
+                disabled={deleteAccountBusy || authStatus === "signing-out"}
+                className="inline-flex h-10 items-center justify-center rounded-full border px-4 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60"
+                style={{ borderColor: theme.borderStrong, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+              >
+                {deleteAccountBusy ? ts('labels.deleting') : ts('labels.deleteAccount')}
+              </button>
+              <button
+                type="button"
+                onClick={onLogout}
+                disabled={authStatus === "signing-out" || deleteAccountBusy}
+                className="inline-flex h-10 items-center justify-center rounded-full border px-4 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60"
+                style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+              >
+                {authStatus === "signing-out" ? ts('auth.signingOut') : ts('auth.signOut')}
+              </button>
+            </div>
           ) : null}
         </div>
       </div>
@@ -23986,7 +24195,7 @@ function AccountStatusCard({
             { label: ts('labels.notifications'), value: notificationHealth, active: notificationsEnabled },
           ].map((item, index) => (
             <div
-              key={item.label}
+              key={`${index}-${item.label}`}
               className="flex items-center justify-between gap-3 px-3 py-2"
               style={{ borderTop: index === 0 ? "none" : `1px solid ${theme.borderLight}` }}
             >
@@ -25557,6 +25766,42 @@ function DeleteAccountModal({
   );
 }
 
+function AiConsentModal({
+  open,
+  theme,
+  ts,
+  onUseGroundedFallback,
+  onAllowAi,
+}: {
+  open: boolean;
+  theme: ThemeColors;
+  ts: (key: string, fallback?: string) => string;
+  onUseGroundedFallback: () => void;
+  onAllowAi: () => void;
+}) {
+  useBodyScrollLock(open);
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-[70] grid place-items-end overflow-hidden overscroll-none p-3 backdrop-blur-sm sm:place-items-center" style={{ backgroundColor: "rgba(13, 23, 20, 0.48)" }}>
+      <section role="dialog" aria-modal="true" aria-labelledby="ai-consent-title" className="w-full max-w-lg rounded-3xl border p-4 shadow-2xl" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+        <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts("aiConsent.eyebrow")}</p>
+        <h2 id="ai-consent-title" className="mt-1.5 text-lg font-semibold" style={{ color: theme.textPrimary }}>{ts("aiConsent.title")}</h2>
+        <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>{ts("aiConsent.body")}</p>
+        <p className="mt-2 text-xs leading-5" style={{ color: theme.textMuted }}>{ts("aiConsent.control")}</p>
+        <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <button type="button" onClick={onUseGroundedFallback} className="min-h-10 rounded-full border px-4 text-sm font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}>
+            {ts("aiConsent.useFallback")}
+          </button>
+          <button type="button" onClick={onAllowAi} className="min-h-10 rounded-full px-4 text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>
+            {ts("aiConsent.allow")}
+          </button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
 function ReportIssueModal({
   open,
   theme,
@@ -25573,6 +25818,7 @@ function ReportIssueModal({
   onSubmit: (category: string, message: string) => void;
 }) {
   const categories = [
+    { value: "safety_concern", label: ts('labels.reportCategorySafetyConcern') },
     { value: "bug_workflow", label: ts('labels.reportCategoryBugWorkflow') },
     { value: "confusing_experience", label: ts('labels.reportCategoryConfusingExperience') },
     { value: "incorrect_scripture_context", label: ts('labels.reportCategoryIncorrectScriptureContext') },

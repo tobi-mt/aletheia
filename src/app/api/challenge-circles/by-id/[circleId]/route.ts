@@ -325,3 +325,40 @@ export async function PATCH(request: Request, { params }: Params) {
 
   return NextResponse.json({ circle: formatted });
 }
+
+export async function DELETE(_request: Request, { params }: Params) {
+  const { circleId } = await params;
+  const user = await getCurrentUser();
+  if (!user) {
+    return apiError(401, "sign_in_required", "Sign in to leave the shared practice.");
+  }
+
+  const circle = await findCircle(circleId);
+  if (!circle) {
+    return apiError(404, "not_found", "Practice not found.");
+  }
+  if (circle.owner_user_id === user.id) {
+    return apiError(400, "invalid_input", "The host cannot leave their own shared practice.");
+  }
+
+  const membership = await one<{ id: string }>(
+    "SELECT id FROM challenge_circle_members WHERE circle_id = ? AND user_id = ?",
+    circle.id,
+    user.id
+  );
+  if (!membership) {
+    return NextResponse.json({ ok: true });
+  }
+
+  await run("DELETE FROM challenge_circle_members WHERE circle_id = ? AND user_id = ?", circle.id, user.id);
+  await run(
+    `UPDATE challenge_circle_invite_responses
+     SET response_status = 'declined', responded_at = ?, updated_at = ?
+     WHERE circle_id = ? AND user_id = ?`,
+    new Date().toISOString(),
+    new Date().toISOString(),
+    circle.id,
+    user.id
+  );
+  return NextResponse.json({ ok: true });
+}

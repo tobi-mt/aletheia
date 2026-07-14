@@ -166,10 +166,11 @@ test("native uses ManagedAudio before browser speech and verifies push configura
   const client = await read("src/components/aletheia-app.tsx");
   const nativePush = await read("src/lib/native-push.ts");
   const route = await read("src/app/api/notifications/native/route.ts");
-  const nativeAudioIndex = client.indexOf("if (Capacitor.isNativePlatform()) {", client.indexOf("async function speakText"));
+  const nativeAudioIndex = client.indexOf("if (Capacitor.isNativePlatform() && preferences.thirdPartyAiConsent) {", client.indexOf("async function speakText"));
   const browserSpeechIndex = client.indexOf('"speechSynthesis" in window', client.indexOf("async function speakText"));
   assert.ok(nativeAudioIndex >= 0 && nativeAudioIndex < browserSpeechIndex);
   assert.match(client, /await ManagedAudio\.speak/);
+  assert.match(client, /thirdPartyAiConsent: preferences\.thirdPartyAiConsent/);
   assert.match(nativePush, /isNativePushPlatformConfigured/);
   assert.match(nativePush, /apnsConfigured/);
   assert.match(route, /isNativePushPlatformConfigured\(platform\)/);

@@ -1343,6 +1343,7 @@
     "reportCategoryNotificationIssue": "Benachrichtigungsproblem",
     "reportCategoryDesignReadabilityIssue": "Design- oder Lesbarkeitsproblem",
     "reportCategoryGeneralFeedback": "Allgemeines Feedback",
+    "reportCategorySafetyConcern": "Missbräuchliche oder unsichere geteilte Inhalte",
     "deleteConfirmationWord": "LÖSCHEN",
     "accountVoiceInputBody": "Zeige das Mikrofon neben Fragen an und aktiviere die Sprachsteuerung, wenn dieses Gerät sie unterstützt.",
     "appLikeSetup": "App-ähnliche Einrichtung",
@@ -2447,5 +2448,15 @@
   "loading": "Lädt…",
   "viewThread": "Thread anzeigen",
   "thread": "Thread",
-  "threadNoActivity": "Noch keine Aktivitäten in diesem Thread."
+  "threadNoActivity": "Noch keine Aktivitäten in diesem Thread.",
+  "aiConsent": {
+    "eyebrow": "KI-Datenschutzwahl",
+    "title": "Wähle, wie Aletheia deine Antwort vorbereitet",
+    "body": "Wenn du zustimmst, können deine Frage und relevante Kontextdaten sicher an OpenAI gesendet werden. OpenAI ist ein externer KI-Anbieter. Aletheia nutzt diese Daten nicht für Werbung.",
+    "control": "Du kannst ablehnen und stattdessen Aletheias fundierte Abrufantwort verwenden. Ändere diese Wahl jederzeit in den Kontoeinstellungen.",
+    "useFallback": "Fundierte Antwort verwenden",
+    "allow": "OpenAI-Verarbeitung erlauben",
+    "settingTitle": "Externe KI-Verarbeitung",
+    "settingBody": "Erlaube OpenAI, Fragen und relevanten Kontext zu verarbeiten. Deaktiviere dies jederzeit für fundierte Abrufantworten."
+  }
 }

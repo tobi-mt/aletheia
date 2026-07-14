@@ -1343,6 +1343,7 @@
     "reportCategoryNotificationIssue": "Matsalar sanarwa",
     "reportCategoryDesignReadabilityIssue": "Matsalar zane ko karantawa",
     "reportCategoryGeneralFeedback": "Ra’ayi gaba ɗaya",
+    "reportCategorySafetyConcern": "Abun da aka raba mai cin zarafi ko rashin aminci",
     "deleteConfirmationWord": "GOGE",
     "accountVoiceInputBody": "Nuna makirufon kusa da Ask sannan kunna sarrafa murya idan wannan na’urar na goyon bayansu.",
     "appLikeSetup": "Tsarin kamar app",
@@ -2447,5 +2448,6 @@
   "loading": "Ana lodawa…",
   "viewThread": "Duba zaren",
   "thread": "Zare",
-  "threadNoActivity": "Babu wani aiki a cikin wannan zaren tukuna."
+  "threadNoActivity": "Babu wani aiki a cikin wannan zaren tukuna.",
+  "aiConsent": { "eyebrow": "Zaɓin sirrin AI", "title": "Zaɓi yadda Aletheia za ta shirya amsarka", "body": "Idan ka yarda, ana iya aika tambayarka da bayanan da suka dace cikin tsaro zuwa OpenAI. OpenAI mai samar da AI ne na waje. Aletheia ba ta amfani da bayanan don talla.", "control": "Za ka iya ƙi ka yi amfani da amsar Aletheia mai tushe. Canza zaɓin a kowane lokaci a saitunan asusu.", "useFallback": "Yi amfani da amsa mai tushe", "allow": "Ba da izinin sarrafa OpenAI", "settingTitle": "Sarrafa AI na waje", "settingBody": "Ba OpenAI izinin sarrafa tambayoyi da bayanan da suka dace. Kashe shi a kowane lokaci don amsoshi masu tushe." }
 }

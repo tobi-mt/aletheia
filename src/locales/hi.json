@@ -1343,6 +1343,7 @@
     "reportCategoryNotificationIssue": "अधिसूचना जारी",
     "reportCategoryDesignReadabilityIssue": "डिज़ाइन या पठनीयता समस्या",
     "reportCategoryGeneralFeedback": "सामान्य प्रतिक्रिया",
+    "reportCategorySafetyConcern": "अपमानजनक या असुरक्षित साझा सामग्री",
     "deleteConfirmationWord": "मिटाएँ",
     "accountVoiceInputBody": "आस्क के बगल में माइक्रोफ़ोन दिखाएं और जब यह डिवाइस उनका समर्थन करता है तो ध्वनि नियंत्रण सक्षम करें।",
     "appLikeSetup": "ऐप जैसा सेटअप",
@@ -2447,5 +2448,6 @@
   "loading": "लोड हो रहा है...",
   "viewThread": "थ्रेड देखें",
   "thread": "थ्रेड",
-  "threadNoActivity": "अभी इस थ्रेड में कोई गतिविधि नहीं है।"
+  "threadNoActivity": "अभी इस थ्रेड में कोई गतिविधि नहीं है।",
+  "aiConsent": { "eyebrow": "AI गोपनीयता विकल्प", "title": "चुनें कि Aletheia आपका उत्तर कैसे तैयार करे", "body": "आपकी अनुमति से आपका प्रश्न और संबंधित संदर्भ सुरक्षित रूप से OpenAI को भेजा जा सकता है। OpenAI एक तृतीय-पक्ष AI प्रदाता है। Aletheia इस डेटा का विज्ञापन के लिए उपयोग नहीं करता।", "control": "आप मना करके Aletheia का स्रोत-आधारित उत्तर इस्तेमाल कर सकते हैं। खाता सेटिंग में यह विकल्प कभी भी बदलें।", "useFallback": "स्रोत-आधारित उत्तर उपयोग करें", "allow": "OpenAI प्रसंस्करण की अनुमति दें", "settingTitle": "तृतीय-पक्ष AI प्रसंस्करण", "settingBody": "OpenAI को प्रश्न और संबंधित संदर्भ संसाधित करने दें। स्रोत-आधारित उत्तरों के लिए इसे कभी भी बंद करें।" }
 }

@@ -9,6 +9,7 @@ type PreferenceRow = {
   region: string;
   bible_translation: string;
   voice_enabled: boolean;
+  third_party_ai_consent: boolean;
   counsel_notifications_enabled: boolean;
   formation_notifications_enabled: boolean;
 };
@@ -23,6 +24,7 @@ function mapRow(row: PreferenceRow | undefined): UserPreferences {
     region: row.region as UserPreferences["region"],
     bibleTranslation: row.bible_translation as UserPreferences["bibleTranslation"],
     voiceEnabled: row.voice_enabled,
+    thirdPartyAiConsent: row.third_party_ai_consent,
     counselNotificationsEnabled: row.counsel_notifications_enabled,
     formationNotificationsEnabled: row.formation_notifications_enabled,
   });
@@ -35,7 +37,7 @@ export async function GET() {
   }
 
   const row = await one<PreferenceRow>(
-    `SELECT language, region, bible_translation, voice_enabled,
+    `SELECT language, region, bible_translation, voice_enabled, third_party_ai_consent,
             counsel_notifications_enabled, formation_notifications_enabled
      FROM user_preferences
      WHERE user_id = ?`,
@@ -61,16 +63,21 @@ export async function PUT(request: Request) {
   const now = new Date().toISOString();
   await run(
     `INSERT INTO user_preferences (
-      user_id, language, region, bible_translation, voice_enabled,
+      user_id, language, region, bible_translation, voice_enabled, third_party_ai_consent,
       counsel_notifications_enabled, formation_notifications_enabled,
       created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT (user_id)
     DO UPDATE SET
       language = EXCLUDED.language,
       region = EXCLUDED.region,
       bible_translation = EXCLUDED.bible_translation,
       voice_enabled = EXCLUDED.voice_enabled,
+      third_party_ai_consent = EXCLUDED.third_party_ai_consent,
+      third_party_ai_consent_updated_at = CASE
+        WHEN user_preferences.third_party_ai_consent IS DISTINCT FROM EXCLUDED.third_party_ai_consent THEN EXCLUDED.updated_at
+        ELSE user_preferences.third_party_ai_consent_updated_at
+      END,
       counsel_notifications_enabled = EXCLUDED.counsel_notifications_enabled,
       formation_notifications_enabled = EXCLUDED.formation_notifications_enabled,
       updated_at = EXCLUDED.updated_at`,
@@ -79,6 +86,7 @@ export async function PUT(request: Request) {
     preferences.region,
     preferences.bibleTranslation,
     preferences.voiceEnabled,
+    preferences.thirdPartyAiConsent,
     preferences.counselNotificationsEnabled,
     preferences.formationNotificationsEnabled,
     now,

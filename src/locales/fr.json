@@ -1343,6 +1343,7 @@
     "reportCategoryNotificationIssue": "Problème de notification",
     "reportCategoryDesignReadabilityIssue": "Problème de design ou de lisibilité",
     "reportCategoryGeneralFeedback": "Retour général",
+    "reportCategorySafetyConcern": "Contenu partagé abusif ou dangereux",
     "deleteConfirmationWord": "SUPPRIMER",
     "accountVoiceInputBody": "Affiche le micro à côté de Poser et active les commandes vocales si cet appareil les prend en charge.",
     "appLikeSetup": "Configuration façon application",
@@ -2447,5 +2448,6 @@
   "loading": "Chargement…",
   "viewThread": "Voir le fil",
   "thread": "Fil",
-  "threadNoActivity": "Aucune activité dans ce fil pour le moment."
+  "threadNoActivity": "Aucune activité dans ce fil pour le moment.",
+  "aiConsent": { "eyebrow": "Choix de confidentialité IA", "title": "Choisissez comment Aletheia prépare votre réponse", "body": "Avec votre accord, votre question et le contexte pertinent peuvent être envoyés de manière sécurisée à OpenAI. OpenAI est un fournisseur d’IA tiers. Aletheia n’utilise pas ces données à des fins publicitaires.", "control": "Vous pouvez refuser et utiliser la réponse fondée d’Aletheia. Modifiez ce choix à tout moment dans les réglages du compte.", "useFallback": "Utiliser la réponse fondée", "allow": "Autoriser le traitement OpenAI", "settingTitle": "Traitement par une IA tierce", "settingBody": "Autorisez OpenAI à traiter les questions et le contexte pertinent. Désactivez cette option à tout moment pour utiliser les réponses fondées." }
 }

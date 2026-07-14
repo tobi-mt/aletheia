@@ -357,9 +357,11 @@ export async function POST(request: Request) {
       .filter(Boolean)
       .join("\n\n");
   }
+  const mayUseThirdPartyAi = preferences.thirdPartyAiConsent === true;
   const aiText =
-    (await generateWisdomResponse({ question: message, mode, sources, preferences, memoryContext })) ??
-    composeModeAwareFallbackResponse(message, mode, sources, preferences);
+    (mayUseThirdPartyAi
+      ? await generateWisdomResponse({ question: message, mode, sources, preferences, memoryContext })
+      : null) ?? composeModeAwareFallbackResponse(message, mode, sources, preferences);
 
   if (user) {
     const now = new Date().toISOString();
@@ -391,7 +393,7 @@ export async function POST(request: Request) {
       language: preferences.language,
       region: preferences.region,
       persisted: true,
-      usedOpenAI: Boolean(process.env.OPENAI_API_KEY),
+      usedOpenAI: mayUseThirdPartyAi && Boolean(process.env.OPENAI_API_KEY),
       sourceCount: sources.length,
       ...analyticsQuestionMetadata(message, mode),
     };
@@ -418,7 +420,7 @@ export async function POST(request: Request) {
         sources,
       },
       persisted: Boolean(user),
-      usedOpenAI: Boolean(process.env.OPENAI_API_KEY),
+      usedOpenAI: mayUseThirdPartyAi && Boolean(process.env.OPENAI_API_KEY),
     },
     { headers: rateLimitHeaders(rateLimit) }
   );

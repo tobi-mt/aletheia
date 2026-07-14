@@ -18,6 +18,7 @@ export type ManagedAudioSpeakOptions = {
   notice?: string;
   label?: string;
   cacheScope?: "scripture";
+  thirdPartyAiConsent: boolean;
 };
 
 export interface ManagedAudioPlugin {

@@ -24,6 +24,10 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Aletheia uses the microphone only when you choose to dictate a question or reflection.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Aletheia converts speech you choose to dictate into text so you can use the app hands-free.</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>CFBundleURLTypes</key>

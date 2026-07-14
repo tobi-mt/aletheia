@@ -1343,6 +1343,7 @@
     "reportCategoryNotificationIssue": "Notification issue",
     "reportCategoryDesignReadabilityIssue": "Design or readability issue",
     "reportCategoryGeneralFeedback": "General feedback",
+    "reportCategorySafetyConcern": "Abusive or unsafe shared content",
     "deleteConfirmationWord": "DELETE",
     "accountVoiceInputBody": "Show the microphone beside Ask and enable voice controls when this device supports them.",
     "appLikeSetup": "App-like setup",
@@ -2447,5 +2448,15 @@
   "loading": "Loading…",
   "viewThread": "View thread",
   "thread": "Thread",
-  "threadNoActivity": "No thread activity yet."
+  "threadNoActivity": "No thread activity yet.",
+  "aiConsent": {
+    "eyebrow": "AI privacy choice",
+    "title": "Choose how Aletheia prepares your answer",
+    "body": "If you allow it, your question and relevant context may be sent securely to OpenAI to generate a personalized answer. OpenAI is a third-party AI provider. Aletheia does not use this data for advertising.",
+    "control": "You can decline and use Aletheia’s grounded retrieval answer instead. Change this choice anytime in Account settings.",
+    "useFallback": "Use grounded answer",
+    "allow": "Allow OpenAI processing",
+    "settingTitle": "Third-party AI processing",
+    "settingBody": "Allow questions and relevant context to be processed by OpenAI. Turn this off anytime to use grounded retrieval answers."
+  }
 }

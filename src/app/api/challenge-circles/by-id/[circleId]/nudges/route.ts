@@ -5,6 +5,7 @@ import { one, run } from "@/lib/db";
 import { readJsonBody } from "@/lib/request";
 import { trackServerEvent } from "@/lib/analytics";
 import { sendChallengeCircleNudgeNotifications } from "@/lib/notifications";
+import { isObjectionableUserContent } from "@/lib/user-content-safety";
 
 export const dynamic = "force-dynamic";
 
@@ -59,6 +60,9 @@ export async function POST(request: Request, { params }: Params) {
   const body = parsed.data.body?.trim().slice(0, 240) ?? "";
   if (!body) {
     return apiError(400, "invalid_input", "A nudge message is required.");
+  }
+  if (isObjectionableUserContent(body)) {
+    return apiError(400, "unsafe_content", "This nudge cannot be shared.");
   }
   const recipientUserId = parsed.data.recipientUserId?.trim() ?? null;
   if (recipientUserId === user.id) {

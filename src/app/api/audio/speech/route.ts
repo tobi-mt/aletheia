@@ -98,7 +98,12 @@ export async function POST(request: Request) {
       language?: string;
       speed?: number;
       cacheScope?: "scripture";
+      thirdPartyAiConsent?: boolean;
     };
+
+    if (body.thirdPartyAiConsent !== true) {
+      return apiError(403, "permission_denied", "Third-party AI processing permission is required for generated audio.");
+    }
 
     const text = body.text?.trim();
     if (!text) {

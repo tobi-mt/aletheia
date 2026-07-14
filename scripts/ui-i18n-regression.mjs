@@ -575,7 +575,7 @@ async function run() {
           failures.push(`page errors: ${pageErrors.length}`);
         }
         if (consoleErrors.length) {
-          failures.push(`console errors: ${consoleErrors.length}`);
+          failures.push(`console errors: ${consoleErrors.length} (${consoleErrors.slice(0, 2).join(' | ')})`);
         }
         if (finalLeaks.length) {
           failures.push(`untranslated token leaks: ${finalLeaks.join(', ')}`);

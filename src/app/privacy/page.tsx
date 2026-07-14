@@ -36,7 +36,7 @@ export default function PrivacyPolicyPage() {
           <p className="text-sm font-semibold uppercase tracking-[0.24em] text-emerald-700">Aletheia Companion</p>
           <h1 className="text-4xl font-semibold tracking-tight">Privacy Policy</h1>
           <p className="max-w-2xl text-sm leading-7 text-slate-700">
-            Effective date: July 4, 2026
+            Effective date: July 13, 2026
           </p>
           <p className="max-w-2xl text-sm leading-7 text-slate-700">
             This policy explains how Aletheia Companion collects, uses, shares, and protects information when you use
@@ -82,7 +82,9 @@ export default function PrivacyPolicyPage() {
               When you use AI-powered features, your request is processed by our server first. Our server may retrieve
               relevant app content and biblical wisdom sources, and if enabled, may send the request to OpenAI to help
               generate a response. We try to avoid sending unnecessary private content, but your prompt and relevant
-              context may be processed to answer your request.
+              context may be processed to answer your request. Before that sharing occurs, the app identifies OpenAI
+              as the third-party AI provider and asks for your explicit permission. You can decline and use a grounded
+              retrieval response, or withdraw permission at any time from Account → Privacy.
             </p>
           </Section>
 

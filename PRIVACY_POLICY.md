@@ -1,6 +1,6 @@
 # Aletheia Privacy Policy
 
-**Effective date:** July 4, 2026
+**Effective date:** July 13, 2026
 
 This Privacy Policy explains how Aletheia Companion ("Aletheia", "we", "us", or "our") collects, uses, shares, and protects information when you use our app, website, and related services.
 
@@ -81,6 +81,8 @@ Aletheia includes AI-powered features such as chat and speech. When you use thos
 - Our server may retrieve relevant app content and biblical wisdom sources.
 - If enabled, our server may send the request to OpenAI to generate a response.
 - We aim to avoid sending unnecessary private content, but your prompt and relevant context may be processed to answer your request.
+- Before Aletheia sends a prompt or relevant context to OpenAI, the app asks for your explicit permission and identifies OpenAI as the third-party AI provider.
+- You can decline and continue using the grounded retrieval response, or withdraw permission at any time from Account → Privacy. Withdrawing permission stops future OpenAI processing unless you choose to enable it again.
 
 We do not use your private journal content unless the app feature explicitly needs it and the product logic allows it.
 
@@ -181,4 +183,3 @@ For privacy questions or requests, contact us at:
 
 - **Support:** use the in-app support flow or the public support contact listed for Aletheia Companion
 - **Email:** the support email associated with the app’s App Store Connect and Google Play listings
-

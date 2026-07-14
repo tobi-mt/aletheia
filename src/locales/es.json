@@ -1343,6 +1343,7 @@
     "reportCategoryNotificationIssue": "Problema de notificaciones",
     "reportCategoryDesignReadabilityIssue": "Problema de diseño o legibilidad",
     "reportCategoryGeneralFeedback": "Comentarios generales",
+    "reportCategorySafetyConcern": "Contenido compartido abusivo o inseguro",
     "deleteConfirmationWord": "ELIMINAR",
     "accountVoiceInputBody": "Muestra el micrófono al lado de Preguntar y activa los controles de voz cuando este dispositivo los admita.",
     "appLikeSetup": "Configuración tipo app",
@@ -2447,5 +2448,15 @@
   "loading": "Cargando…",
   "viewThread": "Ver hilo",
   "thread": "Hilo",
-  "threadNoActivity": "Todavía no hay actividad en este hilo."
+  "threadNoActivity": "Todavía no hay actividad en este hilo.",
+  "aiConsent": {
+    "eyebrow": "Elección de privacidad de IA",
+    "title": "Elige cómo Aletheia prepara tu respuesta",
+    "body": "Si lo permites, tu pregunta y el contexto relevante pueden enviarse de forma segura a OpenAI. OpenAI es un proveedor externo de IA. Aletheia no usa estos datos para publicidad.",
+    "control": "Puedes rechazarlo y usar la respuesta fundamentada de Aletheia. Cambia esta elección cuando quieras en los ajustes de Cuenta.",
+    "useFallback": "Usar respuesta fundamentada",
+    "allow": "Permitir procesamiento de OpenAI",
+    "settingTitle": "Procesamiento de IA externa",
+    "settingBody": "Permite que OpenAI procese preguntas y contexto relevante. Desactívalo cuando quieras para usar respuestas fundamentadas."
+  }
 }

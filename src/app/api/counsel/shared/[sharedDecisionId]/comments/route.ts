@@ -4,6 +4,7 @@ import { apiError } from "@/lib/api-errors";
 import { ensureCounselInviteAcceptanceSchema } from "@/lib/counsel-invites";
 import { many, one, run } from "@/lib/db";
 import { sendCounselCommentNotifications } from "@/lib/notifications";
+import { isObjectionableUserContent } from "@/lib/user-content-safety";
 
 type Params = { params: Promise<{ sharedDecisionId: string }> };
 
@@ -66,6 +67,9 @@ export async function postSharedDecisionComment(
   const message = body.body?.trim().slice(0, 1200);
   if (!message) {
     return apiError(400, "invalid_input", "A message is required.");
+  }
+  if (isObjectionableUserContent(message)) {
+    return apiError(400, "unsafe_content", "This message cannot be shared.");
   }
 
   const now = deps.now().toISOString();

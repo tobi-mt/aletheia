@@ -1343,6 +1343,7 @@
     "reportCategoryNotificationIssue": "Ìṣòro ìfitónilétí",
     "reportCategoryDesignReadabilityIssue": "Ìṣòro onírúurú àwòrán tàbí kíkà",
     "reportCategoryGeneralFeedback": "Àbá gbogbogbò",
+    "reportCategorySafetyConcern": "Àkóónú pínpín tó ń ṣe ìpalára tàbí tí kò ní ààbò",
     "deleteConfirmationWord": "PARẸ",
     "accountVoiceInputBody": "Fi maikirofoni hàn lẹ́gbẹ̀ẹ́ Béèrè, kí o sì jẹ́ kí àwọn ìṣàkóso ohùn ṣiṣẹ́ nígbà tí ẹ̀rọ yìí bá ń ṣètìlẹ́yìn fún wọn.",
     "appLikeSetup": "Ìṣètò bí app",
@@ -2447,5 +2448,6 @@
   "loading": "Nkojọpọ…",
   "viewThread": "Wo okun",
   "thread": "Okun",
-  "threadNoActivity": "Ko si iṣẹ ṣiṣe ninu okun yii sibẹsibẹ."
+  "threadNoActivity": "Ko si iṣẹ ṣiṣe ninu okun yii sibẹsibẹ.",
+  "aiConsent": { "eyebrow": "Àṣàyàn àṣírí AI", "title": "Yan bí Aletheia ṣe máa pèsè ìdáhùn rẹ", "body": "Tí o bá gbà, a lè fi ìbéèrè rẹ àti àyíká tó yẹ ránṣẹ́ láìléwu sí OpenAI. OpenAI jẹ́ olùpèsè AI ẹnikẹta. Aletheia kò lo data yìí fún ìpolówó.", "control": "O lè kọ̀ kí o sì lo ìdáhùn Aletheia tó dá lórí orísun. Yí àṣàyàn padà nígbàkigbà nínú ètò àkọọ́lẹ̀.", "useFallback": "Lo ìdáhùn tó dá lórí orísun", "allow": "Gba ìṣàkóso OpenAI láàyè", "settingTitle": "Ìṣàkóso AI ẹnikẹta", "settingBody": "Gba OpenAI láàyè láti ṣàkóso ìbéèrè àti àyíká tó yẹ. Pa a nígbàkigbà fún ìdáhùn tó dá lórí orísun." }
 }

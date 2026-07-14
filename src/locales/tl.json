@@ -1343,6 +1343,7 @@
     "reportCategoryNotificationIssue": "Isyu sa notification",
     "reportCategoryDesignReadabilityIssue": "Isyu sa disenyo o pagiging madaling mabasa",
     "reportCategoryGeneralFeedback": "Pangkalahatang feedback",
+    "reportCategorySafetyConcern": "Mapang-abuso o hindi ligtas na ibinahaging nilalaman",
     "deleteConfirmationWord": "BURAHIN",
     "accountVoiceInputBody": "Ipakita ang mikropono sa tabi ng Magtanong at paganahin ang mga kontrol ng boses kapag sinusuportahan sila ng device na ito.",
     "appLikeSetup": "App-like na setup",
@@ -2447,5 +2448,6 @@
   "loading": "Naglo-load…",
   "viewThread": "Tingnan ang thread",
   "thread": "Thread",
-  "threadNoActivity": "Wala pang aktibidad sa thread na ito."
+  "threadNoActivity": "Wala pang aktibidad sa thread na ito.",
+  "aiConsent": { "eyebrow": "Pagpili sa privacy ng AI", "title": "Piliin kung paano ihahanda ng Aletheia ang sagot", "body": "Kapag pumayag ka, maaaring ligtas na ipadala sa OpenAI ang tanong mo at kaugnay na konteksto. Ang OpenAI ay third-party AI provider. Hindi ginagamit ng Aletheia ang datos na ito para sa advertising.", "control": "Maaari kang tumanggi at gamitin ang grounded na sagot ng Aletheia. Baguhin ang pagpili anumang oras sa Account settings.", "useFallback": "Gamitin ang grounded na sagot", "allow": "Payagan ang pagproseso ng OpenAI", "settingTitle": "Third-party AI processing", "settingBody": "Payagan ang OpenAI na iproseso ang mga tanong at kaugnay na konteksto. I-off anumang oras para gumamit ng grounded na sagot." }
 }

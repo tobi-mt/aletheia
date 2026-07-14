@@ -1342,7 +1342,8 @@
     "reportCategoryIncorrectScriptureContext": "Escritura o contexto incorrecto",
     "reportCategoryNotificationIssue": "Problema de notificaciones",
     "reportCategoryDesignReadabilityIssue": "Problema de diseño o legibilidad",
-    "reportCategoryGeneralFeedback": "Comentarios generales",
+    "reportCategoryGeneralFeedback": "ملاحظات عامة",
+    "reportCategorySafetyConcern": "محتوى مشترك مسيء أو غير آمن",
     "deleteConfirmationWord": "احذف",
     "accountVoiceInputBody": "Muestra el micrófono al lado de Preguntar y activa los controles de voz cuando este dispositivo los admita.",
     "appLikeSetup": "Configuración tipo app",
@@ -2447,5 +2448,6 @@
   "loading": "تحميل…",
   "viewThread": "عرض المحادثة",
   "thread": "المحادثة",
-  "threadNoActivity": "لا توجد أنشطة في هذه المحادثة بعد."
+  "threadNoActivity": "لا توجد أنشطة في هذه المحادثة بعد.",
+  "aiConsent": { "eyebrow": "اختيار خصوصية الذكاء الاصطناعي", "title": "اختر كيف تُعِد Aletheia إجابتك", "body": "إذا وافقت، فقد يُرسل سؤالك والسياق ذي الصلة بأمان إلى OpenAI. ‏OpenAI مزود ذكاء اصطناعي خارجي. لا تستخدم Aletheia هذه البيانات للإعلانات.", "control": "يمكنك الرفض واستخدام إجابة Aletheia المستندة إلى المصادر. غيّر اختيارك في أي وقت من إعدادات الحساب.", "useFallback": "استخدام إجابة مستندة إلى المصادر", "allow": "السماح بمعالجة OpenAI", "settingTitle": "معالجة ذكاء اصطناعي خارجية", "settingBody": "اسمح لـ OpenAI بمعالجة الأسئلة والسياق ذي الصلة. أوقفه في أي وقت لاستخدام إجابات مستندة إلى المصادر." }
 }

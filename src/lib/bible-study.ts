@@ -166,6 +166,7 @@ export function buildBibleStudyGuide(chapterData: BibleChapterData, preferences:
     region: "global",
     bibleTranslation: preferences.bibleTranslation,
     voiceEnabled: false,
+    thirdPartyAiConsent: false,
     counselNotificationsEnabled: false,
     formationNotificationsEnabled: false,
   } satisfies UserPreferences;

@@ -1343,6 +1343,7 @@
     "reportCategoryNotificationIssue": "Nsogbu amamọkwa",
     "reportCategoryDesignReadabilityIssue": "Nsogbu imewe ma ọ bụ ịgụ ya",
     "reportCategoryGeneralFeedback": "Nzaghachi izugbe",
+    "reportCategorySafetyConcern": "Ọdịnaya e kesara na-akparị ma ọ bụ na-adịghị nchebe",
     "deleteConfirmationWord": "HICHAPU",
     "accountVoiceInputBody": "Gosi maikorofọnụ n’akụkụ Ask ma mee ka njikwa olu rụọ ọrụ mgbe ngwaọrụ a na-akwado ha.",
     "appLikeSetup": "Nhazi dịka ngwa",
@@ -2447,5 +2448,6 @@
   "loading": "Na-ebugo…",
   "viewThread": "Lee eriri",
   "thread": "Eriri",
-  "threadNoActivity": "Enwebeghi ọrụ n'ime eriri a ugbu a."
+  "threadNoActivity": "Enwebeghi ọrụ n'ime eriri a ugbu a.",
+  "aiConsent": { "eyebrow": "Nhọrọ nzuzo AI", "title": "Họrọ otu Aletheia ga-esi kwadebe azịza gị", "body": "Ọ bụrụ na ị kwere, enwere ike iziga ajụjụ gị na ozi dị mkpa n’enweghị nsogbu na OpenAI. OpenAI bụ onye na-enye AI nke atọ. Aletheia anaghị eji data a maka mgbasa ozi.", "control": "Ị nwere ike ịjụ ma jiri azịza Aletheia dabere na isi mmalite. Gbanwee nhọrọ a oge ọ bụla na ntọala akaụntụ.", "useFallback": "Jiri azịza dabere na isi mmalite", "allow": "Kwe ka OpenAI hazie", "settingTitle": "Nhazi AI nke atọ", "settingBody": "Kwe ka OpenAI hazie ajụjụ na ozi dị mkpa. Gbanyụọ ya oge ọ bụla iji azịza dabere na isi mmalite." }
 }
