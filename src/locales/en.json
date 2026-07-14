@@ -619,6 +619,8 @@
     "restoringPreferences": "Restoring preferences…",
     "finishingSignIn": "Finishing sign-in…",
     "finishingSignInBody": "One moment while Aletheia brings your account into view.",
+    "preparingAccountTitle": "Welcome, {name}",
+    "preparingAccountBody": "Your account is secure. Aletheia is preparing your wisdom, decisions, and preferences.",
     "inviteCouldNotOpen": "This counsel invite could not be opened.",
     "challengeInviteCouldNotOpen": "This shared practice invite could not be opened.",
     "startingQuestionReady": "A personal starting question is ready in the Companion input.",

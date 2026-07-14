@@ -5,6 +5,7 @@ import Capacitor
 import AuthenticationServices
 import CryptoKit
 import StoreKit
+import UserNotifications
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -24,7 +25,18 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         }
     }
 
+    private func clearNotificationBadge() {
+        let notificationCenter = UNUserNotificationCenter.current()
+        notificationCenter.removeAllDeliveredNotifications()
+        if #available(iOS 16.0, *) {
+            notificationCenter.setBadgeCount(0)
+        } else {
+            UIApplication.shared.applicationIconBadgeNumber = 0
+        }
+    }
+
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+        clearNotificationBadge()
         configureAudioSessionForSpeech()
         return true
     }
@@ -45,7 +57,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     func applicationDidBecomeActive(_ application: UIApplication) {
         configureAudioSessionForSpeech()
-        application.applicationIconBadgeNumber = 0
+        clearNotificationBadge()
     }
 
     func application(_ application: UIApplication, configurationForConnecting connectingSceneSession: UISceneSession, options: UIScene.ConnectionOptions) -> UISceneConfiguration {

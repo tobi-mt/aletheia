@@ -619,6 +619,8 @@
     "restoringPreferences": "Restaurando preferencias…",
     "finishingSignIn": "Terminando el inicio de sesión…",
     "finishingSignInBody": "Un momento mientras Aletheia abre tu cuenta.",
+    "preparingAccountTitle": "Te damos la bienvenida, {name}",
+    "preparingAccountBody": "Tu cuenta está segura. Aletheia está preparando tu sabiduría, decisiones y preferencias.",
     "inviteCouldNotOpen": "Esta invitación de consejo no pudo abrirse.",
     "challengeInviteCouldNotOpen": "No se pudo abrir esta invitación de práctica compartida.",
     "startingQuestionReady": "Una pregunta inicial personalizada está lista en el campo Compañero.",

@@ -193,6 +193,7 @@ export async function registerNativePushDevice(userId: string, input: NativePush
        build_version = EXCLUDED.build_version,
        push_environment = EXCLUDED.push_environment,
        enabled = TRUE,
+       badge_count = 0,
        last_seen_at = EXCLUDED.last_seen_at,
        last_registered_at = EXCLUDED.last_registered_at,
        updated_at = EXCLUDED.updated_at`,
@@ -413,7 +414,9 @@ async function sendApnsNotification(row: NativePushTargetRow, message: NativePus
         body: message.body,
       },
       sound: "default",
-      badge: Math.min(99, Math.max(1, Number(row.badge_count ?? 0) + 1)),
+      // Aletheia does not maintain a durable unread inbox. Sending a cumulative
+      // badge would restore stale delivery state after an uninstall/reinstall.
+      badge: 0,
     },
     ...payload.data,
   });
@@ -618,7 +621,7 @@ export async function sendNativePushRows(
         await updateNativePushFreshness(
           row.id,
           deliveredAt,
-          row.platform === "ios" ? Math.min(99, Math.max(1, Number(row.badge_count ?? 0) + 1)) : Number(row.badge_count ?? 0)
+          0
         );
       } catch (error) {
         failed += 1;

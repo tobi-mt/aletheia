@@ -619,6 +619,8 @@
     "restoringPreferences": "Ana maido da abubuwan da aka fi so…",
     "finishingSignIn": "Ana kammala shiga…",
     "finishingSignInBody": "Ka ɗan jira, Aletheia na kawo asusunka.",
+    "preparingAccountTitle": "Barka da zuwa, {name}",
+    "preparingAccountBody": "Asusunka yana da tsaro. Aletheia na shirya hikimarka, shawarwarinka da abubuwan da ka fi so.",
     "inviteCouldNotOpen": "Ba za a iya buɗe wannan gayyatar shawara ba.",
     "challengeInviteCouldNotOpen": "Ba a iya buɗe wannan gayyatar aikin tare ba.",
     "startingQuestionReady": "Tambayar farawa ta kai tsaye a shirye take a yankin Abokin tafiya.",

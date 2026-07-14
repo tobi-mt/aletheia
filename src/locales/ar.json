@@ -619,6 +619,8 @@
     "restoringPreferences": "Restaurando preferencias…",
     "finishingSignIn": "جارٍ إنهاء تسجيل الدخول…",
     "finishingSignInBody": "لحظة واحدة بينما تُظهر أليثيا حسابك.",
+    "preparingAccountTitle": "مرحبًا، {name}",
+    "preparingAccountBody": "حسابك آمن. تُعِدّ أليثيا حكمتك وقراراتك وتفضيلاتك.",
     "inviteCouldNotOpen": "تعذر فتح دعوة المستشار هذه.",
     "challengeInviteCouldNotOpen": "تعذر فتح دعوة الممارسة المشتركة هذه.",
     "startingQuestionReady": "سؤال البداية الشخصي جاهز في الإدخال المرافق.",

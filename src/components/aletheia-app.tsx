@@ -195,6 +195,7 @@ type HomeSection = "today" | "ask";
 type ViewIdentity = HomeSection | "decisions" | "reflect" | "library" | "account";
 type AuthMode = "login" | "register";
 type AuthStatus = "checking" | "guest" | "signing-in" | "signed-in" | "signing-out";
+type AuthProvider = "email" | "google" | "apple" | null;
 type AnalyticsMetadata = Record<string, string | number | boolean | null>;
 type ShareChannel = "native" | "copy" | "whatsapp" | "facebook" | "x" | "linkedin" | "email" | "sms";
 type SupportMissionChannel = "stripe" | "paypal" | "bank" | "general" | "contact";
@@ -7726,6 +7727,8 @@ export function AletheiaApp({
   const [authError, setAuthError] = useState("");
   const [authNotice, setAuthNotice] = useState("");
   const [authStatus, setAuthStatus] = useState<AuthStatus>("checking");
+  const [authProvider, setAuthProvider] = useState<AuthProvider>(null);
+  const [authPreparationUser, setAuthPreparationUser] = useState<User | null>(null);
   const [googleAuthAvailable, setGoogleAuthAvailable] = useState(false);
   const appleAuthAvailable = supportsNativeAppleSignIn();
   const [welcomeAuthOpen, setWelcomeAuthOpen] = useState(false);
@@ -9220,7 +9223,6 @@ export function AletheiaApp({
       { context: defaultManualContext }
     );
 
-    setAuthStatus("signed-in");
     if (chatData.messages?.length) {
       setMessages([
         defaultMessages[0],
@@ -9539,7 +9541,7 @@ export function AletheiaApp({
         setShowWelcomeGate(false);
         setWelcomeAuthOpen(false);
         setUser(data.user);
-        setAuthStatus("signed-in");
+        setAuthPreparationUser(data.user);
         
         // Update streak on app load
         try {
@@ -9587,6 +9589,8 @@ export function AletheiaApp({
         traceStartup("aletheia-app:session-restore:workspace:ok", {
           userId: data.user.id ?? null,
         });
+        setAuthStatus("signed-in");
+        setAuthPreparationUser(null);
         const firstName = data.user.name?.split(" ")[0] || data.user.email.split("@")[0];
         const signedInMessage =
           params.get("auth") === "google_new" || params.get("auth") === "apple_new"
@@ -9623,6 +9627,7 @@ export function AletheiaApp({
       } else {
         traceStartup("aletheia-app:session-restore:guest:start");
         setUser(null);
+        setAuthPreparationUser(null);
         setAuthStatus("guest");
         setGratitudeSyncStatus("local");
         const authFailureMessage = getFriendlyAuthError(params);
@@ -9648,6 +9653,7 @@ export function AletheiaApp({
     }
 
     loadSession().catch((error) => {
+      setAuthPreparationUser(null);
       setAuthStatus("guest");
       setStatusMessage(ts("status.guestMode"));
       traceStartupError("aletheia-app:session-restore:error", error, {
@@ -11964,6 +11970,7 @@ function startFirstRunGuestFlow() {
     trackClientEvent("auth_signin_started", { method: "email", flow: authMode });
     setIsWorking(true);
     setAuthStatus("signing-in");
+    setAuthProvider("email");
     setAuthError("");
     setAuthNotice(ts('auth.signingIn'));
 
@@ -12005,16 +12012,18 @@ function startFirstRunGuestFlow() {
       setShowWelcomeGate(false);
       setWelcomeAuthOpen(false);
       setUser(data.user);
-      setAuthStatus("signed-in");
+      setAuthPreparationUser(data.user);
       const firstName = data.user.name?.split(" ")[0] || data.user.email.split("@")[0];
       const successMessage =
         data.welcomeMessage ??
         (authMode === "register"
           ? ts("auth.welcomeToAletheiaReady").replace("{name}", firstName)
           : ts("auth.welcomeBackMemoryReady").replace("{name}", firstName));
-      void loadSignedInWorkspace(data.user).catch((workspaceError) => {
+      await loadSignedInWorkspace(data.user).catch((workspaceError) => {
         console.error("Workspace hydration after auth failed:", workspaceError);
       });
+      setAuthStatus("signed-in");
+      setAuthPreparationUser(null);
       setStatusMessage(successMessage);
       setAuthNotice(successMessage);
       announceWorkflow(authMode === "register" ? ts('notifications.accountCreated') : ts('notifications.signedIn'), successMessage, "success");
@@ -12042,6 +12051,7 @@ function startFirstRunGuestFlow() {
       setOnboardingPath(needsAccountOnboarding ? "account" : null);
       setShowOnboarding(needsAccountOnboarding);
     } catch (error) {
+      setAuthPreparationUser(null);
       setAuthStatus("guest");
       const message = error instanceof Error ? error.message : ts('auth.authenticationFailed');
       const failureMetadata: AnalyticsMetadata = {
@@ -12075,6 +12085,7 @@ function startFirstRunGuestFlow() {
       trackAuthFailure(failureMetadata);
       announceWorkflow(ts('notifications.signInNotFinish'), message, "error");
     } finally {
+      setAuthProvider(null);
       setIsWorking(false);
     }
   }
@@ -12120,6 +12131,7 @@ function startFirstRunGuestFlow() {
       return;
     }
     setAuthStatus("signing-in");
+    setAuthProvider("google");
     trackClientEvent("auth_signin_started", { method: "google", flow: "oauth_start" });
     setAuthError("");
     setAuthNotice(ts('notifications.openingGoogleBody'));
@@ -12171,6 +12183,7 @@ function startFirstRunGuestFlow() {
         reason: "start_failed",
       });
       setAuthStatus("guest");
+      setAuthProvider(null);
       setAuthError(message);
       setAuthNotice("");
       setStatusMessage(message);
@@ -12181,6 +12194,7 @@ function startFirstRunGuestFlow() {
   async function handleAppleSignIn() {
     if (!appleAuthAvailable) return;
     setAuthStatus("signing-in");
+    setAuthProvider("apple");
     setAuthError("");
     setAuthNotice(ts("auth.openingApple"));
     trackClientEvent("auth_signin_started", { method: "apple", flow: "native" });
@@ -12204,6 +12218,7 @@ function startFirstRunGuestFlow() {
       const cancelled = error instanceof Error && error.message.includes("AUTH_CANCELLED");
       const message = cancelled ? ts("auth.appleSigninCancelled") : ts("auth.appleSigninFailed");
       setAuthStatus("guest");
+      setAuthProvider(null);
       setAuthError(message);
       setAuthNotice("");
       announceWorkflow(ts("notifications.signInNotFinish"), message, cancelled ? "info" : "error");
@@ -13900,13 +13915,38 @@ function startFirstRunGuestFlow() {
   }
 
   if (authStatus === "checking") {
+    const preparationName = authPreparationUser?.name?.trim().split(/\s+/).filter(Boolean)[0]
+      || authPreparationUser?.email?.trim().split("@")[0]
+      || "";
     return (
       <StartupSplash
         language={startupLanguage}
         theme={theme}
         resolvedTheme={resolvedTheme}
-        title={isReturningFromSocialAuth ? ts("status.finishingSignIn") : undefined}
-        body={isReturningFromSocialAuth ? ts("status.finishingSignInBody") : undefined}
+        title={authPreparationUser
+          ? ts("status.preparingAccountTitle").replace("{name}", preparationName)
+          : isReturningFromSocialAuth
+            ? ts("status.finishingSignIn")
+            : undefined}
+        body={authPreparationUser
+          ? ts("status.preparingAccountBody")
+          : isReturningFromSocialAuth
+            ? ts("status.finishingSignInBody")
+            : undefined}
+      />
+    );
+  }
+
+  if (authStatus === "signing-in" && authPreparationUser) {
+    const preparationName = authPreparationUser.name?.trim().split(/\s+/).filter(Boolean)[0]
+      || authPreparationUser.email.trim().split("@")[0];
+    return (
+      <StartupSplash
+        language={startupLanguage}
+        theme={theme}
+        resolvedTheme={resolvedTheme}
+        title={ts("status.preparingAccountTitle").replace("{name}", preparationName)}
+        body={ts("status.preparingAccountBody")}
       />
     );
   }
@@ -14345,6 +14385,7 @@ function startFirstRunGuestFlow() {
                       error={authError}
                       notice={authNotice}
                       authStatus={authStatus}
+                      authProvider={authProvider}
                       googleAuthAvailable={googleAuthAvailable}
                       appleAuthAvailable={appleAuthAvailable}
                       status={statusMessage}
@@ -14469,6 +14510,7 @@ function startFirstRunGuestFlow() {
         googleAuthAvailable={googleAuthAvailable}
         appleAuthAvailable={appleAuthAvailable}
         authStatus={authStatus}
+        authProvider={authProvider}
         authError={authError}
         inviteContextActive={Boolean(challengeInviteToken || counselInviteToken)}
         onCreateAccount={() => startFirstRunAuthFlow("register")}
@@ -14496,6 +14538,7 @@ function startFirstRunGuestFlow() {
         authError={authError}
         authNotice={authNotice}
         authStatus={authStatus}
+        authProvider={authProvider}
         googleAuthAvailable={googleAuthAvailable}
         appleAuthAvailable={appleAuthAvailable}
         isWorking={isWorking}
@@ -14561,6 +14604,7 @@ function startFirstRunGuestFlow() {
         authError={authError}
         authNotice={authNotice}
         authStatus={authStatus}
+        authProvider={authProvider}
         googleAuthAvailable={googleAuthAvailable}
         appleAuthAvailable={appleAuthAvailable}
         isWorking={isWorking}
@@ -14616,6 +14660,7 @@ function startFirstRunGuestFlow() {
         authError={authError}
         authNotice={authNotice}
         authStatus={authStatus}
+        authProvider={authProvider}
         googleAuthAvailable={googleAuthAvailable}
         appleAuthAvailable={appleAuthAvailable}
         isWorking={isWorking}
@@ -17564,6 +17609,7 @@ function AccountPanel({
   error,
   notice,
   authStatus,
+  authProvider,
   googleAuthAvailable,
   appleAuthAvailable,
   status,
@@ -17636,6 +17682,7 @@ function AccountPanel({
   error: string;
   notice: string;
   authStatus: AuthStatus;
+  authProvider: AuthProvider;
   googleAuthAvailable: boolean;
   appleAuthAvailable: boolean;
   status: string;
@@ -17840,6 +17887,7 @@ function AccountPanel({
                 error={error}
                 notice={notice}
                 authStatus={authStatus}
+                authProvider={authProvider}
                 googleAuthAvailable={googleAuthAvailable}
                 appleAuthAvailable={appleAuthAvailable}
                 status={status}
@@ -23464,6 +23512,7 @@ function WelcomeGateScreen({
   googleAuthAvailable,
   appleAuthAvailable,
   authStatus,
+  authProvider,
   authError,
   inviteContextActive,
   onSignIn,
@@ -23479,6 +23528,7 @@ function WelcomeGateScreen({
   googleAuthAvailable: boolean;
   appleAuthAvailable: boolean;
   authStatus: AuthStatus;
+  authProvider: AuthProvider;
   authError: string;
   inviteContextActive: boolean;
   onSignIn: () => void;
@@ -23574,7 +23624,7 @@ function WelcomeGateScreen({
                       className="flex h-11 w-full items-center justify-center rounded-full border px-4 text-sm font-semibold transition disabled:cursor-wait disabled:opacity-60"
                       style={{ borderColor: theme.borderMedium, backgroundColor: "#000", color: "#fff" }}
                     >
-                      {authStatus === "signing-in" ? ts("auth.openingApple") : ts("auth.continueWithApple")}
+                      {authProvider === "apple" ? ts("auth.openingApple") : ts("auth.continueWithApple")}
                     </button>
                   ) : null}
                   {googleAuthAvailable ? (
@@ -23674,6 +23724,7 @@ function WelcomeAuthModal({
   authError,
   authNotice,
   authStatus,
+  authProvider,
   googleAuthAvailable,
   appleAuthAvailable,
   isWorking,
@@ -23699,6 +23750,7 @@ function WelcomeAuthModal({
   authError: string;
   authNotice: string;
   authStatus: AuthStatus;
+  authProvider: AuthProvider;
   googleAuthAvailable: boolean;
   appleAuthAvailable: boolean;
   isWorking: boolean;
@@ -23773,7 +23825,7 @@ function WelcomeAuthModal({
                 className="inline-flex h-11 w-full items-center justify-center rounded-full border px-4 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60"
                 style={{ borderColor: "#000", backgroundColor: "#000", color: "#fff" }}
               >
-                {authStatus === "signing-in" ? ts("auth.openingApple") : ts("auth.continueWithApple")}
+                {authProvider === "apple" ? ts("auth.openingApple") : ts("auth.continueWithApple")}
               </button>
             ) : null}
             {googleAuthAvailable ? (
@@ -23784,7 +23836,7 @@ function WelcomeAuthModal({
                 className="inline-flex h-11 w-full items-center justify-center rounded-full border px-4 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60"
                 style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
               >
-                {authStatus === "signing-in" ? ts("auth.openingGoogle") : ts("auth.continueWithGoogle")}
+                {authProvider === "google" ? ts("auth.openingGoogle") : ts("auth.continueWithGoogle")}
               </button>
             ) : null}
 
@@ -23832,7 +23884,7 @@ function WelcomeAuthModal({
                 className="h-10 rounded-md px-4 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60 sm:col-span-2"
                 style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
               >
-                {authStatus === "signing-in" ? ts("labels.working") : authMode === "register" ? ts("auth.create") : ts("auth.signIn")}
+                {authProvider === "email" ? ts("labels.working") : authMode === "register" ? ts("auth.create") : ts("auth.signIn")}
               </button>
             </form>
 
@@ -24611,6 +24663,7 @@ function AuthPanel({
   error,
   notice,
   authStatus,
+  authProvider,
   googleAuthAvailable,
   appleAuthAvailable,
   status,
@@ -24634,6 +24687,7 @@ function AuthPanel({
   error: string;
   notice: string;
   authStatus: AuthStatus;
+  authProvider: AuthProvider;
   googleAuthAvailable: boolean;
   appleAuthAvailable: boolean;
   status: string;
@@ -24688,7 +24742,7 @@ function AuthPanel({
             disabled={authBusy}
             onClick={onAppleSignIn}
           >
-            {authStatus === "signing-in" ? ts("auth.openingApple") : ts("auth.continueWithApple")}
+            {authProvider === "apple" ? ts("auth.openingApple") : ts("auth.continueWithApple")}
           </button>
         </div>
       ) : null}
@@ -24743,7 +24797,7 @@ function AuthPanel({
                   className="inline-flex h-10 items-center justify-center rounded-full border px-4 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60"
                   style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
                 >
-                  {authStatus === "signing-in" ? ts('auth.openingGoogle') : ts('auth.continueWithGoogle')}
+                  {authProvider === "google" ? ts('auth.openingGoogle') : ts('auth.continueWithGoogle')}
                 </button>
                 <div className="flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
                   <span className="h-px flex-1" style={{ backgroundColor: theme.borderLight }} />
@@ -24796,7 +24850,7 @@ function AuthPanel({
               className="h-10 rounded-md px-4 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60 sm:col-span-2"
               style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
             >
-              {authStatus === "signing-in" ? ts('labels.working') : authMode === "register" ? ts('auth.create') : ts('auth.signIn')}
+              {authProvider === "email" ? ts('labels.working') : authMode === "register" ? ts('auth.create') : ts('auth.signIn')}
             </button>
             <div className="sm:col-span-2 flex flex-wrap items-center gap-3">
               <button
@@ -27482,6 +27536,7 @@ function CounselInviteModal({
   authError,
   authNotice,
   authStatus,
+  authProvider,
   googleAuthAvailable,
   appleAuthAvailable,
   isWorking,
@@ -27515,6 +27570,7 @@ function CounselInviteModal({
   authError: string;
   authNotice: string;
   authStatus: AuthStatus;
+  authProvider: AuthProvider;
   googleAuthAvailable: boolean;
   appleAuthAvailable: boolean;
   isWorking: boolean;
@@ -27616,12 +27672,12 @@ function CounselInviteModal({
                     </RailButtonTray>
                     {appleAuthAvailable ? (
                       <button className="h-11 w-full rounded-full border px-4 text-sm font-semibold" style={{ borderColor: "#000", backgroundColor: "#000", color: "#fff" }} disabled={authBusy} onClick={onAppleSignIn}>
-                        {authStatus === "signing-in" ? ts("auth.openingApple") : ts("auth.continueWithApple")}
+                        {authProvider === "apple" ? ts("auth.openingApple") : ts("auth.continueWithApple")}
                       </button>
                     ) : null}
                     {googleAuthAvailable ? (
                       <button className="h-11 w-full rounded-full border px-4 text-sm font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} disabled={authBusy} onClick={onGoogleSignIn}>
-                        {authStatus === "signing-in" ? ts("auth.openingGoogle") : ts("auth.continueWithGoogle")}
+                        {authProvider === "google" ? ts("auth.openingGoogle") : ts("auth.continueWithGoogle")}
                       </button>
                     ) : null}
                     <div className="flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>
@@ -27673,7 +27729,7 @@ function CounselInviteModal({
                         className="h-10 rounded-md px-4 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60 sm:col-span-2"
                         style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
                       >
-                        {authStatus === "signing-in" ? ts("labels.working") : authMode === "register" ? ts("auth.create") : ts("auth.signIn")}
+                        {authProvider === "email" ? ts("labels.working") : authMode === "register" ? ts("auth.create") : ts("auth.signIn")}
                       </button>
                     </form>
                     {authNotice ? (
@@ -27825,6 +27881,7 @@ function ChallengeInviteModal({
   authError,
   authNotice,
   authStatus,
+  authProvider,
   googleAuthAvailable,
   appleAuthAvailable,
   isWorking,
@@ -27858,6 +27915,7 @@ function ChallengeInviteModal({
   authError: string;
   authNotice: string;
   authStatus: AuthStatus;
+  authProvider: AuthProvider;
   googleAuthAvailable: boolean;
   appleAuthAvailable: boolean;
   isWorking: boolean;
@@ -28243,12 +28301,12 @@ function ChallengeInviteModal({
                   </div>
                   {appleAuthAvailable ? (
                     <button className="h-11 w-full rounded-full border px-4 text-sm font-semibold" style={{ borderColor: "#000", backgroundColor: "#000", color: "#fff" }} disabled={authBusy} onClick={onAppleSignIn}>
-                      {authStatus === "signing-in" ? ts("auth.openingApple") : ts("auth.continueWithApple")}
+                      {authProvider === "apple" ? ts("auth.openingApple") : ts("auth.continueWithApple")}
                     </button>
                   ) : null}
                   {googleAuthAvailable ? (
                     <button className="h-11 w-full rounded-full border px-4 text-sm font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} disabled={authBusy} onClick={onGoogleSignIn}>
-                      {authStatus === "signing-in" ? ts("auth.openingGoogle") : ts("auth.continueWithGoogle")}
+                      {authProvider === "google" ? ts("auth.openingGoogle") : ts("auth.continueWithGoogle")}
                     </button>
                   ) : null}
                   <form className="grid gap-2 sm:grid-cols-2" onSubmit={onSubmitAuth}>
@@ -28295,7 +28353,7 @@ function ChallengeInviteModal({
                       className="h-10 rounded-md px-4 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60 sm:col-span-2"
                       style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
                     >
-                      {authStatus === "signing-in" ? ts("labels.working") : authMode === "register" ? ts("auth.create") : ts("auth.signIn")}
+                      {authProvider === "email" ? ts("labels.working") : authMode === "register" ? ts("auth.create") : ts("auth.signIn")}
                     </button>
                   </form>
                   <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
@@ -28355,12 +28413,12 @@ function ChallengeInviteModal({
                   </div>
                   {appleAuthAvailable ? (
                     <button className="h-11 w-full rounded-full border px-4 text-sm font-semibold" style={{ borderColor: "#000", backgroundColor: "#000", color: "#fff" }} disabled={authBusy} onClick={onAppleSignIn}>
-                      {authStatus === "signing-in" ? ts("auth.openingApple") : ts("auth.continueWithApple")}
+                      {authProvider === "apple" ? ts("auth.openingApple") : ts("auth.continueWithApple")}
                     </button>
                   ) : null}
                   {googleAuthAvailable ? (
                     <button className="h-11 w-full rounded-full border px-4 text-sm font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} disabled={authBusy} onClick={onGoogleSignIn}>
-                      {authStatus === "signing-in" ? ts("auth.openingGoogle") : ts("auth.continueWithGoogle")}
+                      {authProvider === "google" ? ts("auth.openingGoogle") : ts("auth.continueWithGoogle")}
                     </button>
                   ) : null}
                   {showOpenInApp ? (

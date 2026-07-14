@@ -619,6 +619,8 @@
     "restoringPreferences": "Einstellungen werden wiederhergestellt…",
     "finishingSignIn": "Anmeldung wird abgeschlossen…",
     "finishingSignInBody": "Einen Moment noch, Aletheia ruft dein Konto auf.",
+    "preparingAccountTitle": "Willkommen, {name}",
+    "preparingAccountBody": "Dein Konto ist sicher. Aletheia bereitet deine Weisheit, Entscheidungen und Einstellungen vor.",
     "inviteCouldNotOpen": "Diese Ratgebereinladung konnte nicht geöffnet werden.",
     "challengeInviteCouldNotOpen": "Diese Einladung zur gemeinsamen Praxis konnte nicht geöffnet werden.",
     "startingQuestionReady": "Eine persönliche Startfrage ist im Begleiter-Feld bereit.",

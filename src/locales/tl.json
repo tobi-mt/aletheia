@@ -619,6 +619,8 @@
     "restoringPreferences": "Ibinabalik ang mga kagustuhan…",
     "finishingSignIn": "Tinatapos ang pag-sign in…",
     "finishingSignInBody": "Sandali lang habang inilalabas ni Aletheia ang account mo.",
+    "preparingAccountTitle": "Maligayang pagdating, {name}",
+    "preparingAccountBody": "Ligtas ang account mo. Inihahanda ng Aletheia ang iyong karunungan, mga desisyon, at mga kagustuhan.",
     "inviteCouldNotOpen": "Ang imbitasyon ng payo na ito ay hindi mabuksan.",
     "challengeInviteCouldNotOpen": "Hindi mabuksan ang imbitasyon sa pinagsasaluhang pagsasanay na ito.",
     "startingQuestionReady": "Ang isang personal na panimulang tanong ay handa na sa Kasamang input.",

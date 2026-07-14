@@ -47,6 +47,20 @@ test("every rendered Google sign-in option has an Apple peer on iOS", async () =
   assert.equal(appleButtons, googleButtons);
 });
 
+test("OAuth buttons show progress only for the provider being used", async () => {
+  const client = await read("src/components/aletheia-app.tsx");
+
+  assert.match(client, /type AuthProvider = "email" \| "google" \| "apple" \| null/);
+  assert.match(client, /setAuthProvider\("google"\)/);
+  assert.match(client, /setAuthProvider\("apple"\)/);
+  assert.doesNotMatch(
+    client,
+    /authStatus === ["']signing-in["'] \? ts\(["']auth\.opening(?:Apple|Google)["']\)/
+  );
+  assert.match(client, /authProvider === "apple" \? ts\("auth\.openingApple"\)/);
+  assert.match(client, /authProvider === "google" \? ts\(['"]auth\.openingGoogle['"]\)/);
+});
+
 test("Sign in with Apple capability and callback scheme are configured", async () => {
   const entitlements = await read("ios/App/App/App.entitlements");
   const info = await read("ios/App/App/Info.plist");
@@ -121,18 +135,22 @@ test("APNs transport handles HTTP2 session resets and timeouts", async () => {
   assert.match(nativePush, /if \(settled\)/);
 });
 
-test("native notification badges increment on delivery and clear when iOS becomes active", async () => {
+test("native notification badges cannot survive an iOS reinstall or device re-registration", async () => {
   const nativePush = await read("src/lib/native-push.ts");
   const nativeRoute = await read("src/app/api/notifications/native/route.ts");
   const client = await read("src/components/aletheia-app.tsx");
   const appDelegate = await read("ios/App/App/AppDelegate.swift");
-  assert.match(nativePush, /badge:\s*Math\.min\(99/);
+  assert.match(nativePush, /enabled = TRUE,\s+badge_count = 0,/);
+  assert.match(nativePush, /badge:\s*0/);
+  assert.doesNotMatch(nativePush, /badge:\s*Math\.min\(99/);
   assert.match(nativePush, /SET badge_count = 0/);
   assert.match(nativeRoute, /export async function PATCH/);
   assert.match(nativeRoute, /cleared: false, reason: "not_signed_in"/);
   assert.match(client, /removeAllDeliveredNotifications/);
   assert.match(client, /App\.addListener\("appStateChange"/);
-  assert.match(appDelegate, /applicationIconBadgeNumber = 0/);
+  assert.match(appDelegate, /didFinishLaunchingWithOptions[\s\S]*?clearNotificationBadge\(\)/);
+  assert.match(appDelegate, /removeAllDeliveredNotifications\(\)/);
+  assert.match(appDelegate, /setBadgeCount\(0\)/);
 });
 
 test("session checks stay on the splash instead of flashing the welcome gate", async () => {
@@ -148,10 +166,27 @@ test("successful authentication cannot reveal logged-out surfaces during workspa
 
   const emailAuth = client.slice(client.indexOf("async function handleAuth"), client.indexOf("async function handleLogout"));
   assert.ok(emailAuth.indexOf("setShowWelcomeGate(false)") < emailAuth.indexOf('setAuthStatus("signed-in")'));
-  assert.match(emailAuth, /void loadSignedInWorkspace\(data\.user\)/);
+  assert.match(emailAuth, /await loadSignedInWorkspace\(data\.user\)/);
 
   const sessionRestore = client.slice(client.indexOf("if (data.user) {"), client.indexOf("} else {", client.indexOf("if (data.user) {")));
   assert.ok(sessionRestore.indexOf("setShowWelcomeGate(false)") < sessionRestore.indexOf('setAuthStatus("signed-in")'));
+});
+
+test("authenticated users remain on a translated preparation splash until hydration completes", async () => {
+  const client = await read("src/components/aletheia-app.tsx");
+  const sessionRestore = client.slice(
+    client.indexOf("if (data.user) {"),
+    client.indexOf("} else {", client.indexOf("if (data.user) {"))
+  );
+  const emailAuth = client.slice(client.indexOf("async function handleAuth"), client.indexOf("async function logout"));
+
+  assert.match(client, /const \[authPreparationUser, setAuthPreparationUser\] = useState<User \| null>\(null\)/);
+  assert.match(client, /ts\("status\.preparingAccountTitle"\)\.replace\("\{name\}", preparationName\)/);
+  assert.match(client, /ts\("status\.preparingAccountBody"\)/);
+  assert.ok(sessionRestore.indexOf("setAuthPreparationUser(data.user)") < sessionRestore.indexOf("await loadSignedInWorkspace(data.user)"));
+  assert.ok(sessionRestore.indexOf("await loadSignedInWorkspace(data.user)") < sessionRestore.indexOf('setAuthStatus("signed-in")'));
+  assert.ok(emailAuth.indexOf("setAuthPreparationUser(data.user)") < emailAuth.indexOf("await loadSignedInWorkspace(data.user)"));
+  assert.ok(emailAuth.indexOf("await loadSignedInWorkspace(data.user)") < emailAuth.indexOf('setAuthStatus("signed-in")'));
 });
 
 test("native Google return marks the reload as an in-progress auth completion", async () => {

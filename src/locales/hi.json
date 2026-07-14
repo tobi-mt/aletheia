@@ -619,6 +619,8 @@
     "restoringPreferences": "वरीयताएँ पुनर्स्थापित की जा रही हैं…",
     "finishingSignIn": "साइन-इन पूरा किया जा रहा है…",
     "finishingSignInBody": "एक क्षण, Aletheia आपका खाता सामने ला रहा है।",
+    "preparingAccountTitle": "स्वागत है, {name}",
+    "preparingAccountBody": "आपका खाता सुरक्षित है। Aletheia आपकी बुद्धिमत्ता, निर्णय और प्राथमिकताएँ तैयार कर रहा है।",
     "inviteCouldNotOpen": "यह परामर्श आमंत्रण खोला नहीं जा सका.",
     "challengeInviteCouldNotOpen": "यह साझा अभ्यास आमंत्रण खोला नहीं जा सका।",
     "startingQuestionReady": "कंपेनियन इनपुट में एक व्यक्तिगत प्रारंभिक प्रश्न तैयार है।",
