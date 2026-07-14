@@ -334,6 +334,10 @@ button, [role="button"] {
     inset 0 -1px 0 rgba(0, 0, 0, 0.28);
 }
 
+html[data-keyboard-open="true"] .app-bottom-nav {
+  display: none;
+}
+
 .app-bottom-nav::before,
 .app-bottom-nav::after {
   content: "";

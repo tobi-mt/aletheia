@@ -109,6 +109,7 @@ export function getTranslation(
   key: string,
   fallback?: string
 ): string | string[] {
+  const safeFallback = fallback ?? "";
   const keys = key.split('.');
   let value: TranslationValue | undefined = translations;
   
@@ -116,7 +117,7 @@ export function getTranslation(
     if (value && typeof value === 'object' && !Array.isArray(value)) {
       value = value[k];
     } else {
-      return fallback || key;
+      return safeFallback;
     }
   }
   
@@ -124,7 +125,7 @@ export function getTranslation(
     return value;
   }
 
-  return fallback || key;
+  return safeFallback;
 }
 
 /**
@@ -188,9 +189,10 @@ export function calculateCoverage(
   masterTranslations: TranslationData
 ): number {
   const allKeys = getAllKeys(masterTranslations);
+  const missingToken = "__aletheia_missing_translation__";
   const translatedKeys = allKeys.filter((key) => {
-    const value = getTranslation(targetTranslations, key);
-    return value !== key && value !== undefined && value !== null;
+    const value = getTranslation(targetTranslations, key, missingToken);
+    return value !== missingToken;
   });
   
   return (translatedKeys.length / allKeys.length) * 100;
@@ -223,9 +225,10 @@ export function getMissingKeys(
   masterTranslations: TranslationData
 ): string[] {
   const allKeys = getAllKeys(masterTranslations);
+  const missingToken = "__aletheia_missing_translation__";
   return allKeys.filter((key) => {
-    const value = getTranslation(targetTranslations, key);
-    return value === key || value === undefined || value === null;
+    const value = getTranslation(targetTranslations, key, missingToken);
+    return value === missingToken;
   });
 }
 

@@ -8209,7 +8209,9 @@ export function AletheiaApp({
 
   const translationHelpers = useMemo(() => {
     const missingTranslationToken = "__aletheia_missing_translation__";
-    const resolveFallback = (key: string, fallback?: string) => fallback?.trim() ? fallback : key;
+    // Missing copy must fail closed. A blank optional label is safer than ever
+    // exposing an internal translation identifier in production UI.
+    const resolveFallback = (_key: string, fallback?: string) => fallback?.trim() ? fallback : "";
     const assertLocaleKeyExistsInDev = (key: string, fallback?: string) => {
       // Development throws loudly so we can catch missing locale coverage early.
       // Production still uses the merged English fallback by design to avoid user-facing breakage.
@@ -8703,7 +8705,9 @@ export function AletheiaApp({
       (element instanceof HTMLElement && element.isContentEditable === true);
 
     const syncKeyboardOpenState = () => {
-      keyboardOpenRef.current = isEditableElement(document.activeElement);
+      const keyboardOpen = isEditableElement(document.activeElement);
+      keyboardOpenRef.current = keyboardOpen;
+      document.documentElement.dataset.keyboardOpen = keyboardOpen ? "true" : "false";
     };
 
     const handleFocusOut = () => {
@@ -8717,9 +8721,10 @@ export function AletheiaApp({
     const updateViewportChrome = () => {
       const isEditable = isEditableElement(document.activeElement);
 
-      // Keep the shell stable while the keyboard is open so mobile typing doesn't
-      // reflow the whole app on every viewport tick.
       if (isEditable || keyboardOpenRef.current) {
+        window.requestAnimationFrame(() => {
+          (document.activeElement as HTMLElement | null)?.scrollIntoView({ block: "center", behavior: "smooth" });
+        });
         return;
       }
 
@@ -13922,8 +13927,8 @@ function startFirstRunGuestFlow() {
         language={startupLanguage}
         theme={theme}
         resolvedTheme={resolvedTheme}
-        title={ts("status.accountDeletedFarewellTitle")}
-        body={ts("status.accountDeletedFarewellBody")}
+        title={ts("notifications.accountDeletedFarewellTitle")}
+        body={ts("notifications.accountDeletedFarewellBody")}
         tone="complete"
         onComplete={() => {
           setShowAccountDeletedFarewell(false);
@@ -14926,13 +14931,15 @@ function StartupSplash({
 
   return (
     <main
-      className={`app-shell min-h-screen overflow-hidden ${resolvedTheme === "dark" || resolvedTheme === "black" ? "theme-dark-root" : ""}`}
-      style={{ backgroundColor: theme.bgMain, color: theme.textPrimary, minHeight: "100svh" }}
+      className={`relative min-h-[100dvh] overflow-hidden ${resolvedTheme === "dark" || resolvedTheme === "black" ? "theme-dark-root" : ""}`}
+      style={{ backgroundColor: theme.bgMain, color: theme.textPrimary }}
     >
       <div className={`fixed inset-0 -z-10 ${theme.bgGradient}`} style={{ backgroundColor: theme.bgMain }} />
       <div
-        className="flex min-h-screen items-center justify-center px-6"
+        className="flex min-h-[100dvh] items-center justify-center px-6"
         style={{
+          paddingTop: "max(env(safe-area-inset-top, 0px), 1rem)",
+          paddingBottom: "max(env(safe-area-inset-bottom, 0px), 1rem)",
           backgroundImage: resolvedTheme === "black"
             ? "radial-gradient(circle at 20% 15%, rgba(214, 180, 93, 0.22), rgba(0, 0, 0, 0) 42%), radial-gradient(circle at 80% 80%, rgba(214, 180, 93, 0.08), rgba(0, 0, 0, 0) 30%)"
             : resolvedTheme === "dark"
@@ -25831,7 +25838,7 @@ function DeleteAccountModal({
           maxHeight: visualViewportFrame ? Math.max(240, visualViewportFrame.height - 24) : "calc(100dvh - 1.5rem)",
         }}
       >
-        <div className="relative flex items-start gap-3 pr-12 sm:pr-14">
+        <div className="relative flex items-start gap-3 pr-16">
           <div className="min-w-0">
               <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.deleteAccount')}</p>
               <h2 className="mt-1.5 text-lg font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.deleteAccountTitle')}</h2>
@@ -25844,7 +25851,7 @@ function DeleteAccountModal({
               </p>
               ) : null}
             </div>
-            <ModalCornerCloseButton onClick={cancel} theme={theme} ariaLabel={ts('labels.close')} className="size-9" />
+            <ModalCornerCloseButton onClick={cancel} theme={theme} ariaLabel={ts('labels.close')} className="!right-0 !top-0 size-9" />
           </div>
 
           <form
@@ -29024,7 +29031,10 @@ function CompanionPanel({
                   color: theme.textPrimary,
                   boxShadow: `0 10px 22px color-mix(in srgb, ${theme.primary} 8%, transparent)`,
                 }}
-                onFocus={(e) => e.currentTarget.style.borderColor = theme.primary}
+                onFocus={(e) => {
+                  e.currentTarget.style.borderColor = theme.primary;
+                  window.requestAnimationFrame(() => e.currentTarget.scrollIntoView({ block: "center", behavior: "smooth" }));
+                }}
                 onBlur={(e) => e.currentTarget.style.borderColor = theme.borderStrong}
               />
             </div>
