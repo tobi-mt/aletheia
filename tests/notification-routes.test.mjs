@@ -294,6 +294,10 @@ test("daily notification cron sends pending decisions before the other jobs", as
     trackEvent: async (event) => {
       calls.events.push(event);
     },
+    claimNotificationCronWindow: async () => ({ claimed: true, windowKey: "2026-07-07T09" }),
+    completeNotificationCronWindow: async (windowKey) => {
+      sequence.push(`complete:${windowKey}`);
+    },
     now: () => new Date("2026-07-07T09:30:00.000Z"),
   };
 
@@ -336,10 +340,56 @@ test("daily notification cron sends pending decisions before the other jobs", as
       "decision:2026-07-07T09:30:00.000Z",
       "wisdom:2026-07-07T09:30:00.000Z",
       "challenge:2026-07-07T09:30:00.000Z",
+      "complete:2026-07-07T09",
     ]);
     assert.equal(calls.events.length, 1);
     assert.equal(calls.events[0].eventName, "notification_daily_checked");
     assert.equal(calls.events[0].metadata.decisionAttempted, 2);
+  } finally {
+    process.env.NOTIFICATION_CRON_SECRET = previousSecret;
+  }
+});
+
+test("daily notification cron skips an already claimed hourly window", async () => {
+  const calls = createCallLog();
+  const deps = {
+    recordDailyNotificationUnauthorizedHit: async () => {
+      calls.unauthorizedHits += 1;
+    },
+    claimNotificationCronWindow: async () => ({ claimed: false, windowKey: "2026-07-07T09" }),
+    completeNotificationCronWindow: async () => {
+      assert.fail("a skipped window must not be completed twice");
+    },
+    sendPendingDecisionNotifications: async () => {
+      assert.fail("duplicate cron runs must not send decision notifications");
+    },
+    sendDailyWisdomNotifications: async () => {
+      assert.fail("duplicate cron runs must not send daily notifications");
+    },
+    sendChallengeReminders: async () => {
+      assert.fail("duplicate cron runs must not send challenge notifications");
+    },
+    trackEvent: async (event) => {
+      calls.events.push(event);
+    },
+    now: () => new Date("2026-07-07T09:45:00.000Z"),
+  };
+
+  const previousSecret = process.env.NOTIFICATION_CRON_SECRET;
+  process.env.NOTIFICATION_CRON_SECRET = "cron-secret";
+  try {
+    const response = await runDailyNotifications(
+      new Request("http://localhost/api/notifications/daily?secret=cron-secret"),
+      deps
+    );
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), {
+      ok: true,
+      skippedDuplicateRun: true,
+      windowKey: "2026-07-07T09",
+    });
+    assert.equal(calls.events.length, 0);
   } finally {
     process.env.NOTIFICATION_CRON_SECRET = previousSecret;
   }

@@ -44,6 +44,12 @@ export async function sendCounselCommentNotifications() {
 
 export async function recordDailyNotificationUnauthorizedHit() {}
 
+export async function claimNotificationCronWindow() {
+  return { claimed: true, windowKey: "test-window" };
+}
+
+export async function completeNotificationCronWindow() {}
+
 export async function sendPendingDecisionNotifications() {
   return {
     attempted: 0,

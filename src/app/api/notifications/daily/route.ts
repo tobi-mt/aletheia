@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { trackEvent } from "@/lib/analytics";
 import {
+  claimNotificationCronWindow,
+  completeNotificationCronWindow,
   recordDailyNotificationUnauthorizedHit,
   sendChallengeReminders,
   sendDailyWisdomNotifications,
@@ -31,6 +33,8 @@ export type DailyNotificationRouteDeps = {
   sendDailyWisdomNotifications: typeof sendDailyWisdomNotifications;
   sendChallengeReminders: typeof sendChallengeReminders;
   trackEvent: typeof trackEvent;
+  claimNotificationCronWindow: typeof claimNotificationCronWindow;
+  completeNotificationCronWindow: typeof completeNotificationCronWindow;
   now: () => Date;
 };
 
@@ -40,18 +44,31 @@ export const dailyNotificationRouteDeps: DailyNotificationRouteDeps = {
   sendDailyWisdomNotifications,
   sendChallengeReminders,
   trackEvent,
+  claimNotificationCronWindow,
+  completeNotificationCronWindow,
   now: () => new Date(),
 };
 
-export async function runDailyNotifications(request: Request, deps: DailyNotificationRouteDeps = dailyNotificationRouteDeps) {
-  const secret = process.env.NOTIFICATION_CRON_SECRET;
+type DailyNotificationPipelineMetadata = {
+  legacyRoute?: boolean;
+  deprecationNotice?: string;
+};
 
-  if (!secret || !hasValidSecret(request)) {
-    await deps.recordDailyNotificationUnauthorizedHit().catch(() => undefined);
-    return apiError(401, "permission_denied", "Unauthorized.");
+export async function executeDailyNotificationPipeline(
+  now: Date,
+  deps: DailyNotificationRouteDeps = dailyNotificationRouteDeps,
+  metadata: DailyNotificationPipelineMetadata = {}
+) {
+  const claim = await deps.claimNotificationCronWindow(now);
+  if (!claim.claimed) {
+    return NextResponse.json({
+      ok: true,
+      skippedDuplicateRun: true,
+      windowKey: claim.windowKey,
+      ...metadata,
+    });
   }
 
-  const now = deps.now();
   const decisionResult = await deps.sendPendingDecisionNotifications(now).catch(() => ({
     attempted: 0,
     sent: 0,
@@ -88,9 +105,23 @@ export async function runDailyNotifications(request: Request, deps: DailyNotific
       challengeSent: challengeResult.sent,
       challengeFailed: challengeResult.failed,
       challengeSuggested: challengeResult.suggested,
+      ...(metadata.legacyRoute ? { legacyRoute: true } : {}),
     },
   }).catch(() => undefined);
-  return NextResponse.json({ ...result, decisionResult, challengeResult });
+  await deps.completeNotificationCronWindow(claim.windowKey, new Date());
+  return NextResponse.json({ ...result, decisionResult, challengeResult, ...metadata });
+}
+
+export async function runDailyNotifications(request: Request, deps: DailyNotificationRouteDeps = dailyNotificationRouteDeps) {
+  const secret = process.env.NOTIFICATION_CRON_SECRET;
+
+  if (!secret || !hasValidSecret(request)) {
+    await deps.recordDailyNotificationUnauthorizedHit().catch(() => undefined);
+    return apiError(401, "permission_denied", "Unauthorized.");
+  }
+
+  const now = deps.now();
+  return executeDailyNotificationPipeline(now, deps);
 }
 
 export async function POST(request: Request) {

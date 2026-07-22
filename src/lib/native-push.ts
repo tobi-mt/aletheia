@@ -17,6 +17,7 @@ export type NativePushTargetRow = {
   last_seen_at: string | null;
   last_registered_at: string | null;
   last_sent_at: string | null;
+  last_gratitude_sent_at: string | null;
   badge_count: number;
   language: string | null;
   region: string | null;
@@ -28,7 +29,6 @@ export type NativePushTargetRow = {
   preferred_local_hour?: number | null;
   preferred_timezone?: string | null;
   delivery_strategy?: string | null;
-  last_gratitude_sent_at?: string | null;
 };
 
 export type NativePushDeviceRegistrationInput = {
@@ -256,6 +256,7 @@ export async function loadNativePushTargets(userIds: string[]) {
             native_push_devices.last_seen_at,
             native_push_devices.last_registered_at,
             native_push_devices.last_sent_at,
+            native_push_devices.last_gratitude_sent_at,
             native_push_devices.badge_count,
             user_preferences.language,
             user_preferences.region,
@@ -284,6 +285,7 @@ export async function loadEnabledNativePushTargets() {
             native_push_devices.last_seen_at,
             native_push_devices.last_registered_at,
             native_push_devices.last_sent_at,
+            native_push_devices.last_gratitude_sent_at,
             native_push_devices.badge_count,
             user_preferences.language,
             user_preferences.region,
@@ -294,18 +296,37 @@ export async function loadEnabledNativePushTargets() {
             COALESCE(user_preferences.notification_preferred_local_hour, 8) AS preferred_hour,
             COALESCE(user_preferences.notification_preferred_local_hour, 8) AS preferred_local_hour,
             COALESCE(user_preferences.notification_preferred_timezone, 'UTC') AS preferred_timezone,
-            COALESCE(user_preferences.notification_delivery_strategy, 'morning') AS delivery_strategy,
-            NULL::TIMESTAMPTZ AS last_gratitude_sent_at
+            COALESCE(user_preferences.notification_delivery_strategy, 'morning') AS delivery_strategy
      FROM native_push_devices
      LEFT JOIN user_preferences ON user_preferences.user_id = native_push_devices.user_id
      WHERE native_push_devices.enabled = TRUE`
   );
 }
 
-async function updateNativePushFreshness(deviceId: string, deliveredAt: string, badgeCount: number) {
+async function updateNativePushFreshness(
+  deviceId: string,
+  deliveredAt: string,
+  badgeCount: number,
+  lastSentColumn: "last_sent_at" | "last_gratitude_sent_at" | null
+) {
+  if (!lastSentColumn) {
+    await run(
+      `UPDATE native_push_devices
+       SET last_seen_at = ?,
+           badge_count = ?,
+           updated_at = ?
+       WHERE id = ?`,
+      deliveredAt,
+      badgeCount,
+      deliveredAt,
+      deviceId
+    );
+    return;
+  }
+
   await run(
     `UPDATE native_push_devices
-     SET last_sent_at = ?,
+     SET ${lastSentColumn} = ?,
          last_seen_at = ?,
          badge_count = ?,
          updated_at = ?
@@ -586,7 +607,8 @@ function summarizeNativePushFailure(error: unknown, row: NativePushTargetRow, de
 
 export async function sendNativePushRows(
   rows: NativePushTargetRow[],
-  payloadForRow: (row: NativePushTargetRow) => NativePushMessagePayload
+  payloadForRow: (row: NativePushTargetRow) => NativePushMessagePayload,
+  { lastSentColumn = "last_sent_at" }: { lastSentColumn?: "last_sent_at" | "last_gratitude_sent_at" | null } = {}
 ): Promise<NativePushResult> {
   const configured = isNativePushConfigured();
   if (!configured) {
@@ -621,7 +643,8 @@ export async function sendNativePushRows(
         await updateNativePushFreshness(
           row.id,
           deliveredAt,
-          0
+          0,
+          lastSentColumn
         );
       } catch (error) {
         failed += 1;

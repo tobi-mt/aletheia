@@ -276,6 +276,7 @@ async function initializeDatabase() {
       last_seen_at TIMESTAMPTZ,
       last_registered_at TIMESTAMPTZ,
       last_sent_at TIMESTAMPTZ,
+      last_gratitude_sent_at TIMESTAMPTZ,
       badge_count INTEGER NOT NULL DEFAULT 0,
       created_at TIMESTAMPTZ NOT NULL,
       updated_at TIMESTAMPTZ NOT NULL
@@ -289,7 +290,14 @@ async function initializeDatabase() {
     ALTER TABLE native_push_devices ADD COLUMN IF NOT EXISTS last_seen_at TIMESTAMPTZ;
     ALTER TABLE native_push_devices ADD COLUMN IF NOT EXISTS last_registered_at TIMESTAMPTZ;
     ALTER TABLE native_push_devices ADD COLUMN IF NOT EXISTS last_sent_at TIMESTAMPTZ;
+    ALTER TABLE native_push_devices ADD COLUMN IF NOT EXISTS last_gratitude_sent_at TIMESTAMPTZ;
     ALTER TABLE native_push_devices ADD COLUMN IF NOT EXISTS badge_count INTEGER NOT NULL DEFAULT 0;
+
+    CREATE TABLE IF NOT EXISTS notification_cron_runs (
+      window_key TEXT PRIMARY KEY,
+      claimed_at TIMESTAMPTZ NOT NULL,
+      completed_at TIMESTAMPTZ
+    );
 
     CREATE TABLE IF NOT EXISTS counsel_contacts (
       id TEXT PRIMARY KEY,
@@ -783,6 +791,7 @@ async function ensurePushSubscriptionSchema() {
       last_seen_at TIMESTAMPTZ,
       last_registered_at TIMESTAMPTZ,
       last_sent_at TIMESTAMPTZ,
+      last_gratitude_sent_at TIMESTAMPTZ,
       badge_count INTEGER NOT NULL DEFAULT 0,
       created_at TIMESTAMPTZ NOT NULL,
       updated_at TIMESTAMPTZ NOT NULL
@@ -795,7 +804,13 @@ async function ensurePushSubscriptionSchema() {
     ALTER TABLE native_push_devices ADD COLUMN IF NOT EXISTS last_seen_at TIMESTAMPTZ;
     ALTER TABLE native_push_devices ADD COLUMN IF NOT EXISTS last_registered_at TIMESTAMPTZ;
     ALTER TABLE native_push_devices ADD COLUMN IF NOT EXISTS last_sent_at TIMESTAMPTZ;
+    ALTER TABLE native_push_devices ADD COLUMN IF NOT EXISTS last_gratitude_sent_at TIMESTAMPTZ;
     ALTER TABLE native_push_devices ADD COLUMN IF NOT EXISTS badge_count INTEGER NOT NULL DEFAULT 0;
+    CREATE TABLE IF NOT EXISTS notification_cron_runs (
+      window_key TEXT PRIMARY KEY,
+      claimed_at TIMESTAMPTZ NOT NULL,
+      completed_at TIMESTAMPTZ
+    );
     CREATE UNIQUE INDEX IF NOT EXISTS native_push_devices_token_unique_idx
       ON native_push_devices (token);
     CREATE INDEX IF NOT EXISTS native_push_devices_user_idx

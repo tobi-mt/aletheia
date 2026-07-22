@@ -46,6 +46,33 @@ type PushRow = {
 type NotificationRecipientRow = Pick<PushRow, "user_id" | "language" | "region" | "bible_translation" | "voice_enabled">;
 type NotificationPreferenceRow = Pick<PushRow, "counsel_notifications_enabled" | "formation_notifications_enabled">;
 
+export function notificationCronWindowKey(now: Date) {
+  return now.toISOString().slice(0, 13);
+}
+
+export async function claimNotificationCronWindow(now: Date) {
+  const windowKey = notificationCronWindowKey(now);
+  const claimed = await one<{ window_key: string }>(
+    `INSERT INTO notification_cron_runs (window_key, claimed_at)
+     VALUES (?, ?)
+     ON CONFLICT (window_key) DO NOTHING
+     RETURNING window_key`,
+    windowKey,
+    now.toISOString()
+  );
+  return { claimed: Boolean(claimed), windowKey };
+}
+
+export async function completeNotificationCronWindow(windowKey: string, completedAt = new Date()) {
+  await run(
+    `UPDATE notification_cron_runs
+     SET completed_at = ?
+     WHERE window_key = ?`,
+    completedAt.toISOString(),
+    windowKey
+  );
+}
+
 type ChallengeCircleNudgeTargetRow = {
   user_id: string;
 };
@@ -3500,7 +3527,8 @@ export async function sendDailyWisdomNotifications(now = new Date()) {
   );
   const gratitudeNativeResult = await sendNativePushRows(
     gratitudeNativeRows,
-    (row) => gratitudeNotificationPayload(asPushRow(row))
+    (row) => gratitudeNotificationPayload(asPushRow(row)),
+    { lastSentColumn: "last_gratitude_sent_at" }
   );
 
   return {

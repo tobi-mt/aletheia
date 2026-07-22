@@ -28,6 +28,7 @@ type NativePushDeviceRow = {
   last_seen_at: string | null;
   last_registered_at: string | null;
   last_sent_at: string | null;
+  last_gratitude_sent_at: string | null;
   updated_at: string | null;
 };
 
@@ -51,7 +52,7 @@ export async function GET() {
 
   const devices = await many<NativePushDeviceRow>(
     `SELECT id, platform, token, device_name, app_version, build_version, push_environment, enabled,
-            last_seen_at, last_registered_at, last_sent_at, updated_at
+            last_seen_at, last_registered_at, last_sent_at, last_gratitude_sent_at, updated_at
      FROM native_push_devices
      WHERE user_id = ?
      ORDER BY updated_at DESC`,
@@ -74,6 +75,7 @@ export async function GET() {
           lastSeenAt: devices[0].last_seen_at,
           lastRegisteredAt: devices[0].last_registered_at,
           lastSentAt: devices[0].last_sent_at,
+          lastGratitudeSentAt: devices[0].last_gratitude_sent_at,
         }
       : null,
   });
