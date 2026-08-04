@@ -7793,6 +7793,9 @@ export function AletheiaApp({
   const [biometricLockState, setBiometricLockState] = useState<"unlocked" | "locked">("unlocked");
   const [biometricLockBusy, setBiometricLockBusy] = useState(false);
   const biometricLockRequestRef = useRef(false);
+  const biometricLockEnabledRef = useRef(false);
+  const biometricAppWasBackgroundedRef = useRef(false);
+  const biometricUnlockReasonRef = useRef("");
   const [notificationStatus, setNotificationStatus] = useState("");
   const [notificationAccountEnabled, setNotificationAccountEnabled] = useState(false);
   const [notificationDeviceSubscribed, setNotificationDeviceSubscribed] = useState(false);
@@ -8241,10 +8244,11 @@ export function AletheiaApp({
     return { t, ts };
   }, [preferences.language, rawTranslations, translations]);
   const { ts } = translationHelpers;
+  biometricUnlockReasonRef.current = ts("biometric.unlockReason");
 
   const authenticateBiometricLock = useCallback(async (reason: string) => {
-    if (!biometricLock.enabled || !supportsNativeBiometricLock() || biometricLockRequestRef.current) {
-      return !biometricLock.enabled;
+    if (!biometricLockEnabledRef.current || !supportsNativeBiometricLock() || biometricLockRequestRef.current) {
+      return !biometricLockEnabledRef.current;
     }
     biometricLockRequestRef.current = true;
     setBiometricLockBusy(true);
@@ -8259,7 +8263,7 @@ export function AletheiaApp({
       biometricLockRequestRef.current = false;
       setBiometricLockBusy(false);
     }
-  }, [biometricLock.enabled]);
+  }, []);
 
   useEffect(() => {
     if (!supportsNativeBiometricLock()) {
@@ -8270,32 +8274,40 @@ export function AletheiaApp({
     void NativeBiometricLock.getState()
       .then((next) => {
         if (!active) return;
+        biometricLockEnabledRef.current = next.enabled;
         setBiometricLock(next);
         if (next.enabled) {
           setBiometricLockState("locked");
-          void authenticateBiometricLock(ts("biometric.unlockReason"));
+          void authenticateBiometricLock(biometricUnlockReasonRef.current);
         }
       })
       .catch(() => undefined);
     void App.addListener("appStateChange", ({ isActive }) => {
-      if (!active || !biometricLock.enabled) return;
+      if (!active || !biometricLockEnabledRef.current) return;
+      // Presenting Face ID/Touch ID can temporarily change app activity. Those
+      // events must not be treated as a genuine background/foreground cycle.
+      if (biometricLockRequestRef.current) return;
       if (!isActive) {
+        biometricAppWasBackgroundedRef.current = true;
         setBiometricLockState("locked");
-      } else {
-        void authenticateBiometricLock(ts("biometric.unlockReason"));
+      } else if (biometricAppWasBackgroundedRef.current) {
+        biometricAppWasBackgroundedRef.current = false;
+        void authenticateBiometricLock(biometricUnlockReasonRef.current);
       }
     }).then((handle) => { appStateHandle = handle; }).catch(() => undefined);
     return () => {
       active = false;
       void appStateHandle?.remove().catch(() => undefined);
     };
-  }, [authenticateBiometricLock, biometricLock.enabled, ts]);
+  }, [authenticateBiometricLock]);
 
   const updateBiometricLock = useCallback(async (enabled: boolean) => {
     if (!supportsNativeBiometricLock()) return;
     setBiometricLockBusy(true);
     try {
       const next = await NativeBiometricLock.setEnabled({ enabled, reason: ts("biometric.enableReason") });
+      biometricLockEnabledRef.current = next.enabled;
+      biometricAppWasBackgroundedRef.current = false;
       setBiometricLock(next);
       setBiometricLockState("unlocked");
       setWorkflowNotice({
