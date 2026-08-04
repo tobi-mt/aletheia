@@ -714,6 +714,9 @@
     "pressured": "labẹ titẹ",
     "peaceful": "ifọkanbalẹ"
   },
+  "biometric": {
+    "settingTitle": "Ìdènà biometrics app", "settingBody": "Béèrè ìfìdímúlò biometrics ẹ̀rọ yìí nígbà tí o ṣí Aletheia àti kí o tó gbé data jáde tàbí pa àkáǹtì rẹ́.", "enableReason": "Jẹ́rìí pé ìwọ ni ẹni náà láti tan ìdènà biometrics.", "unlockReason": "Jẹ́rìí pé ìwọ ni ẹni náà láti ṣí Aletheia.", "exportReason": "Jẹ́rìí pé ìwọ ni ẹni náà láti gbé data àkáǹtì rẹ́ jáde.", "deleteReason": "Jẹ́rìí pé ìwọ ni ẹni náà láti pa àkáǹtì rẹ́.", "enabledTitle": "Ìdènà biometrics ti wa ni titan", "enabledBody": "Aletheia yóò béèrè ìfìdímúlò biometrics nígbà tí o bá padà sí app náà.", "disabledTitle": "Ìdènà biometrics ti wa ni pipa", "disabledBody": "Ẹ̀rọ yìí kò ní béèrè ìfìdímúlò biometrics mọ́ láti ṣí Aletheia.", "unavailableTitle": "Ìdènà biometrics kò sí", "unavailableBody": "Ṣètò ọ̀nà biometrics tí a gbà lórí ẹ̀rọ yìí, lẹ́yìn náà tún gbìyànjú.", "lockedTitle": "Aletheia ti dì", "lockedBody": "Jẹ́rìí ìdánimọ̀ rẹ lórí ẹ̀rọ yìí láti tẹ̀síwájú.", "lockTitle": "Ṣí Aletheia", "lockBody": "A dáàbò bo àyè ìkọ̀kọ̀ rẹ lórí ẹ̀rọ yìí.", "unlock": "Ṣí", "unlocking": "Ń ṣàyẹ̀wò…"
+  },
   "labels": {
     "appName": "Aletheia",
     "appTagline": "Ọgbọ́n fún ìṣàkóso",

@@ -11,6 +11,7 @@ public class MainActivity extends BridgeActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         registerPlugin(ManagedAudioPlugin.class);
+        registerPlugin(NativeBiometricLockPlugin.class);
         super.onCreate(savedInstanceState);
         applyStartupSystemBarStyle();
     }

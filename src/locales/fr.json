@@ -714,6 +714,26 @@
     "pressured": "sous pression",
     "peaceful": "paisible"
   },
+  "biometric": {
+    "settingTitle": "Verrou biométrique de l’app",
+    "settingBody": "Demande une vérification biométrique à l’ouverture d’Aletheia et avant l’export ou la suppression du compte.",
+    "enableReason": "Confirmez votre identité pour activer le verrou biométrique.",
+    "unlockReason": "Confirmez votre identité pour déverrouiller Aletheia.",
+    "exportReason": "Confirmez votre identité pour exporter les données de votre compte.",
+    "deleteReason": "Confirmez votre identité pour supprimer votre compte.",
+    "enabledTitle": "Verrou biométrique activé",
+    "enabledBody": "Aletheia demandera une vérification biométrique à votre retour.",
+    "disabledTitle": "Verrou biométrique désactivé",
+    "disabledBody": "Cet appareil ne demandera plus de vérification biométrique pour ouvrir Aletheia.",
+    "unavailableTitle": "Verrou biométrique indisponible",
+    "unavailableBody": "Configurez une méthode biométrique prise en charge sur cet appareil, puis réessayez.",
+    "lockedTitle": "Aletheia est verrouillée",
+    "lockedBody": "Confirmez votre identité sur cet appareil pour continuer.",
+    "lockTitle": "Déverrouiller Aletheia",
+    "lockBody": "Votre espace privé est protégé sur cet appareil.",
+    "unlock": "Déverrouiller",
+    "unlocking": "Vérification…"
+  },
   "labels": {
     "appName": "Aletheia",
     "appTagline": "Sagesse pour l'intendance",

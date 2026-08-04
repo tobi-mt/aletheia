@@ -123,6 +123,7 @@ import { notificationUrlFromData, parseNotificationLaunchUrl } from "@/lib/notif
 import { loadTranslationsSync, loadTranslationsWithFallbackSync, getTranslation, type TranslationData } from "@/lib/translations";
 import { ManagedAudio } from "@/lib/native-audio";
 import { NativeAuth, supportsNativeAppleSignIn } from "@/lib/native-auth";
+import { NativeBiometricLock, supportsNativeBiometricLock, type BiometricLockState } from "@/lib/native-biometric-lock";
 import BibleReader from "@/components/bible-reader";
 import { ToastContainer, useToast } from "@/components/toast-notification";
 import { StreakBadge, StreakAchievementNotification } from "@/components/streak-badge";
@@ -7788,6 +7789,10 @@ export function AletheiaApp({
   const [showReportIssueModal, setShowReportIssueModal] = useState(false);
   const [showStreakMilestonesModal, setShowStreakMilestonesModal] = useState(false);
   const [accountActionBusy, setAccountActionBusy] = useState<"export" | "delete" | "report" | null>(null);
+  const [biometricLock, setBiometricLock] = useState<BiometricLockState>({ available: false, enabled: false, biometryType: null });
+  const [biometricLockState, setBiometricLockState] = useState<"unlocked" | "locked">("unlocked");
+  const [biometricLockBusy, setBiometricLockBusy] = useState(false);
+  const biometricLockRequestRef = useRef(false);
   const [notificationStatus, setNotificationStatus] = useState("");
   const [notificationAccountEnabled, setNotificationAccountEnabled] = useState(false);
   const [notificationDeviceSubscribed, setNotificationDeviceSubscribed] = useState(false);
@@ -8236,6 +8241,80 @@ export function AletheiaApp({
     return { t, ts };
   }, [preferences.language, rawTranslations, translations]);
   const { ts } = translationHelpers;
+
+  const authenticateBiometricLock = useCallback(async (reason: string) => {
+    if (!biometricLock.enabled || !supportsNativeBiometricLock() || biometricLockRequestRef.current) {
+      return !biometricLock.enabled;
+    }
+    biometricLockRequestRef.current = true;
+    setBiometricLockBusy(true);
+    try {
+      await NativeBiometricLock.authenticate({ reason });
+      setBiometricLockState("unlocked");
+      return true;
+    } catch {
+      setBiometricLockState("locked");
+      return false;
+    } finally {
+      biometricLockRequestRef.current = false;
+      setBiometricLockBusy(false);
+    }
+  }, [biometricLock.enabled]);
+
+  useEffect(() => {
+    if (!supportsNativeBiometricLock()) {
+      return;
+    }
+    let active = true;
+    let appStateHandle: PluginListenerHandle | null = null;
+    void NativeBiometricLock.getState()
+      .then((next) => {
+        if (!active) return;
+        setBiometricLock(next);
+        if (next.enabled) {
+          setBiometricLockState("locked");
+          void authenticateBiometricLock(ts("biometric.unlockReason"));
+        }
+      })
+      .catch(() => undefined);
+    void App.addListener("appStateChange", ({ isActive }) => {
+      if (!active || !biometricLock.enabled) return;
+      if (!isActive) {
+        setBiometricLockState("locked");
+      } else {
+        void authenticateBiometricLock(ts("biometric.unlockReason"));
+      }
+    }).then((handle) => { appStateHandle = handle; }).catch(() => undefined);
+    return () => {
+      active = false;
+      void appStateHandle?.remove().catch(() => undefined);
+    };
+  }, [authenticateBiometricLock, biometricLock.enabled, ts]);
+
+  const updateBiometricLock = useCallback(async (enabled: boolean) => {
+    if (!supportsNativeBiometricLock()) return;
+    setBiometricLockBusy(true);
+    try {
+      const next = await NativeBiometricLock.setEnabled({ enabled, reason: ts("biometric.enableReason") });
+      setBiometricLock(next);
+      setBiometricLockState("unlocked");
+      setWorkflowNotice({
+        id: crypto.randomUUID(),
+        title: enabled ? ts("biometric.enabledTitle") : ts("biometric.disabledTitle"),
+        body: enabled ? ts("biometric.enabledBody") : ts("biometric.disabledBody"),
+        tone: "success",
+      });
+    } catch {
+      setWorkflowNotice({
+        id: crypto.randomUUID(),
+        title: ts("biometric.unavailableTitle"),
+        body: ts("biometric.unavailableBody"),
+        tone: "warning",
+      });
+    } finally {
+      setBiometricLockBusy(false);
+    }
+  }, [ts]);
   const apiErrorKeyMap: Record<string, string> = {
     sign_in_required: "notifications.apiSignInRequired",
     rate_limited: "notifications.apiRateLimited",
@@ -11178,6 +11257,10 @@ function startFirstRunGuestFlow() {
       announceWorkflow(ts('notifications.signInRequired'), ts('notifications.exportSignInRequiredBody'), "warning");
       return;
     }
+    if (!(await authenticateBiometricLock(ts("biometric.exportReason")))) {
+      announceWorkflow(ts("biometric.lockedTitle"), ts("biometric.lockedBody"), "warning");
+      return;
+    }
     setAccountActionBusy("export");
     try {
       const response = await fetch("/api/account/export");
@@ -11206,6 +11289,10 @@ function startFirstRunGuestFlow() {
   async function deleteAccount(confirmation: string) {
     if (!user) {
       announceWorkflow(ts('notifications.signInRequired'), ts('notifications.deleteAccountSignInRequiredBody'), "warning");
+      return;
+    }
+    if (!(await authenticateBiometricLock(ts("biometric.deleteReason")))) {
+      announceWorkflow(ts("biometric.lockedTitle"), ts("biometric.lockedBody"), "warning");
       return;
     }
     setAccountActionBusy("delete");
@@ -14457,6 +14544,9 @@ function startFirstRunGuestFlow() {
                       onFocusIntentionsChange={updateFocusIntentions}
                       onClearLocalPersonalization={clearLocalPersonalization}
                       onClearGuestWorkspace={clearGuestWorkspace}
+                      biometricLock={biometricLock}
+                      biometricLockBusy={biometricLockBusy}
+                      onBiometricLockChange={updateBiometricLock}
                       onExportData={exportAccountData}
                       onRequestDeleteAccount={() => setShowDeleteAccountModal(true)}
                       onReportIssue={() => setShowReportIssueModal(true)}
@@ -14802,6 +14892,14 @@ function startFirstRunGuestFlow() {
       />
 
       <AnimatePresence>
+        {biometricLock.enabled && biometricLockState === "locked" ? (
+          <BiometricLockOverlay
+            theme={theme}
+            ts={ts}
+            busy={biometricLockBusy}
+            onUnlock={() => void authenticateBiometricLock(ts("biometric.unlockReason"))}
+          />
+        ) : null}
         {isRefreshingForUpdate ? (
           <motion.div
             key="app-update-refresh-overlay"
@@ -14894,6 +14992,58 @@ function startFirstRunGuestFlow() {
         )}
       </AnimatePresence>
     </main>
+  );
+}
+
+function BiometricLockOverlay({
+  theme,
+  ts,
+  busy,
+  onUnlock,
+}: {
+  theme: ThemeColors;
+  ts: (key: string, fallback?: string) => string;
+  busy: boolean;
+  onUnlock: () => void;
+}) {
+  return (
+    <motion.div
+      key="biometric-lock"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[130] flex items-center justify-center px-6 backdrop-blur-xl"
+      style={{ backgroundColor: `${theme.bgMain}ee` }}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="biometric-lock-title"
+    >
+      <motion.div
+        initial={{ y: 10, opacity: 0, scale: 0.98 }}
+        animate={{ y: 0, opacity: 1, scale: 1 }}
+        className="w-full max-w-sm rounded-3xl border p-7 text-center shadow-[0_28px_80px_rgba(12,20,16,0.26)]"
+        style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}
+      >
+        <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl" style={{ backgroundColor: theme.bgCardElevated, color: theme.primary }}>
+          <ShieldCheck size={28} aria-hidden />
+        </div>
+        <h2 id="biometric-lock-title" className="mt-5 text-xl font-semibold" style={{ color: theme.textPrimary }}>
+          {ts("biometric.lockTitle")}
+        </h2>
+        <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
+          {ts("biometric.lockBody")}
+        </p>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={onUnlock}
+          className="mt-6 h-11 w-full rounded-full px-4 text-sm font-semibold disabled:opacity-60"
+          style={{ backgroundColor: theme.primary, color: theme.primaryText }}
+        >
+          {busy ? ts("biometric.unlocking") : ts("biometric.unlock")}
+        </button>
+      </motion.div>
+    </motion.div>
   );
 }
 
@@ -17692,6 +17842,9 @@ function AccountPanel({
   onFocusIntentionsChange,
   onClearLocalPersonalization,
   onClearGuestWorkspace,
+  biometricLock,
+  biometricLockBusy,
+  onBiometricLockChange,
   onExportData,
   onRequestDeleteAccount,
   onReportIssue,
@@ -17765,6 +17918,9 @@ function AccountPanel({
   onFocusIntentionsChange: (intentions: string[]) => void;
   onClearLocalPersonalization: () => void;
   onClearGuestWorkspace: () => void;
+  biometricLock: BiometricLockState;
+  biometricLockBusy: boolean;
+  onBiometricLockChange: (enabled: boolean) => Promise<void>;
   onExportData: () => void;
   onRequestDeleteAccount: () => void;
   onReportIssue: () => void;
@@ -18089,6 +18245,9 @@ function AccountPanel({
               hasLocalWorkspaceData={hasLocalWorkspaceData}
               onClearLocalPersonalization={onClearLocalPersonalization}
               onClearGuestWorkspace={onClearGuestWorkspace}
+              biometricLock={biometricLock}
+              biometricLockBusy={biometricLockBusy}
+              onBiometricLockChange={onBiometricLockChange}
               onExportData={onExportData}
               onRequestDeleteAccount={onRequestDeleteAccount}
               accountActionBusy={accountActionBusy}
@@ -22393,6 +22552,9 @@ function TrustCenterCard({
   hasLocalWorkspaceData,
   onClearLocalPersonalization,
   onClearGuestWorkspace,
+  biometricLock,
+  biometricLockBusy,
+  onBiometricLockChange,
   onExportData,
   onRequestDeleteAccount,
   accountActionBusy,
@@ -22403,6 +22565,9 @@ function TrustCenterCard({
   hasLocalWorkspaceData: boolean;
   onClearLocalPersonalization: () => void;
   onClearGuestWorkspace: () => void;
+  biometricLock: BiometricLockState;
+  biometricLockBusy: boolean;
+  onBiometricLockChange: (enabled: boolean) => Promise<void>;
   onExportData: () => void;
   onRequestDeleteAccount: () => void;
   accountActionBusy: "export" | "delete" | "report" | null;
@@ -22461,6 +22626,26 @@ function TrustCenterCard({
       />
 
       <div className="border-t p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+        {biometricLock.available ? (
+          <div className="mb-3 flex items-center justify-between gap-3 rounded-[0.85rem] border px-3.5 py-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{ts("biometric.settingTitle")}</p>
+              <p className="mt-0.5 text-xs leading-5" style={{ color: theme.textSecondary }}>{ts("biometric.settingBody")}</p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={biometricLock.enabled}
+              aria-label={ts("biometric.settingTitle")}
+              disabled={biometricLockBusy}
+              onClick={() => void onBiometricLockChange(!biometricLock.enabled)}
+              className="h-9 shrink-0 rounded-full border px-3 text-xs font-semibold"
+              style={{ borderColor: theme.borderMedium, backgroundColor: biometricLock.enabled ? theme.primary : theme.bgInput, color: biometricLock.enabled ? theme.primaryText : theme.textPrimary }}
+            >
+              {biometricLock.enabled ? ts("labels.enabled") : ts("labels.disabled")}
+            </button>
+          </div>
+        ) : null}
         <div className="grid gap-2 sm:grid-cols-2">
           <button
             type="button"

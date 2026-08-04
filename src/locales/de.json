@@ -714,6 +714,26 @@
     "pressured": "unter Druck",
     "peaceful": "friedlich"
   },
+  "biometric": {
+    "settingTitle": "Biometrische App-Sperre",
+    "settingBody": "Beim Öffnen von Aletheia sowie vor Export oder Kontolöschung wird eine biometrische Prüfung verlangt.",
+    "enableReason": "Bestätige deine Identität, um die biometrische App-Sperre zu aktivieren.",
+    "unlockReason": "Bestätige deine Identität, um Aletheia zu entsperren.",
+    "exportReason": "Bestätige deine Identität, um deine Kontodaten zu exportieren.",
+    "deleteReason": "Bestätige deine Identität, um dein Konto zu löschen.",
+    "enabledTitle": "Biometrische App-Sperre aktiviert",
+    "enabledBody": "Aletheia fragt bei deiner Rückkehr nach einer biometrischen Prüfung.",
+    "disabledTitle": "Biometrische App-Sperre deaktiviert",
+    "disabledBody": "Dieses Gerät fragt beim Öffnen von Aletheia nicht mehr nach einer biometrischen Prüfung.",
+    "unavailableTitle": "Biometrische Sperre nicht verfügbar",
+    "unavailableBody": "Richte eine unterstützte biometrische Methode auf diesem Gerät ein und versuche es erneut.",
+    "lockedTitle": "Aletheia ist gesperrt",
+    "lockedBody": "Bestätige deine Identität auf diesem Gerät, um fortzufahren.",
+    "lockTitle": "Aletheia entsperren",
+    "lockBody": "Dein privater Bereich ist auf diesem Gerät geschützt.",
+    "unlock": "Entsperren",
+    "unlocking": "Wird geprüft…"
+  },
   "labels": {
     "appName": "Aletheia",
     "appTagline": "Weisheit für Verwaltung",

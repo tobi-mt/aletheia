@@ -3,6 +3,7 @@ import AVFoundation
 import WebKit
 import Capacitor
 import AuthenticationServices
+import LocalAuthentication
 import CryptoKit
 import StoreKit
 import UserNotifications
@@ -117,6 +118,7 @@ class ManagedAudioBridgeViewController: CAPBridgeViewController {
         // instances ensure these custom bridges are exported to JavaScript.
         bridge?.registerPluginInstance(ManagedAudioPlugin())
         bridge?.registerPluginInstance(NativeAuthPlugin())
+        bridge?.registerPluginInstance(NativeBiometricLockPlugin())
         bridge?.registerPluginInstance(NativeSupportPlugin())
         configureEdgeToEdgeChrome()
     }
@@ -283,6 +285,86 @@ public class NativeSupportPlugin: CAPPlugin, CAPBridgedPlugin {
                 }
             } catch {
                 call.reject("The purchase could not be completed", nil, error)
+            }
+        }
+    }
+}
+
+@objc(NativeBiometricLockPlugin)
+public class NativeBiometricLockPlugin: CAPPlugin, CAPBridgedPlugin {
+    public let identifier = "NativeBiometricLockPlugin"
+    public let jsName = "NativeBiometricLock"
+    public let pluginMethods: [CAPPluginMethod] = [
+        CAPPluginMethod(name: "getState", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "setEnabled", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "authenticate", returnType: CAPPluginReturnPromise)
+    ]
+
+    private let enabledKey = "aletheia.biometric-lock.enabled"
+
+    private func availableContext() -> LAContext? {
+        let context = LAContext()
+        var error: NSError?
+        guard context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) else {
+            return nil
+        }
+        return context
+    }
+
+    private func biometryType(for context: LAContext) -> String {
+        switch context.biometryType {
+        case .faceID: return "face"
+        case .touchID: return "fingerprint"
+        default: return "biometric"
+        }
+    }
+
+    private func state() -> [String: Any] {
+        guard let context = availableContext() else {
+            return ["available": false, "enabled": false, "biometryType": NSNull()]
+        }
+        return [
+            "available": true,
+            "enabled": UserDefaults.standard.bool(forKey: enabledKey),
+            "biometryType": biometryType(for: context)
+        ]
+    }
+
+    @objc func getState(_ call: CAPPluginCall) {
+        call.resolve(state())
+    }
+
+    @objc func setEnabled(_ call: CAPPluginCall) {
+        guard call.getBool("enabled") == true else {
+            UserDefaults.standard.set(false, forKey: enabledKey)
+            call.resolve(state())
+            return
+        }
+        authenticate(call, reason: call.getString("reason") ?? "Confirm it is you to enable app lock.") { [weak self] in
+            guard let self else { return }
+            UserDefaults.standard.set(true, forKey: self.enabledKey)
+            call.resolve(self.state())
+        }
+    }
+
+    @objc func authenticate(_ call: CAPPluginCall) {
+        authenticate(call, reason: call.getString("reason") ?? "Confirm it is you to continue.") {
+            call.resolve()
+        }
+    }
+
+    private func authenticate(_ call: CAPPluginCall, reason: String, onSuccess: @escaping () -> Void) {
+        guard let context = availableContext() else {
+            call.reject("Biometric authentication is unavailable on this device.")
+            return
+        }
+        context.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, localizedReason: reason) { success, error in
+            DispatchQueue.main.async {
+                if success {
+                    onSuccess()
+                } else {
+                    call.reject(error?.localizedDescription ?? "Biometric authentication was not completed.")
+                }
             }
         }
     }

@@ -714,6 +714,26 @@
     "pressured": "presionado",
     "peaceful": "en paz"
   },
+  "biometric": {
+    "settingTitle": "Bloqueo biométrico de la app",
+    "settingBody": "Solicita la comprobación biométrica del dispositivo al abrir Aletheia y antes de exportar o eliminar tu cuenta.",
+    "enableReason": "Confirma tu identidad para activar el bloqueo biométrico.",
+    "unlockReason": "Confirma tu identidad para desbloquear Aletheia.",
+    "exportReason": "Confirma tu identidad para exportar los datos de tu cuenta.",
+    "deleteReason": "Confirma tu identidad para eliminar tu cuenta.",
+    "enabledTitle": "Bloqueo biométrico activado",
+    "enabledBody": "Aletheia solicitará una comprobación biométrica al volver a la app.",
+    "disabledTitle": "Bloqueo biométrico desactivado",
+    "disabledBody": "Este dispositivo dejará de solicitar una comprobación biométrica para abrir Aletheia.",
+    "unavailableTitle": "Bloqueo biométrico no disponible",
+    "unavailableBody": "Configura un método biométrico compatible en este dispositivo e inténtalo de nuevo.",
+    "lockedTitle": "Aletheia está bloqueada",
+    "lockedBody": "Confirma tu identidad en este dispositivo para continuar.",
+    "lockTitle": "Desbloquear Aletheia",
+    "lockBody": "Tu espacio privado está protegido en este dispositivo.",
+    "unlock": "Desbloquear",
+    "unlocking": "Comprobando…"
+  },
   "labels": {
     "appName": "Aletheia",
     "appTagline": "Sabiduría para mayordomía",

@@ -714,6 +714,26 @@
     "pressured": "pressured",
     "peaceful": "peaceful"
   },
+  "biometric": {
+    "settingTitle": "Biometric app lock",
+    "settingBody": "Require this device's biometric check when opening Aletheia and before exporting or deleting your account.",
+    "enableReason": "Confirm it is you to enable biometric app lock.",
+    "unlockReason": "Confirm it is you to unlock Aletheia.",
+    "exportReason": "Confirm it is you to export your account data.",
+    "deleteReason": "Confirm it is you to delete your account.",
+    "enabledTitle": "Biometric app lock enabled",
+    "enabledBody": "Aletheia will ask for a biometric check when you return to the app.",
+    "disabledTitle": "Biometric app lock disabled",
+    "disabledBody": "This device will no longer ask for a biometric check to open Aletheia.",
+    "unavailableTitle": "Biometric lock unavailable",
+    "unavailableBody": "Set up a supported biometric method on this device, then try again.",
+    "lockedTitle": "Aletheia is locked",
+    "lockedBody": "Confirm your identity on this device to continue.",
+    "lockTitle": "Unlock Aletheia",
+    "lockBody": "Your private workspace is protected on this device.",
+    "unlock": "Unlock",
+    "unlocking": "Checking…"
+  },
   "labels": {
     "appName": "Aletheia",
     "appTagline": "Wisdom for stewardship",

@@ -76,6 +76,28 @@ test("app-local native auth is explicitly registered with Capacitor 8", async ()
   assert.match(client, /isPluginAvailable\("NativeAuth"\)/);
 });
 
+test("native biometric lock uses system biometrics and protects sensitive account actions", async () => {
+  const swift = await read("ios/App/App/AppDelegate.swift");
+  const android = await read("android/app/src/main/java/com/aletheia/app/NativeBiometricLockPlugin.java");
+  const activity = await read("android/app/src/main/java/com/aletheia/app/MainActivity.java");
+  const info = await read("ios/App/App/Info.plist");
+  const client = await read("src/components/aletheia-app.tsx");
+  const bridge = await read("src/lib/native-biometric-lock.ts");
+
+  assert.match(swift, /LAContext/);
+  assert.match(swift, /deviceOwnerAuthenticationWithBiometrics/);
+  assert.match(swift, /registerPluginInstance\(NativeBiometricLockPlugin\(\)\)/);
+  assert.match(info, /NSFaceIDUsageDescription/);
+  assert.match(android, /BiometricPrompt/);
+  assert.match(android, /BIOMETRIC_WEAK/);
+  assert.match(activity, /registerPlugin\(NativeBiometricLockPlugin\.class\)/);
+  assert.match(bridge, /registerPlugin<NativeBiometricLockPlugin>\("NativeBiometricLock"\)/);
+  assert.match(client, /NativeBiometricLock\.authenticate/);
+  assert.match(client, /authenticateBiometricLock\(ts\("biometric\.exportReason"\)\)/);
+  assert.match(client, /authenticateBiometricLock\(ts\("biometric\.deleteReason"\)\)/);
+  assert.match(client, /App\.addListener\("appStateChange"/);
+});
+
 test("native authentication installs secure session cookies before reload", async () => {
   const swift = await read("ios/App/App/AppDelegate.swift");
   const client = await read("src/components/aletheia-app.tsx");

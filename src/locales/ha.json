@@ -714,6 +714,9 @@
     "pressured": "cikin matsin lamba",
     "peaceful": "mai salama"
   },
+  "biometric": {
+    "settingTitle": "Kulle manhaja da biometrics", "settingBody": "Yana neman tabbatar da biometrics yayin buɗe Aletheia da kafin fitarwa ko goge asusunka.", "enableReason": "Tabbatar da kai ne don kunna kulle biometrics.", "unlockReason": "Tabbatar da kai ne don buɗe Aletheia.", "exportReason": "Tabbatar da kai ne don fitar da bayanan asusunka.", "deleteReason": "Tabbatar da kai ne don goge asusunka.", "enabledTitle": "An kunna kulle biometrics", "enabledBody": "Aletheia zai nemi tabbatar da biometrics idan ka dawo manhajar.", "disabledTitle": "An kashe kulle biometrics", "disabledBody": "Wannan na'urar ba za ta sake neman biometrics don buɗe Aletheia ba.", "unavailableTitle": "Kulle biometrics bai samuwa", "unavailableBody": "Saita hanyar biometrics mai goyan baya a wannan na'urar, sannan a sake gwadawa.", "lockedTitle": "An kulle Aletheia", "lockedBody": "Tabbatar da kai ne a wannan na'urar don ci gaba.", "lockTitle": "Buɗe Aletheia", "lockBody": "An kare keɓaɓɓen sararinka a wannan na'urar.", "unlock": "Buɗe", "unlocking": "Ana dubawa…"
+  },
   "labels": {
     "appName": "Aletheia",
     "appTagline": "Hikima don yanke shawara",

@@ -714,6 +714,9 @@
     "pressured": "n'okpuru nrụgide",
     "peaceful": "nwayọ"
   },
+  "biometric": {
+    "settingTitle": "Mkpọchi biometric nke ngwa", "settingBody": "Chọọ nnwale biometric nke ngwaọrụ a mgbe imepe Aletheia na tupu ibupụ ma ọ bụ ihichapụ akaụntụ gị.", "enableReason": "Kwenye na ọ bụ gị iji gbanye mkpọchi biometric.", "unlockReason": "Kwenye na ọ bụ gị iji kpọghee Aletheia.", "exportReason": "Kwenye na ọ bụ gị iji bupụ data akaụntụ gị.", "deleteReason": "Kwenye na ọ bụ gị iji hichapụ akaụntụ gị.", "enabledTitle": "Agbanyela mkpọchi biometric", "enabledBody": "Aletheia ga-arịọ nnwale biometric mgbe ị lọtara na ngwa.", "disabledTitle": "Agbanyụrụ mkpọchi biometric", "disabledBody": "Ngwaọrụ a agaghịzi arịọ nnwale biometric iji mepee Aletheia.", "unavailableTitle": "Mkpọchi biometric adịghị", "unavailableBody": "Hazie usoro biometric akwadoro na ngwaọrụ a, wee nwaa ọzọ.", "lockedTitle": "Akpọchila Aletheia", "lockedBody": "Kwenye njirimara gị na ngwaọrụ a iji gaa n'ihu.", "lockTitle": "Kpọghee Aletheia", "lockBody": "A na-echekwa oghere nzuzo gị na ngwaọrụ a.", "unlock": "Kpọghee", "unlocking": "A na-enyocha…"
+  },
   "labels": {
     "appName": "Aletheia",
     "appTagline": "Amamihe maka ịkpa mkpebi",

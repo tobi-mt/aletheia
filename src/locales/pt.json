@@ -714,6 +714,9 @@
     "pressured": "sob pressão",
     "peaceful": "em paz"
   },
+  "biometric": {
+    "settingTitle": "Bloqueio biométrico do app", "settingBody": "Exige uma verificação biométrica ao abrir o Aletheia e antes de exportar ou excluir sua conta.", "enableReason": "Confirme sua identidade para ativar o bloqueio biométrico.", "unlockReason": "Confirme sua identidade para desbloquear o Aletheia.", "exportReason": "Confirme sua identidade para exportar os dados da sua conta.", "deleteReason": "Confirme sua identidade para excluir sua conta.", "enabledTitle": "Bloqueio biométrico ativado", "enabledBody": "O Aletheia solicitará uma verificação biométrica quando você voltar ao app.", "disabledTitle": "Bloqueio biométrico desativado", "disabledBody": "Este dispositivo não solicitará mais uma verificação biométrica para abrir o Aletheia.", "unavailableTitle": "Bloqueio biométrico indisponível", "unavailableBody": "Configure uma biometria compatível neste dispositivo e tente novamente.", "lockedTitle": "Aletheia está bloqueado", "lockedBody": "Confirme sua identidade neste dispositivo para continuar.", "lockTitle": "Desbloquear Aletheia", "lockBody": "Seu espaço privado está protegido neste dispositivo.", "unlock": "Desbloquear", "unlocking": "Verificando…"
+  },
   "labels": {
     "appName": "Aletheia",
     "appTagline": "Sabedoria para mordomia",

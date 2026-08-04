@@ -714,6 +714,9 @@
     "pressured": "pinipilit",
     "peaceful": "mapayapa"
   },
+  "biometric": {
+    "settingTitle": "Biometric na lock ng app", "settingBody": "Humingi ng biometric check ng device kapag binubuksan ang Aletheia at bago i-export o burahin ang account.", "enableReason": "Kumpirmahin ang iyong pagkakakilanlan upang paganahin ang biometric lock.", "unlockReason": "Kumpirmahin ang iyong pagkakakilanlan upang i-unlock ang Aletheia.", "exportReason": "Kumpirmahin ang iyong pagkakakilanlan upang i-export ang data ng iyong account.", "deleteReason": "Kumpirmahin ang iyong pagkakakilanlan upang burahin ang iyong account.", "enabledTitle": "Naka-enable ang biometric lock", "enabledBody": "Hihingi ang Aletheia ng biometric check kapag bumalik ka sa app.", "disabledTitle": "Naka-disable ang biometric lock", "disabledBody": "Hindi na hihingi ang device na ito ng biometric check upang buksan ang Aletheia.", "unavailableTitle": "Hindi available ang biometric lock", "unavailableBody": "Mag-set up ng suportadong biometric method sa device na ito, pagkatapos ay subukan muli.", "lockedTitle": "Naka-lock ang Aletheia", "lockedBody": "Kumpirmahin ang iyong pagkakakilanlan sa device na ito upang magpatuloy.", "lockTitle": "I-unlock ang Aletheia", "lockBody": "Protektado ang pribado mong espasyo sa device na ito.", "unlock": "I-unlock", "unlocking": "Sinusuri…"
+  },
   "labels": {
     "appName": "Aletheia",
     "appTagline": "Karunungan para sa pangangasiwa",
