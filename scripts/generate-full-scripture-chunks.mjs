@@ -221,7 +221,7 @@ async function generateChunk(translationCode, bookMeta) {
         }
       }
       process.stdout.write(".");
-    } catch (err) {
+    } catch {
       process.stdout.write("E");
       fetchErrors++;
       if (fetchErrors > 5) {
@@ -253,8 +253,6 @@ async function generateChunk(translationCode, bookMeta) {
 
 async function updateManifest(generatedMap) {
   // generatedMap: { [translation]: string[] } — book keys successfully written
-  const existing = existsSync(MANIFEST_PATH) ? readFileSync(MANIFEST_PATH, "utf8") : "";
-
   // Build the translations object for the manifest
   const lines = [
     `// AUTO-GENERATED partially by scripts/generate-full-scripture-chunks.mjs`,

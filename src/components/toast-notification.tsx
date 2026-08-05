@@ -62,13 +62,11 @@ export function ToastContainer({ toasts, onRemove }: { toasts: Toast[]; onRemove
 }
 
 function ToastItem({ toast, onRemove }: { toast: Toast; onRemove: () => void }) {
-  const [isExiting, setIsExiting] = useState(false);
   const colors = toastColors[toast.type];
   const duration = toast.duration || 3000;
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      setIsExiting(true);
       setTimeout(onRemove, 300);
     }, duration);
 

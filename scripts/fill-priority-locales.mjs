@@ -325,6 +325,5 @@ async function fillLanguage(language) {
 }
 
 for (const language of languages) {
-  // eslint-disable-next-line no-await-in-loop
   await fillLanguage(language);
 }

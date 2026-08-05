@@ -101,16 +101,6 @@ export interface BibleChapterResponse {
   fallbackTranslation?: string;
 }
 
-function parseReference(ref: string): { book: string; chapter: number } | null {
-  // Handles "Matthew 25", "1 Corinthians 13", "Psalms 119", etc.
-  const match = ref.match(/^(.+?)\s+(\d+)$/);
-  if (!match) return null;
-  const book = match[1].trim();
-  const chapter = parseInt(match[2], 10);
-  if (!Number.isFinite(chapter) || chapter < 1) return null;
-  return { book, chapter };
-}
-
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const translationCode = (searchParams.get("translation") ?? "WEB").toUpperCase();

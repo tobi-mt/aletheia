@@ -354,7 +354,7 @@ export function canonicalScriptureReference(scripture: string) {
 
 export function localizedScriptureRead(scripture: string, preferences: UserPreferences): ScriptureRead {
   const canonical = canonicalScriptureReference(scripture);
-  const useFullReads = fullScriptureReadsEnabled && isFullScriptureEnabled(preferences.bibleTranslation, preferences.language);
+  const useFullReads = fullScriptureReadsEnabled && isFullScriptureEnabled(preferences.bibleTranslation);
   const fullRead = useFullReads ? getFullScriptureRead(preferences.bibleTranslation, canonical) : undefined;
 
   if (useFullReads && fullRead === undefined) {

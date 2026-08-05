@@ -28,7 +28,7 @@ const ENABLED_COHORT =
  * Returns true if full-scripture reads should be attempted for the given translation.
  * Also requires NEXT_PUBLIC_ENABLE_FULL_SCRIPTURE_READS=1 to be set.
  */
-export function isFullScriptureEnabled(translation: BibleTranslation, _language?: LanguageCode): boolean {
+export function isFullScriptureEnabled(translation: BibleTranslation): boolean {
   if (ENABLED_COHORT === "off") return false;
   return COHORT_TRANSLATIONS[ENABLED_COHORT]?.includes(translation) ?? false;
 }
