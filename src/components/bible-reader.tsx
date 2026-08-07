@@ -416,8 +416,8 @@ export default function BibleReader({ preferences, theme, initialBook, initialCh
         <div className="flex items-center gap-2 rounded-2xl border px-3 py-2.5 shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
           <Search size={15} style={{ color: theme.textSecondary }} aria-hidden="true" />
           <input
-            className="flex-1 bg-transparent text-sm outline-none placeholder:opacity-60"
-            style={{ color: theme.textPrimary }}
+            className="flex-1 appearance-none bg-transparent text-sm outline-none placeholder:opacity-60"
+            style={{ color: theme.textPrimary, backgroundColor: "transparent" }}
             placeholder={ui.search}
             value={bookSearch}
             onChange={(e) => setBookSearch(e.target.value)}
@@ -555,8 +555,8 @@ export default function BibleReader({ preferences, theme, initialBook, initialCh
                 <select
                   value={selectedChapter}
                   onChange={(e) => setSelectedChapter(Number(e.target.value))}
-                  className="min-h-8 bg-transparent px-0.5 text-[0.96rem] font-semibold outline-none"
-                  style={{ color: theme.textPrimary }}
+                  className="min-h-8 appearance-none bg-transparent px-0.5 text-[0.96rem] font-semibold outline-none"
+                  style={{ color: theme.textPrimary, backgroundColor: "transparent" }}
                   aria-label={ui.chapter}
                 >
                   {Array.from({ length: chapterCount }, (_, i) => i + 1).map((ch) => (

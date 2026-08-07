@@ -419,28 +419,41 @@ public class NativeAuthPlugin: CAPPlugin, CAPBridgedPlugin, ASAuthorizationContr
             return
         }
         let callbackScheme = call.getString("callbackScheme") ?? "com.aletheia.app"
-        let session = ASWebAuthenticationSession(url: url, callbackURLScheme: callbackScheme) { [weak self] callbackUrl, error in
-            self?.webAuthenticationSession = nil
-            if let authError = error as? ASWebAuthenticationSessionError, authError.code == .canceledLogin {
-                call.reject("AUTH_CANCELLED", "AUTH_CANCELLED", error)
+        DispatchQueue.main.async { [weak self] in
+            guard let self else {
+                call.reject("Authentication could not be started.")
                 return
             }
-            if let error {
-                call.reject("Authentication could not be completed.", nil, error)
+            guard self.webAuthenticationSession == nil else {
+                call.reject("Another authentication session is already in progress.")
                 return
             }
-            guard let callbackUrl else {
-                call.reject("Authentication returned without a callback URL.")
-                return
+
+            let session = ASWebAuthenticationSession(url: url, callbackURLScheme: callbackScheme) { [weak self] callbackUrl, error in
+                DispatchQueue.main.async {
+                    self?.webAuthenticationSession = nil
+                    if let authError = error as? ASWebAuthenticationSessionError, authError.code == .canceledLogin {
+                        call.reject("AUTH_CANCELLED", "AUTH_CANCELLED", error)
+                        return
+                    }
+                    if let error {
+                        call.reject("Authentication could not be completed.", nil, error)
+                        return
+                    }
+                    guard let callbackUrl else {
+                        call.reject("Authentication returned without a callback URL.")
+                        return
+                    }
+                    call.resolve(["url": callbackUrl.absoluteString])
+                }
             }
-            call.resolve(["url": callbackUrl.absoluteString])
-        }
-        session.presentationContextProvider = self
-        session.prefersEphemeralWebBrowserSession = false
-        webAuthenticationSession = session
-        if !session.start() {
-            webAuthenticationSession = nil
-            call.reject("Authentication session could not be started.")
+            session.presentationContextProvider = self
+            session.prefersEphemeralWebBrowserSession = false
+            self.webAuthenticationSession = session
+            if !session.start() {
+                self.webAuthenticationSession = nil
+                call.reject("Authentication session could not be started.")
+            }
         }
     }
 

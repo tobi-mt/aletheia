@@ -222,6 +222,19 @@ test("native Google return marks the reload as an in-progress auth completion", 
   assert.doesNotMatch(googleAuth, /window\.location\.reload\(\)/);
 });
 
+test("native social authentication uses one main-thread system session and returns to Home", async () => {
+  const client = await read("src/components/aletheia-app.tsx");
+  const swift = await read("ios/App/App/AppDelegate.swift");
+  const googleAuth = client.slice(client.indexOf("async function handleGoogleSignIn"), client.indexOf("async function handleAppleSignIn"));
+  const appleAuth = client.slice(client.indexOf("async function handleAppleSignIn"), client.indexOf("async function updateProfileAvatar"));
+
+  assert.match(swift, /DispatchQueue\.main\.async \{ \[weak self\] in[\s\S]*?ASWebAuthenticationSession/);
+  assert.match(swift, /guard self\.webAuthenticationSession == nil else/);
+  assert.match(swift, /DispatchQueue\.main\.async \{[\s\S]*?self\?\.webAuthenticationSession = nil/);
+  assert.doesNotMatch(googleAuth, /returnUrl\.searchParams\.set\("view", "account"\)/);
+  assert.doesNotMatch(appleAuth, /returnUrl\.searchParams\.set\("view", "account"\)/);
+});
+
 test("successful sign-in defaults to Home and retains Account only for an explicit Account entry", async () => {
   const client = await read("src/components/aletheia-app.tsx");
   const oauthComplete = await read("src/app/api/auth/oauth/complete/route.ts");
@@ -231,7 +244,7 @@ test("successful sign-in defaults to Home and retains Account only for an explic
 
   assert.match(googleAuth, /const returnToAccount = activeView === "account" && !welcomeAuthOpen/);
   assert.match(googleAuth, /postAuthDestination = `\/\?auth=google_success\$\{returnToAccount \? "&view=account" : ""\}`/);
-  assert.match(appleAuth, /const returnToAccount = activeView === "account" && !welcomeAuthOpen/);
+  assert.doesNotMatch(appleAuth, /returnToAccount/);
   assert.doesNotMatch(appleAuth, /apple_returning"\}&view=account/);
   assert.match(emailAuth, /const returnToAccount = activeView === "account" && !welcomeAuthOpen/);
   assert.match(emailAuth, /else if \(!needsAccountOnboarding && !returnToAccount\) \{[\s\S]*?setActiveView\("companion", "post_sign_in"\)/);

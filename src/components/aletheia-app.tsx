@@ -12372,9 +12372,6 @@ function startFirstRunGuestFlow() {
         if (exchange.status < 200 || exchange.status >= 300 || !exchange.cookiesInstalled) throw new Error("Google authentication handoff could not be completed.");
         const returnUrl = new URL(window.location.href);
         returnUrl.searchParams.set("auth", "google_success");
-        if (!challengeInviteToken && !counselInviteToken && returnToAccount) {
-          returnUrl.searchParams.set("view", "account");
-        }
         window.location.replace(returnUrl.toString());
         return;
       }
@@ -12421,13 +12418,9 @@ function startFirstRunGuestFlow() {
       }
       console.info("[native-auth] Apple server verification completed");
       const appleResult = response.body as { isNewUser?: boolean };
-      const returnToAccount = activeView === "account" && !welcomeAuthOpen;
       const returnUrl = new URL(window.location.href);
       returnUrl.search = "";
       returnUrl.searchParams.set("auth", appleResult.isNewUser ? "apple_new" : "apple_returning");
-      if (returnToAccount) {
-        returnUrl.searchParams.set("view", "account");
-      }
       window.location.replace(returnUrl.toString());
     } catch (error) {
       console.error("[native-auth] Apple sign-in failed", error);
@@ -33806,6 +33799,7 @@ function LibraryPanel({
           onChange={(v) => setLibrarySection(v as typeof librarySection)}
           ariaLabel={ts('labels.librarySections')}
           theme={theme}
+          layout={savedScriptures.length && !scriptureMemory ? "grid" : "auto"}
           cuePaddingClassName=""
           tabs={[
             { key: "explore", label: ts('labels.libraryExplore') },
