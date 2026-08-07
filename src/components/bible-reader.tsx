@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { ChevronLeft, ChevronRight, ChevronUp, Book, Search, Info, Sparkles, Plus, Bookmark, BookmarkCheck, Highlighter, Copy, Share2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronUp, Book, Search, Info, Sparkles, Plus, Bookmark, BookmarkCheck, Highlighter, Copy, Share2, Check } from "lucide-react";
 import type { BibleTranslation, LanguageCode } from "@/lib/localization";
 import { languages, localizedBibleBookName, localizedBookChapterReference, localizedScriptureReference } from "@/lib/localization";
 import { buildBibleStudyGuide, type BibleStudyData } from "@/lib/bible-study";
@@ -147,8 +147,8 @@ const highlightStyles: Record<ScriptureHighlightColor, { color: string }> = {
   mint: { color: "#A9DFBF" },
 };
 
-const annotationUi: Record<LanguageCode, { saveVerse: string; highlight: string; copyVerse: string; shareVerse: string }> = {
-  en: { saveVerse: "Save verse", highlight: "Highlight", copyVerse: "Copy verse", shareVerse: "Share verse" }, es: { saveVerse: "Guardar versículo", highlight: "Resaltar", copyVerse: "Copiar versículo", shareVerse: "Compartir versículo" }, fr: { saveVerse: "Enregistrer le verset", highlight: "Surligner", copyVerse: "Copier le verset", shareVerse: "Partager le verset" }, de: { saveVerse: "Vers speichern", highlight: "Markieren", copyVerse: "Vers kopieren", shareVerse: "Vers teilen" }, pt: { saveVerse: "Salvar versículo", highlight: "Destacar", copyVerse: "Copiar versículo", shareVerse: "Compartilhar versículo" }, yo: { saveVerse: "Fi ẹsẹ pamọ", highlight: "Ṣe afihan", copyVerse: "Da ẹsẹ kọ", shareVerse: "Pin ẹsẹ" }, ig: { saveVerse: "Chekwa amaokwu", highlight: "Mee ka ọ pụta ìhè", copyVerse: "Detuo amaokwu", shareVerse: "Kekọrịta amaokwu" }, ha: { saveVerse: "Ajiye aya", highlight: "Haskaka", copyVerse: "Kwafi aya", shareVerse: "Raba aya" }, tl: { saveVerse: "I-save ang talata", highlight: "I-highlight", copyVerse: "Kopyahin ang talata", shareVerse: "Ibahagi ang talata" }, ar: { saveVerse: "حفظ الآية", highlight: "تمييز", copyVerse: "نسخ الآية", shareVerse: "مشاركة الآية" }, hi: { saveVerse: "पद सहेजें", highlight: "हाइलाइट करें", copyVerse: "पद कॉपी करें", shareVerse: "पद साझा करें" },
+const annotationUi: Record<LanguageCode, { saveVerse: string; highlight: string; copyVerse: string; shareVerse: string; copied: string; shared: string }> = {
+  en: { saveVerse: "Save verse", highlight: "Highlight", copyVerse: "Copy verse", shareVerse: "Share verse", copied: "Copied", shared: "Shared" }, es: { saveVerse: "Guardar versículo", highlight: "Resaltar", copyVerse: "Copiar versículo", shareVerse: "Compartir versículo", copied: "Copiado", shared: "Compartido" }, fr: { saveVerse: "Enregistrer le verset", highlight: "Surligner", copyVerse: "Copier le verset", shareVerse: "Partager le verset", copied: "Copié", shared: "Partagé" }, de: { saveVerse: "Vers speichern", highlight: "Markieren", copyVerse: "Vers kopieren", shareVerse: "Vers teilen", copied: "Kopiert", shared: "Geteilt" }, pt: { saveVerse: "Salvar versículo", highlight: "Destacar", copyVerse: "Copiar versículo", shareVerse: "Compartilhar versículo", copied: "Copiado", shared: "Compartilhado" }, yo: { saveVerse: "Fi ẹsẹ pamọ", highlight: "Ṣe afihan", copyVerse: "Da ẹsẹ kọ", shareVerse: "Pin ẹsẹ", copied: "Ti dáakọ", shared: "Ti pín" }, ig: { saveVerse: "Chekwa amaokwu", highlight: "Mee ka ọ pụta ìhè", copyVerse: "Detuo amaokwu", shareVerse: "Kekọrịta amaokwu", copied: "Edetụla", shared: "Ekekọrịtala" }, ha: { saveVerse: "Ajiye aya", highlight: "Haskaka", copyVerse: "Kwafi aya", shareVerse: "Raba aya", copied: "An kwafa", shared: "An raba" }, tl: { saveVerse: "I-save ang talata", highlight: "I-highlight", copyVerse: "Kopyahin ang talata", shareVerse: "Ibahagi ang talata", copied: "Nakopya", shared: "Naibahagi" }, ar: { saveVerse: "حفظ الآية", highlight: "تمييز", copyVerse: "نسخ الآية", shareVerse: "مشاركة الآية", copied: "تم النسخ", shared: "تمت المشاركة" }, hi: { saveVerse: "पद सहेजें", highlight: "हाइलाइट करें", copyVerse: "पद कॉपी करें", shareVerse: "पद साझा करें", copied: "कॉपी किया गया", shared: "साझा किया गया" },
 };
 
 interface ChapterData {
@@ -174,8 +174,8 @@ interface BibleReaderProps {
   onSaveScripture?: (scripture: Omit<SavedScripture, "id" | "savedAt">) => void;
   onRemoveSavedScripture?: (id: string) => void;
   onSetScriptureHighlight?: (book: string, chapter: number, verse: number, highlight: ScriptureHighlightColor | null) => void;
-  onCopyScripture?: (book: string, chapter: number, verse: number, text: string) => void;
-  onShareScripture?: (book: string, chapter: number, verse: number, text: string) => void;
+  onCopyScripture?: (book: string, chapter: number, verse: number, text: string) => Promise<boolean>;
+  onShareScripture?: (book: string, chapter: number, verse: number, text: string) => Promise<boolean>;
 }
 
 export default function BibleReader({ preferences, theme, initialBook, initialChapter, onSaveStudyAction, savedScriptures = [], scriptureHighlights = {}, onSaveScripture, onRemoveSavedScripture, onSetScriptureHighlight, onCopyScripture, onShareScripture }: BibleReaderProps) {
@@ -198,6 +198,7 @@ export default function BibleReader({ preferences, theme, initialBook, initialCh
   const [savedActionId, setSavedActionId] = useState<string | null>(null);
   const [showBookSelector, setShowBookSelector] = useState(!initialBook);
   const [showQuickNav, setShowQuickNav] = useState(false);
+  const [verseActionFeedback, setVerseActionFeedback] = useState<{ key: string; kind: "copy" | "share" } | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const studyAbortRef = useRef<AbortController | null>(null);
   const verseRefs = useRef<Record<string, HTMLElement | null>>({});
@@ -416,7 +417,7 @@ export default function BibleReader({ preferences, theme, initialBook, initialCh
         <div className="flex items-center gap-2 rounded-2xl border px-3 py-2.5 shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
           <Search size={15} style={{ color: theme.textSecondary }} aria-hidden="true" />
           <input
-            className="flex-1 appearance-none bg-transparent text-sm outline-none placeholder:opacity-60"
+            className="bible-reader-field flex-1 appearance-none bg-transparent text-sm outline-none placeholder:opacity-60"
             style={{ color: theme.textPrimary, backgroundColor: "transparent" }}
             placeholder={ui.search}
             value={bookSearch}
@@ -555,7 +556,7 @@ export default function BibleReader({ preferences, theme, initialBook, initialCh
                 <select
                   value={selectedChapter}
                   onChange={(e) => setSelectedChapter(Number(e.target.value))}
-                  className="min-h-8 appearance-none bg-transparent px-0.5 text-[0.96rem] font-semibold outline-none"
+                  className="bible-reader-field min-h-8 appearance-none bg-transparent px-0.5 text-[0.96rem] font-semibold outline-none"
                   style={{ color: theme.textPrimary, backgroundColor: "transparent" }}
                   aria-label={ui.chapter}
                 >
@@ -716,8 +717,9 @@ export default function BibleReader({ preferences, theme, initialBook, initialCh
                   </p>
                 </div>
                 {(onSaveScripture || saved || onSetScriptureHighlight || onCopyScripture || onShareScripture) ? <div className="mt-3 flex min-w-0 items-center gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
-                  {onCopyScripture ? <button type="button" onClick={() => onCopyScripture(selectedBook, selectedChapter, v.verse, v.text)} className="inline-flex size-9 shrink-0 items-center justify-center rounded-full border" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} aria-label={annotations.copyVerse} title={annotations.copyVerse}><Copy size={14} aria-hidden="true" /></button> : null}
-                  {onShareScripture ? <button type="button" onClick={() => onShareScripture(selectedBook, selectedChapter, v.verse, v.text)} className="inline-flex size-9 shrink-0 items-center justify-center rounded-full border" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} aria-label={annotations.shareVerse} title={annotations.shareVerse}><Share2 size={14} aria-hidden="true" /></button> : null}
+                  {onCopyScripture ? <button type="button" onClick={() => { void onCopyScripture(selectedBook, selectedChapter, v.verse, v.text).then((success) => success && setVerseActionFeedback({ key: scriptureHighlightKey(selectedBook, selectedChapter, v.verse), kind: "copy" })); }} className="inline-flex size-9 shrink-0 items-center justify-center rounded-full border" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} aria-label={annotations.copyVerse} title={annotations.copyVerse}>{verseActionFeedback?.key === scriptureHighlightKey(selectedBook, selectedChapter, v.verse) && verseActionFeedback.kind === "copy" ? <Check size={14} aria-hidden="true" /> : <Copy size={14} aria-hidden="true" />}</button> : null}
+                  {onShareScripture ? <button type="button" onClick={() => { void onShareScripture(selectedBook, selectedChapter, v.verse, v.text).then((success) => success && setVerseActionFeedback({ key: scriptureHighlightKey(selectedBook, selectedChapter, v.verse), kind: "share" })); }} className="inline-flex size-9 shrink-0 items-center justify-center rounded-full border" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} aria-label={annotations.shareVerse} title={annotations.shareVerse}>{verseActionFeedback?.key === scriptureHighlightKey(selectedBook, selectedChapter, v.verse) && verseActionFeedback.kind === "share" ? <Check size={14} aria-hidden="true" /> : <Share2 size={14} aria-hidden="true" />}</button> : null}
+                  {verseActionFeedback?.key === scriptureHighlightKey(selectedBook, selectedChapter, v.verse) ? <span role="status" className="shrink-0 text-xs font-semibold" style={{ color: theme.primary }}>{verseActionFeedback.kind === "copy" ? annotations.copied : annotations.shared}</span> : null}
                   <button type="button" onClick={() => saved ? onRemoveSavedScripture?.(saved.id) : onSaveScripture?.({ book: selectedBook, chapter: selectedChapter, verse: v.verse, text: v.text, highlight: highlightColor })} className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border px-3 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}>
                     {saved ? <BookmarkCheck size={14} aria-hidden="true" /> : <Bookmark size={14} aria-hidden="true" />}
                     {saved ? ui.saved : annotations.saveVerse}

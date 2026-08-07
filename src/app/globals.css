@@ -611,6 +611,15 @@ html[data-theme="dark"] .theme-dark-root [style*="background-color: #d0ad55"] {
   color: var(--dark-muted) !important;
 }
 
+/* Bible reader fields live inside their own styled surfaces. Prevent the global
+   dark input treatment from adding an inset rectangle to those controls. */
+.app-shell .bible-reader-field,
+.theme-dark-root .bible-reader-field {
+  background-color: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
 .theme-dark-root [class*="bg-[#edf2ee]"],
 .theme-dark-root [class*="bg-[#f5edda]"],
 .theme-dark-root [class*="bg-[#fff8dc]"],

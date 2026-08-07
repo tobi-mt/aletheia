@@ -10897,18 +10897,27 @@ function startFirstRunGuestFlow() {
     return `${text}\n\n${reference} (${translation})`;
   }
 
-  function copyScripture(book: string, chapter: number, verse: number, text: string) {
-    void navigator.clipboard?.writeText(scriptureShareText(book, chapter, verse, text)).catch(() => undefined);
+  async function copyScripture(book: string, chapter: number, verse: number, text: string) {
+    try {
+      await navigator.clipboard.writeText(scriptureShareText(book, chapter, verse, text));
+      return true;
+    } catch {
+      return false;
+    }
   }
 
-  function shareScripture(book: string, chapter: number, verse: number, text: string) {
+  async function shareScripture(book: string, chapter: number, verse: number, text: string) {
     const reference = `${localizedBibleBookName(book, preferences.language)} ${chapter}:${verse}`;
     const shareText = scriptureShareText(book, chapter, verse, text);
     if (navigator.share) {
-      void navigator.share({ title: reference, text: shareText }).catch(() => undefined);
-      return;
+      try {
+        await navigator.share({ title: reference, text: shareText });
+        return true;
+      } catch {
+        return false;
+      }
     }
-    void navigator.clipboard?.writeText(shareText).catch(() => undefined);
+    return copyScripture(book, chapter, verse, text);
   }
 
   function shareScriptureMemoryCard(memory: ScriptureMemory) {
@@ -33753,8 +33762,8 @@ function LibraryPanel({
   onSaveScripture: (scripture: Omit<SavedScripture, "id" | "savedAt">) => void;
   onRemoveSavedScripture: (id: string) => void;
   onSetScriptureHighlight: (book: string, chapter: number, verse: number, highlight: ScriptureHighlightColor | null) => void;
-  onCopyScripture: (book: string, chapter: number, verse: number, text: string) => void;
-  onShareScripture: (book: string, chapter: number, verse: number, text: string) => void;
+  onCopyScripture: (book: string, chapter: number, verse: number, text: string) => Promise<boolean>;
+  onShareScripture: (book: string, chapter: number, verse: number, text: string) => Promise<boolean>;
   onSaveScriptureMemory: (scripture: string, principle: string) => void;
   onSaveStudyActionAsRule: (action: string) => void;
   onShareScriptureMemory: (memory: ScriptureMemory) => void;
