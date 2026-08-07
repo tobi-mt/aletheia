@@ -8,20 +8,26 @@ export async function GET() {
   try {
     const csrfResponse = await fetch('/api/auth/csrf', { credentials: 'same-origin' });
     const csrf = await csrfResponse.json();
-    const body = new URLSearchParams({
+    if (!csrf.csrfToken) throw new Error('Missing CSRF token');
+
+    // Submit as a browser navigation instead of fetching the provider URL in
+    // the background. iOS must commit NextAuth's short-lived state and PKCE
+    // cookies before Google redirects back to the callback.
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/api/auth/signin/google';
+    for (const [name, value] of Object.entries({
       csrfToken: csrf.csrfToken,
-      callbackUrl: location.origin + '/api/auth/oauth/complete?native=1',
-      json: 'true'
-    });
-    const response = await fetch('/api/auth/signin/google', {
-      method: 'POST',
-      credentials: 'same-origin',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Auth-Return-Redirect': '1' },
-      body
-    });
-    const result = await response.json();
-    if (!result.url) throw new Error('Missing provider URL');
-    location.replace(result.url);
+      callbackUrl: location.origin + '/api/auth/oauth/complete?native=1'
+    })) {
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = name;
+      input.value = value;
+      form.appendChild(input);
+    }
+    document.body.appendChild(form);
+    form.submit();
   } catch (error) {
     location.replace('com.aletheia.app://auth/callback?error=start_failed');
   }

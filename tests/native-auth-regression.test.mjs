@@ -21,6 +21,15 @@ test("Google native auth uses a single-use server handoff", async () => {
   assert.match(server, /SET consumed_at = \?/);
 });
 
+test("native Google submits the provider start as a browser navigation", async () => {
+  const start = await read("src/app/api/auth/native/google/start/route.ts");
+  assert.match(start, /form\.method = 'POST'/);
+  assert.match(start, /form\.action = '\/api\/auth\/signin\/google'/);
+  assert.match(start, /form\.submit\(\)/);
+  assert.doesNotMatch(start, /X-Auth-Return-Redirect/);
+  assert.doesNotMatch(start, /json: 'true'/);
+});
+
 test("Apple identity verification covers signature, audience, expiry, email, and nonce", async () => {
   const verifier = await read("src/lib/apple-identity.ts");
   for (const requirement of ["RSA-SHA256", "audiences.includes", "claims.exp", "email_verified", "claims.nonce"]) {
