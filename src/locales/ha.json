@@ -1370,6 +1370,7 @@
     "journalSections": "Sassan ajanda",
     "libraryExplore": "Bincika",
     "bibleLibrary": "Littafi Mai Tsarki",
+    "savedScriptures": "Nassosin da aka ajiye",
     "librarySections": "Sassan ɗakin karatu",
     "listening": "Ana sauraro",
     "moreCounselOptions": "Ƙarin zaɓuɓɓukan shawara",
@@ -1804,7 +1805,8 @@
     "googleSigninFailed": "An kasa kammala shiga Google. Da fatan za a sake gwadawa. Idan ya ci gaba da kasawa, yi amfani da imel a maimakon haka.",
     "googleSigninCancelled": "An soke shigar da Google kafin ya gama. Kuna iya sake gwadawa ko amfani da imel a maimakon haka.",
     "googleSigninUnavailable": "Babu shigan Google na ɗan lokaci. Kuna iya ci gaba da imel a ƙasa.",
-    "googleSigninDidNotFinish": "Shigar Google bai ƙare ba. Da fatan za a sake gwadawa ko amfani da imel a maimakon haka."
+    "googleSigninDidNotFinish": "Shigar Google bai ƙare ba. Da fatan za a sake gwadawa ko amfani da imel a maimakon haka.",
+    "showPassword": "Nuna kalmar sirri", "hidePassword": "Boye kalmar sirri", "forgotPassword": "Ka manta kalmar sirri?", "resetPasswordTitle": "Sake saita kalmar sirri", "resetPasswordBody": "Shigar da imel ɗinka kuma za mu aika hanyar sake saitawa idan asusun kalmar sirri ne.", "sendResetLink": "Aika hanyar sake saitawa", "sendingResetLink": "Ana aika hanyar…", "resetLinkSent": "Idan wannan imel yana da asusun kalmar sirri, mun aika hanyar.", "chooseNewPassword": "Zaɓi sabuwar kalmar sirri", "newPasswordBody": "Yi amfani da aƙalla haruffa 8. Hanyar za ta ƙare bayan awa ɗaya.", "newPassword": "Sabuwar kalmar sirri", "confirmNewPassword": "Tabbatar da sabuwar kalmar sirri", "resetPassword": "Sake saita kalmar sirri", "passwordResetComplete": "An sake saita kalmar sirrinka. Za ka iya shiga yanzu.", "passwordsDoNotMatch": "Kalmomin sirri ba su yi daidai ba.", "resetLinkMissing": "Wannan hanyar ba ta cika ba. Nemi sabuwa daga shiga.", "backToSignIn": "Koma shiga"
   },
   "theme": {
     "system": "Tsari",

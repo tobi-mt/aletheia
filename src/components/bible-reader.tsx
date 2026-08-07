@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { ChevronLeft, ChevronRight, ChevronUp, Book, Search, Info, Sparkles, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronUp, Book, Search, Info, Sparkles, Plus, Bookmark, BookmarkCheck, Highlighter, Copy, Share2 } from "lucide-react";
 import type { BibleTranslation, LanguageCode } from "@/lib/localization";
 import { languages, localizedBibleBookName, localizedBookChapterReference, localizedScriptureReference } from "@/lib/localization";
 import { buildBibleStudyGuide, type BibleStudyData } from "@/lib/bible-study";
@@ -122,6 +122,35 @@ interface BibleVerse {
   text: string;
 }
 
+export type ScriptureHighlightColor = "gold" | "rose" | "sky" | "mint";
+
+export type SavedScripture = {
+  id: string;
+  book: string;
+  chapter: number;
+  verse: number;
+  text: string;
+  highlight: ScriptureHighlightColor | null;
+  savedAt: string;
+};
+
+export type ScriptureHighlights = Record<string, ScriptureHighlightColor>;
+
+export function scriptureHighlightKey(book: string, chapter: number, verse: number) {
+  return `${book}:${chapter}:${verse}`;
+}
+
+const highlightStyles: Record<ScriptureHighlightColor, { color: string }> = {
+  gold: { color: "#F6D365" },
+  rose: { color: "#F5B7B1" },
+  sky: { color: "#AED6F1" },
+  mint: { color: "#A9DFBF" },
+};
+
+const annotationUi: Record<LanguageCode, { saveVerse: string; highlight: string; copyVerse: string; shareVerse: string }> = {
+  en: { saveVerse: "Save verse", highlight: "Highlight", copyVerse: "Copy verse", shareVerse: "Share verse" }, es: { saveVerse: "Guardar versículo", highlight: "Resaltar", copyVerse: "Copiar versículo", shareVerse: "Compartir versículo" }, fr: { saveVerse: "Enregistrer le verset", highlight: "Surligner", copyVerse: "Copier le verset", shareVerse: "Partager le verset" }, de: { saveVerse: "Vers speichern", highlight: "Markieren", copyVerse: "Vers kopieren", shareVerse: "Vers teilen" }, pt: { saveVerse: "Salvar versículo", highlight: "Destacar", copyVerse: "Copiar versículo", shareVerse: "Compartilhar versículo" }, yo: { saveVerse: "Fi ẹsẹ pamọ", highlight: "Ṣe afihan", copyVerse: "Da ẹsẹ kọ", shareVerse: "Pin ẹsẹ" }, ig: { saveVerse: "Chekwa amaokwu", highlight: "Mee ka ọ pụta ìhè", copyVerse: "Detuo amaokwu", shareVerse: "Kekọrịta amaokwu" }, ha: { saveVerse: "Ajiye aya", highlight: "Haskaka", copyVerse: "Kwafi aya", shareVerse: "Raba aya" }, tl: { saveVerse: "I-save ang talata", highlight: "I-highlight", copyVerse: "Kopyahin ang talata", shareVerse: "Ibahagi ang talata" }, ar: { saveVerse: "حفظ الآية", highlight: "تمييز", copyVerse: "نسخ الآية", shareVerse: "مشاركة الآية" }, hi: { saveVerse: "पद सहेजें", highlight: "हाइलाइट करें", copyVerse: "पद कॉपी करें", shareVerse: "पद साझा करें" },
+};
+
 interface ChapterData {
   translation: string;
   book: string;
@@ -140,10 +169,18 @@ interface BibleReaderProps {
   initialBook?: string;
   initialChapter?: number;
   onSaveStudyAction?: (action: string) => void;
+  savedScriptures?: SavedScripture[];
+  scriptureHighlights?: ScriptureHighlights;
+  onSaveScripture?: (scripture: Omit<SavedScripture, "id" | "savedAt">) => void;
+  onRemoveSavedScripture?: (id: string) => void;
+  onSetScriptureHighlight?: (book: string, chapter: number, verse: number, highlight: ScriptureHighlightColor | null) => void;
+  onCopyScripture?: (book: string, chapter: number, verse: number, text: string) => void;
+  onShareScripture?: (book: string, chapter: number, verse: number, text: string) => void;
 }
 
-export default function BibleReader({ preferences, theme, initialBook, initialChapter, onSaveStudyAction }: BibleReaderProps) {
+export default function BibleReader({ preferences, theme, initialBook, initialChapter, onSaveStudyAction, savedScriptures = [], scriptureHighlights = {}, onSaveScripture, onRemoveSavedScripture, onSetScriptureHighlight, onCopyScripture, onShareScripture }: BibleReaderProps) {
   const ui = getUI(preferences.language);
+  const annotations = annotationUi[preferences.language];
   const chapterUi = chapterNavUi(preferences.language);
   const isRtl = preferences.language === "ar";
   const showCloseEquivalentEditionNote = ["YOR1900", "IGB1913", "HAU1932"].includes(preferences.bibleTranslation);
@@ -642,20 +679,23 @@ export default function BibleReader({ preferences, theme, initialBook, initialCh
               </div>
             ) : null}
 
-            {chapterData.verses.map((v, index) => (
-              <article
-                key={v.verse}
-                ref={(node) => setVerseRef(v.verse, node)}
-                id={`verse-${v.verse}`}
-                tabIndex={-1}
-                className="scroll-mt-24 rounded-[1.55rem] border px-4 py-[1.05rem] shadow-[0_10px_22px_rgba(7,10,8,0.05)] sm:px-5 sm:py-5"
-                style={{
-                  borderColor: theme.borderLight,
-                  background: index % 2 === 0
-                    ? `linear-gradient(180deg, color-mix(in srgb, ${theme.bgCard} 97%, white 3%), ${theme.bgCard})`
-                    : `linear-gradient(180deg, color-mix(in srgb, ${theme.bgCardElevated} 95%, white 5%), ${theme.bgCardElevated})`,
-                }}
-              >
+            {chapterData.verses.map((v, index) => {
+                const saved = savedScriptures.find((item) => item.book === selectedBook && item.chapter === selectedChapter && item.verse === v.verse);
+                const highlightColor = saved?.highlight ?? scriptureHighlights[scriptureHighlightKey(selectedBook, selectedChapter, v.verse)] ?? null;
+                const highlight = highlightColor ? highlightStyles[highlightColor] : null;
+                return <article
+                  key={v.verse}
+                  ref={(node) => setVerseRef(v.verse, node)}
+                  id={`verse-${v.verse}`}
+                  tabIndex={-1}
+                  className="scroll-mt-24 rounded-[1.55rem] border px-4 py-[1.05rem] shadow-[0_10px_22px_rgba(7,10,8,0.05)] sm:px-5 sm:py-5"
+                  style={{
+                    borderColor: theme.borderLight,
+                    background: highlight ? `linear-gradient(180deg, color-mix(in srgb, ${highlight.color} 38%, ${theme.bgCard}), ${theme.bgCard})` : index % 2 === 0
+                      ? `linear-gradient(180deg, color-mix(in srgb, ${theme.bgCard} 97%, white 3%), ${theme.bgCard})`
+                      : `linear-gradient(180deg, color-mix(in srgb, ${theme.bgCardElevated} 95%, white 5%), ${theme.bgCardElevated})`,
+                  }}
+                >
                 <div className="flex items-start gap-3.5 sm:gap-4">
                   <button
                     type="button"
@@ -675,8 +715,20 @@ export default function BibleReader({ preferences, theme, initialBook, initialCh
                     {v.text}
                   </p>
                 </div>
-              </article>
-            ))}
+                {(onSaveScripture || saved || onSetScriptureHighlight || onCopyScripture || onShareScripture) ? <div className="mt-3 flex min-w-0 items-center gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
+                  {onCopyScripture ? <button type="button" onClick={() => onCopyScripture(selectedBook, selectedChapter, v.verse, v.text)} className="inline-flex size-9 shrink-0 items-center justify-center rounded-full border" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} aria-label={annotations.copyVerse} title={annotations.copyVerse}><Copy size={14} aria-hidden="true" /></button> : null}
+                  {onShareScripture ? <button type="button" onClick={() => onShareScripture(selectedBook, selectedChapter, v.verse, v.text)} className="inline-flex size-9 shrink-0 items-center justify-center rounded-full border" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} aria-label={annotations.shareVerse} title={annotations.shareVerse}><Share2 size={14} aria-hidden="true" /></button> : null}
+                  <button type="button" onClick={() => saved ? onRemoveSavedScripture?.(saved.id) : onSaveScripture?.({ book: selectedBook, chapter: selectedChapter, verse: v.verse, text: v.text, highlight: highlightColor })} className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border px-3 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}>
+                    {saved ? <BookmarkCheck size={14} aria-hidden="true" /> : <Bookmark size={14} aria-hidden="true" />}
+                    {saved ? ui.saved : annotations.saveVerse}
+                  </button>
+                  {onSetScriptureHighlight ? <>
+                    <span className="inline-flex h-9 shrink-0 items-center gap-1 text-xs" style={{ color: theme.textSecondary }}><Highlighter size={14} aria-hidden="true" /> {annotations.highlight}</span>
+                    {(Object.keys(highlightStyles) as ScriptureHighlightColor[]).map((color) => <button key={color} type="button" onClick={() => onSetScriptureHighlight(selectedBook, selectedChapter, v.verse, highlightColor === color ? null : color)} className="size-8 shrink-0 rounded-full border-2" style={{ backgroundColor: highlightStyles[color].color, borderColor: highlightColor === color ? theme.textPrimary : "transparent" }} aria-label={annotations.highlight} title={annotations.highlight} />)}
+                  </> : null}
+                </div> : null}
+              </article>;
+            })}
           </div>
         ) : null
       ) : showStudyLoadingState ? (

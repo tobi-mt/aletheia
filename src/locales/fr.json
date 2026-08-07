@@ -1387,6 +1387,7 @@
     "journalSections": "Sections du journal",
     "libraryExplore": "Explorer",
     "bibleLibrary": "Bible",
+    "savedScriptures": "Passages enregistrés",
     "librarySections": "Sections de la bibliothèque",
     "listening": "Écoute",
     "moreCounselOptions": "Plus d’options de conseil",
@@ -1821,7 +1822,8 @@
     "googleSigninFailed": "La connexion à Google n'a pas pu être effectuée. Veuillez réessayer. S'il continue d'échouer, utilisez plutôt l'e-mail ci-dessous.",
     "googleSigninCancelled": "La connexion à Google a été annulée avant la fin. Vous pouvez réessayer ou utiliser l'e-mail ci-dessous à la place.",
     "googleSigninUnavailable": "La connexion Google est temporairement indisponible. Vous pouvez toujours continuer avec l'e-mail ci-dessous.",
-    "googleSigninDidNotFinish": "La connexion à Google n'a pas abouti. Veuillez réessayer ou utiliser l'e-mail ci-dessous."
+    "googleSigninDidNotFinish": "La connexion à Google n'a pas abouti. Veuillez réessayer ou utiliser l'e-mail ci-dessous.",
+    "showPassword": "Afficher le mot de passe", "hidePassword": "Masquer le mot de passe", "forgotPassword": "Mot de passe oublié ?", "resetPasswordTitle": "Réinitialisez votre mot de passe", "resetPasswordBody": "Saisissez votre e-mail et nous enverrons un lien s’il correspond à un compte par mot de passe.", "sendResetLink": "Envoyer le lien", "sendingResetLink": "Envoi du lien…", "resetLinkSent": "Si cet e-mail correspond à un compte par mot de passe, nous avons envoyé un lien.", "chooseNewPassword": "Choisissez un nouveau mot de passe", "newPasswordBody": "Utilisez au moins 8 caractères. Ce lien expire après une heure.", "newPassword": "Nouveau mot de passe", "confirmNewPassword": "Confirmez le nouveau mot de passe", "resetPassword": "Réinitialiser le mot de passe", "passwordResetComplete": "Votre mot de passe a été réinitialisé. Vous pouvez vous connecter.", "passwordsDoNotMatch": "Les mots de passe ne correspondent pas.", "resetLinkMissing": "Ce lien est incomplet. Demandez-en un nouveau depuis la connexion.", "backToSignIn": "Retour à la connexion"
   },
   "theme": {
     "system": "Système",

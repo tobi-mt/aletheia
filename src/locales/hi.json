@@ -1370,6 +1370,7 @@
     "journalSections": "जर्नल अनुभाग",
     "libraryExplore": "अन्वेषण करना",
     "bibleLibrary": "बाइबिल",
+    "savedScriptures": "सहेजे गए धर्मग्रंथ",
     "librarySections": "पुस्तकालय अनुभाग",
     "listening": "सुनना",
     "moreCounselOptions": "अधिक परामर्श विकल्प",
@@ -1804,7 +1805,8 @@
     "googleSigninFailed": "Google साइन-इन पूरा नहीं हो सका. कृपया पुन: प्रयास करें। यदि यह विफल रहता है, तो इसके बजाय नीचे दिए गए ईमेल का उपयोग करें।",
     "googleSigninCancelled": "Google साइन-इन समाप्त होने से पहले रद्द कर दिया गया था। आप पुनः प्रयास कर सकते हैं या इसके बजाय नीचे दिए गए ईमेल का उपयोग कर सकते हैं।",
     "googleSigninUnavailable": "Google साइन-इन अस्थायी रूप से अनुपलब्ध है. आप अभी भी नीचे दिए गए ईमेल के साथ जारी रख सकते हैं।",
-    "googleSigninDidNotFinish": "Google साइन-इन समाप्त नहीं हुआ. कृपया पुनः प्रयास करें या इसके बजाय नीचे दिए गए ईमेल का उपयोग करें।"
+    "googleSigninDidNotFinish": "Google साइन-इन समाप्त नहीं हुआ. कृपया पुनः प्रयास करें या इसके बजाय नीचे दिए गए ईमेल का उपयोग करें।",
+    "showPassword": "पासवर्ड दिखाएं", "hidePassword": "पासवर्ड छिपाएं", "forgotPassword": "पासवर्ड भूल गए?", "resetPasswordTitle": "अपना पासवर्ड रीसेट करें", "resetPasswordBody": "अपना ईमेल दर्ज करें; पासवर्ड खाते से जुड़ा होने पर हम रीसेट लिंक भेजेंगे।", "sendResetLink": "रीसेट लिंक भेजें", "sendingResetLink": "रीसेट लिंक भेजा जा रहा है…", "resetLinkSent": "यदि इस ईमेल का पासवर्ड खाता है, तो हमने रीसेट लिंक भेज दिया है।", "chooseNewPassword": "नया पासवर्ड चुनें", "newPasswordBody": "कम से कम 8 वर्णों का उपयोग करें। यह लिंक एक घंटे में समाप्त होगा।", "newPassword": "नया पासवर्ड", "confirmNewPassword": "नए पासवर्ड की पुष्टि करें", "resetPassword": "पासवर्ड रीसेट करें", "passwordResetComplete": "आपका पासवर्ड रीसेट हो गया है। अब आप साइन इन कर सकते हैं।", "passwordsDoNotMatch": "पासवर्ड मेल नहीं खाते।", "resetLinkMissing": "यह रीसेट लिंक अधूरा है। साइन इन से नया लिंक मांगें।", "backToSignIn": "साइन इन पर वापस जाएं"
   },
   "theme": {
     "system": "प्रणाली",

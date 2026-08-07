@@ -1370,6 +1370,7 @@
     "journalSections": "Mga seksyon ng journal",
     "libraryExplore": "Galugarin",
     "bibleLibrary": "Biblia",
+    "savedScriptures": "Mga naka-save na Kasulatan",
     "librarySections": "Mga seksyon ng aklatan",
     "listening": "Nakikinig",
     "moreCounselOptions": "Higit pang mga pagpipilian sa payo",
@@ -1804,7 +1805,8 @@
     "googleSigninFailed": "Hindi makumpleto ang pag-sign in sa Google. Pakisubukang muli. Kung patuloy itong nabigo, gamitin na lang ang email sa ibaba.",
     "googleSigninCancelled": "Kinansela ang pag-sign in sa Google bago ito matapos. Maaari mong subukang muli o gumamit na lang ng email sa ibaba.",
     "googleSigninUnavailable": "Pansamantalang hindi available ang pag-sign in sa Google. Maaari ka pa ring magpatuloy sa email sa ibaba.",
-    "googleSigninDidNotFinish": "Hindi natapos ang pag-sign in sa Google. Pakisubukang muli o gumamit na lang ng email sa ibaba."
+    "googleSigninDidNotFinish": "Hindi natapos ang pag-sign in sa Google. Pakisubukang muli o gumamit na lang ng email sa ibaba.",
+    "showPassword": "Ipakita ang password", "hidePassword": "Itago ang password", "forgotPassword": "Nakalimutan ang password?", "resetPasswordTitle": "I-reset ang iyong password", "resetPasswordBody": "Ilagay ang email mo at magpapadala kami ng link kung ito ay para sa account na may password.", "sendResetLink": "Magpadala ng reset link", "sendingResetLink": "Ipinapadala ang link…", "resetLinkSent": "Kung may account na may password ang email na ito, nagpadala kami ng link.", "chooseNewPassword": "Pumili ng bagong password", "newPasswordBody": "Gumamit ng hindi bababa sa 8 karakter. Mag-e-expire ang link na ito makalipas ang isang oras.", "newPassword": "Bagong password", "confirmNewPassword": "Kumpirmahin ang bagong password", "resetPassword": "I-reset ang password", "passwordResetComplete": "Na-reset ang iyong password. Maaari ka nang mag-sign in.", "passwordsDoNotMatch": "Hindi tugma ang mga password.", "resetLinkMissing": "Hindi kumpleto ang reset link na ito. Humiling ng bago mula sa sign in.", "backToSignIn": "Bumalik sa sign in"
   },
   "theme": {
     "system": "Sistema",

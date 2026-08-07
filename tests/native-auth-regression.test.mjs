@@ -222,6 +222,27 @@ test("native Google return marks the reload as an in-progress auth completion", 
   assert.doesNotMatch(googleAuth, /window\.location\.reload\(\)/);
 });
 
+test("successful sign-in defaults to Home and retains Account only for an explicit Account entry", async () => {
+  const client = await read("src/components/aletheia-app.tsx");
+  const oauthComplete = await read("src/app/api/auth/oauth/complete/route.ts");
+  const googleAuth = client.slice(client.indexOf("async function handleGoogleSignIn"), client.indexOf("async function handleAppleSignIn"));
+  const appleAuth = client.slice(client.indexOf("async function handleAppleSignIn"), client.indexOf("async function updateProfileAvatar"));
+  const emailAuth = client.slice(client.indexOf("async function handleAuth"), client.indexOf("async function logout"));
+
+  assert.match(googleAuth, /const returnToAccount = activeView === "account" && !welcomeAuthOpen/);
+  assert.match(googleAuth, /postAuthDestination = `\/\?auth=google_success\$\{returnToAccount \? "&view=account" : ""\}`/);
+  assert.match(appleAuth, /const returnToAccount = activeView === "account" && !welcomeAuthOpen/);
+  assert.doesNotMatch(appleAuth, /apple_returning"\}&view=account/);
+  assert.match(emailAuth, /const returnToAccount = activeView === "account" && !welcomeAuthOpen/);
+  assert.match(emailAuth, /else if \(!needsAccountOnboarding && !returnToAccount\) \{[\s\S]*?setActiveView\("companion", "post_sign_in"\)/);
+  const successfulOAuthRedirect = oauthComplete.slice(
+    oauthComplete.indexOf('const requestedNext = request.nextUrl.searchParams.get("next")'),
+    oauthComplete.indexOf("return NextResponse.redirect(redirectUrl);", oauthComplete.indexOf('const requestedNext = request.nextUrl.searchParams.get("next")'))
+  );
+  assert.doesNotMatch(successfulOAuthRedirect, /redirectUrl\.searchParams\.set\("view", "account"\)/);
+  assert.match(client, /if \(!isNewSocialAccount && params\.get\("view"\) === "account"\)/);
+});
+
 test("native uses ManagedAudio before browser speech and verifies push configuration per platform", async () => {
   const client = await read("src/components/aletheia-app.tsx");
   const nativePush = await read("src/lib/native-push.ts");

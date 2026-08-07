@@ -1370,6 +1370,7 @@
     "journalSections": "Nkebi akwụkwọ ndekọ",
     "libraryExplore": "Chọgharịa",
     "bibleLibrary": "Baịbụl",
+    "savedScriptures": "Akwụkwọ Nsọ echekwara",
     "librarySections": "Nkebi ọba akwụkwọ",
     "listening": "Na-ege ntị",
     "moreCounselOptions": "Nhọrọ ndụmọdụ ndị ọzọ",
@@ -1804,7 +1805,8 @@
     "googleSigninFailed": "Enweghị ike imecha nbanye Google. Biko nwaa ọzọ. Ọ bụrụ na ọ na-aga n'ihu, jiri email n'okpuru kama.",
     "googleSigninCancelled": "Akagburu nbanye Google tupu ọ agwụchaa. Ị nwere ike ịnwale ọzọ ma ọ bụ jiri email n'okpuru kama.",
     "googleSigninUnavailable": "Nbanye Google adịghị adị nwa oge. Ị ka nwere ike ịga n'ihu na email n'okpuru.",
-    "googleSigninDidNotFinish": "Nbanye Google akwụsịghị. Biko nwaa ọzọ ma ọ bụ jiri email n'okpuru kama."
+    "googleSigninDidNotFinish": "Nbanye Google akwụsịghị. Biko nwaa ọzọ ma ọ bụ jiri email n'okpuru kama.",
+    "showPassword": "Gosi okwuntughe", "hidePassword": "Zoo okwuntughe", "forgotPassword": "Chefuru okwuntughe?", "resetPasswordTitle": "Tọgharịa okwuntughe gị", "resetPasswordBody": "Tinye email gị, anyị ga-eziga njikọ ma ọ bụrụ na ọ bụ akaụntụ okwuntughe.", "sendResetLink": "Zipu njikọ", "sendingResetLink": "Na-eziga njikọ…", "resetLinkSent": "Ọ bụrụ na email a nwere akaụntụ okwuntughe, anyị ezigala njikọ.", "chooseNewPassword": "Họrọ okwuntughe ọhụrụ", "newPasswordBody": "Jiri opekata mpe mkpụrụedemede 8. Njikọ a ga-agwụ mgbe otu awa gasịrị.", "newPassword": "Okwuntughe ọhụrụ", "confirmNewPassword": "Kwenye okwuntughe ọhụrụ", "resetPassword": "Tọgharịa okwuntughe", "passwordResetComplete": "Atọgharịala okwuntughe gị. Ị nwere ike ịbanye ugbu a.", "passwordsDoNotMatch": "Okwuntughe anaghị adaba.", "resetLinkMissing": "Njikọ a ezughị ezu. Rịọ nke ọhụrụ mgbe ị na-abanye.", "backToSignIn": "Laghachi nbanye"
   },
   "theme": {
     "system": "Sistemụ",

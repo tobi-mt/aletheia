@@ -1370,6 +1370,7 @@
     "journalSections": "Seções do diário",
     "libraryExplore": "Explorar",
     "bibleLibrary": "Bíblia",
+    "savedScriptures": "Escrituras salvas",
     "librarySections": "Seções da biblioteca",
     "listening": "Ouvindo",
     "moreCounselOptions": "Mais opções de conselho",
@@ -1804,7 +1805,8 @@
     "googleSigninFailed": "Não foi possível concluir o login do Google. Por favor, tente novamente. Se continuar falhando, use o e-mail abaixo.",
     "googleSigninCancelled": "O login do Google foi cancelado antes de terminar. Você pode tentar novamente ou usar o e-mail abaixo.",
     "googleSigninUnavailable": "O login do Google está temporariamente indisponível. Você ainda pode continuar com o e-mail abaixo.",
-    "googleSigninDidNotFinish": "O login do Google não foi concluído. Tente novamente ou use o e-mail abaixo."
+    "googleSigninDidNotFinish": "O login do Google não foi concluído. Tente novamente ou use o e-mail abaixo.",
+    "showPassword": "Mostrar senha", "hidePassword": "Ocultar senha", "forgotPassword": "Esqueceu a senha?", "resetPasswordTitle": "Redefina sua senha", "resetPasswordBody": "Digite seu e-mail e enviaremos um link se ele pertencer a uma conta com senha.", "sendResetLink": "Enviar link", "sendingResetLink": "Enviando link…", "resetLinkSent": "Se este e-mail tiver uma conta com senha, enviamos um link.", "chooseNewPassword": "Escolha uma nova senha", "newPasswordBody": "Use pelo menos 8 caracteres. Este link expira após uma hora.", "newPassword": "Nova senha", "confirmNewPassword": "Confirme a nova senha", "resetPassword": "Redefinir senha", "passwordResetComplete": "Sua senha foi redefinida. Agora você pode entrar.", "passwordsDoNotMatch": "As senhas não coincidem.", "resetLinkMissing": "Este link está incompleto. Solicite um novo ao entrar.", "backToSignIn": "Voltar para entrar"
   },
   "theme": {
     "system": "Sistema",

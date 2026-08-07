@@ -1387,6 +1387,7 @@
     "journalSections": "Tagebuchbereiche",
     "libraryExplore": "Entdecken",
     "bibleLibrary": "Bibel",
+    "savedScriptures": "Gespeicherte Bibelstellen",
     "librarySections": "Bibliotheksbereiche",
     "listening": "Wird angehört",
     "moreCounselOptions": "Weitere Ratsoptionen",
@@ -1821,7 +1822,8 @@
     "googleSigninFailed": "Die Google-Anmeldung konnte nicht abgeschlossen werden. Bitte versuchen Sie es erneut. Wenn es weiterhin fehlschlägt, verwenden Sie stattdessen die unten stehende E-Mail-Adresse.",
     "googleSigninCancelled": "Die Google-Anmeldung wurde vorzeitig abgebrochen. Sie können es erneut versuchen oder stattdessen die E-Mail-Adresse unten verwenden.",
     "googleSigninUnavailable": "Die Google-Anmeldung ist vorübergehend nicht verfügbar. Sie können weiterhin per E-Mail unten fortfahren.",
-    "googleSigninDidNotFinish": "Die Google-Anmeldung wurde nicht abgeschlossen. Bitte versuchen Sie es erneut oder verwenden Sie stattdessen die unten stehende E-Mail-Adresse."
+    "googleSigninDidNotFinish": "Die Google-Anmeldung wurde nicht abgeschlossen. Bitte versuchen Sie es erneut oder verwenden Sie stattdessen die unten stehende E-Mail-Adresse.",
+    "showPassword": "Passwort anzeigen", "hidePassword": "Passwort verbergen", "forgotPassword": "Passwort vergessen?", "resetPasswordTitle": "Passwort zurücksetzen", "resetPasswordBody": "Gib deine E-Mail ein. Wir senden einen Link, falls sie zu einem Passwortkonto gehört.", "sendResetLink": "Link senden", "sendingResetLink": "Link wird gesendet…", "resetLinkSent": "Falls diese E-Mail zu einem Passwortkonto gehört, haben wir einen Link gesendet.", "chooseNewPassword": "Neues Passwort wählen", "newPasswordBody": "Verwende mindestens 8 Zeichen. Dieser Link läuft nach einer Stunde ab.", "newPassword": "Neues Passwort", "confirmNewPassword": "Neues Passwort bestätigen", "resetPassword": "Passwort zurücksetzen", "passwordResetComplete": "Dein Passwort wurde zurückgesetzt. Du kannst dich jetzt anmelden.", "passwordsDoNotMatch": "Die Passwörter stimmen nicht überein.", "resetLinkMissing": "Dieser Link ist unvollständig. Fordere bei der Anmeldung einen neuen an.", "backToSignIn": "Zurück zur Anmeldung"
   },
   "theme": {
     "system": "System",

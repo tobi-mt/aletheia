@@ -1370,6 +1370,7 @@
     "journalSections": "Secciones del diario",
     "libraryExplore": "Explorar",
     "bibleLibrary": "Biblia",
+    "savedScriptures": "النصوص المحفوظة",
     "librarySections": "Secciones de la biblioteca",
     "listening": "Escuchando",
     "moreCounselOptions": "Más opciones de consejo",
@@ -1804,7 +1805,8 @@
     "googleSigninFailed": "تعذر إكمال تسجيل الدخول إلى Google. يرجى المحاولة مرة أخرى. إذا استمر الفشل، استخدم البريد الإلكتروني أدناه بدلاً من ذلك.",
     "googleSigninCancelled": "تم إلغاء تسجيل الدخول إلى Google قبل أن ينتهي. يمكنك المحاولة مرة أخرى أو استخدام البريد الإلكتروني أدناه بدلاً من ذلك.",
     "googleSigninUnavailable": "تسجيل الدخول إلى Google غير متاح مؤقتًا. لا يزال بإمكانك متابعة البريد الإلكتروني أدناه.",
-    "googleSigninDidNotFinish": "لم ينته تسجيل الدخول إلى Google. الرجاء المحاولة مرة أخرى أو استخدام البريد الإلكتروني أدناه بدلا من ذلك."
+    "googleSigninDidNotFinish": "لم ينته تسجيل الدخول إلى Google. الرجاء المحاولة مرة أخرى أو استخدام البريد الإلكتروني أدناه بدلا من ذلك.",
+    "showPassword": "إظهار كلمة المرور", "hidePassword": "إخفاء كلمة المرور", "forgotPassword": "هل نسيت كلمة المرور؟", "resetPasswordTitle": "إعادة تعيين كلمة المرور", "resetPasswordBody": "أدخل بريدك الإلكتروني وسنرسل رابطًا إذا كان مرتبطًا بحساب كلمة مرور.", "sendResetLink": "إرسال رابط إعادة التعيين", "sendingResetLink": "جارٍ إرسال الرابط…", "resetLinkSent": "إذا كان هذا البريد لحساب كلمة مرور، فقد أرسلنا رابطًا.", "chooseNewPassword": "اختر كلمة مرور جديدة", "newPasswordBody": "استخدم 8 أحرف على الأقل. تنتهي صلاحية الرابط بعد ساعة.", "newPassword": "كلمة المرور الجديدة", "confirmNewPassword": "تأكيد كلمة المرور الجديدة", "resetPassword": "إعادة تعيين كلمة المرور", "passwordResetComplete": "تمت إعادة تعيين كلمة المرور. يمكنك تسجيل الدخول الآن.", "passwordsDoNotMatch": "كلمتا المرور غير متطابقتين.", "resetLinkMissing": "رابط إعادة التعيين غير مكتمل. اطلب رابطًا جديدًا من تسجيل الدخول.", "backToSignIn": "العودة إلى تسجيل الدخول"
   },
   "theme": {
     "system": "Sistema",

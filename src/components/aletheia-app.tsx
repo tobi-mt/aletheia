@@ -41,6 +41,8 @@ import {
   ArrowDownRight,
   ArrowUpRight,
   ChevronRight,
+  Eye,
+  EyeOff,
   Minus,
   Trash2,
   WifiOff,
@@ -68,6 +70,7 @@ import {
   curatedScriptureReferences,
   languageCopy,
   languages,
+  localizedBibleBookName,
   localizedDailyWisdom,
   localizeScriptureReferencesInText,
   localizedScriptureReference,
@@ -124,7 +127,7 @@ import { loadTranslationsSync, loadTranslationsWithFallbackSync, getTranslation,
 import { ManagedAudio } from "@/lib/native-audio";
 import { NativeAuth, supportsNativeAppleSignIn } from "@/lib/native-auth";
 import { NativeBiometricLock, supportsNativeBiometricLock, type BiometricLockState } from "@/lib/native-biometric-lock";
-import BibleReader from "@/components/bible-reader";
+import BibleReader, { scriptureHighlightKey, type SavedScripture, type ScriptureHighlightColor, type ScriptureHighlights } from "@/components/bible-reader";
 import { ToastContainer, useToast } from "@/components/toast-notification";
 import { StreakBadge, StreakAchievementNotification } from "@/components/streak-badge";
 import { MilestoneCelebrationLayer, useMilestoneCelebration, type CelebrationAnalyticsPayload, type CelebrationRequest } from "@/components/milestone-celebration";
@@ -482,6 +485,8 @@ const NOTIFICATION_SUBSCRIPTION_REFRESH_INTERVAL_MS = 24 * 60 * 60 * 1000;
 const COUNSEL_ACCEPTANCE_TRACKING_KEY = "aletheia_counsel_acceptance_tracking";
 const CARRY_TODAY_STORAGE_KEY = "aletheia_carry_today";
 const SCRIPTURE_MEMORY_STORAGE_KEY = "aletheia_scripture_memory";
+const SAVED_SCRIPTURES_STORAGE_KEY = "aletheia_saved_scriptures";
+const SCRIPTURE_HIGHLIGHTS_STORAGE_KEY = "aletheia_scripture_highlights";
 const COUNSEL_INVITE_STORAGE_KEY = "aletheia_counsel_invite_token";
 const COUNSEL_ACCEPTED_INVITE_STORAGE_KEY = "aletheia_counsel_accepted_invite_token";
 const CHALLENGE_INVITE_STORAGE_KEY = "aletheia_challenge_invite_token";
@@ -7551,6 +7556,30 @@ function storedScriptureMemory(preferences: UserPreferences): ScriptureMemory | 
   }
 }
 
+function storedSavedScriptures(): SavedScripture[] {
+  if (typeof window === "undefined") {
+    return [];
+  }
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(SAVED_SCRIPTURES_STORAGE_KEY) || "[]") as unknown;
+    return Array.isArray(parsed)
+      ? parsed.filter((item): item is SavedScripture => Boolean(item && typeof item === "object" && "id" in item && "book" in item && "chapter" in item && "verse" in item && "text" in item))
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+function storedScriptureHighlights(): ScriptureHighlights {
+  if (typeof window === "undefined") return {};
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(SCRIPTURE_HIGHLIGHTS_STORAGE_KEY) || "{}");
+    return parsed && typeof parsed === "object" ? parsed as ScriptureHighlights : {};
+  } catch {
+    return {};
+  }
+}
+
 function companionCardFromDaily({
   daily,
   entry,
@@ -7762,6 +7791,8 @@ export function AletheiaApp({
   const [readingVoiceId, setReadingVoiceId] = useState<string | null>(null);
   const [, setCarryToday] = useState<CarryToday | null>(null);
   const [scriptureMemory, setScriptureMemory] = useState<ScriptureMemory | null>(null);
+  const [savedScriptures, setSavedScriptures] = useState<SavedScripture[]>([]);
+  const [scriptureHighlights, setScriptureHighlights] = useState<ScriptureHighlights>({});
   const [availableVoices] = useState<ManagedVoiceOption[]>(managedSpeechVoices);
   const [selectedVoice, setSelectedVoice] = useState<string | null>(() => {
     const saved = storedVoicePreference();
@@ -8108,6 +8139,8 @@ export function AletheiaApp({
       setShowOnboarding(shouldShowOnboarding());
       setCarryToday(storedCarryToday(restoredPreferences));
       setScriptureMemory(storedScriptureMemory(restoredPreferences));
+      setSavedScriptures(storedSavedScriptures());
+      setScriptureHighlights(storedScriptureHighlights());
       setSelectedVoice(storedVoicePreference());
       setNotificationTiming(storedNotificationTiming());
       const now = new Date();
@@ -8499,13 +8532,15 @@ export function AletheiaApp({
           trackClientEvent("auth_prompt_cta_clicked", { prompt_reason: reason, ...metadata });
           closeWorkflowNotice("cta");
           setAuthMode("login");
-          openAccountFlow();
+          // A contextual prompt is not an explicit request to manage the account.
+          // Keep the user in their current flow and return them to Home after sign-in.
+          setWelcomeAuthOpen(true);
         },
       }
     );
     authPromptActiveIdRef.current = promptId;
     return true;
-  }, [announceWorkflow, authPromptState.cooldownUntil, authPromptState.lastShownSessionId, authPromptState.recentShownAt, authStatus, closeWorkflowNotice, openAccountFlow, showOnboarding, ts, updateAuthPromptState, user]);
+  }, [announceWorkflow, authPromptState.cooldownUntil, authPromptState.lastShownSessionId, authPromptState.recentShownAt, authStatus, closeWorkflowNotice, showOnboarding, ts, updateAuthPromptState, user]);
 
   const scheduleSignInPrompt = useCallback((reason: AuthPromptReason, metadata: AnalyticsMetadata = {}, delayMs = 2200) => {
     if (typeof window === "undefined" || user) {
@@ -9712,7 +9747,10 @@ export function AletheiaApp({
         setOnboardingPath(isNewSocialAccount ? "account" : null);
         setShowWelcomeGate(false);
         setShowOnboarding(isNewSocialAccount);
-        if (!isNewSocialAccount && (params.get("view") === "account" || params.get("auth")?.match(/^(google|apple)_/))) {
+        // OAuth callbacks return to Home by default. Only retain Account when the
+        // user explicitly began sign-in there; notification and invite routes are
+        // handled independently and must keep their own destination.
+        if (!isNewSocialAccount && params.get("view") === "account") {
           traceStartup("aletheia-app:session-restore:replace-state:start", {
             view: params.get("view"),
             auth: params.get("auth"),
@@ -10640,6 +10678,8 @@ export function AletheiaApp({
         source: "onboarding",
       });
     } else {
+      setHomeSection("today", "onboarding_completed");
+      showView("companion");
       announceWorkflow(ts('notifications.setupSaved'), ts('notifications.setupSavedBody'), "success");
       celebrate({
         event: "onboarding_completed",
@@ -10814,6 +10854,61 @@ function startFirstRunGuestFlow() {
       ts('notifications.scriptureMemorySavedBody'),
       "success"
     );
+  }
+
+  function saveScripture(scripture: Omit<SavedScripture, "id" | "savedAt">) {
+    setSavedScriptures((current) => {
+      if (current.some((item) => item.book === scripture.book && item.chapter === scripture.chapter && item.verse === scripture.verse)) {
+        return current;
+      }
+      const next = [{ ...scripture, id: crypto.randomUUID(), savedAt: new Date().toISOString() }, ...current];
+      try { window.localStorage.setItem(SAVED_SCRIPTURES_STORAGE_KEY, JSON.stringify(next)); } catch { /* Keep saves for this session. */ }
+      return next;
+    });
+  }
+
+  function removeSavedScripture(id: string) {
+    setSavedScriptures((current) => {
+      const next = current.filter((item) => item.id !== id);
+      try { window.localStorage.setItem(SAVED_SCRIPTURES_STORAGE_KEY, JSON.stringify(next)); } catch { /* Keep changes for this session. */ }
+      return next;
+    });
+  }
+
+  function setScriptureHighlight(book: string, chapter: number, verse: number, highlight: ScriptureHighlightColor | null) {
+    const key = scriptureHighlightKey(book, chapter, verse);
+    setScriptureHighlights((current) => {
+      const next = { ...current };
+      if (highlight) next[key] = highlight;
+      else delete next[key];
+      try { window.localStorage.setItem(SCRIPTURE_HIGHLIGHTS_STORAGE_KEY, JSON.stringify(next)); } catch { /* Keep changes for this session. */ }
+      return next;
+    });
+    setSavedScriptures((current) => {
+      const next = current.map((item) => item.book === book && item.chapter === chapter && item.verse === verse ? { ...item, highlight } : item);
+      try { window.localStorage.setItem(SAVED_SCRIPTURES_STORAGE_KEY, JSON.stringify(next)); } catch { /* Keep changes for this session. */ }
+      return next;
+    });
+  }
+
+  function scriptureShareText(book: string, chapter: number, verse: number, text: string) {
+    const reference = `${localizedBibleBookName(book, preferences.language)} ${chapter}:${verse}`;
+    const translation = bibleTranslations[preferences.bibleTranslation]?.label ?? preferences.bibleTranslation;
+    return `${text}\n\n${reference} (${translation})`;
+  }
+
+  function copyScripture(book: string, chapter: number, verse: number, text: string) {
+    void navigator.clipboard?.writeText(scriptureShareText(book, chapter, verse, text)).catch(() => undefined);
+  }
+
+  function shareScripture(book: string, chapter: number, verse: number, text: string) {
+    const reference = `${localizedBibleBookName(book, preferences.language)} ${chapter}:${verse}`;
+    const shareText = scriptureShareText(book, chapter, verse, text);
+    if (navigator.share) {
+      void navigator.share({ title: reference, text: shareText }).catch(() => undefined);
+      return;
+    }
+    void navigator.clipboard?.writeText(shareText).catch(() => undefined);
   }
 
   function shareScriptureMemoryCard(memory: ScriptureMemory) {
@@ -11199,6 +11294,8 @@ function startFirstRunGuestFlow() {
     setNotificationTiming(DEFAULT_NOTIFICATION_TIMING);
     setCarryToday(null);
     setScriptureMemory(null);
+    setSavedScriptures([]);
+    setScriptureHighlights({});
     setManualContext(defaultManualContext);
     setCounselSummaryDraft(null);
     try {
@@ -11208,6 +11305,8 @@ function startFirstRunGuestFlow() {
       window.localStorage.removeItem(NOTIFICATION_TIMING_STORAGE_KEY);
       window.localStorage.removeItem(CARRY_TODAY_STORAGE_KEY);
       window.localStorage.removeItem(SCRIPTURE_MEMORY_STORAGE_KEY);
+      window.localStorage.removeItem(SAVED_SCRIPTURES_STORAGE_KEY);
+      window.localStorage.removeItem(SCRIPTURE_HIGHLIGHTS_STORAGE_KEY);
       window.localStorage.removeItem(MANUAL_CONTEXT_STORAGE_KEY);
       window.localStorage.removeItem("aletheia_onboarding_complete");
       window.localStorage.removeItem(ONBOARDING_PROGRESS_STORAGE_KEY);
@@ -12073,6 +12172,7 @@ function startFirstRunGuestFlow() {
 
   async function handleAuth(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const returnToAccount = activeView === "account" && !welcomeAuthOpen;
     trackClientEvent("auth_signin_started", { method: "email", flow: authMode });
     setIsWorking(true);
     setAuthStatus("signing-in");
@@ -12151,8 +12251,9 @@ function startFirstRunGuestFlow() {
         setCounselInviteAuthOpen(false);
         setChallengeInviteStatus("");
         setCounselInviteStatus("");
-      } else if (!needsAccountOnboarding) {
-        setActiveView("account");
+      } else if (!needsAccountOnboarding && !returnToAccount) {
+        setHomeSection("today", "post_sign_in");
+        setActiveView("companion", "post_sign_in");
       }
       setOnboardingPath(needsAccountOnboarding ? "account" : null);
       setShowOnboarding(needsAccountOnboarding);
@@ -12251,9 +12352,11 @@ function startFirstRunGuestFlow() {
         ? buildCounselInviteUrl(counselInviteToken, window.location.href)
         : null;
       const inviteReturnUrl = challengeInviteReturnUrl ?? counselInviteReturnUrl;
+      const returnToAccount = activeView === "account" && !welcomeAuthOpen;
+      const postAuthDestination = `/?auth=google_success${returnToAccount ? "&view=account" : ""}`;
       const callbackUrl = inviteReturnUrl
         ? `/api/auth/oauth/complete?next=${encodeURIComponent(inviteReturnUrl)}`
-        : "/api/auth/oauth/complete?next=%2F%3Fauth%3Dgoogle_success%26view%3Daccount";
+        : `/api/auth/oauth/complete?next=${encodeURIComponent(postAuthDestination)}`;
       if (Capacitor.isNativePlatform()) {
         const nativeResult = await NativeAuth.authenticateWeb({
           url: `${getPublicAppOrigin()}/api/auth/native/google/start`,
@@ -12269,7 +12372,7 @@ function startFirstRunGuestFlow() {
         if (exchange.status < 200 || exchange.status >= 300 || !exchange.cookiesInstalled) throw new Error("Google authentication handoff could not be completed.");
         const returnUrl = new URL(window.location.href);
         returnUrl.searchParams.set("auth", "google_success");
-        if (!challengeInviteToken && !counselInviteToken) {
+        if (!challengeInviteToken && !counselInviteToken && returnToAccount) {
           returnUrl.searchParams.set("view", "account");
         }
         window.location.replace(returnUrl.toString());
@@ -12318,7 +12421,14 @@ function startFirstRunGuestFlow() {
       }
       console.info("[native-auth] Apple server verification completed");
       const appleResult = response.body as { isNewUser?: boolean };
-      window.location.replace(`/?auth=${appleResult.isNewUser ? "apple_new" : "apple_returning"}&view=account`);
+      const returnToAccount = activeView === "account" && !welcomeAuthOpen;
+      const returnUrl = new URL(window.location.href);
+      returnUrl.search = "";
+      returnUrl.searchParams.set("auth", appleResult.isNewUser ? "apple_new" : "apple_returning");
+      if (returnToAccount) {
+        returnUrl.searchParams.set("view", "account");
+      }
+      window.location.replace(returnUrl.toString());
     } catch (error) {
       console.error("[native-auth] Apple sign-in failed", error);
       const cancelled = error instanceof Error && error.message.includes("AUTH_CANCELLED");
@@ -14476,6 +14586,13 @@ function startFirstRunGuestFlow() {
                       ts={ts}
                       onScriptureOpen={openScripture}
                       scriptureMemory={scriptureMemory}
+                      savedScriptures={savedScriptures}
+                      scriptureHighlights={scriptureHighlights}
+                      onSaveScripture={saveScripture}
+                      onRemoveSavedScripture={removeSavedScripture}
+                      onSetScriptureHighlight={setScriptureHighlight}
+                      onCopyScripture={copyScripture}
+                      onShareScripture={shareScripture}
                       onSaveScriptureMemory={saveScriptureMemory}
                       onSaveStudyActionAsRule={saveStudyActionAsRule}
                       onShareScriptureMemory={shareScriptureMemoryCard}
@@ -23993,6 +24110,10 @@ function WelcomeAuthModal({
   onClose: () => void;
 }) {
   const canUsePortal = typeof document !== "undefined";
+  const [showPassword, setShowPassword] = useState(false);
+  const [recoveryOpen, setRecoveryOpen] = useState(false);
+  const [recoveryBusy, setRecoveryBusy] = useState(false);
+  const [recoveryMessage, setRecoveryMessage] = useState("");
   useBodyScrollLock(open && canUsePortal);
   const warmReentryMode = authMode === "login" && Boolean(signedOutName);
   const modalTitle = warmReentryMode && signedOutName
@@ -24005,6 +24126,24 @@ function WelcomeAuthModal({
     : authMode === "register"
       ? ts("auth.signUpPolishBody")
       : ts("labels.appTagline");
+
+  async function requestPasswordReset() {
+    setRecoveryBusy(true);
+    setRecoveryMessage("");
+    try {
+      const response = await fetch("/api/auth/password-reset/request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: authEmail }),
+      });
+      const data = (await response.json()) as { message?: string };
+      setRecoveryMessage(data.message || ts("auth.resetLinkSent"));
+    } catch {
+      setRecoveryMessage(ts("auth.resetLinkSent"));
+    } finally {
+      setRecoveryBusy(false);
+    }
+  }
 
   if (!open || !canUsePortal) {
     return null;
@@ -24073,7 +24212,27 @@ function WelcomeAuthModal({
               </button>
             ) : null}
 
-            <form className="grid gap-2 sm:grid-cols-2" onSubmit={onSubmitAuth}>
+            {recoveryOpen ? (
+              <div className="grid gap-3">
+                <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>{ts("auth.resetPasswordBody")}</p>
+                <input
+                  value={authEmail}
+                  onChange={(event) => setAuthEmail(event.target.value)}
+                  className="h-10 rounded-full border px-3 text-sm outline-none"
+                  style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                  placeholder={ts("placeholders.email")}
+                  type="email"
+                  autoComplete="email"
+                />
+                <button type="button" onClick={requestPasswordReset} disabled={recoveryBusy} className="h-10 rounded-md px-4 text-sm font-semibold disabled:opacity-60" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>
+                  {recoveryBusy ? ts("auth.sendingResetLink") : ts("auth.sendResetLink")}
+                </button>
+                {recoveryMessage ? <p role="status" className="text-sm leading-6" style={{ color: theme.textSecondary }}>{recoveryMessage}</p> : null}
+                <button type="button" onClick={() => { setRecoveryOpen(false); setRecoveryMessage(""); }} className="text-left text-sm font-semibold underline-offset-4 hover:underline" style={{ color: theme.textSecondary }}>
+                  {ts("auth.backToSignIn")}
+                </button>
+              </div>
+            ) : <form className="grid gap-2 sm:grid-cols-2" onSubmit={onSubmitAuth}>
               {authMode === "register" ? (
                 <input
                   value={authName}
@@ -24091,14 +24250,12 @@ function WelcomeAuthModal({
                 placeholder={ts("placeholders.email")}
                 type="email"
               />
-              <input
-                value={authPassword}
-                onChange={(event) => setAuthPassword(event.target.value)}
-                className="h-10 rounded-full border px-3 text-sm outline-none"
-                style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-                placeholder={ts("placeholders.password")}
-                type="password"
-              />
+              <div className="relative">
+                <input value={authPassword} onChange={(event) => setAuthPassword(event.target.value)} className="h-10 w-full rounded-full border px-3 pr-10 text-sm outline-none" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} placeholder={ts("placeholders.password")} type={showPassword ? "text" : "password"} autoComplete={authMode === "register" ? "new-password" : "current-password"} />
+                <button type="button" onClick={() => setShowPassword((visible) => !visible)} className="absolute inset-y-0 right-0 inline-flex w-10 items-center justify-center" style={{ color: theme.textSecondary }} aria-label={showPassword ? ts("auth.hidePassword") : ts("auth.showPassword")} title={showPassword ? ts("auth.hidePassword") : ts("auth.showPassword")}>
+                  {showPassword ? <EyeOff className="size-4" aria-hidden="true" /> : <Eye className="size-4" aria-hidden="true" />}
+                </button>
+              </div>
               {authMode === "register" ? (
                 <input
                   value={authWebsite}
@@ -24120,6 +24277,7 @@ function WelcomeAuthModal({
                 {authProvider === "email" ? ts("labels.working") : authMode === "register" ? ts("auth.create") : ts("auth.signIn")}
               </button>
             </form>
+            }
 
             {authNotice ? (
               <p className="rounded-2xl border px-3 py-2 text-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textSecondary }}>
@@ -24140,6 +24298,11 @@ function WelcomeAuthModal({
               >
                 {authMode === "register" ? ts("auth.alreadyHaveAccount") : ts("auth.createNewAccount")}
               </button>
+              {authMode === "login" && !recoveryOpen ? (
+                <button type="button" className="text-left transition hover:opacity-80" onClick={() => setRecoveryOpen(true)}>
+                  {ts("auth.forgotPassword")}
+                </button>
+              ) : null}
               <button
                 type="button"
                 className="text-left transition hover:opacity-80"
@@ -24929,6 +25092,7 @@ function AuthPanel({
   onGoogleSignIn: () => void;
   onAppleSignIn: () => void;
 }) {
+  const [showPassword, setShowPassword] = useState(false);
   const authBusy = isWorking || authStatus === "checking" || authStatus === "signing-in" || authStatus === "signing-out";
   const statusLabel =
     authStatus === "checking"
@@ -25057,14 +25221,12 @@ function AuthPanel({
               placeholder={ts('placeholders.email')}
               type="email"
             />
-            <input
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              className="h-10 rounded-full border px-3 text-sm outline-none"
-              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-              placeholder={ts('placeholders.password')}
-              type="password"
-            />
+            <div className="relative">
+              <input value={password} onChange={(event) => setPassword(event.target.value)} className="h-10 w-full rounded-full border px-3 pr-10 text-sm outline-none" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} placeholder={ts('placeholders.password')} type={showPassword ? "text" : "password"} autoComplete={authMode === "register" ? "new-password" : "current-password"} />
+              <button type="button" onClick={() => setShowPassword((visible) => !visible)} className="absolute inset-y-0 right-0 inline-flex w-10 items-center justify-center" style={{ color: theme.textSecondary }} aria-label={showPassword ? ts("auth.hidePassword") : ts("auth.showPassword")}>
+                {showPassword ? <EyeOff className="size-4" aria-hidden="true" /> : <Eye className="size-4" aria-hidden="true" />}
+              </button>
+            </div>
             {authMode === "register" ? (
               <input
                 value={website}
@@ -33573,6 +33735,13 @@ function LibraryPanel({
   ts,
   onScriptureOpen,
   scriptureMemory,
+  savedScriptures,
+  scriptureHighlights,
+  onSaveScripture,
+  onRemoveSavedScripture,
+  onSetScriptureHighlight,
+  onCopyScripture,
+  onShareScripture,
   onSaveScriptureMemory,
   onSaveStudyActionAsRule,
   onShareScriptureMemory,
@@ -33586,6 +33755,13 @@ function LibraryPanel({
   ts: (key: string, fallback?: string) => string;
   onScriptureOpen: (scripture: string) => void;
   scriptureMemory: ScriptureMemory | null;
+  savedScriptures: SavedScripture[];
+  scriptureHighlights: ScriptureHighlights;
+  onSaveScripture: (scripture: Omit<SavedScripture, "id" | "savedAt">) => void;
+  onRemoveSavedScripture: (id: string) => void;
+  onSetScriptureHighlight: (book: string, chapter: number, verse: number, highlight: ScriptureHighlightColor | null) => void;
+  onCopyScripture: (book: string, chapter: number, verse: number, text: string) => void;
+  onShareScripture: (book: string, chapter: number, verse: number, text: string) => void;
   onSaveScriptureMemory: (scripture: string, principle: string) => void;
   onSaveStudyActionAsRule: (action: string) => void;
   onShareScriptureMemory: (memory: ScriptureMemory) => void;
@@ -33594,7 +33770,8 @@ function LibraryPanel({
   const runtime = runtimeCopyFor(preferences.language);
   const railText = railTextColors(theme);
   const localizedModeSearchLabel = localizedModeLabel(mode, preferences.language).toLowerCase();
-  const [librarySection, setLibrarySection] = useState<"explore" | "memory" | "bible">("explore");
+  const [librarySection, setLibrarySection] = useState<"explore" | "memory" | "bible" | "saved">("explore");
+  const [savedPassage, setSavedPassage] = useState<SavedScripture | null>(null);
   const libraryRailRef = useRef<HTMLDivElement | null>(null);
   const libraryRailHasOverflow = useRailOverflowCue(libraryRailRef, librarySection === "explore" && entries.length > 0, [entries.length, preferences.language]);
   const libraryNextTitle = search.trim()
@@ -33633,6 +33810,7 @@ function LibraryPanel({
           tabs={[
             { key: "explore", label: ts('labels.libraryExplore') },
             { key: "bible", label: ts('labels.bibleLibrary') },
+            ...(savedScriptures.length ? [{ key: "saved", label: ts('labels.savedScriptures') }] : []),
             ...(scriptureMemory ? [{ key: "memory", label: ts('labels.scriptureMemory') }] : []),
           ]}
         />
@@ -33707,7 +33885,27 @@ function LibraryPanel({
 
       {librarySection === "bible" ? (
         <section className="min-w-0 rounded-xl border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-          <BibleReader preferences={preferences} theme={theme} onSaveStudyAction={onSaveStudyActionAsRule} />
+          <BibleReader key={savedPassage ? `${savedPassage.book}-${savedPassage.chapter}` : "bible-reader"} preferences={preferences} theme={theme} initialBook={savedPassage?.book} initialChapter={savedPassage?.chapter} onSaveStudyAction={onSaveStudyActionAsRule} savedScriptures={savedScriptures} scriptureHighlights={scriptureHighlights} onSaveScripture={onSaveScripture} onRemoveSavedScripture={onRemoveSavedScripture} onSetScriptureHighlight={onSetScriptureHighlight} onCopyScripture={onCopyScripture} onShareScripture={onShareScripture} />
+        </section>
+      ) : null}
+
+      {librarySection === "saved" && savedScriptures.length ? (
+        <section className="min-w-0 rounded-xl border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+          <div className="space-y-3">
+            {savedScriptures.map((saved) => (
+              <article key={saved.id} className="rounded-xl border p-3.5" style={{ borderColor: theme.borderLight, backgroundColor: saved.highlight ? `color-mix(in srgb, ${{ gold: "#F6D365", rose: "#F5B7B1", sky: "#AED6F1", mint: "#A9DFBF" }[saved.highlight]} 30%, ${theme.bgCardElevated})` : theme.bgCardElevated }}>
+                <div className="flex items-start justify-between gap-3">
+                  <button type="button" className="text-left text-sm font-semibold underline underline-offset-4" style={{ color: theme.textPrimary }} onClick={() => { setSavedPassage(saved); setLibrarySection("bible"); }}>
+                    {localizedBibleBookName(saved.book, preferences.language)} {saved.chapter}:{saved.verse}
+                  </button>
+                  <button type="button" className="shrink-0 text-xs font-semibold" style={{ color: theme.textSecondary }} onClick={() => { onRemoveSavedScripture(saved.id); if (savedScriptures.length === 1) setLibrarySection("bible"); }}>
+                    {ts('labels.remove')}
+                  </button>
+                </div>
+                <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>{saved.text}</p>
+              </article>
+            ))}
+          </div>
         </section>
       ) : null}
 

@@ -1370,6 +1370,7 @@
     "journalSections": "Àwọn abala ìwé àkọọlẹ",
     "libraryExplore": "Ṣàwárí",
     "bibleLibrary": "Bíbélì",
+    "savedScriptures": "Àwọn ẹsẹ tí a fipamọ",
     "librarySections": "Àwọn abala ìkànsí",
     "listening": "Níbi fífetí",
     "moreCounselOptions": "Àwọn aṣayan ìmòràn míì",
@@ -1804,7 +1805,8 @@
     "googleSigninFailed": "Iwọle Google ko le pari. Jọwọ gbiyanju lẹẹkansi. Ti o ba jẹ aṣiṣe, lo imeeli ni isalẹ dipo.",
     "googleSigninCancelled": "Wọle Google ti fagile ṣaaju ki o to pari. O le gbiyanju lẹẹkansi tabi lo imeeli ni isalẹ dipo.",
     "googleSigninUnavailable": "Iwọle Google ko si fun igba diẹ. O tun le tẹsiwaju pẹlu imeeli ni isalẹ.",
-    "googleSigninDidNotFinish": "Wọle Google ko pari. Jọwọ gbiyanju lẹẹkansi tabi lo imeeli ni isalẹ dipo."
+    "googleSigninDidNotFinish": "Wọle Google ko pari. Jọwọ gbiyanju lẹẹkansi tabi lo imeeli ni isalẹ dipo.",
+    "showPassword": "Fi ọrọ igbaniwọle han", "hidePassword": "Fi ọrọ igbaniwọle pamọ", "forgotPassword": "Ṣe o gbagbe ọrọ igbaniwọle?", "resetPasswordTitle": "Tun ọrọ igbaniwọle rẹ ṣe", "resetPasswordBody": "Tẹ imeeli rẹ, a o si fi ọna asopọ ranṣẹ ti o ba jẹ akọọlẹ ọrọ igbaniwọle.", "sendResetLink": "Fi ọna asopọ ranṣẹ", "sendingResetLink": "Nfi ọna asopọ ranṣẹ…", "resetLinkSent": "Ti imeeli yii ba ni akọọlẹ ọrọ igbaniwọle, a ti fi ọna asopọ ranṣẹ.", "chooseNewPassword": "Yan ọrọ igbaniwọle tuntun", "newPasswordBody": "Lo o kere ju ohun kikọ 8. Ọna asopọ yii pari lẹyin wakati kan.", "newPassword": "Ọrọ igbaniwọle tuntun", "confirmNewPassword": "Jẹrisi ọrọ igbaniwọle tuntun", "resetPassword": "Tun ọrọ igbaniwọle ṣe", "passwordResetComplete": "A ti tun ọrọ igbaniwọle rẹ ṣe. O le wọle bayi.", "passwordsDoNotMatch": "Awọn ọrọ igbaniwọle ko jọra.", "resetLinkMissing": "Ọna asopọ yii ko pe. Beere fun tuntun lati ibuwọle.", "backToSignIn": "Pada si ibuwọle"
   },
   "theme": {
     "system": "Eto ẹrọ",

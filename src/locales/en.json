@@ -1387,6 +1387,7 @@
     "journalSections": "Journal sections",
     "libraryExplore": "Explore",
     "bibleLibrary": "Bible",
+    "savedScriptures": "Saved Scriptures",
     "librarySections": "Library sections",
     "listening": "Listening",
     "moreCounselOptions": "More counsel options",
@@ -1821,7 +1822,8 @@
     "googleSigninFailed": "Google sign-in could not be completed. Please try again. If it keeps failing, use email below instead.",
     "googleSigninCancelled": "Google sign-in was canceled before it finished. You can try again or use email below instead.",
     "googleSigninUnavailable": "Google sign-in is temporarily unavailable. You can still continue with email below.",
-    "googleSigninDidNotFinish": "Google sign-in did not finish. Please try again or use email below instead."
+    "googleSigninDidNotFinish": "Google sign-in did not finish. Please try again or use email below instead.",
+    "showPassword": "Show password", "hidePassword": "Hide password", "forgotPassword": "Forgot password?", "resetPasswordTitle": "Reset your password", "resetPasswordBody": "Enter your email and we will send a reset link if it belongs to a password account.", "sendResetLink": "Send reset link", "sendingResetLink": "Sending reset link…", "resetLinkSent": "If that email has a password account, we sent a reset link.", "chooseNewPassword": "Choose a new password", "newPasswordBody": "Use at least 8 characters. This link expires after one hour.", "newPassword": "New password", "confirmNewPassword": "Confirm new password", "resetPassword": "Reset password", "passwordResetComplete": "Your password has been reset. You can now sign in.", "passwordsDoNotMatch": "Passwords do not match.", "resetLinkMissing": "This reset link is incomplete. Request a new one from sign in.", "backToSignIn": "Back to sign in"
   },
   "theme": {
     "system": "System",

@@ -14,6 +14,7 @@ const workspaceRoot = path.resolve(__dirname, '..');
 const nextBinPath = path.join(workspaceRoot, 'node_modules', 'next', 'dist', 'bin', 'next');
 
 const LOCAL_PORT = Number(process.env.UI_REGRESSION_PORT || 3101);
+const HAS_EXPLICIT_LOCAL_PORT = Boolean(process.env.UI_REGRESSION_PORT);
 const REQUESTED_BASE_URL = process.env.UI_REGRESSION_BASE_URL || null;
 const LOCAL_BASE_URL = `http://localhost:${LOCAL_PORT}`;
 const SERVER_START_TIMEOUT_MS = 90_000;
@@ -837,10 +838,10 @@ async function run() {
   try {
     if (REQUESTED_BASE_URL) {
       runtimeBaseUrl = REQUESTED_BASE_URL;
-    } else if (await canReach('http://localhost:3000')) {
+    } else if (!HAS_EXPLICIT_LOCAL_PORT && await canReach('http://localhost:3000')) {
       runtimeBaseUrl = 'http://localhost:3000';
       console.log(info(`Using existing local app at ${runtimeBaseUrl}`));
-    } else if (await canReach('http://127.0.0.1:3000')) {
+    } else if (!HAS_EXPLICIT_LOCAL_PORT && await canReach('http://127.0.0.1:3000')) {
       runtimeBaseUrl = 'http://127.0.0.1:3000';
       console.log(info(`Using existing local app at ${runtimeBaseUrl}`));
     } else {
