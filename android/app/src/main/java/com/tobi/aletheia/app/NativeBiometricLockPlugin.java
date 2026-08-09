@@ -1,4 +1,4 @@
-package com.aletheia.app;
+package com.tobi.aletheia.app;
 
 import android.content.Context;
 import android.content.SharedPreferences;

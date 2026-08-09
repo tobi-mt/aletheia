@@ -10,7 +10,7 @@ Fill these fields in the Play Console app setup.
 - Default language: `English (United States)` unless you want another default
 - App or game: `App`
 - Free or paid: `Free` unless you intentionally want paid upfront pricing
-- Package name: `com.aletheia.app`
+- Package name: `com.tobi.aletheia.app`
 - App category: `Lifestyle`
 - Secondary category: `Productivity`
 - Contact email: your public support email

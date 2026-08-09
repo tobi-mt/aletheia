@@ -7,7 +7,7 @@ For the exact field-by-field upload checklist, use [`GOOGLE_PLAY_UPLOAD_PACK.md`
 ## App Identity
 
 - App name: `Aletheia`
-- Package name: `com.aletheia.app`
+- Package name: `com.tobi.aletheia.app`
 - Category: `Lifestyle`
 - Secondary category: `Productivity`
 - Alternative category if you want a narrower framing: `Finance`

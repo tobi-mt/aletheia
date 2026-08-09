@@ -29,7 +29,7 @@ export async function GET() {
     document.body.appendChild(form);
     form.submit();
   } catch (error) {
-    location.replace('com.aletheia.app://auth/callback?error=start_failed');
+    location.replace('com.tobi.aletheia.app://auth/callback?error=start_failed');
   }
 })();
 </script></body></html>`;

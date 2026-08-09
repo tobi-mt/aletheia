@@ -13,7 +13,7 @@ This repo already has the Android project checked in, so you do **not** need to 
 
 The Android module is already configured with:
 
-- Package name: `com.aletheia.app`
+- Package name: `com.tobi.aletheia.app`
 - `minSdkVersion = 24`
 - `compileSdkVersion = 36`
 - `targetSdkVersion = 36`
@@ -199,4 +199,3 @@ Then point `storeFile` to your `.jks` file.
 - JDK 21 available
 - `./gradlew bundleRelease` completes
 - `android/app/build/outputs/bundle/release/app-release.aab` exists
-

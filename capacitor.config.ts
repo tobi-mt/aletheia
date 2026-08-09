@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from "@capacitor/cli";
 
 const config: CapacitorConfig = {
-  appId: "com.aletheia.app",
+  appId: "com.tobi.aletheia.app",
   appName: "Aletheia",
   webDir: "capacitor-web",
   plugins: {

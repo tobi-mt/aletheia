@@ -327,13 +327,13 @@ Aletheia uses the Next.js app manifest route and a custom production-only servic
 The project includes `capacitor.config.ts` with:
 
 - app name: `Aletheia`
-- app id: `com.aletheia.app`
+- app id: `com.tobi.aletheia.app`
 - local web bundle: `capacitor-web`
 - native bundle generator: `npm run mobile:bundle:web`
 
 The checked-in native shells currently use:
 
-- Android application/package id: `com.aletheia.app`
+- Android application/package id: `com.tobi.aletheia.app`
 - iOS bundle identifier: `com.tobi.aletheia.app`
 
 When the web app is polished enough for native shells:

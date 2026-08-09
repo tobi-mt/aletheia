@@ -11,7 +11,7 @@ import UserNotifications
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
 
-    private let audioSessionQueue = DispatchQueue(label: "com.aletheia.app.audio-session", qos: .userInitiated)
+    private let audioSessionQueue = DispatchQueue(label: "com.tobi.aletheia.app.audio-session", qos: .userInitiated)
 
     private func configureAudioSessionForSpeech() {
         audioSessionQueue.async {
@@ -418,7 +418,7 @@ public class NativeAuthPlugin: CAPPlugin, CAPBridgedPlugin, ASAuthorizationContr
             call.reject("A valid authentication URL is required.")
             return
         }
-        let callbackScheme = call.getString("callbackScheme") ?? "com.aletheia.app"
+        let callbackScheme = call.getString("callbackScheme") ?? "com.tobi.aletheia.app"
         DispatchQueue.main.async { [weak self] in
             guard let self else {
                 call.reject("Authentication could not be started.")
@@ -610,7 +610,7 @@ public class ManagedAudioPlugin: CAPPlugin, CAPBridgedPlugin, AVAudioPlayerDeleg
     private var player: AVAudioPlayer?
     private var progressTimer: Timer?
     private var playbackToken = UUID()
-    private let audioSessionQueue = DispatchQueue(label: "com.aletheia.app.managed-audio-session", qos: .userInitiated)
+    private let audioSessionQueue = DispatchQueue(label: "com.tobi.aletheia.app.managed-audio-session", qos: .userInitiated)
     private let defaultPublicAppOrigin = "https://aletheia.mirrortalkpodcast.com"
     private let publicAppOriginKey = "ALETHEIA_PUBLIC_APP_ORIGIN"
 

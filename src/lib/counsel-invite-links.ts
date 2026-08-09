@@ -1,4 +1,4 @@
-const APP_SCHEME = "com.aletheia.app";
+const APP_SCHEME = "com.tobi.aletheia.app";
 
 export function counselInviteUrl(token: string, requestUrl?: string) {
   const configuredBase = process.env.NEXT_PUBLIC_APP_URL || process.env.AUTH_URL;

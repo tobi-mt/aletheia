@@ -1,4 +1,4 @@
-package com.aletheia.app;
+package com.tobi.aletheia.app;
 
 import android.app.Notification;
 import android.app.NotificationChannel;
@@ -29,9 +29,9 @@ public class AudioPlaybackService extends Service {
     private static final int MODE_PAUSED = 2;
 
     // Intent actions sent by notification buttons.
-    static final String ACTION_PAUSE  = "com.aletheia.app.ACTION_PAUSE";
-    static final String ACTION_RESUME = "com.aletheia.app.ACTION_RESUME";
-    static final String ACTION_STOP   = "com.aletheia.app.ACTION_STOP";
+    static final String ACTION_PAUSE  = "com.tobi.aletheia.app.ACTION_PAUSE";
+    static final String ACTION_RESUME = "com.tobi.aletheia.app.ACTION_RESUME";
+    static final String ACTION_STOP   = "com.tobi.aletheia.app.ACTION_STOP";
 
     // ---- Public API ----
 

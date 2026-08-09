@@ -1,4 +1,4 @@
-package com.aletheia.app;
+package com.tobi.aletheia.app;
 
 import android.os.Bundle;
 import android.view.Window;
@@ -17,7 +17,7 @@ public class MainActivity extends BridgeActivity {
     }
 
     @Override
-    protected void onResume() {
+    public void onResume() {
         super.onResume();
         applyStartupSystemBarStyle();
     }

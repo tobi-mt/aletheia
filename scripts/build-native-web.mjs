@@ -85,7 +85,7 @@ async function main() {
     path.join(capacitorWebDir, "capacitor.config.json"),
     `${JSON.stringify(
       {
-        appId: "com.aletheia.app",
+        appId: "com.tobi.aletheia.app",
         appName: "Aletheia",
         webDir: "capacitor-web",
         bundle: "local",

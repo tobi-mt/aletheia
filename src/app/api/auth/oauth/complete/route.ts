@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
 
     if (native) {
       const code = await createNativeAuthHandoff(user.id, "google");
-      const callback = new URL("com.aletheia.app://auth/callback");
+      const callback = new URL("com.tobi.aletheia.app://auth/callback");
       callback.searchParams.set("code", code);
       callback.searchParams.set("provider", "google");
       callback.searchParams.set("result", isNewUser ? "new" : "returning");

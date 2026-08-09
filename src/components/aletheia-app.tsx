@@ -12369,7 +12369,7 @@ function startFirstRunGuestFlow() {
       if (Capacitor.isNativePlatform()) {
         const nativeResult = await NativeAuth.authenticateWeb({
           url: `${getPublicAppOrigin()}/api/auth/native/google/start`,
-          callbackScheme: "com.aletheia.app",
+          callbackScheme: "com.tobi.aletheia.app",
         });
         const handoffUrl = new URL(nativeResult.url);
         const code = handoffUrl.searchParams.get("code");

@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
 
-const APP_SCHEME = "com.aletheia.app";
+const APP_SCHEME = "com.tobi.aletheia.app";
 
 export function createChallengeInviteToken() {
   return randomBytes(32).toString("base64url");

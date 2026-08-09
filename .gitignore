@@ -61,3 +61,4 @@ SCRIPTURE_COVERAGE_INVENTORY.md
 /capacitor-web/*
 !/capacitor-web/index.html
 !/capacitor-web/capacitor.config.json
+deployment_cert.der

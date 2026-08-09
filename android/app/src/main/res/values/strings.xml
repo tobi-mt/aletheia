@@ -2,6 +2,6 @@
 <resources>
     <string name="app_name">Aletheia</string>
     <string name="title_activity_main">Aletheia</string>
-    <string name="package_name">com.aletheia.app</string>
-    <string name="custom_url_scheme">com.aletheia.app</string>
+    <string name="package_name">com.tobi.aletheia.app</string>
+    <string name="custom_url_scheme">com.tobi.aletheia.app</string>
 </resources>

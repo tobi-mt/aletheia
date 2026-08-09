@@ -10,7 +10,7 @@ if (releaseKeystoreConfigured) {
 apply plugin: 'com.android.application'
 
 android {
-    namespace = "com.aletheia.app"
+    namespace = "com.tobi.aletheia.app"
     compileSdk = rootProject.ext.compileSdkVersion
     signingConfigs {
         release {
@@ -23,7 +23,7 @@ android {
         }
     }
     defaultConfig {
-        applicationId "com.aletheia.app"
+        applicationId "com.tobi.aletheia.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 10000
