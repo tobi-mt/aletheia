@@ -19,7 +19,7 @@ export function GET() {
         relation: ["delegate_permission/common.handle_all_urls"],
         target: {
           namespace: "android_app",
-          package_name: "com.aletheia.app",
+          package_name: "com.tobi.aletheia.app",
           sha256_cert_fingerprints: parseFingerprints(),
         },
       },
