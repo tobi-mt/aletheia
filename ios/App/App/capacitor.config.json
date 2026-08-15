@@ -1,5 +1,5 @@
 {
-	"appId": "com.aletheia.app",
+	"appId": "com.tobi.aletheia.app",
 	"appName": "Aletheia",
 	"webDir": "capacitor-web",
 	"plugins": {
