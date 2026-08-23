@@ -19,6 +19,7 @@
     "scripture:import:ebible": "node scripts/import-ebible-vpl.mjs",
     "quality:scripture": "node scripts/scripture-quality-regression.mjs",
     "quality:scripture:strict": "QUALITY_MAX_FALLBACK_RATE=0.25 QUALITY_MIN_CITATION_RATIO=0.8 node scripts/scripture-quality-regression.mjs",
+    "quality:platforms": "node scripts/platform-contract-regression.mjs",
     "db:migrate:push-subscriptions-last-verified-at": "node scripts/migrate-push-subscriptions-last-verified-at.mjs",
     "db:migrate:notification-delivery-tables": "MIGRATION_FILE=../migrations/2026-07-07_add_notification_delivery_tables.sql node scripts/migrate-push-subscriptions-last-verified-at.mjs",
     "db:migrate:notification-deduplication": "MIGRATION_FILE=../migrations/2026-07-22_deduplicate_native_notifications.sql node scripts/migrate-push-subscriptions-last-verified-at.mjs",

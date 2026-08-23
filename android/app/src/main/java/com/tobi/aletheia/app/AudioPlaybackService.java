@@ -10,6 +10,7 @@ import android.graphics.Bitmap;
 import android.graphics.drawable.Icon;
 import android.media.session.MediaSession;
 import android.os.Binder;
+import android.os.Build;
 import android.os.IBinder;
 
 /**
@@ -132,6 +133,9 @@ public class AudioPlaybackService extends Service {
     // ---- Notification building ----
 
     private void createNotificationChannel() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            return;
+        }
         NotificationChannel channel = new NotificationChannel(
             CHANNEL_ID,
             "Audio Playback",
@@ -170,7 +174,10 @@ public class AudioPlaybackService extends Service {
         Notification.MediaStyle style = new Notification.MediaStyle();
         if (token != null) style.setMediaSession(token);
 
-        Notification.Builder builder = new Notification.Builder(this, CHANNEL_ID)
+        Notification.Builder builder = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
+            ? new Notification.Builder(this, CHANNEL_ID)
+            : new Notification.Builder(this);
+        builder
             .setContentTitle(title != null ? title : "Aletheia")
             .setContentText(isLoading ? "Preparing audio..." : "Aletheia")
             .setSmallIcon(R.mipmap.ic_launcher_foreground)

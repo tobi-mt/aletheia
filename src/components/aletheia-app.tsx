@@ -2776,33 +2776,78 @@ function gratitudeContextSummary(entries: GratitudeEntry[]): GratitudeContextSum
   };
 }
 
-function imageFileToLocalDataUrl(file: File, maxDimension = 1400, quality = 0.82): Promise<string> {
-  return new Promise((resolve, reject) => {
-    if (!file.type.startsWith("image/")) {
-      reject(new Error(englishText.errors.selectedFileNotImage));
-      return;
+async function resizeLocalImageFile(file: File, maxDimension = 1400, quality = 0.82): Promise<File> {
+  if (!file.type.startsWith("image/")) {
+    throw new Error(englishText.errors.selectedFileNotImage);
+  }
+
+  let source: CanvasImageSource | null = null;
+  let width = 0;
+  let height = 0;
+  let releaseSource: () => void = () => undefined;
+
+  if (typeof createImageBitmap === "function") {
+    try {
+      const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
+      source = bitmap;
+      width = bitmap.width;
+      height = bitmap.height;
+      releaseSource = () => bitmap.close();
+    } catch {
+      // Some WebKit versions expose createImageBitmap but cannot decode camera formats such as HEIC.
     }
+  }
+
+  if (!source) {
+    const objectUrl = URL.createObjectURL(file);
+    const image = document.createElement("img");
+    await new Promise<void>((resolve, reject) => {
+      image.onload = () => resolve();
+      image.onerror = () => reject(new Error(englishText.errors.selectedImageReadFailed));
+      image.src = objectUrl;
+    }).catch((error) => {
+      URL.revokeObjectURL(objectUrl);
+      throw error;
+    });
+    source = image;
+    width = image.naturalWidth;
+    height = image.naturalHeight;
+    releaseSource = () => URL.revokeObjectURL(objectUrl);
+  }
+
+  try {
+    if (!source || !width || !height) {
+      throw new Error(englishText.errors.selectedImageReadFailed);
+    }
+    const scale = Math.min(1, maxDimension / Math.max(width, height));
+    const targetWidth = Math.max(1, Math.round(width * scale));
+    const targetHeight = Math.max(1, Math.round(height * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = targetWidth;
+    canvas.height = targetHeight;
+    const context = canvas.getContext("2d");
+    if (!context) {
+      throw new Error(englishText.errors.imagePreparationFailed);
+    }
+    context.drawImage(source, 0, 0, targetWidth, targetHeight);
+    const blob = await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob(
+        (value) => value ? resolve(value) : reject(new Error(englishText.errors.imagePreparationFailed)),
+        "image/jpeg",
+        quality
+      );
+    });
+    const baseName = file.name.replace(/\.[^.]+$/, "") || "gratitude-photo";
+    return new File([blob], `${baseName}.jpg`, { type: "image/jpeg", lastModified: file.lastModified });
+  } finally {
+    releaseSource();
+  }
+}
+
+async function imageFileToLocalDataUrl(file: File): Promise<string> {
+  return await new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = () => {
-      const img = document.createElement("img");
-      img.onload = () => {
-        const scale = Math.min(1, maxDimension / Math.max(img.naturalWidth, img.naturalHeight));
-        const width = Math.max(1, Math.round(img.naturalWidth * scale));
-        const height = Math.max(1, Math.round(img.naturalHeight * scale));
-        const canvas = document.createElement("canvas");
-        canvas.width = width;
-        canvas.height = height;
-        const context = canvas.getContext("2d");
-        if (!context) {
-          reject(new Error(englishText.errors.imagePreparationFailed));
-          return;
-        }
-        context.drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL("image/jpeg", quality));
-      };
-      img.onerror = () => reject(new Error(englishText.errors.selectedImageReadFailed));
-      img.src = String(reader.result);
-    };
+    reader.onload = () => resolve(String(reader.result));
     reader.onerror = () => reject(new Error(englishText.errors.selectedImageReadFailed));
     reader.readAsDataURL(file);
   });
@@ -10033,7 +10078,7 @@ export function AletheiaApp({
       }
     }
 
-    if ("serviceWorker" in navigator) {
+    if (!NATIVE_WEB_BUNDLE && "serviceWorker" in navigator) {
       if (process.env.NODE_ENV === "production") {
         void resetStaleBuildState();
 
@@ -33160,10 +33205,13 @@ function GratitudeLensPanel({
   const [formation, setFormation] = useState<GratitudeFormation>(DEFAULT_GRATITUDE_FORMATION);
   const [visual, setVisual] = useState<GratitudeVisualSettings>(DEFAULT_GRATITUDE_VISUAL);
   const [isSaving, setIsSaving] = useState(false);
+  const [isPreparingImage, setIsPreparingImage] = useState(false);
+  const [imagePreparationFailed, setImagePreparationFailed] = useState(false);
   const [selectedEntryId, setSelectedEntryId] = useState<string | null>(entries[0]?.id ?? null);
   const [gratitudeDetailOpen, setGratitudeDetailOpen] = useState(false);
   const [weekStartTime] = useState(() => Date.now() - 7 * 24 * 60 * 60 * 1000);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const imagePreparationRequestRef = useRef(0);
   const gratitudeRailRef = useRef<HTMLDivElement | null>(null);
   const gratitudeRailHasOverflow = useRailOverflowCue(gratitudeRailRef, entries.length > 0, [entries.length, language]);
   const gratitudeFormationRailRef = useRef<HTMLDivElement | null>(null);
@@ -33185,21 +33233,64 @@ function GratitudeLensPanel({
     };
   }, [previewUrl]);
 
-  const selectFile = (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0] ?? null;
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl);
-    }
-    setImageFile(file);
-    setPreviewUrl(file ? URL.createObjectURL(file) : "");
-  };
+  useEffect(() => {
+    return () => {
+      imagePreparationRequestRef.current += 1;
+    };
+  }, []);
 
-  const resetForm = () => {
+  const selectFile = async (event: ChangeEvent<HTMLInputElement>) => {
+    const input = event.currentTarget;
+    const file = input.files?.[0] ?? null;
+    const requestId = imagePreparationRequestRef.current + 1;
+    imagePreparationRequestRef.current = requestId;
     if (previewUrl) {
       URL.revokeObjectURL(previewUrl);
     }
     setImageFile(null);
     setPreviewUrl("");
+    setImagePreparationFailed(false);
+    if (!file) {
+      return;
+    }
+    setIsPreparingImage(true);
+    try {
+      const preparedFile = await resizeLocalImageFile(file);
+      if (imagePreparationRequestRef.current !== requestId) {
+        return;
+      }
+      setImageFile(preparedFile);
+      setPreviewUrl(URL.createObjectURL(preparedFile));
+    } catch {
+      if (imagePreparationRequestRef.current !== requestId) {
+        return;
+      }
+      setImagePreparationFailed(true);
+      input.value = "";
+    } finally {
+      if (imagePreparationRequestRef.current === requestId) {
+        setIsPreparingImage(false);
+      }
+    }
+  };
+
+  const openFilePicker = () => {
+    if (!fileInputRef.current || isPreparingImage) {
+      return;
+    }
+    fileInputRef.current.value = "";
+    fileInputRef.current.click();
+  };
+
+  const resetForm = () => {
+    imagePreparationRequestRef.current += 1;
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
+    setImageFile(null);
+    setPreviewUrl("");
+    setIsPreparingImage(false);
+    setImagePreparationFailed(false);
     setNote("");
     setPlace("");
     setFormation(DEFAULT_GRATITUDE_FORMATION);
@@ -33339,7 +33430,8 @@ function GratitudeLensPanel({
               <div className="relative aspect-[4/3] w-full">
                 <button
                   type="button"
-                  onClick={() => fileInputRef.current?.click()}
+                  onClick={openFilePicker}
+                  disabled={isPreparingImage}
                   className="flex h-full w-full flex-col items-center justify-center gap-3 px-4 py-5 text-center sm:px-5"
                   style={{ color: theme.textSecondary }}
                 >
@@ -33354,6 +33446,11 @@ function GratitudeLensPanel({
               </div>
             )}
           </div>
+          {imagePreparationFailed ? (
+            <p className="mt-2 rounded-lg border px-3 py-2 text-xs leading-5" role="alert" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textSecondary }}>
+              {ts('notifications.gratitudeSaveFailedBody')}
+            </p>
+          ) : null}
           <input
             ref={fileInputRef}
             type="file"
@@ -33369,7 +33466,8 @@ function GratitudeLensPanel({
           <div className="mt-3 grid gap-2 sm:grid-cols-2">
             <button
               type="button"
-              onClick={() => fileInputRef.current?.click()}
+              onClick={openFilePicker}
+              disabled={isPreparingImage}
               className="h-11 rounded-full border px-4 text-sm font-semibold"
               style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
             >
@@ -33604,12 +33702,12 @@ function GratitudeLensPanel({
           <button
             type="button"
             onClick={submit}
-            disabled={isSaving}
+            disabled={isSaving || isPreparingImage}
             className="mt-3 inline-flex h-10 w-full items-center justify-center gap-2 rounded-md px-4 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-65"
             style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
           >
             <Plus size={16} />
-            {isSaving ? ts('labels.saving') : ts('labels.saveGratitude')}
+            {isSaving || isPreparingImage ? ts('labels.preparingPhoto') : ts('labels.saveGratitude')}
           </button>
           <div className="mt-3 text-xs leading-5" style={{ color: theme.textMuted }}>
             <span>{ts('labels.privateByDefaultEyebrow')}</span>

@@ -24,6 +24,10 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<key>NSCameraUsageDescription</key>
+	<string>Aletheia uses the camera only when you choose to capture a private Gratitude Lens photo.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Aletheia accesses your photo library only when you choose a photo for your private journal or profile.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Aletheia uses the microphone only when you choose to dictate a question or reflection.</string>
 	<key>NSFaceIDUsageDescription</key>

@@ -11,6 +11,7 @@ import android.media.session.PlaybackState;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
+import android.os.Build;
 
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
@@ -333,7 +334,11 @@ public class ManagedAudioPlugin extends Plugin implements MediaPlayer.OnCompleti
     private void bindAudioService() {
         if (!serviceBound) {
             Intent intent = new Intent(getContext(), AudioPlaybackService.class);
-            getContext().startForegroundService(intent);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                getContext().startForegroundService(intent);
+            } else {
+                getContext().startService(intent);
+            }
             getContext().bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE);
         }
     }
