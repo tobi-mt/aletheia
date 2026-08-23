@@ -21,73 +21,22 @@ const EXPECTED_TRANSLATIONS = [
   "HAU1932",
 ];
 
-const CANONICAL_BOOKS = [
-  "Genesis",
-  "Exodus",
-  "Leviticus",
-  "Numbers",
-  "Deuteronomy",
-  "Joshua",
-  "Judges",
-  "Ruth",
-  "1 Samuel",
-  "2 Samuel",
-  "1 Kings",
-  "2 Kings",
-  "1 Chronicles",
-  "2 Chronicles",
-  "Ezra",
-  "Nehemiah",
-  "Esther",
-  "Job",
-  "Psalm",
-  "Proverbs",
-  "Ecclesiastes",
-  "Song of Solomon",
-  "Isaiah",
-  "Jeremiah",
-  "Lamentations",
-  "Ezekiel",
-  "Daniel",
-  "Hosea",
-  "Joel",
-  "Amos",
-  "Obadiah",
-  "Jonah",
-  "Micah",
-  "Nahum",
-  "Habakkuk",
-  "Zephaniah",
-  "Haggai",
-  "Zechariah",
-  "Malachi",
-  "Matthew",
-  "Mark",
-  "Luke",
-  "John",
-  "Acts",
-  "Romans",
-  "1 Corinthians",
-  "2 Corinthians",
-  "Galatians",
-  "Ephesians",
-  "Philippians",
-  "Colossians",
-  "1 Thessalonians",
-  "2 Thessalonians",
-  "1 Timothy",
-  "2 Timothy",
-  "Titus",
-  "Philemon",
-  "Hebrews",
-  "James",
-  "1 Peter",
-  "2 Peter",
-  "1 John",
-  "2 John",
-  "3 John",
-  "Jude",
-  "Revelation",
+// This file validates the deliberately curated, display-ready passage dataset.
+// Full-canon availability is tracked separately by full-scripture-manifest.ts;
+// seeing one curated passage from a book does not mean that book is complete.
+const EXPECTED_REFERENCES = [
+  "Matthew 25:14-30",
+  "Proverbs 22:7",
+  "Philippians 4:11-13",
+  "Proverbs 15:22",
+  "Luke 14:28",
+  "2 Corinthians 9:6-8",
+  "Proverbs 21:5",
+  "Matthew 6:25-34",
+  "Psalm 51:10-12",
+  "James 5:16",
+  "1 Thessalonians 4:3-5",
+  "1 Corinthians 10:13",
 ];
 
 function parseDisplayReadyDataset(rawModuleText) {
@@ -106,14 +55,16 @@ function parseBook(reference) {
 function buildTranslationCoverage(translationCode, referenceMap) {
   const references = Object.keys(referenceMap ?? {}).sort();
   const books = [...new Set(references.map(parseBook).filter(Boolean))].sort();
-  const missingBooks = CANONICAL_BOOKS.filter((book) => !books.includes(book));
+  const missingReferences = EXPECTED_REFERENCES.filter((reference) => !references.includes(reference));
+  const unexpectedReferences = references.filter((reference) => !EXPECTED_REFERENCES.includes(reference));
 
   return {
     referenceCount: references.length,
     bookCount: books.length,
     books,
-    missingBooks,
-    hasFullBookCoverage: missingBooks.length === 0,
+    missingReferences,
+    unexpectedReferences,
+    hasCompleteCuratedCoverage: missingReferences.length === 0,
     references,
   };
 }
@@ -137,8 +88,8 @@ async function main() {
     expected: {
       translationCount: EXPECTED_TRANSLATIONS.length,
       translationCodes: EXPECTED_TRANSLATIONS,
-      canonicalBookCount: CANONICAL_BOOKS.length,
-      canonicalBooks: CANONICAL_BOOKS,
+      curatedReferenceCount: EXPECTED_REFERENCES.length,
+      curatedReferences: EXPECTED_REFERENCES,
     },
     totals: {
       presentTranslationCount: presentTranslations.length,

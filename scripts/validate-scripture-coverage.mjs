@@ -58,9 +58,15 @@ async function main() {
       errors.push(`${translationCode} has zero books.`);
     }
 
-    if (!data.hasFullBookCoverage) {
+    if (!data.hasCompleteCuratedCoverage || data.missingReferences?.length) {
+      errors.push(
+        `${translationCode} is missing curated references: ${formatList(data.missingReferences ?? [])}`
+      );
+    }
+
+    if (data.unexpectedReferences?.length) {
       warnings.push(
-        `${translationCode} is not full-book complete (${data.bookCount}/${manifest.expected?.canonicalBookCount ?? 66} books).`
+        `${translationCode} has references outside the curated set: ${formatList(data.unexpectedReferences)}`
       );
     }
   });
@@ -77,18 +83,8 @@ async function main() {
     return;
   }
 
-  const enforceFullCoverage = process.env.SCRIPTURE_FULL_BOOK_ENFORCE === "1";
-  const notFull = translationEntries.filter(([, data]) => !data.hasFullBookCoverage).map(([code]) => code);
-  if (enforceFullCoverage && notFull.length) {
-    console.error(
-      `Full-book coverage enforcement is enabled and these translations are incomplete: ${formatList(notFull)}`
-    );
-    process.exitCode = 1;
-    return;
-  }
-
   console.log(
-    `Scripture coverage validation passed. Full-book complete translations: ${translationEntries.length - notFull.length}/${translationEntries.length}`
+    `Scripture coverage validation passed. Curated-reference complete translations: ${translationEntries.length}/${translationEntries.length} (${manifest.expected?.curatedReferenceCount ?? 0} references each).`
   );
 }
 
