@@ -17,6 +17,10 @@ const languages = (process.env.TRANSLATE_LANGUAGES || 'tl,hi,ar')
 const batchCharLimit = Number(process.env.TRANSLATE_BATCH_CHARS || 1800);
 const defaultBatchSize = Number(process.env.TRANSLATE_BATCH_SIZE || 12);
 const requestPauseMs = Number(process.env.TRANSLATE_PAUSE_MS || 50);
+const pathPrefixes = (process.env.TRANSLATE_PATH_PREFIXES || '')
+  .split(',')
+  .map((value) => value.trim())
+  .filter(Boolean);
 const preserveExactValues = new Set([
   'Aletheia',
   'WEB',
@@ -258,6 +262,9 @@ async function fillLanguage(language) {
   const languageBatchSize = batchSizes[language] || defaultBatchSize;
 
   for (const leaf of leaves) {
+    if (pathPrefixes.length && !pathPrefixes.some((prefix) => leaf.path === prefix || leaf.path.startsWith(`${prefix}.`))) {
+      continue;
+    }
     const currentValue = getAtPath(current, leaf.path);
     const sourceValue = leaf.value;
 
@@ -306,7 +313,8 @@ async function fillLanguage(language) {
       continue;
     }
     const currentValue = getAtPath(current, leaf.path);
-    const shouldTranslate =
+    const inRequestedPath = !pathPrefixes.length || pathPrefixes.some((prefix) => leaf.path === prefix || leaf.path.startsWith(`${prefix}.`));
+    const shouldTranslate = inRequestedPath &&
       typeof currentValue !== 'string' ||
       currentValue.trim() === '' ||
       currentValue === leaf.value ||

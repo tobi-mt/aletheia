@@ -29,7 +29,7 @@
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Aletheia accesses your photo library only when you choose a photo for your private journal or profile.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Aletheia uses the microphone only when you choose to dictate a question or reflection.</string>
+	<string>Aletheia uses the microphone only when you choose to dictate or recognize Scripture and counsel from a short recording.</string>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Aletheia uses Face ID only to unlock your private workspace on this device.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>

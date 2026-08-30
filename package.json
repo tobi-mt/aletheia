@@ -23,6 +23,7 @@
     "db:migrate:push-subscriptions-last-verified-at": "node scripts/migrate-push-subscriptions-last-verified-at.mjs",
     "db:migrate:notification-delivery-tables": "MIGRATION_FILE=../migrations/2026-07-07_add_notification_delivery_tables.sql node scripts/migrate-push-subscriptions-last-verified-at.mjs",
     "db:migrate:notification-deduplication": "MIGRATION_FILE=../migrations/2026-07-22_deduplicate_native_notifications.sql node scripts/migrate-push-subscriptions-last-verified-at.mjs",
+    "db:migrate:wisdom-listen-captures": "MIGRATION_FILE=../migrations/2026-08-30_add_wisdom_listen_captures.sql node scripts/migrate-push-subscriptions-last-verified-at.mjs",
     "mobile:assets": "npx @capacitor/assets generate --assetPath assets --iconBackgroundColor '#eef2ef' --iconBackgroundColorDark '#0e1514' --splashBackgroundColor '#eef2ef' --splashBackgroundColorDark '#0e1514' --logoSplashScale 0.28 --ios --android",
     "mobile:sync": "npm run mobile:bundle:web && cap sync",
     "mobile:bundle:android": "npm run mobile:sync && cd android && ./gradlew bundleRelease",
@@ -35,6 +36,7 @@
     "ui:regression": "node scripts/ui-regression.mjs",
     "ui:i18n": "node scripts/ui-i18n-regression.mjs",
     "test:routes": "node --test --loader ./tests/alias-loader.mjs tests/notification-routes.test.mjs",
+    "test:listen": "node --test --loader ./tests/alias-loader.mjs tests/wisdom-listen-regression.test.mjs",
     "notify:daily": "node scripts/send-daily-notifications.mjs",
     "push:keys": "web-push generate-vapid-keys"
   },

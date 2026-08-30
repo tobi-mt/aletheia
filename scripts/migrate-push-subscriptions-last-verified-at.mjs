@@ -3,7 +3,12 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import nextEnv from "@next/env";
 import { Client } from "pg";
+
+const { loadEnvConfig } = nextEnv;
+const projectDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+loadEnvConfig(projectDir);
 
 function getClientConfig() {
   const connectionString = process.env.DATABASE_URL?.trim();

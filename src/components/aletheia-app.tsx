@@ -133,6 +133,8 @@ import { StreakBadge, StreakAchievementNotification } from "@/components/streak-
 import { MilestoneCelebrationLayer, useMilestoneCelebration, type CelebrationAnalyticsPayload, type CelebrationRequest } from "@/components/milestone-celebration";
 import { STREAK_MILESTONES, formatStreak, type StreakData } from "@/lib/streak-shared";
 import type { BibleStudyData } from "@/lib/bible-study";
+import ListenForWisdom from "@/components/listen-for-wisdom";
+import { wisdomListenDecisionNote, wisdomListenReflectionBody, type WisdomListenResult } from "@/lib/wisdom-listen";
 
 installNativeWebFetchProxy();
 traceStartup("aletheia-app:module-eval", {
@@ -10912,6 +10914,41 @@ function startFirstRunGuestFlow() {
     });
   }
 
+  function reflectOnWisdomListen(result: WisdomListenResult) {
+    setJournalTitle(ts("listen.reflectionTitle", "Wisdom I heard"));
+    setJournalBody(wisdomListenReflectionBody(result, {
+      possibleScripture: ts("listen.notes.possibleScripture", "Possible Scripture"),
+      noConfidentMatch: ts("listen.notes.noConfidentMatch", "No supported match"),
+      counselHeard: ts("listen.notes.counselHeard", "Counsel I heard"),
+      possibleApplication: ts("listen.notes.possibleApplication", "Possible application"),
+      reflectionPrompt: ts("listen.notes.reflectionPrompt", "What do I want to test carefully before acting?"),
+    }));
+    setActiveView("reflect", "wisdom_listen");
+    announceWorkflow(ts("listen.reflectionReady", "Reflection ready"), ts("listen.reflectionReadyBody", "Your recognized Scripture and counsel are ready to reflect on."), "success");
+  }
+
+  async function attachWisdomListen(result: WisdomListenResult, decisionId: string) {
+    await updateDecision(decisionId, { event: wisdomListenDecisionNote(result, {
+      possibleScripture: ts("listen.notes.possibleScripture", "Possible Scripture"),
+      noConfidentMatch: ts("listen.notes.noConfidentMatch", "No supported match"),
+      counselHeard: ts("listen.notes.counselHeard", "Counsel heard"),
+      possibleApplication: ts("listen.notes.possibleApplication", "Possible application"),
+      recognitionNote: ts("listen.notes.recognitionNote", "Listen for Wisdom found"),
+    }) });
+    announceWorkflow(ts("listen.attached", "Attached to decision"), ts("listen.attachedBody", "The recognized source and counsel were added to the decision timeline."), "success");
+  }
+
+  async function shareWisdomListen(result: WisdomListenResult, decisionId: string, contactId: string) {
+    await updateDecision(decisionId, { event: wisdomListenDecisionNote(result, {
+      possibleScripture: ts("listen.notes.possibleScripture", "Possible Scripture"),
+      noConfidentMatch: ts("listen.notes.noConfidentMatch", "No supported match"),
+      counselHeard: ts("listen.notes.counselHeard", "Counsel heard"),
+      possibleApplication: ts("listen.notes.possibleApplication", "Possible application"),
+      recognitionNote: ts("listen.notes.recognitionNote", "Listen for Wisdom found"),
+    }) });
+    await bulkShareDecisionsWithCounsel(contactId, [decisionId]);
+  }
+
   function removeSavedScripture(id: string) {
     setSavedScriptures((current) => {
       const next = current.filter((item) => item.id !== id);
@@ -14643,6 +14680,14 @@ function startFirstRunGuestFlow() {
                       onSaveScriptureMemory={saveScriptureMemory}
                       onSaveStudyActionAsRule={saveStudyActionAsRule}
                       onShareScriptureMemory={shareScriptureMemoryCard}
+                      decisions={wisdomDecisions.map(({ id, title }) => ({ id, title }))}
+                      counselContacts={counselContacts.map(({ id, name }) => ({ id, name }))}
+                      userSignedIn={Boolean(user)}
+                      thirdPartyAiConsent={preferences.thirdPartyAiConsent}
+                      onEnableThirdPartyAi={() => { void updatePreferences({ thirdPartyAiConsent: true }, { silent: true }); }}
+                      onReflectFromListen={reflectOnWisdomListen}
+                      onAttachFromListen={attachWisdomListen}
+                      onShareFromListen={shareWisdomListen}
                       theme={theme}
                     />
                   </ViewIdentityFrame>
@@ -33845,6 +33890,14 @@ function LibraryPanel({
   onSaveScriptureMemory,
   onSaveStudyActionAsRule,
   onShareScriptureMemory,
+  decisions,
+  counselContacts,
+  userSignedIn,
+  thirdPartyAiConsent,
+  onEnableThirdPartyAi,
+  onReflectFromListen,
+  onAttachFromListen,
+  onShareFromListen,
   theme,
 }: {
   entries: WisdomEntry[];
@@ -33865,6 +33918,14 @@ function LibraryPanel({
   onSaveScriptureMemory: (scripture: string, principle: string) => void;
   onSaveStudyActionAsRule: (action: string) => void;
   onShareScriptureMemory: (memory: ScriptureMemory) => void;
+  decisions: Array<{ id: string; title: string }>;
+  counselContacts: Array<{ id: string; name: string }>;
+  userSignedIn: boolean;
+  thirdPartyAiConsent: boolean;
+  onEnableThirdPartyAi: () => void;
+  onReflectFromListen: (result: WisdomListenResult) => void;
+  onAttachFromListen: (result: WisdomListenResult, decisionId: string) => void;
+  onShareFromListen: (result: WisdomListenResult, decisionId: string, contactId: string) => void;
   theme: ThemeColors;
 }) {
   const runtime = runtimeCopyFor(preferences.language);
@@ -33895,6 +33956,22 @@ function LibraryPanel({
 
   return (
     <div className="min-w-0 space-y-4">
+      <ListenForWisdom
+        mode={mode}
+        language={preferences.language}
+        bibleTranslation={preferences.bibleTranslation}
+        userSignedIn={userSignedIn}
+        thirdPartyAiConsent={thirdPartyAiConsent}
+        onEnableThirdPartyAi={onEnableThirdPartyAi}
+        ts={ts}
+        theme={theme}
+        decisions={decisions}
+        counselContacts={counselContacts}
+        onOpenScripture={onScriptureOpen}
+        onReflect={onReflectFromListen}
+        onAttach={onAttachFromListen}
+        onShare={onShareFromListen}
+      />
       <ContextualNextAction
         eyebrow={runtime.nextInLibrary}
         title={libraryNextTitle}

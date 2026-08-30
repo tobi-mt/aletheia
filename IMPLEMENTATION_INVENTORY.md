@@ -348,6 +348,14 @@ This document provides a comprehensive audit of the Aletheia app codebase, compa
   - Read aloud
   - Export as card
 
+- ✅ **Listen for Scripture and Counsel**
+  - Compact Library launcher and focused 2–60 second recording tray
+  - Deterministic candidate retrieval from the verified WEB corpus; AI may rank and explain candidates but cannot invent references
+  - Strong wording, likely paraphrase, and possible thematic echo labels
+  - Selected-translation passage context, with Scripture visibly separated from interpretation
+  - Account-synced captures with local guest fallback, decision/reflection attachment, and Counsel Circle sharing
+  - Native microphone permission/interruption handling, localized UI, and regression coverage
+
 - ✅ **Wisdom Postcards**
   - Beautiful shareable cards from:
     - Daily wisdom

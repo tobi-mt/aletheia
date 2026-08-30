@@ -78,6 +78,9 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: __dirname,
   },
+  outputFileTracingIncludes: {
+    "/api/listen/recognize": ["./data/scripture/web-search-index.json"],
+  },
   images: {
     remotePatterns: parseAvatarRemotePatterns(),
     unoptimized: nativeWebBundle,
