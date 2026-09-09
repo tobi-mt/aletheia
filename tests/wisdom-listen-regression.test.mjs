@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { retrieveVerifiedScriptureCandidates, verifiedCandidateMatchLabel } from "../src/lib/scripture-recognition.ts";
+import { retrieveVerifiedScriptureCandidates, retrieveVerifiedScriptureCandidatesForTranslation, verifiedCandidateMatchLabel } from "../src/lib/scripture-recognition.ts";
 import { normalizeStoredWisdomListenResult, wisdomListenDecisionNote, wisdomListenReflectionBody } from "../src/lib/wisdom-listen.ts";
 
 test("deterministic retrieval finds a directly quoted verse in the verified corpus", () => {
@@ -9,6 +9,12 @@ test("deterministic retrieval finds a directly quoted verse in the verified corp
   assert.equal(candidates[0]?.reference, "John 3:16");
   assert.equal(verifiedCandidateMatchLabel(candidates[0]), "strong_wording");
   assert.match(candidates[0]?.text ?? "", /God so loved the world/i);
+});
+
+test("retrieval tolerates ordinary transcription errors in a distinctive verse fragment", () => {
+  const candidates = retrieveVerifiedScriptureCandidates("God so luvved the wurld and gave his only son", 5);
+  assert.equal(candidates[0]?.reference, "John 3:16");
+  assert.ok((candidates[0]?.queryCoverage ?? 0) >= 0.5);
 });
 
 test("spoken canonical references resolve without allowing AI-created references", () => {
@@ -71,4 +77,56 @@ test("recognition requires third-party AI consent and constrains model output to
   assert.match(route, /content-length/);
   assert.match(route, /listen_audio_too_large/);
   assert.doesNotMatch(route, /reference:\s*cleanText\(ranked/);
+});
+
+test("live preview is deterministic and the UI exposes evolving guesses and recovery", async () => {
+  const [audioPreview, recorder] = await Promise.all([
+    readFile(new URL("../src/app/api/listen/preview-audio/route.ts", import.meta.url), "utf8"),
+    readFile(new URL("../src/components/listen-for-wisdom.tsx", import.meta.url), "utf8"),
+  ]);
+  assert.match(audioPreview, /audio\.transcriptions\.create/);
+  assert.match(audioPreview, /retrieveVerifiedScriptureCandidates/);
+  assert.doesNotMatch(audioPreview, /responses\.create/);
+  assert.match(recorder, /previewRecordedAudio/);
+  assert.match(recorder, /signalLevel/);
+  assert.match(recorder, /listen\.provisional/);
+  assert.match(recorder, /setElapsed\(0\)/);
+});
+
+test("interpretation failure preserves verified candidates", async () => {
+  const route = await readFile(new URL("../src/app/api/listen/recognize/route.ts", import.meta.url), "utf8");
+  assert.match(route, /interpretation failed; returning verified retrieval/);
+  assert.match(route, /rankedMatches = candidates\.slice\(0, 3\)/);
+  assert.match(route, /listen_transcription_failed/);
+});
+
+test("recognition telemetry records operational metrics but no audio or transcript content", async () => {
+  const [recognize, preview] = await Promise.all([
+    readFile(new URL("../src/app/api/listen/recognize/route.ts", import.meta.url), "utf8"),
+    readFile(new URL("../src/app/api/listen/preview-audio/route.ts", import.meta.url), "utf8"),
+  ]);
+  assert.match(recognize, /listen_recognition_completed/);
+  assert.match(preview, /listen_preview_processed/);
+  assert.match(recognize, /duration_ms/);
+  assert.match(preview, /audio_bytes/);
+  const telemetryLines = [...recognize.split("\n"), ...preview.split("\n")].filter((line) => line.includes("trackServerEvent"));
+  assert.ok(telemetryLines.length >= 4);
+  assert.ok(telemetryLines.every((line) => !/\btranscript\s*:|\baudio\s*:/.test(line)));
+});
+
+test("calibrated evaluation set separates quotations from ordinary speech", async () => {
+  const evaluations = JSON.parse(await readFile(new URL("./fixtures/wisdom-listen-evals.json", import.meta.url), "utf8"));
+  let recognized = 0;
+  let falsePositives = 0;
+  for (const evaluation of evaluations) {
+    const candidates = retrieveVerifiedScriptureCandidatesForTranslation(evaluation.text, evaluation.translation ?? "WEB", 5);
+    if (evaluation.expected) {
+      if (candidates.slice(0, 3).some((candidate) => candidate.reference === evaluation.expected)) recognized += 1;
+    } else if (candidates.some((candidate) => verifiedCandidateMatchLabel(candidate) !== "possible_echo")) {
+      falsePositives += 1;
+    }
+  }
+  const expectedCount = evaluations.filter((evaluation) => evaluation.expected).length;
+  assert.ok(recognized / expectedCount >= 0.82, `recognition recall was ${recognized}/${expectedCount}`);
+  assert.equal(falsePositives, 0, "ordinary speech must not be labeled as a quotation or likely paraphrase");
 });

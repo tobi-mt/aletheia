@@ -2,7 +2,10 @@ import OpenAI from "openai";
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getClientIdentity, checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
-import { retrieveVerifiedScriptureCandidates, verifiedCandidateMatchLabel } from "@/lib/scripture-recognition";
+import { retrieveVerifiedScriptureCandidatesForTranslation, verifiedCandidateMatchLabel } from "@/lib/scripture-recognition";
+import { normalizeListenTranscriptForRetrieval } from "@/lib/listen-language-normalization";
+import { bibleTranslations, type BibleTranslation } from "@/lib/localization";
+import { trackServerEvent } from "@/lib/analytics";
 import { normalizeMode } from "@/lib/wisdom-data";
 import type { WisdomListenResult } from "@/lib/wisdom-listen";
 import { one } from "@/lib/db";
@@ -10,14 +13,24 @@ import { one } from "@/lib/db";
 export const runtime = "nodejs";
 
 const MAX_AUDIO_BYTES = 15 * 1024 * 1024;
-const SUPPORTED_AUDIO_TYPES = new Set(["audio/webm", "audio/mp4", "audio/mpeg", "audio/wav", "audio/x-m4a", "audio/ogg"]);
+const SUPPORTED_AUDIO_TYPES = new Set(["audio/webm", "audio/mp4", "video/mp4", "audio/aac", "audio/mpeg", "audio/wav", "audio/x-m4a", "audio/ogg", "audio/3gpp"]);
 const client = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
 
 function cleanText(value: unknown, limit: number) {
   return typeof value === "string" ? value.trim().replace(/\s+/g, " ").slice(0, limit) : "";
 }
 
+function rejectedIds(value: unknown) {
+  try {
+    const parsed = JSON.parse(cleanText(value, 2_000) || "[]") as unknown;
+    return new Set(Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === "string").slice(0, 20) : []);
+  } catch {
+    return new Set<string>();
+  }
+}
+
 export async function POST(request: Request) {
+  const startedAt = performance.now();
   const user = await getCurrentUser();
   const identity = user?.id ?? await getClientIdentity();
   const rateLimit = await checkRateLimit(identity, { namespace: user ? "wisdom-listen-user" : "wisdom-listen-guest", limit: user ? 20 : 5, windowMs: 60 * 60 * 1000 });
@@ -33,8 +46,11 @@ export async function POST(request: Request) {
   const audio = formData?.get("audio");
   const mode = normalizeMode(formData?.get("mode"));
   const language = cleanText(formData?.get("language"), 12) || "en";
-  const bibleTranslation = cleanText(formData?.get("bibleTranslation"), 24) || "WEB";
+  const submittedTranslation = cleanText(formData?.get("bibleTranslation"), 24);
+  const bibleTranslation: BibleTranslation = submittedTranslation in bibleTranslations ? submittedTranslation as BibleTranslation : "WEB";
   const submittedConsent = formData?.get("thirdPartyAiConsent") === "true";
+  const rejectedCandidateIds = rejectedIds(formData?.get("rejectedCandidateIds"));
+  const durationSeconds = Math.max(0, Math.min(60, Number(formData?.get("durationSeconds")) || 0));
   const storedConsent = user
     ? Boolean((await one<{ third_party_ai_consent: boolean }>("SELECT third_party_ai_consent FROM user_preferences WHERE user_id = ?", user.id))?.third_party_ai_consent)
     : submittedConsent;
@@ -47,12 +63,15 @@ export async function POST(request: Request) {
     const transcription = await client.audio.transcriptions.create({
       file: audio,
       model: process.env.OPENAI_TRANSCRIPTION_MODEL || "gpt-4o-mini-transcribe",
-      prompt: "Short sermon, Bible study, podcast, or trusted-counsel excerpt. Preserve spoken Bible references and names accurately.",
+      language: language === "tl" ? "fil" : language,
+      prompt: "Short sermon, Bible study, podcast, or trusted-counsel excerpt. Preserve Scripture wording, Bible book names, chapter and verse numbers, Hebrew and Greek names, and repeated phrases accurately. Do not silently omit a spoken reference.",
     });
     const transcript = transcription.text.trim().slice(0, 8_000);
     if (transcript.length < 8) return NextResponse.json({ errorCode: "listen_no_speech" }, { status: 422 });
 
-    const candidates = retrieveVerifiedScriptureCandidates(transcript, 12);
+    const retrievalText = await normalizeListenTranscriptForRetrieval(client, transcript, language);
+    const candidates = retrieveVerifiedScriptureCandidatesForTranslation(`${transcript}\n${retrievalText}`, bibleTranslation, 16)
+      .filter((candidate) => !rejectedCandidateIds.has(candidate.id)).slice(0, 12);
     const candidateById = new Map(candidates.map((candidate) => [candidate.id, candidate]));
     const candidateContext = candidates.map((candidate) => [
       `ID: ${candidate.id}`,
@@ -61,10 +80,15 @@ export async function POST(request: Request) {
       `Before: ${candidate.contextBefore}`,
       `After: ${candidate.contextAfter}`,
       `Deterministic lexical score: ${candidate.lexicalScore.toFixed(3)}`,
+      `Spoken-query coverage: ${candidate.queryCoverage.toFixed(3)}`,
       `Deterministic phrase score: ${candidate.phraseScore.toFixed(3)}`,
     ].join("\n")).join("\n\n");
 
-    const analysis = await client.responses.create({
+    let rankedMatches: Array<{ candidateId?: unknown; explanation?: unknown }> = [];
+    let counsel = "";
+    let application = "";
+    try {
+      const analysis = await client.responses.create({
       model: process.env.OPENAI_MODEL || "gpt-4o-mini",
       input: [
         {
@@ -84,10 +108,20 @@ export async function POST(request: Request) {
         },
         required: ["rankedMatches", "counsel", "application"],
       } } },
-    });
-    const parsed = JSON.parse(analysis.output_text) as { rankedMatches?: Array<{ candidateId?: unknown; explanation?: unknown }>; counsel?: unknown; application?: unknown };
+      });
+      const parsed = JSON.parse(analysis.output_text) as { rankedMatches?: Array<{ candidateId?: unknown; explanation?: unknown }>; counsel?: unknown; application?: unknown };
+      rankedMatches = parsed.rankedMatches ?? [];
+      counsel = cleanText(parsed.counsel, 700);
+      application = cleanText(parsed.application, 700);
+    } catch (analysisError) {
+      console.error("Listen for Wisdom interpretation failed; returning verified retrieval", analysisError);
+      rankedMatches = candidates.slice(0, 3).map((candidate) => ({
+        candidateId: candidate.id,
+        explanation: "",
+      }));
+    }
     const usedIds = new Set<string>();
-    const matches = (parsed.rankedMatches ?? []).flatMap((ranked) => {
+    const matches = rankedMatches.flatMap((ranked) => {
       const candidateId = cleanText(ranked.candidateId, 120);
       const candidate = candidateById.get(candidateId);
       if (!candidate || usedIds.has(candidateId)) return [];
@@ -108,12 +142,14 @@ export async function POST(request: Request) {
 
     const result: WisdomListenResult = {
       id: crypto.randomUUID(), transcript, matches,
-      counsel: cleanText(parsed.counsel, 700), application: cleanText(parsed.application, 700),
+      counsel, application,
       mode, language, bibleTranslation, createdAt: new Date().toISOString(), syncState: "local",
     };
+    await trackServerEvent({ eventName: "listen_recognition_completed", userId: user?.id ?? null, path: "/api/listen/recognize", source: "server", metadata: { duration_ms: Math.round(performance.now() - startedAt), audio_bytes: audio.size, clip_seconds: durationSeconds, language, translation: bibleTranslation, candidate_count: matches.length, rejected_count: rejectedCandidateIds.size, interpretation_available: Boolean(counsel || application) } });
     return NextResponse.json({ result }, { headers: rateLimitHeaders(rateLimit) });
   } catch (error) {
-    console.error("Listen for Wisdom recognition failed", error);
-    return NextResponse.json({ errorCode: "listen_failed" }, { status: 500 });
+    console.error("Listen for Wisdom transcription failed", error);
+    await trackServerEvent({ eventName: "listen_recognition_failed", userId: user?.id ?? null, path: "/api/listen/recognize", source: "server", metadata: { duration_ms: Math.round(performance.now() - startedAt), audio_bytes: audio.size, clip_seconds: durationSeconds, language, translation: bibleTranslation, failure_stage: "transcription" } });
+    return NextResponse.json({ errorCode: "listen_transcription_failed" }, { status: 502 });
   }
 }

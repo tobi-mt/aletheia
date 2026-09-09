@@ -80,6 +80,8 @@ const nextConfig: NextConfig = {
   },
   outputFileTracingIncludes: {
     "/api/listen/recognize": ["./data/scripture/web-search-index.json"],
+    "/api/listen/preview-audio": ["./data/scripture/web-search-index.json"],
+    "/api/listen/find": ["./data/scripture/web-search-index.json"],
   },
   images: {
     remotePatterns: parseAvatarRemotePatterns(),

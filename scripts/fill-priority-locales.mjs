@@ -21,6 +21,10 @@ const pathPrefixes = (process.env.TRANSLATE_PATH_PREFIXES || '')
   .split(',')
   .map((value) => value.trim())
   .filter(Boolean);
+const forcePaths = new Set((process.env.TRANSLATE_FORCE_PATHS || '')
+  .split(',')
+  .map((value) => value.trim())
+  .filter(Boolean));
 const preserveExactValues = new Set([
   'Aletheia',
   'WEB',
@@ -272,7 +276,7 @@ async function fillLanguage(language) {
       continue;
     }
 
-    const shouldTranslate =
+    const shouldTranslate = forcePaths.has(leaf.path) ||
       typeof currentValue !== 'string' ||
       currentValue.trim() === '' ||
       currentValue === sourceValue ||
@@ -314,11 +318,11 @@ async function fillLanguage(language) {
     }
     const currentValue = getAtPath(current, leaf.path);
     const inRequestedPath = !pathPrefixes.length || pathPrefixes.some((prefix) => leaf.path === prefix || leaf.path.startsWith(`${prefix}.`));
-    const shouldTranslate = inRequestedPath &&
+    const shouldTranslate = inRequestedPath && (forcePaths.has(leaf.path) ||
       typeof currentValue !== 'string' ||
       currentValue.trim() === '' ||
       currentValue === leaf.value ||
-      currentValue.startsWith('[TODO: Translate]');
+      currentValue.startsWith('[TODO: Translate]'));
 
     const nextValue = shouldTranslate && translated.has(leaf.path)
       ? translated.get(leaf.path)

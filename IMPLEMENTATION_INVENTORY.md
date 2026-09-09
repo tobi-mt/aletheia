@@ -350,6 +350,11 @@ This document provides a comprehensive audit of the Aletheia app codebase, compa
 
 - ✅ **Listen for Scripture and Counsel**
   - Compact Library launcher and focused 2–60 second recording tray
+  - Live audio-level feedback, periodic transcription checkpoints, and provisional candidates that revise as more wording is heard
+  - Rolling server-mediated transcription with incremental stable-word retrieval and emerging/strengthening/reconsidering/locked candidate states
+  - Multilingual retrieval normalization plus verified selected-translation search where licensed corpus text is available
+  - Transcript correction, candidate rejection, and phrase/book/speaker/theme-assisted recovery
+  - Calibrated quotation thresholds, evaluation fixtures, and content-free latency/cost/failure telemetry
   - Deterministic candidate retrieval from the verified WEB corpus; AI may rank and explain candidates but cannot invent references
   - Strong wording, likely paraphrase, and possible thematic echo labels
   - Selected-translation passage context, with Scripture visibly separated from interpretation
