@@ -120,6 +120,12 @@ export async function POST(request: Request) {
         explanation: "",
       }));
     }
+    const rankedIds = new Set(rankedMatches.map((match) => cleanText(match.candidateId, 120)));
+    const deterministicFloor = candidates
+      .filter((candidate) => verifiedCandidateMatchLabel(candidate) !== "possible_echo" && !rankedIds.has(candidate.id))
+      .slice(0, 2)
+      .map((candidate) => ({ candidateId: candidate.id, explanation: "" }));
+    rankedMatches = [...rankedMatches, ...deterministicFloor];
     const usedIds = new Set<string>();
     const matches = rankedMatches.flatMap((ranked) => {
       const candidateId = cleanText(ranked.candidateId, 120);

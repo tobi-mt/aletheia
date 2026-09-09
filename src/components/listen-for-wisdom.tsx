@@ -79,6 +79,9 @@ export default function ListenForWisdom(props: Props) {
   const previewControllerRef = useRef<AbortController | null>(null);
   const previewInFlightRef = useRef(false);
   const candidateHistoryRef = useRef(new Map<string, { candidate: LiveCandidate; rank: number; observations: number }>());
+  const pcmChunksRef = useRef<Float32Array[]>([]);
+  const pcmSampleRateRef = useRef(44_100);
+  const processorRef = useRef<ScriptProcessorNode | null>(null);
   const mountedRef = useRef(true);
   const [open, setOpen] = useState(false);
   const [recording, setRecording] = useState(false);
@@ -116,8 +119,30 @@ export default function ListenForWisdom(props: Props) {
     meterFrameRef.current = null;
     void audioContextRef.current?.close();
     audioContextRef.current = null;
+    processorRef.current = null;
     setSignalLevel(0);
   }, []);
+
+  function pcmWavBlob() {
+    const sampleCount = pcmChunksRef.current.reduce((total, chunk) => total + chunk.length, 0);
+    if (!sampleCount) return null;
+    const buffer = new ArrayBuffer(44 + sampleCount * 2);
+    const view = new DataView(buffer);
+    const write = (offset: number, value: string) => { for (let index = 0; index < value.length; index += 1) view.setUint8(offset + index, value.charCodeAt(index)); };
+    write(0, "RIFF"); view.setUint32(4, 36 + sampleCount * 2, true); write(8, "WAVE"); write(12, "fmt ");
+    view.setUint32(16, 16, true); view.setUint16(20, 1, true); view.setUint16(22, 1, true);
+    view.setUint32(24, pcmSampleRateRef.current, true); view.setUint32(28, pcmSampleRateRef.current * 2, true);
+    view.setUint16(32, 2, true); view.setUint16(34, 16, true); write(36, "data"); view.setUint32(40, sampleCount * 2, true);
+    let offset = 44;
+    for (const chunk of pcmChunksRef.current) {
+      for (const sample of chunk) {
+        const clamped = Math.max(-1, Math.min(1, sample));
+        view.setInt16(offset, clamped < 0 ? clamped * 0x8000 : clamped * 0x7fff, true);
+        offset += 2;
+      }
+    }
+    return new Blob([buffer], { type: "audio/wav" });
+  }
 
   const stopRecording = useCallback(() => {
     const recorder = recorderRef.current;
@@ -213,7 +238,7 @@ export default function ListenForWisdom(props: Props) {
 
   async function previewRecordedAudio(mimeType: string) {
     if (previewInFlightRef.current || !chunksRef.current.length) return;
-    const blob = new Blob([...chunksRef.current], { type: mimeType || "audio/webm" });
+    const blob = pcmWavBlob() ?? new Blob([...chunksRef.current], { type: mimeType || "audio/webm" });
     if (!blob.size) return;
     previewInFlightRef.current = true;
     const controller = new AbortController();
@@ -262,14 +287,25 @@ export default function ListenForWisdom(props: Props) {
       const context = new AudioContext();
       const analyser = context.createAnalyser();
       analyser.fftSize = 256;
-      context.createMediaStreamSource(stream).connect(analyser);
+      const source = context.createMediaStreamSource(stream);
+      source.connect(analyser);
+      const processor = context.createScriptProcessor(4096, 1, 1);
+      const silentGain = context.createGain();
+      silentGain.gain.value = 0;
+      processor.onaudioprocess = (event) => pcmChunksRef.current.push(new Float32Array(event.inputBuffer.getChannelData(0)));
+      source.connect(processor);
+      processor.connect(silentGain);
+      silentGain.connect(context.destination);
+      processorRef.current = processor;
+      pcmSampleRateRef.current = context.sampleRate;
       audioContextRef.current = context;
+      void context.resume();
       const samples = new Uint8Array(analyser.fftSize);
       const updateMeter = () => {
         analyser.getByteTimeDomainData(samples);
         let energy = 0;
-        for (const sample of samples) energy += Math.abs(sample - 128);
-        setSignalLevel(Math.min(1, energy / samples.length / 24));
+        for (const sample of samples) energy += ((sample - 128) / 128) ** 2;
+        setSignalLevel(Math.min(1, Math.sqrt(energy / samples.length) * 5));
         meterFrameRef.current = window.requestAnimationFrame(updateMeter);
       };
       updateMeter();
@@ -285,6 +321,7 @@ export default function ListenForWisdom(props: Props) {
     setLiveCandidates([]);
     setRejectedCandidateIds(new Set());
     candidateHistoryRef.current.clear();
+    pcmChunksRef.current = [];
     setElapsed(0);
     elapsedRef.current = 0;
     if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
@@ -305,7 +342,7 @@ export default function ListenForWisdom(props: Props) {
       recorder.onstop = () => {
         releaseRecorder();
         setRecording(false);
-        const blob = new Blob(chunksRef.current, { type: recorder.mimeType || "audio/webm" });
+        const blob = pcmWavBlob() ?? new Blob(chunksRef.current, { type: recorder.mimeType || "audio/webm" });
         chunksRef.current = [];
         if (blob.size && elapsedRef.current >= 2) void recognize(blob);
         else setError(ts("listen.errors.tooShort", "Keep listening for at least two seconds."));
@@ -395,7 +432,7 @@ export default function ListenForWisdom(props: Props) {
               </button>
               <p className="mt-4 text-2xl font-semibold tabular-nums" style={{ color: theme.textPrimary }}>{formatElapsed(elapsed)} <span className="text-sm font-normal" style={{ color: theme.textMuted }}>/ 01:00</span></p>
               <p className="mt-1 text-sm font-semibold" style={{ color: theme.textPrimary }}>{recording ? ts("listen.recording", "Listening now") : ts("listen.tapToStart", "Tap to start")}</p>
-              <p className="mx-auto mt-1 max-w-sm text-xs leading-5" style={{ color: theme.textSecondary }}>{recording ? (signalLevel > 0.08 ? ts("listen.signalGood", "I can hear you—keep going.") : ts("listen.signalQuiet", "Speak a little closer to your microphone.")) : ts("listen.duration", "Best with 20–60 seconds of clear speech.")}</p>
+              <p className="mx-auto mt-1 max-w-sm text-xs leading-5" style={{ color: theme.textSecondary }}>{recording ? (signalLevel > 0.015 ? ts("listen.signalGood", "I can hear you—keep going.") : ts("listen.signalQuiet", "Listening—keep speaking naturally.")) : ts("listen.duration", "Best with 20–60 seconds of clear speech.")}</p>
             </div>
             {recording ? <div className="border-t pt-3" style={{ borderColor: theme.borderLight }} aria-live="polite">
               <div className="flex items-center gap-2"><Radio className={previewing ? "animate-pulse" : ""} size={14} style={{ color: theme.accentGold }} /><p className="text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>{previewing ? ts("listen.updatingGuess", "Updating the match…") : ts("listen.liveClues", "Live clues")}</p></div>

@@ -98,6 +98,16 @@ test("interpretation failure preserves verified candidates", async () => {
   assert.match(route, /interpretation failed; returning verified retrieval/);
   assert.match(route, /rankedMatches = candidates\.slice\(0, 3\)/);
   assert.match(route, /listen_transcription_failed/);
+  assert.match(route, /deterministicFloor/);
+});
+
+test("iOS recording is normalized to PCM WAV before preview and final upload", async () => {
+  const recorder = await readFile(new URL("../src/components/listen-for-wisdom.tsx", import.meta.url), "utf8");
+  assert.match(recorder, /pcmWavBlob/);
+  assert.match(recorder, /audio\/wav/);
+  assert.match(recorder, /createScriptProcessor/);
+  assert.match(recorder, /pcmWavBlob\(\) \?\?/);
+  assert.doesNotMatch(recorder, /Speak a little closer to your microphone/);
 });
 
 test("recognition telemetry records operational metrics but no audio or transcript content", async () => {
