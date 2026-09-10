@@ -7,7 +7,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "prebuild": "node scripts/write-build-env.mjs && npm run scripture:coverage:manifest && npm run scripture:coverage:validate",
+    "prebuild": "node scripts/write-build-env.mjs && node scripts/generate-scripture-search-bundle.mjs && npm run scripture:coverage:manifest && npm run scripture:coverage:validate",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",

@@ -1,6 +1,7 @@
 import "server-only";
-import webSearchIndex from "../../data/scripture/web-search-index.json";
+import { gunzipSync } from "node:zlib";
 import { displayReadyScriptureReads } from "@/lib/display-ready-scripture-reads";
+import { webSearchIndexGzipBase64 } from "@/lib/generated-web-search-index";
 import type { BibleTranslation } from "@/lib/localization";
 
 export type ScriptureCorpusVerse = {
@@ -36,7 +37,9 @@ const STOP_WORDS = new Set([
   "a", "about", "after", "again", "all", "also", "am", "an", "and", "any", "are", "as", "at", "be", "because", "been", "before", "being", "but", "by", "can", "could", "did", "do", "does", "for", "from", "had", "has", "have", "he", "her", "here", "him", "his", "how", "i", "if", "in", "into", "is", "it", "its", "just", "may", "me", "more", "most", "my", "no", "not", "of", "on", "one", "or", "our", "out", "said", "say", "she", "should", "so", "some", "than", "that", "the", "their", "them", "then", "there", "these", "they", "this", "those", "through", "to", "up", "us", "was", "we", "were", "what", "when", "where", "which", "who", "will", "with", "would", "you", "your",
 ]);
 
-const bundledCorpus = webSearchIndex as ScriptureCorpus;
+const bundledCorpus = JSON.parse(
+  gunzipSync(Buffer.from(webSearchIndexGzipBase64, "base64")).toString("utf8"),
+) as ScriptureCorpus;
 let cachedTokenIndex: Map<string, number[]> | null = null;
 let cachedDocumentFrequency: Map<string, number> | null = null;
 let cachedVocabulary: string[] | null = null;

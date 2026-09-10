@@ -14684,6 +14684,8 @@ function startFirstRunGuestFlow() {
                       counselContacts={counselContacts.map(({ id, name }) => ({ id, name }))}
                       userSignedIn={Boolean(user)}
                       thirdPartyAiConsent={preferences.thirdPartyAiConsent}
+                      onSpeakFromListen={(text) => speakText(text, ts('listen.voiceSpeaking'), ts('listen.voiceLabel'))}
+                      onStopSpeakingFromListen={() => stopSpeech({ announce: false })}
                       onEnableThirdPartyAi={() => { void updatePreferences({ thirdPartyAiConsent: true }, { silent: true }); }}
                       onReflectFromListen={reflectOnWisdomListen}
                       onAttachFromListen={attachWisdomListen}
@@ -33894,6 +33896,8 @@ function LibraryPanel({
   counselContacts,
   userSignedIn,
   thirdPartyAiConsent,
+  onSpeakFromListen,
+  onStopSpeakingFromListen,
   onEnableThirdPartyAi,
   onReflectFromListen,
   onAttachFromListen,
@@ -33922,6 +33926,8 @@ function LibraryPanel({
   counselContacts: Array<{ id: string; name: string }>;
   userSignedIn: boolean;
   thirdPartyAiConsent: boolean;
+  onSpeakFromListen: (text: string) => Promise<void> | void;
+  onStopSpeakingFromListen: () => void;
   onEnableThirdPartyAi: () => void;
   onReflectFromListen: (result: WisdomListenResult) => void;
   onAttachFromListen: (result: WisdomListenResult, decisionId: string) => void;
@@ -33962,7 +33968,10 @@ function LibraryPanel({
         bibleTranslation={preferences.bibleTranslation}
         userSignedIn={userSignedIn}
         thirdPartyAiConsent={thirdPartyAiConsent}
+        voiceEnabled={preferences.voiceEnabled}
         onEnableThirdPartyAi={onEnableThirdPartyAi}
+        onSpeak={onSpeakFromListen}
+        onStopSpeaking={onStopSpeakingFromListen}
         ts={ts}
         theme={theme}
         decisions={decisions}

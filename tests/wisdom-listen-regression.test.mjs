@@ -31,20 +31,26 @@ test("clue search retains a bundled verified fallback when the full corpus is un
   const candidates = retrieveVerifiedCuratedCandidates("well done good and faithful servant", "WEB", 5);
   assert.equal(candidates[0]?.reference, "Matthew 25:21");
 
-  const [route, recognition] = await Promise.all([
+  const [route, recognition, nextConfig, generator] = await Promise.all([
     readFile(new URL("../src/app/api/listen/find/route.ts", import.meta.url), "utf8"),
     readFile(new URL("../src/lib/scripture-recognition.ts", import.meta.url), "utf8"),
+    readFile(new URL("../next.config.ts", import.meta.url), "utf8"),
+    readFile(new URL("../scripts/generate-scripture-search-bundle.mjs", import.meta.url), "utf8"),
   ]);
   assert.match(route, /using verified curated fallback/);
   assert.match(route, /retrieveVerifiedCuratedCandidates/);
-  assert.match(recognition, /import webSearchIndex from/);
+  assert.match(recognition, /webSearchIndexGzipBase64/);
+  assert.match(recognition, /gunzipSync/);
   assert.doesNotMatch(recognition, /process\.cwd\(\)/);
+  assert.doesNotMatch(recognition, /web-search-index\.json/);
+  assert.doesNotMatch(nextConfig, /data\/scripture\/web-search-index\.json/);
+  assert.match(generator, /webSearchIndexGzipBase64/);
 });
 
 test("clue search UI distinguishes an unavailable service from a genuine empty result", async () => {
   const recorder = await readFile(new URL("../src/components/listen-for-wisdom.tsx", import.meta.url), "utf8");
   assert.match(recorder, /if \(!response\.ok\) throw new Error\("search_failed"\)/);
-  assert.match(recorder, /helpSearched && !helpBusy && helpCandidates\.length === 0/);
+  assert.match(recorder, /helpSearched\s*&&\s*!helpBusy\s*&&\s*helpCandidates\.length === 0/);
   assert.match(recorder, /listen\.searchUnavailable/);
 });
 
@@ -122,6 +128,27 @@ test("live preview is deterministic and the UI exposes evolving guesses and reco
   assert.match(recorder, /signalLevel/);
   assert.match(recorder, /listen\.provisional/);
   assert.match(recorder, /setElapsed\(0\)/);
+});
+
+test("Listen behaves as a localized voice companion without speaking over capture", async () => {
+  const [recorder, app] = await Promise.all([
+    readFile(new URL("../src/components/listen-for-wisdom.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../src/components/aletheia-app.tsx", import.meta.url), "utf8"),
+  ]);
+  assert.match(recorder, /voiceEnabled/);
+  assert.match(recorder, /listen\.voiceReady/);
+  assert.match(recorder, /listen\.voiceFound/);
+  assert.match(recorder, /listen\.voiceNoMatch/);
+  assert.match(recorder, /listen\.hearResponse/);
+  assert.match(recorder, /resultToSpeak\.language !== language/);
+  assert.match(recorder, /localizedScriptureReference\(\s*firstMatch\.reference,\s*language\s*\)/);
+  assert.match(recorder, /capture\.language === language\s*&&\s*capture\.bibleTranslation === bibleTranslation/);
+  assert.match(recorder, /preferenceScopeRef/);
+  assert.ok(recorder.indexOf("onStopSpeaking();", recorder.indexOf("async function startRecording")) < recorder.indexOf("getUserMedia", recorder.indexOf("async function startRecording")));
+  assert.match(app, /onSpeakFromListen=\{\(text\) => speakText/);
+  assert.match(app, /onStopSpeakingFromListen=\{\(\) => stopSpeech/);
+  assert.match(app, /utterance\.lang = browserSpeechLanguage\(preferences\.language\)/);
+  assert.match(app, /language: preferences\.language/);
 });
 
 test("interpretation failure preserves verified candidates", async () => {
