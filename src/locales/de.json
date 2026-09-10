@@ -2573,6 +2573,7 @@
     "searchingClues": "Suche nach verifizierter Schrift…",
     "searchClues": "Suche mit diesen Hinweisen",
     "noClueMatch": "Noch keine verifizierte Übereinstimmung. Versuchen Sie es mit einem anderen markanten Wort oder einem möglichen Buch.",
+    "searchUnavailable": "Der Schriftsuchdienst konnte nicht erreicht werden. Ihre Hinweise wurden nicht ausgewertet – bitte versuchen Sie es erneut.",
     "reflectionTitle": "Weisheit, die ich gehört habe",
     "reflectionReady": "Reflexion bereit",
     "reflectionReadyBody": "Ihre erkannte Schriftstelle und Ihr Rat sind bereit zum Nachdenken.",

@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { retrieveVerifiedScriptureCandidates, retrieveVerifiedScriptureCandidatesForTranslation, verifiedCandidateMatchLabel } from "../src/lib/scripture-recognition.ts";
+import { retrieveVerifiedCuratedCandidates, retrieveVerifiedScriptureCandidates, retrieveVerifiedScriptureCandidatesForTranslation, verifiedCandidateMatchLabel } from "../src/lib/scripture-recognition.ts";
 import { normalizeStoredWisdomListenResult, wisdomListenDecisionNote, wisdomListenReflectionBody } from "../src/lib/wisdom-listen.ts";
 
 test("deterministic retrieval finds a directly quoted verse in the verified corpus", () => {
@@ -15,6 +15,37 @@ test("retrieval tolerates ordinary transcription errors in a distinctive verse f
   const candidates = retrieveVerifiedScriptureCandidates("God so luvved the wurld and gave his only son", 5);
   assert.equal(candidates[0]?.reference, "John 3:16");
   assert.ok((candidates[0]?.queryCoverage ?? 0) >= 0.5);
+});
+
+test("a likely paraphrase ranks ahead of weaker thematic echoes", () => {
+  const candidates = retrieveVerifiedScriptureCandidatesForTranslation(
+    "When you do not know what to do, ask God for wisdom, because he gives generously without finding fault.",
+    "WEB",
+    5,
+  );
+  assert.equal(candidates[0]?.reference, "James 1:5");
+  assert.equal(verifiedCandidateMatchLabel(candidates[0]), "likely_paraphrase");
+});
+
+test("clue search retains a bundled verified fallback when the full corpus is unavailable", async () => {
+  const candidates = retrieveVerifiedCuratedCandidates("well done good and faithful servant", "WEB", 5);
+  assert.equal(candidates[0]?.reference, "Matthew 25:21");
+
+  const [route, recognition] = await Promise.all([
+    readFile(new URL("../src/app/api/listen/find/route.ts", import.meta.url), "utf8"),
+    readFile(new URL("../src/lib/scripture-recognition.ts", import.meta.url), "utf8"),
+  ]);
+  assert.match(route, /using verified curated fallback/);
+  assert.match(route, /retrieveVerifiedCuratedCandidates/);
+  assert.match(recognition, /import webSearchIndex from/);
+  assert.doesNotMatch(recognition, /process\.cwd\(\)/);
+});
+
+test("clue search UI distinguishes an unavailable service from a genuine empty result", async () => {
+  const recorder = await readFile(new URL("../src/components/listen-for-wisdom.tsx", import.meta.url), "utf8");
+  assert.match(recorder, /if \(!response\.ok\) throw new Error\("search_failed"\)/);
+  assert.match(recorder, /helpSearched && !helpBusy && helpCandidates\.length === 0/);
+  assert.match(recorder, /listen\.searchUnavailable/);
 });
 
 test("spoken canonical references resolve without allowing AI-created references", () => {
@@ -107,6 +138,9 @@ test("iOS recording is normalized to PCM WAV before preview and final upload", a
   assert.match(recorder, /audio\/wav/);
   assert.match(recorder, /createScriptProcessor/);
   assert.match(recorder, /pcmWavBlob\(\) \?\?/);
+  assert.match(recorder, /await activeContext\.resume\(\)/);
+  assert.match(recorder, /peak < 0\.001 \|\| rms < 0\.0001/);
+  assert.match(recorder, /startLiveFeedback\(stream, activeContext\)/);
   assert.doesNotMatch(recorder, /Speak a little closer to your microphone/);
 });
 

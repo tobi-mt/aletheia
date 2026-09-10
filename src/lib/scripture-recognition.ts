@@ -1,6 +1,5 @@
 import "server-only";
-import { readFileSync } from "fs";
-import { join } from "path";
+import webSearchIndex from "../../data/scripture/web-search-index.json";
 import { displayReadyScriptureReads } from "@/lib/display-ready-scripture-reads";
 import type { BibleTranslation } from "@/lib/localization";
 
@@ -37,17 +36,13 @@ const STOP_WORDS = new Set([
   "a", "about", "after", "again", "all", "also", "am", "an", "and", "any", "are", "as", "at", "be", "because", "been", "before", "being", "but", "by", "can", "could", "did", "do", "does", "for", "from", "had", "has", "have", "he", "her", "here", "him", "his", "how", "i", "if", "in", "into", "is", "it", "its", "just", "may", "me", "more", "most", "my", "no", "not", "of", "on", "one", "or", "our", "out", "said", "say", "she", "should", "so", "some", "than", "that", "the", "their", "them", "then", "there", "these", "they", "this", "those", "through", "to", "up", "us", "was", "we", "were", "what", "when", "where", "which", "who", "will", "with", "would", "you", "your",
 ]);
 
-let cachedCorpus: ScriptureCorpus | null = null;
+const bundledCorpus = webSearchIndex as ScriptureCorpus;
 let cachedTokenIndex: Map<string, number[]> | null = null;
 let cachedDocumentFrequency: Map<string, number> | null = null;
 let cachedVocabulary: string[] | null = null;
 
 function corpus() {
-  if (!cachedCorpus) {
-    const filePath = join(process.cwd(), "data", "scripture", "web-search-index.json");
-    cachedCorpus = JSON.parse(readFileSync(filePath, "utf8")) as ScriptureCorpus;
-  }
-  return cachedCorpus;
+  return bundledCorpus;
 }
 
 export function normalizeRecognitionText(value: string) {
@@ -201,13 +196,14 @@ export function retrieveVerifiedScriptureCandidates(transcript: string, limit = 
     .slice(0, 180)
     .map(([verseIndex, weightedScore]) => {
       const verse = data.verses[verseIndex]!;
+      const isDirectReference = direct.has(normalizeRecognitionText(verse.reference));
       const verseTokens = new Set(recognitionTokens(verse.text));
       const sharedTokens = queryTokens.filter((token) => verseTokens.has(token));
       const lexicalScore = verseTokens.size ? sharedTokens.length / verseTokens.size : 0;
       const queryCoverage = originalQueryTokens.length
         ? originalQueryTokens.filter((token) => verseTokens.has(token) || sharedTokens.some((shared) => editDistanceAtMostTwo(token, shared) <= (token.length >= 8 ? 2 : 1))).length / originalQueryTokens.length
         : 0;
-      const phraseScore = phraseSimilarity(cleanTranscript, verse.text);
+      const phraseScore = isDirectReference ? 1 : phraseSimilarity(cleanTranscript, verse.text);
       const context = candidateContext(data.verses, verseIndex);
       return {
         id: `web:${verse.book}:${verse.chapter}:${verse.verse}`,
@@ -251,7 +247,6 @@ export function verifiedCandidateMatchLabel(candidate: VerifiedScriptureCandidat
 }
 
 function selectedTranslationCandidates(transcript: string, translation: BibleTranslation) {
-  if (translation === "WEB") return [];
   const reads = displayReadyScriptureReads[translation];
   if (!reads) return [];
   const queryTokens = [...new Set(recognitionTokens(transcript))];
@@ -289,13 +284,9 @@ function selectedTranslationCandidates(transcript: string, translation: BibleTra
   return candidates.sort((left, right) => right.combinedScore - left.combinedScore);
 }
 
-export function retrieveVerifiedScriptureCandidatesForTranslation(
-  transcript: string,
-  translation: BibleTranslation,
-  limit = 12,
-) {
+export function retrieveVerifiedCuratedCandidates(transcript: string, translation: BibleTranslation, limit = 8) {
   const selected = selectedTranslationCandidates(transcript, translation);
-  const web = retrieveVerifiedScriptureCandidates(transcript, Math.max(limit, 12));
+  const web = translation === "WEB" ? [] : selectedTranslationCandidates(transcript, "WEB");
   const seen = new Set<string>();
   return [...selected, ...web].filter((candidate) => {
     const key = `${candidate.book}:${candidate.chapter}:${candidate.verse}`;
@@ -303,4 +294,29 @@ export function retrieveVerifiedScriptureCandidatesForTranslation(
     seen.add(key);
     return true;
   }).slice(0, limit);
+}
+
+export function retrieveVerifiedScriptureCandidatesForTranslation(
+  transcript: string,
+  translation: BibleTranslation,
+  limit = 12,
+) {
+  const selected = retrieveVerifiedCuratedCandidates(transcript, translation, limit);
+  const web = retrieveVerifiedScriptureCandidates(transcript, Math.max(limit, 12));
+  const seen = new Set<string>();
+  const strengthRank = { strong_wording: 2, likely_paraphrase: 1, possible_echo: 0 } as const;
+  return [...selected, ...web]
+    .sort((left, right) => {
+      const strengthDifference = strengthRank[verifiedCandidateMatchLabel(right)] - strengthRank[verifiedCandidateMatchLabel(left)];
+      if (strengthDifference) return strengthDifference;
+      return (right.phraseScore - left.phraseScore)
+        || (right.queryCoverage - left.queryCoverage)
+        || (right.lexicalScore - left.lexicalScore);
+    })
+    .filter((candidate) => {
+      const key = `${candidate.book}:${candidate.chapter}:${candidate.verse}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    }).slice(0, limit);
 }

@@ -107,6 +107,8 @@ export default function ListenForWisdom(props: Props) {
   const [helpTheme, setHelpTheme] = useState("");
   const [helpCandidates, setHelpCandidates] = useState<LiveCandidate[]>([]);
   const [helpBusy, setHelpBusy] = useState(false);
+  const [helpSearched, setHelpSearched] = useState(false);
+  const [helpError, setHelpError] = useState("");
 
   const releaseRecorder = useCallback(() => {
     if (timerRef.current) window.clearInterval(timerRef.current);
@@ -126,6 +128,23 @@ export default function ListenForWisdom(props: Props) {
   function pcmWavBlob() {
     const sampleCount = pcmChunksRef.current.reduce((total, chunk) => total + chunk.length, 0);
     if (!sampleCount) return null;
+    let peak = 0;
+    let energy = 0;
+    let finiteSamples = 0;
+    for (const chunk of pcmChunksRef.current) {
+      for (const sample of chunk) {
+        if (!Number.isFinite(sample)) continue;
+        const absolute = Math.abs(sample);
+        peak = Math.max(peak, absolute);
+        energy += sample * sample;
+        finiteSamples += 1;
+      }
+    }
+    const rms = finiteSamples ? Math.sqrt(energy / finiteSamples) : 0;
+    // WebKit can expose a running recorder while leaving a late-created AudioContext
+    // suspended. In that case the generated WAV is structurally valid but silent;
+    // prefer Safari's native MediaRecorder output instead.
+    if (finiteSamples !== sampleCount || peak < 0.001 || rms < 0.0001) return null;
     const buffer = new ArrayBuffer(44 + sampleCount * 2);
     const view = new DataView(buffer);
     const write = (offset: number, value: string) => { for (let index = 0; index < value.length; index += 1) view.setUint8(offset + index, value.charCodeAt(index)); };
@@ -282,9 +301,9 @@ export default function ListenForWisdom(props: Props) {
     }
   }
 
-  function startLiveFeedback(stream: MediaStream) {
+  function startLiveFeedback(stream: MediaStream, activeContext?: AudioContext) {
     try {
-      const context = new AudioContext();
+      const context = activeContext ?? new AudioContext();
       const analyser = context.createAnalyser();
       analyser.fftSize = 256;
       const source = context.createMediaStreamSource(stream);
@@ -299,7 +318,7 @@ export default function ListenForWisdom(props: Props) {
       processorRef.current = processor;
       pcmSampleRateRef.current = context.sampleRate;
       audioContextRef.current = context;
-      void context.resume();
+      if (context.state !== "running") void context.resume();
       const samples = new Uint8Array(analyser.fftSize);
       const updateMeter = () => {
         analyser.getByteTimeDomainData(samples);
@@ -329,9 +348,21 @@ export default function ListenForWisdom(props: Props) {
       return;
     }
     try {
+      // Safari requires AudioContext activation to happen in the original tap task.
+      // Creating it after awaiting getUserMedia can produce a valid-looking silent WAV.
+      let activeContext: AudioContext | undefined;
+      try {
+        activeContext = new AudioContext();
+        audioContextRef.current = activeContext;
+        await activeContext.resume();
+      } catch {
+        void activeContext?.close();
+        audioContextRef.current = null;
+        activeContext = undefined;
+      }
       const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
       streamRef.current = stream;
-      startLiveFeedback(stream);
+      startLiveFeedback(stream, activeContext);
       const preferredType = ["audio/webm;codecs=opus", "audio/mp4", "audio/webm"].find((type) => MediaRecorder.isTypeSupported(type));
       const recorder = new MediaRecorder(stream, preferredType ? { mimeType: preferredType } : undefined);
       recorderRef.current = recorder;
@@ -365,14 +396,21 @@ export default function ListenForWisdom(props: Props) {
   async function findWithClues() {
     if (helpBusy || ![helpPhrase, helpBook, helpSpeaker, helpTheme].some((value) => value.trim())) return;
     setHelpBusy(true);
+    setHelpSearched(false);
+    setHelpError("");
     try {
       const response = await fetch("/api/listen/find", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phrase: helpPhrase, book: helpBook, speaker: helpSpeaker, theme: helpTheme, language, bibleTranslation }),
       });
       const data = await response.json().catch(() => ({})) as { candidates?: LiveCandidate[] };
+      if (!response.ok) throw new Error("search_failed");
       setHelpCandidates(Array.isArray(data.candidates) ? data.candidates : []);
-    } catch { setHelpCandidates([]); }
+      setHelpSearched(true);
+    } catch {
+      setHelpCandidates([]);
+      setHelpError(ts("listen.searchUnavailable", "The Scripture search service could not be reached. Your clues were not evaluated—please try again."));
+    }
     finally { setHelpBusy(false); }
   }
 
@@ -448,7 +486,7 @@ export default function ListenForWisdom(props: Props) {
           {error ? <div role="alert" className="rounded-xl border p-3.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}><p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{ts("listen.tryAgainTitle", "Let’s try that again")}</p><p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>{error}</p><p className="mt-2 text-xs leading-5" style={{ color: theme.textMuted }}>{ts("listen.tryAgainHint", "Move closer to the speaker, reduce background noise, and include a few distinctive words—or say the reference aloud.")}</p><button type="button" onClick={() => { setHelpPhrase(liveTranscript); setHelpOpen(true); }} className="mt-3 text-xs font-semibold underline underline-offset-4" style={{ color: theme.textPrimary }}>{ts("listen.helpFind", "Help Aletheia find it")}</button></div> : null}
 
           {!result && !recording && !busy && !error ? <button type="button" onClick={() => setHelpOpen((value) => !value)} className="w-full text-center text-xs font-semibold underline underline-offset-4" style={{ color: theme.textSecondary }}>{ts("listen.helpFind", "Help Aletheia find it")}</button> : null}
-          {helpOpen && !recording && !busy ? <section className="border-t pt-4" style={{ borderColor: theme.borderLight }}><h3 className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{ts("listen.helpTitle", "What do you remember?")}</h3><p className="mt-1 text-xs leading-5" style={{ color: theme.textMuted }}>{ts("listen.helpBody", "Correct the words we heard or add any clue. Aletheia will search verified Scripture only.")}</p><textarea value={helpPhrase} onChange={(event) => setHelpPhrase(event.target.value)} rows={3} placeholder={ts("listen.phrasePlaceholder", "A phrase or corrected transcript")} className="mt-3 w-full rounded-lg border p-3 text-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} /><div className="mt-2 grid grid-cols-2 gap-2"><input value={helpBook} onChange={(event) => setHelpBook(event.target.value)} placeholder={ts("listen.bookPlaceholder", "Possible book")} className="h-10 rounded-lg border px-3 text-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} /><input value={helpSpeaker} onChange={(event) => setHelpSpeaker(event.target.value)} placeholder={ts("listen.speakerPlaceholder", "Speaker or setting")} className="h-10 rounded-lg border px-3 text-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} /></div><input value={helpTheme} onChange={(event) => setHelpTheme(event.target.value)} placeholder={ts("listen.themePlaceholder", "Theme, such as courage or counsel")} className="mt-2 h-10 w-full rounded-lg border px-3 text-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} /><button type="button" disabled={helpBusy} onClick={() => void findWithClues()} className="mt-3 h-10 rounded-full px-4 text-xs font-semibold disabled:opacity-50" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>{helpBusy ? ts("listen.searchingClues", "Searching verified Scripture…") : ts("listen.searchClues", "Search with these clues")}</button>{!helpBusy && helpCandidates.length ? <div className="mt-3 space-y-2">{helpCandidates.map((candidate) => <div key={candidate.candidateId} className="flex items-center gap-2 border-t py-2" style={{ borderColor: theme.borderLight }}><button type="button" onClick={() => { closeTray(); onOpenScripture(candidate.reference); }} className="min-w-0 flex-1 text-left"><span className="block text-sm font-semibold" style={{ color: theme.textPrimary }}>{candidate.reference}</span><span className="block text-[10px]" style={{ color: theme.textMuted }}>{ts(`listen.match.${candidate.strength}`, "Possible thematic echo")}</span></button><button type="button" aria-label={ts("listen.rejectCandidate", "Not this passage")} onClick={() => setHelpCandidates((current) => current.filter((item) => item.candidateId !== candidate.candidateId))} className="grid size-8 place-items-center rounded-full"><X size={13} /></button></div>)}</div> : null}{!helpBusy && helpCandidates.length === 0 && [helpPhrase, helpBook, helpSpeaker, helpTheme].some((value) => value.trim()) ? <p className="mt-3 text-xs" style={{ color: theme.textMuted }}>{ts("listen.noClueMatch", "No verified match yet. Try one more distinctive word or a possible book.")}</p> : null}</section> : null}
+          {helpOpen && !recording && !busy ? <section className="border-t pt-4" style={{ borderColor: theme.borderLight }}><h3 className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{ts("listen.helpTitle", "What do you remember?")}</h3><p className="mt-1 text-xs leading-5" style={{ color: theme.textMuted }}>{ts("listen.helpBody", "Correct the words we heard or add any clue. Aletheia will search verified Scripture only.")}</p><textarea value={helpPhrase} onChange={(event) => { setHelpPhrase(event.target.value); setHelpSearched(false); setHelpError(""); }} rows={3} placeholder={ts("listen.phrasePlaceholder", "A phrase or corrected transcript")} className="mt-3 w-full rounded-lg border p-3 text-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} /><div className="mt-2 grid grid-cols-2 gap-2"><input value={helpBook} onChange={(event) => { setHelpBook(event.target.value); setHelpSearched(false); }} placeholder={ts("listen.bookPlaceholder", "Possible book")} className="h-10 rounded-lg border px-3 text-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} /><input value={helpSpeaker} onChange={(event) => { setHelpSpeaker(event.target.value); setHelpSearched(false); }} placeholder={ts("listen.speakerPlaceholder", "Speaker or setting")} className="h-10 rounded-lg border px-3 text-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} /></div><input value={helpTheme} onChange={(event) => { setHelpTheme(event.target.value); setHelpSearched(false); }} placeholder={ts("listen.themePlaceholder", "Theme, such as courage or counsel")} className="mt-2 h-10 w-full rounded-lg border px-3 text-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} /><button type="button" disabled={helpBusy} onClick={() => void findWithClues()} className="mt-3 h-10 rounded-full px-4 text-xs font-semibold disabled:opacity-50" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>{helpBusy ? ts("listen.searchingClues", "Searching verified Scripture…") : ts("listen.searchClues", "Search with these clues")}</button>{helpError ? <p role="alert" className="mt-3 text-xs leading-5" style={{ color: theme.textSecondary }}>{helpError}</p> : null}{!helpBusy && helpCandidates.length ? <div className="mt-3 space-y-2">{helpCandidates.map((candidate) => <div key={candidate.candidateId} className="flex items-center gap-2 border-t py-2" style={{ borderColor: theme.borderLight }}><button type="button" onClick={() => { closeTray(); onOpenScripture(candidate.reference); }} className="min-w-0 flex-1 text-left"><span className="block text-sm font-semibold" style={{ color: theme.textPrimary }}>{candidate.reference}</span><span className="block text-[10px]" style={{ color: theme.textMuted }}>{ts(`listen.match.${candidate.strength}`, "Possible thematic echo")}</span></button><button type="button" aria-label={ts("listen.rejectCandidate", "Not this passage")} onClick={() => setHelpCandidates((current) => current.filter((item) => item.candidateId !== candidate.candidateId))} className="grid size-8 place-items-center rounded-full"><X size={13} /></button></div>)}</div> : null}{helpSearched && !helpBusy && helpCandidates.length === 0 ? <p className="mt-3 text-xs" style={{ color: theme.textMuted }}>{ts("listen.noClueMatch", "No verified match yet. Try one more distinctive word or a possible book.")}</p> : null}</section> : null}
 
           {result ? <ResultView result={result} reads={passageReads} isSaved={isSaved} saving={saving} action={action} setAction={setAction} decisionId={decisionId} setDecisionId={setDecisionId} contactId={contactId} setContactId={setContactId} decisions={decisions} counselContacts={counselContacts} ts={ts} theme={theme} onOpenScripture={(reference) => { closeTray(); onOpenScripture(reference); }} onSave={() => void saveCapture()} onReflect={() => { closeTray(); onReflect(result); }} onAttach={() => { onAttach(result, decisionId); setAction(null); }} onShare={() => { onShare(result, decisionId, contactId); setAction(null); }} onAgain={() => { setResult(null); setElapsed(0); setError(""); setAction(null); }} /> : null}
           {result ? <button type="button" onClick={() => { setHelpPhrase(result.transcript); setHelpOpen(true); }} className="w-full text-center text-xs font-semibold underline underline-offset-4" style={{ color: theme.textSecondary }}>{ts("listen.correctTranscript", "Correct words or search with more clues")}</button> : null}

@@ -2557,6 +2557,7 @@
     "searchingClues": "Searching verified Scripture…",
     "searchClues": "Search with these clues",
     "noClueMatch": "No verified match yet. Try one more distinctive word or a possible book.",
+    "searchUnavailable": "The Scripture search service could not be reached. Your clues were not evaluated—please try again.",
     "reflectionTitle": "Wisdom I heard",
     "reflectionReady": "Reflection ready",
     "reflectionReadyBody": "Your recognized Scripture and counsel are ready to reflect on.",

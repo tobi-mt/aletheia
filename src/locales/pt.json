@@ -2573,6 +2573,7 @@
     "searchingClues": "Pesquisando Escrituras verificadas…",
     "searchClues": "Pesquise com estas pistas",
     "noClueMatch": "Nenhuma correspondência verificada ainda. Experimente mais uma palavra distintiva ou um possível livro.",
+    "searchUnavailable": "Não foi possível entrar em contato com o serviço de busca das Escrituras. Suas pistas não foram avaliadas. Tente novamente.",
     "reflectionTitle": "Sabedoria que ouvi",
     "reflectionReady": "Reflexão pronta",
     "reflectionReadyBody": "Suas Escrituras e conselhos reconhecidos estão prontos para reflexão.",

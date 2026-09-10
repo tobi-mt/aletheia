@@ -5,7 +5,7 @@ import { bibleTranslations, type BibleTranslation } from "@/lib/localization";
 import { normalizeListenTranscriptForRetrieval } from "@/lib/listen-language-normalization";
 import { getClientIdentity, checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { readJsonBody } from "@/lib/request";
-import { retrieveVerifiedScriptureCandidatesForTranslation, verifiedCandidateMatchLabel } from "@/lib/scripture-recognition";
+import { retrieveVerifiedCuratedCandidates, retrieveVerifiedScriptureCandidatesForTranslation, verifiedCandidateMatchLabel } from "@/lib/scripture-recognition";
 import { trackServerEvent } from "@/lib/analytics";
 
 export const runtime = "nodejs";
@@ -32,7 +32,15 @@ export async function POST(request: Request) {
   const query = [phrase, book, theme, speaker].filter(Boolean).join(" ");
   if (query.length < 3) return NextResponse.json({ candidates: [] }, { headers: rateLimitHeaders(rateLimit) });
   const normalized = client ? await normalizeListenTranscriptForRetrieval(client, query, language) : query;
-  const candidates = retrieveVerifiedScriptureCandidatesForTranslation(`${query}\n${normalized}`, translation, 5).map((candidate) => ({
+  const retrievalQuery = `${query}\n${normalized}`;
+  let retrieved;
+  try {
+    retrieved = retrieveVerifiedScriptureCandidatesForTranslation(retrievalQuery, translation, 5);
+  } catch (error) {
+    console.error("Full Listen clue corpus unavailable; using verified curated fallback", error);
+    retrieved = retrieveVerifiedCuratedCandidates(retrievalQuery, translation, 5);
+  }
+  const candidates = retrieved.map((candidate) => ({
     candidateId: candidate.id, reference: candidate.reference,
     strength: phrase ? verifiedCandidateMatchLabel(candidate) : "possible_echo" as const,
     evidence: candidate.evidence,

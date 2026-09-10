@@ -2573,6 +2573,7 @@
     "searchingClues": "Recherche d'Écritures vérifiées…",
     "searchClues": "Recherche avec ces indices",
     "noClueMatch": "Aucune correspondance vérifiée pour l'instant. Essayez un autre mot distinctif ou un livre possible.",
+    "searchUnavailable": "Le service de recherche biblique n’a pas pu être contacté. Vos indices n'ont pas été évalués. Veuillez réessayer.",
     "reflectionTitle": "La sagesse que j'ai entendue",
     "reflectionReady": "Prêt pour la réflexion",
     "reflectionReadyBody": "Votre Écriture reconnue et vos conseils sont prêts à réfléchir.",
