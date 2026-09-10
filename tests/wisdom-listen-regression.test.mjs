@@ -31,11 +31,12 @@ test("clue search retains a bundled verified fallback when the full corpus is un
   const candidates = retrieveVerifiedCuratedCandidates("well done good and faithful servant", "WEB", 5);
   assert.equal(candidates[0]?.reference, "Matthew 25:21");
 
-  const [route, recognition, nextConfig, generator] = await Promise.all([
+  const [route, recognition, nextConfig, generator, packageJson] = await Promise.all([
     readFile(new URL("../src/app/api/listen/find/route.ts", import.meta.url), "utf8"),
     readFile(new URL("../src/lib/scripture-recognition.ts", import.meta.url), "utf8"),
     readFile(new URL("../next.config.ts", import.meta.url), "utf8"),
     readFile(new URL("../scripts/generate-scripture-search-bundle.mjs", import.meta.url), "utf8"),
+    readFile(new URL("../package.json", import.meta.url), "utf8"),
   ]);
   assert.match(route, /using verified curated fallback/);
   assert.match(route, /retrieveVerifiedCuratedCandidates/);
@@ -45,6 +46,9 @@ test("clue search retains a bundled verified fallback when the full corpus is un
   assert.doesNotMatch(recognition, /web-search-index\.json/);
   assert.doesNotMatch(nextConfig, /data\/scripture\/web-search-index\.json/);
   assert.match(generator, /webSearchIndexGzipBase64/);
+  const packageConfig = JSON.parse(packageJson);
+  assert.doesNotMatch(packageConfig.scripts.prebuild, /generate-scripture-search-bundle/);
+  assert.equal(packageConfig.scripts["scripture:search-bundle"], "node scripts/generate-scripture-search-bundle.mjs");
 });
 
 test("clue search UI distinguishes an unavailable service from a genuine empty result", async () => {
