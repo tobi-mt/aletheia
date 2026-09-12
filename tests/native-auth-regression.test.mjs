@@ -74,7 +74,7 @@ test("Sign in with Apple capability and callback scheme are configured", async (
   const entitlements = await read("ios/App/App/App.entitlements");
   const info = await read("ios/App/App/Info.plist");
   assert.match(entitlements, /com\.apple\.developer\.applesignin/);
-  assert.match(info, /com\.aletheia\.app/);
+  assert.match(info, /com\.tobi\.aletheia\.app/);
 });
 
 test("app-local native auth is explicitly registered with Capacitor 8", async () => {
@@ -87,8 +87,8 @@ test("app-local native auth is explicitly registered with Capacitor 8", async ()
 
 test("native biometric lock uses system biometrics and protects sensitive account actions", async () => {
   const swift = await read("ios/App/App/AppDelegate.swift");
-  const android = await read("android/app/src/main/java/com/aletheia/app/NativeBiometricLockPlugin.java");
-  const activity = await read("android/app/src/main/java/com/aletheia/app/MainActivity.java");
+  const android = await read("android/app/src/main/java/com/tobi/aletheia/app/NativeBiometricLockPlugin.java");
+  const activity = await read("android/app/src/main/java/com/tobi/aletheia/app/MainActivity.java");
   const info = await read("ios/App/App/Info.plist");
   const client = await read("src/components/aletheia-app.tsx");
   const bridge = await read("src/lib/native-biometric-lock.ts");

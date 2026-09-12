@@ -148,7 +148,10 @@ test("the iOS target bundles a valid no-tracking privacy manifest", async () => 
   assert.match(manifest, /NSPrivacyCollectedDataTypeAudioData/);
   assert.match(manifest, /NSPrivacyCollectedDataTypeProductInteraction/);
   assert.match(project, /PrivacyInfo\.xcprivacy in Resources/);
-  assert.match(project, /CURRENT_PROJECT_VERSION = 10008;/);
+  const buildVersions = [...project.matchAll(/CURRENT_PROJECT_VERSION = (\d+);/g)].map((match) => Number(match[1]));
+  assert.ok(buildVersions.length >= 2);
+  assert.ok(buildVersions.every((version) => Number.isInteger(version) && version > 0));
+  assert.equal(new Set(buildVersions).size, 1, "iOS build configurations must use one build number");
 });
 
 test("optional iOS voice input has clear privacy purpose strings", async () => {

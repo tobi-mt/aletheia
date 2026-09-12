@@ -102,6 +102,8 @@ import { decisionStartedDiscerningBody, decisionTimelineObservation, localizeDec
 import { curatedAvatarOptions, defaultAvatarDataUrl, normalizeAvatarUrl } from "@/lib/avatars";
 import { challengeInviteAppUrl as buildChallengeInviteAppUrl, challengeInviteUrl as buildChallengeInviteUrl } from "@/lib/challenge-circles";
 import { counselInviteAppUrl as buildCounselInviteAppUrl, counselInviteUrl as buildCounselInviteUrl } from "@/lib/counsel-invite-links";
+import { applyGratitudeImageEffect } from "@/lib/gratitude-image-effects";
+import { gratitudeEntriesMissingFromAccount, mergeGratitudeEntries } from "@/lib/gratitude-entry-merge";
 import {
   defaultReadWithMeInviteDetails,
   formatReadWithMeDurationLabel,
@@ -2965,10 +2967,12 @@ function createGratitudePostcardBlob(entry: GratitudeEntry, theme: ThemeColors, 
       const scale = Math.max(canvas.width / img.naturalWidth, imageHeight / img.naturalHeight);
       const drawWidth = img.naturalWidth * scale;
       const drawHeight = img.naturalHeight * scale;
-      context.save();
-      context.filter = GRATITUDE_FILTER_STYLE[visual.filter];
       context.drawImage(img, (canvas.width - drawWidth) / 2, (imageHeight - drawHeight) / 2, drawWidth, drawHeight);
-      context.restore();
+      if (visual.filter !== "none") {
+        const imageData = context.getImageData(0, 0, canvas.width, imageHeight);
+        applyGratitudeImageEffect(imageData.data, visual.filter);
+        context.putImageData(imageData, 0, 0);
+      }
       if (visual.filter !== "none") {
         context.fillStyle = GRATITUDE_FILTER_OVERLAY[visual.filter];
         context.fillRect(0, 0, canvas.width, imageHeight);
@@ -9484,11 +9488,12 @@ export function AletheiaApp({
 
     try {
       const response = await fetch("/api/gratitude", { cache: "no-store" });
-      const data = await readJsonOrFallback(
-        response.ok ? response : null,
-        { entries: [] as GratitudeEntry[] }
-      );
-      let nextEntries = Array.isArray(data.entries) ? data.entries : [];
+      if (!response.ok) {
+        throw new Error("gratitude_sync_load_failed");
+      }
+      const data = (await response.json()) as { entries?: GratitudeEntry[] };
+      const accountEntries = Array.isArray(data.entries) ? data.entries : [];
+      let nextEntries = mergeGratitudeEntries(localEntries, accountEntries);
 
       const migrationMarked = (() => {
         try {
@@ -9498,22 +9503,27 @@ export function AletheiaApp({
         }
       })();
 
-      if (localEntries.length > 0 && (!migrationMarked || nextEntries.length === 0)) {
+      const entriesToMigrate = gratitudeEntriesMissingFromAccount(localEntries, accountEntries);
+      if (entriesToMigrate.length > 0) {
         const migrationResponse = await fetch("/api/gratitude", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ entries: localEntries }),
+          body: JSON.stringify({ entries: entriesToMigrate }),
         });
-        if (migrationResponse.ok) {
-          const migratedData = (await migrationResponse.json()) as { entries?: GratitudeEntry[] };
-          if (Array.isArray(migratedData.entries)) {
-            nextEntries = migratedData.entries;
-          }
-          try {
-            window.localStorage.setItem(migrationKey, "yes");
-          } catch {
-            // Migration marker is best-effort only.
-          }
+        if (!migrationResponse.ok) {
+          throw new Error("gratitude_sync_migration_failed");
+        }
+        const migratedData = (await migrationResponse.json()) as { entries?: GratitudeEntry[] };
+        if (Array.isArray(migratedData.entries)) {
+          nextEntries = mergeGratitudeEntries(localEntries, migratedData.entries);
+        }
+      }
+
+      if (!migrationMarked || entriesToMigrate.length > 0) {
+        try {
+          window.localStorage.setItem(migrationKey, "yes");
+        } catch {
+          // Migration marker is best-effort only.
         }
       }
 
@@ -13306,9 +13316,6 @@ function startFirstRunGuestFlow() {
 
       setGratitudeEntries(persistedEntries);
       const stored = await persistGratitudeEntries(persistedEntries);
-      if (!stored.stored) {
-        setStatusMessage('Saved in this session, but your browser storage is full. Export or share soon so nothing is lost.');
-      }
       trackClientEvent("gratitude_entry_created", {
         has_place: Boolean(cleanPlace),
         source: "reflect_tab",
@@ -13318,9 +13325,9 @@ function startFirstRunGuestFlow() {
         has_emoji: Boolean(entry.visual?.emoji),
       });
       announceWorkflow(
-        ts('notifications.gratitudeSavedLocally'),
-        ts('notifications.gratitudeSavedLocallyBody'),
-        "success"
+        stored.stored ? ts('notifications.gratitudeSavedLocally') : ts('notifications.gratitudeSaveFailed'),
+        stored.stored ? ts('notifications.gratitudeSavedLocallyBody') : ts('notifications.gratitudeSaveFailedBody'),
+        stored.stored ? "success" : "warning"
       );
     } catch (error) {
       announceWorkflow(
