@@ -1,5 +1,3 @@
-import nodemailer from "nodemailer";
-
 type EmailInput = {
   to: string;
   subject: string;
@@ -9,9 +7,11 @@ type EmailInput = {
 
 type EmailResult = {
   sent: boolean;
-  provider: "resend" | "smtp" | "none";
+  provider: "resend" | "none";
   error?: string;
 };
+
+const EMAIL_REQUEST_TIMEOUT_MS = 10_000;
 
 function env(name: string, fallbackName?: string) {
   return (process.env[name] || (fallbackName ? process.env[fallbackName] : "") || "").trim();
@@ -47,14 +47,7 @@ export function isEmailAddress(value: string | null | undefined) {
 }
 
 export function emailConfigured() {
-  const resendReady = Boolean(env("ALETHEIA_RESEND_API_KEY", "MIRROR_TALK_RESEND_API_KEY") && env("ALETHEIA_FROM_EMAIL", "MIRROR_TALK_FROM_EMAIL"));
-  const smtpReady = Boolean(
-    env("ALETHEIA_SMTP_SERVER", "MIRROR_TALK_SMTP_SERVER") &&
-      env("ALETHEIA_SMTP_USERNAME", "MIRROR_TALK_SMTP_USERNAME") &&
-      env("ALETHEIA_SMTP_PASSWORD", "MIRROR_TALK_SMTP_PASSWORD") &&
-      env("ALETHEIA_FROM_EMAIL", "MIRROR_TALK_FROM_EMAIL")
-  );
-  return resendReady || smtpReady;
+  return Boolean(env("ALETHEIA_RESEND_API_KEY", "MIRROR_TALK_RESEND_API_KEY") && env("ALETHEIA_FROM_EMAIL", "MIRROR_TALK_FROM_EMAIL"));
 }
 
 export async function sendEmail(input: EmailInput): Promise<EmailResult> {
@@ -76,6 +69,7 @@ export async function sendEmail(input: EmailInput): Promise<EmailResult> {
     try {
       const response = await fetch("https://api.resend.com/emails", {
         method: "POST",
+        signal: AbortSignal.timeout(EMAIL_REQUEST_TIMEOUT_MS),
         headers: {
           Authorization: `Bearer ${resendApiKey}`,
           "Content-Type": "application/json",
@@ -87,38 +81,9 @@ export async function sendEmail(input: EmailInput): Promise<EmailResult> {
         return { sent: true, provider: "resend" };
       }
       const errorText = await response.text();
-      return { sent: false, provider: "resend", error: errorText || `Resend returned HTTP ${response.status}` };
+      return { sent: false, provider: "resend", error: errorText.slice(0, 500) || `Resend returned HTTP ${response.status}` };
     } catch (error) {
       return { sent: false, provider: "resend", error: error instanceof Error ? error.message : "Resend request failed." };
-    }
-  }
-
-  const smtpServer = env("ALETHEIA_SMTP_SERVER", "MIRROR_TALK_SMTP_SERVER");
-  const smtpUsername = env("ALETHEIA_SMTP_USERNAME", "MIRROR_TALK_SMTP_USERNAME");
-  const smtpPassword = env("ALETHEIA_SMTP_PASSWORD", "MIRROR_TALK_SMTP_PASSWORD");
-  const smtpPort = Number(env("ALETHEIA_SMTP_PORT", "MIRROR_TALK_SMTP_PORT") || "587");
-  if (smtpServer && smtpUsername && smtpPassword && from) {
-    try {
-      const transporter = nodemailer.createTransport({
-        host: smtpServer,
-        port: Number.isFinite(smtpPort) ? smtpPort : 587,
-        secure: smtpPort === 465,
-        auth: {
-          user: smtpUsername,
-          pass: smtpPassword,
-        },
-      });
-      await transporter.sendMail({
-        from,
-        to: input.to,
-        cc: ccEmail() || undefined,
-        subject: input.subject,
-        text: input.text,
-        html: input.html || buildHtml(input.text),
-      });
-      return { sent: true, provider: "smtp" };
-    } catch (error) {
-      return { sent: false, provider: "smtp", error: error instanceof Error ? error.message : "SMTP send failed." };
     }
   }
 

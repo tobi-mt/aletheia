@@ -104,6 +104,7 @@ import { challengeInviteAppUrl as buildChallengeInviteAppUrl, challengeInviteUrl
 import { counselInviteAppUrl as buildCounselInviteAppUrl, counselInviteUrl as buildCounselInviteUrl } from "@/lib/counsel-invite-links";
 import { applyGratitudeImageEffect } from "@/lib/gratitude-image-effects";
 import { gratitudeEntriesMissingFromAccount, mergeGratitudeEntries } from "@/lib/gratitude-entry-merge";
+import { mergeSavedScriptures, scripturesMissingFromAccount } from "@/lib/saved-scripture-merge";
 import {
   defaultReadWithMeInviteDetails,
   formatReadWithMeDurationLabel,
@@ -7842,7 +7843,7 @@ export function AletheiaApp({
   const [readingVoiceId, setReadingVoiceId] = useState<string | null>(null);
   const [, setCarryToday] = useState<CarryToday | null>(null);
   const [scriptureMemory, setScriptureMemory] = useState<ScriptureMemory | null>(null);
-  const [savedScriptures, setSavedScriptures] = useState<SavedScripture[]>([]);
+  const [savedScriptures, setSavedScriptures] = useState<SavedScripture[]>(() => storedSavedScriptures());
   const [scriptureHighlights, setScriptureHighlights] = useState<ScriptureHighlights>({});
   const [availableVoices] = useState<ManagedVoiceOption[]>(managedSpeechVoices);
   const [selectedVoice, setSelectedVoice] = useState<string | null>(() => {
@@ -9348,7 +9349,19 @@ export function AletheiaApp({
   }, []);
 
   const loadSignedInWorkspace = useCallback(async (signedInUser: User) => {
-    const [chatResponse, journalResponse, notificationResponse, decisionsResponse, counselResponse, rulesResponse, preferencesResponse, contextResponse] = await Promise.allSettled([
+    const localPreferences = storedPreferences();
+    const localSavedScriptures = storedSavedScriptures();
+    const localPersonalization = {
+      theme: storedThemePreference(),
+      selectedVoice: storedVoicePreference(),
+      focusIntentions: (() => {
+        try {
+          const value = JSON.parse(window.localStorage.getItem(FOCUS_INTENTIONS_STORAGE_KEY) || "[]");
+          return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string").slice(0, 3) : [];
+        } catch { return []; }
+      })(),
+    };
+    const [chatResponse, journalResponse, notificationResponse, decisionsResponse, counselResponse, rulesResponse, preferencesResponse, contextResponse, savedScripturesResponse] = await Promise.allSettled([
       fetch("/api/chat"),
       fetch("/api/journal"),
       fetch("/api/notifications/status"),
@@ -9357,6 +9370,7 @@ export function AletheiaApp({
       fetch("/api/rules"),
       fetch("/api/preferences"),
       fetch("/api/context"),
+      fetch("/api/saved-scriptures", { cache: "no-store" }),
     ]);
     const chatData = await readJsonOrFallback(
       chatResponse.status === "fulfilled" ? chatResponse.value : null,
@@ -9399,8 +9413,8 @@ export function AletheiaApp({
     );
     const preferencesData = await readJsonOrFallback(
       preferencesResponse.status === "fulfilled" ? preferencesResponse.value : null,
-      { preferences: defaultPreferences }
-    );
+      { preferences: defaultPreferences, persisted: false }
+    ) as { preferences: UserPreferences; personalization?: { theme?: ThemePreference; selectedVoice?: string | null; focusIntentions?: string[] }; persisted?: boolean };
     const contextData = await readJsonOrFallback(
       contextResponse.status === "fulfilled" ? contextResponse.value : null,
       { context: defaultManualContext }
@@ -9446,10 +9460,32 @@ export function AletheiaApp({
       }
     }
     setRulesOfLife(rulesData.rules ?? []);
-    if (preferencesData.preferences) {
+    if (preferencesData.persisted && preferencesData.preferences) {
       setPreferences(preferencesData.preferences);
       setCarryToday(storedCarryToday(preferencesData.preferences));
       window.localStorage.setItem("aletheia_preferences", JSON.stringify(preferencesData.preferences));
+    } else {
+      setPreferences(localPreferences);
+      void fetch("/api/preferences", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(localPreferences) }).catch(() => undefined);
+    }
+    if (preferencesData.persisted && preferencesData.personalization && Object.keys(preferencesData.personalization).length > 0) {
+      const accountPersonalization = preferencesData.personalization;
+      if (accountPersonalization.theme) setThemePreference(accountPersonalization.theme);
+      setSelectedVoice(accountPersonalization.selectedVoice ?? null);
+      if (Array.isArray(accountPersonalization.focusIntentions)) setFocusIntentions(accountPersonalization.focusIntentions.slice(0, 3));
+    } else {
+      void fetch("/api/preferences", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ personalization: localPersonalization }) }).catch(() => undefined);
+    }
+    if (savedScripturesResponse.status === "fulfilled" && savedScripturesResponse.value.ok) {
+      const savedData = (await savedScripturesResponse.value.json()) as { scriptures?: SavedScripture[] };
+      const accountScriptures = Array.isArray(savedData.scriptures) ? savedData.scriptures : [];
+      const missingScriptures = scripturesMissingFromAccount(localSavedScriptures, accountScriptures);
+      const mergedScriptures = mergeSavedScriptures(localSavedScriptures, accountScriptures);
+      setSavedScriptures(mergedScriptures);
+      try { window.localStorage.setItem(SAVED_SCRIPTURES_STORAGE_KEY, JSON.stringify(mergedScriptures)); } catch { /* Keep the merged library in memory. */ }
+      if (missingScriptures.length) {
+        void fetch("/api/saved-scriptures", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ scriptures: missingScriptures }) }).catch(() => undefined);
+      }
     }
     if (contextData.context) {
       const nextContext = normalizeManualContext(contextData.context);
@@ -10627,6 +10663,7 @@ export function AletheiaApp({
       theme: nextTheme,
       previous_theme: themePreference,
     });
+    if (user) void fetch("/api/preferences", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ personalization: { theme: nextTheme, selectedVoice, focusIntentions } }) }).catch(() => undefined);
   }
 
   function updateVoicePreference(voiceURI: string | null) {
@@ -10636,6 +10673,7 @@ export function AletheiaApp({
         ? ts('labels.voiceApplied')
         : ts('labels.deviceVoiceApplied')
     );
+    if (user) void fetch("/api/preferences", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ personalization: { theme: themePreference, selectedVoice: voiceURI, focusIntentions } }) }).catch(() => undefined);
   }
 
   async function previewVoice(voiceId: string) {
@@ -10662,6 +10700,7 @@ export function AletheiaApp({
       intentions: cleanIntentions.join(","),
     });
     setPreferencesStatus(ts('labels.focusIntentionsSaved'));
+    if (user) void fetch("/api/preferences", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ personalization: { theme: themePreference, selectedVoice, focusIntentions: cleanIntentions } }) }).catch(() => undefined);
   }
 
   function openScripture(scripture: string) {
@@ -10920,6 +10959,7 @@ function startFirstRunGuestFlow() {
       }
       const next = [{ ...scripture, id: crypto.randomUUID(), savedAt: new Date().toISOString() }, ...current];
       try { window.localStorage.setItem(SAVED_SCRIPTURES_STORAGE_KEY, JSON.stringify(next)); } catch { /* Keep saves for this session. */ }
+      if (user) void fetch("/api/saved-scriptures", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ scripture: next[0] }) }).catch(() => undefined);
       return next;
     });
   }
@@ -10963,6 +11003,7 @@ function startFirstRunGuestFlow() {
     setSavedScriptures((current) => {
       const next = current.filter((item) => item.id !== id);
       try { window.localStorage.setItem(SAVED_SCRIPTURES_STORAGE_KEY, JSON.stringify(next)); } catch { /* Keep changes for this session. */ }
+      if (user) void fetch(`/api/saved-scriptures/${encodeURIComponent(id)}`, { method: "DELETE" }).catch(() => undefined);
       return next;
     });
   }
@@ -10979,6 +11020,8 @@ function startFirstRunGuestFlow() {
     setSavedScriptures((current) => {
       const next = current.map((item) => item.book === book && item.chapter === chapter && item.verse === verse ? { ...item, highlight } : item);
       try { window.localStorage.setItem(SAVED_SCRIPTURES_STORAGE_KEY, JSON.stringify(next)); } catch { /* Keep changes for this session. */ }
+      const updated = next.find((item) => item.book === book && item.chapter === chapter && item.verse === verse);
+      if (user && updated) void fetch("/api/saved-scriptures", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ scripture: updated }) }).catch(() => undefined);
       return next;
     });
   }
@@ -29492,8 +29535,9 @@ function CompanionPanel({
                   boxShadow: `0 10px 22px color-mix(in srgb, ${theme.primary} 8%, transparent)`,
                 }}
                 onFocus={(e) => {
-                  e.currentTarget.style.borderColor = theme.primary;
-                  window.requestAnimationFrame(() => e.currentTarget.scrollIntoView({ block: "center", behavior: "smooth" }));
+                  const textarea = e.currentTarget;
+                  textarea.style.borderColor = theme.primary;
+                  window.requestAnimationFrame(() => textarea.scrollIntoView({ block: "center", behavior: "smooth" }));
                 }}
                 onBlur={(e) => e.currentTarget.style.borderColor = theme.borderStrong}
               />

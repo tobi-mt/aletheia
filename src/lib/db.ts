@@ -249,6 +249,21 @@ async function initializeDatabase() {
       UNIQUE(user_id, client_entry_id)
     );
 
+    CREATE TABLE IF NOT EXISTS saved_scriptures (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      client_entry_id TEXT NOT NULL,
+      book TEXT NOT NULL,
+      chapter INTEGER NOT NULL,
+      verse INTEGER NOT NULL,
+      text TEXT NOT NULL,
+      highlight TEXT,
+      saved_at TIMESTAMPTZ NOT NULL,
+      updated_at TIMESTAMPTZ NOT NULL,
+      UNIQUE(user_id, client_entry_id),
+      UNIQUE(user_id, book, chapter, verse)
+    );
+
     CREATE TABLE IF NOT EXISTS rate_limits (
       key TEXT PRIMARY KEY,
       count INTEGER NOT NULL,
@@ -596,6 +611,7 @@ async function initializeDatabase() {
       notification_timezone_mode TEXT NOT NULL DEFAULT 'auto',
       notification_delivery_strategy TEXT NOT NULL DEFAULT 'morning',
       notification_timing_updated_at TIMESTAMPTZ,
+      personalization JSONB NOT NULL DEFAULT '{}'::jsonb,
       created_at TIMESTAMPTZ NOT NULL,
       updated_at TIMESTAMPTZ NOT NULL
     );
@@ -610,6 +626,7 @@ async function initializeDatabase() {
     ALTER TABLE user_preferences ADD COLUMN IF NOT EXISTS notification_timezone_mode TEXT NOT NULL DEFAULT 'auto';
     ALTER TABLE user_preferences ADD COLUMN IF NOT EXISTS notification_delivery_strategy TEXT NOT NULL DEFAULT 'morning';
     ALTER TABLE user_preferences ADD COLUMN IF NOT EXISTS notification_timing_updated_at TIMESTAMPTZ;
+    ALTER TABLE user_preferences ADD COLUMN IF NOT EXISTS personalization JSONB NOT NULL DEFAULT '{}'::jsonb;
 
     CREATE TABLE IF NOT EXISTS user_manual_context (
       user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
@@ -670,6 +687,7 @@ async function initializeDatabase() {
     CREATE INDEX IF NOT EXISTS journal_entries_user_created_idx ON journal_entries(user_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS wisdom_listen_captures_user_created_idx ON wisdom_listen_captures(user_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS gratitude_entries_user_created_idx ON gratitude_entries(user_id, created_at DESC);
+    CREATE INDEX IF NOT EXISTS saved_scriptures_user_saved_idx ON saved_scriptures(user_id, saved_at DESC);
     CREATE INDEX IF NOT EXISTS rate_limits_reset_idx ON rate_limits(reset_at);
     CREATE INDEX IF NOT EXISTS push_subscriptions_user_idx ON push_subscriptions(user_id);
     CREATE INDEX IF NOT EXISTS push_subscriptions_enabled_idx ON push_subscriptions(enabled, preferred_hour);

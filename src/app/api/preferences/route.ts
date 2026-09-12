@@ -12,6 +12,7 @@ type PreferenceRow = {
   third_party_ai_consent: boolean;
   counsel_notifications_enabled: boolean;
   formation_notifications_enabled: boolean;
+  personalization: unknown;
 };
 
 function mapRow(row: PreferenceRow | undefined): UserPreferences {
@@ -38,13 +39,30 @@ export async function GET() {
 
   const row = await one<PreferenceRow>(
     `SELECT language, region, bible_translation, voice_enabled, third_party_ai_consent,
-            counsel_notifications_enabled, formation_notifications_enabled
+            counsel_notifications_enabled, formation_notifications_enabled, personalization
      FROM user_preferences
      WHERE user_id = ?`,
     user.id
   );
 
-  return NextResponse.json({ preferences: mapRow(row), persisted: Boolean(row) });
+  return NextResponse.json({ preferences: mapRow(row), personalization: row?.personalization ?? {}, persisted: Boolean(row) });
+}
+
+export async function PATCH(request: Request) {
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ persisted: false });
+  const parsed = await readJsonBody<{ personalization?: unknown }>(request, { maxBytes: 4_000, emptyBody: {} });
+  if (!parsed.ok) return parsed.response;
+  const input = parsed.data.personalization && typeof parsed.data.personalization === "object" ? parsed.data.personalization as Record<string, unknown> : {};
+  const allowedThemes = ["classic", "dark", "black", "warm", "ocean", "forest", "sunset", "system"];
+  const personalization = {
+    theme: typeof input.theme === "string" && allowedThemes.includes(input.theme) ? input.theme : "system",
+    selectedVoice: typeof input.selectedVoice === "string" ? input.selectedVoice.slice(0, 300) : null,
+    focusIntentions: Array.isArray(input.focusIntentions) ? input.focusIntentions.filter((value): value is string => typeof value === "string").slice(0, 3) : [],
+  };
+  const now = new Date().toISOString();
+  await run(`INSERT INTO user_preferences (user_id, language, region, bible_translation, voice_enabled, third_party_ai_consent, counsel_notifications_enabled, formation_notifications_enabled, personalization, created_at, updated_at) VALUES (?, 'en', 'global', 'WEB', TRUE, FALSE, TRUE, TRUE, ?::jsonb, ?, ?) ON CONFLICT (user_id) DO UPDATE SET personalization = EXCLUDED.personalization, updated_at = EXCLUDED.updated_at`, user.id, JSON.stringify(personalization), now, now);
+  return NextResponse.json({ personalization, persisted: true });
 }
 
 export async function PUT(request: Request) {

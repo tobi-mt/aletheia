@@ -142,6 +142,11 @@ function startServer() {
 }
 
 async function clickTab(page, tabName, mobile) {
+  const acceptedLabels = tabName === 'Decide'
+    ? ['Decide', 'Decisions']
+    : tabName === 'Decisions'
+      ? ['Decisions', 'Decide']
+      : [tabName];
   let labels = [];
   let found = false;
   for (let attempt = 0; attempt < 30; attempt += 1) {
@@ -152,7 +157,7 @@ async function clickTab(page, tabName, mobile) {
         .filter(Boolean)
         .slice(0, 40);
     });
-    if (labels.includes(tabName)) {
+    if (acceptedLabels.some((label) => labels.includes(label))) {
       found = true;
       break;
     }
@@ -163,32 +168,39 @@ async function clickTab(page, tabName, mobile) {
     throw new Error(`Unable to find tab label ${tabName}. Visible buttons: ${labels.join(' | ')}`);
   }
 
-  await page.evaluate(({ tabName, mobile }) => {
-    const normalize = (value) => (value || '').replace(/\s+/g, ' ').trim();
-    const buttons = Array.from(document.querySelectorAll('button'));
-    const visibleMatches = buttons.filter((button) => {
-      const text = normalize(button.textContent);
-      if (text !== tabName) {
+  let clicked = false;
+  for (let attempt = 0; attempt < 10 && !clicked; attempt += 1) {
+    clicked = await page.evaluate(({ acceptedLabels, mobile }) => {
+      const normalize = (value) => (value || '').replace(/\s+/g, ' ').trim();
+      const buttons = Array.from(document.querySelectorAll('button'));
+      const visibleMatches = buttons.filter((button) => {
+        const text = normalize(button.textContent);
+        if (!acceptedLabels.includes(text)) {
+          return false;
+        }
+        const rect = button.getBoundingClientRect();
+        return rect.width > 0 && rect.height > 0;
+      });
+
+      const zonedMatches = visibleMatches.filter((button) => {
+        const rect = button.getBoundingClientRect();
+        return mobile ? rect.top >= window.innerHeight * 0.65 : rect.top <= 160;
+      });
+
+      const target = zonedMatches[zonedMatches.length - 1] || visibleMatches[visibleMatches.length - 1];
+      if (!target) {
         return false;
       }
-      const rect = button.getBoundingClientRect();
-      if (rect.width <= 0 || rect.height <= 0) {
-        return false;
-      }
+      target.click();
       return true;
-    });
-
-    const zonedMatches = visibleMatches.filter((button) => {
-      const rect = button.getBoundingClientRect();
-      return mobile ? rect.top >= window.innerHeight * 0.65 : rect.top <= 160;
-    });
-
-    const target = zonedMatches[zonedMatches.length - 1] || visibleMatches[visibleMatches.length - 1];
-    if (!target) {
-      throw new Error(`Unable to find tab: ${tabName}`);
+    }, { acceptedLabels, mobile });
+    if (!clicked) {
+      await page.waitForTimeout(120);
     }
-    target.click();
-  }, { tabName, mobile });
+  }
+  if (!clicked) {
+    throw new Error(`Unable to find tab: ${tabName}`);
+  }
   await page.waitForTimeout(260);
 }
 
@@ -202,6 +214,7 @@ async function preparePage(page) {
     preferences.bibleTranslation = preferences.bibleTranslation || 'WEB';
     preferences.voiceEnabled = true;
     window.localStorage.setItem('aletheia_preferences', JSON.stringify(preferences));
+    window.localStorage.setItem('aletheia_third_party_ai_declined', 'yes');
   });
   await page.reload({ waitUntil: 'networkidle' });
   await page.waitForTimeout(220);
@@ -661,8 +674,39 @@ async function checkConversationHistoryChrome(page, viewport, colorScheme) {
   const failures = [];
 
   try {
+    const historyButton = page.locator('div[aria-label="Conversation history"] button').first();
+    if (await historyButton.count() === 0) {
+      const textarea = page.locator('#companion-question-input');
+      const askForm = page.locator('#companion-ask form');
+      for (const prompt of [
+        'How can I make a patient and wise decision?',
+        'What should I examine before I act?',
+      ]) {
+        if (await historyButton.count() > 0) {
+          break;
+        }
+        await textarea.fill(prompt);
+        await askForm.evaluate((form) => {
+          if (form instanceof HTMLFormElement) {
+            form.requestSubmit();
+          }
+        });
+        await page.waitForFunction(() => {
+          const textarea = document.querySelector('#companion-question-input');
+          return textarea instanceof HTMLTextAreaElement && textarea.value === '';
+        }, undefined, { timeout: 5000 });
+        await page.waitForFunction(() => {
+          const form = document.querySelector('#companion-ask form');
+          const askButton = form
+            ? Array.from(form.querySelectorAll('button')).find((button) => (button.textContent || '').trim().toLowerCase() === 'ask')
+            : null;
+          return askButton instanceof HTMLButtonElement && !askButton.disabled;
+        }, undefined, { timeout: 60_000 });
+      }
+      await historyButton.waitFor({ state: 'visible', timeout: 5000 });
+    }
     const history = await verifyModalChrome(page, {
-      openLocator: page.locator('div[aria-label="Conversation history"] button').first(),
+      openLocator: historyButton,
       closeLabel: 'Close',
       titleSelector: 'h2',
       screenshotName: `${viewport.name.replace(/\s+/g, '-').toLowerCase()}-${colorScheme}-conversation-history`,
