@@ -6,6 +6,11 @@
     "library": "Library",
     "account": "Account"
   },
+  "startupRecovery": {
+    "title": "Aletheia needs a fresh start",
+    "body": "Your information is safe. Reload the app to continue.",
+    "reload": "Reload Aletheia"
+  },
   "decideShort": "Decide",
   "guardrails": "Guardrails",
   "guardrailItems": [

@@ -6,6 +6,11 @@
     "library": "पुस्तकालय",
     "account": "खाता"
   },
+  "startupRecovery": {
+    "title": "Aletheia को नए सिरे से शुरू करना होगा",
+    "body": "आपकी जानकारी सुरक्षित है। जारी रखने के लिए ऐप को फिर से लोड करें।",
+    "reload": "Aletheia फिर से लोड करें"
+  },
   "decideShort": "तय करना",
   "guardrails": "रेलिंगों",
   "guardrailItems": [

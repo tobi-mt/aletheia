@@ -6,6 +6,11 @@
     "library": "Bibliothek",
     "account": "Konto"
   },
+  "startupRecovery": {
+    "title": "Aletheia benötigt einen Neustart",
+    "body": "Deine Daten sind sicher. Lade die App neu, um fortzufahren.",
+    "reload": "Aletheia neu laden"
+  },
   "decideShort": "Entscheiden",
   "guardrails": "Leitplanken",
   "guardrailItems": [

@@ -6,6 +6,11 @@
     "library": "Ọba akwụkwọ",
     "account": "Akaụntụ"
   },
+  "startupRecovery": {
+    "title": "Aletheia chọrọ ịmalitegharị",
+    "body": "Ozi gị dị nchebe. Bugharịa ngwa ahụ ọzọ ka ị gaa n’ihu.",
+    "reload": "Bugharịa Aletheia ọzọ"
+  },
   "decideShort": "Kpebie",
   "guardrails": "Oke nche",
   "guardrailItems": [

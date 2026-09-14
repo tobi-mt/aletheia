@@ -6,6 +6,11 @@
     "library": "Laburare",
     "account": "Asusu"
   },
+  "startupRecovery": {
+    "title": "Aletheia na buƙatar sabon farawa",
+    "body": "Bayananka suna nan lafiya. Sake loda manhajar don ci gaba.",
+    "reload": "Sake loda Aletheia"
+  },
   "decideShort": "Yanke",
   "guardrails": "Iyakoki",
   "guardrailItems": [

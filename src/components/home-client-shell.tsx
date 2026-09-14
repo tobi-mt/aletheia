@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import Image from "next/image";
-import { startTransition, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { Component, startTransition, useEffect, useLayoutEffect, useRef, useState, type ErrorInfo, type ReactNode } from "react";
 import { getTranslation, loadTranslationsSync } from "@/lib/translations";
 import { NATIVE_WEB_BUNDLE, installNativeWebFetchProxy } from "@/lib/native-web";
 import { traceStartup, traceStartupError } from "@/lib/startup-trace";
@@ -24,6 +24,30 @@ const LazyAletheiaApp = dynamic(
   },
   { ssr: false, loading: () => null }
 );
+
+const STARTUP_TIMEOUT_MS = 30_000;
+
+class AppStartupBoundary extends Component<
+  { children: ReactNode; onError: (error: Error) => void },
+  { failed: boolean }
+> {
+  state = { failed: false };
+
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    traceStartupError("home-client-shell:render:error", error, {
+      componentStack: info.componentStack,
+    });
+    this.props.onError(error);
+  }
+
+  render() {
+    return this.state.failed ? null : this.props.children;
+  }
+}
 
 installNativeWebFetchProxy();
 traceStartup("home-client-shell:module-eval", {
@@ -55,6 +79,7 @@ export default function HomeClientShell() {
   const [launchReady, setLaunchReady] = useState(false);
   const [paintReady, setPaintReady] = useState(false);
   const [fontsReady, setFontsReady] = useState(false);
+  const [startupFailed, setStartupFailed] = useState(false);
   const [splashLanguage, setSplashLanguage] = useState<SplashLanguage>("en");
   const [splashCopyReady, setSplashCopyReady] = useState(false);
   const lastHiddenAtRef = useRef<number | null>(null);
@@ -70,6 +95,19 @@ export default function HomeClientShell() {
       nativeWebBundle: NATIVE_WEB_BUNDLE,
     });
   }, []);
+
+  useEffect(() => {
+    if (launchReady || startupFailed) {
+      return;
+    }
+
+    const startupTimer = window.setTimeout(() => {
+      traceStartupError("home-client-shell:boot-timeout", new Error("App startup timed out"));
+      setStartupFailed(true);
+    }, STARTUP_TIMEOUT_MS);
+
+    return () => window.clearTimeout(startupTimer);
+  }, [launchReady, startupFailed]);
 
   useEffect(() => {
     const nextLanguage = readStoredSplashLanguage();
@@ -237,17 +275,54 @@ export default function HomeClientShell() {
 
   return (
     <>
-      <LazyAletheiaApp
-        onBootReady={() => {
-          traceStartup("home-client-shell:on-boot-ready", {
-            paintReady,
-            fontsReady,
-          });
-          setLaunchReady(true);
-        }}
-        startupPaintReady={paintReady}
-      />
-      {showSplash ? (
+      <AppStartupBoundary onError={() => setStartupFailed(true)}>
+        <LazyAletheiaApp
+          onBootReady={() => {
+            traceStartup("home-client-shell:on-boot-ready", {
+              paintReady,
+              fontsReady,
+            });
+            setStartupFailed(false);
+            setLaunchReady(true);
+          }}
+          startupPaintReady={paintReady}
+        />
+      </AppStartupBoundary>
+      {startupFailed ? (
+        <main
+          data-testid="app-startup-recovery"
+          className="fixed inset-0 z-[170] grid place-items-center overflow-y-auto px-6 py-10"
+          style={{
+            background:
+              "radial-gradient(circle at 50% 28%, rgba(134, 170, 155, 0.18), transparent 35%), linear-gradient(160deg, #f7f8f4 0%, #edf2ed 58%, #e3ece5 100%)",
+          }}
+        >
+          <section className="w-full max-w-sm rounded-[1.75rem] border border-[#cad8d1] bg-white/70 p-7 text-center shadow-[0_24px_70px_rgba(38,62,52,0.14)] backdrop-blur-xl">
+            <Image
+              src="/brand/aletheia-app-icon-192.png"
+              alt="Aletheia"
+              width={72}
+              height={72}
+              className="mx-auto rounded-[1.35rem] shadow-[0_10px_28px_rgba(38,62,52,0.14)]"
+              priority
+            />
+            <h1 className="mt-6 text-xl tracking-[-0.025em] text-[#203d33]">
+              {String(getTranslation(splashTranslations, "startupRecovery.title", "Aletheia needs a fresh start"))}
+            </h1>
+            <p className="mt-2 text-sm leading-6 text-[#50665c]">
+              {String(getTranslation(splashTranslations, "startupRecovery.body", "Your information is safe. Reload the app to continue."))}
+            </p>
+            <button
+              type="button"
+              className="mt-6 min-h-12 w-full rounded-full bg-[#284c3f] px-5 py-3 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(40,76,63,0.22)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#b99b4b]"
+              onClick={() => window.location.reload()}
+            >
+              {String(getTranslation(splashTranslations, "startupRecovery.reload", "Reload Aletheia"))}
+            </button>
+          </section>
+        </main>
+      ) : null}
+      {showSplash && !startupFailed ? (
         <div
           data-testid="app-launch-splash"
           className={`fixed inset-0 z-[160] flex items-center justify-center px-6 transition-[opacity,transform,filter] duration-500 ease-out ${splashVisible ? "opacity-100 translate-y-0 scale-100" : "opacity-0 translate-y-1 scale-[1.015]"}`}

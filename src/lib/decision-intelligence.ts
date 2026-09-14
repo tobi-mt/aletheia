@@ -18,6 +18,7 @@ export type DecisionSignals = {
   alignmentClear: boolean;
   reversibleStep: boolean;
   peaceOverUrgency: boolean;
+  detectedPatterns: string[];
   concerns: string[];
   nextFaithfulStep: string;
 };
@@ -29,7 +30,7 @@ export const patternMatchers = {
   fear: /fear|afraid|scared|anxious|worry|worried|terrified|insecure/i,
   avoidance: /avoid|escape|run away|don't want to face|ignore|postpone/i,
   shame: /shame|ashamed|failure|failed|embarrassed|unworthy/i,
-  overgiving: /guilt|can't say no|always help|rescue|enable|overgive|owe them/i,
+  overgiving: /guilt|(?:can't|cannot|unable to) say no|always help|rescue|enable|overgive|owe them/i,
   burnout: /burnout|exhausted|tired|drained|overwhelmed|no energy/i,
   approval: /approval|applause|impress|notice me|validate|accepted|liked/i,
 };
@@ -252,6 +253,9 @@ export function scoreDecision({
       (patterns.includes("urgency") ? 28 : 0) +
       (patterns.includes("fear") ? 18 : 0) +
       (patterns.includes("comparison") ? 12 : 0) +
+      (patterns.includes("burnout") ? 16 : 0) +
+      (patterns.includes("shame") ? 12 : 0) +
+      (patterns.includes("overgiving") ? 10 : 0) +
       (/pressured|anxious|overwhelmed|afraid/i.test(emotion) ? 18 : 0)
   );
   const motiveClarity = Math.max(
@@ -304,6 +308,7 @@ export function scoreDecision({
     alignmentClear,
     reversibleStep,
     peaceOverUrgency,
+    detectedPatterns: patterns,
     concerns,
     nextFaithfulStep,
   };

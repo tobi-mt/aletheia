@@ -6,6 +6,11 @@
     "library": "Biblioteca",
     "account": "Conta"
   },
+  "startupRecovery": {
+    "title": "Aletheia precisa de reiniciar",
+    "body": "As suas informações estão seguras. Recarregue a aplicação para continuar.",
+    "reload": "Recarregar Aletheia"
+  },
   "decideShort": "Decidir",
   "guardrails": "Limites",
   "guardrailItems": [

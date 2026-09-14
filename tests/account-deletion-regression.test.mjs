@@ -123,15 +123,15 @@ test("native iOS uses StoreKit support instead of external mission payment metho
 test("third-party AI consent is a Privacy control and withdrawal persists without duplicate notices", async () => {
   const client = await read("src/components/aletheia-app.tsx");
   const personalizationStart = client.indexOf('accountSection === "personalization"');
-  const privacyStart = client.indexOf('accountSection === "privacy"');
-  const shareStart = client.indexOf('accountSection === "share"');
-  const personalization = client.slice(personalizationStart, privacyStart);
-  const privacy = client.slice(privacyStart, shareStart);
+  const settingsStart = client.indexOf('accountSection === "system"', personalizationStart);
+  const nextComponent = client.indexOf("function ChallengeRecommendationCard", settingsStart);
+  const personalization = client.slice(personalizationStart, settingsStart);
+  const settings = client.slice(settingsStart, nextComponent);
 
-  assert.ok(personalizationStart >= 0 && privacyStart > personalizationStart && shareStart > privacyStart);
+  assert.ok(personalizationStart >= 0 && settingsStart > personalizationStart && nextComponent > settingsStart);
   assert.doesNotMatch(personalization, /aiConsent\.settingTitle/);
-  assert.match(privacy, /aiConsent\.settingTitle/);
-  assert.match(privacy, /thirdPartyAiConsent: checked/);
+  assert.match(settings, /aiConsent\.settingTitle/);
+  assert.match(settings, /thirdPartyAiConsent: checked/);
   assert.match(client, /patch\.thirdPartyAiConsent === false/);
   assert.match(client, /localStorage\.setItem\("aletheia_third_party_ai_declined", "yes"\)/);
   assert.match(client, /!aiConsentDeclined && consentOverride === undefined/);

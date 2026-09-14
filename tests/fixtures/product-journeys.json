@@ -1,0 +1,32 @@
+{
+  "decisionCounsel": {
+    "entryTab": "Decisions",
+    "legacyEntryTab": "Decide",
+    "marker": "Name the decision under pressure",
+    "primaryInput": {
+      "selector": "input",
+      "placeholderIncludes": "decision title"
+    },
+    "steps": [
+      "Open the decision workspace",
+      "Name the decision",
+      "Review the guidance",
+      "Invite or review counsel",
+      "Return to the decision without losing context"
+    ]
+  },
+  "reflectGratitude": {
+    "entryTab": "Reflect",
+    "marker": "Notice what is forming",
+    "reflectionDisclosureIncludes": "reflection journal",
+    "reflectionTitlePlaceholder": "Reflection title",
+    "reflectionBodyPlaceholderIncludes": "What are you noticing",
+    "steps": [
+      "Open Reflect",
+      "Expand the reflection journal",
+      "Write a reflection",
+      "Open the gratitude lens",
+      "Return to Reflect without losing the draft"
+    ]
+  }
+}

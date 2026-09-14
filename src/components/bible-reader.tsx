@@ -6,6 +6,15 @@ import type { BibleTranslation, LanguageCode } from "@/lib/localization";
 import { languages, localizedBibleBookName, localizedBookChapterReference, localizedScriptureReference } from "@/lib/localization";
 import { buildBibleStudyGuide, type BibleStudyData } from "@/lib/bible-study";
 import type { ThemeColors } from "@/lib/themes";
+import {
+  scriptureHighlightKey,
+  type SavedScripture,
+  type ScriptureHighlightColor,
+  type ScriptureHighlights,
+} from "@/lib/saved-scripture";
+
+export type { SavedScripture, ScriptureHighlightColor, ScriptureHighlights } from "@/lib/saved-scripture";
+export { scriptureHighlightKey } from "@/lib/saved-scripture";
 
 // ──────────────────────────────────────────────
 // Book metadata (OT / NT grouping)
@@ -120,24 +129,6 @@ function localizedBookName(book: string, language: LanguageCode) {
 interface BibleVerse {
   verse: number;
   text: string;
-}
-
-export type ScriptureHighlightColor = "gold" | "rose" | "sky" | "mint";
-
-export type SavedScripture = {
-  id: string;
-  book: string;
-  chapter: number;
-  verse: number;
-  text: string;
-  highlight: ScriptureHighlightColor | null;
-  savedAt: string;
-};
-
-export type ScriptureHighlights = Record<string, ScriptureHighlightColor>;
-
-export function scriptureHighlightKey(book: string, chapter: number, verse: number) {
-  return `${book}:${chapter}:${verse}`;
 }
 
 const highlightStyles: Record<ScriptureHighlightColor, { color: string }> = {

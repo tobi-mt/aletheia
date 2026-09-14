@@ -5,6 +5,7 @@ import { spawn } from 'node:child_process';
 import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
+import journeyFixtures from '../tests/fixtures/product-journeys.json' with { type: 'json' };
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 
@@ -53,8 +54,8 @@ const colorSchemes = REQUESTED_SCHEMES.length
 
 const markers = {
   Home: 'Ask Aletheia',
-  Decide: 'Name the decision under pressure',
-  Decisions: 'Name the decision under pressure',
+  Decide: journeyFixtures.decisionCounsel.marker,
+  Decisions: journeyFixtures.decisionCounsel.marker,
   Reflect: 'Reflection Journal',
   Library: 'Search one wisdom theme',
   Account: 'Sign in or continue as guest',
@@ -243,6 +244,43 @@ async function checkGlobalLayout(page) {
   });
 }
 
+async function checkAccessibilitySemantics(page) {
+  return page.evaluate(() => {
+    const visible = (element) => {
+      const rect = element.getBoundingClientRect();
+      const style = window.getComputedStyle(element);
+      return rect.width > 0 && rect.height > 0 && style.visibility !== 'hidden' && style.display !== 'none';
+    };
+    const hasName = (element) => Boolean(
+      element.getAttribute('aria-label')?.trim()
+      || element.getAttribute('aria-labelledby')?.trim()
+      || element.textContent?.trim()
+      || (element instanceof HTMLInputElement && element.value.trim())
+    );
+    const ids = Array.from(document.querySelectorAll('[id]')).map((element) => element.id).filter(Boolean);
+    const duplicateIds = [...new Set(ids.filter((id, index) => ids.indexOf(id) !== index))];
+    const unnamedControls = Array.from(document.querySelectorAll('button, a[href], input:not([type="hidden"]), textarea, select'))
+      .filter(visible)
+      .filter((element) => !hasName(element))
+      .slice(0, 10)
+      .map((element) => element.tagName.toLowerCase());
+    const unlabelledDialogs = Array.from(document.querySelectorAll('[role="dialog"]'))
+      .filter(visible)
+      .filter((element) => !element.getAttribute('aria-label') && !element.getAttribute('aria-labelledby'))
+      .length;
+
+    return {
+      mainCount: document.querySelectorAll('main').length,
+      headingCount: document.querySelectorAll('h1, h2, h3').length,
+      duplicateIds,
+      unnamedControls,
+      unlabelledDialogs,
+      documentLanguage: document.documentElement.lang,
+      documentDirection: document.documentElement.dir,
+    };
+  });
+}
+
 async function checkPrimaryInputStress(page) {
   return page.evaluate(() => {
     const textarea = document.querySelector('#companion-question-input');
@@ -266,7 +304,9 @@ async function checkPrimaryInputStress(page) {
 }
 
 function tabStressSequences(viewport) {
-  const decisionTab = viewport.tabs.includes('Decisions') ? 'Decisions' : 'Decide';
+  const decisionTab = viewport.tabs.includes(journeyFixtures.decisionCounsel.entryTab)
+    ? journeyFixtures.decisionCounsel.entryTab
+    : journeyFixtures.decisionCounsel.legacyEntryTab;
   const ordered = ['Home', decisionTab, 'Reflect', 'Library', 'Account'];
   const reverse = [...ordered].reverse();
   const bounce = ['Home', decisionTab, 'Home', 'Reflect', 'Library', 'Account', 'Home'];
@@ -462,21 +502,7 @@ async function checkTapTargets(page, enforce44) {
 
 async function checkHome(page, mobile) {
   await clickTab(page, 'Home', mobile);
-  const askSubtabFound = await page.evaluate(() => {
-    const button = Array.from(document.querySelectorAll('button')).find((candidate) => {
-      const text = (candidate.textContent || '').replace(/\s+/g, ' ').trim();
-      const rect = candidate.getBoundingClientRect();
-      return text === 'Ask Aletheia' && rect.width > 0 && rect.height > 0;
-    });
-    if (button instanceof HTMLButtonElement) {
-      button.click();
-      return true;
-    }
-    return false;
-  });
-  if (askSubtabFound) {
-    await page.waitForTimeout(220);
-  }
+  const askSurfaceFound = await page.locator('#companion-ask').count() === 1;
   const initial = await page.evaluate((marker) => {
     const markerVisible = document.body.innerText.includes(marker);
     const scope = document.querySelector('#companion-ask form') || document;
@@ -533,9 +559,9 @@ async function checkHome(page, mobile) {
 
   return {
     ...initial,
-    askSubtabFound,
+    askSurfaceFound,
     promptPopulated,
-    pass: askSubtabFound && initial.markerVisible && initial.inlineActions && promptPopulated && rowTight,
+    pass: askSurfaceFound && initial.markerVisible && initial.inlineActions && promptPopulated && rowTight,
   };
 }
 
@@ -831,7 +857,8 @@ async function checkSimpleMarker(page, tabName, mobile, extraCheck) {
   await clickTab(page, tabName, mobile);
   if (extraCheck === 'reflect') {
     await page.evaluate(() => {
-      const button = Array.from(document.querySelectorAll('button')).find((candidate) => {
+      const journal = document.querySelector('#reflect-journal');
+      const button = Array.from((journal || document).querySelectorAll('button')).find((candidate) => {
         const text = (candidate.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase();
         const rect = candidate.getBoundingClientRect();
         return text.includes('reflection journal') && rect.width > 0 && rect.height > 0;
@@ -934,6 +961,7 @@ async function run() {
       await preparePage(page);
 
       const globalLayout = await checkGlobalLayout(page);
+      const accessibility = await checkAccessibilitySemantics(page);
       const tapTargets = await checkTapTargets(page, viewport.touch);
       const quickReadModalChrome = await checkScriptureQuickReadChrome(page, viewport, colorScheme);
       const home = await checkHome(page, viewport.mobile);
@@ -958,6 +986,7 @@ async function run() {
         viewport: viewport.name,
         colorScheme,
         globalLayout,
+        accessibility,
         home,
         modalChrome,
         decision,
@@ -984,6 +1013,27 @@ async function run() {
       const failures = [];
       if (result.globalLayout.overflowX > 0 || result.globalLayout.overlap > 0) {
         failures.push(`layout overflow=${result.globalLayout.overflowX} overlap=${result.globalLayout.overlap}`);
+      }
+      if (result.accessibility.mainCount !== 1) {
+        failures.push(`accessibility main landmarks=${result.accessibility.mainCount}`);
+      }
+      if (result.accessibility.headingCount < 1) {
+        failures.push('accessibility heading hierarchy missing');
+      }
+      if (!result.accessibility.documentLanguage) {
+        failures.push('document language missing');
+      }
+      if (!['ltr', 'rtl'].includes(result.accessibility.documentDirection)) {
+        failures.push(`document direction invalid: ${result.accessibility.documentDirection || 'empty'}`);
+      }
+      if (result.accessibility.duplicateIds.length) {
+        failures.push(`duplicate ids: ${result.accessibility.duplicateIds.slice(0, 5).join(', ')}`);
+      }
+      if (result.accessibility.unnamedControls.length) {
+        failures.push(`unnamed controls: ${result.accessibility.unnamedControls.join(', ')}`);
+      }
+      if (result.accessibility.unlabelledDialogs > 0) {
+        failures.push(`unlabelled dialogs: ${result.accessibility.unlabelledDialogs}`);
       }
       if (result.modalChrome.failures.length) {
         failures.push(...result.modalChrome.failures.slice(0, 6));

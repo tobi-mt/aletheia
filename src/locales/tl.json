@@ -6,6 +6,11 @@
     "library": "Aklatan",
     "account": "Akun"
   },
+  "startupRecovery": {
+    "title": "Kailangang magsimulang muli ang Aletheia",
+    "body": "Ligtas ang iyong impormasyon. I-reload ang app para magpatuloy.",
+    "reload": "I-reload ang Aletheia"
+  },
   "decideShort": "Magpasya",
   "guardrails": "Mga guardrail",
   "guardrailItems": [

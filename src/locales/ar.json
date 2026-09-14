@@ -6,6 +6,11 @@
     "library": "المكتبة",
     "account": "الحساب"
   },
+  "startupRecovery": {
+    "title": "تحتاج أليثيا إلى بداية جديدة",
+    "body": "معلوماتك آمنة. أعد تحميل التطبيق للمتابعة.",
+    "reload": "إعادة تحميل أليثيا"
+  },
   "decideShort": "قرر",
   "guardrails": "الدرابزين",
   "guardrailItems": [

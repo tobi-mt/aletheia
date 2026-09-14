@@ -6,6 +6,11 @@
     "library": "Ilé ìkàwé",
     "account": "Àkọọlẹ"
   },
+  "startupRecovery": {
+    "title": "Aletheia nílò ìbẹ̀rẹ̀ tuntun",
+    "body": "Àlàyé rẹ wà láìléwu. Tún ohun èlò náà gbé wọlé láti tẹ̀síwájú.",
+    "reload": "Tún Aletheia gbé wọlé"
+  },
   "decideShort": "Pinnu",
   "guardrails": "Ààlà",
   "guardrailItems": [

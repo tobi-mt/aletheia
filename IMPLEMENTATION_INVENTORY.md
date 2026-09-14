@@ -1,8 +1,8 @@
-# Aletheia Codebase Implementation Inventory (2026-06-17)
+# Aletheia Codebase Implementation Inventory (re-audited 2026-09-13)
 
 ## Executive Summary
 
-This document provides a comprehensive audit of the Aletheia app codebase, comparing **what's documented in FEATURES.md** vs. **what's actually implemented** in the code. The app is substantially feature-complete with most major features implemented and integrated. Some features are partially implemented or pending backend infrastructure.
+This document compares **what is documented in FEATURES.md** with **what is implemented**. The September re-audit corrected stale June findings: Gratitude Lens, formation milestones, and PWA update recovery are implemented. Remaining work is primarily architecture, end-to-end verification, counsel check-ins, and release confidence rather than missing core product surfaces.
 
 ---
 
@@ -308,12 +308,9 @@ This document provides a comprehensive audit of the Aletheia app codebase, compa
 
 **Status:** ✅ **COMPLETE** - Reflection & wisdom check functional
 
-**Discrepancies:**
-- Gratitude Lens features (photo capture, gratitude timeline, gallery, weekly recap, postcard styling) - **NOT FOUND IN CODE**
-  - Analytics events reference gratitude (gratitude_entry_created, gratitude_entry_deleted, gratitude_postcard_shared)
-  - Push subscription table has `last_gratitude_sent_at` column
-  - No corresponding `gratitude_entries` table in database
-  - **Status: PLANNED/NOT IMPLEMENTED**
+**September 2026 re-audit:**
+- ✅ Gratitude Lens includes photo capture, local IndexedDB storage, optional account sync, timeline/weekly views, formation categories, postcard filters, overlays, stickers, and sharing.
+- ✅ `gratitude_entries` persistence is defined in [src/lib/db.ts](src/lib/db.ts), with API routes under [src/app/api/gratitude](src/app/api/gratitude).
 
 ---
 
@@ -883,7 +880,7 @@ This document provides a comprehensive audit of the Aletheia app codebase, compa
 
 ## SUMMARY OF IMPLEMENTATION STATUS
 
-### ✅ FULLY IMPLEMENTED (25/30 features)
+### ✅ FULLY IMPLEMENTED (25 core areas)
 
 1. ✅ Core App Structure & Navigation
 2. ✅ Authentication (Google OAuth + email/guest)
@@ -904,29 +901,18 @@ This document provides a comprehensive audit of the Aletheia app codebase, compa
 17. ✅ Audio & Voice (TTS + voice input)
 18. ✅ Mobile (Capacitor, iOS/Android)
 19. ✅ Localization (comprehensive)
-20. ✅ Database & Persistence (19 tables, PostgreSQL)
-21. ✅ API Endpoints (27 endpoints)
+20. ✅ Database & Persistence (PostgreSQL plus local-first guest stores)
+21. ✅ API Endpoints (71 route handlers at re-audit)
 22. ✅ Configuration (Next.js, TypeScript, Capacitor)
+23. ✅ Gratitude Lens (capture, timeline, sync, recap, and postcard styling)
+24. ✅ Formation Milestones (quiet celebration and milestone history UI)
+25. ✅ PWA Update Recovery (service-worker update prompt and refresh landing telemetry)
 
-### ⚠️ PARTIALLY IMPLEMENTED (2 features)
+### ⚠️ PARTIALLY IMPLEMENTED / REQUIRES RELEASE VERIFICATION
 
-23. ⚠️ **Notifications** - Daily & decision reminders work, but **gratitude notifications tracking exists** (last_gratitude_sent_at in DB) **without underlying gratitude feature**
-
-### ❌ PLANNED/NOT IMPLEMENTED (3 features)
-
-24. ❌ **Gratitude Lens** - Features defined in FEATURES.md but **NO CODE FOUND**:
-   - Gratitude photo capture
-   - Gratitude timeline
-   - Gratitude gallery with themes
-   - Weekly gratitude recap
-   - Gratitude postcard styling (filters, overlays, stickers)
-   - Gratitude notifications at 7 PM
-
-   **Note:** Analytics events exist (gratitude_entry_created, gratitude_entry_deleted, gratitude_postcard_shared, gratitude_reflection_prompt_used) but no implementation of the actual feature.
-
-25. ❌ **Formation Milestones** - Milestone tracking referenced in analytics but **UI implementation not evident** in main app component
-
-26. ❌ **Refresh/Update Prompts** - `app_update_overlay_shown`, `app_update_refresh_landed` events suggest PWA update handling, but **implementation unclear**
+- ⚠️ **Counsel check-ins** - permission data exists, but the complete request/response reminder workflow still needs confirmation or completion.
+- ⚠️ **Native distribution** - platform contracts pass, but signed store builds, device push delivery, offline recovery, and store submission checks require release-environment verification.
+- ⚠️ **Client architecture** - the main client shell remains over 34,000 lines and exceeds Babel's 500KB optimization threshold.
 
 ---
 
@@ -934,13 +920,13 @@ This document provides a comprehensive audit of the Aletheia app codebase, compa
 
 | Feature | FEATURES.md Claims | Actual Implementation | Status |
 |---------|------------------|----------------------|--------|
-| Gratitude Lens | Full feature with timeline, gallery, postcards, photos | Analytics events only, no UI/database tables | ❌ PLANNED |
-| Formation Milestones | Quiet acknowledgements shown | Event tracking exists, UI display unclear | ⚠️ PARTIAL |
-| Wisdom Check in Reflect | Included as "Wisdom Check for slowing down decisions" | Reflection journal only, Wisdom Check readiness logic exists but UI state unclear | ⚠️ PARTIAL |
+| Gratitude Lens | Full feature with timeline, gallery, postcards, photos | Local-first and account-synced implementation, including styled postcards | ✅ COMPLETE |
+| Formation Milestones | Quiet acknowledgements shown | Celebration layer, milestone history, and analytics implemented | ✅ COMPLETE |
+| Wisdom Check in Reflect | Included as "Wisdom Check for slowing down decisions" | Readiness flow and reflection journal implemented | ✅ COMPLETE |
 | Counsel Check-ins | can_receive_checkins permission exists | Permission exists in DB, but check-in workflow not implemented | ❌ PLANNED |
 | Manual Context "Enough Definition" | Full definition + future state tracking | Fully implemented with strategic signals | ✅ COMPLETE |
 | Life mode (5th mode) | Full mode with diagnostics | Fully implemented | ✅ COMPLETE |
-| Postcard styling (filters, overlays, stickers) | Warm, Soft, Mono, Forest, Golden Hour, Calm Contrast | No postcard styling code found | ❌ PLANNED |
+| Postcard styling (filters, overlays, stickers) | Styled visual gratitude sharing | Filters, overlays, stickers, emoji accents, and canvas export implemented | ✅ COMPLETE |
 
 ---
 
@@ -978,36 +964,24 @@ This document provides a comprehensive audit of the Aletheia app codebase, compa
 
 ## RECOMMENDATIONS FOR COMPLETION
 
-### High Priority (Users Expect These)
-1. **Implement Gratitude Lens**
-   - Create `gratitude_entries` table (id, user_id, photo_url_local, note, place, frame_type, created_at)
-   - Build UI in Reflect section
-   - Connect to evening notifications (7 PM local)
-   - Implement postcard styling (filters, overlays, stickers)
+### High Priority
+1. **Decompose the client shell and measure startup bundles**
+   - Extract product surfaces behind lazy client boundaries.
+   - Separate shared domain types/utilities from UI modules so features can split cleanly.
 
-2. **Complete Formation Milestones UI**
-   - Add quiet acknowledgement cards for each milestone
-   - Track in app state or local storage
-   - Display as gentle notifications (not gamified)
-
-3. **Verify Mobile Build & Distribution**
+2. **Verify Mobile Build & Distribution**
    - Test on Android emulator + real device
    - Test on iOS simulator + real device
    - Validate push notifications on both platforms
    - Check Google Play Store & App Store requirements
 
 ### Medium Priority (Polish)
-4. **Implement Counsel Check-ins**
+3. **Complete Counsel Check-ins**
    - Build workflow for asking counsel for feedback on active decisions
    - Create notification for counsel to submit check-in
    - Display check-in history on decision timeline
 
-5. **Add Postcard Styling Options**
-   - Implement 6 filter types (Warm, Soft, Mono, Forest, Golden Hour, Calm Contrast)
-   - Add overlay options
-   - Add stickers + emoji accents
-
-6. **Verification & QA**
+4. **Verification & QA**
    - Test offline-first behavior for gratitude photos (local only)
    - Verify all notification types (daily wisdom, decision reminders, gratitude prompts)
    - Test all 11 languages + 13 Bible translations end-to-end
@@ -1026,12 +1000,12 @@ This document provides a comprehensive audit of the Aletheia app codebase, compa
 
 **Key Source Files (100+):**
 - `/src/app/layout.tsx`, `/src/app/page.tsx`
-- `/src/components/aletheia-app.tsx` (2,200+ lines)
+- `/src/components/aletheia-app.tsx` (34,000+ lines at re-audit)
 - `/src/auth.ts`
 - `/src/lib/` - 24 modules covering wisdom, decisions, notifications, auth, analytics, audio, etc.
-- `/src/app/api/` - 37 route files covering all major features
+- `/src/app/api/` - 71 route handlers covering product and operational features
 - `/next.config.ts`, `/tsconfig.json`, `/capacitor.config.ts`
-- Database schema in `/src/lib/db.ts` (19 tables, 30+ indexes)
+- Database schema in `/src/lib/db.ts` (43 guarded table declarations at re-audit)
 
 **Configuration Files:**
 - `package.json` - Dependencies (Next.js 16, React 19, NextAuth, Capacitor, Tailwind)
@@ -1041,12 +1015,7 @@ This document provides a comprehensive audit of the Aletheia app codebase, compa
 
 ## CONCLUSION
 
-**Aletheia is 85-90% feature-complete** with a robust, well-architected codebase. The core wisdom companion, decision tracking, counsel circle, and personalization systems are all production-ready. The primary gaps are:
-
-1. **Gratitude Lens feature** (planned but not implemented)
-2. **Formation Milestones UI** (event tracking exists, display logic unclear)
-3. **Mobile verification** (infrastructure present, needs testing)
-4. **Postcard styling options** (basic postcards work, filters/overlays planned)
+**Aletheia is substantially feature-complete.** The core wisdom companion, decision tracking, counsel circle, gratitude, formation, personalization, and update-recovery systems are implemented. The primary gaps are client-shell modularity, counsel check-in completion, measurable accessibility coverage, and production mobile verification.
 
 The app demonstrates strong attention to:
 - Privacy-conscious design
@@ -1055,4 +1024,4 @@ The app demonstrates strong attention to:
 - User data ownership (export, delete, local-first where appropriate)
 - Mobile-first experience (Capacitor integration, PWA support)
 
-**Recommended next step:** Implement the Gratitude Lens feature and complete mobile testing before public launch.
+**Recommended next step:** Decompose the client shell behind safe lazy boundaries, strengthen journey/accessibility release gates, and complete signed-device mobile verification before public launch.
