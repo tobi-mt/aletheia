@@ -12457,6 +12457,18 @@ function startFirstRunGuestFlow() {
               {activeView === "companion" ? (
                 <Screen key="companion">
                   <ViewIdentityFrame identity={homeSection} theme={theme}>
+                    <div id="home-today" className="mb-5 scroll-mt-24">
+                      <HomeWelcomeHeader
+                        currentLocalMonth={currentLocalMonth}
+                        currentLocalHour={currentLocalHour}
+                        currentLocalDayOfWeek={currentLocalDayOfWeek}
+                        dailyEntry={dailyEntry}
+                        preferences={preferences}
+                        ui={ui}
+                        user={user}
+                        theme={theme}
+                      />
+                    </div>
                     <CompanionPanel
                       ts={ts}
                       messages={messages}
@@ -12504,7 +12516,7 @@ function startFirstRunGuestFlow() {
                       <Sparkles size={15} style={{ color: theme.accentGold }} />
                       <span className="h-px flex-1" style={{ backgroundColor: theme.borderLight }} />
                     </div>
-                    <div id="home-today" className="scroll-mt-24">
+                    <div>
                       <HomeDashboard
                         daily={daily}
                         dailyEntry={dailyEntry}
@@ -12513,7 +12525,6 @@ function startFirstRunGuestFlow() {
                         currentLocalHour={currentLocalHour}
                         currentLocalDayOfWeek={currentLocalDayOfWeek}
                         activeDecision={activeDecision}
-                        user={user}
                         preferences={preferences}
                         ui={ui}
                         companionCard={todayCompanionCard}
@@ -14489,6 +14500,96 @@ function OnboardingModal({
   );
 }
 
+function HomeWelcomeHeader({
+  currentLocalMonth,
+  currentLocalHour,
+  currentLocalDayOfWeek,
+  dailyEntry,
+  preferences,
+  ui,
+  user,
+  theme,
+}: {
+  currentLocalMonth: number | null;
+  currentLocalHour: number | null;
+  currentLocalDayOfWeek: number | null;
+  dailyEntry: WisdomEntry;
+  preferences: UserPreferences;
+  ui: UiText;
+  user: User | null;
+  theme: ThemeColors;
+}) {
+  const text = { ...englishText, ...ui };
+  const greeting = useMemo(() => {
+    const baseGreeting = currentLocalHour === null
+      ? text.greetingFallback || ""
+      : currentLocalHour < 12
+        ? text.greetingMorning || ""
+        : currentLocalHour < 18
+          ? text.greetingAfternoon || ""
+          : text.greetingEvening || "";
+    const firstName = user?.name?.trim().split(/\s+/)[0] || "";
+    return firstName ? `${baseGreeting}, ${firstName}` : baseGreeting;
+  }, [currentLocalHour, text.greetingAfternoon, text.greetingEvening, text.greetingFallback, text.greetingMorning, user?.name]);
+  const mood = resolveTodayVisualMood({
+    month: currentLocalMonth,
+    hour: currentLocalHour,
+    dayOfWeek: currentLocalDayOfWeek,
+  });
+  const seasonalLine = homeWelcomeSeasonalCopy({
+    language: preferences.language,
+    theme: dailyEntry.theme,
+    mood,
+    hour: currentLocalHour,
+    month: currentLocalMonth,
+    dayOfWeek: currentLocalDayOfWeek,
+  });
+  const eyebrow = homeWelcomeEyebrowCopy({
+    language: preferences.language,
+    theme: dailyEntry.theme,
+    mood,
+    hour: currentLocalHour,
+    month: currentLocalMonth,
+    dayOfWeek: currentLocalDayOfWeek,
+  });
+
+  return (
+    <header className="relative min-w-0 px-1 pb-4 pt-1 sm:px-2 sm:pb-5">
+      <div className="max-w-2xl pr-12 sm:pr-16">
+        <p className="text-[10.5px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.accentGold }} suppressHydrationWarning>
+          {eyebrow}
+        </p>
+        <h1 className="mt-2 text-[2rem] font-semibold leading-[1.01] tracking-[-0.035em] text-balance sm:text-[2.6rem]" style={{ color: theme.textPrimary }} suppressHydrationWarning>
+          {greeting}
+        </h1>
+        <p className="mt-2 text-sm leading-6 sm:text-[0.98rem] sm:leading-7" style={{ color: theme.textSecondary }} suppressHydrationWarning>
+          {seasonalLine}
+        </p>
+      </div>
+      <span className="absolute right-1 top-2 grid size-10 place-items-center rounded-full border sm:right-2 sm:size-11" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.accentGold }} aria-hidden="true">
+        <Sparkles size={18} />
+      </span>
+      <span className="mt-4 block h-px w-full" style={{ backgroundColor: theme.borderLight }} aria-hidden="true" />
+    </header>
+  );
+}
+
+function ScreenPurposeHeader({ eyebrow, title, body, icon: Icon, theme }: { eyebrow?: string; title: string; body: string; icon: typeof Compass; theme: ThemeColors }) {
+  return (
+    <header className="relative min-w-0 px-1 pb-3 pt-1 sm:px-2 sm:pb-4">
+      <div className="max-w-2xl pr-12 sm:pr-16">
+        {eyebrow ? <p className="text-[10.5px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.accentGold }}>{eyebrow}</p> : null}
+        <h1 className={`${eyebrow ? "mt-2" : ""} text-[1.78rem] font-semibold leading-[1.04] tracking-[-0.03em] text-balance sm:text-[2.2rem]`} style={{ color: theme.textPrimary }}>{title}</h1>
+        <p className="mt-2 max-w-xl text-sm leading-6 sm:text-[0.98rem] sm:leading-7" style={{ color: theme.textSecondary }}>{body}</p>
+      </div>
+      <span className="absolute right-1 top-1 grid size-10 place-items-center rounded-full border sm:right-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.accentGold }} aria-hidden="true">
+        <Icon size={18} />
+      </span>
+      <span className="mt-3 block h-px w-full" style={{ backgroundColor: theme.borderLight }} aria-hidden="true" />
+    </header>
+  );
+}
+
 function HomeDashboard({
   daily,
   dailyEntry,
@@ -14497,7 +14598,6 @@ function HomeDashboard({
   currentLocalHour,
   currentLocalDayOfWeek,
   activeDecision,
-  user,
   preferences,
   ui,
   companionCard,
@@ -14525,7 +14625,6 @@ function HomeDashboard({
   currentLocalHour: number | null;
   currentLocalDayOfWeek: number | null;
   activeDecision: WisdomDecision | null;
-  user: User | null;
   preferences: UserPreferences;
   ui: UiText;
   companionCard: TodayCompanionCard;
@@ -14546,22 +14645,6 @@ function HomeDashboard({
 }) {
   const text = { ...englishText, ...ui };
   const accentText = accessibleAccentText(theme);
-  const greeting = useMemo(() => {
-    if (currentLocalHour === null) {
-      return text.greetingFallback || "";
-    }
-
-    const hour = currentLocalHour;
-    const baseGreeting =
-      hour < 12
-        ? text.greetingMorning || ""
-        : hour < 18
-          ? text.greetingAfternoon || ""
-          : text.greetingEvening || "";
-
-    const firstName = user?.name?.trim().split(/\s+/)[0] || "";
-    return firstName ? `${baseGreeting}, ${firstName}` : baseGreeting;
-  }, [currentLocalHour, text.greetingAfternoon, text.greetingEvening, text.greetingFallback, text.greetingMorning, user?.name]);
 
   const primaryAction = activeDecision
     ? { label: text.continueDecision!, body: activeDecision.title, onClick: onContinueDecision, icon: Compass }
@@ -14573,22 +14656,6 @@ function HomeDashboard({
     dayOfWeek: currentLocalDayOfWeek,
   });
   const todaySeasonalHeader = todaySeasonalHeaderCopy({
-    language: preferences.language,
-    theme: todayVisualTheme,
-    mood: todayVisualMood,
-    hour: currentLocalHour,
-    month: currentLocalMonth,
-    dayOfWeek: currentLocalDayOfWeek,
-  });
-  const homeWelcomeSeasonal = homeWelcomeSeasonalCopy({
-    language: preferences.language,
-    theme: todayVisualTheme,
-    mood: todayVisualMood,
-    hour: currentLocalHour,
-    month: currentLocalMonth,
-    dayOfWeek: currentLocalDayOfWeek,
-  });
-  const homeWelcomeEyebrow = homeWelcomeEyebrowCopy({
     language: preferences.language,
     theme: todayVisualTheme,
     mood: todayVisualMood,
@@ -14618,55 +14685,6 @@ function HomeDashboard({
         }}
       >
           <div className="flex flex-col gap-4">
-          <div className="relative pr-16 sm:pr-20">
-            <div className="min-w-0">
-              <p className="text-[10.5px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.accentGold }}>
-                {homeWelcomeEyebrow}
-              </p>
-              <h1 className="mt-2 text-[1.88rem] font-semibold leading-[1.01] text-balance sm:text-[2.35rem]" style={{ color: theme.textPrimary }} suppressHydrationWarning>
-                {greeting}
-              </h1>
-                <p className="mt-2 max-w-2xl text-sm leading-6 sm:text-[0.98rem] sm:leading-7" style={{ color: theme.textSecondary }} suppressHydrationWarning>
-                  {homeWelcomeSeasonal}
-                </p>
-            </div>
-            <CardCornerBadge
-              className="rounded-2xl border shadow-[0_8px_16px_rgba(7,10,8,0.08)]"
-              style={{ borderColor: theme.primary, backgroundColor: theme.primary, color: theme.textOnPrimary }}
-            >
-              <Sparkles size={22} />
-            </CardCornerBadge>
-          </div>
-
-          {personalizationContextEmpty ? (
-            <button
-              type="button"
-              onClick={onOpenAccount}
-              className="premium-tap-card group flex w-full items-center gap-3 rounded-2xl border px-3.5 py-3 text-left text-sm font-semibold leading-6 shadow-[0_6px_14px_rgba(7,10,8,0.04)] outline-none transition active:scale-[0.99] focus-visible:ring-2 focus-visible:ring-offset-2"
-              style={{ borderColor: theme.primary, backgroundColor: theme.bgCardElevated, color: theme.textSecondary, '--tw-ring-color': theme.primary, '--tw-ring-offset-color': theme.bgCard } as CSSProperties}
-            >
-              <span className="min-w-0 flex-1">
-                <span className="block" style={{ color: theme.textPrimary }}>{text.personalizationNudgeTitle}</span>
-                <span className="mt-1 block text-sm font-normal leading-6" style={{ color: theme.textSecondary }}>{text.personalizationNudgeBody}</span>
-                <span className="mt-2 block text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: accentText }}>
-                  {text.personalizationNudgeAction}
-                </span>
-              </span>
-              <span className="grid size-10 shrink-0 place-items-center rounded-full transition-transform group-hover:translate-x-0.5" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }} aria-hidden="true">
-                <ChevronRight size={19} strokeWidth={2.25} />
-              </span>
-            </button>
-          ) : null}
-
-          <ChallengeRecommendationCard
-            recommendation={challengeRecommendation}
-            theme={theme}
-            ts={ts}
-            onOpenChallenge={onOpenRecommendedChallenge}
-            homeGlow
-            compact
-          />
-
           <div className="grid gap-3 grid-cols-[minmax(0,1fr)_6.75rem] sm:grid-cols-[minmax(0,1fr)_7.75rem] sm:gap-3.5 items-start">
             <div className="min-w-0 pt-0.5 sm:pt-1">
               <p className="text-[10.5px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.accentGold }} suppressHydrationWarning>
@@ -14740,6 +14758,35 @@ function HomeDashboard({
               </span>
             </button>
           </div>
+
+          {personalizationContextEmpty ? (
+            <button
+              type="button"
+              onClick={onOpenAccount}
+              className="premium-tap-card group flex w-full items-center gap-3 rounded-2xl border px-3.5 py-3 text-left text-sm font-semibold leading-6 shadow-[0_6px_14px_rgba(7,10,8,0.04)] outline-none transition active:scale-[0.99] focus-visible:ring-2 focus-visible:ring-offset-2"
+              style={{ borderColor: theme.primary, backgroundColor: theme.bgCardElevated, color: theme.textSecondary, '--tw-ring-color': theme.primary, '--tw-ring-offset-color': theme.bgCard } as CSSProperties}
+            >
+              <span className="min-w-0 flex-1">
+                <span className="block" style={{ color: theme.textPrimary }}>{text.personalizationNudgeTitle}</span>
+                <span className="mt-1 block text-sm font-normal leading-6" style={{ color: theme.textSecondary }}>{text.personalizationNudgeBody}</span>
+                <span className="mt-2 block text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: accentText }}>
+                  {text.personalizationNudgeAction}
+                </span>
+              </span>
+              <span className="grid size-10 shrink-0 place-items-center rounded-full transition-transform group-hover:translate-x-0.5" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }} aria-hidden="true">
+                <ChevronRight size={19} strokeWidth={2.25} />
+              </span>
+            </button>
+          ) : null}
+
+          <ChallengeRecommendationCard
+            recommendation={challengeRecommendation}
+            theme={theme}
+            ts={ts}
+            onOpenChallenge={onOpenRecommendedChallenge}
+            homeGlow
+            compact
+          />
         </div>
       </section>
 
@@ -14989,7 +15036,7 @@ function ScreenTabs<T extends string>({
   ariaLabel: string;
   theme: ThemeColors;
   variant?: "surface" | "primary";
-  layout?: "auto" | "grid" | "scroll";
+  layout?: "auto" | "fit" | "grid" | "scroll";
   className?: string;
   scrollItemMinWidth?: string;
   railRef?: RefObject<HTMLDivElement | null>;
@@ -15002,13 +15049,14 @@ function ScreenTabs<T extends string>({
       railRef.current = node;
     }
   }, [railRef]);
-  const compactTwoTabGrid = layout !== "scroll" && tabs.length === 2;
+  const fitContentLayout = layout === "fit";
+  const compactTwoTabGrid = layout !== "scroll" && !fitContentLayout && tabs.length === 2;
   const useGridLayout = layout === "grid" || compactTwoTabGrid;
   const showSwipeCue = useRailOverflowCue(internalRailRef, tabs.length > 1 && !useGridLayout, [tabs.length, value, layout, scrollItemMinWidth, useGridLayout]);
   const compactRail = useGridLayout;
   return (
     <div
-      className={`relative z-20 rounded-2xl border p-1.5 shadow-sm ${className}`.trim()}
+      className={`relative z-20 rounded-2xl border p-1.5 shadow-sm ${fitContentLayout ? "w-fit max-w-full" : ""} ${className}`.trim()}
       role="tablist"
       aria-orientation="horizontal"
       aria-label={ariaLabel}
@@ -15021,7 +15069,7 @@ function ScreenTabs<T extends string>({
         ref={setRailRef}
         className={useGridLayout
           ? "grid min-w-0 gap-1 rounded-[0.95rem]"
-          : `flex min-w-0 snap-x snap-mandatory gap-1 overflow-x-auto rounded-[0.95rem] [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${showSwipeCue ? cuePaddingClassName : ""}`.trim()}
+          : `flex min-w-0 snap-x snap-mandatory gap-1 overflow-x-auto rounded-[0.95rem] [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${fitContentLayout ? "w-fit max-w-full" : ""} ${showSwipeCue ? cuePaddingClassName : ""}`.trim()}
         style={useGridLayout
           ? { gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` }
           : undefined}
@@ -15340,54 +15388,6 @@ function ModalHeaderChrome({
         <ModalCornerCloseButton onClick={onClose} theme={theme} ariaLabel={closeAriaLabel} className={closeClassName} />
       </div>
     </div>
-  );
-}
-
-function ContextualNextAction({
-  eyebrow,
-  title,
-  body,
-  actionLabel,
-  onAction,
-  theme,
-}: {
-  eyebrow: string;
-  title: string;
-  body: string;
-  actionLabel?: string;
-  onAction?: () => void;
-  theme: ThemeColors;
-}) {
-  return (
-    <section
-      className="editorial-surface overflow-hidden rounded-[1.35rem] border shadow-[0_10px_24px_rgba(7,10,8,0.05)]"
-      style={{
-        borderColor: theme.borderLight,
-        background: `linear-gradient(180deg, color-mix(in srgb, ${theme.bgCardElevated} 92%, white 8%), ${theme.bgCard})`,
-      }}
-    >
-      <div className="h-1 w-full" style={{ background: `linear-gradient(90deg, ${theme.accentGold}, color-mix(in srgb, ${theme.primary} 72%, ${theme.accentGold} 28%))` }} />
-      <div className="flex flex-col gap-4 p-4 sm:p-5 lg:flex-row lg:items-start lg:justify-between">
-        <div className="min-w-0">
-          <p className="text-[10.5px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>{eyebrow}</p>
-          <h2 className="mt-2 text-[1.22rem] font-semibold leading-tight text-balance sm:text-[1.45rem]" style={{ color: theme.textPrimary }}>{title}</h2>
-          <p className="mt-2 max-w-2xl text-[0.93rem] leading-6 sm:text-[0.98rem] sm:leading-7" style={{ color: theme.textSecondary }}>{body}</p>
-        </div>
-        {actionLabel && onAction ? (
-          <button
-            type="button"
-            onClick={onAction}
-            className="premium-tap-card inline-flex h-11 w-full shrink-0 items-center justify-center rounded-full px-4 text-sm font-semibold shadow-[0_12px_22px_rgba(7,10,8,0.08)] sm:w-auto"
-            style={{
-              background: `linear-gradient(180deg, color-mix(in srgb, ${theme.primary} 96%, white 4%), ${theme.primary})`,
-              color: theme.textOnPrimary,
-            }}
-          >
-            {actionLabel}
-          </button>
-        ) : null}
-      </div>
-    </section>
   );
 }
 
@@ -16189,27 +16189,12 @@ function AccountPanel({
           </div>
       </DisclosureSection>
 
-      {challengeRecommendation ? (
-      <ContextualNextAction
-        eyebrow={challengeRecommendationEyebrow(
-          challengeRecommendation,
-          ts,
-          ts("labels.accountQuietFit")
-        )}
-        title={ts(challengeRecommendation.titleKey, challengeRecommendation.title)}
-        body={accountRecommendationBody}
-          actionLabel={challengeRecommendation.actionKind === "continue" ? ts("challenges.continueChallenge") : ts("challenges.startChallenge")}
-          onAction={() => onOpenRecommendedChallenge(challengeRecommendation.challengeId)}
-          theme={theme}
-        />
-      ) : null}
-
       <ScreenTabs
         value={accountSection}
         onChange={setAccountSection}
         ariaLabel={ts('labels.accountSections')}
         theme={theme}
-        layout="scroll"
+        layout="fit"
         cuePaddingClassName=""
         tabs={[
           { key: "personalization", label: ts('labels.accountPersonalizationTab') },
@@ -16382,6 +16367,27 @@ function AccountPanel({
 
           <SupportReportCard theme={theme} ts={ts} onReportIssue={onReportIssue} />
         </div>
+      ) : null}
+
+      {challengeRecommendation ? (
+        <DisclosureSection
+          title={ts(challengeRecommendation.titleKey, challengeRecommendation.title)}
+          summary={accountRecommendationBody}
+          eyebrow={challengeRecommendationEyebrow(challengeRecommendation, ts, ts("labels.accountQuietFit"))}
+          compactCollapsed
+          showDetailsLabel={text.showDetails}
+          hideDetailsLabel={text.hideDetails}
+          theme={theme}
+        >
+          <button
+            type="button"
+            onClick={() => onOpenRecommendedChallenge(challengeRecommendation.challengeId)}
+            className="min-h-11 w-full rounded-full px-4 text-sm font-semibold"
+            style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+          >
+            {challengeRecommendation.actionKind === "continue" ? ts("challenges.continueChallenge") : ts("challenges.startChallenge")}
+          </button>
+        </DisclosureSection>
       ) : null}
     </div>
   );
@@ -29337,16 +29343,7 @@ function DecisionCompanionPanel({
         summary={events.length ? insight.gentleObservation : decisionTimelineObservation(language, [], 0)}
         onClose={() => setWisdomTimelineOpen(false)}
       />
-      {true ? (
-        <>
-          <ContextualNextAction
-            eyebrow={runtime.nextInDecisions}
-            title={decisionNextTitle}
-            body={decisionNextBodyWithFocus}
-            theme={theme}
-          />
-        </>
-      ) : null}
+      <ScreenPurposeHeader eyebrow={runtime.nextInDecisions} title={decisionNextTitle} body={decisionNextBodyWithFocus} icon={Compass} theme={theme} />
 
       <section className="space-y-4">
         {true ? (
@@ -30119,6 +30116,12 @@ function ReflectPanel({
 }) {
   return (
     <div className="min-w-0 space-y-4">
+      <ScreenPurposeHeader
+        title={ts('nav.reflect')}
+        body={ts('labels.reflectIntroShort')}
+        icon={Feather}
+        theme={theme}
+      />
       <section id="reflect-gratitude" className="scroll-mt-24">
         <h2 className="mb-3 text-xl font-semibold tracking-tight" style={{ color: theme.textPrimary }}>{ts('labels.gratitudeLens')}</h2>
         <GratitudeLensPanel
@@ -31130,37 +31133,13 @@ function LibraryPanel({
 
   return (
     <div className="min-w-0 space-y-4">
-      <ListenForWisdom
-        mode={mode}
-        language={preferences.language}
-        bibleTranslation={preferences.bibleTranslation}
-        userSignedIn={userSignedIn}
-        thirdPartyAiConsent={thirdPartyAiConsent}
-        voiceEnabled={preferences.voiceEnabled}
-        onEnableThirdPartyAi={onEnableThirdPartyAi}
-        onSpeak={onSpeakFromListen}
-        onStopSpeaking={onStopSpeakingFromListen}
-        ts={ts}
-        theme={theme}
-        decisions={decisions}
-        counselContacts={counselContacts}
-        onOpenScripture={onScriptureOpen}
-        onReflect={onReflectFromListen}
-        onAttach={onAttachFromListen}
-        onShare={onShareFromListen}
-      />
-      <ContextualNextAction
-        eyebrow={runtime.nextInLibrary}
-        title={libraryNextTitle}
-        body={libraryNextBody}
-        theme={theme}
-      />
+      <ScreenPurposeHeader eyebrow={runtime.nextInLibrary} title={libraryNextTitle} body={libraryNextBody} icon={BookOpen} theme={theme} />
       <ScreenTabs
           value={librarySection}
           onChange={(v) => setLibrarySection(v as typeof librarySection)}
           ariaLabel={ts('labels.librarySections')}
           theme={theme}
-          layout="auto"
+          layout="fit"
           cuePaddingClassName=""
           tabs={[
             { key: "explore", label: ts('labels.libraryExplore') },
@@ -31395,6 +31374,36 @@ function LibraryPanel({
           )}
         </section>
       ) : null}
+
+      <DisclosureSection
+        title={ts('listen.compactTitle')}
+        summary={ts('listen.compactBody')}
+        eyebrow={ts('listen.eyebrow')}
+        compactCollapsed
+        showDetailsLabel={ts('showDetails')}
+        hideDetailsLabel={ts('hideDetails')}
+        theme={theme}
+      >
+        <ListenForWisdom
+          mode={mode}
+          language={preferences.language}
+          bibleTranslation={preferences.bibleTranslation}
+          userSignedIn={userSignedIn}
+          thirdPartyAiConsent={thirdPartyAiConsent}
+          voiceEnabled={preferences.voiceEnabled}
+          onEnableThirdPartyAi={onEnableThirdPartyAi}
+          onSpeak={onSpeakFromListen}
+          onStopSpeaking={onStopSpeakingFromListen}
+          ts={ts}
+          theme={theme}
+          decisions={decisions}
+          counselContacts={counselContacts}
+          onOpenScripture={onScriptureOpen}
+          onReflect={onReflectFromListen}
+          onAttach={onAttachFromListen}
+          onShare={onShareFromListen}
+        />
+      </DisclosureSection>
     </div>
   );
 }

@@ -14,13 +14,26 @@ test("Home renders Today and Ask in one continuous surface", () => {
   assert.doesNotMatch(homeRender, /labels\.homeAskTab/);
 });
 
-test("Ask Aletheia is the first product surface on Home", () => {
+test("Home orients the person before presenting Ask as the primary work surface", () => {
+  const welcomeIndex = homeRender.indexOf("<HomeWelcomeHeader");
   const askIndex = homeRender.indexOf("<CompanionPanel");
   const todayIndex = homeRender.indexOf("<HomeDashboard");
   const formationIndex = homeRender.indexOf("<FormationRailSection");
+  assert.ok(welcomeIndex > 0);
   assert.ok(askIndex > 0);
+  assert.ok(welcomeIndex < askIndex);
   assert.ok(askIndex < todayIndex);
   assert.ok(todayIndex < formationIndex);
+});
+
+test("Today presents daily wisdom before optional personalization and formation nudges", () => {
+  const dashboard = app.slice(app.indexOf("function HomeDashboard"), app.indexOf("function WeeklyReviewRailStat"));
+  const todayIndex = dashboard.indexOf("<TodayVisualPanel");
+  const personalizationIndex = dashboard.indexOf("personalizationContextEmpty ?");
+  const recommendationIndex = dashboard.indexOf("<ChallengeRecommendationCard");
+  assert.ok(todayIndex > 0);
+  assert.ok(todayIndex < personalizationIndex);
+  assert.ok(personalizationIndex < recommendationIndex);
 });
 
 test("Today begins with Aletheia-owned visual assets instead of remote stock imagery", () => {

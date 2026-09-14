@@ -29,6 +29,18 @@ test("Account routes privacy and system workflows into Settings", () => {
   assert.match(account, /<AccountShareCard/);
 });
 
+test("short Account and Library tab sets shrink to their content", () => {
+  const tabs = app.slice(app.indexOf("function ScreenTabs"), app.indexOf("function ContextualNextAction"));
+  assert.match(tabs, /layout\?: "auto" \| "fit" \| "grid" \| "scroll"/);
+  assert.match(tabs, /fitContentLayout \? "w-fit max-w-full"/);
+
+  const account = app.slice(app.indexOf("function AccountPanel"), app.indexOf("function ChallengeRecommendationCard"));
+  assert.match(account, /ariaLabel=\{ts\('labels\.accountSections'\)\}[\s\S]*?layout="fit"/);
+
+  const library = app.slice(app.indexOf("function LibraryPanel"), app.indexOf("function JournalPanel"));
+  assert.match(library, /ariaLabel=\{ts\('labels\.librarySections'\)\}[\s\S]*?layout="fit"/);
+});
+
 test("primary navigation restores orientation without truncating the narrow brand", () => {
   assert.match(app, /pendingWorkspaceFocusRef\.current = true/);
   assert.match(app, /workspaceRef\.current\?\.focus\(\{ preventScroll: true \}\)/);
