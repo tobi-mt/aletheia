@@ -36,6 +36,12 @@ test("Today presents daily wisdom before optional personalization and formation 
   assert.ok(personalizationIndex < recommendationIndex);
 });
 
+test("Home greeting transitions directly into Ask without a stacked spacer", () => {
+  const welcome = app.slice(app.indexOf("function HomeWelcomeHeader"), app.indexOf("function ScreenPurposeHeader"));
+  assert.doesNotMatch(welcome, /mt-4 block h-px w-full/);
+  assert.match(homeRender, /id="home-today" className="mb-3 scroll-mt-24 sm:mb-4"/);
+});
+
 test("Today begins with Aletheia-owned visual assets instead of remote stock imagery", () => {
   const visualPanel = app.slice(app.indexOf("function TodayVisualPanel"), app.indexOf("function HomeDashboard"));
   assert.match(visualPanel, /useState\(true\)/);

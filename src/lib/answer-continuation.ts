@@ -47,8 +47,10 @@ export function buildAnswerContinuation(question: string, answer: string, mode: 
     : null;
 }
 
-export function continuationLabel(direction: string, continueLabel: string, maxLength = 58) {
+export function continuationLabel(direction: string, continueLabel: string, maxLength?: number) {
   const cleanDirection = clean(direction).replace(/[.!?]+$/, "");
-  const clipped = cleanDirection.length > maxLength ? `${cleanDirection.slice(0, maxLength - 1).trimEnd()}…` : cleanDirection;
+  const clipped = maxLength && cleanDirection.length > maxLength
+    ? `${cleanDirection.slice(0, maxLength - 1).trimEnd()}…`
+    : cleanDirection;
   return `${continueLabel}: ${clipped}`;
 }

@@ -22,11 +22,25 @@ test("Decision owns the live discernment readout", () => {
 
 test("eligible answers promote one contextual continuation before secondary actions", () => {
   const currentCounsel = app.slice(app.indexOf("function CurrentCounselCard"), app.indexOf("function AnswerFeedback"));
-  const continuationIndex = currentCounsel.indexOf("continuationLabel(continuation.direction");
+  const continuationIndex = currentCounsel.indexOf("continuation.direction");
   const secondaryActionsIndex = currentCounsel.indexOf("{showDecisionActions ?");
   assert.ok(continuationIndex > 0);
   assert.ok(continuationIndex < secondaryActionsIndex);
   assert.match(currentCounsel, /onContinue\(exchange, continuation\)/);
+  assert.doesNotMatch(currentCounsel, /line-clamp-2/);
+  assert.doesNotMatch(currentCounsel, /line-clamp-3/);
+  assert.match(currentCounsel, /disabled=\{isWorking\}/);
+  const continuationHandler = app.slice(app.indexOf("function continueFromExchange"), app.indexOf("function waitFromExchange"));
+  assert.match(continuationHandler, /setAnswerFocusId\("continuation-pending"\)/);
+  assert.doesNotMatch(continuationHandler, /showView|setHomeSection/);
+});
+
+test("answer scripture evidence stays compact until requested", () => {
+  const scriptureSources = app.slice(app.indexOf("function ScriptureChips"), app.indexOf("function escapeRegExp"));
+  assert.match(scriptureSources, /aria-expanded=\{expanded\}/);
+  assert.match(scriptureSources, /uniqueSources\.length/);
+  assert.match(scriptureSources, /overflow-x-auto/);
+  assert.doesNotMatch(scriptureSources, /scriptureDisplayLabel\(source\.scripture/);
 });
 
 test("Gratitude keeps optional postcard styling behind photo-aware disclosure", () => {

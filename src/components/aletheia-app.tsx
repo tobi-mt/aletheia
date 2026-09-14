@@ -9245,6 +9245,7 @@ function startFirstRunGuestFlow() {
       kind: `suggested_${continuation.kind}`,
       ...analyticsQuestionMetadata(exchange.question?.text ?? "", mode),
     });
+    setAnswerFocusId("continuation-pending");
     void askAletheia(continuation.prompt, undefined, visibleLabel);
   }
 
@@ -12457,7 +12458,7 @@ function startFirstRunGuestFlow() {
               {activeView === "companion" ? (
                 <Screen key="companion">
                   <ViewIdentityFrame identity={homeSection} theme={theme}>
-                    <div id="home-today" className="mb-5 scroll-mt-24">
+                    <div id="home-today" className="mb-3 scroll-mt-24 sm:mb-4">
                       <HomeWelcomeHeader
                         currentLocalMonth={currentLocalMonth}
                         currentLocalHour={currentLocalHour}
@@ -13440,7 +13441,7 @@ function MobileNav({
     <button
       type="button"
       onClick={handleClick}
-      className={`flex h-12 min-w-0 flex-col items-center justify-center gap-1 rounded-[1.8rem] border px-1 text-[10px] font-semibold sm:text-[11px] transition-all duration-300 ease-out ${
+      className={`flex min-h-12 min-w-0 flex-col items-center justify-center gap-1 rounded-[1.8rem] border px-1 py-1 text-[9px] font-semibold leading-[0.7rem] sm:text-[10px] transition-all duration-300 ease-out ${
         active ? "font-bold" : "font-semibold"
       }`}
       style={{
@@ -13465,7 +13466,7 @@ function MobileNav({
       ) : (
         <Icon size={17} />
       )}
-      <span className="max-w-full truncate" style={{ wordBreak: "normal", overflowWrap: "normal", hyphens: "none" }}>{label}</span>
+      <span className="max-w-full break-words text-center">{label}</span>
     </button>
   );
 }
@@ -14554,7 +14555,7 @@ function HomeWelcomeHeader({
   });
 
   return (
-    <header className="relative min-w-0 px-1 pb-4 pt-1 sm:px-2 sm:pb-5">
+    <header className="relative min-w-0 px-1 pt-1 sm:px-2">
       <div className="max-w-2xl pr-12 sm:pr-16">
         <p className="text-[10.5px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.accentGold }} suppressHydrationWarning>
           {eyebrow}
@@ -14569,7 +14570,6 @@ function HomeWelcomeHeader({
       <span className="absolute right-1 top-2 grid size-10 place-items-center rounded-full border sm:right-2 sm:size-11" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.accentGold }} aria-hidden="true">
         <Sparkles size={18} />
       </span>
-      <span className="mt-4 block h-px w-full" style={{ backgroundColor: theme.borderLight }} aria-hidden="true" />
     </header>
   );
 }
@@ -14950,7 +14950,7 @@ function WeeklyReviewRailStat({
       title={accessibleLabel}
     >
       <div className="relative z-10 flex items-center justify-between gap-2">
-        <p className="min-w-0 truncate text-[8.5px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.accentGold }}>
+        <p className="min-w-0 break-words text-[8.5px] font-semibold uppercase leading-3 tracking-[0.16em]" style={{ color: theme.accentGold }}>
           {label}
         </p>
         <span className="inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-[8px] font-semibold uppercase tracking-[0.06em]" style={deltaStyle}>
@@ -15097,7 +15097,7 @@ function ScreenTabs<T extends string>({
                 borderColor: active ? theme.primary : "transparent",
               }}
             >
-              <span className="block min-w-0 truncate whitespace-nowrap">
+              <span className="block min-w-0 break-words whitespace-normal">
                 {tab.label}
               </span>
             </button>
@@ -22323,7 +22323,7 @@ function AvatarPickerModal({
                   height={64}
                   className="mx-auto size-[64px] rounded-2xl border object-cover"
                 />
-                <p className="mt-1.5 truncate text-center text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ color: theme.textSecondary }}>
+                <p className="mt-1.5 break-words text-center text-[10px] font-semibold uppercase leading-4 tracking-[0.06em]" style={{ color: theme.textSecondary }}>
                   {option.name}
                 </p>
               </button>
@@ -27276,6 +27276,7 @@ function CompanionPanel({
                 onShare={onShare}
                 onFeedback={onFeedback}
                 signedIn={signedIn}
+                isWorking={isWorking}
               />
             </div>
           ) : null}
@@ -27321,34 +27322,74 @@ function CompanionPanel({
 }
 
 function ScriptureChips({
+  ts,
   theme,
   sources,
   preferences,
   onScriptureOpen,
 }: {
+  ts: (key: string, fallback?: string) => string;
   theme: ThemeColors;
   sources?: WisdomEntry[];
   preferences: UserPreferences;
   onScriptureOpen: (scripture: string) => void;
 }) {
-  if (!sources?.length) {
+  const [expanded, setExpanded] = useState(false);
+  const railRef = useRef<HTMLDivElement | null>(null);
+  const uniqueSources = sources?.filter(
+    (source, index, all) => all.findIndex((candidate) => candidate.scripture === source.scripture) === index,
+  ) ?? [];
+  const railHasOverflow = useRailOverflowCue(railRef, expanded && uniqueSources.length > 1, [expanded, uniqueSources.length]);
+
+  if (!uniqueSources.length) {
     return null;
   }
 
   return (
-    <div className="mt-4 flex flex-wrap gap-2">
-      {sources.map((source) => (
-        <button
-          type="button"
-          key={source.scripture}
-          onClick={() => onScriptureOpen(source.scripture)}
-          className="rounded-md border px-2 py-1 text-xs font-semibold transition"
-          style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textSecondary }}
-          suppressHydrationWarning
-        >
-          {localizedScriptureReference(source.scripture, preferences.language)} · {scriptureDisplayLabel(source.scripture, preferences)}
-        </button>
-      ))}
+    <div className="mt-4 border-t pt-3" style={{ borderColor: theme.borderLight }}>
+      <button
+        type="button"
+        onClick={() => setExpanded((current) => !current)}
+        className="flex min-h-10 w-full items-center justify-between gap-3 rounded-lg px-2 text-left transition"
+        style={{ color: theme.textSecondary }}
+        aria-expanded={expanded}
+      >
+        <span className="flex min-w-0 items-center gap-2 text-xs font-semibold">
+          <BookOpen size={14} style={{ color: theme.accentGold }} aria-hidden="true" />
+          <span>{ts('labels.scripture')} · {uniqueSources.length}</span>
+          <span className="hidden truncate font-normal sm:inline" style={{ color: theme.textMuted }}>
+            {scriptureDisplayLabel(uniqueSources[0].scripture, preferences)}
+          </span>
+        </span>
+        <DisclosureIndicator
+          open={expanded}
+          theme={theme}
+          label={expanded ? ts('hideDetails') : ts('showDetails')}
+        />
+      </button>
+      {expanded ? (
+        <div className="relative mt-2">
+          <div
+            ref={railRef}
+            className="flex min-w-0 snap-x gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            aria-label={ts('labels.scripture')}
+          >
+            {uniqueSources.map((source) => (
+              <button
+                type="button"
+                key={source.scripture}
+                onClick={() => onScriptureOpen(source.scripture)}
+                className="min-h-10 shrink-0 snap-start whitespace-nowrap rounded-full border px-3 py-2 text-xs font-semibold transition"
+                style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                suppressHydrationWarning
+              >
+                {localizedScriptureReference(source.scripture, preferences.language)}
+              </button>
+            ))}
+          </div>
+          {railHasOverflow ? <RailOverflowCorner theme={theme} /> : null}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -28164,9 +28205,9 @@ function CounselDecisionShareRail({
                   size={30}
                   className="size-[30px] shrink-0"
                 />
-                <div className="min-w-0">
-                  <p className="truncate text-[0.98rem] font-semibold leading-5 tracking-[-0.01em]" style={{ color: theme.textPrimary }}>{contact.name}</p>
-                  <p className="truncate text-[10px] font-medium uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
+                <div className="min-w-0 flex-1">
+                  <p className="break-words text-[0.98rem] font-semibold leading-5 tracking-[-0.01em]" style={{ color: theme.textPrimary }}>{contact.name}</p>
+                  <p className="mt-0.5 break-words text-[10px] font-medium uppercase leading-4 tracking-[0.1em]" style={{ color: theme.textMuted }}>
                     {localizedCounselRoleLabel(contact.role, ts)}
                   </p>
                 </div>
@@ -28223,7 +28264,7 @@ function CounselDecisionShareRail({
                     <Check size={12} />
                   </span>
                 </div>
-                <p className="mt-3 line-clamp-3 text-sm font-semibold leading-6 tracking-[-0.01em]" style={{ color: theme.textPrimary }}>
+                <p className="mt-3 break-words text-sm font-semibold leading-6 tracking-[-0.01em]" style={{ color: theme.textPrimary }}>
                   {decision.title}
                 </p>
               </button>
@@ -28349,7 +28390,7 @@ function RangeField({
   return (
     <label className="rounded-xl border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
       <span className="flex items-center justify-between gap-3">
-        <span className="min-w-0 truncate text-xs font-semibold uppercase tracking-[0.12em]">{label}</span>
+        <span className="min-w-0 break-words text-xs font-semibold uppercase leading-4 tracking-[0.1em]">{label}</span>
         <span className="shrink-0 whitespace-nowrap rounded-md px-2 py-1 text-[10px] font-semibold tracking-[0.08em]" style={{ backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}>
           {value === null ? ts('placeholders.notSet') : String(value)}
         </span>
@@ -28419,6 +28460,7 @@ function CurrentCounselCard({
   onShare,
   onFeedback,
   signedIn,
+  isWorking,
 }: {
   ts: (key: string, fallback?: string) => string;
   theme: ThemeColors;
@@ -28442,6 +28484,7 @@ function CurrentCounselCard({
   onShare: (channel: ShareChannel) => void;
   onFeedback: (value: string) => void;
   signedIn: boolean;
+  isWorking: boolean;
 }) {
   const text = { ...englishText, ...ui };
   const calmerActionCopy = preferences.language === "en" ? {
@@ -28480,7 +28523,7 @@ function CurrentCounselCard({
             <span className="sr-only">{`${ui.currentLens}: ${lensLabel}`}</span>
           </span>
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>{ui.yourQuestion}</p>
-          <p className="mt-2.5 line-clamp-3 text-[0.98rem] leading-7 tracking-[-0.01em]" style={{ color: theme.textPrimary }}>
+          <p className="mt-2.5 break-words text-[0.98rem] leading-7 tracking-[-0.01em]" style={{ color: theme.textPrimary }}>
             {cleanDisplayText(question)}
           </p>
         </div>
@@ -28540,19 +28583,26 @@ function CurrentCounselCard({
             onScriptureOpen={onScriptureOpen}
           />
         </div>
-        <ScriptureChips theme={theme} sources={exchange.answer.sources} preferences={preferences} onScriptureOpen={onScriptureOpen} />
+        <ScriptureChips ts={ts} theme={theme} sources={exchange.answer.sources} preferences={preferences} onScriptureOpen={onScriptureOpen} />
       </article>
       {continuation ? (
         <button
           type="button"
           onClick={() => onContinue(exchange, continuation)}
-          className="flex min-h-12 w-full items-center justify-between gap-3 rounded-[1.1rem] border px-4 py-3 text-left text-sm font-semibold transition active:scale-[0.99]"
+          disabled={isWorking}
+          className="flex min-h-12 w-full items-start justify-between gap-3 rounded-[1.1rem] border px-4 py-3.5 text-left transition active:scale-[0.99] disabled:cursor-wait disabled:opacity-60"
           style={{ borderColor: theme.primary, backgroundColor: theme.primary, color: theme.textOnPrimary }}
+          aria-busy={isWorking}
         >
-          <span className="min-w-0 line-clamp-2">
-            {continuationLabel(continuation.direction, ts("challenges.continueChallenge", "Continue"))}
+          <span className="min-w-0">
+            <span className="block text-[10px] font-semibold uppercase tracking-[0.16em] opacity-75">
+              {ts("challenges.continueChallenge", "Continue")}
+            </span>
+            <span className="mt-1 block text-sm font-semibold leading-5">
+              {continuation.direction}
+            </span>
           </span>
-          <ChevronRight size={17} className="shrink-0" aria-hidden="true" />
+          <ChevronRight size={17} className="mt-1 shrink-0" aria-hidden="true" />
         </button>
       ) : null}
       {showDecisionActions ? (
@@ -28918,7 +28968,7 @@ function ConversationHistoryModal({
                 onScriptureOpen={onScriptureOpen}
               />
             </div>
-            <ScriptureChips theme={theme} sources={answerSources} preferences={preferences} onScriptureOpen={onScriptureOpen} />
+            <ScriptureChips ts={ts} theme={theme} sources={answerSources} preferences={preferences} onScriptureOpen={onScriptureOpen} />
           </section>
 
           <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-4" style={{ borderColor: theme.borderLight }}>

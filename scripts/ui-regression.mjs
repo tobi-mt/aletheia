@@ -668,8 +668,16 @@ async function checkScriptureQuickReadChrome(page, viewport, colorScheme) {
 
   try {
     await clickTab(page, 'Home', viewport.mobile);
+    const scriptureDisclosure = page.getByRole('button', { name: /^Scripture · \d+/i }).first();
+    if (await scriptureDisclosure.isVisible().catch(() => false)) {
+      await scriptureDisclosure.click();
+    }
+    const disclosedReference = page.locator('div[aria-label="Scripture"] button').first();
+    const openLocator = await disclosedReference.isVisible().catch(() => false)
+      ? disclosedReference
+      : page.getByRole('button', { name: /^Scripture/i }).first();
     const quickRead = await verifyModalChrome(page, {
-      openLocator: page.getByRole('button', { name: /^Scripture/i }).first(),
+      openLocator,
       closeLabel: 'Close scripture quick read',
       titleSelector: 'h2',
       screenshotName: `${viewport.name.replace(/\s+/g, '-').toLowerCase()}-${colorScheme}-scripture-quick-read`,

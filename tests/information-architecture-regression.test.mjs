@@ -33,6 +33,8 @@ test("short Account and Library tab sets shrink to their content", () => {
   const tabs = app.slice(app.indexOf("function ScreenTabs"), app.indexOf("function ContextualNextAction"));
   assert.match(tabs, /layout\?: "auto" \| "fit" \| "grid" \| "scroll"/);
   assert.match(tabs, /fitContentLayout \? "w-fit max-w-full"/);
+  assert.match(tabs, /break-words whitespace-normal/);
+  assert.doesNotMatch(tabs, /truncate whitespace-nowrap/);
 
   const account = app.slice(app.indexOf("function AccountPanel"), app.indexOf("function ChallengeRecommendationCard"));
   assert.match(account, /ariaLabel=\{ts\('labels\.accountSections'\)\}[\s\S]*?layout="fit"/);
@@ -47,6 +49,17 @@ test("primary navigation restores orientation without truncating the narrow bran
   assert.match(app, /ref=\{workspaceRef\}[\s\S]*?tabIndex=\{-1\}[\s\S]*?aria-label=/);
   assert.match(app, /hidden whitespace-nowrap text-\[11px\] leading-4 min-\[430px\]:block/);
   assert.doesNotMatch(app, /className="truncate text-\[11px\] leading-4"/);
+});
+
+test("navigation and counsel selection controls keep their full context visible", () => {
+  const mobileNav = app.slice(app.indexOf("function MobileNav"), app.indexOf("function ViewIdentityFrame"));
+  assert.match(mobileNav, /break-words text-center/);
+  assert.doesNotMatch(mobileNav, /truncate/);
+
+  const decisionShare = app.slice(app.indexOf("function CounselDecisionShareRail"), app.indexOf("function CounselVoiceCard"));
+  assert.match(decisionShare, /break-words text-\[0\.98rem\]/);
+  assert.match(decisionShare, /mt-3 break-words text-sm/);
+  assert.doesNotMatch(decisionShare, /line-clamp-3|truncate/);
 });
 
 test("quiet onboarding completion does not obscure the first workspace", () => {

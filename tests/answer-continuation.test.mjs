@@ -15,7 +15,9 @@ test("continuation follows a concrete direction from the answer", () => {
 
 test("continuations require a real question and bounded answer sentence", () => {
   assert.equal(buildAnswerContinuation("", "Try one small step.", "Purpose"), null);
-  const label = continuationLabel("A very long direction ".repeat(10), "Continue");
+  const completeLabel = continuationLabel("A very long direction ".repeat(10), "Continue");
+  assert.doesNotMatch(completeLabel, /…$/);
+  const label = continuationLabel("A very long direction ".repeat(10), "Continue", 58);
   assert.ok(label.length <= 70);
   assert.match(label, /…$/);
 });
